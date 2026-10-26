@@ -3072,11 +3072,11 @@
           },
           {
             "original_clause": "不得當作 UNCONFIGURED 照舊匯出缺 NFB 孔的完整 DXF",
-            "proof": "On the reopened native GUI owner, production _assert_legacy_nfb_export_scope_safe blocks all old door/base/body exports; the real _export_selected_parts path for the selected old DOOR reports NFB/source HOLD, returns no output and writes no DXF. Independent HEAD/TAIL is not blocked solely due to NFB."
+            "proof": "On the reopened native GUI, the original legacy guard forbids the obsolete holeless generic door/base/body DXF. The actual multibay _export_selected_parts path attempts NFB-dependent BOX BODY/SIDE production, explicitly refuses when submitted but no current source/manufacturing proof, and writes no DXF. Independently proven outer DOOR is intentionally permitted to export separately."
           },
           {
             "original_clause": "阻止受影響完整匯出並明確警示",
-            "proof": "Negative manufacturing assertion checks actual export dispatcher returned explicit NFB/source diagnostics and empty file inventory; reopened V3 preserves original submitted Bay and primary prior feature owners. Legacy V1/V2 submission downgrade files are explicitly rejected by existing schema test."
+            "proof": "Actual multibay dispatcher returns source/NFB-specific diagnostics and no DXF for selected NFB-dependent BOX BODY/SIDE while the reopened V3 project preserves committed NFB. Prior schema tests reject old-schema false downgrades."
           }
         ],
         "source_owner_paths": [
