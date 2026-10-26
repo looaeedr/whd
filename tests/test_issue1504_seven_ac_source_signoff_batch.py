@@ -35,6 +35,7 @@ def test_batch_signoff_seven_require_independent_real_executed_assertions():
     # preserve exact Counter/readback equality for all positive statuses.
     live_counts.setdefault("DEFERRED_PRODUCT_EVIDENCE", 0)
     live_counts.setdefault("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC", 0)
+    live_counts.setdefault("EVIDENCE_CANDIDATE_ONLY", 0)
     assert matrix["counts"] == live_counts
     # The original seven-row signature is fixed, but subsequent fully
     # evidenced signoffs legitimately increase the live count past 43.
