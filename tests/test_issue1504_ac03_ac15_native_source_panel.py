@@ -684,3 +684,82 @@ def test_ac51_native_tk_assigned_v5_shows_real_pair_green_only_for_exact_output(
         if modal.winfo_exists():
             modal.destroy()
         root.destroy()
+
+
+def test_ac51_original_native_assigned_list_event_reads_exact_pair_receipt_and_edits_revoke(
+    monkeypatch, tmp_path,
+):
+    """Real original ListboxSelect event consumes the scoped pair in app session.
+
+    The source-only available catalogue never gets a blanket green.
+    Changing the active NFB draft revokes a previously rendered positive
+    immediately without saving it as a manufacturing or project flag.
+    The projection stub isolates Tk event routing; actual physical pair
+    export and source-drift checks are independently run in the SAME CI.
+    """
+    from ae_engine import receiving_shared_settings as settings
+    from ae_engine import receiving_layout as layout
+    from ae_engine.receiving_nfb_model_identity import numeric_model_ref
+    from tests.test_issue1502_current_csv_original_pair_dxf import (
+        _current, _scene, _export,
+    )
+    from gui_modules.application.receiving_nfb_verified_scope_display import (
+        capture_verified_v5_pair_display,
+    )
+
+    source = _current()
+    pair = _export(source, _scene(source), tmp_path)
+    proof = capture_verified_v5_pair_display(source, pair)
+    assert proof is not None
+    models = (
+        numeric_model_ref("士林", "2P400"),
+        numeric_model_ref("士林", "3P125SN"),
+    )
+    base_setting = settings.setting_value
+
+    def current_operator_initial(row, bay_index, kind):
+        if kind == "inner_door_models":
+            return [list(models), ""]
+        return base_setting(row, bay_index, kind)
+
+    monkeypatch.setattr(settings, "setting_value", current_operator_initial)
+    # This is only the live UI event bridge. The original physical
+    # projection remains independently tested by actual source DXF tests.
+    monkeypatch.setattr(
+        layout, "project_receiving_bay_legacy_aliases",
+        lambda *_args, **_kwargs: deepcopy(source),
+    )
+    root, app, modal = _open_original_editor(monkeypatch)
+    try:
+        app._receiving_nfb_ui_session_evidence[
+            "verified_pair_exports"
+        ][(0, 0)] = proof
+        state = modal._receiving_inner_switch_state
+        row = state["rows"][0]
+        panel = modal._receiving_inner_nfb_dxf_panel
+        assert row["assigned"].size() == 2
+        assert row["available"].size() > 0
+        # The same model in AVAILABLE catalogue remains source preview only.
+        row["available"].selection_set(0)
+        row["available"].event_generate("<<ListboxSelect>>")
+        root.update()
+        assert "僅預覽" in panel.frame.cget("text")
+        # ASSIGNED model has a real previous pair DXF with exact source.
+        row["assigned"].selection_set(0)
+        row["assigned"].event_generate("<<ListboxSelect>>")
+        root.update()
+        assert "可製造（內門）" in panel.frame.cget("text")
+        assert "Set=S Bay=B" in panel.reason.get()
+        # Same source can be staged for a DIFFERENT new unit, but that is
+        # never a manufacturing approval. Existing add action repaints the
+        # draft and must revoke green synchronously without reselect.
+        _button(row["section"], "＋加入").invoke()
+        root.update()
+        assert "僅預覽" in panel.frame.cget("text")
+        assert "可製造（內門）" not in panel.reason.get()
+        assert "verified_pair_exports" not in app._phase6_input_snapshot
+        assert KEY not in app._phase6_input_snapshot
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
