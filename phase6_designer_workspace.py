@@ -399,7 +399,12 @@ class Phase6DesignerWorkspace:
                     if isinstance(value, dict)
                     else getattr(value, "parent_assembly_node", None)
                 )
-                if key in removed_nodes or parent in removed_nodes:
+                # Saved placement parents are string node IDs. A malformed
+                # list/dict/bool cannot be used for graph membership; drop the
+                # bad placement and all descendants without interrupting removal.
+                if (key in removed_nodes
+                        or (parent is not None and not isinstance(parent, str))
+                        or parent in removed_nodes):
                     newly_discarded.add(key)
             if not newly_discarded:
                 break
@@ -412,13 +417,17 @@ class Phase6DesignerWorkspace:
         allowed = set(available_parts)
 
         def _is_allowed(key, val):
-            if key in allowed:
-                return True
             parent = (
                 val.get("parent_assembly_node")
                 if isinstance(val, dict)
                 else getattr(val, "parent_assembly_node", None)
             )
+            # Reject corrupt parent types even for otherwise available parts.
+            # Legitimate virtual parents are strings handled by existing rules.
+            if parent is not None and not isinstance(parent, str):
+                return False
+            if key in allowed:
+                return True
             if parent and parent in allowed:
                 return True
             prefix = str(key).split(":")[0]
