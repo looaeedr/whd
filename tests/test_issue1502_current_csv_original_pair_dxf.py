@@ -433,3 +433,101 @@ def test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallbac
     with pytest.raises((ValueError, KeyError)):
         _scene(saved)
     assert not list(tmp_path.rglob("*.dxf"))
+
+
+@pytest.mark.parametrize("model,source_slot", [
+    ("2P400", 0),
+    ("3P125SN", 1),
+])
+@pytest.mark.parametrize("rotation", (0, 90, 180, 270))
+def test_nfb_ac11_current_v5_two_real_models_four_pivots_and_output_dxf(
+    model, source_slot, rotation, tmp_path, monkeypatch,
+):
+    """Current §7 AC11: V5 source rectangle/pivot -> installed panel -> DXF.
+
+    The *stored source* is Shihlin numeric CSV, not a missing manufacturer
+    DXF. Verify both true model sizes, the four nonmirrored rotations and
+    exact physical CUTTING centre after a real operator two-part export.
+    Legacy DXF parsing stays a separate saved-legacy-project branch.
+    """
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from ae_engine.receiving_nfb_numeric_catalog import model_spec, brand_csv_path
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from ae_engine import receiving_nfb_dxf_source as legacy_reader
+    from ae_engine import receiving_nfb_manufacturing_release as legacy_mfg
+
+    def old_source_must_not_be_required(*_args, **_kwargs):
+        pytest.fail("numeric V5 route consulted legacy manufacturer DXF")
+    monkeypatch.setattr(
+        legacy_reader, "inspect_nfb_dxf_source", old_source_must_not_be_required
+    )
+    monkeypatch.setattr(
+        legacy_mfg, "inspect_nfb_dxf_source", old_source_must_not_be_required
+    )
+    spec = model_spec("士林", model)
+    assert spec is not None and spec.dimensionally_complete
+    assert brand_csv_path("士林").is_file()
+    assert spec.opening_mm is not None
+    assert spec.screw_centers_xy_mm is not None
+    assert len(spec.screw_centers_xy_mm) == 4
+
+    snap = _current()
+    hole = deepcopy(snap["nfb_config"]["holes"][source_slot])
+    hole.update(slot_index=0, layer_index=0, manual_x_mm=0.0,
+                rotation_deg=rotation, source_brand="士林",
+                model_filename=f"nfbv5:士林:{model}")
+    snap["nfb_config"]["holes"] = [hole]
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    before = deepcopy(snap)
+    inner_id, submitted = _submitted_csv_holes(snap)
+    assert len(submitted) == 1
+    assert submitted[0].physical_hole_id == hole["physical_hole_id"]
+    trial = trial_configured_nfb_v5_inner_door_render_data(
+        snap, inner_id, holes=submitted
+    )
+    assert len(trial.patterns) == 1
+    pattern = trial.patterns[0]
+    expected_size = (spec.opening_mm[::-1] if rotation in (90, 270)
+                     else spec.opening_mm)
+    expected_centre = pattern.datum.uv_centre_mm
+    uv = tuple(pattern.opening_uv_mm)
+    assert len(uv) == 4
+    xs, ys = zip(*uv)
+    assert (max(xs) - min(xs), max(ys) - min(ys)) == pytest.approx(expected_size)
+    assert ((max(xs) + min(xs)) / 2.0,
+            (max(ys) + min(ys)) / 2.0) == pytest.approx(expected_centre)
+
+    receipt = _export(snap, _scene(snap), tmp_path)
+    assert receipt.source_hole_ids == (hole["physical_hole_id"],)
+    assert len(receipt.check_q_key) == 64
+    assert len(list(tmp_path.glob("*.dxf"))) == 2
+    door = ezdxf.readfile(receipt.inner_door_path).modelspace()
+    base = ezdxf.readfile(receipt.base_plate_path).modelspace()
+    candidates = [
+        entity for entity in door
+        if entity.dxftype() == "LWPOLYLINE"
+        and entity.closed and entity.dxf.layer == "CUTTING"
+    ]
+    def bbox(entry):
+        points = tuple((float(x), float(y)) for x, y in entry.get_points("xy"))
+        xx, yy = zip(*points)
+        return (max(xx) - min(xx), max(yy) - min(yy),
+                (max(xx) + min(xx)) / 2.0, (max(yy) + min(yy)) / 2.0)
+    target = [entry for entry in candidates
+              if tuple(round(x, 5) for x in bbox(entry)[:2]) ==
+              tuple(round(x, 5) for x in expected_size)]
+    assert len(target) == 1, "one source-owned main CUTTING, not a duplicate"
+    assert bbox(target[0])[2:] == pytest.approx(expected_centre, abs=1e-5)
+    screws = [
+        entity for entity in base
+        if entity.dxftype() == "CIRCLE" and entity.dxf.layer == "CUTTING"
+    ]
+    assert len(screws) == 4
+    assert all(float(p.dxf.radius) == pytest.approx(
+        spec.screw_diameter_mm / 2.0
+    ) for p in screws)
+    assert snap == before, "normal export cannot rewrite authoritative NFBConfig"
