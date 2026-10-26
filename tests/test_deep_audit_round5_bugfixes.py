@@ -828,3 +828,37 @@ def test_bug76_dxf_acceptance_large_overlapping_one_to_one_match_is_not_recursiv
     assert _one_to_one_tolerance_match(
         (0, 1), (0, 1), lambda _row, col: col == 0
     ) is False
+
+
+def test_bug77_joint_covering_xy_cannot_certify_contact_displaced_in_world_z():
+    """An XY overlap separated in Z is not a physical contact or valid MARKING."""
+    from ae_engine.contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+    face = ((0., 0., 0.), (20., 0., 0.), (20., 10., 0.), (0., 10., 0.))
+    region = ResolvedPhysicalMatingRegion(
+        part_id="side",
+        region_id="real-formed-skin",
+        region_role="EXPECTED_MATING_REGION",
+        physical_face_kind="MAPPED_SKIN",
+        supporting_plane=((0., 0., 0.), (0., 0., 1.)),
+        outward_normal=(0., 0., 1.),
+        world_polygon=face,
+    )
+    plane_tol = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.coplanar_distance_tolerance
+    assert validate_expected_region_coverage(region, face).status == "COVERED"
+    # Preserve source engineering robustness tolerance for numerical drift.
+    almost_on_plane = tuple((x, y, plane_tol / 2) for x, y, _ in face)
+    assert validate_expected_region_coverage(region, almost_on_plane).status == "COVERED"
+    # Both profiles are IDENTICAL after XY projection; the Z datum is not.
+    for delta_z in (plane_tol * 2, 10., -10.):
+        off_plane = tuple((x, y, delta_z) for x, y, _ in face)
+        result = validate_expected_region_coverage(region, off_plane)
+        assert result.status == "SKIPPED_FAIL_CLOSED"
+        assert result.diagnostic_code == "OVERLAP_AUTHORITY_MISSING"
+
+    from dataclasses import replace
+    invalid_plane = replace(
+        region, supporting_plane=((0., 0., 0.), (0., 0., 0.))
+    )
+    result = validate_expected_region_coverage(invalid_plane, face)
+    assert result.status == "SKIPPED_FAIL_CLOSED"
+    assert result.diagnostic_code == "OVERLAP_AUTHORITY_MISSING"
