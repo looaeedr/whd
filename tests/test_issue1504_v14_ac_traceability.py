@@ -2194,3 +2194,47 @@ def test_ac46_real_reopened_submitted_nfb_never_legacy_dxf_source_signoff():
         assert len(matches) == 1
         assert any(isinstance(n, ast.Assert)
                    for n in ast.walk(matches[0]))
+
+
+def test_ac53_versioned_mfg1_current_capability_requires_real_native_source():
+    """A versioned MFG-1 receipt cannot be replaced by a GUI enable flag."""
+    from tools.product_ci_regression import PYTEST_PATHS
+
+    manifest = _data()
+    assert manifest["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 78
+    assert manifest["counts"]["BLOCKED_1500_REAL_GUI"] <= 10
+    row = next(r for r in manifest["records"] if r["id"] == "NFB-AC-53")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
+    proof = row["acceptance_evidence"]
+    assert proof["primary_assertion"] == (
+        "tests/test_issue1500_nfb_ui1b_bridge.py"
+        "::test_ac53_real_mfg1_verified_capability_is_bound_to_exact_version_and_readiness"
+    )
+    assert row["identified_test_functions"][0]["test_name"] == (
+        "test_ac53_real_mfg1_verified_capability_is_bound_to_exact_version_and_readiness"
+    )
+    assert row["identified_test_functions"][0]["accepted"] is True
+    assert len(proof["requirement_witnesses"]) == 3
+    assert len(proof["other_required_assertions"]) >= 5
+    assert proof["current_MFG1_source_fixture_is_test_only"] is True
+    assert proof["user_cancelled_second_legacy_project_prerequisite"] is True
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    for key in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "integrated_localx_claimed", "formal_x_published",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+        "original_manufacturer_dxf_certified",
+    ):
+        assert proof[key] is False, key
+    for witness in [proof["primary_assertion"], *proof["other_required_assertions"]]:
+        path, fn = witness.split("::")
+        assert path in PYTEST_PATHS, path
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        actual = [n for n in tree.body if isinstance(n, ast.FunctionDef)
+                  and n.name == fn]
+        assert len(actual) == 1, witness
+        assert any(isinstance(n, ast.Assert) for n in ast.walk(actual[0])), witness
