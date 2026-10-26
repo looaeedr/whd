@@ -136,3 +136,54 @@ def test_fixing_plate_checkbox_is_nested_under_base_plate_and_independent_on_reb
         assert panel.fixing_plate_visibility_entry.winfo_manager() == "pack"
     finally:
         root.destroy()
+
+
+def test_multi_bay_base_plate_group_keeps_fixing_plate_toggle_independent():
+    """The synthetic '底板' group also owns the EAR toggle, not the root UI."""
+    from phase6_assembly_presentation import build_assembly_presentation_model
+
+    root = tk.Tk()
+    root.withdraw()
+    callbacks = []
+    try:
+        panel = Phase6AssemblyPanel(
+            root,
+            actions=AssemblyPanelActions(
+                on_visibility_changed=lambda: callbacks.append("redraw"),
+                on_multi_settings=lambda: None,
+            ),
+        )
+        model = build_assembly_presentation_model(
+            ("base_plate_c1_r1", "base_plate_c2_r1"),
+            label_for=lambda key: "底板" if key == "base_plate" else key,
+        )
+        panel.set_multi_settings_visible(True)
+        panel.render(model)
+        assert "base_plate" in panel.group_sections
+        assert "base_plate" not in panel.visible_vars
+        assert panel.toggle_group("base_plate") is True
+        entry = panel.fixing_plate_visibility_entry
+        assert entry is not None
+        assert entry.winfo_parent() == str(
+            panel.group_detail_frames["base_plate"]
+        )
+        assert entry.winfo_manager() == "pack"
+
+        base_group = panel.group_sections["base_plate"]
+        header = base_group.winfo_children()[0]
+        header.winfo_children()[0].invoke()  # Hide both physical Base Plates.
+        assert all(
+            not panel.visible_vars[k].get()
+            for k in ("base_plate_c1_r1", "base_plate_c2_r1")
+        )
+        assert panel.is_fixing_plate_visible() is True
+        entry.winfo_children()[0].invoke()  # Hide only the EAR.
+        assert panel.is_fixing_plate_visible() is False
+        assert len(callbacks) == 2
+        panel.render(model)
+        assert panel.is_fixing_plate_visible() is False
+        assert panel.fixing_plate_visibility_entry.winfo_parent() == str(
+            panel.group_detail_frames["base_plate"]
+        )
+    finally:
+        root.destroy()
