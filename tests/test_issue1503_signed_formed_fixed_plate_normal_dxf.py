@@ -206,7 +206,12 @@ def test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad(
     assert all(r.physical_skin_z_resolved for r in (*before, *after))
     # Only the changed second NFB tier moves; the first is unchanged.
     assert after[0].world_offset_z_mm == pytest.approx(before[0].world_offset_z_mm)
-    assert abs(after[1].world_offset_z_mm - before[1].world_offset_z_mm) == pytest.approx(4.0)
+    # The selected plate may rederive its CENTER folds; the offset is not a
+    # fixed four-millimeter delta. Actual back skin and brand-max EAR must mate.
+    assert abs(after[1].world_offset_z_mm - before[1].world_offset_z_mm) > 1e-6
+    assert after[1].base_back_skin_world_z_mm == pytest.approx(
+        before[1].base_back_skin_world_z_mm
+    )
 
     original_ears = resolve_receiving_tier_ear_contact_targets(first)
     shifted_ears = resolve_receiving_tier_ear_contact_targets(altered)
@@ -222,15 +227,11 @@ def test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad(
         )
         assert current.base_skin_z_source_verified is True
         assert not current.manufacturing_ready  # target alone is not release
-        if tier == 0:
-            assert current.target_ear_contact_world_z_mm == pytest.approx(
-                previous.target_ear_contact_world_z_mm
-            )
-        else:
-            assert abs(
-                current.target_ear_contact_world_z_mm -
-                previous.target_ear_contact_world_z_mm
-            ) == pytest.approx(4.0)
+        # Even if the selected tier's fold placement moves, every ear
+        # retains the SAME brand-wide maximum depth world Z.
+        assert current.target_ear_contact_world_z_mm == pytest.approx(
+            previous.target_ear_contact_world_z_mm
+        )
 
     from ae_engine.assembly_placement import resolve_assembly_placement
     assert resolve_assembly_placement(
@@ -305,7 +306,12 @@ def test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_
     assert [x.source_depths_mm for x in after] == [(107.0,), (68.0,)]
     assert all(x.physical_skin_z_resolved for x in (*before, *after))
     assert after[0].world_offset_z_mm == pytest.approx(before[0].world_offset_z_mm)
-    assert abs(after[1].world_offset_z_mm - before[1].world_offset_z_mm) == pytest.approx(4.0)
+    # The selected plate may rederive its CENTER folds; the offset is not a
+    # fixed four-millimeter delta. Actual back skin and brand-max EAR must mate.
+    assert abs(after[1].world_offset_z_mm - before[1].world_offset_z_mm) > 1e-6
+    assert after[1].base_back_skin_world_z_mm == pytest.approx(
+        before[1].base_back_skin_world_z_mm
+    )
     old_ears, new_ears = (resolve_receiving_tier_ear_contact_targets(s)
                           for s in (first, second))
     assert len(old_ears) == len(new_ears) == 4
@@ -319,7 +325,7 @@ def test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_
         assert not new.manufacturing_ready
         delta = abs(new.target_ear_contact_world_z_mm -
                     old.target_ear_contact_world_z_mm)
-        assert delta == pytest.approx(0.0 if idx == 0 else 4.0)
+        assert delta == pytest.approx(0.0)  # brand-max contact never follows selected NFB
 
     assert resolve_assembly_placement(
         first, "inner_door:upper:panel"
@@ -404,7 +410,12 @@ def test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_re
     assert [x.source_depths_mm for x in current] == [(107.0,), (68.0,)]
     assert all(x.physical_skin_z_resolved for x in (*prior, *current))
     assert current[0].world_offset_z_mm == pytest.approx(prior[0].world_offset_z_mm)
-    assert abs(current[1].world_offset_z_mm - prior[1].world_offset_z_mm) == pytest.approx(4.0)
+    # The selected plate may rederive its CENTER folds; the offset is not a
+    # fixed four-millimeter delta. Actual back skin and brand-max EAR must mate.
+    assert abs(current[1].world_offset_z_mm - prior[1].world_offset_z_mm) > 1e-6
+    assert current[1].base_back_skin_world_z_mm == pytest.approx(
+        prior[1].base_back_skin_world_z_mm
+    )
     old_ears, new_ears = (resolve_receiving_tier_ear_contact_targets(s)
                           for s in (before, after))
     assert len(old_ears) == len(new_ears) == 4
@@ -416,7 +427,7 @@ def test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_re
         )
         assert abs(new.target_ear_contact_world_z_mm -
                    old.target_ear_contact_world_z_mm) == pytest.approx(
-            0.0 if idx == 0 else 4.0
+            0.0  # brand-wide maximum depth fixes all EAR contact Z
         )
         assert not new.manufacturing_ready
     assert resolve_assembly_placement(
