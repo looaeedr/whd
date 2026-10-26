@@ -5,6 +5,16 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## 2026-10-26（台灣）｜NFB-AC-11 當期 CSV V5 真實主孔 pivot／板件出圖簽核候選（67→68，待完整 CI）
+
+- **不回退到舊 DXF**：NFB-AC-11 原始 §7 條文仍原樣保存。現行新型號以每品牌 `NFB數值規格.csv` + 已提交 `nfbv5:<品牌>:<型號>` NFBConfig 與實體內門 datum 決定主開孔、定位、旋轉及 BASE 固定孔；舊檔 ARC／CIRCLE／顏色／上下圖元僅驗真正的 legacy 專案，不是現行 V5 模型前置阻擋。
+- **新增真實通路回歸**：兩種本期 CSV 型號分別具有獨立 world X/孔身分，單顆 0/90/180/270 旋轉，使用真物理內門 FinalScene 和 BasePlate；逐一比對每個 CSV 開孔的四角、主 CUTTING 中心與實際輸出 DXF 重開，僅一份主孔、BASE 八顆 CUTTING 圓孔與真 2D 來源一致。舊型號 DXF inspector 在正向測試中直接禁止調用；沒有 CSV 型號、來源漂移、錯 Bay 或存檔失敗必須拒絕。
+- **不擴張授權**：V5 datum／輸出幾何通路的證據不代表 W800×3 以外任意 W×N×Y、SWT-AC-27／30、NFB-AC-51、PAD／焊接、整套工廠 NC 或 #1500 兩真舊案 GUI 均已簽核。
+- **目前只為 PR 隔離候選**：基準 GitHub localX 67／88；僅當 exact HEAD 完整 Product Regression 5／5 GREEN、合併 GitHub localX 並回讀 88 行矩陣及 Git blob 後，才算正式第 68 項。正式 X 不動，需使用者另外 `/推推`。
+
+---
+
+
 ## 2026-10-26（台灣）｜當期 NFB CSV V5 與舊 DXF 來源驗收全項校正（34 AC，不改原文／不加簽）
 
 **統一來源權威：**現在新選型使用各廠牌 `基準檔/開孔/NFB/數值規格/<廠牌>/NFB數值規格.csv`，每顆儲存 `nfbv5:<廠牌>:<型號>` 與已提交 `NFBConfig` 的 Set／Bay／版本／孔身分、X／Y、層、旋轉。這是模型**輸入來源**。舊原始型號 `.dxf` 的 ARC/CIRCLE/Color30/150/212、handle、原圖原點或 pivot **不是**現行數值 CSV 模型的必備附件或另一套定位權威。儲存為舊 `.dxf` 型號的舊案，仍走既有來源驗證／相容分支，不刪舊流程。
