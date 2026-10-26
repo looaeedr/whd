@@ -556,7 +556,7 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "CURRENT_CSV_V5_SOURCE_ASSERTION_PARTIAL_PENDING_FULL_AC",
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
       "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
       "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34",
       "current_scope_correction_20261021": {
@@ -574,7 +574,8 @@
         "scope_note": "Current numeric CSV opening rectangle and its saved world datum/rotation determine main CUTTING; legacy ARC/CIRCLE/color/handle/source-pivot only if the stored project ACTUALLY references legacy DXF. Numeric V5 cannot be blocked for not having a separate original model DXF. A manufacturer's rectangular CSV cannot be silently replaced with an invented ARC. Reopen final generated DXF and verify real physical geometry before manufacturing.",
         "current_v5_positive_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
         "current_v5_fail_closed_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback",
-        "current_v5_witness_is_not_full_ac_signoff": true
+        "current_v5_witness_is_not_full_ac_signoff": true,
+        "current_csv_candidate_scope": "SOURCE_TEST_WITNESS_EXISTS_NOT_FULL_AC"
       },
       "historical_legacy_witness_before_20261026": {
         "path": "tests/test_issue1496_nfb_dxf_source.py",
@@ -2934,7 +2935,7 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "CURRENT_CSV_V5_SOURCE_ASSERTION_PARTIAL_PENDING_FULL_AC",
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
       "current_source_authority_20261026": {
         "route_class": "CURRENT_V5_MAIN_APERTURE_PIVOT",
         "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
@@ -2945,7 +2946,8 @@
         "scope_note": "Current numeric CSV opening rectangle and its saved world datum/rotation determine main CUTTING; legacy ARC/CIRCLE/color/handle/source-pivot only if the stored project ACTUALLY references legacy DXF. Numeric V5 cannot be blocked for not having a separate original model DXF. A manufacturer's rectangular CSV cannot be silently replaced with an invented ARC. Reopen final generated DXF and verify real physical geometry before manufacturing.",
         "current_v5_positive_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
         "current_v5_fail_closed_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback",
-        "current_v5_witness_is_not_full_ac_signoff": true
+        "current_v5_witness_is_not_full_ac_signoff": true,
+        "current_csv_candidate_scope": "SOURCE_TEST_WITNESS_EXISTS_NOT_FULL_AC"
       },
       "historical_legacy_witness_before_20261026": {
         "path": "tests/test_issue1496_nfb_dxf_source.py",
