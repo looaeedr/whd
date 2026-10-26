@@ -1105,3 +1105,82 @@ def test_r4_66_real_bay_preview_cache_invalidates_when_live_custom_part_metadata
     # Preview must never mutate either the stale saved root or the live catalog.
     assert "custom_parts" not in app._phase6_input_snapshot
     assert custom["items"]["custom:1"]["per_box_count"] == 3
+
+
+def test_r4_66_real_receiving_preview_rebuilds_proxy_with_unsaved_custom_sheet(monkeypatch):
+    """R4 #66: test the real Bay preview -> manufacturing proxy handoff.
+
+    A saved root can omit custom_parts while the live shared workspace has
+    added or edited a custom sheet. The actual preview must carry its physical
+    identity and current per-box quantity into Phase6DesignerWorkspace rather
+    than only include metadata in the preview-cache fingerprint.
+    This test stops exactly at the proxy boundary: it does not claim a
+    manufacturing, DXF, or Windows GUI acceptance that did not run.
+    """
+    from types import SimpleNamespace
+    import pytest
+    from ae_engine.cabinet_types import receiving
+    from phase6_designer_workspace import Phase6DesignerWorkspace
+    from gui_modules.application.fold_designer_composition_receiving import (
+        receiving_bay_preview_request,
+    )
+
+    current = receiving.apply_family_defaults({"t": 2.})
+    current.update(model="受電箱", active_mode="set_bay", receiving_layout=_layout(1))
+    current.pop("custom_parts", None)
+    workspace = Phase6DesignerWorkspace.from_snapshot({
+        "model": "受電箱",
+        "existing_parts": ("box_body", "custom:1"),
+        "custom_parts": {
+            "next_id": 2,
+            "items": {"custom:1": {
+                "display_name": "額外板件",
+                "fold_axis": "X",
+                "transverse_length": 300.,
+                "per_box_count": 1,
+            }},
+        },
+    })
+    app = SimpleNamespace(
+        _phase6_input_snapshot=current,
+        _settings_values={},
+        _phase6_corner_state={},
+        designer_workspace=workspace,
+        state=SimpleNamespace(profiles_vault={"箱身": ()}),
+    )
+    owner = SimpleNamespace(app=app, _receiving_bay_preview_cache={})
+    captured = []
+    real_from_snapshot = Phase6DesignerWorkspace.from_snapshot
+
+    class ProxyBoundaryReached(Exception):
+        pass
+
+    def observe_proxy(cls, projected):
+        proxy = real_from_snapshot(projected)
+        catalog = proxy.shared_snapshot()["custom_parts"]
+        captured.append({
+            "parts": proxy.available_parts,
+            "quantity": catalog["items"]["custom:1"]["per_box_count"],
+            "projected": dict(projected),
+        })
+        raise ProxyBoundaryReached
+
+    monkeypatch.setattr(
+        Phase6DesignerWorkspace, "from_snapshot", classmethod(observe_proxy),
+    )
+    for quantity in (1, 3):
+        if quantity == 3:
+            workspace.update_custom_part("custom:1", per_box_count=3)
+        with pytest.raises(ProxyBoundaryReached):
+            receiving_bay_preview_request(owner, None, 0, 0)
+
+    assert len(captured) == 2
+    assert [row["quantity"] for row in captured] == [1, 3]
+    assert all("custom:1" in row["parts"] for row in captured)
+    assert all(
+        row["projected"]["custom_parts"]["items"]["custom:1"]["per_box_count"]
+        == row["quantity"]
+        for row in captured
+    )
+    assert "custom_parts" not in app._phase6_input_snapshot
+    assert workspace.shared_snapshot()["custom_parts"]["items"]["custom:1"]["per_box_count"] == 3
