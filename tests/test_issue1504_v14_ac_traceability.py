@@ -2064,7 +2064,7 @@ def test_cancelled_second_legacy_project_is_not_a_1500_1504_signoff_gate():
     }
     assert "Windows UAT" in policy["proof_rule"]
     assert "second old-project B" in document["current_gates_explanation"]["1500"]
-    assert "no missing second original project" in (
+    assert "No project B prerequisite" in (
         document["current_gates_explanation"]["1504"]
     )
     blocked = [r for r in document["records"]
