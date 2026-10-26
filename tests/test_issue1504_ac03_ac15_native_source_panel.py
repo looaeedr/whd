@@ -727,9 +727,22 @@ def test_ac51_swt30_real_assigned_list_event_consumes_only_matching_export_scope
     bay["stable_id"] = "B"
     bay["nfb_config_submitted"] = True
     bay["nfb_config"] = deepcopy(baseline["nfb_config"])
-    bay["inner_door_models"] = [list(refs), ""]
-    bay["inner_door_layers"] = 1
-    bay["inner_door_layer_heights_mm"] = [550.0, 830.0]
+    # The canonical per-Bay door model/height values belong to the Set's
+    # refs/values shared-setting owner, NOT unknown legacy Bay-level aliases.
+    unit["settings"] = {
+        "inner_door_models": {
+            "refs": {"B": "B:models"},
+            "values": {"B:models": [list(refs), ""]},
+        },
+        "inner_door_layers": {
+            "refs": {"B": "B:layers"},
+            "values": {"B:layers": 1},
+        },
+        "inner_door_layer_heights_mm": {
+            "refs": {"B": "B:heights"},
+            "values": {"B:heights": [550.0, 830.0]},
+        },
+    }
     adapter = ReceivingSetBayAdapter(layout)
 
     captured = {}
