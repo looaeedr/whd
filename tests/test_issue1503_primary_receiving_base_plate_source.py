@@ -49,15 +49,30 @@ def test_primary_2d_uses_actual_NFB_tier_blank_not_generic_source(active, physic
     assert expected.metadata.get("manufacturing_ready") is False
 
 
-def test_missing_receiving_physical_plate_cannot_draw_old_generic_plate():
-    host, _, calls = _real_host()
+def test_missing_manual_base_config_still_uses_current_physical_nfb_plate_not_generic():
+    host, real, calls = _real_host()
+    # A committed, source-verifiable current CSV NFB set owns its BasePlate
+    # even if the obsolete manual receiving_base_plate cache is absent.
+    # Test the ACTUAL resolved physical shape, never a generic fallback.
     host.fold_designer_app._phase6_input_snapshot = {
         **host.fold_designer_app._phase6_input_snapshot,
         "receiving_base_plate": None,
     }
-    with pytest.raises(ValueError, match="尚未設定實體來源"):
-        base_plate_render_snapshot(host, {"model": "受電箱", "w":800, "h":1600})
-    assert calls == []
+    result = base_plate_render_snapshot(
+        host, {"model": "受電箱", "w": 800, "h": 1600},
+    )
+    assert calls == ["real"]
+    assert result["receiving_physical_part_key"] == "base_plate:nfb_layer:0"
+    physical = real.part(result["receiving_physical_part_key"]).render_data
+    assert result["render_data"] is physical
+    assert result["render_data"].unfolded_topology.piece_id == (
+        "base_plate:nfb_layer:0"
+    )
+    assert result["receiving_tier_keys"] == (
+        "base_plate:nfb_layer:0", "base_plate:nfb_layer:1"
+    )
+    assert "base_plate" not in result["receiving_tier_keys"]
+    assert result["render_data"].metadata.get("manufacturing_ready") is False
 
 
 def test_no_submitted_NFB_cannot_claim_an_unverified_old_root_is_real():

@@ -22,8 +22,8 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 82,
-    "BLOCKED_1500_REAL_GUI": 6,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 83,
+    "BLOCKED_1500_REAL_GUI": 5,
     "EVIDENCE_CANDIDATE_ONLY": 0,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 0,
     "DEFERRED_PRODUCT_EVIDENCE": 0
@@ -94,24 +94,93 @@
         "tests/test_issue1500_nfb_transactions.py",
         "tests/test_issue1500_nfb_ui1b_bridge.py",
         "tests/test_issue1500_nfb_worldx_runtime.py",
-        "tests/test_issue1500_real_nfb_dxf_lifecycle.py"
+        "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+        "tests/test_issue1504_batched_current_nfb_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "BLOCKED_1500_REAL_GUI",
-      "blocking_issues": [
-        1500
-      ],
-      "accepted": false,
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+      "blocking_issues": [],
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1491_nfb_ui1a.py",
-          "test_name": "test_empty_slot_keeps_physical_order_and_requires_no_fake_hole",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_batched_current_nfb_transactions.py",
+          "test_name": "test_ac02_edit_last_slot_and_layer_switch_never_implicitly_restore_submitted_nfb",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
-      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "current_gui_requirement_20261026": "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT",
+      "historical_pre_current_review": {
+        "status": "BLOCKED_1500_REAL_GUI",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "blocking_issues": [
+          1500
+        ],
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1491_nfb_ui1a.py",
+            "test_name": "test_empty_slot_keeps_physical_order_and_requires_no_fake_hole",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "ORIGINAL_SINGLE_TK_INNER_NFB_LAYER_CONTROL_AND_CURRENT_UI1A_SESSION_ZERO_SLOT_LAST_DELETE__EXACT_PER_LAYER_SUBMITTED_V3_PROJECT_GUARD__EXPLICIT_RESTORE_UNDO_ONLY__NO_FACTORY_RELEASE",
+        "primary_assertion": "tests/test_issue1504_batched_current_nfb_transactions.py::test_ac02_edit_last_slot_and_layer_switch_never_implicitly_restore_submitted_nfb",
+        "other_required_assertions": [
+          "tests/test_issue1504_unified_inner_nfb_layer_count.py::test_real_tk_single_variable_reaches_original_draft_and_undo_without_second_owner",
+          "tests/test_issue1504_unified_inner_nfb_layer_count.py::test_single_current_layer_count_owns_both_inner_door_and_nfb_mounting_tiers",
+          "tests/test_issue1491_nfb_ui1a.py::test_empty_slot_keeps_physical_order_and_requires_no_fake_hole",
+          "tests/test_issue1491_nfb_ui1a.py::test_slots_do_not_erase_second_layer_and_no_stale_model_is_saved",
+          "tests/test_issue1499_nfb_persistence.py::test_unconfigured_bay_and_quantity_keep_legacy_schema",
+          "tests/test_issue1499_nfb_persistence.py::test_submitted_bay_save_reload_v3_retains_exact_zero_and_independent_copy",
+          "tests/test_issue1500_nfb_transactions.py::test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+          "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard",
+          "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac34_native_verified_submit_and_first_copy_cancel_partial_draft_disk_roundtrip",
+          "tests/test_issue1500_nfb_ui1b_bridge.py::test_live_submit_rechecks_bay_source_and_snapshot_before_adapter_write"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "未提交可零槽；正式提交後層數 1／2、至少一槽",
+            "proof": "Current NfbUi1aEditSession starts a zero-slot one-tier draft and nfb_ui1a_preview explicitly denies manufacture. Exact edit transition inserts physical slot(s), switches to 2, and the original one Tk IntVar directly feeds both inner-door and NFB installed tiers; legacy old extra tier widget is absent. Submitted empty NFBConfig is rejected by production normalize_nfb_config, while actual submitted 1-tier and 2-tier projects are serialized/reopened via V3 .p6fold with distinct physical hole stable IDs."
+          },
+          {
+            "original_clause": "刪除最後槽不得隱式退回未配置",
+            "proof": "Actual mutable UI1A draft removes its last slot with NfbUi1aEditSession, and Undo/Escape restore independent initial draft. The saved submitted physical Bay remains submitted with the original NFB hole and explicit x=0 after real write_project/read_project. The only valid way to reset saved submitted Bay is explicit restore_nfb_bays_unconfigured with operator confirmation; cancelled restore is atomic, approved restore deletes only NFBConfig and undo restores it. Original native Tk AC35/45/56 checks the same explicit RESTORE_UNCONFIGURED / cancel / Undo widget path and old export guards."
+          },
+          {
+            "original_clause": "1→2、2→1 遵守 Q12／Q17／Q18",
+            "proof": "Current draft 1->2 keeps first-layer slot owner and initially empty second tier; inserting second physical slot shows nominal 290/790 only for actual 1100 basis and never grants absolute X. 2->1 with populated second tier raises without mutation; after deliberate delete second-tier slot the conversion is allowed, with Undo reconstituting its exact stable unit owner. Original UI tests prove the unique Tk radio layer count is shared between inner door and NFB installation; physical submitted two-layer V3 file keeps both layer_index=0/1 and distinct hole identities."
+          }
+        ],
+        "source_owner_paths": [
+          "gui_modules/application/fold_designer_composition_receiving.py::inner_edit",
+          "ae_engine/receiving_nfb_ui1a.py::set_nfb_draft_layer_count",
+          "ae_engine/receiving_nfb_ui1a_edits.py::NfbUi1aEditSession",
+          "ae_engine/receiving_nfb_ui1a_edits.py::delete_nfb_slot",
+          "ae_engine/receiving_nfb_persistence.py::normalize_nfb_config",
+          "ae_engine/receiving_nfb_transactions.py::restore_nfb_bays_unconfigured",
+          "phase6_project_file.py::write_project",
+          "phase6_project_file.py::read_project"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "original_manufacturer_dxf_certified": false,
+        "source_scope_current_v5_and_repository_test_holes_only": true,
+        "exact_head_ci_and_localx_readback_required": true,
+        "user_cancelled_second_legacy_project_prerequisite": true
+      }
     },
     {
       "id": "NFB-AC-03",
@@ -6509,12 +6578,12 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 82/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; NFB-AC-42 detached UI1A preview/cancel/Undo real DXF source SHA and unsubmitted saved legacy plus native Tk source-controlled MFG1 submit/overwrite gates. Six full GUI/manufacturing requirements remain unsigned. PR candidate pending five-job CI GREEN and exact localX readback; no Windows manual UAT, second project B or factory release implied.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 83/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; AC02 current UI1A original shared Tk layer count, zero-slot detached preview, 1↔2 tier safe transitions, last slot deletion stays local, committed 1/2 layer NFBConfig positive and zero-hole rejection, V3 Save/Reload, explicit operator RESTORE/Undo only. Previous 82 merged AC preserved, five pending independent GUI/manufacturing witnesses. CI PR candidate only until five Product jobs green and identical GitHub localX readback; no artificial second project B or factory release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Outstanding gates are per-AC functional native GUI actions, project persistence, 2D/3D, scoped DXF and CHECK/Q; USER CANCELLED an arbitrary second old-project B prerequisite on 2026-10-26. No fixed A+B input quota. Never promote a test fixture to user Windows UAT.",
     "1503": "EAR T2/BEND23/physical contact/side marking and scoped source DXF delivered; ONLY independent PAD manufacturing/BOM and welding workmanship remain deferred, never invent them or hold already verified EAR.",
-    "1504": "82/88 PR candidate with NFB-AC-42 UI1A detached source preview/Undo and source-bound native Tk UI1B source guard; six remaining full functional/source ACs. No project B prerequisite, no whole factory release."
+    "1504": "83/88 source-scoped PR candidate AC02 current native shared layer editor, last-slot draft-only deletion and explicit restore/Undo, 5 AC pending. No project B prerequisite; no manufacturer arbitrary DXF release."
   },
   "current_legacy_supersessions": {
     "NFB-AC-03": "CURRENT 2026-10-21: NFB brand/model geometry is the user's per-brand numeric NFB數值規格.csv and committed NFBConfig, NOT a mandatory legacy manufacturer DXF file. Original DXF preview acceptance wording is historical compatibility scope, not a current CSV selection prerequisite.",

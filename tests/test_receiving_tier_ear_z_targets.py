@@ -162,20 +162,23 @@ def test_v5_csv_missing_depth_or_cross_brand_blocks_only_affected_tier_z():
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
-    targets = resolve_receiving_tier_base_z_targets(snap)
-    assert targets[0].source_depths_mm == (107.,)
-    assert targets[0].physical_skin_z_resolved
-    assert targets[1].source_depths_mm == ()
-    assert not targets[1].physical_skin_z_resolved
-    assert targets[1].world_offset_z_mm is None
+    # The CURRENT approved fixing-plate Z is a single BRANDED ear anchor,
+    # not per-tier NFB Z. Mixed brands lack a shared physical support rule;
+    # even though tier 0 has a valid 107-mm source, no assembled support
+    # or preview DXF may borrow that permission for tier 1.
+    before = deepcopy(snap)
+    with pytest.raises(ValueError, match="EAR_Z_MIXED_BRANDS_REQUIRE_APPROVED_RULE"):
+        resolve_receiving_tier_base_z_targets(snap)
+    assert snap == before
     # A cross-brand identity is not silently repaired by using other CSV.
     holes[1]["model_filename"] = "nfbv5:士林:2P400"
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
-    assert not resolve_receiving_tier_base_z_targets(
-        snap
-    )[1].physical_skin_z_resolved
+    before = deepcopy(snap)
+    with pytest.raises(ValueError, match="EAR_Z_BRAND_IDENTITY_DRIFT"):
+        resolve_receiving_tier_base_z_targets(snap)
+    assert snap == before
 
 
 def test_quantity_frozen_integral_indices_restore_but_stable_ids_stay_guarded():

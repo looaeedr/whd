@@ -21,6 +21,16 @@ whd_schema: WHD_DOC_META_V1
 - **限制與併入條件**：來源是隔離測試原始 DXF 非廠商量產證據；不聲稱 Windows 使用者人工實機、完整整箱 DXF／NC、PAD 或原廠 MFG2 合格。既有雙舊案中的第二份專案 B 要求已取消。此為 **82／88 候選（剩 6 項）**，必須 exact HEAD Product Regression 5／5 SUCCESS、核對當期 localX、合併與逐檔 readback 才正式認列；正式 X 仍須 `/推推`。
 
 ---
+## 2026-10-27 台灣｜#1504 NFB-AC-02 最後一顆刪除／1↔2 實體層與已提交隔離（82→83 候選）
+
+- **原始 §7 AC-02 不變**：未提交 NFB 的 UI-1A 可以零槽；提交後無條件要求一／二實體層和至少一顆有效實體孔。畫面刪除最後一槽屬未提交的編輯草稿，不等於隱式「還原為未配置」。只有明確的 Confirm RESTORE_UNCONFIGURED 才能改寫持久化已提交事實，取消及 Undo 仍可完全回復。
+- **實際路徑**：`gui_modules/application/fold_designer_composition_receiving.py::inner_edit` 只有單一原生 Tk `layers` 來源，同時是內門版本及 NFB 實體安裝層數，修改經 `_NfbDraftState` 掛接當期 `NfbUi1aEditSession`，取消／Undo 有一份 transaction history；無第二個 NFB 層數可編輯入口。新 `test_ac02_edit_last_slot_and_layer_switch_never_implicitly_restore_submitted_nfb` 從真正模型操作零槽→新增一層→1→2→新增第二層；第二層有顆位時試圖 2→1 必須直接拒絕且沒有狀態變動；明確刪除第二層後可 2→1，Undo 必須恢復原 stable unit。刪除最後一槽只讓 UI-1A 預覽 `can_manufacture=false`，正式 `normalize_nfb_config` 拒絕 `holes=[]`。
+- **持久化／實體獨立性**：使用當期 `update_receiving_bay` 建立有來源來源範圍限定的單層 NFB 並寫入真 V3 `.p6fold`，刪空 UI-1A 後已提交 Bay 及原始 X=0 不會改變。另一 Bay 真兩層 `layer_index=0/1` 的兩個**不同**實體 ID 寫入、重開都保持原樣。僅正式 `restore_nfb_bays_unconfigured` 經確認才能清 NFBConfig，取消完全不動，Undo 精確還原；既有原生 Tk AC35/45/56 仍驗證原 UI 的確認／取消／Undo 與舊版輸出守衛。
+- **簽核界線**：原始兩份 v1.4 條文／SHA 不更動；本次是 current CSV V5 的模型、資料、單一層數原生 Tk 操控契約與真工程 V3 存檔驗收，**不是宣稱任意廠牌完整 MFG-2、原廠 DXF、整箱 NC 或 Windows 人工實機**。第二份舊專案 B 前置已取消。
+- **合併條件**：原已正式 GitHub `localX@ccbe95df` 為 82／88。本 PR 暫 **83／88 候選（剩 5）**，需 exact HEAD 完整 Product Regression 5/5 SUCCESS，最新 localX 無同檔衝突，合併並逐檔回讀才可正式認列。正式 X 必須由使用者 `/推推` 授權。
+
+---
+
 
 
 
