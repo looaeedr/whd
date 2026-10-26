@@ -2487,3 +2487,67 @@ def test_ac02_real_layer_last_slot_draft_and_explicit_restore_evidence_only():
     assert len([r for r in obj["records"] if not r["accepted"]]) == (
         obj["counts"]["BLOCKED_1500_REAL_GUI"]
     )
+
+
+def test_ac40_explicit_quantity_x_version_and_native_reconfirm_exact_current_evidence():
+    """No cross-version CONFIRMED X by copying a saved zero or changing model."""
+    from tools.product_ci_regression import PYTEST_PATHS
+
+    audit = _data()
+    assert audit["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 84
+    assert audit["counts"]["BLOCKED_1500_REAL_GUI"] <= 4
+    row = next(r for r in audit["records"] if r["id"] == "NFB-AC-40")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["assertion_review_state"] == "FULL_AC_AUTOMATED_SIGNED"
+    assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
+    assert row["current_gui_requirement_20261026"] == (
+        "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT"
+    )
+    proof = row["acceptance_evidence"]
+    primary = (
+        "tests/test_issue1504_batched_current_nfb_transactions.py"
+        "::test_ac40_explicit_quantity_version_x_owner_zero_cancel_reconfirm_v3_roundtrip"
+    )
+    backend = (
+        "tests/test_issue1500_nfb_transactions.py"
+        "::test_ac40_version_scoped_operator_x_cannot_cross_release_and_cancel_is_atomic"
+    )
+    native_gui = (
+        "tests/test_issue1500_nfb_operator_gui_transactions.py"
+        "::test_ac23_reopened_stale_world_x_native_tk_reconfirm_restores_only_source_verified_dxf"
+    )
+    assert proof["primary_assertion"] == primary
+    assert backend in proof["other_required_assertions"]
+    assert native_gui in proof["other_required_assertions"]
+    assert row["identified_test_functions"] == [{
+        "path": primary.split("::")[0],
+        "test_name": primary.split("::")[1],
+        "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+        "accepted": True,
+    }]
+    assert len(proof["requirement_witnesses"]) == 3
+    assert len(proof["other_required_assertions"]) >= 9
+    assert proof["typed_test_mfg1_source_fixture_not_manufacturer_certification"] is True
+    assert proof["user_cancelled_second_legacy_project_prerequisite"] is True
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    for denied in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "integrated_localx_claimed", "formal_x_published",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+        "original_manufacturer_dxf_certified",
+    ):
+        assert proof[denied] is False, denied
+    for witness in [primary, *proof["other_required_assertions"]]:
+        p, fn = witness.split("::")
+        assert p in PYTEST_PATHS, witness
+        tree = ast.parse((ROOT / p).read_text(encoding="utf-8"))
+        funcs = [n for n in tree.body
+                 if isinstance(n, ast.FunctionDef) and n.name == fn]
+        assert len(funcs) == 1, witness
+        assert _test_function_has_assert_or_expected_exception(funcs[0]), witness
+    assert len([r for r in audit["records"] if not r["accepted"]]) == (
+        audit["counts"]["BLOCKED_1500_REAL_GUI"]
+    )
