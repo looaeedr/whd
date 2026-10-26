@@ -921,3 +921,97 @@ def test_swt32_same_original_dxf_brand_pins_colors_real_part_counts_and_sha_hold
     assert stale.require_export(("side1",), partial=True) == ("side1",)
     with pytest.raises(ValueError, match="BLOCKED"):
         stale.require_export(("inner1",), partial=True)
+
+
+@pytest.mark.parametrize("base_cutting_held", (False, True))
+def test_ac41_real_source_in_scope_whole_does_not_claim_completed_pad_ear_assembly(
+    tmp_path, base_cutting_held,
+):
+    """#1504 AC41: committed physical-part export != full cabinet assembly.
+
+    Native NFB source, source-verified inner CUTTING, actual 2+1+3 sheets
+    and the original UI consumer share one report. Independently unfinished
+    PAD/formed-EAR attachment/full-cabinet manufacture cannot be inferred
+    from even a fully READY in-scope NFB manifest.
+    """
+    from dataclasses import replace
+    import ezdxf
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+    from gui_modules.application.receiving_nfb_manifest_view import (
+        nfb_manifest_display_lines,
+    )
+
+    options = _prepared(tmp_path)
+    options["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1", ("base1",), (),
+    )
+    options["actual_parts"] = tuple(
+        part for part in options["actual_parts"] if part.part_id != "middle1"
+    )
+    source = tmp_path / "AC41_real_source.dxf"
+    dxf = ezdxf.new("R2010")
+    model = dxf.modelspace()
+    model.add_lwpolyline(
+        ((0, 0), (57, 0), (57, 96), (0, 96)),
+        close=True, dxfattribs={"color": 150},
+    )
+    if base_cutting_held:
+        model.add_circle((12, 18), 2, dxfattribs={"color": 30})
+    dxf.saveas(source)
+    inventory = inspect_nfb_dxf_source(source)
+    options.update(
+        source_path=source,
+        source_inventory=inventory,
+        verified_inner_door=replace(
+            options["verified_inner_door"],
+            source_sha256=inventory.source_sha256,
+        ),
+    )
+
+    manifest = derive_nfb_partial_export_manifest(**options)
+    report = manifest.report()
+    assert manifest.scope.identity == ("setA", "bayA", "version-1")
+    assert manifest.nfb_config_submitted is True
+    assert [row.part_id for row in manifest.rows] == ["inner1", "base1", "side1"]
+    assert report["assembly_status"] == "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY"
+    assert report["deferred_assembly"] == ["PAD", "EAR_ATTACHMENT"]
+    assert report["nfb_config_submitted"] is True
+    assert report["actual_export_count"] == (5 if base_cutting_held else 6)
+    assert report["held_actual_count"] == (1 if base_cutting_held else 0)
+    assert manifest.whole_ready is (not base_cutting_held)
+    assert manifest.partial_only is base_cutting_held
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+
+    if base_cutting_held:
+        assert next(row for row in manifest.rows if row.part_id == "base1").status == BLOCKED
+        with pytest.raises(ValueError, match="partial only"):
+            manifest.require_export(("inner1", "base1", "side1"), partial=False)
+        with pytest.raises(ValueError, match="BLOCKED"):
+            manifest.require_export(("base1",), partial=True)
+        state = "PARTIAL_ONLY"
+    else:
+        assert manifest.require_export(
+            ("inner1", "base1", "side1"), partial=False,
+        ) == ("inner1", "base1", "side1")
+        state = "WHOLE_READY"
+
+    display = nfb_manifest_display_lines({**report, "status": state})
+    assert "整箱製造" in display[0] if not base_cutting_held else (
+        "僅部分可出" in display[0]
+    )
+    assert not any("整套可交付完成" in line for line in display)
+    if base_cutting_held:
+        assert "不代表整套可交付" in display[-1]
+
+    # Revoked original source cannot borrow an older whole-ready report:
+    # re-derived physical readiness, not the UI/status flag, controls DXF.
+    source.write_bytes(source.read_bytes() + b"\nSOURCE_SHA_REVOKED")
+    stale = derive_nfb_partial_export_manifest(**options)
+    assert stale.authorized_part_ids == ("side1",)
+    assert stale.actual_export_count == 3
+    assert not stale.whole_ready
+    assert stale.report()["assembly_status"] == (
+        "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY"
+    )
+    with pytest.raises(ValueError, match="partial only"):
+        stale.require_export(("side1",), partial=False)
