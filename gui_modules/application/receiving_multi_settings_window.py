@@ -980,6 +980,38 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 except (ValueError, TypeError, KeyError, IndexError, OSError):
                     base_ready = False
                 if base_ready:
+                    # Per actual submitted Set/Bay and per selected V5 model:
+                    # model names remain unmodified in the original selector.
+                    # This disclosure is re-read from the CURRENT physical
+                    # source plus actual validated pair DXF receipt, never a
+                    # persisted "READY" flag or a blanket W/N approval.
+                    current_scope_label = tk.StringVar(master=win)
+                    def paint_verified_nfb_scope():
+                        from ae_engine.receiving_nfb_model_identity import (
+                            display_model_ref,
+                        )
+                        try:
+                            live = get_nfb_transaction_ports()["state"](
+                                set_index, chosen_bay,
+                            )
+                            claims = live.get("model_scope_by_ref") or {}
+                            text = "／".join(
+                                display_model_ref(ref) + "：" + verdict
+                                for ref, verdict in sorted(claims.items())
+                            )
+                            current_scope_label.set(
+                                "本連 NFB 各型號｜" + (
+                                    text if text else "僅預覽｜未有本次物理來源成對出圖證據"
+                                )
+                            )
+                        except (ValueError, TypeError, KeyError, OSError):
+                            current_scope_label.set("本連 NFB｜僅預覽")
+                    paint_verified_nfb_scope()
+                    ttk.Label(
+                        settings_host, textvariable=current_scope_label,
+                        wraplength=650, justify="left",
+                    ).pack(anchor="e", pady=(2, 3))
+
                     def export_nfb_paired_partial():
                         try:
                             if (applied["mode"] != "set_bay"
@@ -1001,6 +1033,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                             paired = live_ports["pair_partial_export"](
                                 set_index, chosen_bay, folder,
                             )
+                            # Only the actual writer's successful native
+                            # current V5 receipt may promote this exact group
+                            # from preview. This label never releases NC.
+                            paint_verified_nfb_scope()
                             messagebox.showinfo(
                                 "NFB 內門＋底板部分 DXF",
                                 "已原子輸出並驗證內門：" + paired.inner_door_path
