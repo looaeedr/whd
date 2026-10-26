@@ -175,6 +175,7 @@ def test_manifest_review_summary_is_recomputed_from_records():
     # four identities stay audited, while the current live count is zero.
     counts.setdefault("DEFERRED_PRODUCT_EVIDENCE", 0)
     counts.setdefault("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC", 0)
+    counts.setdefault("EVIDENCE_CANDIDATE_ONLY", 0)
     assert sum(counts.values()) == 88
     assert obj["counts"] == counts
     # Four original deferred identities are immutable. Their *current*
@@ -323,6 +324,7 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     live_counts = dict(Counter(r["status"] for r in d["records"]))
     live_counts.setdefault("DEFERRED_PRODUCT_EVIDENCE", 0)
     live_counts.setdefault("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC", 0)
+    live_counts.setdefault("EVIDENCE_CANDIDATE_ONLY", 0)
     assert d["counts"] == live_counts
     assert sum(d["counts"].values()) == 88
     assert d["counts"]["BLOCKED_1500_REAL_GUI"] == 17
@@ -1848,11 +1850,18 @@ def test_all_current_nfb_v5_source_supersessions_keep_88_originals_and_legacy_sc
             current_runtime +
             "::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback"
         )
-        assert clause["current_v5_witness_is_not_full_ac_signoff"] is True
+        assert clause["current_v5_witness_is_not_full_ac_signoff"] is (
+            ident not in ("NFB-AC-51", "SWT-AC-30")
+        )
         assert current_runtime in rows[ident]["regression_candidates"]
     for ident in ("NFB-AC-11", "NFB-AC-51"):
         record = rows[ident]
-        assert record["identified_test_functions"][0]["path"] == current_runtime
+        if ident == "NFB-AC-11":
+            assert record["identified_test_functions"][0]["path"] == current_runtime
+        else:
+            assert record["identified_test_functions"][0]["path"] == (
+                "tests/test_issue1504_ac03_ac15_native_source_panel.py"
+            )
         assert record["historical_legacy_witness_before_20261026"]["path"].endswith(
             "test_issue1496_nfb_dxf_source.py"
         )
@@ -1869,6 +1878,16 @@ def test_all_current_nfb_v5_source_supersessions_keep_88_originals_and_legacy_sc
             assert proof["factory_release"] is False
             assert proof["physical_absolute_position_grant"] is False
             assert proof["human_windows_uat_claimed"] is False
+        elif ident == "NFB-AC-51" and record["accepted"]:
+            proof = record["acceptance_evidence"]
+            assert record["identified_test_functions"][0]["test_name"] == (
+                "test_ac51_swt30_real_assigned_list_event_consumes_only_matching_export_scope"
+            )
+            assert proof["native_tk_assigned_callback_verified"] is True
+            assert proof["physical_output_dxf_reopen_verified"] is True
+            assert proof["unverified_nominal_groups_preview_only"] is True
+            assert proof["factory_release"] is False
+            assert proof["other_w_n_y_approved"] is False
         else:
             assert record["identified_test_functions"][0]["accepted"] is False
     if rows["NFB-AC-11"]["accepted"]:
@@ -1881,12 +1900,20 @@ def test_all_current_nfb_v5_source_supersessions_keep_88_originals_and_legacy_sc
         ] is False
     # Current V5 input audit must not silently waive the remaining independent
     # positioning, source-drift, old-project GUI and production gates.
-    for ident, expected in {
-        "NFB-AC-51": "EVIDENCE_CANDIDATE_ONLY",
-        "SWT-AC-30": "EVIDENCE_CANDIDATE_ONLY",
-    }.items():
-        assert rows[ident]["status"] == expected
-        assert rows[ident]["accepted"] is False
+    for ident in ("NFB-AC-51", "SWT-AC-30"):
+        entry = rows[ident]
+        if entry["accepted"]:
+            assert entry["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+            proof = entry["acceptance_evidence"]
+            assert proof["native_tk_assigned_callback_verified"] is True
+            assert proof["original_ac_text_unchanged"] is True
+            assert proof["scope_drifts_fail_closed"] is True
+            assert proof["other_w_n_y_approved"] is False
+            assert proof["factory_release"] is False
+            assert proof["human_windows_uat_claimed"] is False
+            assert len(proof["original_ac_clauses_audited"]) >= 3
+        else:
+            assert entry["status"] == "EVIDENCE_CANDIDATE_ONLY"
     swt27 = rows["SWT-AC-27"]
     assert swt27["accepted"] is True
     assert swt27["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
@@ -1928,8 +1955,10 @@ def test_swt30_approved_w_n_y_model_datum_witness_is_scoped_not_all_nominal_grou
     """Actual per-source positive and four V5 nominal negatives stay separate."""
     record = next(r for r in _data()["records"] if r["id"] == "SWT-AC-30")
     evidence = record["current_source_authority_20261026"]
-    assert record["accepted"] is False
-    assert record["status"] == "EVIDENCE_CANDIDATE_ONLY"
+    if record["accepted"]:
+        assert record["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    else:
+        assert record["status"] == "EVIDENCE_CANDIDATE_ONLY"
     positive = (
         "tests/test_issue1502_current_csv_original_pair_dxf.py::"
         "test_swt30_exact_committed_w_n_y_model_datum_has_real_dxf_but_cannot_leak_to_other_scope"
@@ -1940,9 +1969,21 @@ def test_swt30_approved_w_n_y_model_datum_witness_is_scoped_not_all_nominal_grou
     )
     assert evidence["current_csv_scoped_part_only_witness"] == positive
     assert evidence["current_csv_nominal_preview_negative"] == negative
-    assert evidence["current_v5_witness_is_not_full_ac_signoff"] is True
-    assert len(evidence["pending_full_ac_requirements"]) == 2
-    assert record["identified_test_functions"][0]["test_name"] == positive.split("::")[1]
+    assert evidence["current_v5_witness_is_not_full_ac_signoff"] is (not record["accepted"])
+    if record["accepted"]:
+        assert evidence["pending_full_ac_requirements"] == []
+        assert len(evidence["historical_pending_full_ac_requirements_before_native_callback"]) == 2
+        assert record["identified_test_functions"][0]["test_name"] == positive.split("::")[1]
+        proof = record["acceptance_evidence"]
+        assert proof["native_tk_assigned_callback_verified"] is True
+        assert proof["exact_set_bay_model_x_y_rotation_scope_verified"] is True
+        assert proof["no_permanent_model_manufacturing_registry"] is True
+        assert proof["unverified_nominal_groups_preview_only"] is True
+        assert proof["blanket_mfg1_approval"] is False
+        assert proof["other_w_n_y_approved"] is False
+    else:
+        assert len(evidence["pending_full_ac_requirements"]) == 2
+        assert record["identified_test_functions"][0]["test_name"] == positive.split("::")[1]
     for witness in (positive, negative):
         path, fn = witness.split("::")
         assert path in record["regression_candidates"]
@@ -1954,3 +1995,37 @@ def test_swt30_approved_w_n_y_model_datum_witness_is_scoped_not_all_nominal_grou
         assert fn in tests
         assert any(isinstance(node, ast.Assert)
                    for node in ast.walk(tests[fn]))
+
+
+
+def test_ac51_swt30_signed_only_after_true_native_assigned_export_and_nominal_negatives():
+    """Current V5 UI source scope green is not model-wide manufacturing."""
+    records = {r["id"]: r for r in _data()["records"]}
+    from tools.product_ci_regression import PYTEST_PATHS
+    actual = (
+        "tests/test_issue1504_ac03_ac15_native_source_panel.py::"
+        "test_ac51_swt30_real_assigned_list_event_consumes_only_matching_export_scope"
+    )
+    for name in ("NFB-AC-51", "SWT-AC-30"):
+        row = records[name]
+        assert row["accepted"]
+        assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert row["historical_pre_current_review"]["status"] == "EVIDENCE_CANDIDATE_ONLY"
+        proof = row["acceptance_evidence"]
+        assert actual in (proof["primary_assertion"], *proof["other_required_assertions"])
+        assert proof["no_persisted_green"] and proof["scope_drifts_fail_closed"]
+        assert proof["original_source_arc_circle_required_for_current_v5"] is False
+        for reference in (proof["primary_assertion"], *proof["other_required_assertions"]):
+            source, fn = reference.split("::")
+            assert source in PYTEST_PATHS, reference
+            tree = ast.parse((ROOT / source).read_text(encoding="utf-8"))
+            matches = [node for node in tree.body
+                       if isinstance(node, ast.FunctionDef) and node.name == fn]
+            assert len(matches) == 1 and any(
+                isinstance(node, ast.Assert) for node in ast.walk(matches[0])
+            )
+    d = _data()
+    assert d["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 71
+    assert d["counts"]["BLOCKED_1500_REAL_GUI"] == 17
+    assert d["counts"]["EVIDENCE_CANDIDATE_ONLY"] == 0
+    assert sum(d["counts"].values()) == 88
