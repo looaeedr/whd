@@ -21,3 +21,15 @@ def test_issue1372_renderer_uses_one_way_helper_mixin():
 def test_issue1372_render_and_runtime_lifecycle_stay_on_public_renderer():
     names = set(phase6_final_scene_renderer.Phase6FinalSceneRenderer.__dict__)
     assert {"render", "configure_3d_only_figure", "scale_current_3d_limits", "adjust_zoom_scale", "on_scroll", "install"} <= names
+
+def test_3d_renderer_warning_labels_avoid_unsupported_jhenghei_symbol():
+    # Real Windows Tk/Matplotlib uses Microsoft JhengHei; U+26A0 renders
+    # as a missing glyph. Keep the original warnings and their severity,
+    # but use visible CJK text in both assembly and single-piece 3D views.
+    source = inspect.getsource(
+        phase6_final_scene_renderer.Phase6FinalSceneRenderer.render
+    )
+    assert "\u26a0" not in source
+    assert source.count("警告：") == 3
+    assert "audit.unresolved" in source
+    assert "warnings" in source
