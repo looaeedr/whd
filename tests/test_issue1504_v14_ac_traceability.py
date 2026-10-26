@@ -2386,3 +2386,54 @@ def test_ac34_exact_native_source_based_gui_commit_cancel_draft_readback():
     assert len([r for r in j["records"] if not r["accepted"]]) == (
         j["counts"]["BLOCKED_1500_REAL_GUI"]
     )
+
+
+def test_ac42_exact_ui1a_detached_preview_native_guard_and_source_nonmutation():
+    """Real original GUI source guard and detached UI-1A cannot grant MFG-1."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    obj = _data()
+    assert obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 82
+    assert obj["counts"]["BLOCKED_1500_REAL_GUI"] <= 6
+    row = next(r for r in obj["records"] if r["id"] == "NFB-AC-42")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
+    assert row["current_gui_requirement_20261026"] == (
+        "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT"
+    )
+    proof = row["acceptance_evidence"]
+    primary = ("tests/test_issue1504_batched_current_nfb_transactions.py"
+               "::test_ac42_detached_real_csv_nfb_preview_cancel_undo_never_certifies_or_mutates_dxf")
+    assert proof["primary_assertion"] == primary
+    assert row["identified_test_functions"] == [{
+        "path": primary.split("::")[0],
+        "test_name": primary.split("::")[1],
+        "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+        "accepted": True,
+    }]
+    assert len(proof["requirement_witnesses"]) == 3
+    assert len(proof["other_required_assertions"]) >= 8
+    assert proof["generated_nfb_dxf_fixture_only"] is True
+    assert proof["strict_original_nfb_draft_source_digest_preserved"] is True
+    assert proof["user_cancelled_second_legacy_project_prerequisite"] is True
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    for unsupported in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "integrated_localx_claimed", "formal_x_published",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+        "original_manufacturer_dxf_certified",
+    ):
+        assert proof[unsupported] is False, (row["id"], unsupported)
+    for witness in [primary, *proof["other_required_assertions"]]:
+        path, fn = witness.split("::")
+        assert path in PYTEST_PATHS, witness
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        exact = [n for n in tree.body if isinstance(n, ast.FunctionDef)
+                 and n.name == fn]
+        assert len(exact) == 1, witness
+        assert _test_function_has_assert_or_expected_exception(exact[0]), witness
+    assert len([r for r in obj["records"] if not r["accepted"]]) == (
+        obj["counts"]["BLOCKED_1500_REAL_GUI"]
+    )
