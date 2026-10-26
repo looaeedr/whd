@@ -37,6 +37,16 @@ PYTEST_PATHS = (
     "tests/test_phase6_project_controller.py::test_issue1819_failed_project_load_preserves_current_valid_cache",
     "tests/test_issue1819_manufacturing_cache_bounds.py",
     "tests/test_issue1819_real_manufacturing_dxf_parity.py",
+    # Original 116-item audit: once-per-PR integrated 2D→3D→2D, persisted
+    # annotations, real Receiving door DXF, and original Tk GUI routing.
+    # Keep these six existing suites in ONE canonical Product CI and retain
+    # distinct Windows visual UAT as a separate manual acceptance gate.
+    "tests/test_phase6_2d_3d_round_trip.py",
+    "tests/test_dm6_save_reload_semantic_determinism.py",
+    "tests/test_receiving_door_dxf_roundtrip.py",
+    "tests/test_original_fold_designer_gui_integration.py",
+    "tests/test_gui_manufacturing_adapter.py",
+    "tests/test_gui_fold_designer_transaction_contract.py",
     "tests/test_issue1819_manufacturing_cache_rss_plateau.py",
     "tests/test_issue1819_settings_scroll_callback_lifecycle.py",
     "tests/test_manufacturing_mesh_reuse.py",
