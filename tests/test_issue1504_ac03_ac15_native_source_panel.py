@@ -684,3 +684,137 @@ def test_ac51_native_tk_assigned_v5_shows_real_pair_green_only_for_exact_output(
         if modal.winfo_exists():
             modal.destroy()
         root.destroy()
+
+
+def test_ac51_swt30_real_assigned_list_event_consumes_only_matching_export_scope(
+    monkeypatch, tmp_path,
+):
+    """Native listbox event, not a direct panel.show() shortcut.
+
+    This configures a real submitted two-model Bay, exports its source-owned
+    inner-door/Base DXF pair, and checks the original assigned model callback
+    against the ephemeral exact physical proof. Available catalog items stay
+    preview-only, and a changed output DXF immediately revokes the label.
+    """
+    from types import SimpleNamespace
+    from pathlib import Path
+    import tkinter as tk
+    from ae_engine.receiving_inner_door_candidates import ROLE
+    from ae_engine.receiving_layout import (
+        new_receiving_layout, project_receiving_bay_legacy_aliases,
+    )
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+    from gui_modules.application import (
+        fold_designer_composition_receiving as comp,
+        receiving_multi_settings_window as view,
+    )
+    from gui_modules.application.receiving_nfb_verified_scope_display import (
+        capture_verified_v5_pair_display,
+    )
+    from tests.test_issue1502_current_csv_original_pair_dxf import (
+        _current, _scene, _export,
+    )
+
+    baseline = _current()
+    refs = tuple(
+        hole["model_filename"] for hole in baseline["nfb_config"]["holes"]
+    )
+    assert refs == ("nfbv5:士林:2P400", "nfbv5:士林:3P125SN")
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    unit = layout["sets"][0]
+    unit["stable_id"] = "S"
+    bay = unit["bays"][0]
+    bay["stable_id"] = "B"
+    bay["nfb_config_submitted"] = True
+    bay["nfb_config"] = deepcopy(baseline["nfb_config"])
+    bay["inner_door_models"] = [list(refs), ""]
+    bay["inner_door_layers"] = 1
+    bay["inner_door_layer_heights_mm"] = [550.0, 830.0]
+    adapter = ReceivingSetBayAdapter(layout)
+
+    captured = {}
+    monkeypatch.setattr(
+        view, "open_multi_settings",
+        lambda _root, **kwargs: captured.update(kwargs) or object(),
+    )
+    root = tk.Tk()
+    root.geometry("550x460+20+20")
+    root.update_idletasks()
+    root_source = deepcopy(baseline)
+    root_source.update(active_mode="set_bay", receiving_layout=adapter.layout)
+    app = SimpleNamespace(
+        root=root,
+        _phase6_input_snapshot=root_source,
+        _settings_values={},
+        _phase6_box_whd={"w": 800, "h": 1600, "d": 350, "t": 2},
+        _phase6_endcap_bottom_wrap_state={},
+        designer_workspace=None,
+    )
+    assembly = SimpleNamespace(
+        app=app,
+        receiving_layout_applicable=lambda: True,
+        receiving_adapter=lambda _ns: adapter,
+        receiving_switch_adapter=lambda _ns: SimpleNamespace(brand="士林"),
+        corner_transaction_payload=lambda _ns: {},
+        collect_workspace_state=lambda _ns: {},
+    )
+    modal = None
+    try:
+        assert comp.open_receiving_multi_settings(assembly, "test") is not False
+        editor = captured["get_inner_candidate_ports"]()["edit"]
+        modal = editor(ROLE, None, lambda _version: None)
+        root.update()
+        row = modal._receiving_inner_switch_state["rows"][0]
+        panel = modal._receiving_inner_nfb_dxf_panel
+        assert row["assigned"].size() == 2
+        unchanged_project = deepcopy(app._phase6_input_snapshot)
+
+        # This same real physical snapshot is read by the callback, never a
+        # substitute from a separate fake selector/capability registry.
+        current = deepcopy(app._phase6_input_snapshot)
+        current.update(deepcopy(app._phase6_box_whd))
+        current.update(endcap_bottom_wrap={}, workspace={})
+        current["receiving_layout"] = adapter.layout
+        live = project_receiving_bay_legacy_aliases(
+            current, set_index=0, bay_index=0,
+        )
+        output = tmp_path / "real_pair"
+        output.mkdir()
+        receipt = _export(live, _scene(live), output)
+        proof = capture_verified_v5_pair_display(live, receipt)
+        assert proof is not None
+        assert proof.scope.w_mm == 800
+        app._receiving_nfb_ui_session_evidence["verified_pair_exports"][(0, 0)] = proof
+
+        row["assigned"].selection_set(0)
+        row["assigned"].event_generate("<<ListboxSelect>>")
+        root.update()
+        assert "可製造（內門）" in panel.frame.cget("text")
+        assert "僅已出圖範圍" in panel.frame.cget("text")
+        assert "Set=" in panel.reason.get() and "Bay=" in panel.reason.get()
+
+        row["available"].selection_set(0)
+        row["available"].event_generate("<<ListboxSelect>>")
+        root.update()
+        assert "僅預覽" in panel.frame.cget("text")
+
+        row["assigned"].selection_clear(0, "end")
+        row["assigned"].selection_set(1)
+        row["assigned"].event_generate("<<ListboxSelect>>")
+        root.update()
+        assert "可製造（內門）" in panel.frame.cget("text")
+
+        saved_dxf = Path(receipt.base_plate_path)
+        saved_dxf.write_bytes(saved_dxf.read_bytes() + b"\\nTAMPERED_EXPORT")
+        row["assigned"].selection_clear(0, "end")
+        row["assigned"].selection_set(0)
+        row["assigned"].event_generate("<<ListboxSelect>>")
+        root.update()
+        assert "僅預覽" in panel.frame.cget("text")
+        assert "可製造（內門）" not in panel.reason.get()
+        assert app._phase6_input_snapshot == unchanged_project
+        assert KEY not in app._phase6_input_snapshot
+    finally:
+        if modal is not None and modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
