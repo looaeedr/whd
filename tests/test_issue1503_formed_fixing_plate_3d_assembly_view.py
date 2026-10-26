@@ -19,7 +19,7 @@ def _view():
 
 
 @pytest.mark.parametrize("fixture,quantity", ((_assembled, 2), (_two_tier, 4)))
-def test_actual_signed_source_formed_skins_are_visible_only_on_the_owning_base(
+def test_actual_signed_source_formed_skins_stay_certified_with_base_hidden(
     fixture, quantity,
 ):
     snap = fixture()
@@ -47,12 +47,17 @@ def test_actual_signed_source_formed_skins_are_visible_only_on_the_owning_base(
     assert view._formed_ear_assembly_preview(snap, visible) is not None
     again = view._formed_ear_assembly_preview(snap, visible)
     assert all(a is b for a, b in zip(formed, again))
-    assert view._formed_ear_assembly_preview(snap, set()) == ()
+    # The new independent 3D toggle must not discard the certified EAR
+    # geometry when its physical Base Plate (or either tier) is hidden.
+    # Source identity, T2, BEND23 and world-Z contracts above remain checked.
+    parent_hidden = view._formed_ear_assembly_preview(snap, set())
+    assert len(parent_hidden) == quantity
+    assert all(a is b for a, b in zip(formed, parent_hidden))
     if quantity == 4:
-        first_only = view._formed_ear_assembly_preview(
+        first_tier_visible = view._formed_ear_assembly_preview(
             snap, {"base_plate:nfb_layer:0"},
         )
-        assert [x.layer_index for x in first_only] == [0, 0]
+        assert [x.layer_index for x in first_tier_visible] == [0, 0, 1, 1]
 
 
 def test_forming_cache_invalidates_for_an_other_bay_or_changed_csv_source():
