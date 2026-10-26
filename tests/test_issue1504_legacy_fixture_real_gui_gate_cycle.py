@@ -4,8 +4,8 @@
 This test opens the committed 2026-era .p6fold through WHD's real GUI,
 drives the existing Receiving/NFB operator dialog, verifies unavailable
 source cannot submit or copy, then saves/reopens and audits authority.
-It is deliberately NOT a substitute for the user's second Library file
-or full two-project Windows 2D/3D/MARKING/DXF operator signoff.
+It proves only this sanitized repository fixture's native Tk behavior and
+does not claim actual user Windows UAT, physical 2D/3D, marking or DXF output.
 """
 from __future__ import annotations
 
@@ -169,7 +169,8 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
             "saved_schema": saved["schema"],
             "steps": audit,
             "scope": "ONE_REPO_LEGACY_FIXTURE_ONLY_NOT_17_AC_UAT",
-            "second_library_project_executed": False,
+            "sanitized_repository_fixture_only": True,
+            "human_windows_uat_claimed": False,
             "2d_3d_marking_dxf_executed": False,
         }, ensure_ascii=False, sort_keys=True), flush=True)
     finally:
