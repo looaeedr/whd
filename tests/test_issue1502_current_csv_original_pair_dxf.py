@@ -801,3 +801,77 @@ def test_swt30_exact_committed_w_n_y_model_datum_has_real_dxf_but_cannot_leak_to
     with pytest.raises((ValueError, KeyError)):
         _export(pending, parts, blocked)
     assert not list(blocked.glob("*.dxf"))
+
+
+def test_ac51_swt30_exact_current_csv_pair_scope_model_status_revokes_stale_sources(
+    tmp_path,
+):
+    """Only an ACTUAL native verified pair may promote its own models.
+
+    No previously approved W800 model/nominal pitch, another Set/Bay, altered
+    world-X, missing CSV source, or changed final DXF can reuse its receipt.
+    The original native selection labels remain untouched by this projection.
+    """
+    from ae_engine.receiving_nfb_current_scope_status import (
+        PREVIEW, VERIFIED_DOOR, verified_pair_after_export,
+        scoped_current_v5_selector_status,
+    )
+    saved = _current()
+    selected = tuple(
+        h["model_filename"] for h in saved["nfb_config"]["holes"]
+    )
+    assert selected == ("nfbv5:士林:2P400", "nfbv5:士林:3P125SN")
+    assert scoped_current_v5_selector_status(saved, selected[0]) == PREVIEW
+    assert scoped_current_v5_selector_status(
+        saved, "nfbv5:士林:2P125SN",
+    ) == PREVIEW
+
+    folder = tmp_path / "scoped_verified"
+    folder.mkdir()
+    receipt = _export(saved, _scene(saved), folder)
+    proof = verified_pair_after_export(saved, receipt)
+    assert proof.manufacturing_scope == "VERIFIED_CURRENT_CSV_PAIR_PART_ONLY"
+    assert proof.hole_ids == receipt.source_hole_ids
+    for model in selected:
+        assert scoped_current_v5_selector_status(saved, model, proof) == VERIFIED_DOOR
+    assert scoped_current_v5_selector_status(
+        saved, "nfbv5:士林:2P125SN", proof,
+    ) == PREVIEW
+
+    changed_x = deepcopy(saved)
+    changed_x["nfb_config"]["holes"][0]["manual_x_mm"] += 15.
+    changed_x["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = (
+        deepcopy(changed_x["nfb_config"])
+    )
+    assert scoped_current_v5_selector_status(changed_x, selected[0], proof) == PREVIEW
+
+    other_bay = deepcopy(saved)
+    other_bay["_receiving_runtime_selection"]["bay_id"] = "another_bay"
+    assert scoped_current_v5_selector_status(other_bay, selected[0], proof) == PREVIEW
+
+    changed_size = deepcopy(saved)
+    changed_size["w"] = 750.
+    assert scoped_current_v5_selector_status(changed_size, selected[0], proof) == PREVIEW
+
+    first = Path(receipt.inner_door_path)
+    first.write_bytes(first.read_bytes() + b"\\nSTALE_REEXPORT_BYTES")
+    assert scoped_current_v5_selector_status(saved, selected[0], proof) == PREVIEW
+    assert scoped_current_v5_selector_status(saved, selected[1], proof) == PREVIEW
+
+
+def test_ac51_swt30_status_rejects_unsubmitted_and_unrelated_export_evidence(tmp_path):
+    from ae_engine.receiving_nfb_current_scope_status import (
+        PREVIEW, verified_pair_after_export, scoped_current_v5_selector_status,
+    )
+    snap = _current()
+    model = snap["nfb_config"]["holes"][0]["model_filename"]
+    assert scoped_current_v5_selector_status(snap, model, evidence=object()) == PREVIEW
+    with pytest.raises(ValueError, match="native current V5 export receipt"):
+        verified_pair_after_export(snap, object())
+    not_submitted = deepcopy(snap)
+    not_submitted["nfb_config_submitted"] = False
+    assert scoped_current_v5_selector_status(not_submitted, model) == PREVIEW
+    with pytest.raises(ValueError, match="not submitted"):
+        verified_pair_after_export(
+            not_submitted, object(),
+        )
