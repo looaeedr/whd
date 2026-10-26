@@ -82,7 +82,7 @@ def test_nfb_ac30_missing_numeric_csv_model_produces_no_physical_cutting():
 
 
 @pytest.mark.parametrize("width,quantity", (
-    (600., 2), (750., 2), (800., 2), (800., 3),
+    (600, 2), (750, 2), (800, 2), (800, 3),
 ))
 def test_swt30_current_numeric_v5_four_nominal_groups_stay_preview_until_committed(
     width, quantity,
