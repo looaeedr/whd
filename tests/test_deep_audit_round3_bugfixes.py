@@ -504,3 +504,68 @@ def test_r3_9_absent_shared_settings_retains_default_and_valid_mapping_round_tri
     normalized = normalize_receiving_layout(source)
     assert normalized["sets"][0]["bays"][0]["back_panel_mode"] == "HALF"
     assert normalized["sets"][0]["settings"]["back_panel_mode"]["refs"] == source["sets"][0]["settings"]["back_panel_mode"]["refs"]
+
+
+@pytest.mark.parametrize(
+    ("saved_source", "expected_basename"),
+    [
+        (r"Z:\localX\基準檔\受電箱\左側板.dxf", "左側板.dxf"),
+        ("/workspace/whd/baselines/receiving_side.dxf", "receiving_side.dxf"),
+    ],
+)
+def test_r3_12_actual_box_body_piece_preview_displays_basename_not_full_source_path(
+    saved_source, expected_basename,
+):
+    """R3 #12: exercise the real piece renderer, not a copied string formula.
+
+    Only the presentation hint is in scope: physical sheet geometry and
+    manufacturing DXF are supplied by the existing authoritative render data.
+    """
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    from gui_modules.rendering.box_body_view import draw_box_body_piece_preview
+
+    captions = []
+    canvas = SimpleNamespace(
+        winfo_width=lambda: 800,
+        winfo_height=lambda: 600,
+        create_text=lambda *_args, **kwargs: captions.append(kwargs["text"]),
+    )
+    host = SimpleNamespace(
+        canvas_z=canvas,
+        draw_stock_var=SimpleNamespace(get=lambda: False),
+        _box_body_piece_label=lambda part_key: "左側板",
+        COLOR_TEXT_MUTED="#ffffff",
+    )
+    physical_render = SimpleNamespace(
+        material=SimpleNamespace(bounds=(0., 0., 100., 80.)),
+        scene=DrawingScene(),
+        metadata={"baseline_source_path": saved_source},
+        warnings=(),
+    )
+    part = SimpleNamespace(
+        role="left_side",
+        render_data=physical_render,
+        formed_outer_dimensions=(100., 80.),
+        material_dimensions=(110., 90.),
+    )
+    aggregate = SimpleNamespace(pieces=(part,))
+    transform = SimpleNamespace(world_to_canvas=lambda point: (point.x, point.y))
+
+    draw_box_body_piece_preview(
+        host, aggregate, part, "box_body:left_side",
+        viewport=lambda *_args: (transform, 0., 0., 1., 0.),
+        scene_renderer=lambda *_args, **_kwargs: None,
+        annotation_drawer=lambda *_args, **_kwargs: None,
+    )
+
+    assert len(captions) == 1
+    assert "專用基準：" + expected_basename in captions[0]
+    assert saved_source not in captions[0]
+    assert "成形：100 × 80 mm" in captions[0]
+    assert host.last_box_body_face_overview == {
+        "mode": "physical_piece",
+        "piece_key": "box_body:left_side",
+        "role": "left_side",
+        "material_bounds": (0., 0., 100., 80.),
+        "aggregate_piece_count": 1,
+    }
