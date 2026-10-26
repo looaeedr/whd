@@ -783,7 +783,7 @@ def test_ac51_swt30_real_assigned_list_event_consumes_only_matching_export_scope
         receipt = _export(live, _scene(live), output)
         proof = capture_verified_v5_pair_display(live, receipt)
         assert proof is not None
-        assert proof.scope.w_mm == 800
+        assert proof.scope.width_mm == 800
         app._receiving_nfb_ui_session_evidence["verified_pair_exports"][(0, 0)] = proof
 
         row["assigned"].selection_set(0)
