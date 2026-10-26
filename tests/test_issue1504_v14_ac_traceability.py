@@ -175,6 +175,7 @@ def test_manifest_review_summary_is_recomputed_from_records():
     # four identities stay audited, while the current live count is zero.
     counts.setdefault("DEFERRED_PRODUCT_EVIDENCE", 0)
     counts.setdefault("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC", 0)
+    counts.setdefault("EVIDENCE_CANDIDATE_ONLY", 0)
     assert sum(counts.values()) == 88
     assert obj["counts"] == counts
     # Four original deferred identities are immutable. Their *current*
@@ -323,6 +324,7 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     live_counts = dict(Counter(r["status"] for r in d["records"]))
     live_counts.setdefault("DEFERRED_PRODUCT_EVIDENCE", 0)
     live_counts.setdefault("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC", 0)
+    live_counts.setdefault("EVIDENCE_CANDIDATE_ONLY", 0)
     assert d["counts"] == live_counts
     assert sum(d["counts"].values()) == 88
     assert d["counts"]["BLOCKED_1500_REAL_GUI"] == 17
