@@ -87,6 +87,7 @@ PYTEST_PATHS = (
     # #1503: per-tier physical Base Plate skin + EAR target Z unified regression.
     "tests/test_receiving_tier_ear_assembly_xy.py",
     "tests/test_receiving_tier_ear_z_targets.py",
+    "tests/test_receiving_center_brand_anchor_125sn.py",
     # #1503: every source-defined layer ear must be its own real geometry and XY/Z owner.
     "tests/test_receiving_tier_fixing_plate_owner_ids.py",
     # #1503: actual folded 3D Base Plate skin must match EACH source EAR target.
