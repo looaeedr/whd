@@ -2111,9 +2111,7 @@ def test_ac07_ac43_ac35_ac45_ac56_exact_native_tk_functional_signoff():
         row = rows[ac]
         assert row["accepted"] is True and not row["blocking_issues"]
         assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
-        assert row["historical_pre_current_review"]["accepted"] is not True if (
-            "accepted" in row["historical_pre_current_review"]
-        ) else row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
+        assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
         assert row["identified_test_functions"] == [{
             "path": primary, "test_name": fn,
             "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
