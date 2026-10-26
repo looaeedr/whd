@@ -294,12 +294,13 @@ def test_real_left_two_original_quartets_allow_second_nfb_slot_and_alias(second_
 
 
 def test_one_tier_cross_brand_different_apertures_share_flat_plate_not_holes():
-    # Source LEFT is one existing physical blank, not proof the NFBs are
-    # the same. Each brand retains its own current numeric screw/aperture.
+    # Two brands may have separate numeric apertures, but one EAR mounting
+    # group cannot invent a cross-brand maximum Z or release a flat sheet.
     snap = _one_layer_pair("3P400SN", "伍菱")
-    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
-    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
-
+    with pytest.raises(ValueError, match="EAR_Z_MIXED_BRANDS_REQUIRE_APPROVED_RULE"):
+        receiving_base_plate_values(snap)
+    with pytest.raises(ValueError, match="EAR_Z_MIXED_BRANDS_REQUIRE_APPROVED_RULE"):
+        receiving_base_plate_blank_dimensions(snap)
 
 def test_flat_second_slot_cannot_be_misread_as_third_switch_row():
     snap = _one_layer_pair()
