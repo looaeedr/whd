@@ -278,20 +278,36 @@ def _one_to_one_tolerance_match(expected, actual, compatible) -> bool:
         return False
     assigned = {}
 
-    def augment(row_index, visited):
-        for col in edges[row_index]:
+    def augment(root):
+        # Iterative augmenting path: a densely perforated DXF can need over
+        # 1000 chained reassignments, exceeding Python's recursion limit.
+        # The stack remembers the parent column used to reach each row.
+        visited = set()
+        stack = [(root, iter(edges[root]), None)]
+        while stack:
+            row, options, _incoming = stack[-1]
+            col = next(options, None)
+            if col is None:
+                stack.pop()
+                continue
             if col in visited:
                 continue
             visited.add(col)
-            if col not in assigned or augment(assigned[col], visited):
-                assigned[col] = row_index
+            displaced = assigned.get(col)
+            if displaced is None:
+                assigned[col] = row
+                for depth in range(len(stack) - 1, 0, -1):
+                    parent_row = stack[depth - 1][0]
+                    parent_col = stack[depth][2]
+                    assigned[parent_col] = parent_row
                 return True
+            stack.append((displaced, iter(edges[displaced]), col))
         return False
 
-    # Match the most constrained expected rows first; augmenting paths can
-    # still reassign matches when several candidates share one tolerance.
+    # Preserve strict COMPLETE one-to-one matching; no tolerance widening
+    # and no greedy acceptance of duplicated/missing manufactured holes.
     return all(
-        augment(index, set())
+        augment(index)
         for index in sorted(range(len(edges)), key=lambda i: len(edges[i]))
     )
 
