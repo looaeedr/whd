@@ -984,3 +984,38 @@ def test_r2_13_receiving_bay_divider_uses_raw_thickness_and_frame_width(field):
     with pytest.raises(ValueError, match="divider"):
         _validate_common_receiving_state(data)
     assert data[field] is True
+
+
+@pytest.mark.parametrize("field,corrupt", [
+    ("door_handle_edges", False), ("door_handle_edges", 0),
+    ("door_handle_edges", ""),
+    ("inner_doors", False), ("inner_doors", 0),
+    ("inner_doors", ""), ("inner_doors", {}),
+    ("inner_doors", {"stable_id": "upper"}),
+    ("inner_doors", [None]), ("inner_doors", ["upper"]),
+])
+def test_r2_9_receiving_bay_door_source_must_not_silently_disappear(field, corrupt):
+    """Per-Bay Door projection must retain the same persisted source contract."""
+    from ae_engine.receiving_layout import _validate_common_receiving_state
+    saved = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2., "fw": 29.,
+        "multi_door_enabled": True,
+        "door_layout_columns": [[800., [800., 800.]]], "inner_doors": [],
+        "door_handle_edges": {},
+    }
+    saved[field] = corrupt
+    with pytest.raises(ValueError, match="invalid Receiving"):
+        _validate_common_receiving_state(saved)
+    assert saved[field] == corrupt
+
+
+def test_r2_9_receiving_bay_legacy_empty_door_and_handle_pair_source_remains_valid():
+    from ae_engine.receiving_layout import _validate_common_receiving_state
+    saved = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2., "fw": 29.,
+        "multi_door_enabled": True,
+        "door_layout_columns": [[800., [800., 800.]]], "inner_doors": [],
+        "door_handle_edges": [("0:0", "LEFT")],
+    }
+    assert _validate_common_receiving_state(saved) is None
+    assert saved["door_handle_edges"] == [("0:0", "LEFT")]

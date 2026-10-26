@@ -581,6 +581,15 @@ def _validate_common_receiving_state(snapshot: Mapping[str, object]) -> None:
         total_width=float(data["w"]),
         total_height=float(data["h"]),
     )
+    raw_handles = data.get("door_handle_edges")
+    # Per-Bay Door authority must obey the same persisted shape rules as
+    # project-file reopen. False/0/blank is not an empty Handle Editor choice.
+    if raw_handles is not None and not isinstance(raw_handles, (Mapping, list, tuple)):
+        raise ValueError("invalid Receiving Door handle edges source")
+    try:
+        handles = dict(raw_handles or {})
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid Receiving Door handle edges source") from exc
     derive_box_body_dividers(
         columns,
         # Preserve source T/FW identity for the existing Divider finite
@@ -589,11 +598,16 @@ def _validate_common_receiving_state(snapshot: Mapping[str, object]) -> None:
         thickness=data.get("t", 2.0),
         frame_width=data.get("fw", 29.0),
         layout_scope=str(data.get("door_layout_scope") or "receiving-main"),
-        handle_edges=dict(data.get("door_handle_edges") or {}),
+        handle_edges=handles,
         model_name="受電箱",
     )
 
-    inner_doors = list(data.get("inner_doors") or ())
+    raw_inner_doors = data.get("inner_doors")
+    if raw_inner_doors is not None and not isinstance(raw_inner_doors, (list, tuple)):
+        raise ValueError("invalid Receiving inner doors source")
+    inner_doors = list(raw_inner_doors or ())
+    if any(not isinstance(item, Mapping) for item in inner_doors):
+        raise ValueError("invalid Receiving inner doors entry")
     if inner_doors:
         from ae_engine.cabinet_types import receiving
 
