@@ -154,29 +154,29 @@ def test_current_set_without_legacy_switch_brand_uses_each_v5_csv_source():
 
 
 def test_v5_csv_missing_depth_or_cross_brand_blocks_only_affected_tier_z():
+    """One EAR-Z group cannot take maxima from different brand CSV catalogs."""
     snap = _two_tier()
     snap["receiving_layout"]["sets"][0].pop("switch_brand", None)
     holes = snap["nfb_config"]["holes"]
     holes[0].update(source_brand="士林", model_filename="nfbv5:士林:2P400")
     holes[1].update(source_brand="東元", model_filename="nfbv5:東元:2P400")
-    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
-        snap["nfb_config"]
-    )
-    targets = resolve_receiving_tier_base_z_targets(snap)
-    assert targets[0].source_depths_mm == (107.,)
-    assert targets[0].physical_skin_z_resolved
-    assert targets[1].source_depths_mm == ()
-    assert not targets[1].physical_skin_z_resolved
-    assert targets[1].world_offset_z_mm is None
-    # A cross-brand identity is not silently repaired by using other CSV.
-    holes[1]["model_filename"] = "nfbv5:士林:2P400"
-    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
-        snap["nfb_config"]
-    )
-    assert not resolve_receiving_tier_base_z_targets(
-        snap
-    )[1].physical_skin_z_resolved
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(snap["nfb_config"])
+    # One shared physical ear Z requires a whole-brand maximum, not a tier maximum.
+    with pytest.raises(ValueError, match="EAR_Z_MIXED_BRANDS_REQUIRE_APPROVED_RULE"):
+        resolve_receiving_tier_base_z_targets(snap)
 
+    # A corrupted source_brand / model_ref identity must also fail closed.
+    holes[1]["model_filename"] = "nfbv5:士林:2P400"
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(snap["nfb_config"])
+    with pytest.raises(ValueError, match="EAR_Z_BRAND_IDENTITY_DRIFT"):
+        resolve_receiving_tier_ear_contact_targets(snap)
+
+    # Real same-brand source continues to resolve both independent layers.
+    holes[1]["source_brand"] = "士林"
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(snap["nfb_config"])
+    targets = resolve_receiving_tier_base_z_targets(snap)
+    assert len(targets) == 2
+    assert all(t.source_depths_mm == (107.,) and t.physical_skin_z_resolved for t in targets)
 
 def test_quantity_frozen_integral_indices_restore_but_stable_ids_stay_guarded():
     """Phase6 Real-DTO 0.0 is an identity 0 only with exact saved Set/Bay."""
