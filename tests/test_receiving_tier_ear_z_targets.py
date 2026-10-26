@@ -175,9 +175,10 @@ def test_v5_csv_missing_depth_or_cross_brand_blocks_only_affected_tier_z():
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
-    assert not resolve_receiving_tier_base_z_targets(
-        snap
-    )[1].physical_skin_z_resolved
+    before = deepcopy(snap)
+    with pytest.raises(ValueError, match="EAR_Z_BRAND_IDENTITY_DRIFT"):
+        resolve_receiving_tier_base_z_targets(snap)
+    assert snap == before
 
 
 def test_quantity_frozen_integral_indices_restore_but_stable_ids_stay_guarded():
