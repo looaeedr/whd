@@ -373,3 +373,70 @@ def test_ac36_swt07_confirmed_zero_is_revoked_on_quantity_copy_not_erased(
     assert final.nfb_config_for_version(source)["nfb_config"]["holes"][0][
         "manual_x_mm"
     ] == 0
+
+
+def test_ac42_detached_real_csv_nfb_preview_cancel_undo_never_certifies_or_mutates_dxf(
+    tmp_path,
+):
+    """UI-1A draft preview has no MFG-1 authority, even with a real DXF.
+
+    Original Tk native MFG-1 buttons and physical source verification are
+    separately covered in mandatory current #1500 tests. This test proves
+    the complementary editor draft/legacy persistence/source-byte boundary,
+    not an original Windows UI operator receipt.
+    """
+    from hashlib import sha256
+    from tests.test_issue1497_configured_nfb_manufacturing_release import _source
+
+    index, source, profile = _source(tmp_path)
+    original_source_hash = sha256(source.read_bytes()).hexdigest()
+    assert original_source_hash == profile.source_sha256
+
+    initial = editable_nfb_draft(_draft())
+    session = NfbUi1aEditSession(_draft())
+    assert session.current == initial
+    original_preview = nfb_ui1a_preview(
+        session.current, bay_width_mm=800, upper_cell_height_mm=1100,
+    )
+    assert original_preview["can_manufacture"] is False
+    assert original_preview["has_absolute_x"] is False
+
+    # A visible editor X=0 and angle control is still detached UI-1A draft.
+    receipt = session.apply(
+        "X0_PREVIEW_ONLY", set_nfb_manual_x, 0, 0, 0,
+        datum={"box_width_mm": 800},
+    )
+    assert receipt is not None
+    assert session.current["layers"][0]["slots"][0]["manual_x_mm"] == 0
+    preview = nfb_ui1a_preview(
+        session.current, bay_width_mm=800, upper_cell_height_mm=1100,
+    )
+    assert preview["can_manufacture"] is False
+    assert preview["has_absolute_x"] is False
+    assert session.undo().action == "X0_PREVIEW_ONLY"
+    assert session.current == initial
+    assert not session.dirty
+
+    session.apply("TEMP_X", set_nfb_manual_x, 0, 0, 33,
+                  datum={"box_width_mm": 800})
+    assert session.dirty
+    assert session.escape() == initial
+    assert not session.dirty
+    assert sha256(source.read_bytes()).hexdigest() == original_source_hash
+
+    # The actual V3 writer must not persist an unapproved UI-1A NFB edit:
+    # there is no submitted NFB to upconvert or replace old parts.
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    original_bay = deepcopy(layout["sets"][0]["bays"][0])
+    path = write_project(
+        tmp_path / "ac42_draft_never_applied.p6fold",
+        _project({"active_mode": "set_bay", "receiving_layout": layout}),
+    )
+    saved = read_project(path)
+    row = saved["snapshot"]["receiving_layout"]["sets"][0]["bays"][0]
+    assert row == original_bay
+    assert row.get("nfb_config_submitted") is not True
+    assert "nfb_config" not in row
+    assert "X0_PREVIEW_ONLY" not in path.read_text(encoding="utf-8")
+    assert "TEMP_X" not in path.read_text(encoding="utf-8")
+    assert sha256(source.read_bytes()).hexdigest() == original_source_hash
