@@ -22,8 +22,8 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 83,
-    "BLOCKED_1500_REAL_GUI": 5,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 84,
+    "BLOCKED_1500_REAL_GUI": 4,
     "EVIDENCE_CANDIDATE_ONLY": 0,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 0,
     "DEFERRED_PRODUCT_EVIDENCE": 0
@@ -2751,24 +2751,93 @@
         "tests/test_issue1500_nfb_transactions.py",
         "tests/test_issue1500_nfb_ui1b_bridge.py",
         "tests/test_issue1500_nfb_worldx_runtime.py",
-        "tests/test_issue1500_real_nfb_dxf_lifecycle.py"
+        "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+        "tests/test_issue1504_batched_current_nfb_transactions.py",
+        "tests/test_issue1500_nfb_operator_gui_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "BLOCKED_1500_REAL_GUI",
-      "blocking_issues": [
-        1500
-      ],
-      "accepted": false,
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+      "blocking_issues": [],
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1499_nfb_persistence.py",
-          "test_name": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_batched_current_nfb_transactions.py",
+          "test_name": "test_ac40_explicit_quantity_version_x_owner_zero_cancel_reconfirm_v3_roundtrip",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
-      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "current_gui_requirement_20261026": "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT",
+      "historical_pre_current_review": {
+        "status": "BLOCKED_1500_REAL_GUI",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "blocking_issues": [
+          1500
+        ],
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1499_nfb_persistence.py",
+            "test_name": "test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "CURRENT_V5_QUANTITY_EXPLICIT_VERSION_X_OWNER__DIRECT_SAME_SOURCE_APPROVAL_ZERO_AND_NONE__TRUE_V3_SAVE_RELOAD__BACKEND_MFG1_VERSION_PERMISSION_AND_NATIVE_TK_OPERATOR_REAPPROVAL_WITNESSES_NOT_FACTORY_CERTIFICATION",
+        "primary_assertion": "tests/test_issue1504_batched_current_nfb_transactions.py::test_ac40_explicit_quantity_version_x_owner_zero_cancel_reconfirm_v3_roundtrip",
+        "other_required_assertions": [
+          "tests/test_issue1500_nfb_transactions.py::test_ac40_version_scoped_operator_x_cannot_cross_release_and_cancel_is_atomic",
+          "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac23_reopened_stale_world_x_native_tk_reconfirm_restores_only_source_verified_dxf",
+          "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac28_native_tk_uses_actual_two_bay_transaction_preview_and_atomic_source_gate",
+          "tests/test_issue1499_nfb_persistence.py::test_quantity_versions_have_isolated_saved_nfb_and_reconfirm_on_duplicate",
+          "tests/test_issue1499_nfb_persistence.py::test_quantity_common_width_invalidates_only_stale_version_x_across_save_reload",
+          "tests/test_issue1499_nfb_persistence.py::test_confirmed_x_zero_is_not_missing_and_none_is_not_zero",
+          "tests/test_issue1499_nfb_persistence.py::test_ac23_matching_explicit_source_without_width_does_not_fabricate_reconfirm",
+          "tests/test_issue1500_nfb_transactions.py::test_ac23_explicit_datum_owner_change_requires_new_operator_approval",
+          "tests/test_issue1500_nfb_transactions.py::test_ac28_operator_preview_compares_existing_confirmed_x_and_datum_before_consent",
+          "tests/test_issue1500_nfb_ui1b_bridge.py::test_live_submit_rechecks_bay_source_and_snapshot_before_adapter_write"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "基準首次核准及版本變更正確觸發 RECONFIRM_REQUIRED；只有有來源宣告相容者例外",
+            "proof": "A real v1 QuantityModel stored current CSV V5 X=0 explicitly bound to datum_snapshot.version_id=v1. Cloning to v2 demotes CONFIRMED->RECONFIRM_REQUIRED; a direct attempted v1-confirmed injection into v2 is demoted at the canonical persistence writer and from_payload/read_project. Matching version/model/angle/width retains explicit confirmation. Legacy absent version owner is not fabricated, and any backend manufacturing still rechecks real scope."
+          },
+          {
+            "original_clause": "重新手動輸入/批次確認綁定版本；位移 0 不等於 NONE",
+            "proof": "New original backend test builds typed source-verified inner CUTTING source scope v2, first rejects old explicit v1 operator datum BEFORE asking operator or changing any Bay. With current v2 source and explicit datum v2, cancel remains atomic, then operator approval writes x=0 with CONFIRMED and verified distinct version. Quantity version direct explicit new version source also keeps X0; model or angle change demotes, NONE with null remains unapproved. Mandatory original Tk AC23/AC28 tests exercise UI modal Cancel->Confirm, multi-Bay and source checks."
+          },
+          {
+            "original_clause": "Save→Reload 不錯認",
+            "proof": "Both new tests write actual .p6fold and call real read_project: Quantity versions v1 CONFIRMED 0 / v2 stale RECONFIRM_REQUIRED 0 remain independently scoped, actual Set/Bay verified v2 write remains CONFIRMED x0 with independent sibling. Sources are current V5 model rows or isolated typed source witness, not claims of factory DXF; stale source/model/angle/brand still subject to real MFG-1."
+          }
+        ],
+        "source_owner_paths": [
+          "ae_engine/receiving_nfb_persistence.py::normalize_nfb_saved_fields",
+          "phase6_quantity_model.py::QuantityModel.set_version_nfb_config",
+          "phase6_quantity_model.py::QuantityModel.from_payload",
+          "ae_engine/receiving_nfb_transactions.py::_verify_explicit_x_datum_owner",
+          "gui_modules/application/receiving_multi_settings_window.py::open_multi_settings",
+          "phase6_project_file.py::write_project",
+          "phase6_project_file.py::read_project"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "user_cancelled_second_legacy_project_prerequisite": true,
+        "typed_test_mfg1_source_fixture_not_manufacturer_certification": true,
+        "exact_head_ci_and_localx_readback_required": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "original_manufacturer_dxf_certified": false
+      }
     },
     {
       "id": "NFB-AC-41",
