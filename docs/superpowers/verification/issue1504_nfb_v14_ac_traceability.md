@@ -5,6 +5,16 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## 2026-10-26 台灣｜#1504 NFB-AC-36／SWT-AC-07 原生 Bay ＋數量版本複製真存檔候選（78→80）
+
+- **原始條文保留**：NFB-AC-36 與 SWT-AC-07 分別要求來源 `UNCONFIGURED` 不得提交型複製、首次複製需明確真實 MFG-1 與受阻板件確認，數量版本深複製已提交事實與配置而不讓各版本互相污染，真 `.p6fold` Save→Reload 保留來源與操作者設定；UI-1A 暫存預覽絕不冒充永久已提交。
+- **真實原生 Bay 操作證據**：已合併 PR #2315 的 `tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen` 由原 Tk 高亮選連驅動原 ReceivingSetBayAdapter，實際 `COPY_SUBMIT` 取消／確認、`COPY_OVERWRITE` 取消／確認、目標來源失效拒絕、各自 physical_hole_id 與實體 X、Undo，再從真 `.p6fold` readback。未配置來源的交易仍由原 backend 與橋接層 fail-closed。
+- **新增數量版本真實讀寫測試**：本 PR 不創造另一套 QuantityModel 介面，直接呼叫當期 `QuantityModel.add_version`、`set_version_nfb_config` 與原 `write_project/read_project`，重複複製 `UNCONFIGURED` 沒有任何休眠 NFBConfig；已提交原版本複製到獨立版本後目標的 X0 保留但原 `CONFIRMED` → `RECONFIRM_REQUIRED`，不可換成 `NONE` 或自動判定 READY。只修改／還原目標不動來源，實際 V3 `.p6fold` 重開後每版配置、提交事實、數值 X0、原操作者設定與版本件數一致。
+- **UI-1A 尚未正式提交**：沿用當期 `test_ac06_native_edit_cancel_undo_illegal_mutating_callback_and_authority_save`，原暫存 EditSession 取消／Undo 不寫入 Bay/Quantity 製造資料、不存偽造 NFBConfig；無來源現行 MFG-1 認證不可藉版本複製取得出圖能力。
+- **本批為候選、不是當期已簽**：此前 GitHub `localX@78b9eadf` 已正式 78/88；本分支候選 **80／88，餘 8**。需完整 exact HEAD Product Regression 五工作 SUCCESS、與最新 GitHub localX 安全合併及 blob readback 後才正式認列。沒有 user Windows 真機人工驗收、沒有不存在的專案 B、沒有 MFG-2/PAD/整箱 NC 放行，正式 X 仍需使用者 `/推推`。
+
+---
+
 ## 2026-10-26 台灣｜#1504 NFB-AC-53 真來源版本 MFG-1 重新核對與拒絕過期能力（77→78 候選）
 
 - **修正確認的產品缺口**：`ae_engine/receiving_nfb_ui1b_bridge.py::assert_live_verified_nfb()` 原本已核對 Bay 身分、來源 DXF 位元 SHA、真正的內門幾何及 NFBConfig digest，卻漏比 `NfbVerifiedDraftSubmission.version_id` 與 `NfbPhysicalScope.version_id`、`NfbScopeReadiness.scope`。因此不可把物理相同但**版本錯誤**的已核准 MFG-1 能力當成當期可提交。現改為 `scope.identity == (live Set, live Bay, candidate version)` 且 `readiness.scope == scope`、`submitted=true`，任何不符立刻失效、要求重驗，不到操作者確認也不寫入。
