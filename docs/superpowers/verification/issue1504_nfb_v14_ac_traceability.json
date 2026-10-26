@@ -110,7 +110,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "NFB-AC-03",
@@ -364,7 +365,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "NFB-AC-08",
@@ -1056,7 +1058,8 @@
         "original_requirement_text_preserved": true,
         "original_status_preserved": true,
         "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
-      }
+      },
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "NFB-AC-17",
@@ -2090,7 +2093,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "NFB-AC-35",
@@ -2120,7 +2124,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "NFB-AC-36",
@@ -2150,7 +2155,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "NFB-AC-37",
@@ -2429,7 +2435,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "NFB-AC-41",
@@ -2560,7 +2567,8 @@
         "original_requirement_text_preserved": true,
         "original_status_preserved": true,
         "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
-      }
+      },
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "NFB-AC-43",
@@ -2590,7 +2598,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "NFB-AC-44",
@@ -2735,7 +2744,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "NFB-AC-46",
@@ -2776,7 +2786,8 @@
         "original_requirement_text_preserved": true,
         "original_status_preserved": true,
         "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
-      }
+      },
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "NFB-AC-47",
@@ -3246,7 +3257,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "NFB-AC-54",
@@ -3453,7 +3465,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "SWT-AC-01",
@@ -3778,7 +3791,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "SWT-AC-08",
@@ -4616,7 +4630,8 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "SWT-AC-19",
@@ -5099,7 +5114,8 @@
         "original_requirement_text_preserved": true,
         "original_status_preserved": true,
         "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
-      }
+      },
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "SWT-AC-25",
@@ -5179,7 +5195,8 @@
         "original_requirement_text_preserved": true,
         "original_status_preserved": true,
         "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
-      }
+      },
+      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
     },
     {
       "id": "SWT-AC-27",
@@ -5784,12 +5801,12 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 71/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; NFB-AC-51 and SWT-AC-30 exact CURRENT CSV V5 signed scopes require native Tk ASSIGNED Listbox selection, saved/reopened actual INNER+BASE pair DXF and exact source Set/Bay/W/N/world-X/Y/model/rotation/file digest; catalogue and nominal groups remain preview-only. Prior 69 source-signed ACs preserved. Remaining 17 #1500 real two-old-project GUI ACs stay separately blocked; 71 is a branch candidate until exact-head CI and localX merged readback. No formal X or unconditional factory release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 71/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; NFB-AC-51 and SWT-AC-30 exact CURRENT CSV V5 signed scopes require native Tk ASSIGNED Listbox selection, saved/reopened actual INNER+BASE pair DXF and exact source Set/Bay/W/N/world-X/Y/model/rotation/file digest; catalogue and nominal groups remain preview-only. Prior 69 source-signed ACs preserved. Remaining 17 #1500 per-AC native GUI functional E2E proofs are pending, without a second old-project B requirement. 71 signed ACs were already merged/read back at localX; no additional signoff inferred. No formal X or unconditional factory release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
-    "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
+    "1500": "Outstanding gates are per-AC functional native GUI actions, project persistence, 2D/3D, scoped DXF and CHECK/Q; USER CANCELLED an arbitrary second old-project B prerequisite on 2026-10-26. No fixed A+B input quota. Never promote a test fixture to user Windows UAT.",
     "1503": "EAR T2/BEND23/physical contact/side marking and scoped source DXF delivered; ONLY independent PAD manufacturing/BOM and welding workmanship remain deferred, never invent them or hold already verified EAR.",
-    "1504": "Per-AC full acceptance remains unconfirmed until matching assertions, original requirements that were superseded, real and scope-specific integration readback are reconciled."
+    "1504": "71 signed, 17 per-AC functional GUI E2E evidence pending; no missing second original project or Library B raw bytes requirement. Preserve original 88 AC and legitimate fail-closed manufacturing checks."
   },
   "current_legacy_supersessions": {
     "NFB-AC-03": "CURRENT 2026-10-21: NFB brand/model geometry is the user's per-brand numeric NFB數值規格.csv and committed NFBConfig, NOT a mandatory legacy manufacturer DXF file. Original DXF preview acceptance wording is historical compatibility scope, not a current CSV selection prerequisite.",
@@ -5891,5 +5908,29 @@
     "original_88_requirements_unchanged": true,
     "windows_gui_gate_untouched": true,
     "formal_x_requires": "/推推"
+  },
+  "current_gui_acceptance_policy_20261026": {
+    "schema": "WHD_1504_GUI_FUNCTIONAL_EVIDENCE_NO_SECOND_PROJECT_GATE_V1",
+    "authority": "USER_DIRECTIVE_2026-10-26",
+    "supersedes": "HISTORICAL_REQUIREMENT_TO_RUN_TWO_DISTINCT_ORIGINAL_OLD_PROJECTS_A_PLUS_B",
+    "second_original_project_required": false,
+    "library_b_raw_bytes_required": false,
+    "legacy_project_count_is_acceptance_gate": false,
+    "permitted_sources": "EXISTING_AUTHORIZED_PROJECT_OR_LEGACY_COMPATIBILITY_FIXTURE_WITH_HONEST_PROVENANCE",
+    "pending_reason": "MISSING_PER_AC_FUNCTIONAL_GUI_E2E_PROOF_NOT_MISSING_SECOND_PROJECT",
+    "functional_chain": [
+      "NFB_SELECT_CANCEL_CONFIRM",
+      "SUBMIT_OR_REJECT_WITH_SOURCE_GUARD",
+      "BAY_OR_VERSION_COPY_INDEPENDENT_AND_UNDO",
+      "RESTORE_UNCONFIGURED_WITH_LEGACY_PRESERVED",
+      "SAVE_RELOAD_ACTUAL_PROJECT",
+      "PHYSICAL_2D_3D_SIDE_MARKING",
+      "REAL_DXF_EXPORT_OR_FAIL_CLOSED_AND_REOPEN_CHECK_Q"
+    ],
+    "proof_rule": "Each AC requires its own actual assertions and reproducible native operator/software evidence; synthesized fixtures may prove compatibility only, never claim actual user Windows UAT.",
+    "original_v14_ac_text_sha_unchanged": true,
+    "previous_71_signed_unchanged": true,
+    "factory_release_not_implied": true,
+    "signoff_not_implied": true
   }
 }
