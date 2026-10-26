@@ -61,3 +61,22 @@ ear_back_z     = ear_contact_z - ear_t
 - `docs/manufacturing/receiving-fixed-plate-source-20261018.md`
 - `docs/manufacturing/receiving-nfb-depth-physical-faces.md`（過時固定片 Z 計算已標記由本規則取代）
 - `docs/manufacturing/receiving-large-weld-ear.md`（歷史 T3，不得恢復為 CURRENT）
+
+## 2026-10-26 補充：中間雙折非固定 772
+
+兩顆同一層**相同士林 125SN** 必須以廠牌最深 107 mm 固定片 Z 作支承參考，選用 **中間雙折底板 `CENTER_DOUBLE_SIDE_FOLD`**，而不是因 NFB 同深就選左平底板。側折幾何依深差重算，不移動固定片。對混合深度 NFB／多層不得直接複製同一補差折型；分層／多工作面仍要驗證。
+
+以 **W800、側板 T2、底板 T2** 為例，底板主工作面 630 mm、第一折 40 mm，設定 `Dbrand=107`、`Dselected` 為兩顆同型號 NFB 深度：
+
+```text
+R = Dbrand - Dselected
+第二折 = R - Tbase = 107 - Dselected - 2
+展開寬度 = 630 + 2 × (40 + 第二折 - 2)
+```
+
+| 士林同層相同型號 | 深度 | 第二折 | 中間雙折展開寬 |
+| --- | ---: | ---: | ---: |
+| 兩顆 2P125SN | 68 mm | 37 mm | **780 mm** |
+| 兩顆 3P125SN | 72 mm | 33 mm | **772 mm** |
+
+固定片世界 Z 不變；中間底板折後 X 固定孔中心距 W800/T2 **670 mm**、Y **140 mm**，也不能隨展開寬度改變。展開圖的 772、兩折間距 33 只是 107/72/T2 樣本，**不是固定規格**。展開尺寸、CUTTING 輪廓、BEND 站位、真實 3D NFB 安裝面、固定片貼合面和 DXF 匯出必須一致動態更新；只算出 780/772 不等於製造已驗證。深度差不足以形成有效第二折時，不應硬生負值，應選其他經驗證板型。
