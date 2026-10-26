@@ -19,7 +19,7 @@ def _view():
 
 
 @pytest.mark.parametrize("fixture,quantity", ((_assembled, 2), (_two_tier, 4)))
-def test_actual_signed_source_formed_skins_are_visible_only_on_the_owning_base(
+def test_actual_signed_source_formed_skins_keep_physical_owner_when_base_hidden(
     fixture, quantity,
 ):
     snap = fixture()
@@ -47,12 +47,20 @@ def test_actual_signed_source_formed_skins_are_visible_only_on_the_owning_base(
     assert view._formed_ear_assembly_preview(snap, visible) is not None
     again = view._formed_ear_assembly_preview(snap, visible)
     assert all(a is b for a, b in zip(formed, again))
-    assert view._formed_ear_assembly_preview(snap, set()) == ()
+    # Parent ownership is physical, NOT the 3D checkbox. Hiding the Base
+    # Plate must retain the same certified EAR world skins at their true Z.
+    without_base = view._formed_ear_assembly_preview(snap, set())
+    assert len(without_base) == quantity
+    assert all(a is b for a, b in zip(formed, without_base))
+    assert [row.base_part_id for row in without_base] == [
+        row.base_part_id for row in formed
+    ]
     if quantity == 4:
-        first_only = view._formed_ear_assembly_preview(
+        first_base_hidden = view._formed_ear_assembly_preview(
             snap, {"base_plate:nfb_layer:0"},
         )
-        assert [x.layer_index for x in first_only] == [0, 0]
+        assert len(first_base_hidden) == quantity
+        assert all(a is b for a, b in zip(formed, first_base_hidden))
 
 
 def test_forming_cache_invalidates_for_an_other_bay_or_changed_csv_source():
