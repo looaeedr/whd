@@ -1140,7 +1140,11 @@ def test_ac34_native_verified_submit_and_first_copy_cancel_partial_draft_disk_ro
             "can_submit": not submitted and proof_ready,
             "can_copy": (
                 tuple(selected) == (0, 1)
-                and source_committed and not submitted and proof_ready
+                and source_committed
+                and adapter.layout["sets"][0]["bays"][1].get(
+                    "nfb_config_submitted"
+                ) is not True
+                and physical(1)[3].can_submit
             ),
             "can_restore": submitted,
             "can_undo": adapter.nfb_can_undo,
