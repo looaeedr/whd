@@ -103,7 +103,21 @@ def test_open_real_gui_physical_and_deferred_work_never_marked_pass():
     data = _data()
     assert set(data["open_gates"]) == {1500, 1504}
     rows = {r["id"]: r for r in data["records"]}
-    assert rows["NFB-AC-34"]["status"] == "BLOCKED_1500_REAL_GUI"
+    ac34 = rows["NFB-AC-34"]
+    if ac34["accepted"]:
+        assert ac34["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        proof = ac34["acceptance_evidence"]
+        assert proof["original_ac_text_unchanged"] is True
+        assert proof["user_cancelled_second_legacy_project_prerequisite"] is True
+        assert proof["factory_release"] is False
+        assert proof["human_windows_uat_claimed"] is False
+        assert proof["typed_test_mfg1_source_fixture_not_manufacturer_certification"] is True
+        assert len(proof["requirement_witnesses"]) == 3
+        assert proof["primary_assertion"].endswith(
+            "::test_ac34_native_verified_submit_and_first_copy_cancel_partial_draft_disk_roundtrip"
+        )
+    else:
+        assert ac34["status"] == "BLOCKED_1500_REAL_GUI"
     assert rows["NFB-AC-14"]["status"] in {
         "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
         "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
