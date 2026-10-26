@@ -4,6 +4,14 @@ whd_contract: issue1504-nfb-v14-ac-traceability
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
+## 2026-10-26（台灣）｜#1504 NFB-AC-51／SWT-AC-30 原生已指派型號來源範圍驗收候選（69→71）
+
+- **真實驗證**：[PR #2312](https://github.com/looaeedr/whd/pull/2312) 先建立真正提交的士林 V5 二顆 Set/Bay，經原內門＋底板出圖、真 DXF 重開取得記憶體內限定 Set/Bay/W/N/型號/X/Y/旋轉/datum/檔案 SHA 的收據；再透過原生 Tk 已指派 Listbox 事件顯示「可製造（內門）｜僅已出圖範圍」，來源清單維持「僅預覽」，改動 DXF 後立即撤銷。第一次 fixture 誤用舊 Bay model 欄導致列表為空，修回 Set 共用 settings.refs/values 後原生事件測試明確 PASS，Shard0 1,307 tests PASS，[完整 CI #40323722661](https://github.com/looaeedr/whd/actions/runs/40323722661) 5／5 GREEN，requirements=52、passed_cases=3873。
+- **AC-51**：現行新型號 V5 CSV + 已提交 NFBConfig 擁有真主孔 CUTTING 與旋轉 pivot；不要求舊原廠 NFB 型號 DXF ARC/CIRCLE/Color/原圖 pivot。只對已成功實際出圖的物理身份顯示來源限定綠色結果，不替來源清單本身簽永久資格。
+- **SWT-30**：只認本次已實際出圖的 W×N×Y×型號×內門 datum。既有 W600×2、W750×2、W800×2、W800×3 名義孔距在沒有已提交真實 X/來源時仍「僅預覽」，其他箱寬、型號、版本與 PAD/整箱 NC 沒有由本 AC 自動核准。
+- **簽核門檻**：上述來源限定 2 AC 的 71／88 先列 PR 候選；新增簽核矩陣修改的精確 HEAD 仍要重新通過 Product Regression 五階段、合入 GitHub localX 並精確回讀。原文 88 項不改，#1500 17 件舊專案 GUI 仍 OPEN，不動 Windows 或正式 X；正式 X 需額外 /推推。
+
+---
 
 ## 2026-10-26（台灣）｜NFB-AC-11 當期 CSV V5 真實主孔 pivot／板件出圖簽核候選（67→68，待完整 CI）
 
