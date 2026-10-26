@@ -569,3 +569,127 @@ def test_r3_12_actual_box_body_piece_preview_displays_basename_not_full_source_p
         "material_bounds": (0., 0., 100., 80.),
         "aggregate_piece_count": 1,
     }
+
+
+@pytest.mark.parametrize("part_side", ("left", "right"))
+def test_r3_14_actual_fixing_plate_source_export_warning_is_multiline_and_cancel_is_atomic(
+    monkeypatch, part_side,
+):
+    """R3 #14: the real 3D-export entry must display a readable warning.
+
+    Cancel cannot open a save chooser or call the source-DXF sink. This is
+    presentation and routing acceptance only, not a claim of released DXF.
+    """
+    from tkinter import filedialog, messagebox
+    from ae_engine import receiving_base_fixing_plate_geometry as source_flat
+    from gui_modules.application.fold_designer_composition_state import (
+        export_selected_dxf_from_3d,
+    )
+
+    messages = []
+    file_dialogs = []
+    source_writes = []
+    success_messages = []
+    monkeypatch.setattr(
+        messagebox, "askokcancel",
+        lambda title, message: messages.append((title, message)) or False,
+    )
+    monkeypatch.setattr(
+        filedialog, "asksaveasfilename",
+        lambda **kw: file_dialogs.append(kw) or "should-not-write.dxf",
+    )
+    monkeypatch.setattr(
+        source_flat, "save_independent_source_flat_dxf",
+        lambda *args: source_writes.append(args),
+    )
+    monkeypatch.setattr(
+        messagebox, "showinfo",
+        lambda *args: success_messages.append(args),
+    )
+    owner = SimpleNamespace(
+        app=SimpleNamespace(
+            designer_workspace=SimpleNamespace(
+                active_part=f"base_plate:fixing_plate:{part_side}",
+            )
+        ),
+    )
+
+    assert export_selected_dxf_from_3d(owner) is None
+    assert len(messages) == 1
+    assert "來源平面圖" in messages[0][0]
+    body = messages[0][1]
+    assert body.count("\n") >= 3
+    assert "\\n" not in body
+    assert "不代表整箱正式製造放行" in body
+    assert "焊接接觸及 Z" in body
+    assert file_dialogs == []
+    assert source_writes == []
+    assert success_messages == []
+
+
+@pytest.mark.parametrize(
+    ("part_side", "file_label"),
+    (("left", "底板固定片_左_來源平面.dxf"),
+     ("right", "底板固定片_右_來源平面.dxf")),
+)
+def test_r3_14_actual_fixing_plate_source_export_confirm_keeps_source_only_label(
+    monkeypatch, part_side, file_label,
+):
+    """Accepted source-flat export retains the dialog and original physical owner."""
+    from tkinter import filedialog, messagebox
+    from ae_engine import receiving_base_fixing_plate_geometry as source_flat
+    from gui_modules.application.fold_designer_composition_state import (
+        export_selected_dxf_from_3d,
+    )
+
+    requested = []
+    exported = []
+    success = []
+    monkeypatch.setattr(messagebox, "askokcancel", lambda *_args: True)
+    monkeypatch.setattr(
+        filedialog, "asksaveasfilename",
+        lambda **kwargs: requested.append(kwargs) or "/tmp/source-only.dxf",
+    )
+    monkeypatch.setattr(
+        source_flat, "save_independent_source_flat_dxf",
+        lambda key, path: exported.append((key, path)) or path,
+    )
+    monkeypatch.setattr(
+        messagebox, "showinfo",
+        lambda title, body: success.append((title, body)),
+    )
+    owner = SimpleNamespace(
+        app=SimpleNamespace(
+            designer_workspace=SimpleNamespace(
+                active_part=f"base_plate:fixing_plate:{part_side}",
+            )
+        ),
+    )
+
+    assert export_selected_dxf_from_3d(owner) == "/tmp/source-only.dxf"
+    assert requested[0]["initialfile"] == file_label
+    assert exported == [(f"base_plate:fixing_plate:{part_side}", "/tmp/source-only.dxf")]
+    assert len(success) == 1
+    assert success[0][1].count("\n") >= 1
+    assert "\\n" not in success[0][1]
+    assert "不代表整箱正式製造放行" in success[0][1]
+
+
+def test_r3_14_regular_part_export_still_delegates_to_existing_project_capability():
+    """The fixing-plate special path must not intercept normal 3D DXF export."""
+    from gui_modules.application.fold_designer_composition_state import (
+        export_selected_dxf_from_3d,
+    )
+    calls = []
+    owner = SimpleNamespace(
+        app=SimpleNamespace(
+            designer_workspace=SimpleNamespace(active_part="head"),
+        ),
+        _capabilities=SimpleNamespace(
+            project=SimpleNamespace(
+                export_selected_dxf=lambda: calls.append("ordinary") or "existing-export",
+            ),
+        ),
+    )
+    assert export_selected_dxf_from_3d(owner) == "existing-export"
+    assert calls == ["ordinary"]
