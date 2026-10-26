@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from ae_engine.assembly_placement import AssemblyPlacement, resolve_assembly_placement
+from ae_engine.cabinet_types import receiving as receiving_family
 from ae_engine.sheetmetal_feature_core import CircleFeature, RectFeature, FeatureAnchor
 from ae_engine.sheetmetal_geometry import Vec2
 from ae_engine.door_dividers import derive_box_body_dividers
@@ -295,6 +296,19 @@ def test_2d_to_3d_modify_structure_confirm_to_2d():
 
 def test_save_reload_to_3d_to_2d_round_trip(tmp_path):
     canonical = _canonical_round_trip_workspace()
+    # The old generic integral/unlocked fixture is not an authorized Receiving
+    # manufacturing state. Use this family's real source-owned side/back rule,
+    # then demand EXACT Save → Reload → GUI → 3D equality as before.
+    canonical['box_body_structure'] = receiving_family.resolve_box_body_structure_state(
+        canonical['box_body_structure']
+    )
+    structure = canonical['box_body_structure']
+    assert structure['active_type'] == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    assert structure['locked'] is True
+    side_back = structure['configs'][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    assert side_back['side_rear_bend'] == 18.0
+    assert side_back['side_rear_bend_dimension_space'] == 'OUTSIDE'
+    assert side_back['back_width_comp_t'] == 2.5
     app = make_dummy_gui(canonical)
 
     # Compose snapshot and save to .p6fold
