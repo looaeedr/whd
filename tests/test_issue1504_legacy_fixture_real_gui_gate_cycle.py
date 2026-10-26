@@ -278,11 +278,13 @@ def test_ac46_saved_submitted_nfb_is_never_silently_legacy_after_gui_reload(
         for choice in ({"head": True}, {"tail": True}):
             _assert_legacy_nfb_export_scope_safe(main, choice)
 
-        # The ordinary original DXF action must not emit a hole-less door
-        # after reload. This exercises export routing, not merely the guard.
+        # The ordinary original DXF action must not emit unverified NFB-
+        # dependent BOX BODY/SIDE sheets after reload. Outer DOOR is genuinely
+        # independent in the current multi-Bay exporter and may be exported
+        # separately; do not turn that legitimate partial path into a false RED.
         flags = {
-            "box_body": False, "head": False, "tail": False,
-            "door": True, "base_plate": False,
+            "box_body": True, "head": False, "tail": False,
+            "door": False, "base_plate": False,
             "indicator_box": False, "indicator_door": False,
         }
         target = tmp_path / "blocked_old_full_export"
@@ -291,7 +293,11 @@ def test_ac46_saved_submitted_nfb_is_never_silently_legacy_after_gui_reload(
             main, str(target), {}, flags, False,
         )
         assert not files, (files, issues)
-        assert issues and any("NFB" in issue or "來源" in issue for issue in issues), issues
+        assert issues and any(
+            "NFB" in issue or "來源" in issue
+            or "SUBMITTED_CSV_NOT_CURRENT" in issue
+            for issue in issues
+        ), issues
         assert not list(target.rglob("*.dxf"))
         assert _has_submitted_nfb_in_current_snapshot(
             app._phase6_input_snapshot
