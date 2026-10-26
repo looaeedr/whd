@@ -230,8 +230,10 @@ def test_brand_max_two_tier_fold_source_72_to_68_changes_actual_blank_not_ear_z(
     assert new_specs[1].receiving_nfb_depth_pair_mm == (107., 68.)
     # CURRENT W800/T2 original source reference: 630-mm flat face, 40-mm
     # first fold, variable second fold = Dbrand - Dselected - 2-mm sheet.
-    assert old_blanks == pytest.approx(((772., 240.), (772., 240.)))
-    assert new_blanks == pytest.approx(((772., 240.), (780., 240.)))
+    for got, expected in zip(old_blanks, ((772., 240.), (772., 240.))):
+        assert got == pytest.approx(expected)
+    for got, expected in zip(new_blanks, ((772., 240.), (780., 240.))):
+        assert got == pytest.approx(expected)
 
     old_ears = resolve_receiving_tier_ear_contact_targets(first)
     new_ears = resolve_receiving_tier_ear_contact_targets(second)
