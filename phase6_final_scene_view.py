@@ -206,14 +206,11 @@ class Phase6FinalSceneViewAdapter:
         else:
             formed, blocker = cached[1:]
         self.last_formed_ear_display_blocker = blocker
-        # Visibility follows parent Base Plate: an EAR must not remain
-        # hovering when the operator hides its owning physical base.
-        return tuple(
-            row for row in formed
-            if row.base_part_id in visible_set
-            or ("base_plate" in visible_set
-                and row.base_part_id.startswith("base_plate:nfb_layer:"))
-        )
+        # Display-only EAR visibility is independent of Base Plate visibility.
+        # Its own show_fixing_plate_mesh switch is applied by the 3D renderer.
+        # Never suppress the EAR when a parent plate is hidden: this is also
+        # needed to inspect weld contact surfaces with the plate out of view.
+        return tuple(formed)
 
     def _require_renderer(self) -> Phase6FinalSceneRenderer:
         renderer = self.renderer
