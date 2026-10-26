@@ -170,7 +170,8 @@ def _receiving_source_nfb_base_center_z(snapshot: Mapping[str, object]) -> float
     if pair is None and single is None:
         return None
     center=physical["receiving_bend_pattern"] == RECEIVING_BASE_PATTERN_CENTER
-    if (pair is not None and not center) or (single is not None and center):
+    inverted=bool(physical.get("receiving_center_brand_anchor_inverted"))
+    if (pair is not None and not center) or (single is not None and center and not inverted):
         raise ValueError("RECEIVING_BASE_NFB_DEPTH_DOES_NOT_MATCH_PHYSICAL_PATTERN")
     upper=[
         row for row in tuple(snapshot.get("inner_doors") or ())
@@ -184,14 +185,28 @@ def _receiving_source_nfb_base_center_z(snapshot: Mapping[str, object]) -> float
     from .receiving_base_plate_real_skins import receiving_base_actual_local_nfb_skins
     world = resolve_receiving_nfb_world_skin_datums(
         snapshot,inner_door_id=str(upper[0]["stable_id"]),
-        reference_nfb_depth_mm=float(pair[0]) if pair is not None else float(single),
-        secondary_nfb_depth_mm=float(pair[1]) if pair is not None else None,
+        reference_nfb_depth_mm=(
+            float(pair[1]) if inverted else
+            float(pair[0]) if pair is not None else float(single)
+        ),
+        secondary_nfb_depth_mm=(
+            float(pair[1]) if pair is not None and not inverted else None
+        ),
     )
     base_local_front,shallow_local_front = receiving_base_actual_local_nfb_skins(
         snapshot,physical,
     )
     world_offset_z=world.base_nfb_face_world_z_mm-base_local_front
-    if pair is not None:
+    if inverted:
+        # Center NFB web follows the actual selected 68/72-mm clearance;
+        # both outside attachment tabs reach the fixed brand-maximum 107-mm
+        # mounting support, with the inverted fold verified by real skins.
+        if pair is None or shallow_local_front is None or abs(
+            (world_offset_z + shallow_local_front)
+            - (world.base_nfb_face_world_z_mm - float(pair[0]) + float(pair[1]))
+        ) > 1e-6:
+            raise ValueError("RECEIVING_CENTER_BRAND_ANCHOR_WING_SKIN_Z_MISMATCH")
+    elif pair is not None:
         if shallow_local_front is None or abs(
             (world_offset_z+shallow_local_front)-world.shallow_nfb_face_world_z_mm
         )>1e-6:
