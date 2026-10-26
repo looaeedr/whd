@@ -13,7 +13,9 @@ from math import isfinite
 from typing import Mapping
 
 from .receiving_tier_ear_assembly_xy import resolve_receiving_tier_ear_mating_xy
-from .receiving_weld_ear_policy import receiving_source_fixing_pitch_x_mm
+from .receiving_weld_ear_policy import (
+    LARGE_EAR_MATERIAL_THICKNESS_MM, receiving_source_fixing_pitch_x_mm,
+)
 
 
 @dataclass(frozen=True)
@@ -172,7 +174,6 @@ def _tier_source_depths(legacy_brand, config, layer_index):
     return tuple(sorted(set(depths), reverse=True))
 
 
-
 def committed_receiving_ear_brand_max_depth_mm(
     snapshot: Mapping[str, object],
 ) -> float:
@@ -312,6 +313,7 @@ def resolve_receiving_tier_ear_contact_targets(
     brand_anchor = resolve_receiving_nfb_world_skin_datums(
         snapshot, inner_door_id=str(upper[0]["stable_id"]),
         reference_nfb_depth_mm=max_depth,
+        fixing_plate_thickness_mm=LARGE_EAR_MATERIAL_THICKNESS_MM,
     ).fixing_plate_contact_skin_world_z_mm
     if not isfinite(brand_anchor):
         raise ValueError("EAR_Z_BRAND_ANCHOR_NONFINITE")
