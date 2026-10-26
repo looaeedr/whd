@@ -395,7 +395,9 @@ def test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input(
         assert spec is not None and spec.dimensionally_complete
         assert spec.opening_mm is not None and spec.screw_pitch_mm is not None
 
-    actual = _export(saved, _scene(saved), tmp_path / "current_v5")
+    destination = tmp_path / "current_v5"
+    destination.mkdir()
+    actual = _export(saved, _scene(saved), destination)
     paths = (Path(actual.inner_door_path), Path(actual.base_plate_path))
     assert all(path.is_file() for path in paths)
     assert len(list((tmp_path / "current_v5").glob("*.dxf"))) == 2
