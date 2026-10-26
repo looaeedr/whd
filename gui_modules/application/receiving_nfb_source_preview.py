@@ -32,6 +32,7 @@ class NfbDxfSourcePreviewPanel:
         self._numeric_mode=False
         self._numeric_zoom=1.0
         self._numeric_pan=(0.0,0.0)
+        self._verified_export_scope_shown=False
         # Ephemeral source-only preview cache; never store manufacturing authority.
         # Keys include brand, model and source file revision.
         self._numeric_sources={}
@@ -59,6 +60,7 @@ class NfbDxfSourcePreviewPanel:
 
     def show(self,brand,filename,*,verified_export_proof=None,verified_snapshot=None):
         """Only read this one indexed model, never trigger app geometry recompute."""
+        self._verified_export_scope_shown=False
         if filename is None:
             self._numeric_mode=False
             self.frame.configure(text="NFB 型號來源｜僅預覽")
@@ -119,6 +121,7 @@ class NfbDxfSourcePreviewPanel:
                     verified_export_proof, verified_snapshot, brand, filename,
                 )
             if scoped_label:
+                self._verified_export_scope_shown=True
                 # Only a successful, same-source-and-output verified physical
                 # pair can expose this read-only label. Catalogue and stale
                 # assigned items remain preview. Never turn it into a MFG gate.
@@ -152,6 +155,18 @@ class NfbDxfSourcePreviewPanel:
             f"原始來源 SHA：{result.source_sha256 or '缺失'}｜圖元 {result.entity_count}")
         self.reason.set(result.reason+"｜"+result.status)
         self.paint()
+
+    def revoke_export_scope_status(self):
+        """Immediately retire an in-session positive label after draft edits.
+
+        This is display-only; a prior DXF file stays untouched and the next
+        real export must independently verify the complete current source.
+        """
+        if not self._verified_export_scope_shown:
+            return
+        self._verified_export_scope_shown=False
+        self.frame.configure(text="NFB 數值規格 CSV｜僅預覽")
+        self.reason.set("NFB 草稿／位置已變更｜僅預覽，先前的實際出圖不再代表目前設定")
 
     def paint(self):
         self.canvas.delete("nfb-dxf")
