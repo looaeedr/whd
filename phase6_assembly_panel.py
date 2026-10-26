@@ -53,13 +53,11 @@ class Phase6AssemblyPanel:
         # EAR is a display-only child of Base Plate, not an ordinary PartSpec.
         # Keep its 3D visibility independent from the base and side MARKING.
         self.fixing_plate_visible_var = tk.BooleanVar(master=self.host, value=True)
-        self.fixing_plate_visibility_entry = ttk.Frame(self.host)
-        ttk.Checkbutton(
-            self.fixing_plate_visibility_entry,
-            text="顯示底板固定片（3D）",
-            variable=self.fixing_plate_visible_var,
-            command=self.actions.on_visibility_changed,
-        ).pack(anchor=tk.W, padx=(6, 0))
+        # Physically parent this checkbox inside Base Plate's expandable
+        # details (not the top-level Receiving controls). The EAR visibility
+        # flag remains independent of Base Plate's own checkbox.
+        self.fixing_plate_visibility_entry: ttk.Frame | None = None
+        self._fixing_plate_option_enabled = False
         scroll_host = ttk.Frame(self.host)
         scroll_host.pack(fill=tk.BOTH, expand=True)
 
@@ -127,17 +125,48 @@ class Phase6AssemblyPanel:
         self.bind_scroll(self.content)
 
     def set_multi_settings_visible(self, visible: bool) -> None:
-        """One Assembly-only entry; do not mount it inside BoxBody."""
-        if visible and self.actions.on_multi_settings is not None:
+        """Receiving controls only; EAR stays nested inside Base Plate details."""
+        enabled = bool(visible and self.actions.on_multi_settings is not None)
+        self._fixing_plate_option_enabled = enabled
+        if enabled:
             if not self.multi_settings_entry.winfo_manager():
                 self.multi_settings_entry.pack(fill=tk.X, before=self.canvas.master, pady=(0, 6))
-            if not self.fixing_plate_visibility_entry.winfo_manager():
-                self.fixing_plate_visibility_entry.pack(
-                    fill=tk.X, before=self.canvas.master, pady=(0, 4)
-                )
         else:
             self.multi_settings_entry.pack_forget()
-            self.fixing_plate_visibility_entry.pack_forget()
+        self._install_fixing_plate_visibility_control()
+
+    def _install_fixing_plate_visibility_control(self) -> None:
+        """Display-only EAR child in the Base Plate expansion, not a PartSpec.
+
+        Do not gate this checkbox on Base Plate visibility: hiding the sheet
+        must still allow the separately controlled formed fixing plates in 3D.
+        """
+        frame = self.fixing_plate_visibility_entry
+        if not self._fixing_plate_option_enabled:
+            if frame is not None and frame.winfo_exists():
+                frame.pack_forget()
+            return
+        parent = (
+            self.group_detail_frames.get("base_plate")
+            or self.detail_frames.get("base_plate")
+        )
+        if parent is None:
+            if frame is not None and frame.winfo_exists():
+                frame.pack_forget()
+            return
+        if frame is None or not frame.winfo_exists() or frame.master is not parent:
+            if frame is not None and frame.winfo_exists():
+                frame.destroy()
+            frame = ttk.Frame(parent)
+            ttk.Checkbutton(
+                frame,
+                text="顯示底板固定片（3D）",
+                variable=self.fixing_plate_visible_var,
+                command=self.actions.on_visibility_changed,
+            ).pack(anchor=tk.W)
+            self.fixing_plate_visibility_entry = frame
+        if not frame.winfo_manager():
+            frame.pack(fill=tk.X, padx=(20, 0), pady=(4, 2))
 
     def is_fixing_plate_visible(self) -> bool:
         """3D-only UI preference; never included in the saved manufacturing model."""
@@ -250,6 +279,7 @@ class Phase6AssemblyPanel:
     def _clear_widget_registries(self) -> None:
         for child in tuple(self.content.winfo_children()):
             child.destroy()
+        self.fixing_plate_visibility_entry = None
         for registry in (
             self.visible_vars,
             self.corner_vars,
@@ -557,6 +587,7 @@ class Phase6AssemblyPanel:
                     old_open=old_open,
                 )
 
+        self._install_fixing_plate_visibility_control()
         self.detail_open_stash.clear()
         self.detail_open_stash.update(
             {key: bool(old_open.get(key, False)) for key in live_part_keys}
