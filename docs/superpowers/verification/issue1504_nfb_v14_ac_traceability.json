@@ -22,11 +22,11 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 65,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 66,
     "BLOCKED_1500_REAL_GUI": 17,
     "EVIDENCE_CANDIDATE_ONLY": 3,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 1,
-    "DEFERRED_PRODUCT_EVIDENCE": 2
+    "DEFERRED_PRODUCT_EVIDENCE": 1
   },
   "records": [
     {
@@ -3370,27 +3370,101 @@
         1503
       ],
       "regression_candidates": [
-        "tests/test_issue1503_deferred_pad_ear_manufacturing.py"
+        "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+        "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py",
+        "tests/test_issue1502_nfb_source_regions.py",
+        "tests/test_receiving_tier_ear_z_targets.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "DEFERRED_PRODUCT_EVIDENCE",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
-          "test_name": "test_unapproved_nfb_pad_and_ear_must_not_generate_even_part_only_dxf",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py",
+          "test_name": "test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_release_pad",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_scope_correction_20261021": {
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT correction: changing selected NFB depth moves the real BasePlate and paired EARs together in Z; it does NOT implicitly create a PAD. The upper aperture/lower original screw-group provenance cannot be treated as a PAD blank.",
         "authority_issue": 1502
       },
-      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
+      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED",
+      "historical_pre_current_review": {
+        "status": "DEFERRED_PRODUCT_EVIDENCE",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+            "test_name": "test_unapproved_nfb_pad_and_ear_must_not_generate_even_part_only_dxf",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "CURRENT_1502_CORRECTED_UPPER_LOWER_ORIGINAL_SOURCE_PROVENANCE_NOT_PAD__V5_COMMITTED_BASE_AND_EAR_WORLD_Z__NO_FAKE_PAD_RELEASE",
+        "primary_assertion": "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_release_pad",
+        "other_required_assertions": [
+          "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_real_native_lower_source_is_trace_only_not_a_pad_blank",
+          "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_unapproved_nfb_pad_and_ear_must_not_generate_even_part_only_dxf",
+          "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_forged_approved_flag_cannot_override_deferred_role_in_atomic_batch",
+          "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_pad",
+          "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_original_selected_export_automatically_adds_formed_ear_sheets"
+        ],
+        "original_ac_clauses_audited": [
+          {
+            "requirement": "上方開孔來源與下方資料組需保留原始 DXF entity/handle/SHA 分區，不能以 LOWER 來源冒充新的 PAD 實體或正式加工件",
+            "source_owner": "ae_engine.receiving_nfb_source_regions; native DXF upper/lower reader and provenance",
+            "witnesses": [
+              "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_release_pad",
+              "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_real_native_lower_source_is_trace_only_not_a_pad_blank"
+            ]
+          },
+          {
+            "requirement": "原條文不自動改底板位置依 #1502 最新核准修正：只有已提交、來源明確的現行 V5 型號深度可移動該層 BasePlate 與成對 EAR 世界 Z；不推走內門或另一層",
+            "source_owner": "ae_engine.receiving_tier_ear_z_targets and receiving_nfb_layer_physical_parts; Shihlin numeric CSV V5 107/72/68",
+            "witnesses": [
+              "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_release_pad",
+              "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_pad"
+            ]
+          },
+          {
+            "requirement": "本期未核准獨立 PAD 不得正式出圖，來源低區不能轉成 PAD blank；合法 BASE/EAR/SIDE 部分製造仍需真 SOURCE/SKIN 接觸及 DXF 重開",
+            "source_owner": "ae_engine.manufacturing_export._reject_unapproved_nfb_pad_ear_manufacturing and receiving_fixed_plate_formed_manufacturing",
+            "witnesses": [
+              "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_unapproved_nfb_pad_and_ear_must_not_generate_even_part_only_dxf",
+              "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_forged_approved_flag_cannot_override_deferred_role_in_atomic_batch",
+              "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py::test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_release_pad"
+            ]
+          }
+        ],
+        "source_owner_paths": [
+          "ae_engine/receiving_nfb_source_regions.py",
+          "ae_engine/receiving_tier_ear_z_targets.py",
+          "ae_engine/receiving_nfb_layer_physical_parts.py",
+          "ae_engine/manufacturing_export.py"
+        ],
+        "original_ac_text_unchanged": true,
+        "current_scope_correction_applied": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "independent_pad_manufacturing_approved": false,
+        "entire_pad_ear_assembly_approved": false,
+        "full_cabinet_welding_certified": false,
+        "other_ac_signoff_implied": false,
+        "original_unrevised_base_immobility_claimed": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "SWT-AC-10",
@@ -4914,7 +4988,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 65/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 23 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 66/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 23 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
