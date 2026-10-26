@@ -8,7 +8,7 @@ whd_schema: WHD_DOC_META_V1
 ## 2026-10-26 台灣｜#1504 NFB-AC-46 真 GUI 舊案已提交防無孔 DXF 候選（76→77）
 
 - **原始 §7 AC-46 不變**：即使缺少原機器 MFG-1 source/capability，載入已儲存 `submitted=true` 的工程絕不可默認為 `UNCONFIGURED`，並輸出缺少 NFB 孔的舊版完整 DXF。提交事實與原始配置屬於持久化資料，READY 是重新推導的當次來源授權。
-- **驗證鏈**：用倉庫原本保留的受電箱舊格式工程作為合法檔案基礎，於隔離測試檔中設定單連已提交 NFB（明確為測試造出的配置，不偽稱原使用者證據），執行真 `write_project`→`read_project`→原生 WHD GUI load→NFB 視窗檢查提交／複製停用與還原可用→製造舊式 `door/base/body` 守衛警示；再透過原始 `_export_selected_parts` 實際嘗試 Door DXF，要求明確來源/NFB 錯誤、零輸出文件。無 NFB 依賴的 HEAD/TAIL 不被同一 NFB-only guard 阻擋；GUI 再存檔重讀仍保留 V3 與已提交配置。
+- **驗證鏈**：用倉庫原本保留的受電箱舊格式工程作為合法檔案基礎，於隔離測試檔中設定單連已提交 NFB（明確為測試造出的配置，不偽稱原使用者證據），執行真 `write_project`→`read_project`→原生 WHD GUI load→NFB 視窗檢查提交／複製停用與還原可用→製造舊式 `door/base/body` 守衛警示；再透過原始 `_export_selected_parts` 實際嘗試 NFB 依賴的箱身側板 DXF，要求明確來源/NFB 錯誤、零輸出文件。無 NFB 依賴的 HEAD/TAIL 與可獨立證明的外門不被同一 NFB-only guard 阻擋；GUI 再存檔重讀仍保留 V3 與已提交配置。
 - **負面案例**：舊 V1/V2 schema 冒裝已提交配置必須拒絕、布林值不合法必須拒絕。所有輸出斷言都經 mandatory CI，不能只靠測試名稱；**本期不宣稱 user Windows UAT 或工廠任意 DXF 認證**。
 - **合併條件**：PR HEAD 全 Product Regression（含 52 CPR/AC）GREEN 才可合併 GitHub localX，簽核正式成為 77/88；其他 11 項不自動 GREEN。無不存在「專案 B」前置；正式 X 仍需 `/推推`。
 
