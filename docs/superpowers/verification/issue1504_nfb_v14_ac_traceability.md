@@ -4,6 +4,16 @@ whd_contract: issue1504-nfb-v14-ac-traceability
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
+
+## CURRENT USER DECISION｜2026-10-26｜取消不存在的第二份「專案 B」驗收硬閘門
+
+- **正式改正**：#1500／#1504 不再要求 A+B 兩個舊客戶專案、第二份 `.p6fold`、Library B 原始位元組或 Windows 雙案 UAT，作為任一 AC 的必要前置；以下歷史提及「兩份舊案」的文字全部視為過期，不得再引用成為當期拒簽理由。注意「兩份 v1.4 規格書」是原始的兩個**規格文件**，不是兩個工程專案。
+- **17 項實際簽核方法**：以現有合法可取得的舊格式工程／原生 Tk GUI 操作及已提交的現行 V5 數值 CSV 為來源，依每項原 §7 AC 的功能做正反驗收：選型、取消、確認與來源守衛；提交／Bay 或版本深複製／Undo／還原；`.p6fold` Save→Reload；實際 2D／3D 與 SIDE MARKING；合法部分／禁止完整 DXF、真輸出重開及 CHECK/Q。使用舊格式 fixture 可證程式的相容性範圍，**不能**冒稱使用者原 Windows 實機畫面或原廠製造資格。
+- **當前矩陣 71／88**：已簽 71 不倒退也不重簽，剩 17 先維持 `BLOCKED_1500_REAL_GUI`，意指**各自完整功能鏈證據未簽**，不是欠一份不存在的 B。每項有實際充分證據才個別提升，不因取消 B 自動全部變 GREEN。
+- **機器權威**：`issue1504_nfb_v14_ac_traceability.json.current_gui_acceptance_policy_20261026` 與 17 筆 `current_gui_requirement_20261026`、`tests/test_issue1504_v14_ac_traceability.py` 保護這個決策；原始 88 AC、兩份規格來源 SHA、PAD／焊接／整箱製造守衛均不改。正式 X 仍只在使用者 `/推推` 後發布。
+
+---
+
 ## 2026-10-26（台灣）｜#1504 NFB-AC-51／SWT-AC-30 原生已指派型號來源範圍驗收候選（69→71）
 
 - **真實驗證**：[PR #2312](https://github.com/looaeedr/whd/pull/2312) 先建立真正提交的士林 V5 二顆 Set/Bay，經原內門＋底板出圖、真 DXF 重開取得記憶體內限定 Set/Bay/W/N/型號/X/Y/旋轉/datum/檔案 SHA 的收據；再透過原生 Tk 已指派 Listbox 事件顯示「可製造（內門）｜僅已出圖範圍」，來源清單維持「僅預覽」，改動 DXF 後立即撤銷。第一次 fixture 誤用舊 Bay model 欄導致列表為空，修回 Set 共用 settings.refs/values 後原生事件測試明確 PASS，Shard0 1,307 tests PASS，[完整 CI #40323722661](https://github.com/looaeedr/whd/actions/runs/40323722661) 5／5 GREEN，requirements=52、passed_cases=3873。
