@@ -950,3 +950,69 @@ def test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift
     ) is None
     # Actual file bytes and selected scope are not saved in .p6fold.
     assert "verified_pair_exports" not in saved
+
+
+def test_swt30_exact_w800_three_v5_sources_have_one_green_group_not_nominal_whitelist(
+    tmp_path,
+):
+    """One real W800/N3/individual-world-X group has a positive output receipt.
+
+    Verified status does NOT transfer to another W, N, Y, model or Bay.
+    The four nominal pitch combinations remain preview until their own
+    committed physical part/export evidence is established.
+    """
+    from gui_modules.application.receiving_nfb_verified_scope_display import (
+        capture_verified_v5_pair_display, verified_v5_model_operator_label,
+    )
+    snap = _current(model_second="3P400SN")
+    holes = snap["nfb_config"]["holes"]
+    holes[0]["manual_x_mm"] = -180.
+    holes[1]["manual_x_mm"] = 0.
+    third = deepcopy(holes[0])
+    third.update(
+        physical_hole_id="nfb:swt30-last",
+        slot_index=2,
+        manual_x_mm=180.,
+        model_filename="nfbv5:士林:2P400",
+    )
+    holes.append(third)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    pair = _export(snap, _scene(snap), tmp_path)
+    proof = capture_verified_v5_pair_display(snap, pair)
+    assert proof is not None
+    assert len(proof.scope.sites) == 3
+    assert tuple(x.world_x_mm for x in proof.scope.sites) == (
+        -180., 0., 180.,
+    )
+    label = verified_v5_model_operator_label(
+        proof, snap, "士林", "nfbv5:士林:2P400",
+    )
+    assert label is not None
+    for marker in (
+        "可製造（內門）", "W=800 N=3", "X=-180", "X=0", "X=180",
+        "Set=S", "Bay=B", "其他版本／位置／型號",
+    ):
+        assert marker in label
+    for altered in (
+        lambda x: x.update(w=600.),
+        lambda x: x["nfb_config"]["holes"].pop(),
+        lambda x: x["nfb_config"]["holes"][0].update(manual_x_mm=-165.),
+        lambda x: x["nfb_config"]["holes"][1].update(
+            model_filename="nfbv5:士林:2P125SN"
+        ),
+        lambda x: x["nfb_config"]["holes"][1].update(rotation_deg=90),
+        lambda x: x["_receiving_runtime_selection"].update(bay_id="other"),
+        lambda x: x["nfb_config"].update(layer_heights_mm=[500., 830.]),
+    ):
+        changed = deepcopy(snap)
+        altered(changed)
+        assert verified_v5_model_operator_label(
+            proof, changed, "士林", "nfbv5:士林:2P400",
+        ) is None
+    # A pair exporter succeeds only for its actual source. Existing tested
+    # W600/750/800 nominal four-row preview states are separate gates.
+    assert all(Path(p).is_file() for p in (
+        pair.inner_door_path, pair.base_plate_path,
+    ))
