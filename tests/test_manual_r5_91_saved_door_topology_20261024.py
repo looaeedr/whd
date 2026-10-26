@@ -170,3 +170,29 @@ def test_r5_91_physical_inner_door_stable_id_must_be_real_source_identity(bad_id
         1, cell_key="0:0", width=689., height=900., thickness=2.,
     )
     assert legacy_id.stable_id == "inner_door:1:panel"
+
+
+@pytest.mark.parametrize("field, corrupt", [
+    ("door_layout_columns", False), ("door_layout_columns", 0),
+    ("door_layout_columns", ""), ("door_layout_columns", {}),
+    ("door_handle_edges", False), ("door_handle_edges", 0),
+    ("door_handle_edges", ""),
+])
+def test_r5_91_explicit_falsy_nonsequence_door_authority_cannot_disappear(field, corrupt):
+    """Project reopen must not turn invalid saved topology/handles into empty data."""
+    saved = {field: corrupt}
+    with pytest.raises(ValueError, match="invalid door"):
+        _normalize_authoritative_door_state(saved)
+    assert saved[field] == corrupt
+
+
+def test_r5_91_legacy_empty_sequences_and_handle_pairs_still_reopen():
+    assert _normalize_authoritative_door_state({
+        "door_layout_columns": [],
+        "door_handle_edges": [],
+    })["door_handle_edges"] == {}
+    valid = _normalize_authoritative_door_state({
+        "door_layout_columns": [[800., [1600.]]],
+        "door_handle_edges": [("0:0", "LEFT")],
+    })
+    assert valid["door_handle_edges"] == {"0:0": "LEFT"}

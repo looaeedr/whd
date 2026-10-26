@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from enum import Enum
 import json
@@ -75,8 +76,11 @@ def _normalize_authoritative_door_state(snapshot):
             raise ValueError(f"invalid {label}: {value!r}")
         return measured
 
+    raw_columns_source = result.get("door_layout_columns")
+    if raw_columns_source is not None and not isinstance(raw_columns_source, (list, tuple)):
+        raise ValueError("invalid door layout columns source")
     try:
-        raw_columns = list(result.get("door_layout_columns") or ())
+        raw_columns = list(raw_columns_source or ())
     except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError("invalid door layout columns source") from exc
     columns = []
@@ -95,8 +99,13 @@ def _normalize_authoritative_door_state(snapshot):
 
     handle_aliases = {"左": "LEFT", "右": "RIGHT", "上": "TOP", "下": "BOTTOM"}
     handles = {}
+    raw_handle_edges = result.get("door_handle_edges")
+    # An explicit false/zero/blank is corrupt saved authority, not an empty
+    # set of Handle-Editor edges. Keep legacy iterable key/value pairs valid.
+    if raw_handle_edges is not None and not isinstance(raw_handle_edges, (Mapping, list, tuple)):
+        raise ValueError("invalid door handle edges source")
     try:
-        saved_handle_edges = dict(result.get("door_handle_edges") or {})
+        saved_handle_edges = dict(raw_handle_edges or {})
     except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError("invalid door handle edges source") from exc
     for raw_key, raw_value in saved_handle_edges.items():
