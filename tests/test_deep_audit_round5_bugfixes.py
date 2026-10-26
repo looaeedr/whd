@@ -16,7 +16,7 @@ from ae_engine.contracts import (
 from ae_engine.custom_fold_manufacturing import custom_fold_structural_result
 from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from ae_engine.drawing_annotation_layout import _quantity_text_box
-from ae_engine.dxf_acceptance import _circle_rows_close, _rows_close
+from ae_engine.dxf_acceptance import _circle_rows_close, _rows_close, _one_to_one_tolerance_match
 from ae_engine.hole_catalog import (
     custom_circle_definition,
     custom_rectangle_definition,
@@ -807,3 +807,24 @@ def test_r5_74_mesh_envelope_cannot_disguise_nonphysical_explicit_thickness(bad_
     assert measured == pytest.approx((4., 2., 4.))
     # No mesh is an intentionally valid preview-only fallback.
     assert folded_outside_envelope((), None) is None
+
+
+def test_bug76_dxf_acceptance_large_overlapping_one_to_one_match_is_not_recursive():
+    """1100 near-coincident CUTTING/BEND rows need reassignment, never recursion."""
+    n = 1100
+    rows = tuple(range(n))
+
+    def compatible(expected_index, actual_index):
+        if expected_index == n - 1:
+            return actual_index == 0
+        return actual_index in (expected_index, expected_index + 1)
+
+    # There IS a complete assignment: last row takes 0, every other row
+    # shifts one station right. The older recursive augment raises
+    # RecursionError at approximately a thousand increasingly shared holes.
+    assert _one_to_one_tolerance_match(rows, rows, compatible) is True
+    # Even after a failed greedy first-fit, missing/duplicate entities must
+    # still fail the strict one-to-one manufacturing DXF readback.
+    assert _one_to_one_tolerance_match(
+        (0, 1), (0, 1), lambda _row, col: col == 0
+    ) is False
