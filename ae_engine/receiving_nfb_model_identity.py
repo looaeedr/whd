@@ -67,7 +67,10 @@ def numeric_model_refs(brand: str) -> tuple[str, ...]:
 
 
 def display_model_ref(value: str) -> str:
-    if isinstance(value, str) and value.startswith(PREFIX):
+    # Display must not silently normalize an invalid stored model identity.
+    # Validation is source-owned and shared with project load/save.
+    value = validate_stored_model_ref(value)
+    if value.startswith(PREFIX):
         parsed = parse_numeric_model_ref(value)
         if parsed is None:
             raise ValueError("NFB V5 廠牌／型號識別不合法")
