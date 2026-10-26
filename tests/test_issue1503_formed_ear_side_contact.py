@@ -42,7 +42,9 @@ def test_actual_folded_ear_contact_skin_is_real_box_side_not_fake_marking(factor
         assert row.world_surface_boundary[0][2] < row.world_surface_boundary[3][2]
     if count == 4:
         assert [r.nfb_layer_index for r in rows] == [0, 0, 1, 1]
-        assert len({r.world_surface_boundary[0][2] for r in rows}) == 2
+        # Brand-wide maximum fixes a common ear contact Z across both tiers.
+        assert len({r.world_surface_boundary[0][2] for r in rows}) == 1
+        assert len({r.world_surface_boundary[0][1] for r in rows}) == 2
 
 
 def test_one_tier_source_rechecks_real_panel_uv_not_unapproved_marks():
