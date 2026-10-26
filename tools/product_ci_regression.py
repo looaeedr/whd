@@ -109,6 +109,8 @@ PYTEST_PATHS = (
     "tests/test_issue1503_ear_side_check_gui_entry.py",
     # #1503: real GUI invocation and side CHECK UV parity after project reload.
     "tests/test_issue1503_ear_side_check_gui_e2e_save_reload.py",
+    # Receiving Base Plate / EAR independent 3D visibility and nested Tk GUI.
+    "tests/test_issue1503_fixing_plate_3d_visibility.py",
     # #1503: actual Primary 3D Tk startup must SHOW the operator button.
     "tests/test_issue1503_primary_real_tk_check_button.py",
     # #1503 real physical SIDE sheet-only manufacturing marking (not full box/PAD).
