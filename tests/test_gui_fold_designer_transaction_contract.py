@@ -8,7 +8,11 @@ def _open_block():
 def test_window_x_flushes_live_state_without_cancel_or_confirm_transaction():
     block = _open_block()
     assert 'window.protocol("WM_DELETE_WINDOW", close_designer)' in block
-    assert 'on_live_sync=lambda payload:' in block
+    assert 'def sync_from_designer(payload):' in block
+    assert 'on_live_sync=sync_from_designer' in block
+    # Current implementation blocks callbacks from an already-closed view.
+    assert 'if designer is None or self.fold_designer_app is not designer:' in block
+    assert 'return self._apply_fold_designer_live_snapshot(deepcopy(payload))' in block
     assert 'on_transaction_confirm=' not in block
     assert 'on_transaction_cancel=' not in block
     assert 'begin_designer' not in block
@@ -29,7 +33,10 @@ def test_open_3d_uses_live_canonical_callback_and_never_creates_project_draft():
     block = _open_block()
     assert 'on_settings_change=None' in block
     assert 'self.project_controller.capture_committed(designer_snapshot)' in block
-    assert 'on_live_sync=lambda payload: self._apply_fold_designer_live_snapshot' in block
+    assert 'on_live_sync=sync_from_designer' in block
+    assert 'if designer is None or self.fold_designer_app is not designer:' in block
+    assert 'return False' in block
+    assert 'return self._apply_fold_designer_live_snapshot(deepcopy(payload))' in block
     assert 'begin_designer' not in block
     close_start = block.index('def close_designer():')
     load_start = block.index('def load_project_from_designer', close_start)
