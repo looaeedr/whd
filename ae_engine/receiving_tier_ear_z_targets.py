@@ -256,9 +256,17 @@ def resolve_receiving_tier_base_z_targets(
         from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
         center_fold = (local_physical["receiving_bend_pattern"]
                        == RECEIVING_BASE_PATTERN_CENTER)
+        inverted = bool(local_physical.get("receiving_center_brand_anchor_inverted"))
+        if inverted and (not center_fold or len(depths) != 1):
+            raise ValueError("EAR_Z_CENTER_BRAND_ANCHOR_SOURCE_MISMATCH")
         if center_fold and len(depths) > 2:
             raise ValueError("EAR_Z_CENTER_ONLY_TWO_PHYSICAL_FACES")
-        if center_fold and len(depths) == 2:
+        if inverted:
+            # One same-depth shallow NFB tier: physical CENTER part's outer
+            # tabs land at the fixed brand-max ear Z, not the NFB web Z.
+            if local_physical.get("receiving_nfb_depth_pair_mm") is None:
+                raise ValueError("EAR_Z_CENTER_BRAND_ANCHOR_PAIR_MISSING")
+        elif center_fold and len(depths) == 2:
             # CENTER source owns both physical depth faces.
             local_physical["receiving_nfb_depth_pair_mm"] = depths
         else:
@@ -272,12 +280,19 @@ def resolve_receiving_tier_base_z_targets(
             snapshot, inner_door_id=door_id,
             reference_nfb_depth_mm=depths[0],
             secondary_nfb_depth_mm=(
-                depths[1] if center_fold and len(depths) == 2 else None
+                depths[1] if center_fold and len(depths) == 2 and not inverted else None
             ),
         )
         offset_z = world.base_nfb_face_world_z_mm - local_front
-        back_z = offset_z + local_front - t
-        if (center_fold and len(depths) == 2 and (shallow is None
+        back_z = offset_z + (shallow if inverted else local_front) - t
+        if inverted:
+            brand_pair = local_physical["receiving_nfb_depth_pair_mm"]
+            predicted_support = world.base_nfb_face_world_z_mm - (
+                float(brand_pair[0]) - float(brand_pair[1])
+            )
+            if (shallow is None or abs(offset_z+shallow-predicted_support)>1e-6):
+                raise ValueError("EAR_Z_CENTER_BRAND_ANCHOR_SUPPORT_SKIN_MISMATCH")
+        if (center_fold and len(depths) == 2 and not inverted and (shallow is None
                 or world.shallow_nfb_face_world_z_mm is None
                 or abs(offset_z + shallow - world.shallow_nfb_face_world_z_mm) > 1e-6)):
             raise ValueError("EAR_Z_SECOND_NFB_FACE_SOURCE_MISMATCH")
