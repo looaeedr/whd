@@ -153,3 +153,32 @@ def test_r6_bool_mapped_skin_vertex_cannot_become_physical_marking_uv(invalid_si
     assert result.status == "SKIPPED_FAIL_CLOSED"
     assert result.diagnostic_code == "BACKPROJECTION_FAILED"
     assert result.flat_points == ()
+
+
+@pytest.mark.parametrize("triangle", [
+    None,
+    (),
+    ((0., 0., 0.), (2., 0., 0.)),
+    ((0., 0., 0.), (2., 0., 0.), (0., 2., 0.), (0., 0., 1.)),
+    ((0., 0.), (2., 0., 0.), (0., 2., 0.)),
+    ((0., 0., 0.), (2., 0., 0.), (0., 2., True)),
+    ((0., 0., 0.), (2., 0., 0.), (0., 2., float("nan"))),
+    ((0., 0., 0.), (10 ** 400, 0., 0.), (0., 2., 0.)),
+])
+def test_r6_joint_marking_normal_rejects_nonphysical_triangle_before_subtraction(triangle):
+    """Physical skin normal must never convert boolean XYZ into fabricated mm."""
+    from ae_engine.receiving_joint_marking import _triangle_normal
+    from ae_engine.assembly_marking_geometry import triangle_unit_normal
+    with pytest.raises(ValueError, match="degenerate geometry direction"):
+        _triangle_normal(triangle)
+    with pytest.raises(ValueError, match="degenerate geometry direction"):
+        triangle_unit_normal(
+            triangle, tolerance=1e-7, error_message="degenerate geometry direction",
+        )
+
+
+def test_r6_joint_marking_normal_keeps_real_signed_triangle_orientation():
+    from ae_engine.receiving_joint_marking import _triangle_normal
+    abc = ((0., 0., 0.), (4., 0., 0.), (0., 2., 0.))
+    assert _triangle_normal(abc) == pytest.approx((0., 0., 1.))
+    assert _triangle_normal((abc[0], abc[2], abc[1])) == pytest.approx((0., 0., -1.))
