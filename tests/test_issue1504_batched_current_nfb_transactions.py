@@ -440,3 +440,153 @@ def test_ac42_detached_real_csv_nfb_preview_cancel_undo_never_certifies_or_mutat
     assert "X0_PREVIEW_ONLY" not in path.read_text(encoding="utf-8")
     assert "TEMP_X" not in path.read_text(encoding="utf-8")
     assert sha256(source.read_bytes()).hexdigest() == original_source_hash
+
+
+def test_ac02_edit_last_slot_and_layer_switch_never_implicitly_restore_submitted_nfb(
+    tmp_path,
+):
+    """One/two physical layers are preview-only until a real NFB transaction.
+
+    The original editor's detached EditSession can have zero slots. The
+    submitted Bay cannot: deletion of the final slot is never an implicit
+    RESTORE_UNCONFIGURED nor a valid manufactured submitted NFBConfig.
+    """
+    from ae_engine.receiving_nfb_ui1a import (
+        set_nfb_draft_layer_count,
+    )
+    from ae_engine.receiving_nfb_ui1a_edits import (
+        insert_nfb_slot, delete_nfb_slot,
+    )
+    from ae_engine.receiving_nfb_transactions import (
+        restore_nfb_bays_unconfigured, undo_nfb_transaction,
+    )
+    from ae_engine.receiving_layout import resize_receiving_bays
+    from tests.test_issue1499_nfb_persistence import _config as saved_config
+
+    # Initially unconfigured one-tier editor may show zero physical slots.
+    original = new_nfb_ui1a_draft(
+        set_brand="士林", layer_count=1, model_layers=([], []),
+    )
+    empty_preview = nfb_ui1a_preview(
+        original, bay_width_mm=800, upper_cell_height_mm=1100,
+    )
+    assert empty_preview["layers"][0]["slots"] == []
+    assert not empty_preview["can_manufacture"]
+    session = NfbUi1aEditSession(original)
+    assert not session.dirty
+
+    # Add one physical slot; one→two is allowed only with the second layer
+    # actually visible and must not create an extra second-layer hole.
+    session.apply("ADD_L1", insert_nfb_slot, 0, 0,
+                  filename=MODEL_A, brand="士林")
+    assert len(session.current["layers"][0]["slots"]) == 1
+    session.apply("ONE_TO_TWO", set_nfb_draft_layer_count, 2)
+    assert session.current["layer_count"] == 2
+    assert session.current["layers"][1]["slots"] == []
+    session.apply("ADD_L2", insert_nfb_slot, 1, 0,
+                  filename=MODEL_A, brand="士林")
+    two = nfb_ui1a_preview(
+        session.current, bay_width_mm=800, upper_cell_height_mm=1100,
+    )
+    assert len(two["layers"]) == 2
+    assert tuple(x["nominal_y_from_top_mm"] for x in two["layers"]) == (
+        290., 790.,
+    )
+    before_rejected = deepcopy(session.current)
+    with pytest.raises(ValueError, match="contains slots"):
+        session.apply("ILLEGAL_TWO_TO_ONE", set_nfb_draft_layer_count, 1)
+    assert session.current == before_rejected
+
+    # The only valid two→one conversion is explicit removal of the second
+    # layer's slot; Undo restores it with its original stable unit owner.
+    previous_id = session.current["layers"][1]["slots"][0]["unit_id"]
+    session.apply("DELETE_L2", delete_nfb_slot, 1, 0)
+    assert session.current["layers"][1]["slots"] == []
+    assert session.undo().action == "DELETE_L2"
+    assert session.current["layers"][1]["slots"][0]["unit_id"] == previous_id
+    session.apply("DELETE_L2_AGAIN", delete_nfb_slot, 1, 0)
+    session.apply("TWO_TO_ONE", set_nfb_draft_layer_count, 1)
+    assert session.current["layer_count"] == 1
+    assert len(session.current["layers"][0]["slots"]) == 1
+    # Last visible slot may be deleted in an unsubmitted UI-1A DRAFT.
+    session.apply("DELETE_FINAL_L1", delete_nfb_slot, 0, 0)
+    assert session.current["layers"][0]["slots"] == []
+    assert not nfb_ui1a_preview(
+        session.current, bay_width_mm=800, upper_cell_height_mm=1100,
+    )["can_manufacture"]
+    with pytest.raises(ValueError, match="explicit hole list"):
+        normalize_nfb_config({"layer_count": 1, "holes": []})
+
+    # The actual committed saved Bay is a separate immutable owner. Editing
+    # UI-1A draft to zero MUST NOT alter its submitted NFBConfig.
+    layout = resize_receiving_bays(
+        new_receiving_layout(width=800, height=1600, depth=350),
+        set_index=0, bay_count=2,
+    )
+    committed = update_receiving_bay(
+        layout, set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=saved_config(x=0),
+    )
+    original_committed = deepcopy(committed)
+    assert original_committed["sets"][0]["bays"][0]["nfb_config_submitted"] is True
+
+    # Cancel editing the last slot does not change submitted source or a
+    # different unconfigured Bay; true roundtrip remains V3 with hole intact.
+    assert session.escape() == editable_nfb_draft(original)
+    assert not session.dirty
+    saved = write_project(
+        tmp_path / "ac02_committed_unchanged.p6fold",
+        _project({"active_mode": "set_bay", "receiving_layout": committed}),
+    )
+    disk = read_project(saved)
+    assert disk["schema"] == PROJECT_SCHEMA_V3
+    assert disk["snapshot"]["receiving_layout"] == original_committed
+    bays = disk["snapshot"]["receiving_layout"]["sets"][0]["bays"]
+    assert bays[0]["nfb_config_submitted"] is True
+    assert len(bays[0]["nfb_config"]["holes"]) == 1
+    assert bays[0]["nfb_config"]["holes"][0]["manual_x_mm"] == 0
+    assert "nfb_config" not in bays[1]
+
+    # A real submitted TWO-layer saved version requires two distinct hole
+    # owners. It is not legitimate to hide a still-populated physical layer
+    # by switching the view back to one layer.
+    two_cfg = saved_config(x=0)
+    two_cfg["layer_count"] = 2
+    # Physical hole owners are independent across Bays, not just tiers.
+    two_cfg["holes"][0]["physical_hole_id"] = "nfb:bay2:layer:1:unit:1"
+    two_cfg["holes"][0]["layer_index"] = 0
+    second_hole = deepcopy(two_cfg["holes"][0])
+    second_hole["physical_hole_id"] = "nfb:bay2:layer:2:unit:2"
+    second_hole["layer_index"] = 1
+    second_hole["manual_x_mm"] = 100
+    two_cfg["holes"].append(second_hole)
+    two_committed = update_receiving_bay(
+        committed, set_index=0, bay_index=1,
+        nfb_config_submitted=True, nfb_config=two_cfg,
+    )
+    two_path = write_project(
+        tmp_path / "ac02_two_tier_committed.p6fold",
+        _project({"active_mode": "set_bay", "receiving_layout": two_committed}),
+    )
+    two_disk = read_project(two_path)["snapshot"]["receiving_layout"]["sets"][0]["bays"]
+    assert two_disk[1]["nfb_config_submitted"] is True
+    assert two_disk[1]["nfb_config"]["layer_count"] == 2
+    assert {h["physical_hole_id"] for h in two_disk[1]["nfb_config"]["holes"]} == {
+        "nfb:bay2:layer:1:unit:1", "nfb:bay2:layer:2:unit:2",
+    }
+    assert {h["layer_index"] for h in two_disk[1]["nfb_config"]["holes"]} == {0, 1}
+    assert [h["manual_x_mm"] for h in two_disk[1]["nfb_config"]["holes"]] == [0, 100]
+
+    # Only the explicit, confirmable RESTORE_UNCONFIGURED transaction can
+    # drop the saved NFB; cancel is atomic, Undo restores exactly one slot.
+    cancelled = restore_nfb_bays_unconfigured(
+        committed, set_index=0, bay_indices=(0,), confirm=lambda _: False,
+    )
+    assert not cancelled.changed and cancelled.layout == committed
+    restored = restore_nfb_bays_unconfigured(
+        committed, set_index=0, bay_indices=(0,), confirm=lambda _: True,
+    )
+    assert restored.changed and restored.receipt is not None
+    assert "nfb_config" not in restored.layout["sets"][0]["bays"][0]
+    assert undo_nfb_transaction(restored.layout, restored.receipt) == committed
+    assert committed == original_committed
