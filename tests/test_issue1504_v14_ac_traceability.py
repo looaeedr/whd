@@ -2079,3 +2079,10 @@ def test_cancelled_second_legacy_project_is_not_a_1500_1504_signoff_gate():
     # No synthetic fixture may be turned into unearned human Windows approval.
     assert all(r["assertion_review_state"] ==
                "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC" for r in blocked)
+
+    fixture_test = (ROOT / "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py").read_text(
+        encoding="utf-8"
+    )
+    assert "second_library_project_executed" not in fixture_test
+    assert "second Library file" not in fixture_test
+    assert '"human_windows_uat_claimed": False' in fixture_test
