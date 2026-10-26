@@ -29,13 +29,31 @@ def test_known_family_switch_always_applies_target_defaults_not_last_runtime_edi
             float(app.settings_service.snapshot()["fw"]),
         )
 
+        # Watch the actual update-intent seam: dimensions can roll back while
+        # the box-body drawing remains stale if there is no baseline redraw.
+        baseline_requests = []
+        original_request = app._request_phase6_update
+
+        def track_request(*args, **kwargs):
+            if args:
+                baseline_requests.append(args[0])
+            return original_request(*args, **kwargs)
+
+        app._request_phase6_update = track_request
+
         app.baseline_var.set("受電箱"); _pump(root)
         assert _values(app) == (800.0, 1600.0, 350.0, 2.0, 29.0)
         app.w_var.set("830"); app.h_var.set("1650"); app.d_var.set("355"); app.fw_z_var.set("30")
         _pump(root)
 
+        before_vault = len(baseline_requests)
         app.baseline_var.set("金庫型"); _pump(root)
         assert _values(app) == vault_defaults
+        assert "baseline" in baseline_requests[before_vault:]
+        # Vault must own its complete formed box chain again; the Receiving
+        # family omits the final vault-only rear flange segment.
+        profile = app.workspace_controller.box_body_profile()
+        assert "zr1" in [row.get("phase6_key") for row in profile]
         app.w_var.set("450"); app.h_var.set("650"); app.d_var.set("260"); app.fw_z_var.set("27")
         _pump(root)
 
