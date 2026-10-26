@@ -2437,3 +2437,53 @@ def test_ac42_exact_ui1a_detached_preview_native_guard_and_source_nonmutation():
     assert len([r for r in obj["records"] if not r["accepted"]]) == (
         obj["counts"]["BLOCKED_1500_REAL_GUI"]
     )
+
+
+def test_ac02_real_layer_last_slot_draft_and_explicit_restore_evidence_only():
+    """No UI-1A zero-slot preview may silently erase a persisted NFB Bay."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    obj = _data()
+    assert obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 83
+    assert obj["counts"]["BLOCKED_1500_REAL_GUI"] <= 5
+    row = next(r for r in obj["records"] if r["id"] == "NFB-AC-02")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
+    assert row["current_gui_requirement_20261026"] == (
+        "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT"
+    )
+    proof = row["acceptance_evidence"]
+    primary = ("tests/test_issue1504_batched_current_nfb_transactions.py"
+               "::test_ac02_edit_last_slot_and_layer_switch_never_implicitly_restore_submitted_nfb")
+    assert proof["primary_assertion"] == primary
+    assert row["identified_test_functions"] == [{
+        "path": primary.split("::")[0],
+        "test_name": primary.split("::")[1],
+        "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+        "accepted": True,
+    }]
+    assert len(proof["requirement_witnesses"]) == 3
+    assert len(proof["other_required_assertions"]) >= 10
+    assert proof["source_scope_current_v5_and_repository_test_holes_only"] is True
+    assert proof["user_cancelled_second_legacy_project_prerequisite"] is True
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    for denied in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "integrated_localx_claimed", "formal_x_published",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+        "original_manufacturer_dxf_certified",
+    ):
+        assert proof[denied] is False, denied
+    for witness in [primary, *proof["other_required_assertions"]]:
+        path, fn = witness.split("::")
+        assert path in PYTEST_PATHS, witness
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        functions = [n for n in tree.body
+                     if isinstance(n, ast.FunctionDef) and n.name == fn]
+        assert len(functions) == 1, witness
+        assert _test_function_has_assert_or_expected_exception(functions[0]), witness
+    assert len([r for r in obj["records"] if not r["accepted"]]) == (
+        obj["counts"]["BLOCKED_1500_REAL_GUI"]
+    )
