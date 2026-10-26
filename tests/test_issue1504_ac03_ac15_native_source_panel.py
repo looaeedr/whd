@@ -601,7 +601,7 @@ def test_ac51_original_tk_v5_selector_shows_source_scope_without_fake_release(mo
         assert "CSV 數值完整" in panel.reason.get()
         assert "此處僅預覽" in panel.reason.get()
         assert "正式出圖需提交目前 Set/Bay" in panel.reason.get()
-        assert "真實內門／底板" in panel.reason.get()
+        assert "實體內門／底板" in panel.reason.get()
         assert "可製造（內門）" not in panel.reason.get()
         assert "僅預覽" in panel.frame.cget("text")
         assert any(
