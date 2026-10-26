@@ -91,13 +91,31 @@ def vector_unit(v, *, tolerance: float, error_message: str = "degenerate vector"
 
 
 def triangle_unit_normal(triangle, *, tolerance: float, error_message: str):
-    """Return an oriented normal; do not infer a caller's physical-side policy."""
-    a, b, c = tuple(triangle)
-    return vector_unit(
-        vector_cross(vector_sub(b, a), vector_sub(c, a)),
-        tolerance=tolerance,
-        error_message=error_message,
-    )
+    """Return an oriented normal only from three finite physical XYZ vertices."""
+    # Inspect raw vertices before vector_sub converts True into 1.0 mm.
+    # Joint MARKING must use the caller's fail-closed geometry diagnostic for
+    # corrupt persisted/mapped skin points, not leak unpacking/overflow errors.
+    try:
+        raw_points = tuple(triangle)
+        if len(raw_points) != 3:
+            raise ValueError("triangle requires three vertices")
+        points = []
+        for raw in raw_points:
+            coords = tuple(raw)
+            if len(coords) != 3 or any(isinstance(v, bool) for v in coords):
+                raise ValueError("triangle vertex requires physical XYZ")
+            vertex = tuple(float(v) for v in coords)
+            if not all(math.isfinite(v) for v in vertex):
+                raise ValueError("triangle vertex must be finite XYZ")
+            points.append(vertex)
+        a, b, c = points
+        return vector_unit(
+            vector_cross(vector_sub(b, a), vector_sub(c, a)),
+            tolerance=tolerance,
+            error_message=error_message,
+        )
+    except (IndexError, TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(error_message) from exc
 
 
 def canonical_unit_normal(
