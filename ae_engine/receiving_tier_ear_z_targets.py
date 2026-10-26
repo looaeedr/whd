@@ -257,6 +257,14 @@ def resolve_receiving_tier_base_z_targets(
         center_fold = (local_physical["receiving_bend_pattern"]
                        == RECEIVING_BASE_PATTERN_CENTER)
         inverted = bool(local_physical.get("receiving_center_brand_anchor_inverted"))
+        if center_fold and not inverted and len(depths) == 1:
+            # Two physical layers may each have a different shallow CSV depth.
+            # They use their OWN CENTER blank/fold but share the one ear Z.
+            maximum = committed_receiving_ear_brand_max_depth_mm(snapshot)
+            if maximum - depths[0] > t + 1e-9:
+                inverted = True
+                local_physical["receiving_center_brand_anchor_inverted"] = True
+                local_physical["receiving_nfb_depth_pair_mm"] = (maximum, depths[0])
         if inverted and (not center_fold or len(depths) != 1):
             raise ValueError("EAR_Z_CENTER_BRAND_ANCHOR_SOURCE_MISMATCH")
         if center_fold and len(depths) > 2:
