@@ -57,7 +57,7 @@ class NfbDxfSourcePreviewPanel:
     def _size(self):
         return max(2,self.canvas.winfo_width()),max(2,self.canvas.winfo_height())
 
-    def show(self,brand,filename):
+    def show(self,brand,filename,*,verified_scope=None):
         """Only read this one indexed model, never trigger app geometry recompute."""
         if filename is None:
             self._numeric_mode=False
@@ -73,7 +73,12 @@ class NfbDxfSourcePreviewPanel:
             return
         if isinstance(filename,str) and filename.startswith("nfbv5:"):
             self._numeric_mode=True
-            self.frame.configure(text="NFB 數值規格 CSV｜僅預覽")
+            from ae_engine.receiving_nfb_current_scope_status import VERIFIED_DOOR
+            trusted_scope = verified_scope == VERIFIED_DOOR
+            self.frame.configure(
+                text=("NFB 數值規格 CSV｜可製造（內門）"
+                      if trusted_scope else "NFB 數值規格 CSV｜僅預覽")
+            )
             parsed=parse_numeric_model_ref(filename)
             try:
                 if parsed is None or parsed[0]!=brand:
@@ -110,9 +115,18 @@ class NfbDxfSourcePreviewPanel:
             self._source_key=key
             self.identity.set(f"{brand}｜{spec.model}｜開孔 {spec.opening_mm or '未知'}")
             missing="、".join(spec.missing_fields)
-            self.reason.set("V5 數值孔位（未經實體／製造驗證）"
-                            + (f"｜缺：{missing}｜禁止製造"
-                               if missing else "｜數值齊全，仍不可製造"))
+            if trusted_scope and not missing:
+                self.reason.set(
+                    "已核對本連實體內門＋底板的成對部分 DXF"
+                    "｜其他箱寬／PAD／焊接與整箱尚未放行"
+                )
+            else:
+                self.frame.configure(text="NFB 數值規格 CSV｜僅預覽")
+                self.reason.set(
+                    "V5 數值孔位（未經實體／製造驗證）"
+                    + (f"｜缺：{missing}｜禁止製造"
+                       if missing else "｜數值齊全，仍不可製造")
+                )
             self.paint()
             return
         self._numeric_mode=False
