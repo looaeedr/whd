@@ -301,3 +301,44 @@ def test_r6_joint_marking_policy_activation_and_revision_never_coerce_corrupt_ty
     # defines no arbitrary upper cap, and rejects only fractional/mistyped IDs.
     assert replace(valid, revision=2).revision == 2
     assert replace(valid, revision=10 ** 400).revision == 10 ** 400
+
+
+@pytest.mark.parametrize("field", [
+    "reference_nfb_depth_mm", "secondary_nfb_depth_mm", "base_plate_thickness_mm",
+])
+def test_r6_nfb_second_side_depth_conversion_overflow_fails_as_physical_value_error(field):
+    """Malformed depth sources never escape into a manufactured second return."""
+    from ae_engine.receiving_nfb_depth_surface_policy import receiving_nfb_second_side_fold_mm
+    dimensions = {
+        "reference_nfb_depth_mm": 107.,
+        "secondary_nfb_depth_mm": 72.,
+        "base_plate_thickness_mm": 2.,
+    }
+    assert receiving_nfb_second_side_fold_mm(**dimensions) == 33.
+    dimensions[field] = 10 ** 400
+    with pytest.raises(ValueError, match="NFB depth and base plate T"):
+        receiving_nfb_second_side_fold_mm(**dimensions)
+
+
+@pytest.mark.parametrize("field", [
+    "inner_door_outer_face_from_front_mm", "inner_door_thickness_mm",
+    "base_plate_thickness_mm", "fixing_plate_thickness_mm",
+    "reference_nfb_depth_mm", "secondary_nfb_depth_mm",
+])
+def test_r6_nfb_formed_skin_z_chain_conversion_overflow_fails_closed(field):
+    """Malformed D/T cannot leak raw overflow or create an infinite contact Z."""
+    from ae_engine.receiving_nfb_depth_surface_policy import resolve_receiving_nfb_surface_chain
+    dimensions = {
+        "inner_door_outer_face_from_front_mm": 80.,
+        "inner_door_thickness_mm": 2.,
+        "base_plate_thickness_mm": 2.,
+        "fixing_plate_thickness_mm": 2.,
+        "reference_nfb_depth_mm": 107.,
+        "secondary_nfb_depth_mm": 72.,
+    }
+    good = resolve_receiving_nfb_surface_chain(**dimensions)
+    assert good.second_side_fold_mm == 33.
+    assert good.fixing_plate_contact_face_mm == 191.
+    dimensions[field] = 10 ** 400
+    with pytest.raises(ValueError, match="surface chain"):
+        resolve_receiving_nfb_surface_chain(**dimensions)
