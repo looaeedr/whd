@@ -6,9 +6,11 @@ as the 3D viewer. It intentionally never calls assembly placement's old rear
 wall-centered Base Plate offset (-D/2+T+BEND/2) and never equates the
 inner-door placement centre to its physical face.
 
-The verified datum is suitable for deriving desired NFB/base/fixing-plate Z.
-It is NOT, by itself, certification that the Base Plate or fixing ears have
-already been moved, folded, or marked on the side-sheet production DXF.
+The verified datum is suitable for deriving selected NFB/base working faces.
+Its reference-depth fixing-plate face is a *virtual arithmetic witness* only;
+actual fixed-ear Z must use the entire brand CSV maximum via
+receiving_tier_ear_z_targets, NEVER a tier's selected NFB depth.
+It is NOT welding or DXF manufacturing certification.
 """
 from __future__ import annotations
 
@@ -106,10 +108,12 @@ def resolve_receiving_nfb_world_skin_datums(
 ) -> ReceivingNfbWorldSkinDatum:
     """Project true inner-door physical surfaces to base/ear TARGET faces.
 
-    Cabinet world +Z is outward. Deep base and two fixing plates translate
-    together, so base back skin equals fixing-plate front contact skin.
-    This is an explicit geometry target; base folded-mesh verification and
-    genuine side-panel weld MARKING are separate required acceptance gates.
+    Cabinet world +Z is outward. This produces an ideal reference-depth
+    base/ear skin chain for comparisons. It does NOT move the installed ears.
+    Fixed-ear Z is independently locked to brand CSV maximum depth in the
+    active Set/Bay's ear-target resolver; a shallower selected model may
+    leave a base/ear gap until verified depth compensation is installed.
+    Side-panel weld MARKING is a separate acceptance gate.
     """
     from .receiving_nfb_depth_surface_policy import receiving_nfb_second_side_fold_mm
     outer, inner = receiving_inner_door_real_world_skins(snapshot, inner_door_id)
