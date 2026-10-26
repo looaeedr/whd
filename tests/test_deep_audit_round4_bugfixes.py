@@ -721,3 +721,72 @@ def test_bug67_placement_prune_discards_invalid_parent_type_preserving_virtual_p
             "parent_assembly_node": "box_body:door_layout:inner_door",
         },
     }
+
+
+def test_bug63_real_fixing_plate_preview_prefers_live_application_over_stale_bridge(
+    monkeypatch,
+):
+    """R4 #63: actual PartRenderData query must use the live physical owner.
+
+    Verify the real entry's material-source request without mocking a complete
+    fabricated DXF or pretending that the resulting proxy is manufacturing UAT.
+    """
+    from gui_modules.application.fold_designer_manufacturing_projection import (
+        _query_fold_designer_render_data,
+    )
+    from ae_engine import receiving_base_fixing_plate as fixing_preview_owner
+    from ae_engine import receiving_base_fixing_plate_geometry as fixing_source_owner
+
+    key = "base_plate:fixing_plate:left"
+    live = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2.,
+        "nfb_config_submitted": True,
+        "nfb_config": {"layer_count": 1, "source_brand": "live-brand"},
+    }
+    stale_bridge = {
+        "model": "戶外箱", "w": 500., "h": 900., "d": 250., "t": 1.,
+        "nfb_config_submitted": False,
+    }
+    stale_payload = {
+        "model": "戶外箱", "w": 600., "h": 1100., "d": 300., "t": 1.5,
+        "nfb_config_submitted": False,
+        "nfb_config": {"layer_count": 2, "source_brand": "stale-brand"},
+    }
+    host = SimpleNamespace(
+        _phase6_input_snapshot=stale_bridge,
+        fold_designer_app=SimpleNamespace(_phase6_input_snapshot=live),
+    )
+    source_requests = []
+    source_render = object()
+
+    def certified_preview_source(source, *, available_parts):
+        source_requests.append(("preview", dict(source), tuple(available_parts)))
+        return (SimpleNamespace(part_id=key),)
+
+    def source_flat_renderer(part_id, *, snapshot):
+        source_requests.append(("render", part_id, dict(snapshot)))
+        return source_render
+
+    monkeypatch.setattr(
+        fixing_preview_owner, "receiving_base_fixing_plate_previews",
+        certified_preview_source,
+    )
+    monkeypatch.setattr(
+        fixing_source_owner, "build_fixing_plate_source_render_data",
+        source_flat_renderer,
+    )
+
+    returned = _query_fold_designer_render_data(host, key, stale_payload)
+    assert returned is source_render
+    assert [row[0] for row in source_requests] == ["preview", "render"]
+    projected = source_requests[0][1]
+    assert source_requests[0][2] == ("base_plate",)
+    assert source_requests[1][1] == key
+    assert projected == source_requests[1][2]
+    for field in ("model", "w", "h", "d", "t", "nfb_config_submitted", "nfb_config"):
+        assert projected[field] == live[field]
+    assert projected["model"] != stale_payload["model"]
+    assert projected["w"] != stale_bridge["w"]
+    assert projected["nfb_config"]["source_brand"] == "live-brand"
+    assert host.fold_designer_app._phase6_input_snapshot == live
+    assert host._phase6_input_snapshot == stale_bridge
