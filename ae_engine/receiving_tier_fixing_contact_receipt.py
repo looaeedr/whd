@@ -137,13 +137,21 @@ def validate_receiving_tier_fixing_contact_receipts(
             if (metadata.get("nfb_layer_index") != xy_row.layer_index
                     or metadata.get("nfb_tier_real_skin_z_resolved") is not True):
                 raise ValueError("EAR_RECEIPT_ACTUAL_BASE_LAYER_SOURCE_DRIFT")
+        from .receiving_nfb_layer_physical_parts import _tier_center_brand_pair
         local = dict(physical)
-        local["receiving_nfb_depth_pair_mm"] = (
-            tuple(depth.source_depths_mm) if len(depth.source_depths_mm) == 2
-            else None
-        )
-        front, _ = receiving_base_actual_local_nfb_skins(snapshot, local)
-        back_skin_z = float(offset[2]) + front - float(snapshot["t"])
+        brand_pair, inverted = _tier_center_brand_pair(snapshot, physical, depth)
+        if inverted:
+            local["receiving_nfb_depth_pair_mm"] = brand_pair
+            local["receiving_center_brand_anchor_inverted"] = True
+        elif len(depth.source_depths_mm) == 2:
+            local["receiving_nfb_depth_pair_mm"] = tuple(depth.source_depths_mm)
+            local["receiving_center_brand_anchor_inverted"] = False
+        front, support = receiving_base_actual_local_nfb_skins(snapshot, local)
+        # On the brand-max CENTER profile the two outer wings, NOT the
+        # shallow center NFB web, are physically bolted to both fixed ears.
+        back_skin_z = float(offset[2]) + (
+            support if inverted else front
+        ) - float(snapshot["t"])
         if (not _same(back_skin_z, depth.base_back_skin_world_z_mm)
                 or not _same(back_skin_z, target.target_ear_contact_world_z_mm)
                 or not _same(back_skin_z, target.base_back_skin_world_z_mm)):
