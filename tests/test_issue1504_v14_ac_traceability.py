@@ -1922,3 +1922,35 @@ def test_all_current_nfb_v5_source_supersessions_keep_88_originals_and_legacy_sc
     assert obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 67
     assert sum(obj["counts"].values()) == 88
     assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
+
+
+def test_swt30_approved_w_n_y_model_datum_witness_is_scoped_not_all_nominal_groups():
+    """Actual per-source positive and four V5 nominal negatives stay separate."""
+    record = next(r for r in _data()["records"] if r["id"] == "SWT-AC-30")
+    evidence = record["current_source_authority_20261026"]
+    assert record["accepted"] is False
+    assert record["status"] == "EVIDENCE_CANDIDATE_ONLY"
+    positive = (
+        "tests/test_issue1502_current_csv_original_pair_dxf.py::"
+        "test_swt30_exact_committed_w_n_y_model_datum_has_real_dxf_but_cannot_leak_to_other_scope"
+    )
+    negative = (
+        "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py::"
+        "test_swt30_current_numeric_v5_four_nominal_groups_stay_preview_until_committed"
+    )
+    assert evidence["current_csv_scoped_part_only_witness"] == positive
+    assert evidence["current_csv_nominal_preview_negative"] == negative
+    assert evidence["current_v5_witness_is_not_full_ac_signoff"] is True
+    assert len(evidence["pending_full_ac_requirements"]) == 2
+    assert record["identified_test_functions"][0]["test_name"] == positive.split("::")[1]
+    for witness in (positive, negative):
+        path, fn = witness.split("::")
+        assert path in record["regression_candidates"]
+        from tools.product_ci_regression import PYTEST_PATHS
+        assert path in PYTEST_PATHS
+        code = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        tests = {node.name: node for node in code.body
+                 if isinstance(node, ast.FunctionDef)}
+        assert fn in tests
+        assert any(isinstance(node, ast.Assert)
+                   for node in ast.walk(tests[fn]))
