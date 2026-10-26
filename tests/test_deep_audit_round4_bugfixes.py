@@ -590,3 +590,74 @@ def test_r4_58_inner_door_layer_count_cannot_keep_a_noninteger_source(bad):
         validate_setting("inner_door_layers", bad)
     assert validate_setting("inner_door_layers", 1) == 1
     assert validate_setting("inner_door_layers", 2) == 2
+
+
+@pytest.mark.parametrize("crossing_scale_mm", (0.1, 0.2))
+def test_bug69_current_physical_collision_audit_cannot_hide_sub_half_mm_crossings(crossing_scale_mm):
+    """R4 #69: small real XYZ skin crossings must not inherit old 0.25*T exemption.
+
+    The retired visual-only audit used 0.25*T (0.5 mm at T2) to conceal actual
+    intersections. The current all-parts world-geometry authority is stricter:
+    it reports unresolved crossings without inferring permissible penetration
+    from nominal material thickness or the absence of a red overlay.
+    """
+    from ae_engine.assembly_all_parts_collision import audit_all_physical_part_pairs
+
+    s = crossing_scale_mm
+    left_skin = ((0., -s, -s), (0., s, -s), (0., 0., s))
+    right_skin = ((-s, 0., -s / 2.), (s, 0., -s / 2.), (0., 0., s))
+    result = audit_all_physical_part_pairs({
+        "box_body:left_side": (left_skin,),
+        "box_body:right_side": (right_skin,),
+    })
+    assert result.evaluated_pair_count == 1
+    assert result.unresolved[0].status == "UNRESOLVED_CROSSING"
+    assert result.unresolved[0].pair_count > 0
+    with pytest.raises(ValueError, match="ASSEMBLY_PHYSICAL_CROSSING_UNVERIFIED"):
+        result.require_no_unresolved()
+
+
+def test_bug70_unlocated_preview_stubs_fallback_but_partial_world_datum_fails_closed():
+    """R4 #70: preview-only pieces can fall back; corrupt physical pieces cannot."""
+    from phase6_final_scene_projection import (
+        _phase6_box_body_formed_width_datum,
+        _phase6_box_body_true_world_piece_meshes,
+    )
+
+    def body(*pieces):
+        return SimpleNamespace(
+            part_key="box_body",
+            render_data=SimpleNamespace(pieces=pieces),
+        )
+
+    previews = body(SimpleNamespace(role="left_side"), SimpleNamespace(role="right_side"))
+    assert _phase6_box_body_true_world_piece_meshes(
+        previews, dimensions=(800., 1600., 350.), thickness=2.,
+    ) == ()
+    assert _phase6_box_body_formed_width_datum(previews.render_data.pieces) is None
+
+    # A present physical outside-W anchor cannot hide another unlocated part.
+    partial = body(
+        SimpleNamespace(role="left_side"),
+        SimpleNamespace(role="right_side", formed_w_end=800.),
+    )
+    with pytest.raises(ValueError, match="BOX_BODY_PIECE_OUTSIDE_DATUM_INCOMPLETE"):
+        _phase6_box_body_true_world_piece_meshes(
+            partial, dimensions=(800., 1600., 350.), thickness=2.,
+        )
+
+    for invalid in (True, float("nan"), float("inf")):
+        corrupt = body(SimpleNamespace(role="left_side", formed_w_end=invalid))
+        with pytest.raises(ValueError, match="BOX_BODY_PIECE_OUTSIDE_DATUM_INVALID"):
+            _phase6_box_body_true_world_piece_meshes(
+                corrupt, dimensions=(800., 1600., 350.), thickness=2.,
+            )
+
+    # A three-piece left sheet may legitimately start at W=0, but only when
+    # both its source start and real material span are present.
+    legitimate = (
+        SimpleNamespace(role="left_side", formed_w_end=0.,
+                        formed_w_start=0., formed_outer_width=50.),
+        SimpleNamespace(role="back", formed_w_end=800.),
+    )
+    assert _phase6_box_body_formed_width_datum(legitimate) == 800.
