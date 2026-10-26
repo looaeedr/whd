@@ -668,9 +668,9 @@ def test_swt27_current_v5_single_x_and_three_row_x_are_true_physical_datums(
     added = list((new - old).elements())
     assert len(removed) == len(added) == 4
     assert sorted((round(a[0]-b[0], 5), a[1], a[2])
-                  for a,b in zip(sorted(added), sorted(removed))) == [
-        (15., y, radius) for _, y, radius in sorted(removed)
-    ]
+                  for a,b in zip(sorted(added), sorted(removed))) == sorted(
+        (15., y, radius) for _, y, radius in removed
+    )
 
 
 def test_swt27_current_v5_unapproved_x_state_never_infers_row_from_nominal(
@@ -684,6 +684,11 @@ def test_swt27_current_v5_unapproved_x_state_never_infers_row_from_nominal(
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
+    # A preview may legitimately display the legacy physical sheet, but
+    # the submitted NFB manufacturing exporter must NEVER silently publish
+    # that sheet with the unresolved main aperture/screws missing.
+    folder = tmp_path / "unconfirmed_x"
+    folder.mkdir()
     with pytest.raises((ValueError, KeyError)):
-        _scene(snap)
+        _export(snap, _scene(snap), folder)
     assert not list(tmp_path.rglob("*.dxf"))
