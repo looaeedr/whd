@@ -1835,6 +1835,26 @@ def test_all_current_nfb_v5_source_supersessions_keep_88_originals_and_legacy_sc
             assert correction["original_status_preserved"] is True
             assert "NFBCONFIG" in correction["authority"]
             assert any(token in correction["scope_note"] for token in ("legacy", "Legacy", "DXF", "CSV"))
+    current_runtime = "tests/test_issue1502_current_csv_original_pair_dxf.py"
+    for ident in ("NFB-AC-11", "NFB-AC-51", "SWT-AC-27", "SWT-AC-30"):
+        clause = rows[ident]["current_source_authority_20261026"]
+        assert clause["current_v5_positive_witness"] == (
+            current_runtime +
+            "::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input"
+        )
+        assert clause["current_v5_fail_closed_witness"] == (
+            current_runtime +
+            "::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback"
+        )
+        assert clause["current_v5_witness_is_not_full_ac_signoff"] is True
+        assert current_runtime in rows[ident]["regression_candidates"]
+    for ident in ("NFB-AC-11", "NFB-AC-51"):
+        record = rows[ident]
+        assert record["identified_test_functions"][0]["path"] == current_runtime
+        assert record["identified_test_functions"][0]["accepted"] is False
+        assert record["historical_legacy_witness_before_20261026"]["path"].endswith(
+            "test_issue1496_nfb_dxf_source.py"
+        )
     # Current V5 input audit must not silently waive the remaining independent
     # positioning, source-drift, old-project GUI and production gates.
     for ident, expected in {
