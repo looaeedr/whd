@@ -430,6 +430,8 @@ def test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_re
     assert [part.offset[2] for part in physical] == pytest.approx(
         [x.world_offset_z_mm for x in current]
     )
+    # Depth may move only the source-owned Z: physical BASE remains X-centered.
+    assert all(part.offset[0] == pytest.approx(0.0) for part in physical)
     scene = replace(side_scene, parts=side_scene.parts + tuple(physical))
     receipt = _run(saved, scene, tmp_path / "valid_ear_side_only")
     assert len(receipt.formed_part_ids) == 4
