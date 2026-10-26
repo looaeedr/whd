@@ -463,6 +463,19 @@ class Phase6AssemblyPanel:
                 old_blank=old_blank,
                 old_open=old_open,
             )
+        if key == "base_plate" and self.fixing_plate_visibility_entry is None:
+            # Multi-Bay Base Plates are a synthetic "底板" group, not a
+            # standalone base_plate row. Their EAR display toggle belongs to
+            # the group details and must ignore the group visibility checkbox.
+            self.fixing_plate_visibility_entry = ttk.Frame(details)
+            ttk.Checkbutton(
+                self.fixing_plate_visibility_entry,
+                text="顯示底板固定片（3D）",
+                variable=self.fixing_plate_visible_var,
+                command=self.actions.on_visibility_changed,
+            ).pack(anchor=tk.W, padx=(20, 0))
+            if self._receiving_controls_visible:
+                self.fixing_plate_visibility_entry.pack(fill=tk.X, pady=(4, 0))
         self.bind_scroll(group)
 
     def install_legacy_aliases(self, host) -> None:
