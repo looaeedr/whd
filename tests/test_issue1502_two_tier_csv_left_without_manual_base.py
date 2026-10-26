@@ -189,6 +189,64 @@ def test_two_tiers_different_complete_csv_models_derive_independent_flat_sheets(
     assert set(source_receiving_nfb_tier_base_specs(snap)) == {0, 1}
 
 
+
+def test_brand_max_two_tier_fold_source_72_to_68_changes_actual_blank_not_ear_z():
+    """Verify real per-tier material, not just a positive placeholder blank."""
+    from ae_engine.receiving_tier_ear_z_targets import (
+        resolve_receiving_tier_ear_contact_targets,
+    )
+
+    first = _committed_two_left_tiers()
+    first["nfb_config"]["holes"][1]["model_filename"] = "nfbv5:士林:3P125SN"
+    first["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        first["nfb_config"]
+    )
+    second = deepcopy(first)
+    second["nfb_config"]["holes"][1]["model_filename"] = "nfbv5:士林:2P125SN"
+    second["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        second["nfb_config"]
+    )
+
+    def physical_parts(snapshot):
+        specs = source_receiving_nfb_tier_base_specs(snapshot)
+        assert set(specs) == {0, 1}
+        assert all(spec.receiving_bend_pattern == "CENTER_DOUBLE_SIDE_FOLD"
+                   for spec in specs.values())
+        parts = expand_receiving_nfb_layer_parts(snapshot, (_source(snapshot),))
+        assert [part.part_key for part in parts] == [
+            "base_plate:nfb_layer:0", "base_plate:nfb_layer:1",
+        ]
+        assert all(part.render_data.metadata["manufacturing_ready"] is False
+                   for part in parts)
+        return specs, tuple(
+            (part.render_data.material.bounds[2] - part.render_data.material.bounds[0],
+             part.render_data.material.bounds[3] - part.render_data.material.bounds[1])
+            for part in parts
+        )
+
+    old_specs, old_blanks = physical_parts(first)
+    new_specs, new_blanks = physical_parts(second)
+    assert old_specs[1].receiving_nfb_depth_pair_mm == (107., 72.)
+    assert new_specs[1].receiving_nfb_depth_pair_mm == (107., 68.)
+    # CURRENT W800/T2 original source reference: 630-mm flat face, 40-mm
+    # first fold, variable second fold = Dbrand - Dselected - 2-mm sheet.
+    for got, expected in zip(old_blanks, ((772., 240.), (772., 240.))):
+        assert got == pytest.approx(expected)
+    for got, expected in zip(new_blanks, ((772., 240.), (780., 240.))):
+        assert got == pytest.approx(expected)
+
+    old_ears = resolve_receiving_tier_ear_contact_targets(first)
+    new_ears = resolve_receiving_tier_ear_contact_targets(second)
+    assert len(old_ears) == len(new_ears) == 4
+    assert len({ear.target_ear_contact_world_z_mm for ear in old_ears}) == 1
+    assert [ear.target_ear_contact_world_z_mm for ear in old_ears] == pytest.approx(
+        [ear.target_ear_contact_world_z_mm for ear in new_ears]
+    )
+    assert all(ear.base_skin_z_source_verified and not ear.manufacturing_ready
+               for ear in (*old_ears, *new_ears))
+
+
+
 def test_two_tiers_flat_source_with_mixed_depth_pad_stays_unreleased():
     snap = _committed_two_left_tiers()
     shallow = deepcopy(snap["nfb_config"]["holes"][0])
