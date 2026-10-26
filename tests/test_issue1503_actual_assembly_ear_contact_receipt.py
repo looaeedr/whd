@@ -46,7 +46,11 @@ def test_four_real_ear_sources_mate_two_distinct_assembled_base_back_skins():
         (400., 540.), (400., 540.),
         (-100., 40.), (-100., 40.),
     ]
-    assert len({r.actual_base_back_skin_world_z_mm for r in receipts}) == 2
+    # User's current fixed-ear Z is ONE brand CSV maximum for both tiers.
+    # Both physically assembled base backs must meet that SAME contact Z,
+    # without removing the requirement for source/actual 3D skin equality.
+    assert len({r.expected_ear_contact_world_z_mm for r in receipts}) == 1
+    assert len({r.actual_base_back_skin_world_z_mm for r in receipts}) == 1
     assert all(
         r.actual_base_back_skin_world_z_mm ==
         pytest.approx(r.expected_ear_contact_world_z_mm)
@@ -179,12 +183,11 @@ def test_current_csv_two_tier_brands_keep_own_real_skin_and_four_ear_receipts():
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"],
     )
-    parts = expand_receiving_nfb_layer_parts(snap, (_source(snap),))
-    receipts = validate_receiving_tier_fixing_contact_receipts(snap, parts)
-    assert len(receipts) == 4
-    assert [r.layer_index for r in receipts] == [0, 0, 1, 1]
-    assert [r.fixing_hole_world_x_mm for r in receipts] == [
-        -335., 335., -335., 335.,
-    ]
-    assert len({r.actual_base_back_skin_world_z_mm for r in receipts}) == 2
-    assert all(not r.manufacturing_ready for r in receipts)
+    # Mixed physical switch brands have no user-approved COMMON ear Z
+    # (each entire brand CSV has its own maximum). Old per-tier offsets
+    # cannot be repurposed as a single weld/marking manufacturing datum.
+    before = deepcopy(snap)
+    with pytest.raises(ValueError, match="EAR_Z_MIXED_BRANDS_REQUIRE_APPROVED_RULE"):
+        parts = expand_receiving_nfb_layer_parts(snap, (_source(snap),))
+        validate_receiving_tier_fixing_contact_receipts(snap, parts)
+    assert snap == before
