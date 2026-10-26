@@ -256,6 +256,13 @@ def test_receiving_nfb_model_identity_and_catalog_validation(tmp_path):
         numeric_model_ref("士林", " BM100")
     with pytest.raises(ValueError, match="V5"):
         display_model_ref("nfbv5:only_two_parts")
+    # A corrupt persisted legacy model must not look legitimate in the UI
+    # merely because the older display utility strips surrounding whitespace.
+    for bad in (" BM100.dxf", "BM100.dxf ", "   .dxf", "bad:name.dxf"):
+        with pytest.raises(ValueError, match="DXF"):
+            display_model_ref(bad)
+    assert display_model_ref("BM100.dxf") == "BM100"
+    assert display_model_ref("nfbv5:士林:BM100-CN") == "BM100-CN"
 
     bad_csv = tmp_path / "bad_v5.csv"
     bad_csv.write_text(
