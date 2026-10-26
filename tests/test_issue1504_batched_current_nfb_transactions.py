@@ -199,3 +199,177 @@ def test_version_copy_never_promotes_unknown_x_to_confirmed_or_cross_scope():
         for hole in version["nfb_config"]["holes"]:
             assert hole["manual_x_state"]!="CONFIRMED"
             assert "approved" not in hole
+
+
+def test_ac36_swt07_unconfigured_and_committed_quantity_clones_remain_independent_on_disk(
+    tmp_path,
+):
+    """Actual current QuantityModel + real V3 project Save/Reload.
+
+    An UNCONFIGURED version never acquires dormant NFBConfig by duplication.
+    A truly submitted version deep-clones only its scoped NFB configuration;
+    the copied X needs per-version reconfirmation, zero remains a numeric
+    operator value, and subsequent edits never leak into another version.
+    """
+    q = QuantityModel()
+    original = q.selected_version_id
+    assert q.nfb_config_for_version(original) == {}
+    original_blank = q.add_version()
+    assert original_blank != original
+    assert q.nfb_config_for_version(original_blank) == {}
+
+    # Duplicate an UNCONFIGURED source twice. No residual NFBConfig is
+    # allowed to reappear when the other version is subsequently submitted.
+    blank_copy = q.add_version()
+    assert blank_copy not in {original, original_blank}
+    assert q.nfb_config_for_version(blank_copy) == {}
+
+    q.select(original)
+    committed = deepcopy(_config())
+    committed["holes"][0]["manual_x_state"] = "UNVERIFIED_BASIS"
+    committed["holes"][0]["manual_x_mm"] = 0
+    q.set_version_nfb_config(original, submitted=True, config=committed)
+    assert q.nfb_config_for_version(original)["nfb_config_submitted"] is True
+
+    signed_copy = q.add_version()
+    assert signed_copy not in {original, original_blank, blank_copy}
+    first = q.nfb_config_for_version(original)["nfb_config"]
+    clone = q.nfb_config_for_version(signed_copy)["nfb_config"]
+    assert q.nfb_config_for_version(signed_copy)["nfb_config_submitted"] is True
+    assert first == clone
+    assert clone is not first and clone["holes"] is not first["holes"]
+    assert first["holes"][0]["manual_x_mm"] == 0
+    assert clone["holes"][0]["manual_x_state"] != "CONFIRMED"
+    assert first["holes"][1]["manual_x_state"] == clone["holes"][1]["manual_x_state"] == "NONE"
+
+    # Edits in a duplicated scoped version are not a mutation of source.
+    copied_override = deepcopy(clone)
+    copied_override["holes"][0]["rotation_deg"] = 270
+    copied_override["holes"][0]["manual_x_mm"] = 125
+    q.set_version_nfb_config(
+        signed_copy, submitted=True, config=copied_override,
+    )
+    assert q.nfb_config_for_version(original)["nfb_config"]["holes"][0][
+        "rotation_deg"
+    ] == 90
+    assert q.nfb_config_for_version(original)["nfb_config"]["holes"][0][
+        "manual_x_mm"
+    ] == 0
+    assert q.nfb_config_for_version(signed_copy)["nfb_config"]["holes"][0][
+        "rotation_deg"
+    ] == 270
+    assert q.nfb_config_for_version(signed_copy)["nfb_config"]["holes"][0][
+        "manual_x_mm"
+    ] == 125
+    assert not q.nfb_config_for_version(original_blank)
+    assert not q.nfb_config_for_version(blank_copy)
+
+    # Reset one selected version to UNCONFIGURED without modifying another
+    # submitted version, or persisting a dormant hole list.
+    q.set_version_nfb_config(signed_copy, submitted=False)
+    assert q.nfb_config_for_version(signed_copy) == {}
+    assert q.nfb_config_for_version(original)["nfb_config_submitted"] is True
+    q.select(signed_copy)
+    next_blank = q.add_version()
+    assert q.nfb_config_for_version(next_blank) == {}
+
+    before = q.snapshot()
+    assert before["schema"] == SCHEMA_V2
+    for row in before["versions"]:
+        if row["version_id"] in {original_blank, blank_copy, signed_copy, next_blank}:
+            assert row.get("nfb_config_submitted") is not True
+            assert row.get("nfb_config") is None
+        else:
+            assert row["version_id"] == original
+            assert row["nfb_config_submitted"] is True
+    saved = write_project(
+        tmp_path / "ac36_swt07_quantity_clone.p6fold",
+        _project({
+            "active_mode": "quantity", "quantity": before,
+            "receiving_quantity_box": {
+                "w": 800, "h": 1600, "d": 350,
+            },
+        }),
+    )
+    assert saved.exists()
+    on_disk = json.loads(saved.read_text(encoding="utf-8"))
+    assert on_disk["schema"] == PROJECT_SCHEMA_V3
+    assert on_disk["snapshot"]["quantity"]["schema"] == SCHEMA_V2
+
+    reopened = QuantityModel.from_payload(read_project(saved)["snapshot"]["quantity"])
+    assert reopened.snapshot() == before
+    assert reopened.nfb_config_for_version(original)["nfb_config_submitted"] is True
+    assert reopened.nfb_config_for_version(original)["nfb_config"]["holes"][0][
+        "manual_x_mm"
+    ] == 0
+    for version in (original_blank, blank_copy, signed_copy, next_blank):
+        assert reopened.nfb_config_for_version(version) == {}
+
+    # Even after actual Save/Reload, duplicating an unconfigured selection
+    # cannot silently resurrect the old submitted version's NFB holes.
+    reopened.select(next_blank)
+    further = reopened.add_version()
+    assert reopened.nfb_config_for_version(further) == {}
+    assert reopened.nfb_config_for_version(original)["nfb_config_submitted"] is True
+    assert reopened.nfb_config_for_version(original)["nfb_config"]["holes"][0][
+        "manual_x_mm"
+    ] == 0
+
+
+def test_ac36_swt07_confirmed_zero_is_revoked_on_quantity_copy_not_erased(
+    tmp_path,
+):
+    """A copied version inherits model/X provenance, NEVER source approval."""
+    from tests.test_issue1499_nfb_persistence import _config as confirmed_config
+
+    q = QuantityModel()
+    source = q.selected_version_id
+    q.set_version_nfb_config(source, submitted=True, config=confirmed_config(x=0))
+    source_hole = q.nfb_config_for_version(source)["nfb_config"]["holes"][0]
+    assert source_hole["manual_x_state"] == "CONFIRMED"
+    assert source_hole["manual_x_mm"] == 0
+    target = q.add_version()
+    copied_hole = q.nfb_config_for_version(target)["nfb_config"]["holes"][0]
+    assert copied_hole["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert copied_hole["manual_x_mm"] == 0
+    assert copied_hole["model_filename"] == source_hole["model_filename"]
+    assert copied_hole["rotation_deg"] == source_hole["rotation_deg"]
+    assert copied_hole["datum_revision"] == source_hole["datum_revision"]
+    assert copied_hole["datum_snapshot"] == source_hole["datum_snapshot"]
+    assert q.nfb_config_for_version(source)["nfb_config"]["holes"][0][
+        "manual_x_state"
+    ] == "CONFIRMED"
+
+    path = write_project(tmp_path / "ac36_copy_reconfirm.p6fold", _project({
+        "active_mode": "quantity",
+        "quantity": q.snapshot(),
+        "receiving_quantity_box": {"w": 800, "h": 1600, "d": 350},
+    }))
+    disk = read_project(path)
+    assert disk["schema"] == PROJECT_SCHEMA_V3
+    reload = QuantityModel.from_payload(disk["snapshot"]["quantity"])
+    first_hole = reload.nfb_config_for_version(source)["nfb_config"]["holes"][0]
+    second_hole = reload.nfb_config_for_version(target)["nfb_config"]["holes"][0]
+    assert first_hole["manual_x_state"] == "CONFIRMED"
+    assert second_hole["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert first_hole["manual_x_mm"] == second_hole["manual_x_mm"] == 0
+
+    # Resetting the cloned version cannot unsubmit or change the source.
+    reload.set_version_nfb_config(target, submitted=False)
+    assert reload.nfb_config_for_version(target) == {}
+    assert reload.nfb_config_for_version(source)["nfb_config"]["holes"][0][
+        "manual_x_state"
+    ] == "CONFIRMED"
+    again = write_project(tmp_path / "ac36_reconfirmed_source_preserved.p6fold",
+                          _project({
+                              "active_mode": "quantity",
+                              "quantity": reload.snapshot(),
+                              "receiving_quantity_box": {
+                                  "w": 800, "h": 1600, "d": 350,
+                              },
+                          }))
+    final = QuantityModel.from_payload(read_project(again)["snapshot"]["quantity"])
+    assert final.nfb_config_for_version(target) == {}
+    assert final.nfb_config_for_version(source)["nfb_config"]["holes"][0][
+        "manual_x_mm"
+    ] == 0
