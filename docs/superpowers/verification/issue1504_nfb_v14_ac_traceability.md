@@ -13,6 +13,15 @@ whd_schema: WHD_DOC_META_V1
 - **尚未正式算已簽**：此 PR 是 **81／88 候選、7 項待驗**；必須 exact HEAD 完整 Product Regression 5／5 GREEN、與最新 `localX` 安全合併、blob readback 才能正式認列。正式 X 只由使用者 `/推推` 發布。
 
 ---
+## 2026-10-27 台灣｜#1504 NFB-AC-42 UI-1A 預覽／取消／Undo 與實體來源硬閘門（81→82 候選）
+
+- **原始 §7 NFB-AC-42 不變**：UI-1A 單純編輯器預覽、位移 X0 與旋轉等僅為草稿，不得暗中改寫已提交配置、正式 DXF 原始位元組、或推導製造允許。尚無有效 MFG-1 時，真實原生 Tk 上正式提交／覆寫及首次複製按鈕停用，已失效來源即使畫面先前呈現 enabled，實際點擊也須重新阻擋。
+- **正反測試**：現行 V5 `NfbUi1aEditSession` 暫存雙層型號，`nfb_ui1a_preview` 回傳逐層／逐顆資料、相對位置與源狀態，但永遠 `has_absolute_x=False`、`can_manufacture=False`；手動 X=0→Undo、暫改 X→Escape 都回到原草稿。真正來源 `ezdxf` 檔案雜湊改動前後一致，原 `write_project/read_project` V3 .p6fold 仍無 NFBConfig／submitted；既存 AC06 測試確保非法 callback／取消時不洩漏資料。
+- **UI-1B 閘門**：依賴已合併 NFB-AC-34 的**實際 Tk／來源**正反驗證及 AC-53 版本綁定，非獨立測試名稱：無 MFG-1 實體內門證據的 SUBMIT/COPY disabled，source revoked even after enabled display must be denied on click；MFG-1 內門真 READY 且操作者批准才允許進行 UI-1B 交易，同時中隔等 MFG-2 未驗證的板件仍不得製造。
+- **限制與併入條件**：來源是隔離測試原始 DXF 非廠商量產證據；不聲稱 Windows 使用者人工實機、完整整箱 DXF／NC、PAD 或原廠 MFG2 合格。既有雙舊案中的第二份專案 B 要求已取消。此為 **82／88 候選（剩 6 項）**，必須 exact HEAD Product Regression 5／5 SUCCESS、核對當期 localX、合併與逐檔 readback 才正式認列；正式 X 仍須 `/推推`。
+
+---
+
 
 
 ## 2026-10-26 台灣｜#1504 NFB-AC-36／SWT-AC-07 原生 Bay ＋數量版本複製真存檔候選（78→80）
