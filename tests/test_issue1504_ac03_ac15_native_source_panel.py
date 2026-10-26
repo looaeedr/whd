@@ -625,3 +625,62 @@ def test_ac51_original_tk_v5_selector_shows_source_scope_without_fake_release(mo
         if modal.winfo_exists():
             modal.destroy()
         root.destroy()
+
+
+def test_ac51_native_tk_assigned_v5_shows_real_pair_green_only_for_exact_output(
+    monkeypatch, tmp_path,
+):
+    """Original Tk source widget positive only after a real pair DXF receipt.
+
+    The CSV catalogue list itself stays preview-only. Re-selecting without
+    exact verified Set/Bay/snapshot/source/DXF output clears any green badge,
+    and neither operator preview nor label writes a manufacturing approval.
+    """
+    from ae_engine.receiving_nfb_model_identity import numeric_model_ref
+    from tests.test_issue1502_current_csv_original_pair_dxf import (
+        _current, _scene, _export,
+    )
+    from gui_modules.application.receiving_nfb_verified_scope_display import (
+        capture_verified_v5_pair_display,
+    )
+    snap = _current()
+    pair = _export(snap, _scene(snap), tmp_path)
+    proof = capture_verified_v5_pair_display(snap, pair)
+    assert proof is not None
+    root, app, modal = _open_original_editor(monkeypatch)
+    try:
+        panel = modal._receiving_inner_nfb_dxf_panel
+        before = deepcopy(app._phase6_input_snapshot)
+        model = numeric_model_ref("士林", "2P400")
+        panel.show(
+            "士林", model,
+            verified_export_proof=proof, verified_snapshot=snap,
+        )
+        root.update()
+        assert "可製造（內門）" in panel.frame.cget("text")
+        assert "僅已出圖範圍" in panel.frame.cget("text")
+        assert "Set=" in panel.reason.get() and "Bay=" in panel.reason.get()
+        assert "其他版本" in panel.reason.get()
+        # The input catalogue is never a capability registry. The same
+        # visible source, with no exact success receipt, returns to preview.
+        panel.show("士林", model)
+        root.update()
+        assert "僅預覽" in panel.frame.cget("text")
+        assert "可製造（內門）" not in panel.reason.get()
+        panel.show("東元", model, verified_export_proof=proof, verified_snapshot=snap)
+        root.update()
+        assert "禁止製造" in panel.reason.get()
+        changed = deepcopy(snap)
+        changed["nfb_config"]["holes"][0]["manual_x_mm"] += 1.
+        panel.show(
+            "士林", model,
+            verified_export_proof=proof, verified_snapshot=changed,
+        )
+        root.update()
+        assert "僅預覽" in panel.frame.cget("text")
+        assert app._phase6_input_snapshot == before
+        assert KEY not in app._phase6_input_snapshot
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()

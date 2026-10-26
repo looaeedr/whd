@@ -1692,6 +1692,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         self.app._receiving_nfb_ui_session_evidence = evidence
     pending_verified_nfb = evidence["pending"]
     committed_nfb_evidence = evidence["committed"]  # NEVER serialized
+    # Only exact operator-export receipts; not a saved MFG-1 capability.
+    verified_pair_exports = evidence.setdefault("verified_pair_exports", {})
 
     def nfb_physical_bay_snapshot(set_index,bay_index):
         """Real selected Bay authority, not the unprojected root UI snapshot."""
@@ -2560,7 +2562,29 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if selected:
                 slot = draft_state["draft"]["layers"][index]["slots"][selected[0]]
                 brand = effective_nfb_slot_brand(draft_state["draft"],index,selected[0])
-                nfb_preview_panel["panel"].show(brand,slot["filename"])
+                # A saved/fully verified prior pair can disclose its exact
+                # physical scope on the ASSIGNED model, not on the source
+                # catalogue. Any draft edit or changed active Bay invalidates
+                # the label; this UI note never grants another DXF export.
+                proof = live = None
+                if (version_id is None and embed_parent is None
+                        and draft_state["draft"] == initial_nfb_draft):
+                    try:
+                        sel = candidate_adapter().selection
+                        proof = verified_pair_exports.get(
+                            (sel.set_index, sel.bay_index)
+                        )
+                        if proof is not None:
+                            live = nfb_physical_bay_snapshot(
+                                sel.set_index, sel.bay_index
+                            )
+                    except (ValueError, TypeError, KeyError, IndexError,
+                            AttributeError, OSError):
+                        proof = live = None
+                nfb_preview_panel["panel"].show(
+                    brand, slot["filename"], verified_export_proof=proof,
+                    verified_snapshot=live,
+                )
                 nfb_source_viewed["value"] = True
 
         def reposition_nfb_slot(index,direction):
@@ -3552,11 +3576,22 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     namespace, set_index, bay_index,
                     preview_layout=candidate_adapter().layout,
                 )
-                return export_current_csv_nfb_door_base_pair(
+                exported = export_current_csv_nfb_door_base_pair(
                     current, base_spec=spec,
                     assembly_parts=request.render_data.assembly_parts,
                     output_directory=output_directory,
                 )
+                from .receiving_nfb_verified_scope_display import (
+                    capture_verified_v5_pair_display,
+                )
+                proof = capture_verified_v5_pair_display(current, exported)
+                # Discard any earlier receipt even if newly captured proof
+                # fails closed. Source snapshots and generated files remain
+                # unmodified, and there is never a stored approval flag.
+                verified_pair_exports.pop((set_index, bay_index), None)
+                if proof is not None:
+                    verified_pair_exports[(set_index, bay_index)] = proof
+                return exported
             bundle = committed_nfb_evidence.get((set_index, bay_index))
             if bundle is None:
                 raise ValueError("NFB 成對出圖缺少現行 CSV 或舊版已驗證來源")

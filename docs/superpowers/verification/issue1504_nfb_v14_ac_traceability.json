@@ -3006,7 +3006,8 @@
         "tests/test_issue1497_shihlin400_cutting_trial.py",
         "tests/test_issue1497_shihlin400_original_byte_proof.py",
         "tests/test_issue1502_current_csv_original_pair_dxf.py",
-        "tests/test_issue1502_csv_is_only_normal_finalscene_source.py"
+        "tests/test_issue1502_csv_is_only_normal_finalscene_source.py",
+        "tests/test_issue1504_ac03_ac15_native_source_panel.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -3032,7 +3033,11 @@
         "current_v5_positive_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
         "current_v5_fail_closed_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback",
         "current_v5_witness_is_not_full_ac_signoff": true,
-        "current_csv_candidate_scope": "SOURCE_TEST_WITNESS_EXISTS_NOT_FULL_AC"
+        "current_csv_candidate_scope": "SOURCE_TEST_WITNESS_EXISTS_NOT_FULL_AC",
+        "scoped_ever_verified_pair_display_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift",
+        "original_tk_verified_source_label_witness": "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_native_tk_assigned_v5_shows_real_pair_green_only_for_exact_output",
+        "pending_exact_head_ci_and_native_callback_validation": true,
+        "no_persisted_approval_or_cross_scope_release": true
       },
       "historical_legacy_witness_before_20261026": {
         "path": "tests/test_issue1496_nfb_dxf_source.py",
@@ -5326,7 +5331,8 @@
         "tests/test_issue1498_nfb_part_readiness.py",
         "tests/test_issue1502_current_csv_original_pair_dxf.py",
         "tests/test_issue1502_csv_is_only_normal_finalscene_source.py",
-        "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py"
+        "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py",
+        "tests/test_issue1504_ac03_ac15_native_source_panel.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -5357,7 +5363,11 @@
         "pending_full_ac_requirements": [
           "Operator selector must visibly distinguish per real authorized W×N×Y×model×inner-door datum '可製造（內門）' vs '僅預覽' without source-only model-level manufacturing claim",
           "Current partial-pair DXF evidence may authorize only matching scoped physical part; cannot imply all W or unconditional cabinet release"
-        ]
+        ],
+        "scoped_ever_verified_pair_display_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift",
+        "original_tk_verified_source_label_witness": "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_native_tk_assigned_v5_shows_real_pair_green_only_for_exact_output",
+        "pending_exact_head_ci_and_native_callback_validation": true,
+        "no_persisted_approval_or_cross_scope_release": true
       },
       "previous_identified_test_functions_before_current_swt30_scope": [
         {
