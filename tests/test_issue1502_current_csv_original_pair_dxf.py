@@ -546,3 +546,144 @@ def test_ac11_current_numeric_v5_two_models_real_pivot_and_upper_door_lower_base
     assert saved_screws == from_scene
     # This is physical source-scoped partial output, NOT automatic MFG2 PAD.
     assert not list(tmp_path.glob("*PAD*.dxf"))
+
+
+def test_swt27_current_v5_single_x_and_three_row_x_are_true_physical_datums(
+    tmp_path, monkeypatch,
+):
+    """W800/T2 verified example: submitted per-hole X -> exact physical CSV DXFs.
+
+    Two committed three-hole rows differ ONLY at first-hole X (-180 -> -165).
+    Check main-opening vertices and the source-verified Base screw circles.
+    The other holes, physical plate owner, Set/Bay, and original selected
+    model sources remain unchanged. This does not bless other widths/rows.
+    """
+    from ae_engine import receiving_nfb_dxf_source as legacy
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from ae_engine.receiving_nfb_model_identity import selected_numeric_spec
+
+    monkeypatch.setattr(
+        legacy, "inspect_nfb_dxf_source",
+        lambda *_a, **_kw: pytest.fail("Current CSV X must not read old model DXF"),
+    )
+    before = _current(model_second="3P400SN")
+    holes = before["nfb_config"]["holes"]
+    holes[0]["manual_x_mm"] = -180.
+    holes[1]["manual_x_mm"] = 0.
+    third = deepcopy(holes[0])
+    third.update(physical_hole_id="nfb:third", slot_index=2,
+                 manual_x_mm=180., model_filename="nfbv5:士林:2P400")
+    holes.append(third)
+    before["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        before["nfb_config"]
+    )
+    after = deepcopy(before)
+    after["nfb_config"]["holes"][0]["manual_x_mm"] = -165.
+    after["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        after["nfb_config"]
+    )
+
+    assert all(row["manual_x_state"] == "CONFIRMED"
+               for row in before["nfb_config"]["holes"])
+    for snap, x_positions in (
+        (before, (-180., 0., 180.)),
+        (after, (-165., 0., 180.)),
+    ):
+        assert snap["w"] == 800.
+        assert [row["manual_x_mm"] for row in snap["nfb_config"]["holes"]] == list(x_positions)
+        assert [row["slot_index"] for row in snap["nfb_config"]["holes"]] == [0, 1, 2]
+        inner_id, resolved = _submitted_csv_holes(snap)
+        assert [h.world_x_mm for h in resolved] == list(x_positions)
+        assert len({h.physical_hole_id for h in resolved}) == 3
+        assert all(selected_numeric_spec("士林", h.model_ref).dimensionally_complete
+                   for h in resolved)
+        trial = trial_configured_nfb_v5_inner_door_render_data(
+            snap, inner_id, holes=resolved,
+        )
+        assert len(trial.patterns) == 3
+        centres = [p.datum.uv_centre_mm for p in trial.patterns]
+        assert [xy[0] - centres[1][0] for xy in centres] == pytest.approx(
+            [x_positions[0], 0., 180.]
+        )
+        assert all(xy[1] == pytest.approx(centres[0][1]) for xy in centres)
+
+    # The pre-change physical sheets cannot authorize post-change export.
+    first_parts = _scene(before)
+    with pytest.raises(ValueError, match="CURRENT_FINALSCENE|SOURCE"):
+        _export(after, first_parts, tmp_path / "nonexistent")
+    assert not list(tmp_path.rglob("*.dxf"))
+
+    def export_and_points(snap, subdir):
+        folder = tmp_path / subdir
+        folder.mkdir()
+        receipt = _export(snap, _scene(snap), folder)
+        assert receipt.source_hole_ids == ("nfb:0", "nfb:1", "nfb:third")
+        assert len(list(folder.glob("*.dxf"))) == 2
+        door = ezdxf.readfile(receipt.inner_door_path).modelspace()
+        base = ezdxf.readfile(receipt.base_plate_path).modelspace()
+        loops = [
+            tuple(sorted((round(float(x), 5), round(float(y), 5))
+                         for x, y in e.get_points("xy")))
+            for e in door if e.dxftype() == "LWPOLYLINE"
+            and e.closed and e.dxf.layer == "CUTTING"
+        ]
+        circles = sorted(
+            (round(float(e.dxf.center.x), 5),
+             round(float(e.dxf.center.y), 5),
+             round(float(e.dxf.radius), 5))
+            for e in base if e.dxftype() == "CIRCLE" and e.dxf.layer == "CUTTING"
+        )
+        assert len(circles) == 12
+        assert receipt.check_q_key
+        return loops, circles
+
+    first_loops, first_screws = export_and_points(before, "before")
+    next_loops, next_screws = export_and_points(after, "after")
+    def expected_contours(snap):
+        inner_id, resolved = _submitted_csv_holes(snap)
+        patterns = trial_configured_nfb_v5_inner_door_render_data(
+            snap, inner_id, holes=resolved,
+        ).patterns
+        return [
+            tuple(sorted((round(x, 5), round(y, 5))
+                         for x, y in pattern.opening_uv_mm))
+            for pattern in patterns
+        ]
+    originals = expected_contours(before)
+    changed = expected_contours(after)
+    assert originals[0] != changed[0]
+    assert originals[1:] == changed[1:]
+    for expected in originals:
+        assert first_loops.count(expected) == 1
+    for expected in changed:
+        assert next_loops.count(expected) == 1
+    # One NFB moves 15 mm in X, so precisely four of its BASE screw centres
+    # move. All other eight physical CUTTING screws must be byte-geometry same.
+    from collections import Counter
+    old, new = Counter(first_screws), Counter(next_screws)
+    removed = list((old - new).elements())
+    added = list((new - old).elements())
+    assert len(removed) == len(added) == 4
+    assert sorted((round(a[0]-b[0], 5), a[1], a[2])
+                  for a,b in zip(sorted(added), sorted(removed))) == [
+        (15., y, radius) for _, y, radius in sorted(removed)
+    ]
+
+
+def test_swt27_current_v5_unapproved_x_state_never_infers_row_from_nominal(
+    tmp_path,
+):
+    """Nominal W800x3 spacing is NOT confirmation of an absent per-hole X."""
+    snap = _current(model_second="3P400SN")
+    hole = snap["nfb_config"]["holes"][1]
+    hole["manual_x_state"] = "NONE"
+    hole["manual_x_mm"] = None
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    with pytest.raises((ValueError, KeyError)):
+        _scene(snap)
+    assert not list(tmp_path.rglob("*.dxf"))
