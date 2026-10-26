@@ -175,7 +175,7 @@ def test_no_new_ui_button_or_full_cabinet_global_ear_bypass():
 def test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad(
     tmp_path,
 ):
-    """One submitted model swap: REAL per-tier Base and EAR follow the same Z.
+    """One submitted model swap: per-tier BASE may reform, but EAR stays at brand-max Z.
 
     Current #1502 correction supersedes the older "Base never moves" wording.
     A depth change must neither move the Inner Door nor fabricate an NFB PAD.
@@ -206,7 +206,10 @@ def test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad(
     assert all(r.physical_skin_z_resolved for r in (*before, *after))
     # Only the changed second NFB tier moves; the first is unchanged.
     assert after[0].world_offset_z_mm == pytest.approx(before[0].world_offset_z_mm)
-    assert abs(after[1].world_offset_z_mm - before[1].world_offset_z_mm) == pytest.approx(4.0)
+    # This is a FOLDED PLATE world transform, not the NFB-facing skin.
+    # A 72→68 model change changes its formed source profile while the
+    # fixed ear contact Z stays at the same brand-max depth.
+    assert after[1].world_offset_z_mm != pytest.approx(before[1].world_offset_z_mm)
 
     original_ears = resolve_receiving_tier_ear_contact_targets(first)
     shifted_ears = resolve_receiving_tier_ear_contact_targets(altered)
@@ -227,10 +230,10 @@ def test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad(
                 previous.target_ear_contact_world_z_mm
             )
         else:
-            assert abs(
-                current.target_ear_contact_world_z_mm -
+            # Ear Z is brand-fixed, never per-tier/per-model:
+            assert current.target_ear_contact_world_z_mm == pytest.approx(
                 previous.target_ear_contact_world_z_mm
-            ) == pytest.approx(4.0)
+            )
 
     from ae_engine.assembly_placement import resolve_assembly_placement
     assert resolve_assembly_placement(
@@ -268,8 +271,8 @@ def test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad(
 def test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_pad(tmp_path):
     """CURRENT per-brand numeric CSV V5 path, not merely legacy .dxf names.
 
-    Only selected second-tier depth changes 72 -> 68; the Base and both EAR
-    contact skins follow in world Z, the inner door stays, no PAD is released.
+    Only selected second-tier depth changes 72 -> 68: source-based BASE profile
+    changes, but all four EAR contacts stay at common brand-max Z; no PAD release.
     """
     from copy import deepcopy
     from ae_engine.receiving_nfb_model_identity import selected_numeric_spec
@@ -317,9 +320,10 @@ def test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_
         )
         assert new.base_skin_z_source_verified
         assert not new.manufacturing_ready
-        delta = abs(new.target_ear_contact_world_z_mm -
-                    old.target_ear_contact_world_z_mm)
-        assert delta == pytest.approx(0.0 if idx == 0 else 4.0)
+        assert new.target_ear_contact_world_z_mm == pytest.approx(
+            old.target_ear_contact_world_z_mm
+        )
+        assert old.base_skin_z_source_verified and new.base_skin_z_source_verified
 
     assert resolve_assembly_placement(
         first, "inner_door:upper:panel"
@@ -345,7 +349,7 @@ def test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_
 
 
 def test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_release_pad(tmp_path):
-    """The original LOWER source cannot become a PAD; V5 depth moves real Base/EAR.
+    """The original LOWER source cannot become a PAD; fixing EAR Z stays brand-max.
 
     This is source-scoped actual parser + physical assembly + normal DXF
     reopening and negative manufacturer proof, NOT a factory PAD release.
@@ -404,7 +408,7 @@ def test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_re
     assert [x.source_depths_mm for x in current] == [(107.0,), (68.0,)]
     assert all(x.physical_skin_z_resolved for x in (*prior, *current))
     assert current[0].world_offset_z_mm == pytest.approx(prior[0].world_offset_z_mm)
-    assert abs(current[1].world_offset_z_mm - prior[1].world_offset_z_mm) == pytest.approx(4.0)
+    assert current[1].world_offset_z_mm != pytest.approx(prior[1].world_offset_z_mm)
     old_ears, new_ears = (resolve_receiving_tier_ear_contact_targets(s)
                           for s in (before, after))
     assert len(old_ears) == len(new_ears) == 4
@@ -414,10 +418,10 @@ def test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_re
         assert new.target_ear_contact_world_z_mm == pytest.approx(
             current[idx].base_back_skin_world_z_mm
         )
-        assert abs(new.target_ear_contact_world_z_mm -
-                   old.target_ear_contact_world_z_mm) == pytest.approx(
-            0.0 if idx == 0 else 4.0
+        assert new.target_ear_contact_world_z_mm == pytest.approx(
+            old.target_ear_contact_world_z_mm
         )
+        assert new.base_skin_z_source_verified and old.base_skin_z_source_verified
         assert not new.manufacturing_ready
     assert resolve_assembly_placement(
         before, "inner_door:upper:panel"
