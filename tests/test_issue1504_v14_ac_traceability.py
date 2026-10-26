@@ -2029,3 +2029,53 @@ def test_ac51_swt30_signed_only_after_true_native_assigned_export_and_nominal_ne
     assert d["counts"]["BLOCKED_1500_REAL_GUI"] == 17
     assert d["counts"]["EVIDENCE_CANDIDATE_ONLY"] == 0
     assert sum(d["counts"].values()) == 88
+
+
+def test_cancelled_second_legacy_project_is_not_a_1500_1504_signoff_gate():
+    """A missing Library 'B' is never a new condition for original §7 ACs.
+
+    This corrects a later test-plan requirement, not the immutable v1.4 ACs.
+    Passing this policy check does not sign any functional test by itself.
+    """
+    document = _data()
+    policy = document["current_gui_acceptance_policy_20261026"]
+    assert policy["schema"] == (
+        "WHD_1504_GUI_FUNCTIONAL_EVIDENCE_NO_SECOND_PROJECT_GATE_V1"
+    )
+    assert policy["authority"] == "USER_DIRECTIVE_2026-10-26"
+    assert policy["second_original_project_required"] is False
+    assert policy["library_b_raw_bytes_required"] is False
+    assert policy["legacy_project_count_is_acceptance_gate"] is False
+    assert policy["signoff_not_implied"] is True
+    assert policy["factory_release_not_implied"] is True
+    assert policy["original_v14_ac_text_sha_unchanged"] is True
+    assert policy["previous_71_signed_unchanged"] is True
+
+    # Functional requirements remain: cancellation, copy/Undo, original
+    # project persistence, actual views and scope-checked DXF re-opening.
+    assert set(policy["functional_chain"]) == {
+        "NFB_SELECT_CANCEL_CONFIRM",
+        "SUBMIT_OR_REJECT_WITH_SOURCE_GUARD",
+        "BAY_OR_VERSION_COPY_INDEPENDENT_AND_UNDO",
+        "RESTORE_UNCONFIGURED_WITH_LEGACY_PRESERVED",
+        "SAVE_RELOAD_ACTUAL_PROJECT",
+        "PHYSICAL_2D_3D_SIDE_MARKING",
+        "REAL_DXF_EXPORT_OR_FAIL_CLOSED_AND_REOPEN_CHECK_Q",
+    }
+    assert "Windows UAT" in policy["proof_rule"]
+    assert "second old-project B" in document["current_gates_explanation"]["1500"]
+    assert "no missing second original project" in (
+        document["current_gates_explanation"]["1504"]
+    )
+    blocked = [r for r in document["records"]
+               if r["status"] == "BLOCKED_1500_REAL_GUI"]
+    assert len(blocked) == document["counts"]["BLOCKED_1500_REAL_GUI"] == 17
+    assert all(
+        r["accepted"] is False
+        and r["current_gui_requirement_20261026"]
+        == "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
+        for r in blocked
+    )
+    # No synthetic fixture may be turned into unearned human Windows approval.
+    assert all(r["assertion_review_state"] ==
+               "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC" for r in blocked)
