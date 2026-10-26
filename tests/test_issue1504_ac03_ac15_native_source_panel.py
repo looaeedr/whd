@@ -625,3 +625,60 @@ def test_ac51_original_tk_v5_selector_shows_source_scope_without_fake_release(mo
         if modal.winfo_exists():
             modal.destroy()
         root.destroy()
+
+
+def test_ac51_swt30_original_tk_selector_shows_positive_only_for_real_verified_v5_scope(
+    monkeypatch, tmp_path,
+):
+    """Real original Tk panel distinguishes physical scoped manufacture from CSV preview.
+
+    The positive token is supplied by a genuine normal operator pair-DXF
+    export/reopen; model choice alone and wrong-brand/other-model remain
+    preview-only. No saved project or Hole Editor state is modified.
+    """
+    from tests.test_issue1502_current_csv_original_pair_dxf import _scene, _export
+    from tests.test_issue1502_csv_v5_part_only_manufacturing import _current
+
+    snap = _current()
+    dest = tmp_path / "v5_verified"
+    dest.mkdir()
+    receipt = _export(snap, _scene(snap), dest)
+    assert receipt.verified_v5_scope is not None
+    assert receipt.verified_v5_scope.operator_label.startswith("可製造（內門）")
+
+    root, app, modal = _open_original_editor(monkeypatch)
+    try:
+        panel = modal._receiving_inner_nfb_dxf_panel
+        before = deepcopy(app._phase6_input_snapshot)
+        first_model = "nfbv5:士林:2P400"
+        panel.show("士林", first_model, verified_scope=receipt.verified_v5_scope)
+        root.update()
+        assert "可製造（內門）" in panel.frame.cget("text")
+        assert "Set=S" in panel.reason.get()
+        assert "Bay=B" in panel.reason.get()
+        assert "W=800" in panel.reason.get()
+        assert "X=-150" in panel.reason.get()
+        assert panel.canvas.find_withtag("nfb-dxf")
+
+        # The same CSV model without the real scoped receipt is never GREEN.
+        panel.show("士林", first_model)
+        root.update()
+        assert "僅預覽" in panel.frame.cget("text")
+        assert "可製造（內門）" not in panel.reason.get()
+        panel.show(
+            "士林", "nfbv5:士林:2P125SN",
+            verified_scope=receipt.verified_v5_scope,
+        )
+        root.update()
+        assert "僅預覽" in panel.frame.cget("text")
+        assert "可製造（內門）" not in panel.reason.get()
+        panel.show("東元", first_model, verified_scope=receipt.verified_v5_scope)
+        root.update()
+        assert "禁止製造" in panel.reason.get()
+        assert "可製造（內門）" not in panel.reason.get()
+        assert app._phase6_input_snapshot == before
+        assert KEY not in app._phase6_input_snapshot
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
