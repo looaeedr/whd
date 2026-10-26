@@ -1780,3 +1780,72 @@ def test_ac23_native_reconfirmed_reloaded_manufacturing_scope_has_real_witnesses
         "assert revoked.authorized_part_ids ==",
     ):
         assert required in source, required
+
+
+def test_all_current_nfb_v5_source_supersessions_keep_88_originals_and_legacy_scope():
+    """#1504 current 2026-10-26: V5 model input is CSV, not mandatory old DXF.
+
+    Correct historic reading across signed AND pending ACs; never convert a
+    preview or a DXF-free input contract into unearned manufacturing GREEN.
+    Preserve original AC text, all 88 identities and human old-project gates.
+    """
+    obj = _data()
+    policy = obj["current_nfb_source_policy_20261026"]
+    assert policy["schema"] == "WHD_NFB_CURRENT_V5_LEGACY_SOURCE_SEPARATION_V1"
+    assert policy["date_taiwan"] == "2026-10-26"
+    assert policy["authority_issues"] == [1502, 1504]
+    assert policy["current_model_identity"] == "nfbv5:<brand>:<model>"
+    assert "NFB數值規格.csv" in policy["current_model_source"]
+    assert "legacy" in policy["legacy_dxf_scope"]
+    assert policy["acceptance_tally_unchanged"] is True
+    assert policy["legacy_backcompat_preserved"] is True
+    assert policy["original_88_requirements_unchanged"] is True
+    assert policy["windows_gui_gate_untouched"] is True
+    assert policy["formal_x_requires"] == "/推推"
+    assert len(policy["obsolete_global_prerequisites"]) >= 5
+    assert any("ARC/CIRCLE" in item for item in policy["obsolete_global_prerequisites"])
+    assert any("Color30/150/212" in item for item in policy["obsolete_global_prerequisites"])
+    assert any("DXF" in item for item in policy["manufacturing_requirements"])
+    assert any("fail closed" in item for item in policy["manufacturing_requirements"])
+    rows = {row["id"]: row for row in obj["records"]}
+    groups = policy["affected_ac_route_groups"]
+    assert set(groups) == {
+        "CURRENT_V5_SELECTION_PREVIEW",
+        "CURRENT_V5_MAIN_APERTURE_PIVOT",
+        "CURRENT_V5_POSITION_DATUM",
+        "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "LEGACY_PROJECT_GUI_ONLY_NOT_CURRENT_V5_SOURCE_REQUIREMENT",
+    }
+    all_ids = [id for ids in groups.values() for id in ids]
+    assert len(all_ids) == len(set(all_ids)) == 34
+    assert {"NFB-AC-11", "NFB-AC-51", "SWT-AC-27", "SWT-AC-30"} <= set(all_ids)
+    assert {
+        "NFB-AC-03", "NFB-AC-38", "NFB-AC-55", "SWT-AC-05",
+        "SWT-AC-21", "SWT-AC-32",
+    } <= set(all_ids)
+    assert set(all_ids) <= set(rows)
+    for route_class, ids in groups.items():
+        for ident in ids:
+            ac = rows[ident]
+            correction = ac["current_source_authority_20261026"]
+            assert correction["route_class"] == route_class
+            assert correction["legacy_dxf_requirement_for_current_v5"] is False
+            assert correction["physical_dxfs_must_be_verified_when_exporting"] is True
+            assert correction["original_requirement_text_preserved"] is True
+            assert correction["original_status_preserved"] is True
+            assert "NFBConfig" in correction["authority"]
+            assert "legacy" in correction["scope_note"].lower() or "Legacy" in correction["scope_note"]
+    # Current V5 input audit must not silently waive the remaining independent
+    # positioning, source-drift, old-project GUI and production gates.
+    for ident, expected in {
+        "NFB-AC-11": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+        "NFB-AC-51": "EVIDENCE_CANDIDATE_ONLY",
+        "SWT-AC-27": "EVIDENCE_CANDIDATE_ONLY",
+        "SWT-AC-30": "EVIDENCE_CANDIDATE_ONLY",
+    }.items():
+        assert rows[ident]["status"] == expected
+        assert rows[ident]["accepted"] is False
+    assert obj["counts"]["BLOCKED_1500_REAL_GUI"] == 17
+    assert obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] == 67
+    assert sum(obj["counts"].values()) == 88
+    assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
