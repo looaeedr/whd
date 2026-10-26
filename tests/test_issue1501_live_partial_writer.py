@@ -485,3 +485,142 @@ def test_all_held_quantity_selection_discloses_nfb_dxf_datum_and_writes_nothing(
     report = app._phase6_nfb_partial_export_report
     assert report["actual_export_count"] == 0 and report["held_actual_count"] == 10
     assert all(row["source_dependencies"] for row in report["rows"])
+
+
+def test_swt24_real_physical_partial_dxf_check_q_and_source_loss_atomicity(
+    tmp_path, monkeypatch,
+):
+    """Original physical inner DXF -> same scoped part manifest -> actual CHECK Q.
+
+    Only one independently source-verified inner panel is released; current
+    blocked middle remains a real counted HOLD and cannot enter CHECK or NC.
+    Real Tk SUBMIT/COPY/RESTORE/UNDO and unconfigured legacy compatibility
+    are separately mandatory in #1500/#1504 native-GUI tests. This source
+    fixture is not manufacturer certification or whole-cabinet release.
+    """
+    import re
+    from pathlib import Path
+    from ae_engine import manufacturing_api as api
+    from ae_engine.manufacturing_equivalence import ManufacturingParameters
+    from ae_engine.manufacturing_quantity import PhysicalPartDemand
+    from ae_engine.receiving_nfb_quantity_gate import (
+        gate_nfb_quantity_physical_demands,
+    )
+    from ae_engine import receiving_nfb_partial_export_writer as writer
+    from ae_engine.receiving_nfb_part_readiness import READY, BLOCKED
+
+    input_dir = tmp_path / "actual_source"
+    input_dir.mkdir()
+    opts = _case(input_dir)
+    captured = []
+    original_serializer = writer.save_part_render_data_dxf
+
+    def record_actual_production_render_data(render_data, output, *, overwrite=False):
+        # Observes the actual manufacturing serializer without replacing it.
+        emitted = original_serializer(render_data, output, overwrite=overwrite)
+        captured.append(render_data)
+        return emitted
+
+    monkeypatch.setattr(
+        writer, "save_part_render_data_dxf",
+        record_actual_production_render_data,
+    )
+    partial_path, manifest = writer.export_current_nfb_inner_door_partial_dxf(
+        **opts
+    )
+    assert Path(partial_path).is_file()
+    assert len(captured) == 1
+    assert manifest.nfb_config_submitted is True
+    assert manifest.partial_only is True
+    assert manifest.whole_ready is False
+    assert manifest.scope.identity == ("set-a", "bay-a", "v1")
+    rows = {row.part_id: row for row in manifest.rows}
+    inner_id = opts["physical_scope"].inner_door_part_id
+    assert set(rows) == {inner_id, "middle-a"}
+    assert rows[inner_id].status == READY
+    assert rows[inner_id].actual_count == 2
+    assert rows[inner_id].may_export is True
+    assert rows["middle-a"].status == BLOCKED
+    assert rows["middle-a"].actual_count == 1
+    assert rows["middle-a"].may_export is False
+    assert rows["middle-a"].reasons
+    assert manifest.actual_export_count == 2
+    assert manifest.held_actual_count == 1
+    assert manifest.require_export((inner_id,), partial=True) == (inner_id,)
+    with pytest.raises(ValueError, match="BLOCKED"):
+        manifest.require_export(("middle-a",), partial=True)
+    with pytest.raises(ValueError, match="partial only"):
+        manifest.require_export((inner_id, "middle-a"), partial=False)
+
+    # Reopen true manufactured file: its panel CUTTING and physical NFB
+    # opening are present, never just a preview/cached readiness counter.
+    original_file = ezdxf.readfile(partial_path)
+    cutting = tuple(
+        entity for entity in original_file.modelspace()
+        if entity.dxftype() == "LWPOLYLINE"
+        and entity.dxf.layer == "CUTTING" and entity.closed
+    )
+    assert len(cutting) == 2
+    assert any(entity.dxf.color == 3 for entity in cutting)
+
+    # Use exactly the ready physical render from the production DXF call.
+    # The still-held middle is inventoried as one physical sheet but its
+    # fixture render cannot authorize an output or a CHECK/Q member.
+    physical = (
+        PhysicalPartDemand(
+            "v1", inner_id, inner_id, 1, 2, captured[0],
+        ),
+        PhysicalPartDemand(
+            "v1", "middle-a", "middle-a", 1, 1, captured[0],
+        ),
+    )
+    with pytest.raises(ValueError, match="partial only"):
+        gate_nfb_quantity_physical_demands(
+            physical, manifests=(manifest,), partial=False,
+        )
+    checked = gate_nfb_quantity_physical_demands(
+        physical, manifests=(manifest,), partial=True,
+    )
+    assert checked.partial_only is True
+    assert checked.permitted_total_pieces == 2
+    assert checked.held_total_pieces == 1
+    assert [d.physical_id for d in checked.permitted] == [inner_id]
+    assert [d.physical_id for d in checked.held] == ["middle-a"]
+    parameters = {
+        (d.version_id, d.source_part_id):
+        ManufacturingParameters("STEEL", 2, {"cut": "laser"})
+        for d in physical
+    }
+    groups = checked.group_checked(parameters)
+    assert len(groups) == 1
+    assert groups[0].quantity == 2
+    assert all(p.physical_id == inner_id for p in groups[0].members)
+    output = tmp_path / "actual_CHECK"
+    output.mkdir()
+    written = api.save_quantity_manufacturing_groups_dxf(
+        groups, output, overwrite=False,
+    )
+    assert len(written) == 1
+    product = ezdxf.readfile(next(iter(written.values())))
+    check = [
+        e for e in product.modelspace().query("MTEXT")
+        if re.fullmatch(r"Q[0-9]+", e.plain_text())
+    ]
+    assert len(check) == 1 and check[0].plain_text() == "Q2"
+    assert check[0].dxf.layer == "CHECK"
+    assert check[0].dxf.color == 2
+    assert not any(
+        "middle-a" in str(path) for path in output.iterdir()
+    )
+
+    # No previously-approved manifest is a permanent permit.  Changing
+    # the actual source bytes must fail before a second partial DXF is made.
+    original_source = opts["source_path"]
+    original_source.write_bytes(original_source.read_bytes() + b"\nSOURCE_REPLACED")
+    stale = tmp_path / "unverified_after_source_change.dxf"
+    with pytest.raises((ValueError, OSError, TypeError)):
+        writer.export_current_nfb_inner_door_partial_dxf(
+            **{**opts, "output_path": stale}
+        )
+    assert not stale.exists()
+    assert Path(partial_path).is_file()
