@@ -50,16 +50,11 @@ class Phase6AssemblyPanel:
             command=self.actions.on_multi_settings,
         )
         self.multi_settings_button.pack(side=tk.LEFT)
-        # EAR is a display-only child of Base Plate, not an ordinary PartSpec.
-        # Keep its 3D visibility independent from the base and side MARKING.
+        # EAR is a display-only child of Base Plate in the visual hierarchy,
+        # but NOT a child of Base Plate's visibility switch or PartSpec.
         self.fixing_plate_visible_var = tk.BooleanVar(master=self.host, value=True)
-        self.fixing_plate_visibility_entry = ttk.Frame(self.host)
-        ttk.Checkbutton(
-            self.fixing_plate_visibility_entry,
-            text="顯示底板固定片（3D）",
-            variable=self.fixing_plate_visible_var,
-            command=self.actions.on_visibility_changed,
-        ).pack(anchor=tk.W, padx=(6, 0))
+        self.fixing_plate_visibility_entry: ttk.Frame | None = None
+        self._fixing_plate_option_allowed = False
         scroll_host = ttk.Frame(self.host)
         scroll_host.pack(fill=tk.BOTH, expand=True)
 
@@ -127,17 +122,36 @@ class Phase6AssemblyPanel:
         self.bind_scroll(self.content)
 
     def set_multi_settings_visible(self, visible: bool) -> None:
-        """One Assembly-only entry; do not mount it inside BoxBody."""
+        """Receiving-only controls; EAR remains inside Base Plate details."""
+        self._fixing_plate_option_allowed = bool(visible)
         if visible and self.actions.on_multi_settings is not None:
             if not self.multi_settings_entry.winfo_manager():
                 self.multi_settings_entry.pack(fill=tk.X, before=self.canvas.master, pady=(0, 6))
-            if not self.fixing_plate_visibility_entry.winfo_manager():
-                self.fixing_plate_visibility_entry.pack(
-                    fill=tk.X, before=self.canvas.master, pady=(0, 4)
-                )
         else:
             self.multi_settings_entry.pack_forget()
-            self.fixing_plate_visibility_entry.pack_forget()
+        self._sync_fixing_plate_visibility_entry()
+
+    def _sync_fixing_plate_visibility_entry(self) -> None:
+        entry = self.fixing_plate_visibility_entry
+        if entry is None:
+            return
+        if self._fixing_plate_option_allowed:
+            if not entry.winfo_manager():
+                entry.pack(fill=tk.X, padx=(20, 0), pady=(4, 0))
+        else:
+            entry.pack_forget()
+
+    def _mount_fixing_plate_visibility_entry(self, details) -> None:
+        """Place the independent EAR check inside an expanded Base Plate row."""
+        entry = ttk.Frame(details)
+        ttk.Checkbutton(
+            entry,
+            text="顯示底板固定片（3D）",
+            variable=self.fixing_plate_visible_var,
+            command=self.actions.on_visibility_changed,
+        ).pack(anchor=tk.W)
+        self.fixing_plate_visibility_entry = entry
+        self._sync_fixing_plate_visibility_entry()
 
     def is_fixing_plate_visible(self) -> bool:
         """3D-only UI preference; never included in the saved manufacturing model."""
@@ -268,6 +282,7 @@ class Phase6AssemblyPanel:
             registry.clear()
         self._clear_box_piece_registries()
         self.box_body_piece_host = None
+        self.fixing_plate_visibility_entry = None
 
     def _build_part_row(
         self,
@@ -359,6 +374,9 @@ class Phase6AssemblyPanel:
             self.box_body_piece_host = ttk.Frame(details)
             self.box_body_piece_host.pack(fill=tk.X)
 
+        if key == "base_plate":
+            self._mount_fixing_plate_visibility_entry(details)
+
         if details_open:
             details.pack(fill=tk.X)
 
@@ -445,6 +463,8 @@ class Phase6AssemblyPanel:
                 old_blank=old_blank,
                 old_open=old_open,
             )
+        if key == "base_plate":
+            self._mount_fixing_plate_visibility_entry(details)
         self.bind_scroll(group)
 
     def install_legacy_aliases(self, host) -> None:
