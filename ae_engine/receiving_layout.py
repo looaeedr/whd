@@ -583,9 +583,11 @@ def _validate_common_receiving_state(snapshot: Mapping[str, object]) -> None:
     )
     derive_box_body_dividers(
         columns,
-        depth=float(data["d"]),
-        thickness=float(data.get("t", 2.0)),
-        frame_width=float(data.get("fw", 29.0)),
+        # Preserve source T/FW identity for the existing Divider finite
+        # geometry gate; float(True) would create a fake 1-mm fold.
+        depth=data["d"],
+        thickness=data.get("t", 2.0),
+        frame_width=data.get("fw", 29.0),
         layout_scope=str(data.get("door_layout_scope") or "receiving-main"),
         handle_edges=dict(data.get("door_handle_edges") or {}),
         model_name="受電箱",
