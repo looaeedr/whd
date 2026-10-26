@@ -1692,6 +1692,39 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         self.app._receiving_nfb_ui_session_evidence = evidence
     pending_verified_nfb = evidence["pending"]
     committed_nfb_evidence = evidence["committed"]  # NEVER serialized
+    # Ephemeral ONLY: successful real pair-export receipt. Never serialize a
+    # manufacturing green flag or make source previews eligible by model name.
+    csv_pair_evidence = evidence.setdefault("csv_pair_export", {})
+
+    def csv_pair_proof_stamps(paired):
+        """Byte-exact source and output proof; checked only on user model preview."""
+        from hashlib import sha256
+        from pathlib import Path
+        from ae_engine.receiving_nfb_model_identity import parse_numeric_model_ref
+        from ae_engine.receiving_nfb_numeric_catalog import brand_csv_path
+        scope = getattr(paired, "verified_v5_scope", None)
+        if scope is None:
+            return None
+        brands = set()
+        for site in scope.sites:
+            parsed = parse_numeric_model_ref(site.model_ref)
+            if parsed is None:
+                return None
+            brands.add(parsed[0])
+        paths = [paired.inner_door_path]
+        paths.extend(
+            getattr(paired, "base_plate_paths", ())
+            or (getattr(paired, "base_plate_path", ""),)
+        )
+        return (
+            tuple(sorted(
+                (brand, sha256(brand_csv_path(brand).read_bytes()).hexdigest())
+                for brand in brands
+            )),
+            tuple((str(path), sha256(Path(path).read_bytes()).hexdigest())
+                  for path in paths),
+        )
+
 
     def nfb_physical_bay_snapshot(set_index,bay_index):
         """Real selected Bay authority, not the unprojected root UI snapshot."""
@@ -2548,11 +2581,59 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             refresh_source(force=True)
             show_x_clear_impact(before_x_change, index)
 
+        def verified_current_source_scope_for_model(index, model):
+            """A source list is GREEN only if this exact current Bay was
+            physically exported and is unchanged since that successful output.
+            No raw CSV completeness/manual flag is an approval.
+            """
+            if version_id is not None or draft_state["draft"] != initial_nfb_draft:
+                return None
+            try:
+                adapter = candidate_adapter()
+                si, bi = adapter.selection.set_index, adapter.selection.bay_index
+                stored = csv_pair_evidence.get((si, bi))
+                if stored is None:
+                    return None
+                paired, bound_version, stamps = stored
+                scope = paired.verified_v5_scope
+                if scope is None or stamps is None:
+                    return None
+                owner = adapter.layout["sets"][si]
+                if setting_value(owner, bi, "inner_door_version_id") != bound_version:
+                    return None
+                snapshot = nfb_physical_bay_snapshot(si, bi)
+                from ae_engine.receiving_nfb_committed_final_scene import (
+                    _submitted_csv_holes,
+                )
+                from .receiving_nfb_pair_partial_export_action import (
+                    _verified_csv_v5_export_scope,
+                )
+                source = _submitted_csv_holes(snapshot)
+                if not source or _verified_csv_v5_export_scope(
+                    snapshot, source[0], source[1],
+                ) != scope:
+                    return None
+                if csv_pair_proof_stamps(paired) != stamps:
+                    return None
+                if not any(site.model_ref == model and site.tier_index == index
+                           for site in scope.sites):
+                    return None
+                return scope
+            except (ValueError, KeyError, IndexError, TypeError,
+                    OSError, AttributeError):
+                # A missing/stale current Bay/source never inherits the
+                # last successful receipt or guesses manufacturer readiness.
+                return None
+
         def preview_available(index):
             selected = layer_rows[index]["available"].curselection()
             files = source_state["files"][index]
             if selected and selected[0] < len(files):
-                nfb_preview_panel["panel"].show(view_source_catalog(index),files[selected[0]])
+                model = files[selected[0]]
+                nfb_preview_panel["panel"].show(
+                    view_source_catalog(index), model,
+                    verified_scope=verified_current_source_scope_for_model(index, model),
+                )
                 nfb_source_viewed["value"] = True
 
         def preview_assigned(index):
@@ -2560,7 +2641,12 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if selected:
                 slot = draft_state["draft"]["layers"][index]["slots"][selected[0]]
                 brand = effective_nfb_slot_brand(draft_state["draft"],index,selected[0])
-                nfb_preview_panel["panel"].show(brand,slot["filename"])
+                nfb_preview_panel["panel"].show(
+                    brand, slot["filename"],
+                    verified_scope=verified_current_source_scope_for_model(
+                        index, slot["filename"],
+                    ),
+                )
                 nfb_source_viewed["value"] = True
 
         def reposition_nfb_slot(index,direction):
@@ -3552,11 +3638,29 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     namespace, set_index, bay_index,
                     preview_layout=candidate_adapter().layout,
                 )
-                return export_current_csv_nfb_door_base_pair(
+                paired = export_current_csv_nfb_door_base_pair(
                     current, base_spec=spec,
                     assembly_parts=request.render_data.assembly_parts,
                     output_directory=output_directory,
                 )
+                # Only the actual successful atomic/reopened DXF result may
+                # populate this in-memory source-scoped display evidence.
+                try:
+                    stamps = csv_pair_proof_stamps(paired)
+                    owner = candidate_adapter().layout["sets"][set_index]
+                    current_version = setting_value(
+                        owner, bay_index, "inner_door_version_id",
+                    )
+                except (ValueError, KeyError, IndexError, TypeError, OSError):
+                    csv_pair_evidence.pop((set_index, bay_index), None)
+                else:
+                    if stamps is not None:
+                        csv_pair_evidence[(set_index, bay_index)] = (
+                            paired, current_version, stamps,
+                        )
+                    else:
+                        csv_pair_evidence.pop((set_index, bay_index), None)
+                return paired
             bundle = committed_nfb_evidence.get((set_index, bay_index))
             if bundle is None:
                 raise ValueError("NFB 成對出圖缺少現行 CSV 或舊版已驗證來源")
