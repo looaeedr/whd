@@ -57,8 +57,8 @@ class NfbDxfSourcePreviewPanel:
     def _size(self):
         return max(2,self.canvas.winfo_width()),max(2,self.canvas.winfo_height())
 
-    def show(self,brand,filename):
-        """Only read this one indexed model, never trigger app geometry recompute."""
+    def show(self,brand,filename,*,verified_scope=None):
+        """Source-only unless current Bay matches a real verified DXF receipt."""
         if filename is None:
             self._numeric_mode=False
             self.frame.configure(text="NFB 型號來源｜僅預覽")
@@ -110,9 +110,25 @@ class NfbDxfSourcePreviewPanel:
             self._source_key=key
             self.identity.set(f"{brand}｜{spec.model}｜開孔 {spec.opening_mm or '未知'}")
             missing="、".join(spec.missing_fields)
-            self.reason.set("V5 數值孔位（未經實體／製造驗證）"
-                            + (f"｜缺：{missing}｜禁止製造"
-                               if missing else "｜CSV 數值完整；此處僅預覽，正式出圖需提交目前 Set/Bay 並核對實體內門／底板"))
+            # An original brand/model selection is never enough for GREEN.
+            # The only positive status comes from a same-session, exact
+            # Set/Bay source+physical-part output receipt, freshly rechecked
+            # by the original owner before entering this panel.
+            from .receiving_nfb_pair_partial_export_action import (
+                NfbCsvVerifiedExportScope,
+            )
+            real_scope = (
+                isinstance(verified_scope, NfbCsvVerifiedExportScope)
+                and spec.dimensionally_complete
+                and any(site.model_ref == filename for site in verified_scope.sites)
+            )
+            if real_scope:
+                self.frame.configure(text="NFB 數值規格 CSV｜可製造（內門）")
+                self.reason.set(verified_scope.operator_label)
+            else:
+                self.reason.set("V5 數值孔位（未經實體／製造驗證）"
+                                + (f"｜缺：{missing}｜禁止製造"
+                                   if missing else "｜CSV 數值完整；此處僅預覽，正式出圖需提交目前 Set/Bay 並核對實體內門／底板"))
             self.paint()
             return
         self._numeric_mode=False
