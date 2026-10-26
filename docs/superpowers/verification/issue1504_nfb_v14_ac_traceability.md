@@ -5,6 +5,27 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## 2026-10-26（台灣）｜當期 NFB CSV V5 與舊 DXF 來源驗收全項校正（34 AC，不改原文／不加簽）
+
+**統一來源權威：**現在新選型使用各廠牌 `基準檔/開孔/NFB/數值規格/<廠牌>/NFB數值規格.csv`，每顆儲存 `nfbv5:<廠牌>:<型號>` 與已提交 `NFBConfig` 的 Set／Bay／版本／孔身分、X／Y、層、旋轉。這是模型**輸入來源**。舊原始型號 `.dxf` 的 ARC/CIRCLE/Color30/150/212、handle、原圖原點或 pivot **不是**現行數值 CSV 模型的必備附件或另一套定位權威。儲存為舊 `.dxf` 型號的舊案，仍走既有來源驗證／相容分支，不刪舊流程。
+
+**輸出繼續驗證：**通過製造條件才可由同一組真實 `FinalScene` 生成內門、底板、EAR／SIDE 等適用板件 `CUTTING／BEND／MARKING` DXF，逐件查定位、材料界線、孔型旋轉、碰撞、來源漂移、正確 Set/Bay/版本與 CHECK/Q；實際 DXF 必須重開核對。CSV 型號能顯示／預覽 **不等於**任意型號、箱寬、整排 X 都已可製造，更不等於 PAD／焊接整箱 NC 放行。
+
+**統一更新對照（原 §7 的 88 句、原簽核結果、原舊案 GUI 欄位全部不改）：**
+
+- NFB-AC-11／51、SWT-AC-08／29：新 V5 主孔取 CSV「開孔尺寸」、已提交內門工作 datum 與旋轉；只對真的舊 DXF 檔取 ARC/CIRCLE／pivot／顏色，不得把缺舊圖元當 V5 RED。AC-11／51 的完整來源／原 operator 製造證據尚需逐件簽核。
+- SWT-AC-27／30，NFB-AC-04／10／25／48／49：世界 X/Y 由 NFBConfig 與實體內門基準推導；相鄰名義孔距、W800×3 案例及舊圖原點不能批准未驗證的其他 W×N×Y／型號。**這些組合仍預覽限定，並非刪除安全閘門**。
+- NFB-AC-03／05／17，SWT-AC-05／13：新選型與預覽用 V5 數值 CSV；舊檔選型與 preview 只屬舊案相容，不能強制新模型取得舊 DXF。
+- NFB-AC-09／14／24／29／38／39／44／55，SWT-AC-09／11／21／32：實際逐板件依當期 CSV、真實內門、各層真 BasePlate／EAR 及實際製造輸出驗證，不以舊 NFB 型號的 Color30/150 自動生成虛構受電箱中板。保留其歷史真 DXF 來源盤點作 legacy 路徑診斷。
+- NFB-AC-16／42／46、SWT-AC-24／26：17 項 #1500 **真正兩份舊專案 GUI** 驗收仍待完成；但新 V5 提交不應因缺少每型號舊原始 DXF 就被阻擋。Save→Reload／Undo／取消、其他型號仍按各自真實資料與已提交來源驗收。
+
+**驗收狀態：**此修正是「來源與條件對齊」，**不是**另外新增 34 項簽核。GitHub `localX` 基準為 67／88，待簽 21 項（17 GUI、NFB-AC-11／51、SWT-AC-27／30）。若某一項缺真實主孔、已提交位置、原生 DXF 製造證據仍保持未簽；不可反向要求已由 CSV 取代的舊 NFB 型號原始 DXF。
+
+**機器契約：**`issue1504_nfb_v14_ac_traceability.json.current_nfb_source_policy_20261026` 與各 34 筆 `current_source_authority_20261026`，依實體 current/legacy 路徑辨識，不更動 §7 原文雜湊。獨立必跑產品測試驗證「舊 NFB DXF parser 不能被當成 V5 必要輸入，但真實生成 DXF 必須重開」及「V5 型號不在 CSV 時不能 fallback legacy」。
+
+---
+
+
 ## 2026-10-24（台灣）｜#1504 隔離 Draft #2098｜SWT-AC-05 CSV V5 原生 Tk 來源範圍簽核候選（42→43，不合 localX）
 
 - **先前真 GUI 基礎證據**：SHA `9c5541d98d03fa9061ce557dcdd1a9b2acb86bd4` [Product CI #40040819937](https://github.com/looaeedr/whd/actions/runs/40040819937) Preflight、Shard0/1/2、Canonical 全 SUCCESS（2067 passed / 0 failed），[Tk Performance #40040819908](https://github.com/looaeedr/whd/actions/runs/40040819908) SUCCESS。SWT-05 獨立候選視窗「預覽後取消不寫入」「確定只存候選」兩個原生 Tk 測試 PASSED。

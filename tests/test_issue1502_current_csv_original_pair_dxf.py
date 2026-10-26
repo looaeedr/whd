@@ -355,3 +355,81 @@ def test_swt29_current_csv_four_rotations_keep_one_main_cut_and_original_pair(
     assert len(saved_screws) == len(actual_screws) == 4
     assert saved_screws == actual_screws
     assert snap == source
+
+
+def test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input(
+    tmp_path, monkeypatch,
+):
+    """Current brand-numeric CSV model -> submitted FinalScene -> 2 DXF reopen.
+
+    Neither legacy color/pivot parsing nor an original NFB manufacturer model
+    .dxf is a prerequisite for current V5. The *generated* manufacturing
+    DXFs still require real CUTTING geometry, a verified pair and reopening.
+    This is not authorization for unverified W/N/X or whole-cabinet output.
+    """
+    from ae_engine.receiving_nfb_model_identity import (
+        parse_numeric_model_ref, selected_numeric_spec,
+    )
+    from ae_engine import receiving_nfb_dxf_source as legacy_dxf
+    from ae_engine import receiving_nfb_manufacturing_release as legacy_release
+
+    def forbidden_legacy(*_args, **_kwargs):
+        pytest.fail("CURRENT numeric V5 illegally requires original model DXF")
+
+    monkeypatch.setattr(
+        legacy_dxf, "inspect_nfb_dxf_source", forbidden_legacy,
+    )
+    monkeypatch.setattr(
+        legacy_release, "inspect_nfb_dxf_source", forbidden_legacy,
+    )
+
+    saved = _current()
+    assert saved["nfb_config_submitted"] is True
+    originals = saved["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]
+    refs = tuple(x["model_filename"] for x in saved["nfb_config"]["holes"])
+    assert refs == ("nfbv5:士林:2P400", "nfbv5:士林:3P125SN")
+    assert tuple(x["model_filename"] for x in originals["holes"]) == refs
+    for ref in refs:
+        assert parse_numeric_model_ref(ref) is not None
+        spec = selected_numeric_spec("士林", ref)
+        assert spec is not None and spec.dimensionally_complete
+        assert spec.opening_mm is not None and spec.screw_pitch_mm is not None
+
+    destination = tmp_path / "current_v5"
+    destination.mkdir()
+    actual = _export(saved, _scene(saved), destination)
+    paths = (Path(actual.inner_door_path), Path(actual.base_plate_path))
+    assert all(path.is_file() for path in paths)
+    assert len(list((tmp_path / "current_v5").glob("*.dxf"))) == 2
+    door = ezdxf.readfile(paths[0]).modelspace()
+    base = ezdxf.readfile(paths[1]).modelspace()
+    assert sum(
+        entity.dxftype() == "LWPOLYLINE"
+        and entity.closed and entity.dxf.layer == "CUTTING"
+        for entity in door
+    ) >= len(refs)
+    assert sum(
+        entity.dxftype() == "CIRCLE" and entity.dxf.layer == "CUTTING"
+        for entity in base
+    ) == 4 * len(refs)
+    assert actual.source_hole_ids == ("nfb:0", "nfb:1")
+    assert len(actual.check_q_key) == 64
+
+
+def test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback(
+    tmp_path, monkeypatch,
+):
+    """Unknown V5 source cannot be rescued by same-named historic model DXF."""
+    from ae_engine import receiving_nfb_dxf_source as legacy_dxf
+    monkeypatch.setattr(
+        legacy_dxf, "inspect_nfb_dxf_source",
+        lambda *_a, **_kw: pytest.fail("legacy fallback is forbidden for V5"),
+    )
+    saved = _current()
+    missing = "nfbv5:士林:THIS_MODEL_IS_NOT_IN_CURRENT_CSV"
+    saved["nfb_config"]["holes"][1]["model_filename"] = missing
+    bay = saved["receiving_layout"]["sets"][0]["bays"][0]
+    bay["nfb_config"] = deepcopy(saved["nfb_config"])
+    with pytest.raises((ValueError, KeyError)):
+        _scene(saved)
+    assert not list(tmp_path.rglob("*.dxf"))

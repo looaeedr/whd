@@ -163,6 +163,15 @@
         "other_ac_signoff_implied": false,
         "exact_head_full_ci_required": true,
         "integrated_localx_claimed": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_SELECTION_PREVIEW",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current brand/model list, preview and changes come from per-brand numeric NFB CSV V5 and exact NFBConfig, not mandatory old manufacturer DXF. Legacy projects use original indexed DXF source if stored. Preview/selection does not authorize manufacturing, and generated DXF must still be verified before release."
       }
     },
     {
@@ -208,6 +217,15 @@
         "human_windows_uat_claimed": false,
         "ui_full_operator_uat_claimed": false,
         "other_ac_signoff_implied": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_POSITION_DATUM",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Only submitted Set/Bay/version/inner-door datum plus verified world X/Y, layer, slot, model and rotation may release this specific W×N×Y; nominal spacing is not an approval. No DXF-source origin/pivot mandate for current V5; do not invent X/W2, auto-inherit other widths, or approve arbitrary rows."
       }
     },
     {
@@ -262,7 +280,16 @@
         "ui_full_operator_uat_claimed": false,
         "other_ac_signoff_implied": false
       },
-      "historical_scope_remaining_evidence_before_20261023": "NFB-AC-05 UI rotation inheritance/no-mirror is tested with current CSV V5, but its MFG-1 phase still needs a direct current-CSV source-owned physical CUTTING rotation/pivot DXF witness (0/90/180/270). Legacy synthetic-DXF physical rotation tests are not V5 certification."
+      "historical_scope_remaining_evidence_before_20261023": "NFB-AC-05 UI rotation inheritance/no-mirror is tested with current CSV V5, but its MFG-1 phase still needs a direct current-CSV source-owned physical CUTTING rotation/pivot DXF witness (0/90/180/270). Legacy synthetic-DXF physical rotation tests are not V5 certification.",
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_SELECTION_PREVIEW",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current brand/model list, preview and changes come from per-brand numeric NFB CSV V5 and exact NFBConfig, not mandatory old manufacturer DXF. Legacy projects use original indexed DXF source if stored. Preview/selection does not authorize manufacturing, and generated DXF must still be verified before release."
+      }
     },
     {
       "id": "NFB-AC-06",
@@ -428,6 +455,15 @@
         "real_two_old_project_windows_gui_uat": false,
         "exact_head_ci_and_localx_readback_required": true,
         "github_localx_merge_deferred_by_explicit_user_instruction": true
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current V5 reads numeric CSV identity/dimensions, committed NFBConfig and actual source-backed physical panels/parts, NOT model-file Color30/150/212. Legacy file color/upper-lower groups are checked only on legacy route. Verify generated CUTTING/BEND/MARKING DXF/roundtrip, part scope, Q and fail-closed missing/drift; do not create fictitious Receiving middle plate or grant full cabinet production."
       }
     },
     {
@@ -475,6 +511,15 @@
         "human_windows_uat_claimed": false,
         "other_ac_signoff_implied": false,
         "ui_full_operator_uat_claimed": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_POSITION_DATUM",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Only submitted Set/Bay/version/inner-door datum plus verified world X/Y, layer, slot, model and rotation may release this specific W×N×Y; nominal spacing is not an approval. No DXF-source origin/pivot mandate for current V5; do not invent X/W2, auto-inherit other widths, or approve arbitrary rows."
       }
     },
     {
@@ -495,7 +540,9 @@
         "tests/test_issue1502_existing_base_nfb_assembly.py",
         "tests/test_issue1502_lower_four_nfb_mount_source.py",
         "tests/test_issue1502_nfb_base_batch_export_gate.py",
-        "tests/test_issue1502_nfb_base_source_projection.py"
+        "tests/test_issue1502_nfb_base_source_projection.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py",
+        "tests/test_issue1502_csv_is_only_normal_finalscene_source.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
@@ -503,8 +550,8 @@
       "accepted": false,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1496_nfb_dxf_source.py",
-          "test_name": "test_color_sources_preserve_entity_layer_and_block_inheritance",
+          "path": "tests/test_issue1502_current_csv_original_pair_dxf.py",
+          "test_name": "test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
           "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
           "accepted": false
         }
@@ -516,6 +563,25 @@
         "supersedes_original_interpretation_only": true,
         "reason": "CURRENT 2026-10-21: legacy DXF ARC/CIRCLE/Color are still traced when referenced, but current model aperture and screw offsets come from brand numeric CSV; source identity is stored per switch, not deduced from old original drawing layers.",
         "authority_issue": 1502
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_MAIN_APERTURE_PIVOT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current numeric CSV opening rectangle and its saved world datum/rotation determine main CUTTING; legacy ARC/CIRCLE/color/handle/source-pivot only if the stored project ACTUALLY references legacy DXF. Numeric V5 cannot be blocked for not having a separate original model DXF. A manufacturer's rectangular CSV cannot be silently replaced with an invented ARC. Reopen final generated DXF and verify real physical geometry before manufacturing.",
+        "current_v5_positive_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
+        "current_v5_fail_closed_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback",
+        "current_v5_witness_is_not_full_ac_signoff": true,
+        "current_csv_candidate_scope": "SOURCE_TEST_WITNESS_EXISTS_NOT_FULL_AC"
+      },
+      "historical_legacy_witness_before_20261026": {
+        "path": "tests/test_issue1496_nfb_dxf_source.py",
+        "test_name": "test_color_sources_preserve_entity_layer_and_block_inheritance",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
       }
     },
     {
@@ -798,6 +864,15 @@
         "integrated_localx_claimed": false,
         "formal_x_published": false,
         "other_ac_signoff_implied": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current V5 reads numeric CSV identity/dimensions, committed NFBConfig and actual source-backed physical panels/parts, NOT model-file Color30/150/212. Legacy file color/upper-lower groups are checked only on legacy route. Verify generated CUTTING/BEND/MARKING DXF/roundtrip, part scope, Q and fail-closed missing/drift; do not create fictitious Receiving middle plate or grant full cabinet production."
       }
     },
     {
@@ -887,7 +962,16 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_source_authority_20261026": {
+        "route_class": "LEGACY_PROJECT_GUI_ONLY_NOT_CURRENT_V5_SOURCE_REQUIREMENT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
+      }
     },
     {
       "id": "NFB-AC-17",
@@ -924,6 +1008,15 @@
         "human_windows_uat_claimed": false,
         "other_ac_signoff_implied": false,
         "ui_full_operator_uat_claimed": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_SELECTION_PREVIEW",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current brand/model list, preview and changes come from per-brand numeric NFB CSV V5 and exact NFBConfig, not mandatory old manufacturer DXF. Legacy projects use original indexed DXF source if stored. Preview/selection does not authorize manufacturing, and generated DXF must still be verified before release."
       }
     },
     {
@@ -1342,6 +1435,15 @@
         "real_two_old_project_windows_gui_uat": false,
         "github_localx_merge_deferred_by_explicit_user_instruction": true,
         "exact_head_ci_required": true
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current V5 reads numeric CSV identity/dimensions, committed NFBConfig and actual source-backed physical panels/parts, NOT model-file Color30/150/212. Legacy file color/upper-lower groups are checked only on legacy route. Verify generated CUTTING/BEND/MARKING DXF/roundtrip, part scope, Q and fail-closed missing/drift; do not create fictitious Receiving middle plate or grant full cabinet production."
       }
     },
     {
@@ -1381,6 +1483,15 @@
         "human_windows_uat_claimed": false,
         "other_ac_signoff_implied": false,
         "ui_full_operator_uat_claimed": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_POSITION_DATUM",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Only submitted Set/Bay/version/inner-door datum plus verified world X/Y, layer, slot, model and rotation may release this specific W×N×Y; nominal spacing is not an approval. No DXF-source origin/pivot mandate for current V5; do not invent X/W2, auto-inherit other widths, or approve arbitrary rows."
       }
     },
     {
@@ -1642,6 +1753,15 @@
         "ui_full_operator_uat_claimed": false,
         "other_ac_signoff_implied": false,
         "exact_head_ci_and_localx_readback_required": true
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current V5 reads numeric CSV identity/dimensions, committed NFBConfig and actual source-backed physical panels/parts, NOT model-file Color30/150/212. Legacy file color/upper-lower groups are checked only on legacy route. Verify generated CUTTING/BEND/MARKING DXF/roundtrip, part scope, Q and fail-closed missing/drift; do not create fictitious Receiving middle plate or grant full cabinet production."
       }
     },
     {
@@ -2099,6 +2219,15 @@
         "other_ac_signoff_implied": false,
         "physical_absolute_position_grant": false,
         "exact_head_ci_and_localx_readback_required": true
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current V5 reads numeric CSV identity/dimensions, committed NFBConfig and actual source-backed physical panels/parts, NOT model-file Color30/150/212. Legacy file color/upper-lower groups are checked only on legacy route. Verify generated CUTTING/BEND/MARKING DXF/roundtrip, part scope, Q and fail-closed missing/drift; do not create fictitious Receiving middle plate or grant full cabinet production."
       }
     },
     {
@@ -2174,6 +2303,15 @@
         "human_windows_uat_claimed": false,
         "real_two_old_project_windows_gui_uat": false,
         "other_ac_signoff_implied": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current V5 reads numeric CSV identity/dimensions, committed NFBConfig and actual source-backed physical panels/parts, NOT model-file Color30/150/212. Legacy file color/upper-lower groups are checked only on legacy route. Verify generated CUTTING/BEND/MARKING DXF/roundtrip, part scope, Q and fail-closed missing/drift; do not create fictitious Receiving middle plate or grant full cabinet production."
       }
     },
     {
@@ -2328,7 +2466,16 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_source_authority_20261026": {
+        "route_class": "LEGACY_PROJECT_GUI_ONLY_NOT_CURRENT_V5_SOURCE_REQUIREMENT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
+      }
     },
     {
       "id": "NFB-AC-43",
@@ -2464,6 +2611,15 @@
         "other_ac_signoff_implied": false,
         "physical_absolute_position_grant": false,
         "exact_head_ci_and_localx_readback_required": true
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current V5 reads numeric CSV identity/dimensions, committed NFBConfig and actual source-backed physical panels/parts, NOT model-file Color30/150/212. Legacy file color/upper-lower groups are checked only on legacy route. Verify generated CUTTING/BEND/MARKING DXF/roundtrip, part scope, Q and fail-closed missing/drift; do not create fictitious Receiving middle plate or grant full cabinet production."
       }
     },
     {
@@ -2526,7 +2682,16 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_source_authority_20261026": {
+        "route_class": "LEGACY_PROJECT_GUI_ONLY_NOT_CURRENT_V5_SOURCE_REQUIREMENT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
+      }
     },
     {
       "id": "NFB-AC-47",
@@ -2633,6 +2798,15 @@
         "human_windows_uat_claimed": false,
         "ui_full_operator_uat_claimed": false,
         "other_ac_signoff_implied": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_POSITION_DATUM",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Only submitted Set/Bay/version/inner-door datum plus verified world X/Y, layer, slot, model and rotation may release this specific W×N×Y; nominal spacing is not an approval. No DXF-source origin/pivot mandate for current V5; do not invent X/W2, auto-inherit other widths, or approve arbitrary rows."
       }
     },
     {
@@ -2674,6 +2848,15 @@
         "human_windows_uat_claimed": false,
         "ui_full_operator_uat_claimed": false,
         "other_ac_signoff_implied": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_POSITION_DATUM",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Only submitted Set/Bay/version/inner-door datum plus verified world X/Y, layer, slot, model and rotation may release this specific W×N×Y; nominal spacing is not an approval. No DXF-source origin/pivot mandate for current V5; do not invent X/W2, auto-inherit other widths, or approve arbitrary rows."
       }
     },
     {
@@ -2736,7 +2919,9 @@
         "tests/test_issue1497_configured_nfb_manufacturing_release.py",
         "tests/test_issue1497_nfb_cutting_preflight.py",
         "tests/test_issue1497_shihlin400_cutting_trial.py",
-        "tests/test_issue1497_shihlin400_original_byte_proof.py"
+        "tests/test_issue1497_shihlin400_original_byte_proof.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py",
+        "tests/test_issue1502_csv_is_only_normal_finalscene_source.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -2744,13 +2929,32 @@
       "accepted": false,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1496_nfb_dxf_source.py",
-          "test_name": "test_unsupported_not_silently_treated_as_certified",
+          "path": "tests/test_issue1502_current_csv_original_pair_dxf.py",
+          "test_name": "test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
           "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_MAIN_APERTURE_PIVOT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current numeric CSV opening rectangle and its saved world datum/rotation determine main CUTTING; legacy ARC/CIRCLE/color/handle/source-pivot only if the stored project ACTUALLY references legacy DXF. Numeric V5 cannot be blocked for not having a separate original model DXF. A manufacturer's rectangular CSV cannot be silently replaced with an invented ARC. Reopen final generated DXF and verify real physical geometry before manufacturing.",
+        "current_v5_positive_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
+        "current_v5_fail_closed_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback",
+        "current_v5_witness_is_not_full_ac_signoff": true,
+        "current_csv_candidate_scope": "SOURCE_TEST_WITNESS_EXISTS_NOT_FULL_AC"
+      },
+      "historical_legacy_witness_before_20261026": {
+        "path": "tests/test_issue1496_nfb_dxf_source.py",
+        "test_name": "test_unsupported_not_silently_treated_as_certified",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
+      }
     },
     {
       "id": "NFB-AC-52",
@@ -2810,6 +3014,15 @@
         "real_two_old_project_windows_gui_uat": false,
         "human_windows_uat_claimed": false,
         "other_ac_signoff_implied": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_MAIN_APERTURE_PIVOT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current numeric CSV opening rectangle and its saved world datum/rotation determine main CUTTING; legacy ARC/CIRCLE/color/handle/source-pivot only if the stored project ACTUALLY references legacy DXF. Numeric V5 cannot be blocked for not having a separate original model DXF. A manufacturer's rectangular CSV cannot be silently replaced with an invented ARC. Reopen final generated DXF and verify real physical geometry before manufacturing."
       }
     },
     {
@@ -3010,6 +3223,15 @@
         "all_24_manufacturer_original_raw_dxfs_certified": false,
         "native_windows_operator_original_old_project_tested": false,
         "exact_head_ci_and_localx_readback_required": true
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current V5 reads numeric CSV identity/dimensions, committed NFBConfig and actual source-backed physical panels/parts, NOT model-file Color30/150/212. Legacy file color/upper-lower groups are checked only on legacy route. Verify generated CUTTING/BEND/MARKING DXF/roundtrip, part scope, Q and fail-closed missing/drift; do not create fictitious Receiving middle plate or grant full cabinet production."
       }
     },
     {
@@ -3265,6 +3487,15 @@
         "other_ac_signoff_implied": false,
         "integrated_localx_claimed": false,
         "exact_head_full_ci_required": true
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_SELECTION_PREVIEW",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current brand/model list, preview and changes come from per-brand numeric NFB CSV V5 and exact NFBConfig, not mandatory old manufacturer DXF. Legacy projects use original indexed DXF source if stored. Preview/selection does not authorize manufacturing, and generated DXF must still be verified before release."
       }
     },
     {
@@ -3423,6 +3654,15 @@
         "human_windows_uat_claimed": false,
         "real_two_old_project_windows_gui_uat": false,
         "other_ac_signoff_implied": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_MAIN_APERTURE_PIVOT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current numeric CSV opening rectangle and its saved world datum/rotation determine main CUTTING; legacy ARC/CIRCLE/color/handle/source-pivot only if the stored project ACTUALLY references legacy DXF. Numeric V5 cannot be blocked for not having a separate original model DXF. A manufacturer's rectangular CSV cannot be silently replaced with an invented ARC. Reopen final generated DXF and verify real physical geometry before manufacturing."
       }
     },
     {
@@ -3528,6 +3768,15 @@
         "other_ac_signoff_implied": false,
         "original_unrevised_base_immobility_claimed": false,
         "exact_head_ci_and_localx_readback_required": true
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current V5 reads numeric CSV identity/dimensions, committed NFBConfig and actual source-backed physical panels/parts, NOT model-file Color30/150/212. Legacy file color/upper-lower groups are checked only on legacy route. Verify generated CUTTING/BEND/MARKING DXF/roundtrip, part scope, Q and fail-closed missing/drift; do not create fictitious Receiving middle plate or grant full cabinet production."
       }
     },
     {
@@ -3724,6 +3973,15 @@
         "integrated_localx_claimed": false,
         "formal_x_published": false,
         "other_ac_signoff_implied": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current V5 reads numeric CSV identity/dimensions, committed NFBConfig and actual source-backed physical panels/parts, NOT model-file Color30/150/212. Legacy file color/upper-lower groups are checked only on legacy route. Verify generated CUTTING/BEND/MARKING DXF/roundtrip, part scope, Q and fail-closed missing/drift; do not create fictitious Receiving middle plate or grant full cabinet production."
       }
     },
     {
@@ -3873,7 +4131,16 @@
         "physical_absolute_position_grant": false,
         "other_ac_signoff_implied": false
       },
-      "current_scope_remaining_evidence": "2026-10-23 CURRENT CSV V5 source-scoped GUI: original native Tk Quantity Single parent and original NFB inner editor layer/unit ComboboxSelected pre-change counts, cancel rollback (exact draft/workspace), confirm source provenance retained, undo restores, explicit same-brand OVERRIDE remains. Read-only submitted-source impact counts ignore existing stale and followers already overridden. Current numeric V5 manufactures fail-closed on inherited brand mismatch; no second Set/Quantity brand owner. Exact new-HEAD CI and localX merge readback required. Two external original Windows projects GUI→Save/Reload→DXF/Q, full factory/whole-box evidence not executed and remain separately unsigned."
+      "current_scope_remaining_evidence": "2026-10-23 CURRENT CSV V5 source-scoped GUI: original native Tk Quantity Single parent and original NFB inner editor layer/unit ComboboxSelected pre-change counts, cancel rollback (exact draft/workspace), confirm source provenance retained, undo restores, explicit same-brand OVERRIDE remains. Read-only submitted-source impact counts ignore existing stale and followers already overridden. Current numeric V5 manufactures fail-closed on inherited brand mismatch; no second Set/Quantity brand owner. Exact new-HEAD CI and localX merge readback required. Two external original Windows projects GUI→Save/Reload→DXF/Q, full factory/whole-box evidence not executed and remain separately unsigned.",
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_SELECTION_PREVIEW",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current brand/model list, preview and changes come from per-brand numeric NFB CSV V5 and exact NFBConfig, not mandatory old manufacturer DXF. Legacy projects use original indexed DXF source if stored. Preview/selection does not authorize manufacturing, and generated DXF must still be verified before release."
+      }
     },
     {
       "id": "SWT-AC-14",
@@ -4404,6 +4671,15 @@
         "other_ac_signoff_implied": false,
         "physical_absolute_position_grant": false,
         "exact_head_ci_and_localx_readback_required": true
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current V5 reads numeric CSV identity/dimensions, committed NFBConfig and actual source-backed physical panels/parts, NOT model-file Color30/150/212. Legacy file color/upper-lower groups are checked only on legacy route. Verify generated CUTTING/BEND/MARKING DXF/roundtrip, part scope, Q and fail-closed missing/drift; do not create fictitious Receiving middle plate or grant full cabinet production."
       }
     },
     {
@@ -4623,6 +4899,15 @@
         "supersedes_original_interpretation_only": true,
         "reason": "Current #1502 part-scoped output complete; first submit, cross-Bay copy, restore and Undo share #1500 live transaction guard and are still pending complete operator acceptance, NOT blocked by a closed #1502 issue.",
         "authority_issue": 1500
+      },
+      "current_source_authority_20261026": {
+        "route_class": "LEGACY_PROJECT_GUI_ONLY_NOT_CURRENT_V5_SOURCE_REQUIREMENT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
       }
     },
     {
@@ -4694,7 +4979,16 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_source_authority_20261026": {
+        "route_class": "LEGACY_PROJECT_GUI_ONLY_NOT_CURRENT_V5_SOURCE_REQUIREMENT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
+      }
     },
     {
       "id": "SWT-AC-27",
@@ -4707,7 +5001,9 @@
       "regression_candidates": [
         "tests/test_issue1494_closed_cutting_reference.py",
         "tests/test_issue1494_nfb_x_shadow_projection.py",
-        "tests/test_issue1494_receiving_nfb_x_evidence.py"
+        "tests/test_issue1494_receiving_nfb_x_evidence.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py",
+        "tests/test_issue1502_csv_is_only_normal_finalscene_source.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -4721,7 +5017,19 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_POSITION_DATUM",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Only submitted Set/Bay/version/inner-door datum plus verified world X/Y, layer, slot, model and rotation may release this specific W×N×Y; nominal spacing is not an approval. No DXF-source origin/pivot mandate for current V5; do not invent X/W2, auto-inherit other widths, or approve arbitrary rows.",
+        "current_v5_positive_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
+        "current_v5_fail_closed_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback",
+        "current_v5_witness_is_not_full_ac_signoff": true
+      }
     },
     {
       "id": "SWT-AC-28",
@@ -4830,6 +5138,15 @@
         "human_windows_uat_claimed": false,
         "real_two_old_project_windows_gui_uat": false,
         "other_ac_signoff_implied": false
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_MAIN_APERTURE_PIVOT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current numeric CSV opening rectangle and its saved world datum/rotation determine main CUTTING; legacy ARC/CIRCLE/color/handle/source-pivot only if the stored project ACTUALLY references legacy DXF. Numeric V5 cannot be blocked for not having a separate original model DXF. A manufacturer's rectangular CSV cannot be silently replaced with an invented ARC. Reopen final generated DXF and verify real physical geometry before manufacturing."
       }
     },
     {
@@ -4841,7 +5158,9 @@
         1498
       ],
       "regression_candidates": [
-        "tests/test_issue1498_nfb_part_readiness.py"
+        "tests/test_issue1498_nfb_part_readiness.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py",
+        "tests/test_issue1502_csv_is_only_normal_finalscene_source.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -4855,7 +5174,19 @@
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC"
+      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_POSITION_DATUM",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Only submitted Set/Bay/version/inner-door datum plus verified world X/Y, layer, slot, model and rotation may release this specific W×N×Y; nominal spacing is not an approval. No DXF-source origin/pivot mandate for current V5; do not invent X/W2, auto-inherit other widths, or approve arbitrary rows.",
+        "current_v5_positive_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
+        "current_v5_fail_closed_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback",
+        "current_v5_witness_is_not_full_ac_signoff": true
+      }
     },
     {
       "id": "SWT-AC-31",
@@ -5020,6 +5351,15 @@
         "other_ac_signoff_implied": false,
         "physical_absolute_position_grant": false,
         "exact_head_ci_and_localx_readback_required": true
+      },
+      "current_source_authority_20261026": {
+        "route_class": "CURRENT_V5_PART_DEPENDENCY_EXPORT",
+        "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
+        "legacy_dxf_requirement_for_current_v5": false,
+        "physical_dxfs_must_be_verified_when_exporting": true,
+        "original_requirement_text_preserved": true,
+        "original_status_preserved": true,
+        "scope_note": "Current V5 reads numeric CSV identity/dimensions, committed NFBConfig and actual source-backed physical panels/parts, NOT model-file Color30/150/212. Legacy file color/upper-lower groups are checked only on legacy route. Verify generated CUTTING/BEND/MARKING DXF/roundtrip, part scope, Q and fail-closed missing/drift; do not create fictitious Receiving middle plate or grant full cabinet production."
       }
     }
   ],
@@ -5078,5 +5418,86 @@
   },
   "historical_pre_20261024_review_text_at_43": "88/88 FUNCTION_IDENTITIES_VERIFIED; 43/88 FULL_AC_AUTOMATED_SIGNED_WITH_SCOPE (ISOLATED BRANCH CANDIDATE, EXACT HEAD CI PENDING, NO LOCALX MERGE); remaining 45 AC require separate physical/GUI/product evidence.",
   "historical_pre_20261024_46ac_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 46/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; the 46 accepted rows carry named executable witnesses and a prior exact source HEAD GREEN receipt, but latest incremental cross-stage regression and updated audit guards require a new exact source CI GREEN. Remaining 42 AC retain their individual gates. No localX merge, Windows UAT or unconditional MFG-2 approval.",
-  "historical_pre_swt23_review_text": "88/88 FUNCTION_IDENTITIES_VERIFIED; 48/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; NFB-AC-14 and SWT-AC-11 signed using exact 2080-case source CI, actual 2D/3D Fold Profiles, Save-Reload and DXF/Q source parity. Remaining 40 AC keep original scoped gates; Draft unmerged, not Windows UAT or full-cabinet MFG2 release."
+  "historical_pre_swt23_review_text": "88/88 FUNCTION_IDENTITIES_VERIFIED; 48/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; NFB-AC-14 and SWT-AC-11 signed using exact 2080-case source CI, actual 2D/3D Fold Profiles, Save-Reload and DXF/Q source parity. Remaining 40 AC keep original scoped gates; Draft unmerged, not Windows UAT or full-cabinet MFG2 release.",
+  "current_nfb_source_policy_20261026": {
+    "schema": "WHD_NFB_CURRENT_V5_LEGACY_SOURCE_SEPARATION_V1",
+    "date_taiwan": "2026-10-26",
+    "authority_issues": [
+      1502,
+      1504
+    ],
+    "current_model_identity": "nfbv5:<brand>:<model>",
+    "current_model_source": "基準檔/開孔/NFB/數值規格/<brand>/NFB數值規格.csv",
+    "current_model_geometry": "CSV columns opening/screws/dimensions/depth with submitted source/brand/Set/Bay/version, exact inner-door datum, confirmed X/Y and 0/90/180/270 rotation; actual physical FinalScene and manufacturing guards",
+    "legacy_model_identity": "<indexed_filename>.dxf only when a historical stored NFB references legacy filename",
+    "legacy_dxf_scope": "legacy import, on-demand editing, source provenance and backwards-compatible opening/pivot/Color/upper-lower interpretation only when truly referenced",
+    "obsolete_global_prerequisites": [
+      "an old indexed DXF for every current numeric model",
+      "original model ARC/CIRCLE shape as mandatory V5 cutting proof",
+      "legacy original DXF entity colors Color30/150/212 as mandatory current model source",
+      "original drawing's absolute origin or pivot as current box-world X/Y",
+      "old W800x3 spacing to authorize other W/N/Y/model combinations",
+      "imaginary Receiving middle plate inferred from model Color150"
+    ],
+    "manufacturing_requirements": [
+      "valid currently selected per-brand numeric CSV fields and source identity, no silent cross-brand/legacy fallback",
+      "committed NFBConfig with exact Bay/version/physical hole IDs and verified individual X/Y/rotation",
+      "actual panel and tier BasePlate/EAR skins; source-backed geometry, boundary/collision and legacy-feature de-duplication",
+      "normal FinalScene output CUTTING/BEND/MARKING generated DXF actual reopen and CHECK/Q where authorized",
+      "fail closed on incomplete CSV fields, missing physical material, stale source, unapproved model/position, or wrong owner",
+      "legacy project preserves its original DXF/geometry requirements only when truly needed"
+    ],
+    "no_implicit_release": "No conversion of numeric preview or model choice into MFG1/full-cabinet permission; PAD part-only evidence and full-cabinet weld/NC are different scopes.",
+    "affected_ac_route_groups": {
+      "CURRENT_V5_SELECTION_PREVIEW": [
+        "NFB-AC-03",
+        "NFB-AC-05",
+        "NFB-AC-17",
+        "SWT-AC-05",
+        "SWT-AC-13"
+      ],
+      "CURRENT_V5_MAIN_APERTURE_PIVOT": [
+        "NFB-AC-11",
+        "NFB-AC-51",
+        "NFB-AC-52",
+        "SWT-AC-08",
+        "SWT-AC-29"
+      ],
+      "CURRENT_V5_POSITION_DATUM": [
+        "NFB-AC-04",
+        "NFB-AC-10",
+        "NFB-AC-25",
+        "NFB-AC-48",
+        "NFB-AC-49",
+        "SWT-AC-27",
+        "SWT-AC-30"
+      ],
+      "CURRENT_V5_PART_DEPENDENCY_EXPORT": [
+        "NFB-AC-09",
+        "NFB-AC-14",
+        "NFB-AC-24",
+        "NFB-AC-29",
+        "NFB-AC-38",
+        "NFB-AC-39",
+        "NFB-AC-44",
+        "NFB-AC-55",
+        "SWT-AC-09",
+        "SWT-AC-11",
+        "SWT-AC-21",
+        "SWT-AC-32"
+      ],
+      "LEGACY_PROJECT_GUI_ONLY_NOT_CURRENT_V5_SOURCE_REQUIREMENT": [
+        "NFB-AC-16",
+        "NFB-AC-42",
+        "NFB-AC-46",
+        "SWT-AC-24",
+        "SWT-AC-26"
+      ]
+    },
+    "acceptance_tally_unchanged": true,
+    "legacy_backcompat_preserved": true,
+    "original_88_requirements_unchanged": true,
+    "windows_gui_gate_untouched": true,
+    "formal_x_requires": "/推推"
+  }
 }
