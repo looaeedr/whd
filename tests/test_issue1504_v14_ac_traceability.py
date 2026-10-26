@@ -2008,9 +2008,7 @@ def test_ac51_swt30_signed_only_after_true_native_assigned_export_and_nominal_ne
         row = records[name]
         assert row["accepted"]
         assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
-        assert row["historical_pre_current_review"]["accepted"] is False if (
-            "accepted" in row["historical_pre_current_review"]
-        ) else row["historical_pre_current_review"]["status"] == "EVIDENCE_CANDIDATE_ONLY"
+        assert row["historical_pre_current_review"]["status"] == "EVIDENCE_CANDIDATE_ONLY"
         proof = row["acceptance_evidence"]
         assert actual in (proof["primary_assertion"], *proof["other_required_assertions"])
         assert proof["no_persisted_green"] and proof["scope_drifts_fail_closed"]
