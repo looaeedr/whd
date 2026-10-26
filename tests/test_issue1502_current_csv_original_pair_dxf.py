@@ -260,23 +260,19 @@ def test_normal_operator_export_single_125_current_csv_uses_real_flat_source(tmp
 
 
 def test_original_operator_does_not_equate_two_brands_on_one_flat_base(tmp_path):
+    # Begin from a valid source-certified FinalScene: mixing a second brand
+    # must reject both derived physical pattern and the actual operator export.
     snap = _current(model_second="3P400SN")
+    parts = _scene(snap)
     row = snap["nfb_config"]["holes"][1]
     row.update(model_filename="nfbv5:伍菱:3P400SN", source_brand="伍菱")
-    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
-        snap["nfb_config"]
-    )
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(snap["nfb_config"])
     from ae_engine.receiving_base_plate_config import receiving_base_plate_values
-    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
-    receipt = _export(snap, _scene(snap), tmp_path)
-    assert receipt.source_hole_ids == ("nfb:0", "nfb:1")
-    plate = ezdxf.readfile(receipt.base_plate_path).modelspace()
-    assert sum(1 for x in plate if x.dxftype() == "CIRCLE"
-               and x.dxf.layer == "CUTTING") == 8
-    door = ezdxf.readfile(receipt.inner_door_path).modelspace()
-    assert sum(1 for x in door if x.dxftype() == "LWPOLYLINE"
-               and x.closed and x.dxf.layer == "CUTTING") >= 3
-
+    with pytest.raises(ValueError, match="EAR_Z_MIXED_BRANDS_REQUIRE_APPROVED_RULE"):
+        receiving_base_plate_values(snap)
+    with pytest.raises(ValueError, match="EAR_Z_MIXED_BRANDS_REQUIRE_APPROVED_RULE"):
+        _export(snap, parts, tmp_path)
+    assert not list(tmp_path.glob("*.dxf"))
 
 @pytest.mark.parametrize("rotation", (0, 90, 180, 270))
 def test_swt29_current_csv_four_rotations_keep_one_main_cut_and_original_pair(
