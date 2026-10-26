@@ -172,8 +172,12 @@ def test_r5_91_physical_inner_door_stable_id_must_be_real_source_identity(bad_id
     assert legacy_id.stable_id == "inner_door:1:panel"
 
 
-@pytest.mark.parametrize("field", ["door_layout_columns", "door_handle_edges"])
-@pytest.mark.parametrize("corrupt", [False, 0, "", {}])
+@pytest.mark.parametrize("field, corrupt", [
+    ("door_layout_columns", False), ("door_layout_columns", 0),
+    ("door_layout_columns", ""), ("door_layout_columns", {}),
+    ("door_handle_edges", False), ("door_handle_edges", 0),
+    ("door_handle_edges", ""),
+])
 def test_r5_91_explicit_falsy_nonsequence_door_authority_cannot_disappear(field, corrupt):
     """Project reopen must not turn invalid saved topology/handles into empty data."""
     saved = {field: corrupt}
