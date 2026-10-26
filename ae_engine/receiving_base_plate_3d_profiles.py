@@ -43,13 +43,17 @@ def receiving_base_plate_3d_profiles(snapshot, physical=None):
         )
         if min(lengths) <= 0:
             raise ValueError("Receiving CENTER invalid source-side material stations")
+        # Brand-anchored CENTER supports must be farther inward than the
+        # two equal shallow NFBs' middle mounting web. Reverse the signed
+        # side-fold orientation, preserving the original CUTTING/BEND stations.
+        sign = -1 if physical.get("receiving_center_brand_anchor_inverted") else 1
         rows_x = [
-            {"len":lengths[0], "angle":90, "phase6_key":"receiving_left_first_40"},
-            {"len":lengths[1], "formed_length": lengths[1]+t, "angle":-90,
+            {"len":lengths[0], "angle":90*sign, "phase6_key":"receiving_left_first_40"},
+            {"len":lengths[1], "formed_length": lengths[1]+t, "angle":-90*sign,
              "phase6_key":"receiving_left_second"},
-            {"len":lengths[2], "angle":-90, "core":"W",
+            {"len":lengths[2], "angle":-90*sign, "core":"W",
              "phase6_key":"receiving_nfb_deep_base_face"},
-            {"len":lengths[3], "formed_length":lengths[3]+t, "angle":90,
+            {"len":lengths[3], "formed_length":lengths[3]+t, "angle":90*sign,
              "phase6_key":"receiving_right_second"},
             {"len":lengths[4], "phase6_key":"receiving_right_first_40"},
         ]

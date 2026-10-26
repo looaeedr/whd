@@ -183,3 +183,17 @@ def model_spec(brand: str, model: str, *, path: str | Path | None = None
         return None
     return next((spec for spec in read_numeric_specs(brand, path=path)
                  if spec.model == model), None)
+
+
+def brand_max_depth_mm(brand: str, *, path: str | Path | None = None) -> float:
+    """Fixed-ear depth anchor: maximum known depth in the ENTIRE brand CSV.
+
+    The selected hole, number of tiers and chosen models do not own this Z.
+    Blank model depths are unknown, never zero or inferred from model names.
+    An entirely missing depth column must fail instead of inventing an ear.
+    """
+    depths = tuple(spec.depth_mm for spec in read_numeric_specs(brand, path=path)
+                   if spec.depth_mm is not None)
+    if not depths:
+        raise ValueError("RECEIVING_EAR_BRAND_MAX_DEPTH_MISSING")
+    return max(depths)

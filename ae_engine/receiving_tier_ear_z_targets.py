@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-"""#1502/#1503: SAME physical NFB/base/ear Z rule independently for each tier.
+"""#1502/#1503: independently verify base Z, but FIX ear Z by brand maximum.
 
-Tier count only changes how many times the source-depth + true-skin mapping
-runs. A depth without source is unverified for THAT tier, not for all tiers.
+The ear Z for every tier shares one physical datum resolved from the active
+brand's entire current numeric CSV, NOT the selected models or tier depths.
+Uncompensated Base Plate / ear gaps remain unverified and unreleasable.
 Nothing here certifies ear source BEND, welded contact or manufacturing DXF.
 """
 from __future__ import annotations
@@ -12,7 +13,9 @@ from math import isfinite
 from typing import Mapping
 
 from .receiving_tier_ear_assembly_xy import resolve_receiving_tier_ear_mating_xy
-from .receiving_weld_ear_policy import receiving_source_fixing_pitch_x_mm
+from .receiving_weld_ear_policy import (
+    LARGE_EAR_MATERIAL_THICKNESS_MM, receiving_source_fixing_pitch_x_mm,
+)
 
 
 @dataclass(frozen=True)
@@ -171,6 +174,45 @@ def _tier_source_depths(legacy_brand, config, layer_index):
     return tuple(sorted(set(depths), reverse=True))
 
 
+def committed_receiving_ear_brand_max_depth_mm(
+    snapshot: Mapping[str, object],
+) -> float:
+    """One physical ear Z anchor for the selected Bay, regardless of NFB tiers.
+
+    The entire selected brand numeric CSV owns the maximum depth. Legacy DXF
+    hole references can identify the brand but never supply the maximum from
+    their own selected dimensions. Mixed brands have no approved single-ear
+    Z policy and must fail closed, rather than silently taking a maximum.
+    """
+    legacy_brand, config = _current_brand_config(snapshot)
+    from .receiving_nfb_model_identity import parse_numeric_model_ref
+    from .receiving_nfb_numeric_catalog import brand_max_depth_mm
+
+    holes = config.get("holes")
+    if not isinstance(holes, (list, tuple)) or not holes:
+        raise ValueError("EAR_Z_BRAND_SOURCE_HOLES_MISSING")
+    brands = set()
+    for hole in holes:
+        if not isinstance(hole, Mapping):
+            raise ValueError("EAR_Z_BRAND_SOURCE_HOLE_INVALID")
+        model_ref = hole.get("model_filename")
+        if not isinstance(model_ref, str) or not model_ref:
+            raise ValueError("EAR_Z_BRAND_MODEL_MISSING")
+        if model_ref.startswith("nfbv5:"):
+            parsed = parse_numeric_model_ref(model_ref)
+            if parsed is None or hole.get("source_brand") not in (None, parsed[0]):
+                raise ValueError("EAR_Z_BRAND_IDENTITY_DRIFT")
+            source_brand = parsed[0]
+        else:
+            source_brand = hole.get("source_brand") or legacy_brand
+        if not isinstance(source_brand, str) or not source_brand:
+            raise ValueError("EAR_Z_BRAND_SOURCE_MISSING")
+        brands.add(source_brand)
+    if len(brands) != 1:
+        raise ValueError("EAR_Z_MIXED_BRANDS_REQUIRE_APPROVED_RULE")
+    return brand_max_depth_mm(next(iter(brands)))
+
+
 def resolve_receiving_tier_base_z_targets(
     snapshot: Mapping[str, object],
 ) -> tuple[ReceivingTierBaseZTarget, ...]:
@@ -214,9 +256,25 @@ def resolve_receiving_tier_base_z_targets(
         from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
         center_fold = (local_physical["receiving_bend_pattern"]
                        == RECEIVING_BASE_PATTERN_CENTER)
+        inverted = bool(local_physical.get("receiving_center_brand_anchor_inverted"))
+        if center_fold and not inverted and len(depths) == 1:
+            # Two physical layers may each have a different shallow CSV depth.
+            # They use their OWN CENTER blank/fold but share the one ear Z.
+            maximum = committed_receiving_ear_brand_max_depth_mm(snapshot)
+            if maximum - depths[0] > t + 1e-9:
+                inverted = True
+                local_physical["receiving_center_brand_anchor_inverted"] = True
+                local_physical["receiving_nfb_depth_pair_mm"] = (maximum, depths[0])
+        if inverted and (not center_fold or len(depths) != 1):
+            raise ValueError("EAR_Z_CENTER_BRAND_ANCHOR_SOURCE_MISMATCH")
         if center_fold and len(depths) > 2:
             raise ValueError("EAR_Z_CENTER_ONLY_TWO_PHYSICAL_FACES")
-        if center_fold and len(depths) == 2:
+        if inverted:
+            # One same-depth shallow NFB tier: physical CENTER part's outer
+            # tabs land at the fixed brand-max ear Z, not the NFB web Z.
+            if local_physical.get("receiving_nfb_depth_pair_mm") is None:
+                raise ValueError("EAR_Z_CENTER_BRAND_ANCHOR_PAIR_MISSING")
+        elif center_fold and len(depths) == 2:
             # CENTER source owns both physical depth faces.
             local_physical["receiving_nfb_depth_pair_mm"] = depths
         else:
@@ -230,12 +288,19 @@ def resolve_receiving_tier_base_z_targets(
             snapshot, inner_door_id=door_id,
             reference_nfb_depth_mm=depths[0],
             secondary_nfb_depth_mm=(
-                depths[1] if center_fold and len(depths) == 2 else None
+                depths[1] if center_fold and len(depths) == 2 and not inverted else None
             ),
         )
         offset_z = world.base_nfb_face_world_z_mm - local_front
-        back_z = offset_z + local_front - t
-        if (center_fold and len(depths) == 2 and (shallow is None
+        back_z = offset_z + (shallow if inverted else local_front) - t
+        if inverted:
+            brand_pair = local_physical["receiving_nfb_depth_pair_mm"]
+            predicted_support = world.base_nfb_face_world_z_mm - (
+                float(brand_pair[0]) - float(brand_pair[1])
+            )
+            if (shallow is None or abs(offset_z+shallow-predicted_support)>1e-6):
+                raise ValueError("EAR_Z_CENTER_BRAND_ANCHOR_SUPPORT_SKIN_MISMATCH")
+        if (center_fold and len(depths) == 2 and not inverted and (shallow is None
                 or world.shallow_nfb_face_world_z_mm is None
                 or abs(offset_z + shallow - world.shallow_nfb_face_world_z_mm) > 1e-6)):
             raise ValueError("EAR_Z_SECOND_NFB_FACE_SOURCE_MISMATCH")
@@ -250,7 +315,7 @@ def resolve_receiving_tier_base_z_targets(
 def resolve_receiving_tier_ear_contact_targets(
     snapshot: Mapping[str, object],
 ) -> tuple[ReceivingTierEarContactTarget, ...]:
-    """Attach each of the same tier's TWO ears to that tier's Base Plate Z."""
+    """Use ONE brand-max-depth ear contact Z for all physical NFB layers."""
     rows = resolve_receiving_tier_ear_mating_xy(snapshot)
     if not rows:
         return ()
@@ -260,6 +325,21 @@ def resolve_receiving_tier_ear_contact_targets(
     }
     if len({r.ear_id for r in rows}) != len(rows):
         raise ValueError("EAR_Z_DUPLICATE_PHYSICAL_EAR")
+    max_depth = committed_receiving_ear_brand_max_depth_mm(snapshot)
+    from .receiving_nfb_world_skin_datums import resolve_receiving_nfb_world_skin_datums
+    upper = tuple(row for row in tuple(snapshot.get("inner_doors") or ())
+                  if isinstance(row, Mapping)
+                  and str(row.get("cell_key") or "").split(":")[-1] == "0"
+                  and str(row.get("stable_id") or "").strip())
+    if len(upper) != 1:
+        raise ValueError("EAR_Z_UNIQUE_INNER_DOOR_REQUIRED")
+    brand_anchor = resolve_receiving_nfb_world_skin_datums(
+        snapshot, inner_door_id=str(upper[0]["stable_id"]),
+        reference_nfb_depth_mm=max_depth,
+        fixing_plate_thickness_mm=LARGE_EAR_MATERIAL_THICKNESS_MM,
+    ).fixing_plate_contact_skin_world_z_mm
+    if not isfinite(brand_anchor):
+        raise ValueError("EAR_Z_BRAND_ANCHOR_NONFINITE")
     pitch_x = receiving_source_fixing_pitch_x_mm(
         box_outer_width_mm=float(snapshot["w"]),
         box_side_thickness_mm=float(snapshot["t"]),
@@ -274,6 +354,14 @@ def resolve_receiving_tier_ear_contact_targets(
                 or abs(row.side_inside_weld_x_mm-side_sign*inside_x) > 1e-6):
             raise ValueError("EAR_Z_SOURCE_MOUNT_X_DRIFT")
         target = base_z[(row.layer_index, row.parent_base_id)]
+        # Keep the actual per-tier Base Plate skin as a separate witness.
+        # It may not touch this invariant ear Z until a depth-compensation
+        # profile/PAD is validated; never certify a floating joint.
+        mating_verified = (
+            target.physical_skin_z_resolved
+            and target.base_back_skin_world_z_mm is not None
+            and abs(target.base_back_skin_world_z_mm - brand_anchor) <= 1e-6
+        )
         output.append(ReceivingTierEarContactTarget(
             ear_id=row.ear_id, parent_base_id=row.parent_base_id,
             layer_index=row.layer_index, side=row.side,
@@ -281,7 +369,7 @@ def resolve_receiving_tier_ear_contact_targets(
             fixing_hole_world_y_mm=row.selected_slot_pair_world_y_mm,
             side_inside_weld_x_mm=row.side_inside_weld_x_mm,
             base_back_skin_world_z_mm=target.base_back_skin_world_z_mm,
-            target_ear_contact_world_z_mm=target.base_back_skin_world_z_mm,
-            base_skin_z_source_verified=target.physical_skin_z_resolved,
+            target_ear_contact_world_z_mm=brand_anchor,
+            base_skin_z_source_verified=mating_verified,
         ))
     return tuple(output)

@@ -81,14 +81,19 @@ def test_each_tier_uses_identical_real_skin_z_formula_and_own_source_depth():
     assert all(x.world_offset_z_mm is not None for x in depths)
     assert len({x.source_depths_mm for x in depths}) == 2
     assert len({x.world_offset_z_mm for x in depths}) == 2
+    assert len({x.target_ear_contact_world_z_mm for x in rows}) == 1
     for row in rows:
         corresponding = depths[row.layer_index]
         assert row.base_back_skin_world_z_mm == pytest.approx(
             corresponding.base_back_skin_world_z_mm
         )
+        # Selected 72-mm tier remains a valid Base Plate preview, but it does
+        # NOT move the fixed-ear reference away from brand maximum 107 mm.
         assert row.target_ear_contact_world_z_mm == pytest.approx(
-            corresponding.base_back_skin_world_z_mm
+            depths[0].base_back_skin_world_z_mm
         )
+        # Each tier uses its own CENTER return; both installed support skins
+        # now land on the fixed brand maximum Z, not on selected-model Z.
         assert row.base_skin_z_source_verified
         assert not row.source_bend_verified
         assert not row.formed_weld_contact_verified
@@ -142,16 +147,10 @@ def test_current_set_without_legacy_switch_brand_uses_each_v5_csv_source():
     assert [t.source_depths_mm for t in base] == [(107.,), (68.,)]
     assert all(t.physical_skin_z_resolved for t in base)
     assert len({t.world_offset_z_mm for t in base}) == 2
-    ears = resolve_receiving_tier_ear_contact_targets(snap)
-    assert len(ears) == 4
-    assert [x.target_ear_contact_world_z_mm for x in ears] == [
-        base[0].base_back_skin_world_z_mm,
-        base[0].base_back_skin_world_z_mm,
-        base[1].base_back_skin_world_z_mm,
-        base[1].base_back_skin_world_z_mm,
-    ]
-    assert all(not x.manufacturing_ready and not x.source_bend_verified
-               for x in ears)
+    # Two different brands have no approved shared fixing-ear Z anchor;
+    # never take the maximum of selected switches across brands.
+    with pytest.raises(ValueError, match="EAR_Z_MIXED_BRANDS_REQUIRE_APPROVED_RULE"):
+        resolve_receiving_tier_ear_contact_targets(snap)
 
 
 def test_v5_csv_missing_depth_or_cross_brand_blocks_only_affected_tier_z():
@@ -212,3 +211,44 @@ def test_quantity_frozen_integral_indices_restore_but_stable_ids_stay_guarded():
     setbay["active_mode"] = "set_bay"
     with pytest.raises(ValueError, match="EAR_Z_SET_IDENTITY_DRIFT"):
         _current_brand_config(setbay)
+
+
+def test_ear_brand_max_depth_uses_entire_csv_not_selected_125sn():
+    from ae_engine.receiving_tier_ear_z_targets import (
+        committed_receiving_ear_brand_max_depth_mm,
+    )
+    from ae_engine.receiving_nfb_numeric_catalog import brand_max_depth_mm
+    assert brand_max_depth_mm("士林") == 107.0
+    assert brand_max_depth_mm("東元") == 103.0
+    assert brand_max_depth_mm("伍菱") == 107.0
+    snap = _assembled()
+    holes = snap["nfb_config"]["holes"]
+    for hole in holes:
+        hole["model_filename"] = "nfbv5:士林:2P125SN"
+        hole["source_brand"] = "士林"
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(snap["nfb_config"])
+    assert committed_receiving_ear_brand_max_depth_mm(snap) == 107.0
+    holes[0]["model_filename"] = "nfbv5:士林:3P125SN"
+    holes[1]["model_filename"] = "nfbv5:士林:2P400"
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(snap["nfb_config"])
+    assert committed_receiving_ear_brand_max_depth_mm(snap) == 107.0
+
+
+def test_brand_max_ear_contact_is_invariant_when_selected_tier_depth_changes():
+    snap = _two_tier()
+    original = resolve_receiving_tier_ear_contact_targets(snap)
+    assert len(original) == 4
+    assert len({row.target_ear_contact_world_z_mm for row in original}) == 1
+    for hole in snap["nfb_config"]["holes"]:
+        hole.update(source_brand="士林", model_filename="nfbv5:士林:2P125SN")
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(snap["nfb_config"])
+    shallow = resolve_receiving_tier_ear_contact_targets(snap)
+    assert len(shallow) == 4
+    assert [row.target_ear_contact_world_z_mm for row in shallow] == pytest.approx(
+        [row.target_ear_contact_world_z_mm for row in original]
+    )
+    # Both 68-mm tiers must rebuild their own CENTER support returns to
+    # the unchanged 107-mm ear anchor, even though the core working skins
+    # have 68-mm NFB clearances.  This is not a weld/MFG release.
+    assert all(row.base_skin_z_source_verified for row in shallow)
+    assert all(not row.manufacturing_ready for row in shallow)
