@@ -692,3 +692,112 @@ def test_swt27_current_v5_unapproved_x_state_never_infers_row_from_nominal(
     with pytest.raises((ValueError, KeyError)):
         _export(snap, _scene(snap), folder)
     assert not list(tmp_path.rglob("*.dxf"))
+
+
+def test_swt30_exact_committed_w_n_y_model_datum_has_real_dxf_but_cannot_leak_to_other_scope(
+    tmp_path,
+):
+    """One W800 three-unit current V5 contract, never a nominal-pitch whitelist.
+
+    The actual signed operator pair uses committed per-hole X, physical
+    Set/Bay and numeric model. Stale scene cannot be reused after changing
+    width, model, operator X, unit count or live Bay. The 'approved' witness
+    is the freshly regenerated exact FinalScene and reopened original-port
+    output, not a filename, preview flag or a nominal hole pitch.
+    """
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from ae_engine.receiving_nfb_model_identity import selected_numeric_spec
+
+    approved = _current(model_second="3P400SN")
+    holes = approved["nfb_config"]["holes"]
+    holes[0]["manual_x_mm"] = -180.
+    holes[1]["manual_x_mm"] = 0.
+    third = deepcopy(holes[0])
+    third.update(
+        physical_hole_id="nfb:swt30-third",
+        slot_index=2, manual_x_mm=180.,
+        model_filename="nfbv5:士林:2P400",
+    )
+    holes.append(third)
+    approved["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        approved["nfb_config"]
+    )
+    inner_id, selected = _submitted_csv_holes(approved)
+    assert approved["w"] == 800.
+    assert len(selected) == 3
+    assert tuple(h.world_x_mm for h in selected) == (-180., 0., 180.)
+    assert all(
+        selected_numeric_spec("士林", h.model_ref).dimensionally_complete
+        for h in selected
+    )
+    parts = _scene(approved)
+    dest = tmp_path / "approved"
+    dest.mkdir()
+    receipt = _export(approved, parts, dest)
+    assert receipt.source_hole_ids == (
+        "nfb:0", "nfb:1", "nfb:swt30-third",
+    )
+    assert receipt.scope == "CSV_PAIR_PART_ONLY_NOT_WHOLE_CABINET"
+    assert len(receipt.check_q_key) == 64
+    assert len(list(dest.glob("*.dxf"))) == 2
+    door = ezdxf.readfile(receipt.inner_door_path).modelspace()
+    base = ezdxf.readfile(receipt.base_plate_path).modelspace()
+    door_contours = [
+        e for e in door
+        if e.dxftype() == "LWPOLYLINE"
+        and e.closed and e.dxf.layer == "CUTTING"
+    ]
+    screw_circles = [
+        e for e in base
+        if e.dxftype() == "CIRCLE" and e.dxf.layer == "CUTTING"
+    ]
+    assert len(door_contours) >= 3
+    assert len(screw_circles) == 12
+    assert any(p.dxf.layer == "BEND" for p in base)
+
+    mutants = {}
+    wrong_width = deepcopy(approved)
+    wrong_width["w"] = 750.
+    mutants["other_width"] = wrong_width
+    changed_model = deepcopy(approved)
+    changed_model["nfb_config"]["holes"][1]["model_filename"] = "nfbv5:士林:2P125SN"
+    changed_model["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        changed_model["nfb_config"]
+    )
+    mutants["other_model"] = changed_model
+    changed_x = deepcopy(approved)
+    changed_x["nfb_config"]["holes"][0]["manual_x_mm"] = -165.
+    changed_x["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        changed_x["nfb_config"]
+    )
+    mutants["other_world_x"] = changed_x
+    changed_number = deepcopy(approved)
+    changed_number["nfb_config"]["holes"].pop()
+    changed_number["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        changed_number["nfb_config"]
+    )
+    mutants["other_row_count"] = changed_number
+    wrong_bay = deepcopy(approved)
+    wrong_bay["_receiving_runtime_selection"]["bay_id"] = "another-bay"
+    mutants["other_bay"] = wrong_bay
+
+    for key, mutant in mutants.items():
+        target = tmp_path / key
+        target.mkdir()
+        with pytest.raises((ValueError, KeyError)):
+            _export(mutant, parts, target)
+        assert not list(target.glob("*.dxf")), key
+
+    # Current model/row alone are never a release: even a W800 three-row
+    # sample must not infer missing per-hole world X from 180-mm nominal pitch.
+    pending = deepcopy(approved)
+    pending["nfb_config"]["holes"][0]["manual_x_mm"] = None
+    pending["nfb_config"]["holes"][0]["manual_x_state"] = "NONE"
+    pending["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        pending["nfb_config"]
+    )
+    blocked = tmp_path / "unconfirmed"
+    blocked.mkdir()
+    with pytest.raises((ValueError, KeyError)):
+        _export(pending, parts, blocked)
+    assert not list(blocked.glob("*.dxf"))
