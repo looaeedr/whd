@@ -1851,21 +1851,81 @@ def test_all_current_nfb_v5_source_supersessions_keep_88_originals_and_legacy_sc
     for ident in ("NFB-AC-11", "NFB-AC-51"):
         record = rows[ident]
         assert record["identified_test_functions"][0]["path"] == current_runtime
-        assert record["identified_test_functions"][0]["accepted"] is False
         assert record["historical_legacy_witness_before_20261026"]["path"].endswith(
             "test_issue1496_nfb_dxf_source.py"
         )
-    # Current V5 input audit must not silently waive the remaining independent
-    # positioning, source-drift, old-project GUI and production gates.
-    for ident, expected in {
-        "NFB-AC-11": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
-        "NFB-AC-51": "EVIDENCE_CANDIDATE_ONLY",
-        "SWT-AC-27": "EVIDENCE_CANDIDATE_ONLY",
-        "SWT-AC-30": "EVIDENCE_CANDIDATE_ONLY",
-    }.items():
-        assert rows[ident]["status"] == expected
+        if ident == "NFB-AC-11" and record["accepted"]:
+            primary = record["identified_test_functions"][0]
+            assert primary["test_name"] == (
+                "test_nfb_ac11_current_v5_two_real_models_four_pivots_and_output_dxf"
+            )
+            assert primary["witness_scope"] == "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE"
+            assert record["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+            evidence = record["acceptance_evidence"]
+            assert evidence["original_ac_text_unchanged"] is True
+            assert evidence["current_scope_correction_applied"] is True
+            assert evidence["legacy_native_manufacturer_model_dxf_for_current_v5_required"] is False
+            assert evidence["unapproved_W_N_Y_X_scope_granted"] is False
+            assert evidence["factory_release"] is False
+            assert evidence["human_windows_uat_claimed"] is False
+            assert len(evidence["original_ac_clauses_audited"]) >= 3
+            assert len(evidence["other_required_assertions"]) >= 5
+        else:
+            assert record["identified_test_functions"][0]["accepted"] is False
+    # Corrected AC11 may be individually signed only on its 8x source/pivot
+    # source-verified DXF receipt. The other independent source/datum/UAT
+    # prerequisites remain pending, not automatically green.
+    if not rows["NFB-AC-11"]["accepted"]:
+        assert rows["NFB-AC-11"]["status"] == (
+            "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC"
+        )
+    for ident in ("NFB-AC-51", "SWT-AC-27", "SWT-AC-30"):
+        assert rows[ident]["status"] == "EVIDENCE_CANDIDATE_ONLY"
         assert rows[ident]["accepted"] is False
     assert obj["counts"]["BLOCKED_1500_REAL_GUI"] == 17
     assert obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 67
     assert sum(obj["counts"].values()) == 88
     assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
+
+
+def test_ac11_independently_signed_v5_eight_source_pivot_roundtrips_keep_legacy_separate():
+    """AC11 needs its own runnable 2-model × 4-angle real-operator witness.
+
+    An input source correction alone cannot sign AC11; concrete output DXFs
+    and all historical legacy limitations must remain recorded.
+    """
+    from tools.product_ci_regression import PYTEST_PATHS
+    manifest = _data()
+    ac = next(x for x in manifest["records"] if x["id"] == "NFB-AC-11")
+    assert ac["accepted"] is True
+    assert ac["evidence_level"] == "FULL_AC_ASSERTION_AUDITED"
+    assert ac["current_source_authority_20261026"]["legacy_dxf_requirement_for_current_v5"] is False
+    evidence = ac["acceptance_evidence"]
+    source = "tests/test_issue1502_current_csv_original_pair_dxf.py"
+    assert source in PYTEST_PATHS
+    assert evidence["primary_assertion"] == (
+        source+"::test_nfb_ac11_current_v5_two_real_models_four_pivots_and_output_dxf"
+    )
+    tree = ast.parse((ROOT / source).read_text(encoding="utf-8"))
+    funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+    target = funcs["test_nfb_ac11_current_v5_two_real_models_four_pivots_and_output_dxf"]
+    assert any(isinstance(n, ast.Assert) for n in ast.walk(target))
+    assert any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+               and n.func.id == "_export" for n in ast.walk(target))
+    assert len(target.decorator_list) == 2
+    for group in evidence["original_ac_clauses_audited"]:
+        assert group["source_owner"] and len(group["witnesses"]) >= 2
+        for witness in group["witnesses"]:
+            fname, func = witness.split("::")
+            assert fname in PYTEST_PATHS
+            src = ast.parse((ROOT / fname).read_text(encoding="utf-8"))
+            assert any(isinstance(n, ast.FunctionDef) and n.name == func
+                       for n in src.body), witness
+    assert evidence["factory_release"] is False
+    assert evidence["unconditional_mfg2_release"] is False
+    assert evidence["human_windows_uat_claimed"] is False
+    assert evidence["legacy_project_backcompat_removed"] is False
+    assert manifest["counts"]["BLOCKED_1500_REAL_GUI"] == 17
+    assert manifest["counts"]["EVIDENCE_CANDIDATE_ONLY"] == 3
+    assert manifest["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 68
+    assert sum(manifest["counts"].values()) == 88
