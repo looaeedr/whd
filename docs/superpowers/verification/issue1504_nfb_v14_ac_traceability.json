@@ -22,11 +22,11 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 66,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 67,
     "BLOCKED_1500_REAL_GUI": 17,
     "EVIDENCE_CANDIDATE_ONLY": 3,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 1,
-    "DEFERRED_PRODUCT_EVIDENCE": 1
+    "DEFERRED_PRODUCT_EVIDENCE": 0
   },
   "records": [
     {
@@ -2217,22 +2217,86 @@
         1503
       ],
       "regression_candidates": [
-        "tests/test_issue1503_deferred_pad_ear_manufacturing.py"
+        "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+        "tests/test_issue1501_nfb_export_manifest.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "DEFERRED_PRODUCT_EVIDENCE",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
-          "test_name": "test_forged_approved_flag_cannot_override_deferred_role_in_atomic_batch",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1501_nfb_export_manifest.py",
+          "test_name": "test_ac41_actual_current_source_managed_parts_ready_but_pad_ear_still_deferred",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
-      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "post_1503_close_scope": "CLOSED_1503_PART_ONLY_DELIVERED__FULL_CABINET_OR_HISTORICAL_AC_NOT_YET_SIGNED",
+      "historical_pre_current_review": {
+        "status": "DEFERRED_PRODUCT_EVIDENCE",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
+            "test_name": "test_forged_approved_flag_cannot_override_deferred_role_in_atomic_batch",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "SOURCE_SCOPED_ACTUAL_DXF_MANAGED_PARTS_WHOLE_READY_ONLY_IF_ALL_CURRENT_PARTS_LEGAL__ASSEMBLY_REPORT_ALWAYS_DISCLOSES_UNAPPROVED_PAD_EAR",
+        "primary_assertion": "tests/test_issue1501_nfb_export_manifest.py::test_ac41_actual_current_source_managed_parts_ready_but_pad_ear_still_deferred",
+        "other_required_assertions": [
+          "tests/test_issue1501_nfb_export_manifest.py::test_ac41_unsubmitted_legacy_does_not_claim_pad_ear_delivery",
+          "tests/test_issue1501_nfb_export_manifest.py::test_ac44_live_source_partial_must_not_masquerade_as_whole_export",
+          "tests/test_issue1501_nfb_export_manifest.py::test_ac44_partial_manifest_must_not_authorize_forged_blocked_or_nonboolean_row",
+          "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_forged_approved_flag_cannot_override_deferred_role_in_atomic_batch",
+          "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_unapproved_nfb_pad_and_ear_must_not_generate_even_part_only_dxf"
+        ],
+        "original_ac_clauses_audited": [
+          {
+            "requirement": "CONFIGURED 的機器製造就緒只按現行納管的真實 INNER/BASE/SIDE 及來源、碰撞/受影響資格判定；未核准的 BASE 打標/開孔、來源 SHA 失效都不得冒充可完整製造",
+            "source_owner": "ae_engine.receiving_nfb_export_manifest.derive_nfb_partial_export_manifest with actual NFB DXF inspection and saved exact Bay/source",
+            "witnesses": [
+              "tests/test_issue1501_nfb_export_manifest.py::test_ac41_actual_current_source_managed_parts_ready_but_pad_ear_still_deferred",
+              "tests/test_issue1501_nfb_export_manifest.py::test_ac44_live_source_partial_must_not_masquerade_as_whole_export"
+            ]
+          },
+          {
+            "requirement": "即使本期受管制的板件全可合法製造，整套交付報告仍須列 PAD 與 EAR_ATTACHMENT 延期，不得將全部裝配錯誤標為 COMPLETE 或放行 PAD/EAR",
+            "source_owner": "ae_engine.receiving_nfb_export_manifest.NfbPartialExportManifest.report assembly_status/deferred_assembly; ae_engine.manufacturing_export physical PAD/EAR hold",
+            "witnesses": [
+              "tests/test_issue1501_nfb_export_manifest.py::test_ac41_actual_current_source_managed_parts_ready_but_pad_ear_still_deferred",
+              "tests/test_issue1503_deferred_pad_ear_manufacturing.py::test_forged_approved_flag_cannot_override_deferred_role_in_atomic_batch"
+            ]
+          },
+          {
+            "requirement": "未提交專案保留 LEGACY 而不冒稱已提交配置；來源或被影響板件變更需重新診斷並只允許合法部分匯出，偽造 whole_ready 或 report 標籤無製造授權",
+            "source_owner": "ae_engine.receiving_nfb_export_manifest.NfbPartialExportManifest.require_export plus original scope/source checks",
+            "witnesses": [
+              "tests/test_issue1501_nfb_export_manifest.py::test_ac41_unsubmitted_legacy_does_not_claim_pad_ear_delivery",
+              "tests/test_issue1501_nfb_export_manifest.py::test_ac41_actual_current_source_managed_parts_ready_but_pad_ear_still_deferred"
+            ]
+          }
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "independent_pad_manufacturing_approved": false,
+        "entire_pad_ear_assembly_approved": false,
+        "full_cabinet_welding_certified": false,
+        "other_ac_signoff_implied": false,
+        "original_UI_CONFIGURED_human_operated": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "NFB-AC-42",
@@ -4988,7 +5052,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 66/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 23 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 67/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 23 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",

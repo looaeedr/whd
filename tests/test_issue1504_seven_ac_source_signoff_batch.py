@@ -30,7 +30,11 @@ def _rows():
 def test_batch_signoff_seven_require_independent_real_executed_assertions():
     matrix, rows = _rows()
     assert len(matrix["records"]) == 88
-    assert matrix["counts"] == dict(Counter(r["status"] for r in rows.values()))
+    live_counts = dict(Counter(r["status"] for r in rows.values()))
+    # A completed historical deferred bucket is still represented as zero;
+    # preserve exact Counter/readback equality for all positive statuses.
+    live_counts.setdefault("DEFERRED_PRODUCT_EVIDENCE", 0)
+    assert matrix["counts"] == live_counts
     # The original seven-row signature is fixed, but subsequent fully
     # evidenced signoffs legitimately increase the live count past 43.
     # Derive live category totals from all 88 exact rows instead of treating
