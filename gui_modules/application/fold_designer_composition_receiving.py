@@ -2602,16 +2602,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 if setting_value(owner, bi, "inner_door_version_id") != bound_version:
                     return None
                 snapshot = nfb_physical_bay_snapshot(si, bi)
-                from ae_engine.receiving_nfb_committed_final_scene import (
-                    _submitted_csv_holes,
-                )
                 from .receiving_nfb_pair_partial_export_action import (
-                    _verified_csv_v5_export_scope,
+                    current_csv_v5_scope_matches_snapshot,
                 )
-                source = _submitted_csv_holes(snapshot)
-                if not source or _verified_csv_v5_export_scope(
-                    snapshot, source[0], source[1],
-                ) != scope:
+                if not current_csv_v5_scope_matches_snapshot(snapshot, scope):
                     return None
                 if csv_pair_proof_stamps(paired) != stamps:
                     return None
