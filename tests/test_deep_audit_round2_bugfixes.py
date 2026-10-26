@@ -942,3 +942,30 @@ def test_r2_14_switch_ui_adapter_rejects_fractional_or_boolean_connection_delta(
     assert adapter.layout == before
     assert adapter.resize_connections("0", "1") is True
     assert adapter.connection_count(0) == 2
+
+
+@pytest.mark.parametrize("columns", [
+    [[800., [True, 1599.]]],
+    [[799., [1600.]], [True, [1600.]]],
+])
+def test_r2_13_projected_receiving_door_source_cannot_convert_bool_to_one_mm(columns):
+    """Real Bay Door/Divider projection must see the original persisted type."""
+    from ae_engine.receiving_layout import _validate_common_receiving_state
+    data = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2., "fw": 29.,
+        "multi_door_enabled": True, "door_layout_columns": columns,
+        "inner_doors": [],
+    }
+    with pytest.raises(ValueError, match="must not be bool"):
+        _validate_common_receiving_state(data)
+    assert data["door_layout_columns"] == columns
+
+
+def test_r2_13_valid_receiving_door_projection_retains_physical_dimensions():
+    from ae_engine.receiving_layout import _validate_common_receiving_state
+    data = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2., "fw": 29.,
+        "multi_door_enabled": True,
+        "door_layout_columns": [[800., [800., 800.]]], "inner_doors": [],
+    }
+    assert _validate_common_receiving_state(data) is None
