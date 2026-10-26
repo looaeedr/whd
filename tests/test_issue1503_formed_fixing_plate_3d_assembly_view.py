@@ -97,7 +97,13 @@ def test_assembly_scene_contract_contains_only_display_ear_field():
     assert render.assembly_parts == ()  # Not a manufacturing part.
 
 
-def test_actual_renderer_draws_world_ear_skins_without_mesh_grid_lines():
+@pytest.mark.parametrize(
+    ("base_visible", "ear_visible"),
+    ((True, True), (True, False), (False, True), (False, False)),
+)
+def test_actual_renderer_draws_world_ear_skins_without_mesh_grid_lines(
+    base_visible, ear_visible,
+):
     from matplotlib.figure import Figure
     from shapely.geometry import box
     from ae_engine.sheetmetal_drawing import DrawingScene
@@ -122,8 +128,10 @@ def test_actual_renderer_draws_world_ear_skins_without_mesh_grid_lines():
         y_profile=({"len": 10., "core": "D"},),
     )
     scene = AssemblySceneRenderData(
-        assembly_parts=(root,), visible_part_keys=("base_plate",),
+        assembly_parts=(root,),
+        visible_part_keys=("base_plate",) if base_visible else (),
         formed_fixing_plate_skins=formed,
+        show_fixing_plate_mesh=ear_visible,
     )
     request = FinalSceneViewRequest(
         render_data=scene, x_profile=(), y_profile=(),
@@ -131,11 +139,19 @@ def test_actual_renderer_draws_world_ear_skins_without_mesh_grid_lines():
         finished_dimensions=(800., 1600., 350.),
     )
     world = renderer.render(request)
-    assert len(world) > 2
-    assert renderer.last_formed_ear_display_ids == (
+    ear_ids = (
         "base_plate:fixing_plate:left",
         "base_plate:fixing_plate:right",
     )
-    # The overlay is a smooth filled surface (no mesh-grid wire overlay).
-    assert len(axis.collections) >= 3
+    assert renderer.last_formed_ear_display_ids == (
+        ear_ids if ear_visible else ()
+    )
+    # Real renderer: even when no Base Plate is drawn, independently selected
+    # EARs remain smooth meshes. Disabling EAR never removes the Base Plate.
+    minimum_collections = (1 if base_visible else 0) + (2 if ear_visible else 0)
+    assert len(axis.collections) >= minimum_collections
+    if base_visible or ear_visible:
+        assert len(world) > 2
+    else:
+        assert not world
     assert renderer.last_cutting_mesh == world
