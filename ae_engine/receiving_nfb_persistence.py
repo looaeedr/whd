@@ -164,7 +164,19 @@ def normalize_nfb_saved_fields(row):
             and (not isinstance(snapshot["bay_id"], str)
                  or snapshot["bay_id"] != bay_owner)
         )
-        if stale_rotation or stale_model or stale_bay:
+        # Quantity versions have distinct, persistent owners.  A recorded
+        # operator X datum for v1 can NEVER authorize v2 merely because the
+        # cabinet width, model and rotation happen to match.  Old projects
+        # with no explicit version ownership remain legacy-compatible; their
+        # live manufacturing verifier must still bind the selected version.
+        version_owner = row.get("version_id")
+        stale_version = (
+            "version_id" in snapshot
+            and isinstance(version_owner, str) and bool(version_owner)
+            and (not isinstance(snapshot["version_id"], str)
+                 or snapshot["version_id"] != version_owner)
+        )
+        if stale_rotation or stale_model or stale_bay or stale_version:
             hole["manual_x_state"] = "RECONFIRM_REQUIRED"
     physical_width = row.get("width")
     if physical_width is not None:

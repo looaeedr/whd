@@ -807,3 +807,67 @@ def test_swt16_two_real_source_cuttings_require_independent_x_reconfirm_and_coll
             index_path=index, source_path=source, profile=profile,
         )
     assert not invalid_target.exists()
+
+
+def test_ac40_version_scoped_operator_x_cannot_cross_release_and_cancel_is_atomic(tmp_path):
+    """A real verified per-hole X=0 cannot authorize a different version.
+
+    Typed, source-validated inner-door MFG-1 proof; no MFG-2/factory claim.
+    The production backend must reject first, before the operator callback.
+    """
+    from dataclasses import replace as dc_replace
+    from phase6_project_file import write_project, read_project
+    from tests.test_issue1499_nfb_persistence import _payload
+
+    original = layout()
+    frozen = deepcopy(original)
+    source = config(x=0, owner="nfb:0:slot1")
+    source["holes"][0]["datum_snapshot"]["version_id"] = "v1"
+    scope, inventory, door = evidence(original, 0)
+    new_scope = dc_replace(scope, version_id="v2")
+    callbacks = []
+    with pytest.raises(ValueError, match="operator reconfirmation"):
+        submit_nfb_bays(
+            original, set_index=0, bay_indices=(0,), version_id="v2",
+            configs={0: source}, evidence={0: (new_scope, inventory, door)},
+            confirm=lambda preview: callbacks.append(preview) or True,
+        )
+    assert not callbacks and original == frozen
+
+    approved = deepcopy(source)
+    approved["holes"][0]["datum_snapshot"]["version_id"] = "v2"
+    approved["holes"][0]["datum_revision"] = "v2-current-operator"
+    cancelled = submit_nfb_bays(
+        original, set_index=0, bay_indices=(0,), version_id="v2",
+        configs={0: approved}, evidence={0: (new_scope, inventory, door)},
+        confirm=lambda preview: callbacks.append(preview) or False,
+    )
+    assert not cancelled.changed and cancelled.layout == frozen
+    assert not cancelled.receipt and len(callbacks) == 1
+
+    committed = submit_nfb_bays(
+        original, set_index=0, bay_indices=(0,), version_id="v2",
+        configs={0: approved}, evidence={0: (new_scope, inventory, door)},
+        confirm=lambda preview: callbacks.append(preview) or True,
+    )
+    assert committed.changed and len(callbacks) == 2
+    assert committed.preview.action == "SUBMIT"
+    bay = committed.layout["sets"][0]["bays"][0]
+    assert bay["nfb_config_submitted"] is True
+    selected = bay["nfb_config"]["holes"][0]
+    assert selected["manual_x_mm"] == 0
+    assert selected["manual_x_state"] == "CONFIRMED"
+    assert selected["datum_snapshot"]["version_id"] == "v2"
+    assert original == frozen
+
+    file = write_project(
+        tmp_path / "ac40-current-verified-version.p6fold",
+        _payload(committed.layout),
+    )
+    fresh = read_project(file)["snapshot"]["receiving_layout"]
+    saved_hole = fresh["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+    assert saved_hole["manual_x_state"] == "CONFIRMED"
+    assert saved_hole["datum_snapshot"]["version_id"] == "v2"
+    assert saved_hole["manual_x_mm"] == 0
+    assert fresh["sets"][0]["bays"][1] == original["sets"][0]["bays"][1]
+    assert undo_nfb_transaction(committed.layout, committed.receipt) == original
