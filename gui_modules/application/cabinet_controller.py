@@ -297,6 +297,11 @@ def on_baseline_changed(self):
     except Exception as e:
         messagebox.showerror("基準檔載入出錯", f"無法讀取基準檔參數: {e}")
 
+    # Known-family return must publish the rebuilt Box Body, not just restore
+    # dimension widgets. Receiving/custom paths request their own redraw above;
+    # Vault reaches this point after its baseline features have been loaded.
+    self._request_phase6_update("baseline")
+
     # STOCK 開關變動時也觸發重繪 (Checkbutton 已用 command 綁定，此處不需重複)
 
 def get_float_values(self):
