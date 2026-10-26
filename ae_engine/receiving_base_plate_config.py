@@ -43,9 +43,14 @@ def _source_brand_anchored_center_pair(data):
     from .receiving_tier_ear_z_targets import (
         _current_brand_config, committed_receiving_ear_brand_max_depth_mm,
     )
-    _, submitted = _current_brand_config(data)
+    try:
+        _, submitted = _current_brand_config(data)
+    except ValueError:
+        # A stale/transitioning Bay may be previewed but never owns source
+        # geometry or brand Z; retain the existing explicit identity gates.
+        return None
     if submitted != config:
-        raise ValueError("RECEIVING_CENTER_BRAND_ANCHOR_BAY_DRIFT")
+        return None
     depths = []
     for hole in holes:
         if not isinstance(hole, Mapping):
@@ -63,6 +68,42 @@ def _source_brand_anchored_center_pair(data):
     if maximum - depths[0] <= float(data.get("t", 0)):
         return None
     return maximum, depths[0]
+
+
+
+def _source_two_tier_brand_anchored_center_pair(data):
+    """Recognize independent NFB tiers needing brand-max fixed-ear returns.
+
+    This pair licenses the CENTER source blank shape. Its actual depth pair,
+    signed 3D fold, and placement are re-derived SEPARATELY for each tier.
+    It never merges two tiers into one shared part or grants DXF approval.
+    """
+    config = data.get("nfb_config")
+    if (data.get("nfb_config_submitted") is not True
+            or not isinstance(config, Mapping)
+            or type(config.get("layer_count")) is not int
+            or config.get("layer_count") != 2):
+        return None
+    from .receiving_tier_ear_z_targets import (
+        _current_brand_config, _tier_source_depths,
+        committed_receiving_ear_brand_max_depth_mm,
+    )
+    try:
+        legacy_brand, submitted = _current_brand_config(data)
+        if submitted != config:
+            return None
+        maximum = committed_receiving_ear_brand_max_depth_mm(data)
+    except ValueError:
+        return None
+    depths = tuple(_tier_source_depths(legacy_brand, config, i) for i in (0, 1))
+    # A layer may have many of the SAME NFB, but a mix of clearances in
+    # one CENTER web requires independently proven stepped holes or PAD.
+    if any(len(source) != 1 for source in depths):
+        return None
+    shallower = min(source[0] for source in depths)
+    if maximum-shallower <= float(data.get("t", 0)):
+        return None
+    return maximum, shallower
 
 
 def _source_center_base_config(data):
@@ -86,6 +127,8 @@ def _source_center_base_config(data):
     pair = _source_brand_anchored_center_pair(data)
     if pair is None:
         pair = committed_receiving_nfb_depth_pair_mm(data)
+    if pair is None:
+        pair = _source_two_tier_brand_anchored_center_pair(data)
     if pair is None:
         return None
     if isinstance(data.get("t"), bool) or isinstance(data.get("w"), bool):
