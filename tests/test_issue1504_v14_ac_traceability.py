@@ -2149,6 +2149,30 @@ def test_ac07_ac43_ac35_ac45_ac56_exact_native_tk_functional_signoff():
     assert not any(ac in remaining for ac in expected)
 
 
+def _test_function_has_assert_or_expected_exception(function):
+    """Require a real Python assertion OR an explicit pytest.raises negative.
+
+    A production fail-closed test commonly checks rejection using
+    `with pytest.raises(..., match=...):` and has no bare `assert`.
+    Inspect that concrete AST, rather than treating the test as assertion-free
+    or replacing the exception contract with a meaningless dummy assert.
+    """
+    for node in ast.walk(function):
+        if isinstance(node, ast.Assert):
+            return True
+        if isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                call = item.context_expr
+                if (isinstance(call, ast.Call)
+                        and isinstance(call.func, ast.Attribute)
+                        and call.func.attr == "raises"
+                        and isinstance(call.func.value, ast.Name)
+                        and call.func.value.id == "pytest"
+                        and call.args):
+                    return True
+    return False
+
+
 def test_ac46_real_reopened_submitted_nfb_never_legacy_dxf_source_signoff():
     """The cancelled second project B is never a proxy for real AC-46 proof."""
     from tools.product_ci_regression import PYTEST_PATHS
@@ -2192,8 +2216,7 @@ def test_ac46_real_reopened_submitted_nfb_never_legacy_dxf_source_signoff():
         matches = [n for n in nodes if isinstance(n, ast.FunctionDef)
                    and n.name == fn]
         assert len(matches) == 1
-        assert any(isinstance(n, ast.Assert)
-                   for n in ast.walk(matches[0]))
+        assert _test_function_has_assert_or_expected_exception(matches[0]), witness
 
 
 def test_ac53_versioned_mfg1_current_capability_requires_real_native_source():
@@ -2237,4 +2260,4 @@ def test_ac53_versioned_mfg1_current_capability_requires_real_native_source():
         actual = [n for n in tree.body if isinstance(n, ast.FunctionDef)
                   and n.name == fn]
         assert len(actual) == 1, witness
-        assert any(isinstance(n, ast.Assert) for n in ast.walk(actual[0])), witness
+        assert _test_function_has_assert_or_expected_exception(actual[0]), witness
