@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from ae_engine.assembly_placement import AssemblyPlacement, resolve_assembly_placement
+from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.cabinet_types import receiving as receiving_family
 from ae_engine.sheetmetal_feature_core import CircleFeature, RectFeature, FeatureAnchor
 from ae_engine.sheetmetal_geometry import Vec2
@@ -139,7 +140,13 @@ def _canonical_round_trip_workspace():
         'active_part': 'head',
         'part_profiles': {'head': {'X': [{'len': 25.0}], 'Y': []}, 'door': {'X': [{'len': 20.0}], 'Y': []}},
         'box_body_profile': build_box_body_profile({'w': 800.0, 'd': 350.0, 'zl1': 15.0, 'zl2': 15.0, 'zr1': 15.0, 'zr2': 15.0}),
-        'box_body_structure': normalize_box_body_structure_state({'active_type': 'integral', 'locked': False}),
+        # Receiving is family-owned side/back-split (locked). Derive the
+        # operator's true canonical structure from CURRENT family policy,
+        # rather than hand-crafting a Vault-style integral test snapshot.
+        'box_body_structure': cabinet_family_policy.resolve_box_body_structure_state(
+            {'model': '受電箱', 't': 2.0},
+            normalize_box_body_structure_state({'active_type': 'integral', 'locked': False}),
+        ),
         # Canonical Hole Editor features, not retired ad-hoc hole dictionaries.
         # Save/Reload must preserve physical identity, position and dimensions.
         'part_features': {'head': [CircleFeature(
