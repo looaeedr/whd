@@ -566,10 +566,10 @@ def _validate_common_receiving_state(snapshot: Mapping[str, object]) -> None:
     data = dict(snapshot or {})
     if not bool(data.get("multi_door_enabled", False)):
         return
-    columns = tuple(
-        (float(row[0]), tuple(float(v) for v in row[1]))
-        for row in tuple(data.get("door_layout_columns") or ())
-    )
+    # Keep persisted Door width/height types until the single canonical
+    # validator. float(True) would otherwise fabricate a physical 1-mm cell
+    # and bypass the downstream Door and Divider boolean-dimension guards.
+    columns = tuple(data.get("door_layout_columns") or ())
     if not columns:
         raise ValueError("enabled Door topology requires door_layout_columns")
 
