@@ -873,3 +873,80 @@ def test_ac51_swt30_numeric_model_preview_without_successful_export_has_no_scope
     )
     assert preview.verified_v5_scope is None
     assert preview.scope == "CSV_PAIR_PART_ONLY_NOT_WHOLE_CABINET"
+
+
+def test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift(
+    tmp_path, monkeypatch,
+):
+    """Only an ACTUALLY written+reopened CSV V5 physical pair can be labelled.
+
+    The proof is ephemeral UI-only; changing W/N/model/X/Y/rotation, source
+    CSV, Bay identity or saved DXF bytes revokes the positive label. A
+    preview/complete model alone can never manufacture another copy.
+    """
+    from gui_modules.application import receiving_nfb_verified_scope_display as display
+    from gui_modules.application.receiving_nfb_pair_partial_export_action import (
+        NfbCsvPairedPartOnlyDxf,
+    )
+
+    saved = _current()
+    receipt = _export(saved, _scene(saved), tmp_path)
+    verified = display.capture_verified_v5_pair_display(saved, receipt)
+    assert verified is not None
+    assert verified.scope == receipt.verified_v5_scope
+    assert "可製造（內門）" in display.verified_v5_model_operator_label(
+        verified, saved, "士林", "nfbv5:士林:2P400",
+    )
+    assert "僅本次真實出圖已驗證" in verified.scope.operator_label
+    assert display.verified_v5_model_operator_label(
+        verified, saved, "士林", "nfbv5:士林:2P125SN",
+    ) is None
+    assert display.verified_v5_model_operator_label(
+        verified, saved, "東元", "nfbv5:士林:2P400",
+    ) is None
+    assert display.verified_v5_model_operator_label(
+        None, saved, "士林", "nfbv5:士林:2P400",
+    ) is None
+    # Only exact real writer receipts qualify. A source-only model preview
+    # or a typed receipt lacking saved geometry does not produce a green.
+    fake = NfbCsvPairedPartOnlyDxf(
+        inner_door_path=receipt.inner_door_path,
+        base_plate_path=receipt.base_plate_path,
+        source_hole_ids=receipt.source_hole_ids,
+        check_q_key=receipt.check_q_key,
+        verified_v5_scope=None,
+    )
+    assert display.capture_verified_v5_pair_display(saved, fake) is None
+    for mutate in (
+        lambda x: x.update(w=750),
+        lambda x: x["nfb_config"]["holes"][0].update(manual_x_mm=-145.),
+        lambda x: x["nfb_config"]["holes"][0].update(rotation_deg=90),
+        lambda x: x["nfb_config"]["holes"][0].update(
+            model_filename="nfbv5:士林:2P125SN"
+        ),
+        lambda x: x["_receiving_runtime_selection"].update(bay_id="wrong"),
+        lambda x: x["nfb_config"].update(layer_heights_mm=[390., 830.]),
+    ):
+        changed = deepcopy(saved)
+        mutate(changed)
+        assert display.verified_v5_model_operator_label(
+            verified, changed, "士林", "nfbv5:士林:2P400",
+        ) is None
+    # Even the same authoritative project cannot point to modified source
+    # or a replaced generated file and display a historic green.
+    from ae_engine.receiving_nfb_numeric_catalog import brand_csv_path
+    imported = brand_csv_path("士林").read_bytes()
+    source_copy = tmp_path / "NFB數值規格.csv"
+    source_copy.write_bytes(imported + b"\n# SOURCE_CHANGED")
+    monkeypatch.setattr(display, "brand_csv_path", lambda _brand: source_copy)
+    assert display.verified_v5_model_operator_label(
+        verified, saved, "士林", "nfbv5:士林:2P400",
+    ) is None
+    monkeypatch.undo()
+    base = Path(receipt.base_plate_path)
+    base.write_bytes(base.read_bytes() + b"\n# TAMPER")
+    assert display.verified_v5_model_operator_label(
+        verified, saved, "士林", "nfbv5:士林:2P400",
+    ) is None
+    # Actual file bytes and selected scope are not saved in .p6fold.
+    assert "verified_pair_exports" not in saved
