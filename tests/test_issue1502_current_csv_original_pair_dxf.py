@@ -433,3 +433,116 @@ def test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallbac
     with pytest.raises((ValueError, KeyError)):
         _scene(saved)
     assert not list(tmp_path.rglob("*.dxf"))
+
+
+@pytest.mark.parametrize("rotation", (0, 90, 180, 270))
+def test_ac11_current_numeric_v5_two_models_real_pivot_and_upper_door_lower_base_dxf(
+    rotation, tmp_path, monkeypatch,
+):
+    """Current V5 main-hole pivot is per model's CSV opening centre at actual UV.
+
+    No original per-model DXF ARC/CIRCLE/color/handle is mandatory. Confirm
+    two independently selected CSV models + live world X, four rotations,
+    one main CUTTING per model in true INNER-DOOR DXF, 8 screw CUTTING
+    circles on real BASE DXF, native FinalScene equality and no double cut.
+    Historic model-DXF parser is forbidden for this CURRENT route.
+    """
+    from ae_engine import receiving_nfb_dxf_source as legacy
+    from ae_engine import receiving_nfb_manufacturing_release as legacy_release
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from ae_engine.receiving_nfb_model_identity import (
+        parse_numeric_model_ref, selected_numeric_spec,
+    )
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive, CirclePrimitive
+
+    def unexpected_legacy(*args, **kwargs):
+        pytest.fail("V5 main-pivot/physical export called old NFB model DXF")
+
+    monkeypatch.setattr(legacy, "inspect_nfb_dxf_source", unexpected_legacy)
+    monkeypatch.setattr(legacy_release, "inspect_nfb_dxf_source", unexpected_legacy)
+
+    snap = _current()
+    selected = snap["nfb_config"]["holes"]
+    assert len(selected) == 2
+    # Distinct declared world X; if the old source drawing/global origin
+    # were used as a pivot, these saved positions could not match output.
+    assert [h["manual_x_mm"] for h in selected] == [-150.0, 150.0]
+    selected[1]["rotation_deg"] = rotation
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    inner_id, holes = _submitted_csv_holes(snap)
+    assert len(holes) == 2
+    trial = trial_configured_nfb_v5_inner_door_render_data(
+        snap, inner_id, holes=holes,
+    )
+    assert trial.hole_ids == tuple(h.physical_hole_id for h in holes)
+    assert len(trial.patterns) == 2
+    for pattern, hole in zip(trial.patterns, holes):
+        ref = parse_numeric_model_ref(hole.model_ref)
+        assert ref is not None and ref[0] == pattern.brand
+        spec = selected_numeric_spec(pattern.brand, hole.model_ref)
+        assert spec is not None and spec.dimensionally_complete
+        assert pattern.model == ref[1]
+        assert pattern.opening_uv_mm is not None
+        assert pattern.screw_centres_uv_mm is None
+        assert pattern.status != "MANUFACTURING_READY"
+        corners = pattern.opening_uv_mm
+        cx = (min(p[0] for p in corners)+max(p[0] for p in corners))/2
+        cy = (min(p[1] for p in corners)+max(p[1] for p in corners))/2
+        assert (cx, cy) == pytest.approx(pattern.datum.uv_centre_mm)
+        assert pattern.datum.uv_axis_x in ((1,0), (0,1), (-1,0), (0,-1))
+        assert pattern.datum.uv_axis_y in ((0,1), (-1,0), (0,-1), (1,0))
+
+    actual_scene = _scene(snap)
+    receipt = _export(snap, actual_scene, tmp_path)
+    assert receipt.source_hole_ids == tuple(h.physical_hole_id for h in holes)
+    assert len(list(tmp_path.glob("*.dxf"))) == 2
+
+    def points(poly):
+        return tuple((round(float(x), 5), round(float(y), 5))
+                     for x,y in poly.get_points("xy"))
+
+    door = ezdxf.readfile(receipt.inner_door_path).modelspace()
+    loops = [entity for entity in door
+             if entity.dxftype() == "LWPOLYLINE" and entity.closed
+             and entity.dxf.layer == "CUTTING"]
+    # Use exact rotated vertices, not only bounding-box and nominal pitch.
+    expected = [tuple(sorted((round(x, 5), round(y, 5))
+                             for x,y in pattern.opening_uv_mm))
+                for pattern in trial.patterns]
+    matches = [tuple(sorted(points(poly))) for poly in loops]
+    for outline in expected:
+        assert matches.count(outline) == 1
+    assert len(set(expected)) == 2
+    native_door = next(p.render_data for p in actual_scene
+                       if p.part_key == trial.part_id)
+    native_loops = [p for p in native_door.scene.primitives
+                    if isinstance(p, PolylinePrimitive)
+                    and p.closed and p.layer == "CUTTING"]
+    assert len(native_loops) == len(loops)
+
+    base = ezdxf.readfile(receipt.base_plate_path).modelspace()
+    saved_screws = sorted(
+        (round(float(ent.dxf.center.x), 5),
+         round(float(ent.dxf.center.y), 5),
+         round(float(ent.dxf.radius), 5))
+        for ent in base if ent.dxftype() == "CIRCLE"
+        and ent.dxf.layer == "CUTTING"
+    )
+    native_base = next(p.render_data for p in actual_scene
+                       if p.part_key == "base_plate")
+    from_scene = sorted(
+        (round(float(p.center.x), 5), round(float(p.center.y), 5),
+         round(float(p.radius), 5))
+        for p in native_base.scene.primitives
+        if isinstance(p, CirclePrimitive)
+        and p.source_type == "NFB_V5_NUMERIC_BASE_TRIAL"
+    )
+    assert len(saved_screws) == len(from_scene) == 8
+    assert saved_screws == from_scene
+    # This is physical source-scoped partial output, NOT automatic MFG2 PAD.
+    assert not list(tmp_path.glob("*PAD*.dxf"))

@@ -174,6 +174,7 @@ def test_manifest_review_summary_is_recomputed_from_records():
     # The last historical deferred AC may be source-signed. The original
     # four identities stay audited, while the current live count is zero.
     counts.setdefault("DEFERRED_PRODUCT_EVIDENCE", 0)
+    counts.setdefault("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC", 0)
     assert sum(counts.values()) == 88
     assert obj["counts"] == counts
     # Four original deferred identities are immutable. Their *current*
@@ -321,6 +322,7 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     # signoff updates only current matrix, not the 2026-10-22 audit date.
     live_counts = dict(Counter(r["status"] for r in d["records"]))
     live_counts.setdefault("DEFERRED_PRODUCT_EVIDENCE", 0)
+    live_counts.setdefault("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC", 0)
     assert d["counts"] == live_counts
     assert sum(d["counts"].values()) == 88
     assert d["counts"]["BLOCKED_1500_REAL_GUI"] == 17
@@ -1851,14 +1853,35 @@ def test_all_current_nfb_v5_source_supersessions_keep_88_originals_and_legacy_sc
     for ident in ("NFB-AC-11", "NFB-AC-51"):
         record = rows[ident]
         assert record["identified_test_functions"][0]["path"] == current_runtime
-        assert record["identified_test_functions"][0]["accepted"] is False
         assert record["historical_legacy_witness_before_20261026"]["path"].endswith(
             "test_issue1496_nfb_dxf_source.py"
         )
+        if ident == "NFB-AC-11" and record["accepted"]:
+            assert record["identified_test_functions"][0]["test_name"] == (
+                "test_ac11_current_numeric_v5_two_models_real_pivot_and_upper_door_lower_base_dxf"
+            )
+            proof = record["acceptance_evidence"]
+            assert proof["original_ac_text_unchanged"] is True
+            assert proof["current_csv_v5_authority_explicit"] is True
+            assert proof["original_legacy_dxf_optional_for_v5"] is True
+            assert proof["physical_pivot_and_four_rotations_verified"] is True
+            assert proof["real_two_model_door_base_output_reopened"] is True
+            assert proof["factory_release"] is False
+            assert proof["physical_absolute_position_grant"] is False
+            assert proof["human_windows_uat_claimed"] is False
+        else:
+            assert record["identified_test_functions"][0]["accepted"] is False
+    if rows["NFB-AC-11"]["accepted"]:
+        assert rows["NFB-AC-11"]["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert rows["NFB-AC-11"]["acceptance_evidence"][
+            "other_w_n_y_approved"
+        ] is False
+        assert rows["NFB-AC-11"]["acceptance_evidence"][
+            "other_ac_signoff_implied"
+        ] is False
     # Current V5 input audit must not silently waive the remaining independent
     # positioning, source-drift, old-project GUI and production gates.
     for ident, expected in {
-        "NFB-AC-11": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
         "NFB-AC-51": "EVIDENCE_CANDIDATE_ONLY",
         "SWT-AC-27": "EVIDENCE_CANDIDATE_ONLY",
         "SWT-AC-30": "EVIDENCE_CANDIDATE_ONLY",
