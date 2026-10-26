@@ -582,3 +582,11 @@ def test_bug68_polygon_parts_recursively_flattens_nested_geometry_collections():
     nested = GeometryCollection([MultiPolygon([p1, p2])])
     parts = _polygon_parts(nested)
     assert len(parts) == 2
+
+@pytest.mark.parametrize("bad", [True, False, 1.0, 2.0, "1", "2"])
+def test_r4_58_inner_door_layer_count_cannot_keep_a_noninteger_source(bad):
+    from ae_engine.receiving_shared_settings import validate_setting
+    with pytest.raises(ValueError, match="內門層數必須為 1 或 2"):
+        validate_setting("inner_door_layers", bad)
+    assert validate_setting("inner_door_layers", 1) == 1
+    assert validate_setting("inner_door_layers", 2) == 2

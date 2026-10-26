@@ -97,7 +97,9 @@ def validate_setting(kind, value):
         ):
             raise ValueError("不合法的已套用版本編號")
     elif kind == "inner_door_layers":
-        if value not in (1, 2) or isinstance(value, bool):
+        # Stored physical layer count is a JSON integer, never 1.0 or 2.0.
+        # Python's numeric equality would otherwise accept a float as an int.
+        if type(value) is not int or value not in (1, 2):
             raise ValueError("內門層數必須為 1 或 2")
     elif kind == "inner_door_models":
         value = switch_model_layers(value)
