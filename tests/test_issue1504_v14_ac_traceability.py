@@ -2261,3 +2261,66 @@ def test_ac53_versioned_mfg1_current_capability_requires_real_native_source():
                   and n.name == fn]
         assert len(actual) == 1, witness
         assert _test_function_has_assert_or_expected_exception(actual[0]), witness
+
+
+def test_ac36_swt07_current_quantity_and_native_bay_copy_has_full_source_witnesses():
+    """Two original ACs, exact real tests, not an invented second old project."""
+    from tools.product_ci_regression import PYTEST_PATHS
+
+    obj = _data()
+    assert obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 80
+    assert obj["counts"]["BLOCKED_1500_REAL_GUI"] <= 8
+    rows = {r["id"]: r for r in obj["records"]}
+    primary = (
+        "tests/test_issue1504_batched_current_nfb_transactions.py"
+        "::test_ac36_swt07_unconfigured_and_committed_quantity_clones_remain_independent_on_disk"
+    )
+    check_confirmed_zero = (
+        "tests/test_issue1504_batched_current_nfb_transactions.py"
+        "::test_ac36_swt07_confirmed_zero_is_revoked_on_quantity_copy_not_erased"
+    )
+    native_tk = (
+        "tests/test_issue1500_nfb_operator_gui_transactions.py"
+        "::test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen"
+    )
+    for key in ("NFB-AC-36", "SWT-AC-07"):
+        row = rows[key]
+        assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert row["accepted"] is True and not row["blocking_issues"]
+        assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
+        assert row["identified_test_functions"] == [{
+            "path": primary.split("::")[0],
+            "test_name": primary.split("::")[1],
+            "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+            "accepted": True,
+        }]
+        proof = row["acceptance_evidence"]
+        assert proof["primary_assertion"] == primary
+        assert check_confirmed_zero in proof["other_required_assertions"]
+        assert native_tk in proof["other_required_assertions"]
+        assert len(proof["requirement_witnesses"]) == 3
+        assert len(proof["other_required_assertions"]) >= 8
+        assert proof["strict_source_scoped_quantity_copy"] is True
+        assert proof["typed_test_nfb_source_not_manufacturer_authority"] is True
+        assert proof["user_cancelled_second_legacy_project_prerequisite"] is True
+        assert proof["original_ac_text_unchanged"] is True
+        assert proof["source_sha_pins_unchanged"] is True
+        for denied in (
+            "factory_release", "unconditional_mfg2_release",
+            "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+            "integrated_localx_claimed", "formal_x_published",
+            "other_ac_signoff_implied", "physical_absolute_position_grant",
+            "original_manufacturer_dxf_certified",
+        ):
+            assert proof[denied] is False, (key, denied)
+        for witness in [primary, *proof["other_required_assertions"]]:
+            path, fn = witness.split("::")
+            assert path in PYTEST_PATHS, witness
+            tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+            funcs = [node for node in tree.body
+                     if isinstance(node, ast.FunctionDef) and node.name == fn]
+            assert len(funcs) == 1, witness
+            assert _test_function_has_assert_or_expected_exception(funcs[0]), witness
+    pending = [r for r in obj["records"] if not r["accepted"]]
+    assert len(pending) == obj["counts"]["BLOCKED_1500_REAL_GUI"]
+    assert not any(r["id"] in ("NFB-AC-36", "SWT-AC-07") for r in pending)
