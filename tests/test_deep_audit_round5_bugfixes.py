@@ -773,3 +773,37 @@ def test_r5_94_absent_and_readonly_indicator_mapping_keep_existing_defaults():
     assert normalized["enabled"] is True
     assert normalized["layers"] == 2
     assert normalized["groups"][:2] == [3, 3]
+
+
+@pytest.mark.parametrize("bad_face", [
+    (),
+    ((0., 0., 0.),),
+    ((0., 0., 0.), (2., 0., 0.)),
+])
+def test_r5_74_partial_real_3d_face_cannot_disappear_before_finished_dimensions(bad_face):
+    """A malformed supplied FinalScene face is not a missing whole mesh."""
+    from ae_engine.display_dimensions import folded_outside_envelope
+    valid = ((0., 0., 0.), (4., 0., 0.), (0., 2., 0.))
+    for mesh in ((bad_face,), (valid, bad_face)):
+        with pytest.raises(ValueError, match="FOLDED_ENVELOPE_INVALID_WORLD_MESH"):
+            folded_outside_envelope(mesh, 2.)
+        with pytest.raises(ValueError, match="FOLDED_ENVELOPE_INVALID_WORLD_MESH"):
+            resolve_operator_finished_dimensions(
+                "box_body", snapshot={"w": 800., "h": 1600., "d": 350.},
+                triangles=mesh, thickness=2.,
+            )
+
+
+@pytest.mark.parametrize("bad_thickness", [
+    True, False, -1., float("nan"), float("inf"), 10 ** 400,
+])
+def test_r5_74_mesh_envelope_cannot_disguise_nonphysical_explicit_thickness(bad_thickness):
+    from ae_engine.display_dimensions import folded_outside_envelope
+    mesh = (((0., 0., 0.), (4., 0., 0.), (0., 2., 0.)),)
+    with pytest.raises(ValueError, match="FOLDED_ENVELOPE_INVALID_WORLD_MESH"):
+        folded_outside_envelope(mesh, bad_thickness)
+    # Real T2 face normal still adds exactly 2 mm to each Z side.
+    measured, _bounds = folded_outside_envelope(mesh, 2.)
+    assert measured == pytest.approx((4., 2., 4.))
+    # No mesh is an intentionally valid preview-only fallback.
+    assert folded_outside_envelope((), None) is None
