@@ -873,3 +873,54 @@ def test_ac51_swt30_numeric_model_preview_without_successful_export_has_no_scope
     )
     assert preview.verified_v5_scope is None
     assert preview.scope == "CSV_PAIR_PART_ONLY_NOT_WHOLE_CABINET"
+
+
+def test_ac51_swt30_exact_live_selector_scope_revokes_on_model_x_bay_width_change(tmp_path):
+    """Only the exact source-resolved/current real output may be shown GREEN.
+
+    The predicate is display-only; the existing physical exporter retains
+    absolute independent manufacture authority.
+    """
+    from gui_modules.application.receiving_nfb_pair_partial_export_action import (
+        current_csv_v5_scope_matches_snapshot,
+    )
+    snap = _current()
+    root = tmp_path / "real_scope"
+    root.mkdir()
+    paired = _export(snap, _scene(snap), root)
+    scope = paired.verified_v5_scope
+    assert scope is not None
+    assert current_csv_v5_scope_matches_snapshot(snap, scope)
+    assert not current_csv_v5_scope_matches_snapshot(snap, None)
+    assert not current_csv_v5_scope_matches_snapshot(
+        {"model": "受電箱"}, scope,
+    )
+
+    def altered(mutator):
+        value = deepcopy(snap)
+        mutator(value)
+        return value
+
+    def world_x_changed(value):
+        value["nfb_config"]["holes"][1]["manual_x_mm"] += 15.
+        value["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+            value["nfb_config"]
+        )
+
+    def model_changed(value):
+        value["nfb_config"]["holes"][1]["model_filename"] = "nfbv5:士林:2P125SN"
+        value["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+            value["nfb_config"]
+        )
+
+    def wrong_bay(value):
+        value["_receiving_runtime_selection"]["bay_id"] = "OTHER"
+
+    def wrong_width(value):
+        value["w"] = 750.0
+
+    for operation in (world_x_changed, model_changed, wrong_bay, wrong_width):
+        assert not current_csv_v5_scope_matches_snapshot(
+            altered(operation), scope,
+        )
+    assert current_csv_v5_scope_matches_snapshot(snap, scope)
