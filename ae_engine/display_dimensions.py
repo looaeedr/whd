@@ -50,9 +50,12 @@ def folded_outside_envelope(triangles, thickness):
     # display or manufacturing CHECK dimension. float(True) is not 1 mm.
     try:
         source_tris = [tuple(tri) for tri in (triangles or ())]
-        source_tris = [tri for tri in source_tris if len(tri) >= 3]
         if not source_tris:
             return None
+        # A supplied but incomplete physical face cannot be silently dropped,
+        # even when a second valid face would yield an apparent finished size.
+        if any(len(tri) < 3 for tri in source_tris):
+            raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH")
         tris = []
         for tri in source_tris:
             raw_points = tuple(tuple(pt) for pt in tri[:3])
@@ -82,7 +85,19 @@ def folded_outside_envelope(triangles, thickness):
             continue
         for axis in range(3):
             normal_extent[axis] = max(normal_extent[axis], abs(n[axis] / mag))
-    t = max(0.0, _number(thickness, 0.0))
+    # Only missing T can use the neutral mesh envelope; an explicitly saved
+    # invalid T must not shrink physical finished dimensions to zero thickness.
+    if thickness is None:
+        t = 0.0
+    else:
+        if isinstance(thickness, bool):
+            raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH")
+        try:
+            t = float(thickness)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH") from exc
+        if not math.isfinite(t) or t < 0.0:
+            raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH")
     bounds = tuple(
         (mins[axis] - t * normal_extent[axis], maxs[axis] + t * normal_extent[axis])
         for axis in range(3)
