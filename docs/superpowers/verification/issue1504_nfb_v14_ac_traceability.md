@@ -4,6 +4,16 @@ whd_contract: issue1504-nfb-v14-ac-traceability
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
+## 2026-10-26 台灣｜#1504 NFB-AC-34 原生 UI-1B 提交／複製的真 MFG-1 守衛及 DRAFT Save→Reload（80→81 候選）
+
+- **原始 §7 AC-34 原文維持不變**：沒有當次物理來源 MFG-1，真 Tk `確認套用 NFB` 和提交型 `複製至其他連` 必須停用，按下不能變更 Bay。僅有 verified inner-door 切割及來源完整的 MFG-1 具提交資格，而不是 GUI 任意設旗標。
+- **正反操作實際路徑**：新 `test_ac34_native_verified_submit_and_first_copy_cancel_partial_draft_disk_roundtrip` 用現行 `derive_nfb_part_readiness` 求 live 權限，真原生 Tk 高亮連位→原 `ReceivingSetBayAdapter`→MFG-1 提交的物理預覽顯示中隔尚未放行；第一次取消保持 `UNCONFIGURED` 與空 Undo，確認後記錄 Bay 0 NFBConfig／X=0。對未配置 Bay 1 禁止無來源複製；獨立驗證 target X=100 後才顯示提交型複製，取消完全不動；第二次確認寫入獨立 submitted Bay。
+- **DRAFT 保護**：`INNER_DOOR` MFG-1 源證據 READY 並不提供另一實體 `MIDDLE_PLATE` MFG-2 授權；即使提交成功，`derive_nfb_part_readiness` 仍 BLOCKED middle，真正包含該板件的完整製造請求必須拒絕。真 `write_project/read_project` V3 Save→Reload 逐 Bay 保留兩筆 submitted 與 X=0／100，不可保存虛假的 `READY` 製造旗標。
+- **審核限制**：本次來源為既有 typed CUTTING test fixture，不是假稱原廠全面 DXF 或 Windows 人工 UAT；數量／PAD／焊接／完整 NC 仍需獨立證據。沒有第二份舊「專案 B」前置。
+- **尚未正式算已簽**：此 PR 是 **81／88 候選、7 項待驗**；必須 exact HEAD 完整 Product Regression 5／5 GREEN、與最新 `localX` 安全合併、blob readback 才能正式認列。正式 X 只由使用者 `/推推` 發布。
+
+---
+
 
 ## 2026-10-26 台灣｜#1504 NFB-AC-36／SWT-AC-07 原生 Bay ＋數量版本複製真存檔候選（78→80）
 
