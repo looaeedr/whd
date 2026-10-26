@@ -92,7 +92,9 @@ def test_each_tier_uses_identical_real_skin_z_formula_and_own_source_depth():
         assert row.target_ear_contact_world_z_mm == pytest.approx(
             depths[0].base_back_skin_world_z_mm
         )
-        assert row.base_skin_z_source_verified == (row.layer_index == 0)
+        # Each tier uses its own CENTER return; both installed support skins
+        # now land on the fixed brand maximum Z, not on selected-model Z.
+        assert row.base_skin_z_source_verified
         assert not row.source_bend_verified
         assert not row.formed_weld_contact_verified
         assert not row.side_plate_marking_export_approved
@@ -245,7 +247,8 @@ def test_brand_max_ear_contact_is_invariant_when_selected_tier_depth_changes():
     assert [row.target_ear_contact_world_z_mm for row in shallow] == pytest.approx(
         [row.target_ear_contact_world_z_mm for row in original]
     )
-    # The pre-existing base skin at 68 mm is not yet compensated; do not
-    # certify base-to-ear contact or manufacture until a real PAD/fold exists.
-    assert all(not row.base_skin_z_source_verified for row in shallow)
+    # Both 68-mm tiers must rebuild their own CENTER support returns to
+    # the unchanged 107-mm ear anchor, even though the core working skins
+    # have 68-mm NFB clearances.  This is not a weld/MFG release.
+    assert all(row.base_skin_z_source_verified for row in shallow)
     assert all(not row.manufacturing_ready for row in shallow)
