@@ -144,7 +144,7 @@ def _canonical_round_trip_workspace():
         'part_features': {'head': [CircleFeature(
             diameter=10.0, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
             offset=Vec2(50.0, 50.0), source_type='圓形',
-        )]},
+        )], 'tail': []},
         'part_face_features': {'box_body': {'top': [RectFeature(
             width=10.0, height=10.0, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
             offset=Vec2(20.0, 20.0), source_type='方形',
