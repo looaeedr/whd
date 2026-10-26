@@ -753,6 +753,7 @@ def test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen(
     previews = []
     warnings = []
     target_ready = {"value": True}
+    source_invalid = {"value": False}
     new_world_x = {"value": 100}
     root = tk.Tk()
     root.geometry("800x600+0+0")
@@ -798,7 +799,10 @@ def test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen(
             result = adapter.copy_submitted_nfb_to_bay(
                 set_index=si, source_bay_index=0, target_bay_index=1,
                 version_id="v1", target_config=target,
-                evidence=evidence(adapter.layout, 1, x=x),
+                evidence=evidence(
+                    adapter.layout, 1, x=x,
+                    status="blocked" if source_invalid["value"] else "ready",
+                ),
                 confirm=confirm,
             )
             return result.changed
@@ -839,6 +843,13 @@ def test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen(
         assert adapter.layout == initial
         assert not previews
         target_ready["value"] = True
+        # The actual physical verification is re-run on click even when the
+        # original visible button was enabled by an earlier state snapshot.
+        source_invalid["value"] = True
+        _buttons(host)["複製至其他連"].invoke()
+        assert len(warnings) == 2 and "not verified" in warnings[-1]
+        assert adapter.layout == initial and not previews
+        source_invalid["value"] = False
 
         # First submission into UNCONFIGURED: cancel does not create dormant
         # target config, source config or transient Undo receipt.
