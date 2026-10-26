@@ -661,3 +661,63 @@ def test_bug70_unlocated_preview_stubs_fallback_but_partial_world_datum_fails_cl
         SimpleNamespace(role="back", formed_w_end=800.),
     )
     assert _phase6_box_body_formed_width_datum(legitimate) == 800.
+
+
+@pytest.mark.parametrize("removal_route", ("remove_part", "replace_available_parts"))
+@pytest.mark.parametrize(
+    "bad_parent", ([], {"unexpected": "node"}, True, 7, float("nan")),
+    ids=("list", "mapping", "boolean", "integer", "nan"),
+)
+def test_bug67_malformed_saved_placement_parent_does_not_interrupt_recursive_cleanup(
+    removal_route, bad_parent,
+):
+    """R4 #67: corrupt saved parent types cannot partially apply a deletion."""
+    ws = Phase6DesignerWorkspace.from_snapshot({
+        "existing_parts": ("box_body", "door", "base_plate"),
+        "active_part": "box_body",
+        "assembly_placements": {
+            "door": {"parent_assembly_node": "box_body"},
+            "inner_door:1:panel": {"parent_assembly_node": "door"},
+            "inner_door:1:child": {"parent_assembly_node": "inner_door:1:panel"},
+            "inner_door:bad": {"parent_assembly_node": bad_parent},
+            "base_plate": {"parent_assembly_node": "box_body"},
+        },
+    })
+    if removal_route == "remove_part":
+        assert ws.remove_part("door") is True
+    else:
+        assert ws.replace_available_parts(("box_body", "base_plate")) == (
+            "box_body", "base_plate",
+        )
+    assert ws.available_parts == ("box_body", "base_plate")
+    assert ws.assembly_placements_snapshot() == {
+        "base_plate": {"parent_assembly_node": "box_body"},
+    }
+    restored = Phase6DesignerWorkspace.from_snapshot(ws.snapshot())
+    assert restored.assembly_placements_snapshot() == ws.assembly_placements_snapshot()
+
+
+@pytest.mark.parametrize(
+    "bad_parent", ([], {"unexpected": "node"}, True, 7, float("nan")),
+    ids=("list", "mapping", "boolean", "integer", "nan"),
+)
+def test_bug67_placement_prune_discards_invalid_parent_type_preserving_virtual_parent(
+    bad_parent,
+):
+    """Virtual string parents remain valid; non-string parents never remain active."""
+    ws = Phase6DesignerWorkspace.from_snapshot({
+        "existing_parts": ("box_body", "door", "base_plate"),
+    })
+    clean = ws.replace_assembly_placements({
+        "base_plate": {"parent_assembly_node": bad_parent},
+        "door": {"parent_assembly_node": "box_body"},
+        "inner_door:1:panel": {
+            "parent_assembly_node": "box_body:door_layout:inner_door",
+        },
+    })
+    assert clean == {
+        "door": {"parent_assembly_node": "box_body"},
+        "inner_door:1:panel": {
+            "parent_assembly_node": "box_body:door_layout:inner_door",
+        },
+    }
