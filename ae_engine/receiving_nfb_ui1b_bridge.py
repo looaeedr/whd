@@ -239,6 +239,15 @@ def assert_live_verified_nfb(adapter, bundle: NfbVerifiedDraftSubmission,
         bay=row["bays"][bundle.bay_index]
     except (KeyError,IndexError,TypeError) as exc:
         raise ValueError("NFB submit Set/Bay no longer exists") from exc
+    # MFG-1 proof is versioned, not a free-floating GUI allow flag. An
+    # otherwise genuine inner-door CUTTING must not be replayed under another
+    # Bay/version or paired with a READY decision from a different scope.
+    if (type(bundle.version_id) is not str or not bundle.version_id.strip()
+            or bundle.scope.identity != (
+                row["stable_id"], bay["stable_id"], bundle.version_id
+            ) or bundle.scope.submitted is not True
+            or bundle.readiness.scope != bundle.scope):
+        raise ValueError("NFB MFG-1 verified version/scope/readiness has changed; reverify")
     if (row["stable_id"]!=bundle.scope.set_id or
             bay["stable_id"]!=bundle.scope.bay_id or
             bay!=bundle.bay_at_verification):
