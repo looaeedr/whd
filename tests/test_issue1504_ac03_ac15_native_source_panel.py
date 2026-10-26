@@ -571,3 +571,36 @@ def test_ac15_actual_tk_legacy_dxf_revision_reparse_is_targeted_and_does_not_reb
         if modal.winfo_exists():
             modal.destroy()
         root.destroy()
+
+
+def test_ac51_original_tk_numeric_preview_pane_shows_exact_scope_only_and_revokes():
+    """Original preview heading is never a source of manufacturing permission."""
+    import tkinter as tk
+    from gui_modules.application.receiving_nfb_source_preview import (
+        NfbDxfSourcePreviewPanel,
+    )
+    from ae_engine.receiving_nfb_current_scope_status import VERIFIED_DOOR
+    from ae_engine.receiving_nfb_model_identity import numeric_model_refs
+
+    root = tk.Tk()
+    root.geometry("650x550+0+0")
+    panel = NfbDxfSourcePreviewPanel(root)
+    try:
+        original_ref = numeric_model_refs("士林")[0]
+        panel.show("士林", original_ref)
+        assert "僅預覽" in panel.frame.cget("text")
+        assert "不可製造" in panel.reason.get()
+        panel.show("士林", original_ref, verified_scope=VERIFIED_DOOR)
+        assert "可製造（內門）" in panel.frame.cget("text")
+        assert "成對部分 DXF" in panel.reason.get()
+        assert "整箱尚未放行" in panel.reason.get()
+        panel.show(
+            "士林", "nfbv5:士林:MODEL_MISSING_FROM_CURRENT_CSV",
+            verified_scope=VERIFIED_DOOR,
+        )
+        assert "僅預覽" in panel.frame.cget("text")
+        assert "禁止製造" in panel.reason.get()
+        panel.show("士林", original_ref)
+        assert "僅預覽" in panel.frame.cget("text")
+    finally:
+        root.destroy()
