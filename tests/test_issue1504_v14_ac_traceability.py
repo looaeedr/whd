@@ -1883,11 +1883,41 @@ def test_all_current_nfb_v5_source_supersessions_keep_88_originals_and_legacy_sc
     # positioning, source-drift, old-project GUI and production gates.
     for ident, expected in {
         "NFB-AC-51": "EVIDENCE_CANDIDATE_ONLY",
-        "SWT-AC-27": "EVIDENCE_CANDIDATE_ONLY",
         "SWT-AC-30": "EVIDENCE_CANDIDATE_ONLY",
     }.items():
         assert rows[ident]["status"] == expected
         assert rows[ident]["accepted"] is False
+    swt27 = rows["SWT-AC-27"]
+    assert swt27["accepted"] is True
+    assert swt27["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert swt27["identified_test_functions"][0]["test_name"] == (
+        "test_swt27_current_v5_single_x_and_three_row_x_are_true_physical_datums"
+    )
+    from tools.product_ci_regression import PYTEST_PATHS
+    assert current_runtime in PYTEST_PATHS
+    witness = swt27["acceptance_evidence"]
+    assert witness["original_ac_text_unchanged"] is True
+    assert witness["current_csv_v5_authority_explicit"] is True
+    assert witness["physical_single_and_row_world_x_verified"] is True
+    assert witness["actual_generated_door_base_output_reopened"] is True
+    assert witness["blanket_mfg1_approval"] is False
+    assert witness["other_w_n_y_approved"] is False
+    assert witness["factory_release"] is False
+    assert witness["human_windows_uat_claimed"] is False
+    assert witness["formal_x_published"] is False
+    assert len(witness["original_ac_clauses_audited"]) >= 3
+    assert len(witness["other_required_assertions"]) >= 5
+    for full_test in (
+        witness["primary_assertion"],
+        *witness["other_required_assertions"],
+    ):
+        file, function = full_test.split("::")
+        tree = ast.parse((ROOT / file).read_text(encoding="utf-8"))
+        matches = [node for node in tree.body if isinstance(node, ast.FunctionDef)
+                   and node.name == function]
+        assert len(matches) == 1 and any(
+            isinstance(node, ast.Assert) for node in ast.walk(matches[0])
+        )
     assert obj["counts"]["BLOCKED_1500_REAL_GUI"] == 17
     assert obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 67
     assert sum(obj["counts"].values()) == 88
