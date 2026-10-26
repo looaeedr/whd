@@ -5,6 +5,8 @@ from types import SimpleNamespace
 import pytest
 
 from ae_engine.assembly_placement import AssemblyPlacement, resolve_assembly_placement
+from ae_engine.sheetmetal_feature_core import CircleFeature, RectFeature, FeatureAnchor
+from ae_engine.sheetmetal_geometry import Vec2
 from ae_engine.door_dividers import derive_box_body_dividers
 from phase6_box_body_structure import BoxBodyStructureType, normalize_box_body_structure_state
 from phase6_fold_profiles import build_box_body_profile
@@ -137,8 +139,16 @@ def _canonical_round_trip_workspace():
         'part_profiles': {'head': {'X': [{'len': 25.0}], 'Y': []}, 'door': {'X': [{'len': 20.0}], 'Y': []}},
         'box_body_profile': build_box_body_profile({'w': 800.0, 'd': 350.0, 'zl1': 15.0, 'zl2': 15.0, 'zr1': 15.0, 'zr2': 15.0}),
         'box_body_structure': normalize_box_body_structure_state({'active_type': 'integral', 'locked': False}),
-        'part_features': {'head': [{'type': 'round_hole', 'x': 50.0, 'y': 50.0, 'diameter': 10.0}]},
-        'part_face_features': {'box_body': {'top': [{'type': 'square_hole', 'x': 20.0, 'y': 20.0}]}},
+        # Canonical Hole Editor features, not retired ad-hoc hole dictionaries.
+        # Save/Reload must preserve physical identity, position and dimensions.
+        'part_features': {'head': [CircleFeature(
+            diameter=10.0, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+            offset=Vec2(50.0, 50.0), source_type='圓形',
+        )]},
+        'part_face_features': {'box_body': {'top': [RectFeature(
+            width=10.0, height=10.0, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+            offset=Vec2(20.0, 20.0), source_type='方形',
+        )]}},
         'assembly_placements': {
             'box_body:divider:receiving-main:HORIZONTAL:C0:R0|R1': {
                 'stable_id': 'box_body:divider:receiving-main:HORIZONTAL:C0:R0|R1',
@@ -204,6 +214,9 @@ def test_2d_to_3d_modify_divider_confirm_to_2d():
     # Modify door_layout_columns in 3D
     new_columns = [(800.0, [1000.0, 600.0])]
     payload = {
+        # The production designer always publishes its cabinet family.
+        # Omitting it silently changes the dummy GUI to an invalid blank model.
+        'model': snapshot['model'],
         'workspace': ws3d.export_shared_snapshot(),
         'door_layout_columns': new_columns,
         'assembly_placements': ws3d.assembly_placements_snapshot(),
