@@ -813,7 +813,9 @@ def test_ac51_swt30_exact_verified_v5_pair_receipt_discloses_only_exported_model
     snap = _current()
     inner_id, holes = _submitted_csv_holes(snap)
     before = deepcopy(snap)
-    pair = _export(snap, _scene(snap), tmp_path / "success")
+    root = tmp_path / "success"
+    root.mkdir()
+    pair = _export(snap, _scene(snap), root)
     scope = pair.verified_v5_scope
     assert scope is not None
     assert (scope.set_id, scope.bay_id) == ("S", "B")
