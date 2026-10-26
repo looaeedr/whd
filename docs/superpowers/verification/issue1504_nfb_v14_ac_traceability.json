@@ -22,9 +22,9 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 69,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 71,
     "BLOCKED_1500_REAL_GUI": 17,
-    "EVIDENCE_CANDIDATE_ONLY": 2,
+    "EVIDENCE_CANDIDATE_ONLY": 0,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 0,
     "DEFERRED_PRODUCT_EVIDENCE": 0
   },
@@ -3009,19 +3009,19 @@
         "tests/test_issue1502_csv_is_only_normal_finalscene_source.py",
         "tests/test_issue1504_ac03_ac15_native_source_panel.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1502_current_csv_original_pair_dxf.py",
-          "test_name": "test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_ac03_ac15_native_source_panel.py",
+          "test_name": "test_ac51_original_native_assigned_list_event_reads_exact_pair_receipt_and_edits_revoke",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_source_authority_20261026": {
         "route_class": "CURRENT_V5_MAIN_APERTURE_PIVOT",
         "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
@@ -3037,13 +3037,102 @@
         "scoped_ever_verified_pair_display_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift",
         "original_tk_verified_source_label_witness": "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_native_tk_assigned_v5_shows_real_pair_green_only_for_exact_output",
         "pending_exact_head_ci_and_native_callback_validation": true,
-        "no_persisted_approval_or_cross_scope_release": true
+        "no_persisted_approval_or_cross_scope_release": true,
+        "current_accepted_scoped_witness_review": "CURRENT_EXACT_NATIVE_TK_AND_REAL_PAIR_DXF_EVIDENCE_CANDIDATE_PENDING_EXACT_CI"
       },
       "historical_legacy_witness_before_20261026": {
         "path": "tests/test_issue1496_nfb_dxf_source.py",
         "test_name": "test_unsupported_not_silently_treated_as_certified",
         "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
         "accepted": false
+      },
+      "historical_pre_current_review": {
+        "status": "EVIDENCE_CANDIDATE_ONLY",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1502_current_csv_original_pair_dxf.py",
+            "test_name": "test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "CURRENT_V5_EXACT_NATIVE_TK_ASSIGNED_SELECTOR__REAL_PAIR_OUTPUT_SOURCE_AND_BYTES_REOPEN__MODEL_ONLY_PREVIEW_NOT_APPROVAL",
+        "primary_assertion": "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_original_native_assigned_list_event_reads_exact_pair_receipt_and_edits_revoke",
+        "other_required_assertions": [
+          "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_native_tk_assigned_v5_shows_real_pair_green_only_for_exact_output",
+          "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_original_tk_v5_selector_shows_source_scope_without_fake_release",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_swt30_exact_w800_three_v5_sources_have_one_green_group_not_nominal_whitelist",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_current_numeric_v5_two_models_real_pivot_and_upper_door_lower_base_dxf",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_stale_scene_or_wrong_bay_cannot_export_to_existing_operator_action",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_dxf_roundtrip_failure_never_partially_publishes",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac51_swt30_numeric_model_preview_without_successful_export_has_no_scope_label"
+        ],
+        "original_ac_clauses_audited": [
+          {
+            "requirement": "原版 ARC/CIRCLE、Color、原圖 pivot 是真 legacy NFB DXF 才驗；現行品牌數值 CSV V5 由獨立已提交 X/Y/旋轉與單顆模型開孔中心決定實體內門主 CUTTING。原選型列表的源 CSV 完整僅『僅預覽』，不得把每型號缺舊圖當 RED 或以模型名自動授權製造。",
+            "source_owner": "ae_engine.receiving_nfb_numeric_catalog; receiving_nfb_v5_configured_inner_door; original Tk NfbDxfSourcePreviewPanel.show",
+            "witnesses": [
+              "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_original_tk_v5_selector_shows_source_scope_without_fake_release",
+              "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_current_numeric_v5_two_models_real_pivot_and_upper_door_lower_base_dxf",
+              "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback"
+            ]
+          },
+          {
+            "requirement": "真正通過原本 PART_ONLY 出圖器的已提交 NFBConfig/實際兩片 INNER+BASE 並原子寫檔、重開的精確 Set/Bay、每顆世界 X/Y、旋轉、W/N、內門實體身分及來源 CSV/生成 DXF bytes，才在原生 Tk 已配置型號顯示『可製造（內門）｜僅已出圖範圍』；未曾出圖的原型號仍顯示『僅預覽』。",
+            "source_owner": "gui_modules.application.receiving_nfb_pair_partial_export_action.NfbCsvVerifiedExportScope; receiving_nfb_verified_scope_display.capture_verified_v5_pair_display / verified_v5_model_operator_label; fold_designer_composition_receiving.inner_edit",
+            "witnesses": [
+              "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_original_native_assigned_list_event_reads_exact_pair_receipt_and_edits_revoke",
+              "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_native_tk_assigned_v5_shows_real_pair_green_only_for_exact_output",
+              "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift"
+            ]
+          },
+          {
+            "requirement": "已驗 Set/Bay/原型號/原位移/來源及實際文件一旦變更，重新選取或修改草稿立即退回預覽；缺來源、跨品牌、編修配置、不同 W/N/Y/版本或輸出檔 tamper 不沿用綠燈。顯示的過去 PART_ONLY 成功收據絕不作當次製造放行 API、不同組合通行證、PAD 或整箱 NC。",
+            "source_owner": "receiving_nfb_verified_scope_display exact snapshot/CSV/DXF SHA; receiving_nfb_source_preview.revoke_export_scope_status; actual export finalscene / CHECK guards",
+            "witnesses": [
+              "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_original_native_assigned_list_event_reads_exact_pair_receipt_and_edits_revoke",
+              "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift",
+              "tests/test_issue1502_current_csv_original_pair_dxf.py::test_stale_scene_or_wrong_bay_cannot_export_to_existing_operator_action",
+              "tests/test_issue1502_current_csv_original_pair_dxf.py::test_dxf_roundtrip_failure_never_partially_publishes"
+            ]
+          }
+        ],
+        "source_owner_paths": [
+          "gui_modules/application/receiving_nfb_source_preview.py",
+          "gui_modules/application/fold_designer_composition_receiving.py",
+          "gui_modules/application/receiving_nfb_verified_scope_display.py",
+          "gui_modules/application/receiving_nfb_pair_partial_export_action.py",
+          "ae_engine/receiving_nfb_v5_configured_inner_door.py",
+          "ae_engine/receiving_nfb_numeric_catalog.py"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "current_csv_v5_authority_explicit": true,
+        "original_legacy_dxf_optional_for_v5": true,
+        "source_scoped_real_part_only_dxf_reopened": true,
+        "exact_current_set_bay_world_x_y_model_inner_datum_verified": true,
+        "native_original_tk_scope_label_verified": true,
+        "live_draft_edit_revoke_verified": true,
+        "manufacturing_approval_is_not_persisted": true,
+        "other_w_n_y_approved": false,
+        "blanket_mfg1_approval": false,
+        "unconditional_mfg2_release": false,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "independent_pad_manufacturing_approved": false,
+        "full_cabinet_welding_certified": false,
+        "other_ac_signoff_implied": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "exact_head_ci_and_localx_readback_required": true
       }
     },
     {
@@ -5334,19 +5423,19 @@
         "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py",
         "tests/test_issue1504_ac03_ac15_native_source_panel.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "EVIDENCE_CANDIDATE_ONLY",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
-      "accepted": false,
+      "accepted": true,
       "identified_test_functions": [
         {
           "path": "tests/test_issue1502_current_csv_original_pair_dxf.py",
-          "test_name": "test_swt30_exact_committed_w_n_y_model_datum_has_real_dxf_but_cannot_leak_to_other_scope",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "test_name": "test_swt30_exact_w800_three_v5_sources_have_one_green_group_not_nominal_whitelist",
+          "witness_scope": "FULL_AC_AUTOMATED_CURRENT_CSV_SOURCE",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_source_authority_20261026": {
         "route_class": "CURRENT_V5_POSITION_DATUM",
         "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
@@ -5367,7 +5456,8 @@
         "scoped_ever_verified_pair_display_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift",
         "original_tk_verified_source_label_witness": "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_native_tk_assigned_v5_shows_real_pair_green_only_for_exact_output",
         "pending_exact_head_ci_and_native_callback_validation": true,
-        "no_persisted_approval_or_cross_scope_release": true
+        "no_persisted_approval_or_cross_scope_release": true,
+        "current_accepted_scoped_witness_review": "CURRENT_EXACT_NATIVE_TK_AND_REAL_PAIR_DXF_EVIDENCE_CANDIDATE_PENDING_EXACT_CI"
       },
       "previous_identified_test_functions_before_current_swt30_scope": [
         {
@@ -5376,7 +5466,93 @@
           "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
           "accepted": false
         }
-      ]
+      ],
+      "historical_pre_current_review": {
+        "status": "EVIDENCE_CANDIDATE_ONLY",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1502_current_csv_original_pair_dxf.py",
+            "test_name": "test_swt30_exact_committed_w_n_y_model_datum_has_real_dxf_but_cannot_leak_to_other_scope",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "CURRENT_V5_EXACT_W_N_Y_MODEL_INNER_DATUM_SOURCE_SCOPED_OPERATOR_GREEN_ONLY_AFTER_VERIFIED_PAIR__NOMINAL_GROUPS_PREVIEW",
+        "primary_assertion": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_swt30_exact_w800_three_v5_sources_have_one_green_group_not_nominal_whitelist",
+        "other_required_assertions": [
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_swt30_exact_committed_w_n_y_model_datum_has_real_dxf_but_cannot_leak_to_other_scope",
+          "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py::test_swt30_current_numeric_v5_four_nominal_groups_stay_preview_until_committed",
+          "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py::test_nfb_ac30_nominal_spacing_survives_missing_model_without_fake_cutting",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift",
+          "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_original_native_assigned_list_event_reads_exact_pair_receipt_and_edits_revoke",
+          "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_original_tk_v5_selector_shows_source_scope_without_fake_release",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_current_numeric_v5_two_models_real_pivot_and_upper_door_lower_base_dxf",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_stale_scene_or_wrong_bay_cannot_export_to_existing_operator_action",
+          "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac51_swt30_numeric_model_preview_without_successful_export_has_no_scope_label"
+        ],
+        "original_ac_clauses_audited": [
+          {
+            "requirement": "四組相鄰名義孔距（W600×2、W750×2、W800×2、W800×3）只供預覽，不能單憑型號或名義中心距生成絕對世界 X/Y 或獨立 MFG-1 可製造清單，未提交世界定位的原生預覽不得冒稱可出圖。",
+            "source_owner": "ae_engine.receiving_nfb_x_projection.nominal_nfb_x_group; receiving_nfb_ui1a.preview; physical source guards",
+            "witnesses": [
+              "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py::test_swt30_current_numeric_v5_four_nominal_groups_stay_preview_until_committed",
+              "tests/test_issue1504_ac30_current_nominal_no_fake_cutting.py::test_nfb_ac30_nominal_spacing_survives_missing_model_without_fake_cutting"
+            ]
+          },
+          {
+            "requirement": "僅 W800×3 同一已提交 Set/Bay 之士林 CSV V5 三顆型號，各自明確世界 X=-180/0/+180、Y、旋轉及內門 datum，原操作通道生成真實內門與一片真 Base 的 3 主孔／12 螺絲孔及 CHECK/Q，DXF 重開後才顯示這一組『可製造（內門）｜僅本次真實出圖已驗證』，不是允許其他箱寬。",
+            "source_owner": "receiving_nfb_committed_final_scene._submitted_csv_holes; receiving_nfb_pair_partial_export_action.export_current_csv_nfb_door_base_pair; receiving_nfb_verified_scope_display capture/output verification",
+            "witnesses": [
+              "tests/test_issue1502_current_csv_original_pair_dxf.py::test_swt30_exact_w800_three_v5_sources_have_one_green_group_not_nominal_whitelist",
+              "tests/test_issue1502_current_csv_original_pair_dxf.py::test_swt30_exact_committed_w_n_y_model_datum_has_real_dxf_but_cannot_leak_to_other_scope",
+              "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_current_numeric_v5_two_models_real_pivot_and_upper_door_lower_base_dxf"
+            ]
+          },
+          {
+            "requirement": "不同 W/N/Y/型號/版本、未確認 X、其他 Bay 或 source CSV/DXF 改變時原驗證範圍立即不匹配；選型清單退回『僅預覽』，絕不放大 W800 實際個案的製造許可至名義孔距、PAD 或全箱 NC。",
+            "source_owner": "receiving_nfb_verified_scope_display exact scope SHA and output bytes; native Tk selected proof invalidation; normal source-drift rejection",
+            "witnesses": [
+              "tests/test_issue1502_current_csv_original_pair_dxf.py::test_swt30_exact_w800_three_v5_sources_have_one_green_group_not_nominal_whitelist",
+              "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift",
+              "tests/test_issue1504_ac03_ac15_native_source_panel.py::test_ac51_original_native_assigned_list_event_reads_exact_pair_receipt_and_edits_revoke",
+              "tests/test_issue1502_current_csv_original_pair_dxf.py::test_stale_scene_or_wrong_bay_cannot_export_to_existing_operator_action"
+            ]
+          }
+        ],
+        "source_owner_paths": [
+          "ae_engine/receiving_nfb_x_projection.py",
+          "ae_engine/receiving_nfb_committed_final_scene.py",
+          "ae_engine/receiving_nfb_v5_configured_inner_door.py",
+          "gui_modules/application/receiving_nfb_pair_partial_export_action.py",
+          "gui_modules/application/receiving_nfb_verified_scope_display.py",
+          "gui_modules/application/receiving_nfb_source_preview.py"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "current_csv_v5_authority_explicit": true,
+        "original_legacy_dxf_optional_for_v5": true,
+        "source_scoped_real_part_only_dxf_reopened": true,
+        "exact_current_set_bay_world_x_y_model_inner_datum_verified": true,
+        "native_original_tk_scope_label_verified": true,
+        "live_draft_edit_revoke_verified": true,
+        "manufacturing_approval_is_not_persisted": true,
+        "other_w_n_y_approved": false,
+        "blanket_mfg1_approval": false,
+        "unconditional_mfg2_release": false,
+        "factory_release": false,
+        "human_windows_uat_claimed": false,
+        "ui_full_operator_uat_claimed": false,
+        "independent_pad_manufacturing_approved": false,
+        "full_cabinet_welding_certified": false,
+        "other_ac_signoff_implied": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "exact_head_ci_and_localx_readback_required": true
+      }
     },
     {
       "id": "SWT-AC-31",
@@ -5582,7 +5758,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 69/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 23 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 71/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-23 has two actual W800 native CSV/legacy owner collision, alias, Save-Reload and unconfigure witnesses, all PASSED in exact 2082-case source Product CI. Remaining 17 AC retain distinct physical/GUI gates; no localX, Windows UAT, unconditional MFG2 or production X release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Operator Tk submit, copy, restore and Undo transactional GUI integration is being verified; backend source-verified transactions exist, but do not infer Windows acceptance from source-only tests.",
