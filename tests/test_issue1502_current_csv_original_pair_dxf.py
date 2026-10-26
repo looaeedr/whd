@@ -871,7 +871,8 @@ def test_ac51_swt30_status_rejects_unsubmitted_and_unrelated_export_evidence(tmp
     not_submitted = deepcopy(snap)
     not_submitted["nfb_config_submitted"] = False
     assert scoped_current_v5_selector_status(not_submitted, model) == PREVIEW
+    output = tmp_path / "receipt"
+    output.mkdir()
+    valid = _export(snap, _scene(snap), output)
     with pytest.raises(ValueError, match="not submitted"):
-        verified_pair_after_export(
-            not_submitted, object(),
-        )
+        verified_pair_after_export(not_submitted, valid)
