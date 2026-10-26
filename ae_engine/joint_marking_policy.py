@@ -205,7 +205,7 @@ def _plane_basis(normal):
     return u, v
 
 
-def _project_polygon(points, origin, u, v):
+def _project_polygon(points, origin, u, v, *, plane_normal, max_plane_distance):
     projected = []
     for raw in tuple(points or ()):
         coords = tuple(raw)
@@ -215,6 +215,11 @@ def _project_polygon(points, origin, u, v):
         if not all(math.isfinite(x) for x in xyz):
             raise ValueError("world polygon point must be finite 3D")
         delta = _sub3(xyz, origin)
+        # The XY projection alone loses physical Z separation. Use the
+        # existing world coplanarity contract before certifying contact.
+        separation = abs(_dot3(delta, plane_normal))
+        if not math.isfinite(separation) or separation > max_plane_distance:
+            raise ValueError("world contact polygon lies off physical supporting plane")
         projected_xy = (_dot3(delta, u), _dot3(delta, v))
         if not all(math.isfinite(x) for x in projected_xy):
             raise ValueError("projected world polygon point must be finite")
@@ -248,17 +253,35 @@ def validate_expected_region_coverage(
         if len(plane) != 2:
             raise ValueError("expected region supporting plane is unresolved")
         raw_origin = tuple(plane[0])
+        raw_plane_normal = tuple(plane[1])
         raw_normal = tuple(expected_region.outward_normal)
-        if (len(raw_origin) != 3 or len(raw_normal) != 3
-                or any(isinstance(x, bool) for x in (*raw_origin, *raw_normal))):
+        if (len(raw_origin) != 3 or len(raw_plane_normal) != 3
+                or len(raw_normal) != 3
+                or any(isinstance(x, bool) for x in (
+                    *raw_origin, *raw_plane_normal, *raw_normal
+                ))):
             raise ValueError("expected supporting plane must be finite 3D")
         origin = tuple(float(x) for x in raw_origin)
+        plane_normal = tuple(float(x) for x in raw_plane_normal)
         normal = tuple(float(x) for x in raw_normal)
-        if not all(math.isfinite(x) for x in (*origin, *normal)):
+        if not all(math.isfinite(x) for x in (*origin, *plane_normal, *normal)):
             raise ValueError("expected supporting plane must be finite 3D")
+        unit_plane_normal = _normalize3(
+            plane_normal,
+            PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance,
+        )
+        coplanar_tolerance = float(
+            PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.coplanar_distance_tolerance
+        )
         u, v = _plane_basis(normal)
-        expected = _project_polygon(expected_region.world_polygon, origin, u, v)
-        overlap = _project_polygon(overlap_world, origin, u, v)
+        expected = _project_polygon(
+            expected_region.world_polygon, origin, u, v,
+            plane_normal=unit_plane_normal, max_plane_distance=coplanar_tolerance,
+        )
+        overlap = _project_polygon(
+            overlap_world, origin, u, v,
+            plane_normal=unit_plane_normal, max_plane_distance=coplanar_tolerance,
+        )
     except (TypeError, ValueError, IndexError, OverflowError) as exc:
         return ContactSpanValidationResult(
             status="SKIPPED_FAIL_CLOSED",
