@@ -6,6 +6,7 @@ host/controller seam during T4.
 
 import tkinter as tk
 import math
+from collections.abc import Mapping
 from tkinter import ttk, messagebox
 from whd_theme import configure_tk_menu
 
@@ -300,6 +301,11 @@ def setup_tab_door_ui(host):
 
 def normalize_door_indicator_state(state):
     """Repair stale indicator presentation inputs without inventing geometry."""
+    # Only a truly absent saved state owns the legacy empty/default layout.
+    # False/0/string roots are corrupt: silently resetting them may alter
+    # indicator holes or disguise a failed project reload.
+    if state is not None and not isinstance(state, Mapping):
+        raise ValueError("Door indicator state must be a mapping")
     raw = dict(state or {})
 
     def saved_flag(value):
