@@ -718,3 +718,199 @@ def test_ac23_reopened_stale_world_x_native_tk_reconfirm_restores_only_source_ve
     assert revoked.authorized_part_ids == ("independent-side",)
     with pytest.raises(ValueError, match="BLOCKED"):
         revoked.require_export((manufacturer.part_id,), partial=True)
+
+
+def test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen(
+    tmp_path, monkeypatch,
+):
+    """Actual Tk canvas/button -> source-verified physical Bay copy transaction.
+
+    The source evidence is the existing typed MFG-1 test fixture; it is not
+    original manufacturer DXF, arbitrary X authorization or Windows human UAT.
+    """
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+    from tests.test_issue1500_nfb_transactions import (
+        layout as transaction_layout, config, evidence,
+    )
+    from tests.test_issue1499_nfb_persistence import _payload
+    from phase6_project_file import write_project, read_project
+
+    adapter = ReceivingSetBayAdapter(transaction_layout())
+    source = config(x=0, owner="nfb:0:slot1")
+    source["holes"][0]["unit_id"] = "verified-original-source-unit"
+    created = adapter.submit_nfb_to_bays(
+        set_index=0, bay_indices=(0,), version_id="v1",
+        configs={0: source},
+        evidence={0: evidence(adapter.layout, 0, x=0)},
+        confirm=lambda _: True,
+    )
+    assert created.changed
+    initial = adapter.layout
+    assert initial["sets"][0]["bays"][0]["nfb_config_submitted"] is True
+    assert "nfb_config" not in initial["sets"][0]["bays"][1]
+
+    approvals = iter((False, True, False, True))
+    previews = []
+    warnings = []
+    target_ready = {"value": True}
+    new_world_x = {"value": 100}
+    root = tk.Tk()
+    root.geometry("800x600+0+0")
+    root.update()
+    try:
+        def askyesno(_title, message, *, parent):
+            assert parent is window
+            previews.append(message)
+            return next(approvals)
+
+        monkeypatch.setattr(view.messagebox, "askyesno", askyesno)
+        monkeypatch.setattr(
+            view.messagebox, "showwarning",
+            lambda _title, message, *, parent: warnings.append(message),
+        )
+
+        def state(si, bi, selected=()):
+            assert si == 0
+            row = adapter.layout["sets"][si]["bays"][bi]
+            return {
+                "submitted": row.get("nfb_config_submitted") is True,
+                "can_submit": False,
+                "can_copy": (
+                    tuple(selected) == (0, 1)
+                    and adapter.layout["sets"][0]["bays"][0].get(
+                        "nfb_config_submitted"
+                    ) is True
+                    and target_ready["value"]
+                ),
+                "can_restore": row.get("nfb_config_submitted") is True,
+                "can_undo": adapter.nfb_can_undo,
+                "reason": "目標連尚未驗證 X 來源" if not target_ready["value"] else "",
+                "base_partial_ready": False,
+            }
+
+        def copy(si, ids, confirm):
+            assert si == 0 and tuple(ids) == (0, 1)
+            if not target_ready["value"]:
+                raise ValueError("目標連尚未驗證 X 來源")
+            x = new_world_x["value"]
+            target = config(x=x, owner="nfb:1:slot1")
+            target["holes"][0]["unit_id"] = "independent-target-unit"
+            result = adapter.copy_submitted_nfb_to_bay(
+                set_index=si, source_bay_index=0, target_bay_index=1,
+                version_id="v1", target_config=target,
+                evidence=evidence(adapter.layout, 1, x=x),
+                confirm=confirm,
+            )
+            return result.changed
+
+        window = open_multi_settings(
+            root,
+            get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (2,)),
+            switch_mode=lambda _: True,
+            resize_connections=lambda *_: False,
+            get_settings_ports=lambda _: {
+                "row": lambda: {"bays": [
+                    {"stable_id": row["stable_id"]}
+                    for row in adapter.layout["sets"][0]["bays"]
+                ]},
+                "select": lambda _: None,
+            },
+            get_nfb_transaction_ports=lambda: {
+                "state": state,
+                "copy": copy,
+                "undo": adapter.undo_last_nfb_transaction,
+                "manifest": lambda *_: {"status": "BLOCKED",
+                                         "reason": "其餘板件尚未製造放行"},
+            },
+        )
+        root.update()
+        assert window._receiving_multi_apply(0)
+        _select_inner(window, root)
+        _click_bay(window, root, 1)
+        assert window._receiving_multi_applied["selected_bays"] == (0, 1)
+        host = window._receiving_multi_settings_host
+
+        # A visible but stale copy button MUST re-read live authorization.
+        assert _buttons(host)["複製至其他連"].instate(("!disabled",))
+        target_ready["value"] = False
+        _buttons(host)["複製至其他連"].invoke()
+        assert warnings and "恰好兩連" in warnings[-1]
+        assert adapter.layout == initial
+        assert not previews
+        target_ready["value"] = True
+
+        # First submission into UNCONFIGURED: cancel does not create dormant
+        # target config, source config or transient Undo receipt.
+        _buttons(host)["複製至其他連"].invoke()
+        assert adapter.layout == initial
+        assert len(previews) == 1 and "COPY_SUBMIT" in previews[-1]
+        assert "影響板件" in previews[-1]
+        assert "尚未製造放行" in previews[-1]
+        assert not any("nfb_config" in r for r in
+                       adapter.layout["sets"][0]["bays"][1:])
+
+        # Confirm the *same* source-specific physical target.
+        _buttons(host)["複製至其他連"].invoke()
+        first_copy = adapter.layout
+        source_hole = first_copy["sets"][0]["bays"][0]["nfb_config"]["holes"][0]
+        target_hole = first_copy["sets"][0]["bays"][1]["nfb_config"]["holes"][0]
+        assert first_copy["sets"][0]["bays"][1]["nfb_config_submitted"] is True
+        assert source_hole["physical_hole_id"] != target_hole["physical_hole_id"]
+        assert source_hole["unit_id"] == "verified-original-source-unit"
+        assert target_hole["unit_id"] == "independent-target-unit"
+        assert (source_hole["manual_x_mm"], target_hole["manual_x_mm"]) == (0, 100)
+        assert source_hole["rotation_deg"] == target_hole["rotation_deg"] == 90
+        assert adapter.nfb_can_undo
+
+        # Overwriting a submitted target also needs an actual operator prompt,
+        # and a cancelled overwrite may not change either Bay.
+        new_world_x["value"] = 200
+        assert _buttons(host)["複製至其他連"].instate(("!disabled",))
+        _buttons(host)["複製至其他連"].invoke()
+        assert adapter.layout == first_copy
+        assert "COPY_OVERWRITE" in previews[-1]
+        _buttons(host)["複製至其他連"].invoke()
+        overwritten = adapter.layout
+        assert overwritten["sets"][0]["bays"][0] == first_copy["sets"][0]["bays"][0]
+        assert overwritten["sets"][0]["bays"][1]["nfb_config"]["holes"][0][
+            "manual_x_mm"
+        ] == 200
+        assert overwritten["sets"][0]["bays"][1]["nfb_config"]["holes"][0][
+            "unit_id"
+        ] == "independent-target-unit"
+        assert len(previews) == 4
+        # Undo only the overwrite. The first independent copy survives.
+        assert _buttons(host)["復原上次 NFB 操作"].instate(("!disabled",))
+        monkeypatch.setattr(
+            view.messagebox, "askyesno",
+            lambda _title, msg, *, parent: (
+                True if "Undo" in _title and parent is window else
+                (_ for _ in ()).throw(AssertionError("unexpected operator prompt"))
+            ),
+        )
+        _buttons(host)["復原上次 NFB 操作"].invoke()
+        assert adapter.layout == first_copy
+
+        window._receiving_multi_close()
+    finally:
+        root.destroy()
+
+    saved = write_project(
+        tmp_path / "ac07_ac43_native_bay_copy.p6fold",
+        _payload(adapter.layout),
+    )
+    reopened = read_project(saved)["snapshot"]["receiving_layout"]
+    bays = reopened["sets"][0]["bays"]
+    assert all(b["nfb_config_submitted"] is True for b in bays)
+    assert bays[0]["nfb_config"]["holes"][0]["unit_id"] == (
+        "verified-original-source-unit"
+    )
+    assert bays[1]["nfb_config"]["holes"][0]["unit_id"] == (
+        "independent-target-unit"
+    )
+    assert bays[0]["nfb_config"]["holes"][0]["manual_x_mm"] == 0
+    assert bays[1]["nfb_config"]["holes"][0]["manual_x_mm"] == 100
+    assert bays[0]["nfb_config"]["holes"][0]["physical_hole_id"] != (
+        bays[1]["nfb_config"]["holes"][0]["physical_hole_id"]
+    )
