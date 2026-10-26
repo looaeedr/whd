@@ -874,5 +874,7 @@ def test_ac51_swt30_status_rejects_unsubmitted_and_unrelated_export_evidence(tmp
     output = tmp_path / "receipt"
     output.mkdir()
     valid = _export(snap, _scene(snap), output)
-    with pytest.raises(ValueError, match="not submitted"):
+    # Root false with a still-submitted selected Bay is a SOURCE DRIFT,
+    # never permission to drop the old physical holes.
+    with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_SELECTED_BAY_SUBMISSION_DRIFT"):
         verified_pair_after_export(not_submitted, valid)
