@@ -914,3 +914,160 @@ def test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen(
     assert bays[0]["nfb_config"]["holes"][0]["physical_hole_id"] != (
         bays[1]["nfb_config"]["holes"][0]["physical_hole_id"]
     )
+
+
+def test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard(
+    tmp_path, monkeypatch,
+):
+    """Original Tk restore UI must not bypass a submitted NFB via old export.
+
+    Typed validated transaction evidence is isolated test evidence; this is
+    not a claim of original Windows project or whole-cabinet manufacturing.
+    """
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+    from tests.test_issue1500_nfb_transactions import (
+        layout as transaction_layout, config, evidence,
+    )
+    from tests.test_issue1499_nfb_persistence import _payload
+    from tests.test_issue1501_nfb_legacy_export_guard import _user
+    from gui_modules.project.export_actions import _assert_legacy_nfb_export_scope_safe
+    from phase6_project_file import write_project, read_project
+
+    adapter = ReceivingSetBayAdapter(transaction_layout())
+    seeded = adapter.submit_nfb_to_bays(
+        set_index=0, bay_indices=(0,), version_id="v1",
+        configs={0: config(owner="nfb:0:slot1")},
+        evidence={0: evidence(adapter.layout, 0)},
+        confirm=lambda _: True,
+    )
+    assert seeded.changed
+    initially = adapter.layout
+    initial_brand = initially["sets"][0]["switch_brand"]
+    old_flags = {"door": True, "box_body": True, "base_plate": True}
+    with pytest.raises(ValueError, match="不得忽略 NFB"):
+        _assert_legacy_nfb_export_scope_safe(
+            _user({"receiving_layout": initially}), old_flags,
+        )
+
+    messages = []
+    warnings = []
+    answers = iter((False, True, True))
+    root = tk.Tk()
+    root.geometry("800x600+0+0")
+    root.update()
+    try:
+        def askyesno(title, msg, *, parent):
+            assert parent is window
+            messages.append((title, msg))
+            return next(answers)
+
+        monkeypatch.setattr(view.messagebox, "askyesno", askyesno)
+        monkeypatch.setattr(
+            view.messagebox, "showwarning",
+            lambda _title, msg, *, parent: warnings.append(msg),
+        )
+
+        def state(si, bi, selected=()):
+            row = adapter.layout["sets"][si]["bays"][bi]
+            return {
+                "submitted": row.get("nfb_config_submitted") is True,
+                "can_submit": False, "can_copy": False,
+                "can_restore": row.get("nfb_config_submitted") is True,
+                "can_undo": adapter.nfb_can_undo,
+                "reason": "", "base_partial_ready": False,
+            }
+
+        def restore(si, ids, confirm):
+            result = adapter.restore_nfb_unconfigured(
+                set_index=si, bay_indices=tuple(ids), confirm=confirm,
+            )
+            return result.changed
+
+        window = open_multi_settings(
+            root, get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (2,)),
+            switch_mode=lambda _: True, resize_connections=lambda *_: False,
+            get_settings_ports=lambda _: {
+                "row": lambda: {"bays": [
+                    {"stable_id": bay["stable_id"]}
+                    for bay in adapter.layout["sets"][0]["bays"]
+                ]},
+                "select": lambda _: None,
+            },
+            get_nfb_transaction_ports=lambda: {
+                "state": state, "restore": restore,
+                "undo": adapter.undo_last_nfb_transaction,
+                "manifest": lambda *_: {"status": "BLOCKED",
+                                         "reason": "真實來源尚未核可"},
+            },
+        )
+        root.update()
+        assert window._receiving_multi_apply(0)
+        _select_inner(window, root)
+        host = window._receiving_multi_settings_host
+        labels = set(_buttons(host))
+        assert "還原為未配置" in labels
+        assert "復原上次 NFB 操作" in labels
+        assert all("強制" not in title and "忽略草稿" not in title
+                   for title in labels)
+        assert _buttons(host)["還原為未配置"].instate(("!disabled",))
+
+        # The native restore confirmation may be refused with zero mutation.
+        _buttons(host)["還原為未配置"].invoke()
+        assert adapter.layout == initially
+        assert len(messages) == 1
+        assert "RESTORE_UNCONFIGURED" in messages[-1][1]
+        with pytest.raises(ValueError, match="不得忽略 NFB"):
+            _assert_legacy_nfb_export_scope_safe(
+                _user({"receiving_layout": adapter.layout}), old_flags,
+            )
+
+        # Accept restores the actual NFB transaction, not just a UI flag.
+        _buttons(host)["還原為未配置"].invoke()
+        unconfigured = adapter.layout
+        assert unconfigured["sets"][0]["switch_brand"] == initial_brand
+        assert "nfb_config" not in unconfigured["sets"][0]["bays"][0]
+        assert unconfigured["sets"][0]["bays"][0].get(
+            "nfb_config_submitted"
+        ) is not True
+        assert unconfigured["sets"][0]["bays"][1] == (
+            initially["sets"][0]["bays"][1]
+        )
+        _assert_legacy_nfb_export_scope_safe(
+            _user({"receiving_layout": unconfigured}), old_flags,
+        )
+
+        # A real project disk round trip cannot resurrect dormant NFB.
+        saved = write_project(
+            tmp_path / "ac35_restored_native_gui.p6fold",
+            _payload(unconfigured),
+        )
+        reopened = read_project(saved)["snapshot"]["receiving_layout"]
+        assert reopened["sets"][0]["switch_brand"] == initial_brand
+        assert "nfb_config" not in reopened["sets"][0]["bays"][0]
+        _assert_legacy_nfb_export_scope_safe(
+            _user({"receiving_layout": reopened}), old_flags,
+        )
+
+        # Original Tk Undo restores the exact transaction and fail-closed
+        # legacy manufacturing restrictions without changing sibling/brand.
+        assert _buttons(host)["復原上次 NFB 操作"].instate(("!disabled",))
+        _buttons(host)["復原上次 NFB 操作"].invoke()
+        assert len(messages) == 3 and "Undo" in messages[-1][0]
+        assert adapter.layout == initially
+        with pytest.raises(ValueError, match="不得忽略 NFB"):
+            _assert_legacy_nfb_export_scope_safe(
+                _user({"receiving_layout": adapter.layout}), old_flags,
+            )
+        saved_undo = write_project(
+            tmp_path / "ac45_native_undo_reopened.p6fold",
+            _payload(adapter.layout),
+        )
+        reloaded_undo = read_project(saved_undo)["snapshot"]["receiving_layout"]
+        assert reloaded_undo["sets"][0]["bays"][0]["nfb_config"] == (
+            initially["sets"][0]["bays"][0]["nfb_config"]
+        )
+        assert not warnings
+        window._receiving_multi_close()
+    finally:
+        root.destroy()
