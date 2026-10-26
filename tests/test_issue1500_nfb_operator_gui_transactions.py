@@ -953,7 +953,8 @@ def test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard(
     )
     assert seeded.changed
     initially = adapter.layout
-    initial_brand = initially["sets"][0]["switch_brand"]
+    initial_brand = initially["sets"][0].get("switch_brand", "士林")
+    initial_brand_has_explicit_owner = "switch_brand" in initially["sets"][0]
     old_flags = {"door": True, "box_body": True, "base_plate": True}
     with pytest.raises(ValueError, match="不得忽略 NFB"):
         _assert_legacy_nfb_export_scope_safe(
@@ -1036,7 +1037,8 @@ def test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard(
         # Accept restores the actual NFB transaction, not just a UI flag.
         _buttons(host)["還原為未配置"].invoke()
         unconfigured = adapter.layout
-        assert unconfigured["sets"][0]["switch_brand"] == initial_brand
+        assert unconfigured["sets"][0].get("switch_brand", "士林") == initial_brand
+        assert ("switch_brand" in unconfigured["sets"][0]) == initial_brand_has_explicit_owner
         assert "nfb_config" not in unconfigured["sets"][0]["bays"][0]
         assert unconfigured["sets"][0]["bays"][0].get(
             "nfb_config_submitted"
@@ -1054,7 +1056,8 @@ def test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard(
             _payload(unconfigured),
         )
         reopened = read_project(saved)["snapshot"]["receiving_layout"]
-        assert reopened["sets"][0]["switch_brand"] == initial_brand
+        assert reopened["sets"][0].get("switch_brand", "士林") == initial_brand
+        assert ("switch_brand" in reopened["sets"][0]) == initial_brand_has_explicit_owner
         assert "nfb_config" not in reopened["sets"][0]["bays"][0]
         _assert_legacy_nfb_export_scope_safe(
             _user({"receiving_layout": reopened}), old_flags,
