@@ -1085,3 +1085,220 @@ def test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard(
         window._receiving_multi_close()
     finally:
         root.destroy()
+
+
+def test_ac34_native_verified_submit_and_first_copy_cancel_partial_draft_disk_roundtrip(
+    tmp_path, monkeypatch,
+):
+    """Exact native Tk UI -> real per-part MFG-1 -> backend -> V3 persistence.
+
+    The current real transaction code consumes a typed fixture's source.
+    It is not a manufacturer-certified original DXF nor arbitrary MFG-2
+    fabrication approval; blocked middle plate remains BLOCKED after commit.
+    """
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+    from ae_engine.receiving_nfb_part_readiness import (
+        derive_nfb_part_readiness, READY, BLOCKED,
+    )
+    from tests.test_issue1500_nfb_transactions import (
+        layout as transaction_layout, config, evidence,
+    )
+    from tests.test_issue1499_nfb_persistence import _payload
+    from phase6_project_file import write_project, read_project
+
+    adapter = ReceivingSetBayAdapter(transaction_layout())
+    original = adapter.layout
+    source_ready = set()
+    requested = []
+    warnings = []
+    confirmations = []
+    answers = iter((False, True, False, True))
+
+    def physical(bay_index):
+        world_x = 0 if bay_index == 0 else 100
+        scope, source, inner = evidence(
+            adapter.layout, bay_index, x=world_x,
+            status="ready" if bay_index in source_ready else "blocked",
+        )
+        readiness = derive_nfb_part_readiness(
+            scope, source_inventory=source, verified_inner_door=inner,
+        )
+        return scope, source, inner, readiness
+
+    def live_state(set_index, bay_index, selected=()):
+        assert set_index == 0
+        bay = adapter.layout["sets"][0]["bays"][bay_index]
+        submitted = bay.get("nfb_config_submitted") is True
+        proof_ready = physical(bay_index)[3].can_submit
+        source_committed = (
+            adapter.layout["sets"][0]["bays"][0].get(
+                "nfb_config_submitted"
+            ) is True
+        )
+        return {
+            "submitted": submitted,
+            "can_submit": not submitted and proof_ready,
+            "can_copy": (
+                tuple(selected) == (0, 1)
+                and source_committed and not submitted and proof_ready
+            ),
+            "can_restore": submitted,
+            "can_undo": adapter.nfb_can_undo,
+            "reason": "缺實際 MFG-1來源，必須先驗證" if not proof_ready else "",
+            "base_partial_ready": False,
+        }
+
+    def submit(set_index, selected, confirm):
+        assert set_index == 0 and tuple(selected) == (0,)
+        scope, source, inner, readiness = physical(0)
+        assert readiness.can_submit
+        requested.append("SUBMIT")
+        result = adapter.submit_nfb_to_bays(
+            set_index=0, bay_indices=(0,), version_id="v1",
+            configs={0: config(x=0, owner="nfb:0:slot1")},
+            evidence={0: (scope, source, inner)}, confirm=confirm,
+        )
+        return result.changed
+
+    def copy(set_index, selected, confirm):
+        assert set_index == 0 and tuple(selected) == (0, 1)
+        scope, source, inner, readiness = physical(1)
+        assert readiness.can_submit
+        requested.append("COPY_SUBMIT")
+        result = adapter.copy_submitted_nfb_to_bay(
+            set_index=0, source_bay_index=0, target_bay_index=1,
+            version_id="v1",
+            target_config=config(x=100, owner="nfb:1:slot1"),
+            evidence=(scope, source, inner), confirm=confirm,
+        )
+        return result.changed
+
+    root = tk.Tk()
+    root.geometry("800x600+0+0")
+    root.update()
+    try:
+        def askyesno(title, message, *, parent):
+            assert parent is win
+            confirmations.append((title, message))
+            return next(answers)
+
+        monkeypatch.setattr(view.messagebox, "askyesno", askyesno)
+        monkeypatch.setattr(
+            view.messagebox, "showwarning",
+            lambda _title, message, *, parent: warnings.append(message),
+        )
+        win = open_multi_settings(
+            root,
+            get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (2,)),
+            switch_mode=lambda _: True, resize_connections=lambda *_: False,
+            get_settings_ports=lambda _: {
+                "row": lambda: {"bays": [
+                    {"stable_id": row["stable_id"]}
+                    for row in adapter.layout["sets"][0]["bays"]
+                ]},
+                "select": lambda _: None,
+            },
+            get_nfb_transaction_ports=lambda: {
+                "state": live_state, "submit": submit, "copy": copy,
+                "undo": adapter.undo_last_nfb_transaction,
+                "manifest": lambda *_: {"status": "BLOCKED",
+                                         "reason": "尚未完成 MFG-2 板件核准"},
+            },
+        )
+        root.update()
+        assert win._receiving_multi_apply(0)
+        _select_inner(win, root)
+        host = win._receiving_multi_settings_host
+
+        # There is no manufactured "enabled" toggle. The real MFG-1 proof
+        # is absent and both original Tk mutation buttons stay disabled.
+        buttons = _buttons(host)
+        assert buttons["確認套用 NFB"].instate(("disabled",))
+        assert buttons["複製至其他連"].instate(("disabled",))
+        buttons["確認套用 NFB"].invoke()
+        assert not requested and not confirmations and not warnings
+        assert adapter.layout == original
+
+        # An actual typed inner door source supports MFG-1 submission but
+        # still does not authorize independent physical middle-plate output.
+        source_ready.add(0)
+        _select_inner(win, root)
+        assert _buttons(host)["確認套用 NFB"].instate(("!disabled",))
+        _, _, _, verified = physical(0)
+        assert verified.can_submit
+        assert verified.for_part("middle_plate:upper").status == BLOCKED
+        assert verified.for_part("inner_door:upper:panel").status == READY
+
+        # An original modal cancel must do nothing, including not consuming
+        # a future operator Undo receipt or a subsequent MFG-1 capability.
+        _buttons(host)["確認套用 NFB"].invoke()
+        assert adapter.layout == original
+        assert len(confirmations) == 1 and "影響板件" in confirmations[0][1]
+        assert "尚未製造放行" in confirmations[0][1]
+        assert "middle_plate:upper" in confirmations[0][1]
+        assert not adapter.nfb_can_undo
+
+        _buttons(host)["確認套用 NFB"].invoke()
+        after_submit = adapter.layout
+        assert after_submit["sets"][0]["bays"][0]["nfb_config_submitted"] is True
+        assert after_submit["sets"][0]["bays"][0]["nfb_config"]["holes"][0][
+            "manual_x_mm"
+        ] == 0
+        assert "nfb_config" not in after_submit["sets"][0]["bays"][1]
+        assert adapter.nfb_can_undo
+
+        # First copy into an unconfigured second Bay must remain disabled
+        # until THAT target's own physical world X/source is verified.
+        _click_bay(win, root, 1)
+        assert win._receiving_multi_applied["selected_bays"] == (0, 1)
+        assert _buttons(host)["複製至其他連"].instate(("disabled",))
+        _buttons(host)["複製至其他連"].invoke()
+        assert adapter.layout == after_submit
+        assert requested == ["SUBMIT", "SUBMIT"]
+
+        source_ready.add(1)
+        _select_inner(win, root)
+        assert _buttons(host)["複製至其他連"].instate(("!disabled",))
+        _buttons(host)["複製至其他連"].invoke()
+        assert adapter.layout == after_submit
+        assert confirmations[-1][1].find("COPY_SUBMIT") >= 0
+        assert "影響板件" in confirmations[-1][1]
+        assert "尚未製造放行" in confirmations[-1][1]
+        _buttons(host)["複製至其他連"].invoke()
+        approved = adapter.layout
+        assert approved["sets"][0]["bays"][0] == after_submit["sets"][0]["bays"][0]
+        assert approved["sets"][0]["bays"][1]["nfb_config_submitted"] is True
+        assert [r["nfb_config"]["holes"][0]["manual_x_mm"]
+                for r in approved["sets"][0]["bays"]] == [0, 100]
+        assert len(confirmations) == 4
+        assert requested == ["SUBMIT", "SUBMIT", "COPY_SUBMIT", "COPY_SUBMIT"]
+        assert not warnings
+        win._receiving_multi_close()
+    finally:
+        root.destroy()
+
+    # Persist the DRAFT/submitted *fact*, not a stale transient READY flag.
+    saved = write_project(tmp_path / "ac34_partially_held_submitted.p6fold",
+                          _payload(adapter.layout))
+    disk = read_project(saved)["snapshot"]["receiving_layout"]
+    assert [bay["nfb_config_submitted"] for bay in disk["sets"][0]["bays"]] == [
+        True, True,
+    ]
+    assert [bay["nfb_config"]["holes"][0]["manual_x_mm"]
+            for bay in disk["sets"][0]["bays"]] == [0, 100]
+    for bi in (0, 1):
+        scope, src, door = evidence(disk, bi, x=0 if bi == 0 else 100)
+        actual = derive_nfb_part_readiness(
+            scope, source_inventory=src, verified_inner_door=door,
+        )
+        assert actual.can_submit
+        assert actual.for_part("inner_door:upper:panel").status == READY
+        assert actual.for_part("middle_plate:upper").status == BLOCKED
+        with pytest.raises(ValueError, match="not manufac|unresolved"):
+            actual.filter_export_part_ids(
+                (scope.inner_door_part_id, *scope.middle_plate_part_ids),
+                partial=False,
+            )
+    assert "manufacturing_ready" not in saved.read_text(encoding="utf-8")
+    assert "READY" not in saved.read_text(encoding="utf-8")
