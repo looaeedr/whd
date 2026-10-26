@@ -5,6 +5,15 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## 2026-10-26 台灣｜#1504 NFB-AC-53 真來源版本 MFG-1 重新核對與拒絕過期能力（77→78 候選）
+
+- **修正確認的產品缺口**：`ae_engine/receiving_nfb_ui1b_bridge.py::assert_live_verified_nfb()` 原本已核對 Bay 身分、來源 DXF 位元 SHA、真正的內門幾何及 NFBConfig digest，卻漏比 `NfbVerifiedDraftSubmission.version_id` 與 `NfbPhysicalScope.version_id`、`NfbScopeReadiness.scope`。因此不可把物理相同但**版本錯誤**的已核准 MFG-1 能力當成當期可提交。現改為 `scope.identity == (live Set, live Bay, candidate version)` 且 `readiness.scope == scope`、`submitted=true`，任何不符立刻失效、要求重驗，不到操作者確認也不寫入。
+- **正反回歸**：使用既有真實來源讀取／組裝的 typed MFG-1 `NfbVerifiedDraftSubmission`，正向確定版本 v1 只授權 v1；逐項偽改 `version_id`（含布林）、`scope.version_id`、`scope.submitted`、`readiness.scope`，均由 `assert_live_verified_nfb` 和 `submit_live_verified_nfb` 在任何 adapter 寫入前拒絕。保留同一已驗證 v1 的正常提交。
+- **完整 UI／存檔補證**：已存在 source-revocation 原生 Tk 測試證明按鈕呈現可用後來源變更時，實際點擊不會提交；後端獨立測試保證已提交來源複製只用目標自身版本與 MFG-1 實體授權；新 AC-46 真 GUI 舊格式 V3 Save→Reload 則證明能力/來源未重新取得時原本的 `submitted=true` **不降級為 UNCONFIGURED**，也不能輸出缺孔的 legacy 板件。
+- **審核界線**：以上是來源、版本、Scope、README/供應 DXF test fixture 下的 UI-1B 能力核銷，非 arbitrary 廠牌 MFG-2、PAD／焊接／整箱 NC 或使用者 Windows UAT；原始兩份 v1.4 規格與 88 AC 不改。**本 PR 同時候選 AC-46 + AC-53，矩陣暫 78／88，剩 10；只有 exact HEAD 5/5 CI SUCCESS + localX merge/readback 才成為正式簽核**，正式 X 仍需 `/推推`。
+
+---
+
 ## 2026-10-26 台灣｜#1504 NFB-AC-46 真 GUI 舊案已提交防無孔 DXF 候選（76→77）
 
 - **原始 §7 AC-46 不變**：即使缺少原機器 MFG-1 source/capability，載入已儲存 `submitted=true` 的工程絕不可默認為 `UNCONFIGURED`，並輸出缺少 NFB 孔的舊版完整 DXF。提交事實與原始配置屬於持久化資料，READY 是重新推導的當次來源授權。
