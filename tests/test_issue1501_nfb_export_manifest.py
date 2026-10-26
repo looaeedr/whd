@@ -1015,3 +1015,54 @@ def test_ac41_real_source_in_scope_whole_does_not_claim_completed_pad_ear_assemb
     )
     with pytest.raises(ValueError, match="partial only"):
         stale.require_export(("side1",), partial=False)
+
+
+def test_ac41_v5_configured_source_state_never_means_full_manufacturing_release():
+    """Current V5 CONFIGURED is a source/physical-scope check, not MFG-2.
+
+    A missing real required Base must keep the status DRAFT. Even when the
+    complete numeric CSV and claimed actual required roles are present,
+    manufacturing remains false and every dependent sheet is RECHECK_ONLY.
+    """
+    from ae_engine.receiving_nfb_v5_diagnostics import current_v5_nfb_diagnostics
+    from tests.test_issue1503_nfb_v5_p6fold_roundtrip import _config
+
+    config = _config()
+    config["holes"][0].update(
+        manual_x_state="CONFIRMED",
+        manual_x_mm=0.0,
+        datum_revision="AC41_W800_SOURCE",
+        datum_snapshot={"w": 800, "t": 2},
+    )
+    bay = {"nfb_config_submitted": True, "nfb_config": config}
+    kwargs = dict(
+        set_id="setA", bay_id="bayA", version_id="v1",
+        dependent_part_ids=("inner1", "base1"),
+        unaffected_part_ids=("head1",),
+    )
+    scoped = current_v5_nfb_diagnostics(bay, **kwargs)
+    assert scoped is not None
+    assert scoped["derived_state"] == "CONFIGURED"
+    assert scoped["nfb_config_submitted"] is True
+    assert scoped["manufacturing_ready"] is False
+    assert scoped["whole_ready"] is False
+    assert scoped["actual_export_count"] is None
+    assert scoped["rows"] == ()
+    assert all(unit["configuration_verified"] is True
+               and unit["manufacturing_verified"] is False
+               for unit in scoped["unit_rows"])
+    assert {row["status"] for row in scoped["part_rows"]
+            if row["nfb_affected"]} == {"RECHECK_ONLY"}
+    assert "NFB_CURRENT_CSV_PHYSICAL_CUTTING_RECHECK_REQUIRED" in (
+        scoped["unresolved_dependencies"]
+    )
+
+    missing = current_v5_nfb_diagnostics(
+        bay, **kwargs, missing_required_physical_roles=("BASE_PLATE",),
+    )
+    assert missing["derived_state"] == "DRAFT"
+    assert missing["whole_ready"] is False
+    assert missing["manufacturing_ready"] is False
+    assert "NFB_REAL_BASE_PLATE_SOURCE_MISSING" in missing["unresolved_dependencies"]
+    assert all(row["status"] == "BLOCKED"
+               for row in missing["part_rows"] if row["nfb_affected"])
