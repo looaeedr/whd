@@ -801,3 +801,75 @@ def test_swt30_exact_committed_w_n_y_model_datum_has_real_dxf_but_cannot_leak_to
     with pytest.raises((ValueError, KeyError)):
         _export(pending, parts, blocked)
     assert not list(blocked.glob("*.dxf"))
+
+
+def test_ac51_swt30_exact_verified_v5_pair_receipt_discloses_only_exported_models_and_xy(
+    tmp_path,
+):
+    """Only a real saved/reopened CSV pair can display this scoped manufacture line."""
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from ae_engine.receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+
+    snap = _current()
+    inner_id, holes = _submitted_csv_holes(snap)
+    before = deepcopy(snap)
+    root = tmp_path / "success"
+    root.mkdir()
+    pair = _export(snap, _scene(snap), root)
+    scope = pair.verified_v5_scope
+    assert scope is not None
+    assert (scope.set_id, scope.bay_id) == ("S", "B")
+    assert scope.width_mm == pytest.approx(800.0)
+    assert scope.inner_door_id == inner_id
+    assert tuple(site.physical_hole_id for site in scope.sites) == (
+        "nfb:0", "nfb:1",
+    )
+    assert tuple(site.model_ref for site in scope.sites) == (
+        "nfbv5:士林:2P400", "nfbv5:士林:3P125SN",
+    )
+    assert [site.world_x_mm for site in scope.sites] == pytest.approx(
+        [-150.0, 150.0],
+    )
+    assert [site.world_y_mm for site in scope.sites] == pytest.approx([
+        project_nfb_inner_door_nominal_y(
+            snap, inner_id, layer_count=h.layer_count, slot_index=h.slot_index,
+        ).box_world_y_mm for h in holes
+    ])
+    label = scope.operator_label
+    assert "可製造（內門）" in label
+    for token in ("Set=S", "Bay=B", "W=800", "N=2", "X=-150",
+                  "X=150", "nfbv5:士林:2P400", "nfbv5:士林:3P125SN",
+                  "其他版本／位置／型號", "整箱未放行"):
+        assert token in label
+    assert all(Path(path).is_file() for path in (
+        pair.inner_door_path, pair.base_plate_path,
+    ))
+    assert snap == before
+
+    # An old pair receipt still describes ONLY the earlier output. Mutating
+    # current committed coordinates cannot use the old scene to release a
+    # current/new Bay scope; no new DXF or green status may be produced.
+    changed = deepcopy(snap)
+    changed["nfb_config"]["holes"][1]["manual_x_mm"] += 15.0
+    changed["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        changed["nfb_config"]
+    )
+    new_directory = tmp_path / "stale"
+    new_directory.mkdir()
+    with pytest.raises(ValueError, match="CURRENT_FINALSCENE"):
+        _export(changed, _scene(snap), new_directory)
+    assert not list(new_directory.glob("*.dxf"))
+    assert scope.sites[1].world_x_mm == pytest.approx(150.0)
+
+
+def test_ac51_swt30_numeric_model_preview_without_successful_export_has_no_scope_label():
+    """A constructed preview-style result cannot claim physical approval."""
+    from gui_modules.application.receiving_nfb_pair_partial_export_action import (
+        NfbCsvPairedPartOnlyDxf,
+    )
+    preview = NfbCsvPairedPartOnlyDxf(
+        inner_door_path="", base_plate_path="",
+        source_hole_ids=("nfb:0",), check_q_key="",
+    )
+    assert preview.verified_v5_scope is None
+    assert preview.scope == "CSV_PAIR_PART_ONLY_NOT_WHOLE_CABINET"

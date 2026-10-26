@@ -1008,7 +1008,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                                     getattr(paired, "base_plate_paths", ())
                                     or (getattr(paired, "base_plate_path", ""),)
                                 )
-                                + "。耳朵焊接 Z、PAD／EAR 與整箱 MFG-2 尚未放行。",
+                                + "。耳朵焊接 Z、PAD／EAR 與整箱 MFG-2 尚未放行。"
+                                + ("\n" + paired.verified_v5_scope.operator_label
+                                   if getattr(paired, "verified_v5_scope", None) is not None
+                                   else ""),
                                 parent=win,
                             )
                         except (ValueError, TypeError, IndexError,
