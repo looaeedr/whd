@@ -590,3 +590,97 @@ def test_ac02_edit_last_slot_and_layer_switch_never_implicitly_restore_submitted
     assert "nfb_config" not in restored.layout["sets"][0]["bays"][0]
     assert undo_nfb_transaction(restored.layout, restored.receipt) == committed
     assert committed == original_committed
+
+
+def test_ac40_explicit_quantity_version_x_owner_zero_cancel_reconfirm_v3_roundtrip(tmp_path):
+    """#1504 AC40: first approval and a NEW version have distinct X authorities.
+
+    A copied X=0 is a real coordinate but never the approval of another
+    version. This is current V5 saved identity evidence, not factory clearance.
+    """
+    from tests.test_issue1499_nfb_persistence import _config as saved_config
+    from ae_engine.receiving_nfb_persistence import normalize_nfb_config
+
+    quantity = QuantityModel()
+    first = quantity.selected_version_id
+    config = saved_config(x=0, filename=MODEL_A)
+    config["holes"][0]["datum_snapshot"].update({
+        "version_id": first,
+        "model_filename": MODEL_A,
+        "rotation_deg": 90,
+    })
+    quantity.set_version_nfb_config(first, submitted=True, config=config)
+    original = quantity.nfb_config_for_version(first)["nfb_config"]["holes"][0]
+    assert original["manual_x_state"] == "CONFIRMED"
+    assert original["manual_x_mm"] == 0
+    assert original["datum_snapshot"]["version_id"] == first
+
+    second = quantity.add_version()
+    copied = quantity.nfb_config_for_version(second)["nfb_config"]["holes"][0]
+    assert copied["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert copied["manual_x_mm"] == 0
+    assert copied["datum_snapshot"]["version_id"] == first
+
+    # Even a caller that falsely re-labels the copied X as CONFIRMED cannot
+    # use it as the second version's explicit physical datum.
+    forged = deepcopy(config)
+    quantity.set_version_nfb_config(second, submitted=True, config=forged)
+    denied = quantity.nfb_config_for_version(second)["nfb_config"]["holes"][0]
+    assert denied["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert denied["manual_x_mm"] == 0
+    assert denied["datum_snapshot"]["version_id"] == first
+    assert quantity.nfb_config_for_version(first)["nfb_config"]["holes"][0] == original
+
+    # An explicit new per-version datum can be submitted, not inferred
+    # merely from the unchanged W/model/rotation or an old zero.
+    approved = deepcopy(config)
+    approved["holes"][0]["datum_revision"] = "v2-operator-approved-source"
+    approved["holes"][0]["datum_snapshot"]["version_id"] = second
+    quantity.set_version_nfb_config(second, submitted=True, config=approved)
+    accepted = quantity.nfb_config_for_version(second)["nfb_config"]["holes"][0]
+    assert accepted["manual_x_state"] == "CONFIRMED"
+    assert accepted["manual_x_mm"] == 0
+    assert accepted["datum_snapshot"]["version_id"] == second
+
+    # Changed actual model or physical angle cannot reuse the same source-
+    # compatible authority; the old approved numeric X is retained for review.
+    changed = deepcopy(approved)
+    changed["holes"][0]["model_filename"] = MODEL_B
+    quantity.set_version_nfb_config(second, submitted=True, config=changed)
+    assert quantity.nfb_config_for_version(second)["nfb_config"]["holes"][0][
+        "manual_x_state"
+    ] == "RECONFIRM_REQUIRED"
+    changed = deepcopy(approved)
+    changed["holes"][0]["rotation_deg"] = 180
+    quantity.set_version_nfb_config(second, submitted=True, config=changed)
+    assert quantity.nfb_config_for_version(second)["nfb_config"]["holes"][0][
+        "manual_x_state"
+    ] == "RECONFIRM_REQUIRED"
+
+    # NONE is not an approved numerical zero; a pending datum is persisted
+    # as pending rather than silently upgraded on Save -> Reload.
+    pending = deepcopy(config)
+    pending["holes"][0]["manual_x_state"] = "NONE"
+    pending["holes"][0]["manual_x_mm"] = None
+    quantity.set_version_nfb_config(second, submitted=True, config=pending)
+    missing = quantity.nfb_config_for_version(second)["nfb_config"]["holes"][0]
+    assert missing["manual_x_state"] == "NONE"
+    assert missing["manual_x_mm"] is None
+
+    quantity.set_version_nfb_config(second, submitted=True, config=forged)
+    saved = write_project(tmp_path / "ac40-version-owner.p6fold", _project({
+        "active_mode": "quantity",
+        "quantity": quantity.snapshot(),
+        "receiving_quantity_box": {"w": 800, "h": 1600, "d": 350},
+    }))
+    disk = read_project(saved)
+    assert disk["schema"] == PROJECT_SCHEMA_V3
+    reloaded = QuantityModel.from_payload(disk["snapshot"]["quantity"])
+    assert reloaded.nfb_config_for_version(first)["nfb_config"]["holes"][0][
+        "manual_x_state"
+    ] == "CONFIRMED"
+    still_pending = reloaded.nfb_config_for_version(second)["nfb_config"]["holes"][0]
+    assert still_pending["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert still_pending["manual_x_mm"] == 0
+    assert still_pending["datum_snapshot"]["version_id"] == first
+    assert normalize_nfb_config(config)["holes"][0]["manual_x_mm"] == 0
