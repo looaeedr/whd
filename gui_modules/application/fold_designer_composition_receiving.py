@@ -2334,6 +2334,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     if initial["layers"] == 2 else "",
                 ],
             }
+            # An old real-DXF scope label is an OUTPUT receipt, not a
+            # standing manufacturing status for a newly edited NFB draft.
+            # Revoke synchronously on the existing draft repaint path; never
+            # wait for another ListboxSelect or silently keep a stale green.
+            if (config != before
+                    or draft_state["draft"] != initial_nfb_draft):
+                panel = nfb_preview_panel["panel"]
+                if panel is not None:
+                    panel.revoke_export_scope_status()
             preview_status.set(
                 "尚未儲存的變更" if config != before else "與已載入版本相同"
             )
