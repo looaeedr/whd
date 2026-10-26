@@ -98,6 +98,9 @@ class NfbDxfSourcePreviewPanel:
                     if len(self._numeric_sources)>8:
                         self._numeric_sources.pop(next(iter(self._numeric_sources)))
             except (ValueError,OSError,UnicodeError) as exc:
+                # A prior verified scope must never make a missing/changed
+                # CSV model look approved in the pane heading.
+                self.frame.configure(text="NFB 數值規格 CSV｜僅預覽")
                 self._numeric_spec=None
                 self._source_key=None
                 self.viewport.preview=None
