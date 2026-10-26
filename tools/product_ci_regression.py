@@ -132,6 +132,8 @@ PYTEST_PATHS = (
     "tests/test_issue1503_quantity_nfb_source_owner.py",
     "tests/test_issue1503_nfb_manufacturing_transport.py",
     "tests/test_issue1503_single_gui_real_tier_2d3d.py",
+    # EAR mesh and Base Plate controls remain independent in all four states.
+    "tests/test_issue1503_fixing_plate_3d_visibility.py",
     "tests/test_issue1503_primary_2d_ear_source_authority.py",
     "tests/test_receiving_fold_designer_ear_side_marks.py",
     "tests/test_receiving_base_source_owned_part_session.py",
