@@ -755,3 +755,21 @@ def test_r5_78_valid_cutting_dxf_circle_still_preserves_layer_and_local_center(t
     assert max(p.x for p in points) == pytest.approx(12.)
     assert min(p.y for p in points) == pytest.approx(-12.)
     assert max(p.y for p in points) == pytest.approx(12.)
+
+
+@pytest.mark.parametrize("malformed", [True, False, 42, "indicator", ["indicator"]])
+def test_r5_94_invalid_indicator_state_root_must_fail_closed(malformed):
+    """Corrupt saved Door indicator authority must not silently add/drop holes."""
+    with pytest.raises(ValueError, match="Door indicator state must be a mapping"):
+        normalize_door_indicator_state(malformed)
+
+
+def test_r5_94_absent_and_readonly_indicator_mapping_keep_existing_defaults():
+    from types import MappingProxyType
+    assert normalize_door_indicator_state(None)["mode"] == "none"
+    saved = MappingProxyType({"mode": "indicator", "layers": 2, "groups": (3, 3)})
+    normalized = normalize_door_indicator_state(saved)
+    assert normalized["mode"] == "indicator"
+    assert normalized["enabled"] is True
+    assert normalized["layers"] == 2
+    assert normalized["groups"][:2] == [3, 3]
