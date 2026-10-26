@@ -1692,6 +1692,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         self.app._receiving_nfb_ui_session_evidence = evidence
     pending_verified_nfb = evidence["pending"]
     committed_nfb_evidence = evidence["committed"]  # NEVER serialized
+    verified_csv_pair_evidence = evidence.setdefault("csv_pairs", {})  # session only
 
     def nfb_physical_bay_snapshot(set_index,bay_index):
         """Real selected Bay authority, not the unprojected root UI snapshot."""
@@ -3544,11 +3545,24 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     namespace, set_index, bay_index,
                     preview_layout=candidate_adapter().layout,
                 )
-                return export_current_csv_nfb_door_base_pair(
+                receipt = export_current_csv_nfb_door_base_pair(
                     current, base_spec=spec,
                     assembly_parts=request.render_data.assembly_parts,
                     output_directory=output_directory,
                 )
+                from ae_engine.receiving_nfb_current_scope_status import (
+                    verified_pair_after_export,
+                )
+                try:
+                    verified_csv_pair_evidence[(set_index, bay_index)] = (
+                        verified_pair_after_export(current, receipt)
+                    )
+                except (ValueError, TypeError, OSError, KeyError):
+                    # A read-only label may fail; it must not undo valid DXF
+                    # production or grant a stale manufacturing claim.
+                    verified_csv_pair_evidence.pop((set_index, bay_index), None)
+                return receipt
+            verified_csv_pair_evidence.pop((set_index, bay_index), None)
             bundle = committed_nfb_evidence.get((set_index, bay_index))
             if bundle is None:
                 raise ValueError("NFB 成對出圖缺少現行 CSV 或舊版已驗證來源")
@@ -3570,6 +3584,36 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     csv_pair_ready = current_csv_pair_source(set_index, bay_index)
                 except (ValueError, TypeError, KeyError, IndexError, OSError):
                     csv_pair_ready = False
+            from ae_engine.receiving_nfb_current_scope_status import (
+                PREVIEW, VERIFIED_DOOR, scoped_current_v5_selector_status,
+            )
+            model_scope_by_ref = {}
+            if csv_pair_ready:
+                try:
+                    from ae_engine.receiving_nfb_committed_final_scene import (
+                        _submitted_csv_holes,
+                    )
+                    current_scope = nfb_physical_bay_snapshot(set_index, bay_index)
+                    source = _submitted_csv_holes(current_scope)
+                    receipt = verified_csv_pair_evidence.get(
+                        (set_index, bay_index)
+                    )
+                    if source:
+                        model_scope_by_ref = {
+                            model: scoped_current_v5_selector_status(
+                                current_scope, model, receipt,
+                            )
+                            for model in {
+                                hole.model_ref for hole in source[1]
+                            }
+                        }
+                except (ValueError, TypeError, KeyError, IndexError, OSError):
+                    pass  # Broken or stale source stays preview-only.
+            current_model_scope_status = (
+                VERIFIED_DOOR if model_scope_by_ref
+                and all(value == VERIFIED_DOOR for value in model_scope_by_ref.values())
+                else PREVIEW
+            )
             try:
                 copy_pair(set_index,selected_bays)
                 can_copy=True
@@ -3579,6 +3623,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 "submitted": submitted,
                 "can_submit": bundle is not None and bundle.can_submit,
                 "can_copy": can_copy,
+                "model_scope_by_ref": model_scope_by_ref,
+                "model_scope_status": current_model_scope_status,
                 "can_restore": submitted,
                 "can_undo": adapter.nfb_can_undo,
                 "base_partial_ready": bool(
@@ -3653,6 +3699,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 for bi in bay_indices:
                     committed_nfb_evidence.pop((set_index,bi),None)
                     pending_verified_nfb.pop((set_index,bi),None)
+                    verified_csv_pair_evidence.pop((set_index,bi),None)
                 flush()
             return result.changed
 
@@ -3660,6 +3707,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             adapter = candidate_adapter()
             receipt = adapter.undo_last_nfb_transaction()
             committed_nfb_evidence.clear()  # Undo invalidates old physical evidence
+            verified_csv_pair_evidence.clear()
             pending_verified_nfb.clear()
             flush()
             return receipt
