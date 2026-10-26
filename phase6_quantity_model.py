@@ -249,6 +249,7 @@ class QuantityModel:
         if row is None:
             raise ValueError(f"孔型版本不存在: {version_id}")
         fields = normalize_nfb_saved_fields({
+            "version_id": version_id,
             "nfb_config_submitted": submitted, "nfb_config": config,
         })
         old = self.nfb_config_for_version(version_id)
