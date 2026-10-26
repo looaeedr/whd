@@ -5,6 +5,24 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## 2026-10-26 台灣｜#1504 NFB-AC-53 真來源版本 MFG-1 重新核對與拒絕過期能力（77→78 候選）
+
+- **修正確認的產品缺口**：`ae_engine/receiving_nfb_ui1b_bridge.py::assert_live_verified_nfb()` 原本已核對 Bay 身分、來源 DXF 位元 SHA、真正的內門幾何及 NFBConfig digest，卻漏比 `NfbVerifiedDraftSubmission.version_id` 與 `NfbPhysicalScope.version_id`、`NfbScopeReadiness.scope`。因此不可把物理相同但**版本錯誤**的已核准 MFG-1 能力當成當期可提交。現改為 `scope.identity == (live Set, live Bay, candidate version)` 且 `readiness.scope == scope`、`submitted=true`，任何不符立刻失效、要求重驗，不到操作者確認也不寫入。
+- **正反回歸**：使用既有真實來源讀取／組裝的 typed MFG-1 `NfbVerifiedDraftSubmission`，正向確定版本 v1 只授權 v1；逐項偽改 `version_id`（含布林）、`scope.version_id`、`scope.submitted`、`readiness.scope`，均由 `assert_live_verified_nfb` 和 `submit_live_verified_nfb` 在任何 adapter 寫入前拒絕。保留同一已驗證 v1 的正常提交。
+- **完整 UI／存檔補證**：已存在 source-revocation 原生 Tk 測試證明按鈕呈現可用後來源變更時，實際點擊不會提交；後端獨立測試保證已提交來源複製只用目標自身版本與 MFG-1 實體授權；新 AC-46 真 GUI 舊格式 V3 Save→Reload 則證明能力/來源未重新取得時原本的 `submitted=true` **不降級為 UNCONFIGURED**，也不能輸出缺孔的 legacy 板件。
+- **審核界線**：以上是來源、版本、Scope、README/供應 DXF test fixture 下的 UI-1B 能力核銷，非 arbitrary 廠牌 MFG-2、PAD／焊接／整箱 NC 或使用者 Windows UAT；原始兩份 v1.4 規格與 88 AC 不改。**本 PR 同時候選 AC-46 + AC-53，矩陣暫 78／88，剩 10；只有 exact HEAD 5/5 CI SUCCESS + localX merge/readback 才成為正式簽核**，正式 X 仍需 `/推推`。
+
+---
+
+## 2026-10-26 台灣｜#1504 NFB-AC-46 真 GUI 舊案已提交防無孔 DXF 候選（76→77）
+
+- **原始 §7 AC-46 不變**：即使缺少原機器 MFG-1 source/capability，載入已儲存 `submitted=true` 的工程絕不可默認為 `UNCONFIGURED`，並輸出缺少 NFB 孔的舊版完整 DXF。提交事實與原始配置屬於持久化資料，READY 是重新推導的當次來源授權。
+- **驗證鏈**：用倉庫原本保留的受電箱舊格式工程作為合法檔案基礎，於隔離測試檔中設定單連已提交 NFB（明確為測試造出的配置，不偽稱原使用者證據），執行真 `write_project`→`read_project`→原生 WHD GUI load→NFB 視窗檢查提交／複製停用與還原可用→製造舊式 `door/base/body` 守衛警示；再透過原始 `_export_selected_parts` 實際嘗試 NFB 依賴的箱身側板 DXF，要求明確來源/NFB 錯誤、零輸出文件。無 NFB 依賴的 HEAD/TAIL 與可獨立證明的外門不被同一 NFB-only guard 阻擋；GUI 再存檔重讀仍保留 V3 與已提交配置。
+- **負面案例**：舊 V1/V2 schema 冒裝已提交配置必須拒絕、布林值不合法必須拒絕。所有輸出斷言都經 mandatory CI，不能只靠測試名稱；**本期不宣稱 user Windows UAT 或工廠任意 DXF 認證**。
+- **合併條件**：PR HEAD 全 Product Regression（含 52 CPR/AC）GREEN 才可合併 GitHub localX，簽核正式成為 77/88；其他 11 項不自動 GREEN。無不存在「專案 B」前置；正式 X 仍需 `/推推`。
+
+---
+
 ## 2026-10-26 台灣｜#1504 AC-07／43／35／45／56 原生 Tk 真交易與 Save→Reload 簽核候選（71→76）
 
 - **原文不改**：NFB-AC-07／43 針對兩連原生 Tk Canvas 高亮→來源已提交→合法物理目標複製、第一次 COPY_SUBMIT 與覆寫 COPY_OVERWRITE 的確認／取消、缺現行來源時即使舊按鈕仍可按也拒絕，來源與目標各自持有獨立 physical_hole_id／unit_id、手動 X、Undo，真 `.p6fold` Save→Reload 不能串連污染。原生 GUI 直接驅動 `ReceivingSetBayAdapter.copy_submitted_nfb_to_bay`；不靠假 ports 的返回值模擬深複製。

@@ -306,3 +306,65 @@ def test_ac28_extreme_operator_world_x_fails_closed_before_any_manufacturing(
         })
     assert emitted == []
     assert kwargs["draft"]["layers"][0]["slots"][0] == staged_before
+
+
+def test_ac53_real_mfg1_verified_capability_is_bound_to_exact_version_and_readiness(
+    tmp_path, monkeypatch,
+):
+    """One versioned, physical MFG-1 proof; no stale GUI capability reuse.
+
+    The genuine indexed-source/profile fixture uses the real production
+    verified bundle and immutable per-hole DXF source bytes. Replacing a
+    frozen dataclass's version/readiness alone must never authorize submit.
+    """
+    from dataclasses import replace
+
+    kwargs, unit, emitted = _setup(tmp_path, monkeypatch)
+    verified = verify_nfb_ui1a_for_submit(**kwargs)
+    assert verified.version_id == "v1"
+    assert verified.scope.identity == ("set-a", "bay-a", "v1")
+    assert verified.readiness.scope == verified.scope
+    assert verified.can_submit is True
+
+    calls = []
+    class Adapter:
+        layout = kwargs["layout"]
+        def submit_nfb_to_bays(self, **arguments):
+            calls.append(arguments)
+            return SimpleNamespace(changed=True)
+
+    adapter = Adapter()
+    assert assert_live_verified_nfb(
+        adapter, verified, current_snapshot=kwargs["snapshot"],
+    )
+    for invalid in (
+        replace(verified, version_id="v2"),
+        replace(verified, version_id=""),
+        replace(verified, version_id=True),
+        replace(verified, scope=replace(verified.scope, version_id="v2")),
+        replace(verified, readiness=replace(
+            verified.readiness,
+            scope=replace(verified.scope, version_id="v2"),
+        )),
+        replace(verified, scope=replace(verified.scope, submitted=False)),
+    ):
+        with pytest.raises(ValueError, match="MFG-1 verified version/scope/readiness"):
+            assert_live_verified_nfb(
+                adapter, invalid, current_snapshot=kwargs["snapshot"],
+            )
+        with pytest.raises(ValueError, match="MFG-1 verified version/scope/readiness"):
+            submit_live_verified_nfb(
+                adapter, invalid, current_snapshot=kwargs["snapshot"],
+                confirm=lambda _: pytest.fail("invalid MFG-1 must not prompt"),
+            )
+    assert not calls
+
+    # Only this exact version/source scope is eligible for a true callback.
+    approved = submit_live_verified_nfb(
+        adapter, verified, current_snapshot=kwargs["snapshot"],
+        confirm=lambda _: True,
+    )
+    assert approved.changed
+    assert len(calls) == 1
+    assert calls[0]["version_id"] == "v1"
+    assert calls[0]["configs"][0]["holes"][0]["physical_hole_id"].endswith(unit)

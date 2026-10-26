@@ -61,7 +61,9 @@ def test_unrelated_head_tail_indicator_and_custom_dont_get_nfb_only_block():
         {"indicator_door":True},
         {"door":False,"box_body":False,"base_plate":False},
     ):
-        _assert_legacy_nfb_export_scope_safe(user,flags)
+        # The true original manufacturing guard must explicitly approve
+        # unrelated physical intentions; do not only rely on no exception.
+        assert _assert_legacy_nfb_export_scope_safe(user,flags) is None
 
 
 def test_legacy_and_draft_no_submission_preserve_old_export(tmp_path):

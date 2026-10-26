@@ -2064,7 +2064,7 @@ def test_cancelled_second_legacy_project_is_not_a_1500_1504_signoff_gate():
     }
     assert "Windows UAT" in policy["proof_rule"]
     assert "second old-project B" in document["current_gates_explanation"]["1500"]
-    assert "no missing second original project" in (
+    assert "No project B prerequisite" in (
         document["current_gates_explanation"]["1504"]
     )
     blocked = [r for r in document["records"]
@@ -2147,3 +2147,117 @@ def test_ac07_ac43_ac35_ac45_ac56_exact_native_tk_functional_signoff():
     remaining = [r["id"] for r in obj["records"] if not r["accepted"]]
     assert len(remaining) == obj["counts"]["BLOCKED_1500_REAL_GUI"]
     assert not any(ac in remaining for ac in expected)
+
+
+def _test_function_has_assert_or_expected_exception(function):
+    """Require a real Python assertion OR an explicit pytest.raises negative.
+
+    A production fail-closed test commonly checks rejection using
+    `with pytest.raises(..., match=...):` and has no bare `assert`.
+    Inspect that concrete AST, rather than treating the test as assertion-free
+    or replacing the exception contract with a meaningless dummy assert.
+    """
+    for node in ast.walk(function):
+        if isinstance(node, ast.Assert):
+            return True
+        if isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                call = item.context_expr
+                if (isinstance(call, ast.Call)
+                        and isinstance(call.func, ast.Attribute)
+                        and call.func.attr == "raises"
+                        and isinstance(call.func.value, ast.Name)
+                        and call.func.value.id == "pytest"
+                        and call.args):
+                    return True
+    return False
+
+
+def test_ac46_real_reopened_submitted_nfb_never_legacy_dxf_source_signoff():
+    """The cancelled second project B is never a proxy for real AC-46 proof."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    obj = _data()
+    assert obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 77
+    assert obj["counts"]["BLOCKED_1500_REAL_GUI"] <= 11
+    row = next(r for r in obj["records"] if r["id"] == "NFB-AC-46")
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["accepted"] is True and not row["blocking_issues"]
+    assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
+    proof = row["acceptance_evidence"]
+    primary = (
+        "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py"
+        "::test_ac46_saved_submitted_nfb_is_never_silently_legacy_after_gui_reload"
+    )
+    assert proof["primary_assertion"] == primary
+    assert row["identified_test_functions"] == [{
+        "path": primary.split("::")[0],
+        "test_name": primary.split("::")[1],
+        "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+        "accepted": True,
+    }]
+    assert proof["no_staged_transient_mfg1_proof"] is True
+    assert proof["sanitized_repository_legacy_input_only"] is True
+    assert proof["user_cancelled_second_legacy_project_prerequisite"] is True
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    assert len(proof["requirement_witnesses"]) >= 3
+    for label in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "integrated_localx_claimed", "formal_x_published",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+        "original_manufacturer_dxf_certified",
+    ):
+        assert proof[label] is False, label
+    for witness in [primary, *proof["other_required_assertions"]]:
+        filename, fn = witness.split("::")
+        assert filename in PYTEST_PATHS, filename
+        nodes = ast.parse((ROOT / filename).read_text(encoding="utf-8")).body
+        matches = [n for n in nodes if isinstance(n, ast.FunctionDef)
+                   and n.name == fn]
+        assert len(matches) == 1
+        assert _test_function_has_assert_or_expected_exception(matches[0]), witness
+
+
+def test_ac53_versioned_mfg1_current_capability_requires_real_native_source():
+    """A versioned MFG-1 receipt cannot be replaced by a GUI enable flag."""
+    from tools.product_ci_regression import PYTEST_PATHS
+
+    manifest = _data()
+    assert manifest["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 78
+    assert manifest["counts"]["BLOCKED_1500_REAL_GUI"] <= 10
+    row = next(r for r in manifest["records"] if r["id"] == "NFB-AC-53")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
+    proof = row["acceptance_evidence"]
+    assert proof["primary_assertion"] == (
+        "tests/test_issue1500_nfb_ui1b_bridge.py"
+        "::test_ac53_real_mfg1_verified_capability_is_bound_to_exact_version_and_readiness"
+    )
+    assert row["identified_test_functions"][0]["test_name"] == (
+        "test_ac53_real_mfg1_verified_capability_is_bound_to_exact_version_and_readiness"
+    )
+    assert row["identified_test_functions"][0]["accepted"] is True
+    assert len(proof["requirement_witnesses"]) == 3
+    assert len(proof["other_required_assertions"]) >= 5
+    assert proof["current_MFG1_source_fixture_is_test_only"] is True
+    assert proof["user_cancelled_second_legacy_project_prerequisite"] is True
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    for key in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "integrated_localx_claimed", "formal_x_published",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+        "original_manufacturer_dxf_certified",
+    ):
+        assert proof[key] is False, key
+    for witness in [proof["primary_assertion"], *proof["other_required_assertions"]]:
+        path, fn = witness.split("::")
+        assert path in PYTEST_PATHS, path
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        actual = [n for n in tree.body if isinstance(n, ast.FunctionDef)
+                  and n.name == fn]
+        assert len(actual) == 1, witness
+        assert _test_function_has_assert_or_expected_exception(actual[0]), witness
