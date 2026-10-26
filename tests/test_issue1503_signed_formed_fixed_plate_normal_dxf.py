@@ -175,7 +175,7 @@ def test_no_new_ui_button_or_full_cabinet_global_ear_bypass():
 def test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad(
     tmp_path,
 ):
-    """One submitted model swap: REAL per-tier Base and EAR follow the same Z.
+    """One submitted model swap: the Base rederives its fold; EAR contact Z is fixed.
 
     Current #1502 correction supersedes the older "Base never moves" wording.
     A depth change must neither move the Inner Door nor fabricate an NFB PAD.
@@ -269,8 +269,9 @@ def test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad(
 def test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_pad(tmp_path):
     """CURRENT per-brand numeric CSV V5 path, not merely legacy .dxf names.
 
-    Only selected second-tier depth changes 72 -> 68; the Base and both EAR
-    contact skins follow in world Z, the inner door stays, no PAD is released.
+    Only selected second-tier depth changes 72 -> 68. The Base rederives its
+    actual fold; both EAR contact skins stay at brand-max Z. The inner door
+    remains fixed and no PAD is released.
     """
     from copy import deepcopy
     from ae_engine.receiving_nfb_model_identity import selected_numeric_spec
@@ -351,7 +352,7 @@ def test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_
 
 
 def test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_release_pad(tmp_path):
-    """The original LOWER source cannot become a PAD; V5 depth moves real Base/EAR.
+    """The original LOWER source cannot become a PAD; V5 rederives real Base but not EAR contact Z.
 
     This is source-scoped actual parser + physical assembly + normal DXF
     reopening and negative manufacturer proof, NOT a factory PAD release.
