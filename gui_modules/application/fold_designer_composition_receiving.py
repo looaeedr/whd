@@ -2561,7 +2561,44 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if selected:
                 slot = draft_state["draft"]["layers"][index]["slots"][selected[0]]
                 brand = effective_nfb_slot_brand(draft_state["draft"],index,selected[0])
-                nfb_preview_panel["panel"].show(brand,slot["filename"])
+                # Only the untouched, actually submitted SAME physical
+                # single-tier Bay may display an already verified part-only
+                # DXF status. Available/unselected models remain previews.
+                # Edited draft X/Y/model/rotation and candidate versions
+                # must NEVER inherit a previous export's status.
+                scope_verdict = None
+                if (version_id is None and index == 0
+                        and draft_state["draft"] == initial_nfb_draft
+                        and draft_state["draft"]["layer_count"] == 1):
+                    try:
+                        from ae_engine.receiving_nfb_current_scope_status import (
+                            scoped_current_v5_selector_status,
+                        )
+                        from ae_engine.receiving_nfb_committed_final_scene import (
+                            _submitted_csv_holes,
+                        )
+                        selection = candidate_adapter().selection
+                        si, bi = selection.set_index, selection.bay_index
+                        current = nfb_physical_bay_snapshot(si, bi)
+                        real = _submitted_csv_holes(current)
+                        entries = draft_state["draft"]["layers"][0]["slots"]
+                        # Match complete selected models in the exact
+                        # current physical hole order, not merely an isolated
+                        # model name appearing somewhere in another Bay.
+                        if (real and len(entries) == len(real[1])
+                                and all(
+                                    row["filename"] == hole.model_ref
+                                    for row, hole in zip(entries, real[1])
+                                )):
+                            scope_verdict = scoped_current_v5_selector_status(
+                                current, slot["filename"],
+                                verified_csv_pair_evidence.get((si, bi)),
+                            )
+                    except (ValueError, TypeError, KeyError, IndexError, OSError):
+                        pass
+                nfb_preview_panel["panel"].show(
+                    brand, slot["filename"], verified_scope=scope_verdict,
+                )
                 nfb_source_viewed["value"] = True
 
         def reposition_nfb_slot(index,direction):
