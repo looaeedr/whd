@@ -477,7 +477,10 @@ def receiving_base_plate_values(snapshot):
             )
             reference = committed_receiving_flat_nfb_depth_mm(data)
     return {
-        "receiving_nfb_reference_depth_mm": reference,
+        "receiving_nfb_reference_depth_mm": (
+            float(anchored_center[1]) if anchored_center is not None else reference
+        ),
+        "receiving_center_brand_anchor_inverted": anchored_center is not None,
         "receiving_nfb_depth_pair_mm": pair,
         "h": values["height"],
         "base_plate_shrink_top": values["shrink_top"],
