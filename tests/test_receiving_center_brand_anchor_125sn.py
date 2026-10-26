@@ -78,3 +78,51 @@ def test_changing_125sn_poles_alters_blank_but_not_brand_ear_z():
     assert [x.target_ear_contact_world_z_mm for x in before] == pytest.approx(
         [x.target_ear_contact_world_z_mm for x in after]
     )
+
+
+def test_two_tiers_each_use_their_own_dynamic_center_blank_and_same_ear_z():
+    from ae_engine.receiving_nfb_layer_physical_parts import (
+        source_receiving_nfb_tier_base_specs,
+    )
+    from ae_engine.manufacturing_scene_orchestration import build_part_render_data
+    from ae_engine.receiving_tier_ear_z_targets import resolve_receiving_tier_base_z_targets
+    from tests.test_receiving_two_tier_physical_base_parts import _two_tier
+
+    snap = _two_tier()
+    for hole, model in zip(
+        snap["nfb_config"]["holes"], ("2P125SN", "3P125SN"),
+    ):
+        hole["source_brand"] = "士林"
+        hole["model_filename"] = f"nfbv5:士林:{model}"
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    values = receiving_base_plate_values(snap)
+    assert values["receiving_bend_pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
+    targets = resolve_receiving_tier_base_z_targets(snap)
+    assert [t.source_depths_mm for t in targets] == [(68.,), (72.,)]
+    assert all(t.physical_skin_z_resolved for t in targets)
+    assert targets[0].base_back_skin_world_z_mm == pytest.approx(
+        targets[1].base_back_skin_world_z_mm
+    )
+    specs = source_receiving_nfb_tier_base_specs(snap)
+    assert [build_part_render_data(specs[i]).unfolded_topology.width
+            for i in (0, 1)] == pytest.approx([780., 772.])
+    contacts = resolve_receiving_tier_ear_contact_targets(snap)
+    assert len(contacts) == 4
+    assert all(row.base_skin_z_source_verified for row in contacts)
+    assert len({row.target_ear_contact_world_z_mm for row in contacts}) == 1
+    assert all(not row.manufacturing_ready for row in contacts)
+
+
+def test_legacy_two_tiers_107_and_72_keep_one_fixed_ear_z():
+    from ae_engine.receiving_tier_ear_z_targets import resolve_receiving_tier_base_z_targets
+    from tests.test_receiving_two_tier_physical_base_parts import _two_tier
+
+    snap = _two_tier()
+    targets = resolve_receiving_tier_base_z_targets(snap)
+    assert [row.source_depths_mm for row in targets] == [(107.,), (72.,)]
+    assert targets[0].base_back_skin_world_z_mm == pytest.approx(
+        targets[1].base_back_skin_world_z_mm
+    )
+    assert all(row.physical_skin_z_resolved for row in targets)
