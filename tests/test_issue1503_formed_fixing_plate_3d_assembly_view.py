@@ -19,7 +19,7 @@ def _view():
 
 
 @pytest.mark.parametrize("fixture,quantity", ((_assembled, 2), (_two_tier, 4)))
-def test_actual_signed_source_formed_skins_are_visible_only_on_the_owning_base(
+def test_actual_signed_source_formed_skins_remain_available_with_parent_hidden(
     fixture, quantity,
 ):
     snap = fixture()
@@ -47,12 +47,16 @@ def test_actual_signed_source_formed_skins_are_visible_only_on_the_owning_base(
     assert view._formed_ear_assembly_preview(snap, visible) is not None
     again = view._formed_ear_assembly_preview(snap, visible)
     assert all(a is b for a, b in zip(formed, again))
-    assert view._formed_ear_assembly_preview(snap, set()) == ()
+    # Display-only EAR skins must remain source-backed even when Base Plate
+    # is hidden; the separate show_fixing_plate_mesh flag controls rendering.
+    no_base_visible = view._formed_ear_assembly_preview(snap, set())
+    assert len(no_base_visible) == quantity
+    assert all(a is b for a, b in zip(formed, no_base_visible))
     if quantity == 4:
-        first_only = view._formed_ear_assembly_preview(
+        first_base_only = view._formed_ear_assembly_preview(
             snap, {"base_plate:nfb_layer:0"},
         )
-        assert [x.layer_index for x in first_only] == [0, 0]
+        assert [x.layer_index for x in first_base_only] == [0, 0, 1, 1]
 
 
 def test_forming_cache_invalidates_for_an_other_bay_or_changed_csv_source():
