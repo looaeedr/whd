@@ -540,7 +540,9 @@
         "tests/test_issue1502_existing_base_nfb_assembly.py",
         "tests/test_issue1502_lower_four_nfb_mount_source.py",
         "tests/test_issue1502_nfb_base_batch_export_gate.py",
-        "tests/test_issue1502_nfb_base_source_projection.py"
+        "tests/test_issue1502_nfb_base_source_projection.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py",
+        "tests/test_issue1502_csv_is_only_normal_finalscene_source.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
@@ -548,13 +550,13 @@
       "accepted": false,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1496_nfb_dxf_source.py",
-          "test_name": "test_color_sources_preserve_entity_layer_and_block_inheritance",
+          "path": "tests/test_issue1502_current_csv_original_pair_dxf.py",
+          "test_name": "test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
           "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "CURRENT_CSV_V5_SOURCE_ASSERTION_PARTIAL_PENDING_FULL_AC",
       "current_delivery_scope": "GITHUB_LOCALX_1502_SCOPED_PRODUCT_CI_GREEN_FULL_AC_NOT_YET_SIGNED",
       "delivery_receipt": "PR #2037; Product Regression #39561179927; GitHub localX e33c9c9b509c55fd72ea7a83923ae8d27a8e5d34",
       "current_scope_correction_20261021": {
@@ -569,7 +571,16 @@
         "physical_dxfs_must_be_verified_when_exporting": true,
         "original_requirement_text_preserved": true,
         "original_status_preserved": true,
-        "scope_note": "Current numeric CSV opening rectangle and its saved world datum/rotation determine main CUTTING; legacy ARC/CIRCLE/color/handle/source-pivot only if the stored project ACTUALLY references legacy DXF. Numeric V5 cannot be blocked for not having a separate original model DXF. A manufacturer's rectangular CSV cannot be silently replaced with an invented ARC. Reopen final generated DXF and verify real physical geometry before manufacturing."
+        "scope_note": "Current numeric CSV opening rectangle and its saved world datum/rotation determine main CUTTING; legacy ARC/CIRCLE/color/handle/source-pivot only if the stored project ACTUALLY references legacy DXF. Numeric V5 cannot be blocked for not having a separate original model DXF. A manufacturer's rectangular CSV cannot be silently replaced with an invented ARC. Reopen final generated DXF and verify real physical geometry before manufacturing.",
+        "current_v5_positive_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
+        "current_v5_fail_closed_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback",
+        "current_v5_witness_is_not_full_ac_signoff": true
+      },
+      "historical_legacy_witness_before_20261026": {
+        "path": "tests/test_issue1496_nfb_dxf_source.py",
+        "test_name": "test_color_sources_preserve_entity_layer_and_block_inheritance",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
       }
     },
     {
@@ -2907,7 +2918,9 @@
         "tests/test_issue1497_configured_nfb_manufacturing_release.py",
         "tests/test_issue1497_nfb_cutting_preflight.py",
         "tests/test_issue1497_shihlin400_cutting_trial.py",
-        "tests/test_issue1497_shihlin400_original_byte_proof.py"
+        "tests/test_issue1497_shihlin400_original_byte_proof.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py",
+        "tests/test_issue1502_csv_is_only_normal_finalscene_source.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -2915,13 +2928,13 @@
       "accepted": false,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1496_nfb_dxf_source.py",
-          "test_name": "test_unsupported_not_silently_treated_as_certified",
+          "path": "tests/test_issue1502_current_csv_original_pair_dxf.py",
+          "test_name": "test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
           "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
           "accepted": false
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "CURRENT_CSV_V5_SOURCE_ASSERTION_PARTIAL_PENDING_FULL_AC",
       "current_source_authority_20261026": {
         "route_class": "CURRENT_V5_MAIN_APERTURE_PIVOT",
         "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
@@ -2929,7 +2942,16 @@
         "physical_dxfs_must_be_verified_when_exporting": true,
         "original_requirement_text_preserved": true,
         "original_status_preserved": true,
-        "scope_note": "Current numeric CSV opening rectangle and its saved world datum/rotation determine main CUTTING; legacy ARC/CIRCLE/color/handle/source-pivot only if the stored project ACTUALLY references legacy DXF. Numeric V5 cannot be blocked for not having a separate original model DXF. A manufacturer's rectangular CSV cannot be silently replaced with an invented ARC. Reopen final generated DXF and verify real physical geometry before manufacturing."
+        "scope_note": "Current numeric CSV opening rectangle and its saved world datum/rotation determine main CUTTING; legacy ARC/CIRCLE/color/handle/source-pivot only if the stored project ACTUALLY references legacy DXF. Numeric V5 cannot be blocked for not having a separate original model DXF. A manufacturer's rectangular CSV cannot be silently replaced with an invented ARC. Reopen final generated DXF and verify real physical geometry before manufacturing.",
+        "current_v5_positive_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
+        "current_v5_fail_closed_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback",
+        "current_v5_witness_is_not_full_ac_signoff": true
+      },
+      "historical_legacy_witness_before_20261026": {
+        "path": "tests/test_issue1496_nfb_dxf_source.py",
+        "test_name": "test_unsupported_not_silently_treated_as_certified",
+        "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+        "accepted": false
       }
     },
     {
@@ -4977,7 +4999,9 @@
       "regression_candidates": [
         "tests/test_issue1494_closed_cutting_reference.py",
         "tests/test_issue1494_nfb_x_shadow_projection.py",
-        "tests/test_issue1494_receiving_nfb_x_evidence.py"
+        "tests/test_issue1494_receiving_nfb_x_evidence.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py",
+        "tests/test_issue1502_csv_is_only_normal_finalscene_source.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -4999,7 +5023,10 @@
         "physical_dxfs_must_be_verified_when_exporting": true,
         "original_requirement_text_preserved": true,
         "original_status_preserved": true,
-        "scope_note": "Only submitted Set/Bay/version/inner-door datum plus verified world X/Y, layer, slot, model and rotation may release this specific W×N×Y; nominal spacing is not an approval. No DXF-source origin/pivot mandate for current V5; do not invent X/W2, auto-inherit other widths, or approve arbitrary rows."
+        "scope_note": "Only submitted Set/Bay/version/inner-door datum plus verified world X/Y, layer, slot, model and rotation may release this specific W×N×Y; nominal spacing is not an approval. No DXF-source origin/pivot mandate for current V5; do not invent X/W2, auto-inherit other widths, or approve arbitrary rows.",
+        "current_v5_positive_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
+        "current_v5_fail_closed_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback",
+        "current_v5_witness_is_not_full_ac_signoff": true
       }
     },
     {
@@ -5129,7 +5156,9 @@
         1498
       ],
       "regression_candidates": [
-        "tests/test_issue1498_nfb_part_readiness.py"
+        "tests/test_issue1498_nfb_part_readiness.py",
+        "tests/test_issue1502_current_csv_original_pair_dxf.py",
+        "tests/test_issue1502_csv_is_only_normal_finalscene_source.py"
       ],
       "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
       "status": "EVIDENCE_CANDIDATE_ONLY",
@@ -5151,7 +5180,10 @@
         "physical_dxfs_must_be_verified_when_exporting": true,
         "original_requirement_text_preserved": true,
         "original_status_preserved": true,
-        "scope_note": "Only submitted Set/Bay/version/inner-door datum plus verified world X/Y, layer, slot, model and rotation may release this specific W×N×Y; nominal spacing is not an approval. No DXF-source origin/pivot mandate for current V5; do not invent X/W2, auto-inherit other widths, or approve arbitrary rows."
+        "scope_note": "Only submitted Set/Bay/version/inner-door datum plus verified world X/Y, layer, slot, model and rotation may release this specific W×N×Y; nominal spacing is not an approval. No DXF-source origin/pivot mandate for current V5; do not invent X/W2, auto-inherit other widths, or approve arbitrary rows.",
+        "current_v5_positive_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input",
+        "current_v5_fail_closed_witness": "tests/test_issue1502_current_csv_original_pair_dxf.py::test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback",
+        "current_v5_witness_is_not_full_ac_signoff": true
       }
     },
     {
