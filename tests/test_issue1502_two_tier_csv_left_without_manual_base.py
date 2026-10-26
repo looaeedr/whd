@@ -72,18 +72,30 @@ def test_two_distinct_known_csv_tiers_ignore_stale_manual_right_pattern():
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(
         snap["nfb_config"]
     )
-    assert receiving_base_plate_values(snap)["receiving_bend_pattern"]=="LEFT_FLAT_SIDE"
+    # A shallow second tier needs a brand-max-anchored CENTER return.
+    # Its source, not the old one-tier flat LEFT assumption, owns the blank.
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"]=="CENTER_DOUBLE_SIDE_FOLD"
+    assert receiving_base_plate_blank_dimensions(snap) == (772., 240.)
     snap["receiving_base_plate"]={
         "pattern":"RIGHT_FLAT_SIDE","height":360.,
         "shrink_top":20.,"shrink_bottom":20.,
         "shrink_left":45.,"shrink_right":45.,"bend":20.,
     }
-    # The old manual RIGHT is not the source for either typed current CSV
-    # NFB. Two genuine physical tiers have different depths, but each uses
-    # one independently Z-positioned LEFT flat blank; no false MFG release.
-    assert receiving_base_plate_values(snap)["receiving_bend_pattern"]=="LEFT_FLAT_SIDE"
+    # The old manual RIGHT cannot override real submitted numeric CSV.
+    # The 107/72 source is CENTER 772x240, not an invented flat RIGHT/LEFT.
+    values = receiving_base_plate_values(snap)
+    assert values["receiving_bend_pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
+    assert receiving_base_plate_blank_dimensions(snap) == (772., 240.)
+    specs = source_receiving_nfb_tier_base_specs(snap)
+    assert set(specs) == {0, 1}
+    assert all(spec.receiving_bend_pattern == "CENTER_DOUBLE_SIDE_FOLD"
+               for spec in specs.values())
+    assert specs[1].receiving_nfb_depth_pair_mm == (107., 72.)
     preview=expand_receiving_nfb_layer_parts(snap,(_source(snap),))
     assert len(preview)==2
+    assert {part.part_key for part in preview} == {
+        "base_plate:nfb_layer:0", "base_plate:nfb_layer:1",
+    }
     assert all(part.render_data.metadata.get("manufacturing_ready") is False
                for part in preview)
     assert all(part.render_data.metadata.get("nfb_layer_manufacturing_status")
@@ -176,12 +188,24 @@ def test_two_tiers_different_complete_csv_models_derive_independent_flat_sheets(
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
-    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
-    assert receiving_base_plate_blank_dimensions(snap) == (710., 300.)
+    # Two separately placed tiers still use source-derived CENTER returns
+    # where one selected tier is shallower than the one-brand maximum.
+    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
+    assert receiving_base_plate_blank_dimensions(snap) == (772., 240.)
     targets = resolve_receiving_tier_base_z_targets(snap)
     assert len(targets) == 2 and all(t.physical_skin_z_resolved for t in targets)
     assert [t.source_depths_mm for t in targets] == [(107.,), (72.,)]
-    assert set(source_receiving_nfb_tier_base_specs(snap)) == {0, 1}
+    specs = source_receiving_nfb_tier_base_specs(snap)
+    assert set(specs) == {0, 1}
+    assert specs[0].physical_id == "base_plate:nfb_layer:0"
+    assert specs[1].physical_id == "base_plate:nfb_layer:1"
+    assert specs[1].receiving_nfb_depth_pair_mm == (107., 72.)
+    assert all(spec.receiving_bend_pattern == "CENTER_DOUBLE_SIDE_FOLD"
+               for spec in specs.values())
+    actual = expand_receiving_nfb_layer_parts(snap, (_source(snap),))
+    assert len(actual) == 2
+    assert all(part.render_data.metadata.get("manufacturing_ready") is False
+               for part in actual)
 
 
 def test_two_tiers_flat_source_with_mixed_depth_pad_stays_unreleased():
