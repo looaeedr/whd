@@ -2147,3 +2147,50 @@ def test_ac07_ac43_ac35_ac45_ac56_exact_native_tk_functional_signoff():
     remaining = [r["id"] for r in obj["records"] if not r["accepted"]]
     assert len(remaining) == obj["counts"]["BLOCKED_1500_REAL_GUI"]
     assert not any(ac in remaining for ac in expected)
+
+
+def test_ac46_real_reopened_submitted_nfb_never_legacy_dxf_source_signoff():
+    """The cancelled second project B is never a proxy for real AC-46 proof."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    obj = _data()
+    assert obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 77
+    assert obj["counts"]["BLOCKED_1500_REAL_GUI"] <= 11
+    row = next(r for r in obj["records"] if r["id"] == "NFB-AC-46")
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["accepted"] is True and not row["blocking_issues"]
+    assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
+    proof = row["acceptance_evidence"]
+    primary = (
+        "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py"
+        "::test_ac46_saved_submitted_nfb_is_never_silently_legacy_after_gui_reload"
+    )
+    assert proof["primary_assertion"] == primary
+    assert row["identified_test_functions"] == [{
+        "path": primary.split("::")[0],
+        "test_name": primary.split("::")[1],
+        "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+        "accepted": True,
+    }]
+    assert proof["no_staged_transient_mfg1_proof"] is True
+    assert proof["sanitized_repository_legacy_input_only"] is True
+    assert proof["user_cancelled_second_legacy_project_prerequisite"] is True
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    assert len(proof["requirement_witnesses"]) >= 3
+    for label in (
+        "factory_release", "unconditional_mfg2_release",
+        "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+        "integrated_localx_claimed", "formal_x_published",
+        "other_ac_signoff_implied", "physical_absolute_position_grant",
+        "original_manufacturer_dxf_certified",
+    ):
+        assert proof[label] is False, label
+    for witness in [primary, *proof["other_required_assertions"]]:
+        filename, fn = witness.split("::")
+        assert filename in PYTEST_PATHS, filename
+        nodes = ast.parse((ROOT / filename).read_text(encoding="utf-8")).body
+        matches = [n for n in nodes if isinstance(n, ast.FunctionDef)
+                   and n.name == fn]
+        assert len(matches) == 1
+        assert any(isinstance(n, ast.Assert)
+                   for n in ast.walk(matches[0]))
