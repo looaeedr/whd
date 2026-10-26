@@ -5,6 +5,16 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## 2026-10-26 台灣｜#1504 AC-07／43／35／45／56 原生 Tk 真交易與 Save→Reload 簽核候選（71→76）
+
+- **原文不改**：NFB-AC-07／43 針對兩連原生 Tk Canvas 高亮→來源已提交→合法物理目標複製、第一次 COPY_SUBMIT 與覆寫 COPY_OVERWRITE 的確認／取消、缺現行來源時即使舊按鈕仍可按也拒絕，來源與目標各自持有獨立 physical_hole_id／unit_id、手動 X、Undo，真 `.p6fold` Save→Reload 不能串連污染。原生 GUI 直接驅動 `ReceivingSetBayAdapter.copy_submitted_nfb_to_bay`；不靠假 ports 的返回值模擬深複製。
+- **還原與保護**：NFB-AC-35／45／56 以同一原生 Tk Restore→取消原狀→確認丟棄 NFBConfig／submitted（存檔重開驗無休眠配置）→Undo 精確復原測試。原本 Set 品牌與 sibling Bay 不變；**真實** `_assert_legacy_nfb_export_scope_safe` 在提交時禁止舊門／箱身／底板輸出，僅還原成 UNCONFIGURED 才恢復 legacy eligibility，Undo 後立刻再阻擋；UI 沒有「忽略草稿強制舊式出圖」。
+- **同時核對既有獨立測試**：#1500 typed 實體 source/physical-hole/copy 深複製／覆寫／撤銷、#1499 已提交／未配置 `.p6fold`、#1501 實際 legacy 製造守衛、#1504 舊專案 fixture 原生開啟取消重存檔。以上全部由 `tools/product_ci_regression.py` 強制納入，而不是僅有測試函式名稱。
+- **候選範圍**：精確受測工程與 typed verified CUTTING fixture 的本期 UI-1B 功能，非廠牌來源全面認證、使用者 Windows 真 GUI、PAD／焊接／整箱 NC、任何正式 X 或其他 12 項 AC。不存在的專案 B 不再是前置。
+- **生效條件**：本 PR HEAD 全 Product Regression 五階段 SUCCESS，GitHub `localX` 安全 merge 與四至五個修改檔 exact blob readback 後才能正式視為 76/88。CI RED 時回修，不能先拿矩陣 76 當已簽。正式 X 另需 `/推推`。
+
+---
+
 ## CURRENT USER DECISION｜2026-10-26｜取消不存在的第二份「專案 B」驗收硬閘門
 
 - **正式改正**：#1500／#1504 不再要求 A+B 兩個舊客戶專案、第二份 `.p6fold`、Library B 原始位元組或 Windows 雙案 UAT，作為任一 AC 的必要前置；以下歷史提及「兩份舊案」的文字全部視為過期，不得再引用成為當期拒簽理由。注意「兩份 v1.4 規格書」是原始的兩個**規格文件**，不是兩個工程專案。

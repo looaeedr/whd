@@ -22,8 +22,8 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 71,
-    "BLOCKED_1500_REAL_GUI": 17,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 76,
+    "BLOCKED_1500_REAL_GUI": 12,
     "EVIDENCE_CANDIDATE_ONLY": 0,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 0,
     "DEFERRED_PRODUCT_EVIDENCE": 0
@@ -349,24 +349,86 @@
         "tests/test_issue1500_nfb_transactions.py",
         "tests/test_issue1500_nfb_ui1b_bridge.py",
         "tests/test_issue1500_nfb_worldx_runtime.py",
-        "tests/test_issue1500_real_nfb_dxf_lifecycle.py"
+        "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+        "tests/test_issue1500_nfb_operator_gui_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "BLOCKED_1500_REAL_GUI",
-      "blocking_issues": [
-        1500
-      ],
-      "accepted": false,
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+      "blocking_issues": [],
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1500_nfb_transactions.py",
-          "test_name": "test_copy_submitted_source_into_independently_verified_target_unit_id",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1500_nfb_operator_gui_transactions.py",
+          "test_name": "test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
-      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "current_gui_requirement_20261026": "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT",
+      "historical_pre_current_review": {
+        "status": "BLOCKED_1500_REAL_GUI",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1500_nfb_transactions.py",
+            "test_name": "test_copy_submitted_source_into_independently_verified_target_unit_id",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ],
+        "blocking_issues": [
+          1500
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "NATIVE_TK_ACTUAL_CANVAS_HIGHLIGHT_SOURCE_VERIFIED_TWO_BAY_COPY_CANCEL_CONFIRM_OVERWRITE_UNDO_REAL_P6FOLD_SAVE_REOPEN__TEST_SOURCE_NOT_FACTORY_RELEASE",
+        "primary_assertion": "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen",
+        "other_required_assertions": [
+          "tests/test_issue1500_nfb_transactions.py::test_copy_submitted_source_into_independently_verified_target_unit_id",
+          "tests/test_issue1500_nfb_transactions.py::test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation",
+          "tests/test_issue1499_nfb_persistence.py::test_submitted_bay_save_reload_v3_retains_exact_zero_and_independent_copy"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "Bay 複製需覆寫確認",
+            "proof": "Native Tk button invokes actual adapter copy. First target submit and later submitted-target COPY_OVERWRITE each require explicit original UI preview; both cancellation paths prove no mutation; consent updates only the target."
+          },
+          {
+            "original_clause": "整組深複製",
+            "proof": "Source and destination preserve logical model/layer/rotation/offset, with independent physical IDs and distinct operator-confirmed X0 vs X100/X200. Backend deep-copy tests reject sharing physical source IDs."
+          },
+          {
+            "original_clause": "來源及目標之後獨立",
+            "proof": "Overwriting and Undo of target preserve exact source Bay data. True .p6fold Save→Reload independently retains source and target IDs and X after Undo."
+          }
+        ],
+        "source_owner_paths": [
+          "gui_modules/application/receiving_multi_settings_window.py::open_multi_settings",
+          "gui_modules/application/receiving_multi_settings_window.py::run_nfb_transaction",
+          "gui_modules/application/receiving_set_bay_adapter.py::ReceivingSetBayAdapter",
+          "ae_engine/receiving_nfb_transactions.py::copy_submitted_nfb_bay",
+          "ae_engine/receiving_nfb_transactions.py::restore_nfb_bays_unconfigured",
+          "ae_engine/receiving_nfb_transactions.py::undo_nfb_transaction",
+          "phase6_project_file.py::write_project",
+          "phase6_project_file.py::read_project"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "original_manufacturer_dxf_certified": false,
+        "typed_mfg1_test_evidence_not_factory_certification": true,
+        "exact_head_ci_and_localx_readback_required": true,
+        "user_cancelled_second_legacy_project_prerequisite": true
+      }
     },
     {
       "id": "NFB-AC-08",
@@ -2108,24 +2170,90 @@
         "tests/test_issue1500_nfb_transactions.py",
         "tests/test_issue1500_nfb_ui1b_bridge.py",
         "tests/test_issue1500_nfb_worldx_runtime.py",
-        "tests/test_issue1500_real_nfb_dxf_lifecycle.py"
+        "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+        "tests/test_issue1500_nfb_operator_gui_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "BLOCKED_1500_REAL_GUI",
-      "blocking_issues": [
-        1500
-      ],
-      "accepted": false,
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+      "blocking_issues": [],
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1500_nfb_transactions.py",
-          "test_name": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1500_nfb_operator_gui_transactions.py",
+          "test_name": "test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
-      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "current_gui_requirement_20261026": "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT",
+      "historical_pre_current_review": {
+        "status": "BLOCKED_1500_REAL_GUI",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1500_nfb_transactions.py",
+            "test_name": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ],
+        "blocking_issues": [
+          1500
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "NATIVE_TK_RESTORE_CONFIRM_CANCEL_UNDO_REAL_P6FOLD_REOPEN__LEGACY_EXPORT_ONLY_AFTER_UNCONFIGURED__NO_USER_WINDOWS_UAT",
+        "primary_assertion": "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard",
+        "other_required_assertions": [
+          "tests/test_issue1500_nfb_transactions.py::test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+          "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py::test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen",
+          "tests/test_issue1501_nfb_legacy_export_guard.py::test_legacy_and_draft_no_submission_preserve_old_export"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "獨立確認、Undo",
+            "proof": "Original Tk restore button displays RESTORE_UNCONFIGURED action. Cancel leaves prior submitted Bay unchanged; confirm clears NFB while original native Undo restores exact previous config."
+          },
+          {
+            "original_clause": "submitted=false、丟棄 NFBConfig 層顆位移",
+            "proof": "Actual adapter removes NFBConfig entirely, not just a boolean. Real .p6fold Save→Reload proves no dormant configuration; Undo restores all hole fields."
+          },
+          {
+            "original_clause": "不刪套品牌／legacy Features、舊式出圖",
+            "proof": "Brand and sibling survive unchanged; existing legacy GUI fixture preserves old owners/features on Save→Reload. Original production old-export guard only becomes available after real UNCONFIGURED restoration, never while NFB submitted."
+          },
+          {
+            "original_clause": "禁靠刪最後槽返回",
+            "proof": "Original native restore is a distinct control/transaction, not slot deletion; backend tests retain explicit reset and Undo semantics."
+          }
+        ],
+        "source_owner_paths": [
+          "gui_modules/application/receiving_multi_settings_window.py::open_multi_settings",
+          "gui_modules/application/receiving_multi_settings_window.py::run_nfb_transaction",
+          "gui_modules/application/receiving_set_bay_adapter.py::ReceivingSetBayAdapter",
+          "ae_engine/receiving_nfb_transactions.py::copy_submitted_nfb_bay",
+          "ae_engine/receiving_nfb_transactions.py::restore_nfb_bays_unconfigured",
+          "ae_engine/receiving_nfb_transactions.py::undo_nfb_transaction",
+          "phase6_project_file.py::write_project",
+          "phase6_project_file.py::read_project"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "original_manufacturer_dxf_certified": false,
+        "typed_mfg1_test_evidence_not_factory_certification": true,
+        "exact_head_ci_and_localx_readback_required": true,
+        "user_cancelled_second_legacy_project_prerequisite": true
+      }
     },
     {
       "id": "NFB-AC-36",
@@ -2582,24 +2710,86 @@
         "tests/test_issue1500_nfb_transactions.py",
         "tests/test_issue1500_nfb_ui1b_bridge.py",
         "tests/test_issue1500_nfb_worldx_runtime.py",
-        "tests/test_issue1500_real_nfb_dxf_lifecycle.py"
+        "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+        "tests/test_issue1500_nfb_operator_gui_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "BLOCKED_1500_REAL_GUI",
-      "blocking_issues": [
-        1500
-      ],
-      "accepted": false,
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+      "blocking_issues": [],
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1500_nfb_transactions.py",
-          "test_name": "test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1500_nfb_operator_gui_transactions.py",
+          "test_name": "test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
-      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "current_gui_requirement_20261026": "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT",
+      "historical_pre_current_review": {
+        "status": "BLOCKED_1500_REAL_GUI",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1500_nfb_transactions.py",
+            "test_name": "test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ],
+        "blocking_issues": [
+          1500
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "NATIVE_TK_UNCONFIGURED_DESTINATION_SOURCE_VERIFIED_COPY_PREVIEW_AND_CANCEL__LIVE_STALE_BUTTON_AND_INVALID_SOURCE_REJECT_BEFORE_CONFIRM__NO_FACTORY_RELEASE",
+        "primary_assertion": "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen",
+        "other_required_assertions": [
+          "tests/test_issue1500_nfb_transactions.py::test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation",
+          "tests/test_issue1500_nfb_ui1b_bridge.py::test_live_copy_requires_submitted_source_and_exact_target_bundle",
+          "tests/test_issue1500_nfb_transactions.py::test_copy_submitted_source_into_independently_verified_target_unit_id"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "已配置來源複製到未配置目標",
+            "proof": "Actual native Tk canvas selects submitted Bay and UNCONFIGURED target; actual adapter preview action COPY_SUBMIT lists actual held physical parts and operator X changes, not a generic untethered confirmation."
+          },
+          {
+            "original_clause": "取消時目標依舊 UNCONFIGURED、來源不變",
+            "proof": "Original dialog cancel returns adapter.layout identical and no target NFBConfig or dormant submission. Subsequent consent creates exact per-Bay target and retains source unchanged."
+          },
+          {
+            "original_clause": "無守衛時拒絕複製套用",
+            "proof": "Stale enabled Tk button rechecks source state at click, refuses without prompting; actual adapter additionally rejects invalid physical NFB render after state said enabled, leaving both Bays unchanged."
+          }
+        ],
+        "source_owner_paths": [
+          "gui_modules/application/receiving_multi_settings_window.py::open_multi_settings",
+          "gui_modules/application/receiving_multi_settings_window.py::run_nfb_transaction",
+          "gui_modules/application/receiving_set_bay_adapter.py::ReceivingSetBayAdapter",
+          "ae_engine/receiving_nfb_transactions.py::copy_submitted_nfb_bay",
+          "ae_engine/receiving_nfb_transactions.py::restore_nfb_bays_unconfigured",
+          "ae_engine/receiving_nfb_transactions.py::undo_nfb_transaction",
+          "phase6_project_file.py::write_project",
+          "phase6_project_file.py::read_project"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "original_manufacturer_dxf_certified": false,
+        "typed_mfg1_test_evidence_not_factory_certification": true,
+        "exact_head_ci_and_localx_readback_required": true,
+        "user_cancelled_second_legacy_project_prerequisite": true
+      }
     },
     {
       "id": "NFB-AC-44",
@@ -2728,24 +2918,86 @@
         "tests/test_issue1500_nfb_transactions.py",
         "tests/test_issue1500_nfb_ui1b_bridge.py",
         "tests/test_issue1500_nfb_worldx_runtime.py",
-        "tests/test_issue1500_real_nfb_dxf_lifecycle.py"
+        "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+        "tests/test_issue1500_nfb_operator_gui_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "BLOCKED_1500_REAL_GUI",
-      "blocking_issues": [
-        1500
-      ],
-      "accepted": false,
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+      "blocking_issues": [],
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1500_nfb_transactions.py",
-          "test_name": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1500_nfb_operator_gui_transactions.py",
+          "test_name": "test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
-      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "current_gui_requirement_20261026": "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT",
+      "historical_pre_current_review": {
+        "status": "BLOCKED_1500_REAL_GUI",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1500_nfb_transactions.py",
+            "test_name": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ],
+        "blocking_issues": [
+          1500
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "NATIVE_TK_RESTORE_DISCARDS_DORMANT_NFB_CONFIG__UNDO_GUARD_AND_OLD_EXPORT_AUTHORITY_RESET__ACTUAL_P6FOLD_ROUND_TRIP",
+        "primary_assertion": "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard",
+        "other_required_assertions": [
+          "tests/test_issue1500_nfb_transactions.py::test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+          "tests/test_issue1500_nfb_transactions.py::test_adapter_undo_preserves_sibling_changes_and_native_owner",
+          "tests/test_issue1501_nfb_legacy_export_guard.py::test_submitted_nfb_blocks_unverified_old_full_door_body_base_only"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "還原後不殘留可複製或重啟休眠配置",
+            "proof": "Original Tk restoration clears current Bay NFBConfig and committed state; real saved and reopened .p6fold contains neither; unrelated Bay remains byte-equal in normalized layout."
+          },
+          {
+            "original_clause": "transaction Undo 完整恢復提交設定及守衛",
+            "proof": "Original Tk Undo restores exact original NFBConfig and brand, plus active old export prohibition; rebooted file retains restored submitted source. Optimistic undo backend guards conflicting edits."
+          },
+          {
+            "original_clause": "legacy 製造與本套品牌 owner 不變",
+            "proof": "Original production old DXF export guard disallows legacy door/body/base while submitted, permits same legacy after restore, and disallows again after Undo; Set switch_brand never changes."
+          }
+        ],
+        "source_owner_paths": [
+          "gui_modules/application/receiving_multi_settings_window.py::open_multi_settings",
+          "gui_modules/application/receiving_multi_settings_window.py::run_nfb_transaction",
+          "gui_modules/application/receiving_set_bay_adapter.py::ReceivingSetBayAdapter",
+          "ae_engine/receiving_nfb_transactions.py::copy_submitted_nfb_bay",
+          "ae_engine/receiving_nfb_transactions.py::restore_nfb_bays_unconfigured",
+          "ae_engine/receiving_nfb_transactions.py::undo_nfb_transaction",
+          "phase6_project_file.py::write_project",
+          "phase6_project_file.py::read_project"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "original_manufacturer_dxf_certified": false,
+        "typed_mfg1_test_evidence_not_factory_certification": true,
+        "exact_head_ci_and_localx_readback_required": true,
+        "user_cancelled_second_legacy_project_prerequisite": true
+      }
     },
     {
       "id": "NFB-AC-46",
@@ -3449,24 +3701,82 @@
         "tests/test_issue1500_nfb_transactions.py",
         "tests/test_issue1500_nfb_ui1b_bridge.py",
         "tests/test_issue1500_nfb_worldx_runtime.py",
-        "tests/test_issue1500_real_nfb_dxf_lifecycle.py"
+        "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+        "tests/test_issue1500_nfb_operator_gui_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "BLOCKED_1500_REAL_GUI",
-      "blocking_issues": [
-        1500
-      ],
-      "accepted": false,
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+      "blocking_issues": [],
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1500_nfb_transactions.py",
-          "test_name": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1500_nfb_operator_gui_transactions.py",
+          "test_name": "test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
-      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "current_gui_requirement_20261026": "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT",
+      "historical_pre_current_review": {
+        "status": "BLOCKED_1500_REAL_GUI",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1500_nfb_transactions.py",
+            "test_name": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ],
+        "blocking_issues": [
+          1500
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "NATIVE_TK_NO_FORCE_LEGACY_OVERRIDE__RESTORE_UNCONFIGURED_CANCEL_CONFIRM_AND_UNDO__PRODUCTION_OLD_EXPORT_GUARD",
+        "primary_assertion": "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard",
+        "other_required_assertions": [
+          "tests/test_issue1501_nfb_legacy_export_guard.py::test_submitted_nfb_blocks_unverified_old_full_door_body_base_only",
+          "tests/test_issue1501_nfb_legacy_export_guard.py::test_legacy_and_draft_no_submission_preserve_old_export",
+          "tests/test_issue1500_nfb_transactions.py::test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "不提供忽略草稿強制舊式內門出圖覆寫",
+            "proof": "Actual native Tk UI NFB actions contain no force/ignore-draft override button. Original manufacturing legacy export authority blocks submitted NFB door/body/base; not merely a disabled visual toggle."
+          },
+          {
+            "original_clause": "可以撤銷提交、還原未配置並 Undo",
+            "proof": "Original Tk restore has separate explicit Cancel/Confirm and real backend Undo, restores guard and original source; genuine .p6fold saved/restored/reopened states retain their respective permissions."
+          }
+        ],
+        "source_owner_paths": [
+          "gui_modules/application/receiving_multi_settings_window.py::open_multi_settings",
+          "gui_modules/application/receiving_multi_settings_window.py::run_nfb_transaction",
+          "gui_modules/application/receiving_set_bay_adapter.py::ReceivingSetBayAdapter",
+          "ae_engine/receiving_nfb_transactions.py::copy_submitted_nfb_bay",
+          "ae_engine/receiving_nfb_transactions.py::restore_nfb_bays_unconfigured",
+          "ae_engine/receiving_nfb_transactions.py::undo_nfb_transaction",
+          "phase6_project_file.py::write_project",
+          "phase6_project_file.py::read_project"
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "integrated_localx_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "physical_absolute_position_grant": false,
+        "original_manufacturer_dxf_certified": false,
+        "typed_mfg1_test_evidence_not_factory_certification": true,
+        "exact_head_ci_and_localx_readback_required": true,
+        "user_cancelled_second_legacy_project_prerequisite": true
+      }
     },
     {
       "id": "SWT-AC-01",
@@ -5801,7 +6111,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 71/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; NFB-AC-51 and SWT-AC-30 exact CURRENT CSV V5 signed scopes require native Tk ASSIGNED Listbox selection, saved/reopened actual INNER+BASE pair DXF and exact source Set/Bay/W/N/world-X/Y/model/rotation/file digest; catalogue and nominal groups remain preview-only. Prior 69 source-signed ACs preserved. Remaining 17 #1500 per-AC native GUI functional E2E proofs are pending, without a second old-project B requirement. 71 signed ACs were already merged/read back at localX; no additional signoff inferred. No formal X or unconditional factory release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 76/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; user-authorized native Tk action, physical source checked Bay copy and restoration, real .p6fold save/reload and true original legacy manufacturing guard are evidenced for NFB-AC-07/43/35/45/56 in one complete PR candidate. These source- and fixture-scoped tests do not imply factory release, Windows human UAT or second B project. Previous 71 signed ACs preserved; 12 per-AC source-specific GUI/manufacturing proofs remain unsigned. Candidate becomes integrated only on exact HEAD Product CI GREEN and localX merge/readback.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Outstanding gates are per-AC functional native GUI actions, project persistence, 2D/3D, scoped DXF and CHECK/Q; USER CANCELLED an arbitrary second old-project B prerequisite on 2026-10-26. No fixed A+B input quota. Never promote a test fixture to user Windows UAT.",

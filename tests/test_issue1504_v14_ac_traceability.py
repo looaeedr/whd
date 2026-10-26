@@ -191,7 +191,7 @@ def test_manifest_review_summary_is_recomputed_from_records():
     ) == len(historic) == 4
     assert counts["BLOCKED_1500_REAL_GUI"] >= 1
     assert counts.get("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",0) <= 14
-    assert counts["BLOCKED_1500_REAL_GUI"] == 17
+    assert 0 < counts["BLOCKED_1500_REAL_GUI"] <= 17
     assert counts.get("EVIDENCE_CANDIDATE_ONLY",0) <= 10
     assert counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= len(HISTORICAL_SIGNED_43) == 43
 
@@ -244,7 +244,7 @@ def test_w800_datum_old_hole_undo_and_schema_have_real_named_witnesses():
     assert "legacy" in row["NFB-AC-37"]["identified_test_functions"][0]["test_name"]
     assert "undo" in row["NFB-AC-35"]["identified_test_functions"][0]["test_name"]
     assert "schema" in row["NFB-AC-54"]["identified_test_functions"][0]["test_name"]
-    assert not row["NFB-AC-35"]["accepted"]
+    assert row["NFB-AC-35"]["accepted"]  # exact Tk restore/Undo source-scoped receipt
 
 
 
@@ -327,7 +327,7 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     live_counts.setdefault("EVIDENCE_CANDIDATE_ONLY", 0)
     assert d["counts"] == live_counts
     assert sum(d["counts"].values()) == 88
-    assert d["counts"]["BLOCKED_1500_REAL_GUI"] == 17
+    assert 0 < d["counts"]["BLOCKED_1500_REAL_GUI"] <= 17
     # At the original 79-AC audit snapshot, four physical-source items
     # were deferred. The historical IDs remain immutable even after each
     # *individually* gains full source/Tk/negative manufacturing evidence.
@@ -1945,7 +1945,7 @@ def test_all_current_nfb_v5_source_supersessions_keep_88_originals_and_legacy_sc
         assert len(matches) == 1 and any(
             isinstance(node, ast.Assert) for node in ast.walk(matches[0])
         )
-    assert obj["counts"]["BLOCKED_1500_REAL_GUI"] == 17
+    assert 0 < obj["counts"]["BLOCKED_1500_REAL_GUI"] <= 17
     assert obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 67
     assert sum(obj["counts"].values()) == 88
     assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
@@ -2026,7 +2026,7 @@ def test_ac51_swt30_signed_only_after_true_native_assigned_export_and_nominal_ne
             )
     d = _data()
     assert d["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 71
-    assert d["counts"]["BLOCKED_1500_REAL_GUI"] == 17
+    assert 0 < d["counts"]["BLOCKED_1500_REAL_GUI"] <= 17
     assert d["counts"]["EVIDENCE_CANDIDATE_ONLY"] == 0
     assert sum(d["counts"].values()) == 88
 
@@ -2069,7 +2069,7 @@ def test_cancelled_second_legacy_project_is_not_a_1500_1504_signoff_gate():
     )
     blocked = [r for r in document["records"]
                if r["status"] == "BLOCKED_1500_REAL_GUI"]
-    assert len(blocked) == document["counts"]["BLOCKED_1500_REAL_GUI"] == 17
+    assert len(blocked) == document["counts"]["BLOCKED_1500_REAL_GUI"] <= 17
     assert all(
         r["accepted"] is False
         and r["current_gui_requirement_20261026"]
@@ -2086,3 +2086,64 @@ def test_cancelled_second_legacy_project_is_not_a_1500_1504_signoff_gate():
     assert "second_library_project_executed" not in fixture_test
     assert "second Library file" not in fixture_test
     assert '"human_windows_uat_claimed": False' in fixture_test
+
+
+def test_ac07_ac43_ac35_ac45_ac56_exact_native_tk_functional_signoff():
+    """Only five original UI-1B ACs gain true test witnesses in this scope."""
+    from tools.product_ci_regression import PYTEST_PATHS
+
+    obj = _data()
+    assert obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 76
+    assert obj["counts"]["BLOCKED_1500_REAL_GUI"] <= 12
+    expected = {
+        "NFB-AC-07": "test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen",
+        "NFB-AC-43": "test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen",
+        "NFB-AC-35": "test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard",
+        "NFB-AC-45": "test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard",
+        "NFB-AC-56": "test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard",
+    }
+    rows = {r["id"]: r for r in obj["records"]}
+    primary = "tests/test_issue1500_nfb_operator_gui_transactions.py"
+    assert primary in PYTEST_PATHS
+    source = ast.parse((ROOT / primary).read_text(encoding="utf-8"))
+    actual = {n.name: n for n in source.body if isinstance(n, ast.FunctionDef)}
+    for ac, fn in expected.items():
+        row = rows[ac]
+        assert row["accepted"] is True and not row["blocking_issues"]
+        assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
+        assert row["identified_test_functions"] == [{
+            "path": primary, "test_name": fn,
+            "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+            "accepted": True,
+        }]
+        proof = row["acceptance_evidence"]
+        assert proof["primary_assertion"] == primary + "::" + fn
+        assert len(proof["requirement_witnesses"]) >= 2
+        assert len(proof["other_required_assertions"]) >= 3
+        assert proof["original_ac_text_unchanged"] is True
+        assert proof["source_sha_pins_unchanged"] is True
+        assert proof["user_cancelled_second_legacy_project_prerequisite"] is True
+        for limitation in (
+            "factory_release", "unconditional_mfg2_release",
+            "human_windows_uat_claimed", "real_two_old_project_windows_gui_uat",
+            "integrated_localx_claimed", "formal_x_published",
+            "other_ac_signoff_implied", "physical_absolute_position_grant",
+            "original_manufacturer_dxf_certified",
+        ):
+            assert proof[limitation] is False, (ac, limitation)
+        assert fn in actual and any(isinstance(node, ast.Assert)
+                                    for node in ast.walk(actual[fn]))
+        for witness in [proof["primary_assertion"], *proof["other_required_assertions"]]:
+            path, name = witness.split("::")
+            assert path in PYTEST_PATHS, witness
+            tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+            funcs = [node for node in tree.body
+                     if isinstance(node, ast.FunctionDef) and node.name == name]
+            assert len(funcs) == 1
+            assert any(isinstance(node, ast.Assert)
+                       for node in ast.walk(funcs[0]))
+
+    remaining = [r["id"] for r in obj["records"] if not r["accepted"]]
+    assert len(remaining) == obj["counts"]["BLOCKED_1500_REAL_GUI"]
+    assert not any(ac in remaining for ac in expected)

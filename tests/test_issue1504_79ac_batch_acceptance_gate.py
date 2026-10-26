@@ -57,7 +57,7 @@ def test_all_79_pre_batch_unsignatures_reconciled_to_one_canonical_witness():
     assert live_counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"]>=AFTER_GROUPS[
         "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
     ]
-    assert live_counts["BLOCKED_1500_REAL_GUI"]==17
+    assert 0 < live_counts["BLOCKED_1500_REAL_GUI"] <= BASELINE_GROUPS["BLOCKED_1500_REAL_GUI"]
     # Historical 79-AC baseline retains four deferred IDs; later exact-AC
     # runtime signoffs may retire individual items, never silently erase them.
     historical_deferred=set(audit["grouped_ids"]["DEFERRED_PRODUCT_EVIDENCE"])
@@ -125,7 +125,20 @@ def test_all_79_pre_batch_unsignatures_reconciled_to_one_canonical_witness():
                     "EVIDENCE_CANDIDATE_ONLY",
                     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
                     "DEFERRED_PRODUCT_EVIDENCE",  # Only after witnessed scope audit above.
+                    "BLOCKED_1500_REAL_GUI",  # User cancelled A+B, not functional evidence.
                 }, key
+                if entry["previous_status"] == "BLOCKED_1500_REAL_GUI":
+                    # Require an independently auditable real native GUI test.
+                    proof = row["acceptance_evidence"]
+                    assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI", key
+                    assert proof["user_cancelled_second_legacy_project_prerequisite"] is True, key
+                    assert len(proof["requirement_witnesses"]) >= 2, key
+                    filename, fn = proof["primary_assertion"].split("::")
+                    assert filename in PYTEST_PATHS, key
+                    tree = ast.parse((ROOT / filename).read_text(encoding="utf-8"))
+                    assert any(isinstance(n, ast.FunctionDef) and n.name == fn
+                               and any(isinstance(c, ast.Assert) for c in ast.walk(n))
+                               for n in tree.body), key
                 assert row["status"]=="ACCEPTED_AUTOMATED_CURRENT_SCOPE", key
                 assert row["evidence_level"]=="FULL_AC_ASSERTION_AUDITED", key
                 assert row["assertion_review_state"]=="FULL_AC_AUTOMATED_SIGNED", key
@@ -165,7 +178,9 @@ def test_four_source_signoffs_require_real_exact_primary_and_negative_tests():
         row=rows[key]
         assert row["accepted"] is True
         assert row["acceptance_evidence"]["external_historical_binary_read_executed"] is False
-    assert sum(1 for r in rows.values() if r["status"]=="BLOCKED_1500_REAL_GUI")==17
+    live_blocked = sum(r["status"]=="BLOCKED_1500_REAL_GUI" for r in rows.values())
+    assert live_blocked == _json(MATRIX)["counts"]["BLOCKED_1500_REAL_GUI"]
+    assert 0 < live_blocked <= BASELINE_GROUPS["BLOCKED_1500_REAL_GUI"]
     # Do not confuse the immutable four-item *historical* snapshot with
     # current evidence-backed per-AC signoffs. Every retired deferred AC
     # must satisfy the full runtime/source clauses audited above.
