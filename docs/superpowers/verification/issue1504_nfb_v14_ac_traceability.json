@@ -6514,7 +6514,7 @@
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Outstanding gates are per-AC functional native GUI actions, project persistence, 2D/3D, scoped DXF and CHECK/Q; USER CANCELLED an arbitrary second old-project B prerequisite on 2026-10-26. No fixed A+B input quota. Never promote a test fixture to user Windows UAT.",
     "1503": "EAR T2/BEND23/physical contact/side marking and scoped source DXF delivered; ONLY independent PAD manufacturing/BOM and welding workmanship remain deferred, never invent them or hold already verified EAR.",
-    "1504": "82/88 PR candidate with NFB-AC-42 UI1A detached source preview/Undo and source-bound native Tk UI1B source guard; six remaining full functional/source ACs. No second project B gate, no whole factory release."
+    "1504": "82/88 PR candidate with NFB-AC-42 UI1A detached source preview/Undo and source-bound native Tk UI1B source guard; six remaining full functional/source ACs. No project B prerequisite, no whole factory release."
   },
   "current_legacy_supersessions": {
     "NFB-AC-03": "CURRENT 2026-10-21: NFB brand/model geometry is the user's per-brand numeric NFB數值規格.csv and committed NFBConfig, NOT a mandatory legacy manufacturer DXF file. Original DXF preview acceptance wording is historical compatibility scope, not a current CSV selection prerequisite.",
