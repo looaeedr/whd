@@ -969,3 +969,18 @@ def test_r2_13_valid_receiving_door_projection_retains_physical_dimensions():
         "door_layout_columns": [[800., [800., 800.]]], "inner_doors": [],
     }
     assert _validate_common_receiving_state(data) is None
+
+
+@pytest.mark.parametrize("field", ["t", "fw"])
+def test_r2_13_receiving_bay_divider_uses_raw_thickness_and_frame_width(field):
+    """Receiving per-Bay Door projection must not cast a bool T/FW to 1 mm."""
+    from ae_engine.receiving_layout import _validate_common_receiving_state
+    data = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2., "fw": 29.,
+        "multi_door_enabled": True,
+        "door_layout_columns": [[800., [800., 800.]]], "inner_doors": [],
+    }
+    data[field] = True
+    with pytest.raises(ValueError, match="divider"):
+        _validate_common_receiving_state(data)
+    assert data[field] is True
