@@ -921,3 +921,120 @@ def test_swt32_same_original_dxf_brand_pins_colors_real_part_counts_and_sha_hold
     assert stale.require_export(("side1",), partial=True) == ("side1",)
     with pytest.raises(ValueError, match="BLOCKED"):
         stale.require_export(("inner1",), partial=True)
+
+
+def test_ac41_actual_current_source_managed_parts_ready_but_pad_ear_still_deferred(
+    tmp_path,
+):
+    """Current physical scope can be READY, never a claim of full PAD/EAR assembly.
+
+    Actual upper aperture DXF, saved matching Bay/inner, and real current
+    physical-part IDs determine the *managed* scope. Lower/PAD/EAR are not
+    inferred from an unrelated green MFG-1 status.
+    """
+    from dataclasses import replace
+    import ezdxf
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+
+    opts = _prepared(tmp_path)
+    opts["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1", ("base1",), (),
+    )
+    opts["actual_parts"] = tuple(
+        part for part in opts["actual_parts"] if part.part_id != "middle1"
+    )
+    source = tmp_path / "ac41_actual_upper.dxf"
+    doc = ezdxf.new("R2010")
+    doc.modelspace().add_lwpolyline(
+        ((0, 0), (57, 0), (57, 96), (0, 96)),
+        close=True, dxfattribs={"color": 150},
+    )
+    doc.saveas(source)
+    inventory = inspect_nfb_dxf_source(source)
+    opts.update(
+        source_path=source,
+        source_inventory=inventory,
+        verified_inner_door=replace(
+            opts["verified_inner_door"],
+            source_sha256=inventory.source_sha256,
+        ),
+    )
+    full = derive_nfb_partial_export_manifest(**opts)
+    assert full.nfb_config_submitted is True
+    assert full.whole_ready and not full.partial_only
+    assert tuple((row.part_id, row.status, row.may_export) for row in full.rows) == (
+        ("inner1", READY, True),
+        ("base1", UNAFFECTED, True),
+        ("side1", UNAFFECTED, True),
+    )
+    assert full.require_export(
+        ("inner1", "base1", "side1"), partial=False
+    ) == ("inner1", "base1", "side1")
+    report = full.report()
+    assert report["whole_ready"] is True  # Only CURRENT managed scope
+    assert report["assembly_status"] == "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY"
+    assert report["deferred_assembly"] == ["PAD", "EAR_ATTACHMENT"]
+    assert report["held_actual_count"] == 0
+    assert report["actual_export_count"] == 6
+    assert "manufacturing_ready" not in report
+    assert "factory_release" not in report
+
+    # Add actual original ACI30: BASE becomes affected without MFG-2 proof.
+    doc.modelspace().add_circle((12, 18), 2, dxfattribs={"color": 30})
+    doc.saveas(source)
+    revised = inspect_nfb_dxf_source(source)
+    opts.update(
+        source_inventory=revised,
+        verified_inner_door=replace(
+            opts["verified_inner_door"],
+            source_sha256=revised.source_sha256,
+        ),
+    )
+    blocked = derive_nfb_partial_export_manifest(**opts)
+    assert not blocked.whole_ready and blocked.partial_only
+    assert tuple(row.part_id for row in blocked.held_rows) == ("base1",)
+    assert blocked.authorized_part_ids == ("inner1", "side1")
+    partial = blocked.report()
+    assert partial["actual_export_count"] == 5
+    assert partial["held_actual_count"] == 1
+    assert partial["assembly_status"] == "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY"
+    assert partial["deferred_assembly"] == ["PAD", "EAR_ATTACHMENT"]
+    assert "BASE_PLATE_NFB_PROCESS_UNVERIFIED" in next(
+        r["reasons"] for r in partial["rows"] if r["part_id"] == "base1"
+    )
+    assert blocked.require_export(("inner1", "side1"), partial=True) == (
+        "inner1", "side1"
+    )
+    with pytest.raises(ValueError, match="partial only|not ready"):
+        blocked.require_export(("inner1", "base1", "side1"), partial=False)
+    with pytest.raises(ValueError, match="BLOCKED"):
+        blocked.require_export(("base1",), partial=True)
+
+    # Forged typed "whole ready" plus edited returned report cannot produce
+    # a complete export while the source-owned physical BASE is still held.
+    forged = replace(blocked, whole_ready=True, unresolved_dependencies=())
+    forged.report()["assembly_status"] = "COMPLETE"
+    with pytest.raises(ValueError, match="not ready|partial only"):
+        forged.require_export(("inner1", "base1", "side1"), partial=False)
+
+    # A source-file digest change revokes an earlier source-scoped approval;
+    # a previously green report never supplies persisted manufacturing flags.
+    source.write_bytes(b"stale-dxf")
+    stale = derive_nfb_partial_export_manifest(**opts)
+    assert stale.authorized_part_ids == ("side1",)
+    assert not stale.whole_ready
+    assert "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED" in stale.unresolved_dependencies
+    assert stale.report()["deferred_assembly"] == ["PAD", "EAR_ATTACHMENT"]
+
+
+def test_ac41_unsubmitted_legacy_does_not_claim_pad_ear_delivery(tmp_path):
+    """UNCONFIGURED is legacy scope, never an implicitly submitted complete NFB."""
+    opts = _prepared(tmp_path, submitted=False)
+    legacy = derive_nfb_partial_export_manifest(**opts)
+    assert not legacy.nfb_config_submitted
+    assert all(row.status == LEGACY for row in legacy.rows)
+    report = legacy.report()
+    assert report["nfb_config_submitted"] is False
+    assert report["deferred_assembly"] == []
+    assert report["assembly_status"] == "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY"
+    assert not legacy.partial_only
