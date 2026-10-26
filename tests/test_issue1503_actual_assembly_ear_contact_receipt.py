@@ -46,7 +46,10 @@ def test_four_real_ear_sources_mate_two_distinct_assembled_base_back_skins():
         (400., 540.), (400., 540.),
         (-100., 40.), (-100., 40.),
     ]
-    assert len({r.actual_base_back_skin_world_z_mm for r in receipts}) == 2
+    # All physical ears share the brand-wide maximum depth Z, while preserving
+    # distinct layer parts, Y and X placement and real contact proof.
+    assert len({r.actual_base_back_skin_world_z_mm for r in receipts}) == 1
+    assert len({r.expected_ear_contact_world_z_mm for r in receipts}) == 1
     assert all(
         r.actual_base_back_skin_world_z_mm ==
         pytest.approx(r.expected_ear_contact_world_z_mm)
@@ -57,7 +60,6 @@ def test_four_real_ear_sources_mate_two_distinct_assembled_base_back_skins():
     assert all(not r.formed_ear_verified
                and not r.side_marking_export_approved
                and not r.manufacturing_ready for r in receipts)
-
 
 def test_single_tier_uses_the_same_real_base_skin_and_ear_contact_rule():
     from ae_engine.assembly_placement import resolve_base_plate_placement
@@ -168,7 +170,7 @@ def test_horizontal_switch_x_moves_only_screws_not_ear_contacts():
 
 
 def test_current_csv_two_tier_brands_keep_own_real_skin_and_four_ear_receipts():
-    """Current NFB source is per-brand CSV, NOT a legacy switch-brand DXF."""
+    """Different brand catalogs cannot certify one shared physical ear Z."""
     snap = _two_tier()
     snap["receiving_layout"]["sets"][0].pop("switch_brand", None)
     for row, (brand, model) in zip(
@@ -176,15 +178,10 @@ def test_current_csv_two_tier_brands_keep_own_real_skin_and_four_ear_receipts():
         (("士林", "nfbv5:士林:2P400"), ("東元", "nfbv5:東元:3P125SN")),
     ):
         row.update(source_brand=brand, model_filename=model)
-    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
-        snap["nfb_config"],
-    )
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(snap["nfb_config"])
     parts = expand_receiving_nfb_layer_parts(snap, (_source(snap),))
-    receipts = validate_receiving_tier_fixing_contact_receipts(snap, parts)
-    assert len(receipts) == 4
-    assert [r.layer_index for r in receipts] == [0, 0, 1, 1]
-    assert [r.fixing_hole_world_x_mm for r in receipts] == [
-        -335., 335., -335., 335.,
-    ]
-    assert len({r.actual_base_back_skin_world_z_mm for r in receipts}) == 2
-    assert all(not r.manufacturing_ready for r in receipts)
+    assert len(parts) == 2
+    # Per-tier preview material may exist, but mixed-brand physical contact
+    # must never be certified or considered ready for manufacturing.
+    with pytest.raises(ValueError, match="EAR_Z_MIXED_BRANDS_REQUIRE_APPROVED_RULE"):
+        validate_receiving_tier_fixing_contact_receipts(snap, parts)
