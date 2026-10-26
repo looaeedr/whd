@@ -216,6 +216,26 @@ def _verified_csv_v5_export_scope(snapshot, inner_door_id, holes):
     )
 
 
+def current_csv_v5_scope_matches_snapshot(snapshot, scope):
+    """Read-only: a positive source label requires the EXACT current Bay.
+
+    This never authorizes DXF writing. The paired exporter independently
+    performs all real source/physical/atomic-manufacturing checks on click.
+    """
+    if not isinstance(scope, NfbCsvVerifiedExportScope):
+        return False
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    try:
+        submitted = _submitted_csv_holes(snapshot)
+        if not submitted:
+            return False
+        return _verified_csv_v5_export_scope(
+            snapshot, submitted[0], submitted[1],
+        ) == scope
+    except (TypeError, ValueError, IndexError, KeyError, OSError):
+        return False
+
+
 @dataclass(frozen=True)
 class NfbCsvPairedPartOnlyDxf:
     """Two validated sheets, NOT a full enclosure or welded EAR release."""
