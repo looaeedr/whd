@@ -20,15 +20,30 @@ PREVIEW_STATUS = "NFB_TIER_BASE_EAR_AND_HOLES_UNVERIFIED"
 
 
 
+
+def _tier_center_brand_pair(snapshot, values, depth):
+    """Resolve the same two-tier material pair for PartSpec and 3D skins."""
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
+    if values["receiving_bend_pattern"] != RECEIVING_BASE_PATTERN_CENTER:
+        return None, False
+    if len(depth.source_depths_mm) == 2:
+        return tuple(depth.source_depths_mm), False
+    if len(depth.source_depths_mm) != 1:
+        return None, False
+    from .receiving_tier_ear_z_targets import committed_receiving_ear_brand_max_depth_mm
+    selected = float(depth.source_depths_mm[0])
+    maximum = committed_receiving_ear_brand_max_depth_mm(snapshot)
+    if maximum - selected > float(snapshot["t"]) + 1e-9:
+        return (maximum, selected), True
+    return None, False
+
+
 def _source_tier_base_spec(snapshot, values, center, depth):
     """One pure actual PartSpec builder shared by 3D & GUI; no source reread."""
     from .contracts import BasePlatePartSpec
     if depth.parent_base_id != center.layer_part_id:
         raise ValueError("RECEIVING_TIER_SOURCE_PART_SPEC_IDENTITY_DRIFT")
-    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
-    pair = (tuple(depth.source_depths_mm)
-            if (values["receiving_bend_pattern"] == RECEIVING_BASE_PATTERN_CENTER
-                and len(depth.source_depths_mm) == 2) else None)
+    pair, _ = _tier_center_brand_pair(snapshot, values, depth)
     return BasePlatePartSpec(
         width=float(snapshot["w"]), height=float(values["h"]),
         thickness=float(snapshot["t"]),
@@ -184,13 +199,14 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
             raise ValueError("RECEIVING_NFB_TIER_Z_TARGET_OWNER_DRIFT")
         # Exact same source-physical Base Plate variant is used for the skin
         # solve, FinalScene material and fold profiles in EVERY NFB tier.
-        from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
-        tier_pair = (
-            tuple(depth_target.source_depths_mm)
-            if (values["receiving_bend_pattern"] == RECEIVING_BASE_PATTERN_CENTER
-                and len(depth_target.source_depths_mm) == 2) else None
+        tier_pair, inverted = _tier_center_brand_pair(
+            snapshot, values, depth_target,
         )
-        tier_values = {**values, "receiving_nfb_depth_pair_mm": tier_pair}
+        tier_values = {
+            **values,
+            "receiving_nfb_depth_pair_mm": tier_pair,
+            "receiving_center_brand_anchor_inverted": inverted,
+        }
         tier_profiles = receiving_base_plate_3d_profiles(snapshot, tier_values)
         if tier_profiles is None:
             raise ValueError("RECEIVING_NFB_TIER_SOURCE_PROFILE_MISSING")
