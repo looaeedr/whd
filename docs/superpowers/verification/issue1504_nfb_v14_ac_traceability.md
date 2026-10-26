@@ -4,6 +4,15 @@ whd_contract: issue1504-nfb-v14-ac-traceability
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
+
+## 2026-10-27 台灣｜#1504 NFB-AC-40 X 基準版次／數量版本來源綁定（83→84 候選）
+
+- **確認的缺口已修補**：`normalize_nfb_saved_fields` 本來比對型號、旋轉、Bay 實體寬與 owner，但若數量版本的 X 依據**已明確寫有 `datum_snapshot.version_id`**，對不同 `QuantityModel.version_id` 未比對就可能保留 `CONFIRMED`。現在在既有 canonical writer／reader 一致檢核；指定版次不符則 `RECONFIRM_REQUIRED`，保留真實 X=0 供操作者重核，不偷換為 `NONE`。舊資料未記錄版次不得臆造版次；真實提交仍需 MFG-1 逐來源／逐物理孔位驗證。
+- **完整正反**：新增 `test_ac40_explicit_quantity_version_x_owner_zero_cancel_reconfirm_v3_roundtrip` 驅動原 `QuantityModel`，v1 的 V5 X=0 正常核准，複製 v2 降級、偽造沿用 v1 已核准狀態也降級；提供明確 v2 來源才可保留核准；變更型號或旋轉立即降級，`NONE+null` 不等於已批准的 `CONFIRMED+0`。原 `write_project/read_project` V3 存檔重開，兩版本獨立保持這些原始狀態。
+- **同一真實操作權限**：新增 `test_ac40_version_scoped_operator_x_cannot_cross_release_and_cancel_is_atomic` 使用原生 backend 及 typed 內門實體 MFG-1 來源，`v1` 的 X 版次交給 `v2` 必須在任何操作員確認 callback 前拒絕；新 `v2` datum 與實體證據齊全後取消全不變、確定才成功，已核准真 X0／version 身分由 .p6fold Reload 保持。既有 `test_ac23_reopened_stale_world_x_native_tk_reconfirm_restores_only_source_verified_dxf` 在原生 Tk UI 驗 Cancel/Confirm／真正來源 DXF、X 基準變更與失效守衛；AC28 原生多 Bay 回歸為強制補證。
+- **限制**：這是當期可重跑的版本身分及原生 GUI／來源閘門的程式驗收，不代表使用者 Windows UAT、任意廠牌原廠 DXF 或 MFG-2／PAD／整箱製造核准。先列 **84／88 候選、4 項未簽**；exact HEAD Product Regression 五階段全綠、GitHub `localX` 安全合併與 Git Tree 回讀後才可認正式 84。無不存在的第二份舊工程 B，正式 X 需使用者 `/推推`。
+
+---
 ## 2026-10-26 台灣｜#1504 NFB-AC-34 原生 UI-1B 提交／複製的真 MFG-1 守衛及 DRAFT Save→Reload（80→81 候選）
 
 - **原始 §7 AC-34 原文維持不變**：沒有當次物理來源 MFG-1，真 Tk `確認套用 NFB` 和提交型 `複製至其他連` 必須停用，按下不能變更 Bay。僅有 verified inner-door 切割及來源完整的 MFG-1 具提交資格，而不是 GUI 任意設旗標。
