@@ -112,7 +112,7 @@ class NfbDxfSourcePreviewPanel:
             missing="、".join(spec.missing_fields)
             self.reason.set("V5 數值孔位（未經實體／製造驗證）"
                             + (f"｜缺：{missing}｜禁止製造"
-                               if missing else "｜數值齊全，仍不可製造"))
+                               if missing else "｜CSV 數值完整；此處僅預覽，正式出圖需提交目前 Set/Bay 並核對實體內門／底板"))
             self.paint()
             return
         self._numeric_mode=False
