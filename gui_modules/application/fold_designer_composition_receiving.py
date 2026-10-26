@@ -2704,6 +2704,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             height_entry.bind("<FocusOut>", lambda _event: paint_draft_preview())
             section.columnconfigure(0, weight=1)
             section.columnconfigure(2, weight=1)
+            # This is a *source* list. The selected CSV model alone is not a
+            # Set/Bay/version/physical-part manufacturing approval; expose
+            # the difference beside the model list without decorating names.
+            ttk.Label(
+                section,
+                text="型號僅預覽｜製造資格以本連已提交配置及真實板件驗證為準",
+                wraplength=340, justify="left",
+            ).grid(row=2, column=0, sticky="w", padx=5, pady=(0, 3))
             ttk.Label(section, text="本層開關（可重複）").grid(
                 row=0, column=2, sticky="w", padx=5)
             available = tk.Listbox(section, selectmode=tk.BROWSE,

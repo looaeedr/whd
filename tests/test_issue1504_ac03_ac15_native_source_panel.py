@@ -47,7 +47,7 @@ def test_ac03_original_inner_tk_preview_visible_with_zoom_pan_reset_and_no_write
         root.update()
         assert panel.identity.get().startswith("士林｜")
         assert ("禁止製造" in panel.reason.get()
-                or "不可製造" in panel.reason.get())
+                or "此處僅預覽" in panel.reason.get())
         assert panel._numeric_spec is not None
         assert panel.canvas.find_withtag("nfb-dxf")
         assert panel._numeric_zoom == 1.0
@@ -565,6 +565,60 @@ def test_ac15_actual_tk_legacy_dxf_revision_reparse_is_targeted_and_does_not_reb
         assert second.entity_count == 5
         assert panel.cache.parse_count == 2
         assert not second.manufacturing_ready
+        assert app._phase6_input_snapshot == before
+        assert KEY not in app._phase6_input_snapshot
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
+
+
+def test_ac51_original_tk_v5_selector_shows_source_scope_without_fake_release(monkeypatch):
+    """Current CSV has no old per-model DXF gate; the live selector still
+    requires a per-Set/Bay committed physical proof before manufacturing.
+    Preview must keep the original selectable model names and never mutate
+    the authoritative saved project.
+    """
+    from ae_engine.receiving_nfb_2d_preview import NfbDxfPreviewCache
+    from ae_engine.receiving_nfb_model_identity import (
+        numeric_model_ref, display_model_ref,
+    )
+
+    root, app, modal = _open_original_editor(monkeypatch)
+    try:
+        panel = modal._receiving_inner_nfb_dxf_panel
+        row = modal._receiving_inner_switch_state["rows"][0]
+        model = numeric_model_ref("士林", "2P400")
+        before = deepcopy(app._phase6_input_snapshot)
+        # Never query legacy original DXF just to display the current V5.
+        def forbid_legacy(*args, **kwargs):
+            raise AssertionError("CURRENT NFB V5 selector called old-model DXF reader")
+        monkeypatch.setattr(NfbDxfPreviewCache, "load", forbid_legacy)
+        panel.show("士林", model)
+        root.update()
+        assert panel._numeric_spec is not None
+        assert panel._numeric_spec.dimensionally_complete is True
+        assert "CSV 數值完整" in panel.reason.get()
+        assert "此處僅預覽" in panel.reason.get()
+        assert "正式出圖需提交目前 Set/Bay" in panel.reason.get()
+        assert "實體內門／底板" in panel.reason.get()
+        assert "可製造（內門）" not in panel.reason.get()
+        assert "僅預覽" in panel.frame.cget("text")
+        assert any(
+            isinstance(widget, ttk.Label)
+            and widget.cget("text") ==
+                "型號僅預覽｜製造資格以本連已提交配置及真實板件驗證為準"
+            for widget in _walk(row["section"])
+        )
+        assert any(
+            row["available"].get(i) == display_model_ref(model)
+            for i in range(row["available"].size())
+        )
+        assert panel.canvas.find_withtag("nfb-dxf")
+        panel.show("東元", model)
+        root.update()
+        assert "禁止製造" in panel.reason.get()
+        assert panel._numeric_spec is None
         assert app._phase6_input_snapshot == before
         assert KEY not in app._phase6_input_snapshot
     finally:
