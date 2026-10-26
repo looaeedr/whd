@@ -14,7 +14,7 @@ from math import isfinite
 @lru_cache(maxsize=32)
 def _source_base_local_nfb_skins(
     w, height, thickness, shrink_top, shrink_bottom, shrink_left,
-    shrink_right, bend, pattern, depth_pair,
+    shrink_right, bend, pattern, depth_pair, inverted=False,
 ):
     """Return actual locally centered FRONT skin Z of deep/shallow NFB webs.
 
@@ -42,6 +42,7 @@ def _source_base_local_nfb_skins(
         "base_plate_shrink_right":shrink_right,
         "base_plate_bend":bend, "receiving_bend_pattern":pattern,
         "receiving_nfb_depth_pair_mm":depth_pair,
+        "receiving_center_brand_anchor_inverted": bool(inverted),
     }
     profiles = receiving_base_plate_3d_profiles(
         {"w":w,"t":thickness}, physical,
@@ -98,7 +99,9 @@ def _source_base_local_nfb_skins(
             raise ValueError("RECEIVING_BASE_SHALLOW_FACES_NOT_COPLANAR")
         shallow_front = left
         expected=float(depth_pair[0])-float(depth_pair[1])
-        if abs((shallow_front-deep_front)-expected)>eps:
+        actual_step = shallow_front - deep_front
+        required_step = -expected if inverted else expected
+        if abs(actual_step-required_step)>eps:
             raise ValueError("RECEIVING_BASE_FOLDED_NFB_FACE_DEPTH_PARITY_FAILED")
     return deep_front,shallow_front
 
@@ -116,4 +119,5 @@ def receiving_base_actual_local_nfb_skins(snapshot, physical):
         float(physical["base_plate_shrink_right"]),
         float(physical["base_plate_bend"]),
         str(physical["receiving_bend_pattern"]),pair,
+        bool(physical.get("receiving_center_brand_anchor_inverted", False)),
     )
