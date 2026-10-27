@@ -616,7 +616,14 @@ def test_swt24_real_physical_partial_dxf_check_q_and_source_loss_atomicity(
     # No previously-approved manifest is a permanent permit.  Changing
     # the actual source bytes must fail before a second partial DXF is made.
     original_source = opts["source_path"]
-    original_source.write_bytes(original_source.read_bytes() + b"\nSOURCE_REPLACED")
+    # Structurally invalidate the verified one-hole CUTTING source. A benign
+    # byte edit to an otherwise valid DXF must be re-verified, not auto-blocked.
+    corrupt = ezdxf.readfile(original_source)
+    corrupt.modelspace().add_lwpolyline(
+        ((120., 0.), (177., 0.), (177., 96.), (120., 96.)),
+        close=True, dxfattribs={"color": 150},
+    )
+    corrupt.saveas(original_source)
     stale = tmp_path / "unverified_after_source_change.dxf"
     with pytest.raises((ValueError, OSError, TypeError)):
         writer.export_current_nfb_inner_door_partial_dxf(
