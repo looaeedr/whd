@@ -460,8 +460,8 @@ def receiving_gui_stall_guard():
 
 
 @pytest.mark.skipif(
-    not __import__("os").environ.get("DISPLAY"),
-    reason="Receiving settings defaults regression needs a real Tk/Xvfb",
+    __import__("os").name != "nt" and not __import__("os").environ.get("DISPLAY"),
+    reason="Receiving settings defaults regression needs native Windows Tk or Linux DISPLAY",
 )
 def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypatch, receiving_gui_stall_guard):
     """Operator sizes belong to current Quantity/Set-Bay, NOT Settings defaults.
