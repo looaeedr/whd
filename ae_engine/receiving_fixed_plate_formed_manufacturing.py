@@ -374,6 +374,30 @@ def save_verified_receiving_formed_fixing_plate_bundle(
     ):
         raise ValueError("EAR_FORM_MFG_BOTH_MARKED_SIDE_SHEETS_REQUIRED")
 
+    # #1490: The normal selection may look like the *entire cabinet* when
+    # BODY + CSV DOOR + every physical tier BASE is checked.  Source-derived
+    # shallow NFB PADs must not silently disappear from that successful
+    # bundle. Independently verified per-part selection remains available.
+    selected_ids = {key for key, _, _ in standard_rows}
+    complete_csv_selection = (
+        any(key.startswith("inner_door:") for key in approved_csv)
+        and any(key == "base_plate" or key.startswith("base_plate:nfb_layer:")
+                for key in approved_csv)
+        and any(key.startswith("box_body:") for key in selected_ids)
+    )
+    if complete_csv_selection:
+        from .receiving_whole_cabinet_pad_preflight import (
+            missing_required_pad_sheets,
+        )
+        missing = missing_required_pad_sheets(
+            snapshot, tuple(original_geometry.parts or ()), selected_ids,
+        )
+        if missing:
+            raise ValueError(
+                "RECEIVING_FULL_NFB_PAD_REQUIRED_IN_COMPLETE_EXPORT:"
+                + ",".join(missing)
+            )
+
     filenames = {key: filename for key, filename, _ in standard_rows}
     for ear_id in verified:
         if ear_id in filenames:
