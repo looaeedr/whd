@@ -723,6 +723,14 @@ def test_inner_door_version_applies_to_both_highlighted_bays():
         chooser.event_generate("<<ComboboxSelected>>")
         root.update()
         host = win._receiving_multi_settings_host
+        # The 2D highlighted Bays already own this apply target. No
+        # redundant share/unlink buttons may return on the inner-door tab.
+        visible_buttons = [widget.cget("text")
+                           for frame in host.winfo_children()
+                           for widget in frame.winfo_children()
+                           if isinstance(widget, ttk.Button)]
+        assert "連動選取的連" not in visible_buttons
+        assert "解除本連連動" not in visible_buttons
         buttons = [widget for frame in host.winfo_children()
                    for widget in frame.winfo_children()
                    if isinstance(widget, ttk.Button)

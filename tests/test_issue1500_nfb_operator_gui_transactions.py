@@ -199,10 +199,10 @@ def test_gui_submit_cancel_copy_restore_undo_reuses_physical_bay_authority(monke
         assert buttons["確認套用 NFB"].instate(("!disabled",))
         assert buttons["複製至其他連"].instate(("disabled",))
         assert buttons["還原為未配置"].instate(("disabled",))
-        # The operator explicitly retired the per-Bay unlink action.
-        # Removing it must not remove the existing highlighter/link/transaction controls.
+        # Both redundant linkage controls are retired. Actual 2D Bay
+        # highlight + NFB transaction submit/copy/restore/Undo stay available.
         assert "解除本連連動" not in buttons
-        assert "連動選取的連" in buttons
+        assert "連動選取的連" not in buttons
         assert "確認套用 NFB" in buttons
 
         # Cancel must never submit, nor consume the capability.
@@ -330,7 +330,7 @@ def test_source_revoked_warning_is_live_and_unlink_never_resurfaces(monkeypatch)
         _select_inner(win, root)
         buttons = _buttons(win._receiving_multi_settings_host)
         assert "解除本連連動" not in buttons
-        assert buttons["連動選取的連"].instate(("!disabled",))
+        assert "連動選取的連" not in buttons
         # Genuine source revocation between paint and click must not submit,
         # even though the first painted button was enabled.
         stale_button = buttons["確認套用 NFB"]

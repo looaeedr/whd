@@ -763,19 +763,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, text="版本管理",
                     command=lambda: open_manager("inner"),
                 ).pack(anchor="e", pady=(5, 0))
-            # Restore the existing per-Bay linkage without bringing back the
-            # removed layer-count Edit button. The 2D highlight is authority.
-            link_row = ttk.Frame(settings_host)
-            link_row.pack(anchor="w", pady=3)
-            ttk.Button(
-                link_row, text="連動選取的連",
-                command=lambda: perform(lambda: ports["share"](
-                    "inner_door_layers", targets(),
-                )) if targets() else None,
-            ).pack(side="left", padx=(0, 5))
-            # No per-Bay "unlink" action here: the operator-selected
-            # highlight / version management is the sole current inner-door
-            # workflow. The former "解除本連連動" control was explicitly retired.
+            # The 2D canvas highlight + existing candidate "套用" already
+            # own inner-door multi-Bay selection. Retired the redundant
+            # "連動選取的連" control; no explicit share/unlink action is
+            # rendered. Preserve the canonical data ports for other clients.
             # #1500: the existing source-verified Receiving NFB transaction
             # ports must remain operable after the settings window refactor.
             # Use the SAME canvas Bay highlighter and single canonical adapter;
