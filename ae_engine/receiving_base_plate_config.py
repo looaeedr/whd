@@ -358,6 +358,39 @@ def _source_two_tier_matching_left_base_config(data):
         "bend": 20.0,
     }
 
+def _committed_v5_mixed_depth_tiers(data):
+    """Return physical tiers requiring PAD, from the current submitted CSV only.
+
+    A legacy saved CENTER plate is not authority to suppress a shallower
+    switch's PAD. Do not manufacture depths or group switches across tiers.
+    Malformed/legacy sources remain subject to their existing validation.
+    """
+    config = data.get("nfb_config")
+    if data.get("nfb_config_submitted") is not True or not isinstance(config, Mapping):
+        return ()
+    count, rows = config.get("layer_count"), config.get("holes")
+    if type(count) is not int or count not in (1, 2) or not isinstance(rows, (tuple, list)):
+        return ()
+    from .receiving_nfb_model_identity import parse_numeric_model_ref
+    from .receiving_nfb_numeric_catalog import model_spec
+    depths = {tier: [] for tier in range(count)}
+    for row in rows:
+        if not isinstance(row, Mapping):
+            return ()
+        tier = row.get("layer_index", 0)
+        identity = parse_numeric_model_ref(row.get("model_filename"))
+        if type(tier) is not int or tier not in depths or identity is None:
+            return ()
+        if row.get("source_brand") not in (None, identity[0]):
+            return ()
+        spec = model_spec(*identity)
+        if spec is None or not spec.dimensionally_complete:
+            return ()
+        depths[tier].append(float(spec.depth_mm))
+    return tuple(tier for tier, values in depths.items()
+                 if len(values) > 1 and max(values) - min(values) > 1e-8)
+
+
 def receiving_base_plate_values(snapshot):
     """Return existing BasePlatePartSpec input values; never guess a variant.
 
@@ -422,7 +455,21 @@ def receiving_base_plate_values(snapshot):
         _source_brand_anchored_center_pair(data) if selected_v5 else None
     )
     source_config = None
-    if anchored_center is not None:
+    mixed_tiers = _committed_v5_mixed_depth_tiers(data) if selected_v5 else ()
+    if mixed_tiers:
+        # Same-tier mixed depths require a separate PAD under each shallower
+        # NFB. A persisted CENTER setting from an old project must not hide
+        # those physical sheets in the current 2D/3D/part BOM path.
+        # Each source-backed flat configuration verifies the real selected
+        # CSV measurements; do not fabricate a fallback CENTER shape.
+        source_config = (
+            _source_left_flat_base_config(data)
+            if selected_config.get("layer_count") == 1
+            else _source_two_tier_matching_left_base_config(data)
+        )
+        if source_config is None:
+            raise ValueError("RECEIVING_MIXED_TIER_PAD_FLAT_SOURCE_UNVERIFIED")
+    if source_config is None and anchored_center is not None:
         source_config = _source_center_base_config(data)
     if source_config is None and selected_v5 and not explicit_center:
         # This source resolver validates every model's current CSV,

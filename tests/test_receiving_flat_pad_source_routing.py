@@ -45,12 +45,12 @@ def test_submitted_flat_two_different_depths_reach_real_left_base_with_one_pad()
     assert placed.world_offset[0]==pytest.approx(0.)
 
 
-def test_existing_center_variant_keeps_its_double_fold_instead_of_double_pad():
+def test_saved_center_variant_cannot_hide_required_same_tier_csv_pad():
     snap=_mixed()
     snap["receiving_base_plate"]["pattern"]="CENTER_DOUBLE_SIDE_FOLD"
     values=receiving_base_plate_values(snap)
-    assert values["receiving_bend_pattern"]=="CENTER_DOUBLE_SIDE_FOLD"
-    assert values["receiving_nfb_depth_pair_mm"]==(107.,68.)
+    assert values["receiving_bend_pattern"]=="LEFT_FLAT_SIDE"
+    assert values["receiving_nfb_depth_pair_mm"] is None
 
 
 def test_pad_missing_numeric_source_does_not_borrow_older_model_dimensions():
@@ -71,11 +71,26 @@ def test_same_tier_different_depths_auto_selects_common_pad_not_center():
     assert resolved["receiving_nfb_depth_pair_mm"] is None
 
 
-def test_stored_explicit_center_remains_supported_for_existing_projects():
-    """Do not delete or reinterpret old operator-selected CENTER geometry."""
+def test_saved_old_center_does_not_suppress_current_same_tier_depth_pad():
+    """Submitted numeric CSV is authoritative over an older stored CENTER."""
     snap = _mixed()
     assert snap["receiving_base_plate"]["pattern"] == "LEFT_FLAT_SIDE"
     snap["receiving_base_plate"]["pattern"] = "CENTER_DOUBLE_SIDE_FOLD"
     result = receiving_base_plate_values(snap)
-    assert result["receiving_bend_pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
-    assert result["receiving_nfb_depth_pair_mm"] == (107., 68.)
+    assert result["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    assert result["receiving_nfb_reference_depth_mm"] == pytest.approx(107.)
+    assert result["receiving_nfb_depth_pair_mm"] is None
+    assert snap["receiving_base_plate"]["pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
+
+
+def test_two_tier_mixed_depth_pad_ignores_stale_saved_center_per_tier():
+    from tests.test_receiving_nfb_pad_pair_manufacturing import _mixed_source_two_tiers
+    from ae_engine.receiving_nfb_pad_operator_parts import committed_nfb_pad_draft_parts
+    snap, parts = _mixed_source_two_tiers()
+    snap["receiving_base_plate"] = dict(_mixed()["receiving_base_plate"])
+    snap["receiving_base_plate"]["pattern"] = "CENTER_DOUBLE_SIDE_FOLD"
+    resolved = receiving_base_plate_values(snap)
+    assert resolved["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
+    pads = committed_nfb_pad_draft_parts(snap)
+    assert len(pads) == 1
+    assert pads[0].parent_base_id == "base_plate:nfb_layer:0"

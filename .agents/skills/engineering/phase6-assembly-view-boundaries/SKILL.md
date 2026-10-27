@@ -107,3 +107,10 @@ Joint Registry、collision solver、legacy migration、pre/post penetration 等�
 - W 二分／W 三分的 `box_body:left / box_body:middle / box_body:right` 是 aggregate BoxBody + width allocation 的 manufacturing projection。切換／Save 時不得誤送進 Receiving side/back commit，也不得把 projection 反寫成第二份 Fold Source of Truth。
 - W 分件 child editor 若僅作 resolved sink，Save 只可保留 workspace view；canonical 幾何仍由 aggregate `box_body` 與 `box_body_structure` 擁有。
 - Regression 必須包含：二件式／三件式 W 分件 Save→Reload、Receiving 側背分離 child edit/save、active child round-trip。任何 `unsupported BoxBody physical piece` 代表 routing boundary 又混在一起。
+
+## 受電箱同層不同深度 NFB：PAD 不得被舊底板設定吃掉（2026-10-28）
+
+- 唯一深度來源為**目前已提交且身份一致**的 NFB CSV V5。逐實體層獨立求最大深度；每顆較淺型號一片 PAD，不得以舊存 `CENTER_DOUBLE_SIDE_FOLD` 隱藏必要 PAD。
+- 有同層深度差時，合法 flat Base + source PAD 的單一物理路徑要同步接上 `receiving_base_plate_values`、2D 板件選單、3D folded PAD、BASE 真四方孔與 BOM/件數。只畫 3D 或只增加選單都不算交付。
+- 未驗證來源不得偷換成 CENTER、畫假 PAD、猜世界 X 或放行 DXF/NC。顯示缺件要辨識是「舊選型覆蓋」還是「原 Hole Editor 特徵尚未提交」，二者分別修正。
+- 測試至少包含原生提交、舊 CENTER 存檔、單層／雙層、同深度零 PAD、深度差 PAD 數量與真正 2D/3D 一致；完整規格見 `docs/manufacturing/receiving-same-tier-mixed-depth-pad-20261028.md`。
