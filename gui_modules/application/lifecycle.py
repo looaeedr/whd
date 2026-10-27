@@ -591,22 +591,37 @@ def _merge_live_receiving_candidate_libraries(self, snapshot):
         return snapshot
     designer = getattr(self, "fold_designer_app", None)
     window = getattr(self, "fold_designer_window", None)
-    if designer is None or window is None:
-        return snapshot
-    try:
-        if not window.winfo_exists():
-            return snapshot
-    except tk.TclError:
-        return snapshot
-    live = getattr(designer, "_phase6_input_snapshot", None)
-    if not isinstance(live, dict) or live.get("model") != snapshot.get("model"):
-        return snapshot
+    live = None
+    if designer is not None and window is not None:
+        try:
+            if window.winfo_exists():
+                candidate = getattr(designer, "_phase6_input_snapshot", None)
+                if (isinstance(candidate, dict)
+                        and candidate.get("model") == snapshot.get("model")):
+                    live = candidate
+        except tk.TclError:
+            pass
     from ae_engine.receiving_hole_candidates import normalize_candidates
     from ae_engine.receiving_inner_door_candidates import normalize_inner_candidates
-    for key, normalize in (
+    libraries = (
         ("receiving_hole_candidates", normalize_candidates),
         ("receiving_inner_door_candidates", normalize_inner_candidates),
-    ):
+    )
+    if live is None:
+        # Close publishes the current editor into ProjectController before the
+        # window disappears. Main GUI Save/Save As after close must use that
+        # committed project owner, not a stale 2D-only reconstruction.
+        controller = getattr(self, "project_controller", None)
+        committed = (controller.committed_snapshot()
+                     if controller is not None else None)
+        if (not isinstance(committed, dict)
+                or committed.get("model") != snapshot.get("model")):
+            return snapshot
+        for key, normalize in libraries:
+            if key in committed:
+                snapshot[key] = deepcopy(normalize(committed[key]))
+        return snapshot
+    for key, normalize in libraries:
         if key in live:
             snapshot[key] = deepcopy(normalize(live[key]))
         else:
