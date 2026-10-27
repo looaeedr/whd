@@ -790,3 +790,64 @@ def test_bug63_real_fixing_plate_preview_prefers_live_application_over_stale_bri
     assert projected["nfb_config"]["source_brand"] == "live-brand"
     assert host.fold_designer_app._phase6_input_snapshot == live
     assert host._phase6_input_snapshot == stale_bridge
+
+@pytest.mark.parametrize("bad_field", (
+    "bay_width", "bay_height", "box_width", "box_height",
+))
+def test_audit116_bug59_receiving_live_door_source_rejects_boolean_dimensions(bad_field):
+    """The real current-Bay GUI path must not turn True into a 1-mm sheet."""
+    from gui_modules.application.door_layout_host_adapter import get_door_layout_cells
+
+    columns = [(800., (600.,))]
+    whd = {"w": 800., "h": 600., "d": 350.}
+    if bad_field == "bay_width":
+        columns = [(True, (600.,))]
+    elif bad_field == "bay_height":
+        columns = [(800., (True,))]
+    elif bad_field == "box_width":
+        whd["w"] = True
+    else:
+        whd["h"] = True
+
+    host = SimpleNamespace(
+        fold_designer_app=SimpleNamespace(
+            _phase6_input_snapshot={
+                "model": "受電箱", "door_layout_columns": columns,
+            },
+            _phase6_box_whd=whd,
+        )
+    )
+    with pytest.raises(ValueError, match="bool"):
+        get_door_layout_cells(host)
+
+
+def test_audit116_bug59_receiving_live_door_source_keeps_valid_bay_topology():
+    from gui_modules.application.door_layout_host_adapter import get_door_layout_cells
+
+    source = {
+        "model": "受電箱",
+        "door_layout_columns": [(400., (600.,)), (400., (300., 300.))],
+    }
+    host = SimpleNamespace(
+        fold_designer_app=SimpleNamespace(
+            _phase6_input_snapshot=source,
+            _phase6_box_whd={"w": 800., "h": 600., "d": 350.},
+        )
+    )
+    cells = get_door_layout_cells(host)
+    assert len(cells) == 3
+    assert sum(float(row.width) for row in cells) == pytest.approx(1200.)
+
+
+def test_audit116_bug59_main_door_width_source_rejects_boolean_before_cast():
+    from gui_modules.application import door_layout_host_adapter as adapter
+
+    host = SimpleNamespace(
+        fold_designer_app=None,
+        get_door_layout_columns=lambda: [(1., [600.])],
+        w_var=SimpleNamespace(get=lambda: True),
+        h_var=SimpleNamespace(get=lambda: "600"),
+        _parse_layout_value=adapter._parse_layout_value,
+    )
+    with pytest.raises(ValueError, match="W / H"):
+        adapter.get_door_layout_cells(host)
