@@ -165,3 +165,34 @@ def test_side_uv_denies_wrong_owner_and_early_manufacture():
     ):
         with pytest.raises(ValueError, match="EAR_SIDE_UV_"):
             _project(fake)
+
+@pytest.mark.parametrize("field,value", [
+    ("position", True),
+    ("position", float("nan")),
+    ("position", float("inf")),
+    ("span_start", False),
+    ("span_start", "0"),
+    ("span_end", float("-inf")),
+    ("span_end", None),
+])
+def test_audit116_r9_source_side_bend_guide_rejects_nonphysical_input(field, value):
+    from ae_engine.receiving_fixed_plate_side_uv_marking import _fold_guide_flat_segment
+
+    values = {"axis": "x", "position": 20.0, "span_start": 0.0,
+              "span_end": 100.0}
+    values[field] = value
+    with pytest.raises(ValueError, match="EAR_SIDE_UV_INVALID_SIDE_BEND_GUIDE"):
+        _fold_guide_flat_segment(SimpleNamespace(**values))
+
+
+def test_audit116_r9_source_side_bend_guide_keeps_real_segment():
+    from ae_engine.receiving_fixed_plate_side_uv_marking import _fold_guide_flat_segment
+
+    guide = SimpleNamespace(axis="x", position=20.0,
+                            span_start=0.0, span_end=100.0)
+    segment = _fold_guide_flat_segment(guide)
+    assert segment.length == pytest.approx(100.0)
+    assert tuple(segment.coords) == ((20.0, 0.0), (20.0, 100.0))
+    guide.span_end = guide.span_start
+    with pytest.raises(ValueError, match="EAR_SIDE_UV_INVALID_SIDE_BEND_GUIDE"):
+        _fold_guide_flat_segment(guide)
