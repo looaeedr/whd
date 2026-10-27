@@ -365,23 +365,48 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     win.bind("<Map>", on_modal_map, add="+")
     win.after_idle(maximize_and_lock)
-    win.columnconfigure(1, weight=1)
+    win.columnconfigure(0, weight=1)
     win.rowconfigure(0, weight=1)
 
-    # Two permanent columns. Left owns Set/Bay actions; right owns the
-    # function selector above a separate 2D diagram. Neither section moves
-    # when the category changes or when the version manager is opened.
+    # The left Set/Bay rail is 10% narrower at first open; the user may drag
+    # the sash to resize it at any time. Never snap a manually dragged sash
+    # back during Bay selection, renderer Configure, or feature edits.
+    splitter = ttk.Panedwindow(win, orient=tk.HORIZONTAL)
+    splitter.grid(row=0, column=0, sticky="nsew")
+    left_pane = ttk.Frame(splitter, padding=(12, 12, 4, 12))
+    right_pane = ttk.Frame(splitter, padding=(6, 16, 24, 16))
+    splitter.add(left_pane, weight=0)
+    splitter.add(right_pane, weight=1)
     from .receiving_scroll_view import make_scrollable_frame
     left_scroll, left_content, left_scroll_canvas = make_scrollable_frame(
-        win, tk=tk, ttk=ttk, width=280, height=610,
+        left_pane, tk=tk, ttk=ttk, width=280, height=610,
     )
-    left_scroll.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
+    left_scroll.pack(fill="both", expand=True)
     left_host = ttk.Frame(left_content)
     left_host.pack(fill="both", expand=True)
-    right_host = ttk.Frame(win)
-    right_host.grid(row=0, column=1, sticky="nsew", padx=24, pady=16)
+    right_host = ttk.Frame(right_pane)
+    right_host.pack(fill="both", expand=True)
     right_host.columnconfigure(0, weight=1)
     right_host.rowconfigure(2, weight=1)
+
+    def set_initial_left_width(_event=None):
+        if (not splitter.winfo_exists()
+                or hasattr(splitter, '_receiving_initial_left_width')):
+            return
+        # The actual left request already includes current OS fonts and
+        # labels; it is more accurate than a hard-coded screen coordinate.
+        baseline = left_pane.winfo_reqwidth()
+        available = splitter.winfo_width()
+        if baseline <= 0 or available < 240:
+            return
+        initial = min(round(baseline * 0.9), available - 180)
+        initial = max(145, initial)
+        splitter.sashpos(0, initial)
+        splitter._receiving_default_left_width = baseline
+        splitter._receiving_initial_left_width = initial
+
+    # The first sash placement is scheduled at the END of construction,
+    # after the left-side widgets establish their true requested width.
 
     # Reflect the authoritative mode instead of deferring a hidden mode switch
     # (and its complete geometry rebuild) to the first connection edit.
@@ -805,7 +830,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     all_submitted = False
 
                 nfb_row = ttk.Frame(settings_host)
-                nfb_row.pack(anchor="w", pady=(5, 1))
+                # Historical transaction controls are not shown in the
+                # multi-Bay operator view. Retain the source transaction
+                # buttons as UNMAPPED compatibility hooks for legacy AC
+                # tests until those tests migrate into the canonical editor.
+                # Production users operate only the editor/Apply entry.
+                # Deliberately NO nfb_row.pack().
 
                 def nfb_confirm(preview):
                     # The transaction's actual affected parts and blocked
@@ -966,7 +996,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         settings_host,
                         text="輸出已驗證內門 DXF（僅部分）",
                         command=export_nfb_partial,
-                    ).pack(anchor="e", pady=(5, 0))
+                    )  # Unmapped legacy test hook; original GUI owns DXF.
             # #1502: this current physical-Bay action atomically exports a verified
             # inner-door + Base Plate pair, instead of separate half-products.
             # It is displayed only for one already-submitted NFB Bay with
@@ -1025,7 +1055,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         settings_host,
                         text="輸出內門＋底板 DXF（成對部分）",
                         command=export_nfb_paired_partial,
-                    ).pack(anchor="e", pady=(5, 0))
+                    )  # Unmapped legacy test hook; original GUI owns DXF.
             # #1501 operator disclosure: show the REAL per-part live result,
             # including blocked Bays and source reasons, not a fabricated
             # green checkbox. No widget at all for fully legacy selections.
@@ -1747,6 +1777,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_settings_host = settings_host
     win._receiving_multi_left_host = left_host
     win._receiving_multi_left_scroll = left_scroll
+    win._receiving_multi_splitter = splitter
+    win._receiving_multi_left_pane = left_pane
+    win._receiving_multi_right_pane = right_pane
     win._receiving_multi_function_scroll = function_scroll
     win._receiving_multi_right_host = right_host
     win._receiving_multi_function_host = function_host
@@ -1765,4 +1798,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_applied = applied
     win._receiving_multi_refresh = refresh_rows
     win._receiving_multi_apply = apply
+    splitter.bind('<Configure>', set_initial_left_width, add='+')
+    win.after_idle(set_initial_left_width)
     return win

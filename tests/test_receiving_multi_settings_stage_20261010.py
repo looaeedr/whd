@@ -224,7 +224,20 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert win.title() == "多連設定"
         assert win.grab_current() is win
         assert win.winfo_width() >= win.winfo_screenwidth() - 2
-        assert win.winfo_height() >= win.winfo_screenheight() - 2
+        # Windows zoomed excludes the taskbar; compare with actual working
+        # area rather than incorrectly requiring the full monitor height.
+        import os
+        if os.name == 'nt':
+            import ctypes
+            from ctypes import wintypes
+            area = wintypes.RECT()
+            assert ctypes.windll.user32.SystemParametersInfoW(
+                0x0030, 0, ctypes.byref(area), 0,
+            )
+            required_height = area.bottom - area.top
+        else:
+            required_height = win.winfo_screenheight()
+        assert win.winfo_height() >= required_height - 2
         assert win._receiving_multi_mode_var.get() == "set_bay"
         texts = _visible_texts(win)
         assert set(texts) == {"NFB", "－套", "＋套", "第1套", "－連", "1", "＋連", "套用"}
@@ -242,9 +255,17 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         function = win._receiving_multi_function_host
         diagram = win._receiving_multi_diagram_host
         assert left.master is win._receiving_multi_left_scroll._receiving_scroll_content
-        assert right.master is win
-        assert win._receiving_multi_left_scroll.grid_info()["column"] == 0
-        assert right.grid_info()["column"] == 1
+        # Both columns now live in one draggable ttk Panedwindow.
+        splitter = win._receiving_multi_splitter
+        assert splitter.master is win
+        assert splitter.grid_info()["column"] == 0
+        assert win._receiving_multi_left_scroll.master is win._receiving_multi_left_pane
+        assert right.master is win._receiving_multi_right_pane
+        assert splitter.panes() == (
+            str(win._receiving_multi_left_pane),
+            str(win._receiving_multi_right_pane),
+        )
+        assert splitter.sashpos(0) == splitter._receiving_initial_left_width
         assert mode_row.master.master is left
         assert controls_column.master is left
         assert function.master is win._receiving_multi_function_scroll._receiving_scroll_content
