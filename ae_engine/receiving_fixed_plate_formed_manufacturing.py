@@ -45,6 +45,7 @@ class FormedFixingPlateManufacturingReceipt:
     source_sha256: str
     physical_contact_area_mm2: float
     scope: str = "FORMED_FIXING_PARTS_AND_SIDE_SHEETS_NOT_WELD_WORKMANSHIP"
+    software_mfg2_receipt_path: str | None = None
 
 
 def _verified_formed_ear_parts(snapshot, original_geometry, *, dimensions, sheet_thickness):
@@ -312,6 +313,7 @@ def save_verified_receiving_formed_fixing_plate_bundle(
     snapshot, original_geometry, selected_marked_geometry,
     output_dir, *, dimensions, sheet_thickness, overwrite=False,
     require_complete_cabinet_inventory=False,
+    certify_software_mfg2=False,
 ) -> FormedFixingPlateManufacturingReceipt:
     """Atomically write original selected DXF rows plus signed formed fixed plates.
 
@@ -324,6 +326,18 @@ def save_verified_receiving_formed_fixing_plate_bundle(
         raise TypeError("EAR_FORM_MFG_OVERWRITE_MUST_BE_BOOLEAN")
     if type(require_complete_cabinet_inventory) is not bool:
         raise TypeError("EAR_FORM_MFG_COMPLETE_INVENTORY_FLAG_MUST_BE_BOOLEAN")
+    if type(certify_software_mfg2) is not bool:
+        raise TypeError("RECEIVING_MFG2_SOFTWARE_GATE_MUST_BE_BOOLEAN")
+    if certify_software_mfg2 and not require_complete_cabinet_inventory:
+        raise ValueError("RECEIVING_MFG2_SOFTWARE_REQUIRES_STRICT_INVENTORY")
+    original_physical_ids = ()
+    if certify_software_mfg2:
+        from .receiving_mfg2_software_receipt import (
+            require_complete_cabinet_physical_selection,
+        )
+        original_physical_ids = require_complete_cabinet_physical_selection(
+            original_geometry, selected_marked_geometry,
+        )
     verified, uv, side_contact = _verified_formed_ear_parts(
         snapshot, original_geometry,
         dimensions=dimensions, sheet_thickness=sheet_thickness,
@@ -474,8 +488,23 @@ def save_verified_receiving_formed_fixing_plate_bundle(
                 # Independently verify all original + EAR MARKING lines.
                 check_scene=source.scene,
             )
+        transaction = dict(written)
+        if certify_software_mfg2:
+            from .receiving_mfg2_software_receipt import (
+                RECEIPT_FILENAME, RECEIPT_KEY, stage_whole_cabinet_mfg2_receipt,
+            )
+            manifest_stage = Path(stage) / RECEIPT_FILENAME
+            stage_whole_cabinet_mfg2_receipt(
+                manifest_stage, snapshot=snapshot,
+                original_physical_ids=original_physical_ids,
+                output_rows=standard_rows,
+                formed_ear_ids=tuple(verified),
+                pad_ids=tuple(verified_pad_sheets),
+                staged_dxfs=written,
+            )
+            transaction[RECEIPT_KEY] = manifest_stage
         result = _atomic_commit_staged_dxfs(
-            written, root, overwrite=overwrite,
+            transaction, root, overwrite=overwrite,
         )
     return FormedFixingPlateManufacturingReceipt(
         output_paths=tuple((key, result[key]) for key in written),
@@ -483,6 +512,15 @@ def save_verified_receiving_formed_fixing_plate_bundle(
         side_marked_piece_ids=("box_body:left_side", "box_body:right_side"),
         source_sha256=SOURCE_DXF_SHA256,
         physical_contact_area_mm2=sum(x.physical_contact_area_mm2 for x in side_contact),
+        software_mfg2_receipt_path=(
+            result.get("__whd_1490_software_mfg2__")
+            if certify_software_mfg2 else None
+        ),
+        scope=(
+            "SOFTWARE_MFG2_WHOLE_CABINET_DXF_SOURCE_CERTIFIED"
+            if certify_software_mfg2
+            else "FORMED_FIXING_PARTS_AND_SIDE_SHEETS_NOT_WELD_WORKMANSHIP"
+        ),
     )
 
 

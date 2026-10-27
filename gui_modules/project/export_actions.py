@@ -500,6 +500,24 @@ def _export_selected_resolved_parts(self, folder, flags):
         from ae_engine.receiving_fixed_plate_formed_manufacturing import (
             save_verified_receiving_formed_fixing_plate_bundle,
         )
+        # Exactly the installed original physical inventory, not merely
+        # BODY + CSV DOOR + BASE, may earn a whole-cabinet software MFG-2
+        # receipt. Partial selected DXF is still a valid independent export.
+        from ae_engine.manufacturing_export import resolved_physical_render_parts
+        original_sheets = {
+            key for key, _ in resolved_physical_render_parts(unmarked)
+        }
+        selected_sheets = {
+            key for key, _ in resolved_physical_render_parts(selected)
+        }
+        certify_whole_software = (
+            bool(committed_csv)
+            and original_sheets == selected_sheets
+            and bool(original_sheets)
+            and bool(flags.get("box_body"))
+            and bool(flags.get("door"))
+            and bool(flags.get("base_plate"))
+        )
         bundle = save_verified_receiving_formed_fixing_plate_bundle(
             receiving_snapshot, unmarked, selected, folder,
             dimensions=dimensions, sheet_thickness=sheet_thickness,
@@ -511,8 +529,13 @@ def _export_selected_resolved_parts(self, folder, flags):
                 bool(flags.get("box_body")) and bool(flags.get("door"))
                 and bool(flags.get("base_plate")) and bool(committed_csv)
             ),
+            certify_software_mfg2=certify_whole_software,
         )
         outputs = dict(bundle.output_paths)
+        if bundle.software_mfg2_receipt_path:
+            outputs["__whd_1490_software_mfg2__"] = (
+                bundle.software_mfg2_receipt_path
+            )
     elif committed_csv and bool(flags.get("door") or flags.get("base_plate")):
         from ae_engine.receiving_fixed_plate_formed_manufacturing import (
             save_verified_receiving_csv_selected_sheets,
