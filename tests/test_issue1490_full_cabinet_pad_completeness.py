@@ -139,3 +139,40 @@ def test_pad_pair_manufacturing_reuses_same_current_source_physical_proof():
     assert set(renders)=={"base_plate",rows[0].physical_id}
     assert renders["base_plate"] is installed[0].render_data
     assert renders[rows[0].physical_id] is rows[0].render_data
+
+
+def test_original_gui_full_nfb_sheet_selection_includes_real_pad_without_new_button(tmp_path):
+    """Operator's existing selected DXF sends PAD alongside genuine NFB sheets."""
+    import ezdxf
+    from ae_engine.manufacturing_api import _resolved_physical_dxf_filename
+    from ae_engine.receiving_nfb_pad_delivery import (
+        resolve_committed_pad_physical_delivery,
+    )
+
+    snap, geom = _prepare(False)
+    pads = resolve_committed_pad_physical_delivery(snap, geom.parts)
+    assert len(pads) == 1
+    outputs, errors, calls = _run(snap, geom, tmp_path)
+    assert errors == [] and calls == ["resolve"]
+    pad_filename = _resolved_physical_dxf_filename(pads[0].physical_id)
+    assert pad_filename in outputs
+    assert (tmp_path / pad_filename).is_file()
+    pad_scene = ezdxf.readfile(tmp_path / pad_filename).modelspace()
+    assert sum(1 for row in pad_scene if row.dxf.layer == "BEND") == 2
+    # The positive path cannot hide a missing side, real base, or EAR.
+    assert "base_plate.dxf" in outputs
+    assert sum("fixing_plate" in name for name in outputs) == 2
+    assert "box_body_box_body_left_side.dxf" in outputs
+    assert "box_body_box_body_right_side.dxf" in outputs
+
+
+def test_original_gui_door_base_only_does_not_require_full_cabinet(tmp_path):
+    """Independent partial selection still works with source-required PAD."""
+    snap, geom = _prepare(False)
+    names, errors, calls = _run(
+        snap, geom, tmp_path,
+        flags={"box_body": False, "head": False},
+    )
+    assert errors == [] and calls == ["resolve"]
+    assert any("base_plate" in name for name in names)
+    assert not any("nfb_pad" in name for name in names)
