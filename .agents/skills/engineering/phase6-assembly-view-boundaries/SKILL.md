@@ -110,7 +110,7 @@ Joint Registry、collision solver、legacy migration、pre/post penetration 等�
 
 ## 受電箱同層不同深度 NFB：PAD 不得被舊底板設定吃掉（2026-10-28）
 
-- 唯一深度來源為**目前已提交且身份一致**的 NFB CSV V5。逐實體層獨立求最大深度；每顆較淺型號一片 PAD，不得以舊存 `CENTER_DOUBLE_SIDE_FOLD` 隱藏必要 PAD。
+- 唯一深度來源為**目前已提交且身份一致**的 NFB CSV V5。逐實體層獨立求最大深度；需要 flat PAD 時每顆較淺型號一片。只有**保存 CENTER 標籤但實際保存的完整尺寸不是當前經認證 CENTER 形狀**，才按目前 flat 來源修正，不得把合法已認證 CENTER 強行變成 PAD。
 - 有同層深度差時，合法 flat Base + source PAD 的單一物理路徑要同步接上 `receiving_base_plate_values`、2D 板件選單、3D folded PAD、BASE 真四方孔與 BOM/件數。只畫 3D 或只增加選單都不算交付。
 - 未驗證來源不得偷換成 CENTER、畫假 PAD、猜世界 X 或放行 DXF/NC。顯示缺件要辨識是「舊選型覆蓋」還是「原 Hole Editor 特徵尚未提交」，二者分別修正。
 - 測試至少包含原生提交、舊 CENTER 存檔、單層／雙層、同深度零 PAD、深度差 PAD 數量與真正 2D/3D 一致；完整規格見 `docs/manufacturing/receiving-same-tier-mixed-depth-pad-20261028.md`。

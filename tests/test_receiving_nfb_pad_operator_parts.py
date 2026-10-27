@@ -30,12 +30,10 @@ def test_current_one_tier_csv_selection_generates_single_real_pad_2d_sheet():
     assert len(pad.render_data.fold_guides)==2
 
 
-def test_saved_center_does_not_remove_real_committed_csv_pad_navigation():
+def test_genuine_explicit_center_remains_a_different_real_sheet_not_a_pad():
     snap=_current()
     snap["receiving_base_plate"]={"pattern":"CENTER_DOUBLE_SIDE_FOLD"}
-    pad,=committed_nfb_pad_draft_parts(snap)
-    assert pad.parent_base_id == "base_plate"
-    assert pad.pattern.rise_mm > 0
+    assert committed_nfb_pad_draft_parts(snap)==()
 
 
 def test_uncommitted_and_no_source_bay_may_not_fabricate_pad_entries():
@@ -75,7 +73,7 @@ def test_native_part_renderer_reads_true_pad_2d_without_mfg_claim():
     assert selected.part_id not in canonical
 
 
-def test_old_pad_2d_navigation_key_stays_current_when_only_stale_center_changes():
+def test_old_pad_2d_navigation_key_rejected_when_physical_source_switches_to_center():
     from types import SimpleNamespace
     from gui_modules.application.fold_designer_manufacturing_projection import (
         _query_fold_designer_render_data,
@@ -86,10 +84,9 @@ def test_old_pad_2d_navigation_key_stays_current_when_only_stale_center_changes(
         "pattern":"CENTER_DOUBLE_SIDE_FOLD","height":280.,"shrink_top":20.,
         "shrink_bottom":20.,"shrink_left":85.,"shrink_right":85.,"bend":20.,
     }
-    rendered = _query_fold_designer_render_data(
-        SimpleNamespace(fold_designer_app=SimpleNamespace(
-            _phase6_input_snapshot=snap)),
-        part.part_id,{"features":()},
-    )
-    assert rendered.unfolded_topology.piece_id == part.part_id
-    assert rendered.metadata["manufacturing_ready"] is False
+    with pytest.raises(ValueError, match="PAD_OPERATOR_2D_STALE"):
+        _query_fold_designer_render_data(
+            SimpleNamespace(fold_designer_app=SimpleNamespace(
+                _phase6_input_snapshot=snap)),
+            part.part_id,{"features":()},
+        )

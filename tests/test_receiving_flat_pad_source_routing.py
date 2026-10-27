@@ -83,6 +83,15 @@ def test_saved_old_center_does_not_suppress_current_same_tier_depth_pad():
     assert snap["receiving_base_plate"]["pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
 
 
+def test_full_source_proven_center_remains_center_not_auto_pad():
+    from ae_engine.receiving_base_plate_config import _source_center_base_config
+    snap = _mixed()
+    snap["receiving_base_plate"] = _source_center_base_config(snap)
+    assert snap["receiving_base_plate"]["pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
+    resolved = receiving_base_plate_values(snap)
+    assert resolved["receiving_bend_pattern"] == "CENTER_DOUBLE_SIDE_FOLD"
+
+
 def test_two_tier_mixed_depth_pad_ignores_stale_saved_center_per_tier():
     from tests.test_receiving_nfb_pad_pair_manufacturing import _mixed_source_two_tiers
     from ae_engine.receiving_nfb_pad_operator_parts import committed_nfb_pad_draft_parts
