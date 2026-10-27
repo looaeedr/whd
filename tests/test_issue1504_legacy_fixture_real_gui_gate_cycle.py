@@ -478,3 +478,91 @@ def test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs(tmp_
         if window is not None and window.winfo_exists():
             window.destroy()
         root.destroy()
+
+
+def test_ac16_vault_native_generic_hole_editor_cancel_does_not_mount_receiving_nfb():
+    """Original 金庫型 door Hole Editor remains editable and atomic after #1504.
+
+    Drives the unmodified native Tk editor rather than an NFB test mock.
+    Cancelling a destructive draft must restore its exact original feature;
+    merely opening the editor must not mutate the vault family to 受電箱
+    or synthesize a persisted NFB submission.
+    """
+    import re
+
+    from ae_engine.sheetmetal_features import (
+        CircleFeature, FeatureAnchor, feature_surface_from_rect,
+    )
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    root = tk.Tk()
+    root.geometry("900x650+0+0")
+    try:
+        main = gui.BoxCalculatorGUI(root)
+        root.update()
+        assert main.baseline_var.get() == "金庫型"
+        assert main._make_original_fold_designer_snapshot()["model"] == "金庫型"
+
+        hole = CircleFeature(
+            diameter=20.0, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+            offset=Vec2(50.0, 50.0),
+        )
+        original_features = [hole]
+        door_features = list(original_features)
+        surface = feature_surface_from_rect(
+            "vault-door", Vec2(0.0, 0.0), Vec2(120.0, 120.0),
+        )
+        main._open_unified_hole_editor(
+            "door", "金庫型門板", surface, 120.0, 120.0,
+            feature_list_override=door_features,
+        )
+        editor = main.last_unified_hole_editor
+        root.update()
+        assert editor.winfo_exists()
+
+        widgets = [editor]
+        for widget in widgets:
+            widgets.extend(widget.winfo_children())
+        created = next(
+            widget for widget in widgets
+            if isinstance(widget, tk.Listbox)
+            and widget.size() == 1
+            and str(widget.get(0)).startswith("01")
+        )
+        delete_btn = next(
+            widget for widget in widgets
+            if isinstance(widget, tk.Button)
+            and widget.cget("text") == "刪除選中"
+        )
+        cancel_btn = next(
+            widget for widget in widgets
+            if isinstance(widget, tk.Button)
+            and widget.cget("text") == "取消全部"
+        )
+        created.selection_clear(0, tk.END)
+        created.selection_set(0)
+        created.event_generate("<<ListboxSelect>>")
+        # Cross-platform invisible Tk virtual events may need the registered
+        # Tcl binding invoked, as in the original Hole Editor GUI regression.
+        binding = created.bind("<<ListboxSelect>>")
+        match = re.search(r"\[(\d+on_created_select\b)", binding or "")
+        if match:
+            root.tk.call(match.group(1))
+        root.update()
+        delete_btn.invoke()
+        root.update()
+        assert door_features == []
+
+        cancel_btn.invoke()
+        root.update()
+        assert door_features == original_features
+        assert not editor.winfo_exists()
+        assert main.baseline_var.get() == "金庫型"
+        assert main._make_original_fold_designer_snapshot()["model"] == "金庫型"
+
+        designer = main.open_original_fold_designer()
+        root.update()
+        assert designer._phase6_input_snapshot["model"] == "金庫型"
+        assert not contains_submitted_nfb(designer._phase6_input_snapshot)
+    finally:
+        root.destroy()
