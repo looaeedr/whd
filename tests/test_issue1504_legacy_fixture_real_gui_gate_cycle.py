@@ -321,3 +321,160 @@ def test_ac46_saved_submitted_nfb_is_never_silently_legacy_after_gui_reload(
         ) == original_features.get("head", [])
     finally:
         root.destroy()
+
+
+def test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs(tmp_path, monkeypatch):
+    """Original V1 legacy file: native Tk cancel/save/reopen, current 2D/3D and DXF parity.
+
+    Scoped sanitized on-disk legacy evidence only: no Windows operator UAT,
+    no declaration that a factory/manufacturer source is approved for MFG2.
+    """
+    from copy import deepcopy
+    from collections import Counter
+    from tkinter import filedialog
+    import ezdxf
+    from gui_modules.project.export_actions import _export_selected_parts
+
+    original_bytes = FIXTURE.read_bytes()
+    old_project = read_project(FIXTURE)
+    assert not contains_submitted_nfb(old_project["snapshot"])
+
+    def current_geometry(app):
+        # The same canonical ResolvedManufacturingGeometry feeds both
+        # 2D unfolded geometry and formed 3D placement/skin consumers.
+        resolved = app._phase6_resolve_manufacturing_geometry()
+        assert resolved.parts
+        receipt = {}
+        for part in resolved.parts:
+            data = part.render_data
+            skin = getattr(data, "material", None)
+            pieces = tuple(getattr(data, "pieces", ()) or ())
+            assert skin is not None or pieces, part.part_key
+            if skin is not None and not skin.is_empty:
+                flat = (
+                    round(float(skin.area), 6),
+                    round(float(skin.length), 6),
+                    tuple(round(float(v), 6) for v in skin.bounds),
+                )
+            else:
+                flat = None
+            receipt[part.part_key] = (
+                flat, tuple(dict(x) for x in part.x_profile),
+                tuple(dict(y) for y in part.y_profile),
+                part.placement, tuple(part.offset),
+                tuple(str(getattr(piece, "role", "")) for piece in pieces),
+            )
+        return receipt
+
+    def exported_dxf_signature(folder, app):
+        folder.mkdir()
+        flags = dict.fromkeys((
+            "box_body", "head", "tail", "door", "base_plate",
+            "indicator_box", "indicator_door",
+        ), False)
+        for key in ("box_body", "head", "tail", "door", "base_plate"):
+            flags[key] = True
+        files, failures = _export_selected_parts(app, str(folder), {}, flags, False)
+        assert not failures, failures
+        assert files, "Old unconfigured manufacturing cannot silently become zero output"
+        signatures = {}
+        for filename in files:
+            physical_path = folder / filename
+            assert physical_path.is_file(), filename
+            doc = ezdxf.readfile(physical_path)
+            entities = []
+            for e in doc.modelspace():
+                layer = str(e.dxf.layer)
+                color = int(e.dxf.color) if e.dxf.hasattr("color") else None
+                if e.dxftype() == "LWPOLYLINE":
+                    geometry = tuple(
+                        tuple(round(float(v), 5) for v in point)
+                        for point in e.get_points("xyb")
+                    )
+                elif e.dxftype() == "LINE":
+                    geometry = (
+                        tuple(round(float(v), 5) for v in e.dxf.start),
+                        tuple(round(float(v), 5) for v in e.dxf.end),
+                    )
+                elif e.dxftype() == "CIRCLE":
+                    geometry = (
+                        tuple(round(float(v), 5) for v in e.dxf.center),
+                        round(float(e.dxf.radius), 5),
+                    )
+                elif e.dxftype() == "ARC":
+                    geometry = (
+                        tuple(round(float(v), 5) for v in e.dxf.center),
+                        round(float(e.dxf.radius), 5),
+                        round(float(e.dxf.start_angle), 5),
+                        round(float(e.dxf.end_angle), 5),
+                    )
+                else:
+                    geometry = ()
+                entities.append((e.dxftype(), layer, color, geometry))
+            assert entities, filename
+            signatures[str(filename)] = Counter(repr(row) for row in entities)
+        return signatures
+
+    root = tk.Tk()
+    root.withdraw()
+    window = None
+    try:
+        main = gui.BoxCalculatorGUI(root)
+        main.baseline_var.set("受電箱")
+        root.update()
+        app = main.open_original_fold_designer()
+        monkeypatch.setattr(
+            filedialog, "askopenfilename", lambda **_: str(FIXTURE),
+        )
+        assert app.load_project_file() == str(FIXTURE)
+        root.update()
+        app = main.fold_designer_app
+        before = deepcopy(app._phase6_input_snapshot)
+        assert not contains_submitted_nfb(before)
+        original_geometry = current_geometry(app)
+        original_dxf = exported_dxf_signature(tmp_path / "before", main)
+
+        window = bridge._phase6_open_receiving_multi_settings(app)
+        root.update()
+        assert window._receiving_multi_apply(0)
+        listing = window._receiving_multi_setting_list
+        listing.selection_clear(0, tk.END)
+        listing.selection_set(1)
+        listing.event_generate("<<ListboxSelect>>")
+        root.update()
+        controls = _find_buttons(window._receiving_multi_settings_host)
+        assert controls["確認套用 NFB"].instate(("disabled",))
+        assert controls["複製至其他連"].instate(("disabled",))
+        window._receiving_multi_close()
+        window = None
+        root.update()
+        assert not contains_submitted_nfb(app._phase6_input_snapshot)
+        assert current_geometry(app) == original_geometry
+
+        destination = tmp_path / "legacy-ac16-reopened.p6fold"
+        monkeypatch.setattr(
+            filedialog, "asksaveasfilename", lambda **_: str(destination),
+        )
+        assert app.save_project_file_as()
+        saved = read_project(destination)
+        assert not contains_submitted_nfb(saved["snapshot"])
+        assert all(
+            (saved["snapshot"].get("part_features") or {}).get(k, []) == v
+            for k, v in (old_project["snapshot"].get("part_features") or {}).items()
+            if v
+        )
+        monkeypatch.setattr(
+            filedialog, "askopenfilename", lambda **_: str(destination),
+        )
+        assert app.load_project_file() == str(destination)
+        root.update()
+        app = main.fold_designer_app
+        assert not contains_submitted_nfb(app._phase6_input_snapshot)
+        assert current_geometry(app) == original_geometry
+        reopened_dxf = exported_dxf_signature(tmp_path / "after", main)
+        assert reopened_dxf == original_dxf
+        assert FIXTURE.read_bytes() == original_bytes
+    finally:
+        if window is not None and window.winfo_exists():
+            window.destroy()
+        root.destroy()
