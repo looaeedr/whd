@@ -419,6 +419,9 @@ PYTEST_PATHS = (
     "tests/test_deep_audit_round4_bugfixes.py",
     "tests/test_deep_audit_round5_bugfixes.py",
     "tests/test_deep_audit_round6_bugfixes.py",
+    # Source-review gate: never silently drop original 116/87 functional
+    # regression witnesses while claiming historic audit coverage.
+    "tests/process/test_audit116_original_six_round_witnesses.py",
     # Port only source-valid R9 guards; old 3D folding signs are obsolete.
     "tests/test_audit116_round9_current_source_guards.py",
     # Manual R4–R6 source repairs: marking, DXF, assembly placement, cache.
