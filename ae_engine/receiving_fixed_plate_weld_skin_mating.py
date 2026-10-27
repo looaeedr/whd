@@ -9,7 +9,7 @@ This is a fit receipt, NOT weld workmanship or manufacturing certification.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isclose
+from math import isclose, isfinite
 
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
@@ -44,20 +44,25 @@ class ReceivingEarSideSkinMatingWitness:
 
 def _normal_of_skin(record):
     world = tuple(record.world)
-    if len(world) != 3 or int(record.side) not in {-1, 1}:
+    if (len(world) != 3
+            or type(record.side) is not int
+            or record.side not in {-1, 1}):
         return None
     a, b, c = world
-    v = tuple(float(b[i]) - float(a[i]) for i in range(3))
-    w = tuple(float(c[i]) - float(a[i]) for i in range(3))
+    try:
+        v = tuple(float(b[i]) - float(a[i]) for i in range(3))
+        w = tuple(float(c[i]) - float(a[i]) for i in range(3))
+    except (TypeError, ValueError, IndexError, OverflowError):
+        return None
     cross = (
         v[1]*w[2]-v[2]*w[1],
         v[2]*w[0]-v[0]*w[2],
         v[0]*w[1]-v[1]*w[0],
     )
     length = sum(value*value for value in cross)**0.5
-    if length <= 1e-9:
+    if not isfinite(length) or length <= 1e-9:
         return None
-    return tuple(int(record.side)*value/length for value in cross)
+    return tuple(record.side*value/length for value in cross)
 
 
 def _outward_skin_faces(rows, *, x, expected_normal_x):

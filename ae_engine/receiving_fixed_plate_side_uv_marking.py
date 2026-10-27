@@ -8,7 +8,7 @@ not manufacture welds, create DXF marks, or authorize EAR production.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isclose
+from math import isclose, isfinite
 from typing import Mapping
 
 from shapely.geometry import LineString, Polygon
@@ -56,9 +56,16 @@ def _physical_inside_side_mapping(contact, side_mapped_skins):
 
 def _fold_guide_flat_segment(guide):
     axis = str(getattr(guide, "axis", ""))
-    position = float(getattr(guide, "position"))
-    lo, hi = float(getattr(guide, "span_start")), float(getattr(guide, "span_end"))
-    if lo >= hi or axis not in {"x", "y"}:
+    raw_pos = getattr(guide, "position", None)
+    raw_lo = getattr(guide, "span_start", None)
+    raw_hi = getattr(guide, "span_end", None)
+    if any(isinstance(v, bool) or not isinstance(v, (int, float))
+           for v in (raw_pos, raw_lo, raw_hi)):
+        raise ValueError("EAR_SIDE_UV_INVALID_SIDE_BEND_GUIDE")
+    position = float(raw_pos)
+    lo, hi = float(raw_lo), float(raw_hi)
+    if (not all(isfinite(v) for v in (position, lo, hi))
+            or lo >= hi or axis not in {"x", "y"}):
         raise ValueError("EAR_SIDE_UV_INVALID_SIDE_BEND_GUIDE")
     return LineString(((position, lo), (position, hi))) if axis == "x" else LineString(((lo, position), (hi, position)))
 
