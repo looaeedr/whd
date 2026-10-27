@@ -103,6 +103,17 @@ def test_one_original_selected_export_contains_real_complete_csv_inventory(
     source=tuple((p.part_key,p.render_data) for p in geom.parts)
     names,errors,calls=_run(snapshot,geom,tmp_path)
     assert errors == [] and calls == ["resolve"]
+    # A true whole-cabinet selection now carries an atomic software MFG-2
+    # receipt IN ADDITION TO every genuine production sheet (not instead).
+    import json
+    from ae_engine.receiving_mfg2_software_receipt import (
+        RECEIPT_FILENAME, RECEIPT_SCHEMA,
+    )
+    assert names.count(RECEIPT_FILENAME) == 1
+    source_receipt = json.loads((tmp_path / RECEIPT_FILENAME).read_text(encoding="utf-8"))
+    assert source_receipt["schema"] == RECEIPT_SCHEMA
+    assert source_receipt["output_dxf_count"] == len(names)-1
+    names = [name for name in names if name != RECEIPT_FILENAME]
     assert len(names)==len(list(tmp_path.glob("*.dxf")))
     assert len(names)==len(set(names))
     assert len([name for name in names if "fixing_plate" in name])==ear_count
