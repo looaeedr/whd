@@ -175,6 +175,8 @@ PYTEST_PATHS = (
     "tests/test_issue1500_nfb_worldx_runtime.py",
     "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
     "tests/test_issue1500_nfb_operator_gui_transactions.py",
+    # #1500: live Receiving candidate Save As -> reopen -> independent Bay2.
+    "tests/test_issue1500_receiving_candidate_main_save.py",
     "tests/test_issue1504_v14_ac_traceability.py",
     # One reconciliation of 79 original unsigned ACs to actual CI source tests;
     # 4 source-scoped signed only; real GUI/MFG and old-reader gates remain.
