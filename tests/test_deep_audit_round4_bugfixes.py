@@ -851,3 +851,62 @@ def test_audit116_bug59_main_door_width_source_rejects_boolean_before_cast():
     )
     with pytest.raises(ValueError, match="W / H"):
         adapter.get_door_layout_cells(host)
+
+@pytest.mark.parametrize("bad", [True, float("nan"), float("inf"),
+                                     float("-inf"), 10 ** 400])
+def test_audit116_door_controller_rejects_nonphysical_committed_dimensions(bad):
+    """Raw values reaching the pure controller cannot create valid Door commits."""
+    from gui_modules.application.door_layout_controller import (
+        DoorLayoutColumnState, validate_width_commit, validate_height_commit,
+    )
+
+    column = DoorLayoutColumnState(
+        width=800., width_auto=False,
+        heights=(600.,), height_auto=(False,),
+    )
+    for current_w, total_w in ((bad, 800.), (400., bad)):
+        with pytest.raises(ValueError, match="有限正數"):
+            validate_width_commit((column,), 0, total_w, current_w)
+    for current_h, total_h in ((bad, 600.), (300., bad)):
+        with pytest.raises(ValueError, match="有限正數"):
+            validate_height_commit((column,), 0, 0, total_h, current_h)
+
+
+@pytest.mark.parametrize("bad_index", [True, False, 0.5, "0", -1, 2, None])
+def test_audit116_door_controller_invalid_column_identity_never_selects_neighbor(bad_index):
+    from gui_modules.application.door_layout_controller import (
+        DoorLayoutColumnState, validate_width_commit, validate_height_commit,
+    )
+
+    columns = (
+        DoorLayoutColumnState(400., False, (600.,), (False,)),
+        DoorLayoutColumnState(400., False, (600.,), (False,)),
+    )
+    with pytest.raises(ValueError, match="欄位.*整數索引"):
+        validate_width_commit(columns, bad_index, 800., 400.)
+    with pytest.raises(ValueError, match="欄位.*整數索引"):
+        validate_height_commit(columns, bad_index, 0, 600., 600.)
+
+
+@pytest.mark.parametrize("bad_row", [True, 0.1, "0", -1, 1, None])
+def test_audit116_door_controller_invalid_row_identity_never_selects_last_door(bad_row):
+    from gui_modules.application.door_layout_controller import (
+        DoorLayoutColumnState, validate_height_commit,
+    )
+    column = DoorLayoutColumnState(800., False, (600.,), (False,))
+    with pytest.raises(ValueError, match="層數.*整數索引"):
+        validate_height_commit((column,), 0, bad_row, 600., 600.)
+
+
+def test_audit116_door_controller_valid_width_height_selection_unchanged():
+    from gui_modules.application.door_layout_controller import (
+        DoorLayoutColumnState, validate_width_commit, validate_height_commit,
+    )
+    columns = (
+        DoorLayoutColumnState(400., False, (600.,), (False,)),
+        DoorLayoutColumnState(400., False, (600.,), (False,)),
+    )
+    checked_width = validate_width_commit(columns, 0, 800., 400.)
+    checked_height = validate_height_commit(columns, 1, 0, 600., 600.)
+    assert checked_width.valid and checked_width.maximum == pytest.approx(400.)
+    assert checked_height.valid and checked_height.maximum == pytest.approx(600.)
