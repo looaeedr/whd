@@ -218,6 +218,40 @@ def export_current_csv_quantity_manufacturing(
             verified_csv_owners.update((vid,key) for key in permitted)
             for d in selected:
                 chosen.append(replace(d,render_data=current[d.physical_id]))
+            # #1490: quantity mode uses the SAME original selected-DXF button
+            # as Set/Bay. A complete BODY+DOOR+BASE selection must include
+            # source-proven PAD sheets for each saved version, not merely the
+            # visible Base/EAR pieces. Validate before creating an output path.
+            if (body_selected and bool(flags.get("door"))
+                    and bool(flags.get("base_plate"))):
+                from .receiving_nfb_pad_pair_manufacturing import (
+                    verified_pad_base_physical_sheets,
+                )
+                pad_rows, proven = verified_pad_base_physical_sheets(
+                    snapshot, original.parts, allow_empty=True,
+                )
+                if pad_rows and not (
+                    any(d.source_part_id.startswith("inner_door:")
+                        for d in selected)
+                    and any(d.source_part_id == "base_plate"
+                        or d.source_part_id.startswith("base_plate:nfb_layer:")
+                        for d in selected)
+                ):
+                    raise ValueError(
+                        "RECEIVING_CSV_QUANTITY_FULL_NFB_PHYSICAL_SELECTION_INCOMPLETE"
+                    )
+                for pad in pad_rows:
+                    pad_id = pad.physical_id
+                    if (pad_id in current or pad_id in formed
+                            or any(d.physical_id == pad_id
+                                   and d.version_id == vid for d in chosen)):
+                        raise ValueError(
+                            "RECEIVING_CSV_QUANTITY_PAD_OWNER_COLLISION"
+                        )
+                    chosen.append(PhysicalPartDemand(
+                        vid, pad_id, pad_id, count, 1, proven[pad_id],
+                    ))
+                    verified_formed_owners.add((vid, pad_id))
             if body_selected:
                 for ear_id, source in formed.items():
                     if (ear_id in current
