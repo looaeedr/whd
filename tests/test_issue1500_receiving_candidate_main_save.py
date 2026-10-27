@@ -140,3 +140,92 @@ def test_issue1500_different_family_does_not_import_stale_receiving_versions():
     vault = {"model": "金庫型", "some_field": True}
     assert _merge_live_receiving_candidate_libraries(host, vault) is vault
     assert "receiving_inner_door_candidates" not in vault
+
+
+def test_issue1500_real_native_gui_version_apply_save_as_reload(tmp_path, monkeypatch):
+    """Reproduce the Windows finding with the real main GUI Save As callback.
+
+    The old implementation persisted Bay1's version_id but lost the global
+    inner-door version library. Do not substitute a ProjectController-only
+    serialization for the real GUI boundary.
+    """
+    import tkinter as tk
+    import gui
+    import fold_designer_bridge as bridge
+    from gui_modules import project_actions
+    from tests.test_issue1503_multi_candidate_nfb_apply_gui import (
+        add, buttons, pump, select_two, state_frame,
+    )
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        main = gui.BoxCalculatorGUI(root)
+        main.baseline_var.set("受電箱")
+        pump(root)
+        designer = main.open_original_fold_designer()
+        pump(root)
+        settings = bridge._phase6_open_receiving_multi_settings(designer)
+        pump(root)
+        assert settings._receiving_multi_apply(0)
+        listing = settings._receiving_multi_setting_list
+        listing.selection_clear(0, tk.END)
+        listing.selection_set(1)
+        listing.event_generate("<<ListboxSelect>>")
+        pump(root)
+        buttons(settings._receiving_multi_settings_host, "編輯")[0].invoke()
+        pump(root)
+        editor = main.last_unified_hole_editor
+        tabs = editor._receiving_config_tabs
+        tabs.select(1)
+        pump(root)
+        modal, state = state_frame(editor)
+        select_two(root, modal, state)
+        add(root, modal, state, 1)
+        buttons(modal, "確定")[0].invoke()
+        pump(root)
+        assert len(editor._receiving_pending_features()) == 2
+        buttons(editor, "確定全部")[0].invoke()
+        pump(root)
+
+        library = designer._phase6_input_snapshot["receiving_inner_door_candidates"]
+        assert len(inner_versions(library)) == 1
+        version = inner_versions(library)[0]["id"]
+        selector = settings._receiving_multi_candidate_combos["inner-door"]
+        values = tuple(selector["values"])
+        assert len(values) > 1
+        selector.set(values[-1])
+        selector.event_generate("<<ComboboxSelected>>")
+        pump(root)
+        buttons(settings._receiving_multi_settings_host, "套用")[0].invoke()
+        pump(root)
+        assert designer._phase6_input_snapshot["receiving_layout"]["sets"][0][
+            "bays"
+        ][0]["nfb_config"]["layer_count"] == 2
+
+        settings._receiving_multi_close()
+        pump(root)
+        target = tmp_path / "current_gui_save_as.p6fold"
+        monkeypatch.setattr(
+            project_actions.filedialog, "asksaveasfilename",
+            lambda **_kw: str(target),
+        )
+        assert main.save_phase6_project_as()
+        saved = read_project(target)["snapshot"]
+        assert inner_versions(saved["receiving_inner_door_candidates"])[0]["id"] == version
+        assert saved["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"][
+            "layer_count"
+        ] == 2
+        adapter = ReceivingSetBayAdapter(saved["receiving_layout"])
+        adapter.set_bay_count(2)
+        adapter.apply_inner_door_candidate_to_bays(
+            inner_config(saved["receiving_inner_door_candidates"], version),
+            0, (1,), version_id=version,
+        )
+        bays = adapter.layout["sets"][0]["bays"]
+        assert bays[1]["nfb_config"]["layer_count"] == 2
+        assert {h["physical_hole_id"] for h in bays[0]["nfb_config"]["holes"]}.isdisjoint(
+            {h["physical_hole_id"] for h in bays[1]["nfb_config"]["holes"]}
+        )
+    finally:
+        root.destroy()
