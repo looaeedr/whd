@@ -5,6 +5,14 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## 2026-10-27 台灣｜#1504 SWT-AC-18 現行 CSV V5 逐顆原生 Tk 診斷與實體部分製造清單（84→85 候選）
+
+- **原 §7 AC 保留**：未提交 Bay 仍維持舊加工，不產生 NFB 可製造假許可；已提交的逐顆 CSV V5 診斷在原生 Tk 顯示第1層第1／2顆的 `NFB_WORLD_X_RECONFIRM_REQUIRED`，未經實際 MFG1 不放行提交／複製。
+- **原生 GUI 與來源切斷正反證據**：`tests/test_issue1500_nfb_operator_gui_transactions.py::test_swt18_native_tk_live_csv_unit_reasons_and_physical_partial_report` 在原 Tk 多連設定切換未配置、V5 CSV 診斷及實體 manifest；真 `derive_nfb_partial_export_manifest` 項目 INNER/BASE/SIDE 可出 6 片、MIDDLE 受阻 4 片，來源 DXF 位元組改變後 INNER 撤銷、獨立 SIDE 仍可出 3 片。原既有 `test_unconfigured_preserves_legacy_even_when_nfb_source_absent` 與 `test_shihlin_color150_partial_only_counts_real_pieces` 為必要互證。
+- **不可擴張**：這只驗此來源範圍的 Tk/功能與物理 manifest；不代替操作者 Windows 人工 UAT、原廠全部 DXF、PAD/EAR 工藝或整箱 MFG2/NC。
+- **候選矩陣 85/88、待 3**：NFB-AC-16、SWT-AC-24／26 尚待分別完成；未取得本次新 PR exact HEAD 五工作全綠及合併回讀前，不可當正式簽核。
+
+---
 ## 2026-10-27 台灣｜#1504 NFB-AC-40 X 基準版次／數量版本來源綁定（83→84 候選）
 
 - **確認的缺口已修補**：`normalize_nfb_saved_fields` 本來比對型號、旋轉、Bay 實體寬與 owner，但若數量版本的 X 依據**已明確寫有 `datum_snapshot.version_id`**，對不同 `QuantityModel.version_id` 未比對就可能保留 `CONFIRMED`。現在在既有 canonical writer／reader 一致檢核；指定版次不符則 `RECONFIRM_REQUIRED`，保留真實 X=0 供操作者重核，不偷換為 `NONE`。舊資料未記錄版次不得臆造版次；真實提交仍需 MFG-1 逐來源／逐物理孔位驗證。
