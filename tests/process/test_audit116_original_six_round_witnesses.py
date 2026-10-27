@@ -424,7 +424,7 @@ def test_original_116_source_witnesses_execute_in_current_product_ci(relpath, ba
         assert got[1] >= minimum[1], (relpath, name, "raises", got, minimum)
         # Direct test-level pytest skip/xfail would silently erase an audit
         # witness even when all names and assertions are still present.
-        decorators = ast.unparse(fn.decorator_list) if fn.decorator_list else ""
+        decorators = " ".join(ast.unparse(d) for d in fn.decorator_list)
         assert not any(flag in decorators for flag in (".skip(", ".skipif(", ".xfail(")), (
             relpath, name, decorators
         )
