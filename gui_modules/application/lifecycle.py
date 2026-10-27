@@ -579,10 +579,61 @@ def _apply_phase6_project_snapshot(self, snapshot):
     self._request_phase6_update("geometry")
     return snapshot
 
+def _merge_live_receiving_candidate_libraries(self, snapshot):
+    """Carry the current project's global version libraries across the GUI save seam.
+
+    Candidates are owned by the live Fold Designer, not by the selected Bay,
+    QuantityModel, or a cached main-GUI projection.  A missing library on
+    the active owner represents deletion, so do not resurrect old versions.
+    This copies only candidate libraries, never geometry or MFG approval.
+    """
+    if snapshot.get("model") not in ("受電箱", "RECEIVING"):
+        return snapshot
+    designer = getattr(self, "fold_designer_app", None)
+    window = getattr(self, "fold_designer_window", None)
+    live = None
+    if designer is not None and window is not None:
+        try:
+            if window.winfo_exists():
+                candidate = getattr(designer, "_phase6_input_snapshot", None)
+                if (isinstance(candidate, dict)
+                        and candidate.get("model") == snapshot.get("model")):
+                    live = candidate
+        except tk.TclError:
+            pass
+    from ae_engine.receiving_hole_candidates import normalize_candidates
+    from ae_engine.receiving_inner_door_candidates import normalize_inner_candidates
+    libraries = (
+        ("receiving_hole_candidates", normalize_candidates),
+        ("receiving_inner_door_candidates", normalize_inner_candidates),
+    )
+    if live is None:
+        # Close publishes the current editor into ProjectController before the
+        # window disappears. Main GUI Save/Save As after close must use that
+        # committed project owner, not a stale 2D-only reconstruction.
+        controller = getattr(self, "project_controller", None)
+        read_committed = getattr(controller, "committed_snapshot", None)
+        committed = read_committed() if callable(read_committed) else None
+        if (not isinstance(committed, dict)
+                or committed.get("model") != snapshot.get("model")):
+            return snapshot
+        for key, normalize in libraries:
+            if key in committed:
+                snapshot[key] = deepcopy(normalize(committed[key]))
+        return snapshot
+    for key, normalize in libraries:
+        if key in live:
+            snapshot[key] = deepcopy(normalize(live[key]))
+        else:
+            snapshot.pop(key, None)
+    return snapshot
+
+
 def _compose_phase6_project_snapshot_from_main_gui(self):
     """從目前主 GUI 狀態建立唯一 canonical committed snapshot。"""
     snapshot = self._make_original_fold_designer_snapshot()
     snapshot.pop("_runtime_project_path", None)
+    snapshot = _merge_live_receiving_candidate_libraries(self, snapshot)
     workspace_state = self.workspace_controller.workspace_snapshot()
     workspace = {
         "box_body_profile": deepcopy(snapshot.get("box_body_profile") or workspace_state.get("box_body_profile") or []),
