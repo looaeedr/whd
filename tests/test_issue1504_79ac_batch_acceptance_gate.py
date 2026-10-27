@@ -57,7 +57,7 @@ def test_all_79_pre_batch_unsignatures_reconciled_to_one_canonical_witness():
     assert live_counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"]>=AFTER_GROUPS[
         "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
     ]
-    assert 0 < live_counts["BLOCKED_1500_REAL_GUI"] <= BASELINE_GROUPS["BLOCKED_1500_REAL_GUI"]
+    assert live_counts["BLOCKED_1500_REAL_GUI"] == 0
     # Historical 79-AC baseline retains four deferred IDs; later exact-AC
     # runtime signoffs may retire individual items, never silently erase them.
     historical_deferred=set(audit["grouped_ids"]["DEFERRED_PRODUCT_EVIDENCE"])
@@ -180,7 +180,7 @@ def test_four_source_signoffs_require_real_exact_primary_and_negative_tests():
         assert row["acceptance_evidence"]["external_historical_binary_read_executed"] is False
     live_blocked = sum(r["status"]=="BLOCKED_1500_REAL_GUI" for r in rows.values())
     assert live_blocked == _json(MATRIX)["counts"]["BLOCKED_1500_REAL_GUI"]
-    assert 0 < live_blocked <= BASELINE_GROUPS["BLOCKED_1500_REAL_GUI"]
+    assert live_blocked == 0
     # Do not confuse the immutable four-item *historical* snapshot with
     # current evidence-backed per-AC signoffs. Every retired deferred AC
     # must satisfy the full runtime/source clauses audited above.

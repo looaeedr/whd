@@ -36,6 +36,7 @@ def test_batch_signoff_seven_require_independent_real_executed_assertions():
     live_counts.setdefault("DEFERRED_PRODUCT_EVIDENCE", 0)
     live_counts.setdefault("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC", 0)
     live_counts.setdefault("EVIDENCE_CANDIDATE_ONLY", 0)
+    live_counts.setdefault("BLOCKED_1500_REAL_GUI", 0)
     assert matrix["counts"] == live_counts
     # The original seven-row signature is fixed, but subsequent fully
     # evidenced signoffs legitimately increase the live count past 43.
@@ -43,7 +44,7 @@ def test_batch_signoff_seven_require_independent_real_executed_assertions():
     # the historical source-batch timestamp as a permanent upper bound.
     assert sum(matrix["counts"].values()) == 88
     assert matrix["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 43
-    assert 0 < matrix["counts"]["BLOCKED_1500_REAL_GUI"] <= 17
+    assert matrix["counts"]["BLOCKED_1500_REAL_GUI"] == 0
     # The original four deferred requirements are immutable identities, not
     # a perpetual count: independently source-signed ACs leave this bucket.
     original_deferred = {"NFB-AC-13", "NFB-AC-41", "SWT-AC-09", "SWT-AC-22"}
