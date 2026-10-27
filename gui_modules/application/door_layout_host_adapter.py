@@ -157,16 +157,17 @@ def get_door_layout_cells(self):
     live = _receiving_live_door_layout_source(self)
     if live is not None:
         source, whd = live
-        columns = [
-            (float(row[0]), [float(h) for h in row[1]])
-            for row in source["door_layout_columns"]
-        ]
-        total_width, total_height = float(whd["w"]), float(whd["h"])
+        # Preserve the committed Bay's *raw* physical values until the
+        # canonical geometry validator checks types. float(True) == 1.0
+        # would otherwise mint a valid-looking 1-mm door from bad saved data.
+        columns = [(row[0], tuple(row[1]))
+                   for row in source["door_layout_columns"]]
+        total_width, total_height = whd["w"], whd["h"]
     else:
         columns = self.get_door_layout_columns()
         try:
-            total_width = float(self.w_var.get())
-            total_height = float(self.h_var.get())
+            total_width = self._parse_layout_value(self.w_var, "W")
+            total_height = self._parse_layout_value(self.h_var, "H")
         except ValueError as exc:
             raise ValueError("W / H 必須先填入有效數字") from exc
     return _door_layout_cells_impl(
