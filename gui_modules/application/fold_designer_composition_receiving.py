@@ -297,11 +297,16 @@ def commit_receiving_current_bay_controls(self, namespace):
         return False
     required = lambda name: self._required(namespace, name)
     original = required("original")
-    adapter.update_current_bay(
-        width=original.get_int(app.v_w.get()),
-        height=original.get_int(app.v_h.get()),
-        depth=original.get_int(app.v_d.get()),
+    requested = {
+        "width": original.get_int(app.v_w.get()),
+        "height": original.get_int(app.v_h.get()),
+        "depth": original.get_int(app.v_d.get()),
+    }
+    current_bay = adapter.current_bay()
+    dimensions_changed = any(
+        float(current_bay[key]) != float(value) for key, value in requested.items()
     )
+    adapter.update_current_bay(**requested)
     app._phase6_input_snapshot["receiving_layout"] = adapter.layout
     self.sync_receiving_current_bay(
         namespace,
@@ -313,6 +318,15 @@ def commit_receiving_current_bay_controls(self, namespace):
     workspace = getattr(app, "designer_workspace", None)
     if workspace is not None:
         workspace.mark_dirty()
+        if dimensions_changed:
+            # A physical Door/Bay span change must re-derive the SAME
+            # authoritative Divider Y fold profile before the next 3D solve.
+            # Otherwise W800→820 creates 816 mm physical material while the
+            # workspace retains 796 mm Y: the real contact shifts ±10 mm and
+            # certified CROSS correctly refuses the resulting collision.
+            # This is an existing source-derived namespace refresh, not a
+            # new formula or a relaxation of CROSS collision certification.
+            self.sync_authoritative_derived_parts(namespace)
     return True
 
 def back_panel_mode_control_is_applicable(self, namespace):
