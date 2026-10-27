@@ -862,3 +862,70 @@ def test_bug77_joint_covering_xy_cannot_certify_contact_displaced_in_world_z():
     result = validate_expected_region_coverage(invalid_plane, face)
     assert result.status == "SKIPPED_FAIL_CLOSED"
     assert result.diagnostic_code == "OVERLAP_AUTHORITY_MISSING"
+
+@pytest.mark.parametrize("typed", ("", "abc", "nan", "inf", "-30", "0"))
+def test_audit116_bug94_invalid_door_width_entry_restores_last_committed_value(
+    monkeypatch, typed,
+):
+    """Real app FocusOut/Return callback must reject invalid text atomically.
+
+    A new Door column always owns width_committed. Its editable Tk Entry
+    must never be parsed *before* the handler that reverts invalid input.
+    """
+    from gui_modules.application import door_layout_host_adapter as adapter
+    from gui_modules.parts.panels import door as door_panel
+
+    class Var:
+        def __init__(self, value):
+            self.value = value
+
+        def get(self):
+            return self.value
+
+        def set(self, value):
+            self.value = value
+
+    warnings, redraws, commits = [], [], []
+    monkeypatch.setattr(
+        door_panel.messagebox, "showwarning",
+        lambda *args: warnings.append(args),
+    )
+    width_var = Var(typed)
+    column = {
+        "width_var": width_var, "width_auto": False,
+        "width_committed": 400.,
+        "height_vars": [Var("600")], "height_auto": [False],
+        "height_committed": [600.],
+    }
+    host = SimpleNamespace(
+        door_layout_columns=[column],
+        w_var=Var("800"), h_var=Var("600"),
+        _parse_layout_value=adapter._parse_layout_value,
+        _door_layout_number_text=adapter._door_layout_number_text,
+        refresh_door_layout_status=lambda: redraws.append("status"),
+        draw_preview=lambda: redraws.append("preview"),
+        _recompute_door_layout_remainders=lambda **kw: commits.append(("recompute", kw)),
+        _on_door_layout_value_changed=lambda **kw: commits.append(("change", kw)),
+    )
+    host._door_layout_controller_columns = lambda: adapter._door_layout_controller_columns(host)
+    host._reject_door_layout_dimension = (
+        lambda var, previous, message:
+        adapter._reject_door_layout_dimension(host, var, previous, message)
+    )
+
+    # The same callback is bound to both <FocusOut> and <Return> in the
+    # original door panel. Failed edits cannot mutate the committed width.
+    assert adapter.commit_door_layout_width(host, 0) is False
+    assert width_var.get() == "400"
+    assert column["width_committed"] == 400.
+    assert len(warnings) == 1
+    assert redraws == ["status", "preview"]
+    assert commits == []
+
+    # Prove valid edits still reach the real layout controller validation.
+    width_var.set("450")
+    assert adapter.commit_door_layout_width(host, 0) is True
+    assert column["width_committed"] == 450.
+    assert width_var.get() == "450"
+    assert len(commits) == 2
+    assert len(warnings) == 1
