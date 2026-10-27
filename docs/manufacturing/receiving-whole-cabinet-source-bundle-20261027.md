@@ -9,7 +9,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 定義與邊界
 
-- **不是新增操作按鈕**，不變更原 GUI 的「輸出所選板件」契約。原入口 `gui_modules/project/export_actions.py::_export_selected_resolved_parts` 預設只匯出所選的合法板件，不承諾整箱所有實體完整。
+- **不是新增操作按鈕**，沿用原 GUI 的「輸出所選板件」按鈕，沒有新增第二入口。當同時選取箱身、內門、底板且來源有效時，原入口 `gui_modules/project/export_actions.py::_export_selected_resolved_parts` 會自動將該組合所需的來源已驗證 PAD 一起納入；若只選個別板件，仍為局部合法出圖，不冒稱整箱完整。
 - `save_verified_receiving_formed_fixing_plate_bundle(..., require_complete_cabinet_inventory=True)` 為程式上的**嚴格來源完整性**請求，重用已存在的 current CSV V5 內門、實體底板、來源折後固定片、左右側板、3D 接觸、UV 打標，以及與 `PAD+Base PART_ONLY` 相同的 PAD 真實來源驗證器。
 - PAD 只由現行 committed Set/Bay 的 `NFB數值規格.csv`、真實裝配 Base FinalScene、CUTTING 四個正方孔、展開折線與折後 PAD skin 推導，不能從板件計數、畫面上隨意複製或 `manufacturing_ready` flag 推導。
 - PAD+Base 來源驗證共享 `ae_engine.receiving_nfb_pad_pair_manufacturing.verified_pad_base_physical_sheets`：同時檢查目前 CSV hole physical id、對應真實層 Base、PAD identity、四孔／兩條 BEND、全 T 接觸、後皮面與基座碰撞。嚴格圖包將已驗證的 **PAD 實體圖元**加入原本的 DXF 原子 staging，重新開檔比對，缺原始來源／幾何或失效時不得輸出半包。
