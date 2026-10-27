@@ -311,6 +311,7 @@ def _verified_current_csv_manufacturing_owners(
 def save_verified_receiving_formed_fixing_plate_bundle(
     snapshot, original_geometry, selected_marked_geometry,
     output_dir, *, dimensions, sheet_thickness, overwrite=False,
+    require_complete_cabinet_inventory=False,
 ) -> FormedFixingPlateManufacturingReceipt:
     """Atomically write original selected DXF rows plus signed formed fixed plates.
 
@@ -321,6 +322,8 @@ def save_verified_receiving_formed_fixing_plate_bundle(
     """
     if type(overwrite) is not bool:
         raise TypeError("EAR_FORM_MFG_OVERWRITE_MUST_BE_BOOLEAN")
+    if type(require_complete_cabinet_inventory) is not bool:
+        raise TypeError("EAR_FORM_MFG_COMPLETE_INVENTORY_FLAG_MUST_BE_BOOLEAN")
     verified, uv, side_contact = _verified_formed_ear_parts(
         snapshot, original_geometry,
         dimensions=dimensions, sheet_thickness=sheet_thickness,
@@ -385,7 +388,9 @@ def save_verified_receiving_formed_fixing_plate_bundle(
                 for key in approved_csv)
         and any(key.startswith("box_body:") for key in selected_ids)
     )
-    if complete_csv_selection:
+    if require_complete_cabinet_inventory:
+        if not complete_csv_selection:
+            raise ValueError("RECEIVING_FULL_NFB_SELECTED_PHYSICAL_SHEETS_INCOMPLETE")
         from .receiving_whole_cabinet_pad_preflight import (
             missing_required_pad_sheets,
         )
