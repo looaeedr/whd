@@ -65,3 +65,55 @@ def test_quantity_partial_without_box_is_source_legal_no_pad_required(tmp_path, 
     folder = tmp_path / "partial"
     paths = _export(_batch(), folder, box_body=False, head=False)
     assert paths and all(Path(p).exists() for p in paths.values())
+
+
+def test_two_distinct_bays_complete_selection_contains_exact_two_pad_dxfs(tmp_path):
+    from tests.test_issue1502_current_csv_multi_bay_once import _multi, _run
+    source = _multi()
+    results, selected_bays = _run(source, tmp_path)
+    assert selected_bays == [(0, 0), (0, 1)]
+    pad_files = [Path(p) for p in results.values() if "nfb_pad" in Path(p).name]
+    assert len(pad_files) == 2
+    assert len({f.name for f in pad_files}) == 2
+    for file in pad_files:
+        scene = ezdxf.readfile(file).modelspace()
+        assert sum(x.dxf.layer == "BEND" for x in scene) == 2
+        assert sum(x.dxf.layer == "CUTTING" for x in scene) == 5
+
+
+def test_multibay_second_bay_pad_proof_stale_aborts_without_any_files(tmp_path, monkeypatch):
+    import ae_engine.receiving_nfb_pad_pair_manufacturing as source
+    from tests.test_issue1502_current_csv_multi_bay_once import _multi, _run
+    real = source.verified_pad_base_physical_sheets
+    calls = []
+
+    def bad_second(*args, **kwargs):
+        calls.append(True)
+        if len(calls) == 2:
+            raise ValueError("PAD_SECOND_BAY_SOURCE_STALE")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(source, "verified_pad_base_physical_sheets", bad_second)
+    out = tmp_path / "invalid"
+    with pytest.raises(ValueError, match="PAD_SECOND_BAY_SOURCE_STALE"):
+        _run(_multi(), out)
+    assert len(calls) == 2
+    assert not out.exists()
+
+
+def test_multibay_partial_base_selection_never_claims_full_pad(tmp_path, monkeypatch):
+    import ae_engine.receiving_nfb_pad_pair_manufacturing as source
+    from tests.test_issue1502_current_csv_multi_bay_once import _multi, _run
+    from tests.test_issue1502_single_button_full_csv_receiving_export import _flags
+
+    def forbid(*args, **kwargs):
+        raise AssertionError("MULTIBAY_PARTIAL_SELECTION_MUST_NOT_REQUIRE_PAD")
+
+    monkeypatch.setattr(source, "verified_pad_base_physical_sheets", forbid)
+    folder = tmp_path / "partial"
+    outputs, selected_bays = _run(
+        _multi(), folder, flags=_flags(box_body=False, head=False),
+    )
+    assert selected_bays == [(0, 0), (0, 1)]
+    assert outputs and all(Path(p).exists() for p in outputs.values())
+    assert not any("nfb_pad" in Path(p).name for p in outputs.values())

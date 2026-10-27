@@ -85,6 +85,13 @@ def test_both_distinct_bays_one_atomic_export_with_exact_source_ear_side(tmp_pat
                 and "fixing_plate" not in name])==2
     assert len([name for name in names if "inner_door" in name
                 and "panel" in name])==2
+    pads=[name for name in names if "nfb_pad" in name]
+    assert len(pads)==2  # each real Bay contributes its own source-verified PAD
+    assert len(set(pads))==2
+    for name in pads:
+        msp=ezdxf.readfile(tmp_path/name).modelspace()
+        assert sum(e.dxf.layer=="BEND" for e in msp)==2
+        assert sum(e.dxf.layer=="CUTTING" for e in msp)==5
     assert len([name for name in names if "left_side" in name])==2
     assert len([name for name in names if "right_side" in name])==2
     for name in names:

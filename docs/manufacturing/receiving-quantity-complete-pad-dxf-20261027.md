@@ -5,7 +5,7 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-# #1490：數量模式原 GUI 完整 NFB DXF 必須包含來源認證 PAD
+# #1490：數量及多連模式原 GUI 完整 NFB DXF 必須包含來源認證 PAD
 
 ## 2026-10-27 Windows 實際失敗證據
 R5-2600 的真正 `BoxCalculatorGUI.export_selected_dxf()`：在舊版已提交兩個不同深度的 V5 NFB，3D 顯示一片實體 PAD，但完整選取箱身＋內門＋底板後，Quantity CSV export 只輸出 13 個 Q-group DXF，沒有為 PAD 建立製造需求。程序回報成功，形成實際漏件。這不是 hashed Q-group 檔名錯誤，而是製造數量 demands 缺失。
@@ -17,6 +17,12 @@ R5-2600 的真正 `BoxCalculatorGUI.export_selected_dxf()`：在舊版已提交�
 - PAD 來源驗證在建立輸出資料夾之前完成；任一版本 stale／缺 Base 或 inner door，整批 fail closed、不得出半包。
 - 部分選件不主張「整箱」，保持既有部分輸出；與 Set/Bay 原本來源完整出圖共用的來源規則一致。
 - 仍不放寬 generic MFG2／NC／焊接工藝守衛，也不將本交付冒升級成全設備認證；正式 X 需使用者當次 /推推。
+
+## 多連 Set/Bay 相同的完整來源契約
+- 已提交 CSV V5 的每個現行實體 Bay 具有自己的 Base/PAD 裝配、真實材質與 `receiving_instance_namespace`，不能以第一個 Bay 的 PAD 代替第二個 Bay。
+- 原 `export_current_receiving_multibay_dxf` 在全部選擇 BODY/DOOR/BASE 時，對各 Bay 獨立執行同一 `verified_pad_base_physical_sheets`，只將真實 PAD 原始場景加入原子 DXF 輸出及讀回，並以 Bay namespace 對應檔案。兩個 Bay 的 PAD 各自輸出，不偽造組數或重複名稱。
+- 缺選 Base/內門或第二 Bay PAD 來源失效，應在建立目錄前整批拒絕；局部選件保持既有合法出口。
+- `tests/test_issue1502_current_csv_multi_bay_once.py` 實際兩 Bay 回歸需驗證兩個獨立 PAD DXF 各 5 CUTTING、2 BEND；源失效原子禁止輸出。
 
 ## 驗證收據
 - 原 GUI 同一份本機來源：修正前 13 個 Q-group DXF，修正後 14 個，新增真 PAD：5 CUTTING、2 BEND、1 CHECK，ezdxf 全檔重新讀取通過。
