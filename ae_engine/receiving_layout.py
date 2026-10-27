@@ -42,6 +42,12 @@ def _number(value: object, *, label: str) -> float:
 
 
 def _stable_id(value: object, *, label: str) -> str:
+    # Persisted identifiers are text (legacy finite numeric IDs are accepted
+    # unchanged); never stringify dicts/lists or NaN into manufactured keys.
+    from math import isfinite
+    if (isinstance(value, bool) or not isinstance(value, (str, int, float))
+            or (isinstance(value, float) and not isfinite(value))):
+        raise ValueError(f"{label} stable_id must be text or a finite numeric legacy ID")
     result = str(value or "").strip()
     if not result:
         raise ValueError(f"{label} stable_id must not be empty")
@@ -49,7 +55,13 @@ def _stable_id(value: object, *, label: str) -> str:
 
 
 def _back_panel_mode(value: object) -> str:
-    mode = str(value or "FULL").strip().upper()
+    # A missing source uses the historical FULL default; an explicitly saved
+    # False/0/blank cannot silently create a physical full back panel.
+    if value is None:
+        return "FULL"
+    if not isinstance(value, str):
+        raise ValueError(f"unsupported Receiving back_panel_mode: {value!r}")
+    mode = value.strip().upper()
     if mode not in _ALLOWED_BACK_PANEL_MODES:
         raise ValueError(f"unsupported Receiving back_panel_mode: {value!r}")
     return mode
@@ -156,8 +168,16 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                     f"Receiving Set{set_index} Joint{joint_index + 1} endpoints must match adjacent bays "
                     f"{expected_left!r}->{expected_right!r}; got {left_id!r}->{right_id!r}"
                 )
-            depth_alignment = str(raw_joint.get("depth_alignment") or "FRONT").strip().upper()
-            height_alignment = str(raw_joint.get("height_alignment") or "BOTTOM").strip().upper()
+            # Defaults are valid only for missing archived Joint datums.
+            # Explicit falsy values must not silently move a real Bay origin.
+            raw_depth = raw_joint.get("depth_alignment")
+            raw_height = raw_joint.get("height_alignment")
+            if raw_depth is not None and not isinstance(raw_depth, str):
+                raise ValueError(f"unsupported Receiving depth_alignment: {raw_depth!r}")
+            if raw_height is not None and not isinstance(raw_height, str):
+                raise ValueError(f"unsupported Receiving height_alignment: {raw_height!r}")
+            depth_alignment = "FRONT" if raw_depth is None else raw_depth.strip().upper()
+            height_alignment = "BOTTOM" if raw_height is None else raw_height.strip().upper()
             if depth_alignment not in {"FRONT", "REAR"}:
                 raise ValueError(f"unsupported Receiving depth_alignment: {depth_alignment!r}")
             if height_alignment not in {"TOP", "BOTTOM"}:
@@ -491,6 +511,7 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
         raise IndexError("Receiving bay_index out of range")
     bay = deepcopy(dict(bays[bay_index]))
     original_width = bay["width"]
+    original_height = bay["height"]
     allowed = {"width", "height", "depth", "back_panel_mode", "door_state",
                "nfb_config_submitted", "nfb_config"}
     unknown = set(changes) - allowed
@@ -509,7 +530,41 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
             row = selected["settings"]["back_panel_mode"]
             row["values"][row["refs"][bay["stable_id"]]] = mode
     if "door_state" in changes:
+        # The edit boundary must enforce the same persisted Door authority
+        # contract as normalize_receiving_layout. dict([]) silently clears it.
+        if not isinstance(changes["door_state"], Mapping):
+            raise ValueError("每連門分割必須為物件")
         bay["door_state"] = deepcopy(dict(changes["door_state"]))
+    elif (
+        "door_state" in bay
+        and (bay["width"] != original_width or bay["height"] != original_height)
+    ):
+        # Match the existing multi-Bay dimension edit: preserve every authored
+        # leading Door width/height and re-complete only the final remainder.
+        # Otherwise typing W820 in the live native Receiving GUI leaves a
+        # persisted W800 Door cell and breaks real FinalScene 3D projection.
+        # Explicit caller-supplied door_state is *not* rewritten; the normal
+        # authored-source validator must still reject invalid partitions.
+        from .sheetmetal_part_adapters import complete_partition
+
+        door = deepcopy(bay["door_state"])
+        columns = tuple(door.get("door_layout_columns") or ())
+        if door.get("multi_door_enabled") and not columns:
+            raise ValueError("新尺寸無法套用：門分割資料不完整")
+        if columns:
+            widths = complete_partition(
+                [column[0] for column in columns[:-1]], bay["width"]
+            )
+            if not widths.valid or len(widths.values) != len(columns):
+                raise ValueError("新 W 不符合門分割")
+            next_columns = []
+            for column_width, (_old_width, heights) in zip(widths.values, columns):
+                rows = complete_partition(heights[:-1], bay["height"])
+                if not rows.valid or len(rows.values) != len(heights):
+                    raise ValueError("新 H 不符合門分割")
+                next_columns.append([column_width, list(rows.values)])
+            door["door_layout_columns"] = next_columns
+            bay["door_state"] = door
     if "nfb_config_submitted" in changes or "nfb_config" in changes:
         from .receiving_nfb_persistence import normalize_nfb_saved_fields
         updated = {**bay, **{key: changes[key] for key in ("nfb_config_submitted", "nfb_config") if key in changes}}
@@ -542,10 +597,10 @@ def _validate_common_receiving_state(snapshot: Mapping[str, object]) -> None:
     data = dict(snapshot or {})
     if not bool(data.get("multi_door_enabled", False)):
         return
-    columns = tuple(
-        (float(row[0]), tuple(float(v) for v in row[1]))
-        for row in tuple(data.get("door_layout_columns") or ())
-    )
+    # Keep persisted Door width/height types until the single canonical
+    # validator. float(True) would otherwise fabricate a physical 1-mm cell
+    # and bypass the downstream Door and Divider boolean-dimension guards.
+    columns = tuple(data.get("door_layout_columns") or ())
     if not columns:
         raise ValueError("enabled Door topology requires door_layout_columns")
 
@@ -557,17 +612,33 @@ def _validate_common_receiving_state(snapshot: Mapping[str, object]) -> None:
         total_width=float(data["w"]),
         total_height=float(data["h"]),
     )
+    raw_handles = data.get("door_handle_edges")
+    # Per-Bay Door authority must obey the same persisted shape rules as
+    # project-file reopen. False/0/blank is not an empty Handle Editor choice.
+    if raw_handles is not None and not isinstance(raw_handles, (Mapping, list, tuple)):
+        raise ValueError("invalid Receiving Door handle edges source")
+    try:
+        handles = dict(raw_handles or {})
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid Receiving Door handle edges source") from exc
     derive_box_body_dividers(
         columns,
-        depth=float(data["d"]),
-        thickness=float(data.get("t", 2.0)),
-        frame_width=float(data.get("fw", 29.0)),
+        # Preserve source T/FW identity for the existing Divider finite
+        # geometry gate; float(True) would create a fake 1-mm fold.
+        depth=data["d"],
+        thickness=data.get("t", 2.0),
+        frame_width=data.get("fw", 29.0),
         layout_scope=str(data.get("door_layout_scope") or "receiving-main"),
-        handle_edges=dict(data.get("door_handle_edges") or {}),
+        handle_edges=handles,
         model_name="受電箱",
     )
 
-    inner_doors = list(data.get("inner_doors") or ())
+    raw_inner_doors = data.get("inner_doors")
+    if raw_inner_doors is not None and not isinstance(raw_inner_doors, (list, tuple)):
+        raise ValueError("invalid Receiving inner doors source")
+    inner_doors = list(raw_inner_doors or ())
+    if any(not isinstance(item, Mapping) for item in inner_doors):
+        raise ValueError("invalid Receiving inner doors entry")
     if inner_doors:
         from ae_engine.cabinet_types import receiving
 

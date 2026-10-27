@@ -30,15 +30,57 @@ def _rows():
 def test_batch_signoff_seven_require_independent_real_executed_assertions():
     matrix, rows = _rows()
     assert len(matrix["records"]) == 88
-    assert matrix["counts"] == dict(Counter(r["status"] for r in rows.values()))
+    live_counts = dict(Counter(r["status"] for r in rows.values()))
+    # A completed historical deferred bucket is still represented as zero;
+    # preserve exact Counter/readback equality for all positive statuses.
+    live_counts.setdefault("DEFERRED_PRODUCT_EVIDENCE", 0)
+    live_counts.setdefault("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC", 0)
+    live_counts.setdefault("EVIDENCE_CANDIDATE_ONLY", 0)
+    live_counts.setdefault("BLOCKED_1500_REAL_GUI", 0)
+    assert matrix["counts"] == live_counts
     # The original seven-row signature is fixed, but subsequent fully
     # evidenced signoffs legitimately increase the live count past 43.
     # Derive live category totals from all 88 exact rows instead of treating
     # the historical source-batch timestamp as a permanent upper bound.
     assert sum(matrix["counts"].values()) == 88
     assert matrix["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 43
-    assert matrix["counts"]["BLOCKED_1500_REAL_GUI"] == 17
-    assert matrix["counts"]["DEFERRED_PRODUCT_EVIDENCE"] == 4
+    assert matrix["counts"]["BLOCKED_1500_REAL_GUI"] == 0
+    # The original four deferred requirements are immutable identities, not
+    # a perpetual count: independently source-signed ACs leave this bucket.
+    original_deferred = {"NFB-AC-13", "NFB-AC-41", "SWT-AC-09", "SWT-AC-22"}
+    assert len(original_deferred) == 4
+    assert matrix["counts"]["DEFERRED_PRODUCT_EVIDENCE"] == sum(
+        rows[key]["status"] == "DEFERRED_PRODUCT_EVIDENCE"
+        for key in original_deferred
+    )
+    assert all(rows[key]["status"] in {
+        "DEFERRED_PRODUCT_EVIDENCE", "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+    } for key in original_deferred)
+    for key in original_deferred:
+        row = rows[key]
+        if row["accepted"]:
+            proof = row["acceptance_evidence"]
+            assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE", key
+            assert row["evidence_level"] == "FULL_AC_ASSERTION_AUDITED", key
+            assert proof["original_ac_text_unchanged"] is True, key
+            assert proof["source_sha_pins_unchanged"] is True, key
+            assert proof["factory_release"] is False, key
+            assert proof["unconditional_mfg2_release"] is False, key
+            assert proof["human_windows_uat_claimed"] is False, key
+            assert len(proof["original_ac_clauses_audited"]) >= 3, key
+            for witness in (proof["primary_assertion"], *proof["other_required_assertions"]):
+                path, name = witness.split("::")
+                assert PYTEST_PATHS.count(path) == 1, witness
+                assert name in {
+                    node.name for node in ast.parse(
+                        (ROOT / path).read_text(encoding="utf-8")
+                    ).body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                }, witness
+        else:
+            assert row["status"] == "DEFERRED_PRODUCT_EVIDENCE", key
+    assert matrix["counts"]["DEFERRED_PRODUCT_EVIDENCE"] + sum(
+        rows[key]["accepted"] for key in original_deferred
+    ) == 4
     assert all(
         row["accepted"] == (row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE")
         for row in rows.values()

@@ -235,3 +235,126 @@ def test_manifest_ear_current_source_does_not_revert_to_obsolete_all_deferred():
     text = nfb_manifest_display_lines(record)[0]
     assert "PAD" in text and "整箱製造" in text
     assert "耳朵尚未驗收" not in text
+
+
+def test_ac55_one_raw_dxf_inventory_reaches_current_bay_operator_warning_and_export_gate(
+    tmp_path,
+):
+    """Manufacturer-pinned original observation -> per-piece CHECK -> actual UI.
+
+    The historic raw-DXF observation is a source-specific diagnostic, NOT
+    universal CSV V5 geometry authority, operator world-X approval, or MFG-2.
+    The verified inner CUTTING proof is deliberately independently required.
+    """
+    from dataclasses import replace
+    from hashlib import sha256
+
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+    from ae_engine.receiving_nfb_export_manifest import derive_nfb_partial_export_manifest
+    from ae_engine.receiving_nfb_part_readiness import NfbPhysicalScope
+    from tests.test_issue1496_nfb_source_inventory_report import _case
+    from tests.test_issue1501_nfb_export_manifest import _prepared
+    from tools.nfb_source_audit import build_source_coverage_report
+
+    index, root, pins, source = _case(tmp_path)
+    actual_bytes = source.read_bytes()
+    coverage = build_source_coverage_report(index, source_root=root, pin_path=pins)
+    observed = next(
+        row for row in coverage["records"]
+        if (row["brand"], row["indexed_filename"]) == ("士林", "A.dxf")
+    )
+    unknown_brand = next(
+        row for row in coverage["records"]
+        if (row["brand"], row["indexed_filename"]) == ("東元", "A.dxf")
+    )
+    assert observed["source_sha256"] == sha256(actual_bytes).hexdigest()
+    assert observed["provenance_pin_matches"] is True
+    assert tuple(observed[f"color_{v}_entities"] for v in (30, 150, 212)) == (1, 1, 1)
+    assert tuple(unknown_brand[f"color_{v}_entities"] for v in (30, 150, 212)) == (
+        None, None, None,
+    )
+    assert observed["manufacturing_ready"] is False
+
+    original = inspect_nfb_dxf_source(source)
+    options = _prepared(tmp_path)
+    options["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1", ("base1",), (),
+    )
+    options["actual_parts"] = tuple(
+        part for part in options["actual_parts"] if part.part_id != "middle1"
+    )
+    options["saved_bay"]["nfb_config"]["holes"][0]["model_filename"] = "A.dxf"
+    options["source_path"] = source
+    options["source_inventory"] = original
+    options["verified_inner_door"] = replace(
+        options["verified_inner_door"],
+        indexed_model_key=("士林", "A.dxf"),
+        source_sha256=original.source_sha256,
+    )
+
+    fresh = derive_nfb_partial_export_manifest(**options)
+    assert fresh.partial_only and not fresh.whole_ready
+    assert fresh.authorized_part_ids == ("inner1", "side1")
+    assert fresh.actual_export_count == 5
+    assert fresh.held_actual_count == 1
+    assert {row.part_id for row in fresh.rows} == {"inner1", "base1", "side1"}
+    assert fresh.require_export(("side1",), partial=True) == ("side1",)
+    with pytest.raises(ValueError, match="BLOCKED"):
+        fresh.require_export(("base1",), partial=True)
+    with pytest.raises(ValueError, match="partial only"):
+        fresh.require_export(("inner1", "side1"), partial=False)
+
+    # UI reads the EXACT derived physical report, with status only projected
+    # from its independent partial_only/whole_ready gate.
+    def live_lines(manifest):
+        assert manifest.partial_only and not manifest.whole_ready
+        receipt = {**manifest.report(), "status": "PARTIAL_ONLY"}
+        return highlighted_nfb_manifest_lines(
+            {"manifest": lambda si, bi: receipt}, 0, (0,),
+        )
+    fresh_ui = live_lines(fresh)
+    assert "可加工 5 片" in "｜".join(fresh_ui)
+    assert any("base1｜BASE_PLATE｜受阻｜1 片" in line for line in fresh_ui)
+    assert any("side1｜OTHER｜可出｜3 片" in line for line in fresh_ui)
+    assert any("部分製造清單，不代表整套可交付" in line for line in fresh_ui)
+    assert not any("middle1" in line for line in fresh_ui)
+
+    # A foreign DXF under the same indexed filename invalidates the original
+    # manufacturer pin; UNKNOWN remains null, never 0 or a new MFG2 grant.
+    source.write_bytes((root / "東元" / "A.dxf").read_bytes())
+    changed = build_source_coverage_report(index, source_root=root, pin_path=pins)
+    untrusted = next(
+        row for row in changed["records"]
+        if (row["brand"], row["indexed_filename"]) == ("士林", "A.dxf")
+    )
+    assert untrusted["status"] == "SOURCE_IDENTITY_MISMATCH_UNKNOWN"
+    assert tuple(untrusted[f"color_{v}_entities"] for v in (30, 150, 212)) == (
+        None, None, None,
+    )
+    stale = derive_nfb_partial_export_manifest(**options)
+    assert stale.authorized_part_ids == ("side1",)
+    assert stale.actual_export_count == 3 and stale.held_actual_count == 3
+    assert "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED" in stale.unresolved_dependencies
+    stale_ui = live_lines(stale)
+    assert "可加工 3 片" in "｜".join(stale_ui)
+    assert any("inner1｜INNER_DOOR｜受阻｜2 片" in line for line in stale_ui)
+    assert any("base1｜BASE_PLATE｜受阻｜1 片" in line for line in stale_ui)
+    assert any("ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED" in line for line in stale_ui)
+    assert not any("可加工 5 片" in line for line in stale_ui)
+    with pytest.raises(ValueError, match="BLOCKED"):
+        stale.require_export(("inner1",), partial=True)
+    assert stale.require_export(("side1",), partial=True) == ("side1",)
+
+    source.unlink()
+    absent = build_source_coverage_report(index, source_root=root, pin_path=pins)
+    no_original = next(
+        row for row in absent["records"]
+        if (row["brand"], row["indexed_filename"]) == ("士林", "A.dxf")
+    )
+    assert no_original["status"] == "SOURCE_MISSING_UNKNOWN"
+    assert tuple(no_original[f"color_{v}_entities"] for v in (30, 150, 212)) == (
+        None, None, None,
+    )
+    assert derive_nfb_partial_export_manifest(**options).authorized_part_ids == (
+        "side1",
+    )

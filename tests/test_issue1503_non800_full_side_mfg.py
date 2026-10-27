@@ -56,11 +56,11 @@ def test_actual_non800_source_sheets_produce_frame_and_ear_marking_dxf(
         data = owner_render_data(source, "box_body:" + side)
         assert data is not None
         assert len(data.metadata.get("joint_markings") or ()) == 2
-        assert data.metadata["receiving_ear_side_marking_segment_count"] == 4*tier_count
+        assert data.metadata["receiving_ear_side_marking_segment_count"] == 3 * tier_count
         assert sum(
             p.layer == "MARKING" for p in data.scene.primitives
             if isinstance(p, LinePrimitive)
-        ) >= 2 + 4*tier_count
+        ) >= 2 + 3 * tier_count
         # Physical inside SIDE is at W/2 - source SIDE thickness.
         # No +/-398 constant may enter either assembly or flat 2D.
         assert abs(expected_world_x) == pytest.approx(
@@ -76,4 +76,4 @@ def test_actual_non800_source_sheets_produce_frame_and_ear_marking_dxf(
         marks = [e for e in doc.modelspace()
                  if e.dxftype() == "LINE"
                  and str(e.dxf.layer).upper() == "MARKING"]
-        assert len(marks) >= 2 + 4*tier_count
+        assert len(marks) >= 2 + 3 * tier_count

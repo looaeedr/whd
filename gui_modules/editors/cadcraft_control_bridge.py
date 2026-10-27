@@ -37,10 +37,16 @@ class CadcraftControlClient:
     def __init__(self, port: int, *, timeout: float = 3.0):
         if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
             raise CadcraftControlError("CADCRAFT_INVALID_CONTROL_PORT")
-        if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
+        if isinstance(timeout, bool) or not isinstance(timeout, (int, float)):
+            raise CadcraftControlError("CADCRAFT_INVALID_CONTROL_TIMEOUT")
+        try:
+            finite_timeout = float(timeout)
+        except (OverflowError, ValueError) as exc:
+            raise CadcraftControlError("CADCRAFT_INVALID_CONTROL_TIMEOUT") from exc
+        if not math.isfinite(finite_timeout) or finite_timeout <= 0:
             raise CadcraftControlError("CADCRAFT_INVALID_CONTROL_TIMEOUT")
         self.port = port
-        self.timeout = float(timeout)
+        self.timeout = finite_timeout
         self._ids = itertools.count(1)
 
     def request(self, method: str, params: dict | None = None) -> Any:
@@ -51,13 +57,15 @@ class CadcraftControlClient:
         """
         allowed = {"ping", "control.methods", "engine.commands",
                    "drawing.inspect", "engine.execute"}
-        if method not in allowed or params is not None and not isinstance(params, dict):
+        if (not isinstance(method, str) or method not in allowed
+                or params is not None and not isinstance(params, dict)):
             raise CadcraftControlError("CADCRAFT_CONTROL_METHOD_NOT_ALLOWED")
         # Narrow engine.execute to the commands this isolated bridge actually
         # owns. A TCP method allowlist alone would still permit SAVEAS/ERASE.
         if method == "engine.execute":
             command = (params or {}).get("command")
-            if command not in {"new", "document.bytes", "circle", "pline"}:
+            if (not isinstance(command, str)
+                    or command not in {"new", "document.bytes", "circle", "pline"}):
                 raise CadcraftControlError("CADCRAFT_ENGINE_COMMAND_NOT_ALLOWED")
         ident = next(self._ids)
         try:
@@ -101,7 +109,11 @@ class CadcraftControlClient:
         commands = self.request("engine.commands")
         if not isinstance(methods, list) or not isinstance(commands, list):
             raise CadcraftControlError("CADCRAFT_UNKNOWN_COMMAND_CATALOG")
-        available = {row.get("method") for row in methods if isinstance(row, dict)}
+        available = set()
+        for row in methods:
+            if not isinstance(row, dict) or not isinstance(row.get("method"), str):
+                raise CadcraftControlError("CADCRAFT_UNKNOWN_COMMAND_CATALOG")
+            available.add(row["method"])
         if not {"drawing.inspect", "engine.execute"}.issubset(available):
             raise CadcraftControlError("CADCRAFT_REQUIRED_METHOD_UNAVAILABLE")
         return {"method_count": len(methods), "command_count": len(commands)}

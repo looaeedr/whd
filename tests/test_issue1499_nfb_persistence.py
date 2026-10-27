@@ -539,6 +539,58 @@ def test_ac23_unhashable_saved_nfb_x_state_is_a_controlled_rejection(
         write_project(tmp_path / "invalid-x-state.p6fold", _payload(layout))
 
 
+@pytest.mark.parametrize("bad_selected", (
+    [], {}, ["quantity-v1"], {"version_id": "quantity-v1"},
+    None, True, 0, "quantity-v999",
+))
+def test_ac16_ac23_quantity_selected_version_rejects_untrusted_identity(
+    tmp_path, bad_selected,
+):
+    """Saved selected version must identify one real version before GUI/reload."""
+    original = QuantityModel().snapshot()
+    corrupted = deepcopy(original)
+    corrupted["selected_version_id"] = deepcopy(bad_selected)
+    frozen = deepcopy(corrupted)
+
+    with pytest.raises(ValueError, match="目前選取的孔型版本不存在"):
+        QuantityModel.from_payload(corrupted)
+    assert corrupted == frozen
+    assert QuantityModel.from_payload(original).selected_version_id == "quantity-v1"
+
+    project = {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": {
+            "model": "受電箱", "active_mode": "quantity",
+            "quantity": corrupted,
+            "receiving_quantity_box": {"w": 800, "h": 1600, "d": 350},
+        },
+    }
+    with pytest.raises(ValueError, match="目前選取的孔型版本不存在"):
+        write_project(tmp_path / "invalid-selected-quantity.p6fold", project)
+    assert project["snapshot"]["quantity"] == frozen
+
+
+def test_ac16_quantity_saved_project_corrupt_selected_owner_rejected_on_reload(tmp_path):
+    """A real .p6fold cannot load a list/alias as current physical version."""
+    model = QuantityModel()
+    source = {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": {
+            "model": "受電箱", "active_mode": "quantity",
+            "quantity": model.snapshot(),
+            "receiving_quantity_box": {"w": 800, "h": 1600, "d": 350},
+        },
+    }
+    path = write_project(tmp_path / "quantity-valid.p6fold", source)
+    assert read_project(path)["snapshot"]["quantity"]["selected_version_id"] == "quantity-v1"
+
+    corrupted = json.loads(path.read_text(encoding="utf-8"))
+    corrupted["snapshot"]["quantity"]["selected_version_id"] = ["quantity-v1"]
+    path.write_text(json.dumps(corrupted, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="目前選取的孔型版本不存在"):
+        read_project(path)
+
+
 @pytest.mark.parametrize("malformed_schema", [[], {}, ["phase6-quantity-v3"]])
 def test_ac23_unhashable_quantity_schema_fails_closed(malformed_schema):
     model = QuantityModel().snapshot()
@@ -722,3 +774,42 @@ def test_r6_manual_116_huge_json_integer_is_a_controlled_invalid_nfb_dimension()
         normalize_nfb_saved_fields({
             "nfb_config_submitted": True, "nfb_config": damaged,
         })
+
+
+@pytest.mark.parametrize("bad", [True, False, 0, -1, 1.0, "1", None])
+def test_manual_116_submitted_nfb_layer_count_has_exact_positive_integer_identity(bad):
+    """A saved submitted NFB may not claim a nonphysical tier count."""
+    damaged = _config(x=0, state="CONFIRMED")
+    damaged["layer_count"] = bad
+    with pytest.raises(ValueError, match="NFB layer_count"):
+        normalize_nfb_config(damaged)
+    with pytest.raises(ValueError, match="NFB layer_count"):
+        normalize_nfb_saved_fields({
+            "nfb_config_submitted": True, "nfb_config": damaged,
+        })
+    assert damaged["layer_count"] is bad
+
+
+@pytest.mark.parametrize("bad", [True, False, -1, 1, 1.0, "0", None])
+def test_manual_116_submitted_nfb_hole_layer_index_matches_saved_tier(bad):
+    """One physical tier cannot silently own a hole in another / boolean tier."""
+    damaged = _config(x=0, state="CONFIRMED")
+    damaged["layer_count"] = 1
+    damaged["holes"][0]["layer_index"] = bad
+    with pytest.raises(ValueError, match="NFB layer_index"):
+        normalize_nfb_config(damaged)
+    assert damaged["holes"][0]["layer_index"] is bad
+
+
+def test_manual_116_submitted_nfb_exact_tier_types_preserve_legacy_and_two_tiers():
+    one = _config(x=0, state="CONFIRMED")
+    one["holes"][0]["layer_index"] = 0
+    assert normalize_nfb_config(one)["holes"][0]["layer_index"] == 0
+    two = _config(x=0, state="CONFIRMED")
+    two["layer_count"] = 2
+    two["holes"][0]["layer_index"] = 1
+    assert normalize_nfb_config(two)["holes"][0]["layer_index"] == 1
+    legacy = _config(x=0, state="CONFIRMED")
+    legacy.pop("layer_count")
+    legacy["holes"][0].pop("layer_index", None)
+    assert "layer_count" not in normalize_nfb_config(legacy)

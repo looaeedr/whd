@@ -6,6 +6,7 @@ from ae_engine.inner_door_frames import derive_inner_door_frames
 from ae_engine.receiving_joint_marking import (
     _last_frame_flange_skins,
     _physical_mating_contact,
+    _front_contact_boundary,
 )
 
 
@@ -32,6 +33,19 @@ def test_real_physical_skin_contact_uses_same_support_plane():
     assert contact.evidence["contact_mode"] == "VERIFIED_LAST_22_MM_PHYSICAL_SKIN"
     assert contact.evidence["projection_distance"] == pytest.approx(0.0)
     assert contact.evidence["overlap_area"] > 0
+
+
+def test_frame_marking_crosses_real_contact_at_specified_front_plane():
+    """Even when Z=7 is inside physical skin, the mark stays exactly Z=7."""
+    contact = _contact()
+    a, b = _front_contact_boundary(contact, 7.0)
+    assert a[2] == pytest.approx(7.0)
+    assert b[2] == pytest.approx(7.0)
+    assert abs(a[1] - b[1]) > 0
+    with pytest.raises(ValueError, match="FRONT_CONTACT_Z_MISMATCH"):
+        _front_contact_boundary(contact, 25.0)
+
+
 
 
 @pytest.mark.parametrize("displacement", [-3.0, -1.0, 0.5, 4.0, 50.0])

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from enum import Enum
 import json
@@ -75,7 +76,13 @@ def _normalize_authoritative_door_state(snapshot):
             raise ValueError(f"invalid {label}: {value!r}")
         return measured
 
-    raw_columns = list(result.get("door_layout_columns") or ())
+    raw_columns_source = result.get("door_layout_columns")
+    if raw_columns_source is not None and not isinstance(raw_columns_source, (list, tuple)):
+        raise ValueError("invalid door layout columns source")
+    try:
+        raw_columns = list(raw_columns_source or ())
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("invalid door layout columns source") from exc
     columns = []
     for row in raw_columns:
         if (not isinstance(row, (list, tuple)) or len(row) != 2
@@ -92,7 +99,16 @@ def _normalize_authoritative_door_state(snapshot):
 
     handle_aliases = {"左": "LEFT", "右": "RIGHT", "上": "TOP", "下": "BOTTOM"}
     handles = {}
-    for raw_key, raw_value in dict(result.get("door_handle_edges") or {}).items():
+    raw_handle_edges = result.get("door_handle_edges")
+    # An explicit false/zero/blank is corrupt saved authority, not an empty
+    # set of Handle-Editor edges. Keep legacy iterable key/value pairs valid.
+    if raw_handle_edges is not None and not isinstance(raw_handle_edges, (Mapping, list, tuple)):
+        raise ValueError("invalid door handle edges source")
+    try:
+        saved_handle_edges = dict(raw_handle_edges or {})
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("invalid door handle edges source") from exc
+    for raw_key, raw_value in saved_handle_edges.items():
         value = str(raw_value).strip().upper()
         value = handle_aliases.get(value, value)
         if value not in {"LEFT", "RIGHT", "TOP", "BOTTOM"}:
@@ -110,13 +126,22 @@ def _normalize_authoritative_door_state(snapshot):
     if "door_handle_edges" in result or handles:
         result["door_handle_edges"] = handles
 
-    inner_doors = deepcopy(list(result.get("inner_doors") or ()))
+    raw_inner_doors = result.get("inner_doors")
+    # A project persists a list of door records. list("door") and list({...})
+    # would otherwise fabricate invalid physical door entries on reopen.
+    if raw_inner_doors is not None and not isinstance(raw_inner_doors, (list, tuple)):
+        raise ValueError("invalid inner doors source")
+    if any(not isinstance(item, dict) for item in (raw_inner_doors or ())):
+        raise ValueError("invalid inner doors entry")
+    inner_doors = deepcopy(list(raw_inner_doors or ()))
     for item in inner_doors:
-        if isinstance(item, dict):
-            # Receiving frame spans / finished dimensions are deterministic
-            # derivatives of Door topology + family policy, never project truth.
-            item.pop("frame_spans", None)
-            item.pop("inner_door_finished_size", None)
+        # Never stringify a boolean into a physical door or cell identity.
+        if any(isinstance(item.get(field), bool) for field in ("stable_id", "cell_key")):
+            raise ValueError("invalid inner-door identity source")
+        # Receiving frame spans / finished dimensions are deterministic
+        # derivatives of Door topology + family policy, never project truth.
+        item.pop("frame_spans", None)
+        item.pop("inner_door_finished_size", None)
     if inner_doors:
         if not columns or not bool(result.get("multi_door_enabled", False)):
             for item in inner_doors:
@@ -126,10 +151,20 @@ def _normalize_authoritative_door_state(snapshot):
             from ae_engine.door_dividers import derive_box_body_dividers, resolve_inner_door_lower_frame_role
 
             try:
-                depth = float(result["d"])
-                thickness = float(result["t"])
-            except (KeyError, TypeError, ValueError) as exc:
-                raise ValueError("inner-door shared role requires saved d/t authority") from exc
+                raw_depth, raw_thickness = result["d"], result["t"]
+                # Keep the source types until validation: float(True) would
+                # otherwise authorize a physical 1-mm Door/Divider dimension.
+                if isinstance(raw_depth, bool) or isinstance(raw_thickness, bool):
+                    raise ValueError("saved d/t cannot be boolean")
+                depth = float(raw_depth)
+                thickness = float(raw_thickness)
+                if not (math.isfinite(depth) and math.isfinite(thickness)
+                        and depth > 0.0 and thickness > 0.0):
+                    raise ValueError("saved d/t must be finite positive dimensions")
+            except (KeyError, TypeError, ValueError, OverflowError) as exc:
+                raise ValueError(
+                    "inner-door shared role requires finite positive saved d/t authority"
+                ) from exc
             scope = str(result.get("door_layout_scope") or "main").strip() or "main"
             dividers = derive_box_body_dividers(
                 tuple((w, tuple(hs)) for w, hs in columns),
@@ -145,7 +180,10 @@ def _normalize_authoritative_door_state(snapshot):
                 if not door_id:
                     item.pop("lower_frame_role", None)
                     continue
-                previous = dict(item.get("lower_frame_role") or {}).get("divider_stable_id")
+                previous_role = item.get("lower_frame_role")
+                if previous_role is not None and not isinstance(previous_role, dict):
+                    raise ValueError("invalid inner-door lower_frame_role source")
+                previous = (previous_role or {}).get("divider_stable_id")
                 role = resolve_inner_door_lower_frame_role(
                     door_id,
                     dividers,

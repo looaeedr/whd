@@ -124,9 +124,22 @@ def build_receiving_ear_side_marking_previews(
                     permit_independent_source_marking_crossing
                 ),
             )
-            for p1, p2 in row.marking_segments:
-                if not patch.covers(LineString((p1, p2))):
-                    raise ValueError("EAR_MARK_PREVIEW_MARK_OUTSIDE_RECEIPT")
+            # One true parent-base lower/ear upper line (256 mm) and two
+            # illustrative short fold strokes (20 mm); NO lower outline.
+            # Fold hints have no authority over source BEND or placement Z.
+            from .receiving_fixed_plate_side_contact import EAR_FOLD_HINT_LENGTH_MM
+            if len(row.marking_segments) != 3:
+                raise ValueError("EAR_MARK_PREVIEW_INSTALLATION_AND_TWO_FOLD_HINTS_REQUIRED")
+            for index, (p1, p2) in enumerate(row.marking_segments):
+                line = LineString((p1, p2))
+                target_length = 256.0 if index == 0 else EAR_FOLD_HINT_LENGTH_MM
+                if (abs(line.length - target_length) > 0.02
+                        or not owner.material.covers(line)):
+                    raise ValueError("EAR_MARK_PREVIEW_POSITIONING_OUTSIDE_REAL_SIDE")
+                if index == 0 and abs(line.distance(patch) - 1.0) > 0.02:
+                    raise ValueError("EAR_MARK_PREVIEW_INSTALLATION_DATUM_DRIFT")
+                if index > 0 and abs(line.distance(patch)) > 0.02:
+                    raise ValueError("EAR_MARK_PREVIEW_FOLD_HINT_SKIN_DRIFT")
                 scene.add_line(p1, p2, layer="MARKING")
             patches.append(patch)
         result[side] = scene

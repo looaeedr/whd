@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from types import SimpleNamespace
 
 import pytest
+import os
 
 from ae_engine.cabinet_types import receiving
 from ae_engine.receiving_layout import (
@@ -18,9 +20,14 @@ from ae_engine.receiving_layout import (
     update_receiving_joint_alignment,
     strip_legacy_receiving_aliases,
 )
+from gui_modules.application.fold_designer_composition_receiving import (
+    resize_receiving_bays as native_gui_resize_receiving_bays,
+)
+
 from gui_modules.application.receiving_set_bay_adapter import (
     ReceivingDestructiveEditConfirmationRequired,
     ReceivingSetBayAdapter,
+    ReceivingSwitchProjectionAdapter,
     receiving_layout_stable_ids,
 )
 
@@ -443,3 +450,622 @@ def test_issue1504_protected_receiving_tail_requires_literal_true(
     assert original == before
     assert adapter.selection.set_index == 0
     assert adapter.selection.bay_index == 0
+
+
+@pytest.mark.parametrize("bad_indices", (
+    None, 0, (True,), (False,), (0, True), (0, []),
+    ([],), ("0",), (-1,), (50,), (0, 0),
+))
+def test_issue1504_dimension_batch_rejects_nonphysical_highlights_before_io(bad_indices):
+    """Malformed multi-Bay selection must not alter sizes or any NFB X basis."""
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
+    adapter = ReceivingSetBayAdapter(layout)
+    before = adapter.layout
+    selected = adapter.selection
+    expected_count = 2 if isinstance(bad_indices, tuple) and len(bad_indices) == 2 else 1
+    with pytest.raises(ValueError, match="高亮"):
+        adapter.apply_dimensions_to_bays(
+            0, bad_indices, width=900, height=1700, depth=400,
+            expected_count=expected_count,
+        )
+    assert adapter.layout == before
+    assert adapter.selection == selected
+    assert adapter._session_dirty_ids == set()
+
+
+@pytest.mark.parametrize("bad_set", (True, False, "0", 0.0, None, [], {}))
+def test_issue1504_dimension_batch_rejects_noninteger_set_identity(bad_set):
+    """Boolean and coerced Set identifiers can never authorize a Bay edit."""
+    adapter = ReceivingSetBayAdapter(_layout())
+    before = adapter.layout
+    selected = adapter.selection
+    with pytest.raises(ValueError, match="套不存在"):
+        adapter.apply_dimensions_to_bays(
+            bad_set, (0,), width=900, height=1700, depth=400,
+            expected_count=1,
+        )
+    assert adapter.layout == before
+    assert adapter.selection == selected
+    assert adapter._session_dirty_ids == set()
+
+
+@pytest.mark.parametrize("axis", ("width", "height", "depth"))
+def test_issue1504_dimension_batch_huge_axis_is_atomic(axis):
+    """Physical dimensions must reject unrepresentable integers before mutation."""
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
+    adapter = ReceivingSetBayAdapter(layout)
+    before = adapter.layout
+    selection = adapter.selection
+    dimensions = {"width": 900, "height": 1700, "depth": 400}
+    dimensions[axis] = 10 ** 400
+    with pytest.raises(ValueError, match="超出可表示尺寸"):
+        adapter.apply_dimensions_to_bays(
+            0, (0, 1), expected_count=2, **dimensions,
+        )
+    assert adapter.layout == before
+    assert adapter.selection == selection
+    assert adapter._session_dirty_ids == set()
+
+
+@pytest.mark.parametrize("bad_indices", (
+    None, 1, [0, []], [[], 0], [0, True], [0, 1.0],
+    [0, "1"], [0, {"id": 1}], [0, 999], [0, -1],
+))
+def test_issue1504_shared_setting_rejects_bad_real_bay_highlights(bad_indices):
+    """Sharing physical Bay settings never hashes malformed source selection."""
+    from ae_engine.receiving_shared_settings import share_setting
+
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
+    before = deepcopy(layout)
+    with pytest.raises(IndexError, match="連選取超出範圍"):
+        share_setting(
+            layout, set_index=0, source_bay_index=0,
+            bay_indices=bad_indices, kind="inner_door_layers",
+        )
+    assert layout == before
+
+
+@pytest.mark.parametrize("bad_source", (None, True, False, 0.0, [], {}))
+def test_issue1504_shared_setting_rejects_bad_source_bay_identity(bad_source):
+    from ae_engine.receiving_shared_settings import share_setting
+
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
+    before = deepcopy(layout)
+    with pytest.raises(IndexError, match="連選取超出範圍"):
+        share_setting(
+            layout, set_index=0, source_bay_index=bad_source,
+            bay_indices=(0, 1), kind="inner_door_layers",
+        )
+    assert layout == before
+
+
+def test_issue1504_shared_setting_preserves_valid_multi_bay_reference_sharing():
+    from ae_engine.receiving_shared_settings import share_setting, setting_value
+
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=3)
+    before = deepcopy(layout)
+    # Valid duplicate selection is still deduplicated, not interpreted as a
+    # request to share a different physical Bay.
+    changed = share_setting(
+        layout, set_index=0, source_bay_index=0,
+        bay_indices=(2, 0, 2), kind="inner_door_layers",
+    )
+    row = changed["sets"][0]
+    assert row["settings"]["inner_door_layers"]["refs"][
+        row["bays"][0]["stable_id"]
+    ] == row["settings"]["inner_door_layers"]["refs"][
+        row["bays"][2]["stable_id"]
+    ]
+    assert row["settings"]["inner_door_layers"]["refs"][
+        row["bays"][1]["stable_id"]
+    ] != row["settings"]["inner_door_layers"]["refs"][
+        row["bays"][0]["stable_id"]
+    ]
+    assert setting_value(row, 2, "inner_door_layers") == 1
+    assert layout == before
+
+
+
+@pytest.mark.parametrize("bad", (True, False, 1.5, 2.0, "1.5", [], {}, [1]))
+@pytest.mark.parametrize("method", (
+    "select_set", "select_bay", "set_bay_count", "set_set_count", "bay_count",
+))
+def test_ac07_selection_and_counts_reject_noninteger_alias_without_side_effect(
+    bad, method,
+):
+    """A bool/fraction/list must never become a real Set/Bay or deletion count."""
+    original = resize_receiving_bays(_layout(), set_index=0, bay_count=2)
+    asked = []
+    adapter = ReceivingSetBayAdapter(
+        original,
+        persisted_ids=receiving_layout_stable_ids(original),
+        confirm_destructive=lambda ids: asked.append(ids) or True,
+    )
+    before_layout = adapter.layout
+    before_selection = adapter.selection
+    with pytest.raises((ValueError, IndexError), match="integer|index"):
+        getattr(adapter, method)(bad)
+    assert adapter.layout == before_layout
+    assert adapter.selection == before_selection
+    assert asked == []
+
+
+
+
+@pytest.mark.parametrize("method", (
+    "select_set", "select_bay", "set_bay_count", "set_set_count",
+))
+def test_ac07_none_is_invalid_except_explicit_current_set_lookup(method):
+    """None is the documented default only for bay_count(set_index=None)."""
+    adapter = ReceivingSetBayAdapter(_layout())
+    before = adapter.layout
+    with pytest.raises(ValueError, match="integer"):
+        getattr(adapter, method)(None)
+    assert adapter.layout == before
+    assert adapter.bay_count(None) == 1
+
+
+@pytest.mark.parametrize("method,value", (
+    ("select_set", 0),
+    ("select_bay", 0),
+    ("bay_count", -1),
+    ("bay_count", 999),
+))
+def test_ac07_set_bay_real_selection_never_uses_negative_python_alias(method, value):
+    adapter = ReceivingSetBayAdapter(
+        resize_receiving_bays(_layout(), set_index=0, bay_count=2),
+    )
+    before = adapter.layout
+    selection = adapter.selection
+    with pytest.raises(IndexError):
+        getattr(adapter, method)(value)
+    assert adapter.layout == before
+    assert adapter.selection == selection
+
+
+def test_ac07_exact_decimal_text_retains_existing_ui_compatibility():
+    """The original UI may pass a typed integer string, never a decimal float."""
+    adapter = ReceivingSetBayAdapter(_layout())
+    assert adapter.select_set("2") is True
+    assert adapter.selection.set_index == 1
+    adapter.set_bay_count("2")
+    adapter.select_bay("2")
+    assert adapter.selection.bay_index == 1
+    assert adapter.bay_count("1") == 2
+    adapter.set_set_count("2")
+    assert len(adapter.layout["sets"]) == 2
+
+
+
+def _ac40_submitted_parent_brand_config():
+    """Two physical V5 holes: following Set brand vs explicit factory override."""
+    from ae_engine.receiving_nfb_model_identity import numeric_model_ref
+    model = numeric_model_ref("士林", "2P400")
+    return {"layer_count": 1, "holes": [
+        {
+            "physical_hole_id": "nfb:real-bay:unit-1",
+            "unit_id": "unit-1",
+            "model_filename": model,
+            "source_brand": "士林",
+            "brand_mode": "INHERIT",
+            "manual_x_mm": 0,
+            "manual_x_state": "CONFIRMED",
+            "datum_revision": "operator-approved-w800",
+            "datum_snapshot": {
+                "width": 800, "rotation_deg": 0, "model_filename": model,
+            },
+            "rotation_deg": 0,
+        },
+        {
+            "physical_hole_id": "nfb:real-bay:unit-2",
+            "unit_id": "unit-2",
+            "model_filename": model,
+            "source_brand": "士林",
+            "brand_mode": "OVERRIDE",
+            "manual_x_mm": 100,
+            "manual_x_state": "CONFIRMED",
+            "datum_revision": "operator-approved-w800-explicit",
+            "datum_snapshot": {
+                "width": 800, "rotation_deg": 0, "model_filename": model,
+            },
+            "rotation_deg": 0,
+        },
+    ]}
+
+
+def test_ac40_set_parent_brand_revokes_only_matching_inherited_confirmed_x(tmp_path):
+    """A changed global Set brand cannot silently retain old inherited WORLD-X."""
+    from phase6_project_file import PROJECT_SCHEMA_V1, read_project, write_project
+
+    initial = update_receiving_bay(
+        _layout(), set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=_ac40_submitted_parent_brand_config(),
+    )
+    frozen = deepcopy(initial)
+    adapter = ReceivingSetBayAdapter(initial)
+    adapter.set_brand("三菱")
+    row = adapter.layout["sets"][0]
+    assert row["switch_brand"] == "三菱"
+    actual = row["bays"][0]
+    assert actual["nfb_config_submitted"] is True
+    following, override = actual["nfb_config"]["holes"]
+    assert following["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert following["manual_x_mm"] == 0
+    assert following["source_brand"] == "士林"
+    assert following["model_filename"] == frozen["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["model_filename"]
+    assert override == frozen["sets"][0]["bays"][0]["nfb_config"]["holes"][1]
+    assert initial == frozen
+
+    # Switching back must never silently re-approve an old X datum.
+    adapter.set_brand("士林")
+    assert adapter.layout["sets"][0]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+
+    saved = write_project(tmp_path / "brand-stale-x.p6fold", {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": {
+            "model": "受電箱", "active_mode": "set_bay",
+            "receiving_layout": adapter.layout,
+        },
+    })
+    reloaded = read_project(saved)["snapshot"]["receiving_layout"]["sets"][0]["bays"][0]
+    assert reloaded["nfb_config_submitted"] is True
+    assert [h["manual_x_state"] for h in reloaded["nfb_config"]["holes"]] == [
+        "RECONFIRM_REQUIRED", "CONFIRMED",
+    ]
+
+
+def test_ac40_global_brand_reconfirms_each_real_set_without_carrying_other_brand():
+    original = append_receiving_set(_layout())
+    for si in (0, 1):
+        original = update_receiving_bay(
+            original, set_index=si, bay_index=0,
+            nfb_config_submitted=True, nfb_config=_ac40_submitted_parent_brand_config(),
+        )
+    frozen = deepcopy(original)
+    adapter = ReceivingSetBayAdapter(original)
+    before_selection = adapter.selection
+    assert adapter.set_global_brand("三菱") is True
+    assert [s["switch_brand"] for s in adapter.layout["sets"]] == ["三菱", "三菱"]
+    for set_row in adapter.layout["sets"]:
+        holes = set_row["bays"][0]["nfb_config"]["holes"]
+        assert [h["manual_x_state"] for h in holes] == [
+            "RECONFIRM_REQUIRED", "CONFIRMED",
+        ]
+        assert [h["manual_x_mm"] for h in holes] == [0, 100]
+    assert adapter.selection == before_selection
+    assert adapter.set_global_brand("三菱") is False
+    assert original == frozen
+    with pytest.raises(ValueError, match="開關品牌"):
+        adapter.set_global_brand("無效廠牌")
+    assert [s["switch_brand"] for s in adapter.layout["sets"]] == ["三菱", "三菱"]
+
+
+
+@pytest.mark.parametrize("bad_index", (
+    True, False, 1.0, 1.5, -1, 2, "1.5", None, [], {},
+))
+def test_ac07_native_layer_resize_rejects_aliases_before_selection_and_dirty(bad_index):
+    """Original GUI must never select a different physical Set via int() alias."""
+    adapter = ReceivingSetBayAdapter(_layout())
+    switch = ReceivingSwitchProjectionAdapter(adapter)
+    calls = []
+    service = SimpleNamespace(
+        receiving_switch_adapter=lambda _: switch,
+        mark_receiving_switch_layout_dirty=lambda *args: calls.append("dirty"),
+        refresh_receiving_set_bay_control=lambda *args: calls.append("refresh"),
+    )
+    frozen = adapter.layout
+    old_selection = adapter.selection
+    with pytest.raises((IndexError, ValueError, TypeError)):
+        native_gui_resize_receiving_bays(service, None, bad_index, 1)
+    assert adapter.layout == frozen
+    assert adapter.selection == old_selection
+    assert calls == []
+
+
+@pytest.mark.parametrize("bad_delta", (
+    True, False, 1.0, 1.5, "1.5", None, [], {},
+))
+def test_ac07_native_layer_resize_rejects_bad_delta_without_touching_set(bad_delta):
+    """Delta validation must precede both Set selection and destructive resize."""
+    adapter = ReceivingSetBayAdapter(append_receiving_set(_layout()))
+    switch = ReceivingSwitchProjectionAdapter(adapter)
+    calls = []
+    service = SimpleNamespace(
+        receiving_switch_adapter=lambda _: switch,
+        mark_receiving_switch_layout_dirty=lambda *args: calls.append("dirty"),
+        refresh_receiving_set_bay_control=lambda *args: calls.append("refresh"),
+    )
+    before = adapter.layout
+    selection = adapter.selection
+    with pytest.raises((TypeError, ValueError)):
+        native_gui_resize_receiving_bays(service, None, 1, bad_delta)
+    assert adapter.layout == before
+    assert adapter.selection == selection
+    assert calls == []
+
+
+def test_ac07_native_layer_resize_keeps_exact_integer_text_and_actual_bays():
+    """Textual integer UI arguments are allowed, without silently aliasing IDs."""
+    adapter = ReceivingSetBayAdapter(_layout())
+    switch = ReceivingSwitchProjectionAdapter(adapter)
+    calls = []
+    service = SimpleNamespace(
+        receiving_switch_adapter=lambda _: switch,
+        mark_receiving_switch_layout_dirty=lambda *args: calls.append("dirty"),
+        refresh_receiving_set_bay_control=lambda *args: calls.append("refresh"),
+    )
+    assert native_gui_resize_receiving_bays(service, None, "0", "1") is True
+    assert switch.connection_counts() == (2,)
+    assert adapter.selection.set_index == 0
+    assert calls == ["dirty", "refresh"]
+    assert native_gui_resize_receiving_bays(service, None, 0, 0) is False
+    assert calls == ["dirty", "refresh"]
+    for bad in (-1, 1, True, 0.5):
+        with pytest.raises((IndexError, ValueError)):
+            switch.connection_count(bad)
+    assert switch.connection_count("0") == 2
+
+
+
+@pytest.mark.parametrize("invalid_joint", (
+    True, False, 0.5, 1.0, 1.5, "1.5", None, [], {}, -1, 2,
+))
+def test_ac07_joint_operator_rejects_bool_fraction_or_nested_without_moving_mating_joint(
+    invalid_joint,
+):
+    """The original Receiving topology has physical Joints, not Python aliases."""
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=3)
+    layout = update_receiving_bay(layout, set_index=0, bay_index=1, depth=500, height=1800)
+    layout = update_receiving_bay(layout, set_index=0, bay_index=2, depth=620, height=1900)
+    adapter = ReceivingSetBayAdapter(layout)
+    before = adapter.layout
+    with pytest.raises((IndexError, ValueError), match="integer|out of range"):
+        adapter.current_joint_editability(invalid_joint)
+    with pytest.raises((IndexError, ValueError), match="integer|out of range"):
+        adapter.update_joint_alignment(
+            invalid_joint, depth_alignment="REAR", height_alignment="TOP",
+        )
+    assert adapter.layout == before
+    assert adapter.selection.set_index == 0
+    assert adapter.selection.bay_index == 0
+
+
+def test_ac07_joint_operator_preserves_exact_integer_text_and_physical_mating():
+    """Do not change placement geometry; only validate original physical Joint ID."""
+    layout = resize_receiving_bays(_layout(), set_index=0, bay_count=3)
+    layout = update_receiving_bay(layout, set_index=0, bay_index=1, depth=500, height=1800)
+    layout = update_receiving_bay(layout, set_index=0, bay_index=2, depth=620, height=1900)
+    adapter = ReceivingSetBayAdapter(layout)
+    before = adapter.layout
+    assert adapter.current_joint_editability("1") == {
+        "depth_alignment": True,
+        "height_alignment": True,
+    }
+    adapter.update_joint_alignment("1", depth_alignment="REAR", height_alignment="TOP")
+    after = adapter.layout
+    assert after["sets"][0]["joints"][0] == before["sets"][0]["joints"][0]
+    assert after["sets"][0]["joints"][1]["depth_alignment"] == "REAR"
+    assert after["sets"][0]["joints"][1]["height_alignment"] == "TOP"
+    assert [x["stable_id"] for x in after["sets"][0]["joints"]] == [
+        x["stable_id"] for x in before["sets"][0]["joints"]
+    ]
+
+
+def test_native_receiving_bay_wh_edit_recompletes_last_door_cells():
+    """W800→820 entered in the real Receiving GUI must not break FinalScene."""
+    authored = update_receiving_bay(
+        _layout(), set_index=0, bay_index=0,
+        door_state={
+            "multi_door_enabled": True,
+            "door_layout_scope": "receiving-main",
+            "door_layout_columns": [
+                [300.0, [1100.0, 500.0]],
+                [500.0, [800.0, 800.0]],
+            ],
+            "inner_doors": [],
+        },
+    )
+    original = deepcopy(authored)
+    adapter = ReceivingSetBayAdapter(authored)
+    assert adapter.update_current_bay(width=820, height=1700)
+    actual = adapter.current_bay()
+    assert actual["width"] == pytest.approx(820)
+    assert actual["height"] == pytest.approx(1700)
+    assert actual["door_state"]["door_layout_columns"] == [
+        [300.0, [1100.0, 600.0]],
+        [520.0, [800.0, 900.0]],
+    ]
+    # Real current-Bay projection must accept the updated Door, not the stale
+    # W800 door that caused the user's native 3D load failure.
+    projected = project_receiving_bay_legacy_aliases(
+        _snapshot(adapter.layout), set_index=0, bay_index=0,
+    )
+    assert (projected["w"], projected["h"]) == pytest.approx((820, 1700))
+    assert projected["door_layout_columns"] == actual["door_state"]["door_layout_columns"]
+    assert authored == original
+
+
+def test_native_receiving_bay_dimension_edit_rejects_impossible_existing_door():
+    authored = update_receiving_bay(
+        _layout(), set_index=0, bay_index=0,
+        door_state={
+            "multi_door_enabled": True,
+            "door_layout_columns": [[300.0, [1100.0, 500.0]], [500.0, [800.0, 800.0]]],
+        },
+    )
+    adapter = ReceivingSetBayAdapter(authored)
+    original = deepcopy(adapter.layout)
+    # Operator-owned first column/row must NOT be silently shrunk to force fit.
+    with pytest.raises(ValueError, match="新 W 不符合門分割"):
+        adapter.update_current_bay(width=250)
+    assert adapter.layout == original
+    with pytest.raises(ValueError, match="新 H 不符合門分割"):
+        adapter.update_current_bay(height=900)
+    assert adapter.layout == original
+
+
+def test_explicit_new_receiving_door_partition_keeps_canonical_validation():
+    authored = update_receiving_bay(
+        _layout(), set_index=0, bay_index=0,
+        door_state={
+            "multi_door_enabled": True,
+            "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+        },
+    )
+    # A caller directly authoring a stale W800 partition while moving to
+    # W820 must still be rejected, not 'fixed' behind the operator's back.
+    invalid = update_receiving_bay(
+        authored, set_index=0, bay_index=0, width=820,
+        door_state={"multi_door_enabled": True, "door_layout_columns": [[800.0, [1100.0, 500.0]]]},
+    )
+    with pytest.raises(ReceivingBayProjectionError, match="expected W=820"):
+        project_receiving_bay_legacy_aliases(_snapshot(invalid), set_index=0, bay_index=0)
+
+
+@pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="native Windows Tk or Linux display required",
+)
+def test_native_receiving_designer_cold_start_does_not_commit_provisional_500_600():
+    """Original MainApp's cold-start render is not a Bay dimension transaction."""
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    main = gui.BoxCalculatorGUI(root)
+    try:
+        main.baseline_var.set("受電箱")
+        root.update()
+        designer = main.open_original_fold_designer()
+        root.update()
+        bay = designer._phase6_input_snapshot["receiving_layout"]["sets"][0]["bays"][0]
+        assert (bay["width"], bay["height"], bay["depth"]) == pytest.approx(
+            (800.0, 1600.0, 350.0)
+        )
+        # This must not trigger the W500/H600 stale partition rejection
+        # observed in CI before the _phase6_sync_ready bootstrap guard.
+        projected = project_receiving_bay_legacy_aliases(
+            designer._phase6_input_snapshot, set_index=0, bay_index=0
+        )
+        assert projected["w"] == pytest.approx(800.0)
+        assert projected["h"] == pytest.approx(1600.0)
+    finally:
+        try:
+            if main.fold_designer_window is not None:
+                main.fold_designer_window.destroy()
+        except tk.TclError:
+            pass
+        root.destroy()
+
+
+@pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="native Windows Tk or Linux display required",
+)
+def test_native_receiving_w820_divider_profile_real_world_cross_green():
+    """Original native Tk W800→820 must refold physical Divider at 816, not 796."""
+    import time
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    main = gui.BoxCalculatorGUI(root)
+    try:
+        main.baseline_var.set("受電箱")
+        root.update()
+        designer = main.open_original_fold_designer()
+        root.update()
+        divider_keys = tuple(
+            key for key in designer.designer_workspace.available_parts
+            if key.startswith("box_body:divider:") and ":HORIZONTAL:" in key
+        )
+        assert len(divider_keys) == 1
+        key = divider_keys[0]
+        assert designer.designer_workspace.profiles_for(key)["Y"][0]["len"] == pytest.approx(796)
+        designer.v_w.set("820")
+        for _ in range(9):
+            root.update()
+            time.sleep(0.08)
+        bay = designer._phase6_input_snapshot["receiving_layout"]["sets"][0]["bays"][0]
+        assert bay["width"] == pytest.approx(820)
+        assert sum(
+            row[0] for row in bay["door_state"]["door_layout_columns"]
+        ) == pytest.approx(820)
+        assert designer.designer_workspace.profiles_for(key)["Y"][0]["len"] == pytest.approx(816)
+        # Source-certified CROSS stays enabled: assert the actual native
+        # renderer no longer reports its genuine 3D contact failure.
+        visible = "\\n".join(
+            text.get_text() for axis in designer.fig.axes for text in axis.texts
+        )
+        assert "inverse CROSS leaves real 3D collision unrelieved" not in visible
+        assert "3D Final Part Geometry 載入失敗" not in visible
+        assert "中隔：展開外框 158 × 816 mm" in visible
+    finally:
+        try:
+            if main.fold_designer_window is not None:
+                main.fold_designer_window.destroy()
+        except tk.TclError:
+            pass
+        root.destroy()
+
+
+@pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="native Tk display required",
+)
+def test_native_receiving_thickness_change_keeps_committed_bay_whd_and_custom():
+    """Real Tk W820/H1700/D360 then T2.5 must never revive old W800/D350.
+
+    Regression from actual Windows R5-2600 116-item GUI UAT. The failure was
+    Settings-flush save_current_part() reading a stale box-body fold editor,
+    even though the committed Bay and live Box were already W820/D360.
+    """
+    import time
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    main = gui.BoxCalculatorGUI(root)
+    try:
+        main.baseline_var.set("受電箱")
+        root.update()
+        designer = main.open_original_fold_designer()
+        root.update()
+        for axis, value in (("w", "820"), ("h", "1700"), ("d", "360")):
+            getattr(designer, "v_" + axis).set(value)
+            root.update()
+        for _ in range(6):
+            time.sleep(.14)
+            root.update()
+        source = designer._phase6_input_snapshot
+        assert tuple(float(source[k]) for k in ("w", "h", "d")) == (820, 1700, 360)
+        assert tuple(float(designer._phase6_box_whd[k]) for k in ("w", "h", "d")) == (820, 1700, 360)
+        assert tuple(float(designer._settings_values[k]) for k in ("w", "h", "d")) == (800, 1600, 350)
+
+        # This is a real, operator-writable Tk control, not fabricated source.
+        designer.left_global_vars["t"].set("2.5")
+        for _ in range(6):
+            time.sleep(.14)
+            root.update()
+        assert tuple(float(designer._phase6_input_snapshot[k]) for k in ("w", "h", "d", "t")) == (
+            820, 1700, 360, 2.5
+        )
+        assert tuple(float(designer._phase6_box_whd[k]) for k in ("w", "h", "d")) == (820, 1700, 360)
+        assert tuple(float(getattr(designer, "v_" + k).get()) for k in ("w", "h", "d")) == (820, 1700, 360)
+
+        designer.baseline_model_var.set("自訂")
+        root.update()
+        assert tuple(float(designer._phase6_input_snapshot[k]) for k in ("w", "h", "d", "t")) == (
+            820, 1700, 360, 2.5
+        )
+    finally:
+        try:
+            if main.fold_designer_window is not None:
+                main.fold_designer_window.destroy()
+        except tk.TclError:
+            pass
+        root.destroy()

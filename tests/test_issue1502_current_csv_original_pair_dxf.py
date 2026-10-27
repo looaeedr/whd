@@ -267,15 +267,17 @@ def test_original_operator_does_not_equate_two_brands_on_one_flat_base(tmp_path)
         snap["nfb_config"]
     )
     from ae_engine.receiving_base_plate_config import receiving_base_plate_values
-    assert receiving_base_plate_values(snap)["receiving_bend_pattern"] == "LEFT_FLAT_SIDE"
-    receipt = _export(snap, _scene(snap), tmp_path)
-    assert receipt.source_hole_ids == ("nfb:0", "nfb:1")
-    plate = ezdxf.readfile(receipt.base_plate_path).modelspace()
-    assert sum(1 for x in plate if x.dxftype() == "CIRCLE"
-               and x.dxf.layer == "CUTTING") == 8
-    door = ezdxf.readfile(receipt.inner_door_path).modelspace()
-    assert sum(1 for x in door if x.dxftype() == "LWPOLYLINE"
-               and x.closed and x.dxf.layer == "CUTTING") >= 3
+    before = deepcopy(snap)
+    # Current single physical fixed-ear Z derives from the selected BRAND's
+    # whole numeric CSV maximum, not arbitrary mixed-brand pair depths.
+    # No approved cross-brand ear-contact rule exists. Fail closed BEFORE
+    # producing the old LEFT flat base or paired manufacturing DXFs.
+    with pytest.raises(ValueError, match="EAR_Z_MIXED_BRANDS_REQUIRE_APPROVED_RULE"):
+        receiving_base_plate_values(snap)
+    with pytest.raises(ValueError, match="EAR_Z_MIXED_BRANDS_REQUIRE_APPROVED_RULE"):
+        _export(snap, _scene(snap), tmp_path)
+    assert snap == before
+    assert not list(tmp_path.glob("*.dxf"))
 
 
 @pytest.mark.parametrize("rotation", (0, 90, 180, 270))
@@ -355,3 +357,598 @@ def test_swt29_current_csv_four_rotations_keep_one_main_cut_and_original_pair(
     assert len(saved_screws) == len(actual_screws) == 4
     assert saved_screws == actual_screws
     assert snap == source
+
+
+def test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input(
+    tmp_path, monkeypatch,
+):
+    """Current brand-numeric CSV model -> submitted FinalScene -> 2 DXF reopen.
+
+    Neither legacy color/pivot parsing nor an original NFB manufacturer model
+    .dxf is a prerequisite for current V5. The *generated* manufacturing
+    DXFs still require real CUTTING geometry, a verified pair and reopening.
+    This is not authorization for unverified W/N/X or whole-cabinet output.
+    """
+    from ae_engine.receiving_nfb_model_identity import (
+        parse_numeric_model_ref, selected_numeric_spec,
+    )
+    from ae_engine import receiving_nfb_dxf_source as legacy_dxf
+    from ae_engine import receiving_nfb_manufacturing_release as legacy_release
+
+    def forbidden_legacy(*_args, **_kwargs):
+        pytest.fail("CURRENT numeric V5 illegally requires original model DXF")
+
+    monkeypatch.setattr(
+        legacy_dxf, "inspect_nfb_dxf_source", forbidden_legacy,
+    )
+    monkeypatch.setattr(
+        legacy_release, "inspect_nfb_dxf_source", forbidden_legacy,
+    )
+
+    saved = _current()
+    assert saved["nfb_config_submitted"] is True
+    originals = saved["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]
+    refs = tuple(x["model_filename"] for x in saved["nfb_config"]["holes"])
+    assert refs == ("nfbv5:士林:2P400", "nfbv5:士林:3P125SN")
+    assert tuple(x["model_filename"] for x in originals["holes"]) == refs
+    for ref in refs:
+        assert parse_numeric_model_ref(ref) is not None
+        spec = selected_numeric_spec("士林", ref)
+        assert spec is not None and spec.dimensionally_complete
+        assert spec.opening_mm is not None and spec.screw_pitch_mm is not None
+
+    destination = tmp_path / "current_v5"
+    destination.mkdir()
+    actual = _export(saved, _scene(saved), destination)
+    paths = (Path(actual.inner_door_path), Path(actual.base_plate_path))
+    assert all(path.is_file() for path in paths)
+    assert len(list((tmp_path / "current_v5").glob("*.dxf"))) == 2
+    door = ezdxf.readfile(paths[0]).modelspace()
+    base = ezdxf.readfile(paths[1]).modelspace()
+    assert sum(
+        entity.dxftype() == "LWPOLYLINE"
+        and entity.closed and entity.dxf.layer == "CUTTING"
+        for entity in door
+    ) >= len(refs)
+    assert sum(
+        entity.dxftype() == "CIRCLE" and entity.dxf.layer == "CUTTING"
+        for entity in base
+    ) == 4 * len(refs)
+    assert actual.source_hole_ids == ("nfb:0", "nfb:1")
+    assert len(actual.check_q_key) == 64
+
+
+def test_ac11_ac51_current_v5_missing_numeric_model_fails_without_legacy_fallback(
+    tmp_path, monkeypatch,
+):
+    """Unknown V5 source cannot be rescued by same-named historic model DXF."""
+    from ae_engine import receiving_nfb_dxf_source as legacy_dxf
+    monkeypatch.setattr(
+        legacy_dxf, "inspect_nfb_dxf_source",
+        lambda *_a, **_kw: pytest.fail("legacy fallback is forbidden for V5"),
+    )
+    saved = _current()
+    missing = "nfbv5:士林:THIS_MODEL_IS_NOT_IN_CURRENT_CSV"
+    saved["nfb_config"]["holes"][1]["model_filename"] = missing
+    bay = saved["receiving_layout"]["sets"][0]["bays"][0]
+    bay["nfb_config"] = deepcopy(saved["nfb_config"])
+    with pytest.raises((ValueError, KeyError)):
+        _scene(saved)
+    assert not list(tmp_path.rglob("*.dxf"))
+
+
+@pytest.mark.parametrize("rotation", (0, 90, 180, 270))
+def test_ac11_current_numeric_v5_two_models_real_pivot_and_upper_door_lower_base_dxf(
+    rotation, tmp_path, monkeypatch,
+):
+    """Current V5 main-hole pivot is per model's CSV opening centre at actual UV.
+
+    No original per-model DXF ARC/CIRCLE/color/handle is mandatory. Confirm
+    two independently selected CSV models + live world X, four rotations,
+    one main CUTTING per model in true INNER-DOOR DXF, 8 screw CUTTING
+    circles on real BASE DXF, native FinalScene equality and no double cut.
+    Historic model-DXF parser is forbidden for this CURRENT route.
+    """
+    from ae_engine import receiving_nfb_dxf_source as legacy
+    from ae_engine import receiving_nfb_manufacturing_release as legacy_release
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from ae_engine.receiving_nfb_model_identity import (
+        parse_numeric_model_ref, selected_numeric_spec,
+    )
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive, CirclePrimitive
+
+    def unexpected_legacy(*args, **kwargs):
+        pytest.fail("V5 main-pivot/physical export called old NFB model DXF")
+
+    monkeypatch.setattr(legacy, "inspect_nfb_dxf_source", unexpected_legacy)
+    monkeypatch.setattr(legacy_release, "inspect_nfb_dxf_source", unexpected_legacy)
+
+    snap = _current()
+    selected = snap["nfb_config"]["holes"]
+    assert len(selected) == 2
+    # Distinct declared world X; if the old source drawing/global origin
+    # were used as a pivot, these saved positions could not match output.
+    assert [h["manual_x_mm"] for h in selected] == [-150.0, 150.0]
+    selected[1]["rotation_deg"] = rotation
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    inner_id, holes = _submitted_csv_holes(snap)
+    assert len(holes) == 2
+    trial = trial_configured_nfb_v5_inner_door_render_data(
+        snap, inner_id, holes=holes,
+    )
+    assert trial.hole_ids == tuple(h.physical_hole_id for h in holes)
+    assert len(trial.patterns) == 2
+    for pattern, hole in zip(trial.patterns, holes):
+        ref = parse_numeric_model_ref(hole.model_ref)
+        assert ref is not None and ref[0] == pattern.brand
+        spec = selected_numeric_spec(pattern.brand, hole.model_ref)
+        assert spec is not None and spec.dimensionally_complete
+        assert pattern.model == ref[1]
+        assert pattern.opening_uv_mm is not None
+        assert pattern.screw_centres_uv_mm is None
+        assert pattern.status != "MANUFACTURING_READY"
+        corners = pattern.opening_uv_mm
+        cx = (min(p[0] for p in corners)+max(p[0] for p in corners))/2
+        cy = (min(p[1] for p in corners)+max(p[1] for p in corners))/2
+        assert (cx, cy) == pytest.approx(pattern.datum.uv_centre_mm)
+        assert pattern.datum.uv_axis_x in ((1,0), (0,1), (-1,0), (0,-1))
+        assert pattern.datum.uv_axis_y in ((0,1), (-1,0), (0,-1), (1,0))
+
+    actual_scene = _scene(snap)
+    receipt = _export(snap, actual_scene, tmp_path)
+    assert receipt.source_hole_ids == tuple(h.physical_hole_id for h in holes)
+    assert len(list(tmp_path.glob("*.dxf"))) == 2
+
+    def points(poly):
+        return tuple((round(float(x), 5), round(float(y), 5))
+                     for x,y in poly.get_points("xy"))
+
+    door = ezdxf.readfile(receipt.inner_door_path).modelspace()
+    loops = [entity for entity in door
+             if entity.dxftype() == "LWPOLYLINE" and entity.closed
+             and entity.dxf.layer == "CUTTING"]
+    # Use exact rotated vertices, not only bounding-box and nominal pitch.
+    expected = [tuple(sorted((round(x, 5), round(y, 5))
+                             for x,y in pattern.opening_uv_mm))
+                for pattern in trial.patterns]
+    matches = [tuple(sorted(points(poly))) for poly in loops]
+    for outline in expected:
+        assert matches.count(outline) == 1
+    assert len(set(expected)) == 2
+    native_door = next(p.render_data for p in actual_scene
+                       if p.part_key == trial.part_id)
+    native_loops = [p for p in native_door.scene.primitives
+                    if isinstance(p, PolylinePrimitive)
+                    and p.closed and p.layer == "CUTTING"]
+    assert len(native_loops) == len(loops)
+
+    base = ezdxf.readfile(receipt.base_plate_path).modelspace()
+    saved_screws = sorted(
+        (round(float(ent.dxf.center.x), 5),
+         round(float(ent.dxf.center.y), 5),
+         round(float(ent.dxf.radius), 5))
+        for ent in base if ent.dxftype() == "CIRCLE"
+        and ent.dxf.layer == "CUTTING"
+    )
+    native_base = next(p.render_data for p in actual_scene
+                       if p.part_key == "base_plate")
+    from_scene = sorted(
+        (round(float(p.center.x), 5), round(float(p.center.y), 5),
+         round(float(p.radius), 5))
+        for p in native_base.scene.primitives
+        if isinstance(p, CirclePrimitive)
+        and p.source_type == "NFB_V5_NUMERIC_BASE_TRIAL"
+    )
+    assert len(saved_screws) == len(from_scene) == 8
+    assert saved_screws == from_scene
+    # This is physical source-scoped partial output, NOT automatic MFG2 PAD.
+    assert not list(tmp_path.glob("*PAD*.dxf"))
+
+
+def test_swt27_current_v5_single_x_and_three_row_x_are_true_physical_datums(
+    tmp_path, monkeypatch,
+):
+    """W800/T2 verified example: submitted per-hole X -> exact physical CSV DXFs.
+
+    Two committed three-hole rows differ ONLY at first-hole X (-180 -> -165).
+    Check main-opening vertices and the source-verified Base screw circles.
+    The other holes, physical plate owner, Set/Bay, and original selected
+    model sources remain unchanged. This does not bless other widths/rows.
+    """
+    from ae_engine import receiving_nfb_dxf_source as legacy
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from ae_engine.receiving_nfb_v5_configured_inner_door import (
+        trial_configured_nfb_v5_inner_door_render_data,
+    )
+    from ae_engine.receiving_nfb_model_identity import selected_numeric_spec
+
+    monkeypatch.setattr(
+        legacy, "inspect_nfb_dxf_source",
+        lambda *_a, **_kw: pytest.fail("Current CSV X must not read old model DXF"),
+    )
+    before = _current(model_second="3P400SN")
+    holes = before["nfb_config"]["holes"]
+    holes[0]["manual_x_mm"] = -180.
+    holes[1]["manual_x_mm"] = 0.
+    third = deepcopy(holes[0])
+    third.update(physical_hole_id="nfb:third", slot_index=2,
+                 manual_x_mm=180., model_filename="nfbv5:士林:2P400")
+    holes.append(third)
+    before["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        before["nfb_config"]
+    )
+    after = deepcopy(before)
+    after["nfb_config"]["holes"][0]["manual_x_mm"] = -165.
+    after["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        after["nfb_config"]
+    )
+
+    assert all(row["manual_x_state"] == "CONFIRMED"
+               for row in before["nfb_config"]["holes"])
+    for snap, x_positions in (
+        (before, (-180., 0., 180.)),
+        (after, (-165., 0., 180.)),
+    ):
+        assert snap["w"] == 800.
+        assert [row["manual_x_mm"] for row in snap["nfb_config"]["holes"]] == list(x_positions)
+        assert [row["slot_index"] for row in snap["nfb_config"]["holes"]] == [0, 1, 2]
+        inner_id, resolved = _submitted_csv_holes(snap)
+        assert [h.world_x_mm for h in resolved] == list(x_positions)
+        assert len({h.physical_hole_id for h in resolved}) == 3
+        assert all(selected_numeric_spec("士林", h.model_ref).dimensionally_complete
+                   for h in resolved)
+        trial = trial_configured_nfb_v5_inner_door_render_data(
+            snap, inner_id, holes=resolved,
+        )
+        assert len(trial.patterns) == 3
+        centres = [p.datum.uv_centre_mm for p in trial.patterns]
+        assert [xy[0] - centres[1][0] for xy in centres] == pytest.approx(
+            [x_positions[0], 0., 180.]
+        )
+        assert all(xy[1] == pytest.approx(centres[0][1]) for xy in centres)
+
+    # The pre-change physical sheets cannot authorize post-change export.
+    first_parts = _scene(before)
+    with pytest.raises(ValueError, match="CURRENT_FINALSCENE|SOURCE"):
+        _export(after, first_parts, tmp_path / "nonexistent")
+    assert not list(tmp_path.rglob("*.dxf"))
+
+    def export_and_points(snap, subdir):
+        folder = tmp_path / subdir
+        folder.mkdir()
+        receipt = _export(snap, _scene(snap), folder)
+        assert receipt.source_hole_ids == ("nfb:0", "nfb:1", "nfb:third")
+        assert len(list(folder.glob("*.dxf"))) == 2
+        door = ezdxf.readfile(receipt.inner_door_path).modelspace()
+        base = ezdxf.readfile(receipt.base_plate_path).modelspace()
+        loops = [
+            tuple(sorted((round(float(x), 5), round(float(y), 5))
+                         for x, y in e.get_points("xy")))
+            for e in door if e.dxftype() == "LWPOLYLINE"
+            and e.closed and e.dxf.layer == "CUTTING"
+        ]
+        circles = sorted(
+            (round(float(e.dxf.center.x), 5),
+             round(float(e.dxf.center.y), 5),
+             round(float(e.dxf.radius), 5))
+            for e in base if e.dxftype() == "CIRCLE" and e.dxf.layer == "CUTTING"
+        )
+        assert len(circles) == 12
+        assert receipt.check_q_key
+        return loops, circles
+
+    first_loops, first_screws = export_and_points(before, "before")
+    next_loops, next_screws = export_and_points(after, "after")
+    def expected_contours(snap):
+        inner_id, resolved = _submitted_csv_holes(snap)
+        patterns = trial_configured_nfb_v5_inner_door_render_data(
+            snap, inner_id, holes=resolved,
+        ).patterns
+        return [
+            tuple(sorted((round(x, 5), round(y, 5))
+                         for x, y in pattern.opening_uv_mm))
+            for pattern in patterns
+        ]
+    originals = expected_contours(before)
+    changed = expected_contours(after)
+    assert originals[0] != changed[0]
+    assert originals[1:] == changed[1:]
+    for expected in originals:
+        assert first_loops.count(expected) == 1
+    for expected in changed:
+        assert next_loops.count(expected) == 1
+    # One NFB moves 15 mm in X, so precisely four of its BASE screw centres
+    # move. All other eight physical CUTTING screws must be byte-geometry same.
+    from collections import Counter
+    old, new = Counter(first_screws), Counter(next_screws)
+    removed = list((old - new).elements())
+    added = list((new - old).elements())
+    assert len(removed) == len(added) == 4
+    assert sorted((round(a[0]-b[0], 5), a[1], a[2])
+                  for a,b in zip(sorted(added), sorted(removed))) == sorted(
+        (15., y, radius) for _, y, radius in removed
+    )
+
+
+def test_swt27_current_v5_unapproved_x_state_never_infers_row_from_nominal(
+    tmp_path,
+):
+    """Nominal W800x3 spacing is NOT confirmation of an absent per-hole X."""
+    snap = _current(model_second="3P400SN")
+    hole = snap["nfb_config"]["holes"][1]
+    hole["manual_x_state"] = "NONE"
+    hole["manual_x_mm"] = None
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    # A preview may legitimately display the legacy physical sheet, but
+    # the submitted NFB manufacturing exporter must NEVER silently publish
+    # that sheet with the unresolved main aperture/screws missing.
+    folder = tmp_path / "unconfirmed_x"
+    folder.mkdir()
+    with pytest.raises((ValueError, KeyError)):
+        _export(snap, _scene(snap), folder)
+    assert not list(tmp_path.rglob("*.dxf"))
+
+
+def test_swt30_exact_committed_w_n_y_model_datum_has_real_dxf_but_cannot_leak_to_other_scope(
+    tmp_path,
+):
+    """One W800 three-unit current V5 contract, never a nominal-pitch whitelist.
+
+    The actual signed operator pair uses committed per-hole X, physical
+    Set/Bay and numeric model. Stale scene cannot be reused after changing
+    width, model, operator X, unit count or live Bay. The 'approved' witness
+    is the freshly regenerated exact FinalScene and reopened original-port
+    output, not a filename, preview flag or a nominal hole pitch.
+    """
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from ae_engine.receiving_nfb_model_identity import selected_numeric_spec
+
+    approved = _current(model_second="3P400SN")
+    holes = approved["nfb_config"]["holes"]
+    holes[0]["manual_x_mm"] = -180.
+    holes[1]["manual_x_mm"] = 0.
+    third = deepcopy(holes[0])
+    third.update(
+        physical_hole_id="nfb:swt30-third",
+        slot_index=2, manual_x_mm=180.,
+        model_filename="nfbv5:士林:2P400",
+    )
+    holes.append(third)
+    approved["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        approved["nfb_config"]
+    )
+    inner_id, selected = _submitted_csv_holes(approved)
+    assert approved["w"] == 800.
+    assert len(selected) == 3
+    assert tuple(h.world_x_mm for h in selected) == (-180., 0., 180.)
+    assert all(
+        selected_numeric_spec("士林", h.model_ref).dimensionally_complete
+        for h in selected
+    )
+    parts = _scene(approved)
+    dest = tmp_path / "approved"
+    dest.mkdir()
+    receipt = _export(approved, parts, dest)
+    assert receipt.source_hole_ids == (
+        "nfb:0", "nfb:1", "nfb:swt30-third",
+    )
+    assert receipt.scope == "CSV_PAIR_PART_ONLY_NOT_WHOLE_CABINET"
+    assert len(receipt.check_q_key) == 64
+    assert len(list(dest.glob("*.dxf"))) == 2
+    door = ezdxf.readfile(receipt.inner_door_path).modelspace()
+    base = ezdxf.readfile(receipt.base_plate_path).modelspace()
+    door_contours = [
+        e for e in door
+        if e.dxftype() == "LWPOLYLINE"
+        and e.closed and e.dxf.layer == "CUTTING"
+    ]
+    screw_circles = [
+        e for e in base
+        if e.dxftype() == "CIRCLE" and e.dxf.layer == "CUTTING"
+    ]
+    assert len(door_contours) >= 3
+    assert len(screw_circles) == 12
+    assert any(p.dxf.layer == "BEND" for p in base)
+
+    mutants = {}
+    wrong_width = deepcopy(approved)
+    wrong_width["w"] = 750.
+    mutants["other_width"] = wrong_width
+    changed_model = deepcopy(approved)
+    changed_model["nfb_config"]["holes"][1]["model_filename"] = "nfbv5:士林:2P125SN"
+    changed_model["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        changed_model["nfb_config"]
+    )
+    mutants["other_model"] = changed_model
+    changed_x = deepcopy(approved)
+    changed_x["nfb_config"]["holes"][0]["manual_x_mm"] = -165.
+    changed_x["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        changed_x["nfb_config"]
+    )
+    mutants["other_world_x"] = changed_x
+    changed_number = deepcopy(approved)
+    changed_number["nfb_config"]["holes"].pop()
+    changed_number["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        changed_number["nfb_config"]
+    )
+    mutants["other_row_count"] = changed_number
+    wrong_bay = deepcopy(approved)
+    wrong_bay["_receiving_runtime_selection"]["bay_id"] = "another-bay"
+    mutants["other_bay"] = wrong_bay
+
+    for key, mutant in mutants.items():
+        target = tmp_path / key
+        target.mkdir()
+        with pytest.raises((ValueError, KeyError)):
+            _export(mutant, parts, target)
+        assert not list(target.glob("*.dxf")), key
+
+    # Current model/row alone are never a release: even a W800 three-row
+    # sample must not infer missing per-hole world X from 180-mm nominal pitch.
+    pending = deepcopy(approved)
+    pending["nfb_config"]["holes"][0]["manual_x_mm"] = None
+    pending["nfb_config"]["holes"][0]["manual_x_state"] = "NONE"
+    pending["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        pending["nfb_config"]
+    )
+    blocked = tmp_path / "unconfirmed"
+    blocked.mkdir()
+    with pytest.raises((ValueError, KeyError)):
+        _export(pending, parts, blocked)
+    assert not list(blocked.glob("*.dxf"))
+
+
+def test_ac51_swt30_exact_verified_v5_pair_receipt_discloses_only_exported_models_and_xy(
+    tmp_path,
+):
+    """Only a real saved/reopened CSV pair can display this scoped manufacture line."""
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from ae_engine.receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+
+    snap = _current()
+    inner_id, holes = _submitted_csv_holes(snap)
+    before = deepcopy(snap)
+    root = tmp_path / "success"
+    root.mkdir()
+    pair = _export(snap, _scene(snap), root)
+    scope = pair.verified_v5_scope
+    assert scope is not None
+    assert (scope.set_id, scope.bay_id) == ("S", "B")
+    assert scope.width_mm == pytest.approx(800.0)
+    assert scope.inner_door_id == inner_id
+    assert tuple(site.physical_hole_id for site in scope.sites) == (
+        "nfb:0", "nfb:1",
+    )
+    assert tuple(site.model_ref for site in scope.sites) == (
+        "nfbv5:士林:2P400", "nfbv5:士林:3P125SN",
+    )
+    assert [site.world_x_mm for site in scope.sites] == pytest.approx(
+        [-150.0, 150.0],
+    )
+    assert [site.world_y_mm for site in scope.sites] == pytest.approx([
+        project_nfb_inner_door_nominal_y(
+            snap, inner_id, layer_count=h.layer_count, slot_index=h.slot_index,
+        ).box_world_y_mm for h in holes
+    ])
+    label = scope.operator_label
+    assert "可製造（內門）" in label
+    for token in ("Set=S", "Bay=B", "W=800", "N=2", "X=-150",
+                  "X=150", "nfbv5:士林:2P400", "nfbv5:士林:3P125SN",
+                  "其他版本／位置／型號", "整箱未放行"):
+        assert token in label
+    assert all(Path(path).is_file() for path in (
+        pair.inner_door_path, pair.base_plate_path,
+    ))
+    assert snap == before
+
+    # An old pair receipt still describes ONLY the earlier output. Mutating
+    # current committed coordinates cannot use the old scene to release a
+    # current/new Bay scope; no new DXF or green status may be produced.
+    changed = deepcopy(snap)
+    changed["nfb_config"]["holes"][1]["manual_x_mm"] += 15.0
+    changed["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        changed["nfb_config"]
+    )
+    new_directory = tmp_path / "stale"
+    new_directory.mkdir()
+    with pytest.raises(ValueError, match="CURRENT_FINALSCENE"):
+        _export(changed, _scene(snap), new_directory)
+    assert not list(new_directory.glob("*.dxf"))
+    assert scope.sites[1].world_x_mm == pytest.approx(150.0)
+
+
+def test_ac51_swt30_numeric_model_preview_without_successful_export_has_no_scope_label():
+    """A constructed preview-style result cannot claim physical approval."""
+    from gui_modules.application.receiving_nfb_pair_partial_export_action import (
+        NfbCsvPairedPartOnlyDxf,
+    )
+    preview = NfbCsvPairedPartOnlyDxf(
+        inner_door_path="", base_plate_path="",
+        source_hole_ids=("nfb:0",), check_q_key="",
+    )
+    assert preview.verified_v5_scope is None
+    assert preview.scope == "CSV_PAIR_PART_ONLY_NOT_WHOLE_CABINET"
+
+
+def test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift(
+    tmp_path, monkeypatch,
+):
+    """Only an ACTUALLY written+reopened CSV V5 physical pair can be labelled.
+
+    The proof is ephemeral UI-only; changing W/N/model/X/Y/rotation, source
+    CSV, Bay identity or saved DXF bytes revokes the positive label. A
+    preview/complete model alone can never manufacture another copy.
+    """
+    from gui_modules.application import receiving_nfb_verified_scope_display as display
+    from gui_modules.application.receiving_nfb_pair_partial_export_action import (
+        NfbCsvPairedPartOnlyDxf,
+    )
+
+    saved = _current()
+    receipt = _export(saved, _scene(saved), tmp_path)
+    verified = display.capture_verified_v5_pair_display(saved, receipt)
+    assert verified is not None
+    assert verified.scope == receipt.verified_v5_scope
+    assert "可製造（內門）" in display.verified_v5_model_operator_label(
+        verified, saved, "士林", "nfbv5:士林:2P400",
+    )
+    assert "僅本次真實出圖已驗證" in verified.scope.operator_label
+    assert display.verified_v5_model_operator_label(
+        verified, saved, "士林", "nfbv5:士林:2P125SN",
+    ) is None
+    assert display.verified_v5_model_operator_label(
+        verified, saved, "東元", "nfbv5:士林:2P400",
+    ) is None
+    assert display.verified_v5_model_operator_label(
+        None, saved, "士林", "nfbv5:士林:2P400",
+    ) is None
+    # Only exact real writer receipts qualify. A source-only model preview
+    # or a typed receipt lacking saved geometry does not produce a green.
+    fake = NfbCsvPairedPartOnlyDxf(
+        inner_door_path=receipt.inner_door_path,
+        base_plate_path=receipt.base_plate_path,
+        source_hole_ids=receipt.source_hole_ids,
+        check_q_key=receipt.check_q_key,
+        verified_v5_scope=None,
+    )
+    assert display.capture_verified_v5_pair_display(saved, fake) is None
+    for mutate in (
+        lambda x: x.update(w=750),
+        lambda x: x["nfb_config"]["holes"][0].update(manual_x_mm=-145.),
+        lambda x: x["nfb_config"]["holes"][0].update(rotation_deg=90),
+        lambda x: x["nfb_config"]["holes"][0].update(
+            model_filename="nfbv5:士林:2P125SN"
+        ),
+        lambda x: x["_receiving_runtime_selection"].update(bay_id="wrong"),
+        lambda x: x["nfb_config"].update(layer_heights_mm=[390., 830.]),
+    ):
+        changed = deepcopy(saved)
+        mutate(changed)
+        assert display.verified_v5_model_operator_label(
+            verified, changed, "士林", "nfbv5:士林:2P400",
+        ) is None
+    # Even the same authoritative project cannot point to modified source
+    # or a replaced generated file and display a historic green.
+    from ae_engine.receiving_nfb_numeric_catalog import brand_csv_path
+    imported = brand_csv_path("士林").read_bytes()
+    source_copy = tmp_path / "NFB數值規格.csv"
+    source_copy.write_bytes(imported + b"\n# SOURCE_CHANGED")
+    monkeypatch.setattr(display, "brand_csv_path", lambda _brand: source_copy)
+    assert display.verified_v5_model_operator_label(
+        verified, saved, "士林", "nfbv5:士林:2P400",
+    ) is None
+    monkeypatch.undo()
+    base = Path(receipt.base_plate_path)
+    base.write_bytes(base.read_bytes() + b"\n# TAMPER")
+    assert display.verified_v5_model_operator_label(
+        verified, saved, "士林", "nfbv5:士林:2P400",
+    ) is None
+    # Actual file bytes and selected scope are not saved in .p6fold.
+    assert "verified_pair_exports" not in saved

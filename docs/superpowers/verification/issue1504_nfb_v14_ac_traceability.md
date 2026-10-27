@@ -5,6 +5,156 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## 2026-10-27 台灣｜#1504 NFB-AC-16 第 88 條來源範圍簽核候選（87→88）
+
+- **原文、原始規格 SHA 不改**。舊 V1 專案走原始 BoxCalculatorGUI 多連 NFB 面板，無來源提交／複製禁用；Cancel 與真 Save→Reload 後無虛構 NFB、原有孔與折形未失；原始制造 DXF 的逐檔 entity type、layer、color、geometry 與文件集合前後一致。
+- **舊專案／實際 DXF**：tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py::test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs，另 test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen 保護原孔、尺寸及再次存檔一致性。比較當前原始 V1 專案在現行 WHD 操作前後，沒有虛構歷史舊執行檔製造參照。
+- **已提交與拒絕複製**：test_ac46_saved_submitted_nfb_is_never_silently_legacy_after_gui_reload 在真 Tk V3 確認保存提交事實，沒有當前 MFG1 證據禁止直接用舊式內門／底板出 DXF；test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation 驗來源未配置複製不成立；新案未配置 schema 不升版。
+- **金庫型／舊 Hole Editor**：PR #2335 exact HEAD 0f6347eb3a0c2c17a4ccbd73e0befc6729f0dd15 的 Preflight、Shard0／1／2、Canonical 全部 SUCCESS，已合併 GitHub localX@9376a1f24266ef131b401cfd5cc0b570cef18a64。test_ac16_vault_native_generic_hole_editor_cancel_does_not_mount_receiving_nfb 原生 Tk 真刪除、取消全部、原孔精確還原、Vault 仍為金庫型、不產生 NFB submitted。先前 PR #2334 舊案真 GUI 及 DXF 前後比對亦 5/5 GREEN 並已合併。
+- **88/88 限定**：本次另加真證據逐項 audit，最後簽核 PR 五組 exact-head Product CI 全綠及 GitHub localX 安全合併、blob readback 後才正式算 88。無 Windows 真人驗收、無歷史舊程式輸出物對照、無原廠全部 DXF／PAD／焊接／整箱 MFG2／NC 放行；正式 X 只有使用者另下 /推推。
+
+---
+## 2026-10-27 台灣｜#1504 SWT-AC-24／26 兩條逐條正反簽核（85→87 候選）
+
+- **SWT-AC-24**：原生 Tk MFG-1 有源提交與首次複製、Cancel／Restore／Undo／V3 Save→Reload 同已驗功能串核；PR #2332 真實部分出圖器產出內門 CUTTING 兩輪廓，物理 manifest 僅允許 INNER 2 片、MIDDLE 1 片仍 HOLD；同一已核准 render data 的真 CHECK/Q DXF 重開 `Q2`，Color150 開孔來源結構違反時禁止新的出圖。引用完整來源測試及現行機器收據，不把局部核准冒充整櫃 MFG-2。
+- **SWT-AC-26**：真正原生 Tk 按鈕前／按下雙層 MFG-1 來源守衛，未確認來源時不可提交或向未配置 Bay 複製；來源失效的已啟用狀態不可穿透提交；真已儲存 legacy fixture 無 NFB 仍不獲得假狀態；未提交 legacy INNER／BASE／MIDDLE 三種實體角色保留，原一般出圖守衛不應連坐阻擋。
+- **新增交叉補證**：`tests/test_issue1501_nfb_check_quantity_gate.py::test_swt18_24_26_source_scoped_partial_check_and_unsubmitted_old_parts` 驅動當期 manifest／真正 DXF 分組及 CHECK/Q，完整套件輸出遇未核准 MFG2 必阻，部分輸出實際重開 Q10/Q4/Q6；原本未提交舊式件數 1+2+1 與合法角色原樣保留。
+- **候選 87/88、待 1**：只剩 NFB-AC-16，仍須合法舊工程真正逐片 2D/3D/DXF 加金庫型/Hole Editor 相容驗收；二 AC 皆待此 exact-head 全部五工作 GREEN、GitHub localX 合併與精確反讀才算正式 87。無 Windows 人工、原廠 DXF 或整箱 NC 放行。
+
+---
+## 2026-10-27 台灣｜#1504 SWT-AC-18 現行 CSV V5 逐顆原生 Tk 診斷與實體部分製造清單（84→85 候選）
+
+- **原 §7 AC 保留**：未提交 Bay 仍維持舊加工，不產生 NFB 可製造假許可；已提交的逐顆 CSV V5 診斷在原生 Tk 顯示第1層第1／2顆的 `NFB_WORLD_X_RECONFIRM_REQUIRED`，未經實際 MFG1 不放行提交／複製。
+- **原生 GUI 與來源切斷正反證據**：`tests/test_issue1500_nfb_operator_gui_transactions.py::test_swt18_native_tk_live_csv_unit_reasons_and_physical_partial_report` 在原 Tk 多連設定切換未配置、V5 CSV 診斷及實體 manifest；真 `derive_nfb_partial_export_manifest` 項目 INNER/BASE/SIDE 可出 6 片、MIDDLE 受阻 4 片，來源 DXF 位元組改變後 INNER 撤銷、獨立 SIDE 仍可出 3 片。原既有 `test_unconfigured_preserves_legacy_even_when_nfb_source_absent` 與 `test_shihlin_color150_partial_only_counts_real_pieces` 為必要互證。
+- **不可擴張**：這只驗此來源範圍的 Tk/功能與物理 manifest；不代替操作者 Windows 人工 UAT、原廠全部 DXF、PAD/EAR 工藝或整箱 MFG2/NC。
+- **候選矩陣 85/88、待 3**：NFB-AC-16、SWT-AC-24／26 尚待分別完成；未取得本次新 PR exact HEAD 五工作全綠及合併回讀前，不可當正式簽核。
+
+---
+## 2026-10-27 台灣｜#1504 NFB-AC-40 X 基準版次／數量版本來源綁定（83→84 候選）
+
+- **確認的缺口已修補**：`normalize_nfb_saved_fields` 本來比對型號、旋轉、Bay 實體寬與 owner，但若數量版本的 X 依據**已明確寫有 `datum_snapshot.version_id`**，對不同 `QuantityModel.version_id` 未比對就可能保留 `CONFIRMED`。現在在既有 canonical writer／reader 一致檢核；指定版次不符則 `RECONFIRM_REQUIRED`，保留真實 X=0 供操作者重核，不偷換為 `NONE`。舊資料未記錄版次不得臆造版次；真實提交仍需 MFG-1 逐來源／逐物理孔位驗證。
+- **完整正反**：新增 `test_ac40_explicit_quantity_version_x_owner_zero_cancel_reconfirm_v3_roundtrip` 驅動原 `QuantityModel`，v1 的 V5 X=0 正常核准，複製 v2 降級、偽造沿用 v1 已核准狀態也降級；提供明確 v2 來源才可保留核准；變更型號或旋轉立即降級，`NONE+null` 不等於已批准的 `CONFIRMED+0`。原 `write_project/read_project` V3 存檔重開，兩版本獨立保持這些原始狀態。
+- **同一真實操作權限**：新增 `test_ac40_version_scoped_operator_x_cannot_cross_release_and_cancel_is_atomic` 使用原生 backend 及 typed 內門實體 MFG-1 來源，`v1` 的 X 版次交給 `v2` 必須在任何操作員確認 callback 前拒絕；新 `v2` datum 與實體證據齊全後取消全不變、確定才成功，已核准真 X0／version 身分由 .p6fold Reload 保持。既有 `test_ac23_reopened_stale_world_x_native_tk_reconfirm_restores_only_source_verified_dxf` 在原生 Tk UI 驗 Cancel/Confirm／真正來源 DXF、X 基準變更與失效守衛；AC28 原生多 Bay 回歸為強制補證。
+- **限制**：這是當期可重跑的版本身分及原生 GUI／來源閘門的程式驗收，不代表使用者 Windows UAT、任意廠牌原廠 DXF 或 MFG-2／PAD／整箱製造核准。先列 **84／88 候選、4 項未簽**；exact HEAD Product Regression 五階段全綠、GitHub `localX` 安全合併與 Git Tree 回讀後才可認正式 84。無不存在的第二份舊工程 B，正式 X 需使用者 `/推推`。
+
+---
+## 2026-10-26 台灣｜#1504 NFB-AC-34 原生 UI-1B 提交／複製的真 MFG-1 守衛及 DRAFT Save→Reload（80→81 候選）
+
+- **原始 §7 AC-34 原文維持不變**：沒有當次物理來源 MFG-1，真 Tk `確認套用 NFB` 和提交型 `複製至其他連` 必須停用，按下不能變更 Bay。僅有 verified inner-door 切割及來源完整的 MFG-1 具提交資格，而不是 GUI 任意設旗標。
+- **正反操作實際路徑**：新 `test_ac34_native_verified_submit_and_first_copy_cancel_partial_draft_disk_roundtrip` 用現行 `derive_nfb_part_readiness` 求 live 權限，真原生 Tk 高亮連位→原 `ReceivingSetBayAdapter`→MFG-1 提交的物理預覽顯示中隔尚未放行；第一次取消保持 `UNCONFIGURED` 與空 Undo，確認後記錄 Bay 0 NFBConfig／X=0。對未配置 Bay 1 禁止無來源複製；獨立驗證 target X=100 後才顯示提交型複製，取消完全不動；第二次確認寫入獨立 submitted Bay。
+- **DRAFT 保護**：`INNER_DOOR` MFG-1 源證據 READY 並不提供另一實體 `MIDDLE_PLATE` MFG-2 授權；即使提交成功，`derive_nfb_part_readiness` 仍 BLOCKED middle，真正包含該板件的完整製造請求必須拒絕。真 `write_project/read_project` V3 Save→Reload 逐 Bay 保留兩筆 submitted 與 X=0／100，不可保存虛假的 `READY` 製造旗標。
+- **審核限制**：本次來源為既有 typed CUTTING test fixture，不是假稱原廠全面 DXF 或 Windows 人工 UAT；數量／PAD／焊接／完整 NC 仍需獨立證據。沒有第二份舊「專案 B」前置。
+- **尚未正式算已簽**：此 PR 是 **81／88 候選、7 項待驗**；必須 exact HEAD 完整 Product Regression 5／5 GREEN、與最新 `localX` 安全合併、blob readback 才能正式認列。正式 X 只由使用者 `/推推` 發布。
+
+---
+## 2026-10-27 台灣｜#1504 NFB-AC-42 UI-1A 預覽／取消／Undo 與實體來源硬閘門（81→82 候選）
+
+- **原始 §7 NFB-AC-42 不變**：UI-1A 單純編輯器預覽、位移 X0 與旋轉等僅為草稿，不得暗中改寫已提交配置、正式 DXF 原始位元組、或推導製造允許。尚無有效 MFG-1 時，真實原生 Tk 上正式提交／覆寫及首次複製按鈕停用，已失效來源即使畫面先前呈現 enabled，實際點擊也須重新阻擋。
+- **正反測試**：現行 V5 `NfbUi1aEditSession` 暫存雙層型號，`nfb_ui1a_preview` 回傳逐層／逐顆資料、相對位置與源狀態，但永遠 `has_absolute_x=False`、`can_manufacture=False`；手動 X=0→Undo、暫改 X→Escape 都回到原草稿。真正來源 `ezdxf` 檔案雜湊改動前後一致，原 `write_project/read_project` V3 .p6fold 仍無 NFBConfig／submitted；既存 AC06 測試確保非法 callback／取消時不洩漏資料。
+- **UI-1B 閘門**：依賴已合併 NFB-AC-34 的**實際 Tk／來源**正反驗證及 AC-53 版本綁定，非獨立測試名稱：無 MFG-1 實體內門證據的 SUBMIT/COPY disabled，source revoked even after enabled display must be denied on click；MFG-1 內門真 READY 且操作者批准才允許進行 UI-1B 交易，同時中隔等 MFG-2 未驗證的板件仍不得製造。
+- **限制與併入條件**：來源是隔離測試原始 DXF 非廠商量產證據；不聲稱 Windows 使用者人工實機、完整整箱 DXF／NC、PAD 或原廠 MFG2 合格。既有雙舊案中的第二份專案 B 要求已取消。此為 **82／88 候選（剩 6 項）**，必須 exact HEAD Product Regression 5／5 SUCCESS、核對當期 localX、合併與逐檔 readback 才正式認列；正式 X 仍須 `/推推`。
+
+---
+## 2026-10-27 台灣｜#1504 NFB-AC-02 最後一顆刪除／1↔2 實體層與已提交隔離（82→83 候選）
+
+- **原始 §7 AC-02 不變**：未提交 NFB 的 UI-1A 可以零槽；提交後無條件要求一／二實體層和至少一顆有效實體孔。畫面刪除最後一槽屬未提交的編輯草稿，不等於隱式「還原為未配置」。只有明確的 Confirm RESTORE_UNCONFIGURED 才能改寫持久化已提交事實，取消及 Undo 仍可完全回復。
+- **實際路徑**：`gui_modules/application/fold_designer_composition_receiving.py::inner_edit` 只有單一原生 Tk `layers` 來源，同時是內門版本及 NFB 實體安裝層數，修改經 `_NfbDraftState` 掛接當期 `NfbUi1aEditSession`，取消／Undo 有一份 transaction history；無第二個 NFB 層數可編輯入口。新 `test_ac02_edit_last_slot_and_layer_switch_never_implicitly_restore_submitted_nfb` 從真正模型操作零槽→新增一層→1→2→新增第二層；第二層有顆位時試圖 2→1 必須直接拒絕且沒有狀態變動；明確刪除第二層後可 2→1，Undo 必須恢復原 stable unit。刪除最後一槽只讓 UI-1A 預覽 `can_manufacture=false`，正式 `normalize_nfb_config` 拒絕 `holes=[]`。
+- **持久化／實體獨立性**：使用當期 `update_receiving_bay` 建立有來源來源範圍限定的單層 NFB 並寫入真 V3 `.p6fold`，刪空 UI-1A 後已提交 Bay 及原始 X=0 不會改變。另一 Bay 真兩層 `layer_index=0/1` 的兩個**不同**實體 ID 寫入、重開都保持原樣。僅正式 `restore_nfb_bays_unconfigured` 經確認才能清 NFBConfig，取消完全不動，Undo 精確還原；既有原生 Tk AC35/45/56 仍驗證原 UI 的確認／取消／Undo 與舊版輸出守衛。
+- **簽核界線**：原始兩份 v1.4 條文／SHA 不更動；本次是 current CSV V5 的模型、資料、單一層數原生 Tk 操控契約與真工程 V3 存檔驗收，**不是宣稱任意廠牌完整 MFG-2、原廠 DXF、整箱 NC 或 Windows 人工實機**。第二份舊專案 B 前置已取消。
+- **合併條件**：原已正式 GitHub `localX@ccbe95df` 為 82／88。本 PR 暫 **83／88 候選（剩 5）**，需 exact HEAD 完整 Product Regression 5/5 SUCCESS，最新 localX 無同檔衝突，合併並逐檔回讀才可正式認列。正式 X 必須由使用者 `/推推` 授權。
+
+---
+
+
+
+
+## 2026-10-26 台灣｜#1504 NFB-AC-36／SWT-AC-07 原生 Bay ＋數量版本複製真存檔候選（78→80）
+
+- **原始條文保留**：NFB-AC-36 與 SWT-AC-07 分別要求來源 `UNCONFIGURED` 不得提交型複製、首次複製需明確真實 MFG-1 與受阻板件確認，數量版本深複製已提交事實與配置而不讓各版本互相污染，真 `.p6fold` Save→Reload 保留來源與操作者設定；UI-1A 暫存預覽絕不冒充永久已提交。
+- **真實原生 Bay 操作證據**：已合併 PR #2315 的 `tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac07_ac43_native_two_bay_copy_cancel_overwrite_independence_and_reopen` 由原 Tk 高亮選連驅動原 ReceivingSetBayAdapter，實際 `COPY_SUBMIT` 取消／確認、`COPY_OVERWRITE` 取消／確認、目標來源失效拒絕、各自 physical_hole_id 與實體 X、Undo，再從真 `.p6fold` readback。未配置來源的交易仍由原 backend 與橋接層 fail-closed。
+- **新增數量版本真實讀寫測試**：本 PR 不創造另一套 QuantityModel 介面，直接呼叫當期 `QuantityModel.add_version`、`set_version_nfb_config` 與原 `write_project/read_project`，重複複製 `UNCONFIGURED` 沒有任何休眠 NFBConfig；已提交原版本複製到獨立版本後目標的 X0 保留但原 `CONFIRMED` → `RECONFIRM_REQUIRED`，不可換成 `NONE` 或自動判定 READY。只修改／還原目標不動來源，實際 V3 `.p6fold` 重開後每版配置、提交事實、數值 X0、原操作者設定與版本件數一致。
+- **UI-1A 尚未正式提交**：沿用當期 `test_ac06_native_edit_cancel_undo_illegal_mutating_callback_and_authority_save`，原暫存 EditSession 取消／Undo 不寫入 Bay/Quantity 製造資料、不存偽造 NFBConfig；無來源現行 MFG-1 認證不可藉版本複製取得出圖能力。
+- **本批為候選、不是當期已簽**：此前 GitHub `localX@78b9eadf` 已正式 78/88；本分支候選 **80／88，餘 8**。需完整 exact HEAD Product Regression 五工作 SUCCESS、與最新 GitHub localX 安全合併及 blob readback 後才正式認列。沒有 user Windows 真機人工驗收、沒有不存在的專案 B、沒有 MFG-2/PAD/整箱 NC 放行，正式 X 仍需使用者 `/推推`。
+
+---
+
+## 2026-10-26 台灣｜#1504 NFB-AC-53 真來源版本 MFG-1 重新核對與拒絕過期能力（77→78 候選）
+
+- **修正確認的產品缺口**：`ae_engine/receiving_nfb_ui1b_bridge.py::assert_live_verified_nfb()` 原本已核對 Bay 身分、來源 DXF 位元 SHA、真正的內門幾何及 NFBConfig digest，卻漏比 `NfbVerifiedDraftSubmission.version_id` 與 `NfbPhysicalScope.version_id`、`NfbScopeReadiness.scope`。因此不可把物理相同但**版本錯誤**的已核准 MFG-1 能力當成當期可提交。現改為 `scope.identity == (live Set, live Bay, candidate version)` 且 `readiness.scope == scope`、`submitted=true`，任何不符立刻失效、要求重驗，不到操作者確認也不寫入。
+- **正反回歸**：使用既有真實來源讀取／組裝的 typed MFG-1 `NfbVerifiedDraftSubmission`，正向確定版本 v1 只授權 v1；逐項偽改 `version_id`（含布林）、`scope.version_id`、`scope.submitted`、`readiness.scope`，均由 `assert_live_verified_nfb` 和 `submit_live_verified_nfb` 在任何 adapter 寫入前拒絕。保留同一已驗證 v1 的正常提交。
+- **完整 UI／存檔補證**：已存在 source-revocation 原生 Tk 測試證明按鈕呈現可用後來源變更時，實際點擊不會提交；後端獨立測試保證已提交來源複製只用目標自身版本與 MFG-1 實體授權；新 AC-46 真 GUI 舊格式 V3 Save→Reload 則證明能力/來源未重新取得時原本的 `submitted=true` **不降級為 UNCONFIGURED**，也不能輸出缺孔的 legacy 板件。
+- **審核界線**：以上是來源、版本、Scope、README/供應 DXF test fixture 下的 UI-1B 能力核銷，非 arbitrary 廠牌 MFG-2、PAD／焊接／整箱 NC 或使用者 Windows UAT；原始兩份 v1.4 規格與 88 AC 不改。**本 PR 同時候選 AC-46 + AC-53，矩陣暫 78／88，剩 10；只有 exact HEAD 5/5 CI SUCCESS + localX merge/readback 才成為正式簽核**，正式 X 仍需 `/推推`。
+
+---
+
+## 2026-10-26 台灣｜#1504 NFB-AC-46 真 GUI 舊案已提交防無孔 DXF 候選（76→77）
+
+- **原始 §7 AC-46 不變**：即使缺少原機器 MFG-1 source/capability，載入已儲存 `submitted=true` 的工程絕不可默認為 `UNCONFIGURED`，並輸出缺少 NFB 孔的舊版完整 DXF。提交事實與原始配置屬於持久化資料，READY 是重新推導的當次來源授權。
+- **驗證鏈**：用倉庫原本保留的受電箱舊格式工程作為合法檔案基礎，於隔離測試檔中設定單連已提交 NFB（明確為測試造出的配置，不偽稱原使用者證據），執行真 `write_project`→`read_project`→原生 WHD GUI load→NFB 視窗檢查提交／複製停用與還原可用→製造舊式 `door/base/body` 守衛警示；再透過原始 `_export_selected_parts` 實際嘗試 NFB 依賴的箱身側板 DXF，要求明確來源/NFB 錯誤、零輸出文件。無 NFB 依賴的 HEAD/TAIL 與可獨立證明的外門不被同一 NFB-only guard 阻擋；GUI 再存檔重讀仍保留 V3 與已提交配置。
+- **負面案例**：舊 V1/V2 schema 冒裝已提交配置必須拒絕、布林值不合法必須拒絕。所有輸出斷言都經 mandatory CI，不能只靠測試名稱；**本期不宣稱 user Windows UAT 或工廠任意 DXF 認證**。
+- **合併條件**：PR HEAD 全 Product Regression（含 52 CPR/AC）GREEN 才可合併 GitHub localX，簽核正式成為 77/88；其他 11 項不自動 GREEN。無不存在「專案 B」前置；正式 X 仍需 `/推推`。
+
+---
+
+## 2026-10-26 台灣｜#1504 AC-07／43／35／45／56 原生 Tk 真交易與 Save→Reload 簽核候選（71→76）
+
+- **原文不改**：NFB-AC-07／43 針對兩連原生 Tk Canvas 高亮→來源已提交→合法物理目標複製、第一次 COPY_SUBMIT 與覆寫 COPY_OVERWRITE 的確認／取消、缺現行來源時即使舊按鈕仍可按也拒絕，來源與目標各自持有獨立 physical_hole_id／unit_id、手動 X、Undo，真 `.p6fold` Save→Reload 不能串連污染。原生 GUI 直接驅動 `ReceivingSetBayAdapter.copy_submitted_nfb_to_bay`；不靠假 ports 的返回值模擬深複製。
+- **還原與保護**：NFB-AC-35／45／56 以同一原生 Tk Restore→取消原狀→確認丟棄 NFBConfig／submitted（存檔重開驗無休眠配置）→Undo 精確復原測試。原本 Set 品牌與 sibling Bay 不變；**真實** `_assert_legacy_nfb_export_scope_safe` 在提交時禁止舊門／箱身／底板輸出，僅還原成 UNCONFIGURED 才恢復 legacy eligibility，Undo 後立刻再阻擋；UI 沒有「忽略草稿強制舊式出圖」。
+- **同時核對既有獨立測試**：#1500 typed 實體 source/physical-hole/copy 深複製／覆寫／撤銷、#1499 已提交／未配置 `.p6fold`、#1501 實際 legacy 製造守衛、#1504 舊專案 fixture 原生開啟取消重存檔。以上全部由 `tools/product_ci_regression.py` 強制納入，而不是僅有測試函式名稱。
+- **候選範圍**：精確受測工程與 typed verified CUTTING fixture 的本期 UI-1B 功能，非廠牌來源全面認證、使用者 Windows 真 GUI、PAD／焊接／整箱 NC、任何正式 X 或其他 12 項 AC。不存在的專案 B 不再是前置。
+- **生效條件**：本 PR HEAD 全 Product Regression 五階段 SUCCESS，GitHub `localX` 安全 merge 與四至五個修改檔 exact blob readback 後才能正式視為 76/88。CI RED 時回修，不能先拿矩陣 76 當已簽。正式 X 另需 `/推推`。
+
+---
+
+## CURRENT USER DECISION｜2026-10-26｜取消不存在的第二份「專案 B」驗收硬閘門
+
+- **正式改正**：#1500／#1504 不再要求 A+B 兩個舊客戶專案、第二份 `.p6fold`、Library B 原始位元組或 Windows 雙案 UAT，作為任一 AC 的必要前置；以下歷史提及「兩份舊案」的文字全部視為過期，不得再引用成為當期拒簽理由。注意「兩份 v1.4 規格書」是原始的兩個**規格文件**，不是兩個工程專案。
+- **17 項實際簽核方法**：以現有合法可取得的舊格式工程／原生 Tk GUI 操作及已提交的現行 V5 數值 CSV 為來源，依每項原 §7 AC 的功能做正反驗收：選型、取消、確認與來源守衛；提交／Bay 或版本深複製／Undo／還原；`.p6fold` Save→Reload；實際 2D／3D 與 SIDE MARKING；合法部分／禁止完整 DXF、真輸出重開及 CHECK/Q。使用舊格式 fixture 可證程式的相容性範圍，**不能**冒稱使用者原 Windows 實機畫面或原廠製造資格。
+- **當前矩陣 71／88**：已簽 71 不倒退也不重簽，剩 17 先維持 `BLOCKED_1500_REAL_GUI`，意指**各自完整功能鏈證據未簽**，不是欠一份不存在的 B。每項有實際充分證據才個別提升，不因取消 B 自動全部變 GREEN。
+- **機器權威**：`issue1504_nfb_v14_ac_traceability.json.current_gui_acceptance_policy_20261026` 與 17 筆 `current_gui_requirement_20261026`、`tests/test_issue1504_v14_ac_traceability.py` 保護這個決策；原始 88 AC、兩份規格來源 SHA、PAD／焊接／整箱製造守衛均不改。正式 X 仍只在使用者 `/推推` 後發布。
+
+---
+
+## 2026-10-26（台灣）｜#1504 NFB-AC-51／SWT-AC-30 原生已指派型號來源範圍驗收候選（69→71）
+
+- **真實驗證**：[PR #2312](https://github.com/looaeedr/whd/pull/2312) 先建立真正提交的士林 V5 二顆 Set/Bay，經原內門＋底板出圖、真 DXF 重開取得記憶體內限定 Set/Bay/W/N/型號/X/Y/旋轉/datum/檔案 SHA 的收據；再透過原生 Tk 已指派 Listbox 事件顯示「可製造（內門）｜僅已出圖範圍」，來源清單維持「僅預覽」，改動 DXF 後立即撤銷。第一次 fixture 誤用舊 Bay model 欄導致列表為空，修回 Set 共用 settings.refs/values 後原生事件測試明確 PASS，Shard0 1,307 tests PASS，[完整 CI #40323722661](https://github.com/looaeedr/whd/actions/runs/40323722661) 5／5 GREEN，requirements=52、passed_cases=3873。
+- **AC-51**：現行新型號 V5 CSV + 已提交 NFBConfig 擁有真主孔 CUTTING 與旋轉 pivot；不要求舊原廠 NFB 型號 DXF ARC/CIRCLE/Color/原圖 pivot。只對已成功實際出圖的物理身份顯示來源限定綠色結果，不替來源清單本身簽永久資格。
+- **SWT-30**：只認本次已實際出圖的 W×N×Y×型號×內門 datum。既有 W600×2、W750×2、W800×2、W800×3 名義孔距在沒有已提交真實 X/來源時仍「僅預覽」，其他箱寬、型號、版本與 PAD/整箱 NC 沒有由本 AC 自動核准。
+- **簽核門檻**：上述來源限定 2 AC 的 71／88 先列 PR 候選；新增簽核矩陣修改的精確 HEAD 仍要重新通過 Product Regression 五階段、合入 GitHub localX 並精確回讀。原文 88 項不改，#1500 17 件舊專案 GUI 仍 OPEN，不動 Windows 或正式 X；正式 X 需額外 /推推。
+
+---
+
+## 2026-10-26（台灣）｜NFB-AC-11 當期 CSV V5 真實主孔 pivot／板件出圖簽核候選（67→68，待完整 CI）
+
+- **不回退到舊 DXF**：NFB-AC-11 原始 §7 條文仍原樣保存。現行新型號以每品牌 `NFB數值規格.csv` + 已提交 `nfbv5:<品牌>:<型號>` NFBConfig 與實體內門 datum 決定主開孔、定位、旋轉及 BASE 固定孔；舊檔 ARC／CIRCLE／顏色／上下圖元僅驗真正的 legacy 專案，不是現行 V5 模型前置阻擋。
+- **新增真實通路回歸**：兩種本期 CSV 型號分別具有獨立 world X/孔身分，單顆 0/90/180/270 旋轉，使用真物理內門 FinalScene 和 BasePlate；逐一比對每個 CSV 開孔的四角、主 CUTTING 中心與實際輸出 DXF 重開，僅一份主孔、BASE 八顆 CUTTING 圓孔與真 2D 來源一致。舊型號 DXF inspector 在正向測試中直接禁止調用；沒有 CSV 型號、來源漂移、錯 Bay 或存檔失敗必須拒絕。
+- **不擴張授權**：V5 datum／輸出幾何通路的證據不代表 W800×3 以外任意 W×N×Y、SWT-AC-27／30、NFB-AC-51、PAD／焊接、整套工廠 NC 或 #1500 兩真舊案 GUI 均已簽核。
+- **目前只為 PR 隔離候選**：基準 GitHub localX 67／88；僅當 exact HEAD 完整 Product Regression 5／5 GREEN、合併 GitHub localX 並回讀 88 行矩陣及 Git blob 後，才算正式第 68 項。正式 X 不動，需使用者另外 `/推推`。
+
+---
+
+
+## 2026-10-26（台灣）｜當期 NFB CSV V5 與舊 DXF 來源驗收全項校正（34 AC，不改原文／不加簽）
+
+**統一來源權威：**現在新選型使用各廠牌 `基準檔/開孔/NFB/數值規格/<廠牌>/NFB數值規格.csv`，每顆儲存 `nfbv5:<廠牌>:<型號>` 與已提交 `NFBConfig` 的 Set／Bay／版本／孔身分、X／Y、層、旋轉。這是模型**輸入來源**。舊原始型號 `.dxf` 的 ARC/CIRCLE/Color30/150/212、handle、原圖原點或 pivot **不是**現行數值 CSV 模型的必備附件或另一套定位權威。儲存為舊 `.dxf` 型號的舊案，仍走既有來源驗證／相容分支，不刪舊流程。
+
+**輸出繼續驗證：**通過製造條件才可由同一組真實 `FinalScene` 生成內門、底板、EAR／SIDE 等適用板件 `CUTTING／BEND／MARKING` DXF，逐件查定位、材料界線、孔型旋轉、碰撞、來源漂移、正確 Set/Bay/版本與 CHECK/Q；實際 DXF 必須重開核對。CSV 型號能顯示／預覽 **不等於**任意型號、箱寬、整排 X 都已可製造，更不等於 PAD／焊接整箱 NC 放行。
+
+**統一更新對照（原 §7 的 88 句、原簽核結果、原舊案 GUI 欄位全部不改）：**
+
+- NFB-AC-11／51、SWT-AC-08／29：新 V5 主孔取 CSV「開孔尺寸」、已提交內門工作 datum 與旋轉；只對真的舊 DXF 檔取 ARC/CIRCLE／pivot／顏色，不得把缺舊圖元當 V5 RED。AC-11／51 的完整來源／原 operator 製造證據尚需逐件簽核。
+- SWT-AC-27／30，NFB-AC-04／10／25／48／49：世界 X/Y 由 NFBConfig 與實體內門基準推導；相鄰名義孔距、W800×3 案例及舊圖原點不能批准未驗證的其他 W×N×Y／型號。**這些組合仍預覽限定，並非刪除安全閘門**。
+- NFB-AC-03／05／17，SWT-AC-05／13：新選型與預覽用 V5 數值 CSV；舊檔選型與 preview 只屬舊案相容，不能強制新模型取得舊 DXF。
+- NFB-AC-09／14／24／29／38／39／44／55，SWT-AC-09／11／21／32：實際逐板件依當期 CSV、真實內門、各層真 BasePlate／EAR 及實際製造輸出驗證，不以舊 NFB 型號的 Color30/150 自動生成虛構受電箱中板。保留其歷史真 DXF 來源盤點作 legacy 路徑診斷。
+- NFB-AC-16／42／46、SWT-AC-24／26：17 項 #1500 **真正兩份舊專案 GUI** 驗收仍待完成；但新 V5 提交不應因缺少每型號舊原始 DXF 就被阻擋。Save→Reload／Undo／取消、其他型號仍按各自真實資料與已提交來源驗收。
+
+**驗收狀態：**此修正是「來源與條件對齊」，**不是**另外新增 34 項簽核。GitHub `localX` 基準為 67／88，待簽 21 項（17 GUI、NFB-AC-11／51、SWT-AC-27／30）。若某一項缺真實主孔、已提交位置、原生 DXF 製造證據仍保持未簽；不可反向要求已由 CSV 取代的舊 NFB 型號原始 DXF。
+
+**機器契約：**`issue1504_nfb_v14_ac_traceability.json.current_nfb_source_policy_20261026` 與各 34 筆 `current_source_authority_20261026`，依實體 current/legacy 路徑辨識，不更動 §7 原文雜湊。獨立必跑產品測試驗證「舊 NFB DXF parser 不能被當成 V5 必要輸入，但真實生成 DXF 必須重開」及「V5 型號不在 CSV 時不能 fallback legacy」。
+
+---
+
+
 ## 2026-10-24（台灣）｜#1504 隔離 Draft #2098｜SWT-AC-05 CSV V5 原生 Tk 來源範圍簽核候選（42→43，不合 localX）
 
 - **先前真 GUI 基礎證據**：SHA `9c5541d98d03fa9061ce557dcdd1a9b2acb86bd4` [Product CI #40040819937](https://github.com/looaeedr/whd/actions/runs/40040819937) Preflight、Shard0/1/2、Canonical 全 SUCCESS（2067 passed / 0 failed），[Tk Performance #40040819908](https://github.com/looaeedr/whd/actions/runs/40040819908) SUCCESS。SWT-05 獨立候選視窗「預覽後取消不寫入」「確定只存候選」兩個原生 Tk 測試 PASSED。

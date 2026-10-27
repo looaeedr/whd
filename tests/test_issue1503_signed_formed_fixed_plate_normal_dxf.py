@@ -170,3 +170,300 @@ def test_no_new_ui_button_or_full_cabinet_global_ear_bypass():
     guard=inspect.getsource(sink._reject_unapproved_nfb_pad_ear_manufacturing)
     assert "save_verified_receiving_formed_fixing_plate_bundle" in source
     assert "BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED" in guard
+
+
+def test_ac13_selected_nfb_depth_moves_only_own_real_base_and_ear_z_without_pad(
+    tmp_path,
+):
+    """One submitted model swap: per-tier BASE may reform, but EAR stays at brand-max Z.
+
+    Current #1502 correction supersedes the older "Base never moves" wording.
+    A depth change must neither move the Inner Door nor fabricate an NFB PAD.
+    This exercises original physical source DXF and scoped formed-EAR output;
+    it does not certify arbitrary brand, solder/weld quality or full MFG-2.
+    """
+    from copy import deepcopy
+    from ae_engine.receiving_tier_ear_z_targets import (
+        resolve_receiving_tier_base_z_targets,
+        resolve_receiving_tier_ear_contact_targets,
+    )
+    from tests.test_issue1503_ear_side_check_only_dxf import _actual
+
+    first = _two_tier()
+    altered = deepcopy(first)
+    source_holes = altered["nfb_config"]["holes"]
+    assert len(source_holes) == 2
+    assert source_holes[1]["model_filename"] == "125_90X155_72.dxf"
+    source_holes[1]["model_filename"] = "100_75X130_68.dxf"
+    altered["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        altered["nfb_config"]
+    )
+
+    before = resolve_receiving_tier_base_z_targets(first)
+    after = resolve_receiving_tier_base_z_targets(altered)
+    assert [r.source_depths_mm for r in before] == [(107.0,), (72.0,)]
+    assert [r.source_depths_mm for r in after] == [(107.0,), (68.0,)]
+    assert all(r.physical_skin_z_resolved for r in (*before, *after))
+    # Only the changed second NFB tier moves; the first is unchanged.
+    assert after[0].world_offset_z_mm == pytest.approx(before[0].world_offset_z_mm)
+    # This is a FOLDED PLATE world transform, not the NFB-facing skin.
+    # A 72→68 model change changes its formed source profile while the
+    # fixed ear contact Z stays at the same brand-max depth.
+    assert after[1].world_offset_z_mm != pytest.approx(before[1].world_offset_z_mm)
+
+    original_ears = resolve_receiving_tier_ear_contact_targets(first)
+    shifted_ears = resolve_receiving_tier_ear_contact_targets(altered)
+    assert len(original_ears) == len(shifted_ears) == 4
+    for previous, current in zip(original_ears, shifted_ears):
+        tier = current.layer_index
+        assert current.parent_base_id == previous.parent_base_id
+        assert current.target_ear_contact_world_z_mm == pytest.approx(
+            after[tier].base_back_skin_world_z_mm
+        )
+        assert previous.target_ear_contact_world_z_mm == pytest.approx(
+            before[tier].base_back_skin_world_z_mm
+        )
+        assert current.base_skin_z_source_verified is True
+        assert not current.manufacturing_ready  # target alone is not release
+        if tier == 0:
+            assert current.target_ear_contact_world_z_mm == pytest.approx(
+                previous.target_ear_contact_world_z_mm
+            )
+        else:
+            # Ear Z is brand-fixed, never per-tier/per-model:
+            assert current.target_ear_contact_world_z_mm == pytest.approx(
+                previous.target_ear_contact_world_z_mm
+            )
+
+    from ae_engine.assembly_placement import resolve_assembly_placement
+    assert resolve_assembly_placement(
+        first, "inner_door:upper:panel"
+    ).world_offset == resolve_assembly_placement(
+        altered, "inner_door:upper:panel"
+    ).world_offset
+
+    # Production source route, not a hand-built ear/side SVG or DTO:
+    # actual cabinet SIDE skins → two physical BaseParts → real formed
+    # fixing plates → original selected partial DXF export with reopen.
+    saved, side_scene = _actual(lambda: deepcopy(altered))
+    root = _source(saved)
+    installed = expand_receiving_nfb_layer_parts(saved, (root,))
+    assert len(installed) == 2
+    assert [p.part_key for p in installed] == [
+        "base_plate:nfb_layer:0", "base_plate:nfb_layer:1",
+    ]
+    assert [p.offset[2] for p in installed] == pytest.approx(
+        [r.world_offset_z_mm for r in after]
+    )
+    assert all(p.offset[0] == pytest.approx(0.0) for p in installed)
+    geometry = replace(side_scene, parts=side_scene.parts + tuple(installed))
+    receipt = _run(saved, geometry, tmp_path / "depth_swap_output")
+    assert len(receipt.formed_part_ids) == 4
+    assert receipt.physical_contact_area_mm2 == pytest.approx(4 * 5632.0)
+    files = dict(receipt.output_paths)
+    assert set(receipt.formed_part_ids).issubset(files)
+    assert all(Path(path).is_file() for path in files.values())
+    assert all("pad" not in Path(path).stem.casefold() for path in files.values())
+    for file_path in files.values():
+        ezdxf.readfile(file_path)
+
+
+def test_ac13_current_numeric_v5_submitted_tier_moves_real_base_and_ear_with_no_pad(tmp_path):
+    """CURRENT per-brand numeric CSV V5 path, not merely legacy .dxf names.
+
+    Only selected second-tier depth changes 72 -> 68: source-based BASE profile
+    changes, but all four EAR contacts stay at common brand-max Z; no PAD release.
+    """
+    from copy import deepcopy
+    from ae_engine.receiving_nfb_model_identity import selected_numeric_spec
+    from ae_engine.receiving_tier_ear_z_targets import (
+        resolve_receiving_tier_base_z_targets,
+        resolve_receiving_tier_ear_contact_targets,
+    )
+    first = _two_tier()
+    before_refs = ("nfbv5:士林:2P400", "nfbv5:士林:3P125SN")
+    for hole, ref in zip(first["nfb_config"]["holes"], before_refs):
+        hole["model_filename"] = ref
+        hole["source_brand"] = "士林"
+    first["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        first["nfb_config"]
+    )
+    second = deepcopy(first)
+    second["nfb_config"]["holes"][1]["model_filename"] = "nfbv5:士林:2P125SN"
+    second["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        second["nfb_config"]
+    )
+    for ref, expected in (
+        ("nfbv5:士林:2P400", 107.0),
+        ("nfbv5:士林:3P125SN", 72.0),
+        ("nfbv5:士林:2P125SN", 68.0),
+    ):
+        spec = selected_numeric_spec("士林", ref)
+        assert spec is not None
+        assert spec.depth_mm == pytest.approx(expected)
+
+    before, after = (resolve_receiving_tier_base_z_targets(s)
+                     for s in (first, second))
+    assert [x.source_depths_mm for x in before] == [(107.0,), (72.0,)]
+    assert [x.source_depths_mm for x in after] == [(107.0,), (68.0,)]
+    assert all(x.physical_skin_z_resolved for x in (*before, *after))
+    assert after[0].world_offset_z_mm == pytest.approx(before[0].world_offset_z_mm)
+    # 72 -> 68 changes the actual NFB mounting skin by 4 mm, but the
+    # folded CENTER part's local origin also shifts.  World placement offset
+    # alone is not a measured NFB face or weld-contact displacement.
+    assert after[1].world_offset_z_mm != pytest.approx(before[1].world_offset_z_mm)
+    assert after[1].base_back_skin_world_z_mm == pytest.approx(
+        before[1].base_back_skin_world_z_mm
+    )
+    old_ears, new_ears = (resolve_receiving_tier_ear_contact_targets(s)
+                          for s in (first, second))
+    assert len(old_ears) == len(new_ears) == 4
+    for old, new in zip(old_ears, new_ears):
+        idx = new.layer_index
+        assert old.parent_base_id == new.parent_base_id
+        assert new.target_ear_contact_world_z_mm == pytest.approx(
+            after[idx].base_back_skin_world_z_mm
+        )
+        assert new.base_skin_z_source_verified
+        assert not new.manufacturing_ready
+        assert new.target_ear_contact_world_z_mm == pytest.approx(
+            old.target_ear_contact_world_z_mm
+        )
+        assert old.base_skin_z_source_verified and new.base_skin_z_source_verified
+
+    assert resolve_assembly_placement(
+        first, "inner_door:upper:panel"
+    ).world_offset == resolve_assembly_placement(
+        second, "inner_door:upper:panel"
+    ).world_offset
+    saved, sides = _actual(lambda: deepcopy(second))
+    root = _source(saved)
+    installed = expand_receiving_nfb_layer_parts(saved, (root,))
+    assert len(installed) == 2
+    assert [p.offset[2] for p in installed] == pytest.approx(
+        [x.world_offset_z_mm for x in after]
+    )
+    scene = replace(sides, parts=sides.parts + tuple(installed))
+    receipt = _run(saved, scene, tmp_path / "v5_depth_swap")
+    assert len(receipt.formed_part_ids) == 4
+    assert receipt.physical_contact_area_mm2 == pytest.approx(4 * 5632.0)
+    assert set(receipt.formed_part_ids).issubset(dict(receipt.output_paths))
+    assert all("pad" not in Path(path).stem.lower()
+               for _, path in receipt.output_paths)
+    for _, path in receipt.output_paths:
+        ezdxf.readfile(path)
+
+
+def test_swt09_original_upper_lower_trace_and_current_v5_base_ear_depth_never_release_pad(tmp_path):
+    """The original LOWER source cannot become a PAD; fixing EAR Z stays brand-max.
+
+    This is source-scoped actual parser + physical assembly + normal DXF
+    reopening and negative manufacturer proof, NOT a factory PAD release.
+    """
+    from copy import deepcopy
+    from ae_engine.receiving_nfb_source_regions import (
+        UPPER, LOWER, OBSERVED, DEFERRED,
+    )
+    from tests.test_issue1502_nfb_source_regions import _file, _read
+    from ae_engine.receiving_tier_ear_z_targets import (
+        resolve_receiving_tier_base_z_targets,
+        resolve_receiving_tier_ear_contact_targets,
+    )
+    from ae_engine.receiving_nfb_model_identity import selected_numeric_spec
+    from ae_engine.manufacturing_export import save_resolved_manufacturing_geometry_dxf
+
+    # Actual native DXF entity/handle reader; UPPER/L0 and LOWER/L1 are
+    # provenance, not a permission to cut a free-standing PAD sheet.
+    source_path, upper, lower, digest = _file(tmp_path)
+    exact_bytes = source_path.read_bytes()
+    observed = _read(source_path, upper, lower, digest)
+    assert observed.upper.region == UPPER
+    assert observed.upper.region_status == OBSERVED
+    assert observed.lower.region == LOWER
+    assert observed.lower.region_status == DEFERRED
+    assert observed.upper.source_sha256 == observed.lower.source_sha256 == digest
+    assert observed.upper.reference_handle != observed.lower.reference_handle
+    assert set(observed.upper.entity_handles).isdisjoint(observed.lower.entity_handles)
+    assert not observed.manufacturing_ready
+    assert not observed.lower.manufacturing_ready
+    assert not hasattr(observed.lower, "render_data")
+    assert not hasattr(observed.lower, "manufacturing_scene")
+    assert source_path.read_bytes() == exact_bytes
+
+    # CURRENT manufacturer numeric CSV V5, independent of old DXF regions.
+    # Actual selected depth changes only the second tier; first + door hold.
+    before = _two_tier()
+    for hole, ref in zip(before["nfb_config"]["holes"], (
+        "nfbv5:士林:2P400", "nfbv5:士林:3P125SN",
+    )):
+        hole["model_filename"] = ref
+        hole["source_brand"] = "士林"
+    before["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        before["nfb_config"]
+    )
+    after = deepcopy(before)
+    after["nfb_config"]["holes"][1]["model_filename"] = "nfbv5:士林:2P125SN"
+    after["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        after["nfb_config"]
+    )
+    assert selected_numeric_spec("士林", "nfbv5:士林:3P125SN").depth_mm == 72
+    assert selected_numeric_spec("士林", "nfbv5:士林:2P125SN").depth_mm == 68
+    prior, current = (resolve_receiving_tier_base_z_targets(s)
+                      for s in (before, after))
+    assert [x.source_depths_mm for x in prior] == [(107.0,), (72.0,)]
+    assert [x.source_depths_mm for x in current] == [(107.0,), (68.0,)]
+    assert all(x.physical_skin_z_resolved for x in (*prior, *current))
+    assert current[0].world_offset_z_mm == pytest.approx(prior[0].world_offset_z_mm)
+    assert current[1].world_offset_z_mm != pytest.approx(prior[1].world_offset_z_mm)
+    old_ears, new_ears = (resolve_receiving_tier_ear_contact_targets(s)
+                          for s in (before, after))
+    assert len(old_ears) == len(new_ears) == 4
+    for old, new in zip(old_ears, new_ears):
+        idx = new.layer_index
+        assert new.parent_base_id == old.parent_base_id
+        assert new.target_ear_contact_world_z_mm == pytest.approx(
+            current[idx].base_back_skin_world_z_mm
+        )
+        assert new.target_ear_contact_world_z_mm == pytest.approx(
+            old.target_ear_contact_world_z_mm
+        )
+        assert new.base_skin_z_source_verified and old.base_skin_z_source_verified
+        assert not new.manufacturing_ready
+    assert resolve_assembly_placement(
+        before, "inner_door:upper:panel"
+    ).world_offset == resolve_assembly_placement(
+        after, "inner_door:upper:panel"
+    ).world_offset
+
+    saved, side_scene = _actual(lambda: deepcopy(after))
+    physical = expand_receiving_nfb_layer_parts(saved, (_source(saved),))
+    assert [part.offset[2] for part in physical] == pytest.approx(
+        [x.world_offset_z_mm for x in current]
+    )
+    scene = replace(side_scene, parts=side_scene.parts + tuple(physical))
+    receipt = _run(saved, scene, tmp_path / "valid_ear_side_only")
+    assert len(receipt.formed_part_ids) == 4
+    assert set(receipt.formed_part_ids).issubset(dict(receipt.output_paths))
+    for _, out_path in receipt.output_paths:
+        assert "pad" not in Path(out_path).stem.lower()
+        ezdxf.readfile(out_path)
+
+    # Explicit forged unapproved PAD must fail before ANY DXF write.
+    pad = SimpleNamespace(parts=(SimpleNamespace(
+        part_key="nfb_pad:shim_1",
+        render_data=SimpleNamespace(metadata={
+            "stable_id": "nfb_pad:shim_1",
+            "nfb_pad_manufacturing_ready": True,
+            "nfb_pad_mfg2_release_approved": True,
+        }),
+    ),))
+    forbidden = tmp_path / "forged_pad"
+    with pytest.raises(ValueError, match="NFB_PAD_EAR_PHYSICAL_EVIDENCE_UNAPPROVED"):
+        save_resolved_manufacturing_geometry_dxf(
+            pad, forbidden,
+            save_part_render_data_dxf=lambda *args, **kwargs: pytest.fail(
+                "forged PAD may not reach the DXF writer"
+            ),
+            box_body_physical_piece_roles=(), part_only=True,
+        )
+    assert not forbidden.exists()

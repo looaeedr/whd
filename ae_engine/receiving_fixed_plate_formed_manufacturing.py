@@ -311,6 +311,7 @@ def _verified_current_csv_manufacturing_owners(
 def save_verified_receiving_formed_fixing_plate_bundle(
     snapshot, original_geometry, selected_marked_geometry,
     output_dir, *, dimensions, sheet_thickness, overwrite=False,
+    require_complete_cabinet_inventory=False,
 ) -> FormedFixingPlateManufacturingReceipt:
     """Atomically write original selected DXF rows plus signed formed fixed plates.
 
@@ -321,6 +322,8 @@ def save_verified_receiving_formed_fixing_plate_bundle(
     """
     if type(overwrite) is not bool:
         raise TypeError("EAR_FORM_MFG_OVERWRITE_MUST_BE_BOOLEAN")
+    if type(require_complete_cabinet_inventory) is not bool:
+        raise TypeError("EAR_FORM_MFG_COMPLETE_INVENTORY_FLAG_MUST_BE_BOOLEAN")
     verified, uv, side_contact = _verified_formed_ear_parts(
         snapshot, original_geometry,
         dimensions=dimensions, sheet_thickness=sheet_thickness,
@@ -374,8 +377,48 @@ def save_verified_receiving_formed_fixing_plate_bundle(
     ):
         raise ValueError("EAR_FORM_MFG_BOTH_MARKED_SIDE_SHEETS_REQUIRED")
 
+    # #1490: The normal selection may look like the *entire cabinet* when
+    # BODY + CSV DOOR + every physical tier BASE is checked.  Source-derived
+    # shallow NFB PADs must not silently disappear from that successful
+    # bundle. Independently verified per-part selection remains available.
+    selected_ids = {key for key, _, _ in standard_rows}
+    complete_csv_selection = (
+        any(key.startswith("inner_door:") for key in approved_csv)
+        and any(key == "base_plate" or key.startswith("base_plate:nfb_layer:")
+                for key in approved_csv)
+        and any(key.startswith("box_body:") for key in selected_ids)
+    )
+    verified_pad_sheets = {}
+    if require_complete_cabinet_inventory:
+        if not complete_csv_selection:
+            raise ValueError("RECEIVING_FULL_NFB_SELECTED_PHYSICAL_SHEETS_INCOMPLETE")
+        # Use exactly the same real CSV/Base/PAD fit and CUTTING validators
+        # that already admit a production-scoped PAD+Base pair. Do not
+        # accept a ready flag or fabricate a missing PAD mesh.
+        from .receiving_nfb_pad_pair_manufacturing import (
+            verified_pad_base_physical_sheets,
+        )
+        records, proven = verified_pad_base_physical_sheets(
+            snapshot, tuple(original_geometry.parts or ()), allow_empty=True,
+        )
+        for record in records:
+            parent_id = record.parent_base_id
+            parents = tuple(p for p in original_geometry.parts
+                            if p.part_key == parent_id)
+            if (len(parents) != 1 or parent_id not in approved_csv
+                    or parent_id not in selected_ids
+                    or proven.get(parent_id) is not parents[0].render_data):
+                raise ValueError(
+                    "RECEIVING_FULL_NFB_PAD_PARENT_SOURCE_NOT_SELECTED:"
+                    + parent_id
+                )
+            key = record.physical_id
+            if key in selected_ids or key in verified or key in verified_pad_sheets:
+                raise ValueError("RECEIVING_FULL_NFB_PAD_PHYSICAL_ID_COLLISION")
+            verified_pad_sheets[key] = proven[key]
+
     filenames = {key: filename for key, filename, _ in standard_rows}
-    for ear_id in verified:
+    for ear_id in tuple(verified) + tuple(verified_pad_sheets):
         if ear_id in filenames:
             raise ValueError("EAR_FORM_MFG_DUPLICATE_PHYSICAL_OWNER")
         filenames[ear_id] = _resolved_physical_dxf_filename(ear_id)
@@ -389,9 +432,12 @@ def save_verified_receiving_formed_fixing_plate_bundle(
         written = {}
         for key, filename, render in standard_rows + tuple(
             (key, filenames[key], verified[key]) for key in verified
+        ) + tuple(
+            (key, filenames[key], verified_pad_sheets[key])
+            for key in verified_pad_sheets
         ):
             dest = Path(stage) / filename
-            if key in approved_csv or key in verified:
+            if key in approved_csv or key in verified or key in verified_pad_sheets:
                 # Neither a CSV source trial nor a flat fixing-plate preview
                 # is generally manufacturable. These rows, however, came
                 # from this adapter's fresh, independent source/skin/contact
@@ -399,6 +445,9 @@ def save_verified_receiving_formed_fixing_plate_bundle(
                 # Preserve the existing atomic staging and round-trip checks.
                 if key in verified and render is not verified[key]:
                     raise ValueError("EAR_FORM_MFG_VERIFIED_RENDER_IDENTITY_DRIFT")
+                if (key in verified_pad_sheets
+                        and render is not verified_pad_sheets[key]):
+                    raise ValueError("RECEIVING_FULL_NFB_VERIFIED_PAD_SOURCE_DRIFT")
                 from .dxf_serialization import save_scene_dxf
                 save_scene_dxf(dest, render.scene)
             else:

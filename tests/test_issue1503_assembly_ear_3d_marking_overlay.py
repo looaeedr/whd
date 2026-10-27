@@ -32,19 +32,31 @@ def test_assembly_3d_marking_follows_source_formed_contact_without_mesh_edges(fa
     renderer, plotted = _renderer()
     segments = renderer._draw_receiving_ear_side_markings(formed)
     assert len(formed) == part_count
-    assert len(segments) == len(plotted) == 4 * part_count
+    assert len(segments) == len(plotted) == part_count * 3
     assert len({pair for pair in segments}) == len(segments)
-    for a, b in segments:
+    from ae_engine.receiving_fixed_plate_side_contact import EAR_FOLD_HINT_LENGTH_MM
+    assert EAR_FOLD_HINT_LENGTH_MM == 20.0
+    for index, source in enumerate(formed):
+        top, left_hint, right_hint = segments[index * 3:index * 3 + 3]
+        a, b = top
         assert a[0] == pytest.approx(b[0])
         assert abs(a[0]) == pytest.approx(398.0)
-        assert (
-            abs(a[1]-b[1]) == pytest.approx(256.)
-            or abs(a[2]-b[2]) == pytest.approx(22.)
+        assert a[2] == pytest.approx(b[2])
+        assert a[2] == pytest.approx(source.parent_base_back_skin_world_z_mm)
+        assert abs(a[1] - b[1]) == pytest.approx(256.0)
+        for end, hint in ((a, left_hint), (b, right_hint)):
+            assert hint[0] == pytest.approx(end)
+            assert hint[1][0] == pytest.approx(end[0])
+            assert hint[1][1] == pytest.approx(end[1])
+            assert end[2] - hint[1][2] == pytest.approx(20.0)
+        # No bottom horizontal marking connecting the two short fold hints.
+        assert all(
+            not (abs(u[2] - (a[2] - 20.0)) < 1e-6
+                 and abs(v[2] - (a[2] - 20.0)) < 1e-6)
+            for u, v in (top, left_hint, right_hint)
         )
     assert all(kw["color"] == "#facc15" and kw["zorder"] == 30
                for _xyz, kw in plotted)
-    # Each rectangle's real corners, not triangulation edges or freehand marks.
-    assert len({tuple(round(v, 4) for v in p) for a,b in segments for p in (a,b)}) == part_count * 4
 
 
 def test_hidden_box_body_side_does_not_receive_floating_3d_markings():
@@ -53,7 +65,7 @@ def test_hidden_box_body_side_does_not_receive_floating_3d_markings():
     left = renderer._draw_receiving_ear_side_markings(
         formed, visible_side_piece_keys={"box_body:left_side"}
     )
-    assert len(left) == len(plotted) == 4
+    assert len(left) == len(plotted) == 3
     assert all(a[0] == pytest.approx(-398.) for a, b in left)
     renderer2, plotted2 = _renderer()
     assert renderer2._draw_receiving_ear_side_markings(

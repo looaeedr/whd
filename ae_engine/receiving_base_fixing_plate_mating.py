@@ -69,7 +69,10 @@ def resolve_base_fixing_plate_xy_mating(
 
     Raises on missing actual Base Plate variant; never presumes 210 over 140.
     """
-    data = dict(snapshot or {})
+    try:
+        data = dict(snapshot or {})
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("FIXING_PLATE_GEOMETRY_NONFINITE") from exc
     name = str(side)
     if name not in ("left", "right"):
         raise ValueError("FIXING_PLATE_SIDE_INVALID")

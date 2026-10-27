@@ -138,6 +138,85 @@ def export_verified_receiving_nfb_door_base_pair(
 
 
 @dataclass(frozen=True)
+class NfbCsvVerifiedPhysicalSite:
+    physical_hole_id: str
+    model_ref: str
+    world_x_mm: float
+    world_y_mm: float
+    rotation_deg: int
+    tier_index: int
+
+
+@dataclass(frozen=True)
+class NfbCsvVerifiedExportScope:
+    """Returned only after the exact real part-only pair output passes."""
+    set_id: str
+    bay_id: str
+    width_mm: float
+    inner_door_id: str
+    sites: tuple[NfbCsvVerifiedPhysicalSite, ...]
+
+    @property
+    def operator_label(self):
+        rows = "；".join(
+            f"{site.model_ref} X={site.world_x_mm:g} Y={site.world_y_mm:g}"
+            f" R={site.rotation_deg}°"
+            for site in self.sites
+        )
+        return (
+            f"可製造（內門）｜僅本次真實出圖已驗證 "
+            f"Set={self.set_id} Bay={self.bay_id} "
+            f"W={self.width_mm:g} N={len(self.sites)}：{rows}。"
+            "其他版本／位置／型號及 PAD／整箱未放行。"
+        )
+
+
+def _verified_csv_v5_export_scope(snapshot, inner_door_id, holes):
+    """Exact current Set/Bay/NFBConfig source scope, not model-wide approval."""
+    from math import isfinite
+    from ae_engine.receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+    from ae_engine.receiving_nfb_model_identity import selected_numeric_spec
+
+    selector = snapshot.get("_receiving_runtime_selection")
+    if not isinstance(selector, Mapping):
+        raise ValueError("CSV_EXPORT_EXACT_SET_BAY_REQUIRED")
+    set_id, bay_id = selector.get("set_id"), selector.get("bay_id")
+    if not all(isinstance(x, str) and x for x in (set_id, bay_id)):
+        raise ValueError("CSV_EXPORT_EXACT_SET_BAY_REQUIRED")
+    raw_w = snapshot.get("w")
+    if type(raw_w) not in (int, float) or not isfinite(raw_w) or raw_w <= 0:
+        raise ValueError("CSV_EXPORT_WIDTH_SOURCE_REQUIRED")
+    if not holes:
+        raise ValueError("CSV_EXPORT_HOLE_SOURCE_REQUIRED")
+    sites = []
+    for hole in holes:
+        spec = selected_numeric_spec(hole.brand, hole.model_ref)
+        if spec is None or not spec.dimensionally_complete:
+            raise ValueError("CSV_EXPORT_NUMERIC_MODEL_SOURCE_REQUIRED")
+        if not isfinite(hole.world_x_mm):
+            raise ValueError("CSV_EXPORT_CONFIRMED_WORLD_X_REQUIRED")
+        projected = project_nfb_inner_door_nominal_y(
+            snapshot, inner_door_id,
+            layer_count=hole.layer_count, slot_index=hole.slot_index,
+        )
+        if not isfinite(projected.box_world_y_mm):
+            raise ValueError("CSV_EXPORT_CONFIRMED_WORLD_Y_REQUIRED")
+        sites.append(NfbCsvVerifiedPhysicalSite(
+            physical_hole_id=hole.physical_hole_id,
+            model_ref=hole.model_ref,
+            world_x_mm=float(hole.world_x_mm),
+            world_y_mm=float(projected.box_world_y_mm),
+            rotation_deg=hole.rotation_deg, tier_index=hole.slot_index,
+        ))
+    if len({r.physical_hole_id for r in sites}) != len(sites):
+        raise ValueError("CSV_EXPORT_DUPLICATE_PHYSICAL_HOLE")
+    return NfbCsvVerifiedExportScope(
+        set_id=set_id, bay_id=bay_id, width_mm=float(raw_w),
+        inner_door_id=inner_door_id, sites=tuple(sites),
+    )
+
+
+@dataclass(frozen=True)
 class NfbCsvPairedPartOnlyDxf:
     """Two validated sheets, NOT a full enclosure or welded EAR release."""
     inner_door_path: str
@@ -145,6 +224,7 @@ class NfbCsvPairedPartOnlyDxf:
     source_hole_ids: tuple[str, ...]
     check_q_key: str
     scope: str = "CSV_PAIR_PART_ONLY_NOT_WHOLE_CABINET"
+    verified_v5_scope: NfbCsvVerifiedExportScope | None = None
 
 
 def export_current_csv_nfb_door_base_pair(
@@ -254,6 +334,7 @@ def export_current_csv_nfb_door_base_pair(
             or checked.groups[0].quantity != 1):
         raise ValueError("CSV_PAIR_CHECK_Q_INVALID")
 
+    verified_scope = _verified_csv_v5_export_scope(snapshot, inner_door_id, holes)
     root = Path(output_directory)
     if not root.is_dir():
         raise ValueError("CSV_PAIR_OUTPUT_DIRECTORY_MISSING")
@@ -288,6 +369,7 @@ def export_current_csv_nfb_door_base_pair(
         base_plate_path=written["base_plate"],
         source_hole_ids=door.hole_ids,
         check_q_key=checked.groups[0].key,
+        verified_v5_scope=verified_scope,
     )
 
 
@@ -299,6 +381,7 @@ class NfbCsvTwoTierPartOnlyDxf:
     source_hole_ids: tuple[str, ...]
     check_q_keys: tuple[str, ...]
     scope: str = "CSV_TWO_TIER_PART_ONLY_NOT_WHOLE_CABINET"
+    verified_v5_scope: NfbCsvVerifiedExportScope | None = None
 
 
 def _export_current_csv_nfb_two_tier_pair(
@@ -430,6 +513,7 @@ def _export_current_csv_nfb_two_tier_pair(
             or sum(group.quantity for group in checks.groups) != 2):
         raise ValueError("CSV_TWO_TIER_CHECK_Q_INCOMPLETE")
 
+    verified_scope = _verified_csv_v5_export_scope(snapshot, inner_door_id, holes)
     root = Path(output_directory)
     if not root.is_dir():
         raise ValueError("CSV_TWO_TIER_OUTPUT_DIRECTORY_MISSING")
@@ -459,4 +543,5 @@ def _export_current_csv_nfb_two_tier_pair(
         base_plate_paths=(saved[trials[0].part_id], saved[trials[1].part_id]),
         source_hole_ids=door.hole_ids,
         check_q_keys=tuple(group.key for group in checks.groups),
+        verified_v5_scope=verified_scope,
     )

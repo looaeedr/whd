@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from hashlib import sha256
+from math import isfinite
 from pathlib import Path
 import re
 
@@ -45,6 +46,19 @@ def resolve_editable_nfb_source_profile(
     # Preserve legacy exact source profiles without reselecting handles:
     # editing an unrelated CSV column must not silently change original owner.
     if actual_sha == profile.source_sha256:
+        # Existing SHA is an identity witness, not permission to trust a
+        # malformed typed profile. NaN defeats the downstream size-difference
+        # comparison (abs(source - NaN) > tolerance is false).
+        size = profile.upper_size_mm
+        if (not isinstance(size, (list, tuple)) or len(size) != 2
+                or any(type(mm) not in (int, float) for mm in size)):
+            raise ValueError("NFB source profile upper dimensions invalid")
+        try:
+            good = all(isfinite(float(mm)) and float(mm) > 0 for mm in size)
+        except (ValueError, TypeError, OverflowError) as exc:
+            raise ValueError("NFB source profile upper dimensions invalid") from exc
+        if not good:
+            raise ValueError("NFB source profile upper dimensions invalid")
         return profile
     inventory = inspect_nfb_dxf_source(source)
     if (inventory.source_sha256 != actual_sha or inventory.diagnostics

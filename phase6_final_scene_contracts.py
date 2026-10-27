@@ -11,6 +11,18 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping
 
+class AssemblyVisibility(tuple):
+    """Two-item legacy visibility tuple carrying an optional 3D-only flag.
+
+    Existing code can still use `keys, pieces = visibility`. The extra
+    display preference is not a part key, project field, or manufacturing input.
+    """
+
+    def __new__(cls, part_keys, piece_keys, *, show_fixing_plate_mesh=True):
+        value = super().__new__(cls, (part_keys, piece_keys))
+        value.show_fixing_plate_mesh = bool(show_fixing_plate_mesh)
+        return value
+
 
 @dataclass(frozen=True)
 class AssemblyScenePart:
@@ -40,6 +52,8 @@ class AssemblySceneRenderData:
     formed_fixing_plate_skins: tuple[object, ...] = ()
     # FinalScene PAD skins are view-only and never MFG/BOM/CNC authority.
     formed_nfb_pad_skins: tuple[object, ...] = ()
+    # Append-only: keep the old positional DTO field order intact.
+    show_fixing_plate_mesh: bool = True  # 3D-only visibility, not MARKING/MFG
 
 
 @dataclass(frozen=True)
@@ -190,6 +204,7 @@ class FinalSceneDependencies:
 
 
 __all__ = [
+    "AssemblyVisibility",
     "AssemblyScenePart",
     "AssemblySceneRenderData",
     "FinalSceneDependencies",

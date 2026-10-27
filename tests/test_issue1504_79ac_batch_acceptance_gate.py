@@ -57,8 +57,33 @@ def test_all_79_pre_batch_unsignatures_reconciled_to_one_canonical_witness():
     assert live_counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"]>=AFTER_GROUPS[
         "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
     ]
-    assert live_counts["BLOCKED_1500_REAL_GUI"]==17
-    assert live_counts["DEFERRED_PRODUCT_EVIDENCE"]==4
+    assert live_counts["BLOCKED_1500_REAL_GUI"] == 0
+    # Historical 79-AC baseline retains four deferred IDs; later exact-AC
+    # runtime signoffs may retire individual items, never silently erase them.
+    historical_deferred=set(audit["grouped_ids"]["DEFERRED_PRODUCT_EVIDENCE"])
+    live_deferred={k for k in historical_deferred
+                   if rows[k]["status"]=="DEFERRED_PRODUCT_EVIDENCE"}
+    newly_signed=historical_deferred-live_deferred
+    assert len(historical_deferred)==BASELINE_GROUPS["DEFERRED_PRODUCT_EVIDENCE"]==4
+    assert len(live_deferred)+len(newly_signed)==4
+    for key in newly_signed:
+        row=rows[key]
+        assert row["accepted"] is True, key
+        assert row["status"]=="ACCEPTED_AUTOMATED_CURRENT_SCOPE", key
+        assert row["evidence_level"]=="FULL_AC_ASSERTION_AUDITED", key
+        proof=row["acceptance_evidence"]
+        assert proof["original_ac_text_unchanged"] is True, key
+        assert proof["factory_release"] is False, key
+        assert proof["unconditional_mfg2_release"] is False, key
+        assert proof["human_windows_uat_claimed"] is False, key
+        assert len(proof["original_ac_clauses_audited"])>=3, key
+        assert len(proof["other_required_assertions"])>=2, key
+        for ref in (proof["primary_assertion"], *proof["other_required_assertions"]):
+            path,name=ref.split("::")
+            assert path in PYTEST_PATHS, ref
+            body=ast.parse((ROOT/path).read_text(encoding="utf-8")).body
+            assert name in {n.name for n in body if isinstance(n,
+                         (ast.FunctionDef,ast.AsyncFunctionDef))}, ref
     assert len({e["primary_witness"]["file"] for e in entries})==23
     assert audit["primary_file_selected_count"]==79
     assert "DOES_NOT_IMPLY_FULL_AC" in audit["signoff_boundary"]
@@ -99,7 +124,21 @@ def test_all_79_pre_batch_unsignatures_reconciled_to_one_canonical_witness():
                 assert entry["previous_status"] in {
                     "EVIDENCE_CANDIDATE_ONLY",
                     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",
+                    "DEFERRED_PRODUCT_EVIDENCE",  # Only after witnessed scope audit above.
+                    "BLOCKED_1500_REAL_GUI",  # User cancelled A+B, not functional evidence.
                 }, key
+                if entry["previous_status"] == "BLOCKED_1500_REAL_GUI":
+                    # Require an independently auditable real native GUI test.
+                    proof = row["acceptance_evidence"]
+                    assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI", key
+                    assert proof["user_cancelled_second_legacy_project_prerequisite"] is True, key
+                    assert len(proof["requirement_witnesses"]) >= 2, key
+                    filename, fn = proof["primary_assertion"].split("::")
+                    assert filename in PYTEST_PATHS, key
+                    tree = ast.parse((ROOT / filename).read_text(encoding="utf-8"))
+                    assert any(isinstance(n, ast.FunctionDef) and n.name == fn
+                               and any(isinstance(c, ast.Assert) for c in ast.walk(n))
+                               for n in tree.body), key
                 assert row["status"]=="ACCEPTED_AUTOMATED_CURRENT_SCOPE", key
                 assert row["evidence_level"]=="FULL_AC_ASSERTION_AUDITED", key
                 assert row["assertion_review_state"]=="FULL_AC_AUTOMATED_SIGNED", key
@@ -139,5 +178,17 @@ def test_four_source_signoffs_require_real_exact_primary_and_negative_tests():
         row=rows[key]
         assert row["accepted"] is True
         assert row["acceptance_evidence"]["external_historical_binary_read_executed"] is False
-    assert sum(1 for r in rows.values() if r["status"]=="BLOCKED_1500_REAL_GUI")==17
-    assert sum(1 for r in rows.values() if r["status"]=="DEFERRED_PRODUCT_EVIDENCE")==4
+    live_blocked = sum(r["status"]=="BLOCKED_1500_REAL_GUI" for r in rows.values())
+    assert live_blocked == _json(MATRIX)["counts"]["BLOCKED_1500_REAL_GUI"]
+    assert live_blocked == 0
+    # Do not confuse the immutable four-item *historical* snapshot with
+    # current evidence-backed per-AC signoffs. Every retired deferred AC
+    # must satisfy the full runtime/source clauses audited above.
+    historical=set(_json(AUDIT)["grouped_ids"]["DEFERRED_PRODUCT_EVIDENCE"])
+    assert len(historical)==4
+    assert all(rows[key]["status"] in (
+        "DEFERRED_PRODUCT_EVIDENCE", "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+    ) for key in historical)
+    assert sum(rows[key]["status"]=="DEFERRED_PRODUCT_EVIDENCE"
+               for key in historical)+sum(rows[key]["accepted"]
+               for key in historical)==4

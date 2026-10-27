@@ -468,6 +468,10 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             self.last_formed_ear_display_ids = ()
             visible_ears = []
             for formed in tuple(getattr(render_data, "formed_fixing_plate_skins", ()) or ()):
+                # Hide only EAR physical surfaces. Source-backed SIDE MARKING
+                # below must remain visible while the owning side is visible.
+                if not bool(getattr(render_data, "show_fixing_plate_mesh", True)):
+                    continue
                 if (not getattr(formed, "source_bend_verified", False)
                         or not getattr(formed, "actual_signed_forming_constructed", False)
                         or getattr(formed, "manufacturing_ready", True)
@@ -615,7 +619,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             if request.finished_dimensions and callable(getattr(ax, "text2D", None)):
                 text = " × ".join(self._number_text(v) for v in request.finished_dimensions)
                 warnings = tuple(getattr(render_data, "warnings", ()) or ())
-                warning_text = "\n⚠ " + "；".join(str(getattr(w, "message", w)) for w in warnings) if warnings else ""
+                warning_text = "\n警告：" + "；".join(str(getattr(w, "message", w)) for w in warnings) if warnings else ""
                 diagnostic = self.last_interference_diagnostic
                 collision_text = ""
                 if bool(getattr(render_data, "show_interference", False)):
@@ -634,7 +638,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     if audit is not None:
                         if audit.unresolved:
                             collision_text += (
-                                f"\n⚠ 全板件配對 {audit.evaluated_pair_count} 組："
+                                f"\n警告：全板件配對 {audit.evaluated_pair_count} 組："
                                 f"{len(audit.unresolved)} 組有未證實合法交線（橘色），不可判定為零碰撞"
                             )
                             collision_text += "".join(
@@ -699,7 +703,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             if dims and callable(getattr(ax, "text2D", None)):
                 text = " × ".join(self._number_text(v) for v in dims)
                 warnings = tuple(getattr(render_data, "warnings", ()) or ())
-                warning_text = "\n⚠ " + "；".join(str(getattr(w, "message", w)) for w in warnings) if warnings else ""
+                warning_text = "\n警告：" + "；".join(str(getattr(w, "message", w)) for w in warnings) if warnings else ""
                 corner_text = f"\n{request.corner_dimension_text}" if request.corner_dimension_text else ""
                 piece_text = "\n".join(_phase6_box_body_piece_dimension_lines(render_data))
                 ax.text2D(

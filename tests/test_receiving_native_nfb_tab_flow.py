@@ -268,3 +268,70 @@ def test_ac28_inner_candidate_valid_highlight_is_atomic_and_preserves_neighbor()
             after["sets"][0], bay_index, "inner_door_version_id"
         ) == "inner-door-v1"
     assert before == initial
+
+
+@pytest.mark.parametrize("invalid", (
+    (True,), (False,), (0, True), (0, []), ([],),
+    None, 0, ("1",), (-1,), (99,),
+))
+@pytest.mark.parametrize("operation", ("generic", "live"))
+def test_ac28_shared_candidate_and_live_highlight_rejects_nonphysical_bay(
+    operation, invalid,
+):
+    """Bad highlights never authorize a physical Bay or alter a version label."""
+    from ae_engine.receiving_layout import new_receiving_layout, resize_receiving_bays
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+
+    layout = resize_receiving_bays(
+        new_receiving_layout(width=800, height=1600, depth=350),
+        set_index=0, bay_count=2,
+    )
+    adapter = ReceivingSetBayAdapter(layout)
+    frozen = adapter.layout
+    previous_selection = adapter.selection
+    with pytest.raises(ValueError, match="高亮有效的連"):
+        if operation == "generic":
+            adapter.apply_candidate_to_bays(
+                "head", 0, invalid, [], version_id="head-v1",
+            )
+        else:
+            adapter.mark_live_version_for_bays("inner-door", 0, invalid)
+    assert adapter.layout == frozen
+    assert adapter.selection == previous_selection
+    assert layout == frozen
+
+
+@pytest.mark.parametrize("operation", ("generic", "live"))
+def test_ac28_shared_candidate_and_live_valid_multibay_preserves_neighbor(
+    operation,
+):
+    """Apply selected Bays 0 and 2 only; no label or NFB owner in Bay 1."""
+    from ae_engine.receiving_layout import new_receiving_layout, resize_receiving_bays
+    from ae_engine.receiving_shared_settings import setting_value
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+
+    layout = resize_receiving_bays(
+        new_receiving_layout(width=800, height=1600, depth=350),
+        set_index=0, bay_count=3,
+    )
+    adapter = ReceivingSetBayAdapter(layout)
+    before = adapter.layout
+    original_selection = adapter.selection
+    if operation == "generic":
+        applied = adapter.apply_candidate_to_bays(
+            "head", 0, (2, 0), [], version_id="head-v1",
+        )
+        kind, expected = "head_version_id", "head-v1"
+    else:
+        applied = adapter.mark_live_version_for_bays(
+            "inner-door", 0, (2, 0),
+        )
+        kind, expected = "inner_door_version_id", ""
+    after = adapter.layout
+    assert applied == (0, 2)
+    assert adapter.selection == original_selection
+    assert after["sets"][0]["bays"][1] == before["sets"][0]["bays"][1]
+    assert setting_value(after["sets"][0], 1, kind) is None
+    for bay_index in (0, 2):
+        assert setting_value(after["sets"][0], bay_index, kind) == expected
+    assert layout == before

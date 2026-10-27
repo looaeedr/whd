@@ -85,11 +85,17 @@ class ReferenceDistances:
 
 def feature_reference_anchor(feature: Feature) -> ReferenceAnchor:
     params = dict(getattr(feature, "source_params", ()))
-    raw = params.get("reference_anchor", ReferenceAnchor.CENTER.value)
-    try:
-        return ReferenceAnchor(str(raw))
-    except ValueError:
+    # Missing historic anchor means CENTER. An explicitly saved invalid
+    # anchor must not silently relocate the reference point for hole edits.
+    if "reference_anchor" not in params:
         return ReferenceAnchor.CENTER
+    raw = params["reference_anchor"]
+    if not isinstance(raw, str):
+        raise ValueError("invalid feature reference_anchor")
+    try:
+        return ReferenceAnchor(raw)
+    except ValueError as exc:
+        raise ValueError("invalid feature reference_anchor") from exc
 
 
 def feature_with_reference_anchor(feature: Feature, anchor: ReferenceAnchor) -> Feature:
@@ -194,6 +200,10 @@ def reference_edge_directions(surface: FeatureSurface, feature: Feature, anchor:
 
 
 def find_reference_neighbor(features: Iterable[Feature], current_index: int, anchor: ReferenceAnchor, axis: str, side: str, width: float, height: float) -> ReferenceNeighbor | None:
+    # This is a public query as well as the downstream display helper. A
+    # boolean/float GUI selection must not alias another physical hole.
+    if type(current_index) is not int:
+        raise ValueError("reference feature index must be an integer")
     items = list(features)
     if not (0 <= current_index < len(items)):
         return None
@@ -227,6 +237,9 @@ def find_reference_neighbor(features: Iterable[Feature], current_index: int, anc
 
 def reference_distances(surface: FeatureSurface, features: Iterable[Feature], current_index: int, anchor: ReferenceAnchor, width: float, height: float, reference_guide: "RectGuide | None" = None) -> ReferenceDistances:
     items = list(features)
+    # A negative GUI selection is not a request for the last physical hole.
+    if type(current_index) is not int or not 0 <= current_index < len(items):
+        raise ValueError("reference feature index is out of range")
     feature = items[current_index]
     p = feature_reference_point(feature, anchor, width, height)
     x_side, y_side = reference_edge_directions(surface, feature, anchor, width, height, reference_guide)
@@ -259,6 +272,10 @@ def move_feature_by_reference_distance(surface: FeatureSurface, features: Iterab
     if not math.isfinite(measured):
         raise ValueError("reference distance must be finite")
     items = list(features)
+    # Tk uses -1 for "no selection"; Python would otherwise select the last
+    # physical hole, while neighboring UI paths already reject invalid IDs.
+    if not 0 <= current_index < len(items):
+        raise ValueError("reference feature index is out of range")
     feature = items[current_index]
     current_ref = feature_reference_point(feature, anchor, width, height)
     distances = reference_distances(surface, items, current_index, anchor, width, height, reference_guide)

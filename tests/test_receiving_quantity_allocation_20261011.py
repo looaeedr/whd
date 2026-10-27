@@ -251,3 +251,38 @@ def test_allocation_ui_native_combobox_and_explicit_apply():
         assert not child.winfo_exists()
     finally:
         root.destroy()
+
+
+@pytest.mark.parametrize("bad_available", [
+    {"head": "v", "tail": ["tail-v1"]},
+    {"head": 42, "tail": ["tail-v1"]},
+    {"head": ["v"], "tail": None},
+    {"head": ["v"], "tail": [True]},
+    {"head": ["v"], "tail": [["tail-v1"]]},
+    {"head": ["v"]},
+])
+def test_r5_81_draft_reconcile_rejects_corrupt_candidate_inventory_atomically(bad_available):
+    """A bad source must not partly erase a physical Bay's pending selection."""
+    draft = AllocationDraft((2,))
+    draft.add_version("head", "v")
+    draft.set_quantity("head", "v", 2)
+    draft.active_version["head"] = "v"
+    draft.assign("head", 0, 0)
+    before = deepcopy((draft.counts, draft.quantities, draft.assigned,
+                       draft.active_version, draft.step))
+    with pytest.raises(ValueError, match="候選版本"):
+        draft.reconcile((3,), bad_available)
+    assert (draft.counts, draft.quantities, draft.assigned,
+            draft.active_version, draft.step) == before
+
+
+def test_r5_81_draft_reconcile_keeps_valid_generator_candidate_ids():
+    draft = AllocationDraft((2,))
+    draft.add_version("head", "head-v1")
+    draft.set_quantity("head", "head-v1", 2)
+    draft.active_version["head"] = "head-v1"
+    draft.assign("head", 0, 0)
+    draft.reconcile((2,), {"head": (x for x in ("head-v1",)),
+                           "tail": (x for x in ("tail-v1",))})
+    assert draft.assigned["head"] == {(0, 0): "head-v1"}
+    assert draft.quantities["head"] == {"head-v1": 2}

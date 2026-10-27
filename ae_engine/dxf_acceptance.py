@@ -278,20 +278,36 @@ def _one_to_one_tolerance_match(expected, actual, compatible) -> bool:
         return False
     assigned = {}
 
-    def augment(row_index, visited):
-        for col in edges[row_index]:
+    def augment(root):
+        # Iterative augmenting path: a densely perforated DXF can need over
+        # 1000 chained reassignments, exceeding Python's recursion limit.
+        # The stack remembers the parent column used to reach each row.
+        visited = set()
+        stack = [(root, iter(edges[root]), None)]
+        while stack:
+            row, options, _incoming = stack[-1]
+            col = next(options, None)
+            if col is None:
+                stack.pop()
+                continue
             if col in visited:
                 continue
             visited.add(col)
-            if col not in assigned or augment(assigned[col], visited):
-                assigned[col] = row_index
+            displaced = assigned.get(col)
+            if displaced is None:
+                assigned[col] = row
+                for depth in range(len(stack) - 1, 0, -1):
+                    parent_row = stack[depth - 1][0]
+                    parent_col = stack[depth][2]
+                    assigned[parent_col] = parent_row
                 return True
+            stack.append((displaced, iter(edges[displaced]), col))
         return False
 
-    # Match the most constrained expected rows first; augmenting paths can
-    # still reassign matches when several candidates share one tolerance.
+    # Preserve strict COMPLETE one-to-one matching; no tolerance widening
+    # and no greedy acceptance of duplicated/missing manufactured holes.
     return all(
-        augment(index, set())
+        augment(index)
         for index in sorted(range(len(edges)), key=lambda i: len(edges[i]))
     )
 
@@ -299,8 +315,14 @@ def _one_to_one_tolerance_match(expected, actual, compatible) -> bool:
 def _valid_nonnegative_tolerance(value) -> bool:
     # Acceptance tolerances are physically meaningful numeric limits, not
     # strings, bools or NaN/Inf capable of bypassing CUTTING comparison.
-    return (isinstance(value, (int, float)) and not isinstance(value, bool)
-            and isfinite(value) and value >= 0.)
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        return isfinite(value) and value >= 0.
+    except OverflowError:
+        # math.isfinite converts huge Python ints to float before checking.
+        # A malformed tolerance must not escape the DXF fail-closed receipt.
+        return False
 
 
 def _rows_close(expected, actual, tolerance: float) -> bool:
@@ -309,6 +331,8 @@ def _rows_close(expected, actual, tolerance: float) -> bool:
 
     def same(erow, arow):
         if len(erow) != len(arow) or erow[0] != arow[0]:
+            return False
+        if any(isinstance(v, bool) for v in (*erow[1:], *arow[1:])):
             return False
         try:
             pairs = tuple((float(ev), float(av)) for ev, av in zip(erow[1:], arow[1:]))
@@ -321,16 +345,21 @@ def _rows_close(expected, actual, tolerance: float) -> bool:
 
 
 def _expected_cutting_circles(scene):
-    return tuple(sorted(
-        (
-            float(p.center.x),
-            float(p.center.y),
-            float(p.radius),
-        )
-        for p in getattr(scene, "primitives", ())
-        if isinstance(p, CirclePrimitive)
-        and str(getattr(p, "layer", "")).upper() == "CUTTING"
-    ))
+    circles = []
+    for p in getattr(scene, "primitives", ()):
+        if not isinstance(p, CirclePrimitive) or str(getattr(p, "layer", "")).upper() != "CUTTING":
+            continue
+        raw = (p.center.x, p.center.y, p.radius)
+        if any(isinstance(value, bool) for value in raw):
+            raise ValueError("canonical CUTTING circle must have real physical coordinates")
+        try:
+            cx, cy, radius = (float(value) for value in raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("canonical CUTTING circle must have real physical coordinates") from exc
+        if not all(isfinite(v) for v in (cx, cy, radius)) or radius <= 0:
+            raise ValueError("canonical CUTTING circle must have finite positive radius")
+        circles.append((cx, cy, radius))
+    return tuple(sorted(circles))
 
 
 def _actual_cutting_circles(msp):
@@ -350,6 +379,10 @@ def _circle_rows_close(expected, actual, tolerance: float) -> bool:
         return False
 
     def same(erow, arow):
+        if len(erow) != len(arow) or any(
+            isinstance(v, bool) for v in (*erow, *arow)
+        ):
+            return False
         try:
             values = tuple((float(ev), float(av)) for ev, av in zip(erow, arow))
         except (TypeError, ValueError, OverflowError):
@@ -470,6 +503,15 @@ def verify_saved_part_render_data_dxf(
         )
     msp = doc.modelspace()
 
+    # Fail closed BEFORE layer matching float-coerces a malformed source hole.
+    # The reopened DXF must never certify a boolean/NaN physical CUTTING circle.
+    try:
+        expected_circles = _expected_cutting_circles(render_data.scene)
+    except ValueError as exc:
+        return DxfAcceptanceResult(False, (
+            DxfAcceptanceIssue("INVALID_SOURCE", str(exc)),
+        ))
+
     issues.extend(_find_layer_mismatches(
         render_data.scene, msp, float(coordinate_tolerance)
     ))
@@ -511,7 +553,6 @@ def verify_saved_part_render_data_dxf(
             actual_bends,
         ))
 
-    expected_circles = _expected_cutting_circles(render_data.scene)
     actual_circles = _actual_cutting_circles(msp)
     if not _circle_rows_close(expected_circles, actual_circles, float(coordinate_tolerance)):
         issues.append(DxfAcceptanceIssue(

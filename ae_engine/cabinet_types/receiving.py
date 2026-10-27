@@ -246,14 +246,21 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
     from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
 
     data = dict(snapshot or {})
+    if isinstance(inner_door_id, bool):
+        raise ValueError("invalid inner-door identity source")
     wanted = str(inner_door_id or '').strip()
     if not wanted:
         raise ValueError("inner_door_id must be non-empty")
-    item = next(
-        (row for row in list(data.get('inner_doors') or ())
-         if isinstance(row, dict) and str(row.get('stable_id') or '').strip() == wanted),
-        None,
-    )
+    item = None
+    for row in list(data.get('inner_doors') or ()):
+        if not isinstance(row, dict):
+            continue
+        # Do not stringify persisted Boolean identities before matching the
+        # vertical frame's authoritative Door; share panel/frame validation.
+        row_id, _cell_key = _saved_inner_door_identity(row)
+        if row_id == wanted:
+            item = row
+            break
     if item is None:
         raise ValueError(f"inner door stable id is missing from authoritative state: {wanted!r}")
 
@@ -262,7 +269,7 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
         raise ValueError("Receiving vertical frame contract requires enabled Door topology")
     normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
     cells = {f'{cell.column_index}:{cell.row_index}': cell for cell in derive_door_layout_cells(normalized)}
-    cell_key = str(item.get('cell_key') or '').strip()
+    _door_id, cell_key = _saved_inner_door_identity(item)
     if cell_key not in cells:
         raise ValueError(f"inner-door cell outside authoritative Door topology: {cell_key!r}")
     cell = cells[cell_key]
@@ -368,6 +375,32 @@ def inner_door_panel_vertical_contract(*, cell_height: float, thickness: float, 
     }
 
 
+def _inner_door_physical_mm(value: object, *, label: str, allow_zero: bool = False) -> float:
+    """Validate physical T and Door clearance before float can erase input types."""
+    import math
+    if isinstance(value, bool):
+        raise ValueError(f"inner-door physical {label} must be a finite number")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"inner-door physical {label} must be a finite number") from exc
+    if (not math.isfinite(number) or number < 0
+            or (number == 0 and not allow_zero)):
+        raise ValueError(f"inner-door physical {label} must be positive and finite")
+    return number
+
+
+def _saved_inner_door_identity(row) -> tuple[str, str]:
+    """Keep original saved identity types until both physical owners validate."""
+    if (isinstance(row.get("stable_id"), bool)
+            or isinstance(row.get("cell_key"), bool)):
+        raise ValueError("invalid inner-door identity source")
+    return (
+        str(row.get("stable_id") or "").strip(),
+        str(row.get("cell_key") or "").strip(),
+    )
+
+
 def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
     """Derive inner doors from shared Door folding plus family assembly deductions."""
     from ae_engine.inner_door_panels import derive_inner_door_panel
@@ -380,18 +413,23 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
         return ()
     normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
     cells = {f"{cell.column_index}:{cell.row_index}": cell for cell in derive_door_layout_cells(normalized)}
-    t = float(data.get("t", 2.0))
+    t = _inner_door_physical_mm(data.get("t", 2.0), label="thickness")
     formed = inner_door_frame_formed_occupation(t)
-    gap_w = float(data.get("door_gap_w", DOOR_DEFAULTS["door_gap_w"]))
-    gap_h = float(data.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"]))
+    gap_w = _inner_door_physical_mm(
+        data.get("door_gap_w", DOOR_DEFAULTS["door_gap_w"]),
+        label="horizontal clearance", allow_zero=True,
+    )
+    gap_h = _inner_door_physical_mm(
+        data.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"]),
+        label="vertical clearance", allow_zero=True,
+    )
 
     result = []
     seen = set()
     for item in list(data.get("inner_doors") or ()):
         if not isinstance(item, dict):
             continue
-        stable_id = str(item.get("stable_id") or "").strip()
-        cell_key = str(item.get("cell_key") or "").strip()
+        stable_id, cell_key = _saved_inner_door_identity(item)
         if not stable_id or cell_key not in cells:
             continue
         panel_id = f"inner_door:{stable_id}:panel"
@@ -432,15 +470,14 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
         return ()
     normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
     cells = {f"{cell.column_index}:{cell.row_index}": cell for cell in derive_door_layout_cells(normalized)}
-    t = float(data.get("t", 2.0))
+    t = _inner_door_physical_mm(data.get("t", 2.0), label="thickness")
     formed = inner_door_frame_formed_occupation(t)
 
     result = []
     for item in list(data.get("inner_doors") or ()):
         if not isinstance(item, dict):
             continue
-        stable_id = str(item.get("stable_id") or "").strip()
-        cell_key = str(item.get("cell_key") or "").strip()
+        stable_id, cell_key = _saved_inner_door_identity(item)
         if not stable_id or cell_key not in cells:
             continue
         cell = cells[cell_key]
@@ -633,22 +670,37 @@ def resolve_back_panel_contract(
     if not is_receiving_snapshot(data):
         raise ValueError("back-panel mode contract is Receiving-only")
 
-    width = float(panel_width)
-    full_height = float(full_panel_height)
-    if width <= 0.0 or full_height <= 0.0:
-        raise ValueError("rear-panel dimensions must be positive")
+    from math import isfinite
+    if isinstance(panel_width, bool) or isinstance(full_panel_height, bool):
+        raise ValueError("rear-panel dimensions must be finite positive numbers")
+    try:
+        width = float(panel_width)
+        full_height = float(full_panel_height)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("rear-panel dimensions must be finite positive numbers") from exc
+    if not (isfinite(width) and isfinite(full_height)
+            and width > 0.0 and full_height > 0.0):
+        raise ValueError("rear-panel dimensions must be finite positive numbers")
 
     mode = back_panel_mode(structure_state)
     material_height = full_height
     formed_y_offset = 0.0
 
     if mode is BackPanelMode.HALF:
-        if not bool(data.get("multi_door_enabled", False)):
+        if data.get("multi_door_enabled", False) is not True:
             raise ValueError("Receiving half rear panel requires authoritative Door topology")
         columns = list(data.get("door_layout_columns") or ())
         if not columns or len(columns[0]) < 2 or not list(columns[0][1] or ()):
             raise ValueError("Receiving half rear panel requires authoritative Door topology")
-        upper_section = float(list(columns[0][1])[0])
+        raw_upper_section = list(columns[0][1])[0]
+        if isinstance(raw_upper_section, bool):
+            raise ValueError("rear-panel upper section must be finite and positive")
+        try:
+            upper_section = float(raw_upper_section)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("rear-panel upper section must be finite and positive") from exc
+        if not isfinite(upper_section) or upper_section <= 0.0:
+            raise ValueError("rear-panel upper section must be finite and positive")
         if abs(upper_section - BACK_PANEL_CERTIFIED_UPPER_SECTION) <= 1e-9:
             material_height = BACK_PANEL_CERTIFIED_HALF_HEIGHT
         else:
@@ -719,40 +771,62 @@ def _side_back_config(state=None):
     return result, cfg
 
 
+def _finite_bottom_relief_reserve(value, *, key: str) -> float:
+    """Keep user-adjustable reserves while rejecting impossible CUTTING values."""
+    from math import isfinite
+    if isinstance(value, bool):
+        raise ValueError(f"{key} must be finite numeric millimetres")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{key} must be finite numeric millimetres") from exc
+    if not isfinite(number):
+        raise ValueError(f"{key} must be finite numeric millimetres")
+    return max(0.0, number)
+
+
 def bottom_external_wrap_enabled(state=None) -> bool:
     """Return the receiving EndCap lower-face external-WRAP option."""
     _state, cfg = _side_back_config(state)
-    return bool(cfg.get("bottom_external_wrap", True))
+    enabled = cfg.get("bottom_external_wrap", True)
+    if not isinstance(enabled, bool):
+        raise ValueError("bottom_external_wrap must be boolean")
+    return enabled
 
 
 def set_bottom_external_wrap(state, enabled: bool) -> dict:
     """Return a canonical structure-state copy with lower WRAP enabled/disabled."""
+    if not isinstance(enabled, bool):
+        raise ValueError("bottom_external_wrap must be boolean")
     result, cfg = _side_back_config(state)
-    cfg["bottom_external_wrap"] = bool(enabled)
+    cfg["bottom_external_wrap"] = enabled
     return result
 
 
 def bottom_relief_reserves(state=None) -> tuple[float, float]:
     """Return explicit millimetre reserves ``(X, Y)`` for receiving lower WRAP."""
     _state, cfg = _side_back_config(state)
-    try:
-        reserve_u = max(0.0, float(cfg.get("bottom_relief_reserve_u", 2.0)))
-    except (TypeError, ValueError):
-        reserve_u = 2.0
-    try:
-        reserve_v = max(0.0, float(cfg.get("bottom_relief_reserve_v", 1.0)))
-    except (TypeError, ValueError):
-        reserve_v = 1.0
-    return reserve_u, reserve_v
+    return (
+        _finite_bottom_relief_reserve(
+            cfg.get("bottom_relief_reserve_u", 2.0), key="bottom_relief_reserve_u",
+        ),
+        _finite_bottom_relief_reserve(
+            cfg.get("bottom_relief_reserve_v", 1.0), key="bottom_relief_reserve_v",
+        ),
+    )
 
 
 def set_bottom_relief_reserves(state, *, reserve_u=None, reserve_v=None) -> dict:
     """Return a canonical structure-state copy with explicit X/Y reserve values."""
     result, cfg = _side_back_config(state)
     if reserve_u is not None:
-        cfg["bottom_relief_reserve_u"] = max(0.0, float(reserve_u))
+        cfg["bottom_relief_reserve_u"] = _finite_bottom_relief_reserve(
+            reserve_u, key="bottom_relief_reserve_u",
+        )
     if reserve_v is not None:
-        cfg["bottom_relief_reserve_v"] = max(0.0, float(reserve_v))
+        cfg["bottom_relief_reserve_v"] = _finite_bottom_relief_reserve(
+            reserve_v, key="bottom_relief_reserve_v",
+        )
     return result
 
 

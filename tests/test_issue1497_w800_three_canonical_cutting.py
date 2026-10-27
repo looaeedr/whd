@@ -180,6 +180,11 @@ def test_two_configured_layers_six_unique_holes_and_final_saved_dxf(tmp_path):
     (NfbW800ThreeRow(layer_index=0, physical_hole_ids=("one", "two", "three"),
                       rotations_deg=(0, 90, 45)),),
     (NfbW800ThreeRow(layer_index=0, physical_hole_ids=("one", "two")),),
+    # The annotation is not a runtime guard: a three-character string is
+    # not three independent physical hole IDs. Reject before DXF emission.
+    (NfbW800ThreeRow(layer_index=0, physical_hole_ids="abc"),),
+    (NfbW800ThreeRow(layer_index=0,
+                      physical_hole_ids=(" one ", "two", "three")),),
 ])
 def test_w800x3_invalid_config_is_atomic_no_dxf(tmp_path, rows):
     idx, src, profile = _source(tmp_path)

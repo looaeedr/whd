@@ -91,13 +91,31 @@ def vector_unit(v, *, tolerance: float, error_message: str = "degenerate vector"
 
 
 def triangle_unit_normal(triangle, *, tolerance: float, error_message: str):
-    """Return an oriented normal; do not infer a caller's physical-side policy."""
-    a, b, c = tuple(triangle)
-    return vector_unit(
-        vector_cross(vector_sub(b, a), vector_sub(c, a)),
-        tolerance=tolerance,
-        error_message=error_message,
-    )
+    """Return an oriented normal only from three finite physical XYZ vertices."""
+    # Inspect raw vertices before vector_sub converts True into 1.0 mm.
+    # Joint MARKING must use the caller's fail-closed geometry diagnostic for
+    # corrupt persisted/mapped skin points, not leak unpacking/overflow errors.
+    try:
+        raw_points = tuple(triangle)
+        if len(raw_points) != 3:
+            raise ValueError("triangle requires three vertices")
+        points = []
+        for raw in raw_points:
+            coords = tuple(raw)
+            if len(coords) != 3 or any(isinstance(v, bool) for v in coords):
+                raise ValueError("triangle vertex requires physical XYZ")
+            vertex = tuple(float(v) for v in coords)
+            if not all(math.isfinite(v) for v in vertex):
+                raise ValueError("triangle vertex must be finite XYZ")
+            points.append(vertex)
+        a, b, c = points
+        return vector_unit(
+            vector_cross(vector_sub(b, a), vector_sub(c, a)),
+            tolerance=tolerance,
+            error_message=error_message,
+        )
+    except (IndexError, TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(error_message) from exc
 
 
 def canonical_unit_normal(
@@ -527,7 +545,28 @@ def backproject_mapped_skin_world_points(
     Receiving pairing MARKING. It never invents a mirror/rotation after the
     mapped-skin transform and it does not infer machining side semantics.
     """
-    mapping = tuple(mapping or ())
+    try:
+        mapping = tuple(mapping or ())
+        world_points = tuple(points or ())
+        # The world→UV triangle is physical source authority. A boolean
+        # stored vertex must not be converted into a plausible 0/1-mm mark.
+        # Validate once per source record, not once per point/triangle pair.
+        for record in mapping:
+            for field in ("world", "flat"):
+                vertices = tuple(getattr(record, field, ()) or ())
+                if any(
+                    isinstance(coordinate, bool)
+                    for vertex in vertices
+                    for coordinate in vertex
+                ):
+                    raise ValueError("boolean mapped-skin vertex is not physical geometry")
+    except (TypeError, ValueError, OverflowError) as exc:
+        return LocatorBackprojectionResult(
+            status="SKIPPED_FAIL_CLOSED",
+            diagnostic_code="BACKPROJECTION_FAILED",
+            flat_points=(),
+            evidence={"reason": f"invalid mapped-skin or world-point source: {exc}"},
+        )
     if not mapping:
         return LocatorBackprojectionResult(
             status="SKIPPED_FAIL_CLOSED",
@@ -540,7 +579,7 @@ def backproject_mapped_skin_world_points(
         PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.flat_world_mapping_tolerance
     )
     resolved = []
-    for raw in tuple(points or ()):
+    for raw in world_points:
         try:
             raw_point = tuple(raw)
             if any(isinstance(v, bool) for v in raw_point):

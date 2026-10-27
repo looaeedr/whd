@@ -464,3 +464,232 @@ def test_r3_8_all_current_side_dxf_sinks_check_full_marking_scene():
         assert calls, f"No MARKING readback call: {path}"
         assert all(any(arg.arg == "check_scene" for arg in call.keywords)
                    for call in calls), f"EAR-only readback: {path}"
+
+
+@pytest.mark.parametrize("malformed", [True, 42, "back_panel_mode", []])
+def test_r3_9_corrupt_persisted_shared_setting_root_cannot_reset_bay_links(malformed):
+    """An explicit wrong-shaped source is not an absent setting."""
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    source = new_receiving_layout(width=800., height=1600., depth=350.)
+    source["sets"][0]["settings"] = malformed
+    with pytest.raises(ValueError, match="共享設定"):
+        normalize_receiving_layout(source)
+    assert source["sets"][0]["settings"] == malformed
+
+
+@pytest.mark.parametrize("field, malformed", [
+    ("refs", None), ("refs", []), ("refs", 42),
+    ("values", None), ("values", []), ("values", True),
+])
+def test_r3_9_corrupt_persisted_shared_refs_values_must_not_erase_owners(field, malformed):
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    source = new_receiving_layout(width=800., height=1600., depth=350.)
+    source["sets"][0]["settings"] = {"back_panel_mode": {field: malformed}}
+    with pytest.raises(ValueError, match="共享設定"):
+        normalize_receiving_layout(source)
+    assert source["sets"][0]["settings"]["back_panel_mode"][field] == malformed
+
+
+def test_r3_9_absent_shared_settings_retains_default_and_valid_mapping_round_trip():
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    source = new_receiving_layout(width=800., height=1600., depth=350.)
+    pristine = normalize_receiving_layout(source)
+    assert pristine["sets"][0]["bays"][0]["back_panel_mode"] == "FULL"
+    source["sets"][0]["settings"] = {
+        "back_panel_mode": {
+            "refs": {source["sets"][0]["bays"][0]["stable_id"]: "test:mode"},
+            "values": {"test:mode": "HALF"},
+        },
+    }
+    normalized = normalize_receiving_layout(source)
+    assert normalized["sets"][0]["bays"][0]["back_panel_mode"] == "HALF"
+    assert normalized["sets"][0]["settings"]["back_panel_mode"]["refs"] == source["sets"][0]["settings"]["back_panel_mode"]["refs"]
+
+
+@pytest.mark.parametrize(
+    ("saved_source", "expected_basename"),
+    [
+        (r"Z:\localX\基準檔\受電箱\左側板.dxf", "左側板.dxf"),
+        ("/workspace/whd/baselines/receiving_side.dxf", "receiving_side.dxf"),
+    ],
+)
+def test_r3_12_actual_box_body_piece_preview_displays_basename_not_full_source_path(
+    saved_source, expected_basename,
+):
+    """R3 #12: exercise the real piece renderer, not a copied string formula.
+
+    Only the presentation hint is in scope: physical sheet geometry and
+    manufacturing DXF are supplied by the existing authoritative render data.
+    """
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    from gui_modules.rendering.box_body_view import draw_box_body_piece_preview
+
+    captions = []
+    canvas = SimpleNamespace(
+        winfo_width=lambda: 800,
+        winfo_height=lambda: 600,
+        create_text=lambda *_args, **kwargs: captions.append(kwargs["text"]),
+    )
+    host = SimpleNamespace(
+        canvas_z=canvas,
+        draw_stock_var=SimpleNamespace(get=lambda: False),
+        _box_body_piece_label=lambda part_key: "左側板",
+        COLOR_TEXT_MUTED="#ffffff",
+    )
+    physical_render = SimpleNamespace(
+        material=SimpleNamespace(bounds=(0., 0., 100., 80.)),
+        scene=DrawingScene(),
+        metadata={"baseline_source_path": saved_source},
+        warnings=(),
+    )
+    part = SimpleNamespace(
+        role="left_side",
+        render_data=physical_render,
+        formed_outer_dimensions=(100., 80.),
+        material_dimensions=(110., 90.),
+    )
+    aggregate = SimpleNamespace(pieces=(part,))
+    transform = SimpleNamespace(world_to_canvas=lambda point: (point.x, point.y))
+
+    draw_box_body_piece_preview(
+        host, aggregate, part, "box_body:left_side",
+        viewport=lambda *_args: (transform, 0., 0., 1., 0.),
+        scene_renderer=lambda *_args, **_kwargs: None,
+        annotation_drawer=lambda *_args, **_kwargs: None,
+    )
+
+    assert len(captions) == 1
+    assert "專用基準：" + expected_basename in captions[0]
+    assert saved_source not in captions[0]
+    assert "成形：100 × 80 mm" in captions[0]
+    assert host.last_box_body_face_overview == {
+        "mode": "physical_piece",
+        "piece_key": "box_body:left_side",
+        "role": "left_side",
+        "material_bounds": (0., 0., 100., 80.),
+        "aggregate_piece_count": 1,
+    }
+
+
+@pytest.mark.parametrize("part_side", ("left", "right"))
+def test_r3_14_actual_fixing_plate_source_export_warning_is_multiline_and_cancel_is_atomic(
+    monkeypatch, part_side,
+):
+    """R3 #14: the real 3D-export entry must display a readable warning.
+
+    Cancel cannot open a save chooser or call the source-DXF sink. This is
+    presentation and routing acceptance only, not a claim of released DXF.
+    """
+    from tkinter import filedialog, messagebox
+    from ae_engine import receiving_base_fixing_plate_geometry as source_flat
+    from gui_modules.application.fold_designer_composition_state import (
+        export_selected_dxf_from_3d,
+    )
+
+    messages = []
+    file_dialogs = []
+    source_writes = []
+    success_messages = []
+    monkeypatch.setattr(
+        messagebox, "askokcancel",
+        lambda title, message: messages.append((title, message)) or False,
+    )
+    monkeypatch.setattr(
+        filedialog, "asksaveasfilename",
+        lambda **kw: file_dialogs.append(kw) or "should-not-write.dxf",
+    )
+    monkeypatch.setattr(
+        source_flat, "save_independent_source_flat_dxf",
+        lambda *args: source_writes.append(args),
+    )
+    monkeypatch.setattr(
+        messagebox, "showinfo",
+        lambda *args: success_messages.append(args),
+    )
+    owner = SimpleNamespace(
+        app=SimpleNamespace(
+            designer_workspace=SimpleNamespace(
+                active_part=f"base_plate:fixing_plate:{part_side}",
+            )
+        ),
+    )
+
+    assert export_selected_dxf_from_3d(owner) is None
+    assert len(messages) == 1
+    assert "來源平面圖" in messages[0][0]
+    body = messages[0][1]
+    assert body.count("\n") >= 3
+    assert "\\n" not in body
+    assert "不代表整箱正式製造放行" in body
+    assert "焊接接觸及 Z" in body
+    assert file_dialogs == []
+    assert source_writes == []
+    assert success_messages == []
+
+
+@pytest.mark.parametrize(
+    ("part_side", "file_label"),
+    (("left", "底板固定片_左_來源平面.dxf"),
+     ("right", "底板固定片_右_來源平面.dxf")),
+)
+def test_r3_14_actual_fixing_plate_source_export_confirm_keeps_source_only_label(
+    monkeypatch, part_side, file_label,
+):
+    """Accepted source-flat export retains the dialog and original physical owner."""
+    from tkinter import filedialog, messagebox
+    from ae_engine import receiving_base_fixing_plate_geometry as source_flat
+    from gui_modules.application.fold_designer_composition_state import (
+        export_selected_dxf_from_3d,
+    )
+
+    requested = []
+    exported = []
+    success = []
+    monkeypatch.setattr(messagebox, "askokcancel", lambda *_args: True)
+    monkeypatch.setattr(
+        filedialog, "asksaveasfilename",
+        lambda **kwargs: requested.append(kwargs) or "/tmp/source-only.dxf",
+    )
+    monkeypatch.setattr(
+        source_flat, "save_independent_source_flat_dxf",
+        lambda key, path: exported.append((key, path)) or path,
+    )
+    monkeypatch.setattr(
+        messagebox, "showinfo",
+        lambda title, body: success.append((title, body)),
+    )
+    owner = SimpleNamespace(
+        app=SimpleNamespace(
+            designer_workspace=SimpleNamespace(
+                active_part=f"base_plate:fixing_plate:{part_side}",
+            )
+        ),
+    )
+
+    assert export_selected_dxf_from_3d(owner) == "/tmp/source-only.dxf"
+    assert requested[0]["initialfile"] == file_label
+    assert exported == [(f"base_plate:fixing_plate:{part_side}", "/tmp/source-only.dxf")]
+    assert len(success) == 1
+    assert success[0][1].count("\n") >= 1
+    assert "\\n" not in success[0][1]
+    assert "不代表整箱正式製造放行" in success[0][1]
+
+
+def test_r3_14_regular_part_export_still_delegates_to_existing_project_capability():
+    """The fixing-plate special path must not intercept normal 3D DXF export."""
+    from gui_modules.application.fold_designer_composition_state import (
+        export_selected_dxf_from_3d,
+    )
+    calls = []
+    owner = SimpleNamespace(
+        app=SimpleNamespace(
+            designer_workspace=SimpleNamespace(active_part="head"),
+        ),
+        _capabilities=SimpleNamespace(
+            project=SimpleNamespace(
+                export_selected_dxf=lambda: calls.append("ordinary") or "existing-export",
+            ),
+        ),
+    )
+    assert export_selected_dxf_from_3d(owner) == "existing-export"
+    assert calls == ["ordinary"]

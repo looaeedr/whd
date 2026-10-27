@@ -18,15 +18,15 @@ def _require_brand(value):
     return value
 
 
-def saved_parent_new_reselections(scope, current_brand, proposed_brand):
-    """Count brand-following, previously matching submitted V5 holes only."""
+def saved_parent_reselection_hole_ids(scope, current_brand, proposed_brand):
+    """Read-only exact physical IDs for inherited models made stale by brand."""
     _require_brand(current_brand)
     _require_brand(proposed_brand)
     if current_brand == proposed_brand or scope.get("nfb_config_submitted") is not True:
-        return 0
+        return ()
     from .receiving_nfb_persistence import normalize_nfb_saved_fields
     fields = normalize_nfb_saved_fields(scope)
-    count = 0
+    impacted = []
     for hole in fields["nfb_config"]["holes"]:
         mode = hole.get("brand_mode", "INHERIT")
         if mode not in ("INHERIT", "OVERRIDE"):
@@ -37,8 +37,15 @@ def saved_parent_new_reselections(scope, current_brand, proposed_brand):
         source = identity[0] if identity is not None else hole.get("source_brand")
         # An already stale unit is not newly invalidated by this edit.
         if source == current_brand and source != proposed_brand:
-            count += 1
-    return count
+            impacted.append(hole["physical_hole_id"])
+    return tuple(impacted)
+
+
+def saved_parent_new_reselections(scope, current_brand, proposed_brand):
+    """Count the same exact physical IDs exposed to the saved-state rebasing."""
+    return len(saved_parent_reselection_hole_ids(
+        scope, current_brand, proposed_brand,
+    ))
 
 
 def draft_new_reselections(before, proposed):

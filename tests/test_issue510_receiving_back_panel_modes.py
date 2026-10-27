@@ -371,3 +371,22 @@ def test_receiving_back_panel_selector_lives_in_normal_input_region_and_updates_
         except Exception:
             pass
 
+
+@pytest.mark.parametrize("invalid", ["", "INVALID", "unknown", False, True, 0, 1, [], {}])
+def test_saved_explicit_invalid_back_panel_mode_cannot_turn_into_full_manufacturing(invalid):
+    from ae_engine.cabinet_types import receiving
+    from phase6_box_body_structure import (
+        BackPanelMode, BoxBodyStructureType,
+        back_panel_mode, set_side_back_back_panel_mode,
+    )
+    state = receiving.resolve_box_body_structure_state(None)
+    key = BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    with pytest.raises(ValueError, match="back.panel.mode"):
+        set_side_back_back_panel_mode(state, invalid)
+    state["configs"][key]["back_panel_mode"] = invalid
+    with pytest.raises(ValueError, match="back.panel.mode"):
+        back_panel_mode(state)
+    assert state["configs"][key]["back_panel_mode"] == invalid
+    state["configs"][key].pop("back_panel_mode")
+    assert back_panel_mode(state) is BackPanelMode.FULL
+    assert back_panel_mode(set_side_back_back_panel_mode(state, "half")) is BackPanelMode.HALF

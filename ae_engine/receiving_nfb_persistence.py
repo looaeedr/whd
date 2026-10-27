@@ -65,10 +65,21 @@ def normalize_nfb_config(config):
     holes = value.get("holes")
     if not isinstance(holes, list) or not holes:
         raise ValueError("submitted NFBConfig requires explicit hole list")
+    # Old single-tier saved configs may omit this field. An explicit field
+    # is authoritative and must not let True == 1 or 1.0 == 1 borrow a tier.
+    layer_count = value.get("layer_count")
+    if ("layer_count" in value
+            and (type(layer_count) is not int or layer_count <= 0)):
+        raise ValueError("NFB layer_count must be an exact positive integer")
     seen = set()
     for hole in holes:
         if not isinstance(hole, dict):
             raise ValueError("NFBConfig hole must be an object")
+        if "layer_index" in hole:
+            tier_index = hole["layer_index"]
+            if (type(tier_index) is not int or tier_index < 0
+                    or (layer_count is not None and tier_index >= layer_count)):
+                raise ValueError("NFB layer_index must identify a saved physical tier")
         owner = hole.get("physical_hole_id")
         if (not isinstance(owner, str) or not owner.strip()
                 or owner != owner.strip() or owner in seen):
@@ -153,7 +164,19 @@ def normalize_nfb_saved_fields(row):
             and (not isinstance(snapshot["bay_id"], str)
                  or snapshot["bay_id"] != bay_owner)
         )
-        if stale_rotation or stale_model or stale_bay:
+        # Quantity versions have distinct, persistent owners.  A recorded
+        # operator X datum for v1 can NEVER authorize v2 merely because the
+        # cabinet width, model and rotation happen to match.  Old projects
+        # with no explicit version ownership remain legacy-compatible; their
+        # live manufacturing verifier must still bind the selected version.
+        version_owner = row.get("version_id")
+        stale_version = (
+            "version_id" in snapshot
+            and isinstance(version_owner, str) and bool(version_owner)
+            and (not isinstance(snapshot["version_id"], str)
+                 or snapshot["version_id"] != version_owner)
+        )
+        if stale_rotation or stale_model or stale_bay or stale_version:
             hole["manual_x_state"] = "RECONFIRM_REQUIRED"
     physical_width = row.get("width")
     if physical_width is not None:

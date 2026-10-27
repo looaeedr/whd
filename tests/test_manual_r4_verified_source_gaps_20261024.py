@@ -39,6 +39,11 @@ def test_r4_rotation_does_not_round_invalid_operator_angle():
         with pytest.raises(ValueError, match="rotation"):
             _normalize_rotation(bad)
     assert _normalize_rotation(360) == 0
+    # Intentionally corrupt persisted angles must fail as an operator
+    # validation error, not escape float() with an unchecked OverflowError.
+    for bad in (10 ** 400, -(10 ** 400)):
+        with pytest.raises(ValueError, match="rotation"):
+            _normalize_rotation(bad)
     for bad in (True, 30):
         with pytest.raises(ValueError, match="rotation"):
             legacy_hole_to_feature({
@@ -658,3 +663,46 @@ def test_r4_67_removed_parent_cannot_leave_live_child_part_placement_or_descenda
         assert ws.assembly_placements_snapshot() == {
             "tail": {"parent_assembly_node": "box_body", "offset_x": 4.},
         }
+
+
+@pytest.mark.parametrize("bad", [10 ** 400, -(10 ** 400)])
+def test_r4_57_unrepresentable_saved_indicator_group_never_escapes_as_overflow(bad):
+    """Reject impossible numeric geometry before allocating any lamp features."""
+    from ae_engine.sheetmetal_features import indicator_box_opening_size, resolve_door_indicator_features
+    context = DoorIndicatorContext(500., 700., 19., 19.)
+    with pytest.raises(ValueError, match="indicator box"):
+        indicator_box_outer_size([bad] if bad > 0 else [abs(bad)])
+    with pytest.raises(ValueError, match="indicator box"):
+        resolve_door_indicator_features(context, [abs(bad)])
+    with pytest.raises(ValueError, match="thickness"):
+        indicator_box_opening_size([2, 3], thickness=bad)
+    # Existing accepted layouts and T2 tooling remain identical.
+    assert indicator_box_outer_size([2, 3]) == (486., 725.)
+    assert indicator_box_opening_size([2, 3], thickness=2.) == (386., 625.)
+    assert resolve_door_indicator_features(context, [2, 3])
+
+
+@pytest.mark.parametrize("bad_groups", [
+    [True], [False], [0], [-1], [1.5], ["NaN"], [],
+    "2,3", {"0": 2}, None, [10 ** 400],
+])
+def test_r4_57_actual_indicator_box_manufacturing_rejects_invalid_groups_before_dxf(
+    tmp_path, bad_groups,
+):
+    """Direct indicator-box DXF must share the validated Door indicator source."""
+    import ae_engine.ae as ae
+    with pytest.raises(ValueError, match="indicator"):
+        ae.get_indicator_box_data(bad_groups)
+    output = tmp_path / "invalid-indicator-box.dxf"
+    with pytest.raises(ValueError, match="indicator"):
+        ae.export_indicator_box_dxf(output, bad_groups)
+    assert not output.exists()
+
+
+def test_r4_57_indicator_box_manufacturing_retains_original_two_layer_geometry():
+    import ae_engine.ae as ae
+    source_groups = [2, 3]
+    data = ae.get_indicator_box_data(source_groups, T_val=2.0)
+    assert (data.params["w"], data.params["h"]) == (486., 725.)
+    assert data.params["layer_groups"] == source_groups
+    assert indicator_box_outer_size(source_groups) == (486., 725.)

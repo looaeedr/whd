@@ -31,7 +31,7 @@ def _owners():
     }
 
 
-@pytest.mark.parametrize("factory,expected", ((_assembled, 8), (_two_tier, 16)))
+@pytest.mark.parametrize("factory,expected", ((_assembled, 2), (_two_tier, 4)))
 def test_true_ear_source_receipts_make_separate_side_preview_without_mutation(factory, expected):
     rows = _receipts(factory)
     owners = _owners()
@@ -39,7 +39,7 @@ def test_true_ear_source_receipts_make_separate_side_preview_without_mutation(fa
     staged = build_receiving_ear_side_marking_previews(rows, owners)
     assert set(staged) == set(owners)
     assert sum(p.layer == "MARKING" for scene in staged.values()
-               for p in scene.primitives) == expected
+               for p in scene.primitives) == expected * 3
     assert len(owners["box_body:left_side"].scene.primitives) == 1
     assert len(owners["box_body:right_side"].scene.primitives) == 0
     assert any(p.layer == "DATUM" for p in staged["box_body:left_side"].primitives)
@@ -128,7 +128,7 @@ def test_native_gui_only_can_show_ear_over_existing_joint_mark_without_manufactu
     )
     assert tuple(owners[target.side_piece_id].scene.primitives) == baseline
     assert sum(p.layer == "MARKING" for scene in shown.values()
-               for p in scene.primitives) == 17  # 16 EAR + 1 original
+               for p in scene.primitives) == 13  # 4 EARs x (upper + two 20-mm hints) + 1 existing mark
     # Display-only exception must NEVER admit CUTTING or source BEND clashes.
     owners[target.side_piece_id].scene.add_line(
         (x - 10., y), (x + 10., y), layer="CUTTING",

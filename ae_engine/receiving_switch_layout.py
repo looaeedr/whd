@@ -20,7 +20,9 @@ def _brand(value: object) -> str:
     # false/zero/nontext brand must never silently select another factory.
     if value is not None and not isinstance(value, str):
         raise ValueError(f"unsupported Receiving switch brand: {value!r}")
-    text = str(value or RECEIVING_SWITCH_BRANDS[0]).strip()
+    # Only an absent value means the historical default. An explicitly
+    # saved empty string is corrupt vendor authority, not a default request.
+    text = RECEIVING_SWITCH_BRANDS[0] if value is None else value.strip()
     if text not in RECEIVING_SWITCH_BRANDS:
         raise ValueError(f"unsupported Receiving switch brand: {value!r}")
     return text
@@ -66,7 +68,10 @@ def normalize_receiving_switch_layout(layout: Mapping[str, object] | None) -> di
     for index, raw in enumerate(raw_layers, start=1):
         if not isinstance(raw, Mapping):
             raise ValueError(f"Receiving switch layer {index} must be a mapping")
-        stable_id = str(raw.get("stable_id") or f"receiving:switch-layer:{index}").strip()
+        source_id = raw.get("stable_id")
+        if isinstance(source_id, bool):
+            raise ValueError(f"invalid Receiving switch layer stable_id: {source_id!r}")
+        stable_id = str(source_id or f"receiving:switch-layer:{index}").strip()
         if not stable_id or stable_id in seen:
             raise ValueError(f"invalid or duplicate Receiving switch layer stable_id: {stable_id!r}")
         seen.add(stable_id)

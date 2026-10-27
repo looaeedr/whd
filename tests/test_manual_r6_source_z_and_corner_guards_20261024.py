@@ -244,3 +244,101 @@ def test_r6_ear_z_tier_depth_requires_actual_positive_integer_layer_count(bad_co
     assert _tier_source_depths(None, config, 0) == ()
     config["layer_count"] = 1
     assert _tier_source_depths(None, config, 0) == pytest.approx((source.depth_mm,))
+
+
+@pytest.mark.parametrize("bad_holes", [True, False, 42, "not-a-hole-list", {"hole": 1}])
+def test_r6_ear_z_source_rejects_nonsequence_hole_containers_without_raw_typeerror(bad_holes):
+    """The EAR/Z physical source must reject a corrupt hole array safely."""
+    config = {"layer_count": 1, "holes": bad_holes}
+    with pytest.raises(ValueError, match="EAR_Z_SOURCE_HOLE_INVALID"):
+        _tier_source_depths(None, config, 0)
+    assert config["holes"] is bad_holes
+
+
+def test_r6_ear_z_missing_hole_list_is_unresolved_not_certified():
+    assert _tier_source_depths(None, {"layer_count": 1}, 0) == ()
+    assert _tier_source_depths(None, {"layer_count": 1, "holes": []}, 0) == ()
+
+
+def test_r6_joint_marking_policy_activation_and_revision_never_coerce_corrupt_types():
+    """A saved "false" must never activate a manufactured Joint MARKING policy."""
+    from dataclasses import replace
+    from ae_engine.contracts import JointMarkingPolicy
+    from ae_engine.joint_marking_policy import JointMarkingPolicyRegistry
+
+    valid = JointMarkingPolicy(
+        policy_id="RECEIVING_TEST_POLICY",
+        revision=1,
+        enabled=False,
+        locator_selector="RECEIVING_DIVIDER",
+        attached_selector="RECEIVING_INNER_FRAME",
+        locator_contact_region="CORE_PHYSICAL_SEGMENT",
+        attached_contact_region="LOWER_TERMINAL_FACE",
+        footprint_mode="SIDE_BOUNDARY_PAIR",
+        boundary_frame_contract={"frame_version": "CONTACT_LOCAL_FRAME_V1"},
+        contact_span_contract="EXPECTED_REGION_COVERAGE",
+        allowed_overlap_contract="NONE",
+    )
+    disabled = JointMarkingPolicyRegistry((valid,)).resolve(
+        locator_selector=valid.locator_selector,
+        attached_selector=valid.attached_selector,
+    )
+    assert disabled.status == "NO_POLICY_REQUIRED"
+    assert disabled.policy is None
+    active = replace(valid, enabled=True)
+    assert JointMarkingPolicyRegistry((active,)).resolve(
+        locator_selector=valid.locator_selector,
+        attached_selector=valid.attached_selector,
+    ).policy == active
+
+    for corrupt_activation in ("false", "0", 0, 1, None):
+        with pytest.raises(ValueError, match="enabled must be boolean"):
+            replace(valid, enabled=corrupt_activation)
+    for corrupt_revision in (True, 1.5, "1", float("nan"), float("inf"), 0, -1):
+        with pytest.raises(ValueError, match="revision must be a positive integer"):
+            replace(valid, revision=corrupt_revision)
+    # Positive Python integers remain valid revision identities: this source
+    # defines no arbitrary upper cap, and rejects only fractional/mistyped IDs.
+    assert replace(valid, revision=2).revision == 2
+    assert replace(valid, revision=10 ** 400).revision == 10 ** 400
+
+
+@pytest.mark.parametrize("field", [
+    "reference_nfb_depth_mm", "secondary_nfb_depth_mm", "base_plate_thickness_mm",
+])
+def test_r6_nfb_second_side_depth_conversion_overflow_fails_as_physical_value_error(field):
+    """Malformed depth sources never escape into a manufactured second return."""
+    from ae_engine.receiving_nfb_depth_surface_policy import receiving_nfb_second_side_fold_mm
+    dimensions = {
+        "reference_nfb_depth_mm": 107.,
+        "secondary_nfb_depth_mm": 72.,
+        "base_plate_thickness_mm": 2.,
+    }
+    assert receiving_nfb_second_side_fold_mm(**dimensions) == 33.
+    dimensions[field] = 10 ** 400
+    with pytest.raises(ValueError, match="NFB depth and base plate T"):
+        receiving_nfb_second_side_fold_mm(**dimensions)
+
+
+@pytest.mark.parametrize("field", [
+    "inner_door_outer_face_from_front_mm", "inner_door_thickness_mm",
+    "base_plate_thickness_mm", "fixing_plate_thickness_mm",
+    "reference_nfb_depth_mm", "secondary_nfb_depth_mm",
+])
+def test_r6_nfb_formed_skin_z_chain_conversion_overflow_fails_closed(field):
+    """Malformed D/T cannot leak raw overflow or create an infinite contact Z."""
+    from ae_engine.receiving_nfb_depth_surface_policy import resolve_receiving_nfb_surface_chain
+    dimensions = {
+        "inner_door_outer_face_from_front_mm": 80.,
+        "inner_door_thickness_mm": 2.,
+        "base_plate_thickness_mm": 2.,
+        "fixing_plate_thickness_mm": 2.,
+        "reference_nfb_depth_mm": 107.,
+        "secondary_nfb_depth_mm": 72.,
+    }
+    good = resolve_receiving_nfb_surface_chain(**dimensions)
+    assert good.second_side_fold_mm == 33.
+    assert good.fixing_plate_contact_face_mm == 191.
+    dimensions[field] = 10 ** 400
+    with pytest.raises(ValueError, match="surface chain"):
+        resolve_receiving_nfb_surface_chain(**dimensions)

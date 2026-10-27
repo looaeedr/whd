@@ -93,6 +93,44 @@ def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]
     return tuple(result)
 
 
+def _rebase_set_parent_nfb_brand(set_row, new_brand):
+    """Revoke only stale inherited NFB X proofs; preserve saved source and X."""
+    old_brand = set_row.get("switch_brand", "士林")
+    if old_brand == new_brand:
+        return False
+    from ae_engine.receiving_nfb_brand_transition import saved_parent_reselection_hole_ids
+    from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
+    for bay in set_row["bays"]:
+        impacted = set(saved_parent_reselection_hole_ids(
+            bay, old_brand, new_brand,
+        ))
+        if not impacted:
+            continue
+        saved = normalize_nfb_saved_fields(bay)
+        changed = False
+        for hole in saved["nfb_config"]["holes"]:
+            if (hole["physical_hole_id"] in impacted
+                    and hole["manual_x_state"] == "CONFIRMED"):
+                hole["manual_x_state"] = "RECONFIRM_REQUIRED"
+                changed = True
+        if changed:
+            bay["nfb_config"] = saved["nfb_config"]
+    set_row["switch_brand"] = new_brand
+    return True
+
+
+def _operator_integer(value, name):
+    """Allow legacy integer UI text; never coerce a float or bool to a Bay ID."""
+    if type(value) is int:
+        return value
+    if type(value) is str:
+        try:
+            return int(value)
+        except (ValueError, OverflowError) as exc:
+            raise ValueError(f"Receiving {name} must be an integer") from exc
+    raise ValueError(f"Receiving {name} must be an integer")
+
+
 @dataclass(frozen=True)
 class ReceivingSelection:
     set_index: int = 0
@@ -130,11 +168,14 @@ class ReceivingSetBayAdapter:
         return tuple(range(1, count + 2))
 
     def bay_count(self, set_index: int | None = None) -> int:
-        index = self._selection.set_index if set_index is None else int(set_index)
+        index = (self._selection.set_index if set_index is None
+                 else _operator_integer(set_index, "Set index"))
+        if not 0 <= index < len(self._layout["sets"]):
+            raise IndexError("Receiving Set index out of range")
         return len(self._layout["sets"][index]["bays"])
 
     def select_set(self, set_number: int) -> bool:
-        wanted = int(set_number)
+        wanted = _operator_integer(set_number, "Set number")
         existing = len(self._layout["sets"])
         if wanted < 1 or wanted > existing + 1:
             raise IndexError("Receiving Set selection is not progressively available")
@@ -145,7 +186,7 @@ class ReceivingSetBayAdapter:
         return created
 
     def select_bay(self, bay_number: int) -> None:
-        wanted = int(bay_number)
+        wanted = _operator_integer(bay_number, "Bay number")
         count = self.bay_count()
         if wanted < 1 or wanted > count:
             raise IndexError("Receiving Bay selection out of range")
@@ -183,7 +224,7 @@ class ReceivingSetBayAdapter:
             raise ReceivingDestructiveEditConfirmationRequired(protected)
 
     def set_bay_count(self, bay_count: int) -> None:
-        wanted = int(bay_count)
+        wanted = _operator_integer(bay_count, "Bay count")
         current = self.bay_count()
         if wanted < current:
             removed = receiving_destructive_tail_ids(
@@ -221,7 +262,7 @@ class ReceivingSetBayAdapter:
         )
 
     def set_set_count(self, set_count: int) -> None:
-        wanted = int(set_count)
+        wanted = _operator_integer(set_count, "Set count")
         current = len(self._layout["sets"])
         if wanted < current:
             removed = receiving_destructive_tail_ids(self._layout, set_count=wanted)
@@ -239,16 +280,29 @@ class ReceivingSetBayAdapter:
     def apply_dimensions_to_bays(self, set_index, bay_indices, *, width, height, depth, expected_count):
         """Apply W/H/D to explicitly highlighted real Bays, atomically."""
         from ae_engine.sheetmetal_part_adapters import complete_partition
-        index = int(set_index)
-        if index < 0 or index >= len(self._layout["sets"]):
-            raise IndexError("套不存在")
+        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
+            raise ValueError("套不存在")
+        index = set_index
         for label, value in (("W", width), ("H", height), ("D", depth), ("數量", expected_count)):
             if type(value) is not int or value <= 0:
                 raise ValueError(f"{label} 必須為正整數")
-        selected = tuple(bay_indices)
+            if label != "數量":
+                # The canonical Receiving _number() rejects unrepresentable
+                # physical dimensions. Reject before even staging a Bay edit.
+                try:
+                    float(value)
+                except (OverflowError, ValueError) as exc:
+                    raise ValueError(f"{label} 超出可表示尺寸") from exc
+        try:
+            selected = tuple(bay_indices)
+        except TypeError as exc:
+            raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體") from exc
         bay_count = len(self._layout["sets"][index]["bays"])
-        if (len(selected) != expected_count or len(set(selected)) != len(selected)
-                or any(type(i) is not int or not 0 <= i < bay_count for i in selected)):
+        # Verify every physical Bay ID before hashing; bool aliases int 1
+        # and nested UI arrays otherwise cause unhandled TypeError.
+        if (len(selected) != expected_count
+                or any(type(i) is not int or not 0 <= i < bay_count for i in selected)
+                or len(set(selected)) != len(selected)):
             raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體")
         # One operator confirmation is one atomic topology transaction. The
         # old loop called update_receiving_bay() for every highlighted Bay;
@@ -345,7 +399,10 @@ class ReceivingSetBayAdapter:
         from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
         if brand not in RECEIVING_SWITCH_BRANDS:
             raise ValueError("不支援的開關品牌")
-        self._layout["sets"][self.selection.set_index]["switch_brand"] = brand
+        candidate = deepcopy(self._layout)
+        if _rebase_set_parent_nfb_brand(
+                candidate["sets"][self.selection.set_index], brand):
+            self._layout = candidate
 
     def apply_candidate_to_bays(self, role, set_index, bay_indices, features, *, version_id=None):
         """Atomically update ONLY highlighted Bays; preserve other shared refs."""
@@ -359,10 +416,17 @@ class ReceivingSetBayAdapter:
         features = validate_setting(kind, features)
         if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
             raise ValueError("選取的套不存在")
-        indices = tuple(sorted(set(bay_indices)))
+        # Verify each source Bay ID before set(): True equals integer Bay 1,
+        # and nested/None selections must fail atomically rather than crash.
+        try:
+            supplied = tuple(bay_indices)
+        except TypeError as exc:
+            raise ValueError("請在簡易圖高亮有效的連") from exc
         count = len(self._layout["sets"][set_index]["bays"])
-        if not indices or any(type(i) is not int or not 0 <= i < count for i in indices):
+        if (not supplied or any(
+                type(i) is not int or not 0 <= i < count for i in supplied)):
             raise ValueError("請在簡易圖高亮有效的連")
+        indices = tuple(sorted(set(supplied)))
         candidate = self._layout
         for bay_index in indices:
             candidate = unlink_setting(
@@ -496,10 +560,15 @@ class ReceivingSetBayAdapter:
             raise ValueError("不支援的版本角色")
         if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
             raise ValueError("套不存在")
-        indices = tuple(sorted(set(bay_indices)))
+        try:
+            supplied = tuple(bay_indices)
+        except TypeError as exc:
+            raise ValueError("請先高亮有效的連") from exc
         count = len(self._layout["sets"][set_index]["bays"])
-        if not indices or any(type(bi) is not int or not 0 <= bi < count for bi in indices):
+        if (not supplied or any(
+                type(bi) is not int or not 0 <= bi < count for bi in supplied)):
             raise ValueError("請先高亮有效的連")
+        indices = tuple(sorted(set(supplied)))
         from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
         kind = role.replace("-", "_") + "_version_id"
         candidate = self._layout
@@ -621,22 +690,24 @@ class ReceivingSetBayAdapter:
         return receipt
 
     def set_global_brand(self, brand):
-        """Update every Set NFB once, keeping active Set/Bay identity intact."""
+        """Rebase Set brand and affected inherited NFB X in one transaction."""
         from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
         if brand not in RECEIVING_SWITCH_BRANDS:
             raise ValueError("不支援的開關品牌")
+        candidate = deepcopy(self._layout)
         changed = False
-        for set_row in self._layout["sets"]:
-            if set_row.get("switch_brand", "士林") != brand:
-                set_row["switch_brand"] = brand
-                changed = True
+        for set_row in candidate["sets"]:
+            changed = _rebase_set_parent_nfb_brand(set_row, brand) or changed
+        if changed:
+            self._layout = candidate
         return changed
 
     def current_joint_editability(self, joint_index: int) -> dict[str, bool]:
+        index = _operator_integer(joint_index, "Joint index")
         return receiving_joint_alignment_editability(
             self._layout,
             set_index=self._selection.set_index,
-            joint_index=int(joint_index),
+            joint_index=index,
         )
 
     def update_joint_alignment(
@@ -646,14 +717,16 @@ class ReceivingSetBayAdapter:
         depth_alignment: object | None = None,
         height_alignment: object | None = None,
     ) -> None:
-        self._layout = update_receiving_joint_alignment(
+        index = _operator_integer(joint_index, "Joint index")
+        candidate = update_receiving_joint_alignment(
             self._layout,
             set_index=self._selection.set_index,
-            joint_index=int(joint_index),
+            joint_index=index,
             depth_alignment=depth_alignment,
             height_alignment=height_alignment,
         )
-        row = self._layout["sets"][self._selection.set_index]["joints"][int(joint_index)]
+        self._layout = candidate
+        row = self._layout["sets"][self._selection.set_index]["joints"][index]
         self._session_dirty_ids.add(str(row["stable_id"]))
 
     def project_current_bay(self, snapshot: Mapping[str, object]) -> dict[str, object]:
@@ -693,7 +766,11 @@ class ReceivingSwitchProjectionAdapter:
         return tuple(len(row["bays"]) for row in self.adapter.layout["sets"])
 
     def connection_count(self, index):
-        return self.connection_counts()[index]
+        index = _operator_integer(index, "Set index")
+        counts = self.connection_counts()
+        if not 0 <= index < len(counts):
+            raise IndexError("Receiving Set index out of range")
+        return counts[index]
 
     def set_brand(self, brand):
         from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
@@ -714,6 +791,9 @@ class ReceivingSwitchProjectionAdapter:
         return True
 
     def resize_connections(self, index, delta):
+        # Validate both operator inputs before selecting or resizing any Bay.
+        index = _operator_integer(index, "Set index")
+        delta = _operator_integer(delta, "Bay delta")
         current = self.connection_count(index)
         wanted = max(1, current + delta)
         if wanted == current:

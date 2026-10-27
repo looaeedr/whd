@@ -57,7 +57,7 @@ class NfbDxfSourcePreviewPanel:
     def _size(self):
         return max(2,self.canvas.winfo_width()),max(2,self.canvas.winfo_height())
 
-    def show(self,brand,filename):
+    def show(self,brand,filename,*,verified_export_proof=None,verified_snapshot=None):
         """Only read this one indexed model, never trigger app geometry recompute."""
         if filename is None:
             self._numeric_mode=False
@@ -110,9 +110,24 @@ class NfbDxfSourcePreviewPanel:
             self._source_key=key
             self.identity.set(f"{brand}｜{spec.model}｜開孔 {spec.opening_mm or '未知'}")
             missing="、".join(spec.missing_fields)
-            self.reason.set("V5 數值孔位（未經實體／製造驗證）"
-                            + (f"｜缺：{missing}｜禁止製造"
-                               if missing else "｜數值齊全，仍不可製造"))
+            scoped_label = None
+            if not missing and verified_export_proof is not None:
+                from .receiving_nfb_verified_scope_display import (
+                    verified_v5_model_operator_label,
+                )
+                scoped_label = verified_v5_model_operator_label(
+                    verified_export_proof, verified_snapshot, brand, filename,
+                )
+            if scoped_label:
+                # Only a successful, same-source-and-output verified physical
+                # pair can expose this read-only label. Catalogue and stale
+                # assigned items remain preview. Never turn it into a MFG gate.
+                self.frame.configure(text="NFB CSV｜可製造（內門）｜僅已出圖範圍")
+                self.reason.set(scoped_label)
+            else:
+                self.reason.set("V5 數值孔位（未經實體／製造驗證）"
+                                + (f"｜缺：{missing}｜禁止製造"
+                                   if missing else "｜CSV 數值完整；此處僅預覽，正式出圖需提交目前 Set/Bay 並核對實體內門／底板"))
             self.paint()
             return
         self._numeric_mode=False

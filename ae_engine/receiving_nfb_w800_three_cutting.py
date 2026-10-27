@@ -70,12 +70,16 @@ def _three_hole_rows(
     known_ids: set[str] = set()
     prepared: list[NfbConfiguredInnerDoorHole] = []
     for row in given:
-        if (len(row.physical_hole_ids) != 3 or len(row.rotations_deg) != 3):
+        if (not isinstance(row.physical_hole_ids, (tuple, list))
+                or not isinstance(row.rotations_deg, (tuple, list))
+                or len(row.physical_hole_ids) != 3
+                or len(row.rotations_deg) != 3):
             raise ValueError("NFB W800x3 row must contain three actual slots")
         for horizontal_slot in range(3):
             hole_id = row.physical_hole_ids[horizontal_slot]
             angle = row.rotations_deg[horizontal_slot]
             if (not isinstance(hole_id, str) or not hole_id.strip()
+                    or hole_id != hole_id.strip()
                     or hole_id in known_ids):
                 raise ValueError("NFB W800x3 physical hole ids must be unique and nonempty")
             if type(angle) is not int or angle not in (0, 90, 180, 270):

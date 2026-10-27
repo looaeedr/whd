@@ -7,6 +7,9 @@ DXF, CUTTING/BEND or weld-ear MARKING from arithmetic alone.
 
 The shop does not apply bend compensation. In particular the NFB face-to-face
 step (107 - 72 = 35) is not automatically the outside dimension of one bend.
+2026-10-26: the reference-depth ear faces below are arithmetic samples only;
+real installed fixing-ear Z is invariant at the current brand's entire known
+CSV maximum via receiving_tier_ear_z_targets.
 """
 from __future__ import annotations
 
@@ -34,7 +37,7 @@ class ReceivingNfbSurfaceChain:
 
     @property
     def fixing_plate_contact_mark_from_front_mm(self) -> float:
-        """Side-wall marking DEPTH target; not a released 2D MARKING entity.
+        """Historical reference-depth DEPTH target; NOT installed-ear MARKING.
 
         The actual side-sheet UV/X/Y, weld outline and projection must come
         from the real side-sheet/ear assembly; never draw a bogus DXF line.
@@ -65,8 +68,11 @@ def receiving_nfb_second_side_fold_mm(
     if any(isinstance(value, bool) for value in
            (reference_nfb_depth_mm, secondary_nfb_depth_mm, base_plate_thickness_mm)):
         raise ValueError("NFB depth and base plate T must not be boolean")
-    d, s, t = (float(reference_nfb_depth_mm),
-               float(secondary_nfb_depth_mm), float(base_plate_thickness_mm))
+    try:
+        d, s, t = (float(reference_nfb_depth_mm),
+                   float(secondary_nfb_depth_mm), float(base_plate_thickness_mm))
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("NFB depth and base plate T must be positive finite values") from exc
     if not all(isfinite(x) and x > 0 for x in (d, s, t)):
         raise ValueError("NFB depth and base plate T must be positive finite values")
     if d <= s:
@@ -92,19 +98,23 @@ def resolve_receiving_nfb_surface_chain(
     Callers must first resolve actual folded-mesh skins from the authoritative
     assembly transform. Passing an unverified placement center is forbidden.
 
-    Deep base plate and BOTH fixing plates share one translated Z datum.
-    The base BACK skin touches the fixing plate FRONT skin with zero gap.
+    This computes a VIRTUAL reference-depth mating position, not physical
+    placement of installed ears. Only the brand-max-depth resolver owns the
+    real invariant fixing-ear Z; uncorrected base/ear gaps fail certification.
     """
     if any(isinstance(value, bool) for value in (
             inner_door_outer_face_from_front_mm, inner_door_thickness_mm,
             base_plate_thickness_mm, fixing_plate_thickness_mm,
             reference_nfb_depth_mm, secondary_nfb_depth_mm)):
         raise ValueError("surface chain dimensions must not be boolean")
-    outer, it, bt, ft, deep = (float(inner_door_outer_face_from_front_mm),
-                             float(inner_door_thickness_mm),
-                             float(base_plate_thickness_mm),
-                             float(fixing_plate_thickness_mm),
-                             float(reference_nfb_depth_mm))
+    try:
+        outer, it, bt, ft, deep = (float(inner_door_outer_face_from_front_mm),
+                                 float(inner_door_thickness_mm),
+                                 float(base_plate_thickness_mm),
+                                 float(fixing_plate_thickness_mm),
+                                 float(reference_nfb_depth_mm))
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("surface chain dimensions must be finite") from exc
     if not isfinite(outer) or outer < 0:
         raise ValueError("inner door outer physical face requires finite nonnegative offset")
     if not all(isfinite(v) and v > 0 for v in (it, bt, ft, deep)):
@@ -114,7 +124,10 @@ def resolve_receiving_nfb_surface_chain(
     deep_back = deep_front + bt
     secondary_front = secondary_back = face_step = return_mm = None
     if secondary_nfb_depth_mm is not None:
-        shallow = float(secondary_nfb_depth_mm)
+        try:
+            shallow = float(secondary_nfb_depth_mm)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("surface chain secondary NFB depth must be finite") from exc
         return_mm = receiving_nfb_second_side_fold_mm(
             reference_nfb_depth_mm=deep, secondary_nfb_depth_mm=shallow,
             base_plate_thickness_mm=bt,

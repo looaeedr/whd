@@ -109,3 +109,21 @@ def test_r5_93_round_valid_center_and_zero_gap_remain_allowed():
     assert dialog.round_driver.get() == "gap"
     assert float(dialog.round_center.get()) == pytest.approx(10.)
     assert dialog._driver_value() == 0.
+
+
+@pytest.mark.parametrize("raw", ["0", "-1", "-50"])
+def test_r5_93_nonpositive_center_edit_does_not_reselect_or_change_gap(raw):
+    dialog = _round_dialog(center=raw, gap="unchanged", driver="gap")
+    dialog._sync_from_center()
+    assert dialog.round_gap.get() == "unchanged"
+    assert dialog.round_driver.get() == "gap"
+    assert dialog.sync_guard is False
+
+
+@pytest.mark.parametrize("raw", ["-1", "-50"])
+def test_r5_93_negative_gap_edit_does_not_reselect_or_change_center(raw):
+    dialog = _round_dialog(center="unchanged", gap=raw, driver="center")
+    dialog._sync_from_gap()
+    assert dialog.round_center.get() == "unchanged"
+    assert dialog.round_driver.get() == "center"
+    assert dialog.sync_guard is False

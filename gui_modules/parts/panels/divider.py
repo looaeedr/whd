@@ -16,7 +16,10 @@ def collect_divider_input(part_key, payload, *, default_depth, default_thickness
             raise ValueError(f"{field}必須是有限正數")
         return amount
 
-    data = dict(payload or {})
+    try:
+        data = dict(payload or {})
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("中隔設定資料必須為物件") from exc
     raw_columns = data.get("door_layout_columns") or ()
     # Reject corrupt saved topology before indexing a row or iterating heights.
     # Source dimensions and physical projection remain unchanged.
@@ -34,11 +37,15 @@ def collect_divider_input(part_key, payload, *, default_depth, default_thickness
 
     depth = data.get("d")
     thickness = data.get("t")
+    try:
+        handle_edges = dict(data.get("door_handle_edges") or {})
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("中隔把手邊資料必須為物件") from exc
     return {
         "columns": columns,
         "depth": positive_dimension(default_depth if depth is None else depth, "中隔深度"),
         "thickness": positive_dimension(default_thickness if thickness is None else thickness, "中隔板厚"),
         "layout_scope": str(data.get("door_layout_scope") or "main").strip() or "main",
-        "handle_edges": dict(data.get("door_handle_edges") or {}),
+        "handle_edges": handle_edges,
         "model_name": str(data.get("model") or "").strip() or None,
     }

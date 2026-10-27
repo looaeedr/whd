@@ -283,6 +283,18 @@ def test_receiving_marks_all_four_receiver_mother_plates_from_canonical_world_ge
         for row in physical
     )
 
+    # The user-set 80 mm is measured to the FRAME FRONT (+Z), never to
+    # its center or an arbitrarily picked long edge of the 22-mm flange.
+    # Outer door Z = D/2 = 175 for D350; front mark must be Z = 95.
+    frame_markings = tuple(
+        row for row in emitted if row.attached_part_id in FRAME_IDS
+    )
+    assert len(frame_markings) == 5
+    for emitted_row in frame_markings:
+        a, b = emitted_row.evidence["world_boundary"]
+        assert a[2] == pytest.approx(95.0, abs=1e-5)
+        assert b[2] == pytest.approx(95.0, abs=1e-5)
+
     assert len(_rows(_piece(result.geometry, "left_side"))) == 2
     assert len(_rows(_piece(result.geometry, "right_side"))) == 2
     assert len(_rows(result.geometry.part("head").render_data)) == 1
@@ -304,6 +316,9 @@ def test_receiver_marking_metadata_binds_same_flat_and_world_contact_geometry():
     rows = tuple(row for owner in owners for row in _rows(owner))
     assert len(rows) == 7
     for row in rows:
+        if row["attached_part_id"] in FRAME_IDS:
+            assert row["world_p1"][2] == pytest.approx(95.0, abs=1e-5)
+            assert row["world_p2"][2] == pytest.approx(95.0, abs=1e-5)
         assert row["source"] == "JOINT_PLACEMENT_MARKING"
         assert row["geometry_source"] == "RECEIVER_MATING_CONTACT_BACKPROJECTION"
         assert len(row["world_p1"]) == len(row["world_p2"]) == 3

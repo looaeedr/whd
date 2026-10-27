@@ -479,6 +479,19 @@ def _quantity_text_box(text):
 def _quantity_obstacles(primitives, clearance):
     """Read final 2D primitives solely as annotation obstacles."""
     from shapely.geometry import LineString, Point
+
+    def source_xy(point):
+        raw = (point.x, point.y)
+        if any(isinstance(value, bool) for value in raw):
+            raise ValueError("quantity CHECK obstacle vertices must be finite physical XY")
+        try:
+            xy = tuple(float(value) for value in raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("quantity CHECK obstacle vertices must be finite physical XY") from exc
+        if not all(math.isfinite(value) for value in xy):
+            raise ValueError("quantity CHECK obstacle vertices must be finite physical XY")
+        return xy
+
     rows = []
     for primitive in primitives:
         if str(primitive.layer).upper() == "STOCK":
@@ -486,13 +499,20 @@ def _quantity_obstacles(primitives, clearance):
         if isinstance(primitive, TextPrimitive):
             obstacle = _quantity_text_box(primitive)
         elif isinstance(primitive, CirclePrimitive):
-            obstacle = Point(primitive.center.x, primitive.center.y).buffer(
-                primitive.radius, quad_segs=32).boundary
+            source = (primitive.center.x, primitive.center.y, primitive.radius)
+            if any(isinstance(value, bool) for value in source):
+                raise ValueError("quantity CHECK circle must have finite physical dimensions")
+            try:
+                cx, cy, radius = (float(value) for value in source)
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ValueError("quantity CHECK circle must have finite physical dimensions") from exc
+            if not all(math.isfinite(value) for value in (cx, cy, radius)) or radius <= 0.:
+                raise ValueError("quantity CHECK circle must have finite positive radius")
+            obstacle = Point(cx, cy).buffer(radius, quad_segs=32).boundary
         elif isinstance(primitive, LinePrimitive):
-            obstacle = LineString(((primitive.p1.x, primitive.p1.y),
-                                   (primitive.p2.x, primitive.p2.y)))
+            obstacle = LineString((source_xy(primitive.p1), source_xy(primitive.p2)))
         elif isinstance(primitive, PolylinePrimitive):
-            points = [(p.x, p.y) for p in primitive.points]
+            points = [source_xy(p) for p in primitive.points]
             if primitive.closed and points and points[-1] != points[0]:
                 points.append(points[0])
             if len(points) < 2:

@@ -713,7 +713,7 @@ def test_r2_14_valid_second_layer_update_keeps_first_layer_unchanged():
     assert [x["connection_count"] for x in result["layers"]] == [1, 3]
     assert [x["connection_count"] for x in source["layers"]] == [1, 1]
 
-@pytest.mark.parametrize("bad", [False, True, 0, 0., 1])
+@pytest.mark.parametrize("bad", [False, True, 0, 0., 1, "", "   "])
 def test_r2_14_invalid_stored_nfb_brand_never_silently_defaults_to_shihlin(bad):
     from ae_engine.receiving_switch_layout import (
         new_receiving_switch_layout, normalize_receiving_switch_layout,
@@ -732,3 +732,290 @@ def test_r2_14_corrupt_saved_switch_layout_cannot_reset_brand_and_tiers(bad):
     with pytest.raises(ValueError, match="Receiving switch layout must be a mapping"):
         normalize_receiving_switch_layout(bad)
     assert normalize_receiving_switch_layout(None)["switch_brand"] == "士林"
+
+
+@pytest.mark.parametrize("owner", ["set", "bay"])
+def test_r2_13_boolean_saved_set_bay_identity_cannot_become_physical_part_id(owner):
+    """True is not a stored stable_id and must not become the string 'True'."""
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    saved = new_receiving_layout(width=800., height=1600., depth=350.)
+    target = saved["sets"][0] if owner == "set" else saved["sets"][0]["bays"][0]
+    target["stable_id"] = True
+    with pytest.raises(ValueError, match="stable_id"):
+        normalize_receiving_layout(saved)
+    assert target["stable_id"] is True
+
+
+def test_r2_13_canonical_saved_set_bay_stable_ids_remain_identical():
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    saved = new_receiving_layout(width=800., height=1600., depth=350.)
+    normalized = normalize_receiving_layout(saved)
+    assert normalized["sets"][0]["stable_id"] == saved["sets"][0]["stable_id"]
+    assert normalized["sets"][0]["bays"][0]["stable_id"] == saved["sets"][0]["bays"][0]["stable_id"]
+
+
+@pytest.mark.parametrize("bad", [False, 0, "", True])
+def test_r2_13_invalid_explicit_back_panel_mode_never_defaults_to_full(bad):
+    """False and a saved blank are corrupt back-panel authority, not FULL."""
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    with pytest.raises(ValueError, match="back_panel_mode"):
+        new_receiving_layout(width=800., height=1600., depth=350., back_panel_mode=bad)
+    saved = new_receiving_layout(width=800., height=1600., depth=350.)
+    saved["sets"][0]["bays"][0]["back_panel_mode"] = bad
+    with pytest.raises(ValueError, match="back_panel_mode"):
+        normalize_receiving_layout(saved)
+    assert saved["sets"][0]["bays"][0]["back_panel_mode"] is bad
+
+
+def test_r2_13_missing_or_real_back_panel_modes_preserve_authority():
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    for mode, expected in [(None, "FULL"), ("HALF", "HALF"), ("BACK_OPENING", "BACK_OPENING")]:
+        saved = new_receiving_layout(
+            width=800., height=1600., depth=350., back_panel_mode=mode,
+        )
+        assert normalize_receiving_layout(saved)["sets"][0]["bays"][0]["back_panel_mode"] == expected
+
+
+@pytest.mark.parametrize("bad", [True, False])
+def test_r2_14_saved_switch_layer_boolean_id_cannot_become_a_string_identity(bad):
+    from ae_engine.receiving_switch_layout import (
+        new_receiving_switch_layout, normalize_receiving_switch_layout,
+    )
+    saved = new_receiving_switch_layout()
+    saved["layers"][0]["stable_id"] = bad
+    with pytest.raises(ValueError, match="stable_id"):
+        normalize_receiving_switch_layout(saved)
+    assert saved["layers"][0]["stable_id"] is bad
+    assert normalize_receiving_switch_layout(new_receiving_switch_layout())["layers"][0]["stable_id"] == "receiving:switch-layer:1"
+
+
+@pytest.mark.parametrize("axis", ["panel_width", "full_panel_height"])
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf"), 10 ** 400])
+def test_r2_12_rear_panel_manufacturing_contract_rejects_nonphysical_sizes(axis, bad):
+    """Bad direct rear-panel sizes may not escape validation into DXF datums."""
+    from ae_engine.cabinet_types.receiving import resolve_back_panel_contract
+    from ae_engine.cabinet_types.receiving import resolve_box_body_structure_state
+    saved = {"model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2.}
+    kwargs = {"panel_width": 700., "full_panel_height": 1600.}
+    kwargs[axis] = bad
+    with pytest.raises(ValueError, match="rear-panel dimensions"):
+        resolve_back_panel_contract(
+            saved, structure_state=resolve_box_body_structure_state(None), **kwargs
+        )
+    result = resolve_back_panel_contract(
+        saved, structure_state=resolve_box_body_structure_state(None),
+        panel_width=700., full_panel_height=1600.,
+    )
+    assert result["panel_width"] == 700.
+    assert result["material_height"] == 1600.
+    assert len(result["fixed_slot_datums"]) == 4
+
+
+@pytest.mark.parametrize("bad", [True, False, float("nan"), float("inf"), float("-inf"), 10 ** 400, 0, -1])
+def test_r2_12_half_rear_panel_requires_finite_positive_upper_section(bad):
+    """A corrupt Door section may not become certified HALF rear manufacturing."""
+    from ae_engine.cabinet_types.receiving import resolve_back_panel_contract
+    from ae_engine.cabinet_types.receiving import resolve_box_body_structure_state
+    saved = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2.,
+        "multi_door_enabled": True, "door_layout_columns": [(700., [bad, 500.])],
+    }
+    half = set_side_back_back_panel_mode(
+        resolve_box_body_structure_state(None), BackPanelMode.HALF,
+    )
+    with pytest.raises(ValueError, match="rear-panel upper section"):
+        resolve_back_panel_contract(
+            saved, structure_state=half,
+            panel_width=700., full_panel_height=1600.,
+        )
+    saved["door_layout_columns"] = [(700., [1100., 500.])]
+    valid = resolve_back_panel_contract(
+        saved, structure_state=half,
+        panel_width=700., full_panel_height=1600.,
+    )
+    assert valid["mode"] == "HALF"
+    assert valid["material_height"] > 0
+    assert len(valid["fixed_slot_datums"]) == 4
+
+
+@pytest.mark.parametrize("invalid_flag", ["false", "0", 1, {"enabled": True}])
+def test_r2_12_half_back_panel_requires_explicit_boolean_multi_door_authority(invalid_flag):
+    """A truthy corrupt project flag cannot enable the HALF manufacturing mode."""
+    from ae_engine.cabinet_types.receiving import (
+        resolve_back_panel_contract, resolve_box_body_structure_state,
+    )
+    saved = {
+        "model": "受電箱",
+        "multi_door_enabled": invalid_flag,
+        "door_layout_columns": [(700., [1100., 500.])],
+    }
+    half = set_side_back_back_panel_mode(
+        resolve_box_body_structure_state(None), BackPanelMode.HALF,
+    )
+    with pytest.raises(ValueError, match="requires authoritative Door topology"):
+        resolve_back_panel_contract(
+            saved, structure_state=half, panel_width=700., full_panel_height=1600.,
+        )
+    saved["multi_door_enabled"] = True
+    assert resolve_back_panel_contract(
+        saved, structure_state=half, panel_width=700., full_panel_height=1600.,
+    )["mode"] == "HALF"
+
+
+@pytest.mark.parametrize("owner", ["set", "bay", "joint"])
+@pytest.mark.parametrize("invalid_id", [{"bad": 1}, ["bad"], ("bad",), float("nan"), float("inf")])
+def test_r2_13_corrupt_saved_identity_source_must_not_mint_physical_id(owner, invalid_id):
+    """Persisted structured/nonfinite IDs may not stringify into valid part keys."""
+    from ae_engine.receiving_layout import (
+        new_receiving_layout, normalize_receiving_layout, resize_receiving_bays,
+    )
+    saved = new_receiving_layout(width=800., height=1600., depth=350.)
+    if owner == "joint":
+        saved = resize_receiving_bays(saved, set_index=0, bay_count=2)
+    target = (
+        saved["sets"][0] if owner == "set" else
+        saved["sets"][0]["bays"][0] if owner == "bay" else
+        saved["sets"][0]["joints"][0]
+    )
+    target["stable_id"] = invalid_id
+    with pytest.raises(ValueError, match="stable_id"):
+        normalize_receiving_layout(saved)
+    assert target["stable_id"] is invalid_id
+
+
+def test_r2_13_legacy_finite_numeric_stable_id_is_not_unnecessarily_reassigned():
+    from ae_engine.receiving_layout import new_receiving_layout, normalize_receiving_layout
+    saved = new_receiving_layout(width=800., height=1600., depth=350.)
+    saved["sets"][0]["stable_id"] = 42
+    assert normalize_receiving_layout(saved)["sets"][0]["stable_id"] == "42"
+
+
+@pytest.mark.parametrize("bad", [None, False, True, 42, "door", [], [("door_layout_columns", [])]])
+def test_r2_13_per_bay_editor_rejects_non_mapping_door_state_without_erasing_owner(bad):
+    """The edit path must keep the same Door ownership rule as project reload."""
+    from ae_engine.receiving_layout import (
+        new_receiving_layout, normalize_receiving_layout, update_receiving_bay,
+    )
+    layout = new_receiving_layout(width=800., height=1600., depth=350.)
+    layout["sets"][0]["bays"][0]["door_state"] = {
+        "door_layout_columns": [[800., [800., 800.]]],
+    }
+    original = normalize_receiving_layout(layout)
+    with pytest.raises(ValueError, match="每連門分割必須為物件"):
+        update_receiving_bay(layout, set_index=0, bay_index=0, door_state=bad)
+    assert normalize_receiving_layout(layout) == original
+
+
+def test_r2_13_per_bay_editor_accepts_real_empty_or_populated_door_state():
+    from ae_engine.receiving_layout import new_receiving_layout, update_receiving_bay
+    layout = new_receiving_layout(width=800., height=1600., depth=350.)
+    for saved in ({}, {"door_layout_columns": [[800., [800., 800.]]]}):
+        revised = update_receiving_bay(layout, set_index=0, bay_index=0, door_state=saved)
+        assert revised["sets"][0]["bays"][0]["door_state"] == saved
+
+
+@pytest.mark.parametrize("bad", [True, False, 0.5, 1.5, "1.5", None, [], {}])
+def test_r2_14_switch_ui_adapter_rejects_nonintegral_layer_index(bad):
+    """GUI read/write must not alias True to tier 2 or truncate decimal input."""
+    from gui_modules.application.receiving_switch_layout_adapter import ReceivingSwitchLayoutAdapter
+    from ae_engine.receiving_switch_layout import new_receiving_switch_layout
+    adapter = ReceivingSwitchLayoutAdapter(new_receiving_switch_layout())
+    adapter.add_layer()
+    before = adapter.layout
+    with pytest.raises(ValueError, match="layer_index"):
+        adapter.connection_count(bad)
+    with pytest.raises(ValueError, match="layer_index"):
+        adapter.resize_connections(bad, 1)
+    assert adapter.layout == before
+    assert adapter.connection_count("0") == 1
+    assert adapter.connection_count("1") == 1
+
+
+@pytest.mark.parametrize("bad_delta", [True, False, 0.5, 1.5, "1.5", None, [], {}])
+def test_r2_14_switch_ui_adapter_rejects_fractional_or_boolean_connection_delta(bad_delta):
+    from gui_modules.application.receiving_switch_layout_adapter import ReceivingSwitchLayoutAdapter
+    from ae_engine.receiving_switch_layout import new_receiving_switch_layout
+    adapter = ReceivingSwitchLayoutAdapter(new_receiving_switch_layout())
+    before = adapter.layout
+    with pytest.raises(ValueError, match="delta"):
+        adapter.resize_connections("0", bad_delta)
+    assert adapter.layout == before
+    assert adapter.resize_connections("0", "1") is True
+    assert adapter.connection_count(0) == 2
+
+
+@pytest.mark.parametrize("columns", [
+    [[800., [True, 1599.]]],
+    [[799., [1600.]], [True, [1600.]]],
+])
+def test_r2_13_projected_receiving_door_source_cannot_convert_bool_to_one_mm(columns):
+    """Real Bay Door/Divider projection must see the original persisted type."""
+    from ae_engine.receiving_layout import _validate_common_receiving_state
+    data = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2., "fw": 29.,
+        "multi_door_enabled": True, "door_layout_columns": columns,
+        "inner_doors": [],
+    }
+    with pytest.raises(ValueError, match="must not be bool"):
+        _validate_common_receiving_state(data)
+    assert data["door_layout_columns"] == columns
+
+
+def test_r2_13_valid_receiving_door_projection_retains_physical_dimensions():
+    from ae_engine.receiving_layout import _validate_common_receiving_state
+    data = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2., "fw": 29.,
+        "multi_door_enabled": True,
+        "door_layout_columns": [[800., [800., 800.]]], "inner_doors": [],
+    }
+    assert _validate_common_receiving_state(data) is None
+
+
+@pytest.mark.parametrize("field", ["t", "fw"])
+def test_r2_13_receiving_bay_divider_uses_raw_thickness_and_frame_width(field):
+    """Receiving per-Bay Door projection must not cast a bool T/FW to 1 mm."""
+    from ae_engine.receiving_layout import _validate_common_receiving_state
+    data = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2., "fw": 29.,
+        "multi_door_enabled": True,
+        "door_layout_columns": [[800., [800., 800.]]], "inner_doors": [],
+    }
+    data[field] = True
+    with pytest.raises(ValueError, match="divider"):
+        _validate_common_receiving_state(data)
+    assert data[field] is True
+
+
+@pytest.mark.parametrize("field,corrupt", [
+    ("door_handle_edges", False), ("door_handle_edges", 0),
+    ("door_handle_edges", ""),
+    ("inner_doors", False), ("inner_doors", 0),
+    ("inner_doors", ""), ("inner_doors", {}),
+    ("inner_doors", {"stable_id": "upper"}),
+    ("inner_doors", [None]), ("inner_doors", ["upper"]),
+])
+def test_r2_9_receiving_bay_door_source_must_not_silently_disappear(field, corrupt):
+    """Per-Bay Door projection must retain the same persisted source contract."""
+    from ae_engine.receiving_layout import _validate_common_receiving_state
+    saved = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2., "fw": 29.,
+        "multi_door_enabled": True,
+        "door_layout_columns": [[800., [800., 800.]]], "inner_doors": [],
+        "door_handle_edges": {},
+    }
+    saved[field] = corrupt
+    with pytest.raises(ValueError, match="invalid Receiving"):
+        _validate_common_receiving_state(saved)
+    assert saved[field] == corrupt
+
+
+def test_r2_9_receiving_bay_legacy_empty_door_and_handle_pair_source_remains_valid():
+    from ae_engine.receiving_layout import _validate_common_receiving_state
+    saved = {
+        "model": "受電箱", "w": 800., "h": 1600., "d": 350., "t": 2., "fw": 29.,
+        "multi_door_enabled": True,
+        "door_layout_columns": [[800., [800., 800.]]], "inner_doors": [],
+        "door_handle_edges": [("0:0", "LEFT")],
+    }
+    assert _validate_common_receiving_state(saved) is None
+    assert saved["door_handle_edges"] == [("0:0", "LEFT")]

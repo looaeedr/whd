@@ -91,3 +91,97 @@ def test_r6_manual_endcap_relief_overrides_are_real_finite_folds(field, bad):
         _endcap_manual_material_polygon(
             geometry, VAULT_ENDCAP_CORNER_POLICY, **{field: bad},
         )
+
+
+@pytest.mark.parametrize("field", [
+    "fold_u", "fold_v", "primary_u", "primary_v",
+    "secondary_u", "secondary_depth",
+    "slot_width", "slot_straight_depth", "slot_radius",
+])
+def test_r6_composer_rejects_unrepresentable_physical_corner_dimensions(field):
+    """Huge saved values must raise the existing geometry error, not OverflowError."""
+    kwargs = {"fold_u": 15., "fold_v": 15.}
+    intrinsic = {"primary": (10., 10.)}
+    if field.startswith("fold_"):
+        kwargs[field] = 10 ** 400
+    elif field.startswith("primary_"):
+        intrinsic["primary"] = (10 ** 400, 10.) if field == "primary_u" else (10., 10 ** 400)
+    elif field.startswith("secondary_"):
+        intrinsic.update(secondary_u=4., secondary_depth=5.)
+        intrinsic[field] = 10 ** 400
+    else:
+        intrinsic.update(slot_width=12., slot_straight_depth=10., slot_radius=3.)
+        intrinsic[field] = 10 ** 400
+    with pytest.raises(GeometryError):
+        compose_corner_residual(CornerTypeResidual(**intrinsic), **kwargs)
+
+
+def test_r6_composer_rejects_finite_inputs_whose_cutting_sum_overflows():
+    with pytest.raises(GeometryError, match="第一級截角尺寸"):
+        compose_corner_residual(
+            CornerTypeResidual(primary=(1e308, 0.)),
+            fold_u=1e308, fold_v=15.,
+        )
+
+
+def test_r6_corner_policy_rejects_unrepresentable_thickness_and_fw():
+    from ae_engine.sheetmetal_corner_policy import (
+        corner_selection_residual, FourCornerTypePolicy,
+    )
+    from ae_engine.sheetmetal_geometry_core import CornerTypeSelection, CornerTypeId
+    selection = CornerTypeSelection(CornerTypeId.CROSS)
+    for dimensions in ({"thickness": 10 ** 400, "fw": 20.},
+                       {"thickness": 2., "fw": 10 ** 400}):
+        with pytest.raises(GeometryError):
+            corner_selection_residual(selection, **dimensions)
+    cfg = FourCornerTypePolicy(selection, selection, selection, selection,
+                               fw=10 ** 400)
+    with pytest.raises(GeometryError, match="FW"):
+        cfg.fw_for("top_left")
+
+
+@pytest.mark.parametrize("invalid", ["false", "0", 1, None])
+def test_r6_saved_bottom_wrap_flag_must_be_explicit_boolean(invalid):
+    """A saved string must not unexpectedly enable physical EndCap WRAP."""
+    from ae_engine.cabinet_types import receiving
+    from phase6_box_body_structure import (
+        BoxBodyStructureType, default_box_body_structure_state,
+    )
+    saved = receiving.resolve_box_body_structure_state(default_box_body_structure_state())
+    cfg = saved["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    cfg["bottom_external_wrap"] = invalid
+    with pytest.raises(ValueError, match="bottom_external_wrap"):
+        receiving.bottom_external_wrap_enabled(saved)
+    with pytest.raises(ValueError, match="bottom_external_wrap"):
+        receiving.set_bottom_external_wrap(saved, invalid)
+    assert cfg["bottom_external_wrap"] == invalid
+
+
+@pytest.mark.parametrize("field", ["reserve_u", "reserve_v"])
+@pytest.mark.parametrize("invalid", [True, False, float("nan"), float("inf"), float("-inf"), 10 ** 400])
+def test_r6_bottom_wrap_reserves_reject_nonphysical_stored_or_operator_values(field, invalid):
+    """A nonfinite relief reserve may not become a silent 0-mm cutout."""
+    from ae_engine.cabinet_types import receiving
+    from phase6_box_body_structure import (
+        BoxBodyStructureType, default_box_body_structure_state,
+    )
+    state = receiving.resolve_box_body_structure_state(default_box_body_structure_state())
+    key = "bottom_relief_reserve_u" if field == "reserve_u" else "bottom_relief_reserve_v"
+    cfg = state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    with pytest.raises(ValueError, match=key):
+        receiving.set_bottom_relief_reserves(state, **{field: invalid})
+    cfg[key] = invalid
+    with pytest.raises(ValueError, match=key):
+        receiving.bottom_relief_reserves(state)
+    assert cfg[key] is invalid
+
+
+def test_r6_bottom_wrap_valid_boolean_and_adjustable_reserves_remain_unchanged():
+    from ae_engine.cabinet_types import receiving
+    from phase6_box_body_structure import default_box_body_structure_state
+    state = receiving.resolve_box_body_structure_state(default_box_body_structure_state())
+    assert receiving.bottom_relief_reserves(state) == pytest.approx((2., 1.))
+    disabled = receiving.set_bottom_external_wrap(state, False)
+    assert receiving.bottom_external_wrap_enabled(disabled) is False
+    adjustable = receiving.set_bottom_relief_reserves(state, reserve_u=3.5, reserve_v=2.25)
+    assert receiving.bottom_relief_reserves(adjustable) == pytest.approx((3.5, 2.25))

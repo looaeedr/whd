@@ -206,14 +206,11 @@ class Phase6FinalSceneViewAdapter:
         else:
             formed, blocker = cached[1:]
         self.last_formed_ear_display_blocker = blocker
-        # Visibility follows parent Base Plate: an EAR must not remain
-        # hovering when the operator hides its owning physical base.
-        return tuple(
-            row for row in formed
-            if row.base_part_id in visible_set
-            or ("base_plate" in visible_set
-                and row.base_part_id.startswith("base_plate:nfb_layer:"))
-        )
+        # Display-only EAR visibility is independent of Base Plate visibility.
+        # Its own show_fixing_plate_mesh switch is applied by the 3D renderer.
+        # Never suppress the EAR when a parent plate is hidden: this is also
+        # needed to inspect weld contact surfaces with the plate out of view.
+        return tuple(formed)
 
     def _require_renderer(self) -> Phase6FinalSceneRenderer:
         renderer = self.renderer
@@ -274,6 +271,7 @@ class Phase6FinalSceneViewAdapter:
         selected_joint_id=None,
         preserve_endcap_core_origin=False,
         formed_fixing_plate_skins=(),
+        show_fixing_plate_mesh=True,
         formed_nfb_pad_skins=(),
         warnings=(),
         render_data_cls=None,
@@ -290,6 +288,7 @@ class Phase6FinalSceneViewAdapter:
             selected_joint_id=selected_joint_id,
             preserve_endcap_core_origin=preserve_endcap_core_origin,
             formed_fixing_plate_skins=formed_fixing_plate_skins,
+            show_fixing_plate_mesh=show_fixing_plate_mesh,
             formed_nfb_pad_skins=formed_nfb_pad_skins,
             warnings=warnings,
             render_data_cls=render_data_cls,
@@ -359,6 +358,9 @@ class Phase6FinalSceneViewAdapter:
         visibility = dependencies.assembly_visibility(parts)
         visible_part_keys = tuple(visibility[0] or ())
         visible_box_body_piece_keys = visibility[1]
+        # Preserve the historical two-value visibility contract. The optional
+        # display-only EAR switch is carried separately on the result.
+        show_fixing_plate_mesh = bool(getattr(visibility, "show_fixing_plate_mesh", True))
         visible_set = set(visible_part_keys)
         visible_probe_parts = tuple(
             part
@@ -397,6 +399,7 @@ class Phase6FinalSceneViewAdapter:
             preserve_endcap_core_origin=(cabinet_family == "受電箱"),
             warnings=visible_warnings,
             formed_fixing_plate_skins=formed_ear_skins,
+            show_fixing_plate_mesh=show_fixing_plate_mesh,
             formed_nfb_pad_skins=formed_pad_skins,
             render_data_cls=dependencies.assembly_render_data_cls,
         )

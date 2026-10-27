@@ -131,7 +131,9 @@ def normalize_box_body_structure_state(
     if "locked" in value:
         result["locked"] = _structure_locked_bool(value.get("locked"))
     elif legacy_locked is not None:
-        result["locked"] = bool(legacy_locked)
+        # A partial historic structure snapshot is still serialized input.
+        # bool("false") would reverse the caller's unlocked state.
+        result["locked"] = _structure_locked_bool(legacy_locked)
 
     incoming_configs = value.get("configs")
     if isinstance(incoming_configs, Mapping):
@@ -197,11 +199,17 @@ def set_structure_locked(state: Mapping[str, object] | None, locked: bool) -> di
 def _back_panel_mode(value) -> BackPanelMode:
     if isinstance(value, BackPanelMode):
         return value
-    text = str(value or "").strip().upper()
+    # Only the absence of legacy family data means FULL. An explicit corrupt
+    # saved value is not permission to change manufactured rear-panel geometry.
+    if value is None:
+        return BackPanelMode.FULL
+    if not isinstance(value, str):
+        raise ValueError(f"unsupported Receiving back-panel mode: {value!r}")
+    text = value.strip().upper()
     try:
         return BackPanelMode(text)
-    except ValueError:
-        return BackPanelMode.FULL
+    except ValueError as exc:
+        raise ValueError(f"unsupported Receiving back-panel mode: {value!r}") from exc
 
 
 def back_panel_mode(state: Mapping[str, object] | None) -> BackPanelMode:
@@ -324,13 +332,21 @@ def reconcile_box_body_structure_for_total_w_change(
     """
     result = normalize_box_body_structure_state(state)
     total = _finite_dimension(total_w, field="箱身總寬")
+    if total <= 0:
+        raise ValueError("箱身總寬必須大於 0")
 
     two_key = BoxBodyStructureType.TWO_PIECE_W_SPLIT.value
     two = result["configs"][two_key]
     if two.get("left_w") is not None or two.get("right_w") is not None:
         driver = str(two.get("driver") or "left")
         try:
-            if driver == "default":
+            # A partial legacy save with only a right-side width has a real
+            # operator-owned right datum, regardless of its stale driver flag.
+            # Keep that datum through later W edits instead of freezing the
+            # derived left complement or overwriting it with default halves.
+            if two.get("left_w") is None and two.get("right_w") is not None:
+                result = set_two_piece_width(result, total, "right", two["right_w"], manual=False)
+            elif driver == "default":
                 result = set_two_piece_width(result, total, "left", total / 2.0, manual=False)
                 result["configs"][two_key]["driver"] = "default"
             elif driver == "right" and two.get("right_w") is not None:

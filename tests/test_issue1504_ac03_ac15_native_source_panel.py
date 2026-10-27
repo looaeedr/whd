@@ -28,12 +28,26 @@ def test_ac03_original_inner_tk_preview_visible_with_zoom_pan_reset_and_no_write
             ]) == 1
         before = deepcopy(app._phase6_input_snapshot)
         assert row["available"].size() > 0
+        # Preview status belongs to the heading, never the selectable text:
+        # existing operator selection and legacy UI automation both rely
+        # on the exact model display name rather than a decorated value.
+        from ae_engine.receiving_nfb_model_identity import (
+            numeric_model_refs, display_model_ref,
+        )
+        first_ref = numeric_model_refs("士林")[0]
+        assert row["available"].get(0) == display_model_ref(first_ref)
+        assert first_ref.startswith("nfbv5:")
+        assert any(
+            isinstance(widget, ttk.Label)
+            and widget.cget("text") == "CSV 型號｜僅預覽"
+            for widget in _walk(row["section"])
+        )
         row["available"].selection_set(0)
         row["available"].event_generate("<<ListboxSelect>>")
         root.update()
         assert panel.identity.get().startswith("士林｜")
         assert ("禁止製造" in panel.reason.get()
-                or "不可製造" in panel.reason.get())
+                or "此處僅預覽" in panel.reason.get())
         assert panel._numeric_spec is not None
         assert panel.canvas.find_withtag("nfb-dxf")
         assert panel._numeric_zoom == 1.0
@@ -555,5 +569,265 @@ def test_ac15_actual_tk_legacy_dxf_revision_reparse_is_targeted_and_does_not_reb
         assert KEY not in app._phase6_input_snapshot
     finally:
         if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
+
+
+def test_ac51_original_tk_v5_selector_shows_source_scope_without_fake_release(monkeypatch):
+    """Current CSV has no old per-model DXF gate; the live selector still
+    requires a per-Set/Bay committed physical proof before manufacturing.
+    Preview must keep the original selectable model names and never mutate
+    the authoritative saved project.
+    """
+    from ae_engine.receiving_nfb_2d_preview import NfbDxfPreviewCache
+    from ae_engine.receiving_nfb_model_identity import (
+        numeric_model_ref, display_model_ref,
+    )
+
+    root, app, modal = _open_original_editor(monkeypatch)
+    try:
+        panel = modal._receiving_inner_nfb_dxf_panel
+        row = modal._receiving_inner_switch_state["rows"][0]
+        model = numeric_model_ref("士林", "2P400")
+        before = deepcopy(app._phase6_input_snapshot)
+        # Never query legacy original DXF just to display the current V5.
+        def forbid_legacy(*args, **kwargs):
+            raise AssertionError("CURRENT NFB V5 selector called old-model DXF reader")
+        monkeypatch.setattr(NfbDxfPreviewCache, "load", forbid_legacy)
+        panel.show("士林", model)
+        root.update()
+        assert panel._numeric_spec is not None
+        assert panel._numeric_spec.dimensionally_complete is True
+        assert "CSV 數值完整" in panel.reason.get()
+        assert "此處僅預覽" in panel.reason.get()
+        assert "正式出圖需提交目前 Set/Bay" in panel.reason.get()
+        assert "實體內門／底板" in panel.reason.get()
+        assert "可製造（內門）" not in panel.reason.get()
+        assert "僅預覽" in panel.frame.cget("text")
+        assert any(
+            isinstance(widget, ttk.Label)
+            and widget.cget("text") ==
+                "型號僅預覽｜製造資格以本連已提交配置及真實板件驗證為準"
+            for widget in _walk(row["section"])
+        )
+        assert any(
+            row["available"].get(i) == display_model_ref(model)
+            for i in range(row["available"].size())
+        )
+        assert panel.canvas.find_withtag("nfb-dxf")
+        panel.show("東元", model)
+        root.update()
+        assert "禁止製造" in panel.reason.get()
+        assert panel._numeric_spec is None
+        assert app._phase6_input_snapshot == before
+        assert KEY not in app._phase6_input_snapshot
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
+
+
+def test_ac51_native_tk_assigned_v5_shows_real_pair_green_only_for_exact_output(
+    monkeypatch, tmp_path,
+):
+    """Original Tk source widget positive only after a real pair DXF receipt.
+
+    The CSV catalogue list itself stays preview-only. Re-selecting without
+    exact verified Set/Bay/snapshot/source/DXF output clears any green badge,
+    and neither operator preview nor label writes a manufacturing approval.
+    """
+    from ae_engine.receiving_nfb_model_identity import numeric_model_ref
+    from tests.test_issue1502_current_csv_original_pair_dxf import (
+        _current, _scene, _export,
+    )
+    from gui_modules.application.receiving_nfb_verified_scope_display import (
+        capture_verified_v5_pair_display,
+    )
+    snap = _current()
+    pair = _export(snap, _scene(snap), tmp_path)
+    proof = capture_verified_v5_pair_display(snap, pair)
+    assert proof is not None
+    root, app, modal = _open_original_editor(monkeypatch)
+    try:
+        panel = modal._receiving_inner_nfb_dxf_panel
+        before = deepcopy(app._phase6_input_snapshot)
+        model = numeric_model_ref("士林", "2P400")
+        panel.show(
+            "士林", model,
+            verified_export_proof=proof, verified_snapshot=snap,
+        )
+        root.update()
+        assert "可製造（內門）" in panel.frame.cget("text")
+        assert "僅已出圖範圍" in panel.frame.cget("text")
+        assert "Set=" in panel.reason.get() and "Bay=" in panel.reason.get()
+        assert "其他版本" in panel.reason.get()
+        # The input catalogue is never a capability registry. The same
+        # visible source, with no exact success receipt, returns to preview.
+        panel.show("士林", model)
+        root.update()
+        assert "僅預覽" in panel.frame.cget("text")
+        assert "可製造（內門）" not in panel.reason.get()
+        panel.show("東元", model, verified_export_proof=proof, verified_snapshot=snap)
+        root.update()
+        assert "禁止製造" in panel.reason.get()
+        changed = deepcopy(snap)
+        changed["nfb_config"]["holes"][0]["manual_x_mm"] += 1.
+        panel.show(
+            "士林", model,
+            verified_export_proof=proof, verified_snapshot=changed,
+        )
+        root.update()
+        assert "僅預覽" in panel.frame.cget("text")
+        assert app._phase6_input_snapshot == before
+        assert KEY not in app._phase6_input_snapshot
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()
+
+
+def test_ac51_swt30_real_assigned_list_event_consumes_only_matching_export_scope(
+    monkeypatch, tmp_path,
+):
+    """Native listbox event, not a direct panel.show() shortcut.
+
+    This configures a real submitted two-model Bay, exports its source-owned
+    inner-door/Base DXF pair, and checks the original assigned model callback
+    against the ephemeral exact physical proof. Available catalog items stay
+    preview-only, and a changed output DXF immediately revokes the label.
+    """
+    from types import SimpleNamespace
+    from pathlib import Path
+    import tkinter as tk
+    from ae_engine.receiving_inner_door_candidates import ROLE
+    from ae_engine.receiving_layout import (
+        new_receiving_layout, project_receiving_bay_legacy_aliases,
+    )
+    from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
+    from gui_modules.application import (
+        fold_designer_composition_receiving as comp,
+        receiving_multi_settings_window as view,
+    )
+    from gui_modules.application.receiving_nfb_verified_scope_display import (
+        capture_verified_v5_pair_display,
+    )
+    from tests.test_issue1502_current_csv_original_pair_dxf import (
+        _current, _scene, _export,
+    )
+
+    baseline = _current()
+    refs = tuple(
+        hole["model_filename"] for hole in baseline["nfb_config"]["holes"]
+    )
+    assert refs == ("nfbv5:士林:2P400", "nfbv5:士林:3P125SN")
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    unit = layout["sets"][0]
+    unit["stable_id"] = "S"
+    bay = unit["bays"][0]
+    bay["stable_id"] = "B"
+    bay["nfb_config_submitted"] = True
+    bay["nfb_config"] = deepcopy(baseline["nfb_config"])
+    # The canonical per-Bay door model/height values belong to the Set's
+    # refs/values shared-setting owner, NOT unknown legacy Bay-level aliases.
+    unit["settings"] = {
+        "inner_door_models": {
+            "refs": {"B": "B:models"},
+            "values": {"B:models": [list(refs), ""]},
+        },
+        "inner_door_layers": {
+            "refs": {"B": "B:layers"},
+            "values": {"B:layers": 1},
+        },
+        "inner_door_layer_heights_mm": {
+            "refs": {"B": "B:heights"},
+            "values": {"B:heights": [550.0, 830.0]},
+        },
+    }
+    adapter = ReceivingSetBayAdapter(layout)
+
+    captured = {}
+    monkeypatch.setattr(
+        view, "open_multi_settings",
+        lambda _root, **kwargs: captured.update(kwargs) or object(),
+    )
+    root = tk.Tk()
+    root.geometry("550x460+20+20")
+    root.update_idletasks()
+    root_source = deepcopy(baseline)
+    root_source.update(active_mode="set_bay", receiving_layout=adapter.layout)
+    app = SimpleNamespace(
+        root=root,
+        _phase6_input_snapshot=root_source,
+        _settings_values={},
+        _phase6_box_whd={"w": 800, "h": 1600, "d": 350, "t": 2},
+        _phase6_endcap_bottom_wrap_state={},
+        designer_workspace=None,
+    )
+    assembly = SimpleNamespace(
+        app=app,
+        receiving_layout_applicable=lambda: True,
+        receiving_adapter=lambda _ns: adapter,
+        receiving_switch_adapter=lambda _ns: SimpleNamespace(brand="士林"),
+        corner_transaction_payload=lambda _ns: {},
+        collect_workspace_state=lambda _ns: {},
+    )
+    modal = None
+    try:
+        assert comp.open_receiving_multi_settings(assembly, "test") is not False
+        editor = captured["get_inner_candidate_ports"]()["edit"]
+        modal = editor(ROLE, None, lambda _version: None)
+        root.update()
+        row = modal._receiving_inner_switch_state["rows"][0]
+        panel = modal._receiving_inner_nfb_dxf_panel
+        assert row["assigned"].size() == 2
+        unchanged_project = deepcopy(app._phase6_input_snapshot)
+
+        # This same real physical snapshot is read by the callback, never a
+        # substitute from a separate fake selector/capability registry.
+        current = deepcopy(app._phase6_input_snapshot)
+        current.update(deepcopy(app._phase6_box_whd))
+        current.update(endcap_bottom_wrap={}, workspace={})
+        current["receiving_layout"] = adapter.layout
+        live = project_receiving_bay_legacy_aliases(
+            current, set_index=0, bay_index=0,
+        )
+        output = tmp_path / "real_pair"
+        output.mkdir()
+        receipt = _export(live, _scene(live), output)
+        proof = capture_verified_v5_pair_display(live, receipt)
+        assert proof is not None
+        assert proof.scope.width_mm == 800
+        app._receiving_nfb_ui_session_evidence["verified_pair_exports"][(0, 0)] = proof
+
+        row["assigned"].selection_set(0)
+        row["assigned"].event_generate("<<ListboxSelect>>")
+        root.update()
+        assert "可製造（內門）" in panel.frame.cget("text")
+        assert "僅已出圖範圍" in panel.frame.cget("text")
+        assert "Set=" in panel.reason.get() and "Bay=" in panel.reason.get()
+
+        row["available"].selection_set(0)
+        row["available"].event_generate("<<ListboxSelect>>")
+        root.update()
+        assert "僅預覽" in panel.frame.cget("text")
+
+        row["assigned"].selection_clear(0, "end")
+        row["assigned"].selection_set(1)
+        row["assigned"].event_generate("<<ListboxSelect>>")
+        root.update()
+        assert "可製造（內門）" in panel.frame.cget("text")
+
+        saved_dxf = Path(receipt.base_plate_path)
+        saved_dxf.write_bytes(saved_dxf.read_bytes() + b"\\nTAMPERED_EXPORT")
+        row["assigned"].selection_clear(0, "end")
+        row["assigned"].selection_set(0)
+        row["assigned"].event_generate("<<ListboxSelect>>")
+        root.update()
+        assert "僅預覽" in panel.frame.cget("text")
+        assert "可製造（內門）" not in panel.reason.get()
+        assert app._phase6_input_snapshot == unchanged_project
+        assert KEY not in app._phase6_input_snapshot
+    finally:
+        if modal is not None and modal.winfo_exists():
             modal.destroy()
         root.destroy()

@@ -20,6 +20,92 @@ _REQUIRED = (
 )
 
 
+
+def _source_brand_anchored_center_pair(data):
+    """Two equal-depth, same-brand shallow NFBs need the CENTER folded source.
+
+    Fixed ears stay at the maximum NFB depth in the ENTIRE brand CSV, not
+    the depth of either selected switch. This selects source fold geometry;
+    it does not certify installed 3D face parity, ear welding or MFG DXF.
+    Mixed selected depths require independent per-switch face certification.
+    """
+    config = data.get("nfb_config")
+    if (data.get("nfb_config_submitted") is not True
+            or not isinstance(config, Mapping)
+            or type(config.get("layer_count")) is not int
+            or config["layer_count"] != 1):
+        return None
+    holes = config.get("holes")
+    if not isinstance(holes, (tuple, list)) or len(holes) != 2:
+        return None
+    from .receiving_nfb_model_identity import parse_numeric_model_ref
+    from .receiving_nfb_numeric_catalog import model_spec
+    from .receiving_tier_ear_z_targets import (
+        _current_brand_config, committed_receiving_ear_brand_max_depth_mm,
+    )
+    try:
+        _, submitted = _current_brand_config(data)
+    except ValueError:
+        # A stale/transitioning Bay may be previewed but never owns source
+        # geometry or brand Z; retain the existing explicit identity gates.
+        return None
+    if submitted != config:
+        return None
+    depths = []
+    for hole in holes:
+        if not isinstance(hole, Mapping):
+            return None
+        parsed = parse_numeric_model_ref(hole.get("model_filename"))
+        if parsed is None or hole.get("source_brand") not in (None, parsed[0]):
+            return None
+        spec = model_spec(*parsed)
+        if spec is None or not spec.dimensionally_complete:
+            return None
+        depths.append(float(spec.depth_mm))
+    if abs(depths[0] - depths[1]) > 1e-9:
+        return None
+    maximum = committed_receiving_ear_brand_max_depth_mm(data)
+    if maximum - depths[0] <= float(data.get("t", 0)):
+        return None
+    return maximum, depths[0]
+
+
+
+def _source_two_tier_brand_anchored_center_pair(data):
+    """Recognize independent NFB tiers needing brand-max fixed-ear returns.
+
+    This pair licenses the CENTER source blank shape. Its actual depth pair,
+    signed 3D fold, and placement are re-derived SEPARATELY for each tier.
+    It never merges two tiers into one shared part or grants DXF approval.
+    """
+    config = data.get("nfb_config")
+    if (data.get("nfb_config_submitted") is not True
+            or not isinstance(config, Mapping)
+            or type(config.get("layer_count")) is not int
+            or config.get("layer_count") != 2):
+        return None
+    from .receiving_tier_ear_z_targets import (
+        _current_brand_config, _tier_source_depths,
+        committed_receiving_ear_brand_max_depth_mm,
+    )
+    try:
+        legacy_brand, submitted = _current_brand_config(data)
+        if submitted != config:
+            return None
+        maximum = committed_receiving_ear_brand_max_depth_mm(data)
+    except ValueError:
+        return None
+    depths = tuple(_tier_source_depths(legacy_brand, config, i) for i in (0, 1))
+    # A layer may have many of the SAME NFB, but a mix of clearances in
+    # one CENTER web requires independently proven stepped holes or PAD.
+    if any(len(source) != 1 for source in depths):
+        return None
+    shallower = min(source[0] for source in depths)
+    if maximum-shallower <= float(data.get("t", 0)):
+        return None
+    return maximum, shallower
+
+
 def _source_center_base_config(data):
     """Resolve only the uniquely identified two-depth CENTER source blank.
 
@@ -38,7 +124,11 @@ def _source_center_base_config(data):
     )
     from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
 
-    pair = committed_receiving_nfb_depth_pair_mm(data)
+    pair = _source_brand_anchored_center_pair(data)
+    if pair is None:
+        pair = committed_receiving_nfb_depth_pair_mm(data)
+    if pair is None:
+        pair = _source_two_tier_brand_anchored_center_pair(data)
     if pair is None:
         return None
     if isinstance(data.get("t"), bool) or isinstance(data.get("w"), bool):
@@ -326,8 +416,15 @@ def receiving_base_plate_values(snapshot):
                 str(row.get("model_filename") or "").startswith("nfbv5:")
                 for row in selected_rows)
     )
+    # Two shallow switches cannot mate a brand-maximum fixed ear on a flat
+    # plate. Prefer the original CENTER fold for a single equal-depth row.
+    anchored_center = (
+        _source_brand_anchored_center_pair(data) if selected_v5 else None
+    )
     source_config = None
-    if selected_v5 and not explicit_center:
+    if anchored_center is not None:
+        source_config = _source_center_base_config(data)
+    if source_config is None and selected_v5 and not explicit_center:
         # This source resolver validates every model's current CSV,
         # parametric PAD, sheet face, and physical depth. If no flat
         # source matches, retain the original CENTER resolver fallback.
@@ -406,7 +503,8 @@ def receiving_base_plate_values(snapshot):
         from .receiving_nfb_depth_surface_policy import (
             committed_receiving_nfb_depth_pair_mm,
         )
-        pair = committed_receiving_nfb_depth_pair_mm(data)
+        pair = (_source_brand_anchored_center_pair(data)
+                or committed_receiving_nfb_depth_pair_mm(data))
     else:
         # In the two-tier shape-proven LEFT case, each tier's actual
         # independently selected CSV model/depth owns its *own* Z datum in
@@ -422,7 +520,10 @@ def receiving_base_plate_values(snapshot):
             )
             reference = committed_receiving_flat_nfb_depth_mm(data)
     return {
-        "receiving_nfb_reference_depth_mm": reference,
+        "receiving_nfb_reference_depth_mm": (
+            float(anchored_center[1]) if anchored_center is not None else reference
+        ),
+        "receiving_center_brand_anchor_inverted": anchored_center is not None,
         "receiving_nfb_depth_pair_mm": pair,
         "h": values["height"],
         "base_plate_shrink_top": values["shrink_top"],

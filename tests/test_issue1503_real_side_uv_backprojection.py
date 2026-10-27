@@ -10,6 +10,9 @@ from ae_engine.assembly_geometry import MappedSkinTriangle
 from ae_engine.manufacturing_render_data import FoldGuide
 from ae_engine.receiving_fixed_plate_side_contact import (
     resolve_receiving_ear_side_contact_surfaces,
+    receiving_ear_installation_world_segment,
+    receiving_ear_positioning_world_segments,
+    EAR_FOLD_HINT_LENGTH_MM,
 )
 from ae_engine.receiving_fixed_plate_side_uv_marking import (
     project_receiving_ear_contact_to_side_uv,
@@ -65,7 +68,7 @@ def test_real_forming_contact_projects_to_its_own_side_flat_marking(factory, cou
     for contact, receipt in zip(contacts, receipts):
         assert receipt.base_part_id == contact.base_part_id
         assert receipt.world_boundary == contact.world_surface_boundary
-        assert len(receipt.marking_segments) == 4
+        assert len(receipt.marking_segments) == 3
         assert receipt.side_flat_uv_backprojection_verified
         assert receipt.side_final_material_coverage_verified
         assert receipt.side_bend_intersection_rejected
@@ -77,6 +80,47 @@ def test_real_forming_contact_projects_to_its_own_side_flat_marking(factory, cou
                 - receipt.side_source_flat_boundary[0][0]) == pytest.approx(256., abs=0.02)
         assert (receipt.side_source_flat_boundary[3][1]
                 - receipt.side_source_flat_boundary[0][1]) == pytest.approx(22., abs=0.02)
+
+
+def test_installation_line_is_base_lower_edge_and_not_fold_length():
+    # Real physical contact is still the full source weld-leg skin. Only the
+    # visible side MARKING is reduced to one horizontal parent-base datum.
+    contact = resolve_receiving_ear_side_contact_surfaces(_assembled())[0]
+    a, b = receiving_ear_installation_world_segment(contact)
+    assert a[2] == b[2] == pytest.approx(contact.base_lower_world_z_mm)
+    assert b[1] - a[1] == pytest.approx(256.0)
+    receipt = _project(contact)
+    assert len(receipt.marking_segments) == 3
+    assert receipt.world_boundary == contact.world_surface_boundary
+    assert EAR_FOLD_HINT_LENGTH_MM == 20.0
+    top, left, right = receiving_ear_positioning_world_segments(contact)
+    assert top == (a, b)
+    assert left[0] == a and right[0] == b
+    assert left[1] == pytest.approx((a[0], a[1], a[2] - 20.0))
+    assert right[1] == pytest.approx((b[0], b[1], b[2] - 20.0))
+    assert all(not (u[2] == v[2] == a[2] - 20.0)
+               for u, v in (top, left, right))
+    from shapely.geometry import LineString
+    assert [LineString(pair).length for pair in receipt.marking_segments] == pytest.approx(
+        [256.0, 20.0, 20.0]
+    )
+
+    # The free formed leg may be longer/shorter; its LOWER z cannot drive
+    # the upper installation datum. This is an isolated helper contract,
+    # not a forged contact released to manufacturing.
+    older_boundary = tuple(
+        (p[0], p[1], p[2] - 9.0 if index < 2 else p[2])
+        for index, p in enumerate(contact.world_surface_boundary)
+    )
+    extended = replace(contact, world_surface_boundary=older_boundary)
+    assert receiving_ear_installation_world_segment(extended) == (a, b)
+
+    # A BasePlate lower edge forged independently of the real T2 contact
+    # must not become a freely chosen marking position.
+    with pytest.raises(ValueError, match="BASE_LOWER_EDGE_CONTACT_MISMATCH"):
+        receiving_ear_installation_world_segment(
+            replace(contact, base_lower_world_z_mm=contact.base_lower_world_z_mm + 3)
+        )
 
 
 def test_side_uv_denies_material_cutting_hole_and_bend_crossing():
@@ -121,3 +165,34 @@ def test_side_uv_denies_wrong_owner_and_early_manufacture():
     ):
         with pytest.raises(ValueError, match="EAR_SIDE_UV_"):
             _project(fake)
+
+@pytest.mark.parametrize("field,value", [
+    ("position", True),
+    ("position", float("nan")),
+    ("position", float("inf")),
+    ("span_start", False),
+    ("span_start", "0"),
+    ("span_end", float("-inf")),
+    ("span_end", None),
+])
+def test_audit116_r9_source_side_bend_guide_rejects_nonphysical_input(field, value):
+    from ae_engine.receiving_fixed_plate_side_uv_marking import _fold_guide_flat_segment
+
+    values = {"axis": "x", "position": 20.0, "span_start": 0.0,
+              "span_end": 100.0}
+    values[field] = value
+    with pytest.raises(ValueError, match="EAR_SIDE_UV_INVALID_SIDE_BEND_GUIDE"):
+        _fold_guide_flat_segment(SimpleNamespace(**values))
+
+
+def test_audit116_r9_source_side_bend_guide_keeps_real_segment():
+    from ae_engine.receiving_fixed_plate_side_uv_marking import _fold_guide_flat_segment
+
+    guide = SimpleNamespace(axis="x", position=20.0,
+                            span_start=0.0, span_end=100.0)
+    segment = _fold_guide_flat_segment(guide)
+    assert segment.length == pytest.approx(100.0)
+    assert tuple(segment.coords) == ((20.0, 0.0), (20.0, 100.0))
+    guide.span_end = guide.span_start
+    with pytest.raises(ValueError, match="EAR_SIDE_UV_INVALID_SIDE_BEND_GUIDE"):
+        _fold_guide_flat_segment(guide)

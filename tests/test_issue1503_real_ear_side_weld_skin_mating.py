@@ -118,3 +118,26 @@ def test_contact_owner_or_source_bend_forgery_rejected():
         verify_receiving_ear_side_skin_mating(
             contact, replace(formed, source_bend_verified=False), rows,
         )
+
+@pytest.mark.parametrize("side,world", [
+    (True, ((0., 0., 0.), (0., 1., 0.), (0., 0., 1.))),
+    ("1", ((0., 0., 0.), (0., 1., 0.), (0., 0., 1.))),
+    (None, ((0., 0., 0.), (0., 1., 0.), (0., 0., 1.))),
+    (1, ((0., 0., 0.), (0., float("nan"), 0.), (0., 0., 1.))),
+    (1, ((0., 0., 0.), (0., float("inf"), 0.), (0., 0., 1.))),
+    (1, ((0., 0., 0.), (0., 1.), (0., 0., 1.))),
+])
+def test_audit116_r9_real_side_skin_normal_refuses_invalid_source(side, world):
+    from types import SimpleNamespace
+    from ae_engine.receiving_fixed_plate_weld_skin_mating import _normal_of_skin
+
+    assert _normal_of_skin(SimpleNamespace(side=side, world=world)) is None
+
+
+def test_audit116_r9_real_side_skin_normal_keeps_signed_physical_orientation():
+    from types import SimpleNamespace
+    from ae_engine.receiving_fixed_plate_weld_skin_mating import _normal_of_skin
+
+    world = ((0., 0., 0.), (0., 1., 0.), (0., 0., 1.))
+    assert _normal_of_skin(SimpleNamespace(side=1, world=world)) == (1., 0., 0.)
+    assert _normal_of_skin(SimpleNamespace(side=-1, world=world)) == (-1., 0., 0.)

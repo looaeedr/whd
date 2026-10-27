@@ -130,6 +130,28 @@ from gui_modules.application.fold_designer_snapshot_projection import (
     _make_original_fold_designer_snapshot,
 )
 
+def _checked_nfb_copy_selection(layout, set_index, selected_bays):
+    """Resolve two unique physical Bay indices before any UI copy side effect."""
+    message = "NFB 複製請在同一套高亮來源連及目標連（恰好兩連）"
+    if type(set_index) is not int:
+        raise ValueError("NFB 複製的套位已不存在")
+    try:
+        if not 0 <= set_index < len(layout["sets"]):
+            raise ValueError("NFB 複製的套位已不存在")
+        bays = layout["sets"][set_index]["bays"]
+    except (TypeError, KeyError, IndexError) as exc:
+        raise ValueError("NFB 複製的套位已不存在") from exc
+    try:
+        indices = tuple(selected_bays)
+    except TypeError as exc:
+        raise ValueError(message) from exc
+    if (len(indices) != 2
+            or any(type(i) is not int or not 0 <= i < len(bays) for i in indices)
+            or len(set(indices)) != 2):
+        raise ValueError(message)
+    return indices, {i: bays[i] for i in indices}
+
+
 def receiving_layout_applicable(self):
     return self._capabilities.receiving.applicable()
 
@@ -244,6 +266,13 @@ def sync_receiving_current_bay(
 
 def commit_receiving_current_bay_controls(self, namespace):
     app = self.app
+    # Fold Designer opens through original.MainApp.__init__, which invokes
+    # do_update() once with provisional legacy W500/H600/D200 BEFORE the
+    # saved Receiving Set/Bay is projected into the editor.  That bootstrap
+    # render is not an operator dimension edit and may never shrink a real
+    # W800/H1600 Door partition or alter persisted Bay authority.
+    if getattr(app, "_phase6_sync_ready", True) is False:
+        return False
     if app._phase6_input_snapshot.get("active_mode") == "quantity" and getattr(app, "_phase6_initializing", False):
         return False
     if getattr(app, "_phase6_receiving_set_bay_guard", False):
@@ -268,11 +297,16 @@ def commit_receiving_current_bay_controls(self, namespace):
         return False
     required = lambda name: self._required(namespace, name)
     original = required("original")
-    adapter.update_current_bay(
-        width=original.get_int(app.v_w.get()),
-        height=original.get_int(app.v_h.get()),
-        depth=original.get_int(app.v_d.get()),
+    requested = {
+        "width": original.get_int(app.v_w.get()),
+        "height": original.get_int(app.v_h.get()),
+        "depth": original.get_int(app.v_d.get()),
+    }
+    current_bay = adapter.current_bay()
+    dimensions_changed = any(
+        float(current_bay[key]) != float(value) for key, value in requested.items()
     )
+    adapter.update_current_bay(**requested)
     app._phase6_input_snapshot["receiving_layout"] = adapter.layout
     self.sync_receiving_current_bay(
         namespace,
@@ -284,6 +318,15 @@ def commit_receiving_current_bay_controls(self, namespace):
     workspace = getattr(app, "designer_workspace", None)
     if workspace is not None:
         workspace.mark_dirty()
+        if dimensions_changed:
+            # A physical Door/Bay span change must re-derive the SAME
+            # authoritative Divider Y fold profile before the next 3D solve.
+            # Otherwise W800→820 creates 816 mm physical material while the
+            # workspace retains 796 mm Y: the real contact shifts ±10 mm and
+            # certified CROSS correctly refuses the resulting collision.
+            # This is an existing source-derived namespace refresh, not a
+            # new formula or a relaxation of CROSS collision certification.
+            self.sync_authoritative_derived_parts(namespace)
     return True
 
 def back_panel_mode_control_is_applicable(self, namespace):
@@ -466,7 +509,7 @@ def resize_receiving_bays(
     """Resize canonical topology; skip redundant hidden panel refresh in modal."""
     switch = self.receiving_switch_adapter(namespace)
     if not switch.resize_connections(
-        int(layer_index), int(delta)
+        layer_index, delta,
     ):
         return False
     self.mark_receiving_switch_layout_dirty(namespace, switch)
@@ -1670,6 +1713,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         self.app._receiving_nfb_ui_session_evidence = evidence
     pending_verified_nfb = evidence["pending"]
     committed_nfb_evidence = evidence["committed"]  # NEVER serialized
+    # Only exact operator-export receipts; not a saved MFG-1 capability.
+    verified_pair_exports = evidence.setdefault("verified_pair_exports", {})
 
     def nfb_physical_bay_snapshot(set_index,bay_index):
         """Real selected Bay authority, not the unprojected root UI snapshot."""
@@ -2538,7 +2583,29 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if selected:
                 slot = draft_state["draft"]["layers"][index]["slots"][selected[0]]
                 brand = effective_nfb_slot_brand(draft_state["draft"],index,selected[0])
-                nfb_preview_panel["panel"].show(brand,slot["filename"])
+                # A saved/fully verified prior pair can disclose its exact
+                # physical scope on the ASSIGNED model, not on the source
+                # catalogue. Any draft edit or changed active Bay invalidates
+                # the label; this UI note never grants another DXF export.
+                proof = live = None
+                if (version_id is None and embed_parent is None
+                        and draft_state["draft"] == initial_nfb_draft):
+                    try:
+                        sel = candidate_adapter().selection
+                        proof = verified_pair_exports.get(
+                            (sel.set_index, sel.bay_index)
+                        )
+                        if proof is not None:
+                            live = nfb_physical_bay_snapshot(
+                                sel.set_index, sel.bay_index
+                            )
+                    except (ValueError, TypeError, KeyError, IndexError,
+                            AttributeError, OSError):
+                        proof = live = None
+                nfb_preview_panel["panel"].show(
+                    brand, slot["filename"], verified_export_proof=proof,
+                    verified_snapshot=live,
+                )
                 nfb_source_viewed["value"] = True
 
         def reposition_nfb_slot(index,direction):
@@ -2670,7 +2737,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             # a detached control underneath the two source lists.
             height_row = ttk.Frame(section)
             height_row.grid(row=0, column=0, sticky="w", padx=5)
-            ttk.Label(height_row, text="CSV 型號").pack(side="left")
+            ttk.Label(height_row, text="CSV 型號｜僅預覽").pack(side="left")
             ttk.Label(height_row, text="高度（距上緣 mm）").pack(
                 side="left", padx=(8, 3),
             )
@@ -2682,6 +2749,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             height_entry.bind("<FocusOut>", lambda _event: paint_draft_preview())
             section.columnconfigure(0, weight=1)
             section.columnconfigure(2, weight=1)
+            # This is a *source* list. The selected CSV model alone is not a
+            # Set/Bay/version/physical-part manufacturing approval; expose
+            # the difference beside the model list without decorating names.
+            ttk.Label(
+                section,
+                text="型號僅預覽｜製造資格以本連已提交配置及真實板件驗證為準",
+                wraplength=340, justify="left",
+            ).grid(row=2, column=0, sticky="w", padx=5, pady=(0, 3))
             ttk.Label(section, text="本層開關（可重複）").grid(
                 row=0, column=2, sticky="w", padx=5)
             available = tk.Listbox(section, selectmode=tk.BROWSE,
@@ -3231,15 +3306,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             two Bays. The source may be active or the destination may be
             active. If both directions could apply, fail closed.
             """
-            indices=tuple(selected_bays)
-            if (len(indices)!=2 or len(indices)!=len(set(indices))):
-                raise ValueError("NFB 複製請在同一套高亮來源連及目標連（恰好兩連）")
             layout=candidate_adapter().layout
-            try:
-                bays=layout["sets"][set_index]["bays"]
-                selected={i:bays[i] for i in indices}
-            except (IndexError,KeyError,TypeError) as exc:
-                raise ValueError("NFB 複製的連位已不存在") from exc
+            indices, selected = _checked_nfb_copy_selection(
+                layout, set_index, selected_bays,
+            )
             options=[]
             for source_bi in indices:
                 if selected[source_bi].get("nfb_config_submitted") is not True:
@@ -3527,11 +3597,22 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     namespace, set_index, bay_index,
                     preview_layout=candidate_adapter().layout,
                 )
-                return export_current_csv_nfb_door_base_pair(
+                exported = export_current_csv_nfb_door_base_pair(
                     current, base_spec=spec,
                     assembly_parts=request.render_data.assembly_parts,
                     output_directory=output_directory,
                 )
+                from .receiving_nfb_verified_scope_display import (
+                    capture_verified_v5_pair_display,
+                )
+                proof = capture_verified_v5_pair_display(current, exported)
+                # Discard any earlier receipt even if newly captured proof
+                # fails closed. Source snapshots and generated files remain
+                # unmodified, and there is never a stored approval flag.
+                verified_pair_exports.pop((set_index, bay_index), None)
+                if proof is not None:
+                    verified_pair_exports[(set_index, bay_index)] = proof
+                return exported
             bundle = committed_nfb_evidence.get((set_index, bay_index))
             if bundle is None:
                 raise ValueError("NFB 成對出圖缺少現行 CSV 或舊版已驗證來源")

@@ -8,6 +8,7 @@ numeric columns, applies these transitions, then performs presentation effects.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import Callable, Mapping, Sequence
 
 from ae_engine.sheetmetal_part_adapters import (
@@ -49,9 +50,24 @@ class DoorLayoutCommitValidation:
 
 
 def _positive_total(label: str, value: float) -> float:
-    value = float(value)
-    if value <= 0:
-        raise ValueError(f"{label} 必須大於 0")
+    # Public controller mutations must not coerce corrupt saved Boolean/NaN
+    # geometry into physical dimensions before the validation boundary.
+    if isinstance(value, bool):
+        raise ValueError(f"{label} 必須是有限正數")
+    try:
+        value = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{label} 必須是有限正數") from exc
+    if not isfinite(value) or value <= 0:
+        raise ValueError(f"{label} 必須是有限正數")
+    return value
+
+
+def _physical_cell_index(label: str, value: int, count: int) -> int:
+    # An index refers to a specific physical Door cell, never Python's
+    # bool alias, negative-index wrapping or int(0.9) truncation.
+    if type(value) is not int or value < 0 or value >= count:
+        raise ValueError(f"{label} 必須是目前門片的有效整數索引")
     return value
 
 
@@ -122,10 +138,12 @@ def recompute_door_layout(
 
 
 def door_layout_cells(columns, *, total_width: float, total_height: float):
+    # Do not erase a malformed saved Boolean before the manufacturing
+    # validator sees its original type (float(True) would become 1 mm).
     return validate_door_layout_dimensions(
         columns,
-        total_width=float(total_width),
-        total_height=float(total_height),
+        total_width=total_width,
+        total_height=total_height,
         tolerance=0.01,
     )
 
@@ -138,7 +156,7 @@ def validate_width_commit(
 ) -> DoorLayoutCommitValidation:
     total_width = _positive_total("W", total_width)
     current = _positive_total("欄寬", current)
-    column_index = int(column_index)
+    column_index = _physical_cell_index("門片欄位", column_index, len(columns))
     other_fixed = sum(
         float(column.width)
         for index, column in enumerate(columns)
@@ -165,8 +183,9 @@ def validate_height_commit(
 ) -> DoorLayoutCommitValidation:
     total_height = _positive_total("H", total_height)
     current = _positive_total("高度", current)
-    column = columns[int(column_index)]
-    row_index = int(row_index)
+    column_index = _physical_cell_index("門片欄位", column_index, len(columns))
+    column = columns[column_index]
+    row_index = _physical_cell_index("門片層數", row_index, len(column.heights))
     other_fixed = sum(
         float(value)
         for index, (value, is_auto) in enumerate(zip(column.heights, column.height_auto))

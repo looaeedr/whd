@@ -109,3 +109,76 @@ def test_r4_69_selected_nonempty_meshes_remain_independently_audited():
     assert result.visible_keys == ("head", "inner_door:upper:panel")
     assert result.evaluated_pair_count == 1
     assert result.pairs[0].status == "AABB_SEPARATED"
+
+
+@pytest.mark.parametrize("invalid_mapping, invalid_points", [
+    (42, ((0., 0., 0.),)),
+    (True, ((0., 0., 0.),)),
+    (object(), ((0., 0., 0.),)),
+    (MAPPING, 42),
+    (MAPPING, True),
+    (MAPPING, object()),
+])
+def test_r6_public_backprojection_noniterable_sources_fail_closed(
+    invalid_mapping, invalid_points,
+):
+    """Malformed archived physical skin sources must never escape as TypeError."""
+    from ae_engine.assembly_marking_geometry import backproject_mapped_skin_world_points
+    result = backproject_mapped_skin_world_points(invalid_mapping, invalid_points)
+    assert result.status == "SKIPPED_FAIL_CLOSED"
+    assert result.diagnostic_code == "BACKPROJECTION_FAILED"
+    assert result.flat_points == ()
+    valid = backproject_mapped_skin_world_points(MAPPING, ((1., 1., 0.),))
+    assert valid.status == "RESOLVED"
+    assert len(valid.flat_points) == 1
+    assert valid.flat_points[0] == pytest.approx((1., 1.))
+
+
+@pytest.mark.parametrize("invalid_side", ["world", "flat"])
+def test_r6_bool_mapped_skin_vertex_cannot_become_physical_marking_uv(invalid_side):
+    """A bool in real formed triangle authority cannot be coerced to 0/1 mm."""
+    from ae_engine.assembly_marking_geometry import backproject_mapped_skin_world_points
+    flat = ((0., 0.), (4., 0.), (0., 2.))
+    world = ((0., 0., 0.), (4., 0., 0.), (0., 2., 0.))
+    assert backproject_mapped_skin_world_points(
+        (MappedSkinTriangle(flat=flat, world=world, side=1),), ((1., 1., 0.),),
+    ).status == "RESOLVED"
+    if invalid_side == "world":
+        world = ((False, 0., 0.),) + world[1:]
+    else:
+        flat = ((False, 0.),) + flat[1:]
+    result = backproject_mapped_skin_world_points(
+        (MappedSkinTriangle(flat=flat, world=world, side=1),), ((1., 1., 0.),),
+    )
+    assert result.status == "SKIPPED_FAIL_CLOSED"
+    assert result.diagnostic_code == "BACKPROJECTION_FAILED"
+    assert result.flat_points == ()
+
+
+@pytest.mark.parametrize("triangle", [
+    None,
+    (),
+    ((0., 0., 0.), (2., 0., 0.)),
+    ((0., 0., 0.), (2., 0., 0.), (0., 2., 0.), (0., 0., 1.)),
+    ((0., 0.), (2., 0., 0.), (0., 2., 0.)),
+    ((0., 0., 0.), (2., 0., 0.), (0., 2., True)),
+    ((0., 0., 0.), (2., 0., 0.), (0., 2., float("nan"))),
+    ((0., 0., 0.), (10 ** 400, 0., 0.), (0., 2., 0.)),
+])
+def test_r6_joint_marking_normal_rejects_nonphysical_triangle_before_subtraction(triangle):
+    """Physical skin normal must never convert boolean XYZ into fabricated mm."""
+    from ae_engine.receiving_joint_marking import _triangle_normal
+    from ae_engine.assembly_marking_geometry import triangle_unit_normal
+    with pytest.raises(ValueError, match="degenerate geometry direction"):
+        _triangle_normal(triangle)
+    with pytest.raises(ValueError, match="degenerate geometry direction"):
+        triangle_unit_normal(
+            triangle, tolerance=1e-7, error_message="degenerate geometry direction",
+        )
+
+
+def test_r6_joint_marking_normal_keeps_real_signed_triangle_orientation():
+    from ae_engine.receiving_joint_marking import _triangle_normal
+    abc = ((0., 0., 0.), (4., 0., 0.), (0., 2., 0.))
+    assert _triangle_normal(abc) == pytest.approx((0., 0., 1.))
+    assert _triangle_normal((abc[0], abc[2], abc[1])) == pytest.approx((0., 0., -1.))

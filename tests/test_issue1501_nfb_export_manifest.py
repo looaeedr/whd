@@ -303,6 +303,185 @@ def test_ac38_real_dxf_color_inventory_drives_physical_partial_manifest(
     assert not revoked.whole_ready
 
 
+
+@pytest.mark.parametrize(
+    ("aci30", "aci212", "unresolved", "expected_base", "expected_count"),
+    (
+        (False, False, False, UNAFFECTED, 6),
+        (True, False, False, BLOCKED, 5),
+        (False, True, False, BLOCKED, 5),
+        (False, False, True, BLOCKED, 3),
+    ),
+)
+def test_ac38_current_receiving_source_guards_only_actual_parts_and_side(
+    tmp_path, aci30, aci212, unresolved, expected_base, expected_count,
+):
+    """One submitted Bay, one source, real DXF parsing and only actual parts.
+
+    Historic middle-plate role is NOT silently added to today's Receiving.
+    Real unapproved color evidence holds the Base only; unrelated physically
+    present SIDE is independently verifiable, never collateral damage.
+    This does not certify factory welding or arbitrary V5 models.
+    """
+    from dataclasses import replace
+    import ezdxf
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+
+    options = _prepared(tmp_path)
+    options["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1",
+        ("base1",), (),
+    )
+    options["actual_parts"] = tuple(
+        item for item in options["actual_parts"] if item.part_id != "middle1"
+    )
+    source = tmp_path / "ac38_physical_dxf.dxf"
+    document = ezdxf.new("R2010")
+    sheet = document.modelspace()
+    sheet.add_lwpolyline(
+        ((0, 0), (57, 0), (57, 96), (0, 96)),
+        close=True, dxfattribs={"color": 150},
+    )
+    if aci30:
+        sheet.add_circle((3, 4), 2, dxfattribs={"color": 30})
+    if aci212:
+        sheet.add_line((1, 2), (8, 2), dxfattribs={"color": 212})
+    if unresolved:
+        sheet.add_line((5, 5), (6, 6), dxfattribs={"color": 0})
+    document.saveas(source)
+    source_inv = inspect_nfb_dxf_source(source)
+    options.update(
+        source_path=source,
+        source_inventory=source_inv,
+        verified_inner_door=replace(
+            options["verified_inner_door"],
+            source_sha256=source_inv.source_sha256,
+        ),
+    )
+    manifest = derive_nfb_partial_export_manifest(**options)
+    decisions = {row.part_id: row for row in manifest.rows}
+    assert set(decisions) == {"inner1", "base1", "side1"}
+    assert decisions["base1"].status == expected_base
+    assert decisions["side1"].status == UNAFFECTED
+    assert decisions["side1"].actual_count == 3
+    assert manifest.actual_export_count == expected_count
+    assert manifest.held_actual_count == 6 - expected_count
+    assert manifest.report()["assembly_status"] != "COMPLETE"
+    assert not any("MIDDLE_PLATE" in token for token in manifest.unresolved_dependencies)
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+    if unresolved:
+        assert decisions["inner1"].status == BLOCKED
+        assert "NFB_SOURCE_COLOR_SCOPE_UNKNOWN" in manifest.unresolved_dependencies
+    else:
+        assert decisions["inner1"].status == READY
+        assert manifest.require_export(("inner1", "side1"), partial=True) == (
+            "inner1", "side1",
+        )
+    if expected_base == BLOCKED:
+        with pytest.raises(ValueError, match="BLOCKED"):
+            manifest.require_export(("base1",), partial=True)
+
+    # A changed original source revokes any previously READY inner/Base
+    # while retaining only the real independent SIDE; never treat an old
+    # source inventory's zero Color30 as a valid present-source zero.
+    source.write_bytes(source.read_bytes() + b"\nSOURCE_REPLACED")
+    stale = derive_nfb_partial_export_manifest(**options)
+    assert stale.authorized_part_ids == ("side1",)
+    assert stale.actual_export_count == 3
+    assert stale.held_actual_count == 3
+    assert stale.partial_only
+    assert "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED" in stale.unresolved_dependencies
+    with pytest.raises(ValueError, match="BLOCKED"):
+        stale.require_export(("inner1",), partial=True)
+
+
+
+@pytest.mark.parametrize(
+    ("case", "expected_status", "allowed", "count"),
+    (
+        ("upper_only", (READY, UNAFFECTED, UNAFFECTED), ("inner1", "base1", "side1"), 6),
+        ("upper_and_base", (READY, BLOCKED, UNAFFECTED), ("inner1", "side1"), 5),
+        ("no_upper", (BLOCKED, UNAFFECTED, UNAFFECTED), ("base1", "side1"), 4),
+        ("unknown_aci", (BLOCKED, BLOCKED, UNAFFECTED), ("side1",), 3),
+        ("source_missing", (BLOCKED, BLOCKED, UNAFFECTED), ("side1",), 3),
+    ),
+)
+def test_ac44_live_source_partial_must_not_masquerade_as_whole_export(
+    tmp_path, case, expected_status, allowed, count,
+):
+    """Original DXF reader → saved Bay → real-part manifest → export gate.
+
+    A historical Color150 source alone never creates Receiving middle plate.
+    Current numeric CSV V5 and the real output writer have their independent
+    approval requirements. This proves manifest scope only, not factory NC.
+    """
+    from dataclasses import replace
+    import ezdxf
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+
+    opts = _prepared(tmp_path)
+    opts["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1",
+        ("base1",), (),
+    )
+    opts["actual_parts"] = tuple(
+        part for part in opts["actual_parts"] if part.part_id != "middle1"
+    )
+    source = tmp_path / "ac44_actual_source.dxf"
+    dxf = ezdxf.new("R2010")
+    msp = dxf.modelspace()
+    if case not in ("no_upper",):
+        msp.add_lwpolyline(
+            ((0, 0), (57, 0), (57, 96), (0, 96)),
+            close=True, dxfattribs={"color": 150},
+        )
+    if case == "upper_and_base":
+        msp.add_circle((12, 18), 2, dxfattribs={"color": 30})
+    if case == "unknown_aci":
+        msp.add_line((1, 1), (3, 3), dxfattribs={"color": 0})
+    if case == "no_upper":
+        msp.add_line((0, 0), (1, 0), dxfattribs={"color": 3})
+    dxf.saveas(source)
+    observed = inspect_nfb_dxf_source(source)
+    opts.update(
+        source_path=source,
+        source_inventory=observed,
+        verified_inner_door=replace(
+            opts["verified_inner_door"],
+            source_sha256=observed.source_sha256,
+        ),
+    )
+    if case == "source_missing":
+        source.unlink()
+    manifest = derive_nfb_partial_export_manifest(**opts)
+    assert set(row.part_id for row in manifest.rows) == {
+        "inner1", "base1", "side1"
+    }
+    assert tuple(
+        next(row for row in manifest.rows if row.part_id == part_id).status
+        for part_id in ("inner1", "base1", "side1")
+    ) == expected_status
+    assert manifest.authorized_part_ids == allowed
+    assert manifest.actual_export_count == count
+    assert manifest.held_actual_count == 6 - count
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+    assert manifest.report()["assembly_status"] == (
+        "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY"
+    )
+    if case != "upper_only":
+        assert manifest.partial_only and not manifest.whole_ready
+        with pytest.raises(ValueError, match="whole manufacturing not ready|partial only"):
+            manifest.require_export(allowed, partial=False)
+        for part in manifest.held_rows:
+            with pytest.raises(ValueError, match="BLOCKED"):
+                manifest.require_export((part.part_id,), partial=True)
+    else:
+        assert manifest.whole_ready
+        assert manifest.require_export(
+            ("inner1", "base1", "side1"), partial=False
+        ) == ("inner1", "base1", "side1")
+
+
 @pytest.mark.parametrize("invalid_flag", (0, 1, None, "", "true", [], {}))
 def test_ac39_partial_export_requires_explicit_boolean(invalid_flag, tmp_path):
     manifest = derive_nfb_partial_export_manifest(**_prepared(tmp_path))
@@ -419,3 +598,443 @@ def test_ac44_manifest_rejects_cross_bay_version_or_submitted_identity_for_expor
     with pytest.raises(ValueError, match="BLOCKED"):
         invalid.require_export(("inner1",), partial=True)
     # Nothing in a corrupted owner's typed record can approve another DXF.
+
+@pytest.mark.parametrize("pending_x_state", (
+    "NONE", "UNVERIFIED_BASIS", "RECONFIRM_REQUIRED",
+))
+def test_swt21_unconfirmed_saved_world_x_never_reuses_old_manufacturing_proof(
+    tmp_path, pending_x_state,
+):
+    """A matching historic XY numeral does not confirm its operator datum.
+
+    Same real physical Bay, present source bytes, unchanged physical hole and
+    old validated CUTTING remain; operator revoked CONFIRMED X in saved data.
+    Only unrelated real SIDE remains eligible for partial DXF.
+    """
+    opts = _prepared(tmp_path, color30=1)
+    opts["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1",
+        ("base1",), (),
+    )
+    opts["actual_parts"] = tuple(
+        part for part in opts["actual_parts"] if part.part_id != "middle1"
+    )
+    hole = opts["saved_bay"]["nfb_config"]["holes"][0]
+    assert hole["manual_x_state"] == "CONFIRMED"
+    assert hole["manual_x_mm"] == 0
+    hole["manual_x_state"] = pending_x_state
+    manifest = derive_nfb_partial_export_manifest(**opts)
+    by_id = {part.part_id: part for part in manifest.rows}
+    assert set(by_id) == {"inner1", "base1", "side1"}
+    assert by_id["inner1"].status == BLOCKED
+    assert by_id["base1"].status == BLOCKED
+    assert by_id["side1"].status == UNAFFECTED
+    assert manifest.authorized_part_ids == ("side1",)
+    assert manifest.actual_export_count == 3
+    assert manifest.held_actual_count == 3
+    assert manifest.partial_only
+    assert "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING" in (
+        manifest.unresolved_dependencies
+    )
+    with pytest.raises(ValueError, match="BLOCKED"):
+        manifest.require_export(("inner1",), partial=True)
+    with pytest.raises(ValueError, match="BLOCKED"):
+        manifest.require_export(("base1",), partial=True)
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+
+
+@pytest.mark.parametrize("outdated_owner", ("width", "model", "bay", "rotation"))
+def test_swt21_saved_x_datum_drift_is_normalized_before_manufacturing(
+    tmp_path, outdated_owner,
+):
+    """Canonical saved Bay X datum cannot be bypassed by reading raw values."""
+    opts = _prepared(tmp_path, color30=1)
+    opts["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1",
+        ("base1",), (),
+    )
+    opts["actual_parts"] = tuple(
+        part for part in opts["actual_parts"] if part.part_id != "middle1"
+    )
+    hole = opts["saved_bay"]["nfb_config"]["holes"][0]
+    assert hole["manual_x_state"] == "CONFIRMED"
+    if outdated_owner == "width":
+        opts["saved_bay"]["width"] = 750
+    elif outdated_owner == "model":
+        hole["datum_snapshot"]["model_filename"] = "changed-source.dxf"
+    elif outdated_owner == "bay":
+        hole["datum_snapshot"]["bay_id"] = "other-physical-bay"
+    elif outdated_owner == "rotation":
+        hole["datum_snapshot"]["rotation_deg"] = 180
+    manifest = derive_nfb_partial_export_manifest(**opts)
+    assert manifest.authorized_part_ids == ("side1",)
+    assert manifest.actual_export_count == 3
+    assert manifest.held_actual_count == 3
+    assert "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING" in (
+        manifest.unresolved_dependencies
+    )
+    for part_id in ("inner1", "base1"):
+        with pytest.raises(ValueError, match="BLOCKED"):
+            manifest.require_export((part_id,), partial=True)
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+
+
+@pytest.mark.parametrize("source_loss", ("empty_slots", "pending_model", "missing_dxf", "missing_inventory"))
+def test_swt21_missing_committed_source_or_slot_never_authorizes_dependent_parts(
+    tmp_path, source_loss,
+):
+    """A real submitted owner cannot turn UNKNOWN into Color30/150 zero."""
+    opts = _prepared(tmp_path, color30=1)
+    opts["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1",
+        ("base1",), (),
+    )
+    opts["actual_parts"] = tuple(
+        part for part in opts["actual_parts"] if part.part_id != "middle1"
+    )
+    if source_loss == "empty_slots":
+        opts["saved_bay"]["nfb_config"]["holes"] = []
+        with pytest.raises(ValueError, match="explicit hole list"):
+            derive_nfb_partial_export_manifest(**opts)
+        return
+    if source_loss == "pending_model":
+        opts["saved_bay"]["nfb_config"]["holes"][0]["model_filename"] = "reselect.dxf"
+    elif source_loss == "missing_dxf":
+        opts["source_path"] = tmp_path / "unavailable_original.dxf"
+    else:
+        opts["source_inventory"] = None
+    manifest = derive_nfb_partial_export_manifest(**opts)
+    status = {part.part_id: part.status for part in manifest.rows}
+    assert status == {"inner1": BLOCKED, "base1": BLOCKED, "side1": UNAFFECTED}
+    assert manifest.authorized_part_ids == ("side1",)
+    assert manifest.actual_export_count == 3
+    assert manifest.held_actual_count == 3
+    assert not manifest.whole_ready
+    with pytest.raises(ValueError, match="BLOCKED"):
+        manifest.require_export(("inner1",), partial=True)
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+
+
+
+def test_ac23_one_real_bay_changed_x_datum_survives_project_reopen_and_blocks_dxf(
+    tmp_path,
+):
+    """A former CONFIRMED X must never resurrect from physical Bay W changes.
+
+    Uses the actual saved ReceivingLayout Bay, project writer/reader, source-
+    inspected DXF, and the SAME physical-part manufacturing manifest.
+    Operator reapproval is NOT simulated or fabricated by an approval flag.
+    """
+    from copy import deepcopy
+    from dataclasses import replace
+    import ezdxf
+
+    from ae_engine.receiving_layout import update_receiving_bay
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+    from phase6_project_file import read_project, write_project
+    from tests.test_issue1499_nfb_persistence import _layout, _payload
+
+    opts = _prepared(tmp_path, color30=1)
+    opts["actual_parts"] = tuple(
+        part for part in opts["actual_parts"] if part.part_id != "middle1"
+    )
+    layout = _layout()
+    set_id = layout["sets"][0]["stable_id"]
+    bay_id = layout["sets"][0]["bays"][0]["stable_id"]
+    opts["scope"] = NfbPhysicalScope(
+        set_id, bay_id, "version-1", True,
+        "inner1", ("base1",), (),
+    )
+    committed_nfb = deepcopy(opts["saved_bay"]["nfb_config"])
+    layout = update_receiving_bay(
+        layout, set_index=0, bay_index=0,
+        nfb_config_submitted=True, nfb_config=committed_nfb,
+    )
+    original_sibling = deepcopy(layout["sets"][0]["bays"][1])
+    opts["saved_bay"] = layout["sets"][0]["bays"][0]
+    hole = opts["saved_bay"]["nfb_config"]["holes"][0]
+    assert hole["manual_x_state"] == "CONFIRMED"
+    assert hole["manual_x_mm"] == 0
+    assert hole["datum_snapshot"]["w"] == 800
+
+    # Real parsed DXF geometry, not solely invented inventory metadata.
+    source = opts["source_path"]
+    drawing = ezdxf.new("R2010")
+    ms = drawing.modelspace()
+    ms.add_lwpolyline(
+        ((0, 0), (57, 0), (57, 96), (0, 96)),
+        close=True, dxfattribs={"color": 150},
+    )
+    ms.add_circle((8, 6), 2, dxfattribs={"color": 30})
+    drawing.saveas(source)
+    inventory = inspect_nfb_dxf_source(source)
+    opts["source_inventory"] = inventory
+    opts["verified_inner_door"] = replace(
+        opts["verified_inner_door"],
+        source_sha256=inventory.source_sha256,
+    )
+    baseline = derive_nfb_partial_export_manifest(**opts)
+    assert baseline.authorized_part_ids == ("inner1", "side1")
+    assert baseline.actual_export_count == 5
+    assert baseline.require_export(("inner1", "side1"), partial=True) == (
+        "inner1", "side1",
+    )
+
+    changed = update_receiving_bay(
+        layout, set_index=0, bay_index=0, width=750,
+    )
+    changed_bays = changed["sets"][0]["bays"]
+    assert changed_bays[1] == original_sibling
+    stale = changed_bays[0]["nfb_config"]["holes"][0]
+    assert stale["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert stale["manual_x_mm"] == 0
+    assert stale["datum_snapshot"]["w"] == 800
+    opts["saved_bay"] = changed_bays[0]
+    held = derive_nfb_partial_export_manifest(**opts)
+    assert held.authorized_part_ids == ("side1",)
+    assert held.actual_export_count == 3
+    assert held.held_actual_count == 3
+    assert "SAVED_NFBCONFIG_DIFFERS_FROM_VERIFIED_CUTTING" in (
+        held.unresolved_dependencies
+    )
+    with pytest.raises(ValueError, match="BLOCKED"):
+        held.require_export(("inner1",), partial=True)
+    assert held.require_export(("side1",), partial=True) == ("side1",)
+
+    path = write_project(tmp_path / "ac23_old_x_reopen.p6fold", _payload(changed))
+    reopened = read_project(path)["snapshot"]["receiving_layout"]["sets"][0]["bays"]
+    assert reopened[1] == original_sibling
+    reopened_hole = reopened[0]["nfb_config"]["holes"][0]
+    assert reopened_hole["manual_x_state"] == "RECONFIRM_REQUIRED"
+    assert reopened_hole["manual_x_mm"] == 0
+    opts["saved_bay"] = reopened[0]
+    assert derive_nfb_partial_export_manifest(**opts).authorized_part_ids == ("side1",)
+
+    # Restoring W800 alone is NOT an operator's new confirmation.
+    recovered_width = update_receiving_bay(
+        changed, set_index=0, bay_index=0, width=800,
+    )
+    revived = recovered_width["sets"][0]["bays"][0]
+    assert revived["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
+    opts["saved_bay"] = revived
+    assert derive_nfb_partial_export_manifest(**opts).authorized_part_ids == ("side1",)
+
+def test_swt32_same_original_dxf_brand_pins_colors_real_part_counts_and_sha_hold(
+    tmp_path,
+):
+    """Index observation + raw DXF parser + actual Bay/part manifest agree.
+
+    Unknown/foreign brands are never fake color-zero records. The historical
+    source diagnostic cannot certify MFG-2 or create a Receiving middle plate.
+    The typed, pre-verified inner CUTTING fixture is independently required.
+    """
+    from dataclasses import replace
+
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+    from tests.test_issue1496_nfb_source_inventory_report import _case
+    from tools.nfb_source_audit import build_source_coverage_report
+
+    index, source_root, pins, source = _case(tmp_path)
+    original = source.read_bytes()
+    observed = build_source_coverage_report(
+        index, source_root=source_root, pin_path=pins,
+    )
+    by_brand = {
+        (row["brand"], row["indexed_filename"]): row
+        for row in observed["records"]
+    }
+    trusted = by_brand[("士林", "A.dxf")]
+    unknown = by_brand[("東元", "A.dxf")]
+    assert trusted["source_sha256"] == sha256(original).hexdigest()
+    assert trusted["provenance_pin_matches"] is True
+    assert trusted["status"] == "SOURCE_OBSERVED_UNCERTIFIED"
+    assert tuple(trusted[f"color_{v}_entities"] for v in (30, 150, 212)) == (
+        1, 1, 1,
+    )
+    assert unknown["status"] == "SOURCE_IDENTITY_MISMATCH_UNKNOWN"
+    assert unknown["provenance_pin_matches"] is False
+    assert tuple(unknown[f"color_{v}_entities"] for v in (30, 150, 212)) == (
+        None, None, None,
+    )
+    assert all(row["manufacturing_ready"] is False for row in observed["records"])
+
+    parsed = inspect_nfb_dxf_source(source)
+    assert parsed.source_sha256 == trusted["source_sha256"]
+    counts = dict(parsed.process_aci_entity_counts)
+    assert tuple(counts[v] for v in (30, 150, 212)) == (1, 1, 1)
+
+    actual = _prepared(tmp_path)
+    actual["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1", ("base1",), (),
+    )
+    actual["actual_parts"] = tuple(
+        part for part in actual["actual_parts"] if part.part_id != "middle1"
+    )
+    actual["saved_bay"]["nfb_config"]["holes"][0]["model_filename"] = "A.dxf"
+    actual["source_path"] = source
+    actual["source_inventory"] = parsed
+    actual["verified_inner_door"] = replace(
+        actual["verified_inner_door"],
+        indexed_model_key=("士林", "A.dxf"),
+        source_sha256=parsed.source_sha256,
+    )
+    manifest = derive_nfb_partial_export_manifest(**actual)
+    statuses = {row.part_id: row.status for row in manifest.rows}
+    assert statuses == {
+        "inner1": READY, "base1": BLOCKED, "side1": UNAFFECTED,
+    }
+    assert manifest.authorized_part_ids == ("inner1", "side1")
+    assert manifest.actual_export_count == 5
+    assert manifest.held_actual_count == 1
+    assert not manifest.whole_ready and manifest.partial_only
+    check = manifest.report()
+    assert len(check["rows"]) == 3
+    assert check["actual_export_count"] == 5
+    assert check["held_actual_count"] == 1
+    assert check["assembly_status"] == "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY"
+    assert manifest.require_export(("side1",), partial=True) == ("side1",)
+    with pytest.raises(ValueError, match="BLOCKED"):
+        manifest.require_export(("base1",), partial=True)
+    with pytest.raises(ValueError, match="partial only"):
+        manifest.require_export(("inner1", "side1"), partial=False)
+
+    # Valid-but-foreign DXF bytes under the formerly indexed source name:
+    # index audit must revoke the process counts, and the current manifest
+    # must revoke all NFB-dependent output while preserving proven SIDE.
+    source.write_bytes((source_root / "東元" / "A.dxf").read_bytes())
+    mismatched = build_source_coverage_report(
+        index, source_root=source_root, pin_path=pins,
+    )
+    foreign = next(
+        row for row in mismatched["records"]
+        if (row["brand"], row["indexed_filename"]) == ("士林", "A.dxf")
+    )
+    assert foreign["status"] == "SOURCE_IDENTITY_MISMATCH_UNKNOWN"
+    assert tuple(foreign[f"color_{v}_entities"] for v in (30, 150, 212)) == (
+        None, None, None,
+    )
+    stale = derive_nfb_partial_export_manifest(**actual)
+    assert stale.authorized_part_ids == ("side1",)
+    assert stale.actual_export_count == 3
+    assert stale.held_actual_count == 3
+    assert "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED" in stale.unresolved_dependencies
+    assert stale.require_export(("side1",), partial=True) == ("side1",)
+    with pytest.raises(ValueError, match="BLOCKED"):
+        stale.require_export(("inner1",), partial=True)
+
+
+def test_ac41_actual_current_source_managed_parts_ready_but_pad_ear_still_deferred(
+    tmp_path,
+):
+    """Current physical scope can be READY, never a claim of full PAD/EAR assembly.
+
+    Actual upper aperture DXF, saved matching Bay/inner, and real current
+    physical-part IDs determine the *managed* scope. Lower/PAD/EAR are not
+    inferred from an unrelated green MFG-1 status.
+    """
+    from dataclasses import replace
+    import ezdxf
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+
+    opts = _prepared(tmp_path)
+    opts["scope"] = NfbPhysicalScope(
+        "setA", "bayA", "version-1", True, "inner1", ("base1",), (),
+    )
+    opts["actual_parts"] = tuple(
+        part for part in opts["actual_parts"] if part.part_id != "middle1"
+    )
+    source = tmp_path / "ac41_actual_upper.dxf"
+    doc = ezdxf.new("R2010")
+    doc.modelspace().add_lwpolyline(
+        ((0, 0), (57, 0), (57, 96), (0, 96)),
+        close=True, dxfattribs={"color": 150},
+    )
+    doc.saveas(source)
+    inventory = inspect_nfb_dxf_source(source)
+    opts.update(
+        source_path=source,
+        source_inventory=inventory,
+        verified_inner_door=replace(
+            opts["verified_inner_door"],
+            source_sha256=inventory.source_sha256,
+        ),
+    )
+    full = derive_nfb_partial_export_manifest(**opts)
+    assert full.nfb_config_submitted is True
+    assert full.whole_ready and not full.partial_only
+    assert tuple((row.part_id, row.status, row.may_export) for row in full.rows) == (
+        ("inner1", READY, True),
+        ("base1", UNAFFECTED, True),
+        ("side1", UNAFFECTED, True),
+    )
+    assert full.require_export(
+        ("inner1", "base1", "side1"), partial=False
+    ) == ("inner1", "base1", "side1")
+    report = full.report()
+    assert report["whole_ready"] is True  # Only CURRENT managed scope
+    assert report["assembly_status"] == "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY"
+    assert report["deferred_assembly"] == ["PAD", "EAR_ATTACHMENT"]
+    assert report["held_actual_count"] == 0
+    assert report["actual_export_count"] == 6
+    assert "manufacturing_ready" not in report
+    assert "factory_release" not in report
+
+    # Add actual original ACI30: BASE becomes affected without MFG-2 proof.
+    doc.modelspace().add_circle((12, 18), 2, dxfattribs={"color": 30})
+    doc.saveas(source)
+    revised = inspect_nfb_dxf_source(source)
+    opts.update(
+        source_inventory=revised,
+        verified_inner_door=replace(
+            opts["verified_inner_door"],
+            source_sha256=revised.source_sha256,
+        ),
+    )
+    blocked = derive_nfb_partial_export_manifest(**opts)
+    assert not blocked.whole_ready and blocked.partial_only
+    assert tuple(row.part_id for row in blocked.held_rows) == ("base1",)
+    assert blocked.authorized_part_ids == ("inner1", "side1")
+    partial = blocked.report()
+    assert partial["actual_export_count"] == 5
+    assert partial["held_actual_count"] == 1
+    assert partial["assembly_status"] == "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY"
+    assert partial["deferred_assembly"] == ["PAD", "EAR_ATTACHMENT"]
+    assert "BASE_PLATE_NFB_PROCESS_UNVERIFIED" in next(
+        r["reasons"] for r in partial["rows"] if r["part_id"] == "base1"
+    )
+    assert blocked.require_export(("inner1", "side1"), partial=True) == (
+        "inner1", "side1"
+    )
+    with pytest.raises(ValueError, match="partial only|not ready"):
+        blocked.require_export(("inner1", "base1", "side1"), partial=False)
+    with pytest.raises(ValueError, match="BLOCKED"):
+        blocked.require_export(("base1",), partial=True)
+
+    # Forged typed "whole ready" plus edited returned report cannot produce
+    # a complete export while the source-owned physical BASE is still held.
+    forged = replace(blocked, whole_ready=True, unresolved_dependencies=())
+    forged.report()["assembly_status"] = "COMPLETE"
+    with pytest.raises(ValueError, match="not ready|partial only"):
+        forged.require_export(("inner1", "base1", "side1"), partial=False)
+
+    # A source-file digest change revokes an earlier source-scoped approval;
+    # a previously green report never supplies persisted manufacturing flags.
+    source.write_bytes(b"stale-dxf")
+    stale = derive_nfb_partial_export_manifest(**opts)
+    assert stale.authorized_part_ids == ("side1",)
+    assert not stale.whole_ready
+    assert "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED" in stale.unresolved_dependencies
+    assert stale.report()["deferred_assembly"] == ["PAD", "EAR_ATTACHMENT"]
+
+
+def test_ac41_unsubmitted_legacy_does_not_claim_pad_ear_delivery(tmp_path):
+    """UNCONFIGURED is legacy scope, never an implicitly submitted complete NFB."""
+    opts = _prepared(tmp_path, submitted=False)
+    legacy = derive_nfb_partial_export_manifest(**opts)
+    assert not legacy.nfb_config_submitted
+    assert all(row.status == LEGACY for row in legacy.rows)
+    report = legacy.report()
+    assert report["nfb_config_submitted"] is False
+    assert report["deferred_assembly"] == []
+    assert report["assembly_status"] == "NOT_VALIDATED_AS_COMPLETE_NFB_ASSEMBLY"
+    assert not legacy.partial_only

@@ -167,3 +167,31 @@ def test_other_brand_models_are_only_a_new_source_profile_not_hardcoded_branch(t
     assert len(profiles) == 1
     assert profiles[0].indexed_filename == "400_140X257_107.dxf"
     assert profiles[0].source_alias_status == "SOURCE_ALIAS_SHA256_IDENTICAL"
+
+
+@pytest.mark.parametrize("bad_width", (
+    float("nan"), float("inf"), float("-inf"), 10 ** 400,
+    True, "57", None,
+))
+@pytest.mark.parametrize("position", (0, 1))
+def test_1504_legacy_color150_profile_rejects_nonfinite_or_coerced_mm(
+    tmp_path, bad_width, position,
+):
+    """The old JSON profile is no more trusted than current V5 source CSV.
+
+    A malformed profile must fail before any world-X/pivot or physical
+    manufacturing step. No new manufacturing dimensions are inferred.
+    """
+    import json
+
+    original = read_nfb_upper_source_profiles(PROFILE)
+    assert len(original) == 1
+    assert original[0].upper_size_mm == (57.0, 96.0)
+    document = json.loads(PROFILE.read_text(encoding="utf-8"))
+    document["profiles"][0]["upper_size_mm"][position] = bad_width
+    forged = tmp_path / "untrusted_upper_profile.json"
+    forged.write_text(
+        json.dumps(document, ensure_ascii=False), encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="NFB upper Color150 dimensions invalid"):
+        read_nfb_upper_source_profiles(forged)

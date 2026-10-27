@@ -37,6 +37,16 @@ PYTEST_PATHS = (
     "tests/test_phase6_project_controller.py::test_issue1819_failed_project_load_preserves_current_valid_cache",
     "tests/test_issue1819_manufacturing_cache_bounds.py",
     "tests/test_issue1819_real_manufacturing_dxf_parity.py",
+    # Original 116-item audit: once-per-PR integrated 2D→3D→2D, persisted
+    # annotations, real Receiving door DXF, and original Tk GUI routing.
+    # Keep these six existing suites in ONE canonical Product CI and retain
+    # distinct Windows visual UAT as a separate manual acceptance gate.
+    "tests/test_phase6_2d_3d_round_trip.py",
+    "tests/test_dm6_save_reload_semantic_determinism.py",
+    "tests/test_receiving_door_dxf_roundtrip.py",
+    "tests/test_original_fold_designer_gui_integration.py",
+    "tests/test_gui_manufacturing_adapter.py",
+    "tests/test_gui_fold_designer_transaction_contract.py",
     "tests/test_issue1819_manufacturing_cache_rss_plateau.py",
     "tests/test_issue1819_settings_scroll_callback_lifecycle.py",
     "tests/test_manufacturing_mesh_reuse.py",
@@ -56,6 +66,8 @@ PYTEST_PATHS = (
     "tests/test_issue1501_highlighted_partial_dxf_dispatcher.py",
     "tests/test_issue1501_live_partial_writer.py",
     "tests/test_issue1502_nfb_base_batch_export_gate.py",
+    # #1490: source-required physical PAD cannot vanish in a complete DXF selection.
+    "tests/test_issue1490_full_cabinet_pad_completeness.py",
     "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
     # #1503/#1504: PAD+real Base full-T mating, per-tier CHECK/Q DXF/BOM,
     # normal Tk 2D and source guards must run BEFORE a localX PR merges.
@@ -77,6 +89,7 @@ PYTEST_PATHS = (
     # #1503: per-tier physical Base Plate skin + EAR target Z unified regression.
     "tests/test_receiving_tier_ear_assembly_xy.py",
     "tests/test_receiving_tier_ear_z_targets.py",
+    "tests/test_receiving_center_brand_anchor_125sn.py",
     # #1503: every source-defined layer ear must be its own real geometry and XY/Z owner.
     "tests/test_receiving_tier_fixing_plate_owner_ids.py",
     # #1503: actual folded 3D Base Plate skin must match EACH source EAR target.
@@ -122,6 +135,8 @@ PYTEST_PATHS = (
     "tests/test_issue1503_quantity_nfb_source_owner.py",
     "tests/test_issue1503_nfb_manufacturing_transport.py",
     "tests/test_issue1503_single_gui_real_tier_2d3d.py",
+    # EAR mesh and Base Plate controls remain independent in all four states.
+    "tests/test_issue1503_fixing_plate_3d_visibility.py",
     "tests/test_issue1503_primary_2d_ear_source_authority.py",
     "tests/test_receiving_fold_designer_ear_side_marks.py",
     "tests/test_receiving_base_source_owned_part_session.py",
@@ -148,6 +163,9 @@ PYTEST_PATHS = (
     "tests/test_issue1496_nfb_index_unique_sources.py::test_no_matching_file_is_sentinel_not_corrupt_dxf_filename",
     "tests/test_issue1496_real_nfb_source_observation.py::test_source_witness_has_traceable_region_partition_and_no_false_certs",
     "tests/test_issue1496_nfb_source_inventory_report.py",
+    # Real legacy DXF Color150 profile and invalid mm source must be exercised
+    # by canonical full product CI, not just a dormant file in the tree.
+    "tests/test_issue1497_shihlin400_cutting_trial.py",
     "tests/test_issue1497_w800_three_canonical_cutting.py",
     "tests/test_issue1497_w800_three_ui_worldx.py",
     "tests/test_issue1498_nfb_part_readiness.py",
@@ -159,6 +177,8 @@ PYTEST_PATHS = (
     "tests/test_issue1500_nfb_worldx_runtime.py",
     "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
     "tests/test_issue1500_nfb_operator_gui_transactions.py",
+    # #1500: live Receiving candidate Save As -> reopen -> independent Bay2.
+    "tests/test_issue1500_receiving_candidate_main_save.py",
     "tests/test_issue1504_v14_ac_traceability.py",
     # One reconciliation of 79 original unsigned ACs to actual CI source tests;
     # 4 source-scoped signed only; real GUI/MFG and old-reader gates remain.
@@ -398,6 +418,16 @@ PYTEST_PATHS = (
     # exact HEAD; a manual 27-pass smoke run is not a manufacturing receipt.
     "tests/test_deep_audit_14_bugs_regression.py",
     "tests/test_deep_audit_14_bugs_boundary_guards.py",
+    # Original R4–R6 audit source suites: 48 direct test functions for 66
+    # reported fixes, in addition to (not instead of) later manual guards.
+    "tests/test_deep_audit_round4_bugfixes.py",
+    "tests/test_deep_audit_round5_bugfixes.py",
+    "tests/test_deep_audit_round6_bugfixes.py",
+    # Source-review gate: never silently drop original 116/87 functional
+    # regression witnesses while claiming historic audit coverage.
+    "tests/process/test_audit116_original_six_round_witnesses.py",
+    # Port only source-valid R9 guards; old 3D folding signs are obsolete.
+    "tests/test_audit116_round9_current_source_guards.py",
     # Manual R4–R6 source repairs: marking, DXF, assembly placement, cache.
     "tests/test_manual_audit_source_guards_20261023.py",
     # Directly audited R4 source gaps missing from merged localX.
