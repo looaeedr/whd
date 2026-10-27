@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """#1501 filtered actual CHECK/Q must never count held NFB physical pieces."""
 import re
+from pathlib import Path
 
 import ezdxf
 import pytest
@@ -434,6 +435,7 @@ def test_swt18_24_26_source_scoped_partial_check_and_unsubmitted_old_parts(
     assert len(files) == 3
     actual_labels = []
     for target in files.values():
+        target = Path(target)
         assert target.is_file()
         drawing = ezdxf.readfile(target)
         labels = [r.plain_text() for r in drawing.modelspace().query("MTEXT")
