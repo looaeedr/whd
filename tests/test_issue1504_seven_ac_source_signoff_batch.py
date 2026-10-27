@@ -43,7 +43,7 @@ def test_batch_signoff_seven_require_independent_real_executed_assertions():
     # the historical source-batch timestamp as a permanent upper bound.
     assert sum(matrix["counts"].values()) == 88
     assert matrix["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 43
-    assert 0 < matrix["counts"]["BLOCKED_1500_REAL_GUI"] <= 17
+    assert matrix["counts"]["BLOCKED_1500_REAL_GUI"] == 0
     # The original four deferred requirements are immutable identities, not
     # a perpetual count: independently source-signed ACs leave this bucket.
     original_deferred = {"NFB-AC-13", "NFB-AC-41", "SWT-AC-09", "SWT-AC-22"}
