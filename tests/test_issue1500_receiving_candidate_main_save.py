@@ -229,3 +229,31 @@ def test_issue1500_real_native_gui_version_apply_save_as_reload(tmp_path, monkey
         )
     finally:
         root.destroy()
+
+
+def test_issue1500_main_gui_save_after_editor_close_uses_committed_project():
+    source, _, _, version = _source_with_saved_version()
+    host = _live_host(source, active=False)
+    # The main GUI is a 2D projection and has no candidate in its own
+    # reconstructed snapshot. The existing ProjectController owns the last
+    # committed complete project once the Fold Designer window is closed.
+    host.project_controller = SimpleNamespace(
+        committed_snapshot=lambda: deepcopy(source),
+    )
+    saved = _compose_phase6_project_snapshot_from_main_gui(host)
+    assert [row["id"] for row in inner_versions(
+        saved["receiving_inner_door_candidates"]
+    )] == [version]
+
+
+def test_issue1500_previous_project_must_not_leak_candidates_after_load():
+    source, _, _, _ = _source_with_saved_version()
+    host = _live_host(source, active=False)
+    host.project_controller = SimpleNamespace(
+        committed_snapshot=lambda: {
+            "model": "金庫型",
+            "receiving_inner_door_candidates": source["receiving_inner_door_candidates"],
+        },
+    )
+    saved = _compose_phase6_project_snapshot_from_main_gui(host)
+    assert "receiving_inner_door_candidates" not in saved
