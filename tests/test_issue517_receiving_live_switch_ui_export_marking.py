@@ -323,6 +323,12 @@ def test_actual_gui_batch_export_matches_canonical_resolved_physical_inventory(
             "Fresh Receiving's normal GUI export must create DXF sheets; "
             f"actual operator dialog errors={dialogs!r}"
         )
+        from ae_engine.receiving_mfg2_software_receipt import RECEIPT_FILENAME
+        assert any(p.placement == "standalone" for p in resolved.parts)
+        assert not (tmp_path / RECEIPT_FILENAME).exists(), (
+            "first-family-switch source preview is NOT a whole-cabinet "
+            "software MFG-2 certified assembled inventory"
+        )
 
         from ae_engine.receiving_ear_side_manufacturing_marking import (
             with_verified_receiving_ear_side_markings,

@@ -514,6 +514,13 @@ def _export_selected_resolved_parts(self, folder, flags):
             bool(committed_csv)
             and original_sheets == selected_sheets
             and bool(original_sheets)
+            # First-family-switch scenes legitimately retain standalone
+            # preview pieces. Their selected DXF must still work, but they
+            # are NOT a certified whole assembled cabinet.
+            and all(
+                getattr(p, "placement", None) != "standalone"
+                for p in tuple(getattr(unmarked, "parts", ()) or ())
+            )
             and bool(flags.get("box_body"))
             and bool(flags.get("door"))
             and bool(flags.get("base_plate"))
