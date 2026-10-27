@@ -243,7 +243,10 @@ def _reject_door_layout_dimension(self, var, previous_value, message):
 
 def commit_door_layout_width(self, column_index):
     column = self.door_layout_columns[column_index]
-    previous = float(column.get("width_committed", self._parse_layout_value(column["width_var"], "欄寬")))
+    # Committed geometry is the rollback authority. dict.get's default
+    # argument is evaluated eagerly; parsing the dirty Entry there used to
+    # raise before the input-error handler could restore the last good width.
+    previous = float(column["width_committed"])
     try:
         current = self._parse_layout_value(column["width_var"], f"欄 {column_index+1} 寬度")
         total_width = self._parse_layout_value(self.w_var, "W")
