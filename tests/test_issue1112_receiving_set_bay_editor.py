@@ -1010,3 +1010,62 @@ def test_native_receiving_w820_divider_profile_real_world_cross_green():
         except tk.TclError:
             pass
         root.destroy()
+
+
+@pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="native Tk display required",
+)
+def test_native_receiving_thickness_change_keeps_committed_bay_whd_and_custom():
+    """Real Tk W820/H1700/D360 then T2.5 must never revive old W800/D350.
+
+    Regression from actual Windows R5-2600 116-item GUI UAT. The failure was
+    Settings-flush save_current_part() reading a stale box-body fold editor,
+    even though the committed Bay and live Box were already W820/D360.
+    """
+    import time
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    main = gui.BoxCalculatorGUI(root)
+    try:
+        main.baseline_var.set("受電箱")
+        root.update()
+        designer = main.open_original_fold_designer()
+        root.update()
+        for axis, value in (("w", "820"), ("h", "1700"), ("d", "360")):
+            getattr(designer, "v_" + axis).set(value)
+            root.update()
+        for _ in range(6):
+            time.sleep(.14)
+            root.update()
+        source = designer._phase6_input_snapshot
+        assert tuple(float(source[k]) for k in ("w", "h", "d")) == (820, 1700, 360)
+        assert tuple(float(designer._phase6_box_whd[k]) for k in ("w", "h", "d")) == (820, 1700, 360)
+        assert tuple(float(designer._settings_values[k]) for k in ("w", "h", "d")) == (800, 1600, 350)
+
+        # This is a real, operator-writable Tk control, not fabricated source.
+        designer.left_global_vars["t"].set("2.5")
+        for _ in range(6):
+            time.sleep(.14)
+            root.update()
+        assert tuple(float(designer._phase6_input_snapshot[k]) for k in ("w", "h", "d", "t")) == (
+            820, 1700, 360, 2.5
+        )
+        assert tuple(float(designer._phase6_box_whd[k]) for k in ("w", "h", "d")) == (820, 1700, 360)
+        assert tuple(float(getattr(designer, "v_" + k).get()) for k in ("w", "h", "d")) == (820, 1700, 360)
+
+        designer.baseline_model_var.set("自訂")
+        root.update()
+        assert tuple(float(designer._phase6_input_snapshot[k]) for k in ("w", "h", "d", "t")) == (
+            820, 1700, 360, 2.5
+        )
+    finally:
+        try:
+            if main.fold_designer_window is not None:
+                main.fold_designer_window.destroy()
+        except tk.TclError:
+            pass
+        root.destroy()
