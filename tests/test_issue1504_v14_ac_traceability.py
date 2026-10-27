@@ -380,9 +380,10 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
                and not r["blocking_issues"]
                and "PR #2037" in r["delivery_receipt"]
                and not r["accepted"] for r in scoped)
-    assert {r["id"]: r for r in d["records"]}["SWT-AC-24"][
-        "blocking_issues"
-    ] == [1500]
+    ac24 = {r["id"]: r for r in d["records"]}["SWT-AC-24"]
+    assert ac24["accepted"] is True
+    assert ac24["blocking_issues"] == []
+    assert ac24["historical_pre_current_review"]["blocking_issues"] == [1500]
     assert all(r["status"] != "BLOCKED_1502_PHYSICAL_MFG" for r in d["records"])
 
 
@@ -2590,5 +2591,46 @@ def test_swt18_native_v5_tk_part_evidence_and_legacy_gate_is_source_scoped():
         assert len(functions) == 1, witness
         assert _test_function_has_assert_or_expected_exception(functions[0]), witness
     pending = {r["id"] for r in doc["records"] if not r["accepted"]}
-    assert {"NFB-AC-16", "SWT-AC-24", "SWT-AC-26"} <= pending
+    assert "NFB-AC-16" in pending
+    assert all(r["accepted"] for r in doc["records"] if r["id"] in {"SWT-AC-24","SWT-AC-26"})
     assert len(pending) == doc["counts"]["BLOCKED_1500_REAL_GUI"]
+
+
+def test_swt24_and_swt26_current_native_tk_partial_mfg_and_legacy_signoffs():
+    """Two independent ACs, real Tk/source/backend witnesses; no MFG2 release."""
+    import ast
+    from tools.product_ci_regression import PYTEST_PATHS
+
+    doc = _data()
+    assert doc["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 87
+    assert doc["counts"]["BLOCKED_1500_REAL_GUI"] <= 1
+    by_id = {r["id"]: r for r in doc["records"]}
+    primary = {
+        "SWT-AC-24": "tests/test_issue1501_live_partial_writer.py::test_swt24_real_physical_partial_dxf_check_q_and_source_loss_atomicity",
+        "SWT-AC-26": "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac34_native_verified_submit_and_first_copy_cancel_partial_draft_disk_roundtrip",
+    }
+    for ident in ("SWT-AC-24", "SWT-AC-26"):
+        row = by_id[ident]
+        assert row["accepted"] and row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+        assert row["assertion_review_state"] == "FULL_AC_AUTOMATED_SIGNED"
+        assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
+        assert not row["blocking_issues"]
+        proof = row["acceptance_evidence"]
+        assert proof["primary_assertion"] == primary[ident]
+        assert len(proof["requirement_witnesses"]) >= 2
+        assert len(proof["other_required_assertions"]) >= 5
+        assert primary[ident].split("::")[0] in row["regression_candidates"]
+        for denial in ("factory_release", "unconditional_mfg2_release",
+                       "human_windows_uat_claimed", "formal_x_published",
+                       "integrated_localx_claimed", "other_ac_signoff_implied",
+                       "original_manufacturer_dxf_certified"):
+            assert proof[denial] is False, (ident, denial)
+        for witness in [primary[ident], *proof["other_required_assertions"]]:
+            path, name = witness.split("::")
+            assert path in PYTEST_PATHS, witness
+            mod = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+            funcs = [x for x in mod.body
+                     if isinstance(x, ast.FunctionDef) and x.name == name]
+            assert len(funcs) == 1, witness
+            assert _test_function_has_assert_or_expected_exception(funcs[0]), witness
+    assert [r["id"] for r in doc["records"] if not r["accepted"]] == ["NFB-AC-16"]

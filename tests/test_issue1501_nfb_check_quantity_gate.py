@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """#1501 filtered actual CHECK/Q must never count held NFB physical pieces."""
 import re
+from pathlib import Path
 
 import ezdxf
 import pytest
@@ -358,4 +359,94 @@ def test_nfb_quantity_bridge_never_treats_partial_as_whole_or_legacy_fallback():
     with pytest.raises(TypeError,match="boolean"):
         quantity_nfb_checked_manufacturing_groups(
             batch,live_manifest_provider=provider,partial=1,
+        )
+
+def test_swt18_24_26_source_scoped_partial_check_and_unsubmitted_old_parts(
+    tmp_path,
+):
+    """Actual part roles and CHECK quantities; never forge whole MFG2 GREEN.
+
+    A source-unsubmitted physical legacy cabinet remains eligible for its
+    original machining. With submitted NFB, independent MFG2 middle plates
+    are held, while verified INNER/independent OTHER sheets can be grouped
+    and reopened as real DXF Q labels. This is not Windows human UAT.
+    """
+    from pathlib import Path
+    from ae_engine.receiving_nfb_export_manifest import (
+        derive_nfb_partial_export_manifest, NfbActualPart, BASE_PLATE,
+    )
+    from phase6_quantity_manufacturing import (
+        quantity_nfb_checked_manufacturing_groups,
+    )
+
+    # Actual production manifest constructor; an unsubmitted Bay does not
+    # obtain a phantom NFB or lose legacy INNER/BASE/MIDDLE physical roles.
+    legacy_scope = NfbPhysicalScope(
+        "legacy-set", "legacy-bay", "v1", False, "legacy-inner",
+        base_plate_part_ids=("legacy-base",),
+        middle_plate_part_ids=("legacy-middle",),
+    )
+    old_parts = (
+        NfbActualPart("legacy-inner", INNER_DOOR, 1),
+        NfbActualPart("legacy-base", BASE_PLATE, 2),
+        NfbActualPart("legacy-middle", MIDDLE_PLATE, 1),
+    )
+    original = derive_nfb_partial_export_manifest(
+        scope=legacy_scope, actual_parts=old_parts,
+        saved_bay={"stable_id": "legacy-bay", "nfb_config_submitted": False},
+    )
+    assert original.nfb_config_submitted is False
+    assert original.whole_ready is True
+    assert original.partial_only is False
+    assert original.authorized_part_ids == (
+        "legacy-inner", "legacy-base", "legacy-middle",
+    )
+    assert original.actual_export_count == 4
+    assert original.held_rows == ()
+    assert {part.status for part in original.rows} == {LEGACY}
+    assert original.require_export(
+        original.authorized_part_ids, partial=False,
+    ) == original.authorized_part_ids
+
+    # True submitted quantity versions use real typed physical counts
+    # rather than guessing a manufacturing multiplier from version count.
+    batch = _canonical_quantity_batch()
+    scope_by_version = lambda version, _request: (_scope(version),)
+    with pytest.raises(ValueError, match="partial only"):
+        quantity_nfb_checked_manufacturing_groups(
+            batch, live_manifest_provider=scope_by_version, partial=False,
+        )
+    assert list(tmp_path.glob("*.dxf")) == []
+
+    groups, gate = quantity_nfb_checked_manufacturing_groups(
+        batch, live_manifest_provider=scope_by_version, partial=True,
+    )
+    assert gate.partial_only
+    assert gate.permitted_total_pieces == 20
+    assert gate.held_total_pieces == 10
+    assert {p.physical_id for p in gate.permitted} == {"inner", "side"}
+    assert {p.physical_id for p in gate.held} == {"middle"}
+    assert sorted(g.quantity for g in groups) == [4, 6, 10]
+    assert all(m.physical_id != "middle" for group in groups
+               for m in group.members)
+
+    files = api.save_quantity_manufacturing_groups_dxf(
+        groups, tmp_path, overwrite=False,
+    )
+    assert len(files) == 3
+    actual_labels = []
+    for target in files.values():
+        target = Path(target)
+        assert target.is_file()
+        drawing = ezdxf.readfile(target)
+        labels = [r.plain_text() for r in drawing.modelspace().query("MTEXT")
+                  if re.fullmatch(r"Q[0-9]+", r.plain_text())]
+        assert len(labels) == 1
+        actual_labels += labels
+    assert sorted(actual_labels) == ["Q10", "Q4", "Q6"]
+    # No omitted MFG2 physical part may silently enter any output.
+    assert all("middle" not in label.lower() for label in actual_labels)
+    with pytest.raises((ValueError, FileExistsError)):
+        api.save_quantity_manufacturing_groups_dxf(
+            groups, tmp_path, overwrite=False,
         )

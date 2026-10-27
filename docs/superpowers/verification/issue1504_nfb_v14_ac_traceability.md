@@ -5,6 +5,14 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## 2026-10-27 台灣｜#1504 SWT-AC-24／26 兩條逐條正反簽核（85→87 候選）
+
+- **SWT-AC-24**：原生 Tk MFG-1 有源提交與首次複製、Cancel／Restore／Undo／V3 Save→Reload 同已驗功能串核；PR #2332 真實部分出圖器產出內門 CUTTING 兩輪廓，物理 manifest 僅允許 INNER 2 片、MIDDLE 1 片仍 HOLD；同一已核准 render data 的真 CHECK/Q DXF 重開 `Q2`，Color150 開孔來源結構違反時禁止新的出圖。引用完整來源測試及現行機器收據，不把局部核准冒充整櫃 MFG-2。
+- **SWT-AC-26**：真正原生 Tk 按鈕前／按下雙層 MFG-1 來源守衛，未確認來源時不可提交或向未配置 Bay 複製；來源失效的已啟用狀態不可穿透提交；真已儲存 legacy fixture 無 NFB 仍不獲得假狀態；未提交 legacy INNER／BASE／MIDDLE 三種實體角色保留，原一般出圖守衛不應連坐阻擋。
+- **新增交叉補證**：`tests/test_issue1501_nfb_check_quantity_gate.py::test_swt18_24_26_source_scoped_partial_check_and_unsubmitted_old_parts` 驅動當期 manifest／真正 DXF 分組及 CHECK/Q，完整套件輸出遇未核准 MFG2 必阻，部分輸出實際重開 Q10/Q4/Q6；原本未提交舊式件數 1+2+1 與合法角色原樣保留。
+- **候選 87/88、待 1**：只剩 NFB-AC-16，仍須合法舊工程真正逐片 2D/3D/DXF 加金庫型/Hole Editor 相容驗收；二 AC 皆待此 exact-head 全部五工作 GREEN、GitHub localX 合併與精確反讀才算正式 87。無 Windows 人工、原廠 DXF 或整箱 NC 放行。
+
+---
 ## 2026-10-27 台灣｜#1504 SWT-AC-18 現行 CSV V5 逐顆原生 Tk 診斷與實體部分製造清單（84→85 候選）
 
 - **原 §7 AC 保留**：未提交 Bay 仍維持舊加工，不產生 NFB 可製造假許可；已提交的逐顆 CSV V5 診斷在原生 Tk 顯示第1層第1／2顆的 `NFB_WORLD_X_RECONFIRM_REQUIRED`，未經實際 MFG1 不放行提交／複製。

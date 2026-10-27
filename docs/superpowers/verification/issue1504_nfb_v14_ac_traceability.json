@@ -22,8 +22,8 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 85,
-    "BLOCKED_1500_REAL_GUI": 3,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 87,
+    "BLOCKED_1500_REAL_GUI": 1,
     "EVIDENCE_CANDIDATE_ONLY": 0,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 0,
     "DEFERRED_PRODUCT_EVIDENCE": 0
@@ -5981,21 +5981,19 @@
         "tests/test_issue1501_nfb_export_manifest.py",
         "tests/test_issue1501_nfb_legacy_export_guard.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "BLOCKED_1500_REAL_GUI",
-      "blocking_issues": [
-        1500
-      ],
-      "accepted": false,
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+      "blocking_issues": [],
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1500_nfb_transactions.py",
-          "test_name": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1501_live_partial_writer.py",
+          "test_name": "test_swt24_real_physical_partial_dxf_check_q_and_source_loss_atomicity",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_scope_correction_20261021": {
         "supersedes_original_interpretation_only": true,
         "reason": "Current #1502 part-scoped output complete; first submit, cross-Bay copy, restore and Undo share #1500 live transaction guard and are still pending complete operator acceptance, NOT blocked by a closed #1502 issue.",
@@ -6010,7 +6008,65 @@
         "original_status_preserved": true,
         "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
       },
-      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
+      "current_gui_requirement_20261026": "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT",
+      "historical_pre_current_review": {
+        "status": "BLOCKED_1500_REAL_GUI",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "blocking_issues": [
+          1500
+        ],
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1500_nfb_transactions.py",
+            "test_name": "test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "NATIVE_TK_SUBMIT_COPY_RESTORE_UNDO__TRUE_INNER_DXF_PARTIAL_CHECK_Q__SOURCE_CORRUPTION_ATOMIC_HOLD",
+        "primary_assertion": "tests/test_issue1501_live_partial_writer.py::test_swt24_real_physical_partial_dxf_check_q_and_source_loss_atomicity",
+        "other_required_assertions": [
+          "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac34_native_verified_submit_and_first_copy_cancel_partial_draft_disk_roundtrip",
+          "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac35_ac45_ac56_native_restore_cancel_undo_and_legacy_export_guard",
+          "tests/test_issue1501_nfb_legacy_export_guard.py::test_legacy_and_draft_no_submission_preserve_old_export",
+          "tests/test_issue1500_nfb_transactions.py::test_restore_clears_only_nfb_and_undo_restores_without_deleting_legacy",
+          "tests/test_issue1501_live_partial_writer.py::test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manifest",
+          "tests/test_issue1501_nfb_check_quantity_gate.py::test_swt18_24_26_source_scoped_partial_check_and_unsubmitted_old_parts"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "UI-1A 未提交保留 legacy 出圖；UI-1B 完成守衛才可提交",
+            "proof": "Actual native Tk original Bay controls remain disabled without current MFG1 physical source, while legacy and draft-unsubmitted project paths pass the original legacy export guard; first verified submit requires real inner-door source and operator confirmation."
+          },
+          {
+            "original_clause": "還原未配置丟棄 NFBConfig 且可 Undo",
+            "proof": "The already integrated original Tk Restore modal cancellation and acceptance, canonical Bay adapter Undo, and real V3 .p6fold Save/Reload tests preserve legacy unrelated owner and restore exact submitted source only through Undo."
+          },
+          {
+            "original_clause": "複製至未配置目標視為首次提交",
+            "proof": "Original Tk first copy into an unconfigured Bay remains disabled without independently verified target physical MFG1; with verified target it opens COPY_SUBMIT confirmation and cancel/commit outcomes independently. A partial held MFG2 middle must not be promoted to entire-cabinet readiness."
+          },
+          {
+            "original_clause": "受阻件有 manifest、其餘合法件可部分出圖，CHECK 件數正確",
+            "proof": "New source-backed production writer produces true current inner DXF, reopens CUTTING; manifest READY INNER actual 2 and held MIDDLE 1. Same physical render passes canonical partial CHECK/Q grouped DXF Q2; cannot enter nonpartial or include blocked MIDDLE. Structural Color150 source corruption revalidates and produces no stale new output. Additional quantity grouped cases keep held pieces excluded."
+          }
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "user_cancelled_second_legacy_project_prerequisite": true,
+        "exact_head_ci_and_localx_readback_required": true,
+        "integrated_localx_claimed": false,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "original_manufacturer_dxf_certified": false
+      }
     },
     {
       "id": "SWT-AC-25",
@@ -6065,23 +6121,22 @@
         "tests/test_issue1500_nfb_transactions.py",
         "tests/test_issue1500_nfb_ui1b_bridge.py",
         "tests/test_issue1500_nfb_worldx_runtime.py",
-        "tests/test_issue1500_real_nfb_dxf_lifecycle.py"
+        "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+        "tests/test_issue1500_nfb_operator_gui_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "BLOCKED_1500_REAL_GUI",
-      "blocking_issues": [
-        1500
-      ],
-      "accepted": false,
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+      "blocking_issues": [],
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1500_nfb_transactions.py",
-          "test_name": "test_first_submission_includes_held_plates_in_warning_but_commits_inner_config",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1500_nfb_operator_gui_transactions.py",
+          "test_name": "test_ac34_native_verified_submit_and_first_copy_cancel_partial_draft_disk_roundtrip",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_source_authority_20261026": {
         "route_class": "LEGACY_PROJECT_GUI_ONLY_NOT_CURRENT_V5_SOURCE_REQUIREMENT",
         "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
@@ -6091,7 +6146,56 @@
         "original_status_preserved": true,
         "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
       },
-      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
+      "current_gui_requirement_20261026": "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT",
+      "historical_pre_current_review": {
+        "status": "BLOCKED_1500_REAL_GUI",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "blocking_issues": [
+          1500
+        ],
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1500_nfb_transactions.py",
+            "test_name": "test_first_submission_includes_held_plates_in_warning_but_commits_inner_config",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "NATIVE_TK_MFG1_SUBMIT_AND_FIRST_COPY_GUARD__UNSUBMITTED_LEGACY_PHYSICAL_ROLES_PRESERVED",
+        "primary_assertion": "tests/test_issue1500_nfb_operator_gui_transactions.py::test_ac34_native_verified_submit_and_first_copy_cancel_partial_draft_disk_roundtrip",
+        "other_required_assertions": [
+          "tests/test_issue1500_nfb_operator_gui_transactions.py::test_live_source_revocation_blocks_stale_enabled_submit_button",
+          "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py::test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen",
+          "tests/test_issue1501_nfb_legacy_export_guard.py::test_legacy_and_draft_no_submission_preserve_old_export",
+          "tests/test_issue1498_nfb_part_readiness.py::test_unconfigured_preserves_legacy_even_when_nfb_source_absent",
+          "tests/test_issue1501_nfb_check_quantity_gate.py::test_swt18_24_26_source_scoped_partial_check_and_unsubmitted_old_parts"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "真實板件依賴守衛未驗收前，UI 確認與會提交到未配置 Bay 的複製操作均不可用",
+            "proof": "Original native Tk #1500 test computes actual derive_nfb_part_readiness MFG1 per target and checks both disabled before source; stale source revocation blocks previously enabled click, MFG1-positive gives exactly one authorized submit or target-first-copy confirmation with Cancel atomic. Existing real WHD loaded legacy fixture tests disabled actions with actual bridge transaction ports."
+          },
+          {
+            "original_clause": "不影響舊式內門／底板／中板出圖",
+            "proof": "True legacy unsubmitted physical NfbPartialExportManifest retains original INNER/BASE/MIDDLE IDs all LEGACY and accepts their complete original role selection with four physical piece counts. Canonical legacy/draft original exporter guards explicitly allow unsubmitted door/body/base, and existing source/no-NFB part readiness stays legacy; independently verified submitted NFB partial manufacturing cannot wrongly be mistaken for legacy whole-cabinet release."
+          }
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "user_cancelled_second_legacy_project_prerequisite": true,
+        "exact_head_ci_and_localx_readback_required": true,
+        "integrated_localx_claimed": false,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "original_manufacturer_dxf_certified": false
+      }
     },
     {
       "id": "SWT-AC-27",
@@ -6696,7 +6800,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 85/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-18 native Tk live per-hole V5 diagnostics and source-checked physical READY/HOLD part quantities, source-change revocation and independently verified SIDE continuation plus preexisting legacy non-submitted route. Remaining NFB-AC-16 and SWT-AC-24/26 require independent acceptance. Candidate only until exact-head full five-job CI and GitHub localX merge/readback; no old project B prerequisite, no Windows human UAT, no factory MFG2/NC release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 87/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-24 original native Tk submit/copy/restore/Undo plus real source-verified physical partial INNER DXF and CHECK/Q, illegal source structure negative; SWT-AC-26 live original Tk MFG1 physical READY gate before submit or first copy and unsubmitted legacy INNER/BASE/MIDDLE role/export-guard preservation. Only NFB-AC-16 remains requiring its independent full old-project manufacturing parity and Vault/Hole Editor acceptance. Candidate until exact-head five-job Product CI GREEN and GitHub localX merge/tree readback; not human Windows UAT or factory MFG2.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Outstanding gates are per-AC functional native GUI actions, project persistence, 2D/3D, scoped DXF and CHECK/Q; USER CANCELLED an arbitrary second old-project B prerequisite on 2026-10-26. No fixed A+B input quota. Never promote a test fixture to user Windows UAT.",
