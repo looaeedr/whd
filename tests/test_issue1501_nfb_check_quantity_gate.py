@@ -371,6 +371,7 @@ def test_swt18_24_26_source_scoped_partial_check_and_unsubmitted_old_parts(
     are held, while verified INNER/independent OTHER sheets can be grouped
     and reopened as real DXF Q labels. This is not Windows human UAT.
     """
+    from pathlib import Path
     from ae_engine.receiving_nfb_export_manifest import (
         derive_nfb_partial_export_manifest, NfbActualPart, BASE_PLATE,
     )
