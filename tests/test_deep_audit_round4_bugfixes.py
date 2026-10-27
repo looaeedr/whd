@@ -836,7 +836,7 @@ def test_audit116_bug59_receiving_live_door_source_keeps_valid_bay_topology():
     )
     cells = get_door_layout_cells(host)
     assert len(cells) == 3
-    assert sum(float(row.width) for row in cells) == pytest.approx(1200.)
+    assert sum(float(row.start_width) for row in cells) == pytest.approx(1200.)
 
 
 def test_audit116_bug59_main_door_width_source_rejects_boolean_before_cast():
