@@ -5,6 +5,7 @@ from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
+import os
 
 from ae_engine.cabinet_types import receiving
 from ae_engine.receiving_layout import (
@@ -920,3 +921,40 @@ def test_explicit_new_receiving_door_partition_keeps_canonical_validation():
     )
     with pytest.raises(ReceivingBayProjectionError, match="expected W=820"):
         project_receiving_bay_legacy_aliases(_snapshot(invalid), set_index=0, bay_index=0)
+
+
+@pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="native Windows Tk or Linux display required",
+)
+def test_native_receiving_designer_cold_start_does_not_commit_provisional_500_600():
+    """Original MainApp's cold-start render is not a Bay dimension transaction."""
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    main = gui.BoxCalculatorGUI(root)
+    try:
+        main.baseline_var.set("受電箱")
+        root.update()
+        designer = main.open_original_fold_designer()
+        root.update()
+        bay = designer._phase6_input_snapshot["receiving_layout"]["sets"][0]["bays"][0]
+        assert (bay["width"], bay["height"], bay["depth"]) == pytest.approx(
+            (800.0, 1600.0, 350.0)
+        )
+        # This must not trigger the W500/H600 stale partition rejection
+        # observed in CI before the _phase6_sync_ready bootstrap guard.
+        projected = project_receiving_bay_legacy_aliases(
+            designer._phase6_input_snapshot, set_index=0, bay_index=0
+        )
+        assert projected["w"] == pytest.approx(800.0)
+        assert projected["h"] == pytest.approx(1600.0)
+    finally:
+        try:
+            if main.fold_designer_window is not None:
+                main.fold_designer_window.destroy()
+        except tk.TclError:
+            pass
+        root.destroy()
