@@ -122,10 +122,12 @@ def recompute_door_layout(
 
 
 def door_layout_cells(columns, *, total_width: float, total_height: float):
+    # Do not erase a malformed saved Boolean before the manufacturing
+    # validator sees its original type (float(True) would become 1 mm).
     return validate_door_layout_dimensions(
         columns,
-        total_width=float(total_width),
-        total_height=float(total_height),
+        total_width=total_width,
+        total_height=total_height,
         tolerance=0.01,
     )
 
