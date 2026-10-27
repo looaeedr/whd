@@ -1212,7 +1212,6 @@
           "tests/test_issue1499_nfb_persistence.py::test_unconfigured_bay_and_quantity_keep_legacy_schema",
           "tests/test_issue1499_nfb_persistence.py::test_submitted_bay_save_reload_v3_retains_exact_zero_and_independent_copy",
           "tests/test_issue1500_nfb_transactions.py::test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation",
-          "tests/test_phase6_hole_editor_session.py::test_real_tk_unified_hole_editor_delete_undo_and_cancel_all_use_session",
           "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py::test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family",
           "tests/test_issue1501_nfb_legacy_export_guard.py::test_legacy_and_draft_no_submission_preserve_old_export"
         ],
