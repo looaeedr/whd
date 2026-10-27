@@ -110,7 +110,31 @@ def receiving_base_actual_local_nfb_skins(snapshot, physical):
     """Read the exact physical configured Base Plate source and cached true skin."""
     pair=physical.get("receiving_nfb_depth_pair_mm")
     if pair is not None:
+        if (
+            not isinstance(pair, (tuple, list))
+            or len(pair) != 2
+            or any(
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not isfinite(float(value))
+                for value in pair
+            )
+        ):
+            raise ValueError("RECEIVING_BASE_INVALID_NFB_DEPTH_PAIR")
         pair=tuple(float(x) for x in pair)
+    dimensions = (
+        snapshot["w"], physical["h"], snapshot["t"],
+        physical["base_plate_shrink_top"], physical["base_plate_shrink_bottom"],
+        physical["base_plate_shrink_left"], physical["base_plate_shrink_right"],
+        physical["base_plate_bend"],
+    )
+    if any(
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not isfinite(float(value))
+        for value in dimensions
+    ):
+        raise ValueError("RECEIVING_BASE_NONFINITE_SOURCE_DIMENSIONS")
     return _source_base_local_nfb_skins(
         float(snapshot["w"]),float(physical["h"]),float(snapshot["t"]),
         float(physical["base_plate_shrink_top"]),
