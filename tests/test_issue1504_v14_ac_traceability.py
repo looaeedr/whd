@@ -2569,6 +2569,7 @@ def test_swt18_native_v5_tk_part_evidence_and_legacy_gate_is_source_scoped():
     assert len(proof["requirement_witnesses"]) == 3
     primary = "tests/test_issue1500_nfb_operator_gui_transactions.py::test_swt18_native_tk_live_csv_unit_reasons_and_physical_partial_report"
     assert proof["primary_assertion"] == primary
+    assert primary.split("::")[0] in row["regression_candidates"]
     assert row["identified_test_functions"] == [{
         "path": primary.split("::")[0],
         "test_name": primary.split("::")[1],
