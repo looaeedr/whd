@@ -22,8 +22,8 @@
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 84,
-    "BLOCKED_1500_REAL_GUI": 4,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 85,
+    "BLOCKED_1500_REAL_GUI": 3,
     "EVIDENCE_CANDIDATE_ONLY": 0,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 0,
     "DEFERRED_PRODUCT_EVIDENCE": 0
@@ -5460,24 +5460,73 @@
         "tests/test_issue1500_nfb_transactions.py",
         "tests/test_issue1500_nfb_ui1b_bridge.py",
         "tests/test_issue1500_nfb_worldx_runtime.py",
-        "tests/test_issue1500_real_nfb_dxf_lifecycle.py"
+        "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+        "tests/test_issue1500_nfb_operator_gui_transactions.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "BLOCKED_1500_REAL_GUI",
-      "blocking_issues": [
-        1500
-      ],
-      "accepted": false,
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+      "blocking_issues": [],
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1498_nfb_part_readiness.py",
-          "test_name": "test_each_set_bay_version_independent_and_no_cross_scope_ready_cache",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1500_nfb_operator_gui_transactions.py",
+          "test_name": "test_swt18_native_tk_live_csv_unit_reasons_and_physical_partial_report",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
-      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
+      "current_gui_requirement_20261026": "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT",
+      "historical_pre_current_review": {
+        "status": "BLOCKED_1500_REAL_GUI",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "blocking_issues": [
+          1500
+        ],
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1498_nfb_part_readiness.py",
+            "test_name": "test_each_set_bay_version_independent_and_no_cross_scope_ready_cache",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "CURRENT_V5_NATIVE_TK_DIAGNOSTIC_PER_HOLE_AND_SOURCE_CHECKED_PHYSICAL_PARTIAL_Q__LEGACY_PRESERVED__NOT_WHOLE_CABINET_MFG2",
+        "primary_assertion": "tests/test_issue1500_nfb_operator_gui_transactions.py::test_swt18_native_tk_live_csv_unit_reasons_and_physical_partial_report",
+        "other_required_assertions": [
+          "tests/test_issue1498_nfb_part_readiness.py::test_unconfigured_preserves_legacy_even_when_nfb_source_absent",
+          "tests/test_issue1501_nfb_export_manifest.py::test_shihlin_color150_partial_only_counts_real_pieces"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "未提交配置維持既有加工",
+            "proof": "Original Tk Receiving multi-settings shows no NFB part manifest and keeps submit/copy disabled for unconfigured legacy. Existing part-readiness test asserts legacy manufacturing remains available without an NFB source; physical legacy status is not invented as submitted."
+          },
+          {
+            "original_clause": "已提交草稿逐顆顯示原因",
+            "proof": "Original Tk selection receives live current numeric CSV V5 current_v5_nfb_diagnostics for two slots, displays per-hole 第1層／第1顆 and 第1層／第2顆, both NFB_WORLD_X_RECONFIRM_REQUIRED, with no fake manufacturing-ready quantity or submit permission."
+          },
+          {
+            "original_clause": "依真實受影響板件阻斷，不波及可證明無依賴實體件",
+            "proof": "The same original Tk renders the physical derive_nfb_partial_export_manifest: independently source-verified INNER/BASE/SIDE 6 pieces permitted and MIDDLE 4 held. Mutating the actual source DXF revokes INNER, drops allowed count from 6 to 3, retains independently certified SIDE, and source manifest explicitly blocks INNER and MIDDLE partial export. The original physical backend and previous exported manifests are actual invoked source constructors, not UI label mocks."
+          }
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "user_cancelled_second_legacy_project_prerequisite": true,
+        "exact_head_ci_and_localx_readback_required": true,
+        "integrated_localx_claimed": false,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "formal_x_published": false,
+        "other_ac_signoff_implied": false,
+        "original_manufacturer_dxf_certified": false
+      }
     },
     {
       "id": "SWT-AC-19",
@@ -6647,7 +6696,7 @@
   },
   "exact_test_function_witnesses_count": 88,
   "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 84/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; AC40 quantity explicit version datum forbids borrowed CONFIRMED X0 after copy, current V5 matching basis retains only same version, current model/rotation drift revokes, backend v1-to-v2 version-scoped MFG1 blocks before operator consent, cancel atomic, fresh v2 consent V3 project Save/Reload preserves typed X0 and source/sibling. Previous 83 integrated ACs preserved; four pending independent per-part/legacy GUI-manufacturing witnesses. Current 84 PR candidate only until exact-head five Product jobs green and identical GitHub localX readback; no invented second project B, human Windows UAT or factory release.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 85/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-18 native Tk live per-hole V5 diagnostics and source-checked physical READY/HOLD part quantities, source-change revocation and independently verified SIDE continuation plus preexisting legacy non-submitted route. Remaining NFB-AC-16 and SWT-AC-24/26 require independent acceptance. Candidate only until exact-head full five-job CI and GitHub localX merge/readback; no old project B prerequisite, no Windows human UAT, no factory MFG2/NC release.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
     "1500": "Outstanding gates are per-AC functional native GUI actions, project persistence, 2D/3D, scoped DXF and CHECK/Q; USER CANCELLED an arbitrary second old-project B prerequisite on 2026-10-26. No fixed A+B input quota. Never promote a test fixture to user Windows UAT.",
