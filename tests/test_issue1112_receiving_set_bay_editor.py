@@ -5,6 +5,7 @@ from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
+import os
 
 from ae_engine.cabinet_types import receiving
 from ae_engine.receiving_layout import (
@@ -849,3 +850,111 @@ def test_ac07_joint_operator_preserves_exact_integer_text_and_physical_mating():
     assert [x["stable_id"] for x in after["sets"][0]["joints"]] == [
         x["stable_id"] for x in before["sets"][0]["joints"]
     ]
+
+
+def test_native_receiving_bay_wh_edit_recompletes_last_door_cells():
+    """W800→820 entered in the real Receiving GUI must not break FinalScene."""
+    authored = update_receiving_bay(
+        _layout(), set_index=0, bay_index=0,
+        door_state={
+            "multi_door_enabled": True,
+            "door_layout_scope": "receiving-main",
+            "door_layout_columns": [
+                [300.0, [1100.0, 500.0]],
+                [500.0, [800.0, 800.0]],
+            ],
+            "inner_doors": [],
+        },
+    )
+    original = deepcopy(authored)
+    adapter = ReceivingSetBayAdapter(authored)
+    assert adapter.update_current_bay(width=820, height=1700)
+    actual = adapter.current_bay()
+    assert actual["width"] == pytest.approx(820)
+    assert actual["height"] == pytest.approx(1700)
+    assert actual["door_state"]["door_layout_columns"] == [
+        [300.0, [1100.0, 600.0]],
+        [520.0, [800.0, 900.0]],
+    ]
+    # Real current-Bay projection must accept the updated Door, not the stale
+    # W800 door that caused the user's native 3D load failure.
+    projected = project_receiving_bay_legacy_aliases(
+        _snapshot(adapter.layout), set_index=0, bay_index=0,
+    )
+    assert (projected["w"], projected["h"]) == pytest.approx((820, 1700))
+    assert projected["door_layout_columns"] == actual["door_state"]["door_layout_columns"]
+    assert authored == original
+
+
+def test_native_receiving_bay_dimension_edit_rejects_impossible_existing_door():
+    authored = update_receiving_bay(
+        _layout(), set_index=0, bay_index=0,
+        door_state={
+            "multi_door_enabled": True,
+            "door_layout_columns": [[300.0, [1100.0, 500.0]], [500.0, [800.0, 800.0]]],
+        },
+    )
+    adapter = ReceivingSetBayAdapter(authored)
+    original = deepcopy(adapter.layout)
+    # Operator-owned first column/row must NOT be silently shrunk to force fit.
+    with pytest.raises(ValueError, match="新 W 不符合門分割"):
+        adapter.update_current_bay(width=250)
+    assert adapter.layout == original
+    with pytest.raises(ValueError, match="新 H 不符合門分割"):
+        adapter.update_current_bay(height=900)
+    assert adapter.layout == original
+
+
+def test_explicit_new_receiving_door_partition_keeps_canonical_validation():
+    authored = update_receiving_bay(
+        _layout(), set_index=0, bay_index=0,
+        door_state={
+            "multi_door_enabled": True,
+            "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+        },
+    )
+    # A caller directly authoring a stale W800 partition while moving to
+    # W820 must still be rejected, not 'fixed' behind the operator's back.
+    invalid = update_receiving_bay(
+        authored, set_index=0, bay_index=0, width=820,
+        door_state={"multi_door_enabled": True, "door_layout_columns": [[800.0, [1100.0, 500.0]]]},
+    )
+    with pytest.raises(ReceivingBayProjectionError, match="expected W=820"):
+        project_receiving_bay_legacy_aliases(_snapshot(invalid), set_index=0, bay_index=0)
+
+
+@pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="native Windows Tk or Linux display required",
+)
+def test_native_receiving_designer_cold_start_does_not_commit_provisional_500_600():
+    """Original MainApp's cold-start render is not a Bay dimension transaction."""
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    main = gui.BoxCalculatorGUI(root)
+    try:
+        main.baseline_var.set("受電箱")
+        root.update()
+        designer = main.open_original_fold_designer()
+        root.update()
+        bay = designer._phase6_input_snapshot["receiving_layout"]["sets"][0]["bays"][0]
+        assert (bay["width"], bay["height"], bay["depth"]) == pytest.approx(
+            (800.0, 1600.0, 350.0)
+        )
+        # This must not trigger the W500/H600 stale partition rejection
+        # observed in CI before the _phase6_sync_ready bootstrap guard.
+        projected = project_receiving_bay_legacy_aliases(
+            designer._phase6_input_snapshot, set_index=0, bay_index=0
+        )
+        assert projected["w"] == pytest.approx(800.0)
+        assert projected["h"] == pytest.approx(1600.0)
+    finally:
+        try:
+            if main.fold_designer_window is not None:
+                main.fold_designer_window.destroy()
+        except tk.TclError:
+            pass
+        root.destroy()

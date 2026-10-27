@@ -511,6 +511,7 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
         raise IndexError("Receiving bay_index out of range")
     bay = deepcopy(dict(bays[bay_index]))
     original_width = bay["width"]
+    original_height = bay["height"]
     allowed = {"width", "height", "depth", "back_panel_mode", "door_state",
                "nfb_config_submitted", "nfb_config"}
     unknown = set(changes) - allowed
@@ -534,6 +535,36 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
         if not isinstance(changes["door_state"], Mapping):
             raise ValueError("每連門分割必須為物件")
         bay["door_state"] = deepcopy(dict(changes["door_state"]))
+    elif (
+        "door_state" in bay
+        and (bay["width"] != original_width or bay["height"] != original_height)
+    ):
+        # Match the existing multi-Bay dimension edit: preserve every authored
+        # leading Door width/height and re-complete only the final remainder.
+        # Otherwise typing W820 in the live native Receiving GUI leaves a
+        # persisted W800 Door cell and breaks real FinalScene 3D projection.
+        # Explicit caller-supplied door_state is *not* rewritten; the normal
+        # authored-source validator must still reject invalid partitions.
+        from .sheetmetal_part_adapters import complete_partition
+
+        door = deepcopy(bay["door_state"])
+        columns = tuple(door.get("door_layout_columns") or ())
+        if door.get("multi_door_enabled") and not columns:
+            raise ValueError("新尺寸無法套用：門分割資料不完整")
+        if columns:
+            widths = complete_partition(
+                [column[0] for column in columns[:-1]], bay["width"]
+            )
+            if not widths.valid or len(widths.values) != len(columns):
+                raise ValueError("新 W 不符合門分割")
+            next_columns = []
+            for column_width, (_old_width, heights) in zip(widths.values, columns):
+                rows = complete_partition(heights[:-1], bay["height"])
+                if not rows.valid or len(rows.values) != len(heights):
+                    raise ValueError("新 H 不符合門分割")
+                next_columns.append([column_width, list(rows.values)])
+            door["door_layout_columns"] = next_columns
+            bay["door_state"] = door
     if "nfb_config_submitted" in changes or "nfb_config" in changes:
         from .receiving_nfb_persistence import normalize_nfb_saved_fields
         updated = {**bay, **{key: changes[key] for key in ("nfb_config_submitted", "nfb_config") if key in changes}}
