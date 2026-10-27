@@ -266,6 +266,13 @@ def sync_receiving_current_bay(
 
 def commit_receiving_current_bay_controls(self, namespace):
     app = self.app
+    # Fold Designer opens through original.MainApp.__init__, which invokes
+    # do_update() once with provisional legacy W500/H600/D200 BEFORE the
+    # saved Receiving Set/Bay is projected into the editor.  That bootstrap
+    # render is not an operator dimension edit and may never shrink a real
+    # W800/H1600 Door partition or alter persisted Bay authority.
+    if getattr(app, "_phase6_sync_ready", True) is False:
+        return False
     if app._phase6_input_snapshot.get("active_mode") == "quantity" and getattr(app, "_phase6_initializing", False):
         return False
     if getattr(app, "_phase6_receiving_set_bay_guard", False):
