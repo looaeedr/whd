@@ -27,17 +27,41 @@ def test_committed_csv_actual_parent_requires_exact_pad_physical_owner():
     ) == ()
 
 
-def test_complete_original_gui_selected_inventory_must_not_drop_source_pad(tmp_path):
-    """The original operator button must not report a whole box missing its PAD."""
+def test_explicit_complete_inventory_fails_atomically_when_pad_is_missing(tmp_path):
+    """A strict whole-cabinet request must account for the source-required PAD."""
     snapshot, geometry = _prepare(False)
     from ae_engine.receiving_nfb_pad_delivery import (
         resolve_committed_pad_physical_delivery,
     )
+    from ae_engine.receiving_ear_side_manufacturing_marking import (
+        with_verified_receiving_ear_side_markings,
+    )
+    from ae_engine.receiving_fixed_plate_formed_manufacturing import (
+        save_verified_receiving_formed_fixing_plate_bundle,
+    )
     pads = resolve_committed_pad_physical_delivery(snapshot, geometry.parts)
     assert pads, "this current Shihlin mixed-depth fixture really requires PAD"
+    marked = with_verified_receiving_ear_side_markings(
+        snapshot, geometry,
+        dimensions=(float(snapshot["w"]), float(snapshot["h"]), float(snapshot["d"])),
+        sheet_thickness=float(snapshot["t"]),
+    )
     output = tmp_path / "must-not-falsely-report-complete"
     with pytest.raises(
         ValueError, match="RECEIVING_FULL_NFB_PAD_REQUIRED_IN_COMPLETE_EXPORT",
     ):
-        _run(snapshot, geometry, output)
-    assert not output.exists() or not list(Path(output).glob("*.dxf"))
+        save_verified_receiving_formed_fixing_plate_bundle(
+            snapshot, geometry, marked, output,
+            dimensions=(float(snapshot["w"]), float(snapshot["h"]), float(snapshot["d"])),
+            sheet_thickness=float(snapshot["t"]),
+            require_complete_cabinet_inventory=True,
+        )
+    assert not output.exists()
+
+
+def test_original_selected_parts_export_remains_legal_and_is_not_whole_release(tmp_path):
+    """An operator's selected-sheet DXF has a distinct contract from WHOLE."""
+    snapshot, geometry = _prepare(False)
+    names, errors, calls = _run(snapshot, geometry, tmp_path)
+    assert errors == [] and calls == ["resolve"]
+    assert names and all((tmp_path / name).is_file() for name in names)
