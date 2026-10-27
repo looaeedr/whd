@@ -292,6 +292,21 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # The primary application is not interactive while multi-settings is open.
     win.transient(parent)
     parent._receiving_multi_settings_window = win
+    # Fail closed BEFORE installing modal callbacks or drawing widgets. A
+    # refused Quantity/Set-Bay transition used to leave an unfinished Tk
+    # Toplevel on screen; its close() callback referenced sketch_redraw,
+    # close_real_preview and close_manager before those closures existed.
+    initial_mode = "quantity" if dialog_kind == "single" else "set_bay"
+    try:
+        if get_snapshot().get("active_mode", "set_bay") != initial_mode:
+            if not switch_mode(initial_mode):
+                raise ValueError("無法切換設定模式")
+    except Exception:
+        # A failed source/geometry gate cannot leave a stale modal grab or a
+        # parent pointer to an uninitialized, uncloseable Toplevel.
+        parent._receiving_multi_settings_window = None
+        win.destroy()
+        raise
     topology_changed = {"value": False}
     brand_changed = {"value": False}
 
@@ -372,10 +387,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # (and its complete geometry rebuild) to the first connection edit.
     # The obsolete Quantity main mode has been removed from this window.
     # Preserve the independent quantity allocation inside Version Manager.
-    initial_mode = "quantity" if dialog_kind == "single" else "set_bay"
-    if get_snapshot().get("active_mode", "set_bay") != initial_mode:
-        if not switch_mode(initial_mode):
-            raise ValueError("無法切換設定模式")
+    # The authoritative transition has already been accepted before Tk
+    # installs any modal callbacks (or the modal is destroyed on failure).
     mode_var = tk.StringVar(master=win, value=initial_mode)
     top_left = ttk.Frame(left_host)
     top_left.pack(anchor="nw")

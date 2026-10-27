@@ -309,6 +309,8 @@ PYTEST_PATHS = (
     "tests/test_issue500_settings_profile_projection.py::test_issue500_requires_frozen_request_and_plan_contracts",
     "tests/test_issue500_settings_profile_projection.py::test_issue500_pure_projection_is_deterministic_and_carries_required_plan_fields",
     "tests/test_issue1463_receiving_modes.py",
+    # Audit116: rejected Receiving mode cannot leave a frozen/orphan modal.
+    "tests/test_audit116_receiving_modal_failed_switch_cleanup.py",
     "tests/test_issue357_manufacturing_result_contracts.py",
     "tests/test_issue356_manufacturing_adapter.py",
     "tests/test_issue371_t7_update_runtime_behavior.py",
