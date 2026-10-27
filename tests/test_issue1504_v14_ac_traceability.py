@@ -2551,3 +2551,43 @@ def test_ac40_explicit_quantity_x_version_and_native_reconfirm_exact_current_evi
     assert len([r for r in audit["records"] if not r["accepted"]]) == (
         audit["counts"]["BLOCKED_1500_REAL_GUI"]
     )
+
+
+def test_swt18_native_v5_tk_part_evidence_and_legacy_gate_is_source_scoped():
+    """SWT18 signed only for real Tk V5 diagnostics and a scoped physical manifest."""
+    from tools.product_ci_regression import PYTEST_PATHS
+    import ast
+
+    doc = _data()
+    assert doc["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 85
+    row = next(r for r in doc["records"] if r["id"] == "SWT-AC-18")
+    assert row["accepted"] is True
+    assert row["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE"
+    assert row["assertion_review_state"] == "FULL_AC_AUTOMATED_SIGNED"
+    assert row["historical_pre_current_review"]["status"] == "BLOCKED_1500_REAL_GUI"
+    proof = row["acceptance_evidence"]
+    assert len(proof["requirement_witnesses"]) == 3
+    primary = "tests/test_issue1500_nfb_operator_gui_transactions.py::test_swt18_native_tk_live_csv_unit_reasons_and_physical_partial_report"
+    assert proof["primary_assertion"] == primary
+    assert row["identified_test_functions"] == [{
+        "path": primary.split("::")[0],
+        "test_name": primary.split("::")[1],
+        "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+        "accepted": True,
+    }]
+    for flag in ("factory_release", "unconditional_mfg2_release",
+                 "human_windows_uat_claimed", "formal_x_published",
+                 "integrated_localx_claimed", "other_ac_signoff_implied",
+                 "original_manufacturer_dxf_certified"):
+        assert proof[flag] is False, flag
+    for witness in [primary, *proof["other_required_assertions"]]:
+        path, name = witness.split("::")
+        assert path in PYTEST_PATHS, witness
+        source = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        functions = [x for x in source.body
+                     if isinstance(x, ast.FunctionDef) and x.name == name]
+        assert len(functions) == 1, witness
+        assert _test_function_has_assert_or_expected_exception(functions[0]), witness
+    pending = {r["id"] for r in doc["records"] if not r["accepted"]}
+    assert {"NFB-AC-16", "SWT-AC-24", "SWT-AC-26"} <= pending
+    assert len(pending) == doc["counts"]["BLOCKED_1500_REAL_GUI"]
