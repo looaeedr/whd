@@ -311,6 +311,7 @@ def _verified_current_csv_manufacturing_owners(
 def save_verified_receiving_formed_fixing_plate_bundle(
     snapshot, original_geometry, selected_marked_geometry,
     output_dir, *, dimensions, sheet_thickness, overwrite=False,
+    require_complete_cabinet_inventory=False,
 ) -> FormedFixingPlateManufacturingReceipt:
     """Atomically write original selected DXF rows plus signed formed fixed plates.
 
@@ -321,6 +322,8 @@ def save_verified_receiving_formed_fixing_plate_bundle(
     """
     if type(overwrite) is not bool:
         raise TypeError("EAR_FORM_MFG_OVERWRITE_MUST_BE_BOOLEAN")
+    if type(require_complete_cabinet_inventory) is not bool:
+        raise TypeError("EAR_FORM_MFG_COMPLETE_INVENTORY_FLAG_MUST_BE_BOOLEAN")
     verified, uv, side_contact = _verified_formed_ear_parts(
         snapshot, original_geometry,
         dimensions=dimensions, sheet_thickness=sheet_thickness,
@@ -373,6 +376,32 @@ def save_verified_receiving_formed_fixing_plate_bundle(
         for side in ("box_body:left_side","box_body:right_side")
     ):
         raise ValueError("EAR_FORM_MFG_BOTH_MARKED_SIDE_SHEETS_REQUIRED")
+
+    # #1490: The normal selection may look like the *entire cabinet* when
+    # BODY + CSV DOOR + every physical tier BASE is checked.  Source-derived
+    # shallow NFB PADs must not silently disappear from that successful
+    # bundle. Independently verified per-part selection remains available.
+    selected_ids = {key for key, _, _ in standard_rows}
+    complete_csv_selection = (
+        any(key.startswith("inner_door:") for key in approved_csv)
+        and any(key == "base_plate" or key.startswith("base_plate:nfb_layer:")
+                for key in approved_csv)
+        and any(key.startswith("box_body:") for key in selected_ids)
+    )
+    if require_complete_cabinet_inventory:
+        if not complete_csv_selection:
+            raise ValueError("RECEIVING_FULL_NFB_SELECTED_PHYSICAL_SHEETS_INCOMPLETE")
+        from .receiving_whole_cabinet_pad_preflight import (
+            missing_required_pad_sheets,
+        )
+        missing = missing_required_pad_sheets(
+            snapshot, tuple(original_geometry.parts or ()), selected_ids,
+        )
+        if missing:
+            raise ValueError(
+                "RECEIVING_FULL_NFB_PAD_REQUIRED_IN_COMPLETE_EXPORT:"
+                + ",".join(missing)
+            )
 
     filenames = {key: filename for key, filename, _ in standard_rows}
     for ear_id in verified:

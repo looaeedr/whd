@@ -66,6 +66,8 @@ PYTEST_PATHS = (
     "tests/test_issue1501_highlighted_partial_dxf_dispatcher.py",
     "tests/test_issue1501_live_partial_writer.py",
     "tests/test_issue1502_nfb_base_batch_export_gate.py",
+    # #1490: source-required physical PAD cannot vanish in a complete DXF selection.
+    "tests/test_issue1490_full_cabinet_pad_completeness.py",
     "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
     # #1503/#1504: PAD+real Base full-T mating, per-tier CHECK/Q DXF/BOM,
     # normal Tk 2D and source guards must run BEFORE a localX PR merges.
