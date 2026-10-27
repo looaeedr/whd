@@ -1306,3 +1306,189 @@ def test_ac34_native_verified_submit_and_first_copy_cancel_partial_draft_disk_ro
             )
     assert "manufacturing_ready" not in saved.read_text(encoding="utf-8")
     assert "READY" not in saved.read_text(encoding="utf-8")
+
+
+def test_swt18_native_tk_live_csv_unit_reasons_and_physical_partial_report(
+    tmp_path, monkeypatch,
+):
+    """Real Tk list renders LIVE CSV units and LIVE source-checked physical Q.
+
+    The CSV diagnostic never pretends to manufacture, and typed physical
+    fixture evidence is not an original supplier/factory release or Windows
+    human acceptance test.
+    """
+    from dataclasses import replace
+    import ezdxf
+    from ae_engine.receiving_nfb_v5_diagnostics import current_v5_nfb_diagnostics
+    from ae_engine.receiving_nfb_export_manifest import (
+        derive_nfb_partial_export_manifest,
+    )
+    from ae_engine.receiving_nfb_dxf_source import inspect_nfb_dxf_source
+    from tests.test_issue1504_batched_current_nfb_transactions import _config
+    from tests.test_issue1501_nfb_export_manifest import _prepared
+
+    fixture = _prepared(tmp_path)
+    saved_bay = fixture["saved_bay"]
+    assert saved_bay["stable_id"] == "bayA"
+    source_path = tmp_path / "swt18-real-observed-cutting.dxf"
+    document = ezdxf.new("R2010")
+    document.modelspace().add_lwpolyline(
+        ((0, 0), (57, 0), (57, 96), (0, 96)),
+        close=True, dxfattribs={"color": 150},
+    )
+    document.saveas(source_path)
+    inventory = inspect_nfb_dxf_source(source_path)
+    assert dict(inventory.process_aci_entity_counts)[150] == 1
+    fixture.update(
+        source_path=source_path, source_inventory=inventory,
+        verified_inner_door=replace(
+            fixture["verified_inner_door"],
+            source_sha256=inventory.source_sha256,
+        ),
+    )
+    current_manifest = derive_nfb_partial_export_manifest(**fixture)
+    assert current_manifest.partial_only
+    assert current_manifest.actual_export_count == 6
+    assert current_manifest.held_actual_count == 4
+    assert current_manifest.authorized_part_ids == ("inner1", "base1", "side1")
+    with pytest.raises(ValueError, match="BLOCKED"):
+        current_manifest.require_export(("middle1",), partial=True)
+    assert current_manifest.require_export(
+        ("inner1", "side1"), partial=True,
+    ) == ("inner1", "side1")
+
+    # An unconfigured Bay uses its real legacy route, not cached READY,
+    # and an unsaved UI-1A preview must not render an NFB manufacturing Q.
+    mode = {"value": "LEGACY"}
+    csv_bay = {
+        "stable_id": saved_bay["stable_id"],
+        "nfb_config_submitted": True,
+        "nfb_config": _config(),
+    }
+    original_csv = deepcopy(csv_bay)
+    original_fixture = deepcopy(saved_bay)
+    warnings = []
+
+    def actual_manifest(_si, _bi):
+        if mode["value"] == "LEGACY":
+            return {"status": "LEGACY", "reason": "未配置 NFB"}
+        if mode["value"] == "CSV":
+            result = current_v5_nfb_diagnostics(
+                csv_bay, set_id="setA", bay_id="bayA",
+                version_id="v1",
+                # Only the real per-hole CSV input is checked in this
+                # branch. Never fabricate a 2D/3D physical part receipt.
+                dependent_part_ids=(), unaffected_part_ids=(),
+            )
+            assert result["status"] == "CSV_V5_SCOPED_DIAGNOSTIC"
+            return result
+        physical = derive_nfb_partial_export_manifest(**fixture)
+        report = physical.report()
+        return {"status": "PARTIAL_ONLY", **report}
+
+    def actual_state(_si, _bi, _selected=()):
+        return {
+            "submitted": mode["value"] != "LEGACY",
+            "can_submit": False,
+            "can_copy": False,
+            "can_restore": False,
+            "can_undo": False,
+            "base_partial_ready": False,
+            "reason": "來源未符合提交資格",
+        }
+
+    root = tk.Tk()
+    root.geometry("800x600+0+0")
+    root.update()
+    try:
+        monkeypatch.setattr(
+            view.messagebox, "showwarning",
+            lambda _title, message, *, parent: warnings.append(message),
+        )
+        window = open_multi_settings(
+            root,
+            get_snapshot=lambda: {"active_mode": "set_bay"},
+            get_switch=lambda: SimpleNamespace(connection_counts=lambda: (1,)),
+            switch_mode=lambda _: True, resize_connections=lambda *_: False,
+            get_settings_ports=lambda _: {
+                "row": lambda: {"bays": [{"stable_id": "bayA"}]},
+                "select": lambda _: None,
+            },
+            get_nfb_transaction_ports=lambda: {
+                "state": actual_state, "manifest": actual_manifest,
+            },
+        )
+        root.update()
+        assert window._receiving_multi_apply(0)
+        host = window._receiving_multi_settings_host
+
+        def visible_rows():
+            found = []
+            stack = [host]
+            while stack:
+                widget = stack.pop()
+                if isinstance(widget, (ttk.Label, ttk.LabelFrame)):
+                    found.append(str(widget.cget("text")))
+                stack.extend(widget.winfo_children())
+            return tuple(found)
+
+        _select_inner(window, root)
+        assert not any("NFB 板件清單" in item for item in visible_rows())
+        assert _buttons(host)["確認套用 NFB"].instate(("disabled",))
+        assert _buttons(host)["複製至其他連"].instate(("disabled",))
+        assert not warnings
+
+        mode["value"] = "CSV"
+        _select_inner(window, root)
+        text_rows = visible_rows()
+        assert any("NFB 板件清單" in line for line in text_rows)
+        assert any("第1層／第1顆" in line for line in text_rows), text_rows
+        assert any("第1層／第2顆" in line for line in text_rows), text_rows
+        assert sum("NFB_WORLD_X_RECONFIRM_REQUIRED" in line
+                   for line in text_rows) >= 2
+        assert any("逐顆來源診斷" in line for line in text_rows)
+        assert not any("可加工 6 片" in line for line in text_rows)
+        assert _buttons(host)["確認套用 NFB"].instate(("disabled",))
+
+        mode["value"] = "PHYSICAL"
+        _select_inner(window, root)
+        ready_rows = visible_rows()
+        assert any("可加工 6 片（僅部分可出）" in item
+                   for item in ready_rows), ready_rows
+        assert any("middle1｜MIDDLE_PLATE｜受阻｜4 片" in line
+                   and "MIDDLE_PLATE_NFB_COLOR150_UNVERIFIED" in line
+                   for line in ready_rows), ready_rows
+        assert any("side1｜OTHER｜可出｜3 片" in line
+                   for line in ready_rows), ready_rows
+        assert any("此為部分製造清單" in line for line in ready_rows)
+
+        # An edited original physical DXF invalidates the door receipt;
+        # genuinely unrelated side remains eligible by independently
+        # verified owner, and native Tk must immediately show new real Q.
+        source_path.write_bytes(b"not the original 150 CUTTING source")
+        changed = derive_nfb_partial_export_manifest(**fixture)
+        assert changed.actual_export_count == 3
+        assert changed.authorized_part_ids == ("side1",)
+        assert "ORIGINAL_NFB_DXF_MISSING_OR_SHA_CHANGED" in (
+            changed.unresolved_dependencies
+        )
+        assert changed.require_export(
+            ("side1",), partial=True,
+        ) == ("side1",)
+        with pytest.raises(ValueError):
+            changed.require_export(("inner1",), partial=True)
+        _select_inner(window, root)
+        stale_rows = visible_rows()
+        assert any("可加工 3 片（僅部分可出）" in item
+                   for item in stale_rows), stale_rows
+        assert any("inner1｜INNER_DOOR｜受阻｜2 片" in item
+                   for item in stale_rows), stale_rows
+        assert any("side1｜OTHER｜可出｜3 片" in item
+                   for item in stale_rows), stale_rows
+        assert not any("可加工 6 片" in item for item in stale_rows)
+        assert csv_bay == original_csv
+        assert saved_bay == original_fixture
+        assert not warnings
+        window._receiving_multi_close()
+    finally:
+        root.destroy()
