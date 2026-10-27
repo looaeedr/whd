@@ -1164,9 +1164,12 @@
         "tests/test_issue1500_nfb_transactions.py",
         "tests/test_issue1500_nfb_ui1b_bridge.py",
         "tests/test_issue1500_nfb_worldx_runtime.py",
-        "tests/test_issue1500_real_nfb_dxf_lifecycle.py"
+        "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
+        "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py",
+        "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py",
+        "tests/test_issue1501_nfb_legacy_export_guard.py"
       ],
-      "evidence_level": "FULL_AC_AUTOMATED_ASSERTIONS_SOURCE_SCOPED_NATIVE_TK",
+      "evidence_level": "FULL_AC_ASSERTION_AUDITED",
       "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
       "blocking_issues": [],
       "accepted": true,
@@ -1178,7 +1181,7 @@
           "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_ASSERTIONS_AND_NATIVE_GUI_DXF_PARITY_AUDITED",
+      "assertion_review_state": "FULL_AC_AUTOMATED_SIGNED",
       "current_source_authority_20261026": {
         "route_class": "LEGACY_PROJECT_GUI_ONLY_NOT_CURRENT_V5_SOURCE_REQUIREMENT",
         "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
