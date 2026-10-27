@@ -1,3 +1,10 @@
+---
+whd_doc_role: CURRENT
+whd_contract: audit116-receiving-custom-live-whd-20261027
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Audit116 — Receiving Set/Bay dimensions through Fold editor / Custom transition
 
 Date: 2026-10-27 (Asia/Taipei)
