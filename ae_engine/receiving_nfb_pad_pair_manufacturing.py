@@ -79,25 +79,23 @@ def _require_pad_cutting_only(render):
         raise ValueError("PAD_PAIR_PAD_REAL_CUTTING_BEND_INCOMPLETE")
 
 
-def export_verified_pad_base_part_only(
-    snapshot, assembly_parts, output_directory, *,
-    version_id: str, box_count: int,
-    parameters: ManufacturingParameters,
-) -> PadBasePairManufacturingResult:
-    """Atomic paired DXF & CHECK/Q from the same physically proven NFB/Bay.
+def verified_pad_base_physical_sheets(
+    snapshot, assembly_parts, *, allow_empty: bool = False,
+):
+    """Reprove actual PAD + owning Base from current CSV and FinalScene.
 
-    Identity, local thickened-solid fit and readback are verified *in this
-    call*. No caller-issued release boolean, stale geometry, preview role
-    rename or arbitrary Scene file can authorize the output. The generic
-    full-cabinet MFG-2 and all separately pending EAR/welding gates remain.
+    The same physical validators authorize PAD+Base PART_ONLY and the
+    separately source-verified complete-sheet bundle; neither authorizes
+    welding workmanship or a generic MFG-2/NC release.
+    Returns (committed PAD delivery rows, physical source render map).
     """
-    if (not isinstance(version_id,str) or not version_id.strip()
-            or type(box_count) is not int or box_count<=0
-            or not isinstance(parameters,ManufacturingParameters)):
-        raise ValueError("PAD_PAIR_VERSION_COUNT_OR_PROCESS_REQUIRED")
+    if type(allow_empty) is not bool:
+        raise TypeError("PAD_PAIR_ALLOW_EMPTY_MUST_BE_BOOL")
     records=resolve_committed_pad_physical_delivery(
-        snapshot,assembly_parts,piece_count=box_count)
+        snapshot,assembly_parts,piece_count=1)
     if not records:
+        if allow_empty:
+            return (), {}
         raise ValueError("PAD_PAIR_NO_SOURCE_CONFIRMED_SHEETS")
     if any(not rec.full_thickness_contact_certified
            or not rec.seating_witness.base_slab_collision_verified
@@ -165,6 +163,28 @@ def export_verified_pad_base_part_only(
             if record.physical_id in physical:
                 raise ValueError("PAD_PAIR_DUPLICATE_PHYSICAL_SHEET")
             physical[record.physical_id]=record.render_data
+    return tuple(records), physical
+
+
+def export_verified_pad_base_part_only(
+    snapshot, assembly_parts, output_directory, *,
+    version_id: str, box_count: int,
+    parameters: ManufacturingParameters,
+) -> PadBasePairManufacturingResult:
+    """Atomic paired DXF & CHECK/Q from the same physically proven NFB/Bay.
+
+    Identity, local thickened-solid fit and readback are verified *in this
+    call*. No caller-issued release boolean, stale geometry, preview role
+    rename or arbitrary Scene file can authorize the output. The generic
+    full-cabinet MFG-2 and all separately pending EAR/welding gates remain.
+    """
+    if (not isinstance(version_id,str) or not version_id.strip()
+            or type(box_count) is not int or box_count<=0
+            or not isinstance(parameters,ManufacturingParameters)):
+        raise ValueError("PAD_PAIR_VERSION_COUNT_OR_PROCESS_REQUIRED")
+    records, physical = verified_pad_base_physical_sheets(
+        snapshot, assembly_parts,
+    )
     demands=tuple(
         PhysicalPartDemand(version_id,pid,pid,box_count,1,render)
         for pid,render in physical.items()
