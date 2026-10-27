@@ -185,6 +185,7 @@ def export_verified_pad_base_part_only(
     records, physical = verified_pad_base_physical_sheets(
         snapshot, assembly_parts,
     )
+    base_count = len({record.parent_base_id for record in records})
     demands=tuple(
         PhysicalPartDemand(version_id,pid,pid,box_count,1,render)
         for pid,render in physical.items()
@@ -233,8 +234,8 @@ def export_verified_pad_base_part_only(
             "version_id":version_id,"box_count":box_count,
             "pad_per_box":len(records),
             "pad_total":box_count*len(records),
-            "base_per_box":len(by_parent),
-            "base_total":box_count*len(by_parent),
+            "base_per_box":base_count,
+            "base_total":box_count*base_count,
             "sources":[{
                 "physical_id":r.physical_id,
                 "parent_base_id":r.parent_base_id,
@@ -254,7 +255,7 @@ def export_verified_pad_base_part_only(
         os.replace(stage,folder)
         return PadBasePairManufacturingResult(
             str(folder),len(records),box_count*len(records),
-            box_count*len(by_parent),tuple(row["name"] for row in witness),
+            box_count*base_count,tuple(row["name"] for row in witness),
             digest,
         )
     finally:
