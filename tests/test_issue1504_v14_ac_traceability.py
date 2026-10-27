@@ -72,7 +72,7 @@ def test_original_two_spec_sha_and_no_secondary_ac_authority():
     obj = _data()
     assert {d["name"]: d["sha256"] for d in obj["source_documents"]} == ORIGINAL_SHA
     assert obj["authority_note"].startswith("Source AC original wording.")
-    assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
+    assert obj["review_status"] == "ALL_88_AC_AUTOMATED_SOURCE_SCOPED_ACCEPTED_NO_FORMAL_X_RELEASE"
     assert obj["formal_release_requires"] == "/推推"
 
 
@@ -203,9 +203,9 @@ def test_manifest_review_summary_is_recomputed_from_records():
     assert counts["DEFERRED_PRODUCT_EVIDENCE"] + sum(
         by_id[key]["accepted"] for key in historic
     ) == len(historic) == 4
-    assert counts["BLOCKED_1500_REAL_GUI"] >= 1
+    assert counts["BLOCKED_1500_REAL_GUI"] == 0
     assert counts.get("SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC",0) <= 14
-    assert 0 < counts["BLOCKED_1500_REAL_GUI"] <= 17
+    assert counts["BLOCKED_1500_REAL_GUI"] == 0
     assert counts.get("EVIDENCE_CANDIDATE_ONLY",0) <= 10
     assert counts["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= len(HISTORICAL_SIGNED_43) == 43
 
@@ -316,7 +316,7 @@ def test_current_receiving_baseplate_x_datum_supersedes_old_nfb_centroid_rule():
     assert "Y=470/-30" in rule
     assert "732-mm" in rule and "Do not infer plate X" in rule
     assert "remain unapproved" in rule
-    assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
+    assert obj["review_status"] == "ALL_88_AC_AUTOMATED_SOURCE_SCOPED_ACCEPTED_NO_FORMAL_X_RELEASE"
     assert HISTORICAL_SIGNED_43 <= {r["id"] for r in obj["records"] if r["accepted"]}
 
     # The human review must not silently retain an older X-centering claim.
@@ -341,7 +341,7 @@ def test_closed_1502_is_not_an_open_gate_and_original_ac_claims_stay_unsigned():
     live_counts.setdefault("EVIDENCE_CANDIDATE_ONLY", 0)
     assert d["counts"] == live_counts
     assert sum(d["counts"].values()) == 88
-    assert 0 < d["counts"]["BLOCKED_1500_REAL_GUI"] <= 17
+    assert d["counts"]["BLOCKED_1500_REAL_GUI"] == 0
     # At the original 79-AC audit snapshot, four physical-source items
     # were deferred. The historical IDs remain immutable even after each
     # *individually* gains full source/Tk/negative manufacturing evidence.
@@ -1960,10 +1960,10 @@ def test_all_current_nfb_v5_source_supersessions_keep_88_originals_and_legacy_sc
         assert len(matches) == 1 and any(
             isinstance(node, ast.Assert) for node in ast.walk(matches[0])
         )
-    assert 0 < obj["counts"]["BLOCKED_1500_REAL_GUI"] <= 17
+    assert obj["counts"]["BLOCKED_1500_REAL_GUI"] == 0
     assert obj["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 67
     assert sum(obj["counts"].values()) == 88
-    assert obj["review_status"] == "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490"
+    assert obj["review_status"] == "ALL_88_AC_AUTOMATED_SOURCE_SCOPED_ACCEPTED_NO_FORMAL_X_RELEASE"
 
 
 def test_swt30_approved_w_n_y_model_datum_witness_is_scoped_not_all_nominal_groups():
@@ -2041,7 +2041,7 @@ def test_ac51_swt30_signed_only_after_true_native_assigned_export_and_nominal_ne
             )
     d = _data()
     assert d["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] >= 71
-    assert 0 < d["counts"]["BLOCKED_1500_REAL_GUI"] <= 17
+    assert d["counts"]["BLOCKED_1500_REAL_GUI"] == 0
     assert d["counts"]["EVIDENCE_CANDIDATE_ONLY"] == 0
     assert sum(d["counts"].values()) == 88
 
@@ -2591,7 +2591,7 @@ def test_swt18_native_v5_tk_part_evidence_and_legacy_gate_is_source_scoped():
         assert len(functions) == 1, witness
         assert _test_function_has_assert_or_expected_exception(functions[0]), witness
     pending = {r["id"] for r in doc["records"] if not r["accepted"]}
-    assert "NFB-AC-16" in pending
+    assert "NFB-AC-16" not in pending
     assert all(r["accepted"] for r in doc["records"] if r["id"] in {"SWT-AC-24","SWT-AC-26"})
     assert len(pending) == doc["counts"]["BLOCKED_1500_REAL_GUI"]
 
@@ -2633,4 +2633,77 @@ def test_swt24_and_swt26_current_native_tk_partial_mfg_and_legacy_signoffs():
                      if isinstance(x, ast.FunctionDef) and x.name == name]
             assert len(funcs) == 1, witness
             assert _test_function_has_assert_or_expected_exception(funcs[0]), witness
-    assert [r["id"] for r in doc["records"] if not r["accepted"]] == ["NFB-AC-16"]
+    assert [r["id"] for r in doc["records"] if not r["accepted"]] == []
+
+
+def test_ac16_last_gate_true_original_tk_legacy_dxf_and_vault_editor_signoff():
+    """88/88 means original GUI/DXF and Vault cancel evidence, never labels only."""
+    from tools.product_ci_regression import PYTEST_PATHS
+
+    manifest = _data()
+    rows = manifest["records"]
+    by_id = {r["id"]: r for r in rows}
+    assert len(rows) == len(by_id) == 88
+    assert manifest["counts"]["ACCEPTED_AUTOMATED_CURRENT_SCOPE"] == 88
+    assert manifest["counts"]["BLOCKED_1500_REAL_GUI"] == 0
+    assert all(r["accepted"] is True and
+               r["status"] == "ACCEPTED_AUTOMATED_CURRENT_SCOPE" and
+               not r.get("blocking_issues") for r in rows)
+    assert manifest["formal_release_requires"] == "/推推"
+    assert manifest["review_status"] == (
+        "ALL_88_AC_AUTOMATED_SOURCE_SCOPED_ACCEPTED_NO_FORMAL_X_RELEASE"
+    )
+
+    row = by_id["NFB-AC-16"]
+    assert row["historical_pre_current_review"]["status"] == (
+        "BLOCKED_1500_REAL_GUI"
+    )
+    assert row["assertion_review_state"] == (
+        "TEST_FUNCTION_ASSERTIONS_AND_NATIVE_GUI_DXF_PARITY_AUDITED"
+    )
+    assert row["current_gui_requirement_20261026"] == (
+        "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT"
+    )
+    proof = row["acceptance_evidence"]
+    primary = (
+        "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py"
+        "::test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs"
+    )
+    vault = (
+        "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py"
+        "::test_ac16_vault_native_generic_hole_editor_cancel_does_not_mount_receiving_nfb"
+    )
+    submitted = (
+        "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py"
+        "::test_ac46_saved_submitted_nfb_is_never_silently_legacy_after_gui_reload"
+    )
+    assert proof["primary_assertion"] == primary
+    assert vault in proof["other_required_assertions"]
+    assert submitted in proof["other_required_assertions"]
+    assert len(proof["requirement_witnesses"]) == 4
+    assert len(proof["other_required_assertions"]) >= 7
+    assert row["identified_test_functions"] == [{
+        "path": primary.split("::")[0],
+        "test_name": primary.split("::")[1],
+        "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+        "accepted": True,
+    }]
+    assert proof["user_cancelled_second_legacy_project_prerequisite"] is True
+    assert proof["original_ac_text_unchanged"] is True
+    assert proof["source_sha_pins_unchanged"] is True
+    for denied in (
+        "integrated_localx_claimed", "factory_release",
+        "unconditional_mfg2_release", "human_windows_uat_claimed",
+        "formal_x_published", "real_two_old_project_windows_gui_uat",
+        "original_manufacturer_dxf_certified",
+    ):
+        assert proof[denied] is False, denied
+    assert proof["source_scoped_legacy_baseline_not_historical_executable_parity"] is True
+    for witness in [primary, *proof["other_required_assertions"]]:
+        path, name = witness.split("::")
+        assert path in PYTEST_PATHS, witness
+        tree = ast.parse((ROOT / path).read_text(encoding="utf-8"))
+        function = [node for node in tree.body
+                    if isinstance(node, ast.FunctionDef) and node.name == name]
+        assert len(function) == 1, witness
+        assert _test_function_has_assert_or_expected_exception(function[0]), witness
