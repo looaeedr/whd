@@ -419,6 +419,8 @@ PYTEST_PATHS = (
     "tests/test_deep_audit_round4_bugfixes.py",
     "tests/test_deep_audit_round5_bugfixes.py",
     "tests/test_deep_audit_round6_bugfixes.py",
+    # Port only source-valid R9 guards; old 3D folding signs are obsolete.
+    "tests/test_audit116_round9_current_source_guards.py",
     # Manual R4–R6 source repairs: marking, DXF, assembly placement, cache.
     "tests/test_manual_audit_source_guards_20261023.py",
     # Directly audited R4 source gaps missing from merged localX.
