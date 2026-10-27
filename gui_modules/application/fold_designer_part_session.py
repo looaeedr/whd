@@ -53,6 +53,29 @@ class Phase6PartSessionOwner:
         key = app.designer_workspace.active_part
         if not key:
             return
+        # A Receiving Set/Bay W/H/D edit is already committed by the current
+        # live Box authority.  A later thickness/FW Settings flush refreshes
+        # header controls from the *saved* defaults, which can still say
+        # W800/D350 after the user committed W820/D360.  Never save those
+        # stale header values or fold-profile dimensions over the live Bay.
+        # Keep the ordinary Part save and physical CUTTING validation intact.
+        receiving_settings_whd = None
+        if (getattr(app, "_phase6_applying_settings", False)
+                and str(app._phase6_input_snapshot.get("model") or "") in {"受電箱", "RECEIVING"}):
+            current_box = dict(getattr(app, "_phase6_box_whd", {}) or {})
+            if all(axis in current_box for axis in ("w", "h", "d")):
+                receiving_settings_whd = {
+                    axis: current_box[axis] for axis in ("w", "h", "d")
+                }
+                previous_guard = getattr(app, "_phase6_settings_guard", False)
+                app._phase6_settings_guard = True
+                try:
+                    for axis, dimension in receiving_settings_whd.items():
+                        variable = getattr(app, "v_" + axis)
+                        if str(variable.get()) != str(dimension):
+                            variable.set(str(dimension))
+                finally:
+                    app._phase6_settings_guard = previous_guard
         try:
             app.bend_ui.save()
         except Exception:
@@ -86,6 +109,11 @@ class Phase6PartSessionOwner:
                 app._sync_dwd_with_top_whd()
             values = bridge.read_box_body_profile(app.state.profiles_vault['箱身'], app._phase6_input_snapshot)
             values['h'] = app._phase6_box_whd['h']
+            if receiving_settings_whd is not None:
+                # The legacy fold editor can still report previous-box W/D.
+                # Only the *already committed* live Receiving dimensions may
+                # replace them during a Settings-only Part save.
+                values.update(receiving_settings_whd)
             if app._phase6_input_snapshot.get('receiving_quantity_box') and app._phase6_input_snapshot.get('active_mode') == 'quantity':
                 values.update({axis: float(app._phase6_input_snapshot['receiving_quantity_box'][axis]) for axis in ('w', 'h', 'd')})
             bridge._phase6_store_editor_values(app, values, notify=notify)
