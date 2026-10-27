@@ -2658,9 +2658,7 @@ def test_ac16_last_gate_true_original_tk_legacy_dxf_and_vault_editor_signoff():
     assert row["historical_pre_current_review"]["status"] == (
         "BLOCKED_1500_REAL_GUI"
     )
-    assert row["assertion_review_state"] == (
-        "TEST_FUNCTION_ASSERTIONS_AND_NATIVE_GUI_DXF_PARITY_AUDITED"
-    )
+    assert row["assertion_review_state"] == "FULL_AC_AUTOMATED_SIGNED"
     assert row["current_gui_requirement_20261026"] == (
         "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT"
     )
