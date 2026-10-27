@@ -612,8 +612,8 @@ def _merge_live_receiving_candidate_libraries(self, snapshot):
         # window disappears. Main GUI Save/Save As after close must use that
         # committed project owner, not a stale 2D-only reconstruction.
         controller = getattr(self, "project_controller", None)
-        committed = (controller.committed_snapshot()
-                     if controller is not None else None)
+        read_committed = getattr(controller, "committed_snapshot", None)
+        committed = read_committed() if callable(read_committed) else None
         if (not isinstance(committed, dict)
                 or committed.get("model") != snapshot.get("model")):
             return snapshot
