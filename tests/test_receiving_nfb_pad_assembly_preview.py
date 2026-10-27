@@ -47,8 +47,9 @@ def test_different_sheet_T_does_not_falsely_claim_verified_2mm_tab_engagement():
         )
 
 
+@pytest.mark.parametrize("stored_pattern",("LEFT_FLAT_SIDE","CENTER_DOUBLE_SIDE_FOLD"))
 @pytest.mark.parametrize("rotation",(0,90,180,270))
-def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins(rotation):
+def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins(rotation, stored_pattern):
     from copy import deepcopy
     from ae_engine.receiving_base_plate_config import receiving_base_plate_values
     from ae_engine.receiving_nfb_committed_final_scene import (
@@ -62,10 +63,10 @@ def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins(rotation)
     )
 
     snap=_current()
-    # Explicit real LEFT flat sheet, two selected models; all dimensions are
-    # recomputed from the current brand CSV and shared tooling, not this test.
+    # Both fresh and legacy CENTER persisted settings must resolve the
+    # same current source-backed LEFT+PAD for mixed CSV depth in one tier.
     snap["receiving_base_plate"]={
-        "pattern":"LEFT_FLAT_SIDE","height":340.,
+        "pattern":stored_pattern,"height":340.,
         "shrink_top":20.,"shrink_bottom":20.,
         "shrink_left":45.,"shrink_right":45.,"bend":20.,
     }
