@@ -504,6 +504,13 @@ def _export_selected_resolved_parts(self, folder, flags):
             receiving_snapshot, unmarked, selected, folder,
             dimensions=dimensions, sheet_thickness=sheet_thickness,
             overwrite=True,
+            # #1490: source-complete selected BODY/DOOR/BASE brings its
+            # physical PAD into the same atomic DXF set. Other selected
+            # sheet combinations remain independently legal.
+            require_complete_cabinet_inventory=(
+                bool(flags.get("box_body")) and bool(flags.get("door"))
+                and bool(flags.get("base_plate")) and bool(committed_csv)
+            ),
         )
         outputs = dict(bundle.output_paths)
     elif committed_csv and bool(flags.get("door") or flags.get("base_plate")):
