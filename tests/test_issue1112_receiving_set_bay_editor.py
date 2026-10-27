@@ -958,3 +958,55 @@ def test_native_receiving_designer_cold_start_does_not_commit_provisional_500_60
         except tk.TclError:
             pass
         root.destroy()
+
+
+@pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="native Windows Tk or Linux display required",
+)
+def test_native_receiving_w820_divider_profile_real_world_cross_green():
+    """Original native Tk W800→820 must refold physical Divider at 816, not 796."""
+    import time
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    main = gui.BoxCalculatorGUI(root)
+    try:
+        main.baseline_var.set("受電箱")
+        root.update()
+        designer = main.open_original_fold_designer()
+        root.update()
+        divider_keys = tuple(
+            key for key in designer.designer_workspace.available_parts
+            if key.startswith("box_body:divider:") and ":HORIZONTAL:" in key
+        )
+        assert len(divider_keys) == 1
+        key = divider_keys[0]
+        assert designer.designer_workspace.profiles_for(key)["Y"][0]["len"] == pytest.approx(796)
+        designer.v_w.set("820")
+        for _ in range(9):
+            root.update()
+            time.sleep(0.08)
+        bay = designer._phase6_input_snapshot["receiving_layout"]["sets"][0]["bays"][0]
+        assert bay["width"] == pytest.approx(820)
+        assert sum(
+            row[0] for row in bay["door_state"]["door_layout_columns"]
+        ) == pytest.approx(820)
+        assert designer.designer_workspace.profiles_for(key)["Y"][0]["len"] == pytest.approx(816)
+        # Source-certified CROSS stays enabled: assert the actual native
+        # renderer no longer reports its genuine 3D contact failure.
+        visible = "\\n".join(
+            text.get_text() for axis in designer.fig.axes for text in axis.texts
+        )
+        assert "inverse CROSS leaves real 3D collision unrelieved" not in visible
+        assert "3D Final Part Geometry 載入失敗" not in visible
+        assert "中隔：展開外框 158 × 816 mm" in visible
+    finally:
+        try:
+            if main.fold_designer_window is not None:
+                main.fold_designer_window.destroy()
+        except tk.TclError:
+            pass
+        root.destroy()
