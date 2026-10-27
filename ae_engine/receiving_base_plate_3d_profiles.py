@@ -7,6 +7,8 @@ base-plate formula.  Flat 33 and formed 35 are distinct source datums.
 """
 from __future__ import annotations
 
+from math import isfinite
+
 from .sheetmetal_part_adapters import (
     RECEIVING_BASE_PATTERN_CENTER, build_receiving_base_plate_result,
 )
@@ -19,6 +21,18 @@ def receiving_base_plate_3d_profiles(snapshot, physical=None):
         physical = receiving_base_plate_values(snapshot)
     if physical is None:
         return None
+    # Physical W/H/T and BEND enter the folded-mesh source, not just a UI
+    # preview.  Boolean, nonfinite and nonpositive values must fail closed
+    # before they can affect 3D placement or subsequent manufacturing checks.
+    dimensions = (snapshot["w"], snapshot["t"], physical["h"], physical["base_plate_bend"])
+    if any(
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not isfinite(float(value))
+        or value <= 0
+        for value in dimensions
+    ):
+        raise ValueError("Receiving base plate 3D profiles require positive finite W/H/T/bend")
     t = float(snapshot["t"])
     actual = build_receiving_base_plate_result(
         w=float(snapshot["w"]), h=float(physical["h"]), t=t,
