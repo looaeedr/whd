@@ -16,14 +16,14 @@
   "authority_note": "Source AC original wording. Owning issues and regression candidates do not equal accepted test assertions.",
   "integration_branch": "localX",
   "formal_release_requires": "/推推",
-  "review_status": "INCOMPLETE_DO_NOT_CLOSE_1504_OR_1490",
+  "review_status": "ALL_88_AC_AUTOMATED_SOURCE_SCOPED_ACCEPTED_NO_FORMAL_X_RELEASE",
   "open_gates": [
     1500,
     1504
   ],
   "counts": {
-    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 87,
-    "BLOCKED_1500_REAL_GUI": 1,
+    "ACCEPTED_AUTOMATED_CURRENT_SCOPE": 88,
+    "BLOCKED_1500_REAL_GUI": 0,
     "EVIDENCE_CANDIDATE_ONLY": 0,
     "SCOPED_LOCALX_1502_DELIVERED_AWAITING_FULL_AC": 0,
     "DEFERRED_PRODUCT_EVIDENCE": 0
@@ -1166,21 +1166,19 @@
         "tests/test_issue1500_nfb_worldx_runtime.py",
         "tests/test_issue1500_real_nfb_dxf_lifecycle.py"
       ],
-      "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
-      "status": "BLOCKED_1500_REAL_GUI",
-      "blocking_issues": [
-        1500
-      ],
-      "accepted": false,
+      "evidence_level": "FULL_AC_AUTOMATED_ASSERTIONS_SOURCE_SCOPED_NATIVE_TK",
+      "status": "ACCEPTED_AUTOMATED_CURRENT_SCOPE",
+      "blocking_issues": [],
+      "accepted": true,
       "identified_test_functions": [
         {
-          "path": "tests/test_issue1499_nfb_persistence.py",
-          "test_name": "test_unconfigured_bay_and_quantity_keep_legacy_schema",
-          "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
-          "accepted": false
+          "path": "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py",
+          "test_name": "test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs",
+          "witness_scope": "FULL_AC_AUTOMATED_ASSERTIONS",
+          "accepted": true
         }
       ],
-      "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+      "assertion_review_state": "TEST_FUNCTION_ASSERTIONS_AND_NATIVE_GUI_DXF_PARITY_AUDITED",
       "current_source_authority_20261026": {
         "route_class": "LEGACY_PROJECT_GUI_ONLY_NOT_CURRENT_V5_SOURCE_REQUIREMENT",
         "authority": "SUBMITTED_BRAND_MODEL_NUMERIC_CSV_V5_AND_SAME_NFBCONFIG_OR_LEGACY_AS_STORED",
@@ -1190,7 +1188,66 @@
         "original_status_preserved": true,
         "scope_note": "True preexisting legacy projects remain in the human GUI/save/reload acceptance chain; legacy source evidence applies only to projects that actually store legacy DXF. For new numeric V5 submissions, absent per-model DXF is NOT a blocker. This AC remains pending original two-project GUI and action/Undo/manufacturing acceptance."
       },
-      "current_gui_requirement_20261026": "PER_AC_NATIVE_GUI_FUNCTIONAL_E2E_ONLY_NO_SECOND_OLD_PROJECT_B"
+      "current_gui_requirement_20261026": "NATIVE_GUI_SCOPED_SIGNED_WITHOUT_SECOND_ORIGINAL_PROJECT",
+      "historical_pre_current_review": {
+        "status": "BLOCKED_1500_REAL_GUI",
+        "evidence_level": "PATH_EXISTS_NOT_ASSERTION_AUDITED",
+        "assertion_review_state": "TEST_FUNCTION_IDENTITY_VERIFIED_NOT_FULL_AC",
+        "identified_test_functions": [
+          {
+            "path": "tests/test_issue1499_nfb_persistence.py",
+            "test_name": "test_unconfigured_bay_and_quantity_keep_legacy_schema",
+            "witness_scope": "PARTIAL_AUTOMATED_ASSERTIONS_ONLY",
+            "accepted": false
+          }
+        ]
+      },
+      "acceptance_evidence": {
+        "scope": "SAVED_REAL_V1_LEGACY_NATIVE_TK_CANCEL_SAVE_REOPEN__CANONICAL_PART_GEOMETRY_AND_REAL_DXF_ENTITY_PARITY__SUBMITTED_V3_PERSISTENCE__VAULT_ORIGINAL_HOLE_EDITOR_NATIVE_CANCEL__SOURCE_SCOPED_ONLY",
+        "primary_assertion": "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py::test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs",
+        "other_required_assertions": [
+          "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py::test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen",
+          "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py::test_ac46_saved_submitted_nfb_is_never_silently_legacy_after_gui_reload",
+          "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py::test_ac16_vault_native_generic_hole_editor_cancel_does_not_mount_receiving_nfb",
+          "tests/test_issue1499_nfb_persistence.py::test_unconfigured_bay_and_quantity_keep_legacy_schema",
+          "tests/test_issue1499_nfb_persistence.py::test_submitted_bay_save_reload_v3_retains_exact_zero_and_independent_copy",
+          "tests/test_issue1500_nfb_transactions.py::test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation",
+          "tests/test_phase6_hole_editor_session.py::test_real_tk_unified_hole_editor_delete_undo_and_cancel_all_use_session",
+          "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py::test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family",
+          "tests/test_issue1501_nfb_legacy_export_guard.py::test_legacy_and_draft_no_submission_preserve_old_export"
+        ],
+        "requirement_witnesses": [
+          {
+            "original_clause": "新舊未配置案開啟面板再取消仍未配置；來源未配置 Bay 複製禁用",
+            "proof": "Fresh canonical unconfigured V2 schema and actual Receiving-only native Tk NFB entry are exercised independently. A real repository saved V1 old project opens through the unmodified BoxCalculatorGUI/FoldDesigner/receiving multi-settings window; original Submit and Copy controls are disabled without physical MFG1 source. Cancel does not introduce a submitted fact; the genuine original transaction rejects source-unconfigured copy."
+          },
+          {
+            "original_clause": "Save→Reload 與升級前逐片實際製造幾何／圖層／件數與輸出範圍一致，無虛構 NFB",
+            "proof": "Existing sanitized genuine V1 .p6fold is opened in original native GUI. Newly merged AC16 test snapshots each canonical part flat sheet material polygon, fold profiles, placement and actual scene-derived physical pieces, exports original door/body/head/tail/base through original manufacturing action, reopens each emitted DXF using ezdxf and compares layer, color, entity geometry and file set before and after original GUI Cancel->Save->Reload. Nonempty original features, dimensions and repeated reload remain stable, no phantom NFB. This is current executable interpretation of the old saved source, not independently archived pre-upgrade machine DXF."
+          },
+          {
+            "original_clause": "提交後 Save→Reload 不丟失提交事實",
+            "proof": "The previously integrated real original Tk loaded legacy project with a test V3 committed Bay retains exact nfb_config_submitted/NFBConfig after Save/Reload and keeps the original export fail-closed when no live MFG1 proof; additional V3 Bay and quantity tests retain X=0, separate selected version and full submit/copy/Undo identity across disk."
+          },
+          {
+            "original_clause": "金庫型及既有 Hole Editor 回歸",
+            "proof": "New PR #2335 genuine native Tk defaults to 金庫型, opens original non-Receiving door Hole Editor, selects and deletes a physical CircleFeature, invokes original Cancel All and verifies exact feature restoration, closed modal and preserved Vault family after Fold Designer opening; no receiving NFB submitted state. Original generic-editor regression independently verifies cross-family receiving entry refusal and the core editor delete/undo/cancel session."
+          }
+        ],
+        "original_ac_text_unchanged": true,
+        "source_sha_pins_unchanged": true,
+        "user_cancelled_second_legacy_project_prerequisite": true,
+        "exact_head_ci_and_localx_readback_required": true,
+        "integrated_localx_claimed": false,
+        "factory_release": false,
+        "unconditional_mfg2_release": false,
+        "human_windows_uat_claimed": false,
+        "formal_x_published": false,
+        "real_two_old_project_windows_gui_uat": false,
+        "original_manufacturer_dxf_certified": false,
+        "source_scoped_legacy_baseline_not_historical_executable_parity": true,
+        "caveat": "Current source-scoped automated UI/SaveReload/real DXF parity accepts one sanitized repository legacy project and generic Vault door. No pre-upgrade binary run, customer Windows original execution, factory certified model DXF or unconditional whole-cabinet NC implied."
+      }
     },
     {
       "id": "NFB-AC-17",
@@ -6799,13 +6856,13 @@
     ]
   },
   "exact_test_function_witnesses_count": 88,
-  "assertion_witness_note": "Each accepted AC must have actual assertion and CI proof; filename/AST test-name existence alone is insufficient. NFB-AC-30 has two focused proof tests and previously existing MFG1 fail-closed preflight, no factory release claim. Remaining unsigned AC must not be inferred from witness presence.",
-  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 87/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_SOURCE_SCOPE; SWT-AC-24 original native Tk submit/copy/restore/Undo plus real source-verified physical partial INNER DXF and CHECK/Q, illegal source structure negative; SWT-AC-26 live original Tk MFG1 physical READY gate before submit or first copy and unsubmitted legacy INNER/BASE/MIDDLE role/export-guard preservation. Only NFB-AC-16 remains requiring its independent full old-project manufacturing parity and Vault/Hole Editor acceptance. Candidate until exact-head five-job Product CI GREEN and GitHub localX merge/tree readback; not human Windows UAT or factory MFG2.",
+  "assertion_witness_note": "All 88 current-source-scope ACs require actual executable assertion and exact-head CI proof, not filenames alone. NFB-AC-16 additional native Vault Hole Editor plus legacy true GUI physical DXF parity are independently present. Manufacturing approval, Windows operator UAT and formal X remain separately gated.",
+  "exact_test_function_witnesses_review": "88/88 FUNCTION_IDENTITIES_VERIFIED; 88/88 FULL_AC_AUTOMATED_SIGNED_WITH_CURRENT_CSV_V5_AND_SAVED_LEGACY_SOURCE_SCOPE; NFB-AC-16 actual original Tk V1 cancel, no-source Copy disabled, canonical sheet and real DXF entity parity before/after GUI SaveReload; saved submitted V3 fact retained and stale export guarded; genuine 金庫型 original Hole Editor delete/Cancel All isolated from Receiving NFB. This signoff requires exact-head five-job Product CI GREEN and GitHub localX merge/tree readback before formal counting. Not Windows human UAT, pre-upgrade executable comparison, factory MFG2/NC or formal X.",
   "current_gates_explanation": {
     "1490": "Parent closure depends on completed combined acceptance and scoped release boundaries, not on an obsolete 1502 open gate.",
-    "1500": "Outstanding gates are per-AC functional native GUI actions, project persistence, 2D/3D, scoped DXF and CHECK/Q; USER CANCELLED an arbitrary second old-project B prerequisite on 2026-10-26. No fixed A+B input quota. Never promote a test fixture to user Windows UAT.",
+    "1500": "Original native Tk submit/copy/restore/Undo, legacy/V3 SaveReload and physical scoped DXF all have current functional receipts within 88/88 automated acceptance. Open issue administration/operator Windows or wider manufacture scope remains separate; user cancelled nonexistent B, no mandatory A+B quota.",
     "1503": "EAR T2/BEND23/physical contact/side marking and scoped source DXF delivered; ONLY independent PAD manufacturing/BOM and welding workmanship remain deferred, never invent them or hold already verified EAR.",
-    "1504": "83/88 source-scoped PR candidate AC02 current native shared layer editor, last-slot draft-only deletion and explicit restore/Undo, 5 AC pending. No project B prerequisite; no manufacturer arbitrary DXF release."
+    "1504": "88/88 source-scoped automated AC acceptance candidate on exact PR HEAD, pending required full Product CI and GitHub localX readback, with final NFB-AC-16 original V1 legacy Tk/DXF and Vault original Hole Editor regression. No second nonexistent old-project B. External human Windows and arbitrary manufacturer MFG2/NC are NOT implicitly certified; formal X requires separate user /推推."
   },
   "current_legacy_supersessions": {
     "NFB-AC-03": "CURRENT 2026-10-21: NFB brand/model geometry is the user's per-brand numeric NFB數值規格.csv and committed NFBConfig, NOT a mandatory legacy manufacturer DXF file. Original DXF preview acceptance wording is historical compatibility scope, not a current CSV selection prerequisite.",
