@@ -5,6 +5,15 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## 2026-10-27 台灣｜#1504 NFB-AC-16 第 88 條來源範圍簽核候選（87→88）
+
+- **原文、原始規格 SHA 不改**。舊 V1 專案走原始 BoxCalculatorGUI 多連 NFB 面板，無來源提交／複製禁用；Cancel 與真 Save→Reload 後無虛構 NFB、原有孔與折形未失；原始制造 DXF 的逐檔 entity type、layer、color、geometry 與文件集合前後一致。
+- **舊專案／實際 DXF**：tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py::test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs，另 test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen 保護原孔、尺寸及再次存檔一致性。比較當前原始 V1 專案在現行 WHD 操作前後，沒有虛構歷史舊執行檔製造參照。
+- **已提交與拒絕複製**：test_ac46_saved_submitted_nfb_is_never_silently_legacy_after_gui_reload 在真 Tk V3 確認保存提交事實，沒有當前 MFG1 證據禁止直接用舊式內門／底板出 DXF；test_unconfigured_source_copy_forbidden_and_overwrite_needs_confirmation 驗來源未配置複製不成立；新案未配置 schema 不升版。
+- **金庫型／舊 Hole Editor**：PR #2335 exact HEAD 0f6347eb3a0c2c17a4ccbd73e0befc6729f0dd15 的 Preflight、Shard0／1／2、Canonical 全部 SUCCESS，已合併 GitHub localX@9376a1f24266ef131b401cfd5cc0b570cef18a64。test_ac16_vault_native_generic_hole_editor_cancel_does_not_mount_receiving_nfb 原生 Tk 真刪除、取消全部、原孔精確還原、Vault 仍為金庫型、不產生 NFB submitted。先前 PR #2334 舊案真 GUI 及 DXF 前後比對亦 5/5 GREEN 並已合併。
+- **88/88 限定**：本次另加真證據逐項 audit，最後簽核 PR 五組 exact-head Product CI 全綠及 GitHub localX 安全合併、blob readback 後才正式算 88。無 Windows 真人驗收、無歷史舊程式輸出物對照、無原廠全部 DXF／PAD／焊接／整箱 MFG2／NC 放行；正式 X 只有使用者另下 /推推。
+
+---
 ## 2026-10-27 台灣｜#1504 SWT-AC-24／26 兩條逐條正反簽核（85→87 候選）
 
 - **SWT-AC-24**：原生 Tk MFG-1 有源提交與首次複製、Cancel／Restore／Undo／V3 Save→Reload 同已驗功能串核；PR #2332 真實部分出圖器產出內門 CUTTING 兩輪廓，物理 manifest 僅允許 INNER 2 片、MIDDLE 1 片仍 HOLD；同一已核准 render data 的真 CHECK/Q DXF 重開 `Q2`，Color150 開孔來源結構違反時禁止新的出圖。引用完整來源測試及現行機器收據，不把局部核准冒充整櫃 MFG-2。
