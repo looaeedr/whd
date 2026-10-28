@@ -271,9 +271,8 @@ def test_receiving_multipart_project_round_trip_preserves_joints_shrinks_feature
 
         designer2 = app2.open_original_fold_designer()
         root2.update_idletasks(); root2.update()
-        bridge._phase6_refresh_assembly_parts_panel(designer2)
-        root2.update_idletasks(); root2.update()
-
+        # The designer constructor has already installed real Assembly rows.
+        # A second topology-only refresh can drop the nested physical pieces.
         wanted = tuple(designer2.designer_workspace.available_parts)
         operator_wanted = bridge._phase6_operator_part_selector_keys(wanted)
         assert tuple(designer2.assembly_part_formed_vars) == operator_wanted
