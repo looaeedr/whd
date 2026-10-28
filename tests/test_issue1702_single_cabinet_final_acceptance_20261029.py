@@ -58,9 +58,19 @@ def test_single_receiving_true_panel_dimensions_physical_bom_and_project_reload(
     assert any(row.physical_id.endswith("left_side") for row in demands)
     assert any(row.physical_id.endswith("right_side") for row in demands)
 
+    # The _prepare() NFB transport fixture intentionally uses an incomplete
+    # single-Bay stub; it is not a saveable operator project. Save/reload a
+    # genuine single-cabinet Receiving project produced by the CURRENT
+    # receiving-mode authority rather than weakening persistence validation.
+    from phase6_receiving_modes import fresh_receiving_mode
+    persisted_source = fresh_receiving_mode(
+        "set_bay", {"w": 800.0, "h": 1600.0, "d": 350.0}
+    )
+    assert len(persisted_source["receiving_layout"]["sets"]) == 1
+    assert len(persisted_source["receiving_layout"]["sets"][0]["bays"]) == 1
     project = write_project(
         tmp_path / "single-cabinet.p6fold",
-        {"schema": PROJECT_SCHEMA_V2, "snapshot": source},
+        {"schema": PROJECT_SCHEMA_V2, "snapshot": persisted_source},
     )
     persisted = read_project(project)
     assert persisted["final_geometry"] == {}
