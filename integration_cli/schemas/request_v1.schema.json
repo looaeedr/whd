@@ -320,7 +320,9 @@
                     "mirror_x",
                     "mirror_y",
                     "source_geometry_sha256",
-                    "source_entity_refs"
+                    "source_entity_refs",
+                    "source_dimensions_mm",
+                    "target_dimensions_mm"
                   ],
                   "properties": {
                     "source_frame_id": {
@@ -392,8 +394,84 @@
                         "minLength": 1,
                         "maxLength": 256
                       }
+                    },
+                    "source_dimensions_mm": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "width",
+                        "height"
+                      ],
+                      "properties": {
+                        "width": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "height": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        }
+                      }
+                    },
+                    "target_dimensions_mm": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "width",
+                        "height"
+                      ],
+                      "properties": {
+                        "width": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "height": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        }
+                      }
                     }
-                  }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "source_units": {
+                            "const": "mm"
+                          }
+                        },
+                        "required": [
+                          "source_units"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "source_to_mm_scale": {
+                            "const": 1
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "source_units": {
+                            "const": "inch"
+                          }
+                        },
+                        "required": [
+                          "source_units"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "source_to_mm_scale": {
+                            "const": 25.4
+                          }
+                        }
+                      }
+                    }
+                  ]
                 },
                 "center_mm": {
                   "type": "array",
