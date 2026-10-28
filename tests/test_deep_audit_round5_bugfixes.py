@@ -929,3 +929,23 @@ def test_audit116_bug94_invalid_door_width_entry_restores_last_committed_value(
     assert width_var.get() == "450"
     assert len(commits) == 2
     assert len(warnings) == 1
+
+
+@pytest.mark.parametrize("bad_t", [True, False, -1., float("nan"), float("inf"), float("-inf"), 10 ** 400])
+def test_r5_74_operator_finished_mesh_explicit_invalid_t_fails_closed(bad_t):
+    """Do not replace an explicitly corrupted FinalScene T with saved T2."""
+    mesh = (((0., 0., 0.), (4., 0., 0.), (0., 2., 0.)),)
+    saved = {"w": 800., "h": 1600., "d": 350., "t": 2.}
+    with pytest.raises(ValueError, match="FOLDED_ENVELOPE_INVALID_WORLD_MESH"):
+        resolve_operator_finished_dimensions(
+            "box_body", snapshot=saved, triangles=mesh, thickness=bad_t,
+        )
+
+
+def test_r5_74_operator_finished_mesh_missing_t_uses_existing_valid_saved_t():
+    mesh = (((0., 0., 0.), (4., 0., 0.), (0., 2., 0.)),)
+    saved = {"w": 800., "h": 1600., "d": 350., "t": 2.}
+    for explicit in (None, 2.):
+        assert resolve_operator_finished_dimensions(
+            "box_body", snapshot=saved, triangles=mesh, thickness=explicit,
+        ) == pytest.approx((4., 2., 4.))
