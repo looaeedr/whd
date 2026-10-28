@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import os
 from pathlib import Path
 import re
@@ -67,13 +66,15 @@ def _validator(name: str) -> Draft202012Validator:
 
 
 def _read_request(path: Path) -> dict[str, Any]:
-    if not path.is_file() or path.is_symlink():
-        raise WorkerFailure("WHD_REQUEST_UNREADABLE", "request must be a regular file", exit_code=4)
-    size = path.stat().st_size
-    if size < 1 or size > MAX_REQUEST_BYTES:
-        raise WorkerFailure("WHD_REQUEST_SIZE_INVALID", "request is empty or too large", exit_code=4)
     try:
+        if not path.is_file() or path.is_symlink():
+            raise WorkerFailure("WHD_REQUEST_UNREADABLE", "request must be a regular file", exit_code=4)
+        size = path.stat().st_size
+        if size < 1 or size > MAX_REQUEST_BYTES:
+            raise WorkerFailure("WHD_REQUEST_SIZE_INVALID", "request is empty or too large", exit_code=4)
         request = _strict_json(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise WorkerFailure("WHD_REQUEST_UNREADABLE", f"request read failed: {exc}", exit_code=4) from exc
     except (UnicodeError, ValueError) as exc:
         raise WorkerFailure("WHD_JSON_INVALID", f"invalid UTF-8 JSON: {exc}", exit_code=2) from exc
     if not isinstance(request, dict):
@@ -187,7 +188,15 @@ def _failure_response(
     if request is not None:
         for key in ("client_installation_id", "request_id", "job_id", "request_digest"):
             value = request.get(key)
-            if isinstance(value, str) and value:
+            if not isinstance(value, str):
+                continue
+            if key == "request_digest":
+                valid = re.fullmatch(r"[a-f0-9]{64}", value) is not None
+            elif key in {"request_id", "job_id"}:
+                valid = re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", value) is not None
+            else:
+                valid = 1 <= len(value) <= 256
+            if valid:
                 response[key] = value
     _validator("response_v1.schema.json").validate(response)
     return response
