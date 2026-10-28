@@ -2577,6 +2577,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 )
             live_nfb_preview["dirty"] = False
 
+        # Keep the native tab rollback on its actual modal, not as an
+        # unbound callback name in the independently tested close_editor.
+        modal._receiving_live_nfb_rollback = rollback_live_nfb_preview
+
         def add_switch(index):
             before_x_change = deepcopy(draft_state["draft"])
             selected = layer_rows[index]["available"].curselection()
@@ -3250,7 +3254,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     pass
                 poll_job["id"] = None
             if not saved:
-                rollback_live_nfb_preview()
+                rollback = getattr(modal, "_receiving_live_nfb_rollback", None)
+                if callable(rollback):
+                    rollback()
             if modal.grab_current() is modal:
                 modal.grab_release()
             modal.destroy()
