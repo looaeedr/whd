@@ -3092,8 +3092,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # Only bootstrap reversible draft geometry when the actual native
         # editor has fewer CSV slots than the physical selections. The user
         # must Confirm All; Cancel restores the exact prior feature state.
-        if (embed_parent is not None
-                and (direct_to_drawing or initial.get("_restored_saved_nfb_models"))):
+        if (embed_parent is not None and (
+                initial.get("_restored_saved_nfb_models")
+                or (direct_to_drawing and sum(
+                    len(row) for row in chosen[:layers.get()]
+                ) > 1)
+        )):
+            # Do NOT stage a fresh single default NFB merely by opening the
+            # native tab. An untouched entry is not an operator-confirmed
+            # physical change (SWT-05). Only repair genuinely missing second
+            # slots or an explicitly recovered legacy multiple-NFB draft.
             owner_editor = embed_parent.winfo_toplevel()
             pending = getattr(owner_editor, "_receiving_pending_features", None)
             if callable(pending):
