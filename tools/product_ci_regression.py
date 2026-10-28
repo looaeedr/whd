@@ -181,6 +181,9 @@ PYTEST_PATHS = (
     "tests/test_issue1500_nfb_worldx_runtime.py",
     "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
     "tests/test_issue1500_nfb_operator_gui_transactions.py",
+    # Multi-Bay one canonical INNER editor; left Set/Bay sidebar is -10%
+    # initially and the sash remains operator-draggable across tab changes.
+    "tests/test_receiving_multi_clean_nfb_draggable_sidebar_20261028.py",
     # #1500: live Receiving candidate Save As -> reopen -> independent Bay2.
     "tests/test_issue1500_receiving_candidate_main_save.py",
     "tests/test_issue1504_v14_ac_traceability.py",
