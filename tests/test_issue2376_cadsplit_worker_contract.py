@@ -152,10 +152,10 @@ def capabilities():
         "engine_commit": COMMIT,
         "build_id": "test-not-released",
         "engine_sha256": HASH,
-        "resource_revision": HASH,
-        "registry_sha256": HASH,
-        "baseline_manifest_sha256": HASH,
-        "policy_sha256": HASH,
+        "resource_revision": None,
+        "registry_sha256": None,
+        "baseline_manifest_sha256": None,
+        "policy_sha256": None,
         "coordinate_contract_revision": "1",
         "min_client_version": "1.0.0",
         "max_batch_items": 20,
@@ -326,3 +326,21 @@ def test_successful_response_cannot_omit_job_correlation():
     result.pop("request_digest")
     with pytest.raises(ValidationError):
         schema("response_v1.schema.json").validate(result)
+
+
+def test_resource_missing_capability_response_must_not_fabricate_hashes():
+    validator = schema("capabilities_v1.schema.json")
+    record = capabilities()
+    validator.validate(record)
+    record["registry_sha256"] = HASH
+    with pytest.raises(ValidationError):
+        validator.validate(record)
+    record["registry_sha256"] = None
+    record["resource_health"] = {
+        "registry": "ready", "baseline": "ready", "policy": "ready"
+    }
+    record["registry_sha256"] = HASH
+    record["baseline_manifest_sha256"] = HASH
+    record["policy_sha256"] = HASH
+    record["resource_revision"] = HASH
+    validator.validate(record)
