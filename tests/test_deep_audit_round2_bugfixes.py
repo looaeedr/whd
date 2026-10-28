@@ -36,7 +36,8 @@ from ae_engine.sheetmetal_features import (
 from ae_engine.sheetmetal_geometry_shared import _clip_axis_bend
 import fold_designer_bridge
 from gui_modules.application import door_layout_host_adapter, render_snapshots
-from gui_modules.application.fold_designer_part_session import Phase6PartSessionOwner, reconcile_standard_part_bend_editor
+from gui_modules.application.fold_designer_part_session import Phase6PartSessionOwner
+from phase6_bending_ui import Phase6BendingUI
 from gui_modules.project import export_actions
 from phase6_box_body_structure import BackPanelMode, set_side_back_back_panel_mode
 from phase6_custom_parts import custom_part_only_change
@@ -148,11 +149,12 @@ def test_r2_1_commit_box_body_right_side_syncs_zr1_and_uses_settings_thickness(m
 
 
 
-def test_r2_2a_custom_part_activation_reconciles_stale_box_bend_controls():
-    """A newly created custom sheet cannot inherit the box's 9 Tk bend rows."""
+def test_r2_2a_custom_sheet_bending_ui_clears_stale_vault_and_rebuilds_from_active_axis():
+    """The BendingUI owner must not reuse the box-body's nine old row controls."""
     state = SimpleNamespace(
         struct_mode="standard",
         phase6_fold_ui_vault_key="箱身",
+        phase6_fold_ui_tabs=["X"],
         active_bend="X",
         profiles={
             "X": [
@@ -172,29 +174,34 @@ def test_r2_2a_custom_part_activation_reconciles_stale_box_bend_controls():
         def set(self, value):
             self.value = value
 
-    class BendControls:
-        def __init__(self):
-            self.controls = [{} for _ in range(9)]
-            self.rebuild_count = 0
+    ui = Phase6BendingUI.__new__(Phase6BendingUI)
+    ui.state = state
+    ui.controls = [{} for _ in range(9)]
+    rebuilds = []
+    def rebuild():
+        rebuilds.append(state.active_bend)
+        ui.controls = [{} for _ in state.profiles[state.active_bend]]
+    ui.rebuild_tabs = rebuild
+    mode = Mode()
 
-        def rebuild_tabs(self):
-            self.rebuild_count += 1
-            self.controls = [{} for _ in state.profiles[state.active_bend]]
-
-    app = SimpleNamespace(state=state, v_mode=Mode(), bend_ui=BendControls())
-    assert reconcile_standard_part_bend_editor(app, "standard") is True
+    ui.activate_standard_part_controls(mode)
     assert state.phase6_fold_ui_vault_key is None
-    assert app.v_mode.get() == "standard"
-    assert len(app.bend_ui.controls) == 2
-    assert app.bend_ui.rebuild_count == 1
+    assert mode.get() == "standard"
+    assert len(ui.controls) == 2
+    assert rebuilds == ["X"]
 
-    # Stable editor data must not be rebuilt on every harmless refresh.
-    assert reconcile_standard_part_bend_editor(app, "standard") is False
-    assert app.bend_ui.rebuild_count == 1
-    # A real box-body/vault activation is not a standard-part repair target.
-    app.v_mode.set("vault")
-    assert reconcile_standard_part_bend_editor(app, "vault") is False
-    assert app.v_mode.get() == "vault"
+    # Metadata edits can switch the fold axis with the same part selected.
+    state.active_bend = "Y"
+    state.phase6_fold_ui_tabs = ["Y"]
+    ui.activate_standard_part_controls(mode)
+    assert len(ui.controls) == 1
+    assert rebuilds == ["X", "Y"]
+
+    # Guard the precondition: never silently project custom controls into vault.
+    state.struct_mode = "vault"
+    with pytest.raises(ValueError, match="標準模式"):
+        ui.activate_standard_part_controls(mode)
+
 
 
 def test_r2_2_save_current_part_custom_part_saves_bend_ui_and_outside_compensation(monkeypatch):
