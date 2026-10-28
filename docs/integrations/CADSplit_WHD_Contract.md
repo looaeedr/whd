@@ -78,8 +78,15 @@ geometry before enabling it; otherwise refuse `WHD_FRAME_UNVERIFIED`.
 
 Each Feature carries stable `feature_id`, `source_ref`, and a
 `source_transform` containing source frame, unit authority, explicit
-source-to-mm scale, 2×2 matrix, translation, quarter-turn rotation,
+source-to-mm scale, **source and target dimensions in mm**, 2×2 matrix,
+translation, quarter-turn rotation,
 both mirror flags, source geometry SHA-256 and source entity references.
+For protocol revision 1, source units are explicitly limited to `mm` with
+scale **1.0** or `inch` with scale **25.4**. The matrix acts on source
+coordinates **after** the declared unit conversion; translation is in mm:
+`target_mm = matrix_2x2 × (source_xy × source_to_mm_scale) + translation_mm`.
+The scale must not be applied a second time. Schema validates unit/scale pairing;
+WHD runtime still validates matrix/shape/Frame consistency.
 CADSplit owns the source transform **evidence**, but WHD verifies target
 acceptance. Negative source coordinates are legal evidence; manufacturing
 feature geometry must remain within the accepted target face.
