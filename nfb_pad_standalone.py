@@ -31,6 +31,8 @@ class StandalonePadWindow(tk.Tk):
         self.thickness = tk.StringVar(value="2")
         self.view = tk.StringVar(value="2D 展開")
         self._make_layout()
+        # Any thickness edit invalidates the previously computed drawing.
+        self.thickness.trace_add("write", lambda *_: self._invalidate())
         self._refresh_models()
 
     def _make_layout(self):
