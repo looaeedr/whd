@@ -131,6 +131,8 @@ def build_resource_evidence(
         raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "Registry not specified")
     if not isinstance(baseline_paths, (list, tuple)) or not baseline_paths:
         raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "verified baseline selection missing")
+    if not all(isinstance(p, str) and p for p in baseline_paths):
+        raise PrepareEvidenceError("WHD_RESOURCE_PATH_INVALID", "invalid baseline identity")
     if not isinstance(resolved_policy, Mapping) or not resolved_policy:
         raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "WHD resolved policy required")
     if not isinstance(locked_inputs, Mapping) or not locked_inputs:
@@ -165,3 +167,35 @@ def assert_snapshot_current(expected: Mapping[str, Any], current: Mapping[str, A
             raise PrepareEvidenceError("WHD_PREPARE_STALE", "prepared evidence was modified")
     if not hmac.compare_digest(expected["environment_fingerprint"], current["environment_fingerprint"]):
         raise PrepareEvidenceError("WHD_PREPARE_STALE", "Registry, baseline, policy, build or dimensions changed")
+
+
+def resolve_authoritative_door_inputs(spec: Any, context: Any) -> dict[str, Any]:
+    """Read dimensions and policy from WHD's owning manufacturing API.
+
+    The caller must supply an already certified DoorPartSpec / frame-edge
+    topology. This intentionally does not infer a source drawing frame or
+    invent a 3D target datum, and cannot mint a prepare token.
+    """
+    from dataclasses import asdict
+    from ae_engine.contracts import DoorPartSpec, ManufacturingContext
+    from ae_engine.manufacturing_api import resolve_policy, door_finished_face_size
+
+    if not isinstance(spec, DoorPartSpec) or not isinstance(context, ManufacturingContext):
+        raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "verified WHD DoorPartSpec/context required")
+    policy = resolve_policy(context)
+    width, height = door_finished_face_size(spec, context)
+    if not math.isfinite(width) or not math.isfinite(height) or width <= 0 or height <= 0:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "WHD finished-face dimensions invalid")
+    return {
+        "resolved_policy": _pure_json(asdict(policy)),
+        "finished_face_dimensions_mm": {"width": width, "height": height},
+        "part_kind": "door",
+        "cabinet_family": spec.model_name,
+        "input_dimensions_mm": {
+            "width": float(spec.width), "height": float(spec.height),
+            "thickness": float(spec.thickness), "frame_width": float(spec.frame_width),
+        },
+        "frame_edges": _pure_json(asdict(spec.frame_edges)),
+        "coordinate_space": "finished_face",
+        "target_frame_certified": False,
+    }
