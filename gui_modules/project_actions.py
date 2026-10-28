@@ -103,20 +103,25 @@ def load_phase6_project(self, path, *, open_designer=True):
             return payload
         designer = self.open_original_fold_designer()
         from ae_engine.cabinet_types.receiving import is_receiving_snapshot
-        if designer is previous_designer and is_receiving_snapshot(snapshot):
-            # The primary application already owns an open designer. Reusing
-            # its window must still replace the loaded project's canonical
-            # workspace and refresh the real physical-part navigation.
+        if is_receiving_snapshot(snapshot):
+            # A freshly constructed Designer also starts from the main GUI's
+            # projection, which can have only the default first NFB. Restoring
+            # the saved ReceivingLayout only when reusing an old Designer
+            # silently discards the second (or later) submitted NFB on the
+            # very FIRST open of a legacy Set/Bay project. Both paths must
+            # restore the same accepted project snapshot, not synthetic
+            # default Bay data or a stale main-GUI alias.
             import fold_designer_bridge as bridge
             from gui_modules.application.fold_designer_composition_receiving import _apply_mode_snapshot
 
-            previous_guard = designer._phase6_baseline_guard
-            designer._phase6_baseline_guard = True
-            try:
-                designer.baseline_model_var.set(snapshot["model"])
-                designer._phase6_baseline_last_model = snapshot["model"]
-            finally:
-                designer._phase6_baseline_guard = previous_guard
+            if designer is previous_designer:
+                previous_guard = designer._phase6_baseline_guard
+                designer._phase6_baseline_guard = True
+                try:
+                    designer.baseline_model_var.set(snapshot["model"])
+                    designer._phase6_baseline_last_model = snapshot["model"]
+                finally:
+                    designer._phase6_baseline_guard = previous_guard
             _apply_mode_snapshot(bridge._phase6_composition(designer), vars(bridge), snapshot)
             designer._refresh_part_buttons()
             designer._phase6_current_project_path = str(Path(path))
