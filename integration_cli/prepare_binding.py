@@ -47,7 +47,8 @@ def _binding_payload(
         item_id = part.get("item_id")
         physical = part.get("physical_part_id")
         frame = part.get("target_frame")
-        _validate_identity(item_id, "item_id")
+        if not isinstance(item_id, str) or not (1 <= len(item_id) <= 256):
+            raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "invalid item_id")
         _validate_identity(physical, "physical_part_id")
         if not isinstance(frame, Mapping):
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "missing authoritative Frame")
@@ -67,7 +68,10 @@ def _binding_payload(
             "target_frame": _pure_json(frame),
             "locked_dimensions_mm": _pure_json(part.get("locked_dimensions_mm")),
             "source_document_sha256": part.get("source_document_sha256"),
+            "source_part_ref": part.get("source_part_ref"),
         })
+        if not isinstance(checked[-1]["source_part_ref"], str) or not checked[-1]["source_part_ref"]:
+            raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "source part ownership required")
         if not isinstance(checked[-1]["locked_dimensions_mm"], dict) or not checked[-1]["locked_dimensions_mm"]:
             raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "locked dimensions required")
         if not isinstance(checked[-1]["source_document_sha256"], str) or not _HASH.fullmatch(checked[-1]["source_document_sha256"]):
@@ -97,9 +101,16 @@ def create_preparation_binding(
     )
     digest = evidence_digest(payload)
     tag = hmac.new(worker_key, ("WHD-W03-v1:" + digest).encode("ascii"), hashlib.sha256).hexdigest()
+    item_digests = {
+        item["item_id"]: evidence_digest({"binding_revision": "WHD_PREPARE_ITEM_V1",
+            "environment_fingerprint": environment_fingerprint,
+            "item": item})
+        for item in payload["items"]
+    }
     return {
         "prepare_token": f"w3.{digest}.{tag}",
         "preparation_digest": digest,
+        "item_preparation_digests": item_digests,
         "environment_fingerprint": environment_fingerprint,
     }
 
