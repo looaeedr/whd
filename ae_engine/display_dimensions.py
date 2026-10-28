@@ -128,7 +128,10 @@ def resolve_operator_finished_dimensions(
     t = _preferred_number(thickness, settings.get("t"), snapshot.get("t"), default=2.0)
 
     if triangles:
-        envelope = folded_outside_envelope(triangles, t)
+        # A supplied physical T is authoritative even when invalid: do not
+        # silently replace it with a saved/GUI fallback before mesh validation.
+        mesh_t = thickness if thickness is not None else t
+        envelope = folded_outside_envelope(triangles, mesh_t)
         if envelope is not None:
             measured, _bounds = envelope
             if key == "box_body":
