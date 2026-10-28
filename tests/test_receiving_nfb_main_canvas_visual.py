@@ -80,9 +80,14 @@ def test_receiving_confirm_draws_two_csv_nfb_holes_on_native_main_canvas():
         drawing = max(canvas_candidates, key=lambda w: len(w.find_all()))
 
         def drawn_nfb_profiles():
-            return tuple(i for i in drawing.find_all()
-                         if drawing.type(i) == "polygon"
-                         and drawing.itemcget(i, "outline").lower() == "#ff9f0a")
+            # One original NFB may be redrawn twice at identical pixels by
+            # the legacy baseline and editable overlay. These are NOT two
+            # physical holes. Count distinct native Canvas geometries.
+            return tuple(sorted({
+                drawing.bbox(i) for i in drawing.find_all()
+                if drawing.type(i) == "polygon"
+                and drawing.itemcget(i, "outline").lower() == "#ff9f0a"
+            }))
 
         # A new Receiving cabinet already owns one real CSV NFB opening.
         # The native editor must render its existing CUTTING before edits;
