@@ -363,6 +363,8 @@ PYTEST_PATHS = (
     # Revised uploaded 固定片.dxf T2 actual BEND23 and moved CUTTING slots.
     "tests/test_issue1503_revised_fixed_plate_source_bend.py",
     "tests/test_issue1050_receiving_mother_plate_marking.py",
+    # #1702 exact single-cabinet source-to-physical-DXF self-acceptance.
+    "tests/test_issue1702_single_cabinet_final_acceptance_20261029.py",
     "tests/test_receiving_inner_frame_last_flange_contact.py",
     "tests/test_phase6_t15_inner_door_panels.py",
     "tests/test_issue1901_inner_door_feature_candidates.py",
