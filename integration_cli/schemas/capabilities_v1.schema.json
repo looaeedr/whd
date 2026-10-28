@@ -56,20 +56,48 @@
       "pattern": "^[a-f0-9]{64}$"
     },
     "resource_revision": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "registry_sha256": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "baseline_manifest_sha256": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "policy_sha256": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "coordinate_contract_revision": {
       "const": "1"
@@ -258,5 +286,178 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "resource_health": {
+            "properties": {
+              "registry": {
+                "const": "ready"
+              }
+            },
+            "required": [
+              "registry"
+            ]
+          }
+        },
+        "required": [
+          "resource_health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "registry_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "resource_health": {
+            "properties": {
+              "registry": {
+                "enum": [
+                  "missing",
+                  "invalid",
+                  "not_applicable"
+                ]
+              }
+            },
+            "required": [
+              "registry"
+            ]
+          }
+        },
+        "required": [
+          "resource_health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "registry_sha256": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "resource_health": {
+            "properties": {
+              "baseline": {
+                "const": "ready"
+              }
+            },
+            "required": [
+              "baseline"
+            ]
+          }
+        },
+        "required": [
+          "resource_health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "baseline_manifest_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "resource_health": {
+            "properties": {
+              "baseline": {
+                "enum": [
+                  "missing",
+                  "invalid",
+                  "not_applicable"
+                ]
+              }
+            },
+            "required": [
+              "baseline"
+            ]
+          }
+        },
+        "required": [
+          "resource_health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "baseline_manifest_sha256": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "resource_health": {
+            "properties": {
+              "policy": {
+                "const": "ready"
+              }
+            },
+            "required": [
+              "policy"
+            ]
+          }
+        },
+        "required": [
+          "resource_health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "policy_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "resource_health": {
+            "properties": {
+              "policy": {
+                "enum": [
+                  "missing",
+                  "invalid",
+                  "not_applicable"
+                ]
+              }
+            },
+            "required": [
+              "policy"
+            ]
+          }
+        },
+        "required": [
+          "resource_health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "policy_sha256": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
 }
