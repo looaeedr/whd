@@ -2506,7 +2506,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # undoable *preview* in the existing session, never a Bay/project write.
         # Keep the exact pre-tab CSV draft and staged config for Cancel.
         live_nfb_preview = {
-            "dirty": False, "prior_config": None, "prior_csv": (),
+            "dirty": False, "ready": False,
+            "prior_config": None, "prior_csv": (),
         }
         if embed_parent is not None:
             owner_editor = embed_parent.winfo_toplevel()
@@ -2521,7 +2522,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 )
 
         def stage_live_nfb_openings():
-            if embed_parent is None:
+            if embed_parent is None or not live_nfb_preview["ready"]:
                 return
             from ae_engine.receiving_nfb_model_identity import is_numeric_model_ref
             from ae_engine.receiving_nfb_csv_editor_features import (
@@ -2606,8 +2607,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             # silently rewrite a custom operator height or force legacy 300.
             sync_chosen()
             repaint(index)
-            refresh_live_nfb_after_edit()
             show_x_clear_impact(before_x_change, index)
+            refresh_live_nfb_after_edit()
 
         def add_empty_slot(index):
             before_x_change = deepcopy(draft_state["draft"])
@@ -2617,8 +2618,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             )
             sync_chosen()
             repaint(index)
-            refresh_live_nfb_after_edit()
             show_x_clear_impact(before_x_change, index)
+            refresh_live_nfb_after_edit()
 
         def replace_selected_slot(index):
             selected = layer_rows[index]["assigned"].curselection()
@@ -2635,6 +2636,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             sync_chosen()
             repaint(index)
             warning.set("")
+            refresh_live_nfb_after_edit()
 
         def remove_switch(index):
             before_x_change = deepcopy(draft_state["draft"])
@@ -2703,6 +2705,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 layer_rows[index]["assigned"].selection_clear(0,tk.END)
                 layer_rows[index]["assigned"].selection_set(dest)
                 show_x_clear_impact(before_x_change, index)
+                refresh_live_nfb_after_edit()
             except (ValueError,IndexError) as exc:
                 warning.set(str(exc))
 
@@ -2734,6 +2737,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     f"已復原 {impact_text}的 X 位移與基準快照；其他層不變"
                     if impact_text else "已復原 NFB 草稿上一筆交易"
                 )
+                refresh_live_nfb_after_edit()
             except ValueError as exc:
                 warning.set(str(exc))
 
@@ -3057,9 +3061,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     after=layer_rows[0]["section"],
                 )
             paint_draft_preview()
+            refresh_live_nfb_after_edit()
             refresh_source(force=True)
 
         change_layers()
+        live_nfb_preview["ready"] = True
         # Nominal NFB draft/workflow summary is not part of the approved UI.
         ttk.Label(frame, textvariable=warning).pack(anchor="w")
         refresh_source(force=True)
