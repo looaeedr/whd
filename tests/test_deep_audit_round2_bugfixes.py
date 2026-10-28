@@ -36,7 +36,7 @@ from ae_engine.sheetmetal_features import (
 from ae_engine.sheetmetal_geometry_shared import _clip_axis_bend
 import fold_designer_bridge
 from gui_modules.application import door_layout_host_adapter, render_snapshots
-from gui_modules.application.fold_designer_part_session import Phase6PartSessionOwner
+from gui_modules.application.fold_designer_part_session import Phase6PartSessionOwner, reconcile_standard_part_bend_editor
 from gui_modules.project import export_actions
 from phase6_box_body_structure import BackPanelMode, set_side_back_back_panel_mode
 from phase6_custom_parts import custom_part_only_change
@@ -145,6 +145,56 @@ def test_r2_1_commit_box_body_right_side_syncs_zr1_and_uses_settings_thickness(m
     )
     assert captured["t_val"] == 3.0
     assert captured["values"]["zr1"] == 35.0
+
+
+
+def test_r2_2a_custom_part_activation_reconciles_stale_box_bend_controls():
+    """A newly created custom sheet cannot inherit the box's 9 Tk bend rows."""
+    state = SimpleNamespace(
+        struct_mode="standard",
+        phase6_fold_ui_vault_key="箱身",
+        active_bend="X",
+        profiles={
+            "X": [
+                {"len": 15.0, "phase6_key": "custom_flange"},
+                {"len": 98.0, "phase6_key": "custom_face"},
+            ],
+            "Y": [{"len": 240.0, "phase6_key": "custom_span"}],
+        },
+    )
+
+    class Mode:
+        value = "vault"
+
+        def get(self):
+            return self.value
+
+        def set(self, value):
+            self.value = value
+
+    class BendControls:
+        def __init__(self):
+            self.controls = [{} for _ in range(9)]
+            self.rebuild_count = 0
+
+        def rebuild_tabs(self):
+            self.rebuild_count += 1
+            self.controls = [{} for _ in state.profiles[state.active_bend]]
+
+    app = SimpleNamespace(state=state, v_mode=Mode(), bend_ui=BendControls())
+    assert reconcile_standard_part_bend_editor(app, "standard") is True
+    assert state.phase6_fold_ui_vault_key is None
+    assert app.v_mode.get() == "standard"
+    assert len(app.bend_ui.controls) == 2
+    assert app.bend_ui.rebuild_count == 1
+
+    # Stable editor data must not be rebuilt on every harmless refresh.
+    assert reconcile_standard_part_bend_editor(app, "standard") is False
+    assert app.bend_ui.rebuild_count == 1
+    # A real box-body/vault activation is not a standard-part repair target.
+    app.v_mode.set("vault")
+    assert reconcile_standard_part_bend_editor(app, "vault") is False
+    assert app.v_mode.get() == "vault"
 
 
 def test_r2_2_save_current_part_custom_part_saves_bend_ui_and_outside_compensation(monkeypatch):
