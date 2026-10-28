@@ -578,3 +578,81 @@ def test_bug14_phase6_bending_ui_remove_pairs_by_phase6_key():
     assert "zr1" not in remaining_keys
     assert "zl2" in remaining_keys
     assert "zr2" in remaining_keys
+
+
+def test_audit116_bug4_two_bay_door_state_disk_reload_no_cross_bay_leak(tmp_path):
+    """Original audit BUG #4: Bay1 must never borrow Bay0 Door authority.
+
+    Exercise the real Receiving layout persistence and per-Bay projection,
+    including one intentionally *unconfigured* second Bay. This proves source
+    isolation; it is not a Windows native GUI or factory manufacturing UAT.
+    """
+    import phase6_project_file as project
+
+    layout = new_receiving_layout(width=600.0, height=1800.0, depth=500.0)
+    layout = resize_receiving_bays(layout, set_index=0, bay_count=2)
+    layout = update_receiving_bay(
+        layout, set_index=0, bay_index=0, door_state={
+            "multi_door_enabled": True,
+            "door_layout_columns": [[600.0, [900.0, 900.0]]],
+        },
+    )
+    layout = update_receiving_bay(
+        layout, set_index=0, bay_index=1,
+        width=800.0, height=1700.0, depth=420.0,
+    )
+    assert "door_state" not in layout["sets"][0]["bays"][1]
+
+    for configured_second_bay in (False, True):
+        current = layout
+        if configured_second_bay:
+            current = update_receiving_bay(
+                current, set_index=0, bay_index=1, door_state={
+                    "multi_door_enabled": True,
+                    "door_layout_columns": [[800.0, [1000.0, 700.0]]],
+                },
+            )
+        original = {
+            "model": "受電箱",
+            "active_mode": "set_bay",
+            "w": 600.0, "h": 1800.0, "d": 500.0, "t": 2.0, "fw": 25.0,
+            "receiving_layout": current,
+            # Old compatibility fields deliberately refer to the first Bay.
+            "multi_door_enabled": True,
+            "door_layout_columns": [[600.0, [900.0, 900.0]]],
+        }
+        target = tmp_path / (
+            "audit116-bug4-second-configured.p6fold"
+            if configured_second_bay else "audit116-bug4-second-unconfigured.p6fold"
+        )
+        saved_path = project.write_project(target, {
+            "schema": project.PROJECT_SCHEMA, "saved_at": "2026-10-28T17:00:00+08:00",
+            "snapshot": original, "final_geometry": {},
+        })
+        loaded = project.read_project(saved_path)["snapshot"]
+        assert loaded["receiving_layout"] == current
+        bay0 = project_receiving_bay_legacy_aliases(
+            loaded, set_index=0, bay_index=0, validate_common=False,
+        )
+        assert bay0["w"] == 600.0
+        assert bay0["door_layout_columns"] == [[600.0, [900.0, 900.0]]]
+        assert bay0["receiving_layout"] == current
+
+        bay1 = project_receiving_bay_legacy_aliases(
+            bay0, set_index=0, bay_index=1, validate_common=False,
+        )
+        assert (bay1["w"], bay1["h"], bay1["d"]) == (800.0, 1700.0, 420.0)
+        if configured_second_bay:
+            assert bay1["door_layout_columns"] == [[800.0, [1000.0, 700.0]]]
+            assert bay1["multi_door_enabled"] is True
+        else:
+            assert not bay1.get("multi_door_enabled", False)
+            assert "door_layout_columns" not in bay1
+        assert bay1["receiving_layout"] == current
+
+        # Switching back must restore Bay0, not persist or alias Bay1 views.
+        again0 = project_receiving_bay_legacy_aliases(
+            bay1, set_index=0, bay_index=0, validate_common=False,
+        )
+        assert again0["door_layout_columns"] == [[600.0, [900.0, 900.0]]]
+        assert again0["receiving_layout"] == current
