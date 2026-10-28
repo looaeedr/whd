@@ -295,6 +295,8 @@ PYTEST_PATHS = (
     "tests/test_issue1502_single_button_full_csv_receiving_export.py",
     "tests/test_issue1502_quantity_current_csv_full_batch.py",
     "tests/test_issue1502_current_csv_multi_bay_once.py",
+    # #1702 multi-Set/Bay independent DXF MARKING and project Save→Reload acceptance.
+    "tests/test_issue1702_multibay_final_acceptance_20261029.py",
     "tests/test_issue1502_multibay_original_gui_export_integration.py",
     "tests/test_issue1502_two_tier_csv_left_without_manual_base.py",
     "tests/test_issue1502_gui_tier_source_export_checkbox.py",
