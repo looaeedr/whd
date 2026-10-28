@@ -29,6 +29,11 @@ before commit, and must report physical parts separately. Versioned schemas are:
 - [response_v1.schema.json](../../integration_cli/schemas/response_v1.schema.json)
 - [capabilities_v1.schema.json](../../integration_cli/schemas/capabilities_v1.schema.json)
 
+A rejected `export` request may be malformed before any `transaction_mode` is
+known: in a `failed` response that field may be absent. A successful or
+partial `export` response must include it; callers must never infer that an
+absent mode means a successful all-or-nothing transaction.
+
 These files validate **wire shapes only**. The runtime must independently
 enforce geometric, resource, security and transaction invariants below. No
 capability can be set true until its implementation and tests actually pass.
