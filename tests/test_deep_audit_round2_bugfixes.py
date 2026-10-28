@@ -37,6 +37,7 @@ from ae_engine.sheetmetal_geometry_shared import _clip_axis_bend
 import fold_designer_bridge
 from gui_modules.application import door_layout_host_adapter, render_snapshots
 from gui_modules.application.fold_designer_part_session import Phase6PartSessionOwner
+from phase6_bending_ui import Phase6BendingUI
 from gui_modules.project import export_actions
 from phase6_box_body_structure import BackPanelMode, set_side_back_back_panel_mode
 from phase6_custom_parts import custom_part_only_change
@@ -145,6 +146,62 @@ def test_r2_1_commit_box_body_right_side_syncs_zr1_and_uses_settings_thickness(m
     )
     assert captured["t_val"] == 3.0
     assert captured["values"]["zr1"] == 35.0
+
+
+
+def test_r2_2a_custom_sheet_bending_ui_clears_stale_vault_and_rebuilds_from_active_axis():
+    """The BendingUI owner must not reuse the box-body's nine old row controls."""
+    state = SimpleNamespace(
+        struct_mode="standard",
+        phase6_fold_ui_vault_key="箱身",
+        phase6_fold_ui_tabs=["X"],
+        active_bend="X",
+        profiles={
+            "X": [
+                {"len": 15.0, "phase6_key": "custom_flange"},
+                {"len": 98.0, "phase6_key": "custom_face"},
+            ],
+            "Y": [{"len": 240.0, "phase6_key": "custom_span"}],
+        },
+    )
+
+    class Mode:
+        value = "vault"
+
+        def get(self):
+            return self.value
+
+        def set(self, value):
+            self.value = value
+
+    ui = Phase6BendingUI.__new__(Phase6BendingUI)
+    ui.state = state
+    ui.controls = [{} for _ in range(9)]
+    rebuilds = []
+    def rebuild():
+        rebuilds.append(state.active_bend)
+        ui.controls = [{} for _ in state.profiles[state.active_bend]]
+    ui.rebuild_tabs = rebuild
+    mode = Mode()
+
+    ui.activate_standard_part_controls(mode)
+    assert state.phase6_fold_ui_vault_key is None
+    assert mode.get() == "standard"
+    assert len(ui.controls) == 2
+    assert rebuilds == ["X"]
+
+    # Metadata edits can switch the fold axis with the same part selected.
+    state.active_bend = "Y"
+    state.phase6_fold_ui_tabs = ["Y"]
+    ui.activate_standard_part_controls(mode)
+    assert len(ui.controls) == 1
+    assert rebuilds == ["X", "Y"]
+
+    # Guard the precondition: never silently project custom controls into vault.
+    state.struct_mode = "vault"
+    with pytest.raises(ValueError, match="標準模式"):
+        ui.activate_standard_part_controls(mode)
+
 
 
 def test_r2_2_save_current_part_custom_part_saves_bend_ui_and_outside_compensation(monkeypatch):

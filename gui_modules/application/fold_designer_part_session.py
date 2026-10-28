@@ -34,6 +34,8 @@ def _activation_profiles_from_authoritative_source(key, snapshot, stored, defaul
     return stored, False
 
 
+
+
 class Phase6PartSessionOwner:
     """Own application-level part activation/save compatibility orchestration."""
 
@@ -221,6 +223,9 @@ class Phase6PartSessionOwner:
                 app.state.enable_y=True
                 app._phase6_input_snapshot["custom_parts"]=app.designer_workspace.snapshot()["custom_parts"]
                 app._load_part_holes(key)
+                # Custom sheets return from this separate activation path;
+                # reconcile here, before any Settings flush or bend save.
+                app.bend_ui.activate_standard_part_controls(app.v_mode)
             install_profiles()
             canvas = app.renderer.canvas.get_tk_widget()
             canvas.pack(fill=bridge.original.tk.BOTH,expand=True)
