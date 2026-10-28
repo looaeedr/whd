@@ -10,12 +10,12 @@
 ## 確認的缺陷
 
 1. 舊版 `.p6fold` 的真實 Set/Bay `nfb_config` 可保存兩顆，舊版 `inner_door_models` 卻只有一顆，甚至缺少原生 `part_features`；不能因顯示清單短而直接丟掉已保存的第二顆 CSV 身份。
-2. 第一次從主 GUI 打開 Set/Bay 專案時，如果只在**重用 Designer**的情況恢復 `_apply_mode_snapshot`，新建 Designer 會因單只初始值重建成一顆，失去完整載入值。
+2. **錯誤診斷陷阱**：以 Set/Bay 舊檔呼叫「單只設定」會主動切到 quantity，新的單只預設一顆並非原檔遺失。新建 Designer 已可從主 GUI committed 專案正確保留兩顆，不應對它再次強制 `_apply_mode_snapshot`：來源品牌不完整的合法舊資料會在這一步過早計算深度而無法開檔。
 3. 新增內門候選 v1 後，`editor_saved(... keep_live=True)` 留在「即時」，再按「套用」會走 `apply_live`（只改標籤），**不會送 `apply_inner_door_candidate_to_bays`，因此實體內門組合體缺第 2 孔**。
 
 ## 修正契約
 
-- 首次開啟與重用 Designer 都恢復同一份 `.p6fold` Set/Bay 權責，不改動原始專案檔，也不重寫其他連。
+- 新建 Designer 沿用主 GUI 已恢復的 `.p6fold` 物理 Set/Bay；**僅重用** Designer 時重新套入保存的模式快照。即使舊 NFB 品牌來源欠缺也應先可開檔供操作者修正，不得因此擅自放行製造或改寫其他連。
 - 原生編輯器新候選可從目前選取 Bay 的已提交兩顆 NFB CSV 身份補回**缺失的模型列**；只有在已保存來源有效、原編輯器清單比已提交來源短時才補，保留更完整的原生選型；這是可取消草稿，不是自動加工／核准。
 - 新內門候選「確定全部」後，UI 自動選中剛產生的版本（不直接物理套用）；操作員按「套用」時必須走 **candidate Apply**，不是 `apply_live` 標籤分支。要建立另一個獨立版本可自行切回「即時」。
 - `nfb_config_submitted=True` 的舊連可透過**完整且已驗證的 CSV 原生 Features**原子替換原有 NFB；禁止用非 CSV、部分清單、無合法實體孔身份強行覆蓋。
