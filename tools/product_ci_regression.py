@@ -27,6 +27,8 @@ PYTEST_PATHS = (
     "tests/test_issue2378_prepare_evidence_preflight.py",
     # #2378: authoritative Door-local Frame and HMAC preparation token binding.
     "tests/test_issue2378_prepare_frame_token.py",
+    # #2378: RFC8785 request identity, unchanged on transport retry.
+    "tests/test_issue2378_request_canonical.py",
     # #1795: live Tk Main GUI / 3D revision, initialization, runtime-only sync.
     "tests/test_phase6_sync_envelope.py",
     # #1792: canonical full-file GUI/3D runtime performance acceptance.
