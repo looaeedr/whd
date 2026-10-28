@@ -184,6 +184,9 @@ PYTEST_PATHS = (
     # Multi-Bay one canonical INNER editor; left Set/Bay sidebar is -10%
     # initially and the sash remains operator-draggable across tab changes.
     "tests/test_receiving_multi_clean_nfb_draggable_sidebar_20261028.py",
+    # True PRIMARY Phase6 sidebar -10% draggable sash; preserve right 3D
+    # viewport; no duplicate NFB parts list in multi-Bay inner-door view.
+    "tests/test_phase6_main_sidebar_sash_and_no_multi_nfb_list_20261028.py",
     # #1500: live Receiving candidate Save As -> reopen -> independent Bay2.
     "tests/test_issue1500_receiving_candidate_main_save.py",
     "tests/test_issue1504_v14_ac_traceability.py",

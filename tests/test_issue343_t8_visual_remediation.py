@@ -21,7 +21,10 @@ TARGET_LEFT_WIDTHS = {"small": 338, "medium": 430, "large": 480}
 
 
 def expected_left_width(scale: str) -> int:
-    return TARGET_LEFT_WIDTHS[str(scale)]
+    # User-facing Phase6 MAIN sidebar is now deliberately 10% narrower than
+    # the historical full-width text-scale baseline. Preserve the original
+    # supported baselines and ensure the 3D viewport remains >=760px.
+    return max(190, round(TARGET_LEFT_WIDTHS[str(scale)] * 0.9))
 
 
 def test_v2_width_floor_after_manual_screenshot_review():
@@ -53,7 +56,11 @@ def test_red_adaptive_left_workspace_and_cjk_theme_contract_exist():
         '"Noto Sans CJK SC"',
         "axes.unicode_minus",
     )
-    combined = bridge + "\n" + theme
+    # Width callback implementation was extracted from the bridge into the
+    # authoritative composition settings owner; check both source files.
+    combined = bridge + "\n" + theme + "\n" + _text(
+        "gui_modules/application/fold_designer_composition_settings.py"
+    )
     missing = [token for token in required if token not in combined]
     assert "ui_text_size_factor" in text_scale
     assert not missing, (
@@ -118,7 +125,9 @@ def test_installed_cjk_font_is_selected_for_actual_matplotlib_text():
     artist = ax.text2D(0.05, 0.95, "截角資料／組合體", transform=ax.transAxes)
     path = font_manager.findfont(artist.get_fontproperties(), fallback_to_default=True)
     normalized = path.replace("\\", "/").lower()
-    assert "noto" in normalized or "jhenghei" in normalized or "pingfang" in normalized, path
+    # The actual Microsoft JhengHei TTC installed on Taiwan Windows is
+    # msjh.ttc; the basename need not spell out the font family name.
+    assert any(token in normalized for token in ("noto", "jhenghei", "pingfang", "msjh")), path
 
 
 def test_remediation_stays_presentation_only():

@@ -393,7 +393,9 @@ class WorkspaceShellOwner:
 
         self.left_scroll_canvas = original.tk.Canvas(
             root,
-            width=self.state.left_workspace_width,
+            # The actual Phase6 primary "組合體/板件" sidebar, not the
+            # separate multi-Bay modal: initially 10% narrower than before.
+            width=max(190, round(self.state.left_workspace_width * 0.9)),
             background=self.state.theme_background,
             highlightthickness=0,
             borderwidth=0,
@@ -442,10 +444,56 @@ class WorkspaceShellOwner:
 
         left.bind("<Configure>", sync_left_scrollregion, add="+")
         self.left_scroll_canvas.bind("<Configure>", size_left_window, add="+")
+        self.left_scroll_canvas._phase6_manual_width = False
         self.left_scroll_canvas.pack(
             side=original.tk.LEFT, fill=original.tk.Y
         )
         self.left_scrollbar.pack(side=original.tk.LEFT, fill=original.tk.Y)
+
+        # This is a real mouse-draggable splitter on the main Phase6 window,
+        # not a decorative edge. Keep the existing Canvas/scrollbar/root widget
+        # ownership intact: Tk widgets cannot be reparented after creation.
+        self.left_resize_sash = original.tk.Frame(
+            root, width=9, bg="#667887", cursor="sb_h_double_arrow",
+            takefocus=0,
+        )
+        self.left_resize_sash.pack(
+            side=original.tk.LEFT, fill=original.tk.Y,
+        )
+        sash_drag = {"x": None, "width": None}
+
+        def begin_left_resize(event):
+            sash_drag["x"] = event.x_root
+            sash_drag["width"] = self.left_scroll_canvas.winfo_width()
+            sash_drag["viewport"] = (
+                self.state.renderer_canvas_widget.winfo_width()
+                if self.state.renderer_canvas_widget is not None else 760
+            )
+
+        def drag_left_resize(event):
+            if sash_drag["x"] is None:
+                return
+            # Preserve the previously accepted >=760 px 3D viewport even
+            # when the operator drags on a narrow application window.
+            viewport_cap = sash_drag["width"] + max(
+                0, sash_drag["viewport"] - 760,
+            )
+            available = max(190, min(root.winfo_width() - 380, viewport_cap))
+            target = max(190, min(
+                available,
+                sash_drag["width"] + event.x_root - sash_drag["x"],
+            ))
+            self.left_scroll_canvas.configure(width=target)
+            self.left_scroll_canvas._phase6_manual_width = True
+
+        def finish_left_resize(_event):
+            sash_drag.update(x=None, width=None)
+
+        self.left_resize_sash.bind("<ButtonPress-1>", begin_left_resize)
+        self.left_resize_sash.bind("<B1-Motion>", drag_left_resize)
+        self.left_resize_sash.bind("<ButtonRelease-1>", finish_left_resize)
+        # Introspection is presentation-only; no project/model state attached.
+        self.left_resize_sash._phase6_drag_width = drag_left_resize
         right.pack(side=original.tk.RIGHT, fill=original.tk.BOTH, expand=True)
         left.lift(self.left_scroll_canvas)
         sync_left_scrollregion()
