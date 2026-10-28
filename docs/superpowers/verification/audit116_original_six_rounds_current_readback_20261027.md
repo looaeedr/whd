@@ -54,3 +54,11 @@ whd_schema: WHD_DOC_META_V1
 **本批可在 CI 完成的測試**：在真實原生 Tk／Xvfb 建立 `Phase6PrimaryApplication`，切換受電箱、選擇第一個門格，透過 `open_door_layout_cell_editor` 的正式呼叫取得原編輯器 `feature_list_override` 及 `sync_callback`；以真正 `Phase6HoleEditorSession` 插入一個 Ø12 CUTTING 圓孔並確認，再走相同回寫回呼；必須同時出現在 Designer 工作區、主工作區、專案快照，並且 `.p6fold` 磁碟存檔重讀後仍相等。取消交易則必須沒有新增孔。所有斷言保持嚴格，要求程序正常退出。
 
 **驗收界線**：測試使用真實產品 Tk、實體 Session 與原生編輯器的提交回呼，但以隔離的 callback capture 取代 CADCraft 視窗本身及人工滑鼠操作，**不能當成 Windows CADCraft 外部程式實際畫孔→回傳、肉眼 3D 或 NC 正式製造輸出的證據**。R5-2600 離線時只能取得 GitHub CI 的測試收據；不得更新為 116／116 或使用者正式人工 PASS。修正先保留於隔離 PR，Product Regression 五組全部綠且完成核對才考慮合回 `localX`；沒有使用者 `/推推` 不發布 X。
+
+
+## 2026-10-28 — BUG #2 原生 Receiving 門格刪孔防回魂（候選，未簽真人 UAT）
+
+- 對照最初的 BUG #2（多門格 2D 新舊來源相互覆蓋），新增 `test_audit116_bug2_primary_door_hole_delete_does_not_resurrect_stale_source` 的原生 PRIMARY Tk 雙向驗證。沿用產品 `open_door_layout_cell_editor(0,0)` 提供的正式 feature list 與 `sync_callback`，先真 Session 新增 Ø13 CUTTING 孔並確認，再重新開啟同一門格，透過 `HoleEditorAction.delete_selected()`，分別確認刪除與取消刪除。
+- 正向：刪除確認後不得由先前 `surface_features`、Designer、主工作區或專案快照回填舊孔；反向：取消刪除則原孔須完整保留。兩種結果都要寫入真正 `.p6fold` 並重讀比較，所有斷言不得放寬。
+- 這是在現有 #2361 測試基礎上加強原始 BUG #2 的**現行來源自動化證據**，不改產品幾何或權威，不抵充原始 116 條人工實機簽核，未測外部 CADCraft GUI 滑鼠、真 Windows 2D/3D 畫面或 NC。
+- 必須等本獨立 PR exact-head 完整 Product Regression 五組成功及合併後 exact blob 回讀，才可將此增補來源證據記為通過；失敗就保留待修，正式 X 仍需獨立 `/推推`。
