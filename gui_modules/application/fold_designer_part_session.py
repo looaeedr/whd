@@ -35,30 +35,6 @@ def _activation_profiles_from_authoritative_source(key, snapshot, stored, defaul
 
 
 
-def reconcile_standard_part_bend_editor(app, target_mode):
-    """Finish non-vault activation with one editor owner and current row controls.
-
-    The legacy content switch can leave v_mode at 'vault' after a newly added
-    custom part becomes active.  The stale box controls would then be saved
-    over the custom sheet's folds and, via phase6_fold_ui_vault_key, over the
-    authoritative box D-W-D profile during the next thickness flush.
-    """
-    if target_mode != 'standard':
-        return False
-    state = app.state
-    expected = list((state.profiles or {}).get(state.active_bend, ()) or ())
-    stale = (
-        getattr(state, 'phase6_fold_ui_vault_key', None) is not None
-        or app.v_mode.get() != 'standard'
-        or len(app.bend_ui.controls) != len(expected)
-    )
-    state.phase6_fold_ui_vault_key = None
-    if app.v_mode.get() != 'standard':
-        app.v_mode.set('standard')
-    if stale:
-        app.bend_ui.rebuild_tabs()
-    return stale
-
 
 class Phase6PartSessionOwner:
     """Own application-level part activation/save compatibility orchestration."""
@@ -249,7 +225,7 @@ class Phase6PartSessionOwner:
                 app._load_part_holes(key)
                 # Custom sheets return from this separate activation path;
                 # reconcile here, before any Settings flush or bend save.
-                reconcile_standard_part_bend_editor(app, "standard")
+                app.bend_ui.activate_standard_part_controls(app.v_mode)
             install_profiles()
             canvas = app.renderer.canvas.get_tk_widget()
             canvas.pack(fill=bridge.original.tk.BOTH,expand=True)
@@ -467,4 +443,3 @@ class Phase6PartSessionOwner:
         bridge._phase6_refresh_receiving_set_bay_control(app)
         bridge._phase6_refresh_back_panel_mode_control(app)
         bridge._phase6_refresh_content_switch(app)
-        reconcile_standard_part_bend_editor(app, target_mode)
