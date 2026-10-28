@@ -88,7 +88,7 @@
     },
     "items": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -557,6 +557,53 @@
         "properties": {
           "transaction_mode": {
             "const": "per_part"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "success"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "items": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "partial",
+              "failed",
+              "cancelled",
+              "rolled_back",
+              "recovery_required"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "manufacturing_verified": {
+            "const": false
+          },
+          "diagnostics": {
+            "minItems": 1
           }
         }
       }
