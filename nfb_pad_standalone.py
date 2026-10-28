@@ -6,8 +6,8 @@ Draft DXF export additionally needs ezdxf. Source CSV/tooling stays in WHD.
 """
 from __future__ import annotations
 
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -245,8 +245,13 @@ class StandalonePadWindow(tk.Tk):
         destination = filedialog.askdirectory(title="選擇草稿 DXF 輸出位置")
         if not destination:
             return
+        try:
+            taipei = ZoneInfo("Asia/Taipei")
+        except ZoneInfoNotFoundError:
+            # Windows Python may lack the optional IANA tzdata wheel.
+            taipei = timezone(timedelta(hours=8), name="Asia/Taipei")
         folder = Path(destination) / (
-            "NFB_PAD_DRAFT_" + datetime.now(ZoneInfo("Asia/Taipei")).strftime("%Y%m%d_%H%M%S")
+            "NFB_PAD_DRAFT_" + datetime.now(taipei).strftime("%Y%m%d_%H%M%S")
         )
         try:
             paths = export_draft_pad_dxf(self.plan, folder)
