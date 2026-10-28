@@ -23,6 +23,8 @@ PYTEST_PATHS = (
     "tests/test_issue2376_cadsplit_worker_contract.py",
     # #2377: no-Tk Worker CLI, batch dispatch and safe failure receipts.
     "tests/test_issue2377_cadsplit_headless_cli.py",
+    # #2378: W-03 resource-byte/Policy/dimensions stale fail-closed preflight.
+    "tests/test_issue2378_prepare_evidence_preflight.py",
     # #1795: live Tk Main GUI / 3D revision, initialization, runtime-only sync.
     "tests/test_phase6_sync_envelope.py",
     # #1792: canonical full-file GUI/3D runtime performance acceptance.
