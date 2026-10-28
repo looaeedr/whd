@@ -49,6 +49,8 @@ def transform():
         "source_frame_id": "source/dxf-wcs",
         "source_units": "mm",
         "source_to_mm_scale": 1.0,
+        "source_dimensions_mm": {"width": 600.0, "height": 500.0},
+        "target_dimensions_mm": {"width": 500.0, "height": 600.0},
         "unit_authority": "verified original DXF metadata",
         "matrix_2x2": [[0, -1], [1, 0]],
         "translation_mm": [500.0, 0.0],
@@ -206,6 +208,8 @@ def test_prepare_rejects_missing_provenance_and_unsupported_wire_values(mutation
     lambda r: r["items"][0]["features"][0].update(units="pixel"),
     lambda r: r["items"][0]["features"][0].update(process="UNKNOWN"),
     lambda r: r["items"][0]["features"][0]["source_transform"].pop("mirror_y"),
+    lambda r: r["items"][0]["features"][0]["source_transform"].pop("source_dimensions_mm"),
+    lambda r: r["items"][0]["features"][0]["source_transform"].update(source_to_mm_scale=25.4),
     lambda r: r["items"][0]["features"][0]["source_transform"].update(rotation_deg=45),
     lambda r: r["items"][0]["features"][0]["source_transform"].update(source_units="guessed"),
     lambda r: r.update(transaction_mode="unknown"),
@@ -281,3 +285,15 @@ def test_capabilities_are_attestation_not_fake_production_support():
     result["capability_flags"].pop("output_path_locking")
     with pytest.raises(ValidationError):
         validator.validate(result)
+
+
+def test_explicit_inch_source_requires_correct_conversion_and_provenance():
+    request = export()
+    tx = request["items"][0]["features"][0]["source_transform"]
+    tx["source_units"] = "inch"
+    tx["source_to_mm_scale"] = 25.4
+    tx["unit_authority"] = "confirmed source drawing units"
+    schema("request_v1.schema.json").validate(request)
+    tx["source_to_mm_scale"] = 1.0
+    with pytest.raises(ValidationError):
+        schema("request_v1.schema.json").validate(request)
