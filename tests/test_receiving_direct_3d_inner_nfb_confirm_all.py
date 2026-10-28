@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from unittest.mock import patch
 import tkinter as tk
 from tkinter import ttk
 
@@ -10,7 +11,7 @@ import pytest
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires real visible Tk")
-def test_direct_3d_doubleclick_add_second_nfb_confirm_all_updates_physical_assembly():
+def test_direct_3d_doubleclick_add_second_nfb_confirm_all_updates_physical_assembly(tmp_path):
     import gui
     import fold_designer_bridge as bridge
 
@@ -110,6 +111,31 @@ def test_direct_3d_doubleclick_add_second_nfb_confirm_all_updates_physical_assem
         )
         assert len(panel.material.interiors) == 2
         assert len(set(panel.metadata["nfb_v5_hole_ids"])) == 2
+
+        # Real Save As and project reload must NOT collapse the two physical
+        # NFB slots back into the original submitted single-hole project.
+        saved_path = tmp_path / "direct_3d_two_nfb.p6fold"
+        with patch("tkinter.filedialog.asksaveasfilename",
+                   return_value=str(saved_path)):
+            assert designer.save_project_file_as()
+        assert saved_path.exists()
+        restored = box.load_phase6_project(saved_path, open_designer=True)
+        pump(root)
+        try:
+            physical_bay = restored._phase6_input_snapshot[
+                "receiving_layout"]["sets"][0]["bays"][0]
+            assert len(physical_bay["nfb_config"]["holes"]) == 2
+            scene = bridge._phase6_final_scene_adapter(
+                restored
+            ).query_assembly_render_data()
+            panel = next(
+                p.render_data for p in scene.assembly_parts
+                if p.part_key == key
+            )
+            assert len(panel.material.interiors) == 2
+        finally:
+            if restored is not designer:
+                restored.root.destroy()
     finally:
         if designer is not None:
             try:
