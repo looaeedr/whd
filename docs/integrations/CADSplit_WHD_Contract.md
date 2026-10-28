@@ -33,6 +33,13 @@ These files validate **wire shapes only**. The runtime must independently
 enforce geometric, resource, security and transaction invariants below. No
 capability can be set true until its implementation and tests actually pass.
 
+Missing or invalid Registry, baseline or policy resources must be reported
+through `resource_health` with a **null hash**, never an invented or cached
+content hash. A healthy resource must carry its actual SHA-256. A complete
+`resource_revision` may remain null until the snapshot is verified; an
+incomplete snapshot must not enable manufacturing.
+
+
 ## Wire-to-domain mapping (not Python enum identity)
 
 Transport `kind` v1 defines `door`, `end_cap_head`,
