@@ -61,3 +61,29 @@ W-06 owns durable idempotency, job/output path locks, crash recovery and cancel.
 These are W-01 transport tests, not the Windows onedir EXE or Gate A.
 W-05 must verify Windows hard-link semantics or provide an equally safe
 no-clobber atomic method; W-07 separately validates real packaging/GUI.
+
+## W-03 partial preflight (#2378, not a working prepare handler)
+
+`prepare_evidence.py` is a **non-authorizing** building block. It hashes the
+actual bytes of an explicitly selected Certified Registry and WHD-resolved
+baseline list, locks the exact build/source hash, current
+`manufacturing_api.resolve_policy` snapshot and item dimensions, and compares
+those immutable inputs before a later export. It refuses missing, empty,
+symlinked or escaping resources rather than replacing a missing source with
+placeholder hashes. It must be given paths selected by WHD's
+`expected_baseline_path_for`; it does **not** discover baseline filenames
+from CADSplit source data. `resolve_authoritative_door_inputs` calls WHD's
+own `door_finished_face_size` on a previously verified `DoorPartSpec`; it
+does not infer `frame_edges`, original DXF coordinates, or a physical
+part ID from source drawing names.
+
+The `environment_fingerprint` here is an **internal resource-input evidence
+digest**, not the RFC 8785 wire `request_digest`, a durable transaction or an
+issued `prepare_token`. It is **not** an attestation of a Windows binary.
+A real W-03 `prepare` response remains blocked on independently verified
+per-face 3D frame origin/basis/normal and on durable token binding. The
+existing `cadsplit_worker.py prepare` intentionally continues returning
+`WHD_OPERATION_NOT_IMPLEMENTED` until that acceptance is implemented.
+Neither this module nor its test cases enable manufacturing. Only W-06/04
+can own export stale-revalidation and final commit.
+
