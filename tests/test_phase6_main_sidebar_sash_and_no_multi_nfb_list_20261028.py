@@ -89,6 +89,9 @@ def test_native_multi_inner_page_hides_nfb_list_without_removing_source_manifest
         listing.selection_set(1)
         listing.event_generate("<<ListboxSelect>>")
         root.update()
+        # BOTH redundant NFB lists are absent: neither the global-brand
+        # dropdown at top-left nor the manufacturing part list under INNER.
+        assert not win._receiving_multi_brand_selector.winfo_ismapped()
         stack=[win._receiving_multi_settings_host]
         labels=[]
         while stack:

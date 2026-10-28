@@ -240,7 +240,7 @@ def test_modal_fullscreen_strict_controls_apply_and_highlight():
         assert win.winfo_height() >= required_height - 2
         assert win._receiving_multi_mode_var.get() == "set_bay"
         texts = _visible_texts(win)
-        assert set(texts) == {"NFB", "－套", "＋套", "第1套", "－連", "1", "＋連", "套用"}
+        assert set(texts) == {"－套", "＋套", "第1套", "－連", "1", "＋連", "套用"}
         assert not hasattr(win, "_receiving_multi_preview")
         assert not hasattr(win, "_receiving_multi_notebook")
         canvas = win._receiving_multi_canvas

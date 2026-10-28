@@ -417,8 +417,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     mode_var = tk.StringVar(master=win, value=initial_mode)
     top_left = ttk.Frame(left_host)
     top_left.pack(anchor="nw")
+    # The NFB brand selector belongs to the one authoritative NFB editor,
+    # not a second dropdown at the top of the multi-Bay Set/Bay page.
+    # Preserve the unmapped Tk object and callback for existing legacy AC
+    # transaction tests; it is not operator-visible or keyboard reachable.
     brand_row = ttk.Frame(top_left)
-    brand_row.pack(anchor="w", pady=(0, 8))
+    # Deliberately do NOT pack brand_row into the multi-Bay operator view.
     ttk.Label(brand_row, text="NFB").pack(side="left", padx=(0, 8))
     brand_var = tk.StringVar(master=win, value=get_brand() if get_brand else "士林")
     from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
