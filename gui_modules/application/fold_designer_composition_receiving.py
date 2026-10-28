@@ -2500,6 +2500,87 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             refresh_source()
             poll_job["id"] = modal.after(1800, poll_source)
 
+        # An operator adding the second NFB must see its real editable
+        # CUTTING outline in the original Hole Editor immediately, not only
+        # after pressing a second tab-level Confirm button. This is an
+        # undoable *preview* in the existing session, never a Bay/project write.
+        # Keep the exact pre-tab CSV draft and staged config for Cancel.
+        live_nfb_preview = {
+            "dirty": False, "ready": False,
+            "prior_config": None, "prior_csv": (),
+        }
+        if embed_parent is not None:
+            owner_editor = embed_parent.winfo_toplevel()
+            live_nfb_preview["prior_config"] = deepcopy(
+                getattr(owner_editor, "_receiving_staged_config", None)
+            )
+            initial_pending = getattr(owner_editor, "_receiving_pending_features", None)
+            if callable(initial_pending):
+                live_nfb_preview["prior_csv"] = tuple(
+                    feature for feature in initial_pending()
+                    if getattr(feature, "source_type", None) == "NFB_CSV_SOURCE"
+                )
+
+        def stage_live_nfb_openings():
+            if embed_parent is None or not live_nfb_preview["ready"]:
+                return
+            from ae_engine.receiving_nfb_model_identity import is_numeric_model_ref
+            from ae_engine.receiving_nfb_csv_editor_features import (
+                editor_nfb_features_from_csv,
+            )
+            from ae_engine.receiving_shared_settings import pack_switch_layer
+            selected = [ref for row in chosen[:layers.get()] for ref in row]
+            if selected and not all(is_numeric_model_ref(ref) for ref in selected):
+                # Legacy DXF preview cannot produce a numeric CSV cutting
+                # feature; retain its existing explicit verification gate.
+                return
+            owner = embed_parent.winfo_toplevel()
+            stage = getattr(owner, "_receiving_stage_config", None)
+            pending = getattr(owner, "_receiving_pending_features", None)
+            if not callable(stage) or not callable(pending):
+                raise ValueError("內門主開孔編輯器沒有暫存預覽入口")
+            config = {
+                "layers": layers.get(),
+                "layer_heights_mm": read_layer_heights(),
+                "models": [
+                    pack_switch_layer(chosen[0]),
+                    pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
+                ],
+                "features": deepcopy(initial.get("features", {})),
+            }
+            openings = editor_nfb_features_from_csv(
+                current_inner_editor_snapshot(), config,
+                current_features=pending(),
+            )
+            # Validate the entire new set before replacing anything; the
+            # shared native session rejects a wrong door/out-of-face contour.
+            stage(config, openings)
+            live_nfb_preview["dirty"] = True
+
+        def refresh_live_nfb_after_edit():
+            try:
+                stage_live_nfb_openings()
+            except (ValueError, TypeError, KeyError, OSError) as exc:
+                # Do not misrepresent a list selection as a visible hole.
+                # Main Hole Editor remains at the last validated draft.
+                warning.set("新增孔尚未顯示：" + str(exc))
+
+        def rollback_live_nfb_preview():
+            if not live_nfb_preview["dirty"] or embed_parent is None:
+                return
+            owner = embed_parent.winfo_toplevel()
+            stage = getattr(owner, "_receiving_stage_config", None)
+            if callable(stage):
+                stage(
+                    deepcopy(live_nfb_preview["prior_config"]),
+                    live_nfb_preview["prior_csv"],
+                )
+            live_nfb_preview["dirty"] = False
+
+        # Keep the native tab rollback on its actual modal, not as an
+        # unbound callback name in the independently tested close_editor.
+        modal._receiving_live_nfb_rollback = rollback_live_nfb_preview
+
         def add_switch(index):
             before_x_change = deepcopy(draft_state["draft"])
             selected = layer_rows[index]["available"].curselection()
@@ -2531,6 +2612,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             sync_chosen()
             repaint(index)
             show_x_clear_impact(before_x_change, index)
+            refresh_live_nfb_after_edit()
 
         def add_empty_slot(index):
             before_x_change = deepcopy(draft_state["draft"])
@@ -2541,6 +2623,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             sync_chosen()
             repaint(index)
             show_x_clear_impact(before_x_change, index)
+            refresh_live_nfb_after_edit()
 
         def replace_selected_slot(index):
             selected = layer_rows[index]["assigned"].curselection()
@@ -2557,6 +2640,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             sync_chosen()
             repaint(index)
             warning.set("")
+            refresh_live_nfb_after_edit()
 
         def remove_switch(index):
             before_x_change = deepcopy(draft_state["draft"])
@@ -2625,6 +2709,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 layer_rows[index]["assigned"].selection_clear(0,tk.END)
                 layer_rows[index]["assigned"].selection_set(dest)
                 show_x_clear_impact(before_x_change, index)
+                refresh_live_nfb_after_edit()
             except (ValueError,IndexError) as exc:
                 warning.set(str(exc))
 
@@ -2656,6 +2741,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     f"已復原 {impact_text}的 X 位移與基準快照；其他層不變"
                     if impact_text else "已復原 NFB 草稿上一筆交易"
                 )
+                refresh_live_nfb_after_edit()
             except ValueError as exc:
                 warning.set(str(exc))
 
@@ -2979,9 +3065,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     after=layer_rows[0]["section"],
                 )
             paint_draft_preview()
+            refresh_live_nfb_after_edit()
             refresh_source(force=True)
 
         change_layers()
+        live_nfb_preview["ready"] = True
         # Nominal NFB draft/workflow summary is not part of the approved UI.
         ttk.Label(frame, textvariable=warning).pack(anchor="w")
         refresh_source(force=True)
@@ -3165,6 +3253,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 except tk.TclError:
                     pass
                 poll_job["id"] = None
+            if not saved:
+                rollback = getattr(modal, "_receiving_live_nfb_rollback", None)
+                if callable(rollback):
+                    rollback()
             if modal.grab_current() is modal:
                 modal.grab_release()
             modal.destroy()
