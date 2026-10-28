@@ -122,3 +122,10 @@ Joint Registry、collision solver、legacy migration、pre/post penetration 等�
 - 驗收不可只核對 `NFBConfig.holes == 2` 或內門編輯器 Canvas 畫出兩孔。須沿 GUI「新增／確定全部／套用」檢查 `query_assembly_render_data().assembly_parts` 的實際 `inner_door:upper:panel.render_data.material.interiors == 2` 且兩個 `nfb_v5_hole_ids` 不重複，再 Save As／GUI Reopen 重核。候選尚未套用時實體連必須不變。
 - 既有 Set/Bay 專案的測試不能誤用「單只設定」入口：那會切換成 quantity，生成另一個單只資料模型，造成「已存兩顆但載入變一顆」的假根因。
 - 參考 `docs/manufacturing/receiving-second-nfb-assembly-20261028.md` 與 `tests/test_receiving_legacy_two_nfb_candidate_apply.py`。
+
+## 2026-10-28: 3D double-click NFB Confirm All is a physical commit
+
+- The Assembly 3D double-click route opens the original Hole Editor with settings_mode=None. It is NOT the Multi candidate editor and must never require candidate Apply.
+- In the Receiving tab, pressing 確定 merely stages new CSV NFB CUTTING and staged_config; ONLY the main 確定全部 persists. Before the fix, direct confirm saved the native Features but silently dropped NFBConfig, so two Canvas holes became one 3D physical opening.
+- With valid staged NFB CSV, direct Confirm All must use the existing atomic ReceivingSetBayAdapter physical Bay commit (or current Quantity version), then reproject FinalScene. Reject incomplete or mixed source; leave X UNVERIFIED_BASIS, never grant manufacturing readiness.
+- Verify the actual current user's path and true 3D material holes. Dedicated regression tests/test_receiving_direct_3d_inner_nfb_confirm_all.py, see docs/manufacturing/receiving-direct-3d-inner-door-nfb-confirm-all-20261028.md.
