@@ -543,6 +543,37 @@ def test_bug12_and_bug13_registry_diagnostics_panel_form_and_source_round_trip()
     assert panel.relief_registry_symmetry_var.get() == "MIRROR_IF_GEOMETRY_SYMMETRIC"
 
 
+
+def test_bug13_registry_source_intermediate_empty_preserves_unknown_raw():
+    """Tk Entry.delete temporarily writes '', which must not erase unknown source."""
+    part_labels = {"base_plate": "底板", "box_body": "箱身"}
+    to_display = lambda v: registry_source_display(v, part_labels=part_labels)
+    to_raw = lambda v: registry_source_raw(v, part_labels=part_labels)
+
+    raw = _FakeVar("custom_english_token_v1")
+    display = _FakeVar("")
+    Phase6RegistryDiagnosticsPanel._bind_translated_var(
+        raw, display, to_display, to_raw,
+    )
+    assert display.get() == _REGISTRY_PRESENTATION_FALLBACK
+    # Native Tk Entry first clears the textvariable, then inserts replacement.
+    display.set("")
+    assert raw.get() == "custom_english_token_v1"
+    display.set(_REGISTRY_PRESENTATION_FALLBACK)
+    assert raw.get() == "custom_english_token_v1"
+
+    # A recognized source, on the other hand, can still be intentionally
+    # cleared through the ordinary editable field.
+    recognized = _FakeVar("REAR_PANEL + OUTER_SURFACE + base_plate + face + 2D")
+    visible = _FakeVar("")
+    Phase6RegistryDiagnosticsPanel._bind_translated_var(
+        recognized, visible, to_display, to_raw,
+    )
+    assert visible.get() != _REGISTRY_PRESENTATION_FALLBACK
+    visible.set("")
+    assert recognized.get() == ""
+
+
 def test_bug14_phase6_bending_ui_remove_pairs_by_phase6_key():
     """Bug #14: Symmetric box segment removal must pair by phase6_key, not raw index when asymmetric."""
     segs = [

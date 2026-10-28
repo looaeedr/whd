@@ -446,6 +446,15 @@ class Phase6RegistryDiagnosticsPanel:
                 _REGISTRY_PRESENTATION_EMPTY,
             ):
                 return
+            # A native Tk Entry writes an intermediate empty value while the
+            # operator selects/replaces the read-only fallback presentation.
+            # It is not evidence that an unrecognized raw registry source was
+            # deliberately cleared. Preserve that source fail-closed.
+            if (
+                current_display == ""
+                and to_display(raw_var.get()) == _REGISTRY_PRESENTATION_FALLBACK
+            ):
+                return
             if current_display == to_display(raw_var.get()):
                 return
             busy["value"] = True
