@@ -166,6 +166,74 @@ def open_inner_door_hole_editor(
         staged = getattr(editor, "_receiving_staged_config", None)
         if on_settings_confirm is not None:
             on_settings_confirm(part_key, deepcopy(list(final_features)), staged)
+        elif staged is not None and any(
+                getattr(feature, "source_type", None) == "NFB_CSV_SOURCE"
+                for feature in final_features):
+            # 3D double-click is a DIRECT physical-door entry. The original
+            # handler used to save native Features only; the staged NFB
+            # selection was silently discarded by the next canonical
+            # Set/Bay projection. Commit its complete CSV source AND holes
+            # through the same physical Bay adapter as Single settings.
+            from ae_engine.receiving_inner_door_candidates import validate_door_config
+            import fold_designer_bridge as bridge
+            owner = bridge._phase6_composition(app)
+            config = validate_door_config(staged)
+            config = deepcopy(config)
+            config.setdefault("features", {})[part_key] = deepcopy(list(final_features))
+            mode = workspace.active_mode
+            if mode == "set_bay":
+                adapter = owner.receiving_adapter(vars(bridge))
+                selected = adapter.selection
+                adapter.apply_inner_door_candidate_to_bays(
+                    config, selected.set_index, (selected.bay_index,),
+                    version_id="",
+                )
+                owner.mark_receiving_switch_layout_dirty(vars(bridge), adapter)
+                owner.sync_receiving_current_bay(
+                    vars(bridge), refresh_controls=False,
+                )
+                app.submit_update_intent("geometry", commit=True)
+            elif mode == "quantity":
+                from ae_engine.receiving_quantity_box import update_common_box
+                from ae_engine.receiving_nfb_csv_committed_config import (
+                    committed_csv_nfb_config, preview_quantity_nfb_submission,
+                )
+                from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
+                current = app._phase6_input_snapshot
+                projected = update_common_box(current, {
+                    "inner_door_layers": config["layers"],
+                    "inner_door_models": deepcopy(config["models"]),
+                    "inner_door_layer_heights_mm": deepcopy(
+                        config.get("layer_heights_mm")
+                    ),
+                })
+                typed = committed_csv_nfb_config(
+                    part_key, final_features, config,
+                )
+                quantity = workspace.quantity_model
+                projected = preview_quantity_nfb_submission(
+                    projected, quantity, typed,
+                )
+                quantity.set_version_nfb_config(
+                    quantity.selected_version_id, submitted=True,
+                    config=typed,
+                )
+                current.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
+                current.update(projected)
+                workspace.set_receiving_common_box(
+                    projected["receiving_quantity_box"]
+                )
+                owner.receiving_adapter(vars(bridge), reset=True)
+                owner.sync_receiving_current_bay(
+                    vars(bridge), refresh_controls=False,
+                )
+                workspace.stash_features(part_key, deepcopy(list(final_features)))
+                if workspace.active_part == part_key:
+                    app._load_part_holes(part_key)
+                bridge._phase6_sync_authoritative_derived_parts(app)
+                app.submit_update_intent("geometry", commit=True)
+            else:
+                raise ValueError("受電箱實體 NFB 編輯需要有效的連／數量模式")
         else:
             workspace.stash_features(part_key, deepcopy(list(final_features)))
             if str(workspace.active_part) == part_key:
