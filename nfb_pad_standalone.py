@@ -7,6 +7,7 @@ Draft DXF export additionally needs ezdxf. Source CSV/tooling stays in WHD.
 from __future__ import annotations
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -245,7 +246,7 @@ class StandalonePadWindow(tk.Tk):
         if not destination:
             return
         folder = Path(destination) / (
-            "NFB_PAD_DRAFT_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+            "NFB_PAD_DRAFT_" + datetime.now(ZoneInfo("Asia/Taipei")).strftime("%Y%m%d_%H%M%S")
         )
         try:
             paths = export_draft_pad_dxf(self.plan, folder)
