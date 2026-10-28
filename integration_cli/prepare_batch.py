@@ -89,6 +89,13 @@ def prepare_trusted_door_batch(
         baseline = expected_baseline_path_for(door, ctx)
         if baseline is None:
             raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "WHD could not identify its Door baseline")
+        # Resolving a symlink before creating the manifest would erase
+        # the fact that a different physical file was selected.
+        probe = baseline
+        while probe != resource_root and probe != probe.parent:
+            if probe.is_symlink():
+                raise PrepareEvidenceError("WHD_RESOURCE_PATH_INVALID", "selected WHD baseline is symlinked")
+            probe = probe.parent
         try:
             relative = baseline.resolve().relative_to(resource_root.resolve()).as_posix()
         except ValueError as exc:
