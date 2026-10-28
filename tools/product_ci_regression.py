@@ -21,6 +21,8 @@ COMMAND = "python tools/product_ci_regression.py"
 PYTEST_PATHS = (
     # #2376: WHD-owned CADSplit Worker protocol/Frame wire schema rejection gates.
     "tests/test_issue2376_cadsplit_worker_contract.py",
+    # #2377: no-Tk Worker CLI, batch dispatch and safe failure receipts.
+    "tests/test_issue2377_cadsplit_headless_cli.py",
     # #1795: live Tk Main GUI / 3D revision, initialization, runtime-only sync.
     "tests/test_phase6_sync_envelope.py",
     # #1792: canonical full-file GUI/3D runtime performance acceptance.

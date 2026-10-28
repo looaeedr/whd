@@ -439,8 +439,18 @@
         "properties": {
           "operation": {
             "const": "export"
+          },
+          "status": {
+            "enum": [
+              "success",
+              "partial"
+            ]
           }
-        }
+        },
+        "required": [
+          "operation",
+          "status"
+        ]
       },
       "then": {
         "required": [
