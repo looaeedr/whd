@@ -95,7 +95,12 @@ def test_direct_3d_doubleclick_add_second_nfb_confirm_all_updates_physical_assem
         assert [(h["slot_index"], h["model_filename"].split(":")[-1])
                 for h in holes] == [(0, "2P400"), (1, "3P125SN")]
         assert all(h["manual_x_state"] == "UNVERIFIED_BASIS" for h in holes)
-        assert len(designer.designer_workspace.features_for(key)) == 2
+        from ae_engine.receiving_shared_settings import setting_value
+        saved = setting_value(
+            snapshot["receiving_layout"]["sets"][0], 0, "inner_door_features",
+        )
+        assert len(saved[key]) == 2
+        assert len(snapshot["part_features"][key]) == 2
         scene = bridge._phase6_final_scene_adapter(
             designer
         ).query_assembly_render_data()
