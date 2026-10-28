@@ -114,3 +114,11 @@ Joint Registry、collision solver、legacy migration、pre/post penetration 等�
 - 有同層深度差時，合法 flat Base + source PAD 的單一物理路徑要同步接上 `receiving_base_plate_values`、2D 板件選單、3D folded PAD、BASE 真四方孔與 BOM/件數。只畫 3D 或只增加選單都不算交付。
 - 未驗證來源不得偷換成 CENTER、畫假 PAD、猜世界 X 或放行 DXF/NC。顯示缺件要辨識是「舊選型覆蓋」還是「原 Hole Editor 特徵尚未提交」，二者分別修正。
 - 測試至少包含原生提交、舊 CENTER 存檔、單層／雙層、同深度零 PAD、深度差 PAD 數量與真正 2D/3D 一致；完整規格見 `docs/manufacturing/receiving-same-tier-mixed-depth-pad-20261028.md`。
+
+## 受電箱第 2 顆 NFB：候選保存不是實體套用（2026-10-28）
+
+- 舊 `.p6fold` 可以保存兩顆 `nfb_config.holes`，但既有 `inner_door_models` 舊別名或原生 `part_features` 只有一顆。首次與重用 Designer 的載入路徑均需保留實際 Set/Bay 的完整提交來源；補回編輯器型號只能建立可取消的**草稿**，不能猜測世界 X／放行 NC。
+- 多連設定原生 Hole Editor 的「確定全部」只儲存**候選版本**。新候選保存後，必須選中剛建立的 `inner-door-vN`；若仍停在「即時」，按「套用」只執行 `apply_live` 標籤動作，**不會改變組合體第二孔**。實體變更只有高亮連的 `apply_inner_door_candidate_to_bays` 能提交。
+- 驗收不可只核對 `NFBConfig.holes == 2` 或內門編輯器 Canvas 畫出兩孔。須沿 GUI「新增／確定全部／套用」檢查 `query_assembly_render_data().assembly_parts` 的實際 `inner_door:upper:panel.render_data.material.interiors == 2` 且兩個 `nfb_v5_hole_ids` 不重複，再 Save As／GUI Reopen 重核。候選尚未套用時實體連必須不變。
+- 既有 Set/Bay 專案的測試不能誤用「單只設定」入口：那會切換成 quantity，生成另一個單只資料模型，造成「已存兩顆但載入變一顆」的假根因。
+- 參考 `docs/manufacturing/receiving-second-nfb-assembly-20261028.md` 與 `tests/test_receiving_legacy_two_nfb_candidate_apply.py`。
