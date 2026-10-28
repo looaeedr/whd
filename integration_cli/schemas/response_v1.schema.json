@@ -1,0 +1,565 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/looaeedr/whd/blob/localX/integration_cli/schemas/response_v1.schema.json",
+  "title": "WHD external worker response v1 (contract only)",
+  "description": "Reply to prepare or export; job success never substitutes for per-part verified, committed output.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "client_installation_id",
+    "request_id",
+    "job_id",
+    "operation",
+    "request_digest",
+    "status",
+    "engine_commit",
+    "build_id",
+    "environment_fingerprint",
+    "manufacturing_verified",
+    "items",
+    "diagnostics"
+  ],
+  "properties": {
+    "protocol_version": {
+      "const": "1.0.0"
+    },
+    "client_installation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "job_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "request_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "operation": {
+      "enum": [
+        "prepare",
+        "export"
+      ]
+    },
+    "status": {
+      "enum": [
+        "success",
+        "partial",
+        "failed",
+        "cancelled",
+        "rolled_back",
+        "recovery_required"
+      ]
+    },
+    "engine_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "build_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "environment_fingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "prepare_token": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "transaction_mode": {
+      "enum": [
+        "all_or_nothing",
+        "per_part"
+      ]
+    },
+    "manufacturing_verified": {
+      "type": "boolean"
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item_id",
+          "status",
+          "manufacturing_verified",
+          "diagnostics"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "status": {
+            "enum": [
+              "prepared",
+              "rendered",
+              "verified",
+              "committed",
+              "failed",
+              "skipped",
+              "cancelled",
+              "rolled_back"
+            ]
+          },
+          "physical_part_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "preparation_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "target_frames": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "frame_id",
+                "coordinate_contract_revision",
+                "units",
+                "origin_definition",
+                "origin_xyz_mm",
+                "axis_x",
+                "axis_y",
+                "normal",
+                "face_role",
+                "viewed_from",
+                "finished_face_dimensions_mm",
+                "allowed_feature_types"
+              ],
+              "properties": {
+                "frame_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "coordinate_contract_revision": {
+                  "const": "1"
+                },
+                "units": {
+                  "const": "mm"
+                },
+                "origin_definition": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "origin_xyz_mm": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "axis_x": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "axis_y": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "normal": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 3,
+                  "maxItems": 3
+                },
+                "face_role": {
+                  "enum": [
+                    "outer",
+                    "inner",
+                    "front",
+                    "back"
+                  ]
+                },
+                "viewed_from": {
+                  "enum": [
+                    "along_normal",
+                    "against_normal"
+                  ]
+                },
+                "finished_face_dimensions_mm": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "width",
+                    "height"
+                  ],
+                  "properties": {
+                    "width": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "height": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  }
+                },
+                "allowed_feature_types": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "enum": [
+                      "circle",
+                      "rect",
+                      "profile"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "required_inputs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "uniqueItems": true
+          },
+          "production_scope": {
+            "enum": [
+              "single_part",
+              "part_only",
+              "complete_assembly"
+            ]
+          },
+          "manufacturing_verified": {
+            "type": "boolean"
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "physical_part_id",
+                "part_kind",
+                "output_path",
+                "output_sha256",
+                "save_reload_verified",
+                "manufacturing_verified",
+                "exporter_name",
+                "used_baseline"
+              ],
+              "properties": {
+                "physical_part_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "part_kind": {
+                  "enum": [
+                    "door",
+                    "end_cap_head",
+                    "end_cap_tail",
+                    "indicator_box",
+                    "indicator_small_door",
+                    "box_body",
+                    "base_plate",
+                    "custom_fold"
+                  ]
+                },
+                "output_path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "output_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "save_reload_verified": {
+                  "type": "boolean"
+                },
+                "manufacturing_verified": {
+                  "type": "boolean"
+                },
+                "exporter_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "used_baseline": {
+                  "type": "boolean"
+                },
+                "baseline_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "registry_revision": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            }
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "code",
+                "message",
+                "retryable"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "pattern": "^WHD_[A-Z0-9_]+$"
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "retryable": {
+                  "type": "boolean"
+                },
+                "part_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "context": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": [
+                      "string",
+                      "number",
+                      "integer",
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^WHD_[A-Z0-9_]+$"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "part_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "prepare"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "manufacturing_verified": {
+            "const": false
+          }
+        },
+        "not": {
+          "required": [
+            "transaction_mode"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "export"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "transaction_mode"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "prepare"
+          },
+          "status": {
+            "const": "success"
+          }
+        },
+        "required": [
+          "operation",
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "prepare_token"
+        ],
+        "properties": {
+          "items": {
+            "items": {
+              "required": [
+                "physical_part_id",
+                "preparation_digest",
+                "target_frames"
+              ],
+              "properties": {
+                "status": {
+                  "const": "prepared"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "export"
+          },
+          "status": {
+            "const": "success"
+          }
+        },
+        "required": [
+          "operation",
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "manufacturing_verified": {
+            "const": true
+          },
+          "items": {
+            "items": {
+              "required": [
+                "parts",
+                "production_scope"
+              ],
+              "properties": {
+                "status": {
+                  "const": "committed"
+                },
+                "manufacturing_verified": {
+                  "const": true
+                },
+                "parts": {
+                  "minItems": 1,
+                  "items": {
+                    "properties": {
+                      "manufacturing_verified": {
+                        "const": true
+                      },
+                      "save_reload_verified": {
+                        "const": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "partial"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "transaction_mode": {
+            "const": "per_part"
+          }
+        }
+      }
+    }
+  ]
+}
