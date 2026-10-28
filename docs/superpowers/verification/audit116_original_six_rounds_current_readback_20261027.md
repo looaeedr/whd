@@ -45,3 +45,12 @@ whd_schema: WHD_DOC_META_V1
 - 最近最新版的 Windows `Z:\localX` SHA 與完整 116 條逐項操作／圖片／stdout、stderr／DXF entity 比對尚無本次授權與收據；不得拿過去 #1503、#1504 局部 GUI 收據當新版本 116 項全套。
 - 按使用者流程：程式先 GitHub `localX`；之後由使用者在 Windows localX 實機驗收；**正式 X 僅在使用者當次 `/推推` 後才可發布**。無 DC/RC 授權，本輪沒有使用 DC、沒有操作 Windows，不允許强推、重設或覆蓋現有本機更動。
 - 新的 116 個別項目如需簽核，必須列出原 BUG 身分、現行產品函式、直接人工 GUI／物理 DXF 證據及其適用 scope；不得把單一 pytest 函式（尤其 R6 10 個綜合測試）假稱 21 個獨立真人已簽。
+
+
+## 2026-10-28 — 原始 116 項：受電箱門格開孔權威提交的增補驗證規格（不抵充實機簽核）
+
+**問題與事證**：早期 `tests/test_phase6_receiving_multipart_integration.py` 只以 Linux `DISPLAY` 決定是否執行，又將 `BoxCalculatorGUI.surface_features["door_c1_r1"]` 視為受電箱的權威門格開孔來源；Windows R5-2600 解除 skip 後觀察到 3D 為空。最新產品正式啟動入口實為 `Phase6PrimaryApplication`；受電箱 `open_door_layout_cell_editor()` 則由當前 Designer workspace 提供門格特徵、使用 `sync_callback` 傳回 WHD 專案來源。直接改舊欄位不等於孔位編輯器已確認。
+
+**本批可在 CI 完成的測試**：在真實原生 Tk／Xvfb 建立 `Phase6PrimaryApplication`，切換受電箱、選擇第一個門格，透過 `open_door_layout_cell_editor` 的正式呼叫取得原編輯器 `feature_list_override` 及 `sync_callback`；以真正 `Phase6HoleEditorSession` 插入一個 Ø12 CUTTING 圓孔並確認，再走相同回寫回呼；必須同時出現在 Designer 工作區、主工作區、專案快照，並且 `.p6fold` 磁碟存檔重讀後仍相等。取消交易則必須沒有新增孔。所有斷言保持嚴格，要求程序正常退出。
+
+**驗收界線**：測試使用真實產品 Tk、實體 Session 與原生編輯器的提交回呼，但以隔離的 callback capture 取代 CADCraft 視窗本身及人工滑鼠操作，**不能當成 Windows CADCraft 外部程式實際畫孔→回傳、肉眼 3D 或 NC 正式製造輸出的證據**。R5-2600 離線時只能取得 GitHub CI 的測試收據；不得更新為 116／116 或使用者正式人工 PASS。修正先保留於隔離 PR，Product Regression 五組全部綠且完成核對才考慮合回 `localX`；沒有使用者 `/推推` 不發布 X。
