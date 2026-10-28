@@ -153,6 +153,30 @@
                   "type": "integer",
                   "minimum": 1
                 }
+              },
+              "frame_edges": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "left",
+                  "right",
+                  "top",
+                  "bottom"
+                ],
+                "properties": {
+                  "left": {
+                    "type": "boolean"
+                  },
+                  "right": {
+                    "type": "boolean"
+                  },
+                  "top": {
+                    "type": "boolean"
+                  },
+                  "bottom": {
+                    "type": "boolean"
+                  }
+                }
               }
             },
             "allOf": [
