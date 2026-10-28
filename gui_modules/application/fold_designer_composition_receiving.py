@@ -2176,17 +2176,21 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if staged is not None:
                 from ae_engine.receiving_inner_door_candidates import validate_door_config
                 initial = validate_door_config(staged)
-            elif getattr(owner_editor, "_receiving_settings_mode", None) == "single":
-                # A legacy physical Bay may contain NFBConfig slot 0 + slot 1
-                # but an old shared inner_door_models alias with only slot 0.
-                # Restore the selected Bay's SOURCE identities as an editor
-                # draft, never an approved X/NC placement or a candidate
-                # from another Bay. Native Confirm All is still mandatory.
+            elif (version_id is None and
+                    getattr(owner_editor, "_receiving_settings_mode", None)
+                    in ("single", "candidate")):
+                # Old saved Set/Bay projects can have two committed CSV
+                # model identities but only a one-model UI alias. Restore
+                # them as a reversible draft for the SELECTED physical Bay,
+                # including a new candidate based on that Bay. Never borrow
+                # its physical Features: candidate Confirm All creates only
+                # a candidate until explicit highlighted-Bay Apply.
                 from ae_engine.receiving_legacy_nfb_editor_bootstrap import (
                     recover_submitted_nfb_models_for_editor,
                 )
+                source = current_inner_editor_snapshot()
                 initial = recover_submitted_nfb_models_for_editor(
-                    initial, current_inner_editor_snapshot(),
+                    initial, source,
                 )
         if initial.get("layer_heights_mm") is None:
             # Legacy configurations without operator heights keep their
@@ -3088,7 +3092,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # Only bootstrap reversible draft geometry when the actual native
         # editor has fewer CSV slots than the physical selections. The user
         # must Confirm All; Cancel restores the exact prior feature state.
-        if embed_parent is not None and direct_to_drawing:
+        if (embed_parent is not None
+                and (direct_to_drawing or initial.get("_restored_saved_nfb_models"))):
             owner_editor = embed_parent.winfo_toplevel()
             pending = getattr(owner_editor, "_receiving_pending_features", None)
             if callable(pending):
