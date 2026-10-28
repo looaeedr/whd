@@ -1069,3 +1069,96 @@ def test_native_receiving_thickness_change_keeps_committed_bay_whd_and_custom():
         except tk.TclError:
             pass
         root.destroy()
+
+
+@pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="real native Windows Tk or Linux Xvfb required",
+)
+@pytest.mark.parametrize("commit", [True, False], ids=["confirm", "cancel"])
+def test_audit116_primary_receiving_door_cell_session_return_is_authoritative(
+    monkeypatch, tmp_path, commit,
+):
+    """Real PRIMARY Tk cell owner + actual WHD Session: commit/rollback is atomic.
+
+    This captures the normal hole editor's feature-list and sync callback, but
+    does not emulate external CADCraft mouse actions or certify manufacturing.
+    The legacy main.surface_features setter is explicitly not the input.
+    """
+    import tkinter as tk
+
+    import gui
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+    from phase6_hole_editor_session import HoleEditorAction, Phase6HoleEditorSession
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        app = gui.Phase6PrimaryApplication(root)
+        designer = app.fold_designer_app
+        assert app._phase6_primary_workspace is True
+        designer.baseline_model_var.set("受電箱")
+        root.update_idletasks()
+        root.update()
+
+        physical_key = "door_c1_r1"
+        assert physical_key in designer.designer_workspace.available_parts
+        captured = {}
+
+        def capture_real_editor_call(part_key, title, surface, width, height, **kwargs):
+            assert part_key == "door"
+            assert "C1-R1" in title
+            assert width > 0 and height > 0
+            captured["features"] = kwargs["feature_list_override"]
+            captured["sync"] = kwargs["sync_callback"]
+
+        monkeypatch.setattr(app, "_open_unified_hole_editor", capture_real_editor_call)
+        app.open_door_layout_cell_editor(0, 0)
+        assert callable(captured.get("sync"))
+        features = captured["features"]
+        assert features == designer.designer_workspace.features_for(physical_key)
+        before = list(features)
+
+        session = Phase6HoleEditorSession("door", features)
+        new_hole = CircleFeature(
+            diameter=12.0,
+            anchor=FeatureAnchor.PANEL_CENTER,
+            offset=Vec2(-20.0, 0.0),
+            layer="CUTTING",
+        )
+        session.execute(HoleEditorAction.insert(new_hole))
+        session.execute(HoleEditorAction.commit_active())
+        session.finish(commit=commit)
+        # The actual hole editor calls this callback on both Confirm and
+        # Cancel; the Session has already committed or rolled back by then.
+        captured["sync"]()
+        root.update_idletasks()
+        root.update()
+        expected = [*before, new_hole] if commit else before
+
+        assert features == expected
+        assert designer.designer_workspace.features_for(physical_key) == expected
+        assert app.surface_features.get(physical_key, []) == expected
+        assert app.workspace_controller.part_features_snapshot()[physical_key] == expected
+        project = app._compose_phase6_project_snapshot_from_main_gui()
+        assert project["part_features"][physical_key] == expected
+
+        if commit:
+            from phase6_project_file import PROJECT_SCHEMA, read_project, write_project
+            project_path = tmp_path / "primary-receiving-cell-confirmed.p6fold"
+            write_project(project_path, {
+                "schema": PROJECT_SCHEMA,
+                "saved_at": "2026-10-28T11:00:00+08:00",
+                "snapshot": project,
+                "final_geometry": {},
+            })
+            reopened = read_project(project_path)["snapshot"]
+            assert reopened["part_features"][physical_key] == expected
+    finally:
+        # The primary FoldDesigner shares the root and may already have
+        # destroyed it through a legitimate source/session update.
+        try:
+            root.destroy()
+        except tk.TclError:
+            pass
