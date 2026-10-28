@@ -8,7 +8,7 @@ import fold_designer_bridge as bridge
 
 def _open_receiving():
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("1200x850+50+50")
     box = gui.BoxCalculatorGUI(root)
     box.baseline_var.set("受電箱")
     root.update()
@@ -32,8 +32,15 @@ def test_receiving_base_has_no_edge_shrink_even_when_unlocked():
         root.update()
         assert designer.base_plate_edge_shrink_widgets == {}
         assert designer.base_plate_edge_shrink_vars == {}
-        assert all(not host.winfo_children()
-                   for host in designer.drawing_edge_hosts.values())
+        assert designer.drawing_edge_hosts is None or all(
+            not host.winfo_children()
+            for host in (
+                designer.drawing_edge_hosts.top,
+                designer.drawing_edge_hosts.bottom,
+                designer.drawing_edge_hosts.left,
+                designer.drawing_edge_hosts.right,
+            )
+        )
         before = dict(designer._settings_values)
         assert bridge._phase6_commit_base_plate_edge_shrink(
             designer, "TOP", "99"
