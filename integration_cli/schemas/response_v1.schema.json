@@ -7,15 +7,10 @@
   "additionalProperties": false,
   "required": [
     "protocol_version",
-    "client_installation_id",
-    "request_id",
-    "job_id",
     "operation",
-    "request_digest",
     "status",
     "engine_commit",
     "build_id",
-    "environment_fingerprint",
     "manufacturing_verified",
     "items",
     "diagnostics"
@@ -606,6 +601,30 @@
             "minItems": 1
           }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "success",
+              "partial"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "client_installation_id",
+          "request_id",
+          "job_id",
+          "request_digest",
+          "environment_fingerprint"
+        ]
       }
     }
   ]
