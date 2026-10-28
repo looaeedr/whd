@@ -247,6 +247,9 @@ class Phase6PartSessionOwner:
                 app.state.enable_y=True
                 app._phase6_input_snapshot["custom_parts"]=app.designer_workspace.snapshot()["custom_parts"]
                 app._load_part_holes(key)
+                # Custom sheets return from this separate activation path;
+                # reconcile here, before any Settings flush or bend save.
+                reconcile_standard_part_bend_editor(app, "standard")
             install_profiles()
             canvas = app.renderer.canvas.get_tk_widget()
             canvas.pack(fill=bridge.original.tk.BOTH,expand=True)
