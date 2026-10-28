@@ -163,6 +163,12 @@ def test_ac01_actual_receiving_tk_operator_nfb_selector_only_under_family(
         assert tuple(selector.cget("values")) == RECEIVING_SWITCH_BRANDS
         assert win._receiving_multi_brand_var.get() == brand
         assert selector in tuple(_walk(win))
+        # The multi-Bay operator no longer exposes a duplicate brand picker;
+        # single-unit mode retains its original brand selection affordance.
+        # Parent root is withdrawn in this AC fixture: examine the real
+        # Tk geometry manager rather than a screen-mapping state that is
+        # necessarily False for *both* kinds before root.update().
+        assert bool(selector.master.winfo_manager()) is (mode == "quantity")
         nfb_titles = [x.cget("text") for x in _walk(win)
                       if isinstance(x, ttk.Label) and x.cget("text") == "NFB"]
         assert len(nfb_titles) == 1
