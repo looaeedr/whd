@@ -11,8 +11,8 @@ whd_schema: WHD_DOC_META_V1
 
 從 WHD 專案根目錄執行 `python nfb_pad_standalone.py`。Python 必須具備
 Tkinter；「草稿 DXF」功能另需已安裝 `ezdxf`。這是獨立於 WHD 受電箱
-GUI 的視窗，**目前仍需同一份 WHD 原始碼、CSV V5 與加工規則資料夾**，
-不是獨立封裝的 EXE，也不會修改原 WHD 專案或 `config.ini`。
+GUI 的視窗，**直接以源碼入口執行時仍需同一份 WHD 原始碼、CSV V5 與加工規則資料夾**，
+另有可攜式 ZIP 打包腳本，但不是 EXE，也不會修改原 WHD 專案或 `config.ini`。
 
 ## 操作
 
@@ -27,6 +27,18 @@ GUI 的視窗，**目前仍需同一份 WHD 原始碼、CSV V5 與加工規則�
    `DRAFT_OUTLINE`、`DRAFT_BEND`、`DRAFT_SCREWS`、
    `DRAFT_WARNING`，並寫入 `DRAFT_NOT_FOR_MANUFACTURING.json`。
    不輸出正式 `CUTTING`、`BEND`、`CHECK/Q` 或 NC 檔案。
+
+## 可攜式 ZIP 打包
+
+執行 `python tools/build_standalone_nfb_pad.py`，預設建立
+`dist/NFB_PAD_STANDALONE_DRAFT.zip`（輸出檔已存在時拒絕覆寫）。
+ZIP 由**目前共用引擎的原始檔**、三廠牌的 CSV V5、共用加工規則、
+單獨 GUI、Windows 啟動 BAT 與 README 組成。解壓至新資料夾後
+可不依賴 WHD 主程式與 `config.ini`，只需 Python 3.11+／Tkinter；
+草稿 DXF 須另安裝 `ezdxf`。原始碼維持單份，打包時才複製。
+
+新增 `tests/test_build_standalone_nfb_pad.py` 在獨立解壓目錄
+啟動子程序，比對 107/68 mm 實際算出 39 mm，不依賴原 WHD 路徑。
 
 ## 單一規則與製造權限
 
