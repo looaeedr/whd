@@ -1162,3 +1162,107 @@ def test_audit116_primary_receiving_door_cell_session_return_is_authoritative(
             root.destroy()
         except tk.TclError:
             pass
+
+
+@pytest.mark.skipif(
+    os.name != "nt" and not os.environ.get("DISPLAY"),
+    reason="real native Windows Tk or Linux Xvfb required",
+)
+@pytest.mark.parametrize("confirm_deletion", [True, False], ids=["delete-confirm", "delete-cancel"])
+def test_audit116_bug2_primary_door_hole_delete_does_not_resurrect_stale_source(
+    monkeypatch, tmp_path, confirm_deletion,
+):
+    """Original audit BUG #2: real PRIMARY cell delete/Cancel survives source sync + reload.
+
+    Drive the actual production Receiving cell entry and committed Session
+    callback, not the old BoxCalculatorGUI.surface_features surrogate.
+    External CADCraft mouse/NC/visual sign-off is deliberately not claimed.
+    """
+    import tkinter as tk
+
+    import gui
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+    from phase6_hole_editor_session import HoleEditorAction, Phase6HoleEditorSession
+    from phase6_project_file import PROJECT_SCHEMA, read_project, write_project
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        app = gui.Phase6PrimaryApplication(root)
+        designer = app.fold_designer_app
+        assert app._phase6_primary_workspace is True
+        designer.baseline_model_var.set("受電箱")
+        root.update_idletasks()
+        root.update()
+
+        physical_key = "door_c1_r1"
+        assert physical_key in designer.designer_workspace.available_parts
+        calls = []
+
+        def capture_editor(part_key, title, surface, width, height, **kwargs):
+            assert part_key == "door"
+            assert "C1-R1" in title and width > 0 and height > 0
+            assert callable(kwargs["sync_callback"])
+            calls.append((kwargs["feature_list_override"], kwargs["sync_callback"]))
+
+        monkeypatch.setattr(app, "_open_unified_hole_editor", capture_editor)
+        app.open_door_layout_cell_editor(0, 0)
+        assert len(calls) == 1
+        initial_features, initial_sync = calls[-1]
+        before = list(initial_features)
+        hole = CircleFeature(
+            diameter=13.0, anchor=FeatureAnchor.PANEL_CENTER,
+            offset=Vec2(-35.0, -10.0), layer="CUTTING",
+        )
+        add_session = Phase6HoleEditorSession("door", initial_features)
+        add_session.execute(HoleEditorAction.insert(hole))
+        add_session.execute(HoleEditorAction.commit_active())
+        add_session.finish(commit=True)
+        initial_sync()
+        root.update_idletasks()
+        root.update()
+
+        present = [*before, hole]
+        assert designer.designer_workspace.features_for(physical_key) == present
+        assert app.surface_features.get(physical_key, []) == present
+        assert app.workspace_controller.part_features_snapshot()[physical_key] == present
+
+        # Reopen the *same* real cell rather than overwriting an old fake alias.
+        app.open_door_layout_cell_editor(0, 0)
+        assert len(calls) == 2
+        current_features, current_sync = calls[-1]
+        assert current_features == present
+        removal = Phase6HoleEditorSession("door", current_features)
+        removal.execute(HoleEditorAction.select(len(before)))
+        removal.execute(HoleEditorAction.delete_selected())
+        removal.finish(commit=confirm_deletion)
+        current_sync()
+        root.update_idletasks()
+        root.update()
+
+        expected = before if confirm_deletion else present
+        assert current_features == expected
+        assert designer.designer_workspace.features_for(physical_key) == expected
+        assert app.surface_features.get(physical_key, []) == expected
+        assert app.workspace_controller.part_features_snapshot()[physical_key] == expected
+        project = app._compose_phase6_project_snapshot_from_main_gui()
+        assert project["part_features"][physical_key] == expected
+
+        output = tmp_path / (
+            "audit116-bug2-delete-confirmed.p6fold"
+            if confirm_deletion else "audit116-bug2-delete-cancelled.p6fold"
+        )
+        write_project(output, {
+            "schema": PROJECT_SCHEMA,
+            "saved_at": "2026-10-28T12:00:00+08:00",
+            "snapshot": project,
+            "final_geometry": {},
+        })
+        reopened = read_project(output)["snapshot"]
+        assert reopened["part_features"][physical_key] == expected
+    finally:
+        try:
+            root.destroy()
+        except tk.TclError:
+            pass
