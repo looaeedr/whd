@@ -448,15 +448,23 @@ class Phase6SettingsPanelOwnedRenderMixin:
                 state=("disabled" if source_derived else "normal"),
             ).grid(row=1, column=index, sticky="w", padx=(0, 5), pady=(2, 5))
 
+        # Receiving BasePlate has NO operator shrink function. The physical
+        # shrink fields remain in its existing validated source/config contract
+        # because the real blank, bend and EAR positions depend on them.
+        # Preserve these non-visual state values for legacy project roundtrips
+        # and the existing atomic commit callback; never render shrink inputs.
+        shrink_keys = ("shrink_top", "shrink_bottom", "shrink_left", "shrink_right")
+        vars_by_key = {"pattern": pattern_var}
+        for key in shrink_keys:
+            raw = values.get(key)
+            vars_by_key[key] = tk.StringVar(
+                master=frame,
+                value=setting_number_text(raw) if raw is not None else "",
+            )
         fields = (
             ("height", "實體標稱高度"),
-            ("shrink_top", "上縮邊"),
-            ("shrink_bottom", "下縮邊"),
-            ("shrink_left", "左縮邊"),
-            ("shrink_right", "右縮邊"),
             ("bend", "上下折彎"),
         )
-        vars_by_key = {"pattern": pattern_var}
         for index, (key, label) in enumerate(fields):
             row, col = divmod(index, 3)
             cell = ttk.Frame(frame)
@@ -491,7 +499,10 @@ class Phase6SettingsPanelOwnedRenderMixin:
                 return
             try:
                 payload = {"pattern": pattern_var.get()}
-                payload.update({key: float(vars_by_key[key].get()) for key, _ in fields})
+                # No shrink operation is exposed to the operator. Reuse only
+                # the already-resolved/persisted physical shrink contract.
+                for key in (*shrink_keys, *(name for name, _ in fields)):
+                    payload[key] = float(vars_by_key[key].get())
                 self._receiving_base_plate_commit(payload)
             except (ValueError, TypeError, KeyError, RuntimeError) as exc:
                 status_var.set("套用失敗：" + str(exc))
