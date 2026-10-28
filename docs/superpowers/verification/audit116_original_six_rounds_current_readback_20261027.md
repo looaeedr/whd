@@ -62,3 +62,10 @@ whd_schema: WHD_DOC_META_V1
 - 正向：刪除確認後不得由先前 `surface_features`、Designer、主工作區或專案快照回填舊孔；反向：取消刪除則原孔須完整保留。兩種結果都要寫入真正 `.p6fold` 並重讀比較，所有斷言不得放寬。
 - 這是在現有 #2361 測試基礎上加強原始 BUG #2 的**現行來源自動化證據**，不改產品幾何或權威，不抵充原始 116 條人工實機簽核，未測外部 CADCraft GUI 滑鼠、真 Windows 2D/3D 畫面或 NC。
 - 必須等本獨立 PR exact-head 完整 Product Regression 五組成功及合併後 exact blob 回讀，才可將此增補來源證據記為通過；失敗就保留待修，正式 X 仍需獨立 `/推推`。
+
+
+## 2026-10-28 — BUG #3 自訂板件孔位 live 同步的真主程式補驗（待 CI）
+
+- 原始 BUG #3 在 `custom_part_only_change` 快速路徑，曾出現 3D 自訂板件孔更新，但主程式 `surface_features` 與專案保存未即時同步。原回歸 `test_bug3_custom_part_only_change_syncs_surface_features` 使用 `SimpleNamespace` 模擬物件；現追加 `test_audit116_bug3_real_main_custom_hole_live_sync_and_save_reload`。
+- 使用真 `gui.BoxCalculatorGUI`、真 `Phase6DesignerWorkspace` 和 `Phase6WorkspaceController`，以來源層 Fold Designer live envelope 模擬同一自訂板件的 Ø16 CUTTING 孔新增及再刪除；逐次核對主畫面特徵、workspace、project snapshot、真正 `.p6fold` 存檔與重讀，以及 revision。
+- 界線：這是現行來源＋原生 Tk 與磁碟的增補測試；因送入的是原始 live envelope，**不是操作者實際從外部 CADCraft 滑鼠操作**，不視為工廠 NC 或 Windows 完整人工驗收。獨立 PR 要等 exact-head Product Regression 五組成功並比對合併 blob 後，才能記來源範圍 PASS；不得把這筆算成原始 116/116 人體驗收。
