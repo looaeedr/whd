@@ -2176,6 +2176,18 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if staged is not None:
                 from ae_engine.receiving_inner_door_candidates import validate_door_config
                 initial = validate_door_config(staged)
+            elif getattr(owner_editor, "_receiving_settings_mode", None) == "single":
+                # A legacy physical Bay may contain NFBConfig slot 0 + slot 1
+                # but an old shared inner_door_models alias with only slot 0.
+                # Restore the selected Bay's SOURCE identities as an editor
+                # draft, never an approved X/NC placement or a candidate
+                # from another Bay. Native Confirm All is still mandatory.
+                from ae_engine.receiving_legacy_nfb_editor_bootstrap import (
+                    recover_submitted_nfb_models_for_editor,
+                )
+                initial = recover_submitted_nfb_models_for_editor(
+                    initial, current_inner_editor_snapshot(),
+                )
         if initial.get("layer_heights_mm") is None:
             # Legacy configurations without operator heights keep their
             # previously saved Y until the user explicitly edits the rows.
@@ -3070,6 +3082,34 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         change_layers()
         live_nfb_preview["ready"] = True
+        # Native CSV features can be missing from an OLD submitted Bay even
+        # though its NFBConfig already holds two model occurrences. Showing
+        # a one-hole assembly would silently mask that missing editor source.
+        # Only bootstrap reversible draft geometry when the actual native
+        # editor has fewer CSV slots than the physical selections. The user
+        # must Confirm All; Cancel restores the exact prior feature state.
+        if embed_parent is not None and direct_to_drawing:
+            owner_editor = embed_parent.winfo_toplevel()
+            pending = getattr(owner_editor, "_receiving_pending_features", None)
+            if callable(pending):
+                current = {
+                    (dict(f.source_params).get("layer_index"),
+                     dict(f.source_params).get("slot_index"))
+                    for f in pending()
+                    if getattr(f, "source_type", None) == "NFB_CSV_SOURCE"
+                }
+                wanted = {
+                    (tier, slot)
+                    for tier in range(layers.get())
+                    for slot, _ in enumerate(chosen[tier])
+                }
+                if wanted - current:
+                    refresh_live_nfb_after_edit()
+                    if live_nfb_preview["dirty"]:
+                        warning.set(
+                            "已恢復已選 NFB 的開孔草稿；請核對每孔位置，"
+                            "按主開孔編輯器「確定全部」才會更新實體組合體。"
+                        )
         # Nominal NFB draft/workflow summary is not part of the approved UI.
         ttk.Label(frame, textvariable=warning).pack(anchor="w")
         refresh_source(force=True)
@@ -4003,7 +4043,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 row = adapter.layout["sets"][selected.set_index]
                 bay = row["bays"][selected.bay_index]
                 if bay.get("nfb_config_submitted") is True:
-                    raise ValueError("NFB 已驗證提交；不得未經重新驗證直接改動內門開孔")
+                    # The previous blanket prohibition made old submitted
+                    # NFBConfig (two models, zero native Features) impossible
+                    # to repair from the original Hole Editor. Permit ONLY a
+                    # complete, explicitly Confirm-All validated CSV
+                    # replacement via the existing atomic Set/Bay adapter.
+                    if (staged_config is None or not any(
+                            getattr(feature, "source_type", None) == "NFB_CSV_SOURCE"
+                            for feature in features)):
+                        raise ValueError(
+                            "已提交 NFB 的內門須用完整 CSV 主孔重新確認後才可替換"
+                        )
                 # Single owns the *existing* physical Bay, never a candidate.
                 # Both settings and actual CUTTING must survive Bay reprojection.
                 current = (validate_door_config(staged_config) if staged_config is not None
