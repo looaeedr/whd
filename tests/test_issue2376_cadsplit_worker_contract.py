@@ -297,3 +297,32 @@ def test_explicit_inch_source_requires_correct_conversion_and_provenance():
     tx["source_to_mm_scale"] = 1.0
     with pytest.raises(ValidationError):
         schema("request_v1.schema.json").validate(request)
+
+
+def test_malformed_request_can_receive_structured_failure_without_unknown_job_id():
+    result = {
+        "protocol_version": "1.0.0",
+        "operation": "prepare",
+        "status": "failed",
+        "engine_commit": COMMIT,
+        "build_id": "test-not-released",
+        "manufacturing_verified": False,
+        "items": [],
+        "diagnostics": [{
+            "code": "WHD_PROTOCOL_INCOMPATIBLE",
+            "message": "無法解析來源 request_id / job_id",
+            "retryable": False
+        }]
+    }
+    validator = schema("response_v1.schema.json")
+    validator.validate(result)
+    result["manufacturing_verified"] = True
+    with pytest.raises(ValidationError):
+        validator.validate(result)
+
+
+def test_successful_response_cannot_omit_job_correlation():
+    result = prepare_response()
+    result.pop("request_digest")
+    with pytest.raises(ValidationError):
+        schema("response_v1.schema.json").validate(result)
