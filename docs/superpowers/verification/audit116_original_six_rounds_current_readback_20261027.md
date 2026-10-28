@@ -69,3 +69,10 @@ whd_schema: WHD_DOC_META_V1
 - 原始 BUG #3 在 `custom_part_only_change` 快速路徑，曾出現 3D 自訂板件孔更新，但主程式 `surface_features` 與專案保存未即時同步。原回歸 `test_bug3_custom_part_only_change_syncs_surface_features` 使用 `SimpleNamespace` 模擬物件；現追加 `test_audit116_bug3_real_main_custom_hole_live_sync_and_save_reload`。
 - 使用真 `gui.BoxCalculatorGUI`、真 `Phase6DesignerWorkspace` 和 `Phase6WorkspaceController`，以來源層 Fold Designer live envelope 模擬同一自訂板件的 Ø16 CUTTING 孔新增及再刪除；逐次核對主畫面特徵、workspace、project snapshot、真正 `.p6fold` 存檔與重讀，以及 revision。
 - 界線：這是現行來源＋原生 Tk 與磁碟的增補測試；因送入的是原始 live envelope，**不是操作者實際從外部 CADCraft 滑鼠操作**，不視為工廠 NC 或 Windows 完整人工驗收。獨立 PR 要等 exact-head Product Regression 五組成功並比對合併 blob 後，才能記來源範圍 PASS；不得把這筆算成原始 116/116 人體驗收。
+
+
+## 2026-10-28 — BUG #4 多連 Bay 門分割權威隔離及磁碟重讀（待完整 CI）
+
+- 原始 BUG #4 指出 Bay1 無門板資料時不可繼承 Bay0 600mm 門格、尤其 Bay1 800mm 寬會導致來源驗證錯誤。原來 `test_bug4_receiving_multi_bay_projection_does_not_leak_bay0_door_state` 保留原斷言，新增 `test_audit116_bug4_two_bay_door_state_disk_reload_no_cross_bay_leak`。
+- 以真 `ae_engine.receiving_layout` 建兩連，Bay0 W600/H1800/D500、兩個 900mm 門格；Bay1 W800/H1700/D420。正反兩個來源：Bay1 未指定任何 door_state，或 Bay1 獨立擁有 1000+700 門格。兩情境均寫入真 `.p6fold` 並由正式讀取器重讀，按 Bay0→Bay1→Bay0 投影，驗證完整 persisted receiving_layout 不被覆蓋，別連門格不外洩。
+- 這是完整來源與專案檔正反隔離測試，**不聲稱已人工在 Windows GUI 點選 Bay1、觀看 3D、輸出實際 DXF/NC**。須 exact PR HEAD 五個 Product Regression 工作成功、合併後 blob 比對，才能記來源範圍 PASS；原始 116/116 人工簽核仍待另行驗收。
