@@ -167,6 +167,63 @@ def test_r3_7_receiving_alias_accepted_across_navigation_and_projection():
     assert summary is not None and "上方：嵌入貼外型" in summary
 
 
+
+def test_r3_7_receiving_alias_preserves_real_upper_inner_door_y_projection():
+    """R3-7: validate the physical Y owner, not only GUI labels/corner text.
+
+    This is the same W800/H1600, 1100-mm upper Door, T2 real-piece topology
+    used by #1495.  Both family names must lead to identical panel IDs,
+    assembly Y, unfolded material UV and inverse box-top datums.
+    """
+    from copy import deepcopy
+    from ae_engine.cabinet_types.receiving import apply_family_defaults
+    from ae_engine.receiving_nfb_y_projection import (
+        project_nfb_inner_door_nominal_y, invert_nfb_inner_door_unfolded_y,
+    )
+
+    canonical = apply_family_defaults({
+        "model": "受電箱", "w": 800.0, "h": 1600.0,
+        "d": 350.0, "t": 2.0, "fw": 29.0,
+        "door_gap_w": 3.5, "door_gap_h": 3.5,
+    })
+    canonical.update({
+        "multi_door_enabled": True,
+        "door_layout_scope": "receiving-main",
+        "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+        "inner_doors": [{
+            "stable_id": "upper", "cell_key": "0:0",
+            "included_frame_sides": ["top", "left", "right"],
+        }],
+    })
+
+    for count, slot, nominal in ((1, 0, 550.0), (2, 0, 290.0), (2, 1, 790.0)):
+        original = deepcopy(canonical)
+        alias = deepcopy(canonical)
+        alias["model"] = "RECEIVING"
+        before = deepcopy(alias)
+        truth = project_nfb_inner_door_nominal_y(
+            original, "upper", layer_count=count, slot_index=slot,
+        )
+        actual = project_nfb_inner_door_nominal_y(
+            alias, "upper", layer_count=count, slot_index=slot,
+        )
+        assert alias == before, "projection mutated the saved authoritative source"
+        assert actual == truth, (count, slot, actual, truth)
+        assert actual.part_id == "inner_door:upper:panel"
+        assert actual.cell_key == "0:0"
+        assert actual.nominal_y_from_box_top_mm == pytest.approx(nominal)
+        assert invert_nfb_inner_door_unfolded_y(
+            alias, "upper", unfolded_uv_y_mm=actual.unfolded_uv_y_mm,
+        ) == pytest.approx(nominal)
+
+    wrong_family = deepcopy(canonical)
+    wrong_family["model"] = "金庫型"
+    with pytest.raises(ValueError, match="requires Receiving family"):
+        project_nfb_inner_door_nominal_y(
+            wrong_family, "upper", layer_count=1, slot_index=0,
+        )
+
+
 def test_r3_8_readback_marking_lines_rejects_extra_marking_lines(tmp_path):
     """R3-8: _readback_marking_lines raises EAR_SIDE_CHECK_SAVED_MARKING_UV_LINE_EXTRA when extra MARKING lines exist."""
     import ezdxf
