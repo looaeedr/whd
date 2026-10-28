@@ -1056,30 +1056,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         text="輸出內門＋底板 DXF（成對部分）",
                         command=export_nfb_paired_partial,
                     )  # Unmapped legacy test hook; original GUI owns DXF.
-            # #1501 operator disclosure: show the REAL per-part live result,
-            # including blocked Bays and source reasons, not a fabricated
-            # green checkbox. No widget at all for fully legacy selections.
-            if get_nfb_transaction_ports is not None and applied["selected_bays"]:
-                from .receiving_nfb_manifest_view import (
-                    highlighted_nfb_manifest_lines,
-                )
-                try:
-                    report_lines = highlighted_nfb_manifest_lines(
-                        get_nfb_transaction_ports(), set_index, targets(),
-                    )
-                except (ValueError, TypeError, KeyError,
-                        IndexError, OSError) as exc:
-                    report_lines = ("NFB 板件狀態不可用：" + str(exc),)
-                if report_lines:
-                    report_host = ttk.LabelFrame(
-                        settings_host, text="NFB 板件清單（唯讀）",
-                    )
-                    report_host.pack(fill="x", pady=(6, 0))
-                    for item in report_lines:
-                        ttk.Label(
-                            report_host, text=item, wraplength=580,
-                            justify="left",
-                        ).pack(anchor="w", padx=6, pady=1)
+            # The operator has one NFB editor and original manufacturing DXF
+            # entry. Do not duplicate the read-only NFB parts list in the
+            # multi-Bay inner-door page. The live manifest projection and
+            # actual source/manufacturing gates remain unchanged.
             # Switch configuration belongs to the separate version editor.
             manager_widgets.update(frame=None, label=None, buttons=(),
                                    buttons_frame=None, quantity_frame=None)
