@@ -212,6 +212,25 @@ class Phase6BendingUI(original.BendingUI):
         self.render()
         self._phase6_refresh_symmetry_bar()
 
+
+    def activate_standard_part_controls(self, mode_var):
+        """Rebind this editor to a custom sheet's one-axis source after activation.
+
+        Custom sheet navigation has its own early-return path. It must not
+        reuse the hidden box-body vault key or its old Tk bend row controls.
+        Only the BendingUI presentation owner changes tabs; manufacturing and
+        profile data remain under the existing Workspace/PartSession owners.
+        """
+        if self.state.struct_mode != "standard":
+            raise ValueError("自訂板件折彎編輯器未切換至標準模式")
+        self.state.phase6_fold_ui_vault_key = None
+        if mode_var.get() != "standard":
+            mode_var.set("standard")
+        # Rebuild even if row counts match: metadata edits can change axis or
+        # fixed fold values while preserving the same number of segments.
+        self.rebuild_tabs()
+
+
     def _mark_workspace_dirty(self):
         owner = getattr(self.update_cb, "__self__", None)
         if owner is not None and hasattr(owner, "designer_workspace"):
