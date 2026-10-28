@@ -628,10 +628,15 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         return popup
 
     def editor_saved(role, version_id, *, keep_live=False):
-        # Saving while "即時" creates a candidate but MUST NOT select it:
-        # selecting v1 here would make the next Edit overwrite v1 instead of
-        # creating v2. Existing-version edits retain their selected version.
-        if not keep_live:
+        # The inner-door candidate's native Confirm All has created the
+        # version, but has NOT applied its NFB holes to a physical Bay.
+        # Leaving the selector at "即時" makes the immediately following
+        # "套用" call apply_live (label-only): no second physical hole appears
+        # in Assembly. Select the JUST-SAVED inner-door version instead so
+        # explicit highlighted-Bay Apply transfers its complete NFB source.
+        # To create a different version next, select "即時" explicitly.
+        # Preserve the legacy keep-live behavior for head/tail editors.
+        if not keep_live or role == "inner-door":
             candidate_selected[role] = version_id
         if win.winfo_exists():
             win.after_idle(show_setting_controls)

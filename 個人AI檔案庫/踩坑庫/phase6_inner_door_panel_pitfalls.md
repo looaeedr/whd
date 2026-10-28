@@ -22,3 +22,12 @@ whd_schema: WHD_DOC_META_V1
 ## Stable ID
 - cell 0:0 => inner-door id `upper`; 0:1 => `lower`;其他 cell 使用 deterministic `c{col}r{row}`。
 - physical panel id 固定 `inner_door:<id>:panel`；uncheck/recheck 不得換 id。
+
+## 2026-10-28：多連候選版本已存兩孔，按「套用」卻只更新標籤
+
+- **錯誤現象**：受電箱 NFB 原生開孔編輯器顯示第 2 孔、候選版本也保存兩顆，但 3D 實體內門組合體仍只有原孔。
+- **根因**：從「即時」建立內門候選後，`editor_saved(... keep_live=True)` 未選中新版本；緊接著的「套用」走 `apply_live`，它只改已套用版本標籤，不寫入所選實體 Bay 的 NFBConfig 與 FinalScene。
+- **修法**：新內門候選儲存後將版本選單指向剛保存的 `inner-door-vN`；物理套用仍須操作員主動按「套用」，由 `ReceivingSetBayAdapter.apply_inner_door_candidate_to_bays` 原子提交。若要建立下一個新版本，操作者可重新選「即時」。
+- **舊檔陷阱**：兩顆實體 CSV NFB 可能已存於 `nfb_config.holes`，但舊 `inner_door_models` 只有一顆、`part_features` 為零。首次 GUI 載入須恢復完整 Set/Bay，編輯器只能從目前 Bay 的已提交型號**補回可取消草稿**。不可猜來源 X、不能以清單數量代替實體開孔。
+- **驗收**：原生 GUI 完整走開啟舊檔 → 內門候選編輯兩孔 → 確定全部 → 高亮連套用 → `inner_door:upper:panel` 的 `material.interiors == 2` → Save As → GUI reopen 後仍 2。只驗 Canvas 或版本庫都不是組合體驗收。
+- **測試誤區**：用 Set/Bay 舊檔卻呼叫「單只設定」會切 quantity 模式，是錯誤重現路線，不應因此改掉正確載入邏輯。
