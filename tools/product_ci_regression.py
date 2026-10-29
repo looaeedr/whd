@@ -7,6 +7,7 @@ CI call this same command; workflow YAML must not duplicate the pytest list.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 from pathlib import Path
@@ -656,11 +657,11 @@ _TWENTY_SHARD_DEDICATED_SUITES = _TEN_SHARD_DEDICATED_SUITES + (
 
 
 # Source: 304 exact files / 339 canonical selectors measured independently
-# by GitHub Actions run 40903796624 (2026-10-29). The committed manifest,
-# NOT each runner's local timing or Python hash(), owns the authoritative
-# deterministic assignment. Its 18 logical lanes reserve 0..13 for >4s
-# whole-file suites and 14..17 for <=4s suites. LPT offline packing made
-# the modeled critical-path bound 141s, equal to the 141s slowest file.
+# by GitHub Actions run 40903796624; follow-up exact-head run 40909061327
+# revealed a 181s GUI shard and 12-21s quick lanes. The committed manifest,
+# NOT runner-local timing or Python hash(), owns deterministic assignments.
+# Only the measured 20-case GUI file is split across 0/14/15/16/17; all
+# original canonical selectors remain unchanged for other shard counts.
 _EIGHTEEN_SHARD_MANIFEST = ROOT / "tools/product_ci_file_duration_manifest_20261029.json"
 
 
@@ -672,7 +673,10 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
     canonical_files = set(selectors_by_file)
     owners = manifest.get("file_owners", {})
     durations = manifest.get("file_seconds", {})
-    if (manifest.get("schema") != "WHD_PRODUCT_CI_FILE_DURATION_ASSIGNMENT_V1"
+    split_file = manifest.get("split_file")
+    case_owners = manifest.get("split_case_owners")
+    case_seconds = manifest.get("split_case_seconds")
+    if (manifest.get("schema") != "WHD_PRODUCT_CI_FILE_DURATION_ASSIGNMENT_V2"
             or manifest.get("canonical_selector_count") != len(PYTEST_PATHS)
             or manifest.get("canonical_file_count") != len(canonical_files)
             or len(PYTEST_PATHS) != len(set(PYTEST_PATHS))
@@ -680,7 +684,11 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
             or set(durations) != canonical_files
             or manifest.get("slow_shard_indices") != list(range(14))
             or manifest.get("short_shard_indices") != list(range(14, 18))
-            or manifest.get("threshold_short_seconds") != 4):
+            or manifest.get("threshold_short_seconds") != 4
+            or split_file != "tests/test_issue517_receiving_live_switch_ui_export_marking.py"
+            or PYTEST_PATHS.count(split_file) != 1
+            or owners.get(split_file) != 0
+            or manifest.get("split_case_count") != 20):
         raise ValueError("18-shard duration manifest incomplete or stale")
     for filename in canonical_files:
         seconds, owner = durations[filename], owners[filename]
@@ -691,9 +699,44 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
             raise ValueError("18-shard duration/quick-lane authority invalid")
     if set(owners.values()) != set(range(18)):
         raise ValueError("18-shard manifest has an empty lane")
-    return tuple(selector for selector in PYTEST_PATHS
-                 if owners[selector.split("::", 1)[0]] == index)
 
+    # The only allowed split is the observed 20-case GUI file. Validate actual
+    # source declarations to fail closed if a test is added, renamed, decorated
+    # (e.g. parametrized), or moved into a class without a reviewed schedule.
+    module = ast.parse((ROOT / split_file).read_text(encoding="utf-8"))
+    functions = [node for node in module.body
+                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                 and node.name.startswith("test_")]
+    if (not isinstance(case_owners, dict)
+            or not isinstance(case_seconds, dict)
+            or len(functions) != 20
+            or len({node.name for node in functions}) != 20
+            or any(node.decorator_list for node in functions)
+            or any(isinstance(node, ast.ClassDef) and node.name.startswith("Test")
+                   for node in module.body)
+            or set(case_owners) != {node.name for node in functions}
+            or set(case_seconds) != set(case_owners)
+            or set(case_owners.values()) != {0, 14, 15, 16, 17}):
+        raise ValueError("18-shard observed GUI cases missing or changed")
+    for case_name, owner in case_owners.items():
+        seconds = case_seconds[case_name]
+        if (isinstance(owner, bool) or not isinstance(owner, int)
+                or owner not in (0, 14, 15, 16, 17)
+                or isinstance(seconds, bool)
+                or not isinstance(seconds, (int, float)) or seconds <= 0):
+            raise ValueError("18-shard observed GUI case timing/owner invalid")
+
+    assigned = []
+    for selector in PYTEST_PATHS:
+        if selector == split_file:
+            assigned.extend(f"{split_file}::{case_name}"
+                            for case_name in case_owners
+                            if case_owners[case_name] == index)
+        elif owners[selector.split("::", 1)[0]] == index:
+            assigned.append(selector)
+    if not assigned:
+        raise ValueError("18-shard observed scheduling has empty lane")
+    return tuple(assigned)
 
 def shard_paths(index: int, count: int) -> tuple[str, ...]:
     """Partition exact canonical selectors; isolate measured slow suites."""
