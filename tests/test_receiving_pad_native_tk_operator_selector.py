@@ -162,6 +162,25 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
         output=Path("pad-native-tk-2D.png")
         Image.fromarray(after).save(output)
         canvas_window.destroy()
+
+        # Native GUI acceptance must exercise the ORIGINAL Tk operator menu,
+        # not merely the workspace identity/adapter's programmatic 2D scene.
+        # The old GUI failed here even while assembly and 2D render probes
+        # passed: it never refreshed this Tk menu after NFB Confirm All.
+        menu = designer.part_choice_menu
+        matches = [
+            (i, str(menu.entrycget(i, "label")))
+            for i in range(menu.index("end") + 1)
+            if "墊高片" in str(menu.entrycget(i, "label"))
+        ]
+        assert len(matches) == 1, ("PAD_NATIVE_TK_MENU_NOT_REFRESHED", matches)
+        index, label = matches[0]
+        menu.invoke(index)
+        _pump(root)
+        assert designer.designer_workspace.active_part == identity
+        assert designer.part_var.get() == label
+        assert designer._phase6_3d_display_mode == "single"
+
         print("PAD_REAL_TK_OPERATOR_2D",identity,
               material.unfolded_topology.width,
               material.unfolded_topology.height,
@@ -212,6 +231,19 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
         assert reloaded_parts == (identity,), (
             "PAD_NATIVE_SAVED_2D_NAVIGATION_MISSING",reloaded_parts
         )
+        # Reload must also rebuild the actual operator-facing Tk menu; a
+        # saved authoritative Part identity alone is not a clickable sheet.
+        saved_menu = reloaded.part_choice_menu
+        saved_pad_entries = [
+            i for i in range(saved_menu.index("end") + 1)
+            if "墊高片" in str(saved_menu.entrycget(i, "label"))
+        ]
+        assert len(saved_pad_entries) == 1, (
+            "PAD_NATIVE_SAVED_TK_MENU_NOT_REFRESHED", saved_pad_entries
+        )
+        saved_menu.invoke(saved_pad_entries[0])
+        _pump(root)
+        assert reloaded.designer_workspace.active_part == identity
         restored=bridge._phase6_final_scene_adapter(
             reloaded).query_assembly_render_data()
         assert len(restored.formed_nfb_pad_skins)==1

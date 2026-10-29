@@ -2656,7 +2656,7 @@ def _phase6_activate_operator_part(self, key):
     return result
 
 
-def _fix11_refresh_part_buttons(self):
+def _fix11_refresh_part_buttons(self, *, menu_only=False):
     return _navigation_view_refresh_part_selector(
         self,
         tk_end=original.tk.END,
@@ -2673,6 +2673,7 @@ def _fix11_refresh_part_buttons(self):
         refresh_structure_tree=lambda: _phase6_refresh_structure_tree(self),
         refresh_content_switch=lambda: _phase6_refresh_content_switch(self),
         refresh_status_bar=lambda: _phase6_refresh_status_bar(self),
+        menu_only=menu_only,
     )
 
 def _fix11_refresh_part_button_states(self):
