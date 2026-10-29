@@ -1,7 +1,7 @@
 ---
 whd_doc_role: REFERENCE
 whd_contract: cadsplit-whd-worker-wire-v1
-whd_canonical: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 

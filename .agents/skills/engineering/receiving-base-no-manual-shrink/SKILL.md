@@ -1,6 +1,10 @@
 ---
 name: receiving-base-no-manual-shrink
 description: Receiving BasePlate operator controls must not expose manual shrink values
+whd_doc_role: CURRENT
+whd_contract: receiving-base-no-manual-shrink
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Receiving BasePlate — source only physical geometry

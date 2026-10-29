@@ -1,6 +1,7 @@
 ---
 whd_doc_role: CURRENT
 whd_contract: audit116-receiving-modal-rejected-mode-no-orphan
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
