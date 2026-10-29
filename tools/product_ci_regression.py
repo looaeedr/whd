@@ -31,6 +31,8 @@ PYTEST_PATHS = (
     "tests/test_issue2378_request_canonical.py",
     # #2378: WHD-owned Door prepare orchestration and stale signed receipt.
     "tests/test_issue2378_prepare_batch.py",
+    # #2378: W-03 v1.1.0 is additive; original W-01/W-02 v1.0.0 must remain stable.
+    "tests/test_issue2378_wire_minor_version.py",
     # #1795: live Tk Main GUI / 3D revision, initialization, runtime-only sync.
     "tests/test_phase6_sync_envelope.py",
     # #1792: canonical full-file GUI/3D runtime performance acceptance.

@@ -183,3 +183,15 @@ W-01/03/04/06/05/07 respectively implement CLI, prepare, export, durable
 transactions, Windows packaging and Gate A. Gate B/D/E and removal of
 CADSplit's internal engine belong to CADSplit and user-controlled release;
 the current branch does not enable or certify any of those.
+
+## W-03 draft minor protocol extension (not enabled in W-01)
+
+The original wire `1.0.0` schemas and W-01 source-only capabilities are
+immutable. W-03 introduces optional Door `part.frame_edges`
+(`left/right/top/bottom` booleans) **only** in separate draft schemas
+`request_v1_1.schema.json` and `response_v1_1.schema.json` with
+`protocol_version=1.1.0`. A successful Door-local in-process prepare
+requires all four flags to have verified layout provenance; an omitted flag
+must fail closed rather than silently default to all four true.
+These schemas alone do not enable public `prepare`, `export`, DXF,
+Windows EXE support or any non-Door physical Frame.

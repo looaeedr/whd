@@ -21,7 +21,7 @@ ENGINE = "d" * 64
 
 def _request(*, count=1):
     request = {
-        "protocol_version":"1.0.0",
+        "protocol_version":"1.1.0",
         "client_installation_id":"CAD-owned-01",
         "request_id":"wire-001",
         "job_id":"job-001",

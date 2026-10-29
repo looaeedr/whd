@@ -121,3 +121,14 @@ The present local Door frame MUST NOT be silently reused for EndCap,
 IndicatorBox, BoxBody or back/mirrored faces. The CADSplit-side original DXF
 source frame/transform remains CADSplit's responsibility.
 
+
+## W-03 versioned draft (not a public capability)
+
+The **published/source-only W-01 CLI remains wire 1.0.0** and returns
+`prepare/export` as unsupported. The W-03 Door frame evidence needs an
+explicit `part.frame_edges` member not present in the immutable 1.0.0
+contract. The in-process W-03 test boundary therefore uses the separate
+`request_v1_1.schema.json` and `response_v1_1.schema.json`
+(**protocol 1.1.0**, optional additive Door edges); it MUST NOT mutate
+`request_v1.schema.json` or claim 1.1.0 public capabilities. A future
+packaged Worker may only negotiate 1.1.0 after the W-04/W-06/W-05 gates.

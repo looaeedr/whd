@@ -78,7 +78,7 @@ def _binding_payload(
             raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "source evidence required")
     return {
         "binding_revision": "WHD_PREPARE_BINDING_V1",
-        "protocol_version": "1.0.0",
+        "protocol_version": "1.1.0",
         "client_installation_id": client_installation_id,
         "job_id": job_id,
         "environment_fingerprint": environment_fingerprint,

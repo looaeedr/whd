@@ -80,7 +80,7 @@ def prepare_trusted_door_batch(
 
     schema_dir = Path(__file__).resolve().parent / "schemas"
     req_schema = Draft202012Validator(
-        __import__("json").loads((schema_dir / "request_v1.schema.json").read_text(encoding="utf-8"))
+        __import__("json").loads((schema_dir / "request_v1_1.schema.json").read_text(encoding="utf-8"))
     )
     req_schema.validate(request)
     if request["operation"] != "prepare":
@@ -177,7 +177,7 @@ def prepare_trusted_door_batch(
         prepared_items=recorded,
     )
     result = {
-        "protocol_version":"1.0.0",
+        "protocol_version":"1.1.0",
         "client_installation_id":request["client_installation_id"],
         "request_id":request["request_id"],
         "job_id":request["job_id"],
@@ -203,7 +203,7 @@ def prepare_trusted_door_batch(
         "diagnostics":[],
     }
     resp_schema = Draft202012Validator(
-        __import__("json").loads((schema_dir / "response_v1.schema.json").read_text(encoding="utf-8"))
+        __import__("json").loads((schema_dir / "response_v1_1.schema.json").read_text(encoding="utf-8"))
     )
     resp_schema.validate(result)
     return result
