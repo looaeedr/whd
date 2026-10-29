@@ -1,0 +1,185 @@
+name: WHD Per-File Timing Profile
+
+on:
+  pull_request:
+    branches:
+      - localX
+    paths:
+      - '.github/workflows/whd-product-file-profile.yml'
+      - 'tools/product_file_profile.py'
+      - 'tests/process/test_product_file_profile.py'
+
+concurrency:
+  group: whd-product-file-profile-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  TZ: Asia/Taipei
+
+jobs:
+  prepare:
+    name: Build exact canonical file inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      batch_a: ${{ steps.matrix.outputs.batch_a }}
+      batch_b: ${{ steps.matrix.outputs.batch_b }}
+    steps:
+      - name: Checkout exact profiling candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Export both disjoint per-file matrices
+        id: matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "batch_a=$(python tools/product_file_profile.py matrix --batch 0)" >> "$GITHUB_OUTPUT"
+          echo "batch_b=$(python tools/product_file_profile.py matrix --batch 1)" >> "$GITHUB_OUTPUT"
+          echo "WHD_PROFILE_MATRIX_GREEN"
+  profile-a:
+    name: Profile A (${{ matrix.file_index }})
+    needs: prepare
+    if: needs.prepare.result == 'success'
+    strategy:
+      fail-fast: false
+      max-parallel: 15
+      matrix:
+        file_index: ${{ fromJSON(needs.prepare.outputs.batch_a) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact profiling candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install Xvfb and dependencies (bounded)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ci_bounded_install.py --label apt-index --attempts 2 --timeout-seconds 120 -- \
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=20 update -qq
+          python tools/ci_bounded_install.py --label xvfb --attempts 2 --timeout-seconds 120 -- \
+            sudo apt-get -o Acquire::Retries=2 install -y -qq xvfb
+          python tools/ci_bounded_install.py --label pip-product --attempts 2 --timeout-seconds 240 -- \
+            python -m pip install --retries 3 --timeout 20 -r requirements.txt pytest matplotlib ezdxf
+      - name: Verify test dependencies
+        run: python -c 'import tkinter, ezdxf, matplotlib, shapely, pytest; print("WHD_PROFILE_IMPORTS_GREEN")'
+      - name: Run exact file selectors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/product_file_profile.py run \
+            --index "${{ matrix.file_index }}" \
+            --output "file-profile-${{ matrix.file_index }}.json"
+      - name: Retain individual file receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-file-profile-${{ matrix.file_index }}
+          path: file-profile-${{ matrix.file_index }}.json
+          retention-days: 7
+          if-no-files-found: warn
+
+  profile-b:
+    name: Profile B (${{ matrix.file_index }})
+    needs: prepare
+    if: needs.prepare.result == 'success'
+    strategy:
+      fail-fast: false
+      max-parallel: 15
+      matrix:
+        file_index: ${{ fromJSON(needs.prepare.outputs.batch_b) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact profiling candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install Xvfb and dependencies (bounded)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ci_bounded_install.py --label apt-index --attempts 2 --timeout-seconds 120 -- \
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=20 update -qq
+          python tools/ci_bounded_install.py --label xvfb --attempts 2 --timeout-seconds 120 -- \
+            sudo apt-get -o Acquire::Retries=2 install -y -qq xvfb
+          python tools/ci_bounded_install.py --label pip-product --attempts 2 --timeout-seconds 240 -- \
+            python -m pip install --retries 3 --timeout 20 -r requirements.txt pytest matplotlib ezdxf
+      - name: Verify test dependencies
+        run: python -c 'import tkinter, ezdxf, matplotlib, shapely, pytest; print("WHD_PROFILE_IMPORTS_GREEN")'
+      - name: Run exact file selectors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/product_file_profile.py run \
+            --index "${{ matrix.file_index }}" \
+            --output "file-profile-${{ matrix.file_index }}.json"
+      - name: Retain individual file receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-file-profile-${{ matrix.file_index }}
+          path: file-profile-${{ matrix.file_index }}.json
+          retention-days: 7
+          if-no-files-found: warn
+
+  summarize:
+    name: Compile every file timing and observed concurrency
+    needs: [prepare, profile-a, profile-b]
+    if: always() && needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact profiling candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build complete fail-closed timing CSV from exact-run job data
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python tools/product_file_profile.py summary \
+            --repo "$GITHUB_REPOSITORY" \
+            --run-id "$GITHUB_RUN_ID" \
+            --out file-profile-results
+      - name: Post timing report
+        if: always()
+        shell: bash
+        run: |
+          if [ -s file-profile-results/summary.md ]; then
+            cat file-profile-results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload full timing CSV and summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-per-file-timing-summary
+          path: file-profile-results/
+          retention-days: 30
+          if-no-files-found: error
