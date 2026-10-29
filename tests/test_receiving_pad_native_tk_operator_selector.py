@@ -131,7 +131,14 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
         from gui import render_drawing_scene, _phase6_2d_material_viewport
         canvas_window = tk.Toplevel(root)
         canvas_window.geometry("900x720+25+25")
+        # R5 Windows audit116: keep the isolated pixel-witness window above
+        # other WHD Toplevels; otherwise ImageGrab can see an occluder and
+        # falsely claim zero visible pixels despite 1/4/2 drawn primitives.
+        canvas_window.attributes("-topmost", True)
+        canvas_window.deiconify()
         canvas_window.lift()
+        canvas_window.focus_force()
+        _pump(root)
         display = tk.Canvas(canvas_window,width=880,height=690,bg="#182030")
         display.pack(fill=tk.BOTH,expand=True)
         _pump(root)
