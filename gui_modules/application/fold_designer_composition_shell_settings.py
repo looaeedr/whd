@@ -621,7 +621,7 @@ def sync_authoritative_derived_parts(
             and getattr(app, "part_choice_menu", None) is not None):
         def refresh_changed_part_menu():
             if app.root.winfo_exists():
-                required("_fix11_refresh_part_buttons")(app)
+                required("_fix11_refresh_part_buttons")(app, menu_only=True)
         app.root.after_idle(refresh_changed_part_menu)
 
     return (
