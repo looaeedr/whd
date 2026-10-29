@@ -166,7 +166,8 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
         changed=int(np.count_nonzero(delta>32))
         assert changed>1000, ("PAD_TK_2D_DRAWN_BUT_NOT_VISIBLE",changed)
         from PIL import Image
-        output=Path("pad-native-tk-2D.png")
+        # Keep capture per-test, not in the user's working-tree root.
+        output=tmp_path / "pad-native-tk-2D.png"
         Image.fromarray(after).save(output)
         canvas_window.destroy()
 
