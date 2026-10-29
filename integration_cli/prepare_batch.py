@@ -16,12 +16,49 @@ from jsonschema import Draft202012Validator
 
 from integration_cli.prepare_binding import create_preparation_binding
 from integration_cli.prepare_evidence import (
-    PrepareEvidenceError, build_resource_evidence, resolve_authoritative_door_inputs
+    PrepareEvidenceError, assert_snapshot_current, build_resource_evidence, resolve_authoritative_door_inputs
 )
 from integration_cli.prepare_frame import resolve_door_finished_local_frame
 from integration_cli.request_canonical import require_matching_wire_request_digest
 
 _REGISTRY_PATH = "基準檔/截角資料庫/certified_relief_rules.json"
+
+
+def _validate_owning_resource_parsers(resource_root: Path, baseline_paths: list[str]) -> None:
+    """A hash of arbitrary bytes is not proof of a valid WHD resource.
+
+    Use the existing Certified Registry and DXF source owners. Their verified
+    source reader must NOT use preview last-known-good fallback for prepare.
+    This validation does not mutate runtime registry rules or manufacture DXF.
+    """
+    from ae_engine.certified_relief_registry import build_runtime_relief_rules_from_external
+    from ae_engine.baseline_source import (
+        BASELINE_SOURCE_VERIFIED, baseline_cutting_bounds, load_baseline_dxf_source_with_status,
+    )
+
+    try:
+        rules = build_runtime_relief_rules_from_external(resource_root / _REGISTRY_PATH)
+        if not rules:
+            raise ValueError("certified registry has no active runtime rules")
+    except (ValueError, TypeError, OSError, KeyError, RuntimeError) as exc:
+        raise PrepareEvidenceError(
+            "WHD_RESOURCE_UNVERIFIED", "certified Registry content cannot be verified"
+        ) from exc
+    for rel in baseline_paths:
+        try:
+            doc, state = load_baseline_dxf_source_with_status(
+                resource_root / rel, allow_unverified_source=False,
+            )
+            bounds = baseline_cutting_bounds(doc.modelspace())
+            if state != BASELINE_SOURCE_VERIFIED or bounds is None:
+                raise ValueError("DXF source is not verified CUTTING geometry")
+            min_x, min_y, max_x, max_y = bounds
+            if not min_x < max_x or not min_y < max_y:
+                raise ValueError("DXF CUTTING geometry has no positive area envelope")
+        except (ValueError, TypeError, OSError, RuntimeError) as exc:
+            raise PrepareEvidenceError(
+                "WHD_RESOURCE_UNVERIFIED", "baseline DXF cannot be parsed and verified"
+            ) from exc
 
 
 def prepare_trusted_door_batch(
@@ -119,6 +156,19 @@ def prepare_trusted_door_batch(
         engine_commit=engine_commit,engine_sha256=engine_sha256,
         build_id=build_id,
     )
+    # Parsing is necessary in addition to resource-byte attestation. Hash
+    # again afterwards so any concurrent file mutation between reading and
+    # parsing invalidates the entire batch before a token can be issued.
+    _validate_owning_resource_parsers(resource_root, sorted(baselines))
+    current = build_resource_evidence(
+        resource_root=resource_root,registry_path=_REGISTRY_PATH,
+        baseline_paths=sorted(baselines),resolved_policy=asdict(policy),
+        locked_inputs={"client_installation_id":request["client_installation_id"],
+                       "job_id":request["job_id"],"items":recorded},
+        engine_commit=engine_commit,engine_sha256=engine_sha256,
+        build_id=build_id,
+    )
+    assert_snapshot_current(evidence, current)
     sealed = create_preparation_binding(
         worker_key=worker_key, client_installation_id=request["client_installation_id"],
         job_id=request["job_id"],
