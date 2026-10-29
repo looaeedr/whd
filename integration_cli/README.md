@@ -214,6 +214,28 @@ fail-closed, non-public building block; neither stages nor manifest existence
 prove customer manufacturing completion. Existing in-process W-04 export
 still owns its own Save→Reload verifier and separate normal-exception rollback.
 
+A further **private W-06 original-file backup proof** is available in
+`original_backup_manifest.DurableOriginalBackupEvidence`. Only after the
+job's per-item precommit stage evidence and physical-directory lease have
+passed, it copies each **existing original customer DXF** (not the staged
+new output) into a newly generated private `.whd-w06-original-backup-*`
+directory on that same destination filesystem. It writes and fsyncs each
+backup and directory, verifies actual SHA256/size/mtime parity with the
+unchanged original, and commits an immutable, checksummed backup manifest
+into the trusted SQLite store. It never moves, deletes or replaces any
+customer or staged DXF, and a transport-only retry cannot rewrite a prior
+verified backup. Independent process readback checks the original
+precommit stage, output directory device/inode and physical backup files.
+A missing/changed backup, altered customer file, untrusted path or corrupt
+manifest refuses further processing.
+
+**This is still not a durable multi-file commit or recovery feature.**
+A crash before a manifest is recorded may leave a private, unclaimed
+backup directory, but it cannot modify an existing customer DXF.
+Incomplete jobs retain their reservation and `complete` continues to
+refuse success until a real backup/replace journal with recovery semantics
+is implemented and independently tested. No public capabilities turn true.
+
 **Still not full W-06:** Windows junction/UNC/drive-alias and case-equivalence
 require physical Gate A evidence; multi-file durable backup/commit journal,
 rollback/roll-forward after interrupted `os.replace`, safe cancellation,
