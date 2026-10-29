@@ -37,7 +37,7 @@ def test_explicit_node_ids_are_deduplicated_and_shell_quoted():
     feedback = build_fast_feedback(["gui.py"], feedback_tests=selectors)
     assert feedback["status"] == "READY"
     assert feedback["test_selectors"] == selectors[:1]
-    assert shlex.split(feedback["command"])[4:] == selectors[:1]
+    assert shlex.split(feedback["command"])[5:] == selectors[:1]
     assert feedback["authority"] == "DEVELOPMENT_FEEDBACK_ONLY"
 
 
