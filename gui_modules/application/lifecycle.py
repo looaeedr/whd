@@ -911,6 +911,13 @@ def _apply_fold_designer_live_snapshot(self, payload):
                     self._authoritative_part_render_cache.pop("head", None)
                     self._authoritative_part_render_cache.pop("tail", None)
             self.project_controller.capture_committed(self._compose_phase6_project_snapshot_from_main_gui())
+            if quantity_changed:
+                # R2-11: invalidating Head/Tail without scheduling a fresh host
+                # calculation leaves the main GUI showing the previous version.
+                # Reuse the same coalesced update owner as normal live edits.
+                scheduler = getattr(self, "_phase6_update_scheduler", None)
+                if scheduler is not None:
+                    scheduler.mark_dirty("designer_live_snapshot")
             self._phase6_last_fold_designer_revision=revision
             self._phase6_last_fold_designer_fingerprint=str(payload.get("fingerprint") or "")
             self._phase6_last_fold_designer_live_payload=deepcopy(payload)
