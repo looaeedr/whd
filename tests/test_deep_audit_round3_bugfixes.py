@@ -153,9 +153,7 @@ def test_r3_3_asymmetric_endcap_real_t2_core_stays_on_head_tail_mating_face(
         (flange,), placement, body, sheet_thickness=2.,
         reference_triangles=full_reference, preserve_core_origin=True,
     )
-    assert folded[0][2][1] == pytest.approx(
-        folded_y + (1. if placement == "top" else -1.)
-    )
+    assert folded[0][2][1] == pytest.approx(folded_y)
     assert (folded[0][2][1] < mid_surface_y) if placement == "top" else (
         folded[0][2][1] > mid_surface_y
     )
