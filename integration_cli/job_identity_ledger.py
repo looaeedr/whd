@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+import stat
 from typing import Any, Mapping, Sequence
 
 from integration_cli.prepare_evidence import (
@@ -108,6 +109,22 @@ def _output_directory_keys(directories: Sequence[Path]) -> tuple[str, ...]:
     return tuple(sorted(keys))
 
 
+def _directory_identity(path: Path) -> tuple[int, int]:
+    """Pin the actual filesystem directory, not only its reusable path text."""
+    try:
+        metadata = path.lstat()
+    except OSError as exc:
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "reserved output directory vanished") from exc
+    if (not stat.S_ISDIR(metadata.st_mode)
+            or not isinstance(metadata.st_dev, int)
+            or not isinstance(metadata.st_ino, int)
+            or metadata.st_dev <= 0 or metadata.st_ino <= 0):
+        raise PrepareEvidenceError(
+            "WHD_JOB_RECOVERY_REQUIRED", "reserved output directory identity unverified"
+        )
+    return metadata.st_dev, metadata.st_ino
+
+
 class DurableJobIdentityLedger:
     """Private same-job replay ledger, isolated from unfinished W-06 output journal.
 
@@ -145,6 +162,15 @@ class DurableJobIdentityLedger:
                     job_id TEXT NOT NULL,
                     operation TEXT NOT NULL,
                     request_digest TEXT NOT NULL
+                )
+            """)
+            # Additive fail-closed evidence table; older unfinished leases
+            # without identity proofs cannot silently acquire new authority.
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS output_directory_identity (
+                    directory_key TEXT PRIMARY KEY,
+                    device_id INTEGER NOT NULL,
+                    inode_id INTEGER NOT NULL
                 )
             """)
 
@@ -224,6 +250,10 @@ class DurableJobIdentityLedger:
         if op != "export":
             raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "only export can lease output destinations")
         keys = _output_directory_keys(trusted_directories)
+        physical = {
+            os.path.normcase(str(directory.resolve(strict=True))): _directory_identity(directory)
+            for directory in trusted_directories
+        }
         conn = self._connect()
         try:
             conn.execute("BEGIN IMMEDIATE")
@@ -249,12 +279,30 @@ class DurableJobIdentityLedger:
                         "WHD_OUTPUT_PATH_LOCKED", "a different unfinished job owns this destination"
                     )
             for key in keys:
-                conn.execute(
-                    """INSERT OR IGNORE INTO output_directory_leases
-                       (directory_key,client_id,job_id,operation,request_digest)
-                       VALUES (?,?,?,?,?)""",
-                    (key, client, job, op, digest),
-                )
+                persisted = conn.execute(
+                    """SELECT device_id,inode_id FROM output_directory_identity
+                       WHERE directory_key=?""", (key,),
+                ).fetchone()
+                already = conn.execute(
+                    """SELECT 1 FROM output_directory_leases WHERE directory_key=?""",
+                    (key,),
+                ).fetchone()
+                if already and persisted != physical[key]:
+                    raise PrepareEvidenceError(
+                        "WHD_JOB_RECOVERY_REQUIRED", "previous output directory identity changed or is unverified"
+                    )
+                if not already:
+                    conn.execute(
+                        """INSERT INTO output_directory_leases
+                           (directory_key,client_id,job_id,operation,request_digest)
+                           VALUES (?,?,?,?,?)""",
+                        (key, client, job, op, digest),
+                    )
+                    conn.execute(
+                        """INSERT INTO output_directory_identity(directory_key,device_id,inode_id)
+                           VALUES (?,?,?)""",
+                        (key, *physical[key]),
+                    )
             conn.commit()
             return keys
         except sqlite3.Error as exc:
@@ -324,6 +372,15 @@ class DurableJobIdentityLedger:
                         (client, job, op, digest),
                     )
                 }
+                for reserved_key in reserved_keys:
+                    recorded = conn.execute(
+                        """SELECT device_id,inode_id FROM output_directory_identity
+                           WHERE directory_key=?""", (reserved_key,),
+                    ).fetchone()
+                    if recorded is None or recorded != _directory_identity(Path(reserved_key)):
+                        raise PrepareEvidenceError(
+                            "WHD_JOB_RECOVERY_REQUIRED", "reserved output directory was replaced"
+                        )
                 for attested in proofs.values():
                     # Every physical file must reside directly within this
                     # job's exclusively held directory; merely locking A
@@ -343,6 +400,14 @@ class DurableJobIdentityLedger:
             )
             # Release the batch leases *in the same durable transaction* as
             # successful immutable result publication; never on failure.
+            conn.execute(
+                """DELETE FROM output_directory_identity
+                   WHERE directory_key IN (
+                       SELECT directory_key FROM output_directory_leases
+                       WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?
+                   )""",
+                (client, job, op, digest),
+            )
             conn.execute(
                 """DELETE FROM output_directory_leases
                    WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",
