@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """#2380 W-06 PRIVATE durable job identity and immutable result readback.
 
-Not the public Worker, path lock, multi-file commit journal or crash recovery.
+Not the public Worker, full Windows path-alias gate, multi-file commit journal or crash recovery.
 An unfinished job can *never* be retried as a new manufacturing operation.
 Only a verified, completed local result can be replayed. The installation
 ledger root and output paths must come from trusted Worker custody, not wire.
@@ -13,10 +13,11 @@ from dataclasses import dataclass
 import hashlib
 import hmac
 import json
+import os
 from pathlib import Path
 import re
 import sqlite3
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from integration_cli.prepare_evidence import (
     PrepareEvidenceError, _pure_json, _snapshot_bytes,
@@ -81,12 +82,38 @@ def _file_proofs(files: Mapping[str, Path]) -> dict[str, dict[str, Any]]:
     return {key: _file_proof(path) for key, path in sorted(files.items())}
 
 
+def _output_directory_keys(directories: Sequence[Path]) -> tuple[str, ...]:
+    """Canonicalize *trusted Worker selected* pre-existing output directories.
+
+    Never take a directory path from untrusted CADSplit data. Local symlinks
+    and non-absolute/absent directories fail closed. Windows case handling is
+    delegated to the host path API; drive aliases/junctions still need Gate A.
+    """
+    if (not isinstance(directories, (list, tuple)) or not directories
+            or len(directories) > 20):
+        raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "trusted output directory list required")
+    keys = []
+    for directory in directories:
+        if (not isinstance(directory, Path) or not directory.is_absolute()
+                or not directory.is_dir()
+                or directory.is_symlink()
+                or any(parent.is_symlink() for parent in directory.parents)):
+            raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "unsafe or missing output directory")
+        try:
+            keys.append(os.path.normcase(str(directory.resolve(strict=True))))
+        except OSError as exc:
+            raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "output path is not canonical") from exc
+    if len(set(keys)) != len(keys):
+        raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "duplicate or aliased batch output directory")
+    return tuple(sorted(keys))
+
+
 class DurableJobIdentityLedger:
     """Private same-job replay ledger, isolated from unfinished W-06 output journal.
 
-    SQLite BEGIN IMMEDIATE serializes same identity claims across processes.
-    This intentionally does NOT serialize *different* jobs that target the
-    same output directory; W-06 path locks and recovery are still mandatory.
+    SQLite BEGIN IMMEDIATE serializes same identity and output directory
+    reservations across processes. A lease survives an unfinished job/crash.
+    This is not a multi-file commit journal or a complete Windows alias gate.
     """
 
     def __init__(self, trusted_store_root: Path):
@@ -108,6 +135,16 @@ class DurableJobIdentityLedger:
                     result_sha256 TEXT,
                     artifact_json TEXT,
                     PRIMARY KEY (client_id, job_id, operation)
+                )
+            """)
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS output_directory_leases (
+                    directory_key TEXT PRIMARY KEY,
+                    client_id TEXT NOT NULL,
+                    job_id TEXT NOT NULL,
+                    operation TEXT NOT NULL,
+                    request_digest TEXT NOT NULL
                 )
             """)
 
@@ -172,6 +209,63 @@ class DurableJobIdentityLedger:
             raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "persisted manifest cannot be trusted") from exc
         return JobClaim("committed", result)
 
+
+    def reserve_output_directories(
+        self, request: Mapping[str, Any], *, trusted_directories: Sequence[Path],
+    ) -> tuple[str, ...]:
+        """Acquire an all-or-none durable lease over every *batch* destination.
+
+        Only the one live trusted Worker that created the original reservation
+        may invoke this. No directory is ever created by this method. Separate
+        jobs cannot hold the same directory until verified completion; a crash
+        leaves the old lease in place for future W-06 recovery, not stealing.
+        """
+        client, job, op, digest = _identity(request)
+        if op != "export":
+            raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "only export can lease output destinations")
+        keys = _output_directory_keys(trusted_directories)
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                """SELECT request_digest,state FROM jobs
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+            if row is None or row[1] != "started":
+                raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "export job is not newly reserved")
+            if not isinstance(row[0], str):
+                raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "invalid durable job record")
+            if not hmac.compare_digest(row[0], digest):
+                raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "export job identity changed")
+            for key in keys:
+                holder = conn.execute(
+                    """SELECT client_id,job_id,operation,request_digest
+                       FROM output_directory_leases WHERE directory_key=?""",
+                    (key,),
+                ).fetchone()
+                if holder is not None and holder != (client, job, op, digest):
+                    raise PrepareEvidenceError(
+                        "WHD_OUTPUT_PATH_LOCKED", "a different unfinished job owns this destination"
+                    )
+            for key in keys:
+                conn.execute(
+                    """INSERT OR IGNORE INTO output_directory_leases
+                       (directory_key,client_id,job_id,operation,request_digest)
+                       VALUES (?,?,?,?,?)""",
+                    (key, client, job, op, digest),
+                )
+            conn.commit()
+            return keys
+        except sqlite3.Error as exc:
+            conn.rollback()
+            raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "output lease transaction failed") from exc
+        except BaseException:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
     def complete(
         self,
         request: Mapping[str, Any],
@@ -213,11 +307,46 @@ class DurableJobIdentityLedger:
                 raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "completion digest changed")
             if row[1] != "started":
                 raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "job already completed")
+            if op == "export":
+                leased = conn.execute(
+                    """SELECT COUNT(*) FROM output_directory_leases
+                       WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",
+                    (client, job, op, digest),
+                ).fetchone()[0]
+                if leased == 0:
+                    raise PrepareEvidenceError(
+                        "WHD_JOB_RECOVERY_REQUIRED", "export output directories were never exclusively reserved"
+                    )
+                reserved_keys = {
+                    row[0] for row in conn.execute(
+                        """SELECT directory_key FROM output_directory_leases
+                           WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",
+                        (client, job, op, digest),
+                    )
+                }
+                for attested in proofs.values():
+                    # Every physical file must reside directly within this
+                    # job's exclusively held directory; merely locking A
+                    # cannot certify a manufactured output in directory B.
+                    actual_directory, = _output_directory_keys(
+                        [Path(attested["path"]).parent]
+                    )
+                    if actual_directory not in reserved_keys:
+                        raise PrepareEvidenceError(
+                            "WHD_JOB_RECOVERY_REQUIRED", "attested output escaped its reserved directory"
+                        )
             conn.execute(
                 """UPDATE jobs SET state='committed',result_json=?,result_sha256=?,artifact_json=?
                    WHERE client_id=? AND job_id=? AND operation=?""",
                 (payload, hashlib.sha256(payload.encode("utf-8")).hexdigest(),
                  encoded_proofs, client, job, op),
+            )
+            # Release the batch leases *in the same durable transaction* as
+            # successful immutable result publication; never on failure.
+            conn.execute(
+                """DELETE FROM output_directory_leases
+                   WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",
+                (client, job, op, digest),
             )
             conn.commit()
         except sqlite3.Error as exc:
