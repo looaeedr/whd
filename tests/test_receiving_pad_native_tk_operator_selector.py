@@ -94,24 +94,6 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
             designer.designer_workspace.available_parts)
         assert "墊高片" in operator_part_label(identity,snapshot=snap)
 
-        # Native GUI acceptance must exercise the ORIGINAL Tk operator menu,
-        # not merely the workspace identity/adapter's programmatic 2D scene.
-        # The old GUI failed here even while assembly and 2D render probes
-        # passed: it never refreshed this Tk menu after NFB Confirm All.
-        menu = designer.part_choice_menu
-        matches = [
-            (i, str(menu.entrycget(i, "label")))
-            for i in range(menu.index("end") + 1)
-            if "墊高片" in str(menu.entrycget(i, "label"))
-        ]
-        assert len(matches) == 1, ("PAD_NATIVE_TK_MENU_NOT_REFRESHED", matches)
-        index, label = matches[0]
-        menu.invoke(index)
-        _pump(root)
-        assert designer.designer_workspace.active_part == identity
-        assert designer.part_var.get() == label
-        assert designer._phase6_3d_display_mode == "single"
-
         # Reproduce a transient stale workspace feature stash: canonical
         # committed snapshot + assembly have a genuine PAD, but the old
         # workspace-first navigation erased its 2D entry on a resync.
@@ -180,6 +162,25 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
         output=Path("pad-native-tk-2D.png")
         Image.fromarray(after).save(output)
         canvas_window.destroy()
+
+        # Native GUI acceptance must exercise the ORIGINAL Tk operator menu,
+        # not merely the workspace identity/adapter's programmatic 2D scene.
+        # The old GUI failed here even while assembly and 2D render probes
+        # passed: it never refreshed this Tk menu after NFB Confirm All.
+        menu = designer.part_choice_menu
+        matches = [
+            (i, str(menu.entrycget(i, "label")))
+            for i in range(menu.index("end") + 1)
+            if "墊高片" in str(menu.entrycget(i, "label"))
+        ]
+        assert len(matches) == 1, ("PAD_NATIVE_TK_MENU_NOT_REFRESHED", matches)
+        index, label = matches[0]
+        menu.invoke(index)
+        _pump(root)
+        assert designer.designer_workspace.active_part == identity
+        assert designer.part_var.get() == label
+        assert designer._phase6_3d_display_mode == "single"
+
         print("PAD_REAL_TK_OPERATOR_2D",identity,
               material.unfolded_topology.width,
               material.unfolded_topology.height,
