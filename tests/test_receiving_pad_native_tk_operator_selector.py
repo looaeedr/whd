@@ -42,6 +42,7 @@ def _choose_pair(root, state):
 def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_path):
     import gui
     import fold_designer_bridge as bridge
+    from unittest.mock import patch
     from phase6_manufacturing_adapter import build_scene_payload_for_app, _canonical_part_keys
     from phase6_part_navigation import operator_part_selector_keys,operator_part_label
 
