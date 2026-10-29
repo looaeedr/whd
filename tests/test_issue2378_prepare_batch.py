@@ -366,15 +366,20 @@ def _indicator_small_door_request(tmp_path, *, groups=(2, 1)):
     )
 
     root, registry, door_baseline = _root(tmp_path)
+    # WHD's shared indicator resolver requires both physical baselines in
+    # the same owned folder; copying only 小門.dxf would be an invalid resource
+    # fixture even if that single DXF parses.
+    shared = root / "基準檔" / "指示燈"
+    shared.mkdir(parents=True, exist_ok=True)
+    for filename in ("盒子.dxf", "小門.dxf"):
+        shutil.copy2(HERE / "基準檔" / "指示燈" / filename, shared / filename)
     context = ManufacturingContext(resource_root=root)
-    policy = resolve_policy(context)
     spec = indicator_small_door_spec(groups, thickness=2.0, context=context)
     baseline = expected_baseline_path_for(spec, context)
     assert baseline is not None
     baseline = Path(baseline)
     assert baseline.is_relative_to(root)
-    baseline.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(HERE / "基準檔" / "指示燈" / "小門.dxf", baseline)
+    assert baseline == shared / "小門.dxf"
 
     width, height = indicator_small_door_finished_size(
         groups, thickness=2.0, context=context,
@@ -457,7 +462,13 @@ def test_indicator_small_door_source_claims_fail_closed_without_token(tmp_path, 
 def test_unverified_non_door_frames_do_not_issue_prepare_tokens(tmp_path, kind):
     root, _, _ = _root(tmp_path)
     req = _request()
-    req["items"][0]["part"]["kind"] = kind
+    part = req["items"][0]["part"]
+    part["kind"] = kind
+    # Cross the wire schema first, then prove the runtime refuses the kind.
+    if kind == "indicator_box":
+        part["indicator_groups"] = [1]
+    else:
+        part["dimensions_mm"]["depth"] = 300.0
     req["request_digest"] = compute_wire_request_digest(req)
     with pytest.raises(PrepareEvidenceError) as exc:
         _prepare(req, root)
