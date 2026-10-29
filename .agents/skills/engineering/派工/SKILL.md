@@ -21,6 +21,10 @@ whd_schema: WHD_DOC_META_V1
 ## 硬閘門：`DISPATCH_CLOUD_BUILD_GITHUB_LOCALX_ONLY`
 
 施工倉庫固定為 GitHub `looaeedr/whd`，不由預設 `main` 或 CoreELEC checkout 推斷來源；施工階段 `DISCOVERY/BUILD/TEST/COMMIT/PUSH/PR/CI` 僅 `execution_location=GITHUB|SCHEDULER|REMOTE_ACTION`，不可用 DC/RC/local shell。PR base=`localX`、exact SHA CI 成功後，**預設在 GitHub 合併 localX**；不能擅自發布正式 X，也不因缺雲端執行器轉本機施工。
+## 快速迭代與最終完整交付分離
+
+已有真實 RED 測試 node／本次已改測試檔時，先用 `tools/change_test_profile.py --feedback-test <真實 node-id>` 產生 `fast_feedback.command`，在合法 GitHub／雲端施工執行器先跑定向 RED→GREEN，避免每次試錯都以完整 Canonical CI 作為第一個回饋。`NEEDS_EXPLICIT_TEST` 不得猜成 GREEN，沒有執行環境也不能假稱已測。提交可交付候選後仍按原範圍跑 exact SHA 必要 CI；CI 失敗優先查失敗 node/step，用定向測試修正後再提交新 SHA 重跑**完整必要 CI**。不改 Runner 授權、不撤除完整回歸、不重啟舊交易／背景輪詢。
+
 ## 本體直接施工優先 `DISPATCH_SELF_EXECUTION_FIRST`
 
 **本體有合法 GitHub 施工能力就直接動手，不走尋找外部代理的前置流程。** 已有指定 Issue、原 PR／工作分支、GitHub 讀寫／提交／PR 和雲端 CI 能力時，由當前 AI 本體直接完成 `BUILD→TEST→COMMIT→CI`，不需要 Codex 雲端程式代理外掛、子代理或獨立 task ID。
