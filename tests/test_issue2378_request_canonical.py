@@ -462,6 +462,66 @@ def test_export_artifact_outside_reserved_output_directory_cannot_be_committed(t
     assert exc.value.code == "WHD_OUTPUT_PATH_LOCKED"
 
 
+def test_replaced_directory_at_same_path_cannot_complete_or_take_over_lease(tmp_path):
+    """The lexical destination stays identical while its physical inode changes."""
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    owned = tmp_path / "customer-output"
+    moved = tmp_path / "moved-original-output"
+    owned.mkdir()
+    request = _w06_request(operation="export", job="job-original")
+    ledger = DurableJobIdentityLedger(store)
+    assert ledger.claim(request).state == "new"
+    original_keys = ledger.reserve_output_directories(
+        request, trusted_directories=[owned]
+    )
+    assert len(original_keys) == 1
+    owned.rename(moved)
+    owned.mkdir()  # same string path, different original directory
+    output = _w06_real_output(owned / "unexpected-new-inode.dxf")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableJobIdentityLedger(store).complete(
+            request, _w06_result(request), trusted_artifacts={"part": output},
+        )
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.reserve_output_directories(request, trusted_directories=[owned])
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    competing = _w06_request(operation="export", job="job-other")
+    assert ledger.claim(competing).state == "new"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.reserve_output_directories(competing, trusted_directories=[owned])
+    assert exc.value.code == "WHD_OUTPUT_PATH_LOCKED"
+    assert output.exists(), "refusal must not mutate untrusted new customer files"
+
+
+def test_existing_unattested_lease_from_older_database_fails_closed(tmp_path):
+    """Schema additions must not grandfather a path-only lease as certified."""
+    import sqlite3
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    destination = tmp_path / "customer-output"
+    destination.mkdir()
+    request = _w06_request(operation="export")
+    ledger = DurableJobIdentityLedger(store)
+    ledger.claim(request)
+    keys = ledger.reserve_output_directories(request, trusted_directories=[destination])
+    with sqlite3.connect(store / "job_identity.sqlite3") as conn:
+        conn.execute(
+            "DELETE FROM output_directory_identity WHERE directory_key=?", (keys[0],)
+        )
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableJobIdentityLedger(store).reserve_output_directories(
+            request, trusted_directories=[destination]
+        )
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    output = _w06_real_output(destination / "customer.dxf")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.complete(
+            request, _w06_result(request), trusted_artifacts={"part": output},
+        )
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+
 # #2380 W-06: private, read-only durable precommit evidence, NOT a DXF
 # replacement/rollback journal or public Worker manufacturing authorization.
 def _w06_staged_dxf(output_dir, physical_id):
@@ -682,3 +742,24 @@ def test_durable_precommit_rejects_corrupted_disk_journal_before_any_output_chan
     assert exc.value.code == "WHD_JOB_STAGING_STALE"
     assert (stage.read_bytes(), stage.stat().st_mtime_ns) == before
     assert not (output / "part-one.dxf").exists()
+
+
+def test_precommit_rejects_replaced_physical_directory_under_existing_lease(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    target = tmp_path / "customer-output"
+    target.mkdir()
+    saved = tmp_path / "moved-original-dir"
+    req = _w06_request(operation="export")
+    ledger = DurableJobIdentityLedger(store)
+    ledger.claim(req)
+    ledger.reserve_output_directories(req, trusted_directories=[target])
+    target.rename(saved)
+    target.mkdir()
+    staged = _w06_staged_dxf(target, "part-one")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.record_staged_batch_snapshot(
+            req, trusted_output_dir=target, trusted_staged={"part-one": staged}, overwrite=False
+        )
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    assert not (target / "part-one.dxf").exists()

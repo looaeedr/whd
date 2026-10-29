@@ -182,8 +182,12 @@ An **additional private W-06 output-directory lease seam** reserves every
 Worker-selected, pre-existing absolute destination directory in one SQLite
 `BEGIN IMMEDIATE` transaction. Paths are locally canonicalized and sorted,
 and each is exclusively held by a single unfinished export job across process
-restarts; a collision fails with `WHD_OUTPUT_PATH_LOCKED` **without acquiring
-a partial batch**. A completed job releases its leases in the **same durable
+restarts. The SQLite reservation also pins the actual directory `st_dev`
+and `st_ino`; replacing a destination with a new directory at the **same
+path** refuses `WHD_JOB_RECOVERY_REQUIRED` rather than authorizing new
+customer files. Older persisted leases without a matching physical-directory
+witness fail closed until trusted journal recovery. A collision fails with
+`WHD_OUTPUT_PATH_LOCKED` **without acquiring a partial batch**. A completed job releases its leases in the **same durable
 database transaction** as its immutable result record. Failed or interrupted
 jobs do not release leases on timeout or restart. This deliberately locks the
 whole output directory, not just a filename, so two different jobs cannot
