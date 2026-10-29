@@ -26,7 +26,7 @@ from integration_cli.request_canonical import require_matching_wire_request_dige
 
 _JOB_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
 _DB_FILENAME = "job_identity.sqlite3"
-_STAGE_FILE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\\.dxf$", re.IGNORECASE)
+_STAGE_FILE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}[.]dxf$", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -141,8 +141,11 @@ def _staged_batch_snapshot(
         physical_ids.add(physical.casefold())
         filenames.add(stage.name.casefold())
         try:
-            if stage.stat().st_dev != trusted_output_dir.stat().st_dev:
+            stage_stat = stage.stat()
+            if stage_stat.st_dev != trusted_output_dir.stat().st_dev:
                 raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "DXF stage must use target filesystem")
+            if stage_stat.st_nlink != 1:
+                raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "staged DXF may not hardlink another file")
         except OSError as exc:
             raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "DXF stage is unreadable") from exc
         original = trusted_output_dir / stage.name
