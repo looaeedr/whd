@@ -1,6 +1,10 @@
 ---
 name: nfb-pad-standalone
 description: NFB PAD V5 source-only standalone draft utility boundaries
+whd_doc_role: CURRENT
+whd_contract: nfb-pad-standalone
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Standalone NFB PAD preview safety
