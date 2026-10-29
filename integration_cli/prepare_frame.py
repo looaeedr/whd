@@ -56,6 +56,11 @@ def resolve_door_finished_local_frame(
     if width <= 0 or height <= 0:
         raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "empty Door finished-face")
 
+    return _door_frame_record(width, height, physical_part_id)
+
+
+def _door_frame_record(width: float, height: float, physical_part_id: str) -> dict[str, Any]:
+    """Single WHD owner for the supported Door-local wire basis."""
     return {
         "frame_id": f"door:{physical_part_id}:front:local-v1",
         "coordinate_contract_revision": "1",
@@ -73,3 +78,34 @@ def resolve_door_finished_local_frame(
         "finished_face_dimensions_mm": {"width": width, "height": height},
         "allowed_feature_types": ["circle", "rect", "profile"],
     }
+
+
+def require_canonical_door_local_frame(frame: Any, *, physical_part_id: str) -> None:
+    """Fail closed before signing a caller-supplied frame, not just on token recheck.
+
+    Only the exact Door-local basis that WHD issues in this revision can be
+    sealed. This checks transport provenance, never a fabrication formula.
+    """
+    from collections.abc import Mapping
+    from integration_cli.prepare_evidence import _pure_json
+
+    if (not isinstance(physical_part_id, str) or
+            not _FRAME_ID_PART.fullmatch(physical_part_id) or
+            not isinstance(frame, Mapping)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "missing verified Door-local frame")
+    dimensions = frame.get("finished_face_dimensions_mm")
+    if not isinstance(dimensions, Mapping) or set(dimensions) != {"width", "height"}:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "missing finished-face bounds")
+    width, height = dimensions["width"], dimensions["height"]
+    if (type(width) not in (int, float) or type(height) not in (int, float) or
+            not math.isfinite(float(width)) or not math.isfinite(float(height)) or
+            width <= 0 or height <= 0):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid finished-face bounds")
+    for key in ("origin_xyz_mm", "axis_x", "axis_y", "normal"):
+        vector = frame.get(key)
+        if (not isinstance(vector, list) or len(vector) != 3 or
+                any(type(v) not in (int, float) or not math.isfinite(float(v)) for v in vector)):
+            raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid Door-local basis vector")
+    expected = _door_frame_record(float(width), float(height), physical_part_id)
+    if _pure_json(frame) != expected:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Frame is not WHD-issued Door-local basis")
