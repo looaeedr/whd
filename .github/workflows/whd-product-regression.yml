@@ -6,8 +6,16 @@ on:
       - cleanup/2d-3d-sync
       - localX
     paths:
+      # Root Python and Worker/physical resources also affect manufacturing.
+      # Do not let a normal product PR skip canonical regression.
+      - '*.py'
       - 'ae_engine/**'
       - 'gui_modules/**'
+      - 'integration_cli/**'
+      - '基準檔/**'
+      - 'config/**'
+      - 'config.ini'
+      - 'requirements.txt'
       - 'phase6_*.py'
       - 'fold_designer_bridge.py'
       - 'tests/**'
@@ -19,7 +27,9 @@ on:
       - '!tests/test_phase6_skill_preflight_gate.py'
       - 'tools/phase6_bridge_anti_regrowth_guard.py'
       - 'tools/product_ci_regression.py'
+      - 'tools/product_ci_file_duration_manifest_*.json'
       - 'tools/product_ci_green_reuse.py'
+      - 'tools/ci_failure_feedback.py'
       - 'tools/ci_bounded_install.py'
       - 'tools/whd_v15_acceptance_evidence.py'
       - 'docs/architecture/phase6_bridge_anti_regrowth_baseline.json'
