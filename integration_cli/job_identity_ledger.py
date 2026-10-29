@@ -107,7 +107,8 @@ def _output_directory_keys(directories: Sequence[Path]) -> tuple[str, ...]:
         raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "duplicate or aliased batch output directory")
     return tuple(sorted(keys))
 
-\nclass DurableJobIdentityLedger:
+
+class DurableJobIdentityLedger:
     """Private same-job replay ledger, isolated from unfinished W-06 output journal.
 
     SQLite BEGIN IMMEDIATE serializes same identity and output directory
