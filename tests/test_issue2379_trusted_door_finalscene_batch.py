@@ -27,7 +27,7 @@ from tests.test_issue2378_prepare_batch import (
 from tests.test_issue2379_wire_feature_preflight import _circle
 
 
-def _real_batch(tmp_path, count=2):
+def _real_batch(tmp_path, count=2, *, circle_thickness=0.0):
     source = tmp_path / "original-cadsplit.dxf"
     doc = ezdxf.new("R2010")
     doc.header["$INSUNITS"] = 4
@@ -35,7 +35,8 @@ def _real_batch(tmp_path, count=2):
     radii = [3.0 + i for i in range(count)]
     handles = [
         doc.modelspace().add_circle((x, y), radius,
-            dxfattribs={"layer": "CUTTING"}).dxf.handle
+            dxfattribs={"layer": "CUTTING", **({"thickness": circle_thickness}
+                        if circle_thickness else {})}).dxf.handle
         for (x, y), radius in zip(centers, radii)
     ]
     doc.saveas(source)
@@ -171,6 +172,17 @@ def test_changed_source_or_missing_worker_custody_fails_before_any_output(tmp_pa
     assert not target.exists()
 
 
+@pytest.mark.parametrize("thickness", [0.25, 1e-12])
+def test_extruded_original_circle_refused_before_output(tmp_path, thickness):
+    """Nonzero DXF thickness must not become an ordinary planar CUTTING hole."""
+    batch = _real_batch(tmp_path, circle_thickness=thickness)
+    target = tmp_path / "out"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _save(batch, target)
+    assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
+    assert not target.exists()
+
+
 def test_invalid_transaction_and_empty_source_inventory_fail_closed(tmp_path):
     batch = _real_batch(tmp_path)
     export = batch[2]
@@ -236,7 +248,9 @@ def _mixed_rect_batch(tmp_path, *, fault=None, rotation=0):
                 else "xyseb" if fault == "vertex_width" else "xy"),
         close=(fault != "open"),
         dxfattribs={"layer": "CUTTING", **({"const_width": 0.25}
-                      if fault == "const_width" else {})},
+                      if fault == "const_width" else {}),
+                    **({"thickness": 0.25 if fault == "thickness" else 1e-12}
+                       if fault in ("thickness", "tiny_thickness") else {})},
     )
     handle_rect = rect.dxf.handle
     doc.saveas(source)
@@ -327,7 +341,7 @@ def test_original_source_rectangle_and_circle_survive_real_finalscene_batch(tmp_
         api.build_part_render_data(spec, context), rect_path).ok
 
 
-@pytest.mark.parametrize("fault", ["open", "bulge", "tiny_bulge", "vertex_width", "const_width", "bow_tie", "slanted", "claimed_width"])
+@pytest.mark.parametrize("fault", ["open", "bulge", "tiny_bulge", "vertex_width", "const_width", "thickness", "tiny_thickness", "bow_tie", "slanted", "claimed_width"])
 def test_invalid_original_source_rectangle_refuses_any_output(tmp_path, fault):
     batch = _mixed_rect_batch(tmp_path, fault=fault)
     target = tmp_path / "out"
