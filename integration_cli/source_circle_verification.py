@@ -2,8 +2,9 @@
 """#2379: read-only verification of a Worker-trusted original DXF CIRCLE.
 
 The public Worker is disabled. W-06 must supply *trusted* source file custody.
-Only direct modelspace CIRCLE in an explicit DXF-header mm/inch source is
-supported; do not invent rect/profile conversion or a source-geometry hash
+Only direct modelspace CIRCLE and planar, unbulged, closed four-corner
+LWPOLYLINE rectangles in an explicit DXF-header mm/inch source are supported;
+do not invent arbitrary profile conversion or a source-geometry hash
 canonicalization which the v1.1 wire contract has not defined.
 """
 from __future__ import annotations
@@ -71,7 +72,89 @@ def _source_snapshot(path: Path, expected_sha256: str):
     return document
 
 
-def verify_trusted_original_dxf_circles(
+def _verified_rect_from_source(entity, feature, transform):
+    """Verify all four *actual* DXF corners before returning a WHD RectFeature.
+
+    Only exact orthogonal, axis-aligned four-corner modelspace polylines
+    without bulges are admitted. The preflight already validated quarter-turn
+    rotation/mirror flags; this owner checks the original physical geometry.
+    """
+    from ae_engine.sheetmetal_features import RectFeature, FeatureAnchor, Vec2
+
+    if entity.dxftype() != "LWPOLYLINE" or not entity.closed:
+        _fail("source RECT requires a closed original modelspace LWPOLYLINE")
+    normal = tuple(_finite(x) for x in entity.dxf.get("extrusion", (0, 0, 1)))
+    elevation = _finite(entity.dxf.get("elevation", 0.0))
+    if normal != (0.0, 0.0, 1.0) or abs(elevation) > _TOL:
+        _fail("source RECT requires the original positive-XY modelspace plane")
+    raw = tuple(entity.get_points("xyb"))
+    if len(raw) != 4:
+        _fail("source RECT must have exactly four source vertices")
+    if any(abs(_finite(p[2])) > _TOL for p in raw):
+        _fail("source RECT contains unverified DXF arc/bulge geometry")
+    scale = _finite(transform.get("source_to_mm_scale"))
+    matrix = transform.get("matrix_2x2")
+    trans = transform.get("translation_mm")
+    if not isinstance(matrix, (list, tuple)) or len(matrix) != 2 or not isinstance(trans, (list, tuple)) or len(trans) != 2:
+        _fail("source RECT transform malformed")
+    corners = []
+    for p in raw:
+        x, y = _finite(p[0]) * scale, _finite(p[1]) * scale
+        coords = []
+        for i in range(2):
+            row = matrix[i]
+            if not isinstance(row, (list, tuple)) or len(row) != 2:
+                _fail("source RECT matrix malformed")
+            coords.append(_finite(row[0]) * x + _finite(row[1]) * y + _finite(trans[i]))
+        corners.append(tuple(coords))
+    xs = [p[0] for p in corners]
+    ys = [p[1] for p in corners]
+    x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+    width, height = x1 - x0, y1 - y0
+    if width <= _TOL or height <= _TOL:
+        _fail("source RECT has no positive-area bounds")
+    expected_corners = ((x0,y0),(x1,y0),(x1,y1),(x0,y1))
+    # Distinct physical vertices must form the four envelope corners, not
+    # merely have matching bbox (bow-tie and slanted shapes must never pass).
+    remaining = list(expected_corners)
+    for corner in corners:
+        found = [v for v in remaining if
+                 math.isclose(corner[0], v[0], rel_tol=0, abs_tol=_TOL)
+                 and math.isclose(corner[1], v[1], rel_tol=0, abs_tol=_TOL)]
+        if len(found) != 1:
+            _fail("source RECT is not an orthogonal four-corner rectangle")
+        remaining.remove(found[0])
+    # Reject bow-tie winding and repeated crossing, even if its vertices
+    # happen to be the same four rectangle corners.
+    from shapely.geometry import Polygon
+    polygon = Polygon(corners)
+    if not polygon.is_valid or polygon.area <= 0:
+        _fail("source RECT has crossed or degenerate contour")
+    center = ((x0 + x1) / 2, (y0 + y1) / 2)
+    claim = feature.get("center_mm")
+    if not isinstance(claim, (list, tuple)) or len(claim) != 2:
+        _fail("source RECT claim missing target center")
+    if any(not math.isclose(center[i], _finite(claim[i]), rel_tol=0, abs_tol=_TOL)
+           for i in range(2)):
+        _fail("source RECT target center differs from the original DXF")
+    rotation = feature.get("rotation_deg")
+    if type(rotation) is not int or rotation not in (0,90,180,270):
+        _fail("source RECT orientation is unsupported")
+    claim_width = _finite(feature.get("width_mm"))
+    claim_height = _finite(feature.get("height_mm"))
+    expected_dims = ((claim_height, claim_width) if rotation in (90,270)
+                     else (claim_width, claim_height))
+    if not (math.isclose(width, expected_dims[0], rel_tol=0, abs_tol=_TOL)
+            and math.isclose(height, expected_dims[1], rel_tol=0, abs_tol=_TOL)):
+        _fail("source RECT dimensions differ from the original DXF")
+    return RectFeature(
+        width=width, height=height, rotation_deg=0,
+        anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(*center), layer="CUTTING",
+    )
+
+
+def verify_trusted_original_dxf_features(
     features: Sequence[Mapping[str, Any]],
     *,
     source_path: Path,
@@ -100,8 +183,8 @@ def verify_trusted_original_dxf_circles(
     }
     used_handles: set[str] = set()
     for feature in features:
-        if not isinstance(feature, Mapping) or feature.get("type") != "circle":
-            _fail("only direct original DXF circles have verified mapping")
+        if not isinstance(feature, Mapping) or feature.get("type") not in ("circle", "rect"):
+            _fail("only original DXF CIRCLE and direct rectangular LWPOLYLINE are verified")
         if feature.get("process") != "THROUGH_CUT":
             _fail("only certified THROUGH_CUT circle Feature mapping is supported")
         t = feature.get("source_transform")
@@ -115,13 +198,18 @@ def verify_trusted_original_dxf_circles(
             _fail("one original DXF circle cannot be claimed by multiple features")
         used_handles.add(handle)
         entity = modelspace.get(handle)
-        if entity is None or entity.dxftype() != "CIRCLE":
-            _fail("source circle handle does not identify a modelspace CIRCLE")
+        kind = feature["type"]
+        expected_type = "CIRCLE" if kind == "circle" else "LWPOLYLINE"
+        if entity is None or entity.dxftype() != expected_type:
+            _fail("source handle does not identify an original supported modelspace entity")
         if t.get("unit_authority") != "DXF-HEADER":
             _fail("source units require explicit DXF header evidence")
         expected_units = 4 if t.get("source_units") == "mm" else 1 if t.get("source_units") == "inch" else None
         if expected_units is None or document.header.get("$INSUNITS") != expected_units:
             _fail("source DXF units disagree with declared source transform")
+        if kind == "rect":
+            built.append(_verified_rect_from_source(entity, feature, t))
+            continue
         center = tuple(_finite(v) for v in entity.dxf.center)
         normal = tuple(_finite(v) for v in entity.dxf.get("extrusion", (0, 0, 1)))
         if len(center) != 3 or len(normal) != 3 or abs(center[2]) > _TOL or any(
@@ -163,3 +251,8 @@ def verify_trusted_original_dxf_circles(
             layer="CUTTING",
         ))
     return tuple(built)
+
+
+# Existing callers/tests keep the old name; verified output now supports the
+# separately certified direct DXF four-corner RECT subset as well as CIRCLE.
+verify_trusted_original_dxf_circles = verify_trusted_original_dxf_features
