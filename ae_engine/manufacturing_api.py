@@ -516,6 +516,21 @@ def save_resolved_manufacturing_geometry_batch_dxf(
     )
 
 
+def save_verified_final_scene_batch_dxf(
+    parts,
+    output_dir: str | os.PathLike[str],
+    *,
+    pre_commit_guard,
+    overwrite: bool = False,
+) -> dict[str, str]:
+    """Stage and independently Save→Reload every WHD-owned FinalScene part."""
+    return _manufacturing_export.save_verified_final_scene_batch_dxf(
+        parts, output_dir,
+        save_part_render_data_dxf=save_part_render_data_dxf,
+        pre_commit_guard=pre_commit_guard, overwrite=overwrite,
+    )
+
+
 def resolved_manufacturing_nc_capability() -> dict[str, object]:
     return _manufacturing_export.resolved_manufacturing_nc_capability()
 

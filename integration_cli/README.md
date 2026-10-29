@@ -152,3 +152,21 @@ Save→Reload acceptance; W-06 must store the original authenticated
 request/receipt, enforce idempotency and re-run this guard at the final
 commit barrier (or prove an immutable snapshot). The W-01 public CLI
 keeps all manufacturing capabilities disabled.
+
+## W-04 internal real DXF Save→Reload batch
+
+The manufacturing owner now exposes an internal
+manufacturing_api.save_verified_final_scene_batch_dxf path for strictly
+WHD-owned PartRenderData and physical identities (up to 20). It stages
+actual DXF files and verifies each saved file with the independent
+manufacturing_verification.verify_saved_part_render_data_dxf owner before
+committing the entire set with existing atomic rename/rollback logic.
+A mandatory pre_commit_guard runs twice, before staging and after all
+Save→Reload checks but before committing, to permit W-03/W-06 trusted
+snapshot revalidation.
+
+This is a *real manufacturing DXF staging seam*, **not** a public CADSplit
+export. W-03/W-06 still need a trusted persisted request, key custody and
+path locking; W-04 must map wire features to canonical PartSpec/FinalScene,
+enforce physical inventory and factory source provenance; no external NC sink,
+Windows EXE, or official X is certified here.

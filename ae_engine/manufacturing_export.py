@@ -288,6 +288,8 @@ def _save_resolved_rows_atomic(
     overwrite: bool,
     part_only: bool = False,
     quantity_group: bool = False,
+    verify_all_staged: bool = False,
+    pre_commit_guard=None,
 ) -> dict[str, str]:
     # Check all physical-part evidence before any output path is created.
     rows = tuple(rows)
@@ -306,6 +308,8 @@ def _save_resolved_rows_atomic(
     verified_nfb_parts = _validate_nfb_base_part_scope(
         rows, part_only=part_only, quantity_group=quantity_group,
     )
+    if pre_commit_guard is not None:
+        pre_commit_guard()  # W-03 trusted snapshot before staging
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)
     stage_dir = Path(tempfile.mkdtemp(prefix='.whd-dxf-stage-', dir=str(root)))
@@ -322,18 +326,61 @@ def _save_resolved_rows_atomic(
             paired_door = (isinstance(metadata, Mapping)
                            and metadata.get("nfb_pair_roundtrip_required") is True
                            and metadata.get("nfb_trial_export_approved") is True)
-            if str(output_key) in verified_nfb_parts or paired_door:
+            if verify_all_staged or str(output_key) in verified_nfb_parts or paired_door:
                 from .manufacturing_verification import verify_saved_part_render_data_dxf
                 verified = verify_saved_part_render_data_dxf(render_data, stage_path)
                 if not verified.ok:
                     raise ValueError(
                         "NFB_PAIR_DOOR_STAGED_DXF_ROUNDTRIP_FAILED"
-                        if paired_door else "NFB_BASE_PART_STAGED_DXF_ROUNDTRIP_FAILED"
+                        if paired_door else (
+                            "WHD_STAGED_DXF_ROUNDTRIP_FAILED: " + str(output_key)
+                            if verify_all_staged else "NFB_BASE_PART_STAGED_DXF_ROUNDTRIP_FAILED"
+                        )
                     )
             staged[str(output_key)] = stage_path
+        if pre_commit_guard is not None:
+            pre_commit_guard()  # fail closed after Save→Reload, before replace
         return _atomic_commit_staged_dxfs(staged, root, overwrite=overwrite)
     finally:
         shutil.rmtree(stage_dir, ignore_errors=True)
+
+
+def save_verified_final_scene_batch_dxf(
+    parts,
+    output_dir,
+    *,
+    save_part_render_data_dxf,
+    pre_commit_guard,
+    overwrite: bool = False,
+) -> dict[str, str]:
+    """Internal W-04 real FinalScene batch: stage, independently reload, commit.
+
+    W-06 must own the trusted job/immutable request and output-path lock.
+    No public CADSplit CLI/export capability is enabled by this entry.
+    """
+    if not callable(pre_commit_guard):
+        raise ValueError("WHD_PRECOMMIT_GUARD_REQUIRED")
+    records = tuple(parts)
+    if not 1 <= len(records) <= 20:
+        raise ValueError("WHD_VERIFIED_BATCH_SIZE_INVALID")
+    rows = []
+    identities = set()
+    for physical_id, render_data in records:
+        if (not isinstance(physical_id, str) or
+                re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", physical_id) is None or
+                physical_id.casefold() in identities or
+                physical_id.split(".", 1)[0].casefold() in {"con", "prn", "aux", "nul"} or
+                re.fullmatch(r"(com|lpt)[1-9]", physical_id.split(".", 1)[0], re.IGNORECASE) is not None or
+                render_data is None or getattr(render_data, "scene", None) is None):
+            raise ValueError("WHD_VERIFIED_PHYSICAL_PART_INVALID")
+        identities.add(physical_id.casefold())
+        rows.append((physical_id, f"{physical_id}.dxf", render_data))
+    return _save_resolved_rows_atomic(
+        rows, output_dir,
+        save_part_render_data_dxf=save_part_render_data_dxf,
+        overwrite=overwrite, verify_all_staged=True,
+        pre_commit_guard=pre_commit_guard,
+    )
 
 
 def save_resolved_manufacturing_geometry_dxf(
