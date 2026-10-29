@@ -294,6 +294,11 @@ The internal WHD-owned `RectFeature` stores source-derived finished-face
 bounds. Canonical `ResolvedRect` verifies the actual closed CUTTING contour
 in FinalScene; the existing batch boundary performs independent DXF reload
 and precommit source recheck. **PROFILE, bulged/open LWPOLYLINE, POLYLINE,
-INSERT, source subgeometry SHA, and public Worker export remain unsupported.
+INSERT, source subgeometry SHA, and public Worker export remain unsupported.**
 Original-source CIRCLEs also require zero DXF extrusion thickness; nonzero
-3D-extruded source geometry fails closed before staging.**
+3D-extruded source geometry fails closed before staging.
+
+The internal source-derived RECT FinalScene check compares the **ordered
+closed CUTTING edge cycle**, not just four matching corners or bounding
+box. Cyclic start shifts and reverse winding are equivalent; a crossed
+bow-tie order fails before any output is staged.

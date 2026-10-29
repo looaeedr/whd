@@ -341,6 +341,80 @@ def test_original_source_rectangle_and_circle_survive_real_finalscene_batch(tmp_
         api.build_part_render_data(spec, context), rect_path).ok
 
 
+
+@pytest.mark.parametrize(("order", "accepted"), [
+    ((0, 2, 1, 3), False),  # crossed bow-tie: exact same four coordinates
+    ((1, 2, 3, 0), True),   # rotated start index: same edge cycle
+    ((0, 3, 2, 1), True),   # reverse winding: same edge cycle
+])
+def test_finalscene_rectangle_contour_requires_canonical_edge_cycle(
+    tmp_path, monkeypatch, order, accepted,
+):
+    """Accept cyclic start/reversed winding; never accept crossed edges."""
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+    from ae_engine.sheetmetal_features import RectFeature, ResolvedRect
+
+    batch = _mixed_rect_batch(tmp_path)
+    target = tmp_path / "out"
+    original = api.build_part_render_data
+    tampered = []
+
+    def cross_original_rectangle(spec, context):
+        render = original(spec, context)
+        rectangles = [
+            x for x in _door_features_for_legacy_engine(spec, context)
+            if isinstance(x, RectFeature)
+        ]
+        if not rectangles:
+            return render
+        assert len(rectangles) == 1
+        rect = rectangles[0]
+        expected = ResolvedRect(
+            center=rect.offset, width=rect.width, height=rect.height,
+            rotation_deg=rect.rotation_deg,
+        ).points
+
+        def same_corners(primitive):
+            if not (isinstance(primitive, PolylinePrimitive)
+                    and primitive.closed and primitive.layer == "CUTTING"
+                    and len(primitive.points) == len(expected)):
+                return False
+            available = list(expected)
+            for actual in primitive.points:
+                matches = [
+                    point for point in available
+                    if math.isclose(actual.x, point.x, abs_tol=1e-6, rel_tol=0)
+                    and math.isclose(actual.y, point.y, abs_tol=1e-6, rel_tol=0)
+                ]
+                if len(matches) != 1:
+                    return False
+                available.remove(matches[0])
+            return True
+
+        altered = DrawingScene()
+        for primitive in render.scene.primitives:
+            if same_corners(primitive):
+                p = primitive.points
+                # Preserve every source-attested coordinate and bounding box.
+                altered.add(replace(primitive, points=tuple(p[i] for i in order)))
+                tampered.append(True)
+            else:
+                altered.add(primitive)
+        return replace(render, scene=altered)
+
+    monkeypatch.setattr(api, "build_part_render_data", cross_original_rectangle)
+    if accepted:
+        output = _save(batch, target)
+        assert len(output) == 2
+        assert len(list(target.glob("*.dxf"))) == 2
+    else:
+        with pytest.raises(PrepareEvidenceError) as exc:
+            _save(batch, target)
+        assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED"
+        assert not target.exists()
+    assert tampered == [True], "test must alter the real source-derived RECT"
+
+
 @pytest.mark.parametrize("fault", ["open", "bulge", "tiny_bulge", "vertex_width", "const_width", "thickness", "tiny_thickness", "bow_tie", "slanted", "claimed_width"])
 def test_invalid_original_source_rectangle_refuses_any_output(tmp_path, fault):
     batch = _mixed_rect_batch(tmp_path, fault=fault)
