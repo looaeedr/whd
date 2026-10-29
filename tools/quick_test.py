@@ -41,10 +41,21 @@ def choose_tests(*, changed_files: tuple[str, ...], tests: tuple[str, ...],
     seed = changed_files or tuple(s.partition("::")[0] for s in tests)
     if not seed:
         raise ValueError("NO_TARGETED_TEST: use --test for the bug reproducer")
-    feedback = build_fast_feedback(seed, feedback_tests=tests)
-    if feedback["status"] != "READY":
+    # A caller can supply --auto and --test together. The explicit test must
+    # ADD coverage, never silently suppress other changed test files.
+    # Validate both groups with the existing safe selector parser.
+    inferred = build_fast_feedback(changed_files)["test_selectors"] if changed_files else ()
+    explicit = build_fast_feedback(seed, feedback_tests=tests)["test_selectors"] if tests else ()
+    combined = tuple(dict.fromkeys((*inferred, *explicit)))
+    # Running the whole changed test file also runs its explicitly selected
+    # node; do not execute those cases twice (or obscure failure counts).
+    whole_files = {selector for selector in combined if "::" not in selector}
+    selectors = tuple(
+        selector for selector in combined
+        if "::" not in selector or selector.partition("::")[0] not in whole_files
+    )
+    if not selectors:
         raise ValueError("NEEDS_EXPLICIT_TEST: use --test tests/test_file.py::test_case")
-    selectors = tuple(feedback["test_selectors"])
     base = root.resolve()
     for item in selectors:
         filename = item.split("::", 1)[0]

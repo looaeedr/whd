@@ -167,3 +167,72 @@ def test_batched_feedback_standard_requires_exact_final_gate_and_windows_permiss
     assert "BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1" in source
     for marker in ("WHD_quick_test.bat", "PRODUCT", "/推推", "RED", "GREEN"):
         assert marker in source
+
+
+def test_quick_test_explicit_selector_adds_to_all_modified_test_files(tmp_path):
+    from tools.quick_test import choose_tests
+
+    folder = tmp_path / "tests"
+    folder.mkdir()
+    for name in ("test_changed_a.py", "test_changed_b.py", "test_extra.py"):
+        (folder / name).write_text("def test_real(): pass\n", encoding="utf-8")
+    selectors = choose_tests(
+        changed_files=("gui.py", "tests/test_changed_a.py", "tests/test_changed_b.py"),
+        tests=("tests/test_extra.py::test_real",), root=tmp_path,
+    )
+    assert selectors == (
+        "tests/test_changed_a.py",
+        "tests/test_changed_b.py",
+        "tests/test_extra.py::test_real",
+    )
+
+
+def test_quick_test_changed_whole_file_subsumes_explicit_same_file_node(tmp_path):
+    from tools.quick_test import choose_tests
+
+    folder = tmp_path / "tests"
+    folder.mkdir()
+    (folder / "test_changed.py").write_text("def test_real(): pass\n", encoding="utf-8")
+    selectors = choose_tests(
+        changed_files=("tests/test_changed.py",),
+        tests=("tests/test_changed.py::test_real", "tests/test_changed.py::test_real"),
+        root=tmp_path,
+    )
+    assert selectors == ("tests/test_changed.py",)
+
+
+def test_quick_test_explicit_selector_cannot_hide_missing_changed_test(tmp_path):
+    from tools.quick_test import choose_tests
+
+    folder = tmp_path / "tests"
+    folder.mkdir()
+    (folder / "test_good.py").write_text("def test_ok(): pass\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="TARGETED_TEST_FILE_MISSING"):
+        choose_tests(
+            changed_files=("tests/test_deleted.py",),
+            tests=("tests/test_good.py::test_ok",), root=tmp_path,
+        )
+
+
+def test_quick_test_auto_and_explicit_execute_union_not_one_group(tmp_path, monkeypatch):
+    from subprocess import CompletedProcess
+    from tools import quick_test
+
+    folder = tmp_path / "tests"
+    folder.mkdir()
+    for name in ("test_a.py", "test_b.py"):
+        (folder / name).write_text("def test_ok(): pass\n", encoding="utf-8")
+    monkeypatch.setattr(quick_test, "ROOT", tmp_path)
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        if command[0] == "git" and "diff" in command:
+            return CompletedProcess(command, 0, stdout=b"tests/test_a.py\x00")
+        if command[0] == "git" and "ls-files" in command:
+            return CompletedProcess(command, 0, stdout=b"")
+        return CompletedProcess(command, 0)
+
+    monkeypatch.setattr(quick_test.subprocess, "run", fake_run)
+    assert quick_test.main(["--auto", "--test", "tests/test_b.py::test_ok"]) == 0
+    assert calls[-1][-2:] == ["tests/test_a.py", "tests/test_b.py::test_ok"]
