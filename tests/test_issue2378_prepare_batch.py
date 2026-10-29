@@ -491,3 +491,89 @@ def test_indicator_small_door_seals_groups_and_rejects_export_replay_mutation(tm
     with pytest.raises(PrepareEvidenceError) as exc:
         _recheck(req, receipt, changed, root)
     assert exc.value.code == "WHD_PREPARE_STALE"
+
+
+def _twenty_mixed_door_small_door_prepare(tmp_path):
+    """Twenty distinct physical part identities, both already verified W-03 kinds."""
+    root, small_baseline, small, _ = _indicator_small_door_request(tmp_path)
+    original = _request(count=20)
+    for i, row in enumerate(original["items"]):
+        if i % 2:
+            part = deepcopy(small["items"][0]["part"])
+            part["source_part_ref"] = f"verified-source-small-door-{i}"
+            row["part"] = part
+    original["request_digest"] = compute_wire_request_digest(original)
+    return root, small_baseline, original
+
+
+def test_twenty_mixed_door_and_small_door_frames_are_separately_sealed(tmp_path):
+    """Only in-process prepare/recheck; this is not 20-piece mixed manufacturing."""
+    root, _, original = _twenty_mixed_door_small_door_prepare(tmp_path)
+    receipt = _prepare(original, root)
+    assert receipt["status"] == "success"
+    assert receipt["manufacturing_verified"] is False
+    items = receipt["items"]
+    assert len(items) == 20
+    assert len({r["physical_part_id"] for r in items}) == 20
+    assert len({r["preparation_digest"] for r in items}) == 20
+    assert len({r["target_frames"][0]["frame_id"] for r in items}) == 20
+    for i, row in enumerate(items):
+        frame = row["target_frames"][0]
+        assert row["status"] == "prepared"
+        assert row["production_scope"] == "single_part"
+        assert frame["face_role"] == "front"
+        assert frame["viewed_from"] == "along_normal"
+        assert frame["units"] == "mm"
+        assert frame["normal"] == [0.0, 0.0, 1.0]
+        assert frame["frame_id"].startswith("door:whd-")
+    retry = deepcopy(original)
+    retry["request_id"] = "retry-transport-only"
+    second = _prepare(retry, root)
+    assert second["prepare_token"] == receipt["prepare_token"]
+    assert [x["preparation_digest"] for x in second["items"]] == [
+        x["preparation_digest"] for x in items
+    ]
+    export = _export_request_from_prepared(original, receipt)
+    _recheck(original, receipt, export, root)
+    assert not (tmp_path / "worker-output-not-created").exists()
+
+
+@pytest.mark.parametrize("change", [
+    "one_small_door_width",
+    "one_small_door_groups",
+    "one_door_dimensions",
+    "mixed_source_reference",
+    "shared_small_door_baseline",
+])
+def test_twenty_mixed_prepare_one_invalid_item_or_resource_refuses_all(
+    tmp_path, change,
+):
+    root, baseline, original = _twenty_mixed_door_small_door_prepare(tmp_path)
+    if change in ("one_small_door_width", "one_door_dimensions"):
+        bad = deepcopy(original)
+        index = 1 if change == "one_small_door_width" else 0
+        bad["items"][index]["part"]["dimensions_mm"]["width"] += 1.0
+        bad["request_digest"] = compute_wire_request_digest(bad)
+        if change == "one_small_door_width":
+            with pytest.raises(PrepareEvidenceError) as exc:
+                _prepare(bad, root)
+            assert exc.value.code == "WHD_FRAME_UNVERIFIED"
+            assert not (tmp_path / "worker-output-not-created").exists()
+            return
+        # Door source is valid with the changed size, but an exported change
+        # to previously prepared part dimensions cannot replace the token.
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    if change == "one_door_dimensions":
+        export["items"][0]["part"]["dimensions_mm"]["width"] += 1.0
+    elif change == "one_small_door_groups":
+        export["items"][1]["part"]["indicator_groups"] = [1, 1]
+    elif change == "mixed_source_reference":
+        export["items"][19]["part"]["source_part_ref"] = "another-source"
+    elif change == "shared_small_door_baseline":
+        baseline.write_bytes(baseline.read_bytes() + b"\n999\nWHD-stale-mixed")
+    export["request_digest"] = compute_wire_request_digest(export)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _recheck(original, receipt, export, root)
+    assert exc.value.code == "WHD_PREPARE_STALE"
+    assert not (tmp_path / "worker-output-not-created").exists()
