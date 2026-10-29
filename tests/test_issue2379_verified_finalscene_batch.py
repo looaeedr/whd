@@ -91,7 +91,10 @@ def test_tampered_second_staged_dxf_fails_with_no_partial_commit(tmp_path, monke
     assert {p.name for p in target.glob("*.dxf")} == {"whd-door-00.dxf"}
 
 
-@pytest.mark.parametrize("bad", ["empty", "oversize", "traversal", "duplicate", "win_colon"])
+@pytest.mark.parametrize("bad", [
+    "empty", "oversize", "traversal", "duplicate", "win_colon",
+    "win_reserved", "win_reserved_dot", "win_com", "win_lpt", "casefold_duplicate",
+])
 def test_invalid_inventory_cannot_make_output_directory(tmp_path, bad):
     target = tmp_path / "manufacturing"
     if bad == "empty":
@@ -102,8 +105,18 @@ def test_invalid_inventory_cannot_make_output_directory(tmp_path, bad):
         records = [("../escape", _canonical_render())]
     elif bad == "duplicate":
         records = [("part", _canonical_render()), ("part", _canonical_render())]
-    else:
+    elif bad == "win_colon":
         records = [("invalid:name", _canonical_render())]
+    elif bad == "win_reserved":
+        records = [("CON", _canonical_render())]
+    elif bad == "win_reserved_dot":
+        records = [("nul.backup", _canonical_render())]
+    elif bad == "win_com":
+        records = [("Com1", _canonical_render())]
+    elif bad == "win_lpt":
+        records = [("lpt9", _canonical_render())]
+    else:
+        records = [("Door", _canonical_render()), ("door", _canonical_render())]
     with pytest.raises(ValueError):
         api.save_verified_final_scene_batch_dxf(
             records, target, pre_commit_guard=lambda: None)

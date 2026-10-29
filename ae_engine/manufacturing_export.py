@@ -368,10 +368,12 @@ def save_verified_final_scene_batch_dxf(
     for physical_id, render_data in records:
         if (not isinstance(physical_id, str) or
                 re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", physical_id) is None or
-                physical_id in identities or
+                physical_id.casefold() in identities or
+                physical_id.split(".", 1)[0].casefold() in {"con", "prn", "aux", "nul"} or
+                re.fullmatch(r"(com|lpt)[1-9]", physical_id.split(".", 1)[0], re.IGNORECASE) is not None or
                 render_data is None or getattr(render_data, "scene", None) is None):
             raise ValueError("WHD_VERIFIED_PHYSICAL_PART_INVALID")
-        identities.add(physical_id)
+        identities.add(physical_id.casefold())
         rows.append((physical_id, f"{physical_id}.dxf", render_data))
     return _save_resolved_rows_atomic(
         rows, output_dir,
