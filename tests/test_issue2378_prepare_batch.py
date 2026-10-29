@@ -309,7 +309,7 @@ def test_export_recheck_rejects_changed_actual_environment(tmp_path, monkeypatch
     export = _export_request_from_prepared(original, receipt)
     overrides = {}
     if change == "registry":
-        registry.write_text(registry.read_text(encoding="utf-8")+"\\n", encoding="utf-8")
+        registry.write_text(registry.read_text(encoding="utf-8")+"\n", encoding="utf-8")
     elif change == "baseline":
         doc = ezdxf.readfile(baseline)
         doc.modelspace().add_line((0,0),(1,1),dxfattribs={"layer":"MARKING"})
