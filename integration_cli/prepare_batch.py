@@ -35,6 +35,7 @@ def _validate_owning_resource_parsers(resource_root: Path, baseline_paths: list[
     from ae_engine.baseline_source import (
         BASELINE_SOURCE_VERIFIED, baseline_cutting_bounds, load_baseline_dxf_source_with_status,
     )
+    from ezdxf import DXFError
 
     try:
         rules = build_runtime_relief_rules_from_external(resource_root / _REGISTRY_PATH)
@@ -55,7 +56,7 @@ def _validate_owning_resource_parsers(resource_root: Path, baseline_paths: list[
             min_x, min_y, max_x, max_y = bounds
             if not min_x < max_x or not min_y < max_y:
                 raise ValueError("DXF CUTTING geometry has no positive area envelope")
-        except (ValueError, TypeError, OSError, RuntimeError) as exc:
+        except (ValueError, TypeError, OSError, RuntimeError, DXFError) as exc:
             raise PrepareEvidenceError(
                 "WHD_RESOURCE_UNVERIFIED", "baseline DXF cannot be parsed and verified"
             ) from exc
