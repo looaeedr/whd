@@ -375,6 +375,11 @@ class DurableJobIdentityLedger:
         client, job, op, digest = _identity(request)
         if op != "export":
             raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "only export may stage a batch")
+        output = request.get("output")
+        if (not isinstance(output, Mapping)
+                or type(output.get("overwrite")) is not bool
+                or output["overwrite"] is not overwrite):
+            raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "overwrite must match authenticated wire intent")
         snapshot = _staged_batch_snapshot(
             trusted_output_dir, trusted_staged, overwrite=overwrite,
         )
@@ -516,6 +521,18 @@ class DurableJobIdentityLedger:
             if row[1] != "started":
                 raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "job already completed")
             if op == "export":
+                pending_stage = conn.execute(
+                    """SELECT 1 FROM staged_batch_snapshots
+                       WHERE client_id=? AND job_id=? AND operation=?""",
+                    (client, job, op),
+                ).fetchone()
+                if pending_stage is not None:
+                    # A byte snapshot is NOT a crash-safe multi-file commit
+                    # receipt; no one may use this precommit-only stage as
+                    # proof of a completed customer export.
+                    raise PrepareEvidenceError(
+                        "WHD_JOB_RECOVERY_REQUIRED", "staged batch lacks durable commit journal"
+                    )
                 leased = conn.execute(
                     """SELECT COUNT(*) FROM output_directory_leases
                        WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",
