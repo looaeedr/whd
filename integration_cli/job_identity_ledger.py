@@ -8,6 +8,7 @@ ledger root and output paths must come from trusted Worker custody, not wire.
 """
 from __future__ import annotations
 
+from contextlib import closing
 from dataclasses import dataclass
 import hashlib
 import hmac
@@ -95,7 +96,7 @@ class DurableJobIdentityLedger:
             raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "trusted installation store unavailable")
         self._root = trusted_store_root
         self._db = trusted_store_root / _DB_FILENAME
-        with self._connect() as conn:
+        with closing(self._connect()) as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS jobs (
                     client_id TEXT NOT NULL,
