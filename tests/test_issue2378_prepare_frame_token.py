@@ -182,3 +182,22 @@ def test_binding_rejects_non_authoritative_door_frame_identity():
     with pytest.raises(PrepareEvidenceError) as exc:
         create_preparation_binding(**args)
     assert exc.value.code == "WHD_FRAME_UNVERIFIED"
+
+
+@pytest.mark.parametrize(("field", "forged"), [
+    ("origin_xyz_mm", [0, 0, 1]),
+    ("axis_x", [True, 0, 0]),
+    ("axis_y", [0, -1, 0]),
+    ("normal", [0, 0, -1]),
+    ("face_role", "back"),
+    ("viewed_from", "against_normal"),
+    ("origin_definition", "client-provided assembly pose"),
+    ("allowed_feature_types", ["circle"]),
+    ("finished_face_dimensions_mm", {"width": True, "height": 500}),
+])
+def test_binding_never_signs_caller_forged_door_frame(field, forged):
+    args = _seal()
+    args["prepared_items"][0]["target_frame"][field] = forged
+    with pytest.raises(PrepareEvidenceError) as exc:
+        create_preparation_binding(**args)
+    assert exc.value.code == "WHD_FRAME_UNVERIFIED"
