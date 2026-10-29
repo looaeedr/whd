@@ -207,3 +207,140 @@ def test_whd_scene_dropping_attested_circle_is_not_saved(tmp_path, monkeypatch):
         _save(batch, target)
     assert missing.value.code == "WHD_FINALSCENE_UNVERIFIED"
     assert not target.exists()
+
+
+def _mixed_rect_batch(tmp_path, *, fault=None, rotation=0):
+    """One real source CIRCLE and one independently reloaded original rectangle."""
+    batch = _real_batch(tmp_path, count=2)
+    original, _old_receipt, _old_export, root, paths, source, centers, radii = batch
+    doc = ezdxf.readfile(source)
+    msp = doc.modelspace()
+    previous = list(msp.query("CIRCLE"))
+    assert len(previous) == 2
+    handle_circle = previous[0].dxf.handle
+    msp.delete_entity(previous[1])
+    vertices = [(36,34), (44,34), (44,46), (36,46)]
+    if fault == "bow_tie":
+        vertices = [(36,34), (44,46), (44,34), (36,46)]
+    if fault == "slanted":
+        vertices = [(36,34), (44,34), (45,46), (36,46)]
+    if fault == "bulge":
+        vertices = [(36,34,0.25), (44,34,0), (44,46,0), (36,46,0)]
+    rect = msp.add_lwpolyline(
+        vertices, format="xyb" if fault == "bulge" else "xy",
+        close=(fault != "open"), dxfattribs={"layer": "CUTTING"},
+    )
+    handle_rect = rect.dxf.handle
+    doc.saveas(source)
+    sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for item in original["items"]:
+        item["source_document_sha256"] = sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    exported = _export_request_from_prepared(original, receipt)
+    for idx, row in enumerate(exported["items"]):
+        frame = receipt["items"][idx]["target_frames"][0]
+        feature = _circle(frame)
+        feature["source_transform"]["target_dimensions_mm"] = deepcopy(
+            frame["finished_face_dimensions_mm"])
+        if idx == 0:
+            feature["center_mm"] = [20, 30]
+            feature["radius_mm"] = 3
+            feature["source_transform"]["source_entity_refs"] = [handle_circle]
+        else:
+            feature["feature_id"] = "source-rectangle"
+            feature["source_ref"] = "original-LWPOLYLINE"
+            feature["type"] = "rect"
+            del feature["radius_mm"]
+            feature["width_mm"] = 8
+            feature["height_mm"] = 12
+            feature["rotation_deg"] = 0
+            feature["center_mm"] = [40, 40]
+            feature["source_transform"]["source_entity_refs"] = [handle_rect]
+            if rotation == 90:
+                feature["rotation_deg"] = 90
+                feature["source_transform"]["rotation_deg"] = 90
+                feature["source_transform"]["matrix_2x2"] = [[0,-1],[1,0]]
+                feature["source_transform"]["translation_mm"] = [90, 0]
+                feature["center_mm"] = [50,40]
+            if fault == "claimed_width":
+                feature["width_mm"] = 9
+        row["features"] = [feature]
+    exported["request_digest"] = compute_wire_request_digest(exported)
+    return original, receipt, exported, root, paths, source, centers, radii
+
+
+@pytest.mark.parametrize("turn", [0, 90])
+def test_original_source_rectangle_and_circle_survive_real_finalscene_batch(tmp_path, turn):
+    from ae_engine.sheetmetal_features import RectFeature, ResolvedRect
+    batch = _mixed_rect_batch(tmp_path, rotation=turn)
+    original, receipt, request, root, paths, source, *_ = batch
+    target = tmp_path / "rect-manufacturing"
+    output = _save(batch, target)
+    assert len(output) == 2
+    assert len(list(target.glob("*.dxf"))) == 2
+    rect_path = output[receipt["items"][1]["physical_part_id"]]
+    doc = ezdxf.readfile(rect_path)
+    spec = door_spec_from_trusted_prepared_part(
+        original["items"][1]["part"], api.resolve_policy(ManufacturingContext(resource_root=root)))
+    features = verify_trusted_original_dxf_circles(
+        request["items"][1]["features"], source_path=source,
+        expected_document_sha256=original["items"][1]["source_document_sha256"],
+    )
+    assert len(features) == 1 and isinstance(features[0], RectFeature)
+    assert features[0].rotation_deg == 0
+    spec = replace(spec, features=features)
+    context = ManufacturingContext(resource_root=root)
+    mapped = _door_features_for_legacy_engine(spec, context)[0]
+    expected = ResolvedRect(
+        center=mapped.offset, width=mapped.width, height=mapped.height,
+        rotation_deg=mapped.rotation_deg,
+    ).points
+    def covers_expected(poly):
+        if not poly.closed:
+            return False
+        points = [(x,y) for x,y in poly.get_points("xy")]
+        if len(points) != 4:
+            return False
+        remaining = list(expected)
+        for x,y in points:
+            found = [p for p in remaining
+                     if math.isclose(p.x,x,abs_tol=1e-6,rel_tol=0)
+                     and math.isclose(p.y,y,abs_tol=1e-6,rel_tol=0)]
+            if len(found)!=1:
+                return False
+            remaining.remove(found[0])
+        return True
+    matches = [p for p in doc.modelspace().query('LWPOLYLINE[layer=="CUTTING"]')
+               if covers_expected(p)]
+    assert len(matches) == 1, "source-attested RECT must survive WHD DXF Save→Reload"
+    assert any(e.dxf.layer == "BEND" for e in doc.modelspace())
+    assert api.verify_saved_part_render_data_dxf(
+        api.build_part_render_data(spec, context), rect_path).ok
+
+
+@pytest.mark.parametrize("fault", ["open", "bulge", "bow_tie", "slanted", "claimed_width"])
+def test_invalid_original_source_rectangle_refuses_any_output(tmp_path, fault):
+    batch = _mixed_rect_batch(tmp_path, fault=fault)
+    target = tmp_path / "out"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _save(batch, target)
+    assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
+    assert not target.exists()
+
+
+def test_source_profile_remains_fail_closed_after_rect_adapter(tmp_path):
+    batch = _mixed_rect_batch(tmp_path)
+    exported = batch[2]
+    feature = exported["items"][1]["features"][0]
+    feature["type"] = "profile"
+    feature["points_mm"] = [[36,34],[44,34],[44,46],[36,46]]
+    feature["closed"] = True
+    for key in ("center_mm", "width_mm", "height_mm", "rotation_deg"):
+        del feature[key]
+    exported["request_digest"] = compute_wire_request_digest(exported)
+    target = tmp_path / "out"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _save(batch, target)
+    assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
+    assert not target.exists()

@@ -276,3 +276,20 @@ The wire's `source_geometry_sha256` has no portable per-entity hash recipe;
 only the complete pinned source document bytes and measured direct planar
 CIRCLEs are verified. Rectangles, profiles, Head/Tail and Indicator remain
 fail closed. There is no Windows EXE release or manufacturing certification.
+
+
+### W-04 source-attested rectangular LWPOLYLINE subset (#2379)
+
+The internal W-03 precommit original-source adapter additionally accepts a
+**direct modelspace closed LWPOLYLINE with exactly four straight vertices,
+no bulges, positive XY plane and explicit DXF mm/inch header**. It independently
+reads the same pinned original document SHA, resolves the exact entity handle,
+applies the declared matrix and unit scale once and proves all four vertices
+are an orthogonal rectangle; neither a claimed bounding box nor a matching
+center alone suffices. It compares transformed center and width/height with
+the rectangle wire's explicit quarter-turn. Only `THROUGH_CUT` is allowed.
+The internal WHD-owned `RectFeature` stores source-derived finished-face
+bounds. Canonical `ResolvedRect` verifies the actual closed CUTTING contour
+in FinalScene; the existing batch boundary performs independent DXF reload
+and precommit source recheck. **PROFILE, bulged/open LWPOLYLINE, POLYLINE,
+INSERT, source subgeometry SHA, and public Worker export remain unsupported.**

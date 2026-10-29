@@ -16,7 +16,7 @@ from integration_cli.prepare_batch import door_spec_from_trusted_prepared_part
 from integration_cli.prepare_evidence import PrepareEvidenceError, _pure_json
 from integration_cli.prepare_frame import resolve_door_finished_local_frame
 from integration_cli.prepare_recheck import recheck_trusted_door_export
-from integration_cli.source_circle_verification import verify_trusted_original_dxf_circles
+from integration_cli.source_circle_verification import verify_trusted_original_dxf_features
 
 _SOURCE_CIRCLE_MARKER = "cadsplit_source_verified_circle_v1"
 _TOL = 1e-6
@@ -33,17 +33,19 @@ def _assert_original_circles_in_final_scene(render_data, mapped_circles) -> None
     FinalScene serializer preserves that scene; legacy Door generate_part()
     adds a separate final X mirror and is NOT the oracle for this path.
     """
-    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+    from ae_engine.sheetmetal_features import CircleFeature, RectFeature, ResolvedRect
 
     actual = [
         p for p in render_data.scene.primitives
         if isinstance(p, CirclePrimitive) and p.layer == "CUTTING"
         and p.source_type == _SOURCE_CIRCLE_MARKER
     ]
-    if len(actual) != len(mapped_circles):
+    circles = tuple(x for x in mapped_circles if isinstance(x, CircleFeature))
+    if len(actual) != len(circles):
         _reject("a verified source CIRCLE was lost or duplicated in WHD FinalScene")
     unmatched = list(actual)
-    for expected in mapped_circles:
+    for expected in circles:
         matches = [
             p for p in unmatched
             if math.isclose(float(p.center.x), float(expected.offset.x), abs_tol=_TOL, rel_tol=0)
@@ -53,6 +55,38 @@ def _assert_original_circles_in_final_scene(render_data, mapped_circles) -> None
         if len(matches) != 1:
             _reject("verified source CIRCLE location/radius changed inside WHD FinalScene")
         unmatched.remove(matches[0])
+    # WHD's ResolvedRect generates the canonical four corners; unlike
+    # CirclePrimitive, PolylinePrimitive has no source_type field. Compare
+    # the full physical contour with each original-source-derived RectFeature,
+    # never assert the same bbox alone equals the correct manufacturing hole.
+    available = [
+        p for p in render_data.scene.primitives
+        if isinstance(p, PolylinePrimitive) and p.layer == "CUTTING" and p.closed
+    ]
+    for expected in mapped_circles:
+        if not isinstance(expected, RectFeature):
+            continue
+        points = tuple(ResolvedRect(
+            center=expected.offset, width=expected.width, height=expected.height,
+            rotation_deg=expected.rotation_deg, layer="CUTTING",
+        ).points)
+        matches = []
+        for poly in available:
+            if len(poly.points) != 4:
+                continue
+            remaining = list(points)
+            for point in poly.points:
+                found = [q for q in remaining if
+                         math.isclose(point.x, q.x, rel_tol=0, abs_tol=_TOL)
+                         and math.isclose(point.y, q.y, rel_tol=0, abs_tol=_TOL)]
+                if len(found) != 1:
+                    break
+                remaining.remove(found[0])
+            else:
+                matches.append(poly)
+        if len(matches) != 1:
+            _reject("source-attested rectangular CUTTING contour missing or duplicated in FinalScene")
+        available.remove(matches[0])
 
 
 def save_trusted_door_circle_finalscene_batch(
@@ -115,7 +149,7 @@ def save_trusted_door_circle_finalscene_batch(
     rows = []
     for original, receipt, exported in zip(original_items, receipt_items, exported_items):
         if original["part"]["kind"] != "door" or not exported.get("features"):
-            _reject("only Door items with proven source CIRCLE inventory supported")
+            _reject("only Door items with proven source Feature inventory supported")
         original_item_id = original["item_id"]
         source_path = source_documents.get(original_item_id)
         # Do not accept an export-side replacement of canonical mechanical
@@ -126,14 +160,14 @@ def save_trusted_door_circle_finalscene_batch(
         )
         if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
             _reject("WHD canonical Door frame differs from prepared frame")
-        original_circles = verify_trusted_original_dxf_circles(
+        original_features = verify_trusted_original_dxf_features(
             exported["features"], source_path=source_path,
             expected_document_sha256=original["source_document_sha256"],
         )
-        if len(original_circles) != len(exported["features"]):
+        if len(original_features) != len(exported["features"]):
             _reject("unverified source CIRCLE inventory")
 
-        marked = tuple(replace(c, source_type=_SOURCE_CIRCLE_MARKER) for c in original_circles)
+        marked = tuple(replace(c, source_type=_SOURCE_CIRCLE_MARKER) for c in original_features)
         owned_spec = replace(spec, features=marked, feature_space="finished_face")
         mapped = _door_features_for_legacy_engine(owned_spec, context)
         render = build_part_render_data(owned_spec, context)
