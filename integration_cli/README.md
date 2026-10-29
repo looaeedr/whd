@@ -335,3 +335,19 @@ recheck and staged atomic replacement. Open/arc/width-bearing polylines,
 legacy POLYLINE/INSERT, per-entity source geometry hash certification and
 public Worker/EXE export are still not supported. This is **not** W-06 durable
 job ownership or W-05/07 Windows Gate A acceptance.
+
+
+### W-03 twenty-item mixed Door / Indicator Small Door preparation evidence (#2378)
+
+The private `prepare_trusted_door_batch` can process **up to 20 authenticated
+prepared physical identities** with both supported W-03 kinds in one order-
+preserving request. Each actual `DoorPartSpec` is re-derived by the WHD owner;
+the small-door subset is linked to WHD's shared indicator source and policy.
+The existing job/token binds **all** rows, their distinct source references,
+physical part IDs, Frame IDs, per-item digests and Registry/physical baseline
+contents. Recomputing the request on export must reject a changed item or
+either kind's relevant baseline **for the entire prepare batch**.
+
+This tests only the W-03 prepare and stale recheck boundary: it **does not**
+enable W-04 20-kind mixed manufacturing, per-part output, a durable W-06 Worker,
+public W-01 commands or a Windows EXE.
