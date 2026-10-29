@@ -89,6 +89,12 @@ def _finite_dxf_number(value):
     return number
 
 
+def _require_planar_dxf_thickness(entity):
+    """A nonzero DXF extrusion thickness is not a planar CUTTING shape."""
+    if _finite_dxf_number(entity.dxf.get("thickness", 0.0)) != 0.0:
+        _fail("original DXF source has unverified extrusion thickness")
+
+
 def _verified_rect_from_source(entity, feature, transform):
     """Verify all four *actual* DXF corners before returning a WHD RectFeature.
 
@@ -104,6 +110,7 @@ def _verified_rect_from_source(entity, feature, transform):
     elevation = _finite(entity.dxf.get("elevation", 0.0))
     if normal != (0.0, 0.0, 1.0) or abs(elevation) > _TOL:
         _fail("source RECT requires the original positive-XY modelspace plane")
+    _require_planar_dxf_thickness(entity)
     # A DXF LWPOLYLINE has *two* distinct shape modifiers: segment bulge
     # and stroke width. Both affect the physical contour, so matching only
     # the centreline's four corners would incorrectly certify manufacturing.
@@ -247,6 +254,7 @@ def verify_trusted_original_dxf_features(
         radius = _finite(entity.dxf.radius)
         if radius <= 0:
             _fail("source circle radius must be positive")
+        _require_planar_dxf_thickness(entity)
 
         scale = _finite(t.get("source_to_mm_scale"))
         matrix = t.get("matrix_2x2")
