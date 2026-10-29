@@ -83,7 +83,7 @@ def test_quantity_only_reload_requires_reverse_confirmation_and_saves_no_inactiv
     quantity["quantity"]=model.snapshot()
     path=project.write_project(tmp_path/"quantity.p6fold",{"schema":project.PROJECT_SCHEMA_V2,"snapshot":quantity})
     import json
-    raw=json.loads(path.read_text())["snapshot"]
+    raw=json.loads(path.read_text(encoding="utf-8"))["snapshot"]
     assert raw["active_mode"]=="quantity" and raw["receiving_quantity_box"]["w"]==900
     assert "receiving_layout" not in raw and "_mode_buffers" not in raw
     restored=ReceivingModeSession(project.read_project(path)["snapshot"],validator=lambda value:None)
@@ -99,7 +99,7 @@ def test_quantity_only_reload_requires_reverse_confirmation_and_saves_no_inactiv
     assert fresh["receiving_layout"]["sets"][0]["joints"]==[]
     assert (fresh["w"],fresh["h"],fresh["d"])==(800,1600,350)
     saved=project.write_project(tmp_path/"set-bay.p6fold",{"schema":project.PROJECT_SCHEMA_V2,"snapshot":fresh})
-    raw=json.loads(saved.read_text())["snapshot"]
+    raw=json.loads(saved.read_text(encoding="utf-8"))["snapshot"]
     assert "quantity" not in raw and "receiving_quantity_box" not in raw
     assert restored.switch("quantity",current_snapshot=fresh)
     assert restored.snapshot()["quantity"]==model.snapshot()
@@ -270,7 +270,7 @@ def test_real_gui_cancel_switch_common_edit_and_active_only_save(tmp_path, monke
         import json
         receipt_path = tmp_path / "common-box-stress.json"
         receipt_path.write_text(json.dumps({"edits":receipts,"display":display},indent=2))
-        print("RECEIVING_COMMON_BOX_PROFILE=" + receipt_path.read_text())
+        print("RECEIVING_COMMON_BOX_PROFILE=" + receipt_path.read_text(encoding="utf-8"))
         root.update()
         box = app.designer_workspace.snapshot()["receiving_quantity_box"]
         assert (box["back_panel_mode"],box["inner_door_layers"],box["switch_brand"]) == ("HALF",2,"士林")
@@ -321,7 +321,7 @@ def test_real_gui_cancel_switch_common_edit_and_active_only_save(tmp_path, monke
         assert loaded["receiving_quantity_box"] == box
         assert loaded["quantity"]["versions"][0]["piece_count"] == 7
         import json
-        raw = json.loads(path.read_text())["snapshot"]
+        raw = json.loads(path.read_text(encoding="utf-8"))["snapshot"]
         assert "receiving_layout" not in raw
         assert "receiving_layout" not in raw.get("workspace", {})
         assert main.workspace_controller.workspace_snapshot()["receiving_quantity_box"] == box
@@ -460,8 +460,8 @@ def receiving_gui_stall_guard():
 
 
 @pytest.mark.skipif(
-    not __import__("os").environ.get("DISPLAY"),
-    reason="Receiving settings defaults regression needs a real Tk/Xvfb",
+    __import__("os").name != "nt" and not __import__("os").environ.get("DISPLAY"),
+    reason="Receiving settings defaults regression needs native Windows Tk or Linux DISPLAY",
 )
 def test_single_and_multi_cabinet_sizes_never_overwrite_global_defaults(monkeypatch, receiving_gui_stall_guard):
     """Operator sizes belong to current Quantity/Set-Bay, NOT Settings defaults.

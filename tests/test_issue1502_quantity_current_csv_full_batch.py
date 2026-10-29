@@ -136,13 +136,27 @@ def test_both_actual_versions_sum_five_identical_base_and_ear_pieces(tmp_path):
         totals.append(total)
     assert 5 in totals  # identical authentic T2 ears/ordinary unchanged parts
     assert 3 in totals and 2 in totals  # CSV X differs on actual NFB CUTTING
+    from ae_engine.receiving_nfb_pad_pair_manufacturing import (
+        verified_pad_base_physical_sheets,
+    )
+    verified_pad_total = 0
+    for version, (_vid, _count, request) in zip(batch.versions, batch.requests):
+        source = thaw_manufacturing_value(request.input_snapshot)
+        pads, physical = verified_pad_base_physical_sheets(
+            source, version.geometry.parts, allow_empty=True,
+        )
+        assert len(pads) == 1 and pads[0].physical_id in physical
+        assert len(physical[pads[0].physical_id].fold_guides) == 2
+        verified_pad_total += version.piece_count * len(pads)
+    assert verified_pad_total == 5
     assert sum(totals) == sum(
         d.quantity for d in batch.demands
         if d.source_part_id.startswith("custom:")
         or _flags().get(
             __import__("gui_modules.project.export_actions",fromlist=["_resolved_export_intention_key"])
             ._resolved_export_intention_key(d.source_part_id),False)
-    )+10  # 2 authentic left/right fixing EARs per box x five cabinets
+    ) + 10 + verified_pad_total  # 10 authentic EAR + 5 source-verified PAD
+
 
 
 def test_each_version_uses_current_saved_csv_not_other_selected_version(tmp_path):

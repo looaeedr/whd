@@ -8,6 +8,7 @@ import time
 import sys
 from pathlib import Path
 from copy import deepcopy
+from collections.abc import Mapping
 from phase6_sync_envelope import stable_fingerprint
 from dataclasses import replace
 from tkinter import ttk
@@ -911,6 +912,31 @@ def _apply_fold_designer_live_snapshot(self, payload):
                     self._authoritative_part_render_cache.pop("head", None)
                     self._authoritative_part_render_cache.pop("tail", None)
             self.project_controller.capture_committed(self._compose_phase6_project_snapshot_from_main_gui())
+            if quantity_changed:
+                # R2-11: selected Quantity changes must recalculate the host
+                # Head/Tail, but editing an *inactive* version's modeless Hole
+                # Editor must not rebuild the currently displayed board.
+                # That version gets its render when it is selected later.
+                def visible_quantity_version(live):
+                    if not isinstance(live, Mapping):
+                        return None
+                    quantity = live.get("quantity")
+                    if quantity is None:
+                        workspace = live.get("workspace") or {}
+                        quantity = workspace.get("quantity") if isinstance(workspace, Mapping) else None
+                    if not isinstance(quantity, Mapping):
+                        return None
+                    selected = quantity.get("selected_version_id")
+                    row = next((
+                        item for item in quantity.get("versions", ())
+                        if isinstance(item, Mapping) and item.get("version_id") == selected
+                    ), None)
+                    return selected, row
+
+                if visible_quantity_version(previous_payload) != visible_quantity_version(payload):
+                    scheduler = getattr(self, "_phase6_update_scheduler", None)
+                    if scheduler is not None:
+                        scheduler.mark_dirty("designer_live_snapshot")
             self._phase6_last_fold_designer_revision=revision
             self._phase6_last_fold_designer_fingerprint=str(payload.get("fingerprint") or "")
             self._phase6_last_fold_designer_live_payload=deepcopy(payload)

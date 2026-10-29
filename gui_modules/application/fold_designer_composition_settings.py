@@ -861,7 +861,11 @@ def update_left_workspace_width(self, namespace, key=None):
         if key is not None
         else app._settings_values.get("ui_text_size", "small")
     )
-    target = required("_phase6_left_workspace_width")(value)
+    target = max(190, round(required("_phase6_left_workspace_width")(value) * 0.9))
+    # A manually dragged primary sidebar belongs to the operator until the
+    # window closes; selecting tabs or syncing model settings must not snap it.
+    if getattr(canvas, "_phase6_manual_width", False):
+        return int(canvas.winfo_width())
     canvas.configure(width=target)
     try:
         canvas.update_idletasks()

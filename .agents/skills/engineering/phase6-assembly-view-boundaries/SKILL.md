@@ -107,3 +107,25 @@ Joint Registry、collision solver、legacy migration、pre/post penetration 等�
 - W 二分／W 三分的 `box_body:left / box_body:middle / box_body:right` 是 aggregate BoxBody + width allocation 的 manufacturing projection。切換／Save 時不得誤送進 Receiving side/back commit，也不得把 projection 反寫成第二份 Fold Source of Truth。
 - W 分件 child editor 若僅作 resolved sink，Save 只可保留 workspace view；canonical 幾何仍由 aggregate `box_body` 與 `box_body_structure` 擁有。
 - Regression 必須包含：二件式／三件式 W 分件 Save→Reload、Receiving 側背分離 child edit/save、active child round-trip。任何 `unsupported BoxBody physical piece` 代表 routing boundary 又混在一起。
+
+## 受電箱同層不同深度 NFB：PAD 不得被舊底板設定吃掉（2026-10-28）
+
+- 唯一深度來源為**目前已提交且身份一致**的 NFB CSV V5。逐實體層獨立求最大深度；需要 flat PAD 時每顆較淺型號一片。只有**保存 CENTER 標籤但實際保存的完整尺寸不是當前經認證 CENTER 形狀**，才按目前 flat 來源修正，不得把合法已認證 CENTER 強行變成 PAD。
+- 有同層深度差時，合法 flat Base + source PAD 的單一物理路徑要同步接上 `receiving_base_plate_values`、2D 板件選單、3D folded PAD、BASE 真四方孔與 BOM/件數。只畫 3D 或只增加選單都不算交付。
+- 未驗證來源不得偷換成 CENTER、畫假 PAD、猜世界 X 或放行 DXF/NC。顯示缺件要辨識是「舊選型覆蓋」還是「原 Hole Editor 特徵尚未提交」，二者分別修正。
+- 測試至少包含原生提交、舊 CENTER 存檔、單層／雙層、同深度零 PAD、深度差 PAD 數量與真正 2D/3D 一致；完整規格見 `docs/manufacturing/receiving-same-tier-mixed-depth-pad-20261028.md`。
+
+## 受電箱第 2 顆 NFB：候選保存不是實體套用（2026-10-28）
+
+- 舊 `.p6fold` 可以保存兩顆 `nfb_config.holes`，但既有 `inner_door_models` 舊別名或原生 `part_features` 只有一顆。首次與重用 Designer 的載入路徑均需保留實際 Set/Bay 的完整提交來源；補回編輯器型號只能建立可取消的**草稿**，不能猜測世界 X／放行 NC。
+- 多連設定原生 Hole Editor 的「確定全部」只儲存**候選版本**。新候選保存後，必須選中剛建立的 `inner-door-vN`；若仍停在「即時」，按「套用」只執行 `apply_live` 標籤動作，**不會改變組合體第二孔**。實體變更只有高亮連的 `apply_inner_door_candidate_to_bays` 能提交。
+- 驗收不可只核對 `NFBConfig.holes == 2` 或內門編輯器 Canvas 畫出兩孔。須沿 GUI「新增／確定全部／套用」檢查 `query_assembly_render_data().assembly_parts` 的實際 `inner_door:upper:panel.render_data.material.interiors == 2` 且兩個 `nfb_v5_hole_ids` 不重複，再 Save As／GUI Reopen 重核。候選尚未套用時實體連必須不變。
+- 既有 Set/Bay 專案的測試不能誤用「單只設定」入口：那會切換成 quantity，生成另一個單只資料模型，造成「已存兩顆但載入變一顆」的假根因。
+- 參考 `docs/manufacturing/receiving-second-nfb-assembly-20261028.md` 與 `tests/test_receiving_legacy_two_nfb_candidate_apply.py`。
+
+## 2026-10-28: 3D double-click NFB Confirm All is a physical commit
+
+- The Assembly 3D double-click route opens the original Hole Editor with settings_mode=None. It is NOT the Multi candidate editor and must never require candidate Apply.
+- In the Receiving tab, pressing 確定 merely stages new CSV NFB CUTTING and staged_config; ONLY the main 確定全部 persists. Before the fix, direct confirm saved the native Features but silently dropped NFBConfig, so two Canvas holes became one 3D physical opening.
+- With valid staged NFB CSV, direct Confirm All must use the existing atomic ReceivingSetBayAdapter physical Bay commit (or current Quantity version), then reproject FinalScene. Reject incomplete or mixed source; leave X UNVERIFIED_BASIS, never grant manufacturing readiness.
+- Verify the actual current user's path and true 3D material holes. Dedicated regression tests/test_receiving_direct_3d_inner_nfb_confirm_all.py, see docs/manufacturing/receiving-direct-3d-inner-door-nfb-confirm-all-20261028.md.

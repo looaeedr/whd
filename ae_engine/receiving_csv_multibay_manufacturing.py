@@ -82,6 +82,15 @@ def export_current_receiving_multibay_dxf(
         logical={p.part_key for p in actual.parts}
         if len(logical)!=len(actual.parts):
             raise ValueError("RECEIVING_MULTIBAY_DUPLICATE_LOGICAL_PHYSICAL_OWNER")
+        # Explicitly selecting Base requires an actual physical Base owner in
+        # EVERY Bay. An UNCONFIGURED Bay (or a stale FinalScene provider) must
+        # not silently produce a partial batch omitting the selected sheet.
+        if bool(flags.get("base_plate")) and not any(
+                key=="base_plate" or key.startswith("base_plate:nfb_layer:")
+                for key in logical):
+            raise ValueError(
+                "RECEIVING_MULTIBAY_SELECTED_BASE_PLATE_PHYSICAL_SOURCE_MISSING"
+            )
         only_independent_intent=(
             any(bool(flags.get(key)) for key in ("head", "tail", "door"))
             and not any(bool(value) for key,value in flags.items()
@@ -187,6 +196,40 @@ def export_current_receiving_multibay_dxf(
             # _verified_formed_ear_parts above, never arbitrary metadata.
             verified_formed_filenames.add(filename)
             output_rows.append((ns,ear_id,filename,ear_render))
+        # #1490: each physical Bay has independent NFB and PAD owners. A
+        # complete original BODY+DOOR+BASE selection must include each Bay's
+        # genuine PAD; never borrow another Bay or rely on display skins alone.
+        if (is_csv and body_selected and bool(flags.get("door"))
+                and bool(flags.get("base_plate"))):
+            from .receiving_nfb_pad_pair_manufacturing import (
+                verified_pad_base_physical_sheets,
+            )
+            pad_rows, proven = verified_pad_base_physical_sheets(
+                source, actual.parts, allow_empty=True,
+            )
+            if pad_rows and not (
+                any(p.part_key.startswith("inner_door:")
+                    for p in selected_logical)
+                and any(p.part_key == "base_plate"
+                    or p.part_key.startswith("base_plate:nfb_layer:")
+                    for p in selected_logical)
+            ):
+                raise ValueError(
+                    "RECEIVING_MULTIBAY_FULL_NFB_PHYSICAL_SELECTION_INCOMPLETE"
+                )
+            for pad in pad_rows:
+                pad_id=pad.physical_id
+                filename=_resolved_physical_dxf_filename(
+                    pad_id,instance_namespace=ns,
+                )
+                if (filename in expected_keys or pad_id in formed
+                        or pad_id in {key for key,_ in physical_rows}):
+                    raise ValueError("RECEIVING_MULTIBAY_PAD_OWNER_COLLISION")
+                expected_keys.add(filename)
+                # This precise PAD is certified by the current Bay's committed
+                # CSV, verified Base and full-T geometry before staging.
+                verified_formed_filenames.add(filename)
+                output_rows.append((ns,pad_id,filename,proven[pad_id]))
         if is_csv and body_selected:
             for side in ("box_body:left_side","box_body:right_side"):
                 owner=owner_render_data(selected,side)

@@ -42,6 +42,7 @@ def _choose_pair(root, state):
 def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_path):
     import gui
     import fold_designer_bridge as bridge
+    from unittest.mock import patch
     from phase6_manufacturing_adapter import build_scene_payload_for_app, _canonical_part_keys
     from phase6_part_navigation import operator_part_selector_keys,operator_part_label
 
@@ -92,6 +93,27 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
         assert identity in operator_part_selector_keys(
             designer.designer_workspace.available_parts)
         assert "墊高片" in operator_part_label(identity,snapshot=snap)
+
+        # Reproduce a transient stale workspace feature stash: canonical
+        # committed snapshot + assembly have a genuine PAD, but the old
+        # workspace-first navigation erased its 2D entry on a resync.
+        # A confirmed submitted root must outrank old editor features.
+        assert snap["part_features"]
+        stale_features = {
+            key: [] for key in snap["part_features"]
+            if str(key).startswith("inner_door:")
+        }
+        assert stale_features
+        with patch.object(
+            designer.designer_workspace,"part_features_snapshot",
+            return_value=stale_features,
+        ):
+            bridge._phase6_sync_authoritative_derived_parts(designer)
+        assert identity in designer.designer_workspace.available_parts, (
+            "PAD_ASSEMBLY_VISIBLE_BUT_2D_PART_SELECTOR_MISSING", identity
+        )
+        assert identity in operator_part_selector_keys(
+            designer.designer_workspace.available_parts)
         assert identity not in _canonical_part_keys(designer)
 
         payload=build_scene_payload_for_app(designer,identity)
@@ -140,6 +162,25 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
         output=Path("pad-native-tk-2D.png")
         Image.fromarray(after).save(output)
         canvas_window.destroy()
+
+        # Native GUI acceptance must exercise the ORIGINAL Tk operator menu,
+        # not merely the workspace identity/adapter's programmatic 2D scene.
+        # The old GUI failed here even while assembly and 2D render probes
+        # passed: it never refreshed this Tk menu after NFB Confirm All.
+        menu = designer.part_choice_menu
+        matches = [
+            (i, str(menu.entrycget(i, "label")))
+            for i in range(menu.index("end") + 1)
+            if "墊高片" in str(menu.entrycget(i, "label"))
+        ]
+        assert len(matches) == 1, ("PAD_NATIVE_TK_MENU_NOT_REFRESHED", matches)
+        index, label = matches[0]
+        menu.invoke(index)
+        _pump(root)
+        assert designer.designer_workspace.active_part == identity
+        assert designer.part_var.get() == label
+        assert designer._phase6_3d_display_mode == "single"
+
         print("PAD_REAL_TK_OPERATOR_2D",identity,
               material.unfolded_topology.width,
               material.unfolded_topology.height,
@@ -190,6 +231,19 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
         assert reloaded_parts == (identity,), (
             "PAD_NATIVE_SAVED_2D_NAVIGATION_MISSING",reloaded_parts
         )
+        # Reload must also rebuild the actual operator-facing Tk menu; a
+        # saved authoritative Part identity alone is not a clickable sheet.
+        saved_menu = reloaded.part_choice_menu
+        saved_pad_entries = [
+            i for i in range(saved_menu.index("end") + 1)
+            if "墊高片" in str(saved_menu.entrycget(i, "label"))
+        ]
+        assert len(saved_pad_entries) == 1, (
+            "PAD_NATIVE_SAVED_TK_MENU_NOT_REFRESHED", saved_pad_entries
+        )
+        saved_menu.invoke(saved_pad_entries[0])
+        _pump(root)
+        assert reloaded.designer_workspace.active_part == identity
         restored=bridge._phase6_final_scene_adapter(
             reloaded).query_assembly_render_data()
         assert len(restored.formed_nfb_pad_skins)==1

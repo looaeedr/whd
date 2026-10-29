@@ -102,6 +102,71 @@ def test_r3_3_endcap_world_relief_solver_passes_preserve_core_origin():
     assert all(has_kw for _, _, has_kw in calls), f"Missing preserve_core_origin in calls: {calls}"
 
 
+@pytest.mark.parametrize(
+    "placement,body_face_y,folded_y",
+    (("top", 800.0, 789.0), ("bottom", -800.0, -789.0)),
+)
+def test_r3_3_asymmetric_endcap_real_t2_core_stays_on_head_tail_mating_face(
+    placement, body_face_y, folded_y,
+):
+    """Physical R3-3 witness: the asymmetric flange must not re-center the core.
+
+    R3-3's six solver probe calls pass preserve_core_origin=True for Receiving.
+    Unlike the separate AST wiring check, here the shared production 3D
+    transform and true-thickness solid are exercised for BOTH Head and Tail.
+    """
+    from ae_engine.assembly_geometry import (
+        place_endcap_against_box_body, thicken_triangle_surface, triangle_bounds,
+    )
+
+    # World cabinet W800/H1600, core surface Y=-800..800.  The EndCap's
+    # authoritative core occupies local V=-100..100 while its flange reaches
+    # +130.  Whole-envelope centering would falsely move the core by 15 mm.
+    body = (
+        ((-400., -800., 0.), (400., -800., 0.), (400., 800., 0.)),
+        ((-400., -800., 0.), (400., 800., 0.), (-400., 800., 0.)),
+    )
+    core = (
+        ((-100., -100., 0.), (100., -100., 0.), (100., 100., 0.)),
+        ((-100., -100., 0.), (100., 100., 0.), (-100., 100., 0.)),
+    )
+    flange = ((-100., 100., 0.), (100., 100., 0.), (100., 130., 12.))
+    full_reference = core + (flange,)
+
+    placed_core = place_endcap_against_box_body(
+        core, placement, body, sheet_thickness=2.,
+        reference_triangles=full_reference, preserve_core_origin=True,
+    )
+    core_bounds = triangle_bounds(placed_core)
+    assert core_bounds[2] == pytest.approx((-100., 100.))
+    mid_surface_y = body_face_y + (1. if placement == "top" else -1.)
+    assert core_bounds[1] == pytest.approx((mid_surface_y, mid_surface_y))
+
+    real_sheet = thicken_triangle_surface(placed_core, 2.)
+    solid_bounds = triangle_bounds(real_sheet)
+    assert solid_bounds[1] == pytest.approx(
+        (body_face_y, body_face_y + 2.) if placement == "top"
+        else (body_face_y - 2., body_face_y)
+    )
+
+    folded = place_endcap_against_box_body(
+        (flange,), placement, body, sheet_thickness=2.,
+        reference_triangles=full_reference, preserve_core_origin=True,
+    )
+    assert folded[0][2][1] == pytest.approx(folded_y)
+    assert (folded[0][2][1] < mid_surface_y) if placement == "top" else (
+        folded[0][2][1] > mid_surface_y
+    )
+
+    # Negative witness: prior whole-envelope recentering WOULD shift the
+    # exact same physical core V origin because the flange is asymmetric.
+    legacy = place_endcap_against_box_body(
+        core, placement, body, sheet_thickness=2.,
+        reference_triangles=full_reference, preserve_core_origin=False,
+    )
+    assert abs(triangle_bounds(legacy)[2][0] - core_bounds[2][0]) == pytest.approx(15.)
+
+
 def test_r3_4_certified_relief_family_key_normalizes_receiving_alias():
     """R3-4: certified_relief_models and certified_relief_corner_policy normalize 'RECEIVING' to '受電箱'."""
     from ae_engine.certified_relief_models import _family_key as models_family_key
@@ -165,6 +230,63 @@ def test_r3_7_receiving_alias_accepted_across_navigation_and_projection():
     host = SimpleNamespace(assembly_joint_state={})
     summary = fixed_corner_summary(host, "head", "RECEIVING")
     assert summary is not None and "上方：嵌入貼外型" in summary
+
+
+
+def test_r3_7_receiving_alias_preserves_real_upper_inner_door_y_projection():
+    """R3-7: validate the physical Y owner, not only GUI labels/corner text.
+
+    This is the same W800/H1600, 1100-mm upper Door, T2 real-piece topology
+    used by #1495.  Both family names must lead to identical panel IDs,
+    assembly Y, unfolded material UV and inverse box-top datums.
+    """
+    from copy import deepcopy
+    from ae_engine.cabinet_types.receiving import apply_family_defaults
+    from ae_engine.receiving_nfb_y_projection import (
+        project_nfb_inner_door_nominal_y, invert_nfb_inner_door_unfolded_y,
+    )
+
+    canonical = apply_family_defaults({
+        "model": "受電箱", "w": 800.0, "h": 1600.0,
+        "d": 350.0, "t": 2.0, "fw": 29.0,
+        "door_gap_w": 3.5, "door_gap_h": 3.5,
+    })
+    canonical.update({
+        "multi_door_enabled": True,
+        "door_layout_scope": "receiving-main",
+        "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+        "inner_doors": [{
+            "stable_id": "upper", "cell_key": "0:0",
+            "included_frame_sides": ["top", "left", "right"],
+        }],
+    })
+
+    for count, slot, nominal in ((1, 0, 550.0), (2, 0, 290.0), (2, 1, 790.0)):
+        original = deepcopy(canonical)
+        alias = deepcopy(canonical)
+        alias["model"] = "RECEIVING"
+        before = deepcopy(alias)
+        truth = project_nfb_inner_door_nominal_y(
+            original, "upper", layer_count=count, slot_index=slot,
+        )
+        actual = project_nfb_inner_door_nominal_y(
+            alias, "upper", layer_count=count, slot_index=slot,
+        )
+        assert alias == before, "projection mutated the saved authoritative source"
+        assert actual == truth, (count, slot, actual, truth)
+        assert actual.part_id == "inner_door:upper:panel"
+        assert actual.cell_key == "0:0"
+        assert actual.nominal_y_from_box_top_mm == pytest.approx(nominal)
+        assert invert_nfb_inner_door_unfolded_y(
+            alias, "upper", unfolded_uv_y_mm=actual.unfolded_uv_y_mm,
+        ) == pytest.approx(nominal)
+
+    wrong_family = deepcopy(canonical)
+    wrong_family["model"] = "金庫型"
+    with pytest.raises(ValueError, match="requires Receiving family"):
+        project_nfb_inner_door_nominal_y(
+            wrong_family, "upper", layer_count=1, slot_index=0,
+        )
 
 
 def test_r3_8_readback_marking_lines_rejects_extra_marking_lines(tmp_path):

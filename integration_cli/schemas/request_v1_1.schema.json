@@ -1,0 +1,781 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/looaeedr/whd/blob/localX/integration_cli/schemas/request_v1_1.schema.json",
+  "title": "WHD external worker request v1.1.0 (W-03 experimental contract only)",
+  "description": "Wire protocol 1.0.0; no implementation or production capability is implied. Semantic constraints beyond JSON Schema are enforced by WHD.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "client_installation_id",
+    "request_id",
+    "job_id",
+    "request_digest",
+    "operation",
+    "coordinate_contract_revision",
+    "items"
+  ],
+  "properties": {
+    "protocol_version": {
+      "const": "1.1.0"
+    },
+    "client_installation_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "request_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "operation": {
+      "enum": [
+        "prepare",
+        "export"
+      ]
+    },
+    "coordinate_contract_revision": {
+      "const": "1"
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item_id",
+          "part",
+          "source_document_sha256"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "part": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "cabinet_family",
+              "source_part_ref",
+              "dimension_semantics",
+              "dimensions_mm"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "door",
+                  "end_cap_head",
+                  "end_cap_tail",
+                  "indicator_box",
+                  "indicator_small_door"
+                ]
+              },
+              "cabinet_family": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "source_part_ref": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "dimension_semantics": {
+                "enum": [
+                  "cabinet_outer",
+                  "part_formed_outer"
+                ]
+              },
+              "dimensions_mm": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "thickness"
+                ],
+                "properties": {
+                  "width": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "height": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "depth": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "thickness": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              },
+              "frame_width_mm": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "gap_w_mm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "gap_h_mm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "fold_left_mm": {
+                "type": "number"
+              },
+              "fold_right_mm": {
+                "type": "number"
+              },
+              "fold_top_mm": {
+                "type": "number"
+              },
+              "fold_bottom_mm": {
+                "type": "number"
+              },
+              "indicator_groups": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "frame_edges": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "left",
+                  "right",
+                  "top",
+                  "bottom"
+                ],
+                "properties": {
+                  "left": {
+                    "type": "boolean"
+                  },
+                  "right": {
+                    "type": "boolean"
+                  },
+                  "top": {
+                    "type": "boolean"
+                  },
+                  "bottom": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "door",
+                        "indicator_small_door"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "dimensions_mm": {
+                      "required": [
+                        "width",
+                        "height"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "end_cap_head",
+                        "end_cap_tail"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "dimensions_mm": {
+                      "required": [
+                        "width",
+                        "depth"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "kind": {
+                      "const": "indicator_box"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "indicator_groups"
+                  ]
+                }
+              }
+            ]
+          },
+          "source_document_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "preparation_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "physical_part_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "target_frame_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "feature_id",
+                "source_ref",
+                "type",
+                "coordinate_space",
+                "target_frame_id",
+                "units",
+                "face_role",
+                "viewed_from",
+                "process",
+                "source_transform"
+              ],
+              "properties": {
+                "feature_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "source_ref": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "type": {
+                  "enum": [
+                    "circle",
+                    "rect",
+                    "profile"
+                  ]
+                },
+                "coordinate_space": {
+                  "const": "finished_face"
+                },
+                "target_frame_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "units": {
+                  "const": "mm"
+                },
+                "face_role": {
+                  "enum": [
+                    "outer",
+                    "inner",
+                    "front",
+                    "back"
+                  ]
+                },
+                "viewed_from": {
+                  "enum": [
+                    "along_normal",
+                    "against_normal"
+                  ]
+                },
+                "process": {
+                  "enum": [
+                    "THROUGH_CUT",
+                    "BLIND_HOLE",
+                    "MARKING"
+                  ]
+                },
+                "source_transform": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "source_frame_id",
+                    "source_units",
+                    "source_to_mm_scale",
+                    "unit_authority",
+                    "matrix_2x2",
+                    "translation_mm",
+                    "rotation_deg",
+                    "mirror_x",
+                    "mirror_y",
+                    "source_geometry_sha256",
+                    "source_entity_refs",
+                    "source_dimensions_mm",
+                    "target_dimensions_mm"
+                  ],
+                  "properties": {
+                    "source_frame_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "source_units": {
+                      "enum": [
+                        "mm",
+                        "inch"
+                      ]
+                    },
+                    "source_to_mm_scale": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "unit_authority": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "matrix_2x2": {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "translation_mm": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
+                    },
+                    "rotation_deg": {
+                      "type": "integer",
+                      "enum": [
+                        0,
+                        90,
+                        180,
+                        270
+                      ]
+                    },
+                    "mirror_x": {
+                      "type": "boolean"
+                    },
+                    "mirror_y": {
+                      "type": "boolean"
+                    },
+                    "source_geometry_sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "source_entity_refs": {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    },
+                    "source_dimensions_mm": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "width",
+                        "height"
+                      ],
+                      "properties": {
+                        "width": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "height": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        }
+                      }
+                    },
+                    "target_dimensions_mm": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "width",
+                        "height"
+                      ],
+                      "properties": {
+                        "width": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        },
+                        "height": {
+                          "type": "number",
+                          "exclusiveMinimum": 0
+                        }
+                      }
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "source_units": {
+                            "const": "mm"
+                          }
+                        },
+                        "required": [
+                          "source_units"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "source_to_mm_scale": {
+                            "const": 1
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "source_units": {
+                            "const": "inch"
+                          }
+                        },
+                        "required": [
+                          "source_units"
+                        ]
+                      },
+                      "then": {
+                        "properties": {
+                          "source_to_mm_scale": {
+                            "const": 25.4
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "center_mm": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "radius_mm": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "width_mm": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "height_mm": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "rotation_deg": {
+                  "type": "integer",
+                  "enum": [
+                    0,
+                    90,
+                    180,
+                    270
+                  ]
+                },
+                "points_mm": {
+                  "type": "array",
+                  "minItems": 3,
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                  }
+                },
+                "closed": {
+                  "type": "boolean"
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "type": {
+                        "const": "circle"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "center_mm",
+                      "radius_mm"
+                    ],
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "width_mm"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "points_mm"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "type": {
+                        "const": "rect"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "center_mm",
+                      "width_mm",
+                      "height_mm",
+                      "rotation_deg"
+                    ],
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "radius_mm"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "points_mm"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "type": {
+                        "const": "profile"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "points_mm",
+                      "closed"
+                    ],
+                    "properties": {
+                      "closed": {
+                        "const": true
+                      }
+                    },
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "center_mm"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "radius_mm"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "width_mm"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "transaction_mode": {
+      "enum": [
+        "all_or_nothing",
+        "per_part"
+      ]
+    },
+    "prepare_token": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "environment_fingerprint_expected": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directory",
+        "overwrite"
+      ],
+      "properties": {
+        "directory": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "overwrite": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "prepare"
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "prepare_token"
+              ]
+            },
+            {
+              "required": [
+                "environment_fingerprint_expected"
+              ]
+            },
+            {
+              "required": [
+                "output"
+              ]
+            },
+            {
+              "required": [
+                "transaction_mode"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "items": {
+            "items": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "features"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "preparation_digest"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "physical_part_id"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "target_frame_ids"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "export"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "transaction_mode",
+          "prepare_token",
+          "environment_fingerprint_expected",
+          "output"
+        ],
+        "properties": {
+          "items": {
+            "items": {
+              "required": [
+                "preparation_digest",
+                "physical_part_id",
+                "target_frame_ids",
+                "features"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

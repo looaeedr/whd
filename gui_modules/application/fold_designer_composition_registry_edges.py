@@ -774,6 +774,12 @@ def commit_base_plate_edge_shrink(
     key = required("_BASE_PLATE_EDGE_SETTING_KEYS").get(edge)
     if key is None:
         return False
+    # Receiving BasePlate dimensions are physically source-derived. Operator
+    # edge shrink is NEVER an editable control for this cabinet family.
+    # Do not zero the persisted geometric shrink or silently rewrite the base.
+    snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+    if str(snapshot.get("model") or "").strip() in ("受電箱", "RECEIVING"):
+        return False
     original = required("original")
     try:
         value = float(raw_value)
@@ -803,6 +809,14 @@ def render_base_plate_edge_controls(self, namespace):
     app.endcap_joint_allowed = {}
     app.base_plate_edge_shrink_vars = {}
     app.base_plate_edge_shrink_widgets = {}
+
+    # The old four drawing-edge controls were outside SettingsPanel and
+    # therefore survived the earlier removal of receiving shrink fields.
+    # Do not build them at all for a Receiving BasePlate. Other families
+    # continue to use their physical per-edge edit controls.
+    snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+    if str(snapshot.get("model") or "").strip() in ("受電箱", "RECEIVING"):
+        return None
 
     hosts = self.ensure_drawing_edge_hosts(namespace)
     edge_hosts = {

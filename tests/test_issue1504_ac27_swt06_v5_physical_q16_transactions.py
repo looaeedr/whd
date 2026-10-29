@@ -100,7 +100,8 @@ def test_ac27_swt06_valid_q16_preserves_two_unit_identity_pitch_and_revalidates_
     saved_before = _save(old, _scene(old), tmp_path / "before")
     original_paths = _files(saved_before)
     original_geometries = tuple(_shapes(path) for path in original_paths)
-    assert len(original_geometries[1][0]) == 8
+    # Before Q16, shallow 3P125SN is raised: its four screws are on PAD.
+    assert len(original_geometries[1][0]) == 4
     assert saved_before.source_hole_ids == ("nfb:0", "nfb:1")
 
     receipt = session.apply("Q16_MODEL_CHANGE", replace_nfb_slot_model,

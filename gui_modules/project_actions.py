@@ -104,12 +104,14 @@ def load_phase6_project(self, path, *, open_designer=True):
         designer = self.open_original_fold_designer()
         from ae_engine.cabinet_types.receiving import is_receiving_snapshot
         if designer is previous_designer and is_receiving_snapshot(snapshot):
-            # The primary application already owns an open designer. Reusing
-            # its window must still replace the loaded project's canonical
-            # workspace and refresh the real physical-part navigation.
+            # An already-open Designer must replace its previous project's
+            # receiving mode; a NEW Designer has already consumed the
+            # committed main-GUI snapshot. Forcing _apply_mode_snapshot on
+            # fresh legacy projects recalculates invalid old NFB depth source
+            # too early and incorrectly BLOCKS opening an editable project.
+            # Keep invalid manufacturing source unapproved, but loadable.
             import fold_designer_bridge as bridge
             from gui_modules.application.fold_designer_composition_receiving import _apply_mode_snapshot
-
             previous_guard = designer._phase6_baseline_guard
             designer._phase6_baseline_guard = True
             try:

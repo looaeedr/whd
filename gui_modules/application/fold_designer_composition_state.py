@@ -757,6 +757,48 @@ def toggle_parameter_panel(self, namespace):
         == "assembly"
     )
     diagnostics = getattr(app, "assembly_diagnostics_frame", None)
+    if unlocked:
+        # The original lock toggle lives on the renderer canvas. Expanding
+        # settings/assembly diagnostics can push that canvas below the visible
+        # viewport, making the toggle physically unreachable by mouse.
+        # Give the opened panel its own fixed, always-visible close control,
+        # wired to this SAME state owner (not an independent boolean).
+        # Fake panels in the legacy bridge-only tests do not expose Tk
+        # child APIs, so this is installed only on real widget trees.
+        from tkinter import ttk
+        import tkinter as tk
+
+        panel = diagnostics if assembly_selected else center
+        if panel is not None and hasattr(panel, "winfo_children"):
+            close = getattr(panel, "_phase6_close_parameters_button", None)
+            try:
+                alive = close is not None and bool(close.winfo_exists())
+            except (AttributeError, tk.TclError):
+                alive = False
+            if not alive:
+                if panel is center:
+                    children = panel.winfo_children()
+                    header = children[0] if children else panel
+                    close = ttk.Button(
+                        header, text="收合參數",
+                        command=lambda: self.toggle_parameter_panel(namespace),
+                        style="Secondary.TButton",
+                    )
+                    close.pack(side=tk.RIGHT, padx=(6, 0))
+                else:
+                    prior = tuple(panel.winfo_children())
+                    close = ttk.Button(
+                        panel, text="收合參數",
+                        command=lambda: self.toggle_parameter_panel(namespace),
+                        style="Secondary.TButton",
+                    )
+                    # Give the close button pack priority so a crowded
+                    # diagnostics row cannot squeeze it off the visible edge.
+                    close.pack(
+                        side=tk.RIGHT, padx=(6, 0),
+                        **({"before": prior[0]} if prior else {}),
+                    )
+                panel._phase6_close_parameters_button = close
     if unlocked and assembly_selected:
         if center is not None and center.winfo_manager():
             center.pack_forget()

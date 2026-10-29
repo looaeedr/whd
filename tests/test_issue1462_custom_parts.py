@@ -203,3 +203,91 @@ def test_compact_custom_settings_keep_buttons_accessible_in_small_viewport():
         }
     finally:
         root.destroy()
+
+
+@pytest.mark.skipif(
+    __import__("os").name != "nt" and not __import__("os").environ.get("DISPLAY"),
+    reason="real native Windows Tk or Linux Xvfb required",
+)
+def test_audit116_bug3_real_main_custom_hole_live_sync_and_save_reload(tmp_path):
+    """BUG #3: custom-only live edit must update the real primary GUI and project.
+
+    The original regression used a SimpleNamespace fake. Here the production
+    BoxCalculatorGUI, workspace/controller and disk project serializer are real.
+    The input is a source-level FoldDesigner live envelope, not a mouse-driven
+    external CADCraft session or a factory manufacturing claim.
+    """
+    import tkinter as tk
+    import gui
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+    from phase6_custom_parts import custom_part_only_change
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        main = gui.BoxCalculatorGUI(root)
+        designer_state = Phase6DesignerWorkspace.from_snapshot({"model": "金庫型"})
+        key = designer_state.add_custom_part(
+            display_name="BUG3 加強板", fold_axis="X",
+            transverse_length=240.0, per_box_count=1,
+        )
+        original = designer_state.snapshot()
+        assert key in original["custom_parts"]["items"]
+        assert not original["part_features"].get(key)
+
+        def envelope(revision, feature_list):
+            workspace = deepcopy(original)
+            workspace["part_features"][key] = list(feature_list)
+            return {
+                "origin": "fold_designer",
+                "revision": revision,
+                "fingerprint": f"audit116-bug3-{revision}",
+                "model": "金庫型",
+                "active_part": key,
+                "custom_parts": deepcopy(workspace["custom_parts"]),
+                "part_features": {key: list(feature_list)},
+                "workspace": workspace,
+            }
+
+        before = envelope(1, [])
+        hole = CircleFeature(
+            diameter=16.0, anchor=FeatureAnchor.PANEL_CENTER,
+            offset=Vec2(20.0, -20.0), layer="CUTTING",
+        )
+        added = envelope(2, [hole])
+        cleared = envelope(3, [])
+        assert custom_part_only_change(before, added)
+        assert custom_part_only_change(added, cleared)
+
+        main._phase6_last_fold_designer_revision = 1
+        main._phase6_last_fold_designer_fingerprint = before["fingerprint"]
+        main._phase6_last_fold_designer_live_payload = deepcopy(before)
+        main.surface_features[key] = []
+        for update, expected, label in (
+            (added, [hole], "add"),
+            (cleared, [], "delete"),
+        ):
+            assert main._apply_fold_designer_live_snapshot(update) is True
+            assert main.surface_features[key] == expected
+            assert main.workspace_controller.part_features_snapshot()[key] == expected
+            snapshot = main._compose_phase6_project_snapshot_from_main_gui()
+            assert snapshot["part_features"][key] == expected
+            output = tmp_path / f"audit116-bug3-{label}.p6fold"
+            write_project = project.write_project
+            read_project = project.read_project
+            write_project(output, {
+                "schema": project.PROJECT_SCHEMA,
+                "saved_at": "2026-10-28T12:00:00+08:00",
+                "snapshot": snapshot,
+                "final_geometry": {},
+            })
+            saved = read_project(output)["snapshot"]
+            assert saved["part_features"][key] == expected
+            assert saved["workspace"]["part_features"][key] == expected
+            assert main._phase6_last_fold_designer_revision == update["revision"]
+    finally:
+        try:
+            root.destroy()
+        except tk.TclError:
+            pass

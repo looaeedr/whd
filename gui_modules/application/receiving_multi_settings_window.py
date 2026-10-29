@@ -292,6 +292,21 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # The primary application is not interactive while multi-settings is open.
     win.transient(parent)
     parent._receiving_multi_settings_window = win
+    # Fail closed BEFORE installing modal callbacks or drawing widgets. A
+    # refused Quantity/Set-Bay transition used to leave an unfinished Tk
+    # Toplevel on screen; its close() callback referenced sketch_redraw,
+    # close_real_preview and close_manager before those closures existed.
+    initial_mode = "quantity" if dialog_kind == "single" else "set_bay"
+    try:
+        if get_snapshot().get("active_mode", "set_bay") != initial_mode:
+            if not switch_mode(initial_mode):
+                raise ValueError("無法切換設定模式")
+    except Exception:
+        # A failed source/geometry gate cannot leave a stale modal grab or a
+        # parent pointer to an uninitialized, uncloseable Toplevel.
+        parent._receiving_multi_settings_window = None
+        win.destroy()
+        raise
     topology_changed = {"value": False}
     brand_changed = {"value": False}
 
@@ -350,37 +365,65 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     win.bind("<Map>", on_modal_map, add="+")
     win.after_idle(maximize_and_lock)
-    win.columnconfigure(1, weight=1)
+    win.columnconfigure(0, weight=1)
     win.rowconfigure(0, weight=1)
 
-    # Two permanent columns. Left owns Set/Bay actions; right owns the
-    # function selector above a separate 2D diagram. Neither section moves
-    # when the category changes or when the version manager is opened.
+    # The left Set/Bay rail is 10% narrower at first open; the user may drag
+    # the sash to resize it at any time. Never snap a manually dragged sash
+    # back during Bay selection, renderer Configure, or feature edits.
+    splitter = ttk.Panedwindow(win, orient=tk.HORIZONTAL)
+    splitter.grid(row=0, column=0, sticky="nsew")
+    left_pane = ttk.Frame(splitter, padding=(12, 12, 4, 12))
+    right_pane = ttk.Frame(splitter, padding=(6, 16, 24, 16))
+    splitter.add(left_pane, weight=0)
+    splitter.add(right_pane, weight=1)
     from .receiving_scroll_view import make_scrollable_frame
     left_scroll, left_content, left_scroll_canvas = make_scrollable_frame(
-        win, tk=tk, ttk=ttk, width=280, height=610,
+        left_pane, tk=tk, ttk=ttk, width=280, height=610,
     )
-    left_scroll.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
+    left_scroll.pack(fill="both", expand=True)
     left_host = ttk.Frame(left_content)
     left_host.pack(fill="both", expand=True)
-    right_host = ttk.Frame(win)
-    right_host.grid(row=0, column=1, sticky="nsew", padx=24, pady=16)
+    right_host = ttk.Frame(right_pane)
+    right_host.pack(fill="both", expand=True)
     right_host.columnconfigure(0, weight=1)
     right_host.rowconfigure(2, weight=1)
+
+    def set_initial_left_width(_event=None):
+        if (not splitter.winfo_exists()
+                or hasattr(splitter, '_receiving_initial_left_width')):
+            return
+        # The actual left request already includes current OS fonts and
+        # labels; it is more accurate than a hard-coded screen coordinate.
+        baseline = left_pane.winfo_reqwidth()
+        available = splitter.winfo_width()
+        if baseline <= 0 or available < 240:
+            return
+        initial = min(round(baseline * 0.9), available - 180)
+        initial = max(145, initial)
+        splitter.sashpos(0, initial)
+        splitter._receiving_default_left_width = baseline
+        splitter._receiving_initial_left_width = initial
+
+    # The first sash placement is scheduled at the END of construction,
+    # after the left-side widgets establish their true requested width.
 
     # Reflect the authoritative mode instead of deferring a hidden mode switch
     # (and its complete geometry rebuild) to the first connection edit.
     # The obsolete Quantity main mode has been removed from this window.
     # Preserve the independent quantity allocation inside Version Manager.
-    initial_mode = "quantity" if dialog_kind == "single" else "set_bay"
-    if get_snapshot().get("active_mode", "set_bay") != initial_mode:
-        if not switch_mode(initial_mode):
-            raise ValueError("無法切換設定模式")
+    # The authoritative transition has already been accepted before Tk
+    # installs any modal callbacks (or the modal is destroyed on failure).
     mode_var = tk.StringVar(master=win, value=initial_mode)
     top_left = ttk.Frame(left_host)
     top_left.pack(anchor="nw")
+    # The NFB brand selector belongs to the one authoritative NFB editor,
+    # not a second dropdown at the top of the multi-Bay Set/Bay page.
+    # Preserve the single-unit brand selector and the existing validated
+    # transaction callback. Hide only the duplicate MULTI-BAY operator entry.
     brand_row = ttk.Frame(top_left)
-    brand_row.pack(anchor="w", pady=(0, 8))
+    if dialog_kind == "single":
+        brand_row.pack(anchor="w", pady=(0, 8))
     ttk.Label(brand_row, text="NFB").pack(side="left", padx=(0, 8))
     brand_var = tk.StringVar(master=win, value=get_brand() if get_brand else "士林")
     from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
@@ -585,10 +628,15 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         return popup
 
     def editor_saved(role, version_id, *, keep_live=False):
-        # Saving while "即時" creates a candidate but MUST NOT select it:
-        # selecting v1 here would make the next Edit overwrite v1 instead of
-        # creating v2. Existing-version edits retain their selected version.
-        if not keep_live:
+        # The inner-door candidate's native Confirm All has created the
+        # version, but has NOT applied its NFB holes to a physical Bay.
+        # Leaving the selector at "即時" makes the immediately following
+        # "套用" call apply_live (label-only): no second physical hole appears
+        # in Assembly. Select the JUST-SAVED inner-door version instead so
+        # explicit highlighted-Bay Apply transfers its complete NFB source.
+        # To create a different version next, select "即時" explicitly.
+        # Preserve the legacy keep-live behavior for head/tail editors.
+        if not keep_live or role == "inner-door":
             candidate_selected[role] = version_id
         if win.winfo_exists():
             win.after_idle(show_setting_controls)
@@ -763,19 +811,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     settings_host, text="版本管理",
                     command=lambda: open_manager("inner"),
                 ).pack(anchor="e", pady=(5, 0))
-            # Restore the existing per-Bay linkage without bringing back the
-            # removed layer-count Edit button. The 2D highlight is authority.
-            link_row = ttk.Frame(settings_host)
-            link_row.pack(anchor="w", pady=3)
-            ttk.Button(
-                link_row, text="連動選取的連",
-                command=lambda: perform(lambda: ports["share"](
-                    "inner_door_layers", targets(),
-                )) if targets() else None,
-            ).pack(side="left", padx=(0, 5))
-            # No per-Bay "unlink" action here: the operator-selected
-            # highlight / version management is the sole current inner-door
-            # workflow. The former "解除本連連動" control was explicitly retired.
+            # The 2D canvas highlight + existing candidate "套用" already
+            # own inner-door multi-Bay selection. Retired the redundant
+            # "連動選取的連" control; no explicit share/unlink action is
+            # rendered. Preserve the canonical data ports for other clients.
             # #1500: the existing source-verified Receiving NFB transaction
             # ports must remain operable after the settings window refactor.
             # Use the SAME canvas Bay highlighter and single canonical adapter;
@@ -801,7 +840,12 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     all_submitted = False
 
                 nfb_row = ttk.Frame(settings_host)
-                nfb_row.pack(anchor="w", pady=(5, 1))
+                # Historical transaction controls are not shown in the
+                # multi-Bay operator view. Retain the source transaction
+                # buttons as UNMAPPED compatibility hooks for legacy AC
+                # tests until those tests migrate into the canonical editor.
+                # Production users operate only the editor/Apply entry.
+                # Deliberately NO nfb_row.pack().
 
                 def nfb_confirm(preview):
                     # The transaction's actual affected parts and blocked
@@ -962,7 +1006,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         settings_host,
                         text="輸出已驗證內門 DXF（僅部分）",
                         command=export_nfb_partial,
-                    ).pack(anchor="e", pady=(5, 0))
+                    )  # Unmapped legacy test hook; original GUI owns DXF.
             # #1502: this current physical-Bay action atomically exports a verified
             # inner-door + Base Plate pair, instead of separate half-products.
             # It is displayed only for one already-submitted NFB Bay with
@@ -1021,31 +1065,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         settings_host,
                         text="輸出內門＋底板 DXF（成對部分）",
                         command=export_nfb_paired_partial,
-                    ).pack(anchor="e", pady=(5, 0))
-            # #1501 operator disclosure: show the REAL per-part live result,
-            # including blocked Bays and source reasons, not a fabricated
-            # green checkbox. No widget at all for fully legacy selections.
-            if get_nfb_transaction_ports is not None and applied["selected_bays"]:
-                from .receiving_nfb_manifest_view import (
-                    highlighted_nfb_manifest_lines,
-                )
-                try:
-                    report_lines = highlighted_nfb_manifest_lines(
-                        get_nfb_transaction_ports(), set_index, targets(),
-                    )
-                except (ValueError, TypeError, KeyError,
-                        IndexError, OSError) as exc:
-                    report_lines = ("NFB 板件狀態不可用：" + str(exc),)
-                if report_lines:
-                    report_host = ttk.LabelFrame(
-                        settings_host, text="NFB 板件清單（唯讀）",
-                    )
-                    report_host.pack(fill="x", pady=(6, 0))
-                    for item in report_lines:
-                        ttk.Label(
-                            report_host, text=item, wraplength=580,
-                            justify="left",
-                        ).pack(anchor="w", padx=6, pady=1)
+                    )  # Unmapped legacy test hook; original GUI owns DXF.
+            # The operator has one NFB editor and original manufacturing DXF
+            # entry. Do not duplicate the read-only NFB parts list in the
+            # multi-Bay inner-door page. The live manifest projection and
+            # actual source/manufacturing gates remain unchanged.
             # Switch configuration belongs to the separate version editor.
             manager_widgets.update(frame=None, label=None, buttons=(),
                                    buttons_frame=None, quantity_frame=None)
@@ -1743,6 +1767,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_settings_host = settings_host
     win._receiving_multi_left_host = left_host
     win._receiving_multi_left_scroll = left_scroll
+    win._receiving_multi_splitter = splitter
+    win._receiving_multi_left_pane = left_pane
+    win._receiving_multi_right_pane = right_pane
     win._receiving_multi_function_scroll = function_scroll
     win._receiving_multi_right_host = right_host
     win._receiving_multi_function_host = function_host
@@ -1761,4 +1788,6 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_applied = applied
     win._receiving_multi_refresh = refresh_rows
     win._receiving_multi_apply = apply
+    splitter.bind('<Configure>', set_initial_left_width, add='+')
+    win.after_idle(set_initial_left_width)
     return win

@@ -176,7 +176,11 @@ def test_vault_door_adapter_reads_fixed_policy_from_registry(monkeypatch):
         fold_left=19, fold_right=15, fold_top=15, fold_bottom=15,
     )
     expected = build_four_side_outline(result.topology, forced)
-    assert [(p.x, p.y) for p in result.outline] == pytest.approx([(p.x, p.y) for p in expected])
+    # Current pytest rejects nested tuples in approx; preserve the original
+    # full ordered outline and the same per-coordinate approximation.
+    actual_xy = [v for p in result.outline for v in (p.x, p.y)]
+    expected_xy = [v for p in expected for v in (p.x, p.y)]
+    assert actual_xy == pytest.approx(expected_xy)
 
 
 def test_bridge_known_model_state_uses_model_family_not_legacy_cabinet_type_field():

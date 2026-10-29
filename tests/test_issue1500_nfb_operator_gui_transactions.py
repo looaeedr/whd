@@ -199,10 +199,10 @@ def test_gui_submit_cancel_copy_restore_undo_reuses_physical_bay_authority(monke
         assert buttons["確認套用 NFB"].instate(("!disabled",))
         assert buttons["複製至其他連"].instate(("disabled",))
         assert buttons["還原為未配置"].instate(("disabled",))
-        # The operator explicitly retired the per-Bay unlink action.
-        # Removing it must not remove the existing highlighter/link/transaction controls.
+        # Both redundant linkage controls are retired. Actual 2D Bay
+        # highlight + NFB transaction submit/copy/restore/Undo stay available.
         assert "解除本連連動" not in buttons
-        assert "連動選取的連" in buttons
+        assert "連動選取的連" not in buttons
         assert "確認套用 NFB" in buttons
 
         # Cancel must never submit, nor consume the capability.
@@ -330,7 +330,7 @@ def test_source_revoked_warning_is_live_and_unlink_never_resurfaces(monkeypatch)
         _select_inner(win, root)
         buttons = _buttons(win._receiving_multi_settings_host)
         assert "解除本連連動" not in buttons
-        assert buttons["連動選取的連"].instate(("!disabled",))
+        assert "連動選取的連" not in buttons
         # Genuine source revocation between paint and click must not submit,
         # even though the first painted button was enabled.
         stale_button = buttons["確認套用 NFB"]
@@ -1311,7 +1311,7 @@ def test_ac34_native_verified_submit_and_first_copy_cancel_partial_draft_disk_ro
 def test_swt18_native_tk_live_csv_unit_reasons_and_physical_partial_report(
     tmp_path, monkeypatch,
 ):
-    """Real Tk list renders LIVE CSV units and LIVE source-checked physical Q.
+    """Multi-Bay hides duplicate NFB list; source projector still validates CSV and physical Q.
 
     The CSV diagnostic never pretends to manufacture, and typed physical
     fixture evidence is not an original supplier/factory release or Windows
@@ -1432,6 +1432,20 @@ def test_swt18_native_tk_live_csv_unit_reasons_and_physical_partial_report(
                 stack.extend(widget.winfo_children())
             return tuple(found)
 
+        from gui_modules.application.receiving_nfb_manifest_view import highlighted_nfb_manifest_lines
+
+        def source_rows():
+            # Physical/CSV reasoning belongs to the live NFB source service,
+            # not a second control list inside multi-Bay INNER DOOR.
+            return highlighted_nfb_manifest_lines(
+                {"manifest": actual_manifest}, 0, (0,),
+            )
+
+        def assert_no_duplicate_nfb_list():
+            assert not any(
+                "NFB 板件清單" in line for line in visible_rows()
+            ), visible_rows()
+
         _select_inner(window, root)
         assert not any("NFB 板件清單" in item for item in visible_rows())
         assert _buttons(host)["確認套用 NFB"].instate(("disabled",))
@@ -1440,8 +1454,9 @@ def test_swt18_native_tk_live_csv_unit_reasons_and_physical_partial_report(
 
         mode["value"] = "CSV"
         _select_inner(window, root)
-        text_rows = visible_rows()
-        assert any("NFB 板件清單" in line for line in text_rows)
+        text_rows = source_rows()
+        assert text_rows
+        assert_no_duplicate_nfb_list()
         assert any("第1層／第1顆" in line for line in text_rows), text_rows
         assert any("第1層／第2顆" in line for line in text_rows), text_rows
         assert sum("NFB_WORLD_X_RECONFIRM_REQUIRED" in line
@@ -1452,7 +1467,8 @@ def test_swt18_native_tk_live_csv_unit_reasons_and_physical_partial_report(
 
         mode["value"] = "PHYSICAL"
         _select_inner(window, root)
-        ready_rows = visible_rows()
+        ready_rows = source_rows()
+        assert_no_duplicate_nfb_list()
         assert any("可加工 6 片（僅部分可出）" in item
                    for item in ready_rows), ready_rows
         assert any("middle1｜MIDDLE_PLATE｜受阻｜4 片" in line
@@ -1478,7 +1494,8 @@ def test_swt18_native_tk_live_csv_unit_reasons_and_physical_partial_report(
         with pytest.raises(ValueError):
             changed.require_export(("inner1",), partial=True)
         _select_inner(window, root)
-        stale_rows = visible_rows()
+        stale_rows = source_rows()
+        assert_no_duplicate_nfb_list()
         assert any("可加工 3 片（僅部分可出）" in item
                    for item in stale_rows), stale_rows
         assert any("inner1｜INNER_DOOR｜受阻｜2 片" in item

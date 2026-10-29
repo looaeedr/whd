@@ -45,3 +45,27 @@ whd_schema: WHD_DOC_META_V1
 - 最近最新版的 Windows `Z:\localX` SHA 與完整 116 條逐項操作／圖片／stdout、stderr／DXF entity 比對尚無本次授權與收據；不得拿過去 #1503、#1504 局部 GUI 收據當新版本 116 項全套。
 - 按使用者流程：程式先 GitHub `localX`；之後由使用者在 Windows localX 實機驗收；**正式 X 僅在使用者當次 `/推推` 後才可發布**。無 DC/RC 授權，本輪沒有使用 DC、沒有操作 Windows，不允許强推、重設或覆蓋現有本機更動。
 - 新的 116 個別項目如需簽核，必須列出原 BUG 身分、現行產品函式、直接人工 GUI／物理 DXF 證據及其適用 scope；不得把單一 pytest 函式（尤其 R6 10 個綜合測試）假稱 21 個獨立真人已簽。
+
+
+## 2026-10-28 — 原始 116 項：受電箱門格開孔權威提交的增補驗證規格（不抵充實機簽核）
+
+**問題與事證**：早期 `tests/test_phase6_receiving_multipart_integration.py` 只以 Linux `DISPLAY` 決定是否執行，又將 `BoxCalculatorGUI.surface_features["door_c1_r1"]` 視為受電箱的權威門格開孔來源；Windows R5-2600 解除 skip 後觀察到 3D 為空。最新產品正式啟動入口實為 `Phase6PrimaryApplication`；受電箱 `open_door_layout_cell_editor()` 則由當前 Designer workspace 提供門格特徵、使用 `sync_callback` 傳回 WHD 專案來源。直接改舊欄位不等於孔位編輯器已確認。
+
+**本批可在 CI 完成的測試**：在真實原生 Tk／Xvfb 建立 `Phase6PrimaryApplication`，切換受電箱、選擇第一個門格，透過 `open_door_layout_cell_editor` 的正式呼叫取得原編輯器 `feature_list_override` 及 `sync_callback`；以真正 `Phase6HoleEditorSession` 插入一個 Ø12 CUTTING 圓孔並確認，再走相同回寫回呼；必須同時出現在 Designer 工作區、主工作區、專案快照，並且 `.p6fold` 磁碟存檔重讀後仍相等。取消交易則必須沒有新增孔。所有斷言保持嚴格，要求程序正常退出。
+
+**驗收界線**：測試使用真實產品 Tk、實體 Session 與原生編輯器的提交回呼，但以隔離的 callback capture 取代 CADCraft 視窗本身及人工滑鼠操作，**不能當成 Windows CADCraft 外部程式實際畫孔→回傳、肉眼 3D 或 NC 正式製造輸出的證據**。R5-2600 離線時只能取得 GitHub CI 的測試收據；不得更新為 116／116 或使用者正式人工 PASS。修正先保留於隔離 PR，Product Regression 五組全部綠且完成核對才考慮合回 `localX`；沒有使用者 `/推推` 不發布 X。
+
+
+## 2026-10-28 — BUG #2 原生 Receiving 門格刪孔防回魂（候選，未簽真人 UAT）
+
+- 對照最初的 BUG #2（多門格 2D 新舊來源相互覆蓋），新增 `test_audit116_bug2_primary_door_hole_delete_does_not_resurrect_stale_source` 的原生 PRIMARY Tk 雙向驗證。沿用產品 `open_door_layout_cell_editor(0,0)` 提供的正式 feature list 與 `sync_callback`，先真 Session 新增 Ø13 CUTTING 孔並確認，再重新開啟同一門格，透過 `HoleEditorAction.delete_selected()`，分別確認刪除與取消刪除。
+- 正向：刪除確認後不得由先前 `surface_features`、Designer、主工作區或專案快照回填舊孔；反向：取消刪除則原孔須完整保留。兩種結果都要寫入真正 `.p6fold` 並重讀比較，所有斷言不得放寬。
+- 這是在現有 #2361 測試基礎上加強原始 BUG #2 的**現行來源自動化證據**，不改產品幾何或權威，不抵充原始 116 條人工實機簽核，未測外部 CADCraft GUI 滑鼠、真 Windows 2D/3D 畫面或 NC。
+- 必須等本獨立 PR exact-head 完整 Product Regression 五組成功及合併後 exact blob 回讀，才可將此增補來源證據記為通過；失敗就保留待修，正式 X 仍需獨立 `/推推`。
+
+
+## 2026-10-28 — BUG #3 自訂板件孔位 live 同步的真主程式補驗（待 CI）
+
+- 原始 BUG #3 在 `custom_part_only_change` 快速路徑，曾出現 3D 自訂板件孔更新，但主程式 `surface_features` 與專案保存未即時同步。原回歸 `test_bug3_custom_part_only_change_syncs_surface_features` 使用 `SimpleNamespace` 模擬物件；現追加 `test_audit116_bug3_real_main_custom_hole_live_sync_and_save_reload`。
+- 使用真 `gui.BoxCalculatorGUI`、真 `Phase6DesignerWorkspace` 和 `Phase6WorkspaceController`，以來源層 Fold Designer live envelope 模擬同一自訂板件的 Ø16 CUTTING 孔新增及再刪除；逐次核對主畫面特徵、workspace、project snapshot、真正 `.p6fold` 存檔與重讀，以及 revision。
+- 界線：這是現行來源＋原生 Tk 與磁碟的增補測試；因送入的是原始 live envelope，**不是操作者實際從外部 CADCraft 滑鼠操作**，不視為工廠 NC 或 Windows 完整人工驗收。獨立 PR 要等 exact-head Product Regression 五組成功並比對合併 blob 後，才能記來源範圍 PASS；不得把這筆算成原始 116/116 人體驗收。

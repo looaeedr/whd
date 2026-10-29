@@ -92,3 +92,46 @@ def test_csv_v5_check_q_rejects_forged_pad_owner_or_duplicate_cutting():
         check_csv_v5_base_part_only_groups((
             replace(demand, part=replace(demand.part, render_data=altered)),
         ))
+
+
+def test_csv_v5_check_q_requires_pad_locator_datum_to_match_true_csv_projection():
+    """Matching forged square geometry + metadata cannot move PAD away from NFB."""
+    demand = _current_flat_trial()
+    source = demand.part.render_data
+    assert len(source.metadata["nfb_v5_pad_datum_centres_uv"]) == 1
+    owner, (x, y), rotation = source.metadata["nfb_v5_pad_datum_centres_uv"][0]
+    forged = replace(source, metadata={
+        **source.metadata,
+        "nfb_v5_pad_datum_centres_uv": ((owner, (x + 2., y), rotation),),
+    })
+    with pytest.raises(ValueError, match="PAD 方孔座標基準"):
+        check_csv_v5_base_part_only_groups((
+            replace(demand, part=replace(demand.part, render_data=forged)),
+        ))
+
+
+def test_csv_v5_check_q_rejects_raised_pad_screws_reintroduced_into_base():
+    """A stale Base sheet cannot contain duplicate raised NFB mounting circles."""
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    from ae_engine.receiving_nfb_v5_configured_inner_door import AXES
+    from ae_engine.sheetmetal_geometry import Vec2
+    demand = _current_flat_trial()
+    source = demand.part.render_data
+    pad_owner = source.metadata["nfb_v5_pad_square_owners"][0][0]
+    idx = demand.part.hole_ids.index(pad_owner)
+    pattern = demand.part.patterns[idx]
+    raised = tuple(
+        CirclePrimitive(
+            Vec2(float(x), float(y)), float(pattern.screw_diameter_mm) / 2.,
+            "CUTTING", color=30, source_type="NFB_V5_NUMERIC_BASE_TRIAL",
+            source_id=f"{pad_owner}:screw:{i}",
+        )
+        for i, (x, y) in enumerate(pattern.screw_centres_uv_mm, start=1)
+    )
+    altered = replace(source, scene=DrawingScene([
+        *source.scene.primitives, *raised,
+    ]))
+    with pytest.raises(ValueError, match="PAD_BASE_RAISED_NFB_SCREWS_MUST_BE_ON_PAD"):
+        check_csv_v5_base_part_only_groups((
+            replace(demand, part=replace(demand.part, render_data=altered)),
+        ))

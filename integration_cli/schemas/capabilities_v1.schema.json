@@ -1,0 +1,463 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/looaeedr/whd/blob/localX/integration_cli/schemas/capabilities_v1.schema.json",
+  "title": "WHD external worker capabilities v1 (contract only)",
+  "description": "Boolean flags and capability entries are attested by exact build and actual tests. An unimplemented capability must remain false/unsupported.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "operation",
+    "installation_id",
+    "engine_version",
+    "engine_commit",
+    "build_id",
+    "engine_sha256",
+    "resource_revision",
+    "registry_sha256",
+    "baseline_manifest_sha256",
+    "policy_sha256",
+    "coordinate_contract_revision",
+    "min_client_version",
+    "max_batch_items",
+    "supported_part_kinds",
+    "capability_flags",
+    "capabilities",
+    "resource_health"
+  ],
+  "properties": {
+    "protocol_version": {
+      "const": "1.0.0"
+    },
+    "operation": {
+      "const": "capabilities"
+    },
+    "installation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "engine_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "engine_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "build_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "engine_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "resource_revision": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "registry_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "baseline_manifest_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "policy_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "coordinate_contract_revision": {
+      "const": "1"
+    },
+    "min_client_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "max_batch_items": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "supported_part_kinds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "door",
+          "end_cap_head",
+          "end_cap_tail",
+          "indicator_box",
+          "indicator_small_door",
+          "box_body",
+          "base_plate",
+          "custom_fold"
+        ]
+      }
+    },
+    "capability_flags": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "batch_prepare",
+        "batch_export",
+        "atomic_batch",
+        "internal_verify_on_export",
+        "idempotent_job_submission",
+        "output_path_locking",
+        "job_result_readback",
+        "per_part_transactions",
+        "cancellation",
+        "crash_recovery"
+      ],
+      "properties": {
+        "batch_prepare": {
+          "type": "boolean"
+        },
+        "batch_export": {
+          "type": "boolean"
+        },
+        "atomic_batch": {
+          "type": "boolean"
+        },
+        "internal_verify_on_export": {
+          "type": "boolean"
+        },
+        "idempotent_job_submission": {
+          "type": "boolean"
+        },
+        "output_path_locking": {
+          "type": "boolean"
+        },
+        "job_result_readback": {
+          "type": "boolean"
+        },
+        "per_part_transactions": {
+          "type": "boolean"
+        },
+        "cancellation": {
+          "type": "boolean"
+        },
+        "crash_recovery": {
+          "type": "boolean"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "capability_id",
+          "part_kind",
+          "worker_supported",
+          "geometry_acceptance_passed",
+          "required_inputs",
+          "production_scope"
+        ],
+        "properties": {
+          "capability_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "part_kind": {
+            "enum": [
+              "door",
+              "end_cap_head",
+              "end_cap_tail",
+              "indicator_box",
+              "indicator_small_door",
+              "box_body",
+              "base_plate",
+              "custom_fold"
+            ]
+          },
+          "worker_supported": {
+            "type": "boolean"
+          },
+          "geometry_acceptance_passed": {
+            "type": "boolean"
+          },
+          "required_inputs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "production_scope": {
+            "enum": [
+              "single_part",
+              "part_only",
+              "complete_assembly"
+            ]
+          }
+        }
+      }
+    },
+    "resource_health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registry",
+        "baseline",
+        "policy"
+      ],
+      "properties": {
+        "registry": {
+          "enum": [
+            "ready",
+            "missing",
+            "invalid",
+            "not_applicable"
+          ]
+        },
+        "baseline": {
+          "enum": [
+            "ready",
+            "missing",
+            "invalid",
+            "not_applicable"
+          ]
+        },
+        "policy": {
+          "enum": [
+            "ready",
+            "missing",
+            "invalid"
+          ]
+        }
+      }
+    },
+    "job_result_readback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "available",
+        "store_root",
+        "manifest_name"
+      ],
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "store_root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "manifest_name": {
+          "const": "job_manifest.json"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "resource_health": {
+            "properties": {
+              "registry": {
+                "const": "ready"
+              }
+            },
+            "required": [
+              "registry"
+            ]
+          }
+        },
+        "required": [
+          "resource_health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "registry_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "resource_health": {
+            "properties": {
+              "registry": {
+                "enum": [
+                  "missing",
+                  "invalid",
+                  "not_applicable"
+                ]
+              }
+            },
+            "required": [
+              "registry"
+            ]
+          }
+        },
+        "required": [
+          "resource_health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "registry_sha256": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "resource_health": {
+            "properties": {
+              "baseline": {
+                "const": "ready"
+              }
+            },
+            "required": [
+              "baseline"
+            ]
+          }
+        },
+        "required": [
+          "resource_health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "baseline_manifest_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "resource_health": {
+            "properties": {
+              "baseline": {
+                "enum": [
+                  "missing",
+                  "invalid",
+                  "not_applicable"
+                ]
+              }
+            },
+            "required": [
+              "baseline"
+            ]
+          }
+        },
+        "required": [
+          "resource_health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "baseline_manifest_sha256": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "resource_health": {
+            "properties": {
+              "policy": {
+                "const": "ready"
+              }
+            },
+            "required": [
+              "policy"
+            ]
+          }
+        },
+        "required": [
+          "resource_health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "policy_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "resource_health": {
+            "properties": {
+              "policy": {
+                "enum": [
+                  "missing",
+                  "invalid",
+                  "not_applicable"
+                ]
+              }
+            },
+            "required": [
+              "policy"
+            ]
+          }
+        },
+        "required": [
+          "resource_health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "policy_sha256": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}

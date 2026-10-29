@@ -1,0 +1,165 @@
+# -*- coding: utf-8 -*-
+"""#2379: read-only verification of a Worker-trusted original DXF CIRCLE.
+
+The public Worker is disabled. W-06 must supply *trusted* source file custody.
+Only direct modelspace CIRCLE in an explicit DXF-header mm/inch source is
+supported; do not invent rect/profile conversion or a source-geometry hash
+canonicalization which the v1.1 wire contract has not defined.
+"""
+from __future__ import annotations
+
+import hashlib
+import io
+import math
+import os
+from pathlib import Path
+import re
+import stat
+from typing import Any, Mapping, Sequence
+
+import ezdxf
+
+from integration_cli.prepare_evidence import PrepareEvidenceError
+
+_HASH = re.compile(r"^[0-9a-f]{64}$")
+_MAX_SOURCE_BYTES = 32 * 1024 * 1024
+_TOL = 1e-6
+
+
+def _fail(detail: str) -> None:
+    raise PrepareEvidenceError("WHD_SOURCE_UNVERIFIED", detail)
+
+
+def _finite(value: Any) -> float:
+    if type(value) not in (int, float) or not math.isfinite(value):
+        _fail("original DXF entity contains nonfinite geometry")
+    return float(value)
+
+
+def _source_snapshot(path: Path, expected_sha256: str):
+    """Open a bounded immutable byte snapshot, not cached/preview DXF state."""
+    if not isinstance(path, Path) or not isinstance(expected_sha256, str) or not _HASH.fullmatch(expected_sha256):
+        _fail("missing trusted original DXF path or source SHA-256")
+    current = path
+    while True:
+        if current.is_symlink():
+            _fail("source path or ancestor is symlinked")
+        if current == current.parent:
+            break
+        current = current.parent
+    try:
+        flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(path, flags)
+        try:
+            info = os.fstat(descriptor)
+            if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= _MAX_SOURCE_BYTES:
+                _fail("source is not a supported regular bounded DXF file")
+            with os.fdopen(descriptor, "rb", closefd=False) as stream:
+                raw = stream.read(_MAX_SOURCE_BYTES + 1)
+            if len(raw) != info.st_size:
+                _fail("source changed during snapshot read")
+        finally:
+            os.close(descriptor)
+    except (OSError, ValueError) as exc:
+        _fail("trusted original DXF cannot be opened")
+    if hashlib.sha256(raw).hexdigest() != expected_sha256:
+        _fail("original DXF bytes differ from prepared source_document_sha256")
+    try:
+        document = ezdxf.read(io.StringIO(raw.decode("utf-8-sig")))
+    except (UnicodeError, ValueError, ezdxf.DXFError, OSError) as exc:
+        raise PrepareEvidenceError("WHD_SOURCE_UNVERIFIED", "original DXF cannot be parsed from its pinned bytes") from exc
+    return document
+
+
+def verify_trusted_original_dxf_circles(
+    features: Sequence[Mapping[str, Any]],
+    *,
+    source_path: Path,
+    expected_document_sha256: str,
+) -> tuple:
+    """Compare wire claims to real modelspace entity handles and transformed geometry.
+
+    Call *after* W-03 authenticated prepare/Frame and Feature-envelope checks.
+    Returns WHD-owned CircleFeature values derived from a verified source-byte
+    snapshot, never built by blindly trusting wire values. Downstream WHD
+    PartSpec retains the finished-face -> unfolded authority. This does NOT
+    certify source_geometry_sha256, full PartSpec manufacturing or W-06 custody.
+    """
+    if not isinstance(features, (list, tuple)):
+        _fail("missing source feature inventory")
+    if not features:
+        return ()
+    document = _source_snapshot(source_path, expected_document_sha256)
+    # The only supported *manufacturing* mapping uses the real WHD Feature
+    # contract. Finished-face -> unfolded translation remains WHD-owned.
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor, Vec2
+    built: list[CircleFeature] = []
+    modelspace = {
+        str(e.dxf.handle).upper(): e for e in document.modelspace()
+        if e.dxf.hasattr("handle")
+    }
+    used_handles: set[str] = set()
+    for feature in features:
+        if not isinstance(feature, Mapping) or feature.get("type") != "circle":
+            _fail("only direct original DXF circles have verified mapping")
+        if feature.get("process") != "THROUGH_CUT":
+            _fail("only certified THROUGH_CUT circle Feature mapping is supported")
+        t = feature.get("source_transform")
+        if not isinstance(t, Mapping):
+            _fail("source transform evidence missing")
+        refs = t.get("source_entity_refs")
+        if not isinstance(refs, list) or len(refs) != 1 or not isinstance(refs[0], str):
+            _fail("circle must bind one original DXF entity handle")
+        handle = refs[0].upper()
+        if handle in used_handles:
+            _fail("one original DXF circle cannot be claimed by multiple features")
+        used_handles.add(handle)
+        entity = modelspace.get(handle)
+        if entity is None or entity.dxftype() != "CIRCLE":
+            _fail("source circle handle does not identify a modelspace CIRCLE")
+        if t.get("unit_authority") != "DXF-HEADER":
+            _fail("source units require explicit DXF header evidence")
+        expected_units = 4 if t.get("source_units") == "mm" else 1 if t.get("source_units") == "inch" else None
+        if expected_units is None or document.header.get("$INSUNITS") != expected_units:
+            _fail("source DXF units disagree with declared source transform")
+        center = tuple(_finite(v) for v in entity.dxf.center)
+        normal = tuple(_finite(v) for v in entity.dxf.get("extrusion", (0, 0, 1)))
+        if len(center) != 3 or len(normal) != 3 or abs(center[2]) > _TOL or any(
+            abs(a - b) > _TOL for a, b in zip(normal, (0.0, 0.0, 1.0))
+        ):
+            _fail("only planar XY modelspace CIRCLE evidence is supported")
+        radius = _finite(entity.dxf.radius)
+        if radius <= 0:
+            _fail("source circle radius must be positive")
+
+        scale = _finite(t.get("source_to_mm_scale"))
+        matrix = t.get("matrix_2x2")
+        translation = t.get("translation_mm")
+        if (not isinstance(matrix, (list, tuple)) or len(matrix) != 2
+                or not isinstance(translation, (list, tuple)) or len(translation) != 2):
+            _fail("source transform is malformed")
+        transformed = []
+        for i in range(2):
+            row = matrix[i]
+            if not isinstance(row, (list, tuple)) or len(row) != 2:
+                _fail("source matrix is malformed")
+            transformed.append(
+                _finite(row[0]) * center[0] * scale
+                + _finite(row[1]) * center[1] * scale + _finite(translation[i])
+            )
+        claim_center = feature.get("center_mm")
+        if not isinstance(claim_center, (list, tuple)) or len(claim_center) != 2:
+            _fail("wire circle center is malformed")
+        if any(not math.isclose(actual, _finite(claim_center[i]), rel_tol=0, abs_tol=_TOL)
+               for i, actual in enumerate(transformed)):
+            _fail("wire circle does not match transformed original DXF handle")
+        if not math.isclose(radius * scale, _finite(feature.get("radius_mm")),
+                            rel_tol=0, abs_tol=_TOL):
+            _fail("wire radius differs from actual original DXF source circle")
+        built.append(CircleFeature(
+            diameter=2.0 * radius * scale,
+            anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+            offset=Vec2(transformed[0], transformed[1]),
+            layer="CUTTING",
+        ))
+    return tuple(built)

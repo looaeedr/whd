@@ -37,6 +37,7 @@ from ae_engine.sheetmetal_geometry_shared import _clip_axis_bend
 import fold_designer_bridge
 from gui_modules.application import door_layout_host_adapter, render_snapshots
 from gui_modules.application.fold_designer_part_session import Phase6PartSessionOwner
+from phase6_bending_ui import Phase6BendingUI
 from gui_modules.project import export_actions
 from phase6_box_body_structure import BackPanelMode, set_side_back_back_panel_mode
 from phase6_custom_parts import custom_part_only_change
@@ -145,6 +146,62 @@ def test_r2_1_commit_box_body_right_side_syncs_zr1_and_uses_settings_thickness(m
     )
     assert captured["t_val"] == 3.0
     assert captured["values"]["zr1"] == 35.0
+
+
+
+def test_r2_2a_custom_sheet_bending_ui_clears_stale_vault_and_rebuilds_from_active_axis():
+    """The BendingUI owner must not reuse the box-body's nine old row controls."""
+    state = SimpleNamespace(
+        struct_mode="standard",
+        phase6_fold_ui_vault_key="箱身",
+        phase6_fold_ui_tabs=["X"],
+        active_bend="X",
+        profiles={
+            "X": [
+                {"len": 15.0, "phase6_key": "custom_flange"},
+                {"len": 98.0, "phase6_key": "custom_face"},
+            ],
+            "Y": [{"len": 240.0, "phase6_key": "custom_span"}],
+        },
+    )
+
+    class Mode:
+        value = "vault"
+
+        def get(self):
+            return self.value
+
+        def set(self, value):
+            self.value = value
+
+    ui = Phase6BendingUI.__new__(Phase6BendingUI)
+    ui.state = state
+    ui.controls = [{} for _ in range(9)]
+    rebuilds = []
+    def rebuild():
+        rebuilds.append(state.active_bend)
+        ui.controls = [{} for _ in state.profiles[state.active_bend]]
+    ui.rebuild_tabs = rebuild
+    mode = Mode()
+
+    ui.activate_standard_part_controls(mode)
+    assert state.phase6_fold_ui_vault_key is None
+    assert mode.get() == "standard"
+    assert len(ui.controls) == 2
+    assert rebuilds == ["X"]
+
+    # Metadata edits can switch the fold axis with the same part selected.
+    state.active_bend = "Y"
+    state.phase6_fold_ui_tabs = ["Y"]
+    ui.activate_standard_part_controls(mode)
+    assert len(ui.controls) == 1
+    assert rebuilds == ["X", "Y"]
+
+    # Guard the precondition: never silently project custom controls into vault.
+    state.struct_mode = "vault"
+    with pytest.raises(ValueError, match="標準模式"):
+        ui.activate_standard_part_controls(mode)
+
 
 
 def test_r2_2_save_current_part_custom_part_saves_bend_ui_and_outside_compensation(monkeypatch):
@@ -360,6 +417,120 @@ def test_r2_10_render_snapshots_passes_model_name_and_frame_width_to_derive_box_
     )
     assert called_kwargs["model_name"] == "受電箱"
     assert called_kwargs["frame_width"] == 42.0
+
+
+
+@pytest.mark.parametrize("quantity_edit", ("switch_version", "piece_count"))
+def test_r2_11_quantity_live_change_schedules_main_gui_geometry_and_head_tail_refresh(quantity_edit):
+    """R2-11: Quantity fast path may not leave the host's rendered scene stale.
+
+    This uses the real lifecycle entry and real update scheduler; only Tk's
+    timer and the unrelated project/Workspace persistence owners are observed.
+    """
+    from copy import deepcopy
+    from gui_modules.application.command_router import _Phase6UpdateScheduler
+    from gui_modules.application.lifecycle import _apply_fold_designer_live_snapshot
+    from phase6_quantity_model import quantity_only_change
+
+    quantity = {
+        "schema": "phase6-quantity-v1",
+        "versions": [
+            {"version_id": "quantity-v1", "piece_count": 1, "head_features": [], "tail_features": []},
+            {"version_id": "quantity-v2", "piece_count": 1, "head_features": [], "tail_features": []},
+        ],
+        "selected_version_id": "quantity-v1",
+        "next_version_number": 3,
+    }
+    updated = deepcopy(quantity)
+    if quantity_edit == "switch_version":
+        updated["selected_version_id"] = "quantity-v2"
+    else:
+        updated["versions"][0]["piece_count"] = 3
+
+    def payload(revision, value):
+        return {
+            "origin": "fold_designer",
+            "revision": revision,
+            "fingerprint": f"r2-11-{revision}",
+            "model": "受電箱",
+            "active_mode": "quantity",
+            "active_part": "head",
+            "quantity": deepcopy(value),
+            "workspace": {
+                "active_mode": "quantity",
+                "active_part": "head",
+                "quantity": deepcopy(value),
+                "part_features": {"head": [], "tail": []},
+            },
+        }
+
+    previous, current = payload(1, quantity), payload(2, updated)
+    assert quantity_only_change(previous, current)
+
+    events = []
+
+    class TkTimer:
+        callback = None
+
+        def after(self, delay, callback):
+            assert 50 <= delay <= 100
+            self.callback = callback
+            events.append(("scheduled", "geometry"))
+            return "quantity-refresh-job"
+
+        def after_cancel(self, job):
+            assert job == "quantity-refresh-job"
+
+    class Workspace:
+        def commit_workspace(self, snapshot):
+            events.append(("workspace", snapshot["quantity"]["selected_version_id"]))
+
+        def part_features_snapshot(self):
+            return {"head": [], "tail": []}
+
+    timer = TkTimer()
+    render_cache = {"head": object(), "tail": object(), "door": object()}
+    owner = SimpleNamespace(
+        root=timer,
+        workspace_controller=Workspace(),
+        surface_features={"head": [], "tail": []},
+        w_var=SimpleNamespace(get=lambda: "800"),
+        d_var=SimpleNamespace(get=lambda: "350"),
+        _derived_cache_owner=SimpleNamespace(
+            invalidate=lambda reason: events.append(("invalidate", reason))
+        ),
+        _authoritative_part_render_cache=render_cache,
+        project_controller=SimpleNamespace(
+            capture_committed=lambda _snapshot: events.append(("capture", "committed"))
+        ),
+        _compose_phase6_project_snapshot_from_main_gui=lambda: {"source": "committed"},
+        _phase6_last_fold_designer_revision=1,
+        _phase6_last_fold_designer_fingerprint="r2-11-1",
+        _phase6_last_fold_designer_live_payload=previous,
+    )
+    scheduler = _Phase6UpdateScheduler(
+        owner, executor=lambda reasons: events.append(("calculate", tuple(sorted(reasons))))
+    )
+    owner._phase6_update_scheduler = scheduler
+
+    assert _apply_fold_designer_live_snapshot(owner, current) is True
+    assert ("invalidate", "geometry") in events
+    assert "head" not in render_cache and "tail" not in render_cache
+    assert "door" in render_cache
+    assert events.count(("capture", "committed")) == 1
+    assert events.count(("scheduled", "geometry")) == 1
+    assert not any(event[0] == "calculate" for event in events)
+    assert timer.callback is not None
+
+    # Real single scheduler flush must recompute once after the commit,
+    # rather than leaving newly invalidated Head/Tail renders untouched.
+    assert scheduler.flush_now() is True
+    assert events.count(("calculate", ("designer_live_snapshot",))) == 1
+    assert events.index(("capture", "committed")) < events.index(
+        ("calculate", ("designer_live_snapshot",))
+    )
+    assert _apply_fold_designer_live_snapshot(owner, current) is False
+    assert events.count(("calculate", ("designer_live_snapshot",))) == 1
 
 
 def test_r2_12_receiving_inner_door_frames_top_only_and_half_back_panel_requires_multi_door():

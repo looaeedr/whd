@@ -579,10 +579,21 @@ def sync_authoritative_derived_parts(
             },
         },
     }
-    try:
-        pad_preview_parts = committed_nfb_pad_draft_parts(pad_source)
-    except (ValueError, TypeError, KeyError, OSError):
-        pad_preview_parts = ()
+    # The canonical committed snapshot is also the source used by the
+    # assembly's PAD render. Prefer it when it already resolves a real PAD:
+    # a stale/empty workspace feature stash must not override a newly
+    # committed Hole Editor source and silently erase the 2D Part selector.
+    # Only fall back to the live workspace features during the short
+    # pre-republish window when the root snapshot has not caught up yet.
+    pad_preview_parts = ()
+    for candidate_source in (snapshot, pad_source):
+        try:
+            candidate_parts = committed_nfb_pad_draft_parts(candidate_source)
+        except (ValueError, TypeError, KeyError, OSError):
+            continue
+        if candidate_parts:
+            pad_preview_parts = candidate_parts
+            break
     navigation.sync_derived_parts(
         namespace="nfb_pad:",
         part_profiles={
@@ -599,6 +610,19 @@ def sync_authoritative_derived_parts(
     # geometry or modify the original saved project during this projection.
     if receiving_two_tier and "base_plate" in workspace.available_parts:
         navigation.remove_part("base_plate")
+
+    # Derived topology can change after the original operator Part menu was
+    # rendered. The workspace and 3D scene already know about the PAD, but
+    # without refreshing this Tk projection the user cannot click its 2D part.
+    # Schedule one UI refresh only when actual identities changed; dry-run
+    # workspaces must never touch a live Tk widget.
+    if (projected_workspace is None
+            and tuple(workspace.available_parts) != available_parts
+            and getattr(app, "part_choice_menu", None) is not None):
+        def refresh_changed_part_menu():
+            if app.root.winfo_exists():
+                required("_fix11_refresh_part_buttons")(app, menu_only=True)
+        app.root.after_idle(refresh_changed_part_menu)
 
     return (
         tuple(divider_profiles),

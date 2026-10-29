@@ -47,8 +47,9 @@ def test_different_sheet_T_does_not_falsely_claim_verified_2mm_tab_engagement():
         )
 
 
+@pytest.mark.parametrize("stored_pattern",("LEFT_FLAT_SIDE","CENTER_DOUBLE_SIDE_FOLD"))
 @pytest.mark.parametrize("rotation",(0,90,180,270))
-def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins(rotation):
+def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins(rotation, stored_pattern):
     from copy import deepcopy
     from ae_engine.receiving_base_plate_config import receiving_base_plate_values
     from ae_engine.receiving_nfb_committed_final_scene import (
@@ -62,10 +63,10 @@ def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins(rotation)
     )
 
     snap=_current()
-    # Explicit real LEFT flat sheet, two selected models; all dimensions are
-    # recomputed from the current brand CSV and shared tooling, not this test.
+    # Both fresh and legacy CENTER persisted settings must resolve the
+    # same current source-backed LEFT+PAD for mixed CSV depth in one tier.
     snap["receiving_base_plate"]={
-        "pattern":"LEFT_FLAT_SIDE","height":340.,
+        "pattern":stored_pattern,"height":340.,
         "shrink_top":20.,"shrink_bottom":20.,
         "shrink_left":45.,"shrink_right":45.,"bend":20.,
     }
@@ -86,6 +87,23 @@ def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins(rotation)
              if isinstance(row,PolylinePrimitive) and row.closed
              and row.layer=="CUTTING" and row.color==30]
     assert len(squares)==4
+    # Deep NFB screws are directly on Base; shallow NFB screws are cut
+    # into the separate PAD sheet and must not also be drilled into Base.
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    circles=tuple(p for p in derived.render_data.scene.primitives
+                  if isinstance(p,CirclePrimitive) and p.layer=="CUTTING")
+    assert len(circles)==4
+    assert {p.source_id.split(":screw:")[0] for p in circles}=={
+        rows[0]["physical_hole_id"]
+    }
+    from ae_engine.receiving_nfb_pad_operator_parts import committed_nfb_pad_draft_parts
+    pad,=committed_nfb_pad_draft_parts(snap)
+    pad_screws=tuple(p for p in pad.render_data.scene.primitives
+                     if isinstance(p,CirclePrimitive) and p.layer=="CUTTING")
+    assert len(pad_screws)==4
+    assert {p.source_id.split(":pad_screw:")[0] for p in pad_screws}=={
+        rows[1]["physical_hole_id"]
+    }
     skins=build_committed_pad_assembly_display(snap,installed)
     assert len(skins)==1
     assert skins[0].owner_hole_id==rows[1]["physical_hole_id"]
@@ -155,12 +173,14 @@ def test_actual_pad_mating_refuses_stale_base_geometry_even_when_owner_metadata_
     assert dict(original.metadata["nfb_v5_pad_square_owners"]) == {
         rows[1]["physical_hole_id"]:4}
     items=list(original.scene.primitives)
+    mutated_metadata=dict(original.metadata)
     if fault=="screw_shifted":
-        i=next(i for i,p in enumerate(items)
-            if isinstance(p,CirclePrimitive)
-            and p.source_id==rows[1]["physical_hole_id"]+":screw:1")
-        p=items[i]
-        items[i]=replace(p,center=Vec2(p.center.x+2.,p.center.y))
+        # Raised screw holes belong to PAD, not Base. Altering the
+        # committed Base locator centre must invalidate real square proof.
+        owner,centre,rotation=mutated_metadata["nfb_v5_pad_datum_centres_uv"][0]
+        mutated_metadata["nfb_v5_pad_datum_centres_uv"]=(
+            (owner,(centre[0]+2.,centre[1]),rotation),
+        )
     else:
         i=next(i for i,p in enumerate(items)
             if isinstance(p,PolylinePrimitive) and p.closed
@@ -172,7 +192,7 @@ def test_actual_pad_mating_refuses_stale_base_geometry_even_when_owner_metadata_
             items[i]=replace(poly,points=tuple(
                 Vec2(q.x+5.,q.y) for q in poly.points))
     changed=replace(installed[0],render_data=replace(
-        original,scene=DrawingScene(items)))
+        original,scene=DrawingScene(items),metadata=mutated_metadata))
     # A stale metadata count or still-valid material must never conceal
     # that the actual selected NFB's locator/screw geometry drifted.
     with pytest.raises(ValueError,match="PAD_BASE_"):

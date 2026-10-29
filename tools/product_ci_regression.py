@@ -19,6 +19,22 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMAND = "python tools/product_ci_regression.py"
 
 PYTEST_PATHS = (
+    # #2376: WHD-owned CADSplit Worker protocol/Frame wire schema rejection gates.
+    "tests/test_issue2376_cadsplit_worker_contract.py",
+    # #2377: no-Tk Worker CLI, batch dispatch and safe failure receipts.
+    "tests/test_issue2377_cadsplit_headless_cli.py",
+    # #2378: W-03 resource-byte/Policy/dimensions stale fail-closed preflight.
+    "tests/test_issue2378_prepare_evidence_preflight.py",
+    # #2378: authoritative Door-local Frame and HMAC preparation token binding.
+    "tests/test_issue2378_prepare_frame_token.py",
+    # #2378: RFC8785 request identity, unchanged on transport retry.
+    "tests/test_issue2378_request_canonical.py",
+    # #2378: WHD-owned Door prepare orchestration and stale signed receipt.
+    "tests/test_issue2378_prepare_batch.py",
+    # #2378: W-03 v1.1.0 is additive; original W-01/W-02 v1.0.0 must remain stable.
+    "tests/test_issue2378_wire_minor_version.py",
+    # #2379: real FinalScene DXF Save→Reload entire batch and rollback.
+    "tests/test_issue2379_verified_finalscene_batch.py",
     # #1795: live Tk Main GUI / 3D revision, initialization, runtime-only sync.
     "tests/test_phase6_sync_envelope.py",
     # #1792: canonical full-file GUI/3D runtime performance acceptance.
@@ -68,6 +84,10 @@ PYTEST_PATHS = (
     "tests/test_issue1502_nfb_base_batch_export_gate.py",
     # #1490: source-required physical PAD cannot vanish in a complete DXF selection.
     "tests/test_issue1490_full_cabinet_pad_completeness.py",
+    # #1490: certify ALL installed sheets and atomic physical DXF SHA/Q receipt.
+    "tests/test_issue1490_software_mfg2_whole_cabinet_receipt.py",
+    # #1490: the ORIGINAL Quantity GUI route must also include per-version PAD Q.
+    "tests/test_issue1490_quantity_complete_pad_export.py",
     "tests/test_issue1503_deferred_pad_ear_manufacturing.py",
     # #1503/#1504: PAD+real Base full-T mating, per-tier CHECK/Q DXF/BOM,
     # normal Tk 2D and source guards must run BEFORE a localX PR merges.
@@ -177,6 +197,12 @@ PYTEST_PATHS = (
     "tests/test_issue1500_nfb_worldx_runtime.py",
     "tests/test_issue1500_real_nfb_dxf_lifecycle.py",
     "tests/test_issue1500_nfb_operator_gui_transactions.py",
+    # Multi-Bay one canonical INNER editor; left Set/Bay sidebar is -10%
+    # initially and the sash remains operator-draggable across tab changes.
+    "tests/test_receiving_multi_clean_nfb_draggable_sidebar_20261028.py",
+    # True PRIMARY Phase6 sidebar -10% draggable sash; preserve right 3D
+    # viewport; no duplicate NFB parts list in multi-Bay inner-door view.
+    "tests/test_phase6_main_sidebar_sash_and_no_multi_nfb_list_20261028.py",
     # #1500: live Receiving candidate Save As -> reopen -> independent Bay2.
     "tests/test_issue1500_receiving_candidate_main_save.py",
     "tests/test_issue1504_v14_ac_traceability.py",
@@ -285,6 +311,8 @@ PYTEST_PATHS = (
     "tests/test_issue1502_single_button_full_csv_receiving_export.py",
     "tests/test_issue1502_quantity_current_csv_full_batch.py",
     "tests/test_issue1502_current_csv_multi_bay_once.py",
+    # #1702 multi-Set/Bay independent DXF MARKING and project Save→Reload acceptance.
+    "tests/test_issue1702_multibay_final_acceptance_20261029.py",
     "tests/test_issue1502_multibay_original_gui_export_integration.py",
     "tests/test_issue1502_two_tier_csv_left_without_manual_base.py",
     "tests/test_issue1502_gui_tier_source_export_checkbox.py",
@@ -305,6 +333,8 @@ PYTEST_PATHS = (
     "tests/test_issue500_settings_profile_projection.py::test_issue500_requires_frozen_request_and_plan_contracts",
     "tests/test_issue500_settings_profile_projection.py::test_issue500_pure_projection_is_deterministic_and_carries_required_plan_fields",
     "tests/test_issue1463_receiving_modes.py",
+    # Audit116: rejected Receiving mode cannot leave a frozen/orphan modal.
+    "tests/test_audit116_receiving_modal_failed_switch_cleanup.py",
     "tests/test_issue357_manufacturing_result_contracts.py",
     "tests/test_issue356_manufacturing_adapter.py",
     "tests/test_issue371_t7_update_runtime_behavior.py",
@@ -349,6 +379,10 @@ PYTEST_PATHS = (
     # Revised uploaded 固定片.dxf T2 actual BEND23 and moved CUTTING slots.
     "tests/test_issue1503_revised_fixed_plate_source_bend.py",
     "tests/test_issue1050_receiving_mother_plate_marking.py",
+    # #1702 exact single-cabinet source-to-physical-DXF self-acceptance.
+    "tests/test_issue1702_single_cabinet_final_acceptance_20261029.py",
+    # #1702 Windows-discovered legacy multipart Save→Reload, Joint and physical-piece parity.
+    "tests/test_phase6_receiving_multipart_integration.py::test_receiving_multipart_project_round_trip_preserves_joints_shrinks_features_and_piece_identity",
     "tests/test_receiving_inner_frame_last_flange_contact.py",
     "tests/test_phase6_t15_inner_door_panels.py",
     "tests/test_issue1901_inner_door_feature_candidates.py",
@@ -473,11 +507,19 @@ PYTEST_PATHS = (
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",
+    # Original 116 #45/R3-13: physical upper Door hole pick after Y mirror + viewport resize.
+    "tests/test_manual_audit116_r3_13_mirrored_hole_pick.py",
     # #2083 native-Tk acceptance: exercise current numeric CSV V5 candidate
     # identity, stale-model rejection, real highlighted Bay selection and
     # quantity manager; do not silently rely on legacy DXF-only test fixtures.
     "tests/test_receiving_inner_door_multi_switch_editor_gui_20261011.py",
     "tests/test_receiving_inner_door_version_gui_20261011.py",
+    # #2379: append without shifting existing deterministic 3-shard assignments.
+    "tests/test_issue2379_wire_feature_preflight.py",
+    # #2379: verify original CADSplit DXF source circles before staging.
+    "tests/test_issue2379_trusted_source_circle.py",
+    # #2379: W-03 source-authenticated WHD Door FinalScene/atomic-batch handoff.
+    "tests/test_issue2379_trusted_door_finalscene_batch.py",
 )
 
 
