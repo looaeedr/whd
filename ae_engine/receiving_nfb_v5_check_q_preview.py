@@ -167,6 +167,24 @@ def check_csv_v5_base_part_only_groups(
         )
         if (tuple(info.get("nfb_v5_pad_square_owners") or ()) != required_pad_owners):
             raise ValueError("CSV V5 PAD 方孔來源所有權與當前規格不符")
+        # The datum preserved for the raised NFB's Base locator squares
+        # must be identical to the independently source-projected V5 datum.
+        # Merely moving both the squares and their metadata is not proof.
+        expected_pad_datums = []
+        for pad in pad_patterns:
+            owner = part.hole_ids[pad.switch_index]
+            source = part.patterns[pad.switch_index]
+            axes = (source.datum.uv_axis_x, source.datum.uv_axis_y)
+            rotations = tuple(degrees for degrees, basis in AXES.items()
+                              if basis == axes)
+            if len(rotations) != 1:
+                raise ValueError("CSV V5 PAD 缺少真實旋轉基準")
+            expected_pad_datums.append((
+                owner, tuple(float(v) for v in source.datum.uv_centre_mm),
+                rotations[0],
+            ))
+        if tuple(info.get("nfb_v5_pad_datum_centres_uv") or ()) != tuple(expected_pad_datums):
+            raise ValueError("CSV V5 PAD 方孔座標基準與實際來源不一致")
         actual_pad_count = 0
         for pad in pad_patterns:
             owner = part.hole_ids[pad.switch_index]
