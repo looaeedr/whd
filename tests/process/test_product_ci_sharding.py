@@ -67,7 +67,7 @@ def test_invalid_shard_fails_closed(index, count):
 
 def test_ten_shard_workflow_keeps_complete_exact_selectors_and_artifact_gate():
     # The matrix, execution count and receipt merge must agree. If the
-    # fourth JUnit artifact is missing, final acceptance must fail closed.
+    # any JUnit artifact is missing, final acceptance must fail closed.
     workflow = (Path(__file__).resolve().parents[2]
                 / ".github/workflows/whd-product-regression.yml").read_text(encoding="utf-8")
     assert "shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]" in workflow
@@ -91,12 +91,12 @@ def test_ten_shard_final_junit_requires_every_file_and_all_green():
             _report(path, [f"case_{i}"])
         output = root / "combined.xml"
         with pytest.raises(ValueError, match="mandatory"):
-            _merge_shard_junit(paths[:-1], 4, output)
-        _merge_shard_junit(paths[::-1], 4, output)
+            _merge_shard_junit(paths[:-1], 10, output)
+        _merge_shard_junit(paths[::-1], 10, output)
         assert len(ET.parse(output).getroot().findall(".//testcase")) == 10
         _report(paths[9], ["case_9"], failing=True)
         with pytest.raises(ValueError, match="non-green"):
-            _merge_shard_junit(paths, 4, output)
+            _merge_shard_junit(paths, 10, output)
 
 
 def test_gui_performance_and_reentrant_save_contracts_cannot_be_omitted_from_ci():
