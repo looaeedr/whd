@@ -260,7 +260,15 @@ terminal; it never triggers another manufacturing attempt. The test suite
 injects hard `SystemExit` at individual renames and a real subprocess
 `os._exit`, followed by fresh-process rollback and byte/mtime checks.
 Unexpected customer modifications or missing backup bytes **cannot** be
-silently overwritten.
+silently overwritten. A **second hard stop during rollback** leaves the
+journal in persistent `rolling_back`, retains the output directory lease,
+and is resumed by another private Worker instance only after re-verifying
+all old/new DXF proofs; rollback is idempotent across interrupted restores.
+Terminal `rolled_back` replay is independently checked against the
+checksummed journal, pinned physical output directory and every original
+customer DXF (or its expected absence); a corrupt journal or later customer
+file modification returns `WHD_JOB_RECOVERY_REQUIRED` rather than blindly
+reporting success or modifying customer files.
 
 **Scope is still private:** no public W-01 Worker/export capability, no
 automatic Windows EXE activation, no verified Windows UNC/junction alias
