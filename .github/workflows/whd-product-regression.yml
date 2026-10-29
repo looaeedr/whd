@@ -106,7 +106,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -156,7 +156,7 @@ jobs:
         run: |
           set -euo pipefail
           python tools/product_ci_regression.py \
-            --shard-count 10 \
+            --shard-count 20 \
             --shard-index "${{ matrix.shard }}" \
             --junit-out "shard-${{ matrix.shard }}.xml"
       - name: Publish shard JUnit for mandatory full acceptance
@@ -189,7 +189,7 @@ jobs:
             echo 'GREEN_REUSED_NO_RETEST — target drift evidence validated'
           else
             test "$SHARDS_RESULT" = success
-            echo 'ALL_TEN_SHARDS_GREEN — verifying combined canonical CPR/AC'
+            echo 'ALL_TWENTY_SHARDS_GREEN — verifying combined canonical CPR/AC'
           fi
       - name: Checkout exact PR candidate for acceptance verification
         if: needs.prepare.outputs.reuse != 'true'
@@ -227,7 +227,7 @@ jobs:
           # A combined actions/download-artifact request can lose one blob
           # even when each shard uploaded a valid JUnit. Download by explicit
           # artifact name from this exact run; never reuse another run's proof.
-          for shard in 0 1 2 3 4 5 6 7 8 9; do
+          for shard in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19; do
             ok=false
             for attempt in 1 2 3; do
               rm -f "junit/shard-${shard}.xml"
@@ -258,13 +258,23 @@ jobs:
           test -s junit/shard-7.xml
           test -s junit/shard-8.xml
           test -s junit/shard-9.xml
+          test -s junit/shard-10.xml
+          test -s junit/shard-11.xml
+          test -s junit/shard-12.xml
+          test -s junit/shard-13.xml
+          test -s junit/shard-14.xml
+          test -s junit/shard-15.xml
+          test -s junit/shard-16.xml
+          test -s junit/shard-17.xml
+          test -s junit/shard-18.xml
+          test -s junit/shard-19.xml
       - name: Merge and verify every canonical case and all 52 CPR/AC rows
         if: needs.prepare.outputs.reuse != 'true'
         shell: bash
         run: |
           set -euo pipefail
           python tools/product_ci_regression.py \
-            --shard-count 10 \
+            --shard-count 20 \
             --merge-junit junit/shard-0.xml \
             --merge-junit junit/shard-1.xml \
             --merge-junit junit/shard-2.xml \
@@ -275,6 +285,16 @@ jobs:
             --merge-junit junit/shard-7.xml \
             --merge-junit junit/shard-8.xml \
             --merge-junit junit/shard-9.xml \
+            --merge-junit junit/shard-10.xml \
+            --merge-junit junit/shard-11.xml \
+            --merge-junit junit/shard-12.xml \
+            --merge-junit junit/shard-13.xml \
+            --merge-junit junit/shard-14.xml \
+            --merge-junit junit/shard-15.xml \
+            --merge-junit junit/shard-16.xml \
+            --merge-junit junit/shard-17.xml \
+            --merge-junit junit/shard-18.xml \
+            --merge-junit junit/shard-19.xml \
             --junit-out combined-canonical-regression.xml
       - name: Publish fully verified canonical JUnit
         if: needs.prepare.outputs.reuse != 'true'
