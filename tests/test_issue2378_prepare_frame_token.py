@@ -174,3 +174,11 @@ def test_missing_installation_key_and_duplicate_physical_identity_fail_closed():
     with pytest.raises(PrepareEvidenceError) as exc:
         create_preparation_binding(**args)
     assert exc.value.code == "WHD_PREPARE_INPUT_INVALID"
+
+
+def test_binding_rejects_non_authoritative_door_frame_identity():
+    args = _seal()
+    args["prepared_items"][0]["target_frame"]["frame_id"] = "arbitrary-caller-frame"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        create_preparation_binding(**args)
+    assert exc.value.code == "WHD_FRAME_UNVERIFIED"
