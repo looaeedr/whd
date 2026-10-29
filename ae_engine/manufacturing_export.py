@@ -290,6 +290,7 @@ def _save_resolved_rows_atomic(
     quantity_group: bool = False,
     verify_all_staged: bool = False,
     pre_commit_guard=None,
+    durable_stage_commit=None,
 ) -> dict[str, str]:
     # Check all physical-part evidence before any output path is created.
     rows = tuple(rows)
@@ -308,6 +309,11 @@ def _save_resolved_rows_atomic(
     verified_nfb_parts = _validate_nfb_base_part_scope(
         rows, part_only=part_only, quantity_group=quantity_group,
     )
+    if durable_stage_commit is not None and (
+        not callable(durable_stage_commit) or not verify_all_staged
+        or pre_commit_guard is None
+    ):
+        raise ValueError("WHD_DURABLE_COMMIT_REQUIRES_VERIFIED_STAGE_AND_GUARD")
     if pre_commit_guard is not None:
         pre_commit_guard()  # W-03 trusted snapshot before staging
     root = Path(output_dir)
@@ -340,6 +346,11 @@ def _save_resolved_rows_atomic(
             staged[str(output_key)] = stage_path
         if pre_commit_guard is not None:
             pre_commit_guard()  # fail closed after Save→Reload, before replace
+        if durable_stage_commit is not None:
+            # Explicit private W-06 hook ONLY, after WHD owned Save->Reload
+            # verification of ALL 1..20 staged physical DXFs. This path does
+            # not use the in-process-only commit/rollback owner.
+            return durable_stage_commit(dict(staged), root)
         return _atomic_commit_staged_dxfs(staged, root, overwrite=overwrite)
     finally:
         shutil.rmtree(stage_dir, ignore_errors=True)
@@ -352,6 +363,7 @@ def save_verified_final_scene_batch_dxf(
     save_part_render_data_dxf,
     pre_commit_guard,
     overwrite: bool = False,
+    durable_stage_commit=None,
 ) -> dict[str, str]:
     """Internal W-04 real FinalScene batch: stage, independently reload, commit.
 
@@ -380,6 +392,7 @@ def save_verified_final_scene_batch_dxf(
         save_part_render_data_dxf=save_part_render_data_dxf,
         overwrite=overwrite, verify_all_staged=True,
         pre_commit_guard=pre_commit_guard,
+        durable_stage_commit=durable_stage_commit,
     )
 
 

@@ -608,3 +608,84 @@ def test_original_profile_finalscene_crossed_edges_refuse_staging(tmp_path, monk
     assert changed == [True]
     assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED"
     assert not target.exists()
+
+
+# #2380 W-04 -> W-06 PRIVATE handoff acceptance: real WHD original DXF,
+# canonical FinalScene, independently reloaded physical DXFs, durable commit.
+def test_real_source_to_whd_finalscene_durable_commit_and_receipt(tmp_path):
+    from integration_cli.job_identity_ledger import DurableJobIdentityLedger
+    from integration_cli.batch_commit_journal import DurableMultiDXFRollbackJournal
+
+    batch = _real_batch(tmp_path, count=2)
+    export = batch[2]
+    output = tmp_path / "durable-customer-output"
+    store = tmp_path / "trusted-worker-installation"
+    output.mkdir()
+    store.mkdir()
+    ledger = DurableJobIdentityLedger(store)
+    result = _save(batch, output, durable_ledger=ledger)
+    assert len(result) == 2
+    assert {p.name for p in output.glob("*.dxf")} == {f"{name}.dxf" for name in result}
+    assert not list(output.glob(".whd-dxf-stage-*"))
+    assert DurableJobIdentityLedger(store).claim(export).state == "committed"
+    assert DurableMultiDXFRollbackJournal(ledger)._read(export)[0] == "committed"
+    assert all(len(ezdxf.readfile(p).modelspace().query("CIRCLE")) >= 1 for p in result.values())
+    with pytest.raises(PrepareEvidenceError):
+        _save(batch, output, durable_ledger=DurableJobIdentityLedger(store))
+    assert DurableJobIdentityLedger(store).claim(export).state == "committed"
+
+
+def test_real_source_durable_commit_crash_mid_batch_then_fresh_recovery(tmp_path, monkeypatch):
+    from integration_cli.job_identity_ledger import DurableJobIdentityLedger
+    from integration_cli.batch_commit_journal import DurableMultiDXFRollbackJournal
+
+    batch = _real_batch(tmp_path, count=2)
+    export = batch[2]
+    # W-06 must not silently turn an authenticated no-clobber request into
+    # overwrite=True. Sign that semantic intent in the export wire itself.
+    export["output"]["overwrite"] = True
+    export["request_digest"] = compute_wire_request_digest(export)
+    output = tmp_path / "durable-output"
+    store = tmp_path / "worker-store"
+    output.mkdir()
+    store.mkdir()
+    ledger = DurableJobIdentityLedger(store)
+    first = batch[1]["items"][0]["physical_part_id"]
+    second = batch[1]["items"][1]["physical_part_id"]
+    prior_doc = ezdxf.new("R2010")
+    prior_doc.modelspace().add_circle((1, 1), 7.0, dxfattribs={"layer": "CUTTING"})
+    customer_first = output / f"{first}.dxf"
+    prior_doc.saveas(customer_first)
+    prior_bytes, prior_mtime = customer_first.read_bytes(), customer_first.stat().st_mtime_ns
+    from integration_cli import batch_commit_journal as transaction
+    apply_original = transaction.DurableMultiDXFRollbackJournal.apply
+
+    def process_interrupted(self, request):
+        def kill_after_first(n):
+            if n == 1:
+                raise SystemExit("manufacturing process terminated mid commit")
+        return apply_original(self, request, after_replace=kill_after_first)
+
+    monkeypatch.setattr(transaction.DurableMultiDXFRollbackJournal, "apply", process_interrupted)
+    with pytest.raises(SystemExit):
+        _save(batch, output, durable_ledger=ledger, overwrite=True)
+    journal = DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(store))
+    assert journal._read(export)[0] == "applying"
+    assert journal.recover_rollback(export) == "rolled_back"
+    assert (customer_first.read_bytes(), customer_first.stat().st_mtime_ns) == (prior_bytes, prior_mtime)
+    assert not (output / f"{second}.dxf").exists()
+    assert len(ezdxf.readfile(customer_first).modelspace().query("CIRCLE")) == 1
+    assert DurableJobIdentityLedger(store).claim(export).state == "rolled_back"
+
+
+def test_private_durable_source_export_requires_preexisting_worker_output_store(tmp_path):
+    from integration_cli.job_identity_ledger import DurableJobIdentityLedger
+    batch = _real_batch(tmp_path, count=2)
+    store = tmp_path / "worker-owned-store"
+    store.mkdir()
+    ledger = DurableJobIdentityLedger(store)
+    nonexistent = tmp_path / "must-not-create-output"
+    with pytest.raises(PrepareEvidenceError):
+        _save(batch, nonexistent, durable_ledger=ledger)
+    assert not nonexistent.exists()
+    assert not list(store.glob("*.dxf"))
