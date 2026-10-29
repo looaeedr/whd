@@ -1,5 +1,6 @@
 """Canonical regression sharding must preserve every selector and every case."""
 from collections import Counter
+import ast
 import json
 from pathlib import Path
 import tempfile
@@ -17,7 +18,14 @@ from tools.product_ci_regression import (
 def test_each_selector_appears_in_exactly_one_shard(count):
     shards = [shard_paths(i, count) for i in range(count)]
     seen = Counter(path for shard in shards for path in shard)
-    assert set(seen) == set(PYTEST_PATHS)
+    if count == 18:
+        manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+        special = manifest["split_file"]
+        expected_cases = {f"{special}::{name}" for name in manifest["split_case_owners"]}
+        assert set(seen) == (set(PYTEST_PATHS) - {special}) | expected_cases
+        assert len(expected_cases) == 20
+    else:
+        assert set(seen) == set(PYTEST_PATHS)
     assert all(n == 1 for n in seen.values())
     assert all(shards)
     if count not in (3, 10, 18, 20):
@@ -59,17 +67,30 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         owners, durations = manifest["file_owners"], manifest["file_seconds"]
         assert len(owners) == len(durations) == 304
         assert manifest["canonical_selector_count"] == len(PYTEST_PATHS)
+        assert manifest["schema"] == "WHD_PRODUCT_CI_FILE_DURATION_ASSIGNMENT_V2"
         assert manifest["source_run_id"] == 40903796624
+        assert manifest["observed_split_run_id"] == 40909061327
         assert manifest["threshold_short_seconds"] == 4
-        assert manifest["modeled_critical_path_seconds"] == 141
+        assert manifest["modeled_critical_path_seconds"] == 141  # old whole-file model
         load = [0] * count
         for filename, owner in owners.items():
             assert (owner >= 14) == (durations[filename] <= 4)
             load[owner] += durations[filename]
         assert max(load) == 141
         assert sorted(set(owners.values())) == list(range(18))
+        special = manifest["split_file"]
+        assert special in PYTEST_PATHS
+        assert len(manifest["split_case_owners"]) == 20
+        tree = ast.parse((Path(__file__).resolve().parents[2] / special).read_text(encoding="utf-8"))
+        actual_cases = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)
+                        and n.name.startswith("test_")}
+        assert actual_cases == set(manifest["split_case_owners"])
         for index, selectors in enumerate(shards):
-            assert all(owners[node.split("::", 1)[0]] == index for node in selectors)
+            for node in selectors:
+                if node.startswith(special + "::"):
+                    assert manifest["split_case_owners"][node.rsplit("::", 1)[1]] == index
+                else:
+                    assert owners[node.split("::", 1)[0]] == index
     else:
         assert all(len(shard) >= 1 for shard in shards)
         expected = {
@@ -130,7 +151,13 @@ def test_eighteen_shard_workflow_keeps_complete_exact_selectors_and_artifact_gat
 
     shards = [shard_paths(i, 18) for i in range(18)]
     assert all(shards)
-    assert Counter(selector for shard in shards for selector in shard) == Counter(PYTEST_PATHS)
+    manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    split_file = manifest["split_file"]
+    expected = set(PYTEST_PATHS) - {split_file}
+    expected.update(f"{split_file}::{name}" for name in manifest["split_case_owners"])
+    seen = Counter(selector for shard in shards for selector in shard)
+    assert set(seen) == expected
+    assert all(times == 1 for times in seen.values())
 
 
 def test_eighteen_shard_final_junit_requires_every_file_and_all_green():
@@ -148,6 +175,28 @@ def test_eighteen_shard_final_junit_requires_every_file_and_all_green():
         with pytest.raises(ValueError, match="non-green"):
             _merge_shard_junit(paths, 18, output)
 
+
+
+def test_eighteen_shard_gui_split_fails_closed_when_case_missing_or_moved(tmp_path, monkeypatch):
+    manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    removed = next(iter(manifest["split_case_owners"]))
+    manifest["split_case_owners"].pop(removed)
+    path = tmp_path / "missing-gui-case.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(regression, "_EIGHTEEN_SHARD_MANIFEST", path)
+    with pytest.raises(ValueError, match="observed GUI cases"):
+        shard_paths(0, 18)
+
+
+def test_eighteen_shard_gui_split_rejects_unapproved_case_owner(tmp_path, monkeypatch):
+    manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    first = next(iter(manifest["split_case_owners"]))
+    manifest["split_case_owners"][first] = 6
+    path = tmp_path / "bad-gui-owner.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(regression, "_EIGHTEEN_SHARD_MANIFEST", path)
+    with pytest.raises(ValueError, match="observed GUI cases"):
+        shard_paths(0, 18)
 
 
 def test_duration_manifest_fails_closed_if_a_file_is_missing(tmp_path, monkeypatch):
