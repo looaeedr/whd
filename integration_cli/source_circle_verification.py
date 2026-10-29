@@ -90,7 +90,7 @@ def _verified_rect_from_source(entity, feature, transform):
     raw = tuple(entity.get_points("xyb"))
     if len(raw) != 4:
         _fail("source RECT must have exactly four source vertices")
-    if any(abs(_finite(p[2])) > _TOL for p in raw):
+    if any(p[2] is not None and abs(_finite(p[2])) > _TOL for p in raw):
         _fail("source RECT contains unverified DXF arc/bulge geometry")
     scale = _finite(transform.get("source_to_mm_scale"))
     matrix = transform.get("matrix_2x2")
