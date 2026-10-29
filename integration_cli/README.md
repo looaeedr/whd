@@ -230,3 +230,16 @@ remain the sole owner of finished-face → unfolded geometry and DXF output.
 A permanent test uses a real original source DXF, W-03 recheck, this typed
 handoff and a real WHD Door DXF reloaded with ezdxf. This is an internal
 partial W-04 acceptance, **not** a packaged Worker or a production release.
+
+
+**Vault baseline Door DXF coordinate acceptance (2026-10-29, #2379):**
+`manufacturing_api.generate_part` delegates to WHD's
+`ae.export_stretched_door_dxf`, which maps a verified finished-face
+`CircleFeature` onto the unfolded Scene and **mirrors the entire Scene
+on the unfolded X axis before serializing DXF**. The independent disk-DXF
+regression therefore derives the authoritative unfolded width from WHD's
+`get_stretched_door_data(...).params["total_width"]` and compares the
+persisted circle at `x=total_width-pre_export_x`, while retaining the
+original Y/radius. Comparing the unmirrored internal Feature coordinate
+to the final DXF is a false RED. This does not change source geometry,
+WHD's mirror policy, PartSpec, or any CNC/DXF manufacturing formula.

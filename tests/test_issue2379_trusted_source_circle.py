@@ -139,6 +139,30 @@ def test_verified_source_circle_becomes_whd_feature_and_real_door_dxf(tmp_path):
     context = ManufacturingContext(resource_root=root)
     mapped = _door_features_for_legacy_engine(spec, context)
     assert len(mapped) == 1
+
+    # WHD's Vault baseline Door exporter mirrors the *entire* unfolded
+    # DrawingScene on X before saving DXF. The finished-face and pre-export
+    # guide coordinates must not be compared with DXF coordinates directly.
+    # Read the width from that same authoritative stretched-door scene.
+    from ae_engine import ae
+    from ae_engine.manufacturing_baseline_policy import _scoped_ae_resource_root
+    from ae_engine.manufacturing_door_indicator import (
+        _resolved_door_params, _resolved_door_corner_policy,
+    )
+    p = _resolved_door_params(spec, context)
+    with _scoped_ae_resource_root(context):
+        original_scene = ae.get_stretched_door_data(
+            spec.model_name, p["w"], p["h"], p["t"], p["fw"],
+            p["gap_w"], p["gap_h"], p["fold_left"], p["fold_right"],
+            p["fold_top"], p["fold_bottom"],
+            spec.indicator_hole, spec.door_indicator, spec.door_indicator_offset,
+            frame_edges=spec.frame_edges,
+            indicator_window_groups=spec.indicator_window_groups,
+            corner_policy=_resolved_door_corner_policy(spec, p["fw"]),
+        )
+    expected_export_x = original_scene.params["total_width"] - mapped[0].offset.x
+    assert not math.isclose(expected_export_x, mapped[0].offset.x, abs_tol=1e-6)
+
     output = tmp_path / "actual-whd-door.dxf"
     result = generate_part(spec, output, context)
     assert result.part_kind == "door" and output.is_file()
@@ -146,7 +170,7 @@ def test_verified_source_circle_becomes_whd_feature_and_real_door_dxf(tmp_path):
     matches = [
         e for e in msp.query('CIRCLE[layer=="CUTTING"]')
         if math.isclose(float(e.dxf.radius), 3.0, abs_tol=1e-6, rel_tol=0)
-        and math.isclose(float(e.dxf.center.x), mapped[0].offset.x, abs_tol=1e-6, rel_tol=0)
+        and math.isclose(float(e.dxf.center.x), expected_export_x, abs_tol=1e-6, rel_tol=0)
         and math.isclose(float(e.dxf.center.y), mapped[0].offset.y, abs_tol=1e-6, rel_tol=0)
     ]
     assert len(matches) == 1, "WHD generated DXF must carry source-attested physical circle"
