@@ -18,8 +18,21 @@ def test_each_selector_appears_in_exactly_one_shard(count):
     assert set(seen) == set(PYTEST_PATHS)
     assert all(n == 1 for n in seen.values())
     assert all(shards)
-    if count != 3:
+    if count not in (3, 10):
         assert shards == [PYTEST_PATHS[i::count] for i in range(count)]
+    elif count == 10:
+        dedicated = (
+            "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+            "tests/test_issue1469_v15_acceptance.py",
+            "tests/test_issue1463_receiving_modes.py",
+            "tests/test_issue1466_quantity_bom.py",
+            "tests/test_phase6_t15_inner_door_panels.py",
+        )
+        for index, selector in enumerate(dedicated):
+            assert shards[index] == (selector,)
+        remainder = tuple(p for p in PYTEST_PATHS if p not in dedicated)
+        for index in range(5, 10):
+            assert shards[index] == remainder[(index - 5)::5]
     else:
         assert all(len(shard) >= 1 for shard in shards)
         expected = {
@@ -66,7 +79,7 @@ def test_invalid_shard_fails_closed(index, count):
 
 
 def test_ten_shard_workflow_keeps_complete_exact_selectors_and_artifact_gate():
-    # The matrix, execution count and receipt merge must agree. If the
+    # The matrix, execution count and receipt merge must agree. If
     # any JUnit artifact is missing, final acceptance must fail closed.
     workflow = (Path(__file__).resolve().parents[2]
                 / ".github/workflows/whd-product-regression.yml").read_text(encoding="utf-8")
