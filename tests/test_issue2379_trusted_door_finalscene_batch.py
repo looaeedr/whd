@@ -430,7 +430,7 @@ def test_source_profile_remains_fail_closed_after_rect_adapter(tmp_path):
     exported = batch[2]
     feature = exported["items"][1]["features"][0]
     feature["type"] = "profile"
-    feature["points_mm"] = [[36,34],[44,34],[44,46],[36,46]]
+    feature["points_mm"] = [[36,34],[44,34],[44,46],[36,47]]
     feature["closed"] = True
     for key in ("center_mm", "width_mm", "height_mm", "rotation_deg"):
         del feature[key]
@@ -439,4 +439,172 @@ def test_source_profile_remains_fail_closed_after_rect_adapter(tmp_path):
     with pytest.raises(PrepareEvidenceError) as exc:
         _save(batch, target)
     assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
+    assert not target.exists()
+
+
+def _mixed_source_profile_batch(tmp_path, *, fault=None, rotation=0):
+    """Actual source CADSplit DXF with one Door circle and one concave profile."""
+    batch = _real_batch(tmp_path, count=2)
+    original, _, _, root, paths, source, centers, radii = batch
+    doc = ezdxf.readfile(source)
+    model = doc.modelspace()
+    circles = list(model.query("CIRCLE"))
+    handle_circle = circles[0].dxf.handle
+    model.delete_entity(circles[1])
+    vertices = [(36, 34), (46, 34), (46, 46), (41, 41), (36, 46)]
+    source_vertices = list(vertices)
+    if fault == "crossed_source":
+        source_vertices[1], source_vertices[2] = source_vertices[2], source_vertices[1]
+    raw = source_vertices
+    fmt = "xy"
+    if fault in ("bulge", "tiny_bulge"):
+        raw = [(x, y, 1e-12 if fault == "tiny_bulge" and i == 0
+                else 0.5 if i == 0 else 0) for i, (x, y) in enumerate(raw)]
+        fmt = "xyb"
+    if fault == "width":
+        raw = [(x, y, 0.5 if i == 0 else 0, 0, 0)
+               for i, (x, y) in enumerate(raw)]
+        fmt = "xyseb"
+    if fault == "polyline":
+        source_entity = model.add_polyline2d(source_vertices, close=True)
+    else:
+        source_entity = model.add_lwpolyline(
+            raw, format=fmt, close=(fault != "open"),
+            dxfattribs={"layer": "CUTTING",
+                        **({"thickness": 0.5} if fault == "thickness" else {})},
+        )
+    handle_profile = source_entity.dxf.handle
+    doc.saveas(source)
+    sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for row in original["items"]:
+        row["source_document_sha256"] = sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    exported = _export_request_from_prepared(original, receipt)
+    for idx, row in enumerate(exported["items"]):
+        frame = receipt["items"][idx]["target_frames"][0]
+        feature = _circle(frame)
+        feature["source_transform"]["target_dimensions_mm"] = deepcopy(
+            frame["finished_face_dimensions_mm"])
+        if idx == 0:
+            feature["center_mm"] = [20, 30]
+            feature["radius_mm"] = 3
+            feature["source_transform"]["source_entity_refs"] = [handle_circle]
+        else:
+            feature["feature_id"] = "original-concave-profile"
+            feature["source_ref"] = "source-LWPOLYLINE"
+            feature["type"] = "profile"
+            del feature["radius_mm"]
+            del feature["center_mm"]
+            feature["closed"] = True
+            feature["points_mm"] = [list(p) for p in vertices]
+            feature["source_transform"]["source_entity_refs"] = [handle_profile]
+            if rotation == 90:
+                feature["source_transform"]["rotation_deg"] = 90
+                feature["source_transform"]["matrix_2x2"] = [[0, -1], [1, 0]]
+                feature["source_transform"]["translation_mm"] = [90, 0]
+                feature["points_mm"] = [[90 - y, x] for x, y in vertices]
+            if fault == "claimed_vertex":
+                feature["points_mm"][3][0] += 2
+        row["features"] = [feature]
+    exported["request_digest"] = compute_wire_request_digest(exported)
+    return original, receipt, exported, root, paths, source, centers, radii
+
+
+@pytest.mark.parametrize("rotation", [0, 90])
+def test_original_concave_profile_to_whd_finalscene_real_saved_dxf(tmp_path, rotation):
+    """Prove actual source vertices survive WHD authoritative Door manufacturing."""
+    from ae_engine.sheetmetal_features import ProfileFeature
+    batch = _mixed_source_profile_batch(tmp_path, rotation=rotation)
+    original, receipt, exported, root, paths, source, *_ = batch
+    target = tmp_path / "out"
+    output = _save(batch, target)
+    assert len(output) == 2
+    assert len(list(target.glob("*.dxf"))) == 2
+    doc = ezdxf.readfile(output[receipt["items"][1]["physical_part_id"]])
+    spec = door_spec_from_trusted_prepared_part(
+        original["items"][1]["part"],
+        api.resolve_policy(ManufacturingContext(resource_root=root)),
+    )
+    features = verify_trusted_original_dxf_circles(
+        exported["items"][1]["features"], source_path=source,
+        expected_document_sha256=original["items"][1]["source_document_sha256"],
+    )
+    assert len(features) == 1 and isinstance(features[0], ProfileFeature)
+    context = ManufacturingContext(resource_root=root)
+    spec = replace(spec, features=features, feature_space="finished_face")
+    mapped = _door_features_for_legacy_engine(spec, context)[0]
+    expected = tuple((mapped.offset.x + v.x, mapped.offset.y + v.y)
+                     for v in mapped.points)
+    matching = []
+    for poly in doc.modelspace().query('LWPOLYLINE[layer=="CUTTING"]'):
+        actual = tuple(poly.get_points("xy"))
+        if not poly.closed or len(actual) != len(expected):
+            continue
+        if all(math.isclose(x, expected[i][0], abs_tol=1e-6, rel_tol=0)
+               and math.isclose(y, expected[i][1], abs_tol=1e-6, rel_tol=0)
+               for i, (x, y) in enumerate(actual)):
+            matching.append(poly)
+    assert len(matching) == 1, "WHD source-derived concave CUTTING path must survive disk DXF"
+    assert any(entity.dxf.layer == "BEND" for entity in doc.modelspace())
+    assert api.verify_saved_part_render_data_dxf(
+        api.build_part_render_data(spec, context),
+        output[receipt["items"][1]["physical_part_id"]],
+    ).ok
+
+
+@pytest.mark.parametrize("fault", [
+    "open", "bulge", "tiny_bulge", "width", "thickness",
+    "polyline", "crossed_source", "claimed_vertex",
+])
+def test_unverified_original_profile_never_stages_output(tmp_path, fault):
+    batch = _mixed_source_profile_batch(tmp_path, fault=fault)
+    target = tmp_path / "out"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _save(batch, target)
+    assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
+    assert not target.exists()
+
+
+def test_original_profile_finalscene_crossed_edges_refuse_staging(tmp_path, monkeypatch):
+    """Even genuine source points cannot be silently reconnected by WHD."""
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+    from ae_engine.sheetmetal_features import ProfileFeature
+
+    batch = _mixed_source_profile_batch(tmp_path)
+    target = tmp_path / "out"
+    original = api.build_part_render_data
+    changed = []
+
+    def tamper_profile(spec, context):
+        render = original(spec, context)
+        profiles = [
+            p for p in _door_features_for_legacy_engine(spec, context)
+            if isinstance(p, ProfileFeature)
+        ]
+        if not profiles:
+            return render
+        assert len(profiles) == 1
+        expected = [(p.x + profiles[0].offset.x, p.y + profiles[0].offset.y)
+                    for p in profiles[0].points]
+        scene = DrawingScene()
+        for prim in render.scene.primitives:
+            if (isinstance(prim, PolylinePrimitive) and prim.closed
+                    and prim.layer == "CUTTING"
+                    and len(prim.points) == len(expected)
+                    and all(math.isclose(point.x, expected[i][0], abs_tol=1e-6, rel_tol=0)
+                            and math.isclose(point.y, expected[i][1], abs_tol=1e-6, rel_tol=0)
+                            for i, point in enumerate(prim.points))):
+                pts = prim.points
+                scene.add(replace(prim, points=(pts[0], pts[2], pts[1], pts[3], pts[4])))
+                changed.append(True)
+            else:
+                scene.add(prim)
+        return replace(render, scene=scene)
+
+    monkeypatch.setattr(api, "build_part_render_data", tamper_profile)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _save(batch, target)
+    assert changed == [True]
+    assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED"
     assert not target.exists()
