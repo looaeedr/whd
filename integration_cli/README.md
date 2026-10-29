@@ -178,11 +178,26 @@ match; missing, changed or symlinked artifacts require recovery. An export
 cannot record completion with zero verified physical artifacts. A changed
 transport-only `request_id` cannot change job identity.
 
-**This is not the rest of W-06:** there is no cross-job destination lock,
-multi-file durable commit journal / rollback / roll-forward, safe cancellation
-or crash-recovery owner. Consequently this private ledger is NOT wired into
-W-01 public `cadsplit_worker.py`, nor does it activate job-result readback
-capabilities or certify a Windows EXE. Full W-06 and Gate A must still pass.
+An **additional private W-06 output-directory lease seam** reserves every
+Worker-selected, pre-existing absolute destination directory in one SQLite
+`BEGIN IMMEDIATE` transaction. Paths are locally canonicalized and sorted,
+and each is exclusively held by a single unfinished export job across process
+restarts; a collision fails with `WHD_OUTPUT_PATH_LOCKED` **without acquiring
+a partial batch**. A completed job releases its leases in the **same durable
+database transaction** as its immutable result record. Failed or interrupted
+jobs do not release leases on timeout or restart. This deliberately locks the
+whole output directory, not just a filename, so two different jobs cannot
+stage separate files into the same batch destination concurrently.
+
+**Still not full W-06:** Windows junction/UNC/drive-alias and case-equivalence
+require physical Gate A evidence; multi-file durable backup/commit journal,
+rollback/roll-forward after interrupted `os.replace`, safe cancellation,
+progress, source/key custody and recovery decision owner are not implemented.
+A stuck lease must be resolved by a future trusted W-06 journal recovery,
+never forcibly removed on a retry. The private ledger remains disconnected
+from W-01 public `cadsplit_worker.py`; all public readback, path locking,
+export and recovery capability flags remain false. No Windows EXE or formal
+manufacturing release is certified.
 
 ## W-04 internal real DXF Save→Reload batch
 
