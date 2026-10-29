@@ -293,8 +293,9 @@ the rectangle wire's explicit quarter-turn. Only `THROUGH_CUT` is allowed.
 The internal WHD-owned `RectFeature` stores source-derived finished-face
 bounds. Canonical `ResolvedRect` verifies the actual closed CUTTING contour
 in FinalScene; the existing batch boundary performs independent DXF reload
-and precommit source recheck. **PROFILE, bulged/open LWPOLYLINE, POLYLINE,
-INSERT, source subgeometry SHA, and public Worker export remain unsupported.**
+and precommit source recheck. **Curved/open LWPOLYLINE, POLYLINE,
+INSERT, arbitrary multi-entity profiles, source subgeometry SHA and public
+Worker export remain unsupported.**
 Original-source CIRCLEs also require zero DXF extrusion thickness; nonzero
 3D-extruded source geometry fails closed before staging.
 
@@ -302,3 +303,26 @@ The internal source-derived RECT FinalScene check compares the **ordered
 closed CUTTING edge cycle**, not just four matching corners or bounding
 box. Cyclic start shifts and reverse winding are equivalent; a crossed
 bow-tie order fails before any output is staged.
+
+
+### W-04 source-attested simple LWPOLYLINE PROFILE subset (#2379)
+
+In addition to original DXF circles and four-corner rectangles, the **internal**
+Door-only authenticated source adapter can admit a direct modelspace closed
+LWPOLYLINE as a simple polygon PROFILE with **3–256 vertices**. Original
+DXF file SHA and exact handle are mandatory. Every segment must be straight,
+zero constant/per-vertex stroke width, zero extrusion thickness, planar +XY,
+with an explicit mm/inch header. After applying the declared source-to-mm
+scale and 2×2 matrix/translation exactly once, the entire source polygon must
+be simple, nondegenerate, and match the wire's `closed` point cycle in both
+coordinates **and edge order**. Only cyclic start shifts and reverse winding
+are equivalent; matching bbox, center or unordered point sets is insufficient.
+
+The WHD-owned `ProfileFeature` is constructed from **actual source vertices**,
+not from the claimed wire polygon. Its final CUTTING `PolylinePrimitive` is
+compared to the same full closed edge sequence after WHD's finished-face
+mapping, before the batch's independent DXF Save→Reload, precommit source
+recheck and staged atomic replacement. Open/arc/width-bearing polylines,
+legacy POLYLINE/INSERT, per-entity source geometry hash certification and
+public Worker/EXE export are still not supported. This is **not** W-06 durable
+job ownership or W-05/07 Windows Gate A acceptance.
