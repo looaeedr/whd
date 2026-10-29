@@ -283,6 +283,7 @@ fail closed. There is no Windows EXE release or manufacturing certification.
 The internal W-03 precommit original-source adapter additionally accepts a
 **direct modelspace closed LWPOLYLINE with exactly four straight vertices,
 zero constant/per-vertex stroke width, no bulges (including tiny nonzero arcs),
+zero DXF extrusion thickness (including tiny nonzero values),
 positive XY plane and explicit DXF mm/inch header**. It independently
 reads the same pinned original document SHA, resolves the exact entity handle,
 applies the declared matrix and unit scale once and proves all four vertices
@@ -293,4 +294,4 @@ The internal WHD-owned `RectFeature` stores source-derived finished-face
 bounds. Canonical `ResolvedRect` verifies the actual closed CUTTING contour
 in FinalScene; the existing batch boundary performs independent DXF reload
 and precommit source recheck. **PROFILE, bulged/open LWPOLYLINE, POLYLINE,
-INSERT, source subgeometry SHA, and public Worker export remain unsupported.**
+INSERT, source subgeometry SHA, and public Worker export remain unsupported.\nOriginal-source CIRCLEs also require zero DXF extrusion thickness; nonzero\n3D-extruded source geometry fails closed before staging.**
