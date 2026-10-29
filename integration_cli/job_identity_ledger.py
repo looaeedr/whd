@@ -336,6 +336,11 @@ class DurableJobIdentityLedger:
                     (client, job, op),
                 ).fetchone()
             if terminal is not None and terminal == ("rolled_back", digest):
+                # Never trust an easily corrupted terminal-state string alone:
+                # rehash the original final DXFs and journal against the
+                # original directory's physical identity on every readback.
+                from integration_cli.batch_commit_journal import DurableMultiDXFRollbackJournal
+                DurableMultiDXFRollbackJournal(self).verify_rolled_back(request)
                 return JobClaim("rolled_back")
             raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "previous job has no durable completion")
         if (not payload or not payload_hash or not proof_json
