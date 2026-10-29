@@ -26,6 +26,8 @@ def test_each_selector_appears_in_exactly_one_shard(count):
             "tests/test_issue517_receiving_live_switch_ui_export_marking.py": 2,
             "tests/test_issue1463_receiving_modes.py": 1,
             "tests/test_issue1469_v15_acceptance.py": 0,
+            "tests/test_issue1466_quantity_bom.py": 1,
+            "tests/test_phase6_t15_inner_door_panels.py": 0,
         }
         for selector, target in expected.items():
             assert selector in shards[target]
@@ -34,6 +36,25 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         for n, selector in enumerate(PYTEST_PATHS):
             if selector not in expected:
                 assert selector in shards[n % 3]
+
+
+def test_measured_rebalance_keeps_all_exact_selectors_unchanged_and_whole():
+    # No selector may disappear or execute twice; the two measured heavy
+    # files move as complete suites, not individual selected test functions.
+    three = [shard_paths(index, 3) for index in range(3)]
+    one = shard_paths(0, 1)
+    assert len(one) == len(set(one))
+    assert Counter(selector for shard in three for selector in shard) == Counter(one)
+    assert three[1].count("tests/test_issue1466_quantity_bom.py") == 1
+    assert three[0].count("tests/test_phase6_t15_inner_door_panels.py") == 1
+    for index in range(3):
+        if index != 1:
+            assert "tests/test_issue1466_quantity_bom.py" not in three[index]
+        if index != 0:
+            assert "tests/test_phase6_t15_inner_door_panels.py" not in three[index]
+    assert not any(selector.startswith("tests/test_issue1466_quantity_bom.py::")
+                   or selector.startswith("tests/test_phase6_t15_inner_door_panels.py::")
+                   for selector in one)
 
 
 @pytest.mark.parametrize("index,count", [(-1, 3), (3, 3), (0, 0),

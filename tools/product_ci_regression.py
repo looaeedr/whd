@@ -596,16 +596,23 @@ def _run_bridge_guard() -> None:
 
 
 
-# #1817: measured 2026-10-17 exact HEAD b7c06bdb full Product Regression
-# run 39015604209 showed round-robin shard pytest durations 346.88/146.53/
-# 101.31 seconds. These are three whole-file heavy suites, never split test
-# cases or modify expectations. Move them by observed cost while preserving
-# every canonical selector exactly once and the existing runner/count contract.
-# Other shard counts continue using the original deterministic interleave.
+# Deterministic, whole-file three-shard balancing backed by CI observations:
+# - #1817 run 39015604209 introduced the three original heavy-suite pins.
+# - 2026-10-29 successful exact-head run 40872352796 recorded pytest
+#   462.38s / 338.37s / 478.23s for shards 0 / 1 / 2.
+# - Shift the complete quantity BOM suite from 0 -> 1 (six ~13-15s
+#   Receiving parameterized cases) and the complete inner-door suite from
+#   2 -> 0 (a 37.65s real-DXF case plus related acceptance cases).
+# This is scheduling ONLY: selectors, test semantics, test collection and
+# three-runner budget stay unchanged. Every required JUnit case is still
+# verified by the unchanged Canonical Product Regression final gate.
+# Other shard counts preserve the original deterministic interleave.
 _THREE_SHARD_SUITES = {
     "tests/test_issue517_receiving_live_switch_ui_export_marking.py": 2,
     "tests/test_issue1463_receiving_modes.py": 1,
     "tests/test_issue1469_v15_acceptance.py": 0,
+    "tests/test_issue1466_quantity_bom.py": 1,
+    "tests/test_phase6_t15_inner_door_panels.py": 0,
 }
 
 
