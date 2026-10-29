@@ -1,3 +1,10 @@
+---
+whd_doc_role: CURRENT
+whd_contract: receiving-multi-hide-duplicate-brand
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # 多連設定 NFB 品牌下拉入口移除（2026-10-28）
 
 此變更補上前一批 PR #2366 在實際 Windows 操作時發現的遺漏：多連設定視窗左上角還有「NFB／士林」品牌下拉選單。使用者指定整個多連設定不再需要重複的 NFB 操作／清單入口。
