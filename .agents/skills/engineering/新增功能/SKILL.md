@@ -48,6 +48,9 @@ GUI 上畫出一條孔邊不能冒充 3D 實體真的有孔，預覽不能替代
 
 ## 第三關 — TEST GATE（實作、測試、回修）
 
+依 `AGENTS.md::BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1`，先把一批關聯功能和最小驗收案例做到可交付；在合法的工作區用 `python tools/quick_test.py --test <真實 node-id>` 執行受影響回歸，RED 時先修，不把反覆完整 PR CI 當第一輪除錯。完成定向與必要整合驗證後盡量一次提交候選，再走完整 exact SHA CI；無工作區不得聲稱已本地測試。此工具供 Windows 使用者自行手動執行，不增加 /功能 對 DC/RC 的操作權限。
+
+
 小功能先依當次真實影響鏈選出一個可判斷需求的 pytest node；用 `tools/change_test_profile.py --feedback-test <真實 node-id>` 取得 `fast_feedback.command`，在合法雲端執行器做最小 FEATURE_ACCEPTANCE RED→GREEN，必要時加受影響子系統測試。`NEEDS_EXPLICIT_TEST` 代表來源不足、須找真測試，不得猜測。此回饋只加速開發，**不是**免完整 `PRODUCT_FULL_REGRESSION` 或 Windows 人工驗收。無合法執行器就回報尚未執行，不冒稱 GREEN。
 
 一般 `/功能 新增` 採既有 `/派工` 位置規則：GitHub localX 分支、GitHub／SCHEDULER／REMOTE_ACTION 施工；不可偷用本機。必要時新增 **FEATURE_ACCEPTANCE、UNIT_OR_COMPONENT、AFFECTED_SUBSYSTEM、INTEGRATION** 案例，驗證使用者真實操作結果，不以「沒當機」充數。
