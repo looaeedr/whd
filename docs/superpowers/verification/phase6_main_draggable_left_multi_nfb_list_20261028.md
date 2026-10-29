@@ -1,6 +1,7 @@
 ---
 whd_doc_role: CURRENT
 whd_contract: primary-phase6-left-drag-and-multi-nfb-list-removal
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # Phase6 主視窗左欄與多連內門清理（2026-10-28 台北）
