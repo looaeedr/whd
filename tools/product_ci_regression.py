@@ -518,6 +518,8 @@ PYTEST_PATHS = (
     "tests/test_issue2379_wire_feature_preflight.py",
     # #2379: verify original CADSplit DXF source circles before staging.
     "tests/test_issue2379_trusted_source_circle.py",
+    # #2379: W-03 source-authenticated WHD Door FinalScene/atomic-batch handoff.
+    "tests/test_issue2379_trusted_door_finalscene_batch.py",
 )
 
 

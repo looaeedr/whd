@@ -62,6 +62,30 @@ def _validate_owning_resource_parsers(resource_root: Path, baseline_paths: list[
             ) from exc
 
 
+def door_spec_from_trusted_prepared_part(part: Mapping[str, Any], policy):
+    """Convert an already schema-checked Door part using WHD policy, not CADSplit formulas.
+
+    This is the shared W-03/W-04 adapter. Only prepare/recheck may authorize
+    the original part. The supplied policy must be resolved by WHD.
+    """
+    from ae_engine.contracts import DoorPartSpec
+    from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
+
+    p = part
+    dims = p["dimensions_mm"]
+    flags = p["frame_edges"]
+    return DoorPartSpec(
+        width=float(dims["width"]), height=float(dims["height"]),
+        thickness=float(dims["thickness"]),
+        frame_width=float(p.get("frame_width_mm", policy.frame_width)),
+        model_name=p["cabinet_family"],
+        gap_w=p.get("gap_w_mm"), gap_h=p.get("gap_h_mm"),
+        fold_left=p.get("fold_left_mm"), fold_right=p.get("fold_right_mm"),
+        fold_top=p.get("fold_top_mm"), fold_bottom=p.get("fold_bottom_mm"),
+        frame_edges=DoorFrameEdges(**flags),
+    )
+
+
 def prepare_trusted_door_batch(
     request: Mapping[str, Any], *,
     resource_root: Path, engine_commit: str, engine_sha256: str,
@@ -72,11 +96,10 @@ def prepare_trusted_door_batch(
     No caller can enable this through the public source-only CLI: the trusted
     W-06 key lifecycle and W-05 resource manifest are not yet available.
     """
-    from ae_engine.contracts import DoorPartSpec, ManufacturingContext
+    from ae_engine.contracts import ManufacturingContext
     from ae_engine.manufacturing_api import (
         expected_baseline_path_for, resolve_policy,
     )
-    from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
 
     schema_dir = Path(__file__).resolve().parent / "schemas"
     req_schema = Draft202012Validator(
@@ -108,16 +131,7 @@ def prepare_trusted_door_batch(
         if item["item_id"] in identities:
             raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "duplicate item ID")
         identities.add(item["item_id"])
-        frame_width = p.get("frame_width_mm", float(policy.frame_width))
-        door = DoorPartSpec(
-            width=float(dims["width"]), height=float(dims["height"]),
-            thickness=float(dims["thickness"]), frame_width=float(frame_width),
-            model_name=p["cabinet_family"],
-            gap_w=p.get("gap_w_mm"), gap_h=p.get("gap_h_mm"),
-            fold_left=p.get("fold_left_mm"), fold_right=p.get("fold_right_mm"),
-            fold_top=p.get("fold_top_mm"), fold_bottom=p.get("fold_bottom_mm"),
-            frame_edges=DoorFrameEdges(**flags),
-        )
+        door = door_spec_from_trusted_prepared_part(p, policy)
         identity_bytes = ("WHD-PART-v1\0" + request["client_installation_id"]
                 + "\0" + request["job_id"] + "\0" + item["item_id"]
                 + "\0" + p["source_part_ref"] + "\0" + item["source_document_sha256"]).encode("utf-8")
