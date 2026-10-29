@@ -72,6 +72,23 @@ def _source_snapshot(path: Path, expected_sha256: str):
     return document
 
 
+def _finite_dxf_number(value):
+    """Normalize only ezdxf-parsed entity numbers (may be NumPy scalar).
+
+    Untrusted wire JSON still uses strict _finite. Reject text, booleans,
+    missing numbers and non-finite CAD geometry, never coerce raw JSON here.
+    """
+    if value is None or isinstance(value, (bool, str, bytes)):
+        _fail("invalid original DXF numeric geometry")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        _fail("original DXF entity number cannot be interpreted")
+    if not math.isfinite(number):
+        _fail("original DXF contains nonfinite geometry")
+    return number
+
+
 def _verified_rect_from_source(entity, feature, transform):
     """Verify all four *actual* DXF corners before returning a WHD RectFeature.
 
@@ -90,7 +107,7 @@ def _verified_rect_from_source(entity, feature, transform):
     raw = tuple(entity.get_points("xyb"))
     if len(raw) != 4:
         _fail("source RECT must have exactly four source vertices")
-    if any(p[2] is not None and abs(_finite(p[2])) > _TOL for p in raw):
+    if any(p[2] is not None and _finite_dxf_number(p[2]) != 0.0 for p in raw):
         _fail("source RECT contains unverified DXF arc/bulge geometry")
     scale = _finite(transform.get("source_to_mm_scale"))
     matrix = transform.get("matrix_2x2")
@@ -99,7 +116,7 @@ def _verified_rect_from_source(entity, feature, transform):
         _fail("source RECT transform malformed")
     corners = []
     for p in raw:
-        x, y = _finite(p[0]) * scale, _finite(p[1]) * scale
+        x, y = _finite_dxf_number(p[0]) * scale, _finite_dxf_number(p[1]) * scale
         coords = []
         for i in range(2):
             row = matrix[i]
