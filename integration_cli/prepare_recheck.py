@@ -147,3 +147,11 @@ def recheck_trusted_door_export(
     for earlier, current in zip(receipt_items, fresh["items"]):
         for field in ("physical_part_id", "item_id", "preparation_digest", "target_frames"):
             _stale_if_different(earlier.get(field), current.get(field), f"receipt {field}")
+    # Protect all remaining receipt assertions too (status flags, required
+    # source evidence, scope and diagnostics). A transport-only correlation
+    # request_id may differ on authenticated timeout readback.
+    immutable = lambda value: {k: v for k, v in value.items() if k != "request_id"}
+    _stale_if_different(
+        immutable(trusted_prepare_response), immutable(fresh),
+        "complete immutable prepare receipt",
+    )
