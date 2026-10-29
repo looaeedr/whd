@@ -453,9 +453,15 @@ def test_indicator_small_door_source_claims_fail_closed_without_token(tmp_path, 
     elif fault == "extra_depth":
         dimensions["depth"] = 100.0
     request["request_digest"] = compute_wire_request_digest(request)
-    with pytest.raises(PrepareEvidenceError) as exc:
-        _prepare(request, root)
-    assert exc.value.code in ("WHD_FRAME_UNVERIFIED", "WHD_PREPARE_INPUT_INVALID")
+    if fault == "invalid_groups":
+        # Draft wire schema rejects zero groups *before* WHD runtime gets it.
+        from jsonschema import ValidationError
+        with pytest.raises(ValidationError):
+            _prepare(request, root)
+    else:
+        with pytest.raises(PrepareEvidenceError) as exc:
+            _prepare(request, root)
+        assert exc.value.code in ("WHD_FRAME_UNVERIFIED", "WHD_PREPARE_INPUT_INVALID")
 
 
 @pytest.mark.parametrize("kind", ["indicator_box", "end_cap_head", "end_cap_tail"])
