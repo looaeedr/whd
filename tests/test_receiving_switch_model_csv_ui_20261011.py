@@ -1,29 +1,24 @@
 # -*- coding: utf-8 -*-
-"""The inner-door list uses CSV names and the existing connected Bay highlighter."""
+"""Legacy multi-Bay GUI must not resurrect the retired CSV or tier editor.
+
+CSV V5 NFB identity and the physical layer count are edited in the one
+original NFB editor. Multi-Bay only highlights target bays and links saved
+inner-door candidate versions. This is a real Tk presentation contract.
+"""
 import tkinter as tk
 from tkinter import ttk
 from types import SimpleNamespace
 
 from ae_engine.receiving_layout import new_receiving_layout, resize_receiving_bays
-from ae_engine.receiving_shared_settings import edit_setting, setting_value
+from ae_engine.receiving_shared_settings import setting_value
 from gui_modules.application import receiving_multi_settings_window as ui
-from ae_engine.receiving_switch_model_catalog import model_filenames
 
 
-def test_inner_door_list_no_extension_and_apply_to_highlighted_bays(monkeypatch, tmp_path):
-    header = "圖塊名稱,士林,深,東元,深,伍菱,深\n"
-    index_file = tmp_path / "開關索引.csv"
-    index_file.write_text(
-        header + "a,A1.dxf,,B1.dxf,,C1.dxf,\n"
-        + "b,A1.dxf,,B1.dxf,,C1.dxf,\n", encoding="utf-8-sig",
-    )
-    monkeypatch.setattr(ui, "INDEX_PATH", index_file)
-    monkeypatch.setattr(
-        ui, "model_filenames",
-        lambda brand: model_filenames(brand, path=index_file),
-    )
+def test_inner_door_list_no_extension_and_apply_to_highlighted_bays():
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("900x650+0+0")
+    root.update_idletasks()
+    root.update()
     state = {
         "layout": resize_receiving_bays(
             new_receiving_layout(width=800, height=1600, depth=350),
@@ -33,19 +28,17 @@ def test_inner_door_list_no_extension_and_apply_to_highlighted_bays(monkeypatch,
     }
 
     def ports(_set_index):
-        def change(kind, value, indices=()):
-            state["calls"].append((kind, tuple(indices)))
-            for index in indices or (state["selected"],):
-                state["layout"] = edit_setting(
-                    state["layout"], set_index=0, bay_index=index,
-                    kind=kind, value=value,
-                )
+        def forbidden_layer_write(*args, **kwargs):
+            # This panel no longer owns writable inner-door/NFB layers.
+            state["calls"].append((args, kwargs))
+            raise AssertionError("Retired multi-Bay layer entry was invoked")
         return {
             "row": lambda: state["layout"]["sets"][0],
             "select": lambda bay: state.__setitem__("selected", bay),
-            "change": change,
+            "change": forbidden_layer_write,
         }
 
+    win = None
     try:
         win = ui.open_multi_settings(
             root,
@@ -54,53 +47,50 @@ def test_inner_door_list_no_extension_and_apply_to_highlighted_bays(monkeypatch,
             switch_mode=lambda _target: True,
             resize_connections=lambda *_args: False,
             get_settings_ports=ports,
-            get_brand=lambda: "士林",
             select_bay=lambda _si, bi: state.__setitem__("selected", bi),
         )
         root.update()
         assert win._receiving_multi_apply(0)
+
         selector = win._receiving_multi_setting_list
         selector.selection_set(1)
         selector.event_generate("<<ListboxSelect>>")
         root.update()
+        assert tuple(selector.get(0, tk.END)) == ("封頭尾", "內門")
 
         host = win._receiving_multi_settings_host
-        # The first/main operator page must not expose switch model selection.
-        texts = [
-            child.cget("text")
-            for widget in host.winfo_children()
-            for child in widget.winfo_children()
-            if isinstance(child, (ttk.Button, ttk.Label))
-        ]
-        assert "連動選取的連" not in texts
-        assert "解除本連連動" not in texts
-        assert "套用開關型號" not in texts
+        def visible_buttons(widget):
+            result = []
+            for child in widget.winfo_children():
+                if isinstance(child, ttk.Button) and child.winfo_ismapped():
+                    result.append(str(child.cget("text")))
+                result.extend(visible_buttons(child))
+            return result
+        buttons = visible_buttons(host)
+        assert "編輯" in buttons and "套用" in buttons
+        assert "連動選取的連" not in buttons
+        assert "解除本連連動" not in buttons
+        assert "套用開關型號" not in buttons
+        assert not any("NFB" in text or "DXF" in text for text in buttons)
         assert not hasattr(win, "_receiving_multi_inner_model_state")
         assert not any(isinstance(child, tk.Listbox)
                        for child in host.winfo_children())
 
-        hitbox = win._receiving_multi_canvas._receiving_bay_hitboxes[1]
-        x0, y0, x1, y1 = hitbox
-        win._receiving_multi_canvas.event_generate(
-            "<Button-1>", x=(x0+x1)//2, y=(y0+y1)//2,
-        )
+        # The visible diagram selects two target bays; it does not mutate
+        # either bay's NFB model or physical tier count.
+        before = tuple(setting_value(state["layout"]["sets"][0], i,
+                                     "inner_door_layers") for i in range(2))
+        canvas = win._receiving_multi_canvas
+        x0, y0, x1, y1 = canvas._receiving_bay_hitboxes[1]
+        canvas.event_generate("<Button-1>",
+                              x=int((x0 + x1)/2), y=int((y0 + y1)/2))
         root.update()
         assert win._receiving_multi_applied["selected_bays"] == (0, 1)
-        layer_row = host.winfo_children()[0]
-        assert not any(isinstance(child, ttk.Button)
-                       and child.cget("text") == "編輯"
-                       for child in layer_row.winfo_children())
-        layers = next(child for child in layer_row.winfo_children()
-                      if isinstance(child, ttk.Combobox))
-        layers.set("2")
-        layers.event_generate("<<ComboboxSelected>>")
-        root.update()
-        assert state["calls"][-1] == ("inner_door_layers", (0, 1))
-        for bay_index in (0, 1):
-            assert setting_value(
-                state["layout"]["sets"][0], bay_index, "inner_door_layers"
-            ) == 2
-
-        win._receiving_multi_close()
+        after = tuple(setting_value(state["layout"]["sets"][0], i,
+                                    "inner_door_layers") for i in range(2))
+        assert after == before
+        assert state["calls"] == []
     finally:
+        if win is not None and win.winfo_exists():
+            win._receiving_multi_close()
         root.destroy()
