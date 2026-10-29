@@ -495,6 +495,7 @@ def _mixed_source_profile_batch(tmp_path, *, fault=None, rotation=0):
             feature["source_ref"] = "source-LWPOLYLINE"
             feature["type"] = "profile"
             del feature["radius_mm"]
+            del feature["center_mm"]
             feature["closed"] = True
             feature["points_mm"] = [list(p) for p in vertices]
             feature["source_transform"]["source_entity_refs"] = [handle_profile]
