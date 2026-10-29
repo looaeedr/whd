@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -635,18 +636,80 @@ _TEN_SHARD_DEDICATED_SUITES = (
 )
 
 
+# Additional complete suites identified from exact successful run
+# 40897114178, by slow call/aggregate duration (not test count). Keep the
+# accepted ten-shard distribution unchanged for a comparable fallback.
+#   issue1112: multiple Tk source/edit/Save paths (12s, 10s, 8s, 7s...);
+#   issue1503 real tier: 37.61s physical parts/side markings acceptance;
+#   issue63: 13.50s + 11.18s + 10.99s native fold/save regressions;
+#   issue1465 quantity UI: 21.89s + 5.27s GUI cases;
+#   issue1500 main Save: 22.78s real native GUI Save/Reload.
+# Each of the ten expensive whole-file suites owns exactly one isolated
+# runner; remaining selectors are evenly interleaved across runners 10..19.
+_TWENTY_SHARD_DEDICATED_SUITES = _TEN_SHARD_DEDICATED_SUITES + (
+    "tests/test_issue1112_receiving_set_bay_editor.py",
+    "tests/test_issue1503_single_gui_real_tier_2d3d.py",
+    "tests/test_issue63_regression_red.py",
+    "tests/test_issue1465_quantity_ui.py",
+    "tests/test_issue1500_receiving_candidate_main_save.py",
+)
+
+
+# Source: 304 exact files / 339 canonical selectors measured independently
+# by GitHub Actions run 40903796624 (2026-10-29). The committed manifest,
+# NOT each runner's local timing or Python hash(), owns the authoritative
+# deterministic assignment. Its 18 logical lanes reserve 0..13 for >4s
+# whole-file suites and 14..17 for <=4s suites. LPT offline packing made
+# the modeled critical-path bound 141s, equal to the 141s slowest file.
+_EIGHTEEN_SHARD_MANIFEST = ROOT / "tools/product_ci_file_duration_manifest_20261029.json"
+
+
+def _duration_profiled_paths(index: int) -> tuple[str, ...]:
+    manifest = json.loads(_EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    selectors_by_file = {}
+    for selector in PYTEST_PATHS:
+        selectors_by_file.setdefault(selector.split("::", 1)[0], []).append(selector)
+    canonical_files = set(selectors_by_file)
+    owners = manifest.get("file_owners", {})
+    durations = manifest.get("file_seconds", {})
+    if (manifest.get("schema") != "WHD_PRODUCT_CI_FILE_DURATION_ASSIGNMENT_V1"
+            or manifest.get("canonical_selector_count") != len(PYTEST_PATHS)
+            or manifest.get("canonical_file_count") != len(canonical_files)
+            or len(PYTEST_PATHS) != len(set(PYTEST_PATHS))
+            or set(owners) != canonical_files
+            or set(durations) != canonical_files
+            or manifest.get("slow_shard_indices") != list(range(14))
+            or manifest.get("short_shard_indices") != list(range(14, 18))
+            or manifest.get("threshold_short_seconds") != 4):
+        raise ValueError("18-shard duration manifest incomplete or stale")
+    for filename in canonical_files:
+        seconds, owner = durations[filename], owners[filename]
+        if (isinstance(seconds, bool) or not isinstance(seconds, (int, float))
+                or seconds <= 0 or isinstance(owner, bool)
+                or not isinstance(owner, int) or owner < 0 or owner >= 18
+                or (owner >= 14) != (seconds <= 4)):
+            raise ValueError("18-shard duration/quick-lane authority invalid")
+    if set(owners.values()) != set(range(18)):
+        raise ValueError("18-shard manifest has an empty lane")
+    return tuple(selector for selector in PYTEST_PATHS
+                 if owners[selector.split("::", 1)[0]] == index)
+
+
 def shard_paths(index: int, count: int) -> tuple[str, ...]:
-    """Partition exact canonical selectors, with measured ten-shard isolation."""
+    """Partition exact canonical selectors; isolate measured slow suites."""
     if count < 1 or count > len(PYTEST_PATHS) or not 0 <= index < count:
         raise ValueError(f"invalid regression shard {index}/{count}")
-    if count == 10:
-        dedicated = _TEN_SHARD_DEDICATED_SUITES
+    if count == 18:
+        return _duration_profiled_paths(index)
+    if count in (10, 20):
+        dedicated = (_TEN_SHARD_DEDICATED_SUITES if count == 10
+                     else _TWENTY_SHARD_DEDICATED_SUITES)
         if len(set(dedicated)) != len(dedicated) or any(
             PYTEST_PATHS.count(path) != 1
             or any(item.startswith(path + "::") for item in PYTEST_PATHS)
             for path in dedicated
         ):
-            raise ValueError("ten-shard dedicated suite ownership is invalid")
+            raise ValueError(f"{count}-shard dedicated suite ownership is invalid")
         if index < len(dedicated):
             return (dedicated[index],)
         remaining = tuple(path for path in PYTEST_PATHS if path not in dedicated)

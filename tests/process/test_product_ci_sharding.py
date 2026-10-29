@@ -1,24 +1,26 @@
 """Canonical regression sharding must preserve every selector and every case."""
 from collections import Counter
+import json
 from pathlib import Path
 import tempfile
 import xml.etree.ElementTree as ET
 
 import pytest
 
+from tools import product_ci_regression as regression
 from tools.product_ci_regression import (
     PYTEST_PATHS, _merge_shard_junit, _pytest_command, shard_paths,
 )
 
 
-@pytest.mark.parametrize("count", [1, 2, 3, 4, 7, 10, len(PYTEST_PATHS)])
+@pytest.mark.parametrize("count", [1, 2, 3, 4, 7, 10, 18, 20, len(PYTEST_PATHS)])
 def test_each_selector_appears_in_exactly_one_shard(count):
     shards = [shard_paths(i, count) for i in range(count)]
     seen = Counter(path for shard in shards for path in shard)
     assert set(seen) == set(PYTEST_PATHS)
     assert all(n == 1 for n in seen.values())
     assert all(shards)
-    if count not in (3, 10):
+    if count not in (3, 10, 18, 20):
         assert shards == [PYTEST_PATHS[i::count] for i in range(count)]
     elif count == 10:
         dedicated = (
@@ -33,6 +35,41 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         remainder = tuple(p for p in PYTEST_PATHS if p not in dedicated)
         for index in range(5, 10):
             assert shards[index] == remainder[(index - 5)::5]
+    elif count == 20:
+        dedicated = (
+            "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+            "tests/test_issue1469_v15_acceptance.py",
+            "tests/test_issue1463_receiving_modes.py",
+            "tests/test_issue1466_quantity_bom.py",
+            "tests/test_phase6_t15_inner_door_panels.py",
+            "tests/test_issue1112_receiving_set_bay_editor.py",
+            "tests/test_issue1503_single_gui_real_tier_2d3d.py",
+            "tests/test_issue63_regression_red.py",
+            "tests/test_issue1465_quantity_ui.py",
+            "tests/test_issue1500_receiving_candidate_main_save.py",
+        )
+        assert len(dedicated) == len(set(dedicated)) == 10
+        for index, selector in enumerate(dedicated):
+            assert shards[index] == (selector,)
+        remainder = tuple(p for p in PYTEST_PATHS if p not in dedicated)
+        for index in range(10, 20):
+            assert shards[index] == remainder[(index - 10)::10]
+    elif count == 18:
+        manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+        owners, durations = manifest["file_owners"], manifest["file_seconds"]
+        assert len(owners) == len(durations) == 304
+        assert manifest["canonical_selector_count"] == len(PYTEST_PATHS)
+        assert manifest["source_run_id"] == 40903796624
+        assert manifest["threshold_short_seconds"] == 4
+        assert manifest["modeled_critical_path_seconds"] == 141
+        load = [0] * count
+        for filename, owner in owners.items():
+            assert (owner >= 14) == (durations[filename] <= 4)
+            load[owner] += durations[filename]
+        assert max(load) == 141
+        assert sorted(set(owners.values())) == list(range(18))
+        for index, selectors in enumerate(shards):
+            assert all(owners[node.split("::", 1)[0]] == index for node in selectors)
     else:
         assert all(len(shard) >= 1 for shard in shards)
         expected = {
@@ -78,38 +115,61 @@ def test_invalid_shard_fails_closed(index, count):
 
 
 
-def test_ten_shard_workflow_keeps_complete_exact_selectors_and_artifact_gate():
+def test_eighteen_shard_workflow_keeps_complete_exact_selectors_and_artifact_gate():
     # The matrix, execution count and receipt merge must agree. If
     # any JUnit artifact is missing, final acceptance must fail closed.
     workflow = (Path(__file__).resolve().parents[2]
                 / ".github/workflows/whd-product-regression.yml").read_text(encoding="utf-8")
-    assert "shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]" in workflow
-    assert workflow.count("--shard-count 10") == 2
-    assert "for shard in 0 1 2 3 4 5 6 7 8 9; do" in workflow
+    assert "shard: [" + ", ".join(str(i) for i in range(18)) + "]" in workflow
+    assert workflow.count("--shard-count 18") == 2
+    assert "for shard in " + " ".join(str(i) for i in range(18)) + "; do" in workflow
     assert "name: whd-ci-shard-" in workflow
-    for i in range(10):
+    for i in range(18):
         assert f"test -s junit/shard-{i}.xml" in workflow
         assert f"--merge-junit junit/shard-{i}.xml" in workflow
 
-    shards = [shard_paths(i, 10) for i in range(10)]
+    shards = [shard_paths(i, 18) for i in range(18)]
     assert all(shards)
     assert Counter(selector for shard in shards for selector in shard) == Counter(PYTEST_PATHS)
 
 
-def test_ten_shard_final_junit_requires_every_file_and_all_green():
+def test_eighteen_shard_final_junit_requires_every_file_and_all_green():
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        paths = [root / f"shard-{i}.xml" for i in range(10)]
+        paths = [root / f"shard-{i}.xml" for i in range(18)]
         for i, path in enumerate(paths):
             _report(path, [f"case_{i}"])
         output = root / "combined.xml"
         with pytest.raises(ValueError, match="mandatory"):
-            _merge_shard_junit(paths[:-1], 10, output)
-        _merge_shard_junit(paths[::-1], 10, output)
-        assert len(ET.parse(output).getroot().findall(".//testcase")) == 10
-        _report(paths[9], ["case_9"], failing=True)
+            _merge_shard_junit(paths[:-1], 18, output)
+        _merge_shard_junit(paths[::-1], 18, output)
+        assert len(ET.parse(output).getroot().findall(".//testcase")) == 18
+        _report(paths[17], ["case_17"], failing=True)
         with pytest.raises(ValueError, match="non-green"):
-            _merge_shard_junit(paths, 10, output)
+            _merge_shard_junit(paths, 18, output)
+
+
+
+def test_duration_manifest_fails_closed_if_a_file_is_missing(tmp_path, monkeypatch):
+    manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    assert manifest["file_owners"]
+    manifest["file_owners"].pop(next(iter(manifest["file_owners"])))
+    path = tmp_path / "stale-duration-manifest.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(regression, "_EIGHTEEN_SHARD_MANIFEST", path)
+    with pytest.raises(ValueError, match="incomplete or stale"):
+        shard_paths(0, 18)
+
+
+def test_duration_manifest_rejects_short_file_assigned_to_slow_lane(tmp_path, monkeypatch):
+    manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    short = next(f for f, s in manifest["file_seconds"].items() if s <= 4)
+    manifest["file_owners"][short] = 0
+    path = tmp_path / "wrong-lane.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(regression, "_EIGHTEEN_SHARD_MANIFEST", path)
+    with pytest.raises(ValueError, match="quick-lane authority"):
+        shard_paths(0, 18)
 
 
 def test_gui_performance_and_reentrant_save_contracts_cannot_be_omitted_from_ci():
