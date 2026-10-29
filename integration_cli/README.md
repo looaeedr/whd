@@ -214,3 +214,19 @@ source entity geometry are checked; no source receipt is persisted by
 this read-only helper. The public Worker/EXE remains disabled; W-06 must
 own durable source/path/key custody and commit locking, and W-04 must map
 verified Feature geometry to canonical WHD PartSpecs/FinalScene.
+
+
+### W-04 WHD-native Door CircleFeature handoff (internal)
+
+On successful source-byte/hash/CIRCLE-handle matching, the same verification
+owner returns a tuple of **WHD `CircleFeature` instances**, each with
+`FeatureAnchor.ABSOLUTE_FINISHED_FACE`, the source-attested mm center,
+`diameter=2*verified_radius_mm` and WHD `CUTTING`. This only supports
+`process=THROUGH_CUT`; `BLIND_HOLE` and `MARKING` deliberately fail closed
+until their fabrication classification and source-layer acceptance exist.
+WHD's existing `DoorPartSpec(features=..., feature_space="finished_face")`,
+`_door_features_for_legacy_engine` and `manufacturing_api.generate_part`
+remain the sole owner of finished-face → unfolded geometry and DXF output.
+A permanent test uses a real original source DXF, W-03 recheck, this typed
+handoff and a real WHD Door DXF reloaded with ezdxf. This is an internal
+partial W-04 acceptance, **not** a packaged Worker or a production release.
