@@ -35,8 +35,6 @@ PYTEST_PATHS = (
     "tests/test_issue2378_wire_minor_version.py",
     # #2379: real FinalScene DXF Save→Reload entire batch and rollback.
     "tests/test_issue2379_verified_finalscene_batch.py",
-    # #2379: fail-closed W-04 wire Feature bounds, matrix and frame envelope.
-    "tests/test_issue2379_wire_feature_preflight.py",
     # #1795: live Tk Main GUI / 3D revision, initialization, runtime-only sync.
     "tests/test_phase6_sync_envelope.py",
     # #1792: canonical full-file GUI/3D runtime performance acceptance.
@@ -516,6 +514,8 @@ PYTEST_PATHS = (
     # quantity manager; do not silently rely on legacy DXF-only test fixtures.
     "tests/test_receiving_inner_door_multi_switch_editor_gui_20261011.py",
     "tests/test_receiving_inner_door_version_gui_20261011.py",
+    # #2379: append without shifting existing deterministic 3-shard assignments.
+    "tests/test_issue2379_wire_feature_preflight.py",
 )
 
 
