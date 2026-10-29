@@ -355,3 +355,99 @@ def test_export_recheck_missing_or_unparseable_source_is_stale(tmp_path, broken)
         _recheck(request, receipt, export, root)
     assert exc.value.code == "WHD_PREPARE_STALE"
     assert not (tmp_path / "worker-output-not-created").exists()
+
+
+def _indicator_small_door_request(tmp_path, *, groups=(2, 1)):
+    """Use WHD's shared small-door owner, not hand-written frame dimensions."""
+    from ae_engine.contracts import ManufacturingContext
+    from ae_engine.manufacturing_api import (
+        expected_baseline_path_for, indicator_small_door_finished_size,
+        indicator_small_door_spec, resolve_policy,
+    )
+
+    root, registry, door_baseline = _root(tmp_path)
+    context = ManufacturingContext(resource_root=root)
+    policy = resolve_policy(context)
+    spec = indicator_small_door_spec(groups, thickness=2.0, context=context)
+    baseline = expected_baseline_path_for(spec, context)
+    assert baseline is not None
+    baseline = Path(baseline)
+    assert baseline.is_relative_to(root)
+    baseline.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(HERE / "基準檔" / "指示燈" / "小門.dxf", baseline)
+
+    width, height = indicator_small_door_finished_size(
+        groups, thickness=2.0, context=context,
+    )
+    request = _request()
+    part = request["items"][0]["part"]
+    part["kind"] = "indicator_small_door"
+    part["dimension_semantics"] = "part_formed_outer"
+    part["dimensions_mm"] = {"width": width, "height": height, "thickness": 2.0}
+    part["indicator_groups"] = list(groups)
+    del part["frame_edges"]
+    request["request_digest"] = compute_wire_request_digest(request)
+    return root, baseline, request, spec
+
+
+def test_indicator_small_door_uses_whd_shared_baseline_and_canonical_local_frame(tmp_path):
+    from ae_engine.contracts import ManufacturingContext
+    from ae_engine.manufacturing_api import door_finished_face_size
+
+    root, baseline, request, spec = _indicator_small_door_request(tmp_path)
+    response = _prepare(request, root)
+    Draft202012Validator(__import__("json").loads((
+        HERE / "integration_cli/schemas/response_v1_1.schema.json"
+    ).read_text(encoding="utf-8"))).validate(response)
+    assert response["status"] == "success"
+    assert response["manufacturing_verified"] is False
+    frame = response["items"][0]["target_frames"][0]
+    width, height = door_finished_face_size(spec, ManufacturingContext(resource_root=root))
+    assert frame["finished_face_dimensions_mm"] == {"width": width, "height": height}
+    assert frame["face_role"] == "front"
+    assert frame["axis_x"] == [1.0, 0.0, 0.0]
+    assert frame["axis_y"] == [0.0, 1.0, 0.0]
+    assert response["items"][0]["production_scope"] == "single_part"
+    assert baseline.exists()
+    retry = deepcopy(request)
+    retry["request_id"] = "safe-transport-retry"
+    assert _prepare(retry, root)["prepare_token"] == response["prepare_token"]
+    exported = _export_request_from_prepared(request, response)
+    _recheck(request, response, exported, root)
+    baseline.write_bytes(baseline.read_bytes() + b"\n999\nWHD-stale")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _recheck(request, response, exported, root)
+    assert exc.value.code == "WHD_PREPARE_STALE"
+
+
+@pytest.mark.parametrize("fault", [
+    "wrong_width", "wrong_height", "wrong_semantics",
+    "explicit_frame_edges", "explicit_frame_width", "explicit_gap",
+    "missing_groups", "invalid_groups", "extra_depth",
+])
+def test_indicator_small_door_source_claims_fail_closed_without_token(tmp_path, fault):
+    root, _, request, spec = _indicator_small_door_request(tmp_path)
+    part = request["items"][0]["part"]
+    dimensions = part["dimensions_mm"]
+    if fault == "wrong_width":
+        dimensions["width"] += 1.0
+    elif fault == "wrong_height":
+        dimensions["height"] += 1.0
+    elif fault == "wrong_semantics":
+        part["dimension_semantics"] = "cabinet_outer"
+    elif fault == "explicit_frame_edges":
+        part["frame_edges"] = {key: True for key in ("left", "right", "top", "bottom")}
+    elif fault == "explicit_frame_width":
+        part["frame_width_mm"] = 99.0
+    elif fault == "explicit_gap":
+        part["gap_w_mm"] = 4.0
+    elif fault == "missing_groups":
+        del part["indicator_groups"]
+    elif fault == "invalid_groups":
+        part["indicator_groups"] = [0]
+    elif fault == "extra_depth":
+        dimensions["depth"] = 100.0
+    request["request_digest"] = compute_wire_request_digest(request)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _prepare(request, root)
+    assert exc.value.code in ("WHD_FRAME_UNVERIFIED", "WHD_PREPARE_INPUT_INVALID")
