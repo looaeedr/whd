@@ -107,10 +107,16 @@ The subsequent W-03 implementation now provides:
   canonical physical-part identity, target Frame, locked dimensions and
   environment, including independent per-item preparation digests.
 - `prepare_batch.prepare_trusted_door_batch`: in-process, schema-validated
-  **Door-only** prepare: uses WHD `resolve_policy`, `door_finished_face_size`,
-  `expected_baseline_path_for`, Verified Registry/baseline byte hashes, and
-  four explicit Door layout `frame_edges` flags. It returns
-  `manufacturing_verified=false`; never emits DXF or checks out a real EXE.
+  **Door plus WHD-derived Indicator Small Door** prepare. Ordinary Door uses
+  `resolve_policy`, `door_finished_face_size`, four explicit layout
+  `frame_edges` and its own baseline. `indicator_small_door` requires
+  `part_formed_outer`, exact asserted finished-face width/height/thickness,
+  explicit `indicator_groups`, and **no** caller fold/gap/frame overrides.
+  WHD's `indicator_small_door_spec` + linked finished-face owner provide
+  the authoritative physical geometry and shared `指示燈/小門.dxf` baseline.
+  The same content-attested Registry/baseline, HMAC token and recheck apply;
+  it returns `manufacturing_verified=false`, never emits DXF or enables
+  a public EXE.
 
 **Remaining acceptance boundary:** the public Worker CLI is still not
 connected to this function; the trusted installation key's durable custody,
@@ -118,7 +124,10 @@ atomic journal, verified package resource manifest and no-clobber retries are
 W-06/W-05, and Windows Gate A is W-07. W-03 cannot claim public `prepare`
 support or a certified EXE until those verified dependencies are available.
 The present local Door frame MUST NOT be silently reused for EndCap,
-IndicatorBox, BoxBody or back/mirrored faces. The CADSplit-side original DXF
+IndicatorBox, BoxBody or back/mirrored faces; the **shared small door** is
+different: WHD explicitly represents it with its own `DoorPartSpec`
+helper, uses the verified front/local finished-face basis, and never claims
+a cabinet-world or arbitrary face datum. The CADSplit-side original DXF
 source frame/transform remains CADSplit's responsibility.
 
 
