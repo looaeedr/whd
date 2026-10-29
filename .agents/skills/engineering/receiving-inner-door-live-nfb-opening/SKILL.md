@@ -1,6 +1,10 @@
 ---
 name: receiving-inner-door-live-nfb-opening
 description: Ensure every NFB added in Receiving inner-door tab appears on original native hole editor with reversible draft
+whd_doc_role: CURRENT
+whd_contract: receiving-inner-door-live-nfb-opening
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Live native Receiving NFB preview
