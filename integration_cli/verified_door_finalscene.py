@@ -34,7 +34,7 @@ def _assert_original_circles_in_final_scene(render_data, mapped_circles) -> None
     adds a separate final X mirror and is NOT the oracle for this path.
     """
     from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
-    from ae_engine.sheetmetal_features import CircleFeature, RectFeature, ResolvedRect
+    from ae_engine.sheetmetal_features import CircleFeature, RectFeature, ProfileFeature, ResolvedRect
 
     actual = [
         p for p in render_data.scene.primitives
@@ -84,18 +84,23 @@ def _assert_original_circles_in_final_scene(render_data, mapped_circles) -> None
         if isinstance(p, PolylinePrimitive) and p.layer == "CUTTING" and p.closed
     ]
     for expected in mapped_circles:
-        if not isinstance(expected, RectFeature):
+        if isinstance(expected, RectFeature):
+            points = tuple(ResolvedRect(
+                center=expected.offset, width=expected.width, height=expected.height,
+                rotation_deg=expected.rotation_deg, layer="CUTTING",
+            ).points)
+        elif isinstance(expected, ProfileFeature):
+            # ProfileFeature holds source-transformed finished-face vertices.
+            # WHD maps its absolute anchor to the authoritative Door guide.
+            points = tuple(expected.offset + p for p in expected.points)
+        else:
             continue
-        points = tuple(ResolvedRect(
-            center=expected.offset, width=expected.width, height=expected.height,
-            rotation_deg=expected.rotation_deg, layer="CUTTING",
-        ).points)
         matches = []
         for poly in available:
             if same_closed_contour(poly.points, points):
                 matches.append(poly)
         if len(matches) != 1:
-            _reject("source-attested rectangular CUTTING contour missing or duplicated in FinalScene")
+            _reject("source-attested CUTTING contour missing or duplicated in FinalScene")
         available.remove(matches[0])
 
 
