@@ -35,6 +35,20 @@ def test_certified_t2_pair_produces_actual_annotated_check_q_dxf_and_bom(tmp_pat
         assert file.is_file()
         assert sha256(file.read_bytes()).hexdigest()==row["sha256"]
         entities=tuple(ezdxf.readfile(file).modelspace())
+        holes=tuple(e for e in entities
+                    if e.dxftype()=="CIRCLE" and e.dxf.layer=="CUTTING")
+        squares=tuple(e for e in entities
+                      if e.dxftype()=="LWPOLYLINE"
+                      and e.dxf.layer=="CUTTING" and e.closed)
+        if any(str(key).startswith("nfb_pad:") for key in row["source_ids"]):
+            # Raised switch screws are on PAD: four selected-CSV bores.
+            assert len(holes)==4
+            assert len(squares)==1
+        else:
+            # One direct-mounted switch keeps its four Base screw bores;
+            # the raised switch contributes four Base locator squares only.
+            assert len(holes)==4
+            assert len(squares)==9
         q=[e for e in entities if e.dxftype() in ("TEXT","MTEXT")
            and e.dxf.layer=="CHECK"]
         assert len(q)==1
