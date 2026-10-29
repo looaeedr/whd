@@ -209,6 +209,7 @@ def test_committed_real_dxf_readback_keeps_bytes_and_mtime_then_detects_tamper(t
     req = _w06_request(operation="export")
     ledger = DurableJobIdentityLedger(store)
     ledger.claim(req)
+    ledger.reserve_output_directories(req, trusted_directories=[output.parent])
     receipt = _w06_result(req)
     ledger.complete(req, receipt, trusted_artifacts={"whd-part-one": output})
     assert DurableJobIdentityLedger(store).claim(req).result == receipt
@@ -229,6 +230,7 @@ def test_completed_export_missing_output_refuses_success_readback(tmp_path):
     req = _w06_request(operation="export")
     ledger = DurableJobIdentityLedger(store)
     ledger.claim(req)
+    ledger.reserve_output_directories(req, trusted_directories=[output.parent])
     with pytest.raises(PrepareEvidenceError) as exc:
         ledger.complete(req, _w06_result(req), trusted_artifacts={})
     assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
@@ -303,3 +305,134 @@ def test_operation_is_part_of_durable_identity(tmp_path):
     ledger = DurableJobIdentityLedger(store)
     assert ledger.claim(_w06_request(operation="prepare")).state == "new"
     assert ledger.claim(_w06_request(operation="export")).state == "new"
+
+
+def _w06_real_output(path):
+    scene = ezdxf.new()
+    scene.modelspace().add_circle((12, 22), radius=3.5, dxfattribs={"layer": "CUTTING"})
+    scene.saveas(path)
+    assert len(ezdxf.readfile(path).modelspace().query("CIRCLE")) == 1
+    return path
+
+
+def test_cross_job_same_directory_lease_survives_restart_and_only_complete_releases(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    output_dir = tmp_path / "actual-outputs"
+    output_dir.mkdir()
+    first = _w06_request(operation="export", job="job-first")
+    second = _w06_request(operation="export", job="job-second")
+    ledger = DurableJobIdentityLedger(store)
+    assert ledger.claim(first).state == "new"
+    assert ledger.claim(second).state == "new"
+    key, = ledger.reserve_output_directories(first, trusted_directories=[output_dir])
+    assert key
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableJobIdentityLedger(store).reserve_output_directories(
+            second, trusted_directories=[output_dir]
+        )
+    assert exc.value.code == "WHD_OUTPUT_PATH_LOCKED"
+    # An interrupted first job has no right to release the lease on restart.
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableJobIdentityLedger(store).claim(first)
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    output = _w06_real_output(output_dir / "first.dxf")
+    ledger.complete(first, _w06_result(first), trusted_artifacts={"first": output})
+    assert DurableJobIdentityLedger(store).claim(first).state == "committed"
+    assert DurableJobIdentityLedger(store).reserve_output_directories(
+        second, trusted_directories=[output_dir]
+    ) == (key,)
+
+
+def test_multi_destination_reservation_is_all_or_none_even_on_conflict(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    output_a = tmp_path / "a"
+    output_b = tmp_path / "b"
+    output_a.mkdir()
+    output_b.mkdir()
+    first = _w06_request(operation="export", job="first-job")
+    second = _w06_request(operation="export", job="second-job")
+    third = _w06_request(operation="export", job="third-job")
+    ledger = DurableJobIdentityLedger(store)
+    for req in (first, second, third):
+        assert ledger.claim(req).state == "new"
+    ledger.reserve_output_directories(first, trusted_directories=[output_b])
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.reserve_output_directories(
+            second, trusted_directories=[output_b, output_a]
+        )
+    assert exc.value.code == "WHD_OUTPUT_PATH_LOCKED"
+    # A was NOT kept by second when B conflicted.
+    assert len(ledger.reserve_output_directories(
+        third, trusted_directories=[output_a]
+    )) == 1
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.reserve_output_directories(
+            second, trusted_directories=[output_a]
+        )
+    assert exc.value.code == "WHD_OUTPUT_PATH_LOCKED"
+
+
+def test_export_completion_without_exclusive_destination_lease_fails_closed(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    req = _w06_request(operation="export")
+    ledger = DurableJobIdentityLedger(store)
+    ledger.claim(req)
+    output = _w06_real_output(output_dir / "actual.dxf")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.complete(req, _w06_result(req), trusted_artifacts={"part": output})
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    ledger.reserve_output_directories(req, trusted_directories=[output_dir])
+    ledger.complete(req, _w06_result(req), trusted_artifacts={"part": output})
+
+
+def test_output_directory_lease_rejects_relative_missing_duplicate_and_symlink(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    output = tmp_path / "real"
+    output.mkdir()
+    req = _w06_request(operation="export")
+    ledger = DurableJobIdentityLedger(store)
+    ledger.claim(req)
+    invalid = ([Path("relative-directory")], [tmp_path / "missing"], [output, output])
+    for dirs in invalid:
+        with pytest.raises(PrepareEvidenceError) as exc:
+            ledger.reserve_output_directories(req, trusted_directories=dirs)
+        assert exc.value.code == "WHD_OUTPUT_PATH_INVALID"
+    alias = tmp_path / "alias"
+    try:
+        alias.symlink_to(output, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("filesystem symlinks unavailable")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.reserve_output_directories(req, trusted_directories=[alias])
+    assert exc.value.code == "WHD_OUTPUT_PATH_INVALID"
+
+
+def test_two_different_jobs_racing_one_directory_have_exactly_one_lease(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    target = tmp_path / "output"
+    target.mkdir()
+    ledger = DurableJobIdentityLedger(store)
+    requests = [_w06_request(operation="export", job=f"job-{i}") for i in range(8)]
+    for request in requests:
+        assert ledger.claim(request).state == "new"
+
+    def reserve(request):
+        try:
+            DurableJobIdentityLedger(store).reserve_output_directories(
+                request, trusted_directories=[target]
+            )
+            return "winner"
+        except PrepareEvidenceError as exc:
+            return exc.code
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(reserve, requests))
+    assert results.count("winner") == 1
+    assert results.count("WHD_OUTPUT_PATH_LOCKED") == 7
