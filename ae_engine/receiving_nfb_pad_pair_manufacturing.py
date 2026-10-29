@@ -53,16 +53,18 @@ def _require_real_base_cutting_only(parent, source_hole_count, pad_count):
     circles=[row for row in cutting if isinstance(row,CirclePrimitive)]
     polys=[row for row in cutting if isinstance(row,PolylinePrimitive)
            and row.closed]
-    # Current source Base has one real closed perimeter and four original
-    # ear-mount cuts; each installed NFB contributes four actual screw circles
-    # and each physical PAD contributes exactly four square cuts. The PAD
-    # slab witness already verified the 4 squares at exact source UV.
-    if (len(circles)!=4*source_hole_count
+    # The Base owns the four original EAR cuts and four locator squares
+    # for each raised NFB. Only directly mounted NFBs cut four screws into
+    # this Base; PAD-owned screws are CUTTING in the independent PAD sheet.
+    # The PAD slab witness already verifies each actual locator square.
+    if (len(circles)!=4*(source_hole_count-pad_count)
             or len(polys)!=5+4*pad_count
             or len(cutting)!=len(circles)+len(polys)):
         raise ValueError("PAD_PAIR_BASE_UNRECOGNIZED_CUTTING_OR_HOLE_COUNT")
-    if (len(tuple(meta.get("nfb_v5_hole_ids") or ()))!=source_hole_count
-            or len(tuple(meta.get("nfb_v5_pad_square_owners") or ()))!=pad_count):
+    if (source_hole_count < pad_count
+            or len(tuple(meta.get("nfb_v5_hole_ids") or ()))!=source_hole_count
+            or len(tuple(meta.get("nfb_v5_pad_square_owners") or ()))!=pad_count
+            or len(tuple(meta.get("nfb_v5_pad_datum_centres_uv") or ()))!=pad_count):
         raise ValueError("PAD_PAIR_BASE_SOURCE_HOLE_OWNER_MISMATCH")
 
 

@@ -77,7 +77,7 @@ def test_committed_single_csv_is_automatically_cut_in_normal_source_scene():
     assert dict(base.render_data.metadata["nfb_v5_pad_square_owners"]) == {
         snap["nfb_config"]["holes"][1]["physical_hole_id"]: 4
     }
-    assert len(_screws(base)) == 8
+    assert len(_screws(base)) == 4  # raised NFB screws belong to its PAD sheet
     assert base.render_data.material.area < original.render_data.material.area
     assert base.render_data.unfolded_topology == original.render_data.unfolded_topology
     assert base.render_data.metadata["nfb_trial_export_approved"] is False
@@ -213,7 +213,7 @@ def test_existing_editor_csv_feature_is_alias_not_duplicate_source():
     assert output[0].part_key == panel.stable_id
     assert output[0].render_data.scene.primitives == proof.render_data.scene.primitives
     assert output[0].render_data.material.equals(proof.render_data.material)
-    assert len(_screws(output[1])) == 8
+    assert len(_screws(output[1])) == 4  # original NFB direct Base only
     # The committed source features are never edited, cleared or duplicated.
     assert snap["part_features"][panel.stable_id] == aliases
 
@@ -281,7 +281,7 @@ def test_saved_native_hole_editor_position_drives_screws_without_second_x_input(
     )
     original = _make(snap)
     processed = apply_committed_csv_v5_to_canonical_parts(snap, (original,))
-    assert len(_screws(processed[0])) == 8
+    assert len(_screws(processed[0])) == 4  # PAD-mounted NFB uses its own 4 CUTTING circles
     assert tuple(aliases) == snap["part_features"][panel.stable_id]
     assert processed[0].render_data.metadata["nfb_v5_hole_ids"] == (
         "nfb:0", "nfb:1",

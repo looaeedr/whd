@@ -57,7 +57,7 @@ def trial_v5_screws_on_existing_receiving_base(
     target: NfbActualBaseWorkFace,
     tier_slot_index: int | None = None,
 ) -> NfbV5ActualBaseScrewTrial:
-    """Physically subtract 4 V5 mounting circles per switch from ONE base.
+    """Cut V5 mounting circles only for switches without their own PAD.
 
     All switch installation centres must be on this existing plate's Y row.
     A separate physical base identity is required for a second vertical row;
@@ -130,9 +130,14 @@ def trial_v5_screws_on_existing_receiving_base(
             tooling=read_pad_tooling_rule(),
         )
         pad_by_selected_index = {p.switch_index:p for p in generated}
+    # Mechanical clearance checks consider every selected screw footprint,
+    # but the Base CUTTING sheet owns only direct-mounted screw holes.
+    # Raised NFB screws are CUTTING on their independent PAD sheet.
     footprints = []
+    base_cut_footprints = []
     patterns = []
     pad_square_groups = []
+    pad_datum_centres = []
     source_brands = {entry.brand for entry in entries}
     # Bind this current geometry trial to the exact CSV source bytes; later
     # CHECK Q must reject a stale trial rather than silently reuse old holes.
@@ -203,6 +208,9 @@ def trial_v5_screws_on_existing_receiving_base(
         if pattern.screw_centres_uv_mm is None or len(pattern.screw_centres_uv_mm) != 4:
             raise ValueError("NFB V5 底板缺少四孔完整螺絲規格")
         radius = pattern.screw_diameter_mm / 2.0
+        pad = pad_by_selected_index.get(
+            pad_selected_indices[entry.physical_hole_id]
+        )
         for position in pattern.screw_centres_uv_mm:
             circ = Point(position).buffer(radius, quad_segs=32)
             if (not face_poly.contains(circ)
@@ -211,9 +219,8 @@ def trial_v5_screws_on_existing_receiving_base(
             if any(circ.intersects(earlier) for earlier in footprints):
                 raise ValueError("NFB V5 底板新增螺絲孔互相碰撞")
             footprints.append(circ)
-        pad = pad_by_selected_index.get(
-            pad_selected_indices[entry.physical_hole_id]
-        )
+            if pad is None:
+                base_cut_footprints.append(circ)
         if pad is not None:
             squares = project_pad_base_squares(datum, pad)
             for vertices in squares:
@@ -225,13 +232,26 @@ def trial_v5_screws_on_existing_receiving_base(
                 if any(polygon.intersects(old) for old in footprints):
                     raise ValueError("PAD 方孔與螺絲孔／其他 NFB 干涉")
                 footprints.append(polygon)
+                base_cut_footprints.append(polygon)
             pad_square_groups.append((entry.physical_hole_id,squares))
+            pad_datum_centres.append((
+                entry.physical_hole_id,
+                tuple(float(v) for v in datum.uv_centre_mm),
+                entry.rotation_deg,
+            ))
         patterns.append(pattern)
 
     if source_hashes() != csv_sha:
         raise ValueError("NFB V5 CSV 驗算期間來源資料已變更")
     scene = DrawingScene(list(baseline.scene.primitives))
     for entry, pattern in zip(selected_entries, patterns):
+        # Four selected-NFB screw holes belong to its PAD web when raised.
+        # Their XY footprint still participates in collision/fit validation,
+        # but must NOT be machined a second time into the Base Plate.
+        if entry.physical_hole_id in {
+            owner for owner, _squares in pad_square_groups
+        }:
+            continue
         for index, centre in enumerate(pattern.screw_centres_uv_mm, start=1):
             scene.add_circle(
                 centre, pattern.screw_diameter_mm / 2.0,
@@ -243,7 +263,7 @@ def trial_v5_screws_on_existing_receiving_base(
         for square in squares:
             scene.add_polyline(square,layer="CUTTING",closed=True,color=30)
     material = material_polygon_from_final_scene(scene)
-    expected = baseline.material.difference(unary_union(footprints))
+    expected = baseline.material.difference(unary_union(base_cut_footprints))
     if (material.is_empty or not material.is_valid
             or material.symmetric_difference(expected).area > 1e-4
             or baseline.material.area <= material.area):
@@ -260,6 +280,9 @@ def trial_v5_screws_on_existing_receiving_base(
             "nfb_v5_pad_square_owners":tuple(
                 (hole_id,len(squares)) for hole_id,squares in pad_square_groups
             ),
+            # Original selected CSV datum, used to independently verify the
+            # four *real* Base locator cutouts when the screw holes are on PAD.
+            "nfb_v5_pad_datum_centres_uv":tuple(pad_datum_centres),
             "nfb_v5_pad_manufacturing_ready":False,
             "nfb_v5_target_role": "base-plate",
             "nfb_base_mfg2_release_approved": False,

@@ -27,14 +27,14 @@ def verify_real_pad_base_square_cuts(
     render_data, pattern: PadPattern, *, owner_hole_id: str,
     rotation_deg: int,
 ) -> tuple[tuple[tuple[float, float], ...], ...]:
-    """Prove the four holes are *really cut* at this model's installed UV.
+    """Verify real Base locator squares using the original committed CSV datum.
 
-    Metadata counts alone are insufficient: a stale/damaged FinalScene may
-    claim 4 locator openings although those exact CUTTING polygons are gone.
-    Anchor the installation centre from the model's four actual source-
-    identified V5 screw circles, then require the complete four polygons.
-    Nothing is inferred from a paper DXF origin or a brand-specific constant.
+    A raised NFB's four mounting screw circles are present in the separate
+    PAD sheet, not in this Base. The source-projected Base centre/rotation is
+    retained by the physical trial and every corresponding square is then
+    checked against actual CUTTING and the material subtraction.
     """
+    from math import isfinite
     from shapely.geometry import Polygon
     from .receiving_nfb_v5_configured_inner_door import AXES
     from .sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
@@ -44,33 +44,32 @@ def verify_real_pad_base_square_cuts(
         raise TypeError("PAD_BASE_ACTUAL_FINALSCENE_REQUIRED")
     if type(rotation_deg) is not int or rotation_deg not in AXES:
         raise ValueError("PAD_BASE_SELECTED_ROTATION_MISSING")
-    source_circles=tuple(p for p in render_data.scene.primitives
+    # Never accept a duplicate raised NFB screw CUTTING circle on the Base.
+    old_base_screws=tuple(p for p in render_data.scene.primitives
         if isinstance(p, CirclePrimitive) and p.layer=="CUTTING"
-        and p.source_type=="NFB_V5_NUMERIC_BASE_TRIAL"
         and p.source_id is not None
         and p.source_id.startswith(str(owner_hole_id)+":screw:"))
-    if len(source_circles)!=4:
-        raise ValueError("PAD_BASE_FOUR_SOURCE_SCREWS_NOT_PRESENT")
+    if old_base_screws:
+        raise ValueError("PAD_BASE_RAISED_NFB_SCREWS_MUST_BE_ON_PAD")
+    source=render_data.metadata or {}
+    owners=tuple(source.get("nfb_v5_pad_datum_centres_uv") or ())
+    found=tuple(row for row in owners
+        if isinstance(row,(tuple,list)) and len(row)==3
+        and row[0]==owner_hole_id)
+    if len(found)!=1:
+        raise ValueError("PAD_BASE_SELECTED_CSV_DATUM_MISSING")
+    _, raw_centre, stored_rotation=found[0]
+    if (stored_rotation!=rotation_deg or type(stored_rotation) is not int
+            or not isinstance(raw_centre,(tuple,list)) or len(raw_centre)!=2
+            or any(type(v) not in (int,float) or not isfinite(float(v))
+                   for v in raw_centre)):
+        raise ValueError("PAD_BASE_SELECTED_CSV_DATUM_DRIFT")
+    origin=tuple(float(v) for v in raw_centre)
     ux,uy=AXES[rotation_deg]
     def rotate(xy):
         x,y=map(float,xy)
         return (x*ux[0]+y*uy[0],x*ux[1]+y*uy[1])
-    source_screws=tuple(map(rotate,pattern.base_screw_centres_xy_mm))
-    observed=tuple((float(p.center.x),float(p.center.y)) for p in source_circles)
-    mean_source=(sum(p[0] for p in source_screws)/4,
-                 sum(p[1] for p in source_screws)/4)
-    origin=(sum(p[0] for p in observed)/4-mean_source[0],
-            sum(p[1] for p in observed)/4-mean_source[1])
     tol=1e-5
-    def quantized(xy):
-        return tuple(round(float(a),5) for a in xy)
-    wanted_screws={
-        quantized((origin[0]+x,origin[1]+y)) for x,y in source_screws
-    }
-    if ({quantized(xy) for xy in observed}!=wanted_screws
-            or any(abs(2*float(p.radius)-pattern.screw_diameter_mm)>tol
-                   for p in source_circles)):
-        raise ValueError("PAD_BASE_SELECTED_CSV_SCREW_DATUM_DRIFT")
     expected=tuple(tuple(
         (origin[0]+rotate(vertex)[0],origin[1]+rotate(vertex)[1])
         for vertex in square

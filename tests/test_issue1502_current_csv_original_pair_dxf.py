@@ -60,8 +60,9 @@ def test_normal_existing_pair_export_writes_two_verified_actual_csv_dxfs(tmp_pat
     b = ezdxf.readfile(base).modelspace()
     assert len([p for p in a if p.dxftype()=="LWPOLYLINE"
                 and p.closed and p.dxf.layer=="CUTTING"]) >= 2
+    # 2P400 is direct-mounted; the shallower 3P125SN is drilled on PAD.
     assert len([p for p in b if p.dxftype()=="CIRCLE"
-                and p.dxf.layer=="CUTTING"]) == 8
+                and p.dxf.layer=="CUTTING"]) == 4
     # Today's committed Flat source has its original one perimeter +
     # four EAR slots, plus source-verified PAD square locator CUTTING.
     # Compare every saved polygon to the ACTUAL resolved FinalScene, rather
@@ -413,7 +414,7 @@ def test_ac11_ac51_swt27_swt30_current_v5_never_needs_legacy_model_dxf_input(
     assert sum(
         entity.dxftype() == "CIRCLE" and entity.dxf.layer == "CUTTING"
         for entity in base
-    ) == 4 * len(refs)
+    ) == 4  # the second, raised NFB's quartet belongs to its PAD
     assert actual.source_hole_ids == ("nfb:0", "nfb:1")
     assert len(actual.check_q_key) == 64
 
@@ -445,8 +446,9 @@ def test_ac11_current_numeric_v5_two_models_real_pivot_and_upper_door_lower_base
 
     No original per-model DXF ARC/CIRCLE/color/handle is mandatory. Confirm
     two independently selected CSV models + live world X, four rotations,
-    one main CUTTING per model in true INNER-DOOR DXF, 8 screw CUTTING
-    circles on real BASE DXF, native FinalScene equality and no double cut.
+    one main CUTTING per model in true INNER-DOOR DXF, direct-mount
+    screw CUTTING on BASE only (raised NFB screws on separate PAD),
+    native FinalScene equality and no double cut.
     Historic model-DXF parser is forbidden for this CURRENT route.
     """
     from ae_engine import receiving_nfb_dxf_source as legacy
@@ -544,7 +546,7 @@ def test_ac11_current_numeric_v5_two_models_real_pivot_and_upper_door_lower_base
         if isinstance(p, CirclePrimitive)
         and p.source_type == "NFB_V5_NUMERIC_BASE_TRIAL"
     )
-    assert len(saved_screws) == len(from_scene) == 8
+    assert len(saved_screws) == len(from_scene) == 4  # raised NFB on PAD, not Base
     assert saved_screws == from_scene
     # This is physical source-scoped partial output, NOT automatic MFG2 PAD.
     assert not list(tmp_path.glob("*PAD*.dxf"))

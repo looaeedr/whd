@@ -42,6 +42,7 @@ def _choose_pair(root, state):
 def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_path):
     import gui
     import fold_designer_bridge as bridge
+    from unittest.mock import patch
     from phase6_manufacturing_adapter import build_scene_payload_for_app, _canonical_part_keys
     from phase6_part_navigation import operator_part_selector_keys,operator_part_label
 
@@ -92,6 +93,27 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
         assert identity in operator_part_selector_keys(
             designer.designer_workspace.available_parts)
         assert "墊高片" in operator_part_label(identity,snapshot=snap)
+
+        # Reproduce a transient stale workspace feature stash: canonical
+        # committed snapshot + assembly have a genuine PAD, but the old
+        # workspace-first navigation erased its 2D entry on a resync.
+        # A confirmed submitted root must outrank old editor features.
+        assert snap["part_features"]
+        stale_features = {
+            key: [] for key in snap["part_features"]
+            if str(key).startswith("inner_door:")
+        }
+        assert stale_features
+        with patch.object(
+            designer.designer_workspace,"part_features_snapshot",
+            return_value=stale_features,
+        ):
+            bridge._phase6_sync_authoritative_derived_parts(designer)
+        assert identity in designer.designer_workspace.available_parts, (
+            "PAD_ASSEMBLY_VISIBLE_BUT_2D_PART_SELECTOR_MISSING", identity
+        )
+        assert identity in operator_part_selector_keys(
+            designer.designer_workspace.available_parts)
         assert identity not in _canonical_part_keys(designer)
 
         payload=build_scene_payload_for_app(designer,identity)
