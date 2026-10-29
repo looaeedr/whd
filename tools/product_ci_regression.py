@@ -616,10 +616,41 @@ _THREE_SHARD_SUITES = {
 }
 
 
+# Whole-file slow-suite isolation in the ten-runner experiment.
+# Exact, measured examples (2026-10-29, run 40872352796):
+#   issue517 GUI live switching: repeated 7-17s native Tk/DXF cases;
+#   issue1469 v15 acceptance: 28.43s + 20.90s cases;
+#   issue1463 receiving modes: 36.74s + 26.59s cases;
+#   issue1466 quantity BOM: six 13-15s receiving variants;
+#   t15 inner-door panels: 37.65s actual Save->Reload/DXF case.
+# Do NOT put two of these suites into the same shard. Remaining selectors
+# are assigned only to shards 5..9 in their canonical relative order.
+# No selectors/expectations are altered; every shard retains its own Xvfb.
+_TEN_SHARD_DEDICATED_SUITES = (
+    "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+    "tests/test_issue1469_v15_acceptance.py",
+    "tests/test_issue1463_receiving_modes.py",
+    "tests/test_issue1466_quantity_bom.py",
+    "tests/test_phase6_t15_inner_door_panels.py",
+)
+
+
 def shard_paths(index: int, count: int) -> tuple[str, ...]:
-    """Partition the exact canonical case selectors, never sample or drop any."""
+    """Partition exact canonical selectors, with measured ten-shard isolation."""
     if count < 1 or count > len(PYTEST_PATHS) or not 0 <= index < count:
         raise ValueError(f"invalid regression shard {index}/{count}")
+    if count == 10:
+        dedicated = _TEN_SHARD_DEDICATED_SUITES
+        if len(set(dedicated)) != len(dedicated) or any(
+            PYTEST_PATHS.count(path) != 1
+            or any(item.startswith(path + "::") for item in PYTEST_PATHS)
+            for path in dedicated
+        ):
+            raise ValueError("ten-shard dedicated suite ownership is invalid")
+        if index < len(dedicated):
+            return (dedicated[index],)
+        remaining = tuple(path for path in PYTEST_PATHS if path not in dedicated)
+        return remaining[(index - len(dedicated))::(count - len(dedicated))]
     if count != 3:
         return PYTEST_PATHS[index::count]
     return tuple(
