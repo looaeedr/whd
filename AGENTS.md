@@ -7,6 +7,15 @@ whd_schema: WHD_DOC_META_V1
 
 # WHD 開發與本地整合規則
 
+## 批次修改 → 本地定向測試 → 單次完整 PR CI \`BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1\`
+
+- 同一個 Bug 或可獨立驗收的小功能，先完成**同一批**相關程式、真正的 RED 重現與最小修復，確定需要的單元、GUI、DXF/Save→Reload、製造測試；用 \`tools/quick_test.py\` 在**實際有權操作的工作區**跑定向 RED→GREEN，必要時做受影響模組整合驗證，通過後原則上**一次 commit／push／PR 提交候選**，再交 GitHub 跑**一輪 exact HEAD 完整必要驗收**。不得每改一個檔就先丟一次完整產品 CI；若新 SHA 是 CI 失敗修正，仍須新 SHA 的完整必要 CI，不沿用舊 GREEN。
+- Windows 使用者可在自己的 \`Z:\localX\` 執行 \`WHD_quick_test.bat --test tests/test_example.py::test_case\`，或在已修改測試檔時 \`WHD_quick_test.bat --auto\`；雲端/GitHub 施工者在**合法已授權的雲端執行器**用 \`python tools/quick_test.py --test ...\`。沒有真正執行就標 \`TARGETED_NOT_RUN\`，不得把命令產生、\`--dry-run\` 或 CI 之外的結果冒充實測；這**不**授權 AI 讀取／操作 Windows、DC、RC 或任意本機 shell。未指定可判斷 BUG 的測試時 fail-closed \`NEEDS_EXPLICIT_TEST\`，先補真重現。
+- \`tools/quick_test.py\` **只選擇和執行本地 pytest**，保留 \`tools/change_test_profile.py::build_fast_feedback\` 的原有安全選路，不做 git add、commit、push 或製造資料修改；禁止本地測試綠燈取代 GitHub \`WHD Product Regression\`、治理獨立安全閘門、exact SHA／PR 與必要 Windows 人工驗收。
+- 一般產品 PR 的唯一**完整產品回歸主入口**仍是 \`.github/workflows/whd-product-regression.yml\`，現行 18 分片及所有 canonical selectors 必跑，不使用過期「42+1」歷史清單削減現有測試。治理／正式發布 safety gate 與尚未證實已被 canonical 覆蓋的真 CADCraft、DXF／效能等獨立證據，不可因名稱為「專項」便直接取消；舊專項 CI 若已逐案驗證完整等價覆蓋，才可移至 \`workflow_dispatch\` 或明確的專用分支，並留下觸發路由與證據。
+- 現有 \`cancel-in-progress: true\` 只取消**同一 PR 的舊 head**，不取消其他 PR；既有 \`setup-python cache: pip\` 與 Xvfb 安裝探測沿用，不另建快取系統。提交前盡量成批完成 RED→GREEN 減少被取消的完整回歸與重複環境建立。
+- CI RED 立即定位 failed node，留在同一 Issue／PR 做定向回修；CI GREEN 經 scope、exact SHA、base drift、mergeable 核對後直接安全合併遠端 \`localX\`、回讀與原 Issue 收尾，不把「等下一步指令」當停止理由。正式 \`X\` 只由當次 \`/推推\` 發布；本機 \`Z:\localX\` 是否同步、GUI/UAT 是否已做均按真實證據回報。
+
 ## 日常施工來源硬閘門 `LOCALX_DEVELOPMENT_SOURCE_AUTHORITY_V1`
 
 - **唯一日常施工與治理修改基準是 GitHub `localX`**：啟動時明確取得 `ref=localX` 的最新 HEAD，讀同一 HEAD 的 `AGENTS.md`／CURRENT Skill／產品程式與規格。新工作分支從此 HEAD 建立，既有分支先核對與最新 `localX` 的差異；產品／治理 PR 的 base 預設 `localX`，通過 exact SHA CI 後合回 GitHub `localX`。

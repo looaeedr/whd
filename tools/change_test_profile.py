@@ -90,6 +90,8 @@ _GOVERNANCE_TOOL_EXACT = {
     "tools/phase6_skill_preflight.py",
     "tools/knowledge_governance.py",
     "tools/interactive_command_no_stop_gate.py",
+    "tools/quick_test.py",
+    "WHD_quick_test.bat",
 }
 
 
