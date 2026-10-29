@@ -82,6 +82,15 @@ def export_current_receiving_multibay_dxf(
         logical={p.part_key for p in actual.parts}
         if len(logical)!=len(actual.parts):
             raise ValueError("RECEIVING_MULTIBAY_DUPLICATE_LOGICAL_PHYSICAL_OWNER")
+        # Explicitly selecting Base requires an actual physical Base owner in
+        # EVERY Bay. An UNCONFIGURED Bay (or a stale FinalScene provider) must
+        # not silently produce a partial batch omitting the selected sheet.
+        if bool(flags.get("base_plate")) and not any(
+                key=="base_plate" or key.startswith("base_plate:nfb_layer:")
+                for key in logical):
+            raise ValueError(
+                "RECEIVING_MULTIBAY_SELECTED_BASE_PLATE_PHYSICAL_SOURCE_MISSING"
+            )
         only_independent_intent=(
             any(bool(flags.get(key)) for key in ("head", "tail", "door"))
             and not any(bool(value) for key,value in flags.items()
