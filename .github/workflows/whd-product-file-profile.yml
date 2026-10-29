@@ -37,13 +37,19 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Validate exact file inventory and summary contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest -q tests/process/test_product_file_profile.py
       - name: Export both disjoint per-file matrices
         id: matrix
         shell: bash
         run: |
           set -euo pipefail
-          echo "batch_a=$(python tools/product_file_profile.py matrix --batch 0)" >> "$GITHUB_OUTPUT"
-          echo "batch_b=$(python tools/product_file_profile.py matrix --batch 1)" >> "$GITHUB_OUTPUT"
+          echo "batch_a=$(python -m tools.product_file_profile matrix --batch 0)" >> "$GITHUB_OUTPUT"
+          echo "batch_b=$(python -m tools.product_file_profile matrix --batch 1)" >> "$GITHUB_OUTPUT"
           echo "WHD_PROFILE_MATRIX_GREEN"
   profile-a:
     name: Profile A (${{ matrix.file_index }})
@@ -82,7 +88,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python tools/product_file_profile.py run \
+          python -m tools.product_file_profile run \
             --index "${{ matrix.file_index }}" \
             --output "file-profile-${{ matrix.file_index }}.json"
       - name: Retain individual file receipt
@@ -131,7 +137,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python tools/product_file_profile.py run \
+          python -m tools.product_file_profile run \
             --index "${{ matrix.file_index }}" \
             --output "file-profile-${{ matrix.file_index }}.json"
       - name: Retain individual file receipt
@@ -164,7 +170,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          python tools/product_file_profile.py summary \
+          python -m tools.product_file_profile summary \
             --repo "$GITHUB_REPOSITORY" \
             --run-id "$GITHUB_RUN_ID" \
             --out file-profile-results
