@@ -565,6 +565,7 @@ def refresh_part_selector(
     refresh_structure_tree: Callable[[], object],
     refresh_content_switch: Callable[[], object],
     refresh_status_bar: Callable[[], object],
+    menu_only: bool = False,
 ):
     """Project current operator navigation identities into the compact part menu."""
     host.part_buttons = {}
@@ -610,6 +611,14 @@ def refresh_part_selector(
             host.part_var.set(label_for_key("box_body", snapshot=snapshot))
         elif active in getattr(host, "available_parts", ()):
             host.part_var.set(label_for_key(active, snapshot=snapshot))
+
+    # Derived Part topology may refresh while a separate modal/assembly
+    # control is active. Rebuilding only this menu + tree must not tear down
+    # the independent EAR/PAD visibility controls or change canvas mode.
+    if menu_only:
+        refresh_button_states()
+        refresh_structure_tree()
+        return
 
     # A Family switch can preserve Assembly mode without re-entering it.
     # Project the sole Receiving multi-settings entry whenever navigation
