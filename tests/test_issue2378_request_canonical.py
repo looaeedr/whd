@@ -868,3 +868,37 @@ def test_private_original_backup_manifest_reopens_in_second_process(tmp_path):
     )
     assert proc.stdout.strip() == "1"
     assert old.exists()
+
+
+def test_private_original_backup_refuses_customer_mutation_before_first_copy(tmp_path):
+    store, target, old, _, _, req, ledger = _w06_backup_context(tmp_path)
+    old.write_bytes(old.read_bytes() + b"\n999\nchanged-before-backup")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableOriginalBackupEvidence(ledger).create_verified_original_backups(
+            req, trusted_output_dir=target
+        )
+    assert exc.value.code in ("WHD_JOB_RECOVERY_REQUIRED", "WHD_JOB_STAGING_STALE")
+    assert not list(target.glob(".whd-w06-original-backup-*"))
+    assert not (target / "part-two.dxf").exists()
+
+
+def test_private_original_backup_can_attest_no_prior_customer_file_without_creating_one(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    target = tmp_path / "customer-output"
+    target.mkdir()
+    stage = _w06_staged_dxf(target, "part-one")
+    req = _w06_request(operation="export")
+    ledger = DurableJobIdentityLedger(store)
+    ledger.claim(req)
+    ledger.reserve_output_directories(req, trusted_directories=[target])
+    ledger.record_staged_batch_snapshot(
+        req, trusted_output_dir=target, trusted_staged={"part-one": stage}, overwrite=False
+    )
+    manifest = DurableOriginalBackupEvidence(ledger).create_verified_original_backups(
+        req, trusted_output_dir=target
+    )
+    assert manifest["backups"] == {}
+    assert DurableOriginalBackupEvidence(DurableJobIdentityLedger(store)).require_current(req) == manifest
+    assert not (target / "part-one.dxf").exists()
+    assert len(ezdxf.readfile(stage).modelspace().query("CIRCLE")) == 1
