@@ -342,8 +342,15 @@ def test_original_source_rectangle_and_circle_survive_real_finalscene_batch(tmp_
 
 
 
-def test_finalscene_crossed_rectangle_contour_rejected_before_staging(tmp_path, monkeypatch):
-    """Correct corners in crossed order are NOT a canonical rectangular CUTTING path."""
+@pytest.mark.parametrize(("order", "accepted"), [
+    ((0, 2, 1, 3), False),  # crossed bow-tie: exact same four coordinates
+    ((1, 2, 3, 0), True),   # rotated start index: same edge cycle
+    ((0, 3, 2, 1), True),   # reverse winding: same edge cycle
+])
+def test_finalscene_rectangle_contour_requires_canonical_edge_cycle(
+    tmp_path, monkeypatch, order, accepted,
+):
+    """Accept cyclic start/reversed winding; never accept crossed edges."""
     from ae_engine.sheetmetal_drawing import PolylinePrimitive
     from ae_engine.sheetmetal_features import RectFeature, ResolvedRect
 
@@ -388,19 +395,24 @@ def test_finalscene_crossed_rectangle_contour_rejected_before_staging(tmp_path, 
         for primitive in render.scene.primitives:
             if same_corners(primitive):
                 p = primitive.points
-                # Preserve exact four coordinates and bbox, but cross the edges.
-                altered.add(replace(primitive, points=(p[0], p[2], p[1], p[3])))
+                # Preserve every source-attested coordinate and bounding box.
+                altered.add(replace(primitive, points=tuple(p[i] for i in order)))
                 tampered.append(True)
             else:
                 altered.add(primitive)
         return replace(render, scene=altered)
 
     monkeypatch.setattr(api, "build_part_render_data", cross_original_rectangle)
-    with pytest.raises(PrepareEvidenceError) as exc:
-        _save(batch, target)
+    if accepted:
+        output = _save(batch, target)
+        assert len(output) == 2
+        assert len(list(target.glob("*.dxf"))) == 2
+    else:
+        with pytest.raises(PrepareEvidenceError) as exc:
+            _save(batch, target)
+        assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED"
+        assert not target.exists()
     assert tampered == [True], "test must alter the real source-derived RECT"
-    assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED"
-    assert not target.exists()
 
 
 @pytest.mark.parametrize("fault", ["open", "bulge", "tiny_bulge", "vertex_width", "const_width", "thickness", "tiny_thickness", "bow_tie", "slanted", "claimed_width"])
