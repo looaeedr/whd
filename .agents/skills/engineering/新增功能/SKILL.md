@@ -48,6 +48,8 @@ GUI 上畫出一條孔邊不能冒充 3D 實體真的有孔，預覽不能替代
 
 ## 第三關 — TEST GATE（實作、測試、回修）
 
+小功能先依當次真實影響鏈選出一個可判斷需求的 pytest node；用 `tools/change_test_profile.py --feedback-test <真實 node-id>` 取得 `fast_feedback.command`，在合法雲端執行器做最小 FEATURE_ACCEPTANCE RED→GREEN，必要時加受影響子系統測試。`NEEDS_EXPLICIT_TEST` 代表來源不足、須找真測試，不得猜測。此回饋只加速開發，**不是**免完整 `PRODUCT_FULL_REGRESSION` 或 Windows 人工驗收。無合法執行器就回報尚未執行，不冒稱 GREEN。
+
 一般 `/功能 新增` 採既有 `/派工` 位置規則：GitHub localX 分支、GitHub／SCHEDULER／REMOTE_ACTION 施工；不可偷用本機。必要時新增 **FEATURE_ACCEPTANCE、UNIT_OR_COMPONENT、AFFECTED_SUBSYSTEM、INTEGRATION** 案例，驗證使用者真實操作結果，不以「沒當機」充數。
 
 依 `WHD_CHANGE_TEST_PROFILE_V1`／`tools/change_test_profile.py` 的 `FEATURE` 類型與實際 diff，補適用的 **UI／GEOMETRY** overlay，包括 Tk/Xvfb、Save→Reload、DXF、2D/3D 真正 seam，最後完成必要的 **PRODUCT_FULL_REGRESSION** 和 PR exact SHA CI。CI 失敗沿同一 Issue／PR 修復與新 SHA 重測，不在 queued/in_progress 或 PR 建立時宣告完成。
