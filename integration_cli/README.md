@@ -162,6 +162,28 @@ request/receipt, enforce idempotency and re-run this guard at the final
 commit barrier (or prove an immutable snapshot). The W-01 public CLI
 keeps all manufacturing capabilities disabled.
 
+## W-06 private durable job-identity ledger (NOT public, #2380)
+
+`job_identity_ledger.DurableJobIdentityLedger` is a **Worker-internal**
+SQLite/WAL/FULL-sync identity reservation and completed-result readback seam.
+Its **installation-store root is trusted local Worker configuration**, never a
+wire request path. It recomputes the existing RFC 8785 request digest and
+reserves a unique `(client_installation_id, job_id, operation)` key with an
+immediate database transaction. Changing any semantic request value under the
+same key fails `WHD_JOB_ID_CONFLICT`; retrying an unfinished identity returns
+`WHD_JOB_RECOVERY_REQUIRED` and **does not render a second batch**. A
+completed result may be replayed unchanged only if its persisted receipt
+digest and all Worker-owned artifact file SHA256/size/mtime evidence still
+match; missing, changed or symlinked artifacts require recovery. An export
+cannot record completion with zero verified physical artifacts. A changed
+transport-only `request_id` cannot change job identity.
+
+**This is not the rest of W-06:** there is no cross-job destination lock,
+multi-file durable commit journal / rollback / roll-forward, safe cancellation
+or crash-recovery owner. Consequently this private ledger is NOT wired into
+W-01 public `cadsplit_worker.py`, nor does it activate job-result readback
+capabilities or certify a Windows EXE. Full W-06 and Gate A must still pass.
+
 ## W-04 internal real DXF Save→Reload batch
 
 The manufacturing owner now exposes an internal
