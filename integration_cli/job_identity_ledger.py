@@ -317,6 +317,24 @@ class DurableJobIdentityLedger:
                     raise PrepareEvidenceError(
                         "WHD_JOB_RECOVERY_REQUIRED", "export output directories were never exclusively reserved"
                     )
+                reserved_keys = {
+                    row[0] for row in conn.execute(
+                        """SELECT directory_key FROM output_directory_leases
+                           WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",
+                        (client, job, op, digest),
+                    )
+                }
+                for attested in proofs.values():
+                    # Every physical file must reside directly within this
+                    # job's exclusively held directory; merely locking A
+                    # cannot certify a manufactured output in directory B.
+                    actual_directory, = _output_directory_keys(
+                        [Path(attested["path"]).parent]
+                    )
+                    if actual_directory not in reserved_keys:
+                        raise PrepareEvidenceError(
+                            "WHD_JOB_RECOVERY_REQUIRED", "attested output escaped its reserved directory"
+                        )
             conn.execute(
                 """UPDATE jobs SET state='committed',result_json=?,result_sha256=?,artifact_json=?
                    WHERE client_id=? AND job_id=? AND operation=?""",
