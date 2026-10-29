@@ -522,12 +522,14 @@ def save_verified_final_scene_batch_dxf(
     *,
     pre_commit_guard,
     overwrite: bool = False,
+    durable_stage_commit=None,
 ) -> dict[str, str]:
     """Stage and independently Save→Reload every WHD-owned FinalScene part."""
     return _manufacturing_export.save_verified_final_scene_batch_dxf(
         parts, output_dir,
         save_part_render_data_dxf=save_part_render_data_dxf,
         pre_commit_guard=pre_commit_guard, overwrite=overwrite,
+        durable_stage_commit=durable_stage_commit,
     )
 
 
