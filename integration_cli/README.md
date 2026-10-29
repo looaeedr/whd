@@ -243,3 +243,36 @@ persisted circle at `x=total_width-pre_export_x`, while retaining the
 original Y/radius. Comparing the unmirrored internal Feature coordinate
 to the final DXF is a false RED. This does not change source geometry,
 WHD's mirror policy, PartSpec, or any CNC/DXF manufacturing formula.
+
+
+## W-04 authenticated Door FinalScene batch handoff (internal only)
+
+`verified_door_finalscene.save_trusted_door_circle_finalscene_batch` closes
+one **in-process** W-03 → W-04 gap. The caller supplies original Worker-owned
+prepare request/receipt and HMAC key, original source DXF paths, pinned engine
+identity and Registry/baseline resource root. The module first rechecks the
+entire immutable prepare/Frame/source envelope. It derives each DoorPartSpec
+from **the same W-03 policy-based adapter**, then reopens original DXF CIRCLE
+entities and creates only `THROUGH_CUT` WHD CircleFeatures with an internal
+source marker. The WHD-native scene builder must preserve the exact feature
+center, radius and CUTTING layer before any output directory is created.
+The batch then goes through the existing `save_verified_final_scene_batch_dxf`:
+all parts staged, independently Save→Reload-verified and guarded by W-03
+**before staging and again before commit**; a source SHA change at the second
+guard rejects the whole batch and preserves previous target DXFs. No per-part
+partial mode or original-source-free Door items are accepted.
+
+**Do not infer orientation from legacy `generate_part`:** the direct Door
+exporter mirrors X during its own serialization. The canonical FinalScene
+batch accepts WHD's pre-export drawing scene and independently tests its
+Saved/Reloaded CIRCLE coordinates. The two APIs have different DXF coordinate
+views; no second CADSplit mirror has been added.
+
+**Not yet usable as the public `export` operation:** this helper assumes
+trustworthy prepared-state and source-file custody supplied by an eventual
+W-06 Worker, which must still implement HMAC key protection, persistent job
+journal, output-path locks, cancellation, recovery and response manifest.
+The wire's `source_geometry_sha256` has no portable per-entity hash recipe;
+only the complete pinned source document bytes and measured direct planar
+CIRCLEs are verified. Rectangles, profiles, Head/Tail and Indicator remain
+fail closed. There is no Windows EXE release or manufacturing certification.
