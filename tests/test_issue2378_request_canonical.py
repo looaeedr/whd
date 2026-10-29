@@ -436,3 +436,27 @@ def test_two_different_jobs_racing_one_directory_have_exactly_one_lease(tmp_path
         results = list(pool.map(reserve, requests))
     assert results.count("winner") == 1
     assert results.count("WHD_OUTPUT_PATH_LOCKED") == 7
+
+
+def test_export_artifact_outside_reserved_output_directory_cannot_be_committed(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    reserved = tmp_path / "reserved"
+    elsewhere = tmp_path / "elsewhere"
+    reserved.mkdir()
+    elsewhere.mkdir()
+    req = _w06_request(operation="export")
+    ledger = DurableJobIdentityLedger(store)
+    ledger.claim(req)
+    ledger.reserve_output_directories(req, trusted_directories=[reserved])
+    outside = _w06_real_output(elsewhere / "wrong-output.dxf")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.complete(req, _w06_result(req), trusted_artifacts={"part": outside})
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    # The rejected completion must neither publish a result nor drop A's
+    # durable lock; a different job still cannot take over the target.
+    other = _w06_request(operation="export", job="other-job")
+    ledger.claim(other)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.reserve_output_directories(other, trusted_directories=[reserved])
+    assert exc.value.code == "WHD_OUTPUT_PATH_LOCKED"
