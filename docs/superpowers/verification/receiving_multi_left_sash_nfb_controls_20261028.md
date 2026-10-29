@@ -1,6 +1,7 @@
 ---
 whd_doc_role: CURRENT
 whd_contract: receiving-multi-nfb-operator-surface-single-editor-draggable-left
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
