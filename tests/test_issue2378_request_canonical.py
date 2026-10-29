@@ -460,3 +460,167 @@ def test_export_artifact_outside_reserved_output_directory_cannot_be_committed(t
     with pytest.raises(PrepareEvidenceError) as exc:
         ledger.reserve_output_directories(other, trusted_directories=[reserved])
     assert exc.value.code == "WHD_OUTPUT_PATH_LOCKED"
+
+
+# #2380 W-06: private, read-only durable precommit evidence, NOT a DXF
+# replacement/rollback journal or public Worker manufacturing authorization.
+def _w06_staged_dxf(output_dir, physical_id):
+    stage_dir = output_dir / ".whd-dxf-stage-verified"
+    stage_dir.mkdir(exist_ok=True)
+    return _w06_real_output(stage_dir / f"{physical_id}.dxf")
+
+
+def test_durable_precommit_two_real_dxf_and_original_output_untouched(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    output = tmp_path / "customer-output"
+    output.mkdir()
+    old = _w06_real_output(output / "part-one.dxf")
+    previous = (old.read_bytes(), old.stat().st_mtime_ns)
+    stage_one = _w06_staged_dxf(output, "part-one")
+    stage_two = _w06_staged_dxf(output, "part-two")
+    assert len(ezdxf.readfile(stage_two).modelspace().query("CIRCLE")) == 1
+    request = _w06_request(operation="export")
+    request["output"]["overwrite"] = True
+    request["request_digest"] = compute_wire_request_digest(request)
+    ledger = DurableJobIdentityLedger(store)
+    assert ledger.claim(request).state == "new"
+    ledger.reserve_output_directories(request, trusted_directories=[output])
+    inventory = {"part-one": stage_one, "part-two": stage_two}
+    snapshot = ledger.record_staged_batch_snapshot(
+        request, trusted_output_dir=output, trusted_staged=inventory, overwrite=True
+    )
+    assert len(snapshot["items"]) == 2
+    assert [r["physical_id"] for r in snapshot["items"]] == ["part-one", "part-two"]
+    retry = deepcopy(request)
+    retry["request_id"] = "another-transport-request"
+    assert DurableJobIdentityLedger(store).require_staged_batch_snapshot_current(retry) == snapshot
+    assert ledger.record_staged_batch_snapshot(
+        retry, trusted_output_dir=output, trusted_staged=inventory, overwrite=True
+    ) == snapshot
+    assert (old.read_bytes(), old.stat().st_mtime_ns) == previous
+    assert not (output / "part-two.dxf").exists()
+    # Stage snapshot MUST NOT be accepted as a multi-file committed result.
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.complete(request, _w06_result(request), trusted_artifacts={"part-one": old})
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    second = _w06_request(operation="export", job="other-export")
+    ledger.claim(second)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.reserve_output_directories(second, trusted_directories=[output])
+    assert exc.value.code == "WHD_OUTPUT_PATH_LOCKED"
+
+
+@pytest.mark.parametrize("mutation", ["stage_bytes", "stage_removed", "customer_bytes", "customer_removed"])
+def test_durable_precommit_never_trusts_changed_staged_or_existing_dxf(tmp_path, mutation):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    output = tmp_path / "customer-output"
+    output.mkdir()
+    original = _w06_real_output(output / "part-one.dxf")
+    stage = _w06_staged_dxf(output, "part-one")
+    req = _w06_request(operation="export")
+    req["output"]["overwrite"] = True
+    req["request_digest"] = compute_wire_request_digest(req)
+    ledger = DurableJobIdentityLedger(store)
+    ledger.claim(req)
+    ledger.reserve_output_directories(req, trusted_directories=[output])
+    ledger.record_staged_batch_snapshot(
+        req, trusted_output_dir=output, trusted_staged={"part-one": stage}, overwrite=True
+    )
+    if mutation == "stage_bytes":
+        stage.write_bytes(stage.read_bytes() + b"\n999\nchanged-stage")
+    elif mutation == "stage_removed":
+        stage.unlink()
+    elif mutation == "customer_bytes":
+        original.write_bytes(original.read_bytes() + b"\n999\nchanged-customer")
+    else:
+        original.unlink()
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableJobIdentityLedger(store).require_staged_batch_snapshot_current(req)
+    assert exc.value.code == "WHD_JOB_STAGING_STALE"
+
+
+def test_durable_precommit_rejects_missing_lease_and_wrong_overwrite(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    target = tmp_path / "output"
+    target.mkdir()
+    stage = _w06_staged_dxf(target, "part")
+    req = _w06_request(operation="export")
+    ledger = DurableJobIdentityLedger(store)
+    ledger.claim(req)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.record_staged_batch_snapshot(
+            req, trusted_output_dir=target, trusted_staged={"part": stage}, overwrite=False
+        )
+    assert exc.value.code == "WHD_OUTPUT_PATH_LOCKED"
+    ledger.reserve_output_directories(req, trusted_directories=[target])
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.record_staged_batch_snapshot(
+            req, trusted_output_dir=target, trusted_staged={"part": stage}, overwrite=True
+        )
+    assert exc.value.code == "WHD_JOB_STAGING_INVALID"
+    customer = _w06_real_output(target / "part.dxf")
+    previous = (customer.read_bytes(), customer.stat().st_mtime_ns)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.record_staged_batch_snapshot(
+            req, trusted_output_dir=target, trusted_staged={"part": stage}, overwrite=False
+        )
+    assert exc.value.code == "WHD_JOB_STAGING_INVALID"
+    assert (customer.read_bytes(), customer.stat().st_mtime_ns) == previous
+
+
+def test_durable_precommit_rejects_unowned_stage_and_changed_physical_inventory(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    output = tmp_path / "output"
+    output.mkdir()
+    stage = _w06_staged_dxf(output, "part-one")
+    req = _w06_request(operation="export")
+    ledger = DurableJobIdentityLedger(store)
+    ledger.claim(req)
+    ledger.reserve_output_directories(req, trusted_directories=[output])
+    outside = _w06_real_output(tmp_path / "part-one.dxf")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.record_staged_batch_snapshot(
+            req, trusted_output_dir=output, trusted_staged={"part-one": outside}, overwrite=False
+        )
+    assert exc.value.code == "WHD_JOB_STAGING_INVALID"
+    ledger.record_staged_batch_snapshot(
+        req, trusted_output_dir=output, trusted_staged={"part-one": stage}, overwrite=False
+    )
+    extra = _w06_staged_dxf(output, "part-two")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.record_staged_batch_snapshot(
+            req, trusted_output_dir=output,
+            trusted_staged={"part-one": stage, "part-two": extra}, overwrite=False
+        )
+    assert exc.value.code == "WHD_JOB_STAGING_STALE"
+
+
+def test_durable_precommit_persists_across_separate_python_process(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    output = tmp_path / "output"
+    output.mkdir()
+    stage = _w06_staged_dxf(output, "part-one")
+    req = _w06_request(operation="export")
+    ledger = DurableJobIdentityLedger(store)
+    ledger.claim(req)
+    ledger.reserve_output_directories(req, trusted_directories=[output])
+    ledger.record_staged_batch_snapshot(
+        req, trusted_output_dir=output, trusted_staged={"part-one": stage}, overwrite=False
+    )
+    code = (
+        "import sys,json;"
+        "from pathlib import Path;"
+        "from integration_cli.job_identity_ledger import DurableJobIdentityLedger;"
+        "print(len(DurableJobIdentityLedger(Path(sys.argv[1]))."
+        "require_staged_batch_snapshot_current(json.loads(sys.argv[2]))['items']))"
+    )
+    proc = subprocess.run(
+        [sys.executable, "-c", code, str(store), json.dumps(req, ensure_ascii=False)],
+        cwd=ROOT, capture_output=True, text=True, check=True, timeout=20,
+    )
+    assert proc.stdout.strip() == "1"
