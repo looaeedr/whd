@@ -268,6 +268,21 @@ class DurableJobIdentityLedger:
                 )
             """)
 
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS batch_replace_journals (
+                    client_id TEXT NOT NULL,
+                    job_id TEXT NOT NULL,
+                    operation TEXT NOT NULL,
+                    request_digest TEXT NOT NULL,
+                    state TEXT NOT NULL CHECK (
+                        state IN ('armed','applying','applied','rolling_back','rolled_back','committed')
+                    ),
+                    plan_json TEXT NOT NULL,
+                    plan_sha256 TEXT NOT NULL,
+                    PRIMARY KEY (client_id,job_id,operation)
+                )
+            """)
+
     def _connect(self):
         if (self._root.is_symlink() or not self._root.is_dir()
                 or self._db.is_symlink()):
@@ -312,6 +327,16 @@ class DurableJobIdentityLedger:
         if not hmac.compare_digest(recorded_digest, digest):
             raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "same job identity has different semantic request")
         if state != "committed":
+            # A rollback is durable and final: do not rerender it under the
+            # same immutable job identity, even though jobs.state is started.
+            with closing(self._connect()) as conn:
+                terminal = conn.execute(
+                    """SELECT state,request_digest FROM batch_replace_journals
+                       WHERE client_id=? AND job_id=? AND operation=?""",
+                    (client, job, op),
+                ).fetchone()
+            if terminal is not None and terminal == ("rolled_back", digest):
+                return JobClaim("rolled_back")
             raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "previous job has no durable completion")
         if (not payload or not payload_hash or not proof_json
                 or not hmac.compare_digest(hashlib.sha256(payload.encode("utf-8")).hexdigest(), payload_hash)):
@@ -593,12 +618,55 @@ class DurableJobIdentityLedger:
                     (client, job, op),
                 ).fetchone()
                 if pending_stage is not None:
-                    # A byte snapshot is NOT a crash-safe multi-file commit
-                    # receipt; no one may use this precommit-only stage as
-                    # proof of a completed customer export.
-                    raise PrepareEvidenceError(
-                        "WHD_JOB_RECOVERY_REQUIRED", "staged batch lacks durable commit journal"
-                    )
+                    # A staged proof alone must NEVER authorize success. Only
+                    # the real persisted replacement journal in 'applied'
+                    # state, with identical physical final-file bytes, does.
+                    journal = conn.execute(
+                        """SELECT request_digest,state,plan_json,plan_sha256
+                           FROM batch_replace_journals
+                           WHERE client_id=? AND job_id=? AND operation=?""",
+                        (client, job, op),
+                    ).fetchone()
+                    if (journal is None or journal[0] != digest
+                            or journal[1] != "applied"
+                            or not isinstance(journal[2], str)
+                            or not isinstance(journal[3], str)
+                            or not hmac.compare_digest(
+                                hashlib.sha256(journal[2].encode("utf-8")).hexdigest(),
+                                journal[3],
+                            )):
+                        raise PrepareEvidenceError(
+                            "WHD_JOB_RECOVERY_REQUIRED", "staged batch lacks verified durable commit journal"
+                        )
+                    try:
+                        plan = json.loads(journal[2])
+                        expected = {item["physical_id"]: item for item in plan["items"]}
+                    except (ValueError, KeyError, TypeError) as exc:
+                        raise PrepareEvidenceError(
+                            "WHD_JOB_RECOVERY_REQUIRED", "corrupt replacement inventory"
+                        ) from exc
+                    if not expected or set(proofs) != set(expected):
+                        raise PrepareEvidenceError(
+                            "WHD_JOB_RECOVERY_REQUIRED", "partial replacement receipt"
+                        )
+                    for physical, proof in proofs.items():
+                        item = expected[physical]
+                        stage = item["staged"]
+                        if (proof["path"] != item["destination"]
+                                or any(proof[k] != stage[k] for k in ("sha256", "size", "mtime_ns"))):
+                            raise PrepareEvidenceError(
+                                "WHD_JOB_RECOVERY_REQUIRED", "committed DXF proof differs from durable intent"
+                            )
+                        backup = item.get("backup")
+                        original = item.get("original")
+                        if original is not None:
+                            if (not isinstance(backup, dict)
+                                    or any(backup[k] != original[k]
+                                           for k in ("sha256", "size", "mtime_ns"))
+                                    or _file_proof(Path(backup["path"])) != backup):
+                                raise PrepareEvidenceError(
+                                    "WHD_JOB_RECOVERY_REQUIRED", "customer original recovery backup lost"
+                                )
                 leased = conn.execute(
                     """SELECT COUNT(*) FROM output_directory_leases
                        WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",
@@ -641,6 +709,17 @@ class DurableJobIdentityLedger:
                 (payload, hashlib.sha256(payload.encode("utf-8")).hexdigest(),
                  encoded_proofs, client, job, op),
             )
+            if op == "export" and pending_stage is not None:
+                cur = conn.execute(
+                    """UPDATE batch_replace_journals SET state='committed'
+                       WHERE client_id=? AND job_id=? AND operation=? AND
+                             request_digest=? AND state='applied'""",
+                    (client, job, op, digest),
+                )
+                if cur.rowcount != 1:
+                    raise PrepareEvidenceError(
+                        "WHD_JOB_RECOVERY_REQUIRED", "replacement journal lost before receipt commit"
+                    )
             # Release the batch leases *in the same durable transaction* as
             # successful immutable result publication; never on failure.
             conn.execute(
