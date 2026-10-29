@@ -27,6 +27,7 @@ from integration_cli.request_canonical import require_matching_wire_request_dige
 
 _JOB_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
 _DB_FILENAME = "job_identity.sqlite3"
+_STAGE_FILE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}[.]dxf$", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -125,6 +126,87 @@ def _directory_identity(path: Path) -> tuple[int, int]:
     return metadata.st_dev, metadata.st_ino
 
 
+def _staged_batch_snapshot(
+    trusted_output_dir: Path, staged: Mapping[str, Path], *, overwrite: bool,
+) -> dict[str, Any]:
+    """Read-only source and destination bytes before any final file mutation.
+
+    The actual W-04 renderer owns the preverified stage. This routine does
+    not trust a caller-supplied wire path, output token or DXF formula. Files
+    must be in a direct .whd-dxf-stage-* child of the reserved output folder,
+    on the same device. No output directory is created or mutated.
+    """
+    if type(overwrite) is not bool or not isinstance(staged, Mapping) or not 1 <= len(staged) <= 20:
+        raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "verified batch inventory required")
+    output_key, = _output_directory_keys([trusted_output_dir])
+    physical_ids = set()
+    filenames = set()
+    entries = []
+    for physical, stage in sorted(staged.items()):
+        if (not isinstance(physical, str)
+                or not isinstance(stage, Path)
+                or not _STAGE_FILE_NAME.fullmatch(f"{physical}.dxf")
+                or stage.name != f"{physical}.dxf"
+                or stage.is_symlink()
+                or stage.parent.is_symlink()
+                or not stage.parent.name.startswith(".whd-dxf-stage-")
+                or stage.parent.parent != trusted_output_dir):
+            raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "untrusted staged physical DXF path")
+        if physical.casefold() in physical_ids or stage.name.casefold() in filenames:
+            raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "duplicate physical DXF identity")
+        physical_ids.add(physical.casefold())
+        filenames.add(stage.name.casefold())
+        try:
+            stage_stat = stage.stat()
+            if stage_stat.st_dev != trusted_output_dir.stat().st_dev:
+                raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "DXF stage must use target filesystem")
+            if stage_stat.st_nlink != 1:
+                raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "staged DXF may not hardlink another file")
+        except OSError as exc:
+            raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "DXF stage is unreadable") from exc
+        original = trusted_output_dir / stage.name
+        if original.is_symlink():
+            raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "existing target is a symlink")
+        if original.exists() and not overwrite:
+            raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "existing customer DXF cannot be overwritten")
+        original_proof = _file_proof(original) if original.exists() else None
+        stage_proof = _file_proof(stage)
+        if stage_proof["path"] == str(original.resolve(strict=False)):
+            raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "stage is already a customer output")
+        entries.append({
+            "physical_id": physical,
+            "destination": str(original.resolve(strict=False)),
+            "stage": stage_proof,
+            "original": original_proof,
+        })
+    return {"directory_key": output_key, "overwrite": overwrite, "items": entries}
+
+
+def _assert_staged_batch_snapshot_current(snapshot: Mapping[str, Any]) -> None:
+    """Refuse any changed stage or original target; never restore or replace."""
+    try:
+        items = snapshot["items"]
+        if not isinstance(items, list) or not 1 <= len(items) <= 20:
+            raise ValueError("bad inventory")
+        for item in items:
+            stage = item["stage"]
+            if _file_proof(Path(stage["path"])) != stage:
+                raise PrepareEvidenceError("WHD_JOB_STAGING_STALE", "staged physical DXF changed")
+            target = Path(item["destination"])
+            if target.is_symlink():
+                raise PrepareEvidenceError("WHD_JOB_STAGING_STALE", "customer target became symlink")
+            original = item["original"]
+            if original is None:
+                if target.exists():
+                    raise PrepareEvidenceError("WHD_JOB_STAGING_STALE", "new customer target appeared")
+            elif _file_proof(target) != original:
+                raise PrepareEvidenceError("WHD_JOB_STAGING_STALE", "customer target changed")
+    except (KeyError, ValueError, TypeError, OSError, PrepareEvidenceError) as exc:
+        if isinstance(exc, PrepareEvidenceError) and exc.code == "WHD_JOB_STAGING_STALE":
+            raise
+        raise PrepareEvidenceError("WHD_JOB_STAGING_STALE", "persisted stage evidence is not current") from exc
+
+
 class DurableJobIdentityLedger:
     """Private same-job replay ledger, isolated from unfinished W-06 output journal.
 
@@ -171,6 +253,18 @@ class DurableJobIdentityLedger:
                     directory_key TEXT PRIMARY KEY,
                     device_id INTEGER NOT NULL,
                     inode_id INTEGER NOT NULL
+                )
+            """)
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS staged_batch_snapshots (
+                    client_id TEXT NOT NULL,
+                    job_id TEXT NOT NULL,
+                    operation TEXT NOT NULL,
+                    request_digest TEXT NOT NULL,
+                    snapshot_json TEXT NOT NULL,
+                    snapshot_sha256 TEXT NOT NULL,
+                    PRIMARY KEY (client_id, job_id, operation)
                 )
             """)
 
@@ -314,6 +408,143 @@ class DurableJobIdentityLedger:
         finally:
             conn.close()
 
+    def record_staged_batch_snapshot(
+        self,
+        request: Mapping[str, Any],
+        *,
+        trusted_output_dir: Path,
+        trusted_staged: Mapping[str, Path],
+        overwrite: bool,
+    ) -> dict[str, Any]:
+        """Persist immutable *precommit* evidence for an already reserved job.
+
+        An actual W-06 durable backup+commit/recovery owner must be created
+        before this record may authorize a customer DXF replacement. This
+        method never writes to, deletes or moves any customer DXF.
+        """
+        client, job, op, digest = _identity(request)
+        if op != "export":
+            raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "only export may stage a batch")
+        output = request.get("output")
+        if (not isinstance(output, Mapping)
+                or type(output.get("overwrite")) is not bool
+                or output["overwrite"] is not overwrite):
+            raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "overwrite must match authenticated wire intent")
+        snapshot = _staged_batch_snapshot(
+            trusted_output_dir, trusted_staged, overwrite=overwrite,
+        )
+        encoded = _json(snapshot)
+        proof_sha = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                """SELECT request_digest,state FROM jobs
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+            if row is None or row[1] != "started":
+                raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "job has no active durable reservation")
+            if not isinstance(row[0], str) or not hmac.compare_digest(row[0], digest):
+                raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "job content changed")
+            lease = conn.execute(
+                """SELECT request_digest FROM output_directory_leases
+                   WHERE directory_key=? AND client_id=? AND job_id=? AND operation=?""",
+                (snapshot["directory_key"], client, job, op),
+            ).fetchone()
+            if lease is None or lease[0] != digest:
+                raise PrepareEvidenceError("WHD_OUTPUT_PATH_LOCKED", "stage directory not leased by job")
+            pinned = conn.execute(
+                """SELECT device_id,inode_id FROM output_directory_identity WHERE directory_key=?""",
+                (snapshot["directory_key"],),
+            ).fetchone()
+            if pinned is None or pinned != _directory_identity(trusted_output_dir):
+                raise PrepareEvidenceError(
+                    "WHD_JOB_RECOVERY_REQUIRED", "staged destination physical directory differs from lease"
+                )
+            prior = conn.execute(
+                """SELECT request_digest,snapshot_json,snapshot_sha256
+                   FROM staged_batch_snapshots
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+            if prior is not None:
+                if prior != (digest, encoded, proof_sha):
+                    raise PrepareEvidenceError("WHD_JOB_STAGING_STALE", "job staged inventory differs")
+            else:
+                conn.execute(
+                    """INSERT INTO staged_batch_snapshots
+                       (client_id,job_id,operation,request_digest,snapshot_json,snapshot_sha256)
+                       VALUES (?,?,?,?,?,?)""",
+                    (client, job, op, digest, encoded, proof_sha),
+                )
+            conn.commit()
+        except sqlite3.Error as exc:
+            conn.rollback()
+            raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "cannot persist stage snapshot") from exc
+        except BaseException:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+        _assert_staged_batch_snapshot_current(snapshot)
+        return snapshot
+
+    def require_staged_batch_snapshot_current(
+        self, request: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Read back durable precommit manifest and independently rehash disk."""
+        client, job, op, digest = _identity(request)
+        if op != "export":
+            raise PrepareEvidenceError("WHD_JOB_STAGING_INVALID", "only export has staged inventory")
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                """SELECT request_digest,snapshot_json,snapshot_sha256
+                   FROM staged_batch_snapshots
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+            if row is None:
+                raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "no durable staged inventory")
+            if not isinstance(row[0], str) or not hmac.compare_digest(row[0], digest):
+                raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "staged job identity changed")
+            encoded, sha = row[1], row[2]
+            if (not isinstance(encoded, str) or not isinstance(sha, str)
+                    or not hmac.compare_digest(hashlib.sha256(encoded.encode("utf-8")).hexdigest(), sha)):
+                raise PrepareEvidenceError("WHD_JOB_STAGING_STALE", "stage journal checksum invalid")
+            snapshot = json.loads(encoded)
+            leased = conn.execute(
+                """SELECT request_digest FROM output_directory_leases
+                   WHERE directory_key=? AND client_id=? AND job_id=? AND operation=?""",
+                (snapshot["directory_key"], client, job, op),
+            ).fetchone()
+            if leased is None or leased[0] != digest:
+                raise PrepareEvidenceError("WHD_OUTPUT_PATH_LOCKED", "stage journal has no live lease")
+            pinned = conn.execute(
+                """SELECT device_id,inode_id FROM output_directory_identity WHERE directory_key=?""",
+                (snapshot["directory_key"],),
+            ).fetchone()
+            if pinned is None or pinned != _directory_identity(Path(snapshot["directory_key"])):
+                raise PrepareEvidenceError(
+                    "WHD_JOB_RECOVERY_REQUIRED", "staged destination was replaced after lease"
+                )
+            conn.commit()
+        except sqlite3.Error as exc:
+            conn.rollback()
+            raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "cannot read stage journal") from exc
+        except (KeyError, TypeError, ValueError) as exc:
+            conn.rollback()
+            raise PrepareEvidenceError("WHD_JOB_STAGING_STALE", "stage journal is corrupt") from exc
+        except BaseException:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+        _assert_staged_batch_snapshot_current(snapshot)
+        return snapshot
+
     def complete(
         self,
         request: Mapping[str, Any],
@@ -356,6 +587,18 @@ class DurableJobIdentityLedger:
             if row[1] != "started":
                 raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "job already completed")
             if op == "export":
+                pending_stage = conn.execute(
+                    """SELECT 1 FROM staged_batch_snapshots
+                       WHERE client_id=? AND job_id=? AND operation=?""",
+                    (client, job, op),
+                ).fetchone()
+                if pending_stage is not None:
+                    # A byte snapshot is NOT a crash-safe multi-file commit
+                    # receipt; no one may use this precommit-only stage as
+                    # proof of a completed customer export.
+                    raise PrepareEvidenceError(
+                        "WHD_JOB_RECOVERY_REQUIRED", "staged batch lacks durable commit journal"
+                    )
                 leased = conn.execute(
                     """SELECT COUNT(*) FROM output_directory_leases
                        WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",

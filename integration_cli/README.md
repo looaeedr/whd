@@ -193,6 +193,27 @@ jobs do not release leases on timeout or restart. This deliberately locks the
 whole output directory, not just a filename, so two different jobs cannot
 stage separate files into the same batch destination concurrently.
 
+A **private W-06 precommit stage snapshot** now records a verified original
+output file proof (or its original absence) alongside each separately saved
+staged DXF's SHA256/size/mtime in the same Worker-owned SQLite store, indexed
+by the reserved export job and its RFC 8785 digest. The stage files must
+belong to a direct, Worker-owned `.whd-dxf-stage-*` child of the already
+exclusively leased destination, with an exact physical `.dxf` filename and
+the same target filesystem; symlinks, hardlinks, unexpected destinations,
+missing or altered old outputs, changed stage bytes, and a caller attempt to
+override the signed `overwrite` flag are rejected. Retrying the snapshot
+cannot substitute another inventory. Independent process restart readback
+rehashes both stage and customer output bytes and compares exact sizes and
+mtimes; it **never mutates any customer DXF**.
+
+**Precommit is not commit:** if a staged journal exists,
+`DurableJobIdentityLedger.complete` **refuses** to mark the export successful
+or release its destination lease until a later W-06 durable multi-file commit
+journal and recovery owner is actually implemented. This is intentionally a
+fail-closed, non-public building block; neither stages nor manifest existence
+prove customer manufacturing completion. Existing in-process W-04 export
+still owns its own Save→Reload verifier and separate normal-exception rollback.
+
 **Still not full W-06:** Windows junction/UNC/drive-alias and case-equivalence
 require physical Gate A evidence; multi-file durable backup/commit journal,
 rollback/roll-forward after interrupted `os.replace`, safe cancellation,
