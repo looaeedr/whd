@@ -451,3 +451,26 @@ def test_indicator_small_door_source_claims_fail_closed_without_token(tmp_path, 
     with pytest.raises(PrepareEvidenceError) as exc:
         _prepare(request, root)
     assert exc.value.code in ("WHD_FRAME_UNVERIFIED", "WHD_PREPARE_INPUT_INVALID")
+
+
+@pytest.mark.parametrize("kind", ["indicator_box", "end_cap_head", "end_cap_tail"])
+def test_unverified_non_door_frames_do_not_issue_prepare_tokens(tmp_path, kind):
+    root, _, _ = _root(tmp_path)
+    req = _request()
+    req["items"][0]["part"]["kind"] = kind
+    req["request_digest"] = compute_wire_request_digest(req)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _prepare(req, root)
+    assert exc.value.code == "WHD_FRAME_UNVERIFIED"
+
+
+def test_indicator_small_door_seals_groups_and_rejects_export_replay_mutation(tmp_path):
+    root, _, req, _ = _indicator_small_door_request(tmp_path)
+    receipt = _prepare(req, root)
+    export = _export_request_from_prepared(req, receipt)
+    changed = deepcopy(export)
+    changed["items"][0]["part"]["indicator_groups"] = [1, 1]
+    changed["request_digest"] = compute_wire_request_digest(changed)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _recheck(req, receipt, changed, root)
+    assert exc.value.code == "WHD_PREPARE_STALE"
