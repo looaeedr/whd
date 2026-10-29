@@ -10,6 +10,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from integration_cli.prepare_batch import prepare_trusted_door_batch
+from integration_cli.prepare_revalidation import revalidate_trusted_door_preparation
 from integration_cli.prepare_evidence import PrepareEvidenceError
 from integration_cli.request_canonical import compute_wire_request_digest
 
@@ -179,3 +180,74 @@ def test_baseline_has_to_own_real_cutting_geometry(tmp_path):
     with pytest.raises(PrepareEvidenceError) as exc:
         _prepare(_request(),root)
     assert exc.value.code=="WHD_RESOURCE_UNVERIFIED"
+
+
+def _revalidate(request, receipt, root, **overrides):
+    arguments = dict(
+        prepare_request=request, prepared_receipt=receipt, resource_root=root,
+        engine_commit=COMMIT, engine_sha256=ENGINE,
+        build_id="test-only-source", worker_key=KEY,
+    )
+    arguments.update(overrides)
+    return revalidate_trusted_door_preparation(**arguments)
+
+
+def test_revalidate_prepare_receipt_allows_transport_only_retry(tmp_path):
+    root,_,_=_root(tmp_path)
+    original=_request(count=2)
+    receipt=_prepare(original,root)
+    assert _revalidate(original,receipt,root) is None
+    retry=deepcopy(original)
+    retry["request_id"]="another-wire-transaction"
+    assert _revalidate(retry,receipt,root) is None
+    assert not any("output" in p.name for p in tmp_path.rglob("*.dxf"))
+
+
+@pytest.mark.parametrize("change", [
+    "registry_bytes", "baseline_bytes", "missing_registry", "input_width",
+    "source_sha", "engine_sha", "worker_key", "build_id", "forged_token",
+    "forged_frame", "forged_physical_id", "forged_status", "extra_field",
+])
+def test_revalidate_prepare_receipt_rejects_changes_before_export(tmp_path,change):
+    root,registry,baseline=_root(tmp_path)
+    request=_request(count=2)
+    receipt=_prepare(request,root)
+    original_token=receipt["prepare_token"]
+    request=deepcopy(request)
+    receipt=deepcopy(receipt)
+    overrides={}
+    if change=="registry_bytes":
+        registry.write_text(registry.read_text(encoding="utf-8")+"\n",encoding="utf-8")
+    elif change=="baseline_bytes":
+        document=ezdxf.readfile(baseline)
+        document.modelspace().add_line((0,0),(1,1),dxfattribs={"layer":"MARKING"})
+        document.saveas(baseline)
+    elif change=="missing_registry":
+        registry.unlink()
+    elif change=="input_width":
+        request["items"][0]["part"]["dimensions_mm"]["width"]=501.0
+        request["request_digest"]=compute_wire_request_digest(request)
+    elif change=="source_sha":
+        request["items"][0]["source_document_sha256"]="e"*64
+        request["request_digest"]=compute_wire_request_digest(request)
+    elif change=="engine_sha":
+        overrides["engine_sha256"]="e"*64
+    elif change=="worker_key":
+        overrides["worker_key"]=b"different-trusted-install-key-" + b"y"*32
+    elif change=="build_id":
+        overrides["build_id"]="different-build"
+    elif change=="forged_token":
+        receipt["prepare_token"]="w3."+"a"*64+"."+"b"*64
+    elif change=="forged_frame":
+        receipt["items"][0]["target_frames"][0]["normal"]=[0,0,-1]
+    elif change=="forged_physical_id":
+        receipt["items"][0]["physical_part_id"]="whd-synthetic"
+    elif change=="forged_status":
+        receipt["manufacturing_verified"]=True
+    elif change=="extra_field":
+        receipt["unrecognized"]="bad"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _revalidate(request,receipt,root,**overrides)
+    assert exc.value.code=="WHD_PREPARE_STALE"
+    assert receipt["prepare_token"]==original_token or change=="forged_token"
+    assert not any("output" in p.name for p in tmp_path.rglob("*.dxf"))
