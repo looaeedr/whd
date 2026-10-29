@@ -76,7 +76,7 @@ def test_prepares_two_doors_same_process_with_true_canonical_size_and_local_fram
     request=_request(count=2)
     result=_prepare(request,root)
     Draft202012Validator(__import__("json").loads((
-        HERE/"integration_cli/schemas/response_v1.schema.json"
+        HERE/"integration_cli/schemas/response_v1_1.schema.json"
     ).read_text(encoding="utf-8"))).validate(result)
     assert result["status"]=="success"
     assert result["manufacturing_verified"] is False
