@@ -239,6 +239,7 @@ def test_export_precommit_recheck_is_read_only_and_transport_retry_is_safe(tmp_p
     "job", "client", "part_size", "source_sha", "source_part", "order",
     "physical", "prep_digest", "frame_id", "env", "token",
     "prepared_receipt_token", "prepared_request_digest", "source_transform_role",
+    "receipt_manufacturing_flag", "receipt_production_scope", "receipt_required_inputs",
 ])
 def test_export_recheck_rejects_semantic_mutation_entire_batch(tmp_path, tamper):
     root, _, _ = _root(tmp_path)
@@ -271,6 +272,12 @@ def test_export_recheck_rejects_semantic_mutation_entire_batch(tmp_path, tamper)
         receipt["prepare_token"] = "w3." + "b"*64 + "." + "b"*64
     elif tamper == "prepared_request_digest":
         original["request_digest"] = "d"*64
+    elif tamper == "receipt_manufacturing_flag":
+        receipt["items"][0]["manufacturing_verified"] = True
+    elif tamper == "receipt_production_scope":
+        receipt["items"][0]["production_scope"] = "complete_assembly"
+    elif tamper == "receipt_required_inputs":
+        receipt["items"][0]["required_inputs"] = ["source_transform"]
     elif tamper == "source_transform_role":
         f = receipt["items"][0]["target_frames"][0]
         export["items"][0]["features"] = [{
