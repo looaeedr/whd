@@ -624,3 +624,61 @@ def test_durable_precommit_persists_across_separate_python_process(tmp_path):
         cwd=ROOT, capture_output=True, text=True, check=True, timeout=20,
     )
     assert proc.stdout.strip() == "1"
+
+
+def test_durable_precommit_rejects_staged_hardlink_to_customer_original(tmp_path):
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    target = tmp_path / "customer"
+    target.mkdir()
+    original = _w06_real_output(target / "part-one.dxf")
+    stage_dir = target / ".whd-dxf-stage-owner"
+    stage_dir.mkdir()
+    alias = stage_dir / "part-one.dxf"
+    try:
+        alias.hardlink_to(original)
+    except (OSError, NotImplementedError):
+        pytest.skip("hard links are unavailable")
+    req = _w06_request(operation="export")
+    req["output"]["overwrite"] = True
+    req["request_digest"] = compute_wire_request_digest(req)
+    ledger = DurableJobIdentityLedger(store)
+    ledger.claim(req)
+    ledger.reserve_output_directories(req, trusted_directories=[target])
+    original_bytes, mtime = original.read_bytes(), original.stat().st_mtime_ns
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.record_staged_batch_snapshot(
+            req, trusted_output_dir=target,
+            trusted_staged={"part-one": alias}, overwrite=True
+        )
+    assert exc.value.code == "WHD_JOB_STAGING_INVALID"
+    assert (original.read_bytes(), original.stat().st_mtime_ns) == (original_bytes, mtime)
+
+
+def test_durable_precommit_rejects_corrupted_disk_journal_before_any_output_change(tmp_path):
+    import sqlite3
+
+    store = tmp_path / "worker-store"
+    store.mkdir()
+    output = tmp_path / "output"
+    output.mkdir()
+    stage = _w06_staged_dxf(output, "part-one")
+    req = _w06_request(operation="export")
+    ledger = DurableJobIdentityLedger(store)
+    ledger.claim(req)
+    ledger.reserve_output_directories(req, trusted_directories=[output])
+    ledger.record_staged_batch_snapshot(
+        req, trusted_output_dir=output, trusted_staged={"part-one": stage},
+        overwrite=False,
+    )
+    before = stage.read_bytes(), stage.stat().st_mtime_ns
+    with sqlite3.connect(store / "job_identity.sqlite3") as conn:
+        conn.execute(
+            "UPDATE staged_batch_snapshots SET snapshot_json='{}' WHERE job_id=?",
+            (req["job_id"],),
+        )
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableJobIdentityLedger(store).require_staged_batch_snapshot_current(req)
+    assert exc.value.code == "WHD_JOB_STAGING_STALE"
+    assert (stage.read_bytes(), stage.stat().st_mtime_ns) == before
+    assert not (output / "part-one.dxf").exists()
