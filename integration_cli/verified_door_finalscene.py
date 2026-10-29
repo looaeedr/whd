@@ -117,6 +117,7 @@ def save_trusted_door_circle_finalscene_batch(
     build_id: str,
     worker_key: bytes,
     overwrite: bool = False,
+    durable_ledger=None,
 ) -> dict[str, str]:
     """Source-verified Door-only all-or-nothing batch; never accepts caller PartSpec.
 
@@ -140,6 +141,12 @@ def save_trusted_door_circle_finalscene_batch(
     if (not isinstance(export_request, Mapping)
             or export_request.get("transaction_mode") != "all_or_nothing"):
         _reject("only W-04 all_or_nothing Door batch supported")
+    if durable_ledger is not None:
+        from integration_cli.job_identity_ledger import DurableJobIdentityLedger
+        if not isinstance(durable_ledger, DurableJobIdentityLedger):
+            _reject("trusted W-06 durable Worker ledger required")
+        if output_dir.is_symlink() or not output_dir.is_dir():
+            _reject("W-06 durable export needs preexisting trusted output directory")
 
     def guard() -> None:
         recheck_trusted_door_export(
@@ -189,9 +196,60 @@ def save_trusted_door_circle_finalscene_batch(
         _assert_original_circles_in_final_scene(render, mapped)
         rows.append((receipt["physical_part_id"], render))
 
+    # Existing W-04 callers retain normal WHD Save->Reload plus its
+    # in-process rollback. The PRIVATE W-06 branch is opt-in by an already
+    # authenticated Worker that supplies its installation-owned ledger.
+    commit_staged = None
+    if durable_ledger is not None:
+        from integration_cli.original_backup_manifest import DurableOriginalBackupEvidence
+        from integration_cli.batch_commit_journal import DurableMultiDXFRollbackJournal
+
+        claim = durable_ledger.claim(export_request)
+        if claim.state != "new":
+            _reject("durable job cannot be rendered again; read its immutable result")
+        durable_ledger.reserve_output_directories(
+            export_request, trusted_directories=[output_dir],
+        )
+
+        def commit_staged(staged: Mapping[str, Path], root: Path) -> dict[str, str]:
+            # This callback runs ONLY after all 1..20 WHD-owned staged DXFs
+            # survived the independent Save->Reload verifier and the final
+            # W-03 source, policy, Frame, HMAC and source bytes recheck.
+            if root != output_dir or set(staged) != {physical for physical, _ in rows}:
+                _reject("verified staged physical inventory differs from prepared job")
+            guard()
+            durable_ledger.record_staged_batch_snapshot(
+                export_request, trusted_output_dir=root,
+                trusted_staged=staged, overwrite=overwrite,
+            )
+            backup = DurableOriginalBackupEvidence(durable_ledger)
+            backup.create_verified_original_backups(
+                export_request, trusted_output_dir=root,
+            )
+            journal = DurableMultiDXFRollbackJournal(durable_ledger)
+            journal.arm(export_request)
+            actual = journal.apply(export_request)
+            # Only the trusted W-06 journal and verified physical final DXFs
+            # may publish a committed immutable job result and release leases.
+            receipt = {
+                "operation": "export",
+                "client_installation_id": export_request["client_installation_id"],
+                "job_id": export_request["job_id"],
+                "request_digest": export_request["request_digest"],
+                "status": "success",
+                "manufacturing_verified": False,  # not a public package certification
+                "items": [{"physical_part_id": physical, "path": str(path)}
+                          for physical, path in actual.items()],
+            }
+            durable_ledger.complete(
+                export_request, receipt, trusted_artifacts=actual,
+            )
+            return {physical: str(path) for physical, path in actual.items()}
+
     # This engine owns staged DXFs and independent Save→Reload verification.
     # W-03 guard fires twice more around the stage, including source reread
     # after serialization and before any final os.replace.
     return save_verified_final_scene_batch_dxf(
         rows, output_dir, pre_commit_guard=guard, overwrite=overwrite,
+        durable_stage_commit=commit_staged,
     )
