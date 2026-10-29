@@ -186,3 +186,31 @@ reopen original CADSplit DXF entities or prove the matrix was applied once,
 and cannot manufacture a source feature or enable public `prepare/export`.
 The outstanding W-04/W-06 source verification, canonical PartSpec mapping,
 worker-owned job custody/path locks and Windows Gate A are still mandatory.
+
+
+## W-04 source DXF CIRCLE verification (internal, read-only)
+
+`source_circle_verification.verify_trusted_original_dxf_circles` now reads
+**one original DXF byte snapshot** from a **Worker-owned trusted path** and
+checks the exact `source_document_sha256` bound at prepare. It parses that
+same snapshot, resolves an original **modelspace CIRCLE handle**, verifies
+DXF `$INSUNITS` (mm/inch only), checks the 2D plane, applies the explicit
+2×2 matrix and unit conversion **exactly once**, and compares real center
+and radius against the finished-face wire claim (1e-6 mm). A source handle
+cannot be reused for another Feature in the same item. Altered bytes,
+missing paths, symlinks, absent handles, wrong units and mismatched geometry
+fail the **entire trusted W-03 export precommit recheck** with
+`WHD_SOURCE_UNVERIFIED`. The source file path is supplied only through
+the trusted internal `source_documents` map, never from CADSplit JSON.
+
+**Explicit limits:** this evidence is CIRCLE-only and limited to direct
+modelspace planar entities and text DXF readable as UTF-8; rectangles,
+profiles, INSERT/transformed block contents and unknown source planes
+remain fail-closed until their specific certified adapters exist.
+The wire's `source_geometry_sha256` does **not** currently specify an
+interoperable canonicalization recipe, so this gate does not claim that
+digest is verified. The full original **document bytes** hash and actual
+source entity geometry are checked; no source receipt is persisted by
+this read-only helper. The public Worker/EXE remains disabled; W-06 must
+own durable source/path/key custody and commit locking, and W-04 must map
+verified Feature geometry to canonical WHD PartSpecs/FinalScene.

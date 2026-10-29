@@ -141,7 +141,10 @@ def test_valid_feature_wire_envelope_rechecks_before_export_but_writes_nothing(t
     f["source_transform"]["target_dimensions_mm"] = deepcopy(face)
     request["items"][0]["features"] = [f]
     request["request_digest"] = compute_wire_request_digest(request)
-    assert _recheck(original, receipt, request, root) is None
+    # A valid wire envelope alone MUST NOT pass without the original DXF.
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _recheck(original, receipt, request, root)
+    assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
     assert receipt["manufacturing_verified"] is False
     assert not (tmp_path / "worker-output-not-created").exists()
 

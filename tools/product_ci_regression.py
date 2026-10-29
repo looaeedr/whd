@@ -516,6 +516,8 @@ PYTEST_PATHS = (
     "tests/test_receiving_inner_door_version_gui_20261011.py",
     # #2379: append without shifting existing deterministic 3-shard assignments.
     "tests/test_issue2379_wire_feature_preflight.py",
+    # #2379: verify original CADSplit DXF source circles before staging.
+    "tests/test_issue2379_trusted_source_circle.py",
 )
 
 
