@@ -107,3 +107,104 @@ def test_symlinked_source_rejected_before_render(tmp_path):
         _recheck(row[0], row[1], row[2], row[3],
                  source_documents={row[0]["items"][0]["item_id"]: link})
     assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
+
+
+def test_verified_source_circle_becomes_whd_feature_and_real_door_dxf(tmp_path):
+    """WHD owns the feature's finished-face to unfolded mapping and real DXF."""
+    import math
+    from ae_engine.contracts import DoorPartSpec, ManufacturingContext
+    from ae_engine.manufacturing_api import generate_part
+    from ae_engine.manufacturing_endcap_compat import _door_features_for_legacy_engine
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from integration_cli.source_circle_verification import verify_trusted_original_dxf_circles
+
+    row = _source_case(tmp_path)
+    original, receipt, exported, root, source = row
+    assert _check(row) is None
+    values = verify_trusted_original_dxf_circles(
+        exported["items"][0]["features"], source_path=source,
+        expected_document_sha256=original["items"][0]["source_document_sha256"],
+    )
+    assert len(values) == 1 and isinstance(values[0], CircleFeature)
+    assert values[0].anchor is FeatureAnchor.ABSOLUTE_FINISHED_FACE
+    assert values[0].offset.x == pytest.approx(20)
+    assert values[0].offset.y == pytest.approx(30)
+    assert values[0].diameter == pytest.approx(6)
+    assert values[0].layer == "CUTTING"
+
+    # The same WHD-owned PartSpec / AE manufacturing exporter as regular doors.
+    spec = DoorPartSpec(
+        width=500, height=600, thickness=2, frame_width=25,
+        model_name="金庫型", features=values, feature_space="finished_face")
+    context = ManufacturingContext(resource_root=root)
+    mapped = _door_features_for_legacy_engine(spec, context)
+    assert len(mapped) == 1
+
+    # WHD's Vault baseline Door exporter mirrors the *entire* unfolded
+    # DrawingScene on X before saving DXF. The finished-face and pre-export
+    # guide coordinates must not be compared with DXF coordinates directly.
+    # Read the width from that same authoritative stretched-door scene.
+    from ae_engine import ae
+    from ae_engine.manufacturing_baseline_policy import _scoped_ae_resource_root
+    from ae_engine.manufacturing_door_indicator import (
+        _resolved_door_params, _resolved_door_corner_policy,
+    )
+    p = _resolved_door_params(spec, context)
+    with _scoped_ae_resource_root(context):
+        original_scene = ae.get_stretched_door_data(
+            spec.model_name, p["w"], p["h"], p["t"], p["fw"],
+            p["gap_w"], p["gap_h"], p["fold_left"], p["fold_right"],
+            p["fold_top"], p["fold_bottom"],
+            spec.indicator_hole, spec.door_indicator, spec.door_indicator_offset,
+            frame_edges=spec.frame_edges,
+            indicator_window_groups=spec.indicator_window_groups,
+            corner_policy=_resolved_door_corner_policy(spec, p["fw"]),
+        )
+    expected_export_x = original_scene.params["total_width"] - mapped[0].offset.x
+    assert not math.isclose(expected_export_x, mapped[0].offset.x, abs_tol=1e-6)
+
+    output = tmp_path / "actual-whd-door.dxf"
+    result = generate_part(spec, output, context)
+    assert result.part_kind == "door" and output.is_file()
+    msp = ezdxf.readfile(output).modelspace()
+    matches = [
+        e for e in msp.query('CIRCLE[layer=="CUTTING"]')
+        if math.isclose(float(e.dxf.radius), 3.0, abs_tol=1e-6, rel_tol=0)
+        and math.isclose(float(e.dxf.center.x), expected_export_x, abs_tol=1e-6, rel_tol=0)
+        and math.isclose(float(e.dxf.center.y), mapped[0].offset.y, abs_tol=1e-6, rel_tol=0)
+    ]
+    assert len(matches) == 1, "WHD generated DXF must carry source-attested physical circle"
+    assert any(e.dxf.layer == "BEND" for e in msp)
+
+
+def test_verified_source_mirror_transform_mapped_once_in_whd_feature(tmp_path):
+    from integration_cli.source_circle_verification import verify_trusted_original_dxf_circles
+    row = _source_case(tmp_path)
+    original, receipt, exported, root, source = row
+    feature = exported["items"][0]["features"][0]
+    feature["source_transform"]["mirror_x"] = True
+    feature["source_transform"]["matrix_2x2"] = [[-1, 0], [0, 1]]
+    feature["source_transform"]["translation_mm"] = [100, 0]
+    feature["center_mm"] = [80, 30]
+    exported["request_digest"] = compute_wire_request_digest(exported)
+    assert _check(row) is None
+    values = verify_trusted_original_dxf_circles(
+        exported["items"][0]["features"], source_path=source,
+        expected_document_sha256=original["items"][0]["source_document_sha256"],
+    )
+    assert len(values) == 1
+    assert values[0].offset.x == pytest.approx(80)
+    assert values[0].offset.y == pytest.approx(30)
+    assert values[0].diameter == pytest.approx(6)
+
+
+@pytest.mark.parametrize("process", ["BLIND_HOLE", "MARKING"])
+def test_unapproved_source_circle_process_fails_closed_before_manufacturing(tmp_path, process):
+    row = _source_case(tmp_path)
+    original, receipt, exported, root, source = row
+    exported["items"][0]["features"][0]["process"] = process
+    exported["request_digest"] = compute_wire_request_digest(exported)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _check(row)
+    assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
+    assert not (tmp_path / "worker-output-not-created").exists()

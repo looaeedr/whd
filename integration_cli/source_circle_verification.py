@@ -76,19 +76,24 @@ def verify_trusted_original_dxf_circles(
     *,
     source_path: Path,
     expected_document_sha256: str,
-) -> None:
+) -> tuple:
     """Compare wire claims to real modelspace entity handles and transformed geometry.
 
     Call *after* W-03 authenticated prepare/Frame and Feature-envelope checks.
-    A valid result proves circle coordinates against this source-byte snapshot
-    only; it DOES NOT certify unstandardized source_geometry_sha256, arbitrary
-    CAD geometries, target PartSpec manufacturing or durable W-06 custody.
+    Returns WHD-owned CircleFeature values derived from a verified source-byte
+    snapshot, never built by blindly trusting wire values. Downstream WHD
+    PartSpec retains the finished-face -> unfolded authority. This does NOT
+    certify source_geometry_sha256, full PartSpec manufacturing or W-06 custody.
     """
     if not isinstance(features, (list, tuple)):
         _fail("missing source feature inventory")
     if not features:
-        return
+        return ()
     document = _source_snapshot(source_path, expected_document_sha256)
+    # The only supported *manufacturing* mapping uses the real WHD Feature
+    # contract. Finished-face -> unfolded translation remains WHD-owned.
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor, Vec2
+    built: list[CircleFeature] = []
     modelspace = {
         str(e.dxf.handle).upper(): e for e in document.modelspace()
         if e.dxf.hasattr("handle")
@@ -97,6 +102,8 @@ def verify_trusted_original_dxf_circles(
     for feature in features:
         if not isinstance(feature, Mapping) or feature.get("type") != "circle":
             _fail("only direct original DXF circles have verified mapping")
+        if feature.get("process") != "THROUGH_CUT":
+            _fail("only certified THROUGH_CUT circle Feature mapping is supported")
         t = feature.get("source_transform")
         if not isinstance(t, Mapping):
             _fail("source transform evidence missing")
@@ -149,3 +156,10 @@ def verify_trusted_original_dxf_circles(
         if not math.isclose(radius * scale, _finite(feature.get("radius_mm")),
                             rel_tol=0, abs_tol=_TOL):
             _fail("wire radius differs from actual original DXF source circle")
+        built.append(CircleFeature(
+            diameter=2.0 * radius * scale,
+            anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+            offset=Vec2(transformed[0], transformed[1]),
+            layer="CUTTING",
+        ))
+    return tuple(built)

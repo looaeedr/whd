@@ -214,3 +214,32 @@ source entity geometry are checked; no source receipt is persisted by
 this read-only helper. The public Worker/EXE remains disabled; W-06 must
 own durable source/path/key custody and commit locking, and W-04 must map
 verified Feature geometry to canonical WHD PartSpecs/FinalScene.
+
+
+### W-04 WHD-native Door CircleFeature handoff (internal)
+
+On successful source-byte/hash/CIRCLE-handle matching, the same verification
+owner returns a tuple of **WHD `CircleFeature` instances**, each with
+`FeatureAnchor.ABSOLUTE_FINISHED_FACE`, the source-attested mm center,
+`diameter=2*verified_radius_mm` and WHD `CUTTING`. This only supports
+`process=THROUGH_CUT`; `BLIND_HOLE` and `MARKING` deliberately fail closed
+until their fabrication classification and source-layer acceptance exist.
+WHD's existing `DoorPartSpec(features=..., feature_space="finished_face")`,
+`_door_features_for_legacy_engine` and `manufacturing_api.generate_part`
+remain the sole owner of finished-face → unfolded geometry and DXF output.
+A permanent test uses a real original source DXF, W-03 recheck, this typed
+handoff and a real WHD Door DXF reloaded with ezdxf. This is an internal
+partial W-04 acceptance, **not** a packaged Worker or a production release.
+
+
+**Vault baseline Door DXF coordinate acceptance (2026-10-29, #2379):**
+`manufacturing_api.generate_part` delegates to WHD's
+`ae.export_stretched_door_dxf`, which maps a verified finished-face
+`CircleFeature` onto the unfolded Scene and **mirrors the entire Scene
+on the unfolded X axis before serializing DXF**. The independent disk-DXF
+regression therefore derives the authoritative unfolded width from WHD's
+`get_stretched_door_data(...).params["total_width"]` and compares the
+persisted circle at `x=total_width-pre_export_x`, while retaining the
+original Y/radius. Comparing the unmirrored internal Feature coordinate
+to the final DXF is a false RED. This does not change source geometry,
+WHD's mirror policy, PartSpec, or any CNC/DXF manufacturing formula.
