@@ -178,11 +178,15 @@ def test_real_gui_quantity_controls_holes_and_manual_save(family, tmp_path, monk
         editor_args, editor_kw = captured[-1]
         assert editor_args[0] == "head"
         controls.ports["select"](first)
+        # R2-11: selecting another active version may legitimately refresh
+        # Head/Tail. Only the subsequent INACTIVE editor commit must not
+        # trigger any additional calculation or build.
+        calls_after_active_switch = dict(calls)
         editor_kw["feature_list_override"][:] = [circle(10)]
         editor_kw["sync_callback"]()
         assert model.features_for_version(second, "head") == [circle(10)]
         assert model.features_for("head") == []
-        assert not any(calls.values()), calls
+        assert calls == calls_after_active_switch, (calls, calls_after_active_switch)
         controls.ports["select"](second); controls.refresh()
         controls.add()
         third = model.selected_version_id
