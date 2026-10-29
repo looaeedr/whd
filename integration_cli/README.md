@@ -287,6 +287,34 @@ from W-01 public `cadsplit_worker.py`; all public readback, path locking,
 export and recovery capability flags remain false. No Windows EXE or formal
 manufacturing release is certified.
 
+## W-04 private authenticated Door batch → W-06 durable stage handoff (#2380)
+
+`verified_door_finalscene.save_trusted_door_circle_finalscene_batch`
+accepts an **optional Worker-owned** `durable_ledger`. Without that opt-in,
+the existing W-04 private stage/Save→Reload/normal-exception rollback path
+is unchanged. With it, a pre-existing, nonsymlinked trusted output directory
+is mandatory; after authenticated W-03 original DXF/source/Frame recheck and
+WHD FinalScene construction, the Worker reserves its immutable export job and
+exclusive physical output-directory lease. The same WHD export owner stages
+and independently Save→Reload verifies **every** produced DXF, calls the
+source/fingerprint recheck again before commit, and dispatches the staged
+physical inventory to W-06 instead of the legacy in-process commit.
+W-06 records the frozen physical staged DXFs, backs up each old customer
+original on the same volume, fsyncs a durable multi-DXF intent, applies
+the checked renames with directory fsync and persists exact final SHA proofs
+with the job's immutable success receipt and lease release in a single
+SQLite transaction. A crash between renames is explicitly recoverable by
+the original W-06 rollback owner, not by rerendering the job.
+
+This is **PRIVATE and opt-in**, not a public CADSplit CLI capability. Source
+document paths, resource root, installation ledger/store and HMAC key must
+come from the trusted Worker and cannot be substituted by wire parameters.
+Any failed precommit step with an already durable reservation needs trusted
+recovery; it does not entitle the caller to steal/release the lease. Public
+Worker integration, verified installation key custody, Windows path aliases
+and Gate A, broader Head/Tail/IndicatorBox geometries and full mixed-kind
+manufacturing remain unsupported.
+
 ## W-04 internal real DXF Save→Reload batch
 
 The manufacturing owner now exposes an internal
