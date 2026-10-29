@@ -132,3 +132,23 @@ contract. The in-process W-03 test boundary therefore uses the separate
 (**protocol 1.1.0**, optional additive Door edges); it MUST NOT mutate
 `request_v1.schema.json` or claim 1.1.0 public capabilities. A future
 packaged Worker may only negotiate 1.1.0 after the W-04/W-06/W-05 gates.
+
+
+## W-03 pre-export recomputation (internal, not public)
+
+`prepare_recheck.recheck_trusted_door_export` is a pure fail-closed
+pre-export guard. The **original prepare request and receipt must come
+from a Worker-owned authenticated durable store**, not be supplied by the
+external export body. It verifies separate RFC8785 request digests,
+original physical item/source/Frame/dimension identity, target-frame
+ownership and sealed token, then calls WHD's actual Door-only prepare
+again against the **current Registry, baseline DXF, Factory Policy, build
+and engine**. A change refuses the *entire batch* with
+`WHD_PREPARE_STALE` before output staging.
+
+This guard is not a transaction journal, geometry validator or DXF
+exporter. W-04 must own feature/source geometry verification and
+Save→Reload acceptance; W-06 must store the original authenticated
+request/receipt, enforce idempotency and re-run this guard at the final
+commit barrier (or prove an immutable snapshot). The W-01 public CLI
+keeps all manufacturing capabilities disabled.
