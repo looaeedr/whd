@@ -100,6 +100,7 @@ import pytest
 
 from integration_cli.job_identity_ledger import DurableJobIdentityLedger
 from integration_cli.original_backup_manifest import DurableOriginalBackupEvidence
+from integration_cli.batch_commit_journal import DurableMultiDXFRollbackJournal
 from integration_cli.prepare_evidence import PrepareEvidenceError
 from integration_cli.request_canonical import compute_wire_request_digest
 
@@ -902,3 +903,142 @@ def test_private_original_backup_can_attest_no_prior_customer_file_without_creat
     assert DurableOriginalBackupEvidence(DurableJobIdentityLedger(store)).require_current(req) == manifest
     assert not (target / "part-one.dxf").exists()
     assert len(ezdxf.readfile(stage).modelspace().query("CIRCLE")) == 1
+
+
+# #2380 private two-DXF durable replacement and crash rollback (not public W-01).
+def _w06_committing_context(tmp_path):
+    store, root, old, stage1, stage2, req, ledger = _w06_backup_context(tmp_path)
+    original = old.read_bytes(), old.stat().st_mtime_ns
+    DurableOriginalBackupEvidence(ledger).create_verified_original_backups(
+        req, trusted_output_dir=root
+    )
+    journal = DurableMultiDXFRollbackJournal(ledger)
+    return store, root, old, stage1, stage2, req, ledger, journal, original
+
+
+def test_private_multidxf_real_save_reload_commit_receipt_and_lease_release(tmp_path):
+    store, root, old, stage1, stage2, req, ledger, journal, original = _w06_committing_context(tmp_path)
+    plan = journal.arm(req)
+    assert len(plan["items"]) == 2
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.complete(req, _w06_result(req), trusted_artifacts={"part-one": old})
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    outputs = journal.apply(req)
+    assert journal._read(req)[0] == "applied"
+    assert set(outputs) == {"part-one", "part-two"}
+    assert all(len(ezdxf.readfile(p).modelspace().query("CIRCLE")) == 1 for p in outputs.values())
+    assert not stage1.exists() and not stage2.exists()
+    ledger.complete(req, _w06_result(req), trusted_artifacts=outputs)
+    assert journal._read(req)[0] == "committed"
+    retry = deepcopy(req)
+    retry["request_id"] = "transport-new-after-commit"
+    assert DurableJobIdentityLedger(store).claim(retry).state == "committed"
+    with pytest.raises(PrepareEvidenceError):
+        journal.recover_rollback(req)
+    other = _w06_request(operation="export", job="another-export")
+    assert ledger.claim(other).state == "new"
+    assert ledger.reserve_output_directories(other, trusted_directories=[root])
+    immutable = Path(plan["items"][0]["backup"]["path"])
+    assert (immutable.read_bytes(), immutable.stat().st_mtime_ns) == original
+
+
+@pytest.mark.parametrize("interrupt_after", [1, 2])
+def test_private_multidxf_hard_stop_between_renames_rolls_back_after_restart(
+    tmp_path, interrupt_after,
+):
+    store, root, old, first, second, req, ledger, journal, original = _w06_committing_context(tmp_path)
+    journal.arm(req)
+    def hard_stop(n):
+        if n == interrupt_after:
+            raise SystemExit("emulated power loss")
+    with pytest.raises(SystemExit):
+        journal.apply(req, after_replace=hard_stop)
+    assert journal._read(req)[0] == "applying"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableJobIdentityLedger(store).claim(req)
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    contender = _w06_request(operation="export", job="another-job")
+    ledger.claim(contender)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.reserve_output_directories(contender, trusted_directories=[root])
+    assert exc.value.code == "WHD_OUTPUT_PATH_LOCKED"
+    recovered = DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(store))
+    assert recovered.recover_rollback(req) == "rolled_back"
+    assert recovered.recover_rollback(req) == "rolled_back"
+    assert (old.read_bytes(), old.stat().st_mtime_ns) == original
+    assert not (root / "part-two.dxf").exists()
+    assert DurableJobIdentityLedger(store).claim(req).state == "rolled_back"
+    assert ledger.reserve_output_directories(contender, trusted_directories=[root])
+
+
+def test_private_multidxf_modified_customer_file_blocks_unsafe_rollback(tmp_path):
+    store, root, old, _, _, req, ledger, journal, _ = _w06_committing_context(tmp_path)
+    journal.arm(req)
+    def stop(_):
+        raise SystemExit("stop")
+    with pytest.raises(SystemExit):
+        journal.apply(req, after_replace=stop)
+    old.write_bytes(old.read_bytes() + b"\n999\nthird-party-modified")
+    altered = old.read_bytes(), old.stat().st_mtime_ns
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(store)).recover_rollback(req)
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    assert (old.read_bytes(), old.stat().st_mtime_ns) == altered
+    other = _w06_request(operation="export", job="other-job")
+    ledger.claim(other)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.reserve_output_directories(other, trusted_directories=[root])
+    assert exc.value.code == "WHD_OUTPUT_PATH_LOCKED"
+
+
+def test_private_multidxf_corrupted_original_backup_blocks_rollback(tmp_path):
+    store, root, old, _, _, req, _, journal, _ = _w06_committing_context(tmp_path)
+    plan = journal.arm(req)
+    with pytest.raises(SystemExit):
+        journal.apply(req, after_replace=lambda _: (_ for _ in ()).throw(SystemExit()))
+    backup = Path(plan["items"][0]["backup"]["path"])
+    backup.write_bytes(backup.read_bytes() + b"\n999\ncorrupted")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(store)).recover_rollback(req)
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    assert old.exists()
+
+
+def test_private_multidxf_armed_without_replacement_can_rollback_unchanged(tmp_path):
+    store, root, old, first, second, req, _, journal, previous = _w06_committing_context(tmp_path)
+    journal.arm(req)
+    assert journal.recover_rollback(req) == "rolled_back"
+    assert (old.read_bytes(), old.stat().st_mtime_ns) == previous
+    assert first.exists() and second.exists()
+    assert not (root / "part-two.dxf").exists()
+    assert DurableJobIdentityLedger(store).claim(req).state == "rolled_back"
+
+
+def test_private_multidxf_digest_collision_and_sqlite_journal_corruption_refuse(tmp_path):
+    import sqlite3
+    store, root, old, _, _, req, _, journal, previous = _w06_committing_context(tmp_path)
+    journal.arm(req)
+    changed = deepcopy(req)
+    changed["items"][0]["part"]["dimensions_mm"]["width"] += 1
+    changed["request_digest"] = compute_wire_request_digest(changed)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        journal.apply(changed)
+    assert exc.value.code == "WHD_JOB_ID_CONFLICT"
+    with sqlite3.connect(store / "job_identity.sqlite3") as conn:
+        conn.execute("UPDATE batch_replace_journals SET plan_json='{}' WHERE job_id=?", (req["job_id"],))
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(store)).apply(req)
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    assert (old.read_bytes(), old.stat().st_mtime_ns) == previous
+
+
+def test_private_multidxf_partial_receipt_cannot_release_durable_lease(tmp_path):
+    store, root, old, _, _, req, ledger, journal, _ = _w06_committing_context(tmp_path)
+    journal.arm(req)
+    journal.apply(req)
+    with pytest.raises(PrepareEvidenceError):
+        journal.apply(req)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.complete(req, _w06_result(req), trusted_artifacts={"part-one": old})
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    assert journal._read(req)[0] == "applied"
