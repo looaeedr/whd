@@ -269,7 +269,37 @@ class DurableMultiDXFRollbackJournal:
             raise _refuse("partial replacement requires journal recovery") from exc
         return result
 
-    def recover_rollback(self, request: Mapping[str, Any]) -> str:
+    def verify_rolled_back(self, request: Mapping[str, Any]) -> str:
+        """Read-only final rollback attestation, not only a journal state flag.
+
+        Once the lease was released another job may later own this directory.
+        If the actual bytes no longer prove the old outcome, never return an
+        unqualified terminal success based solely on the SQLite state string.
+        """
+        state, plan = self._read(request)  # validates job digest and journal SHA
+        if state != "rolled_back":
+            raise _refuse("job has no durably completed rollback")
+        root = Path(plan["output_directory"])
+        key, = _output_directory_keys([root])
+        if (key != plan["directory_key"]
+                or list(_directory_identity(root)) != plan["output_identity"]):
+            raise _refuse("terminal rollback directory identity changed")
+        for item in plan["items"]:
+            target = Path(item["destination"])
+            original = item["original"]
+            if target.parent != root or target.is_symlink():
+                raise _refuse("unsafe terminal rollback target")
+            if original is None:
+                if target.exists():
+                    raise _refuse("new customer file appeared after rollback")
+            elif not _proof_equals_expected(target, original):
+                raise _refuse("customer original changed after rollback")
+        return "rolled_back"
+
+    def recover_rollback(
+        self, request: Mapping[str, Any],
+        *, after_restored: Callable[[int], None] | None = None,
+    ) -> str:
         """Idempotently undo a partially committed batch after interruption.
 
         Refuse every unexpected customer byte BEFORE modifying any target.
@@ -278,7 +308,7 @@ class DurableMultiDXFRollbackJournal:
         """
         state, plan = self._read(request)
         if state == "rolled_back":
-            return "rolled_back"
+            return self.verify_rolled_back(request)
         if state not in ("armed", "applying", "applied", "rolling_back"):
             raise _refuse("finished journal cannot be rolled back")
         root = self._verify_owner(request, plan)
@@ -312,7 +342,7 @@ class DurableMultiDXFRollbackJournal:
         if state != "rolling_back":
             self._change_state(request, state, "rolling_back")
         try:
-            for item in plan["items"]:
+            for index, item in enumerate(plan["items"], 1):
                 destination = Path(item["destination"])
                 original = item["original"]
                 new = item["staged"]
@@ -344,6 +374,11 @@ class DurableMultiDXFRollbackJournal:
                             temp.unlink()
                     if not _proof_equals_expected(destination, original):
                         raise _refuse("restored customer output mismatch")
+                # Durable state is already 'rolling_back' before any file
+                # restoration. A real os._exit here leaves a restartable
+                # partial rollback, not a false terminal success.
+                if after_restored is not None:
+                    after_restored(index)
             # Recheck whole batch before atomically closing the journal and
             # releasing both output-directory and physical-identity leases.
             for item in plan["items"]:
