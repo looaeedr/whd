@@ -224,11 +224,19 @@ def _mixed_rect_batch(tmp_path, *, fault=None, rotation=0):
         vertices = [(36,34), (44,46), (44,34), (36,46)]
     if fault == "slanted":
         vertices = [(36,34), (44,34), (45,46), (36,46)]
-    if fault == "bulge":
-        vertices = [(36,34,0.25), (44,34,0), (44,46,0), (36,46,0)]
+    if fault in ("bulge", "tiny_bulge"):
+        vertices = [(36,34,1e-12 if fault == "tiny_bulge" else 0.25),
+                    (44,34,0), (44,46,0), (36,46,0)]
+    if fault == "vertex_width":
+        vertices = [(36,34,0.25,0,0), (44,34,0,0,0),
+                    (44,46,0,0,0), (36,46,0,0,0)]
     rect = msp.add_lwpolyline(
-        vertices, format="xyb" if fault == "bulge" else "xy",
-        close=(fault != "open"), dxfattribs={"layer": "CUTTING"},
+        vertices,
+        format=("xyb" if fault in ("bulge", "tiny_bulge")
+                else "xyseb" if fault == "vertex_width" else "xy"),
+        close=(fault != "open"),
+        dxfattribs={"layer": "CUTTING", **({"const_width": 0.25}
+                      if fault == "const_width" else {})},
     )
     handle_rect = rect.dxf.handle
     doc.saveas(source)
@@ -319,7 +327,7 @@ def test_original_source_rectangle_and_circle_survive_real_finalscene_batch(tmp_
         api.build_part_render_data(spec, context), rect_path).ok
 
 
-@pytest.mark.parametrize("fault", ["open", "bulge", "bow_tie", "slanted", "claimed_width"])
+@pytest.mark.parametrize("fault", ["open", "bulge", "tiny_bulge", "vertex_width", "const_width", "bow_tie", "slanted", "claimed_width"])
 def test_invalid_original_source_rectangle_refuses_any_output(tmp_path, fault):
     batch = _mixed_rect_batch(tmp_path, fault=fault)
     target = tmp_path / "out"
