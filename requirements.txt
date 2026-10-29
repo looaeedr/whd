@@ -1,3 +1,4 @@
 ezdxf
 shapely
 jsonschema>=4.21,<5
+rfc8785==0.1.4

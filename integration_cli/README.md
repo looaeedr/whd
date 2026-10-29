@@ -61,3 +61,74 @@ W-06 owns durable idempotency, job/output path locks, crash recovery and cancel.
 These are W-01 transport tests, not the Windows onedir EXE or Gate A.
 W-05 must verify Windows hard-link semantics or provide an equally safe
 no-clobber atomic method; W-07 separately validates real packaging/GUI.
+
+## W-03 partial preflight (#2378, not a working prepare handler)
+
+`prepare_evidence.py` is a **non-authorizing** building block. It hashes the
+actual bytes of an explicitly selected Certified Registry and WHD-resolved
+baseline list, locks the exact build/source hash, current
+`manufacturing_api.resolve_policy` snapshot and item dimensions, and compares
+those immutable inputs before a later export. It refuses missing, empty,
+symlinked or escaping resources rather than replacing a missing source with
+placeholder hashes. It must be given paths selected by WHD's
+`expected_baseline_path_for`; it does **not** discover baseline filenames
+from CADSplit source data. `resolve_authoritative_door_inputs` calls WHD's
+own `door_finished_face_size` on a previously verified `DoorPartSpec`; it
+does not infer `frame_edges`, original DXF coordinates, or a physical
+part ID from source drawing names.
+
+The `environment_fingerprint` here is an **internal resource-input evidence
+digest**, not the RFC 8785 wire `request_digest`, a durable transaction or an
+issued `prepare_token`. It is **not** an attestation of a Windows binary.
+A real W-03 `prepare` response remains blocked on independently verified
+per-face 3D frame origin/basis/normal and on durable token binding. The
+existing `cadsplit_worker.py prepare` intentionally continues returning
+`WHD_OPERATION_NOT_IMPLEMENTED` until that acceptance is implemented.
+Neither this module nor its test cases enable manufacturing. Only W-06/04
+can own export stale-revalidation and final commit.
+
+
+
+## W-03 certified *local* Door frame and in-process prepare
+
+The subsequent W-03 implementation now provides:
+
+- `prepare_frame.resolve_door_finished_local_frame`: a Door **local**
+  finished-face frame with bottom-left local origin, +X right and +Y up,
+  checked against `ae_engine.sheetmetal_feature_core.feature_finished_point`.
+  `origin_xyz_mm=[0,0,0]` and +Z are a right-handed **local plane
+  embedding**, never an assembly-world position, installation orientation,
+  mirror guess or proof of another physical face. The flattened DXF mapping
+  remains owned by WHD's `build_finished_reference_guide`.
+- `request_canonical`: RFC 8785 digest excluding exactly
+  `request_id`/`request_digest`, so changing transport correlation cannot
+  change job identity but changing material inputs does.
+- `prepare_binding`: a worker-secret HMAC covering job, source identity,
+  canonical physical-part identity, target Frame, locked dimensions and
+  environment, including independent per-item preparation digests.
+- `prepare_batch.prepare_trusted_door_batch`: in-process, schema-validated
+  **Door-only** prepare: uses WHD `resolve_policy`, `door_finished_face_size`,
+  `expected_baseline_path_for`, Verified Registry/baseline byte hashes, and
+  four explicit Door layout `frame_edges` flags. It returns
+  `manufacturing_verified=false`; never emits DXF or checks out a real EXE.
+
+**Remaining acceptance boundary:** the public Worker CLI is still not
+connected to this function; the trusted installation key's durable custody,
+atomic journal, verified package resource manifest and no-clobber retries are
+W-06/W-05, and Windows Gate A is W-07. W-03 cannot claim public `prepare`
+support or a certified EXE until those verified dependencies are available.
+The present local Door frame MUST NOT be silently reused for EndCap,
+IndicatorBox, BoxBody or back/mirrored faces. The CADSplit-side original DXF
+source frame/transform remains CADSplit's responsibility.
+
+
+## W-03 versioned draft (not a public capability)
+
+The **published/source-only W-01 CLI remains wire 1.0.0** and returns
+`prepare/export` as unsupported. The W-03 Door frame evidence needs an
+explicit `part.frame_edges` member not present in the immutable 1.0.0
+contract. The in-process W-03 test boundary therefore uses the separate
+`request_v1_1.schema.json` and `response_v1_1.schema.json`
+(**protocol 1.1.0**, optional additive Door edges); it MUST NOT mutate
+`request_v1.schema.json` or claim 1.1.0 public capabilities. A future
+packaged Worker may only negotiate 1.1.0 after the W-04/W-06/W-05 gates.

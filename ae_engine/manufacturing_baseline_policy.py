@@ -386,15 +386,22 @@ def _scoped_ae_resource_root(context: ManufacturingContext):
         yield
         return
     with _RESOURCE_LOCK:
+        # The original baseline resolver is imported into ae_endcap by value.
+        # Patching ae.get_resource_path alone does not redirect the actual
+        # baseline_expected_path/part_path owner.
+        from . import ae_endcap
         previous = ae.get_resource_path
+        previous_endcap = ae_endcap.get_resource_path
 
         def get_resource_path(relative_path):
             return str(root / relative_path)
 
         ae.get_resource_path = get_resource_path
+        ae_endcap.get_resource_path = get_resource_path
         try:
             yield
         finally:
+            ae_endcap.get_resource_path = previous_endcap
             ae.get_resource_path = previous
 
 
