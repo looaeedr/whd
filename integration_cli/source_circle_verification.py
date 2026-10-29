@@ -231,6 +231,8 @@ def _verified_profile_from_source(entity, feature, transform):
         rows[1][0] * _finite_dxf_number(p[0]) * scale
         + rows[1][1] * _finite_dxf_number(p[1]) * scale + dy,
     ) for p in raw)
+    if any(not math.isfinite(v) for point in points for v in point):
+        _fail("source PROFILE transformed geometry is nonfinite")
     polygon = Polygon(points)
     if (len(set(points)) != len(points)
             or not polygon.is_valid or polygon.is_empty or polygon.area <= 0):
