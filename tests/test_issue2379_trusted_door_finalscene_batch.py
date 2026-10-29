@@ -425,7 +425,7 @@ def test_invalid_original_source_rectangle_refuses_any_output(tmp_path, fault):
     assert not target.exists()
 
 
-def test_source_profile_wire_claim_cannot_replace_real_dxf_geometry(tmp_path):
+def test_source_profile_remains_fail_closed_after_rect_adapter(tmp_path):
     batch = _mixed_rect_batch(tmp_path)
     exported = batch[2]
     feature = exported["items"][1]["features"][0]
