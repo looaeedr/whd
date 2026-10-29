@@ -53,8 +53,10 @@ def _binding_payload(
         if not isinstance(frame, Mapping):
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "missing authoritative Frame")
         frame_id = frame.get("frame_id")
-        if not isinstance(frame_id, str) or not frame_id:
-            raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "missing Frame identity")
+        # W-03 certifies only the WHD-issued front Door-local frame.
+        # A caller-supplied arbitrary frame ID must not become a signed receipt.
+        if frame_id != f"door:{physical}:front:local-v1":
+            raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Frame identity is not WHD Door-local")
         if (item_id in seen_items or physical in seen_physical or frame_id in seen_frames):
             raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "duplicate item or frame identity")
         seen_items.add(item_id)
