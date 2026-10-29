@@ -150,6 +150,8 @@ class DurableJobIdentityLedger:
         finally:
             conn.close()
         recorded_digest, state, payload, payload_hash, proof_json = row
+        if not isinstance(recorded_digest, str):
+            raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "durable identity record is invalid")
         if not hmac.compare_digest(recorded_digest, digest):
             raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "same job identity has different semantic request")
         if state != "committed":
@@ -187,7 +189,8 @@ class DurableJobIdentityLedger:
                 or trusted_result.get("status") != "success"
                 or trusted_result.get("operation") != op
                 or trusted_result.get("job_id") != job
-                or trusted_result.get("client_installation_id") != client):
+                or trusted_result.get("client_installation_id") != client
+                or trusted_result.get("request_digest") != digest):
             raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "unverified completion receipt")
         proofs = _file_proofs(trusted_artifacts)
         if op == "export" and not proofs:
@@ -204,6 +207,8 @@ class DurableJobIdentityLedger:
             ).fetchone()
             if row is None:
                 raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "job not reserved")
+            if not isinstance(row[0], str):
+                raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "durable identity record invalid")
             if not hmac.compare_digest(row[0], digest):
                 raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "completion digest changed")
             if row[1] != "started":
