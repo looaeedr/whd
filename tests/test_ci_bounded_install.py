@@ -148,3 +148,29 @@ def test_ci_workflow_skips_apt_only_with_both_real_xvfb_binaries():
     assert "name: Publish shard JUnit for mandatory full acceptance\n        if: always()" in workflow
     assert "name: Canonical Product Regression" in workflow
     assert "--merge-junit junit/shard-17.xml" in workflow
+
+
+def test_product_pr_trigger_covers_worker_gui_manufacturing_and_test_authority():
+    """New manufacturing or Worker files must not silently bypass canonical CI."""
+    source = (ROOT / ".github/workflows/whd-product-regression.yml").read_text(encoding="utf-8")
+    head = source.split("\n# Keep independent PRs parallel", 1)[0]
+    assert "  pull_request:" in head
+    assert "      - localX" in head
+    paths = [line.strip().removeprefix("- ").strip("'\"")
+             for line in head.splitlines() if line.startswith("      - '")]
+    for required in (
+        "*.py", "ae_engine/**", "gui_modules/**", "integration_cli/**",
+        "基準檔/**", "config/**", "config.ini", "requirements.txt",
+        "tests/**", "tools/product_ci_regression.py",
+        "tools/product_ci_file_duration_manifest_*.json",
+        "tools/ci_failure_feedback.py",
+        ".github/workflows/whd-product-regression.yml",
+    ):
+        assert required in paths, f"Product PR regression trigger missing: {required}"
+    assert paths.index("tests/**") < paths.index("!tests/governance/**")
+    assert paths.index("tests/**") < paths.index("!tests/knowledge/**")
+    assert "group: whd-product-regression-pr-" in source
+    assert "cancel-in-progress: true" in source
+    assert "shard: [" + ", ".join(str(i) for i in range(18)) + "]" in source
+    assert "name: Canonical Product Regression" in source
+    assert "--merge-junit junit/shard-17.xml" in source

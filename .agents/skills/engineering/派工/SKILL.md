@@ -23,7 +23,7 @@ whd_schema: WHD_DOC_META_V1
 施工倉庫固定為 GitHub `looaeedr/whd`，不由預設 `main` 或 CoreELEC checkout 推斷來源；施工階段 `DISCOVERY/BUILD/TEST/COMMIT/PUSH/PR/CI` 僅 `execution_location=GITHUB|SCHEDULER|REMOTE_ACTION`，不可用 DC/RC/local shell。PR base=`localX`、exact SHA CI 成功後，**預設在 GitHub 合併 localX**；不能擅自發布正式 X，也不因缺雲端執行器轉本機施工。
 ## 快速迭代與最終完整交付分離
 
-同一 Bug／功能**先在同一工作批次完成最小修改與相關回歸**，使用合法工作區的 `python tools/quick_test.py --test tests/test_file.py::test_case` 做真正 RED→GREEN；多個已修改測試檔可用 `--auto`。無法在 GitHub/授權雲端環境執行時只回報未執行，不得偷進 Windows/DC。確認受影響鏈合格再盡量單次 commit/push PR 觸發 `WHD Product Regression` 的完整必跑測試；新 SHA 修復例外仍完整重驗。具體唯一流程以 `AGENTS.md::BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1` 為準，不建第二套 SOP；治理及獨立製造／CADCraft 證據不能為湊「一套 CI」而削除。
+同一 Bug／功能**先在同一工作批次完成最小修改與相關回歸**，使用合法工作區的 `python tools/quick_test.py --test tests/test_file.py::test_case` 做真正 RED→GREEN；多個已修改測試檔可用 `--auto`。無法在 GitHub/授權雲端環境執行時只回報未執行，不得偷進 Windows/DC。確認受影響鏈合格再盡量單次 commit/push PR 觸發 `WHD Product Regression` 的完整必跑測試；新 SHA 修復例外仍完整重驗。具體唯一流程以 `AGENTS.md::BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1` 為準，不建第二套 SOP；歷史舊專項不再作為施工前置；必要的治理、安全與正式發版閘門及完整製造回歸仍不得削減。
 
 
 已有真實 RED 測試 node／本次已改測試檔時，先用 `tools/change_test_profile.py --feedback-test <真實 node-id>` 產生 `fast_feedback.command`，在合法 GitHub／雲端施工執行器先跑定向 RED→GREEN，避免每次試錯都以完整 Canonical CI 作為第一個回饋。`NEEDS_EXPLICIT_TEST` 不得猜成 GREEN，沒有執行環境也不能假稱已測。提交可交付候選後仍按原範圍跑 exact SHA 必要 CI；CI 失敗優先查失敗 node/step，用定向測試修正後再提交新 SHA 重跑**完整必要 CI**。不改 Runner 授權、不撤除完整回歸、不重啟舊交易／背景輪詢。
