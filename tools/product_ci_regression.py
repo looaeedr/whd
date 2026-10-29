@@ -377,6 +377,8 @@ PYTEST_PATHS = (
     "tests/test_issue1050_receiving_mother_plate_marking.py",
     # #1702 exact single-cabinet source-to-physical-DXF self-acceptance.
     "tests/test_issue1702_single_cabinet_final_acceptance_20261029.py",
+    # #1702 Windows-discovered legacy multipart Save→Reload, Joint and physical-piece parity.
+    "tests/test_phase6_receiving_multipart_integration.py::test_receiving_multipart_project_round_trip_preserves_joints_shrinks_features_and_piece_identity",
     "tests/test_receiving_inner_frame_last_flange_contact.py",
     "tests/test_phase6_t15_inner_door_panels.py",
     "tests/test_issue1901_inner_door_feature_candidates.py",
@@ -501,6 +503,8 @@ PYTEST_PATHS = (
     "tests/test_deep_audit_round2_bugfixes.py",
     # The R3 code-only audit and its closure boundary cases are product gates.
     "tests/test_deep_audit_round3_bugfixes.py",
+    # Original 116 #45/R3-13: physical upper Door hole pick after Y mirror + viewport resize.
+    "tests/test_manual_audit116_r3_13_mirrored_hole_pick.py",
     # #2083 native-Tk acceptance: exercise current numeric CSV V5 candidate
     # identity, stale-model rejection, real highlighted Bay selection and
     # quantity manager; do not silently rely on legacy DXF-only test fixtures.
