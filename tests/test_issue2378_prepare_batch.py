@@ -326,3 +326,25 @@ def test_export_recheck_rejects_changed_actual_environment(tmp_path, monkeypatch
     with pytest.raises(PrepareEvidenceError) as exc:
         _recheck(original, receipt, export, root, **overrides)
     assert exc.value.code == "WHD_PREPARE_STALE"
+
+
+@pytest.mark.parametrize("broken", [
+    "registry_deleted", "baseline_deleted", "registry_corrupt", "baseline_corrupt",
+])
+def test_export_recheck_missing_or_unparseable_source_is_stale(tmp_path, broken):
+    root, registry, baseline = _root(tmp_path)
+    request = _request()
+    receipt = _prepare(request, root)
+    export = _export_request_from_prepared(request, receipt)
+    if broken == "registry_deleted":
+        registry.unlink()
+    elif broken == "baseline_deleted":
+        baseline.unlink()
+    elif broken == "registry_corrupt":
+        registry.write_text('{"not_a_certified_registry": true}', encoding="utf-8")
+    else:
+        baseline.write_bytes(b"not a valid DXF")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _recheck(request, receipt, export, root)
+    assert exc.value.code == "WHD_PREPARE_STALE"
+    assert not (tmp_path / "worker-output-not-created").exists()
