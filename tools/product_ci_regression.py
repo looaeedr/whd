@@ -514,6 +514,8 @@ PYTEST_PATHS = (
     # quantity manager; do not silently rely on legacy DXF-only test fixtures.
     "tests/test_receiving_inner_door_multi_switch_editor_gui_20261011.py",
     "tests/test_receiving_inner_door_version_gui_20261011.py",
+    # #2379: append without shifting existing deterministic 3-shard assignments.
+    "tests/test_issue2379_wire_feature_preflight.py",
 )
 
 

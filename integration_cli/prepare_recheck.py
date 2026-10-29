@@ -19,6 +19,7 @@ from jsonschema import Draft202012Validator, ValidationError
 
 from integration_cli.prepare_batch import prepare_trusted_door_batch
 from integration_cli.prepare_evidence import PrepareEvidenceError, _pure_json
+from integration_cli.feature_preflight import validate_wire_features_against_prepared_frame
 from integration_cli.request_canonical import require_matching_wire_request_digest
 
 
@@ -119,6 +120,9 @@ def recheck_trusted_door_export(
                     feature.get("viewed_from") != frame_rows[0].get("viewed_from") or
                     feature.get("units") != frame_rows[0].get("units")):
                 raise PrepareEvidenceError("WHD_PREPARE_STALE", "feature target frame changed")
+        validate_wire_features_against_prepared_frame(
+            exported.get("features", ()), frame_rows[0],
+        )
 
     # Re-enter the WHD manufacturing owners, real parsers and content hashes
     # for this exact original batch. This is not a version-string comparison.
