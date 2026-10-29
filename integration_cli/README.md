@@ -112,6 +112,24 @@ The subsequent W-03 implementation now provides:
   four explicit Door layout `frame_edges` flags. It returns
   `manufacturing_verified=false`; never emits DXF or checks out a real EXE.
 
+### W-03 trusted pre-export recheck seam (non-public, no DXF)
+
+`prepare_revalidation.revalidate_trusted_door_preparation` re-runs the
+original WHD Door preparation against live resolved Policy, true Registry and
+baseline content and parsers, build identity, physical dimensions, issued
+Frame and installation-key HMAC. It compares the complete stored receipt
+except transport-only `request_id`. Differences fail with
+`WHD_PREPARE_STALE` before any export. This function does **not** write
+files or authorize fabrication.
+
+W-06 must provide the original request and successful receipt from its
+Worker-owned durable journal, along with a trusted installation key; it is
+unsafe to pass CADSplit-provided receipt data as that journal record.
+W-04 must invoke this recheck both before rendering and just before
+atomic commit, and separately validate the actual source transforms,
+FinalScene, DXF Save→Reload and physical inventory. Nothing here enables
+public `prepare/export` or declares Windows Gate A passed.
+
 **Remaining acceptance boundary:** the public Worker CLI is still not
 connected to this function; the trusted installation key's durable custody,
 atomic journal, verified package resource manifest and no-clobber retries are
