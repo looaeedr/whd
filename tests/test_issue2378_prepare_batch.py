@@ -2,6 +2,9 @@
 """#2378 integrated WHD Door-local prepare. No DXF or public CLI activation."""
 from copy import deepcopy
 from pathlib import Path
+import shutil
+
+import ezdxf
 
 import pytest
 from jsonschema import Draft202012Validator
@@ -48,7 +51,7 @@ def _root(tmp_path):
     root=tmp_path/"資源 root"
     registry=root/"基準檔"/"截角資料庫"/"certified_relief_rules.json"
     registry.parent.mkdir(parents=True,exist_ok=True)
-    registry.write_text('{"synthetic_registry":"only hash receipt test"}',encoding="utf-8")
+    shutil.copy2(HERE/"基準檔"/"截角資料庫"/"certified_relief_rules.json", registry)
     model = DoorPartSpec(width=500,height=600,thickness=2,frame_width=25,
                          model_name="金庫型")
     expected=expected_baseline_path_for(model, ManufacturingContext(resource_root=root))
@@ -56,7 +59,7 @@ def _root(tmp_path):
     path=Path(expected)
     assert path.is_relative_to(root), "baseline must be rooted in WHD resource root"
     path.parent.mkdir(parents=True,exist_ok=True)
-    path.write_bytes(b"test-only-DXF-baseline-content")
+    shutil.copy2(HERE/"基準檔"/"金庫型"/"門.dxf", path)
     return root,registry,path
 
 
@@ -94,10 +97,12 @@ def test_prepare_token_fails_closed_after_baseline_or_locked_input_change(tmp_pa
     root,registry,baseline=_root(tmp_path)
     request=_request()
     first=_prepare(request,root)
-    baseline.write_bytes(b"changed baseline bytes")
+    doc=ezdxf.readfile(baseline)
+    doc.modelspace().add_line((0,0),(1,1),dxfattribs={"layer":"MARKING"})
+    doc.saveas(baseline)
     assert _prepare(request,root)["prepare_token"]!=first["prepare_token"]
-    baseline.write_bytes(b"test-only-DXF-baseline-content")
-    registry.write_text('{"changed":"registry"}',encoding="utf-8")
+    shutil.copy2(HERE/"基準檔"/"金庫型"/"門.dxf", baseline)
+    registry.write_text(registry.read_text(encoding="utf-8")+"\n",encoding="utf-8")
     assert _prepare(request,root)["prepare_token"]!=first["prepare_token"]
     request["items"][0]["part"]["dimensions_mm"]["width"]=499
     request["request_digest"]=compute_wire_request_digest(request)
@@ -136,4 +141,41 @@ def test_reject_tampered_digest_or_missing_registry(tmp_path):
     req=_request()
     with pytest.raises(PrepareEvidenceError) as exc:
         _prepare(req,root)
+    assert exc.value.code=="WHD_RESOURCE_UNVERIFIED"
+
+
+def test_registry_hash_alone_does_not_certify_synthetic_registry(tmp_path):
+    root,registry,_=_root(tmp_path)
+    registry.write_text('{"synthetic_registry":"not certified"}', encoding="utf-8")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _prepare(_request(),root)
+    assert exc.value.code=="WHD_RESOURCE_UNVERIFIED"
+
+
+def test_baseline_hash_alone_does_not_certify_synthetic_dxf(tmp_path):
+    root,_,baseline=_root(tmp_path)
+    baseline.write_bytes(b"arbitrary nonempty bytes that are not DXF")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _prepare(_request(),root)
+    assert exc.value.code=="WHD_RESOURCE_UNVERIFIED"
+
+
+def test_registry_duplicate_active_revision_fails_closed(tmp_path):
+    import json
+    root,registry,_=_root(tmp_path)
+    data=json.loads(registry.read_text(encoding="utf-8"))
+    data["rules"].append(dict(data["rules"][0]))
+    registry.write_text(json.dumps(data,ensure_ascii=False),encoding="utf-8")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _prepare(_request(),root)
+    assert exc.value.code=="WHD_RESOURCE_UNVERIFIED"
+
+
+def test_baseline_has_to_own_real_cutting_geometry(tmp_path):
+    root,_,baseline=_root(tmp_path)
+    blank=ezdxf.new()
+    blank.modelspace().add_line((0,0),(50,50),dxfattribs={"layer":"MARKING"})
+    blank.saveas(baseline)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _prepare(_request(),root)
     assert exc.value.code=="WHD_RESOURCE_UNVERIFIED"
