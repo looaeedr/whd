@@ -180,11 +180,18 @@ def check_csv_v5_base_part_only_groups(
                 render, pad, owner_hole_id=owner,
                 rotation_deg=rotations[0],
             ))
+        # Raised NFBs are drilled into the PAD sheet, not the Base. Derive
+        # the direct-mount set from current V5 source PAD patterns and check
+        # that the Base has exactly those four-hole owners, never more.
+        pad_owner_ids = {
+            part.hole_ids[pattern.switch_index] for pattern in pad_patterns
+        }
+        direct_ids = set(part.hole_ids) - pad_owner_ids
         expected_ids = {
             f"{hole_id}:screw:{i}"
-            for hole_id in part.hole_ids for i in range(1, 5)
+            for hole_id in direct_ids for i in range(1, 5)
         }
-        if (len(screws) != 4 * len(part.hole_ids)
+        if (len(screws) != 4 * len(direct_ids)
                 or {item.source_id for item in screws} != expected_ids
                 or len(native) != 5 + actual_pad_count
                 or render.material is None or render.material.is_empty
@@ -219,6 +226,11 @@ def check_csv_v5_base_part_only_groups(
             diameter = float(recalculated.screw_diameter_mm)
             if not isfinite(diameter) or diameter <= 0:
                 raise ValueError("CSV V5 螺絲孔直徑無效")
+            # Independent source positioning still constrains the 4 PAD
+            # locator squares through verify_real_pad_base_square_cuts().
+            # Never read a PAD-owned screw from this Base's CUTTING scene.
+            if hole_id in pad_owner_ids:
+                continue
             for index, (x, y) in enumerate(
                 recalculated.screw_centres_uv_mm, start=1
             ):
