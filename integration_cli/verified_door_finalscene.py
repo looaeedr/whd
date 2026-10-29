@@ -55,10 +55,30 @@ def _assert_original_circles_in_final_scene(render_data, mapped_circles) -> None
         if len(matches) != 1:
             _reject("verified source CIRCLE location/radius changed inside WHD FinalScene")
         unmatched.remove(matches[0])
+    # A closed contour is an ordered cycle, not an unordered vertex set.
+    # A bow-tie path may use exactly the same four corners and bounding box
+    # as a valid rectangle, but connects different edges and must fail closed.
+    # Permit only cyclic start shifts and reversed winding of the canonical
+    # ResolvedRect path; neither changes the manufactured closed contour.
+    def same_closed_contour(actual, expected):
+        if len(actual) != len(expected):
+            return False
+        n = len(expected)
+        for start in range(n):
+            for direction in (1, -1):
+                if all(
+                    math.isclose(actual[(start + direction * i) % n].x, expected[i].x,
+                                 abs_tol=_TOL, rel_tol=0)
+                    and math.isclose(actual[(start + direction * i) % n].y, expected[i].y,
+                                     abs_tol=_TOL, rel_tol=0)
+                    for i in range(n)
+                ):
+                    return True
+        return False
+
     # WHD's ResolvedRect generates the canonical four corners; unlike
     # CirclePrimitive, PolylinePrimitive has no source_type field. Compare
-    # the full physical contour with each original-source-derived RectFeature,
-    # never assert the same bbox alone equals the correct manufacturing hole.
+    # the full ordered CUTTING edge cycle for each source-derived RectFeature.
     available = [
         p for p in render_data.scene.primitives
         if isinstance(p, PolylinePrimitive) and p.layer == "CUTTING" and p.closed
@@ -72,17 +92,7 @@ def _assert_original_circles_in_final_scene(render_data, mapped_circles) -> None
         ).points)
         matches = []
         for poly in available:
-            if len(poly.points) != 4:
-                continue
-            remaining = list(points)
-            for point in poly.points:
-                found = [q for q in remaining if
-                         math.isclose(point.x, q.x, rel_tol=0, abs_tol=_TOL)
-                         and math.isclose(point.y, q.y, rel_tol=0, abs_tol=_TOL)]
-                if len(found) != 1:
-                    break
-                remaining.remove(found[0])
-            else:
+            if same_closed_contour(poly.points, points):
                 matches.append(poly)
         if len(matches) != 1:
             _reject("source-attested rectangular CUTTING contour missing or duplicated in FinalScene")
