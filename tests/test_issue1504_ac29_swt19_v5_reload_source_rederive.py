@@ -156,7 +156,9 @@ def test_ac29_swt19_reload_current_v5_rederives_real_centres_and_cutting(
     receipt = _save(saved, fresh_parts, tmp_path / "after-reload")
     saved_paths = _files(receipt)
     assert receipt.source_hole_ids == ("nfb:0", "nfb:1")
-    assert len(_shapes(saved_paths[1])[0]) == 8
+    # Reload preserves source-owned allocation: four direct Base screw
+    # bores; the shallower NFB screw quartet belongs to PAD.
+    assert len(_shapes(saved_paths[1])[0]) == 4
     assert project_file.is_file()
 
 
