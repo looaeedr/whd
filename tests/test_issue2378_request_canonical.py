@@ -1077,3 +1077,72 @@ def test_private_multidxf_journal_rejects_per_part_mode(tmp_path):
         journal.arm(req)
     assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
     assert (original.read_bytes(), original.stat().st_mtime_ns) == before
+
+
+# #2380: a *second* abrupt stop inside rollback must not publish a false
+# terminal result or release another job's durable output-directory lock.
+def test_real_subprocess_exit_during_rollback_then_second_process_resumes(tmp_path):
+    store, root, old, _, _, req, ledger, journal, before = _w06_committing_context(tmp_path)
+    journal.arm(req)
+    # Both actual output files become new customer DXFs before interruption.
+    with pytest.raises(SystemExit):
+        journal.apply(req, after_replace=lambda n: (_ for _ in ()).throw(SystemExit()) if n == 2 else None)
+    command = (
+        "import sys,os,json;"
+        "from pathlib import Path;"
+        "from integration_cli.job_identity_ledger import DurableJobIdentityLedger;"
+        "from integration_cli.batch_commit_journal import DurableMultiDXFRollbackJournal;"
+        "q=json.loads(sys.argv[2]);"
+        "j=DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(Path(sys.argv[1])));"
+        "j.recover_rollback(q,after_restored=lambda n: os._exit(72) if n==1 else None)"
+    )
+    p = subprocess.run(
+        [sys.executable, "-c", command, str(store), json.dumps(req, ensure_ascii=False)],
+        cwd=ROOT, capture_output=True, text=True, timeout=20,
+    )
+    assert p.returncode == 72, p.stderr
+    # Rollback has only partially restored the batch. The *terminal* readback
+    # must not advertise rolled_back, and another job cannot own this folder.
+    resumed = DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(store))
+    assert resumed._read(req)[0] == "rolling_back"
+    contender = _w06_request(operation="export", job="another-after-rollback-crash")
+    ledger.claim(contender)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        ledger.reserve_output_directories(contender, trusted_directories=[root])
+    assert exc.value.code == "WHD_OUTPUT_PATH_LOCKED"
+    assert resumed.recover_rollback(req) == "rolled_back"
+    assert (old.read_bytes(), old.stat().st_mtime_ns) == before
+    assert not (root / "part-two.dxf").exists()
+    assert DurableJobIdentityLedger(store).claim(req).state == "rolled_back"
+    assert ledger.reserve_output_directories(contender, trusted_directories=[root])
+
+
+@pytest.mark.parametrize("mutation", ["customer_bytes", "customer_removed", "new_customer", "journal_json"])
+def test_terminal_rollback_readback_refuses_lost_customer_evidence(tmp_path, mutation):
+    import sqlite3
+
+    store, root, original, _, _, req, _, journal, before = _w06_committing_context(tmp_path)
+    journal.arm(req)
+    journal.apply(req)
+    assert journal.recover_rollback(req) == "rolled_back"
+    if mutation == "customer_bytes":
+        original.write_bytes(original.read_bytes() + b"\n999\nmodified-after-rollback")
+    elif mutation == "customer_removed":
+        original.unlink()
+    elif mutation == "new_customer":
+        _w06_real_output(root / "part-two.dxf")
+    else:
+        with sqlite3.connect(store / "job_identity.sqlite3") as conn:
+            conn.execute(
+                "UPDATE batch_replace_journals SET plan_json='{}' WHERE job_id=?",
+                (req["job_id"],),
+            )
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableJobIdentityLedger(store).claim(req)
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    with pytest.raises(PrepareEvidenceError):
+        DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(store)).recover_rollback(req)
+    # A terminal read failure must not silently rewrite or remove unexpected
+    # customer data. No rerender or automatic restore is attempted.
+    if mutation == "customer_bytes":
+        assert original.read_bytes().endswith(b"modified-after-rollback")
