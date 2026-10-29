@@ -654,13 +654,43 @@ _TWENTY_SHARD_DEDICATED_SUITES = _TEN_SHARD_DEDICATED_SUITES + (
 )
 
 
+# 30-runner experiment: 25 measured slow *whole files* each own one
+# isolated Xvfb runner; five remaining runners share all other selectors.
+# Provenance: exact successful run 40899307795 (2026-10-29), pytest
+# "--durations=15" across all ten non-dedicated shards. Ranked candidates
+# by sum of observed call durations per whole-file selector, descending.
+# Two high-duration paths listed only as ::node in the canonical inventory
+# are deliberately NOT expanded: doing so would silently change test scope.
+# Preserve the 10/20 distribution as comparison/rollback contracts.
+_THIRTY_SHARD_DEDICATED_SUITES = _TWENTY_SHARD_DEDICATED_SUITES + (
+    "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py",
+    "tests/test_issue1503_saved_project_gui_red.py",
+    "tests/test_issue1490_quantity_complete_pad_export.py",
+    "tests/test_issue1502_receiving_gui_base_bridge.py",
+    "tests/test_issue74_divider_side_front_penetration.py",
+    "tests/test_issue1504_legacy_fixture_real_gui_gate_cycle.py",
+    "tests/test_issue1502_quantity_current_csv_full_batch.py",
+    "tests/test_issue1502_single_button_full_csv_receiving_export.py",
+    "tests/test_fold_mapping_preparation_performance.py",
+    "tests/test_receiving_pad_native_tk_operator_selector.py",
+    "tests/test_issue1504_ac21_swt14_quantity_brand_scoping.py",
+    "tests/test_corner_parameter_lock.py",
+    "tests/test_issue1502_current_csv_multi_bay_once.py",
+    "tests/test_issue1490_full_cabinet_pad_completeness.py",
+    "tests/test_phase6_part_switch_performance.py",
+)
+
+
 def shard_paths(index: int, count: int) -> tuple[str, ...]:
     """Partition exact canonical selectors; isolate measured slow suites."""
     if count < 1 or count > len(PYTEST_PATHS) or not 0 <= index < count:
         raise ValueError(f"invalid regression shard {index}/{count}")
-    if count in (10, 20):
-        dedicated = (_TEN_SHARD_DEDICATED_SUITES if count == 10
-                     else _TWENTY_SHARD_DEDICATED_SUITES)
+    if count in (10, 20, 30):
+        dedicated = {
+            10: _TEN_SHARD_DEDICATED_SUITES,
+            20: _TWENTY_SHARD_DEDICATED_SUITES,
+            30: _THIRTY_SHARD_DEDICATED_SUITES,
+        }[count]
         if len(set(dedicated)) != len(dedicated) or any(
             PYTEST_PATHS.count(path) != 1
             or any(item.startswith(path + "::") for item in PYTEST_PATHS)
