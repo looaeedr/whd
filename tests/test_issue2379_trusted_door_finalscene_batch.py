@@ -641,6 +641,10 @@ def test_real_source_durable_commit_crash_mid_batch_then_fresh_recovery(tmp_path
 
     batch = _real_batch(tmp_path, count=2)
     export = batch[2]
+    # W-06 must not silently turn an authenticated no-clobber request into
+    # overwrite=True. Sign that semantic intent in the export wire itself.
+    export["output"]["overwrite"] = True
+    export["request_digest"] = compute_wire_request_digest(export)
     output = tmp_path / "durable-output"
     store = tmp_path / "worker-store"
     output.mkdir()
