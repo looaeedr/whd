@@ -230,6 +230,19 @@ def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_pa
         assert reloaded_parts == (identity,), (
             "PAD_NATIVE_SAVED_2D_NAVIGATION_MISSING",reloaded_parts
         )
+        # Reload must also rebuild the actual operator-facing Tk menu; a
+        # saved authoritative Part identity alone is not a clickable sheet.
+        saved_menu = reloaded.part_choice_menu
+        saved_pad_entries = [
+            i for i in range(saved_menu.index("end") + 1)
+            if "墊高片" in str(saved_menu.entrycget(i, "label"))
+        ]
+        assert len(saved_pad_entries) == 1, (
+            "PAD_NATIVE_SAVED_TK_MENU_NOT_REFRESHED", saved_pad_entries
+        )
+        saved_menu.invoke(saved_pad_entries[0])
+        _pump(root)
+        assert reloaded.designer_workspace.active_part == identity
         restored=bridge._phase6_final_scene_adapter(
             reloaded).query_assembly_render_data()
         assert len(restored.formed_nfb_pad_skins)==1
