@@ -16,6 +16,7 @@ from typing import Any, Mapping, Sequence
 from integration_cli.prepare_evidence import (
     PrepareEvidenceError, _pure_json, evidence_digest,
 )
+from integration_cli.prepare_frame import require_canonical_door_local_frame
 
 _HASH = re.compile(r"^[0-9a-f]{64}$")
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
@@ -64,6 +65,7 @@ def _binding_payload(
         seen_frames.add(frame_id)
         if frame.get("coordinate_contract_revision") != "1" or frame.get("units") != "mm":
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unsupported Frame units/revision")
+        require_canonical_door_local_frame(frame, physical_part_id=physical)
         checked.append({
             "item_id": item_id,
             "physical_part_id": physical,
