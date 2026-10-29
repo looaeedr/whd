@@ -160,7 +160,9 @@ def test_token_rejects_changed_inputs_and_forged_frame(change):
         check_token = original[:-1] + ("0" if original[-1] != "0" else "1")
     with pytest.raises(PrepareEvidenceError) as exc:
         verify_preparation_binding(check_token, **forged)
-    assert exc.value.code in {"WHD_PREPARE_STALE","WHD_PREPARE_INPUT_INVALID"}
+    expected = ("WHD_FRAME_UNVERIFIED" if change in {"physical_id", "frame_id", "face_role"}
+                else "WHD_PREPARE_STALE")
+    assert exc.value.code == expected
 
 
 def test_missing_installation_key_and_duplicate_physical_identity_fail_closed():
