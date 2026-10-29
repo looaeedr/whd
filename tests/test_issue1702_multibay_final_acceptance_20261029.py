@@ -11,6 +11,7 @@ from copy import deepcopy
 from pathlib import Path
 
 import ezdxf
+import pytest
 
 from ae_engine.cabinet_types.policy import derive_inner_door_panels
 from ae_engine.receiving_layout import (
@@ -108,3 +109,51 @@ def test_distinct_multibay_dimensions_and_real_inner_panels_survive_project_save
             "inner_door:upper:panel"
         ]
     assert reloaded.get("final_geometry", {}) == {}
+
+
+def test_unconfigured_bay_selected_missing_base_never_exports_partial_dxfs(tmp_path: Path):
+    """The operator's checked Base cannot vanish from an otherwise successful batch."""
+    from ae_engine.receiving_layout import normalize_receiving_layout
+    from tests.test_issue1502_single_button_full_csv_receiving_export import _flags
+    from tests.test_issue1502_quantity_current_csv_full_batch import _geometry
+    from tests.test_issue1050_receiving_mother_plate_marking import _full_receiving_geometry
+
+    source = _multi()
+    layout = deepcopy(source["receiving_layout"])
+    unconfigured = layout["sets"][0]["bays"][1]
+    unconfigured.pop("nfb_config", None)
+    unconfigured.pop("nfb_config_submitted", None)
+    source["receiving_layout"] = normalize_receiving_layout(layout)
+    saved = write_project(
+        tmp_path / "one-unconfigured.p6fold",
+        {"schema": PROJECT_SCHEMA_V2, "snapshot": source},
+    )
+    reloaded = read_project(saved)["snapshot"]
+    assert len(reloaded["receiving_layout"]["sets"][0]["bays"]) == 2
+
+    def physical_bay_source(si, bi):
+        projected = project_receiving_bay_legacy_aliases(
+            reloaded, set_index=si, bay_index=bi,
+        )
+        # Bay 1 has real CSV Base; Bay 2's unconfigured live scene does NOT
+        # contain a Base. A full operator selection must refuse every DXF.
+        return _geometry(projected) if bi == 0 else _full_receiving_geometry(projected)
+
+    blocked = tmp_path / "no-partial-cabinet"
+    with pytest.raises(
+        ValueError,
+        match="RECEIVING_MULTIBAY_SELECTED_BASE_PLATE_PHYSICAL_SOURCE_MISSING",
+    ):
+        _run(reloaded, blocked, provider=physical_bay_source)
+    assert not list(blocked.glob("*.dxf"))
+
+    # Independent, existing physical HEAD sheets are genuinely exportable
+    # even if the unselected NFB Base is not yet configured.
+    heads = tmp_path / "independent-heads"
+    exports, _ = _run(
+        reloaded, heads, provider=physical_bay_source,
+        flags=_flags(box_body=False, base_plate=False, door=False, head=True, tail=False),
+    )
+    assert len(exports) == len(list(heads.glob("*.dxf"))) == 2
+    for path in exports.values():
+        assert any(row.dxf.layer == "CUTTING" for row in ezdxf.readfile(path).modelspace())
