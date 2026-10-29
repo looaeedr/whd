@@ -2,10 +2,10 @@
 """#2379: read-only verification of a Worker-trusted original DXF CIRCLE.
 
 The public Worker is disabled. W-06 must supply *trusted* source file custody.
-Only direct modelspace CIRCLE and planar, unbulged, closed four-corner
-LWPOLYLINE rectangles in an explicit DXF-header mm/inch source are supported;
-do not invent arbitrary profile conversion or a source-geometry hash
-canonicalization which the v1.1 wire contract has not defined.
+Only direct modelspace CIRCLE and planar zero-width, zero-bulge closed
+LWPOLYLINE rectangles or bounded simple polygon profiles in explicit DXF-header
+mm/inch sources are supported. No arbitrary curved/INSERT/POLYLINE source
+conversion or undefined per-entity source-geometry hash canonicalization.
 """
 from __future__ import annotations
 
@@ -189,6 +189,83 @@ def _verified_rect_from_source(entity, feature, transform):
     )
 
 
+
+def _verified_profile_from_source(entity, feature, transform):
+    """Attest a source polygon's complete transformed edge cycle, not its bbox."""
+    from shapely.geometry import Polygon
+    from ae_engine.sheetmetal_features import ProfileFeature, FeatureAnchor, Vec2
+
+    if entity.dxftype() != "LWPOLYLINE" or not entity.closed:
+        _fail("source PROFILE requires a closed direct modelspace LWPOLYLINE")
+    normal = tuple(_finite_dxf_number(v) for v in entity.dxf.get("extrusion", (0, 0, 1)))
+    elevation = _finite_dxf_number(entity.dxf.get("elevation", 0.0))
+    if normal != (0.0, 0.0, 1.0) or abs(elevation) > _TOL:
+        _fail("source PROFILE is not in the original positive XY plane")
+    _require_planar_dxf_thickness(entity)
+    raw = tuple(entity.get_points("xyseb"))
+    if not 3 <= len(raw) <= 256:
+        _fail("source PROFILE vertex count unsupported")
+    if (entity.dxf.hasattr("const_width")
+            and _finite_dxf_number(entity.dxf.const_width) != 0.0):
+        _fail("source PROFILE contains unverified constant-width contour")
+    for p in raw:
+        if any(value is not None and _finite_dxf_number(value) != 0.0
+               for value in (p[2], p[3], p[4])):
+            _fail("source PROFILE contains unverified stroke width or curved segment")
+
+    scale = _finite(transform.get("source_to_mm_scale"))
+    matrix = transform.get("matrix_2x2")
+    translation = transform.get("translation_mm")
+    if (not isinstance(matrix, (list, tuple)) or len(matrix) != 2
+            or not isinstance(translation, (list, tuple)) or len(translation) != 2):
+        _fail("source PROFILE transform malformed")
+    rows = []
+    for row in matrix:
+        if not isinstance(row, (list, tuple)) or len(row) != 2:
+            _fail("source PROFILE transform matrix malformed")
+        rows.append((_finite(row[0]), _finite(row[1])))
+    dx, dy = _finite(translation[0]), _finite(translation[1])
+    points = tuple((
+        rows[0][0] * _finite_dxf_number(p[0]) * scale
+        + rows[0][1] * _finite_dxf_number(p[1]) * scale + dx,
+        rows[1][0] * _finite_dxf_number(p[0]) * scale
+        + rows[1][1] * _finite_dxf_number(p[1]) * scale + dy,
+    ) for p in raw)
+    polygon = Polygon(points)
+    if (len(set(points)) != len(points)
+            or not polygon.is_valid or polygon.is_empty or polygon.area <= 0):
+        _fail("source PROFILE has repeated, crossed or degenerate edges")
+
+    claimed = feature.get("points_mm")
+    if (feature.get("closed") is not True
+            or not isinstance(claimed, (list, tuple)) or len(claimed) != len(points)):
+        _fail("source PROFILE claimed closed contour does not match original")
+    wire = []
+    for point in claimed:
+        if not isinstance(point, (list, tuple)) or len(point) != 2:
+            _fail("source PROFILE wire vertex malformed")
+        wire.append((_finite(point[0]), _finite(point[1])))
+
+    def same_point(a, b):
+        return (math.isclose(a[0], b[0], abs_tol=_TOL, rel_tol=0)
+                and math.isclose(a[1], b[1], abs_tol=_TOL, rel_tol=0))
+
+    # A closed contour may start at another point or reverse its winding;
+    # arbitrary reordering changes physical CUTTING edges and is forbidden.
+    n = len(points)
+    if not any(
+        all(same_point(wire[(start + direction * i) % n], points[i])
+            for i in range(n))
+        for start in range(n) for direction in (1, -1)
+    ):
+        _fail("source PROFILE wire point sequence changes original cutting edges")
+    return ProfileFeature(
+        points=tuple(Vec2(x, y) for x, y in points),
+        anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(0, 0), layer="CUTTING",
+    )
+
+
 def verify_trusted_original_dxf_features(
     features: Sequence[Mapping[str, Any]],
     *,
@@ -198,7 +275,7 @@ def verify_trusted_original_dxf_features(
     """Compare wire claims to real modelspace entity handles and transformed geometry.
 
     Call *after* W-03 authenticated prepare/Frame and Feature-envelope checks.
-    Returns WHD-owned CircleFeature values derived from a verified source-byte
+    Returns WHD-owned Feature values derived from a verified source-byte
     snapshot, never built by blindly trusting wire values. Downstream WHD
     PartSpec retains the finished-face -> unfolded authority. This does NOT
     certify source_geometry_sha256, full PartSpec manufacturing or W-06 custody.
@@ -210,27 +287,27 @@ def verify_trusted_original_dxf_features(
     document = _source_snapshot(source_path, expected_document_sha256)
     # The only supported *manufacturing* mapping uses the real WHD Feature
     # contract. Finished-face -> unfolded translation remains WHD-owned.
-    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor, Vec2
-    built: list[CircleFeature] = []
+    from ae_engine.sheetmetal_features import CircleFeature, Feature, FeatureAnchor, Vec2
+    built: list[Feature] = []
     modelspace = {
         str(e.dxf.handle).upper(): e for e in document.modelspace()
         if e.dxf.hasattr("handle")
     }
     used_handles: set[str] = set()
     for feature in features:
-        if not isinstance(feature, Mapping) or feature.get("type") not in ("circle", "rect"):
-            _fail("only original DXF CIRCLE and direct rectangular LWPOLYLINE are verified")
+        if not isinstance(feature, Mapping) or feature.get("type") not in ("circle", "rect", "profile"):
+            _fail("only original DXF CIRCLE or planar closed LWPOLYLINE are verified")
         if feature.get("process") != "THROUGH_CUT":
-            _fail("only certified THROUGH_CUT circle Feature mapping is supported")
+            _fail("only certified THROUGH_CUT source Feature mapping is supported")
         t = feature.get("source_transform")
         if not isinstance(t, Mapping):
             _fail("source transform evidence missing")
         refs = t.get("source_entity_refs")
         if not isinstance(refs, list) or len(refs) != 1 or not isinstance(refs[0], str):
-            _fail("circle must bind one original DXF entity handle")
+            _fail("Feature must bind one original DXF entity handle")
         handle = refs[0].upper()
         if handle in used_handles:
-            _fail("one original DXF circle cannot be claimed by multiple features")
+            _fail("one original DXF handle cannot be claimed by multiple features")
         used_handles.add(handle)
         entity = modelspace.get(handle)
         kind = feature["type"]
@@ -244,6 +321,9 @@ def verify_trusted_original_dxf_features(
             _fail("source DXF units disagree with declared source transform")
         if kind == "rect":
             built.append(_verified_rect_from_source(entity, feature, t))
+            continue
+        if kind == "profile":
+            built.append(_verified_profile_from_source(entity, feature, t))
             continue
         center = tuple(_finite(v) for v in entity.dxf.center)
         normal = tuple(_finite(v) for v in entity.dxf.get("extrusion", (0, 0, 1)))
@@ -289,6 +369,6 @@ def verify_trusted_original_dxf_features(
     return tuple(built)
 
 
-# Existing callers/tests keep the old name; verified output now supports the
-# separately certified direct DXF four-corner RECT subset as well as CIRCLE.
+# Existing callers/tests keep the old name while the strict source-verified
+# Feature output expands from CIRCLE to direct LWPOLYLINE RECT/PROFILE.
 verify_trusted_original_dxf_circles = verify_trusted_original_dxf_features
