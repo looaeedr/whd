@@ -104,10 +104,21 @@ def _verified_rect_from_source(entity, feature, transform):
     elevation = _finite(entity.dxf.get("elevation", 0.0))
     if normal != (0.0, 0.0, 1.0) or abs(elevation) > _TOL:
         _fail("source RECT requires the original positive-XY modelspace plane")
-    raw = tuple(entity.get_points("xyb"))
+    # A DXF LWPOLYLINE has *two* distinct shape modifiers: segment bulge
+    # and stroke width. Both affect the physical contour, so matching only
+    # the centreline's four corners would incorrectly certify manufacturing.
+    # Read x, y, start_width, end_width, bulge from the actual DXF entity.
+    raw = tuple(entity.get_points("xyseb"))
     if len(raw) != 4:
         _fail("source RECT must have exactly four source vertices")
-    if any(p[2] is not None and _finite_dxf_number(p[2]) != 0.0 for p in raw):
+    if entity.dxf.hasattr("const_width") and _finite_dxf_number(entity.dxf.const_width) != 0.0:
+        _fail("source RECT has unverified DXF constant-width contour")
+    if any(
+        value is not None and _finite_dxf_number(value) != 0.0
+        for p in raw for value in (p[2], p[3])
+    ):
+        _fail("source RECT has unverified DXF per-segment width")
+    if any(p[4] is not None and _finite_dxf_number(p[4]) != 0.0 for p in raw):
         _fail("source RECT contains unverified DXF arc/bulge geometry")
     scale = _finite(transform.get("source_to_mm_scale"))
     matrix = transform.get("matrix_2x2")
