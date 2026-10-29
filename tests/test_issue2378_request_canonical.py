@@ -1042,3 +1042,38 @@ def test_private_multidxf_partial_receipt_cannot_release_durable_lease(tmp_path)
         ledger.complete(req, _w06_result(req), trusted_artifacts={"part-one": old})
     assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
     assert journal._read(req)[0] == "applied"
+
+
+def test_real_subprocess_exit_mid_multidxf_commit_then_recovery_preserves_customer(tmp_path):
+    store, root, old, _, _, req, _, journal, previous = _w06_committing_context(tmp_path)
+    code = (
+        "import sys,os,json;"
+        "from pathlib import Path;"
+        "from integration_cli.job_identity_ledger import DurableJobIdentityLedger;"
+        "from integration_cli.batch_commit_journal import DurableMultiDXFRollbackJournal;"
+        "j=DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(Path(sys.argv[1])));"
+        "q=json.loads(sys.argv[2]);"
+        "j.arm(q);"
+        "j.apply(q,after_replace=lambda i: os._exit(71) if i==1 else None)"
+    )
+    proc = subprocess.run(
+        [sys.executable, "-c", code, str(store), json.dumps(req, ensure_ascii=False)],
+        cwd=ROOT, capture_output=True, text=True, timeout=20,
+    )
+    assert proc.returncode == 71, proc.stderr
+    recovered = DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(store))
+    assert recovered._read(req)[0] == "applying"
+    assert recovered.recover_rollback(req) == "rolled_back"
+    assert (old.read_bytes(), old.stat().st_mtime_ns) == previous
+    assert not (root / "part-two.dxf").exists()
+    assert DurableJobIdentityLedger(store).claim(req).state == "rolled_back"
+
+
+def test_private_multidxf_journal_rejects_per_part_mode(tmp_path):
+    store, _, original, _, _, req, _, journal, before = _w06_committing_context(tmp_path)
+    req["transaction_mode"] = "per_part"
+    req["request_digest"] = compute_wire_request_digest(req)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        journal.arm(req)
+    assert exc.value.code == "WHD_JOB_RECOVERY_REQUIRED"
+    assert (original.read_bytes(), original.stat().st_mtime_ns) == before
