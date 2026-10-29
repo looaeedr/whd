@@ -563,3 +563,47 @@ def test_unverified_original_profile_never_stages_output(tmp_path, fault):
         _save(batch, target)
     assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
     assert not target.exists()
+
+
+def test_original_profile_finalscene_crossed_edges_refuse_staging(tmp_path, monkeypatch):
+    """Even genuine source points cannot be silently reconnected by WHD."""
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+    from ae_engine.sheetmetal_features import ProfileFeature
+
+    batch = _mixed_source_profile_batch(tmp_path)
+    target = tmp_path / "out"
+    original = api.build_part_render_data
+    changed = []
+
+    def tamper_profile(spec, context):
+        render = original(spec, context)
+        profiles = [
+            p for p in _door_features_for_legacy_engine(spec, context)
+            if isinstance(p, ProfileFeature)
+        ]
+        if not profiles:
+            return render
+        assert len(profiles) == 1
+        expected = [(p.x + profiles[0].offset.x, p.y + profiles[0].offset.y)
+                    for p in profiles[0].points]
+        scene = DrawingScene()
+        for prim in render.scene.primitives:
+            if (isinstance(prim, PolylinePrimitive) and prim.closed
+                    and prim.layer == "CUTTING"
+                    and len(prim.points) == len(expected)
+                    and all(math.isclose(point.x, expected[i][0], abs_tol=1e-6, rel_tol=0)
+                            and math.isclose(point.y, expected[i][1], abs_tol=1e-6, rel_tol=0)
+                            for i, point in enumerate(prim.points))):
+                pts = prim.points
+                scene.add(replace(prim, points=(pts[0], pts[2], pts[1], pts[3], pts[4])))
+                changed.append(True)
+            else:
+                scene.add(prim)
+        return replace(render, scene=scene)
+
+    monkeypatch.setattr(api, "build_part_render_data", tamper_profile)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _save(batch, target)
+    assert changed == [True]
+    assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED"
+    assert not target.exists()
