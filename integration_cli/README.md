@@ -236,6 +236,39 @@ Incomplete jobs retain their reservation and `complete` continues to
 refuse success until a real backup/replace journal with recovery semantics
 is implemented and independently tested. No public capabilities turn true.
 
+A further **private W-06 all-or-nothing multi-DXF replacement journal**
+(`batch_commit_journal.DurableMultiDXFRollbackJournal`) uses the already
+verified staged DXF Save→Reload evidence, output-directory inode-pinned lease,
+and fsynced copies of **every existing customer original DXF**. It commits
+a checksummed write-ahead intent in the trusted SQLite store **before any**
+customer output rename. For `all_or_nothing` only, it then verifies each
+original/staged byte proof, `os.replace`s one physical DXF at a time and
+fsyncs its output directory. After all outputs match the original intent,
+the existing ledger `complete` verifies **every exact final file** and
+atomically records a durable success result and releases the batch lease.
+
+If the process terminates between replacements or after the last rename but
+before its success receipt, another private Worker instance can run the
+explicit `recover_rollback`: verify the pinned original output directory,
+immutable original backups, and that each customer output is **exactly**
+either the expected old file or the expected newly staged file; otherwise
+refuse recovery and retain the lock. It restores existing originals through
+fsynced temporary copies and removes only new files that match the exact
+staged bytes. It then fsyncs, verifies the whole batch is restored and
+atomically marks `rolled_back` and releases the leases. The same job ID is
+terminal; it never triggers another manufacturing attempt. The test suite
+injects hard `SystemExit` at individual renames and a real subprocess
+`os._exit`, followed by fresh-process rollback and byte/mtime checks.
+Unexpected customer modifications or missing backup bytes **cannot** be
+silently overwritten.
+
+**Scope is still private:** no public W-01 Worker/export capability, no
+automatic Windows EXE activation, no verified Windows UNC/junction alias
+handling, user cancel/progress or Windows Gate A. It is not a certification
+for unsupported Head/Tail/Indicator Box Frame or full W-04 mixed physical
+manufacturing. Production wiring of the trusted Save→Reload batch, HMAC key
+custody, and Windows UAT remain required before public use.
+
 **Still not full W-06:** Windows junction/UNC/drive-alias and case-equivalence
 require physical Gate A evidence; multi-file durable backup/commit journal,
 rollback/roll-forward after interrupted `os.replace`, safe cancellation,
