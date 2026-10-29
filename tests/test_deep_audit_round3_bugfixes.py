@@ -102,6 +102,73 @@ def test_r3_3_endcap_world_relief_solver_passes_preserve_core_origin():
     assert all(has_kw for _, _, has_kw in calls), f"Missing preserve_core_origin in calls: {calls}"
 
 
+@pytest.mark.parametrize(
+    "placement,body_face_y,folded_y",
+    (("top", 800.0, 789.0), ("bottom", -800.0, -789.0)),
+)
+def test_r3_3_asymmetric_endcap_real_t2_core_stays_on_head_tail_mating_face(
+    placement, body_face_y, folded_y,
+):
+    """Physical R3-3 witness: the asymmetric flange must not re-center the core.
+
+    R3-3's six solver probe calls pass preserve_core_origin=True for Receiving.
+    Unlike the separate AST wiring check, here the shared production 3D
+    transform and true-thickness solid are exercised for BOTH Head and Tail.
+    """
+    from ae_engine.assembly_geometry import (
+        place_endcap_against_box_body, thicken_triangle_surface, triangle_bounds,
+    )
+
+    # World cabinet W800/H1600, core surface Y=-800..800.  The EndCap's
+    # authoritative core occupies local V=-100..100 while its flange reaches
+    # +130.  Whole-envelope centering would falsely move the core by 15 mm.
+    body = (
+        ((-400., -800., 0.), (400., -800., 0.), (400., 800., 0.)),
+        ((-400., -800., 0.), (400., 800., 0.), (-400., 800., 0.)),
+    )
+    core = (
+        ((-100., -100., 0.), (100., -100., 0.), (100., 100., 0.)),
+        ((-100., -100., 0.), (100., 100., 0.), (-100., 100., 0.)),
+    )
+    flange = ((-100., 100., 0.), (100., 100., 0.), (100., 130., 12.))
+    full_reference = core + (flange,)
+
+    placed_core = place_endcap_against_box_body(
+        core, placement, body, sheet_thickness=2.,
+        reference_triangles=full_reference, preserve_core_origin=True,
+    )
+    core_bounds = triangle_bounds(placed_core)
+    assert core_bounds[2] == pytest.approx((-100., 100.))
+    mid_surface_y = body_face_y + (1. if placement == "top" else -1.)
+    assert core_bounds[1] == pytest.approx((mid_surface_y, mid_surface_y))
+
+    real_sheet = thicken_triangle_surface(placed_core, 2.)
+    solid_bounds = triangle_bounds(real_sheet)
+    assert solid_bounds[1] == pytest.approx(
+        (body_face_y, body_face_y + 2.) if placement == "top"
+        else (body_face_y - 2., body_face_y)
+    )
+
+    folded = place_endcap_against_box_body(
+        (flange,), placement, body, sheet_thickness=2.,
+        reference_triangles=full_reference, preserve_core_origin=True,
+    )
+    assert folded[0][2][1] == pytest.approx(
+        folded_y + (1. if placement == "top" else -1.)
+    )
+    assert (folded[0][2][1] < mid_surface_y) if placement == "top" else (
+        folded[0][2][1] > mid_surface_y
+    )
+
+    # Negative witness: prior whole-envelope recentering WOULD shift the
+    # exact same physical core V origin because the flange is asymmetric.
+    legacy = place_endcap_against_box_body(
+        core, placement, body, sheet_thickness=2.,
+        reference_triangles=full_reference, preserve_core_origin=False,
+    )
+    assert abs(triangle_bounds(legacy)[2][0] - core_bounds[2][0]) == pytest.approx(15.)
+
+
 def test_r3_4_certified_relief_family_key_normalizes_receiving_alias():
     """R3-4: certified_relief_models and certified_relief_corner_policy normalize 'RECEIVING' to '受電箱'."""
     from ae_engine.certified_relief_models import _family_key as models_family_key
