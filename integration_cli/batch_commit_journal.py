@@ -94,7 +94,8 @@ class DurableMultiDXFRollbackJournal:
             plan = json.loads(encoded)
             if (not isinstance(plan, dict)
                     or not isinstance(plan["items"], list)
-                    or not 1 <= len(plan["items"]) <= 20):
+                    or not 1 <= len(plan["items"]) <= 20
+                    or len({item["physical_id"] for item in plan["items"]}) != len(plan["items"])):
                 raise ValueError("invalid journal")
         except (TypeError, KeyError, ValueError) as exc:
             raise _refuse("replacement journal inventory invalid") from exc
@@ -131,6 +132,10 @@ class DurableMultiDXFRollbackJournal:
         client, job, op, digest = _identity(request)
         if op != "export":
             raise _refuse("batch replacement is export-only")
+        # W-06 all-or-nothing is the only transaction policy implemented by
+        # this private commit owner; per_part has different recovery semantics.
+        if request.get("transaction_mode") != "all_or_nothing":
+            raise _refuse("per-part manufacturing requires its own verified journal")
         snapshot = self._ledger.require_staged_batch_snapshot_current(request)
         backup_manifest = self._backups.require_current(request)
         root = Path(backup_manifest["directory"])
