@@ -122,11 +122,24 @@ def recheck_trusted_door_export(
 
     # Re-enter the WHD manufacturing owners, real parsers and content hashes
     # for this exact original batch. This is not a version-string comparison.
-    fresh = prepare_trusted_door_batch(
-        trusted_prepare_request, resource_root=resource_root,
-        engine_commit=engine_commit, engine_sha256=engine_sha256,
-        build_id=build_id, worker_key=worker_key,
-    )
+    try:
+        fresh = prepare_trusted_door_batch(
+            trusted_prepare_request, resource_root=resource_root,
+            engine_commit=engine_commit, engine_sha256=engine_sha256,
+            build_id=build_id, worker_key=worker_key,
+        )
+    except PrepareEvidenceError as exc:
+        # A resource that existed at prepare and is now missing, corrupt,
+        # symlinked or no longer certified is an export-time stale snapshot.
+        # Do not degrade this into a new prepare or use last-known-good data.
+        if exc.code in {
+            "WHD_RESOURCE_UNVERIFIED", "WHD_RESOURCE_PATH_INVALID",
+            "WHD_FRAME_UNVERIFIED", "WHD_PREPARE_INPUT_INVALID",
+        }:
+            raise PrepareEvidenceError(
+                "WHD_PREPARE_STALE", "prepared WHD resource or Frame is no longer verifiable"
+            ) from exc
+        raise
     for field in ("engine_commit", "build_id"):
         _stale_if_different(trusted_prepare_response.get(field), fresh.get(field), field)
     for field in ("prepare_token", "environment_fingerprint"):
