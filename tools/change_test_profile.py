@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shlex
 import subprocess
 from pathlib import Path, PurePosixPath
 from typing import Iterable
@@ -141,6 +142,61 @@ def detect_domains(changed_files: Iterable[str]) -> tuple[str, ...]:
     return tuple(domains)
 
 
+
+def build_fast_feedback(
+    changed_files: Iterable[str], *, feedback_tests: Iterable[str] = (),
+) -> dict[str, object]:
+    """Produce a safe *development-only* pytest command; never a merge receipt.
+
+    Changed test files are trustworthy selector candidates. A production-only
+    diff is not enough to infer which regression covers the user symptom, so
+    it requires an explicit test node/file instead of guessing.
+    """
+    files = _normalize_files(changed_files)
+    explicit = list(feedback_tests)
+    candidates = explicit if explicit else [
+        path for path in files
+        if path.startswith("tests/")
+        and (PurePosixPath(path).name.startswith("test_")
+             or PurePosixPath(path).name.endswith("_test.py"))
+        and path.endswith(".py")
+    ]
+    selectors: list[str] = []
+    for raw in candidates:
+        if not isinstance(raw, str) or not raw.strip():
+            raise ValueError("feedback test selectors must be nonempty strings")
+        selector = raw.strip()
+        if any(ord(c) < 32 or ord(c) == 127 for c in selector):
+            raise ValueError("feedback test selector contains control characters")
+        test_file, separator, node = selector.partition("::")
+        test_file = test_file.replace("\\", "/")
+        path = PurePosixPath(test_file)
+        if (path.is_absolute() or ".." in path.parts
+                or path.as_posix() != test_file
+                or not test_file.startswith("tests/")
+                or not test_file.endswith(".py")
+                or not (path.name.startswith("test_")
+                        or path.name.endswith("_test.py"))):
+            raise ValueError(f"invalid feedback test file: {test_file!r}")
+        if separator and (not node or any(not part for part in node.split("::"))):
+            raise ValueError("feedback test node ID is incomplete")
+        candidate = test_file + ("::" + node if separator else "")
+        if candidate not in selectors:
+            selectors.append(candidate)
+    command = None
+    if selectors:
+        command = "python -m pytest -q --tb=short " + " ".join(
+            shlex.quote(selector) for selector in selectors
+        )
+    return {
+        "status": "READY" if command else "NEEDS_EXPLICIT_TEST",
+        "test_selectors": selectors,
+        "command": command,
+        "authority": "DEVELOPMENT_FEEDBACK_ONLY",
+        "may_replace_full_gate": False,
+    }
+
+
 def infer_change_type(task: str, changed_files: Iterable[str], *, explicit_type: str | None = None) -> str:
     files = _normalize_files(changed_files)
     if explicit_type:
@@ -176,7 +232,8 @@ def _final_full_gate(change_type: str, files: tuple[str, ...]) -> tuple[str, boo
     return "PRODUCT_FULL_REGRESSION", True
 
 
-def build_test_profile(*, task: str, changed_files: Iterable[str], explicit_type: str | None = None) -> dict[str, object]:
+def build_test_profile(*, task: str, changed_files: Iterable[str], explicit_type: str | None = None,
+                       feedback_tests: Iterable[str] = ()) -> dict[str, object]:
     files = _normalize_files(changed_files)
     change_type = infer_change_type(task, files, explicit_type=explicit_type)
     domains = detect_domains(files)
@@ -194,6 +251,7 @@ def build_test_profile(*, task: str, changed_files: Iterable[str], explicit_type
         "domains": list(domains),
         "changed_files": list(files),
         "required_stages": stages,
+        "fast_feedback": build_fast_feedback(files, feedback_tests=feedback_tests),
         "full_gate_kind": full_gate_kind,
         "full_gate_required": full_gate_required,
         "exact_commands": list(FULL_GATE_COMMANDS[full_gate_kind]),
@@ -261,6 +319,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--task")
     parser.add_argument("--changed-file", action="append", default=[])
     parser.add_argument("--change-type", choices=PRIMARY_TYPES)
+    parser.add_argument("--feedback-test", action="append", default=[],
+                        help="pytest test path or node ID for fast development feedback")
     parser.add_argument("--merge-test-reuse", action="store_true")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--tested-commit")
@@ -279,7 +339,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if result["decision"] == "REUSE_VERIFIED" else 2
     if not args.task:
         parser.error("--task is required without --merge-test-reuse")
-    profile = build_test_profile(task=args.task, changed_files=args.changed_file, explicit_type=args.change_type)
+    profile = build_test_profile(task=args.task, changed_files=args.changed_file,
+                                 explicit_type=args.change_type, feedback_tests=args.feedback_test)
     print(json.dumps(profile, ensure_ascii=False, indent=2, sort_keys=True))
     return 0
 
