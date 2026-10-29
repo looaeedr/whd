@@ -64,6 +64,41 @@ def test_invalid_shard_fails_closed(index, count):
         shard_paths(index, count)
 
 
+
+def test_four_shard_workflow_keeps_complete_exact_selectors_and_artifact_gate():
+    # The matrix, execution count and receipt merge must agree. If the
+    # fourth JUnit artifact is missing, final acceptance must fail closed.
+    workflow = (Path(__file__).resolve().parents[2]
+                / ".github/workflows/whd-product-regression.yml").read_text(encoding="utf-8")
+    assert "shard: [0, 1, 2, 3]" in workflow
+    assert workflow.count("--shard-count 4") == 2
+    assert "for shard in 0 1 2 3; do" in workflow
+    assert "name: whd-ci-shard-" in workflow
+    for i in range(4):
+        assert f"test -s junit/shard-{i}.xml" in workflow
+        assert f"--merge-junit junit/shard-{i}.xml" in workflow
+
+    shards = [shard_paths(i, 4) for i in range(4)]
+    assert all(shards)
+    assert Counter(selector for shard in shards for selector in shard) == Counter(PYTEST_PATHS)
+
+
+def test_four_shard_final_junit_requires_every_file_and_all_green():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        paths = [root / f"shard-{i}.xml" for i in range(4)]
+        for i, path in enumerate(paths):
+            _report(path, [f"case_{i}"])
+        output = root / "combined.xml"
+        with pytest.raises(ValueError, match="mandatory"):
+            _merge_shard_junit(paths[:-1], 4, output)
+        _merge_shard_junit(paths[::-1], 4, output)
+        assert len(ET.parse(output).getroot().findall(".//testcase")) == 4
+        _report(paths[3], ["case_3"], failing=True)
+        with pytest.raises(ValueError, match="non-green"):
+            _merge_shard_junit(paths, 4, output)
+
+
 def test_gui_performance_and_reentrant_save_contracts_cannot_be_omitted_from_ci():
     # #1792: whole-file selectors prevent the test-selection blind spot
     # uncovered while validating the #1790 Save regression.
