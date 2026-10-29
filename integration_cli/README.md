@@ -170,3 +170,19 @@ export. W-03/W-06 still need a trusted persisted request, key custody and
 path locking; W-04 must map wire features to canonical PartSpec/FinalScene,
 enforce physical inventory and factory source provenance; no external NC sink,
 Windows EXE, or official X is certified here.
+
+
+## W-04 wire Feature preflight (internal and non-manufacturing)
+
+`feature_preflight.validate_wire_features_against_prepared_frame` is now
+called by W-03's trusted pre-export recheck. It rejects duplicate feature IDs,
+non-finite/Boolean geometry, out-of-face circles/rectangles/profiles, invalid
+closed profiles, target-dimension drift, inconsistent unit scale and explicit
+rotation/mirror/2×2 matrix evidence before any render or DXF stage. The
+WHD-issued Frame remains authoritative; no CADSplit assertion is trusted.
+
+**Boundary:** This only checks the *claimed* feature envelope. It does not
+reopen original CADSplit DXF entities or prove the matrix was applied once,
+and cannot manufacture a source feature or enable public `prepare/export`.
+The outstanding W-04/W-06 source verification, canonical PartSpec mapping,
+worker-owned job custody/path locks and Windows Gate A are still mandatory.
