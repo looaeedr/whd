@@ -635,18 +635,38 @@ _TEN_SHARD_DEDICATED_SUITES = (
 )
 
 
+# Additional complete suites identified from exact successful run
+# 40897114178, by slow call/aggregate duration (not test count). Keep the
+# accepted ten-shard distribution unchanged for a comparable fallback.
+#   issue1112: multiple Tk source/edit/Save paths (12s, 10s, 8s, 7s...);
+#   issue1503 real tier: 37.61s physical parts/side markings acceptance;
+#   issue63: 13.50s + 11.18s + 10.99s native fold/save regressions;
+#   issue1465 quantity UI: 21.89s + 5.27s GUI cases;
+#   issue1500 main Save: 22.78s real native GUI Save/Reload.
+# Each of the ten expensive whole-file suites owns exactly one isolated
+# runner; remaining selectors are evenly interleaved across runners 10..19.
+_TWENTY_SHARD_DEDICATED_SUITES = _TEN_SHARD_DEDICATED_SUITES + (
+    "tests/test_issue1112_receiving_set_bay_editor.py",
+    "tests/test_issue1503_single_gui_real_tier_2d3d.py",
+    "tests/test_issue63_regression_red.py",
+    "tests/test_issue1465_quantity_ui.py",
+    "tests/test_issue1500_receiving_candidate_main_save.py",
+)
+
+
 def shard_paths(index: int, count: int) -> tuple[str, ...]:
-    """Partition exact canonical selectors, with measured ten-shard isolation."""
+    """Partition exact canonical selectors; isolate measured slow suites."""
     if count < 1 or count > len(PYTEST_PATHS) or not 0 <= index < count:
         raise ValueError(f"invalid regression shard {index}/{count}")
-    if count == 10:
-        dedicated = _TEN_SHARD_DEDICATED_SUITES
+    if count in (10, 20):
+        dedicated = (_TEN_SHARD_DEDICATED_SUITES if count == 10
+                     else _TWENTY_SHARD_DEDICATED_SUITES)
         if len(set(dedicated)) != len(dedicated) or any(
             PYTEST_PATHS.count(path) != 1
             or any(item.startswith(path + "::") for item in PYTEST_PATHS)
             for path in dedicated
         ):
-            raise ValueError("ten-shard dedicated suite ownership is invalid")
+            raise ValueError(f"{count}-shard dedicated suite ownership is invalid")
         if index < len(dedicated):
             return (dedicated[index],)
         remaining = tuple(path for path in PYTEST_PATHS if path not in dedicated)
