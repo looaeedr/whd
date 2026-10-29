@@ -579,10 +579,21 @@ def sync_authoritative_derived_parts(
             },
         },
     }
-    try:
-        pad_preview_parts = committed_nfb_pad_draft_parts(pad_source)
-    except (ValueError, TypeError, KeyError, OSError):
-        pad_preview_parts = ()
+    # The canonical committed snapshot is also the source used by the
+    # assembly's PAD render. Prefer it when it already resolves a real PAD:
+    # a stale/empty workspace feature stash must not override a newly
+    # committed Hole Editor source and silently erase the 2D Part selector.
+    # Only fall back to the live workspace features during the short
+    # pre-republish window when the root snapshot has not caught up yet.
+    pad_preview_parts = ()
+    for candidate_source in (snapshot, pad_source):
+        try:
+            candidate_parts = committed_nfb_pad_draft_parts(candidate_source)
+        except (ValueError, TypeError, KeyError, OSError):
+            continue
+        if candidate_parts:
+            pad_preview_parts = candidate_parts
+            break
     navigation.sync_derived_parts(
         namespace="nfb_pad:",
         part_profiles={
