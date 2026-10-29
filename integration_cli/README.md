@@ -282,7 +282,8 @@ fail closed. There is no Windows EXE release or manufacturing certification.
 
 The internal W-03 precommit original-source adapter additionally accepts a
 **direct modelspace closed LWPOLYLINE with exactly four straight vertices,
-no bulges, positive XY plane and explicit DXF mm/inch header**. It independently
+zero constant/per-vertex stroke width, no bulges (including tiny nonzero arcs),
+positive XY plane and explicit DXF mm/inch header**. It independently
 reads the same pinned original document SHA, resolves the exact entity handle,
 applies the declared matrix and unit scale once and proves all four vertices
 are an orthogonal rectangle; neither a claimed bounding box nor a matching
