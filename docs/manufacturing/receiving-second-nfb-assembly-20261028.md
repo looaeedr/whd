@@ -1,3 +1,10 @@
+---
+whd_doc_role: CURRENT
+whd_contract: receiving-second-nfb-assembly
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # 受電箱第 2 顆 NFB → 實體內門組合體（2026-10-28）
 
 ## 操作需求與唯一來源
