@@ -122,13 +122,29 @@ jobs:
           cache: pip
       # Preparation is independently bounded. The 30-minute job budget
       # remains available for product tests instead of a hung package mirror.
+      # ubuntu-latest sometimes already has a working Xvfb; do not refresh
+      # system package indexes on all 18 runners without a missing binary.
+      - name: Probe existing Xvfb
+        id: xvfb-check
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v Xvfb >/dev/null 2>&1 && command -v xvfb-run >/dev/null 2>&1; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+            echo 'CI_XVFB_PREINSTALLED=true; skip APT index/install'
+          else
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+            echo 'CI_XVFB_PREINSTALLED=false; bounded APT fallback required'
+          fi
       - name: Refresh APT index (bounded retry)
+        if: steps.xvfb-check.outputs.available != 'true'
         shell: bash
         run: |
           set -euo pipefail
           python tools/ci_bounded_install.py --label apt-index --attempts 2 --timeout-seconds 120 -- \
             sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update -qq
       - name: Install Xvfb (bounded retry)
+        if: steps.xvfb-check.outputs.available != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -159,6 +175,13 @@ jobs:
             --shard-count 18 \
             --shard-index "${{ matrix.shard }}" \
             --junit-out "shard-${{ matrix.shard }}.xml"
+      - name: Report exact failing tests for fast RED feedback
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Diagnostics only: cannot change a failing job into a passing one.
+          python tools/ci_failure_feedback.py --junit "shard-${{ matrix.shard }}.xml"
       - name: Publish shard JUnit for mandatory full acceptance
         if: always()
         uses: actions/upload-artifact@v4
