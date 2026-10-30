@@ -568,6 +568,37 @@ store, actual resource paths, engine build identity and DPAPI-sourced key.
 Public `cadsplit_worker` remains disabled until W-03/W-04/W-06 key owner,
 source custody, cancel/progress and W-07 Gate A are complete.
 
+## W-06 private progress.json from immutable Worker evidence (#2380)
+
+`integration_cli.worker_progress.PrivateWorkerProgress` supplies a
+**non-authoritative projection** of the original trusted W-06 SQLite job,
+cancel, staged-batch and multi-DXF replacement journal. The Worker alone
+chooses its trusted private installation-store root. An atomic, fsynced
+`progress/<SHA256 of client+job+operation+digest>/progress.json` is
+published at private Prepare claim/verified receipt, cancellation, real
+W-04 Save→Reload stage, replacement armed/applying/applied and final
+verified export completion. Each write is serialized under SQLite
+`BEGIN IMMEDIATE` to avoid two Worker processes publishing out of order.
+A startup/restart can always call `read(request)` to derive the current
+status directly from SQLite; it **never reads a user-modified progress file
+as authority**. Missing or corrupt DB records and wrong request digests
+fail closed.
+
+An unfinished/mid-replace/cancelled job cannot produce 100%, a
+`manufacturing_verified=true` claim or any output authorization.
+`prepared` at 100% means only that this **Prepare operation** has a valid
+persisted W-03 HMAC receipt, requiring the Worker-only `worker_key`
+on read/publish; it does **not** mean a manufactured DXF exists. An Export
+is 100% only after existing W-06 `complete` and true physical DXF
+attestation readback. A corrupted customer DXF makes the progress read
+fail closed, not return a cached 100%. A crashed `applying` journal
+reports `recovery_required`; no automatic replay, rollback or user file
+modification is performed by the projection.
+
+This is private Worker progress only. It is **not** a public CADSplit
+progress/cancel API, an independent signing authority, or complete W-06
+Gate A. The existing public `prepare/export` remain disabled.
+
 ## W-06 private durable cancellation safe points (#2380)
 
 The trusted Worker (never CADSplit wire JSON) may call
