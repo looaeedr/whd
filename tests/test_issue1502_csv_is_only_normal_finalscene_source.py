@@ -376,3 +376,28 @@ def test_committed_csv_refuses_fixing_plate_child_as_only_real_base(ear_side):
     )
     with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_REAL_BASE_PART_MISSING"):
         apply_committed_csv_v5_to_canonical_parts(snap, (orphan_ear,))
+
+
+@pytest.mark.parametrize(
+    ("broken_kind", "bad_row", "contract"),
+    (
+        ("set", None, "NFB_COMMITTED_CSV_SET_IDENTITY_DRIFT"),
+        ("set", [], "NFB_COMMITTED_CSV_SET_IDENTITY_DRIFT"),
+        ("bay", None, "NFB_COMMITTED_CSV_BAY_IDENTITY_DRIFT"),
+        ("bay", [], "NFB_COMMITTED_CSV_BAY_IDENTITY_DRIFT"),
+    ),
+)
+def test_current_submitted_v5_rejects_corrupted_saved_set_bay_row_without_crash(
+    broken_kind, bad_row, contract,
+):
+    """A damaged saved Set/Bay must fail closed before dereferencing a row."""
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+
+    snap = _current()
+    first_set = snap["receiving_layout"]["sets"][0]
+    if broken_kind == "set":
+        snap["receiving_layout"]["sets"][0] = bad_row
+    else:
+        first_set["bays"][0] = bad_row
+    with pytest.raises(ValueError, match=contract):
+        _submitted_csv_holes(snap)

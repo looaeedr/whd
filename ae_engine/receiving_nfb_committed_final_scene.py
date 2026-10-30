@@ -321,11 +321,13 @@ def _submitted_csv_holes(snapshot):
     si, bi = selector.get("set_index"), selector.get("bay_index")
     if (not isinstance(sets, (list, tuple))
             or type(si) is not int or not 0 <= si < len(sets)
+            or not isinstance(sets[si], Mapping)
             or sets[si].get("stable_id") != selector.get("set_id")):
         raise ValueError("NFB_COMMITTED_CSV_SET_IDENTITY_DRIFT")
     bays = sets[si].get("bays")
     if (not isinstance(bays, (list, tuple))
             or type(bi) is not int or not 0 <= bi < len(bays)
+            or not isinstance(bays[bi], Mapping)
             or bays[bi].get("stable_id") != selector.get("bay_id")
             or bays[bi].get("nfb_config_submitted") is not True
             or bays[bi].get("nfb_config") != config):
