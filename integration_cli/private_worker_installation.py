@@ -12,6 +12,7 @@ import hashlib
 import hmac
 import json
 import os
+import sys
 from pathlib import Path
 
 from integration_cli.prepare_evidence import PrepareEvidenceError
@@ -117,7 +118,8 @@ def load_private_execution(installation_id: str, *, engine_sha256: str) -> Trust
         if not isinstance(sources, dict) or not sources:
             _deny()
         return TrustedWorkerExecution(
-            resource_root=Path(__file__).resolve().parents[1],
+            resource_root=(Path(sys._MEIPASS) if getattr(sys, "frozen", False)
+                           else Path(__file__).resolve().parents[1]),
             store_root=_trusted_dir(Path(data["store_root"])),
             output_dir=_trusted_dir(Path(data["output_dir"])),
             source_documents={item: _trusted_file(Path(path)) for item, path in sources.items()},
