@@ -1600,6 +1600,27 @@ def test_packaged_engine_read_result_never_rerenders_or_creates_unknown_jobs(
             "SELECT COUNT(*) FROM jobs WHERE operation='export'"
         ).fetchone()[0] == 1
 
+    # Tampering with the SQLite result JSON and updating its own checksum
+    # must not let a forged path borrow an unrelated, valid DXF SHA proof.
+    with sqlite3.connect(store / "job_identity.sqlite3") as conn:
+        saved, saved_hash = conn.execute(
+            "SELECT result_json,result_sha256 FROM jobs WHERE operation='export'"
+        ).fetchone()
+        forged = json.loads(saved)
+        forged["items"][0]["path"] = str(output / "fake-customer-output.dxf")
+        altered = json.dumps(forged, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+        conn.execute(
+            "UPDATE jobs SET result_json=?,result_sha256=? WHERE operation='export'",
+            (altered, hashlib.sha256(altered.encode("utf-8")).hexdigest()),
+        )
+    forged_run, forged_result, denied_path = call("read-result", export, "forged-result-path")
+    assert forged_run.returncode == 4 and forged_result is None and not denied_path.exists()
+    with sqlite3.connect(store / "job_identity.sqlite3") as conn:
+        conn.execute(
+            "UPDATE jobs SET result_json=?,result_sha256=? WHERE operation='export'",
+            (saved, saved_hash),
+        )
+
     # A spoofed original customer output must never be returned as success.
     customer = files[0]
     customer.write_bytes(customer.read_bytes() + b"\\n999\\nmodified-after-commit")
