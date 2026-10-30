@@ -24,6 +24,9 @@ def fake_private_engine(tmp_path: Path) -> Path:
     root = tmp_path / "WHD-Engine 資源 空白"
     (root / "基準檔" / "截角資料庫").mkdir(parents=True)
     (root / "基準檔" / "金庫型").mkdir(parents=True)
+    (root / "integration_cli" / "schemas").mkdir(parents=True)
+    for name in ("request_v1.schema.json", "response_v1.schema.json", "capabilities_v1.schema.json"):
+        (root / "integration_cli" / "schemas" / name).write_text('{"type":"object"}', encoding="utf-8")
     (root / "WHD-Engine.exe").write_bytes(b"private worker binary for manifest test")
     (root / "config.ini").write_text("[WHD]\nframe=25\n", encoding="utf-8")
     (root / "基準檔" / "截角資料庫" / "certified_relief_rules.json").write_bytes(
@@ -48,6 +51,7 @@ def test_manifest_pins_actual_exe_registry_baselines_policy(fake_private_engine)
         (root / "基準檔" / "截角資料庫" / "certified_relief_rules.json").read_bytes()
     ).hexdigest()
     assert len(reread["baseline_manifest_sha256"]) == 64
+    assert len(reread["schema_manifest_sha256"]) == 64
     assert len(reread["resource_revision"]) == 64
     assert not any(k in reread for k in ("manufacturing_verified", "capability_flags"))
 
@@ -56,6 +60,7 @@ def test_manifest_pins_actual_exe_registry_baselines_policy(fake_private_engine)
     "WHD-Engine.exe", "config.ini",
     "基準檔/截角資料庫/certified_relief_rules.json",
     "基準檔/金庫型/門.dxf",
+    "integration_cli/schemas/capabilities_v1.schema.json",
 ])
 def test_any_bundled_resource_change_refuses_capabilities(fake_private_engine, path):
     write_manifest(fake_private_engine, COMMIT)
