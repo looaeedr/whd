@@ -193,6 +193,17 @@ Joint marking policy/diagnostics 由 engine registry/orchestration 擁有；prod
 
 Validation 維持單向：contact probe、collision、fixture expected、pytest tolerance、rendered result 與 QA artifact 只能驗證上述 authority，不得成為 production formula、offset、placement 或 marking policy 的來源。
 
+
+### 10. CADSplit × WHD-Engine Worker authority / Gate A boundary (#2375 / #2382)
+
+此段是既有製造架構的**入口與權責對照**，不另建立製造公式、第二套 CURRENT owner 或對外可用性承諾。
+
+- **公開 wire/CLI**：`integration_cli/cadsplit_worker.py` 與 `integration_cli/schemas/` 定義 protocol 1.0.0 的 `capabilities`、`prepare`、`export`（沒有獨立 `verify`）；`docs/integrations/CADSplit_WHD_Contract.md` 是 REFERENCE wire contract。現行公開 `main()` 的 manufacturing capability flags 全為 false、`supported_part_kinds=[]`，`prepare/export` 回 `WHD_OPERATION_NOT_IMPLEMENTED`，**不能把 schema 合格或 EXE 存在當成 Gate A 放行**。
+- **封裝與私有安裝信任**：`integration_cli/packaged_identity.py` 驗證 exact engine commit、EXE、Registry、baseline、policy 的實際內容；`integration_cli/worker_key_custody.py` 與 `private_worker_installation.py` 保管 Windows current-user DPAPI/HMAC、預先綁定來源 DXF／輸出／durable store，並對每次 `(client_installation_id, job_id, operation, request_digest)` 簽發獨立不可變授權。`cadsplit_worker._private_installed_main` 僅在已封裝 Windows EXE、已獲私有安裝及 exact-job 授權時進入；這不是公開 CADSplit API，也不是同帳號惡意程式的 OS 隔離保證。
+- **私有製造資料流**：`cadsplit_worker._execute_request(trusted_context=...)` → `private_worker_dispatch.execute_private_worker` → `prepare_batch.prepare_trusted_door_batch`／`job_identity_ledger.DurableJobIdentityLedger`／`prepare_recheck.recheck_trusted_door_export` → `source_circle_verification.verify_trusted_original_dxf_features` → `verified_door_finalscene.save_trusted_door_circle_finalscene_batch` → WHD `manufacturing_api.build_part_render_data`、`save_verified_final_scene_batch_dxf` → W-06 journal/immutable DXF readback。原圖路徑、token、Frame、原始 SHA、來源加工層、Registry/資源以及輸出鎖由 WHD 受信任 owner 驗證，不由 CADSplit JSON 自行宣稱。
+- **目前受限的實體類型**：私有 W-04 已以 WHD native FinalScene 支援 `door`、`indicator_small_door`、`indicator_box`、`end_cap_head`、`end_cap_tail` 的受信任 batch。Door／small-door 的來源 `CIRCLE`、封閉 LWPOLYLINE `RECT/PROFILE` 須對原始 modelspace handle、SHA、圖層 `CUTTING` 與幾何／變換逐項核實；Box／Vault EndCap 仍只有 **原 DXF modelspace 真正為空、沒有外部 Features** 的 WHD intrinsic、size-only 路徑，不得藉由 wire 宣稱直接授權來源開孔或自訂裝配。
+- **製造與公開驗收不可混淆**：私有 W-04 的 1–20 件 staged DXF Save→Reload、W-03 再驗及 W-06 durable all-or-nothing commit／immutable replay 是實測候選能力；其私有 Export receipt 仍為 `manufacturing_verified=false`。Windows exact-SHA onedir Engine/GUI 測試可以證明私有執行，**不能**使公開 `capabilities` 變 true、公開 `prepare/export` 啟用、或代表 CADSplit Gate B/D、使用者 Gate E、正式 X 發布。公開 Gate A 還需獨立完成可信安裝、caller/source custody 與公開製造契約驗收。
+
 ---
 
 ## [HISTORICAL/SUPERSEDED] Legacy ae_engine notes
