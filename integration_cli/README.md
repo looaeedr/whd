@@ -504,3 +504,35 @@ either kind's relevant baseline **for the entire prepare batch**.
 This tests only the W-03 prepare and stale recheck boundary: it **does not**
 enable W-04 20-kind mixed manufacturing, per-part output, a durable W-06 Worker,
 public W-01 commands or a Windows EXE.
+
+
+## W-05 private Windows Engine onedir candidate (#2381)
+
+The real Windows x64 **separate** `WHD-Engine.exe` candidate is built and
+smoke-tested in `.github/workflows/whd-engine-private-windows-exe.yml`.
+It is not the WHD GUI `WHD.exe` and does not reuse the GUI release asset.
+
+- PyInstaller builds from **exact PR HEAD**; includes the worker schemas,
+  `ae_engine`, the actual `基準檔` DXFs and Certified Registry, and
+  packaged factory policy `config.ini` (no customer file modification).
+- **After** EXE creation a versioned `WHD_ENGINE_BUILD.json` is written
+  alongside the binary. It pins `engine_commit`, actual EXE SHA256,
+  the real Registry bytes, sorted baseline DXF inventory and policy bytes.
+  At each packaged invocation, missing/modified EXE, Registry, baseline,
+  policy or manifest **fails closed with exit 4**; there is no Git fallback
+  or manufactured source SHA. Source-only CLI keeps its previous identity.
+  The manifest is integrity/readback evidence, **not a code signature**;
+  use the trusted GitHub artifact digest for authenticity.
+- Windows CI actually runs the packaged binary from a **Chinese/space**
+  installation path and a different CWD. `capabilities` reads the real
+  package identity and resource hashes, but all public manufacturing flags
+  and supported part kinds stay **disabled**. Schema-valid 20-item
+  `prepare` and `export` return
+  `WHD_OPERATION_NOT_IMPLEMENTED` (exit 3) without DXF output; changing
+  the bundled Registry causes a refusal.
+- This is only an **internal W-05 package seam**. The same-release
+  GUI+Engine bundle, durable Worker key custody, trusted public handlers,
+  Windows junction/UNC/policy overrides and cross-ticket Gate A remain
+  pending. No factory NC sink, public manufacturing certification or
+  formal `/推推` is implied.
+
