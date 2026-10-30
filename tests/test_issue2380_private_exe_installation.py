@@ -248,3 +248,86 @@ def test_sealed_job_approval_exact_digest_and_tamper_rejected(tmp_path, monkeypa
 def test_source_only_worker_private_command_denied(tmp_path):
     from integration_cli.cadsplit_worker import main
     assert main(["_private_installed", "prepare", "--installation-id", "not-provisioned"]) == 4
+
+
+@pytest.mark.skipif(not WINDOWS, reason="requires actual Windows WHD-Engine.exe")
+def test_actual_packaged_engine_twenty_attested_door_dxfs_replay_and_source_stale(
+    tmp_path, monkeypatch,
+):
+    """Gate-A subset: one real EXE process per 20-item phase, immutable all-or-none replay.
+
+    Not mixed-kind Gate A and not public manufacturing certification.
+    """
+    import ezdxf
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2379_trusted_door_finalscene_batch import _real_batch
+    from test_issue2380_private_worker_dispatch import _export_from_real_sources
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires built actual onedir WHD-Engine.exe")
+    profile = tmp_path / "20件 Engine DPAPI 使用者"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    installation = "twenty-source-doors-private-exe"
+    load_installation_key(installation, initialize=True)
+    batch = _real_batch(tmp_path, count=20)
+    prepare_request, _, _, _, trusted_sources, original_dxf, *_ = batch
+    store = tmp_path / "20片持久工作狀態"
+    destination = tmp_path / "20片實際製造輸出"
+    store.mkdir()
+    destination.mkdir()
+    exe_sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation, store_root=store, output_dir=destination,
+        source_documents=trusted_sources, expected_engine_sha256=exe_sha,
+    )
+
+    def invoke(operation, request, label, *, success=True):
+        wire = tmp_path / f"{label}.json"
+        response = tmp_path / f"{label}-response.json"
+        wire.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+        proc = subprocess.run(
+            [str(exe), "_private_installed", operation, "--installation-id",
+             installation, "--request", str(wire), "--response", str(response)],
+            cwd=tmp_path, capture_output=True, text=True, timeout=180,
+        )
+        if success:
+            assert proc.returncode == 0, proc.stderr[-1400:]
+            assert response.is_file()
+            return json.loads(response.read_text(encoding="utf-8"))
+        assert proc.returncode != 0
+        return (json.loads(response.read_text(encoding="utf-8"))
+                if response.exists() else None)
+
+    authorize_private_job(installation, prepare_request, engine_sha256=exe_sha)
+    prepared = invoke("prepare", prepare_request, "20件單次Prepare")
+    assert prepared["status"] == "success"
+    assert prepared["manufacturing_verified"] is False
+    assert len(prepared["items"]) == 20
+    assert len({part["physical_part_id"] for part in prepared["items"]}) == 20
+    export = _export_from_real_sources(prepare_request, prepared, batch)
+    export["output"]["directory"] = str(destination)
+    export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(installation, export, engine_sha256=exe_sha)
+    result = invoke("export", export, "20件單次Export")
+    assert result["status"] == "success"
+    assert result["manufacturing_verified"] is False
+    assert len(result["items"]) == 20
+    paths = {Path(part["path"]) for part in result["items"]}
+    assert len(paths) == 20 and all(path.parent == destination for path in paths)
+    assert all(path.is_file() and ezdxf.readfile(path).modelspace().query("CIRCLE")
+               for path in paths)
+    before = {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in paths}
+    retry = dict(export)
+    retry["request_id"] = "20-items-transport-retry"
+    assert compute_wire_request_digest(retry) == export["request_digest"]
+    assert invoke("export", retry, "20件重啟重送") == result
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == before
+    # Even a previously committed job cannot be replayed against changed
+    # original source bytes; failed recheck must not touch ANY final DXF.
+    original_dxf.write_bytes(original_dxf.read_bytes() + b"\n")
+    refused = invoke("export", retry, "20件原始來源竄改", success=False)
+    if refused is not None:
+        assert refused["status"] != "success"
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == before
