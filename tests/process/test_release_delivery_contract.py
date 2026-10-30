@@ -4,9 +4,13 @@ These tests verify the pure release-notes generator and the existing workflow
 wiring. A unit test alone does not claim PyInstaller or GitHub upload passed.
 """
 from pathlib import Path
+import hashlib
+import tempfile
 import unittest
+import zipfile
 
-from tools.release_notes_zh_tw import build_guide, build_notes
+from tools.release_notes_zh_tw import build_guide, build_notes, validate_notes
+from tools.repack_existing_release_notes import read_release_body, repack
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -17,22 +21,51 @@ class ZhTWReleaseNotesTest(unittest.TestCase):
     TAG = "v2026.10.30-x-aaaaaaaaaaaa"
     PREV = "v2026.10.29-x-bbbbbbbbbbbb"
 
-    def test_real_changes_have_chinese_summary_and_exact_identity(self):
+    def test_real_changes_become_short_chinese_highlights_not_raw_titles(self):
+        subjects = [
+            "feat(#2379): accept original source PROFILE contour",
+            "fix(#2380): durable DXF rollback refuses wrong file",
+            "feat(#2378): WHD small-door prepare Frame",
+            "fix(release): require Windows EXE and zh-TW notes",
+            "test: Windows GUI persistence",
+        ]
+        notes = build_notes(
+            tag=self.TAG, sha=self.SHA, previous_tag=self.PREV,
+            previous_sha=self.BEFORE, titles=subjects,
+        )
+        for token in ("正式版更新重點", "本次主要更新", "門板開孔與幾何",
+                      "多份 DXF 的資料保護", "小門與外部工具串接",
+                      "Windows 交付", "尚非全面開放", self.TAG, self.SHA,
+                      self.PREV, f"WHD_Windows_x64_{self.TAG}.zip"):
+            with self.subTest(token=token):
+                self.assertIn(token, notes)
+        for source_title in subjects:
+            self.assertNotIn(source_title, notes)
+        self.assertNotIn("## 逐項變更", notes)
+        self.assertNotIn("## What's Changed", notes)
+        self.assertLessEqual(len(notes), 2000)
+        validate_notes(notes)
+
+    def test_hundreds_of_raw_english_commits_still_produce_short_zh_tw(self):
         notes = build_notes(
             tag=self.TAG, sha=self.SHA, previous_tag=self.PREV,
             previous_sha=self.BEFORE,
-            titles=["feat(receiving): add NFB parts",
-                    "fix(dxf): reject invalid holes",
-                    "test: Windows GUI persistence"],
+            titles=["fix(#2380): prevent DXF rollback error"] * 300
+                   + ["test: CI shard stability"] * 70,
         )
-        for token in ("正式版更新說明", "本次主要更新", "新增與改善",
-                      "錯誤修正", "測試與驗證", self.TAG, self.SHA,
-                      self.PREV, self.BEFORE,
-                      f"WHD_Windows_x64_{self.TAG}.zip"):
-            with self.subTest(token=token):
-                self.assertIn(token, notes)
-        self.assertNotIn("## What's Changed", notes)
-        self.assertIn("Source code (zip)", notes)
+        self.assertEqual(notes.count("- **"), 1)
+        self.assertNotIn("fix(#2380):", notes)
+        self.assertLessEqual(len(notes), 2000)
+
+    def test_release_generator_rejects_english_commit_dumps(self):
+        notes = build_notes(
+            tag=self.TAG, sha=self.SHA, previous_tag=self.PREV,
+            previous_sha=self.BEFORE, titles=["fix(#2379): DXF source edge"],
+        )
+        with self.assertRaisesRegex(ValueError, "RAW_COMMIT_DUMP"):
+            validate_notes(notes + "\n- fix: copy English commit again\n")
+        with self.assertRaisesRegex(ValueError, "MUST_BE_CONCISE"):
+            validate_notes(notes + "\n" + "追加內容" * 1000)
 
     def test_no_fabricated_changelog_for_wrong_or_missing_data(self):
         common = dict(tag=self.TAG, sha=self.SHA, previous_tag=self.PREV,
@@ -54,6 +87,46 @@ class ZhTWReleaseNotesTest(unittest.TestCase):
                      "SHA256.txt", "完整解壓", "備份"):
             self.assertIn(text, guide)
         self.assertNotIn("v2026.10.20-x-3da51e25a324", guide)
+
+
+class PreviousPublishedReleaseBackfillTest(unittest.TestCase):
+    TAG = "v2026.10.30-x-9b7519164dd0"
+    SHA = "9b7519164dd08916deff42f3ff0790707f10d371"
+
+    def test_previous_release_reference_is_short_and_pinned(self):
+        document = ROOT / "docs/releases/WHD_v2026.10.30_更新紀錄_精簡.md"
+        body = read_release_body(document, tag=self.TAG, sha=self.SHA)
+        self.assertIn("本次主要更新", body)
+        self.assertIn("門板開孔與幾何", body)
+        self.assertNotIn("## 逐項變更", body)
+        self.assertLessEqual(len(body), 2000)
+
+    def test_repacked_zip_only_changes_bundled_notes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            old = base / f"WHD_Windows_x64_{self.TAG}.zip"
+            original_exe = b"WHDEXE" + bytes(range(60))
+            with zipfile.ZipFile(old, "w") as archive:
+                archive.writestr("WHD/WHD.exe", original_exe)
+                archive.writestr("WHD/BUILD_SOURCE.txt", f"X={self.SHA}\n")
+                archive.writestr("WHD/本次更新.md", "Old English commit dump")
+                archive.writestr("WHD/config.ini", "[General]\n")
+            body = read_release_body(
+                ROOT / "docs/releases/WHD_v2026.10.30_更新紀錄_精簡.md",
+                tag=self.TAG, sha=self.SHA,
+            )
+            new_zip, notes = repack(old, base / "new", tag=self.TAG, sha=self.SHA, body=body)
+            with zipfile.ZipFile(old) as initial, zipfile.ZipFile(new_zip) as updated:
+                self.assertEqual(updated.read("WHD/WHD.exe"), original_exe)
+                self.assertEqual(updated.read("WHD/config.ini"), initial.read("WHD/config.ini"))
+                self.assertEqual(updated.read("WHD/BUILD_SOURCE.txt"), initial.read("WHD/BUILD_SOURCE.txt"))
+                self.assertEqual(updated.read("WHD/本次更新.md").decode("utf-8"), body)
+            self.assertEqual(notes.read_text(encoding="utf-8"), body)
+            self.assertIn(hashlib.sha256(new_zip.read_bytes()).hexdigest(),
+                          (base / "new/SHA256.txt").read_text(encoding="ascii"))
+            with self.assertRaisesRegex(ValueError, "WRONG_NOTES_SOURCE"):
+                repack(old, base / "wrong", tag=self.TAG, sha=self.SHA, body=body.replace(self.SHA, "f" * 40))
+
 
 
 class AuthorizedExeWorkflowContractTest(unittest.TestCase):
