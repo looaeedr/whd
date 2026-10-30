@@ -207,6 +207,59 @@ def _capabilities(commit: str, build_id: str, code_hash: str) -> dict[str, Any]:
     return result
 
 
+def _installed_capabilities(
+    commit: str, build_id: str, code_hash: str, installation_id: str,
+) -> dict[str, Any]:
+    """Advertise ONLY a verified preprovisioned Windows installation.
+
+    Job-specific HMAC approval is still mandatory before any public
+    prepare/export; capability discovery never grants manufacturing rights.
+    """
+    if not getattr(sys, "frozen", False) or sys.platform != "win32":
+        raise WorkerFailure("WHD_JOB_STORE_UNAVAILABLE", "installed Windows Engine required", exit_code=4)
+    from integration_cli.private_worker_installation import load_private_execution
+    from integration_cli.prepare_evidence import PrepareEvidenceError
+    try:
+        load_private_execution(installation_id, engine_sha256=code_hash)
+    except PrepareEvidenceError as exc:
+        raise WorkerFailure(exc.code, "trusted installation not ready", exit_code=4) from exc
+    result = _capabilities(commit, build_id, code_hash)
+    result["protocol_version"] = "1.1.0"
+    result["installation_id"] = installation_id
+    result["engine_version"] = "w07-public-v1.1-installed-gated"
+    result["supported_part_kinds"] = [
+        "door", "indicator_small_door", "indicator_box", "end_cap_head", "end_cap_tail",
+    ]
+    # These are proven in the existing W-03/04/06 onedir EXE path.
+    # Cancellation/recovery/result readback have separate PRIVATE authority:
+    # do not advertise them as externally accessible public APIs.
+    for name in (
+        "batch_prepare", "batch_export", "atomic_batch",
+        "internal_verify_on_export", "idempotent_job_submission",
+        "output_path_locking",
+    ):
+        result["capability_flags"][name] = True
+    result["capabilities"] = [
+        {
+            "capability_id": "w07-installed-signed-v11-" + kind,
+            "part_kind": kind,
+            "worker_supported": True,
+            "geometry_acceptance_passed": True,
+            "production_scope": "single_part",
+            "required_inputs": (
+                ["installer_sealed_exact_job_approval", "attested_source_dxf",
+                 "source_transform", "verified_source_entity_refs"]
+                if kind in ("door", "indicator_small_door")
+                else ["installer_sealed_exact_job_approval", "empty_source_modelspace",
+                      "WHD_owned_size_only_geometry"]
+            ),
+        }
+        for kind in result["supported_part_kinds"]
+    ]
+    _validator("capabilities_v1_1.schema.json").validate(result)
+    return result
+
+
 def _diagnostic(code: str, message: str, *, item_count: int | None = None) -> dict[str, Any]:
     error: dict[str, Any] = {"code": code, "message": message, "retryable": False}
     if item_count is not None:
@@ -320,6 +373,8 @@ def _parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="operation", required=True)
     for name in ("capabilities", "prepare", "export"):
         command = commands.add_parser(name)
+        if name == "capabilities":
+            command.add_argument("--installation-id", default=None)
         if name != "capabilities":
             command.add_argument("--request", type=Path, required=True)
         command.add_argument("--response", type=Path, required=True)
@@ -459,7 +514,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         commit, build_id, code_hash = _identity()
         if args.operation == "capabilities":
-            data = _capabilities(commit, build_id, code_hash)
+            data = (
+                _installed_capabilities(commit, build_id, code_hash, args.installation_id)
+                if args.installation_id is not None
+                else _capabilities(commit, build_id, code_hash)
+            )
             exit_code = 0
         elif getattr(sys, "frozen", False) and sys.platform == "win32":
             data, exit_code = _execute_public_installed_request(
