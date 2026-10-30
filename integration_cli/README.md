@@ -537,8 +537,8 @@ DPAPI APIs and verifies that a separately started Python process obtains
 the same HMAC result; it does not use a crypto mock or print secret bytes.
 
 This is **private custody only**: it does not yet assign a trusted Worker
-installer/identity lifecycle, integrate persisted W-03 prepare receipts,
-claim the public CLI, support a service account or a remote UNC store, or
+installer/identity lifecycle, activate persisted W-03 prepare receipts via the public CLI,
+support a service account or a remote UNC store, or
 make W-06 keys recoverable across Windows user-profile changes. Normal
 `cadsplit_worker` public `prepare/export` stays disabled; no machine
 certification, Gate A, or `/推推` is implied.
@@ -567,6 +567,23 @@ This is **private** and relies on a trusted caller to select the installation
 store, actual resource paths, engine build identity and DPAPI-sourced key.
 Public `cadsplit_worker` remains disabled until W-03/W-04/W-06 key owner,
 source custody, cancel/progress and W-07 Gate A are complete.
+
+## W-06 private durable cancellation safe points (#2380)
+
+The trusted Worker (never CADSplit wire JSON) may call
+`DurableJobIdentityLedger.request_cancel(original_request)` after a private
+job is claimed. A SQLite WAL/FULL-sync `job_cancel_intents` row pins its
+**original canonical digest**; the intent survives process restart, a second
+identical cancel is idempotent, and a changed job digest is refused. Private
+Prepare and Export check the flag before publishing an immutable success
+receipt. W-04 also checks at its source/Save→Reload safe points. The
+multi-DXF `DurableMultiDXFRollbackJournal.arm` atomically checks the same
+cancel row under `BEGIN IMMEDIATE` before writing any replacement intent.
+After arming, a cancel request is refused as recovery-required rather than
+interrupting an applying multi-file replacement. A cancelled, unfinished
+job is **not automatically rerun**; recovery owns terminal resolution.
+This only adds a private cancellation seam; no public cancel CLI,
+`progress.json` or full W-06/Gate A claim is made.
 
 ## W-05 private Windows Engine onedir candidate (#2381)
 
