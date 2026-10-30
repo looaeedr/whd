@@ -136,6 +136,9 @@ class DurableMultiDXFRollbackJournal:
         # this private commit owner; per_part has different recovery semantics.
         if request.get("transaction_mode") != "all_or_nothing":
             raise _refuse("per-part manufacturing requires its own verified journal")
+        # A requested cancellation before durable replacement intent must
+        # abort without ever touching a customer final DXF.
+        self._ledger.assert_not_cancelled(request)
         snapshot = self._ledger.require_staged_batch_snapshot_current(request)
         backup_manifest = self._backups.require_current(request)
         root = Path(backup_manifest["directory"])
@@ -176,6 +179,22 @@ class DurableMultiDXFRollbackJournal:
             ).fetchone()
             if prior is not None:
                 raise _refuse("existing replacement intent cannot be restarted")
+            # This read shares the same BEGIN IMMEDIATE lock with
+            # request_cancel(), closing the check/arm race.
+            cancellation = conn.execute(
+                """SELECT request_digest FROM job_cancel_intents
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+            if cancellation is not None:
+                if (not isinstance(cancellation[0], str)
+                        or not hmac.compare_digest(cancellation[0], digest)):
+                    raise PrepareEvidenceError(
+                        "WHD_JOB_ID_CONFLICT", "cancel intent identity differs",
+                    )
+                raise PrepareEvidenceError(
+                    "WHD_JOB_CANCELLED", "cancelled job cannot arm DXF replacement",
+                )
             conn.execute(
                 """INSERT INTO batch_replace_journals
                    (client_id,job_id,operation,request_digest,state,plan_json,plan_sha256)
