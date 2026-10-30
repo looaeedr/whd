@@ -110,6 +110,9 @@ jobs:
             throw 'W05_RESOURCE_TAMPER_MUST_FAIL_CLOSED'
           }
           Write-Host "W05_PRIVATE_ENGINE_WINDOWS_EXE_PASS exact_sha=$env:ENGINE_SHA"
+          # A negative tamper case intentionally left $LASTEXITCODE=4; GitHub's
+          # pwsh wrapper would otherwise treat that expected refusal as failure.
+          exit 0
       - name: Upload only private Engine candidate
         uses: actions/upload-artifact@v4
         with:
