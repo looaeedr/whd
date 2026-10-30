@@ -238,3 +238,51 @@ def request_private_worker_cancel(
         "job_id": request["job_id"],
         "request_digest": request["request_digest"],
     }
+
+
+def read_private_worker_immutable_result(
+    request: Mapping[str, Any], context: TrustedWorkerExecution,
+) -> dict[str, Any]:
+    """Read only a proven original W-06 result; never redo W-03/W-04.
+
+    Existing signed exact-job installation approval is sufficient for a
+    read-only result, not for manufacturing. A committed Export is physically
+    re-attested against all immutable DXFs; Prepare additionally checks the
+    Worker-owned HMAC-sealed receipt. Unfinished or corrupted jobs fail closed.
+    """
+    from integration_cli.cadsplit_worker import SCHEMA_ROOT
+    schema = json.loads((SCHEMA_ROOT / "request_v1_1.schema.json").read_text(encoding="utf-8"))
+    try:
+        Draft202012Validator(schema).validate(request)
+    except ValidationError as exc:
+        raise PrepareEvidenceError("WHD_SCHEMA_INVALID", "invalid original readback request") from exc
+    require_matching_wire_request_digest(request)
+    _validate_context(context, request)
+    if context.approved_request_identity is None:
+        raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "exact-job readback approval missing")
+    ledger = DurableJobIdentityLedger(context.store_root)
+    claim = ledger.claim(request)
+    if claim.state == "rolled_back" and request["operation"] == "export":
+        return {
+            "protocol_version": request["protocol_version"],
+            "operation": "export",
+            "status": "rolled_back",
+            "manufacturing_verified": False,
+            "client_installation_id": request["client_installation_id"],
+            "job_id": request["job_id"],
+            "request_digest": request["request_digest"],
+        }
+    if claim.state != "committed" or not isinstance(claim.result, dict):
+        raise PrepareEvidenceError(
+            "WHD_JOB_RECOVERY_REQUIRED", "job lacks physically verified immutable result",
+        )
+    if request["operation"] == "prepare":
+        original, receipt = ledger.load_trusted_prepare(
+            client_installation_id=request["client_installation_id"],
+            job_id=request["job_id"], worker_key=context.worker_key,
+        )
+        if _identity(original) != _identity(request) or receipt != claim.result:
+            raise PrepareEvidenceError("WHD_PREPARE_STALE", "original prepare result changed")
+    if claim.result.get("manufacturing_verified") is not False:
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "invalid manufacturing result authority")
+    return claim.result
