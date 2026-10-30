@@ -277,3 +277,42 @@ def test_private_worker_twenty_mixed_door_and_indicator_small_door_real_export(t
     assert status != 0
     assert denied["status"] == "failed"
     assert before == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths}
+
+
+@pytest.mark.parametrize("fault", [
+    "wrong_source_sha", "source_custody_missing", "unparseable_original",
+])
+def test_private_prepare_validates_actual_original_before_durable_job_claim(
+    tmp_path, fault,
+):
+    """Malformed customer sources must not poison a durable job identity."""
+    from dataclasses import replace
+
+    batch = _real_batch(tmp_path, count=1)
+    original = batch[0]
+    context = _context(tmp_path, batch)
+    source = batch[5]
+    saved_bytes = source.read_bytes()
+    bad_request = deepcopy(original)
+    bad_context = context
+    if fault == "wrong_source_sha":
+        bad_request["items"][0]["source_document_sha256"] = "0" * 64
+        bad_request["request_digest"] = compute_wire_request_digest(bad_request)
+    elif fault == "source_custody_missing":
+        bad_context = replace(context, source_documents={})
+    else:
+        source.write_bytes(b"not a parseable original DXF")
+
+    denied, status = _call(tmp_path, "prepare", bad_request, bad_context)
+    assert status != 0
+    assert denied["status"] == "failed"
+    assert denied["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
+    with DurableJobIdentityLedger(context.store_root)._connect() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 0
+    assert not list(context.output_dir.glob("*.dxf"))
+
+    if fault == "unparseable_original":
+        source.write_bytes(saved_bytes)
+    prepared, code = _call(tmp_path, "prepare", original, context)
+    assert code == 0 and prepared["status"] == "success"
+    assert len(prepared["items"]) == 1

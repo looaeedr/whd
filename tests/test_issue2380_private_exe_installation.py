@@ -79,7 +79,14 @@ def test_actual_packaged_engine_private_prepare_and_restart(tmp_path, monkeypatc
     store.mkdir()
     output.mkdir()
     original = tmp_path / "既有來源.dxf"
-    original.write_bytes(b"private worker input source proof")
+    # A successful installed W-03 Prepare must attest a real customer DXF,
+    # not an arbitrary byte string with a fabricated source SHA.
+    import ezdxf
+    from integration_cli.request_canonical import compute_wire_request_digest
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    doc.modelspace().add_circle((20, 30), 3, dxfattribs={"layer": "CUTTING"})
+    doc.saveas(original)
     sha = hashlib.sha256(exe.read_bytes()).hexdigest()
     provision_private_installation(
         name, store_root=store, output_dir=output,
@@ -87,6 +94,10 @@ def test_actual_packaged_engine_private_prepare_and_restart(tmp_path, monkeypatc
         expected_engine_sha256=sha,
     )
     request = _request(count=1)
+    request["items"][0]["source_document_sha256"] = hashlib.sha256(
+        original.read_bytes()
+    ).hexdigest()
+    request["request_digest"] = compute_wire_request_digest(request)
     wire = tmp_path / "交付請求.json"
     wire.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
     response = tmp_path / "受信任結果.json"
@@ -653,4 +664,65 @@ def test_packaged_engine_vault_endcap_size_only_prepare_and_export_denial(
     assert status != 0
     assert stale is not None
     assert stale["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
+    assert not list(output.glob("*.dxf"))
+
+
+@pytest.mark.skipif(not WINDOWS, reason="requires real Windows packaged Engine.exe and DPAPI")
+@pytest.mark.parametrize("fault", ["wrong_source_sha", "malformed_source_dxf"])
+def test_packaged_engine_rejects_unattested_original_before_persisting_prepare(
+    tmp_path, monkeypatch, fault,
+):
+    """Real EXE must not create a signed W-03 job for an invalid original."""
+    import ezdxf
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from integration_cli.job_identity_ledger import DurableJobIdentityLedger
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires built onedir Engine.exe")
+    profile = tmp_path / "private-preflight-profile"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    name = "prepare-source-preflight-" + fault
+    load_installation_key(name, initialize=True)
+    store = tmp_path / "private-state"
+    output = tmp_path / "trusted-output"
+    store.mkdir()
+    output.mkdir()
+    source = tmp_path / "原始來源.dxf"
+    if fault == "malformed_source_dxf":
+        source.write_bytes(b"not an actual source DXF")
+    else:
+        doc = ezdxf.new("R2010")
+        doc.header["$INSUNITS"] = 4
+        doc.modelspace().add_circle((12, 13), 2, dxfattribs={"layer": "CUTTING"})
+        doc.saveas(source)
+    exe_sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    request = _request(count=1)
+    request["items"][0]["source_document_sha256"] = (
+        "0" * 64 if fault == "wrong_source_sha" else
+        hashlib.sha256(source.read_bytes()).hexdigest()
+    )
+    request["request_digest"] = compute_wire_request_digest(request)
+    provision_private_installation(
+        name, store_root=store, output_dir=output,
+        source_documents={request["items"][0]["item_id"]: source},
+        expected_engine_sha256=exe_sha,
+    )
+    authorize_private_job(name, request, engine_sha256=exe_sha)
+    wire = tmp_path / "source-request.json"
+    response = tmp_path / "source-response.json"
+    wire.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+    proc = subprocess.run([
+        str(exe), "_private_installed", "prepare",
+        "--installation-id", name,
+        "--request", str(wire), "--response", str(response),
+    ], cwd=tmp_path, capture_output=True, text=True, timeout=150)
+    assert proc.returncode != 0, proc.stdout
+    assert response.is_file(), proc.stderr
+    result = json.loads(response.read_text(encoding="utf-8"))
+    assert result["status"] == "failed"
+    assert result["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
+    with DurableJobIdentityLedger(store)._connect() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 0
     assert not list(output.glob("*.dxf"))
