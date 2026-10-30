@@ -1517,3 +1517,113 @@ def test_packaged_engine_cancel_requires_separate_exact_job_ticket_and_never_wri
     assert again.returncode == 0, again.stderr[-1200:]
     assert json.loads(replay.read_text(encoding="utf-8")) == outcome
     assert (customer.read_bytes(), customer.stat().st_mtime_ns) == old
+
+
+@pytest.mark.skipif(not WINDOWS, reason="real Windows packaged Engine.exe + DPAPI required")
+def test_packaged_engine_read_result_never_rerenders_or_creates_unknown_jobs(
+    tmp_path, monkeypatch,
+):
+    """Real EXE reads the lost response, verifies immutable DXF and refuses tamper."""
+    import sqlite3
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2379_trusted_door_finalscene_batch import _real_batch
+    from test_issue2380_private_worker_dispatch import _export_from_real_sources
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires built actual onedir WHD-Engine.exe")
+    profile = tmp_path / "Private readback 本機 DPAPI"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    installation = "w06-private-readback"
+    load_installation_key(installation, initialize=True)
+    batch = _real_batch(tmp_path, count=1)
+    original = batch[0]
+    store, output = tmp_path / "trusted-store", tmp_path / "客戶 DXF 已完成"
+    store.mkdir()
+    output.mkdir()
+    exe_hash = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation, store_root=store, output_dir=output,
+        source_documents=batch[4], expected_engine_sha256=exe_hash,
+    )
+
+    def call(operation, request, label):
+        wire, response = tmp_path / f"{label}-wire.json", tmp_path / f"{label}-response.json"
+        wire.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+        result = subprocess.run([
+            str(exe), "_private_installed", operation,
+            "--installation-id", installation,
+            "--request", str(wire), "--response", str(response),
+        ], cwd=tmp_path, capture_output=True, text=True, timeout=120)
+        reply = json.loads(response.read_text(encoding="utf-8")) if response.is_file() else None
+        return result, reply, response
+
+    authorize_private_job(installation, original, engine_sha256=exe_hash)
+    prepared, receipt, first = call("prepare", original, "prepared")
+    assert prepared.returncode == 0, prepared.stderr[-1300:]
+    assert receipt["status"] == "success" and receipt["manufacturing_verified"] is False
+    export = _export_from_real_sources(original, receipt, batch)
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(installation, export, engine_sha256=exe_hash)
+
+    # Merely asking about an approved Export must NOT create its durable job.
+    before, ignored, absent = call("read-result", export, "before-first-export")
+    assert before.returncode == 4 and ignored is None and not absent.exists()
+    with sqlite3.connect(store / "job_identity.sqlite3") as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM jobs WHERE operation='export'"
+        ).fetchone()[0] == 0
+
+    rendered, finished, exported_response = call("export", export, "export-result-lost")
+    assert rendered.returncode == 0, rendered.stderr[-1300:]
+    assert finished["status"] == "success" and finished["manufacturing_verified"] is False
+    files = [Path(part["path"]) for part in finished["items"]]
+    assert len(files) == 1 and files[0].is_file() and files[0].parent == output
+    immutable = {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in files}
+    exported_response.unlink()  # emulate transport response loss, NOT DXF loss
+    _, saved_prepare, _ = call("read-result", original, "trusted-prepare-readback")
+    assert saved_prepare == receipt
+    reloaded, recovered, _ = call("read-result", export, "immutable-export-readback")
+    assert reloaded.returncode == 0, reloaded.stderr[-1300:]
+    assert recovered == finished
+    assert {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in files} == immutable
+
+    changed = json.loads(json.dumps(export, ensure_ascii=False))
+    changed["job_id"] = "other-never-executed-job"
+    changed["request_digest"] = compute_wire_request_digest(changed)
+    refused, absent_result, no_file = call("read-result", changed, "other-job-denied")
+    assert refused.returncode == 4 and absent_result is None and not no_file.exists()
+    with sqlite3.connect(store / "job_identity.sqlite3") as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM jobs WHERE operation='export'"
+        ).fetchone()[0] == 1
+
+    # Tampering with the SQLite result JSON and updating its own checksum
+    # must not let a forged path borrow an unrelated, valid DXF SHA proof.
+    with sqlite3.connect(store / "job_identity.sqlite3") as conn:
+        saved, saved_hash = conn.execute(
+            "SELECT result_json,result_sha256 FROM jobs WHERE operation='export'"
+        ).fetchone()
+        forged = json.loads(saved)
+        forged["items"][0]["path"] = str(output / "fake-customer-output.dxf")
+        altered = json.dumps(forged, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+        conn.execute(
+            "UPDATE jobs SET result_json=?,result_sha256=? WHERE operation='export'",
+            (altered, hashlib.sha256(altered.encode("utf-8")).hexdigest()),
+        )
+    forged_run, forged_result, denied_path = call("read-result", export, "forged-result-path")
+    assert forged_run.returncode == 4 and forged_result is None and not denied_path.exists()
+    with sqlite3.connect(store / "job_identity.sqlite3") as conn:
+        conn.execute(
+            "UPDATE jobs SET result_json=?,result_sha256=? WHERE operation='export'",
+            (saved, saved_hash),
+        )
+
+    # A spoofed original customer output must never be returned as success.
+    customer = files[0]
+    customer.write_bytes(customer.read_bytes() + b"\\n999\\nmodified-after-commit")
+    corruption, stale_result, no_file = call("read-result", export, "tampered-DXF-denied")
+    assert corruption.returncode == 4 and stale_result is None and not no_file.exists()
+    assert customer.read_bytes().endswith(b"modified-after-commit")
