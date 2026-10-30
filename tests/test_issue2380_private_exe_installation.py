@@ -1743,7 +1743,9 @@ def test_packaged_public_v11_prepare_export_requires_sealed_job_and_certifies_re
     authorize_private_job(identity, export, engine_sha256=exe_hash)
     manufactured, final = call("export", export, "signed-public-export")
     assert manufactured.returncode == 0, (
-        manufactured.stderr[-1600:], final,
+        manufactured.stderr[-1600:],
+        final.get("diagnostics", []) if isinstance(final, dict) else final,
+        sorted(path.name for path in output.glob("*.dxf")),
     )
     assert final["status"] == "success" and final["manufacturing_verified"] is True
     assert final["transaction_mode"] == "all_or_nothing"
