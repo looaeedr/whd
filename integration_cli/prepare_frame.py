@@ -169,3 +169,79 @@ def require_canonical_indicator_box_size_only_frame(
         raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid box outside dimensions")
     if _pure_json(frame) != _indicator_box_size_only_record(float(w), float(h), physical_part_id):
         raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "box Frame cannot authorize external Features")
+
+def _endcap_size_only_record(
+    width: float, height: float, physical_part_id: str, kind: str,
+) -> dict[str, Any]:
+    """Serialize only WHD's existing local EndCap finished-face guide size.
+
+    This is NOT a world assembly transform, a cut-feature placement contract,
+    or certification of head/tail fold orientation.
+    """
+    if kind not in ("end_cap_head", "end_cap_tail"):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid EndCap role")
+    return {
+        "frame_id": f"{kind}:{physical_part_id}:outer:size-only-v1",
+        "coordinate_contract_revision": "1",
+        "units": "mm",
+        "origin_definition": (
+            "WHD Vault EndCap finished-face guide size only; "
+            "no certified local-to-assembly or source-to-DXF mapping"
+        ),
+        "origin_xyz_mm": [0.0, 0.0, 0.0],
+        "axis_x": [1.0, 0.0, 0.0],
+        "axis_y": [0.0, 1.0, 0.0],
+        "normal": [0.0, 0.0, 1.0],
+        "face_role": "outer",
+        "viewed_from": "along_normal",
+        "finished_face_dimensions_mm": {"width": width, "height": height},
+        "allowed_feature_types": [],
+    }
+
+
+def resolve_endcap_size_only_frame(
+    spec: Any, *, physical_part_id: str,
+) -> dict[str, Any]:
+    """Use the official AE EndCap guide without duplicating its dimensional math."""
+    from ae_engine.contracts import EndCapPartSpec
+    from ae_engine.sheetmetal_feature_surface import resolve_endcap_finished_face_guide
+
+    if (not isinstance(spec, EndCapPartSpec)
+            or spec.model_name != "金庫型"
+            or not isinstance(physical_part_id, str)
+            or not _FRAME_ID_PART.fullmatch(physical_part_id)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Vault EndCap authority missing")
+    try:
+        guide = resolve_endcap_finished_face_guide(
+            spec.width, spec.depth, spec.thickness,
+        )
+        width = float(guide.max_point.x - guide.min_point.x)
+        height = float(guide.max_point.y - guide.min_point.y)
+    except (TypeError, ValueError, OverflowError, ArithmeticError) as exc:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "EndCap finished guide unavailable") from exc
+    if any(not math.isfinite(v) or v <= 0 for v in (width, height)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "EndCap finished face has no area")
+    kind = "end_cap_tail" if spec.is_tail else "end_cap_head"
+    return _endcap_size_only_record(width, height, physical_part_id, kind)
+
+
+def require_canonical_endcap_size_only_frame(
+    frame: Any, *, physical_part_id: str, kind: str,
+) -> None:
+    """Reject caller-rewritten size-only data and any enabled Features."""
+    from collections.abc import Mapping
+    from integration_cli.prepare_evidence import _pure_json
+
+    if (not isinstance(physical_part_id, str)
+            or not _FRAME_ID_PART.fullmatch(physical_part_id)
+            or kind not in ("end_cap_head", "end_cap_tail")
+            or not isinstance(frame, Mapping)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "untrusted EndCap frame")
+    dims = frame.get("finished_face_dimensions_mm")
+    if not isinstance(dims, Mapping) or set(dims) != {"width", "height"}:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "missing EndCap finished-face dimensions")
+    w, h = dims["width"], dims["height"]
+    if any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0 for v in (w, h)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid EndCap finished-face bounds")
+    if _pure_json(frame) != _endcap_size_only_record(float(w), float(h), physical_part_id, kind):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "EndCap frame cannot authorize external Features")

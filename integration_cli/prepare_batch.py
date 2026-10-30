@@ -21,6 +21,7 @@ from integration_cli.prepare_evidence import (
 )
 from integration_cli.prepare_frame import (
     resolve_door_finished_local_frame, resolve_indicator_box_size_only_frame,
+    resolve_endcap_size_only_frame,
 )
 from integration_cli.request_canonical import require_matching_wire_request_digest
 
@@ -185,6 +186,48 @@ def indicator_box_spec_from_trusted_prepared_part(part: Mapping[str, Any], conte
     )
 
 
+def endcap_spec_from_trusted_prepared_part(part: Mapping[str, Any], policy):
+    """Use WHD's existing Vault EndCap part contract without inventing folds.
+
+    A size-only Prepare is not source-Feature/assembly-space attestation.
+    Both head and tail keep separate physical identities, no manufacturing
+    and no source-to-DXF placement until independent W-04 proof exists.
+    """
+    from ae_engine.contracts import EndCapPartSpec
+
+    kind = part.get("kind")
+    if kind not in ("end_cap_head", "end_cap_tail"):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unrecognized EndCap physical role")
+    if (part.get("cabinet_family") != "金庫型"
+            or part.get("dimension_semantics") != "cabinet_outer"):
+        raise PrepareEvidenceError(
+            "WHD_FRAME_UNVERIFIED",
+            "only WHD Vault cabinet_outer EndCap dimensions are verified",
+        )
+    if any(key in part for key in (
+        "frame_edges", "frame_width_mm", "gap_w_mm", "gap_h_mm",
+        "fold_left_mm", "fold_right_mm", "fold_top_mm", "fold_bottom_mm",
+        "indicator_groups",
+    )):
+        raise PrepareEvidenceError(
+            "WHD_FRAME_UNVERIFIED", "EndCap cannot override unverified folds or topology",
+        )
+    dims = part.get("dimensions_mm")
+    if not isinstance(dims, Mapping) or set(dims) != {"width", "depth", "thickness"}:
+        raise PrepareEvidenceError(
+            "WHD_FRAME_UNVERIFIED", "exact Vault EndCap width/depth/thickness required",
+        )
+    if any(type(dims[key]) not in (int, float)
+           or not math.isfinite(dims[key]) or dims[key] <= 0
+           for key in ("width", "depth", "thickness")):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "nonfinite EndCap input dimensions")
+    return EndCapPartSpec(
+        width=float(dims["width"]), depth=float(dims["depth"]),
+        thickness=float(dims["thickness"]), frame_width=float(policy.frame_width),
+        model_name="金庫型", is_tail=(kind == "end_cap_tail"),
+    )
+
+
 def prepare_trusted_door_batch(
     request: Mapping[str, Any], *,
     resource_root: Path, engine_commit: str, engine_sha256: str,
@@ -229,17 +272,21 @@ def prepare_trusted_door_batch(
             dims = p["dimensions_mm"]
             if not all(k in dims for k in ("width","height","thickness")):
                 raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "complete verified Door input dimensions required")
-        elif kind not in ("indicator_small_door", "indicator_box"):
+        elif kind not in (
+            "indicator_small_door", "indicator_box", "end_cap_head", "end_cap_tail",
+        ):
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unverified physical part kind has no supported local Frame")
         if item["item_id"] in identities:
             raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "duplicate item ID")
         identities.add(item["item_id"])
-        part_spec = (
-            door_spec_from_trusted_prepared_part(p, policy) if kind == "door"
-            else indicator_small_door_spec_from_trusted_prepared_part(p, ctx)
-            if kind == "indicator_small_door"
-            else indicator_box_spec_from_trusted_prepared_part(p, ctx)
-        )
+        if kind == "door":
+            part_spec = door_spec_from_trusted_prepared_part(p, policy)
+        elif kind == "indicator_small_door":
+            part_spec = indicator_small_door_spec_from_trusted_prepared_part(p, ctx)
+        elif kind == "indicator_box":
+            part_spec = indicator_box_spec_from_trusted_prepared_part(p, ctx)
+        else:
+            part_spec = endcap_spec_from_trusted_prepared_part(p, policy)
         identity_bytes = ("WHD-PART-v1\0" + request["client_installation_id"]
                 + "\0" + request["job_id"] + "\0" + item["item_id"]
                 + "\0" + p["source_part_ref"] + "\0" + item["source_document_sha256"]).encode("utf-8")
@@ -252,6 +299,23 @@ def prepare_trusted_door_batch(
                 "part_kind": kind,
                 "indicator_groups": list(p["indicator_groups"]),
                 "input_dimensions_mm": {"thickness": float(part_spec.thickness)},
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only",
+                "target_frame_certified": False,
+            }
+        elif kind in ("end_cap_head", "end_cap_tail"):
+            frame = resolve_endcap_size_only_frame(
+                part_spec, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind,
+                "cabinet_family": "金庫型",
+                "input_dimensions_mm": {
+                    "width": part_spec.width,
+                    "depth": part_spec.depth,
+                    "thickness": part_spec.thickness,
+                    "frame_width": part_spec.frame_width,
+                },
                 "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
                 "coordinate_space": "size_only",
                 "target_frame_certified": False,
