@@ -916,6 +916,35 @@ def _w06_committing_context(tmp_path):
     return store, root, old, stage1, stage2, req, ledger, journal, original
 
 
+def test_private_rollback_requires_writable_private_temp_file(tmp_path, monkeypatch):
+    """Assert the private restore temp uses a writable fsync handle.
+
+    A Linux-only happy path would silently accept the historical read-only
+    open("rb"), while Windows CRT _commit refuses it. Track the mode even
+    on Linux; ordinary read-only SHA proof reads must remain permitted.
+    """
+    store, root, old, _, _, req, _, journal, before = _w06_committing_context(tmp_path)
+    journal.arm(req)
+    with pytest.raises(SystemExit):
+        journal.apply(
+            req, after_replace=lambda n: (_ for _ in ()).throw(SystemExit()) if n == 1 else None,
+        )
+    original_open = Path.open
+    observed_modes = []
+
+    def track_restore_fsync_open(path, mode="r", *args, **kwargs):
+        if path.name.startswith(".whd-w06-restore-") and mode == "rb+":
+            observed_modes.append(mode)
+        return original_open(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", track_restore_fsync_open)
+    recovered = DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(store))
+    assert recovered.recover_rollback(req) == "rolled_back"
+    assert observed_modes == ["rb+"]
+    assert (old.read_bytes(), old.stat().st_mtime_ns) == before
+    assert not (root / "part-two.dxf").exists()
+
+
 def test_private_multidxf_real_save_reload_commit_receipt_and_lease_release(tmp_path):
     store, root, old, stage1, stage2, req, ledger, journal, original = _w06_committing_context(tmp_path)
     plan = journal.arm(req)

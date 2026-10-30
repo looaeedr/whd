@@ -387,7 +387,10 @@ class DurableMultiDXFRollbackJournal:
                             os.fsync(dst.fileno())
                         original_stat = backup_file.stat()
                         os.utime(temp, ns=(original_stat.st_atime_ns, original["mtime_ns"]))
-                        with temp.open("rb") as saved:
+                        # Windows CRT _commit() needs a writable file handle.
+                        # This is our PRIVATE restore temp (not customer DXF).
+                        # The original-backup writer uses the same rb+ rule.
+                        with temp.open("rb+") as saved:
                             os.fsync(saved.fileno())
                         if not _proof_equals_expected(temp, original):
                             raise _refuse("temporary original restore differs")
