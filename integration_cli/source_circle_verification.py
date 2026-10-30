@@ -322,6 +322,14 @@ def verify_trusted_original_dxf_features(
         expected_type = "CIRCLE" if kind == "circle" else "LWPOLYLINE"
         if entity is None or entity.dxftype() != expected_type:
             _fail("source handle does not identify an original supported modelspace entity")
+        # The source's manufacturing layer is physical evidence, not a
+        # replaceable wire claim. A MARKING/BEND/CHECK/0 entity may have the
+        # same radius/vertices as a hole, but must never be promoted into a
+        # THROUGH_CUT simply by supplying its genuine handle and a transform.
+        # DXF layer identifiers are case-insensitive; do not trim or map
+        # unknown source layers into WHD's canonical CUTTING role.
+        if str(entity.dxf.get("layer", "")).casefold() != "cutting":
+            _fail("original DXF source entity is not on the CUTTING layer")
         if t.get("unit_authority") != "DXF-HEADER":
             _fail("source units require explicit DXF header evidence")
         expected_units = 4 if t.get("source_units") == "mm" else 1 if t.get("source_units") == "inch" else None
