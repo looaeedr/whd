@@ -191,8 +191,10 @@ def endcap_spec_from_trusted_prepared_part(part: Mapping[str, Any], policy):
     """Use WHD's existing Vault EndCap part contract without inventing folds.
 
     A size-only Prepare is not source-Feature/assembly-space attestation.
-    Both head and tail keep separate physical identities, no manufacturing
-    and no source-to-DXF placement until independent W-04 proof exists.
+    Only WHD's intrinsic Vault standard geometry is eligible for private
+    W-04 with an entirely empty original DXF and no external Features.
+    Both head and tail retain distinct physical identities; no external
+    assembly relief, corner-policy override or source-to-DXF placement.
     """
     from ae_engine.contracts import EndCapPartSpec
 

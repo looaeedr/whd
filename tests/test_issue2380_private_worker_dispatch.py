@@ -392,3 +392,32 @@ def test_private_worker_twenty_mixed_indicator_box_small_door_door_original_empt
     assert status != 0
     assert refused["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
     assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files} == evidence
+
+
+def test_private_worker_twenty_mixed_five_kind_vault_endcap_export_is_durable(
+    tmp_path,
+):
+    """W-06 all-or-nothing native EndCap head/tail + Door/smallDoor/Box."""
+    from test_issue2379_trusted_door_finalscene_batch import _empty_vault_endcap_five_kind_batch
+    original, _, _, root, documents, source = batch = _empty_vault_endcap_five_kind_batch(tmp_path)
+    context = _context(tmp_path, batch)
+    prepared, status = _call(tmp_path, "prepare", original, context)
+    assert status == 0 and prepared["status"] == "success", prepared
+    export = _export_request_from_prepared(original, prepared)
+    export["output"]["directory"] = str(context.output_dir)
+    export["request_digest"] = compute_wire_request_digest(export)
+    result, status = _call(tmp_path, "export", export, context)
+    assert status == 0 and result["status"] == "success", result
+    assert result["manufacturing_verified"] is False
+    files = {Path(row["path"]) for row in result["items"]}
+    assert len(files) == 20 and all(p.is_file() for p in files)
+    before = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files}
+    replay = deepcopy(export)
+    replay["request_id"] = "vault-five-kind-transport-retry"
+    again, status = _call(tmp_path, "export", replay, context)
+    assert status == 0 and again == result
+    assert before == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files}
+    source.write_bytes(source.read_bytes() + b"\\nmodified original after commit")
+    denied, status = _call(tmp_path, "export", replay, context)
+    assert status != 0 and denied["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
+    assert before == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files}

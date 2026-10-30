@@ -16,10 +16,12 @@ from integration_cli.prepare_batch import (
     door_spec_from_trusted_prepared_part,
     indicator_small_door_spec_from_trusted_prepared_part,
     indicator_box_spec_from_trusted_prepared_part,
+    endcap_spec_from_trusted_prepared_part,
 )
 from integration_cli.prepare_evidence import PrepareEvidenceError, _pure_json
 from integration_cli.prepare_frame import (
     resolve_door_finished_local_frame, resolve_indicator_box_size_only_frame,
+    resolve_endcap_size_only_frame,
 )
 from integration_cli.prepare_recheck import recheck_trusted_door_export
 from integration_cli.source_circle_verification import verify_trusted_original_dxf_features
@@ -125,11 +127,13 @@ def save_trusted_door_circle_finalscene_batch(
     overwrite: bool = False,
     durable_ledger=None,
 ) -> dict[str, str]:
-    """Source-verified Door/small-door plus zero-feature box all-or-nothing batch.
+    """Source-verified native WHD FinalScene batch including intrinsic Vault EndCaps.
 
-    Never accepts a caller-controlled PartSpec. Box external Feature mapping
-    remains disabled; only an entirely empty original DXF can use WHD-owned
-    indicator-box FinalScene and independently verified DXF.
+    Never accepts a caller-controlled PartSpec. Shared box and Vault EndCap
+    frames remain size-only: only an entirely empty original DXF may use
+    their WHD-owned standard physical geometry. External Feature placement,
+    assembly-driven relief/collision and custom corner policy are NOT
+    certified by this private manufacturing path.
 
     The original W-03 authenticated prepare request/receipt are Worker-owned.
     Featureless Door/small-door is allowed only with an entirely empty original
@@ -189,10 +193,13 @@ def save_trusted_door_circle_finalscene_batch(
     rows = []
     for original, receipt, exported in zip(original_items, receipt_items, exported_items):
         kind = original["part"]["kind"]
-        if kind not in ("door", "indicator_small_door", "indicator_box"):
-            _reject("only WHD-owned Door/small-door/featureless box frames supported")
-        if kind == "indicator_box" and exported.get("features"):
-            _reject("shared indicator-box has no certified source-Feature mapping")
+        if kind not in (
+            "door", "indicator_small_door", "indicator_box",
+            "end_cap_head", "end_cap_tail",
+        ):
+            _reject("physical part has no trusted WHD FinalScene manufacturing owner")
+        if kind in ("indicator_box", "end_cap_head", "end_cap_tail") and exported.get("features"):
+            _reject("size-only physical Frame has no certified source-Feature mapping")
         # A source DXF containing untransferred geometry is never an
         # unperforated blank: even zero declared Features must not silently
         # drop any original entity. Only genuinely empty modelspace sources
@@ -209,6 +216,33 @@ def save_trusted_door_circle_finalscene_batch(
                 _reject("source DXF has untransferred geometry without declared Features")
         original_item_id = original["item_id"]
         source_path = source_documents.get(original_item_id)
+        if kind in ("end_cap_head", "end_cap_tail"):
+            # Vault head/tail use WHD's existing intrinsic manufacturing
+            # topology, family baseline, depth compensation and is_tail
+            # orientation. No external CADSplit assembly/Feature placement is
+            # inferred from the size-only Frame. This branch is reachable
+            # only when both trusted source modelspace and Features are empty.
+            spec = endcap_spec_from_trusted_prepared_part(original["part"], policy)
+            from ae_engine.manufacturing_endcap_compat import resolve_endcap_request
+            resolved = resolve_endcap_request(spec)
+            if (
+                resolved.model_name != "金庫型"
+                or not math.isclose(resolved.depth_comp_t, 3.0, rel_tol=0, abs_tol=1e-9)
+                or resolved.is_tail != (kind == "end_cap_tail")
+                or spec.holes or spec.assembly_joints or spec.resolved_assembly_relief_cuts
+                or spec.assembly_relief is not None
+                or spec.corner_policy is not None
+                or spec.fold_profile_x or spec.fold_profile_y
+            ):
+                _reject("Vault EndCap assembly or external Feature geometry not certified")
+            frame = resolve_endcap_size_only_frame(
+                spec, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("WHD Vault EndCap size-only Frame differs from prepared Frame")
+            render = build_part_render_data(spec, context)
+            rows.append((receipt["physical_part_id"], render))
+            continue
         if kind == "indicator_box":
             # W-03 certifies ONLY WHD-owned box outside size; no local
             # source-Feature placement has been proved. When original DXF
