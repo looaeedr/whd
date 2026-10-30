@@ -964,3 +964,114 @@ def test_packaged_engine_vault_endcap_intrinsic_native_dxf_export_and_replay(
     process, again = invoke("export", retry, "vault-replayed")
     assert process.returncode == 0 and again == result
     assert (part.read_bytes(), part.stat().st_mtime_ns) == before
+
+
+@pytest.mark.skipif(not WINDOWS, reason="genuine packaged Windows WHD-Engine.exe + DPAPI required")
+def test_packaged_engine_twenty_mixed_five_physical_kinds_native_dxf_atomic_replay(
+    tmp_path, monkeypatch,
+):
+    """One genuine installed EXE job: all 5 WHD physical kinds, 20 final DXFs.
+
+    Not a public Worker Gate A release: external source Feature mapping and
+    nonstandard EndCap assemblies remain deliberately disabled.
+    """
+    from copy import deepcopy
+    import ezdxf
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2378_prepare_batch import _export_request_from_prepared
+    from test_issue2379_trusted_door_finalscene_batch import _empty_vault_endcap_five_kind_batch
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires actual packaged onedir WHD-Engine.exe")
+    profile = tmp_path / "20件五類盒門封頭尾 DPAPI"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    installation = "twenty-five-physical-classes"
+    load_installation_key(installation, initialize=True)
+    original, _, _, _resource_root, trusted_sources, original_dxf = (
+        _empty_vault_endcap_five_kind_batch(tmp_path, count=20)
+    )
+    kinds = {row["part"]["kind"] for row in original["items"]}
+    assert kinds == {
+        "door", "indicator_small_door", "indicator_box",
+        "end_cap_head", "end_cap_tail",
+    }
+    store = tmp_path / "W06 真實20件 持久工作狀態"
+    destination = tmp_path / "W04 真實20件 製造輸出"
+    store.mkdir()
+    destination.mkdir()
+    engine_sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation, store_root=store, output_dir=destination,
+        source_documents=trusted_sources, expected_engine_sha256=engine_sha,
+    )
+
+    def run(operation, request, label, *, success=True):
+        wire = tmp_path / f"{label}.json"
+        response_path = tmp_path / f"{label}-response.json"
+        wire.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+        process = subprocess.run([
+            str(exe), "_private_installed", operation,
+            "--installation-id", installation,
+            "--request", str(wire), "--response", str(response_path),
+        ], cwd=tmp_path, capture_output=True, text=True, timeout=240)
+        response = (
+            json.loads(response_path.read_text(encoding="utf-8"))
+            if response_path.is_file() else None
+        )
+        if success:
+            assert process.returncode == 0, (process.stderr[-1400:], response)
+            assert response is not None and response["status"] == "success"
+        else:
+            assert process.returncode != 0, response
+            assert response is not None and response["status"] == "failed"
+        return response
+
+    authorize_private_job(installation, original, engine_sha256=engine_sha)
+    prepared = run("prepare", original, "20件五類-Prepare")
+    assert len(prepared["items"]) == 20
+    assert len({p["physical_part_id"] for p in prepared["items"]}) == 20
+    for source_part, receipt in zip(original["items"], prepared["items"]):
+        if source_part["part"]["kind"] in (
+            "indicator_box", "end_cap_head", "end_cap_tail",
+        ):
+            assert receipt["target_frames"][0]["allowed_feature_types"] == []
+    export = _export_request_from_prepared(original, prepared)
+    assert all(not row["features"] for row in export["items"])
+    export["output"]["directory"] = str(destination)
+    export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(installation, export, engine_sha256=engine_sha)
+    result = run("export", export, "20件五類-Export")
+    assert result["manufacturing_verified"] is False
+    assert len(result["items"]) == 20
+    output_items = {
+        row["physical_part_id"]: Path(row["path"]) for row in result["items"]
+    }
+    assert set(output_items) == {
+        row["physical_part_id"] for row in prepared["items"]
+    }
+    for physical_id, path in output_items.items():
+        assert path.is_file() and path.parent == destination
+        drawing = ezdxf.readfile(path)
+        assert any(entity.dxf.layer == "CUTTING" for entity in drawing.modelspace()), physical_id
+        assert drawing.modelspace().query('LINE[layer=="BEND"]'), physical_id
+    before = {
+        path: (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in output_items.values()
+    }
+    retry = deepcopy(export)
+    retry["request_id"] = "five-kind-delivery-replay"
+    assert compute_wire_request_digest(retry) == export["request_digest"]
+    assert run("export", retry, "20件五類-重啟重送") == result
+    assert {
+        path: (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in output_items.values()
+    } == before
+    original_dxf.write_bytes(original_dxf.read_bytes() + b"\\nsource stale")
+    denied = run("export", retry, "20件五類-原圖竄改", success=False)
+    assert denied["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
+    assert {
+        path: (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in output_items.values()
+    } == before
