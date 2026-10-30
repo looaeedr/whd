@@ -22,7 +22,7 @@ from integration_cli.worker_key_custody import (
     _store_root, _check_existing, _check_ancestors, load_installation_key,
 )
 from integration_cli.private_worker_dispatch import TrustedWorkerExecution
-from integration_cli.job_identity_ledger import _identity, _json
+from integration_cli.job_identity_ledger import _identity, _json, _unsafe_windows_path
 
 _FILE = "trusted_sources_v1.json"
 _PREFIX = b"WHD-W06-TRUSTED-INSTALL-CONTEXT-v1\x00"
@@ -33,7 +33,7 @@ def _deny(message="trusted installed Worker context unavailable"):
 
 
 def _trusted_dir(value: Path) -> Path:
-    if not isinstance(value, Path) or not value.is_absolute():
+    if not isinstance(value, Path) or not value.is_absolute() or _unsafe_windows_path(value):
         _deny()
     _check_ancestors(value)
     if not value.is_dir():
@@ -42,11 +42,37 @@ def _trusted_dir(value: Path) -> Path:
 
 
 def _trusted_file(value: Path) -> Path:
-    if not isinstance(value, Path) or not value.is_absolute():
+    if not isinstance(value, Path) or not value.is_absolute() or _unsafe_windows_path(value):
         _deny()
     _check_ancestors(value.parent)
     _check_existing(value, directory=False)
     return value
+
+
+def _assert_separate_custody(
+    store: Path, output: Path, source_documents: Mapping[str, Path],
+) -> None:
+    """Never provision customer originals inside a Worker-writable tree.
+
+    Durable DXF commits write into output, while SQLite/journals write into
+    store.  An overlapping tree (including a source file *under* either)
+    is not a safe installation authority even if its path is HMAC sealed.
+    Directory reparse aliases are refused by the trusted path readers first.
+    """
+    try:
+        store_real = store.resolve(strict=True)
+        output_real = output.resolve(strict=True)
+        if (store_real == output_real or store_real in output_real.parents
+                or output_real in store_real.parents):
+            _deny("Worker state and customer output locations overlap")
+        for original in source_documents.values():
+            source_real = original.resolve(strict=True)
+            if output_real in source_real.parents or store_real in source_real.parents:
+                _deny("original source DXF is inside a Worker writable directory")
+    except OSError as exc:
+        raise PrepareEvidenceError(
+            "WHD_JOB_STORE_UNAVAILABLE", "installed path custody cannot be verified",
+        ) from exc
 
 
 def _signed_payload(key: bytes, payload: dict) -> str:
@@ -76,12 +102,13 @@ def provision_private_installation(
     for item, src in source_documents.items():
         if not isinstance(item, str) or not item or len(item) > 128:
             _deny()
-        mapping[item] = str(_trusted_file(src))
+        mapping[item] = _trusted_file(src)
+    _assert_separate_custody(store, output, mapping)
     payload = {
         "schema": "whd-private-install-custody-v1",
         "store_root": str(store),
         "output_dir": str(output),
-        "source_documents": mapping,
+        "source_documents": {item: str(path) for item, path in mapping.items()},
         "engine_sha256": expected_engine_sha256,
     }
     record = {"payload": payload, "hmac": _signed_payload(key, payload)}
@@ -120,12 +147,16 @@ def load_private_execution(installation_id: str, *, engine_sha256: str) -> Trust
         sources = data["source_documents"]
         if not isinstance(sources, dict) or not sources:
             _deny()
+        store = _trusted_dir(Path(data["store_root"]))
+        output = _trusted_dir(Path(data["output_dir"]))
+        mapping = {item: _trusted_file(Path(path)) for item, path in sources.items()}
+        _assert_separate_custody(store, output, mapping)
         return TrustedWorkerExecution(
             resource_root=(Path(sys._MEIPASS) if getattr(sys, "frozen", False)
                            else Path(__file__).resolve().parents[1]),
-            store_root=_trusted_dir(Path(data["store_root"])),
-            output_dir=_trusted_dir(Path(data["output_dir"])),
-            source_documents={item: _trusted_file(Path(path)) for item, path in sources.items()},
+            store_root=store,
+            output_dir=output,
+            source_documents=mapping,
             worker_key=key,
             engine_sha256=engine_sha256,
         )

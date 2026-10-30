@@ -442,3 +442,62 @@ def test_packaged_engine_twenty_mixed_door_small_door_dxf_and_immutable_replay(
     denied = run("export", replay, "混合來源變更", must_succeed=False)
     assert denied is None or denied["status"] != "success"
     assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == original_outputs
+
+
+@pytest.mark.skipif(not WINDOWS, reason="real Windows DPAPI and filesystem required")
+@pytest.mark.parametrize("collision", [
+    "same_store_output", "store_inside_output", "output_inside_store",
+    "source_inside_output", "source_inside_store",
+])
+def test_private_installer_never_seals_originals_inside_worker_writable_trees(
+    tmp_path, monkeypatch, collision,
+):
+    """Unsafe custody is denied BEFORE any signed installation mapping exists."""
+    profile = tmp_path / "DPAPI 隔離設定"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    installation = "private-custody-" + collision
+    load_installation_key(installation, initialize=True)
+    store, output = tmp_path / "state", tmp_path / "customer-output"
+    store.mkdir()
+    output.mkdir()
+    if collision == "same_store_output":
+        output = store
+    elif collision == "store_inside_output":
+        store = output / "state"
+        store.mkdir()
+    elif collision == "output_inside_store":
+        output = store / "completed"
+        output.mkdir()
+    source = tmp_path / "customer-original.dxf"
+    if collision == "source_inside_output":
+        source = output / "customer-original.dxf"
+    elif collision == "source_inside_store":
+        source = store / "customer-original.dxf"
+    source.write_bytes(b"keep-original-source-bytes")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        provision_private_installation(
+            installation, store_root=store, output_dir=output,
+            source_documents={"door-1": source}, expected_engine_sha256="a" * 64,
+        )
+    assert exc.value.code == "WHD_JOB_STORE_UNAVAILABLE"
+    assert source.read_bytes() == b"keep-original-source-bytes"
+    assert not list(profile.rglob("trusted_sources_v1.json"))
+
+
+@pytest.mark.skipif(not WINDOWS, reason="requires genuine Windows path namespace")
+def test_private_installer_rejects_unc_device_namespace_before_filesystem_probe():
+    """The private installer must share W-06's UNC/device fail-closed policy."""
+    from integration_cli.private_worker_installation import _trusted_dir, _trusted_file
+
+    for raw in (
+        r"\\server\share\untrusted", r"\\?\C:\untrusted",
+        r"\\.\C:\untrusted",
+    ):
+        candidate = Path(raw)
+        with pytest.raises(PrepareEvidenceError) as directory:
+            _trusted_dir(candidate)
+        assert directory.value.code == "WHD_JOB_STORE_UNAVAILABLE"
+        with pytest.raises(PrepareEvidenceError) as original:
+            _trusted_file(candidate)
+        assert original.value.code == "WHD_JOB_STORE_UNAVAILABLE"
