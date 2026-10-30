@@ -154,6 +154,39 @@ class AuthorizedExeWorkflowContractTest(unittest.TestCase):
                 self.assertIn(expected, self.official)
         self.assertNotIn("--generate-notes", self.official)
 
+    def test_release_cannot_publish_english_commit_dump_or_verbose_notes(self):
+        for required in (
+            "RELEASE_NOTES_RAW_COMMIT_DUMP_FORBIDDEN",
+            "RELEASE_NOTES_NOT_CONCISE",
+            "wc -m < WHD_Release_Notes_zh-TW.md",
+            'contains("逐項變更") | not',
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, self.official)
+        for required in (
+            "ZH_TW_RELEASE_NOTES_MUST_BE_CONCISE_NOT_RAW_COMMITS",
+            "$notes.Length -gt 2000",
+            "$notes.Contains('## 逐項變更')",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, self.windows)
+
+    def test_previous_release_fix_does_not_publish_new_x_or_replace_exe(self):
+        required = (
+            "backfill-20261030-zh-tw:",
+            "contains(github.event.head_commit.message, '[backfill-20261030-zh-tw]')",
+            "TARGET_TAG: v2026.10.30-x-9b7519164dd0",
+            "TARGET_SHA: 9b7519164dd08916deff42f3ff0790707f10d371",
+            "python -m tools.repack_existing_release_notes",
+            "--notes docs/releases/WHD_v2026.10.30_更新紀錄_精簡.md",
+            'gh release upload "$TARGET_TAG"',
+            'gh release edit "$TARGET_TAG"',
+            "(cd readback && sha256sum --check SHA256.txt)",
+        )
+        for token in required:
+            with self.subTest(token=token):
+                self.assertIn(token, self.official)
+
     def test_windows_package_is_current_x_sha_not_old_pinned_version(self):
         for expected in (
             "workflow_call:", "pull_request:", "PRODUCT_SHA:",
