@@ -127,6 +127,68 @@ def test_actual_packaged_engine_private_prepare_and_restart(tmp_path, monkeypatc
     assert not (tmp_path / "無授權.json").exists()
 
 
+
+@pytest.mark.skipif(not WINDOWS, reason="requires actual Windows private Engine.exe")
+def test_actual_packaged_engine_prepares_and_exports_real_source_dxf(tmp_path, monkeypatch):
+    """Real EXE -> W-03 -> W-06 -> W-04 Save/Reload -> durable DXF replay."""
+    import ezdxf
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2379_trusted_door_finalscene_batch import _real_batch
+    from test_issue2380_private_worker_dispatch import _export_from_real_sources
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires built actual onedir WHD-Engine.exe")
+    profile = tmp_path / "DPAPI local 工作"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    name = "real-trusted-exe-export"
+    key = load_installation_key(name, initialize=True)
+    batch = _real_batch(tmp_path, count=1)
+    original = batch[0]
+    source_documents = batch[4]
+    store, output = tmp_path / "worker-ledger", tmp_path / "private-dxf-output"
+    store.mkdir()
+    output.mkdir()
+    exe_hash = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        name, store_root=store, output_dir=output,
+        source_documents=source_documents, expected_engine_sha256=exe_hash,
+    )
+
+    def invoke(operation, request, suffix):
+        wire, reply = tmp_path / f"{suffix}-wire.json", tmp_path / f"{suffix}-reply.json"
+        wire.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+        result = subprocess.run([
+            str(exe), "_private_installed", operation,
+            "--installation-id", name, "--request", str(wire), "--response", str(reply),
+        ], cwd=tmp_path, capture_output=True, text=True, timeout=120)
+        if reply.is_file():
+            body = json.loads(reply.read_text(encoding="utf-8"))
+        else:
+            body = None
+        assert result.returncode == 0, (result.stderr[-1300:], body)
+        return body
+
+    prepared = invoke("prepare", original, "first-prepare")
+    assert prepared["status"] == "success"
+    export = _export_from_real_sources(original, prepared, batch)
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    finished = invoke("export", export, "first-export")
+    assert finished["status"] == "success", finished
+    assert finished["manufacturing_verified"] is False
+    finals = {Path(x["path"]) for x in finished["items"]}
+    assert len(finals) == 1
+    assert all(p.is_file() and p.parent == output for p in finals)
+    assert all(len(ezdxf.readfile(p).modelspace().query("CIRCLE")) > 0 for p in finals)
+    immutable = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in finals}
+    retried = dict(export)
+    retried["request_id"] = "new-transport-only-replay"
+    assert invoke("export", retried, "restarted-export") == finished
+    assert immutable == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in finals}
+    assert load_installation_key(name) == key
+
 def test_source_only_worker_private_command_denied(tmp_path):
     from integration_cli.cadsplit_worker import main
     assert main(["_private_installed", "prepare", "--installation-id", "not-provisioned"]) == 4
