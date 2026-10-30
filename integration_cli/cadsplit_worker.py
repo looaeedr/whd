@@ -322,8 +322,45 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _private_installed_main(argv: list[str]) -> int:
+    """Undocumented, preprovisioned Windows EXE-only private Engine entry.
+
+    An untrusted client cannot supply source paths, store, resource root,
+    output folder or HMAC secret. This path is not a public manufacturing
+    capability and refuses all source-only or non-Windows invocations.
+    """
+    if not getattr(sys, "frozen", False) or sys.platform != "win32":
+        print("WHD_JOB_STORE_UNAVAILABLE: private packaged Windows Worker required", file=sys.stderr)
+        return 4
+    parser = argparse.ArgumentParser(prog="WHD-Engine private installed Worker")
+    parser.add_argument("operation", choices=("prepare", "export"))
+    parser.add_argument("--installation-id", required=True)
+    parser.add_argument("--request", type=Path, required=True)
+    parser.add_argument("--response", type=Path, required=True)
+    args = parser.parse_args(argv)
+    try:
+        commit, build_id, actual_exe_hash = _identity()
+        from integration_cli.private_worker_installation import load_private_execution
+        context = load_private_execution(args.installation_id, engine_sha256=actual_exe_hash)
+        if args.response.exists() or args.response.is_symlink():
+            raise WorkerFailure("WHD_RESPONSE_EXISTS", "private response already exists", exit_code=4)
+        result, status = _execute_request(
+            args.operation, args.request, commit, build_id, trusted_context=context,
+        )
+        _write_response(args.response, result)
+        return status
+    except (WorkerFailure, OSError, ValueError) as exc:
+        code = exc.code if isinstance(exc, WorkerFailure) else "WHD_IO_FAILURE"
+        print(f"{code}: private installed Worker refused request", file=sys.stderr)
+        return exc.exit_code if isinstance(exc, WorkerFailure) else 4
+
+
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
+    actual = list(sys.argv[1:] if argv is None else argv)
+    # Deliberately absent from the three documented public commands.
+    if actual and actual[0] == "_private_installed":
+        return _private_installed_main(actual[1:])
+    args = _parser().parse_args(actual)
     if args.response.exists() or args.response.is_symlink():
         print("WHD_RESPONSE_EXISTS: refusing to overwrite a response", file=sys.stderr)
         return 4
