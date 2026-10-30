@@ -51,6 +51,20 @@ def pad_preview_source_fingerprint(snapshot, assembly_parts) -> str:
         h.update(repr(getattr(part,"rotation",None)).encode("utf-8"))
         h.update(repr(tuple(getattr(part,"offset",()) or ())).encode("utf-8"))
         h.update(sha256(material.wkb).digest())
+        # PAD mating verifies the ACTUAL Base CUTTING scene, not just the
+        # already-resolved material polygon or metadata owner counts.
+        # A removed/shifted 6x6 locator cut can leave material.wkb and
+        # metadata unchanged; a cache hit must never bypass that check.
+        scene=getattr(data,"scene",None)
+        if scene is None:
+            h.update(b"PAD_BASE_CUTTING_SCENE_MISSING")
+        else:
+            cutting=tuple(
+                primitive for primitive in getattr(scene,"primitives",())
+                if str(getattr(primitive,"layer","")).upper()=="CUTTING"
+            )
+            h.update(b"PAD_BASE_CUTTING_SCENE_PRESENT")
+            h.update(repr(cutting).encode("utf-8"))
         h.update(repr(tuple(getattr(data,"fold_guides",()) or ())).encode("utf-8"))
         h.update(repr(getattr(data,"unfolded_topology",None)).encode("utf-8"))
         h.update(repr(getattr(data,"metadata",None)).encode("utf-8"))
