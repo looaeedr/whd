@@ -689,3 +689,91 @@ def test_private_durable_source_export_requires_preexisting_worker_output_store(
         _save(batch, nonexistent, durable_ledger=ledger)
     assert not nonexistent.exists()
     assert not list(store.glob("*.dxf"))
+
+
+def test_twenty_unperforated_door_and_small_door_from_empty_source_real_finalscene(
+    tmp_path,
+):
+    """WHD-authored 20 physical DXFs, genuine independent Save->Reload."""
+    from tests.test_issue2378_prepare_batch import (
+        _twenty_mixed_door_small_door_prepare, _prepare,
+        _export_request_from_prepared,
+    )
+    from integration_cli.request_canonical import compute_wire_request_digest
+
+    root, _shared, original = _twenty_mixed_door_small_door_prepare(tmp_path)
+    source = tmp_path / "CADSplit 真正無孔原圖.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    assert len(doc.modelspace()) == 0
+    doc.saveas(source)
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for row in original["items"]:
+        row["source_document_sha256"] = source_sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    assert all(not row["features"] for row in export["items"])
+    sources = {row["item_id"]: source for row in original["items"]}
+    output = tmp_path / "20 件 無孔 WHD 真DXF"
+    written = _save(
+        (original, receipt, export, root, sources, source), output,
+    )
+    assert len(written) == 20
+    assert set(written) == {p["physical_part_id"] for p in receipt["items"]}
+    assert {p["part"]["kind"] for p in original["items"]} == {
+        "door", "indicator_small_door",
+    }
+    for actual in written.values():
+        saved = ezdxf.readfile(actual)
+        assert saved.modelspace().query('LINE[layer=="BEND"]')
+        assert any(entity.dxf.layer == "CUTTING" for entity in saved.modelspace())
+
+
+@pytest.mark.parametrize("missing_kind", ["door", "indicator_small_door"])
+def test_missing_original_features_never_turns_source_geometry_into_hole_free_dxf(
+    tmp_path, missing_kind,
+):
+    from tests.test_issue2378_prepare_batch import (
+        _twenty_mixed_door_small_door_prepare, _prepare,
+        _export_request_from_prepared,
+    )
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from tests.test_issue2379_wire_feature_preflight import _circle
+
+    root, _, original = _twenty_mixed_door_small_door_prepare(tmp_path)
+    source = tmp_path / "CADSplit 有圖元但未申報.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    doc.modelspace().add_circle((12, 12), 3, dxfattribs={"layer": "CUTTING"})
+    doc.saveas(source)
+    sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for part in original["items"]:
+        part["source_document_sha256"] = sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    # Mixed all-or-nothing: even a *single* zero-feature item with a
+    # source entity must reject the whole customer manufacturing batch.
+    target_idx = 0 if missing_kind == "door" else 1
+    assert original["items"][target_idx]["part"]["kind"] == missing_kind
+    for i, row in enumerate(export["items"]):
+        if i != target_idx:
+            frame = receipt["items"][i]["target_frames"][0]
+            f = _circle(frame)
+            f["center_mm"] = [12, 12]
+            f["radius_mm"] = 3
+            f["source_transform"]["source_entity_refs"] = [
+                next(iter(doc.modelspace())).dxf.handle,
+            ]
+            f["source_transform"]["target_dimensions_mm"] = dict(
+                frame["finished_face_dimensions_mm"],
+            )
+            row["features"] = [f]
+    export["request_digest"] = compute_wire_request_digest(export)
+    output = tmp_path / "不可產生任何零件"
+    source_docs = {part["item_id"]: source for part in original["items"]}
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _save((original, receipt, export, root, source_docs, source), output)
+    assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED"
+    assert not list(output.glob("*.dxf")) if output.exists() else True
