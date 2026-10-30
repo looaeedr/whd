@@ -35,7 +35,7 @@ class ZhTWReleaseNotesTest(unittest.TestCase):
         )
         for token in ("正式版更新重點", "本次主要更新", "門板開孔與幾何",
                       "多份 DXF 的資料保護", "小門與外部工具串接",
-                      "Windows 交付", "尚非全面開放", self.TAG, self.SHA,
+                      "Windows 交付", "並非全面開放", self.TAG, self.SHA,
                       self.PREV, f"WHD_Windows_x64_{self.TAG}.zip"):
             with self.subTest(token=token):
                 self.assertIn(token, notes)
