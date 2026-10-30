@@ -1776,3 +1776,128 @@ def test_packaged_public_v11_prepare_export_requires_sealed_job_and_certifies_re
     assert stale.returncode == 4
     assert rejected["status"] == "failed"
     assert rejected["manufacturing_verified"] is False
+
+
+@pytest.mark.skipif(not WINDOWS, reason="actual Windows packaged public Engine EXE + DPAPI required")
+def test_packaged_public_v11_twenty_mixed_five_p0_kinds_exact_job_atomic_dxf(
+    tmp_path, monkeypatch,
+):
+    """Gate A: ONE public Prepare + ONE public Export, 20 genuine mixed P0 DXFs.
+
+    This reuses the *source-attested, empty original* five-kind fixture owned
+    by W-03/W-04, not invented target Frame/Feature coordinates. A size-only
+    indicator box/endcap never gains external Feature authorization.
+    """
+    from copy import deepcopy
+    import ezdxf
+    from jsonschema import Draft202012Validator
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2378_prepare_batch import _export_request_from_prepared
+    from test_issue2379_trusted_door_finalscene_batch import (
+        _empty_vault_endcap_five_kind_batch,
+    )
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires actual onedir WHD-Engine.exe")
+    profile = tmp_path / "公開 twenty mixed DPAPI"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    original, _, _, _, originals, source = _empty_vault_endcap_five_kind_batch(
+        tmp_path, count=20,
+    )
+    # W-03 physical IDs and Frame are bound to this original client ID.
+    installation = original["client_installation_id"]
+    load_installation_key(installation, initialize=True)
+    store, output = tmp_path / "durable state", tmp_path / "中文 五類20片 正式圖"
+    store.mkdir()
+    output.mkdir()
+    exe_sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation, store_root=store, output_dir=output,
+        source_documents=originals, expected_engine_sha256=exe_sha,
+    )
+    validator = Draft202012Validator(json.loads(
+        (Path(__file__).resolve().parents[1] / "integration_cli" / "schemas" /
+         "response_v1_1.schema.json").read_text(encoding="utf-8")
+    ))
+
+    def public_call(operation, body, label):
+        wire, response = tmp_path / (label + "-wire.json"), tmp_path / (label + "-response.json")
+        wire.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
+        process = subprocess.run(
+            [str(exe), operation, "--request", str(wire), "--response", str(response)],
+            cwd=tmp_path, capture_output=True, text=True, timeout=300,
+        )
+        value = json.loads(response.read_text(encoding="utf-8")) if response.is_file() else None
+        assert value is not None, process.stderr[-1100:]
+        validator.validate(value)
+        return process, value
+
+    kinds = {row["part"]["kind"] for row in original["items"]}
+    assert kinds == {
+        "door", "indicator_small_door", "indicator_box",
+        "end_cap_head", "end_cap_tail",
+    }
+    assert len(original["items"]) == 20
+    authorize_private_job(installation, original, engine_sha256=exe_sha)
+    proc, prepared = public_call("prepare", original, "public-20-mixed-prepare")
+    assert proc.returncode == 0, (proc.stderr[-1100:], prepared.get("diagnostics"))
+    assert prepared["status"] == "success" and len(prepared["items"]) == 20
+    assert len({row["physical_part_id"] for row in prepared["items"]}) == 20
+    for item, row in zip(original["items"], prepared["items"]):
+        if item["part"]["kind"] in ("indicator_box", "end_cap_head", "end_cap_tail"):
+            assert row["target_frames"][0]["allowed_feature_types"] == []
+
+    export = _export_request_from_prepared(original, prepared)
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    assert all(row["features"] == [] for row in export["items"])
+    reject, response = public_call("export", export, "no-export-approval")
+    assert reject.returncode == 4 and response["status"] == "failed"
+    assert list(output.glob("*.dxf")) == []
+    authorize_private_job(installation, export, engine_sha256=exe_sha)
+    proc, manufactured = public_call("export", export, "public-20-mixed-export")
+    assert proc.returncode == 0, (proc.stderr[-1100:], manufactured.get("diagnostics"))
+    assert manufactured["status"] == "success"
+    assert manufactured["manufacturing_verified"] is True
+    assert manufactured["transaction_mode"] == "all_or_nothing"
+    assert len(manufactured["items"]) == 20
+    rows = manufactured["items"]
+    assert {row["physical_part_id"] for row in rows} == {
+        row["physical_part_id"] for row in prepared["items"]
+    }
+    by_item = {x["item_id"]: x["part"]["kind"] for x in original["items"]}
+    files = {}
+    for row in rows:
+        assert row["status"] == "committed"
+        assert row["manufacturing_verified"] is True
+        physical, = row["parts"]
+        assert physical["part_kind"] == by_item[row["item_id"]]
+        assert physical["save_reload_verified"] is True
+        assert physical["manufacturing_verified"] is True
+        path = Path(physical["output_path"])
+        assert path.parent == output and path.is_file()
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == physical["output_sha256"]
+        doc = ezdxf.readfile(path)
+        assert any(e.dxf.layer == "CUTTING" for e in doc.modelspace())
+        assert doc.modelspace().query('LINE[layer=="BEND"]')
+        files[path] = (path.read_bytes(), path.stat().st_mtime_ns)
+    assert len(files) == 20 and len(list(output.glob("*.dxf"))) == 20
+    replay = deepcopy(export)
+    replay["request_id"] = "public-twenty-replayed-transport"
+    assert compute_wire_request_digest(replay) == export["request_digest"]
+    again, repeated = public_call("export", replay, "public-20-mixed-replay")
+    assert again.returncode == 0, (again.stderr[-1100:], repeated.get("diagnostics"))
+    # request_id tracks transport; immutable DXF manifest must stay identical.
+    for body in (manufactured, repeated):
+        body.pop("request_id", None)
+    assert repeated == manufactured
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files} == files
+
+    # Changed physical source cannot authorize a new delivery or rewrite.
+    source.write_bytes(source.read_bytes() + b"\\nsource-changed-after-commit")
+    failed, stale = public_call("export", replay, "public-20-mixed-source-stale")
+    assert failed.returncode == 4 and stale["status"] == "failed"
+    assert stale["manufacturing_verified"] is False
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files} == files
