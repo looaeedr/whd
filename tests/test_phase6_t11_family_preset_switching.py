@@ -121,10 +121,13 @@ def test_fold_designer_known_models_reset_presets_while_custom_carries_current_v
             800.0, 1600.0, 350.0, 2.0, 29.0
         )
 
-        designer._phase6_input_snapshot.update({"w": 820.0, "h": 1700.0, "d": 360.0, "t": 2.5, "fw": 31.0})
-        designer._settings_values.update({"w": 820.0, "h": 1700.0, "d": 360.0, "t": 2.5, "fw": 31.0})
-        designer.state.w = 820; designer.state.h = 1700; designer.state.d = 360
-        designer.v_w.set("820"); designer.v_h.set("1700"); designer.v_d.set("360")
+        # Use the real Settings transaction instead of injecting mismatched
+        # Fold-editor / snapshot values. The user entered frame width 31.
+        entered = {"w": 820.0, "h": 1700.0, "d": 360.0, "t": 2.5, "fw": 31.0}
+        assert designer.apply_external_settings(entered) == entered
+        _pump(root)
+        assert tuple(float(designer._phase6_input_snapshot[k])
+                     for k in ("w", "h", "d", "t", "fw")) == tuple(entered.values())
 
         designer.baseline_model_var.set("自訂"); _pump(root)
         assert tuple(float(designer._phase6_input_snapshot[k]) for k in ("w", "h", "d", "t", "fw")) == (
