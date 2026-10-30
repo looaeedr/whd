@@ -821,3 +821,51 @@ def _indicator_box_request_in_existing(root, tmp_path):
     del part["frame_edges"]
     req["request_digest"] = compute_wire_request_digest(req)
     return root, shared / "盒子.dxf", req
+
+
+@pytest.mark.parametrize("part_kind", ["indicator_box", "end_cap_head", "end_cap_tail"])
+def test_featureless_endcap_and_box_export_recheck_authenticates_original_source_bytes(
+    tmp_path, part_kind,
+):
+    """No external Features is not permission to ignore a changed source DXF."""
+    import hashlib
+    import ezdxf
+
+    if part_kind == "indicator_box":
+        root, _, original = _indicator_box_request(tmp_path)
+    else:
+        root, _, original = _vault_endcap_request(tmp_path, kind=part_kind)
+    source = tmp_path / f"CADSplit-original-{part_kind}.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    doc.modelspace().add_circle((12, 12), 2, dxfattribs={"layer": "CUTTING"})
+    doc.saveas(source)
+    original["items"][0]["source_document_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    source_documents = {original["items"][0]["item_id"]: source}
+    _recheck(original, receipt, export, root, source_documents=source_documents)
+    # A featureless source changes after Prepare but before Export.
+    doc.modelspace().add_circle((45, 45), 3, dxfattribs={"layer": "CUTTING"})
+    doc.saveas(source)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _recheck(original, receipt, export, root, source_documents=source_documents)
+    assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
+    assert not (tmp_path / "worker-output-not-created").exists()
+
+
+@pytest.mark.parametrize("part_kind", ["end_cap_head", "indicator_box"])
+def test_featureless_export_recheck_missing_original_source_is_not_success(
+    tmp_path, part_kind,
+):
+    if part_kind == "indicator_box":
+        root, _, request = _indicator_box_request(tmp_path)
+    else:
+        root, _, request = _vault_endcap_request(tmp_path, kind=part_kind)
+    receipt = _prepare(request, root)
+    export = _export_request_from_prepared(request, receipt)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _recheck(request, receipt, export, root, source_documents={})
+    assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
+    assert not (tmp_path / "worker-output-not-created").exists()

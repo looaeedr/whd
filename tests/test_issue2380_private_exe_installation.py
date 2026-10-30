@@ -571,6 +571,13 @@ def test_packaged_engine_indicator_box_size_only_prepare_and_export_denial(
     assert denied is None or denied["status"] != "success"
     assert not list(output.glob("*.dxf"))
     assert original_dxf.is_file()
+    # A new source SHA cannot be smuggled under the original no-feature job.
+    original_dxf.write_bytes(original_dxf.read_bytes() + b"\\nchanged-after-prepare")
+    code, stale = invoke("export", export, "box-after-original-source-mutated")
+    assert code != 0
+    assert stale is not None
+    assert stale["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
+    assert not list(output.glob("*.dxf"))
 
 
 @pytest.mark.skipif(not WINDOWS, reason="true Windows packaged Engine.exe and DPAPI required")
@@ -641,3 +648,9 @@ def test_packaged_engine_vault_endcap_size_only_prepare_and_export_denial(
     assert refused is None or refused["status"] != "success"
     assert not list(output.glob("*.dxf"))
     assert original_dxf.is_file()
+    original_dxf.write_bytes(original_dxf.read_bytes() + b"\\nsource-changed-after-EndCap-prepare")
+    status, stale = run("export", export, "endcap-export-source-stale")
+    assert status != 0
+    assert stale is not None
+    assert stale["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
+    assert not list(output.glob("*.dxf"))
