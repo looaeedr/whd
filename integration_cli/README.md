@@ -516,6 +516,33 @@ enable W-04 20-kind mixed manufacturing, per-part output, a durable W-06 Worker,
 public W-01 commands or a Windows EXE.
 
 
+## W-06 private Windows HMAC key custody (#2380)
+
+The existing W-03 `prepare_token` uses HMAC, but the approved trusted
+Worker installation must own its key; neither CADSplit JSON nor the EXE,
+`config.ini`, GitHub artifacts or customer DXFs may contain that plaintext.
+
+`integration_cli.worker_key_custody.load_installation_key` now supplies the
+**private** Windows-specific custody implementation. On trusted installation
+bootstrap only, `initialize=True` generates a random 32-byte secret and
+encrypts it with **current-user Windows DPAPI** (`CryptProtectData`, UI
+disabled). The encrypted record is stored under that user's
+`%LOCALAPPDATA%/WHD/Engine/install-<installation-id-SHA256>/` with
+exclusive creation; it is never baked into PyInstaller output, sent to the
+external client or written into WHD user config. Later processes use
+`initialize=False` to read the same authenticated key without rotation.
+Tampered, missing, cross-installation, hard-linked or reparse-point custody
+fails closed as `WHD_PREPARE_KEY_UNAVAILABLE`. Windows CI calls the actual
+DPAPI APIs and verifies that a separately started Python process obtains
+the same HMAC result; it does not use a crypto mock or print secret bytes.
+
+This is **private custody only**: it does not yet assign a trusted Worker
+installer/identity lifecycle, integrate persisted W-03 prepare receipts,
+claim the public CLI, support a service account or a remote UNC store, or
+make W-06 keys recoverable across Windows user-profile changes. Normal
+`cadsplit_worker` public `prepare/export` stays disabled; no machine
+certification, Gate A, or `/推推` is implied.
+
 ## W-05 private Windows Engine onedir candidate (#2381)
 
 The real Windows x64 **separate** `WHD-Engine.exe` candidate is built and
