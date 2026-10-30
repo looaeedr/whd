@@ -4,8 +4,9 @@
 The key is not a license key, a client JSON parameter or a build artifact.
 It is generated only at first explicit trusted Worker initialization and
 stored encrypted outside the onedir EXE/config.ini/customer directory.
-Missing/corrupt existing custody never rekeys on a normal read: previously
-issued prepare tokens must not silently change trust identity.
+Missing/corrupt existing custody never rekeys, even if a later caller
+erroneously repeats installation initialization: previously issued prepare
+tokens must not silently change trust identity.
 
 This owner is PRIVATE. Public cadsplit_worker prepare/export remain disabled
 until authenticated job/prepare/export custody has separate Gate A evidence.
@@ -57,7 +58,7 @@ def _check_ancestors(path: Path) -> None:
         _check_existing(ancestor, directory=True)
 
 
-def _store_root(installation_id: str, *, initialize: bool) -> Path:
+def _store_root(installation_id: str, *, initialize: bool) -> tuple[Path, bool]:
     if sys.platform != "win32":
         raise _fail("Windows DPAPI is required for durable Worker key custody")
     if not isinstance(installation_id, str) or not _ID.fullmatch(installation_id):
@@ -71,6 +72,7 @@ def _store_root(installation_id: str, *, initialize: bool) -> Path:
     _check_ancestors(root)
     # Opaque directory identifier, never a user-controlled filesystem path.
     identity = hashlib.sha256(installation_id.encode("ascii")).hexdigest()
+    created_installation = False
     for label in ("WHD", "Engine", "install-" + identity):
         root = root / label
         if not root.exists() and not root.is_symlink():
@@ -78,12 +80,17 @@ def _store_root(installation_id: str, *, initialize: bool) -> Path:
                 raise _fail("Worker installation key was never initialized")
             try:
                 root.mkdir()
+                if label == "install-" + identity:
+                    # Only the one process that first creates the installation
+                    # directory may create its encrypted key. An existing
+                    # installation missing its key must NEVER be rekeyed.
+                    created_installation = True
             except FileExistsError:
-                pass
+                pass  # Concurrent bootstrap must not win by regenerating.
             except OSError as exc:
                 raise _fail("Cannot create private Worker key directory") from exc
         _check_existing(root, directory=True)
-    return root
+    return root, created_installation
 
 
 class _Blob(ctypes.Structure):
@@ -145,12 +152,15 @@ def load_installation_key(installation_id: str, *, initialize: bool = False) -> 
     may not control this flag or installation_id. A valid existing key always
     wins, and missing/tampered records never regenerate on ordinary access.
     """
-    folder = _store_root(installation_id, initialize=initialize)
+    folder, created_installation = _store_root(installation_id, initialize=initialize)
     target = folder / _FILENAME
     entropy = _entropy(installation_id)
     if not target.exists() and not target.is_symlink():
-        if not initialize:
-            raise _fail("Worker installation key was never initialized")
+        if not initialize or not created_installation:
+            # A previously provisioned installation has a stable signing
+            # identity. Losing the ciphertext is a recovery condition, not
+            # permission to silently mint a different HMAC signing key.
+            raise _fail("Worker installation key missing; recovery required")
         # No plaintext copy is ever written to disk or included in the EXE.
         sealed = _dpapi(os.urandom(32), entropy, protect=True)
         try:
