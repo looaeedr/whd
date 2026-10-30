@@ -1004,8 +1004,17 @@ def test_real_original_noncutting_entity_cannot_be_relabelled_as_through_cut(
     from tests.test_issue2378_prepare_batch import _prepare, _export_request_from_prepared
     receipt = _prepare(original, root)
     export = _export_request_from_prepared(original, receipt)
-    for old_item, new_item in zip(old_export["items"], export["items"]):
+    for index, (old_item, new_item) in enumerate(zip(old_export["items"], export["items"])):
+        # A changed original SHA changes the WHD-issued physical identity and
+        # Frame ID. Bind the *same source handles* to the genuinely fresh
+        # signed Frame, or this never reaches the source-layer RED oracle.
+        fresh_frame = receipt["items"][index]["target_frames"][0]
         new_item["features"] = deepcopy(old_item["features"])
+        for feature in new_item["features"]:
+            feature["target_frame_id"] = fresh_frame["frame_id"]
+            feature["source_transform"]["target_dimensions_mm"] = deepcopy(
+                fresh_frame["finished_face_dimensions_mm"]
+            )
     export["request_digest"] = compute_wire_request_digest(export)
     target = tmp_path / f"cannot-cut-{source_kind}-{invalid_layer}"
     target.mkdir()
@@ -1037,6 +1046,11 @@ def test_real_source_case_insensitive_cutting_layer_is_still_supported(tmp_path)
     receipt = _prepare(original, root)
     export = _export_request_from_prepared(original, receipt)
     export["items"][0]["features"] = deepcopy(old_export["items"][0]["features"])
+    fresh_frame = receipt["items"][0]["target_frames"][0]
+    export["items"][0]["features"][0]["target_frame_id"] = fresh_frame["frame_id"]
+    export["items"][0]["features"][0]["source_transform"]["target_dimensions_mm"] = (
+        deepcopy(fresh_frame["finished_face_dimensions_mm"])
+    )
     export["request_digest"] = compute_wire_request_digest(export)
     produced = _save((original, receipt, export, root, sources, source),
                      tmp_path / "case-insensitive-real-cutting")

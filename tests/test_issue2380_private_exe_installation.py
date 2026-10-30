@@ -1135,6 +1135,11 @@ def test_packaged_engine_never_converts_attested_noncutting_source_to_dxf_hole(
     assert proc.returncode == 0 and receipt["status"] == "success", (proc.stderr, receipt)
     export = _export_request_from_prepared(original, receipt)
     export["items"][0]["features"] = deepcopy(old_export["items"][0]["features"])
+    fresh_frame = receipt["items"][0]["target_frames"][0]
+    export["items"][0]["features"][0]["target_frame_id"] = fresh_frame["frame_id"]
+    export["items"][0]["features"][0]["source_transform"]["target_dimensions_mm"] = (
+        deepcopy(fresh_frame["finished_face_dimensions_mm"])
+    )
     export["output"]["directory"] = str(output)
     export["output"]["overwrite"] = True
     export["request_digest"] = compute_wire_request_digest(export)
