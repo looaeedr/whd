@@ -56,8 +56,19 @@ def open_custom_part_creation(parent, *, add_part, on_created):
         except ValueError as exc:
             messagebox.showerror("未新增",str(exc),parent=win)
             return None
+        try:
+            on_created(key)
+        except Exception as exc:
+            # The catalog may already contain the new physical ID. Never
+            # imply that a second click is safe or silently discard the error.
+            messagebox.showerror(
+                "新增板件未完成",
+                f"板件 {key} 已建立，但無法切換或同步畫面：{exc}\n請重新開啟板件檢查。",
+                parent=win,
+            )
+            win.destroy()
+            return None
         win.destroy()
-        on_created(key)
         return key
     frame._custom_apply=apply
     ttk.Button(frame,text="新增",command=apply).grid(row=5,column=1,sticky="e",padx=8,pady=8)
@@ -69,19 +80,42 @@ def open_custom_part_creation(parent, *, add_part, on_created):
 def build_custom_part_editor(parent, *, descriptor, update_part, on_changed, open_holes=None):
     frame=ttk.LabelFrame(parent,text="頂層自訂板件",padding=8)
     values=metadata_fields(frame,descriptor,compact=True)
-    ttk.Label(frame,text="獨立板件：可預覽與輸出 DXF；尚未指定箱體安裝位置。",
-              wraplength=260).grid(
-                  row=5,column=0,columnspan=2,sticky="w",padx=4,pady=(2,3))
+    status=tk.StringVar(
+        master=frame,
+        value="獨立板件：可預覽與輸出 DXF；尚未指定箱體安裝位置。",
+    )
+    ttk.Label(frame,textvariable=status,wraplength=260).grid(
+        row=5,column=0,columnspan=2,sticky="w",padx=4,pady=(2,3))
     def apply():
         try:
             changed=update_part(**{k:v.get() for k,v in values.items()})
         except ValueError as exc:
+            status.set("輸入有誤，設定未套用")
             messagebox.showerror("設定未套用",str(exc),parent=parent)
             return False
+        except Exception as exc:
+            status.set("設定更新失敗")
+            messagebox.showerror("設定更新失敗",str(exc),parent=parent)
+            return False
         if changed:
-            on_changed()
+            try:
+                on_changed()
+            except Exception as exc:
+                # The catalog update may have succeeded before view/live sync.
+                # Report this as a partial operation, not a successful apply.
+                status.set("資料已變更，但畫面／專案同步失敗")
+                messagebox.showerror(
+                    "板件同步失敗",
+                    f"板件資料已變更，但後續同步失敗：{exc}\n請重新開啟板件檢查。",
+                    parent=parent,
+                )
+                return False
+            status.set("設定已套用")
+        else:
+            status.set("設定沒有變更")
         return True
     frame._custom_apply=apply
+    frame._custom_apply_status=status
     ttk.Button(frame,text="套用設定",command=apply).grid(
         row=6,column=1,sticky="e",padx=4,pady=(3,4))
     if open_holes is not None:
