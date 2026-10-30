@@ -568,6 +568,43 @@ store, actual resource paths, engine build identity and DPAPI-sourced key.
 Public `cadsplit_worker` remains disabled until W-03/W-04/W-06 key owner,
 source custody, cancel/progress and W-07 Gate A are complete.
 
+## W-07 Gate A candidate: signed installed PUBLIC v1.1 CLI (#2375 / #2382)
+
+The shipped public executable still exposes precisely three commands:
+`capabilities`, `prepare`, `export`. For backward compatibility,
+source-only execution and unselected public capabilities remain 1.0.0,
+disabled. The Windows onedir EXE can additionally report versioned
+`capabilities --installation-id <trusted-id> --response ...` only for
+a previously HMAC-sealed and DPAPI-verified installation. This does not
+provision anything or grant a new job. Advertised capabilities explicitly
+require an independently installer-approved original job and source custody.
+
+A packaged `prepare --request ... --response ...` or
+`export --request ... --response ...` with a canonical 1.1.0 wire
+request uses its `client_installation_id` to LOOK UP existing trusted
+installation state. It still requires an immutable exact-job HMAC ticket
+created through `authorize_private_job` by the trusted installation
+owner. An unprovisioned or unapproved request fails before producing any
+customer DXF. No client input supplies a Worker key, trusted original-DXF
+path or arbitrary output root.
+
+`public_installed_adapter.execute_public_installed` routes approved jobs
+through the **same** W-03/W-04/W-06 code. Public Prepare returns the actual
+W-03 schema-validated target frame and token; Public Export does not
+promote private `manufacturing_verified=false` by assertion. It rechecks
+a committed, checksummed W-06 journal, the complete physical-part inventory,
+the original immutable result, each actual saved DXF SHA/mtime and matching
+staged intent; only then does it publish the v1.1 verified item/part response.
+A replay must not overwrite output and a changed DXF cannot pass. Existing
+WHD geometry and source transform authorities have NOT moved.
+
+This is a **preprovisioned exact-job public candidate**, not an open
+self-enrollment interface. CADSplit Gate B/D, independent installer/caller
+trust onboarding for normal jobs, complete Windows GUI open/edit/3D/save
+acceptance, and the final #2382 Gate A release decision are **not**
+inferred from a single real EXE test. Public cancellation/recovery/readback
+are not advertised as enabled because their current entry stays private.
+
 ## W-01 → W-03/W-04/W-06 private Worker dispatch (#2375/#2380)
 
 The real `integration_cli.cadsplit_worker._execute_request` now has an
@@ -590,14 +627,12 @@ job is not an authorized retry. A private export receipt retains
 `manufacturing_verified=false` and is **never** exposed as a public
 schema-1.1 `success` response.
 
-The shipped `WHD-Engine.exe` public parser still accepts **exactly**
-`capabilities`, `prepare`, `export`; `main()` never supplies
-`trusted_context`, so manufacturing flags stay false and the ordinary
-request path continues to decline manufacturing. Windows CI exercises
-the actual private request dispatch, real WHD original DXF → Prepare →
-durable Export → Save→Reload DXFs, DPAPI key restart and no-rewrite replay.
-Windows also continues to smoke-test the installed EXE from a Chinese
-path with public `prepare/export` disabled.
+The shipped `WHD-Engine.exe` public parser accepts **exactly**
+`capabilities`, `prepare`, `export`. The legacy source-only and
+unselected 1.0 path stays disabled; on the signed installed 1.1 path
+`main()` now calls only the separately approved Worker adapter described
+above. Windows CI continues to test the private chain independently, and
+the legacy Chinese-path 1.0 smoke must remain fail-closed.
 
 **Not Gate A**: an authorized installed Worker bootstrap, trusted CADSplit
 source-document mapping and an approved public manufacturing certification

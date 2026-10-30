@@ -1627,3 +1627,152 @@ def test_packaged_engine_read_result_never_rerenders_or_creates_unknown_jobs(
     corruption, stale_result, no_file = call("read-result", export, "tampered-DXF-denied")
     assert corruption.returncode == 4 and stale_result is None and not no_file.exists()
     assert customer.read_bytes().endswith(b"modified-after-commit")
+
+
+@pytest.mark.skipif(not WINDOWS, reason="actual packaged Windows Engine + DPAPI only")
+def test_packaged_public_v11_prepare_export_requires_sealed_job_and_certifies_real_dxf(
+    tmp_path, monkeypatch,
+):
+    """Public three-command v1.1 works ONLY for an independently approved job.
+
+    Actual EXE, source CIRCLE, canonical WHD FinalScene, Save/Reload, durable
+    journal, released output, v1.1 response schema and immutable result replay.
+    """
+    import ezdxf
+    from jsonschema import Draft202012Validator
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from integration_cli.job_identity_ledger import DurableJobIdentityLedger
+    from test_issue2379_trusted_door_finalscene_batch import _real_batch
+    from test_issue2380_private_worker_dispatch import _export_from_real_sources
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires genuine built WHD-Engine.exe")
+    profile = tmp_path / "公開 CLI 授權 DPAPI"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    batch = _real_batch(tmp_path, count=1)
+    original = batch[0]
+    # A W-03 source Frame/physical ID binds the ORIGINAL client ID.
+    # Never mutate client_installation_id after the source fixture has
+    # created its source-attested Feature transform/target Frame.
+    identity = original["client_installation_id"]
+    load_installation_key(identity, initialize=True)
+    store, output = tmp_path / "durable-job-ledger", tmp_path / "客戶 完成 DXF"
+    store.mkdir()
+    output.mkdir()
+    exe_hash = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        identity, store_root=store, output_dir=output,
+        source_documents=batch[4], expected_engine_sha256=exe_hash,
+    )
+    schema_dir = Path(__file__).resolve().parents[1] / "integration_cli" / "schemas"
+    response_schema = json.loads(
+        (schema_dir / "response_v1_1.schema.json").read_text(encoding="utf-8")
+    )
+    validator = Draft202012Validator(response_schema)
+    installed_response = tmp_path / "signed-installed-capabilities.json"
+    discovered = subprocess.run([
+        str(exe), "capabilities", "--installation-id", identity,
+        "--response", str(installed_response),
+    ], cwd=tmp_path, capture_output=True, text=True, timeout=120)
+    assert discovered.returncode == 0, discovered.stderr[-1200:]
+    advertised = json.loads(installed_response.read_text(encoding="utf-8"))
+    Draft202012Validator(json.loads(
+        (schema_dir / "capabilities_v1_1.schema.json").read_text(encoding="utf-8")
+    )).validate(advertised)
+    assert advertised["protocol_version"] == "1.1.0"
+    assert advertised["installation_id"] == identity
+    assert advertised["capability_flags"]["batch_prepare"] is True
+    assert advertised["capability_flags"]["batch_export"] is True
+    assert advertised["capability_flags"]["per_part_transactions"] is False
+    assert len(advertised["supported_part_kinds"]) == 5
+    assert all(
+        "installer_sealed_exact_job_approval" in item["required_inputs"]
+        for item in advertised["capabilities"]
+    )
+    never = tmp_path / "unprovisioned-capability.json"
+    no_install = subprocess.run([
+        str(exe), "capabilities", "--installation-id", "not-provisioned",
+        "--response", str(never),
+    ], cwd=tmp_path, capture_output=True, text=True, timeout=120)
+    assert no_install.returncode == 4 and not never.exists()
+    no_install_default = tmp_path / "unselected-capability.json"
+    selected = subprocess.run([
+        str(exe), "capabilities", "--response", str(no_install_default),
+    ], cwd=tmp_path, capture_output=True, text=True, timeout=120)
+    assert selected.returncode == 0
+    unselected = json.loads(no_install_default.read_text(encoding="utf-8"))
+    assert not any(unselected["capability_flags"].values())
+    assert unselected["supported_part_kinds"] == []
+
+    def call(operation, request, label):
+        wire = tmp_path / (label + "-wire.json")
+        response = tmp_path / (label + "-response.json")
+        wire.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+        process = subprocess.run(
+            [str(exe), operation, "--request", str(wire), "--response", str(response)],
+            cwd=tmp_path, capture_output=True, text=True, timeout=180,
+        )
+        data = json.loads(response.read_text(encoding="utf-8")) if response.is_file() else None
+        assert data is not None, process.stderr[-1400:]
+        validator.validate(data)
+        return process, data
+
+    # Merely knowing the installed client ID never grants manufacturing.
+    denied, failed = call("prepare", original, "no-signed-job")
+    assert denied.returncode == 4
+    assert failed["status"] == "failed"
+    assert failed["manufacturing_verified"] is False
+    with DurableJobIdentityLedger(store)._connect() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 0
+
+    authorize_private_job(identity, original, engine_sha256=exe_hash)
+    prepared, receipt = call("prepare", original, "approved-public-prepare")
+    assert prepared.returncode == 0, prepared.stderr[-1600:]
+    assert receipt["status"] == "success" and receipt["manufacturing_verified"] is False
+    assert receipt["prepare_token"] and len(receipt["items"]) == 1
+
+    export = _export_from_real_sources(original, receipt, batch)
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    refused, noexport = call("export", export, "export-without-signature")
+    assert refused.returncode == 4
+    assert noexport["status"] == "failed"
+    assert not list(output.glob("*.dxf"))
+
+    authorize_private_job(identity, export, engine_sha256=exe_hash)
+    manufactured, final = call("export", export, "signed-public-export")
+    assert manufactured.returncode == 0, (
+        manufactured.stderr[-1600:],
+        final.get("diagnostics", []) if isinstance(final, dict) else final,
+        sorted(path.name for path in output.glob("*.dxf")),
+    )
+    assert final["status"] == "success" and final["manufacturing_verified"] is True
+    assert final["transaction_mode"] == "all_or_nothing"
+    row, = final["items"]
+    assert row["status"] == "committed" and row["manufacturing_verified"] is True
+    physical, = row["parts"]
+    assert physical["save_reload_verified"] is True
+    assert physical["manufacturing_verified"] is True
+    path = Path(physical["output_path"])
+    assert path.parent == output and path.is_file()
+    assert physical["output_sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    doc = ezdxf.readfile(path)
+    assert len(doc.modelspace().query('CIRCLE[layer=="CUTTING"]')) > 0
+    immutable = path.read_bytes(), path.stat().st_mtime_ns
+    retry = json.loads(json.dumps(export, ensure_ascii=False))
+    retry["request_id"] = "transport-only-request-retry"
+    another, same = call("export", retry, "retry-public-export")
+    assert another.returncode == 0, another.stderr[-1600:]
+    same.pop("request_id")
+    final.pop("request_id")
+    assert same == final
+    assert (path.read_bytes(), path.stat().st_mtime_ns) == immutable
+
+    # Durable job proof and actual customer DXF are not interchangeable.
+    path.write_bytes(path.read_bytes() + b"\\n999\\nunauthorized-change")
+    stale, rejected = call("export", export, "modified-DXF-refusal")
+    assert stale.returncode == 4
+    assert rejected["status"] == "failed"
+    assert rejected["manufacturing_verified"] is False
