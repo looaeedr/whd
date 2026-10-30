@@ -984,6 +984,19 @@ def _unfolded_topology_for_spec(spec: PartSpec, *, piece_id: str = "") -> Unfold
             bend=spec.bend,pattern=spec.receiving_bend_pattern,
             nfb_depth_pair_mm=spec.receiving_nfb_depth_pair_mm,
         )
+        # Manufacturing Y segmentation must follow actual source BENDs, not
+        # the old universal 20-mm LEFT/RIGHT assumption. CENTER 107/72 T2
+        # needs 35-mm upper/lower material and 37-mm operator outside.
+        horizontal = sorted({
+            float(b.p1.y) for b in actual.bends
+            if abs(float(b.p1.y) - float(b.p2.y)) <= 1e-8
+        })
+        if len(horizontal) != 2 or horizontal[0] <= 0 or horizontal[1] >= actual.height:
+            raise ValueError("RECEIVING_BASE_INVALID_Y_BEND_STATIONS")
+        bottom_fold, top_fold = horizontal[0], actual.height-horizontal[1]
+        middle_y = actual.height-bottom_fold-top_fold
+        if min(bottom_fold, top_fold, middle_y) <= 0:
+            raise ValueError("RECEIVING_BASE_INVALID_Y_MATERIAL_SPANS")
         if spec.receiving_bend_pattern == RECEIVING_BASE_PATTERN_CENTER:
             # #1502: keep unfolded segmentation on the SAME authoritative
             # actual adapter result. Historic 40+33-T2 => side return 71;
@@ -999,9 +1012,9 @@ def _unfolded_topology_for_spec(spec: PartSpec, *, piece_id: str = "") -> Unfold
                     MaterialSegment("X","ear_side_return_right",side_return,"RECEIVING_BASE_BEND"),
                 ),
                 y_segments=(
-                    MaterialSegment("Y","base_bottom_fold20",20.0,"RECEIVING_BASE_BEND"),
-                    MaterialSegment("Y","base_core",actual.height-40.0,"RECEIVING_BASE_BEND"),
-                    MaterialSegment("Y","base_top_fold20",20.0,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("Y","base_bottom_fold20",bottom_fold,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("Y","base_core",middle_y,"RECEIVING_BASE_BEND"),
+                    MaterialSegment("Y","base_top_fold20",top_fold,"RECEIVING_BASE_BEND"),
                 ),
                 source="RECEIVING_BASE_BEND",revision=1,
             )
@@ -1009,9 +1022,9 @@ def _unfolded_topology_for_spec(spec: PartSpec, *, piece_id: str = "") -> Unfold
             piece_id=str(spec.physical_id or piece_id or "base_plate"),
             x_segments=(MaterialSegment("X","flat_side_span",actual.width,"RECEIVING_BASE_BEND"),),
             y_segments=(
-                MaterialSegment("Y","base_bottom_fold20",20.0,"RECEIVING_BASE_BEND"),
-                MaterialSegment("Y","base_core",actual.height-40.0,"RECEIVING_BASE_BEND"),
-                MaterialSegment("Y","base_top_fold20",20.0,"RECEIVING_BASE_BEND"),
+                MaterialSegment("Y","base_bottom_fold20",bottom_fold,"RECEIVING_BASE_BEND"),
+                MaterialSegment("Y","base_core",middle_y,"RECEIVING_BASE_BEND"),
+                MaterialSegment("Y","base_top_fold20",top_fold,"RECEIVING_BASE_BEND"),
             ),
             source="RECEIVING_BASE_BEND",revision=1,
         )
