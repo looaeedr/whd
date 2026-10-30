@@ -20,7 +20,7 @@ from jsonschema import Draft202012Validator, ValidationError
 from integration_cli.prepare_batch import prepare_trusted_door_batch
 from integration_cli.prepare_evidence import PrepareEvidenceError, _pure_json
 from integration_cli.feature_preflight import validate_wire_features_against_prepared_frame
-from integration_cli.source_circle_verification import verify_trusted_original_dxf_circles
+from integration_cli.source_circle_verification import verify_trusted_original_dxf_features
 from integration_cli.request_canonical import require_matching_wire_request_digest
 
 
@@ -130,7 +130,7 @@ def recheck_trusted_door_export(
         if exported.get("features"):
             source = (source_documents.get(prepared["item_id"])
                       if isinstance(source_documents, Mapping) else None)
-            verify_trusted_original_dxf_circles(
+            verify_trusted_original_dxf_features(
                 exported["features"], source_path=source,
                 expected_document_sha256=prepared["source_document_sha256"],
             )

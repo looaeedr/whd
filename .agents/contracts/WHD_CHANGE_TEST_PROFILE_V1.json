@@ -75,6 +75,7 @@
       "change_type",
       "domains",
       "required_stages",
+      "fast_feedback",
       "full_gate_kind",
       "full_gate_required",
       "profile_id",
@@ -82,7 +83,15 @@
       "command_owner"
     ],
     "recompute_on_changed_files_expansion": true,
-    "focused_tests_can_replace_full_gate": false
+    "focused_tests_can_replace_full_gate": false,
+    "fast_feedback_requires_explicit_selector_when_no_changed_test": true
+  },
+  "fast_feedback": {
+    "authority": "DEVELOPMENT_FEEDBACK_ONLY",
+    "selector_source": "explicit pytest test node/path; otherwise changed test files",
+    "missing_selector": "NEEDS_EXPLICIT_TEST; never guess from product filename",
+    "scope": "pre-PR or pre-retry targeted RED/GREEN feedback",
+    "final_exact_sha_ci": "UNCHANGED_REQUIRED"
   },
   "execution_commands": {
     "owner": "tools/change_test_profile.py",

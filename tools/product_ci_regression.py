@@ -7,7 +7,9 @@ CI call this same command; workflow YAML must not duplicate the pytest list.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -596,23 +598,165 @@ def _run_bridge_guard() -> None:
 
 
 
-# #1817: measured 2026-10-17 exact HEAD b7c06bdb full Product Regression
-# run 39015604209 showed round-robin shard pytest durations 346.88/146.53/
-# 101.31 seconds. These are three whole-file heavy suites, never split test
-# cases or modify expectations. Move them by observed cost while preserving
-# every canonical selector exactly once and the existing runner/count contract.
-# Other shard counts continue using the original deterministic interleave.
+# Deterministic, whole-file three-shard balancing backed by CI observations:
+# - #1817 run 39015604209 introduced the three original heavy-suite pins.
+# - 2026-10-29 successful exact-head run 40872352796 recorded pytest
+#   462.38s / 338.37s / 478.23s for shards 0 / 1 / 2.
+# - Shift the complete quantity BOM suite from 0 -> 1 (six ~13-15s
+#   Receiving parameterized cases) and the complete inner-door suite from
+#   2 -> 0 (a 37.65s real-DXF case plus related acceptance cases).
+# This is scheduling ONLY: selectors, test semantics, test collection and
+# three-runner budget stay unchanged. Every required JUnit case is still
+# verified by the unchanged Canonical Product Regression final gate.
+# Other shard counts preserve the original deterministic interleave.
 _THREE_SHARD_SUITES = {
     "tests/test_issue517_receiving_live_switch_ui_export_marking.py": 2,
     "tests/test_issue1463_receiving_modes.py": 1,
     "tests/test_issue1469_v15_acceptance.py": 0,
+    "tests/test_issue1466_quantity_bom.py": 1,
+    "tests/test_phase6_t15_inner_door_panels.py": 0,
 }
 
 
+# Whole-file slow-suite isolation in the ten-runner experiment.
+# Exact, measured examples (2026-10-29, run 40872352796):
+#   issue517 GUI live switching: repeated 7-17s native Tk/DXF cases;
+#   issue1469 v15 acceptance: 28.43s + 20.90s cases;
+#   issue1463 receiving modes: 36.74s + 26.59s cases;
+#   issue1466 quantity BOM: six 13-15s receiving variants;
+#   t15 inner-door panels: 37.65s actual Save->Reload/DXF case.
+# Do NOT put two of these suites into the same shard. Remaining selectors
+# are assigned only to shards 5..9 in their canonical relative order.
+# No selectors/expectations are altered; every shard retains its own Xvfb.
+_TEN_SHARD_DEDICATED_SUITES = (
+    "tests/test_issue517_receiving_live_switch_ui_export_marking.py",
+    "tests/test_issue1469_v15_acceptance.py",
+    "tests/test_issue1463_receiving_modes.py",
+    "tests/test_issue1466_quantity_bom.py",
+    "tests/test_phase6_t15_inner_door_panels.py",
+)
+
+
+# Additional complete suites identified from exact successful run
+# 40897114178, by slow call/aggregate duration (not test count). Keep the
+# accepted ten-shard distribution unchanged for a comparable fallback.
+#   issue1112: multiple Tk source/edit/Save paths (12s, 10s, 8s, 7s...);
+#   issue1503 real tier: 37.61s physical parts/side markings acceptance;
+#   issue63: 13.50s + 11.18s + 10.99s native fold/save regressions;
+#   issue1465 quantity UI: 21.89s + 5.27s GUI cases;
+#   issue1500 main Save: 22.78s real native GUI Save/Reload.
+# Each of the ten expensive whole-file suites owns exactly one isolated
+# runner; remaining selectors are evenly interleaved across runners 10..19.
+_TWENTY_SHARD_DEDICATED_SUITES = _TEN_SHARD_DEDICATED_SUITES + (
+    "tests/test_issue1112_receiving_set_bay_editor.py",
+    "tests/test_issue1503_single_gui_real_tier_2d3d.py",
+    "tests/test_issue63_regression_red.py",
+    "tests/test_issue1465_quantity_ui.py",
+    "tests/test_issue1500_receiving_candidate_main_save.py",
+)
+
+
+# Source: 304 exact files / 339 canonical selectors measured independently
+# by GitHub Actions run 40903796624; follow-up exact-head run 40909061327
+# revealed a 181s GUI shard and 12-21s quick lanes. The committed manifest,
+# NOT runner-local timing or Python hash(), owns deterministic assignments.
+# Only the measured 20-case GUI file is split across 0/14/15/16/17; all
+# original canonical selectors remain unchanged for other shard counts.
+_EIGHTEEN_SHARD_MANIFEST = ROOT / "tools/product_ci_file_duration_manifest_20261029.json"
+
+
+def _duration_profiled_paths(index: int) -> tuple[str, ...]:
+    manifest = json.loads(_EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    selectors_by_file = {}
+    for selector in PYTEST_PATHS:
+        selectors_by_file.setdefault(selector.split("::", 1)[0], []).append(selector)
+    canonical_files = set(selectors_by_file)
+    owners = manifest.get("file_owners", {})
+    durations = manifest.get("file_seconds", {})
+    split_file = manifest.get("split_file")
+    case_owners = manifest.get("split_case_owners")
+    case_seconds = manifest.get("split_case_seconds")
+    if (manifest.get("schema") != "WHD_PRODUCT_CI_FILE_DURATION_ASSIGNMENT_V2"
+            or manifest.get("canonical_selector_count") != len(PYTEST_PATHS)
+            or manifest.get("canonical_file_count") != len(canonical_files)
+            or len(PYTEST_PATHS) != len(set(PYTEST_PATHS))
+            or set(owners) != canonical_files
+            or set(durations) != canonical_files
+            or manifest.get("slow_shard_indices") != list(range(14))
+            or manifest.get("short_shard_indices") != list(range(14, 18))
+            or manifest.get("threshold_short_seconds") != 4
+            or split_file != "tests/test_issue517_receiving_live_switch_ui_export_marking.py"
+            or PYTEST_PATHS.count(split_file) != 1
+            or owners.get(split_file) != 0
+            or manifest.get("split_case_count") != 20):
+        raise ValueError("18-shard duration manifest incomplete or stale")
+    for filename in canonical_files:
+        seconds, owner = durations[filename], owners[filename]
+        if (isinstance(seconds, bool) or not isinstance(seconds, (int, float))
+                or seconds <= 0 or isinstance(owner, bool)
+                or not isinstance(owner, int) or owner < 0 or owner >= 18
+                or (owner >= 14) != (seconds <= 4)):
+            raise ValueError("18-shard duration/quick-lane authority invalid")
+    if set(owners.values()) != set(range(18)):
+        raise ValueError("18-shard manifest has an empty lane")
+
+    # The only allowed split is the observed 20-case GUI file. Validate actual
+    # source declarations to fail closed if a test is added, renamed, decorated
+    # (e.g. parametrized), or moved into a class without a reviewed schedule.
+    module = ast.parse((ROOT / split_file).read_text(encoding="utf-8"))
+    functions = [node for node in module.body
+                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                 and node.name.startswith("test_")]
+    if (not isinstance(case_owners, dict)
+            or not isinstance(case_seconds, dict)
+            or len(functions) != 20
+            or len({node.name for node in functions}) != 20
+            or any(node.decorator_list for node in functions)
+            or any(isinstance(node, ast.ClassDef) and node.name.startswith("Test")
+                   for node in module.body)
+            or set(case_owners) != {node.name for node in functions}
+            or set(case_seconds) != set(case_owners)
+            or set(case_owners.values()) != {0, 14, 15, 16, 17}):
+        raise ValueError("18-shard observed GUI cases missing or changed")
+    for case_name, owner in case_owners.items():
+        seconds = case_seconds[case_name]
+        if (isinstance(owner, bool) or not isinstance(owner, int)
+                or owner not in (0, 14, 15, 16, 17)
+                or isinstance(seconds, bool)
+                or not isinstance(seconds, (int, float)) or seconds <= 0):
+            raise ValueError("18-shard observed GUI case timing/owner invalid")
+
+    assigned = []
+    for selector in PYTEST_PATHS:
+        if selector == split_file:
+            assigned.extend(f"{split_file}::{case_name}"
+                            for case_name in case_owners
+                            if case_owners[case_name] == index)
+        elif owners[selector.split("::", 1)[0]] == index:
+            assigned.append(selector)
+    if not assigned:
+        raise ValueError("18-shard observed scheduling has empty lane")
+    return tuple(assigned)
+
 def shard_paths(index: int, count: int) -> tuple[str, ...]:
-    """Partition the exact canonical case selectors, never sample or drop any."""
+    """Partition exact canonical selectors; isolate measured slow suites."""
     if count < 1 or count > len(PYTEST_PATHS) or not 0 <= index < count:
         raise ValueError(f"invalid regression shard {index}/{count}")
+    if count == 18:
+        return _duration_profiled_paths(index)
+    if count in (10, 20):
+        dedicated = (_TEN_SHARD_DEDICATED_SUITES if count == 10
+                     else _TWENTY_SHARD_DEDICATED_SUITES)
+        if len(set(dedicated)) != len(dedicated) or any(
+            PYTEST_PATHS.count(path) != 1
+            or any(item.startswith(path + "::") for item in PYTEST_PATHS)
+            for path in dedicated
+        ):
+            raise ValueError(f"{count}-shard dedicated suite ownership is invalid")
+        if index < len(dedicated):
+            return (dedicated[index],)
+        remaining = tuple(path for path in PYTEST_PATHS if path not in dedicated)
+        return remaining[(index - len(dedicated))::(count - len(dedicated))]
     if count != 3:
         return PYTEST_PATHS[index::count]
     return tuple(

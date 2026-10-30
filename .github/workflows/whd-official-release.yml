@@ -38,8 +38,8 @@ jobs:
       - name: Exact user /推推, Taiwan tag and rejection regression
         run: python -m unittest discover -s tests/process -p 'test_localx_publish_gate.py' -v
 
-  official-release:
-    name: Verify and publish official WHD version
+  authorize-release:
+    name: Authorize exact X merge and owner /推推
     if: github.event_name == 'push' && github.ref == 'refs/heads/localX' && github.repository == 'looaeedr/whd'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -50,6 +50,10 @@ jobs:
       contents: write
       pull-requests: read
       issues: read
+    outputs:
+      eligible: ${{ steps.verify.outputs.eligible }}
+      tag: ${{ steps.verify.outputs.tag }}
+      pr: ${{ steps.verify.outputs.pr }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -124,62 +128,115 @@ jobs:
               f.write(f"eligible=true\ntag={tag}\npr={pr['number']}\n")
           print(f"Exact owner /推推 accepted and verified; release {tag}, PR #{pr['number']}")
           PY
-      - name: Create immutable tag and GitHub Release after /推推
-        if: steps.verify.outputs.eligible == 'true'
+
+  windows-package:
+    name: Build exact X Windows EXE and Traditional Chinese documents
+    needs: authorize-release
+    if: needs.authorize-release.outputs.eligible == 'true'
+    uses: ./.github/workflows/whd-windows-exe.yml
+    with:
+      release_sha: ${{ github.sha }}
+      release_tag: ${{ needs.authorize-release.outputs.tag }}
+    permissions:
+      contents: read
+
+  official-release:
+    name: Publish complete WHD Release after verified Windows artifacts
+    needs: [authorize-release, windows-package]
+    if: needs.authorize-release.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    concurrency:
+      group: whd-official-release-final-${{ github.sha }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified Windows x64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: WHD-Windows-x64
+          path: windows-package
+      - name: Check EXE, SHA-256, and Traditional Chinese notes before publishing
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_SHA: ${{ github.sha }}
-          RELEASE_TAG: ${{ steps.verify.outputs.tag }}
-          RELEASE_PR: ${{ steps.verify.outputs.pr }}
+          RELEASE_TAG: ${{ needs.authorize-release.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
-          # Read an existing ref first; retries must never retarget a tag.
-          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" > "$RUNNER_TEMP/tag.json" 2>/dev/null; then
-            tag_sha="$(python -c 'import json,sys;print(json.load(open(sys.argv[1]))["object"]["sha"])' "$RUNNER_TEMP/tag.json")"
-            if [ "$tag_sha" != "$RELEASE_SHA" ]; then
-              echo "::error::OFFICIAL_RELEASE_TAG_POINTS_TO_OTHER_SHA"
-              exit 1
-            fi
-          fi
+          cd windows-package
+          archive="WHD_Windows_x64_$RELEASE_TAG.zip"
+          for file in "$archive" SHA256.txt WHD_Release_Notes_zh-TW.md WHD_Windows_Guide_zh-TW.md; do
+            test -s "$file" || { echo "::error::RELEASE_DELIVERY_MISSING: $file"; exit 1; }
+          done
+          sha256sum --check SHA256.txt
+          unzip -Z1 "$archive" | grep -Fx 'WHD/WHD.exe'
+          unzip -Z1 "$archive" | grep -Fx 'WHD/本次更新.md'
+          unzip -Z1 "$archive" | grep -Fx 'WHD/使用說明.md'
+          grep -q '本次主要更新' WHD_Release_Notes_zh-TW.md
+          grep -Fq "$RELEASE_SHA" WHD_Release_Notes_zh-TW.md
+          grep -Fq "$RELEASE_TAG" WHD_Release_Notes_zh-TW.md
+          grep -q '如何下載' WHD_Windows_Guide_zh-TW.md
 
-          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-            {
-              echo "Official WHD product publication, verified after /推推 and GitHub X/localX back-sync."
-              echo
-              echo "- Published X merge commit: \`$RELEASE_SHA\`"
-              echo "- GitHub localX at release: \`$RELEASE_SHA\`"
-              echo "- Verified owner /推推 acceptance and release authority: PR #$RELEASE_PR"
-              echo "- Source PR: https://github.com/$GITHUB_REPOSITORY/pull/$RELEASE_PR"
-              echo "- GitHub Actions exact HEAD verification: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-              echo
-              echo "Note: local Windows/CoreELEC worktrees are tracked separately; this Release does not imply they were synchronized."
-            } > "$RUNNER_TEMP/whd-official-release-notes.md"
-            gh release create "$RELEASE_TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --target "$RELEASE_SHA" \
-              --title "WHD $RELEASE_TAG" \
-              --notes-file "$RUNNER_TEMP/whd-official-release-notes.md" \
-              --generate-notes \
-              --latest
+      - name: Publish X-tagged GitHub Release only after complete delivery
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SHA: ${{ github.sha }}
+          RELEASE_TAG: ${{ needs.authorize-release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd windows-package
+          archive="WHD_Windows_x64_$RELEASE_TAG.zip"
+          # A retry may reuse a tag, but must never retarget it.
+          if tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha' 2>/dev/null)"; then
+            test "$tag_sha" = "$RELEASE_SHA" || {
+              echo "::error::OFFICIAL_RELEASE_TAG_POINTS_TO_OTHER_SHA"; exit 1;
+            }
           fi
-
-          # Final non-mutating readback: tag, release target, draft, prerelease.
-          actual_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')"
-          [ "$actual_sha" = "$RELEASE_SHA" ] || {
-            echo "::error::OFFICIAL_RELEASE_TAG_SHA_MISMATCH"; exit 1;
-          }
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            actual="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq .targetCommitish)"
+            test "$actual" = "$RELEASE_SHA" || {
+              echo "::error::OFFICIAL_RELEASE_SOURCE_MISMATCH"; exit 1;
+            }
+          else
+            # Draft prevents exposing a half-published release while artifacts upload.
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+              --target "$RELEASE_SHA" --title "WHD $RELEASE_TAG" \
+              --notes-file WHD_Release_Notes_zh-TW.md --draft
+          fi
+          gh release upload "$RELEASE_TAG" "$archive" SHA256.txt \
+            WHD_Release_Notes_zh-TW.md WHD_Windows_Guide_zh-TW.md \
+            --clobber --repo "$GITHUB_REPOSITORY"
           gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
-            --json tagName,isDraft,isPrerelease,targetCommitish,url > "$RUNNER_TEMP/whd-release.json"
-          python - "$RUNNER_TEMP/whd-release.json" "$RELEASE_TAG" "$RELEASE_SHA" <<'PY'
-          import json, sys
-          info = json.load(open(sys.argv[1], encoding="utf-8"))
-          tag, sha = sys.argv[2:]
-          if (info.get("tagName") != tag or info.get("isDraft")
-                  or info.get("isPrerelease")
-                  or info.get("targetCommitish") != sha or not info.get("url")):
-              raise SystemExit("OFFICIAL_RELEASE_READBACK_FAILED")
-          print("OFFICIAL_RELEASED:", info["url"], sha)
-          PY
-          echo "### Official WHD Release" >> "$GITHUB_STEP_SUMMARY"
-          echo "Published and verified [$RELEASE_TAG](https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG) at X SHA $RELEASE_SHA." >> "$GITHUB_STEP_SUMMARY"
+            --json tagName,targetCommitish,assets,body \
+            | jq -e --arg tag "$RELEASE_TAG" --arg sha "$RELEASE_SHA" --arg archive "$archive" '
+                .tagName == $tag and .targetCommitish == $sha
+                and ([.assets[] | select(.name == $archive and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "SHA256.txt" and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "WHD_Release_Notes_zh-TW.md" and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "WHD_Windows_Guide_zh-TW.md" and .size > 0)] | length) == 1
+                and (.body | contains("本次主要更新"))
+              ' > /dev/null || {
+                # For older existing releases the body may be English; replace it
+                # only after verifying exact tagged identity and all four assets.
+                gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+                  --notes-file WHD_Release_Notes_zh-TW.md
+              }
+          # Publish the draft only after the ZIP and Chinese notes are proven.
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --notes-file WHD_Release_Notes_zh-TW.md --draft=false --latest
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json tagName,targetCommitish,isDraft,isPrerelease,assets,body \
+            | jq -e --arg tag "$RELEASE_TAG" --arg sha "$RELEASE_SHA" --arg archive "$archive" '
+                .tagName == $tag and .targetCommitish == $sha
+                and .isDraft == false and .isPrerelease == false
+                and ([.assets[] | select(.name == $archive and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "SHA256.txt" and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "WHD_Release_Notes_zh-TW.md" and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "WHD_Windows_Guide_zh-TW.md" and .size > 0)] | length) == 1
+                and (.body | contains("本次主要更新"))
+              ' >/dev/null
+          echo "OFFICIAL_WINDOWS_EXE_RELEASED https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG"
+          echo "### 正式 WHD Windows 交付" >> "$GITHUB_STEP_SUMMARY"
+          echo "同版 Windows EXE、SHA-256、繁體中文更新說明與使用指南均已發布：$RELEASE_TAG / $RELEASE_SHA" >> "$GITHUB_STEP_SUMMARY"

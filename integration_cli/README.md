@@ -107,10 +107,16 @@ The subsequent W-03 implementation now provides:
   canonical physical-part identity, target Frame, locked dimensions and
   environment, including independent per-item preparation digests.
 - `prepare_batch.prepare_trusted_door_batch`: in-process, schema-validated
-  **Door-only** prepare: uses WHD `resolve_policy`, `door_finished_face_size`,
-  `expected_baseline_path_for`, Verified Registry/baseline byte hashes, and
-  four explicit Door layout `frame_edges` flags. It returns
-  `manufacturing_verified=false`; never emits DXF or checks out a real EXE.
+  **Door plus WHD-derived Indicator Small Door** prepare. Ordinary Door uses
+  `resolve_policy`, `door_finished_face_size`, four explicit layout
+  `frame_edges` and its own baseline. `indicator_small_door` requires
+  `part_formed_outer`, exact asserted finished-face width/height/thickness,
+  explicit `indicator_groups`, and **no** caller fold/gap/frame overrides.
+  WHD's `indicator_small_door_spec` + linked finished-face owner provide
+  the authoritative physical geometry and shared `指示燈/小門.dxf` baseline.
+  The same content-attested Registry/baseline, HMAC token and recheck apply;
+  it returns `manufacturing_verified=false`, never emits DXF or enables
+  a public EXE.
 
 **Remaining acceptance boundary:** the public Worker CLI is still not
 connected to this function; the trusted installation key's durable custody,
@@ -118,7 +124,10 @@ atomic journal, verified package resource manifest and no-clobber retries are
 W-06/W-05, and Windows Gate A is W-07. W-03 cannot claim public `prepare`
 support or a certified EXE until those verified dependencies are available.
 The present local Door frame MUST NOT be silently reused for EndCap,
-IndicatorBox, BoxBody or back/mirrored faces. The CADSplit-side original DXF
+IndicatorBox, BoxBody or back/mirrored faces; the **shared small door** is
+different: WHD explicitly represents it with its own `DoorPartSpec`
+helper, uses the verified front/local finished-face basis, and never claims
+a cabinet-world or arbitrary face datum. The CADSplit-side original DXF
 source frame/transform remains CADSplit's responsibility.
 
 
@@ -152,6 +161,159 @@ Save→Reload acceptance; W-06 must store the original authenticated
 request/receipt, enforce idempotency and re-run this guard at the final
 commit barrier (or prove an immutable snapshot). The W-01 public CLI
 keeps all manufacturing capabilities disabled.
+
+## W-06 private durable job-identity ledger (NOT public, #2380)
+
+`job_identity_ledger.DurableJobIdentityLedger` is a **Worker-internal**
+SQLite/WAL/FULL-sync identity reservation and completed-result readback seam.
+Its **installation-store root is trusted local Worker configuration**, never a
+wire request path. It recomputes the existing RFC 8785 request digest and
+reserves a unique `(client_installation_id, job_id, operation)` key with an
+immediate database transaction. Changing any semantic request value under the
+same key fails `WHD_JOB_ID_CONFLICT`; retrying an unfinished identity returns
+`WHD_JOB_RECOVERY_REQUIRED` and **does not render a second batch**. A
+completed result may be replayed unchanged only if its persisted receipt
+digest and all Worker-owned artifact file SHA256/size/mtime evidence still
+match; missing, changed or symlinked artifacts require recovery. An export
+cannot record completion with zero verified physical artifacts. A changed
+transport-only `request_id` cannot change job identity.
+
+An **additional private W-06 output-directory lease seam** reserves every
+Worker-selected, pre-existing absolute destination directory in one SQLite
+`BEGIN IMMEDIATE` transaction. Paths are locally canonicalized and sorted,
+and each is exclusively held by a single unfinished export job across process
+restarts. The SQLite reservation also pins the actual directory `st_dev`
+and `st_ino`; replacing a destination with a new directory at the **same
+path** refuses `WHD_JOB_RECOVERY_REQUIRED` rather than authorizing new
+customer files. Older persisted leases without a matching physical-directory
+witness fail closed until trusted journal recovery. A collision fails with
+`WHD_OUTPUT_PATH_LOCKED` **without acquiring a partial batch**. A completed job releases its leases in the **same durable
+database transaction** as its immutable result record. Failed or interrupted
+jobs do not release leases on timeout or restart. This deliberately locks the
+whole output directory, not just a filename, so two different jobs cannot
+stage separate files into the same batch destination concurrently.
+
+A **private W-06 precommit stage snapshot** now records a verified original
+output file proof (or its original absence) alongside each separately saved
+staged DXF's SHA256/size/mtime in the same Worker-owned SQLite store, indexed
+by the reserved export job and its RFC 8785 digest. The stage files must
+belong to a direct, Worker-owned `.whd-dxf-stage-*` child of the already
+exclusively leased destination, with an exact physical `.dxf` filename and
+the same target filesystem; symlinks, hardlinks, unexpected destinations,
+missing or altered old outputs, changed stage bytes, and a caller attempt to
+override the signed `overwrite` flag are rejected. Retrying the snapshot
+cannot substitute another inventory. Independent process restart readback
+rehashes both stage and customer output bytes and compares exact sizes and
+mtimes; it **never mutates any customer DXF**.
+
+**Precommit is not commit:** if a staged journal exists,
+`DurableJobIdentityLedger.complete` **refuses** to mark the export successful
+or release its destination lease until a later W-06 durable multi-file commit
+journal and recovery owner is actually implemented. This is intentionally a
+fail-closed, non-public building block; neither stages nor manifest existence
+prove customer manufacturing completion. Existing in-process W-04 export
+still owns its own Save→Reload verifier and separate normal-exception rollback.
+
+A further **private W-06 original-file backup proof** is available in
+`original_backup_manifest.DurableOriginalBackupEvidence`. Only after the
+job's per-item precommit stage evidence and physical-directory lease have
+passed, it copies each **existing original customer DXF** (not the staged
+new output) into a newly generated private `.whd-w06-original-backup-*`
+directory on that same destination filesystem. It writes and fsyncs each
+backup and directory, verifies actual SHA256/size/mtime parity with the
+unchanged original, and commits an immutable, checksummed backup manifest
+into the trusted SQLite store. It never moves, deletes or replaces any
+customer or staged DXF, and a transport-only retry cannot rewrite a prior
+verified backup. Independent process readback checks the original
+precommit stage, output directory device/inode and physical backup files.
+A missing/changed backup, altered customer file, untrusted path or corrupt
+manifest refuses further processing.
+
+**This is still not a durable multi-file commit or recovery feature.**
+A crash before a manifest is recorded may leave a private, unclaimed
+backup directory, but it cannot modify an existing customer DXF.
+Incomplete jobs retain their reservation and `complete` continues to
+refuse success until a real backup/replace journal with recovery semantics
+is implemented and independently tested. No public capabilities turn true.
+
+A further **private W-06 all-or-nothing multi-DXF replacement journal**
+(`batch_commit_journal.DurableMultiDXFRollbackJournal`) uses the already
+verified staged DXF Save→Reload evidence, output-directory inode-pinned lease,
+and fsynced copies of **every existing customer original DXF**. It commits
+a checksummed write-ahead intent in the trusted SQLite store **before any**
+customer output rename. For `all_or_nothing` only, it then verifies each
+original/staged byte proof, `os.replace`s one physical DXF at a time and
+fsyncs its output directory. After all outputs match the original intent,
+the existing ledger `complete` verifies **every exact final file** and
+atomically records a durable success result and releases the batch lease.
+
+If the process terminates between replacements or after the last rename but
+before its success receipt, another private Worker instance can run the
+explicit `recover_rollback`: verify the pinned original output directory,
+immutable original backups, and that each customer output is **exactly**
+either the expected old file or the expected newly staged file; otherwise
+refuse recovery and retain the lock. It restores existing originals through
+fsynced temporary copies and removes only new files that match the exact
+staged bytes. It then fsyncs, verifies the whole batch is restored and
+atomically marks `rolled_back` and releases the leases. The same job ID is
+terminal; it never triggers another manufacturing attempt. The test suite
+injects hard `SystemExit` at individual renames and a real subprocess
+`os._exit`, followed by fresh-process rollback and byte/mtime checks.
+Unexpected customer modifications or missing backup bytes **cannot** be
+silently overwritten. A **second hard stop during rollback** leaves the
+journal in persistent `rolling_back`, retains the output directory lease,
+and is resumed by another private Worker instance only after re-verifying
+all old/new DXF proofs; rollback is idempotent across interrupted restores.
+Terminal `rolled_back` replay is independently checked against the
+checksummed journal, pinned physical output directory and every original
+customer DXF (or its expected absence); a corrupt journal or later customer
+file modification returns `WHD_JOB_RECOVERY_REQUIRED` rather than blindly
+reporting success or modifying customer files.
+
+**Scope is still private:** no public W-01 Worker/export capability, no
+automatic Windows EXE activation, no verified Windows UNC/junction alias
+handling, user cancel/progress or Windows Gate A. It is not a certification
+for unsupported Head/Tail/Indicator Box Frame or full W-04 mixed physical
+manufacturing. Production wiring of the trusted Save→Reload batch, HMAC key
+custody, and Windows UAT remain required before public use.
+
+**Still not full W-06:** Windows junction/UNC/drive-alias and case-equivalence
+require physical Gate A evidence; multi-file durable backup/commit journal,
+rollback/roll-forward after interrupted `os.replace`, safe cancellation,
+progress, source/key custody and recovery decision owner are not implemented.
+A stuck lease must be resolved by a future trusted W-06 journal recovery,
+never forcibly removed on a retry. The private ledger remains disconnected
+from W-01 public `cadsplit_worker.py`; all public readback, path locking,
+export and recovery capability flags remain false. No Windows EXE or formal
+manufacturing release is certified.
+
+## W-04 private authenticated Door batch → W-06 durable stage handoff (#2380)
+
+`verified_door_finalscene.save_trusted_door_circle_finalscene_batch`
+accepts an **optional Worker-owned** `durable_ledger`. Without that opt-in,
+the existing W-04 private stage/Save→Reload/normal-exception rollback path
+is unchanged. With it, a pre-existing, nonsymlinked trusted output directory
+is mandatory; after authenticated W-03 original DXF/source/Frame recheck and
+WHD FinalScene construction, the Worker reserves its immutable export job and
+exclusive physical output-directory lease. The same WHD export owner stages
+and independently Save→Reload verifies **every** produced DXF, calls the
+source/fingerprint recheck again before commit, and dispatches the staged
+physical inventory to W-06 instead of the legacy in-process commit.
+W-06 records the frozen physical staged DXFs, backs up each old customer
+original on the same volume, fsyncs a durable multi-DXF intent, applies
+the checked renames with directory fsync and persists exact final SHA proofs
+with the job's immutable success receipt and lease release in a single
+SQLite transaction. A crash between renames is explicitly recoverable by
+the original W-06 rollback owner, not by rerendering the job.
+
+This is **PRIVATE and opt-in**, not a public CADSplit CLI capability. Source
+document paths, resource root, installation ledger/store and HMAC key must
+come from the trusted Worker and cannot be substituted by wire parameters.
+Any failed precommit step with an already durable reservation needs trusted
+recovery; it does not entitle the caller to steal/release the lease. Public
+Worker integration, verified installation key custody, Windows path aliases
+and Gate A, broader Head/Tail/IndicatorBox geometries and full mixed-kind
+manufacturing remain unsupported.
 
 ## W-04 internal real DXF Save→Reload batch
 
@@ -276,3 +438,69 @@ The wire's `source_geometry_sha256` has no portable per-entity hash recipe;
 only the complete pinned source document bytes and measured direct planar
 CIRCLEs are verified. Rectangles, profiles, Head/Tail and Indicator remain
 fail closed. There is no Windows EXE release or manufacturing certification.
+
+
+### W-04 source-attested rectangular LWPOLYLINE subset (#2379)
+
+The internal W-03 precommit original-source adapter additionally accepts a
+**direct modelspace closed LWPOLYLINE with exactly four straight vertices,
+zero constant/per-vertex stroke width, no bulges (including tiny nonzero arcs),
+zero DXF extrusion thickness (including tiny nonzero values),
+positive XY plane and explicit DXF mm/inch header**. It independently
+reads the same pinned original document SHA, resolves the exact entity handle,
+applies the declared matrix and unit scale once and proves all four vertices
+are an orthogonal rectangle; neither a claimed bounding box nor a matching
+center alone suffices. It compares transformed center and width/height with
+the rectangle wire's explicit quarter-turn. Only `THROUGH_CUT` is allowed.
+The internal WHD-owned `RectFeature` stores source-derived finished-face
+bounds. Canonical `ResolvedRect` verifies the actual closed CUTTING contour
+in FinalScene; the existing batch boundary performs independent DXF reload
+and precommit source recheck. **Curved/open LWPOLYLINE, POLYLINE,
+INSERT, arbitrary multi-entity profiles, source subgeometry SHA and public
+Worker export remain unsupported.**
+Original-source CIRCLEs also require zero DXF extrusion thickness; nonzero
+3D-extruded source geometry fails closed before staging.
+
+The internal source-derived RECT FinalScene check compares the **ordered
+closed CUTTING edge cycle**, not just four matching corners or bounding
+box. Cyclic start shifts and reverse winding are equivalent; a crossed
+bow-tie order fails before any output is staged.
+
+
+### W-04 source-attested simple LWPOLYLINE PROFILE subset (#2379)
+
+In addition to original DXF circles and four-corner rectangles, the **internal**
+Door-only authenticated source adapter can admit a direct modelspace closed
+LWPOLYLINE as a simple polygon PROFILE with **3–256 vertices**. Original
+DXF file SHA and exact handle are mandatory. Every segment must be straight,
+zero constant/per-vertex stroke width, zero extrusion thickness, planar +XY,
+with an explicit mm/inch header. After applying the declared source-to-mm
+scale and 2×2 matrix/translation exactly once, the entire source polygon must
+be simple, nondegenerate, and match the wire's `closed` point cycle in both
+coordinates **and edge order**. Only cyclic start shifts and reverse winding
+are equivalent; matching bbox, center or unordered point sets is insufficient.
+
+The WHD-owned `ProfileFeature` is constructed from **actual source vertices**,
+not from the claimed wire polygon. Its final CUTTING `PolylinePrimitive` is
+compared to the same full closed edge sequence after WHD's finished-face
+mapping, before the batch's independent DXF Save→Reload, precommit source
+recheck and staged atomic replacement. Open/arc/width-bearing polylines,
+legacy POLYLINE/INSERT, per-entity source geometry hash certification and
+public Worker/EXE export are still not supported. This is **not** W-06 durable
+job ownership or W-05/07 Windows Gate A acceptance.
+
+
+### W-03 twenty-item mixed Door / Indicator Small Door preparation evidence (#2378)
+
+The private `prepare_trusted_door_batch` can process **up to 20 authenticated
+prepared physical identities** with both supported W-03 kinds in one order-
+preserving request. Each actual `DoorPartSpec` is re-derived by the WHD owner;
+the small-door subset is linked to WHD's shared indicator source and policy.
+The existing job/token binds **all** rows, their distinct source references,
+physical part IDs, Frame IDs, per-item digests and Registry/physical baseline
+contents. Recomputing the request on export must reject a changed item or
+either kind's relevant baseline **for the entire prepare batch**.
+
+This tests only the W-03 prepare and stale recheck boundary: it **does not**
+enable W-04 20-kind mixed manufacturing, per-part output, a durable W-06 Worker,
+public W-01 commands or a Windows EXE.

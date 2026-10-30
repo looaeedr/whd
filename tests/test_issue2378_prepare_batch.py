@@ -355,3 +355,225 @@ def test_export_recheck_missing_or_unparseable_source_is_stale(tmp_path, broken)
         _recheck(request, receipt, export, root)
     assert exc.value.code == "WHD_PREPARE_STALE"
     assert not (tmp_path / "worker-output-not-created").exists()
+
+
+def _indicator_small_door_request(tmp_path, *, groups=(2, 1)):
+    """Use WHD's shared small-door owner, not hand-written frame dimensions."""
+    from ae_engine.contracts import ManufacturingContext
+    from ae_engine.manufacturing_api import (
+        expected_baseline_path_for, indicator_small_door_finished_size,
+        indicator_small_door_spec, resolve_policy,
+    )
+
+    root, registry, door_baseline = _root(tmp_path)
+    # WHD's shared indicator resolver requires both physical baselines in
+    # the same owned folder; copying only 小門.dxf would be an invalid resource
+    # fixture even if that single DXF parses.
+    shared = root / "基準檔" / "指示燈"
+    shared.mkdir(parents=True, exist_ok=True)
+    for filename in ("盒子.dxf", "小門.dxf"):
+        shutil.copy2(HERE / "基準檔" / "指示燈" / filename, shared / filename)
+    context = ManufacturingContext(resource_root=root)
+    spec = indicator_small_door_spec(groups, thickness=2.0, context=context)
+    baseline = expected_baseline_path_for(spec, context)
+    assert baseline is not None
+    baseline = Path(baseline)
+    assert baseline.is_relative_to(root)
+    assert baseline == shared / "小門.dxf"
+
+    width, height = indicator_small_door_finished_size(
+        groups, thickness=2.0, context=context,
+    )
+    request = _request()
+    part = request["items"][0]["part"]
+    part["kind"] = "indicator_small_door"
+    part["dimension_semantics"] = "part_formed_outer"
+    part["dimensions_mm"] = {"width": width, "height": height, "thickness": 2.0}
+    part["indicator_groups"] = list(groups)
+    del part["frame_edges"]
+    request["request_digest"] = compute_wire_request_digest(request)
+    return root, baseline, request, spec
+
+
+def test_indicator_small_door_uses_whd_shared_baseline_and_canonical_local_frame(tmp_path):
+    from ae_engine.contracts import ManufacturingContext
+    from ae_engine.manufacturing_api import door_finished_face_size
+
+    root, baseline, request, spec = _indicator_small_door_request(tmp_path)
+    response = _prepare(request, root)
+    Draft202012Validator(__import__("json").loads((
+        HERE / "integration_cli/schemas/response_v1_1.schema.json"
+    ).read_text(encoding="utf-8"))).validate(response)
+    assert response["status"] == "success"
+    assert response["manufacturing_verified"] is False
+    frame = response["items"][0]["target_frames"][0]
+    width, height = door_finished_face_size(spec, ManufacturingContext(resource_root=root))
+    assert frame["finished_face_dimensions_mm"] == {"width": width, "height": height}
+    assert frame["face_role"] == "front"
+    assert frame["axis_x"] == [1.0, 0.0, 0.0]
+    assert frame["axis_y"] == [0.0, 1.0, 0.0]
+    assert response["items"][0]["production_scope"] == "single_part"
+    assert baseline.exists()
+    retry = deepcopy(request)
+    retry["request_id"] = "safe-transport-retry"
+    assert _prepare(retry, root)["prepare_token"] == response["prepare_token"]
+    exported = _export_request_from_prepared(request, response)
+    _recheck(request, response, exported, root)
+    baseline.write_bytes(baseline.read_bytes() + b"\n999\nWHD-stale")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _recheck(request, response, exported, root)
+    assert exc.value.code == "WHD_PREPARE_STALE"
+
+
+@pytest.mark.parametrize("fault", [
+    "wrong_width", "wrong_height", "wrong_semantics",
+    "explicit_frame_edges", "explicit_frame_width", "explicit_gap",
+    "missing_groups", "invalid_groups", "extra_depth",
+])
+def test_indicator_small_door_source_claims_fail_closed_without_token(tmp_path, fault):
+    root, _, request, spec = _indicator_small_door_request(tmp_path)
+    part = request["items"][0]["part"]
+    dimensions = part["dimensions_mm"]
+    if fault == "wrong_width":
+        dimensions["width"] += 1.0
+    elif fault == "wrong_height":
+        dimensions["height"] += 1.0
+    elif fault == "wrong_semantics":
+        part["dimension_semantics"] = "cabinet_outer"
+    elif fault == "explicit_frame_edges":
+        part["frame_edges"] = {key: True for key in ("left", "right", "top", "bottom")}
+    elif fault == "explicit_frame_width":
+        part["frame_width_mm"] = 99.0
+    elif fault == "explicit_gap":
+        part["gap_w_mm"] = 4.0
+    elif fault == "missing_groups":
+        del part["indicator_groups"]
+    elif fault == "invalid_groups":
+        part["indicator_groups"] = [0]
+    elif fault == "extra_depth":
+        dimensions["depth"] = 100.0
+    request["request_digest"] = compute_wire_request_digest(request)
+    if fault == "invalid_groups":
+        # Draft wire schema rejects zero groups *before* WHD runtime gets it.
+        from jsonschema import ValidationError
+        with pytest.raises(ValidationError):
+            _prepare(request, root)
+    else:
+        with pytest.raises(PrepareEvidenceError) as exc:
+            _prepare(request, root)
+        assert exc.value.code in ("WHD_FRAME_UNVERIFIED", "WHD_PREPARE_INPUT_INVALID")
+
+
+@pytest.mark.parametrize("kind", ["indicator_box", "end_cap_head", "end_cap_tail"])
+def test_unverified_non_door_frames_do_not_issue_prepare_tokens(tmp_path, kind):
+    root, _, _ = _root(tmp_path)
+    req = _request()
+    part = req["items"][0]["part"]
+    part["kind"] = kind
+    # Cross the wire schema first, then prove the runtime refuses the kind.
+    if kind == "indicator_box":
+        part["indicator_groups"] = [1]
+    else:
+        part["dimensions_mm"]["depth"] = 300.0
+    req["request_digest"] = compute_wire_request_digest(req)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _prepare(req, root)
+    assert exc.value.code == "WHD_FRAME_UNVERIFIED"
+
+
+def test_indicator_small_door_seals_groups_and_rejects_export_replay_mutation(tmp_path):
+    root, _, req, _ = _indicator_small_door_request(tmp_path)
+    receipt = _prepare(req, root)
+    export = _export_request_from_prepared(req, receipt)
+    changed = deepcopy(export)
+    changed["items"][0]["part"]["indicator_groups"] = [1, 1]
+    changed["request_digest"] = compute_wire_request_digest(changed)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _recheck(req, receipt, changed, root)
+    assert exc.value.code == "WHD_PREPARE_STALE"
+
+
+def _twenty_mixed_door_small_door_prepare(tmp_path):
+    """Twenty distinct physical part identities, both already verified W-03 kinds."""
+    root, small_baseline, small, _ = _indicator_small_door_request(tmp_path)
+    original = _request(count=20)
+    for i, row in enumerate(original["items"]):
+        if i % 2:
+            part = deepcopy(small["items"][0]["part"])
+            part["source_part_ref"] = f"verified-source-small-door-{i}"
+            row["part"] = part
+    original["request_digest"] = compute_wire_request_digest(original)
+    return root, small_baseline, original
+
+
+def test_twenty_mixed_door_and_small_door_frames_are_separately_sealed(tmp_path):
+    """Only in-process prepare/recheck; this is not 20-piece mixed manufacturing."""
+    root, _, original = _twenty_mixed_door_small_door_prepare(tmp_path)
+    receipt = _prepare(original, root)
+    assert receipt["status"] == "success"
+    assert receipt["manufacturing_verified"] is False
+    items = receipt["items"]
+    assert len(items) == 20
+    assert len({r["physical_part_id"] for r in items}) == 20
+    assert len({r["preparation_digest"] for r in items}) == 20
+    assert len({r["target_frames"][0]["frame_id"] for r in items}) == 20
+    for i, row in enumerate(items):
+        frame = row["target_frames"][0]
+        assert row["status"] == "prepared"
+        assert row["production_scope"] == "single_part"
+        assert frame["face_role"] == "front"
+        assert frame["viewed_from"] == "along_normal"
+        assert frame["units"] == "mm"
+        assert frame["normal"] == [0.0, 0.0, 1.0]
+        assert frame["frame_id"].startswith("door:whd-")
+    retry = deepcopy(original)
+    retry["request_id"] = "retry-transport-only"
+    second = _prepare(retry, root)
+    assert second["prepare_token"] == receipt["prepare_token"]
+    assert [x["preparation_digest"] for x in second["items"]] == [
+        x["preparation_digest"] for x in items
+    ]
+    export = _export_request_from_prepared(original, receipt)
+    _recheck(original, receipt, export, root)
+    assert not (tmp_path / "worker-output-not-created").exists()
+
+
+@pytest.mark.parametrize("change", [
+    "one_small_door_width",
+    "one_small_door_groups",
+    "one_door_dimensions",
+    "mixed_source_reference",
+    "shared_small_door_baseline",
+])
+def test_twenty_mixed_prepare_one_invalid_item_or_resource_refuses_all(
+    tmp_path, change,
+):
+    root, baseline, original = _twenty_mixed_door_small_door_prepare(tmp_path)
+    if change in ("one_small_door_width", "one_door_dimensions"):
+        bad = deepcopy(original)
+        index = 1 if change == "one_small_door_width" else 0
+        bad["items"][index]["part"]["dimensions_mm"]["width"] += 1.0
+        bad["request_digest"] = compute_wire_request_digest(bad)
+        if change == "one_small_door_width":
+            with pytest.raises(PrepareEvidenceError) as exc:
+                _prepare(bad, root)
+            assert exc.value.code == "WHD_FRAME_UNVERIFIED"
+            assert not (tmp_path / "worker-output-not-created").exists()
+            return
+        # Door source is valid with the changed size, but an exported change
+        # to previously prepared part dimensions cannot replace the token.
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    if change == "one_door_dimensions":
+        export["items"][0]["part"]["dimensions_mm"]["width"] += 1.0
+    elif change == "one_small_door_groups":
+        export["items"][1]["part"]["indicator_groups"] = [1, 1]
+    elif change == "mixed_source_reference":
+        export["items"][19]["part"]["source_part_ref"] = "another-source"
+    elif change == "shared_small_door_baseline":
+        baseline.write_bytes(baseline.read_bytes() + b"\n999\nWHD-stale-mixed")
+    export["request_digest"] = compute_wire_request_digest(export)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _recheck(original, receipt, export, root)
+    assert exc.value.code == "WHD_PREPARE_STALE"
+    assert not (tmp_path / "worker-output-not-created").exists()

@@ -41,6 +41,10 @@ This skill has you show commands, outputs and captured artifacts. **Redact every
 
 If the redacted output is not enough to diagnose the bug, say so and ask the user.
 
+## 小修正快速回饋（不取代 final gate）
+
+先以真實症狀選定可 RED 的 `tests/...py::test_...`，用 `python tools/change_test_profile.py --task '修正 BUG' --change-type BUGFIX --changed-file <實際變動檔> --feedback-test <真實pytest node-id>` 產生 `fast_feedback.command`。在合法雲端施工執行器先跑此命令取得 RED，再最小修改、立即跑到 GREEN；未指定且本次沒有更動測試檔時會回 `NEEDS_EXPLICIT_TEST`，**禁止猜測**測試或將 READY 當成功。若已有明確實測 feedback 命令，CI RED 時先定位同一失敗 node 而非先改完直接再跑完整回歸。沒有可執行測試的雲端能力，須據實標 `FAST_FEEDBACK_NOT_EXECUTED`，不可聲稱 GREEN。最終 PR exact SHA 全量產品回歸／製造驗收仍必須執行；不新增本機／RC／DC 權限。
+
 ## Phase 1: Build a feedback loop
 
 **This is the skill.** Everything else is mechanical. If you have a **tight** pass/fail signal for the bug (one that goes red on _this_ bug), you will find the cause; bisection, hypothesis-testing, and instrumentation all just consume it. If you don't have one, no amount of staring at code will save you.

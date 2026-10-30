@@ -7,6 +7,15 @@ whd_schema: WHD_DOC_META_V1
 
 # WHD 開發與本地整合規則
 
+## 批次修改 → 本地定向測試 → 單次完整 PR CI `BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1`
+
+- 同一個 Bug 或可獨立驗收的小功能，先完成**同一批**相關程式、真正的 RED 重現與最小修復，確定需要的單元、GUI、DXF/Save→Reload、製造測試；用 `tools/quick_test.py` 在**實際有權操作的工作區**跑定向 RED→GREEN，必要時做受影響模組整合驗證，通過後原則上**一次 commit／push／PR 提交候選**，再交 GitHub 跑**一輪 exact HEAD 完整必要驗收**。不得每改一個檔就先丟一次完整產品 CI；若新 SHA 是 CI 失敗修正，仍須新 SHA 的完整必要 CI，不沿用舊 GREEN。
+- Windows 使用者可在自己的 `Z:\localX` 執行 `WHD_quick_test.bat --test tests/test_example.py::test_case`，或在已修改測試檔時 `WHD_quick_test.bat --auto`；`--auto --test <真實 node-id>` 會合併自動找到的全部修改測試和明確指定的測試，不得以後者覆蓋前者；雲端/GitHub 施工者在**合法已授權的雲端執行器**用 `python tools/quick_test.py --test ...`。沒有真正執行就標 `TARGETED_NOT_RUN`，不得把命令產生、`--dry-run` 或 CI 之外的結果冒充實測；這**不**授權 AI 讀取／操作 Windows、DC、RC 或任意本機 shell。未指定可判斷 BUG 的測試時 fail-closed `NEEDS_EXPLICIT_TEST`，先補真重現。
+- `tools/quick_test.py` **只選擇和執行本地 pytest**，保留 `tools/change_test_profile.py::build_fast_feedback` 的原有安全選路，不做 git add、commit、push 或製造資料修改；禁止本地測試綠燈取代 GitHub `WHD Product Regression`、治理獨立安全閘門、exact SHA／PR 與必要 Windows 人工驗收。
+- 一般產品 PR 的唯一**完整產品回歸主入口**仍是 `.github/workflows/whd-product-regression.yml`，現行 18 分片及所有 canonical selectors 必跑，不使用過期「42+1」歷史清單削減現有測試。歷史舊四套專項不再列為現行開發流程的盤點、遷移或合併前置。現行產品 PR 只以 `WHD Product Regression` 作為完整產品回歸主入口，必須覆蓋 root Python、`integration_cli/**`、幾何／GUI、製造來源基準與依賴變更；治理、安全與正式發布的必要獨立閘門仍保留，完整 canonical 製造驗收不可縮減。
+- 現有 `cancel-in-progress: true` 只取消**同一 PR 的舊 head**，不取消其他 PR；既有 `setup-python cache: pip` 與 Xvfb 安裝探測沿用，不另建快取系統。提交前盡量成批完成 RED→GREEN 減少被取消的完整回歸與重複環境建立。
+- CI RED 立即定位 failed node，留在同一 Issue／PR 做定向回修；CI GREEN 經 scope、exact SHA、base drift、mergeable 核對後直接安全合併遠端 `localX`、回讀與原 Issue 收尾，不把「等下一步指令」當停止理由。正式 `X` 只由當次 `/推推` 發布；本機 `Z:\localX` 是否同步、GUI/UAT 是否已做均按真實證據回報。
+
 ## 日常施工來源硬閘門 `LOCALX_DEVELOPMENT_SOURCE_AUTHORITY_V1`
 
 - **唯一日常施工與治理修改基準是 GitHub `localX`**：啟動時明確取得 `ref=localX` 的最新 HEAD，讀同一 HEAD 的 `AGENTS.md`／CURRENT Skill／產品程式與規格。新工作分支從此 HEAD 建立，既有分支先核對與最新 `localX` 的差異；產品／治理 PR 的 base 預設 `localX`，通過 exact SHA CI 後合回 GitHub `localX`。
@@ -68,6 +77,7 @@ whd_schema: WHD_DOC_META_V1
 - **X-only 歷史時區 CI 相容例外（只讀）**：僅兩個已在 X 合併且驗收的不可變提交 `06d97ca575ebf9c2973ab3fdaa669787702faac4`、`beac45c3b3afc5bb11629fcbcd6e1e51b76c8e09`（新增 `Asia/Taipei` 環境與來源時間安全檢查）可在 X-only 歷史回讀時視為治理；還須確認其除既定 CI workflow 外的差異全屬治理白名單。**不授權任何新 PR、其他 workflow 變更或任意 SHA 豁免**；產品發布與當次 `/推推` 仍照原硬閘門。
 - **先發布，再回同步**：使用者當次 `/推推`、exact PR head/base SHA、GitHub owner comment、必要 CI、X-only 歷史與無衝突均通過後，GitHub `localX` PR 合併至 X（不 force、不覆蓋）。正式 X 合併後，僅在 GitHub `localX` 為 X 祖先且無分叉時，以 `expected_sha` 限定、非強制 fast-forward **遠端** `localX` 到 X；本機獨立列為 `LOCAL_SYNC_PENDING`，不探測 DC／RC／本機。最後仍要核對正式 GitHub Release/tag 的 exact X merge SHA。
 - **GitHub 雙端回讀與本機獨立待辦**：確認 GitHub `HEAD(localX) == HEAD(X)` 且發布 PR merged、正式 GitHub Release/tag 已依原 gate 公開建立，才能回報 `OFFICIAL_RELEASED + LOCAL_SYNC_PENDING`（本機未知時）；未證實 Release 只能回報 `OFFICIAL_RELEASE_PENDING`，不得把 PR 合併當作最終完成。只有另有本機 SHA 實證時才可聲稱三方對齊；本機未同步不阻擋遠端發布，亦不重複索取 `/推推`、不 reset／force。
+- **正式發版可執行成品硬閘門 `OFFICIAL_WINDOWS_EXE_DELIVERY_V1`**：正式 `/推推` 不只產生 X Tag／GitHub Release；經原受信任 owner／exact X SHA 授權後，必須由 Windows x64 Runner 對**該次精確 X SHA** 真正執行 PyInstaller WHD.exe 打包及啟動 Smoke，附同一 Tag 的 `WHD_Windows_x64_<tag>.zip`、`SHA256.txt`、`WHD_Release_Notes_zh-TW.md`、`WHD_Windows_Guide_zh-TW.md`，驗 SHA256／ZIP 中 `WHD/WHD.exe`、中文檔與公開 Release body，全部 readback 後才可回報 `OFFICIAL_RELEASED`。缺件、誤用舊版固定 SHA／Tag、中文說明缺失或 Windows 建置失敗一律 `OFFICIAL_RELEASE_INCOMPLETE`；不可用 GitHub Source code ZIP、無 Assets 的 Tag 或僅 Linux workflow SUCCESS 冒充 EXE 發布。正式 X 僅當次 `/推推` 才能修改；這項打包驗收不要求讀取本機／DC，也不額外要求 Windows 操作員人工作業。
 - **通道不變**：治理／技能／非本體文件也由最新 GitHub `localX` 開分支、適用治理 CI 通過後 PR 合回 `localX`；正式 X 的產品／混合發布只需使用者當次 `/推推` 及受信任 gate，不要求另行 Windows UAT 證明。不得以過時治理直送 X 說明或 CoreELEC 副本繞過這條邊界。
 
 ## 已退役的 GitHub-only 額外授權例外 `GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1`（歷史識別）

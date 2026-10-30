@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 import hashlib
+import math
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -86,12 +87,61 @@ def door_spec_from_trusted_prepared_part(part: Mapping[str, Any], policy):
     )
 
 
+def indicator_small_door_spec_from_trusted_prepared_part(part: Mapping[str, Any], context):
+    """Adapt only the WHD-owned shared small-door geometry, never CADSplit dimensions.
+
+    The outside formed face must be asserted explicitly by the source; its
+    dimensions and fold policy are recomputed by the existing WHD helper.
+    An arbitrary Door override cannot turn this shared physical part into a
+    second manufacturing recipe.
+    """
+    from ae_engine.manufacturing_api import (
+        door_finished_face_size, indicator_small_door_finished_size,
+        indicator_small_door_spec,
+    )
+
+    if part.get("kind") != "indicator_small_door" or part.get("dimension_semantics") != "part_formed_outer":
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "small-door physical dimensions must be part_formed_outer")
+    prohibited = (
+        "frame_edges", "frame_width_mm", "gap_w_mm", "gap_h_mm",
+        "fold_left_mm", "fold_right_mm", "fold_top_mm", "fold_bottom_mm",
+    )
+    if any(key in part for key in prohibited):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "shared small door cannot override WHD factory policy")
+    groups = part.get("indicator_groups")
+    if (not isinstance(groups, list) or not groups
+            or any(type(group) is not int or group <= 0 for group in groups)):
+        raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "small-door layer groups required")
+    dims = part.get("dimensions_mm")
+    if not isinstance(dims, Mapping) or set(dims) != {"width", "height", "thickness"}:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "exact small-door formed dimensions required")
+    if any(type(dims[key]) not in (int, float) or not math.isfinite(dims[key]) or dims[key] <= 0
+           for key in ("width", "height", "thickness")):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "nonfinite or nonpositive small-door dimensions")
+    try:
+        spec = indicator_small_door_spec(groups, thickness=float(dims["thickness"]), context=context)
+        expected = indicator_small_door_finished_size(
+            groups, thickness=float(dims["thickness"]), context=context,
+        )
+        actual = door_finished_face_size(spec, context)
+    except (TypeError, ValueError, OverflowError, ArithmeticError) as exc:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "WHD small-door geometry cannot be verified") from exc
+    if any(
+        not math.isfinite(actual[i])
+        or not math.isclose(float(dims[key]), expected[i], rel_tol=0, abs_tol=1e-6)
+        or not math.isclose(actual[i], expected[i], rel_tol=0, abs_tol=1e-6)
+        for i, key in enumerate(("width", "height"))
+    ):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "source small-door size differs from WHD linked finished-face owner")
+    return spec
+
+
 def prepare_trusted_door_batch(
     request: Mapping[str, Any], *,
     resource_root: Path, engine_commit: str, engine_sha256: str,
     build_id: str, worker_key: bytes,
 ) -> dict[str, Any]:
-    """Return schema-validated preparation with no DXF and no manufacturing claim.
+    """Return source-attested Door/small-door preparation, not manufacturing.
 
     No caller can enable this through the public source-only CLI: the trusted
     W-06 key lifecycle and W-05 resource manifest are not yet available.
@@ -120,27 +170,35 @@ def prepare_trusted_door_batch(
 
     for item in request["items"]:
         p = item["part"]
-        if p["kind"] != "door" or p["dimension_semantics"] != "cabinet_outer":
-            raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "only verified cabinet_outer Door-local frame is supported")
-        flags = p.get("frame_edges")
-        if not isinstance(flags, dict) or set(flags) != {"left","right","top","bottom"} or not all(type(v) is bool for v in flags.values()):
-            raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "source layout must explicitly certify all four Door frame edges")
-        dims = p["dimensions_mm"]
-        if not all(k in dims for k in ("width","height","thickness")):
-            raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "complete verified Door input dimensions required")
+        kind = p["kind"]
+        if kind == "door":
+            if p["dimension_semantics"] != "cabinet_outer":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "only verified cabinet_outer Door-local frame is supported")
+            flags = p.get("frame_edges")
+            if not isinstance(flags, dict) or set(flags) != {"left","right","top","bottom"} or not all(type(v) is bool for v in flags.values()):
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "source layout must explicitly certify all four Door frame edges")
+            dims = p["dimensions_mm"]
+            if not all(k in dims for k in ("width","height","thickness")):
+                raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "complete verified Door input dimensions required")
+        elif kind != "indicator_small_door":
+            raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unverified physical part kind has no certified local Frame")
         if item["item_id"] in identities:
             raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "duplicate item ID")
         identities.add(item["item_id"])
-        door = door_spec_from_trusted_prepared_part(p, policy)
+        door = (door_spec_from_trusted_prepared_part(p, policy) if kind == "door"
+                else indicator_small_door_spec_from_trusted_prepared_part(p, ctx))
         identity_bytes = ("WHD-PART-v1\0" + request["client_installation_id"]
                 + "\0" + request["job_id"] + "\0" + item["item_id"]
                 + "\0" + p["source_part_ref"] + "\0" + item["source_document_sha256"]).encode("utf-8")
         physical_id = "whd-" + hashlib.sha256(identity_bytes).hexdigest()[:24]
         authoritative = resolve_authoritative_door_inputs(door, ctx)
+        if kind == "indicator_small_door":
+            authoritative = {**authoritative, "part_kind": kind,
+                             "indicator_groups": list(p["indicator_groups"])}
         frame = resolve_door_finished_local_frame(door, ctx, physical_part_id=physical_id)
         baseline = expected_baseline_path_for(door, ctx)
         if baseline is None:
-            raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "WHD could not identify its Door baseline")
+            raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "WHD could not identify the physical part baseline")
         # Resolving a symlink before creating the manifest would erase
         # the fact that a different physical file was selected.
         probe = baseline
