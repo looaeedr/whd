@@ -143,6 +143,12 @@ def _source_center_base_config(data):
     if abs(t - 2.0) > 1e-6:
         # The actual CENTER folded source is certified only for T2.
         raise ValueError("RECEIVING_CENTER_SOURCE_REQUIRES_T2")
+    from .receiving_nfb_depth_surface_policy import receiving_nfb_second_side_fold_mm
+    center_y_fold = receiving_nfb_second_side_fold_mm(
+        reference_nfb_depth_mm=pair[0],
+        secondary_nfb_depth_mm=pair[1],
+        base_plate_thickness_mm=t,
+    ) + t  # CENTER upper/lower material; outside = second + 2T.
     inside_offset = (
         LARGE_EAR_EDGE_TO_HOLE_CENTER_MM
         - LARGE_EAR_SOURCE_BEND_MM
@@ -163,9 +169,12 @@ def _source_center_base_config(data):
             or abs(side_shrink - (t + inside_offset
                                   + flat_source_slot_inset)) > 1e-6):
         raise ValueError("RECEIVING_CENTER_SOURCE_FIXING_DATUM_CONFLICT")
-    # Source CENTER unfolds to H240 with upper/lower 20-mm folds; physical
-    # nominal height is therefore 280. An NFB tier's Y is *placement*, not
-    # this height. Actual NFB screw envelopes must still pass their own
+    # Source CENTER unfolds to H240, but its upper/lower material folds
+    # are 35 mm for deep107/shallow72 (not the LEFT/RIGHT 20 mm).
+    # Nominal height 280 with shrink20/20 preserves the source H240 blank;
+    # those nominal-envelope margins are NOT the physical fold lengths.
+    # NFB tier Y is *placement*, not this height. NFB screw envelopes still
+    # need their own
     # per-part work-face containment checks downstream.
     return {
         "pattern": RECEIVING_BASE_PATTERN_CENTER,
@@ -174,7 +183,7 @@ def _source_center_base_config(data):
         "shrink_bottom": 20.0,
         "shrink_left": side_shrink,
         "shrink_right": side_shrink,
-        "bend": 20.0,
+        "bend": center_y_fold,
     }
 
 
@@ -419,6 +428,12 @@ def _stored_center_shape_is_stale(data, preferred):
             return False
         if not isfinite(number):
             return False
+        # Pre-fix CENTER projects persisted bend=20 (LEFT/RIGHT semantic).
+        # This one legacy field is not proof that the whole CENTER shape was
+        # a stale LEFT blank; source resolution replaces the Y fold without
+        # changing the source H240 blank.
+        if key == "bend" and abs(number - 20.0) <= 1e-6:
+            continue
         if abs(number - float(canonical[key])) > 1e-6:
             return True
     return False
