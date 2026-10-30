@@ -238,3 +238,99 @@ def request_private_worker_cancel(
         "job_id": request["job_id"],
         "request_digest": request["request_digest"],
     }
+
+
+def read_private_worker_immutable_result(
+    request: Mapping[str, Any], context: TrustedWorkerExecution,
+) -> dict[str, Any]:
+    """Read only a proven original W-06 result; never redo W-03/W-04.
+
+    Existing signed exact-job installation approval is sufficient for a
+    read-only result, not for manufacturing. A committed Export is physically
+    re-attested against all immutable DXFs; Prepare additionally checks the
+    Worker-owned HMAC-sealed receipt. Unfinished or corrupted jobs fail closed.
+    """
+    from integration_cli.cadsplit_worker import SCHEMA_ROOT
+    schema = json.loads((SCHEMA_ROOT / "request_v1_1.schema.json").read_text(encoding="utf-8"))
+    try:
+        Draft202012Validator(schema).validate(request)
+    except ValidationError as exc:
+        raise PrepareEvidenceError("WHD_SCHEMA_INVALID", "invalid original readback request") from exc
+    require_matching_wire_request_digest(request)
+    _validate_context(context, request)
+    if context.approved_request_identity is None:
+        raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "exact-job readback approval missing")
+    ledger = DurableJobIdentityLedger(context.store_root)
+    # claim() creates a row for an unknown job; readback must not even
+    # reserve a new job identity. Refuse unknown jobs before invoking it.
+    client, job, operation, digest = _identity(request)
+    with ledger._connect() as conn:
+        existing = conn.execute(
+            """SELECT request_digest FROM jobs
+               WHERE client_id=? AND job_id=? AND operation=?""",
+            (client, job, operation),
+        ).fetchone()
+    if existing is None:
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "no persisted job to read")
+    if not isinstance(existing[0], str) or not hmac.compare_digest(existing[0], digest):
+        raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "readback job digest changed")
+    claim = ledger.claim(request)
+    if claim.state == "rolled_back" and request["operation"] == "export":
+        return {
+            "protocol_version": request["protocol_version"],
+            "operation": "export",
+            "status": "rolled_back",
+            "manufacturing_verified": False,
+            "client_installation_id": request["client_installation_id"],
+            "job_id": request["job_id"],
+            "request_digest": request["request_digest"],
+        }
+    if claim.state != "committed" or not isinstance(claim.result, dict):
+        raise PrepareEvidenceError(
+            "WHD_JOB_RECOVERY_REQUIRED", "job lacks physically verified immutable result",
+        )
+    result = claim.result
+    if (
+        result.get("status") != "success"
+        or result.get("operation") != operation
+        or result.get("client_installation_id") != client
+        or result.get("job_id") != job
+        or result.get("request_digest") != digest
+        or result.get("manufacturing_verified") is not False
+    ):
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "immutable receipt identity invalid")
+    if operation == "prepare":
+        original, receipt = ledger.load_trusted_prepare(
+            client_installation_id=client, job_id=job, worker_key=context.worker_key,
+        )
+        if _identity(original) != (client, job, operation, digest) or receipt != result:
+            raise PrepareEvidenceError("WHD_PREPARE_STALE", "original prepare result changed")
+    else:
+        # claim() rehashes *artifact_json* but does not bind a result's
+        # displayed paths to those physically attested files. Never return a
+        # forged success receipt pointing at another customer's DXF.
+        with ledger._connect() as conn:
+            row = conn.execute(
+                """SELECT artifact_json FROM jobs
+                   WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",
+                (client, job, operation, digest),
+            ).fetchone()
+        try:
+            proofs = json.loads(row[0])
+            rows = result["items"]
+            issued = {
+                entry["physical_part_id"]: entry["path"] for entry in rows
+            }
+            expected = {entry["physical_part_id"] for entry in request["items"]}
+            if (
+                not isinstance(proofs, dict) or not isinstance(rows, list)
+                or len(rows) != len(expected) or len(issued) != len(expected)
+                or set(proofs) != expected or set(issued) != expected
+                or any(proofs[part]["path"] != path for part, path in issued.items())
+            ):
+                raise ValueError("result/physical-DXF inventory mismatch")
+        except (KeyError, ValueError, TypeError, IndexError) as exc:
+            raise PrepareEvidenceError(
+                "WHD_JOB_RECOVERY_REQUIRED", "immutable DXF receipt/proof differs",
+            ) from exc
+    return result
