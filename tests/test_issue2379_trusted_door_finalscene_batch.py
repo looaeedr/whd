@@ -966,3 +966,80 @@ def test_vault_endcap_rejects_nonempty_source_or_feature_before_any_dxf(
             output,
         )
     assert not list(output.rglob("*.dxf"))
+
+
+@pytest.mark.parametrize("source_kind", ["circle", "rect", "profile"])
+@pytest.mark.parametrize("invalid_layer", ["MARKING", "BEND", "CHECK", "0"])
+def test_real_original_noncutting_entity_cannot_be_relabelled_as_through_cut(
+    tmp_path, source_kind, invalid_layer,
+):
+    """A signed source handle/shape is NOT permission to manufacture a marker.
+
+    Re-sign the real, modified DXF and prepare a fresh W-03 receipt so this
+    asserts the source-layer trust boundary, not an unrelated SHA stale check.
+    Preserve a preexisting customer output even under overwrite=True.
+    """
+    if source_kind == "circle":
+        batch = _real_batch(tmp_path, count=1)
+        attack_index = 0
+    elif source_kind == "rect":
+        batch = _mixed_rect_batch(tmp_path)
+        attack_index = 1
+    else:
+        batch = _mixed_source_profile_batch(tmp_path)
+        attack_index = 1
+    original, _old_receipt, old_export, root, sources, source, *_ = batch
+    feature = old_export["items"][attack_index]["features"][0]
+    handle = feature["source_transform"]["source_entity_refs"][0]
+    doc = ezdxf.readfile(source)
+    entity = doc.entitydb.get(handle)
+    assert entity is not None and entity.dxf.layer == "CUTTING"
+    assert entity.dxftype() == ("CIRCLE" if source_kind == "circle" else "LWPOLYLINE")
+    entity.dxf.layer = invalid_layer
+    doc.saveas(source)
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for item in original["items"]:
+        item["source_document_sha256"] = source_sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    from tests.test_issue2378_prepare_batch import _prepare, _export_request_from_prepared
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    for old_item, new_item in zip(old_export["items"], export["items"]):
+        new_item["features"] = deepcopy(old_item["features"])
+    export["request_digest"] = compute_wire_request_digest(export)
+    target = tmp_path / f"cannot-cut-{source_kind}-{invalid_layer}"
+    target.mkdir()
+    persisted = target / (receipt["items"][0]["physical_part_id"] + ".dxf")
+    persisted.write_bytes(b"previous-customer-DXF-must-survive")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _save((original, receipt, export, root, sources, source),
+              target, overwrite=True)
+    assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
+    assert persisted.read_bytes() == b"previous-customer-DXF-must-survive"
+    assert list(target.glob("*.dxf")) == [persisted]
+    assert not list(target.glob(".whd-dxf-stage-*"))
+
+
+def test_real_source_case_insensitive_cutting_layer_is_still_supported(tmp_path):
+    """DXF layer spelling case does not change the source's CUTTING meaning."""
+    batch = _real_batch(tmp_path, count=1)
+    source = batch[5]
+    doc = ezdxf.readfile(source)
+    circle = next(iter(doc.modelspace().query("CIRCLE")))
+    circle.dxf.layer = "cutting"
+    doc.saveas(source)
+    original, _old_receipt, old_export, root, sources, *_ = batch
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for item in original["items"]:
+        item["source_document_sha256"] = source_sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    from tests.test_issue2378_prepare_batch import _prepare, _export_request_from_prepared
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    export["items"][0]["features"] = deepcopy(old_export["items"][0]["features"])
+    export["request_digest"] = compute_wire_request_digest(export)
+    produced = _save((original, receipt, export, root, sources, source),
+                     tmp_path / "case-insensitive-real-cutting")
+    assert len(produced) == 1
+    saved = ezdxf.readfile(next(iter(produced.values())))
+    assert saved.modelspace().query('CIRCLE[layer=="CUTTING"]')

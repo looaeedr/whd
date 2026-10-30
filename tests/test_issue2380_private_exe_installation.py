@@ -1075,3 +1075,79 @@ def test_packaged_engine_twenty_mixed_five_physical_kinds_native_dxf_atomic_repl
         path: (path.read_bytes(), path.stat().st_mtime_ns)
         for path in output_items.values()
     } == before
+
+
+@pytest.mark.skipif(not WINDOWS, reason="real Windows WHD-Engine.exe and DPAPI required")
+@pytest.mark.parametrize("source_layer", ["MARKING", "BEND"])
+def test_packaged_engine_never_converts_attested_noncutting_source_to_dxf_hole(
+    tmp_path, monkeypatch, source_layer,
+):
+    """Actual EXE must refuse a signed source marker before durable output."""
+    from copy import deepcopy
+    import ezdxf
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2378_prepare_batch import _export_request_from_prepared
+    from test_issue2379_trusted_door_finalscene_batch import _real_batch
+    from integration_cli.job_identity_ledger import DurableJobIdentityLedger
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires packaged Windows Engine.exe")
+    profile = tmp_path / f"標記不可切割-DPAPI-{source_layer}"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    installation = "source-layer-must-remain-cutting-" + source_layer.lower()
+    load_installation_key(installation, initialize=True)
+    original, _, old_export, _, documents, source, *_ = _real_batch(tmp_path, count=1)
+    doc = ezdxf.readfile(source)
+    source_circle = next(iter(doc.modelspace().query("CIRCLE")))
+    assert source_circle.dxf.layer == "CUTTING"
+    source_circle.dxf.layer = source_layer
+    doc.saveas(source)
+    original["items"][0]["source_document_sha256"] = hashlib.sha256(
+        source.read_bytes()
+    ).hexdigest()
+    original["request_digest"] = compute_wire_request_digest(original)
+    state = tmp_path / "sealed-state"
+    output = tmp_path / "existing-customer-dxf"
+    state.mkdir()
+    output.mkdir()
+    engine_sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation, store_root=state, output_dir=output,
+        source_documents=documents, expected_engine_sha256=engine_sha,
+    )
+
+    def run(operation, request, tag):
+        wire = tmp_path / (tag + ".json")
+        response = tmp_path / (tag + "-response.json")
+        wire.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+        proc = subprocess.run([
+            str(exe), "_private_installed", operation,
+            "--installation-id", installation,
+            "--request", str(wire), "--response", str(response),
+        ], cwd=tmp_path, capture_output=True, text=True, timeout=180)
+        return proc, (json.loads(response.read_text(encoding="utf-8"))
+                      if response.is_file() else None)
+
+    authorize_private_job(installation, original, engine_sha256=engine_sha)
+    proc, receipt = run("prepare", original, "attested-noncut-prepare")
+    assert proc.returncode == 0 and receipt["status"] == "success", (proc.stderr, receipt)
+    export = _export_request_from_prepared(original, receipt)
+    export["items"][0]["features"] = deepcopy(old_export["items"][0]["features"])
+    export["output"]["directory"] = str(output)
+    export["output"]["overwrite"] = True
+    export["request_digest"] = compute_wire_request_digest(export)
+    original_customer_dxf = output / (receipt["items"][0]["physical_part_id"] + ".dxf")
+    original_customer_dxf.write_bytes(b"previous-production-must-be-preserved")
+    authorize_private_job(installation, export, engine_sha256=engine_sha)
+    proc, denied = run("export", export, "attested-noncut-export")
+    assert proc.returncode != 0
+    assert denied is not None and denied["status"] == "failed", (proc.stderr, denied)
+    assert denied["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
+    assert original_customer_dxf.read_bytes() == b"previous-production-must-be-preserved"
+    assert list(output.glob("*.dxf")) == [original_customer_dxf]
+    with DurableJobIdentityLedger(state)._connect() as conn:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM jobs WHERE operation='export'"
+        ).fetchone()[0] == 0
