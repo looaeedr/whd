@@ -333,7 +333,7 @@ def _private_installed_main(argv: list[str]) -> int:
         print("WHD_JOB_STORE_UNAVAILABLE: private packaged Windows Worker required", file=sys.stderr)
         return 4
     parser = argparse.ArgumentParser(prog="WHD-Engine private installed Worker")
-    parser.add_argument("operation", choices=("prepare", "export", "recover-rollback"))
+    parser.add_argument("operation", choices=("prepare", "export", "recover-rollback", "request-cancel"))
     parser.add_argument("--installation-id", required=True)
     parser.add_argument("--request", type=Path, required=True)
     parser.add_argument("--response", type=Path, required=True)
@@ -349,6 +349,11 @@ def _private_installed_main(argv: list[str]) -> int:
             if args.operation == "recover-rollback":
                 from integration_cli.private_worker_installation import load_private_recovery_execution
                 context = load_private_recovery_execution(
+                    args.installation_id, preflight_request, engine_sha256=actual_exe_hash,
+                )
+            elif args.operation == "request-cancel":
+                from integration_cli.private_worker_installation import load_private_cancel_execution
+                context = load_private_cancel_execution(
                     args.installation_id, preflight_request, engine_sha256=actual_exe_hash,
                 )
             else:
@@ -369,6 +374,16 @@ def _private_installed_main(argv: list[str]) -> int:
                 status = 0
             except PrepareEvidenceError as exc:
                 raise WorkerFailure(exc.code, "trusted rollback refused", exit_code=4) from exc
+        elif args.operation == "request-cancel":
+            from integration_cli.private_worker_dispatch import request_private_worker_cancel
+            try:
+                # Re-read and verify the approved exact request after admission,
+                # then let the existing SQLite journal-arm lock serialize cancel.
+                actual_request = _read_request(args.request)
+                result = request_private_worker_cancel(actual_request, context)
+                status = 0
+            except PrepareEvidenceError as exc:
+                raise WorkerFailure(exc.code, "trusted cancellation refused", exit_code=4) from exc
         else:
             result, status = _execute_request(
                 args.operation, args.request, commit, build_id, trusted_context=context,
