@@ -568,6 +568,42 @@ store, actual resource paths, engine build identity and DPAPI-sourced key.
 Public `cadsplit_worker` remains disabled until W-03/W-04/W-06 key owner,
 source custody, cancel/progress and W-07 Gate A are complete.
 
+## W-01 → W-03/W-04/W-06 private Worker dispatch (#2375/#2380)
+
+The real `integration_cli.cadsplit_worker._execute_request` now has an
+**in-process-only** `trusted_context` injection seam. Only a trusted
+installation owner may construct `TrustedWorkerExecution` from its
+preexisting resource root, W-06 SQLite store, trusted output folder,
+trusted per-item original-DXF file mapping, source/build SHA and Worker HMAC
+key loaded via Windows DPAPI. No CADSplit JSON field, environment flag, CLI
+parameter, or `--private` command can construct this context.
+
+When this trusted context is injected, the *same Worker request entry*
+validates schema 1.1 and canonical request digest, executes WHD-owned
+`prepare_and_persist` and (for Export) loads the authenticated original
+W-03 Prepare request/receipt, rechecks real Registry/Frame/source DXF,
+then invokes W-04 real FinalScene Save→Reload with W-06 physical directory
+leases, original backups, durable multi-DXF journal, job receipt and
+`progress.json`. The Worker handles immutable replay by rehashing actual
+manufactured DXF bytes without rendering again; a restarted/unfinished
+job is not an authorized retry. A private export receipt retains
+`manufacturing_verified=false` and is **never** exposed as a public
+schema-1.1 `success` response.
+
+The shipped `WHD-Engine.exe` public parser still accepts **exactly**
+`capabilities`, `prepare`, `export`; `main()` never supplies
+`trusted_context`, so manufacturing flags stay false and the ordinary
+request path continues to decline manufacturing. Windows CI exercises
+the actual private request dispatch, real WHD original DXF → Prepare →
+durable Export → Save→Reload DXFs, DPAPI key restart and no-rewrite replay.
+Windows also continues to smoke-test the installed EXE from a Chinese
+path with public `prepare/export` disabled.
+
+**Not Gate A**: an authorized installed Worker bootstrap, trusted CADSplit
+source-document mapping and an approved public manufacturing certification
+still need independent end-to-end installation acceptance before this
+private execution seam may be made public.
+
 ## W-06 private progress.json from immutable Worker evidence (#2380)
 
 `integration_cli.worker_progress.PrivateWorkerProgress` supplies a
