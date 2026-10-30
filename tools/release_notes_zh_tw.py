@@ -29,6 +29,8 @@ _TOPICS: tuple[tuple[tuple[str, ...], str], ...] = (
      "**多份 DXF 的資料保護**：補強原檔備份、批次處理與中斷回復的內部驗證；相關能力仍屬內部整合，並非全面開放。"),
     (("#2378", "indicator small-door", "small-door prepare", "cadsplit"),
      "**小門與外部工具串接**：補強門板、小門與來源基準的對應檢查；目前屬整合驗證，未宣稱全部功能已對外啟用。"),
+    (("release", "pyinstaller", "windows exe", "zh-tw", "packaging"),
+     "**Windows 交付**：加強同版 EXE、完整下載包、檔案校驗與繁體中文更新說明的發布檢查。"),
     (("nfb", "receiving", "pad", "base plate"),
      "**受電箱與 NFB 配置**：整理相關板件、底板及配置的操作與來源驗證。"),
     (("cadcraft", "hole editor", "hole editing"),
@@ -37,8 +39,6 @@ _TOPICS: tuple[tuple[tuple[str, ...], str], ...] = (
      "**專案資料一致性**：補強存檔、重新開啟與編輯結果的核對。"),
     (("2d", "3d", "viewport", "gui", "preview", "finalscene"),
      "**操作畫面**：整理預覽顯示、操作流程及相關驗證。"),
-    (("release", "pyinstaller", "windows exe", "zh-tw", "packaging"),
-     "**Windows 交付**：加強同版 EXE、完整下載包、檔案校驗與繁體中文更新說明的發布檢查。"),
 )
 _MAX_HIGHLIGHTS = 5
 
