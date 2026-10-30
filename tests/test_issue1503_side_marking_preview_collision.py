@@ -161,3 +161,51 @@ def test_ear_3d_preview_survives_corrupt_saved_inner_doors_without_hiding_cabine
     assert "iterable" in adapter.last_formed_ear_display_blocker
     assert adapter._formed_ear_display_cache is not None
     assert adapter._formed_ear_display_cache[1] == ()
+
+
+def test_native_3d_assembly_surfaces_ear_source_blocker_when_ear_hidden():
+    """FinalScene warnings must explain a hidden unverified EAR, not just PAD."""
+    from phase6_final_scene_view import Phase6FinalSceneViewAdapter
+    from phase6_final_scene_contracts import AssemblyScenePart, AssemblySceneRenderData
+
+    snapshot = {
+        "model": "受電箱",
+        "nfb_config_submitted": True,
+        "receiving_base_plate": {"pattern": "LEFT_FLAT_SIDE"},
+        "inner_doors": 7,  # corrupt saved source: live EAR parser rejects it
+    }
+    deps = SimpleNamespace(
+        resolve_geometry=lambda: SimpleNamespace(parts=(), diagnostics=()),
+        assembly_part_cls=AssemblyScenePart,
+        assembly_corner_text_sink=lambda *_: None,
+        corner_dimension_text=lambda *_: "",
+        input_snapshot=lambda: snapshot,
+        settings_values=lambda: {},
+        formed_size_text=lambda *args, **kwargs: "",
+        blank_text=lambda *args, **kwargs: "",
+        operator_dimensions=lambda *_: (),
+        refresh_box_body_piece_info=None,
+        assembly_part_text_sink=lambda *args: None,
+        assembly_visibility=lambda *_: ((), ()),
+        interference_probe_parts=lambda: (),
+        cabinet_family=lambda: "受電箱",
+        show_interference=lambda: False,
+        assembly_render_data_cls=AssemblySceneRenderData,
+    )
+    adapter = Phase6FinalSceneViewAdapter.__new__(Phase6FinalSceneViewAdapter)
+    adapter.dependencies = deps
+    adapter._formed_ear_display_cache = None
+    adapter.last_formed_ear_display_blocker = None
+    # PAD has a separate well-tested renderer; isolate the EAR diagnostics
+    # while using the actual EAR source resolver and assembly query path.
+    adapter._formed_pad_assembly_preview = lambda *_: ()
+    adapter._pad_display_warnings = lambda: ()
+    adapter.make_assembly_scene_render_data = lambda **kw: SimpleNamespace(**kw)
+
+    render = adapter.query_assembly_render_data()
+    assert render.formed_fixing_plate_skins == ()
+    assert "not iterable" in adapter.last_formed_ear_display_blocker
+    assert any(
+        "EAR 3D" in warning and "not iterable" in warning
+        for warning in render.warnings
+    ), "Missing EAR diagnostics must never appear as a silently complete 3D view"
