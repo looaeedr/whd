@@ -360,3 +360,35 @@ def test_private_worker_twenty_unperforated_door_small_door_dxfs_replay_and_sour
     denied, status = _call(tmp_path, "export", retry, context)
     assert status != 0 and denied["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
     assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == evidence
+
+
+def test_private_worker_twenty_mixed_indicator_box_small_door_door_original_empty(
+    tmp_path,
+):
+    """Actual W-06 20-piece signed mixed box/door job, immutable durable DXFs."""
+    from test_issue2379_trusted_door_finalscene_batch import _empty_indicator_box_mixed_batch
+    batch = _empty_indicator_box_mixed_batch(tmp_path, count=20)
+    original, _, _, root, paths, source = batch
+    context = _context(tmp_path, batch)
+    prep, status = _call(tmp_path, "prepare", original, context)
+    assert status == 0 and prep["status"] == "success", prep
+    export = _export_request_from_prepared(original, prep)
+    export["output"]["directory"] = str(context.output_dir)
+    export["request_digest"] = compute_wire_request_digest(export)
+    finished, status = _call(tmp_path, "export", export, context)
+    assert status == 0 and finished["status"] == "success", finished
+    assert finished["manufacturing_verified"] is False
+    files = {Path(row["path"]) for row in finished["items"]}
+    assert len(files) == 20 and all(p.is_file() for p in files)
+    evidence = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files}
+    retry = deepcopy(export)
+    retry["request_id"] = "mixed-box-transport-retry"
+    result, status = _call(tmp_path, "export", retry, context)
+    assert status == 0 and result == finished
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files} == evidence
+    # W-04 may not replay success after original source has changed.
+    source.write_bytes(source.read_bytes() + b"\\nchanged")
+    refused, status = _call(tmp_path, "export", retry, context)
+    assert status != 0
+    assert refused["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files} == evidence

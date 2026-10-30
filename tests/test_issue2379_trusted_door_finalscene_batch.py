@@ -777,3 +777,88 @@ def test_missing_original_features_never_turns_source_geometry_into_hole_free_dx
         _save((original, receipt, export, root, source_docs, source), output)
     assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED"
     assert not list(output.glob("*.dxf")) if output.exists() else True
+
+
+def _empty_indicator_box_mixed_batch(tmp_path, *, count=20):
+    """W-03 real owners for 1..20 Door, small-door and shared indicator box."""
+    from tests.test_issue2378_prepare_batch import (
+        _request, _prepare, _export_request_from_prepared,
+        _indicator_box_request, _indicator_small_door_request,
+    )
+    from integration_cli.request_canonical import compute_wire_request_digest
+
+    root, _, box = _indicator_box_request(tmp_path)
+    _, _, small, _ = _indicator_small_door_request(tmp_path)
+    original = _request(count=count)
+    for i, row in enumerate(original["items"]):
+        if i % 3 == 1:
+            row["part"] = deepcopy(small["items"][0]["part"])
+            row["part"]["source_part_ref"] = f"physical-small-door-{i}"
+        elif i % 3 == 2:
+            row["part"] = deepcopy(box["items"][0]["part"])
+            row["part"]["source_part_ref"] = f"physical-indicator-box-{i}"
+    source = tmp_path / "CADSplit 原圖無圖元-盒子門片混批.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    assert len(doc.modelspace()) == 0
+    doc.saveas(source)
+    sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for row in original["items"]:
+        row["source_document_sha256"] = sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    sources = {row["item_id"]: source for row in original["items"]}
+    return original, receipt, export, root, sources, source
+
+
+def test_twenty_mixed_real_box_small_door_and_door_source_empty_native_dxf(tmp_path):
+    """20 actual WHD intrinsic box/door FinalScenes and Save->Reload DXFs."""
+    batch = _empty_indicator_box_mixed_batch(tmp_path, count=20)
+    original, receipt, export, root, sources, source = batch
+    assert {row["part"]["kind"] for row in original["items"]} == {
+        "door", "indicator_small_door", "indicator_box",
+    }
+    box_items = [row for row in receipt["items"]
+                 if row["target_frames"][0]["frame_id"].startswith("indicator_box:")]
+    assert box_items and all(
+        row["target_frames"][0]["allowed_feature_types"] == []
+        for row in box_items
+    )
+    output = tmp_path / "20 件 真實箱盒無孔"
+    produced = _save(batch, output)
+    assert len(produced) == 20
+    assert set(produced) == {r["physical_part_id"] for r in receipt["items"]}
+    for path in produced.values():
+        doc = ezdxf.readfile(path)
+        assert any(e.dxf.layer == "CUTTING" for e in doc.modelspace())
+        assert doc.modelspace().query('LINE[layer=="BEND"]')
+
+
+def test_indicator_box_original_entity_cannot_be_silently_dropped_by_empty_features(tmp_path):
+    """The box size-only Frame is NOT permission to ignore real CADSplit holes."""
+    from tests.test_issue2378_prepare_batch import (
+        _indicator_box_request, _prepare, _export_request_from_prepared,
+    )
+    from integration_cli.request_canonical import compute_wire_request_digest
+
+    root, _, original = _indicator_box_request(tmp_path)
+    source = tmp_path / "不允許忽略來源盒孔.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    doc.modelspace().add_circle((9, 9), 2, dxfattribs={"layer": "CUTTING"})
+    doc.saveas(source)
+    original["items"][0]["source_document_sha256"] = hashlib.sha256(
+        source.read_bytes()
+    ).hexdigest()
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    output = tmp_path / "不得出圖"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _save(
+            (original, receipt, export, root,
+             {original["items"][0]["item_id"]: source}, source), output,
+        )
+    assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED"
+    assert not list(output.rglob("*.dxf")) if output.exists() else True

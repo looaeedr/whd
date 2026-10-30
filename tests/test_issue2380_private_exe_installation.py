@@ -808,3 +808,79 @@ def test_packaged_engine_exports_unperforated_door_and_small_door_native_dxfs(
     proc, repeated = invoke("export", retry, "export-replay-unperforated")
     assert proc.returncode == 0 and repeated == finished
     assert before == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths}
+
+
+@pytest.mark.skipif(not WINDOWS, reason="packaged Windows Engine.exe and DPAPI required")
+def test_packaged_engine_featureless_box_real_native_dxf_and_immutable_replay(
+    tmp_path, monkeypatch,
+):
+    """Private onedir EXE: WHD box baseline -> FinalScene -> real DXF."""
+    import ezdxf
+    from copy import deepcopy
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2378_prepare_batch import _indicator_box_request, _export_request_from_prepared
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires true Engine.exe")
+    profile = tmp_path / "全域指示燈盒 DPAPI"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    name = "featureless-box-physical-dxf"
+    load_installation_key(name, initialize=True)
+    _, _, request = _indicator_box_request(tmp_path)
+    source = tmp_path / "CADSplit 空白原圖盒.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    assert len(doc.modelspace()) == 0
+    doc.saveas(source)
+    request["items"][0]["source_document_sha256"] = hashlib.sha256(
+        source.read_bytes()
+    ).hexdigest()
+    request["request_digest"] = compute_wire_request_digest(request)
+    store, output = tmp_path / "W06 盒子帳本", tmp_path / "W04 盒子 DXF"
+    store.mkdir()
+    output.mkdir()
+    sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        name, store_root=store, output_dir=output,
+        source_documents={request["items"][0]["item_id"]: source},
+        expected_engine_sha256=sha,
+    )
+
+    def invoke(operation, body, tag):
+        wire, result_file = tmp_path / f"{tag}.json", tmp_path / f"{tag}-out.json"
+        wire.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
+        proc = subprocess.run([
+            str(exe), "_private_installed", operation, "--installation-id", name,
+            "--request", str(wire), "--response", str(result_file),
+        ], cwd=tmp_path, capture_output=True, text=True, timeout=150)
+        return proc, json.loads(result_file.read_text(encoding="utf-8")) if result_file.exists() else None
+
+    authorize_private_job(name, request, engine_sha256=sha)
+    proc, prepared = invoke("prepare", request, "box-signed-prepare")
+    assert proc.returncode == 0 and prepared["status"] == "success", (
+        proc.stderr, prepared,
+    )
+    assert prepared["items"][0]["target_frames"][0]["allowed_feature_types"] == []
+    export = _export_request_from_prepared(request, prepared)
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(name, export, engine_sha256=sha)
+    proc, finished = invoke("export", export, "box-physical-export")
+    assert proc.returncode == 0 and finished["status"] == "success", (
+        proc.stderr, finished,
+    )
+    assert finished["manufacturing_verified"] is False
+    assert len(finished["items"]) == 1
+    output_file = Path(finished["items"][0]["path"])
+    assert output_file.is_file() and output_file.parent == output
+    actual = ezdxf.readfile(output_file)
+    assert any(e.dxf.layer == "CUTTING" for e in actual.modelspace())
+    assert actual.modelspace().query('LINE[layer=="BEND"]')
+    before = (output_file.read_bytes(), output_file.stat().st_mtime_ns)
+    repeated = deepcopy(export)
+    repeated["request_id"] = "box-transport-replay"
+    proc, replayed = invoke("export", repeated, "box-replay")
+    assert proc.returncode == 0 and replayed == finished
+    assert (output_file.read_bytes(), output_file.stat().st_mtime_ns) == before

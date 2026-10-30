@@ -15,9 +15,12 @@ from typing import Any, Mapping
 from integration_cli.prepare_batch import (
     door_spec_from_trusted_prepared_part,
     indicator_small_door_spec_from_trusted_prepared_part,
+    indicator_box_spec_from_trusted_prepared_part,
 )
 from integration_cli.prepare_evidence import PrepareEvidenceError, _pure_json
-from integration_cli.prepare_frame import resolve_door_finished_local_frame
+from integration_cli.prepare_frame import (
+    resolve_door_finished_local_frame, resolve_indicator_box_size_only_frame,
+)
 from integration_cli.prepare_recheck import recheck_trusted_door_export
 from integration_cli.source_circle_verification import verify_trusted_original_dxf_features
 
@@ -122,7 +125,11 @@ def save_trusted_door_circle_finalscene_batch(
     overwrite: bool = False,
     durable_ledger=None,
 ) -> dict[str, str]:
-    """Source-verified Door/small-door all-or-nothing batch; never accepts caller PartSpec.
+    """Source-verified Door/small-door plus zero-feature box all-or-nothing batch.
+
+    Never accepts a caller-controlled PartSpec. Box external Feature mapping
+    remains disabled; only an entirely empty original DXF can use WHD-owned
+    indicator-box FinalScene and independently verified DXF.
 
     The original W-03 authenticated prepare request/receipt are Worker-owned.
     Featureless Door/small-door is allowed only with an entirely empty original
@@ -182,8 +189,10 @@ def save_trusted_door_circle_finalscene_batch(
     rows = []
     for original, receipt, exported in zip(original_items, receipt_items, exported_items):
         kind = original["part"]["kind"]
-        if kind not in ("door", "indicator_small_door"):
-            _reject("only WHD-owned Door/small-door frames supported")
+        if kind not in ("door", "indicator_small_door", "indicator_box"):
+            _reject("only WHD-owned Door/small-door/featureless box frames supported")
+        if kind == "indicator_box" and exported.get("features"):
+            _reject("shared indicator-box has no certified source-Feature mapping")
         # A source DXF containing untransferred geometry is never an
         # unperforated blank: even zero declared Features must not silently
         # drop any original entity. Only genuinely empty modelspace sources
@@ -200,6 +209,23 @@ def save_trusted_door_circle_finalscene_batch(
                 _reject("source DXF has untransferred geometry without declared Features")
         original_item_id = original["item_id"]
         source_path = source_documents.get(original_item_id)
+        if kind == "indicator_box":
+            # W-03 certifies ONLY WHD-owned box outside size; no local
+            # source-Feature placement has been proved. When original DXF
+            # modelspace and wire Features are BOTH empty, the physical box
+            # and lamp layout are entirely resolved by WHD's own shared
+            # baseline + IndicatorBoxPartSpec. Never synthesize a transform.
+            spec = indicator_box_spec_from_trusted_prepared_part(
+                original["part"], context,
+            )
+            frame = resolve_indicator_box_size_only_frame(
+                spec, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("WHD box size-only frame differs from prepared Frame")
+            render = build_part_render_data(spec, context)
+            rows.append((receipt["physical_part_id"], render))
+            continue
         # Do not accept an export-side replacement of canonical mechanical
         # inputs: the exact same adapter is used at W-03 prepare.
         spec = (
