@@ -537,11 +537,168 @@ DPAPI APIs and verifies that a separately started Python process obtains
 the same HMAC result; it does not use a crypto mock or print secret bytes.
 
 This is **private custody only**: it does not yet assign a trusted Worker
-installer/identity lifecycle, integrate persisted W-03 prepare receipts,
-claim the public CLI, support a service account or a remote UNC store, or
+installer/identity lifecycle, activate persisted W-03 prepare receipts via the public CLI,
+support a service account or a remote UNC store, or
 make W-06 keys recoverable across Windows user-profile changes. Normal
 `cadsplit_worker` public `prepare/export` stays disabled; no machine
 certification, Gate A, or `/推推` is implied.
+
+## W-06 original Prepare custody in existing durable ledger (#2380)
+
+Private `DurableJobIdentityLedger.prepare_and_persist` now reserves a W-03
+`(client_installation_id,job_id,prepare)` identity **before** any WHD
+Prepare work. Its actual `prepare_trusted_door_batch` canonical output,
+together with the exact original request, is HMAC-sealed using the Worker-owned
+installation key and committed **in the same SQLite transaction** as the
+immutable job result. Repeated completed requests (even with a different
+transport-only `request_id`) read the original receipt, not rerender.
+A crashed/incomplete prepare remains `WHD_JOB_RECOVERY_REQUIRED`.
+
+`load_trusted_prepare` checks the HMAC, job digest, and identical persisted
+result on every reopen; legacy completed rows without the original attested
+request never gain export authority. `recheck_persisted_prepare_for_export`
+retrieves that persisted pair and invokes the existing W-03 source/Frame/
+resource/feature recheck. Neither export JSON nor a guessed token can inject
+a substitute original Prepare receipt. No customer DXF is written by these
+methods. Real WHD baseline/Registry and two-Door tests cover restart,
+tamper/recomputed plain SHA, collision and export recheck.
+
+This is **private** and relies on a trusted caller to select the installation
+store, actual resource paths, engine build identity and DPAPI-sourced key.
+Public `cadsplit_worker` remains disabled until W-03/W-04/W-06 key owner,
+source custody, cancel/progress and W-07 Gate A are complete.
+
+## W-01 → W-03/W-04/W-06 private Worker dispatch (#2375/#2380)
+
+The real `integration_cli.cadsplit_worker._execute_request` now has an
+**in-process-only** `trusted_context` injection seam. Only a trusted
+installation owner may construct `TrustedWorkerExecution` from its
+preexisting resource root, W-06 SQLite store, trusted output folder,
+trusted per-item original-DXF file mapping, source/build SHA and Worker HMAC
+key loaded via Windows DPAPI. No CADSplit JSON field, environment flag, CLI
+parameter, or `--private` command can construct this context.
+
+When this trusted context is injected, the *same Worker request entry*
+validates schema 1.1 and canonical request digest, executes WHD-owned
+`prepare_and_persist` and (for Export) loads the authenticated original
+W-03 Prepare request/receipt, rechecks real Registry/Frame/source DXF,
+then invokes W-04 real FinalScene Save→Reload with W-06 physical directory
+leases, original backups, durable multi-DXF journal, job receipt and
+`progress.json`. The Worker handles immutable replay by rehashing actual
+manufactured DXF bytes without rendering again; a restarted/unfinished
+job is not an authorized retry. A private export receipt retains
+`manufacturing_verified=false` and is **never** exposed as a public
+schema-1.1 `success` response.
+
+The shipped `WHD-Engine.exe` public parser still accepts **exactly**
+`capabilities`, `prepare`, `export`; `main()` never supplies
+`trusted_context`, so manufacturing flags stay false and the ordinary
+request path continues to decline manufacturing. Windows CI exercises
+the actual private request dispatch, real WHD original DXF → Prepare →
+durable Export → Save→Reload DXFs, DPAPI key restart and no-rewrite replay.
+Windows also continues to smoke-test the installed EXE from a Chinese
+path with public `prepare/export` disabled.
+
+**Not Gate A**: an authorized installed Worker bootstrap, trusted CADSplit
+source-document mapping and an approved public manufacturing certification
+still need independent end-to-end installation acceptance before this
+private execution seam may be made public.
+
+## W-06 actual private installed WHD-Engine.exe entry (#2380)
+
+`WHD-Engine.exe` has an **undocumented internal**
+`_private_installed prepare|export --installation-id ... --request ...
+--response ...` path. This entry is Windows-EXE-only, not the ordinary
+CADSplit CLI and not a certified manufacturing feature. It refuses all
+source-only calls and missing/invalid installed custody. The trusted
+installer-only Python API `private_worker_installation.provision_private_installation`
+pins an immutable, HMAC-authenticated source-document map, output folder,
+private SQLite store and exact built EXE SHA256. It stores this under the
+current Windows user's protected installation profile, using the existing
+DPAPI-protected Worker signing key. A regular CLI request cannot provision
+these authorities or set a Worker key/path through JSON, env or arguments.
+Re-provisioning and tampered installation records fail closed. **An
+installed context alone is NOT permission to process arbitrary jobs.**
+The trusted installation owner must separately call
+`private_worker_installation.authorize_private_job(installation_id,
+request, engine_sha256=...)` for each exact canonical
+`(client_installation_id, job_id, operation, request_digest)`. This
+writes one exclusive HMAC-sealed immutable approval, separate for Prepare
+and Export. The packaged EXE requires this approval before any W-03/W-04
+work; if absent, modified, different digest or reused for a different
+operation, it refuses without manufacturing. The request is checked
+again after the second file read to guard request-swap races.
+
+**Security boundary:** Current-user DPAPI protects the key at rest but
+does not isolate *hostile code running as the same Windows account*.
+These installer-only APIs are not public CADSplit handlers or an OS
+authorization service. Real public Gate A still needs independent
+installed-identity, caller and source-custody certification.
+
+The private EXE loads that installed custody, verifies the actual packaged
+Engine/Registry/resources, and calls the same W-01 → W-03/W-06/W-04
+`_execute_request(..., trusted_context=...)` path as the real private
+integration tests. Windows CI additionally **spawns the actual onedir EXE**
+after private trusted setup, executes source-attested Prepare, verifies
+the persisted original W-03 HMAC receipt after process restart, verifies
+idempotent replay, and rejects both an unprovisioned installation ID
+and an installed but unapproved job. The same Windows runner requires
+a *separately approved* Export request, actual source-DXF Save→Reload,
+and restart replay without changing final DXF bytes/mtime.
+
+This is **not the public CADSplit integration Gate A**. The installer is
+not available to external clients, public `prepare/export` and capability
+flags remain disabled, and a private successful Prepare is not certification
+of completed manufacturing. No customer configuration UI, credential entry,
+or automatic installation bootstrap is created.
+
+## W-06 private progress.json from immutable Worker evidence (#2380)
+
+`integration_cli.worker_progress.PrivateWorkerProgress` supplies a
+**non-authoritative projection** of the original trusted W-06 SQLite job,
+cancel, staged-batch and multi-DXF replacement journal. The Worker alone
+chooses its trusted private installation-store root. An atomic, fsynced
+`progress/<SHA256 of client+job+operation+digest>/progress.json` is
+published at private Prepare claim/verified receipt, cancellation, real
+W-04 Save→Reload stage, replacement armed/applying/applied and final
+verified export completion. Each write is serialized under SQLite
+`BEGIN IMMEDIATE` to avoid two Worker processes publishing out of order.
+A startup/restart can always call `read(request)` to derive the current
+status directly from SQLite; it **never reads a user-modified progress file
+as authority**. Missing or corrupt DB records and wrong request digests
+fail closed.
+
+An unfinished/mid-replace/cancelled job cannot produce 100%, a
+`manufacturing_verified=true` claim or any output authorization.
+`prepared` at 100% means only that this **Prepare operation** has a valid
+persisted W-03 HMAC receipt, requiring the Worker-only `worker_key`
+on read/publish; it does **not** mean a manufactured DXF exists. An Export
+is 100% only after existing W-06 `complete` and true physical DXF
+attestation readback. A corrupted customer DXF makes the progress read
+fail closed, not return a cached 100%. A crashed `applying` journal
+reports `recovery_required`; no automatic replay, rollback or user file
+modification is performed by the projection.
+
+This is private Worker progress only. It is **not** a public CADSplit
+progress/cancel API, an independent signing authority, or complete W-06
+Gate A. The existing public `prepare/export` remain disabled.
+
+## W-06 private durable cancellation safe points (#2380)
+
+The trusted Worker (never CADSplit wire JSON) may call
+`DurableJobIdentityLedger.request_cancel(original_request)` after a private
+job is claimed. A SQLite WAL/FULL-sync `job_cancel_intents` row pins its
+**original canonical digest**; the intent survives process restart, a second
+identical cancel is idempotent, and a changed job digest is refused. Private
+Prepare and Export check the flag before publishing an immutable success
+receipt. W-04 also checks at its source/Save→Reload safe points. The
+multi-DXF `DurableMultiDXFRollbackJournal.arm` atomically checks the same
+cancel row under `BEGIN IMMEDIATE` before writing any replacement intent.
+After arming, a cancel request is refused as recovery-required rather than
+interrupting an applying multi-file replacement. A cancelled, unfinished
+job is **not automatically rerun**; recovery owns terminal resolution.
+This only adds a private cancellation seam; no public cancel CLI,
+`progress.json` or full W-06/Gate A claim is made.
 
 ## W-05 private Windows Engine onedir candidate (#2381)
 

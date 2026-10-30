@@ -12,7 +12,10 @@ import math
 from pathlib import Path
 from typing import Any, Mapping
 
-from integration_cli.prepare_batch import door_spec_from_trusted_prepared_part
+from integration_cli.prepare_batch import (
+    door_spec_from_trusted_prepared_part,
+    indicator_small_door_spec_from_trusted_prepared_part,
+)
 from integration_cli.prepare_evidence import PrepareEvidenceError, _pure_json
 from integration_cli.prepare_frame import resolve_door_finished_local_frame
 from integration_cli.prepare_recheck import recheck_trusted_door_export
@@ -119,7 +122,7 @@ def save_trusted_door_circle_finalscene_batch(
     overwrite: bool = False,
     durable_ledger=None,
 ) -> dict[str, str]:
-    """Source-verified Door-only all-or-nothing batch; never accepts caller PartSpec.
+    """Source-verified Door/small-door all-or-nothing batch; never accepts caller PartSpec.
 
     The original W-03 authenticated prepare request/receipt are Worker-owned.
     This function derives WHD DoorPartSpec from *those* original dimensions and
@@ -148,7 +151,13 @@ def save_trusted_door_circle_finalscene_batch(
         if output_dir.is_symlink() or not output_dir.is_dir():
             _reject("W-06 durable export needs preexisting trusted output directory")
 
+    # The very first source guard runs before a W-06 job is claimed.
+    # Later stage/commit guards can safely read its durable cancel intent.
+    active_durable_job = False
+
     def guard() -> None:
+        if active_durable_job:
+            durable_ledger.assert_not_cancelled(export_request)
         recheck_trusted_door_export(
             trusted_prepare_request, trusted_prepare_response, export_request,
             source_documents=source_documents, resource_root=resource_root,
@@ -170,13 +179,20 @@ def save_trusted_door_circle_finalscene_batch(
     context = ManufacturingContext(resource_root=resource_root, policy=policy)
     rows = []
     for original, receipt, exported in zip(original_items, receipt_items, exported_items):
-        if original["part"]["kind"] != "door" or not exported.get("features"):
-            _reject("only Door items with proven source Feature inventory supported")
+        kind = original["part"]["kind"]
+        if kind not in ("door", "indicator_small_door") or not exported.get("features"):
+            _reject("only WHD-owned Door/small-door with proven source Features supported")
         original_item_id = original["item_id"]
         source_path = source_documents.get(original_item_id)
         # Do not accept an export-side replacement of canonical mechanical
         # inputs: the exact same adapter is used at W-03 prepare.
-        spec = door_spec_from_trusted_prepared_part(original["part"], policy)
+        spec = (
+            door_spec_from_trusted_prepared_part(original["part"], policy)
+            if kind == "door"
+            else indicator_small_door_spec_from_trusted_prepared_part(
+                original["part"], context
+            )
+        )
         frame = resolve_door_finished_local_frame(
             spec, context, physical_part_id=receipt["physical_part_id"],
         )
@@ -207,9 +223,14 @@ def save_trusted_door_circle_finalscene_batch(
         claim = durable_ledger.claim(export_request)
         if claim.state != "new":
             _reject("durable job cannot be rendered again; read its immutable result")
+        active_durable_job = True
+        durable_ledger.assert_not_cancelled(export_request)
         durable_ledger.reserve_output_directories(
             export_request, trusted_directories=[output_dir],
         )
+        from integration_cli.worker_progress import PrivateWorkerProgress
+        progress = PrivateWorkerProgress(durable_ledger)
+        progress.publish(export_request)
 
         def commit_staged(staged: Mapping[str, Path], root: Path) -> dict[str, str]:
             # This callback runs ONLY after all 1..20 WHD-owned staged DXFs
@@ -222,6 +243,7 @@ def save_trusted_door_circle_finalscene_batch(
                 export_request, trusted_output_dir=root,
                 trusted_staged=staged, overwrite=overwrite,
             )
+            progress.publish(export_request)
             backup = DurableOriginalBackupEvidence(durable_ledger)
             backup.create_verified_original_backups(
                 export_request, trusted_output_dir=root,
@@ -244,6 +266,7 @@ def save_trusted_door_circle_finalscene_batch(
             durable_ledger.complete(
                 export_request, receipt, trusted_artifacts=actual,
             )
+            progress.publish(export_request)
             return {physical: str(path) for physical, path in actual.items()}
 
     # This engine owns staged DXFs and independent Save→Reload verification.

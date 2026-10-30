@@ -66,7 +66,13 @@ def _source_snapshot(path: Path, expected_sha256: str):
     if hashlib.sha256(raw).hexdigest() != expected_sha256:
         _fail("original DXF bytes differ from prepared source_document_sha256")
     try:
-        document = ezdxf.read(io.StringIO(raw.decode("utf-8-sig")))
+        # Python StringIO's default newline="\\n" preserves CRLF from
+        # Windows-authored DXFs. The DXF tag reader expects universal-newline
+        # text; otherwise entity HANDLE values can retain a stray CR and fail
+        # identity lookup despite the file's correct pinned SHA-256.
+        # Normalize newline *only in the in-memory view of the SAME bytes*.
+        # Do NOT reopen a mutable customer file or skip the source hash.
+        document = ezdxf.read(io.StringIO(raw.decode("utf-8-sig"), newline=None))
     except (UnicodeError, ValueError, ezdxf.DXFError, OSError) as exc:
         raise PrepareEvidenceError("WHD_SOURCE_UNVERIFIED", "original DXF cannot be parsed from its pinned bytes") from exc
     return document

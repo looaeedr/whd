@@ -92,9 +92,29 @@ def test_tampered_or_missing_encrypted_key_never_implicitly_rotates(monkeypatch,
     assert file.read_bytes() != original_ciphertext
     assert original != file.read_bytes()
     file.unlink()
+    for bootstrap in (False, True):
+        # A valid installation directory remains: even a repeated bootstrap
+        # must NOT silently mint a replacement key after ciphertext loss.
+        with pytest.raises(PrepareEvidenceError) as exc:
+            load_installation_key(name, initialize=bootstrap)
+        _failure(exc)
+    assert not file.exists()
+    assert list(profile.rglob("worker_hmac_v1.dpapi")) == []
+
+
+@pytest.mark.skipif(not WINDOWS, reason="requires Windows user-DPAPI")
+def test_precreated_installation_directory_cannot_bootstrap_a_new_key(monkeypatch, tmp_path):
+    profile = _setup(monkeypatch, tmp_path)
+    name = "existing-install-without-key"
+    directory = (
+        profile / "WHD" / "Engine"
+        / ("install-" + hashlib.sha256(name.encode("ascii")).hexdigest())
+    )
+    directory.mkdir(parents=True)
     with pytest.raises(PrepareEvidenceError) as exc:
-        load_installation_key(name)
+        load_installation_key(name, initialize=True)
     _failure(exc)
+    assert not list(directory.iterdir())
 
 
 @pytest.mark.skipif(not WINDOWS, reason="requires Windows user-DPAPI")

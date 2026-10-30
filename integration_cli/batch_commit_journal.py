@@ -136,6 +136,9 @@ class DurableMultiDXFRollbackJournal:
         # this private commit owner; per_part has different recovery semantics.
         if request.get("transaction_mode") != "all_or_nothing":
             raise _refuse("per-part manufacturing requires its own verified journal")
+        # A requested cancellation before durable replacement intent must
+        # abort without ever touching a customer final DXF.
+        self._ledger.assert_not_cancelled(request)
         snapshot = self._ledger.require_staged_batch_snapshot_current(request)
         backup_manifest = self._backups.require_current(request)
         root = Path(backup_manifest["directory"])
@@ -176,6 +179,22 @@ class DurableMultiDXFRollbackJournal:
             ).fetchone()
             if prior is not None:
                 raise _refuse("existing replacement intent cannot be restarted")
+            # This read shares the same BEGIN IMMEDIATE lock with
+            # request_cancel(), closing the check/arm race.
+            cancellation = conn.execute(
+                """SELECT request_digest FROM job_cancel_intents
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+            if cancellation is not None:
+                if (not isinstance(cancellation[0], str)
+                        or not hmac.compare_digest(cancellation[0], digest)):
+                    raise PrepareEvidenceError(
+                        "WHD_JOB_ID_CONFLICT", "cancel intent identity differs",
+                    )
+                raise PrepareEvidenceError(
+                    "WHD_JOB_CANCELLED", "cancelled job cannot arm DXF replacement",
+                )
             conn.execute(
                 """INSERT INTO batch_replace_journals
                    (client_id,job_id,operation,request_digest,state,plan_json,plan_sha256)
@@ -191,6 +210,8 @@ class DurableMultiDXFRollbackJournal:
             raise
         finally:
             conn.close()
+        from integration_cli.worker_progress import PrivateWorkerProgress
+        PrivateWorkerProgress(self._ledger).publish(request)
         return plan
 
     def _change_state(self, request: Mapping[str, Any], expected: str, changed: str) -> None:
@@ -240,6 +261,10 @@ class DurableMultiDXFRollbackJournal:
         if hashlib.sha256(_json(backup).encode("utf-8")).hexdigest() != plan["backup_sha256"]:
             raise _refuse("original backup evidence differs")
         self._change_state(request, "armed", "applying")
+        # This checkpoint is made before touching any customer final DXF;
+        # an interruption here remains recovery_required, never success.
+        from integration_cli.worker_progress import PrivateWorkerProgress
+        PrivateWorkerProgress(self._ledger).publish(request)
         result: dict[str, Path] = {}
         try:
             for index, item in enumerate(plan["items"], 1):
@@ -263,6 +288,7 @@ class DurableMultiDXFRollbackJournal:
                 if after_replace is not None:
                     after_replace(index)
             self._change_state(request, "applying", "applied")
+            PrivateWorkerProgress(self._ledger).publish(request)
         except Exception as exc:
             # The journal and original backups remain, including every
             # replacement intent. Only explicit recovery may touch outputs.

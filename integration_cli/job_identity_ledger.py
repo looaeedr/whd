@@ -289,6 +289,33 @@ class DurableJobIdentityLedger:
                 )
             """)
 
+            # W-03 trusted prepare request and genuine WHD receipt are one
+            # authenticated, immutable W-06 job transaction. Never derive
+            # a new original request from CADSplit export wire JSON.
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS trusted_prepares (
+                    client_id TEXT NOT NULL,
+                    job_id TEXT NOT NULL,
+                    request_digest TEXT NOT NULL,
+                    source_and_receipt_json TEXT NOT NULL,
+                    source_and_receipt_hmac TEXT NOT NULL,
+                    PRIMARY KEY(client_id,job_id)
+                )
+            """)
+
+            # W-06 cancel is private, durable and irreversible for a job.
+            # Once a replacement is ARMED, cancellation cannot interrupt a
+            # multi-DXF transaction; explicit crash recovery remains owner.
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS job_cancel_intents (
+                    client_id TEXT NOT NULL,
+                    job_id TEXT NOT NULL,
+                    operation TEXT NOT NULL,
+                    request_digest TEXT NOT NULL,
+                    PRIMARY KEY(client_id,job_id,operation)
+                )
+            """)
+
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS batch_replace_journals (
                     client_id TEXT NOT NULL,
@@ -380,6 +407,271 @@ class DurableJobIdentityLedger:
             raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "persisted manifest cannot be trusted") from exc
         return JobClaim("committed", result)
 
+
+    def prepare_and_persist(
+        self,
+        request: Mapping[str, Any],
+        *,
+        resource_root: Path,
+        engine_commit: str,
+        engine_sha256: str,
+        build_id: str,
+        worker_key: bytes,
+    ) -> dict[str, Any]:
+        """PRIVATE W-03→W-06 bridge, not an activated public Worker handler.
+
+        First claim is durable BEFORE WHD processes the batch. W-03 recomputes
+        all physical Frame/baseline/policy/HMAC facts. The exact original
+        request and actual WHD receipt are HMAC-sealed and committed together
+        with the W-06 immutable result in ONE SQLite transaction.
+        A crash after claim is recovery-required, NEVER a second render.
+        """
+        client, job, operation, digest = _identity(request)
+        if operation != "prepare":
+            raise PrepareEvidenceError("WHD_OPERATION_MISMATCH", "private prepare only")
+        if not isinstance(worker_key, bytes) or len(worker_key) < 32:
+            raise PrepareEvidenceError("WHD_PREPARE_KEY_UNAVAILABLE", "trusted Worker key missing")
+        claim = self.claim(request)
+        if claim.state == "committed":
+            original, persisted = self.load_trusted_prepare(
+                client_installation_id=client, job_id=job, worker_key=worker_key,
+            )
+            if _identity(original)[3] != digest:
+                raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "immutable prepare request changed")
+            return persisted
+        if claim.state != "new":
+            raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "prepare cannot be rerun")
+        self.assert_not_cancelled(request)
+        from integration_cli.worker_progress import PrivateWorkerProgress
+        PrivateWorkerProgress(self).publish(request)
+
+        from integration_cli.prepare_batch import prepare_trusted_door_batch
+
+        receipt = prepare_trusted_door_batch(
+            request, resource_root=resource_root, engine_commit=engine_commit,
+            engine_sha256=engine_sha256, build_id=build_id, worker_key=worker_key,
+        )
+        if (receipt.get("operation") != "prepare" or receipt.get("status") != "success"
+                or receipt.get("manufacturing_verified") is not False
+                or receipt.get("client_installation_id") != client
+                or receipt.get("job_id") != job or receipt.get("request_digest") != digest):
+            raise PrepareEvidenceError("WHD_PREPARE_STALE", "WHD-owned prepare receipt invalid")
+        payload = _json({"original_request": request, "trusted_receipt": receipt})
+        mac = hmac.new(
+            worker_key, ("WHD-W06-TRUSTED-PREPARE-v1\x00" + client + "\x00"
+                         + job + "\x00" + digest + "\x00" + payload).encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+        result_json = _json(receipt)
+        with closing(self._connect()) as conn:
+            try:
+                conn.execute("BEGIN IMMEDIATE")
+                job_row = conn.execute(
+                    """SELECT request_digest,state FROM jobs
+                       WHERE client_id=? AND job_id=? AND operation='prepare'""",
+                    (client, job),
+                ).fetchone()
+                if not job_row or job_row != (digest, "started"):
+                    raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "prepare job changed before commit")
+                if conn.execute(
+                    """SELECT 1 FROM job_cancel_intents
+                       WHERE client_id=? AND job_id=? AND operation='prepare' AND request_digest=?""",
+                    (client, job, digest),
+                ).fetchone():
+                    raise PrepareEvidenceError("WHD_JOB_CANCELLED", "prepare cancelled before immutable receipt")
+                conn.execute(
+                    """INSERT INTO trusted_prepares
+                       (client_id,job_id,request_digest,source_and_receipt_json,source_and_receipt_hmac)
+                       VALUES (?,?,?,?,?)""",
+                    (client, job, digest, payload, mac),
+                )
+                conn.execute(
+                    """UPDATE jobs SET state='committed',result_json=?,result_sha256=?,artifact_json='{}'
+                       WHERE client_id=? AND job_id=? AND operation='prepare' AND state='started'""",
+                    (result_json, hashlib.sha256(result_json.encode("utf-8")).hexdigest(), client, job),
+                )
+                conn.commit()
+            except sqlite3.Error as exc:
+                conn.rollback()
+                raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "cannot atomically persist prepared batch") from exc
+            except BaseException:
+                conn.rollback()
+                raise
+        PrivateWorkerProgress(self).publish(request, worker_key=worker_key)
+        return receipt
+
+    def load_trusted_prepare(
+        self, *, client_installation_id: str, job_id: str, worker_key: bytes,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Read original Worker-owned W-03 evidence, never trust client copies.
+
+        A checksum alone is insufficient: every load checks an HMAC bound to
+        the original job, the identical persisted job result, and its digest.
+        This does NOT assert source DXF is still current: export-time W-03
+        recheck independently rereads the actual resources and source bytes.
+        """
+        client, job = client_installation_id, job_id
+        if not isinstance(client, str) or not _JOB_ID.fullmatch(client) or (
+                not isinstance(job, str) or not _JOB_ID.fullmatch(job)):
+            raise PrepareEvidenceError("WHD_JOB_ID_INVALID", "invalid prepared job identity")
+        if not isinstance(worker_key, bytes) or len(worker_key) < 32:
+            raise PrepareEvidenceError("WHD_PREPARE_KEY_UNAVAILABLE", "trusted Worker key missing")
+        with closing(self._connect()) as conn:
+            row = conn.execute(
+                """SELECT j.request_digest,j.state,j.result_json,j.result_sha256,j.artifact_json,
+                          t.request_digest,t.source_and_receipt_json,t.source_and_receipt_hmac
+                   FROM jobs AS j LEFT JOIN trusted_prepares AS t
+                     ON t.client_id=j.client_id AND t.job_id=j.job_id
+                   WHERE j.client_id=? AND j.job_id=? AND j.operation='prepare'""",
+                (client, job),
+            ).fetchone()
+        if row is None or row[1] != "committed":
+            raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "trusted prepare has no durable completion")
+        digest, _, result_json, result_hash, artifacts, sealed_digest, payload, mac = row
+        if not all(isinstance(value, str) for value in
+                   (digest, result_json, result_hash, artifacts, sealed_digest, payload, mac)):
+            raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "trusted prepare record is incomplete")
+        expected_mac = hmac.new(
+            worker_key, ("WHD-W06-TRUSTED-PREPARE-v1\x00" + client + "\x00"
+                         + job + "\x00" + digest + "\x00" + payload).encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+        if (not hmac.compare_digest(digest, sealed_digest)
+                or not hmac.compare_digest(expected_mac, mac)
+                or not hmac.compare_digest(hashlib.sha256(result_json.encode("utf-8")).hexdigest(), result_hash)
+                or artifacts != "{}"):
+            raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "trusted prepare has changed on disk")
+        try:
+            decoded = json.loads(payload)
+            request = decoded["original_request"]
+            receipt = decoded["trusted_receipt"]
+            if (not isinstance(request, dict) or not isinstance(receipt, dict)
+                    or _identity(request) != (client, job, "prepare", digest)
+                    or _json(receipt) != result_json
+                    or receipt.get("status") != "success"
+                    or receipt.get("manufacturing_verified") is not False
+                    or receipt.get("operation") != "prepare"
+                    or receipt.get("client_installation_id") != client
+                    or receipt.get("job_id") != job
+                    or receipt.get("request_digest") != digest):
+                raise ValueError("bad persisted prepare record")
+        except (KeyError, TypeError, ValueError, PrepareEvidenceError) as exc:
+            raise PrepareEvidenceError(
+                "WHD_JOB_RECOVERY_REQUIRED", "trusted prepare original request/receipt unverified"
+            ) from exc
+        return request, receipt
+
+    def recheck_persisted_prepare_for_export(
+        self,
+        export_request: Mapping[str, Any],
+        *,
+        resource_root: Path,
+        engine_commit: str,
+        engine_sha256: str,
+        build_id: str,
+        worker_key: bytes,
+        source_documents: Mapping[str, Path] | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Export guard requires original *stored* WHD receipt, not wire copies."""
+        if not isinstance(export_request, Mapping) or export_request.get("operation") != "export":
+            raise PrepareEvidenceError("WHD_OPERATION_MISMATCH", "export evidence required")
+        original, receipt = self.load_trusted_prepare(
+            client_installation_id=export_request.get("client_installation_id"),
+            job_id=export_request.get("job_id"), worker_key=worker_key,
+        )
+        from integration_cli.prepare_recheck import recheck_trusted_door_export
+        recheck_trusted_door_export(
+            original, receipt, export_request,
+            resource_root=resource_root, engine_commit=engine_commit,
+            engine_sha256=engine_sha256, build_id=build_id,
+            worker_key=worker_key, source_documents=source_documents,
+        )
+        return original, receipt
+
+    def request_cancel(self, request: Mapping[str, Any]) -> str:
+        """PRIVATE trusted-Worker cancellation, never a public JSON handler.
+
+        Only a currently started job with the exact canonical digest can be
+        cancelled. SQLite BEGIN IMMEDIATE serializes this against W-06 journal
+        arm, so cancellation after commit intent is NOT falsely accepted.
+        """
+        client, job, op, digest = _identity(request)
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                """SELECT request_digest,state FROM jobs
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+            if row is None or row[1] != "started":
+                raise PrepareEvidenceError(
+                    "WHD_JOB_RECOVERY_REQUIRED", "job is not cancellable",
+                )
+            if not isinstance(row[0], str) or not hmac.compare_digest(row[0], digest):
+                raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "cancel job digest differs")
+            if op == "export" and conn.execute(
+                """SELECT 1 FROM batch_replace_journals
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone() is not None:
+                raise PrepareEvidenceError(
+                    "WHD_JOB_RECOVERY_REQUIRED",
+                    "replacement already armed; only verified recovery can resolve job",
+                )
+            current = conn.execute(
+                """SELECT request_digest FROM job_cancel_intents
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+            if current is not None and (
+                not isinstance(current[0], str) or
+                not hmac.compare_digest(current[0], digest)
+            ):
+                raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "cancel intent digest changed")
+            if current is None:
+                conn.execute(
+                    """INSERT INTO job_cancel_intents
+                       (client_id,job_id,operation,request_digest)
+                       VALUES (?,?,?,?)""", (client, job, op, digest),
+                )
+            conn.commit()
+        except sqlite3.Error as exc:
+            conn.rollback()
+            raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "cannot persist cancel intent") from exc
+        except BaseException:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+        # The cancel flag is already durable. This projection merely mirrors
+        # the database and may never be interpreted as manufacturing authority.
+        from integration_cli.worker_progress import PrivateWorkerProgress
+        PrivateWorkerProgress(self).publish(request)
+        return "requested"
+
+    def assert_not_cancelled(self, request: Mapping[str, Any]) -> None:
+        """Private safe-point check; no IO to a customer destination."""
+        client, job, op, digest = _identity(request)
+        with closing(self._connect()) as conn:
+            row = conn.execute(
+                """SELECT request_digest,state FROM jobs
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+            cancel = conn.execute(
+                """SELECT request_digest FROM job_cancel_intents
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+        if row is None or row[1] != "started" or not isinstance(row[0], str):
+            raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "no active job for cancel checkpoint")
+        if not hmac.compare_digest(row[0], digest):
+            raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "cancel checkpoint job digest differs")
+        if cancel is not None:
+            if not isinstance(cancel[0], str) or not hmac.compare_digest(cancel[0], digest):
+                raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "untrusted cancel intent")
+            raise PrepareEvidenceError("WHD_JOB_CANCELLED", "trusted Worker job cancellation requested")
 
     def reserve_output_directories(
         self, request: Mapping[str, Any], *, trusted_directories: Sequence[Path],
@@ -652,6 +944,12 @@ class DurableJobIdentityLedger:
                 raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "completion digest changed")
             if row[1] != "started":
                 raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "job already completed")
+            if conn.execute(
+                """SELECT 1 FROM job_cancel_intents
+                   WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",
+                (client, job, op, digest),
+            ).fetchone():
+                raise PrepareEvidenceError("WHD_JOB_CANCELLED", "cancelled job cannot commit success")
             if op == "export":
                 pending_stage = conn.execute(
                     """SELECT 1 FROM staged_batch_snapshots
