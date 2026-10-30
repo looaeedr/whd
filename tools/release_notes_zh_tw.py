@@ -23,7 +23,7 @@ TYPES = (
 def _category(title: str) -> str:
     lead = title.lower().strip()
     for label, prefixes in TYPES:
-        if any(re.match(rf"^{re.escape(prefix)}(?:\\b|[(:!])", lead) for prefix in prefixes):
+        if any(re.match(rf"^{re.escape(prefix)}(?:$|[ (:!])", lead) for prefix in prefixes):
             return label
     return "其他程式變更"
 
