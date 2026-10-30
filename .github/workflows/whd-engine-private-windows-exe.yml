@@ -35,7 +35,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           if ((git rev-parse HEAD).Trim() -ne $env:ENGINE_SHA) { throw 'W05_EXACT_SHA_MISMATCH' }
-          python -m pip install --disable-pip-version-check -r requirements.txt 'pyinstaller==6.16.0' pytest
+          python -m pip install --disable-pip-version-check -r requirements.txt 'pyinstaller==6.16.0' pytest matplotlib pillow
           if ($LASTEXITCODE -ne 0) { throw 'W05_DEPENDENCIES_FAILED' }
           python -m pytest -q tests/test_issue2381_engine_packaged_identity.py tests/test_issue2377_cadsplit_headless_cli.py
           if ($LASTEXITCODE -ne 0) { throw 'W05_FOCUSED_TESTS_FAILED' }
@@ -113,10 +113,69 @@ jobs:
           # A negative tamper case intentionally left $LASTEXITCODE=4; GitHub's
           # pwsh wrapper would otherwise treat that expected refusal as failure.
           exit 0
+      - name: Build matching WHD GUI.exe from the SAME exact HEAD
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -ne $env:ENGINE_SHA) { throw 'W05_GUI_SOURCE_DRIFT' }
+          python -m PyInstaller --noconfirm --clean --onedir --windowed --contents-directory . --name WHD --collect-submodules ae_engine --collect-submodules gui_modules --add-data '基準檔;基準檔' --add-data 'config.ini;.' --add-data 'config;config' gui.py
+          if ($LASTEXITCODE -ne 0) { throw 'W05_GUI_PYINSTALLER_FAILED' }
+          $guiExe = 'dist/WHD/WHD.exe'
+          $engineExe = 'dist/WHD-Engine/WHD-Engine.exe'
+          if (!(Test-Path $guiExe) -or !(Test-Path $engineExe)) {
+            throw 'W05_GUI_ENGINE_PAIR_MISSING'
+          }
+          if (!(Test-Path 'dist/WHD/config.ini') -or !(Test-Path 'dist/WHD/基準檔')) {
+            throw 'W05_GUI_RESOURCES_MISSING'
+          }
+          $private = Get-Content 'dist/WHD-Engine/WHD_ENGINE_BUILD.json' -Raw -Encoding utf8 | ConvertFrom-Json
+          $engineHash = (Get-FileHash $engineExe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $guiHash = (Get-FileHash $guiExe -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($private.engine_commit -ne $env:ENGINE_SHA -or $private.engine_sha256 -ne $engineHash) {
+            throw 'W05_GUI_ENGINE_BUILD_SOURCE_MISMATCH'
+          }
+          @{
+            schema = 'whd-private-gui-engine-pair-v1'
+            engine_commit = $env:ENGINE_SHA
+            engine_sha256 = $engineHash
+            gui_sha256 = $guiHash
+            registry_sha256 = $private.registry_sha256
+            baseline_manifest_sha256 = $private.baseline_manifest_sha256
+          } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'dist/WHD/SAME_SOURCE_ENGINE_GUI.json' -Encoding utf8
+          Write-Host "W05_GUI_ENGINE_SAME_SHA_PROVEN sha=$env:ENGINE_SHA engine=$engineHash gui=$guiHash"
+      - name: Smoke-test actual GUI WHD.exe without replacing customer files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $guiFolder = (Resolve-Path 'dist/WHD').Path
+          $exe = Join-Path $guiFolder 'WHD.exe'
+          $app = Start-Process -FilePath $exe -WorkingDirectory $guiFolder -PassThru
+          try {
+            Start-Sleep -Seconds 12
+            $app.Refresh()
+            if ($app.HasExited) { throw "W05_GUI_STARTUP_FAILED_$($app.ExitCode)" }
+          } finally {
+            if (!$app.HasExited) { Stop-Process -Id $app.Id -Force }
+          }
+          # Both binaries came from the same exact checkout, not adjacent PRs.
+          $pair = Get-Content 'dist/WHD/SAME_SOURCE_ENGINE_GUI.json' -Raw -Encoding utf8 | ConvertFrom-Json
+          if ($pair.engine_commit -ne $env:ENGINE_SHA -or
+              $pair.engine_sha256 -ne (Get-FileHash 'dist/WHD-Engine/WHD-Engine.exe' -Algorithm SHA256).Hash.ToLowerInvariant() -or
+              $pair.gui_sha256 -ne (Get-FileHash 'dist/WHD/WHD.exe' -Algorithm SHA256).Hash.ToLowerInvariant()) {
+            throw 'W05_GUI_ENGINE_PAIR_READBACK_FAILED'
+          }
+          Write-Host "W05_SAME_SHA_GUI_STARTUP_AND_PRIVATE_ENGINE_PASS $env:ENGINE_SHA"
       - name: Upload only private Engine candidate
         uses: actions/upload-artifact@v4
         with:
           name: WHD-Engine-private-W05
           path: dist/WHD-Engine/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload same-source WHD GUI candidate (NOT X release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: WHD-GUI-same-source-W05
+          path: dist/WHD/
           if-no-files-found: error
           retention-days: 14
