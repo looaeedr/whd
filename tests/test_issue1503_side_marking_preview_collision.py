@@ -137,3 +137,27 @@ def test_native_gui_only_can_show_ear_over_existing_joint_mark_without_manufactu
         build_receiving_ear_side_marking_previews(
             rows, owners, display_only_marking_overlap=True,
         )
+
+
+@pytest.mark.parametrize("bad_inner_doors", (7, 1.5))
+def test_ear_3d_preview_survives_corrupt_saved_inner_doors_without_hiding_cabinet(
+    bad_inner_doors,
+):
+    """Real EAR source parser failure must disable only provisional EAR mesh."""
+    from phase6_final_scene_view import Phase6FinalSceneViewAdapter
+
+    snapshot = {
+        "model": "受電箱",
+        "nfb_config_submitted": True,
+        # Existing explicitly selected source pattern permits direct EAR XY
+        # provenance lookup without a second unrelated Base config parser.
+        "receiving_base_plate": {"pattern": "LEFT_FLAT_SIDE"},
+        "inner_doors": bad_inner_doors,
+    }
+    adapter = Phase6FinalSceneViewAdapter.__new__(Phase6FinalSceneViewAdapter)
+    adapter._formed_ear_display_cache = None
+    adapter.last_formed_ear_display_blocker = None
+    assert adapter._formed_ear_assembly_preview(snapshot, {"base_plate"}) == ()
+    assert "iterable" in adapter.last_formed_ear_display_blocker
+    assert adapter._formed_ear_display_cache is not None
+    assert adapter._formed_ear_display_cache[1] == ()

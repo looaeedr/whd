@@ -199,7 +199,7 @@ class Phase6FinalSceneViewAdapter:
                                or not row.source_bend_verified for row in formed)):
                     raise ValueError("EAR_ASSEMBLY_DISPLAY_SOURCE_INCONSISTENT")
                 blocker = None
-            except ValueError as exc:
+            except (ValueError, TypeError) as exc:
                 formed = ()
                 blocker = str(exc)
             self._formed_ear_display_cache = (source_key, formed, blocker)
