@@ -21,8 +21,14 @@ from typing import Any
 from jsonschema import Draft202012Validator, ValidationError
 
 PROTOCOL_VERSION = "1.0.0"
-SCHEMA_ROOT = Path(__file__).resolve().parent / "schemas"
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if getattr(sys, "frozen", False):
+    # PyInstaller's entry script __file__ lives at the bundle root, not
+    # integration_cli/. Exact data layout is fixed by the W-05 build.
+    SCHEMA_ROOT = Path(sys._MEIPASS) / "integration_cli" / "schemas"
+    REPOSITORY_ROOT = Path(sys.executable).resolve().parent
+else:
+    SCHEMA_ROOT = Path(__file__).resolve().parent / "schemas"
+    REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
 MAX_BATCH_ITEMS = 20
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -117,7 +123,28 @@ def _source_fingerprint() -> str:
     return digest.hexdigest()
 
 
+def _packaged_identity() -> dict[str, Any]:
+    # PyInstaller's --contents-directory . puts metadata and baseline beside
+    # the actual EXE. Never fall back to Git or an unverified manifest.
+    try:
+        from packaged_identity import PackageIdentityError, verify_manifest
+        return verify_manifest(Path(sys.executable).resolve().parent)
+    except (ImportError, ValueError, OSError) as exc:
+        raise WorkerFailure(
+            "WHD_BUILD_UNATTESTED",
+            f"packaged Engine identity/resource validation failed: {exc}",
+            exit_code=4,
+        ) from exc
+
+
 def _identity() -> tuple[str, str, str]:
+    if getattr(sys, "frozen", False):
+        manifest = _packaged_identity()
+        return (
+            manifest["engine_commit"],
+            manifest["build_id"],
+            manifest["engine_sha256"],
+        )
     sha = _git_commit()
     return sha, f"source-only-{sha[:16]}", _source_fingerprint()
 
@@ -160,6 +187,22 @@ def _capabilities(commit: str, build_id: str, code_hash: str) -> dict[str, Any]:
             "manifest_name": "job_manifest.json"
         },
     }
+    if getattr(sys, "frozen", False):
+        # Resource integrity does not authorize manufacturing: all capability
+        # flags and supported kinds stay FALSE/EMPTY until W-03/04/06 Gate A.
+        manifest = _packaged_identity()
+        if (
+            manifest["engine_commit"] != commit
+            or manifest["build_id"] != build_id
+            or manifest["engine_sha256"] != code_hash
+        ):
+            raise WorkerFailure("WHD_BUILD_UNATTESTED", "packaged metadata changed", exit_code=4)
+        result["installation_id"] = "w05-private-" + commit[:16]
+        result["engine_version"] = "w05-private-onedir"
+        result["resource_revision"] = manifest["resource_revision"]
+        for field in ("registry_sha256", "baseline_manifest_sha256", "policy_sha256"):
+            result[field] = manifest[field]
+        result["resource_health"] = {"registry": "ready", "baseline": "ready", "policy": "ready"}
     _validator("capabilities_v1.schema.json").validate(result)
     return result
 
