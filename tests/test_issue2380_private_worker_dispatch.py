@@ -71,7 +71,7 @@ def test_private_real_worker_prepare_export_writes_true_dxf_then_replays_without
     export["output"]["directory"] = str(context.output_dir)
     export["request_digest"] = compute_wire_request_digest(export)
     finished, code = _call(tmp_path, "export", export, context)
-    assert code == 0 and finished["status"] == "success"
+    assert code == 0 and finished["status"] == "success", finished.get("diagnostics", [{}])[0].get("code")
     assert finished["manufacturing_verified"] is False  # PRIVATE only
     paths = {Path(x["path"]) for x in finished["items"]}
     assert len(paths) == 2
@@ -175,7 +175,7 @@ def test_windows_dpapi_key_does_real_worker_prepare_restart_export(tmp_path, mon
     export["output"]["directory"] = str(context.output_dir)
     export["request_digest"] = compute_wire_request_digest(export)
     finished, status = _call(tmp_path, "export", export, restarted_context)
-    assert status == 0 and finished["status"] == "success"
+    assert status == 0 and finished["status"] == "success", finished.get("diagnostics", [{}])[0].get("code")
     assert len(list(context.output_dir.glob("*.dxf"))) == 2
     assert all(len(ezdxf.readfile(p).modelspace().query("CIRCLE")) >= 1
                for p in context.output_dir.glob("*.dxf"))
