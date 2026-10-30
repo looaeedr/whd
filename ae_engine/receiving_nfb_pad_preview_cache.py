@@ -49,20 +49,24 @@ def pad_preview_source_fingerprint(snapshot, assembly_parts) -> str:
         material=getattr(data,"material",None)
         if material is None:
             raise ValueError("PAD_PREVIEW_PARENT_MATERIAL_MISSING")
-        # The optional 3D display must never assume an incomplete provider
-        # returned a real geometry. A raw AttributeError here bypasses the
-        # normal PAD-only blocker and can interrupt the cabinet view.
-        from shapely.geometry.base import BaseGeometry
-        if not isinstance(material, BaseGeometry):
+        # This DISPLAY-only cache consumes the minimum geometry interface;
+        # verified geometry and lightweight WKB source-proxies both qualify.
+        # Missing members must not leak AttributeError past PAD-only fallback.
+        try:
+            empty = material.is_empty
+            material_wkb = material.wkb
+        except AttributeError as exc:
+            raise ValueError("PAD_PREVIEW_PARENT_MATERIAL_INVALID") from exc
+        if not isinstance(material_wkb, (bytes, bytearray)):
             raise ValueError("PAD_PREVIEW_PARENT_MATERIAL_INVALID")
-        if material.is_empty:
+        if empty:
             raise ValueError("PAD_PREVIEW_PARENT_MATERIAL_MISSING")
         h.update(key.encode("utf-8"))
         # Same physical skin at a different 3D pose is a different preview.
         h.update(repr(getattr(part,"placement",None)).encode("utf-8"))
         h.update(repr(getattr(part,"rotation",None)).encode("utf-8"))
         h.update(repr(tuple(getattr(part,"offset",()) or ())).encode("utf-8"))
-        h.update(sha256(material.wkb).digest())
+        h.update(sha256(material_wkb).digest())
         # PAD mating verifies the ACTUAL Base CUTTING scene, not just the
         # already-resolved material polygon or metadata owner counts.
         # A removed/shifted 6x6 locator cut can leave material.wkb and
