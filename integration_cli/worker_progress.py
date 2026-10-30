@@ -135,7 +135,9 @@ class PrivateWorkerProgress:
             "manufacturing_verified": False,
         }
 
-    def read(self, request: Mapping[str, Any]) -> dict[str, Any]:
+    def read(
+        self, request: Mapping[str, Any], *, worker_key: bytes | None = None,
+    ) -> dict[str, Any]:
         """Always derive fresh authority from DB; never parse progress.json."""
         client, job, op, digest = _identity(request)
         # The normal immutable result readback is the only success authority.
@@ -147,10 +149,20 @@ class PrivateWorkerProgress:
             ).fetchone()
         if row and row[0] == "committed":
             self._ledger.claim(request)  # rehash actual immutable artifact proof
+            if op == "prepare":
+                # Plain job SHA alone cannot authenticate a W-03 prepare
+                # receipt. Require the real Worker-owned HMAC secret before
+                # publishing any 100% prepare projection.
+                self._ledger.load_trusted_prepare(
+                    client_installation_id=client, job_id=job,
+                    worker_key=worker_key,
+                )
         with closing(self._ledger._connect()) as conn:
             return self._snapshot(request, conn)
 
-    def publish(self, request: Mapping[str, Any]) -> Path:
+    def publish(
+        self, request: Mapping[str, Any], *, worker_key: bytes | None = None,
+    ) -> Path:
         """Atomically publish a non-authoritative progress.json in Worker store.
 
         SQLite BEGIN IMMEDIATE prevents concurrent projection writes and
@@ -159,7 +171,7 @@ class PrivateWorkerProgress:
         """
         client, job, op, digest = _identity(request)
         # Verify a completed job before any JSON can say "100%".
-        self.read(request)
+        self.read(request, worker_key=worker_key)
         encoded_identity = _json([client, job, op, digest]).encode("utf-8")
         directory_name = "job-" + hashlib.sha256(encoded_identity).hexdigest()
         conn = self._ledger._connect()
