@@ -13,6 +13,7 @@ on:
       - tests/test_issue2380_worker_cancel_safe_points.py
       - tests/test_issue2380_worker_progress_projection.py
       - tests/test_issue2380_private_worker_dispatch.py
+      - tests/test_issue2380_private_exe_installation.py
       - .github/workflows/whd-engine-private-windows-exe.yml
   workflow_dispatch:
 
@@ -43,7 +44,7 @@ jobs:
           if ((git rev-parse HEAD).Trim() -ne $env:ENGINE_SHA) { throw 'W05_EXACT_SHA_MISMATCH' }
           python -m pip install --disable-pip-version-check -r requirements.txt 'pyinstaller==6.16.0' pytest matplotlib pillow
           if ($LASTEXITCODE -ne 0) { throw 'W05_DEPENDENCIES_FAILED' }
-          python -m pytest -q tests/test_issue2381_engine_packaged_identity.py tests/test_issue2377_cadsplit_headless_cli.py tests/test_issue2380_windows_path_aliases.py tests/test_issue2380_worker_key_custody.py tests/test_issue2380_trusted_prepare_custody.py tests/test_issue2380_worker_cancel_safe_points.py tests/test_issue2380_worker_progress_projection.py tests/test_issue2380_private_worker_dispatch.py
+          python -m pytest -q tests/test_issue2381_engine_packaged_identity.py tests/test_issue2377_cadsplit_headless_cli.py tests/test_issue2380_windows_path_aliases.py tests/test_issue2380_worker_key_custody.py tests/test_issue2380_trusted_prepare_custody.py tests/test_issue2380_worker_cancel_safe_points.py tests/test_issue2380_worker_progress_projection.py tests/test_issue2380_private_worker_dispatch.py tests/test_issue2380_private_exe_installation.py
           if ($LASTEXITCODE -ne 0) { throw 'W05_FOCUSED_TESTS_FAILED' }
       - name: Build private WHD-Engine.exe with bundled schemas and genuine resources
         shell: pwsh
@@ -54,6 +55,13 @@ jobs:
           if (!(Test-Path 'dist/WHD-Engine/WHD-Engine.exe')) { throw 'W05_EXE_NOT_BUILT' }
           python -m integration_cli.packaged_identity --root 'dist/WHD-Engine' --sha "$env:ENGINE_SHA"
           if ($LASTEXITCODE -ne 0) { throw 'W05_MANIFEST_FAILED' }
+      - name: Real packaged Engine private installed DPAPI prepare and restart
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:WHD_TEST_ENGINE_EXE = (Resolve-Path 'dist/WHD-Engine/WHD-Engine.exe').Path
+          python -m pytest -q tests/test_issue2380_private_exe_installation.py::test_actual_packaged_engine_private_prepare_and_restart
+          if ($LASTEXITCODE -ne 0) { throw 'W06_REAL_PRIVATE_EXE_PREPARE_FAILED' }
       - name: Native EXE smoke in Chinese installation / different working directory
         shell: pwsh
         run: |
