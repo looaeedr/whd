@@ -216,10 +216,11 @@ def _diagnostic(code: str, message: str, *, item_count: int | None = None) -> di
 
 def _failure_response(
     operation: str, commit: str, build_id: str,
-    failure: WorkerFailure, request: dict[str, Any] | None = None
+    failure: WorkerFailure, request: dict[str, Any] | None = None,
+    *, protocol_version: str = PROTOCOL_VERSION,
 ) -> dict[str, Any]:
     response: dict[str, Any] = {
-        "protocol_version": PROTOCOL_VERSION,
+        "protocol_version": protocol_version,
         "operation": operation,
         "status": "failed",
         "engine_commit": commit,
@@ -241,7 +242,10 @@ def _failure_response(
                 valid = 1 <= len(value) <= 256
             if valid:
                 response[key] = value
-    _validator("response_v1.schema.json").validate(response)
+    _validator(
+        "response_v1_1.schema.json" if protocol_version == "1.1.0"
+        else "response_v1.schema.json"
+    ).validate(response)
     return response
 
 
@@ -406,6 +410,43 @@ def _private_installed_main(argv: list[str]) -> int:
         return exc.exit_code if isinstance(exc, WorkerFailure) else 4
 
 
+def _execute_public_installed_request(
+    operation: str, path: Path, commit: str, build_id: str, code_hash: str,
+) -> tuple[dict[str, Any], int]:
+    """Versioned, signed installed public path; missing approval fails closed.
+
+    The only public operations remain capabilities/prepare/export. Public
+    job identity is merely a lookup, never sufficient authorization. A
+    separate HMAC-sealed original job approval must exist before dispatch.
+    """
+    request: dict[str, Any] | None = None
+    try:
+        request = _read_request(path)
+        if request.get("protocol_version") != "1.1.0":
+            return _execute_request(operation, path, commit, build_id)
+        if request.get("operation") != operation:
+            raise WorkerFailure("WHD_OPERATION_MISMATCH", "operation differs from request", exit_code=2)
+        from integration_cli.public_installed_adapter import execute_public_installed
+        from integration_cli.prepare_evidence import PrepareEvidenceError
+        try:
+            result = execute_public_installed(
+                operation, request, engine_commit=commit, build_id=build_id,
+                engine_sha256=code_hash, resource_root=Path(sys._MEIPASS),
+            )
+        except PrepareEvidenceError as exc:
+            raise WorkerFailure(exc.code, "installed public job failed authority verification", exit_code=4) from exc
+        return result, 0
+    except WorkerFailure as exc:
+        return _failure_response(
+            operation, commit, build_id, exc, request,
+            protocol_version=(
+                "1.1.0" if request is not None
+                and request.get("protocol_version") == "1.1.0"
+                else PROTOCOL_VERSION
+            ),
+        ), exc.exit_code
+
+
 def main(argv: list[str] | None = None) -> int:
     actual = list(sys.argv[1:] if argv is None else argv)
     # Deliberately absent from the three documented public commands.
@@ -420,6 +461,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.operation == "capabilities":
             data = _capabilities(commit, build_id, code_hash)
             exit_code = 0
+        elif getattr(sys, "frozen", False) and sys.platform == "win32":
+            data, exit_code = _execute_public_installed_request(
+                args.operation, args.request, commit, build_id, code_hash,
+            )
         else:
             data, exit_code = _execute_request(args.operation, args.request, commit, build_id)
         _write_response(args.response, data)
