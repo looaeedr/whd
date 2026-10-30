@@ -206,3 +206,35 @@ def recover_private_worker_rollback(
         "job_id": request["job_id"],
         "request_digest": request["request_digest"],
     }
+
+
+def request_private_worker_cancel(
+    request: Mapping[str, Any], context: TrustedWorkerExecution,
+) -> dict[str, Any]:
+    """Private sealed cancellation, no DXF render, commit or rollback.
+
+    The ledger serializes cancellation with journal.arm via BEGIN IMMEDIATE;
+    after any replacement intent, recovery exclusively owns customer files.
+    """
+    from integration_cli.cadsplit_worker import SCHEMA_ROOT
+    schema = json.loads((SCHEMA_ROOT / "request_v1_1.schema.json").read_text(encoding="utf-8"))
+    try:
+        Draft202012Validator(schema).validate(request)
+    except ValidationError as exc:
+        raise PrepareEvidenceError("WHD_SCHEMA_INVALID", "invalid original cancellation request") from exc
+    require_matching_wire_request_digest(request)
+    _validate_context(context, request)
+    if context.approved_request_identity is None:
+        raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "sealed cancel approval required")
+    ledger = DurableJobIdentityLedger(context.store_root)
+    if ledger.request_cancel(request) != "requested":
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "cancel not persisted")
+    return {
+        "protocol_version": request["protocol_version"],
+        "operation": request["operation"],
+        "status": "cancel_requested",
+        "manufacturing_verified": False,
+        "client_installation_id": request["client_installation_id"],
+        "job_id": request["job_id"],
+        "request_digest": request["request_digest"],
+    }

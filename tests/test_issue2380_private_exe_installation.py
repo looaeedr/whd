@@ -1410,3 +1410,110 @@ def test_packaged_engine_separately_authorized_rollback_after_crashed_two_dxf_ex
     assert again.returncode == 0, again.stderr[-1200:]
     assert json.loads(replay.read_text(encoding="utf-8")) == outcome
     assert (customer.read_bytes(), customer.stat().st_mtime_ns) == before
+
+
+@pytest.mark.skipif(not WINDOWS, reason="requires real packaged Windows Engine and DPAPI")
+def test_packaged_engine_cancel_requires_separate_exact_job_ticket_and_never_writes_dxf(
+    tmp_path, monkeypatch,
+):
+    """Real EXE: ordinary Export approval cannot cancel; journal arm loses race."""
+    import ezdxf
+    from integration_cli.private_worker_installation import authorize_private_cancel
+    from integration_cli.job_identity_ledger import DurableJobIdentityLedger
+    from integration_cli.batch_commit_journal import DurableMultiDXFRollbackJournal
+    from integration_cli.prepare_evidence import PrepareEvidenceError
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2378_request_canonical import (
+        _w06_request, _w06_real_output, _w06_staged_dxf,
+    )
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires built actual onedir WHD-Engine.exe")
+    profile = tmp_path / "WHD cancel protected profile"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    installation = "w06-real-exe-cancel"
+    load_installation_key(installation, initialize=True)
+    store, output = tmp_path / "private-state", tmp_path / "客戶舊圖"
+    store.mkdir()
+    output.mkdir()
+    customer = _w06_real_output(output / "part-one.dxf")
+    old = customer.read_bytes(), customer.stat().st_mtime_ns
+    staged = {
+        "part-one": _w06_staged_dxf(output, "part-one"),
+        "part-two": _w06_staged_dxf(output, "part-two"),
+    }
+    source = _w06_real_output(tmp_path / "真實來源.dxf")
+    request = _w06_request(operation="export")
+    request["prepare_token"] = "original-cancel-bound-preparation"
+    request["environment_fingerprint_expected"] = "a" * 64
+    part = request["items"][0]
+    part["source_document_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+    part["physical_part_id"] = "part-one"
+    part["preparation_digest"] = "b" * 64
+    part["target_frame_ids"] = ["frame-part-one"]
+    part["features"] = []
+    other = json.loads(json.dumps(part, ensure_ascii=False))
+    other["item_id"] = "door-2"
+    other["physical_part_id"] = "part-two"
+    other["part"]["source_part_ref"] = "source-door-2"
+    other["target_frame_ids"] = ["frame-part-two"]
+    request["items"].append(other)
+    request["output"]["directory"] = str(output)
+    request["output"]["overwrite"] = True
+    request["request_digest"] = compute_wire_request_digest(request)
+    ledger = DurableJobIdentityLedger(store)
+    assert ledger.claim(request).state == "new"
+    ledger.reserve_output_directories(request, trusted_directories=[output])
+    ledger.record_staged_batch_snapshot(
+        request, trusted_output_dir=output,
+        trusted_staged=staged, overwrite=True,
+    )
+    exe_hash = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation, store_root=store, output_dir=output,
+        source_documents={"door-1": source, "door-2": source},
+        expected_engine_sha256=exe_hash,
+    )
+    # A pre-approved Export request is NOT cancellation authorization.
+    authorize_private_job(installation, request, engine_sha256=exe_hash)
+
+    def invoke(label, body=request):
+        wire, reply = tmp_path / (label + "-wire.json"), tmp_path / (label + "-reply.json")
+        wire.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
+        proc = subprocess.run([
+            str(exe), "_private_installed", "request-cancel",
+            "--installation-id", installation, "--request", str(wire),
+            "--response", str(reply),
+        ], cwd=tmp_path, capture_output=True, text=True, timeout=120)
+        return proc, reply
+
+    refused, none = invoke("no-cancel-ticket")
+    assert refused.returncode == 4 and not none.exists()
+    assert (customer.read_bytes(), customer.stat().st_mtime_ns) == old
+    authorize_private_cancel(installation, request, engine_sha256=exe_hash)
+    changed = json.loads(json.dumps(request, ensure_ascii=False))
+    changed["items"][0]["part"]["dimensions_mm"]["width"] += 1
+    changed["request_digest"] = compute_wire_request_digest(changed)
+    wrong, result = invoke("changed-job", changed)
+    assert wrong.returncode == 4 and not result.exists()
+
+    cancelled, reply = invoke("separately-approved")
+    assert cancelled.returncode == 0, cancelled.stderr[-1200:]
+    outcome = json.loads(reply.read_text(encoding="utf-8"))
+    assert outcome["status"] == "cancel_requested"
+    assert outcome["manufacturing_verified"] is False
+    assert outcome["request_digest"] == request["request_digest"]
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableJobIdentityLedger(store).assert_not_cancelled(request)
+    assert exc.value.code == "WHD_JOB_CANCELLED"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(store)).arm(request)
+    assert exc.value.code == "WHD_JOB_CANCELLED"
+    assert (customer.read_bytes(), customer.stat().st_mtime_ns) == old
+    assert not (output / "part-two.dxf").exists()
+    assert all(path.is_file() for path in staged.values())
+    again, replay = invoke("cancel-replayed-after-restart")
+    assert again.returncode == 0, again.stderr[-1200:]
+    assert json.loads(replay.read_text(encoding="utf-8")) == outcome
+    assert (customer.read_bytes(), customer.stat().st_mtime_ns) == old
