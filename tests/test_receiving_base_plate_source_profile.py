@@ -70,7 +70,7 @@ def test_other_depth_pair_preserves_actual_cutting_and_bend_construction():
     contour = [(v.x, v.y) for v in result.outline]
     assert len(contour) == 20
     assert (69, 5) in contour      # shoulder = first40 + return28 + T2/2
-    assert (762 - 69, 205) in contour
+    assert (762 - 69, 210) in contour  # new depth step30 owns the CENTER Y shoulder
     bends = {b.name: b for b in result.bends}
     assert bends["receiving_left_33"].p1.x == 68
     assert bends["receiving_right_33"].p1.x == 762 - 68
