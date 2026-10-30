@@ -105,8 +105,18 @@ def execute_private_worker(
     _validate_context(context, request)
     ledger = DurableJobIdentityLedger(context.store_root)
     if operation == "prepare":
-        # Source/document mapping is not consulted for W-03 prepare; actual
-        # W-03 resource/Frame and DPAPI-owned HMAC evidence remain authoritative.
+        # W-06 owns the original source paths; a caller's SHA claim must
+        # match actual bounded, parseable DXF bytes BEFORE durable claim().
+        # Otherwise a mistyped source SHA can permanently occupy the same
+        # client/job identity while W-03 signs a misleading Prepare receipt.
+        # Re-attest on transport retries; source changes after Prepare still
+        # fail the independent W-03 Export/pre-commit recheck.
+        from integration_cli.source_circle_verification import _source_snapshot
+        for item in request["items"]:
+            _source_snapshot(
+                context.source_documents.get(item["item_id"]),
+                item["source_document_sha256"],
+            )
         return ledger.prepare_and_persist(
             request, resource_root=context.resource_root,
             engine_commit=engine_commit, engine_sha256=context.engine_sha256,
