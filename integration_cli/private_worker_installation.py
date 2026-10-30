@@ -261,3 +261,99 @@ def load_private_authorized_execution(
         raise PrepareEvidenceError(
             "WHD_JOB_STORE_UNAVAILABLE", "private job not approved or invalid",
         ) from exc
+
+
+# An Export approval never permits customer-file rollback. Only the trusted
+# installation owner may explicitly seal a SEPARATE recovery intent, bound
+# to the exact original Export digest and existing uncommitted journal.
+_RECOVERY_PREFIX = b"WHD-W06-INSTALLED-ROLLBACK-APPROVAL-v1\x00"
+
+
+def _recovery_approval_file(folder: Path, request: Mapping[str, Any]) -> Path:
+    client, job, operation, _ = _identity(request)
+    opaque = hashlib.sha256(
+        _json(["recover-rollback", client, job, operation]).encode("utf-8")
+    ).hexdigest()
+    return folder / ("recover-" + opaque + ".json")
+
+
+def _recovery_mac(key: bytes, identity: list[str]) -> str:
+    return hmac.new(
+        key, _RECOVERY_PREFIX + _json(identity).encode("utf-8"), hashlib.sha256,
+    ).hexdigest()
+
+
+def authorize_private_recovery(
+    installation_id: str, request: Mapping[str, Any], *, engine_sha256: str,
+) -> None:
+    """Installer-owner only: approve one immutable, pending Export rollback.
+
+    This does not restore, regenerate, or modify any customer file.
+    An ordinary Export job approval is NOT sufficient to authorize rollback.
+    """
+    from jsonschema import Draft202012Validator, ValidationError
+    from integration_cli.private_worker_dispatch import _validate_context
+    from integration_cli.batch_commit_journal import DurableMultiDXFRollbackJournal
+    from integration_cli.job_identity_ledger import DurableJobIdentityLedger
+    context = load_private_execution(installation_id, engine_sha256=engine_sha256)
+    try:
+        schema = json.loads(
+            (context.resource_root / "integration_cli" / "schemas" /
+             "request_v1_1.schema.json").read_text(encoding="utf-8")
+        )
+        Draft202012Validator(schema).validate(request)
+    except (OSError, ValueError, TypeError, ValidationError) as exc:
+        raise PrepareEvidenceError("WHD_SCHEMA_INVALID", "rollback request schema invalid") from exc
+    if request.get("operation") != "export":
+        raise PrepareEvidenceError("WHD_OPERATION_MISMATCH", "rollback requires original Export")
+    _validate_context(context, request)
+    journal = DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(context.store_root))
+    state, plan = journal._read(request)
+    if state not in ("armed", "applying", "applied", "rolling_back"):
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "no unfinished Export to recover")
+    journal._verify_owner(request, plan)
+    identity = list(_identity(request))
+    folder, _ = _store_root(installation_id, initialize=False)
+    ticket = _recovery_approval_file(folder, request)
+    payload = {"schema": "whd-private-rollback-approval-v1", "identity": identity}
+    raw = (_json({"payload": payload, "hmac": _recovery_mac(context.worker_key, identity)})
+           + "\n").encode("utf-8")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
+    try:
+        fd = os.open(ticket, flags, 0o600)
+    except OSError as exc:
+        raise PrepareEvidenceError(
+            "WHD_JOB_ID_CONFLICT", "recovery already approved or inaccessible",
+        ) from exc
+    with os.fdopen(fd, "wb") as file:
+        file.write(raw)
+        file.flush()
+        os.fsync(file.fileno())
+
+
+def load_private_recovery_execution(
+    installation_id: str, request: Mapping[str, Any], *, engine_sha256: str,
+) -> TrustedWorkerExecution:
+    """Verify a distinct HMAC-sealed rollback approval; fail before disk writes."""
+    context = load_private_execution(installation_id, engine_sha256=engine_sha256)
+    folder, _ = _store_root(installation_id, initialize=False)
+    ticket = _recovery_approval_file(folder, request)
+    try:
+        _check_existing(ticket, directory=False)
+        if not 1 <= ticket.stat().st_size <= 4096:
+            _deny("recovery ticket size invalid")
+        entry = json.loads(ticket.read_text(encoding="utf-8"))
+        identity = list(_identity(request))
+        expected = {"schema": "whd-private-rollback-approval-v1", "identity": identity}
+        if (not isinstance(entry, dict) or set(entry) != {"payload", "hmac"}
+                or entry["payload"] != expected
+                or not isinstance(entry["hmac"], str)
+                or not hmac.compare_digest(
+                    entry["hmac"], _recovery_mac(context.worker_key, identity),
+                )):
+            _deny("private rollback approval invalid")
+        return replace(context, approved_request_identity=tuple(identity))
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        raise PrepareEvidenceError(
+            "WHD_JOB_STORE_UNAVAILABLE", "private rollback not approved or invalid",
+        ) from exc
