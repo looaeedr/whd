@@ -46,6 +46,21 @@ def _current(*, width=800., model_second="3P125SN"):
     return snap
 
 
+def _current_center_125():
+    """Source-supported CENTER: two short shallow 125 switches, deep brand max107.
+
+    The historical mixed 2P400/125 fixture needs a 194-mm screw pitch and
+    cannot lie on the corrected source CENTER Y core of 170 mm.
+    """
+    snap = _current()
+    snap["nfb_config"]["holes"][0]["model_filename"] = "nfbv5:士林:3P125SN"
+    snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
+        snap["nfb_config"]
+    )
+    snap["receiving_base_plate"] = {"pattern": "CENTER_DOUBLE_SIDE_FOLD"}
+    return snap
+
+
 def _export(snap, root, *, spec=None, existing=None):
     spec = spec or _spec(snap)
     # Exact PartRenderData handed over by the installed WHD assembly scene.
@@ -58,12 +73,9 @@ def _export(snap, root, *, spec=None, existing=None):
 
 
 def test_current_csv_center_part_only_exports_real_screws_ear_slots_and_bends(tmp_path):
-    snap = _current()
-    assert "receiving_base_plate" not in snap
-    # This testcase tests the historical source-proven CENTER sheet.
-    # Same-row mixed CSV without an explicit CENTER now auto chooses PAD
-    # and cannot receive a center-only PART_ONLY manufacturing approval.
-    snap["receiving_base_plate"]={"pattern":"CENTER_DOUBLE_SIDE_FOLD"}
+    snap = _current_center_125()
+    # This source-backed CENTER has X 33/37 and Y 35/37, and short 125
+    # screws which fit its true 170-mm flat central work face.
     receipt = _export(snap, tmp_path / "approved")
     assert receipt.part_id == "base_plate"
     assert receipt.quantity == 3
@@ -84,11 +96,22 @@ def test_current_csv_center_part_only_exports_real_screws_ear_slots_and_bends(tm
     from ae_engine.receiving_nfb_numeric_catalog import model_spec
     expected = sorted(
         round(model_spec("士林", model).screw_diameter_mm / 2., 6)
-        for model in ("2P400", "3P125SN") for _ in range(4)
+        for model in ("3P125SN", "3P125SN") for _ in range(4)
     )
     assert sorted(round(v.dxf.radius, 6) for v in screws) == expected
     # One independently checked sheet, not a full-cabinet DXF batch.
     assert len(list(path.parent.glob("*.dxf"))) == 1
+
+
+def test_tall_400_center_fails_closed_on_real_y35_fold(tmp_path):
+    # 2P400's 194-mm screw pitch does not fit the 170-mm CENTER main web.
+    # Never make the manufacturing test green by ignoring folded-area holes.
+    snap = _current()
+    snap["receiving_base_plate"] = {"pattern": "CENTER_DOUBLE_SIDE_FOLD"}
+    output = tmp_path / "invalid-center"
+    with pytest.raises(ValueError, match="螺絲孔碰到"):
+        _export(snap, output)
+    assert not list(output.glob("*.dxf"))
 
 
 def test_one_source_flat_left_variant_uses_current_csv_without_old_nfb_dxf(tmp_path):
@@ -148,8 +171,7 @@ def test_csv_source_change_prevents_part_only_output(tmp_path):
 
 def test_saved_dxf_verification_failure_does_not_commit_any_file(monkeypatch, tmp_path):
     import ae_engine.receiving_nfb_v5_part_only_manufacturing as export_module
-    snap = _current()
-    snap["receiving_base_plate"]={"pattern":"CENTER_DOUBLE_SIDE_FOLD"}
+    snap = _current_center_125()
     monkeypatch.setattr(export_module, "verify_saved_part_render_data_dxf",
                         lambda *_args, **_kw: SimpleNamespace(ok=False))
     root = tmp_path / "reimport-failed"
@@ -159,8 +181,7 @@ def test_saved_dxf_verification_failure_does_not_commit_any_file(monkeypatch, tm
 
 
 def test_existing_output_is_never_overwritten_implicitly(tmp_path):
-    snap = _current()
-    snap["receiving_base_plate"]={"pattern":"CENTER_DOUBLE_SIDE_FOLD"}
+    snap = _current_center_125()
     root = tmp_path / "one-version"
     first = _export(snap, root)
     before = Path(first.path).read_bytes()
