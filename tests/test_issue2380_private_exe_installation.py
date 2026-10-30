@@ -884,3 +884,83 @@ def test_packaged_engine_featureless_box_real_native_dxf_and_immutable_replay(
     proc, replayed = invoke("export", repeated, "box-replay")
     assert proc.returncode == 0 and replayed == finished
     assert (output_file.read_bytes(), output_file.stat().st_mtime_ns) == before
+
+
+@pytest.mark.skipif(not WINDOWS, reason="genuine packaged Engine.exe + Windows DPAPI required")
+@pytest.mark.parametrize("kind", ["end_cap_head", "end_cap_tail"])
+def test_packaged_engine_vault_endcap_intrinsic_native_dxf_export_and_replay(
+    tmp_path, monkeypatch, kind,
+):
+    """W-03 signed size-only EndCap to WHD native FinalScene DXF and durable replay."""
+    import ezdxf
+    from copy import deepcopy
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2378_prepare_batch import _vault_endcap_request, _export_request_from_prepared
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires real onedir Engine.exe")
+    profile = tmp_path / f"EndCap 正式幾何 {kind} DPAPI"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    name = "vault-native-" + kind
+    load_installation_key(name, initialize=True)
+    _, _, request = _vault_endcap_request(tmp_path, kind=kind)
+    source = tmp_path / f"CADSplit-EMPTY-{kind}.dxf"
+    drawing = ezdxf.new("R2010")
+    drawing.header["$INSUNITS"] = 4
+    assert len(drawing.modelspace()) == 0
+    drawing.saveas(source)
+    request["items"][0]["source_document_sha256"] = hashlib.sha256(
+        source.read_bytes()
+    ).hexdigest()
+    request["request_digest"] = compute_wire_request_digest(request)
+    store, output = tmp_path / "W06 Vault 持久帳本", tmp_path / "W04 Vault 正式DXF"
+    store.mkdir()
+    output.mkdir()
+    engine_sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        name, store_root=store, output_dir=output,
+        source_documents={request["items"][0]["item_id"]: source},
+        expected_engine_sha256=engine_sha,
+    )
+
+    def invoke(operation, body, tag):
+        wire = tmp_path / f"{tag}-wire.json"
+        reply = tmp_path / f"{tag}-reply.json"
+        wire.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
+        completed = subprocess.run([
+            str(exe), "_private_installed", operation, "--installation-id", name,
+            "--request", str(wire), "--response", str(reply),
+        ], cwd=tmp_path, capture_output=True, text=True, timeout=150)
+        return completed, json.loads(reply.read_text(encoding="utf-8")) if reply.is_file() else None
+
+    authorize_private_job(name, request, engine_sha256=engine_sha)
+    process, prepared = invoke("prepare", request, "vault-prepared")
+    assert process.returncode == 0 and prepared["status"] == "success", (
+        process.stderr, prepared,
+    )
+    frame = prepared["items"][0]["target_frames"][0]
+    assert frame["allowed_feature_types"] == []
+    assert frame["frame_id"].startswith(kind + ":")
+    export = _export_request_from_prepared(request, prepared)
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(name, export, engine_sha256=engine_sha)
+    process, result = invoke("export", export, "vault-output")
+    assert process.returncode == 0 and result["status"] == "success", (
+        process.stderr, result,
+    )
+    assert result["manufacturing_verified"] is False
+    assert len(result["items"]) == 1
+    part = Path(result["items"][0]["path"])
+    assert part.is_file() and part.parent == output
+    saved = ezdxf.readfile(part)
+    assert any(e.dxf.layer == "CUTTING" for e in saved.modelspace())
+    assert saved.modelspace().query('LINE[layer=="BEND"]')
+    before = (part.read_bytes(), part.stat().st_mtime_ns)
+    retry = deepcopy(export)
+    retry["request_id"] = "vault-transmission-replay"
+    process, again = invoke("export", retry, "vault-replayed")
+    assert process.returncode == 0 and again == result
+    assert (part.read_bytes(), part.stat().st_mtime_ns) == before
