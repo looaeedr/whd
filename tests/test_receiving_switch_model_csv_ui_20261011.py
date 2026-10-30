@@ -47,6 +47,14 @@ def test_inner_door_list_no_extension_and_apply_to_highlighted_bays():
             switch_mode=lambda _target: True,
             resize_connections=lambda *_args: False,
             get_settings_ports=ports,
+            get_inner_candidate_ports=lambda: {
+                "versions": lambda _: [],
+                "apply_live": lambda *_: None,
+            },
+            get_nfb_transaction_ports=lambda: {
+                "state": lambda *_: {"can_submit": True},
+                "manifest": lambda *_: {"status": "LEGACY"},
+            },
             select_bay=lambda _si, bi: state.__setitem__("selected", bi),
         )
         root.update()
