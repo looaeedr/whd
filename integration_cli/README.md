@@ -543,6 +543,31 @@ make W-06 keys recoverable across Windows user-profile changes. Normal
 `cadsplit_worker` public `prepare/export` stays disabled; no machine
 certification, Gate A, or `/推推` is implied.
 
+## W-06 original Prepare custody in existing durable ledger (#2380)
+
+Private `DurableJobIdentityLedger.prepare_and_persist` now reserves a W-03
+`(client_installation_id,job_id,prepare)` identity **before** any WHD
+Prepare work. Its actual `prepare_trusted_door_batch` canonical output,
+together with the exact original request, is HMAC-sealed using the Worker-owned
+installation key and committed **in the same SQLite transaction** as the
+immutable job result. Repeated completed requests (even with a different
+transport-only `request_id`) read the original receipt, not rerender.
+A crashed/incomplete prepare remains `WHD_JOB_RECOVERY_REQUIRED`.
+
+`load_trusted_prepare` checks the HMAC, job digest, and identical persisted
+result on every reopen; legacy completed rows without the original attested
+request never gain export authority. `recheck_persisted_prepare_for_export`
+retrieves that persisted pair and invokes the existing W-03 source/Frame/
+resource/feature recheck. Neither export JSON nor a guessed token can inject
+a substitute original Prepare receipt. No customer DXF is written by these
+methods. Real WHD baseline/Registry and two-Door tests cover restart,
+tamper/recomputed plain SHA, collision and export recheck.
+
+This is **private** and relies on a trusted caller to select the installation
+store, actual resource paths, engine build identity and DPAPI-sourced key.
+Public `cadsplit_worker` remains disabled until W-03/W-04/W-06 key owner,
+source custody, cancel/progress and W-07 Gate A are complete.
+
 ## W-05 private Windows Engine onedir candidate (#2381)
 
 The real Windows x64 **separate** `WHD-Engine.exe` candidate is built and
