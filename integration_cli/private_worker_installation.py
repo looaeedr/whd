@@ -161,7 +161,7 @@ def authorize_private_job(
     installation, then exclusively creates one immutable HMAC-bound approval.
     It never initiates a Prepare/Export or writes a customer DXF.
     """
-    from jsonschema import Draft202012Validator
+    from jsonschema import Draft202012Validator, ValidationError
     context = load_private_execution(installation_id, engine_sha256=engine_sha256)
     root = context.resource_root
     try:
@@ -170,7 +170,7 @@ def authorize_private_job(
              ).read_text(encoding="utf-8")
         )
         Draft202012Validator(schema).validate(request)
-    except (OSError, ValueError, TypeError) as exc:
+    except (OSError, ValueError, TypeError, ValidationError) as exc:
         raise PrepareEvidenceError("WHD_SCHEMA_INVALID", "private job approval schema invalid") from exc
     identity = list(_identity(request))
     if request["operation"] == "export":
