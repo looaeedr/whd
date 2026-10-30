@@ -163,6 +163,16 @@ class Phase6FinalSceneViewAdapter:
         return ("PAD 3D 來源／貼合檢查未通過：" + str(reason)
                 + "；已隱藏未驗證的墊高片，正式製造輸出仍禁止",)
 
+    def _ear_display_warnings(self):
+        """Explain a hidden EAR without treating display as MFG approval."""
+        reason = self.last_formed_ear_display_blocker
+        if not reason:
+            return ()
+        return (
+            "EAR 3D 來源檢查未通過：" + str(reason)
+            + "；已隱藏未驗證的固定片，正式加工仍須獨立驗證",
+        )
+
     def _formed_ear_assembly_preview(self, snapshot, visible_set):
         """Source-backed world skins, NEVER extra manufacturing assembly parts.
 
@@ -382,6 +392,8 @@ class Phase6FinalSceneViewAdapter:
             if cabinet_family == "受電箱" else ()
         )
         visible_warnings = tuple(source_warning) + (
+            self._ear_display_warnings() if cabinet_family == "受電箱" else ()
+        ) + (
             self._pad_display_warnings() if cabinet_family == "受電箱" else ()
         )
         return self.make_assembly_scene_render_data(
