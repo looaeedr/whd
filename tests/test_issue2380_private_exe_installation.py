@@ -1901,3 +1901,128 @@ def test_packaged_public_v11_twenty_mixed_five_p0_kinds_exact_job_atomic_dxf(
     assert failed.returncode == 4 and stale["status"] == "failed"
     assert stale["manufacturing_verified"] is False
     assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files} == files
+
+
+@pytest.mark.skipif(not WINDOWS, reason="real packaged Windows public v1.1 Engine and DPAPI required")
+@pytest.mark.parametrize("source_kind", ["rect", "profile"])
+def test_packaged_public_v11_actual_90deg_cutting_rect_profile_source_and_replay(
+    tmp_path, monkeypatch, source_kind,
+):
+    """Public v1.1 must manufacture *original* rotated source entities.
+
+    Uses the same real original-DXF handle, CUTTING layer, closed-edge
+    geometry and 90° transform as W-04's established private EXE test,
+    not fabricated Frame coordinates or a skipped source Feature.
+    """
+    from copy import deepcopy
+    import ezdxf
+    from jsonschema import Draft202012Validator
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2378_prepare_batch import _export_request_from_prepared
+    from test_issue2379_trusted_door_finalscene_batch import (
+        _mixed_rect_batch, _mixed_source_profile_batch,
+    )
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires actual bundled WHD-Engine.exe")
+    profile = tmp_path / f"公開真來源90度_{source_kind}_DPAPI"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    batch = (_mixed_rect_batch(tmp_path, rotation=90) if source_kind == "rect"
+             else _mixed_source_profile_batch(tmp_path, rotation=90))
+    original, _, local_export, _, sources, original_dxf, *_ = batch
+    installation = original["client_installation_id"]  # W-03 Frame identity owner
+    load_installation_key(installation, initialize=True)
+    store, output = tmp_path / "original-W06", tmp_path / "原圖 Feature 加工"
+    store.mkdir()
+    output.mkdir()
+    exe_sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation, store_root=store, output_dir=output,
+        source_documents=sources, expected_engine_sha256=exe_sha,
+    )
+    source_doc = ezdxf.readfile(original_dxf)
+    assert {f["type"] for row in local_export["items"] for f in row["features"]} == {
+        "circle", source_kind,
+    }
+    assert any(
+        x["source_transform"]["rotation_deg"] == 90
+        for row in local_export["items"] for x in row["features"]
+    )
+    for row in local_export["items"]:
+        for feature in row["features"]:
+            entity_handle = feature["source_transform"]["source_entity_refs"][0]
+            entity = source_doc.entitydb.get(entity_handle)
+            assert entity is not None and entity.dxf.layer == "CUTTING"
+
+    validator = Draft202012Validator(json.loads(
+        (Path(__file__).resolve().parents[1] / "integration_cli" / "schemas" /
+         "response_v1_1.schema.json").read_text(encoding="utf-8")
+    ))
+
+    def invoke(operation, payload, label):
+        wire, reply = tmp_path / f"{label}-wire.json", tmp_path / f"{label}-reply.json"
+        wire.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        proc = subprocess.run(
+            [str(exe), operation, "--request", str(wire), "--response", str(reply)],
+            cwd=tmp_path, capture_output=True, text=True, timeout=240,
+        )
+        result = json.loads(reply.read_text(encoding="utf-8")) if reply.is_file() else None
+        assert result is not None, proc.stderr[-1200:]
+        validator.validate(result)
+        return proc, result
+
+    authorize_private_job(installation, original, engine_sha256=exe_sha)
+    proc, receipt = invoke("prepare", original, f"public-{source_kind}-prepare")
+    assert proc.returncode == 0, (proc.stderr[-1200:], receipt.get("diagnostics"))
+    assert receipt["status"] == "success" and len(receipt["items"]) == 2
+    export = _export_request_from_prepared(original, receipt)
+    for idx, existing in enumerate(local_export["items"]):
+        frame = receipt["items"][idx]["target_frames"][0]
+        feature = deepcopy(existing["features"][0])
+        feature["target_frame_id"] = frame["frame_id"]
+        feature["source_transform"]["target_dimensions_mm"] = deepcopy(
+            frame["finished_face_dimensions_mm"]
+        )
+        export["items"][idx]["features"] = [feature]
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(installation, export, engine_sha256=exe_sha)
+    proc, result = invoke("export", export, f"public-{source_kind}-export")
+    assert proc.returncode == 0, (proc.stderr[-1200:], result.get("diagnostics"))
+    assert result["status"] == "success" and result["manufacturing_verified"] is True
+    assert len(result["items"]) == 2
+    files = {
+        row["physical_part_id"]: Path(row["parts"][0]["output_path"])
+        for row in result["items"]
+    }
+    assert set(files) == {row["physical_part_id"] for row in receipt["items"]}
+    for row in result["items"]:
+        p, = row["parts"]
+        assert p["save_reload_verified"] and p["manufacturing_verified"]
+        assert hashlib.sha256(Path(p["output_path"]).read_bytes()).hexdigest() == p["output_sha256"]
+    circle_doc = ezdxf.readfile(files[receipt["items"][0]["physical_part_id"]])
+    assert circle_doc.modelspace().query('CIRCLE[layer=="CUTTING"]')
+    shape_doc = ezdxf.readfile(files[receipt["items"][1]["physical_part_id"]])
+    closed = [
+        line for line in shape_doc.modelspace().query('LWPOLYLINE[layer=="CUTTING"]')
+        if line.closed
+    ]
+    n_vertices = 4 if source_kind == "rect" else 5
+    assert any(len(line.get_points("xy")) == n_vertices for line in closed)
+    assert all(ezdxf.readfile(p).modelspace().query('LINE[layer=="BEND"]') for p in files.values())
+    immutable = {path: (path.read_bytes(), path.stat().st_mtime_ns) for path in files.values()}
+    replay = deepcopy(export)
+    replay["request_id"] = f"public-{source_kind}-90deg-replay"
+    again, response = invoke("export", replay, f"public-{source_kind}-replay")
+    assert again.returncode == 0, (again.stderr[-1200:], response.get("diagnostics"))
+    for x in (result, response):
+        x.pop("request_id", None)
+    assert response == result
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files.values()} == immutable
+    original_dxf.write_bytes(original_dxf.read_bytes() + b"\\nchanged-original-shape")
+    refused, failed = invoke("export", replay, f"public-{source_kind}-stale")
+    assert refused.returncode == 4 and failed["status"] == "failed"
+    assert failed["manufacturing_verified"] is False
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files.values()} == immutable
