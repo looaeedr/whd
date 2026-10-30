@@ -1321,6 +1321,11 @@ def test_packaged_engine_separately_authorized_rollback_after_crashed_two_dxf_ex
         "part-two": _w06_staged_dxf(target, "part-two"),
     }
     request = _w06_request(operation="export")
+    # This low-level journal fixture omits W-03 wire fields. The installed
+    # job/recovery approval must still validate the FULL Export request.
+    # Rollback uses the original W-06 journal, not a new Prepare receipt.
+    request["prepare_token"] = "preexisting-private-w06-export"
+    request["environment_fingerprint_expected"] = "a" * 64
     request["output"]["directory"] = str(target)
     request["output"]["overwrite"] = True
     request["request_digest"] = compute_wire_request_digest(request)
