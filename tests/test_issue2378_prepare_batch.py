@@ -589,7 +589,11 @@ def _indicator_box_request(tmp_path, *, groups=(2, 1)):
     root, _, _ = _root(tmp_path)
     shared = root / "基準檔" / "指示燈"
     shared.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(HERE / "基準檔" / "指示燈" / "盒子.dxf", shared / "盒子.dxf")
+    # The CURRENT shared-indicator resolver owns the coupled physical
+    # baseline folder: both box and small door must be discoverable together.
+    # A box-only fixture is not a valid WHD global shared-baseline resource.
+    for filename in ("盒子.dxf", "小門.dxf"):
+        shutil.copy2(HERE / "基準檔" / "指示燈" / filename, shared / filename)
     context = ManufacturingContext(resource_root=root)
     w, h = indicator_box_finished_face_size(groups, thickness=2.0, context=context)
     baseline = expected_baseline_path_for(
