@@ -476,7 +476,11 @@ def apply_committed_csv_v5_to_canonical_parts(snapshot, assembly_parts):
     if not sourced:
         return parts
     inner_door_id, holes = sourced
-    if not any(part.part_key.startswith("base_plate") for part in parts):
+    if not any(
+        part.part_key == "base_plate"
+        or part.part_key.startswith("base_plate:nfb_layer:")
+        for part in parts
+    ):
         # No original material sheet exists. A missing Base Plate may not be
         # manufactured by silently reusing an unrelated door or box-body.
         raise ValueError("NFB_COMMITTED_CSV_REAL_BASE_PART_MISSING")
