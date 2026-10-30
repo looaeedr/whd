@@ -501,3 +501,73 @@ def test_private_installer_rejects_unc_device_namespace_before_filesystem_probe(
         with pytest.raises(PrepareEvidenceError) as original:
             _trusted_file(candidate)
         assert original.value.code == "WHD_JOB_STORE_UNAVAILABLE"
+
+
+@pytest.mark.skipif(not WINDOWS, reason="real Windows Engine.exe and DPAPI required")
+def test_packaged_engine_indicator_box_size_only_prepare_and_export_denial(
+    tmp_path, monkeypatch,
+):
+    """Genuine EXE seals WHD shared-box size; never manufactures unowned Features."""
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2378_prepare_batch import (
+        _indicator_box_request, _export_request_from_prepared,
+    )
+    import ezdxf
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires genuine packaged onedir Engine.exe")
+    profile = tmp_path / "Box DPAPI private profile"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    installation = "box-size-only-real-exe"
+    load_installation_key(installation, initialize=True)
+    _, _, request = _indicator_box_request(tmp_path)
+    original_dxf = tmp_path / "CADSplit 原始盒子.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    doc.modelspace().add_circle((12, 12), 2, dxfattribs={"layer": "CUTTING"})
+    doc.saveas(original_dxf)
+    request["items"][0]["source_document_sha256"] = hashlib.sha256(
+        original_dxf.read_bytes()
+    ).hexdigest()
+    request["request_digest"] = compute_wire_request_digest(request)
+    item_id = request["items"][0]["item_id"]
+    store, output = tmp_path / "box-ledger", tmp_path / "box-out"
+    store.mkdir()
+    output.mkdir()
+    exe_sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation, store_root=store, output_dir=output,
+        source_documents={item_id: original_dxf}, expected_engine_sha256=exe_sha,
+    )
+
+    def invoke(operation, body, label):
+        wire, reply = tmp_path / f"{label}-request.json", tmp_path / f"{label}-reply.json"
+        wire.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
+        proc = subprocess.run(
+            [str(exe), "_private_installed", operation,
+             "--installation-id", installation,
+             "--request", str(wire), "--response", str(reply)],
+            cwd=tmp_path, capture_output=True, text=True, timeout=150,
+        )
+        return proc.returncode, (
+            json.loads(reply.read_text(encoding="utf-8")) if reply.exists() else None
+        )
+
+    authorize_private_job(installation, request, engine_sha256=exe_sha)
+    code, receipt = invoke("prepare", request, "box-prepare")
+    assert code == 0 and receipt["status"] == "success", receipt
+    assert receipt["manufacturing_verified"] is False
+    frame = receipt["items"][0]["target_frames"][0]
+    assert frame["frame_id"].startswith("indicator_box:")
+    assert frame["allowed_feature_types"] == []
+    export = _export_request_from_prepared(request, receipt)
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(installation, export, engine_sha256=exe_sha)
+    code, denied = invoke("export", export, "box-export-denied")
+    assert code != 0, denied
+    assert denied is None or denied["status"] != "success"
+    assert not list(output.glob("*.dxf"))
+    assert original_dxf.is_file()
