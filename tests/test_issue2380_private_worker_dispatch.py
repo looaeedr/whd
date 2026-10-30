@@ -60,6 +60,12 @@ def _export_from_real_sources(original, fresh_receipt, batch):
         for feature in row["features"]:
             refs = feature["source_transform"]["source_entity_refs"]
             assert len(refs) == 1 and saved_handles.get(refs[0].upper()) == "CIRCLE"
+        from integration_cli.source_circle_verification import verify_trusted_original_dxf_features
+        verified = verify_trusted_original_dxf_features(
+            row["features"], source_path=batch[4][row["item_id"]],
+            expected_document_sha256=row["source_document_sha256"],
+        )
+        assert len(verified) == len(row["features"])
     result["request_digest"] = compute_wire_request_digest(result)
     return result
 
