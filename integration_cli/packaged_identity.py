@@ -21,6 +21,7 @@ _EXE_NAME = "WHD-Engine.exe"
 _MANIFEST_NAME = "WHD_ENGINE_BUILD.json"
 _REGISTRY = Path("基準檔/截角資料庫/certified_relief_rules.json")
 _POLICY = Path("config.ini")
+_SCHEMAS = Path("integration_cli/schemas")
 _MAX_FILE = 100 * 1024 * 1024
 
 
@@ -65,18 +66,35 @@ def _baseline_digest(root: Path) -> str:
     return h.hexdigest()
 
 
+def _schemas_digest(root: Path) -> str:
+    directory = root / _SCHEMAS
+    if directory.is_symlink() or not directory.is_dir():
+        raise PackageIdentityError("WHD_PACKAGE_SCHEMAS_MISSING")
+    files = sorted(directory.glob("*.json"), key=lambda p: p.name)
+    if len(files) < 3 or len(files) > 100:
+        raise PackageIdentityError("WHD_PACKAGE_SCHEMAS_INVALID")
+    h = hashlib.sha256()
+    for item in files:
+        data = _regular_bytes(item, root)
+        h.update(item.name.encode("utf-8"))
+        h.update(len(data).to_bytes(8, "big"))
+        h.update(data)
+    return h.hexdigest()
+
+
 def _package_facts(root: Path) -> dict[str, str]:
     return {
         "engine_sha256": _sha(_regular_bytes(root / _EXE_NAME, root)),
         "registry_sha256": _sha(_regular_bytes(root / _REGISTRY, root)),
         "baseline_manifest_sha256": _baseline_digest(root),
         "policy_sha256": _sha(_regular_bytes(root / _POLICY, root)),
+        "schema_manifest_sha256": _schemas_digest(root),
     }
 
 
 def _revision(facts: dict[str, str]) -> str:
     return _sha(json.dumps(
-        [facts["registry_sha256"], facts["baseline_manifest_sha256"], facts["policy_sha256"]],
+        [facts["registry_sha256"], facts["baseline_manifest_sha256"], facts["policy_sha256"], facts["schema_manifest_sha256"]],
         ensure_ascii=False, separators=(",", ":"),
     ).encode("utf-8"))
 
@@ -114,7 +132,7 @@ def verify_manifest(root: Path) -> dict[str, Any]:
         raise PackageIdentityError("WHD_PACKAGE_MANIFEST_INVALID")
     expected = {
         "schema", "engine_commit", "build_id", "resource_revision",
-        "engine_sha256", "registry_sha256", "baseline_manifest_sha256", "policy_sha256",
+        "engine_sha256", "registry_sha256", "baseline_manifest_sha256", "policy_sha256", "schema_manifest_sha256",
     }
     if set(manifest) != expected or manifest["schema"] != "whd-engine-private-build-v1":
         raise PackageIdentityError("WHD_PACKAGE_MANIFEST_INVALID")
