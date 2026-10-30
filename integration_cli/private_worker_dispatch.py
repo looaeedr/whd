@@ -289,13 +289,48 @@ def read_private_worker_immutable_result(
         raise PrepareEvidenceError(
             "WHD_JOB_RECOVERY_REQUIRED", "job lacks physically verified immutable result",
         )
-    if request["operation"] == "prepare":
+    result = claim.result
+    if (
+        result.get("status") != "success"
+        or result.get("operation") != operation
+        or result.get("client_installation_id") != client
+        or result.get("job_id") != job
+        or result.get("request_digest") != digest
+        or result.get("manufacturing_verified") is not False
+    ):
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "immutable receipt identity invalid")
+    if operation == "prepare":
         original, receipt = ledger.load_trusted_prepare(
-            client_installation_id=request["client_installation_id"],
-            job_id=request["job_id"], worker_key=context.worker_key,
+            client_installation_id=client, job_id=job, worker_key=context.worker_key,
         )
-        if _identity(original) != _identity(request) or receipt != claim.result:
+        if _identity(original) != (client, job, operation, digest) or receipt != result:
             raise PrepareEvidenceError("WHD_PREPARE_STALE", "original prepare result changed")
-    if claim.result.get("manufacturing_verified") is not False:
-        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "invalid manufacturing result authority")
-    return claim.result
+    else:
+        # claim() rehashes *artifact_json* but does not bind a result's
+        # displayed paths to those physically attested files. Never return a
+        # forged success receipt pointing at another customer's DXF.
+        with ledger._connect() as conn:
+            row = conn.execute(
+                """SELECT artifact_json FROM jobs
+                   WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",
+                (client, job, operation, digest),
+            ).fetchone()
+        try:
+            proofs = json.loads(row[0])
+            rows = result["items"]
+            issued = {
+                entry["physical_part_id"]: entry["path"] for entry in rows
+            }
+            expected = {entry["physical_part_id"] for entry in request["items"]}
+            if (
+                not isinstance(proofs, dict) or not isinstance(rows, list)
+                or len(rows) != len(expected) or len(issued) != len(expected)
+                or set(proofs) != expected or set(issued) != expected
+                or any(proofs[part]["path"] != path for part, path in issued.items())
+            ):
+                raise ValueError("result/physical-DXF inventory mismatch")
+        except (KeyError, ValueError, TypeError, IndexError) as exc:
+            raise PrepareEvidenceError(
+                "WHD_JOB_RECOVERY_REQUIRED", "immutable DXF receipt/proof differs",
+            ) from exc
+    return result
