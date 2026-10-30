@@ -132,3 +132,56 @@ def test_native_pad_preview_cache_revalidates_when_cutting_scene_changes(monkeyp
     assert "PAD_BASE_FOUR_LOCATOR_SQUARES_NOT_REAL_CUTTING" in (
         adapter.last_formed_pad_display_blocker
     )
+
+
+def test_pad_cache_ignores_independent_fixing_plate_child_but_checks_real_tier_base():
+    """Only actual Base parents own PAD locator geometry (not EAR child parts)."""
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    snapshot={"model":"受電箱","nfb_config_submitted":True}
+    base=_pad_base_with_real_cutting_scene(DrawingScene())
+    unrelated=SimpleNamespace(
+        part_key="base_plate:fixing_plate:left",
+        render_data=SimpleNamespace(material=None),
+    )
+    expected=pad_preview_source_fingerprint(snapshot,(base,))
+    assert pad_preview_source_fingerprint(snapshot,(base,unrelated))==expected
+
+    # A genuine two-tier parent must still be included, including its cuts.
+    tier=_pad_base_with_real_cutting_scene(DrawingScene())
+    tier.part_key="base_plate:nfb_layer:0"
+    with_tier=pad_preview_source_fingerprint(snapshot,(base,tier))
+    assert with_tier!=expected
+    tier.render_data.material=box(0,0,99,100)
+    assert pad_preview_source_fingerprint(snapshot,(base,tier))!=with_tier
+
+
+def test_pad_gui_cache_does_not_hide_valid_skin_because_unrelated_ear_has_no_material(monkeypatch):
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    from phase6_final_scene_view import Phase6FinalSceneViewAdapter
+    import ae_engine.receiving_nfb_pad_assembly_preview as live
+
+    base=_pad_base_with_real_cutting_scene(DrawingScene())
+    ear=SimpleNamespace(
+        part_key="base_plate:fixing_plate:left",
+        render_data=SimpleNamespace(material=None),
+    )
+    safe_skin=SimpleNamespace(
+        parent_base_id="base_plate", manufacturing_ready=False,
+        assembly_contact_certified=False,
+    )
+    called=[]
+    def verified_pad(_snapshot,_parts):
+        called.append(True)
+        return (safe_skin,)
+    monkeypatch.setattr(live,"build_committed_pad_assembly_display",verified_pad)
+    adapter=Phase6FinalSceneViewAdapter.__new__(Phase6FinalSceneViewAdapter)
+    adapter._formed_pad_display_cache=None
+    adapter.last_formed_pad_display_blocker=None
+    result=adapter._formed_pad_assembly_preview(
+        {"model":"受電箱","nfb_config_submitted":True},
+        {"base_plate"},(base,ear),
+    )
+    assert result==(safe_skin,)
+    assert called==[True]
+    assert adapter.last_formed_pad_display_blocker is None
