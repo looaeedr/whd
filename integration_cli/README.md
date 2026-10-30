@@ -277,7 +277,17 @@ for unsupported Head/Tail/Indicator Box Frame or full W-04 mixed physical
 manufacturing. Production wiring of the trusted Save→Reload batch, HMAC key
 custody, and Windows UAT remain required before public use.
 
-**Still not full W-06:** Windows junction/UNC/drive-alias and case-equivalence
+**W-06 Windows alias safety increment:** private directory reservations now fail
+closed on UNC/device namespace and NTFS junction or junction ancestors (rather
+than treating a resolved destination as safe). In-flight output leases also
+check device/inode identity across different lexical keys, avoiding a second
+job acquiring the same physical folder through another spelling. The existing
+Windows Engine Runner exercises a **real NTFS junction**, alternate physical
+lease keys and failure without modifying an original customer file. This is
+a conservative *rejection* policy; it is not positive support for valid UNC
+deployments or every DOS drive alias.
+
+**Still not full W-06:** support for legitimate UNC/junction/drive-alias workflows, case-equivalence
 require physical Gate A evidence; multi-file durable backup/commit journal,
 rollback/roll-forward after interrupted `os.replace`, safe cancellation,
 progress, source/key custody and recovery decision owner are not implemented.
