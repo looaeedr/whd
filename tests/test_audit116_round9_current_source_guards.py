@@ -105,3 +105,46 @@ def test_r9_unhashable_mode_is_rejected_with_stable_contract(invalid_mode):
         ReceivingModeSession._check_mode(invalid_mode)
     with pytest.raises(ValueError, match="不合法的受電箱操作模式"):
         fresh_receiving_mode(invalid_mode, {"w": 800, "h": 1600, "d": 350})
+
+
+@pytest.mark.parametrize("axis", ("x", "y"))
+def test_r9_mirrored_cutting_polyline_preserves_source_semantic_identity(axis):
+    """X/Y reflection changes position, never physical source ownership."""
+    from ae_engine.sheetmetal_drawing import (
+        DrawingScene, PolylinePrimitive, TextPrimitive, CirclePrimitive,
+        mirror_drawing_scene_x, mirror_drawing_scene_y,
+    )
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    original=DrawingScene()
+    original.add_polyline(
+        ((2.,3.), (8.,3.), (8.,11.), (2.,11.)),
+        layer="CUTTING", closed=True, color=30,
+        semantic_id="nfbv5:pad:hole-A:locator-square-1",
+    )
+    original.add(TextPrimitive(
+        text="source", insert=Vec2(3.,4.),
+        layer="CHECK", char_height=3., attachment_point=1,
+        semantic_id="source:check",
+    ))
+    original.add(CirclePrimitive(
+        center=Vec2(4.,5.),radius=2.,layer="CUTTING",color=3,
+        source_type="NFB",source_id="source:screw",
+    ))
+    reflect=(lambda value: mirror_drawing_scene_x(value, 0., 20.)
+             if axis=="x" else mirror_drawing_scene_y(value,20.))
+    mirrored=reflect(original)
+    assert len(mirrored.primitives)==3
+    polygon,check,screw=mirrored.primitives
+    assert isinstance(polygon,PolylinePrimitive)
+    expected=(
+        tuple(Vec2(20.-p.x,p.y) for p in original.primitives[0].points)
+        if axis=="x" else
+        tuple(Vec2(p.x,20.-p.y) for p in original.primitives[0].points)
+    )
+    assert polygon.points==expected
+    assert (polygon.layer,polygon.closed,polygon.color)==("CUTTING",True,30)
+    assert polygon.semantic_id=="nfbv5:pad:hole-A:locator-square-1"
+    assert check.semantic_id=="source:check"
+    assert screw.source_id=="source:screw"
+    assert reflect(mirrored).primitives[0]==original.primitives[0]
