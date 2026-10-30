@@ -31,7 +31,42 @@ def _backup_error(message: str) -> PrepareEvidenceError:
 
 
 def _sync_directory(path: Path) -> None:
-    """Refuse a durability claim if the host cannot sync directory entries."""
+    """Sync real directory metadata; refuse the transaction if unsupported.
+
+    Windows Python's CRT os.open/os.fsync cannot flush a directory. The
+    Windows path uses a real GENERIC_WRITE Win32 directory handle and
+    FlushFileBuffers instead of silently skipping this durability barrier.
+    """
+    if not path.is_dir() or path.is_symlink():
+        raise _backup_error("untrusted original-backup directory")
+    if os.name == "nt":
+        import ctypes
+        from ctypes import wintypes
+
+        kernel = ctypes.WinDLL("kernel32.dll", use_last_error=True)
+        create = kernel.CreateFileW
+        create.argtypes = (
+            wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+            ctypes.c_void_p, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE,
+        )
+        create.restype = wintypes.HANDLE
+        flush = kernel.FlushFileBuffers
+        flush.argtypes = (wintypes.HANDLE,)
+        flush.restype = wintypes.BOOL
+        close = kernel.CloseHandle
+        close.argtypes = (wintypes.HANDLE,)
+        close.restype = wintypes.BOOL
+        # GENERIC_READ|WRITE, share read/write/delete, OPEN_EXISTING and
+        # FILE_FLAG_BACKUP_SEMANTICS for a real directory Win32 handle.
+        handle = create(str(path), 0xC0000000, 0x7, None, 3, 0x02000000, None)
+        if not handle or handle == ctypes.c_void_p(-1).value:
+            raise _backup_error("Windows directory durability handle unavailable")
+        try:
+            if not flush(handle):
+                raise _backup_error("Windows directory flush unavailable")
+        finally:
+            close(handle)
+        return
     try:
         handle = os.open(str(path), os.O_RDONLY)
         try:
@@ -60,7 +95,9 @@ def _verified_backup_file(original: Mapping[str, Any], backup: Path) -> dict[str
             os.fsync(dst.fileno())
         srcstat = source.stat()
         os.utime(backup, ns=(srcstat.st_atime_ns, original["mtime_ns"]))
-        with backup.open("rb") as verified:
+        # Windows CRT _commit() needs a writable file handle. This is the
+        # newly generated PRIVATE backup, never the customer original file.
+        with backup.open("rb+") as verified:
             os.fsync(verified.fileno())
         proof = _file_proof(backup)
     except (OSError, ValueError) as exc:
