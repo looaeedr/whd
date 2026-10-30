@@ -47,7 +47,15 @@ def pad_preview_source_fingerprint(snapshot, assembly_parts) -> str:
         if data is None:
             raise ValueError("PAD_PREVIEW_PARENT_RENDER_DATA_MISSING")
         material=getattr(data,"material",None)
-        if material is None or material.is_empty:
+        if material is None:
+            raise ValueError("PAD_PREVIEW_PARENT_MATERIAL_MISSING")
+        # The optional 3D display must never assume an incomplete provider
+        # returned a real geometry. A raw AttributeError here bypasses the
+        # normal PAD-only blocker and can interrupt the cabinet view.
+        from shapely.geometry.base import BaseGeometry
+        if not isinstance(material, BaseGeometry):
+            raise ValueError("PAD_PREVIEW_PARENT_MATERIAL_INVALID")
+        if material.is_empty:
             raise ValueError("PAD_PREVIEW_PARENT_MATERIAL_MISSING")
         h.update(key.encode("utf-8"))
         # Same physical skin at a different 3D pose is a different preview.
