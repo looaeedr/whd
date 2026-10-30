@@ -813,3 +813,27 @@ def test_manual_116_submitted_nfb_exact_tier_types_preserve_legacy_and_two_tiers
     legacy.pop("layer_count")
     legacy["holes"][0].pop("layer_index", None)
     assert "layer_count" not in normalize_nfb_config(legacy)
+
+
+@pytest.mark.parametrize("invalid_count", (3, 1000))
+def test_submitted_nfb_storage_rejects_unsupported_physical_tier_count(invalid_count):
+    """Save source must not accept a tier count impossible in current 1/2-tier geometry."""
+    config = _config()
+    config["layer_count"] = invalid_count
+    with pytest.raises(ValueError, match="NFB layer_count"):
+        normalize_nfb_config(config)
+    with pytest.raises(ValueError, match="NFB layer_count"):
+        normalize_nfb_saved_fields({
+            "nfb_config_submitted": True, "nfb_config": config,
+        })
+
+
+def test_old_single_tier_missing_layer_count_remains_compatible():
+    """Pre-tier-count projects have no explicit field; do not invent one."""
+    config = _config(state="NONE")
+    config.pop("layer_count")
+    assert "layer_count" not in normalize_nfb_config(config)
+    assert normalize_nfb_config(_config())["layer_count"] == 1
+    two = _config()
+    two["layer_count"] = 2
+    assert normalize_nfb_config(two)["layer_count"] == 2
