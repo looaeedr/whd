@@ -90,7 +90,7 @@ def test_committed_two_tiers_share_one_csv_datum_and_get_own_screw_sets():
     snap = _two_tier()
     for index, row in enumerate(snap["nfb_config"]["holes"]):
         row.update({
-            "model_filename": ("nfbv5:士林:2P400", "nfbv5:士林:3P125SN")[index],
+            "model_filename": ("nfbv5:士林:3P125SN", "nfbv5:士林:3P125SN")[index],
             "source_brand": "士林",
             "manual_x_state": "CONFIRMED",
             "manual_x_mm": (-100. if index == 0 else 100.),
