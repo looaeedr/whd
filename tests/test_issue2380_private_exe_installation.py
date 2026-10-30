@@ -1283,3 +1283,130 @@ def test_packaged_engine_real_original_rect_profile_cutting_native_dxf_and_repla
         path: (path.read_bytes(), path.stat().st_mtime_ns)
         for path in files.values()
     } == immutable
+
+
+@pytest.mark.skipif(not WINDOWS, reason="real DPAPI + packaged WHD-Engine.exe required")
+def test_packaged_engine_separately_authorized_rollback_after_crashed_two_dxf_export(
+    tmp_path, monkeypatch,
+):
+    """Actual Windows EXE recovery cannot borrow an ordinary Export ticket.
+
+    A half-applied journal recovers the original customer DXF bytes + mtime
+    in a NEW process without rendering another DXF. Terminal replay is read-only.
+    """
+    from integration_cli.batch_commit_journal import DurableMultiDXFRollbackJournal
+    from integration_cli.job_identity_ledger import DurableJobIdentityLedger
+    from integration_cli.original_backup_manifest import DurableOriginalBackupEvidence
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from integration_cli.private_worker_installation import authorize_private_recovery
+    from test_issue2378_request_canonical import (
+        _w06_request, _w06_real_output, _w06_staged_dxf,
+    )
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires built actual onedir WHD-Engine.exe")
+    profile = tmp_path / "WHD private recovery DPAPI"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    installation = "w06-real-exe-recovery"
+    load_installation_key(installation, initialize=True)
+    store, target = tmp_path / "state", tmp_path / "客戶 實際 DXF"
+    store.mkdir()
+    target.mkdir()
+    customer = _w06_real_output(target / "part-one.dxf")
+    before = customer.read_bytes(), customer.stat().st_mtime_ns
+    staged = {
+        "part-one": _w06_staged_dxf(target, "part-one"),
+        "part-two": _w06_staged_dxf(target, "part-two"),
+    }
+    source = _w06_real_output(tmp_path / "外部來源.dxf")
+    request = _w06_request(operation="export")
+    # Low-level journal fixtures have no W-03 handoff data. Use a valid
+    # complete TWO-part Export wire inventory before sealing recovery;
+    # no new Prepare or rerender is attempted during rollback.
+    request["prepare_token"] = "preexisting-private-w06-export"
+    request["environment_fingerprint_expected"] = "a" * 64
+    first = request["items"][0]
+    first["source_document_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+    first["physical_part_id"] = "part-one"
+    first["preparation_digest"] = "a" * 64
+    first["target_frame_ids"] = ["frame-part-one"]
+    first["features"] = []
+    second = json.loads(json.dumps(first, ensure_ascii=False))
+    second["item_id"] = "door-2"
+    second["physical_part_id"] = "part-two"
+    second["part"]["source_part_ref"] = "real-source-door-2"
+    second["target_frame_ids"] = ["frame-part-two"]
+    request["items"].append(second)
+    request["output"]["directory"] = str(target)
+    request["output"]["overwrite"] = True
+    request["request_digest"] = compute_wire_request_digest(request)
+    ledger = DurableJobIdentityLedger(store)
+    assert ledger.claim(request).state == "new"
+    ledger.reserve_output_directories(request, trusted_directories=[target])
+    ledger.record_staged_batch_snapshot(
+        request, trusted_output_dir=target, trusted_staged=staged, overwrite=True,
+    )
+    DurableOriginalBackupEvidence(ledger).create_verified_original_backups(
+        request, trusted_output_dir=target,
+    )
+    journal = DurableMultiDXFRollbackJournal(ledger)
+    journal.arm(request)
+    with pytest.raises(SystemExit):
+        journal.apply(
+            request,
+            after_replace=lambda i: (_ for _ in ()).throw(SystemExit()) if i == 1 else None,
+        )
+    assert (customer.read_bytes(), customer.stat().st_mtime_ns) != before
+    assert not (target / "part-two.dxf").exists()
+
+    exe_hash = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation, store_root=store, output_dir=target,
+        source_documents={"door-1": source, "door-2": source},
+        expected_engine_sha256=exe_hash,
+    )
+    # A standard Export approval is deliberately not an approval to restore.
+    authorize_private_job(installation, request, engine_sha256=exe_hash)
+    wire = tmp_path / "unchanged-original-export.json"
+    wire.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+
+    def invoke(label, body=request):
+        path = tmp_path / f"{label}-request.json"
+        response = tmp_path / f"{label}-response.json"
+        path.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
+        process = subprocess.run([
+            str(exe), "_private_installed", "recover-rollback",
+            "--installation-id", installation,
+            "--request", str(path), "--response", str(response),
+        ], cwd=tmp_path, capture_output=True, text=True, timeout=120)
+        return process, response
+
+    refused, no_result = invoke("ordinary-export-ticket")
+    assert refused.returncode == 4
+    assert not no_result.exists()
+    assert (customer.read_bytes(), customer.stat().st_mtime_ns) != before
+    authorize_private_recovery(installation, request, engine_sha256=exe_hash)
+
+    swapped = dict(request)
+    swapped["job_id"] = "different-job"
+    swapped["request_digest"] = compute_wire_request_digest(swapped)
+    wrong, missing = invoke("wrong-original-job", swapped)
+    assert wrong.returncode == 4 and not missing.exists()
+    assert (customer.read_bytes(), customer.stat().st_mtime_ns) != before
+
+    done, path = invoke("approved-rollback")
+    assert done.returncode == 0, done.stderr[-1200:]
+    outcome = json.loads(path.read_text(encoding="utf-8"))
+    assert outcome["status"] == "rolled_back"
+    assert outcome["manufacturing_verified"] is False
+    assert outcome["request_digest"] == request["request_digest"]
+    assert (customer.read_bytes(), customer.stat().st_mtime_ns) == before
+    assert not (target / "part-two.dxf").exists()
+    assert DurableJobIdentityLedger(store).claim(request).state == "rolled_back"
+
+    again, replay = invoke("recover-result-lost-transport")
+    assert again.returncode == 0, again.stderr[-1200:]
+    assert json.loads(replay.read_text(encoding="utf-8")) == outcome
+    assert (customer.read_bytes(), customer.stat().st_mtime_ns) == before
