@@ -177,6 +177,12 @@ jobs:
           grep -Fq "$RELEASE_SHA" WHD_Release_Notes_zh-TW.md
           grep -Fq "$RELEASE_TAG" WHD_Release_Notes_zh-TW.md
           grep -q '如何下載' WHD_Windows_Guide_zh-TW.md
+          if grep -Eq '(^## 逐項變更|^- (feat|fix|test|docs|chore|ci|build|refactor)[(:! ])' WHD_Release_Notes_zh-TW.md; then
+            echo "::error::RELEASE_NOTES_RAW_COMMIT_DUMP_FORBIDDEN"; exit 1
+          fi
+          if [ "$(wc -m < WHD_Release_Notes_zh-TW.md)" -gt 2000 ]; then
+            echo "::error::RELEASE_NOTES_NOT_CONCISE"; exit 1
+          fi
 
       - name: Publish X-tagged GitHub Release only after complete delivery
         env:
@@ -217,6 +223,8 @@ jobs:
                 and ([.assets[] | select(.name == "WHD_Release_Notes_zh-TW.md" and .size > 0)] | length) == 1
                 and ([.assets[] | select(.name == "WHD_Windows_Guide_zh-TW.md" and .size > 0)] | length) == 1
                 and (.body | contains("本次主要更新"))
+                and (.body | length <= 2000)
+                and (.body | contains("逐項變更") | not)
               ' > /dev/null || {
                 # For older existing releases the body may be English; replace it
                 # only after verifying exact tagged identity and all four assets.
@@ -236,7 +244,93 @@ jobs:
                 and ([.assets[] | select(.name == "WHD_Release_Notes_zh-TW.md" and .size > 0)] | length) == 1
                 and ([.assets[] | select(.name == "WHD_Windows_Guide_zh-TW.md" and .size > 0)] | length) == 1
                 and (.body | contains("本次主要更新"))
+                and (.body | length <= 2000)
+                and (.body | contains("逐項變更") | not)
               ' >/dev/null
           echo "OFFICIAL_WINDOWS_EXE_RELEASED https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG"
           echo "### 正式 WHD Windows 交付" >> "$GITHUB_STEP_SUMMARY"
           echo "同版 Windows EXE、SHA-256、繁體中文更新說明與使用指南均已發布：$RELEASE_TAG / $RELEASE_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+  backfill-20261030-zh-tw:
+    name: Correct previously published 2026-10-30 notes without changing X
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/localX' &&
+      github.repository == 'looaeedr/whd' &&
+      contains(github.event.head_commit.message, '[backfill-20261030-zh-tw]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TARGET_TAG: v2026.10.30-x-9b7519164dd0
+      TARGET_SHA: 9b7519164dd08916deff42f3ff0790707f10d371
+    steps:
+      - name: Checkout verified localX release note repair
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify existing published immutable version and download its assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TARGET_TAG" --jq .object.sha)"
+          test "$tag_sha" = "$TARGET_SHA" || {
+            echo "::error::BACKFILL_TAG_SHA_DRIFT"; exit 1
+          }
+          gh release view "$TARGET_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json tagName,targetCommitish,isDraft,isPrerelease,assets,body \
+            | jq -e --arg tag "$TARGET_TAG" --arg sha "$TARGET_SHA" '
+                .tagName == $tag and .targetCommitish == $sha and .isDraft == false
+                and .isPrerelease == false
+                and ([.assets[] | select(.name == ("WHD_Windows_x64_" + $tag + ".zip") and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "SHA256.txt" and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "WHD_Release_Notes_zh-TW.md" and .size > 0)] | length) == 1
+              ' >/dev/null
+          mkdir -p original
+          gh release download "$TARGET_TAG" --repo "$GITHUB_REPOSITORY" --dir original
+          (cd original && sha256sum --check SHA256.txt)
+      - name: Preserve original EXE and every data byte, replace only update note
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.repack_existing_release_notes \
+            --old "original/WHD_Windows_x64_$TARGET_TAG.zip" \
+            --out revised \
+            --notes docs/releases/WHD_v2026.10.30_更新紀錄_精簡.md \
+            --tag "$TARGET_TAG" --sha "$TARGET_SHA"
+          (cd revised && sha256sum --check SHA256.txt)
+          test -s revised/WHD_Release_Notes_zh-TW.md
+      - name: Replace same-tag ZIP, SHA256 and release text without re-tagging
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TARGET_TAG" --jq .object.sha)"
+          test "$tag_sha" = "$TARGET_SHA" || { echo "::error::TAG_MOVED"; exit 1; }
+          gh release upload "$TARGET_TAG" \
+            "revised/WHD_Windows_x64_$TARGET_TAG.zip" \
+            revised/SHA256.txt revised/WHD_Release_Notes_zh-TW.md \
+            --clobber --repo "$GITHUB_REPOSITORY"
+          gh release edit "$TARGET_TAG" --repo "$GITHUB_REPOSITORY" \
+            --notes-file revised/WHD_Release_Notes_zh-TW.md
+          gh release view "$TARGET_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json tagName,targetCommitish,isDraft,isPrerelease,assets,body \
+            | jq -e --arg tag "$TARGET_TAG" --arg sha "$TARGET_SHA" '
+                .tagName == $tag and .targetCommitish == $sha
+                and .isDraft == false and .isPrerelease == false
+                and (.body | contains("門板開孔與幾何"))
+                and (.body | contains("逐項變更") | not)
+                and (.body | length <= 2000)
+                and ([.assets[] | select(.name == ("WHD_Windows_x64_" + $tag + ".zip") and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "SHA256.txt" and .size > 0)] | length) == 1
+                and ([.assets[] | select(.name == "WHD_Release_Notes_zh-TW.md" and .size > 0)] | length) == 1
+              ' >/dev/null
+          mkdir -p readback
+          gh release download "$TARGET_TAG" --repo "$GITHUB_REPOSITORY" \
+            --dir readback \
+            --pattern "WHD_Windows_x64_$TARGET_TAG.zip" \
+            --pattern "SHA256.txt"
+          (cd readback && sha256sum --check SHA256.txt)
+          echo "PREVIOUS_RELEASE_ZH_TW_CONCISE_READBACK_SUCCESS tag=$TARGET_TAG sha=$TARGET_SHA"
