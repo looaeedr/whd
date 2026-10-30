@@ -316,3 +316,47 @@ def test_private_prepare_validates_actual_original_before_durable_job_claim(
     prepared, code = _call(tmp_path, "prepare", original, context)
     assert code == 0 and prepared["status"] == "success"
     assert len(prepared["items"]) == 1
+
+
+def test_private_worker_twenty_unperforated_door_small_door_dxfs_replay_and_source_guard(
+    tmp_path,
+):
+    """W-06 commits 20 canonical no-hole physical DXFs with real source custody."""
+    from test_issue2378_prepare_batch import (
+        _twenty_mixed_door_small_door_prepare, _export_request_from_prepared,
+    )
+    root, _, original = _twenty_mixed_door_small_door_prepare(tmp_path)
+    source = tmp_path / "真正無孔來源-20片.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    doc.saveas(source)
+    sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for row in original["items"]:
+        row["source_document_sha256"] = sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    sources = {part["item_id"]: source for part in original["items"]}
+    context = _context(tmp_path, (original, None, None, root, sources, source))
+    prepared, code = _call(tmp_path, "prepare", original, context)
+    assert code == 0 and prepared["status"] == "success", prepared
+    export = _export_request_from_prepared(original, prepared)
+    export["output"]["directory"] = str(context.output_dir)
+    export["request_digest"] = compute_wire_request_digest(export)
+    finished, status = _call(tmp_path, "export", export, context)
+    assert status == 0 and finished["status"] == "success", finished
+    assert finished["manufacturing_verified"] is False
+    paths = {Path(x["path"]) for x in finished["items"]}
+    assert len(paths) == 20
+    assert all(path.is_file() and
+               any(e.dxf.layer == "CUTTING" for e in ezdxf.readfile(path).modelspace())
+               for path in paths)
+    evidence = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths}
+    retry = deepcopy(export)
+    retry["request_id"] = "retransmit-unperforated-without-rerender"
+    replay, status = _call(tmp_path, "export", retry, context)
+    assert status == 0 and replay == finished
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == evidence
+    # Must reject stale original source even AFTER durable successful export.
+    source.write_bytes(source.read_bytes() + b"\\nsource changed")
+    denied, status = _call(tmp_path, "export", retry, context)
+    assert status != 0 and denied["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == evidence

@@ -125,6 +125,8 @@ def save_trusted_door_circle_finalscene_batch(
     """Source-verified Door/small-door all-or-nothing batch; never accepts caller PartSpec.
 
     The original W-03 authenticated prepare request/receipt are Worker-owned.
+    Featureless Door/small-door is allowed only with an entirely empty original
+    DXF modelspace, so no real source geometry can be silently dropped.
     This function derives WHD DoorPartSpec from *those* original dimensions and
     Factory Policy, never from export wire dimensions. The original-DXF path,
     resource root and destination are supplied by the trusted Worker, not wire.
@@ -180,8 +182,22 @@ def save_trusted_door_circle_finalscene_batch(
     rows = []
     for original, receipt, exported in zip(original_items, receipt_items, exported_items):
         kind = original["part"]["kind"]
-        if kind not in ("door", "indicator_small_door") or not exported.get("features"):
-            _reject("only WHD-owned Door/small-door with proven source Features supported")
+        if kind not in ("door", "indicator_small_door"):
+            _reject("only WHD-owned Door/small-door frames supported")
+        # A source DXF containing untransferred geometry is never an
+        # unperforated blank: even zero declared Features must not silently
+        # drop any original entity. Only genuinely empty modelspace sources
+        # can use WHD's intrinsic, hole-free Door/small-door manufacturing.
+        # Source-side paths/SHAs are W-06 owned and independently rechecked
+        # around staging and commit. No inferred source-to-DXF transform.
+        if not exported.get("features"):
+            from integration_cli.source_circle_verification import _source_snapshot
+            original_dxf = _source_snapshot(
+                source_documents.get(original["item_id"]),
+                original["source_document_sha256"],
+            )
+            if any(True for _ in original_dxf.modelspace()):
+                _reject("source DXF has untransferred geometry without declared Features")
         original_item_id = original["item_id"]
         source_path = source_documents.get(original_item_id)
         # Do not accept an export-side replacement of canonical mechanical

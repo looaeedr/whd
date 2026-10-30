@@ -726,3 +726,85 @@ def test_packaged_engine_rejects_unattested_original_before_persisting_prepare(
     with DurableJobIdentityLedger(store)._connect() as conn:
         assert conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 0
     assert not list(output.glob("*.dxf"))
+
+
+@pytest.mark.skipif(not WINDOWS, reason="real packaged Engine.exe + DPAPI required")
+def test_packaged_engine_exports_unperforated_door_and_small_door_native_dxfs(
+    tmp_path, monkeypatch,
+):
+    """Installed EXE -> sealed W-03 -> staged W-04 -> durable W-06, no source holes."""
+    from copy import deepcopy
+    import ezdxf
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2378_prepare_batch import (
+        _indicator_small_door_request, _export_request_from_prepared,
+    )
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires built private Windows Engine.exe")
+    profile = tmp_path / "無孔門片 DPAPI"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    name = "door-noholes-real-exe"
+    load_installation_key(name, initialize=True)
+    root, _, small, _ = _indicator_small_door_request(tmp_path)
+    request = _request(count=2)
+    request["items"][1]["part"] = deepcopy(small["items"][0]["part"])
+    request["items"][1]["part"]["source_part_ref"] = "WHD-small-door-empty-original"
+    original = tmp_path / "CADSplit no-holes 客戶原圖.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    assert len(doc.modelspace()) == 0
+    doc.saveas(original)
+    digest = hashlib.sha256(original.read_bytes()).hexdigest()
+    for row in request["items"]:
+        row["source_document_sha256"] = digest
+    request["request_digest"] = compute_wire_request_digest(request)
+    store, output = tmp_path / "W06 保管資料", tmp_path / "W04 製造 DXF"
+    store.mkdir()
+    output.mkdir()
+    exe_sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        name, store_root=store, output_dir=output,
+        source_documents={row["item_id"]: original for row in request["items"]},
+        expected_engine_sha256=exe_sha,
+    )
+
+    def invoke(operation, body, suffix):
+        wire, response = tmp_path / f"{suffix}.json", tmp_path / f"{suffix}-reply.json"
+        wire.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
+        proc = subprocess.run([
+            str(exe), "_private_installed", operation, "--installation-id", name,
+            "--request", str(wire), "--response", str(response),
+        ], cwd=tmp_path, capture_output=True, text=True, timeout=150)
+        return proc, (
+            json.loads(response.read_text(encoding="utf-8")) if response.is_file() else None
+        )
+
+    authorize_private_job(name, request, engine_sha256=exe_sha)
+    prepare_process, prepared = invoke("prepare", request, "prepare-unperforated")
+    assert prepare_process.returncode == 0 and prepared["status"] == "success", (
+        prepare_process.stderr, prepared,
+    )
+    assert all(not x["target_frames"][0].get("allowed_feature_types") == []
+               for x in prepared["items"])  # exact WHD Door-local, not size-only
+    export = _export_request_from_prepared(request, prepared)
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(name, export, engine_sha256=exe_sha)
+    proc, finished = invoke("export", export, "export-unperforated")
+    assert proc.returncode == 0 and finished["status"] == "success", (proc.stderr, finished)
+    assert finished["manufacturing_verified"] is False  # private, not Gate A
+    paths = {Path(item["path"]) for item in finished["items"]}
+    assert len(paths) == 2 and all(p.is_file() and p.parent == output for p in paths)
+    for path in paths:
+        saved = ezdxf.readfile(path)
+        assert any(e.dxf.layer == "CUTTING" for e in saved.modelspace())
+        assert saved.modelspace().query('LINE[layer=="BEND"]')
+    before = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths}
+    retry = deepcopy(export)
+    retry["request_id"] = "noholes-idempotent-retry"
+    proc, repeated = invoke("export", retry, "export-replay-unperforated")
+    assert proc.returncode == 0 and repeated == finished
+    assert before == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths}
