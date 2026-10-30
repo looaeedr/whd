@@ -303,6 +303,19 @@ class DurableJobIdentityLedger:
                 )
             """)
 
+            # W-06 cancel is private, durable and irreversible for a job.
+            # Once a replacement is ARMED, cancellation cannot interrupt a
+            # multi-DXF transaction; explicit crash recovery remains owner.
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS job_cancel_intents (
+                    client_id TEXT NOT NULL,
+                    job_id TEXT NOT NULL,
+                    operation TEXT NOT NULL,
+                    request_digest TEXT NOT NULL,
+                    PRIMARY KEY(client_id,job_id,operation)
+                )
+            """)
+
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS batch_replace_journals (
                     client_id TEXT NOT NULL,
@@ -428,6 +441,7 @@ class DurableJobIdentityLedger:
             return persisted
         if claim.state != "new":
             raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "prepare cannot be rerun")
+        self.assert_not_cancelled(request)
 
         from integration_cli.prepare_batch import prepare_trusted_door_batch
 
@@ -457,6 +471,12 @@ class DurableJobIdentityLedger:
                 ).fetchone()
                 if not job_row or job_row != (digest, "started"):
                     raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "prepare job changed before commit")
+                if conn.execute(
+                    """SELECT 1 FROM job_cancel_intents
+                       WHERE client_id=? AND job_id=? AND operation='prepare' AND request_digest=?""",
+                    (client, job, digest),
+                ).fetchone():
+                    raise PrepareEvidenceError("WHD_JOB_CANCELLED", "prepare cancelled before immutable receipt")
                 conn.execute(
                     """INSERT INTO trusted_prepares
                        (client_id,job_id,request_digest,source_and_receipt_json,source_and_receipt_hmac)
@@ -564,6 +584,87 @@ class DurableJobIdentityLedger:
             worker_key=worker_key, source_documents=source_documents,
         )
         return original, receipt
+
+    def request_cancel(self, request: Mapping[str, Any]) -> str:
+        """PRIVATE trusted-Worker cancellation, never a public JSON handler.
+
+        Only a currently started job with the exact canonical digest can be
+        cancelled. SQLite BEGIN IMMEDIATE serializes this against W-06 journal
+        arm, so cancellation after commit intent is NOT falsely accepted.
+        """
+        client, job, op, digest = _identity(request)
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                """SELECT request_digest,state FROM jobs
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+            if row is None or row[1] != "started":
+                raise PrepareEvidenceError(
+                    "WHD_JOB_RECOVERY_REQUIRED", "job is not cancellable",
+                )
+            if not isinstance(row[0], str) or not hmac.compare_digest(row[0], digest):
+                raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "cancel job digest differs")
+            if op == "export" and conn.execute(
+                """SELECT 1 FROM batch_replace_journals
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone() is not None:
+                raise PrepareEvidenceError(
+                    "WHD_JOB_RECOVERY_REQUIRED",
+                    "replacement already armed; only verified recovery can resolve job",
+                )
+            current = conn.execute(
+                """SELECT request_digest FROM job_cancel_intents
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+            if current is not None and (
+                not isinstance(current[0], str) or
+                not hmac.compare_digest(current[0], digest)
+            ):
+                raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "cancel intent digest changed")
+            if current is None:
+                conn.execute(
+                    """INSERT INTO job_cancel_intents
+                       (client_id,job_id,operation,request_digest)
+                       VALUES (?,?,?,?)""", (client, job, op, digest),
+                )
+            conn.commit()
+            return "requested"
+        except sqlite3.Error as exc:
+            conn.rollback()
+            raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "cannot persist cancel intent") from exc
+        except BaseException:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    def assert_not_cancelled(self, request: Mapping[str, Any]) -> None:
+        """Private safe-point check; no IO to a customer destination."""
+        client, job, op, digest = _identity(request)
+        with closing(self._connect()) as conn:
+            row = conn.execute(
+                """SELECT request_digest,state FROM jobs
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+            cancel = conn.execute(
+                """SELECT request_digest FROM job_cancel_intents
+                   WHERE client_id=? AND job_id=? AND operation=?""",
+                (client, job, op),
+            ).fetchone()
+        if row is None or row[1] != "started" or not isinstance(row[0], str):
+            raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "no active job for cancel checkpoint")
+        if not hmac.compare_digest(row[0], digest):
+            raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "cancel checkpoint job digest differs")
+        if cancel is not None:
+            if not isinstance(cancel[0], str) or not hmac.compare_digest(cancel[0], digest):
+                raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "untrusted cancel intent")
+            raise PrepareEvidenceError("WHD_JOB_CANCELLED", "trusted Worker job cancellation requested")
 
     def reserve_output_directories(
         self, request: Mapping[str, Any], *, trusted_directories: Sequence[Path],
@@ -836,6 +937,12 @@ class DurableJobIdentityLedger:
                 raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "completion digest changed")
             if row[1] != "started":
                 raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "job already completed")
+            if conn.execute(
+                """SELECT 1 FROM job_cancel_intents
+                   WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",
+                (client, job, op, digest),
+            ).fetchone():
+                raise PrepareEvidenceError("WHD_JOB_CANCELLED", "cancelled job cannot commit success")
             if op == "export":
                 pending_stage = conn.execute(
                     """SELECT 1 FROM staged_batch_snapshots
