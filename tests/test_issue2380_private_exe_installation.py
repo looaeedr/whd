@@ -331,3 +331,114 @@ def test_actual_packaged_engine_twenty_attested_door_dxfs_replay_and_source_stal
     if refused is not None:
         assert refused["status"] != "success"
     assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == before
+
+
+@pytest.mark.skipif(not WINDOWS, reason="requires genuine packaged Windows WHD-Engine.exe")
+def test_packaged_engine_twenty_mixed_door_small_door_dxf_and_immutable_replay(
+    tmp_path, monkeypatch,
+):
+    """Actual Engine EXE: 10 Doors + 10 indicator small doors, WHD-only export.
+
+    No public CLI capability or Gate A claim; same immutable W-06 job approval
+    and actual WHD FinalScene/Save->Reload as the normal private EXE path.
+    """
+    from copy import deepcopy
+    import ezdxf
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2378_prepare_batch import (
+        _twenty_mixed_door_small_door_prepare,
+        _export_request_from_prepared,
+    )
+    from test_issue2379_wire_feature_preflight import _circle
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires built onedir Engine EXE")
+    profile = tmp_path / "混合門板 LocalAppData"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    installation = "mixed-door-small-door-private-exe"
+    load_installation_key(installation, initialize=True)
+    _resource, _small_baseline, original = _twenty_mixed_door_small_door_prepare(
+        tmp_path
+    )
+    source = tmp_path / "CADSplit 原始20件.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    handles = [
+        doc.modelspace().add_circle(
+            (12.0, 12.0), 2.0, dxfattribs={"layer": "CUTTING"},
+        ).dxf.handle
+        for _ in original["items"]
+    ]
+    doc.saveas(source)
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for part in original["items"]:
+        part["source_document_sha256"] = source_sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    sources = {part["item_id"]: source for part in original["items"]}
+    store, output = tmp_path / "混合持久帳本", tmp_path / "混合製造輸出"
+    store.mkdir()
+    output.mkdir()
+    engine_sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation, store_root=store, output_dir=output,
+        source_documents=sources, expected_engine_sha256=engine_sha,
+    )
+
+    def run(operation, request, label, *, must_succeed=True):
+        wire, response = tmp_path / f"{label}-req.json", tmp_path / f"{label}-resp.json"
+        wire.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+        process = subprocess.run(
+            [str(exe), "_private_installed", operation,
+             "--installation-id", installation,
+             "--request", str(wire), "--response", str(response)],
+            cwd=tmp_path, capture_output=True, text=True, timeout=180,
+        )
+        body = (json.loads(response.read_text(encoding="utf-8"))
+                if response.is_file() else None)
+        if must_succeed:
+            assert process.returncode == 0, (process.stderr[-1200:], body)
+        else:
+            assert process.returncode != 0
+        return body
+
+    authorize_private_job(installation, original, engine_sha256=engine_sha)
+    receipt = run("prepare", original, "混合Prepare")
+    assert receipt["status"] == "success" and len(receipt["items"]) == 20
+    export = _export_request_from_prepared(original, receipt)
+    for i, part in enumerate(export["items"]):
+        frame = receipt["items"][i]["target_frames"][0]
+        feature = _circle(frame)
+        feature["feature_id"] = f"mixed-exe-{i}"
+        feature["source_ref"] = f"dxf-handle-{i}"
+        feature["center_mm"] = [12.0, 12.0]
+        feature["radius_mm"] = 2.0
+        feature["source_transform"]["source_entity_refs"] = [handles[i]]
+        feature["source_transform"]["target_dimensions_mm"] = deepcopy(
+            frame["finished_face_dimensions_mm"]
+        )
+        part["features"] = [feature]
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(installation, export, engine_sha256=engine_sha)
+    result = run("export", export, "混合Export")
+    assert result["status"] == "success"
+    assert result["manufacturing_verified"] is False
+    assert len(result["items"]) == 20
+    paths = {Path(row["path"]) for row in result["items"]}
+    assert len(paths) == 20 and all(path.parent == output for path in paths)
+    assert all(
+        any(entity.dxf.layer == "BEND" for entity in ezdxf.readfile(path).modelspace())
+        and len(ezdxf.readfile(path).modelspace().query("CIRCLE")) >= 1
+        for path in paths
+    )
+    original_outputs = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths}
+    replay = dict(export)
+    replay["request_id"] = "mixed-20-cad-transport-retry"
+    assert run("export", replay, "混合重新啟動") == result
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == original_outputs
+    source.write_bytes(source.read_bytes() + b"\n")
+    denied = run("export", replay, "混合來源變更", must_succeed=False)
+    assert denied is None or denied["status"] != "success"
+    assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths} == original_outputs
