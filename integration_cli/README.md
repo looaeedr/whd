@@ -530,9 +530,15 @@ It is not the WHD GUI `WHD.exe` and does not reuse the GUI release asset.
   `prepare` and `export` return
   `WHD_OPERATION_NOT_IMPLEMENTED` (exit 3) without DXF output; changing
   the bundled Registry causes a refusal.
-- This is only an **internal W-05 package seam**. The same-release
-  GUI+Engine bundle, durable Worker key custody, trusted public handlers,
-  Windows junction/UNC/policy overrides and cross-ticket Gate A remain
-  pending. No factory NC sink, public manufacturing certification or
-  formal `/推推` is implied.
+- The Windows runner now additionally compiles the existing GUI `WHD.exe`
+  **from the same exact source checkout**, starts the actual GUI process,
+  and independently hashes both binaries. `SAME_SOURCE_ENGINE_GUI.json`
+  records the common source SHA and both actual binary SHA-256 values.
+  The two candidates are uploaded separately and are **not an official X
+  Release**, nor an assertion of full GUI 2D/3D or manufacturing UAT.
+- This is still an **internal W-05 package seam**. The combined official
+  same-release GUI+Engine delivery, durable Worker key custody, trusted
+  public handlers, Windows junction/UNC/policy overrides and cross-ticket
+  Gate A remain pending. No factory NC sink, public manufacturing
+  certification or formal `/推推` is implied.
 

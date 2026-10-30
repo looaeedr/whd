@@ -100,3 +100,23 @@ def test_source_only_cli_does_not_fabricate_packaged_identity():
     from integration_cli.cadsplit_worker import PROTOCOL_VERSION, _SOURCE_VERSION
     assert PROTOCOL_VERSION == "1.0.0"
     assert _SOURCE_VERSION == "source-only-unreleased"
+
+
+def test_windows_private_candidate_proves_gui_and_worker_same_exact_sha():
+    # Native Windows Runner does the actual two EXE launches. This guard
+    # preserves its non-optional same-checkout and hashed-binary assertions.
+    root = Path(__file__).resolve().parents[1]
+    workflow = (root / ".github/workflows/whd-engine-private-windows-exe.yml").read_text(encoding="utf-8")
+    for required in (
+        "WHD-Engine.exe",
+        "--name WHD --collect-submodules ae_engine",
+        "--name WHD-Engine --paths .",
+        "git rev-parse HEAD",
+        "W05_GUI_ENGINE_BUILD_SOURCE_MISMATCH",
+        "W05_GUI_ENGINE_PAIR_READBACK_FAILED",
+        "Smoke-test actual GUI WHD.exe",
+        "WHD-GUI-same-source-W05",
+        "WHD-Engine-private-W05",
+        "github.event.pull_request.head.sha || github.sha",
+    ):
+        assert required in workflow
