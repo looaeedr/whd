@@ -55,7 +55,7 @@ jobs:
   prepare:
     name: Product Regression Preflight
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     outputs:
       reuse: ${{ steps.green-reuse.outputs.reuse }}
     steps:
@@ -68,6 +68,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: pip
       - name: Checkout trusted production timezone policy
         uses: actions/checkout@v4
         with:
@@ -108,6 +109,41 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --head-sha "${{ github.event.pull_request.head.sha }}" \
             --base-sha "${{ github.event.pull_request.base.sha }}"
+
+
+      # This is an executable gate, not a checklist or a claimed test receipt.
+      # Only product PRs to localX need this before the 18 full shards.
+      - name: Select mandatory focused tests from exact PR diff
+        id: fast-feedback
+        if: steps.green-reuse.outputs.reuse != 'true' && github.event.pull_request.base.ref == 'localX'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/quick_test.py --ci-pr --dry-run
+      - name: Install focused-test dependencies (bounded)
+        if: steps.fast-feedback.outputs.run == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ci_bounded_install.py --label pip-fast-feedback --attempts 2 --timeout-seconds 240 -- \
+            python -m pip install --retries 3 --timeout 20 -r requirements.txt pytest matplotlib ezdxf
+      - name: Ensure headless GUI available for focused tests
+        if: steps.fast-feedback.outputs.run == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v xvfb-run >/dev/null 2>&1 || ! command -v Xvfb >/dev/null 2>&1; then
+            python tools/ci_bounded_install.py --label apt-fast-feedback --attempts 2 --timeout-seconds 120 -- \
+              sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=20 update -qq
+            python tools/ci_bounded_install.py --label xvfb-fast-feedback --attempts 2 --timeout-seconds 120 -- \
+              sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=20 install -y -qq xvfb
+          fi
+      - name: Execute focused tests before all product shards
+        if: steps.fast-feedback.outputs.run == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python tools/quick_test.py --ci-pr
 
   test-shard:
     name: Product Shard (${{ matrix.shard }})
