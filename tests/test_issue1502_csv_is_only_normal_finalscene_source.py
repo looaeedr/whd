@@ -362,3 +362,17 @@ def test_reconfirmation_required_never_reuses_prior_hole_editor_x_even_if_exact_
     assert calls == []  # Explicit reconfirmation must preempt fallback entirely.
     assert all(h["manual_x_state"] == "RECONFIRM_REQUIRED"
                for h in snap["nfb_config"]["holes"])
+
+
+@pytest.mark.parametrize("ear_side", ("left", "right"))
+def test_committed_csv_refuses_fixing_plate_child_as_only_real_base(ear_side):
+    """A physical EAR is NOT an actual Base source for submitted NFB V5."""
+    snap = _current()
+    # An EAR may independently exist during a partially assembled GUI
+    # redraw; it cannot satisfy the Base source hard gate.
+    orphan_ear = SimpleNamespace(
+        part_key=f"base_plate:fixing_plate:{ear_side}",
+        render_data=object(),
+    )
+    with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_REAL_BASE_PART_MISSING"):
+        apply_committed_csv_v5_to_canonical_parts(snap, (orphan_ear,))
