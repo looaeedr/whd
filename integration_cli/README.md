@@ -617,7 +617,23 @@ private SQLite store and exact built EXE SHA256. It stores this under the
 current Windows user's protected installation profile, using the existing
 DPAPI-protected Worker signing key. A regular CLI request cannot provision
 these authorities or set a Worker key/path through JSON, env or arguments.
-Re-provisioning and tampered installation records fail closed.
+Re-provisioning and tampered installation records fail closed. **An
+installed context alone is NOT permission to process arbitrary jobs.**
+The trusted installation owner must separately call
+`private_worker_installation.authorize_private_job(installation_id,
+request, engine_sha256=...)` for each exact canonical
+`(client_installation_id, job_id, operation, request_digest)`. This
+writes one exclusive HMAC-sealed immutable approval, separate for Prepare
+and Export. The packaged EXE requires this approval before any W-03/W-04
+work; if absent, modified, different digest or reused for a different
+operation, it refuses without manufacturing. The request is checked
+again after the second file read to guard request-swap races.
+
+**Security boundary:** Current-user DPAPI protects the key at rest but
+does not isolate *hostile code running as the same Windows account*.
+These installer-only APIs are not public CADSplit handlers or an OS
+authorization service. Real public Gate A still needs independent
+installed-identity, caller and source-custody certification.
 
 The private EXE loads that installed custody, verifies the actual packaged
 Engine/Registry/resources, and calls the same W-01 → W-03/W-06/W-04
@@ -625,7 +641,10 @@ Engine/Registry/resources, and calls the same W-01 → W-03/W-06/W-04
 integration tests. Windows CI additionally **spawns the actual onedir EXE**
 after private trusted setup, executes source-attested Prepare, verifies
 the persisted original W-03 HMAC receipt after process restart, verifies
-idempotent replay, and rejects an unprovisioned installation ID.
+idempotent replay, and rejects both an unprovisioned installation ID
+and an installed but unapproved job. The same Windows runner requires
+a *separately approved* Export request, actual source-DXF Save→Reload,
+and restart replay without changing final DXF bytes/mtime.
 
 This is **not the public CADSplit integration Gate A**. The installer is
 not available to external clients, public `prepare/export` and capability
