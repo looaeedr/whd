@@ -218,6 +218,9 @@ def save_trusted_door_circle_finalscene_batch(
         durable_ledger.reserve_output_directories(
             export_request, trusted_directories=[output_dir],
         )
+        from integration_cli.worker_progress import PrivateWorkerProgress
+        progress = PrivateWorkerProgress(durable_ledger)
+        progress.publish(export_request)
 
         def commit_staged(staged: Mapping[str, Path], root: Path) -> dict[str, str]:
             # This callback runs ONLY after all 1..20 WHD-owned staged DXFs
@@ -230,6 +233,7 @@ def save_trusted_door_circle_finalscene_batch(
                 export_request, trusted_output_dir=root,
                 trusted_staged=staged, overwrite=overwrite,
             )
+            progress.publish(export_request)
             backup = DurableOriginalBackupEvidence(durable_ledger)
             backup.create_verified_original_backups(
                 export_request, trusted_output_dir=root,
@@ -252,6 +256,7 @@ def save_trusted_door_circle_finalscene_batch(
             durable_ledger.complete(
                 export_request, receipt, trusted_artifacts=actual,
             )
+            progress.publish(export_request)
             return {physical: str(path) for physical, path in actual.items()}
 
     # This engine owns staged DXFs and independent Save→Reload verification.
