@@ -1700,3 +1700,20 @@ Divider FW -> core direction == family inward_vector
 任何當次 world coordinate（例如診斷輸出的 skin plane 數字或 placement offset）都只屬測試 evidence，**不得寫成產品固定值**。
 
 T48-1 remote acceptance：run `34167721816`，`18 passed / 0 failed`，且 `config.ini` SHA256 前後一致。
+
+---
+
+## 受電箱中間雙折底板：上下折與左右第二折包外對等（2026-10-30）
+
+適用範圍僅為 Receiving **CENTER_DOUBLE_SIDE_FOLD 中間底板**；LEFT_FLAT_SIDE／RIGHT_FLAT_SIDE 仍依各自原圖使用上、下 20 mm 料長，不能共用 CENTER 的折長。
+
+**使用者確認之成形尺寸關係**：中間底板上折、下折的各自包外尺寸，必須等於左、右**第二折**各自的包外尺寸。同一塊 T 厚板、依各段實際相鄰折彎數計算：
+
+- 選定 NFB 的深淺面深差 `delta = deep_depth - shallow_depth`，是 NFB 面對面的差值，**不是**「上／下折包外」的直接數值。
+- X 左／右第二折料長 `x_material = delta - T`；該段兩側各有一條折彎，所以 `x_outside = x_material + 2T = delta + T`。
+- Y 上／下折料長 `y_material = x_material + T = delta`；末端只有一條相鄰折彎，所以 `y_outside = y_material + T = delta + T`。
+- 因此 `top_outside = bottom_outside = left_second_outside = right_second_outside`。T2、士林 107/72 範例：X 第二折料 33、包外 **37**；Y 上下折料 35、包外 **37**；兩者不可誤寫成包外 35。
+- 原始《受電箱底板 (2).dxf》三型對照：左／右側底板各自上下 BEND 離邊 20 mm，**中間底板上下 BEND 離邊 35 mm**（範例深差 35）。DXF 的源幾何量測是與使用者上述機械定義一致的驗證證據，不反向建立其他新公式。
+- CENTER 上下折的製造 Y BEND、3D Y Profile、Fold Editor 的料長／包外及製造展開 Y segments 必須共享**該型式自己的**折長，而不是套用 LEFT／RIGHT 的 20 mm。歷史序列化 BEND／Profile 識別字若包含 `_20`，只是相容 ID，**不能**當尺寸真值。
+
+既有 NFB 實體 Z 面對面深差 `delta` 及板件操作包外 `delta+T` 是不同量測空間，不得互相偷換；上述平面折段包外對等亦不授權把 Z datum 或 3D 實體位置直接改為包外值。
