@@ -1742,7 +1742,9 @@ def test_packaged_public_v11_prepare_export_requires_sealed_job_and_certifies_re
 
     authorize_private_job(identity, export, engine_sha256=exe_hash)
     manufactured, final = call("export", export, "signed-public-export")
-    assert manufactured.returncode == 0, manufactured.stderr[-1600:]
+    assert manufactured.returncode == 0, (
+        manufactured.stderr[-1600:], final,
+    )
     assert final["status"] == "success" and final["manufacturing_verified"] is True
     assert final["transaction_mode"] == "all_or_nothing"
     row, = final["items"]
