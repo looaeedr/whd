@@ -37,7 +37,11 @@ def pad_preview_source_fingerprint(snapshot, assembly_parts) -> str:
             h.update(sha256(path.read_bytes()).digest())
     for part in assembly_parts:
         key=str(getattr(part,"part_key",""))
-        if not key.startswith("base_plate"):
+        # PADs belong only to the physical Base sheet or a concrete NFB tier
+        # Base sheet. EAR/fixing-plate children share the base_plate prefix
+        # but have independent render/material lifecycles; their absence
+        # must never suppress a valid PAD parent preview.
+        if not (key == "base_plate" or key.startswith("base_plate:nfb_layer:")):
             continue
         data=getattr(part,"render_data",None)
         if data is None:
