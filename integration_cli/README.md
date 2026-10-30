@@ -604,6 +604,35 @@ source-document mapping and an approved public manufacturing certification
 still need independent end-to-end installation acceptance before this
 private execution seam may be made public.
 
+## W-06 actual private installed WHD-Engine.exe entry (#2380)
+
+`WHD-Engine.exe` has an **undocumented internal**
+`_private_installed prepare|export --installation-id ... --request ...
+--response ...` path. This entry is Windows-EXE-only, not the ordinary
+CADSplit CLI and not a certified manufacturing feature. It refuses all
+source-only calls and missing/invalid installed custody. The trusted
+installer-only Python API `private_worker_installation.provision_private_installation`
+pins an immutable, HMAC-authenticated source-document map, output folder,
+private SQLite store and exact built EXE SHA256. It stores this under the
+current Windows user's protected installation profile, using the existing
+DPAPI-protected Worker signing key. A regular CLI request cannot provision
+these authorities or set a Worker key/path through JSON, env or arguments.
+Re-provisioning and tampered installation records fail closed.
+
+The private EXE loads that installed custody, verifies the actual packaged
+Engine/Registry/resources, and calls the same W-01 → W-03/W-06/W-04
+`_execute_request(..., trusted_context=...)` path as the real private
+integration tests. Windows CI additionally **spawns the actual onedir EXE**
+after private trusted setup, executes source-attested Prepare, verifies
+the persisted original W-03 HMAC receipt after process restart, verifies
+idempotent replay, and rejects an unprovisioned installation ID.
+
+This is **not the public CADSplit integration Gate A**. The installer is
+not available to external clients, public `prepare/export` and capability
+flags remain disabled, and a private successful Prepare is not certification
+of completed manufacturing. No customer configuration UI, credential entry,
+or automatic installation bootstrap is created.
+
 ## W-06 private progress.json from immutable Worker evidence (#2380)
 
 `integration_cli.worker_progress.PrivateWorkerProgress` supplies a
