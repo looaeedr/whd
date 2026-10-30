@@ -837,3 +837,25 @@ def test_old_single_tier_missing_layer_count_remains_compatible():
     two = _config()
     two["layer_count"] = 2
     assert normalize_nfb_config(two)["layer_count"] == 2
+
+
+@pytest.mark.parametrize("invalid_slot", (True, False, -1, 1.0, "0", None))
+def test_submitted_nfb_storage_rejects_bad_explicit_slot_index(invalid_slot):
+    """CSV V5 physical slot owner is an exact nonnegative integer at SAVE."""
+    config = _config(state="NONE")
+    config["holes"][0]["slot_index"] = invalid_slot
+    with pytest.raises(ValueError, match="NFB slot_index"):
+        normalize_nfb_config(config)
+    with pytest.raises(ValueError, match="NFB slot_index"):
+        normalize_nfb_saved_fields({
+            "nfb_config_submitted": True, "nfb_config": config,
+        })
+
+
+def test_nfb_persistence_preserves_valid_slot_indexes_and_legacy_absence():
+    for slot in (0, 1, 2):
+        config = _config(state="NONE")
+        config["holes"][0]["slot_index"] = slot
+        assert normalize_nfb_config(config)["holes"][0]["slot_index"] == slot
+    legacy = _config(state="NONE")
+    assert "slot_index" not in normalize_nfb_config(legacy)["holes"][0]
