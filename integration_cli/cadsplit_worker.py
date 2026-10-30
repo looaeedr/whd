@@ -333,7 +333,7 @@ def _private_installed_main(argv: list[str]) -> int:
         print("WHD_JOB_STORE_UNAVAILABLE: private packaged Windows Worker required", file=sys.stderr)
         return 4
     parser = argparse.ArgumentParser(prog="WHD-Engine private installed Worker")
-    parser.add_argument("operation", choices=("prepare", "export"))
+    parser.add_argument("operation", choices=("prepare", "export", "recover-rollback"))
     parser.add_argument("--installation-id", required=True)
     parser.add_argument("--request", type=Path, required=True)
     parser.add_argument("--response", type=Path, required=True)
@@ -346,16 +346,33 @@ def _private_installed_main(argv: list[str]) -> int:
             # Approval binds an already-provisioned installation to this
             # exact canonical job; knowing its installation ID is not enough.
             preflight_request = _read_request(args.request)
-            context = load_private_authorized_execution(
-                args.installation_id, preflight_request, engine_sha256=actual_exe_hash,
-            )
+            if args.operation == "recover-rollback":
+                from integration_cli.private_worker_installation import load_private_recovery_execution
+                context = load_private_recovery_execution(
+                    args.installation_id, preflight_request, engine_sha256=actual_exe_hash,
+                )
+            else:
+                context = load_private_authorized_execution(
+                    args.installation_id, preflight_request, engine_sha256=actual_exe_hash,
+                )
         except PrepareEvidenceError as exc:
             raise WorkerFailure(exc.code, "installed job authorization refused", exit_code=4) from exc
         if args.response.exists() or args.response.is_symlink():
             raise WorkerFailure("WHD_RESPONSE_EXISTS", "private response already exists", exit_code=4)
-        result, status = _execute_request(
-            args.operation, args.request, commit, build_id, trusted_context=context,
-        )
+        if args.operation == "recover-rollback":
+            from integration_cli.private_worker_dispatch import recover_private_worker_rollback
+            try:
+                # Re-read and re-identify the original Export AFTER admitting
+                # the exact HMAC-sealed recovery ticket (no request-swap race).
+                actual_request = _read_request(args.request)
+                result = recover_private_worker_rollback(actual_request, context)
+                status = 0
+            except PrepareEvidenceError as exc:
+                raise WorkerFailure(exc.code, "trusted rollback refused", exit_code=4) from exc
+        else:
+            result, status = _execute_request(
+                args.operation, args.request, commit, build_id, trusted_context=context,
+            )
         _write_response(args.response, result)
         return status
     except (WorkerFailure, OSError, ValueError) as exc:
