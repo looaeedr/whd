@@ -15,7 +15,7 @@ def positive_dimension(value, axis):
         raise ValueError(f"{axis.upper()} 必須為有限正數")
     try:
         number = float(value)
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError(f"{axis.upper()} 必須為有限正數") from exc
     if not math.isfinite(number) or number <= 0:
         raise ValueError(f"{axis.upper()} 必須為有限正數")

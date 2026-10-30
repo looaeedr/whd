@@ -95,3 +95,13 @@ def test_r9_pad_preview_key_changes_with_placement_rotation_and_offset():
     assert base != pad_preview_source_fingerprint(
         source, (part(offset=(0, 0, 5)),)
     )
+
+
+@pytest.mark.parametrize("invalid_mode", [[], ["set_bay"], {}, {"active_mode": "quantity"}])
+def test_r9_unhashable_mode_is_rejected_with_stable_contract(invalid_mode):
+    from phase6_receiving_modes import ReceivingModeSession, fresh_receiving_mode
+
+    with pytest.raises(ValueError, match="不合法的受電箱操作模式"):
+        ReceivingModeSession._check_mode(invalid_mode)
+    with pytest.raises(ValueError, match="不合法的受電箱操作模式"):
+        fresh_receiving_mode(invalid_mode, {"w": 800, "h": 1600, "d": 350})

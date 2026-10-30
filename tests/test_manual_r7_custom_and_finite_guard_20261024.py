@@ -164,3 +164,41 @@ def test_r7_positive_inputs_preserve_existing_dimension_calculation():
     assert strip[2].x == 60. and strip[2].y == 500.
     cap = EndCapGeometry(800., 350., 2., 46., 22., 22., 20., 20.)
     assert build_endcap_topology(cap).left_bend.p1.x == 22.
+
+
+def test_r7_extreme_receiving_dimensions_fail_as_invalid_operator_input():
+    from ae_engine.receiving_quantity_box import positive_dimension
+    from phase6_receiving_modes import fresh_receiving_mode
+
+    too_large = 10 ** 1000
+    with pytest.raises(ValueError, match="W.*有限正數"):
+        positive_dimension(too_large, "w")
+    with pytest.raises(ValueError, match="W.*有限正數"):
+        fresh_receiving_mode(
+            "set_bay", {"w": too_large, "h": 1600, "d": 350},
+        )
+
+
+def test_r8_extreme_custom_part_transverse_length_fails_closed():
+    from phase6_custom_parts import CustomPartCatalog
+
+    too_large = 10 ** 1000
+    catalog = CustomPartCatalog()
+    with pytest.raises(ValueError, match="另一軸尺寸必須是有限正數"):
+        catalog.add(
+            display_name="超大尺寸測試板",
+            fold_axis="X",
+            transverse_length=too_large,
+        )
+    assert catalog.snapshot() == {"next_id": 1, "items": {}}
+    with pytest.raises(ValueError, match="另一軸尺寸必須是有限正數"):
+        CustomPartCatalog({
+            "next_id": 2,
+            "items": {
+                "custom:1": {
+                    "display_name": "舊案測試板",
+                    "fold_axis": "Y",
+                    "transverse_length": too_large,
+                },
+            },
+        })

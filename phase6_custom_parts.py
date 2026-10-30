@@ -43,7 +43,7 @@ def _descriptor(key, value):
     raw = row.get("transverse_length")
     try:
         length = float(raw)
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError("另一軸尺寸必須是有限正數") from exc
     if isinstance(raw,bool) or not math.isfinite(length) or length <= 0:
         raise ValueError("另一軸尺寸必須是有限正數")
