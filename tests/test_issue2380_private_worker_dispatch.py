@@ -52,8 +52,14 @@ def _call(tmp_path, operation, request, context=None):
 
 def _export_from_real_sources(original, fresh_receipt, batch):
     result = _export_request_from_prepared(original, fresh_receipt)
+    source_doc = ezdxf.readfile(batch[5])
+    saved_handles = {str(e.dxf.handle).upper(): e.dxftype()
+                     for e in source_doc.modelspace() if e.dxf.hasattr("handle")}
     for row, actual in zip(result["items"], batch[2]["items"]):
         row["features"] = deepcopy(actual["features"])
+        for feature in row["features"]:
+            refs = feature["source_transform"]["source_entity_refs"]
+            assert len(refs) == 1 and saved_handles.get(refs[0].upper()) == "CIRCLE"
     result["request_digest"] = compute_wire_request_digest(result)
     return result
 
