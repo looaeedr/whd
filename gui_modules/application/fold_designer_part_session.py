@@ -11,6 +11,7 @@ keeps narrow compatibility delegates.
 from __future__ import annotations
 
 from typing import Any
+from collections.abc import Mapping
 from .receiving_inner_door_hole_editor import sync_inner_door_hole_editor_button
 
 
@@ -85,7 +86,11 @@ class Phase6PartSessionOwner:
         custom_spec = app.designer_workspace.custom_part(key)
         if custom_spec is not None:
             profiles = {axis: bridge.clone_profile(app.state.profiles.get(axis, ())) for axis in ("X", "Y")}
-            fold_axis = str(getattr(custom_spec, "fold_axis", "X")).upper()
+            fold_axis = str(
+                custom_spec.get("fold_axis", "X")
+                if isinstance(custom_spec, Mapping)
+                else getattr(custom_spec, "fold_axis", "X")
+            ).upper()
             t_val = bridge._num(
                 getattr(app, "_settings_values", {}).get(
                     "t", getattr(app, "_phase6_input_snapshot", {}).get("t", 2.0)

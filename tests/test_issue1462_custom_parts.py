@@ -106,6 +106,18 @@ def test_real_designer_add_rename_save_reload_keeps_top_level_custom(tmp_path,mo
         assert app.structure_tree.item("part:"+key,"text")=="改名加強板"
         assert app.designer_workspace.custom_part(key)["per_box_count"]==2
         assert app.designer_workspace.profiles_for(key)["Y"][0]["phase6_key"]=="custom_flange"
+        # Saving a Y-fold custom sheet must annotate its Y fold, not the flat
+        # X span. A dict descriptor previously went through getattr(..., "X").
+        import fold_designer_bridge as bridge
+        seen_profiles = []
+        annotate = bridge.apply_outside_dimension_compensation
+        def record_saved_axis(rows, thickness):
+            seen_profiles.append(tuple(row.get("phase6_key") for row in rows))
+            return annotate(rows, thickness)
+        with monkeypatch.context() as patch:
+            patch.setattr(bridge, "apply_outside_dimension_compensation", record_saved_axis)
+            app._save_current_part()
+        assert seen_profiles and "custom_flange" in seen_profiles[-1]
         with pytest.raises(ValueError,match="正式 Fold"):
             _fold_designer_part_spec_from_payload(main,key,{"w":400,"h":600,"d":200,"t":2,"model":"金庫型"})
         path=tmp_path/"custom-real.p6fold"
@@ -201,6 +213,85 @@ def test_compact_custom_settings_keep_buttons_accessible_in_small_viewport():
         assert set(form._custom_values) == {
             "display_name","fold_axis","transverse_length","per_box_count"
         }
+    finally:
+        root.destroy()
+
+
+
+def test_custom_editor_apply_button_reports_unchanged_changed_and_sync_errors(monkeypatch):
+    """A visible outcome is required even if a click changes no metadata."""
+    import tkinter as tk
+    from tkinter import ttk, messagebox
+    from gui_modules.application.custom_part_controls import build_custom_part_editor
+    errors = []
+    monkeypatch.setattr(messagebox, "showerror", lambda *args, **kwargs: errors.append(args))
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        state = {"display_name": "加強板", "fold_axis": "Y",
+                 "transverse_length": 120.0, "per_box_count": 1}
+        changed_calls = []
+        fail_sync = [False]
+
+        def update(**values):
+            if values["display_name"] == "INVALID":
+                raise ValueError("板件名稱無效")
+            updated = {**values, "transverse_length": float(values["transverse_length"]),
+                       "per_box_count": int(values["per_box_count"])}
+            did_change = updated != state
+            state.update(updated)
+            return did_change
+
+        def changed():
+            if fail_sync[0]:
+                raise RuntimeError("mock live sync error")
+            changed_calls.append(state["display_name"])
+
+        frame = build_custom_part_editor(root, descriptor=state,
+                                         update_part=update, on_changed=changed)
+        frame.pack()
+        apply_button = next(w for w in frame.winfo_children()
+                            if isinstance(w, ttk.Button) and w.cget("text") == "套用設定")
+        apply_button.invoke()
+        assert frame._custom_apply_status.get() == "設定沒有變更"
+        assert not changed_calls and not errors
+        frame._custom_values["display_name"].set("已更新加強板")
+        apply_button.invoke()
+        assert frame._custom_apply_status.get() == "設定已套用"
+        assert changed_calls == ["已更新加強板"]
+        frame._custom_values["display_name"].set("INVALID")
+        apply_button.invoke()
+        assert frame._custom_apply_status.get() == "輸入有誤，設定未套用"
+        assert errors[-1][0] == "設定未套用"
+        frame._custom_values["display_name"].set("同步失敗板")
+        fail_sync[0] = True
+        apply_button.invoke()
+        assert frame._custom_apply_status.get() == "資料已變更，但畫面／專案同步失敗"
+        assert errors[-1][0] == "板件同步失敗"
+    finally:
+        root.destroy()
+
+
+def test_custom_part_creation_reports_failed_navigation_without_second_add(monkeypatch):
+    import tkinter as tk
+    from tkinter import messagebox
+    from gui_modules.application.custom_part_controls import open_custom_part_creation
+    errors, created = [], []
+    monkeypatch.setattr(messagebox, "showerror", lambda *args, **kwargs: errors.append(args))
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        def add_part(**_values):
+            created.append("custom:1")
+            return "custom:1"
+        def on_created(_key):
+            raise RuntimeError("mock navigation error")
+        win = open_custom_part_creation(root, add_part=add_part, on_created=on_created)
+        win._custom_form._custom_values["transverse_length"].set("200")
+        assert win._custom_form._custom_apply() is None
+        assert created == ["custom:1"]
+        assert errors and errors[-1][0] == "新增板件未完成"
+        assert not win.winfo_exists()
     finally:
         root.destroy()
 
