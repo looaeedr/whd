@@ -60,7 +60,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $env:WHD_TEST_ENGINE_EXE = (Resolve-Path 'dist/WHD-Engine/WHD-Engine.exe').Path
-          python -m pytest -q tests/test_issue2380_private_exe_installation.py::test_actual_packaged_engine_private_prepare_and_restart
+          python -m pytest -q tests/test_issue2380_private_exe_installation.py::test_actual_packaged_engine_private_prepare_and_restart tests/test_issue2380_private_exe_installation.py::test_actual_packaged_engine_prepares_and_exports_real_source_dxf
           if ($LASTEXITCODE -ne 0) { throw 'W06_REAL_PRIVATE_EXE_PREPARE_FAILED' }
       - name: Native EXE smoke in Chinese installation / different working directory
         shell: pwsh
