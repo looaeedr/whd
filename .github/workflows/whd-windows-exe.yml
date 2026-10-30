@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 45
     env:
       PRODUCT_SHA: ${{ inputs.release_sha || github.event.pull_request.head.sha }}
-      RELEASE_TAG: ${{ inputs.release_tag || format('pr-{0}', github.run_id) }}
+      RELEASE_TAG: ${{ inputs.release_tag || format('vPR-{0}', github.run_id) }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout exact candidate and its history
