@@ -613,9 +613,11 @@ def build_receiving_base_plate_result(
     world-coordinate or a second NFB location owner. The part spec owns
     actual enclosure/plate dimensions; these offsets are always local UV.
 
-    LEFT/RIGHT: straight side edges, TOP and BOTTOM fold only (20 mm).
-    CENTER: top/bottom 20 mm, first side fold -40 (fixed), and 2nd
-    fold inferred from real NFB depth pair when supplied. Historic previews
+    LEFT/RIGHT: straight side edges, TOP and BOTTOM material fold 20 mm.
+    CENTER: upper/lower material folds match the NFB face depth step
+    (35 for 107/72), and their outside lengths match the X second-return
+    outside lengths. First side fold -40 is fixed; second side return is
+    inferred from the real NFB depth pair when supplied. Historic previews
     used 40/33 for Shihlin 107/72 T2; this MUST NOT become a universal
     manufacturing rule. The central straight span is W-shrink_left-
     shrink_right; original W800 shrinks85/85 gives 630+2*(40+33-2)=772.
@@ -623,8 +625,8 @@ def build_receiving_base_plate_result(
     107-(72+2)=33, not by counting two T deductions or assuming that
     33 is the formed outside-to-outside Z step (the NFB face step is 35).
 
-    User supplied base sample outlines also show a 35-mm shoulder from
-    top/bottom on the center pattern. No drawing's absolute X/Y, holes
+    User supplied center source has 35-mm upper/lower material BEND offsets
+    for 107/72 (not 20 mm). No drawing's absolute X/Y, holes
     or cut profile may become an installation coordinate by itself.
     """
     from .sheetmetal_geometry import BendLine
@@ -637,13 +639,13 @@ def build_receiving_base_plate_result(
         raise ValueError("Receiving Base Plate needs a known left/center/right bend pattern")
     if t<=0 or min(st,sb,sl,sr)<0 or w-sl-sr<=0 or h-st-sb<=0:
         raise ValueError("Receiving Base Plate dimensions cannot resolve valid material")
-    if abs(bend-20.0)>1e-6:
-        raise ValueError("Receiving illustrated top/bottom bend is 20 mm")
+    if pattern in (RECEIVING_BASE_PATTERN_LEFT, RECEIVING_BASE_PATTERN_RIGHT) and abs(bend-20.0)>1e-6:
+        raise ValueError("Receiving LEFT/RIGHT top/bottom material bend is 20 mm")
     core_w=w-sl-sr
     blank_h=h-st-sb
-    if blank_h<=2*bend:
-        raise ValueError("Receiving Base Plate face height insufficient for upper/lower folds")
     if pattern in (RECEIVING_BASE_PATTERN_LEFT, RECEIVING_BASE_PATTERN_RIGHT):
+        if blank_h<=2*bend:
+            raise ValueError("Receiving Base Plate face height insufficient for upper/lower folds")
         blank_w=core_w
         outline=(Vec2(0.,0.),Vec2(blank_w,0.),
                  Vec2(blank_w,blank_h),Vec2(0.,blank_h))
@@ -682,10 +684,18 @@ def build_receiving_base_plate_result(
     # 40 + 33 - T2 = 71 on each side; that is NOT the 2nd BEND station.
     # For variable selected NFB depth second, preserve this distinction.
     # This does not certify the 3D folded skins or release manufacturing.
+    # Outside-length parity is the CENTER contract, not the LEFT/RIGHT
+    # 20-mm flat-source fold: X second material=second, outside=second+2T;
+    # Y upper/lower material=second+T, outside=(second+T)+T.
+    center_y_fold = second + t
+    if abs(bend-20.0)>1e-6 and abs(bend-center_y_fold)>1e-6:
+        raise ValueError("Receiving CENTER Y fold conflicts with NFB outside parity")
+    if blank_h<=2*center_y_fold:
+        raise ValueError("Receiving CENTER upper/lower folds consume physical sheet")
     side_fold=first+second-t
     second_bend_station=first+second
     blank_w=core_w+2*side_fold
-    shoulder=35.0
+    shoulder=center_y_fold
     corner_chamfer=5.0
     # Physical source CUTTING (受電箱底板(5).dxf, SHA256 cccf060c...4160d29b)
     # for W772/T2 has inner shoulder x=74 and 698 (20 polygon vertices).
@@ -714,9 +724,11 @@ def build_receiving_base_plate_result(
         Vec2(x0,y1),Vec2(x0,blank_h-c),
     )
     bends=(
-        BendLine("receiving_bottom_20",Vec2(x0,bend),Vec2(x1,bend)),
+        # Stable legacy BEND identifiers end in _20; CENTER coordinates do
+        # NOT mean 20 mm. Real Y BEND stations come from center_y_fold.
+        BendLine("receiving_bottom_20",Vec2(x0,center_y_fold),Vec2(x1,center_y_fold)),
         BendLine("receiving_top_20",
-                 Vec2(x0,blank_h-bend),Vec2(x1,blank_h-bend)),
+                 Vec2(x0,blank_h-center_y_fold),Vec2(x1,blank_h-center_y_fold)),
         BendLine("receiving_left_40",Vec2(first,y0),Vec2(first,y1)),
         BendLine("receiving_left_33",Vec2(second_bend_station,y0),Vec2(second_bend_station,y1)),
         BendLine("receiving_right_40",
