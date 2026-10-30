@@ -60,7 +60,18 @@ def _export_from_real_sources(original, fresh_receipt, batch):
         for feature in row["features"]:
             refs = feature["source_transform"]["source_entity_refs"]
             assert len(refs) == 1 and saved_handles.get(refs[0].upper()) == "CIRCLE"
-        from integration_cli.source_circle_verification import verify_trusted_original_dxf_features
+        from integration_cli.source_circle_verification import (
+            _source_snapshot, verify_trusted_original_dxf_features,
+        )
+        snapshot = _source_snapshot(
+            batch[4][row["item_id"]], row["source_document_sha256"],
+        )
+        snapshot_handles = {str(e.dxf.handle).upper(): e.dxftype()
+                            for e in snapshot.modelspace() if e.dxf.hasattr("handle")}
+        assert snapshot_handles == saved_handles, (
+            len(snapshot_handles), len(saved_handles),
+            len(set(snapshot_handles).symmetric_difference(saved_handles)),
+        )
         verified = verify_trusted_original_dxf_features(
             row["features"], source_path=batch[4][row["item_id"]],
             expected_document_sha256=row["source_document_sha256"],
