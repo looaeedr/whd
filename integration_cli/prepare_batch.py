@@ -331,18 +331,39 @@ def prepare_trusted_door_batch(
         baseline = expected_baseline_path_for(part_spec, ctx)
         if baseline is None:
             raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "WHD could not identify the physical part baseline")
-        # Resolving a symlink before creating the manifest would erase
-        # the fact that a different physical file was selected.
-        probe = baseline
-        while probe != resource_root and probe != probe.parent:
-            if probe.is_symlink():
-                raise PrepareEvidenceError("WHD_RESOURCE_PATH_INVALID", "selected WHD baseline is symlinked")
-            probe = probe.parent
-        try:
-            relative = baseline.resolve().relative_to(resource_root.resolve()).as_posix()
-        except ValueError as exc:
-            raise PrepareEvidenceError("WHD_RESOURCE_PATH_INVALID", "baseline escapes trusted resource root") from exc
-        baselines.add(relative)
+        # The CURRENT AE shared-indicator resolver selects a *single*
+        # global folder only when both 盒子.dxf and 小門.dxf are present.
+        # Attest the same coupled resource set even for a one-kind Prepare:
+        # otherwise an unseen paired file could change after sealing the
+        # environment but before a later mixed Door/Box use of that folder.
+        selected_baselines = [baseline]
+        if kind in ("indicator_small_door", "indicator_box"):
+            from ae_engine.manufacturing_baseline_policy import _indicator_shared_expected_path
+            counterpart_name = ("盒子.dxf" if kind == "indicator_small_door"
+                                else "小門.dxf")
+            counterpart = _indicator_shared_expected_path(counterpart_name, ctx)
+            if counterpart is None or counterpart.parent != baseline.parent:
+                raise PrepareEvidenceError(
+                    "WHD_RESOURCE_UNVERIFIED", "WHD shared-indicator baselines are not paired",
+                )
+            selected_baselines.append(counterpart)
+        for selected in selected_baselines:
+            # Do not resolve before checking the exact physical path: that
+            # would erase a symlink alias from the signed source manifest.
+            probe = selected
+            while probe != resource_root and probe != probe.parent:
+                if probe.is_symlink():
+                    raise PrepareEvidenceError(
+                        "WHD_RESOURCE_PATH_INVALID", "selected WHD baseline is symlinked",
+                    )
+                probe = probe.parent
+            try:
+                relative = selected.resolve().relative_to(resource_root.resolve()).as_posix()
+            except ValueError as exc:
+                raise PrepareEvidenceError(
+                    "WHD_RESOURCE_PATH_INVALID", "baseline escapes trusted resource root",
+                ) from exc
+            baselines.add(relative)
         recorded.append({
             "item_id": item["item_id"],
             "physical_part_id": physical_id,

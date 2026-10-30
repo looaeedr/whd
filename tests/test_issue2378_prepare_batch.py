@@ -869,3 +869,61 @@ def test_featureless_export_recheck_missing_original_source_is_not_success(
         _recheck(request, receipt, export, root, source_documents={})
     assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
     assert not (tmp_path / "worker-output-not-created").exists()
+
+
+@pytest.mark.parametrize("kind", ["indicator_small_door", "indicator_box"])
+def test_shared_indicator_prepare_seals_both_original_baselines_and_fails_if_other_changes(
+    tmp_path, kind,
+):
+    """The real shared-folder resolver requires both original DXFs.
+
+    A one-kind W-03 request cannot leave the OTHER source outside its signed
+    environment fingerprint. Change only the paired baseline's MARKING:
+    physical CUTTING stays valid, but the old token must become stale.
+    """
+    if kind == "indicator_small_door":
+        root, selected, request, _ = _indicator_small_door_request(tmp_path)
+        paired = selected.with_name("盒子.dxf")
+    else:
+        root, selected, request = _indicator_box_request(tmp_path)
+        paired = selected.with_name("小門.dxf")
+    assert paired.is_file() and selected.is_file()
+    original_bytes = selected.read_bytes()
+    prepared = _prepare(request, root)
+    replay = deepcopy(request)
+    replay["request_id"] = "same-sealed-shared-resource-retry"
+    assert _prepare(replay, root)["prepare_token"] == prepared["prepare_token"]
+    export = _export_request_from_prepared(request, prepared)
+    _recheck(request, prepared, export, root)
+
+    doc = ezdxf.readfile(paired)
+    doc.modelspace().add_line(
+        (4, 4), (7, 7), dxfattribs={"layer": "MARKING"},
+    )
+    doc.saveas(paired)
+    assert selected.read_bytes() == original_bytes
+    fresh = _prepare(request, root)
+    assert fresh["environment_fingerprint"] != prepared["environment_fingerprint"]
+    assert fresh["prepare_token"] != prepared["prepare_token"]
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _recheck(request, prepared, export, root)
+    assert exc.value.code == "WHD_PREPARE_STALE"
+    assert not (tmp_path / "worker-output-not-created").exists()
+
+
+@pytest.mark.parametrize("kind", ["indicator_small_door", "indicator_box"])
+def test_shared_indicator_prepare_rejects_invalid_paired_source_without_token(
+    tmp_path, kind,
+):
+    """Hash-valid arbitrary bytes cannot replace the paired WHD baseline."""
+    if kind == "indicator_small_door":
+        root, selected, request, _ = _indicator_small_door_request(tmp_path)
+        paired = selected.with_name("盒子.dxf")
+    else:
+        root, selected, request = _indicator_box_request(tmp_path)
+        paired = selected.with_name("小門.dxf")
+    paired.write_bytes(b"not a verified CUTTING DXF source")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _prepare(request, root)
+    assert exc.value.code == "WHD_RESOURCE_UNVERIFIED"
+    assert not (tmp_path / "worker-output-not-created").exists()
