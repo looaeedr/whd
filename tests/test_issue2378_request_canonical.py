@@ -917,12 +917,11 @@ def _w06_committing_context(tmp_path):
 
 
 def test_private_rollback_requires_writable_private_temp_file(tmp_path, monkeypatch):
-    """A Windows CRT _commit cannot fsync a read-only restore temp handle.
+    """Assert the private restore temp uses a writable fsync handle.
 
-    Emulate the Windows restriction even on Linux so this is a genuine
-    RED regression for the old open("rb") and GREEN for open("rb+").
-    Only the newly generated PRIVATE restore temp is opened writable;
-    the customer destination is restored by the existing atomic replace.
+    A Linux-only happy path would silently accept the historical read-only
+    open("rb"), while Windows CRT _commit refuses it. Track the mode even
+    on Linux; ordinary read-only SHA proof reads must remain permitted.
     """
     store, root, old, _, _, req, _, journal, before = _w06_committing_context(tmp_path)
     journal.arm(req)
@@ -933,14 +932,12 @@ def test_private_rollback_requires_writable_private_temp_file(tmp_path, monkeypa
     original_open = Path.open
     observed_modes = []
 
-    def win32_commit_guard(path, mode="r", *args, **kwargs):
-        if path.name.startswith(".whd-w06-restore-"):
+    def track_restore_fsync_open(path, mode="r", *args, **kwargs):
+        if path.name.startswith(".whd-w06-restore-") and mode == "rb+":
             observed_modes.append(mode)
-            if mode == "rb":
-                raise PermissionError("Windows _commit denies read-only file handle")
         return original_open(path, mode, *args, **kwargs)
 
-    monkeypatch.setattr(Path, "open", win32_commit_guard)
+    monkeypatch.setattr(Path, "open", track_restore_fsync_open)
     recovered = DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(store))
     assert recovered.recover_rollback(req) == "rolled_back"
     assert observed_modes == ["rb+"]
