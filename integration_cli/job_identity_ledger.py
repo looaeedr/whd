@@ -442,6 +442,8 @@ class DurableJobIdentityLedger:
         if claim.state != "new":
             raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "prepare cannot be rerun")
         self.assert_not_cancelled(request)
+        from integration_cli.worker_progress import PrivateWorkerProgress
+        PrivateWorkerProgress(self).publish(request)
 
         from integration_cli.prepare_batch import prepare_trusted_door_batch
 
@@ -495,6 +497,7 @@ class DurableJobIdentityLedger:
             except BaseException:
                 conn.rollback()
                 raise
+        PrivateWorkerProgress(self).publish(request, worker_key=worker_key)
         return receipt
 
     def load_trusted_prepare(
@@ -633,7 +636,6 @@ class DurableJobIdentityLedger:
                        VALUES (?,?,?,?)""", (client, job, op, digest),
                 )
             conn.commit()
-            return "requested"
         except sqlite3.Error as exc:
             conn.rollback()
             raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "cannot persist cancel intent") from exc
@@ -642,6 +644,11 @@ class DurableJobIdentityLedger:
             raise
         finally:
             conn.close()
+        # The cancel flag is already durable. This projection merely mirrors
+        # the database and may never be interpreted as manufacturing authority.
+        from integration_cli.worker_progress import PrivateWorkerProgress
+        PrivateWorkerProgress(self).publish(request)
+        return "requested"
 
     def assert_not_cancelled(self, request: Mapping[str, Any]) -> None:
         """Private safe-point check; no IO to a customer destination."""
