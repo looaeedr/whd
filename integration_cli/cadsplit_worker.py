@@ -21,8 +21,14 @@ from typing import Any
 from jsonschema import Draft202012Validator, ValidationError
 
 PROTOCOL_VERSION = "1.0.0"
-SCHEMA_ROOT = Path(__file__).resolve().parent / "schemas"
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if getattr(sys, "frozen", False):
+    # PyInstaller's entry script __file__ lives at the bundle root, not
+    # integration_cli/. Exact data layout is fixed by the W-05 build.
+    SCHEMA_ROOT = Path(sys._MEIPASS) / "integration_cli" / "schemas"
+    REPOSITORY_ROOT = Path(sys.executable).resolve().parent
+else:
+    SCHEMA_ROOT = Path(__file__).resolve().parent / "schemas"
+    REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
 MAX_BATCH_ITEMS = 20
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
