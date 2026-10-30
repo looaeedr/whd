@@ -148,7 +148,13 @@ def save_trusted_door_circle_finalscene_batch(
         if output_dir.is_symlink() or not output_dir.is_dir():
             _reject("W-06 durable export needs preexisting trusted output directory")
 
+    # The very first source guard runs before a W-06 job is claimed.
+    # Later stage/commit guards can safely read its durable cancel intent.
+    active_durable_job = False
+
     def guard() -> None:
+        if active_durable_job:
+            durable_ledger.assert_not_cancelled(export_request)
         recheck_trusted_door_export(
             trusted_prepare_request, trusted_prepare_response, export_request,
             source_documents=source_documents, resource_root=resource_root,
@@ -207,6 +213,8 @@ def save_trusted_door_circle_finalscene_batch(
         claim = durable_ledger.claim(export_request)
         if claim.state != "new":
             _reject("durable job cannot be rendered again; read its immutable result")
+        active_durable_job = True
+        durable_ledger.assert_not_cancelled(export_request)
         durable_ledger.reserve_output_directories(
             export_request, trusted_directories=[output_dir],
         )
