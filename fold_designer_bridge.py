@@ -2808,12 +2808,15 @@ def _phase6_show_assembly(self, initial=False):
     if (
         not initial
         and self.designer_workspace.active_part is not None
+        and getattr(self, "_phase6_3d_display_mode", None) != "assembly"
         and not getattr(self, "_phase6_family_transition_in_progress", False)
     ):
-        # A family transition has already committed its new geometry source.
-        # Saving the outgoing legacy Fold buffer during the automatic
-        # assembly redraw would write stale FW/outer folds into that source.
-        # Ordinary operator navigation keeps the existing save behavior.
+        # A deferred Tk tree-selection event can redraw an assembly already
+        # in assembly mode *after* its family-transition callback completes.
+        # Do not save the old Fold-editor buffer in that redundant redraw:
+        # it can overwrite freshly committed FW (31 -> stale 26).  Only
+        # leaving a real single-part editor needs the outgoing part saved.
+        # Keep the in-transition guard for immediate callback redraws.
         try:
             self._save_current_part()
         except Exception:
