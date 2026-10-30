@@ -688,8 +688,10 @@ def build_receiving_base_plate_result(
     # 20-mm flat-source fold: X second material=second, outside=second+2T;
     # Y upper/lower material=second+T, outside=(second+T)+T.
     center_y_fold = second + t
-    if abs(bend-20.0)>1e-6 and abs(bend-center_y_fold)>1e-6:
-        raise ValueError("Receiving CENTER Y fold conflicts with NFB outside parity")
+    # A two-tier assembly can pass a shared, source-selected bend while
+    # each tier owns a DIFFERENT selected NFB depth step. For CENTER,
+    # only the tier's actual second-return geometry determines Y BEND;
+    # legacy bend=20 must not override it or trigger a false conflict.
     if blank_h<=2*center_y_fold:
         raise ValueError("Receiving CENTER upper/lower folds consume physical sheet")
     side_fold=first+second-t
