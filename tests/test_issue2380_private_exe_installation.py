@@ -1304,7 +1304,8 @@ def test_packaged_engine_separately_authorized_rollback_after_crashed_two_dxf_ex
     )
 
     exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
-    assert exe.is_file(), "Windows packaged test requires real Engine.exe"
+    if not exe.is_file():
+        pytest.skip("requires built actual onedir WHD-Engine.exe")
     profile = tmp_path / "WHD private recovery DPAPI"
     profile.mkdir()
     monkeypatch.setenv("LOCALAPPDATA", str(profile))
