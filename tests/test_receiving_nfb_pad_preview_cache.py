@@ -185,3 +185,35 @@ def test_pad_gui_cache_does_not_hide_valid_skin_because_unrelated_ear_has_no_mat
     assert result==(safe_skin,)
     assert called==[True]
     assert adapter.last_formed_pad_display_blocker is None
+
+
+@pytest.mark.parametrize("invalid_material", (object(), "not-a-geometry"))
+def test_pad_preview_cache_rejects_corrupt_physical_base_material_at_source(invalid_material):
+    """The optional 3D PAD must fail closed before accessing geometry internals."""
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    base = _pad_base_with_real_cutting_scene(DrawingScene())
+    base.render_data.material = invalid_material
+    snapshot = {"model": "受電箱", "nfb_config_submitted": True}
+    with pytest.raises(ValueError, match="PAD_PREVIEW_PARENT_MATERIAL_INVALID"):
+        pad_preview_source_fingerprint(snapshot, (base,))
+
+
+def test_pad_3d_adapter_hides_corrupt_base_material_and_exposes_blocker():
+    """One invalid provider material must not crash the entire assembly 3D."""
+    from ae_engine.sheetmetal_drawing import DrawingScene
+    from phase6_final_scene_view import Phase6FinalSceneViewAdapter
+
+    base = _pad_base_with_real_cutting_scene(DrawingScene())
+    base.render_data.material = object()
+    adapter = Phase6FinalSceneViewAdapter.__new__(Phase6FinalSceneViewAdapter)
+    adapter._formed_pad_display_cache = None
+    adapter.last_formed_pad_display_blocker = None
+    assert adapter._formed_pad_assembly_preview(
+        {"model": "受電箱", "nfb_config_submitted": True},
+        {"base_plate"}, (base,),
+    ) == ()
+    assert adapter.last_formed_pad_display_blocker == "PAD_PREVIEW_PARENT_MATERIAL_INVALID"
+    assert "PAD_PREVIEW_PARENT_MATERIAL_INVALID" in " ".join(
+        adapter._pad_display_warnings()
+    )
