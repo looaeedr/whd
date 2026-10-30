@@ -341,7 +341,11 @@ def _private_installed_main(argv: list[str]) -> int:
     try:
         commit, build_id, actual_exe_hash = _identity()
         from integration_cli.private_worker_installation import load_private_execution
-        context = load_private_execution(args.installation_id, engine_sha256=actual_exe_hash)
+        from integration_cli.prepare_evidence import PrepareEvidenceError
+        try:
+            context = load_private_execution(args.installation_id, engine_sha256=actual_exe_hash)
+        except PrepareEvidenceError as exc:
+            raise WorkerFailure(exc.code, "trusted installation custody invalid", exit_code=4) from exc
         if args.response.exists() or args.response.is_symlink():
             raise WorkerFailure("WHD_RESPONSE_EXISTS", "private response already exists", exit_code=4)
         result, status = _execute_request(
