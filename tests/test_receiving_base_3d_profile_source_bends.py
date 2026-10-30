@@ -4,6 +4,7 @@ import pytest
 
 from ae_engine.assembly_geometry_folded_mesh import _profile_geometry
 from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
+from phase6_fold_profiles import apply_outside_dimension_compensation, engine_segment_length_to_ui
 from phase6_settings_profile_projection import build_standard_part_profiles
 
 
@@ -41,9 +42,15 @@ def test_real_center_3d_fold_has_all_original_source_40_73_699_732_bend_stations
     assert abs(folded[2][1]-folded[1][1]) == pytest.approx(35)
     assert abs((folded[2][1]+1)-(folded[1][1]+1)) == pytest.approx(35)
     y=profiles["Y"]
-    assert [row["len"] for row in y] == [20.,200.,20.]
+    assert [row["len"] for row in y] == [35.,170.,35.]
     ybounds,_=_profile_geometry(y)
-    assert ybounds == pytest.approx((0,20,220,240))
+    assert ybounds == pytest.approx((0,35,205,240))
+    # User-confirmed CENTER equality is in operator OUTSIDE dimension space.
+    # X second 33 material+2T = Y upper/lower 35 material+1T = 37 outside.
+    x_ui=apply_outside_dimension_compensation([dict(row) for row in x],2.)
+    y_ui=apply_outside_dimension_compensation([dict(row) for row in y],2.)
+    assert [engine_segment_length_to_ui(x_ui[i]) for i in (1,3)] == [37,37]
+    assert [engine_segment_length_to_ui(y_ui[i]) for i in (0,2)] == [37,37]
 
 
 @pytest.mark.parametrize("pattern",["LEFT_FLAT_SIDE","RIGHT_FLAT_SIDE"])
@@ -88,3 +95,10 @@ def test_rendered_3d_profile_tracks_a_nonhardcoded_nfb_second_return(monkeypatch
     assert [row["len"] for row in source["X"]] == [40.,28.,626.,28.,40.]
     b,_=_profile_geometry(source["X"])
     assert b==pytest.approx((0,40,68,694,722,762))
+    # Another CSV pair: delta30 -> X material28/outside32,
+    # CENTER Y material30/outside32; the rule is NOT a constant 35.
+    assert [row["len"] for row in source["Y"]] == [30.,180.,30.]
+    x_ui=apply_outside_dimension_compensation([dict(row) for row in source["X"]],2.)
+    y_ui=apply_outside_dimension_compensation([dict(row) for row in source["Y"]],2.)
+    assert engine_segment_length_to_ui(x_ui[1]) == 32
+    assert engine_segment_length_to_ui(y_ui[0]) == 32
