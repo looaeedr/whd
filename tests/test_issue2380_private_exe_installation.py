@@ -1156,3 +1156,130 @@ def test_packaged_engine_never_converts_attested_noncutting_source_to_dxf_hole(
         assert conn.execute(
             "SELECT COUNT(*) FROM jobs WHERE operation='export'"
         ).fetchone()[0] == 0
+
+
+@pytest.mark.skipif(not WINDOWS, reason="actual packaged Windows Engine.exe + DPAPI required")
+@pytest.mark.parametrize(("source_kind", "rotation"), [
+    ("rect", 90),
+    ("profile", 90),
+])
+def test_packaged_engine_real_original_rect_profile_cutting_native_dxf_and_replay(
+    tmp_path, monkeypatch, source_kind, rotation,
+):
+    """Real installed EXE: source CUTTING shape and 90° transform reach final DXF.
+
+    W-04 must not merely parse a shape in Python while failing to manufacture
+    it with the frozen Engine.exe and WHD-only onedir resources.
+    """
+    from copy import deepcopy
+    import ezdxf
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2378_prepare_batch import _export_request_from_prepared
+    from test_issue2379_trusted_door_finalscene_batch import (
+        _mixed_rect_batch, _mixed_source_profile_batch,
+    )
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires real packaged Windows WHD-Engine.exe")
+    profile_dir = tmp_path / f"真實矩形輪廓來源 DPAPI {source_kind}"
+    profile_dir.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile_dir))
+    installation = "native-original-" + source_kind + "-90deg"
+    load_installation_key(installation, initialize=True)
+
+    batch = (
+        _mixed_rect_batch(tmp_path, rotation=rotation)
+        if source_kind == "rect" else
+        _mixed_source_profile_batch(tmp_path, rotation=rotation)
+    )
+    original, _local_receipt, local_export, _root, sources, source, *_ = batch
+    assert len(original["items"]) == 2
+    assert {f["type"] for row in local_export["items"] for f in row["features"]} == {
+        "circle", source_kind,
+    }
+    original_doc = ezdxf.readfile(source)
+    for item in local_export["items"]:
+        source_handle = item["features"][0]["source_transform"]["source_entity_refs"][0]
+        entity = original_doc.entitydb.get(source_handle)
+        assert entity is not None and entity.dxf.layer == "CUTTING"
+
+    store = tmp_path / "W06 private-shape-durable-state"
+    output = tmp_path / "W04 source-shape-native-DXF"
+    store.mkdir()
+    output.mkdir()
+    engine_sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation, store_root=store, output_dir=output,
+        source_documents=sources, expected_engine_sha256=engine_sha,
+    )
+
+    def invoke(operation, payload, name):
+        wire = tmp_path / f"{name}-wire.json"
+        reply = tmp_path / f"{name}-response.json"
+        wire.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        process = subprocess.run([
+            str(exe), "_private_installed", operation,
+            "--installation-id", installation,
+            "--request", str(wire), "--response", str(reply),
+        ], cwd=tmp_path, capture_output=True, text=True, timeout=180)
+        result = json.loads(reply.read_text(encoding="utf-8")) if reply.is_file() else None
+        return process, result
+
+    authorize_private_job(installation, original, engine_sha256=engine_sha)
+    proc, receipt = invoke("prepare", original, f"real-{source_kind}-prepare")
+    assert proc.returncode == 0 and receipt["status"] == "success", (proc.stderr, receipt)
+    assert len(receipt["items"]) == 2
+    export = _export_request_from_prepared(original, receipt)
+    for idx, old_item in enumerate(local_export["items"]):
+        issued = receipt["items"][idx]["target_frames"][0]
+        new_feature = deepcopy(old_item["features"][0])
+        new_feature["target_frame_id"] = issued["frame_id"]
+        new_feature["source_transform"]["target_dimensions_mm"] = deepcopy(
+            issued["finished_face_dimensions_mm"]
+        )
+        export["items"][idx]["features"] = [new_feature]
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(installation, export, engine_sha256=engine_sha)
+    proc, finished = invoke("export", export, f"real-{source_kind}-export")
+    assert proc.returncode == 0 and finished["status"] == "success", (proc.stderr, finished)
+    assert finished["manufacturing_verified"] is False
+    assert len(finished["items"]) == 2
+    files = {item["physical_part_id"]: Path(item["path"]) for item in finished["items"]}
+    assert set(files) == {r["physical_part_id"] for r in receipt["items"]}
+    for path in files.values():
+        assert path.is_file() and path.parent == output
+        assert ezdxf.readfile(path).modelspace().query('LINE[layer=="BEND"]')
+    circle_part = ezdxf.readfile(files[receipt["items"][0]["physical_part_id"]])
+    assert circle_part.modelspace().query('CIRCLE[layer=="CUTTING"]')
+    shape_part = ezdxf.readfile(files[receipt["items"][1]["physical_part_id"]])
+    closed_cutting = [
+        p for p in shape_part.modelspace().query('LWPOLYLINE[layer=="CUTTING"]')
+        if p.closed
+    ]
+    expected_vertex_count = 4 if source_kind == "rect" else 5
+    assert any(len(p.get_points("xy")) == expected_vertex_count for p in closed_cutting)
+    if source_kind == "rect":
+        # Distinguish source RECT from the WHD exterior CUTTING contour.
+        assert len(closed_cutting) >= 2
+    immutable = {
+        path: (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in files.values()
+    }
+    replay = deepcopy(export)
+    replay["request_id"] = "original-shape-90deg-transport-retry"
+    proc, repeated = invoke("export", replay, f"real-{source_kind}-replay")
+    assert proc.returncode == 0 and repeated == finished
+    assert {
+        path: (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in files.values()
+    } == immutable
+    source.write_bytes(source.read_bytes() + b"\\nchanged-original-shape")
+    proc, denied = invoke("export", replay, f"real-{source_kind}-stale")
+    assert proc.returncode != 0 and denied["status"] == "failed"
+    assert denied["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
+    assert {
+        path: (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in files.values()
+    } == immutable
