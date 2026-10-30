@@ -1665,11 +1665,45 @@ def test_packaged_public_v11_prepare_export_requires_sealed_job_and_certifies_re
         identity, store_root=store, output_dir=output,
         source_documents=batch[4], expected_engine_sha256=exe_hash,
     )
+    schema_dir = Path(__file__).resolve().parents[1] / "integration_cli" / "schemas"
     response_schema = json.loads(
-        (Path(__file__).resolve().parents[1] / "integration_cli" / "schemas" /
-         "response_v1_1.schema.json").read_text(encoding="utf-8")
+        (schema_dir / "response_v1_1.schema.json").read_text(encoding="utf-8")
     )
     validator = Draft202012Validator(response_schema)
+    installed_response = tmp_path / "signed-installed-capabilities.json"
+    discovered = subprocess.run([
+        str(exe), "capabilities", "--installation-id", identity,
+        "--response", str(installed_response),
+    ], cwd=tmp_path, capture_output=True, text=True, timeout=120)
+    assert discovered.returncode == 0, discovered.stderr[-1200:]
+    advertised = json.loads(installed_response.read_text(encoding="utf-8"))
+    Draft202012Validator(json.loads(
+        (schema_dir / "capabilities_v1_1.schema.json").read_text(encoding="utf-8")
+    )).validate(advertised)
+    assert advertised["protocol_version"] == "1.1.0"
+    assert advertised["installation_id"] == identity
+    assert advertised["capability_flags"]["batch_prepare"] is True
+    assert advertised["capability_flags"]["batch_export"] is True
+    assert advertised["capability_flags"]["per_part_transactions"] is False
+    assert len(advertised["supported_part_kinds"]) == 5
+    assert all(
+        "installer_sealed_exact_job_approval" in item["required_inputs"]
+        for item in advertised["capabilities"]
+    )
+    never = tmp_path / "unprovisioned-capability.json"
+    no_install = subprocess.run([
+        str(exe), "capabilities", "--installation-id", "not-provisioned",
+        "--response", str(never),
+    ], cwd=tmp_path, capture_output=True, text=True, timeout=120)
+    assert no_install.returncode == 4 and not never.exists()
+    no_install_default = tmp_path / "unselected-capability.json"
+    selected = subprocess.run([
+        str(exe), "capabilities", "--response", str(no_install_default),
+    ], cwd=tmp_path, capture_output=True, text=True, timeout=120)
+    assert selected.returncode == 0
+    unselected = json.loads(no_install_default.read_text(encoding="utf-8"))
+    assert not any(unselected["capability_flags"].values())
+    assert unselected["supported_part_kinds"] == []
 
     def call(operation, request, label):
         wire = tmp_path / (label + "-wire.json")
