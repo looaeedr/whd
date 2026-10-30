@@ -210,6 +210,8 @@ class DurableMultiDXFRollbackJournal:
             raise
         finally:
             conn.close()
+        from integration_cli.worker_progress import PrivateWorkerProgress
+        PrivateWorkerProgress(self._ledger).publish(request)
         return plan
 
     def _change_state(self, request: Mapping[str, Any], expected: str, changed: str) -> None:
@@ -259,6 +261,10 @@ class DurableMultiDXFRollbackJournal:
         if hashlib.sha256(_json(backup).encode("utf-8")).hexdigest() != plan["backup_sha256"]:
             raise _refuse("original backup evidence differs")
         self._change_state(request, "armed", "applying")
+        # This checkpoint is made before touching any customer final DXF;
+        # an interruption here remains recovery_required, never success.
+        from integration_cli.worker_progress import PrivateWorkerProgress
+        PrivateWorkerProgress(self._ledger).publish(request)
         result: dict[str, Path] = {}
         try:
             for index, item in enumerate(plan["items"], 1):
@@ -282,6 +288,7 @@ class DurableMultiDXFRollbackJournal:
                 if after_replace is not None:
                     after_replace(index)
             self._change_state(request, "applying", "applied")
+            PrivateWorkerProgress(self._ledger).publish(request)
         except Exception as exc:
             # The journal and original backups remain, including every
             # replacement intent. Only explicit recovery may touch outputs.
