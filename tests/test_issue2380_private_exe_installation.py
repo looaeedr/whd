@@ -1320,12 +1320,25 @@ def test_packaged_engine_separately_authorized_rollback_after_crashed_two_dxf_ex
         "part-one": _w06_staged_dxf(target, "part-one"),
         "part-two": _w06_staged_dxf(target, "part-two"),
     }
+    source = _w06_real_output(tmp_path / "外部來源.dxf")
     request = _w06_request(operation="export")
-    # This low-level journal fixture omits W-03 wire fields. The installed
-    # job/recovery approval must still validate the FULL Export request.
-    # Rollback uses the original W-06 journal, not a new Prepare receipt.
+    # Low-level journal fixtures have no W-03 handoff data. Use a valid
+    # complete TWO-part Export wire inventory before sealing recovery;
+    # no new Prepare or rerender is attempted during rollback.
     request["prepare_token"] = "preexisting-private-w06-export"
     request["environment_fingerprint_expected"] = "a" * 64
+    first = request["items"][0]
+    first["source_document_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+    first["physical_part_id"] = "part-one"
+    first["preparation_digest"] = "a" * 64
+    first["target_frame_ids"] = ["frame-part-one"]
+    first["features"] = []
+    second = json.loads(json.dumps(first, ensure_ascii=False))
+    second["item_id"] = "door-2"
+    second["physical_part_id"] = "part-two"
+    second["part"]["source_part_ref"] = "real-source-door-2"
+    second["target_frame_ids"] = ["frame-part-two"]
+    request["items"].append(second)
     request["output"]["directory"] = str(target)
     request["output"]["overwrite"] = True
     request["request_digest"] = compute_wire_request_digest(request)
@@ -1348,11 +1361,11 @@ def test_packaged_engine_separately_authorized_rollback_after_crashed_two_dxf_ex
     assert (customer.read_bytes(), customer.stat().st_mtime_ns) != before
     assert not (target / "part-two.dxf").exists()
 
-    source = _w06_real_output(tmp_path / "外部來源.dxf")
     exe_hash = hashlib.sha256(exe.read_bytes()).hexdigest()
     provision_private_installation(
         installation, store_root=store, output_dir=target,
-        source_documents={"door-1": source}, expected_engine_sha256=exe_hash,
+        source_documents={"door-1": source, "door-2": source},
+        expected_engine_sha256=exe_hash,
     )
     # A standard Export approval is deliberately not an approval to restore.
     authorize_private_job(installation, request, engine_sha256=exe_hash)
