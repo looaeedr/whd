@@ -143,8 +143,9 @@ def indicator_small_door_spec_from_trusted_prepared_part(part: Mapping[str, Any]
 def indicator_box_spec_from_trusted_prepared_part(part: Mapping[str, Any], context):
     """Use the WHD shared indicator-box owner; never trust caller dimensions.
 
-    A size-only Prepare does NOT attest source Feature placement. Export must
-    remain unsupported until WHD resolves an exact finished-face to DXF map.
+    A size-only Prepare does NOT attest external source Feature placement.
+    Only WHD-owned featureless geometry (with an empty original DXF source)
+    may reach private W-04; external Feature mapping remains unsupported.
     """
     from ae_engine.contracts import IndicatorBoxPartSpec
     from ae_engine.manufacturing_api import indicator_box_finished_face_size
