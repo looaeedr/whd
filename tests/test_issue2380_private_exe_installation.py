@@ -571,3 +571,73 @@ def test_packaged_engine_indicator_box_size_only_prepare_and_export_denial(
     assert denied is None or denied["status"] != "success"
     assert not list(output.glob("*.dxf"))
     assert original_dxf.is_file()
+
+
+@pytest.mark.skipif(not WINDOWS, reason="true Windows packaged Engine.exe and DPAPI required")
+@pytest.mark.parametrize("kind", ["end_cap_head", "end_cap_tail"])
+def test_packaged_engine_vault_endcap_size_only_prepare_and_export_denial(
+    tmp_path, monkeypatch, kind,
+):
+    """Proof through actual installed executable, not a Python-only adapter."""
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from test_issue2378_prepare_batch import _vault_endcap_request, _export_request_from_prepared
+    import ezdxf
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires real packaged private Engine.exe")
+    profile = tmp_path / f"EndCap DPAPI {kind}"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    installation = "endcap-size-only-" + kind
+    load_installation_key(installation, initialize=True)
+    _, _, request = _vault_endcap_request(tmp_path, kind=kind)
+    original_dxf = tmp_path / f"CADSplit 原始{kind}.dxf"
+    dxf = ezdxf.new("R2010")
+    dxf.header["$INSUNITS"] = 4
+    dxf.modelspace().add_circle((12, 12), 2, dxfattribs={"layer": "CUTTING"})
+    dxf.saveas(original_dxf)
+    request["items"][0]["source_document_sha256"] = hashlib.sha256(
+        original_dxf.read_bytes()
+    ).hexdigest()
+    request["request_digest"] = compute_wire_request_digest(request)
+    item_id = request["items"][0]["item_id"]
+    store = tmp_path / "Worker private journal"
+    output = tmp_path / "Customer output"
+    store.mkdir()
+    output.mkdir()
+    sha = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation, store_root=store, output_dir=output,
+        source_documents={item_id: original_dxf}, expected_engine_sha256=sha,
+    )
+
+    def run(operation, body, label):
+        wire = tmp_path / f"{label}.json"
+        reply = tmp_path / f"{label}.reply.json"
+        wire.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
+        result = subprocess.run([
+            str(exe), "_private_installed", operation,
+            "--installation-id", installation,
+            "--request", str(wire), "--response", str(reply),
+        ], cwd=tmp_path, capture_output=True, text=True, timeout=150)
+        return result.returncode, (
+            json.loads(reply.read_text(encoding="utf-8")) if reply.is_file() else None
+        )
+
+    authorize_private_job(installation, request, engine_sha256=sha)
+    code, receipt = run("prepare", request, "endcap-prepare")
+    assert code == 0 and receipt["status"] == "success", receipt
+    frame = receipt["items"][0]["target_frames"][0]
+    assert frame["frame_id"].startswith(kind + ":")
+    assert frame["allowed_feature_types"] == []
+    assert receipt["manufacturing_verified"] is False
+    export = _export_request_from_prepared(request, receipt)
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(installation, export, engine_sha256=sha)
+    status, refused = run("export", export, "endcap-export-denied")
+    assert status != 0, refused
+    assert refused is None or refused["status"] != "success"
+    assert not list(output.glob("*.dxf"))
+    assert original_dxf.is_file()

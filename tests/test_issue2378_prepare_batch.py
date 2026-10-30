@@ -465,7 +465,7 @@ def test_indicator_small_door_source_claims_fail_closed_without_token(tmp_path, 
 
 
 @pytest.mark.parametrize("kind", ["end_cap_head", "end_cap_tail"])
-def test_unverified_non_door_frames_do_not_issue_prepare_tokens(tmp_path, kind):
+def test_endcap_wrong_or_incomplete_cabinet_frame_never_issues_token(tmp_path, kind):
     root, _, _ = _root(tmp_path)
     req = _request()
     part = req["items"][0]["part"]
@@ -682,3 +682,142 @@ def test_twenty_mixed_door_and_shared_box_prepares_but_any_box_stale_refuses_bat
         _recheck(original, receipt, export, root)
     assert exc.value.code == "WHD_PREPARE_STALE"
     assert not (tmp_path / "worker-output-not-created").exists()
+
+
+def _vault_endcap_request(tmp_path, *, kind="end_cap_head"):
+    from ae_engine.contracts import ManufacturingContext, EndCapPartSpec
+    from ae_engine.manufacturing_api import expected_baseline_path_for
+
+    root, _, _ = _root(tmp_path)
+    spec = EndCapPartSpec(
+        width=500, depth=300, thickness=2, frame_width=25,
+        model_name="金庫型", is_tail=(kind == "end_cap_tail"),
+    )
+    expected = expected_baseline_path_for(spec, ManufacturingContext(resource_root=root))
+    assert expected is not None
+    expected.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(HERE / "基準檔" / "金庫型" / "封頭尾.dxf", expected)
+    request = _request()
+    part = request["items"][0]["part"]
+    part["kind"] = kind
+    part["dimension_semantics"] = "cabinet_outer"
+    part["dimensions_mm"] = {"width": 500.0, "depth": 300.0, "thickness": 2.0}
+    del part["frame_edges"]
+    request["request_digest"] = compute_wire_request_digest(request)
+    return root, expected, request
+
+
+@pytest.mark.parametrize("kind", ["end_cap_head", "end_cap_tail"])
+def test_vault_endcap_head_tail_size_only_prepare_uses_whd_owned_finished_guide(
+    tmp_path, kind,
+):
+    from ae_engine.sheetmetal_feature_surface import resolve_endcap_finished_face_guide
+    from integration_cli.feature_preflight import validate_wire_features_against_prepared_frame
+    from tests.test_issue2379_wire_feature_preflight import _circle
+
+    root, baseline, original = _vault_endcap_request(tmp_path, kind=kind)
+    receipt = _prepare(original, root)
+    frame = receipt["items"][0]["target_frames"][0]
+    guide = resolve_endcap_finished_face_guide(500, 300, 2)
+    assert frame["frame_id"].startswith(f"{kind}:whd-")
+    assert frame["allowed_feature_types"] == []
+    assert frame["face_role"] == "outer"
+    assert frame["finished_face_dimensions_mm"] == {
+        "width": guide.max_point.x - guide.min_point.x,
+        "height": guide.max_point.y - guide.min_point.y,
+    }
+    assert receipt["items"][0]["required_inputs"] == []
+    assert receipt["manufacturing_verified"] is False
+    assert baseline.is_file()
+    export = _export_request_from_prepared(original, receipt)
+    _recheck(original, receipt, export, root)
+    with pytest.raises(PrepareEvidenceError):
+        validate_wire_features_against_prepared_frame([_circle(frame)], frame)
+    assert not (tmp_path / "worker-output-not-created").exists()
+
+
+@pytest.mark.parametrize("fault", [
+    "family", "part_semantics", "frame_override", "fold_override",
+    "extra_height", "negative_depth", "collapsed_face",
+])
+def test_vault_endcap_invalid_source_or_topology_fails_closed(tmp_path, fault):
+    root, _, req = _vault_endcap_request(tmp_path)
+    part = req["items"][0]["part"]
+    if fault == "family":
+        part["cabinet_family"] = "受電箱"
+    elif fault == "part_semantics":
+        part["dimension_semantics"] = "part_formed_outer"
+    elif fault == "frame_override":
+        part["frame_width_mm"] = 25.0
+    elif fault == "fold_override":
+        part["fold_left_mm"] = 15.0
+    elif fault == "extra_height":
+        part["dimensions_mm"]["height"] = 600
+    elif fault == "negative_depth":
+        part["dimensions_mm"]["depth"] = -1
+    elif fault == "collapsed_face":
+        part["dimensions_mm"]["width"] = 5
+    req["request_digest"] = compute_wire_request_digest(req)
+    with pytest.raises((PrepareEvidenceError, __import__("jsonschema").ValidationError)):
+        _prepare(req, root)
+    assert not (tmp_path / "worker-output-not-created").exists()
+
+
+def test_twenty_mixed_vault_endcap_head_tail_door_and_box_prepare_is_atomic_on_stale(
+    tmp_path,
+):
+    root, baseline, head = _vault_endcap_request(tmp_path, kind="end_cap_head")
+    _, _, tail = _vault_endcap_request_in_existing(root, tmp_path)
+    _, _, box = _indicator_box_request_in_existing(root, tmp_path)
+    original = _request(count=20)
+    for index, row in enumerate(original["items"]):
+        kind = index % 4
+        if kind in (1, 2, 3):
+            selected = head if kind == 1 else tail if kind == 2 else box
+            row["part"] = deepcopy(selected["items"][0]["part"])
+            row["part"]["source_part_ref"] = f"verified-mixed-part-{index}"
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    assert len(receipt["items"]) == 20
+    assert len({part["physical_part_id"] for part in receipt["items"]}) == 20
+    assert {part["target_frames"][0]["face_role"] for part in receipt["items"]} == {"front", "outer"}
+    export = _export_request_from_prepared(original, receipt)
+    _recheck(original, receipt, export, root)
+    baseline.write_bytes(baseline.read_bytes() + b"\\nWHD-endcap-stale")
+    with pytest.raises(PrepareEvidenceError) as stale:
+        _recheck(original, receipt, export, root)
+    assert stale.value.code == "WHD_PREPARE_STALE"
+    assert not (tmp_path / "worker-output-not-created").exists()
+
+
+def _vault_endcap_request_in_existing(root, tmp_path):
+    req = _request()
+    part = req["items"][0]["part"]
+    part["kind"] = "end_cap_tail"
+    part["dimension_semantics"] = "cabinet_outer"
+    part["dimensions_mm"] = {"width": 500.0, "depth": 300.0, "thickness": 2.0}
+    del part["frame_edges"]
+    req["request_digest"] = compute_wire_request_digest(req)
+    return root, root / "基準檔" / "金庫型" / "封頭尾.dxf", req
+
+
+def _indicator_box_request_in_existing(root, tmp_path):
+    from ae_engine.contracts import IndicatorBoxPartSpec, ManufacturingContext
+    from ae_engine.manufacturing_api import indicator_box_finished_face_size
+
+    shared = root / "基準檔" / "指示燈"
+    shared.mkdir(exist_ok=True, parents=True)
+    for filename in ("盒子.dxf", "小門.dxf"):
+        shutil.copy2(HERE / "基準檔" / "指示燈" / filename, shared / filename)
+    w, h = indicator_box_finished_face_size(
+        (2, 1), thickness=2, context=ManufacturingContext(resource_root=root),
+    )
+    req = _request()
+    part = req["items"][0]["part"]
+    part["kind"] = "indicator_box"
+    part["dimension_semantics"] = "part_formed_outer"
+    part["dimensions_mm"] = {"width": w, "height": h, "thickness": 2.0}
+    part["indicator_groups"] = [2, 1]
+    del part["frame_edges"]
+    req["request_digest"] = compute_wire_request_digest(req)
+    return root, shared / "盒子.dxf", req
