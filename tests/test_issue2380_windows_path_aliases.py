@@ -82,6 +82,7 @@ def test_real_windows_junction_and_ancestor_cannot_lease_customer_outputs(tmp_pa
     out.mkdir()
     customer = out / "keep-original.dxf"
     customer.write_bytes(b"customer-initial-dxf-content")
+    (out / "nested").mkdir()
     junction = tmp_path / "junction-alias"
     made = subprocess.run(
         ["cmd", "/c", "mklink", "/J", str(junction), str(out)],
@@ -92,7 +93,7 @@ def test_real_windows_junction_and_ancestor_cannot_lease_customer_outputs(tmp_pa
     led = DurableJobIdentityLedger(store)
     req = _export("win-junction")
     assert led.claim(req).state == "new"
-    for candidate in (junction, junction / ".." / "junction-alias"):
+    for candidate in (junction, junction / "nested"):
         with pytest.raises(PrepareEvidenceError) as exc:
             led.reserve_output_directories(req, trusted_directories=[candidate])
         assert exc.value.code == "WHD_OUTPUT_PATH_INVALID"
