@@ -4,7 +4,8 @@ import pytest
 
 from ae_engine.assembly_geometry_folded_mesh import _profile_geometry
 from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
-from phase6_settings_profile_projection import build_standard_part_profiles
+from phase6_fold_profiles import apply_outside_dimension_compensation, engine_segment_length_to_ui
+from phase6_settings_profile_projection import build_standard_part_profiles, merge_keyed_profiles
 
 
 def _snap(pattern="CENTER_DOUBLE_SIDE_FOLD"):
@@ -41,9 +42,15 @@ def test_real_center_3d_fold_has_all_original_source_40_73_699_732_bend_stations
     assert abs(folded[2][1]-folded[1][1]) == pytest.approx(35)
     assert abs((folded[2][1]+1)-(folded[1][1]+1)) == pytest.approx(35)
     y=profiles["Y"]
-    assert [row["len"] for row in y] == [20.,200.,20.]
+    assert [row["len"] for row in y] == [35.,170.,35.]
     ybounds,_=_profile_geometry(y)
-    assert ybounds == pytest.approx((0,20,220,240))
+    assert ybounds == pytest.approx((0,35,205,240))
+    # User-confirmed CENTER equality is in operator OUTSIDE dimension space.
+    # X second 33 material+2T = Y upper/lower 35 material+1T = 37 outside.
+    x_ui=apply_outside_dimension_compensation([dict(row) for row in x],2.)
+    y_ui=apply_outside_dimension_compensation([dict(row) for row in y],2.)
+    assert [engine_segment_length_to_ui(x_ui[i]) for i in (1,3)] == [37,37]
+    assert [engine_segment_length_to_ui(y_ui[i]) for i in (0,2)] == [37,37]
 
 
 @pytest.mark.parametrize("pattern",["LEFT_FLAT_SIDE","RIGHT_FLAT_SIDE"])
@@ -67,6 +74,21 @@ def test_original_unconfigured_preview_or_other_family_does_not_take_receiving_p
     assert len(shared["X"]) == 3
 
 
+
+def test_legacy_saved_center_y20_is_refreshed_to_true_source_y35():
+    snap=_snap()
+    defaults=build_standard_part_profiles(snap,"base_plate")
+    old={"X":[dict(row) for row in defaults["X"]],
+         "Y":[dict(row) for row in defaults["Y"]]}
+    for index, material in enumerate((20.,200.,20.)):
+        old["Y"][index]["len"]=material
+    merged=merge_keyed_profiles(old,defaults)
+    assert [row["len"] for row in merged["Y"]]==[35.,170.,35.]
+    corrected=apply_outside_dimension_compensation(merged["Y"],2.)
+    assert [engine_segment_length_to_ui(corrected[i]) for i in (0,2)]==[37,37]
+
+
+
 def test_rendered_3d_profile_tracks_a_nonhardcoded_nfb_second_return(monkeypatch):
     # The same snapshot authority controls BOTH actual base blank and live
     # profile; avoid an independent 3D 33-mm constant.
@@ -88,3 +110,10 @@ def test_rendered_3d_profile_tracks_a_nonhardcoded_nfb_second_return(monkeypatch
     assert [row["len"] for row in source["X"]] == [40.,28.,626.,28.,40.]
     b,_=_profile_geometry(source["X"])
     assert b==pytest.approx((0,40,68,694,722,762))
+    # Another CSV pair: delta30 -> X material28/outside32,
+    # CENTER Y material30/outside32; the rule is NOT a constant 35.
+    assert [row["len"] for row in source["Y"]] == [30.,180.,30.]
+    x_ui=apply_outside_dimension_compensation([dict(row) for row in source["X"]],2.)
+    y_ui=apply_outside_dimension_compensation([dict(row) for row in source["Y"]],2.)
+    assert engine_segment_length_to_ui(x_ui[1]) == 32
+    assert engine_segment_length_to_ui(y_ui[0]) == 32

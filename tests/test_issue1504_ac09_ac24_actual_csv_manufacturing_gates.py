@@ -12,7 +12,7 @@ import pytest
 
 from ae_engine.receiving_nfb_v5_diagnostics import current_v5_nfb_diagnostics
 from tests.test_issue1502_csv_v5_part_only_manufacturing import (
-    _current, _export,
+    _current, _current_center_125, _export,
 )
 
 
@@ -30,8 +30,7 @@ def _status(snapshot):
 
 
 def test_ac09_ac24_real_current_source_is_not_green_until_original_part_writer_verifies(tmp_path):
-    snap=_current()
-    snap["receiving_base_plate"]={"pattern":"CENTER_DOUBLE_SIDE_FOLD"}
+    snap=_current_center_125()
     prior=_status(snap)
     assert prior["derived_state"]=="CONFIGURED"
     assert not prior["manufacturing_ready"] and prior["actual_export_count"] is None

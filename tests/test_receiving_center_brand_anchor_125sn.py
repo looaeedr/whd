@@ -35,6 +35,7 @@ def test_brand_max_center_selection_and_dynamic_blank(model, depth, second, blan
     assert values["receiving_center_brand_anchor_inverted"] is True
     assert values["receiving_nfb_depth_pair_mm"] == (107., depth)
     assert values["receiving_nfb_reference_depth_mm"] == depth
+    assert values["base_plate_bend"] == pytest.approx(107. - depth)
     assert receiving_base_plate_blank_dimensions(snap) == pytest.approx((blank, 240.))
     assert 107. - depth - snap["t"] == pytest.approx(second)
 
