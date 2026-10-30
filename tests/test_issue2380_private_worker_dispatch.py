@@ -421,3 +421,44 @@ def test_private_worker_twenty_mixed_five_kind_vault_endcap_export_is_durable(
     denied, status = _call(tmp_path, "export", replay, context)
     assert status != 0 and denied["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
     assert before == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files}
+
+
+def test_public_export_certificate_binds_real_w04_journal_all_saved_dxfs(tmp_path):
+    """Portable RED-capable acceptance before costly Windows public EXE CI."""
+    from dataclasses import replace
+    from jsonschema import Draft202012Validator
+    from integration_cli.public_installed_adapter import _public_export_receipt
+    from integration_cli.job_identity_ledger import _identity
+    batch = _real_batch(tmp_path, count=2)
+    original = batch[0]
+    context = _context(tmp_path, batch)
+    prepared, code = _call(tmp_path, "prepare", original, context)
+    assert code == 0
+    export = _export_from_real_sources(original, prepared, batch)
+    export["output"]["directory"] = str(context.output_dir)
+    export["request_digest"] = compute_wire_request_digest(export)
+    private, code = _call(tmp_path, "export", export, context)
+    assert code == 0
+    approved = replace(
+        context, approved_request_identity=tuple(_identity(export)),
+    )
+    certified = _public_export_receipt(
+        export, approved, private, engine_commit=COMMIT, build_id=BUILD,
+    )
+    schema = json.loads((
+        Path(__file__).resolve().parents[1] / "integration_cli" / "schemas" /
+        "response_v1_1.schema.json"
+    ).read_text(encoding="utf-8"))
+    Draft202012Validator(schema).validate(certified)
+    assert certified["status"] == "success"
+    assert certified["manufacturing_verified"] is True
+    assert len(certified["items"]) == 2
+    assert all(row["parts"][0]["save_reload_verified"] is True
+               for row in certified["items"])
+    paths = [Path(row["parts"][0]["output_path"]) for row in certified["items"]]
+    unchanged = [(p.read_bytes(), p.stat().st_mtime_ns) for p in paths]
+    replay = _public_export_receipt(
+        export, approved, private, engine_commit=COMMIT, build_id=BUILD,
+    )
+    assert replay == certified
+    assert [(p.read_bytes(), p.stat().st_mtime_ns) for p in paths] == unchanged
