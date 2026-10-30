@@ -16,6 +16,7 @@ import pytest
 
 from integration_cli.prepare_evidence import PrepareEvidenceError
 from integration_cli.private_worker_installation import (
+    authorize_private_job, load_private_authorized_execution,
     load_private_execution, provision_private_installation,
 )
 from integration_cli.worker_key_custody import load_installation_key
@@ -89,6 +90,14 @@ def test_actual_packaged_engine_private_prepare_and_restart(tmp_path, monkeypatc
     wire = tmp_path / "交付請求.json"
     wire.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
     response = tmp_path / "受信任結果.json"
+    # Installed custody by itself is not a ticket to manufacture any job.
+    unapproved = subprocess.run([
+        str(exe), "_private_installed", "prepare", "--installation-id", name,
+        "--request", str(wire), "--response", str(response),
+    ], cwd=tmp_path, capture_output=True, text=True, timeout=120)
+    assert unapproved.returncode == 4
+    assert not response.exists()
+    authorize_private_job(name, request, engine_sha256=sha)
     cmd = [
         str(exe), "_private_installed", "prepare",
         "--installation-id", name, "--request", str(wire),
@@ -170,11 +179,13 @@ def test_actual_packaged_engine_prepares_and_exports_real_source_dxf(tmp_path, m
         assert result.returncode == 0, (result.stderr[-1300:], body)
         return body
 
+    authorize_private_job(name, original, engine_sha256=exe_hash)
     prepared = invoke("prepare", original, "first-prepare")
     assert prepared["status"] == "success"
     export = _export_from_real_sources(original, prepared, batch)
     export["output"]["directory"] = str(output)
     export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(name, export, engine_sha256=exe_hash)
     finished = invoke("export", export, "first-export")
     assert finished["status"] == "success", finished
     assert finished["manufacturing_verified"] is False
@@ -188,6 +199,51 @@ def test_actual_packaged_engine_prepares_and_exports_real_source_dxf(tmp_path, m
     assert invoke("export", retried, "restarted-export") == finished
     assert immutable == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in finals}
     assert load_installation_key(name) == key
+
+
+
+@pytest.mark.skipif(not WINDOWS, reason="Windows DPAPI required")
+def test_sealed_job_approval_exact_digest_and_tamper_rejected(tmp_path, monkeypatch):
+    from copy import deepcopy
+    from integration_cli.request_canonical import compute_wire_request_digest
+
+    profile = tmp_path / "worker-user-profile"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    name = "only-approved-job-owner"
+    load_installation_key(name, initialize=True)
+    store, output = tmp_path / "durable", tmp_path / "finished"
+    store.mkdir()
+    output.mkdir()
+    source = tmp_path / "original-source.dxf"
+    source.write_bytes(b"no manufacturing without approved job")
+    sha = "a" * 64
+    provision_private_installation(
+        name, store_root=store, output_dir=output,
+        source_documents={"door-1": source}, expected_engine_sha256=sha,
+    )
+    req = _request(count=1)
+    with pytest.raises(PrepareEvidenceError):
+        load_private_authorized_execution(name, req, engine_sha256=sha)
+    authorize_private_job(name, req, engine_sha256=sha)
+    approved = load_private_authorized_execution(name, req, engine_sha256=sha)
+    from integration_cli.job_identity_ledger import _identity
+    assert approved.approved_request_identity == _identity(req)
+    updated = deepcopy(req)
+    updated["items"][0]["part"]["dimensions_mm"]["width"] += 3
+    updated["request_digest"] = compute_wire_request_digest(updated)
+    with pytest.raises(PrepareEvidenceError):
+        load_private_authorized_execution(name, updated, engine_sha256=sha)
+    with pytest.raises(PrepareEvidenceError):
+        authorize_private_job(name, req, engine_sha256=sha)
+    ticket, = profile.rglob("approved-*.json")
+    blob = json.loads(ticket.read_text(encoding="utf-8"))
+    blob["payload"]["identity"][-1] = updated["request_digest"]
+    ticket.write_text(json.dumps(blob), encoding="utf-8")
+    with pytest.raises(PrepareEvidenceError):
+        load_private_authorized_execution(name, req, engine_sha256=sha)
+    assert not list(output.glob("*.dxf"))
+
 
 def test_source_only_worker_private_command_denied(tmp_path):
     from integration_cli.cadsplit_worker import main
