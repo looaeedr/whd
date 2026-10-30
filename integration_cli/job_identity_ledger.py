@@ -30,6 +30,19 @@ _DB_FILENAME = "job_identity.sqlite3"
 _STAGE_FILE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}[.]dxf$", re.IGNORECASE)
 
 
+def _unsafe_windows_path(path: Path) -> bool:
+    """Disallow UNC/device paths and junction traversal until certified on Windows."""
+    if os.name != "nt":
+        return False
+    if str(path).startswith(("\\\\", "//")):
+        return True
+    try:
+        return any(part.is_junction() for part in (path, *path.parents))
+    except OSError:
+        return True
+
+
+
 @dataclass(frozen=True)
 class JobClaim:
     state: str  # "new" or "committed"; no automatic uncertain retry
@@ -58,7 +71,8 @@ def _json(value: Any) -> str:
 
 
 def _file_proof(path: Path) -> dict[str, Any]:
-    if not isinstance(path, Path) or path.is_symlink() or not path.is_file():
+    if (not isinstance(path, Path) or _unsafe_windows_path(path)
+            or path.is_symlink() or not path.is_file()):
         raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "committed file is missing or unsafe")
     try:
         sha, size = _snapshot_bytes(path)
@@ -99,6 +113,7 @@ def _output_directory_keys(directories: Sequence[Path]) -> tuple[str, ...]:
         if (not isinstance(directory, Path) or not directory.is_absolute()
                 or not directory.is_dir()
                 or directory.is_symlink()
+                or _unsafe_windows_path(directory)
                 or any(parent.is_symlink() for parent in directory.parents)):
             raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "unsafe or missing output directory")
         try:
@@ -107,11 +122,16 @@ def _output_directory_keys(directories: Sequence[Path]) -> tuple[str, ...]:
             raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "output path is not canonical") from exc
     if len(set(keys)) != len(keys):
         raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "duplicate or aliased batch output directory")
+    physical = [_directory_identity(path) for path in directories]
+    if len(set(physical)) != len(physical):
+        raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "duplicate physical destination under different aliases")
     return tuple(sorted(keys))
 
 
 def _directory_identity(path: Path) -> tuple[int, int]:
     """Pin the actual filesystem directory, not only its reusable path text."""
+    if _unsafe_windows_path(path):
+        raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "Windows directory alias is not certified")
     try:
         metadata = path.lstat()
     except OSError as exc:
@@ -218,6 +238,7 @@ class DurableJobIdentityLedger:
     def __init__(self, trusted_store_root: Path):
         if (not isinstance(trusted_store_root, Path)
                 or trusted_store_root.is_symlink()
+                or _unsafe_windows_path(trusted_store_root)
                 or not trusted_store_root.is_dir()):
             raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "trusted installation store unavailable")
         self._root = trusted_store_root
@@ -284,8 +305,8 @@ class DurableJobIdentityLedger:
             """)
 
     def _connect(self):
-        if (self._root.is_symlink() or not self._root.is_dir()
-                or self._db.is_symlink()):
+        if (self._root.is_symlink() or _unsafe_windows_path(self._root)
+                or not self._root.is_dir() or self._db.is_symlink()):
             raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "untrusted job store path")
         try:
             conn = sqlite3.connect(str(self._db), isolation_level=None, timeout=5.0)
@@ -403,6 +424,21 @@ class DurableJobIdentityLedger:
                         "WHD_OUTPUT_PATH_LOCKED", "a different unfinished job owns this destination"
                     )
             for key in keys:
+                # A different spelling or DOS drive letter cannot grant a
+                # second exclusive lock on one physical directory.
+                alias = conn.execute(
+                    """SELECT l.directory_key FROM output_directory_leases AS l
+                       JOIN output_directory_identity AS i
+                         ON i.directory_key=l.directory_key
+                       WHERE i.device_id=? AND i.inode_id=?
+                         AND l.directory_key<>?""",
+                    (*physical[key], key),
+                ).fetchone()
+                if alias is not None:
+                    raise PrepareEvidenceError(
+                        "WHD_OUTPUT_PATH_LOCKED",
+                        "physical directory already leased under another path",
+                    )
                 persisted = conn.execute(
                     """SELECT device_id,inode_id FROM output_directory_identity
                        WHERE directory_key=?""", (key,),
