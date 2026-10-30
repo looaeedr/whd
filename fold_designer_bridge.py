@@ -2805,7 +2805,15 @@ def _phase6_show_assembly(self, initial=False):
             before_signature = _phase6_manufacturing_state_signature(self)
         except Exception:
             before_signature = None
-    if not initial and self.designer_workspace.active_part is not None:
+    if (
+        not initial
+        and self.designer_workspace.active_part is not None
+        and not getattr(self, "_phase6_family_transition_in_progress", False)
+    ):
+        # A family transition has already committed its new geometry source.
+        # Saving the outgoing legacy Fold buffer during the automatic
+        # assembly redraw would write stale FW/outer folds into that source.
+        # Ordinary operator navigation keeps the existing save behavior.
         try:
             self._save_current_part()
         except Exception:
