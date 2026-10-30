@@ -202,3 +202,78 @@ def test_windows_dpapi_key_does_real_worker_prepare_restart_export(tmp_path, mon
     assert len(list(context.output_dir.glob("*.dxf"))) == 2
     assert all(len(ezdxf.readfile(p).modelspace().query("CIRCLE")) >= 1
                for p in context.output_dir.glob("*.dxf"))
+
+
+def test_private_worker_twenty_mixed_door_and_indicator_small_door_real_export(tmp_path):
+    """20 source-attested real WHD Door/small-door DXFs, one atomic private batch.
+
+    A valid Prepare Frame is not enough: the original DXF, WHD shared
+    indicator baseline, actual FinalScene and W-06 durable commit must agree.
+    """
+    from test_issue2378_prepare_batch import (
+        _twenty_mixed_door_small_door_prepare, _export_request_from_prepared,
+    )
+    from test_issue2379_wire_feature_preflight import _circle
+
+    root, small_baseline, original = _twenty_mixed_door_small_door_prepare(tmp_path)
+    source = tmp_path / "CADSplit-20-doors-original.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    # Distinct original DXF entity HANDLE per physical item, common local
+    # coordinates; these are source claims checked by WHD, not invented
+    # manufacturing offsets for an indicator small door.
+    handles = [
+        doc.modelspace().add_circle(
+            (12.0, 12.0), 2.0, dxfattribs={"layer": "CUTTING"},
+        ).dxf.handle
+        for _ in original["items"]
+    ]
+    doc.saveas(source)
+    sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for row in original["items"]:
+        row["source_document_sha256"] = sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    sources = {row["item_id"]: source for row in original["items"]}
+    context = _context(tmp_path, (original, None, None, root, sources, source))
+
+    prepared, code = _call(tmp_path, "prepare", original, context)
+    assert code == 0 and prepared["status"] == "success"
+    assert len(prepared["items"]) == 20
+    export = _export_request_from_prepared(original, prepared)
+    for index, row in enumerate(export["items"]):
+        frame = prepared["items"][index]["target_frames"][0]
+        feature = _circle(frame)
+        feature["feature_id"] = f"original-circle-{index}"
+        feature["source_ref"] = f"original-handle-{index}"
+        feature["center_mm"] = [12.0, 12.0]
+        feature["radius_mm"] = 2.0
+        feature["source_transform"]["source_entity_refs"] = [handles[index]]
+        feature["source_transform"]["target_dimensions_mm"] = deepcopy(
+            frame["finished_face_dimensions_mm"]
+        )
+        row["features"] = [feature]
+    export["output"]["directory"] = str(context.output_dir)
+    export["request_digest"] = compute_wire_request_digest(export)
+
+    finished, code = _call(tmp_path, "export", export, context)
+    assert code == 0 and finished["status"] == "success", finished
+    assert finished["manufacturing_verified"] is False
+    assert len(finished["items"]) == 20
+    paths = {Path(item["path"]) for item in finished["items"]}
+    assert len(paths) == 20 and all(p.is_file() for p in paths)
+    assert all(len(ezdxf.readfile(p).modelspace().query("CIRCLE")) >= 1
+               and len(ezdxf.readfile(p).modelspace().query('LINE[layer=="BEND"]')) >= 1
+               for p in paths)
+    before = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths}
+    retry = deepcopy(export)
+    retry["request_id"] = "mixed-source-transport-retry"
+    repeated, status = _call(tmp_path, "export", retry, context)
+    assert status == 0 and repeated == finished
+    assert before == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths}
+    # A single shared indicator baseline becoming stale blocks the *entire*
+    # batch, including ordinary Doors: never rewrite verified customer DXFs.
+    small_baseline.write_bytes(small_baseline.read_bytes() + b"\\nWHD-stale")
+    denied, status = _call(tmp_path, "export", retry, context)
+    assert status != 0
+    assert denied["status"] == "failed"
+    assert before == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths}

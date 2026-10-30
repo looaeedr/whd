@@ -12,7 +12,10 @@ import math
 from pathlib import Path
 from typing import Any, Mapping
 
-from integration_cli.prepare_batch import door_spec_from_trusted_prepared_part
+from integration_cli.prepare_batch import (
+    door_spec_from_trusted_prepared_part,
+    indicator_small_door_spec_from_trusted_prepared_part,
+)
 from integration_cli.prepare_evidence import PrepareEvidenceError, _pure_json
 from integration_cli.prepare_frame import resolve_door_finished_local_frame
 from integration_cli.prepare_recheck import recheck_trusted_door_export
@@ -119,7 +122,7 @@ def save_trusted_door_circle_finalscene_batch(
     overwrite: bool = False,
     durable_ledger=None,
 ) -> dict[str, str]:
-    """Source-verified Door-only all-or-nothing batch; never accepts caller PartSpec.
+    """Source-verified Door/small-door all-or-nothing batch; never accepts caller PartSpec.
 
     The original W-03 authenticated prepare request/receipt are Worker-owned.
     This function derives WHD DoorPartSpec from *those* original dimensions and
@@ -176,13 +179,20 @@ def save_trusted_door_circle_finalscene_batch(
     context = ManufacturingContext(resource_root=resource_root, policy=policy)
     rows = []
     for original, receipt, exported in zip(original_items, receipt_items, exported_items):
-        if original["part"]["kind"] != "door" or not exported.get("features"):
-            _reject("only Door items with proven source Feature inventory supported")
+        kind = original["part"]["kind"]
+        if kind not in ("door", "indicator_small_door") or not exported.get("features"):
+            _reject("only WHD-owned Door/small-door with proven source Features supported")
         original_item_id = original["item_id"]
         source_path = source_documents.get(original_item_id)
         # Do not accept an export-side replacement of canonical mechanical
         # inputs: the exact same adapter is used at W-03 prepare.
-        spec = door_spec_from_trusted_prepared_part(original["part"], policy)
+        spec = (
+            door_spec_from_trusted_prepared_part(original["part"], policy)
+            if kind == "door"
+            else indicator_small_door_spec_from_trusted_prepared_part(
+                original["part"], context
+            )
+        )
         frame = resolve_door_finished_local_frame(
             spec, context, physical_part_id=receipt["physical_part_id"],
         )
