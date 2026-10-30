@@ -261,6 +261,19 @@ def read_private_worker_immutable_result(
     if context.approved_request_identity is None:
         raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "exact-job readback approval missing")
     ledger = DurableJobIdentityLedger(context.store_root)
+    # claim() creates a row for an unknown job; readback must not even
+    # reserve a new job identity. Refuse unknown jobs before invoking it.
+    client, job, operation, digest = _identity(request)
+    with ledger._connect() as conn:
+        existing = conn.execute(
+            """SELECT request_digest FROM jobs
+               WHERE client_id=? AND job_id=? AND operation=?""",
+            (client, job, operation),
+        ).fetchone()
+    if existing is None:
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "no persisted job to read")
+    if not isinstance(existing[0], str) or not hmac.compare_digest(existing[0], digest):
+        raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "readback job digest changed")
     claim = ledger.claim(request)
     if claim.state == "rolled_back" and request["operation"] == "export":
         return {
