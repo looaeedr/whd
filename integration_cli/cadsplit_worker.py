@@ -333,7 +333,7 @@ def _private_installed_main(argv: list[str]) -> int:
         print("WHD_JOB_STORE_UNAVAILABLE: private packaged Windows Worker required", file=sys.stderr)
         return 4
     parser = argparse.ArgumentParser(prog="WHD-Engine private installed Worker")
-    parser.add_argument("operation", choices=("prepare", "export", "recover-rollback", "request-cancel"))
+    parser.add_argument("operation", choices=("prepare", "export", "recover-rollback", "request-cancel", "read-result"))
     parser.add_argument("--installation-id", required=True)
     parser.add_argument("--request", type=Path, required=True)
     parser.add_argument("--response", type=Path, required=True)
@@ -374,6 +374,16 @@ def _private_installed_main(argv: list[str]) -> int:
                 status = 0
             except PrepareEvidenceError as exc:
                 raise WorkerFailure(exc.code, "trusted rollback refused", exit_code=4) from exc
+        elif args.operation == "read-result":
+            from integration_cli.private_worker_dispatch import read_private_worker_immutable_result
+            try:
+                # Original Prepare/Export exact-job approval still binds this
+                # read-only request. Re-read after admission against swaps.
+                actual_request = _read_request(args.request)
+                result = read_private_worker_immutable_result(actual_request, context)
+                status = 0
+            except PrepareEvidenceError as exc:
+                raise WorkerFailure(exc.code, "immutable Worker result unavailable", exit_code=4) from exc
         elif args.operation == "request-cancel":
             from integration_cli.private_worker_dispatch import request_private_worker_cancel
             try:
