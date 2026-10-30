@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """WHD-owned, Tk-free CADSplit Worker CLI boundary (#2377 / W-01).
 
-This entry point does not implement manufacturing. W-03 / W-04 install the
-prepare/export execution handlers only after their canonical acceptance gates.
+Private W-03/W-04/W-06 dispatch accepts only an in-process trusted execution
+context; the public CLI never creates one and remains disabled until Gate A.
 A schema accepted by this process is NOT a manufacturing authorization.
 """
 from __future__ import annotations
@@ -246,19 +246,34 @@ def _failure_response(
 
 
 def _execute_request(
-    operation: str, path: Path, commit: str, build_id: str
+    operation: str, path: Path, commit: str, build_id: str,
+    *, trusted_context=None,
 ) -> tuple[dict[str, Any], int]:
     request: dict[str, Any] | None = None
     try:
         request = _read_request(path)
         if request.get("operation") != operation:
             raise WorkerFailure("WHD_OPERATION_MISMATCH", "operation does not match CLI", exit_code=2)
+        if trusted_context is not None:
+            # PRIVATE in-process execution seam, not a new CLI switch. Only
+            # an already authenticated installation owner can inject custody.
+            # main() NEVER constructs a context from request/env/arguments.
+            from integration_cli.private_worker_dispatch import execute_private_worker
+            from integration_cli.prepare_evidence import PrepareEvidenceError
+            try:
+                result = execute_private_worker(
+                    operation, request, trusted_context,
+                    engine_commit=commit, build_id=build_id,
+                )
+            except PrepareEvidenceError as exc:
+                raise WorkerFailure(exc.code, str(exc), exit_code=3) from exc
+            return result, 0
         _validator("request_v1.schema.json").validate(request)
         items = request["items"]
         if len(items) > MAX_BATCH_ITEMS:
             raise WorkerFailure("WHD_BATCH_TOO_LARGE", "batch exceeds current CLI item limit", exit_code=2)
-        # Zero import or initialization of Tk/AE/Registry here. W-03 and W-04
-        # will connect a single once-per-batch manufacturing execution context.
+        # Public CLI intentionally does not construct trusted_context.
+        # No import or initialization of Tk/AE/Registry on this path.
         raise WorkerFailure(
             "WHD_OPERATION_NOT_IMPLEMENTED",
             "manufacturing handler is not certified; no files were exported",
