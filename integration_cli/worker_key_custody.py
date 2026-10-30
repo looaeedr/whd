@@ -53,7 +53,7 @@ def _check_existing(path: Path, *, directory: bool) -> None:
 def _check_ancestors(path: Path) -> None:
     for ancestor in (path, *path.parents):
         if ancestor == ancestor.parent:
-            continue  # Drive root is owned by Windows.
+            continue  # The filesystem root is managed by the operating system.
         _check_existing(ancestor, directory=True)
 
 
