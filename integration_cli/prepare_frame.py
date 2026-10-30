@@ -109,3 +109,63 @@ def require_canonical_door_local_frame(frame: Any, *, physical_part_id: str) -> 
     expected = _door_frame_record(float(width), float(height), physical_part_id)
     if _pure_json(frame) != expected:
         raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Frame is not WHD-issued Door-local basis")
+
+def _indicator_box_size_only_record(width: float, height: float, physical_part_id: str) -> dict[str, Any]:
+    """WHD-owned width/height, no authority to map a caller Feature to DXF."""
+    return {
+        "frame_id": f"indicator_box:{physical_part_id}:outer:local-v1",
+        "coordinate_contract_revision": "1",
+        "units": "mm",
+        "origin_definition": (
+            "WHD shared indicator box formed outside-face size-only datum; "
+            "no certified source-to-DXF Feature mapping"
+        ),
+        "origin_xyz_mm": [0.0, 0.0, 0.0],
+        "axis_x": [1.0, 0.0, 0.0],
+        "axis_y": [0.0, 1.0, 0.0],
+        "normal": [0.0, 0.0, 1.0],
+        "face_role": "outer",
+        "viewed_from": "along_normal",
+        "finished_face_dimensions_mm": {"width": width, "height": height},
+        "allowed_feature_types": [],
+    }
+
+
+def resolve_indicator_box_size_only_frame(
+    spec: Any, context: Any, *, physical_part_id: str,
+) -> dict[str, Any]:
+    """W-03 can attest WHD shared box size; W-04 placement is still closed."""
+    from ae_engine.contracts import IndicatorBoxPartSpec
+    from ae_engine.manufacturing_api import indicator_box_finished_face_size
+
+    if (not isinstance(spec, IndicatorBoxPartSpec)
+            or not isinstance(physical_part_id, str)
+            or not _FRAME_ID_PART.fullmatch(physical_part_id)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "verified box identity required")
+    width, height = indicator_box_finished_face_size(
+        spec.layer_groups, thickness=spec.thickness, context=context,
+    )
+    if any(not math.isfinite(v) or v <= 0 for v in (width, height)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid shared box outside face")
+    return _indicator_box_size_only_record(float(width), float(height), physical_part_id)
+
+
+def require_canonical_indicator_box_size_only_frame(
+    frame: Any, *, physical_part_id: str,
+) -> None:
+    """Only the exact feature-disabled frame can enter a signed receipt."""
+    from collections.abc import Mapping
+    from integration_cli.prepare_evidence import _pure_json
+
+    if (not isinstance(physical_part_id, str)
+            or not _FRAME_ID_PART.fullmatch(physical_part_id)
+            or not isinstance(frame, Mapping)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "untrusted indicator-box frame")
+    dims = frame.get("finished_face_dimensions_mm")
+    if not isinstance(dims, Mapping) or set(dims) != {"width", "height"}:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "missing box outside dimensions")
+    w, h = dims["width"], dims["height"]
+    if any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0 for v in (w, h)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid box outside dimensions")
+    if _pure_json(frame) != _indicator_box_size_only_record(float(w), float(h), physical_part_id):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "box Frame cannot authorize external Features")

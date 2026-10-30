@@ -464,7 +464,7 @@ def test_indicator_small_door_source_claims_fail_closed_without_token(tmp_path, 
         assert exc.value.code in ("WHD_FRAME_UNVERIFIED", "WHD_PREPARE_INPUT_INVALID")
 
 
-@pytest.mark.parametrize("kind", ["indicator_box", "end_cap_head", "end_cap_tail"])
+@pytest.mark.parametrize("kind", ["end_cap_head", "end_cap_tail"])
 def test_unverified_non_door_frames_do_not_issue_prepare_tokens(tmp_path, kind):
     root, _, _ = _root(tmp_path)
     req = _request()
@@ -573,6 +573,107 @@ def test_twenty_mixed_prepare_one_invalid_item_or_resource_refuses_all(
     elif change == "shared_small_door_baseline":
         baseline.write_bytes(baseline.read_bytes() + b"\n999\nWHD-stale-mixed")
     export["request_digest"] = compute_wire_request_digest(export)
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _recheck(original, receipt, export, root)
+    assert exc.value.code == "WHD_PREPARE_STALE"
+    assert not (tmp_path / "worker-output-not-created").exists()
+
+
+def _indicator_box_request(tmp_path, *, groups=(2, 1)):
+    """Shared physical box baseline and finished outside size from WHD owner."""
+    from ae_engine.contracts import ManufacturingContext
+    from ae_engine.manufacturing_api import (
+        indicator_box_finished_face_size, expected_baseline_path_for,
+    )
+    from ae_engine.contracts import IndicatorBoxPartSpec
+    root, _, _ = _root(tmp_path)
+    shared = root / "基準檔" / "指示燈"
+    shared.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(HERE / "基準檔" / "指示燈" / "盒子.dxf", shared / "盒子.dxf")
+    context = ManufacturingContext(resource_root=root)
+    w, h = indicator_box_finished_face_size(groups, thickness=2.0, context=context)
+    baseline = expected_baseline_path_for(
+        IndicatorBoxPartSpec(layer_groups=tuple(groups), thickness=2.0),
+        context,
+    )
+    assert Path(baseline) == shared / "盒子.dxf"
+    req = _request()
+    part = req["items"][0]["part"]
+    part["kind"] = "indicator_box"
+    part["dimension_semantics"] = "part_formed_outer"
+    part["dimensions_mm"] = {"width": w, "height": h, "thickness": 2.0}
+    part["indicator_groups"] = list(groups)
+    del part["frame_edges"]
+    req["request_digest"] = compute_wire_request_digest(req)
+    return root, shared / "盒子.dxf", req
+
+
+def test_indicator_box_size_only_prepare_seals_shared_whd_baseline_and_refuses_features(tmp_path):
+    from integration_cli.feature_preflight import validate_wire_features_against_prepared_frame
+    from tests.test_issue2379_wire_feature_preflight import _circle
+
+    root, baseline, req = _indicator_box_request(tmp_path)
+    receipt = _prepare(req, root)
+    assert receipt["status"] == "success" and receipt["manufacturing_verified"] is False
+    frame = receipt["items"][0]["target_frames"][0]
+    assert frame["frame_id"].startswith("indicator_box:whd-")
+    assert frame["face_role"] == "outer"
+    assert frame["allowed_feature_types"] == []
+    assert receipt["items"][0]["required_inputs"] == []
+    export = _export_request_from_prepared(req, receipt)
+    _recheck(req, receipt, export, root)  # authority remains size-only
+    forbidden = _circle(frame)
+    with pytest.raises(PrepareEvidenceError):
+        validate_wire_features_against_prepared_frame([forbidden], frame)
+    assert baseline.exists()
+    assert not (tmp_path / "worker-output-not-created").exists()
+
+
+@pytest.mark.parametrize("fault", [
+    "wrong_width", "wrong_height", "wrong_semantics", "missing_groups",
+    "extra_depth", "override_fold", "bad_group",
+])
+def test_indicator_box_rejects_unowned_size_or_override_before_token(tmp_path, fault):
+    root, _, req = _indicator_box_request(tmp_path)
+    part = req["items"][0]["part"]
+    if fault == "wrong_width":
+        part["dimensions_mm"]["width"] += 1.0
+    elif fault == "wrong_height":
+        part["dimensions_mm"]["height"] -= 1.0
+    elif fault == "wrong_semantics":
+        part["dimension_semantics"] = "cabinet_outer"
+    elif fault == "missing_groups":
+        del part["indicator_groups"]
+    elif fault == "extra_depth":
+        part["dimensions_mm"]["depth"] = 100
+    elif fault == "override_fold":
+        part["fold_left_mm"] = 10
+    elif fault == "bad_group":
+        part["indicator_groups"] = [0]
+    req["request_digest"] = compute_wire_request_digest(req)
+    with pytest.raises((PrepareEvidenceError, __import__("jsonschema").ValidationError)):
+        _prepare(req, root)
+    assert not (tmp_path / "worker-output-not-created").exists()
+
+
+def test_twenty_mixed_door_and_shared_box_prepares_but_any_box_stale_refuses_batch(tmp_path):
+    root, baseline, box = _indicator_box_request(tmp_path)
+    original = _request(count=20)
+    for i, row in enumerate(original["items"]):
+        if i % 3 == 1:
+            shared = deepcopy(box["items"][0]["part"])
+            shared["source_part_ref"] = f"real-shared-indicator-box-{i}"
+            row["part"] = shared
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    assert len(receipt["items"]) == 20
+    assert len(set(x["preparation_digest"] for x in receipt["items"])) == 20
+    assert {x["target_frames"][0]["face_role"] for x in receipt["items"]} == {
+        "front", "outer",
+    }
+    export = _export_request_from_prepared(original, receipt)
+    _recheck(original, receipt, export, root)
+    baseline.write_bytes(baseline.read_bytes() + b"\\nbox stale")
     with pytest.raises(PrepareEvidenceError) as exc:
         _recheck(original, receipt, export, root)
     assert exc.value.code == "WHD_PREPARE_STALE"

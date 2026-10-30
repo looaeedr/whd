@@ -16,7 +16,10 @@ from typing import Any, Mapping, Sequence
 from integration_cli.prepare_evidence import (
     PrepareEvidenceError, _pure_json, evidence_digest,
 )
-from integration_cli.prepare_frame import require_canonical_door_local_frame
+from integration_cli.prepare_frame import (
+    require_canonical_door_local_frame,
+    require_canonical_indicator_box_size_only_frame,
+)
 
 _HASH = re.compile(r"^[0-9a-f]{64}$")
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
@@ -54,10 +57,20 @@ def _binding_payload(
         if not isinstance(frame, Mapping):
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "missing authoritative Frame")
         frame_id = frame.get("frame_id")
-        # W-03 certifies only the WHD-issued front Door-local frame.
-        # A caller-supplied arbitrary frame ID must not become a signed receipt.
-        if frame_id != f"door:{physical}:front:local-v1":
-            raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Frame identity is not WHD Door-local")
+        # Shared indicator-box size is *not* source-Feature placement authority.
+        # Its distinct, feature-disabled Frame must be sealed separately from Door.
+        locked = part.get("locked_dimensions_mm")
+        raw_kind = (locked.get("raw_part", {}).get("kind")
+                    if isinstance(locked, Mapping) else None)
+        if raw_kind == "indicator_box":
+            if frame_id != f"indicator_box:{physical}:outer:local-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Frame identity is not WHD box size-only")
+            require_canonical_indicator_box_size_only_frame(
+                frame, physical_part_id=physical,
+            )
+        else:
+            if frame_id != f"door:{physical}:front:local-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Frame identity is not WHD Door-local")
         if (item_id in seen_items or physical in seen_physical or frame_id in seen_frames):
             raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "duplicate item or frame identity")
         seen_items.add(item_id)
@@ -65,7 +78,8 @@ def _binding_payload(
         seen_frames.add(frame_id)
         if frame.get("coordinate_contract_revision") != "1" or frame.get("units") != "mm":
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unsupported Frame units/revision")
-        require_canonical_door_local_frame(frame, physical_part_id=physical)
+        if raw_kind != "indicator_box":
+            require_canonical_door_local_frame(frame, physical_part_id=physical)
         checked.append({
             "item_id": item_id,
             "physical_part_id": physical,
