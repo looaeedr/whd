@@ -340,12 +340,17 @@ def _private_installed_main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
     try:
         commit, build_id, actual_exe_hash = _identity()
-        from integration_cli.private_worker_installation import load_private_execution
+        from integration_cli.private_worker_installation import load_private_authorized_execution
         from integration_cli.prepare_evidence import PrepareEvidenceError
         try:
-            context = load_private_execution(args.installation_id, engine_sha256=actual_exe_hash)
+            # Approval binds an already-provisioned installation to this
+            # exact canonical job; knowing its installation ID is not enough.
+            preflight_request = _read_request(args.request)
+            context = load_private_authorized_execution(
+                args.installation_id, preflight_request, engine_sha256=actual_exe_hash,
+            )
         except PrepareEvidenceError as exc:
-            raise WorkerFailure(exc.code, "trusted installation custody invalid", exit_code=4) from exc
+            raise WorkerFailure(exc.code, "installed job authorization refused", exit_code=4) from exc
         if args.response.exists() or args.response.is_symlink():
             raise WorkerFailure("WHD_RESPONSE_EXISTS", "private response already exists", exit_code=4)
         result, status = _execute_request(
