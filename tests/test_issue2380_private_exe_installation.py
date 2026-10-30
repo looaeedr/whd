@@ -1651,12 +1651,13 @@ def test_packaged_public_v11_prepare_export_requires_sealed_job_and_certifies_re
     profile = tmp_path / "公開 CLI 授權 DPAPI"
     profile.mkdir()
     monkeypatch.setenv("LOCALAPPDATA", str(profile))
-    identity = "gated-public-worker"
-    load_installation_key(identity, initialize=True)
     batch = _real_batch(tmp_path, count=1)
     original = batch[0]
-    original["client_installation_id"] = identity
-    original["request_digest"] = compute_wire_request_digest(original)
+    # A W-03 source Frame/physical ID binds the ORIGINAL client ID.
+    # Never mutate client_installation_id after the source fixture has
+    # created its source-attested Feature transform/target Frame.
+    identity = original["client_installation_id"]
+    load_installation_key(identity, initialize=True)
     store, output = tmp_path / "durable-job-ledger", tmp_path / "客戶 完成 DXF"
     store.mkdir()
     output.mkdir()
