@@ -5,7 +5,7 @@ import pytest
 from ae_engine.assembly_geometry_folded_mesh import _profile_geometry
 from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
 from phase6_fold_profiles import apply_outside_dimension_compensation, engine_segment_length_to_ui
-from phase6_settings_profile_projection import build_standard_part_profiles
+from phase6_settings_profile_projection import build_standard_part_profiles, merge_keyed_profiles
 
 
 def _snap(pattern="CENTER_DOUBLE_SIDE_FOLD"):
@@ -72,6 +72,21 @@ def test_original_unconfigured_preview_or_other_family_does_not_take_receiving_p
     snap["model"]="金庫型"
     shared=build_standard_part_profiles(snap,"base_plate")
     assert len(shared["X"]) == 3
+
+
+
+def test_legacy_saved_center_y20_is_refreshed_to_true_source_y35():
+    snap=_snap()
+    defaults=build_standard_part_profiles(snap,"base_plate")
+    old={"X":[dict(row) for row in defaults["X"]],
+         "Y":[dict(row) for row in defaults["Y"]]}
+    for index, material in enumerate((20.,200.,20.)):
+        old["Y"][index]["len"]=material
+    merged=merge_keyed_profiles(old,defaults)
+    assert [row["len"] for row in merged["Y"]]==[35.,170.,35.]
+    corrected=apply_outside_dimension_compensation(merged["Y"],2.)
+    assert [engine_segment_length_to_ui(corrected[i]) for i in (0,2)]==[37,37]
+
 
 
 def test_rendered_3d_profile_tracks_a_nonhardcoded_nfb_second_return(monkeypatch):
