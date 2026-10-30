@@ -165,3 +165,44 @@ def execute_private_worker(
     # This internal result has manufacturing_verified=False by design. Do not
     # adapt it to the public response_v1_1 'success' schema until Gate A.
     return final.result
+
+
+def recover_private_worker_rollback(
+    request: Mapping[str, Any], context: TrustedWorkerExecution,
+) -> dict[str, Any]:
+    """Explicit sealed Windows Export recovery, NEVER manufacturing/re-export.
+
+    Caller must have already verified the independent installed recovery
+    ticket. The journal re-attests physical customer bytes, backup, path
+    identity and active lease before each restoration. No fresh W-04 render.
+    """
+    from integration_cli.batch_commit_journal import DurableMultiDXFRollbackJournal
+    from integration_cli.cadsplit_worker import SCHEMA_ROOT
+    schema = json.loads((SCHEMA_ROOT / "request_v1_1.schema.json").read_text(encoding="utf-8"))
+    try:
+        Draft202012Validator(schema).validate(request)
+    except ValidationError as exc:
+        raise PrepareEvidenceError("WHD_SCHEMA_INVALID", "invalid original recovery request") from exc
+    if request.get("operation") != "export":
+        raise PrepareEvidenceError("WHD_OPERATION_MISMATCH", "only an Export may roll back")
+    require_matching_wire_request_digest(request)
+    _validate_context(context, request)
+    if context.approved_request_identity is None:
+        raise PrepareEvidenceError(
+            "WHD_JOB_STORE_UNAVAILABLE", "sealed rollback approval required",
+        )
+    ledger = DurableJobIdentityLedger(context.store_root)
+    journal = DurableMultiDXFRollbackJournal(ledger)
+    if journal.recover_rollback(request) != "rolled_back":
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "rollback not fully attested")
+    # This is NOT a success schema for manufactured Export. Nothing may
+    # turn a rolled-back job into a certified DXF or retry manufacturing.
+    return {
+        "protocol_version": request["protocol_version"],
+        "operation": "export",
+        "status": "rolled_back",
+        "manufacturing_verified": False,
+        "client_installation_id": request["client_installation_id"],
+        "job_id": request["job_id"],
+        "request_digest": request["request_digest"],
+    }
