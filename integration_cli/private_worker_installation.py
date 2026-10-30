@@ -357,3 +357,107 @@ def load_private_recovery_execution(
         raise PrepareEvidenceError(
             "WHD_JOB_STORE_UNAVAILABLE", "private rollback not approved or invalid",
         ) from exc
+
+
+# Cancellation has a different authority from Export and rollback. An
+# installed Export approval cannot manufacture a cancellation ticket.
+_CANCEL_PREFIX = b"WHD-W06-INSTALLED-CANCEL-APPROVAL-v1\x00"
+
+
+def _cancel_approval_file(folder: Path, request: Mapping[str, Any]) -> Path:
+    client, job, operation, _ = _identity(request)
+    key = hashlib.sha256(
+        _json(["request-cancel", client, job, operation]).encode("utf-8")
+    ).hexdigest()
+    return folder / ("cancel-" + key + ".json")
+
+
+def _cancel_mac(key: bytes, identity: list[str]) -> str:
+    return hmac.new(
+        key, _CANCEL_PREFIX + _json(identity).encode("utf-8"), hashlib.sha256,
+    ).hexdigest()
+
+
+def authorize_private_cancel(
+    installation_id: str, request: Mapping[str, Any], *, engine_sha256: str,
+) -> None:
+    """Separate installer-only approval, only for an existing cancellable job.
+
+    Approving cancellation does not cancel the job; the packaged Worker
+    must still verify this ticket and race cancellation with journal arm.
+    """
+    from jsonschema import Draft202012Validator, ValidationError
+    from integration_cli.private_worker_dispatch import _validate_context
+    from integration_cli.job_identity_ledger import DurableJobIdentityLedger
+    context = load_private_execution(installation_id, engine_sha256=engine_sha256)
+    try:
+        schema = json.loads(
+            (context.resource_root / "integration_cli" / "schemas" /
+             "request_v1_1.schema.json").read_text(encoding="utf-8")
+        )
+        Draft202012Validator(schema).validate(request)
+    except (OSError, ValueError, TypeError, ValidationError) as exc:
+        raise PrepareEvidenceError("WHD_SCHEMA_INVALID", "private cancellation schema invalid") from exc
+    _validate_context(context, request)
+    client, job, operation, digest = _identity(request)
+    ledger = DurableJobIdentityLedger(context.store_root)
+    with ledger._connect() as conn:
+        jobrow = conn.execute(
+            """SELECT request_digest,state FROM jobs
+               WHERE client_id=? AND job_id=? AND operation=?""",
+            (client, job, operation),
+        ).fetchone()
+        replacement = conn.execute(
+            """SELECT 1 FROM batch_replace_journals
+               WHERE client_id=? AND job_id=? AND operation=?""",
+            (client, job, operation),
+        ).fetchone()
+    if jobrow != (digest, "started") or replacement is not None:
+        raise PrepareEvidenceError(
+            "WHD_JOB_RECOVERY_REQUIRED", "job is not safely cancellable",
+        )
+    identity = [client, job, operation, digest]
+    folder, _ = _store_root(installation_id, initialize=False)
+    ticket = _cancel_approval_file(folder, request)
+    payload = {"schema": "whd-private-cancel-approval-v1", "identity": identity}
+    raw = (_json({"payload": payload, "hmac": _cancel_mac(context.worker_key, identity)})
+           + "\n").encode("utf-8")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
+    try:
+        fd = os.open(ticket, flags, 0o600)
+    except OSError as exc:
+        raise PrepareEvidenceError(
+            "WHD_JOB_ID_CONFLICT", "cancel already approved or inaccessible",
+        ) from exc
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(raw)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def load_private_cancel_execution(
+    installation_id: str, request: Mapping[str, Any], *, engine_sha256: str,
+) -> TrustedWorkerExecution:
+    """Verify distinct HMAC-sealed cancel authority, not Export approval."""
+    context = load_private_execution(installation_id, engine_sha256=engine_sha256)
+    folder, _ = _store_root(installation_id, initialize=False)
+    ticket = _cancel_approval_file(folder, request)
+    try:
+        _check_existing(ticket, directory=False)
+        if not 1 <= ticket.stat().st_size <= 4096:
+            _deny("cancel ticket size invalid")
+        entry = json.loads(ticket.read_text(encoding="utf-8"))
+        identity = list(_identity(request))
+        expected = {"schema": "whd-private-cancel-approval-v1", "identity": identity}
+        if (not isinstance(entry, dict) or set(entry) != {"payload", "hmac"}
+                or entry["payload"] != expected
+                or not isinstance(entry["hmac"], str)
+                or not hmac.compare_digest(
+                    entry["hmac"], _cancel_mac(context.worker_key, identity),
+                )):
+            _deny("private cancellation approval invalid")
+        return replace(context, approved_request_identity=tuple(identity))
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        raise PrepareEvidenceError(
+            "WHD_JOB_STORE_UNAVAILABLE", "private cancellation not approved or invalid",
+        ) from exc
