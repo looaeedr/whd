@@ -916,6 +916,38 @@ def _w06_committing_context(tmp_path):
     return store, root, old, stage1, stage2, req, ledger, journal, original
 
 
+def test_private_rollback_requires_writable_private_temp_file(tmp_path, monkeypatch):
+    """A Windows CRT _commit cannot fsync a read-only restore temp handle.
+
+    Emulate the Windows restriction even on Linux so this is a genuine
+    RED regression for the old open("rb") and GREEN for open("rb+").
+    Only the newly generated PRIVATE restore temp is opened writable;
+    the customer destination is restored by the existing atomic replace.
+    """
+    store, root, old, _, _, req, _, journal, before = _w06_committing_context(tmp_path)
+    journal.arm(req)
+    with pytest.raises(SystemExit):
+        journal.apply(
+            req, after_replace=lambda n: (_ for _ in ()).throw(SystemExit()) if n == 1 else None,
+        )
+    original_open = Path.open
+    observed_modes = []
+
+    def win32_commit_guard(path, mode="r", *args, **kwargs):
+        if path.name.startswith(".whd-w06-restore-"):
+            observed_modes.append(mode)
+            if mode == "rb":
+                raise PermissionError("Windows _commit denies read-only file handle")
+        return original_open(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", win32_commit_guard)
+    recovered = DurableMultiDXFRollbackJournal(DurableJobIdentityLedger(store))
+    assert recovered.recover_rollback(req) == "rolled_back"
+    assert observed_modes == ["rb+"]
+    assert (old.read_bytes(), old.stat().st_mtime_ns) == before
+    assert not (root / "part-two.dxf").exists()
+
+
 def test_private_multidxf_real_save_reload_commit_receipt_and_lease_release(tmp_path):
     store, root, old, stage1, stage2, req, ledger, journal, original = _w06_committing_context(tmp_path)
     plan = journal.arm(req)
