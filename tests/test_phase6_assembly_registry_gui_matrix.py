@@ -46,12 +46,34 @@ def _destroy(app, root):
         pass
 
 
+@pytest.fixture(scope="module")
+def _live_tk_anchor_for_matrix():
+    """Prevent Windows Tcl/Tk resource unload between three real GUI cases.
+
+    Each intent still creates TWO independent GUI interpreters and genuinely
+    closes them; this otherwise-idle anchor is not their application host.
+    Destroy it only after the entire certified-intent matrix has passed.
+    """
+    anchor = tk.Tk()
+    anchor.withdraw()
+    try:
+        yield anchor
+    finally:
+        anchor.destroy()
+
+
 @pytest.mark.parametrize("intent", REGISTERED_CERTIFIED_INTENTS, ids=lambda item: item.value)
-def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent, tmp_path, record_property):
+def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(
+    intent, tmp_path, record_property, _live_tk_anchor_for_matrix,
+):
     import fold_designer_bridge as bridge
     import gui
 
+    assert _live_tk_anchor_for_matrix.winfo_exists()
     root = tk.Tk(); root.withdraw()
+    # GUI variables without an explicit master belong to THIS session, not
+    # the long-lived test-only Tcl anchor.
+    tk._default_root = root
     # Windows Tcl may fail to re-read init.tcl after the last Tk interpreter
     # was destroyed. Keep an independent second interpreter alive throughout
     # the first GUI session, then reload into a separately constructed host.
