@@ -621,3 +621,17 @@ previously CONFIRMED NFB physical X evidence on width changes using
 `reconfirm_copied_nfb_config`. One batch validates the entire layout exactly
 once; no-op performs no normalization. GUI only commits the returned layout
 and updates operator dirty UI state. No new CUTTING/DXF approval is granted.
+
+## Receiving new Bay dimensions from Family Engine owner (#2517)
+
+`manufacturing_api.resize_receiving_bays_with_family_defaults(layout, *,
+set_index, bay_count)` is the public headless resize for the Receiving
+operator client. Canonical `resize_receiving_bays` creates persistent Bay,
+Joint and shared-setting identities. Newly appended Bays **only** receive the
+current Receiving Family's W/H/D defaults through the existing Engine
+`apply_receiving_bay_dimensions`, preserving any authored dimensions of
+pre-existing Bays and the canonical partition/NFB-X invalidation contract.
+Shrinking uses the same canonical tail-only resize; GUI alone handles
+destructive confirmation, selection and dirty UI bookkeeping. Source-only
+low-level `resize_receiving_bays` retains its old copy-by-value semantics.
+No new manufacturing DXF/CUTTING authority is introduced.

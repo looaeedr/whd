@@ -1038,3 +1038,30 @@ def apply_receiving_bay_dimensions(layout, set_index, bay_indices, *, width, hei
     # leaves both the canonical layout and dirty bookkeeping unchanged.
     validated = normalize_receiving_layout(candidate)
     return validated, tuple(dirty)
+
+def resize_receiving_bays_with_family_defaults(layout, *, set_index, bay_count):
+    """Engine-owned real-Bay topology resize with Receiving Family new-Bay W/H/D.
+
+    The low-level copy-by-value resize stays available to source migration and
+    tests. This operator transaction resets *only newly appended* Bay sizes
+    to current live Receiving Family defaults; existing physical Bays, shared
+    sources and Joint identities retain their canonical authority.
+    """
+    from .cabinet_types.receiving import BOX_BODY_DEFAULTS
+
+    before_count = len(layout["sets"][set_index]["bays"])
+    candidate = resize_receiving_bays(
+        layout, set_index=set_index, bay_count=bay_count,
+    )
+    new_count = len(candidate["sets"][set_index]["bays"])
+    if new_count <= before_count:
+        return candidate
+    defaults = tuple(float(BOX_BODY_DEFAULTS[axis]) for axis in ("w", "h", "d"))
+    if any(not value.is_integer() or value <= 0 for value in defaults):
+        raise ValueError("受電箱預設 W/H/D 必須為正整數毫米")
+    candidate, _changed = apply_receiving_bay_dimensions(
+        candidate, set_index, tuple(range(before_count, new_count)),
+        width=int(defaults[0]), height=int(defaults[1]), depth=int(defaults[2]),
+        expected_count=new_count - before_count,
+    )
+    return candidate
