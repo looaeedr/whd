@@ -2026,3 +2026,84 @@ def test_packaged_public_v11_actual_90deg_cutting_rect_profile_source_and_replay
     assert refused.returncode == 4 and failed["status"] == "failed"
     assert failed["manufacturing_verified"] is False
     assert {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files.values()} == immutable
+
+
+@pytest.mark.skipif(not WINDOWS, reason="actual packaged Windows Engine + DPAPI only")
+def test_packaged_public_v11_vault_receiving_doors_with_sealed_jobs(tmp_path, monkeypatch):
+    """Gate C family seam: one exact installed Prepare/Export for both families."""
+    import ezdxf
+    from jsonschema import Draft202012Validator
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from tests.test_issue2383_vault_receiving_family_worker import _family_batch
+    from tests.test_issue2378_prepare_batch import _export_request_from_prepared
+
+    exe = Path(os.environ.get("WHD_TEST_ENGINE_EXE", ""))
+    if not exe.is_file():
+        pytest.skip("requires genuine packaged WHD-Engine.exe")
+    profile = tmp_path / "受電金庫 DPAPI profile"
+    profile.mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(profile))
+    _source_resource, source, original = _family_batch(tmp_path)
+    installation_id = original["client_installation_id"]
+    load_installation_key(installation_id, initialize=True)
+    store = tmp_path / "受信任 job ledger"
+    output = tmp_path / "兩種盤型製造 DXF"
+    store.mkdir()
+    output.mkdir()
+    exe_hash = hashlib.sha256(exe.read_bytes()).hexdigest()
+    provision_private_installation(
+        installation_id, store_root=store, output_dir=output,
+        source_documents={item["item_id"]: source for item in original["items"]},
+        expected_engine_sha256=exe_hash,
+    )
+    schema = json.loads((
+        Path(__file__).resolve().parents[1] / "integration_cli" / "schemas" /
+        "response_v1_1.schema.json"
+    ).read_text(encoding="utf-8"))
+    validate = Draft202012Validator(schema)
+
+    def call(operation, request, label):
+        wire = tmp_path / (label + "-wire.json")
+        result_path = tmp_path / (label + "-response.json")
+        wire.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+        process = subprocess.run(
+            [str(exe), operation, "--request", str(wire),
+             "--response", str(result_path)],
+            cwd=tmp_path, capture_output=True, text=True, timeout=240,
+        )
+        response = json.loads(result_path.read_text(encoding="utf-8")) if result_path.is_file() else None
+        assert response is not None, process.stderr[-1400:]
+        validate.validate(response)
+        return process, response
+
+    no_auth, refused = call("prepare", original, "unsigned-receiving")
+    assert no_auth.returncode == 4
+    assert refused["status"] == "failed"
+    assert not list(output.glob("*.dxf"))
+    authorize_private_job(installation_id, original, engine_sha256=exe_hash)
+    accepted, prepared = call("prepare", original, "signed-mixed-prepare")
+    assert accepted.returncode == 0, accepted.stderr[-1500:]
+    assert prepared["status"] == "success" and len(prepared["items"]) == 3
+    export = _export_request_from_prepared(original, prepared)
+    export["output"]["directory"] = str(output)
+    export["request_digest"] = compute_wire_request_digest(export)
+    authorize_private_job(installation_id, export, engine_sha256=exe_hash)
+    manufactured, receipt = call("export", export, "signed-mixed-export")
+    assert manufactured.returncode == 0, (
+        manufactured.stderr[-1700:], receipt.get("diagnostics", []),
+    )
+    assert receipt["status"] == "success"
+    assert receipt["manufacturing_verified"] is True
+    assert len(receipt["items"]) == 3
+    for item in receipt["items"]:
+        assert item["manufacturing_verified"] is True
+        part, = item["parts"]
+        assert part["save_reload_verified"] is True
+        assert part["manufacturing_verified"] is True
+        path = Path(part["output_path"])
+        assert path.parent == output and path.is_file()
+        assert part["output_sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+        dxf = ezdxf.readfile(path)
+        assert dxf.modelspace().query('LINE[layer=="BEND"]')
+        assert any(e.dxf.layer == "CUTTING" for e in dxf.modelspace())
+    assert len(list(output.glob("*.dxf"))) == 3
