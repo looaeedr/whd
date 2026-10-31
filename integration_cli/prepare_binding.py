@@ -21,6 +21,7 @@ from integration_cli.prepare_frame import (
     require_canonical_door_local_frame,
     require_canonical_indicator_box_size_only_frame,
     require_canonical_endcap_size_only_frame,
+    require_canonical_vault_base_plate_size_only_frame,
 )
 
 _HASH = re.compile(r"^[0-9a-f]{64}$")
@@ -76,6 +77,12 @@ def _binding_payload(
             require_canonical_custom_fold_size_only_frame(
                 frame, physical_part_id=physical,
             )
+        elif raw_kind == "base_plate":
+            if frame_id != f"base_plate:{physical}:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "BasePlate frame identity mismatch")
+            require_canonical_vault_base_plate_size_only_frame(
+                frame, physical_part_id=physical,
+            )
         elif raw_kind in ("end_cap_head", "end_cap_tail"):
             if frame_id != f"{raw_kind}:{physical}:outer:size-only-v1":
                 raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "EndCap frame identity does not match its role")
@@ -92,7 +99,7 @@ def _binding_payload(
         seen_frames.add(frame_id)
         if frame.get("coordinate_contract_revision") != "1" or frame.get("units") != "mm":
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unsupported Frame units/revision")
-        if raw_kind not in ("indicator_box", "end_cap_head", "end_cap_tail", "custom_fold"):
+        if raw_kind not in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold"):
             require_canonical_door_local_frame(frame, physical_part_id=physical)
         checked.append({
             "item_id": item_id,

@@ -142,6 +142,7 @@ def test_installed_worker_advertises_exact_vault_receiving_kind_matrix(monkeypat
     assert indexed["door"]["cabinet_families"] == ["金庫型", "受電箱"]
     assert indexed["end_cap_head"]["cabinet_families"] == ["金庫型"]
     assert indexed["end_cap_tail"]["cabinet_families"] == ["金庫型"]
+    assert indexed["base_plate"]["cabinet_families"] == ["金庫型"]
     assert indexed["indicator_box"]["cabinet_families"] == ["金庫型", "受電箱"]
     assert "box_body" not in indexed
     assert not advertised["capability_flags"]["cancellation"]

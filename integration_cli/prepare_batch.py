@@ -21,7 +21,7 @@ from integration_cli.prepare_evidence import (
 )
 from integration_cli.prepare_frame import (
     resolve_door_finished_local_frame, resolve_indicator_box_size_only_frame,
-    resolve_endcap_size_only_frame,
+    resolve_endcap_size_only_frame, resolve_vault_base_plate_size_only_frame,
 )
 from integration_cli.request_canonical import require_matching_wire_request_digest
 from integration_cli.worker_custom_fold import (
@@ -235,6 +235,41 @@ def endcap_spec_from_trusted_prepared_part(part: Mapping[str, Any], policy):
     )
 
 
+def vault_base_plate_spec_from_trusted_prepared_part(part: Mapping[str, Any]):
+    """Only independently specified Vault standalone flat plate, no assembly guesses."""
+    from ae_engine.contracts import BasePlatePartSpec
+
+    if (part.get("kind") != "base_plate" or part.get("cabinet_family") != "金庫型"
+            or part.get("dimension_semantics") != "part_formed_outer"):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "only Vault formed-part BasePlate geometry certified")
+    if any(key in part for key in (
+        "frame_edges", "frame_width_mm", "gap_w_mm", "gap_h_mm",
+        "fold_left_mm", "fold_right_mm", "fold_top_mm", "fold_bottom_mm",
+        "indicator_groups",
+    )):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unverified BasePlate topology/door overrides")
+    dims = part.get("dimensions_mm")
+    fields = ("shrink_top_mm", "shrink_bottom_mm", "shrink_left_mm", "shrink_right_mm", "bend_mm")
+    if (not isinstance(dims, Mapping) or set(dims) != {"width", "height", "thickness"}
+            or any(field not in part for field in fields)):
+        raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "explicit BasePlate geometry and shrink/bend required")
+    if any(type(dims[key]) not in (int, float) or not math.isfinite(dims[key]) or dims[key] <= 0
+           for key in ("width", "height", "thickness")) or any(
+               type(part[key]) not in (int, float) or not math.isfinite(part[key]) or part[key] < 0
+               for key in fields):
+        raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "invalid Vault BasePlate material parameters")
+    if (part["shrink_left_mm"] + part["shrink_right_mm"] >= dims["width"]
+            or part["shrink_top_mm"] + part["shrink_bottom_mm"] >= dims["height"]):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "BasePlate shrink consumes the finished face")
+    return BasePlatePartSpec(
+        width=float(dims["width"]), height=float(dims["height"]),
+        thickness=float(dims["thickness"]),
+        shrink_top=float(part["shrink_top_mm"]), shrink_bottom=float(part["shrink_bottom_mm"]),
+        shrink_left=float(part["shrink_left_mm"]), shrink_right=float(part["shrink_right_mm"]),
+        bend=float(part["bend_mm"]), model_name="金庫型",
+    )
+
+
 def prepare_trusted_door_batch(
     request: Mapping[str, Any], *,
     resource_root: Path, engine_commit: str, engine_sha256: str,
@@ -294,7 +329,7 @@ def prepare_trusted_door_batch(
                 raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "complete verified Door input dimensions required")
         elif kind not in (
             "indicator_small_door", "indicator_box", "end_cap_head", "end_cap_tail",
-            "custom_fold",
+            "base_plate", "custom_fold",
         ):
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unverified physical part kind has no supported local Frame")
         if item["item_id"] in identities:
@@ -308,6 +343,8 @@ def prepare_trusted_door_batch(
             part_spec = indicator_box_spec_from_trusted_prepared_part(p, ctx)
         elif kind == "custom_fold":
             part_spec = custom_fold_spec_from_trusted_prepared_part(p)
+        elif kind == "base_plate":
+            part_spec = vault_base_plate_spec_from_trusted_prepared_part(p)
         else:
             part_spec = endcap_spec_from_trusted_prepared_part(p, policy)
         identity_bytes = ("WHD-PART-v1\0" + request["client_installation_id"]
@@ -346,6 +383,24 @@ def prepare_trusted_door_batch(
                 "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
                 "coordinate_space": "size_only", "target_frame_certified": False,
             }
+        elif kind == "base_plate":
+            frame = resolve_vault_base_plate_size_only_frame(
+                part_spec, ctx, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "金庫型",
+                "input_dimensions_mm": {
+                    "width": part_spec.width, "height": part_spec.height,
+                    "thickness": part_spec.thickness,
+                    "shrink_top": part_spec.shrink_top,
+                    "shrink_bottom": part_spec.shrink_bottom,
+                    "shrink_left": part_spec.shrink_left,
+                    "shrink_right": part_spec.shrink_right,
+                    "bend": part_spec.bend,
+                },
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
+            }
         elif kind in ("end_cap_head", "end_cap_tail"):
             frame = resolve_endcap_size_only_frame(
                 part_spec, physical_part_id=physical_id,
@@ -372,7 +427,7 @@ def prepare_trusted_door_batch(
                 part_spec, ctx, physical_part_id=physical_id,
             )
         baseline = expected_baseline_path_for(part_spec, ctx)
-        if baseline is None and kind != "custom_fold":
+        if baseline is None and kind not in ("base_plate", "custom_fold"):
             raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "WHD could not identify the physical part baseline")
         # The CURRENT AE shared-indicator resolver selects a *single*
         # global folder only when both 盒子.dxf and 小門.dxf are present.

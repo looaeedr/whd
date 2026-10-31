@@ -143,6 +143,11 @@
                   }
                 }
               },
+              "shrink_top_mm": {"type": "number", "minimum": 0},
+              "shrink_bottom_mm": {"type": "number", "minimum": 0},
+              "shrink_left_mm": {"type": "number", "minimum": 0},
+              "shrink_right_mm": {"type": "number", "minimum": 0},
+              "bend_mm": {"type": "number", "minimum": 0},
               "fold_axis": {"enum": ["X", "Y"]},
               "transverse_length_mm": {"type": "number", "exclusiveMinimum": 0},
               "fold_profile": {
@@ -269,6 +274,22 @@
                 },
                 "then": {
                   "required": ["fold_axis", "transverse_length_mm", "fold_profile"]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "kind": {"const": "base_plate"}
+                  }
+                },
+                "then": {
+                  "required": [
+                    "shrink_top_mm", "shrink_bottom_mm", "shrink_left_mm",
+                    "shrink_right_mm", "bend_mm"
+                  ],
+                  "properties": {
+                    "dimensions_mm": {"required": ["width", "height", "thickness"]}
+                  }
                 }
               },
               {

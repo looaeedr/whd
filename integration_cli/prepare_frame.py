@@ -245,3 +245,66 @@ def require_canonical_endcap_size_only_frame(
         raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid EndCap finished-face bounds")
     if _pure_json(frame) != _endcap_size_only_record(float(w), float(h), physical_part_id, kind):
         raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "EndCap frame cannot authorize external Features")
+
+
+def _vault_base_plate_size_only_record(width: float, height: float, physical_part_id: str) -> dict[str, Any]:
+    """WHD-owned flat Final Material envelope, NOT a source Feature transform."""
+    return {
+        "frame_id": f"base_plate:{physical_part_id}:flat:size-only-v1",
+        "coordinate_contract_revision": "1",
+        "units": "mm",
+        "origin_definition": (
+            "WHD Vault BasePlate unfolded Final Material envelope size only; "
+            "no certified source-to-DXF or cabinet-world Feature mapping"
+        ),
+        "origin_xyz_mm": [0.0, 0.0, 0.0],
+        "axis_x": [1.0, 0.0, 0.0],
+        "axis_y": [0.0, 1.0, 0.0],
+        "normal": [0.0, 0.0, 1.0],
+        "face_role": "outer",
+        "viewed_from": "along_normal",
+        "finished_face_dimensions_mm": {"width": width, "height": height},
+        "allowed_feature_types": [],
+    }
+
+
+def resolve_vault_base_plate_size_only_frame(spec: Any, context: Any, *, physical_part_id: str) -> dict[str, Any]:
+    """Derive the physical unfolded envelope from canonical WHD Final Material."""
+    from ae_engine.contracts import BasePlatePartSpec
+    from ae_engine.manufacturing_api import build_part_render_data
+
+    if (not isinstance(spec, BasePlatePartSpec)
+            or spec.model_name != "金庫型"
+            or not isinstance(physical_part_id, str)
+            or not _FRAME_ID_PART.fullmatch(physical_part_id)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Vault BasePlate physical identity required")
+    try:
+        render = build_part_render_data(spec, context)
+        material = render.material
+        if material is None or material.is_empty or not material.is_valid:
+            raise ValueError("unmanufacturable BasePlate material")
+        min_x, min_y, max_x, max_y = map(float, material.bounds)
+        width, height = max_x - min_x, max_y - min_y
+        if any(not math.isfinite(n) or n <= 0 for n in (width, height, float(material.area))):
+            raise ValueError("invalid BasePlate material extent")
+    except (TypeError, ValueError, OverflowError, ArithmeticError) as exc:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Vault BasePlate Final Material cannot be resolved") from exc
+    return _vault_base_plate_size_only_record(width, height, physical_part_id)
+
+
+def require_canonical_vault_base_plate_size_only_frame(frame: Any, *, physical_part_id: str) -> None:
+    """Sign only canonical feature-disabled envelopes; W-04 rechecks geometry."""
+    from collections.abc import Mapping
+    from integration_cli.prepare_evidence import _pure_json
+
+    if (not isinstance(physical_part_id, str) or not _FRAME_ID_PART.fullmatch(physical_part_id)
+            or not isinstance(frame, Mapping)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "untrusted BasePlate frame")
+    dims = frame.get("finished_face_dimensions_mm")
+    if not isinstance(dims, Mapping) or set(dims) != {"width", "height"}:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "BasePlate unfolded envelope missing")
+    width, height = dims["width"], dims["height"]
+    if any(type(n) not in (int, float) or not math.isfinite(n) or n <= 0 for n in (width, height)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid BasePlate unfolded envelope")
+    if _pure_json(frame) != _vault_base_plate_size_only_record(float(width), float(height), physical_part_id):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "BasePlate Frame is not WHD-owned size-only")
