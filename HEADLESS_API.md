@@ -46,6 +46,10 @@ WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並�
 
 `ae_engine.manufacturing_api.ensure_corner_part`、`commit_corner_pair`、`commit_corner_type`、`commit_corner_mode`、`commit_corner_parameters`、`apply_corner_preset` 的公開輸入為 JSON-safe `corner_state`、`corner_pair_same`，輸出為 `CornerStateTransition`。既有 Phase6 Settings 寫入語意（成對／拆對、重入、型別切換、參數、固定 Family preset）已原樣搬至 `ae_engine.corner_state_transactions`，原 Phase6 同名函式只相容轉呼叫。這個狀態 API 不決定正式 CornerType CUTTING／Relief；幾何權威維持原 Certified Registry 及 Engine 原有求解器。
 
+## Assembly Joint Certified Registry diagnostics API（#2517）
+
+`ae_engine.manufacturing_api.joint_registry_diagnostic_info(joint, render_by_part, solution_by_part)` 由 canonical `ae_engine.assembly_joint` 判定 BOTTOM WRAP Certified rule evidence、BOTTOM 無特殊 delta 的 STANDARD、其他 edge 的 solution trust/rule/revision/probe diagnostic 與 UNKNOWN。若證據缺失不能把 MISS 當成 HIT；影響切割權威的 `rule_id`／`revision`、pre/post pair counts 及 shadow evidence 維持原 Engine Registry 來源。Phase6 原函式只轉公共 API，GUI 僅顯示解讀結果，不另發明 manufactured status。
+
 ## Explicit Joint Relief physical UV owner / source proof API（#2517）
 
 `ae_engine.manufacturing_api.resolve_box_body_piece_solver_key(body_part, region, *, require_flat_uv)` 將 BoxBody 的 Joint region 連接至真正 side/back 物理板件，無單一 UV 所有權時拒絕 relief 回投。`side_wrap_target_corners` 由 Engine 判定 Head/Tail 的物理 WRAP 邊角；`joint_relief_state_item_matches` 比對真實 source material bounds／area 和 joint_id／relation／verified，拒絕 NaN／Inf／布林及失效保存切割。Phase6 的三個原函式是公開 API 轉接，不再重算製造規則。

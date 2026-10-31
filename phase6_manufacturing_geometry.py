@@ -347,61 +347,10 @@ def _phase6_manufacturing_state_signature(self):
 
 
 def _phase6_joint_registry_diagnostic_info(joint, render_by_part, solution_by_part):
-    """Resolve registry/verification evidence for exactly one AssemblyJoint."""
-    edge = str(getattr(joint, "edge", "") or "").upper()
-    relation = str(getattr(getattr(joint, "relation", None), "value", getattr(joint, "relation", "")) or "")
-    endcap_part = next((p for p in (str(getattr(joint, "subject_part", "")), str(getattr(joint, "target_part", ""))) if p in ENDCAP_FW_PARTS), "")
-
-    if edge == "BOTTOM":
-        if relation == "WRAP" and endcap_part:
-            render = render_by_part.get(endcap_part)
-            trace = dict(dict(getattr(render, "metadata", {}) or {}).get("receiving_bottom_relief_rule") or {})
-            if trace:
-                evidence = deepcopy(trace.get("geometry_evidence") or {})
-                return {
-                    "registry_status": "HIT",
-                    "rule_id": trace.get("rule_id"),
-                    "revision": trace.get("revision"),
-                    "trust_level": str(trace.get("trust_level") or ""),
-                    "candidate_status": "CERTIFIED",
-                    "verified": True,
-                    "pre_pair_count": 0,
-                    "post_pair_count": 0,
-                    "evidence": evidence,
-                }
-            return {
-                "registry_status": "MISS", "rule_id": None, "revision": None,
-                "trust_level": "", "candidate_status": "UNSUPPORTED", "verified": False,
-                "pre_pair_count": 0, "post_pair_count": 0, "evidence": None,
-            }
-        # No BOTTOM semantic delta: STANDARD is the canonical mother geometry.
-        return {
-            "registry_status": "MISS", "rule_id": None, "revision": None,
-            "trust_level": "STANDARD", "candidate_status": "STANDARD", "verified": True,
-            "pre_pair_count": 0, "post_pair_count": 0, "evidence": {"owner": "STANDARD"},
-        }
-
-    solution = solution_by_part.get(endcap_part) if endcap_part else None
-    if solution is None:
-        return {
-            "registry_status": "MISS", "rule_id": None, "revision": None,
-            "trust_level": "", "candidate_status": "UNKNOWN", "verified": False,
-            "pre_pair_count": 0, "post_pair_count": 0, "evidence": None,
-        }
-    rule_id = getattr(solution, "rule_id", None)
-    pre_pairs = sum(int(getattr(p, "pair_count", 0) or 0) for p in tuple(getattr(solution, "projections", ()) or ()))
-    post_pairs = int(getattr(getattr(solution, "residual_projection", None), "pair_count", 0) or 0)
-    trust = str(getattr(solution, "trust_level", "") or "")
-    return {
-        "registry_status": "HIT" if rule_id else "MISS",
-        "rule_id": rule_id,
-        "revision": getattr(solution, "rule_revision", None),
-        "trust_level": trust,
-        "candidate_status": "CERTIFIED" if rule_id else trust,
-        "verified": bool(getattr(solution, "verified", False)),
-        "pre_pair_count": pre_pairs, "post_pair_count": post_pairs,
-        "evidence": deepcopy(getattr(solution, "shadow_validation", None)),
-    }
+    """Compatibility: Engine owns Certified Joint diagnostic evidence."""
+    return manufacturing_api.joint_registry_diagnostic_info(
+        joint, render_by_part, solution_by_part,
+    )
 
 
 def _phase6_build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):

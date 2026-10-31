@@ -272,6 +272,7 @@ from .assembly_joint import (
     side_wrap_target_corners, resolve_box_body_piece_solver_key,
     joint_relief_state_item_matches,
 )
+from .assembly_joint import joint_registry_diagnostic_info
 from .assembly_placement import (
     SCENE_ASSEMBLY_PLACEMENTS, resolve_legacy_door_cell_scene_placement,
     resolve_scene_assembly_placement,
