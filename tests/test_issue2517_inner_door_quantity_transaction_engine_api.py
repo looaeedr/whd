@@ -54,7 +54,7 @@ def test_headless_allocation_rejects_topology_drift_and_bool_keys_atomically():
         manufacturing_api.apply_receiving_inner_door_quantity_configuration(
             layout, library, {version: 2}, assigned, expected_counts=(2,),
         )
-    bogus = {(True, 0): version, (1, 0): version}
+    bogus = {(0, True): version, (1, 0): version}
     with pytest.raises(ValueError, match="配置連位"):
         manufacturing_api.apply_receiving_inner_door_quantity_configuration(
             layout, library, {version: 2}, bogus, expected_counts=(1, 1),
