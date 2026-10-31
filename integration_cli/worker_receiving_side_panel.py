@@ -18,8 +18,7 @@ from integration_cli.prepare_evidence import PrepareEvidenceError, _pure_json
 _WHD_ID = re.compile(r"^whd-[0-9a-f]{24}$")
 _INPUTS = (
     ("zl1", "box_zl1_mm"), ("zl2", "box_zl2_mm"),
-    ("zr1", "box_zr1_mm"), ("zr2", "box_zr2_mm"),
-    ("z_comp", "box_z_comp_mm"),
+    ("zr2", "box_zr2_mm"),
 )
 _KINDS = {"box_body:left_side": "left_side", "box_body:right_side": "right_side"}
 _PART_FIELDS = {
@@ -75,9 +74,14 @@ def receiving_side_panel_spec_from_trusted_part(part: Mapping[str, Any]):
         snapshot[name] = float(part[wire])
     try:
         fold_rows = build_box_body_profile(snapshot)
-        if len(fold_rows) != 9 or any(
+        # The Receiving family removes terminal zr1. It is *eight* segments,
+        # unlike the Vault's nine. Never invent zr1 or z_comp input for it.
+        if (tuple(row.get("phase6_key") for row in fold_rows) != (
+                "zl1", "zl2", "fw_left", "d_left", "w", "d_right",
+                "fw_right", "zr2"
+            ) or any(
                 not math.isfinite(float(row["len"])) or float(row["len"]) <= 0
-                for row in fold_rows):
+                for row in fold_rows)):
             raise ValueError("unverified Receiving D-W-D source profile")
         fold = profile_to_fold_segments(fold_rows)
         state = receiving.resolve_box_body_structure_state(None)
