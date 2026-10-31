@@ -329,6 +329,20 @@ def test_bom_split_rejects_missing_parameter_or_unapproved_lane(tmp_path, monkey
         shard_paths(1, 18)
 
 
+def test_measured_bom_full2_moves_only_one_exact_parameter():
+    manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    bom = manifest["bom_split_file"]
+    func = manifest["bom_split_function"]
+    case = "受電箱-FULL-2".split("-")
+    family = case[0].encode("unicode_escape").decode("ascii")
+    node = f"{bom}::{func}[{family}-{case[1]}-{case[2]}]"
+    shards = [shard_paths(i, 18) for i in range(18)]
+    assert node in shards[16]
+    assert node not in shards[15]
+    assert sum(node in shard for shard in shards) == 1
+    assert manifest["bom_split_case_owners"]["受電箱-BACK_OPENING-1"] == 15
+
+
 def test_bom_split_preserves_every_non18_canonical_file_selector():
     bom = "tests/test_issue1466_quantity_bom.py"
     for count in (1, 3, 10, 20):
