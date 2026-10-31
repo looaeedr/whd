@@ -207,7 +207,7 @@
               "base_plate",
               "custom_fold",
           "inner_door",
-          "side_panel"
+          "side_panel", "back_panel"
             ]
           },
           "worker_supported": {
