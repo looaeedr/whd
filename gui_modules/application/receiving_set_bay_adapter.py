@@ -523,49 +523,14 @@ class ReceivingSetBayAdapter:
 
     def apply_inner_door_quantity_configuration(
             self, library, quantities, assigned, *, expected_counts=None):
-        """Validate every Set/Bay first, then replace both inner-door settings."""
-        from ae_engine.receiving_inner_door_pairing import validate_inner_door_allocation
-        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
-        plan = validate_inner_door_allocation(
+        """Submit operator allocation to Engine; retain only GUI dirty tracking."""
+        candidate, changed_ids = manufacturing_api.apply_receiving_inner_door_quantity_configuration(
             self._layout, library, quantities, assigned,
             expected_counts=expected_counts,
         )
-        from ae_engine.receiving_shared_settings import validate_setting
-        # Validate the entire allocation BEFORE touching any Bay. A changed
-        # version must atomically replace its typed CSV NFB on each selected
-        # Bay, not add a second CUTTING owner or silently keep the old NFB.
-        replacements = {}
-        for si, bi, config in plan:
-            validate_setting("inner_door_version_id", assigned[(si, bi)])
-            csv = manufacturing_api.candidate_committed_csv_nfb_config(config)
-            manufacturing_api.validate_candidate_nfb_replacement(
-                self._layout, ((si, bi),), config, csv,
-            )
-            replacements[(si, bi)] = csv
-        candidate = self._layout
-        for si, bi, config in plan:
-            for kind, value in (
-                ("inner_door_layers", config["layers"]),
-                ("inner_door_models", config["models"]),
-                ("inner_door_features", config.get("features", {})),
-                ("inner_door_layer_heights_mm", config.get("layer_heights_mm")),
-                ("inner_door_version_id", assigned[(si, bi)]),
-            ):
-                candidate = unlink_setting(
-                    candidate, set_index=si, bay_index=bi, kind=kind,
-                )
-                candidate = edit_setting(
-                    candidate, set_index=si, bay_index=bi, kind=kind, value=value,
-                )
-            candidate = manufacturing_api.replace_candidate_bay_nfb(
-                candidate, si, bi, replacements[(si, bi)],
-            )
         self._layout = candidate
-        self._session_dirty_ids.update(
-            str(candidate["sets"][si]["bays"][bi]["stable_id"])
-            for si, bi, _ in plan
-        )
-        return len(plan)
+        self._session_dirty_ids.update(changed_ids)
+        return len(changed_ids)
 
 
     def _nfb_apply_outcome(self, outcome):

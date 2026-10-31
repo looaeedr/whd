@@ -518,3 +518,18 @@ entry points; no GUI-owned custom physical formula or allocator remains.
 Existing verified CustomFold PartSpec → FinalScene → CUTTING/BEND → DXF
 worker acceptance remains separate; this move never authorizes
 unsupported features, mismatched physical metadata or new DXF capability.
+
+## Receiving Inner Door cross-Set/Bay quantity allocation transaction (#2517)
+
+`manufacturing_api.apply_receiving_inner_door_quantity_configuration(
+layout, library, quantities, assigned, *, expected_counts=None)`
+is the headless manufacturing-state Apply for all selected Receiving Bays.
+It validates exact topology/counts/version assignment and each candidate's
+physical CSV NFB source, mixed CUTTING and replacement permission **before**
+any write. It commits the same canonical per-Bay shared setting values,
+version IDs and Bay-qualified physical NFB source as the previous GUI path,
+and returns `(detached_layout, changed_bay_stable_ids)`.
+
+The GUI uses the result only to set its current layout and update dirty
+presentation IDs. Failure leaves its layout and saved candidate library intact.
+Saved NFB X remains unverified; no new CUTTING or DXF capability is granted.
