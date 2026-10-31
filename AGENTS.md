@@ -7,6 +7,16 @@ whd_schema: WHD_DOC_META_V1
 
 # WHD 開發與本地整合規則
 
+## GUI 僅負責操作／輸入，製造唯一由引擎 API 負責硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
+
+- **所有箱型／所有功能，不限門板**：金庫型、受電箱、每個實體板件、數量／套／連／Bay、孔、折、截角、組合、2D、3D、DXF 及 Save→Reload 都適用。GUI（`gui.py`、`gui_modules/`、`fold_designer_bridge.py`、`phase6_*.py`）只負責操作者輸入、欄位型別／格式檢查、操作選取、API 呼叫、結果／錯誤呈現；不得持有任何製造公式、成品尺寸推導、板件身分判定、展開孔位／折彎補償、DXF 製造或第二份 canonical geometry。
+- **唯一單向鏈**：GUI → immutable request/PartSpec/Context → Engine 公開 API（或經驗證的外部 Worker operation）→ Family/Topology/Policy/Certified Registry → canonical FinalScene／實體板件／製造結果 → GUI 顯示。Engine 不得反向依賴 GUI/Tk；GUI 不得呼叫 `ae_engine.ae.export_*`、私有 `sheetmetal_*`、`ezdxf`、製造計算或未認證的 fallback。
+- **缺 API 就回引擎補，不讓 GUI 製造**：先實作 Engine API、schema、capability 與定向測試；未完成時 GUI 明確顯示 unsupported/error，不能自推答案或將預覽當作出圖。金庫型／受電箱的每個功能都要能由 API request→response 測試證實；`feature_catalog`、33 組功能盤點、內部 helper、UI 操作存在，不等於已接線／已獲製造授權。資料來源權威仍由 CURRENT 07、Factory Policy、Certified Registry、基準檔負責。
+- **PR 硬閘門**：`tools/gui_engine_api_boundary_gate.py` 對 exact base→head 變更做 AST 反向依賴、GUI 引擎私有 import、低層 DXF、製造函式與製造數值計算的新增違規檢查；`.github/workflows/whd-gui-engine-api-boundary.yml` 執行 CI 與負向案例測試。既有違規先阻止新增、逐步遷回引擎；這個靜態門檻**不保證所有語意違規都會被掃到**，必須搭配 Engine contract／Save→Reload／2D／3D／DXF 測試及 review。
+- **平台不可繞過條件**：GitHub `localX` Ruleset 需將 `GUI Engine API Ownership Gate` 設為 required status check，禁止 PR 以外直接推送；未設定前只能宣稱 CI 運作，不得宣稱受 GitHub 分支保護強制。治理照常先合 `localX`，正式 X 仍需當次 `/推推`。
+- **唯一 CURRENT 架構規範**：`個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；`HEADLESS_API.md` 只是 REFERENCE API 說明。
+
+
 ## 批次修改 → 本地定向測試 → 單次完整 PR CI `BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1`
 
 - 同一個 Bug 或可獨立驗收的小功能，先完成**同一批**相關程式、真正的 RED 重現與最小修復，確定需要的單元、GUI、DXF/Save→Reload、製造測試；用 `tools/quick_test.py` 在**實際有權操作的工作區**跑定向 RED→GREEN，必要時做受影響模組整合驗證，通過後原則上**一次 commit／push／PR 提交候選**，再交 GitHub 跑**一輪 exact HEAD 完整必要驗收**。不得每改一個檔就先丟一次完整產品 CI；若新 SHA 是 CI 失敗修正，仍須新 SHA 的完整必要 CI，不沿用舊 GREEN。
