@@ -391,6 +391,22 @@ def test_parallel_collection_readback_rejects_missing_or_duplicate_nodes(tmp_pat
         _load_canonical_collection(collection)
 
 
+def test_parallel_collection_default_keeps_fresh_complete_collection():
+    from unittest.mock import patch
+    from tools.whd_v15_acceptance_evidence import _load_canonical_collection
+
+    fresh = "tests/test_one.py::test_one\\ntests/test_two.py::test_two[x]\\n"
+    with patch("tools.whd_v15_acceptance_evidence.subprocess.check_output",
+               return_value=fresh) as mock_collect:
+        assert _load_canonical_collection() == {
+            "tests/test_one.py::test_one",
+            "tests/test_two.py::test_two[x]",
+        }
+    command = mock_collect.call_args.args[0]
+    assert "--collect-only" in command and "-q" in command
+    assert "tests/test_issue1469_v15_acceptance.py" in command
+
+
 def test_parallel_collection_is_passed_into_final_verifier():
     from unittest.mock import patch
     from tools.product_ci_regression import _verify_full_receipt
