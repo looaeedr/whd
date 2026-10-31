@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from phase6_box_body_structure import BoxBodyStructureType
+from .box_body_structure_state import BoxBodyStructureType
 from .contracts import FoldProfileSegment
 from .sheetmetal_geometry_core import (
     CornerTypeId,

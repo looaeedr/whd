@@ -16,7 +16,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 
-from phase6_box_body_structure import (
+from .box_body_structure_state import (
     BoxBodyStructureType,
     normalize_box_body_structure_state,
     resolve_two_piece_widths,
@@ -305,7 +305,7 @@ def project_side_back_3d_input_fold_to_physical(
         # Original (pre-73951d283) source fold ordering is authoritative.
         # Do not mirror left-side zl1/zl2/FW/D BEND stations.  Preserve
         # operator formed/outside input with one thickness compensation.
-        from phase6_fold_profiles import apply_outside_dimension_compensation
+        from .box_body_fold_profile import apply_outside_dimension_compensation
         physical = apply_outside_dimension_compensation(rows, thickness)
         # Keep formed/outside metadata through the 3D editor -> physical
         # projection. The UI source owns ui_len_add; no reverse mesh writes.
