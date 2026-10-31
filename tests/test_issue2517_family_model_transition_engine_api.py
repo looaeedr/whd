@@ -42,7 +42,7 @@ def test_public_engine_owns_family_transition_and_phase6_is_adapter_only():
     assert "from phase6_" not in inspect.getsource(owner)
 
 
-def test_real_fresh_receiving_has_one_csv_submitted_nfb_and_joint_wrap():
+def test_real_fresh_receiving_has_one_csv_submitted_nfb_and_joint_wrap(tmp_path):
     original = _snapshot()
     before = deepcopy(original)
     result = _call("受電箱", "金庫型", original)
@@ -62,7 +62,19 @@ def test_real_fresh_receiving_has_one_csv_submitted_nfb_and_joint_wrap():
     assert result.desired_structure is not None
     for part in ("head", "tail"):
         assert edge_relation_for_part(result.input_snapshot, part, "BOTTOM") is AssemblyJointRelation.WRAP
-    assert json.loads(json.dumps(layout, ensure_ascii=False)) == layout
+    # Persist using the real P6FOLD project serializer: the source's
+    # ProfileFeature is a typed manufacturing feature, not plain JSON data.
+    from ae_engine.receiving_layout import normalize_receiving_layout
+    import phase6_project_file as project
+    payload = {
+        "schema": project.PROJECT_SCHEMA_V2,
+        "snapshot": {"model": "受電箱", "t": 2.0, "receiving_layout": layout},
+        "final_geometry": {},
+    }
+    project_path = project.write_project(tmp_path / "fresh-receiving.p6fold", payload)
+    saved = project.read_project(project_path)["snapshot"]["receiving_layout"]
+    assert saved == normalize_receiving_layout(layout)
+    assert saved["sets"][0]["bays"][0]["nfb_config_submitted"] is True
 
 
 def test_receiving_family_alias_keeps_saved_operator_changes_not_fresh_reseed():
