@@ -13,6 +13,21 @@ whd_schema: WHD_DOC_META_V1
 全域硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 的唯一 CURRENT owner 是 AI 庫 `第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；此檔是 REFERENCE。GUI 全功能只處理操作與輸入，所有製造資料、公式、實體板件、孔位／折展開及 2D/3D/DXF 的 canonical 結果由引擎公開 API 處理。既有舊 GUI adapters 的存在**不代表每個箱型與功能均已完成改造**。遇 API 不支援，回引擎開發／測試或明確拒絕，不許 GUI 私做 fallback。對外 CADSplit Worker `capabilities/prepare/export` 僅宣告實際已驗證與授權的能力。靜態 CI gate：`tools/gui_engine_api_boundary_gate.py`，但它不代替行為契約測試或平台 required status check。
 
 
+## Receiving NFB candidate source and Bay physical identity API（#2517）
+
+`manufacturing_api.candidate_committed_csv_nfb_config(source)` validates a
+single certified CSV-backed inner-door physical source and rejects mixed
+untrusted CUTTING. Without CSV source it returns None, never invented holes.
+
+`manufacturing_api.validate_candidate_nfb_replacement(layout, bay_keys, source,
+csv_config, *, rejection_message=None)` rejects a non-CSV candidate's
+unrelated features when a physical Bay already has submitted NFB.
+`manufacturing_api.replace_candidate_bay_nfb(layout, set_index, bay_index,
+csv_config)` deep-copies the verified source and scopes stable hole IDs to the
+selected Bay. Native GUI single-Bay and quantity allocation share these Engine
+ports. Saved source, independent other Bays, and unverified X are preserved;
+no new CUTTING, DXF or NFB shop release is implied.
+
 ## Receiving NFB Set brand / inherited physical X confirmation API（#2517）
 
 `manufacturing_api.rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand)`
