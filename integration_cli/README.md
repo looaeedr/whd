@@ -139,7 +139,7 @@ inner-door workflows remain separately gated.
 
 `受電箱/side_panel` selects **one real independent physical sheet** by the
 source-owned `box_body:left_side` or `box_body:right_side` identity. The
-operator-confirmed W/H/D/T/FW, zl1/zl2/zr1/zr2/z_comp are outside
+operator-confirmed W/H/D/T/FW and zl1/zl2/zr2 are outside
 measurements fed to the existing WHD Receiving Phase6 Fold topology. The
 fixed Receiving three-piece side/back state and three separate dedicated
 `基準檔/受電箱/{左側板.dxf,右側板.dxf,後面板.dxf}` are the actual signed
