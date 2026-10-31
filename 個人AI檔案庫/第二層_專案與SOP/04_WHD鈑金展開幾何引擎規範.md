@@ -534,3 +534,9 @@ frame-only route.
 
 - `endcap_relief_solution_committable` is the public Engine authority for existing verified/certified Head/Tail relief commit acceptability. Phase6 manufacturing service consumes the API result; GUI/Phase6 must not decide certified/trust precedence itself.
 - The certified-formula versus 3D shadow conflict distinction is preserved. This is not a new rule registration, uncertified DXF grant, or full #2517 completion.
+
+
+### #2517 Door-layout Indicator Box/Small Door editor ownership (2026-11-01)
+
+- `gui.py::open_door_indicator_component_editor` now delegates physical box/small-door editor surfaces, CUTTING/DATUM/BEND source scene, finished-face guides and widths/heights to existing public `manufacturing_api.resolve_indicator_editor_components(groups, thickness, door_spec)`, using the same `_indicator_door_part_spec` already consumed by Phase6. GUI retains operator mode/group selection, feature-store identity, baseline-status display and commit callbacks.
+- The global IndicatorBox source `基準檔/指示燈/盒子.dxf` remains authoritative; the historic `model_name` argument to `baseline_scene_adapters.get_stretched_indicator_box_data` is explicitly ignored. No new CUTTING formula, worker routing or DXF manufacturing capability is claimed. #2575 cache fingerprint is a separate independently developed slice; #2517 remains OPEN.
