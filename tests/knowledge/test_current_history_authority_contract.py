@@ -496,28 +496,40 @@ def test_release_1997_cadcraft_is_ignored_without_root_dotfile_diff() -> None:
     assert self_result.returncode == 1, self_result.stderr.decode(errors="replace")
 
 
-def test_issue2382_private_worker_authority_writeback_keeps_public_gate_a_disabled() -> None:
-    """The CURRENT manufacturing owner must not certify an internal EXE path as public."""
+def test_issue2382_installed_worker_exe_authority_is_retired() -> None:
+    """CURRENT authority must keep the removed installed Worker/EXE path retired."""
     owner_path = "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
     owner = read(owner_path)
     metadata = parse_doc_metadata(owner, path=owner_path)
     assert metadata.role == "CURRENT" and metadata.contract == "manufacturing-architecture"
-    current_section = owner.split("### 10. CADSplit × WHD-Engine Worker authority", 1)[1].split(
-        "## [HISTORICAL/SUPERSEDED]", 1
-    )[0]
+    current_section = owner.split(
+        "### 10. CADSplit × WHD source-only Worker boundary", 1
+    )[1].split("## [HISTORICAL/SUPERSEDED]", 1)[0]
     for required in (
-        "cadsplit_worker._private_installed_main",
-        "private_worker_dispatch.execute_private_worker",
-        "source_circle_verification.verify_trusted_original_dxf_features",
-        "verified_door_finalscene.save_trusted_door_circle_finalscene_batch",
-        "job_identity_ledger.DurableJobIdentityLedger",
-        "manufacturing_verified=false",
-        "公開 Gate A",
+        "安裝版 WHD Worker／WHD-Engine.exe 接線退役",
+        "WHD_OPERATION_NOT_IMPLEMENTED",
+        "不存在安裝版 admission",
+        "不存在安裝版 public certification owner",
+        "不得復活第二套 Worker 製造 authority",
     ):
         assert required in current_section, required
+
     public = read("integration_cli/cadsplit_worker.py")
     assert "WHD_OPERATION_NOT_IMPLEMENTED" in public
     assert '"supported_part_kinds": []' in public
     assert "key: False for key" in public
-    assert "if trusted_context is not None:" in public
-    assert "_execute_request(args.operation, args.request, commit, build_id)" in public
+    for retired in (
+        "_private_installed",
+        "--installation-id",
+        "public_installed_adapter",
+        "private_worker_installation",
+        "worker_key_custody",
+        "packaged_identity",
+        "sys._MEIPASS",
+    ):
+        assert retired not in public, retired
+
+    authority_map = read("個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md")
+    assert "cadsplit-whd-worker-installed-custody role=CURRENT" not in authority_map
+    assert "cadsplit-whd-worker-public-certification role=CURRENT" not in authority_map
+    assert "沒有 CURRENT owner" in authority_map

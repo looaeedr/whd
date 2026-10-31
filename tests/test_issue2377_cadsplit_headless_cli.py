@@ -86,6 +86,20 @@ def test_only_three_public_commands_with_headless_help(tmp_path):
     assert not (tmp_path / "unwanted.json").exists()
 
 
+def test_installed_worker_exe_switches_are_retired(tmp_path):
+    for suffix in (
+        ["capabilities", "--installation-id", "retired-install", "--response", "cap.json"],
+        ["_private_installed", "prepare", "--response", "private.json"],
+    ):
+        result = subprocess.run(
+            [sys.executable, str(WORKER), *suffix],
+            cwd=tmp_path, capture_output=True, text=True, timeout=30,
+        )
+        assert result.returncode == 2
+    assert not (tmp_path / "cap.json").exists()
+    assert not (tmp_path / "private.json").exists()
+
+
 def test_capabilities_are_source_only_and_never_enable_manufacturing(tmp_path):
     proc, payload, _ = _run(tmp_path, "capabilities")
     assert proc.returncode == 0, proc.stderr

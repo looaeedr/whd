@@ -258,19 +258,17 @@ Joint marking policy/diagnostics 由 engine registry/orchestration 擁有；prod
 Validation 維持單向：contact probe、collision、fixture expected、pytest tolerance、rendered result 與 QA artifact 只能驗證上述 authority，不得成為 production formula、offset、placement 或 marking policy 的來源。
 
 
-### 10. CADSplit × WHD-Engine Worker authority / Gate A boundary (#2375 / #2382)
+### 10. CADSplit × WHD source-only Worker boundary（installed Worker/EXE retired）
 
-**公開 Gate A 維持獨立 fail-closed**：GUI／Engine API 的單向權責調整，不等於對外 CADSplit 製造能力已放行；私有安裝、簽章／HMAC 核准、局部 capability 或測試通過，都不可替代公開 Gate A 的實際全項驗證與授權。既有 Gate B/D/E 仍依原有證據判定。
+2026-11-01 使用者決策：**安裝版 WHD Worker／WHD-Engine.exe 接線退役**。這項退役不改變 WHD Engine 對製造、實體板件、幾何、2D/3D/DXF 與 Save→Reload 的唯一權威，也不降低 GUI → Engine API 硬閘門。
 
-此段是既有製造架構的**入口與權責對照**，不另建立製造公式、第二套 CURRENT owner 或對外可用性承諾。
+- `integration_cli/cadsplit_worker.py` 與 `integration_cli/schemas/` 只保留 source-only wire boundary；公開命令仍只有 `capabilities/prepare/export`，沒有 `verify`。
+- source-only `capabilities` 的製造能力全部 false；公開 `prepare/export` 必須回 `WHD_OPERATION_NOT_IMPLEMENTED`、`manufacturing_verified=false`，不得寫 DXF。
+- **不存在安裝版 admission**：不得由 `installation_id`、DPAPI/HMAC、installer source/output custody、packaged manifest 或 frozen EXE 啟用製造；`--installation-id` 與 `_private_installed` 均不是合法 CLI。
+- **不存在安裝版 public certification owner**：舊 `private_worker_installation.py`、`public_installed_adapter.py`、`worker_key_custody.py`、`packaged_identity.py` 與 private Windows Engine EXE workflow 已退役，不得從 Git history 默默恢復。
+- W-03/W-04/W-06 的純 Python helper／transaction／source-verification 基礎可作內部測試或未來 Engine API consumer 的實作材料，但它們不由 `cadsplit_worker.main()` 對外接線，也不能宣稱 Gate A／外部製造已放行。
+- 若未來重新需要 CADSplit 外部 executable/installer，必須有新的明確使用者決策與 CURRENT owner，且只能消費同一 WHD Engine 公開 API；不得復活第二套 Worker 製造 authority。
 
-- **公開 wire/CLI**：`integration_cli/cadsplit_worker.py` 與 `integration_cli/schemas/` 定義三個且只有三個公開命令 `capabilities`、`prepare`、`export`（沒有獨立 `verify`）；`docs/integrations/CADSplit_WHD_Contract.md` 是 REFERENCE wire contract。來源模式、未選擇安裝及原舊 protocol 1.0.0 的製造能力仍全 false／`WHD_OPERATION_NOT_IMPLEMENTED`。protocol 1.1.0 的**已封存 Windows 安裝、每份 exact-job HMAC 核准**請求可由公開 `prepare/export` 進入 `public_installed_adapter.execute_public_installed`，不是無條件開放任意 CADSplit 出圖；`capabilities --installation-id` 僅在安裝憑證實際可驗證時宣告條件式 P0 能力，且列明每 job 仍需獨立核准。
-- **封裝與私有安裝信任**：`integration_cli/packaged_identity.py` 驗證 exact engine commit、EXE、Registry、baseline、policy 的實際內容；`integration_cli/worker_key_custody.py` 與 `private_worker_installation.py` 保管 Windows current-user DPAPI/HMAC、預先綁定來源 DXF／輸出／durable store，並對每次 `(client_installation_id, job_id, operation, request_digest)` 簽發獨立不可變授權。`cadsplit_worker._private_installed_main` 僅在已封裝 Windows EXE、已獲私有安裝及 exact-job 授權時進入；這不是公開 CADSplit API，也不是同帳號惡意程式的 OS 隔離保證。
-- **私有製造資料流**：`cadsplit_worker._execute_request(trusted_context=...)` → `private_worker_dispatch.execute_private_worker` → `prepare_batch.prepare_trusted_door_batch`／`job_identity_ledger.DurableJobIdentityLedger`／`prepare_recheck.recheck_trusted_door_export` → `source_circle_verification.verify_trusted_original_dxf_features` → `verified_door_finalscene.save_trusted_door_circle_finalscene_batch` → WHD `manufacturing_api.build_part_render_data`、`save_verified_final_scene_batch_dxf` → W-06 journal/immutable DXF readback。原圖路徑、token、Frame、原始 SHA、來源加工層、Registry/資源以及輸出鎖由 WHD 受信任 owner 驗證，不由 CADSplit JSON 自行宣稱。
-- **目前受限的實體類型**：私有 W-04 已以 WHD native FinalScene 支援 `door`、`indicator_small_door`、`indicator_box`、`end_cap_head`、`end_cap_tail` 的受信任 batch。Door／small-door 的來源 `CIRCLE`、封閉 LWPOLYLINE `RECT/PROFILE` 須對原始 modelspace handle、SHA、圖層 `CUTTING` 與幾何／變換逐項核實；Box／Vault EndCap 仍只有 **原 DXF modelspace 真正為空、沒有外部 Features** 的 WHD intrinsic、size-only 路徑，不得藉由 wire 宣稱直接授權來源開孔或自訂裝配。
-- **W-08 全功能發現 API（#2383）**：已安裝 `capabilities` 可附帶 `feature_catalog`，逐筆列出「金庫型／受電箱」的全部已註冊 WHD 功能、唯一實作 owner、`public_operations`、`manufacturing_supported`、`production_scope`、`blocked_code`。此目錄只是外部 API 的完整**可發現／可拒絕**表面，不得把 `capabilities` 存在當成 `prepare/export` 製造已通過。只有同一簽章 Worker 的原有五種實體製造角色可以亮起 `manufacturing_supported=true`（盤型各自限定）；箱身分片、Base Plate、Custom Fold、Inner Door、Divider、Fixing Plate、Receiving NFB、Quantity/Multi-Bay、Fold/Joint/Relief 需沿著 CURRENT WHD geometry/physical-ID 和 CADSplit Source→Frame→Save→Reload Gate C 分別開通。目錄本身不能自行建立幾何、金鑰、job 或額外對外 CLI command。
-- **P1 受電箱／金庫型 API 盤型矩陣（#2383）**：安裝後的 v1.1 `capabilities[*].cabinet_families` 是明確的 part-kind×Family 宣告；`door` 允許已驗證的「金庫型」及「受電箱」外門，Receiving Door 保留自身 WHD Family policy 與既有 Vault 共享的 baseline source，並以原始來源→W-03 Frame→W-04 FinalScene→DXF reopen 驗證。共用指示燈盒／小門對上述兩盤型維持 WHD 原生獨立物理件。封頭／封尾的目前 Worker 外部接口只對「金庫型」已認證；**受電箱封頭、箱身、Divider、Inner Door 和 multi-Bay 不可從此矩陣推導成已驗證**，W-03 必須先拒絕，後續需要獨立 Family/Topology/Certified Registry 證據。來源模式 v1.0 不得因 v1.1 family metadata 自動升級；CADSplit 必須真實協商安裝 ID、1.1 wire、source Frame/Features 與每-job installer 核准，否則仍不得出圖。
-- **公開 Export 成功的責任界線**：私有 W-04 receipt 仍為 `manufacturing_verified=false`，不能直接翻轉。公開 `public_installed_adapter._public_export_receipt` 僅在 `prepare_recheck` 的 HMAC/來源/Frame/環境重驗、WHD FinalScene 的 DXF Save→Reload、W-06 `committed` journal、完整 physical-part inventory 與每件 SHA/mtime /輸出路徑重驗都一致時，建構符合 v1.1 schema 的 `manufacturing_verified=true`。實際 EXE／GUI exact SHA 測試能證明受信任安裝的條件式能力，不代表所有未安裝 CADSplit 均可製造、CADSplit Gate B/D／使用者 Gate E 或正式 X 已放行；完整 Gate A 仍依 #2382 真實全項證據判定。
 
 ---
 
