@@ -655,7 +655,7 @@ def test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contrac
 def test_bridge_verified_relief_replays_authoritative_part_spec_with_solver_cuts(monkeypatch):
     """Assembly 3D must replay the same canonical PartSpec path used by 2D/DXF."""
     import ae_engine.assembly_collision as collision
-    import phase6_manufacturing_service as manufacturing_service
+    from ae_engine import manufacturing_api
     import fold_designer_bridge as bridge
     from ae_engine.contracts import EndCapPartSpec, ManufacturingContext
     from ae_engine.sheetmetal_drawing import DrawingScene
@@ -714,7 +714,7 @@ def test_bridge_verified_relief_replays_authoritative_part_spec_with_solver_cuts
         )
 
     monkeypatch.setattr(collision, "solve_world_backprojected_endcap_relief", fake_solver)
-    monkeypatch.setattr(manufacturing_service, "build_part_render_data", fake_build_part_render_data)
+    monkeypatch.setattr(manufacturing_api, "build_part_render_data", fake_build_part_render_data)
     flat_x = [{"len": 100.0, "core": True}]
     flat_y = [{"len": 80.0, "core": True}]
     app = SimpleNamespace(

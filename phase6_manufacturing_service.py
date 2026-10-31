@@ -28,7 +28,7 @@ from ae_engine.contracts import (
     ResolvedManufacturingPart,
     ResolvedReliefRuleTrace,
 )
-from ae_engine.manufacturing_api import build_part_render_data, resolve_live_cabinet_family
+from ae_engine.manufacturing_api import replay_resolved_endcap_render, resolve_live_cabinet_family
 from ae_engine.joint_marking_policy import resolve_joint_marking_foundation_status
 from ae_engine.receiving_joint_marking import (
     joint_marking_export_summary as _joint_marking_export_summary,
@@ -69,31 +69,8 @@ def _cabinet_family(request: ManufacturingResolveRequest) -> str:
 
 
 def _replay_endcap_render(part_input, solution):
-    cuts = tuple(
-        tuple((float(x), float(y)) for x, y in polygon)
-        for polygon in _phase6_relief_polygon_coords(
-            getattr(solution, "cut_polygon_2d", None)
-        )
-    )
-    if part_input.part_spec is not None:
-        replay_spec = replace(
-            part_input.part_spec,
-            resolved_assembly_relief_cuts=cuts,
-        )
-        return build_part_render_data(
-            replay_spec,
-            part_input.manufacturing_context,
-        )
-
-    # Compatibility fallback for lightweight/headless tests that provide only
-    # already-resolved domain render data. Production Fold Designer wiring
-    # supplies PartSpec + ManufacturingContext before service entry.
-    solved = getattr(solution, "solved_render_data", None)
-    if solved is None:
-        raise ValueError(
-            f"authoritative relief replay unavailable: {part_input.part_key}"
-        )
-    return solved
+    """Compatibility seam; Engine alone replays verified physical relief."""
+    return replay_resolved_endcap_render(part_input, solution)
 
 
 @mesh_build_scope()
