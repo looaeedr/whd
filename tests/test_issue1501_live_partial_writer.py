@@ -300,7 +300,8 @@ def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manif
     import phase6_manufacturing_adapter as adapter
     import phase6_quantity_manufacturing as quantity
     from gui_modules.project import export_actions
-    from gui_modules.application import receiving_nfb_quantity_partial as partial_action
+    # The GUI now calls the real Engine API; inject the original fixture there.
+    from ae_engine import receiving_nfb_quantity_partial as partial_action
 
     opts, model, batch, source, profiles = _quantity_source_case(tmp_path)
     batch = replace(batch, demands=tuple(replace(d, render_data=replace(d.render_data, unfolded_topology=None))
@@ -442,7 +443,8 @@ def test_all_held_quantity_selection_discloses_nfb_dxf_datum_and_writes_nothing(
     import phase6_manufacturing_adapter as adapter
     import phase6_quantity_manufacturing as quantity
     from gui_modules.project import export_actions
-    from gui_modules.application import receiving_nfb_quantity_partial as partial_action
+    # The GUI now calls the real Engine API; inject the original fixture there.
+    from ae_engine import receiving_nfb_quantity_partial as partial_action
 
     opts, model, batch, source, profiles = _quantity_source_case(tmp_path)
     assert model.delete_selected(confirmed=True)  # omit the unconfigured version
