@@ -124,25 +124,8 @@ def _validate_selected_indicator_exports(self, flags, val):
 
 
 def _resolved_export_intention_key(part_key):
-    """Map canonical physical identity to the existing operator export intention."""
-    key = str(part_key or "").strip()
-    if key == "box_body" or key.startswith("box_body:"):
-        return "box_body"
-    if key == "head":
-        return "head"
-    if key == "tail":
-        return "tail"
-    if key == "door" or key.startswith("door_") or key.startswith("inner_door:"):
-        return "door"
-    if (key == "base_plate" or key.startswith("base_plate_")
-            or key.startswith("base_plate:nfb_layer:")):
-        return "base_plate"
-    if key == "indicator_box" or key.startswith("indicator_box_"):
-        return "indicator_box"
-    if key == "indicator_door" or key.startswith("indicator_door_"):
-        return "indicator_door"
-    return None
-
+    """Compatibility for operator checkboxes; Engine owns part identity."""
+    return manufacturing_api.resolved_export_intention_key(part_key)
 
 
 def _has_submitted_nfb_in_current_snapshot(payload):
@@ -201,13 +184,10 @@ def _assert_legacy_nfb_export_scope_safe(self, flags):
         )
 
 def _selected_resolved_geometry(resolved_geometry, flags):
-    """Filter presence by export intention without inventing a physical-part list."""
-    selected = tuple(
-        part
-        for part in tuple(getattr(resolved_geometry, "parts", ()) or ())
-        if bool(flags.get(_resolved_export_intention_key(part.part_key), False))
+    """Forward GUI selection intent to the engine physical inventory."""
+    return manufacturing_api.select_resolved_export_geometry(
+        resolved_geometry, flags,
     )
-    return replace(resolved_geometry, parts=selected)
 
 
 def _export_selected_resolved_parts(self, folder, flags):
@@ -373,17 +353,12 @@ def _export_selected_resolved_parts(self, folder, flags):
     if (receiving_live.get("model") == "受電箱"
             and receiving_live.get("active_mode", "set_bay") == "set_bay"
             and physical_count > 1):
-        from ae_engine.receiving_layout import (
-            normalize_receiving_layout, receiving_bay_assembly_offsets,
-        )
+        from ae_engine.receiving_layout import normalize_receiving_layout
         saved_layout = normalize_receiving_layout(raw_layout)
         if physical_count != sum(len(s["bays"]) for s in saved_layout["sets"]):
             raise ValueError("多連實體連數與目前標準組合體資料不一致")
         if physical_count > 1:
             import fold_designer_bridge as receiving_bridge
-            from ae_engine.contracts import (
-                ResolvedManufacturingGeometry, ResolvedManufacturingPart,
-            )
             from ae_engine.receiving_csv_multibay_manufacturing import (
                 export_current_receiving_multibay_dxf,
             )
@@ -416,22 +391,10 @@ def _export_selected_resolved_parts(self, folder, flags):
                     current=composition.receiving_bay_preview_request(
                         vars(receiving_bridge), set_index, bay_index,
                     )
-                anchor = receiving_bay_assembly_offsets(
-                    saved_layout, set_index=set_index,
-                )[bay_index]
-                physical = tuple(
-                    ResolvedManufacturingPart(
-                        part_key=p.part_key,render_data=p.render_data,
-                        x_profile=p.x_profile,y_profile=p.y_profile,
-                        placement=p.placement,
-                        offset=tuple(float(x)-float(y)
-                                     for x,y in zip(p.offset, anchor)),
-                    )
-                    for p in current.render_data.assembly_parts
+                return manufacturing_api.resolve_receiving_bay_local_export_geometry(
+                    current.render_data.assembly_parts, saved_layout,
+                    set_index=set_index, bay_index=bay_index,
                 )
-                if any(p.placement == "standalone" for p in physical):
-                    raise ValueError("多連出圖禁止以單件預覽取代組合體實體")
-                return ResolvedManufacturingGeometry(parts=physical)
             outputs = export_current_receiving_multibay_dxf(
                 receiving_live,
                 physical_bay_geometry_provider=actual_bay_geometry,
