@@ -18,6 +18,7 @@ from phase6_endcap_semantics import (
     ENDCAP_FW_PARTS, normalize_endcap_fw_state, resolve_endcap_fw, resolve_box_assembly_type,
 )
 
+from ae_engine import manufacturing_api
 from ae_engine.manufacturing_api import (
     BOX_BODY_TURNS as _BOX_BODY_TURNS,
     apply_outside_dimension_compensation as _engine_apply_outside_dimension_compensation,
@@ -66,23 +67,14 @@ def _signed_like(original, magnitude):
     return -abs(magnitude) if _num(original) < 0 else abs(magnitude)
 
 def build_endcap_profile(snapshot: Mapping[str, object]) -> list[dict]:
-    """Feed Phase6 top/depth/bottom material lengths into the original tab."""
-    profile = [
-        {"len": _ui_len(snapshot.get("ytop1")), "angle": -90, "phase6_key": "ytop1"},
-        {"len": _ui_len(snapshot.get("d")), "angle": -90, "phase6_key": "endcap_d"},
-        {"len": _ui_len(snapshot.get("ybottom1")), "phase6_key": "ybottom1"},
-    ]
-    return apply_outside_dimension_compensation(profile, snapshot.get("t", 2))
+    """Legacy GUI entry; canonical three-row Fold belongs to Engine."""
+    return manufacturing_api.build_endcap_editor_simple_profile(snapshot)
+
 
 def read_endcap_profile(profile: Sequence[Mapping[str, object]]) -> dict:
-    by_key = {str(seg.get("phase6_key")): seg for seg in profile if seg.get("phase6_key")}
-    if not {"ytop1", "endcap_d", "ybottom1"}.issubset(by_key):
-        raise ValueError("封頭/封尾折彎資料缺少原本三段")
-    return {
-        "ytop1": _ui_len(by_key["ytop1"].get("len")),
-        "d": _ui_len(by_key["endcap_d"].get("len")),
-        "ybottom1": _ui_len(by_key["ybottom1"].get("len")),
-    }
+    """Legacy GUI readback; source role policy belongs to Engine."""
+    return manufacturing_api.read_endcap_editor_simple_profile(profile)
+
 
 def build_endcap_xy_profiles(snapshot: Mapping[str, object], *, part_key: str = "head") -> dict[str, list[dict]]:
     """Map authoritative EndCap bends into the editor without mirroring tail.
