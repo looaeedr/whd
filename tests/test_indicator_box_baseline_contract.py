@@ -134,7 +134,10 @@ def test_gui_indicator_box_page_loads_baseline_plus_dynamic_layout():
     spec_source = inspect.getsource(owner._indicator_box_part_spec)
     context_source = inspect.getsource(owner._indicator_component_editor_contexts)
     assert 'model_name=None' in spec_source
-    assert 'get_stretched_indicator_box_data' in context_source
-    assert '盒子.dxf' in context_source
-    assert 'box_baseline_scene = box_data.scene' in context_source
+    engine_source = inspect.getsource(manufacturing_api.resolve_indicator_editor_components)
+    assert 'resolve_indicator_editor_components' in context_source
+    assert 'get_stretched_indicator_box_data' not in context_source
+    assert 'get_stretched_indicator_box_data' in engine_source
+    assert '盒子.dxf' in engine_source
+    assert 'box_baseline_scene = box_data.scene' in engine_source
     assert '盒體（公式）' not in context_source
