@@ -660,8 +660,10 @@ _TWENTY_SHARD_DEDICATED_SUITES = _TEN_SHARD_DEDICATED_SUITES + (
 # by GitHub Actions run 40903796624; follow-up exact-head run 40909061327
 # revealed a 181s GUI shard and 12-21s quick lanes. The committed manifest,
 # NOT runner-local timing or Python hash(), owns deterministic assignments.
-# Only the measured 20-case GUI file is split across 0/14/15/16/17; all
-# original canonical selectors remain unchanged for other shard counts.
+# The GUI suite is split by observed non-parametrized cases; the measured
+# six heavy Receiving BOM parameters are distributed to short lanes, while
+# the original 339 canonical selectors remain unchanged for other counts.
+# Every exact pytest case must still reconcile at final full acceptance.
 _EIGHTEEN_SHARD_MANIFEST = ROOT / "tools/product_ci_file_duration_manifest_20261029.json"
 
 
@@ -676,6 +678,10 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
     split_file = manifest.get("split_file")
     case_owners = manifest.get("split_case_owners")
     case_seconds = manifest.get("split_case_seconds")
+    bom_file = manifest.get("bom_split_file")
+    bom_func = manifest.get("bom_split_function")
+    bom_owners = manifest.get("bom_split_case_owners")
+    bom_seconds = manifest.get("bom_split_case_seconds")
     if (manifest.get("schema") != "WHD_PRODUCT_CI_FILE_DURATION_ASSIGNMENT_V2"
             or manifest.get("canonical_selector_count") != len(PYTEST_PATHS)
             or manifest.get("canonical_file_count") != len(canonical_files)
@@ -688,7 +694,12 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
             or split_file != "tests/test_issue517_receiving_live_switch_ui_export_marking.py"
             or PYTEST_PATHS.count(split_file) != 1
             or owners.get(split_file) != 0
-            or manifest.get("split_case_count") != 20):
+            or manifest.get("split_case_count") != 20
+            or bom_file != "tests/test_issue1466_quantity_bom.py"
+            or bom_func != "test_real_quantity_bom_30_plus_20_custom_100_and_read_only"
+            or manifest.get("bom_split_source_run_id") != 41195715050
+            or PYTEST_PATHS.count(bom_file) != 1
+            or owners.get(bom_file) != 1):
         raise ValueError("18-shard duration manifest incomplete or stale")
     for filename in canonical_files:
         seconds, owner = durations[filename], owners[filename]
@@ -726,12 +737,73 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
                 or not isinstance(seconds, (int, float)) or seconds <= 0):
             raise ValueError("18-shard observed GUI case timing/owner invalid")
 
+    # Every Receiving BOM parameter executes exactly once, never a subset of
+    # its own test body. Guard the actual source decorator to catch added,
+    # removed, or renamed parametrizations before any shard runs.
+    expected_bom_cases = {
+        "金庫型-FULL-1",
+        *(f"受電箱-{mode}-{layers}"
+          for mode in ("FULL", "HALF", "BACK_OPENING") for layers in (1, 2)),
+    }
+    expected_bom_functions = {
+        "test_physical_sheets_multiply_without_name_or_topology_grouping",
+        "test_invalid_multiplicity_fails_before_any_demand",
+        "test_duplicate_physical_or_version_identity_fails_closed",
+        bom_func,
+        "test_formal_family_parts_feed_same_physical_demand_boundary",
+    }
+    bom_module = ast.parse((ROOT / bom_file).read_text(encoding="utf-8"))
+    bom_functions = {
+        node.name: node for node in bom_module.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name.startswith("test_")
+    }
+    expected_decorator = (
+        "pytest.mark.parametrize('family,back_mode,layers', "
+        "[('金庫型', 'FULL', 1)] + [('受電箱', mode, layers) for mode in "
+        "('FULL', 'HALF', 'BACK_OPENING') for layers in (1, 2)])"
+    )
+    if (not isinstance(bom_owners, dict)
+            or not isinstance(bom_seconds, dict)
+            or set(bom_owners) != expected_bom_cases
+            or set(bom_seconds) != expected_bom_cases
+            or set(bom_functions) != expected_bom_functions
+            or any(isinstance(n, ast.ClassDef) and n.name.startswith("Test")
+                   for n in bom_module.body)
+            or len(bom_functions[bom_func].decorator_list) != 1
+            or ast.unparse(bom_functions[bom_func].decorator_list[0]) != expected_decorator):
+        raise ValueError("18-shard observed BOM parameter source changed")
+    for key, owner in bom_owners.items():
+        seconds = bom_seconds[key]
+        if (isinstance(owner, bool) or not isinstance(owner, int)
+                or owner not in (1, 14, 15, 16, 17)
+                or isinstance(seconds, bool)
+                or not isinstance(seconds, (int, float)) or seconds <= 0):
+            raise ValueError("18-shard observed BOM timing/owner invalid")
+    if (bom_owners["金庫型-FULL-1"] != 1
+            or sorted(bom_owners.values()) != [1, 14, 14, 15, 15, 16, 17]):
+        raise ValueError("18-shard BOM case allocation changed")
+
     assigned = []
     for selector in PYTEST_PATHS:
         if selector == split_file:
             assigned.extend(f"{split_file}::{case_name}"
                             for case_name in case_owners
                             if case_owners[case_name] == index)
+        elif selector == bom_file:
+            # For other unparametrized functions, selecting the function
+            # includes its complete parameter set and preserves every case.
+            if index == 1:
+                assigned.extend(f"{bom_file}::{name}" for name in
+                                sorted(expected_bom_functions - {bom_func}))
+            for key, owner in bom_owners.items():
+                if owner == index:
+                    family, mode, layers = key.rsplit("-", 2)
+                    # pytest's default unicode-escaped parameter IDs.
+                    escaped_family = family.encode("unicode_escape").decode("ascii")
+                    assigned.append(
+                        f"{bom_file}::{bom_func}[{escaped_family}-{mode}-{layers}]"
+                    )
         elif owners[selector.split("::", 1)[0]] == index:
             assigned.append(selector)
     if not assigned:
@@ -806,12 +878,13 @@ def _merge_shard_junit(paths: list[Path], count: int, output: Path) -> None:
     ET.ElementTree(combined).write(output, encoding="utf-8", xml_declaration=True)
 
 
-def _verify_full_receipt(report: Path) -> None:
+def _verify_full_receipt(report: Path, collection_path: Path | None = None) -> None:
     try:
         from tools.whd_v15_acceptance_evidence import verify
     except ModuleNotFoundError:
         from whd_v15_acceptance_evidence import verify
-    receipt = verify(report)
+    receipt = (verify(report) if collection_path is None
+               else verify(report, collection_path=collection_path))
     print(f"WHD_V15_ACCEPTANCE_GREEN requirements={len(receipt['requirements'])} "
           f"passed_cases={receipt['passed_cases']}", flush=True)
 
@@ -852,14 +925,17 @@ def main() -> int:
     parser.add_argument("--shard-count", type=int, default=1)
     parser.add_argument("--junit-out", type=Path)
     parser.add_argument("--merge-junit", action="append", type=Path, default=[])
+    parser.add_argument("--collection-file", type=Path)
     args = parser.parse_args()
+    if args.collection_file is not None and not args.merge_junit:
+        parser.error("--collection-file requires --merge-junit")
     if args.merge_junit:
         if args.junit_out is None:
             parser.error("--merge-junit requires --junit-out")
         if args.shard_index != 0:
             parser.error("--merge-junit cannot select a shard")
         _merge_shard_junit(args.merge_junit, args.shard_count, args.junit_out)
-        _verify_full_receipt(args.junit_out)
+        _verify_full_receipt(args.junit_out, args.collection_file)
         return 0
     return run(index=args.shard_index, count=args.shard_count,
                junit_out=args.junit_out)

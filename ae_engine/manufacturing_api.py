@@ -28,6 +28,15 @@ from typing import Literal, Mapping
 from . import ae
 from .dxf_serialization import save_scene_dxf
 from .cabinet_types.policy import resolve_box_body_back_panel_contract
+from .receiving_quantity_versions import (
+    SCHEMA, SCHEMA_V2, SCHEMA_V3, QUANTITY_MODE, SET_BAY_MODE,
+    QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
+    normalize_quantity_snapshot, quantity_only_change,
+)
+from .receiving_nfb_quantity_partial import (
+    QuantityNfbPartialSelection, verify_quantity_nfb_inner_door,
+    select_quantity_nfb_partial, quantity_partial_live_manifests,
+)
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,
@@ -89,13 +98,20 @@ from .cabinet_types import policy as cabinet_family_policy
 
 
 
+from .fold_designer_baseline_api import (
+    fold_designer_secondary_scene_rows, query_fold_designer_baseline_rows,
+)
+
 from .manufacturing_baseline_policy import (
     resolve_policy,
     _resource_root,
     _expected_baseline_path,
     _indicator_shared_expected_path,
+    expected_shared_indicator_baselines,
     _indicator_shared_existing_path,
     expected_baseline_path_for,
+    expected_endcap_feature_baseline,
+    receiving_baseline_source_stamp,
     _baseline_path,
     _extract_endcap_shared_6p4_mother_rule,
     _divider_post_relief_center_frame,
@@ -136,6 +152,41 @@ from .manufacturing_endcap_compat import (
     _merge_baseline_endcap_holes,
     _scene_with_authoritative_fold_profiles,
 )
+
+def apply_cabinet_family_endcap_policy(
+    policy, part_key, *, family_source=None, thickness=None, structure_state=None,
+):
+    """Engine-only EndCap family geometry; preserve operator Corner selections.
+
+    Receiving computes its effective lower material FW from the authoritative
+    family/topology state.  Non-EndCap and other cabinet families are unchanged.
+    """
+    if policy is None or str(part_key) not in {"head", "tail"}:
+        return policy
+    if not cabinet_family_policy.supports_bottom_wrap_controls(family_source):
+        return policy
+    t = float(ae.T if thickness is None else thickness)
+    default_fw = float(policy.bottom_fw if policy.bottom_fw is not None else policy.fw)
+    return replace(
+        policy,
+        bottom_fw=cabinet_family_policy.effective_endcap_bottom_fw(
+            family_source, structure_state,
+            thickness=t, default_fw=default_fw,
+        ),
+    )
+
+
+def map_door_features_to_unfolded_material(
+    spec: DoorPartSpec, context: ManufacturingContext | None = None,
+):
+    """Canonical Engine-owned finished-face → unfolded-material feature map.
+
+    The FinalScene builder consumes this exact manufacturing geometry.  A
+    trusted export verifier may compare source-attested features with it,
+    but must not independently derive feature offsets or bend compensation.
+    """
+    return tuple(_door_features_for_legacy_engine(spec, context))
+
 
 from .manufacturing_render_data import (
     FoldGuide,
@@ -629,12 +680,3 @@ def save_quantity_manufacturing_groups_dxf(
         overwrite=overwrite, render_data_transform=render_data_transform,
         part_only=part_only,
     )
-
-# Expose the headless versioned NFB manufacturing selection to every client.
-# The implementation imports scene orchestration directly (no facade cycle).
-from .receiving_nfb_quantity_partial import (
-    QuantityNfbPartialSelection,
-    verify_quantity_nfb_inner_door,
-    select_quantity_nfb_partial,
-    quantity_partial_live_manifests,
-)

@@ -40,3 +40,21 @@ def test_engine_versioned_nfb_module_has_no_gui_or_tk_dependencies():
     assert "tkinter" not in source
     assert "from ae_engine.manufacturing_api import" not in source
     assert "manufacturing_scene_orchestration" in source
+
+def test_engine_quantity_version_model_is_single_owner():
+    from ae_engine import receiving_quantity_versions as owner
+    from phase6_quantity_model import QuantityModel as adapter
+    assert adapter is manufacturing_api.QuantityModel is owner.QuantityModel
+    assert "from phase6_" not in inspect.getsource(owner)
+    assert "from phase6_" not in inspect.getsource(engine)
+
+
+def test_engine_thaw_of_canonical_frozen_input_matches_existing_request_value():
+    from phase6_manufacturing_contracts import (
+        freeze_manufacturing_value, thaw_manufacturing_value as existing,
+    )
+    from ae_engine.manufacturing_value_thaw import thaw_manufacturing_value
+    original = {"w": 800.5, "slots": (1, 2), "version": {"n": 3}}
+    frozen = freeze_manufacturing_value(original)
+    assert thaw_manufacturing_value(frozen) == existing(frozen)
+    assert thaw_manufacturing_value(frozen)["version"] is not original["version"]

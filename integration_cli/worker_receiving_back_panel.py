@@ -37,8 +37,7 @@ def receiving_back_panel_spec_from_trusted_part(part: Mapping[str, Any]):
     with the exact same three baselines, but select a separately signed
     rear panel mode/contract; external source holes are not projected.
     """
-    from ae_engine.cabinet_types import receiving
-    from ae_engine.box_body_structure import box_body_height_from_corner_policies
+    from ae_engine.manufacturing_api import resolve_box_body_back_panel_contract
     from phase6_box_body_structure import set_side_back_back_panel_mode
 
     if (not isinstance(part, Mapping)
@@ -78,16 +77,8 @@ def receiving_back_panel_spec_from_trusted_part(part: Mapping[str, Any]):
         from phase6_box_body_structure import back_panel_mode
         if back_panel_mode(state).value != mode:
             raise ValueError("Receiving rear-panel mode was not persisted")
-        from phase6_box_body_structure import BoxBodyStructureType
-        config = state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-        panel_width = base.width - float(config["back_width_comp_t"]) * base.thickness
-        full_height = box_body_height_from_corner_policies(
-            base.height, base.thickness,
-            head_corner_policy=None, tail_corner_policy=None,
-        )
-        contract = receiving.resolve_back_panel_contract(
-            snapshot, structure_state=state,
-            panel_width=panel_width, full_panel_height=full_height,
+        contract = resolve_box_body_back_panel_contract(
+            "受電箱", snapshot, structure_state=state,
         )
         if (contract.get("mode") != mode
                 or len(tuple(contract.get("fixed_slot_profiles") or ())) != 4

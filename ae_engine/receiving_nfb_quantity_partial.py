@@ -14,8 +14,8 @@ from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
 from ae_engine.manufacturing_scene_orchestration import build_inner_door_panel_render_data
 from ae_engine.receiving_nfb_2d_preview import resolve_indexed_dxf_path
 from ae_engine.receiving_switch_model_catalog import INDEX_PATH
-from phase6_manufacturing_contracts import thaw_manufacturing_value
-from phase6_quantity_model import QuantityModel
+from .manufacturing_value_thaw import thaw_manufacturing_value
+from .receiving_quantity_versions import QuantityModel
 
 
 @dataclass(frozen=True)

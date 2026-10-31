@@ -145,6 +145,59 @@ jobs:
           set -euo pipefail
           xvfb-run -a python tools/quick_test.py --ci-pr
 
+  # Collect the full parameterized pytest inventory while the 18 test
+  # runners execute. The final gate still reconciles every JUnit case,
+  # but does not spend another ~40-70s collecting after all shards finish.
+  canonical-collection:
+    name: Canonical Collection
+    needs: prepare
+    if: needs.prepare.outputs.reuse != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact PR candidate for collection
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Set up Python for canonical collection
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install canonical collection dependencies (bounded retry)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ci_bounded_install.py --label pip-collection --attempts 2 --timeout-seconds 240 -- \
+            python -m pip install --retries 3 --timeout 20 -r requirements.txt pytest matplotlib ezdxf
+      - name: Collect complete exact-head canonical node IDs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' > canonical-collection.txt
+          import subprocess
+          import sys
+          from tools.product_ci_regression import PYTEST_PATHS
+
+          subprocess.run(
+              [sys.executable, "-m", "pytest", "--collect-only", "-q", *PYTEST_PATHS],
+              check=True,
+          )
+          PY
+          test -s canonical-collection.txt
+          git rev-parse HEAD > canonical-collection-head.txt
+          test "$(cat canonical-collection-head.txt)" = "${{ github.event.pull_request.head.sha }}"
+      - name: Publish exact-head collection for final reconciliation
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-ci-canonical-collection
+          path: |
+            canonical-collection.txt
+            canonical-collection-head.txt
+          if-no-files-found: error
+          retention-days: 7
+
   test-shard:
     name: Product Shard (${{ matrix.shard }})
     needs: prepare
@@ -239,7 +292,7 @@ jobs:
 
   product-regression:
     name: Canonical Product Regression
-    needs: [prepare, test-shard]
+    needs: [prepare, test-shard, canonical-collection]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -250,14 +303,17 @@ jobs:
           PREFLIGHT_RESULT: ${{ needs.prepare.result }}
           REUSE: ${{ needs.prepare.outputs.reuse }}
           SHARDS_RESULT: ${{ needs.test-shard.result }}
+          COLLECTION_RESULT: ${{ needs.canonical-collection.result }}
         run: |
           set -euo pipefail
           test "$PREFLIGHT_RESULT" = success
           if [ "$REUSE" = true ]; then
             test "$SHARDS_RESULT" = skipped
+            test "$COLLECTION_RESULT" = skipped
             echo 'GREEN_REUSED_NO_RETEST — target drift evidence validated'
           else
             test "$SHARDS_RESULT" = success
+            test "$COLLECTION_RESULT" = success
             echo 'ALL_EIGHTEEN_SHARDS_GREEN — verifying combined canonical CPR/AC'
           fi
       - name: Checkout exact PR candidate for acceptance verification
@@ -335,6 +391,20 @@ jobs:
           test -s junit/shard-15.xml
           test -s junit/shard-16.xml
           test -s junit/shard-17.xml
+      - name: Fetch exact-run collection and verify tested SHA
+        if: needs.prepare.outputs.reuse != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: whd-ci-canonical-collection
+          path: collection
+      - name: Require exact-head collection evidence
+        if: needs.prepare.outputs.reuse != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s collection/canonical-collection.txt
+          test -s collection/canonical-collection-head.txt
+          test "$(cat collection/canonical-collection-head.txt)" = "${{ github.event.pull_request.head.sha }}"
       - name: Merge and verify every canonical case and all 52 CPR/AC rows
         if: needs.prepare.outputs.reuse != 'true'
         shell: bash
@@ -360,6 +430,7 @@ jobs:
             --merge-junit junit/shard-15.xml \
             --merge-junit junit/shard-16.xml \
             --merge-junit junit/shard-17.xml \
+            --collection-file collection/canonical-collection.txt \
             --junit-out combined-canonical-regression.xml
       - name: Publish fully verified canonical JUnit
         if: needs.prepare.outputs.reuse != 'true'

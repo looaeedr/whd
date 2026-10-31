@@ -117,6 +117,63 @@ def _expected_baseline_path(model_name: str | None, filename: str, context: Manu
     return None
 
 
+def receiving_baseline_source_stamp(
+    model: str, *, context=None, include_physical_panels=False,
+):
+    """Engine-owned source-stat/reload-generation witness for Receiving manufacturing.
+
+    The original complete manufacturing undo cache uses the three standard
+    BoxBody/EndCap/Door sources. A multipart Receiving BoxBody additionally
+    reads three dedicated physical sheet DXFs; cross-transaction *raw*
+    material reuse is forbidden unless all three dedicated files are
+    source-witnessed at the same paths used by the manufacturing factory.
+    """
+    from pathlib import Path
+    from ae_engine import ae
+    pieces = []
+    for name in ("箱身.dxf", "封頭尾.dxf", "門.dxf"):
+        try:
+            if context is not None:
+                from ae_engine.manufacturing_baseline_policy import _expected_baseline_path
+                path = _expected_baseline_path(model, name, context)
+                if path is not None and not Path(path).is_file():
+                    path = None
+            else:
+                # Preserve existing global complete-manufacturing receipt
+                # semantics for callers without a scoped material Context.
+                path = ae.baseline_part_path(model, name)
+            if path is None:
+                pieces.append((name, None))
+                continue
+            pieces.append((name, tuple(ae.baseline_source_fingerprint(path))))
+        except (OSError, ValueError):
+            return None
+
+    if include_physical_panels:
+        from ae_engine.receiving_panel_baselines import ROLE_FILES
+        from ae_engine.manufacturing_baseline_policy import _expected_baseline_path
+        from ae_engine.contracts import ManufacturingContext
+        ctx = context or ManufacturingContext()
+        for role, filename in sorted(ROLE_FILES.items()):
+            if ctx.resource_root is not None:
+                # Match manufacturing_scene_orchestration's resource-root
+                # authority exactly, rather than the legacy AE global root.
+                path = Path(ctx.resource_root) / "基準檔" / "受電箱" / filename
+            else:
+                path = _expected_baseline_path("受電箱", filename, ctx)
+            if path is None:
+                return None
+            try:
+                path = Path(path)
+                if not path.is_file():
+                    return None
+                pieces.append((
+                    role, filename, tuple(ae.baseline_source_fingerprint(path)),
+                ))
+            except (OSError, ValueError):
+                return None
+    return tuple(pieces)
+
 def _indicator_shared_expected_path(filename: str, context: ManufacturingContext, model_name: str | None = None) -> Path | None:
     model = str(model_name or "").strip()
     if model:
@@ -127,6 +184,24 @@ def _indicator_shared_expected_path(filename: str, context: ManufacturingContext
             raise RuntimeError("AE shared-baseline resolver is unavailable")
         path = resolver(filename, require_exists=False)
         return Path(path) if path else None
+
+
+def expected_shared_indicator_baselines(
+    context: ManufacturingContext | None = None,
+) -> tuple[Path, Path]:
+    """Public Engine authority for the coupled IndicatorBox / small-door sources.
+
+    The shared-model resolver must choose the same factory source folder for
+    both pieces; the caller may attest bytes or reject a missing source but
+    cannot choose the physical baseline filenames or a different model.
+    Returned paths are *expected* resources, not manufacturing certification.
+    """
+    ctx = context or ManufacturingContext()
+    box_path = _indicator_shared_expected_path("盒子.dxf", ctx)
+    small_door_path = _indicator_shared_expected_path("小門.dxf", ctx)
+    if box_path is None or small_door_path is None or box_path.parent != small_door_path.parent:
+        raise ValueError("WHD_INDICATOR_SHARED_BASELINE_PAIR_UNAVAILABLE")
+    return box_path, small_door_path
 
 
 def _indicator_shared_existing_path(filename: str, context: ManufacturingContext, model_name: str | None = None) -> Path | None:
@@ -371,6 +446,27 @@ def _door_baseline_model_name(model_name: str | None) -> str | None:
 def _endcap_baseline_feature_model_name(model_name: str | None) -> str | None:
     """Return the model that owns shared EndCap baseline-hole features."""
     return cabinet_family_policy.baseline_feature_model_name(model_name)
+
+
+def expected_endcap_feature_baseline(
+    model_name: str, context: ManufacturingContext | None = None,
+) -> Path:
+    """Engine-owned certified *source path* for a Family's EndCap fixed features.
+
+    Family policy selects the feature-source model, separately from the target
+    EndCap's material and depth compensation. A returned expected path is NOT
+    DXF content certification; trusted Worker must still attest the file and
+    reject absent, invalid or changed baseline bytes before manufacturing.
+    """
+    source_model = _endcap_baseline_feature_model_name(model_name)
+    if not source_model:
+        raise ValueError("WHD_ENDCAP_FEATURE_SOURCE_FAMILY_UNAVAILABLE")
+    expected = _expected_baseline_path(
+        source_model, "封頭尾.dxf", context or ManufacturingContext(),
+    )
+    if expected is None:
+        raise ValueError("WHD_ENDCAP_FEATURE_BASELINE_UNAVAILABLE")
+    return Path(expected)
 
 
 def _door_nameplate_datum_top(spec: DoorPartSpec) -> float | None:
