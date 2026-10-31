@@ -557,6 +557,12 @@ frame-only route.
 - `read_standard_part_fold_profiles` is the public Engine owner of the approved reverse material Fold → operator setting mapping for Door, BasePlate, IndicatorBox/IndicatorDoor, including the four-edge equality rejection and Receiving root BasePlate real physical Fold precedence. Phase6 manufacturing adapter is only a GUI request/response delegate.
 - Physical Fold/FinalScene and Certified Registry remain authoritative. A reverse Settings DTO is neither a DXF/CUTTING grant nor permission to fabricate Custom Fold or overwrite Receiving source geometry; #2517 stays OPEN.
 
+
+### #2517 Live operator finished dimensions source precedence (2026-11-01)
+
+- Public `resolve_live_operator_finished_dimensions` now owns the legacy GUI's sparse snapshot W/H/D fill and Receiving live Bay/Quantity working dimensions-over-seed precedence, while consuming existing canonical `resolve_operator_finished_dimensions` (mesh, Head/Tail Corner policy) without a second manufacturing formula.
+- The Phase6 adapter only collects operator input and passes Corner policy DTOs to Engine. No persisted values are rewritten and no unverified DXF capability is granted; #2517 remains OPEN.
+
 ### #2517 Receiving Inner Door quantity Apply Engine API (2026-11-01)
 
 - `apply_receiving_inner_door_quantity_configuration(layout, library, quantities, assigned, *, expected_counts=None)` 是跨所有 Receiving Set/Bay 內門版本配置的唯一製造狀態交易入口。Engine `receiving_inner_door_pairing` 先完整檢查 topology／各版本數量／對應、每個候選正式 NFB CSV／CUTTING 單一來源及已提交實體 NFB 覆寫衝突，再原子回傳 detached layout 與受影響 physical Bay stable IDs；未通過不得部分寫入。
