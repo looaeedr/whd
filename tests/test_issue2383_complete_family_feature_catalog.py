@@ -88,7 +88,7 @@ def test_full_vault_receiving_feature_catalog_is_schema_valid_and_grounded(monke
     assert set(advertised["supported_part_kinds"]) == {
         "door", "indicator_small_door", "indicator_box",
         "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body",
-        "inner_door",
+        "inner_door", "side_panel",
     }
     assert not advertised["capability_flags"]["per_part_transactions"]
     assert not advertised["capability_flags"]["crash_recovery"]
