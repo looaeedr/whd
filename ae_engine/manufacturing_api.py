@@ -896,3 +896,8 @@ def apply_receiving_bay_dimensions(
         layout, set_index, bay_indices, width=width, height=height,
         depth=depth, expected_count=expected_count,
     )
+
+def resize_receiving_bays_with_family_defaults(layout, *, set_index, bay_count):
+    """Public Engine Receiving Family default projection on new Bay creation."""
+    from .receiving_layout import resize_receiving_bays_with_family_defaults as resize
+    return resize(layout, set_index=set_index, bay_count=bay_count)

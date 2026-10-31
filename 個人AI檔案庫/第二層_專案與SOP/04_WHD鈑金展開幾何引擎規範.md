@@ -598,3 +598,7 @@ frame-only route.
 ### #2517 Receiving Bay 批次尺寸／NFB X 證據交易 Engine API（2026-11-01）
 
 公開 `manufacturing_api.apply_receiving_bay_dimensions(layout, set_index, bay_indices, *, width, height, depth, expected_count)` 由 `ae_engine.receiving_layout` 擁有全部多連 W/H/D 正整數／完整選取驗證、門格 `complete_partition` 保留先前操作尺寸、NFB 已確認 X 在 W 改變後 `RECONFIRM_REQUIRED` 的 canonical 證據移轉，整批僅做一次 `normalize_receiving_layout`。輸入資料不被修改；回傳 (detached layout, changed physical Bay IDs)，同尺寸 no-op 回傳原 layout 與空 IDs 不執行 normalize。GUI 僅轉送輸入、接收結果和 UI dirty IDs，不再自行決定任何尺寸／孔位／成品製造語意。本移轉維持原 Save→Reload、Door Partition、NFB source 和 #1817 batch 效能測試，沒有新增 CUTTING/DXF 製造認證；#2517 仍 OPEN。
+
+### #2517 Receiving 新增實體 Bay Family 預設尺寸 Engine API（2026-11-01）
+
+`manufacturing_api.resize_receiving_bays_with_family_defaults(layout, *, set_index, bay_count)` 是 GUI 增減 Receiving 實體 Bay 的公開 Engine 入口；擴增時呼叫 canonical `receiving_layout.resize_receiving_bays` 建立實體拓樸、Joint、共享來源，再由 Engine `cabinet_types.receiving.BOX_BODY_DEFAULTS` 決定**僅新 Bay**的實際 W/H/D，委派既有 `apply_receiving_bay_dimensions` 同步 Door partition／NFB X 確認依據。既有 Bay 的操作者尺寸及來源均保留，不再由 GUI 計算或由上一 Bay 自訂 W/H/D 取代 Family 預設。減少 Bay 的使用者確認／選取／dirty bookkeeping 仍由 GUI 擁有；低層 `resize_receiving_bays` 的純 copy-by-value 契約未更動，Save→Reload 和已提交 NFB 驗證不放寬。無新 CUTTING、DXF 製造認證；#2517 保持 OPEN。
