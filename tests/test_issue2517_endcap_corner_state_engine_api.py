@@ -20,7 +20,7 @@ import phase6_endcap_semantics as gui
 def _state():
     bottom = {
         "type_id": "CROSS", "rotation_quadrants": 0,
-        "cross_mode": "EXTRA_CUT", "direction": "BOTH", "amount_t": 2.25,
+        "cross_mode": "extra_cut", "direction": "both", "amount_t": 2.25,
     }
     return {
         "head": {"bottom_left": deepcopy(bottom)},
@@ -69,8 +69,8 @@ def test_operator_explicit_bottom_reset_matches_current_engine_policy():
     ) is CornerTypeId.OVERLAY
     for part in ("head", "tail"):
         for corner in ("bottom_left", "bottom_right"):
-            assert raw[part][corner]["cross_mode"] == "EXTRA_CUT"
-            assert raw[part][corner]["direction"] == "WIDTH"
+            assert raw[part][corner]["cross_mode"] == "extra_cut"
+            assert raw[part][corner]["direction"] == "width"
             assert raw[part][corner]["amount_t"] == pytest.approx(1.5)
 
 
