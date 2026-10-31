@@ -328,19 +328,23 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - name: Install canonical collection dependencies (bounded retry)
+      # The final job only parses exact-run JUnits/collection and checks the
+      # 52 CPR/AC rows using Python's standard library. Pytest, Tk, ezdxf,
+      # matplotlib and manufacturing deps were already installed and exercised
+      # by every test shard and the independent canonical-collection job.
+      # Keep setup-python pinned above, but do not reinstall test deps here.
+      - name: Verify standard-library-only canonical receipt verifier
         if: needs.prepare.outputs.reuse != 'true'
         shell: bash
         run: |
           set -euo pipefail
-          python tools/ci_bounded_install.py --label pip-canonical --attempts 2 --timeout-seconds 240 -- \
-            python -m pip install --retries 3 --timeout 20 -r requirements.txt pytest matplotlib ezdxf
-      - name: Verify canonical dependency imports
-        if: needs.prepare.outputs.reuse != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -c 'import ezdxf, matplotlib, pytest, shapely; print("CI_CANONICAL_IMPORTS_PASS")'
+          python -S - <<'PY'
+          import tools.product_ci_regression as regression
+          import tools.whd_v15_acceptance_evidence as evidence
+          assert callable(regression._merge_shard_junit)
+          assert callable(evidence.verify)
+          print("CI_CANONICAL_STDLIB_VERIFIER_PASS")
+          PY
       - name: Fetch every successful shard JUnit (isolated bounded retries)
         if: needs.prepare.outputs.reuse != 'true'
         shell: bash
@@ -349,11 +353,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p junit
-          # A combined actions/download-artifact request can lose one blob
-          # even when each shard uploaded a valid JUnit. Download by explicit
-          # artifact name from this exact run; never reuse another run's proof.
-          for shard in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17; do
-            ok=false
+          # A combined actions/download-artifact request can lose one blob.
+          # Fetch *named* artifacts from THIS exact run, four at a time.
+          # Each writes a distinct shard-N.xml; every download has its own
+          # bounded retries. A failed background job fails the entire gate.
+          download_shard() {
+            local shard="$1" attempt
             for attempt in 1 2 3; do
               rm -f "junit/shard-${shard}.xml"
               echo "CI_JUNIT_DOWNLOAD_START shard=${shard} attempt=${attempt}/3 run=${GITHUB_RUN_ID}"
@@ -361,18 +366,34 @@ jobs:
                    --repo "${GITHUB_REPOSITORY}" \
                    --name "whd-ci-shard-${shard}" --dir junit \
                    && test -s "junit/shard-${shard}.xml"; then
-                ok=true
                 echo "CI_JUNIT_DOWNLOAD_PASS shard=${shard} attempt=${attempt}"
-                break
+                return 0
               fi
               echo "CI_JUNIT_DOWNLOAD_RETRY shard=${shard} attempt=${attempt}"
               sleep "${attempt}"
             done
-            if [ "${ok}" != true ]; then
-              echo "::error::CI_JUNIT_DOWNLOAD_FAILED shard=${shard} run=${GITHUB_RUN_ID}"
-              exit 1
+            echo "::error::CI_JUNIT_DOWNLOAD_FAILED shard=${shard} run=${GITHUB_RUN_ID}"
+            return 1
+          }
+          pids=()
+          failed=false
+          for shard in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17; do
+            download_shard "$shard" &
+            pids+=("$!")
+            if [ "${#pids[@]}" -eq 4 ]; then
+              for pid in "${pids[@]}"; do
+                if ! wait "$pid"; then failed=true; fi
+              done
+              pids=()
             fi
           done
+          for pid in "${pids[@]}"; do
+            if ! wait "$pid"; then failed=true; fi
+          done
+          if [ "$failed" != false ]; then
+            echo '::error::CI_JUNIT_DOWNLOAD_BATCH_FAILED'
+            exit 1
+          fi
           test -s junit/shard-0.xml
           test -s junit/shard-1.xml
           test -s junit/shard-2.xml
