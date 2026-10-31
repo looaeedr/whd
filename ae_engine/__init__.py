@@ -70,6 +70,8 @@ from .manufacturing_api import (
     indicator_small_door_spec,
     indicator_small_door_operator_spec,
     rebase_receiving_set_parent_nfb_brand,
+    candidate_committed_csv_nfb_config, validate_candidate_nfb_replacement,
+    replace_candidate_bay_nfb,
 )
 from .cabinet_types import (
     CabinetTypeRegistration, registered_cabinet_types, resolve_cabinet_type,
@@ -146,7 +148,9 @@ __all__ = [
     "door_material_frame_width",
     "door_indicator_offset_for_finished_center", "indicator_box_opening_feature",
     "indicator_small_door_spec", "indicator_small_door_operator_spec",
-    "rebase_receiving_set_parent_nfb_brand", "ManufacturingPolicy", "ManufacturingContext",
+    "rebase_receiving_set_parent_nfb_brand",
+    "candidate_committed_csv_nfb_config", "validate_candidate_nfb_replacement",
+    "replace_candidate_bay_nfb", "ManufacturingPolicy", "ManufacturingContext",
     "DoorPartSpec", "BoxBodyPartSpec", "EndCapPartSpec", "BasePlatePartSpec",
     "IndicatorBoxPartSpec", "CustomFoldPartSpec", "PartExportResult", "PartSpec",
     "CabinetTypeRegistration", "registered_cabinet_types", "resolve_cabinet_type",
