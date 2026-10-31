@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = Draft202012Validator(json.loads((
     ROOT / "integration_cli" / "schemas" / "request_v1_1.schema.json"
 ).read_text(encoding="utf-8")))
-P0 = {"door", "end_cap_head", "end_cap_tail", "indicator_box", "indicator_small_door", "base_plate", "custom_fold", "box_body"}
+P0 = {"door", "end_cap_head", "end_cap_tail", "indicator_box", "indicator_small_door", "base_plate", "custom_fold", "box_body", "inner_door"}
 
 
 def _feature_request(family, role):
@@ -49,6 +49,15 @@ def _feature_request(family, role):
             "shrink_top_mm", "shrink_bottom_mm", "shrink_left_mm",
             "shrink_right_mm", "bend_mm",
         )})
+    if role == "inner_door":
+        part.clear()
+        part.update({
+            "kind": role, "cabinet_family": family,
+            "source_part_ref": "inner_door:upper:panel",
+            "dimension_semantics": "part_formed_outer",
+            "inner_door_id": "upper", "inner_door_cell_key": "0:0",
+            "dimensions_mm": {"width": 700, "height": 1000, "thickness": 2},
+        })
     if role == "custom_fold":
         part.clear()
         part.update({
@@ -109,7 +118,6 @@ def test_unknown_family_cannot_inherit_vault_api_route():
 @pytest.mark.parametrize("family,role", [
     ("受電箱", "box_body"),
     ("受電箱", "base_plate"),
-    ("受電箱", "inner_door"),
     ("受電箱", "divider"),
     ("受電箱", "nfb_cutting"),
     ("受電箱", "multi_bay_batch"),
