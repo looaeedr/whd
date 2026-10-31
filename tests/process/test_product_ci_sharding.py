@@ -119,6 +119,13 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         assert len(manifest["split_case_owners"]) == 20
         assert len(manifest["bom_split_case_owners"]) == 7
         assert manifest["bom_split_source_run_id"] == 41195715050
+        assert manifest["bom_rebalance_source_run_id"] == 41203677890
+        assert manifest["bom_rebalance_target_case"] == "受電箱-FULL-2"
+        assert manifest["bom_rebalance_previous_owner"] == 15
+        assert manifest["bom_rebalance_new_owner"] == 16
+        assert manifest["bom_split_case_owners"]["受電箱-FULL-2"] == 16
+        assert manifest["bom_split_case_owners"]["受電箱-BACK_OPENING-1"] == 15
+        assert sorted(manifest["bom_split_case_owners"].values()) == [1, 14, 14, 15, 16, 16, 17]
         assert manifest["bom_split_file"] in PYTEST_PATHS
         assert manifest["t15_split_source_run_id"] == 41197885699
         assert manifest["t15_split_file"] in PYTEST_PATHS
@@ -320,6 +327,20 @@ def test_bom_split_rejects_missing_parameter_or_unapproved_lane(tmp_path, monkey
     path.write_text(json.dumps(invalid, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(ValueError, match="observed BOM"):
         shard_paths(1, 18)
+
+
+def test_measured_bom_full2_moves_only_one_exact_parameter():
+    manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    bom = manifest["bom_split_file"]
+    func = manifest["bom_split_function"]
+    case = "受電箱-FULL-2".split("-")
+    family = case[0].encode("unicode_escape").decode("ascii")
+    node = f"{bom}::{func}[{family}-{case[1]}-{case[2]}]"
+    shards = [shard_paths(i, 18) for i in range(18)]
+    assert node in shards[16]
+    assert node not in shards[15]
+    assert sum(node in shard for shard in shards) == 1
+    assert manifest["bom_split_case_owners"]["受電箱-BACK_OPENING-1"] == 15
 
 
 def test_bom_split_preserves_every_non18_canonical_file_selector():
