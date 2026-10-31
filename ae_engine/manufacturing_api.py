@@ -101,6 +101,7 @@ from .manufacturing_baseline_policy import (
     expected_shared_indicator_baselines,
     _indicator_shared_existing_path,
     expected_baseline_path_for,
+    expected_endcap_feature_baseline,
     receiving_baseline_source_stamp,
     _baseline_path,
     _extract_endcap_shared_6p4_mother_rule,
@@ -142,6 +143,29 @@ from .manufacturing_endcap_compat import (
     _merge_baseline_endcap_holes,
     _scene_with_authoritative_fold_profiles,
 )
+
+def apply_cabinet_family_endcap_policy(
+    policy, part_key, *, family_source=None, thickness=None, structure_state=None,
+):
+    """Engine-only EndCap family geometry; preserve operator Corner selections.
+
+    Receiving computes its effective lower material FW from the authoritative
+    family/topology state.  Non-EndCap and other cabinet families are unchanged.
+    """
+    if policy is None or str(part_key) not in {"head", "tail"}:
+        return policy
+    if not cabinet_family_policy.supports_bottom_wrap_controls(family_source):
+        return policy
+    t = float(ae.T if thickness is None else thickness)
+    default_fw = float(policy.bottom_fw if policy.bottom_fw is not None else policy.fw)
+    return replace(
+        policy,
+        bottom_fw=cabinet_family_policy.effective_endcap_bottom_fw(
+            family_source, structure_state,
+            thickness=t, default_fw=default_fw,
+        ),
+    )
+
 
 def map_door_features_to_unfolded_material(
     spec: DoorPartSpec, context: ManufacturingContext | None = None,
