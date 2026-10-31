@@ -27,6 +27,8 @@ from typing import Literal, Mapping
 
 from . import ae
 from .dxf_serialization import save_scene_dxf
+from .cabinet_types.policy import resolve_box_body_back_panel_contract
+from .indicator_editor_geometry import resolve_indicator_editor_components
 from . import manufacturing_verification as _manufacturing_verification
 from . import manufacturing_export as _manufacturing_export
 from . import manufacturing_requests as _manufacturing_requests
