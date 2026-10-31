@@ -399,3 +399,18 @@ delegates unchanged to the existing canonical Cabinet Family policy for
 legacy GUI spec adapters. Vault/Receiving compensation continues in Engine;
 no manufacturing formula, physical part identity, CUTTING, or DXF capability
 is created or re-certified by this ownership migration.
+
+
+## Standard physical Fold readback into Settings (#2517)
+
+`ae_engine.manufacturing_api.read_standard_part_fold_profiles(part_key, profiles,
+original_snapshot)` is the Engine public reverse-projection owner for existing
+standard Door, BasePlate, IndicatorBox and IndicatorDoor material Fold keys.
+Its result contains only the corresponding persisted operator fold settings.
+Four-edge BasePlate/Indicator folds must agree exactly to supply one shared
+Settings value; mismatches raise instead of choosing an arbitrary side.
+The real Receiving root BasePlate physical Fold takes precedence: if its
+certified source-backed 3D profiles exist, no generic four-edge setting is
+backfilled from its BEND. Unknown/custom keys return no standard settings.
+The GUI `phase6_manufacturing_adapter` only forwards the same profiles and
+snapshot; it does not perform a second material or identity interpretation.
