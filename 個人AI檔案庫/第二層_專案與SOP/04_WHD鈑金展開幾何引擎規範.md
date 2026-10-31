@@ -501,3 +501,9 @@ frame-only route.
 
 - `project_finished_features_to_legacy_renderer_holes` is the Engine public owner of Circle/Rect finished-face hole positioning and integer legacy Fold Renderer display rows, consuming the existing `feature_finished_point` authority.
 - The former GUI `project_features_to_original_holes` now forwards request→Engine→result only. Profile/custom features remain independent; a preview DTO never authorizes cutting/DXF and does not close #2517.
+
+
+### #2517 Settings finished part dimensions to Engine (2026-11-01)
+
+- `project_part_dimensions`, `door_part_projections` and `DoorPartProjection` now belong to public `ae_engine.manufacturing_api`; Family Door FW, Door-cell finished sizes, Receiving BasePlate physical blank and persisted dimension reconciliation are computed from existing canonical Engine sources.
+- `phase6_settings_profile_projection` retains the existing Settings freeze/plan/presentation contract but re-exports the Engine API only; it does not implement second Door/BasePlate size formulas. This is one #2517 slice, not a declaration of complete manufacturing/DXF capability.

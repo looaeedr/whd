@@ -175,6 +175,10 @@ from .cabinet_types import policy as cabinet_family_policy
 
 
 
+from .part_dimension_projection import (
+    DoorPartProjection, door_part_projections, project_part_dimensions,
+)
+
 from .fold_designer_baseline_api import (
     fold_designer_secondary_scene_rows, query_fold_designer_baseline_rows,
     project_finished_features_to_legacy_renderer_holes,
