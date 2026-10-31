@@ -48,11 +48,11 @@ def _destroy(app, root):
 
 @pytest.fixture(scope="module")
 def _live_tk_anchor_for_matrix():
-    """Prevent Windows Tcl/Tk resource unload between three real GUI cases.
+    """Keep one real Windows Tcl/Tk interpreter throughout the GUI matrix.
 
-    Each intent still creates TWO independent GUI interpreters and genuinely
-    closes them; this otherwise-idle anchor is not their application host.
-    Destroy it only after the entire certified-intent matrix has passed.
+    Each test creates two distinct Toplevel windows and two fresh application
+    hosts. All windows are closed after their real 2D/3D/Save→Reload checks.
+    The hidden anchor alone survives until every certified case completes.
     """
     anchor = tk.Tk()
     anchor.withdraw()
@@ -70,14 +70,15 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(
     import gui
 
     assert _live_tk_anchor_for_matrix.winfo_exists()
-    root = tk.Tk(); root.withdraw()
-    # GUI variables without an explicit master belong to THIS session, not
-    # the long-lived test-only Tcl anchor.
-    tk._default_root = root
-    # Windows Tcl may fail to re-read init.tcl after the last Tk interpreter
-    # was destroyed. Keep an independent second interpreter alive throughout
-    # the first GUI session, then reload into a separately constructed host.
-    root2 = tk.Tk(); root2.withdraw()
+    root = tk.Toplevel(_live_tk_anchor_for_matrix); root.withdraw()
+    # Tk variables and every Toplevel share the long-lived interpreter,
+    # while the actual GUI hosts own independent state and window lifecycles.
+    assert root is not _live_tk_anchor_for_matrix
+    # Host two genuinely separate Tk windows in the SAME live interpreter.
+    # Windows runners can lose init.tcl/menu.tcl on repeated Tk() creation,
+    # even while another interpreter is alive. A new Toplevel + fresh GUI
+    # owner still tests real independent editing and Save→Reload sessions.
+    root2 = tk.Toplevel(_live_tk_anchor_for_matrix); root2.withdraw()
     app = gui.BoxCalculatorGUI(root)
     save_path = tmp_path / f"assembly-{intent.value}.p6fold"
     try:
@@ -165,12 +166,11 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(
     finally:
         _destroy(app, root)
 
-    # root2 has been a *separate* Tcl interpreter since before the first
-    # editing session. Tk drops its implicit default when root1 is destroyed;
-    # GUI-created StringVar() uses that default unless a master is specified.
-    # Switch the test's Tcl default to the already-live independent root2.
+    # The original editor was destroyed, but this independently constructed
+    # second host and its Tk window survived. The shared interpreter retains
+    # its Tcl/Tk package resources across all certified-intent cases.
     assert root2.winfo_exists()
-    tk._default_root = root2
+    assert _live_tk_anchor_for_matrix.winfo_exists()
     app2 = gui.BoxCalculatorGUI(root2)
     try:
         app2.load_phase6_project(save_path, open_designer=False)
