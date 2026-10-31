@@ -16,6 +16,7 @@ from typing import Any, Mapping, Sequence
 from integration_cli.prepare_evidence import (
     PrepareEvidenceError, _pure_json, evidence_digest,
 )
+from integration_cli.worker_receiving_side_panel import require_receiving_side_panel_frame
 from integration_cli.worker_inner_door_panel import require_canonical_receiving_inner_door_panel_frame
 from integration_cli.worker_box_body import require_canonical_vault_box_body_size_only_frame
 from integration_cli.worker_custom_fold import require_canonical_custom_fold_size_only_frame
@@ -73,6 +74,14 @@ def _binding_payload(
             require_canonical_indicator_box_size_only_frame(
                 frame, physical_part_id=physical,
             )
+        elif raw_kind == "side_panel":
+            side_ref = locked["raw_part"].get("source_part_ref")
+            side_role = {"box_body:left_side": "left_side", "box_body:right_side": "right_side"}.get(side_ref)
+            if side_role is None or frame_id != f"side_panel:{side_role}:{physical}:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Receiving physical side Frame identity mismatch")
+            require_receiving_side_panel_frame(
+                frame, role=side_role, physical_part_id=physical,
+            )
         elif raw_kind == "inner_door":
             if frame_id != f"inner_door:{physical}:flat:size-only-v1":
                 raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Receiving inner-door Frame ID invalid")
@@ -113,7 +122,7 @@ def _binding_payload(
         seen_frames.add(frame_id)
         if frame.get("coordinate_contract_revision") != "1" or frame.get("units") != "mm":
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unsupported Frame units/revision")
-        if raw_kind not in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body", "inner_door"):
+        if raw_kind not in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body", "inner_door", "side_panel"):
             require_canonical_door_local_frame(frame, physical_part_id=physical)
         checked.append({
             "item_id": item_id,
