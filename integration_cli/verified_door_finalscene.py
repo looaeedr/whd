@@ -17,11 +17,12 @@ from integration_cli.prepare_batch import (
     indicator_small_door_spec_from_trusted_prepared_part,
     indicator_box_spec_from_trusted_prepared_part,
     endcap_spec_from_trusted_prepared_part,
+    vault_base_plate_spec_from_trusted_prepared_part,
 )
 from integration_cli.prepare_evidence import PrepareEvidenceError, _pure_json
 from integration_cli.prepare_frame import (
     resolve_door_finished_local_frame, resolve_indicator_box_size_only_frame,
-    resolve_endcap_size_only_frame,
+    resolve_endcap_size_only_frame, resolve_vault_base_plate_size_only_frame,
 )
 from integration_cli.prepare_recheck import recheck_trusted_door_export
 from integration_cli.source_circle_verification import verify_trusted_original_dxf_features
@@ -195,10 +196,10 @@ def save_trusted_door_circle_finalscene_batch(
         kind = original["part"]["kind"]
         if kind not in (
             "door", "indicator_small_door", "indicator_box",
-            "end_cap_head", "end_cap_tail",
+            "end_cap_head", "end_cap_tail", "base_plate",
         ):
             _reject("physical part has no trusted WHD FinalScene manufacturing owner")
-        if kind in ("indicator_box", "end_cap_head", "end_cap_tail") and exported.get("features"):
+        if kind in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate") and exported.get("features"):
             _reject("size-only physical Frame has no certified source-Feature mapping")
         # A source DXF containing untransferred geometry is never an
         # unperforated blank: even zero declared Features must not silently
@@ -216,6 +217,21 @@ def save_trusted_door_circle_finalscene_batch(
                 _reject("source DXF has untransferred geometry without declared Features")
         original_item_id = original["item_id"]
         source_path = source_documents.get(original_item_id)
+        if kind == "base_plate":
+            # Vault standalone BasePlate: independently supplied source dimensions,
+            # explicit shrink and bend. AE owns the actual CUTTING/BEND topology;
+            # no assembly placement, seam relief or source-feature transfer.
+            spec = vault_base_plate_spec_from_trusted_prepared_part(original["part"])
+            frame = resolve_vault_base_plate_size_only_frame(
+                spec, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("WHD Vault BasePlate Final Material envelope differs from prepared Frame")
+            render = build_part_render_data(spec, context)
+            if render.material is None or render.material.is_empty or not render.material.is_valid:
+                _reject("Vault BasePlate has no verified Final Material")
+            rows.append((receipt["physical_part_id"], render))
+            continue
         if kind in ("end_cap_head", "end_cap_tail"):
             # Vault head/tail use WHD's existing intrinsic manufacturing
             # topology, family baseline, depth compensation and is_tail

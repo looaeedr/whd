@@ -320,3 +320,16 @@ Accepted provenance：Phase 7 #618/#620/#621/#623 與 Combined Acceptance #626�
 - **Validation one-way**：1×1、1×2、1×4、2×2、mixed W/H/D、mixed FULL/HALF/BACK_OPENING、Save→Reload、DXF reopen 與 regression 都是 acceptance evidence；它們驗證上述 authority，但不得反向創造新產品規格或 offset。
 
 Durable signoff provenance：#1116 owner signoff 記錄 R-029 與 OPEN-02；OPEN-02 implementation finalization 由 PR #1167 merge 至 `cleanup/2d-3d-sync`。後續若要改方向、5 mm inset、pairing ownership 或 Joint scope，必須以新的 product-owner decision 更新本 CURRENT authority，不能只改 code/test。
+
+
+### #2383 Vault standalone BasePlate Worker route (2026-10-31)
+
+Installed `integration_cli` v1.1 now routes `金庫型/base_plate` through the existing
+`BasePlatePartSpec → build_part_render_data → FinalScene → save_verified_final_scene_batch_dxf`
+with HMAC-bound exact-job preparation and original-source empty-modelspace verification.
+Source `part_formed_outer` dimensions and all four shrink values plus bend are explicit;
+no default assembly relationship is fabricated. There is no dedicated BasePlate baseline;
+its verified code, Registry, policy and canonical material are the source. The signed
+Frame denotes only the unfolded Final Material envelope and prohibits external Features.
+This scope does **not** enable Receiving pattern, Joint, cross relief, original-source
+hole mapping, box-body assembly or any other blocked W-08 feature.

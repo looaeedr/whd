@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = Draft202012Validator(json.loads((
     ROOT / "integration_cli" / "schemas" / "request_v1_1.schema.json"
 ).read_text(encoding="utf-8")))
-P0 = {"door", "end_cap_head", "end_cap_tail", "indicator_box", "indicator_small_door"}
+P0 = {"door", "end_cap_head", "end_cap_tail", "indicator_box", "indicator_small_door", "base_plate"}
 
 
 def _feature_request(family, role):
@@ -33,6 +33,13 @@ def _feature_request(family, role):
     part["kind"] = role
     if role in ("end_cap_head", "end_cap_tail"):
         part["dimensions_mm"] = {"width": 500.0, "depth": 350.0, "thickness": 2.0}
+    if role == "base_plate":
+        part["dimensions_mm"] = {"width": 500.0, "height": 350.0, "thickness": 2.0}
+        part["dimension_semantics"] = "part_formed_outer"
+        part.update({key: 10.0 for key in (
+            "shrink_top_mm", "shrink_bottom_mm", "shrink_left_mm",
+            "shrink_right_mm", "bend_mm",
+        )})
     # Existing v1.1 shared Indicator Box/Small Door require explicit
     # grouping even for a request that will be denied by the route gate.
     if role in ("indicator_box", "indicator_small_door"):
@@ -54,7 +61,7 @@ def test_all_registered_family_features_are_addressable_over_v11_wire(family):
         SCHEMA.validate(request)
         assert request["items"][0]["part"]["kind"] == role
         if role in P0 and not (
-            family == "受電箱" and role in ("end_cap_head", "end_cap_tail")
+            family == "受電箱" and role in ("end_cap_head", "end_cap_tail", "base_plate")
         ):
             # This passes only the routing check, NOT signed job approval,
             # source/Frame verification or real DXF manufacturing.
