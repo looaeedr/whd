@@ -809,7 +809,8 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
             or t15_functions != sorted(t15_functions)
             or set(t15_actual) != set(t15_functions)
             or t15_critical not in t15_actual
-            or t15_actual[t15_critical].decorator_list
+            or [ast.unparse(d) for d in t15_actual[t15_critical].decorator_list]
+               != ["pytest.mark.skipif(not os.environ.get('DISPLAY'), reason='requires Tk display')"]
             or any(isinstance(n, ast.ClassDef) and n.name.startswith("Test")
                    for n in t15_module.body)):
         raise ValueError("18-shard observed T15 test source changed")
