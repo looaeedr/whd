@@ -139,6 +139,18 @@ from .manufacturing_endcap_compat import (
     _scene_with_authoritative_fold_profiles,
 )
 
+def map_door_features_to_unfolded_material(
+    spec: DoorPartSpec, context: ManufacturingContext | None = None,
+):
+    """Canonical Engine-owned finished-face → unfolded-material feature map.
+
+    The FinalScene builder consumes this exact manufacturing geometry.  A
+    trusted export verifier may compare source-attested features with it,
+    but must not independently derive feature offsets or bend compensation.
+    """
+    return tuple(_door_features_for_legacy_engine(spec, context))
+
+
 from .manufacturing_render_data import (
     FoldGuide,
     fold_guides_from_final_scene,
