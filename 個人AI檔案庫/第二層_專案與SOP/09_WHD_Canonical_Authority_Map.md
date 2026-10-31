@@ -43,8 +43,6 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=manufacturing-architecture role=HISTORICAL path=handoff/01_ARCHITECTURE.md -->
 
 <!-- WHD_AUTHORITY contract=cadsplit-whd-worker-cli role=CURRENT path=integration_cli/cadsplit_worker.py -->
-<!-- WHD_AUTHORITY contract=cadsplit-whd-worker-installed-custody role=CURRENT path=integration_cli/private_worker_installation.py -->
-<!-- WHD_AUTHORITY contract=cadsplit-whd-worker-public-certification role=CURRENT path=integration_cli/public_installed_adapter.py -->
 <!-- WHD_AUTHORITY contract=cadsplit-whd-worker-wire-spec role=REFERENCE path=docs/integrations/CADSplit_WHD_Contract.md -->
 
 
@@ -100,12 +98,12 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 - 產品先安全整合／非強制同步 `localX`，只有使用者**當次 `/推推`** 才可將產品發布至 `cleanup/2d-3d-sync` (X)，須核對 exact PR、SHA、CI 與三方 readback；`origin/localX` 不是 X 發布授權。
 - 舊任務交易、lease、工作槽與 control-plane Preflight receipt 已退役，不是產品或治理修改的施工／交付前置；不影響平台公開操作權限與安全審查。
 
-## CADSplit × WHD-Engine Worker owner routing (#2375 / #2382)
+## CADSplit × WHD source-only Worker owner routing
 
-- **三個公開 CLI 命令與條件式 capabilities** 由 `integration_cli/cadsplit_worker.py` 擁有，versioned wire schemas 位於 `integration_cli/schemas/`；沒有公開 `verify`，未受信任或不相容的來源模式維持 fail closed。
-- **Windows 已安裝來源／輸出／job 的獨立授權** 由 `integration_cli/private_worker_installation.py` 擁有，金鑰保管在 `integration_cli/worker_key_custody.py`。已安裝本身不等於每個製造 job 自動獲得授權，CADSplit wire 不能自行建立來源或目的地權威。
-- **對外宣告製造成功** 由 `integration_cli/public_installed_adapter.py` 經原始來源與 Frame 重驗、WHD FinalScene Save→Reload、W-06 durable committed journal 及 physical DXF 實際讀回後判定；製造幾何仍由既有 `ae_engine/` 和 Certified Registry 擁有。私有 receipt 不能直接作為對外 `manufacturing_verified=true`。
-- 以上只是對現有 CURRENT owners 的指路，不是第二套 Worker 實作或能力開通；穩定架構詳見本 AI 庫 04 第 10 節。Windows exact-SHA CI、已打包 GUI 開檔測試與 CADSplit Gate B/D 均為各自的驗證證據，不得冒充全部安裝實例或 Gate E 已放行。
+- `integration_cli/cadsplit_worker.py` 是 retained source-only CLI owner，versioned wire schemas 位於 `integration_cli/schemas/`；沒有公開 `verify`，且目前所有製造 capability fail closed。
+- 舊 `cadsplit-whd-worker-installed-custody` 與 `cadsplit-whd-worker-public-certification` contract 已於 2026-11-01 退役，**沒有 CURRENT owner**。其舊實作只能從 Git history 作 HISTORICAL evidence，不參與 current routing。
+- `client_installation_id`／source-only `installation_id` 只保留 wire correlation/compatibility 語意，不代表 WHD 安裝、金鑰、來源／輸出 custody 或製造授權。
+- W-03/W-04/W-06 的內部 Python foundation 不是 public executable surface；若未來重啟外部 executable/installer，必須先建立新的 CURRENT owner，並消費 WHD Engine 公開 API，不得復活 retired installed Worker authority。
 
 ## Permanent routing boundaries
 

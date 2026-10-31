@@ -15,6 +15,7 @@ whd_schema: WHD_DOC_META_V1
 - **PR 硬閘門**：`tools/gui_engine_api_boundary_gate.py` 對 exact base→head 變更做 AST 反向依賴、GUI 引擎私有 import、低層 DXF、製造函式與製造數值計算的新增違規檢查；`.github/workflows/whd-gui-engine-api-boundary.yml` 執行 CI 與負向案例測試。既有違規先阻止新增、逐步遷回引擎；這個靜態門檻**不保證所有語意違規都會被掃到**，必須搭配 Engine contract／Save→Reload／2D／3D／DXF 測試及 review。
 - **平台不可繞過條件**：GitHub `localX` Ruleset 需將 `GUI Engine API Ownership Gate` 設為 required status check，禁止 PR 以外直接推送；未設定前只能宣稱 CI 運作，不得宣稱受 GitHub 分支保護強制。治理照常先合 `localX`，正式 X 仍需當次 `/推推`。
 - **唯一 CURRENT 架構規範**：`個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；`HEADLESS_API.md` 只是 REFERENCE API 說明。
+- **安裝版 WHD Worker／EXE 退役硬閘門**：2026-11-01 起，`integration_cli/cadsplit_worker.py` 只保留 source-only fail-closed wire boundary；禁止恢復 `WHD-Engine.exe` packaging、`--installation-id`、`_private_installed`、DPAPI/HMAC installer custody 或 public installed certification。舊 #2375/#2381/#2382 與 Git history 只能作 HISTORICAL evidence；若未來重新需要外部 executable/installer，必須有新的明確使用者決策、CURRENT owner 與 exact-SHA 驗收，且只能消費 WHD Engine 公開 API。
 
 
 ## 批次修改 → 本地定向測試 → 單次完整 PR CI `BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1`
