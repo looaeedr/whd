@@ -57,7 +57,7 @@ def _feature_request(family, role):
             "dimension_semantics": "cabinet_outer",
             "dimensions_mm": {"width": 800, "height": 1600, "depth": 350, "thickness": 2},
             "frame_width_mm": 29, "box_zl1_mm": -24, "box_zl2_mm": 24,
-            "box_zr1_mm": 15, "box_zr2_mm": 18, "box_z_comp_mm": 2,
+            "box_zr2_mm": 18,
         })
     if role == "inner_door":
         part.clear()
