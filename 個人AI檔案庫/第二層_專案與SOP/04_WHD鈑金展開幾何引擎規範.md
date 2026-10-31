@@ -93,6 +93,7 @@ Current public surface 以 `ae_engine/__init__.py` 實際 export 為準。04 至
 - `resolve_policy`
 - `expected_baseline_path_for`
 - `receiving_baseline_source_stamp` — Engine-owned Receiving baseline source witness；GUI 只傳 model/context/多片選擇，DXF 專用片缺來源時不得沿用舊製造快取（此 witness 不等於已驗證 DXF 實體或外部 prepare token）。
+- `expected_shared_indicator_baselines` — Engine-only selection of the paired IndicatorBox/SmallDoor source paths；external prepare attests both exact paths/content, no Worker private-Engine source selection; path existence alone never certifies manufacturing.
 - `CabinetTypeRegistration`
 - `registered_cabinet_types`
 - `resolve_cabinet_type`

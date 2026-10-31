@@ -186,6 +186,24 @@ def _indicator_shared_expected_path(filename: str, context: ManufacturingContext
         return Path(path) if path else None
 
 
+def expected_shared_indicator_baselines(
+    context: ManufacturingContext | None = None,
+) -> tuple[Path, Path]:
+    """Public Engine authority for the coupled IndicatorBox / small-door sources.
+
+    The shared-model resolver must choose the same factory source folder for
+    both pieces; the caller may attest bytes or reject a missing source but
+    cannot choose the physical baseline filenames or a different model.
+    Returned paths are *expected* resources, not manufacturing certification.
+    """
+    ctx = context or ManufacturingContext()
+    box_path = _indicator_shared_expected_path("盒子.dxf", ctx)
+    small_door_path = _indicator_shared_expected_path("小門.dxf", ctx)
+    if box_path is None or small_door_path is None or box_path.parent != small_door_path.parent:
+        raise ValueError("WHD_INDICATOR_SHARED_BASELINE_PAIR_UNAVAILABLE")
+    return box_path, small_door_path
+
+
 def _indicator_shared_existing_path(filename: str, context: ManufacturingContext, model_name: str | None = None) -> Path | None:
     expected = _indicator_shared_expected_path(filename, context, model_name=model_name)
     return expected if expected is not None and expected.is_file() else None

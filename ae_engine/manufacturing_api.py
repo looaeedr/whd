@@ -94,6 +94,7 @@ from .manufacturing_baseline_policy import (
     _resource_root,
     _expected_baseline_path,
     _indicator_shared_expected_path,
+    expected_shared_indicator_baselines,
     _indicator_shared_existing_path,
     expected_baseline_path_for,
     receiving_baseline_source_stamp,

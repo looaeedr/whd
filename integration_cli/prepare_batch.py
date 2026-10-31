@@ -604,15 +604,22 @@ def prepare_trusted_door_batch(
             else ([] if baseline is None else [baseline])
         )
         if kind in ("indicator_small_door", "indicator_box"):
-            from ae_engine.manufacturing_baseline_policy import _indicator_shared_expected_path
-            counterpart_name = ("盒子.dxf" if kind == "indicator_small_door"
-                                else "小門.dxf")
-            counterpart = _indicator_shared_expected_path(counterpart_name, ctx)
-            if counterpart is None or counterpart.parent != baseline.parent:
+            # WHD Engine owns the coupled physical source set; the Worker
+            # only binds exact selected paths into its signed resource manifest.
+            try:
+                from ae_engine.manufacturing_api import expected_shared_indicator_baselines
+                paired_baselines = expected_shared_indicator_baselines(ctx)
+            except (OSError, ValueError, RuntimeError) as exc:
+                raise PrepareEvidenceError(
+                    "WHD_RESOURCE_UNVERIFIED", "WHD shared-indicator source pair unavailable",
+                ) from exc
+            if baseline is None or baseline not in paired_baselines:
                 raise PrepareEvidenceError(
                     "WHD_RESOURCE_UNVERIFIED", "WHD shared-indicator baselines are not paired",
                 )
-            selected_baselines.append(counterpart)
+            selected_baselines.extend(
+                path for path in paired_baselines if path != baseline
+            )
         for selected in selected_baselines:
             # Do not resolve before checking the exact physical path: that
             # would erase a symlink alias from the signed source manifest.
