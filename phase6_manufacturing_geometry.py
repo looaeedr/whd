@@ -17,7 +17,6 @@ from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells, door_layout_part_key
 from phase6_endcap_semantics import ENDCAP_FW_PARTS
 from phase6_final_scene_view import AssemblyScenePart
-from phase6_sync_envelope import stable_fingerprint
 from ae_engine.assembly_joint import (
     AssemblyJoint,
     ResolvedAssemblyGraph,
@@ -159,36 +158,12 @@ def _phase6_cut_geometry_from_state_item(item):
 
 
 def _phase6_signature_canonical_value(value):
-    """Normalize representation-only differences before manufacturing caching."""
-    if isinstance(value, bool) or value is None or isinstance(value, str):
-        return value
-    if isinstance(value, (int, float)):
-        from math import isfinite
-
-        # An invalid manufacturing dimension may NEVER share a cache key
-        # with a literal marker such as "__NaN__", or another invalid value.
-        try:
-            number = float(value)
-        except (TypeError, ValueError, OverflowError) as exc:
-            raise ValueError("nonfinite manufacturing signature value") from exc
-        if not isfinite(number):
-            raise ValueError("nonfinite manufacturing signature value")
-        return round(number, 12)
-    if isinstance(value, Mapping):
-        return {str(key): _phase6_signature_canonical_value(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return tuple(_phase6_signature_canonical_value(item) for item in value)
-    if isinstance(value, (set, frozenset)):
-        normalized = [_phase6_signature_canonical_value(item) for item in value]
-        return tuple(sorted(normalized, key=repr))
-    enum_value = getattr(value, "value", None)
-    if enum_value is not None:
-        return _phase6_signature_canonical_value(enum_value)
-    return repr(value)
+    """Compatibility: canonical manufacturing cache value policy is Engine-owned."""
+    return manufacturing_api.canonical_manufacturing_signature_value(value)
 
 
 def _phase6_manufacturing_state_signature(self):
-    """Stable key for canonical manufacturing inputs; persistence/view mirrors excluded."""
+    """Extract operator state only; Engine selects canonical cache dependencies."""
     workspace = getattr(self, "designer_workspace", None)
     available = tuple(getattr(workspace, "available_parts", ()) or ())
     profiles = {}
@@ -199,43 +174,21 @@ def _phase6_manufacturing_state_signature(self):
             except Exception:
                 profiles[key] = {}
 
-    settings = deepcopy(dict(getattr(self, "_settings_values", {}) or {}))
-    # Typography is UI-only and must never invalidate canonical manufacturing.
-    settings.pop("ui_text_size", None)
-    snapshot = deepcopy(dict(getattr(self, "_phase6_input_snapshot", {}) or {}))
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
-        # Receiving Settings W/H/D only seed NEW cabinets. Both the
-        # manufacturing DTO and physical preview already consume live Bay/
-        # Quantity dimensions; the cache key must use that same authority.
-        # Never write working dimensions back to persisted Settings defaults.
-        working_box = dict(getattr(self, "_phase6_box_whd", {}) or {})
-        settings.update({
-            axis: working_box[axis] for axis in ("w", "h", "d")
-            if axis in working_box
-        })
-    # These fields are either owned independently below or derived/persistence
-    # mirrors. Saving an unchanged editor may materialize them, but that is not a
-    # manufacturing mutation and must not destroy an otherwise valid cache hit.
-    mirror_keys = set(settings) | {
-        "settings", "endcap_fw", "endcap_bottom_wrap", "assembly_type",
-        "corner_state", "corner_pair_same", "active_part", "part_dimensions",
-    }
-    snapshot = {key: value for key, value in snapshot.items() if key not in mirror_keys}
-
-    state = (
-        snapshot,
-        settings,
-        deepcopy(dict(getattr(self, "_phase6_box_whd", {}) or {})),
-        deepcopy(dict(getattr(self, "_phase6_corner_state", {}) or {})),
-        deepcopy(dict(getattr(self, "_phase6_endcap_fw_state", {}) or {})),
-        deepcopy(dict(getattr(self, "_phase6_endcap_bottom_wrap_state", {}) or {})),
-        available,
-        profiles,
-        getattr(getattr(self, "_phase6_assembly_type", None), "value", getattr(self, "_phase6_assembly_type", None)),
-        bool(getattr(getattr(self, "assembly_ignore_fixed_corner_var", None), "get", lambda: False)()),
-        _phase6_assembly_relief_clearance(self),
+    assembly = getattr(self, "_phase6_assembly_type", None)
+    ignore_var = getattr(self, "assembly_ignore_fixed_corner_var", None)
+    return manufacturing_api.manufacturing_state_fingerprint(
+        input_snapshot=deepcopy(dict(getattr(self, "_phase6_input_snapshot", {}) or {})),
+        settings_values=deepcopy(dict(getattr(self, "_settings_values", {}) or {})),
+        working_box=deepcopy(dict(getattr(self, "_phase6_box_whd", {}) or {})),
+        corner_state=deepcopy(dict(getattr(self, "_phase6_corner_state", {}) or {})),
+        endcap_fw_state=deepcopy(dict(getattr(self, "_phase6_endcap_fw_state", {}) or {})),
+        endcap_bottom_wrap_state=deepcopy(dict(getattr(self, "_phase6_endcap_bottom_wrap_state", {}) or {})),
+        available_parts=available,
+        part_profiles=profiles,
+        assembly_intent=getattr(assembly, "value", assembly),
+        ignore_fixed_corner=bool(getattr(ignore_var, "get", lambda: False)()),
+        relief_clearance=_phase6_assembly_relief_clearance(self),
     )
-    return stable_fingerprint(_phase6_signature_canonical_value(state))
 
 
 def _phase6_joint_registry_diagnostic_info(joint, render_by_part, solution_by_part):
