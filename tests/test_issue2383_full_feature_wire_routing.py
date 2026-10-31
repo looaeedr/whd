@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = Draft202012Validator(json.loads((
     ROOT / "integration_cli" / "schemas" / "request_v1_1.schema.json"
 ).read_text(encoding="utf-8")))
-P0 = {"door", "end_cap_head", "end_cap_tail", "indicator_box", "indicator_small_door"}
+P0 = {"door", "end_cap_head", "end_cap_tail", "indicator_box", "indicator_small_door", "custom_fold"}
 
 
 def _feature_request(family, role):
@@ -33,6 +33,18 @@ def _feature_request(family, role):
     part["kind"] = role
     if role in ("end_cap_head", "end_cap_tail"):
         part["dimensions_mm"] = {"width": 500.0, "depth": 350.0, "thickness": 2.0}
+    if role == "custom_fold":
+        part.clear()
+        part.update({
+            "kind": role, "cabinet_family": family,
+            "source_part_ref": "custom:17", "dimension_semantics": "part_formed_outer",
+            "dimensions_mm": {"thickness": 2.0},
+            "fold_axis": "X", "transverse_length_mm": 300.0,
+            "fold_profile": [
+                {"length_mm": 15.0, "angle_deg": -90},
+                {"length_mm": 98.0, "angle_deg": None},
+            ],
+        })
     # Existing v1.1 shared Indicator Box/Small Door require explicit
     # grouping even for a request that will be denied by the route gate.
     if role in ("indicator_box", "indicator_small_door"):
@@ -80,7 +92,7 @@ def test_unknown_family_cannot_inherit_vault_api_route():
 
 @pytest.mark.parametrize("family,role", [
     ("金庫型", "box_body"),
-    ("金庫型", "custom_fold"),
+    ("金庫型", "box_body"),
     ("受電箱", "box_body"),
     ("受電箱", "base_plate"),
     ("受電箱", "inner_door"),
