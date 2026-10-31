@@ -224,7 +224,13 @@ def _assert_staged_batch_snapshot_current(snapshot: Mapping[str, Any]) -> None:
             raise ValueError("bad inventory")
         for item in items:
             stage = item["stage"]
-            if _file_proof(Path(stage["path"])) != stage:
+            stage_path = Path(stage["path"])
+            # The first staging snapshot rejects hardlinks, but a second link
+            # can be introduced afterward without changing bytes or mtime.
+            # Never rename a multiply linked stage into customer output.
+            if stage_path.is_symlink() or stage_path.stat().st_nlink != 1:
+                raise PrepareEvidenceError("WHD_JOB_STAGING_STALE", "staged DXF gained an unsafe link")
+            if _file_proof(stage_path) != stage:
                 raise PrepareEvidenceError("WHD_JOB_STAGING_STALE", "staged physical DXF changed")
             target = Path(item["destination"])
             if target.is_symlink():
