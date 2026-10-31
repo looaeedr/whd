@@ -391,3 +391,15 @@ single-part route; Vault integral BoxBody cannot act as a reference substitute.
 No CADSplit external Feature transform, untrusted original DXF entities,
 assembly/world Joint or unrelated multipart output is certified; preserve
 original source SHA and W-03/04/06 exact-job verification and DXF Save→Reload.
+
+
+### W-08 Receiving rear sheet installed Worker scope
+
+`受電箱/back_panel` only admits `box_body:back`, source-confirmed FULL or
+BACK_OPENING and exact source factory dimensions. The authoritative
+`receiving.resolve_back_panel_contract` plus `receiving_piece_baseline_features`
+against verified `後面板.dxf` produce the actual flat CUTTING with four
+keyslots and optional source-derived 650x200 rear opening. The signed source
+snapshot attests all three Receiving side/back DXFs; no virtual assembly,
+manual hole transfer or spurious BEND is allowed. HALF cannot be released
+until its persisted two-section Door topology is independently bound.
