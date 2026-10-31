@@ -143,6 +143,11 @@
                   }
                 }
               },
+              "shrink_top_mm": {"type": "number", "minimum": 0},
+              "shrink_bottom_mm": {"type": "number", "minimum": 0},
+              "shrink_left_mm": {"type": "number", "minimum": 0},
+              "shrink_right_mm": {"type": "number", "minimum": 0},
+              "bend_mm": {"type": "number", "minimum": 0},
               "frame_width_mm": {
                 "type": "number",
                 "exclusiveMinimum": 0
@@ -242,6 +247,22 @@
                         "depth"
                       ]
                     }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "kind": {"const": "base_plate"}
+                  }
+                },
+                "then": {
+                  "required": [
+                    "shrink_top_mm", "shrink_bottom_mm", "shrink_left_mm",
+                    "shrink_right_mm", "bend_mm"
+                  ],
+                  "properties": {
+                    "dimensions_mm": {"required": ["width", "height", "thickness"]}
                   }
                 }
               },
