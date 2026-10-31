@@ -38,122 +38,21 @@ from phase6_manufacturing_contracts import (
 
 
 
-_PHASE6_ASSEMBLY_PLACEMENTS = {
-    "box_body": "box_body",
-    "head": "top",
-    "tail": "bottom",
-    "door": "front",
-    "indicator_box": "front",
-    "indicator_door": "front",
-}
+# Phase6 only retains the historic names for caller compatibility.
+from ae_engine import manufacturing_api
+_PHASE6_ASSEMBLY_PLACEMENTS = manufacturing_api.SCENE_ASSEMBLY_PLACEMENTS
 
 
 def _phase6_door_part_assembly_placement(snapshot, part_key):
-    """Return canonical front-plane placement for one formal Door layout cell."""
-    import math
-
-    key = str(part_key or "")
-    source = dict(snapshot or {})
-    raw_columns = tuple(source.get("door_layout_columns") or ())
-    if not raw_columns:
-        raise ValueError(f"門格缺少 authoritative multi-door topology: {key}")
-    # Validation must run before float() so bool is not silently converted
-    # to 1 mm of actual sheet/door material.
-    cells = derive_door_layout_cells(raw_columns)
-    columns = tuple(
-        (float(row[0]), tuple(float(v) for v in row[1]))
-        for row in raw_columns
+    return manufacturing_api.resolve_legacy_door_cell_scene_placement(
+        snapshot, part_key
     )
-    cell = next((item for item in cells if door_layout_part_key(item) == key), None)
-    if cell is None:
-        raise ValueError(f"門格 stable_id 不存在於 authoritative topology: {key}")
-
-    def outer_axis(value, default, axis):
-        raw = default if value is None else value
-        if isinstance(raw, bool):
-            raise ValueError(f"門格外框 {axis} 必須為有限正數")
-        try:
-            dimension = float(raw)
-        except (TypeError, ValueError, OverflowError) as exc:
-            raise ValueError(f"門格外框 {axis} 必須為有限正數") from exc
-        if not math.isfinite(dimension) or dimension <= 0:
-            raise ValueError(f"門格外框 {axis} 必須為有限正數")
-        return dimension
-
-    total_w = outer_axis(source.get("w"), sum(width for width, _ in columns), "W")
-    total_h = outer_axis(source.get("h"), sum(columns[0][1]), "H")
-    x_before = sum(columns[index][0] for index in range(cell.column_index))
-    y_before = sum(columns[cell.column_index][1][:cell.row_index])
-    center_x = -total_w / 2.0 + x_before + cell.start_width / 2.0
-    center_y = total_h / 2.0 - y_before - cell.start_height / 2.0
-    return "front", (float(center_x), float(center_y), 0.0)
 
 
 def _phase6_assembly_placement_for_part(snapshot, part_key):
-    key = str(part_key or "")
-    family = cabinet_family_policy.canonical_family_name(snapshot)
-    if key.startswith("base_plate:fixing_plate:"):
-        # The supplied DXF fully owns the sheet/holes, not the finished
-        # cabinet weld-Z. Until the mating Z is certified, show a real flat
-        # 3D plate on its own instead of guessing the assembled position.
-        return "standalone", (0.0, 0.0, 0.0)
-    if key == "base_plate":
-        from ae_engine.assembly_placement import resolve_assembly_placement
-        placement = resolve_assembly_placement(snapshot, key)
-        return placement.placement_kind, tuple(float(v) for v in placement.world_offset)
-
-    receiving_derived = (
-        re.fullmatch(r"door_c\d+_r\d+", key) is not None
-        or re.fullmatch(r"base_plate_c\d+_r\d+", key) is not None
-        or key.startswith("box_body:divider:")
-        or key.startswith("inner_door:")
+    return manufacturing_api.resolve_scene_assembly_placement(
+        snapshot, part_key
     )
-    if family == "受電箱" and receiving_derived:
-        # T16: Receiving placement is domain-owned. Never consult a stale
-        # workspace origin fallback or recreate Door/front offsets here.
-        from ae_engine.assembly_placement import resolve_assembly_placement
-        placement = resolve_assembly_placement(snapshot, key)
-        return placement.placement_kind, tuple(float(v) for v in placement.world_offset)
-
-    if re.fullmatch(r"door_c\d+_r\d+", key):
-        return _phase6_door_part_assembly_placement(snapshot, key)
-    if key.startswith("box_body:divider:") or (key.startswith("inner_door:") and key.endswith(":bottom_frame")):
-        from math import isfinite
-
-        workspace = snapshot.get("workspace") or {}
-        if not isinstance(workspace, Mapping):
-            raise ValueError("assembly workspace must be a mapping")
-        placements = (
-            snapshot.get("assembly_placements")
-            or workspace.get("assembly_placements")
-            or {}
-        )
-        if not isinstance(placements, Mapping):
-            raise ValueError("assembly placements must be a mapping")
-        if key in placements:
-            item = placements[key]
-            if not isinstance(item, Mapping):
-                raise ValueError(f"invalid stored assembly placement: {key}")
-            kind = str(item.get("placement_kind") or "offset")
-            raw_offset = item.get("world_offset")
-            if (not isinstance(raw_offset, (list, tuple))
-                    or len(raw_offset) != 3
-                    or any(isinstance(v, bool) for v in raw_offset)):
-                raise ValueError(f"invalid 3D assembly offset: {key}")
-            try:
-                offset = tuple(float(v) for v in raw_offset)
-            except (TypeError, ValueError, OverflowError) as exc:
-                raise ValueError(f"invalid numeric assembly offset: {key}") from exc
-            if not all(isfinite(v) for v in offset):
-                raise ValueError(f"nonfinite assembly offset: {key}")
-            return kind, offset
-        try:
-            from ae_engine.assembly_placement import resolve_assembly_placement
-            placement = resolve_assembly_placement(snapshot, key)
-            return placement.placement_kind, tuple(float(v) for v in placement.world_offset)
-        except Exception:
-            pass
-    return _PHASE6_ASSEMBLY_PLACEMENTS.get(key, "offset"), (0.0, 0.0, 0.0)
 
 
 def _phase6_relief_polygon_coords(geometry):
