@@ -28,6 +28,11 @@ from integration_cli.worker_box_body import (
     vault_box_body_spec_from_trusted_prepared_part,
     resolve_vault_box_body_size_only_frame,
 )
+from integration_cli.worker_receiving_side_panel import (
+    receiving_side_panel_spec_from_trusted_part,
+    receiving_side_panel_expected_baselines,
+    receiving_side_panel_frame,
+)
 from integration_cli.worker_inner_door_panel import (
     receiving_inner_door_panel_from_trusted_part,
     resolve_receiving_inner_door_panel_frame,
@@ -337,7 +342,7 @@ def prepare_trusted_door_batch(
                 raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "complete verified Door input dimensions required")
         elif kind not in (
             "indicator_small_door", "indicator_box", "end_cap_head", "end_cap_tail",
-            "base_plate", "custom_fold", "box_body", "inner_door",
+            "base_plate", "custom_fold", "box_body", "inner_door", "side_panel",
         ):
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unverified physical part kind has no supported local Frame")
         if item["item_id"] in identities:
@@ -349,6 +354,8 @@ def prepare_trusted_door_batch(
             part_spec = indicator_small_door_spec_from_trusted_prepared_part(p, ctx)
         elif kind == "indicator_box":
             part_spec = indicator_box_spec_from_trusted_prepared_part(p, ctx)
+        elif kind == "side_panel":
+            part_spec, side_role = receiving_side_panel_spec_from_trusted_part(p)
         elif kind == "inner_door":
             part_spec = receiving_inner_door_panel_from_trusted_part(p)
         elif kind == "custom_fold":
@@ -374,6 +381,27 @@ def prepare_trusted_door_batch(
                 "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
                 "coordinate_space": "size_only",
                 "target_frame_certified": False,
+            }
+        elif kind == "side_panel":
+            frame = receiving_side_panel_frame(
+                part_spec, side_role, ctx, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "受電箱",
+                "physical_source_ref": p["source_part_ref"],
+                "selected_side_role": side_role,
+                "operator_outside_dimensions_mm": {
+                    "width": part_spec.width, "height": part_spec.height,
+                    "depth": part_spec.depth, "thickness": part_spec.thickness,
+                    "frame_width": part_spec.frame_width,
+                },
+                "canonical_factory_fold_profile": [
+                    {"length": row.length, "angle": row.angle,
+                     "phase6_key": row.phase6_key}
+                    for row in part_spec.fold_profile
+                ],
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
             }
         elif kind == "inner_door":
             frame = resolve_receiving_inner_door_panel_frame(
@@ -479,15 +507,19 @@ def prepare_trusted_door_batch(
             frame = resolve_door_finished_local_frame(
                 part_spec, ctx, physical_part_id=physical_id,
             )
-        baseline = expected_baseline_path_for(part_spec, ctx)
-        if baseline is None and kind not in ("base_plate", "custom_fold", "inner_door"):
+        baseline = None if kind == "side_panel" else expected_baseline_path_for(part_spec, ctx)
+        if baseline is None and kind not in ("base_plate", "custom_fold", "inner_door", "side_panel"):
             raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "WHD could not identify the physical part baseline")
         # The CURRENT AE shared-indicator resolver selects a *single*
         # global folder only when both 盒子.dxf and 小門.dxf are present.
         # Attest the same coupled resource set even for a one-kind Prepare:
         # otherwise an unseen paired file could change after sealing the
         # environment but before a later mixed Door/Box use of that folder.
-        selected_baselines = [] if baseline is None else [baseline]
+        selected_baselines = (
+            list(receiving_side_panel_expected_baselines(resource_root))
+            if kind == "side_panel"
+            else ([] if baseline is None else [baseline])
+        )
         if kind in ("indicator_small_door", "indicator_box"):
             from ae_engine.manufacturing_baseline_policy import _indicator_shared_expected_path
             counterpart_name = ("盒子.dxf" if kind == "indicator_small_door"
