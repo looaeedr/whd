@@ -14,7 +14,6 @@ import pytest
 
 from ae_engine import manufacturing_api as api
 from ae_engine.contracts import ManufacturingContext
-from ae_engine.manufacturing_endcap_compat import _door_features_for_legacy_engine
 from ae_engine.sheetmetal_drawing import CirclePrimitive, DrawingScene
 from integration_cli.prepare_batch import door_spec_from_trusted_prepared_part
 from integration_cli.prepare_evidence import PrepareEvidenceError
@@ -113,7 +112,7 @@ def test_real_two_door_original_source_to_canonical_finalscene_roundtrip(tmp_pat
                        for c in source_features)
         spec = replace(spec, features=marked, feature_space="finished_face")
         context = ManufacturingContext(resource_root=root)
-        mapped = _door_features_for_legacy_engine(spec, context)
+        mapped = api.map_door_features_to_unfolded_material(spec, context)
         expected = mapped[0]
         circles = [
             e for e in modelspace.query('CIRCLE[layer=="CUTTING"]')

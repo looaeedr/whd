@@ -178,8 +178,8 @@ def save_trusted_door_circle_finalscene_batch(
     from ae_engine.contracts import ManufacturingContext
     from ae_engine.manufacturing_api import (
         build_part_render_data, resolve_policy, save_verified_final_scene_batch_dxf,
+        map_door_features_to_unfolded_material,
     )
-    from ae_engine.manufacturing_endcap_compat import _door_features_for_legacy_engine
 
     if not isinstance(source_documents, Mapping) or not isinstance(resource_root, Path):
         _reject("Worker-owned original source custody and resource root required")
@@ -416,7 +416,7 @@ def save_trusted_door_circle_finalscene_batch(
 
         marked = tuple(replace(c, source_type=_SOURCE_CIRCLE_MARKER) for c in original_features)
         owned_spec = replace(spec, features=marked, feature_space="finished_face")
-        mapped = _door_features_for_legacy_engine(owned_spec, context)
+        mapped = map_door_features_to_unfolded_material(owned_spec, context)
         render = build_part_render_data(owned_spec, context)
         _assert_original_circles_in_final_scene(render, mapped)
         rows.append((receipt["physical_part_id"], render))
