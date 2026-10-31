@@ -23,15 +23,12 @@ from ae_engine.contracts import (
     IndicatorBoxPartSpec,
     ManufacturingContext,
 )
-from ae_engine.sheetmetal_geometry import CornerTypeId
 from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
 from phase6_endcap_semantics import (
-    assembly_intent_value,
     normalize_endcap_bottom_wrap_state,
     resolve_endcap_bottom_wrap,
 )
 from phase6_fold_profiles import (
-    build_endcap_xy_profiles,
     engine_segment_length_to_ui,
     formed_box_body_fw_widths,
     profile_to_fold_segments,
@@ -45,30 +42,10 @@ from phase6_assembly_relief_state import (
 
 
 def _endcap_profiles_for_assembly(values, stored_profiles, assembly_type, part_key):
-    """Return render profiles consistent with the current box assembly type.
-
-    OVERLAY has no left/right X bends, even when the operator has never opened
-    the 3D workspace (and therefore has no stored Phase6 profile yet).  Existing
-    Y topology is preserved.  Switching back from OVERLAY restores the normal X
-    topology from the shared scalar parameters without changing CornerType or
-    the deferred bottom-corner rule.
-    """
-    intent_id = assembly_intent_value(assembly_type)
-    source = dict(values or {})
-    source["assembly_type"] = intent_id
-    defaults = build_endcap_xy_profiles(source, part_key=part_key)
-    profiles = deepcopy(dict(stored_profiles or {}))
-
-    if not profiles:
-        return defaults if intent_id == CornerTypeId.OVERLAY.value else None
-
-    current_x = list(profiles.get("X", ()) or ())
-    is_flat_x = len(current_x) == 1 and current_x[0].get("phase6_key") == "endcap_w_flat"
-    if intent_id == CornerTypeId.OVERLAY.value or is_flat_x:
-        profiles["X"] = deepcopy(defaults["X"])
-    if not profiles.get("Y"):
-        profiles["Y"] = deepcopy(defaults["Y"])
-    return profiles
+    """Compatibility seam: Engine owns assembly-dependent X/Y Fold topology."""
+    return manufacturing_api.endcap_profiles_for_assembly(
+        values, stored_profiles, assembly_type, part_key,
+    )
 
 def _manufacturing_context(self, *, draw_stock=False):
     """GUI-owned execution context for the headless manufacturing boundary."""

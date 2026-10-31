@@ -63,6 +63,7 @@ from .endcap_factory_fold import (
     apply_box_assembly_type_to_raw_state as apply_endcap_box_assembly_type_to_raw_state,
     normalize_endcap_fw_state,
     resolve_endcap_fw, resolve_endcap_assembly_type, build_endcap_xy_fold_profiles,
+    endcap_profiles_for_assembly,
     ENDCAP_FW_PARTS, FW_FOLLOW_BODY, FW_FOLLOW_HEAD, FW_FOLLOW_TAIL,
     FW_INDEPENDENT, ENDCAP_FW_MODES, commit_box_fw, commit_endcap_fw,
     set_endcap_fw_follow, set_endcap_fw_override,
@@ -804,3 +805,10 @@ from .receiving_nfb_quantity_partial import (
     QuantityNfbPartialSelection, verify_quantity_nfb_inner_door,
     select_quantity_nfb_partial, quantity_partial_live_manifests,
 )
+
+def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
+    """Public Engine NFB brand proof transition; lazy owner import avoids a cycle."""
+    from .receiving_nfb_brand_transition import (
+        rebase_receiving_set_parent_nfb_brand as _engine_rebase,
+    )
+    return _engine_rebase(set_row, proposed_brand)

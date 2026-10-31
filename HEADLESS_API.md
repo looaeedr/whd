@@ -13,6 +13,18 @@ whd_schema: WHD_DOC_META_V1
 全域硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 的唯一 CURRENT owner 是 AI 庫 `第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；此檔是 REFERENCE。GUI 全功能只處理操作與輸入，所有製造資料、公式、實體板件、孔位／折展開及 2D/3D/DXF 的 canonical 結果由引擎公開 API 處理。既有舊 GUI adapters 的存在**不代表每個箱型與功能均已完成改造**。遇 API 不支援，回引擎開發／測試或明確拒絕，不許 GUI 私做 fallback。對外 CADSplit Worker `capabilities/prepare/export` 僅宣告實際已驗證與授權的能力。靜態 CI gate：`tools/gui_engine_api_boundary_gate.py`，但它不代替行為契約測試或平台 required status check。
 
 
+## Receiving NFB Set brand / inherited physical X confirmation API（#2517）
+
+`manufacturing_api.rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand)`
+returns a new detached Set row and a changed flag, with no Tk or caller-state
+mutation. The existing Engine brand-source check revokes only still-CONFIRMED
+inherited physical NFB X evidence when the parent Set brand changes;
+explicit override slots, saved model identities and X coordinates remain
+unchanged. The Set/Bay GUI adapter selects the Set and commits the returned
+row; it no longer inspects physical hole proof state. Invalid brands fail
+closed. Existing Save→Reload and physical NFB tests remain the acceptance
+oracle; this does not authorize new CUTTING or DXF.
+
 ## Live manual CornerType policy（#2517）
 
 `manufacturing_api.resolve_live_corner_policy(state_map, part_key, fw, *, model_name=None, cabinet_family=None)` 將原本 `gui.py::_manual_corner_policy` 的即時手動狀態與已知 Family／自訂預設交給 Engine。明確編輯維持既有 typed CornerType（包含尚未遷移的 C02 rotation）並使用 Engine `policy_from_corner_state`；缺少手動狀態時，已知箱型由 Certified Registry 載入預設，自訂由 Engine `new_manual_corner_state` 設定原有 CROSS 標準預設。GUI 只傳狀態與 Family；此步不改 Registry、CUTTING、FinalScene 或 DXF 認證。與先前保存 payload 的轉換函式是**不同入口**，避免把手動 C02 強制套用另一種正規化規則。
@@ -446,6 +458,19 @@ certified source-backed 3D profiles exist, no generic four-edge setting is
 backfilled from its BEND. Unknown/custom keys return no standard settings.
 The GUI `phase6_manufacturing_adapter` only forwards the same profiles and
 snapshot; it does not perform a second material or identity interpretation.
+
+
+## EndCap Head/Tail stored Fold reconciliation by Assembly Intent (#2517)
+
+`manufacturing_api.endcap_profiles_for_assembly(values, stored_profiles, assembly_type, part_key)`
+reuses Engine `build_endcap_xy_fold_profiles` and the canonical
+`normalize_assembly_intent_id` to return physical X/Y Fold source rows. For
+OVERLAY, Head/Tail X has no left/right bend even without stored profiles; for
+INSERT after a stored flat X the current Family-generated X is restored.
+Custom/stored Y and independent Head/Tail scene order remain preserved.
+No stored INSERT profiles still return `None`, retaining legacy renderer
+fallback semantics. GUI `_endcap_profiles_for_assembly` simply forwards
+operator inputs. No Registry/CUTTING/DXF capability is created or granted.
 
 
 ## Live operator finished-dimension source precedence (#2517)

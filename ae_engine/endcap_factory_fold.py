@@ -195,6 +195,36 @@ def build_endcap_xy_fold_profiles(snapshot: Mapping[str, object], *, part_key: s
 
 
 
+def endcap_profiles_for_assembly(
+    values: Mapping[str, object], stored_profiles, assembly_type, part_key: str,
+) -> dict[str, list[dict]] | None:
+    """Resolve current assembly intent into the one Head/Tail manufacturing Fold.
+
+    This moves the unchanged legacy request reconciliation into the same
+    Engine owner as build_endcap_xy_fold_profiles. Custom Y is preserved;
+    OVERLAY physically has no left/right X bend, and returning from a flat
+    X restores the certified Family Fold builder's non-flat source topology.
+    """
+    intent_id = normalize_assembly_intent_id(
+        getattr(assembly_type, "value", assembly_type)
+    )
+    source = dict(values or {})
+    source["assembly_type"] = intent_id
+    defaults = build_endcap_xy_fold_profiles(source, part_key=part_key)
+    profiles = deepcopy(dict(stored_profiles or {}))
+
+    if not profiles:
+        return defaults if intent_id == CornerTypeId.OVERLAY.value else None
+
+    current_x = list(profiles.get("X", ()) or ())
+    is_flat_x = len(current_x) == 1 and current_x[0].get("phase6_key") == "endcap_w_flat"
+    if intent_id == CornerTypeId.OVERLAY.value or is_flat_x:
+        profiles["X"] = deepcopy(defaults["X"])
+    if not profiles.get("Y"):
+        profiles["Y"] = deepcopy(defaults["Y"])
+    return profiles
+
+
 def endcap_editor_fold_tabs(snapshot: Mapping[str, object], part_key: str) -> list[str] | None:
     """Return only actually supported Fold editor axes for this EndCap topology."""
     key = str(part_key or "")
