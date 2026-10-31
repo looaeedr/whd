@@ -148,6 +148,11 @@
               "shrink_left_mm": {"type": "number", "minimum": 0},
               "shrink_right_mm": {"type": "number", "minimum": 0},
               "bend_mm": {"type": "number", "minimum": 0},
+              "box_zl1_mm": {"type": "number"},
+              "box_zl2_mm": {"type": "number"},
+              "box_zr1_mm": {"type": "number"},
+              "box_zr2_mm": {"type": "number"},
+              "box_z_comp_mm": {"type": "number"},
               "frame_width_mm": {
                 "type": "number",
                 "exclusiveMinimum": 0
@@ -246,6 +251,22 @@
                         "width",
                         "depth"
                       ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {"kind": {"const": "box_body"}}
+                },
+                "then": {
+                  "required": [
+                    "frame_width_mm", "box_zl1_mm", "box_zl2_mm",
+                    "box_zr1_mm", "box_zr2_mm", "box_z_comp_mm"
+                  ],
+                  "properties": {
+                    "dimensions_mm": {
+                      "required": ["width", "height", "depth", "thickness"]
                     }
                   }
                 }
