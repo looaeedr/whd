@@ -157,4 +157,9 @@ def test_original_main_operator_action_not_extra_dxf_button():
     assert "receiving_bay_assembly_offsets" not in source
     assert "resolve_receiving_bay_local_export_geometry" in source
     assert "receiving_bay_assembly_offsets" in engine_source
-    assert "save_verified_receiving_csv_selected_sheets" in source
+    manufacturing_source = inspect.getsource(
+        manufacturing_api.save_selected_resolved_manufacturing_dxf
+    )
+    assert "save_selected_resolved_manufacturing_dxf" in source
+    assert "save_verified_receiving_csv_selected_sheets" not in source
+    assert "save_verified_receiving_csv_selected_sheets" in manufacturing_source
