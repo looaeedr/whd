@@ -723,3 +723,72 @@ def resolve_divider_final_geometry(
         final_material=solved.render_data.material, verified=True,
         solved_part=solved, illegal_penetration=False,
     )
+
+
+def resolve_family_divider_reliefs(
+    parts, *, finished_dimensions, sheet_thickness, clearance=0.0
+):
+    """Delegate Divider physical solve to manufacturing domain."""
+    from .assembly_joint import AssemblyJoint, AssemblyJointRelation, AssemblyJointSource
+    from .contracts import ResolvedJointDiagnostic
+    from .assembly_geometry import build_joint_world_geometry
+    current = {str(part.part_key): part for part in tuple(parts or ())}
+    divider_keys = sorted(key for key in current if key.startswith("box_body:divider:"))
+    if not divider_keys or "box_body" not in current:
+        return tuple(current.values()), (), ()
+    diagnostics, family_joints = [], []
+    for divider_key in divider_keys:
+        divider = current[divider_key]
+        joint = AssemblyJoint(
+            joint_id=f"{divider_key}:box_body:family-relief", subject_part=divider_key, target_part="box_body",
+            subject_region="front_fold_relief", target_region="divider_mating_zone",
+            relation=AssemblyJointRelation.INSERT, source=AssemblyJointSource.FAMILY_GEOMETRY,
+            solver_constraints={"relief_mode": "FRONT_FOLD_DOMAIN"},
+        )
+        family_joints.append(joint)
+        world = build_joint_world_geometry(tuple(current.values()), finished_dimensions, sheet_thickness)
+        source_keys = tuple(key for key in ("box_body:left_side", "box_body:right_side") if key in world["world_triangles_by_part"])
+        if not source_keys:
+            diagnostics.append(ResolvedJointDiagnostic(
+                joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body", relation=joint.relation.value,
+                source=joint.source.value, registry_status="MISS", trust_level="PROVISIONAL_3D",
+                preserve_part="box_body", relief_part=divider_key, candidate_status="MISSING_SIDE_PIECE_GEOMETRY",
+                legal_contact=False, illegal_penetration=True,
+                evidence={"reason": "Receiving Divider relief requires left/right physical Box Body pieces"},
+            ))
+            continue
+        def refold_world(solved_divider):
+            return build_joint_world_geometry(
+                tuple(solved_divider if key == divider_key else part for key, part in current.items()),
+                finished_dimensions, sheet_thickness,
+            )
+        result = resolve_divider_final_geometry(
+            divider=divider, box_body=current["box_body"], joint=joint, world=world,
+            source_geometry_keys=source_keys, refold_world=refold_world,
+            clearance=float(clearance), sheet_thickness=float(sheet_thickness),
+        )
+        placement = result.placement_evidence.as_dict()
+        relief = result.relief_evidence
+        evidence = {**dict(relief.source_evidence or {}), "placement": placement}
+        if relief.post_evidence is not None:
+            evidence["post"] = dict(relief.post_evidence)
+        if result.verified:
+            current[divider_key] = result.solved_part
+        status = str(relief.candidate_status)
+        certified_hit = status.startswith("CERTIFIED_REGISTRY_")
+        diagnostics.append(ResolvedJointDiagnostic(
+            joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body", relation=joint.relation.value,
+            source=joint.source.value,
+            registry_status=("HIT" if certified_hit else "MISS"),
+            trust_level=("CERTIFIED" if certified_hit else "PROVISIONAL_3D"),
+            preserve_part="box_body", relief_part=divider_key, candidate_status=status,
+            legal_contact=(
+                bool(relief.retained_contact_segments)
+                if status in {"PROVISIONAL_3D_VERIFIED", "CERTIFIED_REGISTRY_VERIFIED"}
+                else status == "NO_FRONT_FOLD_PENETRATION"
+            ),
+            illegal_penetration=bool(result.illegal_penetration), pre_pair_count=int(relief.pre_pair_count),
+            post_pair_count=int(relief.post_pair_count), evidence=evidence,
+        ))
+    return tuple(current.values()), tuple(diagnostics), tuple(family_joints)
+
