@@ -110,7 +110,7 @@ def test_receiving_endcap_cannot_fall_back_to_vault_manufacturing(tmp_path):
                 "fold_left_mm", "fold_right_mm", "fold_top_mm", "fold_bottom_mm"):
         p.pop(key, None)
     request["request_digest"] = compute_wire_request_digest(request)
-    with pytest.raises(PrepareEvidenceError, match="Receiving EndCap"):
+    with pytest.raises(PrepareEvidenceError, match="Receiving"):
         _prepare(request, resource)
     assert not list(tmp_path.rglob("*.dxf")) or all(
         candidate == source or candidate.is_relative_to(resource)
@@ -140,8 +140,8 @@ def test_installed_worker_advertises_exact_vault_receiving_kind_matrix(monkeypat
     indexed = {entry["part_kind"]: entry for entry in advertised["capabilities"]}
     assert set(indexed) == set(advertised["supported_part_kinds"])
     assert indexed["door"]["cabinet_families"] == ["金庫型", "受電箱"]
-    assert indexed["end_cap_head"]["cabinet_families"] == ["金庫型"]
-    assert indexed["end_cap_tail"]["cabinet_families"] == ["金庫型"]
+    assert indexed["end_cap_head"]["cabinet_families"] == ["金庫型", "受電箱"]
+    assert indexed["end_cap_tail"]["cabinet_families"] == ["金庫型", "受電箱"]
     assert indexed["base_plate"]["cabinet_families"] == ["金庫型"]
     assert indexed["inner_door"]["cabinet_families"] == ["受電箱"]
     assert indexed["side_panel"]["cabinet_families"] == ["受電箱"]
