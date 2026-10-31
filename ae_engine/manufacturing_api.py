@@ -629,3 +629,12 @@ def save_quantity_manufacturing_groups_dxf(
         overwrite=overwrite, render_data_transform=render_data_transform,
         part_only=part_only,
     )
+
+# Expose the headless versioned NFB manufacturing selection to every client.
+# The implementation imports scene orchestration directly (no facade cycle).
+from .receiving_nfb_quantity_partial import (
+    QuantityNfbPartialSelection,
+    verify_quantity_nfb_inner_door,
+    select_quantity_nfb_partial,
+    quantity_partial_live_manifests,
+)
