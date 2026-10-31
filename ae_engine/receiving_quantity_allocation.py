@@ -131,3 +131,48 @@ class AllocationDraft:
         return bool(rows) and all(type(n) is int and n > 0 for n in rows.values()) and (
             sum(rows.values()) == sum(self.counts)
         )
+
+def apply_receiving_endcap_quantity_configuration(
+    layout, role, library, quantities, assigned, *, expected_counts=None,
+):
+    """Engine-only atomic Head/Tail candidate quantity Apply across all Bays.
+
+    The full topology/version/quantity allocation is verified before any edit.
+    Shared settings are unlinked and committed through the existing Receiving
+    canonical owners; GUI owns only selection and presentation dirty markers.
+    Returns (detached_layout, changed_physical_bay_ids).
+    """
+    from ae_engine.receiving_shared_settings import (
+        unlink_setting, edit_setting, validate_setting,
+    )
+
+    plan = validate_quantity_allocation(
+        layout, library, role, quantities, assigned,
+        expected_counts=expected_counts,
+    )
+    kind = role_key(role) + "_features"
+    version_kind = role + "_version_id"
+    for si, bi, _features in plan:
+        validate_setting(version_kind, assigned[(si, bi)])
+
+    candidate = layout
+    for set_index, bay_index, features in plan:
+        candidate = unlink_setting(
+            candidate, set_index=set_index, bay_index=bay_index, kind=kind,
+        )
+        candidate = edit_setting(
+            candidate, set_index=set_index, bay_index=bay_index,
+            kind=kind, value=features,
+        )
+        candidate = unlink_setting(
+            candidate, set_index=set_index, bay_index=bay_index, kind=version_kind,
+        )
+        candidate = edit_setting(
+            candidate, set_index=set_index, bay_index=bay_index,
+            kind=version_kind, value=assigned[(set_index, bay_index)],
+        )
+    changed_ids = tuple(
+        str(candidate["sets"][si]["bays"][bi]["stable_id"])
+        for si, bi, _ in plan
+    )
+    return candidate, changed_ids

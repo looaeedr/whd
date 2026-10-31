@@ -533,3 +533,18 @@ and returns `(detached_layout, changed_bay_stable_ids)`.
 The GUI uses the result only to set its current layout and update dirty
 presentation IDs. Failure leaves its layout and saved candidate library intact.
 Saved NFB X remains unverified; no new CUTTING or DXF capability is granted.
+
+## Receiving Head/Tail candidate quantity allocation Engine API (#2517)
+
+`manufacturing_api.apply_receiving_endcap_quantity_configuration(
+layout, role, library, quantities, assigned, *, expected_counts=None)`
+is the headless manufacturing-state transaction for every Receiving Set/Bay.
+The Engine validates Head/Tail candidate version identities, exact topology,
+counts and explicit assignments before updating canonical shared feature
+settings and the persisted applied version IDs. The return value is
+`(detached_layout, changed_physical_bay_stable_ids)`, so invalid or stale
+operator assignments cannot partially update a Bay.
+
+The GUI only supplies operator selection and displays/marks the resulting
+changes. Head and Tail are independent; no NFB source, DXF certification
+or new Hole Editor CUTTING geometry is inferred by this API.
