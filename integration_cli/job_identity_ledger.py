@@ -128,6 +128,20 @@ def _output_directory_keys(directories: Sequence[Path]) -> tuple[str, ...]:
     return tuple(sorted(keys))
 
 
+def _sqlite_filesystem_id(value: int) -> int:
+    """Losslessly encode an OS unsigned 64-bit file ID for SQLite signed INTEGER.
+
+    Windows may report st_ino >= 2**63. Python's sqlite3 cannot bind that
+    positive integer, but its two's-complement signed representation is unique
+    and stable. Never mask >64-bit data or truncate a physical identity.
+    """
+    if type(value) is not int or value <= 0 or value >= (1 << 64):
+        raise PrepareEvidenceError(
+            "WHD_JOB_RECOVERY_REQUIRED", "filesystem identity outside certified 64-bit range",
+        )
+    return value if value < (1 << 63) else value - (1 << 64)
+
+
 def _directory_identity(path: Path) -> tuple[int, int]:
     """Pin the actual filesystem directory, not only its reusable path text."""
     if _unsafe_windows_path(path):
@@ -143,7 +157,7 @@ def _directory_identity(path: Path) -> tuple[int, int]:
         raise PrepareEvidenceError(
             "WHD_JOB_RECOVERY_REQUIRED", "reserved output directory identity unverified"
         )
-    return metadata.st_dev, metadata.st_ino
+    return _sqlite_filesystem_id(metadata.st_dev), _sqlite_filesystem_id(metadata.st_ino)
 
 
 def _staged_batch_snapshot(

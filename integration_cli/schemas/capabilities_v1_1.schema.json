@@ -185,7 +185,8 @@
           "worker_supported",
           "geometry_acceptance_passed",
           "required_inputs",
-          "production_scope"
+          "production_scope",
+          "cabinet_families"
         ],
         "properties": {
           "capability_id": {
@@ -226,6 +227,17 @@
               "part_only",
               "complete_assembly"
             ]
+          },
+          "cabinet_families": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "金庫型",
+                "受電箱"
+              ]
+            }
           }
         }
       }

@@ -243,6 +243,14 @@ def _installed_capabilities(
         {
             "capability_id": "w07-installed-signed-v11-" + kind,
             "part_kind": kind,
+            # Only these WHD-owned family/part combinations are certified
+            # by the current Worker. Shared indicator components use WHD's
+            # independent intrinsic geometry for these two requested families.
+            # Receiving EndCaps/BoxBody are intentionally NOT Vault EndCaps.
+            "cabinet_families": (
+                ["金庫型"] if kind in ("end_cap_head", "end_cap_tail")
+                else ["金庫型", "受電箱"]
+            ),
             "worker_supported": True,
             "geometry_acceptance_passed": True,
             "production_scope": "single_part",
