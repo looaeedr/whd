@@ -99,18 +99,18 @@ def test_each_selector_appears_in_exactly_one_shard(count):
             "tests/test_issue1503_single_gui_real_tier_2d3d.py": 9,
             "tests/test_issue74_divider_side_front_penetration.py": 12,
         }
-        assert owners["tests/test_issue1503_single_gui_real_tier_2d3d.py"] == 6
+        assert owners["tests/test_issue1503_single_gui_real_tier_2d3d.py"] == 0
         assert owners["tests/test_issue74_divider_side_front_penetration.py"] == 1
         assert manifest["tier_decouple_source_run_id"] == 41198488801
         assert manifest["tier_decouple_previous_owner"] == 1
-        assert manifest["tier_decouple_new_owner"] == 6
+        assert manifest["tier_decouple_new_owner"] == 0
         load = [0] * count
         for filename, owner in owners.items():
             assert (owner >= 14) == (durations[filename] <= 4)
             load[owner] += durations[filename]
         # Historical per-file isolated timings are not current shard runtime
         # predictions. Preserve their exact arithmetic for audit only.
-        assert max(load) == manifest["rebalance_static_old_file_model_max_seconds"] == 169
+        assert max(load) == manifest["rebalance_static_old_file_model_max_seconds"] == 175
         assert sorted(set(owners.values())) == list(range(18))
         special = manifest["split_file"]
         assert special in PYTEST_PATHS
