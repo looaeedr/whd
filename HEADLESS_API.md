@@ -13,6 +13,19 @@ whd_schema: WHD_DOC_META_V1
 全域硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 的唯一 CURRENT owner 是 AI 庫 `第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；此檔是 REFERENCE。GUI 全功能只處理操作與輸入，所有製造資料、公式、實體板件、孔位／折展開及 2D/3D/DXF 的 canonical 結果由引擎公開 API 處理。既有舊 GUI adapters 的存在**不代表每個箱型與功能均已完成改造**。遇 API 不支援，回引擎開發／測試或明確拒絕，不許 GUI 私做 fallback。對外 CADSplit Worker `capabilities/prepare/export` 僅宣告實際已驗證與授權的能力。靜態 CI gate：`tools/gui_engine_api_boundary_gate.py`，但它不代替行為契約測試或平台 required status check。
 
 
+## Verified EndCap relief canonical replay API (#2517)
+
+`manufacturing_api.replay_resolved_endcap_render(part_input, verified_solution)`
+replays certified, verified physical relief via the same immutable PartSpec +
+ManufacturingContext → canonical `build_part_render_data` used for 2D and DXF.
+Only Engine serializes the solver's physical relief polygons and writes them
+into a detached `resolved_assembly_relief_cuts` PartSpec. The Phase6 assembly
+service merely passes the already-resolved inputs and checks its authoritative
+render against the solver's physical material. A preexisting lightweight
+headless fallback accepts `solved_render_data` only without a real PartSpec,
+and missing fallback rejects explicitly. No new Registry/CUTTING/DXF approval
+or independent geometry is introduced.
+
 ## Live Cabinet Family identity for assembly manufacturing (#2517)
 
 `manufacturing_api.resolve_live_cabinet_family(input_snapshot, live_model=None)`

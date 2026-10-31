@@ -32,6 +32,9 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 verified EndCap relief canonical replay（2026-11-01）**：公開 `manufacturing_api.replay_resolved_endcap_render(part_input, solution)` 是已認證 EndCap Joint/relief 2D CUT 的唯一 PartSpec replay owner，直接依既有 Engine `serialize_joint_relief_polygons` 與 `build_part_render_data` 重建正式 FinalScene；`phase6_manufacturing_service._replay_endcap_render` 僅委派。保留無 PartSpec 輕量 headless 測試相容 fallback 與已有的 2D/3D material mismatch gate，不能把 solver preview 當正式製造或新增 DXF 認證；#2517 保持 OPEN。
+
+
 **#2517 Live Cabinet Family identity API（2026-11-01）**：公開 `manufacturing_api.resolve_live_cabinet_family(input_snapshot, live_model=None)` 統一 GUI 即時選擇型號優先序、Cabinet Registry 正規 Family 與舊版未知／空值 fallback。Phase6 GUI 只讀 snapshot 與 selector，`phase6_manufacturing_service` 也使用同一 API，避免 3D Joint／Receiving Marking 再有第二份型號判定。未註冊自訂來源保留原始名稱供既有 Family=ANY Joint 使用，空值維持既有金庫型相容預設；不新增 CUTTING／DXF 認證或幾何公式，#2517 仍 OPEN。
 
 ### #2517 Assembly physical mesh profile API (2026-11-01)
