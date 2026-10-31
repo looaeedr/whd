@@ -129,8 +129,21 @@ def build_resource_evidence(
     root = resource_root.resolve(strict=True)
     if not isinstance(registry_path, str) or not registry_path:
         raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "Registry not specified")
-    if not isinstance(baseline_paths, (list, tuple)) or not baseline_paths:
-        raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "verified baseline selection missing")
+    if not isinstance(baseline_paths, (list, tuple)):
+        raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "invalid baseline selection")
+    # Only independent, canonical baseline-free geometry may omit a DXF.
+    # Both-family custom strips are AE CustomFoldPartSpec, never a copied
+    # Door/EndCap baseline. This cannot suppress another physical baseline.
+    if not baseline_paths:
+        rows = locked_inputs.get("items") if isinstance(locked_inputs, Mapping) else None
+        if (not isinstance(rows, list) or not rows or any(
+                not isinstance(row, Mapping)
+                or not isinstance(row.get("locked_dimensions_mm"), Mapping)
+                or row["locked_dimensions_mm"].get("raw_part", {}).get("kind") != "custom_fold"
+                or row["locked_dimensions_mm"].get("raw_part", {}).get("cabinet_family")
+                    not in ("金庫型", "受電箱")
+                for row in rows)):
+            raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "verified baseline selection missing")
     if not all(isinstance(p, str) and p for p in baseline_paths):
         raise PrepareEvidenceError("WHD_RESOURCE_PATH_INVALID", "invalid baseline identity")
     if not isinstance(resolved_policy, Mapping) or not resolved_policy:
