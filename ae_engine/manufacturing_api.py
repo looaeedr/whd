@@ -264,6 +264,10 @@ def map_door_features_to_unfolded_material(
     return tuple(_door_features_for_legacy_engine(spec, context))
 
 
+from .assembly_geometry_folded_mesh import (
+    expand_box_body_fw_world_mid, shift_multistage_terminal_fold_world_mid,
+    fit_receiving_left_zl1_world_mid,
+)
 from .assembly_placement import (
     SCENE_ASSEMBLY_PLACEMENTS, resolve_legacy_door_cell_scene_placement,
     resolve_scene_assembly_placement,
