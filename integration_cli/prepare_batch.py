@@ -42,6 +42,11 @@ from integration_cli.worker_receiving_side_panel import (
     receiving_side_panel_expected_baselines,
     receiving_side_panel_frame,
 )
+from integration_cli.worker_inner_door_frame import (
+    receiving_inner_door_frame_from_trusted_part,
+    receiving_inner_door_frame_size_only_frame,
+    source_frame_baseline,
+)
 from integration_cli.worker_inner_door_panel import (
     receiving_inner_door_panel_from_trusted_part,
     resolve_receiving_inner_door_panel_frame,
@@ -364,7 +369,11 @@ def prepare_trusted_door_batch(
         elif kind == "side_panel":
             part_spec, side_role = receiving_side_panel_spec_from_trusted_part(p)
         elif kind == "inner_door":
-            part_spec = receiving_inner_door_panel_from_trusted_part(p)
+            part_spec = (
+                receiving_inner_door_frame_from_trusted_part(p)
+                if "inner_door_frame_side" in p
+                else receiving_inner_door_panel_from_trusted_part(p)
+            )
         elif kind == "custom_fold":
             part_spec = custom_fold_spec_from_trusted_prepared_part(p)
         elif kind == "box_body":
@@ -427,6 +436,22 @@ def prepare_trusted_door_batch(
                      "phase6_key": row.phase6_key}
                     for row in part_spec.fold_profile
                 ],
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
+            }
+        elif kind == "inner_door" and "inner_door_frame_side" in p:
+            frame = receiving_inner_door_frame_size_only_frame(
+                part_spec, resource_root, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "受電箱",
+                "physical_frame_identity": part_spec.stable_id,
+                "inner_door_id": part_spec.inner_door_id,
+                "frame_side": part_spec.side,
+                "source_span_mm": part_spec.span,
+                "source_thickness_mm": part_spec.thickness,
+                "signed_fold_chain": list(part_spec.signed_fold_chain),
+                "factory_material_lengths": list(part_spec.material_lengths),
                 "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
                 "coordinate_space": "size_only", "target_frame_certified": False,
             }
@@ -561,6 +586,8 @@ def prepare_trusted_door_batch(
         baseline = (
             receiving_endcap_shared_baseline(resource_root)
             if kind in ("end_cap_head", "end_cap_tail") and p["cabinet_family"] == "受電箱"
+            else source_frame_baseline(resource_root)
+            if kind == "inner_door" and "inner_door_frame_side" in p
             else None if kind in ("side_panel", "back_panel")
             else expected_baseline_path_for(part_spec, ctx)
         )
