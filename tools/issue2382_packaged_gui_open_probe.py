@@ -19,6 +19,11 @@ import subprocess
 import sys
 import time
 
+# Direct execution as `python tools/...` must still resolve WHD's source root.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
