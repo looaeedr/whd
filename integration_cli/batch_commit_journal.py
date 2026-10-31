@@ -33,8 +33,12 @@ def _refuse(message: str) -> PrepareEvidenceError:
     return PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", message)
 
 
-def _proof_equals_expected(path: Path, proof: Mapping[str, Any]) -> bool:
+def _proof_equals_expected(
+    path: Path, proof: Mapping[str, Any], *, require_single_link: bool = False,
+) -> bool:
     try:
+        if require_single_link and path.stat().st_nlink != 1:
+            return False
         actual = _file_proof(path)
         return all(actual[key] == proof[key] for key in ("sha256", "size", "mtime_ns"))
     except (OSError, ValueError, PrepareEvidenceError):
@@ -272,8 +276,10 @@ class DurableMultiDXFRollbackJournal:
                 source = Path(item["staged"]["path"])
                 if target.parent != root or source.parent.parent != root:
                     raise _refuse("untrusted replacement path")
-                if not _proof_equals_expected(source, item["staged"]):
-                    raise _refuse("new physical DXF stage changed")
+                if not _proof_equals_expected(
+                    source, item["staged"], require_single_link=True,
+                ):
+                    raise _refuse("new physical DXF stage changed or gained a hardlink")
                 original = item["original"]
                 if original is None:
                     if target.exists() or target.is_symlink():
@@ -282,8 +288,10 @@ class DurableMultiDXFRollbackJournal:
                     raise _refuse("original customer output changed")
                 os.replace(source, target)
                 _sync_directory(root)
-                if not _proof_equals_expected(target, item["staged"]):
-                    raise _refuse("renamed physical DXF proof invalid")
+                if not _proof_equals_expected(
+                    target, item["staged"], require_single_link=True,
+                ):
+                    raise _refuse("renamed physical DXF proof invalid or multiply linked")
                 result[item["physical_id"]] = target
                 if after_replace is not None:
                     after_replace(index)
@@ -358,7 +366,7 @@ class DurableMultiDXFRollbackJournal:
                 if not all(proof[k] == original[k] for k in ("sha256", "size", "mtime_ns")):
                     raise _refuse("wrong original customer DXF backup")
             if target.exists():
-                if not (_proof_equals_expected(target, new)
+                if not (_proof_equals_expected(target, new, require_single_link=True)
                         or (original is not None and _proof_equals_expected(target, original))):
                     raise _refuse("unexpected customer change blocks recovery")
             elif original is not None:
@@ -373,10 +381,12 @@ class DurableMultiDXFRollbackJournal:
                 original = item["original"]
                 new = item["staged"]
                 if original is None:
-                    if destination.exists() and _proof_equals_expected(destination, new):
+                    if destination.exists() and _proof_equals_expected(
+                        destination, new, require_single_link=True,
+                    ):
                         destination.unlink()
                         _sync_directory(root)
-                elif _proof_equals_expected(destination, new):
+                elif _proof_equals_expected(destination, new, require_single_link=True):
                     backup_file = Path(item["backup"]["path"])
                     fd, tmp = tempfile.mkstemp(prefix=".whd-w06-restore-", dir=str(root))
                     temp = Path(tmp)
@@ -394,7 +404,9 @@ class DurableMultiDXFRollbackJournal:
                             os.fsync(saved.fileno())
                         if not _proof_equals_expected(temp, original):
                             raise _refuse("temporary original restore differs")
-                        if not _proof_equals_expected(destination, new):
+                        if not _proof_equals_expected(
+                            destination, new, require_single_link=True,
+                        ):
                             raise _refuse("destination changed during recovery")
                         os.replace(temp, destination)
                         _sync_directory(root)
