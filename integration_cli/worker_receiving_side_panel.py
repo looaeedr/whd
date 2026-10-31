@@ -31,7 +31,7 @@ _BASELINES = ("左側板.dxf", "右側板.dxf", "後面板.dxf")
 
 def receiving_side_panel_spec_from_trusted_part(part: Mapping[str, Any]):
     from ae_engine.cabinet_types import receiving
-    from ae_engine.box_body_structure import box_body_height_from_corner_policies
+    from ae_engine.manufacturing_api import resolve_box_body_back_panel_contract
     from ae_engine.contracts import BoxBodyPartSpec
     from phase6_fold_profiles import build_box_body_profile, profile_to_fold_segments
 
@@ -85,16 +85,11 @@ def receiving_side_panel_spec_from_trusted_part(part: Mapping[str, Any]):
             raise ValueError("unverified Receiving D-W-D source profile")
         fold = profile_to_fold_segments(fold_rows)
         state = receiving.resolve_box_body_structure_state(None)
-        from phase6_box_body_structure import BoxBodyStructureType
-        config = state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-        back_comp = float(config["back_width_comp_t"])
-        back_width = w - back_comp * t
-        back_height = box_body_height_from_corner_policies(
-            h, t, head_corner_policy=None, tail_corner_policy=None,
-        )
-        back_contract = receiving.resolve_back_panel_contract(
-            snapshot, structure_state=state,
-            panel_width=back_width, full_panel_height=back_height,
+        # The GUI/Worker must never compute a second rear-width compensation
+        # or corner-dependent height; only the existing public Engine Family
+        # API may resolve the real back-panel manufacturing contract.
+        back_contract = resolve_box_body_back_panel_contract(
+            "受電箱", snapshot, structure_state=state,
         )
     except (TypeError, ValueError, OverflowError, ArithmeticError, KeyError) as exc:
         raise PrepareEvidenceError(
