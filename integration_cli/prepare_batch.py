@@ -342,7 +342,7 @@ def prepare_trusted_door_batch(
                 raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "complete verified Door input dimensions required")
         elif kind not in (
             "indicator_small_door", "indicator_box", "end_cap_head", "end_cap_tail",
-            "base_plate", "custom_fold", "box_body", "inner_door", "side_panel",
+            "base_plate", "custom_fold", "box_body", "inner_door", "side_panel", "back_panel",
         ):
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unverified physical part kind has no supported local Frame")
         if item["item_id"] in identities:
@@ -354,7 +354,7 @@ def prepare_trusted_door_batch(
             part_spec = indicator_small_door_spec_from_trusted_prepared_part(p, ctx)
         elif kind == "indicator_box":
             part_spec = indicator_box_spec_from_trusted_prepared_part(p, ctx)
-        elif kind == "side_panel":
+        elif kind in ("side_panel", "back_panel"):
             part_spec, side_role = receiving_side_panel_spec_from_trusted_part(p)
         elif kind == "inner_door":
             part_spec = receiving_inner_door_panel_from_trusted_part(p)
@@ -382,7 +382,7 @@ def prepare_trusted_door_batch(
                 "coordinate_space": "size_only",
                 "target_frame_certified": False,
             }
-        elif kind == "side_panel":
+        elif kind in ("side_panel", "back_panel"):
             frame = receiving_side_panel_frame(
                 part_spec, side_role, ctx, physical_part_id=physical_id,
             )
@@ -390,6 +390,7 @@ def prepare_trusted_door_batch(
                 "part_kind": kind, "cabinet_family": "受電箱",
                 "physical_source_ref": p["source_part_ref"],
                 "selected_side_role": side_role,
+                "back_panel_mode": p.get("back_panel_mode") if kind == "back_panel" else None,
                 "operator_outside_dimensions_mm": {
                     "width": part_spec.width, "height": part_spec.height,
                     "depth": part_spec.depth, "thickness": part_spec.thickness,
@@ -507,8 +508,8 @@ def prepare_trusted_door_batch(
             frame = resolve_door_finished_local_frame(
                 part_spec, ctx, physical_part_id=physical_id,
             )
-        baseline = None if kind == "side_panel" else expected_baseline_path_for(part_spec, ctx)
-        if baseline is None and kind not in ("base_plate", "custom_fold", "inner_door", "side_panel"):
+        baseline = None if kind in ("side_panel", "back_panel") else expected_baseline_path_for(part_spec, ctx)
+        if baseline is None and kind not in ("base_plate", "custom_fold", "inner_door", "side_panel", "back_panel"):
             raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "WHD could not identify the physical part baseline")
         # The CURRENT AE shared-indicator resolver selects a *single*
         # global folder only when both 盒子.dxf and 小門.dxf are present.
@@ -517,7 +518,7 @@ def prepare_trusted_door_batch(
         # environment but before a later mixed Door/Box use of that folder.
         selected_baselines = (
             list(receiving_side_panel_expected_baselines(resource_root))
-            if kind == "side_panel"
+            if kind in ("side_panel", "back_panel")
             else ([] if baseline is None else [baseline])
         )
         if kind in ("indicator_small_door", "indicator_box"):
