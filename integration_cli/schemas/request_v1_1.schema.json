@@ -169,6 +169,7 @@
               "box_zr1_mm": {"type": "number"},
               "box_zr2_mm": {"type": "number"},
               "box_z_comp_mm": {"type": "number"},
+              "back_panel_mode": {"enum": ["FULL"]},
               "inner_door_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"},
               "inner_door_cell_key": {"type": "string", "pattern": "^[0-9]+:[0-9]+$"},
               "frame_width_mm": {
@@ -270,6 +271,16 @@
                         "depth"
                       ]
                     }
+                  }
+                }
+              },
+              {
+                "if": {"properties": {"kind": {"const": "back_panel"}}},
+                "then": {
+                  "required": ["frame_width_mm", "box_zl1_mm", "box_zl2_mm",
+                               "box_zr2_mm", "back_panel_mode"],
+                  "properties": {
+                    "dimensions_mm": {"required": ["width", "height", "depth", "thickness"]}
                   }
                 }
               },
