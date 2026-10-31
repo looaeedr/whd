@@ -29,6 +29,9 @@ from . import ae
 from .dxf_serialization import save_scene_dxf
 from .cabinet_types.policy import resolve_box_body_back_panel_contract
 from .box_body_fold_profile import (
+    BOX_BODY_TURNS,
+    apply_outside_dimension_compensation,
+    outside_profile_to_material,
     build_box_body_profile as build_box_body_fold_profile,
     profile_to_fold_segments as box_body_profile_to_fold_segments,
 )

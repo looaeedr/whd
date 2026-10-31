@@ -18,12 +18,10 @@ from phase6_endcap_semantics import (
     ENDCAP_FW_PARTS, normalize_endcap_fw_state, resolve_endcap_fw, resolve_box_assembly_type,
 )
 
-from ae_engine.box_body_fold_profile import (
+from ae_engine.manufacturing_api import (
     BOX_BODY_TURNS as _BOX_BODY_TURNS,
     apply_outside_dimension_compensation as _engine_apply_outside_dimension_compensation,
     outside_profile_to_material as _engine_outside_profile_to_material,
-)
-from ae_engine.manufacturing_api import (
     build_box_body_fold_profile as _engine_build_box_body_fold_profile,
     box_body_profile_to_fold_segments as _engine_box_body_profile_to_fold_segments,
 )
