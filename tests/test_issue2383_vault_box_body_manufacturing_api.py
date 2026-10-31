@@ -125,3 +125,92 @@ def test_vault_box_body_size_only_frame_rejects_external_feature_authorization()
         forged[field] = val
         with pytest.raises(PrepareEvidenceError):
             require_canonical_vault_box_body_size_only_frame(forged, physical_part_id=physical)
+
+
+def test_vault_integral_box_body_signed_prepare_to_verified_final_dxf(tmp_path):
+    from pathlib import Path
+    import shutil
+    from tests.test_issue2378_prepare_batch import (
+        COMMIT, ENGINE, KEY, HERE, _root, _prepare, _request,
+        _export_request_from_prepared,
+    )
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from integration_cli.verified_door_finalscene import save_trusted_door_circle_finalscene_batch
+    from ae_engine.manufacturing_api import expected_baseline_path_for
+
+    root, _, _ = _root(tmp_path)
+    spec = vault_box_body_spec_from_trusted_prepared_part(_part())
+    baseline = expected_baseline_path_for(spec, ManufacturingContext(resource_root=root))
+    assert baseline is not None
+    baseline = Path(baseline)
+    baseline.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(HERE / "基準檔" / "金庫型" / "箱身.dxf", baseline)
+    source = tmp_path / "empty-confirmed-original.dxf"
+    dxf = ezdxf.new("R2010")
+    dxf.header["$INSUNITS"] = 4
+    dxf.saveas(source)
+    request = _request()
+    request["items"][0]["part"] = _part()
+    request["items"][0]["source_document_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+    request["request_digest"] = compute_wire_request_digest(request)
+    prepared = _prepare(request, root)
+    frame = prepared["items"][0]["target_frames"][0]
+    assert frame["frame_id"].startswith("box_body:")
+    assert frame["allowed_feature_types"] == []
+    export = _export_request_from_prepared(request, prepared)
+    out = tmp_path / "real-vault-boxbody"
+    saved = save_trusted_door_circle_finalscene_batch(
+        request, prepared, export,
+        source_documents={request["items"][0]["item_id"]: source},
+        resource_root=root, output_dir=out,
+        engine_commit=COMMIT, engine_sha256=ENGINE,
+        build_id="test-only-source", worker_key=KEY,
+    )
+    physical = prepared["items"][0]["physical_part_id"]
+    dest = out / (physical + ".dxf")
+    assert saved == {physical: str(dest)} and dest.is_file()
+    expected = build_part_render_data(spec, ManufacturingContext(resource_root=root))
+    verified = verify_saved_part_render_data_dxf(expected, dest)
+    assert verified.ok, verified.issues
+    reopened = ezdxf.readfile(dest)
+    assert reopened.modelspace().query('*[layer=="CUTTING"]')
+    assert reopened.modelspace().query('*[layer=="BEND"]')
+
+
+def test_vault_integral_box_body_rejects_original_source_cutting_before_export(tmp_path):
+    from pathlib import Path
+    import shutil
+    from tests.test_issue2378_prepare_batch import (
+        COMMIT, ENGINE, KEY, HERE, _root, _prepare, _request,
+        _export_request_from_prepared,
+    )
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from integration_cli.verified_door_finalscene import save_trusted_door_circle_finalscene_batch
+    from ae_engine.manufacturing_api import expected_baseline_path_for
+
+    root, _, _ = _root(tmp_path)
+    spec = vault_box_body_spec_from_trusted_prepared_part(_part())
+    baseline = Path(expected_baseline_path_for(spec, ManufacturingContext(resource_root=root)))
+    baseline.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(HERE / "基準檔" / "金庫型" / "箱身.dxf", baseline)
+    source = tmp_path / "real-source-has-feature.dxf"
+    dxf = ezdxf.new("R2010")
+    dxf.header["$INSUNITS"] = 4
+    dxf.modelspace().add_circle((60, 60), 3, dxfattribs={"layer": "CUTTING"})
+    dxf.saveas(source)
+    request = _request()
+    request["items"][0]["part"] = _part()
+    request["items"][0]["source_document_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+    request["request_digest"] = compute_wire_request_digest(request)
+    receipt = _prepare(request, root)
+    export = _export_request_from_prepared(request, receipt)
+    out = tmp_path / "must-not-write-boxbody"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        save_trusted_door_circle_finalscene_batch(
+            request, receipt, export,
+            source_documents={request["items"][0]["item_id"]: source},
+            resource_root=root, output_dir=out,
+            engine_commit=COMMIT, engine_sha256=ENGINE,
+            build_id="test-only-source", worker_key=KEY,
+        )
+    assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED" and not out.exists()
