@@ -16,6 +16,7 @@ from typing import Any, Mapping, Sequence
 from integration_cli.prepare_evidence import (
     PrepareEvidenceError, _pure_json, evidence_digest,
 )
+from integration_cli.worker_box_body import require_canonical_vault_box_body_size_only_frame
 from integration_cli.worker_custom_fold import require_canonical_custom_fold_size_only_frame
 from integration_cli.prepare_frame import (
     require_canonical_door_local_frame,
@@ -77,6 +78,12 @@ def _binding_payload(
             require_canonical_custom_fold_size_only_frame(
                 frame, physical_part_id=physical,
             )
+        elif raw_kind == "box_body":
+            if frame_id != f"box_body:{physical}:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Vault BoxBody Frame identity mismatch")
+            require_canonical_vault_box_body_size_only_frame(
+                frame, physical_part_id=physical,
+            )
         elif raw_kind == "base_plate":
             if frame_id != f"base_plate:{physical}:flat:size-only-v1":
                 raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "BasePlate frame identity mismatch")
@@ -99,7 +106,7 @@ def _binding_payload(
         seen_frames.add(frame_id)
         if frame.get("coordinate_contract_revision") != "1" or frame.get("units") != "mm":
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unsupported Frame units/revision")
-        if raw_kind not in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold"):
+        if raw_kind not in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body"):
             require_canonical_door_local_frame(frame, physical_part_id=physical)
         checked.append({
             "item_id": item_id,

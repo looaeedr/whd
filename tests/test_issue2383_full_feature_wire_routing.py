@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = Draft202012Validator(json.loads((
     ROOT / "integration_cli" / "schemas" / "request_v1_1.schema.json"
 ).read_text(encoding="utf-8")))
-P0 = {"door", "end_cap_head", "end_cap_tail", "indicator_box", "indicator_small_door", "base_plate", "custom_fold"}
+P0 = {"door", "end_cap_head", "end_cap_tail", "indicator_box", "indicator_small_door", "base_plate", "custom_fold", "box_body"}
 
 
 def _feature_request(family, role):
@@ -33,6 +33,15 @@ def _feature_request(family, role):
     part["kind"] = role
     if role in ("end_cap_head", "end_cap_tail"):
         part["dimensions_mm"] = {"width": 500.0, "depth": 350.0, "thickness": 2.0}
+    if role == "box_body":
+        part.clear()
+        part.update({
+            "kind": role, "cabinet_family": family, "source_part_ref": "box_body",
+            "dimension_semantics": "cabinet_outer",
+            "dimensions_mm": {"width": 400, "height": 600, "depth": 250, "thickness": 2},
+            "frame_width_mm": 25, "box_zl1_mm": -15, "box_zl2_mm": 20,
+            "box_zr1_mm": 15, "box_zr2_mm": 20, "box_z_comp_mm": 2,
+        })
     if role == "base_plate":
         part["dimensions_mm"] = {"width": 500.0, "height": 350.0, "thickness": 2.0}
         part["dimension_semantics"] = "part_formed_outer"
@@ -73,7 +82,7 @@ def test_all_registered_family_features_are_addressable_over_v11_wire(family):
         SCHEMA.validate(request)
         assert request["items"][0]["part"]["kind"] == role
         if role in P0 and not (
-            family == "受電箱" and role in ("end_cap_head", "end_cap_tail", "base_plate")
+            family == "受電箱" and role in ("end_cap_head", "end_cap_tail", "base_plate", "box_body")
         ):
             # This passes only the routing check, NOT signed job approval,
             # source/Frame verification or real DXF manufacturing.
@@ -98,7 +107,6 @@ def test_unknown_family_cannot_inherit_vault_api_route():
 
 
 @pytest.mark.parametrize("family,role", [
-    ("金庫型", "box_body"),
     ("受電箱", "box_body"),
     ("受電箱", "base_plate"),
     ("受電箱", "inner_door"),

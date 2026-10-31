@@ -19,6 +19,10 @@ from integration_cli.prepare_batch import (
     endcap_spec_from_trusted_prepared_part,
     vault_base_plate_spec_from_trusted_prepared_part,
 )
+from integration_cli.worker_box_body import (
+    vault_box_body_spec_from_trusted_prepared_part,
+    resolve_vault_box_body_size_only_frame,
+)
 from integration_cli.worker_custom_fold import (
     custom_fold_spec_from_trusted_prepared_part, resolve_custom_fold_size_only_frame,
 )
@@ -199,10 +203,10 @@ def save_trusted_door_circle_finalscene_batch(
         kind = original["part"]["kind"]
         if kind not in (
             "door", "indicator_small_door", "indicator_box",
-            "end_cap_head", "end_cap_tail", "base_plate", "custom_fold",
+            "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body",
         ):
             _reject("physical part has no trusted WHD FinalScene manufacturing owner")
-        if kind in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold") and exported.get("features"):
+        if kind in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body") and exported.get("features"):
             _reject("size-only physical Frame has no certified source-Feature mapping")
         # A source DXF containing untransferred geometry is never an
         # unperforated blank: even zero declared Features must not silently
@@ -230,6 +234,20 @@ def save_trusted_door_circle_finalscene_batch(
             render = build_part_render_data(spec, context)
             if render.material is None or render.material.is_empty or not render.material.is_valid:
                 _reject("Custom Fold canonical Final Material unavailable")
+            rows.append((receipt["physical_part_id"], render))
+            continue
+        if kind == "box_body":
+            spec = vault_box_body_spec_from_trusted_prepared_part(original["part"])
+            frame = resolve_vault_box_body_size_only_frame(
+                spec, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Vault BoxBody canonical Fold/FinalScene envelope has drifted")
+            render = build_part_render_data(spec, context)
+            if render.material is None or render.material.is_empty or not render.material.is_valid:
+                _reject("Vault BoxBody canonical Final Material unavailable")
+            if not render.fold_guides:
+                _reject("Vault BoxBody has no canonical BEND topology")
             rows.append((receipt["physical_part_id"], render))
             continue
         if kind == "base_plate":

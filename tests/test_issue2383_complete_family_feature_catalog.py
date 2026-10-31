@@ -67,7 +67,7 @@ def test_full_vault_receiving_feature_catalog_is_schema_valid_and_grounded(monke
     }
     assert {(row["cabinet_family"], row["feature_id"])
             for row in entries if row["manufacturing_supported"]} == actually_available
-    assert len(actually_available) == 11  # Vault 7 + Receiving 4; standalone Vault BasePlate and both-family custom Fold.
+    assert len(actually_available) == 12  # Vault 8 + Receiving 4; integral Vault BoxBody additionally certified.
     for item in entries:
         assert item["geometry_acceptance_passed"] is item["manufacturing_supported"]
         if item["manufacturing_supported"]:
@@ -80,7 +80,6 @@ def test_full_vault_receiving_feature_catalog_is_schema_valid_and_grounded(monke
         "受電箱/end_cap_head", "受電箱/end_cap_tail",
         "受電箱/box_body", "受電箱/base_plate", "受電箱/inner_door", "受電箱/divider",
         "受電箱/fixing_plate", "受電箱/multi_bay_batch",
-        "金庫型/box_body",
     ):
         assert indexed[unsafe]["manufacturing_supported"] is False
         assert indexed[unsafe]["blocked_code"]
@@ -88,7 +87,7 @@ def test_full_vault_receiving_feature_catalog_is_schema_valid_and_grounded(monke
     # A listed feature cannot be mistaken for permitted manufacturing.
     assert set(advertised["supported_part_kinds"]) == {
         "door", "indicator_small_door", "indicator_box",
-        "end_cap_head", "end_cap_tail", "base_plate", "custom_fold",
+        "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body",
     }
     assert not advertised["capability_flags"]["per_part_transactions"]
     assert not advertised["capability_flags"]["crash_recovery"]
