@@ -47,6 +47,7 @@ from .box_body_fold_profile import (
     apply_outside_dimension_compensation,
     outside_profile_to_material,
     build_box_body_profile as build_box_body_fold_profile,
+    merge_box_body_fold_profile,
     profile_to_fold_segments as box_body_profile_to_fold_segments,
 )
 from .receiving_quantity_versions import (

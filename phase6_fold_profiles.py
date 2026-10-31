@@ -252,42 +252,5 @@ def build_linked_endcap_xy_profiles(
 
 
 def merge_box_body_profile(profile: Sequence[Mapping[str, object]], snapshot: Mapping[str, object]) -> list[dict]:
-    """Refresh shared semantic core values without changing user Fold topology.
-
-    Once an operator removes/adds a mapped outer segment, that structural choice
-    is authoritative. Missing canonical keys are never recreated. Existing
-    semantic keys (notably D-W-D/FW) still receive current material lengths.
-    """
-    merged = clone_profile(profile)
-    if not merged:
-        return build_box_body_profile(snapshot)
-    canonical = {seg.get("phase6_key"): seg for seg in build_box_body_profile(snapshot)}
-    for seg in merged:
-        key = seg.get("phase6_key")
-        source = canonical.get(key)
-        if source is None:
-            continue
-        # D/W/FW remain tied to current global dimensions. Removed outer folds
-        # are not resurrected; retained outer mapped folds keep their own edited
-        # length unless they are structural shared dimensions.
-        if key in {"d_left", "w", "d_right", "fw_left", "fw_right"}:
-            seg["len"] = source["len"]
-        for name in ("ui_len_add", "core"):
-            if name in source:
-                seg[name] = source[name]
-            else:
-                seg.pop(name, None)
-    # Cabinet-family topology is authoritative over a previous family's saved
-    # outer folds.  In particular, receiving removes terminal ``zr1``; keeping
-    # the vault row merely because it existed before the family switch leaks the
-    # vault topology back into the live receiving editor.
-    merged = cabinet_family_policy.transform_box_body_profile(snapshot, merged)
-    apply_outside_dimension_compensation(merged, snapshot.get("t", 2))
-    # The D-W-D core is mandatory and cannot be removed through the UI. Reject
-    # corrupt files rather than silently replacing their topology.
-    d_segments = [seg for seg in merged if seg.get("core") == "D"]
-    w_segments = [seg for seg in merged if seg.get("core") == "W"]
-    if len(d_segments) != 2 or len(w_segments) != 1:
-        raise ValueError("箱身折法資料缺少 D-W-D 核心")
-    return merged
-
+    """Legacy Fold editor entry; Engine alone refreshes physical core/topology."""
+    return manufacturing_api.merge_box_body_fold_profile(profile, snapshot)
