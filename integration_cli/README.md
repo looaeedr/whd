@@ -154,6 +154,21 @@ manual Fold, assembly joinery, extra physical parts or unverified source fitting
 must refuse manufacture. W-04/W-06 preserve original SHA, immutable resources,
 job approval and DXF Save→Reload; no claim of a full Receiving box assembly.
 
+## Receiving rear physical sheet Worker (FULL and BACK_OPENING only)
+
+The `受電箱/back_panel` W-03/04 role is a real independently signed single
+rear sheet with a persisted `box_body:back` source identity. CADSplit must
+supply confirmed outside W/H/D/T, frame width, Receiving factory zl1/zl2/zr2
+and `back_panel_mode=FULL|BACK_OPENING`. WHD consumes its current three-piece
+BoxBody family state, 2.5T rear width compensation and dedicated
+`後面板.dxf` reference; the coupled left/right reference files are also
+sealed. The flat FinalScene retains FOUR real R8/4.5 keyslots, plus the
+exact certified 650x200 rear opening for BACK_OPENING, and has **no BEND**.
+The original CADSplit source DXF must be empty; untransferred Features,
+external manual openings, HALF (needs persisted upper/lower door sections),
+side-to-back Joint and whole-cabinet release remain explicitly prohibited.
+A verified DXF Save→Reload completes only the single sheet, not assembly.
+
 ## Output and failure semantics
 
 - `stdout`: reserved/empty for these operations. The response JSON file is
