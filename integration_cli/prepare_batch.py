@@ -28,6 +28,10 @@ from integration_cli.worker_box_body import (
     vault_box_body_spec_from_trusted_prepared_part,
     resolve_vault_box_body_size_only_frame,
 )
+from integration_cli.worker_inner_door_panel import (
+    receiving_inner_door_panel_from_trusted_part,
+    resolve_receiving_inner_door_panel_frame,
+)
 from integration_cli.worker_custom_fold import (
     custom_fold_spec_from_trusted_prepared_part,
     resolve_custom_fold_size_only_frame,
@@ -333,7 +337,7 @@ def prepare_trusted_door_batch(
                 raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "complete verified Door input dimensions required")
         elif kind not in (
             "indicator_small_door", "indicator_box", "end_cap_head", "end_cap_tail",
-            "base_plate", "custom_fold", "box_body",
+            "base_plate", "custom_fold", "box_body", "inner_door",
         ):
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unverified physical part kind has no supported local Frame")
         if item["item_id"] in identities:
@@ -345,6 +349,8 @@ def prepare_trusted_door_batch(
             part_spec = indicator_small_door_spec_from_trusted_prepared_part(p, ctx)
         elif kind == "indicator_box":
             part_spec = indicator_box_spec_from_trusted_prepared_part(p, ctx)
+        elif kind == "inner_door":
+            part_spec = receiving_inner_door_panel_from_trusted_part(p)
         elif kind == "custom_fold":
             part_spec = custom_fold_spec_from_trusted_prepared_part(p)
         elif kind == "box_body":
@@ -368,6 +374,26 @@ def prepare_trusted_door_batch(
                 "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
                 "coordinate_space": "size_only",
                 "target_frame_certified": False,
+            }
+        elif kind == "inner_door":
+            frame = resolve_receiving_inner_door_panel_frame(
+                part_spec, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "受電箱",
+                "physical_panel_identity": part_spec.stable_id,
+                "inner_door_id": part_spec.inner_door_id,
+                "cell_key": part_spec.cell_key,
+                "input_finished_mm": {
+                    "width": part_spec.width, "height": part_spec.height,
+                    "thickness": part_spec.thickness,
+                },
+                "fixed_material_folds_mm": {
+                    "left": part_spec.fold_left, "right": part_spec.fold_right,
+                    "top": part_spec.fold_top, "bottom": part_spec.fold_bottom,
+                },
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
             }
         elif kind == "custom_fold":
             frame = resolve_custom_fold_size_only_frame(
@@ -454,7 +480,7 @@ def prepare_trusted_door_batch(
                 part_spec, ctx, physical_part_id=physical_id,
             )
         baseline = expected_baseline_path_for(part_spec, ctx)
-        if baseline is None and kind not in ("base_plate", "custom_fold"):
+        if baseline is None and kind not in ("base_plate", "custom_fold", "inner_door"):
             raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "WHD could not identify the physical part baseline")
         # The CURRENT AE shared-indicator resolver selects a *single*
         # global folder only when both 盒子.dxf and 小門.dxf are present.
