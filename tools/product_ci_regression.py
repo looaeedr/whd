@@ -806,12 +806,13 @@ def _merge_shard_junit(paths: list[Path], count: int, output: Path) -> None:
     ET.ElementTree(combined).write(output, encoding="utf-8", xml_declaration=True)
 
 
-def _verify_full_receipt(report: Path) -> None:
+def _verify_full_receipt(report: Path, collection_path: Path | None = None) -> None:
     try:
         from tools.whd_v15_acceptance_evidence import verify
     except ModuleNotFoundError:
         from whd_v15_acceptance_evidence import verify
-    receipt = verify(report)
+    receipt = (verify(report) if collection_path is None
+               else verify(report, collection_path=collection_path))
     print(f"WHD_V15_ACCEPTANCE_GREEN requirements={len(receipt['requirements'])} "
           f"passed_cases={receipt['passed_cases']}", flush=True)
 
@@ -852,14 +853,17 @@ def main() -> int:
     parser.add_argument("--shard-count", type=int, default=1)
     parser.add_argument("--junit-out", type=Path)
     parser.add_argument("--merge-junit", action="append", type=Path, default=[])
+    parser.add_argument("--collection-file", type=Path)
     args = parser.parse_args()
+    if args.collection_file is not None and not args.merge_junit:
+        parser.error("--collection-file requires --merge-junit")
     if args.merge_junit:
         if args.junit_out is None:
             parser.error("--merge-junit requires --junit-out")
         if args.shard_index != 0:
             parser.error("--merge-junit cannot select a shard")
         _merge_shard_junit(args.merge_junit, args.shard_count, args.junit_out)
-        _verify_full_receipt(args.junit_out)
+        _verify_full_receipt(args.junit_out, args.collection_file)
         return 0
     return run(index=args.shard_index, count=args.shard_count,
                junit_out=args.junit_out)

@@ -143,6 +143,12 @@ def test_eighteen_shard_workflow_keeps_complete_exact_selectors_and_artifact_gat
                 / ".github/workflows/whd-product-regression.yml").read_text(encoding="utf-8")
     assert "shard: [" + ", ".join(str(i) for i in range(18)) + "]" in workflow
     assert workflow.count("--shard-count 18") == 2
+    # Collection runs alongside the shards without skipping final case proof.
+    assert "needs: [prepare, test-shard, canonical-collection]" in workflow
+    assert "name: whd-ci-canonical-collection" in workflow
+    assert "--collection-file collection/canonical-collection.txt" in workflow
+    assert 'test "$(cat collection/canonical-collection-head.txt)" = ' in workflow
+    assert 'test "$COLLECTION_RESULT" = success' in workflow
     assert "for shard in " + " ".join(str(i) for i in range(18)) + "; do" in workflow
     assert "name: whd-ci-shard-" in workflow
     for i in range(18):
@@ -359,6 +365,60 @@ def test_verify_full_receipt_imports_package_qualified_evidence_module():
     }) as mock_verify:
         _verify_full_receipt(Path("dummy.xml"))
         mock_verify.assert_called_once_with(Path("dummy.xml"))
+
+
+def test_parallel_collection_readback_rejects_missing_or_duplicate_nodes(tmp_path):
+    from tools.whd_v15_acceptance_evidence import _load_canonical_collection
+
+    collection = tmp_path / "canonical-collection.txt"
+    collection.write_text(
+        "tests/test_one.py::test_one\n"
+        "tests/test_two.py::test_two[param]\n"
+        "2 tests collected\n", encoding="utf-8",
+    )
+    assert _load_canonical_collection(collection) == {
+        "tests/test_one.py::test_one",
+        "tests/test_two.py::test_two[param]",
+    }
+    collection.write_text("0 tests collected\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="empty"):
+        _load_canonical_collection(collection)
+    collection.write_text("tests/test_one.py::test_one\n" * 2, encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate"):
+        _load_canonical_collection(collection)
+    collection.unlink()
+    with pytest.raises(FileNotFoundError):
+        _load_canonical_collection(collection)
+
+
+def test_parallel_collection_default_keeps_fresh_complete_collection():
+    from unittest.mock import patch
+    from tools.whd_v15_acceptance_evidence import _load_canonical_collection
+
+    fresh = chr(10).join(("tests/test_one.py::test_one", "tests/test_two.py::test_two[x]", ""))
+    with patch("tools.whd_v15_acceptance_evidence.subprocess.check_output",
+               return_value=fresh) as mock_collect:
+        assert _load_canonical_collection() == {
+            "tests/test_one.py::test_one",
+            "tests/test_two.py::test_two[x]",
+        }
+    command = mock_collect.call_args.args[0]
+    assert "--collect-only" in command and "-q" in command
+    assert "tests/test_issue1469_v15_acceptance.py" in command
+
+
+def test_parallel_collection_is_passed_into_final_verifier():
+    from unittest.mock import patch
+    from tools.product_ci_regression import _verify_full_receipt
+
+    with patch("tools.whd_v15_acceptance_evidence.verify", return_value={
+        "requirements": {"CPR-01": ["tests/test_one.py::test_one"]},
+        "passed_cases": 1,
+    }) as mock_verify:
+        _verify_full_receipt(Path("dummy.xml"), Path("collection.txt"))
+        mock_verify.assert_called_once_with(
+            Path("dummy.xml"), collection_path=Path("collection.txt")
+        )
 
 
 def test_release_test_runner_select_batch_isolates_remaining_suffix_after_first_half_passes():
