@@ -189,8 +189,19 @@ def test_eighteen_shard_workflow_keeps_complete_exact_selectors_and_artifact_gat
     assert all(shards)
     manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
     split_file = manifest["split_file"]
-    expected = set(PYTEST_PATHS) - {split_file}
+    bom = manifest["bom_split_file"]
+    expected = set(PYTEST_PATHS) - {split_file, bom}
     expected.update(f"{split_file}::{name}" for name in manifest["split_case_owners"])
+    expected.update(f"{bom}::{name}" for name in (
+        "test_physical_sheets_multiply_without_name_or_topology_grouping",
+        "test_invalid_multiplicity_fails_before_any_demand",
+        "test_duplicate_physical_or_version_identity_fails_closed",
+        "test_formal_family_parts_feed_same_physical_demand_boundary",
+    ))
+    for key in manifest["bom_split_case_owners"]:
+        family, mode, layers = key.rsplit("-", 2)
+        escaped = family.encode("unicode_escape").decode("ascii")
+        expected.add(f"{bom}::{manifest['bom_split_function']}[{escaped}-{mode}-{layers}]")
     seen = Counter(selector for shard in shards for selector in shard)
     assert set(seen) == expected
     assert all(times == 1 for times in seen.values())
