@@ -186,6 +186,26 @@ modelspace must be empty, external Feature mapping, Side/Back WRAP Joint,
 complete cabinet/world placement and unverified Fold/corner overrides are
 denied. No official X release or multi-Bay assembly is implied.
 
+## Receiving inner-door A/B/D real source frame manufacturing
+
+Installed v1.1 `受電箱/inner_door` can now manufacture either an independently
+confirmed panel or **one dedicated physical frame A(left), B(right), D(top)**.
+For frames, the exact source request must contain `source_part_ref=
+inner_door:<id>:<side>_frame`, `dimension_semantics=part_formed_outer`,
+`dimensions_mm={thickness}`, `inner_door_id`, `inner_door_frame_side`
+(top/left/right only), and independently confirmed positive
+`inner_door_frame_span_mm` above 110 mm. The canonical signed Fold Chain is
+owned by `ae_engine.inner_door_frames`, not CADSplit; true CUTTING/BEND
+(including source D's two certified holes) is supplied by the verified
+`基準檔/受電箱/框.dxf` **A/B/D source selected from the installed resource root**.
+W-03 signs the exact baseline SHA in its environment evidence and seals a
+feature-disabled material Frame. W-04 re-attests the same source, the original
+empty CADSplit modelspace, physical identity and FinalScene before atomic
+DXF Save→Reload. Existing inner-door **panel** geometry and old source
+requests remain unchanged. Frame C is the separate Divider, not a fourth
+inner-door frame; joint placement/assembly/NFB and source-hole mapping remain
+blocked without independent certification.
+
 ## Output and failure semantics
 
 - `stdout`: reserved/empty for these operations. The response JSON file is
