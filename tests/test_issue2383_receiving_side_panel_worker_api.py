@@ -38,8 +38,7 @@ def _part(role="left_side"):
         },
         "frame_width_mm": 29.0,
         "box_zl1_mm": -24.0, "box_zl2_mm": 24.0,
-        "box_zr1_mm": 15.0, "box_zr2_mm": 18.0,
-        "box_z_comp_mm": 2.0,
+        "box_zr2_mm": 18.0,
     }
 
 
@@ -57,7 +56,10 @@ def test_receiving_real_side_geometry_has_its_own_fixed_holes_and_bends(tmp_path
     spec, resolved_role = receiving_side_panel_spec_from_trusted_part(_part(role))
     assert resolved_role == role
     assert spec.model_name == "受電箱"
-    assert len(spec.fold_profile) == 9
+    assert len(spec.fold_profile) == 8
+    assert [row.phase6_key for row in spec.fold_profile] == [
+        "zl1", "zl2", "fw_left", "d_left", "w", "d_right", "fw_right", "zr2",
+    ]
     ctx = ManufacturingContext(resource_root=root)
     render = receiving_side_panel_render(spec, role, ctx)
     assert render.material.is_valid and render.material.area > 0
