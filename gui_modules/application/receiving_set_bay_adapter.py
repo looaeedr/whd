@@ -31,51 +31,6 @@ from ae_engine.receiving_layout import (
 )
 
 
-def _candidate_committed_csv_nfb_config(source):
-    """Validate one complete NFB CSV replacement before any Bay mutation.
-
-    A candidate may replace a previously submitted NFB only when ALL its
-    physical CUTTING comes from the one native NFB source. A mix of arbitrary
-    Hole Editor CUTTING and typed NFB remains blocked against double owners.
-    """
-    from ae_engine.receiving_nfb_csv_committed_config import (
-        committed_csv_nfb_config,
-    )
-    feature_map = dict(source.get("features") or {})
-    imported = [
-        (part_id, features)
-        for part_id, features in feature_map.items()
-        if any(getattr(feat, "source_type", None) == "NFB_CSV_SOURCE"
-               for feat in features)
-    ]
-    if not imported:
-        return None
-    if len(imported) != 1:
-        raise ValueError("每個候選 NFB 必須對應唯一實體內門板件")
-    if any(
-        str(getattr(feat, "layer", "")).upper() == "CUTTING"
-        and getattr(feat, "source_type", None) != "NFB_CSV_SOURCE"
-        for features in feature_map.values() for feat in features
-    ):
-        raise ValueError("候選存在非 NFB CUTTING；不得與已提交 NFB 形成雙重開孔")
-    part_id, features = imported[0]
-    return committed_csv_nfb_config(part_id, features, source)
-
-
-def _replace_candidate_bay_nfb(layout, si, bi, csv_config):
-    """Commit the complete candidate NFB once, with this Bay's stable IDs."""
-    if csv_config is None:
-        return layout
-    bay_id = str(layout["sets"][si]["bays"][bi]["stable_id"])
-    selected = deepcopy(csv_config)
-    for hole in selected["holes"]:
-        hole["physical_hole_id"] = f"{bay_id}:{hole['physical_hole_id']}"
-    return update_receiving_bay(
-        layout, set_index=si, bay_index=bi,
-        nfb_config_submitted=True, nfb_config=selected,
-    )
-
-
 class ReceivingDestructiveEditConfirmationRequired(RuntimeError):
     def __init__(self, stable_ids: Iterable[str]):
         self.stable_ids = tuple(str(value) for value in stable_ids)
@@ -497,15 +452,14 @@ class ReceivingSetBayAdapter:
         # submit the version's existing Hole Editor NFB features into each
         # selected Bay's source projection. Manual NFB X remains unverified
         # and manufacturing-ready flags are NEVER promoted by this bridge.
-        csv_config = _candidate_committed_csv_nfb_config(source)
+        csv_config = manufacturing_api.candidate_committed_csv_nfb_config(source)
         # Explicit Apply REPLACES the initial submitted NFB + physical
         # features as one Bay transaction; never union them. Non-NFB or
         # unverified mixed CUTTING cannot overwrite a submitted source.
-        if csv_config is None and source.get("features") and any(
-            self._layout["sets"][set_index]["bays"][bi].get("nfb_config_submitted") is True
-            for bi in selected
-        ):
-            raise ValueError("此連 NFB 已提交；非 CSV 候選不得覆寫原開孔")
+        manufacturing_api.validate_candidate_nfb_replacement(
+            self._layout, ((set_index, bi) for bi in selected), source, csv_config,
+            rejection_message="此連 NFB 已提交；非 CSV 候選不得覆寫原開孔",
+        )
         candidate = self._layout
         for bi in selected:
             for kind, value in (
@@ -524,7 +478,7 @@ class ReceivingSetBayAdapter:
                 )
         if csv_config is not None:
             for bi in selected:
-                candidate = _replace_candidate_bay_nfb(
+                candidate = manufacturing_api.replace_candidate_bay_nfb(
                     candidate, set_index, bi, csv_config,
                 )
         self._layout = candidate
@@ -583,11 +537,10 @@ class ReceivingSetBayAdapter:
         replacements = {}
         for si, bi, config in plan:
             validate_setting("inner_door_version_id", assigned[(si, bi)])
-            csv = _candidate_committed_csv_nfb_config(config)
-            if csv is None and config.get("features") and (
-                self._layout["sets"][si]["bays"][bi].get("nfb_config_submitted") is True
-            ):
-                raise ValueError("已提交 NFB 與非 CSV 候選不得形成雙重 CUTTING owner")
+            csv = manufacturing_api.candidate_committed_csv_nfb_config(config)
+            manufacturing_api.validate_candidate_nfb_replacement(
+                self._layout, ((si, bi),), config, csv,
+            )
             replacements[(si, bi)] = csv
         candidate = self._layout
         for si, bi, config in plan:
@@ -604,7 +557,7 @@ class ReceivingSetBayAdapter:
                 candidate = edit_setting(
                     candidate, set_index=si, bay_index=bi, kind=kind, value=value,
                 )
-            candidate = _replace_candidate_bay_nfb(
+            candidate = manufacturing_api.replace_candidate_bay_nfb(
                 candidate, si, bi, replacements[(si, bi)],
             )
         self._layout = candidate

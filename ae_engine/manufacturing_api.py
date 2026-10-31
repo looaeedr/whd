@@ -811,3 +811,26 @@ def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
         rebase_receiving_set_parent_nfb_brand as _engine_rebase,
     )
     return _engine_rebase(set_row, proposed_brand)
+
+def candidate_committed_csv_nfb_config(source):
+    """Public Engine NFB candidate provenance query (deferred owner import)."""
+    from .receiving_nfb_csv_committed_config import candidate_committed_csv_nfb_config as resolve
+    return resolve(source)
+
+
+def validate_candidate_nfb_replacement(
+    layout, selected_bays, source, csv_config, *, rejection_message=None,
+):
+    """Public Engine guard for submitted NFB source replacement."""
+    from .receiving_nfb_csv_committed_config import validate_candidate_nfb_replacement as validate
+    if rejection_message is None:
+        return validate(layout, selected_bays, source, csv_config)
+    return validate(
+        layout, selected_bays, source, csv_config, rejection_message=rejection_message,
+    )
+
+
+def replace_candidate_bay_nfb(layout, set_index, bay_index, csv_config):
+    """Public Engine physical Bay identity and NFB state transaction."""
+    from .receiving_nfb_csv_committed_config import replace_candidate_bay_nfb as replace
+    return replace(layout, set_index, bay_index, csv_config)

@@ -102,3 +102,54 @@ def preview_quantity_nfb_submission(snapshot, quantity_model, config):
     projected = deepcopy(dict(snapshot))
     projected["quantity"] = candidate.snapshot()
     return project_common_box(projected)
+
+def candidate_committed_csv_nfb_config(source):
+    """Select the sole verified physical NFB CSV source; reject mixed CUTTING."""
+    feature_map = dict(source.get("features") or {})
+    imported = [
+        (part_id, features)
+        for part_id, features in feature_map.items()
+        if any(getattr(feat, "source_type", None) == "NFB_CSV_SOURCE"
+               for feat in features)
+    ]
+    if not imported:
+        return None
+    if len(imported) != 1:
+        raise ValueError("每個候選 NFB 必須對應唯一實體內門板件")
+    if any(
+        str(getattr(feat, "layer", "")).upper() == "CUTTING"
+        and getattr(feat, "source_type", None) != "NFB_CSV_SOURCE"
+        for features in feature_map.values() for feat in features
+    ):
+        raise ValueError("候選存在非 NFB CUTTING；不得與已提交 NFB 形成雙重開孔")
+    part_id, features = imported[0]
+    return committed_csv_nfb_config(part_id, features, source)
+
+
+def validate_candidate_nfb_replacement(
+    layout, selected_bays, source, csv_config, *,
+    rejection_message="已提交 NFB 與非 CSV 候選不得形成雙重 CUTTING owner",
+):
+    """Reject a non-CSV candidate overwriting any submitted physical NFB."""
+    if csv_config is not None or not source.get("features"):
+        return
+    if any(
+        layout["sets"][si]["bays"][bi].get("nfb_config_submitted") is True
+        for si, bi in selected_bays
+    ):
+        raise ValueError(rejection_message)
+
+
+def replace_candidate_bay_nfb(layout, set_index, bay_index, csv_config):
+    """Commit verified source once with canonical Bay-qualified physical IDs."""
+    from .receiving_layout import update_receiving_bay
+    if csv_config is None:
+        return layout
+    bay_id = str(layout["sets"][set_index]["bays"][bay_index]["stable_id"])
+    selected = deepcopy(csv_config)
+    for hole in selected["holes"]:
+        hole["physical_hole_id"] = f"{bay_id}:{hole['physical_hole_id']}"
+    return update_receiving_bay(
+        layout, set_index=set_index, bay_index=bay_index,
+        nfb_config_submitted=True, nfb_config=selected,
+    )
