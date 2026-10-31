@@ -37,6 +37,10 @@ WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並�
 
 `ae_engine.manufacturing_api.commit_box_fw(state, value)`、`commit_endcap_fw(state, part_key, value, *, box_fw=None)`、`set_endcap_fw_follow(state, part_key, follow_box, *, box_fw)`、`set_endcap_fw_override(state, part_key, value)` 由 Engine 按原有 Head/Tail FOLLOW_BODY/FOLLOW_HEAD/FOLLOW_TAIL/INDEPENDENT 與舊檔相容狀態機處理操作者 FW 修改。讀取仍用既有 `normalize_endcap_fw_state` / `resolve_endcap_fw`，實體折邊只由 `build_endcap_xy_fold_profiles` 生成；Phase6 同名入口只轉接，不另作狀態推導或出圖認證。
 
+## EndCap Assembly Intent／CornerType 原始狀態 API（#2517）
+
+`ae_engine.manufacturing_api.endcap_corner_selection_to_raw(selection)` 是現行 CornerType 保存格式的 Engine 投影；`apply_endcap_box_assembly_type_to_raw_state(corner_state, pair_same, type_id, *, reset_bottom_defaults=False)` 使用相同的 Engine Assembly Intent／CornerType policy 修改 Head/Tail 上角，保持手動底角設定，僅在操作者要求 reset 時重設原有 Family bottom defaults。原 `phase6_endcap_semantics.selection_to_raw` 與 `apply_box_assembly_type_to_raw_state` 保持 GUI 相容轉呼叫。這不創造新的角落 CUTTING/Relief Registry 公式。
+
 ## 公開入口
 
 ```python
