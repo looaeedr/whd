@@ -144,3 +144,94 @@ def certified_source_catalog(source_path: Path | None = None):
         "source_path": str(path),
     } for role in SOURCE_ROLES
         for tag, (width, length), _origin, _rot, _poly in [_reference_record(msp, role=role)]}
+
+
+def receiving_divider_c_source(*, material_width: float, span: float, source_path: Path):
+    """Exact certified C sheet CUTTING, including 6 circles AND relief square.
+
+    The actual 框.dxf C has no BEND layer; those MUST come from the canonical
+    Receiving divider Fold policy, not be fabricated from a sample preview.
+    All independent C CUTTING contours remain in the exported FinalScene.
+    """
+    from .sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+
+    if not isinstance(source_path, Path) or not source_path.is_file():
+        raise ValueError("RECEIVING_DIVIDER_C_INSTALLED_SOURCE_REQUIRED")
+    if any(type(v) not in (int, float) or not math.isfinite(v)
+           for v in (material_width, span)):
+        raise ValueError("RECEIVING_DIVIDER_C_DIMENSIONS_INVALID")
+    if abs(material_width - 158.0) > TOL or span <= 110.0:
+        raise ValueError("RECEIVING_DIVIDER_C_SOURCE_WIDTH_OR_SPAN_MISMATCH")
+    doc, status = load_baseline_dxf_source_with_status(
+        source_path, allow_unverified_source=False,
+    )
+    if status != BASELINE_SOURCE_VERIFIED:
+        raise ValueError("RECEIVING_DIVIDER_C_SOURCE_UNVERIFIED")
+    msp = doc.modelspace()
+    tag, (width, sample_span), (origin_x, origin_y), rotate, outer = _reference_record(
+        msp, role="divider",
+    )
+    if tag != "C" or not rotate or abs(width - material_width) > TOL:
+        raise ValueError("RECEIVING_DIVIDER_C_SAMPLE_SOURCE_NOT_CANONICAL")
+
+    def point(x, y):
+        local_x = float(y) - origin_y
+        local_y = float(x) - origin_x
+        return Vec2(local_x, _y_by_edge(local_y, sample_span, span))
+
+    def in_c_sample(entity):
+        ext = bbox.extents([entity])
+        if not ext.has_data:
+            return False
+        return (origin_x-TOL <= float(ext.extmin.x)
+                and float(ext.extmax.x) <= origin_x+sample_span+TOL
+                and origin_y-TOL <= float(ext.extmin.y)
+                and float(ext.extmax.y) <= origin_y+width+TOL)
+
+    source_outline = tuple(point(x, y) for x, y, *_ in outer.get_points())
+    if len(source_outline) < 4:
+        raise ValueError("RECEIVING_DIVIDER_C_OUTER_SOURCE_MISSING")
+    if source_outline[0] != source_outline[-1]:
+        source_outline = source_outline + (source_outline[0],)
+
+    holes, reliefs = [], []
+    for entity in msp:
+        layer = str(getattr(entity.dxf, "layer", "")).upper()
+        if layer != "CUTTING" or not in_c_sample(entity):
+            continue
+        etype = entity.dxftype()
+        if etype == "LWPOLYLINE":
+            if entity is outer:
+                continue
+            if not entity.closed:
+                raise ValueError("RECEIVING_DIVIDER_C_UNCLOSED_SOURCE_RELIEF")
+            vertices = tuple(point(x, y) for x, y, *_ in entity.get_points())
+            reliefs.append(PolylinePrimitive(
+                vertices, "CUTTING", closed=True, color=7,
+                semantic_id="RECEIVING_C_ORIGINAL_CUTOUT",
+            ))
+        elif etype == "CIRCLE":
+            holes.append(CirclePrimitive(
+                point(entity.dxf.center.x, entity.dxf.center.y),
+                float(entity.dxf.radius), "CUTTING", color=7,
+                source_type="receiving_C_baseline",
+                source_id=f"C:{entity.dxf.handle}",
+            ))
+        else:
+            raise ValueError("RECEIVING_DIVIDER_C_UNRECOGNIZED_CUTTING")
+    # The actual certified C source has exactly one independent CUTTING
+    # square and six fixed round apertures; dropping either is dangerous.
+    if (len(reliefs) != 1 or len(holes) != 6
+            or sorted(round(x.radius, 4) for x in holes)
+                != [2.65, 2.65, 2.65, 3.2, 3.2, 3.2]):
+        raise ValueError("RECEIVING_DIVIDER_C_SOURCE_CUTTING_INVENTORY_CHANGED")
+    return (
+        source_outline, tuple(holes) + tuple(reliefs),
+        {
+            "receiving_frame_source_tag": "C",
+            "receiving_frame_source_sha256": sha256(source_path.read_bytes()).hexdigest(),
+            "receiving_frame_source_holes": len(holes),
+            "receiving_frame_source_relief_contours": len(reliefs),
+            "receiving_divider_C_source_scope": "SINGLE_PHYSICAL_PART_ONLY",
+        },
+    )
