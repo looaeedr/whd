@@ -3,6 +3,8 @@ from collections import Counter
 import ast
 import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import xml.etree.ElementTree as ET
 
@@ -235,6 +237,33 @@ def test_eighteen_shard_workflow_keeps_complete_exact_selectors_and_artifact_gat
     seen = Counter(selector for shard in shards for selector in shard)
     assert set(seen) == expected
     assert all(times == 1 for times in seen.values())
+
+
+def test_final_canonical_verifier_uses_stdlib_and_bounded_named_artifacts():
+    workflow = (Path(__file__).resolve().parents[2]
+                / ".github/workflows/whd-product-regression.yml").read_text(encoding="utf-8")
+    final = workflow.split("\n  product-regression:", 1)[1]
+    assert "python -S - <<'PY'" in final
+    assert "pip-canonical" not in final
+    assert "pip install" not in final
+    assert "Verify standard-library-only canonical receipt verifier" in final
+    assert 'for shard in ' + ' '.join(str(i) for i in range(18)) + '; do' in final
+    assert 'if [ "${#pids[@]}" -eq 4 ]; then' in final
+    assert 'if ! wait "$pid"; then failed=true; fi' in final
+    assert 'CI_JUNIT_DOWNLOAD_BATCH_FAILED' in final
+    assert 'CI_JUNIT_DOWNLOAD_FAILED shard=' in final
+    assert 'timeout 120s gh run download "${GITHUB_RUN_ID}"' in final
+    assert '--name "whd-ci-shard-${shard}"' in final
+    assert '--merge-junit junit/shard-17.xml' in final
+    root = Path(__file__).resolve().parents[2]
+    subprocess.run(
+        [sys.executable, "-S", "-c",
+         "import tools.product_ci_regression as regression; "
+         "import tools.whd_v15_acceptance_evidence as evidence; "
+         "assert callable(regression._merge_shard_junit); "
+         "assert callable(evidence.verify)"],
+        cwd=root, check=True, timeout=20,
+    )
 
 
 def test_eighteen_shard_final_junit_requires_every_file_and_all_green():
