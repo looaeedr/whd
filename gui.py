@@ -1518,74 +1518,38 @@ class Phase6ApplicationHost:
     def _door_layout_entry_menu(self, entry, *, column_index, row_index=None):
         return _door_layout_entry_menu_impl(self, entry, column_index=column_index, row_index=row_index)
     def open_door_indicator_component_editor(self, key, component):
+        """Open the Engine-resolved Indicator Box/Small Door feature editor."""
         state = self._door_layout_indicator_state_for_key(key)
-        if state.get("mode") != "indicator_box":
+        if state.get("mode") != "indicator_box" or component not in {
+            "indicator_box", "indicator_door",
+        }:
             return
         try:
             val = self.get_float_values()
             layers = max(1, min(6, int(state.get("layers", 1))))
             groups = [int(v) for v in list(state.get("groups", [2] * 6))[:layers]]
+            # The canonical shared Indicator geometry is already consumed by
+            # Phase6's _indicator_component_editor_contexts. Never generate
+            # another manufacturing surface or finished-face guide in GUI.
+            door_features = self.door_layout_indicator_door_features.get(key, [])
+            door_spec = self._indicator_door_part_spec(
+                val, groups, features=door_features,
+            )
+            info = manufacturing_api.resolve_indicator_editor_components(
+                groups, thickness=val["t"], door_spec=door_spec,
+            )[component]
         except Exception as exc:
             messagebox.showerror("開孔失敗", str(exc))
             return
-
+        surface, width, height = info.surface, info.width, info.height
+        guide = info.reference_guide
+        baseline_scene, status = info.baseline_scene, info.baseline_status
         if component == "indicator_box":
-            box_corner_policy = None
-            data = ae.get_stretched_indicator_box_data(
-                "指示燈", groups, val['t'], corner_policy=None
-            )
-            baseline_scene = data.scene
-            status = ae.indicator_shared_baseline_source_label("盒子.dxf")
-            surface = feature_surface_from_drawing_scene("indicator_box", data.scene)
-            width, height = data.params['w'], data.params['h']
-            fold = float(getattr(ae, 'indicator_box_fold_def', 49.0))
-            result = (
-                build_unknown_indicator_box_result(
-                    total_width=width, total_height=height, t=val['t'], fold=fold,
-                    corner_policy=box_corner_policy,
-                ) if box_corner_policy is not None else
-                build_indicator_box_result(total_width=width, total_height=height, t=val['t'], fold=fold)
-            )
-            guide = build_finished_reference_guide(
-                "indicator_box", result, finished_width=width - 2.0 * fold + val['t'],
-                finished_height=height - 2.0 * fold + val['t'],
-            )
             feature_store = self.door_layout_indicator_box_features.setdefault(key, [])
             title = "指示燈盒子"
-        elif component == "indicator_door":
-            t = val['t']; fw = val['fw']; gw = val['door_gap_w']; gh = val['door_gap_h']
-            policy = replace(
-                manufacturing_api.resolve_policy(),
-                frame_width=float(fw), door_gap_w=float(gw), door_gap_h=float(gh),
-                indicator_small_door_fold=float(getattr(ae, 'indicator_small_door_fold_def', 19.0)),
-            )
-            indicator_ctx = ManufacturingContext(policy=policy)
-            door_spec = manufacturing_api.indicator_small_door_spec(
-                groups, thickness=t, context=indicator_ctx
-            )
-            finished_w, finished_h = manufacturing_api.door_finished_face_size(door_spec, indicator_ctx)
-            source_w, source_h = door_spec.width, door_spec.height
-            data = ae.get_stretched_door_data(
-                None, source_w, source_h, t, fw, gw, gh,
-                door_spec.fold_left, door_spec.fold_right, door_spec.fold_top, door_spec.fold_bottom,
-                indicator_window_groups=groups,
-            )
-            surface = feature_surface_from_drawing_scene("indicator_door", data.scene)
-            width, height = data.params['total_width'], data.params['total_depth']
-            result = build_door_result(
-                w=source_w, h=source_h, t=t, fw=fw, gap_w=gw, gap_h=gh,
-                fold_left=door_spec.fold_left, fold_right=door_spec.fold_right,
-                fold_top=door_spec.fold_top, fold_bottom=door_spec.fold_bottom,
-            )
-            guide = build_finished_reference_guide(
-                "indicator_door", result, finished_width=finished_w, finished_height=finished_h,
-            )
-            feature_store = self.door_layout_indicator_door_features.setdefault(key, [])
-            baseline_scene = data.scene
-            status = ae.indicator_shared_baseline_source_label("小門.dxf")
-            title = "指示燈小門"
         else:
-            return
+            feature_store = self.door_layout_indicator_door_features.setdefault(key, [])
+            title = "指示燈小門"
 
         def sync_indicator_component_features():
             designer = getattr(self, "fold_designer_app", None)

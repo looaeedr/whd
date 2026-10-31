@@ -399,3 +399,20 @@ delegates unchanged to the existing canonical Cabinet Family policy for
 legacy GUI spec adapters. Vault/Receiving compensation continues in Engine;
 no manufacturing formula, physical part identity, CUTTING, or DXF capability
 is created or re-certified by this ownership migration.
+
+
+## Door-layout Indicator component editor uses Engine geometry (#2517)
+
+The legacy `gui.py::open_door_indicator_component_editor(key, component)`
+for `indicator_box` and `indicator_door` now consumes
+`ae_engine.manufacturing_api.resolve_indicator_editor_components(
+groups, thickness=t, door_spec=typed_small_door_spec)`.
+This is the same Engine geometry provider used by Phase6's per-cell Indicator
+editor contexts. The GUI only owns operator input, selected physical component,
+stored feature lists, presentation labels/baseline status, and feature commit
+callbacks. It cannot directly call `ae.get_stretched_indicator_box_data`,
+`ae.get_stretched_door_data`, or build finished material/cut guides.
+
+IndicatorBox canonical source is the shared `基準檔/指示燈/盒子.dxf`;
+the historical model_name argument to its baseline adapter is ignored by
+design. This is an API ownership migration, not a new manufacturing/Export grant.
