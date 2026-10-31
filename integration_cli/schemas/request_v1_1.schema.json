@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/looaeedr/whd/blob/localX/integration_cli/schemas/request_v1_1.schema.json",
-  "title": "WHD external worker request v1.1.0 (W-03 experimental contract only)",
-  "description": "Wire protocol 1.0.0; no implementation or production capability is implied. Semantic constraints beyond JSON Schema are enforced by WHD.",
+  "title": "WHD external Worker request v1.1.0 (installed family feature routing)",
+  "description": "Installed v1.1 supports addressable family feature IDs; advanced W-08 manufacturing remains fail-closed until independently certified. Semantic constraints beyond JSON Schema are enforced by WHD.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -78,7 +78,28 @@
                   "end_cap_head",
                   "end_cap_tail",
                   "indicator_box",
-                  "indicator_small_door"
+                  "indicator_small_door",
+                  "box_body",
+                  "base_plate",
+                  "custom_fold",
+                  "fold_profile",
+                  "certified_relief",
+                  "assembly_joint",
+                  "source_feature_holes",
+                  "physical_piece_split",
+                  "quantity_batch",
+                  "complete_assembly",
+                  "inner_door",
+                  "divider",
+                  "fixing_plate",
+                  "back_panel",
+                  "side_panel",
+                  "nfb_base_plate",
+                  "nfb_pad",
+                  "nfb_ear",
+                  "nfb_cutting",
+                  "joint_marking",
+                  "multi_bay_batch"
                 ]
               },
               "cabinet_family": {

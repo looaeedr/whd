@@ -37,6 +37,33 @@ W-03 connects target Frame, canonical dimensions, policy and prepare tokens.
 W-04 connects WHD FinalScene manufacturing, Save→Reload and export.
 W-06 owns durable idempotency, job/output path locks, crash recovery and cancel.
 
+
+## W-08 Vault/Receiving full feature wire routes (Gate C pending)
+
+The **installed v1.1** `capabilities.feature_catalog` enumerates the complete
+known `金庫型/<feature_id>` and `受電箱/<feature_id>` set. Its `feature_id`
+is the canonical `items[].part.kind` selector in the v1.1 `prepare/export`
+request schema, including Box Body, Base Plate, Fold/Relief/Joint,
+physical-piece/quantity/assembly and Receiving Inner Door, Divider,
+fixed/back/side plates and NFB/multi-Bay features. Each item also carries
+an explicit `part.cabinet_family`; no Vault fallback is allowed.
+
+This is a **real, versioned request/denial API route**, not manufacturing
+certification. Only `feature_catalog[].manufacturing_supported=true` with
+`public_operations` containing `prepare/export` can manufacture, and even
+those roles require separately signed installed exact-job authority,
+attested originals and the WHD W-03/W-04/W-06 barriers. A known but
+unsupported role can be schema-valid and is denied before W-06 job reservation
+with its stable `feature_catalog[].blocked_code`; no manufacturing token,
+FinalScene or DXF is emitted. An unknown role is a schema error; an
+unregistered family is `WHD_CAPABILITY_UNKNOWN`.
+
+The advanced roles cannot be enabled by adding a `kind` string or pointing
+at existing GUI/AE classes. Each needs its own authoritative inputs and
+per-physical-piece source, Frame, 3D/DXF Save→Reload, CADSplit original-source
+comparison and Gate C approval. This API ingress permits clients to address
+**every feature now** without making an uncertified manufacturing promise.
+
 ## Output and failure semantics
 
 - `stdout`: reserved/empty for these operations. The response JSON file is

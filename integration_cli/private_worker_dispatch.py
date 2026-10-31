@@ -103,6 +103,10 @@ def execute_private_worker(
     require_matching_wire_request_digest(request)
     _identity(request)
     _validate_context(context, request)
+    # #2383: every known family feature is wire-addressable, but unverified
+    # W-08 roles must be rejected BEFORE a permanent W-06 job reservation.
+    from integration_cli.worker_feature_catalog import require_certified_feature_route
+    require_certified_feature_route(request)
     ledger = DurableJobIdentityLedger(context.store_root)
     if operation == "prepare":
         # W-06 owns the original source paths; a caller's SHA claim must
