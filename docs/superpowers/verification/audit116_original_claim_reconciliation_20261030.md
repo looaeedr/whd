@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # WHD 116 項歷史編號修復及來源核銷更正（2026-10-30）
 
 > **本文件是來源錯帳修正，不是新製造放行。** 目標：不再讓沒有原始獨立定義的 21 個數字欄位永久阻塞當年的 BUG 行為查核；同時**絕不把沒有原文與獨立測試的欄位假簽成 PASS**。只能把「116/116 帳本有處置」與「116/116 獨立缺陷 PASS」分開說明。
