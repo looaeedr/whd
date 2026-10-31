@@ -42,6 +42,12 @@ from .endcap_xy_readback import (
 from .endcap_editor_fold import (
     build_endcap_editor_simple_profile, read_endcap_editor_simple_profile,
 )
+from .box_body_editor_readback import (
+    formed_box_body_fw_widths,
+    box_body_ui_segment_length_to_material,
+    read_box_body_outside_dimensions,
+    can_remove_box_body_fold_segment,
+)
 from .box_body_fold_profile import (
     BOX_BODY_TURNS,
     apply_outside_dimension_compensation,
