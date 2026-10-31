@@ -63,3 +63,53 @@ def resolve_endcap_xy_outside_dimensions(profiles: Mapping[str, Sequence[Mapping
         "ybottom1": _ui_len(y["ybottom1"].get("len")),
     }
 
+
+def endcap_derived_core_lengths(snapshot: Mapping[str, object], width, depth) -> dict[str, int]:
+    """Engine-owned EndCap X/Y material-core sizes for live Fold editor sync.
+
+    Use the same canonical 4T W compensation and family-defined D compensation
+    as build_endcap_xy_fold_profiles(). Legacy editor material rows round to
+    whole millimetres, but do not write derived dimensions into saved Settings.
+    """
+    thickness = _num(snapshot.get("t", 2), 2)
+    depth_comp_t = cabinet_family_policy.endcap_depth_comp_t(snapshot)
+    return {
+        "endcap_w_core": _ui_len(max(0.0, float(width) - 4.0 * thickness)),
+        "endcap_d_core": _ui_len(max(0.0, float(depth) - depth_comp_t * thickness)),
+    }
+
+
+def reconcile_endcap_live_outside_dimensions(
+    snapshot: Mapping[str, object], *,
+    top_width: int, top_depth: int, previous_width: int, previous_depth: int,
+    profiles: Mapping[str, Sequence[Mapping[str, object]]],
+) -> dict[str, int]:
+    """Reconcile operator outside W/D edits against EndCap material Fold edits.
+
+    Explicit top-panel input takes precedence over Fold changes. Otherwise
+    changed EndCap cores become outside W/D using certified Family compensation.
+    A missing core (e.g. OVERLAY with flat X) never fabricates dimensions.
+    """
+    def core_length(axis: str, part_key: str):
+        for segment in profiles.get(axis, ()) or ():
+            if segment.get("phase6_key") == part_key:
+                return _ui_len(segment.get("len"))
+        return None
+
+    t = _num(snapshot.get("t", 2), 2)
+    d_comp = cabinet_family_policy.endcap_depth_comp_t(snapshot)
+    x_core = core_length("X", "endcap_w_core")
+    y_core = core_length("Y", "endcap_d_core")
+    expected_x = _ui_len(previous_width - 4.0 * t)
+    expected_y = _ui_len(previous_depth - d_comp * t)
+    width = (
+        top_width if top_width != previous_width
+        else _ui_len(x_core + 4.0 * t) if x_core is not None and x_core != expected_x
+        else previous_width
+    )
+    depth = (
+        top_depth if top_depth != previous_depth
+        else _ui_len(y_core + d_comp * t) if y_core is not None and y_core != expected_y
+        else previous_depth
+    )
+    return {"w": width, "d": depth}

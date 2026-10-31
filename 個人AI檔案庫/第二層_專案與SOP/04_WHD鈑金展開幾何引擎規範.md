@@ -489,3 +489,9 @@ same FinalScene and DXF Save→Reload. The existing single panel remains
 supported. Source DXF Feature transforms, C-divider, unsourced bottom frame,
 NFB, physical assembly and joint marking are *not* authorized by this
 frame-only route.
+
+
+### #2517 EndCap live Fold dimension synchronization (2026-11-01)
+
+- `endcap_derived_core_lengths` and `reconcile_endcap_live_outside_dimensions` are Engine public API owners of the existing EndCap 4T W / Family 2T–3T D material/outside live editor reconciliation.
+- The Tk bridge only forwards operator top W/D, prior W/D and material Fold rows and applies returned dimensions. These methods do not grant new manufactured DXF capability, nor close #2517.

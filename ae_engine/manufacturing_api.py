@@ -87,6 +87,7 @@ from .endcap_bottom_wrap_state import (
 )
 from .endcap_xy_readback import (
     fold_material_segment_outside_length, resolve_endcap_xy_outside_dimensions,
+    endcap_derived_core_lengths, reconcile_endcap_live_outside_dimensions,
 )
 from .endcap_editor_fold import (
     build_endcap_editor_simple_profile, read_endcap_editor_simple_profile,
