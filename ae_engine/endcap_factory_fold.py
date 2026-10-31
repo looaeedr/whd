@@ -365,3 +365,15 @@ def apply_box_assembly_type_to_raw_state(
         target.clear()
         target.update({key: selection_to_raw(value) for key, value in corners.items()})
     return CornerTypeId(type_id)
+
+
+def legacy_corner_projection_for_intent(value) -> CornerTypeId:
+    """Project registered high-level intent to legacy Head/Tail corner mirror.
+
+    WRAP_OVERLAY projects as OVERLAY only in the old corner-state format.
+    The real BOTTOM WRAP remains exclusively in Assembly Joint Graph.
+    """
+    stable = normalize_assembly_intent_id(value)
+    if stable == "WRAP_OVERLAY":
+        return CornerTypeId.OVERLAY
+    return CornerTypeId(stable)

@@ -58,6 +58,7 @@ from .linked_endcap_fold import (
 from .endcap_factory_fold import (
     selection_from_raw as endcap_corner_selection_from_raw,
     selection_to_raw as endcap_corner_selection_to_raw,
+    legacy_corner_projection_for_intent as legacy_endcap_corner_projection_for_intent,
     apply_box_assembly_type_to_raw_state as apply_endcap_box_assembly_type_to_raw_state,
     normalize_endcap_fw_state,
     resolve_endcap_fw, resolve_endcap_assembly_type, build_endcap_xy_fold_profiles,

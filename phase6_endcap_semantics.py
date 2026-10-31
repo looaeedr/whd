@@ -45,10 +45,8 @@ def assembly_intent_label(value) -> str:
 
 
 def legacy_corner_projection_for_intent(value) -> CornerTypeId:
-    stable = assembly_intent_value(value)
-    if stable == "WRAP_OVERLAY":
-        return CornerTypeId.OVERLAY
-    return CornerTypeId(stable)
+    """GUI compatibility; Engine owns the legacy manufacturing corner mirror."""
+    return manufacturing_api.legacy_endcap_corner_projection_for_intent(value)
 # GUI compatibility aliases: Engine owns these physical FW state identities.
 ENDCAP_FW_PARTS = manufacturing_api.ENDCAP_FW_PARTS
 
