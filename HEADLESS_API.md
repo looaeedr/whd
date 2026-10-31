@@ -561,3 +561,16 @@ unlinks shared features/version refs for only the selected Bays and returns
 Other Bays/Sets and the other Head/Tail role stay unchanged, including existing
 Hole Editor source geometry. GUI only forwards and records UI dirty IDs.
 No new CUTTING, DXF or certified Registry manufacturing capability is granted.
+
+## Receiving single inner-door candidate Apply to selected Bays (#2517)
+
+`manufacturing_api.apply_receiving_inner_door_candidate_to_bays(
+layout, config, set_index, bay_indices, *, version_id=None)` applies one
+source-backed candidate (distinct from cross-Set quantity allocation).
+Engine validates all selected physical Bays, exact candidate settings, CSV NFB
+provenance and existing submitted CUTTING ownership before committing
+canonical shared settings, version and Bay-specific physical hole IDs. Returns
+`(detached_layout, sorted_bay_indices, physical_bay_stable_ids)`.
+GUI only forwards input and displays/records the returned state; invalid input
+never partially commits. Saved manual NFB X remains unverified and the API
+does not authorize new DXF/CUTTING manufacturing.
