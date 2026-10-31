@@ -338,7 +338,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
+          python -S - <<'PY'
           import tools.product_ci_regression as regression
           import tools.whd_v15_acceptance_evidence as evidence
           assert callable(regression._merge_shard_junit)
