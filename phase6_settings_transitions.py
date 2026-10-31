@@ -70,12 +70,7 @@ class BottomWrapTransition:
 CornerStateTransition = manufacturing_api.CornerStateTransition
 
 
-@dataclass(frozen=True)
-class AssemblyIntentTransition:
-    input_snapshot: dict[str, object]
-    corner_state: dict[str, object]
-    corner_pair_same: dict[str, object]
-    assembly_type: object
+AssemblyIntentTransition = manufacturing_api.AssemblyIntentTransition
 
 
 @dataclass(frozen=True)
@@ -117,8 +112,7 @@ class FamilyModelPlan:
 
 
 def normalize_assembly_type(value: object) -> object:
-    stable = assembly_intent_value(value)
-    return stable if stable == "WRAP_OVERLAY" else CornerTypeId(stable)
+    return manufacturing_api.normalize_assembly_type(value)
 
 
 def normalize_updates(
@@ -425,36 +419,11 @@ def assembly_intent(
     project_legacy_corner: bool = False,
     reset_bottom_defaults: bool = False,
 ) -> AssemblyIntentTransition:
-    canonical = normalize_assembly_type(type_id)
-    stable = assembly_intent_value(type_id)
-    snapshot = deepcopy(dict(input_snapshot))
-    corners = deepcopy(dict(corner_state or {}))
-    pairs = deepcopy(dict(corner_pair_same or {}))
-    parts = tuple(str(key) for key in tuple(available_parts or ()) if str(key))
-    had_existing_parts = "existing_parts" in snapshot
-    authoritative_existing_parts = deepcopy(snapshot.get("existing_parts"))
-    if parts:
-        # available_parts is an execution context for joint projection only.
-        # The predecessor controller never promoted this temporary live
-        # workspace list into authoritative project topology.
-        snapshot["existing_parts"] = list(parts)
-    snapshot = sync_snapshot_intent_joints(snapshot, canonical)
-    if had_existing_parts:
-        snapshot["existing_parts"] = authoritative_existing_parts
-    else:
-        snapshot.pop("existing_parts", None)
-    if project_legacy_corner:
-        apply_box_assembly_type_to_raw_state(
-            corners,
-            pairs,
-            legacy_corner_projection_for_intent(stable),
-            reset_bottom_defaults=bool(reset_bottom_defaults),
-        )
-    return AssemblyIntentTransition(
-        input_snapshot=snapshot,
-        corner_state=corners,
-        corner_pair_same=pairs,
-        assembly_type=canonical,
+    return manufacturing_api.commit_assembly_intent_state(
+        input_snapshot, corner_state, corner_pair_same, type_id,
+        available_parts=available_parts,
+        project_legacy_corner=project_legacy_corner,
+        reset_bottom_defaults=reset_bottom_defaults,
     )
 
 
