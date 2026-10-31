@@ -446,3 +446,16 @@ certified source-backed 3D profiles exist, no generic four-edge setting is
 backfilled from its BEND. Unknown/custom keys return no standard settings.
 The GUI `phase6_manufacturing_adapter` only forwards the same profiles and
 snapshot; it does not perform a second material or identity interpretation.
+
+
+## EndCap Head/Tail stored Fold reconciliation by Assembly Intent (#2517)
+
+`manufacturing_api.endcap_profiles_for_assembly(values, stored_profiles, assembly_type, part_key)`
+reuses Engine `build_endcap_xy_fold_profiles` and the canonical
+`normalize_assembly_intent_id` to return physical X/Y Fold source rows. For
+OVERLAY, Head/Tail X has no left/right bend even without stored profiles; for
+INSERT after a stored flat X the current Family-generated X is restored.
+Custom/stored Y and independent Head/Tail scene order remain preserved.
+No stored INSERT profiles still return `None`, retaining legacy renderer
+fallback semantics. GUI `_endcap_profiles_for_assembly` simply forwards
+operator inputs. No Registry/CUTTING/DXF capability is created or granted.
