@@ -96,6 +96,7 @@ from .manufacturing_baseline_policy import (
     _indicator_shared_expected_path,
     _indicator_shared_existing_path,
     expected_baseline_path_for,
+    receiving_baseline_source_stamp,
     _baseline_path,
     _extract_endcap_shared_6p4_mother_rule,
     _divider_post_relief_center_frame,
