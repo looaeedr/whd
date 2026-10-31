@@ -265,6 +265,9 @@ def map_door_features_to_unfolded_material(
 
 
 from .assembly_collision import (
+    apply_verified_joint_cut_to_part, apply_verified_joint_cut_to_owner,
+)
+from .assembly_collision import (
     serialize_joint_relief_polygons, restore_joint_relief_cut_geometry,
 )
 from .assembly_geometry import build_joint_world_geometry
