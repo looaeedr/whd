@@ -52,6 +52,10 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent
     import gui
 
     root = tk.Tk(); root.withdraw()
+    # Windows Tcl may fail to re-read init.tcl after the last Tk interpreter
+    # was destroyed. Keep an independent second interpreter alive throughout
+    # the first GUI session, then reload into a separately constructed host.
+    root2 = tk.Tk(); root2.withdraw()
     app = gui.BoxCalculatorGUI(root)
     save_path = tmp_path / f"assembly-{intent.value}.p6fold"
     try:
@@ -139,7 +143,8 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent
     finally:
         _destroy(app, root)
 
-    root2 = tk.Tk(); root2.withdraw()
+    # root2 has been a *separate* Tcl interpreter since before the first
+    # editing session. No prior GUI object or project controller is reused.
     app2 = gui.BoxCalculatorGUI(root2)
     try:
         app2.load_phase6_project(save_path, open_designer=False)
