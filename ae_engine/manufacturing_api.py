@@ -40,6 +40,16 @@ from .box_body_structure_state import (
     set_side_back_piece_profile, side_rear_bend_dimension_space, side_rear_bend_material_length,
     side_rear_bend_outside_length, set_side_back_geometry,
 )
+
+# Public compatibility aliases: old Phase6 helper names keep identical Engine
+# callables without importing any private Engine module or private API member.
+box_body_structure_default_join_settings = _default_join_settings
+box_body_structure_type_from_value = _structure_type
+box_body_structure_locked_bool = _structure_locked_bool
+box_body_structure_back_panel_mode_from_value = _back_panel_mode
+box_body_structure_finite_dimension = _finite_dimension
+box_body_structure_manual_integer = _manual_integer
+
 from .linked_endcap_fold import (
     is_canonical_box_body_mating_profile, box_body_front_mating_fold_chain,
     build_linked_endcap_xy_fold_profiles,
