@@ -101,6 +101,7 @@ from .manufacturing_baseline_policy import (
     expected_shared_indicator_baselines,
     _indicator_shared_existing_path,
     expected_baseline_path_for,
+    expected_endcap_feature_baseline,
     receiving_baseline_source_stamp,
     _baseline_path,
     _extract_endcap_shared_6p4_mother_rule,
