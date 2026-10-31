@@ -583,7 +583,7 @@ def resolve_box_body_structure_state(state=None):
     side/back states predate the dimension-space marker and remain MATERIAL so
     loading an old project cannot silently move physical geometry.
     """
-    from phase6_box_body_structure import (
+    from ae_engine.box_body_structure_state import (
         BoxBodyStructureType,
         normalize_box_body_structure_state,
         set_active_structure,
