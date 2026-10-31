@@ -92,7 +92,7 @@ def test_unknown_family_cannot_inherit_vault_api_route():
 
 @pytest.mark.parametrize("family,role", [
     ("金庫型", "box_body"),
-    ("金庫型", "box_body"),
+    ("金庫型", "base_plate"),
     ("受電箱", "box_body"),
     ("受電箱", "base_plate"),
     ("受電箱", "inner_door"),
