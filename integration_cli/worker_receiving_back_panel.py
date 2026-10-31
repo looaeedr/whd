@@ -37,8 +37,10 @@ def receiving_back_panel_spec_from_trusted_part(part: Mapping[str, Any]):
     with the exact same three baselines, but select a separately signed
     rear panel mode/contract; external source holes are not projected.
     """
-    from ae_engine.manufacturing_api import resolve_box_body_back_panel_contract
-    from phase6_box_body_structure import set_side_back_back_panel_mode
+    from ae_engine.manufacturing_api import (
+        resolve_box_body_back_panel_contract, set_side_back_back_panel_mode,
+        back_panel_mode,
+    )
 
     if (not isinstance(part, Mapping)
             or set(part) != _FACTORY_FIELDS
@@ -74,7 +76,6 @@ def receiving_back_panel_spec_from_trusted_part(part: Mapping[str, Any]):
             "zl2": float(part["box_zl2_mm"]),
             "zr2": float(part["box_zr2_mm"]),
         }
-        from phase6_box_body_structure import back_panel_mode
         if back_panel_mode(state).value != mode:
             raise ValueError("Receiving rear-panel mode was not persisted")
         contract = resolve_box_body_back_panel_contract(
