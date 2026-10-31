@@ -46,6 +46,10 @@ WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並�
 
 `ae_engine.manufacturing_api.ensure_corner_part`、`commit_corner_pair`、`commit_corner_type`、`commit_corner_mode`、`commit_corner_parameters`、`apply_corner_preset` 的公開輸入為 JSON-safe `corner_state`、`corner_pair_same`，輸出為 `CornerStateTransition`。既有 Phase6 Settings 寫入語意（成對／拆對、重入、型別切換、參數、固定 Family preset）已原樣搬至 `ae_engine.corner_state_transactions`，原 Phase6 同名函式只相容轉呼叫。這個狀態 API 不決定正式 CornerType CUTTING／Relief；幾何權威維持原 Certified Registry 及 Engine 原有求解器。
 
+## Assembly Intent 寫入交易 API（#2517）
+
+`ae_engine.manufacturing_api.commit_assembly_intent_state(input_snapshot, corner_state, corner_pair_same, type_id, *, available_parts=(), project_legacy_corner=False, reset_bottom_defaults=False)` 是 GUI 與 headless 共用的唯一寫入入口，傳回 `AssemblyIntentTransition`（包含 canonical `assembly_type`、`assembly_joints`／schema、JSON-safe 舊 CornerType mirror）。`normalize_assembly_type` 使用正式 Registry 驗證，但仍保留舊 GUI 三種 enum／包覆貼外字串回傳。`available_parts` 是當次 Joint Graph 投影上下文，不能寫入原專案 existing_parts；正式下方 WRAP 仍只由 Engine Assembly Joint Graph 決定。Phase6 `assembly_intent` 和 `normalize_assembly_type` 只轉接 API，原 Settings controller 操作入口不變。
+
 ## EndCap 舊 Assembly Intent CornerType 投影（#2517）
 
 `ae_engine.manufacturing_api.legacy_endcap_corner_projection_for_intent(value)` 先以正式 Assembly Intent Registry 驗證，再把 `WRAP_OVERLAY` 的舊 Head/Tail CornerType mirror 投影為 `OVERLAY`。正式 BOTTOM WRAP 仍由 Assembly Joint Graph 決定，沿用現有 `apply_endcap_box_assembly_type_to_raw_state` 公開 API；Phase6 只轉接，不建立第二個 serializer 或物理公式。

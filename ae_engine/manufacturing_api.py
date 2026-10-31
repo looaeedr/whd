@@ -67,6 +67,9 @@ from .endcap_factory_fold import (
     set_endcap_fw_follow, set_endcap_fw_override,
     endcap_editor_fold_tabs, normalize_endcap_profile_order,
 )
+from .assembly_intent_transactions import (
+    AssemblyIntentTransition, normalize_assembly_type, commit_assembly_intent_state,
+)
 from .corner_state_transactions import (
     CornerStateTransition, MANUAL_CORNER_KEYS, MANUAL_CORNER_PAIR_KEYS,
     ensure_corner_part, corner_selection, corner_targets, commit_corner_pair,
