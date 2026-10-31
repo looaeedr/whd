@@ -28,6 +28,10 @@ from integration_cli.worker_box_body import (
     vault_box_body_spec_from_trusted_prepared_part,
     resolve_vault_box_body_size_only_frame,
 )
+from integration_cli.worker_receiving_back_panel import (
+    receiving_back_panel_spec_from_trusted_part,
+    receiving_back_panel_frame,
+)
 from integration_cli.worker_receiving_side_panel import (
     receiving_side_panel_spec_from_trusted_part,
     receiving_side_panel_expected_baselines,
@@ -343,6 +347,7 @@ def prepare_trusted_door_batch(
         elif kind not in (
             "indicator_small_door", "indicator_box", "end_cap_head", "end_cap_tail",
             "base_plate", "custom_fold", "box_body", "inner_door", "side_panel",
+            "back_panel",
         ):
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unverified physical part kind has no supported local Frame")
         if item["item_id"] in identities:
@@ -354,6 +359,8 @@ def prepare_trusted_door_batch(
             part_spec = indicator_small_door_spec_from_trusted_prepared_part(p, ctx)
         elif kind == "indicator_box":
             part_spec = indicator_box_spec_from_trusted_prepared_part(p, ctx)
+        elif kind == "back_panel":
+            part_spec = receiving_back_panel_spec_from_trusted_part(p)
         elif kind == "side_panel":
             part_spec, side_role = receiving_side_panel_spec_from_trusted_part(p)
         elif kind == "inner_door":
@@ -381,6 +388,24 @@ def prepare_trusted_door_batch(
                 "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
                 "coordinate_space": "size_only",
                 "target_frame_certified": False,
+            }
+        elif kind == "back_panel":
+            frame = receiving_back_panel_frame(
+                part_spec, ctx, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "受電箱",
+                "physical_source_ref": "box_body:back",
+                "back_panel_mode": part_spec.back_panel_contract["mode"],
+                "fixed_slot_datums": list(part_spec.back_panel_contract["fixed_slot_datums"]),
+                "back_panel_opening": part_spec.back_panel_contract["opening"],
+                "source_outer_mm": {
+                    "width": part_spec.width, "height": part_spec.height,
+                    "depth": part_spec.depth, "thickness": part_spec.thickness,
+                    "frame_width": part_spec.frame_width,
+                },
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
             }
         elif kind == "side_panel":
             frame = receiving_side_panel_frame(
@@ -507,8 +532,8 @@ def prepare_trusted_door_batch(
             frame = resolve_door_finished_local_frame(
                 part_spec, ctx, physical_part_id=physical_id,
             )
-        baseline = None if kind == "side_panel" else expected_baseline_path_for(part_spec, ctx)
-        if baseline is None and kind not in ("base_plate", "custom_fold", "inner_door", "side_panel"):
+        baseline = None if kind in ("side_panel", "back_panel") else expected_baseline_path_for(part_spec, ctx)
+        if baseline is None and kind not in ("base_plate", "custom_fold", "inner_door", "side_panel", "back_panel"):
             raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "WHD could not identify the physical part baseline")
         # The CURRENT AE shared-indicator resolver selects a *single*
         # global folder only when both 盒子.dxf and 小門.dxf are present.
@@ -517,7 +542,7 @@ def prepare_trusted_door_batch(
         # environment but before a later mixed Door/Box use of that folder.
         selected_baselines = (
             list(receiving_side_panel_expected_baselines(resource_root))
-            if kind == "side_panel"
+            if kind in ("side_panel", "back_panel")
             else ([] if baseline is None else [baseline])
         )
         if kind in ("indicator_small_door", "indicator_box"):
