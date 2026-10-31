@@ -29,7 +29,6 @@ from phase6_part_navigation import is_box_body_physical_piece_key
 from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.corner_type_ui import policy_from_corner_state
-from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from ae_engine.sheetmetal_geometry import FourCornerTypePolicy
 from phase6_endcap_semantics import (
     ENDCAP_FW_PARTS,
@@ -112,32 +111,18 @@ def operator_finished_dimensions_for_app(
     *,
     triangles=None,
 ):
-    """Tk/app adapter to the shared finished-dimension provider."""
+    """Gather live operator state; Engine owns finished-size precedence."""
     key = str(part_key or getattr(app, "active_part_key", "") or "")
-    # This is a display adapter over LIVE physical values, not a saved
-    # snapshot replacement. Sparse UI snapshots (e.g. immediately after
-    # opening Designer) need the same per-axis WHD fallback as the canonical
-    # manufacturing-request boundary; never write defaults back to the app.
-    snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    settings = dict(getattr(app, "_settings_values", {}) or {})
-    whd = getattr(app, "_phase6_box_whd", {}) or {}
-    for axis in ("w", "h", "d"):
-        if axis not in snapshot and axis in whd:
-            snapshot[axis] = whd[axis]
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
-        # Keep existing Receiving semantics: live per-Bay values override
-        # Settings seeds; an explicit snapshot Bay owner is never replaced.
-        settings.update({axis: whd[axis] for axis in ("w", "h", "d") if axis in whd})
     head_policy = tail_policy = None
     if key == "box_body":
         head_policy = _corner_policy_for_app(app, "head")
         tail_policy = _corner_policy_for_app(app, "tail")
-    return resolve_operator_finished_dimensions(
+    return manufacturing_api.resolve_live_operator_finished_dimensions(
         key,
-        snapshot=snapshot,
-        settings=settings,
+        input_snapshot=dict(getattr(app, "_phase6_input_snapshot", {}) or {}),
+        settings_values=dict(getattr(app, "_settings_values", {}) or {}),
+        working_box=dict(getattr(app, "_phase6_box_whd", {}) or {}),
         triangles=triangles,
-        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
         head_corner_policy=head_policy,
         tail_corner_policy=tail_policy,
     )

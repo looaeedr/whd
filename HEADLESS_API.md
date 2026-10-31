@@ -487,6 +487,21 @@ No stored INSERT profiles still return `None`, retaining legacy renderer
 fallback semantics. GUI `_endcap_profiles_for_assembly` simply forwards
 operator inputs. No Registry/CUTTING/DXF capability is created or granted.
 
+
+## Live operator finished-dimension source precedence (#2517)
+
+`ae_engine.manufacturing_api.resolve_live_operator_finished_dimensions(part_key,
+*, input_snapshot, settings_values, working_box, triangles,
+head_corner_policy, tail_corner_policy)` is the public headless
+Engine entry for the previously Phase6-owned sparse snapshot and Receiving
+live working W/H/D preference. Explicit snapshot fields are not overwritten
+during sparse fill, while Receiving's live Bay/Quantity working W/H/D take
+precedence over seed Settings values exactly as before. The function then
+delegates to the existing Engine `resolve_operator_finished_dimensions`
+for canonical Fold/Corners/finished physical 2D/3D dimensions; invalid world
+mesh is still rejected. The GUI reads input state, forwards policy DTOs
+and displays the result only. This is not a new CUTTING/DXF capability.
+
 ## Custom physical sheet Catalog and single-axis Fold manufacturing (#2517)
 
 Engine `manufacturing_api.CustomPartCatalog` owns stable physical IDs,
