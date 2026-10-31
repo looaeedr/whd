@@ -864,7 +864,7 @@ def resolve_scene_assembly_placement(snapshot, part_key):
                 raise ValueError(f"nonfinite assembly offset: {key}")
             return kind, offset
         try:
-                placement = resolve_assembly_placement(snapshot, key)
+            placement = resolve_assembly_placement(snapshot, key)
             return placement.placement_kind, tuple(float(v) for v in placement.world_offset)
         except Exception:
             pass
