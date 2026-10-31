@@ -126,7 +126,7 @@ def installed_family_feature_catalog(
 # source/Frame/FinalScene/multi-DXF owners have actually been certified.
 _P0_PHYSICAL_ROLES = frozenset({
     "door", "end_cap_head", "end_cap_tail",
-    "indicator_box", "indicator_small_door", "base_plate",
+    "indicator_box", "indicator_small_door", "base_plate", "box_body",
 })
 
 
@@ -158,7 +158,7 @@ def require_certified_feature_route(request: Mapping[str, object]) -> None:
                 "feature is not registered for this cabinet family",
             )
         if role in _P0_PHYSICAL_ROLES and not (
-            family == "受電箱" and role in ("end_cap_head", "end_cap_tail", "base_plate")
+            family == "受電箱" and role in ("end_cap_head", "end_cap_tail", "base_plate", "box_body")
         ):
             # W-03 and W-04 still do all actual geometry, Frame, source,
             # approval and Save->Reload verification. This is NOT approval.
