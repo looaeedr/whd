@@ -312,7 +312,7 @@ def test_original_source_rectangle_and_circle_survive_real_finalscene_batch(tmp_
     assert features[0].rotation_deg == 0
     spec = replace(spec, features=features)
     context = ManufacturingContext(resource_root=root)
-    mapped = _door_features_for_legacy_engine(spec, context)[0]
+    mapped = api.map_door_features_to_unfolded_material(spec, context)[0]
     expected = ResolvedRect(
         center=mapped.offset, width=mapped.width, height=mapped.height,
         rotation_deg=mapped.rotation_deg,
@@ -361,7 +361,7 @@ def test_finalscene_rectangle_contour_requires_canonical_edge_cycle(
     def cross_original_rectangle(spec, context):
         render = original(spec, context)
         rectangles = [
-            x for x in _door_features_for_legacy_engine(spec, context)
+            x for x in api.map_door_features_to_unfolded_material(spec, context)
             if isinstance(x, RectFeature)
         ]
         if not rectangles:
@@ -532,7 +532,7 @@ def test_original_concave_profile_to_whd_finalscene_real_saved_dxf(tmp_path, rot
     assert len(features) == 1 and isinstance(features[0], ProfileFeature)
     context = ManufacturingContext(resource_root=root)
     spec = replace(spec, features=features, feature_space="finished_face")
-    mapped = _door_features_for_legacy_engine(spec, context)[0]
+    mapped = api.map_door_features_to_unfolded_material(spec, context)[0]
     expected = tuple((mapped.offset.x + v.x, mapped.offset.y + v.y)
                      for v in mapped.points)
     matching = []
@@ -578,7 +578,7 @@ def test_original_profile_finalscene_crossed_edges_refuse_staging(tmp_path, monk
     def tamper_profile(spec, context):
         render = original(spec, context)
         profiles = [
-            p for p in _door_features_for_legacy_engine(spec, context)
+            p for p in api.map_door_features_to_unfolded_material(spec, context)
             if isinstance(p, ProfileFeature)
         ]
         if not profiles:
