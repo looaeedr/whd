@@ -117,3 +117,53 @@ def installed_family_feature_catalog(
     if len({entry["capability_id"] for entry in records}) != len(records):
         raise ValueError("WHD duplicate family feature capability")
     return records
+
+
+# This is a real v1.1 prepare/export ingress gate, NOT another capability
+# advertisement. Every known family feature can reach the wire validator;
+# only the independently certified physical P0 roles may reach W-06 claim.
+# New Gate C routes must deliberately replace this denial when their
+# source/Frame/FinalScene/multi-DXF owners have actually been certified.
+_P0_PHYSICAL_ROLES = frozenset({
+    "door", "end_cap_head", "end_cap_tail",
+    "indicator_box", "indicator_small_door",
+})
+
+
+def require_certified_feature_route(request: Mapping[str, object]) -> None:
+    """Deny unimplemented family features before any durable Worker job claim.
+
+    The request schema accepts the complete stable family feature taxonomy
+    so CADSplit can submit versioned requests without treating a known
+    feature as an unknown protocol token. This gate must NEVER infer that an
+    existing WHD GUI/engine owner is an externally safe manufacturing route.
+    """
+    from integration_cli.prepare_evidence import PrepareEvidenceError
+
+    for item in request["items"]:
+        part = item["part"]
+        family = part["cabinet_family"]
+        role = part["kind"]
+        owners = dict(_COMMON_OWNERS)
+        if family == "受電箱":
+            owners.update(_RECEIVING_OWNERS)
+        elif family != "金庫型":
+            raise PrepareEvidenceError(
+                "WHD_CAPABILITY_UNKNOWN",
+                "cabinet family has no installed Worker feature contract",
+            )
+        if role not in owners:
+            raise PrepareEvidenceError(
+                "WHD_CAPABILITY_UNKNOWN",
+                "feature is not registered for this cabinet family",
+            )
+        if role in _P0_PHYSICAL_ROLES and not (
+            family == "受電箱" and role in ("end_cap_head", "end_cap_tail")
+        ):
+            # W-03 and W-04 still do all actual geometry, Frame, source,
+            # approval and Save->Reload verification. This is NOT approval.
+            continue
+        code = _BLOCKED_REASONS.get(role, "WHD_CAPABILITY_UNSUPPORTED")
+        raise PrepareEvidenceError(
+            code, f"{family}/{role} requires its own certified Gate C route",
+        )
