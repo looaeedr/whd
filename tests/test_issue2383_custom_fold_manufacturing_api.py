@@ -60,7 +60,11 @@ def test_both_family_custom_fold_actual_flat_bend_and_reopen(tmp_path, family, a
         "height": bounds[3] - bounds[1],
     }
     out = tmp_path / "custom-fold-physical-DXF"
-    result = save_verified_final_scene_batch_dxf([(identity, render)], out)
+    # Engine-unit stage only; installed Worker supplies the authenticated
+    # pre-commit guard in the end-to-end test below.
+    result = save_verified_final_scene_batch_dxf(
+        [(identity, render)], out, pre_commit_guard=lambda: None,
+    )
     path = out / (identity + ".dxf")
     assert path.is_file()
     assert result == {identity: str(path)}
