@@ -63,6 +63,10 @@ from .endcap_factory_fold import (
     set_endcap_fw_follow, set_endcap_fw_override,
     endcap_editor_fold_tabs, normalize_endcap_profile_order,
 )
+from .endcap_assembly_state import (
+    legacy_corner_projection_for_intent, endcap_corner_selection_to_raw,
+    apply_box_assembly_type_to_raw_state,
+)
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
     ENDCAP_BOTTOM_WRAP_MODES, normalize_endcap_bottom_wrap_state,

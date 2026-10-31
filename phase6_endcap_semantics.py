@@ -14,12 +14,7 @@ from __future__ import annotations
 from typing import Mapping
 from ae_engine import manufacturing_api
 
-from ae_engine.sheetmetal_geometry import (
-    CornerTypeId, CornerTypeSelection, normalize_corner_selection,
-)
-from ae_engine.corner_type_ui import (
-    apply_box_assembly_type, assembly_type_from_corner_state,
-)
+from ae_engine.sheetmetal_geometry import CornerTypeId
 
 ASSEMBLY_TYPE_LABELS = {
     CornerTypeId.INSERT: "嵌入",
@@ -45,10 +40,9 @@ def assembly_intent_label(value) -> str:
 
 
 def legacy_corner_projection_for_intent(value) -> CornerTypeId:
-    stable = assembly_intent_value(value)
-    if stable == "WRAP_OVERLAY":
-        return CornerTypeId.OVERLAY
-    return CornerTypeId(stable)
+    """GUI compatibility: ask Engine for the canonical legacy corner mirror."""
+    return manufacturing_api.legacy_corner_projection_for_intent(value)
+
 # GUI compatibility aliases: Engine owns these physical FW state identities.
 ENDCAP_FW_PARTS = manufacturing_api.ENDCAP_FW_PARTS
 
@@ -96,19 +90,8 @@ def _num(value, default=0.0):
 
 
 def selection_to_raw(selection):
-    selection = normalize_corner_selection(selection)
-    raw = {"type_id": selection.type_id.value, "rotation_quadrants": 0}
-    if selection.cross_mode is not None:
-        raw["cross_mode"] = selection.cross_mode.value
-    if selection.direction is not None:
-        raw["direction"] = selection.direction.value
-    if selection.amount_t is not None:
-        raw["amount_t"] = float(selection.amount_t)
-    if selection.secondary_retain_t is not None:
-        raw["secondary_retain_t"] = float(selection.secondary_retain_t)
-    if selection.secondary_depth_t is not None:
-        raw["secondary_depth_t"] = float(selection.secondary_depth_t)
-    return raw
+    """GUI adapter receives the Engine's validated serializable CornerType."""
+    return manufacturing_api.endcap_corner_selection_to_raw(selection)
 
 
 def selection_from_raw(raw):
@@ -154,25 +137,8 @@ def resolve_box_assembly_type(snapshot: Mapping[str, object]) -> CornerTypeId:
 def apply_box_assembly_type_to_raw_state(
     corner_state, pair_same, type_id, *, reset_bottom_defaults=False
 ):
-    """Apply shared box assembly semantics to the bridge's JSON-safe corner state.
-
-    ``reset_bottom_defaults`` is reserved for an explicit operator assembly
-    selection.  Normal load/render synchronization leaves manually edited
-    EndCap bottom manufacturing corners untouched.
-    """
-    typed = {}
-    for part in ("head", "tail"):
-        typed[part] = {
-            key: selection_from_raw(value)
-            for key, value in dict((corner_state or {}).get(part) or {}).items()
-        }
-    apply_box_assembly_type(
-        typed, pair_same, CornerTypeId(type_id),
-        reset_bottom_defaults=bool(reset_bottom_defaults),
+    """GUI forwards the requested Assembly Intent/corner mutation to Engine."""
+    return manufacturing_api.apply_box_assembly_type_to_raw_state(
+        corner_state, pair_same, type_id,
+        reset_bottom_defaults=reset_bottom_defaults,
     )
-    for part, corners in typed.items():
-        target = corner_state.setdefault(part, {})
-        target.clear()
-        target.update({key: selection_to_raw(value) for key, value in corners.items()})
-    return CornerTypeId(type_id)
-
