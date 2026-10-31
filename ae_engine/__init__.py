@@ -75,6 +75,7 @@ from .manufacturing_api import (
     replace_candidate_bay_nfb, apply_receiving_inner_door_quantity_configuration,
     apply_receiving_endcap_quantity_configuration,
     apply_receiving_endcap_candidate_to_bays,
+    mark_receiving_bays_live_version,
 )
 from .cabinet_types import (
     CabinetTypeRegistration, registered_cabinet_types, resolve_cabinet_type,
@@ -157,6 +158,7 @@ __all__ = [
     "replace_candidate_bay_nfb", "apply_receiving_inner_door_quantity_configuration",
     "apply_receiving_endcap_quantity_configuration",
     "apply_receiving_endcap_candidate_to_bays",
+    "mark_receiving_bays_live_version",
     "ManufacturingPolicy", "ManufacturingContext",
     "DoorPartSpec", "BoxBodyPartSpec", "EndCapPartSpec", "BasePlatePartSpec",
     "IndicatorBoxPartSpec", "CustomFoldPartSpec", "PartExportResult", "PartSpec",

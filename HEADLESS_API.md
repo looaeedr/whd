@@ -561,3 +561,18 @@ unlinks shared features/version refs for only the selected Bays and returns
 Other Bays/Sets and the other Head/Tail role stay unchanged, including existing
 Hole Editor source geometry. GUI only forwards and records UI dirty IDs.
 No new CUTTING, DXF or certified Registry manufacturing capability is granted.
+
+## Receiving highlighted Live applied-version provenance API (#2517)
+
+`manufacturing_api.mark_receiving_bays_live_version(layout, role,
+set_index, bay_indices)` is the headless Engine state transaction for explicit
+operator 即時 Apply. It validates Head, Tail or Inner Door role and exact
+physical Set/Bay selection, then unlinks shared applied-version references for
+the selected Bays only and commits the canonical empty-string Live marker.
+Returns the detached layout, sorted highlighted indices and physical Bay IDs.
+
+This does **not** clear or replace actual saved Hole Editor Features, NFB
+source, accepted X evidence, topology or 2D/3D/DXF manufacturing geometry.
+The GUI only forwards operator action and marks presentation dirty IDs;
+Save→Reload retains the distinct None (never applied) and "" (explicit Live)
+version states.

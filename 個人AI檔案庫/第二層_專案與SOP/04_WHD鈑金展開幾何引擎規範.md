@@ -581,3 +581,8 @@ frame-only route.
 
 - `apply_receiving_endcap_candidate_to_bays(layout, role, set_index, bay_indices, features, *, version_id=None)` 是操作者高亮封頭／封尾候選套用的唯一 Engine 實體狀態交易入口。Engine 以正式 `receiving_shared_settings` 對原始 Feature 型別、角色／版本與真實 Set/Bay index 完整檢核，對選中的 Bay 解開共享 refs 並原子更新，回傳 detached layout、排序後 selected index、physical Bay stable IDs；不得更動未選擇的 Bay/Set 或另一種端板角色。
 - GUI `ReceivingSetBayAdapter.apply_candidate_to_bays` 僅傳遞使用者高亮選取、提交 Engine 結果及 dirty UI IDs，不能自行套用製造孔位 Feature 或共享來源。這是對已認證製造資料來源的交易移轉，不新增孔位計算／CUTTING／DXF 認證；#2517 保持 OPEN。
+
+### #2517 Receiving Live version provenance Engine API (2026-11-01)
+
+- `mark_receiving_bays_live_version(layout, role, set_index, bay_indices)` 是所有 Receiving Head／Tail／Inner Door 操作者「即時 Apply」版本來源狀態的 Engine 交易入口。按真實 Set/Bay 穩定身分處理高亮的版本欄位，把被選取的共享 ref 單獨 unlink 並保存 `""`（明確即時），不影響其他 Bay 的 `None`（未套用）／已套用版本、其他角色或實際 Hole Editor／NFB 物理來源。非法 role／Set／Bay（bool、越界、unhashable）必須整筆拒絕。
+- GUI `ReceivingSetBayAdapter.mark_live_version_for_bays` 現僅轉送操作、呈現與記錄 dirty IDs；其餘製造狀態持久化由 Engine 公開 API 管理。不宣告新的 CUTTING、DXF 或 Registry capability。#2517 繼續 OPEN。

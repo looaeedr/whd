@@ -423,36 +423,12 @@ class ReceivingSetBayAdapter:
         return selected
 
     def mark_live_version_for_bays(self, role, set_index, bay_indices):
-        """Explicit 即時 Apply only labels highlighted Bays, not their geometry."""
-        if role not in ("head", "tail", "inner-door"):
-            raise ValueError("不支援的版本角色")
-        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
-            raise ValueError("套不存在")
-        try:
-            supplied = tuple(bay_indices)
-        except TypeError as exc:
-            raise ValueError("請先高亮有效的連") from exc
-        count = len(self._layout["sets"][set_index]["bays"])
-        if (not supplied or any(
-                type(bi) is not int or not 0 <= bi < count for bi in supplied)):
-            raise ValueError("請先高亮有效的連")
-        indices = tuple(sorted(set(supplied)))
-        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
-        kind = role.replace("-", "_") + "_version_id"
-        candidate = self._layout
-        for bi in indices:
-            candidate = unlink_setting(
-                candidate, set_index=set_index, bay_index=bi, kind=kind,
-            )
-            candidate = edit_setting(
-                candidate, set_index=set_index, bay_index=bi,
-                kind=kind, value="",
-            )
-        self._layout = candidate
-        self._session_dirty_ids.update(
-            str(candidate["sets"][set_index]["bays"][bi]["stable_id"])
-            for bi in indices
+        """Forward Live Apply provenance transition; update GUI dirty marks."""
+        candidate, indices, changed_ids = manufacturing_api.mark_receiving_bays_live_version(
+            self._layout, role, set_index, bay_indices,
         )
+        self._layout = candidate
+        self._session_dirty_ids.update(changed_ids)
         return indices
 
     def apply_inner_door_quantity_configuration(
