@@ -28,6 +28,13 @@ from typing import Literal, Mapping
 from . import ae
 from .dxf_serialization import save_scene_dxf
 from .cabinet_types.policy import resolve_box_body_back_panel_contract
+from .box_body_fold_profile import (
+    BOX_BODY_TURNS,
+    apply_outside_dimension_compensation,
+    outside_profile_to_material,
+    build_box_body_profile as build_box_body_fold_profile,
+    profile_to_fold_segments as box_body_profile_to_fold_segments,
+)
 from .receiving_quantity_versions import (
     SCHEMA, SCHEMA_V2, SCHEMA_V3, QUANTITY_MODE, SET_BAY_MODE,
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,

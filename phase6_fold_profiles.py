@@ -18,7 +18,13 @@ from phase6_endcap_semantics import (
     ENDCAP_FW_PARTS, normalize_endcap_fw_state, resolve_endcap_fw, resolve_box_assembly_type,
 )
 
-_BOX_BODY_TURNS = (90, -90, -90, -90, -90, -90, -90, 90)
+from ae_engine.manufacturing_api import (
+    BOX_BODY_TURNS as _BOX_BODY_TURNS,
+    apply_outside_dimension_compensation as _engine_apply_outside_dimension_compensation,
+    outside_profile_to_material as _engine_outside_profile_to_material,
+    build_box_body_fold_profile as _engine_build_box_body_fold_profile,
+    box_body_profile_to_fold_segments as _engine_box_body_profile_to_fold_segments,
+)
 
 def _num(value, default=0.0):
     try:
@@ -41,92 +47,20 @@ def _has_real_bend(segment: Mapping[str, object]) -> bool:
     return "angle" in segment and abs(_num(segment.get("angle"))) > 1e-9
 
 def apply_outside_dimension_compensation(profile: Sequence[dict], thickness) -> list[dict]:
-    """Annotate material segments with operator outside-dimension compensation.
-
-    Material/profile ``len`` values never change.  Each real bend adjacent to a
-    segment contributes one sheet thickness to the operator-facing outside
-    dimension: outer segments normally gain 1T and interior segments 2T.
-    """
-    t = max(0.0, _num(thickness))
-    segs = list(profile)
-    for index, seg in enumerate(segs):
-        bend_count = 0
-        if index > 0 and _has_real_bend(segs[index - 1]):
-            bend_count += 1
-        if index < len(segs) - 1 and _has_real_bend(seg):
-            bend_count += 1
-        if bend_count:
-            seg["ui_len_add"] = bend_count * t
-        else:
-            seg.pop("ui_len_add", None)
-    return segs
-
-
+    """Compatibility entry; the real adjacent-bend rule is Engine-owned."""
+    return _engine_apply_outside_dimension_compensation(profile, thickness)
 
 def _outside_profile_to_material(profile: Sequence[dict], thickness, *, preserve_core_precision=False, preserve_precision=False) -> list[dict]:
-    """Convert operator outside segment lengths to canonical material lengths.
-
-    Each real adjacent BEND contributes exactly 1T.  The bend count comes from
-    the actual current topology, so deleting a bend automatically changes the
-    conversion.  ``ui_len_add`` remains presentation metadata only.
-    """
-    t = max(0.0, _num(thickness))
-    rows = apply_outside_dimension_compensation([dict(row) for row in profile], t)
-    for seg in rows:
-        outside = abs(_num(seg.get("len")))
-        # Operator-facing fold inputs are integers; internal flat/material
-        # spans are NOT.  Keep fractional T here (e.g. 24 outside - 1.5T =
-        # 22.5 material), or an early int(round(...)) silently changes 24 to
-        # 23.5 when the mesh later restores formed/outside metadata.
-        # 3D UI 包外是唯一輸入；料長保持精度，不把 material 取整。
-        seg["len"] = _num(max(0.0, outside - abs(_num(seg.get("ui_len_add")))))
-    return apply_outside_dimension_compensation(rows, t)
+    """Compatibility entry for canonical material conversion."""
+    return _engine_outside_profile_to_material(
+        profile, thickness,
+        preserve_core_precision=preserve_core_precision,
+        preserve_precision=preserve_precision,
+    )
 
 def build_box_body_profile(snapshot: Mapping[str, object]) -> list[dict]:
-    """Map Phase6 box-body values into the original editor's segment list.
-
-    D-W-D are explicit, fixed-position core segments.  Extra fold geometry is
-    represented only by the existing Phase6 values surrounding that core.
-    """
-    t = _num(snapshot.get("t", 2), 2)
-    outside_family = cabinet_family_policy.box_body_profile_uses_outside_dimensions(snapshot)
-    outside_add = max(0.0, 2.0 * t)
-    if outside_family:
-        # Family defaults are operator outside dimensions. Build the
-        # topology first, then convert every segment by its real adjacent bends.
-        lengths = (
-            _ui_len(snapshot.get("zl1")), _ui_len(snapshot.get("zl2")),
-            _ui_len(snapshot.get("fw")), _common_dimension_len(snapshot, snapshot.get("d")),
-            _common_dimension_len(snapshot, snapshot.get("w")), _common_dimension_len(snapshot, snapshot.get("d")),
-            _ui_len(snapshot.get("fw")), _ui_len(snapshot.get("zr2")),
-            _ui_len(snapshot.get("zr1")),
-        )
-    else:
-        lengths = (
-            _ui_len(snapshot.get("zl1")),
-            _ui_len(snapshot.get("zl2")),
-            _ui_len(snapshot.get("fw")),
-            _ui_len(max(0.0, _num(snapshot.get("d")) - outside_add)),
-            _ui_len(max(0.0, _num(snapshot.get("w")) - outside_add)),
-            _ui_len(max(0.0, _num(snapshot.get("d")) - outside_add)),
-            _ui_len(snapshot.get("fw")),
-            _ui_len(snapshot.get("zr2")),
-            _ui_len(snapshot.get("zr1")),
-        )
-    cores = (None, None, None, "D", "W", "D", None, None, None)
-    phase6_keys = ("zl1", "zl2", "fw_left", "d_left", "w", "d_right", "fw_right", "zr2", "zr1")
-    result = []
-    for index, (length, core, phase6_key) in enumerate(zip(lengths, cores, phase6_keys)):
-        seg = {"len": length, "phase6_key": phase6_key}
-        if index < len(_BOX_BODY_TURNS):
-            seg["angle"] = _BOX_BODY_TURNS[index]
-        if core:
-            seg["core"] = core
-        result.append(seg)
-    result = cabinet_family_policy.transform_box_body_profile(snapshot, result)
-    if outside_family:
-        return _outside_profile_to_material(result, t, preserve_core_precision=bool(snapshot.get("receiving_quantity_box") and snapshot.get("active_mode") == "quantity"))
-    return apply_outside_dimension_compensation(result, t)
+    """Read the same canonical material Fold as the headless Engine client."""
+    return _engine_build_box_body_fold_profile(snapshot)
 
 def _signed_like(original, magnitude):
     return -abs(magnitude) if _num(original) < 0 else abs(magnitude)
@@ -399,33 +333,8 @@ def clone_profile(profile: Sequence[Mapping[str, object]]) -> list[dict]:
 
 
 def profile_to_fold_segments(profile: Sequence[Mapping[str, object]]):
-    """Convert editor dictionaries into the GUI-independent manufacturing contract.
-
-    ``length`` remains the flat/material span. When the editor profile carries
-    topology-derived outside-dimension compensation, preserve that semantic as an
-    independent ``formed_length`` instead of dropping it at the GUI→manufacturing
-    seam. ``formed_length`` is metadata for physical outside-face resolution;
-    the folded material midline still consumes ``length``. Core D/W segments
-    keep their separate assembly datum and do not receive outside-leg metadata.
-    """
-    rows = []
-    for seg in profile or ():
-        material_length = float(seg.get("len", 0.0))
-        ui_add = seg.get("ui_len_add")
-        phase6_key = str(seg.get("phase6_key") or "")
-        formed_length = (
-            material_length + abs(float(ui_add))
-            if ui_add is not None and not seg.get("core")
-            else None
-        )
-        rows.append(FoldProfileSegment(
-            length=material_length,
-            angle=(float(seg["angle"]) if "angle" in seg else None),
-            core=(str(seg.get("core")) if seg.get("core") else None),
-            phase6_key=(phase6_key if phase6_key else None),
-            formed_length=formed_length,
-        ))
-    return tuple(rows)
+    """Compatibility entry: do not create a second manufacturing Fold DTO."""
+    return _engine_box_body_profile_to_fold_segments(profile)
 
 def _phase6_is_untouched_canonical_box_profile(
     profile: Sequence[Mapping[str, object]],
