@@ -19,7 +19,7 @@ from typing import Any, Mapping
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.manufacturing_api import (
     DoorPartProjection, door_part_projections, project_part_dimensions,
-    build_standard_part_fold_profiles,
+    build_standard_part_fold_profiles, merge_keyed_fold_profiles,
 )
 from ae_engine.sheetmetal_part_adapters import (
     DoorFrameEdges,
@@ -35,7 +35,6 @@ from phase6_fold_profiles import (
     apply_outside_dimension_compensation,
     build_box_body_profile,
     build_endcap_xy_profiles,
-    clone_profile,
     merge_box_body_profile,
     _phase6_normalize_endcap_profile_order,
 )
@@ -183,39 +182,8 @@ def build_standard_part_profiles(
 
 
 def merge_keyed_profiles(existing_profiles, default_profiles):
-    """Refresh keyed segments while preserving arbitrary operator-added folds."""
-    result = {}
-    for axis in ("X", "Y"):
-        existing = clone_profile((existing_profiles or {}).get(axis, ()))
-        defaults = clone_profile((default_profiles or {}).get(axis, ()))
-        if not existing:
-            result[axis] = defaults
-            continue
-        default_by_key = {
-            seg.get("phase6_key"): seg
-            for seg in defaults
-            if seg.get("phase6_key")
-        }
-        existing_keys = {
-            seg.get("phase6_key")
-            for seg in existing
-            if seg.get("phase6_key")
-        }
-        if not set(default_by_key).issubset(existing_keys):
-            result[axis] = defaults
-            continue
-        for seg in existing:
-            key = seg.get("phase6_key")
-            source = default_by_key.get(key)
-            if source is None:
-                continue
-            for name in ("len", "ui_len_add", "core"):
-                if name in source:
-                    seg[name] = source[name]
-                else:
-                    seg.pop(name, None)
-        result[axis] = existing
-    return result
+    """Phase6 compatibility: Engine alone reconciles keyed material Fold rows."""
+    return merge_keyed_fold_profiles(existing_profiles, default_profiles)
 
 
 def build_settings_profile_projection(
