@@ -28,7 +28,7 @@ from ae_engine.contracts import (
     ResolvedManufacturingPart,
     ResolvedReliefRuleTrace,
 )
-from ae_engine.manufacturing_api import build_part_render_data
+from ae_engine.manufacturing_api import build_part_render_data, resolve_live_cabinet_family
 from ae_engine.joint_marking_policy import resolve_joint_marking_foundation_status
 from ae_engine.receiving_joint_marking import (
     joint_marking_export_summary as _joint_marking_export_summary,
@@ -64,12 +64,8 @@ from phase6_manufacturing_geometry import (
 
 
 def _cabinet_family(request: ManufacturingResolveRequest) -> str:
-    model = str(request.cabinet_model or "").strip()
-    try:
-        from ae_engine.cabinet_types.registry import resolve_cabinet_type
-        return resolve_cabinet_type(model).canonical_name
-    except Exception:
-        return model or "金庫型"
+    """Use the same public Engine Family resolution as the live Phase6 GUI."""
+    return resolve_live_cabinet_family({"model": request.cabinet_model})
 
 
 def _replay_endcap_render(part_input, solution):
