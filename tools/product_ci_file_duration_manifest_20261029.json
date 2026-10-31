@@ -718,5 +718,35 @@
     "tests/test_issue74_divider_side_front_penetration.py": 12
   },
   "rebalance_static_old_file_model_max_seconds": 189,
-  "rebalance_note": "After exact-head 18-shard run 41197479764, move the measured single real-tier Tk suite from lane 9 and complete divider-contact suite from lane 12 onto now lightly loaded lane 1. This changes scheduling only; file_seconds are historical per-file job measurements, so their static max is NOT a prediction of the new full-shard wall clock. Canonical selector/JUnit completeness and every 52 CPR/AC still fail closed."
+  "rebalance_note": "After exact-head 18-shard run 41197479764, move the measured single real-tier Tk suite from lane 9 and complete divider-contact suite from lane 12 onto now lightly loaded lane 1. This changes scheduling only; file_seconds are historical per-file job measurements, so their static max is NOT a prediction of the new full-shard wall clock. Canonical selector/JUnit completeness and every 52 CPR/AC still fail closed.",
+  "t15_split_source_run_id": 41197885699,
+  "t15_split_file": "tests/test_phase6_t15_inner_door_panels.py",
+  "t15_critical_function": "test_derived_sheet_holes_confirm_cancel_reload_and_real_dxf",
+  "t15_critical_owner": 1,
+  "t15_remainder_owner": 6,
+  "t15_source_functions": [
+    "test_3d_workspace_generates_panels_only_for_checked_outer_doors_and_keeps_guards_green",
+    "test_all_receiving_physical_previews_open_real_hole_editors",
+    "test_corner_data_inner_door_double_click_opens_original_hole_editor",
+    "test_corner_data_inner_door_existing_editor_keeps_active_part_and_feature_owner",
+    "test_derived_sheet_holes_confirm_cancel_reload_and_real_dxf",
+    "test_enabled_inner_doors_derive_real_panel_parts_with_stable_ids",
+    "test_inner_door_editor_reuses_original_vault_hole_editor_and_stashes_per_panel",
+    "test_inner_door_hole_features_reach_real_vault_cutting_and_dxf",
+    "test_inner_door_panel_has_real_manufacturing_render_data",
+    "test_inner_door_reuses_vault_certified_sheet_rules_and_fixed_19_folds",
+    "test_inner_door_vertical_deductions_keep_bottom_frame_absent",
+    "test_main_inner_door_preview_opens_real_hole_editor",
+    "test_manual_r6_inner_door_frame_source_thickness_never_casts_boolean",
+    "test_manual_r6_inner_door_panel_input_must_be_physical_numeric_before_cast",
+    "test_manual_r6_inner_door_thickness_gap_gate_keeps_approved_w800_blank",
+    "test_r4_62_boolean_inner_door_identity_never_becomes_a_panel_part",
+    "test_r5_91_direct_vertical_frame_boolean_selector_must_not_become_text",
+    "test_r5_91_direct_vertical_frame_rejects_corrupt_saved_door_identifiers",
+    "test_r5_91_receiving_family_does_not_bypass_boolean_inner_door_identity_gate",
+    "test_receiving_each_outer_door_data_row_has_independent_inner_door_checkbox_state",
+    "test_receiving_inner_door_work_area_follows_actual_cell_not_panel_blank",
+    "test_receiving_inner_door_work_area_scales_with_multicolumn_layout"
+  ],
+  "t15_split_note": "The one measured ~36.69s canonical function moves intact to runner 1; all other 21 top-level test functions stay on runner 6, including every parameterized case. Source-AST list and combined exact-head JUnit collection must match, with no test removed. Historical per-file independent timing model stays unchanged; this is a scheduling-only test."
 }
