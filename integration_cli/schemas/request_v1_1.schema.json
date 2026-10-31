@@ -296,8 +296,7 @@
                 "if": {"properties": {"kind": {"const": "side_panel"}}},
                 "then": {
                   "required": [
-                    "frame_width_mm", "box_zl1_mm", "box_zl2_mm",
-                    "box_zr1_mm", "box_zr2_mm", "box_z_comp_mm"
+                    "frame_width_mm", "box_zl1_mm", "box_zl2_mm", "box_zr2_mm"
                   ],
                   "properties": {
                     "dimensions_mm": {"required": ["width", "height", "depth", "thickness"]}
