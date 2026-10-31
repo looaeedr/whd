@@ -122,7 +122,8 @@
           "indicator_small_door",
           "box_body",
           "base_plate",
-          "custom_fold"
+          "custom_fold",
+          "inner_door"
         ]
       }
     },
@@ -203,7 +204,8 @@
               "indicator_small_door",
               "box_body",
               "base_plate",
-              "custom_fold"
+              "custom_fold",
+          "inner_door"
             ]
           },
           "worker_supported": {
