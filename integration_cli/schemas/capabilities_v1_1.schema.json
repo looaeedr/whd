@@ -297,6 +297,83 @@
           "const": "job_manifest.json"
         }
       }
+    },
+    "feature_catalog": {
+      "description": "Additive complete per-family feature discovery; a blocked role is never an export authorization. Old pinned installed v1.1 responses without this optional field remain valid.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "capability_id",
+          "cabinet_family",
+          "feature_id",
+          "implementation_owner",
+          "public_operations",
+          "manufacturing_supported",
+          "geometry_acceptance_passed",
+          "production_scope",
+          "blocked_code"
+        ],
+        "properties": {
+          "capability_id": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 256
+          },
+          "cabinet_family": {
+            "enum": [
+              "金庫型",
+              "受電箱"
+            ]
+          },
+          "feature_id": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          },
+          "implementation_owner": {
+            "type": "string",
+            "pattern": "^ae_engine/[A-Za-z0-9_/]+[.]py$"
+          },
+          "public_operations": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "capabilities",
+                "prepare",
+                "export"
+              ]
+            }
+          },
+          "manufacturing_supported": {
+            "type": "boolean"
+          },
+          "geometry_acceptance_passed": {
+            "type": "boolean"
+          },
+          "production_scope": {
+            "enum": [
+              "single_part",
+              "part_only",
+              "complete_assembly"
+            ]
+          },
+          "blocked_code": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^WHD_[A-Z0-9_]+$"
+              }
+            ]
+          }
+        }
+      }
     }
   },
   "allOf": [

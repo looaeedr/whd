@@ -264,6 +264,8 @@ def _installed_capabilities(
         }
         for kind in result["supported_part_kinds"]
     ]
+    from integration_cli.worker_feature_catalog import installed_family_feature_catalog
+    result["feature_catalog"] = installed_family_feature_catalog(result)
     _validator("capabilities_v1_1.schema.json").validate(result)
     return result
 
