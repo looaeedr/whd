@@ -395,7 +395,7 @@ def test_parallel_collection_default_keeps_fresh_complete_collection():
     from unittest.mock import patch
     from tools.whd_v15_acceptance_evidence import _load_canonical_collection
 
-    fresh = "tests/test_one.py::test_one\\ntests/test_two.py::test_two[x]\\n"
+    fresh = chr(10).join(("tests/test_one.py::test_one", "tests/test_two.py::test_two[x]", ""))
     with patch("tools.whd_v15_acceptance_evidence.subprocess.check_output",
                return_value=fresh) as mock_collect:
         assert _load_canonical_collection() == {
