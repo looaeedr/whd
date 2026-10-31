@@ -19,6 +19,7 @@ from integration_cli.prepare_evidence import (
 from integration_cli.worker_receiving_endcap import require_receiving_endcap_frame
 from integration_cli.worker_receiving_back_panel import require_receiving_back_panel_frame
 from integration_cli.worker_receiving_side_panel import require_receiving_side_panel_frame
+from integration_cli.worker_inner_door_frame import require_receiving_inner_door_frame_size_only_frame
 from integration_cli.worker_inner_door_panel import require_canonical_receiving_inner_door_panel_frame
 from integration_cli.worker_box_body import require_canonical_vault_box_body_size_only_frame
 from integration_cli.worker_custom_fold import require_canonical_custom_fold_size_only_frame
@@ -88,6 +89,13 @@ def _binding_payload(
                 raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Receiving physical side Frame identity mismatch")
             require_receiving_side_panel_frame(
                 frame, role=side_role, physical_part_id=physical,
+            )
+        elif raw_kind == "inner_door" and locked["raw_part"].get("inner_door_frame_side") is not None:
+            side = locked["raw_part"]["inner_door_frame_side"]
+            if frame_id != f"inner_door:{side}:{physical}:receiving:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Receiving A/B/D signed frame identity mismatch")
+            require_receiving_inner_door_frame_size_only_frame(
+                frame, frame_side=side, physical_part_id=physical,
             )
         elif raw_kind == "inner_door":
             if frame_id != f"inner_door:{physical}:flat:size-only-v1":

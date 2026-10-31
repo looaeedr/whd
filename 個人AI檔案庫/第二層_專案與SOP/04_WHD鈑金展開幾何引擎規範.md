@@ -417,3 +417,18 @@ Receiving policy maps *only baseline fixed Ø6.4 holes* to existing
 W-03/04/06, source-empty verification, exact reference bytes and actual
 CUTTING/BEND Save→Reload remain mandatory. No assembled WRAP/Joint, external
 CADSplit Feature transform or other uncertified physical roles are released.
+
+
+### #2383 Receiving physical inner-door A/B/D frame Worker extension (2026-10-31)
+
+For an independently source-confirmed inner-door ID and exact frame side
+LEFT/RIGHT/TOP plus span/T, `inner_door_frames.derive_inner_door_frames`
+owns the signed physical Fold Chain. `receiving_frame_baseline` owns the true
+A/B/D source CUTTING and D's two holes in `基準檔/受電箱/框.dxf`;
+`build_inner_door_frame_render_data` consumes **the installed resource-root
+baseline** for W-03/W-04, not an unsealed repository fallback. W-03 HMAC
+binds exact material, frame side and baseline digest; W-04 verifies the
+same FinalScene and DXF Save→Reload. The existing single panel remains
+supported. Source DXF Feature transforms, C-divider, unsourced bottom frame,
+NFB, physical assembly and joint marking are *not* authorized by this
+frame-only route.

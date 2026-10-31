@@ -147,6 +147,10 @@ def build_resource_evidence(
                     ("custom_fold", "金庫型"), ("custom_fold", "受電箱"),
                     ("inner_door", "受電箱"),
                 }
+                or (
+                    row["locked_dimensions_mm"].get("raw_part", {}).get("kind") == "inner_door"
+                    and row["locked_dimensions_mm"].get("raw_part", {}).get("inner_door_frame_side") is not None
+                )
                 for row in items)):
             raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "verified baseline selection missing")
     if not all(isinstance(p, str) and p for p in baseline_paths):

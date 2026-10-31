@@ -272,7 +272,7 @@ def _installed_capabilities(
                       "WHD_owned_size_only_geometry"]
                 if kind == "box_body"
                 else ["installer_sealed_exact_job_approval", "empty_source_modelspace",
-                      "explicit_source_inner_door_panel_identity",
+                      "explicit_source_inner_door_component_identity",
                       "WHD_owned_size_only_geometry"]
                 if kind == "inner_door"
                 else ["installer_sealed_exact_job_approval", "empty_source_modelspace",
