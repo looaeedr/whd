@@ -24,6 +24,7 @@ _FORBIDDEN = frozenset((
     "shrink_left_mm", "shrink_right_mm", "bend_mm", "fold_axis",
     "fold_profile", "transverse_length_mm", "box_zl1_mm", "box_zl2_mm",
     "box_zr1_mm", "box_zr2_mm", "box_z_comp_mm",
+    "inner_door_frame_side", "inner_door_frame_span_mm",
 ))
 
 
