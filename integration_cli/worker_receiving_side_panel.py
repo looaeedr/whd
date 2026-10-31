@@ -20,7 +20,11 @@ _INPUTS = (
     ("zl1", "box_zl1_mm"), ("zl2", "box_zl2_mm"),
     ("zr2", "box_zr2_mm"),
 )
-_KINDS = {"box_body:left_side": "left_side", "box_body:right_side": "right_side"}
+_KINDS = {
+    "box_body:left_side": "left_side",
+    "box_body:right_side": "right_side",
+    "box_body:back": "back",
+}
 _PART_FIELDS = {
     "kind", "cabinet_family", "source_part_ref", "dimension_semantics",
     "dimensions_mm", "frame_width_mm",
@@ -34,15 +38,22 @@ def receiving_side_panel_spec_from_trusted_part(part: Mapping[str, Any]):
     from ae_engine.box_body_structure import box_body_height_from_corner_policies
     from ae_engine.contracts import BoxBodyPartSpec
     from phase6_fold_profiles import build_box_body_profile, profile_to_fold_segments
+    from phase6_box_body_structure import set_side_back_back_panel_mode
 
     if (not isinstance(part, Mapping)
-            or part.get("kind") != "side_panel"
             or part.get("cabinet_family") != "受電箱"
             or part.get("dimension_semantics") != "cabinet_outer"
-            or part.get("source_part_ref") not in _KINDS
-            or set(part) != _PART_FIELDS):
+            or part.get("source_part_ref") not in _KINDS):
         raise PrepareEvidenceError(
-            "WHD_FRAME_UNVERIFIED", "only one source-owned Receiving left/right physical sheet is certified"
+            "WHD_FRAME_UNVERIFIED", "only registered Receiving source-owned physical sheets supported"
+        )
+    role = _KINDS[part["source_part_ref"]]
+    is_back = role == "back" and part.get("kind") == "back_panel"
+    if (not (is_back or (role != "back" and part.get("kind") == "side_panel"))
+            or set(part) != (_PART_FIELDS | {"back_panel_mode"} if is_back else _PART_FIELDS)
+            or (is_back and part.get("back_panel_mode") != "FULL")):
+        raise PrepareEvidenceError(
+            "WHD_FRAME_UNVERIFIED", "only exact Receiving side or FULL physical back-panel source certified"
         )
     dimensions = part.get("dimensions_mm")
     if not isinstance(dimensions, Mapping) or set(dimensions) != {
@@ -85,6 +96,10 @@ def receiving_side_panel_spec_from_trusted_part(part: Mapping[str, Any]):
             raise ValueError("unverified Receiving D-W-D source profile")
         fold = profile_to_fold_segments(fold_rows)
         state = receiving.resolve_box_body_structure_state(None)
+        if is_back:
+            # Only the authoritative FULL mode can be exported by this
+            # independent sheet contract; HALF needs confirmed door tiers.
+            state = set_side_back_back_panel_mode(state, "FULL")
         from phase6_box_body_structure import BoxBodyStructureType
         config = state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
         back_comp = float(config["back_width_comp_t"])
@@ -105,7 +120,7 @@ def receiving_side_panel_spec_from_trusted_part(part: Mapping[str, Any]):
         model_name="受電箱", fold_profile=fold, structure_state=state,
         back_panel_contract=back_contract,
     )
-    return spec, _KINDS[part["source_part_ref"]]
+    return spec, role
 
 
 def receiving_side_panel_expected_baselines(resource_root) -> tuple:
@@ -129,9 +144,13 @@ def receiving_side_panel_render(spec, role: str, context):
         material = render.material
         meta = render.metadata
         if (material is None or material.is_empty or not material.is_valid
-                or not render.fold_guides or float(material.area) <= 0
+                or (role != "back" and not render.fold_guides)
+                or (role == "back" and render.fold_guides)
+                or float(material.area) <= 0
                 or meta.get("baseline_source_status") != "VERIFIED"
-                or meta.get("baseline_feature_count") != 9
+                or meta.get("baseline_source_role") != role
+                or meta.get("baseline_feature_count") != (4 if role == "back" else 9)
+                or (role == "back" and meta.get("back_panel_mode") != "FULL")
                 or meta.get("baseline_fit_error")):
             raise ValueError("Receiving dedicated side panel CUTTING/BEND or fixed-hole fit invalid")
         lowx, lowy, highx, highy = map(float, material.bounds)
@@ -147,7 +166,7 @@ def receiving_side_panel_render(spec, role: str, context):
 
 def _frame_record(role: str, width: float, height: float, physical_id: str) -> dict[str, Any]:
     return {
-        "frame_id": f"side_panel:{role}:{physical_id}:flat:size-only-v1",
+        "frame_id": f"{'back_panel' if role == 'back' else 'side_panel'}:{role}:{physical_id}:flat:size-only-v1",
         "coordinate_contract_revision": "1",
         "units": "mm",
         "origin_definition": (
