@@ -117,6 +117,24 @@ assembled Joint/relief cannot enter this route. Existing required Vault
 at export. Successful export still needs exact-job approval, W-06 journal,
 independent DXF Save→Reload and the normal trusted installer.
 
+## Receiving standalone inner-door panel (W-08 #2383)
+
+The installed `受電箱/inner_door` manufacturing route now covers precisely
+one physical `inner_door:<id>:panel`, not the paired inner-door frame set or
+full Receiving assembly. CADSplit must confirm the persisted `inner_door_id`
+(`[A-Za-z0-9_-]`) and `inner_door_cell_key` (saved `column:row`), exact matching
+`source_part_ref`, and the independent panel's formed `width`, `height`,
+`thickness`. WHD's existing `derive_inner_door_panel` and
+`build_inner_door_panel_render_data` own the four fixed 19-mm flanges,
+certified corner topology, true unfolded CUTTING/BEND and 2D/3D FinalScene.
+
+Only a signed size-only unfolded Frame and an *empty* original source DXF
+are certified. External holes (especially configured NFB), frame joinery,
+source feature transforms and full-door assembly are rejected rather than
+silently omitted. The W-03 receipt is signed and W-04 independently rechecks
+source, Frame, installed Registry and final DXF Save→Reload. Other Receiving
+inner-door workflows remain separately gated.
+
 ## Output and failure semantics
 
 - `stdout`: reserved/empty for these operations. The response JSON file is

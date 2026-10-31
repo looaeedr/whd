@@ -23,6 +23,10 @@ from integration_cli.worker_box_body import (
     vault_box_body_spec_from_trusted_prepared_part,
     resolve_vault_box_body_size_only_frame,
 )
+from integration_cli.worker_inner_door_panel import (
+    receiving_inner_door_panel_from_trusted_part,
+    resolve_receiving_inner_door_panel_frame,
+)
 from integration_cli.worker_custom_fold import (
     custom_fold_spec_from_trusted_prepared_part, resolve_custom_fold_size_only_frame,
 )
@@ -204,9 +208,10 @@ def save_trusted_door_circle_finalscene_batch(
         if kind not in (
             "door", "indicator_small_door", "indicator_box",
             "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body",
+            "inner_door",
         ):
             _reject("physical part has no trusted WHD FinalScene manufacturing owner")
-        if kind in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body") and exported.get("features"):
+        if kind in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body", "inner_door") and exported.get("features"):
             _reject("size-only physical Frame has no certified source-Feature mapping")
         # A source DXF containing untransferred geometry is never an
         # unperforated blank: even zero declared Features must not silently
@@ -224,6 +229,21 @@ def save_trusted_door_circle_finalscene_batch(
                 _reject("source DXF has untransferred geometry without declared Features")
         original_item_id = original["item_id"]
         source_path = source_documents.get(original_item_id)
+        if kind == "inner_door":
+            from ae_engine.manufacturing_api import build_inner_door_panel_render_data
+            panel = receiving_inner_door_panel_from_trusted_part(original["part"])
+            frame = resolve_receiving_inner_door_panel_frame(
+                panel, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Receiving inner-door FinalScene Frame has changed since Prepare")
+            render = build_inner_door_panel_render_data(panel)
+            if render.material is None or render.material.is_empty or not render.material.is_valid or not render.fold_guides:
+                _reject("Receiving inner-door actual CUTTING/BEND is unavailable")
+            if render.metadata.get("stable_id") != panel.stable_id:
+                _reject("Receiving inner-door physical source identity drifted")
+            rows.append((receipt["physical_part_id"], render))
+            continue
         if kind == "custom_fold":
             spec = custom_fold_spec_from_trusted_prepared_part(original["part"])
             frame = resolve_custom_fold_size_only_frame(

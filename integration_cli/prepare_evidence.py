@@ -145,6 +145,7 @@ def build_resource_evidence(
                 ) not in {
                     ("base_plate", "金庫型"),
                     ("custom_fold", "金庫型"), ("custom_fold", "受電箱"),
+                    ("inner_door", "受電箱"),
                 }
                 for row in items)):
             raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "verified baseline selection missing")
