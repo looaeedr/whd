@@ -1,116 +1,72 @@
-"""#2517: EndCap Assembly Intent legacy corner mutation is Engine-owned."""
+"""#2517: registered Assembly Intent to legacy CornerType is Engine-owned."""
 from __future__ import annotations
 
 from copy import deepcopy
 import inspect
 import json
-
 import pytest
 
-from ae_engine import manufacturing_api
-from ae_engine import endcap_assembly_state as owner
-from ae_engine.assembly_joint import (
-    AssemblyJointRelation, edge_relation_for_part, sync_snapshot_intent_joints,
-)
-from ae_engine.sheetmetal_geometry import (
-    CornerTypeId, CornerTypeSelection, CrossCornerMode, CornerDirection,
-)
-from phase6_endcap_semantics import (
-    apply_box_assembly_type_to_raw_state as gui_apply,
-    legacy_corner_projection_for_intent as gui_projection,
-    selection_from_raw as gui_from_raw,
-    selection_to_raw as gui_to_raw,
-)
+from ae_engine import legacy_endcap_corner_projection_for_intent, manufacturing_api
+from ae_engine import endcap_factory_fold as owner
+from ae_engine.assembly_joint import AssemblyJointRelation, edge_relation_for_part
+from ae_engine.sheetmetal_geometry import CornerTypeId
+from phase6_settings_transitions import assembly_intent
+import phase6_endcap_semantics as gui
 
 
-def _original_state():
-    bottom = CornerTypeSelection(
-        CornerTypeId.CROSS, cross_mode=CrossCornerMode.EXTRA_CUT,
-        direction=CornerDirection.BOTH, amount_t=2.25,
-    )
-    custom = manufacturing_api.endcap_corner_selection_to_raw(bottom)
-    return {
-        "head": {"bottom_left": deepcopy(custom), "bottom_right": deepcopy(custom)},
-        "tail": {"bottom_left": deepcopy(custom), "bottom_right": deepcopy(custom)},
-    }, {
-        "head": {"top": False, "bottom": False},
-        "tail": {"top": False, "bottom": True},
+@pytest.mark.parametrize("intent,corner", [
+    ("INSERT", CornerTypeId.INSERT),
+    ("INSERT_OVERLAY", CornerTypeId.INSERT_OVERLAY),
+    ("OVERLAY", CornerTypeId.OVERLAY),
+    ("WRAP_OVERLAY", CornerTypeId.OVERLAY),
+])
+def test_legacy_projection_is_the_same_public_engine_callable(intent, corner):
+    assert legacy_endcap_corner_projection_for_intent is owner.legacy_corner_projection_for_intent
+    assert legacy_endcap_corner_projection_for_intent is manufacturing_api.legacy_endcap_corner_projection_for_intent
+    assert legacy_endcap_corner_projection_for_intent(intent) is corner
+    assert gui.legacy_corner_projection_for_intent(intent) is corner
+
+
+def test_real_operator_intent_transaction_keeps_joint_authority_after_save_reload():
+    original_snapshot = {
+        "assembly_type": "INSERT",
+        "existing_parts": ["box_body", "head", "tail"],
     }
-
-
-@pytest.mark.parametrize("intent", ("INSERT", "OVERLAY", "INSERT_OVERLAY", "WRAP_OVERLAY"))
-def test_public_engine_intent_projection_keeps_legacy_and_canonical_joint_separate(intent):
-    projected = manufacturing_api.legacy_corner_projection_for_intent(intent)
-    assert projected is gui_projection(intent)
-    assert projected is (CornerTypeId.OVERLAY if intent == "WRAP_OVERLAY" else CornerTypeId(intent))
-    source = {"assembly_type": intent, "existing_parts": ["box_body", "head", "tail"]}
-    canonical = sync_snapshot_intent_joints(source, intent)
-    if intent == "WRAP_OVERLAY":
-        for part in ("head", "tail"):
-            assert edge_relation_for_part(canonical, part, "BOTTOM") is AssemblyJointRelation.WRAP
-    before = deepcopy(source)
-    corners, pair = _original_state()
-    original_bottom = deepcopy(corners)
-    original_pair = deepcopy(pair)
-    returned = manufacturing_api.apply_box_assembly_type_to_raw_state(corners, pair, projected)
-    assert returned is projected
-    assert before == source
-    assert original_pair == pair
-    for part in ("head", "tail"):
-        assert corners[part]["bottom_left"] == original_bottom[part]["bottom_left"]
-        assert corners[part]["bottom_right"] == original_bottom[part]["bottom_right"]
-        assert corners[part]["top_left"]["type_id"] == projected.value
-        assert corners[part]["top_right"]["type_id"] == projected.value
-    # Real Save→Reload of the returned serialization must retain physical state.
-    serialized = json.loads(json.dumps({"corner_state": corners, "corner_pair_same": pair}))
-    loaded = serialized["corner_state"]
-    manufacturing_api.apply_box_assembly_type_to_raw_state(
-        loaded, serialized["corner_pair_same"], projected,
+    bottom = {"type_id": "CROSS", "rotation_quadrants": 0,
+              "cross_mode": "extra_cut", "direction": "both", "amount_t": 2.25}
+    original_corners = {"head": {"bottom_left": deepcopy(bottom)},
+                        "tail": {"bottom_right": deepcopy(bottom)}}
+    result = assembly_intent(
+        original_snapshot, original_corners, {}, "WRAP_OVERLAY",
+        available_parts=("box_body", "head", "tail"),
+        project_legacy_corner=True, reset_bottom_defaults=False,
     )
-    assert loaded == corners
-
-
-def test_explicit_overlay_preset_reset_updates_only_canonical_bottom_default():
-    corners, pairs = _original_state()
-    original_pairs = deepcopy(pairs)
-    result = gui_apply(corners, pairs, CornerTypeId.OVERLAY, reset_bottom_defaults=True)
-    assert result is CornerTypeId.OVERLAY
-    assert pairs == original_pairs
+    assert original_snapshot["assembly_type"] == "INSERT"
+    assert original_corners["head"]["bottom_left"] == bottom
+    assert result.input_snapshot["assembly_type"] == "WRAP_OVERLAY"
     for part in ("head", "tail"):
-        for key in ("bottom_left", "bottom_right"):
-            selection = gui_from_raw(corners[part][key])
-            assert selection.type_id is CornerTypeId.CROSS
-            assert selection.cross_mode is CrossCornerMode.EXTRA_CUT
-            assert selection.direction is CornerDirection.WIDTH
-            assert selection.amount_t == pytest.approx(1.5)
-
-
-def test_public_serialization_round_trip_preserves_original_corner_source_fields():
-    original = CornerTypeSelection(
-        CornerTypeId.INSERT_OVERLAY, amount_t=1.0,
-        secondary_retain_t=0.5, secondary_depth_t=2.0,
+        assert edge_relation_for_part(result.input_snapshot, part, "BOTTOM") is AssemblyJointRelation.WRAP
+        assert result.corner_state[part]["top_left"]["type_id"] == "OVERLAY"
+        assert result.corner_state[part]["top_right"]["type_id"] == "OVERLAY"
+    assert result.corner_state["head"]["bottom_left"] == bottom
+    assert result.corner_state["tail"]["bottom_right"] == bottom
+    stored = json.loads(json.dumps({
+        "snapshot": result.input_snapshot, "corners": result.corner_state,
+        "pairs": result.corner_pair_same,
+    }))
+    loaded = assembly_intent(
+        stored["snapshot"], stored["corners"], stored["pairs"], "WRAP_OVERLAY",
+        project_legacy_corner=True, reset_bottom_defaults=False,
     )
-    raw = manufacturing_api.endcap_corner_selection_to_raw(original)
-    assert raw == gui_to_raw(original)
-    assert raw["type_id"] == "INSERT_OVERLAY"
-    assert gui_from_raw(json.loads(json.dumps(raw))) == original
-    assert raw["rotation_quadrants"] == 0
+    assert loaded.corner_state == stored["corners"]
+    for part in ("head", "tail"):
+        assert edge_relation_for_part(loaded.input_snapshot, part, "BOTTOM") is AssemblyJointRelation.WRAP
 
 
-def test_bad_assembly_intent_or_corner_type_rejects_without_mutation():
+def test_invalid_intent_rejected_and_gui_has_no_mirror_formula():
     with pytest.raises(ValueError, match="unsupported Assembly Intent"):
-        manufacturing_api.legacy_corner_projection_for_intent("FAKE")
-    corners, pairs = _original_state()
-    before = deepcopy((corners, pairs))
-    with pytest.raises(ValueError):
-        manufacturing_api.apply_box_assembly_type_to_raw_state(
-            corners, pairs, CornerTypeId.C02,
-        )
-    assert (corners, pairs) == before
-
-
-def test_phase6_compatibility_has_no_corner_mutation_formula():
-    assert "manufacturing_api.legacy_corner_projection_for_intent(" in inspect.getsource(gui_projection)
-    assert "manufacturing_api.endcap_corner_selection_to_raw(" in inspect.getsource(gui_to_raw)
-    assert "manufacturing_api.apply_box_assembly_type_to_raw_state(" in inspect.getsource(gui_apply)
+        legacy_endcap_corner_projection_for_intent("FORGED")
+    assert "manufacturing_api.legacy_endcap_corner_projection_for_intent(" in inspect.getsource(
+        gui.legacy_corner_projection_for_intent
+    )
     assert "from phase6_" not in inspect.getsource(owner)

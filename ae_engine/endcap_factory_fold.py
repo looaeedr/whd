@@ -14,7 +14,7 @@ from .box_body_fold_profile import (
     _num, _ui_len, _common_dimension_len, apply_outside_dimension_compensation,
 )
 from .cabinet_types import policy as cabinet_family_policy
-from .corner_type_ui import assembly_type_from_corner_state
+from .corner_type_ui import assembly_type_from_corner_state, apply_box_assembly_type
 from .sheetmetal_geometry import CornerTypeId, CornerTypeSelection, normalize_corner_selection
 
 ENDCAP_FW_PARTS = ("head", "tail")
@@ -323,3 +323,57 @@ def set_endcap_fw_override(state, part_key: str, value: float) -> dict:
     item["value"] = float(value)
     state["mode"] = FW_INDEPENDENT
     return item
+
+
+def selection_to_raw(selection):
+    selection = normalize_corner_selection(selection)
+    raw = {"type_id": selection.type_id.value, "rotation_quadrants": 0}
+    if selection.cross_mode is not None:
+        raw["cross_mode"] = selection.cross_mode.value
+    if selection.direction is not None:
+        raw["direction"] = selection.direction.value
+    if selection.amount_t is not None:
+        raw["amount_t"] = float(selection.amount_t)
+    if selection.secondary_retain_t is not None:
+        raw["secondary_retain_t"] = float(selection.secondary_retain_t)
+    if selection.secondary_depth_t is not None:
+        raw["secondary_depth_t"] = float(selection.secondary_depth_t)
+    return raw
+
+
+def apply_box_assembly_type_to_raw_state(
+    corner_state, pair_same, type_id, *, reset_bottom_defaults=False
+):
+    """Apply shared box assembly semantics to the bridge's JSON-safe corner state.
+
+    ``reset_bottom_defaults`` is reserved for an explicit operator assembly
+    selection.  Normal load/render synchronization leaves manually edited
+    EndCap bottom manufacturing corners untouched.
+    """
+    typed = {}
+    for part in ("head", "tail"):
+        typed[part] = {
+            key: selection_from_raw(value)
+            for key, value in dict((corner_state or {}).get(part) or {}).items()
+        }
+    apply_box_assembly_type(
+        typed, pair_same, CornerTypeId(type_id),
+        reset_bottom_defaults=bool(reset_bottom_defaults),
+    )
+    for part, corners in typed.items():
+        target = corner_state.setdefault(part, {})
+        target.clear()
+        target.update({key: selection_to_raw(value) for key, value in corners.items()})
+    return CornerTypeId(type_id)
+
+
+def legacy_corner_projection_for_intent(value) -> CornerTypeId:
+    """Project registered high-level intent to legacy Head/Tail corner mirror.
+
+    WRAP_OVERLAY projects as OVERLAY only in the old corner-state format.
+    The real BOTTOM WRAP remains exclusively in Assembly Joint Graph.
+    """
+    stable = normalize_assembly_intent_id(value)
+    if stable == "WRAP_OVERLAY":
+        return CornerTypeId.OVERLAY
+    return CornerTypeId(stable)

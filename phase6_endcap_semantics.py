@@ -14,7 +14,12 @@ from __future__ import annotations
 from typing import Mapping
 from ae_engine import manufacturing_api
 
-from ae_engine.sheetmetal_geometry import CornerTypeId
+from ae_engine.sheetmetal_geometry import (
+    CornerTypeId, CornerTypeSelection, normalize_corner_selection,
+)
+from ae_engine.corner_type_ui import (
+    apply_box_assembly_type, assembly_type_from_corner_state,
+)
 
 ASSEMBLY_TYPE_LABELS = {
     CornerTypeId.INSERT: "嵌入",
@@ -40,9 +45,8 @@ def assembly_intent_label(value) -> str:
 
 
 def legacy_corner_projection_for_intent(value) -> CornerTypeId:
-    """GUI compatibility: ask Engine for the canonical legacy corner mirror."""
-    return manufacturing_api.legacy_corner_projection_for_intent(value)
-
+    """GUI compatibility; Engine owns the legacy manufacturing corner mirror."""
+    return manufacturing_api.legacy_endcap_corner_projection_for_intent(value)
 # GUI compatibility aliases: Engine owns these physical FW state identities.
 ENDCAP_FW_PARTS = manufacturing_api.ENDCAP_FW_PARTS
 
@@ -90,7 +94,7 @@ def _num(value, default=0.0):
 
 
 def selection_to_raw(selection):
-    """GUI adapter receives the Engine's validated serializable CornerType."""
+    """GUI serializer uses the Engine's canonical persisted CornerType payload."""
     return manufacturing_api.endcap_corner_selection_to_raw(selection)
 
 
@@ -137,8 +141,8 @@ def resolve_box_assembly_type(snapshot: Mapping[str, object]) -> CornerTypeId:
 def apply_box_assembly_type_to_raw_state(
     corner_state, pair_same, type_id, *, reset_bottom_defaults=False
 ):
-    """GUI forwards the requested Assembly Intent/corner mutation to Engine."""
-    return manufacturing_api.apply_box_assembly_type_to_raw_state(
+    """GUI sends Assembly Intent input and receives Engine-mutated raw state."""
+    return manufacturing_api.apply_endcap_box_assembly_type_to_raw_state(
         corner_state, pair_same, type_id,
         reset_bottom_defaults=reset_bottom_defaults,
     )

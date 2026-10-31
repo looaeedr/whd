@@ -37,9 +37,13 @@ WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並�
 
 `ae_engine.manufacturing_api.commit_box_fw(state, value)`、`commit_endcap_fw(state, part_key, value, *, box_fw=None)`、`set_endcap_fw_follow(state, part_key, follow_box, *, box_fw)`、`set_endcap_fw_override(state, part_key, value)` 由 Engine 按原有 Head/Tail FOLLOW_BODY/FOLLOW_HEAD/FOLLOW_TAIL/INDEPENDENT 與舊檔相容狀態機處理操作者 FW 修改。讀取仍用既有 `normalize_endcap_fw_state` / `resolve_endcap_fw`，實體折邊只由 `build_endcap_xy_fold_profiles` 生成；Phase6 同名入口只轉接，不另作狀態推導或出圖認證。
 
-## Head/Tail Assembly Intent 舊角落投影 API（#2517）
+## EndCap Assembly Intent／CornerType 原始狀態 API（#2517）
 
-`ae_engine.manufacturing_api.legacy_corner_projection_for_intent(value)` 將正式 Assembly Intent 投影到舊式 CornerType，僅 `WRAP_OVERLAY` 在舊角落欄位使用 `OVERLAY`；正式 BOTTOM WRAP 仍以 Assembly Joint Graph 為準。`endcap_corner_selection_to_raw(selection)` 保留既有可保存欄位，`apply_box_assembly_type_to_raw_state(corner_state, pair_same, type_id, *, reset_bottom_defaults=False)` 依 Engine 已有 `corner_type_ui.apply_box_assembly_type` 轉換 Head/Tail 的 legacy CornerType，預設保留操作者底角設定及 pair 分組，只有明確重設才覆寫底角。Phase6 舊名稱只轉接；不新建 CUTTING 或外部加工授權。
+`ae_engine.manufacturing_api.endcap_corner_selection_to_raw(selection)` 是現行 CornerType 保存格式的 Engine 投影；`apply_endcap_box_assembly_type_to_raw_state(corner_state, pair_same, type_id, *, reset_bottom_defaults=False)` 使用相同的 Engine Assembly Intent／CornerType policy 修改 Head/Tail 上角，保持手動底角設定，僅在操作者要求 reset 時重設原有 Family bottom defaults。原 `phase6_endcap_semantics.selection_to_raw` 與 `apply_box_assembly_type_to_raw_state` 保持 GUI 相容轉呼叫。這不創造新的角落 CUTTING/Relief Registry 公式。
+
+## EndCap 舊 Assembly Intent CornerType 投影（#2517）
+
+`ae_engine.manufacturing_api.legacy_endcap_corner_projection_for_intent(value)` 先以正式 Assembly Intent Registry 驗證，再把 `WRAP_OVERLAY` 的舊 Head/Tail CornerType mirror 投影為 `OVERLAY`。正式 BOTTOM WRAP 仍由 Assembly Joint Graph 決定，沿用現有 `apply_endcap_box_assembly_type_to_raw_state` 公開 API；Phase6 只轉接，不建立第二個 serializer 或物理公式。
 
 ## 公開入口
 

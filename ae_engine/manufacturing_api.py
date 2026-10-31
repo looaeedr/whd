@@ -56,16 +56,16 @@ from .linked_endcap_fold import (
     build_linked_endcap_xy_fold_profiles,
 )
 from .endcap_factory_fold import (
-    selection_from_raw as endcap_corner_selection_from_raw, normalize_endcap_fw_state,
+    selection_from_raw as endcap_corner_selection_from_raw,
+    selection_to_raw as endcap_corner_selection_to_raw,
+    legacy_corner_projection_for_intent as legacy_endcap_corner_projection_for_intent,
+    apply_box_assembly_type_to_raw_state as apply_endcap_box_assembly_type_to_raw_state,
+    normalize_endcap_fw_state,
     resolve_endcap_fw, resolve_endcap_assembly_type, build_endcap_xy_fold_profiles,
     ENDCAP_FW_PARTS, FW_FOLLOW_BODY, FW_FOLLOW_HEAD, FW_FOLLOW_TAIL,
     FW_INDEPENDENT, ENDCAP_FW_MODES, commit_box_fw, commit_endcap_fw,
     set_endcap_fw_follow, set_endcap_fw_override,
     endcap_editor_fold_tabs, normalize_endcap_profile_order,
-)
-from .endcap_assembly_state import (
-    legacy_corner_projection_for_intent, endcap_corner_selection_to_raw,
-    apply_box_assembly_type_to_raw_state,
 )
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
