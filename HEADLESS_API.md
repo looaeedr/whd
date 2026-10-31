@@ -548,3 +548,16 @@ operator assignments cannot partially update a Bay.
 The GUI only supplies operator selection and displays/marks the resulting
 changes. Head and Tail are independent; no NFB source, DXF certification
 or new Hole Editor CUTTING geometry is inferred by this API.
+
+## Receiving Head/Tail highlighted candidate Apply Engine API (#2517)
+
+`manufacturing_api.apply_receiving_endcap_candidate_to_bays(
+layout, role, set_index, bay_indices, features, *, version_id=None)`
+validates operator Head/Tail candidate Features, version ID and exact selected
+physical Bay indices (bool, missing, out-of-range and unhashable selections
+are rejected) before updating one detached canonical Receiving Layout. Engine
+unlinks shared features/version refs for only the selected Bays and returns
+`(detached_layout, sorted_selected_indices, physical_bay_stable_ids)`.
+Other Bays/Sets and the other Head/Tail role stay unchanged, including existing
+Hole Editor source geometry. GUI only forwards and records UI dirty IDs.
+No new CUTTING, DXF or certified Registry manufacturing capability is granted.
