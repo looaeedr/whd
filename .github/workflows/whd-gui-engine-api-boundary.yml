@@ -1,0 +1,51 @@
+name: WHD GUI Engine API Boundary
+
+on:
+  pull_request:
+    branches:
+      - localX
+      - cleanup/2d-3d-sync
+
+permissions:
+  contents: read
+
+jobs:
+  gui-engine-api-boundary:
+    name: GUI Engine API Ownership Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - name: Checkout exact PR HEAD
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Enforce exact base to head ownership boundary
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$PR_BASE_SHA"
+          git fetch --no-tags origin "$PR_HEAD_SHA"
+          # On subsequent PRs use the trusted BASE guard, not candidate-edited code.
+          if git cat-file -e "$PR_BASE_SHA:tools/gui_engine_api_boundary_gate.py" 2>/dev/null; then
+            git show "$PR_BASE_SHA:tools/gui_engine_api_boundary_gate.py" > /tmp/whd_trusted_gui_engine_gate.py
+            python /tmp/whd_trusted_gui_engine_gate.py --repo . --base "$PR_BASE_SHA" --head "$PR_HEAD_SHA"
+          else
+            # Bootstrap on first introduction only; required check must be configured in Ruleset.
+            python tools/gui_engine_api_boundary_gate.py --repo . --base "$PR_BASE_SHA" --head "$PR_HEAD_SHA"
+          fi
+      - name: Regression tests for API ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m pytest -q tests/governance/test_gui_engine_api_boundary_gate.py
