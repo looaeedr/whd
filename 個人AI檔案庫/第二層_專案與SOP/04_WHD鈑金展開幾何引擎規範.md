@@ -320,3 +320,21 @@ Accepted provenance：Phase 7 #618/#620/#621/#623 與 Combined Acceptance #626�
 - **Validation one-way**：1×1、1×2、1×4、2×2、mixed W/H/D、mixed FULL/HALF/BACK_OPENING、Save→Reload、DXF reopen 與 regression 都是 acceptance evidence；它們驗證上述 authority，但不得反向創造新產品規格或 offset。
 
 Durable signoff provenance：#1116 owner signoff 記錄 R-029 與 OPEN-02；OPEN-02 implementation finalization 由 PR #1167 merge 至 `cleanup/2d-3d-sync`。後續若要改方向、5 mm inset、pairing ownership 或 Joint scope，必須以新的 product-owner decision 更新本 CURRENT authority，不能只改 code/test。
+
+
+### #2383 Vault/Receiving standalone custom Fold Worker route (2026-10-31)
+
+Independent `金庫型/custom_fold` and `受電箱/custom_fold` manufacturing must
+consume the explicit source physical `custom:<positive integer>` ID, one X/Y
+fold axis, transverse material span and every material Fold Profile segment
+(length, angle and optional formed outside length) through WHD's
+`CustomFoldPartSpec` and `ae_engine/custom_fold_manufacturing.py`. That owner
+alone resolves real CUTTING/BEND and Final Material, then the already guarded
+Worker W-03/04/06 Save→Reload path exports independently verified DXF.
+
+A size-only signed Frame attests unfolded material bounds, never an assembly
+placement, original CADSplit source-to-DXF feature mapping or a second fold
+formula. Original CADSplit DXF must be empty for the feature-disabled export.
+No implicit preset, material conversion, 3D joint, corner relief or original
+feature transfer may be guessed. Other family roles stay closed until their
+own exact Gate C manufacturing authority exists.
