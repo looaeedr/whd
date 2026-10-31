@@ -981,3 +981,82 @@ def restore_joint_relief_cut_geometry(item):
     return unary_union(polygons) if polygons else None
 
 
+
+
+def apply_verified_joint_cut_to_part(part, cut_polygon):
+    """Apply an already-verified Joint relief to canonical FinalScene without rebuilding PartSpec."""
+    from .manufacturing_render_data import (
+        PartRenderData, material_polygon_from_final_scene, fold_guides_from_final_scene,
+    )
+    from .manufacturing_endcap_compat import _scene_with_authoritative_fold_profiles
+    material = getattr(part.render_data, "material", None)
+    if material is None or getattr(material, "is_empty", True):
+        raise ValueError(f"canonical material unavailable: {part.part_key}")
+    solved = material.difference(cut_polygon)
+    if not solved.is_valid:
+        solved = solved.buffer(0)
+    if solved.is_empty:
+        raise ValueError(f"Joint relief removed all material: {part.part_key}")
+    scene = _scene_with_replaced_primary_cutting(part.render_data.scene, solved)
+    scene = _scene_with_authoritative_fold_profiles(
+        scene, tuple(part.x_profile or ()), tuple(part.y_profile or ())
+    )
+    render = PartRenderData(
+        scene=scene,
+        material=material_polygon_from_final_scene(scene),
+        fold_guides=fold_guides_from_final_scene(scene),
+        metadata=dict(getattr(part.render_data, "metadata", {}) or {}),
+        unfolded_topology=getattr(part.render_data, "unfolded_topology", None),
+    )
+    return replace(part, render_data=render)
+
+
+def apply_verified_joint_cut_to_owner(part, owner_key, cut_polygon):
+    """Apply a verified cut to a canonical part or one physical Box Body piece.
+
+    ``owner_key`` may be the canonical part key (``box_body``) or a physical
+    piece geometry key such as ``box_body:left_side``.  Mechanical ownership
+    remains on the canonical part; this adapter only selects the UV/material
+    carrier used by the solver.
+    """
+    canonical_key = str(part.part_key)
+    geometry_key = str(owner_key or canonical_key)
+    if geometry_key == canonical_key:
+        return apply_verified_joint_cut_to_part(part, cut_polygon)
+
+    prefix = canonical_key + ":"
+    if not geometry_key.startswith(prefix):
+        raise ValueError(f"geometry owner {geometry_key!r} is not under {canonical_key!r}")
+    role = geometry_key[len(prefix):].strip().lower()
+    structure = part.render_data
+    pieces = tuple(getattr(structure, "pieces", ()) or ())
+    if not pieces:
+        raise ValueError(f"piece-level geometry unavailable: {geometry_key}")
+
+    from .manufacturing_render_data import _exploded_box_body_preview
+
+    replaced = []
+    found = False
+    for piece in pieces:
+        if str(getattr(piece, "role", "") or "").strip().lower() != role:
+            replaced.append(piece)
+            continue
+        found = True
+        material = piece.render_data.material
+        minx, miny, maxx, maxy = map(float, material.bounds)
+        temp_part = replace(
+            part, part_key=geometry_key, render_data=piece.render_data,
+            x_profile=tuple(getattr(piece, "fold_profile", ()) or ()),
+            y_profile=({"len": max(0.0, maxy - miny), "core": True},),
+        )
+        solved_piece_part = apply_verified_joint_cut_to_part(temp_part, cut_polygon)
+        replaced.append(replace(piece, render_data=solved_piece_part.render_data))
+    if not found:
+        raise ValueError(f"unknown Box Body piece role: {role!r}")
+
+    replaced = tuple(replaced)
+    preview = _exploded_box_body_preview(replaced)
+    solved_structure = replace(structure, pieces=replaced, preview_render_data=preview)
+    return replace(part, render_data=solved_structure)
+
+
