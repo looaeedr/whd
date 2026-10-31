@@ -7,12 +7,29 @@ manufacturing eligibility, atomic export, and physical DXF re-open checks.
 from .manufacturing_export_selection import select_resolved_export_geometry
 
 
+def selected_export_manufacturing_policy(receiving_snapshot, flags):
+    """Engine-owned classification of Receiving NFB and side manufacturing."""
+    auto_side = (
+        bool(flags.get("box_body"))
+        and receiving_snapshot.get("model") == "受電箱"
+        and receiving_snapshot.get("nfb_config_submitted") is True
+    )
+    committed_csv = ()
+    if (receiving_snapshot.get("model") == "受電箱"
+            and receiving_snapshot.get("nfb_config_submitted") is True):
+        from .receiving_nfb_committed_final_scene import _submitted_csv_holes
+        committed_csv = _submitted_csv_holes(receiving_snapshot)
+    return auto_side, committed_csv
+
+
 def save_selected_resolved_manufacturing_dxf(
-    receiving_snapshot, resolved, flags, folder, *,
-    auto_side: bool, committed_csv,
+    receiving_snapshot, resolved, flags, folder,
 ):
-    """Return verified actual output paths; empty when no physical part selected."""
+    """Return verified physical output paths; derive all decisions from source."""
     from . import manufacturing_api
+    auto_side, committed_csv = selected_export_manufacturing_policy(
+        receiving_snapshot, flags,
+    )
 
     if auto_side:
         from ae_engine.receiving_ear_side_manufacturing_marking import (
