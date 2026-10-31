@@ -24,6 +24,10 @@ from integration_cli.prepare_frame import (
     resolve_endcap_size_only_frame, resolve_vault_base_plate_size_only_frame,
 )
 from integration_cli.request_canonical import require_matching_wire_request_digest
+from integration_cli.worker_box_body import (
+    vault_box_body_spec_from_trusted_prepared_part,
+    resolve_vault_box_body_size_only_frame,
+)
 
 _REGISTRY_PATH = "基準檔/截角資料庫/certified_relief_rules.json"
 
@@ -325,7 +329,7 @@ def prepare_trusted_door_batch(
                 raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "complete verified Door input dimensions required")
         elif kind not in (
             "indicator_small_door", "indicator_box", "end_cap_head", "end_cap_tail",
-            "base_plate",
+            "base_plate", "box_body",
         ):
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unverified physical part kind has no supported local Frame")
         if item["item_id"] in identities:
@@ -337,6 +341,8 @@ def prepare_trusted_door_batch(
             part_spec = indicator_small_door_spec_from_trusted_prepared_part(p, ctx)
         elif kind == "indicator_box":
             part_spec = indicator_box_spec_from_trusted_prepared_part(p, ctx)
+        elif kind == "box_body":
+            part_spec = vault_box_body_spec_from_trusted_prepared_part(p)
         elif kind == "base_plate":
             part_spec = vault_base_plate_spec_from_trusted_prepared_part(p)
         else:
@@ -356,6 +362,27 @@ def prepare_trusted_door_batch(
                 "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
                 "coordinate_space": "size_only",
                 "target_frame_certified": False,
+            }
+        elif kind == "box_body":
+            frame = resolve_vault_box_body_size_only_frame(
+                part_spec, ctx, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "金庫型",
+                "source_outer_mm": {
+                    "width": part_spec.width, "height": part_spec.height,
+                    "depth": part_spec.depth, "thickness": part_spec.thickness,
+                    "frame_width": part_spec.frame_width, "zl1": part_spec.zl1,
+                    "zl2": part_spec.zl2, "zr1": part_spec.zr1, "zr2": part_spec.zr2,
+                    "z_comp": part_spec.z_comp,
+                },
+                "canonical_factory_fold_profile": [
+                    {"length": row.length, "angle": row.angle,
+                     "phase6_key": row.phase6_key, "core": row.core}
+                    for row in part_spec.fold_profile
+                ],
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
             }
         elif kind == "base_plate":
             frame = resolve_vault_base_plate_size_only_frame(
