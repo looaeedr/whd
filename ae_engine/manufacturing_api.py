@@ -67,6 +67,11 @@ from .endcap_factory_fold import (
     set_endcap_fw_follow, set_endcap_fw_override,
     endcap_editor_fold_tabs, normalize_endcap_profile_order,
 )
+from .corner_state_transactions import (
+    CornerStateTransition, MANUAL_CORNER_KEYS, MANUAL_CORNER_PAIR_KEYS,
+    ensure_corner_part, corner_selection, corner_targets, commit_corner_pair,
+    commit_corner_type, commit_corner_mode, commit_corner_parameters, apply_corner_preset,
+)
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
     ENDCAP_BOTTOM_WRAP_MODES, normalize_endcap_bottom_wrap_state,
