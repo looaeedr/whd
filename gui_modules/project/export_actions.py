@@ -406,18 +406,9 @@ def _export_selected_resolved_parts(self, folder, flags):
     # positioning marks to LEFT/RIGHT physical side plates automatically.
     # No extra operator button or forged cabinet/PAD release.
     receiving_snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
-    auto_side = (
-        bool(flags.get("box_body"))
-        and receiving_snapshot.get("model") == "受電箱"
-        and receiving_snapshot.get("nfb_config_submitted") is True
+    auto_side, committed_csv = manufacturing_api.selected_export_manufacturing_policy(
+        receiving_snapshot, flags,
     )
-    committed_csv = ()
-    if (receiving_snapshot.get("model") == "受電箱"
-            and receiving_snapshot.get("nfb_config_submitted") is True):
-        from ae_engine.receiving_nfb_committed_final_scene import (
-            _submitted_csv_holes,
-        )
-        committed_csv = _submitted_csv_holes(receiving_snapshot)
     if auto_side:
         if receiving_snapshot.get("active_mode") == "quantity":
             raise ValueError("EAR_SIDE_NORMAL_EXPORT_QUANTITY_NOT_VERIFIED")
@@ -435,7 +426,6 @@ def _export_selected_resolved_parts(self, folder, flags):
     resolved = resolver()
     outputs = manufacturing_api.save_selected_resolved_manufacturing_dxf(
         receiving_snapshot, resolved, flags, folder,
-        auto_side=auto_side, committed_csv=committed_csv,
     )
     if not outputs:
         return ([], ["canonical resolved export: no selected physical parts"])
