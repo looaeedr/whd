@@ -74,10 +74,13 @@ def _binding_payload(
             require_canonical_indicator_box_size_only_frame(
                 frame, physical_part_id=physical,
             )
-        elif raw_kind == "side_panel":
+        elif raw_kind in ("side_panel", "back_panel"):
             side_ref = locked["raw_part"].get("source_part_ref")
-            side_role = {"box_body:left_side": "left_side", "box_body:right_side": "right_side"}.get(side_ref)
-            if side_role is None or frame_id != f"side_panel:{side_role}:{physical}:flat:size-only-v1":
+            side_role = {"box_body:left_side": "left_side", "box_body:right_side": "right_side",
+                         "box_body:back": "back"}.get(side_ref)
+            if (side_role is None
+                    or (raw_kind == "back_panel") != (side_role == "back")
+                    or frame_id != f"{raw_kind}:{side_role}:{physical}:flat:size-only-v1"):
                 raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Receiving physical side Frame identity mismatch")
             require_receiving_side_panel_frame(
                 frame, role=side_role, physical_part_id=physical,
@@ -122,7 +125,7 @@ def _binding_payload(
         seen_frames.add(frame_id)
         if frame.get("coordinate_contract_revision") != "1" or frame.get("units") != "mm":
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unsupported Frame units/revision")
-        if raw_kind not in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body", "inner_door", "side_panel"):
+        if raw_kind not in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body", "inner_door", "side_panel", "back_panel"):
             require_canonical_door_local_frame(frame, physical_part_id=physical)
         checked.append({
             "item_id": item_id,
