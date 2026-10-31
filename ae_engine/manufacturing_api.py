@@ -92,6 +92,9 @@ from .endcap_editor_fold import (
     build_endcap_editor_simple_profile, read_endcap_editor_simple_profile,
 )
 from .box_body_editor_readback import (
+    reverse_box_body_fold_traversal, box_body_piece_editor_profiles,
+)
+from .box_body_editor_readback import (
     formed_box_body_fw_widths,
     box_body_ui_segment_length_to_material,
     read_box_body_outside_dimensions,
