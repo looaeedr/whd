@@ -93,8 +93,12 @@ def _dxf_counts(msp) -> Counter:
     counts = Counter()
     for entity in msp:
         kind = _entity_kind(entity)
-        if kind is not None:
-            counts[(str(entity.dxf.layer).upper(), kind)] += 1
+        if kind is None:
+            # Foreign DXF primitives (ARC, SPLINE, INSERT, ...) are never
+            # authorized by canonical DrawingScene. Count them explicitly
+            # so the existing entity-count gate fails closed.
+            kind = f"UNSUPPORTED:{entity.dxftype()}"
+        counts[(str(entity.dxf.layer).upper(), kind)] += 1
     return counts
 
 
