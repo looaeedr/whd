@@ -20,8 +20,9 @@ replays certified, verified physical relief via the same immutable PartSpec +
 ManufacturingContext → canonical `build_part_render_data` used for 2D and DXF.
 Only Engine serializes the solver's physical relief polygons and writes them
 into a detached `resolved_assembly_relief_cuts` PartSpec. The Phase6 assembly
-service merely passes the already-resolved inputs and checks its authoritative
-render against the solver's physical material. A preexisting lightweight
+service only passes the already-resolved inputs: Engine also validates that
+canonical material is present and agrees with the solver's physical material
+to the original 1e-5 area tolerance before returning it. A preexisting lightweight
 headless fallback accepts `solved_render_data` only without a real PartSpec,
 and missing fallback rejects explicitly. No new Registry/CUTTING/DXF approval
 or independent geometry is introduced.
