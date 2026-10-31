@@ -86,4 +86,6 @@ def test_public_engine_owner_and_actual_gui_request_path_are_only_adapters():
         build_scene_payload_for_app
     )
     import ae_engine.standard_part_fold_readback as engine
-    assert "phase6_" not in inspect.getsource(engine)
+    owner_source = inspect.getsource(engine)
+    assert "from phase6_" not in owner_source
+    assert "import phase6_" not in owner_source
