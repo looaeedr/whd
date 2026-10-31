@@ -401,6 +401,37 @@ no manufacturing formula, physical part identity, CUTTING, or DXF capability
 is created or re-certified by this ownership migration.
 
 
+## Door-layout Indicator component editor uses Engine geometry (#2517)
+
+The legacy `gui.py::open_door_indicator_component_editor(key, component)`
+for `indicator_box` and `indicator_door` now consumes
+`ae_engine.manufacturing_api.resolve_indicator_editor_components(
+groups, thickness=t, door_spec=typed_small_door_spec)`.
+This is the same Engine geometry provider used by Phase6's per-cell Indicator
+editor contexts. The GUI only owns operator input, selected physical component,
+stored feature lists, presentation labels/baseline status, and feature commit
+callbacks. It cannot directly call `ae.get_stretched_indicator_box_data`,
+`ae.get_stretched_door_data`, or build finished material/cut guides.
+
+IndicatorBox canonical source is the shared `基準檔/指示燈/盒子.dxf`;
+the historical model_name argument to its baseline adapter is ignored by
+design. This is an API ownership migration, not a new manufacturing/Export grant.
+
+## Canonical manufacturing pre-scan cache signature (#2517)
+
+`ae_engine.manufacturing_api.manufacturing_state_fingerprint(*, input_snapshot,
+settings_values, working_box, corner_state, endcap_fw_state,
+endcap_bottom_wrap_state, available_parts, part_profiles, assembly_intent,
+ignore_fixed_corner, relief_clearance)` is the Engine-owned public
+headless cache-key policy for WHD's actual manufacturing state. This signature
+excludes UI typography and persisted/derived mirrors, uses Receiving live
+working W/H/D rather than old Settings defaults, and includes real physical
+Fold/corner/assembly state. The normalization entry
+`canonical_manufacturing_signature_value(value)` preserves legacy
+representation equivalence (including numeric precision, unordered sets and
+nonfinite fail-closed). GUI gathers operator input only and forwards to Engine;
+a cache hit never substitutes for actual FinalScene/Save→Reload certification.
+
 ## Standard physical Fold readback into Settings (#2517)
 
 `ae_engine.manufacturing_api.read_standard_part_fold_profiles(part_key, profiles,
