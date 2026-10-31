@@ -885,3 +885,13 @@ def apply_receiving_inner_door_candidate_to_bays(layout, config, set_index, bay_
         apply_receiving_inner_door_candidate_to_bays as _apply,
     )
     return _apply(layout, config, set_index, bay_indices, version_id=version_id)
+
+def apply_receiving_bay_dimensions(
+    layout, set_index, bay_indices, *, width, height, depth, expected_count,
+):
+    """Public Engine atomic Receiving Bay W/H/D and NFB X proof transition."""
+    from .receiving_layout import apply_receiving_bay_dimensions as _apply
+    return _apply(
+        layout, set_index, bay_indices, width=width, height=height,
+        depth=depth, expected_count=expected_count,
+    )

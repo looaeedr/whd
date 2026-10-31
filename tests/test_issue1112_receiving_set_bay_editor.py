@@ -374,7 +374,7 @@ def test_issue1817_batch_reflows_existing_door_state_same_as_sequential_updates(
 
 def test_batch_operator_width_change_demotes_only_selected_confirmed_nfb_x(monkeypatch):
     """Real highlighted-Bay W/H/D operator may not bypass NFB datum invalidation."""
-    import gui_modules.application.receiving_set_bay_adapter as adapter_owner
+    import ae_engine.receiving_layout as layout_owner
     from tests.test_issue1499_nfb_persistence import _config
 
     layout = resize_receiving_bays(_layout(), set_index=0, bay_count=3)
@@ -387,12 +387,12 @@ def test_batch_operator_width_change_demotes_only_selected_confirmed_nfb_x(monke
     adapter = ReceivingSetBayAdapter(layout)
 
     # Preserve #1817's one-normalize-per-atomic-batch performance rule.
-    real = adapter_owner.normalize_receiving_layout
+    real = layout_owner.normalize_receiving_layout
     calls = []
     def counted(raw):
         calls.append(1)
         return real(raw)
-    monkeypatch.setattr(adapter_owner, "normalize_receiving_layout", counted)
+    monkeypatch.setattr(layout_owner, "normalize_receiving_layout", counted)
 
     assert adapter.apply_dimensions_to_bays(
         0, (0, 2), width=900, height=1600, depth=350, expected_count=2

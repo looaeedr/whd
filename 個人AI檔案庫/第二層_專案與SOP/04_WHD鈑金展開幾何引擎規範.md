@@ -591,3 +591,7 @@ frame-only route.
 ### #2517 Receiving 單一內門候選多 Bay Engine API（2026-11-01）
 
 `manufacturing_api.apply_receiving_inner_door_candidate_to_bays(layout, config, set_index, bay_indices, *, version_id=None)` 是單一候選版套用已高亮 Bay 的公開製造狀態交易，與整批數量配置 API 不同。Engine 用既有 `validate_door_config`、`receiving_shared_settings`、`receiving_nfb_csv_committed_config` 檢驗實體 Bay 選取、CSV NFB source／CUTTING 擁有者，統一提交 detached Layout 並回傳排序 Bay indices 與 stable IDs；GUI 只更新 UI dirty 狀態。非法輸入、source 衝突不部分寫入；X 保持 `UNVERIFIED_BASIS`、既有 Save→Reload 保持、無新 DXF 製造放行。#2517 仍 OPEN。
+
+### #2517 Receiving Bay 批次尺寸／NFB X 證據交易 Engine API（2026-11-01）
+
+公開 `manufacturing_api.apply_receiving_bay_dimensions(layout, set_index, bay_indices, *, width, height, depth, expected_count)` 由 `ae_engine.receiving_layout` 擁有全部多連 W/H/D 正整數／完整選取驗證、門格 `complete_partition` 保留先前操作尺寸、NFB 已確認 X 在 W 改變後 `RECONFIRM_REQUIRED` 的 canonical 證據移轉，整批僅做一次 `normalize_receiving_layout`。輸入資料不被修改；回傳 (detached layout, changed physical Bay IDs)，同尺寸 no-op 回傳原 layout 與空 IDs 不執行 normalize。GUI 僅轉送輸入、接收結果和 UI dirty IDs，不再自行決定任何尺寸／孔位／成品製造語意。本移轉維持原 Save→Reload、Door Partition、NFB source 和 #1817 batch 效能測試，沒有新增 CUTTING/DXF 製造認證；#2517 仍 OPEN。
