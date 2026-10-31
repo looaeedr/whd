@@ -154,6 +154,26 @@ manual Fold, assembly joinery, extra physical parts or unverified source fitting
 must refuse manufacture. W-04/W-06 preserve original SHA, immutable resources,
 job approval and DXF Save→Reload; no claim of a full Receiving box assembly.
 
+## Receiving physical FULL back-panel manufacturing W-08 (#2383)
+
+The sealed installed v1.1 Worker can export one `受電箱/back_panel`
+**FULL** physical rear sheet through canonical three-piece Receiving
+`build_box_body_structure_render_data`. The CADSplit-confirmed source must
+identify `box_body:back` and declare `dimension_semantics=cabinet_outer`,
+`dimensions_mm={width,height,depth,thickness}`, `frame_width_mm`, explicit
+`box_zl1_mm / box_zl2_mm / box_zr2_mm` and `back_panel_mode=FULL`.
+WHD loads and attests **all three** dedicated Receiving source DXFs
+(`左側板.dxf`, `右側板.dxf`, `後面板.dxf`) and keeps the rear four
+actual source-keyslots, canonical unfolded stock and independent physical
+identity. A signed Frame describes only the unfolded size; original DXF
+modelspace MUST be empty, external hole projection/assembly/Joint stays
+blocked. The canonical flat back sheet has no BEND lines: this is correct
+for the FULL rear topology, not missing manufacturing work.
+`HALF` and `BACK_OPENING` need their own approved snapshot/door-tier or
+opening source constraints and remain explicitly unavailable in this route.
+No full three-piece assembly certification, external Features or release X
+is implied by this single-sheet output.
+
 ## Output and failure semantics
 
 - `stdout`: reserved/empty for these operations. The response JSON file is
