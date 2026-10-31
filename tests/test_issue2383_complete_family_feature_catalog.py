@@ -67,7 +67,7 @@ def test_full_vault_receiving_feature_catalog_is_schema_valid_and_grounded(monke
     }
     assert {(row["cabinet_family"], row["feature_id"])
             for row in entries if row["manufacturing_supported"]} == actually_available
-    assert len(actually_available) == 15  # Vault 8 + Receiving 7; Receiving real FULL/OPENING rear sheet.
+    assert len(actually_available) == 17  # Vault 8 + Receiving 9; real standalone Receiving head/tail D-2T.
     for item in entries:
         assert item["geometry_acceptance_passed"] is item["manufacturing_supported"]
         if item["manufacturing_supported"]:
@@ -77,7 +77,6 @@ def test_full_vault_receiving_feature_catalog_is_schema_valid_and_grounded(monke
             assert item["public_operations"] == ["capabilities"]
             assert item["blocked_code"].startswith("WHD_")
     for unsafe in (
-        "受電箱/end_cap_head", "受電箱/end_cap_tail",
         "受電箱/box_body", "受電箱/base_plate", "受電箱/divider",
         "受電箱/fixing_plate", "受電箱/multi_bay_batch",
     ):

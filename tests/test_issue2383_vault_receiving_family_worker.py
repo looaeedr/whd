@@ -105,12 +105,23 @@ def test_receiving_endcap_cannot_fall_back_to_vault_manufacturing(tmp_path):
     request["items"] = [request["items"][1]]
     p = request["items"][0]["part"]
     p["kind"] = "end_cap_head"
-    p["dimensions_mm"] = {"width": 800.0, "depth": 350.0, "thickness": 2.0}
+    p["dimensions_mm"] = {
+        "width": 800.0, "height": 1600.0, "depth": 350.0, "thickness": 2.0,
+    }
     for key in ("frame_edges", "frame_width_mm", "gap_w_mm", "gap_h_mm",
                 "fold_left_mm", "fold_right_mm", "fold_top_mm", "fold_bottom_mm"):
         p.pop(key, None)
+    # Complete the new Receiver wire schema, but preserve the *wrong*
+    # original Vault Door source_part_ref. W-03 itself must reject it rather
+    # than silently fall back to Vault EndCap manufacturing.
+    p.update({
+        "frame_width_mm": 29.0,
+        "endcap_yl1_mm": 15.0, "endcap_yr1_mm": 15.0,
+        "endcap_ytop1_mm": 16.0, "endcap_ybottom1_mm": 15.0,
+        "endcap_side_rear_bend_mm": 18.0,
+    })
     request["request_digest"] = compute_wire_request_digest(request)
-    with pytest.raises(PrepareEvidenceError, match="Receiving EndCap"):
+    with pytest.raises(PrepareEvidenceError, match="Receiving"):
         _prepare(request, resource)
     assert not list(tmp_path.rglob("*.dxf")) or all(
         candidate == source or candidate.is_relative_to(resource)
@@ -140,8 +151,8 @@ def test_installed_worker_advertises_exact_vault_receiving_kind_matrix(monkeypat
     indexed = {entry["part_kind"]: entry for entry in advertised["capabilities"]}
     assert set(indexed) == set(advertised["supported_part_kinds"])
     assert indexed["door"]["cabinet_families"] == ["金庫型", "受電箱"]
-    assert indexed["end_cap_head"]["cabinet_families"] == ["金庫型"]
-    assert indexed["end_cap_tail"]["cabinet_families"] == ["金庫型"]
+    assert indexed["end_cap_head"]["cabinet_families"] == ["金庫型", "受電箱"]
+    assert indexed["end_cap_tail"]["cabinet_families"] == ["金庫型", "受電箱"]
     assert indexed["base_plate"]["cabinet_families"] == ["金庫型"]
     assert indexed["inner_door"]["cabinet_families"] == ["受電箱"]
     assert indexed["side_panel"]["cabinet_families"] == ["受電箱"]

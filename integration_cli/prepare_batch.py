@@ -28,6 +28,11 @@ from integration_cli.worker_box_body import (
     vault_box_body_spec_from_trusted_prepared_part,
     resolve_vault_box_body_size_only_frame,
 )
+from integration_cli.worker_receiving_endcap import (
+    receiving_endcap_spec_from_trusted_part,
+    receiving_endcap_shared_baseline,
+    receiving_endcap_frame,
+)
 from integration_cli.worker_receiving_back_panel import (
     receiving_back_panel_spec_from_trusted_part,
     receiving_back_panel_frame,
@@ -330,11 +335,6 @@ def prepare_trusted_door_batch(
                 "WHD_FRAME_UNVERIFIED",
                 "cabinet family is not certified for installed Worker",
             )
-        if kind in ("end_cap_head", "end_cap_tail") and p["cabinet_family"] != "金庫型":
-            raise PrepareEvidenceError(
-                "WHD_FRAME_UNVERIFIED",
-                "Receiving EndCap requires its own Family/Topology certification",
-            )
         if kind == "door":
             if p["dimension_semantics"] != "cabinet_outer":
                 raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "only verified cabinet_outer Door-local frame is supported")
@@ -371,6 +371,8 @@ def prepare_trusted_door_batch(
             part_spec = vault_box_body_spec_from_trusted_prepared_part(p)
         elif kind == "base_plate":
             part_spec = vault_base_plate_spec_from_trusted_prepared_part(p)
+        elif kind in ("end_cap_head", "end_cap_tail") and p["cabinet_family"] == "受電箱":
+            part_spec = receiving_endcap_spec_from_trusted_part(p)
         else:
             part_spec = endcap_spec_from_trusted_prepared_part(p, policy)
         identity_bytes = ("WHD-PART-v1\0" + request["client_installation_id"]
@@ -507,6 +509,30 @@ def prepare_trusted_door_batch(
                 "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
                 "coordinate_space": "size_only", "target_frame_certified": False,
             }
+        elif kind in ("end_cap_head", "end_cap_tail") and p["cabinet_family"] == "受電箱":
+            frame = receiving_endcap_frame(
+                part_spec, ctx, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "受電箱",
+                "source_outer_mm": {
+                    "width": part_spec.width, "height": part_spec.height,
+                    "depth": part_spec.depth, "thickness": part_spec.thickness,
+                    "frame_width": part_spec.frame_width,
+                },
+                "factory_x_material_profile": [
+                    {"length": row.length, "angle": row.angle, "key": row.phase6_key}
+                    for row in part_spec.fold_profile_x
+                ],
+                "factory_y_material_profile": [
+                    {"length": row.length, "angle": row.angle, "key": row.phase6_key}
+                    for row in part_spec.fold_profile_y
+                ],
+                "depth_comp_t": part_spec.depth_comp_t,
+                "selected_source_role": kind,
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
+            }
         elif kind in ("end_cap_head", "end_cap_tail"):
             frame = resolve_endcap_size_only_frame(
                 part_spec, physical_part_id=physical_id,
@@ -532,7 +558,12 @@ def prepare_trusted_door_batch(
             frame = resolve_door_finished_local_frame(
                 part_spec, ctx, physical_part_id=physical_id,
             )
-        baseline = None if kind in ("side_panel", "back_panel") else expected_baseline_path_for(part_spec, ctx)
+        baseline = (
+            receiving_endcap_shared_baseline(resource_root)
+            if kind in ("end_cap_head", "end_cap_tail") and p["cabinet_family"] == "受電箱"
+            else None if kind in ("side_panel", "back_panel")
+            else expected_baseline_path_for(part_spec, ctx)
+        )
         if baseline is None and kind not in ("base_plate", "custom_fold", "inner_door", "side_panel", "back_panel"):
             raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "WHD could not identify the physical part baseline")
         # The CURRENT AE shared-indicator resolver selects a *single*

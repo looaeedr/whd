@@ -172,6 +172,11 @@
               "inner_door_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"},
               "inner_door_cell_key": {"type": "string", "pattern": "^[0-9]+:[0-9]+$"},
               "back_panel_mode": {"enum": ["FULL", "BACK_OPENING"]},
+              "endcap_yl1_mm": {"type": "number", "exclusiveMinimum": 0},
+              "endcap_yr1_mm": {"type": "number", "exclusiveMinimum": 0},
+              "endcap_ytop1_mm": {"type": "number", "exclusiveMinimum": 0},
+              "endcap_ybottom1_mm": {"type": "number", "exclusiveMinimum": 0},
+              "endcap_side_rear_bend_mm": {"type": "number", "exclusiveMinimum": 0},
               "frame_width_mm": {
                 "type": "number",
                 "exclusiveMinimum": 0
@@ -291,6 +296,25 @@
                 },
                 "then": {
                   "required": ["fold_axis", "transverse_length_mm", "fold_profile"]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "kind": {"enum": ["end_cap_head", "end_cap_tail"]},
+                    "cabinet_family": {"const": "受電箱"}
+                  },
+                  "required": ["kind", "cabinet_family"]
+                },
+                "then": {
+                  "required": [
+                    "frame_width_mm", "endcap_yl1_mm", "endcap_yr1_mm",
+                    "endcap_ytop1_mm", "endcap_ybottom1_mm",
+                    "endcap_side_rear_bend_mm"
+                  ],
+                  "properties": {
+                    "dimensions_mm": {"required": ["width", "height", "depth", "thickness"]}
+                  }
                 }
               },
               {

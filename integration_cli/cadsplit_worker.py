@@ -250,7 +250,7 @@ def _installed_capabilities(
             # independent intrinsic geometry for these two requested families.
             # Receiving EndCaps/BoxBody are intentionally NOT Vault EndCaps.
             "cabinet_families": (
-                ["金庫型"] if kind in ("end_cap_head", "end_cap_tail", "base_plate", "box_body")
+                ["金庫型"] if kind in ("base_plate", "box_body")
                 else ["受電箱"] if kind in ("inner_door", "side_panel", "back_panel")
                 else ["金庫型", "受電箱"]
             ),
