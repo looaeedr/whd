@@ -94,12 +94,8 @@ def _phase6_current_cabinet_family(self):
 
 
 def _phase6_solution_is_committable(solution):
-    if bool(getattr(solution, "verified", False)):
-        return True
-    trust = str(getattr(solution, "trust_level", "") or "")
-    return bool(getattr(solution, "rule_id", None)) and trust in {
-        "CERTIFIED", "CERTIFIED_FROM_3D", "ENGINE_CONFLICT"
-    }
+    """Compatibility: Engine is the sole authority for manufacturing commit."""
+    return manufacturing_api.endcap_relief_solution_committable(solution)
 
 
 def _phase6_apply_resolved_cut_to_part(part, cut_polygon):

@@ -371,3 +371,16 @@ Receiving fixing/NFB/Divider, and inner-door panel/frame identities.
 The Phase6 Settings planner and operator navigation delegate their identity
 decisions to Engine. GUI still controls hierarchy, focus, and selection.
 Recognizing an existing ID never authorizes unsupported DXF manufacture.
+
+
+## EndCap relief manufacturing commit policy (#2517)
+
+`ae_engine.manufacturing_api.endcap_relief_solution_committable(solution)`
+owns the existing production-commit decision applied to actual Head/Tail
+World-backprojected EndCap relief solutions. Verified solutions commit.
+An otherwise unverified result requires both a nonempty certified `rule_id`
+and a recognized certified trust status (`CERTIFIED`,
+`CERTIFIED_FROM_3D`, or certified formula `ENGINE_CONFLICT`).
+An unknown or unverified rule without proof is not committable.
+A separate GUI diagnostic can continue to report shadow/3D conflicts;
+this predicate does not bypass or perform CUTTING itself.

@@ -527,3 +527,9 @@ frame-only route.
 
 - Engine public `is_box_body_physical_piece_key` and `is_derived_physical_part_key` now own the existing physical-child identity distinctions. Phase6 navigation and Settings are display/planning adapters, not independent manufacturing physical-ID authorities.
 - This does not allocate IDs or certify Save→Reload, 2D/3D/DXF manufacturing support.
+
+
+### #2517 EndCap relief production commit policy (2026-11-01)
+
+- `endcap_relief_solution_committable` is the public Engine authority for existing verified/certified Head/Tail relief commit acceptability. Phase6 manufacturing service consumes the API result; GUI/Phase6 must not decide certified/trust precedence itself.
+- The certified-formula versus 3D shadow conflict distinction is preserved. This is not a new rule registration, uncertified DXF grant, or full #2517 completion.
