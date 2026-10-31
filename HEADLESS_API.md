@@ -337,3 +337,16 @@ IDs remain dispatched to their separate persisted custom-fold implementation.
 Calling the *standard* Engine API on a custom key explicitly fails closed.
 This is an incremental ownership migration, not a claim that custom Fold or
 DXF production readiness is complete.
+
+
+## Keyed Fold profile reconciliation (#2517)
+
+`ae_engine.manufacturing_api.merge_keyed_fold_profiles(existing_profiles, default_profiles)`
+is the Engine public owner for applying freshly derived canonical material
+`len`, `ui_len_add`, and `core` to keyed X/Y Fold rows without overwriting
+operator-added (unkeyed or unrelated) Fold segments, their order or bend angles.
+A missing canonical key on an axis replaces that axis with detached Engine
+defaults; an empty axis also takes defaults. Neither input is mutated. The
+Phase6 Settings plan uses only a compatibility delegate and must not rederive
+the canonical material or outside compensation. This API by itself is not
+DXF/CUTTING certification.
