@@ -17,7 +17,7 @@ import re
 from typing import Any, Mapping
 
 from ae_engine.cabinet_types import policy as cabinet_family_policy
-from ae_engine.part_dimension_projection import (
+from ae_engine.manufacturing_api import (
     DoorPartProjection, door_part_projections, project_part_dimensions,
 )
 from ae_engine.sheetmetal_part_adapters import (

@@ -67,5 +67,5 @@ def test_settings_adapter_contains_no_dimension_or_door_cell_manufacturing_code(
     assert "project_part_dimensions" not in funcs
     assert "door_part_projections" not in funcs
     source = path.read_text(encoding="utf-8")
-    assert "from ae_engine.part_dimension_projection import" in source
+    assert "from ae_engine.manufacturing_api import" in source
     assert "def build_standard_part_profiles(" in source

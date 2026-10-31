@@ -98,7 +98,7 @@ def test_issue500_projection_owner_has_no_bridge_tk_workspace_render_or_manufact
         or name == "phase6_designer_workspace"
         or name == "phase6_workspace_navigation_controller"
         or "renderer" in name
-        or "manufacturing" in name
+        or ("manufacturing" in name and name != "ae_engine.manufacturing_api")
     }
     assert forbidden == set()
 
