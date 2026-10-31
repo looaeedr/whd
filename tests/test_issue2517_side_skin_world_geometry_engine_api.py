@@ -53,11 +53,13 @@ def test_true_receiving_side_world_skin_matches_same_source_fixture_and_remains_
     assert snapshot == before
 
 
-def test_real_side_legacy_mirror_is_engine_owned_same_as_gui_output():
+def test_receiving_left_invalid_mapped_mesh_fails_closed_in_engine_and_gui():
     source = _snapshot()
     body = _body_part(source)
     piece = next(p for p in body.render_data.pieces if p.role == "left_side")
-    triangles = (((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)),)
-    assert api.fit_receiving_left_zl1_world_mid(piece, (), triangles, sheet_thickness=source["t"]) == gui_fit(
-        piece, (), triangles, sheet_thickness=source["t"],
-    )
+    # The real physical zl1 needs the complete UV/mesh map. An invented single
+    # triangle is NOT a valid manufacturing input or an authorized expected skin.
+    invalid = (((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)),)
+    for resolve in (api.fit_receiving_left_zl1_world_mid, gui_fit):
+        with pytest.raises(ValueError, match="RECEIVING_ZL1_MAPPED_MESH_MISMATCH"):
+            resolve(piece, (), invalid, sheet_thickness=source["t"])
