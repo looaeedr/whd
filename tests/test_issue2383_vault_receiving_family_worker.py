@@ -116,3 +116,33 @@ def test_receiving_endcap_cannot_fall_back_to_vault_manufacturing(tmp_path):
         candidate == source or candidate.is_relative_to(resource)
         for candidate in tmp_path.rglob("*.dxf")
     )
+
+
+def test_installed_worker_advertises_exact_vault_receiving_kind_matrix(monkeypatch):
+    """No unverified Receiving EndCap/BoxBody through a Vault capability."""
+    import json
+    from pathlib import Path
+    from jsonschema import Draft202012Validator
+    from integration_cli import cadsplit_worker as worker
+    from integration_cli import private_worker_installation as installation
+
+    # Check exactly the installed v1.1 response path. Provisioning is mocked;
+    # this is a contract test, NOT proof that a real installation exists.
+    source = worker._capabilities(COMMIT, "test-build", ENGINE)
+    monkeypatch.setattr(worker.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(worker.sys, "platform", "win32")
+    monkeypatch.setattr(worker, "_capabilities", lambda *a: deepcopy(source))
+    monkeypatch.setattr(installation, "load_private_execution", lambda *a, **k: object())
+    advertised = worker._installed_capabilities(COMMIT, "test-build", ENGINE, "installed-01")
+    schema_path = Path(__file__).resolve().parents[1] / "integration_cli" / "schemas" / "capabilities_v1_1.schema.json"
+    Draft202012Validator(json.loads(schema_path.read_text(encoding="utf-8"))).validate(advertised)
+
+    indexed = {entry["part_kind"]: entry for entry in advertised["capabilities"]}
+    assert set(indexed) == set(advertised["supported_part_kinds"])
+    assert indexed["door"]["cabinet_families"] == ["金庫型", "受電箱"]
+    assert indexed["end_cap_head"]["cabinet_families"] == ["金庫型"]
+    assert indexed["end_cap_tail"]["cabinet_families"] == ["金庫型"]
+    assert indexed["indicator_box"]["cabinet_families"] == ["金庫型", "受電箱"]
+    assert "box_body" not in indexed
+    assert not advertised["capability_flags"]["cancellation"]
+    assert not advertised["capability_flags"]["crash_recovery"]
