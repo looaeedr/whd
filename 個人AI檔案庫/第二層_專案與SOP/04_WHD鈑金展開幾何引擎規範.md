@@ -215,6 +215,8 @@ Validation 維持單向：contact probe、collision、fixture expected、pytest 
 
 ### 10. CADSplit × WHD-Engine Worker authority / Gate A boundary (#2375 / #2382)
 
+**公開 Gate A 維持獨立 fail-closed**：GUI／Engine API 的單向權責調整，不等於對外 CADSplit 製造能力已放行；私有安裝、簽章／HMAC 核准、局部 capability 或測試通過，都不可替代公開 Gate A 的實際全項驗證與授權。既有 Gate B/D/E 仍依原有證據判定。
+
 此段是既有製造架構的**入口與權責對照**，不另建立製造公式、第二套 CURRENT owner 或對外可用性承諾。
 
 - **公開 wire/CLI**：`integration_cli/cadsplit_worker.py` 與 `integration_cli/schemas/` 定義三個且只有三個公開命令 `capabilities`、`prepare`、`export`（沒有獨立 `verify`）；`docs/integrations/CADSplit_WHD_Contract.md` 是 REFERENCE wire contract。來源模式、未選擇安裝及原舊 protocol 1.0.0 的製造能力仍全 false／`WHD_OPERATION_NOT_IMPLEMENTED`。protocol 1.1.0 的**已封存 Windows 安裝、每份 exact-job HMAC 核准**請求可由公開 `prepare/export` 進入 `public_installed_adapter.execute_public_installed`，不是無條件開放任意 CADSplit 出圖；`capabilities --installation-id` 僅在安裝憑證實際可驗證時宣告條件式 P0 能力，且列明每 job 仍需獨立核准。
