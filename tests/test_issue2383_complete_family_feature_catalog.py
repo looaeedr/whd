@@ -67,7 +67,7 @@ def test_full_vault_receiving_feature_catalog_is_schema_valid_and_grounded(monke
     }
     assert {(row["cabinet_family"], row["feature_id"])
             for row in entries if row["manufacturing_supported"]} == actually_available
-    assert len(actually_available) == 13  # Vault 8 + Receiving 5; Receiving inner-door PANEL only.
+    assert len(actually_available) == 14  # Vault 8 + Receiving 6; left/right dedicated side physical sheets.
     for item in entries:
         assert item["geometry_acceptance_passed"] is item["manufacturing_supported"]
         if item["manufacturing_supported"]:
