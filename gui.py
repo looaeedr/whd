@@ -878,7 +878,7 @@ class Phase6ApplicationHost:
     def _door_material_frame_width(self, frame_width, thickness, *, model_name=None):
         """Resolve operator Door FW into the material-space value consumed by AE."""
         source = self._baseline_source_model() if model_name is None else model_name
-        return cabinet_family_policy.door_material_frame_width(
+        return manufacturing_api.door_material_frame_width(
             source, frame_width=float(frame_width), thickness=float(thickness),
         )
 
@@ -1649,11 +1649,10 @@ class Phase6ApplicationHost:
                 val.update({axis: float(whd[axis]) for axis in ("w", "h", "d")})
             result = self._door_layout_cell_result(cell, val)
             surface = feature_surface_from_structural_result("door", result)
-            material_fw = self._door_material_frame_width(val['fw'], val['t'])
-            finished_w, finished_h = ae.calculate_door_finished_size(
-                cell.start_width, cell.start_height, material_fw, val['door_gap_w'], val['door_gap_h'], val['t'],
-                frame_edges=cell.edges,
-            )
+            # Use the exact DoorPartSpec shared with indicator-fit and export.
+            # Engine owns Family material FW and the finished-face geometry.
+            door_spec = self._door_layout_part_spec(cell, val)
+            finished_w, finished_h = manufacturing_api.door_finished_face_size(door_spec)
             reference_guide = build_finished_reference_guide(
                 "door", result, finished_width=finished_w, finished_height=finished_h,
             )
