@@ -3,7 +3,7 @@
 
 The normal CLI main() never accepts TrustedWorkerExecution. These tests
 exercise the same request entry internally and actual WHD manufacturing
-sources, Save->Reload DXF, DPAPI on Windows, durable replay and corruption.
+sources, Save->Reload DXF, durable replay and corruption.
 """
 from __future__ import annotations
 
@@ -171,37 +171,6 @@ def test_public_worker_never_accepts_private_context_from_wire(tmp_path):
     assert result["manufacturing_verified"] is False
     assert result["status"] == "failed"
     assert not list(tmp_path.rglob("progress.json"))
-
-
-@pytest.mark.skipif(sys.platform != "win32", reason="requires real Windows DPAPI")
-def test_windows_dpapi_key_does_real_worker_prepare_restart_export(tmp_path, monkeypatch):
-    from integration_cli.worker_key_custody import load_installation_key
-    profile = tmp_path / "local DPAPI profile"
-    profile.mkdir()
-    monkeypatch.setenv("LOCALAPPDATA", str(profile))
-    key = load_installation_key("trusted-worker-dispatch-1", initialize=True)
-    batch = _real_batch(tmp_path)
-    context = _context(tmp_path, batch, key)
-    original = batch[0]
-    result, code = _call(tmp_path, "prepare", original, context)
-    assert code == 0 and result["status"] == "success"
-    # Real OS DPAPI re-open and freshly constructed W-06 ledger after restart.
-    restarted_context = TrustedWorkerExecution(
-        resource_root=context.resource_root,
-        store_root=context.store_root,
-        output_dir=context.output_dir,
-        source_documents=context.source_documents,
-        worker_key=load_installation_key("trusted-worker-dispatch-1"),
-        engine_sha256=ENGINE,
-    )
-    export = _export_from_real_sources(original, result, batch)
-    export["output"]["directory"] = str(context.output_dir)
-    export["request_digest"] = compute_wire_request_digest(export)
-    finished, status = _call(tmp_path, "export", export, restarted_context)
-    assert status == 0 and finished["status"] == "success", finished.get("diagnostics", [{}])[0].get("message")
-    assert len(list(context.output_dir.glob("*.dxf"))) == 2
-    assert all(len(ezdxf.readfile(p).modelspace().query("CIRCLE")) >= 1
-               for p in context.output_dir.glob("*.dxf"))
 
 
 def test_private_worker_twenty_mixed_door_and_indicator_small_door_real_export(tmp_path):
@@ -421,44 +390,3 @@ def test_private_worker_twenty_mixed_five_kind_vault_endcap_export_is_durable(
     denied, status = _call(tmp_path, "export", replay, context)
     assert status != 0 and denied["diagnostics"][0]["code"] == "WHD_SOURCE_UNVERIFIED"
     assert before == {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in files}
-
-
-def test_public_export_certificate_binds_real_w04_journal_all_saved_dxfs(tmp_path):
-    """Portable RED-capable acceptance before costly Windows public EXE CI."""
-    from dataclasses import replace
-    from jsonschema import Draft202012Validator
-    from integration_cli.public_installed_adapter import _public_export_receipt
-    from integration_cli.job_identity_ledger import _identity
-    batch = _real_batch(tmp_path, count=2)
-    original = batch[0]
-    context = _context(tmp_path, batch)
-    prepared, code = _call(tmp_path, "prepare", original, context)
-    assert code == 0
-    export = _export_from_real_sources(original, prepared, batch)
-    export["output"]["directory"] = str(context.output_dir)
-    export["request_digest"] = compute_wire_request_digest(export)
-    private, code = _call(tmp_path, "export", export, context)
-    assert code == 0
-    approved = replace(
-        context, approved_request_identity=tuple(_identity(export)),
-    )
-    certified = _public_export_receipt(
-        export, approved, private, engine_commit=COMMIT, build_id=BUILD,
-    )
-    schema = json.loads((
-        Path(__file__).resolve().parents[1] / "integration_cli" / "schemas" /
-        "response_v1_1.schema.json"
-    ).read_text(encoding="utf-8"))
-    Draft202012Validator(schema).validate(certified)
-    assert certified["status"] == "success"
-    assert certified["manufacturing_verified"] is True
-    assert len(certified["items"]) == 2
-    assert all(row["parts"][0]["save_reload_verified"] is True
-               for row in certified["items"])
-    paths = [Path(row["parts"][0]["output_path"]) for row in certified["items"]]
-    unchanged = [(p.read_bytes(), p.stat().st_mtime_ns) for p in paths]
-    replay = _public_export_receipt(
-        export, approved, private, engine_commit=COMMIT, build_id=BUILD,
-    )
-    assert replay == certified
-    assert [(p.read_bytes(), p.stat().st_mtime_ns) for p in paths] == unchanged

@@ -36,7 +36,7 @@ class TrustedWorkerExecution:
     source_documents: Mapping[str, Path]
     worker_key: bytes
     engine_sha256: str
-    # The packaged private EXE may execute ONLY a preapproved immutable job.
+    # An internal trusted caller may execute ONLY a preapproved immutable job.
     # In-process native integration tests/owners still supply their own
     # private execution context and do not use this CLI admission field.
     approved_request_identity: tuple[str, str, str, str] | None = None
@@ -53,7 +53,7 @@ def _validate_context(context: TrustedWorkerExecution, request: Mapping[str, Any
                 or len(context.approved_request_identity) != 4
                 or context.approved_request_identity != _identity(request)):
             raise PrepareEvidenceError(
-                "WHD_JOB_ID_CONFLICT", "installed Worker request differs from admission approval",
+                "WHD_JOB_ID_CONFLICT", "trusted Worker request differs from admission approval",
             )
     if (not isinstance(context.worker_key, bytes) or len(context.worker_key) < 32
             or not isinstance(context.engine_sha256, str) or len(context.engine_sha256) != 64):
@@ -88,7 +88,7 @@ def execute_private_worker(
 
     This is *only* called from W-01 with an in-process trusted context, never
     by the public CLI. The existing W-01 CLI has exactly three commands and
-    manufactures nothing until Gate A, including when called as an EXE.
+    is not reachable from the public source-only CLI and does not certify external manufacturing.
     """
     if operation not in ("prepare", "export") or not isinstance(request, Mapping):
         raise PrepareEvidenceError("WHD_OPERATION_MISMATCH", "unsupported private Worker operation")
@@ -176,7 +176,7 @@ def recover_private_worker_rollback(
 ) -> dict[str, Any]:
     """Explicit sealed Windows Export recovery, NEVER manufacturing/re-export.
 
-    Caller must have already verified the independent installed recovery
+    Caller must have already verified the independent trusted recovery
     ticket. The journal re-attests physical customer bytes, backup, path
     identity and active lease before each restoration. No fresh W-04 render.
     """
