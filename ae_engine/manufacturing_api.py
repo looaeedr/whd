@@ -60,6 +60,12 @@ from .endcap_factory_fold import (
     resolve_endcap_fw, resolve_endcap_assembly_type, build_endcap_xy_fold_profiles,
     endcap_editor_fold_tabs, normalize_endcap_profile_order,
 )
+from .endcap_bottom_wrap_state import (
+    WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
+    ENDCAP_BOTTOM_WRAP_MODES, normalize_endcap_bottom_wrap_state,
+    resolve_endcap_bottom_wrap, commit_endcap_bottom_wrap_joint,
+    commit_endcap_bottom_wrap,
+)
 from .endcap_xy_readback import (
     fold_material_segment_outside_length, resolve_endcap_xy_outside_dimensions,
 )

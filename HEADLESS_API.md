@@ -29,6 +29,10 @@ WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並�
 
 `ae_engine.manufacturing_api.normalize_endcap_profile_order(profiles, snapshot, part_key)` 只在舊 `tail` 四段 canonical Y Profile 重新載入時，依 Engine 已有 `build_endcap_xy_fold_profiles` 恢復原生 Y 順序及 BEND/core/UI metadata；保留原始料長、operator metadata 和所有非標準自訂 Fold。`endcap_editor_fold_tabs(snapshot, part_key)` 由 Engine 依 Assembly Intent 決定 OVERLAY EndCap 沒有 X 折彎頁籤。`phase6_fold_profiles` 保留原介面，只轉呼叫，不再自行整理製造拓樸。兩者不改 DXF/Registry/外部 Gate C 的授權。
 
+## EndCap BOTTOM WRAP Assembly Joint／保存狀態（#2517）
+
+`ae_engine.manufacturing_api.normalize_endcap_bottom_wrap_state(snapshot)`、`resolve_endcap_bottom_wrap(snapshot, part_key, *, state=None)` 與 `commit_endcap_bottom_wrap(state, part_key, *, enabled=None, reserve_u=None, reserve_v=None)` 將原 GUI lower-WRAP 聯動／分離、可調 reserve 狀態改由引擎擁有；`commit_endcap_bottom_wrap_joint(snapshot, part_key, enabled)` 僅透過 Engine AssemblyJoint 規範提交有效 BOTTOM relation。明確 Joint Graph 優先於舊 UI enabled mirror，既有 Family／Registry、違法 relation fail-closed、Save→Reload 不變。Phase6 保留相容名稱作薄轉接，不獨立判斷製造；此 API 不等於對外 Gate C 認證。
+
 ## 公開入口
 
 ```python
