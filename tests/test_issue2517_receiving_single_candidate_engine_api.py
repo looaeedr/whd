@@ -14,7 +14,7 @@ from tests.test_issue1500_receiving_candidate_main_save import _source_with_save
 
 def real_case():
     source, config, _, version = _source_with_saved_version()
-    layout = resize_receiving_bays(source["receiving_layout"], set_index=0, count=3)
+    layout = resize_receiving_bays(source["receiving_layout"], set_index=0, bay_count=3)
     return layout, config, version
 
 
