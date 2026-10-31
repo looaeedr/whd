@@ -219,6 +219,7 @@ policy = manufacturing_api.resolve_policy(context)
 - `door_indicator_offset_for_finished_center()`
 - `indicator_box_opening_feature()`
 - `indicator_small_door_spec()`
+- `indicator_small_door_operator_spec(groups, *, thickness, frame_width, door_gap_w, door_gap_h, indicator_door_fold=None, features=())`: returns `(DoorPartSpec, ManufacturingContext)` using the same Factory Policy and canonical small-door source; GUI cannot compose a manufacturing policy or infer small-door size. Defaults use existing Engine `indicator_small_door_fold_def`. Does not certify any new DXF manufacturing capability.
 
 因此 automatic bridge 只保留來源 ownership、finished-face extraction、replacement semantics 與 Feature validation。
 

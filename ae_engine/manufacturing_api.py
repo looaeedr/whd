@@ -230,6 +230,7 @@ from .manufacturing_door_indicator import (
     validate_door_indicator_fit,
     _validate_door_part_indicator_fit,
     indicator_small_door_spec,
+    indicator_small_door_operator_spec,
     indicator_small_door_unfolded_size,
 )
 

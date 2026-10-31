@@ -323,6 +323,37 @@ def indicator_small_door_spec(
     )
 
 
+def indicator_small_door_operator_spec(
+    groups, *, thickness: float, frame_width: float,
+    door_gap_w: float, door_gap_h: float,
+    indicator_door_fold: float | None = None, features=(),
+) -> tuple[DoorPartSpec, ManufacturingContext]:
+    """Resolve operator Indicator Small Door into the canonical spec/context.
+
+    Keep the existing Factory Policy + indicator_small_door_spec pipeline.
+    Callers submit inputs/features but do not build manufacturing policies.
+    """
+    policy = replace(
+        resolve_policy(),
+        frame_width=float(frame_width),
+        door_gap_w=float(door_gap_w),
+        door_gap_h=float(door_gap_h),
+        indicator_small_door_fold=float(
+            getattr(ae, "indicator_small_door_fold_def", 19.0)
+            if indicator_door_fold is None else indicator_door_fold
+        ),
+    )
+    context = ManufacturingContext(policy=policy, draw_stock=False)
+    base = indicator_small_door_spec(
+        tuple(int(value) for value in groups),
+        thickness=float(thickness), context=context,
+    )
+    return replace(
+        base, features=tuple(features or ()), feature_space="legacy_unfolded",
+        corner_policy=None, model_name=None,
+    ), context
+
+
 def indicator_small_door_unfolded_size(
     groups, *, thickness: float, context: ManufacturingContext | None = None
 ) -> tuple[float, float]:

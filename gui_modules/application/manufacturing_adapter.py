@@ -11,7 +11,6 @@ objects and validation/export contexts.  AE/manufacturing modules remain the
 geometry, formula, DXF and process authority.
 """
 from copy import deepcopy
-from dataclasses import replace
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
@@ -442,25 +441,16 @@ def _indicator_box_part_spec(self, val, layer_groups, *, features):
     )
 
 def _indicator_door_part_spec_from_values(self, val, layer_groups, *, features):
-    groups = tuple(int(v) for v in layer_groups)
-    policy = replace(
-        manufacturing_api.resolve_policy(),
-        frame_width=float(val['fw']),
-        door_gap_w=float(val['door_gap_w']),
-        door_gap_h=float(val['door_gap_h']),
-        indicator_small_door_fold=float(
-            val.get('indicator_door_fold', getattr(ae, 'indicator_small_door_fold_def', 19.0))
-        ),
+    """Map operator fields to the Engine-owned Small Door spec/context."""
+    return manufacturing_api.indicator_small_door_operator_spec(
+        layer_groups,
+        thickness=val["t"],
+        frame_width=val["fw"],
+        door_gap_w=val["door_gap_w"],
+        door_gap_h=val["door_gap_h"],
+        indicator_door_fold=val.get("indicator_door_fold"),
+        features=features,
     )
-    context = ManufacturingContext(policy=policy, draw_stock=False)
-    base = manufacturing_api.indicator_small_door_spec(
-        groups, thickness=float(val['t']), context=context
-    )
-    spec = replace(
-        base, features=tuple(features or ()), feature_space="legacy_unfolded",
-        corner_policy=None, model_name=None,
-    )
-    return spec, context
 
 def _indicator_door_part_spec(self, val, layer_groups, *, features):
     spec, _context = self._indicator_door_part_spec_from_values(
