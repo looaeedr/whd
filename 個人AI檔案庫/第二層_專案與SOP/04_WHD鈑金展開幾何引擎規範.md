@@ -97,6 +97,7 @@ Current public surface 以 `ae_engine/__init__.py` 實際 export 為準。04 至
 - `map_door_features_to_unfolded_material` — canonical Engine map of finished-face Door features to unfolded material；Worker Export calls it only for independently attested source-feature vs FinalScene verification, no private compatibility helper or second coordinate formula.
 - `fold_designer_secondary_scene_rows` — Headless Engine-only projection of existing CUTTING/BLIND_HOLE baseline source primitives to legacy read-only numeric hole rows; GUI supplies no hole formula and skips only structural outline as previously specified.
 - `query_fold_designer_baseline_rows` — Engine-owned Vault/Receiving Door/EndCap baseline source query and family material FW; only optional editor reference data, **not** certified DXF manufacturing readiness or an External Worker capability.
+- `apply_cabinet_family_endcap_policy` — Engine-owned family-specific EndCap bottom material FW resolution from operator state and authoritative topology. GUI cannot derive physical bottom FW or apply Receiving material offsets. No new manufacturing formula: reuse canonical `ae_engine.cabinet_types.policy.effective_endcap_bottom_fw`.
 - `CabinetTypeRegistration`
 - `registered_cabinet_types`
 - `resolve_cabinet_type`
