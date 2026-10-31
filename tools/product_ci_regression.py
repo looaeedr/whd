@@ -682,6 +682,9 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
     bom_func = manifest.get("bom_split_function")
     bom_owners = manifest.get("bom_split_case_owners")
     bom_seconds = manifest.get("bom_split_case_seconds")
+    t15_file = manifest.get("t15_split_file")
+    t15_critical = manifest.get("t15_critical_function")
+    t15_functions = manifest.get("t15_source_functions")
     if (manifest.get("schema") != "WHD_PRODUCT_CI_FILE_DURATION_ASSIGNMENT_V2"
             or manifest.get("canonical_selector_count") != len(PYTEST_PATHS)
             or manifest.get("canonical_file_count") != len(canonical_files)
@@ -699,7 +702,14 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
             or bom_func != "test_real_quantity_bom_30_plus_20_custom_100_and_read_only"
             or manifest.get("bom_split_source_run_id") != 41195715050
             or PYTEST_PATHS.count(bom_file) != 1
-            or owners.get(bom_file) != 1):
+            or owners.get(bom_file) != 1
+            or t15_file != "tests/test_phase6_t15_inner_door_panels.py"
+            or t15_critical != "test_derived_sheet_holes_confirm_cancel_reload_and_real_dxf"
+            or PYTEST_PATHS.count(t15_file) != 1
+            or owners.get(t15_file) != 6
+            or manifest.get("t15_split_source_run_id") != 41197885699
+            or manifest.get("t15_critical_owner") != 1
+            or manifest.get("t15_remainder_owner") != 6):
         raise ValueError("18-shard duration manifest incomplete or stale")
     for filename in canonical_files:
         seconds, owner = durations[filename], owners[filename]
@@ -784,6 +794,26 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
             or sorted(bom_owners.values()) != [1, 14, 14, 15, 15, 16, 17]):
         raise ValueError("18-shard BOM case allocation changed")
 
+    # T15 has 22 real top-level test functions. Isolate the measured 36s
+    # Save->Reload/DXF case on freed shard 1 while keeping all other tests
+    # (including any parameterized variants) on shard 6.
+    t15_module = ast.parse((ROOT / t15_file).read_text(encoding="utf-8"))
+    t15_actual = {
+        node.name: node for node in t15_module.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name.startswith("test_")
+    }
+    if (not isinstance(t15_functions, list)
+            or len(t15_functions) != 22
+            or len(set(t15_functions)) != 22
+            or t15_functions != sorted(t15_functions)
+            or set(t15_actual) != set(t15_functions)
+            or t15_critical not in t15_actual
+            or t15_actual[t15_critical].decorator_list
+            or any(isinstance(n, ast.ClassDef) and n.name.startswith("Test")
+                   for n in t15_module.body)):
+        raise ValueError("18-shard observed T15 test source changed")
+
     assigned = []
     for selector in PYTEST_PATHS:
         if selector == split_file:
@@ -804,6 +834,10 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
                     assigned.append(
                         f"{bom_file}::{bom_func}[{escaped_family}-{mode}-{layers}]"
                     )
+        elif selector == t15_file:
+            if index in (1, 6):
+                assigned.extend(f"{t15_file}::{name}" for name in t15_functions
+                                if (name == t15_critical) == (index == 1))
         elif owners[selector.split("::", 1)[0]] == index:
             assigned.append(selector)
     if not assigned:
