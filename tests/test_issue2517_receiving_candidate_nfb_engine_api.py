@@ -79,29 +79,22 @@ def test_engine_rejects_non_csv_replacement_of_submitted_bay():
     )
 
 
-def test_real_gui_candidate_apply_uses_only_engine_ports(monkeypatch):
+def test_real_gui_candidate_apply_delegates_one_public_engine_transaction(monkeypatch):
     source, config, _, version = _case()
     adapter = ReceivingSetBayAdapter(source["receiving_layout"])
     adapter.set_bay_count(2)
-    original = deepcopy(adapter.layout)
+    before = deepcopy(adapter.layout)
+    real = manufacturing_api.apply_receiving_inner_door_candidate_to_bays
     calls = []
-    for name in (
-        "candidate_committed_csv_nfb_config",
-        "validate_candidate_nfb_replacement",
-        "replace_candidate_bay_nfb",
-    ):
-        fn = getattr(manufacturing_api, name)
-        def record(*args, _name=name, _fn=fn, **kwargs):
-            calls.append(_name)
-            return _fn(*args, **kwargs)
-        monkeypatch.setattr(manufacturing_api, name, record)
+    def record(*args, **kwargs):
+        calls.append((args, kwargs))
+        return real(*args, **kwargs)
+    monkeypatch.setattr(
+        manufacturing_api, "apply_receiving_inner_door_candidate_to_bays", record,
+    )
     assert adapter.apply_inner_door_candidate_to_bays(
         config, 0, (1,), version_id=version,
     ) == (1,)
-    assert calls == [
-        "candidate_committed_csv_nfb_config",
-        "validate_candidate_nfb_replacement",
-        "replace_candidate_bay_nfb",
-    ]
-    assert adapter.layout["sets"][0]["bays"][0] == original["sets"][0]["bays"][0]
+    assert len(calls) == 1
+    assert adapter.layout["sets"][0]["bays"][0] == before["sets"][0]["bays"][0]
     assert adapter.layout["sets"][0]["bays"][1]["nfb_config_submitted"] is True

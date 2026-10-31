@@ -548,3 +548,16 @@ operator assignments cannot partially update a Bay.
 The GUI only supplies operator selection and displays/marks the resulting
 changes. Head and Tail are independent; no NFB source, DXF certification
 or new Hole Editor CUTTING geometry is inferred by this API.
+
+## Receiving single inner-door candidate Apply to selected Bays (#2517)
+
+`manufacturing_api.apply_receiving_inner_door_candidate_to_bays(
+layout, config, set_index, bay_indices, *, version_id=None)` applies one
+source-backed candidate (distinct from cross-Set quantity allocation).
+Engine validates all selected physical Bays, exact candidate settings, CSV NFB
+provenance and existing submitted CUTTING ownership before committing
+canonical shared settings, version and Bay-specific physical hole IDs. Returns
+`(detached_layout, sorted_bay_indices, physical_bay_stable_ids)`.
+GUI only forwards input and displays/records the returned state; invalid input
+never partially commits. Saved manual NFB X remains unverified and the API
+does not authorize new DXF/CUTTING manufacturing.

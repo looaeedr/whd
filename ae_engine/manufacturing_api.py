@@ -865,3 +865,10 @@ def apply_receiving_endcap_quantity_configuration(
         layout, role, library, quantities, assigned,
         expected_counts=expected_counts,
     )
+
+def apply_receiving_inner_door_candidate_to_bays(layout, config, set_index, bay_indices, *, version_id=None):
+    """Public Engine API: one source-backed inner-door candidate Apply."""
+    from .receiving_inner_door_pairing import (
+        apply_receiving_inner_door_candidate_to_bays as _apply,
+    )
+    return _apply(layout, config, set_index, bay_indices, version_id=version_id)

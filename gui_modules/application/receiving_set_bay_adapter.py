@@ -399,65 +399,12 @@ class ReceivingSetBayAdapter:
         return len(changed_ids)
 
     def apply_inner_door_candidate_to_bays(self, config, set_index, bay_indices, *, version_id=None):
-        """Apply one isolated inner-door candidate only to real highlighted Bays."""
-        from ae_engine.receiving_inner_door_candidates import validate_door_config
-        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
-        source = validate_door_config(config)
-        from ae_engine.receiving_shared_settings import validate_setting
-        version_id = validate_setting("inner_door_version_id", version_id)
-        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
-            raise ValueError("選取的套不存在")
-        # Validate highlight members *before* set(): True aliases integer
-        # Bay 1 and nested unhashable UI values otherwise raise TypeError.
-        # Neither may alter any physical NFB Bay or candidate assignment.
-        try:
-            supplied = tuple(bay_indices)
-        except TypeError as exc:
-            raise ValueError("請在簡易圖高亮有效的連") from exc
-        count = len(self._layout["sets"][set_index]["bays"])
-        if (not supplied or any(type(i) is not int or not 0 <= i < count
-                                for i in supplied)):
-            raise ValueError("請在簡易圖高亮有效的連")
-        selected = tuple(sorted(set(supplied)))
-        # Stage a candidate's current CSV source identities. Merely saving a
-        # version does not touch any physical Bay; only explicit Apply can
-        # submit the version's existing Hole Editor NFB features into each
-        # selected Bay's source projection. Manual NFB X remains unverified
-        # and manufacturing-ready flags are NEVER promoted by this bridge.
-        csv_config = manufacturing_api.candidate_committed_csv_nfb_config(source)
-        # Explicit Apply REPLACES the initial submitted NFB + physical
-        # features as one Bay transaction; never union them. Non-NFB or
-        # unverified mixed CUTTING cannot overwrite a submitted source.
-        manufacturing_api.validate_candidate_nfb_replacement(
-            self._layout, ((set_index, bi) for bi in selected), source, csv_config,
-            rejection_message="此連 NFB 已提交；非 CSV 候選不得覆寫原開孔",
+        """Forward operator Apply to the public Engine; track only GUI dirty IDs."""
+        candidate, selected, ids = manufacturing_api.apply_receiving_inner_door_candidate_to_bays(
+            self._layout, config, set_index, bay_indices, version_id=version_id,
         )
-        candidate = self._layout
-        for bi in selected:
-            for kind, value in (
-                ("inner_door_layers", source["layers"]),
-                ("inner_door_models", source["models"]),
-                ("inner_door_features", source.get("features", {})),
-                ("inner_door_layer_heights_mm", source.get("layer_heights_mm")),
-                ("inner_door_version_id", version_id),
-            ):
-                candidate = unlink_setting(
-                    candidate, set_index=set_index, bay_index=bi, kind=kind,
-                )
-                candidate = edit_setting(
-                    candidate, set_index=set_index, bay_index=bi,
-                    kind=kind, value=value,
-                )
-        if csv_config is not None:
-            for bi in selected:
-                candidate = manufacturing_api.replace_candidate_bay_nfb(
-                    candidate, set_index, bi, csv_config,
-                )
         self._layout = candidate
-        self._session_dirty_ids.update(
-            str(candidate["sets"][set_index]["bays"][bi]["stable_id"])
-            for bi in selected
-        )
+        self._session_dirty_ids.update(ids)
         return selected
 
     def mark_live_version_for_bays(self, role, set_index, bay_indices):
