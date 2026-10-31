@@ -229,7 +229,7 @@ def _installed_capabilities(
     result["engine_version"] = "w07-public-v1.1-installed-gated"
     result["supported_part_kinds"] = [
         "door", "indicator_small_door", "indicator_box", "end_cap_head", "end_cap_tail",
-        "base_plate", "custom_fold", "box_body", "inner_door", "side_panel",
+        "base_plate", "custom_fold", "box_body", "inner_door", "side_panel", "back_panel",
     ]
     # These are proven in the existing W-03/04/06 onedir EXE path.
     # Cancellation/recovery/result readback have separate PRIVATE authority:
@@ -250,7 +250,7 @@ def _installed_capabilities(
             # Receiving EndCaps/BoxBody are intentionally NOT Vault EndCaps.
             "cabinet_families": (
                 ["金庫型"] if kind in ("end_cap_head", "end_cap_tail", "base_plate", "box_body")
-                else ["受電箱"] if kind in ("inner_door", "side_panel")
+                else ["受電箱"] if kind in ("inner_door", "side_panel", "back_panel")
                 else ["金庫型", "受電箱"]
             ),
             "worker_supported": True,
@@ -278,6 +278,11 @@ def _installed_capabilities(
                       "WHD_owned_receiving_dedicated_three_panel_baselines",
                       "WHD_owned_size_only_geometry"]
                 if kind == "side_panel"
+                else ["installer_sealed_exact_job_approval", "empty_source_modelspace",
+                      "WHD_owned_receiving_back_panel_full_mode",
+                      "WHD_owned_size_only_geometry",
+                      "verified_receiving_side_rear_baseline_trio"]
+                if kind == "back_panel"
                 else ["installer_sealed_exact_job_approval", "empty_source_modelspace",
                       "WHD_owned_size_only_geometry"]
             ),
