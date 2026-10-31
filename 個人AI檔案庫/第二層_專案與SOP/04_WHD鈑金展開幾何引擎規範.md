@@ -98,6 +98,7 @@ Current public surface 以 `ae_engine/__init__.py` 實際 export 為準。04 至
 - `fold_designer_secondary_scene_rows` — Headless Engine-only projection of existing CUTTING/BLIND_HOLE baseline source primitives to legacy read-only numeric hole rows; GUI supplies no hole formula and skips only structural outline as previously specified.
 - `query_fold_designer_baseline_rows` — Engine-owned Vault/Receiving Door/EndCap baseline source query and family material FW; only optional editor reference data, **not** certified DXF manufacturing readiness or an External Worker capability.
 - `resolve_box_body_back_panel_contract` — 公開 Engine Family API 專責受電箱三片結構背板寬度補償、角落相依高度及 FULL/BACK_OPENING 製造 contract；Worker 僅傳原始外尺寸、來源 Fold 輸入與已驗證 mode/state，禁止在 Worker 重算。既有 Fold profile adapter 仍須後續從 phase6 遷入純 Engine，不可反向 import phase6 假裝完成。
+- `expected_endcap_feature_baseline` — Family-aware EndCap 固定孔基準檔路徑選擇；受電箱透過 Engine policy 指向金庫型共用固定孔基準，不改受電箱 D−2T 或 Head/Tail FinalScene。Worker 僅負責來源檔案位元組／Frame／交易驗證，Expected Path 本身不是製造認證。
 - `CabinetTypeRegistration`
 - `registered_cabinet_types`
 - `resolve_cabinet_type`

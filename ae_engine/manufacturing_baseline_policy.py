@@ -448,6 +448,27 @@ def _endcap_baseline_feature_model_name(model_name: str | None) -> str | None:
     return cabinet_family_policy.baseline_feature_model_name(model_name)
 
 
+def expected_endcap_feature_baseline(
+    model_name: str, context: ManufacturingContext | None = None,
+) -> Path:
+    """Engine-owned certified *source path* for a Family's EndCap fixed features.
+
+    Family policy selects the feature-source model, separately from the target
+    EndCap's material and depth compensation. A returned expected path is NOT
+    DXF content certification; trusted Worker must still attest the file and
+    reject absent, invalid or changed baseline bytes before manufacturing.
+    """
+    source_model = _endcap_baseline_feature_model_name(model_name)
+    if not source_model:
+        raise ValueError("WHD_ENDCAP_FEATURE_SOURCE_FAMILY_UNAVAILABLE")
+    expected = _expected_baseline_path(
+        source_model, "封頭尾.dxf", context or ManufacturingContext(),
+    )
+    if expected is None:
+        raise ValueError("WHD_ENDCAP_FEATURE_BASELINE_UNAVAILABLE")
+    return Path(expected)
+
+
 def _door_nameplate_datum_top(spec: DoorPartSpec) -> float | None:
     if spec.nameplate_center_datum_top is not None:
         return float(spec.nameplate_center_datum_top)

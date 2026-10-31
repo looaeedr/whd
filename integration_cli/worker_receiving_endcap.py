@@ -125,10 +125,19 @@ def receiving_endcap_spec_from_trusted_part(part: Mapping[str, Any]):
 
 
 def receiving_endcap_shared_baseline(root):
+    """Forward family/source intent; only the Engine decides fixed-hole DXF."""
     from pathlib import Path
-    # Canonical Receiving shared_baseline_feature_model_name -> 金庫型.
-    # This path is the *fixed-hole reference*; material remains Receiving D-2T.
-    return Path(root)/"基準檔"/"金庫型"/"封頭尾.dxf"
+    from ae_engine.contracts import ManufacturingContext
+    from ae_engine.manufacturing_api import expected_endcap_feature_baseline
+
+    try:
+        return expected_endcap_feature_baseline(
+            "受電箱", ManufacturingContext(resource_root=Path(root)),
+        )
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise PrepareEvidenceError(
+            "WHD_RESOURCE_UNVERIFIED", "Receiving EndCap fixed-hole source unavailable",
+        ) from exc
 
 
 def _render(spec, context):
