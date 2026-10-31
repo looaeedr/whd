@@ -28,7 +28,6 @@ def test_headless_engine_exports_selected_resolved_part_via_public_api(monkeypat
     ))
     written = manufacturing_api.save_selected_resolved_manufacturing_dxf(
         {"model": "金庫型"}, geometry, {"door": True}, str(tmp_path),
-        auto_side=False, committed_csv=(),
     )
     assert written == {"door": str(path)}
     assert len(calls) == 1
@@ -52,7 +51,6 @@ def test_empty_selected_part_never_writes_dxf(monkeypatch, tmp_path):
     ))
     assert manufacturing_api.save_selected_resolved_manufacturing_dxf(
         {"model": "金庫型"}, geometry, {"door": True}, str(tmp_path),
-        auto_side=False, committed_csv=(),
     ) == {}
 
 
@@ -69,3 +67,16 @@ def test_gui_selected_export_only_passes_resolved_source_and_intent_to_engine():
     ):
         assert forbidden not in gui_source
         assert forbidden in engine_source
+
+def test_engine_policy_is_source_owned_and_gui_only_uses_classification_api():
+    engine_source = inspect.getsource(
+        manufacturing_api.selected_export_manufacturing_policy
+    )
+    gui_source = inspect.getsource(export_actions._export_selected_resolved_parts)
+    assert 'nfb_config_submitted' in engine_source
+    assert 'selected_export_manufacturing_policy(' in gui_source
+    assert 'from ae_engine.receiving_nfb_committed_final_scene import' not in gui_source
+    assert manufacturing_api.selected_export_manufacturing_policy(
+        {"model": "金庫型", "nfb_config_submitted": True},
+        {"box_body": True},
+    ) == (False, ())
