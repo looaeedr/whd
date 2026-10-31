@@ -533,3 +533,9 @@ frame-only route.
 
 - `endcap_relief_solution_committable` is the public Engine authority for existing verified/certified Head/Tail relief commit acceptability. Phase6 manufacturing service consumes the API result; GUI/Phase6 must not decide certified/trust precedence itself.
 - The certified-formula versus 3D shadow conflict distinction is preserved. This is not a new rule registration, uncertified DXF grant, or full #2517 completion.
+
+
+### #2517 Manufacturing cache semantic signature Engine API (2026-11-01)
+
+- `manufacturing_state_fingerprint` and `canonical_manufacturing_signature_value` are public Engine owners of pre-scan manufacturing cache dependency policy, replacing Phase6 decisions about Receiving live W/H/D versus Settings seed values, persistence mirrors, UI-only typography, normalized nested Fold state, physical intent, and finite numeric validity.
+- Phase6 only extracts operator/workspace data and invokes Engine. Cache equality does **not** certify CUTTING/DXF nor bypass complete geometry/Save→Reload verification; #2517 remains OPEN.

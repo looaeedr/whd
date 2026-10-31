@@ -384,3 +384,19 @@ and a recognized certified trust status (`CERTIFIED`,
 An unknown or unverified rule without proof is not committable.
 A separate GUI diagnostic can continue to report shadow/3D conflicts;
 this predicate does not bypass or perform CUTTING itself.
+
+
+## Canonical manufacturing pre-scan cache signature (#2517)
+
+`ae_engine.manufacturing_api.manufacturing_state_fingerprint(*, input_snapshot,
+settings_values, working_box, corner_state, endcap_fw_state,
+endcap_bottom_wrap_state, available_parts, part_profiles, assembly_intent,
+ignore_fixed_corner, relief_clearance)` is the Engine-owned public
+headless cache-key policy for WHD's actual manufacturing state. This signature
+excludes UI typography and persisted/derived mirrors, uses Receiving live
+working W/H/D rather than old Settings defaults, and includes real physical
+Fold/corner/assembly state. The normalization entry
+`canonical_manufacturing_signature_value(value)` preserves legacy
+representation equivalence (including numeric precision, unordered sets and
+nonfinite fail-closed). GUI gathers operator input only and forwards to Engine;
+a cache hit never substitutes for actual FinalScene/Save→Reload certification.
