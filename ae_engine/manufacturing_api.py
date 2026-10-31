@@ -57,6 +57,7 @@ from .linked_endcap_fold import (
 from .endcap_factory_fold import (
     selection_from_raw as endcap_corner_selection_from_raw, normalize_endcap_fw_state,
     resolve_endcap_fw, resolve_endcap_assembly_type, build_endcap_xy_fold_profiles,
+    endcap_editor_fold_tabs, normalize_endcap_profile_order,
 )
 from .endcap_xy_readback import (
     fold_material_segment_outside_length, resolve_endcap_xy_outside_dimensions,

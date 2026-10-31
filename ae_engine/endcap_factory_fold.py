@@ -8,6 +8,7 @@ relief/CUTTING or new mechanical constants.
 """
 from __future__ import annotations
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from .assembly_intent import normalize_assembly_intent_id
 from .box_body_fold_profile import (
     _num, _ui_len, _common_dimension_len, apply_outside_dimension_compensation,
@@ -192,3 +193,53 @@ def build_endcap_xy_fold_profiles(snapshot: Mapping[str, object], *, part_key: s
     profiles["Y"] = apply_outside_dimension_compensation(profiles["Y"], t)
     return profiles
 
+
+
+def endcap_editor_fold_tabs(snapshot: Mapping[str, object], part_key: str) -> list[str] | None:
+    """Return only actually supported Fold editor axes for this EndCap topology."""
+    key = str(part_key or "")
+    if key in ENDCAP_FW_PARTS and resolve_endcap_assembly_type(snapshot) is CornerTypeId.OVERLAY:
+        # Overlay EndCaps have no X BEND; do not show an invented X Fold tab.
+        return ["Y"]
+    return None
+
+
+def normalize_endcap_profile_order(
+    profiles: Mapping[str, Sequence[Mapping[str, object]]] | None,
+    snapshot: Mapping[str, object], part_key: str,
+) -> dict[str, list[dict]]:
+    """Restore the original tail-native Y Fold order on a legacy project reload.
+
+    Only a complete four-key legacy canonical tail may be reordered. Custom
+    Fold profiles, operator material lengths and unrelated metadata survive.
+    The existing Engine builder owns BEND angle/core/outside annotations.
+    """
+    copied = {
+        "X": deepcopy(list((profiles or {}).get("X", ()))),
+        "Y": deepcopy(list((profiles or {}).get("Y", ()))),
+    }
+    if str(part_key) != "tail":
+        return copied
+    canonical = ("ybottom1", "endcap_d_core", "fw", "ytop1")
+    current = copied.get("Y", [])
+    keyed = [seg.get("phase6_key") for seg in current if seg.get("phase6_key")]
+    if len(current) != 4 or set(keyed) != set(canonical):
+        return copied
+    by_key = {seg.get("phase6_key"): dict(seg) for seg in current}
+    defaults = build_endcap_xy_fold_profiles(snapshot, part_key="tail")["Y"]
+    reordered = []
+    for default in defaults:
+        key = default.get("phase6_key")
+        seg = by_key[key]
+        if "angle" in default:
+            seg["angle"] = default["angle"]
+        else:
+            seg.pop("angle", None)
+        for name in ("ui_len_add", "core"):
+            if name in default:
+                seg[name] = default[name]
+            else:
+                seg.pop(name, None)
+        reordered.append(seg)
+    copied["Y"] = reordered
+    return copied

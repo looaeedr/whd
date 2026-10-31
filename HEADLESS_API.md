@@ -25,6 +25,10 @@ whd_schema: WHD_DOC_META_V1
 
 WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並委派 Engine API；此函式沒有啟用新的 DXF 製造 capability，不代表全 GUI API 化或外部 CADSplit 可加工放行。
 
+## Legacy EndCap Fold 重讀／可用頁籤（#2517）
+
+`ae_engine.manufacturing_api.normalize_endcap_profile_order(profiles, snapshot, part_key)` 只在舊 `tail` 四段 canonical Y Profile 重新載入時，依 Engine 已有 `build_endcap_xy_fold_profiles` 恢復原生 Y 順序及 BEND/core/UI metadata；保留原始料長、operator metadata 和所有非標準自訂 Fold。`endcap_editor_fold_tabs(snapshot, part_key)` 由 Engine 依 Assembly Intent 決定 OVERLAY EndCap 沒有 X 折彎頁籤。`phase6_fold_profiles` 保留原介面，只轉呼叫，不再自行整理製造拓樸。兩者不改 DXF/Registry/外部 Gate C 的授權。
+
 ## 公開入口
 
 ```python

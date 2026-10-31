@@ -82,45 +82,14 @@ def build_endcap_xy_profiles(snapshot: Mapping[str, object], *, part_key: str = 
 
 
 def _phase6_fold_tabs_for_part(snapshot: Mapping[str, object], part_key: str):
-    """Return an explicit Fold-editor tab set only when topology requires it."""
-    key = str(part_key or "")
-    if key in ENDCAP_FW_PARTS and resolve_box_assembly_type(snapshot) is CornerTypeId.OVERLAY:
-        # OVERLAY has no left/right X bends, so the 3D Fold editor must not offer
-        # a fictitious X-axis bend page. Y remains the real editable fold chain.
-        return ["Y"]
-    return None
+    """GUI compatibility: Engine decides which physical Fold axes exist."""
+    return manufacturing_api.endcap_editor_fold_tabs(snapshot, part_key)
+
 
 def _phase6_normalize_endcap_profile_order(profiles, snapshot, part_key):
-    """Migrate legacy stored head/tail canonical profiles without touching extras."""
-    copied = {
-        "X": clone_profile((profiles or {}).get("X", ())),
-        "Y": clone_profile((profiles or {}).get("Y", ())),
-    }
-    if str(part_key) != "tail":
-        return copied
-    canonical = ("ybottom1", "endcap_d_core", "fw", "ytop1")
-    current = copied.get("Y", [])
-    keyed = [seg.get("phase6_key") for seg in current if seg.get("phase6_key")]
-    if len(current) != 4 or set(keyed) != set(canonical):
-        return copied
-    by_key = {seg.get("phase6_key"): dict(seg) for seg in current}
-    defaults = build_endcap_xy_profiles(snapshot, part_key="tail")["Y"]
-    reordered = []
-    for default in defaults:
-        key = default.get("phase6_key")
-        seg = by_key[key]
-        if "angle" in default:
-            seg["angle"] = default["angle"]
-        else:
-            seg.pop("angle", None)
-        for name in ("ui_len_add", "core"):
-            if name in default:
-                seg[name] = default[name]
-            else:
-                seg.pop(name, None)
-        reordered.append(seg)
-    copied["Y"] = reordered
-    return copied
+    """GUI compatibility: only Engine may reconcile legacy physical BEND order."""
+    return manufacturing_api.normalize_endcap_profile_order(profiles, snapshot, part_key)
+
 
 def read_endcap_xy_profiles(profiles: Mapping[str, Sequence[Mapping[str, object]]], original_snapshot: Mapping[str, object]) -> dict:
     """Legacy editor entry; Engine alone converts X/Y material into cabinet outside dimensions."""
