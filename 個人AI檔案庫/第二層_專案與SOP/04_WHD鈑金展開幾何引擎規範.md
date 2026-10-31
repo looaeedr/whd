@@ -362,3 +362,18 @@ trusted HMAC, original empty-source check and DXF Save→Reload. The advertised
 Frame is a size-only unfolded blank; source-feature mapping, independent
 multi-piece bodies, Receiving family assembly, collision/Joint and manual
 external Fold profiles remain blocked pending their own physical Gate C.
+
+### #2383 Receiving physical inner-door panel signed Worker API (2026-10-31)
+
+The `受電箱/inner_door` external Worker manufacturing entry applies only to
+one source-confirmed physical `inner_door:<id>:panel`, with stable source
+`inner_door_id`, `inner_door_cell_key` and formed W/H/T. The existing
+`ae_engine.inner_door_panels.derive_inner_door_panel` and
+`ae_engine.manufacturing_scene_orchestration.build_inner_door_panel_render_data`
+are the *only* owner of material Fold, factory 19-mm flanges, corner CUTTING,
+BEND and stable physical identity. This signed size-only Frame supports an
+empty original CADSplit DXF only; it makes no claim for NFB holes, side or
+upper frames, Divider, joinery, mounting screws or full installation assembly.
+Original external entities, unverified coordinates or alternate Fold params
+fail closed; exact W-03/04 HMAC recheck, registry identity and verified DXF
+Save→Reload remain mandatory. The owner of the inner-door frame set is unchanged.
