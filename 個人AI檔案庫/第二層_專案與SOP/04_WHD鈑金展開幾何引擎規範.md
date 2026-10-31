@@ -377,3 +377,17 @@ upper frames, Divider, joinery, mounting screws or full installation assembly.
 Original external entities, unverified coordinates or alternate Fold params
 fail closed; exact W-03/04 HMAC recheck, registry identity and verified DXF
 Save→Reload remain mandatory. The owner of the inner-door frame set is unchanged.
+
+### #2383 Receiving physical Side Panel signed manufacturing route (2026-10-31)
+
+`受電箱/side_panel` chooses only one physical side source ID
+`box_body:left_side` / `box_body:right_side`. The existing Receiving
+`build_box_body_profile` outside→material owner, fixed three-piece
+`resolve_box_body_structure_state`, `resolve_back_panel_contract` and
+`build_box_body_structure_render_data` alone own geometry/stock/bends and
+baseline CUTTING/BLIND_HOLE/MARKING. All three dedicated source files
+`左側板.dxf`, `右側板.dxf`, `後面板.dxf` are WHD-signed resources for this
+single-part route; Vault integral BoxBody cannot act as a reference substitute.
+No CADSplit external Feature transform, untrusted original DXF entities,
+assembly/world Joint or unrelated multipart output is certified; preserve
+original source SHA and W-03/04/06 exact-job verification and DXF Save→Reload.
