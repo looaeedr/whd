@@ -87,12 +87,21 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         assert manifest["source_run_id"] == 40903796624
         assert manifest["observed_split_run_id"] == 40909061327
         assert manifest["threshold_short_seconds"] == 4
-        assert manifest["modeled_critical_path_seconds"] == 141  # old whole-file model
+        assert manifest["modeled_critical_path_seconds"] == 141  # historical, pre-rebalance
+        assert manifest["rebalance_source_run_id"] == 41197479764
+        assert manifest["rebalance_original_owners"] == {
+            "tests/test_issue1503_single_gui_real_tier_2d3d.py": 9,
+            "tests/test_issue74_divider_side_front_penetration.py": 12,
+        }
+        assert owners["tests/test_issue1503_single_gui_real_tier_2d3d.py"] == 1
+        assert owners["tests/test_issue74_divider_side_front_penetration.py"] == 1
         load = [0] * count
         for filename, owner in owners.items():
             assert (owner >= 14) == (durations[filename] <= 4)
             load[owner] += durations[filename]
-        assert max(load) == 141
+        # Historical per-file isolated timings are not current shard runtime
+        # predictions. Preserve their exact arithmetic for audit only.
+        assert max(load) == manifest["rebalance_static_old_file_model_max_seconds"] == 189
         assert sorted(set(owners.values())) == list(range(18))
         special = manifest["split_file"]
         assert special in PYTEST_PATHS
