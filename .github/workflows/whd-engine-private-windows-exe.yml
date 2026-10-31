@@ -15,6 +15,7 @@ on:
       - tests/test_issue2380_private_worker_dispatch.py
       - tests/test_issue2380_private_exe_installation.py
       - tests/test_phase6_assembly_registry_gui_matrix.py
+      - tools/issue2382_packaged_gui_open_probe.py
       - .github/workflows/whd-engine-private-windows-exe.yml
   workflow_dispatch:
 
@@ -180,6 +181,21 @@ jobs:
             throw 'W05_GUI_ENGINE_PAIR_READBACK_FAILED'
           }
           Write-Host "W05_SAME_SHA_GUI_STARTUP_AND_PRIVATE_ENGINE_PASS $env:ENGINE_SHA"
+      - name: Gate A actual packaged WHD.exe project open and corrupt-file negative control
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -ne $env:ENGINE_SHA) { throw 'W07_PACKAGED_GUI_EXACT_SHA_MISMATCH' }
+          python tools/issue2382_packaged_gui_open_probe.py --exe (Resolve-Path 'dist/WHD/WHD.exe').Path --out 'work/issue2382-packaged-gui'
+          if ($LASTEXITCODE -ne 0) { throw 'W07_PACKAGED_GUI_PROJECT_OPEN_FAILED' }
+          $witness = Get-Content 'work/issue2382-packaged-gui/packaged-gui-open.json' -Raw -Encoding utf8 | ConvertFrom-Json
+          if ($witness.kind -ne 'W07_PACKAGED_WHD_GUI_PROJECT_OPEN_NEGATIVE_CONTROL' -or
+              !$witness.valid.visible_main -or $witness.valid.error_dialog -or
+              !$witness.invalid.error_dialog -or !$witness.invalid.visible_main -or
+              $witness.gui_exe_sha256 -ne (Get-FileHash 'dist/WHD/WHD.exe' -Algorithm SHA256).Hash.ToLowerInvariant()) {
+            throw 'W07_PACKAGED_GUI_PROJECT_OPEN_EVIDENCE_INVALID'
+          }
+          Write-Host "W07_PACKAGED_GUI_PROJECT_OPEN_NEGATIVE_CONTROL_PASS exact_sha=$env:ENGINE_SHA"
       - name: Gate A genuine Windows Tk GUI edit, 2D/3D, collision and project reload
         shell: pwsh
         run: |
@@ -217,6 +233,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: WHD-GUI-same-source-W05
-          path: dist/WHD/
+          path: |
+            dist/WHD/
+            work/issue2382-packaged-gui/packaged-gui-open.json
           if-no-files-found: error
           retention-days: 14
