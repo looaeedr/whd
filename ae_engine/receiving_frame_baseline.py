@@ -201,7 +201,7 @@ def receiving_divider_c_source(*, material_width: float, span: float, source_pat
             continue
         etype = entity.dxftype()
         if etype == "LWPOLYLINE":
-            if entity is outer:
+            if entity.dxf.handle == outer.dxf.handle:
                 continue
             if not entity.closed:
                 raise ValueError("RECEIVING_DIVIDER_C_UNCLOSED_SOURCE_RELIEF")
