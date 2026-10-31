@@ -46,6 +46,10 @@ WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並�
 
 `ae_engine.manufacturing_api.ensure_corner_part`、`commit_corner_pair`、`commit_corner_type`、`commit_corner_mode`、`commit_corner_parameters`、`apply_corner_preset` 的公開輸入為 JSON-safe `corner_state`、`corner_pair_same`，輸出為 `CornerStateTransition`。既有 Phase6 Settings 寫入語意（成對／拆對、重入、型別切換、參數、固定 Family preset）已原樣搬至 `ae_engine.corner_state_transactions`，原 Phase6 同名函式只相容轉呼叫。這個狀態 API 不決定正式 CornerType CUTTING／Relief；幾何權威維持原 Certified Registry 及 Engine 原有求解器。
 
+## Explicit Joint Relief physical UV owner / source proof API（#2517）
+
+`ae_engine.manufacturing_api.resolve_box_body_piece_solver_key(body_part, region, *, require_flat_uv)` 將 BoxBody 的 Joint region 連接至真正 side/back 物理板件，無單一 UV 所有權時拒絕 relief 回投。`side_wrap_target_corners` 由 Engine 判定 Head/Tail 的物理 WRAP 邊角；`joint_relief_state_item_matches` 比對真實 source material bounds／area 和 joint_id／relation／verified，拒絕 NaN／Inf／布林及失效保存切割。Phase6 的三個原函式是公開 API 轉接，不再重算製造規則。
+
 ## BoxBody 側板 formed skin 與末端折邊世界座標 API（#2517）
 
 `ae_engine.manufacturing_api.expand_box_body_fw_world_mid`、`shift_multistage_terminal_fold_world_mid`、`fit_receiving_left_zl1_world_mid` 由原 Phase6 Joint/world collision 映射實作原樣搬回 `ae_engine.assembly_geometry_folded_mesh`，以現有同一物理 piece Fold profile、D-core 世界中面、已展開平面 UV、T 及 formed_length 決定 **collision / 3D physical skin**，不以 preview 或固定 Z 座標製造另套結果。GUI `phase6_manufacturing_geometry` 三個函式僅轉呼叫 Engine；原 Joint Solver v2 的 mapped skin/UV 輸出、2D/DXF CUTTING 來源與覆寫限制保持不變。
