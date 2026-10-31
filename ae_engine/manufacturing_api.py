@@ -177,6 +177,7 @@ from .cabinet_types import policy as cabinet_family_policy
 
 from .fold_designer_baseline_api import (
     fold_designer_secondary_scene_rows, query_fold_designer_baseline_rows,
+    project_finished_features_to_legacy_renderer_holes,
 )
 
 from .manufacturing_baseline_policy import (
