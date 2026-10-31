@@ -37,7 +37,13 @@ def test_each_selector_appears_in_exactly_one_shard(count):
             f"{bom}::{func}[{key.rsplit('-', 2)[0].encode('unicode_escape').decode('ascii')}-{key.rsplit('-', 2)[1]}-{key.rsplit('-', 2)[2]}]"
             for key in manifest["bom_split_case_owners"]
         )
-        assert set(seen) == (set(PYTEST_PATHS) - {special, bom}) | expected_cases | expected_bom
+        t15 = manifest["t15_split_file"]
+        expected_t15 = {f"{t15}::{name}" for name in manifest["t15_source_functions"]}
+        assert len(expected_t15) == 22
+        assert set(seen) == (
+            (set(PYTEST_PATHS) - {special, bom, t15})
+            | expected_cases | expected_bom | expected_t15
+        )
         assert len(expected_cases) == 20
         assert len(expected_bom) == 11
     else:
@@ -109,6 +115,9 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         assert len(manifest["bom_split_case_owners"]) == 7
         assert manifest["bom_split_source_run_id"] == 41195715050
         assert manifest["bom_split_file"] in PYTEST_PATHS
+        assert manifest["t15_split_source_run_id"] == 41197885699
+        assert manifest["t15_split_file"] in PYTEST_PATHS
+        assert len(manifest["t15_source_functions"]) == 22
         tree = ast.parse((Path(__file__).resolve().parents[2] / special).read_text(encoding="utf-8"))
         actual_cases = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)
                         and n.name.startswith("test_")}
@@ -128,6 +137,12 @@ def test_each_selector_appears_in_exactly_one_shard(count):
                         assert manifest["bom_split_case_owners"][case] == index
                     else:
                         assert index == 1
+                elif node.startswith(manifest["t15_split_file"] + "::"):
+                    function = node.rsplit("::", 1)[1]
+                    assert function in manifest["t15_source_functions"]
+                    assert index == (
+                        1 if function == manifest["t15_critical_function"] else 6
+                    )
                 else:
                     assert owners[node.split("::", 1)[0]] == index
     else:
@@ -211,6 +226,9 @@ def test_eighteen_shard_workflow_keeps_complete_exact_selectors_and_artifact_gat
         family, mode, layers = key.rsplit("-", 2)
         escaped = family.encode("unicode_escape").decode("ascii")
         expected.add(f"{bom}::{manifest['bom_split_function']}[{escaped}-{mode}-{layers}]")
+    t15 = manifest["t15_split_file"]
+    expected.discard(t15)
+    expected.update(f"{t15}::{name}" for name in manifest["t15_source_functions"])
     seen = Counter(selector for shard in shards for selector in shard)
     assert set(seen) == expected
     assert all(times == 1 for times in seen.values())
@@ -278,6 +296,33 @@ def test_bom_split_preserves_every_non18_canonical_file_selector():
         items = [item for i in range(count) for item in shard_paths(i, count)]
         assert items.count(bom) == 1
         assert not any(item.startswith(bom + "::") for item in items)
+
+
+def test_t15_split_rejects_source_list_drift_or_wrong_owner(tmp_path, monkeypatch):
+    manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    critical = manifest["t15_critical_function"]
+    assert critical in manifest["t15_source_functions"]
+    modified = json.loads(json.dumps(manifest))
+    modified["t15_source_functions"].remove(critical)
+    path = tmp_path / "t15-missing.json"
+    path.write_text(json.dumps(modified, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(regression, "_EIGHTEEN_SHARD_MANIFEST", path)
+    with pytest.raises(ValueError, match="T15"):
+        shard_paths(1, 18)
+
+    modified = json.loads(json.dumps(manifest))
+    modified["t15_critical_owner"] = 6
+    path.write_text(json.dumps(modified, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="incomplete or stale"):
+        shard_paths(1, 18)
+
+
+def test_t15_original_file_remains_intact_in_all_non18_schedules():
+    t15 = "tests/test_phase6_t15_inner_door_panels.py"
+    for count in (1, 3, 10, 20):
+        selectors = [p for i in range(count) for p in shard_paths(i, count)]
+        assert selectors.count(t15) == 1
+        assert not any(p.startswith(t15 + "::") for p in selectors)
 
 
 def test_duration_manifest_fails_closed_if_a_file_is_missing(tmp_path, monkeypatch):
