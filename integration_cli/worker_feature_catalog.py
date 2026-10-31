@@ -127,6 +127,7 @@ def installed_family_feature_catalog(
 _P0_PHYSICAL_ROLES = frozenset({
     "door", "end_cap_head", "end_cap_tail",
     "indicator_box", "indicator_small_door", "base_plate", "custom_fold", "box_body",
+    "inner_door",
 })
 
 
