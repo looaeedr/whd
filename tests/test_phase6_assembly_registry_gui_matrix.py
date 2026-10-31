@@ -125,11 +125,11 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent
         assert len(diagnostic.intersection_segments) > 0
         designer.assembly_show_interference_var.set(False)
 
-        app.project_controller.save(
-            save_path,
-            app._compose_phase6_project_snapshot_from_main_gui,
-            active_part_hint="box_body",
-        )
+        # Exercise the real GUI Save route (including its authoritative flush),
+        # not just the lower-level persistence owner. Reload uses the GUI route.
+        app.project_controller.set_project_path(save_path)
+        assert app.save_phase6_project(_active_part_hint="box_body") == str(save_path)
+        assert save_path.is_file()
         saved_relief = dict(getattr(app, "assembly_relief_state", {}) or {})
         saved_parts = dict(saved_relief.get("parts", {}) or {})
         for key in ("head", "tail"):
