@@ -82,6 +82,22 @@ locked dimensions and FinalScene replace a nonexistent dedicated BasePlate
 baseline. Other roles still require their own actual selected baseline.
 This is a single standalone physical part, **not complete assembly validation**.
 
+## Vault integral BoxBody native manufacturing route
+
+The installed v1.1 Worker can manufacture `金庫型/box_body` **only as one integral physical sheet**.
+Required inputs: `dimension_semantics=cabinet_outer`, W/H/D/T, `frame_width_mm`,
+and the five independently attested factory Fold scalars `box_zl1_mm`,
+`box_zl2_mm`, `box_zr1_mm`, `box_zr2_mm`, `box_z_comp_mm`.
+WHD's `phase6_fold_profiles.build_box_body_profile` owns D-W-D material
+conversion; `BoxBodyPartSpec` and `build_part_render_data` produce its actual
+CUTTING/BEND FinalScene. W-03 signs only the size-only unfolded material envelope.
+The exact original CADSplit DXF must be empty; external holes, user Fold,
+structure-state split, extra physical-piece sheets, Receiving family and
+assembled Joint/relief cannot enter this route. Existing required Vault
+`箱身.dxf` baseline and Registry are attested before prepare and rechecked
+at export. Successful export still needs exact-job approval, W-06 journal,
+independent DXF Save→Reload and the normal trusted installer.
+
 ## Output and failure semantics
 
 - `stdout`: reserved/empty for these operations. The response JSON file is
