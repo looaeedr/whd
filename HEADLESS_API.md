@@ -501,3 +501,20 @@ delegates to the existing Engine `resolve_operator_finished_dimensions`
 for canonical Fold/Corners/finished physical 2D/3D dimensions; invalid world
 mesh is still rejected. The GUI reads input state, forwards policy DTOs
 and displays the result only. This is not a new CUTTING/DXF capability.
+
+## Custom physical sheet Catalog and single-axis Fold manufacturing (#2517)
+
+Engine `manufacturing_api.CustomPartCatalog` owns stable physical IDs,
+nonrecycled `custom:N` allocation, fail-closed metadata, and defensive
+snapshots. `is_custom_part` and `custom_part_only_change` are also
+public Engine policy. For actual manufacturing, headless
+`manufacturing_api.descriptor_from_snapshot(snapshot, part_key)`,
+`build_custom_part_profiles(snapshot, part_key)`, and
+`custom_part_spec(snapshot, part_key, *, features=(), profiles=None)`
+own one-axis X/Y outside 17/100 → canonical material Fold with adjacent
+bend-count × T compensation and the transverse flat span. GUI/Phase6
+modules only re-export these public Engine functions as compatibility
+entry points; no GUI-owned custom physical formula or allocator remains.
+Existing verified CustomFold PartSpec → FinalScene → CUTTING/BEND → DXF
+worker acceptance remains separate; this move never authorizes
+unsupported features, mismatched physical metadata or new DXF capability.

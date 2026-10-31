@@ -560,3 +560,9 @@ frame-only route.
 
 - Public `resolve_live_operator_finished_dimensions` now owns the legacy GUI's sparse snapshot W/H/D fill and Receiving live Bay/Quantity working dimensions-over-seed precedence, while consuming existing canonical `resolve_operator_finished_dimensions` (mesh, Head/Tail Corner policy) without a second manufacturing formula.
 - The Phase6 adapter only collects operator input and passes Corner policy DTOs to Engine. No persisted values are rewritten and no unverified DXF capability is granted; #2517 remains OPEN.
+
+### #2517 Custom physical identity and X/Y Fold Engine ownership (2026-11-01)
+
+- Public Engine `CustomPartCatalog`, `is_custom_part`, `custom_part_only_change` own stable nonrecycled custom physical IDs, snapshot comparison and metadata validation. `descriptor_from_snapshot`, `build_custom_part_profiles`, `custom_part_spec` own both X/Y single-axis operator outside 17/100 → material Fold and physical `CustomFoldPartSpec` construction, with original 1T-per-actual-adjacent-BEND contract and transverse flat axis.
+- Former `phase6_custom_parts.py` and `phase6_custom_fold_profiles.py` are public Engine API compatibility facades only; neither may independently validate physical metadata or derive manufacturing Fold.
+- Preserve fail-closed invalid thickness, missing descriptors, nonmatching transverse span and unverified external Feature handling. This change does not certify 2D/3D/DXF Save→Reload or complete #2517.
