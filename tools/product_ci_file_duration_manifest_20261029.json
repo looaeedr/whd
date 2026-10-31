@@ -690,5 +690,26 @@
     "test_issue1796_receiving_modal_close_flushes_changed_geometry_before_assembly": 0,
     "test_issue1796_receiving_modal_close_equivalent_geometry_is_noop": 16
   },
-  "split_note": "Only the 18-shard schedule expands the existing one whole-file canonical selector into the twenty observed exact pytest node IDs; other shard counts and original 339 canonical selectors are unchanged."
+  "split_note": "18-shard schedule retains all canonical 339 selectors and only partitions the observed GUI suite and the seven measured BOM parameterized cases into exact pytest node IDs; all non-18 schedules stay unchanged. Full canonical collection versus JUnit still fails closed.",
+  "bom_split_source_run_id": 41195715050,
+  "bom_split_file": "tests/test_issue1466_quantity_bom.py",
+  "bom_split_function": "test_real_quantity_bom_30_plus_20_custom_100_and_read_only",
+  "bom_split_case_owners": {
+    "金庫型-FULL-1": 1,
+    "受電箱-FULL-1": 14,
+    "受電箱-FULL-2": 15,
+    "受電箱-HALF-1": 16,
+    "受電箱-HALF-2": 17,
+    "受電箱-BACK_OPENING-1": 15,
+    "受電箱-BACK_OPENING-2": 14
+  },
+  "bom_split_case_seconds": {
+    "金庫型-FULL-1": 3.09,
+    "受電箱-FULL-1": 17.11,
+    "受電箱-FULL-2": 17.79,
+    "受電箱-HALF-1": 17.16,
+    "受電箱-HALF-2": 17.88,
+    "受電箱-BACK_OPENING-1": 15.65,
+    "受電箱-BACK_OPENING-2": 17.76
+  }
 }
