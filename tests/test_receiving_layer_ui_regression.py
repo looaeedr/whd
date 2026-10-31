@@ -113,14 +113,33 @@ def test_box_body_physical_child_notebook_is_only_visible_in_single_input_mode()
 
 
 def test_assembly_visibility_and_diagnostic_changes_are_display_only():
+    from gui_modules.application.fold_designer_capability_owners import (
+        AssemblyCornerCapabilityOwner, AssemblyCornerCapabilityPorts,
+    )
+
     for name in ('_phase6_on_assembly_part_visibility_changed', '_phase6_on_assembly_diagnostic_changed'):
         source = _function_source(BRIDGE, name)
         method_name = name.removeprefix('_phase6_')
         assert f'.{method_name}()' in source
         source = inspect.getsource(getattr(composition_assembly, method_name))
-        assert 'submit_update_intent' in source
-        assert '"display"' in source
+        assert '.refresh_if_assembly()' in source
         assert '.do_update(' not in source
+
+    # Behavior, not the retired composition implementation location:
+    # only Assembly display changes may queue a display-only update.
+    calls = []
+    mode = {'value': 'single'}
+    owner = AssemblyCornerCapabilityOwner(AssemblyCornerCapabilityPorts(
+        display_mode=lambda: mode['value'],
+        submit_update_intent=lambda: (
+            lambda reason, commit=False: calls.append((reason, commit))
+        ),
+    ))
+    assert owner.refresh_if_assembly() is False
+    assert calls == []
+    mode['value'] = 'assembly'
+    assert owner.refresh_if_assembly() is True
+    assert calls == [('display', True)]
 
 
 def test_assembly_render_does_not_force_duplicate_live_publish():
@@ -153,7 +172,18 @@ def test_receiving_preview_owner_renders_2d_canonical_physical_scenes():
     assert 'Radiobutton' not in owner_source
     assert 'win.state("zoomed")' in owner_source
     assert "piece.render_data" in inspect.getsource(physical_drawings)
-    assert "data.scene.primitives" in inspect.getsource(ReceivingSettingsPreview2D)
+    from gui_modules.application.receiving_settings_preview_2d import projected_assembly_parts
+    # Current UI paints the committed world-positioned assembly, not a
+    # second flat-sheet Manufacturing Scene copied into GUI code.
+    assert 'projected_assembly_parts(request)' in inspect.getsource(
+        ReceivingSettingsPreview2D.draw_geometry
+    )
+    assert '_assembly_world_meshes(request)' in inspect.getsource(
+        projected_assembly_parts
+    )
+    assert 'data.scene.primitives' not in inspect.getsource(
+        ReceivingSettingsPreview2D.draw_geometry
+    )
     # Existing joint holes and assembly input authority are preserved.
     preview_source = inspect.getsource(composition_receiving.receiving_bay_preview_request)
     assert 'build_manufacturing_request(' in preview_source
