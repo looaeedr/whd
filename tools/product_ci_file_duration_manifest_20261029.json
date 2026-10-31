@@ -477,7 +477,7 @@
     "tests/test_issue1503_side_only_mfg_gui.py": 9,
     "tests/test_issue1503_side_only_production_marking.py": 6,
     "tests/test_issue1503_signed_formed_fixed_plate_normal_dxf.py": 9,
-    "tests/test_issue1503_single_gui_real_tier_2d3d.py": 6,
+    "tests/test_issue1503_single_gui_real_tier_2d3d.py": 0,
     "tests/test_issue1504_79ac_batch_acceptance_gate.py": 14,
     "tests/test_issue1504_ac01_receiving_only_actual_tk_entry.py": 5,
     "tests/test_issue1504_ac03_ac15_native_source_panel.py": 6,
@@ -717,7 +717,7 @@
     "tests/test_issue1503_single_gui_real_tier_2d3d.py": 9,
     "tests/test_issue74_divider_side_front_penetration.py": 12
   },
-  "rebalance_static_old_file_model_max_seconds": 169,
+  "rebalance_static_old_file_model_max_seconds": 175,
   "rebalance_note": "Earlier whole-file move from 9->1 and 12->1 was measured in run 41197479764. In later run 41198488801, the real-tier file shifts from 1->6 to decouple two long native Tk cases. Original owners remain recorded in rebalance_original_owners; this manifest's final file_owners is the current sole scheduling authority.",
   "t15_split_source_run_id": 41197885699,
   "t15_split_file": "tests/test_phase6_t15_inner_door_panels.py",
@@ -751,6 +751,6 @@
   "t15_split_note": "The one measured ~36.69s canonical function moves intact to runner 1; all other 21 top-level test functions stay on runner 6, including every parameterized case. Source-AST list and combined exact-head JUnit collection must match, with no test removed. Historical per-file independent timing model stays unchanged; this is a scheduling-only test.",
   "tier_decouple_source_run_id": 41198488801,
   "tier_decouple_previous_owner": 1,
-  "tier_decouple_new_owner": 6,
-  "tier_decouple_note": "The exact-run #41198488801 had two distinct 39.49s/35.87s long cases on shard 1, making it 109s while shard 6 was only 52s. Move the entire 39.49s real-tier 2D/3D file to shard 6, leaving the T15 35.87s original DXF case and complete divider contact suite on shard 1. Still historical per-file model; measure resulting end-to-end/critical path from Actions."
+  "tier_decouple_new_owner": 0,
+  "tier_decouple_note": "RUN 41198866051 GREEN showed moving the whole real-tier GUI acceptance from shard 1 to shard 6 made shard 6 the 127s critical path (the real-tier case was 39.43s) while shard 1 became 73s; prior shard 0 was about 50s. Revise experiment to move that exact, unchanged whole-file selector to shard 0, leaving T15 36s source case on shard 1 and remaining T15 functions on shard 6. Verify new exact-head full CI before merge."
 }
