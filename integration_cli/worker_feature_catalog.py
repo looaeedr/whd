@@ -159,7 +159,7 @@ def require_certified_feature_route(request: Mapping[str, object]) -> None:
                 "feature is not registered for this cabinet family",
             )
         if role in _P0_PHYSICAL_ROLES and not (
-            family == "受電箱" and role in ("end_cap_head", "end_cap_tail", "base_plate", "box_body")
+            family == "受電箱" and role in ("base_plate", "box_body")
         ):
             # W-03 and W-04 still do all actual geometry, Frame, source,
             # approval and Save->Reload verification. This is NOT approval.
