@@ -286,3 +286,15 @@ AE 專案/ae_engine/
 - 正式 GUI release gate 必須在有效的 X display（建議 Xvfb）下執行；有 `DISPLAY` 時 `requires_tk_display` 不會 skip，Tk 測試必須真正建立 GUI 並跑完。
 - 中央規則位於 `tests/conftest.py`：新 GUI 測試應使用 `@pytest.mark.requires_tk_display`；舊測試若漏 marker，只在 `DISPLAY` 未設定且錯誤明確是缺 display 的 Tk `TclError` 時相容轉為 skip。其他 Tcl/Tk 錯誤一律維持 failure。
 - 因此：**headless PASS ≠ GUI PASS**；正式出包仍必跑 Xvfb GUI suite。
+
+## EndCap live Fold W/D reconciliation (#2517)
+
+`ae_engine.manufacturing_api.endcap_derived_core_lengths(snapshot, width, depth)` and
+`reconcile_endcap_live_outside_dimensions(snapshot, *, top_width, top_depth,
+previous_width, previous_depth, profiles)` own the canonical Family 4T W / 2T
+Receiving or 3T Vault D conversion for live Head/Tail editor sync. Explicit
+operator top-panel edits outrank stale Fold rows; unchanged top fields accept
+changed material cores. Missing material cores never become invented sizes.
+The GUI only reads Tk values, calls this public API, and applies returned
+dimensions to existing editor state; this is a compatibility synchronization
+contract, not a new DXF/Worker manufacturing capability.

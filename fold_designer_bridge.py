@@ -3211,23 +3211,19 @@ def _get_profile_phase6_len(profile, key, default=None):
     return default
 
 
-def _phase6_endcap_depth_comp_t(self):
-    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
-    return cabinet_family_policy.endcap_depth_comp_t(snapshot)
-
-
 def _propagate_endcap_derived_cores(self, w, d):
-    t = _num(self._phase6_input_snapshot.get("t", 2), 2)
-    x_core = max(0.0, float(w) - 4.0 * t)
-    y_core = max(0.0, float(d) - _phase6_endcap_depth_comp_t(self) * t)
+    """Commit Engine-calculated canonical EndCap core lengths to existing editor rows."""
+    lengths = manufacturing_api.endcap_derived_core_lengths(
+        self._phase6_input_snapshot, w, d
+    )
     for key in ("head", "tail"):
         profiles = self._phase6_part_profiles.get(key)
         if profiles:
-            _set_profile_phase6_len(profiles.get("X"), "endcap_w_core", x_core)
-            _set_profile_phase6_len(profiles.get("Y"), "endcap_d_core", y_core)
+            _set_profile_phase6_len(profiles.get("X"), "endcap_w_core", lengths["endcap_w_core"])
+            _set_profile_phase6_len(profiles.get("Y"), "endcap_d_core", lengths["endcap_d_core"])
     if getattr(self, "active_part_key", None) in {"head", "tail"}:
-        _set_profile_phase6_len(self.state.profiles.get("X"), "endcap_w_core", x_core)
-        _set_profile_phase6_len(self.state.profiles.get("Y"), "endcap_d_core", y_core)
+        _set_profile_phase6_len(self.state.profiles.get("X"), "endcap_w_core", lengths["endcap_w_core"])
+        _set_profile_phase6_len(self.state.profiles.get("Y"), "endcap_d_core", lengths["endcap_d_core"])
 
 
 def _sync_active_endcap_and_global_whd(self):
@@ -3237,29 +3233,16 @@ def _sync_active_endcap_and_global_whd(self):
     top_d = original.get_int(self.v_d.get())
     last_w = original.get_int(self._phase6_last_w if self._phase6_last_w is not None else top_w)
     last_d = original.get_int(self._phase6_last_d if self._phase6_last_d is not None else top_d)
-    t = _num(self._phase6_input_snapshot.get("t", 2), 2)
-    depth_comp_t = _phase6_endcap_depth_comp_t(self)
-
-    x_core = _get_profile_phase6_len(self.state.profiles.get("X"), "endcap_w_core")
-    y_core = _get_profile_phase6_len(self.state.profiles.get("Y"), "endcap_d_core")
-    expected_x = _ui_len(last_w - 4.0 * t)
-    expected_y = _ui_len(last_d - depth_comp_t * t)
-
-    if top_w != last_w:
-        new_w = top_w
-    elif x_core is not None and x_core != expected_x:
-        new_w = _ui_len(x_core + 4.0 * t)
+    dimensions = manufacturing_api.reconcile_endcap_live_outside_dimensions(
+        self._phase6_input_snapshot, top_width=top_w, top_depth=top_d,
+        previous_width=last_w, previous_depth=last_d,
+        profiles=self.state.profiles,
+    )
+    new_w, new_d = dimensions["w"], dimensions["d"]
+    if new_w != top_w:
         self.v_w.set(str(new_w))
-    else:
-        new_w = last_w
-
-    if top_d != last_d:
-        new_d = top_d
-    elif y_core is not None and y_core != expected_y:
-        new_d = _ui_len(y_core + depth_comp_t * t)
+    if new_d != top_d:
         self.v_d.set(str(new_d))
-    else:
-        new_d = last_d
 
     self._phase6_box_whd["w"] = new_w
     self._phase6_box_whd["h"] = original.get_int(self.v_h.get())
