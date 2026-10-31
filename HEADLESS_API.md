@@ -309,3 +309,16 @@ coordinates, anchors and offsets; GUI forwards only feature inputs and face
 dimensions and displays the result. Profile/custom features are preserved in
 the source bundle without inventing circles/rectangles. This compatibility
 display projection **is not** a manufacturing approval or a DXF capability.
+
+
+## Finished part dimension projection / Door-cell topology (#2517)
+
+`ae_engine.manufacturing_api.project_part_dimensions(snapshot)`,
+`door_part_projections(snapshot)`, and the immutable `DoorPartProjection`
+are the Engine's public headless projection of existing Settings state to
+finished physical part sizes and multi-Door cell identities. The original
+single-Door calculation, Family material FW, Receiving physical BasePlate
+blank and per-cell source frame edges are not recreated by GUI. The existing
+`phase6_settings_profile_projection` module re-exports these public Engine
+owners as compatibility callables. No new manufacturing formulas, scene or
+DXF capabilities are asserted by this refactor.
