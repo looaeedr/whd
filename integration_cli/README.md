@@ -135,6 +135,25 @@ silently omitted. The W-03 receipt is signed and W-04 independently rechecks
 source, Frame, installed Registry and final DXF Save→Reload. Other Receiving
 inner-door workflows remain separately gated.
 
+## Receiving left/right physical Side Panels (W-08 #2383)
+
+`受電箱/side_panel` selects **one real independent physical sheet** by the
+source-owned `box_body:left_side` or `box_body:right_side` identity. The
+operator-confirmed W/H/D/T/FW, zl1/zl2/zr1/zr2/z_comp are outside
+measurements fed to the existing WHD Receiving Phase6 Fold topology. The
+fixed Receiving three-piece side/back state and three separate dedicated
+`基準檔/受電箱/{左側板.dxf,右側板.dxf,後面板.dxf}` are the actual signed
+manufacturing sources; a Vault box baseline cannot substitute. Each FinalScene
+keeps its certified original CUTTING, BLIND_HOLE and MARKING features, plus
+canonical BEND. Both sides are real independent part identities, not an
+assembly or duplicated Vault integral body.
+
+The W-03 Frame is a signed unfolded blank size envelope only. An original
+CADSplit source DXF with any untransferred modelspace entity, custom Features,
+manual Fold, assembly joinery, extra physical parts or unverified source fitting
+must refuse manufacture. W-04/W-06 preserve original SHA, immutable resources,
+job approval and DXF Save→Reload; no claim of a full Receiving box assembly.
+
 ## Output and failure semantics
 
 - `stdout`: reserved/empty for these operations. The response JSON file is
