@@ -198,7 +198,7 @@ def resolve_box_body_structure_state(source, state=None) -> dict:
     callback = getattr(module, "resolve_box_body_structure_state", None) if module is not None else None
     if callable(callback):
         return callback(state)
-    from phase6_box_body_structure import normalize_box_body_structure_state
+    from ae_engine.box_body_structure_state import normalize_box_body_structure_state
     return normalize_box_body_structure_state(state)
 
 
@@ -241,7 +241,7 @@ def resolve_box_body_back_panel_contract(
     if family_name != "受電箱":
         return {}
 
-    from phase6_box_body_structure import BoxBodyStructureType
+    from ae_engine.box_body_structure_state import BoxBodyStructureType
     from ae_engine.sheetmetal_geometry import box_body_height_from_corner_policies
 
     state = dict(structure_state or {})
@@ -326,7 +326,7 @@ def effective_endcap_bottom_fw(source, state, *, thickness: float, default_fw: f
     if not callable(callback):
         return float(default_fw)
     structure = resolve_box_body_structure_state(source, state)
-    from phase6_box_body_structure import side_rear_bend_material_length
+    from ae_engine.box_body_structure_state import side_rear_bend_material_length
     rear = side_rear_bend_material_length(structure, float(thickness))
     return float(callback(side_rear_bend=rear, thickness=float(thickness)))
 
@@ -345,7 +345,7 @@ def endcap_corner_policy(source, *, frame_width: float, thickness: float, state=
     if not callable(callback):
         return None
     structure = resolve_box_body_structure_state(source, state)
-    from phase6_box_body_structure import side_rear_bend_material_length
+    from ae_engine.box_body_structure_state import side_rear_bend_material_length
     return callback(
         frame_width=float(frame_width),
         thickness=float(thickness),
