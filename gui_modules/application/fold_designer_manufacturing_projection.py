@@ -20,10 +20,7 @@ from ae_engine.contracts import BoxBodyPartSpec, EndCapPartSpec, ManufacturingCo
 from ae_engine.corner_type_ui import (
     is_unknown_model,
     normalize_custom_model_name,
-    known_model_corner_state,
-    policy_from_corner_state,
 )
-from ae_engine.sheetmetal_geometry import CornerTypeId, CornerTypeSelection, normalize_corner_selection
 from ae_engine.sheetmetal_part_adapters import DoorFrameEdges, derive_door_layout_cells, door_layout_export_filename
 from phase6_fold_profiles import formed_box_body_fw_widths
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
@@ -79,27 +76,9 @@ def _apply_cabinet_family_endcap_policy(
 
 
 def _fold_designer_corner_policy_from_payload(corner_state, part_key, fw):
-    corners = dict((corner_state or {}).get(part_key, {}) or {})
-    required = ("top_left", "top_right", "bottom_left", "bottom_right")
-    if not all(key in corners for key in required):
-        return None
-    selections = {}
-    for key in required:
-        raw = corners[key]
-        if isinstance(raw, CornerTypeSelection):
-            selections[key] = normalize_corner_selection(raw)
-            continue
-        raw = dict(raw or {})
-        selections[key] = CornerTypeSelection(
-            CornerTypeId(str(raw.get("type_id", "CROSS")).upper()),
-            rotation_quadrants=int(raw.get("rotation_quadrants", 0) or 0),
-            cross_mode=raw.get("cross_mode"),
-            direction=raw.get("direction"),
-            amount_t=raw.get("amount_t"),
-            secondary_retain_t=raw.get("secondary_retain_t"),
-            secondary_depth_t=raw.get("secondary_depth_t"),
-        )
-    return policy_from_corner_state(selections, fw=float(fw))
+    """Compatibility GUI seam: Engine builds the canonical CornerType policy."""
+    return manufacturing_api.corner_policy_from_payload(corner_state, part_key, fw)
+
 
 def _read_live_receiving_snapshot(self):
     """Prefer live Fold Designer application ownership over a stale bridge copy."""
@@ -593,10 +572,10 @@ def _payload_topology_context(part_key, payload):
 def _payload_policy(self, data, corner_state, part, fw, unknown, thickness):
     resolved = self._fold_designer_corner_policy_from_payload(corner_state, part, fw)
     if resolved is None and not unknown:
-        fallback = known_model_corner_state(
-            (part,), cabinet_family=self._current_cabinet_type_name()
-        ).get(part)
-        resolved = policy_from_corner_state(fallback, fw=fw) if fallback is not None else None
+        resolved = manufacturing_api.corner_policy_from_payload(
+            corner_state, part, fw,
+            known_family=self._current_cabinet_type_name(),
+        )
     return self._apply_cabinet_family_endcap_policy(
         resolved,
         part,

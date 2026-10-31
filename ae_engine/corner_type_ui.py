@@ -409,3 +409,44 @@ def policy_from_corner_state(state: dict[str, CornerTypeSelection], *, fw: float
         top_right=state["top_right"],
         fw=float(fw),
     )
+
+def corner_policy_from_payload(
+    corner_state, part_key, fw, *, known_family=None,
+):
+    """Resolve persisted or live CornerType inputs into canonical Engine policy.
+
+    Complete operator selections take precedence. Missing corners may use
+    Certified Registry family state only when an explicit known family is
+    supplied. Custom or unknown models never borrow Vault corner rules.
+    """
+    corners = dict((corner_state or {}).get(part_key, {}) or {})
+    required = ("top_left", "top_right", "bottom_left", "bottom_right")
+    if not all(key in corners for key in required):
+        if known_family is None:
+            return None
+        family_state = known_model_corner_state(
+            (part_key,), cabinet_family=known_family,
+        ).get(part_key)
+        return (
+            policy_from_corner_state(family_state, fw=float(fw))
+            if family_state is not None else None
+        )
+    selections = {}
+    for key in required:
+        raw = corners[key]
+        if isinstance(raw, CornerTypeSelection):
+            selections[key] = normalize_corner_selection(raw)
+            continue
+        raw = dict(raw or {})
+        selections[key] = CornerTypeSelection(
+            CornerTypeId(str(raw.get("type_id", "CROSS")).upper()),
+            rotation_quadrants=int(raw.get("rotation_quadrants", 0) or 0),
+            cross_mode=raw.get("cross_mode"),
+            direction=raw.get("direction"),
+            amount_t=raw.get("amount_t"),
+            secondary_retain_t=raw.get("secondary_retain_t"),
+            secondary_depth_t=raw.get("secondary_depth_t"),
+        )
+    return policy_from_corner_state(selections, fw=float(fw))
+
+
