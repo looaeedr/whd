@@ -177,3 +177,30 @@ def test_receiving_inner_door_untransferred_original_hole_refused_before_dxf(tmp
         )
     assert error.value.code == "WHD_FINALSCENE_UNVERIFIED"
     assert not out.exists()
+
+
+def test_receiving_inner_door_rejects_stale_signed_dimensions_before_dxf(tmp_path):
+    """A re-digested Export cannot change the signed Prepare panel width."""
+    from tests.test_issue2378_prepare_batch import (
+        _prepare, _export_request_from_prepared, COMMIT, ENGINE, KEY,
+    )
+    from integration_cli.verified_door_finalscene import save_trusted_door_circle_finalscene_batch
+
+    root, source, request = _signed_input(tmp_path)
+    receipt = _prepare(request, root)
+    assert receipt["status"] == "success"
+    exported = _export_request_from_prepared(request, receipt)
+    exported["items"][0]["part"]["dimensions_mm"]["width"] += 1.0
+    exported["request_digest"] = compute_wire_request_digest(exported)
+    output = tmp_path / "blocked-stale-receiving-inner-panel"
+
+    with pytest.raises(PrepareEvidenceError) as error:
+        save_trusted_door_circle_finalscene_batch(
+            request, receipt, exported,
+            source_documents={request["items"][0]["item_id"]: source},
+            resource_root=root, output_dir=output,
+            engine_commit=COMMIT, engine_sha256=ENGINE,
+            build_id="test-only-source", worker_key=KEY,
+        )
+    assert error.value.code == "WHD_PREPARE_STALE"
+    assert not output.exists()
