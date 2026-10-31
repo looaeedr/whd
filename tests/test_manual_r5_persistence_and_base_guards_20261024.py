@@ -332,3 +332,36 @@ def test_r5_76_matched_bend_and_circle_rows_cannot_float_coerce_boolean_sources(
     assert _circle_rows_close(((True, 20., 5.),), ((1., 20., 5.),), 1e-6) is False
     assert _circle_rows_close(((1., 20., 5.),), ((True, 20., 5.),), 1e-6) is False
     assert _circle_rows_close(((10., 20., 5.),), ((10., 20., 5.),), 1e-6) is True
+
+
+@pytest.mark.parametrize("unexpected_layer", ["MARKING", "CUTTING", "BEND"])
+def test_r3_8_saved_dxf_must_not_ignore_extra_unknown_process_entity(tmp_path, unexpected_layer):
+    """Independent DXF readback must catch injected ARC despite normal LINE/CIRCLE counts."""
+    import ezdxf
+    from ae_engine import manufacturing_api as api
+    from ae_engine.sheetmetal_drawing import DrawingScene, PolylinePrimitive
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    scene = DrawingScene()
+    scene.add(PolylinePrimitive(
+        points=(Vec2(0., 0.), Vec2(100., 0.), Vec2(100., 60.), Vec2(0., 60.)),
+        layer="CUTTING", closed=True,
+    ))
+    render = api.PartRenderData(
+        scene=scene,
+        material=api.material_polygon_from_final_scene(scene),
+        fold_guides=api.fold_guides_from_final_scene(scene),
+    )
+    path = tmp_path / ("forged-marking-arc-" + unexpected_layer + ".dxf")
+    api.save_part_render_data_dxf(render, path, overwrite=True)
+    assert api.verify_saved_part_render_data_dxf(render, path).ok is True
+
+    doc = ezdxf.readfile(path)
+    doc.modelspace().add_arc(
+        center=(50., 30.), radius=5., start_angle=0., end_angle=180.,
+        dxfattribs={"layer": unexpected_layer},
+    )
+    doc.saveas(path)
+    receipt = api.verify_saved_part_render_data_dxf(render, path)
+    assert receipt.ok is False
+    assert any(issue.category == "ENTITY_COUNT_MISMATCH" for issue in receipt.issues)
