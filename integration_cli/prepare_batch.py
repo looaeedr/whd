@@ -266,6 +266,19 @@ def prepare_trusted_door_batch(
     for item in request["items"]:
         p = item["part"]
         kind = p["kind"]
+        # Capabilities are scoped to the two independently implemented WHD
+        # families. Never let an arbitrary caller string silently choose
+        # Vault policy or produce a supposedly certified finished face.
+        if p["cabinet_family"] not in ("金庫型", "受電箱"):
+            raise PrepareEvidenceError(
+                "WHD_FRAME_UNVERIFIED",
+                "cabinet family is not certified for installed Worker",
+            )
+        if kind in ("end_cap_head", "end_cap_tail") and p["cabinet_family"] != "金庫型":
+            raise PrepareEvidenceError(
+                "WHD_FRAME_UNVERIFIED",
+                "Receiving EndCap requires its own Family/Topology certification",
+            )
         if kind == "door":
             if p["dimension_semantics"] != "cabinet_outer":
                 raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "only verified cabinet_outer Door-local frame is supported")
