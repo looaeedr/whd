@@ -223,6 +223,46 @@ def resolve_back_panel_contract(
     )
 
 
+
+def resolve_box_body_back_panel_contract(
+    source,
+    snapshot,
+    *,
+    structure_state,
+    head_corner_policy=None,
+    tail_corner_policy=None,
+) -> dict:
+    """Resolve the physical rear-panel contract solely inside the engine.
+
+    GUI/CADSplit adapters supply operator dimensions and persisted structure;
+    the engine owns Receiving width compensation and corner-dependent height.
+    """
+    family_name = canonical_family_name(source)
+    if family_name != "受電箱":
+        return {}
+
+    from phase6_box_body_structure import BoxBodyStructureType
+    from ae_engine.sheetmetal_geometry import box_body_height_from_corner_policies
+
+    state = dict(structure_state or {})
+    cfg = state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    data = dict(snapshot or {})
+    width = float(data["w"]) - float(cfg.get("back_width_comp_t", 0.0)) * float(data["t"])
+    height = box_body_height_from_corner_policies(
+        float(data["h"]),
+        float(data["t"]),
+        head_corner_policy=head_corner_policy,
+        tail_corner_policy=tail_corner_policy,
+    )
+    data["model"] = family_name
+    return resolve_back_panel_contract(
+        source, data,
+        structure_state=state,
+        panel_width=width,
+        full_panel_height=height,
+    ) or {}
+
+
 def box_body_structure_is_fixed(source) -> bool:
     try:
         return bool(resolve_box_body_structure_state(source, None).get("locked", False))

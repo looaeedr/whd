@@ -573,7 +573,7 @@ def test_r3_8_all_current_side_dxf_sinks_check_full_marking_scene():
         "ae_engine/receiving_fixed_plate_formed_manufacturing.py",
         "ae_engine/receiving_csv_quantity_manufacturing.py",
         "ae_engine/receiving_csv_multibay_manufacturing.py",
-        "gui_modules/project/export_actions.py",
+        "ae_engine/manufacturing_selected_export.py",
     )
     for path in paths:
         tree = ast.parse(Path(path).read_text(encoding="utf-8"))
@@ -586,6 +586,17 @@ def test_r3_8_all_current_side_dxf_sinks_check_full_marking_scene():
         assert calls, f"No MARKING readback call: {path}"
         assert all(any(arg.arg == "check_scene" for arg in call.keywords)
                    for call in calls), f"EAR-only readback: {path}"
+
+    # GUI only initiates the physical operation: Engine owns DXF readback.
+    gui_tree = ast.parse(
+        Path("gui_modules/project/export_actions.py").read_text(encoding="utf-8")
+    )
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "save_selected_resolved_manufacturing_dxf"
+        for node in ast.walk(gui_tree)
+    )
 
 
 @pytest.mark.parametrize("malformed", [True, 42, "back_panel_mode", []])

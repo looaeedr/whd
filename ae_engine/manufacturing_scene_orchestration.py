@@ -488,7 +488,7 @@ def build_inner_door_panel_render_data(
     )
 
 
-def build_inner_door_frame_render_data(frame) -> PartRenderData:
+def build_inner_door_frame_render_data(frame, *, resource_root: Path | None = None) -> PartRenderData:
     """Build one inner-door frame FinalScene from its canonical physical part.
 
     This consumes the already-derived positive material chain. The signed chain
@@ -516,6 +516,10 @@ def build_inner_door_frame_render_data(frame) -> PartRenderData:
         from .receiving_frame_baseline import receiving_frame_source
         source_outline, source_holes, source_info = receiving_frame_source(
             str(frame.side), material_width=float(chain.total_width), span=float(frame.span),
+            source_path=(
+                Path(resource_root) / "基準檔" / "受電箱" / "框.dxf"
+                if resource_root is not None else None
+            ),
         )
     else:
         source_outline = tuple(build_strip_outline(chain))

@@ -150,5 +150,16 @@ def test_original_main_operator_action_not_extra_dxf_button():
     source=inspect.getsource(export_actions._export_selected_resolved_parts)
     assert "export_current_receiving_multibay_dxf" in source
     assert "receiving_bay_preview_request" in source
-    assert "receiving_bay_assembly_offsets" in source
-    assert "save_verified_receiving_csv_selected_sheets" in source
+    from ae_engine import manufacturing_api
+    engine_source = inspect.getsource(
+        manufacturing_api.resolve_receiving_bay_local_export_geometry
+    )
+    assert "receiving_bay_assembly_offsets" not in source
+    assert "resolve_receiving_bay_local_export_geometry" in source
+    assert "receiving_bay_assembly_offsets" in engine_source
+    manufacturing_source = inspect.getsource(
+        manufacturing_api.save_selected_resolved_manufacturing_dxf
+    )
+    assert "save_selected_resolved_manufacturing_dxf" in source
+    assert "save_verified_receiving_csv_selected_sheets" not in source
+    assert "save_verified_receiving_csv_selected_sheets" in manufacturing_source

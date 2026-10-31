@@ -25,16 +25,7 @@ from ae_engine.contracts import (
     ManufacturingContext,
 )
 from ae_engine.sheetmetal_geometry import CornerTypeId
-from ae_engine.sheetmetal_features import feature_surface_from_structural_result
-from gui_modules.rendering import feature_surface_from_drawing_scene
-from ae_engine.sheetmetal_part_adapters import (
-    DoorFrameEdges,
-    build_door_result,
-    build_finished_reference_guide,
-    build_indicator_box_result,
-    build_unknown_door_result,
-    build_unknown_indicator_box_result,
-)
+from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
 from phase6_endcap_semantics import (
     assembly_intent_value,
     normalize_endcap_bottom_wrap_state,
@@ -106,29 +97,15 @@ def _box_body_part_spec_from_values(
         model_name, source_structure
     )
 
-    back_panel_contract = {}
-    family_name = cabinet_family_policy.canonical_family_name(model_name)
-    if family_name == "受電箱":
-        from phase6_box_body_structure import BoxBodyStructureType
-        from ae_engine.sheetmetal_geometry import box_body_height_from_corner_policies
-
-        cfg = structure_state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-        panel_width = float(val["w"]) - float(cfg.get("back_width_comp_t", 0.0)) * float(val["t"])
-        full_panel_height = box_body_height_from_corner_policies(
-            float(val["h"]),
-            float(val["t"]),
-            head_corner_policy=head_corner_policy,
-            tail_corner_policy=tail_corner_policy,
-        )
-        back_panel_snapshot = dict(snapshot or val)
-        back_panel_snapshot["model"] = family_name
-        back_panel_contract = cabinet_family_policy.resolve_back_panel_contract(
-            model_name,
-            back_panel_snapshot,
-            structure_state=structure_state,
-            panel_width=panel_width,
-            full_panel_height=full_panel_height,
-        ) or {}
+    # The engine, not the GUI adapter, owns the physical rear-panel sizing
+    # and family manufacturing contract (including Receiving W - 2.5T).
+    back_panel_contract = manufacturing_api.resolve_box_body_back_panel_contract(
+        model_name,
+        snapshot or val,
+        structure_state=structure_state,
+        head_corner_policy=head_corner_policy,
+        tail_corner_policy=tail_corner_policy,
+    )
 
     return BoxBodyPartSpec(
         width=float(val['w']), height=float(val['h']), depth=float(val['d']),
@@ -492,89 +469,33 @@ def _indicator_door_part_spec(self, val, layer_groups, *, features):
     return spec
 
 def _indicator_component_editor_contexts(self, state, val, *, box_features, door_features):
-    """Build the two editable members of one Door-owned indicator-box assembly."""
+    """View-only adapter: ask the engine for physical surfaces and display them."""
     state = self._normalize_door_indicator_state(state)
     layers = max(1, min(6, int(state.get("layers", 1))))
     groups = tuple(int(v) for v in list(state.get("groups", [2] * 6))[:layers])
     if not groups:
         groups = (2,)
-
-    # Box and small door are global shared parts, independent of the cabinet model.
-    # GUI identifies the part role only; AE owns the physical shared-baseline namespace.
-    box_corner_policy = None
-    box_data = ae.get_stretched_indicator_box_data(
-        None, groups, val['t'], corner_policy=None
-    )
-    box_baseline_scene = box_data.scene
-    box_status = ae.indicator_shared_baseline_source_label("盒子.dxf")
-    box_surface = feature_surface_from_drawing_scene("indicator_box", box_data.scene)
-    box_w = float(box_data.params['w'])
-    box_h = float(box_data.params['h'])
-    box_fold = float(getattr(ae, 'indicator_box_fold_def', 49.0))
-    box_result = (
-        build_unknown_indicator_box_result(
-            total_width=box_w, total_height=box_h, t=val['t'], fold=box_fold,
-            corner_policy=box_corner_policy,
-        ) if box_corner_policy is not None else
-        build_indicator_box_result(total_width=box_w, total_height=box_h, t=val['t'], fold=box_fold)
-    )
-    box_guide = build_finished_reference_guide(
-        "indicator_box", box_result,
-        finished_width=box_w - 2.0 * box_fold + val['t'],
-        finished_height=box_h - 2.0 * box_fold + val['t'],
-    )
-
     door_spec = self._indicator_door_part_spec(val, groups, features=door_features)
-    finished_w, finished_h = manufacturing_api.door_finished_face_size(door_spec)
-    if door_spec.corner_policy is not None:
-        door_result = build_unknown_door_result(
-            w=door_spec.width, h=door_spec.height, t=door_spec.thickness, fw=door_spec.frame_width,
-            gap_w=door_spec.gap_w, gap_h=door_spec.gap_h,
-            fold_left=door_spec.fold_left, fold_right=door_spec.fold_right,
-            fold_top=door_spec.fold_top, fold_bottom=door_spec.fold_bottom,
-            corner_policy=door_spec.corner_policy,
-        )
-        door_surface = feature_surface_from_structural_result("indicator_door", door_result)
-        door_width, door_height = door_result.width, door_result.height
-        door_baseline_scene = None
-        door_status = "自訂 / 手動截角"
-    else:
-        door_data = ae.get_stretched_door_data(
-            None, door_spec.width, door_spec.height, door_spec.thickness, door_spec.frame_width,
-            door_spec.gap_w, door_spec.gap_h,
-            door_spec.fold_left, door_spec.fold_right, door_spec.fold_top, door_spec.fold_bottom,
-            indicator_window_groups=groups,
-        )
-        door_surface = feature_surface_from_drawing_scene("indicator_door", door_data.scene)
-        door_width = float(door_data.params['total_width'])
-        door_height = float(door_data.params['total_depth'])
-        door_result = build_door_result(
-            w=door_spec.width, h=door_spec.height, t=door_spec.thickness, fw=door_spec.frame_width,
-            gap_w=door_spec.gap_w, gap_h=door_spec.gap_h,
-            fold_left=door_spec.fold_left, fold_right=door_spec.fold_right,
-            fold_top=door_spec.fold_top, fold_bottom=door_spec.fold_bottom,
-        )
-        door_baseline_scene = door_data.scene
-        door_status = ae.indicator_shared_baseline_source_label("小門.dxf")
-    door_guide = build_finished_reference_guide(
-        "indicator_door", door_result,
-        finished_width=float(finished_w), finished_height=float(finished_h),
+    geometry = manufacturing_api.resolve_indicator_editor_components(
+        groups, thickness=val["t"], door_spec=door_spec,
     )
-
+    box = geometry["indicator_box"]
+    door = geometry["indicator_door"]
     return {
         "indicator_box": {
             "part_key": "indicator_box", "title": "指示燈盒 — 盒體（基準檔＋指示燈）",
-            "surface": box_surface, "width": box_w, "height": box_h,
-            "reference_guide": box_guide, "feature_list": box_features,
-            "baseline_scene": box_baseline_scene,
+            "surface": box.surface, "width": box.width, "height": box.height,
+            "reference_guide": box.reference_guide, "feature_list": box_features,
+            "baseline_scene": box.baseline_scene,
             "baseline_status_text": (
-                f"{box_status}｜排列 {list(groups)}｜{box_w:g} × {box_h:g} mm"
+                f"{box.baseline_status}｜排列 {list(groups)}｜{box.width:g} × {box.height:g} mm"
             ),
         },
         "indicator_door": {
             "part_key": "indicator_door", "title": "指示燈盒 — 小門（基準檔）",
-            "surface": door_surface, "width": door_width, "height": door_height,
-            "reference_guide": door_guide, "feature_list": door_features,
-            "baseline_scene": door_baseline_scene, "baseline_status_text": door_status,
+            "surface": door.surface, "width": door.width, "height": door.height,
+            "reference_guide": door.reference_guide, "feature_list": door_features,
+            "baseline_scene": door.baseline_scene,
+            "baseline_status_text": door.baseline_status,
         },
     }

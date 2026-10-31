@@ -124,90 +124,38 @@ def _validate_selected_indicator_exports(self, flags, val):
 
 
 def _resolved_export_intention_key(part_key):
-    """Map canonical physical identity to the existing operator export intention."""
-    key = str(part_key or "").strip()
-    if key == "box_body" or key.startswith("box_body:"):
-        return "box_body"
-    if key == "head":
-        return "head"
-    if key == "tail":
-        return "tail"
-    if key == "door" or key.startswith("door_") or key.startswith("inner_door:"):
-        return "door"
-    if (key == "base_plate" or key.startswith("base_plate_")
-            or key.startswith("base_plate:nfb_layer:")):
-        return "base_plate"
-    if key == "indicator_box" or key.startswith("indicator_box_"):
-        return "indicator_box"
-    if key == "indicator_door" or key.startswith("indicator_door_"):
-        return "indicator_door"
-    return None
-
+    """Compatibility for operator checkboxes; Engine owns part identity."""
+    return manufacturing_api.resolved_export_intention_key(part_key)
 
 
 def _has_submitted_nfb_in_current_snapshot(payload):
-    """Read persisted NFB submission from nested project/quantity snapshots."""
-    seen=set()
-    def walk(node,depth):
-        if depth>32:
-            raise ValueError("NFB project export nesting exceeds safe bound")
-        if isinstance(node,Mapping):
-            if id(node) in seen:
-                return False
-            seen.add(id(node))
-            if "nfb_config_submitted" in node:
-                fact=node["nfb_config_submitted"]
-                if type(fact) is not bool:
-                    raise ValueError("NFB saved submission flag must be boolean")
-                if fact:
-                    return True
-            return any(walk(value,depth+1) for value in node.values())
-        if isinstance(node,(list,tuple)):
-            if id(node) in seen:
-                return False
-            seen.add(id(node))
-            return any(walk(value,depth+1) for value in node)
-        return False
-    return walk(payload,0)
+    """Compatibility call: Engine owns the saved NFB submission contract."""
+    return manufacturing_api.has_submitted_nfb_in_current_snapshot(payload)
 
 
 def _assert_legacy_nfb_export_scope_safe(self, flags):
-    """Block stale legacy door/body/base but not demonstrably independent parts.
-
-    Submitted NFB requires current actual part+source verification; an old
-    resolved geometry cannot silently replace missing NFB CUTTING. This
-    guard never creates a second export authority and only protects the
-    legacy GUI pipeline until the scoped partial dispatcher is wired.
-    """
-    affected=("door","base_plate","box_body")
-    if not any(bool(flags.get(k)) for k in affected):
-        return
-    designer=getattr(self,"fold_designer_app",None)
-    sources=(
-        getattr(self,"_phase6_input_snapshot",None),
-        getattr(designer,"_phase6_input_snapshot",None),
+    """Collect GUI project sources, then ask the Engine whether export is safe."""
+    designer = getattr(self, "fold_designer_app", None)
+    sources = (
+        getattr(self, "_phase6_input_snapshot", None),
+        getattr(designer, "_phase6_input_snapshot", None),
     )
-    workspace=getattr(designer,"designer_workspace",None)
-    other=()
+    workspace = getattr(designer, "designer_workspace", None)
+    other = ()
     if workspace is not None:
-        snapshot=getattr(workspace,"snapshot",None)
+        snapshot = getattr(workspace, "snapshot", None)
         if callable(snapshot):
-            other=(snapshot(),)
-    if any(_has_submitted_nfb_in_current_snapshot(source)
-           for source in (*sources,*other)):
-        raise ValueError(
-            "已提交 NFB：舊式內門／箱身／底板 DXF 無法證明 NFB 孔位，"
-            "不得忽略 NFB 配置直接完整出圖；須使用逐板件來源驗證"
-        )
+            other = (snapshot(),)
+    return manufacturing_api.assert_legacy_nfb_export_scope_safe(
+        flags, (*sources, *other),
+    )
+
 
 def _selected_resolved_geometry(resolved_geometry, flags):
-    """Filter presence by export intention without inventing a physical-part list."""
-    selected = tuple(
-        part
-        for part in tuple(getattr(resolved_geometry, "parts", ()) or ())
-        if bool(flags.get(_resolved_export_intention_key(part.part_key), False))
+    """Forward GUI selection intent to the engine physical inventory."""
+    return manufacturing_api.select_resolved_export_geometry(
+        resolved_geometry, flags,
     )
-    return replace(resolved_geometry, parts=selected)
 
 
 def _export_selected_resolved_parts(self, folder, flags):
@@ -373,17 +321,12 @@ def _export_selected_resolved_parts(self, folder, flags):
     if (receiving_live.get("model") == "受電箱"
             and receiving_live.get("active_mode", "set_bay") == "set_bay"
             and physical_count > 1):
-        from ae_engine.receiving_layout import (
-            normalize_receiving_layout, receiving_bay_assembly_offsets,
-        )
+        from ae_engine.receiving_layout import normalize_receiving_layout
         saved_layout = normalize_receiving_layout(raw_layout)
         if physical_count != sum(len(s["bays"]) for s in saved_layout["sets"]):
             raise ValueError("多連實體連數與目前標準組合體資料不一致")
         if physical_count > 1:
             import fold_designer_bridge as receiving_bridge
-            from ae_engine.contracts import (
-                ResolvedManufacturingGeometry, ResolvedManufacturingPart,
-            )
             from ae_engine.receiving_csv_multibay_manufacturing import (
                 export_current_receiving_multibay_dxf,
             )
@@ -416,22 +359,10 @@ def _export_selected_resolved_parts(self, folder, flags):
                     current=composition.receiving_bay_preview_request(
                         vars(receiving_bridge), set_index, bay_index,
                     )
-                anchor = receiving_bay_assembly_offsets(
-                    saved_layout, set_index=set_index,
-                )[bay_index]
-                physical = tuple(
-                    ResolvedManufacturingPart(
-                        part_key=p.part_key,render_data=p.render_data,
-                        x_profile=p.x_profile,y_profile=p.y_profile,
-                        placement=p.placement,
-                        offset=tuple(float(x)-float(y)
-                                     for x,y in zip(p.offset, anchor)),
-                    )
-                    for p in current.render_data.assembly_parts
+                return manufacturing_api.resolve_receiving_bay_local_export_geometry(
+                    current.render_data.assembly_parts, saved_layout,
+                    set_index=set_index, bay_index=bay_index,
                 )
-                if any(p.placement == "standalone" for p in physical):
-                    raise ValueError("多連出圖禁止以單件預覽取代組合體實體")
-                return ResolvedManufacturingGeometry(parts=physical)
             outputs = export_current_receiving_multibay_dxf(
                 receiving_live,
                 physical_bay_geometry_provider=actual_bay_geometry,
@@ -443,18 +374,9 @@ def _export_selected_resolved_parts(self, folder, flags):
     # positioning marks to LEFT/RIGHT physical side plates automatically.
     # No extra operator button or forged cabinet/PAD release.
     receiving_snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
-    auto_side = (
-        bool(flags.get("box_body"))
-        and receiving_snapshot.get("model") == "受電箱"
-        and receiving_snapshot.get("nfb_config_submitted") is True
+    auto_side, committed_csv = manufacturing_api.selected_export_manufacturing_policy(
+        receiving_snapshot, flags,
     )
-    committed_csv = ()
-    if (receiving_snapshot.get("model") == "受電箱"
-            and receiving_snapshot.get("nfb_config_submitted") is True):
-        from ae_engine.receiving_nfb_committed_final_scene import (
-            _submitted_csv_holes,
-        )
-        committed_csv = _submitted_csv_holes(receiving_snapshot)
     if auto_side:
         if receiving_snapshot.get("active_mode") == "quantity":
             raise ValueError("EAR_SIDE_NORMAL_EXPORT_QUANTITY_NOT_VERIFIED")
@@ -470,138 +392,11 @@ def _export_selected_resolved_parts(self, folder, flags):
     else:
         _assert_legacy_nfb_export_scope_safe(self, flags)
     resolved = resolver()
-    if auto_side:
-        from ae_engine.receiving_ear_side_manufacturing_marking import (
-            with_verified_receiving_ear_side_markings,
-        )
-        dimensions = tuple(
-            float(receiving_snapshot[key]) for key in ("w", "h", "d")
-        )
-        sheet_thickness = float(receiving_snapshot["t"])
-        unmarked = resolved
-        resolved = with_verified_receiving_ear_side_markings(
-            receiving_snapshot, unmarked,
-            dimensions=dimensions, sheet_thickness=sheet_thickness,
-        )
-    selected = _selected_resolved_geometry(resolved, flags)
-    if not tuple(getattr(selected, "parts", ()) or ()):
-        return ([], ["canonical resolved export: no selected physical parts"])
-
-    # Current submitted Receiving Base Plates own physical fixing sheets.
-    # Validate real signed folds / side weld contact before committing those
-    # source CUTTING/BEND sheets WITH the ordinary SIDE MARKING in one batch.
-    # Historical side-only scenes without an installed base stay compatible.
-    physical_base_present = auto_side and any(
-        str(getattr(part, "part_key", "")) == "base_plate"
-        or str(getattr(part, "part_key", "")).startswith("base_plate:nfb_layer:")
-        for part in tuple(getattr(unmarked, "parts", ()) or ())
+    outputs = manufacturing_api.save_selected_resolved_manufacturing_dxf(
+        receiving_snapshot, resolved, flags, folder,
     )
-    if physical_base_present:
-        from ae_engine.receiving_fixed_plate_formed_manufacturing import (
-            save_verified_receiving_formed_fixing_plate_bundle,
-        )
-        # Exactly the installed original physical inventory, not merely
-        # BODY + CSV DOOR + BASE, may earn a whole-cabinet software MFG-2
-        # receipt. Partial selected DXF is still a valid independent export.
-        from ae_engine.manufacturing_export import resolved_physical_render_parts
-        original_sheets = {
-            key for key, _ in resolved_physical_render_parts(unmarked)
-        }
-        selected_sheets = {
-            key for key, _ in resolved_physical_render_parts(selected)
-        }
-        certify_whole_software = (
-            bool(committed_csv)
-            and original_sheets == selected_sheets
-            and bool(original_sheets)
-            # First-family-switch scenes legitimately retain standalone
-            # preview pieces. Their selected DXF must still work, but they
-            # are NOT a certified whole assembled cabinet.
-            and all(
-                getattr(p, "placement", None) != "standalone"
-                for p in tuple(getattr(unmarked, "parts", ()) or ())
-            )
-            and bool(flags.get("box_body"))
-            and bool(flags.get("door"))
-            and bool(flags.get("base_plate"))
-        )
-        bundle = save_verified_receiving_formed_fixing_plate_bundle(
-            receiving_snapshot, unmarked, selected, folder,
-            dimensions=dimensions, sheet_thickness=sheet_thickness,
-            overwrite=True,
-            # #1490: source-complete selected BODY/DOOR/BASE brings its
-            # physical PAD into the same atomic DXF set. Other selected
-            # sheet combinations remain independently legal.
-            require_complete_cabinet_inventory=(
-                bool(flags.get("box_body")) and bool(flags.get("door"))
-                and bool(flags.get("base_plate")) and bool(committed_csv)
-            ),
-            certify_software_mfg2=certify_whole_software,
-        )
-        outputs = dict(bundle.output_paths)
-        if bundle.software_mfg2_receipt_path:
-            outputs["__whd_1490_software_mfg2__"] = (
-                bundle.software_mfg2_receipt_path
-            )
-    elif committed_csv and bool(flags.get("door") or flags.get("base_plate")):
-        from ae_engine.receiving_fixed_plate_formed_manufacturing import (
-            save_verified_receiving_csv_selected_sheets,
-        )
-        outputs = save_verified_receiving_csv_selected_sheets(
-            receiving_snapshot, resolved, selected, folder,
-            overwrite=True,
-        )
-    else:
-        outputs = manufacturing_api.save_resolved_manufacturing_geometry_dxf(
-            selected, folder, overwrite=True,
-        )
-    if auto_side:
-        # Independently reopen the actual serialized SIDE drawings and compare
-        # every source-world-derived MARKING coordinate before the outer
-        # selected-DXF batch can be committed to the operator's folder.
-        from ae_engine.receiving_fixed_plate_side_check_dxf import (
-            _verified_pair, _readback_marking_lines,
-        )
-        from ae_engine.manufacturing_scene_access import owner_render_data
-        from ae_engine.manufacturing_api import verify_saved_part_render_data_dxf
-        receipts, _, _, _ = _verified_pair(
-            receiving_snapshot, unmarked,
-            dimensions=dimensions, sheet_thickness=sheet_thickness,
-            permit_independent_source_marking_crossing=True,
-        )
-        for side in ("box_body:left_side", "box_body:right_side"):
-            physical = owner_render_data(resolved, side)
-            # Resolve the actual canonical physical row by its immutable
-            # render-data identity, not by a fabricated part_id/filename:
-            # BoxBody composite role keys are e.g. box_body:box_body_left_side.
-            from ae_engine.manufacturing_export import (
-                resolved_physical_render_parts,
-            )
-            matching_keys = tuple(
-                part_id for part_id, render_data
-                in resolved_physical_render_parts(selected)
-                if render_data is physical and part_id.startswith("box_body:")
-            )
-            if physical is None or len(matching_keys) != 1:
-                raise ValueError("EAR_SIDE_NORMAL_EXPORT_SIDE_OWNER_AMBIGUOUS")
-            target = outputs.get(matching_keys[0])
-            if not target:
-                raise ValueError("EAR_SIDE_NORMAL_EXPORT_SIDE_OUTPUT_MISSING")
-            if not verify_saved_part_render_data_dxf(physical, target).ok:
-                raise ValueError("EAR_SIDE_NORMAL_EXPORT_SAVED_DXF_INVALID")
-            _readback_marking_lines(
-                target, (
-                    segment
-                    for row in receipts if row.side_piece_id == side
-                    for segment in row.marking_segments
-                ),
-                # The NORMAL manufacturing SIDE scene contains both the
-                # certified EAR lines and its pre-existing source MARKING.
-                # Compare the entire current resolved physical source to the
-                # independently reopened DXF, not EAR rows alone. The reader
-                # still rejects every unowned or duplicate MARKING LINE.
-                check_scene=physical.scene,
-            )
+    if not outputs:
+        return ([], ["canonical resolved export: no selected physical parts"])
     return ([os.path.basename(path) for path in outputs.values()], [])
 
 

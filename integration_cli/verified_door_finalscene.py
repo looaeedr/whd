@@ -38,6 +38,10 @@ from integration_cli.worker_receiving_side_panel import (
     receiving_side_panel_frame,
     receiving_side_panel_render,
 )
+from integration_cli.worker_inner_door_frame import (
+    receiving_inner_door_frame_from_trusted_part,
+    receiving_inner_door_frame_size_only_frame,
+)
 from integration_cli.worker_inner_door_panel import (
     receiving_inner_door_panel_from_trusted_part,
     resolve_receiving_inner_door_panel_frame,
@@ -174,8 +178,8 @@ def save_trusted_door_circle_finalscene_batch(
     from ae_engine.contracts import ManufacturingContext
     from ae_engine.manufacturing_api import (
         build_part_render_data, resolve_policy, save_verified_final_scene_batch_dxf,
+        map_door_features_to_unfolded_material,
     )
-    from ae_engine.manufacturing_endcap_compat import _door_features_for_legacy_engine
 
     if not isinstance(source_documents, Mapping) or not isinstance(resource_root, Path):
         _reject("Worker-owned original source custody and resource root required")
@@ -262,6 +266,21 @@ def save_trusted_door_circle_finalscene_batch(
             if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
                 _reject("Receiving side material Frame changed after signed Prepare")
             render = receiving_side_panel_render(spec, side_role, context)
+            rows.append((receipt["physical_part_id"], render))
+            continue
+        if kind == "inner_door" and "inner_door_frame_side" in original["part"]:
+            from ae_engine.manufacturing_api import build_inner_door_frame_render_data
+            frame_part = receiving_inner_door_frame_from_trusted_part(original["part"])
+            frame = receiving_inner_door_frame_size_only_frame(
+                frame_part, resource_root, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Receiving A/B/D Frame diverged from signed W-03 Final Material")
+            render = build_inner_door_frame_render_data(frame_part, resource_root=resource_root)
+            if render.material is None or render.material.is_empty or not render.material.is_valid or not render.fold_guides:
+                _reject("Receiving A/B/D physical CUTTING/BEND unavailable")
+            if render.metadata.get("stable_id") != frame_part.stable_id:
+                _reject("Receiving A/B/D physical source identity changed")
             rows.append((receipt["physical_part_id"], render))
             continue
         if kind == "inner_door":
@@ -397,7 +416,7 @@ def save_trusted_door_circle_finalscene_batch(
 
         marked = tuple(replace(c, source_type=_SOURCE_CIRCLE_MARKER) for c in original_features)
         owned_spec = replace(spec, features=marked, feature_space="finished_face")
-        mapped = _door_features_for_legacy_engine(owned_spec, context)
+        mapped = map_door_features_to_unfolded_material(owned_spec, context)
         render = build_part_render_data(owned_spec, context)
         _assert_original_circles_in_final_scene(render, mapped)
         rows.append((receipt["physical_part_id"], render))

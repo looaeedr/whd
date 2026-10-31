@@ -171,6 +171,8 @@
               "box_z_comp_mm": {"type": "number"},
               "inner_door_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$"},
               "inner_door_cell_key": {"type": "string", "pattern": "^[0-9]+:[0-9]+$"},
+              "inner_door_frame_side": {"enum": ["top", "left", "right"]},
+              "inner_door_frame_span_mm": {"type": "number", "exclusiveMinimum": 110},
               "back_panel_mode": {"enum": ["FULL", "BACK_OPENING"]},
               "endcap_yl1_mm": {"type": "number", "exclusiveMinimum": 0},
               "endcap_yr1_mm": {"type": "number", "exclusiveMinimum": 0},
@@ -282,10 +284,17 @@
               {
                 "if": {"properties": {"kind": {"const": "inner_door"}}},
                 "then": {
-                  "required": ["inner_door_id", "inner_door_cell_key"],
-                  "properties": {
-                    "dimensions_mm": {"required": ["width", "height", "thickness"]}
-                  }
+                  "required": ["inner_door_id"],
+                  "allOf": [{
+                    "if": {"required": ["inner_door_frame_side"]},
+                    "then": {"required": ["inner_door_frame_span_mm"]},
+                    "else": {
+                      "required": ["inner_door_cell_key"],
+                      "properties": {
+                        "dimensions_mm": {"required": ["width", "height", "thickness"]}
+                      }
+                    }
+                  }]
                 }
               },
               {
