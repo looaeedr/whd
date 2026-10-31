@@ -173,7 +173,7 @@ def apply_box_structure_numeric(
     *,
     total_w: float,
     outside_family: bool = False,
-) -> dict
+) -> dict:
     return manufacturing_api.apply_box_body_structure_numeric(
         state, type_id, field, value,
         total_w=total_w, outside_family=outside_family,
