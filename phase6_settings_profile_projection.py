@@ -17,6 +17,7 @@ import re
 from typing import Any, Mapping
 
 from ae_engine.cabinet_types import policy as cabinet_family_policy
+from ae_engine import manufacturing_api
 from ae_engine.manufacturing_api import (
     DoorPartProjection, door_part_projections, project_part_dimensions,
     build_standard_part_fold_profiles, merge_keyed_fold_profiles,
@@ -152,22 +153,8 @@ def _is_base_plate_part_key(value: object) -> bool:
 
 
 def is_derived_physical_part_key(value: object) -> bool:
-    key = str(value or "")
-    return (
-        re.fullmatch(r"door_c\d+_r\d+", key) is not None
-        or re.fullmatch(r"base_plate_c\d+_r\d+", key) is not None
-        or key.startswith("base_plate:fixing_plate:")
-        or key.startswith("base_plate:nfb_layer:")
-        or key.startswith("nfb_pad:")
-        or is_box_body_physical_piece_key(key)
-        or key.startswith("box_body:divider:")
-        or (key.startswith("inner_door:") and key.endswith("_frame"))
-        or (key.startswith("inner_door:") and key.endswith(":panel"))
-    )
-
-
-
-
+    """Settings planner delegates physical derivative identity to Engine."""
+    return manufacturing_api.is_derived_physical_part_key(value)
 
 
 def build_standard_part_profiles(

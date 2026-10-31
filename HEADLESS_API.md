@@ -356,3 +356,14 @@ defaults; an empty axis also takes defaults. Neither input is mutated. The
 Phase6 Settings plan uses only a compatibility delegate and must not rederive
 the canonical material or outside compensation. This API by itself is not
 DXF/CUTTING certification.
+
+
+## Derived physical part identity classification (#2517)
+
+`ae_engine.manufacturing_api.is_box_body_physical_piece_key(part_key)`
+and `is_derived_physical_part_key(part_key)` are Engine-owned public, pure
+classifiers for existing persisted BoxBody physical-piece, Door/BasePlate cell,
+Receiving fixing/NFB/Divider, and inner-door panel/frame identities.
+The Phase6 Settings planner and operator navigation delegate their identity
+decisions to Engine. GUI still controls hierarchy, focus, and selection.
+Recognizing an existing ID never authorizes unsupported DXF manufacture.

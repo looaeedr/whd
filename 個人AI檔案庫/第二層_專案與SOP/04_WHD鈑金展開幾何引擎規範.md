@@ -520,3 +520,9 @@ frame-only route.
 
 - `merge_keyed_fold_profiles` publicly owns Settings' reconciliation of newly computed Engine material `len`, bend `ui_len_add` and core metadata with operator-added Fold rows, per X/Y axis. The GUI Settings planner only delegates and presents the resulting detached profiles. Missing canonical keys fail closed to the complete Engine default axis, never guessed material lengths.
 - This migration does not change Family material geometry, Certified Registry, Custom Fold ownership, independent manufacturing DXF gates, or the open #2517 acceptance status.
+
+
+### #2517 Derived physical part ID classification (2026-11-01)
+
+- Engine public `is_box_body_physical_piece_key` and `is_derived_physical_part_key` now own the existing physical-child identity distinctions. Phase6 navigation and Settings are display/planning adapters, not independent manufacturing physical-ID authorities.
+- This does not allocate IDs or certify Save→Reload, 2D/3D/DXF manufacturing support.
