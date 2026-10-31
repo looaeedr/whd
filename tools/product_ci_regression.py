@@ -791,7 +791,7 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
                 or not isinstance(seconds, (int, float)) or seconds <= 0):
             raise ValueError("18-shard observed BOM timing/owner invalid")
     if (bom_owners["金庫型-FULL-1"] != 1
-            or sorted(bom_owners.values()) != [1, 14, 14, 15, 15, 16, 17]):
+            or sorted(bom_owners.values()) != [1, 14, 14, 15, 16, 16, 17]):
         raise ValueError("18-shard BOM case allocation changed")
 
     # T15 has 22 real top-level test functions. Isolate the measured 36s
