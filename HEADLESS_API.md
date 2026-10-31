@@ -13,6 +13,12 @@ whd_schema: WHD_DOC_META_V1
 全域硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 的唯一 CURRENT owner 是 AI 庫 `第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；此檔是 REFERENCE。GUI 全功能只處理操作與輸入，所有製造資料、公式、實體板件、孔位／折展開及 2D/3D/DXF 的 canonical 結果由引擎公開 API 處理。既有舊 GUI adapters 的存在**不代表每個箱型與功能均已完成改造**。遇 API 不支援，回引擎開發／測試或明確拒絕，不許 GUI 私做 fallback。對外 CADSplit Worker `capabilities/prepare/export` 僅宣告實際已驗證與授權的能力。靜態 CI gate：`tools/gui_engine_api_boundary_gate.py`，但它不代替行為契約測試或平台 required status check。
 
 
+## CornerType payload → 製造 Policy（#2517，非標準 Fold PR）
+
+`manufacturing_api.corner_policy_from_payload(corner_state, part_key, fw, *, known_family=None)` 在無 Tk 的 Engine 內解析已保存的四角 `CornerTypeSelection`／raw row，並交給現有 `policy_from_corner_state` 建立正式 `FourCornerTypePolicy`。舊 C01–C04 typed input 沿用 Engine `normalize_corner_selection`；完整操作者選擇優先。缺角且由已知箱型提供 `known_family` 時，回到既有 Certified Registry 的已知 CornerType；未知／自訂不允許拿金庫型的 fallback。無來源時回傳 `None`，無效型別拋錯而非虛構加工資料。
+
+GUI 的 `_fold_designer_corner_policy_from_payload` 僅為相容代理，`_payload_policy` 的已知 Family fallback 同樣透過公開 Engine API。本改動僅搬責任，**沒有變更任何截角公式、Registry、FinalScene 或 DXF 認證**；標準板件 X/Y Fold 由另一條工作路徑處理。
+
 ## Fold Designer 基準孔位（#2517 第一個 GUI API 遷移切片）
 
 `ae_engine.manufacturing_api.query_fold_designer_baseline_rows(part_key, model_name, values)` 接收 Fold Designer 明確的操作者 `w/h/d/t/fw` 與 Door gap/fold 可選欄位；Engine 自行解析 Door/EndCap 正式基準來源、Cabinet Family 物理 FW 與現有 `CUTTING/BLIND_HOLE` 孔中心／尺寸。GUI 只傳 request 與呈現數值，不能從 DrawingScene 重新推導加工孔位。
