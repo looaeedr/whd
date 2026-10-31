@@ -30,6 +30,25 @@ whd_schema: WHD_DOC_META_V1
 
 因此 04 的責任是回答「engine 現在怎麼分層、公開哪些 API、各 authority 怎麼接起來」，不是把 Registry JSON 內容重新抄一份。
 
+### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
+
+**2026-10-31 核准的全域決策**：WHD 專案的 GUI 只是使用者操作、輸入、表單格式檢查、選取、呼叫與結果顯示。所有與製造相關的規則、正確性、箱型策略、板件拓樸與身份、孔／折／截角／避讓、加工資料、DXF、2D/3D canonical geometry 的唯一實作與權威都在 `ae_engine`，並經公開 API 提供。GUI 可把明確輸入轉成 DTO/PartSpec，但**DTO 組裝絕不能夾帶機械演算**。
+
+```text
+GUI（operator input / action / presentation）
+  → Engine request + public API
+  → Family + Topology + ManufacturingPolicy + Certified Registry
+  → authoritative FinalScene + physical parts + 2D/3D/DXF + Save→Reload
+  → Engine response → GUI presentation
+```
+
+全箱型、全實體板件、所有孔型、數量／套／連／Bay、3D 預覽、製造匯出、編輯與儲存都適用；**這不代表所有相關 API 已完成或已驗證製造**。GUI 禁止複製折彎／展開／CUTTING／BLIND_HOLE／MARKING／offset 計算、決定製造板件、低層 `ae.export_*` 與直接 DXF 序列化。Engine 禁止反向 import GUI/Tk 或依賴 GUI widget／renderer 才能產生正確幾何。
+
+Python 公開 seam 以 `ae_engine.contracts`、`ae_engine.manufacturing_api` 和 `ae_engine.__init__` 的正式 export 為準；外部 CADSplit 的 seam 是已授權 `integration_cli` 的 `capabilities/prepare/export`。功能缺席時**先補 Engine API、schema、capability 宣告與契約測試**，否則回傳 unsupported；GUI 不准以 fallback／Preview／自製公式假裝支援。能力表只反映實際驗證、信任與授權，不由 UI 清單代替。
+
+驗收同時驗 request → Engine API → result → GUI／Save→Reload／2D／3D／DXF，且每類箱型、板件、操作都必須以真實來源及 fail-closed 能力宣告證實。CI `tools/gui_engine_api_boundary_gate.py` 與 `.github/workflows/whd-gui-engine-api-boundary.yml` 阻擋可偵測的 PR **新增**越界程式碼；歷史技術債並非已經消失，須逐步搬回 Engine。靜態檢查不足以代替 domain 測試與 required branch check。
+
+
 ### 2. Current manufacturing data flow
 
 ```text
@@ -195,6 +214,8 @@ Validation 維持單向：contact probe、collision、fixture expected、pytest 
 
 
 ### 10. CADSplit × WHD-Engine Worker authority / Gate A boundary (#2375 / #2382)
+
+**公開 Gate A 維持獨立 fail-closed**：GUI／Engine API 的單向權責調整，不等於對外 CADSplit 製造能力已放行；私有安裝、簽章／HMAC 核准、局部 capability 或測試通過，都不可替代公開 Gate A 的實際全項驗證與授權。既有 Gate B/D/E 仍依原有證據判定。
 
 此段是既有製造架構的**入口與權責對照**，不另建立製造公式、第二套 CURRENT owner 或對外可用性承諾。
 
