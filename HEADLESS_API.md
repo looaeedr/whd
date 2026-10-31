@@ -533,3 +533,13 @@ and returns `(detached_layout, changed_bay_stable_ids)`.
 The GUI uses the result only to set its current layout and update dirty
 presentation IDs. Failure leaves its layout and saved candidate library intact.
 Saved NFB X remains unverified; no new CUTTING or DXF capability is granted.
+
+## Assembly physical material mesh Fold profiles (#2517)
+
+`manufacturing_api.resolve_material_mesh_profiles(part_input, material)` is
+now the public Engine owner for request-time 3D assembly mesh X/Y Fold
+profile normalization. It retains explicit saved Fold profiles and only uses
+already-resolved physical material bounds for the whole Box Body Y span or
+missing single axis of divider/inner-door frame material. Invalid bounds are
+rejected only if the physical fallback is required. The Phase6 helper is a
+compatibility delegation; this API does not certify new 2D/CUTTING/DXF output.

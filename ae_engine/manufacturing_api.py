@@ -853,3 +853,7 @@ def apply_receiving_inner_door_quantity_configuration(
     return _apply(
         layout, library, quantities, assigned, expected_counts=expected_counts,
     )
+
+
+# Engine-owned request-time physical mesh Fold fallback for assembly 3D.
+from .assembly_mesh_profiles import resolve_material_mesh_profiles
