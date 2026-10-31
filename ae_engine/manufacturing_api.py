@@ -28,6 +28,10 @@ from typing import Literal, Mapping
 from . import ae
 from .dxf_serialization import save_scene_dxf
 from .cabinet_types.policy import resolve_box_body_back_panel_contract
+from .box_body_fold_profile import (
+    build_box_body_profile as build_box_body_fold_profile,
+    profile_to_fold_segments as box_body_profile_to_fold_segments,
+)
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,

@@ -33,7 +33,9 @@ def receiving_side_panel_spec_from_trusted_part(part: Mapping[str, Any]):
     from ae_engine.cabinet_types import receiving
     from ae_engine.manufacturing_api import resolve_box_body_back_panel_contract
     from ae_engine.contracts import BoxBodyPartSpec
-    from phase6_fold_profiles import build_box_body_profile, profile_to_fold_segments
+    from ae_engine.manufacturing_api import (
+        build_box_body_fold_profile, box_body_profile_to_fold_segments,
+    )
 
     if (not isinstance(part, Mapping)
             or part.get("kind") != "side_panel"
@@ -73,7 +75,7 @@ def receiving_side_panel_spec_from_trusted_part(part: Mapping[str, Any]):
     for name, wire in _INPUTS:
         snapshot[name] = float(part[wire])
     try:
-        fold_rows = build_box_body_profile(snapshot)
+        fold_rows = build_box_body_fold_profile(snapshot)
         # The Receiving family removes terminal zr1. It is *eight* segments,
         # unlike the Vault's nine. Never invent zr1 or z_comp input for it.
         if (tuple(row.get("phase6_key") for row in fold_rows) != (
@@ -83,7 +85,7 @@ def receiving_side_panel_spec_from_trusted_part(part: Mapping[str, Any]):
                 not math.isfinite(float(row["len"])) or float(row["len"]) <= 0
                 for row in fold_rows)):
             raise ValueError("unverified Receiving D-W-D source profile")
-        fold = profile_to_fold_segments(fold_rows)
+        fold = box_body_profile_to_fold_segments(fold_rows)
         state = receiving.resolve_box_body_structure_state(None)
         # The GUI/Worker must never compute a second rear-width compensation
         # or corner-dependent height; only the existing public Engine Family
