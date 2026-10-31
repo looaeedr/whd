@@ -19,6 +19,10 @@ from integration_cli.prepare_batch import (
     endcap_spec_from_trusted_prepared_part,
     vault_base_plate_spec_from_trusted_prepared_part,
 )
+from integration_cli.worker_box_body import (
+    vault_box_body_spec_from_trusted_prepared_part,
+    resolve_vault_box_body_size_only_frame,
+)
 from integration_cli.prepare_evidence import PrepareEvidenceError, _pure_json
 from integration_cli.prepare_frame import (
     resolve_door_finished_local_frame, resolve_indicator_box_size_only_frame,
@@ -196,10 +200,10 @@ def save_trusted_door_circle_finalscene_batch(
         kind = original["part"]["kind"]
         if kind not in (
             "door", "indicator_small_door", "indicator_box",
-            "end_cap_head", "end_cap_tail", "base_plate",
+            "end_cap_head", "end_cap_tail", "base_plate", "box_body",
         ):
             _reject("physical part has no trusted WHD FinalScene manufacturing owner")
-        if kind in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate") and exported.get("features"):
+        if kind in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "box_body") and exported.get("features"):
             _reject("size-only physical Frame has no certified source-Feature mapping")
         # A source DXF containing untransferred geometry is never an
         # unperforated blank: even zero declared Features must not silently
@@ -217,6 +221,20 @@ def save_trusted_door_circle_finalscene_batch(
                 _reject("source DXF has untransferred geometry without declared Features")
         original_item_id = original["item_id"]
         source_path = source_documents.get(original_item_id)
+        if kind == "box_body":
+            spec = vault_box_body_spec_from_trusted_prepared_part(original["part"])
+            frame = resolve_vault_box_body_size_only_frame(
+                spec, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Vault BoxBody canonical Fold/FinalScene envelope has drifted")
+            render = build_part_render_data(spec, context)
+            if render.material is None or render.material.is_empty or not render.material.is_valid:
+                _reject("Vault BoxBody canonical Final Material unavailable")
+            if not render.fold_guides:
+                _reject("Vault BoxBody has no canonical BEND topology")
+            rows.append((receipt["physical_part_id"], render))
+            continue
         if kind == "base_plate":
             # Vault standalone BasePlate: independently supplied source dimensions,
             # explicit shrink and bend. AE owns the actual CUTTING/BEND topology;
