@@ -32,6 +32,10 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+### #2517 Assembly physical mesh profile API (2026-11-01)
+
+- Public `manufacturing_api.resolve_material_mesh_profiles(part_input, material)` now owns the historical Phase6 assembly request-time Fold X/Y normalization for the canonical whole Box Body and one-axis divider/inner-door frames. Material bounds are consulted lazily only when an actual physical single-material part needs a derived flat span, with the unchanged strict invalid/nonfinite bounds rejection. The GUI/Phase6 compatibility entry only forwards already-resolved manufacturing inputs. No new manufacturing formula, Certified Registry policy, CUTTING or DXF capability is created; #2517 remains OPEN.
+
 **#2517 Receiving NFB 候選套用／實體孔身份 API（2026-11-01）**：候選的 `NFB_CSV_SOURCE` 實體內門來源驗證、混合 CUTTING 拒絕、已提交 NFB 與非 CSV 覆寫衝突，以及真實 Bay 專屬 physical hole ID 一律由 Engine 公開 `candidate_committed_csv_nfb_config`／`validate_candidate_nfb_replacement`／`replace_candidate_bay_nfb` 處理。GUI 只選擇版本、Set/Bay 及提交 Engine 回傳的 layout；同一份 CSV/Project/物理 provenance 權威不變，保存/候選套用不自動核准 NFB X 或新增 DXF 製造能力。
 
 **#2517 Receiving NFB 品牌變更實體 X 證據 API（2026-11-01）**：公開 `manufacturing_api.rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand)` 由既有 `ae_engine.receiving_nfb_brand_transition` 統一決定 Set 品牌變更與已提交 NFB 實體孔 X 的 `RECONFIRM_REQUIRED`。回傳 (detached Set row, changed)，不改輸入；原繼承來源不再可當作已確認 X，明確品牌 override、保存的來源／數值與不受影響 Bay 均維持。GUI Set/Bay adapter 僅決定目前選定的 Set 和提交結果，不能判斷或寫入孔位製造驗證狀態。這是來源狀態移轉，不是新增 NFB CUTTING／DXF 認證。
@@ -577,6 +581,7 @@ frame-only route.
 - `apply_receiving_endcap_quantity_configuration(layout, role, library, quantities, assigned, *, expected_counts=None)` 是跨 Receiving Set/Bay 的封頭／封尾候選數量配置公開交易入口。Engine `receiving_quantity_allocation` 先驗證完整拓樸、版本數量、套／連對應與正式版本 ID，再透過現有 `receiving_shared_settings` 對每個真實 Bay 原子寫入 Head/Tail Hole Editor Feature 與已套用版本，回傳 detached layout 及 stable IDs，不修改原輸入或不同角色的候選與加工來源。
 - GUI `ReceivingSetBayAdapter.apply_quantity_configuration` 只提交操作者選擇、更新界面 dirty IDs；不得複製候選數量、實體 Bay 設定或 Feature 的製造交易。這不新增 Head/Tail 孔公式、CUTTING／DXF 認證；#2517 仍需其他功能繼續遷移。
 
-### #2517 Assembly physical mesh profile API (2026-11-01)
+### #2517 Receiving Head/Tail highlighted Apply Engine API (2026-11-01)
 
-- Public `manufacturing_api.resolve_material_mesh_profiles(part_input, material)` now owns the historical Phase6 assembly request-time Fold X/Y normalization for the canonical whole Box Body and one-axis divider/inner-door frames. Material bounds are consulted lazily only when an actual physical single-material part needs a derived flat span, with the unchanged strict invalid/nonfinite bounds rejection. The GUI/Phase6 compatibility entry only forwards already-resolved manufacturing inputs. No new manufacturing formula, Certified Registry policy, CUTTING or DXF capability is created; #2517 remains OPEN.
+- `apply_receiving_endcap_candidate_to_bays(layout, role, set_index, bay_indices, features, *, version_id=None)` 是操作者高亮封頭／封尾候選套用的唯一 Engine 實體狀態交易入口。Engine 以正式 `receiving_shared_settings` 對原始 Feature 型別、角色／版本與真實 Set/Bay index 完整檢核，對選中的 Bay 解開共享 refs 並原子更新，回傳 detached layout、排序後 selected index、physical Bay stable IDs；不得更動未選擇的 Bay/Set 或另一種端板角色。
+- GUI `ReceivingSetBayAdapter.apply_candidate_to_bays` 僅傳遞使用者高亮選取、提交 Engine 結果及 dirty UI IDs，不能自行套用製造孔位 Feature 或共享來源。這是對已認證製造資料來源的交易移轉，不新增孔位計算／CUTTING／DXF 認證；#2517 保持 OPEN。

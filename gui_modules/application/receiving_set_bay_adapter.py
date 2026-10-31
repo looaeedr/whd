@@ -340,51 +340,13 @@ class ReceivingSetBayAdapter:
             self._layout = candidate
 
     def apply_candidate_to_bays(self, role, set_index, bay_indices, features, *, version_id=None):
-        """Atomically update ONLY highlighted Bays; preserve other shared refs."""
-        from ae_engine.receiving_hole_candidates import role_key
-        from ae_engine.receiving_shared_settings import (
-            unlink_setting, edit_setting, validate_setting,
+        """Forward highlighted Head/Tail Apply to Engine; track GUI dirtiness."""
+        candidate, indices, changed_ids = manufacturing_api.apply_receiving_endcap_candidate_to_bays(
+            self._layout, role, set_index, bay_indices, features,
+            version_id=version_id,
         )
-        kind = role_key(role) + "_features"
-        version_kind = role + "_version_id"
-        version_id = validate_setting(version_kind, version_id)
-        features = validate_setting(kind, features)
-        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
-            raise ValueError("選取的套不存在")
-        # Verify each source Bay ID before set(): True equals integer Bay 1,
-        # and nested/None selections must fail atomically rather than crash.
-        try:
-            supplied = tuple(bay_indices)
-        except TypeError as exc:
-            raise ValueError("請在簡易圖高亮有效的連") from exc
-        count = len(self._layout["sets"][set_index]["bays"])
-        if (not supplied or any(
-                type(i) is not int or not 0 <= i < count for i in supplied)):
-            raise ValueError("請在簡易圖高亮有效的連")
-        indices = tuple(sorted(set(supplied)))
-        candidate = self._layout
-        for bay_index in indices:
-            candidate = unlink_setting(
-                candidate, set_index=set_index, bay_index=bay_index, kind=kind,
-            )
-            candidate = edit_setting(
-                candidate, set_index=set_index, bay_index=bay_index,
-                kind=kind, value=features,
-            )
-            candidate = unlink_setting(
-                candidate, set_index=set_index, bay_index=bay_index,
-                kind=version_kind,
-            )
-            candidate = edit_setting(
-                candidate, set_index=set_index, bay_index=bay_index,
-                kind=version_kind, value=version_id,
-            )
-        # Commit once after all validation and changes, with no UI reselect.
         self._layout = candidate
-        self._session_dirty_ids.update(
-            str(self._layout["sets"][set_index]["bays"][i]["stable_id"])
-            for i in indices
-        )
+        self._session_dirty_ids.update(changed_ids)
         return indices
 
     def apply_quantity_configuration(self, role, library, quantities, assigned, *,

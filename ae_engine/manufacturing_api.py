@@ -179,6 +179,7 @@ from .cabinet_types.policy import door_material_frame_width
 
 
 from .display_dimensions import resolve_live_operator_finished_dimensions
+from .assembly_mesh_profiles import resolve_material_mesh_profiles
 from .standard_part_fold_profiles import build_standard_part_fold_profiles
 from .standard_part_fold_readback import read_standard_part_fold_profiles
 from .custom_part_catalog import (
@@ -866,6 +867,13 @@ def apply_receiving_endcap_quantity_configuration(
         expected_counts=expected_counts,
     )
 
-
-# Engine-owned request-time physical mesh Fold fallback for assembly 3D.
-from .assembly_mesh_profiles import resolve_material_mesh_profiles
+def apply_receiving_endcap_candidate_to_bays(
+    layout, role, set_index, bay_indices, features, *, version_id=None,
+):
+    """Public Engine Head/Tail candidate Apply to highlighted physical Bays."""
+    from .receiving_quantity_allocation import (
+        apply_receiving_endcap_candidate_to_bays as _apply,
+    )
+    return _apply(
+        layout, role, set_index, bay_indices, features, version_id=version_id,
+    )

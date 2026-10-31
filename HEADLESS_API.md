@@ -13,6 +13,16 @@ whd_schema: WHD_DOC_META_V1
 全域硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 的唯一 CURRENT owner 是 AI 庫 `第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；此檔是 REFERENCE。GUI 全功能只處理操作與輸入，所有製造資料、公式、實體板件、孔位／折展開及 2D/3D/DXF 的 canonical 結果由引擎公開 API 處理。既有舊 GUI adapters 的存在**不代表每個箱型與功能均已完成改造**。遇 API 不支援，回引擎開發／測試或明確拒絕，不許 GUI 私做 fallback。對外 CADSplit Worker `capabilities/prepare/export` 僅宣告實際已驗證與授權的能力。靜態 CI gate：`tools/gui_engine_api_boundary_gate.py`，但它不代替行為契約測試或平台 required status check。
 
 
+## Assembly physical material mesh Fold profiles (#2517)
+
+`manufacturing_api.resolve_material_mesh_profiles(part_input, material)` is
+now the public Engine owner for request-time 3D assembly mesh X/Y Fold
+profile normalization. It retains explicit saved Fold profiles and only uses
+already-resolved physical material bounds for the whole Box Body Y span or
+missing single axis of divider/inner-door frame material. Invalid bounds are
+rejected only if the physical fallback is required. The Phase6 helper is a
+compatibility delegation; this API does not certify new 2D/CUTTING/DXF output.
+
 ## Receiving NFB candidate source and Bay physical identity API（#2517）
 
 `manufacturing_api.candidate_committed_csv_nfb_config(source)` validates a
@@ -549,12 +559,15 @@ The GUI only supplies operator selection and displays/marks the resulting
 changes. Head and Tail are independent; no NFB source, DXF certification
 or new Hole Editor CUTTING geometry is inferred by this API.
 
-## Assembly physical material mesh Fold profiles (#2517)
+## Receiving Head/Tail highlighted candidate Apply Engine API (#2517)
 
-`manufacturing_api.resolve_material_mesh_profiles(part_input, material)` is
-now the public Engine owner for request-time 3D assembly mesh X/Y Fold
-profile normalization. It retains explicit saved Fold profiles and only uses
-already-resolved physical material bounds for the whole Box Body Y span or
-missing single axis of divider/inner-door frame material. Invalid bounds are
-rejected only if the physical fallback is required. The Phase6 helper is a
-compatibility delegation; this API does not certify new 2D/CUTTING/DXF output.
+`manufacturing_api.apply_receiving_endcap_candidate_to_bays(
+layout, role, set_index, bay_indices, features, *, version_id=None)`
+validates operator Head/Tail candidate Features, version ID and exact selected
+physical Bay indices (bool, missing, out-of-range and unhashable selections
+are rejected) before updating one detached canonical Receiving Layout. Engine
+unlinks shared features/version refs for only the selected Bays and returns
+`(detached_layout, sorted_selected_indices, physical_bay_stable_ids)`.
+Other Bays/Sets and the other Head/Tail role stay unchanged, including existing
+Hole Editor source geometry. GUI only forwards and records UI dirty IDs.
+No new CUTTING, DXF or certified Registry manufacturing capability is granted.
