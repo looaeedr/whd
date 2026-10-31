@@ -172,3 +172,46 @@ def resolve_operator_finished_dimensions(
     if key in {"head", "tail"}:
         return _preferred_number(snapshot.get("w"), settings.get("w")), _preferred_number(snapshot.get("d"), settings.get("d"))
     return None
+
+
+def resolve_live_operator_finished_dimensions(
+    part_key,
+    *,
+    input_snapshot=None,
+    settings_values=None,
+    working_box=None,
+    triangles=None,
+    head_corner_policy=None,
+    tail_corner_policy=None,
+):
+    """Resolve live operator finished size using Engine-owned source precedence.
+
+    The GUI supplies its raw operator and Bay/Quantity state; this Engine API
+    alone decides sparse snapshot fallback and Receiving's working W/H/D
+    precedence over saved Settings seeds. Preserve explicit snapshot fields,
+    never mutate the caller's persisted input or invent a new physical size.
+    The existing canonical finished-dimension resolver remains the sole
+    mesh/outside-size and CornerType geometry authority.
+    """
+    from .box_body_fold_profile import _num
+
+    snapshot = dict(input_snapshot or {})
+    settings = dict(settings_values or {})
+    whd = dict(working_box or {})
+    for axis in ("w", "h", "d"):
+        if axis not in snapshot and axis in whd:
+            snapshot[axis] = whd[axis]
+    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+        settings.update({
+            axis: whd[axis] for axis in ("w", "h", "d")
+            if axis in whd
+        })
+    return resolve_operator_finished_dimensions(
+        part_key,
+        snapshot=snapshot,
+        settings=settings,
+        triangles=triangles,
+        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
+        head_corner_policy=head_corner_policy,
+        tail_corner_policy=tail_corner_policy,
+    )
