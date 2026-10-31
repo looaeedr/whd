@@ -139,8 +139,13 @@ def build_resource_evidence(
         if (not isinstance(items, list) or not items or any(
                 not isinstance(row, Mapping)
                 or not isinstance(row.get("locked_dimensions_mm"), Mapping)
-                or row["locked_dimensions_mm"].get("raw_part", {}).get("kind") != "base_plate"
-                or row["locked_dimensions_mm"].get("raw_part", {}).get("cabinet_family") != "金庫型"
+                or (
+                    row["locked_dimensions_mm"].get("raw_part", {}).get("kind"),
+                    row["locked_dimensions_mm"].get("raw_part", {}).get("cabinet_family"),
+                ) not in {
+                    ("base_plate", "金庫型"),
+                    ("custom_fold", "金庫型"), ("custom_fold", "受電箱"),
+                }
                 for row in items)):
             raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "verified baseline selection missing")
     if not all(isinstance(p, str) and p for p in baseline_paths):

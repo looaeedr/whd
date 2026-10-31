@@ -126,7 +126,7 @@ def installed_family_feature_catalog(
 # source/Frame/FinalScene/multi-DXF owners have actually been certified.
 _P0_PHYSICAL_ROLES = frozenset({
     "door", "end_cap_head", "end_cap_tail",
-    "indicator_box", "indicator_small_door", "base_plate",
+    "indicator_box", "indicator_small_door", "base_plate", "custom_fold",
 })
 
 
