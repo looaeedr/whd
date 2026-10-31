@@ -901,25 +901,22 @@ class Phase6ApplicationHost:
         return key if key in state_map else None
 
     def _manual_corner_policy(self, part_key, fw):
+        """Collect live editor state; delegate manufacturing policy to Engine."""
         state_map = getattr(self, "manual_corner_state", None)
-        if isinstance(state_map, dict) and part_key in state_map:
-            policy = policy_from_corner_state(state_map[part_key], fw=fw)
+        model_name = self._baseline_source_model() if hasattr(self, "_baseline_source_model") else None
+        has_explicit = isinstance(state_map, dict) and part_key in state_map
+        family = (
+            Phase6ApplicationHost._current_cabinet_type_name(self)
+            if model_name and not has_explicit else None
+        )
+        policy = manufacturing_api.resolve_live_corner_policy(
+            state_map, part_key, fw, model_name=model_name, cabinet_family=family,
+        )
+        if has_explicit:
             family_adapter = getattr(self, "_apply_cabinet_family_endcap_policy", None)
             if callable(family_adapter):
                 return family_adapter(policy, part_key)
-            return policy
-
-        # Geometry/spec helpers are also used by lightweight tests and legacy
-        # callers that do not construct the full Tk state.  Preserve the same
-        # model semantics instead of crashing or silently dropping CornerType.
-        model_name = self._baseline_source_model() if hasattr(self, "_baseline_source_model") else None
-        if model_name:
-            fallback = known_model_corner_state((part_key,), cabinet_family=Phase6ApplicationHost._current_cabinet_type_name(self)).get(part_key)
-        else:
-            fallback = new_manual_corner_state((part_key,)).get(part_key)
-        if fallback is None:
-            return None
-        return policy_from_corner_state(fallback, fw=fw)
+        return policy
 
     def _box_body_corner_policies(self, fw):
         """One shared CornerType state for custom and known models alike."""

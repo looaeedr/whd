@@ -13,6 +13,10 @@ whd_schema: WHD_DOC_META_V1
 全域硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 的唯一 CURRENT owner 是 AI 庫 `第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；此檔是 REFERENCE。GUI 全功能只處理操作與輸入，所有製造資料、公式、實體板件、孔位／折展開及 2D/3D/DXF 的 canonical 結果由引擎公開 API 處理。既有舊 GUI adapters 的存在**不代表每個箱型與功能均已完成改造**。遇 API 不支援，回引擎開發／測試或明確拒絕，不許 GUI 私做 fallback。對外 CADSplit Worker `capabilities/prepare/export` 僅宣告實際已驗證與授權的能力。靜態 CI gate：`tools/gui_engine_api_boundary_gate.py`，但它不代替行為契約測試或平台 required status check。
 
 
+## Live manual CornerType policy（#2517）
+
+`manufacturing_api.resolve_live_corner_policy(state_map, part_key, fw, *, model_name=None, cabinet_family=None)` 將原本 `gui.py::_manual_corner_policy` 的即時手動狀態與已知 Family／自訂預設交給 Engine。明確編輯維持既有 typed CornerType（包含尚未遷移的 C02 rotation）並使用 Engine `policy_from_corner_state`；缺少手動狀態時，已知箱型由 Certified Registry 載入預設，自訂由 Engine `new_manual_corner_state` 設定原有 CROSS 標準預設。GUI 只傳狀態與 Family；此步不改 Registry、CUTTING、FinalScene 或 DXF 認證。與先前保存 payload 的轉換函式是**不同入口**，避免把手動 C02 強制套用另一種正規化規則。
+
 ## CornerType payload → 製造 Policy（#2517，非標準 Fold PR）
 
 `manufacturing_api.corner_policy_from_payload(corner_state, part_key, fw, *, known_family=None)` 在無 Tk 的 Engine 內解析已保存的四角 `CornerTypeSelection`／raw row，並交給現有 `policy_from_corner_state` 建立正式 `FourCornerTypePolicy`。舊 C01–C04 typed input 沿用 Engine `normalize_corner_selection`；完整操作者選擇優先。缺角且由已知箱型提供 `known_family` 時，回到既有 Certified Registry 的已知 CornerType；未知／自訂不允許拿金庫型的 fallback。無來源時回傳 `None`，無效型別拋錯而非虛構加工資料。
