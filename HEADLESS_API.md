@@ -432,3 +432,17 @@ Fold/corner/assembly state. The normalization entry
 representation equivalence (including numeric precision, unordered sets and
 nonfinite fail-closed). GUI gathers operator input only and forwards to Engine;
 a cache hit never substitutes for actual FinalScene/Save→Reload certification.
+
+## Standard physical Fold readback into Settings (#2517)
+
+`ae_engine.manufacturing_api.read_standard_part_fold_profiles(part_key, profiles,
+original_snapshot)` is the Engine public reverse-projection owner for existing
+standard Door, BasePlate, IndicatorBox and IndicatorDoor material Fold keys.
+Its result contains only the corresponding persisted operator fold settings.
+Four-edge BasePlate/Indicator folds must agree exactly to supply one shared
+Settings value; mismatches raise instead of choosing an arbitrary side.
+The real Receiving root BasePlate physical Fold takes precedence: if its
+certified source-backed 3D profiles exist, no generic four-edge setting is
+backfilled from its BEND. Unknown/custom keys return no standard settings.
+The GUI `phase6_manufacturing_adapter` only forwards the same profiles and
+snapshot; it does not perform a second material or identity interpretation.
