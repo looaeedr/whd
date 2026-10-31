@@ -10,6 +10,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from ae_engine import manufacturing_api
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.assembly_joint import (
     set_part_edge_relation,
@@ -48,11 +49,8 @@ from phase6_settings_center import normalize_ui_text_size
 from phase6_fold_profiles import _num, _ui_len
 
 
-CORNER_KEYS = ("top_left", "top_right", "bottom_left", "bottom_right")
-CORNER_PAIR_KEYS = {
-    "top": ("top_left", "top_right"),
-    "bottom": ("bottom_left", "bottom_right"),
-}
+CORNER_KEYS = manufacturing_api.MANUAL_CORNER_KEYS
+CORNER_PAIR_KEYS = manufacturing_api.MANUAL_CORNER_PAIR_KEYS
 
 
 @dataclass(frozen=True)
@@ -69,11 +67,7 @@ class BottomWrapTransition:
     resolved: dict[str, object]
 
 
-@dataclass(frozen=True)
-class CornerStateTransition:
-    corner_state: dict[str, object]
-    corner_pair_same: dict[str, object]
-    value: object = None
+CornerStateTransition = manufacturing_api.CornerStateTransition
 
 
 @dataclass(frozen=True)
@@ -344,18 +338,9 @@ def ensure_corner_part(
     corner_pair_same: Mapping[str, object] | None,
     part_key: str,
 ) -> CornerStateTransition:
-    all_state = deepcopy(dict(corner_state or {}))
-    all_pairs = deepcopy(dict(corner_pair_same or {}))
-    part = str(part_key)
-    state = all_state.setdefault(part, {})
-    for corner_key in CORNER_KEYS:
-        state[corner_key] = selection_to_raw(
-            selection_from_raw(state.get(corner_key))
-        )
-    pairs = all_pairs.setdefault(part, {})
-    pairs.setdefault("top", True)
-    pairs.setdefault("bottom", True)
-    return CornerStateTransition(all_state, all_pairs, deepcopy(state))
+    return manufacturing_api.ensure_corner_part(
+        corner_state, corner_pair_same, part_key
+    )
 
 
 def corner_selection(
@@ -363,24 +348,18 @@ def corner_selection(
     pairs: Mapping[str, object],
     target_key: str,
 ) -> CornerTypeSelection:
-    del pairs
-    current_key = (
-        CORNER_PAIR_KEYS[target_key][0]
-        if target_key in CORNER_PAIR_KEYS
-        else str(target_key)
+    return manufacturing_api.corner_selection(
+        part_state, pairs, target_key
     )
-    return selection_from_raw(part_state[current_key])
 
 
 def corner_targets(
     pairs: Mapping[str, object],
     target_key: str,
 ) -> tuple[str, ...]:
-    del pairs
-    key = str(target_key)
-    if key in CORNER_PAIR_KEYS:
-        return CORNER_PAIR_KEYS[key]
-    return (key,)
+    return manufacturing_api.corner_targets(
+        pairs, target_key
+    )
 
 
 def commit_corner_pair(
@@ -390,22 +369,8 @@ def commit_corner_pair(
     pair_key: str,
     enabled: bool,
 ) -> CornerStateTransition:
-    normalized = ensure_corner_part(
-        corner_state, corner_pair_same, part_key
-    )
-    all_state = normalized.corner_state
-    all_pairs = normalized.corner_pair_same
-    state = all_state[str(part_key)]
-    pairs = all_pairs[str(part_key)]
-    pair = str(pair_key)
-    if pair not in CORNER_PAIR_KEYS:
-        raise ValueError(f"unknown corner pair: {pair}")
-    pairs[pair] = bool(enabled)
-    if enabled:
-        left_key, right_key = CORNER_PAIR_KEYS[pair]
-        state[right_key] = deepcopy(state[left_key])
-    return CornerStateTransition(
-        all_state, all_pairs, (deepcopy(state), deepcopy(pairs))
+    return manufacturing_api.commit_corner_pair(
+        corner_state, corner_pair_same, part_key, pair_key, enabled
     )
 
 
@@ -416,22 +381,9 @@ def commit_corner_type(
     target_key: str,
     type_id: object,
 ) -> CornerStateTransition:
-    normalized = ensure_corner_part(
-        corner_state, corner_pair_same, part_key
+    return manufacturing_api.commit_corner_type(
+        corner_state, corner_pair_same, part_key, target_key, type_id
     )
-    all_state = normalized.corner_state
-    all_pairs = normalized.corner_pair_same
-    state = all_state[str(part_key)]
-    pairs = all_pairs[str(part_key)]
-    current = corner_selection(state, pairs, target_key)
-    wanted = CornerTypeId(type_id)
-    selection = (
-        current if current.type_id is wanted else CornerTypeSelection(wanted)
-    )
-    raw = selection_to_raw(selection)
-    for corner_key in corner_targets(pairs, target_key):
-        state[corner_key] = deepcopy(raw)
-    return CornerStateTransition(all_state, all_pairs, deepcopy(raw))
 
 
 def commit_corner_mode(
@@ -441,25 +393,9 @@ def commit_corner_mode(
     target_key: str,
     mode: object,
 ) -> CornerStateTransition:
-    normalized = ensure_corner_part(
-        corner_state, corner_pair_same, part_key
+    return manufacturing_api.commit_corner_mode(
+        corner_state, corner_pair_same, part_key, target_key, mode
     )
-    all_state = normalized.corner_state
-    all_pairs = normalized.corner_pair_same
-    state = all_state[str(part_key)]
-    pairs = all_pairs[str(part_key)]
-    current = corner_selection(state, pairs, target_key)
-    if current.type_id is not CornerTypeId.CROSS:
-        raw = selection_to_raw(current)
-        return CornerStateTransition(all_state, all_pairs, deepcopy(raw))
-    selection = CornerTypeSelection(
-        CornerTypeId.CROSS,
-        cross_mode=CrossCornerMode(mode),
-    )
-    raw = selection_to_raw(selection)
-    for corner_key in corner_targets(pairs, target_key):
-        state[corner_key] = deepcopy(raw)
-    return CornerStateTransition(all_state, all_pairs, deepcopy(raw))
 
 
 def commit_corner_parameters(
@@ -474,69 +410,9 @@ def commit_corner_parameters(
     secondary_retain_t: float | None = None,
     secondary_depth_t: float | None = None,
 ) -> CornerStateTransition:
-    normalized = ensure_corner_part(
-        corner_state, corner_pair_same, part_key
+    return manufacturing_api.commit_corner_parameters(
+        corner_state, corner_pair_same, part_key, target_key, amount_t=amount_t, cross_mode=cross_mode, direction=direction, secondary_retain_t=secondary_retain_t, secondary_depth_t=secondary_depth_t
     )
-    all_state = normalized.corner_state
-    all_pairs = normalized.corner_pair_same
-    state = all_state[str(part_key)]
-    pairs = all_pairs[str(part_key)]
-    current = corner_selection(state, pairs, target_key)
-    amount = current.amount_t if amount_t is None else float(amount_t)
-
-    if current.type_id is CornerTypeId.CROSS:
-        mode = (
-            current.cross_mode
-            if cross_mode is None
-            else CrossCornerMode(cross_mode)
-        )
-        if mode is CrossCornerMode.STANDARD:
-            selection = CornerTypeSelection(
-                CornerTypeId.CROSS,
-                cross_mode=mode,
-            )
-        else:
-            selected_direction = (
-                current.direction
-                if direction is None
-                else CornerDirection(direction)
-            )
-            selection = CornerTypeSelection(
-                CornerTypeId.CROSS,
-                cross_mode=mode,
-                direction=selected_direction,
-                amount_t=amount,
-            )
-    elif current.type_id is CornerTypeId.OVERLAY:
-        selection = CornerTypeSelection(
-            CornerTypeId.OVERLAY,
-            amount_t=amount,
-        )
-    elif current.type_id is CornerTypeId.INSERT:
-        selection = CornerTypeSelection(
-            CornerTypeId.INSERT,
-            amount_t=amount,
-        )
-    else:
-        selection = CornerTypeSelection(
-            CornerTypeId.INSERT_OVERLAY,
-            amount_t=amount,
-            secondary_retain_t=(
-                current.secondary_retain_t
-                if secondary_retain_t is None
-                else float(secondary_retain_t)
-            ),
-            secondary_depth_t=(
-                current.secondary_depth_t
-                if secondary_depth_t is None
-                else float(secondary_depth_t)
-            ),
-        )
-
-    raw = selection_to_raw(selection)
-    for corner_key in corner_targets(pairs, target_key):
-        state[corner_key] = deepcopy(raw)
-    return CornerStateTransition(all_state, all_pairs, deepcopy(raw))
 
 
 def assembly_intent(
@@ -658,21 +534,9 @@ def apply_corner_preset(
     corner_pair_same: Mapping[str, object] | None,
     fixed_corner_state: Mapping[str, object] | None,
 ) -> CornerStateTransition:
-    next_state = deepcopy(dict(corner_state or {}))
-    next_pairs = deepcopy(dict(corner_pair_same or {}))
-    for part_key, corners in dict(fixed_corner_state or {}).items():
-        state = next_state.setdefault(str(part_key), {})
-        for corner_key, raw in dict(corners or {}).items():
-            if isinstance(raw, Mapping):
-                state[str(corner_key)] = selection_to_raw(
-                    selection_from_raw(raw)
-                )
-            else:
-                state[str(corner_key)] = selection_to_raw(raw)
-        pairs = next_pairs.setdefault(str(part_key), {})
-        pairs["top"] = True
-        pairs["bottom"] = True
-    return CornerStateTransition(next_state, next_pairs, None)
+    return manufacturing_api.apply_corner_preset(
+        corner_state, corner_pair_same, fixed_corner_state
+    )
 
 
 def family_model_transition(
