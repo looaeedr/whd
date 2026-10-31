@@ -446,3 +446,18 @@ certified source-backed 3D profiles exist, no generic four-edge setting is
 backfilled from its BEND. Unknown/custom keys return no standard settings.
 The GUI `phase6_manufacturing_adapter` only forwards the same profiles and
 snapshot; it does not perform a second material or identity interpretation.
+
+
+## Live operator finished-dimension source precedence (#2517)
+
+`ae_engine.manufacturing_api.resolve_live_operator_finished_dimensions(part_key,
+*, input_snapshot, settings_values, working_box, triangles,
+head_corner_policy, tail_corner_policy)` is the public headless
+Engine entry for the previously Phase6-owned sparse snapshot and Receiving
+live working W/H/D preference. Explicit snapshot fields are not overwritten
+during sparse fill, while Receiving's live Bay/Quantity working W/H/D take
+precedence over seed Settings values exactly as before. The function then
+delegates to the existing Engine `resolve_operator_finished_dimensions`
+for canonical Fold/Corners/finished physical 2D/3D dimensions; invalid world
+mesh is still rejected. The GUI reads input state, forwards policy DTOs
+and displays the result only. This is not a new CUTTING/DXF capability.

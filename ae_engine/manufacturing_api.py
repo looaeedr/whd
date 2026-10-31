@@ -177,6 +177,7 @@ from .cabinet_types.policy import door_material_frame_width
 
 
 
+from .display_dimensions import resolve_live_operator_finished_dimensions
 from .standard_part_fold_profiles import build_standard_part_fold_profiles
 from .standard_part_fold_readback import read_standard_part_fold_profiles
 from .keyed_fold_reconciliation import merge_keyed_fold_profiles
