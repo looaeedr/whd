@@ -11,6 +11,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Callable, Iterable, Mapping
 
+from ae_engine import manufacturing_api
+
 from ae_engine.receiving_manufacturing_readiness import (
     ReceivingManufacturingFailure,
     evaluate_receiving_manufacturing_readiness,
@@ -91,32 +93,6 @@ def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]
         result.extend(str(row["stable_id"]) for row in set_row["bays"])
         result.extend(str(row["stable_id"]) for row in set_row["joints"])
     return tuple(result)
-
-
-def _rebase_set_parent_nfb_brand(set_row, new_brand):
-    """Revoke only stale inherited NFB X proofs; preserve saved source and X."""
-    old_brand = set_row.get("switch_brand", "士林")
-    if old_brand == new_brand:
-        return False
-    from ae_engine.receiving_nfb_brand_transition import saved_parent_reselection_hole_ids
-    from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
-    for bay in set_row["bays"]:
-        impacted = set(saved_parent_reselection_hole_ids(
-            bay, old_brand, new_brand,
-        ))
-        if not impacted:
-            continue
-        saved = normalize_nfb_saved_fields(bay)
-        changed = False
-        for hole in saved["nfb_config"]["holes"]:
-            if (hole["physical_hole_id"] in impacted
-                    and hole["manual_x_state"] == "CONFIRMED"):
-                hole["manual_x_state"] = "RECONFIRM_REQUIRED"
-                changed = True
-        if changed:
-            bay["nfb_config"] = saved["nfb_config"]
-    set_row["switch_brand"] = new_brand
-    return True
 
 
 def _operator_integer(value, name):
@@ -400,8 +376,12 @@ class ReceivingSetBayAdapter:
         if brand not in RECEIVING_SWITCH_BRANDS:
             raise ValueError("不支援的開關品牌")
         candidate = deepcopy(self._layout)
-        if _rebase_set_parent_nfb_brand(
-                candidate["sets"][self.selection.set_index], brand):
+        index = self.selection.set_index
+        updated, changed = manufacturing_api.rebase_receiving_set_parent_nfb_brand(
+            candidate["sets"][index], brand,
+        )
+        if changed:
+            candidate["sets"][index] = updated
             self._layout = candidate
 
     def apply_candidate_to_bays(self, role, set_index, bay_indices, features, *, version_id=None):
@@ -696,8 +676,13 @@ class ReceivingSetBayAdapter:
             raise ValueError("不支援的開關品牌")
         candidate = deepcopy(self._layout)
         changed = False
-        for set_row in candidate["sets"]:
-            changed = _rebase_set_parent_nfb_brand(set_row, brand) or changed
+        for index, set_row in enumerate(candidate["sets"]):
+            updated, set_changed = manufacturing_api.rebase_receiving_set_parent_nfb_brand(
+                set_row, brand,
+            )
+            if set_changed:
+                candidate["sets"][index] = updated
+            changed = set_changed or changed
         if changed:
             self._layout = candidate
         return changed

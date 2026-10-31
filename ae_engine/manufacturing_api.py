@@ -116,6 +116,7 @@ from .receiving_quantity_versions import (
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
     normalize_quantity_snapshot, quantity_only_change,
 )
+from .receiving_nfb_brand_transition import rebase_receiving_set_parent_nfb_brand
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,
