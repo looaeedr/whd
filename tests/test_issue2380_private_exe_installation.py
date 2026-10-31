@@ -1686,7 +1686,12 @@ def test_packaged_public_v11_prepare_export_requires_sealed_job_and_certifies_re
     assert advertised["capability_flags"]["batch_prepare"] is True
     assert advertised["capability_flags"]["batch_export"] is True
     assert advertised["capability_flags"]["per_part_transactions"] is False
-    assert len(advertised["supported_part_kinds"]) == 5
+    assert set(advertised["supported_part_kinds"]) == {
+        "door", "indicator_small_door", "indicator_box",
+        "end_cap_head", "end_cap_tail", "base_plate",
+    }
+    assert {item["part_kind"]: item["cabinet_families"]
+            for item in advertised["capabilities"]}["base_plate"] == ["金庫型"]
     assert all(
         "installer_sealed_exact_job_approval" in item["required_inputs"]
         for item in advertised["capabilities"]
