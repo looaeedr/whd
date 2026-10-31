@@ -46,6 +46,10 @@ WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並�
 
 `ae_engine.manufacturing_api.ensure_corner_part`、`commit_corner_pair`、`commit_corner_type`、`commit_corner_mode`、`commit_corner_parameters`、`apply_corner_preset` 的公開輸入為 JSON-safe `corner_state`、`corner_pair_same`，輸出為 `CornerStateTransition`。既有 Phase6 Settings 寫入語意（成對／拆對、重入、型別切換、參數、固定 Family preset）已原樣搬至 `ae_engine.corner_state_transactions`，原 Phase6 同名函式只相容轉呼叫。這個狀態 API 不決定正式 CornerType CUTTING／Relief；幾何權威維持原 Certified Registry 及 Engine 原有求解器。
 
+## Family／型號切換製造狀態 API（#2517）
+
+`ae_engine.manufacturing_api.plan_cabinet_family_model_transition(new_model, old_model, *, ...)` 接收使用者選擇的 Family、既有 snapshot/Corner/BottomWrap/Structure、可用板件及 Settings 值，回傳 `FamilyModelPlan`、`FamilyModelTransition`。唯一 Engine owner `ae_engine.cabinet_family_model_transition` 保留原 Family 切換全鏈：Registry Family 預設、金庫／受電箱固定角落、受電箱 fresh Set1/Bay1 及 CURRENT CSV NFB 特徵來源、Door-cell/Inner Door topology、EndCap Assembly Joint/BottomWrap 與 BoxBody 結構狀態。相同 Family 別名切換不得誤清操作者既有資料；跨 Family 正式切換才重置受控狀態。Phase6 `family_model_transition` 只負責 API request forward，原 Settings Controller 負責將回傳 plan 套用到 workspace／UI。
+
 ## Assembly Intent 寫入交易 API（#2517）
 
 `ae_engine.manufacturing_api.commit_assembly_intent_state(input_snapshot, corner_state, corner_pair_same, type_id, *, available_parts=(), project_legacy_corner=False, reset_bottom_defaults=False)` 是 GUI 與 headless 共用的唯一寫入入口，傳回 `AssemblyIntentTransition`（包含 canonical `assembly_type`、`assembly_joints`／schema、JSON-safe 舊 CornerType mirror）。`normalize_assembly_type` 使用正式 Registry 驗證，但仍保留舊 GUI 三種 enum／包覆貼外字串回傳。`available_parts` 是當次 Joint Graph 投影上下文，不能寫入原專案 existing_parts；正式下方 WRAP 仍只由 Engine Assembly Joint Graph 決定。Phase6 `assembly_intent` 和 `normalize_assembly_type` 只轉接 API，原 Settings controller 操作入口不變。
