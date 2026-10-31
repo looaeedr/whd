@@ -179,6 +179,7 @@ from .cabinet_types.policy import door_material_frame_width
 
 
 from .display_dimensions import resolve_live_operator_finished_dimensions
+from .live_cabinet_family import resolve_live_cabinet_family
 from .assembly_mesh_profiles import resolve_material_mesh_profiles
 from .standard_part_fold_profiles import build_standard_part_fold_profiles
 from .standard_part_fold_readback import read_standard_part_fold_profiles

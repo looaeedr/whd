@@ -75,21 +75,14 @@ def _phase6_assembly_relief_clearance(self):
 
 
 def _phase6_current_cabinet_family(self):
+    """Read operator input only; Engine owns Family precedence and fallback."""
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     model_var = getattr(self, "baseline_model_var", None)
-    model = str(snapshot.get("model") or snapshot.get("cabinet_type") or "").strip()
     try:
-        live_model = str(model_var.get() or "").strip() if model_var is not None else ""
+        live_model = model_var.get() if model_var is not None else None
     except Exception:
-        live_model = ""
-    if live_model:
-        model = live_model
-    try:
-        from ae_engine.cabinet_types.registry import resolve_cabinet_type
-        return resolve_cabinet_type(model).canonical_name
-    except Exception:
-        # 自訂/舊基準型號仍可命中 cabinet_family=ANY 的已認證 Assembly 規則。
-        return model or "金庫型"
+        live_model = None
+    return manufacturing_api.resolve_live_cabinet_family(snapshot, live_model)
 
 
 def _phase6_solution_is_committable(solution):
