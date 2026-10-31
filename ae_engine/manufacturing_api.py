@@ -28,6 +28,10 @@ from typing import Literal, Mapping
 from . import ae
 from .dxf_serialization import save_scene_dxf
 from .cabinet_types.policy import resolve_box_body_back_panel_contract
+from .linked_endcap_fold import (
+    is_canonical_box_body_mating_profile, box_body_front_mating_fold_chain,
+    build_linked_endcap_xy_fold_profiles,
+)
 from .endcap_factory_fold import (
     selection_from_raw as endcap_corner_selection_from_raw, normalize_endcap_fw_state,
     resolve_endcap_fw, resolve_endcap_assembly_type, build_endcap_xy_fold_profiles,
