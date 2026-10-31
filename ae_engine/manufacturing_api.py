@@ -28,6 +28,39 @@ from typing import Literal, Mapping
 from . import ae
 from .dxf_serialization import save_scene_dxf
 from .cabinet_types.policy import resolve_box_body_back_panel_contract
+from .linked_endcap_fold import (
+    is_canonical_box_body_mating_profile, box_body_front_mating_fold_chain,
+    build_linked_endcap_xy_fold_profiles,
+)
+from .endcap_factory_fold import (
+    selection_from_raw as endcap_corner_selection_from_raw, normalize_endcap_fw_state,
+    resolve_endcap_fw, resolve_endcap_assembly_type, build_endcap_xy_fold_profiles,
+)
+from .endcap_xy_readback import (
+    fold_material_segment_outside_length, resolve_endcap_xy_outside_dimensions,
+)
+from .endcap_editor_fold import (
+    build_endcap_editor_simple_profile, read_endcap_editor_simple_profile,
+)
+from .box_body_editor_readback import (
+    formed_box_body_fw_widths,
+    box_body_ui_segment_length_to_material,
+    read_box_body_outside_dimensions,
+    can_remove_box_body_fold_segment,
+)
+from .box_body_fold_profile import (
+    BOX_BODY_TURNS,
+    apply_outside_dimension_compensation,
+    outside_profile_to_material,
+    build_box_body_profile as build_box_body_fold_profile,
+    merge_box_body_fold_profile,
+    profile_to_fold_segments as box_body_profile_to_fold_segments,
+)
+from .receiving_quantity_versions import (
+    SCHEMA, SCHEMA_V2, SCHEMA_V3, QUANTITY_MODE, SET_BAY_MODE,
+    QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
+    normalize_quantity_snapshot, quantity_only_change,
+)
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,
@@ -671,3 +704,11 @@ def save_quantity_manufacturing_groups_dxf(
         overwrite=overwrite, render_data_transform=render_data_transform,
         part_only=part_only,
     )
+
+
+# Import the NFB source verifier only after manufacturing scene/render APIs are
+# fully initialized: the existing source-profile reader consumes those exports.
+from .receiving_nfb_quantity_partial import (
+    QuantityNfbPartialSelection, verify_quantity_nfb_inner_door,
+    select_quantity_nfb_partial, quantity_partial_live_manifests,
+)
