@@ -298,3 +298,14 @@ changed material cores. Missing material cores never become invented sizes.
 The GUI only reads Tk values, calls this public API, and applies returned
 dimensions to existing editor state; this is a compatibility synchronization
 contract, not a new DXF/Worker manufacturing capability.
+
+
+## Fold Designer finished-face feature → legacy renderer（#2517）
+
+`ae_engine.manufacturing_api.project_finished_features_to_legacy_renderer_holes(features, width, height)`
+projects immutable Circle/Rect finished-face Features into the original integer
+legacy Fold Renderer hole DTO. The Engine's `feature_finished_point` owns hole
+coordinates, anchors and offsets; GUI forwards only feature inputs and face
+dimensions and displays the result. Profile/custom features are preserved in
+the source bundle without inventing circles/rectangles. This compatibility
+display projection **is not** a manufacturing approval or a DXF capability.

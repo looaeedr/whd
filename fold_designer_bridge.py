@@ -575,32 +575,10 @@ def _phase6_legacy_getattr(self, name):
 
 
 def project_features_to_original_holes(features, width, height):
-    """Project supported Phase6 features into the original Renderer's hole DTO.
-
-    Raw Phase6 feature objects are never edited. Profile/custom holes stay in the
-    bundle but are intentionally not falsified as circles/rectangles for preview.
-    """
-    from ae_engine.sheetmetal_features import CircleFeature, RectFeature, feature_finished_point
-
-    holes = []
-    for index, feature in enumerate(features or (), start=1):
-        if not isinstance(feature, (CircleFeature, RectFeature)):
-            continue
-        center = feature_finished_point(feature, float(width), float(height))
-        if isinstance(feature, CircleFeature):
-            hole = {
-                "type": "圓孔", "name": f"孔{len(holes)+1}",
-                "x": _ui_len(center.x), "y": _ui_len(center.y),
-                "d1": _ui_len(feature.diameter), "d2": 0,
-            }
-        else:
-            hole = {
-                "type": "方孔", "name": f"孔{len(holes)+1}",
-                "x": _ui_len(center.x), "y": _ui_len(center.y),
-                "d1": _ui_len(feature.width), "d2": _ui_len(feature.height),
-            }
-        holes.append(hole)
-    return holes
+    """Legacy Renderer display adapter; Engine resolves finished-face hole DTO."""
+    return manufacturing_api.project_finished_features_to_legacy_renderer_holes(
+        features, width, height
+    )
 
 
 

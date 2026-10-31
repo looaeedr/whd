@@ -73,3 +73,34 @@ def query_fold_designer_baseline_rows(
             model, w, h, d, t, FW_val=fw, is_tail=(part_key == "tail"),
         )
     return fold_designer_secondary_scene_rows(data.scene)
+
+
+def project_finished_features_to_legacy_renderer_holes(features, width, height):
+    """Project supported finished-face Features into legacy Fold Renderer hole rows.
+
+    This is an Engine-owned preview compatibility DTO, not certified cutting
+    geometry. Unsupported Profile/custom features remain in the original bundle
+    and must never be fabricated as rectangular/circular manufacturing holes.
+    """
+    from .sheetmetal_features import CircleFeature, RectFeature, feature_finished_point
+    from .box_body_fold_profile import _ui_len
+
+    holes = []
+    for feature in features or ():
+        if not isinstance(feature, (CircleFeature, RectFeature)):
+            continue
+        center = feature_finished_point(feature, float(width), float(height))
+        if isinstance(feature, CircleFeature):
+            hole = {
+                "type": "圓孔", "name": f"孔{len(holes)+1}",
+                "x": _ui_len(center.x), "y": _ui_len(center.y),
+                "d1": _ui_len(feature.diameter), "d2": 0,
+            }
+        else:
+            hole = {
+                "type": "方孔", "name": f"孔{len(holes)+1}",
+                "x": _ui_len(center.x), "y": _ui_len(center.y),
+                "d1": _ui_len(feature.width), "d2": _ui_len(feature.height),
+            }
+        holes.append(hole)
+    return holes
