@@ -574,3 +574,16 @@ canonical shared settings, version and Bay-specific physical hole IDs. Returns
 GUI only forwards input and displays/records the returned state; invalid input
 never partially commits. Saved manual NFB X remains unverified and the API
 does not authorize new DXF/CUTTING manufacturing.
+
+## Receiving W/H/D multi-Bay operator batch Engine transaction (#2517)
+
+`manufacturing_api.apply_receiving_bay_dimensions(layout, set_index,
+bay_indices, *, width, height, depth, expected_count)` returns a detached
+canonical Receiving layout and exactly the physical Bay IDs whose W/H/D
+changed. It rejects incomplete/invalid highlighted physical selections and
+non-finite dimensions before staging, preserves authored leading Door
+partitions using the canonical Engine `complete_partition`, and revokes
+previously CONFIRMED NFB physical X evidence on width changes using
+`reconfirm_copied_nfb_config`. One batch validates the entire layout exactly
+once; no-op performs no normalization. GUI only commits the returned layout
+and updates operator dirty UI state. No new CUTTING/DXF approval is granted.
