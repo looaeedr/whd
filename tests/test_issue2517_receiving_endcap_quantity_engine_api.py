@@ -6,8 +6,35 @@ import pytest
 
 from ae_engine import manufacturing_api
 from ae_engine.receiving_shared_settings import setting_value
-from tests.test_receiving_quantity_allocation_20261011 import _fixture
+from ae_engine.receiving_hole_candidates import create_candidate
+from ae_engine.receiving_layout import new_receiving_layout
+from ae_engine.sheetmetal_feature_core import CircleFeature, FeatureAnchor, RectFeature
+from ae_engine.sheetmetal_geometry import Vec2
+from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
 from phase6_project_file import _encode, _decode
+
+
+def _fixture():
+    """Real canonical Hole Editor Features, not legacy dict-shaped placeholders."""
+    center = FeatureAnchor.ABSOLUTE_FINISHED_FACE
+    library, v1 = create_candidate(
+        None, "head", [CircleFeature(8.0, center, Vec2(120.0, 80.0))],
+    )
+    library, v2 = create_candidate(
+        library, "head", [RectFeature(12.0, 9.0, center, Vec2(220.0, 120.0))],
+    )
+    library, tail = create_candidate(
+        library, "tail", [CircleFeature(6.0, center, Vec2(160.0, 90.0), layer="MARKING")],
+    )
+    adapter = ReceivingSetBayAdapter(
+        new_receiving_layout(width=800, height=1600, depth=350),
+    )
+    adapter.set_bay_count(3)
+    adapter.set_set_count(2)
+    adapter.select_set(2)
+    adapter.set_bay_count(2)
+    adapter.select_set(1)
+    return adapter, library, v1, v2, tail
 
 
 def _assigned(v1, v2):
