@@ -106,29 +106,15 @@ def _box_body_part_spec_from_values(
         model_name, source_structure
     )
 
-    back_panel_contract = {}
-    family_name = cabinet_family_policy.canonical_family_name(model_name)
-    if family_name == "受電箱":
-        from phase6_box_body_structure import BoxBodyStructureType
-        from ae_engine.sheetmetal_geometry import box_body_height_from_corner_policies
-
-        cfg = structure_state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-        panel_width = float(val["w"]) - float(cfg.get("back_width_comp_t", 0.0)) * float(val["t"])
-        full_panel_height = box_body_height_from_corner_policies(
-            float(val["h"]),
-            float(val["t"]),
-            head_corner_policy=head_corner_policy,
-            tail_corner_policy=tail_corner_policy,
-        )
-        back_panel_snapshot = dict(snapshot or val)
-        back_panel_snapshot["model"] = family_name
-        back_panel_contract = cabinet_family_policy.resolve_back_panel_contract(
-            model_name,
-            back_panel_snapshot,
-            structure_state=structure_state,
-            panel_width=panel_width,
-            full_panel_height=full_panel_height,
-        ) or {}
+    # The engine, not the GUI adapter, owns the physical rear-panel sizing
+    # and family manufacturing contract (including Receiving W - 2.5T).
+    back_panel_contract = manufacturing_api.resolve_box_body_back_panel_contract(
+        model_name,
+        snapshot or val,
+        structure_state=structure_state,
+        head_corner_policy=head_corner_policy,
+        tail_corner_policy=tail_corner_policy,
+    )
 
     return BoxBodyPartSpec(
         width=float(val['w']), height=float(val['h']), depth=float(val['d']),
