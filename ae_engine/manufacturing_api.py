@@ -28,6 +28,7 @@ from typing import Literal, Mapping
 from . import ae
 from .dxf_serialization import save_scene_dxf
 from .cabinet_types.policy import resolve_box_body_back_panel_contract
+from .cabinet_types.receiving import resolve_box_body_structure_state as resolve_receiving_box_body_structure_state
 from .box_body_structure_state import (
     BoxBodyStructureType, BackPanelMode, DEFAULT_STRUCTURE_TYPE,
     _default_join_settings, default_box_body_structure_state, _structure_type,
