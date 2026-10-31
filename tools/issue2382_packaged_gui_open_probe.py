@@ -106,7 +106,10 @@ def _observe(exe: Path, project: Path, *, expect_error: bool,
             rows = _visible_process_windows(process.pid)
             titles = [row["title"] for row in rows]
             last_titles = titles
-            if any("Box Unfolding Calculator" in title for title in titles):
+            # The packaged PRIMARY 3D workspace owns the visible top-level
+            # title. The old Box Unfolding title belongs to the legacy host;
+            # Windows #41154106379 observed the actual "Phase6 折彎 / 3D 設計".
+            if any("Phase6 折彎 / 3D 設計" in title for title in titles):
                 seen_main = True
             if any("專案開啟失敗" in title for title in titles):
                 seen_error = True
