@@ -95,6 +95,7 @@ Current public surface 以 `ae_engine/__init__.py` 實際 export 為準。04 至
 - `receiving_baseline_source_stamp` — Engine-owned Receiving baseline source witness；GUI 只傳 model/context/多片選擇，DXF 專用片缺來源時不得沿用舊製造快取（此 witness 不等於已驗證 DXF 實體或外部 prepare token）。
 - `expected_shared_indicator_baselines` — Engine-only selection of the paired IndicatorBox/SmallDoor source paths；external prepare attests both exact paths/content, no Worker private-Engine source selection; path existence alone never certifies manufacturing.
 - `map_door_features_to_unfolded_material` — canonical Engine map of finished-face Door features to unfolded material；Worker Export calls it only for independently attested source-feature vs FinalScene verification, no private compatibility helper or second coordinate formula.
+- `resolve_receiving_split_box_body_spec` / `select_receiving_split_rear_mode` — 受電箱三片側背實體板件的 Factory Fold、來源補償及 FULL/BACK_OPENING 由 Engine 解析，Worker 僅驗外部 W/H/D/T/FW、Fold 輸入來源與選片/模式；不再計算背板補償或重建 Fold，未認證的 HALF 仍拒絕。
 - `CabinetTypeRegistration`
 - `registered_cabinet_types`
 - `resolve_cabinet_type`

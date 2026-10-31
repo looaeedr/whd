@@ -9,7 +9,6 @@ HALF needs source-attested two-section Door topology and remains blocked.
 """
 from __future__ import annotations
 
-from dataclasses import replace
 import math
 import re
 from collections.abc import Mapping
@@ -31,15 +30,8 @@ _MODES = frozenset({"FULL", "BACK_OPENING"})
 
 
 def receiving_back_panel_spec_from_trusted_part(part: Mapping[str, Any]):
-    """Read exactly one source-bound Receiving rear physical sheet.
-
-    We reuse the already-certified side-panel factory D-W-D conversion,
-    with the exact same three baselines, but select a separately signed
-    rear panel mode/contract; external source holes are not projected.
-    """
-    from ae_engine.cabinet_types import receiving
-    from ae_engine.box_body_structure import box_body_height_from_corner_policies
-    from phase6_box_body_structure import set_side_back_back_panel_mode
+    """Validate the source-owned rear mode; canonical geometry stays in Engine."""
+    from ae_engine.manufacturing_api import select_receiving_split_rear_mode
 
     if (not isinstance(part, Mapping)
             or set(part) != _FACTORY_FIELDS
@@ -55,49 +47,29 @@ def receiving_back_panel_spec_from_trusted_part(part: Mapping[str, Any]):
     copied = {k: v for k, v in part.items() if k != "back_panel_mode"}
     copied["kind"] = "side_panel"
     copied["source_part_ref"] = "box_body:left_side"
-    # This calls exactly the signed 8-segment Receiving D-W-D parser and
-    # rejects unknown family fields before any mode-specific geometry.
     base, role = receiving_side_panel_spec_from_trusted_part(copied)
     if role != "left_side" or base.model_name != "受電箱":
         raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Receiving factory source topology changed")
-    mode = part["back_panel_mode"]
+    dimensions = part["dimensions_mm"]
+    snapshot = {
+        "model": "受電箱",
+        "w": float(dimensions["width"]),
+        "h": float(dimensions["height"]),
+        "d": float(dimensions["depth"]),
+        "t": float(dimensions["thickness"]),
+        "fw": float(part["frame_width_mm"]),
+        "zl1": float(part["box_zl1_mm"]),
+        "zl2": float(part["box_zl2_mm"]),
+        "zr2": float(part["box_zr2_mm"]),
+    }
     try:
-        state = set_side_back_back_panel_mode(base.structure_state, mode)
-        dimensions = part["dimensions_mm"]
-        snapshot = {
-            "model": "受電箱",
-            "w": float(dimensions["width"]),
-            "h": float(dimensions["height"]),
-            "d": float(dimensions["depth"]),
-            "t": float(dimensions["thickness"]),
-            "fw": float(part["frame_width_mm"]),
-            "zl1": float(part["box_zl1_mm"]),
-            "zl2": float(part["box_zl2_mm"]),
-            "zr2": float(part["box_zr2_mm"]),
-        }
-        from phase6_box_body_structure import back_panel_mode
-        if back_panel_mode(state).value != mode:
-            raise ValueError("Receiving rear-panel mode was not persisted")
-        from phase6_box_body_structure import BoxBodyStructureType
-        config = state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-        panel_width = base.width - float(config["back_width_comp_t"]) * base.thickness
-        full_height = box_body_height_from_corner_policies(
-            base.height, base.thickness,
-            head_corner_policy=None, tail_corner_policy=None,
+        return select_receiving_split_rear_mode(
+            base, snapshot, mode=part["back_panel_mode"],
         )
-        contract = receiving.resolve_back_panel_contract(
-            snapshot, structure_state=state,
-            panel_width=panel_width, full_panel_height=full_height,
-        )
-        if (contract.get("mode") != mode
-                or len(tuple(contract.get("fixed_slot_profiles") or ())) != 4
-                or (contract.get("opening") is not None) != (mode == "BACK_OPENING")):
-            raise ValueError("certified rear CUTTING mode contract missing")
     except (TypeError, ValueError, KeyError, ArithmeticError, OverflowError) as exc:
         raise PrepareEvidenceError(
             "WHD_FRAME_UNVERIFIED", "Receiving rear-panel factory mode source could not be verified",
         ) from exc
-    return replace(base, structure_state=state, back_panel_contract=contract)
 
 
 def receiving_back_panel_render(spec, context):

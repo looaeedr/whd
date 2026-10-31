@@ -7,6 +7,7 @@ from .contracts import (
 from .manufacturing_api import (
     generate_part, resolve_policy, expected_baseline_path_for, receiving_baseline_source_stamp,
     expected_shared_indicator_baselines, map_door_features_to_unfolded_material,
+    resolve_receiving_split_box_body_spec, select_receiving_split_rear_mode,
     door_finished_face_size,
     door_indicator_offset_for_finished_center, indicator_box_opening_feature,
     indicator_small_door_spec,
@@ -27,6 +28,7 @@ __all__ = [
     "ae", "manufacturing_api", "generate_part", "resolve_policy",
     "expected_baseline_path_for", "receiving_baseline_source_stamp",
     "expected_shared_indicator_baselines", "map_door_features_to_unfolded_material",
+    "resolve_receiving_split_box_body_spec", "select_receiving_split_rear_mode",
     "door_finished_face_size",
     "door_indicator_offset_for_finished_center", "indicator_box_opening_feature",
     "indicator_small_door_spec", "ManufacturingPolicy", "ManufacturingContext",

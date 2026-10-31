@@ -28,6 +28,9 @@ from typing import Literal, Mapping
 from . import ae
 from .dxf_serialization import save_scene_dxf
 from .cabinet_types.policy import resolve_box_body_back_panel_contract
+from .receiving_split_manufacturing import (
+    resolve_receiving_split_box_body_spec, select_receiving_split_rear_mode,
+)
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,

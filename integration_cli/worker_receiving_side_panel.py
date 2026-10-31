@@ -30,10 +30,8 @@ _BASELINES = ("左側板.dxf", "右側板.dxf", "後面板.dxf")
 
 
 def receiving_side_panel_spec_from_trusted_part(part: Mapping[str, Any]):
-    from ae_engine.cabinet_types import receiving
-    from ae_engine.box_body_structure import box_body_height_from_corner_policies
-    from ae_engine.contracts import BoxBodyPartSpec
-    from phase6_fold_profiles import build_box_body_profile, profile_to_fold_segments
+    """Validate the signed wire shape; Engine alone owns Fold and rear geometry."""
+    from ae_engine.manufacturing_api import resolve_receiving_split_box_body_spec
 
     if (not isinstance(part, Mapping)
             or part.get("kind") != "side_panel"
@@ -59,52 +57,16 @@ def receiving_side_panel_spec_from_trusted_part(part: Mapping[str, Any]):
             "WHD_PREPARE_INPUT_INVALID", "Receiving source dimensions/fold scalars must be finite numeric"
         )
     w, h, d, t, fw = map(float, values[:5])
-    if (min(w, h, d, t, fw) <= 0 or w <= 4 * t or h <= 2 * t
-            or d <= 4 * t or fw <= 2 * t or fw >= min(w, d)):
-        raise PrepareEvidenceError(
-            "WHD_FRAME_UNVERIFIED", "impossible Receiving physical side dimensions/FW"
-        )
-    # These are independent already-confirmed operator outside dimensions:
-    # do not allow family defaults to replace input or infer missing W/D/FW.
-    snapshot = {
-        "model": "受電箱", "w": w, "h": h, "d": d,
-        "t": t, "fw": fw,
-    }
-    for name, wire in _INPUTS:
-        snapshot[name] = float(part[wire])
+    # Only explicit outside dimensions and operator-selected role cross
+    # the boundary; neither Fold lengths nor back-panel compensation do.
+    snapshot = {"model": "受電箱", "w": w, "h": h, "d": d, "t": t, "fw": fw}
+    snapshot.update({name: float(part[wire]) for name, wire in _INPUTS})
     try:
-        fold_rows = build_box_body_profile(snapshot)
-        # The Receiving family removes terminal zr1. It is *eight* segments,
-        # unlike the Vault's nine. Never invent zr1 or z_comp input for it.
-        if (tuple(row.get("phase6_key") for row in fold_rows) != (
-                "zl1", "zl2", "fw_left", "d_left", "w", "d_right",
-                "fw_right", "zr2"
-            ) or any(
-                not math.isfinite(float(row["len"])) or float(row["len"]) <= 0
-                for row in fold_rows)):
-            raise ValueError("unverified Receiving D-W-D source profile")
-        fold = profile_to_fold_segments(fold_rows)
-        state = receiving.resolve_box_body_structure_state(None)
-        from phase6_box_body_structure import BoxBodyStructureType
-        config = state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-        back_comp = float(config["back_width_comp_t"])
-        back_width = w - back_comp * t
-        back_height = box_body_height_from_corner_policies(
-            h, t, head_corner_policy=None, tail_corner_policy=None,
-        )
-        back_contract = receiving.resolve_back_panel_contract(
-            snapshot, structure_state=state,
-            panel_width=back_width, full_panel_height=back_height,
-        )
+        spec = resolve_receiving_split_box_body_spec(snapshot)
     except (TypeError, ValueError, OverflowError, ArithmeticError, KeyError) as exc:
         raise PrepareEvidenceError(
             "WHD_FRAME_UNVERIFIED", "WHD canonical Receiving split Fold/back source refused"
         ) from exc
-    spec = BoxBodyPartSpec(
-        width=w, height=h, depth=d, thickness=t, frame_width=fw,
-        model_name="受電箱", fold_profile=fold, structure_state=state,
-        back_panel_contract=back_contract,
-    )
     return spec, _KINDS[part["source_part_ref"]]
 
 
