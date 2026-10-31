@@ -243,3 +243,83 @@ def normalize_endcap_profile_order(
         reordered.append(seg)
     copied["Y"] = reordered
     return copied
+
+
+def commit_box_fw(state, value: float) -> dict:
+    """Explicit box-FW operator commit: box immediately retakes both end caps."""
+    value = float(value)
+    state["mode"] = FW_FOLLOW_BODY
+    for part in ENDCAP_FW_PARTS:
+        item = state.setdefault(part, {})
+        item["follow_box"] = True
+        item["value"] = value
+    return state
+
+
+def commit_endcap_fw(state, part_key: str, value: float, *, box_fw: float | None = None) -> dict:
+    """Apply one explicit Head/Tail FW edit using the pair-then-split state machine."""
+    part_key = str(part_key)
+    if part_key not in ENDCAP_FW_PARTS:
+        raise ValueError(f"不支援的封頭尾板件: {part_key}")
+    if "mode" not in state:
+        normalized = normalize_endcap_fw_state({"fw": 25.0 if box_fw is None else box_fw, "endcap_fw": state})
+        state.clear()
+        state.update(normalized)
+
+    value = float(value)
+    mode = str(state.get("mode", FW_INDEPENDENT))
+    leader_mode = FW_FOLLOW_HEAD if part_key == "head" else FW_FOLLOW_TAIL
+    opposite_leader = FW_FOLLOW_TAIL if part_key == "head" else FW_FOLLOW_HEAD
+
+    for part in ENDCAP_FW_PARTS:
+        state.setdefault(part, {"follow_box": False, "value": float(box_fw or value)})
+
+    if mode == FW_FOLLOW_BODY:
+        state["mode"] = leader_mode
+        for part in ENDCAP_FW_PARTS:
+            state[part]["follow_box"] = False
+            state[part]["value"] = value
+    elif mode == leader_mode:
+        for part in ENDCAP_FW_PARTS:
+            state[part]["follow_box"] = False
+            state[part]["value"] = value
+    elif mode == opposite_leader:
+        state["mode"] = FW_INDEPENDENT
+        for part in ENDCAP_FW_PARTS:
+            state[part]["follow_box"] = False
+        state[part_key]["value"] = value
+    else:
+        state["mode"] = FW_INDEPENDENT
+        for part in ENDCAP_FW_PARTS:
+            state[part]["follow_box"] = False
+        state[part_key]["value"] = value
+    return state
+
+
+def set_endcap_fw_follow(state, part_key: str, follow_box: bool, *, box_fw: float) -> dict:
+    """Legacy/manual follow control retained for old callers and old projects."""
+    part_key = str(part_key)
+    if part_key not in ENDCAP_FW_PARTS:
+        raise ValueError(f"不支援的封頭尾板件: {part_key}")
+    item = state.setdefault(part_key, {})
+    if not follow_box and bool(item.get("follow_box", True)):
+        item["value"] = float(box_fw)
+    item["follow_box"] = bool(follow_box)
+    item.setdefault("value", float(box_fw))
+    if all(bool((state.get(p) or {}).get("follow_box", True)) for p in ENDCAP_FW_PARTS):
+        state["mode"] = FW_FOLLOW_BODY
+    else:
+        state["mode"] = FW_INDEPENDENT
+    return item
+
+
+def set_endcap_fw_override(state, part_key: str, value: float) -> dict:
+    """Legacy per-part override; new operator UI should use ``commit_endcap_fw``."""
+    part_key = str(part_key)
+    if part_key not in ENDCAP_FW_PARTS:
+        raise ValueError(f"不支援的封頭尾板件: {part_key}")
+    item = state.setdefault(part_key, {"follow_box": False})
+    item["follow_box"] = False
+    item["value"] = float(value)
+    state["mode"] = FW_INDEPENDENT
+    return item

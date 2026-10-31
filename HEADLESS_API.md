@@ -33,6 +33,10 @@ WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並�
 
 `ae_engine.manufacturing_api.normalize_endcap_bottom_wrap_state(snapshot)`、`resolve_endcap_bottom_wrap(snapshot, part_key, *, state=None)` 與 `commit_endcap_bottom_wrap(state, part_key, *, enabled=None, reserve_u=None, reserve_v=None)` 將原 GUI lower-WRAP 聯動／分離、可調 reserve 狀態改由引擎擁有；`commit_endcap_bottom_wrap_joint(snapshot, part_key, enabled)` 僅透過 Engine AssemblyJoint 規範提交有效 BOTTOM relation。明確 Joint Graph 優先於舊 UI enabled mirror，既有 Family／Registry、違法 relation fail-closed、Save→Reload 不變。Phase6 保留相容名稱作薄轉接，不獨立判斷製造；此 API 不等於對外 Gate C 認證。
 
+## EndCap FW 四態寫入 API（#2517）
+
+`ae_engine.manufacturing_api.commit_box_fw(state, value)`、`commit_endcap_fw(state, part_key, value, *, box_fw=None)`、`set_endcap_fw_follow(state, part_key, follow_box, *, box_fw)`、`set_endcap_fw_override(state, part_key, value)` 由 Engine 按原有 Head/Tail FOLLOW_BODY/FOLLOW_HEAD/FOLLOW_TAIL/INDEPENDENT 與舊檔相容狀態機處理操作者 FW 修改。讀取仍用既有 `normalize_endcap_fw_state` / `resolve_endcap_fw`，實體折邊只由 `build_endcap_xy_fold_profiles` 生成；Phase6 同名入口只轉接，不另作狀態推導或出圖認證。
+
 ## 公開入口
 
 ```python

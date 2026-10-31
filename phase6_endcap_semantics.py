@@ -49,13 +49,14 @@ def legacy_corner_projection_for_intent(value) -> CornerTypeId:
     if stable == "WRAP_OVERLAY":
         return CornerTypeId.OVERLAY
     return CornerTypeId(stable)
-ENDCAP_FW_PARTS = ("head", "tail")
+# GUI compatibility aliases: Engine owns these physical FW state identities.
+ENDCAP_FW_PARTS = manufacturing_api.ENDCAP_FW_PARTS
 
-FW_FOLLOW_BODY = "FOLLOW_BODY"
-FW_FOLLOW_HEAD = "FOLLOW_HEAD"
-FW_FOLLOW_TAIL = "FOLLOW_TAIL"
-FW_INDEPENDENT = "INDEPENDENT"
-ENDCAP_FW_MODES = (FW_FOLLOW_BODY, FW_FOLLOW_HEAD, FW_FOLLOW_TAIL, FW_INDEPENDENT)
+FW_FOLLOW_BODY = manufacturing_api.FW_FOLLOW_BODY
+FW_FOLLOW_HEAD = manufacturing_api.FW_FOLLOW_HEAD
+FW_FOLLOW_TAIL = manufacturing_api.FW_FOLLOW_TAIL
+FW_INDEPENDENT = manufacturing_api.FW_INDEPENDENT
+ENDCAP_FW_MODES = manufacturing_api.ENDCAP_FW_MODES
 
 # Compatibility constants mirror the Engine's one state authority.
 WRAP_LINKED = manufacturing_api.WRAP_LINKED
@@ -126,83 +127,24 @@ def resolve_endcap_fw(snapshot: Mapping[str, object], part_key: str, *, state=No
 
 
 def commit_box_fw(state, value: float) -> dict:
-    """Explicit box-FW operator commit: box immediately retakes both end caps."""
-    value = float(value)
-    state["mode"] = FW_FOLLOW_BODY
-    for part in ENDCAP_FW_PARTS:
-        item = state.setdefault(part, {})
-        item["follow_box"] = True
-        item["value"] = value
-    return state
+    """GUI compatibility for the Engine's box-FW operator commit."""
+    return manufacturing_api.commit_box_fw(state, value)
 
 
 def commit_endcap_fw(state, part_key: str, value: float, *, box_fw: float | None = None) -> dict:
-    """Apply one explicit Head/Tail FW edit using the pair-then-split state machine."""
-    part_key = str(part_key)
-    if part_key not in ENDCAP_FW_PARTS:
-        raise ValueError(f"不支援的封頭尾板件: {part_key}")
-    if "mode" not in state:
-        normalized = normalize_endcap_fw_state({"fw": 25.0 if box_fw is None else box_fw, "endcap_fw": state})
-        state.clear()
-        state.update(normalized)
-
-    value = float(value)
-    mode = str(state.get("mode", FW_INDEPENDENT))
-    leader_mode = FW_FOLLOW_HEAD if part_key == "head" else FW_FOLLOW_TAIL
-    opposite_leader = FW_FOLLOW_TAIL if part_key == "head" else FW_FOLLOW_HEAD
-
-    for part in ENDCAP_FW_PARTS:
-        state.setdefault(part, {"follow_box": False, "value": float(box_fw or value)})
-
-    if mode == FW_FOLLOW_BODY:
-        state["mode"] = leader_mode
-        for part in ENDCAP_FW_PARTS:
-            state[part]["follow_box"] = False
-            state[part]["value"] = value
-    elif mode == leader_mode:
-        for part in ENDCAP_FW_PARTS:
-            state[part]["follow_box"] = False
-            state[part]["value"] = value
-    elif mode == opposite_leader:
-        state["mode"] = FW_INDEPENDENT
-        for part in ENDCAP_FW_PARTS:
-            state[part]["follow_box"] = False
-        state[part_key]["value"] = value
-    else:
-        state["mode"] = FW_INDEPENDENT
-        for part in ENDCAP_FW_PARTS:
-            state[part]["follow_box"] = False
-        state[part_key]["value"] = value
-    return state
+    """GUI sends Head/Tail operator FW edits to the public Engine."""
+    return manufacturing_api.commit_endcap_fw(state, part_key, value, box_fw=box_fw)
 
 
 def set_endcap_fw_follow(state, part_key: str, follow_box: bool, *, box_fw: float) -> dict:
-    """Legacy/manual follow control retained for old callers and old projects."""
-    part_key = str(part_key)
-    if part_key not in ENDCAP_FW_PARTS:
-        raise ValueError(f"不支援的封頭尾板件: {part_key}")
-    item = state.setdefault(part_key, {})
-    if not follow_box and bool(item.get("follow_box", True)):
-        item["value"] = float(box_fw)
-    item["follow_box"] = bool(follow_box)
-    item.setdefault("value", float(box_fw))
-    if all(bool((state.get(p) or {}).get("follow_box", True)) for p in ENDCAP_FW_PARTS):
-        state["mode"] = FW_FOLLOW_BODY
-    else:
-        state["mode"] = FW_INDEPENDENT
-    return item
+    """GUI legacy Fold editor follows the same Engine state machine."""
+    return manufacturing_api.set_endcap_fw_follow(state, part_key, follow_box, box_fw=box_fw)
 
 
 def set_endcap_fw_override(state, part_key: str, value: float) -> dict:
-    """Legacy per-part override; new operator UI should use ``commit_endcap_fw``."""
-    part_key = str(part_key)
-    if part_key not in ENDCAP_FW_PARTS:
-        raise ValueError(f"不支援的封頭尾板件: {part_key}")
-    item = state.setdefault(part_key, {"follow_box": False})
-    item["follow_box"] = False
-    item["value"] = float(value)
-    state["mode"] = FW_INDEPENDENT
-    return item
+    """GUI legacy per-part override is applied by the Engine."""
+    return manufacturing_api.set_endcap_fw_override(state, part_key, value)
+
 
 def resolve_box_assembly_type(snapshot: Mapping[str, object]) -> CornerTypeId:
     """Legacy GUI name for the Engine-owned Assembly Intent source."""
