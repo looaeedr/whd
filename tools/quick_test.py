@@ -128,6 +128,7 @@ def _ci_pr_inputs(root: Path) -> tuple[tuple[str, ...], tuple[str, ...], bool]:
     changed_product_tests = [
         path for path in changed
         if path.startswith("tests/") and path.endswith(".py")
+        and (root / path).is_file()
         and not _is_governance_support_path(path)
         and (Path(path).name.startswith("test_") or Path(path).name.endswith("_test.py"))
     ]
@@ -175,7 +176,14 @@ def main(argv: list[str] | None = None) -> int:
                 if args.dry_run:
                     _ci_output_run(False)
                 return 0
-            selectors = choose_tests(changed_files=changed,
+            selectable_changed = tuple(
+                path for path in changed
+                if not (
+                    path.startswith("tests/") and path.endswith(".py")
+                    and not (ROOT / path).is_file()
+                )
+            )
+            selectors = choose_tests(changed_files=selectable_changed,
                                      tests=requested, root=ROOT)
         else:
             changed = list(args.changed_file)
