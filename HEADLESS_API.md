@@ -46,6 +46,10 @@ WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並�
 
 `ae_engine.manufacturing_api.ensure_corner_part`、`commit_corner_pair`、`commit_corner_type`、`commit_corner_mode`、`commit_corner_parameters`、`apply_corner_preset` 的公開輸入為 JSON-safe `corner_state`、`corner_pair_same`，輸出為 `CornerStateTransition`。既有 Phase6 Settings 寫入語意（成對／拆對、重入、型別切換、參數、固定 Family preset）已原樣搬至 `ae_engine.corner_state_transactions`，原 Phase6 同名函式只相容轉呼叫。這個狀態 API 不決定正式 CornerType CUTTING／Relief；幾何權威維持原 Certified Registry 及 Engine 原有求解器。
 
+## Joint Solver 3D world mesh／flat UV single authority（#2517）
+
+`ae_engine.manufacturing_api.build_joint_world_geometry(parts, finished_dimensions, sheet_thickness)` 接收 Engine 已解析的實體板件／真實 Fold profiles／material／3D assembly placement，從 canonical `ae_engine.assembly_geometry` 產生供 Joint Solver、collision/backprojection 使用的 `flat_material_by_part`、`mapped_skin_triangles_by_part`、`world_triangles_by_part`。多片 BoxBody 只有各單獨 side/back 實體料的平面 UV；整體 `box_body` 只聚合世界座標碰撞皮面，**不得**創造跨板共用的假平面料圖。Side FW formed outside、末端多段折邊及 Receiving 左側 zl1 使用 Engine `assembly_geometry_folded_mesh` 已有的公開實體幾何運算，不從 GUI 反算。原 `phase6_manufacturing_geometry._phase6_build_joint_world_geometry` 僅向 Engine API 轉發，保留既有 bounded Explicit Joint pipeline 和 Family Divider 接線及 2D/DXF 正式來源。
+
 ## Assembly Joint Certified Registry diagnostics API（#2517）
 
 `ae_engine.manufacturing_api.joint_registry_diagnostic_info(joint, render_by_part, solution_by_part)` 由 canonical `ae_engine.assembly_joint` 判定 BOTTOM WRAP Certified rule evidence、BOTTOM 無特殊 delta 的 STANDARD、其他 edge 的 solution trust/rule/revision/probe diagnostic 與 UNKNOWN。若證據缺失不能把 MISS 當成 HIT；影響切割權威的 `rule_id`／`revision`、pre/post pair counts 及 shadow evidence 維持原 Engine Registry 來源。Phase6 原函式只轉公共 API，GUI 僅顯示解讀結果，不另發明 manufactured status。
