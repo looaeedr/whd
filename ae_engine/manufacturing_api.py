@@ -264,6 +264,10 @@ def map_door_features_to_unfolded_material(
     return tuple(_door_features_for_legacy_engine(spec, context))
 
 
+from .assembly_placement import (
+    SCENE_ASSEMBLY_PLACEMENTS, resolve_legacy_door_cell_scene_placement,
+    resolve_scene_assembly_placement,
+)
 from .manufacturing_render_data import (
     FoldGuide,
     fold_guides_from_final_scene,

@@ -46,6 +46,10 @@ WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並�
 
 `ae_engine.manufacturing_api.ensure_corner_part`、`commit_corner_pair`、`commit_corner_type`、`commit_corner_mode`、`commit_corner_parameters`、`apply_corner_preset` 的公開輸入為 JSON-safe `corner_state`、`corner_pair_same`，輸出為 `CornerStateTransition`。既有 Phase6 Settings 寫入語意（成對／拆對、重入、型別切換、參數、固定 Family preset）已原樣搬至 `ae_engine.corner_state_transactions`，原 Phase6 同名函式只相容轉呼叫。這個狀態 API 不決定正式 CornerType CUTTING／Relief；幾何權威維持原 Certified Registry 及 Engine 原有求解器。
 
+## Assembly Scene placement API（#2517）
+
+`ae_engine.manufacturing_api.resolve_scene_assembly_placement(snapshot, part_key)` 是原 Phase6 製造裝配位置分派、現有 Vault 門格 legacy 規格、受電箱 topology-derived 門格／內門／隔板／底板及舊專案已保存 divider offset 的唯一公開 Engine 入口。真正 Receiving/Bay placement 仍由既有 `ae_engine.assembly_placement.resolve_assembly_placement` 原生 resolver 產生，無第二份座標公式。`resolve_legacy_door_cell_scene_placement` 保存舊 Vault 門格的正式 (W/H) 原始座標語意，拒絕 bool、非有限外框及不存在門格；從 GUI `phase6_manufacturing_geometry` 移走計算與 fallback 分派，原 Phase6 函式保留同名相容轉呼叫。舊式 assembly workspace offset 仍按原格式檢查，實體固定板未有核准焊接 Z 時保持 standalone，不偽稱已取得製造裝配授權。
+
 ## BoxBody 實體分件 Fold 編輯投影 API（#2517）
 
 `ae_engine.manufacturing_api.box_body_piece_editor_profiles(render_data, snapshot=None)` 以 Engine 已解析的 `BoxBodyStructureRenderData.pieces`（含實體物理角色、正式 Fold segment、材寬與 formed dimensions）產生各子板 `X/Y` 編輯／Save→Reload 投影，原右側板反向 traversal 的實際 BEND ownership 與舊 Receiving 左側板 source-order inverse 在同一 `ae_engine.box_body_editor_readback` owner，`reverse_box_body_fold_traversal` 同時供編輯寫回使用。舊 `fold_designer_bridge` 同名函式均只轉呼叫 Engine 公開 API。GUI 不得重算實體長度、反推出其他幾何或以 2D preview 取代正式製造資料。
