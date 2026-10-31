@@ -132,3 +132,80 @@ def test_custom_fold_size_only_frame_rejects_tamper():
         bad[field] = value
         with pytest.raises(PrepareEvidenceError):
             require_canonical_custom_fold_size_only_frame(bad, physical_part_id=identity)
+
+
+@pytest.mark.parametrize("family,axis", [
+    ("金庫型", "X"), ("金庫型", "Y"), ("受電箱", "X"), ("受電箱", "Y"),
+])
+def test_signed_both_family_custom_fold_prepare_export_and_dxf_reopen(tmp_path, family, axis):
+    from tests.test_issue2378_prepare_batch import (
+        COMMIT, ENGINE, KEY, _root, _prepare, _request,
+        _export_request_from_prepared,
+    )
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from integration_cli.verified_door_finalscene import save_trusted_door_circle_finalscene_batch
+
+    root, _, _ = _root(tmp_path)
+    source = tmp_path / "CADSplit-authenticated-empty-original.dxf"
+    dxf = ezdxf.new("R2010")
+    dxf.header["$INSUNITS"] = 4
+    dxf.saveas(source)
+    original = _request()
+    item = original["items"][0]
+    item["part"] = _part(family, axis)
+    item["source_document_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+    original["request_digest"] = compute_wire_request_digest(original)
+    prepared = _prepare(original, root)
+    assert prepared["status"] == "success"
+    frame = prepared["items"][0]["target_frames"][0]
+    assert frame["frame_id"].startswith("custom_fold:")
+    assert frame["allowed_feature_types"] == []
+    export = _export_request_from_prepared(original, prepared)
+    path = tmp_path / "real-custom-fold"
+    actual = save_trusted_door_circle_finalscene_batch(
+        original, prepared, export,
+        source_documents={item["item_id"]: source}, resource_root=root,
+        output_dir=path, engine_commit=COMMIT, engine_sha256=ENGINE,
+        build_id="test-only-source", worker_key=KEY,
+    )
+    identity = prepared["items"][0]["physical_part_id"]
+    dxf_path = path / (identity + ".dxf")
+    assert actual == {identity: str(dxf_path)}
+    assert dxf_path.is_file()
+    scene = build_part_render_data(custom_fold_spec_from_trusted_prepared_part(item["part"]))
+    assert verify_saved_part_render_data_dxf(scene, dxf_path).ok
+    reopened = ezdxf.readfile(dxf_path)
+    assert len(reopened.modelspace().query('*[layer=="BEND"]')) > 0
+
+
+def test_custom_fold_external_source_hole_is_not_silently_dropped(tmp_path):
+    from tests.test_issue2378_prepare_batch import (
+        COMMIT, ENGINE, KEY, _root, _prepare, _request,
+        _export_request_from_prepared,
+    )
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from integration_cli.verified_door_finalscene import save_trusted_door_circle_finalscene_batch
+
+    root, _, _ = _root(tmp_path)
+    source = tmp_path / "custom-source-with-circle.dxf"
+    drawing = ezdxf.new("R2010")
+    drawing.header["$INSUNITS"] = 4
+    drawing.modelspace().add_circle((30, 30), 5, dxfattribs={"layer": "CUTTING"})
+    drawing.saveas(source)
+    request = _request()
+    request["items"][0]["part"] = _part()
+    request["items"][0]["source_document_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+    request["request_digest"] = compute_wire_request_digest(request)
+    receipt = _prepare(request, root)
+    export = _export_request_from_prepared(request, receipt)
+    path = tmp_path / "must-not-write"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        save_trusted_door_circle_finalscene_batch(
+            request, receipt, export,
+            source_documents={request["items"][0]["item_id"]: source},
+            resource_root=root, output_dir=path,
+            engine_commit=COMMIT, engine_sha256=ENGINE,
+            build_id="test-only-source", worker_key=KEY,
+        )
+    assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED"
+    assert not path.exists()
