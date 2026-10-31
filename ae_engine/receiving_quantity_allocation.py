@@ -176,3 +176,49 @@ def apply_receiving_endcap_quantity_configuration(
         for si, bi, _ in plan
     )
     return candidate, changed_ids
+
+def apply_receiving_endcap_candidate_to_bays(
+    layout, role, set_index, bay_indices, features, *, version_id=None,
+):
+    """Engine-owned atomic Head/Tail candidate Apply to selected physical Bays.
+
+    Preserve the explicit operator selection, reject invalid/bool indices before
+    mutating any state, and avoid reusing an unrelated Bay's shared settings.
+    Returns (detached_layout, validated_indices, physical_bay_stable_ids).
+    """
+    from .receiving_shared_settings import (
+        validate_setting, unlink_setting, edit_setting,
+    )
+
+    kind = role_key(role) + "_features"
+    version_kind = role + "_version_id"
+    version_id = validate_setting(version_kind, version_id)
+    features = validate_setting(kind, features)
+    if type(set_index) is not int or not 0 <= set_index < len(layout["sets"]):
+        raise ValueError("選取的套不存在")
+    try:
+        supplied = tuple(bay_indices)
+    except TypeError as exc:
+        raise ValueError("請在簡易圖高亮有效的連") from exc
+    count = len(layout["sets"][set_index]["bays"])
+    if not supplied or any(type(i) is not int or not 0 <= i < count for i in supplied):
+        raise ValueError("請在簡易圖高亮有效的連")
+    indices = tuple(sorted(set(supplied)))
+
+    candidate = layout
+    for bay_index in indices:
+        for setting_kind, value in (
+            (kind, features),
+            (version_kind, version_id),
+        ):
+            candidate = unlink_setting(
+                candidate, set_index=set_index, bay_index=bay_index,
+                kind=setting_kind,
+            )
+            candidate = edit_setting(
+                candidate, set_index=set_index, bay_index=bay_index,
+                kind=setting_kind, value=value,
+            )
+    ids = tuple(str(candidate["sets"][set_index]["bays"][i]["stable_id"])
+                for i in indices)
+    return candidate, indices, ids
