@@ -144,7 +144,11 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent
         _destroy(app, root)
 
     # root2 has been a *separate* Tcl interpreter since before the first
-    # editing session. No prior GUI object or project controller is reused.
+    # editing session. Tk drops its implicit default when root1 is destroyed;
+    # GUI-created StringVar() uses that default unless a master is specified.
+    # Switch the test's Tcl default to the already-live independent root2.
+    assert root2.winfo_exists()
+    tk._default_root = root2
     app2 = gui.BoxCalculatorGUI(root2)
     try:
         app2.load_phase6_project(save_path, open_designer=False)
