@@ -22,7 +22,7 @@ from tests.test_receiving_two_tier_physical_base_parts import _two_tier, _source
 
 def _current_csv_tiers():
     snap = _two_tier()
-    models = ("nfbv5:士林:2P400", "nfbv5:士林:3P125SN")
+    models = ("nfbv5:士林:3P125SN", "nfbv5:士林:3P125SN")
     holes = (
         NfbV5ConfiguredInnerDoorHole(
             physical_hole_id=f"nfb:csv:tier:{i}",

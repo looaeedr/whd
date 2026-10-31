@@ -20,12 +20,42 @@ TYPES = (
 )
 
 
-def _category(title: str) -> str:
-    lead = title.lower().strip()
-    for label, prefixes in TYPES:
-        if any(re.match(rf"^{re.escape(prefix)}(?:$|[ (:!])", lead) for prefix in prefixes):
-            return label
-    return "其他程式變更"
+# Only evidence-backed, user-facing Traditional Chinese highlights belong in
+# Release notes and bundled 本次更新.md. Never dump raw commit titles.
+_TOPICS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("#2379", "closed profile", "lwpolyline", "bulge", "edge cycle"),
+     "**門板開孔與幾何**：加強原始 DXF 輪廓、矩形與座標的來源核對；異常弧段或交叉邊界不會被當成有效開孔。"),
+    (("#2380", "rollback", "durable journal", "original dxf backup", "staged dxf"),
+     "**多份 DXF 的資料保護**：補強原檔備份、批次處理與中斷回復的內部驗證；相關能力仍屬內部整合，並非全面開放。"),
+    (("#2378", "indicator small-door", "small-door prepare", "cadsplit"),
+     "**小門與外部工具串接**：補強門板、小門與來源基準的對應檢查；目前屬整合驗證，未宣稱全部功能已對外啟用。"),
+    (("release", "pyinstaller", "windows exe", "zh-tw", "packaging"),
+     "**Windows 交付**：加強同版 EXE、完整下載包、檔案校驗與繁體中文更新說明的發布檢查。"),
+    (("nfb", "receiving", "pad", "base plate"),
+     "**受電箱與 NFB 配置**：整理相關板件、底板及配置的操作與來源驗證。"),
+    (("cadcraft", "hole editor", "hole editing"),
+     "**開孔編輯**：補強開孔操作與 CADCraft 資料交換的驗證。"),
+    (("save-reload", "save/reload", "p6fold", "persist", "snapshot"),
+     "**專案資料一致性**：補強存檔、重新開啟與編輯結果的核對。"),
+    (("2d", "3d", "viewport", "gui", "preview", "finalscene"),
+     "**操作畫面**：整理預覽顯示、操作流程及相關驗證。"),
+)
+_MAX_HIGHLIGHTS = 5
+
+
+def validate_notes(notes: str) -> None:
+    """Reject an English commit dump even when its heading is zh-TW."""
+    if "## 本次主要更新" not in notes or "## 下載與使用" not in notes:
+        raise ValueError("RELEASE_NOTES_ZH_TW_SECTIONS_MISSING")
+    if "## 逐項變更" in notes or re.search(
+        r"(?m)^\s*[-*]\s*(?:feat|fix|test|docs|chore|ci|build|refactor)[(:! ]",
+        notes, flags=re.IGNORECASE,
+    ):
+        raise ValueError("RELEASE_NOTES_RAW_COMMIT_DUMP_FORBIDDEN")
+    if len(notes) > 2000:
+        raise ValueError("RELEASE_NOTES_MUST_BE_CONCISE")
+    if not (1 <= len(re.findall(r"(?m)^- \*\*[^*]+\*\*：", notes)) <= _MAX_HIGHLIGHTS):
+        raise ValueError("RELEASE_NOTES_HIGHLIGHT_COUNT_OUT_OF_RANGE")
 
 
 def build_notes(
@@ -36,54 +66,44 @@ def build_notes(
         raise ValueError("RELEASE_NOTES_INVALID_TAG")
     if not SHA.fullmatch(sha) or not SHA.fullmatch(previous_sha) or sha == previous_sha:
         raise ValueError("RELEASE_NOTES_INVALID_EXACT_SHA")
-    grouped: dict[str, list[str]] = defaultdict(list)
-    for title in titles:
-        title = " ".join(title.strip().split())
-        if title and not title.startswith("Merge pull request"):
-            grouped[_category(title)].append(title)
-    if not grouped:
-        raise ValueError("RELEASE_NOTES_EMPTY_SOURCE_DIFF")
-    lines = [
-        "# WHD 正式版更新說明（繁體中文）", "",
-        f"**本次版本：** `{tag}`  ",
-        f"**正式 X 程式來源：** `{sha}`  ",
-        f"**上一個正式版本：** `{previous_tag}`（`{previous_sha}`）",
-        "",
-        "## 本次主要更新",
-        "此版本相對上一個正式版，累積下列已合併的功能、修正及驗證。"
-        "分類與數量由實際版本差異產生；原始提交標題保留供查核，"
-        "不將其冒充完整人工翻譯或全部使用情境的驗收。",
-        "",
+    subjects = [
+        " ".join(title.strip().split()).casefold()
+        for title in titles
+        if title.strip() and not title.startswith("Merge pull request")
     ]
-    for group in ("新增與改善", "錯誤修正", "測試與驗證", "文件與發版", "其他程式變更"):
-        items = grouped.get(group, [])
-        if items:
-            lines.append(f"- **{group}：{len(items)} 項。**")
-    lines.extend(["", "## 逐項變更（保留原始提交標題）", ""])
-    for group in ("新增與改善", "錯誤修正", "測試與驗證", "文件與發版", "其他程式變更"):
-        items = grouped.get(group, [])
-        if not items:
-            continue
-        lines.extend([f"### {group}", ""])
-        for item in items:
-            lines.append(f"- {item}")
-        lines.append("")
-    lines.extend([
-        "## Windows 下載與啟動", "",
-        f"- 下載 `WHD_Windows_x64_{tag}.zip` 與 `SHA256.txt`；先核對 SHA-256。",
-        "- 解壓縮整個 ZIP，再執行 `WHD/WHD.exe`，勿只複製 EXE。",
-        "- 保留 `config.ini`、`config/`、`基準檔/` 與其他隨附檔案。",
-        "- 先備份自訂 DXF、CSV、`.p6fold` 與設定，勿直接覆蓋舊版資料夾。",
-        "- GitHub 自動提供的 Source code (zip) 是原始碼，**不是可執行版**。",
-        "",
-        "## 安全與驗收界線", "",
-        "- 本包由 GitHub Windows x64 Runner 建置並做啟動 Smoke；"
-        "此項不等於每一種現場板型及機台的製造驗收。",
-        "- CADCraft 為選用的外部繪圖程式，不承諾把第三方 EXE 包入 WHD。",
-        "- 程式未簽署 Windows 程式碼簽章，請以官方 Release 與 SHA-256 驗證來源。",
-        "",
-    ])
-    return "\n".join(lines)
+    if not subjects:
+        raise ValueError("RELEASE_NOTES_EMPTY_SOURCE_DIFF")
+    highlights: list[str] = []
+    for terms, sentence in _TOPICS:
+        if any(any(term in title for term in terms) for title in subjects):
+            highlights.append(sentence)
+            if len(highlights) == _MAX_HIGHLIGHTS:
+                break
+    if not highlights:
+        highlights.append(
+            "**品質與穩定性**：本次以既有程式的調整與回歸驗證為主，"
+            "未確認可另外宣稱的新操作功能。"
+        )
+    lines = [
+        "# WHD 正式版更新重點", "",
+        f"**版本：** `{tag}`  ",
+        f"**正式產品來源：** `{sha}`  ",
+        f"**上一正式版：** `{previous_tag}`", "",
+        "## 本次主要更新", "",
+        *[f"- {item}" for item in highlights], "",
+        "以上依實際版本差異歸納重點，不逐條照抄開發提交；"
+        "完整技術紀錄可從 GitHub 比較版本查閱：",
+        f"https://github.com/looaeedr/whd/compare/{previous_sha}...{sha}", "",
+        "## 下載與使用", "",
+        f"下載 `WHD_Windows_x64_{tag}.zip`，完整解壓後執行 `WHD/WHD.exe`。",
+        "更新前先備份設定、基準 DXF、CSV 與 `.p6fold` 專案；"
+        "不要直接覆蓋舊版資料夾。GitHub 的 Source code ZIP 不是執行版。", "",
+        "**驗收範圍：** Windows EXE 可建立及啟動，不代表所有現場型號與機台"
+        "都已完成製造驗收；CADCraft 外部程式不包含在 WHD ZIP 中。", "",
+    ]
+    notes = "\n".join(lines)
+    validate_notes(notes)
+    return notes
 
 
 def build_guide(*, tag: str, sha: str) -> str:

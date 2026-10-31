@@ -742,15 +742,26 @@ def on_baseline_model_changed(self, namespace, *_args):
     coordinator = self.settings_coordinator(
         self.settings_application_ports(namespace)
     )
-    result = coordinator.apply_baseline_transition(
-        new_model=new_model,
-        old_model=old_model,
-        new_editable=editable,
-        old_editable=old_editable,
-        fixed_corner_state=fixed_corner_state,
-        available_parts=remembered_parts,
-        previous_non_receiving_structure=previous_non_receiving_structure,
+    # Family switches can reproject the 3D assembly before the selector
+    # callback finishes. That automatic display navigation must not save
+    # old Fold-editor rows back over already committed Settings (notably
+    # box FW after a Receiving -> Custom switch).
+    previous_transition = getattr(
+        app, "_phase6_family_transition_in_progress", False
     )
+    app._phase6_family_transition_in_progress = True
+    try:
+        result = coordinator.apply_baseline_transition(
+            new_model=new_model,
+            old_model=old_model,
+            new_editable=editable,
+            old_editable=old_editable,
+            fixed_corner_state=fixed_corner_state,
+            available_parts=remembered_parts,
+            previous_non_receiving_structure=previous_non_receiving_structure,
+        )
+    finally:
+        app._phase6_family_transition_in_progress = previous_transition
     if result is not None and old_model != "受電箱" and new_model == "受電箱":
         app._phase6_non_receiving_part_presence_state = {
             "model": old_model,

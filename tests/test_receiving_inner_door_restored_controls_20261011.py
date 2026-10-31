@@ -11,7 +11,10 @@ from gui_modules.application.receiving_multi_settings_window import open_multi_s
 
 def test_inner_door_highlight_does_not_render_or_call_retired_link_actions():
     root = tk.Tk()
-    root.withdraw()
+    # Event-generated Canvas clicks require a mapped Tk host on Windows.
+    root.geometry("900x650+0+0")
+    root.update_idletasks()
+    root.update()
     calls = []
     row = {"bays": [{"inner_door_layers": 1}, {"inner_door_layers": 1}]}
     def ports(_set_index):

@@ -26,7 +26,7 @@ def _current_two_tiers():
     snap = _two_tier()
     for index, row in enumerate(snap["nfb_config"]["holes"]):
         row.update(
-            model_filename=("nfbv5:士林:2P400", "nfbv5:士林:3P125SN")[index],
+            model_filename=("nfbv5:士林:3P125SN", "nfbv5:士林:3P125SN")[index],
             source_brand="士林", manual_x_state="CONFIRMED",
             manual_x_mm=(-100. if index == 0 else 100.),
             datum_revision="CURRENT_CSV_X",
@@ -158,16 +158,16 @@ def test_original_operator_action_is_shared_for_one_or_two_tiers():
     assert "輸出 CSV 底板 DXF（單片）" not in modal
 
 
-def test_three_same_tier_400_switches_and_one_second_tier_reopen_three_dxfs(tmp_path):
+def test_three_same_tier_125_switches_and_one_second_tier_reopen_three_dxfs(tmp_path):
     snap = _current_two_tiers()
     holes = snap["nfb_config"]["holes"]
     holes[0]["manual_x_mm"] = -180.
-    holes[1]["model_filename"] = "nfbv5:士林:2P400"
+    holes[1]["model_filename"] = "nfbv5:士林:3P125SN"
     for slot, x in ((1, 0.), (2, 180.)):
         extra = deepcopy(holes[0])
         extra.update(physical_hole_id=f"tier:0:extra:{slot}",
                      slot_index=slot, manual_x_mm=x,
-                     model_filename="nfbv5:士林:2P400")
+                     model_filename="nfbv5:士林:3P125SN")
         holes.append(extra)
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]

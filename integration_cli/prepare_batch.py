@@ -19,8 +19,42 @@ from integration_cli.prepare_binding import create_preparation_binding
 from integration_cli.prepare_evidence import (
     PrepareEvidenceError, assert_snapshot_current, build_resource_evidence, resolve_authoritative_door_inputs
 )
-from integration_cli.prepare_frame import resolve_door_finished_local_frame
+from integration_cli.prepare_frame import (
+    resolve_door_finished_local_frame, resolve_indicator_box_size_only_frame,
+    resolve_endcap_size_only_frame, resolve_vault_base_plate_size_only_frame,
+)
 from integration_cli.request_canonical import require_matching_wire_request_digest
+from integration_cli.worker_box_body import (
+    vault_box_body_spec_from_trusted_prepared_part,
+    resolve_vault_box_body_size_only_frame,
+)
+from integration_cli.worker_receiving_endcap import (
+    receiving_endcap_spec_from_trusted_part,
+    receiving_endcap_shared_baseline,
+    receiving_endcap_frame,
+)
+from integration_cli.worker_receiving_back_panel import (
+    receiving_back_panel_spec_from_trusted_part,
+    receiving_back_panel_frame,
+)
+from integration_cli.worker_receiving_side_panel import (
+    receiving_side_panel_spec_from_trusted_part,
+    receiving_side_panel_expected_baselines,
+    receiving_side_panel_frame,
+)
+from integration_cli.worker_inner_door_frame import (
+    receiving_inner_door_frame_from_trusted_part,
+    receiving_inner_door_frame_size_only_frame,
+    source_frame_baseline,
+)
+from integration_cli.worker_inner_door_panel import (
+    receiving_inner_door_panel_from_trusted_part,
+    resolve_receiving_inner_door_panel_frame,
+)
+from integration_cli.worker_custom_fold import (
+    custom_fold_spec_from_trusted_prepared_part,
+    resolve_custom_fold_size_only_frame,
+)
 
 _REGISTRY_PATH = "基準檔/截角資料庫/certified_relief_rules.json"
 
@@ -136,6 +170,133 @@ def indicator_small_door_spec_from_trusted_prepared_part(part: Mapping[str, Any]
     return spec
 
 
+
+def indicator_box_spec_from_trusted_prepared_part(part: Mapping[str, Any], context):
+    """Use the WHD shared indicator-box owner; never trust caller dimensions.
+
+    A size-only Prepare does NOT attest external source Feature placement.
+    Only WHD-owned featureless geometry (with an empty original DXF source)
+    may reach private W-04; external Feature mapping remains unsupported.
+    """
+    from ae_engine.contracts import IndicatorBoxPartSpec
+    from ae_engine.manufacturing_api import indicator_box_finished_face_size
+
+    if (part.get("kind") != "indicator_box"
+            or part.get("dimension_semantics") != "part_formed_outer"):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "shared box requires part_formed_outer semantics")
+    if any(field in part for field in (
+        "frame_edges", "frame_width_mm", "gap_w_mm", "gap_h_mm",
+        "fold_left_mm", "fold_right_mm", "fold_top_mm", "fold_bottom_mm",
+    )):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "shared box cannot override WHD manufacturing policy")
+    groups = part.get("indicator_groups")
+    if not isinstance(groups, list) or not groups or any(
+        type(n) is not int or n <= 0 for n in groups
+    ):
+        raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "positive indicator groups required")
+    dims = part.get("dimensions_mm")
+    if not isinstance(dims, Mapping) or set(dims) != {"width", "height", "thickness"}:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "exact box formed dimensions required")
+    if any(type(dims[k]) not in (int, float) or not math.isfinite(dims[k]) or dims[k] <= 0
+           for k in ("width", "height", "thickness")):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "nonfinite or nonpositive box dimensions")
+    try:
+        expected = indicator_box_finished_face_size(
+            groups, thickness=float(dims["thickness"]), context=context,
+        )
+    except (TypeError, ValueError, OverflowError, ArithmeticError) as exc:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "WHD box dimensions unavailable") from exc
+    if any(
+        not math.isfinite(value)
+        or not math.isclose(float(dims[key]), value, rel_tol=0, abs_tol=1e-6)
+        for key, value in zip(("width", "height"), expected)
+    ):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "box outside dimensions disagree with WHD owner")
+    return IndicatorBoxPartSpec(
+        layer_groups=tuple(groups), thickness=float(dims["thickness"]),
+        model_name=None,  # Indicator boxes are globally shared, not family-owned.
+    )
+
+
+def endcap_spec_from_trusted_prepared_part(part: Mapping[str, Any], policy):
+    """Use WHD's existing Vault EndCap part contract without inventing folds.
+
+    A size-only Prepare is not source-Feature/assembly-space attestation.
+    Only WHD's intrinsic Vault standard geometry is eligible for private
+    W-04 with an entirely empty original DXF and no external Features.
+    Both head and tail retain distinct physical identities; no external
+    assembly relief, corner-policy override or source-to-DXF placement.
+    """
+    from ae_engine.contracts import EndCapPartSpec
+
+    kind = part.get("kind")
+    if kind not in ("end_cap_head", "end_cap_tail"):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unrecognized EndCap physical role")
+    if (part.get("cabinet_family") != "金庫型"
+            or part.get("dimension_semantics") != "cabinet_outer"):
+        raise PrepareEvidenceError(
+            "WHD_FRAME_UNVERIFIED",
+            "only WHD Vault cabinet_outer EndCap dimensions are verified",
+        )
+    if any(key in part for key in (
+        "frame_edges", "frame_width_mm", "gap_w_mm", "gap_h_mm",
+        "fold_left_mm", "fold_right_mm", "fold_top_mm", "fold_bottom_mm",
+        "indicator_groups",
+    )):
+        raise PrepareEvidenceError(
+            "WHD_FRAME_UNVERIFIED", "EndCap cannot override unverified folds or topology",
+        )
+    dims = part.get("dimensions_mm")
+    if not isinstance(dims, Mapping) or set(dims) != {"width", "depth", "thickness"}:
+        raise PrepareEvidenceError(
+            "WHD_FRAME_UNVERIFIED", "exact Vault EndCap width/depth/thickness required",
+        )
+    if any(type(dims[key]) not in (int, float)
+           or not math.isfinite(dims[key]) or dims[key] <= 0
+           for key in ("width", "depth", "thickness")):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "nonfinite EndCap input dimensions")
+    return EndCapPartSpec(
+        width=float(dims["width"]), depth=float(dims["depth"]),
+        thickness=float(dims["thickness"]), frame_width=float(policy.frame_width),
+        model_name="金庫型", is_tail=(kind == "end_cap_tail"),
+    )
+
+
+def vault_base_plate_spec_from_trusted_prepared_part(part: Mapping[str, Any]):
+    """Only independently specified Vault standalone flat plate, no assembly guesses."""
+    from ae_engine.contracts import BasePlatePartSpec
+
+    if (part.get("kind") != "base_plate" or part.get("cabinet_family") != "金庫型"
+            or part.get("dimension_semantics") != "part_formed_outer"):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "only Vault formed-part BasePlate geometry certified")
+    if any(key in part for key in (
+        "frame_edges", "frame_width_mm", "gap_w_mm", "gap_h_mm",
+        "fold_left_mm", "fold_right_mm", "fold_top_mm", "fold_bottom_mm",
+        "indicator_groups",
+    )):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unverified BasePlate topology/door overrides")
+    dims = part.get("dimensions_mm")
+    fields = ("shrink_top_mm", "shrink_bottom_mm", "shrink_left_mm", "shrink_right_mm", "bend_mm")
+    if (not isinstance(dims, Mapping) or set(dims) != {"width", "height", "thickness"}
+            or any(field not in part for field in fields)):
+        raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "explicit BasePlate geometry and shrink/bend required")
+    if any(type(dims[key]) not in (int, float) or not math.isfinite(dims[key]) or dims[key] <= 0
+           for key in ("width", "height", "thickness")) or any(
+               type(part[key]) not in (int, float) or not math.isfinite(part[key]) or part[key] < 0
+               for key in fields):
+        raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "invalid Vault BasePlate material parameters")
+    if (part["shrink_left_mm"] + part["shrink_right_mm"] >= dims["width"]
+            or part["shrink_top_mm"] + part["shrink_bottom_mm"] >= dims["height"]):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "BasePlate shrink consumes the finished face")
+    return BasePlatePartSpec(
+        width=float(dims["width"]), height=float(dims["height"]),
+        thickness=float(dims["thickness"]),
+        shrink_top=float(part["shrink_top_mm"]), shrink_bottom=float(part["shrink_bottom_mm"]),
+        shrink_left=float(part["shrink_left_mm"]), shrink_right=float(part["shrink_right_mm"]),
+        bend=float(part["bend_mm"]), model_name="金庫型",
+    )
+
+
 def prepare_trusted_door_batch(
     request: Mapping[str, Any], *,
     resource_root: Path, engine_commit: str, engine_sha256: str,
@@ -171,6 +332,14 @@ def prepare_trusted_door_batch(
     for item in request["items"]:
         p = item["part"]
         kind = p["kind"]
+        # Capabilities are scoped to the two independently implemented WHD
+        # families. Never let an arbitrary caller string silently choose
+        # Vault policy or produce a supposedly certified finished face.
+        if p["cabinet_family"] not in ("金庫型", "受電箱"):
+            raise PrepareEvidenceError(
+                "WHD_FRAME_UNVERIFIED",
+                "cabinet family is not certified for installed Worker",
+            )
         if kind == "door":
             if p["dimension_semantics"] != "cabinet_outer":
                 raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "only verified cabinet_outer Door-local frame is supported")
@@ -180,37 +349,294 @@ def prepare_trusted_door_batch(
             dims = p["dimensions_mm"]
             if not all(k in dims for k in ("width","height","thickness")):
                 raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "complete verified Door input dimensions required")
-        elif kind != "indicator_small_door":
-            raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unverified physical part kind has no certified local Frame")
+        elif kind not in (
+            "indicator_small_door", "indicator_box", "end_cap_head", "end_cap_tail",
+            "base_plate", "custom_fold", "box_body", "inner_door", "side_panel",
+            "back_panel",
+        ):
+            raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unverified physical part kind has no supported local Frame")
         if item["item_id"] in identities:
             raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "duplicate item ID")
         identities.add(item["item_id"])
-        door = (door_spec_from_trusted_prepared_part(p, policy) if kind == "door"
-                else indicator_small_door_spec_from_trusted_prepared_part(p, ctx))
+        if kind == "door":
+            part_spec = door_spec_from_trusted_prepared_part(p, policy)
+        elif kind == "indicator_small_door":
+            part_spec = indicator_small_door_spec_from_trusted_prepared_part(p, ctx)
+        elif kind == "indicator_box":
+            part_spec = indicator_box_spec_from_trusted_prepared_part(p, ctx)
+        elif kind == "back_panel":
+            part_spec = receiving_back_panel_spec_from_trusted_part(p)
+        elif kind == "side_panel":
+            part_spec, side_role = receiving_side_panel_spec_from_trusted_part(p)
+        elif kind == "inner_door":
+            part_spec = (
+                receiving_inner_door_frame_from_trusted_part(p)
+                if "inner_door_frame_side" in p
+                else receiving_inner_door_panel_from_trusted_part(p)
+            )
+        elif kind == "custom_fold":
+            part_spec = custom_fold_spec_from_trusted_prepared_part(p)
+        elif kind == "box_body":
+            part_spec = vault_box_body_spec_from_trusted_prepared_part(p)
+        elif kind == "base_plate":
+            part_spec = vault_base_plate_spec_from_trusted_prepared_part(p)
+        elif kind in ("end_cap_head", "end_cap_tail") and p["cabinet_family"] == "受電箱":
+            part_spec = receiving_endcap_spec_from_trusted_part(p)
+        else:
+            part_spec = endcap_spec_from_trusted_prepared_part(p, policy)
         identity_bytes = ("WHD-PART-v1\0" + request["client_installation_id"]
                 + "\0" + request["job_id"] + "\0" + item["item_id"]
                 + "\0" + p["source_part_ref"] + "\0" + item["source_document_sha256"]).encode("utf-8")
         physical_id = "whd-" + hashlib.sha256(identity_bytes).hexdigest()[:24]
-        authoritative = resolve_authoritative_door_inputs(door, ctx)
-        if kind == "indicator_small_door":
-            authoritative = {**authoritative, "part_kind": kind,
-                             "indicator_groups": list(p["indicator_groups"])}
-        frame = resolve_door_finished_local_frame(door, ctx, physical_part_id=physical_id)
-        baseline = expected_baseline_path_for(door, ctx)
-        if baseline is None:
+        if kind == "indicator_box":
+            frame = resolve_indicator_box_size_only_frame(
+                part_spec, ctx, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind,
+                "indicator_groups": list(p["indicator_groups"]),
+                "input_dimensions_mm": {"thickness": float(part_spec.thickness)},
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only",
+                "target_frame_certified": False,
+            }
+        elif kind == "back_panel":
+            frame = receiving_back_panel_frame(
+                part_spec, ctx, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "受電箱",
+                "physical_source_ref": "box_body:back",
+                "back_panel_mode": part_spec.back_panel_contract["mode"],
+                "fixed_slot_datums": list(part_spec.back_panel_contract["fixed_slot_datums"]),
+                "back_panel_opening": part_spec.back_panel_contract["opening"],
+                "source_outer_mm": {
+                    "width": part_spec.width, "height": part_spec.height,
+                    "depth": part_spec.depth, "thickness": part_spec.thickness,
+                    "frame_width": part_spec.frame_width,
+                },
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
+            }
+        elif kind == "side_panel":
+            frame = receiving_side_panel_frame(
+                part_spec, side_role, ctx, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "受電箱",
+                "physical_source_ref": p["source_part_ref"],
+                "selected_side_role": side_role,
+                "operator_outside_dimensions_mm": {
+                    "width": part_spec.width, "height": part_spec.height,
+                    "depth": part_spec.depth, "thickness": part_spec.thickness,
+                    "frame_width": part_spec.frame_width,
+                },
+                "canonical_factory_fold_profile": [
+                    {"length": row.length, "angle": row.angle,
+                     "phase6_key": row.phase6_key}
+                    for row in part_spec.fold_profile
+                ],
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
+            }
+        elif kind == "inner_door" and "inner_door_frame_side" in p:
+            frame = receiving_inner_door_frame_size_only_frame(
+                part_spec, resource_root, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "受電箱",
+                "physical_frame_identity": part_spec.stable_id,
+                "inner_door_id": part_spec.inner_door_id,
+                "frame_side": part_spec.side,
+                "source_span_mm": part_spec.span,
+                "source_thickness_mm": part_spec.thickness,
+                "signed_fold_chain": list(part_spec.signed_fold_chain),
+                "factory_material_lengths": list(part_spec.material_lengths),
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
+            }
+        elif kind == "inner_door":
+            frame = resolve_receiving_inner_door_panel_frame(
+                part_spec, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "受電箱",
+                "physical_panel_identity": part_spec.stable_id,
+                "inner_door_id": part_spec.inner_door_id,
+                "cell_key": part_spec.cell_key,
+                "input_finished_mm": {
+                    "width": part_spec.width, "height": part_spec.height,
+                    "thickness": part_spec.thickness,
+                },
+                "fixed_material_folds_mm": {
+                    "left": part_spec.fold_left, "right": part_spec.fold_right,
+                    "top": part_spec.fold_top, "bottom": part_spec.fold_bottom,
+                },
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
+            }
+        elif kind == "custom_fold":
+            frame = resolve_custom_fold_size_only_frame(
+                part_spec, ctx, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind,
+                "cabinet_family": p["cabinet_family"],
+                "physical_part_ref": part_spec.physical_id,
+                "fold_axis": part_spec.fold_axis,
+                "flat_material_profile": [
+                    {"length": row.length, "angle": row.angle,
+                     "phase6_key": row.phase6_key, "core": row.core,
+                     "formed_length": row.formed_length}
+                    for row in part_spec.fold_profile
+                ],
+                "transverse_length_mm": part_spec.transverse_length,
+                "thickness": part_spec.thickness,
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
+            }
+        elif kind == "box_body":
+            frame = resolve_vault_box_body_size_only_frame(
+                part_spec, ctx, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "金庫型",
+                "source_outer_mm": {
+                    "width": part_spec.width, "height": part_spec.height,
+                    "depth": part_spec.depth, "thickness": part_spec.thickness,
+                    "frame_width": part_spec.frame_width, "zl1": part_spec.zl1,
+                    "zl2": part_spec.zl2, "zr1": part_spec.zr1, "zr2": part_spec.zr2,
+                    "z_comp": part_spec.z_comp,
+                },
+                "canonical_factory_fold_profile": [
+                    {"length": row.length, "angle": row.angle,
+                     "phase6_key": row.phase6_key, "core": row.core}
+                    for row in part_spec.fold_profile
+                ],
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
+            }
+        elif kind == "base_plate":
+            frame = resolve_vault_base_plate_size_only_frame(
+                part_spec, ctx, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "金庫型",
+                "input_dimensions_mm": {
+                    "width": part_spec.width, "height": part_spec.height,
+                    "thickness": part_spec.thickness,
+                    "shrink_top": part_spec.shrink_top,
+                    "shrink_bottom": part_spec.shrink_bottom,
+                    "shrink_left": part_spec.shrink_left,
+                    "shrink_right": part_spec.shrink_right,
+                    "bend": part_spec.bend,
+                },
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
+            }
+        elif kind in ("end_cap_head", "end_cap_tail") and p["cabinet_family"] == "受電箱":
+            frame = receiving_endcap_frame(
+                part_spec, ctx, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind, "cabinet_family": "受電箱",
+                "source_outer_mm": {
+                    "width": part_spec.width, "height": part_spec.height,
+                    "depth": part_spec.depth, "thickness": part_spec.thickness,
+                    "frame_width": part_spec.frame_width,
+                },
+                "factory_x_material_profile": [
+                    {"length": row.length, "angle": row.angle, "key": row.phase6_key}
+                    for row in part_spec.fold_profile_x
+                ],
+                "factory_y_material_profile": [
+                    {"length": row.length, "angle": row.angle, "key": row.phase6_key}
+                    for row in part_spec.fold_profile_y
+                ],
+                "depth_comp_t": part_spec.depth_comp_t,
+                "selected_source_role": kind,
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only", "target_frame_certified": False,
+            }
+        elif kind in ("end_cap_head", "end_cap_tail"):
+            frame = resolve_endcap_size_only_frame(
+                part_spec, physical_part_id=physical_id,
+            )
+            authoritative = {
+                "part_kind": kind,
+                "cabinet_family": "金庫型",
+                "input_dimensions_mm": {
+                    "width": part_spec.width,
+                    "depth": part_spec.depth,
+                    "thickness": part_spec.thickness,
+                    "frame_width": part_spec.frame_width,
+                },
+                "finished_face_dimensions_mm": frame["finished_face_dimensions_mm"],
+                "coordinate_space": "size_only",
+                "target_frame_certified": False,
+            }
+        else:
+            authoritative = resolve_authoritative_door_inputs(part_spec, ctx)
+            if kind == "indicator_small_door":
+                authoritative = {**authoritative, "part_kind": kind,
+                                 "indicator_groups": list(p["indicator_groups"])}
+            frame = resolve_door_finished_local_frame(
+                part_spec, ctx, physical_part_id=physical_id,
+            )
+        baseline = (
+            receiving_endcap_shared_baseline(resource_root)
+            if kind in ("end_cap_head", "end_cap_tail") and p["cabinet_family"] == "受電箱"
+            else source_frame_baseline(resource_root)
+            if kind == "inner_door" and "inner_door_frame_side" in p
+            else None if kind in ("side_panel", "back_panel")
+            else expected_baseline_path_for(part_spec, ctx)
+        )
+        if baseline is None and kind not in ("base_plate", "custom_fold", "inner_door", "side_panel", "back_panel"):
             raise PrepareEvidenceError("WHD_RESOURCE_UNVERIFIED", "WHD could not identify the physical part baseline")
-        # Resolving a symlink before creating the manifest would erase
-        # the fact that a different physical file was selected.
-        probe = baseline
-        while probe != resource_root and probe != probe.parent:
-            if probe.is_symlink():
-                raise PrepareEvidenceError("WHD_RESOURCE_PATH_INVALID", "selected WHD baseline is symlinked")
-            probe = probe.parent
-        try:
-            relative = baseline.resolve().relative_to(resource_root.resolve()).as_posix()
-        except ValueError as exc:
-            raise PrepareEvidenceError("WHD_RESOURCE_PATH_INVALID", "baseline escapes trusted resource root") from exc
-        baselines.add(relative)
+        # The CURRENT AE shared-indicator resolver selects a *single*
+        # global folder only when both 盒子.dxf and 小門.dxf are present.
+        # Attest the same coupled resource set even for a one-kind Prepare:
+        # otherwise an unseen paired file could change after sealing the
+        # environment but before a later mixed Door/Box use of that folder.
+        selected_baselines = (
+            list(receiving_side_panel_expected_baselines(resource_root))
+            if kind in ("side_panel", "back_panel")
+            else ([] if baseline is None else [baseline])
+        )
+        if kind in ("indicator_small_door", "indicator_box"):
+            # WHD Engine owns the coupled physical source set; the Worker
+            # only binds exact selected paths into its signed resource manifest.
+            try:
+                from ae_engine.manufacturing_api import expected_shared_indicator_baselines
+                paired_baselines = expected_shared_indicator_baselines(ctx)
+            except (OSError, ValueError, RuntimeError) as exc:
+                raise PrepareEvidenceError(
+                    "WHD_RESOURCE_UNVERIFIED", "WHD shared-indicator source pair unavailable",
+                ) from exc
+            if baseline is None or baseline not in paired_baselines:
+                raise PrepareEvidenceError(
+                    "WHD_RESOURCE_UNVERIFIED", "WHD shared-indicator baselines are not paired",
+                )
+            selected_baselines.extend(
+                path for path in paired_baselines if path != baseline
+            )
+        for selected in selected_baselines:
+            # Do not resolve before checking the exact physical path: that
+            # would erase a symlink alias from the signed source manifest.
+            probe = selected
+            while probe != resource_root and probe != probe.parent:
+                if probe.is_symlink():
+                    raise PrepareEvidenceError(
+                        "WHD_RESOURCE_PATH_INVALID", "selected WHD baseline is symlinked",
+                    )
+                probe = probe.parent
+            try:
+                relative = selected.resolve().relative_to(resource_root.resolve()).as_posix()
+            except ValueError as exc:
+                raise PrepareEvidenceError(
+                    "WHD_RESOURCE_PATH_INVALID", "baseline escapes trusted resource root",
+                ) from exc
+            baselines.add(relative)
         recorded.append({
             "item_id": item["item_id"],
             "physical_part_id": physical_id,
@@ -267,7 +693,8 @@ def prepare_trusted_door_batch(
             "physical_part_id":p["physical_part_id"],
             "preparation_digest":sealed["item_preparation_digests"][p["item_id"]],
             "target_frames":[p["target_frame"]],
-            "required_inputs":["source_transform","verified_source_entity_refs"],
+            "required_inputs":([] if p["target_frame"]["allowed_feature_types"] == []
+                               else ["source_transform","verified_source_entity_refs"]),
             "production_scope":"single_part",
             "manufacturing_verified":False,
             "diagnostics":[],

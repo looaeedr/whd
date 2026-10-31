@@ -542,3 +542,249 @@ def folded_world_mesh_from_render_data(
         fold_guides=tuple(getattr(render_data, "fold_guides", ()) or ()),
     )
     return place_assembly_triangles(local, placement, dimensions, offset)
+
+
+def expand_box_body_fw_world_mid(
+    piece, mapped, world_mid_piece, *, sheet_thickness, tolerance=1e-7
+):
+    """Expand formed FW inward from the side-sheet's real OUTER physical skin.
+
+    The D core is placed by its mid-surface while FW's world X is an in-plane
+    coordinate, not a thickness-offset normal. The outboard FW formed edge
+    must mate the D core's OUTSIDE skin, derived from its real mid-surface
+    and outward sheet normal. Neither flat CUTTING nor Divider relief changes.
+    """
+    role = str(getattr(piece, "role", "") or "").strip().lower()
+    fw_key = {"left_side": "fw_left", "right_side": "fw_right"}.get(role)
+    if fw_key is None:
+        return tuple(world_mid_piece or ())
+
+    cursor = 0.0
+    band = None
+    core_bands = []
+    target = None
+    # flat cursor 走料長累計 BEND；formed_length 是折後包外證據，僅供外側實體面貼齊。
+    # 同樣可用 BEND 差分料長再還原 formed_length 做驗算；不得把組合結果改寫 3D 輸入。
+    for row in tuple(getattr(piece, "fold_profile", ()) or ()):
+        length = float(getattr(row, "length", 0.0) or 0.0)
+        end = cursor + length
+        if str(getattr(row, "phase6_key", "") or "") == fw_key:
+            raw = getattr(row, "formed_length", None)
+            if raw is not None:
+                target = float(raw)
+                band = (float(cursor), float(end))
+        if str(getattr(row, "core", "") or "") == "D":
+            core_bands.append((float(cursor), float(end)))
+        cursor = end
+    if band is None or target is None or target <= float(tolerance):
+        return tuple(world_mid_piece or ())
+    if len(core_bands) != 1:
+        raise ValueError("formed side FW requires exactly one physical D core")
+
+    selected = []
+    for index, item in enumerate(tuple(mapped or ())):
+        flat = tuple(getattr(item, "flat", ()) or ())
+        if len(flat) != 3:
+            continue
+        centroid_u = sum(float(point[0]) for point in flat) / 3.0
+        if band[0] + float(tolerance) < centroid_u < band[1] - float(tolerance):
+            selected.append(index)
+    if not selected:
+        return tuple(world_mid_piece or ())
+
+    rows = [tuple(tuple(float(v) for v in point) for point in tri) for tri in tuple(world_mid_piece or ())]
+    selected = [index for index in selected if index < len(rows)]
+    if not selected:
+        return tuple(rows)
+    xs = [float(point[0]) for index in selected for point in rows[index]]
+    if not xs:
+        return tuple(rows)
+    lo, hi = min(xs), max(xs)
+    span = float(hi - lo)
+    if span <= float(tolerance):
+        return tuple(rows)
+    # The already-placed D core is the only true side-sheet installation
+    # datum. The raw FW endpoint itself is NOT the bend hinge: centering its
+    # expansion yields W800/T2 outer skin +/-401; anchoring to its raw end
+    # shifts too far inward (outer skin +/-399). Derive the actual hinge from
+    # same-piece D-core world mesh instead, without ANY nominal offset.
+    core_lo, core_hi = core_bands[0]
+    core_selected = [
+        index for index, item in enumerate(tuple(mapped or ()))
+        if index < len(rows)
+        and len(tuple(getattr(item, "flat", ()) or ())) == 3
+        and core_lo + float(tolerance) < (
+            sum(float(point[0]) for point in item.flat) / 3.0
+        ) < core_hi - float(tolerance)
+    ]
+    if not core_selected:
+        raise ValueError("formed side FW cannot resolve physical D-core triangles")
+    core_xs = [
+        float(point[0]) for index in core_selected for point in rows[index]
+    ]
+    core_midplane_x = (min(core_xs) + max(core_xs)) / 2.0
+    thickness = float(sheet_thickness)
+    if not (thickness > 0.0):
+        raise ValueError("formed side FW requires a physical positive sheet thickness")
+    outward_normal_x = -1.0 if role == "left_side" else 1.0
+    core_outer_skin_x = (
+        core_midplane_x + outward_normal_x * thickness / 2.0
+    )
+    outboard_fw_x = float(lo if role == "left_side" else hi)
+    scale = float(target) / span
+    for index in selected:
+        rows[index] = tuple(
+            (
+                core_outer_skin_x + (float(point[0]) - outboard_fw_x) * scale,
+                float(point[1]), float(point[2]),
+            )
+            for point in rows[index]
+        )
+    return tuple(rows)
+
+
+def shift_multistage_terminal_fold_world_mid(piece, mapped, world_mid_piece, *, tolerance=1e-7):
+    """Resolve the straight-face tangent offset of an outer multi-stage fold.
+
+    Flat UV and the sharp-bend material midline remain material-space authority.
+    For a side piece where the FW face has two or more non-core folds outside it,
+    the outermost terminal straight leg is offset away from its adjacent bend by
+    its topology-derived outside/material delta.  This models the real straight
+    physical face used by collision without stretching the material segment.
+
+    A single terminal fold outside FW (Receiving right side) is intentionally
+    unchanged; its physical collision is already owned by the primary FW/edge
+    relationship.
+    """
+    import math
+
+    role = str(getattr(piece, "role", "") or "").strip().lower()
+    fw_key = {"left_side": "fw_left", "right_side": "fw_right"}.get(role)
+    if fw_key is None:
+        return tuple(world_mid_piece or ())
+
+    segs = list(tuple(getattr(piece, "fold_profile", ()) or ()))
+    if not segs:
+        return tuple(world_mid_piece or ())
+
+    fw_indices = [
+        i for i, row in enumerate(segs)
+        if str(getattr(row, "phase6_key", "") or "") == fw_key
+    ]
+    core_indices = [
+        i for i, row in enumerate(segs)
+        if bool(getattr(row, "core", None))
+    ]
+    if len(fw_indices) != 1 or not core_indices:
+        return tuple(world_mid_piece or ())
+    fw_index = fw_indices[0]
+    core_index = min(core_indices, key=lambda i: abs(i - fw_index))
+
+    if core_index > fw_index:
+        outward = list(range(0, fw_index))
+        terminal_index = 0
+        away_sign = -1.0
+    else:
+        outward = list(range(fw_index + 1, len(segs)))
+        terminal_index = len(segs) - 1
+        away_sign = 1.0
+
+    # One fold outside FW has no secondary-stage tangent correction. The
+    # correction is for the outer terminal leg of a multi-stage front fold.
+    if len(outward) < 2 or terminal_index not in outward:
+        return tuple(world_mid_piece or ())
+
+    # The pre-DXF Receiving first fold is zl1(+90) followed by zl2 and
+    # FW: it is at the FRONT and its first-bend outside must be resolved
+    # against the adjacent zl2 skin. The old tangent-only translation
+    # displaced the ENTIRE fold, including its hinge, by formed-material
+    # thickness. Let the shared skin fitter move only the free end instead.
+    if role == "left_side" and tuple(str(getattr(r, "phase6_key", "")) for r in segs[:4]) == (
+        "zl1", "zl2", "fw_left", "d_left",
+    ):
+        return tuple(world_mid_piece or ())
+
+    terminal = segs[terminal_index]
+    material_len = float(getattr(terminal, "length", 0.0) or 0.0)
+    raw_formed = getattr(terminal, "formed_length", None)
+    if raw_formed is None:
+        return tuple(world_mid_piece or ())
+    tangent_offset = float(raw_formed) - material_len
+    if tangent_offset <= float(tolerance):
+        return tuple(world_mid_piece or ())
+
+    start = sum(float(getattr(row, "length", 0.0) or 0.0) for row in segs[:terminal_index])
+    end = start + material_len
+
+    selected = []
+    for index, item in enumerate(tuple(mapped or ())):
+        flat = tuple(getattr(item, "flat", ()) or ())
+        if len(flat) != 3:
+            continue
+        centroid_u = sum(float(point[0]) for point in flat) / 3.0
+        if start - float(tolerance) <= centroid_u <= end + float(tolerance):
+            selected.append(index)
+    if not selected:
+        return tuple(world_mid_piece or ())
+
+    rows = [
+        tuple(tuple(float(v) for v in point) for point in tri)
+        for tri in tuple(world_mid_piece or ())
+    ]
+    selected = [index for index in selected if index < len(rows)]
+    if not selected:
+        return tuple(rows)
+    tangents = []
+    mapped_all = tuple(mapped or ())
+    for index in selected:
+        flat = tuple(getattr(mapped_all[index], "flat", ()) or ())
+        world = rows[index]
+        for i in range(3):
+            for j in range(i + 1, 3):
+                du = float(flat[j][0]) - float(flat[i][0])
+                dv = float(flat[j][1]) - float(flat[i][1])
+                if abs(du) <= float(tolerance) or abs(dv) > abs(du) * 1.0e-4:
+                    continue
+                vec = tuple((float(world[j][k]) - float(world[i][k])) / du for k in range(3))
+                mag = math.sqrt(sum(value * value for value in vec))
+                if mag > float(tolerance):
+                    tangents.append(tuple(value / mag for value in vec))
+    if not tangents:
+        return tuple(rows)
+
+    reference = tangents[0]
+    aligned = []
+    for tangent in tangents:
+        dot = sum(tangent[k] * reference[k] for k in range(3))
+        aligned.append(tangent if dot >= 0.0 else tuple(-value for value in tangent))
+    tangent = tuple(
+        sum(row[k] for row in aligned) / len(aligned)
+        for k in range(3)
+    )
+    mag = math.sqrt(sum(value * value for value in tangent))
+    if mag <= float(tolerance):
+        return tuple(rows)
+    tangent = tuple(value / mag for value in tangent)
+    delta = tuple(float(away_sign) * float(tangent_offset) * value for value in tangent)
+
+    for index in selected:
+        rows[index] = tuple(
+            tuple(float(point[k]) + delta[k] for k in range(3))
+            for point in rows[index]
+        )
+    return tuple(rows)
+
+
+def fit_receiving_left_zl1_world_mid(
+    piece, mapped, world_mid_piece, *, sheet_thickness, tolerance=1e-7,
+):
+    """Use the SAME source-defined formed/outside skin contract as single 3D."""
+    if str(getattr(piece, "role", "") or "") != "left_side":
+        return tuple(world_mid_piece or ())
+    return fit_receiving_left_zl1_formed_outside(
+        tuple(getattr(piece, "fold_profile", ()) or ()),
+        mapped, world_mid_piece, thickness=sheet_thickness, axis=0,
+        tolerance=tolerance,
+    )
+
+

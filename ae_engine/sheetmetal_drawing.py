@@ -132,6 +132,7 @@ def mirror_drawing_scene_x(scene: DrawingScene, min_x: float, max_x: float) -> D
             mirrored.add(PolylinePrimitive(
                 points=tuple(mirror_point_x(point, min_x, max_x) for point in primitive.points),
                 layer=primitive.layer, closed=primitive.closed, color=primitive.color,
+                semantic_id=primitive.semantic_id,
             ))
         elif isinstance(primitive, LinePrimitive):
             mirrored.add(LinePrimitive(
@@ -175,6 +176,7 @@ def mirror_drawing_scene_y(scene: DrawingScene, height: float) -> DrawingScene:
                 layer=primitive.layer,
                 closed=primitive.closed,
                 color=primitive.color,
+                semantic_id=primitive.semantic_id,
             ))
         elif isinstance(primitive, LinePrimitive):
             mirrored.add(LinePrimitive(

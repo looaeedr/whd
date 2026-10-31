@@ -30,6 +30,29 @@ whd_schema: WHD_DOC_META_V1
 
 因此 04 的責任是回答「engine 現在怎麼分層、公開哪些 API、各 authority 怎麼接起來」，不是把 Registry JSON 內容重新抄一份。
 
+### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
+
+**#2517 Receiving NFB 候選套用／實體孔身份 API（2026-11-01）**：候選的 `NFB_CSV_SOURCE` 實體內門來源驗證、混合 CUTTING 拒絕、已提交 NFB 與非 CSV 覆寫衝突，以及真實 Bay 專屬 physical hole ID 一律由 Engine 公開 `candidate_committed_csv_nfb_config`／`validate_candidate_nfb_replacement`／`replace_candidate_bay_nfb` 處理。GUI 只選擇版本、Set/Bay 及提交 Engine 回傳的 layout；同一份 CSV/Project/物理 provenance 權威不變，保存/候選套用不自動核准 NFB X 或新增 DXF 製造能力。
+
+**#2517 Receiving NFB 品牌變更實體 X 證據 API（2026-11-01）**：公開 `manufacturing_api.rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand)` 由既有 `ae_engine.receiving_nfb_brand_transition` 統一決定 Set 品牌變更與已提交 NFB 實體孔 X 的 `RECONFIRM_REQUIRED`。回傳 (detached Set row, changed)，不改輸入；原繼承來源不再可當作已確認 X，明確品牌 override、保存的來源／數值與不受影響 Bay 均維持。GUI Set/Bay adapter 僅決定目前選定的 Set 和提交結果，不能判斷或寫入孔位製造驗證狀態。這是來源狀態移轉，不是新增 NFB CUTTING／DXF 認證。
+
+**2026-10-31 核准的全域決策**：WHD 專案的 GUI 只是使用者操作、輸入、表單格式檢查、選取、呼叫與結果顯示。所有與製造相關的規則、正確性、箱型策略、板件拓樸與身份、孔／折／截角／避讓、加工資料、DXF、2D/3D canonical geometry 的唯一實作與權威都在 `ae_engine`，並經公開 API 提供。GUI 可把明確輸入轉成 DTO/PartSpec，但**DTO 組裝絕不能夾帶機械演算**。
+
+```text
+GUI（operator input / action / presentation）
+  → Engine request + public API
+  → Family + Topology + ManufacturingPolicy + Certified Registry
+  → authoritative FinalScene + physical parts + 2D/3D/DXF + Save→Reload
+  → Engine response → GUI presentation
+```
+
+全箱型、全實體板件、所有孔型、數量／套／連／Bay、3D 預覽、製造匯出、編輯與儲存都適用；**這不代表所有相關 API 已完成或已驗證製造**。GUI 禁止複製折彎／展開／CUTTING／BLIND_HOLE／MARKING／offset 計算、決定製造板件、低層 `ae.export_*` 與直接 DXF 序列化。Engine 禁止反向 import GUI/Tk 或依賴 GUI widget／renderer 才能產生正確幾何。
+
+Python 公開 seam 以 `ae_engine.contracts`、`ae_engine.manufacturing_api` 和 `ae_engine.__init__` 的正式 export 為準；外部 CADSplit 的 seam 是已授權 `integration_cli` 的 `capabilities/prepare/export`。功能缺席時**先補 Engine API、schema、capability 宣告與契約測試**，否則回傳 unsupported；GUI 不准以 fallback／Preview／自製公式假裝支援。能力表只反映實際驗證、信任與授權，不由 UI 清單代替。
+
+驗收同時驗 request → Engine API → result → GUI／Save→Reload／2D／3D／DXF，且每類箱型、板件、操作都必須以真實來源及 fail-closed 能力宣告證實。CI `tools/gui_engine_api_boundary_gate.py` 與 `.github/workflows/whd-gui-engine-api-boundary.yml` 阻擋可偵測的 PR **新增**越界程式碼；歷史技術債並非已經消失，須逐步搬回 Engine。靜態檢查不足以代替 domain 測試與 required branch check。
+
+
 ### 2. Current manufacturing data flow
 
 ```text
@@ -73,6 +96,47 @@ Current public surface 以 `ae_engine/__init__.py` 實際 export 為準。04 至
 - `generate_part`
 - `resolve_policy`
 - `expected_baseline_path_for`
+- `receiving_baseline_source_stamp` — Engine-owned Receiving baseline source witness；GUI 只傳 model/context/多片選擇，DXF 專用片缺來源時不得沿用舊製造快取（此 witness 不等於已驗證 DXF 實體或外部 prepare token）。
+- `expected_shared_indicator_baselines` — Engine-only selection of the paired IndicatorBox/SmallDoor source paths；external prepare attests both exact paths/content, no Worker private-Engine source selection; path existence alone never certifies manufacturing.
+- `map_door_features_to_unfolded_material` — canonical Engine map of finished-face Door features to unfolded material；Worker Export calls it only for independently attested source-feature vs FinalScene verification, no private compatibility helper or second coordinate formula.
+- `door_material_frame_width` / `door_finished_face_size` — authoritative public Engine Family material FW and finished Door face size for the exact typed `DoorPartSpec`. GUI multi-Door hole editor now uses the same canonical spec and API as indicator fit/export instead of calling low-level AE finished-size arithmetic. This is not a new feature geometry or DXF grant (#2517).
+- `indicator_small_door_operator_spec` — Engine-only composition of the operator Small Door Factory Policy snapshot, canonical `indicator_small_door_spec`, and immutable `DoorPartSpec`/`ManufacturingContext`. GUI only forwards groups/T/FW/door gaps/optional fold and existing feature list; former GUI policy `replace()` and spec derivation are forbidden. The global IndicatorBox baseline, existing CUTTING/DXF algorithm and manual feature-space semantics remain unchanged (#2517).
+- `fold_designer_secondary_scene_rows` — Headless Engine-only projection of existing CUTTING/BLIND_HOLE baseline source primitives to legacy read-only numeric hole rows; GUI supplies no hole formula and skips only structural outline as previously specified.
+- `query_fold_designer_baseline_rows` — Engine-owned Vault/Receiving Door/EndCap baseline source query and family material FW; only optional editor reference data, **not** certified DXF manufacturing readiness or an External Worker capability.
+- `apply_cabinet_family_endcap_policy` — Engine-owned family-specific EndCap bottom material FW resolution from operator state and authoritative topology. GUI cannot derive physical bottom FW or apply Receiving material offsets. No new manufacturing formula: reuse canonical `ae_engine.cabinet_types.policy.effective_endcap_bottom_fw`.
+- `select_quantity_nfb_partial` / `quantity_partial_live_manifests` / `verify_quantity_nfb_inner_door` / `QuantityNfbPartialSelection` — Engine owns per-version NFB source recheck and actual physical Q/partial CHECK; GUI is only an input/selection/display adapter. `receiving_quantity_versions.QuantityModel` is the one version-state owner; `phase6_quantity_model` retains only public-API compatibility.
+- `build_box_body_fold_profile` / `box_body_profile_to_fold_segments` — Engine-only BoxBody D-W-D Fold, Family topology, real adjacent-bend outside→material compensation and immutable Fold DTO. Legacy Phase6 Fold Designer and trusted Receiving Worker consume the one Engine implementation; no reverse phase6 import. Custom Fold / EndCap/Joint remaining seams are separate #2517 work.
+- `merge_box_body_fold_profile` — Engine owns user-custom BoxBody Fold reconciliation: preserve operator segment topology, refresh authoritative D-W-D/FW material sizes, apply Family-specific outer segment transforms (including Receiving no `zr1`), recompute actual adjacent-BEND outside metadata, reject missing D-W-D core. Phase6 `merge_box_body_profile` is only a thin public API compatibility call; do not regenerate removed custom outer folds.
+- `formed_box_body_fw_widths` / `box_body_ui_segment_length_to_material` / `read_box_body_outside_dimensions` / `can_remove_box_body_fold_segment` — Engine owns BoxBody material/outside Fold readback, FW formed witness, actual D-W-D symmetrical core checks and structural removal capability. Phase6 only displays or forwards operator input. Formed FW is an assembly/collision witness, never the physical CUTTING oracle.
+- `build_endcap_editor_simple_profile` / `read_endcap_editor_simple_profile` — Engine owns the legacy three-row EndCap top/depth/bottom Fold and scalar readback, reusing the existing canonical adjacent-BEND compensation. Phase6 only forwards. Does not certify separate full Head/Tail X/Y FinalScene.
+- `resolve_endcap_xy_outside_dimensions` / `fold_material_segment_outside_length` — authoritative headless Engine readback of EndCap X/Y material Fold into formed outside W/D/FW, preserving the existing Family D-core 2T/3T and actual BEND metadata. Phase6 may show the numbers but must not recalculate manufacturing dimensions. Physical EndCap X/Y source profile *building* and full FinalScene remain separately tracked.
+- `endcap_corner_selection_to_raw` / `apply_endcap_box_assembly_type_to_raw_state` — canonical Engine serializes the persisted EndCap CornerType and applies shared box Assembly Intent to Head/Tail typed corners, preserving existing bottom manual selections except explicit reset. Phase6 only forwards JSON input/readback; use existing `ae_engine.corner_type_ui.apply_box_assembly_type` instead of a second GUI manufacturing mutation.
+- `corner_policy_from_payload` — Engine owns Fold Designer raw/manual CornerType → canonical FourCornerTypePolicy and Registry-backed known-family fallback. Complete operator corners win, missing custom corners remain unsupported; GUI cannot invent or silently borrow Vault geometry. No new Relief/CUTTING formula.
+- `resolve_live_corner_policy` — Engine owns current GUI manual CornerType selection, typed legacy C02 preservation, explicit known-family Registry fallback and custom CROSS defaults; `gui.py::_manual_corner_policy` is only input/adapter and invokes the already Engine-owned EndCap family bottom-FW adjustment for explicit edits. Does not modify any CUTTING formula.
+- `ensure_corner_part` / `commit_corner_pair` / `commit_corner_type` / `commit_corner_mode` / `commit_corner_parameters` / `apply_corner_preset` — original manual CornerType state mutations have moved intact to `ae_engine.corner_state_transactions` and return public `CornerStateTransition`; Phase6 Settings functions are only public-API compatibility adapters. No geometry or relief policy duplication (#2517).
+- `resolve_family_divider_reliefs` — existing `ae_engine.divider_manufacturing` is the unique Engine owner of Receiving Family Divider ↔ BoxBody Joint construction, physical side-sheet collision source lookup, Registry-certified CROSS relief final material, world/refold verification, certification diagnostics and fail-closed missing side pieces. Uses Engine `build_joint_world_geometry`; Phase6 only public API request adapter (#2517).
+- `apply_verified_joint_cut_to_part` / `apply_verified_joint_cut_to_owner` — existing `ae_engine.assembly_collision` owns real Verified Joint CUTTING material difference, canonical FinalScene CUTTING/BEND rebuild, source physical child BoxBody role and exploded preview. Engine uses `dataclasses.replace` for caller-owned AssemblyScenePart DTO without importing GUI, preserving placement/Fold metadata. Phase6 adapters only call public API; bounded solver/Registry must verify the cut before application (#2517).
+- `serialize_joint_relief_polygons` / `restore_joint_relief_cut_geometry` — canonical `ae_engine.assembly_collision` owns Explicit Joint verified relief CUTTING exterior-polygons Save→Reload codec. Existing provisional source-proof and real material/UV authority are required before pipeline replay. Phase6 polygon helpers are thin Engine public API adapters, not an independent cut geometry codec (#2517).
+- `build_joint_world_geometry` — Engine `ae_engine.assembly_geometry` now owns Joint Solver v2 physical 3D world skins, canonical folded flat UV mapping and multipart physical aggregate. For split BoxBody only real piece keys have `flat_material_by_part`; the assembly-only whole `box_body` contains world triangles, never forged flat UV. Phase6 `build_joint_world_geometry` is a thin public API forwarder; collision/backprojection/Divider use the same Engine assembly geometry and no GUI-owned source (#2517).
+- `joint_registry_diagnostic_info` — canonical `ae_engine.assembly_joint` owns BOTTOM WRAP Certified evidence, STANDARD non-delta and other-edge rule/revision/trust/collision diagnostic interpretation. Existing Registry and solver proof are the only source; `phase6_manufacturing_geometry` forwards the public API to GUI/status presentation, no second HIT/MISS manufacturing rule (#2517).
+- `resolve_box_body_piece_solver_key` / `side_wrap_target_corners` / `joint_relief_state_item_matches` — canonical Engine `assembly_joint` owns physical multi-piece relief UV mapping, Head/Tail WRAP target identity and persisted provisional source-proof; Phase6 bounded callbacks only forward Engine public API (#2517).
+- `expand_box_body_fw_world_mid` / `shift_multistage_terminal_fold_world_mid` / `fit_receiving_left_zl1_world_mid` — Engine `ae_engine.assembly_geometry_folded_mesh` owns side-sheet D-core physical outer-skin offsets, terminal multistage formed-tangent projection and Receiving left zl1 formed outside 3D skin, consumed by canonical world-space collision/UV mapping. GUI Phase6 is compatibility forwarder, never second skin/formula oracle; material CUTTING remains unchanged (#2517).
+- `resolve_scene_assembly_placement` / `resolve_legacy_door_cell_scene_placement` — Engine owns physical assembly placement dispatch for Vault legacy Door grid, Receiving topology-derived Door/BasePlate/Divider/InnerDoor and saved legacy divider offsets. GUI `phase6_manufacturing_geometry` only forwards; canonical `ae_engine.assembly_placement.resolve_assembly_placement` remains the single Receiving manufactured coordinate owner. The actual `base_plate:fixing_plate:` weld Z is unsupported and remains standalone instead of fabricated (#2517).
+- `box_body_piece_editor_profiles` / `reverse_box_body_fold_traversal` — Engine-owned manufacturing Fold editor readback for real BoxBody physical children: right-side reverse bend ownership, legacy Receiving left-side source inverse and sign metadata. `fold_designer_bridge` only forwards; no GUI manufactured dimension inverse. Existing `BoxBodyStructureRenderData` remains the physical authority, no second geometry (#2517).
+- `apply_box_body_structure_numeric` — existing `ae_engine.box_body_structure_state` exclusively owns operator BoxBody 2/3-piece W numeric allocations, join seam, side/back OUTSIDE or MATERIAL rear bend, back width compensation and nonnegative relief. Phase6 Settings numerical edit is only a public API forwarder. Existing certified geometry remains unchanged (#2517).
+- `plan_cabinet_family_model_transition` / `FamilyModelPlan` / `FamilyModelTransition` — Engine owns entire Family-model transition of manufacturing state (fresh Vault/Receiving defaults, Receiving first Set/Bay current CSV NFB source, inner-door/door-cell topology resets, canonical Assembly Intent/Joints, EndCap BottomWrap and BoxBody structure preservation). Same-family aliases retain edited state. Phase6 Settings is a compatibility API adapter and the Settings Controller only commits returned state/presentation. Reuse existing Cabinet Family Policy/Receiving CSV/Registry owners; no second formulas (#2517).
+- `commit_assembly_intent_state` / `normalize_assembly_type` / `AssemblyIntentTransition` — canonical Engine assembly-intent transaction in `ae_engine.assembly_intent_transactions` combines Registry intent validation, Engine-owned joint graph state/temporary part context, legacy EndCap CornerType projection and persisted Save→Reload mirror. Phase6 Settings `assembly_intent` and `normalize_assembly_type` are compatibility adapters only; no GUI business rule. `WRAP_OVERLAY` bottom remains an actual Joint WRAP, never a mirrored top CornerType (#2517).
+- `legacy_endcap_corner_projection_for_intent` — Engine-validated `WRAP_OVERLAY` → `OVERLAY` applies only to legacy Head/Tail CornerType mirror; canonical BOTTOM WRAP remains Assembly Joint Graph. Reuse Engine owner for raw CornerType serialization/assembly-state mutation (#2545); GUI/Phase6 only forwards.
+- `commit_box_fw` / `commit_endcap_fw` / `set_endcap_fw_follow` / `set_endcap_fw_override` — Head/Tail canonical FW write side joins Engine-owned `normalize_endcap_fw_state` / `resolve_endcap_fw` read side. Engine owns FOLLOW_BODY→FOLLOW_HEAD/TAIL→INDEPENDENT and explicit box FW reset, including legacy saved states. Phase6 only sends operator edits and displays the public Engine result; the manufacturing fold builder remains the sole material owner.
+- `normalize_endcap_bottom_wrap_state` / `resolve_endcap_bottom_wrap` / `commit_endcap_bottom_wrap` / `commit_endcap_bottom_wrap_joint` — Engine owns saved Head/Tail lower WRAP link/leader/split state, Receiving Family defaults, explicit adjustable reserves and canonical BOTTOM AssemblyJoint graph priority. GUI Phase6 only forwards operator edits/readback; do not treat legacy enabled mirrors as production Joint authority or export capability.
+- `endcap_editor_fold_tabs` / `normalize_endcap_profile_order` — Engine owns legacy Head/Tail Fold editor supported axes and tail-native canonical Y BEND/order rehydration on Save→Reload; GUI/Phase6 only delegates and preserves custom profiles, original material lengths and unrelated metadata. This does not grant new DXF capabilities.
+- `build_endcap_xy_fold_profiles` / `resolve_endcap_fw` / `normalize_endcap_fw_state` / `resolve_endcap_assembly_type` — Engine owns all Head/Tail X/Y Fold source roles, Family 2T/3T, FW material/outside and FOLLOW_BODY/FOLLOW_HEAD/FOLLOW_TAIL/INDEPENDENT plus persisted/legacy Assembly Intent. Existing Phase6 Fold and EndCap state helpers only delegate via public APIs; no GUI formula. Actual source DXF FinalScene and certified corner/relief remain canonical in their existing Engine owners.
+- `endcap_profiles_for_assembly` — Engine owns GUI-to-Head/Tail request-time assembly Fold reconciliation. OVERLAY must use the Engine-built flat physical X (no left/right BEND), restoring INSERT from formerly-flat X rebuilds canonical Family X while preserving the operator Y; missing stored profiles retain legacy `None` except OVERLAY. GUI is only a public API adapter; Registry and CUTTING formulas unchanged (#2517).
+- `build_linked_endcap_xy_fold_profiles` / `is_canonical_box_body_mating_profile` / `box_body_front_mating_fold_chain` — Engine owns arbitrary BoxBody to Head/Tail linked Fold. Canonical D-W-D validation, original operator angles, FW budget, and tail-native reverse Y are preserved for five/twenty or other segment counts. GUI/Phase6 only passes the source data and consumes public API. No second DXF/relief authority.
+- `resolve_box_body_back_panel_contract` — 公開 Engine Family API 專責受電箱三片結構背板寬度補償、角落相依高度及 FULL/BACK_OPENING 製造 contract；Worker 僅傳原始外尺寸、來源 Fold 輸入與已驗證 mode/state，禁止在 Worker 重算。既有 Fold profile adapter 仍須後續從 phase6 遷入純 Engine，不可反向 import phase6 假裝完成。
+- `box_body_structure_state` / `set_side_back_back_panel_mode` / `back_panel_mode` — canonical Engine-owned BoxBody structure state and Receive rear FULL/HALF/BACK_OPENING persistence. `phase6_box_body_structure` is a re-export compatibility shim, never a second structure policy. Worker back panel resolves its signed mode via public Engine API; `ae_engine.box_body_structure`/`box_body_structure_core` no longer reverse-import Phase6 and use Engine BEND compensation.
+- `resolve_receiving_box_body_structure_state` — public Engine Family API for Receiving's immutable side/back state (fresh OUTSIDE rear bend, legacy MATERIAL compatibility, back W−2.5T and default FULL). Worker left/right side consumes this canonical state instead of private Cabinet Family imports. `ae_engine.cabinet_types.receiving` no longer imports Phase6.
+- `expected_endcap_feature_baseline` — Family-aware EndCap 固定孔基準檔路徑選擇；受電箱透過 Engine policy 指向金庫型共用固定孔基準，不改受電箱 D−2T 或 Head/Tail FinalScene。Worker 僅負責來源檔案位元組／Frame／交易驗證，Expected Path 本身不是製造認證。
 - `CabinetTypeRegistration`
 - `registered_cabinet_types`
 - `resolve_cabinet_type`
@@ -193,6 +257,19 @@ Joint marking policy/diagnostics 由 engine registry/orchestration 擁有；prod
 
 Validation 維持單向：contact probe、collision、fixture expected、pytest tolerance、rendered result 與 QA artifact 只能驗證上述 authority，不得成為 production formula、offset、placement 或 marking policy 的來源。
 
+
+### 10. CADSplit × WHD source-only Worker boundary（installed Worker/EXE retired）
+
+2026-11-01 使用者決策：**安裝版 WHD Worker／WHD-Engine.exe 接線退役**。這項退役不改變 WHD Engine 對製造、實體板件、幾何、2D/3D/DXF 與 Save→Reload 的唯一權威，也不降低 GUI → Engine API 硬閘門。
+
+- `integration_cli/cadsplit_worker.py` 與 `integration_cli/schemas/` 只保留 source-only wire boundary；公開命令仍只有 `capabilities/prepare/export`，沒有 `verify`。
+- source-only `capabilities` 的製造能力全部 false；公開 `prepare/export` 必須回 `WHD_OPERATION_NOT_IMPLEMENTED`、`manufacturing_verified=false`，不得寫 DXF。
+- **不存在安裝版 admission**：不得由 `installation_id`、DPAPI/HMAC、installer source/output custody、packaged manifest 或 frozen EXE 啟用製造；`--installation-id` 與 `_private_installed` 均不是合法 CLI。
+- **不存在安裝版 public certification owner**：舊 `private_worker_installation.py`、`public_installed_adapter.py`、`worker_key_custody.py`、`packaged_identity.py` 與 private Windows Engine EXE workflow 已退役，不得從 Git history 默默恢復。
+- W-03/W-04/W-06 的純 Python helper／transaction／source-verification 基礎可作內部測試或未來 Engine API consumer 的實作材料，但它們不由 `cadsplit_worker.main()` 對外接線，也不能宣稱 Gate A／外部製造已放行。
+- 若未來重新需要 CADSplit 外部 executable/installer，必須有新的明確使用者決策與 CURRENT owner，且只能消費同一 WHD Engine 公開 API；不得復活第二套 Worker 製造 authority。
+
+
 ---
 
 ## [HISTORICAL/SUPERSEDED] Legacy ae_engine notes
@@ -307,3 +384,200 @@ Accepted provenance：Phase 7 #618/#620/#621/#623 與 Combined Acceptance #626�
 - **Validation one-way**：1×1、1×2、1×4、2×2、mixed W/H/D、mixed FULL/HALF/BACK_OPENING、Save→Reload、DXF reopen 與 regression 都是 acceptance evidence；它們驗證上述 authority，但不得反向創造新產品規格或 offset。
 
 Durable signoff provenance：#1116 owner signoff 記錄 R-029 與 OPEN-02；OPEN-02 implementation finalization 由 PR #1167 merge 至 `cleanup/2d-3d-sync`。後續若要改方向、5 mm inset、pairing ownership 或 Joint scope，必須以新的 product-owner decision 更新本 CURRENT authority，不能只改 code/test。
+
+
+### #2383 Vault standalone BasePlate Worker route (2026-10-31)
+
+Installed `integration_cli` v1.1 now routes `金庫型/base_plate` through the existing
+`BasePlatePartSpec → build_part_render_data → FinalScene → save_verified_final_scene_batch_dxf`
+with HMAC-bound exact-job preparation and original-source empty-modelspace verification.
+Source `part_formed_outer` dimensions and all four shrink values plus bend are explicit;
+no default assembly relationship is fabricated. There is no dedicated BasePlate baseline;
+its verified code, Registry, policy and canonical material are the source. The signed
+Frame denotes only the unfolded Final Material envelope and prohibits external Features.
+This scope does **not** enable Receiving pattern, Joint, cross relief, original-source
+hole mapping, box-body assembly or any other blocked W-08 feature.
+
+### #2383 Vault/Receiving standalone custom Fold Worker route (2026-10-31)
+
+Independent `金庫型/custom_fold` and `受電箱/custom_fold` manufacturing must
+consume the explicit source physical `custom:<positive integer>` ID, one X/Y
+fold axis, transverse material span and every material Fold Profile segment
+(length, angle and optional formed outside length) through WHD's
+`CustomFoldPartSpec` and `ae_engine/custom_fold_manufacturing.py`. That owner
+alone resolves real CUTTING/BEND and Final Material, then the already guarded
+Worker W-03/04/06 Save→Reload path exports independently verified DXF.
+
+A size-only signed Frame attests unfolded material bounds, never an assembly
+placement, original CADSplit source-to-DXF feature mapping or a second fold
+formula. Original CADSplit DXF must be empty for the feature-disabled export.
+No implicit preset, material conversion, 3D joint, corner relief or original
+feature transfer may be guessed. Other family roles stay closed until their
+own exact Gate C manufacturing authority exists.
+
+### #2383 Vault integral BoxBody W-08 source-controlled API (2026-10-31)
+
+`金庫型/box_body` accepts one integrated physical sheet only. Its independent
+W/H/D/T, FW, zl1/zl2/zr1/zr2/z_comp inputs are all signed at W-03; the WHD
+Phase6 canonical D-W-D source performs Fold outside/material conversion.
+Existing Vault `箱身.dxf`, certified Registry and AE `BoxBodyPartSpec`
+are the sole geometry authority, with canonical CUTTING/BEND FinalScene,
+trusted HMAC, original empty-source check and DXF Save→Reload. The advertised
+Frame is a size-only unfolded blank; source-feature mapping, independent
+multi-piece bodies, Receiving family assembly, collision/Joint and manual
+external Fold profiles remain blocked pending their own physical Gate C.
+
+### #2383 Receiving physical inner-door panel signed Worker API (2026-10-31)
+
+The `受電箱/inner_door` external Worker manufacturing entry applies only to
+one source-confirmed physical `inner_door:<id>:panel`, with stable source
+`inner_door_id`, `inner_door_cell_key` and formed W/H/T. The existing
+`ae_engine.inner_door_panels.derive_inner_door_panel` and
+`ae_engine.manufacturing_scene_orchestration.build_inner_door_panel_render_data`
+are the *only* owner of material Fold, factory 19-mm flanges, corner CUTTING,
+BEND and stable physical identity. This signed size-only Frame supports an
+empty original CADSplit DXF only; it makes no claim for NFB holes, side or
+upper frames, Divider, joinery, mounting screws or full installation assembly.
+Original external entities, unverified coordinates or alternate Fold params
+fail closed; exact W-03/04 HMAC recheck, registry identity and verified DXF
+Save→Reload remain mandatory. The owner of the inner-door frame set is unchanged.
+
+### #2383 Receiving physical Side Panel signed manufacturing route (2026-10-31)
+
+`受電箱/side_panel` chooses only one physical side source ID
+`box_body:left_side` / `box_body:right_side`. The existing Receiving
+`build_box_body_profile` eight-segment Receiving outside→material owner, fixed three-piece
+`resolve_box_body_structure_state`, `resolve_back_panel_contract` and
+`build_box_body_structure_render_data` alone own geometry/stock/bends and
+baseline CUTTING/BLIND_HOLE/MARKING. All three dedicated source files
+`左側板.dxf`, `右側板.dxf`, `後面板.dxf` are WHD-signed resources for this
+single-part route; Vault integral BoxBody cannot act as a reference substitute.
+No CADSplit external Feature transform, untrusted original DXF entities,
+assembly/world Joint or unrelated multipart output is certified; preserve
+original source SHA and W-03/04/06 exact-job verification and DXF Save→Reload.
+
+
+### W-08 Receiving rear sheet installed Worker scope
+
+`受電箱/back_panel` only admits `box_body:back`, source-confirmed FULL or
+BACK_OPENING and exact source factory dimensions. The authoritative
+`receiving.resolve_back_panel_contract` plus `receiving_piece_baseline_features`
+against verified `後面板.dxf` produce the actual flat CUTTING with four
+keyslots and optional source-derived 650x200 rear opening. The signed source
+snapshot attests all three Receiving side/back DXFs; no virtual assembly,
+manual hole transfer or spurious BEND is allowed. HALF cannot be released
+until its persisted two-section Door topology is independently bound.
+
+
+### W-08 Receiving independent head/tail Worker authority
+
+`受電箱/end_cap_head` and `受電箱/end_cap_tail` expose two separately
+signed physical-sheet routes. Source W/H/D/T/FW, yl1/yr1/ytop1/ybottom1 and
+rear Fold value are explicit. `build_endcap_xy_profiles` determines real
+head/tail orientation and flat Fold material; Receiving `D-2T` and family
+`endcap_corner_policy` determine physical corner CUTTING. The canonical
+Receiving policy maps *only baseline fixed Ø6.4 holes* to existing
+`基準檔/金庫型/封頭尾.dxf`; it does not import Vault D-3T. HMAC-signed
+W-03/04/06, source-empty verification, exact reference bytes and actual
+CUTTING/BEND Save→Reload remain mandatory. No assembled WRAP/Joint, external
+CADSplit Feature transform or other uncertified physical roles are released.
+
+
+### #2383 Receiving physical inner-door A/B/D frame Worker extension (2026-10-31)
+
+For an independently source-confirmed inner-door ID and exact frame side
+LEFT/RIGHT/TOP plus span/T, `inner_door_frames.derive_inner_door_frames`
+owns the signed physical Fold Chain. `receiving_frame_baseline` owns the true
+A/B/D source CUTTING and D's two holes in `基準檔/受電箱/框.dxf`;
+`build_inner_door_frame_render_data` consumes **the installed resource-root
+baseline** for W-03/W-04, not an unsealed repository fallback. W-03 HMAC
+binds exact material, frame side and baseline digest; W-04 verifies the
+same FinalScene and DXF Save→Reload. The existing single panel remains
+supported. Source DXF Feature transforms, C-divider, unsourced bottom frame,
+NFB, physical assembly and joint marking are *not* authorized by this
+frame-only route.
+
+
+### #2517 EndCap live Fold dimension synchronization (2026-11-01)
+
+- `endcap_derived_core_lengths` and `reconcile_endcap_live_outside_dimensions` are Engine public API owners of the existing EndCap 4T W / Family 2T–3T D material/outside live editor reconciliation.
+- The Tk bridge only forwards operator top W/D, prior W/D and material Fold rows and applies returned dimensions. These methods do not grant new manufactured DXF capability, nor close #2517.
+
+
+### #2517 Finished-face feature preview projection (2026-11-01)
+
+- `project_finished_features_to_legacy_renderer_holes` is the Engine public owner of Circle/Rect finished-face hole positioning and integer legacy Fold Renderer display rows, consuming the existing `feature_finished_point` authority.
+- The former GUI `project_features_to_original_holes` now forwards request→Engine→result only. Profile/custom features remain independent; a preview DTO never authorizes cutting/DXF and does not close #2517.
+
+
+### #2517 Settings finished part dimensions to Engine (2026-11-01)
+
+- `project_part_dimensions`, `door_part_projections` and `DoorPartProjection` now belong to public `ae_engine.manufacturing_api`; Family Door FW, Door-cell finished sizes, Receiving BasePlate physical blank and persisted dimension reconciliation are computed from existing canonical Engine sources.
+- `phase6_settings_profile_projection` retains the existing Settings freeze/plan/presentation contract but re-exports the Engine API only; it does not implement second Door/BasePlate size formulas. This is one #2517 slice, not a declaration of complete manufacturing/DXF capability.
+
+
+### #2517 Standard Door/BasePlate/Indicator Fold profiles (2026-11-01)
+
+- Engine public `build_standard_part_fold_profiles` now owns existing Door, BasePlate, IndicatorBox/IndicatorDoor and standard fallback X/Y material segment construction, including topology-based `ui_len_add`, Family receiving physical BasePlate precedence and finished-size consumption.
+- Settings/GUI `build_standard_part_profiles` forwards standard part identities only; existing `custom:` keys retain the separate Phase6 custom extension until its own Engine API migration. Standard API rejects custom IDs, never silently substitutes generic material.
+
+
+### #2517 Keyed Fold reconciliation Engine API (2026-11-01)
+
+- `merge_keyed_fold_profiles` publicly owns Settings' reconciliation of newly computed Engine material `len`, bend `ui_len_add` and core metadata with operator-added Fold rows, per X/Y axis. The GUI Settings planner only delegates and presents the resulting detached profiles. Missing canonical keys fail closed to the complete Engine default axis, never guessed material lengths.
+- This migration does not change Family material geometry, Certified Registry, Custom Fold ownership, independent manufacturing DXF gates, or the open #2517 acceptance status.
+
+
+### #2517 Derived physical part ID classification (2026-11-01)
+
+- Engine public `is_box_body_physical_piece_key` and `is_derived_physical_part_key` now own the existing physical-child identity distinctions. Phase6 navigation and Settings are display/planning adapters, not independent manufacturing physical-ID authorities.
+- This does not allocate IDs or certify Save→Reload, 2D/3D/DXF manufacturing support.
+
+
+### #2517 EndCap relief production commit policy (2026-11-01)
+
+- `endcap_relief_solution_committable` is the public Engine authority for existing verified/certified Head/Tail relief commit acceptability. Phase6 manufacturing service consumes the API result; GUI/Phase6 must not decide certified/trust precedence itself.
+- The certified-formula versus 3D shadow conflict distinction is preserved. This is not a new rule registration, uncertified DXF grant, or full #2517 completion.
+
+
+### #2517 Door-layout Indicator Box/Small Door editor ownership (2026-11-01)
+
+- `gui.py::open_door_indicator_component_editor` now delegates physical box/small-door editor surfaces, CUTTING/DATUM/BEND source scene, finished-face guides and widths/heights to existing public `manufacturing_api.resolve_indicator_editor_components(groups, thickness, door_spec)`, using the same `_indicator_door_part_spec` already consumed by Phase6. GUI retains operator mode/group selection, feature-store identity, baseline-status display and commit callbacks.
+- The global IndicatorBox source `基準檔/指示燈/盒子.dxf` remains authoritative; the historic `model_name` argument to `baseline_scene_adapters.get_stretched_indicator_box_data` is explicitly ignored. No new CUTTING formula, worker routing or DXF manufacturing capability is claimed. #2575 cache fingerprint is a separate independently developed slice; #2517 remains OPEN.
+
+### #2517 Manufacturing cache semantic signature Engine API (2026-11-01)
+
+- `manufacturing_state_fingerprint` and `canonical_manufacturing_signature_value` are public Engine owners of pre-scan manufacturing cache dependency policy, replacing Phase6 decisions about Receiving live W/H/D versus Settings seed values, persistence mirrors, UI-only typography, normalized nested Fold state, physical intent, and finite numeric validity.
+- Phase6 only extracts operator/workspace data and invokes Engine. Cache equality does **not** certify CUTTING/DXF nor bypass complete geometry/Save→Reload verification; #2517 remains OPEN.
+
+### #2517 Standard Fold Settings readback Engine API (2026-11-01)
+
+- `read_standard_part_fold_profiles` is the public Engine owner of the approved reverse material Fold → operator setting mapping for Door, BasePlate, IndicatorBox/IndicatorDoor, including the four-edge equality rejection and Receiving root BasePlate real physical Fold precedence. Phase6 manufacturing adapter is only a GUI request/response delegate.
+- Physical Fold/FinalScene and Certified Registry remain authoritative. A reverse Settings DTO is neither a DXF/CUTTING grant nor permission to fabricate Custom Fold or overwrite Receiving source geometry; #2517 stays OPEN.
+
+
+### #2517 Live operator finished dimensions source precedence (2026-11-01)
+
+- Public `resolve_live_operator_finished_dimensions` now owns the legacy GUI's sparse snapshot W/H/D fill and Receiving live Bay/Quantity working dimensions-over-seed precedence, while consuming existing canonical `resolve_operator_finished_dimensions` (mesh, Head/Tail Corner policy) without a second manufacturing formula.
+- The Phase6 adapter only collects operator input and passes Corner policy DTOs to Engine. No persisted values are rewritten and no unverified DXF capability is granted; #2517 remains OPEN.
+
+### #2517 Custom physical identity and X/Y Fold Engine ownership (2026-11-01)
+
+- Public Engine `CustomPartCatalog`, `is_custom_part`, `custom_part_only_change` own stable nonrecycled custom physical IDs, snapshot comparison and metadata validation. `descriptor_from_snapshot`, `build_custom_part_profiles`, `custom_part_spec` own both X/Y single-axis operator outside 17/100 → material Fold and physical `CustomFoldPartSpec` construction, with original 1T-per-actual-adjacent-BEND contract and transverse flat axis.
+- Former `phase6_custom_parts.py` and `phase6_custom_fold_profiles.py` are public Engine API compatibility facades only; neither may independently validate physical metadata or derive manufacturing Fold.
+- Preserve fail-closed invalid thickness, missing descriptors, nonmatching transverse span and unverified external Feature handling. This change does not certify 2D/3D/DXF Save→Reload or complete #2517.
+
+### #2517 Receiving Inner Door quantity Apply Engine API (2026-11-01)
+
+- `apply_receiving_inner_door_quantity_configuration(layout, library, quantities, assigned, *, expected_counts=None)` 是跨所有 Receiving Set/Bay 內門版本配置的唯一製造狀態交易入口。Engine `receiving_inner_door_pairing` 先完整檢查 topology／各版本數量／對應、每個候選正式 NFB CSV／CUTTING 單一來源及已提交實體 NFB 覆寫衝突，再原子回傳 detached layout 與受影響 physical Bay stable IDs；未通過不得部分寫入。
+- GUI `ReceivingSetBayAdapter.apply_inner_door_quantity_configuration` 現僅轉發操作者配置與更新 UI dirty IDs；不再自己決定已套用版本、物理孔身份、正式 NFB 持久化及多連共享設定交易。既有 `receiving_shared_settings`／`receiving_layout`／`receiving_nfb_csv_committed_config` 是原有 source owner。此 API 沒有新增 CUTTING／DXF 認證，未授權 X 發布；#2517 繼續 OPEN。
+
+### #2517 Receiving Head/Tail quantity Apply Engine API (2026-11-01)
+
+- `apply_receiving_endcap_quantity_configuration(layout, role, library, quantities, assigned, *, expected_counts=None)` 是跨 Receiving Set/Bay 的封頭／封尾候選數量配置公開交易入口。Engine `receiving_quantity_allocation` 先驗證完整拓樸、版本數量、套／連對應與正式版本 ID，再透過現有 `receiving_shared_settings` 對每個真實 Bay 原子寫入 Head/Tail Hole Editor Feature 與已套用版本，回傳 detached layout 及 stable IDs，不修改原輸入或不同角色的候選與加工來源。
+- GUI `ReceivingSetBayAdapter.apply_quantity_configuration` 只提交操作者選擇、更新界面 dirty IDs；不得複製候選數量、實體 Bay 設定或 Feature 的製造交易。這不新增 Head/Tail 孔公式、CUTTING／DXF 認證；#2517 仍需其他功能繼續遷移。
+
+### #2517 Receiving Head/Tail highlighted Apply Engine API (2026-11-01)
+
+- `apply_receiving_endcap_candidate_to_bays(layout, role, set_index, bay_indices, features, *, version_id=None)` 是操作者高亮封頭／封尾候選套用的唯一 Engine 實體狀態交易入口。Engine 以正式 `receiving_shared_settings` 對原始 Feature 型別、角色／版本與真實 Set/Bay index 完整檢核，對選中的 Bay 解開共享 refs 並原子更新，回傳 detached layout、排序後 selected index、physical Bay stable IDs；不得更動未選擇的 Bay/Set 或另一種端板角色。
+- GUI `ReceivingSetBayAdapter.apply_candidate_to_bays` 僅傳遞使用者高亮選取、提交 Engine 結果及 dirty UI IDs，不能自行套用製造孔位 Feature 或共享來源。這是對已認證製造資料來源的交易移轉，不新增孔位計算／CUTTING／DXF 認證；#2517 保持 OPEN。

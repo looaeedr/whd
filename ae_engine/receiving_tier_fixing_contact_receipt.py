@@ -61,7 +61,7 @@ def validate_receiving_tier_fixing_contact_receipts(
         resolve_receiving_tier_base_z_targets,
         resolve_receiving_tier_ear_contact_targets,
     )
-    from .sheetmetal_drawing import PolylinePrimitive
+    from .sheetmetal_drawing import LinePrimitive, PolylinePrimitive
 
     if not isinstance(snapshot, Mapping) or snapshot.get("nfb_config_submitted") is not True:
         raise ValueError("EAR_RECEIPT_REQUIRES_CURRENT_SUBMITTED_NFB_SOURCE")
@@ -178,10 +178,21 @@ def validate_receiving_tier_fixing_contact_receipts(
                 or ear_meta.get("weld_z_verified") is not False
                 or ear_meta.get("manufacturing_ready") is not False):
             raise ValueError("EAR_RECEIPT_SOURCE_EAR_NOT_AUTHENTIC_OR_UNFORMED")
-        cuts = [p for p in source.scene.primitives
+        primitives = tuple(source.scene.primitives)
+        cuts = [p for p in primitives
                 if isinstance(p, PolylinePrimitive)
                 and p.layer == "CUTTING" and p.closed]
-        if (len(cuts) != 5 or len(source.fold_guides) != 1
+        bends = [p for p in primitives
+                 if isinstance(p, LinePrimitive) and p.layer == "BEND"]
+        # The certified EAR has exactly five closed CUTTING contours and
+        # one source BEND line. Reject all extra or foreign primitives.
+        if (len(primitives) != 6 or len(cuts) != 5 or len(bends) != 1
+                or bends[0].color != 5
+                or not _same(bends[0].p1.x, 0.0)
+                or not _same(bends[0].p1.y, 23.0)
+                or not _same(bends[0].p2.x, 256.0)
+                or not _same(bends[0].p2.y, 23.0)
+                or len(source.fold_guides) != 1
                 or source.fold_guides[0].axis != "y"
                 or not _same(source.fold_guides[0].position, 23.0)
                 or not _same(source.fold_guides[0].span_start, 0.0)

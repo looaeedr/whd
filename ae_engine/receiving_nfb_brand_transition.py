@@ -67,3 +67,38 @@ def draft_new_reselections(before, proposed):
                     and slot.get("source_brand") != new_effective):
                 count += 1
     return count
+
+def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
+    """Return a detached Set row with stale inherited physical NFB X revoked.
+
+    This Engine operation handles brand-dependent manufacturing proof state;
+    callers only commit the returned candidate after successful validation.
+    An explicit OVERRIDE and the saved source, model and X stay untouched.
+    """
+    from copy import deepcopy
+    from .receiving_nfb_persistence import normalize_nfb_saved_fields
+
+    _require_brand(proposed_brand)
+    old_brand = set_row.get("switch_brand", "士林")
+    _require_brand(old_brand)
+    candidate = deepcopy(set_row)
+    if old_brand == proposed_brand:
+        return candidate, False
+
+    for bay in candidate["bays"]:
+        impacted = set(saved_parent_reselection_hole_ids(
+            bay, old_brand, proposed_brand,
+        ))
+        if not impacted:
+            continue
+        saved = normalize_nfb_saved_fields(bay)
+        changed = False
+        for hole in saved["nfb_config"]["holes"]:
+            if (hole["physical_hole_id"] in impacted
+                    and hole["manual_x_state"] == "CONFIRMED"):
+                hole["manual_x_state"] = "RECONFIRM_REQUIRED"
+                changed = True
+        if changed:
+            bay["nfb_config"] = saved["nfb_config"]
+    candidate["switch_brand"] = proposed_brand
+    return candidate, True

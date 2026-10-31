@@ -69,8 +69,8 @@ def normalize_nfb_config(config):
     # is authoritative and must not let True == 1 or 1.0 == 1 borrow a tier.
     layer_count = value.get("layer_count")
     if ("layer_count" in value
-            and (type(layer_count) is not int or layer_count <= 0)):
-        raise ValueError("NFB layer_count must be an exact positive integer")
+            and (type(layer_count) is not int or layer_count not in (1, 2))):
+        raise ValueError("NFB layer_count must be exactly 1 or 2")
     seen = set()
     for hole in holes:
         if not isinstance(hole, dict):
@@ -80,6 +80,10 @@ def normalize_nfb_config(config):
             if (type(tier_index) is not int or tier_index < 0
                     or (layer_count is not None and tier_index >= layer_count)):
                 raise ValueError("NFB layer_index must identify a saved physical tier")
+        if "slot_index" in hole:
+            slot_index = hole["slot_index"]
+            if type(slot_index) is not int or slot_index < 0:
+                raise ValueError("NFB slot_index must be an exact nonnegative integer")
         owner = hole.get("physical_hole_id")
         if (not isinstance(owner, str) or not owner.strip()
                 or owner != owner.strip() or owner in seen):

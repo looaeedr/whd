@@ -42,6 +42,10 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=manufacturing-architecture role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md -->
 <!-- WHD_AUTHORITY contract=manufacturing-architecture role=HISTORICAL path=handoff/01_ARCHITECTURE.md -->
 
+<!-- WHD_AUTHORITY contract=cadsplit-whd-worker-cli role=CURRENT path=integration_cli/cadsplit_worker.py -->
+<!-- WHD_AUTHORITY contract=cadsplit-whd-worker-wire-spec role=REFERENCE path=docs/integrations/CADSplit_WHD_Contract.md -->
+
+
 <!-- WHD_AUTHORITY contract=phase6-dimension-semantics role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md -->
 <!-- WHD_AUTHORITY contract=phase6-dimension-semantics role=MIRROR path=07_Phase6尺寸語意與標準截角母規則.md canonical=個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md -->
 
@@ -93,6 +97,13 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 - 純非產品治理依 `tools/change_lane_gate.py` 白名單從最新 X 的 GitHub／雲端治理分支直接 PR／CI／merge X，不經 `localX`、不需要 `/推推`，亦不得擅用本機。
 - 產品先安全整合／非強制同步 `localX`，只有使用者**當次 `/推推`** 才可將產品發布至 `cleanup/2d-3d-sync` (X)，須核對 exact PR、SHA、CI 與三方 readback；`origin/localX` 不是 X 發布授權。
 - 舊任務交易、lease、工作槽與 control-plane Preflight receipt 已退役，不是產品或治理修改的施工／交付前置；不影響平台公開操作權限與安全審查。
+
+## CADSplit × WHD source-only Worker owner routing
+
+- `integration_cli/cadsplit_worker.py` 是 retained source-only CLI owner，versioned wire schemas 位於 `integration_cli/schemas/`；沒有公開 `verify`，且目前所有製造 capability fail closed。
+- 舊 `cadsplit-whd-worker-installed-custody` 與 `cadsplit-whd-worker-public-certification` contract 已於 2026-11-01 退役，**沒有 CURRENT owner**。其舊實作只能從 Git history 作 HISTORICAL evidence，不參與 current routing。
+- `client_installation_id`／source-only `installation_id` 只保留 wire correlation/compatibility 語意，不代表 WHD 安裝、金鑰、來源／輸出 custody 或製造授權。
+- W-03/W-04/W-06 的內部 Python foundation 不是 public executable surface；若未來重啟外部 executable/installer，必須先建立新的 CURRENT owner，並消費 WHD Engine 公開 API，不得復活 retired installed Worker authority。
 
 ## Permanent routing boundaries
 

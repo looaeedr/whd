@@ -7,6 +7,17 @@ whd_schema: WHD_DOC_META_V1
 
 # WHD 開發與本地整合規則
 
+## GUI 僅負責操作／輸入，製造唯一由引擎 API 負責硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
+
+- **所有箱型／所有功能，不限門板**：金庫型、受電箱、每個實體板件、數量／套／連／Bay、孔、折、截角、組合、2D、3D、DXF 及 Save→Reload 都適用。GUI（`gui.py`、`gui_modules/`、`fold_designer_bridge.py`、`phase6_*.py`）只負責操作者輸入、欄位型別／格式檢查、操作選取、API 呼叫、結果／錯誤呈現；不得持有任何製造公式、成品尺寸推導、板件身分判定、展開孔位／折彎補償、DXF 製造或第二份 canonical geometry。
+- **唯一單向鏈**：GUI → immutable request/PartSpec/Context → Engine 公開 API（或經驗證的外部 Worker operation）→ Family/Topology/Policy/Certified Registry → canonical FinalScene／實體板件／製造結果 → GUI 顯示。Engine 不得反向依賴 GUI/Tk；GUI 不得呼叫 `ae_engine.ae.export_*`、私有 `sheetmetal_*`、`ezdxf`、製造計算或未認證的 fallback。
+- **缺 API 就回引擎補，不讓 GUI 製造**：先實作 Engine API、schema、capability 與定向測試；未完成時 GUI 明確顯示 unsupported/error，不能自推答案或將預覽當作出圖。金庫型／受電箱的每個功能都要能由 API request→response 測試證實；`feature_catalog`、33 組功能盤點、內部 helper、UI 操作存在，不等於已接線／已獲製造授權。資料來源權威仍由 CURRENT 07、Factory Policy、Certified Registry、基準檔負責。
+- **PR 硬閘門**：`tools/gui_engine_api_boundary_gate.py` 對 exact base→head 變更做 AST 反向依賴、GUI 引擎私有 import、低層 DXF、製造函式與製造數值計算的新增違規檢查；`.github/workflows/whd-gui-engine-api-boundary.yml` 執行 CI 與負向案例測試。既有違規先阻止新增、逐步遷回引擎；這個靜態門檻**不保證所有語意違規都會被掃到**，必須搭配 Engine contract／Save→Reload／2D／3D／DXF 測試及 review。
+- **平台不可繞過條件**：GitHub `localX` Ruleset 需將 `GUI Engine API Ownership Gate` 設為 required status check，禁止 PR 以外直接推送；未設定前只能宣稱 CI 運作，不得宣稱受 GitHub 分支保護強制。治理照常先合 `localX`，正式 X 仍需當次 `/推推`。
+- **唯一 CURRENT 架構規範**：`個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；`HEADLESS_API.md` 只是 REFERENCE API 說明。
+- **安裝版 WHD Worker／EXE 退役硬閘門**：2026-11-01 起，`integration_cli/cadsplit_worker.py` 只保留 source-only fail-closed wire boundary；禁止恢復 `WHD-Engine.exe` packaging、`--installation-id`、`_private_installed`、DPAPI/HMAC installer custody 或 public installed certification。舊 #2375/#2381/#2382 與 Git history 只能作 HISTORICAL evidence；若未來重新需要外部 executable/installer，必須有新的明確使用者決策、CURRENT owner 與 exact-SHA 驗收，且只能消費 WHD Engine 公開 API。
+
+
 ## 批次修改 → 本地定向測試 → 單次完整 PR CI `BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1`
 
 - 同一個 Bug 或可獨立驗收的小功能，先完成**同一批**相關程式、真正的 RED 重現與最小修復，確定需要的單元、GUI、DXF/Save→Reload、製造測試；用 `tools/quick_test.py` 在**實際有權操作的工作區**跑定向 RED→GREEN，必要時做受影響模組整合驗證，通過後原則上**一次 commit／push／PR 提交候選**，再交 GitHub 跑**一輪 exact HEAD 完整必要驗收**。不得每改一個檔就先丟一次完整產品 CI；若新 SHA 是 CI 失敗修正，仍須新 SHA 的完整必要 CI，不沿用舊 GREEN。
@@ -78,6 +89,7 @@ whd_schema: WHD_DOC_META_V1
 - **先發布，再回同步**：使用者當次 `/推推`、exact PR head/base SHA、GitHub owner comment、必要 CI、X-only 歷史與無衝突均通過後，GitHub `localX` PR 合併至 X（不 force、不覆蓋）。正式 X 合併後，僅在 GitHub `localX` 為 X 祖先且無分叉時，以 `expected_sha` 限定、非強制 fast-forward **遠端** `localX` 到 X；本機獨立列為 `LOCAL_SYNC_PENDING`，不探測 DC／RC／本機。最後仍要核對正式 GitHub Release/tag 的 exact X merge SHA。
 - **GitHub 雙端回讀與本機獨立待辦**：確認 GitHub `HEAD(localX) == HEAD(X)` 且發布 PR merged、正式 GitHub Release/tag 已依原 gate 公開建立，才能回報 `OFFICIAL_RELEASED + LOCAL_SYNC_PENDING`（本機未知時）；未證實 Release 只能回報 `OFFICIAL_RELEASE_PENDING`，不得把 PR 合併當作最終完成。只有另有本機 SHA 實證時才可聲稱三方對齊；本機未同步不阻擋遠端發布，亦不重複索取 `/推推`、不 reset／force。
 - **正式發版可執行成品硬閘門 `OFFICIAL_WINDOWS_EXE_DELIVERY_V1`**：正式 `/推推` 不只產生 X Tag／GitHub Release；經原受信任 owner／exact X SHA 授權後，必須由 Windows x64 Runner 對**該次精確 X SHA** 真正執行 PyInstaller WHD.exe 打包及啟動 Smoke，附同一 Tag 的 `WHD_Windows_x64_<tag>.zip`、`SHA256.txt`、`WHD_Release_Notes_zh-TW.md`、`WHD_Windows_Guide_zh-TW.md`，驗 SHA256／ZIP 中 `WHD/WHD.exe`、中文檔與公開 Release body，全部 readback 後才可回報 `OFFICIAL_RELEASED`。缺件、誤用舊版固定 SHA／Tag、中文說明缺失或 Windows 建置失敗一律 `OFFICIAL_RELEASE_INCOMPLETE`；不可用 GitHub Source code ZIP、無 Assets 的 Tag 或僅 Linux workflow SUCCESS 冒充 EXE 發布。正式 X 僅當次 `/推推` 才能修改；這項打包驗收不要求讀取本機／DC，也不額外要求 Windows 操作員人工作業。
+- **正式更新摘要繁中精簡硬閘門 `RELEASE_NOTES_ZH_TW_CONCISE_AT_PUBLISH`**：每次 `/推推` 同版 Windows 打包／GitHub Release 建立前，依真正的版本差異整理約 3–5 個使用者可理解的繁體中文重點；不照抄逐項英文 commit／PR 清單，無對應證據不得宣稱新功能全面開放。Release body、`WHD_Release_Notes_zh-TW.md` 與 ZIP 的 `WHD/本次更新.md` 必須同內容，超長或含原始提交清單即 fail closed，不得發布後才補。修訂既有正式版說明須使用者當次明確要求，保留原 Tag、原 X SHA、程式 EXE 原位元組不變，只改同版說明／ZIP、重算 SHA-256 並回讀 Release；不構成新的 `/推推` 授權。
 - **通道不變**：治理／技能／非本體文件也由最新 GitHub `localX` 開分支、適用治理 CI 通過後 PR 合回 `localX`；正式 X 的產品／混合發布只需使用者當次 `/推推` 及受信任 gate，不要求另行 Windows UAT 證明。不得以過時治理直送 X 說明或 CoreELEC 副本繞過這條邊界。
 
 ## 已退役的 GitHub-only 額外授權例外 `GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1`（歷史識別）

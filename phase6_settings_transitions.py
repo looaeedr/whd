@@ -10,6 +10,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from ae_engine import manufacturing_api
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.assembly_joint import (
     set_part_edge_relation,
@@ -48,11 +49,8 @@ from phase6_settings_center import normalize_ui_text_size
 from phase6_fold_profiles import _num, _ui_len
 
 
-CORNER_KEYS = ("top_left", "top_right", "bottom_left", "bottom_right")
-CORNER_PAIR_KEYS = {
-    "top": ("top_left", "top_right"),
-    "bottom": ("bottom_left", "bottom_right"),
-}
+CORNER_KEYS = manufacturing_api.MANUAL_CORNER_KEYS
+CORNER_PAIR_KEYS = manufacturing_api.MANUAL_CORNER_PAIR_KEYS
 
 
 @dataclass(frozen=True)
@@ -69,19 +67,10 @@ class BottomWrapTransition:
     resolved: dict[str, object]
 
 
-@dataclass(frozen=True)
-class CornerStateTransition:
-    corner_state: dict[str, object]
-    corner_pair_same: dict[str, object]
-    value: object = None
+CornerStateTransition = manufacturing_api.CornerStateTransition
 
 
-@dataclass(frozen=True)
-class AssemblyIntentTransition:
-    input_snapshot: dict[str, object]
-    corner_state: dict[str, object]
-    corner_pair_same: dict[str, object]
-    assembly_type: object
+AssemblyIntentTransition = manufacturing_api.AssemblyIntentTransition
 
 
 @dataclass(frozen=True)
@@ -99,32 +88,12 @@ class ExternalModelPlan:
     target_model: str
 
 
-@dataclass(frozen=True)
-class FamilyModelTransition:
-    new_model: str
-    old_model: str
-    editable: bool
-    defaults: dict[str, object]
-    family_values: dict[str, object]
-    assembly_type: object
-    structure_state: dict[str, object] | None
-    remember_non_receiving_structure: dict[str, object] | None
-
-
-@dataclass(frozen=True)
-class FamilyModelPlan:
-    input_snapshot: dict[str, object]
-    corner_state: dict[str, object]
-    corner_pair_same: dict[str, object]
-    endcap_bottom_wrap_state: dict[str, object]
-    assembly_type: object
-    desired_structure: dict[str, object] | None
-    transition: FamilyModelTransition
+FamilyModelTransition = manufacturing_api.FamilyModelTransition
+FamilyModelPlan = manufacturing_api.FamilyModelPlan
 
 
 def normalize_assembly_type(value: object) -> object:
-    stable = assembly_intent_value(value)
-    return stable if stable == "WRAP_OVERLAY" else CornerTypeId(stable)
+    return manufacturing_api.normalize_assembly_type(value)
 
 
 def normalize_updates(
@@ -205,45 +174,10 @@ def apply_box_structure_numeric(
     total_w: float,
     outside_family: bool = False,
 ) -> dict:
-    kind = BoxBodyStructureType(type_id)
-    field = str(field)
-    value = float(value)
-    if (
-        kind is BoxBodyStructureType.TWO_PIECE_W_SPLIT
-        and field in {"left", "right"}
-    ):
-        return set_two_piece_width(state, total_w, field, value)
-    if (
-        kind is BoxBodyStructureType.THREE_PIECE_W_SPLIT
-        and field in {"left", "middle", "right"}
-    ):
-        return set_three_piece_width(state, total_w, field, value)
-    if field == "seam_bend":
-        return set_join_seam_bend(state, kind, value)
-    if (
-        kind is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT
-        and field == "side_rear_bend"
-    ):
-        return set_side_back_geometry(
-            state,
-            side_rear_bend=value,
-            side_rear_bend_dimension_space=(
-                "OUTSIDE" if outside_family else None
-            ),
-        )
-    if (
-        kind is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT
-        and field == "back_width_comp_t"
-    ):
-        return set_side_back_geometry(state, back_width_comp_t=value)
-    if field in {
-        "endcap_extra_relief",
-        "endcap_single_side_meat_t",
-        "baseplate_relief_length",
-        "baseplate_single_side_meat_t",
-    } and value < 0:
-        raise ValueError("截角／避讓參數不得小於 0")
-    return update_structure_config(state, kind, {field: value})
+    return manufacturing_api.apply_box_body_structure_numeric(
+        state, type_id, field, value,
+        total_w=total_w, outside_family=outside_family,
+    )
 
 
 def reconcile_width_structure(
@@ -344,18 +278,9 @@ def ensure_corner_part(
     corner_pair_same: Mapping[str, object] | None,
     part_key: str,
 ) -> CornerStateTransition:
-    all_state = deepcopy(dict(corner_state or {}))
-    all_pairs = deepcopy(dict(corner_pair_same or {}))
-    part = str(part_key)
-    state = all_state.setdefault(part, {})
-    for corner_key in CORNER_KEYS:
-        state[corner_key] = selection_to_raw(
-            selection_from_raw(state.get(corner_key))
-        )
-    pairs = all_pairs.setdefault(part, {})
-    pairs.setdefault("top", True)
-    pairs.setdefault("bottom", True)
-    return CornerStateTransition(all_state, all_pairs, deepcopy(state))
+    return manufacturing_api.ensure_corner_part(
+        corner_state, corner_pair_same, part_key
+    )
 
 
 def corner_selection(
@@ -363,24 +288,18 @@ def corner_selection(
     pairs: Mapping[str, object],
     target_key: str,
 ) -> CornerTypeSelection:
-    del pairs
-    current_key = (
-        CORNER_PAIR_KEYS[target_key][0]
-        if target_key in CORNER_PAIR_KEYS
-        else str(target_key)
+    return manufacturing_api.corner_selection(
+        part_state, pairs, target_key
     )
-    return selection_from_raw(part_state[current_key])
 
 
 def corner_targets(
     pairs: Mapping[str, object],
     target_key: str,
 ) -> tuple[str, ...]:
-    del pairs
-    key = str(target_key)
-    if key in CORNER_PAIR_KEYS:
-        return CORNER_PAIR_KEYS[key]
-    return (key,)
+    return manufacturing_api.corner_targets(
+        pairs, target_key
+    )
 
 
 def commit_corner_pair(
@@ -390,22 +309,8 @@ def commit_corner_pair(
     pair_key: str,
     enabled: bool,
 ) -> CornerStateTransition:
-    normalized = ensure_corner_part(
-        corner_state, corner_pair_same, part_key
-    )
-    all_state = normalized.corner_state
-    all_pairs = normalized.corner_pair_same
-    state = all_state[str(part_key)]
-    pairs = all_pairs[str(part_key)]
-    pair = str(pair_key)
-    if pair not in CORNER_PAIR_KEYS:
-        raise ValueError(f"unknown corner pair: {pair}")
-    pairs[pair] = bool(enabled)
-    if enabled:
-        left_key, right_key = CORNER_PAIR_KEYS[pair]
-        state[right_key] = deepcopy(state[left_key])
-    return CornerStateTransition(
-        all_state, all_pairs, (deepcopy(state), deepcopy(pairs))
+    return manufacturing_api.commit_corner_pair(
+        corner_state, corner_pair_same, part_key, pair_key, enabled
     )
 
 
@@ -416,22 +321,9 @@ def commit_corner_type(
     target_key: str,
     type_id: object,
 ) -> CornerStateTransition:
-    normalized = ensure_corner_part(
-        corner_state, corner_pair_same, part_key
+    return manufacturing_api.commit_corner_type(
+        corner_state, corner_pair_same, part_key, target_key, type_id
     )
-    all_state = normalized.corner_state
-    all_pairs = normalized.corner_pair_same
-    state = all_state[str(part_key)]
-    pairs = all_pairs[str(part_key)]
-    current = corner_selection(state, pairs, target_key)
-    wanted = CornerTypeId(type_id)
-    selection = (
-        current if current.type_id is wanted else CornerTypeSelection(wanted)
-    )
-    raw = selection_to_raw(selection)
-    for corner_key in corner_targets(pairs, target_key):
-        state[corner_key] = deepcopy(raw)
-    return CornerStateTransition(all_state, all_pairs, deepcopy(raw))
 
 
 def commit_corner_mode(
@@ -441,25 +333,9 @@ def commit_corner_mode(
     target_key: str,
     mode: object,
 ) -> CornerStateTransition:
-    normalized = ensure_corner_part(
-        corner_state, corner_pair_same, part_key
+    return manufacturing_api.commit_corner_mode(
+        corner_state, corner_pair_same, part_key, target_key, mode
     )
-    all_state = normalized.corner_state
-    all_pairs = normalized.corner_pair_same
-    state = all_state[str(part_key)]
-    pairs = all_pairs[str(part_key)]
-    current = corner_selection(state, pairs, target_key)
-    if current.type_id is not CornerTypeId.CROSS:
-        raw = selection_to_raw(current)
-        return CornerStateTransition(all_state, all_pairs, deepcopy(raw))
-    selection = CornerTypeSelection(
-        CornerTypeId.CROSS,
-        cross_mode=CrossCornerMode(mode),
-    )
-    raw = selection_to_raw(selection)
-    for corner_key in corner_targets(pairs, target_key):
-        state[corner_key] = deepcopy(raw)
-    return CornerStateTransition(all_state, all_pairs, deepcopy(raw))
 
 
 def commit_corner_parameters(
@@ -474,69 +350,9 @@ def commit_corner_parameters(
     secondary_retain_t: float | None = None,
     secondary_depth_t: float | None = None,
 ) -> CornerStateTransition:
-    normalized = ensure_corner_part(
-        corner_state, corner_pair_same, part_key
+    return manufacturing_api.commit_corner_parameters(
+        corner_state, corner_pair_same, part_key, target_key, amount_t=amount_t, cross_mode=cross_mode, direction=direction, secondary_retain_t=secondary_retain_t, secondary_depth_t=secondary_depth_t
     )
-    all_state = normalized.corner_state
-    all_pairs = normalized.corner_pair_same
-    state = all_state[str(part_key)]
-    pairs = all_pairs[str(part_key)]
-    current = corner_selection(state, pairs, target_key)
-    amount = current.amount_t if amount_t is None else float(amount_t)
-
-    if current.type_id is CornerTypeId.CROSS:
-        mode = (
-            current.cross_mode
-            if cross_mode is None
-            else CrossCornerMode(cross_mode)
-        )
-        if mode is CrossCornerMode.STANDARD:
-            selection = CornerTypeSelection(
-                CornerTypeId.CROSS,
-                cross_mode=mode,
-            )
-        else:
-            selected_direction = (
-                current.direction
-                if direction is None
-                else CornerDirection(direction)
-            )
-            selection = CornerTypeSelection(
-                CornerTypeId.CROSS,
-                cross_mode=mode,
-                direction=selected_direction,
-                amount_t=amount,
-            )
-    elif current.type_id is CornerTypeId.OVERLAY:
-        selection = CornerTypeSelection(
-            CornerTypeId.OVERLAY,
-            amount_t=amount,
-        )
-    elif current.type_id is CornerTypeId.INSERT:
-        selection = CornerTypeSelection(
-            CornerTypeId.INSERT,
-            amount_t=amount,
-        )
-    else:
-        selection = CornerTypeSelection(
-            CornerTypeId.INSERT_OVERLAY,
-            amount_t=amount,
-            secondary_retain_t=(
-                current.secondary_retain_t
-                if secondary_retain_t is None
-                else float(secondary_retain_t)
-            ),
-            secondary_depth_t=(
-                current.secondary_depth_t
-                if secondary_depth_t is None
-                else float(secondary_depth_t)
-            ),
-        )
-
-    raw = selection_to_raw(selection)
-    for corner_key in corner_targets(pairs, target_key):
-        state[corner_key] = deepcopy(raw)
-    return CornerStateTransition(all_state, all_pairs, deepcopy(raw))
 
 
 def assembly_intent(
@@ -549,36 +365,11 @@ def assembly_intent(
     project_legacy_corner: bool = False,
     reset_bottom_defaults: bool = False,
 ) -> AssemblyIntentTransition:
-    canonical = normalize_assembly_type(type_id)
-    stable = assembly_intent_value(type_id)
-    snapshot = deepcopy(dict(input_snapshot))
-    corners = deepcopy(dict(corner_state or {}))
-    pairs = deepcopy(dict(corner_pair_same or {}))
-    parts = tuple(str(key) for key in tuple(available_parts or ()) if str(key))
-    had_existing_parts = "existing_parts" in snapshot
-    authoritative_existing_parts = deepcopy(snapshot.get("existing_parts"))
-    if parts:
-        # available_parts is an execution context for joint projection only.
-        # The predecessor controller never promoted this temporary live
-        # workspace list into authoritative project topology.
-        snapshot["existing_parts"] = list(parts)
-    snapshot = sync_snapshot_intent_joints(snapshot, canonical)
-    if had_existing_parts:
-        snapshot["existing_parts"] = authoritative_existing_parts
-    else:
-        snapshot.pop("existing_parts", None)
-    if project_legacy_corner:
-        apply_box_assembly_type_to_raw_state(
-            corners,
-            pairs,
-            legacy_corner_projection_for_intent(stable),
-            reset_bottom_defaults=bool(reset_bottom_defaults),
-        )
-    return AssemblyIntentTransition(
-        input_snapshot=snapshot,
-        corner_state=corners,
-        corner_pair_same=pairs,
-        assembly_type=canonical,
+    return manufacturing_api.commit_assembly_intent_state(
+        input_snapshot, corner_state, corner_pair_same, type_id,
+        available_parts=available_parts,
+        project_legacy_corner=project_legacy_corner,
+        reset_bottom_defaults=reset_bottom_defaults,
     )
 
 
@@ -658,21 +449,9 @@ def apply_corner_preset(
     corner_pair_same: Mapping[str, object] | None,
     fixed_corner_state: Mapping[str, object] | None,
 ) -> CornerStateTransition:
-    next_state = deepcopy(dict(corner_state or {}))
-    next_pairs = deepcopy(dict(corner_pair_same or {}))
-    for part_key, corners in dict(fixed_corner_state or {}).items():
-        state = next_state.setdefault(str(part_key), {})
-        for corner_key, raw in dict(corners or {}).items():
-            if isinstance(raw, Mapping):
-                state[str(corner_key)] = selection_to_raw(
-                    selection_from_raw(raw)
-                )
-            else:
-                state[str(corner_key)] = selection_to_raw(raw)
-        pairs = next_pairs.setdefault(str(part_key), {})
-        pairs["top"] = True
-        pairs["bottom"] = True
-    return CornerStateTransition(next_state, next_pairs, None)
+    return manufacturing_api.apply_corner_preset(
+        corner_state, corner_pair_same, fixed_corner_state
+    )
 
 
 def family_model_transition(
@@ -692,207 +471,15 @@ def family_model_transition(
     current_structure: Mapping[str, object] | None = None,
     previous_non_receiving_structure: Mapping[str, object] | None = None,
 ) -> FamilyModelPlan:
-    target_model = str(new_model or "").strip()
-    previous_model = str(old_model or "").strip()
-    snapshot = deepcopy(dict(input_snapshot))
-    corners = deepcopy(dict(corner_state or {}))
-    pairs = deepcopy(dict(corner_pair_same or {}))
-    wrap_state = deepcopy(dict(endcap_bottom_wrap_state or {}))
-    canonical_assembly = normalize_assembly_type(assembly_type)
-    old_snapshot_model = str(
-        snapshot.get("model") or previous_model or ""
-    ).strip()
-
-    # Aliases of one family are not a cabinet-family transition: resetting
-    # fixed corners when toggling "受電箱" / "RECEIVING" loses operator edits.
-    previous_family = cabinet_family_policy.canonical_family_name(previous_model)
-    target_family = cabinet_family_policy.canonical_family_name(target_model)
-    if (
-        (not new_editable and target_model and target_family != previous_family)
-        or (new_editable and previous_model and not old_editable)
-    ):
-        preset = apply_corner_preset(corners, pairs, fixed_corner_state)
-        corners = preset.corner_state
-        pairs = preset.corner_pair_same
-
-    snapshot["model"] = target_model
-    defaults: dict[str, object] = {}
-    family_values: dict[str, object] = {}
-    old_snapshot_family = cabinet_family_policy.canonical_family_name(
-        old_snapshot_model
-    )
-
-    if (
-        not new_editable
-        and target_model
-        and target_family != old_snapshot_family
-    ):
-        runtime_presets = dict(snapshot.get("_runtime_family_presets") or {})
-        preset_runtime = deepcopy(
-            dict(
-                runtime_presets.get(target_model)
-                or runtime_presets.get(target_family)
-                or {}
-            )
-        )
-        preset_base = dict(preset_runtime.get("settings") or {})
-        if not preset_base:
-            preset_base = dict(snapshot.get("factory_defaults") or {})
-        if not preset_base:
-            preset_base = {
-                key: value
-                for key, value in snapshot.items()
-                if key in settings_values
-            }
-
-        fresh_defaults = dict(
-            cabinet_family_policy.apply_fresh_family_defaults(
-                preset_base, target_model
-            )
-        )
-        # UI presentation preferences are global operator state, not cabinet-family
-        # geometry defaults. A baseline/family switch must never reset text size.
-        defaults = {
-            key: value
-            for key, value in fresh_defaults.items()
-            if key != "ui_text_size"
-        }
-        snapshot.update(defaults)
-        if target_family == "受電箱":
-            # A newly selected Family must immediately own one real CSV NFB,
-            # its inner-door CUTTING and derived Base/EAR sources. This path
-            # never runs for a saved project's load/reload normalization.
-            from ae_engine.receiving_fresh_nfb_defaults import (
-                seed_fresh_receiving_nfb_source,
-            )
-            from ae_engine.receiving_layout import (
-                RECEIVING_RUNTIME_SELECTION_KEY, new_receiving_layout,
-            )
-            snapshot["active_mode"] = "set_bay"
-            snapshot.pop("quantity", None)
-            snapshot.pop("receiving_quantity_box", None)
-            snapshot.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
-            # A NEW Family is not a re-entry into the previous project's
-            # unconfigured Quantity/Bay. Reusing its saved ReceivingLayout
-            # can carry an alternate switch brand and silently skip the
-            # required one-NFB initial source. Start Set1/Bay1 from the
-            # current Family dimensions, then seed the CSV-derived source.
-            snapshot["receiving_layout"] = new_receiving_layout(
-                width=snapshot["w"], height=snapshot["h"], depth=snapshot["d"],
-            )
-            snapshot = seed_fresh_receiving_nfb_source(snapshot)
-        if "ui_text_size" in settings_values:
-            snapshot["ui_text_size"] = settings_values["ui_text_size"]
-
-        runtime_field_map = {
-            "multi_door_enabled": "multi_door_enabled",
-            "door_layout_columns": "door_layout_columns",
-            "door_layout_scope": "door_layout_scope",
-            "door_handle_edges": "door_handle_edges",
-            "receiving_inner_doors": "inner_doors",
-            "door_nameplate_center_datum_top": (
-                "door_nameplate_center_datum_top"
-            ),
-        }
-        for source_key, target_key in runtime_field_map.items():
-            if source_key in preset_runtime:
-                snapshot[target_key] = deepcopy(preset_runtime[source_key])
-
-        # Receiving owns Door-cell topology and its derived physical parts.
-        # A switch to another known family must not carry that topology forward
-        # merely because the target preset does not mention Receiving-only keys.
-        # Custom remains carry-forward by design.
-        if (
-            not new_editable
-            and cabinet_family_policy.canonical_family_name(target_model) != "受電箱"
-        ):
-            snapshot["multi_door_enabled"] = False
-            snapshot["door_layout_columns"] = []
-            snapshot["door_layout_scope"] = "main"
-            snapshot["door_handle_edges"] = {}
-            snapshot["inner_doors"] = []
-            snapshot["door_nameplate_center_datum_top"] = None
-
-        family_values = {
-            key: value
-            for key, value in defaults.items()
-            if key in settings_values
-        }
-
-        intent_result = assembly_intent(
-            snapshot,
-            corners,
-            pairs,
-            cabinet_family_policy.fresh_assembly_intent(target_model),
-            available_parts=available_parts,
-            project_legacy_corner=False,
-        )
-        snapshot = intent_result.input_snapshot
-        corners = intent_result.corner_state
-        pairs = intent_result.corner_pair_same
-        canonical_assembly = intent_result.assembly_type
-
-        wrap_state = normalize_endcap_bottom_wrap_state(
-            {"model": target_model}
-        )
-        snapshot["endcap_bottom_wrap"] = deepcopy(wrap_state)
-
-    remember_structure = None
-    desired_structure = None
-    current = (
-        None if current_structure is None
-        else deepcopy(dict(current_structure))
-    )
-
-    if target_family == "受電箱":
-        if old_snapshot_family != "受電箱" and current is not None:
-            remember_structure = deepcopy(current)
-        desired_structure = cabinet_family_policy.resolve_box_body_structure_state(
-            target_model,
-            current if old_snapshot_family == "受電箱" else None,
-        )
-    elif old_snapshot_family == "受電箱":
-        runtime_presets = dict(snapshot.get("_runtime_family_presets") or {})
-        preset_runtime = deepcopy(
-            dict(
-                runtime_presets.get(target_model)
-                or runtime_presets.get(target_family)
-                or {}
-            )
-        )
-        previous = preset_runtime.get("box_body_structure")
-        if previous is None:
-            previous = previous_non_receiving_structure
-        if previous:
-            desired_structure = deepcopy(dict(previous))
-
-    transition = FamilyModelTransition(
-        new_model=target_model,
-        old_model=previous_model,
-        editable=bool(new_editable),
-        defaults=deepcopy(defaults),
-        family_values=deepcopy(family_values),
-        assembly_type=canonical_assembly,
-        structure_state=(
-            None if desired_structure is None
-            else deepcopy(desired_structure)
-        ),
-        remember_non_receiving_structure=(
-            None if remember_structure is None
-            else deepcopy(remember_structure)
-        ),
-    )
-    return FamilyModelPlan(
-        input_snapshot=snapshot,
-        corner_state=corners,
-        corner_pair_same=pairs,
-        endcap_bottom_wrap_state=deepcopy(wrap_state),
-        assembly_type=canonical_assembly,
-        desired_structure=(
-            None if desired_structure is None
-            else deepcopy(desired_structure)
-        ),
-        transition=transition,
+    return manufacturing_api.plan_cabinet_family_model_transition(
+        new_model, old_model,
+        new_editable=new_editable, old_editable=old_editable,
+        input_snapshot=input_snapshot, settings_values=settings_values,
+        corner_state=corner_state, corner_pair_same=corner_pair_same,
+        endcap_bottom_wrap_state=endcap_bottom_wrap_state,
+        assembly_type=assembly_type, fixed_corner_state=fixed_corner_state,
+        available_parts=available_parts, current_structure=current_structure,
+        previous_non_receiving_structure=previous_non_receiving_structure,
     )
 
 

@@ -74,7 +74,7 @@ def test_explicit_center_source_dual_depth_retains_original_772x240(tmp_path):
         "base_plate_shrink_top", "base_plate_shrink_bottom",
         "base_plate_shrink_left", "base_plate_shrink_right",
         "base_plate_bend",
-    )) == (20., 20., 85., 85., 20.)
+    )) == (20., 20., 85., 85., 35.)
     assert receiving_base_plate_blank_dimensions(snap) == (772., 240.)
     render = build_part_render_data(_spec(snap))
     assert render.unfolded_topology.width == 772.

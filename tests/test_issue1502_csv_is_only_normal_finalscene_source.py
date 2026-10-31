@@ -90,7 +90,7 @@ def test_committed_two_tiers_share_one_csv_datum_and_get_own_screw_sets():
     snap = _two_tier()
     for index, row in enumerate(snap["nfb_config"]["holes"]):
         row.update({
-            "model_filename": ("nfbv5:士林:2P400", "nfbv5:士林:3P125SN")[index],
+            "model_filename": ("nfbv5:士林:3P125SN", "nfbv5:士林:3P125SN")[index],
             "source_brand": "士林",
             "manual_x_state": "CONFIRMED",
             "manual_x_mm": (-100. if index == 0 else 100.),
@@ -362,3 +362,42 @@ def test_reconfirmation_required_never_reuses_prior_hole_editor_x_even_if_exact_
     assert calls == []  # Explicit reconfirmation must preempt fallback entirely.
     assert all(h["manual_x_state"] == "RECONFIRM_REQUIRED"
                for h in snap["nfb_config"]["holes"])
+
+
+@pytest.mark.parametrize("ear_side", ("left", "right"))
+def test_committed_csv_refuses_fixing_plate_child_as_only_real_base(ear_side):
+    """A physical EAR is NOT an actual Base source for submitted NFB V5."""
+    snap = _current()
+    # An EAR may independently exist during a partially assembled GUI
+    # redraw; it cannot satisfy the Base source hard gate.
+    orphan_ear = SimpleNamespace(
+        part_key=f"base_plate:fixing_plate:{ear_side}",
+        render_data=object(),
+    )
+    with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_REAL_BASE_PART_MISSING"):
+        apply_committed_csv_v5_to_canonical_parts(snap, (orphan_ear,))
+
+
+@pytest.mark.parametrize(
+    ("broken_kind", "bad_row", "contract"),
+    (
+        ("set", None, "NFB_COMMITTED_CSV_SET_IDENTITY_DRIFT"),
+        ("set", [], "NFB_COMMITTED_CSV_SET_IDENTITY_DRIFT"),
+        ("bay", None, "NFB_COMMITTED_CSV_BAY_IDENTITY_DRIFT"),
+        ("bay", [], "NFB_COMMITTED_CSV_BAY_IDENTITY_DRIFT"),
+    ),
+)
+def test_current_submitted_v5_rejects_corrupted_saved_set_bay_row_without_crash(
+    broken_kind, bad_row, contract,
+):
+    """A damaged saved Set/Bay must fail closed before dereferencing a row."""
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+
+    snap = _current()
+    first_set = snap["receiving_layout"]["sets"][0]
+    if broken_kind == "set":
+        snap["receiving_layout"]["sets"][0] = bad_row
+    else:
+        first_set["bays"][0] = bad_row
+    with pytest.raises(ValueError, match=contract):
+        _submitted_csv_holes(snap)

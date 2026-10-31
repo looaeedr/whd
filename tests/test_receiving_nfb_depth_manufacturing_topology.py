@@ -19,19 +19,21 @@ def _spec(pair):
     )
 
 
-@pytest.mark.parametrize("pair, expected_side, expected_total", [
-    ((107, 72), 71, 772),
-    ((103, 68), 71, 772),
-    ((105, 75), 66, 762),
+@pytest.mark.parametrize("pair, expected_side, expected_total, expected_y_fold", [
+    ((107, 72), 71, 772, 35),
+    ((103, 68), 71, 772, 35),
+    ((105, 75), 66, 762, 30),
 ])
-def test_final_manufacturing_unfolded_topology_tracks_nfb_depth(pair, expected_side, expected_total):
+def test_final_manufacturing_unfolded_topology_tracks_nfb_depth(pair, expected_side, expected_total, expected_y_fold):
     layout = _unfolded_topology_for_spec(_spec(pair))
     assert layout is not None
     assert layout.width == expected_total
     assert [x.length for x in layout.x_segments] == [
         expected_side, 630, expected_side,
     ]
-    assert [y.length for y in layout.y_segments] == [20, 170, 20]
+    assert [y.length for y in layout.y_segments] == [
+        expected_y_fold, 210 - 2*expected_y_fold, expected_y_fold,
+    ]
 
 
 def test_unselected_legacy_preview_retains_original_width_but_not_nfb_proof():

@@ -14,7 +14,7 @@ def fresh_receiving_mode(mode, dimensions, *, thickness=2.0, auto_nfb=False):
         new_receiving_layout, ensure_receiving_layout, _validate_common_receiving_state,
         RECEIVING_DOOR_STATE_KEYS,
     )
-    if mode not in {QUANTITY_MODE, SET_BAY_MODE}:
+    if not isinstance(mode, str) or mode not in {QUANTITY_MODE, SET_BAY_MODE}:
         raise ValueError("不合法的受電箱操作模式")
     if not isinstance(dimensions, Mapping):
         raise ValueError("請明確確認 W/H/D")
@@ -76,7 +76,7 @@ class ReceivingModeSession:
 
     @staticmethod
     def _check_mode(mode):
-        if mode not in {QUANTITY_MODE, SET_BAY_MODE}:
+        if not isinstance(mode, str) or mode not in {QUANTITY_MODE, SET_BAY_MODE}:
             raise ValueError("不合法的受電箱操作模式")
 
     def snapshot(self):

@@ -109,3 +109,202 @@ def require_canonical_door_local_frame(frame: Any, *, physical_part_id: str) -> 
     expected = _door_frame_record(float(width), float(height), physical_part_id)
     if _pure_json(frame) != expected:
         raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Frame is not WHD-issued Door-local basis")
+
+def _indicator_box_size_only_record(width: float, height: float, physical_part_id: str) -> dict[str, Any]:
+    """WHD-owned width/height, no authority to map a caller Feature to DXF."""
+    return {
+        "frame_id": f"indicator_box:{physical_part_id}:outer:local-v1",
+        "coordinate_contract_revision": "1",
+        "units": "mm",
+        "origin_definition": (
+            "WHD shared indicator box formed outside-face size-only datum; "
+            "no certified source-to-DXF Feature mapping"
+        ),
+        "origin_xyz_mm": [0.0, 0.0, 0.0],
+        "axis_x": [1.0, 0.0, 0.0],
+        "axis_y": [0.0, 1.0, 0.0],
+        "normal": [0.0, 0.0, 1.0],
+        "face_role": "outer",
+        "viewed_from": "along_normal",
+        "finished_face_dimensions_mm": {"width": width, "height": height},
+        "allowed_feature_types": [],
+    }
+
+
+def resolve_indicator_box_size_only_frame(
+    spec: Any, context: Any, *, physical_part_id: str,
+) -> dict[str, Any]:
+    """W-03 can attest WHD shared box size; W-04 placement is still closed."""
+    from ae_engine.contracts import IndicatorBoxPartSpec
+    from ae_engine.manufacturing_api import indicator_box_finished_face_size
+
+    if (not isinstance(spec, IndicatorBoxPartSpec)
+            or not isinstance(physical_part_id, str)
+            or not _FRAME_ID_PART.fullmatch(physical_part_id)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "verified box identity required")
+    width, height = indicator_box_finished_face_size(
+        spec.layer_groups, thickness=spec.thickness, context=context,
+    )
+    if any(not math.isfinite(v) or v <= 0 for v in (width, height)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid shared box outside face")
+    return _indicator_box_size_only_record(float(width), float(height), physical_part_id)
+
+
+def require_canonical_indicator_box_size_only_frame(
+    frame: Any, *, physical_part_id: str,
+) -> None:
+    """Only the exact feature-disabled frame can enter a signed receipt."""
+    from collections.abc import Mapping
+    from integration_cli.prepare_evidence import _pure_json
+
+    if (not isinstance(physical_part_id, str)
+            or not _FRAME_ID_PART.fullmatch(physical_part_id)
+            or not isinstance(frame, Mapping)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "untrusted indicator-box frame")
+    dims = frame.get("finished_face_dimensions_mm")
+    if not isinstance(dims, Mapping) or set(dims) != {"width", "height"}:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "missing box outside dimensions")
+    w, h = dims["width"], dims["height"]
+    if any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0 for v in (w, h)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid box outside dimensions")
+    if _pure_json(frame) != _indicator_box_size_only_record(float(w), float(h), physical_part_id):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "box Frame cannot authorize external Features")
+
+def _endcap_size_only_record(
+    width: float, height: float, physical_part_id: str, kind: str,
+) -> dict[str, Any]:
+    """Serialize only WHD's existing local EndCap finished-face guide size.
+
+    This is NOT a world assembly transform, a cut-feature placement contract,
+    or certification of head/tail fold orientation.
+    """
+    if kind not in ("end_cap_head", "end_cap_tail"):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid EndCap role")
+    return {
+        "frame_id": f"{kind}:{physical_part_id}:outer:size-only-v1",
+        "coordinate_contract_revision": "1",
+        "units": "mm",
+        "origin_definition": (
+            "WHD Vault EndCap finished-face guide size only; "
+            "no certified local-to-assembly or source-to-DXF mapping"
+        ),
+        "origin_xyz_mm": [0.0, 0.0, 0.0],
+        "axis_x": [1.0, 0.0, 0.0],
+        "axis_y": [0.0, 1.0, 0.0],
+        "normal": [0.0, 0.0, 1.0],
+        "face_role": "outer",
+        "viewed_from": "along_normal",
+        "finished_face_dimensions_mm": {"width": width, "height": height},
+        "allowed_feature_types": [],
+    }
+
+
+def resolve_endcap_size_only_frame(
+    spec: Any, *, physical_part_id: str,
+) -> dict[str, Any]:
+    """Use the official AE EndCap guide without duplicating its dimensional math."""
+    from ae_engine.contracts import EndCapPartSpec
+    from ae_engine.sheetmetal_feature_surface import resolve_endcap_finished_face_guide
+
+    if (not isinstance(spec, EndCapPartSpec)
+            or spec.model_name != "金庫型"
+            or not isinstance(physical_part_id, str)
+            or not _FRAME_ID_PART.fullmatch(physical_part_id)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Vault EndCap authority missing")
+    try:
+        guide = resolve_endcap_finished_face_guide(
+            spec.width, spec.depth, spec.thickness,
+        )
+        width = float(guide.max_point.x - guide.min_point.x)
+        height = float(guide.max_point.y - guide.min_point.y)
+    except (TypeError, ValueError, OverflowError, ArithmeticError) as exc:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "EndCap finished guide unavailable") from exc
+    if any(not math.isfinite(v) or v <= 0 for v in (width, height)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "EndCap finished face has no area")
+    kind = "end_cap_tail" if spec.is_tail else "end_cap_head"
+    return _endcap_size_only_record(width, height, physical_part_id, kind)
+
+
+def require_canonical_endcap_size_only_frame(
+    frame: Any, *, physical_part_id: str, kind: str,
+) -> None:
+    """Reject caller-rewritten size-only data and any enabled Features."""
+    from collections.abc import Mapping
+    from integration_cli.prepare_evidence import _pure_json
+
+    if (not isinstance(physical_part_id, str)
+            or not _FRAME_ID_PART.fullmatch(physical_part_id)
+            or kind not in ("end_cap_head", "end_cap_tail")
+            or not isinstance(frame, Mapping)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "untrusted EndCap frame")
+    dims = frame.get("finished_face_dimensions_mm")
+    if not isinstance(dims, Mapping) or set(dims) != {"width", "height"}:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "missing EndCap finished-face dimensions")
+    w, h = dims["width"], dims["height"]
+    if any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0 for v in (w, h)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid EndCap finished-face bounds")
+    if _pure_json(frame) != _endcap_size_only_record(float(w), float(h), physical_part_id, kind):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "EndCap frame cannot authorize external Features")
+
+
+def _vault_base_plate_size_only_record(width: float, height: float, physical_part_id: str) -> dict[str, Any]:
+    """WHD-owned flat Final Material envelope, NOT a source Feature transform."""
+    return {
+        "frame_id": f"base_plate:{physical_part_id}:flat:size-only-v1",
+        "coordinate_contract_revision": "1",
+        "units": "mm",
+        "origin_definition": (
+            "WHD Vault BasePlate unfolded Final Material envelope size only; "
+            "no certified source-to-DXF or cabinet-world Feature mapping"
+        ),
+        "origin_xyz_mm": [0.0, 0.0, 0.0],
+        "axis_x": [1.0, 0.0, 0.0],
+        "axis_y": [0.0, 1.0, 0.0],
+        "normal": [0.0, 0.0, 1.0],
+        "face_role": "outer",
+        "viewed_from": "along_normal",
+        "finished_face_dimensions_mm": {"width": width, "height": height},
+        "allowed_feature_types": [],
+    }
+
+
+def resolve_vault_base_plate_size_only_frame(spec: Any, context: Any, *, physical_part_id: str) -> dict[str, Any]:
+    """Derive the physical unfolded envelope from canonical WHD Final Material."""
+    from ae_engine.contracts import BasePlatePartSpec
+    from ae_engine.manufacturing_api import build_part_render_data
+
+    if (not isinstance(spec, BasePlatePartSpec)
+            or spec.model_name != "金庫型"
+            or not isinstance(physical_part_id, str)
+            or not _FRAME_ID_PART.fullmatch(physical_part_id)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Vault BasePlate physical identity required")
+    try:
+        render = build_part_render_data(spec, context)
+        material = render.material
+        if material is None or material.is_empty or not material.is_valid:
+            raise ValueError("unmanufacturable BasePlate material")
+        min_x, min_y, max_x, max_y = map(float, material.bounds)
+        width, height = max_x - min_x, max_y - min_y
+        if any(not math.isfinite(n) or n <= 0 for n in (width, height, float(material.area))):
+            raise ValueError("invalid BasePlate material extent")
+    except (TypeError, ValueError, OverflowError, ArithmeticError) as exc:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Vault BasePlate Final Material cannot be resolved") from exc
+    return _vault_base_plate_size_only_record(width, height, physical_part_id)
+
+
+def require_canonical_vault_base_plate_size_only_frame(frame: Any, *, physical_part_id: str) -> None:
+    """Sign only canonical feature-disabled envelopes; W-04 rechecks geometry."""
+    from collections.abc import Mapping
+    from integration_cli.prepare_evidence import _pure_json
+
+    if (not isinstance(physical_part_id, str) or not _FRAME_ID_PART.fullmatch(physical_part_id)
+            or not isinstance(frame, Mapping)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "untrusted BasePlate frame")
+    dims = frame.get("finished_face_dimensions_mm")
+    if not isinstance(dims, Mapping) or set(dims) != {"width", "height"}:
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "BasePlate unfolded envelope missing")
+    width, height = dims["width"], dims["height"]
+    if any(type(n) not in (int, float) or not math.isfinite(n) or n <= 0 for n in (width, height)):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "invalid BasePlate unfolded envelope")
+    if _pure_json(frame) != _vault_base_plate_size_only_record(float(width), float(height), physical_part_id):
+        raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "BasePlate Frame is not WHD-owned size-only")

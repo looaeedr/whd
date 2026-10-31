@@ -49,10 +49,19 @@ def test_indicator_box_expected_baseline_is_indicator_box_file(tmp_path):
 
 
 def test_stretched_indicator_box_uses_baseline_fixed_features_and_dynamic_indicators(tmp_path, monkeypatch):
-    _make_indicator_box_baseline(tmp_path)
-    monkeypatch.setattr(ae, 'get_resource_path', lambda relative: str(tmp_path / relative))
+    baseline = _make_indicator_box_baseline(tmp_path)
+    # The engine facade delegates to ae_door_indicator's bound baseline
+    # resolver. Patching ae.get_resource_path does not redirect that source.
+    from ae_engine import ae_door_indicator
+    monkeypatch.setattr(
+        ae_door_indicator, "indicator_shared_baseline_part_path",
+        lambda filename, require_exists=True: str(
+            tmp_path / "基準檔" / "指示燈" / filename
+        ),
+    )
 
     data = ae.get_stretched_indicator_box_data(None, [2], 2.0)
+    assert Path(data.metadata["baseline_path"]) == baseline
 
     assert data.params['w'] == pytest.approx(396.0)
     assert data.params['h'] == pytest.approx(445.0)
@@ -134,7 +143,10 @@ def test_gui_indicator_box_page_loads_baseline_plus_dynamic_layout():
     spec_source = inspect.getsource(owner._indicator_box_part_spec)
     context_source = inspect.getsource(owner._indicator_component_editor_contexts)
     assert 'model_name=None' in spec_source
-    assert 'get_stretched_indicator_box_data' in context_source
-    assert '盒子.dxf' in context_source
-    assert 'box_baseline_scene = box_data.scene' in context_source
+    engine_source = inspect.getsource(manufacturing_api.resolve_indicator_editor_components)
+    assert 'resolve_indicator_editor_components' in context_source
+    assert 'get_stretched_indicator_box_data' not in context_source
+    assert 'get_stretched_indicator_box_data' in engine_source
+    assert '盒子.dxf' in engine_source
+    assert 'box_baseline_scene = box_data.scene' in engine_source
     assert '盒體（公式）' not in context_source

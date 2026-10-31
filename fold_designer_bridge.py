@@ -24,6 +24,7 @@ import re
 from typing import Mapping, MutableMapping
 from whd_theme import WHD_THEME, apply_ttk_dark_theme, configure_tk_menu
 
+from ae_engine import manufacturing_api
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from phase6_designer_workspace import Phase6DesignerWorkspace
 from phase6_part_navigation import (
@@ -300,82 +301,15 @@ def _phase6_structure_tree_rows(values) -> tuple[tuple[str, str | None], ...]:
 
 
 def _phase6_reverse_fold_traversal(rows):
-    """Reverse a fold chain while moving bend ownership to the same boundary."""
-    source = clone_profile(tuple(rows or ()))
-    result = []
-    total = len(source)
-    for index, source_row in enumerate(reversed(source)):
-        row = {k: v for k, v in source_row.items() if k != "angle"}
-        owner_index = total - 2 - index
-        if owner_index >= 0 and "angle" in source[owner_index]:
-            row["angle"] = float(source[owner_index]["angle"])
-        result.append(row)
-    if result:
-        result[-1].pop("angle", None)
-    return result
+    """Compat: Engine owns physical bend boundary on reversed editor traversal."""
+    return manufacturing_api.reverse_box_body_fold_traversal(rows)
 
 
-def _phase6_box_body_piece_part_profiles(
-    render_data, snapshot=None
-) -> dict[str, dict[str, list[dict[str, object]]]]:
-    """Project manufacturing pieces into operator-facing physical-child profiles.
-
-    Material lengths remain authoritative.  The adapter only changes traversal
-    and signed operator presentation: Receiving right-side editing is front→rear
-    while manufacturing keeps its local rear→front chain; Receiving zl1 may carry
-    a negative operator direction without ever making material length negative.
-    """
-    source_snapshot = dict(snapshot or {})
-    result = {}
-    for piece in tuple(getattr(render_data, "pieces", ()) or ()):
-        role = str(getattr(piece, "role", "") or "").strip()
-        if not role:
-            continue
-        key = f"box_body:{role}"
-        rows = [
-            {
-                "len": float(row.length),
-                **({"angle": float(row.angle)} if row.angle is not None else {}),
-                **({"core": row.core} if getattr(row, "core", None) else {}),
-                "phase6_key": str(getattr(row, "phase6_key", "") or ""),
-            }
-            for row in tuple(getattr(piece, "fold_profile", ()) or ())
-        ]
-        if role == "right_side":
-            rows = _phase6_reverse_fold_traversal(rows)
-        # Legacy mirrored Receiving panels are supported for readback only.
-        # New Receiving geometry uses the original pre-DXF source order
-        # zl1/zl2/FW/D/rear, without this inverse or any re-mirroring.
-        # Keep operator dimensions unchanged on both code paths.
-        if role == "left_side" and tuple(row.get("phase6_key") for row in rows) == (
-            "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left",
-        ):
-            a, new_d, fw, new_b, rear = [float(row["len"]) for row in rows]
-            b = new_b - a + rear
-            original_d = a + new_d + fw + new_b + rear - a - b - fw - rear
-            if b <= 0 or original_d <= 0:
-                raise ValueError("RECEIVING_LEFT_SIDE_OPERATOR_INVERSE_INVALID")
-            by_key = {row["phase6_key"]: dict(row) for row in rows}
-            rows = [
-                dict(by_key["zl1"], len=a),
-                dict(by_key["zl2"], len=b),
-                dict(by_key["fw_left"], len=fw),
-                dict(by_key["d_left"], len=original_d),
-                dict(by_key["side_rear_bend_left"], len=rear),
-            ]
-        if role == "left_side" and float(source_snapshot.get("zl1", 0.0) or 0.0) < 0.0:
-            for row in rows:
-                if str(row.get("phase6_key") or "") == "zl1":
-                    row["phase6_ui_sign"] = -1.0
-                    break
-        result[key] = {
-            "X": rows,
-            "Y": [{
-                "len": float(piece.material_dimensions[1]),
-                "phase6_key": "box_body_piece_height",
-            }],
-        }
-    return result
+def _phase6_box_body_piece_part_profiles(render_data, snapshot=None):
+    """Compat: request Engine-resolved physical child Fold edit/readback."""
+    return manufacturing_api.box_body_piece_editor_profiles(
+        render_data, snapshot=snapshot
+    )
 
 
 def _phase6_box_body_structure_render_data(self):
@@ -641,32 +575,10 @@ def _phase6_legacy_getattr(self, name):
 
 
 def project_features_to_original_holes(features, width, height):
-    """Project supported Phase6 features into the original Renderer's hole DTO.
-
-    Raw Phase6 feature objects are never edited. Profile/custom holes stay in the
-    bundle but are intentionally not falsified as circles/rectangles for preview.
-    """
-    from ae_engine.sheetmetal_features import CircleFeature, RectFeature, feature_finished_point
-
-    holes = []
-    for index, feature in enumerate(features or (), start=1):
-        if not isinstance(feature, (CircleFeature, RectFeature)):
-            continue
-        center = feature_finished_point(feature, float(width), float(height))
-        if isinstance(feature, CircleFeature):
-            hole = {
-                "type": "圓孔", "name": f"孔{len(holes)+1}",
-                "x": _ui_len(center.x), "y": _ui_len(center.y),
-                "d1": _ui_len(feature.diameter), "d2": 0,
-            }
-        else:
-            hole = {
-                "type": "方孔", "name": f"孔{len(holes)+1}",
-                "x": _ui_len(center.x), "y": _ui_len(center.y),
-                "d1": _ui_len(feature.width), "d2": _ui_len(feature.height),
-            }
-        holes.append(hole)
-    return holes
+    """Legacy Renderer display adapter; Engine resolves finished-face hole DTO."""
+    return manufacturing_api.project_finished_features_to_legacy_renderer_holes(
+        features, width, height
+    )
 
 
 
@@ -2805,7 +2717,18 @@ def _phase6_show_assembly(self, initial=False):
             before_signature = _phase6_manufacturing_state_signature(self)
         except Exception:
             before_signature = None
-    if not initial and self.designer_workspace.active_part is not None:
+    if (
+        not initial
+        and self.designer_workspace.active_part is not None
+        and getattr(self, "_phase6_3d_display_mode", None) != "assembly"
+        and not getattr(self, "_phase6_family_transition_in_progress", False)
+    ):
+        # A deferred Tk tree-selection event can redraw an assembly already
+        # in assembly mode *after* its family-transition callback completes.
+        # Do not save the old Fold-editor buffer in that redundant redraw:
+        # it can overwrite freshly committed FW (31 -> stale 26).  Only
+        # leaving a real single-part editor needs the outgoing part saved.
+        # Keep the in-transition guard for immediate callback redraws.
         try:
             self._save_current_part()
         except Exception:
@@ -3266,23 +3189,19 @@ def _get_profile_phase6_len(profile, key, default=None):
     return default
 
 
-def _phase6_endcap_depth_comp_t(self):
-    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
-    return cabinet_family_policy.endcap_depth_comp_t(snapshot)
-
-
 def _propagate_endcap_derived_cores(self, w, d):
-    t = _num(self._phase6_input_snapshot.get("t", 2), 2)
-    x_core = max(0.0, float(w) - 4.0 * t)
-    y_core = max(0.0, float(d) - _phase6_endcap_depth_comp_t(self) * t)
+    """Commit Engine-calculated canonical EndCap core lengths to existing editor rows."""
+    lengths = manufacturing_api.endcap_derived_core_lengths(
+        self._phase6_input_snapshot, w, d
+    )
     for key in ("head", "tail"):
         profiles = self._phase6_part_profiles.get(key)
         if profiles:
-            _set_profile_phase6_len(profiles.get("X"), "endcap_w_core", x_core)
-            _set_profile_phase6_len(profiles.get("Y"), "endcap_d_core", y_core)
+            _set_profile_phase6_len(profiles.get("X"), "endcap_w_core", lengths["endcap_w_core"])
+            _set_profile_phase6_len(profiles.get("Y"), "endcap_d_core", lengths["endcap_d_core"])
     if getattr(self, "active_part_key", None) in {"head", "tail"}:
-        _set_profile_phase6_len(self.state.profiles.get("X"), "endcap_w_core", x_core)
-        _set_profile_phase6_len(self.state.profiles.get("Y"), "endcap_d_core", y_core)
+        _set_profile_phase6_len(self.state.profiles.get("X"), "endcap_w_core", lengths["endcap_w_core"])
+        _set_profile_phase6_len(self.state.profiles.get("Y"), "endcap_d_core", lengths["endcap_d_core"])
 
 
 def _sync_active_endcap_and_global_whd(self):
@@ -3292,29 +3211,16 @@ def _sync_active_endcap_and_global_whd(self):
     top_d = original.get_int(self.v_d.get())
     last_w = original.get_int(self._phase6_last_w if self._phase6_last_w is not None else top_w)
     last_d = original.get_int(self._phase6_last_d if self._phase6_last_d is not None else top_d)
-    t = _num(self._phase6_input_snapshot.get("t", 2), 2)
-    depth_comp_t = _phase6_endcap_depth_comp_t(self)
-
-    x_core = _get_profile_phase6_len(self.state.profiles.get("X"), "endcap_w_core")
-    y_core = _get_profile_phase6_len(self.state.profiles.get("Y"), "endcap_d_core")
-    expected_x = _ui_len(last_w - 4.0 * t)
-    expected_y = _ui_len(last_d - depth_comp_t * t)
-
-    if top_w != last_w:
-        new_w = top_w
-    elif x_core is not None and x_core != expected_x:
-        new_w = _ui_len(x_core + 4.0 * t)
+    dimensions = manufacturing_api.reconcile_endcap_live_outside_dimensions(
+        self._phase6_input_snapshot, top_width=top_w, top_depth=top_d,
+        previous_width=last_w, previous_depth=last_d,
+        profiles=self.state.profiles,
+    )
+    new_w, new_d = dimensions["w"], dimensions["d"]
+    if new_w != top_w:
         self.v_w.set(str(new_w))
-    else:
-        new_w = last_w
-
-    if top_d != last_d:
-        new_d = top_d
-    elif y_core is not None and y_core != expected_y:
-        new_d = _ui_len(y_core + depth_comp_t * t)
+    if new_d != top_d:
         self.v_d.set(str(new_d))
-    else:
-        new_d = last_d
 
     self._phase6_box_whd["w"] = new_w
     self._phase6_box_whd["h"] = original.get_int(self.v_h.get())

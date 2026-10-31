@@ -3,6 +3,8 @@ from collections import Counter
 import ast
 import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import xml.etree.ElementTree as ET
 
@@ -22,8 +24,30 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
         special = manifest["split_file"]
         expected_cases = {f"{special}::{name}" for name in manifest["split_case_owners"]}
-        assert set(seen) == (set(PYTEST_PATHS) - {special}) | expected_cases
+        bom = manifest["bom_split_file"]
+        func = manifest["bom_split_function"]
+        expected_bom = {
+            f"{bom}::{name}"
+            for name in (
+                "test_physical_sheets_multiply_without_name_or_topology_grouping",
+                "test_invalid_multiplicity_fails_before_any_demand",
+                "test_duplicate_physical_or_version_identity_fails_closed",
+                "test_formal_family_parts_feed_same_physical_demand_boundary",
+            )
+        }
+        expected_bom.update(
+            f"{bom}::{func}[{key.rsplit('-', 2)[0].encode('unicode_escape').decode('ascii')}-{key.rsplit('-', 2)[1]}-{key.rsplit('-', 2)[2]}]"
+            for key in manifest["bom_split_case_owners"]
+        )
+        t15 = manifest["t15_split_file"]
+        expected_t15 = {f"{t15}::{name}" for name in manifest["t15_source_functions"]}
+        assert len(expected_t15) == 22
+        assert set(seen) == (
+            (set(PYTEST_PATHS) - {special, bom, t15})
+            | expected_cases | expected_bom | expected_t15
+        )
         assert len(expected_cases) == 20
+        assert len(expected_bom) == 11
     else:
         assert set(seen) == set(PYTEST_PATHS)
     assert all(n == 1 for n in seen.values())
@@ -71,16 +95,41 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         assert manifest["source_run_id"] == 40903796624
         assert manifest["observed_split_run_id"] == 40909061327
         assert manifest["threshold_short_seconds"] == 4
-        assert manifest["modeled_critical_path_seconds"] == 141  # old whole-file model
+        assert manifest["modeled_critical_path_seconds"] == 141  # historical, pre-rebalance
+        assert manifest["rebalance_source_run_id"] == 41197479764
+        assert manifest["rebalance_original_owners"] == {
+            "tests/test_issue1503_single_gui_real_tier_2d3d.py": 9,
+            "tests/test_issue74_divider_side_front_penetration.py": 12,
+        }
+        assert owners["tests/test_issue1503_single_gui_real_tier_2d3d.py"] == 0
+        assert owners["tests/test_issue74_divider_side_front_penetration.py"] == 1
+        assert manifest["tier_decouple_source_run_id"] == 41198488801
+        assert manifest["tier_decouple_previous_owner"] == 1
+        assert manifest["tier_decouple_new_owner"] == 0
         load = [0] * count
         for filename, owner in owners.items():
             assert (owner >= 14) == (durations[filename] <= 4)
             load[owner] += durations[filename]
-        assert max(load) == 141
+        # Historical per-file isolated timings are not current shard runtime
+        # predictions. Preserve their exact arithmetic for audit only.
+        assert max(load) == manifest["rebalance_static_old_file_model_max_seconds"] == 175
         assert sorted(set(owners.values())) == list(range(18))
         special = manifest["split_file"]
         assert special in PYTEST_PATHS
         assert len(manifest["split_case_owners"]) == 20
+        assert len(manifest["bom_split_case_owners"]) == 7
+        assert manifest["bom_split_source_run_id"] == 41195715050
+        assert manifest["bom_rebalance_source_run_id"] == 41203677890
+        assert manifest["bom_rebalance_target_case"] == "受電箱-FULL-2"
+        assert manifest["bom_rebalance_previous_owner"] == 15
+        assert manifest["bom_rebalance_new_owner"] == 16
+        assert manifest["bom_split_case_owners"]["受電箱-FULL-2"] == 16
+        assert manifest["bom_split_case_owners"]["受電箱-BACK_OPENING-1"] == 15
+        assert sorted(manifest["bom_split_case_owners"].values()) == [1, 14, 14, 15, 16, 16, 17]
+        assert manifest["bom_split_file"] in PYTEST_PATHS
+        assert manifest["t15_split_source_run_id"] == 41197885699
+        assert manifest["t15_split_file"] in PYTEST_PATHS
+        assert len(manifest["t15_source_functions"]) == 22
         tree = ast.parse((Path(__file__).resolve().parents[2] / special).read_text(encoding="utf-8"))
         actual_cases = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)
                         and n.name.startswith("test_")}
@@ -89,6 +138,23 @@ def test_each_selector_appears_in_exactly_one_shard(count):
             for node in selectors:
                 if node.startswith(special + "::"):
                     assert manifest["split_case_owners"][node.rsplit("::", 1)[1]] == index
+                elif node.startswith(manifest["bom_split_file"] + "::"):
+                    suffix = node.split("::", 1)[1]
+                    if suffix.startswith(manifest["bom_split_function"] + "["):
+                        case = suffix.removeprefix(manifest["bom_split_function"] + "[")[:-1]
+                        # Parametrized pytest node IDs escape the Chinese family name.
+                        case = case.replace(r"\u53d7\u96fb\u7bb1", "受電箱").replace(
+                            r"\u91d1\u5eab\u578b", "金庫型"
+                        )
+                        assert manifest["bom_split_case_owners"][case] == index
+                    else:
+                        assert index == 1
+                elif node.startswith(manifest["t15_split_file"] + "::"):
+                    function = node.rsplit("::", 1)[1]
+                    assert function in manifest["t15_source_functions"]
+                    assert index == (
+                        1 if function == manifest["t15_critical_function"] else 6
+                    )
                 else:
                     assert owners[node.split("::", 1)[0]] == index
     else:
@@ -143,6 +209,12 @@ def test_eighteen_shard_workflow_keeps_complete_exact_selectors_and_artifact_gat
                 / ".github/workflows/whd-product-regression.yml").read_text(encoding="utf-8")
     assert "shard: [" + ", ".join(str(i) for i in range(18)) + "]" in workflow
     assert workflow.count("--shard-count 18") == 2
+    # Collection runs alongside the shards without skipping final case proof.
+    assert "needs: [prepare, test-shard, canonical-collection]" in workflow
+    assert "name: whd-ci-canonical-collection" in workflow
+    assert "--collection-file collection/canonical-collection.txt" in workflow
+    assert 'test "$(cat collection/canonical-collection-head.txt)" = ' in workflow
+    assert 'test "$COLLECTION_RESULT" = success' in workflow
     assert "for shard in " + " ".join(str(i) for i in range(18)) + "; do" in workflow
     assert "name: whd-ci-shard-" in workflow
     for i in range(18):
@@ -153,11 +225,52 @@ def test_eighteen_shard_workflow_keeps_complete_exact_selectors_and_artifact_gat
     assert all(shards)
     manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
     split_file = manifest["split_file"]
-    expected = set(PYTEST_PATHS) - {split_file}
+    bom = manifest["bom_split_file"]
+    expected = set(PYTEST_PATHS) - {split_file, bom}
     expected.update(f"{split_file}::{name}" for name in manifest["split_case_owners"])
+    expected.update(f"{bom}::{name}" for name in (
+        "test_physical_sheets_multiply_without_name_or_topology_grouping",
+        "test_invalid_multiplicity_fails_before_any_demand",
+        "test_duplicate_physical_or_version_identity_fails_closed",
+        "test_formal_family_parts_feed_same_physical_demand_boundary",
+    ))
+    for key in manifest["bom_split_case_owners"]:
+        family, mode, layers = key.rsplit("-", 2)
+        escaped = family.encode("unicode_escape").decode("ascii")
+        expected.add(f"{bom}::{manifest['bom_split_function']}[{escaped}-{mode}-{layers}]")
+    t15 = manifest["t15_split_file"]
+    expected.discard(t15)
+    expected.update(f"{t15}::{name}" for name in manifest["t15_source_functions"])
     seen = Counter(selector for shard in shards for selector in shard)
     assert set(seen) == expected
     assert all(times == 1 for times in seen.values())
+
+
+def test_final_canonical_verifier_uses_stdlib_and_bounded_named_artifacts():
+    workflow = (Path(__file__).resolve().parents[2]
+                / ".github/workflows/whd-product-regression.yml").read_text(encoding="utf-8")
+    final = workflow.split("\n  product-regression:", 1)[1]
+    assert "python -S - <<'PY'" in final
+    assert "pip-canonical" not in final
+    assert "pip install" not in final
+    assert "Verify standard-library-only canonical receipt verifier" in final
+    assert 'for shard in ' + ' '.join(str(i) for i in range(18)) + '; do' in final
+    assert 'if [ "${#pids[@]}" -eq 4 ]; then' in final
+    assert 'if ! wait "$pid"; then failed=true; fi' in final
+    assert 'CI_JUNIT_DOWNLOAD_BATCH_FAILED' in final
+    assert 'CI_JUNIT_DOWNLOAD_FAILED shard=' in final
+    assert 'timeout 120s gh run download "${GITHUB_RUN_ID}"' in final
+    assert '--name "whd-ci-shard-${shard}"' in final
+    assert '--merge-junit junit/shard-17.xml' in final
+    root = Path(__file__).resolve().parents[2]
+    subprocess.run(
+        [sys.executable, "-S", "-c",
+         "import tools.product_ci_regression as regression; "
+         "import tools.whd_v15_acceptance_evidence as evidence; "
+         "assert callable(regression._merge_shard_junit); "
+         "assert callable(evidence.verify)"],
+        cwd=root, check=True, timeout=20,
+    )
 
 
 def test_eighteen_shard_final_junit_requires_every_file_and_all_green():
@@ -197,6 +310,72 @@ def test_eighteen_shard_gui_split_rejects_unapproved_case_owner(tmp_path, monkey
     monkeypatch.setattr(regression, "_EIGHTEEN_SHARD_MANIFEST", path)
     with pytest.raises(ValueError, match="observed GUI cases"):
         shard_paths(0, 18)
+
+
+def test_bom_split_rejects_missing_parameter_or_unapproved_lane(tmp_path, monkeypatch):
+    original = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    name = next(iter(original["bom_split_case_owners"]))
+    invalid = json.loads(json.dumps(original))
+    invalid["bom_split_case_owners"].pop(name)
+    path = tmp_path / "bom-missing.json"
+    path.write_text(json.dumps(invalid, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(regression, "_EIGHTEEN_SHARD_MANIFEST", path)
+    with pytest.raises(ValueError, match="observed BOM"):
+        shard_paths(1, 18)
+
+    invalid["bom_split_case_owners"][name] = 6
+    path.write_text(json.dumps(invalid, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="observed BOM"):
+        shard_paths(1, 18)
+
+
+def test_measured_bom_full2_moves_only_one_exact_parameter():
+    manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    bom = manifest["bom_split_file"]
+    func = manifest["bom_split_function"]
+    case = "受電箱-FULL-2".split("-")
+    family = case[0].encode("unicode_escape").decode("ascii")
+    node = f"{bom}::{func}[{family}-{case[1]}-{case[2]}]"
+    shards = [shard_paths(i, 18) for i in range(18)]
+    assert node in shards[16]
+    assert node not in shards[15]
+    assert sum(node in shard for shard in shards) == 1
+    assert manifest["bom_split_case_owners"]["受電箱-BACK_OPENING-1"] == 15
+
+
+def test_bom_split_preserves_every_non18_canonical_file_selector():
+    bom = "tests/test_issue1466_quantity_bom.py"
+    for count in (1, 3, 10, 20):
+        items = [item for i in range(count) for item in shard_paths(i, count)]
+        assert items.count(bom) == 1
+        assert not any(item.startswith(bom + "::") for item in items)
+
+
+def test_t15_split_rejects_source_list_drift_or_wrong_owner(tmp_path, monkeypatch):
+    manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    critical = manifest["t15_critical_function"]
+    assert critical in manifest["t15_source_functions"]
+    modified = json.loads(json.dumps(manifest))
+    modified["t15_source_functions"].remove(critical)
+    path = tmp_path / "t15-missing.json"
+    path.write_text(json.dumps(modified, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(regression, "_EIGHTEEN_SHARD_MANIFEST", path)
+    with pytest.raises(ValueError, match="T15"):
+        shard_paths(1, 18)
+
+    modified = json.loads(json.dumps(manifest))
+    modified["t15_critical_owner"] = 6
+    path.write_text(json.dumps(modified, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="incomplete or stale"):
+        shard_paths(1, 18)
+
+
+def test_t15_original_file_remains_intact_in_all_non18_schedules():
+    t15 = "tests/test_phase6_t15_inner_door_panels.py"
+    for count in (1, 3, 10, 20):
+        selectors = [p for i in range(count) for p in shard_paths(i, count)]
+        assert selectors.count(t15) == 1
+        assert not any(p.startswith(t15 + "::") for p in selectors)
 
 
 def test_duration_manifest_fails_closed_if_a_file_is_missing(tmp_path, monkeypatch):
@@ -359,6 +538,60 @@ def test_verify_full_receipt_imports_package_qualified_evidence_module():
     }) as mock_verify:
         _verify_full_receipt(Path("dummy.xml"))
         mock_verify.assert_called_once_with(Path("dummy.xml"))
+
+
+def test_parallel_collection_readback_rejects_missing_or_duplicate_nodes(tmp_path):
+    from tools.whd_v15_acceptance_evidence import _load_canonical_collection
+
+    collection = tmp_path / "canonical-collection.txt"
+    collection.write_text(
+        "tests/test_one.py::test_one\n"
+        "tests/test_two.py::test_two[param]\n"
+        "2 tests collected\n", encoding="utf-8",
+    )
+    assert _load_canonical_collection(collection) == {
+        "tests/test_one.py::test_one",
+        "tests/test_two.py::test_two[param]",
+    }
+    collection.write_text("0 tests collected\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="empty"):
+        _load_canonical_collection(collection)
+    collection.write_text("tests/test_one.py::test_one\n" * 2, encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate"):
+        _load_canonical_collection(collection)
+    collection.unlink()
+    with pytest.raises(FileNotFoundError):
+        _load_canonical_collection(collection)
+
+
+def test_parallel_collection_default_keeps_fresh_complete_collection():
+    from unittest.mock import patch
+    from tools.whd_v15_acceptance_evidence import _load_canonical_collection
+
+    fresh = chr(10).join(("tests/test_one.py::test_one", "tests/test_two.py::test_two[x]", ""))
+    with patch("tools.whd_v15_acceptance_evidence.subprocess.check_output",
+               return_value=fresh) as mock_collect:
+        assert _load_canonical_collection() == {
+            "tests/test_one.py::test_one",
+            "tests/test_two.py::test_two[x]",
+        }
+    command = mock_collect.call_args.args[0]
+    assert "--collect-only" in command and "-q" in command
+    assert "tests/test_issue1469_v15_acceptance.py" in command
+
+
+def test_parallel_collection_is_passed_into_final_verifier():
+    from unittest.mock import patch
+    from tools.product_ci_regression import _verify_full_receipt
+
+    with patch("tools.whd_v15_acceptance_evidence.verify", return_value={
+        "requirements": {"CPR-01": ["tests/test_one.py::test_one"]},
+        "passed_cases": 1,
+    }) as mock_verify:
+        _verify_full_receipt(Path("dummy.xml"), Path("collection.txt"))
+        mock_verify.assert_called_once_with(
+            Path("dummy.xml"), collection_path=Path("collection.txt")
+        )
 
 
 def test_release_test_runner_select_batch_isolates_remaining_suffix_after_first_half_passes():

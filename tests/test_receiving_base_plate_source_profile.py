@@ -53,13 +53,26 @@ def test_source_four_vertical_bends_are_separated_by_true_33_not_false_31():
     }
 
 
+def test_center_source_upper_lower_bends_are_35_material_not_flat_side_20():
+    result = _result()
+    horizontal = [b for b in result.bends if b.p1.y == b.p2.y]
+    assert len(horizontal) == 2
+    assert {b.p1.y for b in horizontal} == {35, 205}
+    assert {b.p2.y for b in horizontal} == {35, 205}
+    # The operator sees 37 outside at T2, equal to the X second return:
+    # X 33+2T, Y 35+T.
+    assert 35 + 2 == 33 + 2*2 == 37
+
+
 def test_other_depth_pair_preserves_actual_cutting_and_bend_construction():
     result = _result((105, 75))  # delta30, second28, total width762
     assert result.width == 762
     contour = [(v.x, v.y) for v in result.outline]
     assert len(contour) == 20
     assert (69, 5) in contour      # shoulder = first40 + return28 + T2/2
-    assert (762 - 69, 205) in contour
+    assert (762 - 69, 210) in contour  # new depth step30 owns the CENTER Y shoulder
     bends = {b.name: b for b in result.bends}
     assert bends["receiving_left_33"].p1.x == 68
     assert bends["receiving_right_33"].p1.x == 762 - 68
+    assert bends["receiving_bottom_20"].p1.y == 30
+    assert bends["receiving_top_20"].p1.y == 210

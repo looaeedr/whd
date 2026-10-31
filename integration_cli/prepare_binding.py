@@ -16,7 +16,19 @@ from typing import Any, Mapping, Sequence
 from integration_cli.prepare_evidence import (
     PrepareEvidenceError, _pure_json, evidence_digest,
 )
-from integration_cli.prepare_frame import require_canonical_door_local_frame
+from integration_cli.worker_receiving_endcap import require_receiving_endcap_frame
+from integration_cli.worker_receiving_back_panel import require_receiving_back_panel_frame
+from integration_cli.worker_receiving_side_panel import require_receiving_side_panel_frame
+from integration_cli.worker_inner_door_frame import require_receiving_inner_door_frame_size_only_frame
+from integration_cli.worker_inner_door_panel import require_canonical_receiving_inner_door_panel_frame
+from integration_cli.worker_box_body import require_canonical_vault_box_body_size_only_frame
+from integration_cli.worker_custom_fold import require_canonical_custom_fold_size_only_frame
+from integration_cli.prepare_frame import (
+    require_canonical_door_local_frame,
+    require_canonical_indicator_box_size_only_frame,
+    require_canonical_endcap_size_only_frame,
+    require_canonical_vault_base_plate_size_only_frame,
+)
 
 _HASH = re.compile(r"^[0-9a-f]{64}$")
 _ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
@@ -54,10 +66,74 @@ def _binding_payload(
         if not isinstance(frame, Mapping):
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "missing authoritative Frame")
         frame_id = frame.get("frame_id")
-        # W-03 certifies only the WHD-issued front Door-local frame.
-        # A caller-supplied arbitrary frame ID must not become a signed receipt.
-        if frame_id != f"door:{physical}:front:local-v1":
-            raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Frame identity is not WHD Door-local")
+        # Shared indicator-box size is *not* source-Feature placement authority.
+        # Its distinct, feature-disabled Frame must be sealed separately from Door.
+        locked = part.get("locked_dimensions_mm")
+        raw_kind = (locked.get("raw_part", {}).get("kind")
+                    if isinstance(locked, Mapping) else None)
+        if raw_kind == "indicator_box":
+            if frame_id != f"indicator_box:{physical}:outer:local-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Frame identity is not WHD box size-only")
+            require_canonical_indicator_box_size_only_frame(
+                frame, physical_part_id=physical,
+            )
+        elif raw_kind == "back_panel":
+            mode = locked["raw_part"].get("back_panel_mode")
+            if frame_id != f"back_panel:{mode}:{physical}:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Receiving rear Frame identity mismatch")
+            require_receiving_back_panel_frame(frame, mode=mode, physical_part_id=physical)
+        elif raw_kind == "side_panel":
+            side_ref = locked["raw_part"].get("source_part_ref")
+            side_role = {"box_body:left_side": "left_side", "box_body:right_side": "right_side"}.get(side_ref)
+            if side_role is None or frame_id != f"side_panel:{side_role}:{physical}:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Receiving physical side Frame identity mismatch")
+            require_receiving_side_panel_frame(
+                frame, role=side_role, physical_part_id=physical,
+            )
+        elif raw_kind == "inner_door" and locked["raw_part"].get("inner_door_frame_side") is not None:
+            side = locked["raw_part"]["inner_door_frame_side"]
+            if frame_id != f"inner_door:{side}:{physical}:receiving:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Receiving A/B/D signed frame identity mismatch")
+            require_receiving_inner_door_frame_size_only_frame(
+                frame, frame_side=side, physical_part_id=physical,
+            )
+        elif raw_kind == "inner_door":
+            if frame_id != f"inner_door:{physical}:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Receiving inner-door Frame ID invalid")
+            require_canonical_receiving_inner_door_panel_frame(
+                frame, physical_part_id=physical,
+            )
+        elif raw_kind == "custom_fold":
+            if frame_id != f"custom_fold:{physical}:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "custom Fold Frame identity mismatch")
+            require_canonical_custom_fold_size_only_frame(
+                frame, physical_part_id=physical,
+            )
+        elif raw_kind == "box_body":
+            if frame_id != f"box_body:{physical}:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Vault BoxBody Frame identity mismatch")
+            require_canonical_vault_box_body_size_only_frame(
+                frame, physical_part_id=physical,
+            )
+        elif raw_kind == "base_plate":
+            if frame_id != f"base_plate:{physical}:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "BasePlate frame identity mismatch")
+            require_canonical_vault_base_plate_size_only_frame(
+                frame, physical_part_id=physical,
+            )
+        elif raw_kind in ("end_cap_head", "end_cap_tail") and locked["raw_part"].get("cabinet_family") == "受電箱":
+            if frame_id != f"{raw_kind}:{physical}:receiving:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Receiving EndCap physical Frame ID differs")
+            require_receiving_endcap_frame(frame, role=raw_kind, physical_part_id=physical)
+        elif raw_kind in ("end_cap_head", "end_cap_tail"):
+            if frame_id != f"{raw_kind}:{physical}:outer:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "EndCap frame identity does not match its role")
+            require_canonical_endcap_size_only_frame(
+                frame, physical_part_id=physical, kind=raw_kind,
+            )
+        else:
+            if frame_id != f"door:{physical}:front:local-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Frame identity is not WHD Door-local")
         if (item_id in seen_items or physical in seen_physical or frame_id in seen_frames):
             raise PrepareEvidenceError("WHD_PREPARE_INPUT_INVALID", "duplicate item or frame identity")
         seen_items.add(item_id)
@@ -65,7 +141,8 @@ def _binding_payload(
         seen_frames.add(frame_id)
         if frame.get("coordinate_contract_revision") != "1" or frame.get("units") != "mm":
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unsupported Frame units/revision")
-        require_canonical_door_local_frame(frame, physical_part_id=physical)
+        if raw_kind not in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body", "inner_door", "side_panel", "back_panel"):
+            require_canonical_door_local_frame(frame, physical_part_id=physical)
         checked.append({
             "item_id": item_id,
             "physical_part_id": physical,

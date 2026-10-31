@@ -32,6 +32,11 @@ whd_schema: WHD_DOC_META_V1
 
 無法證實來源、座標基準、折向、孔位或製造判準時 `SOURCE_READ_PRECONDITION_FAILED`，繼續只讀查證，**不得猜測**、不得編造預期值後直接施工。
 
+### GUI／Engine API 權責硬閘門
+
+任何新增功能（不只門板）須先確認引擎公開 API／request／response／capability；GUI 只負責輸入、操作與顯示。缺製造能力先補 `ae_engine` 的 API 與測試，不准讓 GUI 補製造公式、孔位、展開、實體板件解析、DXF 或未認證 fallback；未支援就明確拒絕。以 `AGENTS.md::GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 和 AI 庫 04 CURRENT 為權威。PR 必須驗 request→Engine→result→GUI、Save→Reload、受影響 2D/3D/DXF，並通過 `GUI Engine API Ownership Gate`，不能只驗畫面。
+
+
 ## 第二關 — FEATURE GATE（影響鏈完整性）
 
 依真實影響逐項列適用與驗證判準，不適用可寫 **N/A + 原因**，不是強迫所有功能修改所有模組：

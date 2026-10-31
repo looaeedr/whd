@@ -104,8 +104,10 @@ jobs:
           python product/tools/release_notes_zh_tw.py --tag "$env:RELEASE_TAG" --sha "$env:PRODUCT_SHA" --previous-tag "$($prior.tag_name)" --previous-sha "$($prior.target_commitish)" --root product --out output
           if ($LASTEXITCODE -ne 0) { throw 'ZH_TW_RELEASE_NOTES_GENERATION_FAILED' }
           $notes = Get-Content -LiteralPath 'output/WHD_Release_Notes_zh-TW.md' -Raw -Encoding utf8
-          if (!$notes.Contains('本次主要更新') -or !$notes.Contains($env:PRODUCT_SHA) -or !$notes.Contains($env:RELEASE_TAG)) {
-            throw 'ZH_TW_RELEASE_NOTES_INVALID'
+          if (!$notes.Contains('本次主要更新') -or !$notes.Contains($env:PRODUCT_SHA) -or !$notes.Contains($env:RELEASE_TAG) -or
+              $notes.Length -gt 2000 -or $notes.Contains('## 逐項變更') -or
+              $notes -match '(?m)^- (feat|fix|test|docs|chore|ci|build|refactor)[(:! ]') {
+            throw 'ZH_TW_RELEASE_NOTES_MUST_BE_CONCISE_NOT_RAW_COMMITS'
           }
           Copy-Item 'output/WHD_Windows_Guide_zh-TW.md' 'product/dist/WHD/使用說明.md'
           Copy-Item 'output/WHD_Release_Notes_zh-TW.md' 'product/dist/WHD/本次更新.md'

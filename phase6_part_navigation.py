@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Iterable, Mapping
 
+from ae_engine import manufacturing_api
+
 
 class NavigationIntent(str, Enum):
     EXPLICIT_SELECT = "EXPLICIT_SELECT"
@@ -50,9 +52,8 @@ def _keys(values: Iterable[object] | None) -> tuple[str, ...]:
 
 
 def is_box_body_physical_piece_key(value: object) -> bool:
-    """Classify manufacturing-owned BoxBody child identities only."""
-    key = str(value or "")
-    return key.startswith("box_body:") and not key.startswith("box_body:divider:")
+    """Operator-navigation adapter: physical ID authority is Engine-only."""
+    return manufacturing_api.is_box_body_physical_piece_key(value)
 
 
 def box_body_piece_keys(values: Iterable[object] | None) -> tuple[str, ...]:

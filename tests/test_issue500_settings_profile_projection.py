@@ -98,7 +98,7 @@ def test_issue500_projection_owner_has_no_bridge_tk_workspace_render_or_manufact
         or name == "phase6_designer_workspace"
         or name == "phase6_workspace_navigation_controller"
         or "renderer" in name
-        or "manufacturing" in name
+        or ("manufacturing" in name and name != "ae_engine.manufacturing_api")
     }
     assert forbidden == set()
 
@@ -117,7 +117,8 @@ def test_issue500_dimension_projection_leaves_bridge_as_narrow_delegate():
 
 def test_issue500_profile_projection_leaves_bridge_as_plan_apply_boundary():
     source = _bridge_function_source("_phase6_refresh_profiles_from_settings")
-    assert "build_settings_profile_projection" in source
+    # The Bridge now delegates to Composition, which owns the Settings plan.
+    assert "_phase6_composition(self).refresh_profiles_from_settings(" in source
     forbidden = (
         "build_box_body_profile",
         "merge_box_body_profile",

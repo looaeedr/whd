@@ -878,7 +878,7 @@ class Phase6ApplicationHost:
     def _door_material_frame_width(self, frame_width, thickness, *, model_name=None):
         """Resolve operator Door FW into the material-space value consumed by AE."""
         source = self._baseline_source_model() if model_name is None else model_name
-        return cabinet_family_policy.door_material_frame_width(
+        return manufacturing_api.door_material_frame_width(
             source, frame_width=float(frame_width), thickness=float(thickness),
         )
 
@@ -901,25 +901,22 @@ class Phase6ApplicationHost:
         return key if key in state_map else None
 
     def _manual_corner_policy(self, part_key, fw):
+        """Collect live editor state; delegate manufacturing policy to Engine."""
         state_map = getattr(self, "manual_corner_state", None)
-        if isinstance(state_map, dict) and part_key in state_map:
-            policy = policy_from_corner_state(state_map[part_key], fw=fw)
+        model_name = self._baseline_source_model() if hasattr(self, "_baseline_source_model") else None
+        has_explicit = isinstance(state_map, dict) and part_key in state_map
+        family = (
+            Phase6ApplicationHost._current_cabinet_type_name(self)
+            if model_name and not has_explicit else None
+        )
+        policy = manufacturing_api.resolve_live_corner_policy(
+            state_map, part_key, fw, model_name=model_name, cabinet_family=family,
+        )
+        if has_explicit:
             family_adapter = getattr(self, "_apply_cabinet_family_endcap_policy", None)
             if callable(family_adapter):
                 return family_adapter(policy, part_key)
-            return policy
-
-        # Geometry/spec helpers are also used by lightweight tests and legacy
-        # callers that do not construct the full Tk state.  Preserve the same
-        # model semantics instead of crashing or silently dropping CornerType.
-        model_name = self._baseline_source_model() if hasattr(self, "_baseline_source_model") else None
-        if model_name:
-            fallback = known_model_corner_state((part_key,), cabinet_family=Phase6ApplicationHost._current_cabinet_type_name(self)).get(part_key)
-        else:
-            fallback = new_manual_corner_state((part_key,)).get(part_key)
-        if fallback is None:
-            return None
-        return policy_from_corner_state(fallback, fw=fw)
+        return policy
 
     def _box_body_corner_policies(self, fw):
         """One shared CornerType state for custom and known models alike."""
@@ -1521,74 +1518,38 @@ class Phase6ApplicationHost:
     def _door_layout_entry_menu(self, entry, *, column_index, row_index=None):
         return _door_layout_entry_menu_impl(self, entry, column_index=column_index, row_index=row_index)
     def open_door_indicator_component_editor(self, key, component):
+        """Open the Engine-resolved Indicator Box/Small Door feature editor."""
         state = self._door_layout_indicator_state_for_key(key)
-        if state.get("mode") != "indicator_box":
+        if state.get("mode") != "indicator_box" or component not in {
+            "indicator_box", "indicator_door",
+        }:
             return
         try:
             val = self.get_float_values()
             layers = max(1, min(6, int(state.get("layers", 1))))
             groups = [int(v) for v in list(state.get("groups", [2] * 6))[:layers]]
+            # The canonical shared Indicator geometry is already consumed by
+            # Phase6's _indicator_component_editor_contexts. Never generate
+            # another manufacturing surface or finished-face guide in GUI.
+            door_features = self.door_layout_indicator_door_features.get(key, [])
+            door_spec = self._indicator_door_part_spec(
+                val, groups, features=door_features,
+            )
+            info = manufacturing_api.resolve_indicator_editor_components(
+                groups, thickness=val["t"], door_spec=door_spec,
+            )[component]
         except Exception as exc:
             messagebox.showerror("開孔失敗", str(exc))
             return
-
+        surface, width, height = info.surface, info.width, info.height
+        guide = info.reference_guide
+        baseline_scene, status = info.baseline_scene, info.baseline_status
         if component == "indicator_box":
-            box_corner_policy = None
-            data = ae.get_stretched_indicator_box_data(
-                "指示燈", groups, val['t'], corner_policy=None
-            )
-            baseline_scene = data.scene
-            status = ae.indicator_shared_baseline_source_label("盒子.dxf")
-            surface = feature_surface_from_drawing_scene("indicator_box", data.scene)
-            width, height = data.params['w'], data.params['h']
-            fold = float(getattr(ae, 'indicator_box_fold_def', 49.0))
-            result = (
-                build_unknown_indicator_box_result(
-                    total_width=width, total_height=height, t=val['t'], fold=fold,
-                    corner_policy=box_corner_policy,
-                ) if box_corner_policy is not None else
-                build_indicator_box_result(total_width=width, total_height=height, t=val['t'], fold=fold)
-            )
-            guide = build_finished_reference_guide(
-                "indicator_box", result, finished_width=width - 2.0 * fold + val['t'],
-                finished_height=height - 2.0 * fold + val['t'],
-            )
             feature_store = self.door_layout_indicator_box_features.setdefault(key, [])
             title = "指示燈盒子"
-        elif component == "indicator_door":
-            t = val['t']; fw = val['fw']; gw = val['door_gap_w']; gh = val['door_gap_h']
-            policy = replace(
-                manufacturing_api.resolve_policy(),
-                frame_width=float(fw), door_gap_w=float(gw), door_gap_h=float(gh),
-                indicator_small_door_fold=float(getattr(ae, 'indicator_small_door_fold_def', 19.0)),
-            )
-            indicator_ctx = ManufacturingContext(policy=policy)
-            door_spec = manufacturing_api.indicator_small_door_spec(
-                groups, thickness=t, context=indicator_ctx
-            )
-            finished_w, finished_h = manufacturing_api.door_finished_face_size(door_spec, indicator_ctx)
-            source_w, source_h = door_spec.width, door_spec.height
-            data = ae.get_stretched_door_data(
-                None, source_w, source_h, t, fw, gw, gh,
-                door_spec.fold_left, door_spec.fold_right, door_spec.fold_top, door_spec.fold_bottom,
-                indicator_window_groups=groups,
-            )
-            surface = feature_surface_from_drawing_scene("indicator_door", data.scene)
-            width, height = data.params['total_width'], data.params['total_depth']
-            result = build_door_result(
-                w=source_w, h=source_h, t=t, fw=fw, gap_w=gw, gap_h=gh,
-                fold_left=door_spec.fold_left, fold_right=door_spec.fold_right,
-                fold_top=door_spec.fold_top, fold_bottom=door_spec.fold_bottom,
-            )
-            guide = build_finished_reference_guide(
-                "indicator_door", result, finished_width=finished_w, finished_height=finished_h,
-            )
-            feature_store = self.door_layout_indicator_door_features.setdefault(key, [])
-            baseline_scene = data.scene
-            status = ae.indicator_shared_baseline_source_label("小門.dxf")
-            title = "指示燈小門"
         else:
-            return
+            feature_store = self.door_layout_indicator_door_features.setdefault(key, [])
+            title = "指示燈小門"
 
         def sync_indicator_component_features():
             designer = getattr(self, "fold_designer_app", None)
@@ -1652,11 +1613,10 @@ class Phase6ApplicationHost:
                 val.update({axis: float(whd[axis]) for axis in ("w", "h", "d")})
             result = self._door_layout_cell_result(cell, val)
             surface = feature_surface_from_structural_result("door", result)
-            material_fw = self._door_material_frame_width(val['fw'], val['t'])
-            finished_w, finished_h = ae.calculate_door_finished_size(
-                cell.start_width, cell.start_height, material_fw, val['door_gap_w'], val['door_gap_h'], val['t'],
-                frame_edges=cell.edges,
-            )
+            # Use the exact DoorPartSpec shared with indicator-fit and export.
+            # Engine owns Family material FW and the finished-face geometry.
+            door_spec = self._door_layout_part_spec(cell, val)
+            finished_w, finished_h = manufacturing_api.door_finished_face_size(door_spec)
             reference_guide = build_finished_reference_guide(
                 "door", result, finished_width=finished_w, finished_height=finished_h,
             )

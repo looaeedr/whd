@@ -125,15 +125,23 @@ def recheck_trusted_door_export(
         validate_wire_features_against_prepared_frame(
             exported.get("features", ()), frame_rows[0],
         )
-        # Worker-owned source path is never accepted from wire JSON. Missing
-        # custody fails closed rather than trusting feature/source assertions.
-        if exported.get("features"):
+        # A trusted installed Worker always supplies original-file custody.
+        # Even a feature-disabled, size-only physical part must not skip the
+        # original source SHA: empty Features prove no *mapped* holes, not
+        # absence of a mutable source DXF. The source reader is WHD-owned.
+        # Pure W-03 in-process digest tests without a Worker source mapping
+        # retain their existing scope; they do not manufacture an output.
+        if exported.get("features") or source_documents is not None:
             source = (source_documents.get(prepared["item_id"])
                       if isinstance(source_documents, Mapping) else None)
-            verify_trusted_original_dxf_features(
-                exported["features"], source_path=source,
-                expected_document_sha256=prepared["source_document_sha256"],
-            )
+            if exported.get("features"):
+                verify_trusted_original_dxf_features(
+                    exported["features"], source_path=source,
+                    expected_document_sha256=prepared["source_document_sha256"],
+                )
+            else:
+                from integration_cli.source_circle_verification import _source_snapshot
+                _source_snapshot(source, prepared["source_document_sha256"])
 
     # Re-enter the WHD manufacturing owners, real parsers and content hashes
     # for this exact original batch. This is not a version-string comparison.

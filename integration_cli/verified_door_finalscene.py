@@ -12,9 +12,48 @@ import math
 from pathlib import Path
 from typing import Any, Mapping
 
-from integration_cli.prepare_batch import door_spec_from_trusted_prepared_part
+from integration_cli.prepare_batch import (
+    door_spec_from_trusted_prepared_part,
+    indicator_small_door_spec_from_trusted_prepared_part,
+    indicator_box_spec_from_trusted_prepared_part,
+    endcap_spec_from_trusted_prepared_part,
+    vault_base_plate_spec_from_trusted_prepared_part,
+)
+from integration_cli.worker_box_body import (
+    vault_box_body_spec_from_trusted_prepared_part,
+    resolve_vault_box_body_size_only_frame,
+)
+from integration_cli.worker_receiving_endcap import (
+    receiving_endcap_spec_from_trusted_part,
+    receiving_endcap_frame,
+    _render as receiving_endcap_render,
+)
+from integration_cli.worker_receiving_back_panel import (
+    receiving_back_panel_spec_from_trusted_part,
+    receiving_back_panel_frame,
+    receiving_back_panel_render,
+)
+from integration_cli.worker_receiving_side_panel import (
+    receiving_side_panel_spec_from_trusted_part,
+    receiving_side_panel_frame,
+    receiving_side_panel_render,
+)
+from integration_cli.worker_inner_door_frame import (
+    receiving_inner_door_frame_from_trusted_part,
+    receiving_inner_door_frame_size_only_frame,
+)
+from integration_cli.worker_inner_door_panel import (
+    receiving_inner_door_panel_from_trusted_part,
+    resolve_receiving_inner_door_panel_frame,
+)
+from integration_cli.worker_custom_fold import (
+    custom_fold_spec_from_trusted_prepared_part, resolve_custom_fold_size_only_frame,
+)
 from integration_cli.prepare_evidence import PrepareEvidenceError, _pure_json
-from integration_cli.prepare_frame import resolve_door_finished_local_frame
+from integration_cli.prepare_frame import (
+    resolve_door_finished_local_frame, resolve_indicator_box_size_only_frame,
+    resolve_endcap_size_only_frame, resolve_vault_base_plate_size_only_frame,
+)
 from integration_cli.prepare_recheck import recheck_trusted_door_export
 from integration_cli.source_circle_verification import verify_trusted_original_dxf_features
 
@@ -119,9 +158,17 @@ def save_trusted_door_circle_finalscene_batch(
     overwrite: bool = False,
     durable_ledger=None,
 ) -> dict[str, str]:
-    """Source-verified Door-only all-or-nothing batch; never accepts caller PartSpec.
+    """Source-verified native WHD FinalScene batch including intrinsic Vault EndCaps.
+
+    Never accepts a caller-controlled PartSpec. Shared box and Vault EndCap
+    frames remain size-only: only an entirely empty original DXF may use
+    their WHD-owned standard physical geometry. External Feature placement,
+    assembly-driven relief/collision and custom corner policy are NOT
+    certified by this private manufacturing path.
 
     The original W-03 authenticated prepare request/receipt are Worker-owned.
+    Featureless Door/small-door is allowed only with an entirely empty original
+    DXF modelspace, so no real source geometry can be silently dropped.
     This function derives WHD DoorPartSpec from *those* original dimensions and
     Factory Policy, never from export wire dimensions. The original-DXF path,
     resource root and destination are supplied by the trusted Worker, not wire.
@@ -131,8 +178,8 @@ def save_trusted_door_circle_finalscene_batch(
     from ae_engine.contracts import ManufacturingContext
     from ae_engine.manufacturing_api import (
         build_part_render_data, resolve_policy, save_verified_final_scene_batch_dxf,
+        map_door_features_to_unfolded_material,
     )
-    from ae_engine.manufacturing_endcap_compat import _door_features_for_legacy_engine
 
     if not isinstance(source_documents, Mapping) or not isinstance(resource_root, Path):
         _reject("Worker-owned original source custody and resource root required")
@@ -148,7 +195,13 @@ def save_trusted_door_circle_finalscene_batch(
         if output_dir.is_symlink() or not output_dir.is_dir():
             _reject("W-06 durable export needs preexisting trusted output directory")
 
+    # The very first source guard runs before a W-06 job is claimed.
+    # Later stage/commit guards can safely read its durable cancel intent.
+    active_durable_job = False
+
     def guard() -> None:
+        if active_durable_job:
+            durable_ledger.assert_not_cancelled(export_request)
         recheck_trusted_door_export(
             trusted_prepare_request, trusted_prepare_response, export_request,
             source_documents=source_documents, resource_root=resource_root,
@@ -170,13 +223,185 @@ def save_trusted_door_circle_finalscene_batch(
     context = ManufacturingContext(resource_root=resource_root, policy=policy)
     rows = []
     for original, receipt, exported in zip(original_items, receipt_items, exported_items):
-        if original["part"]["kind"] != "door" or not exported.get("features"):
-            _reject("only Door items with proven source Feature inventory supported")
+        kind = original["part"]["kind"]
+        if kind not in (
+            "door", "indicator_small_door", "indicator_box",
+            "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body",
+            "inner_door", "side_panel", "back_panel",
+        ):
+            _reject("physical part has no trusted WHD FinalScene manufacturing owner")
+        if kind in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body", "inner_door", "side_panel", "back_panel") and exported.get("features"):
+            _reject("size-only physical Frame has no certified source-Feature mapping")
+        # A source DXF containing untransferred geometry is never an
+        # unperforated blank: even zero declared Features must not silently
+        # drop any original entity. Only genuinely empty modelspace sources
+        # can use WHD's intrinsic, hole-free Door/small-door manufacturing.
+        # Source-side paths/SHAs are W-06 owned and independently rechecked
+        # around staging and commit. No inferred source-to-DXF transform.
+        if not exported.get("features"):
+            from integration_cli.source_circle_verification import _source_snapshot
+            original_dxf = _source_snapshot(
+                source_documents.get(original["item_id"]),
+                original["source_document_sha256"],
+            )
+            if any(True for _ in original_dxf.modelspace()):
+                _reject("source DXF has untransferred geometry without declared Features")
         original_item_id = original["item_id"]
         source_path = source_documents.get(original_item_id)
+        if kind == "back_panel":
+            spec = receiving_back_panel_spec_from_trusted_part(original["part"])
+            frame = receiving_back_panel_frame(
+                spec, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Receiving dedicated back-panel Frame changed after signed Prepare")
+            render = receiving_back_panel_render(spec, context)
+            rows.append((receipt["physical_part_id"], render))
+            continue
+        if kind == "side_panel":
+            spec, side_role = receiving_side_panel_spec_from_trusted_part(original["part"])
+            frame = receiving_side_panel_frame(
+                spec, side_role, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Receiving side material Frame changed after signed Prepare")
+            render = receiving_side_panel_render(spec, side_role, context)
+            rows.append((receipt["physical_part_id"], render))
+            continue
+        if kind == "inner_door" and "inner_door_frame_side" in original["part"]:
+            from ae_engine.manufacturing_api import build_inner_door_frame_render_data
+            frame_part = receiving_inner_door_frame_from_trusted_part(original["part"])
+            frame = receiving_inner_door_frame_size_only_frame(
+                frame_part, resource_root, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Receiving A/B/D Frame diverged from signed W-03 Final Material")
+            render = build_inner_door_frame_render_data(frame_part, resource_root=resource_root)
+            if render.material is None or render.material.is_empty or not render.material.is_valid or not render.fold_guides:
+                _reject("Receiving A/B/D physical CUTTING/BEND unavailable")
+            if render.metadata.get("stable_id") != frame_part.stable_id:
+                _reject("Receiving A/B/D physical source identity changed")
+            rows.append((receipt["physical_part_id"], render))
+            continue
+        if kind == "inner_door":
+            from ae_engine.manufacturing_api import build_inner_door_panel_render_data
+            panel = receiving_inner_door_panel_from_trusted_part(original["part"])
+            frame = resolve_receiving_inner_door_panel_frame(
+                panel, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Receiving inner-door FinalScene Frame has changed since Prepare")
+            render = build_inner_door_panel_render_data(panel)
+            if render.material is None or render.material.is_empty or not render.material.is_valid or not render.fold_guides:
+                _reject("Receiving inner-door actual CUTTING/BEND is unavailable")
+            if render.metadata.get("stable_id") != panel.stable_id:
+                _reject("Receiving inner-door physical source identity drifted")
+            rows.append((receipt["physical_part_id"], render))
+            continue
+        if kind == "custom_fold":
+            spec = custom_fold_spec_from_trusted_prepared_part(original["part"])
+            frame = resolve_custom_fold_size_only_frame(
+                spec, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Custom Fold canonical Final Material Frame has drifted")
+            render = build_part_render_data(spec, context)
+            if render.material is None or render.material.is_empty or not render.material.is_valid:
+                _reject("Custom Fold canonical Final Material unavailable")
+            rows.append((receipt["physical_part_id"], render))
+            continue
+        if kind == "box_body":
+            spec = vault_box_body_spec_from_trusted_prepared_part(original["part"])
+            frame = resolve_vault_box_body_size_only_frame(
+                spec, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Vault BoxBody canonical Fold/FinalScene envelope has drifted")
+            render = build_part_render_data(spec, context)
+            if render.material is None or render.material.is_empty or not render.material.is_valid:
+                _reject("Vault BoxBody canonical Final Material unavailable")
+            if not render.fold_guides:
+                _reject("Vault BoxBody has no canonical BEND topology")
+            rows.append((receipt["physical_part_id"], render))
+            continue
+        if kind == "base_plate":
+            # Vault standalone BasePlate: independently supplied source dimensions,
+            # explicit shrink and bend. AE owns the actual CUTTING/BEND topology;
+            # no assembly placement, seam relief or source-feature transfer.
+            spec = vault_base_plate_spec_from_trusted_prepared_part(original["part"])
+            frame = resolve_vault_base_plate_size_only_frame(
+                spec, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("WHD Vault BasePlate Final Material envelope differs from prepared Frame")
+            render = build_part_render_data(spec, context)
+            if render.material is None or render.material.is_empty or not render.material.is_valid:
+                _reject("Vault BasePlate has no verified Final Material")
+            rows.append((receipt["physical_part_id"], render))
+            continue
+        if kind in ("end_cap_head", "end_cap_tail") and original["part"]["cabinet_family"] == "受電箱":
+            spec = receiving_endcap_spec_from_trusted_part(original["part"])
+            frame = receiving_endcap_frame(
+                spec, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Receiving head/tail canonical D-2T Frame changed after signed Prepare")
+            render = receiving_endcap_render(spec, context)
+            rows.append((receipt["physical_part_id"], render))
+            continue
+        if kind in ("end_cap_head", "end_cap_tail"):
+            # Vault head/tail use WHD's existing intrinsic manufacturing
+            # topology, family baseline, depth compensation and is_tail
+            # orientation. No external CADSplit assembly/Feature placement is
+            # inferred from the size-only Frame. This branch is reachable
+            # only when both trusted source modelspace and Features are empty.
+            spec = endcap_spec_from_trusted_prepared_part(original["part"], policy)
+            from ae_engine.manufacturing_endcap_compat import resolve_endcap_request
+            resolved = resolve_endcap_request(spec)
+            if (
+                resolved.model_name != "金庫型"
+                or not math.isclose(resolved.depth_comp_t, 3.0, rel_tol=0, abs_tol=1e-9)
+                or resolved.is_tail != (kind == "end_cap_tail")
+                or spec.holes or spec.assembly_joints or spec.resolved_assembly_relief_cuts
+                or spec.assembly_relief is not None
+                or spec.corner_policy is not None
+                or spec.fold_profile_x or spec.fold_profile_y
+            ):
+                _reject("Vault EndCap assembly or external Feature geometry not certified")
+            frame = resolve_endcap_size_only_frame(
+                spec, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("WHD Vault EndCap size-only Frame differs from prepared Frame")
+            render = build_part_render_data(spec, context)
+            rows.append((receipt["physical_part_id"], render))
+            continue
+        if kind == "indicator_box":
+            # W-03 certifies ONLY WHD-owned box outside size; no local
+            # source-Feature placement has been proved. When original DXF
+            # modelspace and wire Features are BOTH empty, the physical box
+            # and lamp layout are entirely resolved by WHD's own shared
+            # baseline + IndicatorBoxPartSpec. Never synthesize a transform.
+            spec = indicator_box_spec_from_trusted_prepared_part(
+                original["part"], context,
+            )
+            frame = resolve_indicator_box_size_only_frame(
+                spec, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("WHD box size-only frame differs from prepared Frame")
+            render = build_part_render_data(spec, context)
+            rows.append((receipt["physical_part_id"], render))
+            continue
         # Do not accept an export-side replacement of canonical mechanical
         # inputs: the exact same adapter is used at W-03 prepare.
-        spec = door_spec_from_trusted_prepared_part(original["part"], policy)
+        spec = (
+            door_spec_from_trusted_prepared_part(original["part"], policy)
+            if kind == "door"
+            else indicator_small_door_spec_from_trusted_prepared_part(
+                original["part"], context
+            )
+        )
         frame = resolve_door_finished_local_frame(
             spec, context, physical_part_id=receipt["physical_part_id"],
         )
@@ -191,7 +416,7 @@ def save_trusted_door_circle_finalscene_batch(
 
         marked = tuple(replace(c, source_type=_SOURCE_CIRCLE_MARKER) for c in original_features)
         owned_spec = replace(spec, features=marked, feature_space="finished_face")
-        mapped = _door_features_for_legacy_engine(owned_spec, context)
+        mapped = map_door_features_to_unfolded_material(owned_spec, context)
         render = build_part_render_data(owned_spec, context)
         _assert_original_circles_in_final_scene(render, mapped)
         rows.append((receipt["physical_part_id"], render))
@@ -207,9 +432,14 @@ def save_trusted_door_circle_finalscene_batch(
         claim = durable_ledger.claim(export_request)
         if claim.state != "new":
             _reject("durable job cannot be rendered again; read its immutable result")
+        active_durable_job = True
+        durable_ledger.assert_not_cancelled(export_request)
         durable_ledger.reserve_output_directories(
             export_request, trusted_directories=[output_dir],
         )
+        from integration_cli.worker_progress import PrivateWorkerProgress
+        progress = PrivateWorkerProgress(durable_ledger)
+        progress.publish(export_request)
 
         def commit_staged(staged: Mapping[str, Path], root: Path) -> dict[str, str]:
             # This callback runs ONLY after all 1..20 WHD-owned staged DXFs
@@ -222,6 +452,7 @@ def save_trusted_door_circle_finalscene_batch(
                 export_request, trusted_output_dir=root,
                 trusted_staged=staged, overwrite=overwrite,
             )
+            progress.publish(export_request)
             backup = DurableOriginalBackupEvidence(durable_ledger)
             backup.create_verified_original_backups(
                 export_request, trusted_output_dir=root,
@@ -244,6 +475,7 @@ def save_trusted_door_circle_finalscene_batch(
             durable_ledger.complete(
                 export_request, receipt, trusted_artifacts=actual,
             )
+            progress.publish(export_request)
             return {physical: str(path) for physical, path in actual.items()}
 
     # This engine owns staged DXFs and independent Save→Reload verification.

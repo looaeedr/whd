@@ -198,7 +198,7 @@ def resolve_box_body_structure_state(source, state=None) -> dict:
     callback = getattr(module, "resolve_box_body_structure_state", None) if module is not None else None
     if callable(callback):
         return callback(state)
-    from phase6_box_body_structure import normalize_box_body_structure_state
+    from ae_engine.box_body_structure_state import normalize_box_body_structure_state
     return normalize_box_body_structure_state(state)
 
 
@@ -221,6 +221,46 @@ def resolve_back_panel_contract(
         panel_width=float(panel_width),
         full_panel_height=float(full_panel_height),
     )
+
+
+
+def resolve_box_body_back_panel_contract(
+    source,
+    snapshot,
+    *,
+    structure_state,
+    head_corner_policy=None,
+    tail_corner_policy=None,
+) -> dict:
+    """Resolve the physical rear-panel contract solely inside the engine.
+
+    GUI/CADSplit adapters supply operator dimensions and persisted structure;
+    the engine owns Receiving width compensation and corner-dependent height.
+    """
+    family_name = canonical_family_name(source)
+    if family_name != "受電箱":
+        return {}
+
+    from ae_engine.box_body_structure_state import BoxBodyStructureType
+    from ae_engine.sheetmetal_geometry import box_body_height_from_corner_policies
+
+    state = dict(structure_state or {})
+    cfg = state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    data = dict(snapshot or {})
+    width = float(data["w"]) - float(cfg.get("back_width_comp_t", 0.0)) * float(data["t"])
+    height = box_body_height_from_corner_policies(
+        float(data["h"]),
+        float(data["t"]),
+        head_corner_policy=head_corner_policy,
+        tail_corner_policy=tail_corner_policy,
+    )
+    data["model"] = family_name
+    return resolve_back_panel_contract(
+        source, data,
+        structure_state=state,
+        panel_width=width,
+        full_panel_height=height,
+    ) or {}
 
 
 def box_body_structure_is_fixed(source) -> bool:
@@ -286,7 +326,7 @@ def effective_endcap_bottom_fw(source, state, *, thickness: float, default_fw: f
     if not callable(callback):
         return float(default_fw)
     structure = resolve_box_body_structure_state(source, state)
-    from phase6_box_body_structure import side_rear_bend_material_length
+    from ae_engine.box_body_structure_state import side_rear_bend_material_length
     rear = side_rear_bend_material_length(structure, float(thickness))
     return float(callback(side_rear_bend=rear, thickness=float(thickness)))
 
@@ -305,7 +345,7 @@ def endcap_corner_policy(source, *, frame_width: float, thickness: float, state=
     if not callable(callback):
         return None
     structure = resolve_box_body_structure_state(source, state)
-    from phase6_box_body_structure import side_rear_bend_material_length
+    from ae_engine.box_body_structure_state import side_rear_bend_material_length
     return callback(
         frame_width=float(frame_width),
         thickness=float(thickness),

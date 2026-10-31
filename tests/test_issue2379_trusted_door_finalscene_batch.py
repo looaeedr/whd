@@ -14,7 +14,6 @@ import pytest
 
 from ae_engine import manufacturing_api as api
 from ae_engine.contracts import ManufacturingContext
-from ae_engine.manufacturing_endcap_compat import _door_features_for_legacy_engine
 from ae_engine.sheetmetal_drawing import CirclePrimitive, DrawingScene
 from integration_cli.prepare_batch import door_spec_from_trusted_prepared_part
 from integration_cli.prepare_evidence import PrepareEvidenceError
@@ -113,7 +112,7 @@ def test_real_two_door_original_source_to_canonical_finalscene_roundtrip(tmp_pat
                        for c in source_features)
         spec = replace(spec, features=marked, feature_space="finished_face")
         context = ManufacturingContext(resource_root=root)
-        mapped = _door_features_for_legacy_engine(spec, context)
+        mapped = api.map_door_features_to_unfolded_material(spec, context)
         expected = mapped[0]
         circles = [
             e for e in modelspace.query('CIRCLE[layer=="CUTTING"]')
@@ -313,7 +312,7 @@ def test_original_source_rectangle_and_circle_survive_real_finalscene_batch(tmp_
     assert features[0].rotation_deg == 0
     spec = replace(spec, features=features)
     context = ManufacturingContext(resource_root=root)
-    mapped = _door_features_for_legacy_engine(spec, context)[0]
+    mapped = api.map_door_features_to_unfolded_material(spec, context)[0]
     expected = ResolvedRect(
         center=mapped.offset, width=mapped.width, height=mapped.height,
         rotation_deg=mapped.rotation_deg,
@@ -362,7 +361,7 @@ def test_finalscene_rectangle_contour_requires_canonical_edge_cycle(
     def cross_original_rectangle(spec, context):
         render = original(spec, context)
         rectangles = [
-            x for x in _door_features_for_legacy_engine(spec, context)
+            x for x in api.map_door_features_to_unfolded_material(spec, context)
             if isinstance(x, RectFeature)
         ]
         if not rectangles:
@@ -533,7 +532,7 @@ def test_original_concave_profile_to_whd_finalscene_real_saved_dxf(tmp_path, rot
     assert len(features) == 1 and isinstance(features[0], ProfileFeature)
     context = ManufacturingContext(resource_root=root)
     spec = replace(spec, features=features, feature_space="finished_face")
-    mapped = _door_features_for_legacy_engine(spec, context)[0]
+    mapped = api.map_door_features_to_unfolded_material(spec, context)[0]
     expected = tuple((mapped.offset.x + v.x, mapped.offset.y + v.y)
                      for v in mapped.points)
     matching = []
@@ -579,7 +578,7 @@ def test_original_profile_finalscene_crossed_edges_refuse_staging(tmp_path, monk
     def tamper_profile(spec, context):
         render = original(spec, context)
         profiles = [
-            p for p in _door_features_for_legacy_engine(spec, context)
+            p for p in api.map_door_features_to_unfolded_material(spec, context)
             if isinstance(p, ProfileFeature)
         ]
         if not profiles:
@@ -689,3 +688,371 @@ def test_private_durable_source_export_requires_preexisting_worker_output_store(
         _save(batch, nonexistent, durable_ledger=ledger)
     assert not nonexistent.exists()
     assert not list(store.glob("*.dxf"))
+
+
+def test_twenty_unperforated_door_and_small_door_from_empty_source_real_finalscene(
+    tmp_path,
+):
+    """WHD-authored 20 physical DXFs, genuine independent Save->Reload."""
+    from tests.test_issue2378_prepare_batch import (
+        _twenty_mixed_door_small_door_prepare, _prepare,
+        _export_request_from_prepared,
+    )
+    from integration_cli.request_canonical import compute_wire_request_digest
+
+    root, _shared, original = _twenty_mixed_door_small_door_prepare(tmp_path)
+    source = tmp_path / "CADSplit 真正無孔原圖.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    assert len(doc.modelspace()) == 0
+    doc.saveas(source)
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for row in original["items"]:
+        row["source_document_sha256"] = source_sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    assert all(not row["features"] for row in export["items"])
+    sources = {row["item_id"]: source for row in original["items"]}
+    output = tmp_path / "20 件 無孔 WHD 真DXF"
+    written = _save(
+        (original, receipt, export, root, sources, source), output,
+    )
+    assert len(written) == 20
+    assert set(written) == {p["physical_part_id"] for p in receipt["items"]}
+    assert {p["part"]["kind"] for p in original["items"]} == {
+        "door", "indicator_small_door",
+    }
+    for actual in written.values():
+        saved = ezdxf.readfile(actual)
+        assert saved.modelspace().query('LINE[layer=="BEND"]')
+        assert any(entity.dxf.layer == "CUTTING" for entity in saved.modelspace())
+
+
+@pytest.mark.parametrize("missing_kind", ["door", "indicator_small_door"])
+def test_missing_original_features_never_turns_source_geometry_into_hole_free_dxf(
+    tmp_path, missing_kind,
+):
+    from tests.test_issue2378_prepare_batch import (
+        _twenty_mixed_door_small_door_prepare, _prepare,
+        _export_request_from_prepared,
+    )
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from tests.test_issue2379_wire_feature_preflight import _circle
+
+    root, _, original = _twenty_mixed_door_small_door_prepare(tmp_path)
+    source = tmp_path / "CADSplit 有圖元但未申報.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    doc.modelspace().add_circle((12, 12), 3, dxfattribs={"layer": "CUTTING"})
+    doc.saveas(source)
+    sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for part in original["items"]:
+        part["source_document_sha256"] = sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    # Mixed all-or-nothing: even a *single* zero-feature item with a
+    # source entity must reject the whole customer manufacturing batch.
+    target_idx = 0 if missing_kind == "door" else 1
+    assert original["items"][target_idx]["part"]["kind"] == missing_kind
+    for i, row in enumerate(export["items"]):
+        if i != target_idx:
+            frame = receipt["items"][i]["target_frames"][0]
+            f = _circle(frame)
+            f["center_mm"] = [12, 12]
+            f["radius_mm"] = 3
+            f["source_transform"]["source_entity_refs"] = [
+                next(iter(doc.modelspace())).dxf.handle,
+            ]
+            f["source_transform"]["target_dimensions_mm"] = dict(
+                frame["finished_face_dimensions_mm"],
+            )
+            row["features"] = [f]
+    export["request_digest"] = compute_wire_request_digest(export)
+    output = tmp_path / "不可產生任何零件"
+    source_docs = {part["item_id"]: source for part in original["items"]}
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _save((original, receipt, export, root, source_docs, source), output)
+    assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED"
+    assert not list(output.glob("*.dxf")) if output.exists() else True
+
+
+def _empty_indicator_box_mixed_batch(tmp_path, *, count=20):
+    """W-03 real owners for 1..20 Door, small-door and shared indicator box."""
+    from tests.test_issue2378_prepare_batch import (
+        _request, _prepare, _export_request_from_prepared,
+        _indicator_box_request, _indicator_small_door_request,
+    )
+    from integration_cli.request_canonical import compute_wire_request_digest
+
+    root, _, box = _indicator_box_request(tmp_path)
+    _, _, small, _ = _indicator_small_door_request(tmp_path)
+    original = _request(count=count)
+    for i, row in enumerate(original["items"]):
+        if i % 3 == 1:
+            row["part"] = deepcopy(small["items"][0]["part"])
+            row["part"]["source_part_ref"] = f"physical-small-door-{i}"
+        elif i % 3 == 2:
+            row["part"] = deepcopy(box["items"][0]["part"])
+            row["part"]["source_part_ref"] = f"physical-indicator-box-{i}"
+    source = tmp_path / "CADSplit 原圖無圖元-盒子門片混批.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    assert len(doc.modelspace()) == 0
+    doc.saveas(source)
+    sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for row in original["items"]:
+        row["source_document_sha256"] = sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    sources = {row["item_id"]: source for row in original["items"]}
+    return original, receipt, export, root, sources, source
+
+
+def test_twenty_mixed_real_box_small_door_and_door_source_empty_native_dxf(tmp_path):
+    """20 actual WHD intrinsic box/door FinalScenes and Save->Reload DXFs."""
+    batch = _empty_indicator_box_mixed_batch(tmp_path, count=20)
+    original, receipt, export, root, sources, source = batch
+    assert {row["part"]["kind"] for row in original["items"]} == {
+        "door", "indicator_small_door", "indicator_box",
+    }
+    box_items = [row for row in receipt["items"]
+                 if row["target_frames"][0]["frame_id"].startswith("indicator_box:")]
+    assert box_items and all(
+        row["target_frames"][0]["allowed_feature_types"] == []
+        for row in box_items
+    )
+    output = tmp_path / "20 件 真實箱盒無孔"
+    produced = _save(batch, output)
+    assert len(produced) == 20
+    assert set(produced) == {r["physical_part_id"] for r in receipt["items"]}
+    for path in produced.values():
+        doc = ezdxf.readfile(path)
+        assert any(e.dxf.layer == "CUTTING" for e in doc.modelspace())
+        assert doc.modelspace().query('LINE[layer=="BEND"]')
+
+
+def test_indicator_box_original_entity_cannot_be_silently_dropped_by_empty_features(tmp_path):
+    """The box size-only Frame is NOT permission to ignore real CADSplit holes."""
+    from tests.test_issue2378_prepare_batch import (
+        _indicator_box_request, _prepare, _export_request_from_prepared,
+    )
+    from integration_cli.request_canonical import compute_wire_request_digest
+
+    root, _, original = _indicator_box_request(tmp_path)
+    source = tmp_path / "不允許忽略來源盒孔.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    doc.modelspace().add_circle((9, 9), 2, dxfattribs={"layer": "CUTTING"})
+    doc.saveas(source)
+    original["items"][0]["source_document_sha256"] = hashlib.sha256(
+        source.read_bytes()
+    ).hexdigest()
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    output = tmp_path / "不得出圖"
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _save(
+            (original, receipt, export, root,
+             {original["items"][0]["item_id"]: source}, source), output,
+        )
+    assert exc.value.code == "WHD_FINALSCENE_UNVERIFIED"
+    assert not list(output.rglob("*.dxf")) if output.exists() else True
+
+
+def _empty_vault_endcap_five_kind_batch(tmp_path, *, count=20):
+    """All five WHD P0 physical kinds with original source explicitly empty."""
+    from tests.test_issue2378_prepare_batch import (
+        _request, _prepare, _export_request_from_prepared, _root,
+        _indicator_box_request, _indicator_small_door_request,
+    )
+    import shutil
+    from integration_cli.request_canonical import compute_wire_request_digest
+    from tests.test_issue2378_prepare_batch import HERE
+
+    root, _, _ = _indicator_box_request(tmp_path)
+    _, _, small, _ = _indicator_small_door_request(tmp_path)
+    _, _, box = _indicator_box_request(tmp_path)
+    endcap_baseline = root / "基準檔" / "金庫型" / "封頭尾.dxf"
+    endcap_baseline.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(HERE / "基準檔" / "金庫型" / "封頭尾.dxf", endcap_baseline)
+    original = _request(count=count)
+    for index, row in enumerate(original["items"]):
+        kind = index % 5
+        if kind == 1:
+            row["part"] = deepcopy(small["items"][0]["part"])
+        elif kind == 2:
+            row["part"] = deepcopy(box["items"][0]["part"])
+        elif kind in (3, 4):
+            row["part"] = {
+                "kind": "end_cap_head" if kind == 3 else "end_cap_tail",
+                "cabinet_family": "金庫型",
+                "source_part_ref": f"vault-endcap-original-{index}",
+                "dimension_semantics": "cabinet_outer",
+                "dimensions_mm": {
+                    "width": 500.0, "depth": 300.0, "thickness": 2.0,
+                },
+            }
+        row["part"]["source_part_ref"] = f"physical-original-part-{index}"
+    original_source = tmp_path / "CADSplit 全部空白的正式原圖.dxf"
+    drawing = ezdxf.new("R2010")
+    drawing.header["$INSUNITS"] = 4
+    assert len(drawing.modelspace()) == 0
+    drawing.saveas(original_source)
+    sha = hashlib.sha256(original_source.read_bytes()).hexdigest()
+    for row in original["items"]:
+        row["source_document_sha256"] = sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    documents = {row["item_id"]: original_source for row in original["items"]}
+    return (original, receipt, export, root, documents, original_source)
+
+
+def test_vault_head_tail_native_finalscene_twenty_mixed_five_physical_kinds(tmp_path):
+    """Actual certified WHD source owners, not projected placeholder DXF."""
+    batch = _empty_vault_endcap_five_kind_batch(tmp_path)
+    original, receipt, export, root, documents, source = batch
+    assert {row["part"]["kind"] for row in original["items"]} == {
+        "door", "indicator_small_door", "indicator_box",
+        "end_cap_head", "end_cap_tail",
+    }
+    assert all(
+        row["target_frames"][0]["allowed_feature_types"] == []
+        for original_row, row in zip(original["items"], receipt["items"])
+        if original_row["part"]["kind"] in (
+            "end_cap_head", "end_cap_tail", "indicator_box",
+        )
+    )
+    finished = _save(batch, tmp_path / "真實五類20片出圖")
+    assert len(finished) == 20
+    assert set(finished) == {row["physical_part_id"] for row in receipt["items"]}
+    for physical, filepath in finished.items():
+        drawing = ezdxf.readfile(filepath)
+        assert any(e.dxf.layer == "CUTTING" for e in drawing.modelspace()), physical
+        assert drawing.modelspace().query('LINE[layer=="BEND"]'), physical
+
+
+@pytest.mark.parametrize("kind", ["end_cap_head", "end_cap_tail"])
+@pytest.mark.parametrize("attack", ["omitted_original_geometry", "forged_external_feature"])
+def test_vault_endcap_rejects_nonempty_source_or_feature_before_any_dxf(
+    tmp_path, kind, attack,
+):
+    from tests.test_issue2378_prepare_batch import (
+        _vault_endcap_request, _prepare, _export_request_from_prepared,
+    )
+    root, _, request = _vault_endcap_request(tmp_path, kind=kind)
+    source = tmp_path / f"CADSplit-{kind}-original.dxf"
+    doc = ezdxf.new("R2010")
+    doc.header["$INSUNITS"] = 4
+    if attack == "omitted_original_geometry":
+        doc.modelspace().add_circle((9, 15), 3, dxfattribs={"layer": "CUTTING"})
+    doc.saveas(source)
+    request["items"][0]["source_document_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+    request["request_digest"] = compute_wire_request_digest(request)
+    receipt = _prepare(request, root)
+    export = _export_request_from_prepared(request, receipt)
+    if attack == "forged_external_feature":
+        export["items"][0]["features"] = [_circle(receipt["items"][0]["target_frames"][0])]
+        export["request_digest"] = compute_wire_request_digest(export)
+    output = tmp_path / "受限制的封頭尾輸出"
+    with pytest.raises(PrepareEvidenceError):
+        _save(
+            (request, receipt, export, root, {request["items"][0]["item_id"]: source}, source),
+            output,
+        )
+    assert not list(output.rglob("*.dxf"))
+
+
+@pytest.mark.parametrize("source_kind", ["circle", "rect", "profile"])
+@pytest.mark.parametrize("invalid_layer", ["MARKING", "BEND", "CHECK", "0"])
+def test_real_original_noncutting_entity_cannot_be_relabelled_as_through_cut(
+    tmp_path, source_kind, invalid_layer,
+):
+    """A signed source handle/shape is NOT permission to manufacture a marker.
+
+    Re-sign the real, modified DXF and prepare a fresh W-03 receipt so this
+    asserts the source-layer trust boundary, not an unrelated SHA stale check.
+    Preserve a preexisting customer output even under overwrite=True.
+    """
+    if source_kind == "circle":
+        batch = _real_batch(tmp_path, count=1)
+        attack_index = 0
+    elif source_kind == "rect":
+        batch = _mixed_rect_batch(tmp_path)
+        attack_index = 1
+    else:
+        batch = _mixed_source_profile_batch(tmp_path)
+        attack_index = 1
+    original, _old_receipt, old_export, root, sources, source, *_ = batch
+    feature = old_export["items"][attack_index]["features"][0]
+    handle = feature["source_transform"]["source_entity_refs"][0]
+    doc = ezdxf.readfile(source)
+    entity = doc.entitydb.get(handle)
+    assert entity is not None and entity.dxf.layer == "CUTTING"
+    assert entity.dxftype() == ("CIRCLE" if source_kind == "circle" else "LWPOLYLINE")
+    entity.dxf.layer = invalid_layer
+    doc.saveas(source)
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for item in original["items"]:
+        item["source_document_sha256"] = source_sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    from tests.test_issue2378_prepare_batch import _prepare, _export_request_from_prepared
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    for index, (old_item, new_item) in enumerate(zip(old_export["items"], export["items"])):
+        # A changed original SHA changes the WHD-issued physical identity and
+        # Frame ID. Bind the *same source handles* to the genuinely fresh
+        # signed Frame, or this never reaches the source-layer RED oracle.
+        fresh_frame = receipt["items"][index]["target_frames"][0]
+        new_item["features"] = deepcopy(old_item["features"])
+        for feature in new_item["features"]:
+            feature["target_frame_id"] = fresh_frame["frame_id"]
+            feature["source_transform"]["target_dimensions_mm"] = deepcopy(
+                fresh_frame["finished_face_dimensions_mm"]
+            )
+    export["request_digest"] = compute_wire_request_digest(export)
+    target = tmp_path / f"cannot-cut-{source_kind}-{invalid_layer}"
+    target.mkdir()
+    persisted = target / (receipt["items"][0]["physical_part_id"] + ".dxf")
+    persisted.write_bytes(b"previous-customer-DXF-must-survive")
+    with pytest.raises(PrepareEvidenceError) as exc:
+        _save((original, receipt, export, root, sources, source),
+              target, overwrite=True)
+    assert exc.value.code == "WHD_SOURCE_UNVERIFIED"
+    assert persisted.read_bytes() == b"previous-customer-DXF-must-survive"
+    assert list(target.glob("*.dxf")) == [persisted]
+    assert not list(target.glob(".whd-dxf-stage-*"))
+
+
+def test_real_source_case_insensitive_cutting_layer_is_still_supported(tmp_path):
+    """DXF layer spelling case does not change the source's CUTTING meaning."""
+    batch = _real_batch(tmp_path, count=1)
+    source = batch[5]
+    doc = ezdxf.readfile(source)
+    circle = next(iter(doc.modelspace().query("CIRCLE")))
+    circle.dxf.layer = "cutting"
+    doc.saveas(source)
+    original, _old_receipt, old_export, root, sources, *_ = batch
+    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    for item in original["items"]:
+        item["source_document_sha256"] = source_sha
+    original["request_digest"] = compute_wire_request_digest(original)
+    from tests.test_issue2378_prepare_batch import _prepare, _export_request_from_prepared
+    receipt = _prepare(original, root)
+    export = _export_request_from_prepared(original, receipt)
+    export["items"][0]["features"] = deepcopy(old_export["items"][0]["features"])
+    fresh_frame = receipt["items"][0]["target_frames"][0]
+    export["items"][0]["features"][0]["target_frame_id"] = fresh_frame["frame_id"]
+    export["items"][0]["features"][0]["source_transform"]["target_dimensions_mm"] = (
+        deepcopy(fresh_frame["finished_face_dimensions_mm"])
+    )
+    export["request_digest"] = compute_wire_request_digest(export)
+    produced = _save((original, receipt, export, root, sources, source),
+                     tmp_path / "case-insensitive-real-cutting")
+    assert len(produced) == 1
+    saved = ezdxf.readfile(next(iter(produced.values())))
+    assert saved.modelspace().query('CIRCLE[layer=="CUTTING"]')

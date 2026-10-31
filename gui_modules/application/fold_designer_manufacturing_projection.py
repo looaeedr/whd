@@ -20,11 +20,7 @@ from ae_engine.contracts import BoxBodyPartSpec, EndCapPartSpec, ManufacturingCo
 from ae_engine.corner_type_ui import (
     is_unknown_model,
     normalize_custom_model_name,
-    known_model_corner_state,
-    policy_from_corner_state,
 )
-from ae_engine.sheetmetal_geometry import CornerTypeId, CornerTypeSelection, normalize_corner_selection
-from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
 from ae_engine.sheetmetal_part_adapters import DoorFrameEdges, derive_door_layout_cells, door_layout_export_filename
 from phase6_fold_profiles import formed_box_body_fw_widths
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
@@ -34,90 +30,35 @@ from gui_modules.parts.panels.indicator_box import collect_indicator_box_input
 from gui_modules.parts.panels.multipart import collect_multipart_input
 
 def _fold_designer_secondary_scene_rows(scene):
-    """Return numeric baseline hole rows, excluding the structural outline/BEND."""
-    rows = []
-    skipped_outline = False
-    for primitive in getattr(scene, "primitives", ()):
-        layer = str(getattr(primitive, "layer", "") or "")
-        if layer not in {"CUTTING", "BLIND_HOLE"}:
-            continue
-        if isinstance(primitive, PolylinePrimitive):
-            if layer == "CUTTING" and not skipped_outline:
-                skipped_outline = True
-                continue
-            points = tuple(getattr(primitive, "points", ()) or ())
-            if not getattr(primitive, "closed", False) or len(points) < 3:
-                continue
-            xs = [float(p.x) for p in points]; ys = [float(p.y) for p in points]
-            rows.append({
-                "kind": "方孔", "layer": layer,
-                "x": (min(xs) + max(xs)) / 2.0,
-                "y": (min(ys) + max(ys)) / 2.0,
-                "d1": max(xs) - min(xs), "d2": max(ys) - min(ys),
-            })
-        elif isinstance(primitive, CirclePrimitive):
-            center = primitive.center
-            rows.append({
-                "kind": "圓孔", "layer": layer,
-                "x": float(center.x), "y": float(center.y),
-                "d1": float(primitive.radius) * 2.0, "d2": 0.0,
-            })
-    return rows
+    """GUI compatibility port; manufacturing projection belongs to Engine."""
+    return manufacturing_api.fold_designer_secondary_scene_rows(scene)
+
 
 def _query_fold_designer_baseline_data(self, part_key, model, values):
-    """Read-only lazy baseline numeric data for the 3D settings panel."""
+    """Read operator inputs and display the Engine-owned source-hole result."""
     model = str(model or "").strip()
     if not model or is_unknown_model(model):
         return []
     v = dict(values or {})
     try:
-        w = float(v.get("w", self.w_var.get())); h = float(v.get("h", self.h_var.get()))
-        d = float(v.get("d", self.d_var.get())); t = float(v.get("t", self.t_var.get()))
-        fw = float(v.get("fw", self.fw_z_var.get()))
-        if part_key == "door":
-            if hasattr(ae, "has_baseline_part") and not ae.has_baseline_part(model, "門.dxf"):
-                return []
-            door_fw = self._door_material_frame_width(fw, t, model_name=model)
-            data = ae.get_stretched_door_data(
-                model, w, h, t, door_fw,
-                float(v.get("door_gap_w", ae.door_gap_w_def)),
-                float(v.get("door_gap_h", ae.door_gap_h_def)),
-                float(v.get("door_fold_l", ae.door_fold_left_def)),
-                float(v.get("door_fold_r", ae.door_fold_right_def)),
-                float(v.get("door_fold_t", ae.door_fold_top_def)),
-                float(v.get("door_fold_b", ae.door_fold_bottom_def)),
-                frame_edges=DoorFrameEdges(),
-            )
-            return self._fold_designer_secondary_scene_rows(data.scene)
-        if part_key in {"head", "tail"}:
-            data = ae.get_stretched_end_cap_data(
-                model, w, h, d, t, FW_val=fw, is_tail=(part_key == "tail")
-            )
-            return self._fold_designer_secondary_scene_rows(data.scene)
+        v.setdefault("w", self.w_var.get())
+        v.setdefault("h", self.h_var.get())
+        v.setdefault("d", self.d_var.get())
+        v.setdefault("t", self.t_var.get())
+        v.setdefault("fw", self.fw_z_var.get())
+        return manufacturing_api.query_fold_designer_baseline_rows(part_key, model, v)
     except Exception:
+        # Preserve optional, read-only baseline-panel fallback; never export.
         return []
-    return []
+
 
 def _apply_cabinet_family_endcap_policy(
     self, policy, part_key, *, snapshot=None, thickness=None, structure_state=None
 ):
-    """Apply cabinet-family geometry inputs without changing operator Corner selections.
-
-    The Corner selections remain the operator/registry Source of Truth. Cabinet families
-    may supply only family geometry such as the receiving-cabinet effective bottom FW.
-    Both the main GUI and Fold Designer payload adapter call this helper so 2D/3D cannot
-    drift by rebuilding the same family rule differently.
-    """
+    """Forward operator family/structure inputs to authoritative Engine policy."""
     if policy is None or str(part_key) not in {"head", "tail"}:
         return policy
-
-    family_source = (
-        self._current_cabinet_type_name()
-        if snapshot is None else snapshot
-    )
-    if not cabinet_family_policy.supports_bottom_wrap_controls(family_source):
-        return policy
-
+    family_source = self._current_cabinet_type_name() if snapshot is None else snapshot
     if structure_state is None:
         try:
             structure_state = self.workspace_controller.box_body_structure_state()
@@ -127,39 +68,17 @@ def _apply_cabinet_family_endcap_policy(
         try:
             thickness = float(self.t_var.get())
         except Exception:
-            thickness = float(ae.T)
-    return replace(
-        policy,
-        bottom_fw=cabinet_family_policy.effective_endcap_bottom_fw(
-            family_source,
-            structure_state,
-            thickness=float(thickness),
-            default_fw=float(policy.bottom_fw if policy.bottom_fw is not None else policy.fw),
-        ),
+            thickness = None
+    return manufacturing_api.apply_cabinet_family_endcap_policy(
+        policy, part_key, family_source=family_source,
+        structure_state=structure_state, thickness=thickness,
     )
 
+
 def _fold_designer_corner_policy_from_payload(corner_state, part_key, fw):
-    corners = dict((corner_state or {}).get(part_key, {}) or {})
-    required = ("top_left", "top_right", "bottom_left", "bottom_right")
-    if not all(key in corners for key in required):
-        return None
-    selections = {}
-    for key in required:
-        raw = corners[key]
-        if isinstance(raw, CornerTypeSelection):
-            selections[key] = normalize_corner_selection(raw)
-            continue
-        raw = dict(raw or {})
-        selections[key] = CornerTypeSelection(
-            CornerTypeId(str(raw.get("type_id", "CROSS")).upper()),
-            rotation_quadrants=int(raw.get("rotation_quadrants", 0) or 0),
-            cross_mode=raw.get("cross_mode"),
-            direction=raw.get("direction"),
-            amount_t=raw.get("amount_t"),
-            secondary_retain_t=raw.get("secondary_retain_t"),
-            secondary_depth_t=raw.get("secondary_depth_t"),
-        )
-    return policy_from_corner_state(selections, fw=float(fw))
+    """Compatibility GUI seam: Engine builds the canonical CornerType policy."""
+    return manufacturing_api.corner_policy_from_payload(corner_state, part_key, fw)
+
 
 def _read_live_receiving_snapshot(self):
     """Prefer live Fold Designer application ownership over a stale bridge copy."""
@@ -653,10 +572,10 @@ def _payload_topology_context(part_key, payload):
 def _payload_policy(self, data, corner_state, part, fw, unknown, thickness):
     resolved = self._fold_designer_corner_policy_from_payload(corner_state, part, fw)
     if resolved is None and not unknown:
-        fallback = known_model_corner_state(
-            (part,), cabinet_family=self._current_cabinet_type_name()
-        ).get(part)
-        resolved = policy_from_corner_state(fallback, fw=fw) if fallback is not None else None
+        resolved = manufacturing_api.corner_policy_from_payload(
+            corner_state, part, fw,
+            known_family=self._current_cabinet_type_name(),
+        )
     return self._apply_cabinet_family_endcap_policy(
         resolved,
         part,

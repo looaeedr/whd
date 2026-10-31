@@ -11,6 +11,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Callable, Iterable, Mapping
 
+from ae_engine import manufacturing_api
+
 from ae_engine.receiving_manufacturing_readiness import (
     ReceivingManufacturingFailure,
     evaluate_receiving_manufacturing_readiness,
@@ -27,51 +29,6 @@ from ae_engine.receiving_layout import (
     update_receiving_bay,
     update_receiving_joint_alignment,
 )
-
-
-def _candidate_committed_csv_nfb_config(source):
-    """Validate one complete NFB CSV replacement before any Bay mutation.
-
-    A candidate may replace a previously submitted NFB only when ALL its
-    physical CUTTING comes from the one native NFB source. A mix of arbitrary
-    Hole Editor CUTTING and typed NFB remains blocked against double owners.
-    """
-    from ae_engine.receiving_nfb_csv_committed_config import (
-        committed_csv_nfb_config,
-    )
-    feature_map = dict(source.get("features") or {})
-    imported = [
-        (part_id, features)
-        for part_id, features in feature_map.items()
-        if any(getattr(feat, "source_type", None) == "NFB_CSV_SOURCE"
-               for feat in features)
-    ]
-    if not imported:
-        return None
-    if len(imported) != 1:
-        raise ValueError("每個候選 NFB 必須對應唯一實體內門板件")
-    if any(
-        str(getattr(feat, "layer", "")).upper() == "CUTTING"
-        and getattr(feat, "source_type", None) != "NFB_CSV_SOURCE"
-        for features in feature_map.values() for feat in features
-    ):
-        raise ValueError("候選存在非 NFB CUTTING；不得與已提交 NFB 形成雙重開孔")
-    part_id, features = imported[0]
-    return committed_csv_nfb_config(part_id, features, source)
-
-
-def _replace_candidate_bay_nfb(layout, si, bi, csv_config):
-    """Commit the complete candidate NFB once, with this Bay's stable IDs."""
-    if csv_config is None:
-        return layout
-    bay_id = str(layout["sets"][si]["bays"][bi]["stable_id"])
-    selected = deepcopy(csv_config)
-    for hole in selected["holes"]:
-        hole["physical_hole_id"] = f"{bay_id}:{hole['physical_hole_id']}"
-    return update_receiving_bay(
-        layout, set_index=si, bay_index=bi,
-        nfb_config_submitted=True, nfb_config=selected,
-    )
 
 
 class ReceivingDestructiveEditConfirmationRequired(RuntimeError):
@@ -91,32 +48,6 @@ def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]
         result.extend(str(row["stable_id"]) for row in set_row["bays"])
         result.extend(str(row["stable_id"]) for row in set_row["joints"])
     return tuple(result)
-
-
-def _rebase_set_parent_nfb_brand(set_row, new_brand):
-    """Revoke only stale inherited NFB X proofs; preserve saved source and X."""
-    old_brand = set_row.get("switch_brand", "士林")
-    if old_brand == new_brand:
-        return False
-    from ae_engine.receiving_nfb_brand_transition import saved_parent_reselection_hole_ids
-    from ae_engine.receiving_nfb_persistence import normalize_nfb_saved_fields
-    for bay in set_row["bays"]:
-        impacted = set(saved_parent_reselection_hole_ids(
-            bay, old_brand, new_brand,
-        ))
-        if not impacted:
-            continue
-        saved = normalize_nfb_saved_fields(bay)
-        changed = False
-        for hole in saved["nfb_config"]["holes"]:
-            if (hole["physical_hole_id"] in impacted
-                    and hole["manual_x_state"] == "CONFIRMED"):
-                hole["manual_x_state"] = "RECONFIRM_REQUIRED"
-                changed = True
-        if changed:
-            bay["nfb_config"] = saved["nfb_config"]
-    set_row["switch_brand"] = new_brand
-    return True
 
 
 def _operator_integer(value, name):
@@ -400,96 +331,34 @@ class ReceivingSetBayAdapter:
         if brand not in RECEIVING_SWITCH_BRANDS:
             raise ValueError("不支援的開關品牌")
         candidate = deepcopy(self._layout)
-        if _rebase_set_parent_nfb_brand(
-                candidate["sets"][self.selection.set_index], brand):
+        index = self.selection.set_index
+        updated, changed = manufacturing_api.rebase_receiving_set_parent_nfb_brand(
+            candidate["sets"][index], brand,
+        )
+        if changed:
+            candidate["sets"][index] = updated
             self._layout = candidate
 
     def apply_candidate_to_bays(self, role, set_index, bay_indices, features, *, version_id=None):
-        """Atomically update ONLY highlighted Bays; preserve other shared refs."""
-        from ae_engine.receiving_hole_candidates import role_key
-        from ae_engine.receiving_shared_settings import (
-            unlink_setting, edit_setting, validate_setting,
+        """Forward highlighted Head/Tail Apply to Engine; track GUI dirtiness."""
+        candidate, indices, changed_ids = manufacturing_api.apply_receiving_endcap_candidate_to_bays(
+            self._layout, role, set_index, bay_indices, features,
+            version_id=version_id,
         )
-        kind = role_key(role) + "_features"
-        version_kind = role + "_version_id"
-        version_id = validate_setting(version_kind, version_id)
-        features = validate_setting(kind, features)
-        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
-            raise ValueError("選取的套不存在")
-        # Verify each source Bay ID before set(): True equals integer Bay 1,
-        # and nested/None selections must fail atomically rather than crash.
-        try:
-            supplied = tuple(bay_indices)
-        except TypeError as exc:
-            raise ValueError("請在簡易圖高亮有效的連") from exc
-        count = len(self._layout["sets"][set_index]["bays"])
-        if (not supplied or any(
-                type(i) is not int or not 0 <= i < count for i in supplied)):
-            raise ValueError("請在簡易圖高亮有效的連")
-        indices = tuple(sorted(set(supplied)))
-        candidate = self._layout
-        for bay_index in indices:
-            candidate = unlink_setting(
-                candidate, set_index=set_index, bay_index=bay_index, kind=kind,
-            )
-            candidate = edit_setting(
-                candidate, set_index=set_index, bay_index=bay_index,
-                kind=kind, value=features,
-            )
-            candidate = unlink_setting(
-                candidate, set_index=set_index, bay_index=bay_index,
-                kind=version_kind,
-            )
-            candidate = edit_setting(
-                candidate, set_index=set_index, bay_index=bay_index,
-                kind=version_kind, value=version_id,
-            )
-        # Commit once after all validation and changes, with no UI reselect.
         self._layout = candidate
-        self._session_dirty_ids.update(
-            str(self._layout["sets"][set_index]["bays"][i]["stable_id"])
-            for i in indices
-        )
+        self._session_dirty_ids.update(changed_ids)
         return indices
 
     def apply_quantity_configuration(self, role, library, quantities, assigned, *,
                                      expected_counts=None):
-        """Atomically commit complete candidate distribution across every Set."""
-        from ae_engine.receiving_hole_candidates import role_key
-        from ae_engine.receiving_quantity_allocation import validate_quantity_allocation
-        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
-        plan = validate_quantity_allocation(
-            self._layout, library, role, quantities, assigned,
+        """Commit the Engine Head/Tail Bay allocation; update GUI dirty IDs."""
+        candidate, changed_ids = manufacturing_api.apply_receiving_endcap_quantity_configuration(
+            self._layout, role, library, quantities, assigned,
             expected_counts=expected_counts,
         )
-        kind = role_key(role) + "_features"
-        version_kind = role + "_version_id"
-        from ae_engine.receiving_shared_settings import validate_setting
-        for si, bi, _features in plan:
-            validate_setting(version_kind, assigned[(si, bi)])
-        candidate = self._layout
-        for set_index, bay_index, features in plan:
-            candidate = unlink_setting(
-                candidate, set_index=set_index, bay_index=bay_index, kind=kind
-            )
-            candidate = edit_setting(
-                candidate, set_index=set_index, bay_index=bay_index,
-                kind=kind, value=features
-            )
-            candidate = unlink_setting(
-                candidate, set_index=set_index, bay_index=bay_index,
-                kind=version_kind,
-            )
-            candidate = edit_setting(
-                candidate, set_index=set_index, bay_index=bay_index,
-                kind=version_kind, value=assigned[(set_index, bay_index)],
-            )
         self._layout = candidate
-        self._session_dirty_ids.update(
-            str(self._layout["sets"][si]["bays"][bi]["stable_id"])
-            for si, bi, _ in plan
-        )
-        return len(plan)
+        self._session_dirty_ids.update(changed_ids)
+        return len(changed_ids)
 
     def apply_inner_door_candidate_to_bays(self, config, set_index, bay_indices, *, version_id=None):
         """Apply one isolated inner-door candidate only to real highlighted Bays."""
@@ -517,15 +386,14 @@ class ReceivingSetBayAdapter:
         # submit the version's existing Hole Editor NFB features into each
         # selected Bay's source projection. Manual NFB X remains unverified
         # and manufacturing-ready flags are NEVER promoted by this bridge.
-        csv_config = _candidate_committed_csv_nfb_config(source)
+        csv_config = manufacturing_api.candidate_committed_csv_nfb_config(source)
         # Explicit Apply REPLACES the initial submitted NFB + physical
         # features as one Bay transaction; never union them. Non-NFB or
         # unverified mixed CUTTING cannot overwrite a submitted source.
-        if csv_config is None and source.get("features") and any(
-            self._layout["sets"][set_index]["bays"][bi].get("nfb_config_submitted") is True
-            for bi in selected
-        ):
-            raise ValueError("此連 NFB 已提交；非 CSV 候選不得覆寫原開孔")
+        manufacturing_api.validate_candidate_nfb_replacement(
+            self._layout, ((set_index, bi) for bi in selected), source, csv_config,
+            rejection_message="此連 NFB 已提交；非 CSV 候選不得覆寫原開孔",
+        )
         candidate = self._layout
         for bi in selected:
             for kind, value in (
@@ -544,7 +412,7 @@ class ReceivingSetBayAdapter:
                 )
         if csv_config is not None:
             for bi in selected:
-                candidate = _replace_candidate_bay_nfb(
+                candidate = manufacturing_api.replace_candidate_bay_nfb(
                     candidate, set_index, bi, csv_config,
                 )
         self._layout = candidate
@@ -589,50 +457,14 @@ class ReceivingSetBayAdapter:
 
     def apply_inner_door_quantity_configuration(
             self, library, quantities, assigned, *, expected_counts=None):
-        """Validate every Set/Bay first, then replace both inner-door settings."""
-        from ae_engine.receiving_inner_door_pairing import validate_inner_door_allocation
-        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
-        plan = validate_inner_door_allocation(
+        """Submit operator allocation to Engine; retain only GUI dirty tracking."""
+        candidate, changed_ids = manufacturing_api.apply_receiving_inner_door_quantity_configuration(
             self._layout, library, quantities, assigned,
             expected_counts=expected_counts,
         )
-        from ae_engine.receiving_shared_settings import validate_setting
-        # Validate the entire allocation BEFORE touching any Bay. A changed
-        # version must atomically replace its typed CSV NFB on each selected
-        # Bay, not add a second CUTTING owner or silently keep the old NFB.
-        replacements = {}
-        for si, bi, config in plan:
-            validate_setting("inner_door_version_id", assigned[(si, bi)])
-            csv = _candidate_committed_csv_nfb_config(config)
-            if csv is None and config.get("features") and (
-                self._layout["sets"][si]["bays"][bi].get("nfb_config_submitted") is True
-            ):
-                raise ValueError("已提交 NFB 與非 CSV 候選不得形成雙重 CUTTING owner")
-            replacements[(si, bi)] = csv
-        candidate = self._layout
-        for si, bi, config in plan:
-            for kind, value in (
-                ("inner_door_layers", config["layers"]),
-                ("inner_door_models", config["models"]),
-                ("inner_door_features", config.get("features", {})),
-                ("inner_door_layer_heights_mm", config.get("layer_heights_mm")),
-                ("inner_door_version_id", assigned[(si, bi)]),
-            ):
-                candidate = unlink_setting(
-                    candidate, set_index=si, bay_index=bi, kind=kind,
-                )
-                candidate = edit_setting(
-                    candidate, set_index=si, bay_index=bi, kind=kind, value=value,
-                )
-            candidate = _replace_candidate_bay_nfb(
-                candidate, si, bi, replacements[(si, bi)],
-            )
         self._layout = candidate
-        self._session_dirty_ids.update(
-            str(candidate["sets"][si]["bays"][bi]["stable_id"])
-            for si, bi, _ in plan
-        )
-        return len(plan)
+        self._session_dirty_ids.update(changed_ids)
+        return len(changed_ids)
 
 
     def _nfb_apply_outcome(self, outcome):
@@ -696,8 +528,13 @@ class ReceivingSetBayAdapter:
             raise ValueError("不支援的開關品牌")
         candidate = deepcopy(self._layout)
         changed = False
-        for set_row in candidate["sets"]:
-            changed = _rebase_set_parent_nfb_brand(set_row, brand) or changed
+        for index, set_row in enumerate(candidate["sets"]):
+            updated, set_changed = manufacturing_api.rebase_receiving_set_parent_nfb_brand(
+                set_row, brand,
+            )
+            if set_changed:
+                candidate["sets"][index] = updated
+            changed = set_changed or changed
         if changed:
             self._layout = candidate
         return changed

@@ -3,7 +3,8 @@
 
 This projection is derived only from the *same* canonical Receiving physical
 CUTTING/BEND adapter as the FinalScene, never from another legacy 3-fold
-base-plate formula.  Flat 33 and formed 35 are distinct source datums.
+base-plate formula. X second material 33 / folded NFB face step 35 /
+operator outside 37 are distinct datums. CENTER Y material 35 / outside 37.
 """
 from __future__ import annotations
 
@@ -74,13 +75,23 @@ def receiving_base_plate_3d_profiles(snapshot, physical=None):
     else:
         rows_x = [{"len":float(actual.width), "core":"W",
                    "phase6_key":"receiving_flat_side_face"}]
-    bend_y = float(physical["base_plate_bend"])
-    if actual.height <= 2*bend_y:
+    # Y must follow the REAL FinalScene horizontal BEND stations. CENTER
+    # uses 35 material for 107/72 T2; LEFT/RIGHT use 20. The historical
+    # _20 suffix is a persisted profile identity, never a length source.
+    y_stations = sorted({
+        float(b.p1.y) for b in actual.bends
+        if abs(float(b.p1.y) - float(b.p2.y)) <= 1e-8
+    })
+    if len(y_stations) != 2 or y_stations[0] <= 0 or y_stations[1] >= actual.height:
+        raise ValueError("Receiving base requires two actual horizontal BEND stations")
+    bottom, top = y_stations[0], actual.height-y_stations[1]
+    core_h = actual.height-bottom-top
+    if min(bottom, top, core_h) <= 0:
         raise ValueError("Receiving base top/bottom folds consume physical sheet")
     rows_y = [
-        {"len":bend_y, "angle":-90, "phase6_key":"receiving_bottom_fold_20"},
-        {"len":actual.height-2*bend_y, "angle":-90,
+        {"len":bottom, "angle":-90, "phase6_key":"receiving_bottom_fold_20"},
+        {"len":core_h, "angle":-90,
          "core":"H", "phase6_key":"receiving_base_face_height"},
-        {"len":bend_y, "phase6_key":"receiving_top_fold_20"},
+        {"len":top, "phase6_key":"receiving_top_fold_20"},
     ]
     return {"X":rows_x,"Y":rows_y}

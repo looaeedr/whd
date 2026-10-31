@@ -27,6 +27,109 @@ from typing import Literal, Mapping
 
 from . import ae
 from .dxf_serialization import save_scene_dxf
+from .cabinet_types.policy import resolve_box_body_back_panel_contract
+from .cabinet_types.receiving import resolve_box_body_structure_state as resolve_receiving_box_body_structure_state
+from .box_body_structure_state import (
+    BoxBodyStructureType, BackPanelMode, DEFAULT_STRUCTURE_TYPE,
+    _default_join_settings, default_box_body_structure_state, _structure_type,
+    legacy_box_body_structure_locked, _structure_locked_bool, normalize_box_body_structure_state,
+    set_active_structure, activate_structure_with_defaults, set_structure_locked,
+    _back_panel_mode, back_panel_mode, set_side_back_back_panel_mode,
+    update_structure_config, _finite_dimension, _manual_integer,
+    resolve_two_piece_widths, set_two_piece_width, reconcile_box_body_structure_for_total_w_change,
+    set_join_seam_bend, resolve_three_piece_widths, set_three_piece_width,
+    set_side_back_piece_profile, side_rear_bend_dimension_space, side_rear_bend_material_length,
+    side_rear_bend_outside_length, set_side_back_geometry,
+    apply_box_body_structure_numeric,
+)
+
+# Public compatibility aliases: old Phase6 helper names keep identical Engine
+# callables without importing any private Engine module or private API member.
+box_body_structure_default_join_settings = _default_join_settings
+box_body_structure_type_from_value = _structure_type
+box_body_structure_locked_bool = _structure_locked_bool
+box_body_structure_back_panel_mode_from_value = _back_panel_mode
+box_body_structure_finite_dimension = _finite_dimension
+box_body_structure_manual_integer = _manual_integer
+
+from .linked_endcap_fold import (
+    is_canonical_box_body_mating_profile, box_body_front_mating_fold_chain,
+    build_linked_endcap_xy_fold_profiles,
+)
+from .endcap_factory_fold import (
+    selection_from_raw as endcap_corner_selection_from_raw,
+    selection_to_raw as endcap_corner_selection_to_raw,
+    legacy_corner_projection_for_intent as legacy_endcap_corner_projection_for_intent,
+    apply_box_assembly_type_to_raw_state as apply_endcap_box_assembly_type_to_raw_state,
+    normalize_endcap_fw_state,
+    resolve_endcap_fw, resolve_endcap_assembly_type, build_endcap_xy_fold_profiles,
+    endcap_profiles_for_assembly,
+    ENDCAP_FW_PARTS, FW_FOLLOW_BODY, FW_FOLLOW_HEAD, FW_FOLLOW_TAIL,
+    FW_INDEPENDENT, ENDCAP_FW_MODES, commit_box_fw, commit_endcap_fw,
+    set_endcap_fw_follow, set_endcap_fw_override,
+    endcap_editor_fold_tabs, normalize_endcap_profile_order,
+)
+from .cabinet_family_model_transition import (
+    FamilyModelTransition, FamilyModelPlan, plan_cabinet_family_model_transition,
+)
+from .assembly_intent_transactions import (
+    AssemblyIntentTransition, normalize_assembly_type, commit_assembly_intent_state,
+)
+from .corner_type_ui import corner_policy_from_payload, resolve_live_corner_policy
+from .corner_state_transactions import (
+    CornerStateTransition, MANUAL_CORNER_KEYS, MANUAL_CORNER_PAIR_KEYS,
+    ensure_corner_part, corner_selection, corner_targets, commit_corner_pair,
+    commit_corner_type, commit_corner_mode, commit_corner_parameters, apply_corner_preset,
+)
+from .endcap_bottom_wrap_state import (
+    WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
+    ENDCAP_BOTTOM_WRAP_MODES, normalize_endcap_bottom_wrap_state,
+    resolve_endcap_bottom_wrap, commit_endcap_bottom_wrap_joint,
+    commit_endcap_bottom_wrap,
+)
+from .endcap_xy_readback import (
+    fold_material_segment_outside_length, resolve_endcap_xy_outside_dimensions,
+    endcap_derived_core_lengths, reconcile_endcap_live_outside_dimensions,
+)
+from .endcap_editor_fold import (
+    build_endcap_editor_simple_profile, read_endcap_editor_simple_profile,
+)
+from .box_body_editor_readback import (
+    reverse_box_body_fold_traversal, box_body_piece_editor_profiles,
+)
+from .box_body_editor_readback import (
+    formed_box_body_fw_widths,
+    box_body_ui_segment_length_to_material,
+    read_box_body_outside_dimensions,
+    can_remove_box_body_fold_segment,
+)
+from .box_body_fold_profile import (
+    BOX_BODY_TURNS,
+    apply_outside_dimension_compensation,
+    outside_profile_to_material,
+    build_box_body_profile as build_box_body_fold_profile,
+    merge_box_body_fold_profile,
+    profile_to_fold_segments as box_body_profile_to_fold_segments,
+)
+from .receiving_quantity_versions import (
+    SCHEMA, SCHEMA_V2, SCHEMA_V3, QUANTITY_MODE, SET_BAY_MODE,
+    QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
+    normalize_quantity_snapshot, quantity_only_change,
+)
+from .indicator_editor_geometry import resolve_indicator_editor_components
+from .manufacturing_legacy_export_guard import (
+    has_submitted_nfb_in_current_snapshot,
+    assert_legacy_nfb_export_scope_safe,
+)
+from .manufacturing_selected_export import (
+    save_selected_resolved_manufacturing_dxf,
+    selected_export_manufacturing_policy,
+)
+from .manufacturing_export_selection import (
+    resolved_export_intention_key,
+    select_resolved_export_geometry,
+    resolve_receiving_bay_local_export_geometry,
+)
 from . import manufacturing_verification as _manufacturing_verification
 from . import manufacturing_export as _manufacturing_export
 from . import manufacturing_requests as _manufacturing_requests
@@ -71,16 +174,46 @@ from .sheetmetal_part_adapters import (
     build_finished_reference_guide,
 )
 from .cabinet_types import policy as cabinet_family_policy
+from .cabinet_types.policy import door_material_frame_width
 
 
+
+from .display_dimensions import resolve_live_operator_finished_dimensions
+from .standard_part_fold_profiles import build_standard_part_fold_profiles
+from .standard_part_fold_readback import read_standard_part_fold_profiles
+from .custom_part_catalog import (
+    PREFIX as CUSTOM_PART_PREFIX, PRESET as CUSTOM_PART_PRESET,
+    CustomPartCatalog, is_custom_part, custom_part_only_change,
+)
+from .custom_fold_api import (
+    descriptor_from_snapshot, build_custom_part_profiles, custom_part_spec,
+)
+from .keyed_fold_reconciliation import merge_keyed_fold_profiles
+from .relief_commit_policy import endcap_relief_solution_committable
+from .manufacturing_cache_signature import (
+    canonical_manufacturing_signature_value, manufacturing_state_fingerprint,
+)
+from .physical_part_identity import is_box_body_physical_piece_key, is_derived_physical_part_key
+
+from .part_dimension_projection import (
+    DoorPartProjection, door_part_projections, project_part_dimensions,
+)
+
+from .fold_designer_baseline_api import (
+    fold_designer_secondary_scene_rows, query_fold_designer_baseline_rows,
+    project_finished_features_to_legacy_renderer_holes,
+)
 
 from .manufacturing_baseline_policy import (
     resolve_policy,
     _resource_root,
     _expected_baseline_path,
     _indicator_shared_expected_path,
+    expected_shared_indicator_baselines,
     _indicator_shared_existing_path,
     expected_baseline_path_for,
+    expected_endcap_feature_baseline,
+    receiving_baseline_source_stamp,
     _baseline_path,
     _extract_endcap_shared_6p4_mother_rule,
     _divider_post_relief_center_frame,
@@ -107,6 +240,7 @@ from .manufacturing_door_indicator import (
     validate_door_indicator_fit,
     _validate_door_part_indicator_fit,
     indicator_small_door_spec,
+    indicator_small_door_operator_spec,
     indicator_small_door_unfolded_size,
 )
 
@@ -122,6 +256,62 @@ from .manufacturing_endcap_compat import (
     _scene_with_authoritative_fold_profiles,
 )
 
+def apply_cabinet_family_endcap_policy(
+    policy, part_key, *, family_source=None, thickness=None, structure_state=None,
+):
+    """Engine-only EndCap family geometry; preserve operator Corner selections.
+
+    Receiving computes its effective lower material FW from the authoritative
+    family/topology state.  Non-EndCap and other cabinet families are unchanged.
+    """
+    if policy is None or str(part_key) not in {"head", "tail"}:
+        return policy
+    if not cabinet_family_policy.supports_bottom_wrap_controls(family_source):
+        return policy
+    t = float(ae.T if thickness is None else thickness)
+    default_fw = float(policy.bottom_fw if policy.bottom_fw is not None else policy.fw)
+    return replace(
+        policy,
+        bottom_fw=cabinet_family_policy.effective_endcap_bottom_fw(
+            family_source, structure_state,
+            thickness=t, default_fw=default_fw,
+        ),
+    )
+
+
+def map_door_features_to_unfolded_material(
+    spec: DoorPartSpec, context: ManufacturingContext | None = None,
+):
+    """Canonical Engine-owned finished-face → unfolded-material feature map.
+
+    The FinalScene builder consumes this exact manufacturing geometry.  A
+    trusted export verifier may compare source-attested features with it,
+    but must not independently derive feature offsets or bend compensation.
+    """
+    return tuple(_door_features_for_legacy_engine(spec, context))
+
+
+from .divider_manufacturing import resolve_family_divider_reliefs
+from .assembly_collision import (
+    apply_verified_joint_cut_to_part, apply_verified_joint_cut_to_owner,
+)
+from .assembly_collision import (
+    serialize_joint_relief_polygons, restore_joint_relief_cut_geometry,
+)
+from .assembly_geometry import build_joint_world_geometry
+from .assembly_geometry_folded_mesh import (
+    expand_box_body_fw_world_mid, shift_multistage_terminal_fold_world_mid,
+    fit_receiving_left_zl1_world_mid,
+)
+from .assembly_joint import (
+    side_wrap_target_corners, resolve_box_body_piece_solver_key,
+    joint_relief_state_item_matches,
+)
+from .assembly_joint import joint_registry_diagnostic_info
+from .assembly_placement import (
+    SCENE_ASSEMBLY_PLACEMENTS, resolve_legacy_door_cell_scene_placement,
+    resolve_scene_assembly_placement,
+)
 from .manufacturing_render_data import (
     FoldGuide,
     fold_guides_from_final_scene,
@@ -613,4 +803,76 @@ def save_quantity_manufacturing_groups_dxf(
         verify_part_dxf=verify_saved_part_render_data_dxf,
         overwrite=overwrite, render_data_transform=render_data_transform,
         part_only=part_only,
+    )
+
+
+# Import the NFB source verifier only after manufacturing scene/render APIs are
+# fully initialized: the existing source-profile reader consumes those exports.
+from .receiving_nfb_quantity_partial import (
+    QuantityNfbPartialSelection, verify_quantity_nfb_inner_door,
+    select_quantity_nfb_partial, quantity_partial_live_manifests,
+)
+
+def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
+    """Public Engine NFB brand proof transition; lazy owner import avoids a cycle."""
+    from .receiving_nfb_brand_transition import (
+        rebase_receiving_set_parent_nfb_brand as _engine_rebase,
+    )
+    return _engine_rebase(set_row, proposed_brand)
+
+def candidate_committed_csv_nfb_config(source):
+    """Public Engine NFB candidate provenance query (deferred owner import)."""
+    from .receiving_nfb_csv_committed_config import candidate_committed_csv_nfb_config as resolve
+    return resolve(source)
+
+
+def validate_candidate_nfb_replacement(
+    layout, selected_bays, source, csv_config, *, rejection_message=None,
+):
+    """Public Engine guard for submitted NFB source replacement."""
+    from .receiving_nfb_csv_committed_config import validate_candidate_nfb_replacement as validate
+    if rejection_message is None:
+        return validate(layout, selected_bays, source, csv_config)
+    return validate(
+        layout, selected_bays, source, csv_config, rejection_message=rejection_message,
+    )
+
+
+def replace_candidate_bay_nfb(layout, set_index, bay_index, csv_config):
+    """Public Engine physical Bay identity and NFB state transaction."""
+    from .receiving_nfb_csv_committed_config import replace_candidate_bay_nfb as replace
+    return replace(layout, set_index, bay_index, csv_config)
+
+def apply_receiving_inner_door_quantity_configuration(
+    layout, library, quantities, assigned, *, expected_counts=None,
+):
+    """Headless public Engine API for atomic cross-Set/Bay candidate Apply."""
+    from .receiving_inner_door_pairing import (
+        apply_receiving_inner_door_quantity_configuration as _apply,
+    )
+    return _apply(
+        layout, library, quantities, assigned, expected_counts=expected_counts,
+    )
+
+def apply_receiving_endcap_quantity_configuration(
+    layout, role, library, quantities, assigned, *, expected_counts=None,
+):
+    """Public Engine Head/Tail cross-Set quantity allocation transaction."""
+    from .receiving_quantity_allocation import (
+        apply_receiving_endcap_quantity_configuration as _apply,
+    )
+    return _apply(
+        layout, role, library, quantities, assigned,
+        expected_counts=expected_counts,
+    )
+
+def apply_receiving_endcap_candidate_to_bays(
+    layout, role, set_index, bay_indices, features, *, version_id=None,
+):
+    """Public Engine Head/Tail candidate Apply to highlighted physical Bays."""
+    from .receiving_quantity_allocation import (
+        apply_receiving_endcap_candidate_to_bays as _apply,
+    )
+    return _apply(
+        layout, role, set_index, bay_indices, features, version_id=version_id,
     )

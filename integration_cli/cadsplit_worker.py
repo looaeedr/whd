@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-"""WHD-owned, Tk-free CADSplit Worker CLI boundary (#2377 / W-01).
+"""WHD-owned, Tk-free CADSplit source-only Worker wire boundary (#2377 / W-01).
 
-This entry point does not implement manufacturing. W-03 / W-04 install the
-prepare/export execution handlers only after their canonical acceptance gates.
-A schema accepted by this process is NOT a manufacturing authorization.
+The installed WHD Worker / WHD-Engine.exe path is retired. This module remains
+only as a source-mode protocol boundary: capabilities are disabled and public
+prepare/export fail closed. Internal trusted Python adapters are not reachable
+from main() and are not external manufacturing certification.
 """
 from __future__ import annotations
 
@@ -118,9 +119,14 @@ def _source_fingerprint() -> str:
 
 
 def _identity() -> tuple[str, str, str]:
+    if getattr(sys, "frozen", False):
+        raise WorkerFailure(
+            "WHD_BUILD_UNATTESTED",
+            "installed WHD Worker / WHD-Engine.exe execution is retired",
+            exit_code=4,
+        )
     sha = _git_commit()
     return sha, f"source-only-{sha[:16]}", _source_fingerprint()
-
 
 def _capabilities(commit: str, build_id: str, code_hash: str) -> dict[str, Any]:
     # W-03/04/05/06 must replace source-only metadata with verified
@@ -173,10 +179,11 @@ def _diagnostic(code: str, message: str, *, item_count: int | None = None) -> di
 
 def _failure_response(
     operation: str, commit: str, build_id: str,
-    failure: WorkerFailure, request: dict[str, Any] | None = None
+    failure: WorkerFailure, request: dict[str, Any] | None = None,
+    *, protocol_version: str = PROTOCOL_VERSION,
 ) -> dict[str, Any]:
     response: dict[str, Any] = {
-        "protocol_version": PROTOCOL_VERSION,
+        "protocol_version": protocol_version,
         "operation": operation,
         "status": "failed",
         "engine_commit": commit,
@@ -198,24 +205,42 @@ def _failure_response(
                 valid = 1 <= len(value) <= 256
             if valid:
                 response[key] = value
-    _validator("response_v1.schema.json").validate(response)
+    _validator(
+        "response_v1_1.schema.json" if protocol_version == "1.1.0"
+        else "response_v1.schema.json"
+    ).validate(response)
     return response
 
 
 def _execute_request(
-    operation: str, path: Path, commit: str, build_id: str
+    operation: str, path: Path, commit: str, build_id: str,
+    *, trusted_context=None,
 ) -> tuple[dict[str, Any], int]:
     request: dict[str, Any] | None = None
     try:
         request = _read_request(path)
         if request.get("operation") != operation:
             raise WorkerFailure("WHD_OPERATION_MISMATCH", "operation does not match CLI", exit_code=2)
+        if trusted_context is not None:
+            # PRIVATE in-process execution seam, not a new CLI switch. Only
+            # an already authenticated installation owner can inject custody.
+            # main() NEVER constructs a context from request/env/arguments.
+            from integration_cli.private_worker_dispatch import execute_private_worker
+            from integration_cli.prepare_evidence import PrepareEvidenceError
+            try:
+                result = execute_private_worker(
+                    operation, request, trusted_context,
+                    engine_commit=commit, build_id=build_id,
+                )
+            except PrepareEvidenceError as exc:
+                raise WorkerFailure(exc.code, str(exc), exit_code=3) from exc
+            return result, 0
         _validator("request_v1.schema.json").validate(request)
         items = request["items"]
         if len(items) > MAX_BATCH_ITEMS:
             raise WorkerFailure("WHD_BATCH_TOO_LARGE", "batch exceeds current CLI item limit", exit_code=2)
-        # Zero import or initialization of Tk/AE/Registry here. W-03 and W-04
-        # will connect a single once-per-batch manufacturing execution context.
+        # Public CLI intentionally does not construct trusted_context.
+        # No import or initialization of Tk/AE/Registry on this path.
         raise WorkerFailure(
             "WHD_OPERATION_NOT_IMPLEMENTED",
             "manufacturing handler is not certified; no files were exported",
@@ -265,7 +290,8 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
+    actual = list(sys.argv[1:] if argv is None else argv)
+    args = _parser().parse_args(actual)
     if args.response.exists() or args.response.is_symlink():
         print("WHD_RESPONSE_EXISTS: refusing to overwrite a response", file=sys.stderr)
         return 4
@@ -275,7 +301,9 @@ def main(argv: list[str] | None = None) -> int:
             data = _capabilities(commit, build_id, code_hash)
             exit_code = 0
         else:
-            data, exit_code = _execute_request(args.operation, args.request, commit, build_id)
+            data, exit_code = _execute_request(
+                args.operation, args.request, commit, build_id,
+            )
         _write_response(args.response, data)
         return exit_code
     except (WorkerFailure, OSError, UnicodeError, ValueError) as exc:

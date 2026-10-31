@@ -1,0 +1,340 @@
+# -*- coding: utf-8 -*-
+"""#2375 W-03/W-04/W-06 private execution adapter for the real W-01 Worker.
+
+Not a public CADSplit command, installer or manufacturing certification.
+Only an in-process trusted installation owner can provide the context.
+The public WHD-Engine CLI never creates or accepts this context from JSON,
+command arguments or environment variables. Private export returns the
+unpublished W-06 ledger receipt, NOT a certified v1.1 public success.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+import hmac
+from pathlib import Path
+from typing import Any, Mapping
+
+from jsonschema import Draft202012Validator, ValidationError
+import json
+
+from integration_cli.job_identity_ledger import DurableJobIdentityLedger, _identity
+from integration_cli.prepare_evidence import PrepareEvidenceError
+from integration_cli.request_canonical import require_matching_wire_request_digest
+
+
+@dataclass(frozen=True)
+class TrustedWorkerExecution:
+    """Private in-process custody; no field is accepted on the wire.
+
+    The trusted installation owner must separately verify the packaged build,
+    load the DPAPI HMAC key, and supply preexisting source/output directories.
+    This object is deliberately not serializable as a public CLI parameter.
+    """
+    resource_root: Path
+    store_root: Path
+    output_dir: Path | None
+    source_documents: Mapping[str, Path]
+    worker_key: bytes
+    engine_sha256: str
+    # An internal trusted caller may execute ONLY a preapproved immutable job.
+    # In-process native integration tests/owners still supply their own
+    # private execution context and do not use this CLI admission field.
+    approved_request_identity: tuple[str, str, str, str] | None = None
+
+
+def _validate_context(context: TrustedWorkerExecution, request: Mapping[str, Any]) -> None:
+    if not isinstance(context, TrustedWorkerExecution):
+        raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "trusted Worker context missing")
+    if context.approved_request_identity is not None:
+        # Rechecked AFTER the CLI's second read of --request. An attacker
+        # cannot swap request bytes between the admission read and dispatch
+        # to execute a different, unapproved manufacturing job.
+        if (not isinstance(context.approved_request_identity, tuple)
+                or len(context.approved_request_identity) != 4
+                or context.approved_request_identity != _identity(request)):
+            raise PrepareEvidenceError(
+                "WHD_JOB_ID_CONFLICT", "trusted Worker request differs from admission approval",
+            )
+    if (not isinstance(context.worker_key, bytes) or len(context.worker_key) < 32
+            or not isinstance(context.engine_sha256, str) or len(context.engine_sha256) != 64):
+        raise PrepareEvidenceError("WHD_PREPARE_KEY_UNAVAILABLE", "Worker signing/build identity missing")
+    for root in (context.resource_root, context.store_root):
+        if not isinstance(root, Path) or root.is_symlink() or not root.is_dir():
+            raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "trusted Worker source/store unavailable")
+    if not isinstance(context.source_documents, Mapping):
+        raise PrepareEvidenceError("WHD_SOURCE_UNVERIFIED", "Worker source custody unavailable")
+    if request["operation"] == "export":
+        target = context.output_dir
+        if not isinstance(target, Path) or target.is_symlink() or not target.is_dir():
+            raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "trusted Worker output unavailable")
+        if request["output"]["directory"] != str(target):
+            # Wire output cannot redirect the Worker to another file system
+            # destination or supply an alternate path spelling.
+            raise PrepareEvidenceError("WHD_OUTPUT_PATH_INVALID", "wire output differs from trusted directory")
+        if not all(isinstance(item_id, str) and isinstance(path, Path)
+                   for item_id, path in context.source_documents.items()):
+            raise PrepareEvidenceError("WHD_SOURCE_UNVERIFIED", "untrusted original source path")
+
+
+def execute_private_worker(
+    operation: str,
+    request: Mapping[str, Any],
+    context: TrustedWorkerExecution,
+    *,
+    engine_commit: str,
+    build_id: str,
+) -> dict[str, Any]:
+    """One actual Worker dispatch: WHD W-03 -> W-06 -> W-04 -> durable DXF.
+
+    This is *only* called from W-01 with an in-process trusted context, never
+    by the public CLI. The existing W-01 CLI has exactly three commands and
+    is not reachable from the public source-only CLI and does not certify external manufacturing.
+    """
+    if operation not in ("prepare", "export") or not isinstance(request, Mapping):
+        raise PrepareEvidenceError("WHD_OPERATION_MISMATCH", "unsupported private Worker operation")
+    if request.get("operation") != operation:
+        raise PrepareEvidenceError("WHD_OPERATION_MISMATCH", "Worker operation mismatch")
+    from integration_cli.cadsplit_worker import SCHEMA_ROOT
+    schema = json.loads((SCHEMA_ROOT / "request_v1_1.schema.json").read_text(encoding="utf-8"))
+    try:
+        Draft202012Validator(schema).validate(request)
+    except ValidationError as exc:
+        raise PrepareEvidenceError("WHD_SCHEMA_INVALID", "invalid versioned Worker request") from exc
+    require_matching_wire_request_digest(request)
+    _identity(request)
+    _validate_context(context, request)
+    # #2383: every known family feature is wire-addressable, but unverified
+    # W-08 roles must be rejected BEFORE a permanent W-06 job reservation.
+    from integration_cli.worker_feature_catalog import require_certified_feature_route
+    require_certified_feature_route(request)
+    ledger = DurableJobIdentityLedger(context.store_root)
+    if operation == "prepare":
+        # W-06 owns the original source paths; a caller's SHA claim must
+        # match actual bounded, parseable DXF bytes BEFORE durable claim().
+        # Otherwise a mistyped source SHA can permanently occupy the same
+        # client/job identity while W-03 signs a misleading Prepare receipt.
+        # Re-attest on transport retries; source changes after Prepare still
+        # fail the independent W-03 Export/pre-commit recheck.
+        from integration_cli.source_circle_verification import _source_snapshot
+        for item in request["items"]:
+            _source_snapshot(
+                context.source_documents.get(item["item_id"]),
+                item["source_document_sha256"],
+            )
+        return ledger.prepare_and_persist(
+            request, resource_root=context.resource_root,
+            engine_commit=engine_commit, engine_sha256=context.engine_sha256,
+            build_id=build_id, worker_key=context.worker_key,
+        )
+
+    # Never trust original Prepare bytes or response copied into Export JSON.
+    # This read authenticates both using the installation-owned HMAC.
+    original, receipt = ledger.recheck_persisted_prepare_for_export(
+        request, resource_root=context.resource_root,
+        engine_commit=engine_commit, engine_sha256=context.engine_sha256,
+        build_id=build_id, worker_key=context.worker_key,
+        source_documents=context.source_documents,
+    )
+
+    # A successful replay may return only the original immutable, physically
+    # re-attested result. Do not call W-04 a second time or rewrite final DXF.
+    with ledger._connect() as conn:
+        existing = conn.execute(
+            """SELECT 1 FROM jobs
+               WHERE client_id=? AND job_id=? AND operation='export'""",
+            (request["client_installation_id"], request["job_id"]),
+        ).fetchone()
+    if existing is not None:
+        replay = ledger.claim(request)
+        if replay.state != "committed" or replay.result is None:
+            raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "unfinished export cannot be rendered again")
+        return replay.result
+
+    from integration_cli.verified_door_finalscene import save_trusted_door_circle_finalscene_batch
+    save_trusted_door_circle_finalscene_batch(
+        original, receipt, request,
+        source_documents=context.source_documents,
+        resource_root=context.resource_root,
+        output_dir=context.output_dir,
+        engine_commit=engine_commit,
+        engine_sha256=context.engine_sha256,
+        build_id=build_id,
+        worker_key=context.worker_key,
+        overwrite=request["output"]["overwrite"],
+        durable_ledger=ledger,
+    )
+    final = ledger.claim(request)
+    if final.state != "committed" or final.result is None:
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "W-06 committed receipt missing")
+    # This internal result has manufacturing_verified=False by design. Do not
+    # adapt it to the public response_v1_1 'success' schema until Gate A.
+    return final.result
+
+
+def recover_private_worker_rollback(
+    request: Mapping[str, Any], context: TrustedWorkerExecution,
+) -> dict[str, Any]:
+    """Explicit sealed Windows Export recovery, NEVER manufacturing/re-export.
+
+    Caller must have already verified the independent trusted recovery
+    ticket. The journal re-attests physical customer bytes, backup, path
+    identity and active lease before each restoration. No fresh W-04 render.
+    """
+    from integration_cli.batch_commit_journal import DurableMultiDXFRollbackJournal
+    from integration_cli.cadsplit_worker import SCHEMA_ROOT
+    schema = json.loads((SCHEMA_ROOT / "request_v1_1.schema.json").read_text(encoding="utf-8"))
+    try:
+        Draft202012Validator(schema).validate(request)
+    except ValidationError as exc:
+        raise PrepareEvidenceError("WHD_SCHEMA_INVALID", "invalid original recovery request") from exc
+    if request.get("operation") != "export":
+        raise PrepareEvidenceError("WHD_OPERATION_MISMATCH", "only an Export may roll back")
+    require_matching_wire_request_digest(request)
+    _validate_context(context, request)
+    if context.approved_request_identity is None:
+        raise PrepareEvidenceError(
+            "WHD_JOB_STORE_UNAVAILABLE", "sealed rollback approval required",
+        )
+    ledger = DurableJobIdentityLedger(context.store_root)
+    journal = DurableMultiDXFRollbackJournal(ledger)
+    if journal.recover_rollback(request) != "rolled_back":
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "rollback not fully attested")
+    # This is NOT a success schema for manufactured Export. Nothing may
+    # turn a rolled-back job into a certified DXF or retry manufacturing.
+    return {
+        "protocol_version": request["protocol_version"],
+        "operation": "export",
+        "status": "rolled_back",
+        "manufacturing_verified": False,
+        "client_installation_id": request["client_installation_id"],
+        "job_id": request["job_id"],
+        "request_digest": request["request_digest"],
+    }
+
+
+def request_private_worker_cancel(
+    request: Mapping[str, Any], context: TrustedWorkerExecution,
+) -> dict[str, Any]:
+    """Private sealed cancellation, no DXF render, commit or rollback.
+
+    The ledger serializes cancellation with journal.arm via BEGIN IMMEDIATE;
+    after any replacement intent, recovery exclusively owns customer files.
+    """
+    from integration_cli.cadsplit_worker import SCHEMA_ROOT
+    schema = json.loads((SCHEMA_ROOT / "request_v1_1.schema.json").read_text(encoding="utf-8"))
+    try:
+        Draft202012Validator(schema).validate(request)
+    except ValidationError as exc:
+        raise PrepareEvidenceError("WHD_SCHEMA_INVALID", "invalid original cancellation request") from exc
+    require_matching_wire_request_digest(request)
+    _validate_context(context, request)
+    if context.approved_request_identity is None:
+        raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "sealed cancel approval required")
+    ledger = DurableJobIdentityLedger(context.store_root)
+    if ledger.request_cancel(request) != "requested":
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "cancel not persisted")
+    return {
+        "protocol_version": request["protocol_version"],
+        "operation": request["operation"],
+        "status": "cancel_requested",
+        "manufacturing_verified": False,
+        "client_installation_id": request["client_installation_id"],
+        "job_id": request["job_id"],
+        "request_digest": request["request_digest"],
+    }
+
+
+def read_private_worker_immutable_result(
+    request: Mapping[str, Any], context: TrustedWorkerExecution,
+) -> dict[str, Any]:
+    """Read only a proven original W-06 result; never redo W-03/W-04.
+
+    Existing signed exact-job installation approval is sufficient for a
+    read-only result, not for manufacturing. A committed Export is physically
+    re-attested against all immutable DXFs; Prepare additionally checks the
+    Worker-owned HMAC-sealed receipt. Unfinished or corrupted jobs fail closed.
+    """
+    from integration_cli.cadsplit_worker import SCHEMA_ROOT
+    schema = json.loads((SCHEMA_ROOT / "request_v1_1.schema.json").read_text(encoding="utf-8"))
+    try:
+        Draft202012Validator(schema).validate(request)
+    except ValidationError as exc:
+        raise PrepareEvidenceError("WHD_SCHEMA_INVALID", "invalid original readback request") from exc
+    require_matching_wire_request_digest(request)
+    _validate_context(context, request)
+    if context.approved_request_identity is None:
+        raise PrepareEvidenceError("WHD_JOB_STORE_UNAVAILABLE", "exact-job readback approval missing")
+    ledger = DurableJobIdentityLedger(context.store_root)
+    # claim() creates a row for an unknown job; readback must not even
+    # reserve a new job identity. Refuse unknown jobs before invoking it.
+    client, job, operation, digest = _identity(request)
+    with ledger._connect() as conn:
+        existing = conn.execute(
+            """SELECT request_digest FROM jobs
+               WHERE client_id=? AND job_id=? AND operation=?""",
+            (client, job, operation),
+        ).fetchone()
+    if existing is None:
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "no persisted job to read")
+    if not isinstance(existing[0], str) or not hmac.compare_digest(existing[0], digest):
+        raise PrepareEvidenceError("WHD_JOB_ID_CONFLICT", "readback job digest changed")
+    claim = ledger.claim(request)
+    if claim.state == "rolled_back" and request["operation"] == "export":
+        return {
+            "protocol_version": request["protocol_version"],
+            "operation": "export",
+            "status": "rolled_back",
+            "manufacturing_verified": False,
+            "client_installation_id": request["client_installation_id"],
+            "job_id": request["job_id"],
+            "request_digest": request["request_digest"],
+        }
+    if claim.state != "committed" or not isinstance(claim.result, dict):
+        raise PrepareEvidenceError(
+            "WHD_JOB_RECOVERY_REQUIRED", "job lacks physically verified immutable result",
+        )
+    result = claim.result
+    if (
+        result.get("status") != "success"
+        or result.get("operation") != operation
+        or result.get("client_installation_id") != client
+        or result.get("job_id") != job
+        or result.get("request_digest") != digest
+        or result.get("manufacturing_verified") is not False
+    ):
+        raise PrepareEvidenceError("WHD_JOB_RECOVERY_REQUIRED", "immutable receipt identity invalid")
+    if operation == "prepare":
+        original, receipt = ledger.load_trusted_prepare(
+            client_installation_id=client, job_id=job, worker_key=context.worker_key,
+        )
+        if _identity(original) != (client, job, operation, digest) or receipt != result:
+            raise PrepareEvidenceError("WHD_PREPARE_STALE", "original prepare result changed")
+    else:
+        # claim() rehashes *artifact_json* but does not bind a result's
+        # displayed paths to those physically attested files. Never return a
+        # forged success receipt pointing at another customer's DXF.
+        with ledger._connect() as conn:
+            row = conn.execute(
+                """SELECT artifact_json FROM jobs
+                   WHERE client_id=? AND job_id=? AND operation=? AND request_digest=?""",
+                (client, job, operation, digest),
+            ).fetchone()
+        try:
+            proofs = json.loads(row[0])
+            rows = result["items"]
+            issued = {
+                entry["physical_part_id"]: entry["path"] for entry in rows
+            }
+            expected = {entry["physical_part_id"] for entry in request["items"]}
+            if (
+                not isinstance(proofs, dict) or not isinstance(rows, list)
+                or len(rows) != len(expected) or len(issued) != len(expected)
+                or set(proofs) != expected or set(issued) != expected
+                or any(proofs[part]["path"] != path for part, path in issued.items())
+            ):
+                raise ValueError("result/physical-DXF inventory mismatch")
+        except (KeyError, ValueError, TypeError, IndexError) as exc:
+            raise PrepareEvidenceError(
+                "WHD_JOB_RECOVERY_REQUIRED", "immutable DXF receipt/proof differs",
+            ) from exc
+    return result

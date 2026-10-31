@@ -17,6 +17,7 @@ from typing import Any
 from collections.abc import Mapping, MutableMapping
 import re
 
+from ae_engine import manufacturing_api
 from phase6_manufacturing_contracts import (
     ManufacturingPartInput,
     ManufacturingResolveRequest,
@@ -28,7 +29,6 @@ from phase6_part_navigation import is_box_body_physical_piece_key
 from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.corner_type_ui import policy_from_corner_state
-from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from ae_engine.sheetmetal_geometry import FourCornerTypePolicy
 from phase6_endcap_semantics import (
     ENDCAP_FW_PARTS,
@@ -54,79 +54,11 @@ from phase6_manufacturing_cache import (
 _CORNER_KEYS = ("bottom_left", "bottom_right", "top_left", "top_right")
 
 
-def _is_door_part_key(value) -> bool:
-    key = str(value or "")
-    return key == "door" or re.fullmatch(r"door_c\d+_r\d+", key) is not None
-
-
-def _is_base_plate_part_key(value) -> bool:
-    key = str(value or "")
-    return key == "base_plate" or re.fullmatch(r"base_plate_c\d+_r\d+", key) is not None
-
-
-def _profile_value(profile, key, default=0):
-    for seg in profile or ():
-        if seg.get("phase6_key") == key:
-            return float(seg.get("len") or 0)
-    return float(default or 0)
-
-
 def read_standard_part_profiles(part_key, profiles, original_snapshot):
-    """Canonical reverse mapping for standard saved-part fold profiles."""
-    x = list((profiles or {}).get("X", ()))
-    y = list((profiles or {}).get("Y", ()))
-    if _is_door_part_key(part_key):
-        return {
-            "door_fold_l": _profile_value(x, "door_fold_l", original_snapshot.get("door_fold_l", 20)),
-            "door_fold_r": _profile_value(x, "door_fold_r", original_snapshot.get("door_fold_r", 20)),
-            "door_fold_b": _profile_value(y, "door_fold_b", original_snapshot.get("door_fold_b", 20)),
-            "door_fold_t": _profile_value(y, "door_fold_t", original_snapshot.get("door_fold_t", 20)),
-        }
-    if (str(part_key) == "base_plate"
-            and str(original_snapshot.get("model") or "").strip()
-            in {"受電箱", "RECEIVING"}):
-        # The Receiving root base is NOT the generic four-flange plate.
-        # Its X can contain four physical bends (or none for a flat side),
-        # while Y still has the source BEND20. The true source is the
-        # committed NFB/CSV-derived FinalScene, not base_plate_bend.
-        # Never reverse-project the physical profile or a stale workspace
-        # cache back into the generic four-equal-bends setting.
-        from ae_engine.receiving_base_plate_3d_profiles import (
-            receiving_base_plate_3d_profiles,
-        )
-        if receiving_base_plate_3d_profiles(original_snapshot) is not None:
-            return {}
-    if _is_base_plate_part_key(part_key):
-        vals = [
-            _profile_value(x, "base_bend_l", original_snapshot.get("base_plate_bend", 20)),
-            _profile_value(x, "base_bend_r", original_snapshot.get("base_plate_bend", 20)),
-            _profile_value(y, "base_bend_b", original_snapshot.get("base_plate_bend", 20)),
-            _profile_value(y, "base_bend_t", original_snapshot.get("base_plate_bend", 20)),
-        ]
-        if len(set(vals)) != 1:
-            raise ValueError("底板四邊折彎目前由 Phase6 共用一個 bend 值，四邊必須相同")
-        return {"base_plate_bend": vals[0]}
-    if part_key == "indicator_box":
-        vals = [
-            _profile_value(x, "ib_fold_l", original_snapshot.get("indicator_box_fold", 49)),
-            _profile_value(x, "ib_fold_r", original_snapshot.get("indicator_box_fold", 49)),
-            _profile_value(y, "ib_fold_b", original_snapshot.get("indicator_box_fold", 49)),
-            _profile_value(y, "ib_fold_t", original_snapshot.get("indicator_box_fold", 49)),
-        ]
-        if len(set(vals)) != 1:
-            raise ValueError("指示燈盒四邊折彎必須相同")
-        return {"indicator_box_fold": vals[0]}
-    if part_key == "indicator_door":
-        vals = [
-            _profile_value(x, "id_fold_l", original_snapshot.get("indicator_door_fold", 19)),
-            _profile_value(x, "id_fold_r", original_snapshot.get("indicator_door_fold", 19)),
-            _profile_value(y, "id_fold_b", original_snapshot.get("indicator_door_fold", 19)),
-            _profile_value(y, "id_fold_t", original_snapshot.get("indicator_door_fold", 19)),
-        ]
-        if len(set(vals)) != 1:
-            raise ValueError("指示燈小門四邊折彎必須相同")
-        return {"indicator_door_fold": vals[0]}
-    return {}
+    """Phase6 compatibility: Engine owns material Fold reverse projection."""
+    return manufacturing_api.read_standard_part_fold_profiles(
+        part_key, profiles, original_snapshot,
+    )
 
 
 def _corner_policy_for_app(app: Any, part_key: str):
@@ -179,32 +111,18 @@ def operator_finished_dimensions_for_app(
     *,
     triangles=None,
 ):
-    """Tk/app adapter to the shared finished-dimension provider."""
+    """Gather live operator state; Engine owns finished-size precedence."""
     key = str(part_key or getattr(app, "active_part_key", "") or "")
-    # This is a display adapter over LIVE physical values, not a saved
-    # snapshot replacement. Sparse UI snapshots (e.g. immediately after
-    # opening Designer) need the same per-axis WHD fallback as the canonical
-    # manufacturing-request boundary; never write defaults back to the app.
-    snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    settings = dict(getattr(app, "_settings_values", {}) or {})
-    whd = getattr(app, "_phase6_box_whd", {}) or {}
-    for axis in ("w", "h", "d"):
-        if axis not in snapshot and axis in whd:
-            snapshot[axis] = whd[axis]
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
-        # Keep existing Receiving semantics: live per-Bay values override
-        # Settings seeds; an explicit snapshot Bay owner is never replaced.
-        settings.update({axis: whd[axis] for axis in ("w", "h", "d") if axis in whd})
     head_policy = tail_policy = None
     if key == "box_body":
         head_policy = _corner_policy_for_app(app, "head")
         tail_policy = _corner_policy_for_app(app, "tail")
-    return resolve_operator_finished_dimensions(
+    return manufacturing_api.resolve_live_operator_finished_dimensions(
         key,
-        snapshot=snapshot,
-        settings=settings,
+        input_snapshot=dict(getattr(app, "_phase6_input_snapshot", {}) or {}),
+        settings_values=dict(getattr(app, "_settings_values", {}) or {}),
+        working_box=dict(getattr(app, "_phase6_box_whd", {}) or {}),
         triangles=triangles,
-        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
         head_corner_policy=head_policy,
         tail_corner_policy=tail_policy,
     )
@@ -752,59 +670,11 @@ def build_manufacturing_cache_key(app: Any) -> ManufacturingCacheKey:
 def _receiving_baseline_source_stamp(
     model: str, *, context=None, include_physical_panels=False,
 ):
-    """Source-stat/reload-generation witness for Receiving cached material.
-
-    The original complete manufacturing undo cache uses the three standard
-    BoxBody/EndCap/Door sources. A multipart Receiving BoxBody additionally
-    reads three dedicated physical sheet DXFs; cross-transaction *raw*
-    material reuse is forbidden unless all three dedicated files are
-    source-witnessed at the same paths used by the manufacturing factory.
-    """
-    from pathlib import Path
-    from ae_engine import ae
-    pieces = []
-    for name in ("箱身.dxf", "封頭尾.dxf", "門.dxf"):
-        try:
-            if context is not None:
-                from ae_engine.manufacturing_baseline_policy import _expected_baseline_path
-                path = _expected_baseline_path(model, name, context)
-                if path is not None and not Path(path).is_file():
-                    path = None
-            else:
-                # Preserve existing global complete-manufacturing receipt
-                # semantics for callers without a scoped material Context.
-                path = ae.baseline_part_path(model, name)
-            if path is None:
-                pieces.append((name, None))
-                continue
-            pieces.append((name, tuple(ae.baseline_source_fingerprint(path))))
-        except (OSError, ValueError):
-            return None
-
-    if include_physical_panels:
-        from ae_engine.receiving_panel_baselines import ROLE_FILES
-        from ae_engine.manufacturing_baseline_policy import _expected_baseline_path
-        from ae_engine.contracts import ManufacturingContext
-        ctx = context or ManufacturingContext()
-        for role, filename in sorted(ROLE_FILES.items()):
-            if ctx.resource_root is not None:
-                # Match manufacturing_scene_orchestration's resource-root
-                # authority exactly, rather than the legacy AE global root.
-                path = Path(ctx.resource_root) / "基準檔" / "受電箱" / filename
-            else:
-                path = _expected_baseline_path("受電箱", filename, ctx)
-            if path is None:
-                return None
-            try:
-                path = Path(path)
-                if not path.is_file():
-                    return None
-                pieces.append((
-                    role, filename, tuple(ae.baseline_source_fingerprint(path)),
-                ))
-            except (OSError, ValueError):
-                return None
-    return tuple(pieces)
+    """Forward source-witness intent to the public Engine API; no GUI authority."""
+    from ae_engine import manufacturing_api
+    return manufacturing_api.receiving_baseline_source_stamp(
+        model, context=context, include_physical_panels=include_physical_panels,
+    )
 
 
 def _cache_service_for_app(app: Any) -> ManufacturingCacheService:

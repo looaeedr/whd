@@ -37,20 +37,50 @@ def pad_preview_source_fingerprint(snapshot, assembly_parts) -> str:
             h.update(sha256(path.read_bytes()).digest())
     for part in assembly_parts:
         key=str(getattr(part,"part_key",""))
-        if not key.startswith("base_plate"):
+        # PADs belong only to the physical Base sheet or a concrete NFB tier
+        # Base sheet. EAR/fixing-plate children share the base_plate prefix
+        # but have independent render/material lifecycles; their absence
+        # must never suppress a valid PAD parent preview.
+        if not (key == "base_plate" or key.startswith("base_plate:nfb_layer:")):
             continue
         data=getattr(part,"render_data",None)
         if data is None:
             raise ValueError("PAD_PREVIEW_PARENT_RENDER_DATA_MISSING")
         material=getattr(data,"material",None)
-        if material is None or material.is_empty:
+        if material is None:
+            raise ValueError("PAD_PREVIEW_PARENT_MATERIAL_MISSING")
+        # This DISPLAY-only cache consumes the minimum geometry interface;
+        # verified geometry and lightweight WKB source-proxies both qualify.
+        # Missing members must not leak AttributeError past PAD-only fallback.
+        try:
+            empty = material.is_empty
+            material_wkb = material.wkb
+        except AttributeError as exc:
+            raise ValueError("PAD_PREVIEW_PARENT_MATERIAL_INVALID") from exc
+        if not isinstance(material_wkb, (bytes, bytearray)):
+            raise ValueError("PAD_PREVIEW_PARENT_MATERIAL_INVALID")
+        if empty:
             raise ValueError("PAD_PREVIEW_PARENT_MATERIAL_MISSING")
         h.update(key.encode("utf-8"))
         # Same physical skin at a different 3D pose is a different preview.
         h.update(repr(getattr(part,"placement",None)).encode("utf-8"))
         h.update(repr(getattr(part,"rotation",None)).encode("utf-8"))
         h.update(repr(tuple(getattr(part,"offset",()) or ())).encode("utf-8"))
-        h.update(sha256(material.wkb).digest())
+        h.update(sha256(material_wkb).digest())
+        # PAD mating verifies the ACTUAL Base CUTTING scene, not just the
+        # already-resolved material polygon or metadata owner counts.
+        # A removed/shifted 6x6 locator cut can leave material.wkb and
+        # metadata unchanged; a cache hit must never bypass that check.
+        scene=getattr(data,"scene",None)
+        if scene is None:
+            h.update(b"PAD_BASE_CUTTING_SCENE_MISSING")
+        else:
+            cutting=tuple(
+                primitive for primitive in getattr(scene,"primitives",())
+                if str(getattr(primitive,"layer","")).upper()=="CUTTING"
+            )
+            h.update(b"PAD_BASE_CUTTING_SCENE_PRESENT")
+            h.update(repr(cutting).encode("utf-8"))
         h.update(repr(tuple(getattr(data,"fold_guides",()) or ())).encode("utf-8"))
         h.update(repr(getattr(data,"unfolded_topology",None)).encode("utf-8"))
         h.update(repr(getattr(data,"metadata",None)).encode("utf-8"))

@@ -34,6 +34,7 @@ from .receiving_ear_side_manufacturing_marking import (
 )
 from .receiving_fixed_plate_side_check_dxf import _readback_marking_lines
 from .manufacturing_scene_access import owner_render_data
+from .manufacturing_export_selection import resolved_export_intention_key
 
 
 def export_current_receiving_multibay_dxf(
@@ -48,7 +49,6 @@ def export_current_receiving_multibay_dxf(
     a missing NFB Base Plate, unidentified source, forged EAR/PAD or stale
     left/right world-to-UV marking.
     """
-    from gui_modules.project.export_actions import _resolved_export_intention_key
     if type(overwrite) is not bool:
         raise TypeError("RECEIVING_MULTIBAY_OVERWRITE_MUST_BE_BOOL")
     if saved_snapshot.get("model") not in {"受電箱","RECEIVING"}:
@@ -106,7 +106,7 @@ def export_current_receiving_multibay_dxf(
         is_csv=source.get("nfb_config_submitted") is True
         selected_logical=tuple(p for p in actual.parts
             if p.part_key.startswith("custom:")
-            or bool(flags.get(_resolved_export_intention_key(p.part_key),False)))
+            or bool(flags.get(resolved_export_intention_key(p.part_key),False)))
         if not selected_logical:
             continue
         # Actual HEAD/TAIL/outer DOOR FinalScene sheets have no NFB cutting

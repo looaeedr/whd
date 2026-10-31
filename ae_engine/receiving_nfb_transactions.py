@@ -136,6 +136,7 @@ def _verify_hole_locations(config, door: NfbValidatedInnerDoorRender):
     original = {row[0]: row for row in witnessed}
     if len(original) != len(witnessed):
         raise ValueError("NFB source proof repeats physical holes")
+    verified_centers = []
     for hole in holes:
         key = hole["physical_hole_id"]
         if key not in original:
@@ -150,6 +151,14 @@ def _verify_hole_locations(config, door: NfbValidatedInnerDoorRender):
         if (len(observed) != 5 or abs(want[1] - observed[1]) > 1e-6
                 or want[2:] != observed[2:]):
             raise ValueError("NFB configured X/Y slot/rotation differs from actual CUTTING")
+        # A forged/stale typed CUTTING witness can match every per-ID claim
+        # while two different IDs still occupy the same physical hole center.
+        # Preserve the source-owned #1497 contour gate at submit/copy boundary.
+        if any(count == actual_count and slot == actual_slot
+               and abs(world_x - want[1]) <= 1e-6
+               for count, slot, world_x in verified_centers):
+            raise ValueError("NFB same-tier physical NFB center collision")
+        verified_centers.append((actual_count, actual_slot, want[1]))
 
 
 def _verify_explicit_x_datum_owner(
