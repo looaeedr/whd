@@ -28,12 +28,17 @@ def test_dm3_manufacturing_domain_owns_divider_relief_result_contract():
 
 
 def test_dm3_bridge_must_delegate_divider_relief_to_manufacturing_domain():
+    from ae_engine import divider_manufacturing
     import phase6_manufacturing_geometry
 
-    source = inspect.getsource(phase6_manufacturing_geometry)
-    assert "resolve_divider_final_geometry(" in source
+    source = inspect.getsource(phase6_manufacturing_geometry._phase6_resolve_family_divider_reliefs)
+    engine_source = inspect.getsource(divider_manufacturing.resolve_family_divider_reliefs)
+    assert "manufacturing_api.resolve_family_divider_reliefs(" in source
+    assert "resolve_divider_final_geometry(" in engine_source
+    assert "build_joint_world_geometry(" in engine_source
     assert "build_divider_front_fold_relief_candidate(" not in source
     assert "_phase6_divider_fw_placement_evidence(" not in source
+    assert "from phase6_" not in engine_source
 
 
 def test_dm3_physical_contract_no_longer_exposes_placeholder_final_material_or_relief():

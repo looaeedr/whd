@@ -46,6 +46,10 @@ WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並�
 
 `ae_engine.manufacturing_api.ensure_corner_part`、`commit_corner_pair`、`commit_corner_type`、`commit_corner_mode`、`commit_corner_parameters`、`apply_corner_preset` 的公開輸入為 JSON-safe `corner_state`、`corner_pair_same`，輸出為 `CornerStateTransition`。既有 Phase6 Settings 寫入語意（成對／拆對、重入、型別切換、參數、固定 Family preset）已原樣搬至 `ae_engine.corner_state_transactions`，原 Phase6 同名函式只相容轉呼叫。這個狀態 API 不決定正式 CornerType CUTTING／Relief；幾何權威維持原 Certified Registry 及 Engine 原有求解器。
 
+## Receiving Family Divider physical Join relief API（#2517）
+
+`ae_engine.manufacturing_api.resolve_family_divider_reliefs(parts, *, finished_dimensions, sheet_thickness, clearance=0.0)` 現由既有 `ae_engine.divider_manufacturing` 負責實際 Receiving Divider ↔ BoxBody 家族 Join Graph、左右實體 side-sheet 世界碰撞皮面來源、每片中隔的 canonical `resolve_divider_final_geometry` Registry CROSS 實體切割解算與 refold shadow validation、已認證/暫定證據及不合法穿透報告。世界／UV 由已遷入 Engine 的 `build_joint_world_geometry` 統一生成；缺少實體側板幾何不得假稱合格。Phase6 `_phase6_resolve_family_divider_reliefs` 只 forward 公開 API；正式 DXF 與 CUTTING 仍以同一 verified physical result 決定，不建立第二份 Divider relief 公式。
+
 ## Explicit Joint 已驗證 CUTTING material 套用 API（#2517）
 
 `ae_engine.manufacturing_api.apply_verified_joint_cut_to_part(part, cut_polygon)` 與 `apply_verified_joint_cut_to_owner(part, owner_key, cut_polygon)` 在既有 Engine `assembly_collision` 擁有已驗證 Joint relief CUTTING 的實際 `material.difference`、canonical FinalScene CUTTING／BEND 重建、`PartRenderData` 及 BoxBody 分片角色精確更新／exploded preview。此 API 只能接收經 `Certified Registry` 或有驗證／來源證據的 bounded Joint pipeline 傳入之 cut，不能將 renderer／probe 變成 cut 權威。Engine 以 dataclass `replace` 保留原呼叫端已解析的 part metadata、placement、尺寸與 Fold profile，無需也禁止 import GUI 的 `AssemblyScenePart`。Phase6 同名函式僅 forward Engine，原合法 material、錯誤及保存行為不變。

@@ -264,6 +264,7 @@ def map_door_features_to_unfolded_material(
     return tuple(_door_features_for_legacy_engine(spec, context))
 
 
+from .divider_manufacturing import resolve_family_divider_reliefs
 from .assembly_collision import (
     apply_verified_joint_cut_to_part, apply_verified_joint_cut_to_owner,
 )
