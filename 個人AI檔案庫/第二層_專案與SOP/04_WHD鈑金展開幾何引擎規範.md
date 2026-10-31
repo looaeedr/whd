@@ -333,3 +333,15 @@ its verified code, Registry, policy and canonical material are the source. The s
 Frame denotes only the unfolded Final Material envelope and prohibits external Features.
 This scope does **not** enable Receiving pattern, Joint, cross relief, original-source
 hole mapping, box-body assembly or any other blocked W-08 feature.
+
+### #2383 Vault integral BoxBody W-08 source-controlled API (2026-10-31)
+
+`金庫型/box_body` accepts one integrated physical sheet only. Its independent
+W/H/D/T, FW, zl1/zl2/zr1/zr2/z_comp inputs are all signed at W-03; the WHD
+Phase6 canonical D-W-D source performs Fold outside/material conversion.
+Existing Vault `箱身.dxf`, certified Registry and AE `BoxBodyPartSpec`
+are the sole geometry authority, with canonical CUTTING/BEND FinalScene,
+trusted HMAC, original empty-source check and DXF Save→Reload. The advertised
+Frame is a size-only unfolded blank; source-feature mapping, independent
+multi-piece bodies, Receiving family assembly, collision/Joint and manual
+external Fold profiles remain blocked pending their own physical Gate C.
