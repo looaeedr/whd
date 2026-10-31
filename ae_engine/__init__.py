@@ -60,6 +60,7 @@ from .manufacturing_api import (
     BoxBodyStructureType, BackPanelMode, normalize_box_body_structure_state,
     set_side_back_back_panel_mode, back_panel_mode,
     door_finished_face_size,
+    door_material_frame_width,
     door_indicator_offset_for_finished_center, indicator_box_opening_feature,
     indicator_small_door_spec,
 )
@@ -131,6 +132,7 @@ __all__ = [
     "BoxBodyStructureType", "BackPanelMode", "normalize_box_body_structure_state",
     "set_side_back_back_panel_mode", "back_panel_mode",
     "door_finished_face_size",
+    "door_material_frame_width",
     "door_indicator_offset_for_finished_center", "indicator_box_opening_feature",
     "indicator_small_door_spec", "ManufacturingPolicy", "ManufacturingContext",
     "DoorPartSpec", "BoxBodyPartSpec", "EndCapPartSpec", "BasePlatePartSpec",

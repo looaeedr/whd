@@ -384,3 +384,18 @@ and a recognized certified trust status (`CERTIFIED`,
 An unknown or unverified rule without proof is not committable.
 A separate GUI diagnostic can continue to report shadow/3D conflicts;
 this predicate does not bypass or perform CUTTING itself.
+
+
+## Multi-Door hole-editor finished face via Engine (#2517)
+
+The `gui.py::open_door_layout_cell_editor` operation now builds the same
+`DoorPartSpec` as per-cell indicator fit/export through
+`_door_layout_part_spec(cell, val)`, using the active Receiving Bay's dimensions
+when available. Its reference guide and indicator editor consume
+`ae_engine.manufacturing_api.door_finished_face_size(spec)`; the GUI must not
+compute a second finished Door W/H from `ae.calculate_door_finished_size`.
+The public `door_material_frame_width(model, frame_width, thickness)` entry
+delegates unchanged to the existing canonical Cabinet Family policy for
+legacy GUI spec adapters. Vault/Receiving compensation continues in Engine;
+no manufacturing formula, physical part identity, CUTTING, or DXF capability
+is created or re-certified by this ownership migration.
