@@ -29,6 +29,10 @@ from . import ae
 from .dxf_serialization import save_scene_dxf
 from .cabinet_types.policy import resolve_box_body_back_panel_contract
 from .indicator_editor_geometry import resolve_indicator_editor_components
+from .manufacturing_legacy_export_guard import (
+    has_submitted_nfb_in_current_snapshot,
+    assert_legacy_nfb_export_scope_safe,
+)
 from .manufacturing_selected_export import (
     save_selected_resolved_manufacturing_dxf,
     selected_export_manufacturing_policy,
