@@ -391,3 +391,17 @@ single-part route; Vault integral BoxBody cannot act as a reference substitute.
 No CADSplit external Feature transform, untrusted original DXF entities,
 assembly/world Joint or unrelated multipart output is certified; preserve
 original source SHA and W-03/04/06 exact-job verification and DXF Save→Reload.
+
+
+### #2383 Receiving back-panel FULL independent W-08 manufacturing (2026-10-31)
+
+`受電箱/back_panel` can manufacture only the explicitly source-confirmed
+`FULL` physical `box_body:back` sheet. The canonical Receiving three-piece
+Family/Topology, explicit 8-segment source Fold, authentic dedicated trio of
+`左側板.dxf`/`右側板.dxf`/`後面板.dxf` and existing rear four-keyslot datum
+remain the production authority. Exact W/H/D/T/FW, zl1/zl2/zr2 and
+`back_panel_mode=FULL` are locked in Worker W-03 HMAC; W-04 recomputes the
+same FinalScene, insists on empty original DXF and verifies actual saved DXF.
+The independent flat back panel correctly has no BEND guide.
+`HALF`, `BACK_OPENING`, source hole mapping, side-to-back weld placement,
+full assembly and other Receiving roles remain independent Gate C requirements.
