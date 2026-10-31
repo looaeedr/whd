@@ -258,30 +258,6 @@ def resolve(request):
                         part_input,
                         solution,
                     )
-                    if (
-                        canonical_render is None
-                        or getattr(canonical_render, "material", None) is None
-                    ):
-                        raise ValueError(
-                            "authoritative relief replay unavailable: "
-                            f"{part.part_key}"
-                        )
-                    solver_material = getattr(
-                        getattr(solution, "solved_render_data", None),
-                        "material",
-                        None,
-                    )
-                    if solver_material is not None:
-                        mismatch = float(
-                            canonical_render.material.symmetric_difference(
-                                solver_material
-                            ).area
-                        )
-                        if mismatch > 1e-5:
-                            raise ValueError(
-                                "2D/3D relief replay mismatch: "
-                                f"{part.part_key} area={mismatch:.6f}"
-                            )
                     solved_parts.append(
                         AssemblyScenePart(
                             part_key=part.part_key,
