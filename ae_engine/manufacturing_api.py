@@ -178,6 +178,7 @@ from .cabinet_types import policy as cabinet_family_policy
 
 from .standard_part_fold_profiles import build_standard_part_fold_profiles
 from .keyed_fold_reconciliation import merge_keyed_fold_profiles
+from .physical_part_identity import is_box_body_physical_piece_key, is_derived_physical_part_key
 
 from .part_dimension_projection import (
     DoorPartProjection, door_part_projections, project_part_dimensions,
