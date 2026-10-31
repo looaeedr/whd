@@ -40,6 +40,7 @@ from .box_body_structure_state import (
     set_join_seam_bend, resolve_three_piece_widths, set_three_piece_width,
     set_side_back_piece_profile, side_rear_bend_dimension_space, side_rear_bend_material_length,
     side_rear_bend_outside_length, set_side_back_geometry,
+    apply_box_body_structure_numeric,
 )
 
 # Public compatibility aliases: old Phase6 helper names keep identical Engine

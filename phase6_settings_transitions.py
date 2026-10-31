@@ -174,45 +174,10 @@ def apply_box_structure_numeric(
     total_w: float,
     outside_family: bool = False,
 ) -> dict:
-    kind = BoxBodyStructureType(type_id)
-    field = str(field)
-    value = float(value)
-    if (
-        kind is BoxBodyStructureType.TWO_PIECE_W_SPLIT
-        and field in {"left", "right"}
-    ):
-        return set_two_piece_width(state, total_w, field, value)
-    if (
-        kind is BoxBodyStructureType.THREE_PIECE_W_SPLIT
-        and field in {"left", "middle", "right"}
-    ):
-        return set_three_piece_width(state, total_w, field, value)
-    if field == "seam_bend":
-        return set_join_seam_bend(state, kind, value)
-    if (
-        kind is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT
-        and field == "side_rear_bend"
-    ):
-        return set_side_back_geometry(
-            state,
-            side_rear_bend=value,
-            side_rear_bend_dimension_space=(
-                "OUTSIDE" if outside_family else None
-            ),
-        )
-    if (
-        kind is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT
-        and field == "back_width_comp_t"
-    ):
-        return set_side_back_geometry(state, back_width_comp_t=value)
-    if field in {
-        "endcap_extra_relief",
-        "endcap_single_side_meat_t",
-        "baseplate_relief_length",
-        "baseplate_single_side_meat_t",
-    } and value < 0:
-        raise ValueError("截角／避讓參數不得小於 0")
-    return update_structure_config(state, kind, {field: value})
+    return manufacturing_api.apply_box_body_structure_numeric(
+        state, type_id, field, value,
+        total_w=total_w, outside_family=outside_family,
+    )
 
 
 def reconcile_width_structure(
