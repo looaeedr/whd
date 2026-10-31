@@ -382,7 +382,7 @@ Save→Reload remain mandatory. The owner of the inner-door frame set is unchang
 
 `受電箱/side_panel` chooses only one physical side source ID
 `box_body:left_side` / `box_body:right_side`. The existing Receiving
-`build_box_body_profile` outside→material owner, fixed three-piece
+`build_box_body_profile` eight-segment Receiving outside→material owner, fixed three-piece
 `resolve_box_body_structure_state`, `resolve_back_panel_contract` and
 `build_box_body_structure_render_data` alone own geometry/stock/bends and
 baseline CUTTING/BLIND_HOLE/MARKING. All three dedicated source files
