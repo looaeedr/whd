@@ -58,6 +58,9 @@ from .linked_endcap_fold import (
 from .endcap_factory_fold import (
     selection_from_raw as endcap_corner_selection_from_raw, normalize_endcap_fw_state,
     resolve_endcap_fw, resolve_endcap_assembly_type, build_endcap_xy_fold_profiles,
+    ENDCAP_FW_PARTS, FW_FOLLOW_BODY, FW_FOLLOW_HEAD, FW_FOLLOW_TAIL,
+    FW_INDEPENDENT, ENDCAP_FW_MODES, commit_box_fw, commit_endcap_fw,
+    set_endcap_fw_follow, set_endcap_fw_override,
     endcap_editor_fold_tabs, normalize_endcap_profile_order,
 )
 from .endcap_bottom_wrap_state import (
