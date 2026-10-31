@@ -58,23 +58,10 @@ def _query_fold_designer_baseline_data(self, part_key, model, values):
 def _apply_cabinet_family_endcap_policy(
     self, policy, part_key, *, snapshot=None, thickness=None, structure_state=None
 ):
-    """Apply cabinet-family geometry inputs without changing operator Corner selections.
-
-    The Corner selections remain the operator/registry Source of Truth. Cabinet families
-    may supply only family geometry such as the receiving-cabinet effective bottom FW.
-    Both the main GUI and Fold Designer payload adapter call this helper so 2D/3D cannot
-    drift by rebuilding the same family rule differently.
-    """
+    """Forward operator family/structure inputs to authoritative Engine policy."""
     if policy is None or str(part_key) not in {"head", "tail"}:
         return policy
-
-    family_source = (
-        self._current_cabinet_type_name()
-        if snapshot is None else snapshot
-    )
-    if not cabinet_family_policy.supports_bottom_wrap_controls(family_source):
-        return policy
-
+    family_source = self._current_cabinet_type_name() if snapshot is None else snapshot
     if structure_state is None:
         try:
             structure_state = self.workspace_controller.box_body_structure_state()
@@ -84,16 +71,12 @@ def _apply_cabinet_family_endcap_policy(
         try:
             thickness = float(self.t_var.get())
         except Exception:
-            thickness = float(ae.T)
-    return replace(
-        policy,
-        bottom_fw=cabinet_family_policy.effective_endcap_bottom_fw(
-            family_source,
-            structure_state,
-            thickness=float(thickness),
-            default_fw=float(policy.bottom_fw if policy.bottom_fw is not None else policy.fw),
-        ),
+            thickness = None
+    return manufacturing_api.apply_cabinet_family_endcap_policy(
+        policy, part_key, family_source=family_source,
+        structure_state=structure_state, thickness=thickness,
     )
+
 
 def _fold_designer_corner_policy_from_payload(corner_state, part_key, fw):
     corners = dict((corner_state or {}).get(part_key, {}) or {})

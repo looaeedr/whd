@@ -19,6 +19,12 @@ whd_schema: WHD_DOC_META_V1
 
 `ae_engine.manufacturing_api.fold_designer_secondary_scene_rows(scene)` 提供在同一引擎內重用的相容投影；原 GUI 方法僅是直通 alias。無基準、未知盤型或不支援的板件返回空的可選讀取結果；輸入無效或實體來源錯誤的 Engine exception 由原 GUI 讀取入口以空白可選面板呈現，**不得**被視為加工成功、可用的實體出圖或自動 fallback。這項改造只涵蓋 Fold Designer 基準孔位讀取，不代表整個 WHD GUI / 全功能 API 完成。
 
+## 封頭／封尾 Family Bottom FW（#2517 Engine API 移轉）
+
+`ae_engine.manufacturing_api.apply_cabinet_family_endcap_policy(policy, part_key, *, family_source, structure_state, thickness)` 專責對既有 EndCap CornerPolicy 套入可追溯的 Family／Topology 成形下折邊 `bottom_fw`。現有 Receiving 規則沿用 `ae_engine.cabinet_types.policy.effective_endcap_bottom_fw`，不額外創造補償公式；金庫型與其他無此 family capability 的規則不變，操作者 CornerType 選擇保留。
+
+WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並委派 Engine API；此函式沒有啟用新的 DXF 製造 capability，不代表全 GUI API 化或外部 CADSplit 可加工放行。
+
 ## 公開入口
 
 ```python
