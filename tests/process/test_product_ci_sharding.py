@@ -22,8 +22,24 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
         special = manifest["split_file"]
         expected_cases = {f"{special}::{name}" for name in manifest["split_case_owners"]}
-        assert set(seen) == (set(PYTEST_PATHS) - {special}) | expected_cases
+        bom = manifest["bom_split_file"]
+        func = manifest["bom_split_function"]
+        expected_bom = {
+            f"{bom}::{name}"
+            for name in (
+                "test_physical_sheets_multiply_without_name_or_topology_grouping",
+                "test_invalid_multiplicity_fails_before_any_demand",
+                "test_duplicate_physical_or_version_identity_fails_closed",
+                "test_formal_family_parts_feed_same_physical_demand_boundary",
+            )
+        }
+        expected_bom.update(
+            f"{bom}::{func}[{key.rsplit('-', 2)[0].encode('unicode_escape').decode('ascii')}-{key.rsplit('-', 2)[1]}-{key.rsplit('-', 2)[2]}]"
+            for key in manifest["bom_split_case_owners"]
+        )
+        assert set(seen) == (set(PYTEST_PATHS) - {special, bom}) | expected_cases | expected_bom
         assert len(expected_cases) == 20
+        assert len(expected_bom) == 11
     else:
         assert set(seen) == set(PYTEST_PATHS)
     assert all(n == 1 for n in seen.values())
@@ -81,6 +97,9 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         special = manifest["split_file"]
         assert special in PYTEST_PATHS
         assert len(manifest["split_case_owners"]) == 20
+        assert len(manifest["bom_split_case_owners"]) == 7
+        assert manifest["bom_split_source_run_id"] == 41195715050
+        assert manifest["bom_split_file"] in PYTEST_PATHS
         tree = ast.parse((Path(__file__).resolve().parents[2] / special).read_text(encoding="utf-8"))
         actual_cases = {n.name for n in tree.body if isinstance(n, ast.FunctionDef)
                         and n.name.startswith("test_")}
@@ -89,6 +108,17 @@ def test_each_selector_appears_in_exactly_one_shard(count):
             for node in selectors:
                 if node.startswith(special + "::"):
                     assert manifest["split_case_owners"][node.rsplit("::", 1)[1]] == index
+                elif node.startswith(manifest["bom_split_file"] + "::"):
+                    suffix = node.split("::", 1)[1]
+                    if suffix.startswith(manifest["bom_split_function"] + "["):
+                        case = suffix.removeprefix(manifest["bom_split_function"] + "[")[:-1]
+                        # Parametrized pytest node IDs escape the Chinese family name.
+                        case = case.replace(r"\u53d7\u96fb\u7bb1", "受電箱").replace(
+                            r"\u91d1\u5eab\u578b", "金庫型"
+                        )
+                        assert manifest["bom_split_case_owners"][case] == index
+                    else:
+                        assert index == 1
                 else:
                     assert owners[node.split("::", 1)[0]] == index
     else:
@@ -203,6 +233,31 @@ def test_eighteen_shard_gui_split_rejects_unapproved_case_owner(tmp_path, monkey
     monkeypatch.setattr(regression, "_EIGHTEEN_SHARD_MANIFEST", path)
     with pytest.raises(ValueError, match="observed GUI cases"):
         shard_paths(0, 18)
+
+
+def test_bom_split_rejects_missing_parameter_or_unapproved_lane(tmp_path, monkeypatch):
+    original = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    name = next(iter(original["bom_split_case_owners"]))
+    invalid = json.loads(json.dumps(original))
+    invalid["bom_split_case_owners"].pop(name)
+    path = tmp_path / "bom-missing.json"
+    path.write_text(json.dumps(invalid, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(regression, "_EIGHTEEN_SHARD_MANIFEST", path)
+    with pytest.raises(ValueError, match="observed BOM"):
+        shard_paths(1, 18)
+
+    invalid["bom_split_case_owners"][name] = 6
+    path.write_text(json.dumps(invalid, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="observed BOM"):
+        shard_paths(1, 18)
+
+
+def test_bom_split_preserves_every_non18_canonical_file_selector():
+    bom = "tests/test_issue1466_quantity_bom.py"
+    for count in (1, 3, 10, 20):
+        items = [item for i in range(count) for item in shard_paths(i, count)]
+        assert items.count(bom) == 1
+        assert not any(item.startswith(bom + "::") for item in items)
 
 
 def test_duration_manifest_fails_closed_if_a_file_is_missing(tmp_path, monkeypatch):
