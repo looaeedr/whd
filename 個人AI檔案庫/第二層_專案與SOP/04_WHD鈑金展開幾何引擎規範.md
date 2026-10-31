@@ -507,3 +507,9 @@ frame-only route.
 
 - `project_part_dimensions`, `door_part_projections` and `DoorPartProjection` now belong to public `ae_engine.manufacturing_api`; Family Door FW, Door-cell finished sizes, Receiving BasePlate physical blank and persisted dimension reconciliation are computed from existing canonical Engine sources.
 - `phase6_settings_profile_projection` retains the existing Settings freeze/plan/presentation contract but re-exports the Engine API only; it does not implement second Door/BasePlate size formulas. This is one #2517 slice, not a declaration of complete manufacturing/DXF capability.
+
+
+### #2517 Standard Door/BasePlate/Indicator Fold profiles (2026-11-01)
+
+- Engine public `build_standard_part_fold_profiles` now owns existing Door, BasePlate, IndicatorBox/IndicatorDoor and standard fallback X/Y material segment construction, including topology-based `ui_len_add`, Family receiving physical BasePlate precedence and finished-size consumption.
+- Settings/GUI `build_standard_part_profiles` forwards standard part identities only; existing `custom:` keys retain the separate Phase6 custom extension until its own Engine API migration. Standard API rejects custom IDs, never silently substitutes generic material.
