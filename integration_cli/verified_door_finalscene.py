@@ -23,6 +23,11 @@ from integration_cli.worker_box_body import (
     vault_box_body_spec_from_trusted_prepared_part,
     resolve_vault_box_body_size_only_frame,
 )
+from integration_cli.worker_receiving_endcap import (
+    receiving_endcap_spec_from_trusted_part,
+    receiving_endcap_frame,
+    _render as receiving_endcap_render,
+)
 from integration_cli.worker_receiving_back_panel import (
     receiving_back_panel_spec_from_trusted_part,
     receiving_back_panel_frame,
@@ -313,6 +318,16 @@ def save_trusted_door_circle_finalscene_batch(
             render = build_part_render_data(spec, context)
             if render.material is None or render.material.is_empty or not render.material.is_valid:
                 _reject("Vault BasePlate has no verified Final Material")
+            rows.append((receipt["physical_part_id"], render))
+            continue
+        if kind in ("end_cap_head", "end_cap_tail") and original["part"]["cabinet_family"] == "受電箱":
+            spec = receiving_endcap_spec_from_trusted_part(original["part"])
+            frame = receiving_endcap_frame(
+                spec, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Receiving head/tail canonical D-2T Frame changed after signed Prepare")
+            render = receiving_endcap_render(spec, context)
             rows.append((receipt["physical_part_id"], render))
             continue
         if kind in ("end_cap_head", "end_cap_tail"):

@@ -403,3 +403,17 @@ keyslots and optional source-derived 650x200 rear opening. The signed source
 snapshot attests all three Receiving side/back DXFs; no virtual assembly,
 manual hole transfer or spurious BEND is allowed. HALF cannot be released
 until its persisted two-section Door topology is independently bound.
+
+
+### W-08 Receiving independent head/tail Worker authority
+
+`受電箱/end_cap_head` and `受電箱/end_cap_tail` expose two separately
+signed physical-sheet routes. Source W/H/D/T/FW, yl1/yr1/ytop1/ybottom1 and
+rear Fold value are explicit. `build_endcap_xy_profiles` determines real
+head/tail orientation and flat Fold material; Receiving `D-2T` and family
+`endcap_corner_policy` determine physical corner CUTTING. The canonical
+Receiving policy maps *only baseline fixed Ø6.4 holes* to existing
+`基準檔/金庫型/封頭尾.dxf`; it does not import Vault D-3T. HMAC-signed
+W-03/04/06, source-empty verification, exact reference bytes and actual
+CUTTING/BEND Save→Reload remain mandatory. No assembled WRAP/Joint, external
+CADSplit Feature transform or other uncertified physical roles are released.

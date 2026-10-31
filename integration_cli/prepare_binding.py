@@ -16,6 +16,7 @@ from typing import Any, Mapping, Sequence
 from integration_cli.prepare_evidence import (
     PrepareEvidenceError, _pure_json, evidence_digest,
 )
+from integration_cli.worker_receiving_endcap import require_receiving_endcap_frame
 from integration_cli.worker_receiving_back_panel import require_receiving_back_panel_frame
 from integration_cli.worker_receiving_side_panel import require_receiving_side_panel_frame
 from integration_cli.worker_inner_door_panel import require_canonical_receiving_inner_door_panel_frame
@@ -112,6 +113,10 @@ def _binding_payload(
             require_canonical_vault_base_plate_size_only_frame(
                 frame, physical_part_id=physical,
             )
+        elif raw_kind in ("end_cap_head", "end_cap_tail") and locked["raw_part"].get("cabinet_family") == "受電箱":
+            if frame_id != f"{raw_kind}:{physical}:receiving:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "Receiving EndCap physical Frame ID differs")
+            require_receiving_endcap_frame(frame, role=raw_kind, physical_part_id=physical)
         elif raw_kind in ("end_cap_head", "end_cap_tail"):
             if frame_id != f"{raw_kind}:{physical}:outer:size-only-v1":
                 raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "EndCap frame identity does not match its role")

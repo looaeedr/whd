@@ -33,6 +33,15 @@ def _feature_request(family, role):
     part["kind"] = role
     if role in ("end_cap_head", "end_cap_tail"):
         part["dimensions_mm"] = {"width": 500.0, "depth": 350.0, "thickness": 2.0}
+        if family == "受電箱":
+            part["source_part_ref"] = role
+            part["dimensions_mm"]["height"] = 900.0
+            part["frame_width_mm"] = 29.0
+            part.update({
+                "endcap_yl1_mm": 15.0, "endcap_yr1_mm": 15.0,
+                "endcap_ytop1_mm": 16.0, "endcap_ybottom1_mm": 15.0,
+                "endcap_side_rear_bend_mm": 18.0,
+            })
     if role == "box_body":
         part.clear()
         part.update({
@@ -111,7 +120,7 @@ def test_all_registered_family_features_are_addressable_over_v11_wire(family):
         SCHEMA.validate(request)
         assert request["items"][0]["part"]["kind"] == role
         if role in P0 and not (
-            family == "受電箱" and role in ("end_cap_head", "end_cap_tail", "base_plate", "box_body")
+            family == "受電箱" and role in ("base_plate", "box_body")
         ):
             # This passes only the routing check, NOT signed job approval,
             # source/Frame verification or real DXF manufacturing.
@@ -141,7 +150,6 @@ def test_unknown_family_cannot_inherit_vault_api_route():
     ("受電箱", "divider"),
     ("受電箱", "nfb_cutting"),
     ("受電箱", "multi_bay_batch"),
-    ("受電箱", "end_cap_head"),
 ])
 def test_unsupported_feature_refused_before_durable_claim(tmp_path, monkeypatch, family, role):
     from integration_cli import private_worker_dispatch as dispatch

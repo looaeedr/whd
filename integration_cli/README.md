@@ -169,6 +169,23 @@ external manual openings, HALF (needs persisted upper/lower door sections),
 side-to-back Joint and whole-cabinet release remain explicitly prohibited.
 A verified DXF Save→Reload completes only the single sheet, not assembly.
 
+## Receiving standalone EndCap head/tail (D-2T, shared source holes only)
+
+`受電箱/end_cap_head` and `受電箱/end_cap_tail` now have independent
+W-03/04 manufacturing routes. Both require cabinet-outer W/H/D/T,
+`source_part_ref=kind`, explicit `frame_width_mm`, source-confirmed
+`endcap_yl1_mm / endcap_yr1_mm / endcap_ytop1_mm /
+endcap_ybottom1_mm / endcap_side_rear_bend_mm`. The unchanged
+`phase6_fold_profiles.build_endcap_xy_profiles` owns head/tail Fold
+orientation; `ae_engine.cabinet_types.receiving` owns D-2T and top/bottom
+STANDARD corner semantics, not the Vault D-3T. The certified Vault
+`封頭尾.dxf` is reused solely as Receiving's **shared fixed Ø6.4 hole source**;
+the signed Worker attests its real bytes before and after machining.
+Export is an intrinsic **single physical EndCap only**: original CADSplit
+modelspace must be empty, external Feature mapping, Side/Back WRAP Joint,
+complete cabinet/world placement and unverified Fold/corner overrides are
+denied. No official X release or multi-Bay assembly is implied.
+
 ## Output and failure semantics
 
 - `stdout`: reserved/empty for these operations. The response JSON file is
