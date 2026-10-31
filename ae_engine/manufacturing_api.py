@@ -180,6 +180,13 @@ from .cabinet_types.policy import door_material_frame_width
 
 from .standard_part_fold_profiles import build_standard_part_fold_profiles
 from .standard_part_fold_readback import read_standard_part_fold_profiles
+from .custom_part_catalog import (
+    PREFIX as CUSTOM_PART_PREFIX, PRESET as CUSTOM_PART_PRESET,
+    CustomPartCatalog, is_custom_part, custom_part_only_change,
+)
+from .custom_fold_api import (
+    descriptor_from_snapshot, build_custom_part_profiles, custom_part_spec,
+)
 from .keyed_fold_reconciliation import merge_keyed_fold_profiles
 from .relief_commit_policy import endcap_relief_solution_committable
 from .manufacturing_cache_signature import (
