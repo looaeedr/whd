@@ -168,7 +168,13 @@ def test_no_new_ui_button_or_full_cabinet_global_ear_bypass():
     import gui_modules.project.export_actions as gui
     source=inspect.getsource(gui._export_selected_resolved_parts)
     guard=inspect.getsource(sink._reject_unapproved_nfb_pad_ear_manufacturing)
-    assert "save_verified_receiving_formed_fixing_plate_bundle" in source
+    from ae_engine import manufacturing_api
+    engine_source = inspect.getsource(
+        manufacturing_api.save_selected_resolved_manufacturing_dxf
+    )
+    assert "save_selected_resolved_manufacturing_dxf" in source
+    assert "save_verified_receiving_formed_fixing_plate_bundle" not in source
+    assert "save_verified_receiving_formed_fixing_plate_bundle" in engine_source
     assert "BASE_FIXING_PLATE_MANUFACTURING_UNVERIFIED" in guard
 
 
