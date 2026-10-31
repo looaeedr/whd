@@ -148,6 +148,22 @@
               "shrink_left_mm": {"type": "number", "minimum": 0},
               "shrink_right_mm": {"type": "number", "minimum": 0},
               "bend_mm": {"type": "number", "minimum": 0},
+              "fold_axis": {"enum": ["X", "Y"]},
+              "transverse_length_mm": {"type": "number", "exclusiveMinimum": 0},
+              "fold_profile": {
+                "type": "array", "minItems": 2, "maxItems": 64,
+                "items": {
+                  "type": "object", "additionalProperties": false,
+                  "required": ["length_mm", "angle_deg"],
+                  "properties": {
+                    "length_mm": {"type": "number", "exclusiveMinimum": 0},
+                    "angle_deg": {"enum": [-90, 0, 90, null]},
+                    "formed_length_mm": {"type": "number", "exclusiveMinimum": 0},
+                    "core": {"type": "string", "minLength": 1, "maxLength": 128},
+                    "phase6_key": {"type": "string", "minLength": 1, "maxLength": 128}
+                  }
+                }
+              },
               "box_zl1_mm": {"type": "number"},
               "box_zl2_mm": {"type": "number"},
               "box_zr1_mm": {"type": "number"},
@@ -253,6 +269,16 @@
                       ]
                     }
                   }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "kind": {"const": "custom_fold"}
+                  }
+                },
+                "then": {
+                  "required": ["fold_axis", "transverse_length_mm", "fold_profile"]
                 }
               },
               {

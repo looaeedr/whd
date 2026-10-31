@@ -334,6 +334,23 @@ Frame denotes only the unfolded Final Material envelope and prohibits external F
 This scope does **not** enable Receiving pattern, Joint, cross relief, original-source
 hole mapping, box-body assembly or any other blocked W-08 feature.
 
+### #2383 Vault/Receiving standalone custom Fold Worker route (2026-10-31)
+
+Independent `金庫型/custom_fold` and `受電箱/custom_fold` manufacturing must
+consume the explicit source physical `custom:<positive integer>` ID, one X/Y
+fold axis, transverse material span and every material Fold Profile segment
+(length, angle and optional formed outside length) through WHD's
+`CustomFoldPartSpec` and `ae_engine/custom_fold_manufacturing.py`. That owner
+alone resolves real CUTTING/BEND and Final Material, then the already guarded
+Worker W-03/04/06 Save→Reload path exports independently verified DXF.
+
+A size-only signed Frame attests unfolded material bounds, never an assembly
+placement, original CADSplit source-to-DXF feature mapping or a second fold
+formula. Original CADSplit DXF must be empty for the feature-disabled export.
+No implicit preset, material conversion, 3D joint, corner relief or original
+feature transfer may be guessed. Other family roles stay closed until their
+own exact Gate C manufacturing authority exists.
+
 ### #2383 Vault integral BoxBody W-08 source-controlled API (2026-10-31)
 
 `金庫型/box_body` accepts one integrated physical sheet only. Its independent

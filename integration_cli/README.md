@@ -82,6 +82,25 @@ locked dimensions and FinalScene replace a nonexistent dedicated BasePlate
 baseline. Other roles still require their own actual selected baseline.
 This is a single standalone physical part, **not complete assembly validation**.
 
+## W-08 custom physical Fold source contract (two families)
+
+`金庫型/custom_fold` and `受電箱/custom_fold` reuse one actual standalone
+`CustomFoldPartSpec` owner; the input physical identity MUST be a persisted
+`custom:<positive integer>` `source_part_ref`, not a label or an inferred
+assembly placement. `part_formed_outer` denotes the source part, with
+`dimensions_mm={thickness}`, `fold_axis=X|Y`, positive
+`transverse_length_mm`, and a complete ordered `fold_profile` of explicit
+flat/material `length_mm` and `angle_deg` segments (optional formed/outside
+`formed_length_mm`, `core`, `phase6_key`). The last Fold segment has no
+bend; internal bends are WHD-validated exact ±90 degrees. CADSplit does not
+rederive material lengths, fold direction, or transverse span from previews.
+
+The canonical FinalScene contains real CUTTING/BEND and an independently verified
+unfolded material envelope; the size-only signed Frame does NOT authorize
+external source hole placement or claim a 3D assembly. Original source
+modelspace must be empty for this first supported manufacturing route. Other
+Fold/Joint/relief/assembly capabilities retain their separate Gate C requirements.
+
 ## Vault integral BoxBody native manufacturing route
 
 The installed v1.1 Worker can manufacture `金庫型/box_body` **only as one integral physical sheet**.

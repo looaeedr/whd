@@ -1688,7 +1688,7 @@ def test_packaged_public_v11_prepare_export_requires_sealed_job_and_certifies_re
     assert advertised["capability_flags"]["per_part_transactions"] is False
     assert set(advertised["supported_part_kinds"]) == {
         "door", "indicator_small_door", "indicator_box",
-        "end_cap_head", "end_cap_tail", "base_plate", "box_body",
+        "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body",
     }
     assert {item["part_kind"]: item["cabinet_families"]
             for item in advertised["capabilities"]}["base_plate"] == ["金庫型"]
