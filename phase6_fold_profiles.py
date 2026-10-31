@@ -77,62 +77,9 @@ def read_endcap_profile(profile: Sequence[Mapping[str, object]]) -> dict:
 
 
 def build_endcap_xy_profiles(snapshot: Mapping[str, object], *, part_key: str = "head") -> dict[str, list[dict]]:
-    """Map authoritative EndCap bends into the editor without mirroring tail.
+    """GUI compatibility: physical X/Y Fold is built only by public Engine."""
+    return manufacturing_api.build_endcap_xy_fold_profiles(snapshot, part_key=part_key)
 
-    Head manufacturing scenes are Y-normalized once by AE, while tail scenes stay
-    in their native orientation.  Therefore the editor Y-chain order must be
-    part-aware: head walks top->bottom after normalization; tail walks the native
-    bottom->top scene.  Lengths remain authoritative material lengths.
-    """
-    w = _num(snapshot.get("w", 500), 500)
-    d = _num(snapshot.get("d", 200), 200)
-    t = _num(snapshot.get("t", 2), 2)
-    fw = resolve_endcap_fw(snapshot, part_key)
-    material_fw = cabinet_family_policy.endcap_fw_profile_uses_material_dimensions(snapshot)
-    if material_fw:
-        # Receiving operator FW is outside 29; canonical Y Fold Profile stores material 25.
-        fw = max(0.0, float(fw) - 2.0 * t)
-    x_core = max(0.0, w - 4.0 * t)
-    depth_comp_t = cabinet_family_policy.endcap_depth_comp_t(snapshot)
-    y_core = max(0.0, d - depth_comp_t * t)
-    outside_add = max(0.0, 2.0 * t)
-    x_profile = [
-        {"len": _ui_len(snapshot.get("yl1", 15)), "angle": -90, "phase6_key": "yl1"},
-        {"len": _common_dimension_len(snapshot, x_core), "angle": -90, "phase6_key": "endcap_w_core",
-         "core": "W-2T"},
-        {"len": _ui_len(snapshot.get("yr1", 15)), "phase6_key": "yr1"},
-    ]
-    if resolve_box_assembly_type(snapshot) is CornerTypeId.OVERLAY:
-        # 貼外型封頭／封尾沒有左右 X 折彎，因此整片 X 向材料寬就是 W。
-        # 下方 CROSS + EXTRA_CUT 的 1.5T 只改角落 CUTTING，不得把
-        # 原本 INSERT 型的 yl1 / yr1 折邊寬度加回整張材料外框。
-        x_profile = [
-            {"len": _common_dimension_len(snapshot, w), "phase6_key": "endcap_w_flat", "core": "W-FLAT"}
-        ]
-
-    profiles = {
-        "X": x_profile,
-        "Y": (
-            [
-                {"len": _ui_len(snapshot.get("ybottom1", 15)), "angle": -90, "phase6_key": "ybottom1"},
-                {"len": _common_dimension_len(snapshot, y_core), "angle": -90, "phase6_key": "endcap_d_core",
-                 "core": "D-T"},
-                {"len": _ui_len(fw), "angle": -90, "phase6_key": "fw"},
-                {"len": _ui_len(snapshot.get("ytop1", 16)), "phase6_key": "ytop1"},
-            ]
-            if str(part_key) == "tail" else
-            [
-                {"len": _ui_len(snapshot.get("ytop1", 16)), "angle": -90, "phase6_key": "ytop1"},
-                {"len": _ui_len(fw), "angle": -90, "phase6_key": "fw"},
-                {"len": _common_dimension_len(snapshot, y_core), "angle": -90, "phase6_key": "endcap_d_core",
-                 "core": "D-T"},
-                {"len": _ui_len(snapshot.get("ybottom1", 15)), "phase6_key": "ybottom1"},
-            ]
-        ),
-    }
-    profiles["X"] = apply_outside_dimension_compensation(profiles["X"], t)
-    profiles["Y"] = apply_outside_dimension_compensation(profiles["Y"], t)
-    return profiles
 
 def _phase6_fold_tabs_for_part(snapshot: Mapping[str, object], part_key: str):
     """Return an explicit Fold-editor tab set only when topology requires it."""

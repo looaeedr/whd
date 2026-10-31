@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 from typing import Mapping
+from ae_engine import manufacturing_api
 
 from ae_engine.sheetmetal_geometry import (
     CornerTypeId, CornerTypeSelection, normalize_corner_selection,
@@ -208,88 +209,18 @@ def selection_to_raw(selection):
 
 
 def selection_from_raw(raw):
-    if not isinstance(raw, Mapping):
-        return CornerTypeSelection(CornerTypeId.CROSS)
-    try:
-        selection = CornerTypeSelection(
-            CornerTypeId(str(raw.get("type_id", "CROSS")).upper()),
-            int(raw.get("rotation_quadrants", 0) or 0),
-            cross_mode=raw.get("cross_mode"),
-            direction=raw.get("direction"),
-            amount_t=raw.get("amount_t"),
-            secondary_retain_t=raw.get("secondary_retain_t"),
-            secondary_depth_t=raw.get("secondary_depth_t"),
-        )
-        return normalize_corner_selection(selection)
-    except (TypeError, ValueError):
-        return CornerTypeSelection(CornerTypeId.CROSS)
+    """Existing UI loader; Engine handles canonical CornerType state."""
+    return manufacturing_api.endcap_corner_selection_from_raw(raw)
 
 
 def normalize_endcap_fw_state(snapshot: Mapping[str, object]) -> dict[str, object]:
-    """Return the canonical Head/Tail FW control state.
-
-    Operator semantics are four-state:
-    ``FOLLOW_BODY`` -> box FW controls both end caps;
-    ``FOLLOW_HEAD`` / ``FOLLOW_TAIL`` -> the first edited end cap controls the pair;
-    ``INDEPENDENT`` -> after the opposite end cap is edited, each keeps its own value.
-
-    Legacy files had only per-part ``follow_box`` flags.  Mixed legacy state is
-    preserved as independent values/flags instead of inventing a pair leader.
-    """
-    box_fw = _num(snapshot.get("fw", 25), 25)
-    raw = snapshot.get("endcap_fw")
-    if raw is None:
-        workspace = snapshot.get("workspace")
-        if isinstance(workspace, Mapping):
-            raw = workspace.get("endcap_fw")
-    raw = raw if isinstance(raw, Mapping) else {}
-
-    raw_items = {}
-    for part in ENDCAP_FW_PARTS:
-        item = raw.get(part) if isinstance(raw, Mapping) else None
-        item = item if isinstance(item, Mapping) else {}
-        raw_items[part] = {
-            "follow_box": bool(item.get("follow_box", True)),
-            "value": _num(item.get("value", box_fw), box_fw),
-        }
-
-    requested_mode = str(raw.get("mode", "") or "").upper()
-    if requested_mode in ENDCAP_FW_MODES:
-        mode = requested_mode
-    elif all(raw_items[p]["follow_box"] for p in ENDCAP_FW_PARTS):
-        mode = FW_FOLLOW_BODY
-    else:
-        # Old files cannot express which end cap became the pair leader, so do
-        # not guess.  Keep their numerical/follow-box behaviour as independent.
-        mode = FW_INDEPENDENT
-
-    result = {"mode": mode, **raw_items}
-    if mode == FW_FOLLOW_BODY:
-        for part in ENDCAP_FW_PARTS:
-            result[part]["follow_box"] = True
-            result[part]["value"] = box_fw
-    elif mode == FW_FOLLOW_HEAD:
-        value = _num(result["head"].get("value", box_fw), box_fw)
-        for part in ENDCAP_FW_PARTS:
-            result[part]["follow_box"] = False
-            result[part]["value"] = value
-    elif mode == FW_FOLLOW_TAIL:
-        value = _num(result["tail"].get("value", box_fw), box_fw)
-        for part in ENDCAP_FW_PARTS:
-            result[part]["follow_box"] = False
-            result[part]["value"] = value
-    return result
+    """Operator FW state is owned by the Engine, not recreated by Phase6."""
+    return manufacturing_api.normalize_endcap_fw_state(snapshot)
 
 
 def resolve_endcap_fw(snapshot: Mapping[str, object], part_key: str, *, state=None) -> float:
-    part_key = str(part_key)
-    box_fw = _num(snapshot.get("fw", 25), 25)
-    state = normalize_endcap_fw_state(snapshot) if state is None else state
-    mode = str((state or {}).get("mode", FW_INDEPENDENT))
-    item = dict((state or {}).get(part_key) or {})
-    if mode == FW_FOLLOW_BODY or bool(item.get("follow_box", False)):
-        return box_fw
-    return _num(item.get("value", box_fw), box_fw)
+    """Read the canonical Engine FW four-state contract."""
+    return manufacturing_api.resolve_endcap_fw(snapshot, part_key, state=state)
 
 
 def commit_box_fw(state, value: float) -> dict:
@@ -372,30 +303,9 @@ def set_endcap_fw_override(state, part_key: str, value: float) -> dict:
     return item
 
 def resolve_box_assembly_type(snapshot: Mapping[str, object]) -> CornerTypeId:
-    """Resolve the persisted high-level intent mirror first.
+    """Legacy GUI name for the Engine-owned Assembly Intent source."""
+    return manufacturing_api.resolve_endcap_assembly_type(snapshot)
 
-    Top CornerType is a legacy projection only.  It is consulted solely when
-    old data has no persisted Assembly Intent mirror.
-    """
-    raw = snapshot.get("assembly_type")
-    if raw is None:
-        workspace = snapshot.get("workspace")
-        if isinstance(workspace, Mapping):
-            raw = workspace.get("assembly_type")
-    if raw is not None:
-        try:
-            stable = assembly_intent_value(raw)
-            return CornerTypeId(stable) if stable != "WRAP_OVERLAY" else stable
-        except (TypeError, ValueError):
-            pass
-
-    converted = {}
-    for part, corners in dict(snapshot.get("corner_state") or {}).items():
-        converted[part] = {
-            key: selection_from_raw(value)
-            for key, value in dict(corners or {}).items()
-        }
-    return assembly_type_from_corner_state(converted)
 
 def apply_box_assembly_type_to_raw_state(
     corner_state, pair_same, type_id, *, reset_bottom_defaults=False
