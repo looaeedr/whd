@@ -119,6 +119,13 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         assert len(manifest["split_case_owners"]) == 20
         assert len(manifest["bom_split_case_owners"]) == 7
         assert manifest["bom_split_source_run_id"] == 41195715050
+        assert manifest["bom_rebalance_source_run_id"] == 41203677890
+        assert manifest["bom_rebalance_target_case"] == "受電箱-FULL-2"
+        assert manifest["bom_rebalance_previous_owner"] == 15
+        assert manifest["bom_rebalance_new_owner"] == 16
+        assert manifest["bom_split_case_owners"]["受電箱-FULL-2"] == 16
+        assert manifest["bom_split_case_owners"]["受電箱-BACK_OPENING-1"] == 15
+        assert sorted(manifest["bom_split_case_owners"].values()) == [1, 14, 14, 15, 16, 16, 17]
         assert manifest["bom_split_file"] in PYTEST_PATHS
         assert manifest["t15_split_source_run_id"] == 41197885699
         assert manifest["t15_split_file"] in PYTEST_PATHS
