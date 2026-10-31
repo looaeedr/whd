@@ -23,6 +23,11 @@ from integration_cli.worker_box_body import (
     vault_box_body_spec_from_trusted_prepared_part,
     resolve_vault_box_body_size_only_frame,
 )
+from integration_cli.worker_receiving_back_panel import (
+    receiving_back_panel_spec_from_trusted_part,
+    receiving_back_panel_frame,
+    receiving_back_panel_render,
+)
 from integration_cli.worker_receiving_side_panel import (
     receiving_side_panel_spec_from_trusted_part,
     receiving_side_panel_frame,
@@ -213,10 +218,10 @@ def save_trusted_door_circle_finalscene_batch(
         if kind not in (
             "door", "indicator_small_door", "indicator_box",
             "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body",
-            "inner_door", "side_panel",
+            "inner_door", "side_panel", "back_panel",
         ):
             _reject("physical part has no trusted WHD FinalScene manufacturing owner")
-        if kind in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body", "inner_door", "side_panel") and exported.get("features"):
+        if kind in ("indicator_box", "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body", "inner_door", "side_panel", "back_panel") and exported.get("features"):
             _reject("size-only physical Frame has no certified source-Feature mapping")
         # A source DXF containing untransferred geometry is never an
         # unperforated blank: even zero declared Features must not silently
@@ -234,6 +239,16 @@ def save_trusted_door_circle_finalscene_batch(
                 _reject("source DXF has untransferred geometry without declared Features")
         original_item_id = original["item_id"]
         source_path = source_documents.get(original_item_id)
+        if kind == "back_panel":
+            spec = receiving_back_panel_spec_from_trusted_part(original["part"])
+            frame = receiving_back_panel_frame(
+                spec, context, physical_part_id=receipt["physical_part_id"],
+            )
+            if _pure_json(frame) != _pure_json(receipt["target_frames"][0]):
+                _reject("Receiving dedicated back-panel Frame changed after signed Prepare")
+            render = receiving_back_panel_render(spec, context)
+            rows.append((receipt["physical_part_id"], render))
+            continue
         if kind == "side_panel":
             spec, side_role = receiving_side_panel_spec_from_trusted_part(original["part"])
             frame = receiving_side_panel_frame(
