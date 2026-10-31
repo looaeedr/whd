@@ -46,6 +46,10 @@ WHD GUI Fold Designer 僅蒐集既有操作者 family、structure、T 輸入並�
 
 `ae_engine.manufacturing_api.ensure_corner_part`、`commit_corner_pair`、`commit_corner_type`、`commit_corner_mode`、`commit_corner_parameters`、`apply_corner_preset` 的公開輸入為 JSON-safe `corner_state`、`corner_pair_same`，輸出為 `CornerStateTransition`。既有 Phase6 Settings 寫入語意（成對／拆對、重入、型別切換、參數、固定 Family preset）已原樣搬至 `ae_engine.corner_state_transactions`，原 Phase6 同名函式只相容轉呼叫。這個狀態 API 不決定正式 CornerType CUTTING／Relief；幾何權威維持原 Certified Registry 及 Engine 原有求解器。
 
+## BoxBody 實體分件 Fold 編輯投影 API（#2517）
+
+`ae_engine.manufacturing_api.box_body_piece_editor_profiles(render_data, snapshot=None)` 以 Engine 已解析的 `BoxBodyStructureRenderData.pieces`（含實體物理角色、正式 Fold segment、材寬與 formed dimensions）產生各子板 `X/Y` 編輯／Save→Reload 投影，原右側板反向 traversal 的實際 BEND ownership 與舊 Receiving 左側板 source-order inverse 在同一 `ae_engine.box_body_editor_readback` owner，`reverse_box_body_fold_traversal` 同時供編輯寫回使用。舊 `fold_designer_bridge` 同名函式均只轉呼叫 Engine 公開 API。GUI 不得重算實體長度、反推出其他幾何或以 2D preview 取代正式製造資料。
+
 ## 箱身分片數值寫入 API（#2517）
 
 `ae_engine.manufacturing_api.apply_box_body_structure_numeric(state, type_id, field, value, *, total_w, outside_family=False)` 是 BoxBody 二片／三片分配、接合折邊、側背後折邊、後板補償與避讓參數的唯一 Engine 製造狀態寫入。既有 `ae_engine.box_body_structure_state` 持有尺寸守衛、W 互補、OUTSIDE/MATERIAL、負避讓拒絕及 canonical Save→Reload 結構；`phase6_settings_transitions.apply_box_structure_numeric` 僅轉呼叫公開 API，GUI Controller 只套用結果，不重新實作規則。

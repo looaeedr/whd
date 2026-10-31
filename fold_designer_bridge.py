@@ -24,6 +24,7 @@ import re
 from typing import Mapping, MutableMapping
 from whd_theme import WHD_THEME, apply_ttk_dark_theme, configure_tk_menu
 
+from ae_engine import manufacturing_api
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from phase6_designer_workspace import Phase6DesignerWorkspace
 from phase6_part_navigation import (
@@ -300,82 +301,15 @@ def _phase6_structure_tree_rows(values) -> tuple[tuple[str, str | None], ...]:
 
 
 def _phase6_reverse_fold_traversal(rows):
-    """Reverse a fold chain while moving bend ownership to the same boundary."""
-    source = clone_profile(tuple(rows or ()))
-    result = []
-    total = len(source)
-    for index, source_row in enumerate(reversed(source)):
-        row = {k: v for k, v in source_row.items() if k != "angle"}
-        owner_index = total - 2 - index
-        if owner_index >= 0 and "angle" in source[owner_index]:
-            row["angle"] = float(source[owner_index]["angle"])
-        result.append(row)
-    if result:
-        result[-1].pop("angle", None)
-    return result
+    """Compat: Engine owns physical bend boundary on reversed editor traversal."""
+    return manufacturing_api.reverse_box_body_fold_traversal(rows)
 
 
-def _phase6_box_body_piece_part_profiles(
-    render_data, snapshot=None
-) -> dict[str, dict[str, list[dict[str, object]]]]:
-    """Project manufacturing pieces into operator-facing physical-child profiles.
-
-    Material lengths remain authoritative.  The adapter only changes traversal
-    and signed operator presentation: Receiving right-side editing is front→rear
-    while manufacturing keeps its local rear→front chain; Receiving zl1 may carry
-    a negative operator direction without ever making material length negative.
-    """
-    source_snapshot = dict(snapshot or {})
-    result = {}
-    for piece in tuple(getattr(render_data, "pieces", ()) or ()):
-        role = str(getattr(piece, "role", "") or "").strip()
-        if not role:
-            continue
-        key = f"box_body:{role}"
-        rows = [
-            {
-                "len": float(row.length),
-                **({"angle": float(row.angle)} if row.angle is not None else {}),
-                **({"core": row.core} if getattr(row, "core", None) else {}),
-                "phase6_key": str(getattr(row, "phase6_key", "") or ""),
-            }
-            for row in tuple(getattr(piece, "fold_profile", ()) or ())
-        ]
-        if role == "right_side":
-            rows = _phase6_reverse_fold_traversal(rows)
-        # Legacy mirrored Receiving panels are supported for readback only.
-        # New Receiving geometry uses the original pre-DXF source order
-        # zl1/zl2/FW/D/rear, without this inverse or any re-mirroring.
-        # Keep operator dimensions unchanged on both code paths.
-        if role == "left_side" and tuple(row.get("phase6_key") for row in rows) == (
-            "zl1", "d_left", "fw_left", "zl2", "side_rear_bend_left",
-        ):
-            a, new_d, fw, new_b, rear = [float(row["len"]) for row in rows]
-            b = new_b - a + rear
-            original_d = a + new_d + fw + new_b + rear - a - b - fw - rear
-            if b <= 0 or original_d <= 0:
-                raise ValueError("RECEIVING_LEFT_SIDE_OPERATOR_INVERSE_INVALID")
-            by_key = {row["phase6_key"]: dict(row) for row in rows}
-            rows = [
-                dict(by_key["zl1"], len=a),
-                dict(by_key["zl2"], len=b),
-                dict(by_key["fw_left"], len=fw),
-                dict(by_key["d_left"], len=original_d),
-                dict(by_key["side_rear_bend_left"], len=rear),
-            ]
-        if role == "left_side" and float(source_snapshot.get("zl1", 0.0) or 0.0) < 0.0:
-            for row in rows:
-                if str(row.get("phase6_key") or "") == "zl1":
-                    row["phase6_ui_sign"] = -1.0
-                    break
-        result[key] = {
-            "X": rows,
-            "Y": [{
-                "len": float(piece.material_dimensions[1]),
-                "phase6_key": "box_body_piece_height",
-            }],
-        }
-    return result
+def _phase6_box_body_piece_part_profiles(render_data, snapshot=None):
+    """Compat: request Engine-resolved physical child Fold edit/readback."""
+    return manufacturing_api.box_body_piece_editor_profiles(
+        render_data, snapshot=snapshot
+    )
 
 
 def _phase6_box_body_structure_render_data(self):
