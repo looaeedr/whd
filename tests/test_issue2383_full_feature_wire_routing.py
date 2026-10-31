@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = Draft202012Validator(json.loads((
     ROOT / "integration_cli" / "schemas" / "request_v1_1.schema.json"
 ).read_text(encoding="utf-8")))
-P0 = {"door", "end_cap_head", "end_cap_tail", "indicator_box", "indicator_small_door", "base_plate", "custom_fold", "box_body", "inner_door", "side_panel"}
+P0 = {"door", "end_cap_head", "end_cap_tail", "indicator_box", "indicator_small_door", "base_plate", "custom_fold", "box_body", "inner_door", "side_panel", "back_panel"}
 
 
 def _feature_request(family, role):
@@ -49,6 +49,17 @@ def _feature_request(family, role):
             "shrink_top_mm", "shrink_bottom_mm", "shrink_left_mm",
             "shrink_right_mm", "bend_mm",
         )})
+    if role == "back_panel":
+        part.clear()
+        part.update({
+            "kind": role, "cabinet_family": family,
+            "source_part_ref": "box_body:back", "dimension_semantics": "cabinet_outer",
+            "dimensions_mm": {"width": 800.0, "height": 1600.0,
+                              "depth": 350.0, "thickness": 2.0},
+            "frame_width_mm": 29.0,
+            "box_zl1_mm": -24.0, "box_zl2_mm": 24.0, "box_zr2_mm": 18.0,
+            "back_panel_mode": "FULL",
+        })
     if role == "side_panel":
         part.clear()
         part.update({
