@@ -268,6 +268,10 @@ from .assembly_geometry_folded_mesh import (
     expand_box_body_fw_world_mid, shift_multistage_terminal_fold_world_mid,
     fit_receiving_left_zl1_world_mid,
 )
+from .assembly_joint import (
+    side_wrap_target_corners, resolve_box_body_piece_solver_key,
+    joint_relief_state_item_matches,
+)
 from .assembly_placement import (
     SCENE_ASSEMBLY_PLACEMENTS, resolve_legacy_door_cell_scene_placement,
     resolve_scene_assembly_placement,

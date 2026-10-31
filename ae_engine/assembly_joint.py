@@ -826,3 +826,81 @@ def resolved_joint_graph_fingerprint(graph_or_snapshot, *, relevant_parts=("box_
     rows.sort(key=lambda row: json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
     payload = json.dumps(rows, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def side_wrap_target_corners(preserve_part_key):
+    """Return the two physical target-piece end corners touched by an EndCap side WRAP."""
+    key = str(preserve_part_key or "").strip().lower()
+    if key == "head":
+        return ("top_left", "top_right")
+    if key == "tail":
+        return ("bottom_left", "bottom_right")
+    raise ValueError(f"side WRAP preserve part must be head/tail, got {preserve_part_key!r}")
+
+
+def resolve_box_body_piece_solver_key(body_part, region, *, require_flat_uv):
+    """Resolve a Box Body Joint region to one physical piece solver key.
+
+    Multi-piece structures may expose an aggregate world solid for preserve-side
+    collision checks, but relief/backprojection requires one unambiguous piece UV
+    plane.  This adapter deliberately maps only stable physical region names.
+    """
+    pieces = tuple(getattr(getattr(body_part, "render_data", None), "pieces", ()) or ())
+    if not pieces:
+        return "box_body"
+    by_role = {str(getattr(piece, "role", "") or "").strip().lower(): piece for piece in pieces}
+    normalized = str(region or "").strip().lower().replace("-", "_").replace(" ", "_")
+
+    role = None
+    if normalized in {"rear_mating", "rear_panel", "back", "back_panel", "rear", "outer_surface", "wrap_zone"}:
+        role = "back"
+    elif normalized in {"left_mating", "left_mating_zone", "left_side", "left", "top_left", "bottom_left"}:
+        role = "left_side"
+    elif normalized in {"right_mating", "right_mating_zone", "right_side", "right", "top_right", "bottom_right"}:
+        role = "right_side"
+
+    if role is not None and role in by_role:
+        return f"box_body:{role}"
+    if require_flat_uv:
+        raise ValueError(
+            f"piece-level relief region is ambiguous for multi-piece Box Body: {region!r}"
+        )
+    return "box_body"
+
+
+def joint_relief_state_item_matches(item, joint, source_material):
+    """Return True only when a persisted provisional cut still targets the same raw geometry."""
+    if not isinstance(item, dict):
+        return False
+    relation = str(getattr(getattr(joint, "relation", None), "value", getattr(joint, "relation", "")))
+    if (
+        str(item.get("joint_id") or "") != str(joint.joint_id)
+        or str(item.get("subject_part") or "") != str(joint.subject_part)
+        or str(item.get("target_part") or "") != str(joint.target_part)
+        or str(item.get("relation") or "") != relation
+        or item.get("verified") is not True
+    ):
+        return False
+    import math
+    raw_bounds = item.get("source_material_bounds", ())
+    raw_area = item.get("source_material_area")
+    # Saved proof is not a display value: bool must never alias 0/1 mm or
+    # 0/1 mm2 and reuse a previous cutting result after source changes.
+    if (not isinstance(raw_bounds, (tuple, list)) or len(raw_bounds) != 4
+            or isinstance(raw_area, bool)
+            or any(isinstance(v, bool) for v in raw_bounds)):
+        return False
+    try:
+        saved_bounds = tuple(float(v) for v in raw_bounds)
+        saved_area = float(raw_area)
+        current_bounds = tuple(float(v) for v in source_material.bounds)
+        current_area = float(source_material.area)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    if (len(current_bounds) != 4 or not all(math.isfinite(v) for v in
+            (*saved_bounds, *current_bounds, saved_area, current_area))):
+        return False
+    return (all(abs(a-b) <= 1e-6 for a, b in zip(saved_bounds, current_bounds))
+            and abs(saved_area-current_area) <= 1e-6)
+
+
