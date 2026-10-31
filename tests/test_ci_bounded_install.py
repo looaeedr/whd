@@ -70,8 +70,14 @@ def test_workflow_splits_every_network_step_and_preserves_canonical_gate():
     source = (ROOT / ".github/workflows/whd-product-regression.yml").read_text(
         encoding="utf-8",
     )
-    for label in ("apt-index", "xvfb", "pip-upgrade", "pip-product", "pip-canonical"):
+    # Install full dependencies for the actual tests and exact collection,
+    # never for the stdlib-only final JUnit/52-row acceptance verifier.
+    for label in ("apt-index", "xvfb", "pip-upgrade", "pip-product", "pip-collection"):
         assert f"--label {label} --attempts 2 --timeout-seconds" in source
+    final = source.split("\n  product-regression:", 1)[1]
+    assert "pip-canonical" not in final
+    assert "python -S - <<'PY'" in final
+    assert "Verify standard-library-only canonical receipt verifier" in final
     assert "python tools/ci_bounded_install.py" in source
     assert "cache: pip" in source
     assert "timeout-minutes: 30" in source
