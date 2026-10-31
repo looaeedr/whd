@@ -31,6 +31,8 @@ def _feature_request(family, role):
     part = request["items"][0]["part"]
     part["cabinet_family"] = family
     part["kind"] = role
+    if role in ("end_cap_head", "end_cap_tail"):
+        part["dimensions_mm"] = {"width": 500.0, "depth": 350.0, "thickness": 2.0}
     # Existing v1.1 shared Indicator Box/Small Door require explicit
     # grouping even for a request that will be denied by the route gate.
     if role in ("indicator_box", "indicator_small_door"):
