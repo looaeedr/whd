@@ -389,42 +389,14 @@ class ReceivingSetBayAdapter:
 
     def apply_quantity_configuration(self, role, library, quantities, assigned, *,
                                      expected_counts=None):
-        """Atomically commit complete candidate distribution across every Set."""
-        from ae_engine.receiving_hole_candidates import role_key
-        from ae_engine.receiving_quantity_allocation import validate_quantity_allocation
-        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
-        plan = validate_quantity_allocation(
-            self._layout, library, role, quantities, assigned,
+        """Commit the Engine Head/Tail Bay allocation; update GUI dirty IDs."""
+        candidate, changed_ids = manufacturing_api.apply_receiving_endcap_quantity_configuration(
+            self._layout, role, library, quantities, assigned,
             expected_counts=expected_counts,
         )
-        kind = role_key(role) + "_features"
-        version_kind = role + "_version_id"
-        from ae_engine.receiving_shared_settings import validate_setting
-        for si, bi, _features in plan:
-            validate_setting(version_kind, assigned[(si, bi)])
-        candidate = self._layout
-        for set_index, bay_index, features in plan:
-            candidate = unlink_setting(
-                candidate, set_index=set_index, bay_index=bay_index, kind=kind
-            )
-            candidate = edit_setting(
-                candidate, set_index=set_index, bay_index=bay_index,
-                kind=kind, value=features
-            )
-            candidate = unlink_setting(
-                candidate, set_index=set_index, bay_index=bay_index,
-                kind=version_kind,
-            )
-            candidate = edit_setting(
-                candidate, set_index=set_index, bay_index=bay_index,
-                kind=version_kind, value=assigned[(set_index, bay_index)],
-            )
         self._layout = candidate
-        self._session_dirty_ids.update(
-            str(self._layout["sets"][si]["bays"][bi]["stable_id"])
-            for si, bi, _ in plan
-        )
-        return len(plan)
+        self._session_dirty_ids.update(changed_ids)
+        return len(changed_ids)
 
     def apply_inner_door_candidate_to_bays(self, config, set_index, bay_indices, *, version_id=None):
         """Apply one isolated inner-door candidate only to real highlighted Bays."""

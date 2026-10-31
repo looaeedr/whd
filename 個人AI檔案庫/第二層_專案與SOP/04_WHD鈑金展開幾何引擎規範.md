@@ -571,3 +571,8 @@ frame-only route.
 
 - `apply_receiving_inner_door_quantity_configuration(layout, library, quantities, assigned, *, expected_counts=None)` 是跨所有 Receiving Set/Bay 內門版本配置的唯一製造狀態交易入口。Engine `receiving_inner_door_pairing` 先完整檢查 topology／各版本數量／對應、每個候選正式 NFB CSV／CUTTING 單一來源及已提交實體 NFB 覆寫衝突，再原子回傳 detached layout 與受影響 physical Bay stable IDs；未通過不得部分寫入。
 - GUI `ReceivingSetBayAdapter.apply_inner_door_quantity_configuration` 現僅轉發操作者配置與更新 UI dirty IDs；不再自己決定已套用版本、物理孔身份、正式 NFB 持久化及多連共享設定交易。既有 `receiving_shared_settings`／`receiving_layout`／`receiving_nfb_csv_committed_config` 是原有 source owner。此 API 沒有新增 CUTTING／DXF 認證，未授權 X 發布；#2517 繼續 OPEN。
+
+### #2517 Receiving Head/Tail quantity Apply Engine API (2026-11-01)
+
+- `apply_receiving_endcap_quantity_configuration(layout, role, library, quantities, assigned, *, expected_counts=None)` 是跨 Receiving Set/Bay 的封頭／封尾候選數量配置公開交易入口。Engine `receiving_quantity_allocation` 先驗證完整拓樸、版本數量、套／連對應與正式版本 ID，再透過現有 `receiving_shared_settings` 對每個真實 Bay 原子寫入 Head/Tail Hole Editor Feature 與已套用版本，回傳 detached layout 及 stable IDs，不修改原輸入或不同角色的候選與加工來源。
+- GUI `ReceivingSetBayAdapter.apply_quantity_configuration` 只提交操作者選擇、更新界面 dirty IDs；不得複製候選數量、實體 Bay 設定或 Feature 的製造交易。這不新增 Head/Tail 孔公式、CUTTING／DXF 認證；#2517 仍需其他功能繼續遷移。
