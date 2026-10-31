@@ -14,6 +14,7 @@ on:
       - tests/test_issue2380_worker_progress_projection.py
       - tests/test_issue2380_private_worker_dispatch.py
       - tests/test_issue2380_private_exe_installation.py
+      - tests/test_phase6_assembly_registry_gui_matrix.py
       - .github/workflows/whd-engine-private-windows-exe.yml
   workflow_dispatch:
 
@@ -179,6 +180,32 @@ jobs:
             throw 'W05_GUI_ENGINE_PAIR_READBACK_FAILED'
           }
           Write-Host "W05_SAME_SHA_GUI_STARTUP_AND_PRIVATE_ENGINE_PASS $env:ENGINE_SHA"
+      - name: Gate A genuine Windows Tk GUI edit, 2D/3D, collision and project reload
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -ne $env:ENGINE_SHA) { throw 'W07_WINDOWS_GUI_EXACT_SHA_MISMATCH' }
+          # The source GUI exercises the same exact checkout as the two real
+          # packaged binaries; the packaged WHD.exe startup is separately
+          # required above. This is not a packaged-window mouse UAT claim.
+          @'
+          import sys
+          import tkinter as tk
+          sys.path.insert(0, "tests")
+          from test_phase6_assembly_registry_gui_matrix import REGISTERED_CERTIFIED_INTENTS
+          assert REGISTERED_CERTIFIED_INTENTS, "W07_NO_REGISTERED_CERTIFIED_INTENTS"
+          root = tk.Tk()
+          try:
+              root.update_idletasks()
+              assert root.winfo_exists(), "W07_WINDOWS_TK_NOT_LIVE"
+          finally:
+              root.destroy()
+          print("W07_WINDOWS_TK_INTENTS", len(REGISTERED_CERTIFIED_INTENTS))
+          '@ | python -B -
+          if ($LASTEXITCODE -ne 0) { throw 'W07_WINDOWS_TK_OR_CERTIFIED_REGISTRY_UNAVAILABLE' }
+          python -m pytest -q -ra tests/test_phase6_assembly_registry_gui_matrix.py
+          if ($LASTEXITCODE -ne 0) { throw 'W07_WINDOWS_REAL_GUI_2D_3D_SAVE_RELOAD_FAILED' }
+          Write-Host "W07_WINDOWS_REAL_GUI_2D_3D_PROJECT_RELOAD_PASS exact_sha=$env:ENGINE_SHA"
       - name: Upload only private Engine candidate
         uses: actions/upload-artifact@v4
         with:

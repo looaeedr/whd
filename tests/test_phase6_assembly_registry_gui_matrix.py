@@ -52,6 +52,10 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent
     import gui
 
     root = tk.Tk(); root.withdraw()
+    # Windows Tcl may fail to re-read init.tcl after the last Tk interpreter
+    # was destroyed. Keep an independent second interpreter alive throughout
+    # the first GUI session, then reload into a separately constructed host.
+    root2 = tk.Tk(); root2.withdraw()
     app = gui.BoxCalculatorGUI(root)
     save_path = tmp_path / f"assembly-{intent.value}.p6fold"
     try:
@@ -125,11 +129,11 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent
         assert len(diagnostic.intersection_segments) > 0
         designer.assembly_show_interference_var.set(False)
 
-        app.project_controller.save(
-            save_path,
-            app._compose_phase6_project_snapshot_from_main_gui,
-            active_part_hint="box_body",
-        )
+        # Exercise the real GUI Save route (including its authoritative flush),
+        # not just the lower-level persistence owner. Reload uses the GUI route.
+        app.project_controller.set_project_path(save_path)
+        assert app.save_phase6_project(_active_part_hint="box_body") == str(save_path)
+        assert save_path.is_file()
         saved_relief = dict(getattr(app, "assembly_relief_state", {}) or {})
         saved_parts = dict(saved_relief.get("parts", {}) or {})
         for key in ("head", "tail"):
@@ -139,7 +143,12 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent
     finally:
         _destroy(app, root)
 
-    root2 = tk.Tk(); root2.withdraw()
+    # root2 has been a *separate* Tcl interpreter since before the first
+    # editing session. Tk drops its implicit default when root1 is destroyed;
+    # GUI-created StringVar() uses that default unless a master is specified.
+    # Switch the test's Tcl default to the already-live independent root2.
+    assert root2.winfo_exists()
+    tk._default_root = root2
     app2 = gui.BoxCalculatorGUI(root2)
     try:
         app2.load_phase6_project(save_path, open_designer=False)
