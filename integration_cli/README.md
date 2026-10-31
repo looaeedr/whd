@@ -64,6 +64,24 @@ per-physical-piece source, Frame, 3D/DXF Save→Reload, CADSplit original-source
 comparison and Gate C approval. This API ingress permits clients to address
 **every feature now** without making an uncertified manufacturing promise.
 
+## Vault BasePlate real W-03/W-04 manufacturing (standalone only)
+
+The installed v1.1 Worker supports `金庫型/base_plate` as an actual
+HMAC-authorized `prepare → export → canonical FinalScene → verified DXF` route.
+It requires `part.dimension_semantics=part_formed_outer`, exactly
+`dimensions_mm={width,height,thickness}`, explicit nonnegative
+`shrink_top_mm / shrink_bottom_mm / shrink_left_mm / shrink_right_mm / bend_mm`,
+and the WHD canonical BasePlate owner. The preparation Frame is a **size-only
+unfolded Final Material envelope** and has no source Feature placement rights.
+The exact original source DXF must have an **empty modelspace**, or Export
+refuses the entire batch before writing a file. No assembled box dimension,
+seam/cross relief, custom corner/Joint, NFB, source-hole mapping or Receiving
+bend-pattern support is inferred. Receiving `base_plate` remains blocked.
+WHD BasePlate is baseline-free, so its attested installed code, Registry, policy,
+locked dimensions and FinalScene replace a nonexistent dedicated BasePlate
+baseline. Other roles still require their own actual selected baseline.
+This is a single standalone physical part, **not complete assembly validation**.
+
 ## Output and failure semantics
 
 - `stdout`: reserved/empty for these operations. The response JSON file is
