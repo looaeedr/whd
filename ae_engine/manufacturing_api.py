@@ -854,6 +854,18 @@ def apply_receiving_inner_door_quantity_configuration(
         layout, library, quantities, assigned, expected_counts=expected_counts,
     )
 
+def apply_receiving_endcap_quantity_configuration(
+    layout, role, library, quantities, assigned, *, expected_counts=None,
+):
+    """Public Engine Head/Tail cross-Set quantity allocation transaction."""
+    from .receiving_quantity_allocation import (
+        apply_receiving_endcap_quantity_configuration as _apply,
+    )
+    return _apply(
+        layout, role, library, quantities, assigned,
+        expected_counts=expected_counts,
+    )
+
 
 # Engine-owned request-time physical mesh Fold fallback for assembly 3D.
 from .assembly_mesh_profiles import resolve_material_mesh_profiles

@@ -10,6 +10,7 @@ from ae_engine import manufacturing_api
 from ae_engine import box_body_structure as geometry
 from ae_engine import box_body_structure_core as geometry_core
 from ae_engine import box_body_structure_state as owner
+from ae_engine.cabinet_types import policy as family_policy
 import phase6_box_body_structure as legacy
 from integration_cli.worker_receiving_back_panel import (
     receiving_back_panel_spec_from_trusted_part,
@@ -58,3 +59,12 @@ def test_worker_and_engine_manufacturing_do_not_import_phase6_state_or_fold():
     assert "from phase6_box_body_structure import" not in worker
     assert "manufacturing_api" in worker or "ae_engine.manufacturing_api" in worker
     assert "from phase6_" not in inspect.getsource(owner)
+
+
+def test_family_policy_only_imports_engine_structure_state():
+    """The family facade must never import the Phase6 compatibility re-export."""
+    code = inspect.getsource(family_policy)
+    assert "from phase6_box_body_structure import" not in code
+    assert family_policy.resolve_box_body_structure_state("金庫型", None) == (
+        owner.normalize_box_body_structure_state(None)
+    )
