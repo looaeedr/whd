@@ -116,7 +116,6 @@ from .receiving_quantity_versions import (
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
     normalize_quantity_snapshot, quantity_only_change,
 )
-from .receiving_nfb_brand_transition import rebase_receiving_set_parent_nfb_brand
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,
@@ -805,3 +804,10 @@ from .receiving_nfb_quantity_partial import (
     QuantityNfbPartialSelection, verify_quantity_nfb_inner_door,
     select_quantity_nfb_partial, quantity_partial_live_manifests,
 )
+
+def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
+    """Public Engine NFB brand proof transition; lazy owner import avoids a cycle."""
+    from .receiving_nfb_brand_transition import (
+        rebase_receiving_set_parent_nfb_brand as _engine_rebase,
+    )
+    return _engine_rebase(set_row, proposed_brand)
