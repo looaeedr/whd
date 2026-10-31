@@ -322,3 +322,18 @@ blank and per-cell source frame edges are not recreated by GUI. The existing
 `phase6_settings_profile_projection` module re-exports these public Engine
 owners as compatibility callables. No new manufacturing formulas, scene or
 DXF capabilities are asserted by this refactor.
+
+
+## Standard part Fold profiles (#2517)
+
+`ae_engine.manufacturing_api.build_standard_part_fold_profiles(snapshot, part_key)`
+is the Engine-owned approved X/Y material fold-profile builder for standard
+Door (including derived cells), BasePlate, IndicatorBox, IndicatorDoor and
+legacy fallback panel contracts. It shares `apply_outside_dimension_compensation`
+with the existing Engine fold topology and, for Receiving BasePlate, the
+canonical FinalScene-derived physical profile when available. `phase6_settings_profile_projection.build_standard_part_profiles`
+is now only a compatibility router: standard IDs call the Engine API; custom
+IDs remain dispatched to their separate persisted custom-fold implementation.
+Calling the *standard* Engine API on a custom key explicitly fails closed.
+This is an incremental ownership migration, not a claim that custom Fold or
+DXF production readiness is complete.

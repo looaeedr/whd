@@ -19,6 +19,7 @@ from typing import Any, Mapping
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.manufacturing_api import (
     DoorPartProjection, door_part_projections, project_part_dimensions,
+    build_standard_part_fold_profiles,
 )
 from ae_engine.sheetmetal_part_adapters import (
     DoorFrameEdges,
@@ -170,160 +171,15 @@ def is_derived_physical_part_key(value: object) -> bool:
 
 
 
-def _three_segment_profile(
-    left,
-    center,
-    right,
-    *,
-    left_key=None,
-    center_key=None,
-    right_key=None,
-):
-    items = [
-        {"len": _ui_len(left), "angle": -90},
-        {"len": _ui_len(center), "angle": -90},
-        {"len": _ui_len(right)},
-    ]
-    for item, key in zip(items, (left_key, center_key, right_key)):
-        if key:
-            item["phase6_key"] = key
-    return items
-
-
 def build_standard_part_profiles(
-    snapshot: Mapping[str, object],
-    part_key: str,
+    snapshot: Mapping[str, object], part_key: str,
 ) -> dict[str, list[dict]]:
-    """Build the existing X/Y profiles for one non-vault panel."""
+    """Settings view routes custom extension or forwards standard Fold to Engine."""
     from phase6_custom_parts import is_custom_part
     if is_custom_part(part_key):
         from phase6_custom_fold_profiles import build_custom_part_profiles
         return build_custom_part_profiles(snapshot, part_key)
-    dims = dict((snapshot.get("part_dimensions") or {}).get(part_key, {}) or {})
-    w = _num(dims.get("width", snapshot.get("w", 500)), 500)
-    h = _num(dims.get("height", snapshot.get("h", 600)), 600)
-
-    if _is_door_part_key(part_key):
-        t = _num(snapshot.get("t", 2), 2)
-        outside_add = max(0.0, 2.0 * t)
-        profiles = {
-            "X": _three_segment_profile(
-                snapshot.get("door_fold_l", 20),
-                max(0.0, w - outside_add),
-                snapshot.get("door_fold_r", 20),
-                left_key="door_fold_l",
-                center_key="door_face_w",
-                right_key="door_fold_r",
-            ),
-            "Y": _three_segment_profile(
-                snapshot.get("door_fold_b", 20),
-                max(0.0, h - outside_add),
-                snapshot.get("door_fold_t", 20),
-                left_key="door_fold_b",
-                center_key="door_face_h",
-                right_key="door_fold_t",
-            ),
-        }
-        profiles["X"][1]["core"] = "門包外 W"
-        profiles["Y"][1]["core"] = "門包外 H"
-        profiles["X"] = apply_outside_dimension_compensation(profiles["X"], t)
-        profiles["Y"] = apply_outside_dimension_compensation(profiles["Y"], t)
-        return profiles
-
-    if part_key == "base_plate" and str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}:
-        # Share the ONE actual FinalScene-derived BEND profile with assembly Z.
-        from ae_engine.receiving_base_plate_3d_profiles import receiving_base_plate_3d_profiles
-        physical = receiving_base_plate_3d_profiles(snapshot)
-        if physical is not None:
-            return physical
-
-    if _is_base_plate_part_key(part_key):
-        bend = snapshot.get("base_plate_bend", 20)
-        profiles = {
-            "X": _three_segment_profile(
-                bend,
-                w,
-                bend,
-                left_key="base_bend_l",
-                center_key="base_face_w",
-                right_key="base_bend_r",
-            ),
-            "Y": _three_segment_profile(
-                bend,
-                h,
-                bend,
-                left_key="base_bend_b",
-                center_key="base_face_h",
-                right_key="base_bend_t",
-            ),
-        }
-        t = _num(snapshot.get("t", 2), 2)
-        profiles["X"] = apply_outside_dimension_compensation(profiles["X"], t)
-        profiles["Y"] = apply_outside_dimension_compensation(profiles["Y"], t)
-        return profiles
-
-    if part_key == "indicator_box":
-        fold = _num(snapshot.get("indicator_box_fold", 49), 49)
-        t = _num(snapshot.get("t", 2), 2)
-        x_core = max(0.0, w - 2.0 * fold)
-        y_core = max(0.0, h - 2.0 * fold)
-        profiles = {
-            "X": _three_segment_profile(
-                fold,
-                x_core,
-                fold,
-                left_key="ib_fold_l",
-                center_key="ib_face_w",
-                right_key="ib_fold_r",
-            ),
-            "Y": _three_segment_profile(
-                fold,
-                y_core,
-                fold,
-                left_key="ib_fold_b",
-                center_key="ib_face_h",
-                right_key="ib_fold_t",
-            ),
-        }
-        profiles["X"] = apply_outside_dimension_compensation(profiles["X"], t)
-        profiles["Y"] = apply_outside_dimension_compensation(profiles["Y"], t)
-        return profiles
-
-    if part_key == "indicator_door":
-        fold = _num(snapshot.get("indicator_door_fold", 19), 19)
-        t = _num(snapshot.get("t", 2), 2)
-        x_core = max(0.0, w - 2.0 * fold)
-        y_core = max(0.0, h - 2.0 * fold)
-        profiles = {
-            "X": _three_segment_profile(
-                fold,
-                x_core,
-                fold,
-                left_key="id_fold_l",
-                center_key="id_face_w",
-                right_key="id_fold_r",
-            ),
-            "Y": _three_segment_profile(
-                fold,
-                y_core,
-                fold,
-                left_key="id_fold_b",
-                center_key="id_face_h",
-                right_key="id_fold_t",
-            ),
-        }
-        profiles["X"] = apply_outside_dimension_compensation(profiles["X"], t)
-        profiles["Y"] = apply_outside_dimension_compensation(profiles["Y"], t)
-        return profiles
-
-    t = _num(snapshot.get("t", 2), 2)
-    profiles = {
-        "X": _three_segment_profile(25, w, 25),
-        "Y": _three_segment_profile(25, h, 25),
-    }
-    profiles["X"] = apply_outside_dimension_compensation(profiles["X"], t)
-    profiles["Y"] = apply_outside_dimension_compensation(profiles["Y"], t)
-    return profiles
+    return build_standard_part_fold_profiles(snapshot, part_key)
 
 
 def merge_keyed_profiles(existing_profiles, default_profiles):
