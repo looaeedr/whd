@@ -64,6 +64,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
+      # Source-only X publish preflight may never invoke pip; setup-python's
+      # post-job cache save still requires the cache directory to exist.
+      - name: Ensure pip cache directory exists before preflight
+        shell: bash
+        run: mkdir -p "$HOME/.cache/pip"
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
