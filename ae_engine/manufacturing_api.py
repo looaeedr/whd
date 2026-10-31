@@ -35,6 +35,11 @@ from .box_body_fold_profile import (
     build_box_body_profile as build_box_body_fold_profile,
     profile_to_fold_segments as box_body_profile_to_fold_segments,
 )
+from .receiving_quantity_versions import (
+    SCHEMA, SCHEMA_V2, SCHEMA_V3, QUANTITY_MODE, SET_BAY_MODE,
+    QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
+    normalize_quantity_snapshot, quantity_only_change,
+)
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,
@@ -678,3 +683,11 @@ def save_quantity_manufacturing_groups_dxf(
         overwrite=overwrite, render_data_transform=render_data_transform,
         part_only=part_only,
     )
+
+
+# Import the NFB source verifier only after manufacturing scene/render APIs are
+# fully initialized: the existing source-profile reader consumes those exports.
+from .receiving_nfb_quantity_partial import (
+    QuantityNfbPartialSelection, verify_quantity_nfb_inner_door,
+    select_quantity_nfb_partial, quantity_partial_live_manifests,
+)

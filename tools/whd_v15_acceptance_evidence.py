@@ -36,7 +36,31 @@ def _case_nodeid(case: ET.Element) -> str:
     return raw_classname.replace(".", "/") + ".py::" + name
 
 
-def verify(junit_path):
+def _load_canonical_collection(collection_path: Path | None = None) -> set[str]:
+    """Collect fresh nodes, or read the exact-run collection artifact.
+
+    The workflow gates artifact provenance to the same PR SHA and run. Both
+    paths use the identical parser and fail closed for duplicate/empty nodes.
+    """
+    if collection_path is None:
+        sys.path.insert(0, str(ROOT))
+        from tools.product_ci_regression import PYTEST_PATHS
+        collected = subprocess.check_output(
+            [sys.executable, "-m", "pytest", "--collect-only", "-q", *PYTEST_PATHS],
+            cwd=ROOT, text=True,
+        )
+    else:
+        collected = Path(collection_path).read_text(encoding="utf-8")
+    nodes = [
+        nodeid for line in collected.splitlines()
+        if (nodeid := _collected_nodeid(line)) is not None
+    ]
+    if not nodes or len(nodes) != len(set(nodes)):
+        raise ValueError("canonical collection is empty or has duplicate node ids")
+    return set(nodes)
+
+
+def verify(junit_path, *, collection_path: Path | None = None):
     matrix = json.loads(MATRIX.read_text(encoding="utf-8"))
     spec = ROOT / matrix["spec"]
     if hashlib.sha256(spec.read_bytes()).hexdigest() != matrix["spec_sha256"]:
@@ -50,14 +74,7 @@ def verify(junit_path):
         raise ValueError("fresh JUnit must contain successful cases only")
     # Compare the full canonical collection, including every parameterized
     # case. One passing family/anchor cannot stand in for the whole matrix.
-    sys.path.insert(0, str(ROOT))
-    from tools.product_ci_regression import PYTEST_PATHS
-    collected = subprocess.check_output([sys.executable, "-m", "pytest", "--collect-only", "-q", *PYTEST_PATHS],
-        cwd=ROOT, text=True)
-    expected_cases = {
-        nodeid for line in collected.splitlines()
-        if (nodeid := _collected_nodeid(line)) is not None
-    }
+    expected_cases = _load_canonical_collection(collection_path)
     actual_cases = [_case_nodeid(case) for case in cases]
     if set(actual_cases) != expected_cases or len(actual_cases) != len(expected_cases):
         raise ValueError("JUnit is not the full canonical parameterized collection")
