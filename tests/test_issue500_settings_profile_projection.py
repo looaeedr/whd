@@ -117,7 +117,8 @@ def test_issue500_dimension_projection_leaves_bridge_as_narrow_delegate():
 
 def test_issue500_profile_projection_leaves_bridge_as_plan_apply_boundary():
     source = _bridge_function_source("_phase6_refresh_profiles_from_settings")
-    assert "build_settings_profile_projection" in source
+    # The Bridge now delegates to Composition, which owns the Settings plan.
+    assert "_phase6_composition(self).refresh_profiles_from_settings(" in source
     forbidden = (
         "build_box_body_profile",
         "merge_box_body_profile",
