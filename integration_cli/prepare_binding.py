@@ -16,6 +16,7 @@ from typing import Any, Mapping, Sequence
 from integration_cli.prepare_evidence import (
     PrepareEvidenceError, _pure_json, evidence_digest,
 )
+from integration_cli.worker_custom_fold import require_canonical_custom_fold_size_only_frame
 from integration_cli.prepare_frame import (
     require_canonical_door_local_frame,
     require_canonical_indicator_box_size_only_frame,
@@ -69,6 +70,12 @@ def _binding_payload(
             require_canonical_indicator_box_size_only_frame(
                 frame, physical_part_id=physical,
             )
+        elif raw_kind == "custom_fold":
+            if frame_id != f"custom_fold:{physical}:flat:size-only-v1":
+                raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "custom Fold Frame identity mismatch")
+            require_canonical_custom_fold_size_only_frame(
+                frame, physical_part_id=physical,
+            )
         elif raw_kind in ("end_cap_head", "end_cap_tail"):
             if frame_id != f"{raw_kind}:{physical}:outer:size-only-v1":
                 raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "EndCap frame identity does not match its role")
@@ -85,7 +92,7 @@ def _binding_payload(
         seen_frames.add(frame_id)
         if frame.get("coordinate_contract_revision") != "1" or frame.get("units") != "mm":
             raise PrepareEvidenceError("WHD_FRAME_UNVERIFIED", "unsupported Frame units/revision")
-        if raw_kind not in ("indicator_box", "end_cap_head", "end_cap_tail"):
+        if raw_kind not in ("indicator_box", "end_cap_head", "end_cap_tail", "custom_fold"):
             require_canonical_door_local_frame(frame, physical_part_id=physical)
         checked.append({
             "item_id": item_id,
