@@ -697,7 +697,7 @@
   "bom_split_case_owners": {
     "金庫型-FULL-1": 1,
     "受電箱-FULL-1": 14,
-    "受電箱-FULL-2": 15,
+    "受電箱-FULL-2": 16,
     "受電箱-HALF-1": 16,
     "受電箱-HALF-2": 17,
     "受電箱-BACK_OPENING-1": 15,
@@ -752,5 +752,10 @@
   "tier_decouple_source_run_id": 41198488801,
   "tier_decouple_previous_owner": 1,
   "tier_decouple_new_owner": 0,
-  "tier_decouple_note": "RUN 41198866051 GREEN showed moving the whole real-tier GUI acceptance from shard 1 to shard 6 made shard 6 the 127s critical path (the real-tier case was 39.43s) while shard 1 became 73s; prior shard 0 was about 50s. Revise experiment to move that exact, unchanged whole-file selector to shard 0, leaving T15 36s source case on shard 1 and remaining T15 functions on shard 6. Verify new exact-head full CI before merge."
+  "tier_decouple_note": "RUN 41198866051 GREEN showed moving the whole real-tier GUI acceptance from shard 1 to shard 6 made shard 6 the 127s critical path (the real-tier case was 39.43s) while shard 1 became 73s; prior shard 0 was about 50s. Revise experiment to move that exact, unchanged whole-file selector to shard 0, leaving T15 36s source case on shard 1 and remaining T15 functions on shard 6. Verify new exact-head full CI before merge.",
+  "bom_rebalance_source_run_id": 41203677890,
+  "bom_rebalance_target_case": "受電箱-FULL-2",
+  "bom_rebalance_previous_owner": 15,
+  "bom_rebalance_new_owner": 16,
+  "bom_rebalance_note": "Exact successful run 41203677890: shard 15 took 100 seconds including FULL-2=21.50s and BACK_OPENING-1=18.99s, while shard 16 took 51 seconds. Move the complete unchanged FULL-2 parameterized case to shard 16; retain all seven parameters, all 339 original canonical selectors, 18 lanes and exact-run collection/JUnit gate. Historical split_case_seconds are original measurement and not newly measured run totals."
 }
