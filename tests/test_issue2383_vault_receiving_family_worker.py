@@ -110,7 +110,7 @@ def test_receiving_endcap_cannot_fall_back_to_vault_manufacturing(tmp_path):
                 "fold_left_mm", "fold_right_mm", "fold_top_mm", "fold_bottom_mm"):
         p.pop(key, None)
     request["request_digest"] = compute_wire_request_digest(request)
-    with pytest.raises(PrepareEvidenceError, match="Vault"):
+    with pytest.raises(PrepareEvidenceError, match="Receiving EndCap"):
         _prepare(request, resource)
     assert not list(tmp_path.rglob("*.dxf")) or all(
         candidate == source or candidate.is_relative_to(resource)
