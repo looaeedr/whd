@@ -34,6 +34,7 @@ def _snapshot(model):
 )
 def test_engine_core_roundtrip_matches_real_family_xy_fold(family, depth_core):
     snapshot = _snapshot(family)
+    assert endcap_derived_core_lengths is manufacturing_api.endcap_derived_core_lengths
     lengths = endcap_derived_core_lengths(snapshot, 800, 350)
     assert lengths == {"endcap_w_core": 792, "endcap_d_core": depth_core}
     for key in ("head", "tail"):
@@ -108,7 +109,6 @@ def test_gui_only_commits_engine_derived_cores_to_existing_rows(monkeypatch):
     assert (x[0]["len"], y[0]["len"]) == (777, 333)
     assert len(calls) == 1
     assert reconcile_endcap_live_outside_dimensions is manufacturing_api.reconcile_endcap_live_outside_dimensions
-    assert endcap_derived_core_lengths is manufacturing_api.endcap_derived_core_lengths
 
 
 def test_gui_contains_no_endcap_material_outside_formulas():
