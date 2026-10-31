@@ -59,7 +59,7 @@ def test_engine_api_noop_and_invalid_brand_fail_without_mutating_source():
         source, "士林",
     )
     assert changed is False and same == frozen and same is not source
-    with pytest.raises(ValueError, match="品牌"):
+    with pytest.raises(ValueError, match="廠牌"):
         manufacturing_api.rebase_receiving_set_parent_nfb_brand(source, "不存在廠牌")
     assert source == frozen
 
