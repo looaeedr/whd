@@ -56,23 +56,8 @@ def _phase6_assembly_placement_for_part(snapshot, part_key):
 
 
 def _phase6_relief_polygon_coords(geometry):
-    if geometry is None or getattr(geometry, "is_empty", True):
-        return []
-    if getattr(geometry, "geom_type", "") == "Polygon":
-        polygons = [geometry]
-    else:
-        polygons = [
-            geom for geom in getattr(geometry, "geoms", ())
-            if getattr(geom, "geom_type", "") == "Polygon" and float(geom.area) > 1e-9
-        ]
-    out = []
-    for polygon in polygons:
-        coords = list(polygon.exterior.coords)
-        if coords and coords[0] == coords[-1]:
-            coords = coords[:-1]
-        if len(coords) >= 3:
-            out.append([[float(x), float(y)] for x, y in coords])
-    return out
+    """Compat: Engine serializes the actual Joint relief CUT geometry."""
+    return manufacturing_api.serialize_joint_relief_polygons(geometry)
 
 
 def _phase6_assembly_relief_clearance(self):
@@ -251,19 +236,8 @@ def _phase6_joint_relief_state_item_matches(item, joint, source_material):
 
 
 def _phase6_cut_geometry_from_state_item(item):
-    from shapely.geometry import Polygon
-    from shapely.ops import unary_union
-    polygons = []
-    for coords in tuple((item or {}).get("cut_polygons", ()) or ()):
-        try:
-            polygon = Polygon([(float(x), float(y)) for x, y in coords])
-        except Exception:
-            continue
-        if not polygon.is_valid:
-            polygon = polygon.buffer(0)
-        if not polygon.is_empty and float(polygon.area) > 1e-9:
-            polygons.append(polygon)
-    return unary_union(polygons) if polygons else None
+    """Compat: Engine validates the saved provisional Joint cut geometry."""
+    return manufacturing_api.restore_joint_relief_cut_geometry(item)
 
 
 def _phase6_signature_canonical_value(value):
