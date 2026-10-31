@@ -67,7 +67,7 @@ def test_full_vault_receiving_feature_catalog_is_schema_valid_and_grounded(monke
     }
     assert {(row["cabinet_family"], row["feature_id"])
             for row in entries if row["manufacturing_supported"]} == actually_available
-    assert len(actually_available) == 14  # Vault 8 + Receiving 6; left/right dedicated side physical sheets.
+    assert len(actually_available) == 15  # Vault 8 + Receiving 7; certified FULL physical back sheet.
     for item in entries:
         assert item["geometry_acceptance_passed"] is item["manufacturing_supported"]
         if item["manufacturing_supported"]:
@@ -88,7 +88,7 @@ def test_full_vault_receiving_feature_catalog_is_schema_valid_and_grounded(monke
     assert set(advertised["supported_part_kinds"]) == {
         "door", "indicator_small_door", "indicator_box",
         "end_cap_head", "end_cap_tail", "base_plate", "custom_fold", "box_body",
-        "inner_door", "side_panel",
+        "inner_door", "side_panel", "back_panel",
     }
     assert not advertised["capability_flags"]["per_part_transactions"]
     assert not advertised["capability_flags"]["crash_recovery"]
