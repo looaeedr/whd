@@ -264,6 +264,9 @@ def map_door_features_to_unfolded_material(
     return tuple(_door_features_for_legacy_engine(spec, context))
 
 
+from .assembly_collision import (
+    serialize_joint_relief_polygons, restore_joint_relief_cut_geometry,
+)
 from .assembly_geometry import build_joint_world_geometry
 from .assembly_geometry_folded_mesh import (
     expand_box_body_fw_world_mid, shift_multistage_terminal_fold_world_mid,
