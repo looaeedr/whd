@@ -834,3 +834,14 @@ def replace_candidate_bay_nfb(layout, set_index, bay_index, csv_config):
     """Public Engine physical Bay identity and NFB state transaction."""
     from .receiving_nfb_csv_committed_config import replace_candidate_bay_nfb as replace
     return replace(layout, set_index, bay_index, csv_config)
+
+def apply_receiving_inner_door_quantity_configuration(
+    layout, library, quantities, assigned, *, expected_counts=None,
+):
+    """Headless public Engine API for atomic cross-Set/Bay candidate Apply."""
+    from .receiving_inner_door_pairing import (
+        apply_receiving_inner_door_quantity_configuration as _apply,
+    )
+    return _apply(
+        layout, library, quantities, assigned, expected_counts=expected_counts,
+    )

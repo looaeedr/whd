@@ -556,3 +556,8 @@ frame-only route.
 
 - `read_standard_part_fold_profiles` is the public Engine owner of the approved reverse material Fold → operator setting mapping for Door, BasePlate, IndicatorBox/IndicatorDoor, including the four-edge equality rejection and Receiving root BasePlate real physical Fold precedence. Phase6 manufacturing adapter is only a GUI request/response delegate.
 - Physical Fold/FinalScene and Certified Registry remain authoritative. A reverse Settings DTO is neither a DXF/CUTTING grant nor permission to fabricate Custom Fold or overwrite Receiving source geometry; #2517 stays OPEN.
+
+### #2517 Receiving Inner Door quantity Apply Engine API (2026-11-01)
+
+- `apply_receiving_inner_door_quantity_configuration(layout, library, quantities, assigned, *, expected_counts=None)` 是跨所有 Receiving Set/Bay 內門版本配置的唯一製造狀態交易入口。Engine `receiving_inner_door_pairing` 先完整檢查 topology／各版本數量／對應、每個候選正式 NFB CSV／CUTTING 單一來源及已提交實體 NFB 覆寫衝突，再原子回傳 detached layout 與受影響 physical Bay stable IDs；未通過不得部分寫入。
+- GUI `ReceivingSetBayAdapter.apply_inner_door_quantity_configuration` 現僅轉發操作者配置與更新 UI dirty IDs；不再自己決定已套用版本、物理孔身份、正式 NFB 持久化及多連共享設定交易。既有 `receiving_shared_settings`／`receiving_layout`／`receiving_nfb_csv_committed_config` 是原有 source owner。此 API 沒有新增 CUTTING／DXF 認證，未授權 X 發布；#2517 繼續 OPEN。

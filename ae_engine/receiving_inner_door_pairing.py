@@ -57,3 +57,56 @@ def validate_inner_door_allocation(layout, library, quantities, assigned, *,
                for version_id in quantities}
     return tuple((si, bi, deepcopy(configs[assigned[(si, bi)]]))
                  for si, bi in positions)
+
+def apply_receiving_inner_door_quantity_configuration(
+    layout, library, quantities, assigned, *, expected_counts=None,
+):
+    """Commit the whole verified Receiving Set/Bay inner-door allocation.
+
+    All candidate source, version, physical NFB and topology checks run before
+    applying any Set/Bay. This is the manufacturing-state transaction: GUI
+    selection, dirty state and presentation are deliberately excluded.
+    Returns (detached_layout, changed_physical_bay_ids).
+    """
+    from .receiving_shared_settings import (
+        validate_setting, unlink_setting, edit_setting,
+    )
+    from .receiving_nfb_csv_committed_config import (
+        candidate_committed_csv_nfb_config,
+        validate_candidate_nfb_replacement,
+        replace_candidate_bay_nfb,
+    )
+
+    plan = validate_inner_door_allocation(
+        layout, library, quantities, assigned, expected_counts=expected_counts,
+    )
+    replacements = {}
+    for si, bi, config in plan:
+        validate_setting("inner_door_version_id", assigned[(si, bi)])
+        csv = candidate_committed_csv_nfb_config(config)
+        validate_candidate_nfb_replacement(layout, ((si, bi),), config, csv)
+        replacements[(si, bi)] = csv
+
+    candidate = layout
+    for si, bi, config in plan:
+        for kind, value in (
+            ("inner_door_layers", config["layers"]),
+            ("inner_door_models", config["models"]),
+            ("inner_door_features", config.get("features", {})),
+            ("inner_door_layer_heights_mm", config.get("layer_heights_mm")),
+            ("inner_door_version_id", assigned[(si, bi)]),
+        ):
+            candidate = unlink_setting(
+                candidate, set_index=si, bay_index=bi, kind=kind,
+            )
+            candidate = edit_setting(
+                candidate, set_index=si, bay_index=bi, kind=kind, value=value,
+            )
+        candidate = replace_candidate_bay_nfb(
+            candidate, si, bi, replacements[(si, bi)],
+        )
+    changed_ids = tuple(
+        str(candidate["sets"][si]["bays"][bi]["stable_id"])
+        for si, bi, _ in plan
+    )
+    return candidate, changed_ids
