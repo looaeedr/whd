@@ -16,6 +16,7 @@ from .door_layout_numeric_transitions import (
 )
 
 from .manufacturing_api import (
+    normalize_authoritative_door_state, normalize_project_snapshot_authority,
     list_cabinet_model_choices,
     project_operator_door_blank_dimensions,
     project_operator_door_cell_result,
@@ -215,6 +216,7 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "normalize_authoritative_door_state", "normalize_project_snapshot_authority",
     "ae", "manufacturing_api", "generate_part", "resolve_policy",
     "ManufacturingIntegrationRequest", "ManufacturingIntegrationResponse",
     "ManufacturingSourceIdentity", "dispatch_manufacturing_integration",
