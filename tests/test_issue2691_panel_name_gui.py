@@ -135,6 +135,15 @@ def test_native_receiving_label_canvas_edit_error_escape_and_two_sets(monkeypatc
         assert [canvas.itemcget(i, "text") for i in
                 canvas.find_withtag("receiving_panel_name")] == ["P3"]
         assert _names(state["layout"]) == ["P1", "主受電盤", "P3"]
+
+        # A Set switch while an inline draft is open discards that draft,
+        # never accidentally renames a Bay from the previous Set.
+        x, y = _click_at(canvas, canvas._receiving_panel_name_hitboxes[0])
+        win._receiving_panel_name_edit(SimpleNamespace(x=x, y=y))
+        assert win._receiving_panel_name_entry is not None
+        assert win._receiving_multi_apply(0)
+        assert win._receiving_panel_name_entry is None
+        assert _names(state["layout"]) == ["P1", "主受電盤", "P3"]
     finally:
         if win is not None and win.winfo_exists():
             win._receiving_multi_close()
