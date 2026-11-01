@@ -138,10 +138,10 @@ def test_cadsplit_api_reference_is_discoverable_before_manufacturing_work() -> N
         "<!-- WHD_AUTHORITY contract=manufacturing-architecture role=CURRENT "
     ) == 1
     assert reference_text.startswith(
-        "---\\n"
-        "whd_doc_role: REFERENCE\\n"
-        "whd_contract: manufacturing-architecture\\n"
-        f"whd_canonical: {owner}\\n"
+        "---\n"
+        "whd_doc_role: REFERENCE\n"
+        "whd_contract: manufacturing-architecture\n"
+        f"whd_canonical: {owner}\n"
     )
     for key in ("CADSplit", "Set/Bay", "全自動", "Save→Reload"):
         assert key in reference_text
