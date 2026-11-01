@@ -123,6 +123,53 @@ def build_left_panel(host, ctrl_pad_frame):
     make_chk(output_opts_box, "輸出 STOCK 母材外框 (青色虛線)",
              host.draw_stock_var, host.draw_preview).pack(anchor=tk.W, padx=10, pady=(6,6))
 
+    # Operator chooses ONLY a grouping mode. Names, Bay classification,
+    # validity and manufacturing geometry all come from Engine public API.
+    group_frame = ttk.Frame(ctrl_pad_frame)
+    group_frame.pack(fill=tk.X, pady=(3, 4))
+    host.receiving_dxf_group_mode_var = tk.StringVar(master=ctrl_pad_frame, value="ALL")
+    host.receiving_dxf_group_preview_var = tk.StringVar(master=ctrl_pad_frame, value="")
+    ttk.Label(group_frame, text="受電箱 DXF 合併方式").pack(anchor=tk.W)
+    host.receiving_dxf_group_combo = ttk.Combobox(
+        group_frame, textvariable=host.receiving_dxf_group_mode_var,
+        state="readonly",
+        values=("PER_SET", "ALL", "END_VS_MIDDLE"),
+    )
+    host.receiving_dxf_group_combo.pack(fill=tk.X, pady=2)
+    ttk.Label(group_frame, textvariable=host.receiving_dxf_group_preview_var,
+              wraplength=245).pack(fill=tk.X)
+    host._receiving_dxf_group_frame = group_frame
+
+    def refresh_export_group_preview(*_args):
+        designer = getattr(host, "fold_designer_app", None)
+        snapshot = getattr(designer, "_phase6_input_snapshot", None) or {}
+        if not isinstance(snapshot, dict):
+            snapshot = {}
+        if snapshot.get("model") not in {"受電箱", "RECEIVING"}:
+            host.receiving_dxf_group_preview_var.set("金庫型：以盤名或輸出日期時間命名單一 DXF")
+            return
+        try:
+            from ae_engine import manufacturing_api
+            groups = manufacturing_api.plan_receiving_grouped_dxf(
+                snapshot.get("receiving_layout"),
+                host.receiving_dxf_group_mode_var.get(),
+            )
+            host.receiving_dxf_group_preview_var.set(
+                "輸出：" + "、".join(name for name, _cells in groups)
+            )
+        except (ValueError, KeyError, TypeError):
+            host.receiving_dxf_group_preview_var.set("受電箱尚無可用的 Set/Bay 分組")
+
+    host._refresh_receiving_dxf_group_preview = refresh_export_group_preview
+    host.receiving_dxf_group_mode_var.trace_add(
+        "write", refresh_export_group_preview,
+    )
+    host.baseline_var.trace_add("write", refresh_export_group_preview)
+    host.receiving_dxf_group_combo.bind(
+        "<FocusIn>", refresh_export_group_preview,
+    )
+    refresh_export_group_preview()
+
     # 輸出零件選擇
     host.create_separator(ctrl_pad_frame)
     lbl_parts = ttk.Label(ctrl_pad_frame, text="4. 選擇輸出零件", style='Title.TLabel')

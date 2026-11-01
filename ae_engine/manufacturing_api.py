@@ -34,6 +34,7 @@ from .door_layout_numeric_transitions import (
 from .dxf_serialization import save_scene_dxf
 # Operator panel naming: public input boundary, independent of geometry.
 from .panel_naming import normalize_panel_name, set_cabinet_panel_name
+from .panel_dxf_naming import vault_panel_dxf_filename
 from .receiving_layout import rename_receiving_panel
 
 from .integration_api import (

@@ -14,6 +14,7 @@ import os
 import shutil
 import tempfile
 from dataclasses import replace
+from copy import deepcopy
 from collections.abc import Mapping
 from tkinter import filedialog, messagebox
 
@@ -157,6 +158,15 @@ def _selected_resolved_geometry(resolved_geometry, flags):
     )
 
 
+def _current_authoritative_export_guard(designer, snapshot):
+    """GUI snapshots only the input revision; Engine owns all manufacturing."""
+    witness = deepcopy(snapshot)
+    def verify():
+        if getattr(designer, "_phase6_input_snapshot", None) != witness:
+            raise ValueError("DXF 出圖來源已變更，請重新確認盤名與板件")
+    return verify
+
+
 def _export_selected_resolved_parts(self, folder, flags):
     """Export the primary GUI's canonical resolved physical inventory when available."""
     designer = getattr(self, "fold_designer_app", None)
@@ -171,6 +181,13 @@ def _export_selected_resolved_parts(self, folder, flags):
     # input's existing migration rule owns legacy Receiving mode selection.
     mode_source = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
     active_mode = normalize_quantity_snapshot(mode_source)["active_mode"]
+    chosen = getattr(self, "receiving_dxf_group_mode_var", None)
+    group_mode = chosen.get() if chosen is not None else None
+    if group_mode is not None and group_mode not in {
+        "PER_SET", "ALL", "END_VS_MIDDLE",
+    }:
+        raise ValueError("未知的 DXF 合併模式")
+    source_guard = _current_authoritative_export_guard(designer, mode_source)
     if workspace is not None and active_mode == "quantity":
         from phase6_manufacturing_adapter import (
             build_manufacturing_request, build_scene_payload_for_app,
@@ -307,13 +324,23 @@ def _export_selected_resolved_parts(self, folder, flags):
         len(row.get("bays", ())) for row in raw_sets
         if isinstance(row, dict)
     ) if isinstance(raw_sets, (list, tuple)) else 0
-    if (receiving_live.get("model") == "受電箱"
+    # Legacy one-Bay projects with unconfigured Base still use the
+    # established selection-scoped PART_ONLY compatibility route. Grouped
+    # single-Bay export is available only for NFB-independent real sheets;
+    # never turn missing Base into a synthetic whole-cabinet approval.
+    safe_single_bay_group = bool(
+        physical_count == 1 and group_mode
+        and any(flags.get(key) for key in ("head", "tail", "door"))
+        and not any(value for key, value in flags.items()
+                    if key not in {"head", "tail", "door"})
+    )
+    if (receiving_live.get("model") in {"受電箱", "RECEIVING"}
             and receiving_live.get("active_mode", "set_bay") == "set_bay"
-            and physical_count > 1):
+            and (physical_count > 1 or safe_single_bay_group)):
         saved_layout = manufacturing_api.normalize_receiving_layout(raw_layout)
         if physical_count != sum(len(s["bays"]) for s in saved_layout["sets"]):
             raise ValueError("多連實體連數與目前標準組合體資料不一致")
-        if physical_count > 1:
+        if physical_count > 1 or group_mode is not None:
             import fold_designer_bridge as receiving_bridge
             composition = receiving_bridge._phase6_composition(designer)
             # AC-09/24: HEAD/TAIL/outer DOOR have no NFB source dependency.
@@ -348,12 +375,37 @@ def _export_selected_resolved_parts(self, folder, flags):
                     current.render_data.assembly_parts, saved_layout,
                     set_index=set_index, bay_index=bay_index,
                 )
-            outputs = manufacturing_api.export_current_receiving_multibay_dxf(
-                receiving_live,
-                physical_bay_geometry_provider=actual_bay_geometry,
-                flags=flags,output_dir=folder,overwrite=True,
-            )
+            if group_mode is not None:
+                outputs = manufacturing_api.export_grouped_receiving_multibay_dxf(
+                    receiving_live,
+                    physical_bay_geometry_provider=actual_bay_geometry,
+                    flags=flags, output_dir=folder, group_mode=group_mode,
+                    pre_commit_guard=source_guard, overwrite=True,
+                )
+            else:
+                outputs = manufacturing_api.export_current_receiving_multibay_dxf(
+                    receiving_live,
+                    physical_bay_geometry_provider=actual_bay_geometry,
+                    flags=flags,output_dir=folder,overwrite=True,
+                )
             return ([os.path.basename(path) for path in outputs.values()], [])
+
+    if mode_source.get("model") == "金庫型" and group_mode is not None:
+        # GUI never projects/serializes manufacturing geometry.
+        _assert_legacy_nfb_export_scope_safe(self, flags)
+        resolved = resolver()
+        selected = manufacturing_api.select_resolved_export_geometry(
+            resolved, flags,
+        )
+        filename = manufacturing_api.vault_panel_dxf_filename(
+            mode_source.get("panel_name", ""),
+        )
+        manufacturing_api.save_composed_panel_dxf(
+            ((filename[:-4], selected),),
+            os.path.join(folder, filename),
+            pre_commit_guard=source_guard, overwrite=False,
+        )
+        return ([filename], [])
 
     # #1503: the original selected-DXF action applies authenticated EAR
     # positioning marks to LEFT/RIGHT physical side plates automatically.
@@ -757,6 +809,26 @@ def export_selected_dxf(self):
                     f"受阻 {partial_report['held_actual_count']} 片。\n"
                     "此批不是整套完成；PAD／耳朵裝配尚未驗收。\n\n"
                     + details + "\n\n是否匯出以上合法板件與清單？"):
+                return
+        # Named outputs must not silently overwrite a previous export.
+        designer = getattr(self, "fold_designer_app", None)
+        live = getattr(designer, "_phase6_input_snapshot", None) or {}
+        mode_field = getattr(self, "receiving_dxf_group_mode_var", None)
+        new_named_mode = (
+            mode_field is not None and
+            isinstance(live, Mapping) and
+            live.get("model") in {"受電箱", "RECEIVING", "金庫型"}
+        )
+        if new_named_mode:
+            existing = [
+                name for name in exported
+                if os.path.isfile(os.path.join(folder, name))
+            ]
+            if existing and not messagebox.askyesno(
+                "DXF 檔名已存在",
+                "以下 DXF 已存在，確定要覆寫嗎？\n" + "\n".join(existing),
+                default="no",
+            ):
                 return
         try:
             committed = _commit_staged_project_export(stage_folder, folder)

@@ -66,7 +66,7 @@ def export_current_receiving_multibay_dxf(
     layout=normalize_receiving_layout(saved_snapshot.get("receiving_layout"))
     all_bays=tuple((i,j) for i,s in enumerate(layout["sets"])
                    for j,_ in enumerate(s["bays"]))
-    if len(all_bays)<2:
+    if len(all_bays)<1 or (len(all_bays)<2 and group_mode is None):
         raise ValueError("RECEIVING_MULTIBAY_REQUIRES_MULTIPLE_PHYSICAL_BAYS")
     if not callable(physical_bay_geometry_provider):
         raise TypeError("RECEIVING_MULTIBAY_LIVE_BAY_RESOLVER_REQUIRED")
