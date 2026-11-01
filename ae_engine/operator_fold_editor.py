@@ -9,10 +9,12 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Mapping, Sequence
 
-from .box_body_fold_profile import apply_outside_dimension_compensation
+from .box_body_fold_profile import apply_outside_dimension_compensation, _num
 from .box_body_editor_readback import box_body_ui_segment_length_to_material, can_remove_box_body_fold_segment
+from .endcap_xy_readback import fold_material_segment_outside_length
 
 
 def commit_operator_fold_editor_rows(
@@ -193,3 +195,34 @@ def operator_fold_editor_remove_segment(
         updated[-1].pop("angle", None)
     apply_outside_dimension_compensation(updated, thickness)
     return updated
+
+
+def project_operator_fold_editor_display_rows(
+    material_segments: Sequence[Mapping[str, object]],
+    thickness: float,
+) -> tuple[Mapping[str, object], ...]:
+    """Detached, read-only outside-length rows for the legacy Fold UI.
+
+    The caller's material/profile rows must NEVER be rewritten just to render.
+    Actual adjacent BENDs, not stale serialized ui_len_add, supply the same
+    0/1/2-T display compensation as existing readback and manufacturing. The
+    signed operator dimension is display orientation, never negative material.
+    Only the view copies use the opposite UI angle convention for +/-90.
+    """
+    views = apply_outside_dimension_compensation(
+        [deepcopy(dict(row)) for row in material_segments], thickness,
+    )
+    projected = []
+    for row in views:
+        view = dict(row)
+        length = fold_material_segment_outside_length(row)
+        if _num(row.get("phase6_ui_sign", 1.0), 1.0) < 0:
+            length = -length
+        view["len"] = length
+        if "angle" in row:
+            angle = _num(row["angle"])
+            if angle in (90.0, -90.0):
+                angle = -angle
+            view["angle"] = int(angle) if angle.is_integer() else angle
+        projected.append(MappingProxyType(view))
+    return tuple(projected)

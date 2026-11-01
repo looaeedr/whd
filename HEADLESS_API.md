@@ -43,6 +43,10 @@ EndCap BOTTOM wrap/reserve 判準。三個公開 API 均不含 GUI/Tk，不新�
 新製造資格或 DXF 放行；GUI 只提供輸入與轉接顯示資料。
 
 
+## #2517 Fold Editor immutable display projection
+
+`manufacturing_api.project_operator_fold_editor_display_rows(material_segments, thickness)` projects detached read-only operator outside lengths, signed direction and UI bend angle from actual current material BEND topology, reusing the existing Engine compensation/readback. `phase6_bending_ui.render/refresh_active_profile` consume this projected view without mutating the saved Fold chain even transiently; ordinary `save/add/remove/mirror` remain separate public Engine commit paths. This display projection alone does not certify CUTTING/BEND/DXF or change Save→Reload schemas.
+
 ## #2517 Fold Editor operator material commit and structural mirror source
 
 `manufacturing_api.commit_operator_fold_editor_rows(old_segments, operator_rows, thickness)` accepts existing material Fold rows and typed operator outside lengths/angles; it returns detached material Fold rows after re-evaluating the **new** true adjacent BEND topology using the canonical Engine BoxBody conversion. `manufacturing_api.plan_operator_fold_mirror_target(segments, source_index, field, *, is_box_body)` returns frozen `OperatorFoldMirrorPlan(target_index, block_legacy_fallback)` from actual structural key pairing. GUI `phase6_bending_ui.save/apply_mirror` only parses Tk inputs, applies the Engine result and refreshes. Vault structural folds cannot fall back to positional pairing; Receiving family continues to prohibit BoxBody symmetry. These APIs do not certify CUTTING/BEND/DXF manufacturing output.
