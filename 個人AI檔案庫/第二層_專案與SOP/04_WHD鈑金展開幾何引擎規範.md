@@ -47,6 +47,10 @@ whd_schema: WHD_DOC_META_V1
 
 **#2517 Live Cabinet Family identity API（2026-11-01）**：公開 `manufacturing_api.resolve_live_cabinet_family(input_snapshot, live_model=None)` 統一 GUI 即時選擇型號優先序、Cabinet Registry 正規 Family 與舊版未知／空值 fallback。Phase6 GUI 只讀 snapshot 與 selector，`phase6_manufacturing_service` 也使用同一 API，避免 3D Joint／Receiving Marking 再有第二份型號判定。未註冊自訂來源保留原始名稱供既有 Family=ANY Joint 使用，空值維持既有金庫型相容預設；不新增 CUTTING／DXF 認證或幾何公式，#2517 仍 OPEN。
 
+### #2517 Canonical corner-dimension readback public API (2026-11-01)
+
+- `manufacturing_api.project_render_corner_relief_measurements(render_data)` returns immutable `RenderCornerDimensionGroup` rows from the existing Engine `assembly_collision_corner.measure_material_corner_reliefs` authority, using actual manufacturing material for a single part or each physical BoxBody piece in stable render order. Main GUI / Fold Designer `phase6_corner_dimension_display` now only formats Engine-owned measurements into Chinese UI labels; it never chooses physical material carriers or invokes the lower-level collision solver. Zero genuine material cuts return no rows; the old 2D, single-3D and assembly-3D texts remain identical. This is display-only readback, not new Corner/Relief formula, CUTTING/DXF certification or an external Worker capability; #2517 remains OPEN.
+
 ### #2517 Receiving EndCap saved-feature thumbnail public API (2026-11-01)
 
 - `manufacturing_api.receiving_endcap_feature_preview_shapes(features, width, depth)` (also exported by `ae_engine`) is the headless owner of saved EndCap feature anchors, legacy-hole conversion, rotation and per-layer contour projection used by the Receiving Head/Tail operator thumbnail. Unknown/invalid features are reported, never fabricated as CUTTING. GUI keeps only rendering style, scaling and UI fallback labels; the old GUI `endcap_preview_geometry` symbol is a compatibility delegator with no feature geometry calculation. This read-only feature thumbnail **is not** canonical FinalScene or new DXF/CUTTING certification, and #2517 remains OPEN.
