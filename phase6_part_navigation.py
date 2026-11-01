@@ -62,51 +62,13 @@ def box_body_piece_keys(values: Iterable[object] | None) -> tuple[str, ...]:
 
 
 def project_hierarchy(values: Iterable[object] | None) -> tuple[NavigationRow, ...]:
-    """Project authoritative identities into an operator hierarchy.
-
-    A logical ``box_body`` parent is never invented.  Children are nested only
-    when that real aggregate identity is present; otherwise every authoritative
-    identity remains visible as a top-level row.
-    """
-    keys = _keys(values)
-    children = box_body_piece_keys(keys)
-    child_set = set(children)
-    parent_present = "box_body" in keys
-    fixing_children = tuple(key for key in keys if key.startswith("base_plate:fixing_plate:"))
-    fixing_set = set(fixing_children)
-    base_present = "base_plate" in keys
-    import re
-    tier_base = re.compile(r"base_plate:nfb_layer:[01]$")
-    tier_ear = re.compile(r"base_plate:fixing_plate:nfb_layer:([01]):(left|right)$")
-    tier_owners = {k for k in keys if tier_base.fullmatch(k)}
-    def ear_parent(key):
-        match = tier_ear.fullmatch(key)
-        if match:
-            owner = f"base_plate:nfb_layer:{match.group(1)}"
-            if owner in tier_owners:
-                return owner
-        return "base_plate" if base_present else None
-
-    rows: list[NavigationRow] = []
-    for key in keys:
-        if (parent_present and key in child_set) or (
-            key in fixing_set and ear_parent(key) is not None
-        ):
-            continue
-        rows.append(NavigationRow(key, None, 0))
-        if parent_present and key == "box_body":
-            rows.extend(NavigationRow(child, "box_body", 1) for child in children)
-        if base_present and key == "base_plate":
-            rows.extend(
-                NavigationRow(child, "base_plate", 1)
-                for child in fixing_children if ear_parent(child) == "base_plate"
-            )
-        if key in tier_owners:
-            rows.extend(
-                NavigationRow(child, key, 1)
-                for child in fixing_children if ear_parent(child) == key
-            )
-    return tuple(rows)
+    """GUI adapts canonical Engine physical-parent identity to view rows."""
+    return tuple(
+        NavigationRow(key, parent, depth)
+        for key, parent, depth in manufacturing_api.project_physical_part_navigation_rows(
+            _keys(values),
+        )
+    )
 
 
 def operator_part_selector_keys(values: Iterable[object] | None) -> tuple[str, ...]:

@@ -16,6 +16,7 @@ from .door_layout_numeric_transitions import (
 )
 
 from .manufacturing_api import (
+    project_physical_part_navigation_rows,
     ManufacturingCacheSourcePlan, plan_manufacturing_cache_source,
     project_manufacturing_scene_settings_overlay,
     project_manufacturing_scene_joint_source,
@@ -240,6 +241,7 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "project_physical_part_navigation_rows",
     "ManufacturingCacheSourcePlan", "plan_manufacturing_cache_source",
     "project_manufacturing_scene_settings_overlay",
     "project_manufacturing_scene_joint_source",
