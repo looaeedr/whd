@@ -13,6 +13,18 @@ whd_schema: WHD_DOC_META_V1
 全域硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 的唯一 CURRENT owner 是 AI 庫 `第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；此檔是 REFERENCE。GUI 全功能只處理操作與輸入，所有製造資料、公式、實體板件、孔位／折展開及 2D/3D/DXF 的 canonical 結果由引擎公開 API 處理。既有舊 GUI adapters 的存在**不代表每個箱型與功能均已完成改造**。遇 API 不支援，回引擎開發／測試或明確拒絕，不許 GUI 私做 fallback。對外 CADSplit Worker `capabilities/prepare/export` 僅宣告實際已驗證與授權的能力。靜態 CI gate：`tools/gui_engine_api_boundary_gate.py`，但它不代替行為契約測試或平台 required status check。
 
 
+## Manufacturing Relief rule traces and Joint diagnostics API (#2517)
+
+`manufacturing_api.resolve_manufacturing_relief_evidence(resolved_parts, solutions, joints)`
+returns the existing canonical `ResolvedReliefRuleTrace` and
+`ResolvedJointDiagnostic` DTOs, owned by Engine instead of Phase6. It
+preserves solved EndCap corner order and shadow geometry evidence, Receiving
+bottom-WRAP rule metadata, and normal Joint registry ownership/trust/contact
+diagnostics. `USER_ADDED` diagnostics remain owned by the separate explicit
+Joint relief pipeline; Phase6 only composes that pipeline's returned records
+and Family divider records with these Engine DTOs for GUI display. No new
+physical geometry, certification or 2D/3D/DXF manufacturing authority.
+
 ## Fold Designer physical Divider / inner-door selection API (#2517)
 
 `manufacturing_api.resolve_fold_designer_divider_part(part_key, divider_input)`,
@@ -729,3 +741,16 @@ fails before project mutation. `None` is a deliberate settings reset,
 not an inferred manufactured blank. The GUI only submits the detached
 validated selection and rolls back its project state if the external
 geometry update callback fails. No new DXF/CUTTING authorization follows.
+
+## Receiving Switch operator topology public Engine transaction (#2517)
+
+`manufacturing_api.normalize_receiving_switch_operator_layout(layout)`
+and `manufacturing_api.apply_receiving_switch_operator_action(layout, *,
+operation, brand=None, layer_index=None, delta=None)` publicly expose the
+canonical `receiving_switch_layout` state transitions. Supported actions
+are `set_brand`, `add_layer`, `remove_layer` and `resize_connections`.
+The Engine owns stable layer IDs, tail-only resize, brand validation,
+index/type safety, and the >=1 layer/connection lower bounds. Results are
+`(detached_layout, changed_flag)`, never manufacturing approval. GUI
+adapters only parse literal operator input and commit the Engine result.
+No fabricated NFB opening, CUTTING, or DXF release is implied.

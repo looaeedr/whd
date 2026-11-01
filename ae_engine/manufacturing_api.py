@@ -121,6 +121,10 @@ from .receiving_quantity_versions import (
     normalize_quantity_snapshot, quantity_only_change,
 )
 from .indicator_editor_geometry import resolve_indicator_editor_components
+from .receiving_endcap_feature_preview import receiving_endcap_feature_preview_shapes
+from .receiving_inner_door_editor import (
+    InnerDoorHoleEditorContext, resolve_inner_door_hole_editor_context,
+)
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,
     assert_legacy_nfb_export_scope_safe,
@@ -320,6 +324,7 @@ from .assembly_joint import (
     joint_relief_state_item_matches, resolve_manufacturing_joint_graph,
 )
 from .assembly_joint import joint_registry_diagnostic_info
+from .manufacturing_relief_evidence import resolve_manufacturing_relief_evidence
 from .assembly_placement import (
     SCENE_ASSEMBLY_PLACEMENTS, resolve_legacy_door_cell_scene_placement,
     resolve_scene_assembly_placement,
@@ -969,7 +974,21 @@ def validate_receiving_base_plate_settings(
         config=config,
     )
 
+def normalize_receiving_switch_operator_layout(layout):
+    """Public Engine port for Receiving Switch input topology state."""
+    from .receiving_switch_layout import normalize_receiving_switch_layout
+    return normalize_receiving_switch_layout(layout)
 
+
+def apply_receiving_switch_operator_action(
+    layout, *, operation, brand=None, layer_index=None, delta=None,
+):
+    """Public Engine transaction for physical Receiving Switch input edits."""
+    from .receiving_switch_layout import apply_receiving_switch_operator_action as apply
+    return apply(
+        layout, operation=operation, brand=brand,
+        layer_index=layer_index, delta=delta,
+    )
 
 def resolve_fold_designer_divider_part(part_key, divider_input):
     """Public Engine selection of one canonical Box Body Divider physical part."""
