@@ -1139,6 +1139,13 @@ def build_door_operator_part_spec(
         nameplate_center_datum_top=nameplate_center_datum_top,
     )
 
+# #2517: physical Receiving NFB highlighted partial DXF batch is Engine-owned.
+# The GUI import path is a compatibility facade, never a second release gate.
+from .receiving_nfb_partial_batch_dispatcher import (
+    require_highlighted_nfb_inner_doors,
+    export_highlighted_nfb_inner_doors,
+)
+
 # Canonical Engine owner for Door/BasePlate/Divider/InnerDoor physical namespaces,
 # retired GUI-owned immutable request/sync intent builder (#2517).
 from .derived_part_projection import (
