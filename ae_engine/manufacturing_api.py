@@ -139,6 +139,11 @@ from .assembly_geometry import (
 from .receiving_base_display_source import (
     ReceivingBasePlateDisplaySource, inspect_receiving_base_plate_display_source,
 )
+from .receiving_pad_display_sources import (
+    receiving_pad_assembly_display_active,
+    receiving_pad_assembly_display_source_key,
+    resolve_receiving_pad_assembly_display_skins,
+)
 from .receiving_ear_display_sources import (
     receiving_ear_assembly_display_source_key, resolve_receiving_ear_assembly_display_skins,
 )

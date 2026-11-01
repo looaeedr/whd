@@ -110,43 +110,35 @@ class Phase6FinalSceneViewAdapter:
         self.last_formed_pad_display_blocker = None
 
     def _formed_pad_assembly_preview(self, snapshot, visible_set, assembly_parts):
-        """Cached, source-matched PAD physical skins; DISPLAY ONLY, no MFG."""
-        if snapshot.get("model") not in ("受電箱","RECEIVING") or (
-                snapshot.get("nfb_config_submitted") is not True):
+        """GUI caches and filters only; Engine validates actual PAD sources."""
+        if not manufacturing_api.receiving_pad_assembly_display_active(snapshot):
             self.last_formed_pad_display_blocker = None
             return ()
         try:
-            from ae_engine.receiving_nfb_pad_preview_cache import (
-                pad_preview_source_fingerprint,
+            # The Engine fingerprint tracks CSV, tooling, real Base material
+            # and CUTTING squares. Do not reuse stale formed 3D skins.
+            source_key = manufacturing_api.receiving_pad_assembly_display_source_key(
+                snapshot, assembly_parts,
             )
-            # Source CSV, editable shared tooling, and actual Base Plate
-            # CUTTING material all invalidate a formerly valid cached mesh.
-            source_key = pad_preview_source_fingerprint(snapshot,assembly_parts)
         except (ValueError, TypeError, OSError, KeyError) as exc:
             self.last_formed_pad_display_blocker = str(exc)
             self._formed_pad_display_cache = None
             return ()
-        cached=self._formed_pad_display_cache
-        if cached is None or cached[0]!=source_key:
+        cached = self._formed_pad_display_cache
+        if cached is None or cached[0] != source_key:
             try:
-                from ae_engine.receiving_nfb_pad_assembly_preview import (
-                    build_committed_pad_assembly_display,
+                all_skins = manufacturing_api.resolve_receiving_pad_assembly_display_skins(
+                    snapshot, assembly_parts,
                 )
-                all_skins=build_committed_pad_assembly_display(snapshot,assembly_parts)
-                if any(skin.manufacturing_ready or skin.assembly_contact_certified
-                       for skin in all_skins):
-                    raise ValueError("PAD_DISPLAY_MFG_OR_CONTACT_GATE_INVALID")
-                blocker=None
+                blocker = None
             except (ValueError, TypeError, OSError, KeyError, AttributeError) as exc:
-                all_skins=()
-                blocker=str(exc)
-            self._formed_pad_display_cache=(source_key,all_skins,blocker)
+                all_skins = ()
+                blocker = str(exc)
+            self._formed_pad_display_cache = (source_key, all_skins, blocker)
         else:
-            all_skins,blocker=cached[1:]
-        self.last_formed_pad_display_blocker=blocker
-        return tuple(
-            skin for skin in all_skins if skin.parent_base_id in visible_set
-        )
+            all_skins, blocker = cached[1:]
+        self.last_formed_pad_display_blocker = blocker
+        return tuple(skin for skin in all_skins if skin.parent_base_id in visible_set)
 
     def _pad_display_warnings(self):
         """Surface a PAD failure; a blank 3D must not masquerade as complete."""
