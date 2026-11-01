@@ -1717,7 +1717,8 @@ def test_issue1818_navigation_only_never_bypasses_non_receiving_relief_publish()
 def test_tk_benchmark_observes_actual_engine_endcap_replay_seam(monkeypatch):
     """#2517: the benchmark must measure a real invoked API, not a removed alias."""
     from tools.whd_performance_baseline import Probe
-    import phase6_manufacturing_service as service
+    # Measure the real Engine function now invoked by the Phase6 adapter.
+    import ae_engine.manufacturing_resolver as service
 
     calls = []
     sentinel = object()

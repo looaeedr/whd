@@ -43,6 +43,7 @@ def test_engine_resolver_does_not_import_phase6_or_tk():
                                  "fold_designer_bridge")) for x in imported)
     assert "from .manufacturing_contracts import (" in content
     assert "resolve_manufacturing_explicit_joint_reliefs(" in content
+    assert "resolve_receiving_nfb_assembly_parts(snapshot, parts)" in content
 
 
 def test_engine_and_phase6_reject_non_request_and_missing_physical_scene():
