@@ -172,7 +172,7 @@ def _actual_signature(entity):
     raise ValueError("COMPOSED_DXF_UNEXPECTED_DXF_ENTITY:" + kind)
 
 
-def _source_rows(panels):
+def _source_rows(panels, *, preserve_input_order=False):
     """Return physically owned, canonical input rows; never forge certification."""
     groups = []
     names = set()
@@ -222,7 +222,9 @@ def _source_rows(panels):
         groups.append((panel_name, tuple(body + others)))
     if not groups:
         raise ValueError("COMPOSED_DXF_EMPTY_PANELS")
-    return tuple(sorted(groups, key=lambda row: (row[0].casefold(), row[0])))
+    return tuple(groups) if preserve_input_order else tuple(sorted(
+        groups, key=lambda row: (row[0].casefold(), row[0])
+    ))
 
 
 def _compose(rows, *, gap):
@@ -269,6 +271,7 @@ def _compose(rows, *, gap):
 
 def save_composed_panel_dxf(
     panels, output_path, *, pre_commit_guard, overwrite=False, gap=60.0,
+    preserve_input_order=False,
 ):
     """Publish one staged, independently reopened multi-panel flat DXF.
 
@@ -284,7 +287,9 @@ def save_composed_panel_dxf(
         raise ValueError("COMPOSED_DXF_INVALID_OUTPUT_PATH")
     if path.exists() and not overwrite:
         raise FileExistsError(str(path))
-    rows = _source_rows(panels)
+    if type(preserve_input_order) is not bool:
+        raise TypeError("COMPOSED_DXF_ORDER_POLICY_MUST_BE_BOOL")
+    rows = _source_rows(panels, preserve_input_order=preserve_input_order)
     pre_commit_guard()
     composite, sheets, originals = _compose(rows, gap=float(gap))
     # The original per-piece authority is checked independently, not inferred

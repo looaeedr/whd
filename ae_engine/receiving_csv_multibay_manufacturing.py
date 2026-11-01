@@ -40,6 +40,7 @@ from .manufacturing_export_selection import resolved_export_intention_key
 def export_current_receiving_multibay_dxf(
     saved_snapshot, *, physical_bay_geometry_provider,
     flags, output_dir, overwrite=False,
+    group_mode=None, pre_commit_guard=None,
 ):
     """Write once for each CURRENT physical Set/Bay, with no source borrowing.
 
@@ -49,6 +50,13 @@ def export_current_receiving_multibay_dxf(
     a missing NFB Base Plate, unidentified source, forged EAR/PAD or stale
     left/right world-to-UV marking.
     """
+    if group_mode is not None:
+        from .receiving_dxf_groups import RECEIVING_COMPOSED_DXF_MODES
+        if group_mode not in RECEIVING_COMPOSED_DXF_MODES:
+            raise ValueError("RECEIVING_COMPOSED_DXF_MODE_UNSUPPORTED")
+        if not callable(pre_commit_guard):
+            raise ValueError("RECEIVING_COMPOSED_DXF_PRECOMMIT_GUARD_REQUIRED")
+        pre_commit_guard()
     if type(overwrite) is not bool:
         raise TypeError("RECEIVING_MULTIBAY_OVERWRITE_MUST_BE_BOOL")
     if saved_snapshot.get("model") not in {"受電箱","RECEIVING"}:
@@ -269,6 +277,12 @@ def export_current_receiving_multibay_dxf(
                 Path(staging)/filename, segments,
                 # Physical Bay source scoped before any other Bay is processed.
                 check_scene=source_scene,
+            )
+        if group_mode is not None:
+            from .receiving_dxf_groups import commit_verified_receiving_groups
+            return commit_verified_receiving_groups(
+                layout, group_mode, output_rows, staging, root,
+                pre_commit_guard=pre_commit_guard, overwrite=overwrite,
             )
         return _atomic_commit_staged_dxfs(
             staged,root,overwrite=overwrite,
