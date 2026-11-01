@@ -486,10 +486,13 @@ def build_manufacturing_request(
     endcap_bottom_wrap = _mapping(getattr(app, "_phase6_endcap_bottom_wrap_state", {}) or {})
     workspace = getattr(app, "designer_workspace", None)
 
-    if snapshot.get("active_mode") == "quantity":
-        from ae_engine.receiving_quantity_box import require_valid_quantity_features
-        live = workspace.snapshot() if workspace is not None else {}
-        require_valid_quantity_features({**snapshot, **{key: live[key] for key in ("quantity", "receiving_quantity_box") if key in live}})
+    live = (
+        workspace.snapshot() if workspace is not None
+        and snapshot.get("active_mode") == "quantity" else {}
+    )
+    manufacturing_api.validate_operator_manufacturing_quantity_context(
+        snapshot, live,
+    )
 
     part_inputs: list[ManufacturingPartInput] = []
     scene_values_by_part = {}
@@ -672,12 +675,15 @@ def resolve_manufacturing_for_app(
         if isinstance(cache_service, ManufacturingCacheService)
         else _cache_service_for_app(app)
     )
-    from ae_engine.receiving_quantity_box import require_valid_quantity_features
     source = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
     workspace = getattr(app, "designer_workspace", None)
-    if source.get("active_mode") == "quantity":
-        live = workspace.snapshot() if workspace is not None else {}
-        require_valid_quantity_features({**source, **{key: live[key] for key in ("quantity", "receiving_quantity_box") if key in live}})
+    live = (
+        workspace.snapshot() if workspace is not None
+        and source.get("active_mode") == "quantity" else {}
+    )
+    manufacturing_api.validate_operator_manufacturing_quantity_context(
+        source, live,
+    )
     key = build_manufacturing_cache_key(app)
     lookup = service.lookup(key)
     if lookup.result is not None:
