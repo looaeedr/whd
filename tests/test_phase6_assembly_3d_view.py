@@ -984,6 +984,7 @@ def test_final_scene_interference_overlay_uses_pre_solve_probe_while_rendering_s
 
 def test_hidden_box_body_still_anchors_visible_head_tail_placement(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
@@ -1014,13 +1015,15 @@ def test_hidden_box_body_still_anchors_visible_head_tail_placement(monkeypatch):
     monkeypatch.setattr(view, "_phase6_place_assembly_triangles", fake_regular_place)
 
     def fake_mate(
-        triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0), sheet_thickness=0.0
+        triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0),
+        sheet_thickness=0.0, preserve_core_origin=False,
     ):
         mating_calls.append((placement, body_triangles, offset, float(sheet_thickness)))
         return head_world if placement == "top" else tail_world
 
-    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", fake_mate)
+    monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", fake_mate)
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda triangles, thickness: tuple(triangles))
+    monkeypatch.setattr(endcap_mesh, "thicken_triangle_surface", assembly_geometry.thicken_triangle_surface)
 
     scene_view = view.Phase6FinalSceneView(SimpleNamespace(ax3d=Axis()))
     triangles = scene_view.render(view.FinalSceneViewRequest(
@@ -1091,6 +1094,7 @@ def test_operator_part_selector_collapses_box_body_physical_children_under_box_b
 
 def test_final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_datum(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
@@ -1145,8 +1149,9 @@ def test_final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_
         mate_calls.append(tuple(body_triangles))
         return head_world
 
-    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", fake_mate)
+    monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", fake_mate)
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda triangles, thickness: tuple(triangles))
+    monkeypatch.setattr(endcap_mesh, "thicken_triangle_surface", assembly_geometry.thicken_triangle_surface)
 
     scene_view = view.Phase6FinalSceneView(SimpleNamespace(ax3d=Axis()))
     triangles = scene_view.render(view.FinalSceneViewRequest(
