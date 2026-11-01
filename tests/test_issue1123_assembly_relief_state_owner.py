@@ -101,8 +101,9 @@ def test_manufacturing_adapter_delegates_replay_contract_to_neutral_owner():
     func = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "_resolved_committed_assembly_relief_cuts")
     body = ast.get_source_segment(text, func)
     assert body is not None
-    assert "manufacturing_api.build_current_source_signature(" in body
-    assert "manufacturing_api.committed_relief_cuts(" in body
+    assert "manufacturing_api.resolve_operator_committed_relief_cuts(" in body
+    assert "build_current_source_signature(" not in body
+    assert "return manufacturing_api.committed_relief_cuts(" not in body
     assert "certified_rule_revision_exists" not in body
     assert "RELIEF_CONTRACT_VERSION" not in body
     assert "structure_fingerprint" not in body
@@ -284,3 +285,85 @@ def test_headless_save_reload_rejects_source_and_profile_drift():
     changed = deepcopy(saved)
     changed["cabinet_family"] = "受電箱"
     assert not source_matches_current(reloaded, changed, ["head"])
+
+
+def test_gui_operator_replay_source_is_forwarded_without_physical_manufacture(monkeypatch):
+    from ae_engine import manufacturing_api
+    from gui_modules.application.manufacturing_adapter import (
+        _resolved_committed_assembly_relief_cuts,
+    )
+    from types import SimpleNamespace
+    sentinel = (((1.0, 1.0), (2.0, 1.0), (1.0, 2.0)),)
+    seen = []
+    def port(key, values, **kwargs):
+        seen.append((key, values, kwargs))
+        return sentinel
+    monkeypatch.setattr(
+        manufacturing_api, "resolve_operator_committed_relief_cuts", port,
+    )
+    class Controller:
+        def box_body_profile(self):
+            return [{"phase6_key": "fw_left", "len": 25}]
+        def box_body_structure_state(self):
+            return {"active_type": "three_piece"}
+    host = SimpleNamespace(
+        assembly_relief_state={"enabled": True},
+        assembly_joint_state={"assembly_joint_schema_version": 3, "assembly_joints": []},
+        workspace_controller=Controller(),
+        _baseline_source_model=lambda: "受電箱",
+    )
+    values = {"t": 2, "w": 400}
+    part_profiles = {"X": [{"phase6_key": "w", "len": 400}]}
+    assert _resolved_committed_assembly_relief_cuts(host, "head", values, part_profiles) is sentinel
+    assert seen == [("head", values, {
+        "relief_state": {"enabled": True},
+        "joint_state": host.assembly_joint_state,
+        "structure_state": {"active_type": "three_piece"},
+        "cabinet_family": "受電箱",
+        "box_body_profile": [{"phase6_key": "fw_left", "len": 25}],
+        "part_profiles": part_profiles,
+    })]
+
+
+def test_public_operator_replay_validates_real_source_and_stale_save_reload(monkeypatch):
+    from copy import deepcopy
+    import json
+    from ae_engine import manufacturing_api
+    from ae_engine import operator_relief_replay as owner
+    captured = []
+    with monkeypatch.context() as mp:
+        mp.setattr(owner, "committed_relief_cuts", lambda state, part, source: captured.append(deepcopy(source)) or ())
+        original = {"w": 400, "h": 500, "d": 200, "t": 2, "fw": 25}
+        fold = [
+            {"phase6_key": "fw_left", "len": 25, "angle": -90},
+            {"phase6_key": "box_w", "len": 350, "core": "W"},
+            {"phase6_key": "fw_right", "len": 25},
+        ]
+        request = dict(
+            relief_state={"enabled": True},
+            joint_state={"assembly_joints": []},
+            structure_state={"active_type": "integral"},
+            cabinet_family="金庫型",
+            box_body_profile=fold,
+            part_profiles={"X": [{"phase6_key": "w", "len": 400}]},
+        )
+        manufacturing_api.resolve_operator_committed_relief_cuts("head", original, **request)
+    assert captured
+    source = captured[0]
+    assert source["box_body_formed_fw"]["left"] is not None
+    saved = json.loads(json.dumps({
+        "enabled": True,
+        "source": source,
+        "parts": {"head": {
+            "verified": True, "trust_level": "CERTIFIED",
+            "cuts": [[(0, 0), (2, 0), (1, 1)]],
+        }},
+    }, ensure_ascii=False))
+    request["relief_state"] = saved
+    cut = manufacturing_api.resolve_operator_committed_relief_cuts("head", original, **request)
+    assert cut == (((0.0, 0.0), (2.0, 0.0), (1.0, 1.0)),)
+    updated = dict(original, w=401)
+    assert manufacturing_api.resolve_operator_committed_relief_cuts("head", updated, **request) == ()
+    request["cabinet_family"] = "受電箱"
+    assert manufacturing_api.resolve_operator_committed_relief_cuts("head", original, **request) == ()
+    assert source == captured[0]

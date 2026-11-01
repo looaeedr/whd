@@ -12,7 +12,6 @@ geometry, formula, DXF and process authority.
 """
 from copy import deepcopy
 
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from ae_engine.contracts import (
     BoxBodyPartSpec,
@@ -25,7 +24,6 @@ from phase6_fold_profiles import (
     formed_box_body_fw_widths,
     profile_to_fold_segments,
 )
-from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
 
 
 def _endcap_profiles_for_assembly(values, stored_profiles, assembly_type, part_key):
@@ -119,49 +117,27 @@ def _phase6_relief_profile_signature(profile):
 
 
 def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
+    """Collect current operator inputs; Engine owns committed relief replay."""
     state = deepcopy(getattr(self, "assembly_relief_state", {}) or {})
     if not bool(state.get("enabled")):
+        # Preserve the historic uninitialized-BoxBody disabled short circuit.
         return ()
     controller = getattr(self, "workspace_controller", None)
-
-    body_profile_getter = getattr(controller, "box_body_profile", None)
-    body_profile = (body_profile_getter() if callable(body_profile_getter) else ()) or ()
-    formed_left, formed_right = formed_box_body_fw_widths(
-        body_profile, float(val.get("t", 0.0) or 0.0)
-    )
-
-    try:
-        graph_fp = resolved_joint_graph_fingerprint(
-            dict(getattr(self, "assembly_joint_state", {}) or {})
-        )
-    except Exception:
-        return ()
-
+    getter = getattr(controller, "box_body_profile", None)
+    body_profile = (getter() if callable(getter) else ()) or ()
     structure_getter = getattr(controller, "box_body_structure_state", None)
-    structure_state = structure_getter() if callable(structure_getter) else {}
-    family_getter = getattr(self, "_baseline_source_model", None)
-    cabinet_family = str(family_getter() if callable(family_getter) else "")
-
-    scalar_source = {
-        name: float(val.get(name, default))
-        for name, default in (
-            ("w", 0.0), ("h", 0.0), ("d", 0.0), ("t", 0.0), ("fw", 0.0),
-            ("zl1", ae.zl1_def), ("zr1", ae.zr1_def),
-            ("yl1", ae.yl1_def), ("yr1", ae.yr1_def),
-            ("ytop1", ae.ytop1_def), ("ybottom1", ae.ybottom1_def),
-        )
-    }
-    current_source = manufacturing_api.build_current_source_signature(
-        scalar_source=scalar_source,
-        joint_graph_fingerprint=graph_fp,
-        structure_state=structure_state,
-        cabinet_family=cabinet_family,
-        formed_left=formed_left,
-        formed_right=formed_right,
-        box_body_profile=body_profile,
-        part_profiles={str(key): deepcopy(dict(stored_profiles or {}))},
+    structure_state = (
+        structure_getter() if callable(structure_getter) else {}
     )
-    return manufacturing_api.committed_relief_cuts(state, str(key), current_source)
+    family_getter = getattr(self, "_baseline_source_model", None)
+    family = str(family_getter() if callable(family_getter) else "")
+    return manufacturing_api.resolve_operator_committed_relief_cuts(
+        key, val, relief_state=state,
+        joint_state=getattr(self, "assembly_joint_state", {}) or {},
+        structure_state=structure_state,
+        cabinet_family=family, box_body_profile=body_profile,
+        part_profiles=stored_profiles,
+    )
 
 def _end_cap_part_spec(self, val, *, is_tail):
     key = "tail" if is_tail else "head"
