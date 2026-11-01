@@ -5,6 +5,7 @@ nothing is flattened into individual manufacturing sheet drawings.
 """
 from __future__ import annotations
 
+from ae_engine import manufacturing_api
 from whd_theme import apply_mpl_dark_theme
 
 _LABELS = {"head": "封頭", "tail": "封尾", "box_body": "箱身", "door": "門",
@@ -118,15 +119,8 @@ def _assembly_world_meshes(request):
 
 
 def _projected_outline(triangles):
-    """Project existing canonical 3D feature edges onto world X/height Y."""
-    from phase6_final_scene_projection import _phase6_mesh_feature_segments
-    projected = set()
-    for start, end in _phase6_mesh_feature_segments(triangles):
-        p1 = (round(float(start[0]), 5), round(float(start[1]), 5))
-        p2 = (round(float(end[0]), 5), round(float(end[1]), 5))
-        if p1 != p2:
-            projected.add(tuple(sorted((p1, p2))))
-    return tuple(sorted(projected))
+    """Display adapter: world XY physical outline is resolved by Engine."""
+    return manufacturing_api.project_solid_mesh_xy_outline(triangles)
 
 
 def projected_assembly_parts(request):

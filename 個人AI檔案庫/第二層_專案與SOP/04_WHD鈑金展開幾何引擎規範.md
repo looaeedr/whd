@@ -32,6 +32,42 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 受電箱設定頁實體組合 2D XY 邊線 Engine API（2026-11-01）**：`manufacturing_api.project_solid_mesh_xy_outline` 從已解析的實體 3D mesh 經既有 `physical_solid_mesh_feature_segments` 生成唯讀世界 X/Y 邊線，保留原五位小數、零長線剔除及無向去重。GUI `receiving_settings_preview_2d._projected_outline` 只負責公開 API 委派；Canvas 色彩、角色顯示及互動仍在 GUI。此視圖不能作為 CUTTING、BEND、DXF、NFB、PAD、EAR 製造權威；其餘組合網格的 GUI 既有路徑仍待後續獨立遷移，#2517 OPEN。
+
+**#2517 受電箱 EAR 固定片側板 2D／單板 3D 來源預覽 Engine API（2026-11-01）**：`manufacturing_api.resolve_receiving_ear_side_display_context`／immutable `ReceivingEarSideDisplayContext` 統一 GUI 兩個入口重複的 FoldDesigner 已提交 NFB 來源判定、主視窗鏡像來源漂移拒絕、原始 Box Body 實體板件 baseline SHA／真實圖元快取指紋及 W/H/D/T 包外來源輸入。GUI `receiving_ear_side_2d` 只讀取/選擇視窗快照、呼叫 Engine `project_receiving_ear_side_piece_2d_preview` 並保留 Canvas／隔離單板顯示快取；實際 EAR UV／MARKING 的唯一來源仍是原 Engine。保留 #1503 受電箱左右側板標記、真實 2D/3D、主視窗過期拒絕與 Save→Reload CHECK DXF 正反案例；**此 read-only 顯示不是 EAR 焊接、PAD、CUTTING、DXF 或整箱 MFG-2 製造核准**，#2517 OPEN。
+
+
+
+**#2517 受電箱 NFB CSV V5 真實單／雙層底板來源預覽 Engine API（2026-11-01）**：`manufacturing_api.preview_receiving_nfb_v5_real_base_sources` 接管原 GUI `receiving_nfb_v5_scene_preview` 自行做的實體底板原始 PartSpec 身份、包外尺寸／T、縮邊與實際折型、Set/Bay 提交來源、NFB 層別及兩片獨立實體 BasePlate 來源核對；沿用原 Engine `source_receiving_nfb_tier_base_specs` 與真實 V5 source preview，不複製製造公式。`require_receiving_nfb_v5_inner_door_trial_preview`／`require_receiving_nfb_v5_base_trial_preview` 將 GUI 畫出未核准 FinalScene 前的試作狀態／製造旗標拒絕也移到 Engine；GUI 只拿驗過的 render data 在 Canvas 畫圖。現有 #1901 真實底板 Set/Bay/source stale 與 #1502 單雙層案例保持原判準，**此預覽絕非 DXF、EAR、PAD、整箱 MFG-2 製造放行**，#2517 OPEN。
+
+
+
+**#2517 受電箱 NFB 製造清單 read-only Engine Validation API（2026-11-01）**：`manufacturing_api.validate_receiving_nfb_manifest_view` 與 `validate_receiving_nfb_highlighted_manifest` 接管 GUI 原本的物理片數／READY 狀態一致性、CSV V5 尚未製造診斷、Set/Bay/version 身份與多 Bay 選片驗證。GUI `receiving_nfb_manifest_view` 僅將已驗證的來源證據呈現繁體中文，不得自行證明可加工或製造合格。此 API 僅是**防止顯示假綠燈的 read-only report 檢核**；實際放行仍須當次來源重驗與 typed `NfbPartialExportManifest.require_export`／正式 Engine DXF writer。原 #1501 UI 文字與正反回歸保留，絕不藉 UI status 宣稱 PAD／EAR／整箱 MFG-2 已認證；#2517 OPEN。
+
+
+
+**#2517 受電箱 NFB 成對實體 DXF Engine API（2026-11-01）**：`manufacturing_api.export_verified_receiving_nfb_door_base_pair`、`export_current_csv_nfb_door_base_pair`（單層兩片／雙層三片）及 immutable `NfbCsvPairedPartOnlyDxf`／`NfbCsvTwoTierPartOnlyDxf` 接管原 GUI 內門＋底板來源重驗、實體板件選取、NFB CSV/X/Y/旋轉、層別深度/XYZ、真實 FinalScene 同源比對、CHECK/Q、暫存 DXF 重開及無覆寫原子發布。GUI `receiving_nfb_pair_partial_export_action` 只保留 Engine 公開 API／原型別相容 re-export；維持既有 `NfbPairedPartOnlyDxf` 真實來源回執與所有既有 1502 單層／雙層正反案例，不新增第二套製造數值或允許 PAD／EAR／整箱 MFG-2 出圖，#2517 OPEN。
+
+
+
+**#2517 受電箱 NFB 實體內門 PART_ONLY 出圖 Engine API（2026-11-01）**：`manufacturing_api.export_verified_receiving_nfb_inner_door` 將原 GUI `receiving_nfb_partial_export_action` 中已提交 Set/Bay/version、Switch 品牌、唯一實體內門穩定 ID、原始 DXF SHA＋上層 handle/revision、保存孔位／世界 X 與旋轉、無覆寫 PART_ONLY DXF writer 驗證全部搬到 Engine；GUI 檔只保留公開 API 相容匯入與操作參數。原 1501 正反測試的 mock 點移到同一 Engine 函式，不更改其失敗判定、來源數值或真正 writer。內門單件未核准 BasePlate／PAD／EAR／整箱 MFG-2／額外 CUTTING 或 DXF，#2517 OPEN。
+
+
+
+**#2517 受電箱 NFB 實體底板 PART_ONLY 放行 Engine API（2026-11-01）**：`manufacturing_api.nfb_verification_geometry_changed`、`prepare_verified_receiving_nfb_base_plate`、`export_verified_receiving_nfb_base_plate` 將原 GUI BasePlate 的實際 Set/Bay/version 提交證據、現行 NFB 原 DXF SHA、上／下來源 handle、BasePlatePartSpec／Family 物理身分、已確認孔位、真正 DXF PART_ONLY 保存與拒絕全部遷入 Engine。GUI 原 `receiving_nfb_base_partial_export_action` 只保留相容 API 匯入，`receiving_nfb_partial_export_action` 也共用 Engine 來源幾何指紋；沿用既有 verified geometry composer 和原子 DXF writer。三個 Receiving BasePlate 原始折型、舊資料、斷來源／錯板件拒絕保持原契約。**個別底板**不能冒充 PAD／EAR 焊接／整箱 MFG-2 放行，未新增 CUTTING 或 DXF 製造認證；#2517 OPEN。
+
+
+
+**#2517 受電箱 NFB 內門＋底板成對 DXF CHECK/Q 公開 API（2026-11-01）**：`manufacturing_api.NfbPairedPartOnlyDxf` 與 `NfbPairedQuantityInput`／`NfbPairedQuantityCheck`、`group_reopened_nfb_pair_check_q`、`save_checked_reopened_nfb_pair_q_dxf` 將原 GUI 成對 DXF 重開比對、原始來源 SHA、Set/Bay/version＋兩張實體 ID、一筆 Q 數量守恆及 PART_ONLY 寫入決策搬入 Engine。GUI 輸出 action 與原 CHECK/Q 匯入路徑只 re-export 公開 Engine typed DTO／operation。原 `NfbQuantityPartGate`、`manufacturing_equivalence`、`verify_saved_part_render_data_dxf` 保留唯一製造判準，絕不將兩張 PART_ONLY 的來源證據擴張為整箱 MFG-2／EAR／PAD 核准；未新增 CUTTING／DXF 認證，#2517 OPEN。
+
+
+
+**#2517 受電箱 NFB 多 Bay 內門部分出圖公開 API（2026-11-01）**：`manufacturing_api.require_highlighted_nfb_inner_doors`、`manufacturing_api.export_highlighted_nfb_inner_doors` 接管原 GUI `receiving_nfb_partial_batch_dispatcher` 的已提交來源、真實 Set/Bay/version 與實體內門 ID 查核、批次 DXF 隔離暫存、無覆寫原子發布及失敗回滾。原 GUI module 僅作公開 API 相容 re-export；`manifest`／`partial_export` 仍是來源必須即時重驗的原正式 port，過期／跨 Bay／偽造 typed receipt 必拒絕。明確選擇 allow_held 時僅放行 READY 內門並產生未出圖 Bay 報告，不把底板／PAD／EAR 誤計為已出板片；不新增孔位／CUTTING／DXF 認證或整箱製造權，#2517 持續 OPEN。
+
+
+**#2517 Receiving NFB CSV 已出圖範圍來源證明 Engine API（2026-11-01）**：`manufacturing_api.resolve_verified_csv_v5_export_scope` 由既有 `receiving_nfb_model_identity.selected_numeric_spec`、`receiving_nfb_y_projection.project_nfb_inner_door_nominal_y` 確認精確 Set/Bay、W、實體孔身分與 X/Y/rotation；`capture_verified_csv_v5_pair_display_proof` / `verified_csv_v5_operator_label` 由 Engine 唯一校驗已提交 snapshot、原品牌 CSV 真實 bytes、已實際存檔並重新開啟的兩／三片 PART_ONLY DXF 真實 bytes 與目前來源是否完全相等。GUI exporter 只採原本的 typed 成功 receipt，`receiving_nfb_verified_scope_display` 只傳輸來源與回傳顯示標籤，不再持有 SHA、來源型號／物理身份及是否可以標示過去已出圖的決策。Proof 為 immutable 的暫存歷史輸出展示憑據，不寫入專案；來源或輸出檔任何漂移立即失效、不推定全箱／EAR／PAD／下一次正式製造權限。原出圖、Save→Reload、Fail closed 不改；#2517 保持 OPEN。
+
+
 **#2517 Receiving NFB V5 CSV 來源預覽公開 API（2026-11-01）**：`manufacturing_api.ReceivingNfbV5SourcePreviewCache.load(brand, model_ref)` 與 immutable `ReceivingNfbV5SourcePreview` 將原 GUI 的 V5 廠牌／型號身份比對、`brand_csv_path` 檔案版本簽章、當次 CSV 解析與最多 8 筆的 per-editor source cache 改由 Engine 擁有。既有 `receiving_nfb_model_identity.selected_numeric_spec` 和 `receiving_nfb_numeric_catalog` 仍是唯一型號／孔位數值來源；原 CSV 在解析期間改變版本則拒絕緩存，未知／跨品牌身份 fail-closed。GUI `receiving_nfb_source_preview.NfbDxfSourcePreviewPanel` 僅依 Engine 回傳的來源實體和數值畫 source-only 示意、處理縮放及 verified-output 標籤，不再直接解析 NFB 身份或讀 CSV 檔案來源時間。舊 DXF 預覽、同來源快取、缺數值禁止製造、Set/Bay 提交／出圖／DXF 認證均保留原界線；此 API 不構成 CUTTING／DXF 製造核准，#2517 維持 OPEN。
 
 
@@ -710,6 +746,59 @@ Engine 按既有規則保留未操作格位的舊 Feature、允許已操作格�
 `phase6_final_scene_projection._phase6_mesh_feature_segments` 僅相容委派，
 GUI 的 Matplotlib 不再決定實體特徵邊。FinalScene 製造材料來源不變，
 此線段資料純顯示，不新增 CUTTING、DXF／碰撞認證；#2517 持續 OPEN。
+
+
+
+### #2517 單門／多門 DoorPartSpec 公開建構 API（2026-11-01）
+
+`manufacturing_api.build_door_operator_part_spec(values, *, model_name,
+features, indicator_hole, door_indicator, door_indicator_offset,
+use_box_distance, corner_policy, frame_edges, indicator_window_groups,
+nameplate_center_datum_top)` 接收 GUI 的當次操作資料後，由 Engine
+產生 immutable `DoorPartSpec`。GUI
+`_door_part_spec_from_values` 僅取得／傳遞操作輸入，不能再次
+自行決定 `feature_space`、Fold 欄位、FrameEdges、
+指示燈與名牌孔的製造 request 語意。既有 `legacy_unfolded`
+feature 座標空間、單門及 door-cell physical 尺寸、後續
+Door finished-face、2D/3D/DXF、Save→Reload 與 Certified Registry
+權責原樣保留，無新增製造核准；#2517 維持 OPEN。
+
+### #2517 Receiving singleton Bay Door snapshot API（2026-11-01）
+
+**#2517 Receiving 單一 Bay 內門操作 Save→Reload Engine API（2026-11-01）**：`manufacturing_api.project_receiving_single_bay_door_controls(snapshot)` 將原 `fold_designer_snapshot_projection._snapshot_workspace_state` 的 Receiving 唯一 Set／唯一 Bay 操作內門 `door_state` 寫回權責搬入 Engine，由 `receiving_layout.RECEIVING_DOOR_STATE_KEYS` 和 `update_receiving_bay` 的唯一已存 schema 驗證／交易。只有已存在的 singleton Bay、Set/Bay 模式、非空 `inner_doors` 才從 GUI 根層當次輸入複製門狀態；多 Set／多 Bay／Quantity／非 Receiving 一律不投影、不覆蓋其他已提交 Bay。輸入 layout 與原始 GUI snapshot 不被修改，GUI 僅把 Engine 回傳的 detached persisted layout 放進待保存 snapshot。保留原 70/105 mm 內門位移 Save→Reload 相容及 2D/3D/正式 DXF 權威不變；不增加新的 CUTTING／製造授權，#2517 仍 OPEN。
+
+### #2517 衍生實體板件 namespace／選片修復 Engine 公開 API（2026-11-01）
+
+`ae_engine.derived_part_projection` 與
+`manufacturing_api.build_derived_part_projection_request`、
+`build_derived_part_sync_plan` 是 Door-cell／BasePlate-cell／Divider／
+InnerDoor 實體 namespace、既有 Feature/Profile stash 與
+active/selected physical ID repair 的唯一 Engine 權威。
+由原 `phase6_derived_part_projection` 純函式機械式搬移，GUI
+舊模組僅相容 import；Composition 蒐集 Domain Engine
+既有 Derivation 結果送 Engine，Navigation Owner 只套用
+immutable Plan。Receiving 原單一 Base Plate 的保留／two-tier
+存量相容判斷不改動，未引入第二份 NFB、孔、Fold、2D／3D／DXF
+或 Save→Reload 物理規則。本 API 只處理已衍生實體選片，
+不是加工輸出認證；#2517 保持 OPEN。
+
+
+
+### #2517 BoxBodyPartSpec 操作輸入 → Engine 製造 request（2026-11-01）
+
+`manufacturing_api.build_box_body_operator_part_spec` 與
+`ae_engine.box_body_operator_part_spec` 是金庫型／受電箱
+BoxBodyPartSpec 製造 request 組合權威。GUI
+`_box_body_part_spec_from_values` 僅蒐集 workspace 當前輸入、
+Head/Tail Y Fold、結構 state、Features 和 override；不得再決定
+箱身實體 piece Features、EndCap `ybottom1` 物理 readback、
+Family BoxBody Structure／Back Panel contract 或材料 Fold DTO。
+既有 source profile `ui_len_add` 由 Engine canonical
+`fold_material_segment_outside_length` 處理，手動 override
+優先次序與原 `ae.ybottom1_def` fallback 不變。
+本變更不更動 #2621 outside-W datum、NFB 製造、尺寸
+補償公式、2D／3D／DXF 認證或 Save→Reload schema；
+#2517 持續 OPEN。
 
 ### #2517 多片 Box Body 實體外側 W 定位 Engine API（2026-11-01）
 

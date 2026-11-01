@@ -57,53 +57,31 @@ def _box_body_part_spec_from_values(
     structure_state=None, head_ybottom1=None, tail_ybottom1=None,
     snapshot=None,
 ):
-    def resolved_ybottom(part_key):
-        profiles = self.workspace_controller.profile_for(part_key) or {}
-        rows = list(dict(profiles).get("Y", ()) or ())
-        for row in rows:
-            if str(row.get("phase6_key") or "") == "ybottom1":
-                return float(engine_segment_length_to_ui(row))
-        return float(val.get("ybottom1", ae.ybottom1_def))
-
-    source_structure = (
-        self.workspace_controller.box_body_structure_state()
-        if structure_state is None else deepcopy(dict(structure_state or {}))
-    )
-    structure_state = cabinet_family_policy.resolve_box_body_structure_state(
-        model_name, source_structure
-    )
-
-    # The engine, not the GUI adapter, owns the physical rear-panel sizing
-    # and family manufacturing contract (including Receiving W - 2.5T).
-    back_panel_contract = manufacturing_api.resolve_box_body_back_panel_contract(
-        model_name,
-        snapshot or val,
-        structure_state=structure_state,
+    """Collect operator/workspace inputs; Engine builds the real BoxBodyPartSpec."""
+    controller = self.workspace_controller
+    endcap_y_profiles = {}
+    for key, override in (("head", head_ybottom1), ("tail", tail_ybottom1)):
+        if override is None:
+            source = controller.profile_for(key) or {}
+            endcap_y_profiles[key] = list(dict(source).get("Y", ()) or ())
+    return manufacturing_api.build_box_body_operator_part_spec(
+        val,
+        model_name=model_name,
+        features=features,
+        face_features=face_features,
         head_corner_policy=head_corner_policy,
         tail_corner_policy=tail_corner_policy,
-    )
-
-    return BoxBodyPartSpec(
-        width=float(val['w']), height=float(val['h']), depth=float(val['d']),
-        thickness=float(val['t']), frame_width=float(val['fw']),
-        model_name=model_name,
-        zl1=float(val['zl1']), zl2=float(val['zl2']),
-        zr1=float(val['zr1']), zr2=float(val['zr2']),
-        z_comp=float(val['z_comp']),
-        fold_profile=profile_to_fold_segments(
-            fold_profile if fold_profile is not None else (self.workspace_controller.box_body_profile() or ())
-        ),
-        features=tuple(features or ()),
-        face_features={k: tuple(v) for k, v in dict(face_features or {}).items()},
-        physical_piece_features=deepcopy(dict((snapshot or {}).get('physical_piece_features', {
-            k: v for k, v in getattr(self.workspace_controller, 'part_features_snapshot', lambda: {})().items()
-            if str(k).startswith('box_body:') and not str(k).startswith('box_body:divider:')
-        }))),
-        head_corner_policy=head_corner_policy, tail_corner_policy=tail_corner_policy,
-        structure_state=deepcopy(dict(structure_state or {})),
-        back_panel_contract=deepcopy(dict(back_panel_contract or {})),
-        head_ybottom1=(resolved_ybottom("head") if head_ybottom1 is None else float(head_ybottom1)),
-        tail_ybottom1=(resolved_ybottom("tail") if tail_ybottom1 is None else float(tail_ybottom1)),
+        fold_profile=(fold_profile if fold_profile is not None
+                      else (controller.box_body_profile() or ())),
+        structure_state=(controller.box_body_structure_state()
+                         if structure_state is None else structure_state),
+        source_part_features=getattr(
+            controller, "part_features_snapshot", lambda: {}
+        )(),
+        endcap_y_profiles=endcap_y_profiles,
+        head_ybottom1=head_ybottom1,
+        tail_ybottom1=tail_ybottom1,
+        snapshot=snapshot,
     )
 
 def _box_body_part_spec(self, val):
@@ -271,26 +249,21 @@ def _door_part_spec_from_values(
     self, val, *, model_name, features, indicator_hole=None, door_indicator=None,
     door_indicator_offset=(0.0, 0.0), use_box_distance=False, corner_policy=None,
     frame_edges=None, indicator_window_groups=None,
-):
-    """Canonical Door state -> DoorPartSpec mapping used by 2D and 3D."""
-    return DoorPartSpec(
-        width=float(val['w']), height=float(val['h']),
-        thickness=float(val['t']), frame_width=float(val['fw']),
+) -> DoorPartSpec:
+    """GUI submits operator inputs; Engine owns canonical Door manufacturing spec."""
+    return manufacturing_api.build_door_operator_part_spec(
+        val,
         model_name=model_name,
-        gap_w=float(val['door_gap_w']), gap_h=float(val['door_gap_h']),
-        fold_left=float(val['door_fold_l']), fold_right=float(val['door_fold_r']),
-        fold_top=float(val['door_fold_t']), fold_bottom=float(val['door_fold_b']),
-        frame_edges=frame_edges or DoorFrameEdges(),
-        features=tuple(features or ()), feature_space="legacy_unfolded",
+        features=features,
         indicator_hole=indicator_hole,
-        door_indicator=tuple(door_indicator) if door_indicator else None,
-        door_indicator_offset=(float(door_indicator_offset[0]), float(door_indicator_offset[1])),
-        use_box_distance=bool(use_box_distance),
+        door_indicator=door_indicator,
+        door_indicator_offset=door_indicator_offset,
+        use_box_distance=use_box_distance,
         corner_policy=corner_policy,
-        indicator_window_groups=(tuple(indicator_window_groups) if indicator_window_groups else None),
-        nameplate_center_datum_top=(
-            None if getattr(self, "door_nameplate_center_datum_top", None) is None
-            else float(self.door_nameplate_center_datum_top)
+        frame_edges=frame_edges,
+        indicator_window_groups=indicator_window_groups,
+        nameplate_center_datum_top=getattr(
+            self, "door_nameplate_center_datum_top", None
         ),
     )
 

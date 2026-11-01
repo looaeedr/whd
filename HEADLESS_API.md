@@ -845,6 +845,219 @@ FinalScene algorithm. GUI `_phase6_mesh_feature_segments` only forwards and
 Matplotlib paints returned segments. No redefinition of canonical material,
 geometry, CUTTING, 2D/3D certification or DXF capability follows.
 
+
+
+## Door operator input → physical DoorPartSpec Engine API (#2517)
+
+`manufacturing_api.build_door_operator_part_spec(values, *, model_name,
+features=(), indicator_hole=None, door_indicator=None,
+door_indicator_offset=(0,0), use_box_distance=False, corner_policy=None,
+frame_edges=None, indicator_window_groups=None,
+nameplate_center_datum_top=None)` is the canonical headless source of the
+single-door and already-selected door-cell PartSpec. The GUI gathers current
+operator inputs only; Engine owns every material request field and the legacy
+`feature_space="legacy_unfolded"` export coordinate contract. Existing
+DoorPartSpec fields, the caller's physical per-cell edges/size, nameplate
+datum, Fold/Corner inputs, and downstream 2D/3D/DXF/Save→Reload remain
+unchanged. This API does not approve manufacturing, override Certified
+Registry geometry, or create a second physical cell topology. #2517 OPEN.
+
+## Receiving highlighted Set/Bay NFB inner-door partial DXF public Engine API (#2517)
+
+`manufacturing_api.require_highlighted_nfb_inner_doors(ports, set_index,
+bay_indices, *, allow_held=False)` and
+`manufacturing_api.export_highlighted_nfb_inner_doors(ports, *,
+set_index, bay_indices, output_directory, allow_held=False)` are the
+headless, Engine-owned operation for current-source-verified Receiving
+highlighted Set/Bay **inner-door only** partial export. Existing live
+`manifest` and real `partial_export` ports are mandatory; a UI READY
+indicator cannot grant authority. The Engine rechecks each physical
+Set/Bay/version and inner-door stable ID before publishing, rejects
+forged writer manifests or stale source, stages all actual DXFs, forbids
+overwriting, and atomically links outputs with rollback on publish failure.
+Explicit `allow_held=True` publishes READY sheets only and an honest
+held-Bay JSON manifest; unrelated BasePlate/PAD/EAR pieces are never
+counted as emitted. The historical GUI import module is only a
+compatibility re-export of these public functions. No whole-cabinet
+manufacturing, new hole/CUTTING formula, DXF certification, or external
+installer capability follows from this move. #2517 remains OPEN.
+
+
+## Receiving NFB physically reopened pair CHECK/Q public Engine API (#2517)
+
+`manufacturing_api.NfbPairedPartOnlyDxf`, `NfbPairedQuantityInput`,
+`NfbPairedQuantityCheck`, `group_reopened_nfb_pair_check_q(inputs)`
+and `save_checked_reopened_nfb_pair_q_dxf(checked, output_directory)`
+are the headless owners of real current-source inner-door plus BasePlate
+**PART_ONLY** CHECK/Q. The Engine requires the typed exporter receipt,
+real Set/Bay/version and physical owner IDs, original current source SHA,
+matching saved NFB hole metadata, two unchanged DXF reopen comparisons,
+positive integer piece counts and actual material/process parameters. It
+uses the existing NFB physical gate and geometry-equivalence grouping;
+only explicitly verified paired parts can be written with Q, without
+overwriting. Neither filename nor cached readiness can grant whole MFG-2,
+EAR, PAD or complete-cabinet manufacturing. The old GUI quantity module
+and NFB pair output DTO remain compatible imports that alias Engine
+objects; no second manufacture/quantity formula exists in GUI.
+
+
+## Receiving source-current NFB BasePlate PART_ONLY public Engine API (#2517)
+
+`manufacturing_api.nfb_verification_geometry_changed(current, verified)`,
+`prepare_verified_receiving_nfb_base_plate(bundle, *, layout, current_snapshot,
+base_spec, index_path, profile_path)`, and
+`export_verified_receiving_nfb_base_plate(bundle, *, layout, current_snapshot,
+base_spec, output_directory, index_path, profile_path)` now own the historical
+Receiving NFB original physical BasePlate source checks and real PART_ONLY DXF
+operation. The Engine revalidates a signed live submitted Set/Bay/version,
+original indexed DXF SHA, exact saved NFBConfig, physical BasePlatePartSpec and
+inner-door identity, original upper profile handle/revision, lower fixing
+reference and real source-derived holes, before using the existing geometry
+composer and atomic DXF writer. The previous GUI base action is a public
+Engine API re-export, and the shared geometry-staleness check used by the
+inner-door GUI export is also the same Engine function. Existing three Base
+Plate bend patterns and positive/negative saved DXF tests stay unchanged.
+An individual BasePlate remains **PART_ONLY**, not complete MFG-2,
+manufacturing-ready EAR weld, PAD or whole-cabinet release. No new numeric
+source, CUTTING formula or DXF certification is introduced.
+
+
+## Receiving NFB real physical inner-door PART_ONLY export public Engine API (#2517)
+
+`manufacturing_api.export_verified_receiving_nfb_inner_door(bundle, *,
+layout, current_snapshot, output_path, index_path, profile_path)` now owns
+the original source-current real inner-door **PART_ONLY** DXF export previously
+implemented under the GUI operator action. It revalidates the actual
+NfbVerifiedDraftSubmission, saved Set/Bay/version and parent switch brand,
+source-only original DXF indexed profile SHA/handle/revision, unique physical
+upper inner-door panel from current canonical Family, saved physical hole IDs,
+confirmed WORLD-X and rotations, before calling the existing Engine
+`export_current_nfb_inner_door_partial_dxf` with no overwrite. The single
+geometry-staleness fingerprint is already Engine-owned and is shared with
+BasePlate and the GUI operation's preview invalidation. The GUI legacy
+module now only re-exports these Engine public functions. The prior UI
+mock-injection test now patches the canonical Engine implementation without
+loosening any negative tests. This grants no middle/base/PAD/EAR, quantity
+Q or complete-cabinet manufacturing, nor new CUTTING/DXF certification.
+
+
+## Receiving native + CSV-V5 paired real DXF public Engine API (#2517)
+
+`manufacturing_api.export_verified_receiving_nfb_door_base_pair(bundle, *,
+layout, current_snapshot, base_spec, output_directory, index_path,
+profile_path)` is now the Engine-owned original-indexed-source real
+inner-door + BasePlate PART_ONLY atomic export. It reuses the exact
+live Set/Bay/version, actual base source validator, source-verified inner-door
+holes and world X, immutable physical receipt, real FinalScene and existing
+no-overwrite atomic DXF writer. `manufacturing_api.export_current_csv_nfb_door_base_pair(
+snapshot, *, assembly_parts, base_spec, output_directory)` is the same
+public operation for submitted numeric CSV V5; it selects 1-tier or 2-tier
+physical BasePlate sources, re-derives and compares every installed scene
+and signed stable ID, enforces actual tier depth/XYZ and existing CHECK/Q
+material equivalence, reopens the staged 2 or 3 actual DXFs before publishing
+all-or-none. The immutable `NfbCsvPairedPartOnlyDxf` and
+`NfbCsvTwoTierPartOnlyDxf` types and original `NfbPairedPartOnlyDxf` remain
+available from public Engine and legacy GUI imports as identical objects.
+The old GUI paired-export module has no geometry, PartSpec or manufacturing
+authority. Neither path authorizes PAD, welded EAR, whole MFG-2 or new
+CUTTING/DXF certification, and no numeric/3D formula was changed.
+
+
+## Receiving NFB read-only live manifest validation API (#2517)
+
+`manufacturing_api.validate_receiving_nfb_manifest_view(view)` and
+`validate_receiving_nfb_highlighted_manifest(ports, set_index, bay_indices)`
+reject contradictory actual ready-piece counts, forged READY flags, CSV-V5
+diagnostics masquerading as production parts, duplicate/invalid highlighted
+Bay selections and missing physical Set/Bay/version IDs. The latter reads
+each live manifest exactly once and returns validated detached display
+snapshots. The GUI now only paints the same Traditional Chinese warning
+and physical-part rows, never computes or validates manufacture eligibility.
+These are **read-only display safety checks**, not manufacturing approval:
+every DXF operation must separately revalidate sources through the existing
+typed NFB Engine manifest/export gate. No new PAD/EAR/MFG-2 authorization,
+CUTTING formula, or DXF capability is introduced.
+
+## Derived physical part namespace/selection sync Engine API (#2517)
+
+The pure immutable `DerivedPartRequestAssemblyInput`,
+`DerivedPartProjectionRequest`, `DerivedPartSyncPlan` and
+`manufacturing_api.build_derived_part_projection_request` /
+`manufacturing_api.build_derived_part_sync_plan` are now owned in
+`ae_engine.derived_part_projection`. This moves the existing source
+reconciliation rules for `door_cN_rN`, `base_plate_cN_rN`,
+`box_body:divider:` and `inner_door:` namespaces, stale part/Feature
+stash, active/selected physical ID repair, and Receiving's existing single
+Base Plate preservation into Engine unchanged. The original
+`phase6_derived_part_projection` is an import-only compatibility mirror.
+GUI composition only collects already-derived profiles/physical sources,
+calls the Engine public API, and applies its immutable plan via the existing
+workspace mutation owner. No second family formula, new NFB source, DXF
+entitlement, or Save→Reload schema. #2517 OPEN.
+
+
+
+## Physical BoxBody operator → Engine manufacturing PartSpec (#2517)
+
+`manufacturing_api.build_box_body_operator_part_spec(values, *, model_name,
+features=(), face_features=None, head_corner_policy=None,
+tail_corner_policy=None, fold_profile=(), structure_state=None,
+source_part_features=None, endcap_y_profiles=None, head_ybottom1=None,
+tail_ybottom1=None, snapshot=None)` is the public headless BoxBodyPartSpec
+owner for Vault and Receiving. GUI only collects live input, workspace
+Fold/Features and override values. Engine chooses the existing canonical
+Family structure state, rear-panel manufacturing contract, physical
+BoxBody piece Features (excluding Divider namespace), Fold material
+segments and the actual Head/Tail Y/ybottom1 outside Fold readback;
+explicit Head/Tail overrides retain priority over profile and scalar
+fallback. This is an ownership move, not a new compensation formula,
+Certified Registry rule, Rear W datum, 2D/3D/DXF certification or a
+Save→Reload format. #2517 remains OPEN.
+
+
+## Receiving CSV-V5 unapproved inner-door/base real source trial API (#2517)
+
+`manufacturing_api.preview_receiving_nfb_v5_real_base_sources(snapshot,
+inner_door_id, *, door, configured_holes, root_base_spec)` is the
+sole Engine owner for the GUI's existing one-/two-tier BasePlate preview
+source validation. It verifies the real BasePlate PartSpec against current
+Receiving sheet dimensions, bend pattern, physical ID and true submitted
+Set/Bay source; the actual tier PartSpecs come from the same canonical
+`source_receiving_nfb_tier_base_specs` as physical Assembly FinalScene.
+The GUI now merely calls this API and paints its original trial data.
+
+`require_receiving_nfb_v5_inner_door_trial_preview(trial)` and
+`require_receiving_nfb_v5_base_trial_preview(trial)` reject a forged
+manufacturing-ready/approved trial before the UI renders any FinalScene.
+These return render data **for read-only visualization only**, not DXF
+authorization; the current part-only/welded-EAR/PAD/MFG-2 gates remain
+untouched. The existing #1901 real physical tier, SHA/Set/Bay drift and
+single/two-layer proofs remain the acceptance sources.
+
+
+## Receiving EAR side 2D/3D display source context (#2517)
+
+`manufacturing_api.resolve_receiving_ear_side_display_context(snapshot,
+piece_key, aggregate_render_data=None, *, main_mirror=None)` returns the
+immutable `ReceivingEarSideDisplayContext`. It decides *read-only
+visualization eligibility*, not manufacturing readiness: the true committed
+FoldDesigner snapshot is preferred to the non-authoritative main-GUI mirror,
+stale primary submitted-NFB claims fail closed, and the actual physical
+Box Body child piece roles, baseline source SHA and scene primitives form the
+same 2D/3D cache invalidation digest. The Engine returns the existing actual
+outside-W/H/D and thickness for a downstream verified EAR SIDE MARKING
+projection; GUI uses these values, renders, and stores display-only caches.
+
+This does NOT grant EAR welding, PAD, DXF, CUTTING or whole MFG-2 production
+permission. Actual UV/material and safety rejection remain in
+`project_receiving_ear_side_piece_2d_preview`. The primary 2D / FoldDesigner
+3D source and stale-primary cases and actual Save→Reload CHECK-only DXF
+regression remain the acceptance evidence.
+
+## Receiving settings physical world XY outline API (#2517)
+
+`manufacturing_api.project_solid_mesh_xy_outline(triangles)` consumes an already-resolved solid 3D mesh, uses Engine's canonical physical feature-edge extractor and returns deterministic world XY line pairs (five decimal places, duplicate / zero-length edges omitted). This is a headless, read-only 2D inspection projection; the WHD GUI owns only canvas rendering and selection. It does not create, validate or certify CUTTING, BEND, DXF, NFB, EAR or PAD manufacturing data. Legacy GUI assembly mesh orchestration is a separate #2517 migration.
+
 ## Box Body physical multipart outside-width datum Engine API (#2517)
 
 `manufacturing_api.resolve_box_body_formed_width_datum(pieces)` validates
