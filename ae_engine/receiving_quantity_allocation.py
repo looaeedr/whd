@@ -88,6 +88,41 @@ class AllocationDraft:
         self.step[role] = 1
         self.active_version[role] = version_id
 
+    def replace_version(self, role, old_version, new_version, available):
+        """Atomically change one candidate identity, preserving its count and row order."""
+        self.validate_role(role)
+        current = self.quantities[role]
+        if old_version not in current:
+            raise ValueError("候選版本不存在")
+        if new_version == old_version:
+            return
+        if (not isinstance(new_version, str) or not new_version
+                or new_version not in available or new_version in current):
+            raise ValueError("版本不存在或已加入配置")
+        self.quantities[role] = {
+            (new_version if key == old_version else key): count
+            for key, count in current.items()
+        }
+        self.assigned[role].clear()
+        self.step[role] = 1
+        self.active_version[role] = new_version
+
+    def select_version(self, role, version_id):
+        """Select only a candidate already present in this role's draft."""
+        self.validate_role(role)
+        if version_id not in self.quantities[role]:
+            raise ValueError("候選版本不存在")
+        self.active_version[role] = version_id
+
+    def set_step(self, role, step):
+        """Own the transition to position selection without allowing invalid totals."""
+        self.validate_role(role)
+        if type(step) is not int or step not in (1, 2):
+            raise ValueError("配置步驟不合法")
+        if step == 2 and not self.ready_for_positioning(role):
+            raise ValueError("數量尚未配置完成")
+        self.step[role] = step
+
     def set_quantity(self, role, version_id, count):
         self.validate_role(role)
         if version_id not in self.quantities[role] or type(count) is not int or count < 0:

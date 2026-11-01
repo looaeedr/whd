@@ -12,6 +12,17 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.resolve_box_body_structure_mid_meshes(render_data, *, thickness)` exposes the existing canonical Engine's physical Box Body piece-local fold and world placement to both 3D FinalScene and Receiving settings 2D inspection. For already-resolved real multipart Box Body material it returns ordered immutable `(source_piece, placed_mid_surface_triangles)` pairs; placeholder-only sources return empty and invalid outside-W provenance fails closed via the existing `resolve_box_body_formed_width_datum`. The 3D compatibility method `phase6_final_scene_projection._phase6_box_body_structure_meshes` now only converts the Engine tuple to its historic list shape; it no longer builds Fold meshes or transforms physical points. The Engine 2D inspector shares the same public seam rather than a second private copy. Real-T physical skins, collision, CUTTING, BEND, DXF, saved material and certified source remain unchanged.
 
+## Receiving candidate quantity draft API (#2517)
+
+`manufacturing_api.AllocationDraft` and `validate_quantity_allocation` are public
+headless APIs for Receiving Head/Tail candidate quantity allocation. Use
+`draft.replace_version(role, old_id, new_id, available_ids)` to retain row order
+and quantity while invalidating pending assignments; `select_version` and
+`set_step` validate existing selections and allocation readiness. The GUI
+only invokes these Engine operations. All draft transitions are transient and
+do not commit physical Set/Bay features; apply remains the separate validated
+Engine operation. No manufacturing or DXF permission is added.
+
 ## Shared cabinet model selector API (#2517)
 
 `manufacturing_api.list_cabinet_model_choices(available_baselines=None)` is the

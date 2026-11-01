@@ -26,6 +26,7 @@ import threading
 from typing import Literal, Mapping
 
 from . import ae
+from .receiving_quantity_allocation import AllocationDraft, validate_quantity_allocation
 from .door_layout_numeric_transitions import (
     DoorLayoutColumnState, DoorLayoutResolvedColumn,
     DoorLayoutRecomputeResult, DoorLayoutCommitValidation,

@@ -30,6 +30,10 @@ whd_schema: WHD_DOC_META_V1
 
 因此 04 的責任是回答「engine 現在怎麼分層、公開哪些 API、各 authority 怎麼接起來」，不是把 Registry JSON 內容重新抄一份。
 
+### #2517 Receiving candidate quantity draft public API (2026-11-01)
+
+`manufacturing_api.AllocationDraft` / `validate_quantity_allocation` are the public Engine boundary for Receiving candidate Head/Tail draft selections. `AllocationDraft.replace_version`, `select_version`, and `set_step` own per-role candidate identity replacement, row order/quantity preservation, assignment invalidation, and two-step readiness. `receiving_quantity_allocation_ui` only presents the controls and forwards operator actions. Draft-only changes never commit Set/Bay physical features; the original validated `apply_receiving_endcap_quantity_configuration` remains the sole project mutation. Existing multi-Set/Bay Save→Reload and Tk confirmation requirements remain; no new CUTTING/DXF certification. #2517 OPEN.
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 箱身多片折後中面網格公開 Engine API（2026-11-01）**：`manufacturing_api.resolve_box_body_structure_mid_meshes(render_data, thickness=...)` 沿用已存在的 Engine `_structure_meshes` 唯一實體折後 source owner，回傳按原始 physical piece 順序的組合位置中面網格；只有預覽 stub 回空，非法外側 W 來源沿原驗證拒絕。3D FinalScene `_phase6_box_body_structure_meshes` 不再自行折料、複算 Box Body 世界定位，只將公開 Engine 回傳轉為舊 list，相同 API 也供受電箱 2D 設定頁重用；真實 T 厚板、成形物理身份、製造 BEND/CUTTING、碰撞與 DXF 權威沒有改變。#2517 維持 OPEN。
