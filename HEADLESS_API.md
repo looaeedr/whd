@@ -961,3 +961,19 @@ available from public Engine and legacy GUI imports as identical objects.
 The old GUI paired-export module has no geometry, PartSpec or manufacturing
 authority. Neither path authorizes PAD, welded EAR, whole MFG-2 or new
 CUTTING/DXF certification, and no numeric/3D formula was changed.
+
+
+## Receiving NFB read-only live manifest validation API (#2517)
+
+`manufacturing_api.validate_receiving_nfb_manifest_view(view)` and
+`validate_receiving_nfb_highlighted_manifest(ports, set_index, bay_indices)`
+reject contradictory actual ready-piece counts, forged READY flags, CSV-V5
+diagnostics masquerading as production parts, duplicate/invalid highlighted
+Bay selections and missing physical Set/Bay/version IDs. The latter reads
+each live manifest exactly once and returns validated detached display
+snapshots. The GUI now only paints the same Traditional Chinese warning
+and physical-part rows, never computes or validates manufacture eligibility.
+These are **read-only display safety checks**, not manufacturing approval:
+every DXF operation must separately revalidate sources through the existing
+typed NFB Engine manifest/export gate. No new PAD/EAR/MFG-2 authorization,
+CUTTING formula, or DXF capability is introduced.
