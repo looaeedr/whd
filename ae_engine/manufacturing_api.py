@@ -128,6 +128,7 @@ from .physical_sheet_editor_context import (
 )
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .receiving_endcap_feature_preview import receiving_endcap_feature_preview_shapes
+from .receiving_ear_side_preview import project_receiving_ear_side_piece_2d_preview
 from .receiving_inner_door_inventory import (
     ReceivingInnerDoorInventoryLayer, resolve_receiving_inner_door_preview_inventory,
 )

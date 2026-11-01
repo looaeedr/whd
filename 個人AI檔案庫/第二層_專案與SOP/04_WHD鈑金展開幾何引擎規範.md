@@ -32,6 +32,9 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 EAR 實體側板 read-only 2D MARKING 公開 API（2026-11-01）**：`manufacturing_api.project_receiving_ear_side_piece_2d_preview(snapshot, source_piece, piece_key, geometry, dimensions, sheet_thickness, world_geometry=None, display_only_marking_overlap=False)` 由 Engine 一次核對已提交 Receiving、真實左／右側板、成品材料與 baseline source SHA，透過既有 `build_joint_world_geometry`、`resolve_receiving_ear_side_uv_receipts`、`build_receiving_ear_side_marking_previews` 將物理 inside-skin world→UV 證據投影成獨立 `render_data` scene 複本，並保留 `ear_side_mark_preview_only`／`manufacturing_ready=False` 的原安全界線。GUI `receiving_ear_side_2d` 現只負責原有快取、顯示/失敗提示與公開 API 呼叫，不直接驗製造側板身分／材料／UV，也不引用低階 solver。原 SIDE MARKING、真正 2D／單件 3D 預覽、CHECK-only DXF 與未核准焊接／正式製造的 fail-closed 完全沿用；#2517 持續 OPEN。
+
+
 **#2517 Receiving 內門縮圖 NFB 型號／層數公開 API（2026-11-01）**：`manufacturing_api.resolve_receiving_inner_door_preview_inventory(config)` 回傳 immutable `ReceivingInnerDoorInventoryLayer`，以既有 `receiving_shared_settings.switch_filenames_in_layer`、`receiving_nfb_model_identity.display_model_ref` 投影真正儲存的每層開關身份、重複數量與顯示標籤，支援 legacy `.dxf` 與 V5 `nfbv5:廠牌:型號`。數量先依完整身份分組，不能因跨品牌同名合併；舊 0/1/2 顆存檔相容與原本可見層數契約不變。GUI `receiving_inner_door_thumbnail` 只畫縮圖文字及數量 glyph，不再直接 import 低階 Engine 型號驗證或解析身份；這不是孔位、3D、CUTTING、DXF 來源／製造認證。#2517 持續 OPEN。
 
 
