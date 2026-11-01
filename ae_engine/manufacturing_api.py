@@ -211,6 +211,10 @@ from .cabinet_types.policy import door_material_frame_width
 
 
 from .operator_door_blank_projection import project_operator_door_blank_dimensions
+from .operator_endcap_blank_projection import (
+    project_operator_endcap_blank_dimensions,
+    read_operator_baseline_fold_defaults,
+)
 from .display_dimensions import resolve_live_operator_finished_dimensions
 from .live_cabinet_family import resolve_live_cabinet_family
 from .assembly_mesh_profiles import resolve_material_mesh_profiles
