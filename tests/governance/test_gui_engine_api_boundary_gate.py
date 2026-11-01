@@ -125,6 +125,11 @@ def test_cadsplit_api_reference_is_discoverable_before_manufacturing_work() -> N
     assert gate in agents and gate in current
     assert reference in agents and reference in current
     assert "先" in agents and "全文" in agents
+    for scope in ("WHD API", "Engine", "Family", "金庫型", "受電箱", "Bridge", "DXF", "版本相容性"):
+        assert scope in agents
+    for proof in ("SOURCE_READ_EVIDENCE", "完整 Git commit SHA", "相關章節", "權威判斷"):
+        assert proof in agents
+    assert "CADSplit 現有程式缺陷" in agents
     assert (
         f"<!-- WHD_AUTHORITY contract=manufacturing-architecture role=CURRENT path={owner} -->"
         in authority_map
@@ -145,3 +150,16 @@ def test_cadsplit_api_reference_is_discoverable_before_manufacturing_work() -> N
     )
     for key in ("CADSplit", "Set/Bay", "全自動", "Save→Reload"):
         assert key in reference_text
+
+    skill_paths = (
+        ".agents/skills/engineering/程式碼庫設計/SKILL.md",
+        ".agents/skills/engineering/寫成規格書/SKILL.md",
+        ".agents/skills/engineering/驗證板件與DXF/SKILL.md",
+    )
+    for path in skill_paths:
+        skill = (root / path).read_text(encoding="utf-8")
+        assert gate in skill, f"Missing API mandatory-read gate: {path}"
+        assert "WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md" in skill, path
+        assert "04_WHD鈑金展開幾何引擎規範.md" in skill, path
+        for term in ("SOURCE_READ_EVIDENCE", "Git SHA", "相關章節", "權威判斷"):
+            assert term in skill, (path, term)
