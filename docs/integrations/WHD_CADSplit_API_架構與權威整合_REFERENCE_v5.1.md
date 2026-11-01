@@ -17,6 +17,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 0. 一頁結論
 
+> **2026-11-01 使用者再次確認之全箱型統一流程（`CONFIRMED PRODUCT RULE`；此處為 REFERENCE，正式製造 CURRENT 仍屬 AI 庫 04）**：現在與將來新增的每一種箱體皆走**同一 CADSplit DXF 來源辨識 → 既有可信請求／PartSpec → WHD 共用 Engine 公開 API → Family／Topology／Policy → canonical 實體 → DXF Save→Reload** 的工作流程；只在 Engine 的 Family 與實體操作規則上分化，不另建受電箱／新 Family 的使用者 JSON 入口、`.receiving.json` sidecar、專屬狀態 DTO、手動基準檔目錄或第二條 Bridge／製造管線。JSON 可作既有內部序列化，不能成為新操作前提。單板 `generate_part`、組合／批次等仍使用**各自適用的既有公開 API**，不必硬塞同一函式。CADSplit 管來源與來源 Set/Bay，WHD Engine 管 canonical 實體身份、材料／Fold／Corner 與製造結果；缺來源或能力只阻擋受影響操作，禁止猜測或冒稱整箱驗收。**這是已確認的目標架構，不表示目前所有箱型都已完成出圖認證**。CADSplit PR #9 的 JSON 側掛假自動化已明確否決並關閉，不得引用其 CI 作為有效製造證據。
 1. **WHD `ae_engine/` 是唯一製造規則與 canonical 結果權威。** GUI、CADSplit、Worker adapter 不得各自持有製造公式、正式製造板件身份決策、展開孔位、折彎補償、截角／裝配退讓、FinalScene 或 DXF 幾何的第二份決策。
 2. **WHD GUI 僅負責操作、輸入與顯示。** 正式的製造行為以 immutable request／PartSpec／Context 呼叫 Engine 公開 API；Engine 不得反向依賴 Tk、GUI 或 renderer。
 3. **CADSplit 負責原圖來源，而不是製造。** 它識別來源視圖、盤體、孔／Block／文字、原圖座標、來源追溯與替換表，形成經確認的 finished-face Feature／操作輸入；WHD Engine 決定如何製造。**正式全自動目標不能再把人工選取受電箱 JSON 或基準檔目錄當成正常必經步驟**；應從已確認拆圖資料、專案狀態與 Engine 既有資源定位／Family 規則取得，真正缺少可信輸入時明確阻擋而非猜測。

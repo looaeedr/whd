@@ -14,6 +14,24 @@ whd_schema: WHD_DOC_META_V1
 
 > **WHD × CADSplit API／製造必讀 REFERENCE（`CADSPLIT_WHD_API_REFERENCE_READ_GATE_V1`）**：凡 WHD API、Engine、Family（金庫型／受電箱）、Bridge、CADSplit 自動拆圖／來源 Set/Bay 與 canonical 製造身份、跨版本或製造／DXF 驗收，施工前先讀本 04 CURRENT，再讀 [`docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md`](../../docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md) **全文**。依 `AGENTS.md::SOURCE_READ_EVIDENCE` 附 repo/ref/完整 SHA、路徑、相關章節及權威判斷；未讀不得宣稱核對完成。v5.1 僅 REFERENCE，不得覆蓋使用者已確認的產品規範、本 CURRENT、Certified Registry 或 07；CADSplit 現行缺陷與測試不能反向決定產品規範。
 
+### 全箱型統一 CADSplit → WHD Engine 流程（`CONFIRMED PRODUCT RULE`，2026-11-01）
+
+**使用者確認：現在存在、未來新增的所有箱型（含金庫型、受電箱）必須沿用同一 CADSplit 來源辨識、可信請求建構、Engine 公開 API、Family 製造分派與 DXF 驗證流程。不能按 Family 再建一條 GUI／JSON／Bridge／狀態物件／第二套製造管線。** 此為產品架構規則，不代表每種箱型的全部操作均已完成製造認證。
+
+```text
+同一 DXF 原圖 → CADSplit 共用圖框／來源視圖／盤名與 Family 分類
+  → finalized info_data／來源特徵、尺寸、來源 Set/Bay 標籤與追溯
+  → 既有可信 request／PartSpec／Context（操作適用者）
+  → ae_engine 公開製造 API → Family／Topology／Factory Policy／Certified Registry
+  → canonical physical parts／FinalScene／DXF → Save→Reload／能力及來源驗證
+  → CADSplit 顯示結果、缺項與精確驗收範圍
+```
+
+- **一次通道、多 Family**：來源端使用已存在的共用 pipeline／Bridge 與資料責任；箱型差異只能透過 WHD 既有 Family 模組、Policy、Topology、Registry，以及該操作適用的正式 Engine API 表達。單板件走適用的 `generate_part`，組合／批次／NFB 走既有對應公開 API；**共用流程不是強迫所有操作呼叫同一個函式**。只有既有公開 API 真無法表達新的製造操作，才按向後相容規則補 Engine API；不因新增箱型而新造 CADSplit 專屬入口。
+- **不靠外部 JSON 假自動化**：任何現有／新 Family 的常態自動處理都不得要求操作者另外準備或選取 JSON、`.receiving.json` 側掛檔、獨立 Factory Manifest、手選基準根目錄，亦不得以新專案狀態 DTO 或特殊 Receiving 路徑繞過共用流程。既有 Project/Engine 可信狀態與基準資源應由原有來源及正式 Engine 資源管理解析；JSON 可是內部交換／序列化，不得升格為每個新箱型的新使用門檻。
+- **所有權與失敗界線**：CADSplit 識別原始 DXF、孔位與來源 Set/Bay 標籤，不得以視圖數量決定正式物理片；Engine 依 canonical project／Family／Topology 決定 physical_part_id、實體角色、Fold／Corner／材料與製造幾何。逐 Family、Part、Operation 核對當版能力、可信來源、Registry／baseline 及 Save→Reload；缺少則僅該操作 fail-closed，列明缺項。不得用金庫型預設、bbox／畫面推算、合成 mock 或來源拆圖冒充受電箱正式製造成功；不得以跨 repo SHA 差異全域封鎖舊能力。
+- **明確禁止的錯誤實作**：CADSplit PR #9 以 `.receiving.json` 側掛檔自動搜尋代替真正共用來源接線，已被使用者否決並關閉；不得採用、複製或當作 CI 驗收成果。修正應回到既有金庫型使用的共用來源→Engine 接入點，只增必要 Family 行為及精確驗收，不重造流程。
+
 ### 1. Current scope 與 Source of Truth 邊界
 
 現行 repository-relative engine path 是：
