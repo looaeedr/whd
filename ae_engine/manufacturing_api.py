@@ -1208,6 +1208,29 @@ from .derived_part_projection import (
 )
 
 
+
+def build_box_body_operator_part_spec(
+    values, *, model_name, features=(), face_features=None,
+    head_corner_policy=None, tail_corner_policy=None, fold_profile=(),
+    structure_state=None, source_part_features=None,
+    endcap_y_profiles=None, head_ybottom1=None, tail_ybottom1=None,
+    snapshot=None,
+) -> BoxBodyPartSpec:
+    """Public Engine physical BoxBodyPartSpec operator/family projection."""
+    from .box_body_operator_part_spec import build_box_body_operator_part_spec as build
+    return build(
+        values, model_name=model_name, features=features,
+        face_features=face_features,
+        head_corner_policy=head_corner_policy,
+        tail_corner_policy=tail_corner_policy,
+        fold_profile=fold_profile, structure_state=structure_state,
+        source_part_features=source_part_features,
+        endcap_y_profiles=endcap_y_profiles,
+        head_ybottom1=head_ybottom1, tail_ybottom1=tail_ybottom1,
+        snapshot=snapshot,
+    )
+
+
 # #2517 Receiving CSV V5 physical BasePlate trial/source & display gate.
 # Public, GUI-independent: never a manufacturing/DXF certification.
 from .receiving_nfb_v5_operator_preview import (
