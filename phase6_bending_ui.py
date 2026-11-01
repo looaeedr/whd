@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Mapping
 
 import fold_designer_original as original
+from ae_engine import manufacturing_api
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from phase6_fold_profiles import (
     _num,
@@ -18,8 +19,6 @@ from phase6_fold_profiles import (
     can_remove_segment,
     engine_angle_to_ui,
     engine_segment_length_to_ui,
-    ui_angle_to_engine,
-    ui_segment_length_to_engine,
 )
 
 
@@ -422,38 +421,23 @@ class Phase6BendingUI(original.BendingUI):
                     delete_widgets[0].configure(state="disabled")
 
     def save(self):
+        """Commit operator Fold edits through the Engine's material/topology API."""
         active_dict = self.get_active_dict()
         active_key = self._active_profile_key(active_dict)
         old_segs = list(active_dict[active_key])
         thickness = getattr(self.state, "phase6_thickness", 2.0)
 
-        # Build the edited bend topology first, so changing an angle and a length
-        # in the same row uses the NEW adjacent-bend count for outside -> material.
-        topology = []
+        # GUI only gathers typed operator values. New BEND adjacency and
+        # outside -> material conversion are exclusively Engine responsibilities.
+        edited_rows = []
         for ctrl in self.controls:
-            seg = {"len": 0}
+            row = {"len": original.get_int(ctrl["len"].get())}
             if "angle" in ctrl:
-                seg["angle"] = ui_angle_to_engine(original.get_int(ctrl["angle"].get()))
-            topology.append(seg)
-        apply_outside_dimension_compensation(topology, thickness)
-
-        new_segs = []
-        for index, ctrl in enumerate(self.controls):
-            old = old_segs[index] if index < len(old_segs) else {}
-            ui_length = original.get_int(ctrl["len"].get())
-            conversion = dict(old)
-            conversion["ui_len_add"] = topology[index].get("ui_len_add", 0)
-            length = ui_segment_length_to_engine(conversion, abs(ui_length))
-            seg = {"len": length}
-            if "phase6_ui_sign" in old or ui_length < 0:
-                seg["phase6_ui_sign"] = -1.0 if ui_length < 0 else 1.0
-            if "angle" in topology[index]:
-                seg["angle"] = topology[index]["angle"]
-            for key in ("core", "phase6_key"):
-                if key in old:
-                    seg[key] = old[key]
-            new_segs.append(seg)
-        apply_outside_dimension_compensation(new_segs, thickness)
+                row["angle"] = original.get_int(ctrl["angle"].get())
+            edited_rows.append(row)
+        new_segs = manufacturing_api.operator_fold_editor_save_segments(
+            old_segs, tuple(edited_rows), thickness,
+        )
         active_dict[active_key] = new_segs
         vault_key = getattr(self.state, "phase6_fold_ui_vault_key", None)
         if vault_key and active_key == "X":

@@ -112,6 +112,7 @@ from .endcap_editor_fold import (
 from .box_body_editor_readback import (
     reverse_box_body_fold_traversal, box_body_piece_editor_profiles,
 )
+from .operator_fold_editor import operator_fold_editor_save_segments
 from .box_body_editor_readback import (
     formed_box_body_fw_widths,
     box_body_ui_segment_length_to_material,

@@ -36,6 +36,7 @@ from .manufacturing_api import (
     normalize_authoritative_door_state, normalize_project_snapshot_authority,
     list_cabinet_model_choices,
     normalize_panel_name, set_cabinet_panel_name, rename_receiving_panel,
+    operator_fold_editor_save_segments,
     project_operator_door_blank_dimensions,
     project_operator_door_cell_result,
     project_operator_door_cell_features,
