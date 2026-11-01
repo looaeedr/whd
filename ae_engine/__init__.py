@@ -10,6 +10,7 @@ from .door_layout_numeric_transitions import (
 )
 
 from .manufacturing_api import (
+    list_cabinet_model_choices,
     generate_part, resolve_policy, expected_baseline_path_for, receiving_baseline_source_stamp,
     expected_shared_indicator_baselines, map_door_features_to_unfolded_material,
     expected_endcap_feature_baseline,
@@ -230,6 +231,7 @@ __all__ = [
     "legacy_endcap_corner_projection_for_intent",
     "AssemblyIntentTransition", "normalize_assembly_type", "commit_assembly_intent_state",
     "FamilyModelTransition", "FamilyModelPlan", "plan_cabinet_family_model_transition",
+    "list_cabinet_model_choices",
     "corner_policy_from_payload", "resolve_live_corner_policy",
     "CornerStateTransition", "MANUAL_CORNER_KEYS", "MANUAL_CORNER_PAIR_KEYS", "ensure_corner_part", "corner_selection", "corner_targets", "commit_corner_pair", "commit_corner_type", "commit_corner_mode", "commit_corner_parameters", "apply_corner_preset",
     "apply_endcap_box_assembly_type_to_raw_state", "normalize_endcap_fw_state",

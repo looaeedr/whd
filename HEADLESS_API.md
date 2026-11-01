@@ -8,6 +8,19 @@ whd_schema: WHD_DOC_META_V1
 
 目的：讓 GUI、自動拆圖、CLI 或其他 Python 程式都使用同一個 AE 出圖入口，不必建立 Tkinter GUI，也不必直接呼叫 `ae.export_xxx_dxf()`。
 
+## Shared cabinet model selector API (#2517)
+
+`manufacturing_api.list_cabinet_model_choices(available_baselines=None)` is the
+headless, read-only model catalog shared by the main WHD GUI and Fold Designer.
+Its baseline sources are read from AE when not supplied explicitly. Resource-backed
+金庫型 is listed only when its real baseline exists; the implemented formula-backed
+受電箱 is listed without a DXF baseline; unsupported registered families remain
+hidden unless a physical baseline model already exists. Custom/自訂 stays last.
+The GUI only presents these Engine-returned choices. This is an operator entry
+catalog, **not** a new manufacturing, DXF, CADSplit or certification capability.
+CURRENT architecture authority stays with AI library 04.
+
+
 ## Receiving settings assembled world mesh API (#2517)
 
 `manufacturing_api.resolve_receiving_settings_assembly_world_meshes(assembly_parts, *, finished_dimensions, thickness, preserve_endcap_core_origin=False)` consumes already-resolved canonical Assembly part DTOs and returns physical source roles, part IDs and actual world XYZ triangles for the 2D inspection path. The Engine alone computes Box Body piece-local folding/placement, the same true-T world skins from `build_joint_world_geometry`, physical EndCap mating and thickness projection. `receiving_settings_preview_2d._assembly_world_meshes` forwards only source input and maps raw roles to UI labels; its existing XY projection still calls `project_solid_mesh_xy_outline`. This is read-only visualization evidence, not permission to manufacture, CUTTING, BEND or DXF certification. Legacy incompatible/incomplete geometry remains fail-closed; family/Set/Bay source, saved Features, and official manufacturing data are unchanged.
