@@ -35,6 +35,14 @@ class ReceivingNfbV5SourcePreviewCache:
         self._entries: OrderedDict[tuple, ReceivingNfbV5SourcePreview] = OrderedDict()
         self.parse_count = 0
 
+    def clear(self) -> None:
+        """Explicitly invalidate per-editor cache without touching source CSV."""
+        self._entries.clear()
+
+    def __len__(self) -> int:
+        """Count retained source revisions for performance and UAT probes."""
+        return len(self._entries)
+
     @staticmethod
     def display_model_label(model_ref: object) -> str:
         """Display identity only, including an invalid reference on error."""

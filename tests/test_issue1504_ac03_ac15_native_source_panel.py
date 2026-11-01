@@ -202,7 +202,7 @@ def test_ac15_v5_preview_cache_reuses_two_models_without_reparsing_csv(monkeypat
 
 def test_ac15_v5_preview_cache_invalidates_changed_or_missing_csv_source(monkeypatch, tmp_path):
     """Only the viewport caches; changed/missing files force fresh or fail closed."""
-    from gui_modules.application import receiving_nfb_source_preview as preview
+    import ae_engine.receiving_nfb_v5_source_preview as preview
 
     root, app, modal = _open_original_editor(monkeypatch)
     try:
