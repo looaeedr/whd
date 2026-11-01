@@ -55,11 +55,23 @@ def door_layout_overview_snapshot(host, render_data_by_part_key=None):
         return {"error": exc}
 
     cell_payloads = {}
-    for cell in cells:
-        column_index = int(cell.column_index)
-        row_index = int(cell.row_index)
-        key = f"{column_index}:{row_index}"
-        if render_data_by_part_key is None:
+    if render_data_by_part_key is not None:
+        # Engine alone owns stable physical Door key, peer source validity
+        # and bounds. GUI only selects how the read-only rows are painted.
+        for peer in manufacturing_api.project_operator_door_layout_peer_cells(
+            cells, render_data_by_part_key,
+        ):
+            key = (peer.column_index, peer.row_index)
+            cell_payloads[key] = (
+                {"mode": "peer", "scene": peer.scene,
+                 "width": peer.width, "height": peer.height}
+                if peer.present else {"mode": "none"}
+            )
+    else:
+        for cell in cells:
+            column_index = int(cell.column_index)
+            row_index = int(cell.row_index)
+            key = f"{column_index}:{row_index}"
             result = host._door_layout_cell_result(cell, val)
             baseline_scene, _baseline_status = host._door_layout_baseline_scene(cell, val)
             resolved = host._door_layout_cell_resolved_features(cell, result, key)
@@ -70,25 +82,6 @@ def door_layout_overview_snapshot(host, render_data_by_part_key=None):
                 "width": float(result.width),
                 "height": float(result.height),
             }
-        else:
-            stable_key = f"door_c{column_index + 1}_r{row_index + 1}"
-            peer_render_data = render_data_by_part_key.get(stable_key)
-            material = getattr(peer_render_data, "material", None)
-            scene = getattr(peer_render_data, "scene", None)
-            if (
-                material is not None
-                and scene is not None
-                and not bool(getattr(material, "is_empty", False))
-            ):
-                minx, miny, maxx, maxy = (float(v) for v in material.bounds)
-                cell_payloads[(column_index, row_index)] = {
-                    "mode": "peer",
-                    "scene": scene,
-                    "width": max(maxx - minx, 1e-9),
-                    "height": max(maxy - miny, 1e-9),
-                }
-            else:
-                cell_payloads[(column_index, row_index)] = {"mode": "none"}
 
     baseline_model = host._baseline_source_model() or ""
     return {

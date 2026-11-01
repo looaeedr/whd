@@ -1597,6 +1597,11 @@ from .operator_base_plate_2d import (
     project_legacy_base_plate_2d_bounds,
 )
 
+# #2517 canonical Door grid peer physical display-source readback.
+from .operator_door_layout_peer_2d import (
+    DoorLayoutPeerCell, project_operator_door_layout_peer_cells,
+)
+
 # #2517 operator Door 2D physical divider/frame + indicator guides projections.
 from .operator_door_2d_preview import (
     project_operator_door_divider_frame_preview,
