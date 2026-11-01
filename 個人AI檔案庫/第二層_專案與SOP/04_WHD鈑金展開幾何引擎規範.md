@@ -46,7 +46,7 @@ whd_schema: WHD_DOC_META_V1
 
 ### #2517 組合面板 BoxBody 子板件實體尺寸與截角來源 Engine API（2026-11-02）
 
-`manufacturing_api.project_box_body_assembly_panel_piece_rows(render_data)` 從**已解算的真實** `BoxBodyPartRenderData.pieces` 生成唯讀 `BoxBodyAssemblyPanelPiece`：現行 `box_body:<role>`／歷史明確 `piece.key`、成形包外 W/H、展開料 W/H 以及與該片同源的 `source_render_data`。這是現有 Engine BoxBody source readback 的操作展示投影，不自算幾何、折彎、截角或另建板件。 `phase6_assembly_presentation.project_box_body_piece_rows` 只附顯示 label；`phase6_assembly_panel.refresh_box_body_piece_info` 直接使用同一份 source 作既有 corner 文字，不再從 UI role 字串反查物理板件。已核准的 Save→Reload、實體 2D/3D／CUTTING／DXF 與 Registry 權威不變；不得由此 API 宣稱加工放行。#2517 OPEN。
+`manufacturing_api.project_box_body_assembly_panel_piece_rows(render_data)` 從**已解算的真實** `BoxBodyPartRenderData.pieces` 生成唯讀 `BoxBodyAssemblyPanelPiece`：現行 `box_body:<role>`／歷史明確 `piece.key`、成形包外 W/H、展開料 W/H 以及與該片同源的 `source_render_data`。這是現有 Engine BoxBody source readback 的操作展示投影，不自算幾何、折彎、截角或另建板件。 `phase6_assembly_presentation.project_box_body_piece_rows` 只附顯示 label；`phase6_assembly_panel.refresh_box_body_piece_info` 直接使用同一份 source 作既有 corner 文字，不再從 UI role 字串反查物理板件。無角色的歷史板件只有顯示鍵和尺寸，不得冒稱實體截角來源（`source_render_data=None`，原面板顯示 `截角尺寸：無`）。已核准的 Save→Reload、實體 2D/3D／CUTTING／DXF 與 Registry 權威不變；不得由此 API 宣稱加工放行。#2517 OPEN。
 
 ### #2517 受電箱內門 Confirm All Quantity 來源預檢 Engine 公開 API（2026-11-02）
 
