@@ -708,3 +708,16 @@ Engine 按既有規則保留未操作格位的舊 Feature、允許已操作格�
 `phase6_final_scene_projection._phase6_mesh_feature_segments` 僅相容委派，
 GUI 的 Matplotlib 不再決定實體特徵邊。FinalScene 製造材料來源不變，
 此線段資料純顯示，不新增 CUTTING、DXF／碰撞認證；#2517 持續 OPEN。
+
+
+### #2517 多片 Box Body 實體外側 W 定位 Engine API（2026-11-01）
+
+`manufacturing_api.resolve_box_body_formed_width_datum(pieces)` 是
+箱身多片 3D world mesh 的實體 W datum 判準。原 GUI 的
+`_phase6_box_body_formed_width_datum` 已改為單純 Engine API 委派。
+既有 `formed_w_end` 正值表示已確認的成形定位；全部空值是
+preview-only 不得偽裝成實體；任一非有限、布林或部分缺失的
+定位資料皆 fail-closed。受電箱側背分離的合法左側板 W=0
+必須同時有 `formed_w_start=0` 與正數有限 `formed_outer_width`
+原來源才能接受。沿用既有物理 Part provenance 與 world mesh，
+不創新製造尺寸、CUTTING／DXF 規則或認證；#2517 OPEN。

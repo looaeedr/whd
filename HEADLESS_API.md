@@ -832,3 +832,17 @@ implementation `ae_engine.solid_mesh_feature_edges` is the moved original
 FinalScene algorithm. GUI `_phase6_mesh_feature_segments` only forwards and
 Matplotlib paints returned segments. No redefinition of canonical material,
 geometry, CUTTING, 2D/3D certification or DXF capability follows.
+
+
+## Box Body physical multipart outside-width datum Engine API (#2517)
+
+`manufacturing_api.resolve_box_body_formed_width_datum(pieces)` validates
+the actual canonical `formed_w_end` source of Box Body multipart physical
+skins before any FinalScene viewer uses or assembles a world mesh. Complete
+placeholder-only previews return `None`; real positive outside-W pieces
+are accepted; a zero-W-origin Receiving left SIDE is accepted only when
+both authoritative `formed_w_start == 0` and `formed_outer_width > 0`
+are present and finite. An incomplete or forged width/role source fails
+closed with the original diagnostic errors. GUI only forwards resolved
+Engine piece DTOs; no physical 3D mesh, manufacturing material, 2D CUTTING
+or DXF is newly synthesized or certified.

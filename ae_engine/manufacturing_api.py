@@ -1112,3 +1112,9 @@ def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
     """Public Engine physical solid mesh feature-boundary projection."""
     from .solid_mesh_feature_edges import physical_solid_mesh_feature_segments as resolve
     return resolve(triangles, tolerance=tolerance)
+
+
+def resolve_box_body_formed_width_datum(pieces):
+    """Public Engine authority for physical multipart Box Body outside W datum."""
+    from .box_body_world_datum import resolve_box_body_formed_width_datum as resolve
+    return resolve(pieces)
