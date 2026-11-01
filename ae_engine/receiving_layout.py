@@ -110,8 +110,9 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
     # Old v1 projects had no names/counter; migrate them in physical Set/Bay
     # order. Once materialized, the counter is project authority and survives
     # tail deletion even when a legacy stable_id is reused.
+    has_counter = "next_panel_number" in layout
     raw_next = layout.get("next_panel_number")
-    if raw_next is not None and (type(raw_next) is not int or raw_next < 1):
+    if has_counter and (type(raw_next) is not int or raw_next < 1):
         raise ValueError("next_panel_number 必須是正整數")
     named: set[str] = set()
     highest_p = 0
@@ -131,9 +132,9 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
             match = PANEL_NUMBER_RE.fullmatch(name)
             if match:
                 highest_p = max(highest_p, int(match.group(1)))
-    if raw_next is not None and raw_next <= highest_p:
+    if has_counter and raw_next <= highest_p:
         raise ValueError("next_panel_number 不能重用已使用 P 編號")
-    next_number = raw_next if raw_next is not None else highest_p + 1
+    next_number = raw_next if has_counter else highest_p + 1
 
     seen_ids: set[str] = set()
     sets: list[dict[str, object]] = []
