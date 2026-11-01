@@ -11,7 +11,8 @@ from ae_engine.manufacturing_api import (
     NfbCsvPairedPartOnlyDxf, NfbCsvTwoTierPartOnlyDxf,
     export_current_csv_nfb_door_base_pair,
 )
-from ae_engine.receiving_nfb_pair_export import (
-    _verified_csv_v5_export_scope,
-    _export_current_csv_nfb_two_tier_pair,
+# Legacy private readback name is an alias of the already-public Engine scope API.
+# The two-tier manufacturing entry is internal to the Engine public pair operation.
+from ae_engine.manufacturing_api import (
+    resolve_verified_csv_v5_export_scope as _verified_csv_v5_export_scope,
 )
