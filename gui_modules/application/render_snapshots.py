@@ -7,19 +7,8 @@ consumed by gui_modules.rendering.
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-import ae_engine.assembly_placement as assembly_placement
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.corner_type_ui import is_unknown_model
-import ae_engine.door_dividers as door_dividers
-import ae_engine.inner_door_frames as inner_door_frames
-from ae_engine.sheetmetal_features import (
-    DoorIndicatorContext,
-    box_body_face_dimensions,
-    measure_door_indicator_position,
-    resolve_door_indicator_dimension_guides,
-    resolve_door_indicator_layout,
-)
-from ae_engine.sheetmetal_geometry import Vec2
+from ae_engine.sheetmetal_features import box_body_face_dimensions
 
 
 def indicator_box_render_snapshot(host, val):
@@ -116,60 +105,16 @@ def door_layout_overview_snapshot(host, render_data_by_part_key=None):
 
 
 def door_layout_divider_frame_snapshot(host, columns, val):
-    t_val = float(val.get("t", 2.0))
+    # Only collect operator/project input; Engine owns canonical divider,
+    # inner-door-frame and assembled world placement identities.
     project_snapshot = host._compose_phase6_project_snapshot_from_main_gui()
-    total_w = float(project_snapshot.get("w", val.get("w", 0.0)))
-    total_h = float(project_snapshot.get("h", val.get("h", 0.0)))
-    divider_payloads = []
-    frame_payloads = []
-
-    try:
-        normalized = tuple(
-            (float(c[0]), tuple(float(h) for h in c[1])) for c in columns
-        )
-        dividers = door_dividers.derive_box_body_dividers(
-            normalized,
-            depth=float(val.get("d", 350.0)),
-            thickness=t_val,
-            layout_scope=getattr(host, "door_layout_scope", "main"),
-            handle_edges=getattr(host, "door_layout_handle_edges", {}),
-            model_name=host._baseline_source_model() if hasattr(host, "_baseline_source_model") else "",
-            frame_width=float(val.get("fw", ae.FW)),
-        )
-        for div in dividers:
-            placement = assembly_placement.resolve_assembly_placement(project_snapshot, div.stable_id)
-            divider_payloads.append({
-                "axis": str(div.axis),
-                "span": float(div.span),
-                "formed_core_depth": float(div.formed_core_depth),
-                "world_offset": tuple(float(v) for v in placement.world_offset),
-            })
-    except Exception:
-        pass
-
-    try:
-        if cabinet_family_policy.has_inner_door_frame_derivation(project_snapshot):
-            frame_sets = cabinet_family_policy.derive_inner_door_frame_sets(project_snapshot)
-            for fset in frame_sets:
-                for side in tuple(fset.included_sides):
-                    if side not in {"top", "left", "right"}:
-                        continue
-                    stable_id = inner_door_frames.inner_door_frame_stable_id(fset.inner_door_id, side)
-                    placement = assembly_placement.resolve_assembly_placement(project_snapshot, stable_id)
-                    frame_payloads.append({
-                        "side": str(side),
-                        "span": float(fset.spans[side]),
-                        "world_offset": tuple(float(v) for v in placement.world_offset),
-                    })
-    except Exception:
-        pass
-
-    return {
-        "total_w": total_w,
-        "total_h": total_h,
-        "dividers": tuple(divider_payloads),
-        "frames": tuple(frame_payloads),
-    }
+    baseline_model = host._baseline_source_model() if hasattr(host, "_baseline_source_model") else ""
+    return manufacturing_api.project_operator_door_divider_frame_preview(
+        project_snapshot, columns, val,
+        layout_scope=getattr(host, "door_layout_scope", "main"),
+        handle_edges=getattr(host, "door_layout_handle_edges", {}),
+        model_name=baseline_model,
+    )
 
 
 def single_door_render_snapshot(host):
@@ -222,41 +167,14 @@ def single_door_render_snapshot(host):
         float(v) for v in manufacturing_api.door_finished_face_size(spec, finished_context)
     )
 
-    indicator_context = None
-    indicator_layout = None
-    x_guide = None
-    y_guide = None
     indicator_groups = tuple(door_indicator or ())
-    if indicator_groups:
-        try:
-            finished_w, finished_h = finished_size
-            indicator_context = DoorIndicatorContext(
-                finished_width=finished_w,
-                finished_height=finished_h,
-                left_fold=door_val["door_fold_l"],
-                bottom_fold=door_val["door_fold_b"],
-            )
-            indicator_layout = resolve_door_indicator_layout(
-                indicator_context,
-                indicator_groups,
-                Vec2(host.door_indicator_offset_x, host.door_indicator_offset_y),
-            )
-            position = measure_door_indicator_position(
-                indicator_layout,
-                indicator_context,
-                frame_width=door_val["fw"],
-                thickness=door_val["t"],
-                use_box_distance=spec.use_box_distance,
-                frame_edges=spec.frame_edges,
-                gap_w=door_val["door_gap_w"],
-                gap_h=door_val["door_gap_h"],
-            )
-            x_guide, y_guide = resolve_door_indicator_dimension_guides(position)
-        except Exception:
-            indicator_context = None
-            indicator_layout = None
-            x_guide = None
-            y_guide = None
+    (indicator_context, indicator_layout, x_guide, y_guide) = (
+        manufacturing_api.project_operator_door_indicator_guides(
+            finished_size, door_val, indicator_groups, spec,
+            offset_x=host.door_indicator_offset_x,
+            offset_y=host.door_indicator_offset_y,
+        )
+    )
 
     return {
         "render_data": render_data,

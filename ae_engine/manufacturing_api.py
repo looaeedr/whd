@@ -1430,3 +1430,9 @@ from .operator_base_plate_2d import (
     project_receiving_base_plate_2d_snapshot,
     project_legacy_base_plate_2d_bounds,
 )
+
+# #2517 operator Door 2D physical divider/frame + indicator guides projections.
+from .operator_door_2d_preview import (
+    project_operator_door_divider_frame_preview,
+    project_operator_door_indicator_guides,
+)
