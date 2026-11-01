@@ -13,10 +13,6 @@ whd_schema: WHD_DOC_META_V1
 全域硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 的唯一 CURRENT owner 是 AI 庫 `第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；此檔是 REFERENCE。GUI 全功能只處理操作與輸入，所有製造資料、公式、實體板件、孔位／折展開及 2D/3D/DXF 的 canonical 結果由引擎公開 API 處理。既有舊 GUI adapters 的存在**不代表每個箱型與功能均已完成改造**。遇 API 不支援，回引擎開發／測試或明確拒絕，不許 GUI 私做 fallback。對外 CADSplit Worker `capabilities/prepare/export` 僅宣告實際已驗證與授權的能力。靜態 CI gate：`tools/gui_engine_api_boundary_gate.py`，但它不代替行為契約測試或平台 required status check。
 
 
-## Receiving settings physical world XY outline API (#2517)
-
-`manufacturing_api.project_solid_mesh_xy_outline(triangles)` consumes an already-resolved solid 3D mesh, uses Engine's canonical physical feature-edge extractor and returns deterministic world XY line pairs (five decimal places, duplicate / zero-length edges omitted). This is a headless, read-only 2D inspection projection; the WHD GUI owns only canvas rendering and selection. It does not create, validate or certify CUTTING, BEND, DXF, NFB, EAR or PAD manufacturing data. Legacy GUI assembly mesh orchestration is a separate #2517 migration.
-
 ## Canonical resolved physical part materialization API (#2517)
 
 `manufacturing_api.materialize_resolved_manufacturing_parts(parts)` returns
@@ -998,3 +994,66 @@ GUI composition only collects already-derived profiles/physical sources,
 calls the Engine public API, and applies its immutable plan via the existing
 workspace mutation owner. No second family formula, new NFB source, DXF
 entitlement, or Save→Reload schema. #2517 OPEN.
+
+
+
+## Physical BoxBody operator → Engine manufacturing PartSpec (#2517)
+
+`manufacturing_api.build_box_body_operator_part_spec(values, *, model_name,
+features=(), face_features=None, head_corner_policy=None,
+tail_corner_policy=None, fold_profile=(), structure_state=None,
+source_part_features=None, endcap_y_profiles=None, head_ybottom1=None,
+tail_ybottom1=None, snapshot=None)` is the public headless BoxBodyPartSpec
+owner for Vault and Receiving. GUI only collects live input, workspace
+Fold/Features and override values. Engine chooses the existing canonical
+Family structure state, rear-panel manufacturing contract, physical
+BoxBody piece Features (excluding Divider namespace), Fold material
+segments and the actual Head/Tail Y/ybottom1 outside Fold readback;
+explicit Head/Tail overrides retain priority over profile and scalar
+fallback. This is an ownership move, not a new compensation formula,
+Certified Registry rule, Rear W datum, 2D/3D/DXF certification or a
+Save→Reload format. #2517 remains OPEN.
+
+
+## Receiving CSV-V5 unapproved inner-door/base real source trial API (#2517)
+
+`manufacturing_api.preview_receiving_nfb_v5_real_base_sources(snapshot,
+inner_door_id, *, door, configured_holes, root_base_spec)` is the
+sole Engine owner for the GUI's existing one-/two-tier BasePlate preview
+source validation. It verifies the real BasePlate PartSpec against current
+Receiving sheet dimensions, bend pattern, physical ID and true submitted
+Set/Bay source; the actual tier PartSpecs come from the same canonical
+`source_receiving_nfb_tier_base_specs` as physical Assembly FinalScene.
+The GUI now merely calls this API and paints its original trial data.
+
+`require_receiving_nfb_v5_inner_door_trial_preview(trial)` and
+`require_receiving_nfb_v5_base_trial_preview(trial)` reject a forged
+manufacturing-ready/approved trial before the UI renders any FinalScene.
+These return render data **for read-only visualization only**, not DXF
+authorization; the current part-only/welded-EAR/PAD/MFG-2 gates remain
+untouched. The existing #1901 real physical tier, SHA/Set/Bay drift and
+single/two-layer proofs remain the acceptance sources.
+
+
+## Receiving EAR side 2D/3D display source context (#2517)
+
+`manufacturing_api.resolve_receiving_ear_side_display_context(snapshot,
+piece_key, aggregate_render_data=None, *, main_mirror=None)` returns the
+immutable `ReceivingEarSideDisplayContext`. It decides *read-only
+visualization eligibility*, not manufacturing readiness: the true committed
+FoldDesigner snapshot is preferred to the non-authoritative main-GUI mirror,
+stale primary submitted-NFB claims fail closed, and the actual physical
+Box Body child piece roles, baseline source SHA and scene primitives form the
+same 2D/3D cache invalidation digest. The Engine returns the existing actual
+outside-W/H/D and thickness for a downstream verified EAR SIDE MARKING
+projection; GUI uses these values, renders, and stores display-only caches.
+
+This does NOT grant EAR welding, PAD, DXF, CUTTING or whole MFG-2 production
+permission. Actual UV/material and safety rejection remain in
+`project_receiving_ear_side_piece_2d_preview`. The primary 2D / FoldDesigner
+3D source and stale-primary cases and actual Save→Reload CHECK-only DXF
+regression remain the acceptance evidence.
+
+## Receiving settings physical world XY outline API (#2517)
+
+`manufacturing_api.project_solid_mesh_xy_outline(triangles)` consumes an already-resolved solid 3D mesh, uses Engine's canonical physical feature-edge extractor and returns deterministic world XY line pairs (five decimal places, duplicate / zero-length edges omitted). This is a headless, read-only 2D inspection projection; the WHD GUI owns only canvas rendering and selection. It does not create, validate or certify CUTTING, BEND, DXF, NFB, EAR or PAD manufacturing data. Legacy GUI assembly mesh orchestration is a separate #2517 migration.

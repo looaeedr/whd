@@ -1186,10 +1186,6 @@ from .receiving_nfb_manifest_validation import (
     validate_receiving_nfb_highlighted_manifest,
 )
 
-
-# #2517: read-only world XY physical-feature projection for Receiving settings.
-from .receiving_settings_orthographic_projection import project_solid_mesh_xy_outline
-
 # Canonical Engine owner for Door/BasePlate/Divider/InnerDoor physical namespaces,
 # retired GUI-owned immutable request/sync intent builder (#2517).
 from .derived_part_projection import (
@@ -1210,3 +1206,45 @@ from .derived_part_projection import (
     materialize_features,
     materialize_namespace,
 )
+
+
+
+def build_box_body_operator_part_spec(
+    values, *, model_name, features=(), face_features=None,
+    head_corner_policy=None, tail_corner_policy=None, fold_profile=(),
+    structure_state=None, source_part_features=None,
+    endcap_y_profiles=None, head_ybottom1=None, tail_ybottom1=None,
+    snapshot=None,
+) -> BoxBodyPartSpec:
+    """Public Engine physical BoxBodyPartSpec operator/family projection."""
+    from .box_body_operator_part_spec import build_box_body_operator_part_spec as build
+    return build(
+        values, model_name=model_name, features=features,
+        face_features=face_features,
+        head_corner_policy=head_corner_policy,
+        tail_corner_policy=tail_corner_policy,
+        fold_profile=fold_profile, structure_state=structure_state,
+        source_part_features=source_part_features,
+        endcap_y_profiles=endcap_y_profiles,
+        head_ybottom1=head_ybottom1, tail_ybottom1=tail_ybottom1,
+        snapshot=snapshot,
+    )
+
+
+# #2517 Receiving CSV V5 physical BasePlate trial/source & display gate.
+# Public, GUI-independent: never a manufacturing/DXF certification.
+from .receiving_nfb_v5_operator_preview import (
+    preview_receiving_nfb_v5_real_base_sources,
+    require_receiving_nfb_v5_inner_door_trial_preview,
+    require_receiving_nfb_v5_base_trial_preview,
+)
+
+
+# #2517: Receiving side EAR read-only 2D/3D source identity and cache stamp.
+from .receiving_ear_side_display_context import (
+    ReceivingEarSideDisplayContext,
+    resolve_receiving_ear_side_display_context,
+)
+
+# #2517: read-only world XY physical-feature projection for Receiving settings.
+from .receiving_settings_orthographic_projection import project_solid_mesh_xy_outline
