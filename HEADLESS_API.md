@@ -939,3 +939,25 @@ module now only re-exports these Engine public functions. The prior UI
 mock-injection test now patches the canonical Engine implementation without
 loosening any negative tests. This grants no middle/base/PAD/EAR, quantity
 Q or complete-cabinet manufacturing, nor new CUTTING/DXF certification.
+
+
+## Receiving native + CSV-V5 paired real DXF public Engine API (#2517)
+
+`manufacturing_api.export_verified_receiving_nfb_door_base_pair(bundle, *,
+layout, current_snapshot, base_spec, output_directory, index_path,
+profile_path)` is now the Engine-owned original-indexed-source real
+inner-door + BasePlate PART_ONLY atomic export. It reuses the exact
+live Set/Bay/version, actual base source validator, source-verified inner-door
+holes and world X, immutable physical receipt, real FinalScene and existing
+no-overwrite atomic DXF writer. `manufacturing_api.export_current_csv_nfb_door_base_pair(
+snapshot, *, assembly_parts, base_spec, output_directory)` is the same
+public operation for submitted numeric CSV V5; it selects 1-tier or 2-tier
+physical BasePlate sources, re-derives and compares every installed scene
+and signed stable ID, enforces actual tier depth/XYZ and existing CHECK/Q
+material equivalence, reopens the staged 2 or 3 actual DXFs before publishing
+all-or-none. The immutable `NfbCsvPairedPartOnlyDxf` and
+`NfbCsvTwoTierPartOnlyDxf` types and original `NfbPairedPartOnlyDxf` remain
+available from public Engine and legacy GUI imports as identical objects.
+The old GUI paired-export module has no geometry, PartSpec or manufacturing
+authority. Neither path authorizes PAD, welded EAR, whole MFG-2 or new
+CUTTING/DXF certification, and no numeric/3D formula was changed.

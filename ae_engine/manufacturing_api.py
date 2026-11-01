@@ -1169,3 +1169,12 @@ from .receiving_nfb_base_partial_export import (
 from .receiving_nfb_inner_door_partial_export import (
     export_verified_receiving_nfb_inner_door,
 )
+
+
+# #2517: Receiving original-source / CSV V5 pair PART_ONLY actual DXF ownership.
+# Existing GUI entry re-exports these typed Engine operations without manufacture.
+from .receiving_nfb_pair_export import (
+    export_verified_receiving_nfb_door_base_pair,
+    NfbCsvPairedPartOnlyDxf, NfbCsvTwoTierPartOnlyDxf,
+    export_current_csv_nfb_door_base_pair,
+)
