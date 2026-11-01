@@ -956,3 +956,15 @@ def validate_door_layout_height_commit(
     """Public Engine guard for Door row H operator edits."""
     from .door_layout_numeric_transitions import validate_height_commit as validate
     return validate(columns, column_index, row_index, total_height, current)
+
+def validate_receiving_base_plate_settings(
+    *, input_snapshot, settings_values, config,
+):
+    """Public Engine physical Receiving Base Plate and weld-EAR preflight."""
+    from .receiving_base_plate_settings_validation import (
+        validate_receiving_base_plate_settings as validate,
+    )
+    return validate(
+        input_snapshot=input_snapshot, settings_values=settings_values,
+        config=config,
+    )

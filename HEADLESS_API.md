@@ -703,3 +703,17 @@ positive W/H validation and canonical cell projection apply in GUI and
 headless paths. The existing GUI DoorLayoutController signatures remain
 compatibility forwarding adapters; Tk variables, operator selection and
 presentation effects stay in GUI. No new DXF/CUTTING authorization.
+
+## Receiving Base Plate operator physical preflight (#2517)
+
+`manufacturing_api.validate_receiving_base_plate_settings(
+*, input_snapshot, settings_values, config)` is the public headless Engine
+entry for validating a real selected Receiving Base Plate before GUI commit.
+It stages an immutable source probe, reuses
+`receiving_base_plate_blank_dimensions`, canonical
+`build_receiving_base_plate_result`, and the existing welded-EAR
+physical slot/pitch guard. A mismatch of CENTER vs LEFT/RIGHT geometry
+fails before project mutation. `None` is a deliberate settings reset,
+not an inferred manufactured blank. The GUI only submits the detached
+validated selection and rolls back its project state if the external
+geometry update callback fails. No new DXF/CUTTING authorization follows.

@@ -616,3 +616,7 @@ frame-only route.
 ### #2517 Door Layout W/H 門格數量補足／編輯閘門 Engine API（2026-11-01）
 
 `ae_engine.door_layout_numeric_transitions` 是原 Phase7 A2 門格定向驗證演算法的唯一 Engine 數值 owner。公開 `manufacturing_api.recompute_door_layout(columns, *, total_width, total_height, selected_key)` 用現行 `complete_partition`、相同 0.01 容差與 operator-owned fixed／auto 語意，回傳型別化剩餘欄寬、逐欄層高、合法選取；`door_layout_cells` 仍委派原 canonical `validate_door_layout_dimensions`；`validate_door_layout_width_commit`／`validate_door_layout_height_commit` 在 Engine 執行門格編輯上限、餘數自動欄／列判定及非有限／布林／索引拒絕。GUI `door_layout_controller.py` 只保留舊簽名委派與門格 UI key remap，不再保存第二套尺寸／容差算法，`door_layout_host_adapter` 既有 Tk 與畫面生命周期不變。型別化 DTO 也由 `ae_engine.__init__` 匯出；不更動 Saved Door source、2D/3D/DXF manufactured geometry 或其認證範圍，#2517 保持 OPEN。
+
+### #2517 Receiving Base Plate 實體來源與焊耳孔預檢 Engine API（2026-11-01）
+
+`manufacturing_api.validate_receiving_base_plate_settings(input_snapshot=..., settings_values=..., config=...)` 為受電箱既有 Base Plate 物理選型提交的公開 Headless Engine 預檢：先以 CURRENT `receiving_base_plate_blank_dimensions` 裁決實際板材展開，再透過 `build_receiving_base_plate_result` 與 `ae._receiving_base_weld_ear_mount_slots` 驗證目前 LEFT／RIGHT／CENTER source 的焊耳安裝孔距及拓樸，任何來源不吻合均 fail-closed，回傳 detached 設定（取消選型回傳 None）。GUI `receiving_base_plate_settings_transaction` 只轉交輸入、提交 Engine 驗證結果及控制 submit callback 失敗時回復原專案，不再直接 import 製造板材建構、私有 EAR 孔演算法或 DrawingScene。保留既有 Receiving Base Plate #1502 操作、儲存與重新讀回／2D／3D 不變，預覽／手動設定不自動取得 DXF/CUTTING 製造批准；#2517 保持 OPEN。
