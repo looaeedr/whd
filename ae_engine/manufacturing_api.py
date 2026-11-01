@@ -236,7 +236,10 @@ from .operator_endcap_blank_projection import (
     project_operator_endcap_blank_dimensions,
     read_operator_baseline_fold_defaults,
 )
-from .display_dimensions import resolve_live_operator_finished_dimensions
+from .display_dimensions import (
+    resolve_live_operator_finished_dimensions,
+    OperatorDimensionGuidePlan, project_operator_dimension_guides,
+)
 from .live_cabinet_family import resolve_live_cabinet_family
 from .assembly_mesh_profiles import resolve_material_mesh_profiles
 from .standard_part_fold_profiles import build_standard_part_fold_profiles

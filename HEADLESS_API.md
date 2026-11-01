@@ -19,6 +19,7 @@ Save 和 Reload 共用同一 Engine owner 且不保存 derived FinalScene。
 
 
 
+
 ## CADSplit／WHD 同程序 Engine 整合入口（第一批：來源接線，未開啟外部製造）
 
 現有公開路徑 `ae_engine.manufacturing_api` 新增同程序 Python 入口
@@ -1361,6 +1362,19 @@ permission. Actual UV/material and safety rejection remain in
 `project_receiving_ear_side_piece_2d_preview`. The primary 2D / FoldDesigner
 3D source and stale-primary cases and actual Save→Reload CHECK-only DXF
 regression remain the acceptance evidence.
+
+## FinalScene 3D operator dimension guides (#2517)
+
+`manufacturing_api.project_operator_dimension_guides(x_profile, y_profile,
+*, triangles=(), thickness=None)` returns a frozen
+`OperatorDimensionGuidePlan` with three width strokes, three height strokes,
+and their two label positions. The existing Engine Fold material base section
+is a fallback only when no resolved formed 3D surface is available. Actual
+formed physical mesh uses `folded_outside_envelope` as the shared outside
+dimension authority; invalid mesh data fails closed. WHD GUI only draws
+Engine-provided world positions and formats the already-resolved W/H values.
+Legacy 5.5% line offset / 1.2% tick are visualization spacing, not a new
+manufacturing compensation or authorization.
 
 ## Joint contact MARKING world source display API (#2517)
 
