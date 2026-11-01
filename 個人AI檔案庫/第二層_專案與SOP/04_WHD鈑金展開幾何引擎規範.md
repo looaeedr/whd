@@ -32,6 +32,9 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 Receiving 單一 Bay 內門操作 Save→Reload Engine API（2026-11-01）**：`manufacturing_api.project_receiving_single_bay_door_controls(snapshot)` 將原 `fold_designer_snapshot_projection._snapshot_workspace_state` 的 Receiving 唯一 Set／唯一 Bay 操作內門 `door_state` 寫回權責搬入 Engine，由 `receiving_layout.RECEIVING_DOOR_STATE_KEYS` 和 `update_receiving_bay` 的唯一已存 schema 驗證／交易。只有已存在的 singleton Bay、Set/Bay 模式、非空 `inner_doors` 才從 GUI 根層當次輸入複製門狀態；多 Set／多 Bay／Quantity／非 Receiving 一律不投影、不覆蓋其他已提交 Bay。輸入 layout 與原始 GUI snapshot 不被修改，GUI 僅把 Engine 回傳的 detached persisted layout 放進待保存 snapshot。保留原 70/105 mm 內門位移 Save→Reload 相容及 2D/3D/正式 DXF 權威不變；不增加新的 CUTTING／製造授權，#2517 仍 OPEN。
+
+
 **#2517 Receiving NFB CSV 已出圖範圍來源證明 Engine API（2026-11-01）**：`manufacturing_api.resolve_verified_csv_v5_export_scope` 由既有 `receiving_nfb_model_identity.selected_numeric_spec`、`receiving_nfb_y_projection.project_nfb_inner_door_nominal_y` 確認精確 Set/Bay、W、實體孔身分與 X/Y/rotation；`capture_verified_csv_v5_pair_display_proof` / `verified_csv_v5_operator_label` 由 Engine 唯一校驗已提交 snapshot、原品牌 CSV 真實 bytes、已實際存檔並重新開啟的兩／三片 PART_ONLY DXF 真實 bytes 與目前來源是否完全相等。GUI exporter 只採原本的 typed 成功 receipt，`receiving_nfb_verified_scope_display` 只傳輸來源與回傳顯示標籤，不再持有 SHA、來源型號／物理身份及是否可以標示過去已出圖的決策。Proof 為 immutable 的暫存歷史輸出展示憑據，不寫入專案；來源或輸出檔任何漂移立即失效、不推定全箱／EAR／PAD／下一次正式製造權限。原出圖、Save→Reload、Fail closed 不改；#2517 保持 OPEN。
 
 
