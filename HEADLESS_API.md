@@ -47,6 +47,10 @@ EndCap BOTTOM wrap/reserve 判準。三個公開 API 均不含 GUI/Tk，不新�
 新製造資格或 DXF 放行；GUI 只提供輸入與轉接顯示資料。
 
 
+## #2517 BoxBody symmetry capability public Engine API
+
+`manufacturing_api.box_body_symmetry_allowed(family_or_snapshot)` is the existing single Cabinet Family policy function re-exported through the Engine public boundary and root `ae_engine`. Phase6 Fold GUI only chooses the operator's currently selected model and asks this public capability whether the symmetry control is allowed; original Vault/Receiving behavior, symmetric state clearing, fold topology and manufacturing results are unchanged. This is not new geometry, CUTTING or DXF certification.
+
 ## #2517 Fold Editor immutable display projection
 
 `manufacturing_api.project_operator_fold_editor_display_rows(material_segments, thickness)` projects detached read-only operator outside lengths, signed direction and UI bend angle from actual current material BEND topology, reusing the existing Engine compensation/readback. `phase6_bending_ui.render/refresh_active_profile` consume this projected view without mutating the saved Fold chain even transiently; ordinary `save/add/remove/mirror` remain separate public Engine commit paths. This display projection alone does not certify CUTTING/BEND/DXF or change Save→Reload schemas.

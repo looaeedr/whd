@@ -266,7 +266,7 @@ from .sheetmetal_part_adapters import (
     build_finished_reference_guide,
 )
 from .cabinet_types import policy as cabinet_family_policy
-from .cabinet_types.policy import door_material_frame_width
+from .cabinet_types.policy import door_material_frame_width, box_body_symmetry_allowed
 
 
 
