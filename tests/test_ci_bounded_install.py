@@ -177,6 +177,13 @@ def test_product_pr_trigger_covers_worker_gui_manufacturing_and_test_authority()
     assert paths.index("tests/**") < paths.index("!tests/knowledge/**")
     assert "group: whd-product-regression-pr-" in source
     assert "cancel-in-progress: true" in source
-    assert "shard: [" + ", ".join(str(i) for i in range(18)) + "]" in source
+    # Scheduling order may change, but all 18 canonical shard IDs must exist
+    # exactly once. Do not silently drop or duplicate a logical shard.
+    matrices = [line.strip() for line in source.splitlines()
+                if line.strip().startswith("shard: [")]
+    assert len(matrices) == 1
+    shard_values = matrices[0].removeprefix("shard: [").removesuffix("]")
+    shard_ids = [int(value.strip()) for value in shard_values.split(",")]
+    assert sorted(shard_ids) == list(range(18))
     assert "name: Canonical Product Regression" in source
     assert "--merge-junit junit/shard-17.xml" in source
