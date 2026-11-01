@@ -550,52 +550,31 @@ def _receiving_baseline_source_stamp(
 
 
 def _cache_service_for_app(app: Any) -> ManufacturingCacheService:
-    # Only the canonical Receiving Set/Bay editor may retain one *previous
-    # complete state* for tail add/remove undo. Other families and quantity
-    # projection retain the legacy single-result cache. No schema/key bypass.
+    # The Engine decides history eligibility and which physical DXF source
+    # classes must be witnessed. GUI only manages the bounded cache object.
     snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
-    eligible = (
-        isinstance(snapshot, Mapping)
-        and str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}
-        and snapshot.get("active_mode") == "set_bay"
+    workspace = getattr(app, "designer_workspace", None)
+    plan = manufacturing_api.plan_manufacturing_cache_source(
+        snapshot, _box_body_structure(workspace),
     )
-    size = 2 if eligible else 1
     service = getattr(app, "_phase6_manufacturing_cache_service", None)
     if not isinstance(service, ManufacturingCacheService):
-        service = ManufacturingCacheService(max_entries=size)
+        service = ManufacturingCacheService(max_entries=plan.history_capacity)
         setattr(app, "_phase6_manufacturing_cache_service", service)
     else:
-        service.set_capacity(size)
-    if eligible:
-        # The complete semantic fingerprint does not include a raw DXF file's
-        # mtime/size/reload epoch. Before accepting *any* current or previous
-        # cached result, retire both when its source witness has changed.
-        # A complete resolved geometry receipt includes all physical BoxBody
-        # pieces, not just the three general BoxBody/Head/Door baselines.
-        # The Receiving 3-piece source-flat factory consumes three *dedicated*
-        # left/right/rear DXFs: changing any one must retire BOTH cached
-        # topology receipts, including 3->4->3 undo. Unknown structure cannot
-        # certify the complete source set, so it disables historical reuse.
-        from phase6_box_body_structure import BoxBodyStructureType
-        structure = _box_body_structure(getattr(app, "designer_workspace", None))
-        if not structure and isinstance(snapshot.get("box_body_structure"), Mapping):
-            structure = snapshot["box_body_structure"]
-        active = (
-            getattr(structure.get("active_type"), "value", structure.get("active_type"))
-            if isinstance(structure, Mapping) else None
-        )
-        recognized = {kind.value for kind in BoxBodyStructureType}
-        if active not in recognized:
-            stamp = None
-        else:
+        service.set_capacity(plan.history_capacity)
+    if plan.history_capacity == 2:
+        # Fail closed when the current BoxBody topology cannot identify all
+        # exact-source sheet files. Never reuse historical geometry on an
+        # ambiguous or unavailable raw material source.
+        stamp = None
+        if plan.witness_required:
             make_context = getattr(app, "_manufacturing_context", None)
             try:
                 ctx = make_context(draw_stock=False) if callable(make_context) else None
                 stamp = _receiving_baseline_source_stamp(
                     str(snapshot.get("model")), context=ctx,
-                    include_physical_panels=(
-                        active == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
-                    ),
+                    include_physical_panels=plan.include_physical_panels,
                 )
             except (TypeError, ValueError, OSError):
                 stamp = None

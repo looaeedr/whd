@@ -6,6 +6,18 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Receiving manufactured source-aware cache history plan
+
+`manufacturing_api.plan_manufacturing_cache_source(snapshot, workspace_structure=None)`
+回傳 immutable `ManufacturingCacheSourcePlan`：`history_capacity`、
+`witness_required`、`include_physical_panels`。僅已選定 Receiving
+Set/Bay 可留兩份完整製造結果；BoxBody 結構未知時不可接受任何舊
+DXF 指紋，三片式左右／後實體板必須與通用箱身、封頭尾、門板一起
+使用既有 `manufacturing_api.receiving_baseline_source_stamp` 驗證。
+GUI 管理 cache／提供 resource Context，不選擇物理來源或結構分類。
+未知、遺失或不一致來源會清除快取；這不是新的製造放行或 DXF 規則。
+
+
 ## #2517 Scene source authority for Receiving Bay, Joint and EndCap reserve
 
 `ae_engine.manufacturing_api.project_manufacturing_scene_settings_overlay(snapshot, global_settings)`

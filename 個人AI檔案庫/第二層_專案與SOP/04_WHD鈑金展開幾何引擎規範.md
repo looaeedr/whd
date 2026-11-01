@@ -237,6 +237,10 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 
 `manufacturing_api.project_manufacturing_scene_settings_overlay`、`project_manufacturing_scene_joint_source`、`project_manufacturing_bottom_relief_structure` 將原 `phase6_manufacturing_adapter.build_scene_payload_for_app` 的 Receiving 當前 Set/Bay Door/NFB 保留規則、舊 Joint 快照 migration、Family EndCap BOTTOM 實體避讓 reserve 投影移入無 Tk Engine。權威仍為既有 `ae_engine.receiving_layout.RECEIVING_DOOR_STATE_KEYS`、`assembly_joint.migrate_legacy_snapshot_joints`、`cabinet_types.policy`／`endcap_bottom_wrap_state`；不允許全域舊 settings 覆蓋當前 Bay 來源、不變更切割折彎公式或製造認證。GUI 只做場景來源收集、API 調用及顯示；#2517 OPEN。
 
+### #2517 Receiving BoxBody 真實 DXF 來源快取失效決策 Engine API（2026-11-02）
+
+`manufacturing_api.plan_manufacturing_cache_source(snapshot, workspace_structure)` 將原 `phase6_manufacturing_adapter._cache_service_for_app` 中 Receiving Set/Bay cache 容量、有效 BoxBody 結構白名單、三片式專用左右／後板來源包含判定交給 Engine。唯一來源仍為 `box_body_structure_state.BoxBodyStructureType` 及 `manufacturing_baseline_policy.receiving_baseline_source_stamp`（真實 DXF fingerprint／reload generation）；未知結構不復用原製造結果，GUI 只接實際資源 Context 與管理 bounded cache。非 Receiving 模式維持單份快取，正式製造／DXF 閘門不變，#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
