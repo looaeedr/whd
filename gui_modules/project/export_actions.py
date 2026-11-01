@@ -13,7 +13,6 @@ manufacturing geometry/DXF generation remains manufacturing_api authority.
 import os
 import shutil
 import tempfile
-from dataclasses import replace
 from copy import deepcopy
 from collections.abc import Mapping
 from tkinter import filedialog, messagebox
@@ -211,7 +210,6 @@ def _export_selected_resolved_parts(self, folder, flags):
         source_policy = manufacturing_api.plan_quantity_export_source(
             mode_source, workspace_snapshot,
         )
-        quantity = workspace_snapshot.get("quantity") or {}
         batch = resolve_quantity_manufacturing(request, workspace_snapshot)
         if source_policy.use_current_csv_export:
             outputs = manufacturing_api.export_current_csv_quantity_manufacturing(
