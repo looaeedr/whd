@@ -393,37 +393,32 @@ class Phase6FinalSceneRenderHelpersMixin:
                   ha="left", va="top", color=WHD_THEME["text"])
 
     def _draw_joint_diagnostic_overlays(self, render_data):
-        diagnostics = tuple(getattr(render_data, "joint_diagnostics", ()) or ())
-        selected = str(getattr(render_data, "selected_joint_id", "") or "")
-        if selected:
-            diagnostics = tuple(d for d in diagnostics if str(getattr(d, "joint_id", "")) == selected)
-        if not diagnostics:
-            return
+        """Paint read-only Engine-selected Joint contact diagnostics."""
+        from ae_engine import manufacturing_api
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
-        styles = (
-            ("contact_segments", "#22c55e", 2.5, 0.85),
-            ("penetration_segments", "#ef4444", 3.2, 0.95),
-            ("preserve_segments", "#3b82f6", 2.5, 0.85),
-            ("relief_segments", "#eab308", 2.8, 0.9),
-        )
-        for diag in diagnostics:
-            for field, color, width, alpha in styles:
-                segments = tuple(
-                    segment for segment in tuple(getattr(diag, field, ()) or ())
-                    if len(segment) == 2 and all(len(point) >= 3 for point in segment)
-                )
-                if segments:
-                    self.renderer.ax3d.add_collection3d(Line3DCollection(
-                        segments, colors=color, linewidths=width, alpha=alpha,
-                    ))
-            direction = getattr(diag, "direction_segment", None)
-            if direction and len(direction) == 2:
-                a, b = direction
-                dx, dy, dz = (float(b[i]) - float(a[i]) for i in range(3))
+
+        styles = {
+            "contact_segments": ("#22c55e", 2.5, 0.85),
+            "penetration_segments": ("#ef4444", 3.2, 0.95),
+            "preserve_segments": ("#3b82f6", 2.5, 0.85),
+            "relief_segments": ("#eab308", 2.8, 0.9),
+        }
+        for source in manufacturing_api.project_joint_diagnostic_display_sources(
+            render_data,
+        ):
+            for field, segments in source.groups:
+                if not segments:
+                    continue
+                color, width, alpha = styles[field]
+                self.renderer.ax3d.add_collection3d(Line3DCollection(
+                    segments, colors=color, linewidths=width, alpha=alpha,
+                ))
+            if source.direction_origin is not None:
                 try:
                     self.renderer.ax3d.quiver(
-                        float(a[0]), float(a[1]), float(a[2]), dx, dy, dz,
-                        color="#a855f7", arrow_length_ratio=0.18, linewidth=2.0,
+                        *source.direction_origin, *source.direction_delta,
+                        color="#a855f7", arrow_length_ratio=0.18,
+                        linewidth=2.0,
                     )
                 except Exception:
                     pass
