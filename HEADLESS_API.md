@@ -6,6 +6,16 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 FinalScene material mesh and world coordinate APIs
+
+ae_engine.manufacturing_api.folded_material_mid_mesh、
+project_box_body_structure_world_points、physical_mesh_world_bounds、
+project_assembly_world_triangles 是同程序 public Python API，
+完全沿用既有 Engine Fold／BoxBody／Assembly 幾何映射；
+Phase6 FinalScene 只保留顯示資料轉接。投影結果不是新的幾何計算公式，
+也不授權 CUTTING／BEND／DXF 或產品製造放行。
+
+
 ## #2517 Receiving Base Plate 顯示來源診斷（不可當製造許可）
 
 `manufacturing_api.inspect_receiving_base_plate_display_source(snapshot, cabinet_family)`
