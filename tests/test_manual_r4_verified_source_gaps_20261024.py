@@ -177,7 +177,7 @@ def test_r4_70_incomplete_piece_width_does_not_enter_true_world_mesh(monkeypatch
     """Preview stub has no formed-width datum: do not synthesize a box skin."""
     from types import SimpleNamespace
     import phase6_final_scene_projection as projection
-    import phase6_manufacturing_geometry as manufacturing
+    from ae_engine import receiving_settings_assembly_mesh as manufacturing
 
     stub = SimpleNamespace(role="left")
     part = SimpleNamespace(part_key="box_body", render_data=SimpleNamespace(pieces=(stub,)))
@@ -185,7 +185,7 @@ def test_r4_70_incomplete_piece_width_does_not_enter_true_world_mesh(monkeypatch
     def forbidden_manufacturing(*_args, **_kwargs):
         raise AssertionError("missing formed_w_end cannot enter physical world geometry")
 
-    monkeypatch.setattr(manufacturing, "_phase6_build_joint_world_geometry", forbidden_manufacturing)
+    monkeypatch.setattr(manufacturing, "build_joint_world_geometry", forbidden_manufacturing)
     assert projection._phase6_box_body_true_world_piece_meshes(
         part, dimensions=(800., 1600., 350.), thickness=2.,
     ) == ()
@@ -197,13 +197,13 @@ def test_r4_70_incomplete_piece_width_does_not_enter_true_world_mesh(monkeypatch
 def test_r4_70_complete_piece_datum_keeps_physical_world_mesh(monkeypatch):
     from types import SimpleNamespace
     import phase6_final_scene_projection as projection
-    import phase6_manufacturing_geometry as manufacturing
+    from ae_engine import receiving_settings_assembly_mesh as manufacturing
 
     triangle = ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.))
     piece = SimpleNamespace(role="left", formed_w_end=800.)
     part = SimpleNamespace(part_key="box_body", render_data=SimpleNamespace(pieces=(piece,)))
     monkeypatch.setattr(
-        manufacturing, "_phase6_build_joint_world_geometry",
+        manufacturing, "build_joint_world_geometry",
         lambda *_args, **_kwargs: {"world_triangles_by_part": {"box_body:left": (triangle,)}},
     )
     assert projection._phase6_box_body_true_world_piece_meshes(
@@ -507,7 +507,7 @@ def test_r4_70_partially_missing_box_piece_world_datum_blocks_physical_3d(bad, m
     """One real Box Body piece must never hide another unlocated physical sheet."""
     from types import SimpleNamespace
     import phase6_final_scene_projection as projection
-    import phase6_manufacturing_geometry as manufacturing
+    from ae_engine import receiving_settings_assembly_mesh as manufacturing
 
     pieces = (
         SimpleNamespace(role="left", formed_w_end=400.),
@@ -518,7 +518,7 @@ def test_r4_70_partially_missing_box_piece_world_datum_blocks_physical_3d(bad, m
     def forbidden_manufacturing(*_args, **_kwargs):
         raise AssertionError("partial physical datum must not enter world-space geometry")
 
-    monkeypatch.setattr(manufacturing, "_phase6_build_joint_world_geometry", forbidden_manufacturing)
+    monkeypatch.setattr(manufacturing, "build_joint_world_geometry", forbidden_manufacturing)
     with pytest.raises(ValueError, match="BOX_BODY_PIECE_OUTSIDE_DATUM"):
         projection._phase6_box_body_true_world_piece_meshes(
             part, dimensions=(800., 1600., 350.), thickness=2.,
@@ -530,7 +530,7 @@ def test_r4_70_partially_missing_box_piece_world_datum_blocks_physical_3d(bad, m
 def test_r4_70_both_true_physical_piece_datums_use_original_world_skin(monkeypatch):
     from types import SimpleNamespace
     import phase6_final_scene_projection as projection
-    import phase6_manufacturing_geometry as manufacturing
+    from ae_engine import receiving_settings_assembly_mesh as manufacturing
 
     triangle = ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.))
     left = SimpleNamespace(role="left", formed_w_end=400.)
@@ -539,7 +539,7 @@ def test_r4_70_both_true_physical_piece_datums_use_original_world_skin(monkeypat
         part_key="box_body", render_data=SimpleNamespace(pieces=(left, right)),
     )
     monkeypatch.setattr(
-        manufacturing, "_phase6_build_joint_world_geometry",
+        manufacturing, "build_joint_world_geometry",
         lambda *_args, **_kwargs: {"world_triangles_by_part": {
             "box_body:left": (triangle,), "box_body:right": (triangle,),
         }},
@@ -553,7 +553,7 @@ def test_r4_70_side_back_left_sheet_uses_formed_outer_width_not_zero_span(monkey
     """Current three-piece SIDE/BACK structure legitimately anchors left side at W=0."""
     from types import SimpleNamespace
     import phase6_final_scene_projection as projection
-    import phase6_manufacturing_geometry as manufacturing
+    from ae_engine import receiving_settings_assembly_mesh as manufacturing
 
     triangle = ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.))
     left = SimpleNamespace(
@@ -572,7 +572,7 @@ def test_r4_70_side_back_left_sheet_uses_formed_outer_width_not_zero_span(monkey
         part_key="box_body", render_data=SimpleNamespace(pieces=(left, back, right)),
     )
     monkeypatch.setattr(
-        manufacturing, "_phase6_build_joint_world_geometry",
+        manufacturing, "build_joint_world_geometry",
         lambda *_args, **_kwargs: {"world_triangles_by_part": {
             "box_body:left_side": (triangle,),
             "box_body:back": (triangle,),
