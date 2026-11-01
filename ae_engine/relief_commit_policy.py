@@ -15,3 +15,19 @@ def endcap_relief_solution_committable(solution):
     return bool(getattr(solution, "rule_id", None)) and trust in {
         "CERTIFIED", "CERTIFIED_FROM_3D", "ENGINE_CONFLICT"
     }
+
+
+def endcap_relief_transaction_committable(required_parts, solutions):
+    """Fail closed unless all required physical EndCaps can commit together.
+
+    Individual certification/verified status remains owned by the existing
+    endcap_relief_solution_committable policy; no preview geometry is promoted.
+    Empty selection has nothing to commit, so cannot authorize publication.
+    """
+    required = tuple(required_parts or ())
+    if not required:
+        return False
+    return all(
+        key in solutions and endcap_relief_solution_committable(solutions[key])
+        for key in required
+    )

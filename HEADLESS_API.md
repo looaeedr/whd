@@ -13,6 +13,16 @@ whd_schema: WHD_DOC_META_V1
 全域硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 的唯一 CURRENT owner 是 AI 庫 `第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；此檔是 REFERENCE。GUI 全功能只處理操作與輸入，所有製造資料、公式、實體板件、孔位／折展開及 2D/3D/DXF 的 canonical 結果由引擎公開 API 處理。既有舊 GUI adapters 的存在**不代表每個箱型與功能均已完成改造**。遇 API 不支援，回引擎開發／測試或明確拒絕，不許 GUI 私做 fallback。對外 CADSplit Worker `capabilities/prepare/export` 僅宣告實際已驗證與授權的能力。靜態 CI gate：`tools/gui_engine_api_boundary_gate.py`，但它不代替行為契約測試或平台 required status check。
 
 
+## Atomic EndCap Head/Tail relief commit API (#2517)
+
+`manufacturing_api.endcap_relief_transaction_committable(required_parts, solutions)`
+owns the all-or-nothing production decision for the existing Head/Tail
+physical relief transaction. It composes the existing certified/verified
+single-part Engine policy; a missing required result or empty transaction
+fails closed. Phase6 passes immutable required identities and solver results,
+then displays the Engine decision without reproducing physical trust rules.
+This does not certify new CUTTING, DXF or unverified 3D geometry.
+
 ## Verified EndCap relief canonical replay API (#2517)
 
 `manufacturing_api.replay_resolved_endcap_render(part_input, verified_solution)`
