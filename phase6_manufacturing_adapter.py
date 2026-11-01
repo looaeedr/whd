@@ -26,13 +26,10 @@ from phase6_manufacturing_contracts import (
     thaw_manufacturing_value,
 )
 from phase6_part_navigation import is_box_body_physical_piece_key
-from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from phase6_endcap_semantics import (
     ENDCAP_FW_PARTS,
     normalize_endcap_bottom_wrap_state,
     normalize_endcap_fw_state,
-    resolve_endcap_bottom_wrap,
     resolve_endcap_fw,
     selection_from_raw,
 )
@@ -99,22 +96,10 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
 
     values = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
     settings_overlay = dict(getattr(app, "_settings_values", {}) or {})
-    if (values.get("model") in ("受電箱", "RECEIVING")
-            and isinstance(values.get("_receiving_runtime_selection"), Mapping)):
-        # Exact Set/Bay is the only authority for Door, NFB and placement.
-        # build_manufacturing_request already carries this Bay's dimensions;
-        # do not overwrite projected Door cells with the global settings
-        # during the second part-payload serialization seam.
-        from ae_engine.receiving_layout import (
-            RECEIVING_DOOR_STATE_KEYS, RECEIVING_RUNTIME_SELECTION_KEY,
-        )
-        per_bay = set(RECEIVING_DOOR_STATE_KEYS) | {
-            RECEIVING_RUNTIME_SELECTION_KEY, "receiving_layout",
-            "nfb_config", "nfb_config_submitted",
-        }
-        settings_overlay = {
-            k: v for k, v in settings_overlay.items() if k not in per_bay
-        }
+    # Engine protects current Receiving Set/Bay authority from stale globals.
+    settings_overlay = manufacturing_api.project_manufacturing_scene_settings_overlay(
+        values, settings_overlay,
+    )
     values.update(settings_overlay)
     values.update(dict(getattr(app, "_phase6_box_whd", {}) or {}))
     workspace = getattr(app, "designer_workspace", None)
@@ -202,36 +187,17 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
         structure_state() if callable(structure_state) else {}
     )
 
-    source_graph = migrate_legacy_snapshot_joints(
-        dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    )
-    values["assembly_joint_schema_version"] = source_graph.get(
-        "assembly_joint_schema_version"
-    )
-    values["assembly_joints"] = deepcopy(
-        source_graph.get("assembly_joints", ())
-    )
+    values.update(manufacturing_api.project_manufacturing_scene_joint_source(
+        getattr(app, "_phase6_input_snapshot", {}) or {},
+    ))
 
-    if (
-        key in ENDCAP_FW_PARTS
-        and cabinet_family_policy.supports_bottom_wrap_controls(values)
-    ):
-        try:
-            item = resolve_endcap_bottom_wrap(
-                values,
-                key,
-                state=values["endcap_bottom_wrap"],
-            )
-            values["box_body_structure"] = (
-                cabinet_family_policy.set_bottom_relief_reserves(
-                    values,
-                    values["box_body_structure"],
-                    reserve_u=item["reserve_u"],
-                    reserve_v=item["reserve_v"],
-                )
-            )
-        except Exception:
-            pass
+    # Engine alone owns physical Family BOTTOM reserve projection.
+    values["box_body_structure"] = (
+        manufacturing_api.project_manufacturing_bottom_relief_structure(
+            values, key, values["box_body_structure"],
+            bottom_wrap_state=values["endcap_bottom_wrap"],
+        )
+    )
 
     if key == "box_body":
         profiles_for = getattr(workspace, "profiles_for", None)
