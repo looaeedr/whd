@@ -138,6 +138,7 @@ from .assembly_geometry import (
     triangle_bounds as physical_mesh_world_bounds,
     place_assembly_triangles as project_assembly_world_triangles,
 )
+from .manufacturing_request_parts import canonical_manufacturing_request_part_keys
 from .assembly_collision_display_api import project_assembly_collision_display_audit
 from .assembly_all_parts_collision import collision_part_display_name
 from .receiving_base_display_source import (
