@@ -338,6 +338,7 @@ from .assembly_joint import (
 )
 from .assembly_joint import joint_registry_diagnostic_info
 from .manufacturing_relief_evidence import resolve_manufacturing_relief_evidence
+from .resolved_manufacturing_parts import materialize_resolved_manufacturing_parts
 from .explicit_joint_pipeline import (
     EXPLICIT_JOINT_PIPELINE_STAGES,
     ExplicitJointPipelineOps,
