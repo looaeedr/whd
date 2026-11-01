@@ -1113,3 +1113,11 @@ def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
     """Public Engine physical solid mesh feature-boundary projection."""
     from .solid_mesh_feature_edges import physical_solid_mesh_feature_segments as resolve
     return resolve(triangles, tolerance=tolerance)
+
+
+# #2517: physical Receiving NFB highlighted partial DXF batch is Engine-owned.
+# The GUI import path is a compatibility facade, never a second release gate.
+from .receiving_nfb_partial_batch_dispatcher import (
+    require_highlighted_nfb_inner_doors,
+    export_highlighted_nfb_inner_doors,
+)

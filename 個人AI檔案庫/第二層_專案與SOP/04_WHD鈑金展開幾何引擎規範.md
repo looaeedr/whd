@@ -32,6 +32,9 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 受電箱 NFB 多 Bay 內門部分出圖公開 API（2026-11-01）**：`manufacturing_api.require_highlighted_nfb_inner_doors`、`manufacturing_api.export_highlighted_nfb_inner_doors` 接管原 GUI `receiving_nfb_partial_batch_dispatcher` 的已提交來源、真實 Set/Bay/version 與實體內門 ID 查核、批次 DXF 隔離暫存、無覆寫原子發布及失敗回滾。原 GUI module 僅作公開 API 相容 re-export；`manifest`／`partial_export` 仍是來源必須即時重驗的原正式 port，過期／跨 Bay／偽造 typed receipt 必拒絕。明確選擇 allow_held 時僅放行 READY 內門並產生未出圖 Bay 報告，不把底板／PAD／EAR 誤計為已出板片；不新增孔位／CUTTING／DXF 認證或整箱製造權，#2517 持續 OPEN。
+
+
 **#2517 Receiving NFB V5 CSV 來源預覽公開 API（2026-11-01）**：`manufacturing_api.ReceivingNfbV5SourcePreviewCache.load(brand, model_ref)` 與 immutable `ReceivingNfbV5SourcePreview` 將原 GUI 的 V5 廠牌／型號身份比對、`brand_csv_path` 檔案版本簽章、當次 CSV 解析與最多 8 筆的 per-editor source cache 改由 Engine 擁有。既有 `receiving_nfb_model_identity.selected_numeric_spec` 和 `receiving_nfb_numeric_catalog` 仍是唯一型號／孔位數值來源；原 CSV 在解析期間改變版本則拒絕緩存，未知／跨品牌身份 fail-closed。GUI `receiving_nfb_source_preview.NfbDxfSourcePreviewPanel` 僅依 Engine 回傳的來源實體和數值畫 source-only 示意、處理縮放及 verified-output 標籤，不再直接解析 NFB 身份或讀 CSV 檔案來源時間。舊 DXF 預覽、同來源快取、缺數值禁止製造、Set/Bay 提交／出圖／DXF 認證均保留原界線；此 API 不構成 CUTTING／DXF 製造核准，#2517 維持 OPEN。
 
 
