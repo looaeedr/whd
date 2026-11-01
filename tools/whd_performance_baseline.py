@@ -405,13 +405,15 @@ def worker(args):
         probe.observe_primary_authoritative_render(app)
         from gui_modules.application.state_sync import Phase6DerivedCacheOwner
         probe.observe_derived_invalidation(Phase6DerivedCacheOwner)
-        # Specialty source-flat fixing plates and the service's imported replay
-        # alias are not covered by the five manufacturing_api entrypoints.
+        # Specialty source-flat fixing plates and the service's imported
+        # canonical EndCap replay alias are not in the five material builders.
+        # Phase6 no longer imports build_part_render_data: observe the actual
+        # public Engine replay callable that _replay_endcap_render invokes.
         probe.observe_supplemental_material_factory(
             fixing_plate_geometry, 'build_fixing_plate_source_render_data',
             'fixing_plate_source_flat', part_id=True)
         probe.observe_supplemental_material_factory(
-            service, 'build_part_render_data', 'service_relief_replay_material')
+            service, 'replay_resolved_endcap_render', 'service_relief_replay_material')
         probe.wrap(service, '_replay_endcap_render', 'relief_replay_requests')
         for factory in ('build_part_render_data',
                         'build_box_body_structure_render_data',

@@ -120,10 +120,10 @@ from .receiving_quantity_versions import (
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
     normalize_quantity_snapshot, quantity_only_change,
 )
-from .indicator_editor_geometry import resolve_indicator_editor_components
 from .corner_dimension_projection import (
     RenderCornerDimensionGroup, project_render_corner_relief_measurements,
 )
+from .indicator_editor_geometry import resolve_indicator_editor_components
 from .receiving_endcap_feature_preview import receiving_endcap_feature_preview_shapes
 from .receiving_inner_door_editor import (
     InnerDoorHoleEditorContext, resolve_inner_door_hole_editor_context,
@@ -992,3 +992,20 @@ def apply_receiving_switch_operator_action(
         layout, operation=operation, brand=brand,
         layer_index=layer_index, delta=delta,
     )
+
+def resolve_fold_designer_divider_part(part_key, divider_input):
+    """Public Engine selection of one canonical Box Body Divider physical part."""
+    from .fold_designer_physical_selection import resolve_fold_designer_divider_part as resolve
+    return resolve(part_key, divider_input)
+
+
+def resolve_fold_designer_frame_part(part_key, payload, *, default_thickness):
+    """Public Engine Family/legacy inner-door frame physical-part selection."""
+    from .fold_designer_physical_selection import resolve_fold_designer_frame_part as resolve
+    return resolve(part_key, payload, default_thickness=default_thickness)
+
+
+def resolve_fold_designer_panel_part(part_key, payload):
+    """Public Engine inner-door panel identity from canonical Family topology."""
+    from .fold_designer_physical_selection import resolve_fold_designer_panel_part as resolve
+    return resolve(part_key, payload)
