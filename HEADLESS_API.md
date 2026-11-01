@@ -328,6 +328,10 @@ No additional CUTTING/DXF approval is implied.
 
 `manufacturing_api.resolve_fold_designer_base_plate_source(part_key, input_snapshot, *, width, height, thickness, frame_width, model_name, corner_policy=None)` owns the operator BasePlate request values and canonical committed Receiving NFB source priority. It forwards the existing `receiving_base_plate_values` without reimplementing CSV/brand/PAD/LEFT/CENTER/tier geometry. A verified selected real BasePlate replaces the legacy generic preview W/H/folds and owns its corners (`corner_policy=None`); missing optional sources retain the original preview-only values and do **not** certify MFG/DXF. Receiving cell keys remain unsupported. GUI consumes the returned values/policy and calls its already-public `build_base_plate_operator_part_spec` delegate. Vault/legacy model requests and Save→Reload are unchanged.
 
+## Standalone FinalScene BEND / MARKING / BLIND_HOLE 3D Engine APIs (#2517)
+
+`manufacturing_api.project_independent_scene_bend_segments(scene, x_profile, y_profile, fold_guides=())` 將正式 `DrawingScene` 上的 `BEND LinePrimitive` 用既有 Engine Fold mapper 轉成不可變 local 3D 線段；`project_independent_scene_annotation_paths(...)` 將既有 `MARKING`／`BLIND_HOLE` 的線、64 等分圓和封閉折線以原順序形成 `(layer, points)`，不把 BLIND_HOLE 誤當穿孔 CUTTING，忽略非支援 primitive。原 `Phase6FinalSceneRenderHelpersMixin._draw_scene_bends`／`_draw_scene_markings` 只繪圖，不再推導實體 Fold 座標；原顏色、線寬、虛線及透明度保持不變。這是顯示投影 API，不是新製造／DXF 認證或資料保存格式。
+
 ## Assembly non-contact MARKING world projection Engine API (#2517)
 
 `manufacturing_api.project_assembly_scene_marking_segments(scene, x_profile, y_profile, fold_guides, local_reference, placement, dimensions, offset, joint_marking_signatures=())` 僅將現有 `DrawingScene` 上的平面非接觸式 MARKING，沿正式 Fold mapper 和 `place_assembly_points` 投影為不可變 3D 世界線段；EndCap Head/Tail 不使用此一般投影、沒有真實 mesh 則不畫。`marking_line_signature`、`joint_marking_flat_signatures` 使用原有無向、九位小數來源驗證，跳過已由 Certified Joint world metadata 產生的 `JOINT_PLACEMENT_MARKING`，絕不重複標記或自行推定接觸位置。Phase6 僅轉交原始場景、既有 Joint signatures 及繪圖樣式；不變更任何 DXF／Save→Reload、MARKING 認證或裝配規則。

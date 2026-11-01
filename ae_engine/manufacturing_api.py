@@ -1270,6 +1270,12 @@ def build_door_operator_part_spec(
         nameplate_center_datum_top=nameplate_center_datum_top,
     )
 
+# #2517: Standalone FinalScene physical BEND, MARKING and BLIND_HOLE paths.
+from .final_scene_independent_annotations import (
+    project_independent_scene_bend_segments,
+    project_independent_scene_annotation_paths,
+)
+
 # #2517: BoxBody BEND overlay points consume canonical material/assembly world.
 from .final_scene_box_body_bend_lines import (
     contract_fold_profile_rows,
