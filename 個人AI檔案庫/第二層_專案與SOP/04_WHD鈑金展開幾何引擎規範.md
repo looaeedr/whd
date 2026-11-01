@@ -193,6 +193,10 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 
 `manufacturing_api.receiving_pad_assembly_display_active`、`receiving_pad_assembly_display_source_key`、`resolve_receiving_pad_assembly_display_skins` 將原 `phase6_final_scene_view._formed_pad_assembly_preview` 的 Receiving/NFB 提交狀態、CSV/共用加工規則與 BasePlate 真實 CUTTING 四方孔來源快取檢驗、已形成 PAD 製造或裝配貼合旗標拒絕統一由 Engine 公開 API 持有。沿用既有 `receiving_nfb_pad_preview_cache.pad_preview_source_fingerprint`、`receiving_nfb_pad_assembly_preview.build_committed_pad_assembly_display` 真正的孔位/折型/世界面 solver，並保留原錯誤碼；GUI 僅做顯示快取、顯示/隱藏、繁中警告。單層/雙層、Set/Bay 與 CSV 身份必須走原 Engine source，而非由 UI 推定；此為 DISPLAY ONLY，並不核准新 PAD CUTTING／BEND／DXF／焊接／整箱 MFG-2，#2517 OPEN。
 
+### #2517 FinalScene 全實體板件干涉來源及厚板公共 API（2026-11-01）
+
+`manufacturing_api.project_assembly_collision_display_audit` 接管原 FinalScene GUI 的實體 BoxBody piece／內門框／Head Tail 組合 world mesh 來源、visible keys 選取及 `audit_all_physical_part_pairs` 呼叫。原 Certified Registry Relief 與 `ASSEMBLY_COLLISION_MISSING_VISIBLE_PARTS` 等 fail-closed 規則保持既有 Engine 唯一判準；GUI 只快取和描繪未證實交叉。另由 `manufacturing_api` 公開既存 `restore_unrelieved_endcap_material`、`restored_endcap_relief_delta`、`thicken_triangle_surface`、`MeshInterferenceDiagnostic`、`collision_part_display_name`，Phase6 renderer 不再直接 import 底層幾何／碰撞分類。此為 3D 顯示診斷 API，不修改全箱 2D／3D／Save→Reload／正式 DXF、亦不新增製造認證；#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。

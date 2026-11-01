@@ -131,11 +131,15 @@ from .receiving_quantity_versions import (
     normalize_quantity_snapshot, quantity_only_change,
 )
 from .assembly_geometry import (
+    restore_unrelieved_endcap_material, restored_endcap_relief_delta,
+    thicken_triangle_surface, MeshInterferenceDiagnostic,
     folded_mesh_from_polygon as folded_material_mid_mesh,
     place_box_body_structure_points as project_box_body_structure_world_points,
     triangle_bounds as physical_mesh_world_bounds,
     place_assembly_triangles as project_assembly_world_triangles,
 )
+from .assembly_collision_display_api import project_assembly_collision_display_audit
+from .assembly_all_parts_collision import collision_part_display_name
 from .receiving_base_display_source import (
     ReceivingBasePlateDisplaySource, inspect_receiving_base_plate_display_source,
 )

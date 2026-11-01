@@ -16,6 +16,9 @@ from .door_layout_numeric_transitions import (
 )
 
 from .manufacturing_api import (
+    project_assembly_collision_display_audit, collision_part_display_name,
+    restore_unrelieved_endcap_material, restored_endcap_relief_delta,
+    thicken_triangle_surface, MeshInterferenceDiagnostic,
     receiving_pad_assembly_display_active,
     receiving_pad_assembly_display_source_key,
     resolve_receiving_pad_assembly_display_skins,
@@ -228,6 +231,9 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "project_assembly_collision_display_audit", "collision_part_display_name",
+    "restore_unrelieved_endcap_material", "restored_endcap_relief_delta",
+    "thicken_triangle_surface", "MeshInterferenceDiagnostic",
     "receiving_pad_assembly_display_active",
     "receiving_pad_assembly_display_source_key",
     "resolve_receiving_pad_assembly_display_skins",

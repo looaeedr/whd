@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 FinalScene full physical assembly collision audit Engine API
+
+`manufacturing_api.project_assembly_collision_display_audit(assembly_parts, finished_dimensions, sheet_thickness, visible_part_keys=None, visible_box_body_piece_keys=None, certified_relief_diagnostics=())` 是同程序無 Tk 的公開 Engine API。委派既有 `build_joint_world_geometry` 和 `audit_all_physical_part_pairs`，以真實實體板件（非 box_body 複合代理）決定各 pair 與認證 Relief 接觸。GUI 僅在操作員開啟干涉顯示時做相同來源快取、繪圖和繁中狀態。EndCap 顯示診斷材料復原、厚板成形 solid 與原本 `MeshInterferenceDiagnostic` 均沿用 `manufacturing_api` 的公開入口。此審核不自動放行 CUTTING／BEND／DXF／MFG-2；`NO_NONCOPLANAR_CROSSING` 不代表已認證安全。
+
+
 ## #2517 Receiving PAD 3D source and fail-closed display gate
 
 `manufacturing_api.receiving_pad_assembly_display_active`、`receiving_pad_assembly_display_source_key`、`resolve_receiving_pad_assembly_display_skins` 為同程式公開 API。由 Engine 原有 CSV、tooling、BasePlate 實際 CUTTING 四方孔、真實折後世界面重新核驗可顯示 PAD；每次來源指紋改變就重解算。已宣稱 manufacturing_ready 或 assembly_contact_certified 的來源不能被展示為合法 preview。GUI 僅保存顯示快取與警告；不等於工廠 CUTTING/BEND/DXF 或 MFG-2 核准。
