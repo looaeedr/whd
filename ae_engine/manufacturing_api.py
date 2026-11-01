@@ -928,6 +928,26 @@ def save_verified_final_scene_batch_dxf(
     )
 
 
+def save_composed_panel_dxf(
+    panels,
+    output_path: str | os.PathLike[str],
+    *,
+    pre_commit_guard,
+    overwrite: bool = False,
+    gap: float = 60.0,
+):
+    """Compose already resolved physical flats into one verified DXF.
+
+    No GUI/Tk or new whole-cabinet manufacturing certification is implied.
+    The caller supplies a trusted current-source check before/after staging.
+    """
+    from .composed_panel_dxf import save_composed_panel_dxf as compose
+    return compose(
+        panels, output_path, pre_commit_guard=pre_commit_guard,
+        overwrite=overwrite, gap=gap,
+    )
+
+
 def resolved_manufacturing_nc_capability() -> dict[str, object]:
     return _manufacturing_export.resolved_manufacturing_nc_capability()
 
