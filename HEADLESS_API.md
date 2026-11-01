@@ -6,6 +6,19 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Scene source authority for Receiving Bay, Joint and EndCap reserve
+
+`ae_engine.manufacturing_api.project_manufacturing_scene_settings_overlay(snapshot, global_settings)`
+只在目前有 Receiving Set/Bay runtime selection 時，排除全域設定中
+Door／NFB／Receiving layout 等 Bay 主權欄位，避免製造場景遭舊 settings 覆蓋。
+`project_manufacturing_scene_joint_source(snapshot)` 沿用現行
+`assembly_joint.migrate_legacy_snapshot_joints` 產生 canonical persisted Joint
+schema/rows（Detached output）；`project_manufacturing_bottom_relief_structure(snapshot,
+part_key, box_body_structure, bottom_wrap_state=...)` 沿用當前 Family policy 與
+EndCap BOTTOM wrap/reserve 判準。三個公開 API 均不含 GUI/Tk，不新增幾何公式、
+新製造資格或 DXF 放行；GUI 只提供輸入與轉接顯示資料。
+
+
 ## #2517 Quantity live manufacturing Feature legality Engine gate
 
 `manufacturing_api.validate_operator_manufacturing_quantity_context(input_snapshot, live_workspace_snapshot=None)`

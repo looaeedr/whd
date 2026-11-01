@@ -139,6 +139,11 @@ from .assembly_geometry import (
     triangle_bounds as physical_mesh_world_bounds,
     place_assembly_triangles as project_assembly_world_triangles,
 )
+from .manufacturing_scene_payload import (
+    project_manufacturing_scene_settings_overlay,
+    project_manufacturing_scene_joint_source,
+    project_manufacturing_bottom_relief_structure,
+)
 from .operator_quantity_validation import validate_operator_manufacturing_quantity_context
 from .manufacturing_request_parts import canonical_manufacturing_request_part_keys
 from .assembly_collision_display_api import project_assembly_collision_display_audit
