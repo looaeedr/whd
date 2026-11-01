@@ -205,6 +205,10 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 
 `manufacturing_api.canonical_manufacturing_request_part_keys(snapshot, available_parts)` 將原 `phase6_manufacturing_adapter._canonical_part_keys` 中 Receiving 已提交 NFB 底板來源的缺件補齊、雙層四片固定耳唯一 owner 身份重建、衍生 BoxBody／tier BasePlate／PAD 非 RAW ID 過濾移回 Engine；沿用 `receiving_base_plate_values`、`receiving_base_fixing_plate_previews` 與 `physical_part_identity` 的原有判準及錯誤處理。GUI 不再直接讀取低階來源模組，也不自推板件身份。Engine 回傳同順序 immutable RAW PartSpec key tuple，非新的 CUTTING/BEND/DXF/焊接製造認證；#2517 OPEN。
 
+### #2517 數量模式即時版本特徵合法性製造 API（2026-11-01）
+
+`manufacturing_api.validate_operator_manufacturing_quantity_context(input_snapshot, live_workspace_snapshot)` 將原 `phase6_manufacturing_adapter` 組 RAW request 與 cache lookup 前兩處直接 `require_valid_quantity_features`、合併目前 Workspace `quantity` 和 `receiving_quantity_box` 的規則統一收回 Engine。沿用既有 `receiving_quantity_box.require_valid_quantity_features` 對各版本 Head/Tail finished-face 特徵合法性與原 `不能輸出 DXF` 錯誤的單一判準；非數量模式 N/A。GUI 只取得 Workspace source 及呈現 Engine 拒絕，不新增補償或假製造權限；#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
