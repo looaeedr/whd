@@ -81,8 +81,9 @@ def test_receiving_project_save_reload_keeps_bay_source(tmp_path):
     restored = project.read_project(target)
     assert restored["schema"] == project.PROJECT_SCHEMA_V2
     assert restored["snapshot"]["receiving_layout"] == expected["receiving_layout"]
-    assert (restored["snapshot"]["door_nameplate_center_datum_top"]
-            == expected["door_nameplate_center_datum_top"])
+    saved_bytes = json.loads(target.read_text(encoding="utf-8"))
+    assert all(key not in saved_bytes["snapshot"] for key in ("w", "h", "d"))
+    assert restored["final_geometry"] == {}
 
 
 @pytest.mark.parametrize("invalid", [
