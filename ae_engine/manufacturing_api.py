@@ -1392,3 +1392,11 @@ def export_verified_pad_base_part_only(
     from .receiving_nfb_pad_pair_manufacturing import export_verified_pad_base_part_only as execute
     return execute(snapshot, assembly_parts, output_directory, version_id=version_id,
                    box_count=box_count, parameters=parameters)
+
+# #2517: Public physical quantity equivalence and live-manifest CHECK/Q.
+# Not a second exporter or a release grant.
+from .quantity_manufacturing_groups import (
+    QuantityManufacturingBatch,
+    quantity_manufacturing_groups,
+    quantity_nfb_checked_manufacturing_groups,
+)

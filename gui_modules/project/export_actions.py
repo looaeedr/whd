@@ -176,10 +176,7 @@ def _export_selected_resolved_parts(self, folder, flags):
             build_manufacturing_request, build_scene_payload_for_app,
             operator_finished_dimensions_for_app,
         )
-        from phase6_quantity_manufacturing import (
-            resolve_quantity_manufacturing, quantity_manufacturing_groups,
-            quantity_nfb_checked_manufacturing_groups,
-        )
+        from phase6_quantity_manufacturing import resolve_quantity_manufacturing
         request = build_manufacturing_request(
             designer,
             scene_payload_builder=lambda key: build_scene_payload_for_app(designer, key),
@@ -265,14 +262,14 @@ def _export_selected_resolved_parts(self, folder, flags):
             )
             live_manifests = manufacturing_api.quantity_partial_live_manifests(
                 full, workspace_snapshot, selected_reports)
-            groups, gate = quantity_nfb_checked_manufacturing_groups(
+            groups, gate = manufacturing_api.quantity_nfb_checked_manufacturing_groups(
                 checked_batch, live_manifest_provider=lambda vid, _request: live_manifests[vid],
                 partial=True,
             )
             if gate.permitted_total_pieces != nfb_selection.exported_piece_count:
                 raise ValueError("NFB live manifest and selected physical pieces disagree")
         else:
-            groups = quantity_manufacturing_groups(batch, demands=selected_demands)
+            groups = manufacturing_api.quantity_manufacturing_groups(batch, demands=selected_demands)
         if sum(group.quantity for group in groups) != sum(row.quantity for row in selected_demands):
             raise ValueError("NFB CHECK actual piece count not conserved")
         outputs = manufacturing_api.save_quantity_manufacturing_groups_dxf(

@@ -52,6 +52,10 @@ whd_schema: WHD_DOC_META_V1
 
 `gui_modules/project/export_actions.py` 中 Door 輸出檔名、Receiving 數值 CSV 數量批次、多 Set/Bay、EAR side MARKING、SIDE CHECK-only、PAD+Base PART_ONLY 輸出一律走 `manufacturing_api` 公開入口，既有 Engine 物理來源／Factory／檢核／原子提交／DXF 回讀皆保持原有判準，未新增整箱製造放行。舊版已有的 Python API 不鎖版本，新功能僅有新 Engine 提供。 `receiving_csv_quantity_manufacturing` 不再反向引入 `gui_modules.project.export_actions` 判斷物理板件選取，統一調用同引擎 `manufacturing_export_selection.resolved_export_intention_key`；GUI 保留操作狀態、輸出位置、UI 訊息，不再進入內部 Engine 模組。#2517 OPEN。
 
+### #2517 數量製造分組與 NFB CHECK/Q Engine 公開 API（2026-11-01）
+
+`ae_engine.quantity_manufacturing_groups` 是 `QuantityManufacturingBatch`、`quantity_manufacturing_groups` 與 `quantity_nfb_checked_manufacturing_groups` 的正式 Engine owner；原 `phase6_quantity_manufacturing.py` 保留量產 request→resolved FinalScene 的 Phase6 相容調用及同名 alias，但不再保存第二份實體分組／CHECK 判準。GUI 專案出圖直接經 `manufacturing_api` 呼叫 Engine grouping。Receiving CSV 數量制造正式模組不再逆向 import `phase6_manufacturing_contracts`、`phase6_quantity_manufacturing`、`phase6_quantity_model`：改採 Engine 已存在 `manufacturing_value_thaw`、`receiving_quantity_versions.QuantityModel` 及新 Engine group owner。每版 NFB source identity、已提交 CSV、physical manifests、Q conservation、PART_ONLY gate、CUTTING/BEND/DXF 原有測試與拒絕條件不變；本批不宣告整箱製造放行。舊 Phase6 API 向後相容，新版僅新增公開 Engine 入口，未鎖舊版。#2517 OPEN。
+
 ### #2517 EndCap 摘要／金庫型基準 Fold 預設 Engine 公開 API（2026-11-01）
 
 `manufacturing_api.project_operator_endcap_blank_dimensions` 將主畫面 EndCap 無已提交 Fold Profile 時的 baseline-first 總料寬／深回讀與舊 AE 公式回退統一移入 Engine；已有 committed Profile 時仍由同一 FinalScene material bounds 作準。 `manufacturing_api.read_operator_baseline_fold_defaults` 將金庫型型號切換時的 EndCap／Door 基準 Fold 預設及舊 Door DXF 解析失敗的四數值 UI 相容回退搬入 Engine；GUI 僅將回傳數值填入操作欄。兩者只供操作顯示／預設，不是正式製造或 DXF 認證，保留自訂／受電箱既有路徑與原 Save→Reload／2D／3D 來源；#2517 OPEN。
