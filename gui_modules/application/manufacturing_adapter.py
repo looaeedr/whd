@@ -271,26 +271,21 @@ def _door_part_spec_from_values(
     self, val, *, model_name, features, indicator_hole=None, door_indicator=None,
     door_indicator_offset=(0.0, 0.0), use_box_distance=False, corner_policy=None,
     frame_edges=None, indicator_window_groups=None,
-):
-    """Canonical Door state -> DoorPartSpec mapping used by 2D and 3D."""
-    return DoorPartSpec(
-        width=float(val['w']), height=float(val['h']),
-        thickness=float(val['t']), frame_width=float(val['fw']),
+) -> DoorPartSpec:
+    """GUI submits operator inputs; Engine owns canonical Door manufacturing spec."""
+    return manufacturing_api.build_door_operator_part_spec(
+        val,
         model_name=model_name,
-        gap_w=float(val['door_gap_w']), gap_h=float(val['door_gap_h']),
-        fold_left=float(val['door_fold_l']), fold_right=float(val['door_fold_r']),
-        fold_top=float(val['door_fold_t']), fold_bottom=float(val['door_fold_b']),
-        frame_edges=frame_edges or DoorFrameEdges(),
-        features=tuple(features or ()), feature_space="legacy_unfolded",
+        features=features,
         indicator_hole=indicator_hole,
-        door_indicator=tuple(door_indicator) if door_indicator else None,
-        door_indicator_offset=(float(door_indicator_offset[0]), float(door_indicator_offset[1])),
-        use_box_distance=bool(use_box_distance),
+        door_indicator=door_indicator,
+        door_indicator_offset=door_indicator_offset,
+        use_box_distance=use_box_distance,
         corner_policy=corner_policy,
-        indicator_window_groups=(tuple(indicator_window_groups) if indicator_window_groups else None),
-        nameplate_center_datum_top=(
-            None if getattr(self, "door_nameplate_center_datum_top", None) is None
-            else float(self.door_nameplate_center_datum_top)
+        frame_edges=frame_edges,
+        indicator_window_groups=indicator_window_groups,
+        nameplate_center_datum_top=getattr(
+            self, "door_nameplate_center_datum_top", None
         ),
     )
 
