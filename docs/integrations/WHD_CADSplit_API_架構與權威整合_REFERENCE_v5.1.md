@@ -438,6 +438,18 @@ python integration_cli/cadsplit_worker.py export --request /safe/in/request.json
 - **未證實：** 新增入口的完整向後相容回歸、座標 transform 共用契約或覆寫安全修復已在程式落地；本文區分使用者已確認的演進規則與尚待實作／驗證的程式狀態。
 - **未經證實：** Windows `Z:\localX` 是否更新、現場 UAT／實際機器切割是否通過；本文只引用指定 GitHub commit 的程式與文件狀態。
 
+## 12.1 盤名與多實體單檔 DXF 消費端查核（#2689–#2694；CURRENT 程式功能）
+
+> 此節是 **REFERENCE 使用說明**，CURRENT 製造／資料權威仍是 AI 庫 04、現行 Engine 原始碼和 Certified Registry；不得把一般 DXF 檔成功寫出宣稱為 Receiving 全箱 MFG-2/NC 工廠放行。
+
+WHD GUI 不計算製造板材，也不為金庫型重造第二個引擎。單箱與 Receiving Bay 共用 Engine 製造展開；Bay `panel_name`、全工程 `next_panel_number` 會在專案 Save→Reload 中保存，但盤名與 canonical physical `stable_id`、實體展開來源完全分離。Receiving 名稱經 `manufacturing_api.rename_receiving_panel`、Vault 名稱經 `manufacturing_api.set_cabinet_panel_name`；非法路徑或重名由 Engine 拒絕。
+
+對 Receiving 多連 Set/Bay，消費端選取 `PER_SET`、`ALL` 或 `END_VS_MIDDLE`，可先呼叫 `manufacturing_api.plan_receiving_grouped_dxf(layout, mode)` 取得 **Engine 唯一**群組檔名及成員；首末連是各套首末 **Bay**，而不是頭尾封板。正式來源驗證及輸出走 `manufacturing_api.export_grouped_receiving_multibay_dxf`，需提供當前實體 Bay FinalScene resolver 與 pre-commit source guard。舊逐板件的 export API 持續存在，未因新增模式被封鎖。
+
+對金庫型單箱，無盤名時 `manufacturing_api.vault_panel_dxf_filename("", at=<具時區 datetime>)` 得到台北時間 `金庫型_YYYYMMDD_HHMMSS.dxf`，有盤名回傳 `<盤名>.dxf`。實際多實體合併出圖走 `manufacturing_api.save_composed_panel_dxf(((panel_name, resolved_geometry),), path, pre_commit_guard=...)`，不是把 GUI 幾何拼貼成一張圖；同名既有 DXF 須提示確認覆寫。
+
+驗收區別：`PartRenderData` 的每片 flat UV、材料、CUTTING／BEND／MARKING／BLIND_HOLE／CHECK 要獨立 Save→Reload，合併的單檔 DXF 再獨立回讀各片圖元、來源與不重疊排列；來源缺失／漂移／PAD-EAR-NFB 未認證／批次提交失敗都 fail-closed。受電箱完整 MFG-2/NC、外部 CADSplit 生產輸入串接仍需各自現行 Gate 放行，**這批 #2689–#2694 不是全部製造能力已核准的聲明**。
+
 ## 13. 證據索引（可開啟）
 
 ### WHD CURRENT
