@@ -130,3 +130,69 @@ def project_box_body_structure_bend_segments(
             if len(points) == 2:
                 segments.append((points[0], points[1]))
     return tuple(segments)
+
+
+def marking_line_signature(p1, p2):
+    """Direction-independent joint MARKING identity, original 9-decimal source."""
+    a = (round(float(p1[0]), 9), round(float(p1[1]), 9))
+    b = (round(float(p2[0]), 9), round(float(p2[1]), 9))
+    return tuple(sorted((a, b)))
+
+
+def joint_marking_flat_signatures(render_data):
+    """Read existing Engine-verified Joint world MARKING flat primitive identities."""
+    metadata = dict(getattr(render_data, "metadata", {}) or {})
+    signatures = set()
+    for row in tuple(metadata.get("joint_markings") or ()):
+        if not isinstance(row, dict):
+            try:
+                row = dict(row)
+            except Exception:
+                continue
+        if str(row.get("source") or "") != "JOINT_PLACEMENT_MARKING":
+            continue
+        if row.get("p1") is None or row.get("p2") is None:
+            continue
+        signatures.add(marking_line_signature(row["p1"], row["p2"]))
+    return frozenset(signatures)
+
+
+def project_assembly_scene_marking_segments(
+    scene, x_profile, y_profile, fold_guides,
+    local_reference, placement, dimensions, offset,
+    joint_marking_signatures=(),
+):
+    """Project only non-contact flat MARKING through canonical Fold/world source.
+
+    Certified contact-derived JOINT_PLACEMENT_MARKING comes from saved world
+    metadata and must never be projected a second time from flat coordinates.
+    Head/Tail requires the dedicated placement, so no flat fallback exists.
+    """
+    placement_key = str(placement or "offset").lower()
+    if placement_key in {"top", "head", "bottom", "tail"}:
+        return ()
+    rejected = set(joint_marking_signatures or ())
+    marking = tuple(
+        primitive for primitive in getattr(scene, "primitives", ())
+        if isinstance(primitive, LinePrimitive)
+        and str(getattr(primitive, "layer", "") or "").upper() == "MARKING"
+        and marking_line_signature(
+            (primitive.p1.x, primitive.p1.y),
+            (primitive.p2.x, primitive.p2.y),
+        ) not in rejected
+    )
+    if not marking:
+        return ()
+    map_x, map_y = _mappers(x_profile, y_profile, fold_guides)
+    segments = []
+    for primitive in marking:
+        local = (
+            _map_point(primitive.p1, map_x, map_y),
+            _map_point(primitive.p2, map_x, map_y),
+        )
+        world = place_assembly_points(
+            local, local_reference, placement, dimensions, offset,
+        )
+        if len(world) == 2:
+            segments.append((world[0], world[1]))
+    return tuple(segments)
