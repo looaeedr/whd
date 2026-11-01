@@ -30,7 +30,7 @@ def receiving_inner_door_stable_id_for_cell(cell_key):
 
 def remap_receiving_door_layout_after_delete(
     *, operation, column_index, row_index=None, inner_doors=None,
-    cell_sources=None, physical_sources=None,
+    cell_sources=None, physical_sources=None, cell_transitions=None,
 ):
     """Produce a detached, whole-source remap for a Door row/column deletion.
 
@@ -40,9 +40,18 @@ def remap_receiving_door_layout_after_delete(
     per-part face features. Collision or invalid operation raises *before*
     any caller's data is modified. All existing source features are preserved.
     """
-    if type(column_index) is not int or column_index < 0:
+    if operation == "map_cells":
+        # Legacy operator mappings are only cell-index requests. The Engine
+        # still owns and validates every persisted physical part identity.
+        if not isinstance(cell_transitions, Mapping):
+            raise ValueError("Door cell transitions must be a mapping")
+        if any(not isinstance(k, str) or
+               (v is not None and not isinstance(v, str))
+               for k, v in cell_transitions.items()):
+            raise ValueError("Door cell transitions must contain cell keys")
+    elif type(column_index) is not int or column_index < 0:
         raise ValueError("Door column deletion requires an actual grid index")
-    if operation == "delete_column":
+    elif operation == "delete_column":
         if row_index is not None:
             raise ValueError("Column deletion cannot specify a row")
     elif operation == "delete_row":
@@ -68,6 +77,8 @@ def remap_receiving_door_layout_after_delete(
         return (column, row - 1 if column == column_index and row > row_index else row)
 
     def mapped_cell_key(value):
+        if operation == "map_cells":
+            return cell_transitions.get(str(value))
         try:
             col_s, row_s = str(value).split(":", 1)
             target = mapped(int(col_s), int(row_s))

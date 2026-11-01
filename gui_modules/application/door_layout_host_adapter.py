@@ -310,8 +310,10 @@ def add_door_layout_column(self):
     if auto_index is not None:
         self.commit_door_layout_width(auto_index)
 
-def _remap_door_layout_owned_data(self, *, operation, column_index, row_index=None):
-    """Commit one prevalidated Engine physical identity/feature remap to GUI stores."""
+def _remap_door_layout_owned_data(
+    self, mapper=None, *, operation=None, column_index=None, row_index=None,
+):
+    """Commit prevalidated Engine physical sources; accept legacy UI cell mappings."""
     from ae_engine import manufacturing_api
 
     cell_names = (
@@ -336,11 +338,35 @@ def _remap_door_layout_owned_data(self, *, operation, column_index, row_index=No
         if hasattr(designer_workspace, "part_face_features_snapshot"):
             physical["designer_face"] = designer_workspace.part_face_features_snapshot()
 
+    cell_sources = {name: getattr(self, name, {}) for name in cell_names}
+    transitions = None
+    if mapper is not None:
+        # Historical host callers supplied a UI positional callback. Translate
+        # only old/new GRID COORDINATES; Engine still resolves physical IDs.
+        if operation is not None or not callable(mapper):
+            raise ValueError("Invalid Door cell mapping request")
+        keys = {str(key) for rows in cell_sources.values()
+                for key in dict(rows or {})}
+        keys.update(str(row.get("cell_key", ""))
+                    for row in (getattr(self, "receiving_inner_doors", None) or ())
+                    if isinstance(row, dict))
+        transitions = {}
+        for key in keys:
+            try:
+                c_text, r_text = key.split(":", 1)
+                target = mapper(int(c_text), int(r_text))
+                transitions[key] = (
+                    None if target is None
+                    else f"{int(target[0])}:{int(target[1])}"
+                )
+            except (TypeError, ValueError):
+                transitions[key] = None
+        operation = "map_cells"
     result = manufacturing_api.remap_receiving_door_layout_after_delete(
         operation=operation, column_index=column_index, row_index=row_index,
         inner_doors=getattr(self, "receiving_inner_doors", None),
-        cell_sources={name: getattr(self, name, {}) for name in cell_names},
-        physical_sources=physical,
+        cell_sources=cell_sources, physical_sources=physical,
+        cell_transitions=transitions,
     )
     for name, value in result["cell_sources"].items():
         setattr(self, name, value)

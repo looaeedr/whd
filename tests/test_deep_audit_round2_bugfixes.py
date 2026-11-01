@@ -393,7 +393,9 @@ def test_r2_9_remap_door_layout_owned_data_remaps_handle_edges_inner_doors_and_s
     assert host.surface_features["door_c1_r1"] == ["f1"]
     assert "door_c2_r1" not in host.surface_features
     assert host.surface_features["head"] == ["h"]
-    assert host.receiving_inner_doors == [{"cell_key": "0:0", "stable_id": "inner_door:c1_r1"}]
+    # All real physical IDs now follow the canonical Engine upper/lower owner,
+    # not a host-injected resolver with a second private naming convention.
+    assert host.receiving_inner_doors == [{"cell_key": "0:0", "stable_id": "upper"}]
 
 
 def test_r2_10_render_snapshots_passes_model_name_and_frame_width_to_derive_box_body_dividers(monkeypatch):
