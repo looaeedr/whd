@@ -13,7 +13,6 @@ manufacturing geometry/DXF generation remains manufacturing_api authority.
 import os
 import shutil
 import tempfile
-from dataclasses import replace
 from copy import deepcopy
 from collections.abc import Mapping
 from tkinter import filedialog, messagebox
@@ -211,28 +210,17 @@ def _export_selected_resolved_parts(self, folder, flags):
         source_policy = manufacturing_api.plan_quantity_export_source(
             mode_source, workspace_snapshot,
         )
-        quantity = workspace_snapshot.get("quantity") or {}
         batch = resolve_quantity_manufacturing(request, workspace_snapshot)
         if source_policy.use_current_csv_export:
             outputs = manufacturing_api.export_current_csv_quantity_manufacturing(
                 batch, folder, flags=flags, overwrite=True,
             )
             return ([os.path.basename(path) for path in outputs.values()], [])
-        nfb_selection = None
-        if any(row.get("nfb_config_submitted") is True
-               for row in quantity.get("versions", ())):
-            full = manufacturing_api.select_quantity_nfb_partial(batch, workspace_snapshot)
-            selected_reports = tuple(row for row in full.rows
-                if row["source_part_id"].startswith("custom:")
-                or bool(flags.get(_resolved_export_intention_key(row["source_part_id"]), False)))
-            selected_keys = {(row["version_id"], row["part_id"]) for row in selected_reports}
-            nfb_selection = manufacturing_api.QuantityNfbPartialSelection(tuple(d for d in full.demands
-                if (d.version_id, d.physical_id) in selected_keys), selected_reports)
-        selected_demands = tuple(
-            row for row in (nfb_selection.demands if nfb_selection else batch.demands)
-            if row.source_part_id.startswith("custom:")
-            or bool(flags.get(_resolved_export_intention_key(row.source_part_id), False))
+        selection = manufacturing_api.plan_quantity_operator_export_selection(
+            batch, workspace_snapshot, flags,
         )
+        nfb_selection = selection.partial_selection
+        selected_demands = selection.selected_demands
         if not selected_demands:
             if nfb_selection is not None:
                 self._phase6_nfb_partial_export_report = nfb_selection.report()
@@ -249,18 +237,13 @@ def _export_selected_resolved_parts(self, folder, flags):
                              *diagnostics])
             return ([], ["canonical quantity export: no selected physical parts"])
         if nfb_selection is not None:
-            selected_versions = {row["version_id"] for row in selected_reports}
-            updated = {(d.version_id, d.physical_id): d for d in full.demands}
-            checked_batch = replace(
-                batch,
-                versions=tuple(v for v in batch.versions if v.version_id in selected_versions),
-                requests=tuple(r for r in batch.requests if r[0] in selected_versions),
-                demands=tuple(updated.get((d.version_id, d.physical_id), d)
-                              for d in batch.demands
-                              if (d.version_id, d.physical_id) in selected_keys),
-            )
+            # Source IDs, report selection and checked physical-demand batch
+            # are all projected by Engine, never reconstructed in GUI.
+            checked_batch = selection.checked_batch
             live_manifests = manufacturing_api.quantity_partial_live_manifests(
-                full, workspace_snapshot, selected_reports)
+                selection.full_selection, workspace_snapshot,
+                selection.selected_reports,
+            )
             groups, gate = quantity_nfb_checked_manufacturing_groups(
                 checked_batch, live_manifest_provider=lambda vid, _request: live_manifests[vid],
                 partial=True,

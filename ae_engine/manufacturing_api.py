@@ -1055,8 +1055,9 @@ def save_quantity_manufacturing_groups_dxf(
 # Import the NFB source verifier only after manufacturing scene/render APIs are
 # fully initialized: the existing source-profile reader consumes those exports.
 from .receiving_nfb_quantity_partial import (
-    QuantityNfbPartialSelection, verify_quantity_nfb_inner_door,
-    select_quantity_nfb_partial, quantity_partial_live_manifests,
+    QuantityNfbPartialSelection, QuantityOperatorExportSelection,
+    verify_quantity_nfb_inner_door, select_quantity_nfb_partial,
+    quantity_partial_live_manifests, plan_quantity_operator_export_selection,
 )
 
 def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):

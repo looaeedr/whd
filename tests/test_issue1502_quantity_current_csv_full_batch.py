@@ -237,4 +237,7 @@ def test_original_quantity_gui_routes_to_current_csv_not_retired_supplier_dxf():
     assert "export_current_csv_quantity_manufacturing" in source
     assert "manufacturing_api.plan_quantity_export_source(" in source
     assert "source_policy.use_current_csv_export" in source
-    assert "_resolved_export_intention_key" in source
+    assert "manufacturing_api.plan_quantity_operator_export_selection(" in source
+    assert "selection.selected_demands" in source
+    assert "selection.checked_batch" in source
+    assert "_resolved_export_intention_key(" not in source
