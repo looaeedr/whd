@@ -41,7 +41,9 @@ def test_auto_source_does_not_trigger_legacy_manual_base_warning(monkeypatch):
 
     monkeypatch.setattr(
         manufacturing_api, "inspect_receiving_base_plate_display_source",
-        lambda data, family: ReceivingBasePlateDisplaySource("UNAVAILABLE"),
+        lambda data, family: ReceivingBasePlateDisplaySource(
+            "UNAVAILABLE" if family == "受電箱" else "NOT_APPLICABLE"
+        ),
     )
     missing = receiving_base_source_display_warnings(snapshot, "受電箱")
     assert len(missing) == 1 and "來源不足" in missing[0]
