@@ -969,3 +969,19 @@ def validate_receiving_base_plate_settings(
         input_snapshot=input_snapshot, settings_values=settings_values,
         config=config,
     )
+
+def normalize_receiving_switch_operator_layout(layout):
+    """Public Engine port for Receiving Switch input topology state."""
+    from .receiving_switch_layout import normalize_receiving_switch_layout
+    return normalize_receiving_switch_layout(layout)
+
+
+def apply_receiving_switch_operator_action(
+    layout, *, operation, brand=None, layer_index=None, delta=None,
+):
+    """Public Engine transaction for physical Receiving Switch input edits."""
+    from .receiving_switch_layout import apply_receiving_switch_operator_action as apply
+    return apply(
+        layout, operation=operation, brand=brand,
+        layer_index=layer_index, delta=delta,
+    )
