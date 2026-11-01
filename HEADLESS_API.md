@@ -43,6 +43,10 @@ EndCap BOTTOM wrap/reserve 判準。三個公開 API 均不含 GUI/Tk，不新�
 新製造資格或 DXF 放行；GUI 只提供輸入與轉接顯示資料。
 
 
+## #2517 Fold Editor operator material commit and structural mirror source
+
+`manufacturing_api.commit_operator_fold_editor_rows(old_segments, operator_rows, thickness)` accepts existing material Fold rows and typed operator outside lengths/angles; it returns detached material Fold rows after re-evaluating the **new** true adjacent BEND topology using the canonical Engine BoxBody conversion. `manufacturing_api.plan_operator_fold_mirror_target(segments, source_index, field, *, is_box_body)` returns frozen `OperatorFoldMirrorPlan(target_index, block_legacy_fallback)` from actual structural key pairing. GUI `phase6_bending_ui.save/apply_mirror` only parses Tk inputs, applies the Engine result and refreshes. Vault structural folds cannot fall back to positional pairing; Receiving family continues to prohibit BoxBody symmetry. These APIs do not certify CUTTING/BEND/DXF manufacturing output.
+
 ## #2517 BoxBody Assembly operator physical-piece panel readback
 
 `manufacturing_api.project_box_body_assembly_panel_piece_rows(render_data)` returns frozen `BoxBodyAssemblyPanelPiece` rows derived only from actual `BoxBodyPartRenderData.pieces`: canonical `box_body:<role>` or existing explicit legacy piece key, formed outer W/H, material W/H, and the **same** physical `source_render_data` for existing corner display. `phase6_assembly_presentation.project_box_body_piece_rows` adds localized labels, while the Assembly widget formats numbers and corner text without inferring source by string role. Missing pieces return empty rows; invalid dimensions fail rather than invent results. Legacy role-less pieces retain their explicit display keys and dimensions but return no corner source, preserving the original `截角尺寸：無` fallback. No new manufacturing or DXF certification.
