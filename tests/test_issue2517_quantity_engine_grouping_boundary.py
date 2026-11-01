@@ -74,6 +74,8 @@ def test_gui_groups_via_public_engine_without_duplicate_rules():
     gui = Path("gui_modules/project/export_actions.py").read_text(encoding="utf-8")
     assert "def quantity_manufacturing_groups(" not in legacy
     assert "def quantity_nfb_checked_manufacturing_groups(" not in legacy
-    assert "manufacturing_api.quantity_manufacturing_groups(" in gui
-    assert "manufacturing_api.quantity_nfb_checked_manufacturing_groups(" in gui
-    assert "from phase6_quantity_manufacturing import resolve_quantity_manufacturing" in gui
+    # Preserve the operator export seam instrumented by real #1503 Tk tests.
+    # These compatibility names are the SAME functions as the public Engine API.
+    assert "groups = quantity_manufacturing_groups(" in gui
+    assert "groups, gate = quantity_nfb_checked_manufacturing_groups(" in gui
+    assert "resolve_quantity_manufacturing, quantity_manufacturing_groups," in gui
