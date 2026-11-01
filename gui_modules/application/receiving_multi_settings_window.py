@@ -1712,6 +1712,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def adjust_sets(delta):
         if resize_sets is None or mode_var.get() != "set_bay":
             return False
+        cancel_panel_name_edit(redraw=False)
         try:
             if not ensure_set_mode():
                 return False
@@ -1735,6 +1736,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             return warn(exc)
 
     def resize(index, delta):
+        cancel_panel_name_edit(redraw=False)
         try:
             if not ensure_set_mode():
                 return False
@@ -1749,6 +1751,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             return warn(exc)
 
     def apply(index):
+        cancel_panel_name_edit(redraw=False)
         try:
             if not ensure_set_mode():
                 return False
@@ -1771,6 +1774,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def click_bay(event):
         if applied["mode"] != "set_bay" or applied["set_index"] is None:
             return
+        # Leaving the inline editor cancels only that draft; the normal Bay
+        # selection/highlight transaction must still repaint immediately.
+        if panel_editor["entry"] is not None:
+            cancel_panel_name_edit(redraw=False)
         for index, (x0, y0, x1, y1) in enumerate(canvas._receiving_bay_hitboxes):
             if x0 <= event.x <= x1 and y0 <= event.y <= y1:
                 try:
@@ -1808,6 +1815,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     def change_mode():
         target = mode_var.get()
+        if target != applied["mode"]:
+            cancel_panel_name_edit(redraw=False)
         if mode_transition["busy"]:
             mode_var.set(applied["mode"])
             return
