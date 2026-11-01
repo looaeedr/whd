@@ -1388,6 +1388,16 @@ def settings_panel(self, namespace):
             config=config,
         )
 
+    def commit_vault_panel_name(name):
+        from ae_engine import manufacturing_api
+        if str(app.baseline_model_var.get() or "").strip() != "金庫型":
+            raise ValueError("只有金庫型單箱入口可以編輯此盤名")
+        source = app._phase6_input_snapshot
+        candidate = manufacturing_api.set_cabinet_panel_name(source, name)
+        source.update(candidate)
+        # Label-only input: no manufacturing solve or preview invalidation.
+        return candidate["panel_name"]
+
     panel = Phase6SettingsPanel(
         values_snapshot=lambda: dict(app._settings_values),
         stage_setting_update=lambda key, value: self.stage_setting_update(
@@ -1449,6 +1459,10 @@ def settings_panel(self, namespace):
         ui_text_size_changed=lambda key: self.apply_ui_text_size(
             namespace, key
         ),
+        panel_name_getter=lambda: str(
+            app._phase6_input_snapshot.get("panel_name") or ""
+        ),
+        panel_name_changed=lambda name: commit_vault_panel_name(name),
     )
     self._settings_panel = panel
     app.settings_panel = panel
