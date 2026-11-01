@@ -16,6 +16,7 @@ import matplotlib.projections as _matplotlib_projections  # noqa: F401
 
 from typing import Callable
 
+from ae_engine import manufacturing_api
 from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_mpl_dark_theme
 from phase6_final_scene_contracts import (
@@ -235,24 +236,17 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 offset = getattr(part, "offset", (0.0, 0.0, 0.0))
                 formed_surface_for_edges = None
                 if placement in {"top", "head", "bottom", "tail"} and box_body_world:
-                    from ae_engine.assembly_geometry import (
-                        place_endcap_against_box_body,
-                        thicken_triangle_surface,
+                    # The Engine returns both the canonical formed surface used
+                    # by visual edges and its true-T physical solid.
+                    skins = manufacturing_api.resolve_assembled_endcap_world_skins(
+                        local, placement=placement, box_body_world=box_body_world,
+                        offset=offset, thickness=request.thickness,
+                        preserve_core_origin=bool(getattr(
+                            render_data, "preserve_endcap_core_origin", False
+                        )),
                     )
-                    # EndCaps are physical sheet, not a zero-thickness mid-surface.
-                    # Shift the semantic mid-plane outward by T/2 so the inside
-                    # skin mates the Box Body, then build both formed skins +
-                    # boundary/fold walls from the shared folded surface.
-                    mate_kwargs = {"sheet_thickness": request.thickness}
-                    if bool(getattr(render_data, "preserve_endcap_core_origin", False)):
-                        mate_kwargs["preserve_core_origin"] = True
-                    placed_surface = place_endcap_against_box_body(
-                        local, placement, box_body_world, offset, **mate_kwargs
-                    )
-                    formed_surface_for_edges = placed_surface
-                    placed = thicken_triangle_surface(
-                        placed_surface, request.thickness
-                    )
+                    formed_surface_for_edges = skins.formed_surface
+                    placed = skins.solid_triangles
                 else:
                     placed = _phase6_place_assembly_triangles(
                         local, placement, request.finished_dimensions, offset
@@ -354,8 +348,6 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 ):
                     from ae_engine.assembly_geometry import (
                         detect_world_mesh_surface_interference,
-                        place_endcap_against_box_body,
-                        thicken_triangle_surface,
                     )
                     # Collision diagnostics must use the pre-solve EndCap probe,
                     # never the already-relieved display material.  We still probe
@@ -382,14 +374,15 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                         delta_local = _phase6_folded_mesh_from_polygon(
                             delta_material, probe_x, probe_y, fold_guides=probe_guides,
                         )
-                        probe_mate_kwargs = {"sheet_thickness": request.thickness}
-                        if bool(getattr(render_data, "preserve_endcap_core_origin", False)):
-                            probe_mate_kwargs["preserve_core_origin"] = True
-                        delta_surface = place_endcap_against_box_body(
-                            delta_local, placement, box_body_world, offset, **probe_mate_kwargs
-                        )
-                        collision_target = thicken_triangle_surface(
-                            delta_surface, request.thickness
+                        collision_target = (
+                            manufacturing_api.resolve_assembled_endcap_world_skins(
+                                delta_local, placement=placement,
+                                box_body_world=box_body_world, offset=offset,
+                                thickness=request.thickness,
+                                preserve_core_origin=bool(getattr(
+                                    render_data, "preserve_endcap_core_origin", False
+                                )),
+                            ).solid_triangles
                         )
                     diagnostic = detect_world_mesh_surface_interference(
                         box_body_collision_mesh, collision_target

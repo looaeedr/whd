@@ -233,6 +233,7 @@ def test_real_tk_menu_can_switch_from_assembly_to_boxbody_after_radiobutton_sets
 
 def test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
@@ -262,13 +263,15 @@ def test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum
     monkeypatch.setattr(view, "_phase6_place_assembly_triangles", fake_regular_place)
 
     def fake_mate(
-        triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0), sheet_thickness=0.0
+        triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0),
+        sheet_thickness=0.0, preserve_core_origin=False,
     ):
         mating_calls.append((placement, body_triangles, offset, float(sheet_thickness)))
         return head_world if placement == "top" else tail_world
 
-    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", fake_mate)
+    monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", fake_mate)
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda triangles, thickness: tuple(triangles))
+    monkeypatch.setattr(endcap_mesh, "thicken_triangle_surface", assembly_geometry.thicken_triangle_surface)
 
     scene_view = view.Phase6FinalSceneView(SimpleNamespace(ax3d=Axis()))
     request = view.FinalSceneViewRequest(
@@ -289,6 +292,7 @@ def test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum
 
 def test_assembly_view_renders_head_tail_as_physical_sheet_and_offsets_mating_midplane(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
@@ -316,7 +320,7 @@ def test_assembly_view_renders_head_tail_as_physical_sheet_and_offsets_mating_mi
         lambda triangles, placement, dimensions, offset: body_world if placement == "box_body" else triangles,
     )
 
-    def fake_mate(triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0), sheet_thickness=0.0):
+    def fake_mate(triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0), sheet_thickness=0.0, preserve_core_origin=False):
         calls["mate"].append((placement, body_triangles, float(sheet_thickness)))
         return head_surface
 
@@ -324,8 +328,9 @@ def test_assembly_view_renders_head_tail_as_physical_sheet_and_offsets_mating_mi
         calls["thicken"].append((triangles, float(thickness)))
         return head_solid
 
-    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", fake_mate)
+    monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", fake_mate)
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", fake_thicken)
+    monkeypatch.setattr(endcap_mesh, "thicken_triangle_surface", assembly_geometry.thicken_triangle_surface)
 
     scene_view = view.Phase6FinalSceneView(SimpleNamespace(ax3d=Axis()))
     request = view.FinalSceneViewRequest(
@@ -344,6 +349,7 @@ def test_assembly_view_renders_head_tail_as_physical_sheet_and_offsets_mating_mi
 def test_assembly_fixed_relief_diagnostic_collides_only_restored_delta_not_whole_endcap(monkeypatch):
     import pytest
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
     from shapely.geometry import box
@@ -370,8 +376,9 @@ def test_assembly_fixed_relief_diagnostic_collides_only_restored_delta_not_whole
 
     monkeypatch.setattr(view, "_phase6_folded_mesh_from_polygon", fake_fold)
     monkeypatch.setattr(view, "_phase6_place_assembly_triangles", lambda tris, *a, **k: tuple(tris))
-    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", lambda tris, *a, **k: tuple(tris))
+    monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", lambda tris, *a, **k: tuple(tris))
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda tris, *a, **k: tuple(tris))
+    monkeypatch.setattr(endcap_mesh, "thicken_triangle_surface", assembly_geometry.thicken_triangle_surface)
 
     detected_targets = []
     def fake_detect(source, target, **kwargs):
@@ -398,6 +405,7 @@ def test_assembly_fixed_relief_diagnostic_collides_only_restored_delta_not_whole
 
 def test_interference_overlay_renders_local_target_zone_fill_and_solid_crossing_lines(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
     from shapely.geometry import box
@@ -418,8 +426,9 @@ def test_interference_overlay_renders_local_target_zone_fill_and_solid_crossing_
 
     monkeypatch.setattr(view, "_phase6_folded_mesh_from_polygon", lambda *a, **k: local)
     monkeypatch.setattr(view, "_phase6_place_assembly_triangles", lambda tris, *a, **k: tuple(tris))
-    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", lambda tris, *a, **k: tuple(tris))
+    monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", lambda tris, *a, **k: tuple(tris))
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda tris, *a, **k: tuple(tris))
+    monkeypatch.setattr(endcap_mesh, "thicken_triangle_surface", assembly_geometry.thicken_triangle_surface)
     monkeypatch.setattr(
         assembly_geometry,
         "detect_world_mesh_surface_interference",
@@ -440,6 +449,7 @@ def test_interference_overlay_renders_local_target_zone_fill_and_solid_crossing_
 
 def test_fixed_relief_diagnostic_does_not_treat_normal_full_sheet_mating_as_collision_when_restore_is_off(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
     from shapely.geometry import box
@@ -457,8 +467,9 @@ def test_fixed_relief_diagnostic_does_not_treat_normal_full_sheet_mating_as_coll
     local = (((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)),)
     monkeypatch.setattr(view, "_phase6_folded_mesh_from_polygon", lambda *a, **k: local)
     monkeypatch.setattr(view, "_phase6_place_assembly_triangles", lambda tris, *a, **k: tuple(tris))
-    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", lambda tris, *a, **k: tuple(tris))
+    monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", lambda tris, *a, **k: tuple(tris))
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda tris, *a, **k: tuple(tris))
+    monkeypatch.setattr(endcap_mesh, "thicken_triangle_surface", assembly_geometry.thicken_triangle_surface)
 
     calls = []
     monkeypatch.setattr(
@@ -922,6 +933,7 @@ def test_bridge_keeps_pre_solve_endcap_probe_for_interference_overlay(monkeypatc
 
 def test_final_scene_interference_overlay_uses_pre_solve_probe_while_rendering_solved_endcap(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
@@ -948,8 +960,9 @@ def test_final_scene_interference_overlay_uses_pre_solve_probe_while_rendering_s
 
     monkeypatch.setattr(view, "_phase6_folded_mesh_from_polygon", fake_fold)
     monkeypatch.setattr(view, "_phase6_place_assembly_triangles", lambda tris, *a, **k: tuple(tris))
-    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", lambda tris, *a, **k: tuple(tris))
+    monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", lambda tris, *a, **k: tuple(tris))
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda tris, *a, **k: tuple(tris))
+    monkeypatch.setattr(endcap_mesh, "thicken_triangle_surface", assembly_geometry.thicken_triangle_surface)
     calls = []
     monkeypatch.setattr(
         assembly_geometry,
@@ -971,6 +984,7 @@ def test_final_scene_interference_overlay_uses_pre_solve_probe_while_rendering_s
 
 def test_hidden_box_body_still_anchors_visible_head_tail_placement(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
@@ -1001,13 +1015,15 @@ def test_hidden_box_body_still_anchors_visible_head_tail_placement(monkeypatch):
     monkeypatch.setattr(view, "_phase6_place_assembly_triangles", fake_regular_place)
 
     def fake_mate(
-        triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0), sheet_thickness=0.0
+        triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0),
+        sheet_thickness=0.0, preserve_core_origin=False,
     ):
         mating_calls.append((placement, body_triangles, offset, float(sheet_thickness)))
         return head_world if placement == "top" else tail_world
 
-    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", fake_mate)
+    monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", fake_mate)
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda triangles, thickness: tuple(triangles))
+    monkeypatch.setattr(endcap_mesh, "thicken_triangle_surface", assembly_geometry.thicken_triangle_surface)
 
     scene_view = view.Phase6FinalSceneView(SimpleNamespace(ax3d=Axis()))
     triangles = scene_view.render(view.FinalSceneViewRequest(
@@ -1078,6 +1094,7 @@ def test_operator_part_selector_collapses_box_body_physical_children_under_box_b
 
 def test_final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_datum(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
@@ -1132,8 +1149,9 @@ def test_final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_
         mate_calls.append(tuple(body_triangles))
         return head_world
 
-    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", fake_mate)
+    monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", fake_mate)
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda triangles, thickness: tuple(triangles))
+    monkeypatch.setattr(endcap_mesh, "thicken_triangle_surface", assembly_geometry.thicken_triangle_surface)
 
     scene_view = view.Phase6FinalSceneView(SimpleNamespace(ax3d=Axis()))
     triangles = scene_view.render(view.FinalSceneViewRequest(

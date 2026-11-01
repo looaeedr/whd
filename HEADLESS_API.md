@@ -8,6 +8,10 @@ whd_schema: WHD_DOC_META_V1
 
 目的：讓 GUI、自動拆圖、CLI 或其他 Python 程式都使用同一個 AE 出圖入口，不必建立 Tkinter GUI，也不必直接呼叫 `ae.export_xxx_dxf()`。
 
+## EndCap physical assembled world skins API (#2517)
+
+`manufacturing_api.resolve_assembled_endcap_world_skins(local_triangles, *, placement, box_body_world, thickness, offset=(0,0,0), preserve_core_origin=False)` returns immutable `AssembledEndcapWorldSkins(formed_surface, solid_triangles)` for canonical Head/Tail assembly. The Engine applies existing `place_endcap_against_box_body` semantics (including Head/Tail orientation, T/2 physical skin mating and optional saved core origin), followed by existing `thicken_triangle_surface`. It is consumed in Receiving settings 2D inspection, FinalScene 3D display and the pre-solve fixed-relief collision delta probe; the GUI no longer directly decides physical EndCap mating or adds thickness in these paths. Display folded edges still use the exact returned formed surface; collision still uses the true-T solid. Invalid placement continues to fail closed and no manufacturing CUTTING, BEND, DXF, contact rules, saved source, Certified Registry or certification is changed.
+
 ## Box Body true-thickness world-skin Engine API (#2517)
 
 `manufacturing_api.resolve_box_body_true_world_piece_meshes(part, *, dimensions, thickness)` uses the existing `ae_engine.receiving_settings_assembly_mesh` true-T world-skin solver, backed by `build_joint_world_geometry`, on a pre-resolved physical Box Body aggregate. It returns ordered `(canonical_piece, true_world_triangles)` tuples using the same physical piece roles and XYZ coordinates as manufacturing/collision source. The Receiving settings 2D assembled inspection and the FinalScene 3D renderer both call the same public boundary; Phase6 `_phase6_box_body_true_world_piece_meshes` is now a forwarding adapter without physical-datum, part identity, placement or mesh logic. Missing pieces/preview stubs return empty and invalid dimensions, part identity or incomplete physical width fail closed. This is read-only presentation data: no fold, material, collision semantics, CUTTING, BEND, DXF certification or approved source is changed.
