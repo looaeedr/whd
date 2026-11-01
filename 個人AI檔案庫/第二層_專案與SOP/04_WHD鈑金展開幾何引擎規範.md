@@ -44,6 +44,10 @@ whd_schema: WHD_DOC_META_V1
 
 因此 04 的責任是回答「engine 現在怎麼分層、公開哪些 API、各 authority 怎麼接起來」，不是把 Registry JSON 內容重新抄一份。
 
+### #2517 Fold 編輯器實體折邊新增／刪除 Engine API（2026-11-02）
+
+`manufacturing_api.add_operator_fold_editor_rows(segments, position, thickness)` 與 `remove_operator_fold_editor_rows(segments, source_index, thickness, *, symmetric_box_body)` 接收已存在的真實 material Fold 順序，返回 detached 更新序列。唯一 Engine owner `ae_engine.operator_fold_editor` 沿用現有 `box_body_fold_profile.apply_outside_dimension_compensation`、`box_body_editor_readback.can_remove_box_body_fold_segment` 與 real `phase6_key` 對稱 owner；固定 FW、D-W-D core 不可刪，對稱鏡射的候選亦須通過同一結構不可刪閘門，未合法變更回傳 `None`。GUI `phase6_bending_ui.add/remove` 只存使用者目前 Fold、委派 Engine、更新 source/profile cache 與重畫。金庫型對稱許可沿用 Family，受電箱維持禁止；沒有新製造公式、DXF 放行或 3D 預覽反推；#2517 仍 OPEN。
+
 ### #2517 Fold 編輯器包外→料長提交與箱身鏡射目標 Engine API（2026-11-02）
 
 `manufacturing_api.commit_operator_fold_editor_rows(old_segments, operator_rows, thickness)` 由無 Tk 的 `ae_engine.operator_fold_editor` 將操作員輸入的包外長度與角度依**新拓樸**相鄰真實 BEND 數 × T 交既有 `box_body_fold_profile.apply_outside_dimension_compensation` 與 `box_body_editor_readback.box_body_ui_segment_length_to_material` 決定物理料長，保留原 `phase6_key`／`core`／負方向欄位；輸出新 detached material Fold rows，GUI 只採用回傳值寫入 Workspace。 `plan_operator_fold_mirror_target(segments, source_index, field, *, is_box_body)` 回傳 immutable `OperatorFoldMirrorPlan`，由 Engine 依真實結構鍵決定左／右同源折邊或明確禁止 legacy positional fallback；受電箱原不允許箱身對稱，仍由現有 Family `box_body_symmetry_allowed` gate 阻擋。保留金庫型原 UI、舊序列正反算、Save→Reload、2D/3D/DXF 共用 material source，不新增折彎公式或製造放行。#2517 保持 OPEN。
