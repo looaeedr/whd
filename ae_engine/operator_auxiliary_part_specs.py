@@ -45,6 +45,43 @@ def build_base_plate_operator_part_spec(
     )
 
 
+def resolve_fold_designer_base_plate_source(
+    part_key, input_snapshot, *, width, height, thickness, frame_width,
+    model_name, corner_policy=None,
+):
+    """Preserve the existing Fold Designer physical BasePlate input authority.
+
+    Generic operator fields are only the legacy preview/request fallback.
+    A real Receiving source comes exclusively from the existing selected NFB
+    CSV/BasePlate resolver and owns the matching structural contour, including
+    its own corners.  It is never a certification or a separate second plate.
+    """
+    from .receiving_base_plate_config import receiving_base_plate_values
+
+    data = dict(input_snapshot or {})
+    key = str(part_key)
+    model = str(model_name or "")
+    values = {
+        "w": float(width), "h": float(height),
+        "t": float(thickness), "fw": float(frame_width),
+        "base_plate_shrink_top": float(data.get("base_plate_shrink_top", 0)),
+        "base_plate_shrink_bottom": float(data.get("base_plate_shrink_bottom", 0)),
+        "base_plate_shrink_left": float(data.get("base_plate_shrink_left", 0)),
+        "base_plate_shrink_right": float(data.get("base_plate_shrink_right", 0)),
+        "base_plate_bend": float(data.get("base_plate_bend", 20)),
+        "receiving_bend_pattern": data.get("receiving_bend_pattern"),
+        "physical_id": key, "model": model,
+    }
+    if model in {"受電箱", "RECEIVING"}:
+        if key != "base_plate":
+            raise ValueError("RECEIVING_BASE_PLATE_LEGACY_CELL_UNSUPPORTED")
+        physical = receiving_base_plate_values(data)
+        if physical is not None:
+            values.update(physical)
+            corner_policy = None
+    return values, corner_policy
+
+
 def build_indicator_box_operator_part_spec(
     values, layer_groups, *, features,
 ) -> IndicatorBoxPartSpec:
