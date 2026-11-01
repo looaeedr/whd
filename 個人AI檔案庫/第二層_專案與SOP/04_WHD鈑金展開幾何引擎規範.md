@@ -48,6 +48,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.project_independent_part_view_mesh` 把 `phase6_final_scene_renderer` 中原有受電箱獨立固定片來源已驗證 T2 MID-skin y=22（原 DXF BEND23 不變）、受電箱左側板 zl1 成形包外補正，以及標準 Fold Mesh 的建立路徑統一放回 Engine；只回傳實際網格、採用的資料 Fold Profiles／Guides 與固定片 3D hinge，GUI 只消費並繪製。 `door_display_part_role` 對 canonical Door／多門格／實體內門 Panel 做顯示身分分類，GUI 不再用文字 contains 判門板 opacity／真孔邊。維持 Family／Registry／實體來源、保存、2D CUTTING／DXF 不變，preview 不增加製造認證；#2517 OPEN。
 
+### #2517 Project DXF 出圖 GUI API 單向化（2026-11-01）
+
+`gui_modules/project/export_actions.py` 中 Door 輸出檔名、Receiving 數值 CSV 數量批次、多 Set/Bay、EAR side MARKING、SIDE CHECK-only、PAD+Base PART_ONLY 輸出一律走 `manufacturing_api` 公開入口，既有 Engine 物理來源／Factory／檢核／原子提交／DXF 回讀皆保持原有判準，未新增整箱製造放行。舊版已有的 Python API 不鎖版本，新功能僅有新 Engine 提供。 `receiving_csv_quantity_manufacturing` 不再反向引入 `gui_modules.project.export_actions` 判斷物理板件選取，統一調用同引擎 `manufacturing_export_selection.resolved_export_intention_key`；GUI 保留操作狀態、輸出位置、UI 訊息，不再進入內部 Engine 模組。#2517 OPEN。
+
 ### #2517 EndCap 摘要／金庫型基準 Fold 預設 Engine 公開 API（2026-11-01）
 
 `manufacturing_api.project_operator_endcap_blank_dimensions` 將主畫面 EndCap 無已提交 Fold Profile 時的 baseline-first 總料寬／深回讀與舊 AE 公式回退統一移入 Engine；已有 committed Profile 時仍由同一 FinalScene material bounds 作準。 `manufacturing_api.read_operator_baseline_fold_defaults` 將金庫型型號切換時的 EndCap／Door 基準 Fold 預設及舊 Door DXF 解析失敗的四數值 UI 相容回退搬入 Engine；GUI 僅將回傳數值填入操作欄。兩者只供操作顯示／預設，不是正式製造或 DXF 認證，保留自訂／受電箱既有路徑與原 Save→Reload／2D／3D 來源；#2517 OPEN。
