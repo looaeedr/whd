@@ -402,7 +402,7 @@ oracle; this does not authorize new CUTTING or DXF.
 
 ## Phase6 EndCap operator manufacturing PartSpec API（#2517）
 
-`manufacturing_api.build_endcap_operator_part_spec(values, *, model_name, is_tail, holes, corner_policy=None, fold_profiles=None, depth_comp_t=None, resolved_assembly_relief_cuts=(), box_body_formed_fw_left=None, box_body_formed_fw_right=None, box_body_structure_state=None, endcap_bottom_wrap_state=None, assembly_joints=None)` 將 Head/Tail 輸入製成單一 Engine `EndCapPartSpec` Request。Factory Family 2T/3T、Bottom WRAP reserve、折材 DTO 與 CUT 來源不在 GUI 計算。缺必要操作尺寸照舊拒絕；PartSpec 可建不表示已完成 DXF/整箱製造認證，也不強制舊 client 升級。
+`manufacturing_api.build_endcap_operator_part_spec(values, *, model_name, is_tail, holes, corner_policy=None, fold_profiles=None, depth_comp_t=None, resolved_assembly_relief_cuts=(), box_body_formed_fw_left=None, box_body_formed_fw_right=None, box_body_structure_state=None, endcap_bottom_wrap_state=None, assembly_joints=None, assembly_joint_state=None)` 將 Head/Tail 輸入製成單一 Engine `EndCapPartSpec` Request。Factory Family 2T/3T、Bottom WRAP reserve、折材 DTO 與 CUT 來源不在 GUI 計算。缺必要操作尺寸照舊拒絕；PartSpec 可建不表示已完成 DXF/整箱製造認證，也不強制舊 client 升級。
 
 ## Live manual CornerType policy（#2517）
 

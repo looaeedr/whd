@@ -129,6 +129,7 @@ def test_gui_adapter_forwards_only_real_operator_state(monkeypatch):
     assert len(seen) == 1 and seen[0][0] is data
     assert seen[0][1]["box_body_structure_state"] == {"body": 1}
     assert seen[0][1]["assembly_joints"] == [{"id": "J"}]
+    assert seen[0][1]["assembly_joint_state"] == {"assembly_joints": [{"id": "J"}]}
     assert seen[0][1]["endcap_bottom_wrap_state"] == {"mode": "FOLLOW_BODY"}
     source = inspect.getsource(gui._end_cap_part_spec_from_values)
     assert "manufacturing_api.build_endcap_operator_part_spec(" in source
@@ -160,3 +161,30 @@ def test_legacy_gui_implicit_structure_and_joint_readback_uses_same_engine():
         assembly_joints=(),
     )
     assert got == expected
+
+
+def test_legacy_saved_joint_schema_version_survives_gui_to_engine(monkeypatch):
+    snapshots = []
+    monkeypatch.setattr(
+        family_policy, "supports_bottom_wrap_controls", lambda _: True,
+    )
+    monkeypatch.setattr(
+        owner, "resolve_endcap_bottom_wrap",
+        lambda snapshot, key, *, state: (
+            snapshots.append(dict(snapshot)) or
+            {"reserve_u": 2.0, "reserve_v": 1.0}
+        ),
+    )
+    host = SimpleNamespace(
+        workspace_controller=SimpleNamespace(box_body_structure_state=lambda: {}),
+        assembly_joint_state={
+            "assembly_joint_schema_version": 3,
+            "assembly_joints": ({"id": "HEAD_BOTTOM", "relation": "WRAP"},),
+        },
+    )
+    got = gui._end_cap_part_spec_from_values(
+        host, values("受電箱"), model_name="受電箱", is_tail=False, holes=(),
+    )
+    assert isinstance(got, EndCapPartSpec)
+    assert snapshots[0]["assembly_joint_schema_version"] == 3
+    assert snapshots[0]["assembly_joints"] == got.assembly_joints

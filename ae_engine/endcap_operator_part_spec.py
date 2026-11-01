@@ -23,7 +23,7 @@ def build_endcap_operator_part_spec(
     resolved_assembly_relief_cuts=(),
     box_body_formed_fw_left=None, box_body_formed_fw_right=None,
     box_body_structure_state=None, endcap_bottom_wrap_state=None,
-    assembly_joints=None,
+    assembly_joints=None, assembly_joint_state=None,
 ) -> EndCapPartSpec:
     """Build the canonical Head/Tail PartSpec from operator and saved inputs.
 
@@ -41,6 +41,13 @@ def build_endcap_operator_part_spec(
 
     structure = deepcopy(dict(box_body_structure_state or {}))
     joints = tuple(deepcopy(tuple(assembly_joints or ())))
+    # The original saved Joint Graph may carry a schema version and extra
+    # source data required by edge_relation_for_part. Keep that context when
+    # the operator did not explicitly supply an override Joint list.
+    joint_snapshot = (
+        deepcopy(dict(assembly_joint_state))
+        if assembly_joint_state is not None else {"assembly_joints": joints}
+    )
     if cabinet_family_policy.supports_bottom_wrap_controls(model_name):
         try:
             part_key = "tail" if is_tail else "head"
@@ -49,7 +56,7 @@ def build_endcap_operator_part_spec(
                 else normalize_endcap_bottom_wrap_state({"model": model_name})
             )
             item = resolve_endcap_bottom_wrap(
-                {"model": model_name, "assembly_joints": joints},
+                {"model": model_name, **joint_snapshot},
                 part_key, state=wrap_state,
             )
             structure = cabinet_family_policy.set_bottom_relief_reserves(

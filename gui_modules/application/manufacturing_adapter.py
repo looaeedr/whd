@@ -99,11 +99,12 @@ def _end_cap_part_spec_from_values(
     if box_body_structure_state is None:
         getter = getattr(controller, "box_body_structure_state", None)
         box_body_structure_state = getter() if callable(getter) else {}
+    assembly_joint_state = None
     if assembly_joints is None:
-        assembly_joints = (
-            dict(getattr(self, "assembly_joint_state", {}) or {})
-            .get("assembly_joints", ())
+        assembly_joint_state = dict(
+            getattr(self, "assembly_joint_state", {}) or {}
         )
+        assembly_joints = assembly_joint_state.get("assembly_joints", ())
     if endcap_bottom_wrap_state is None:
         endcap_bottom_wrap_state = getattr(self, "endcap_bottom_wrap_state", None)
     return manufacturing_api.build_endcap_operator_part_spec(
@@ -116,6 +117,7 @@ def _end_cap_part_spec_from_values(
         box_body_structure_state=box_body_structure_state,
         endcap_bottom_wrap_state=endcap_bottom_wrap_state,
         assembly_joints=assembly_joints,
+        assembly_joint_state=assembly_joint_state,
     )
 
 @staticmethod
