@@ -89,4 +89,4 @@ def test_final_scene_gui_calls_public_engine_and_only_caches(monkeypatch):
     assert pane.last_formed_ear_display_blocker is None
     # GUI does not know the manufacturing validator or reconstruct a new EAR.
     with pytest.raises(TypeError):
-        manufacturing_api.receiving_ear_assembly_display_source_key(None)
+        sources.receiving_ear_assembly_display_source_key(None)
