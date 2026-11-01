@@ -1072,3 +1072,16 @@ regression remain the acceptance evidence.
 ## Receiving settings physical world XY outline API (#2517)
 
 `manufacturing_api.project_solid_mesh_xy_outline(triangles)` consumes an already-resolved solid 3D mesh, uses Engine's canonical physical feature-edge extractor and returns deterministic world XY line pairs (five decimal places, duplicate / zero-length edges omitted). This is a headless, read-only 2D inspection projection; the WHD GUI owns only canvas rendering and selection. It does not create, validate or certify CUTTING, BEND, DXF, NFB, EAR or PAD manufacturing data. Legacy GUI assembly mesh orchestration is a separate #2517 migration.
+
+## Box Body physical multipart outside-width datum Engine API (#2517)
+
+`manufacturing_api.resolve_box_body_formed_width_datum(pieces)` validates
+the actual canonical `formed_w_end` source of Box Body multipart physical
+skins before any FinalScene viewer uses or assembles a world mesh. Complete
+placeholder-only previews return `None`; real positive outside-W pieces
+are accepted; a zero-W-origin Receiving left SIDE is accepted only when
+both authoritative `formed_w_start == 0` and `formed_outer_width > 0`
+are present and finite. An incomplete or forged width/role source fails
+closed with the original diagnostic errors. GUI only forwards resolved
+Engine piece DTOs; no physical 3D mesh, manufacturing material, 2D CUTTING
+or DXF is newly synthesized or certified.

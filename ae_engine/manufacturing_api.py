@@ -1253,3 +1253,8 @@ from .receiving_ear_side_display_context import (
 
 # #2517: read-only world XY physical-feature projection for Receiving settings.
 from .receiving_settings_orthographic_projection import project_solid_mesh_xy_outline
+
+def resolve_box_body_formed_width_datum(pieces):
+    """Public Engine authority for physical multipart Box Body outside W datum."""
+    from .box_body_world_datum import resolve_box_body_formed_width_datum as resolve
+    return resolve(pieces)

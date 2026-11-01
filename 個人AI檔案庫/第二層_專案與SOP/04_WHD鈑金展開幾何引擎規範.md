@@ -804,3 +804,15 @@ Family BoxBody Structure／Back Panel contract 或材料 Fold DTO。
 本變更不更動 #2621 outside-W datum、NFB 製造、尺寸
 補償公式、2D／3D／DXF 認證或 Save→Reload schema；
 #2517 持續 OPEN。
+
+### #2517 多片 Box Body 實體外側 W 定位 Engine API（2026-11-01）
+
+`manufacturing_api.resolve_box_body_formed_width_datum(pieces)` 是
+箱身多片 3D world mesh 的實體 W datum 判準。原 GUI 的
+`_phase6_box_body_formed_width_datum` 已改為單純 Engine API 委派。
+既有 `formed_w_end` 正值表示已確認的成形定位；全部空值是
+preview-only 不得偽裝成實體；任一非有限、布林或部分缺失的
+定位資料皆 fail-closed。受電箱側背分離的合法左側板 W=0
+必須同時有 `formed_w_start=0` 與正數有限 `formed_outer_width`
+原來源才能接受。沿用既有物理 Part provenance 與 world mesh，
+不創新製造尺寸、CUTTING／DXF 規則或認證；#2517 OPEN。
