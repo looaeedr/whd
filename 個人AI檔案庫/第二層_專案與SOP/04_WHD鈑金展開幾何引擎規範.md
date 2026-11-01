@@ -136,7 +136,7 @@ GUI（operator input / action / presentation）
 
 全箱型、全實體板件、所有孔型、數量／套／連／Bay、3D 預覽、製造匯出、編輯與儲存都適用；**這不代表所有相關 API 已完成或已驗證製造**。GUI 禁止複製折彎／展開／CUTTING／BLIND_HOLE／MARKING／offset 計算、決定製造板件、低層 `ae.export_*` 與直接 DXF 序列化。Engine 禁止反向 import GUI/Tk 或依賴 GUI widget／renderer 才能產生正確幾何。
 
-Python 公開 seam 以 `ae_engine.contracts`、`ae_engine.manufacturing_api` 和 `ae_engine.__init__` 的正式 export 為準；外部 CADSplit 的 seam 是已授權 `integration_cli` 的 `capabilities/prepare/export`。功能缺席時**先補 Engine API、schema、capability 宣告與契約測試**，否則回傳 unsupported；GUI 不准以 fallback／Preview／自製公式假裝支援。能力表只反映實際驗證、信任與授權，不由 UI 清單代替。
+Python 公開 seam 以 `ae_engine.contracts`、`ae_engine.manufacturing_api` 和 `ae_engine.__init__` 的正式 export 為準；**外部 CADSplit 目前沒有可用的已驗證製造 API seam**。`integration_cli/cadsplit_worker.py` 的 `capabilities/prepare/export` 與 versioned schema **僅保留 source-only JSON/CLI 通訊相容介面**：`capabilities` 的製造能力全部 false，公開 `prepare/export` 驗證協定後仍回 `WHD_OPERATION_NOT_IMPLEMENTED`、`manufacturing_verified=false`，不產生 DXF；不可把 wire 命令存在誤稱為已授權製造接線。CADSplit 內的 `ae_engine` 是 WHD Engine 程式副本，不具有獨立製造權威，也不代表已連上 WHD 的外部 API。未來外部 consumer 必須消費 WHD Engine 正式公開 API，並以真實 capability、schema、來源與端到端製造驗收確認；若重新採用安裝版 Worker／EXE，另須遵守第 10 節的明確使用者決策。功能缺席時**先補 Engine API、schema、capability 宣告與契約測試**，否則回傳 unsupported；GUI 與 CADSplit 均不得以 fallback／Preview／自製公式假裝支援。能力表只反映實際驗證、信任與授權，不由 UI 清單代替。
 
 驗收同時驗 request → Engine API → result → GUI／Save→Reload／2D／3D／DXF，且每類箱型、板件、操作都必須以真實來源及 fail-closed 能力宣告證實。CI `tools/gui_engine_api_boundary_gate.py` 與 `.github/workflows/whd-gui-engine-api-boundary.yml` 阻擋可偵測的 PR **新增**越界程式碼；歷史技術債並非已經消失，須逐步搬回 Engine。靜態檢查不足以代替 domain 測試與 required branch check。
 
