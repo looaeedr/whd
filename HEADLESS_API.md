@@ -34,6 +34,10 @@ private/legacy AE Door geometry functions. Neither baseline failure fallback
 nor this display-only summary is certified FinalScene, trusted manufacture,
 CUTTING/BEND/DXF export or external API capability.
 
+## Door-layout operator single-cell preview projection API (#2517)
+
+`manufacturing_api.project_operator_door_cell_result(values, *, cell_width, cell_height, frame_edges, material_frame_width)` returns the existing structural Door cell preview; `project_operator_door_cell_features(result, saved_features, indicator_state, *, cell_width, cell_height, frame_edges, family_model, frame_width, thickness, gap_w, gap_h, fold_left, fold_bottom)` resolves saved holes and Indicator/Box CUTTING preview through the existing Engine sources. `project_operator_door_cell_baseline(values, *, family_model, cell_width, cell_height, frame_edges, cache=None)` resolves the shared-family baseline Door preview and source fingerprint inside Engine while preserving the display cache and source label. None certifies manufacturing; actual DoorPartSpec/FinalScene, DXF export and source verification retain their existing gates. Legacy malformed preview input remains display-only fallback, never an export permission.
+
 ## EndCap operator blank summary and baseline Fold defaults API (#2517)
 
 `manufacturing_api.project_operator_endcap_blank_dimensions(values, baseline_model="")` supplies the same legacy main-window EndCap summary when no Fold profile is committed: baseline-first AE projection or its pre-existing no-baseline formula. Committed profiles remain measured from FinalScene material bounds. `manufacturing_api.read_operator_baseline_fold_defaults(model_name, thickness=...)` reads existing known-family EndCap/Door baseline Fold defaults, retaining no-Door-source and legacy failed-Door-load UI semantics without letting GUI infer manufacture. Both are read-only operator views, not certified CUTTING/DXF or new Family admission.

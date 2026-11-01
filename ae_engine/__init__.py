@@ -12,6 +12,9 @@ from .door_layout_numeric_transitions import (
 from .manufacturing_api import (
     list_cabinet_model_choices,
     project_operator_door_blank_dimensions,
+    project_operator_door_cell_result,
+    project_operator_door_cell_features,
+    project_operator_door_cell_baseline,
     project_operator_endcap_blank_dimensions, read_operator_baseline_fold_defaults,
     base_plate_blank_dimensions,
     generate_part, resolve_policy, expected_baseline_path_for, receiving_baseline_source_stamp,
