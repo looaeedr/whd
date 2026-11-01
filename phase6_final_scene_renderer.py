@@ -745,13 +745,15 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         # is deliberately 1 mm away at y=23 and must remain source-exact
         # in 2D/manufacturing, rather than be drawn as a false 3D hinge.
         if fixed_plate_display:
-            p = self._map_xy(0., hinge_y, x_profile, y_profile, fold_guides)
-            q = self._map_xy(float(render_data.metadata["source_flat_dimensions"][0]),
-                             hinge_y, x_profile, y_profile, fold_guides)
-            self.renderer.ax3d.plot(
-                [p[0], q[0]], [p[1], q[1]], [p[2], q[2]],
-                color="#2563eb", linewidth=1.15, alpha=0.95,
+            hinge_segment = manufacturing_api.project_independent_fixed_plate_hinge_segment(
+                render_data, mesh,
             )
+            if hinge_segment:
+                p, q = hinge_segment
+                self.renderer.ax3d.plot(
+                    [p[0], q[0]], [p[1], q[1]], [p[2], q[2]],
+                    color="#2563eb", linewidth=1.15, alpha=0.95,
+                )
         else:
             self._draw_scene_bends(scene, request.x_profile, request.y_profile, fold_guides=fold_guides)
         self._draw_scene_markings(scene, x_profile, y_profile, fold_guides=fold_guides)

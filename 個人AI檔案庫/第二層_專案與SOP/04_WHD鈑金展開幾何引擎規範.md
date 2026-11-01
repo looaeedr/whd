@@ -144,6 +144,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.project_independent_scene_bend_segments`／`project_independent_scene_annotation_paths`（`ae_engine.final_scene_independent_annotations`）接管 FinalScene GUI 原 `_draw_scene_bends`、`_draw_scene_markings` 的實體 `DrawingScene` BEND、MARKING、BLIND_HOLE Fold→3D 線段投影；唯一座標根據為正式 material Fold Mapper，不另造 Factory、料長、孔位或 3D 衝突公式。現有 64 等分圓／閉合折線／MARKING 與 BLIND_HOLE 樣式都保持，GUI 只取 API 回傳線段並繪製，不以 UI 網格取代 CUTTING。舊製造／3D／DXF／Save→Reload／檔案格式不更動，#2517 OPEN、未發布正式 X。
 
+### #2517 FinalScene Door CUTTING 真孔及固定片 3D hinge 無 Tk API（2026-11-01）
+
+`ae_engine.final_scene_independent_annotations` 經公開 `manufacturing_api.project_independent_cutting_hole_rim_segments` 將真正製造 material CUTTING Polygon／MultiPolygon 內孔透過既有 Fold／assembly 世界位置投影；缺真孔或空 assembly datum 就不畫。`project_independent_fixed_plate_hinge_segment` 僅消費已驗證 `IndependentPartViewMesh.fixed_plate_hinge_y`、`source_flat_dimensions`，保持 Receiving 固定片的 3D MID-skin y=22／真實製造 DXF BEND y=23 不混用。原 GUI `_draw_cutting_hole_rims` 與獨立板件 renderer 只負責 3D 畫線、保留原色彩公差，不再判定物理座標；無新孔加工／Certified Registry／Save→Reload 改動或正式 X 發布，#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
