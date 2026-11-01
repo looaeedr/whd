@@ -205,36 +205,15 @@ def _export_selected_resolved_parts(self, folder, flags):
             finished_dimensions_provider=lambda key=None: operator_finished_dimensions_for_app(designer, key),
         )
         workspace_snapshot = workspace.snapshot()
-        quantity = workspace_snapshot.get("quantity") or {}
-        input_quantity = mode_source.get("quantity") or {}
-        def submitted_facts(payload):
-            return {row["version_id"]: row.get("nfb_config")
-                    for row in payload.get("versions", ())
-                    if row.get("nfb_config_submitted") is True}
-        if submitted_facts(input_quantity) != submitted_facts(quantity):
-            raise ValueError("NFB 數量版本與目前工作狀態不一致，請重新套用後再出圖")
-        batch = resolve_quantity_manufacturing(request, workspace_snapshot)
-        # Preserve old DXF projects: only a COMPLETE current numeric CSV
-        # version family goes through the newly source-proven batch action.
-        # Legacy test requests may not carry cabinet_model at all; project
-        # family and saved submitted per-version sources are the authorities.
-        submitted_rows = tuple(
-            row for row in quantity.get("versions", ())
-            if row.get("nfb_config_submitted") is True
+        # #2517: Engine determines whether saved/live NFB sources match and
+        # whether numeric CSV versions can use a single verified batch route.
+        # GUI owns only operator intent and the snapshot passed to the API.
+        source_policy = manufacturing_api.plan_quantity_export_source(
+            mode_source, workspace_snapshot,
         )
-        numeric_submissions = ()
-        if mode_source.get("model") == "受電箱" and submitted_rows:
-            numeric_submissions = tuple(
-                bool((row.get("nfb_config") or {}).get("holes"))
-                and all(manufacturing_api.parse_numeric_model_ref(hole.get("model_filename"))
-                        is not None
-                        for hole in (row.get("nfb_config") or {}).get("holes", ()))
-                for row in submitted_rows
-            )
-            if any(numeric_submissions) and not all(numeric_submissions):
-                raise ValueError("NFB 數量版本混用數值 CSV 與舊 DXF，禁止混源整批出圖")
-        if numeric_submissions and all(numeric_submissions):
-            # One original button; independently revalidate EVERY version.
+        quantity = workspace_snapshot.get("quantity") or {}
+        batch = resolve_quantity_manufacturing(request, workspace_snapshot)
+        if source_policy.use_current_csv_export:
             outputs = manufacturing_api.export_current_csv_quantity_manufacturing(
                 batch, folder, flags=flags, overwrite=True,
             )
