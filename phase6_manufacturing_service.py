@@ -17,16 +17,14 @@ from ae_engine.assembly_mesh_reuse import mesh_build_scope
 from copy import deepcopy
 from dataclasses import replace
 
-from ae_engine.contracts import (
-    ResolvedManufacturingGeometry,
-    ResolvedManufacturingPart,
-)
+from ae_engine.contracts import ResolvedManufacturingGeometry
 from ae_engine.manufacturing_api import (
     replay_resolved_endcap_render, resolve_live_cabinet_family,
     endcap_relief_transaction_committable,
     solve_endcap_assembly_relief, endcap_relief_solution_diagnostic,
     resolve_manufacturing_joint_graph,
     resolve_manufacturing_relief_evidence,
+    materialize_resolved_manufacturing_parts,
 )
 from ae_engine.joint_marking_policy import resolve_joint_marking_foundation_status
 from ae_engine.receiving_joint_marking import (
@@ -306,21 +304,7 @@ def resolve(request):
             explicit_joint_state
         )
 
-    resolved_parts = tuple(
-        ResolvedManufacturingPart(
-            part_key=part.part_key,
-            render_data=part.render_data,
-            x_profile=tuple(
-                dict(seg) for seg in tuple(part.x_profile or ())
-            ),
-            y_profile=tuple(
-                dict(seg) for seg in tuple(part.y_profile or ())
-            ),
-            placement=part.placement,
-            offset=tuple(part.offset),
-        )
-        for part in parts
-    )
+    resolved_parts = materialize_resolved_manufacturing_parts(parts)
     traces, joint_registry_diagnostics = resolve_manufacturing_relief_evidence(
         resolved_parts, solutions, joints,
     )
