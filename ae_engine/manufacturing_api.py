@@ -129,6 +129,11 @@ from .physical_sheet_editor_context import (
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .receiving_endcap_feature_preview import receiving_endcap_feature_preview_shapes
 from .receiving_ear_side_preview import project_receiving_ear_side_piece_2d_preview
+from .receiving_nfb_verified_scope import (
+    NfbCsvVerifiedPhysicalSite, NfbCsvVerifiedExportScope,
+    NfbCsvVerifiedSelectorProof, resolve_verified_csv_v5_export_scope,
+    capture_verified_csv_v5_pair_display_proof, verified_csv_v5_operator_label,
+)
 from .receiving_nfb_v5_source_preview import (
     ReceivingNfbV5SourcePreview, ReceivingNfbV5SourcePreviewCache,
 )
