@@ -1035,3 +1035,56 @@ def project_fold_designer_snapshot_part_features(
     """Public headless Door-grid Feature source-to-physical identity projection."""
     from .door_layout_feature_projection import project_fold_designer_snapshot_part_features as project
     return project(snapshot, surface_features, door_layout_features)
+
+
+# #2517: canonical Fold material/formed coordinate mapping exposed to GUI clients.
+
+def fold_profile_base_index(profile):
+    """Public Engine Fold mapping; canonical assembly_geometry_folded_mesh owns math."""
+    from .assembly_geometry_folded_mesh import _profile_base_index as resolve
+    return resolve(profile)
+
+
+def fold_profile_geometry(profile, *, enabled_folds=None):
+    """Public Engine Fold mapping; canonical assembly_geometry_folded_mesh owns math."""
+    from .assembly_geometry_folded_mesh import _profile_geometry as resolve
+    return resolve(profile, enabled_folds=enabled_folds)
+
+
+def fold_profile_bend_mask(profile, axis, cross_position, fold_guides, *, tol=1e-6):
+    """Public Engine Fold mapping; canonical assembly_geometry_folded_mesh owns math."""
+    from .assembly_geometry_folded_mesh import _fold_mask_for_cross_coordinate as resolve
+    return resolve(profile, axis, cross_position, fold_guides, tol=tol)
+
+
+def fold_profile_map_with_guides(position, cross_position, profile, *, axis, fold_guides):
+    """Public Engine Fold mapping; canonical assembly_geometry_folded_mesh owns math."""
+    from .assembly_geometry_folded_mesh import _profile_map_with_guides as resolve
+    return resolve(position, cross_position, profile, axis=axis, fold_guides=fold_guides)
+
+
+def fold_profile_map(position, boundaries, folded):
+    """Public Engine Fold mapping; canonical assembly_geometry_folded_mesh owns math."""
+    from .assembly_geometry_folded_mesh import _profile_map as resolve
+    return resolve(position, boundaries, folded)
+
+
+def fold_profile_flat_map(position, boundaries, *, profile=None):
+    """Public Engine Fold mapping; canonical assembly_geometry_folded_mesh owns math."""
+    from .assembly_geometry_folded_mesh import _profile_flat_map as resolve
+    return resolve(position, boundaries, profile=profile)
+
+
+
+def prepare_fold_profile_mapper(profile, *, axis, fold_guides=()):
+    """Prepare one Engine-owned fold mapper per rendered source, not per vertex.
+
+    Same bounded mask/chain memoization as actual canonical assembly mesh; the
+    caller must replace it whenever any source profile or BEND guide changes.
+    """
+    from .assembly_geometry_folded_mesh import _profile_geometry, _prepare_profile_mapper
+    rows = tuple(profile or ())
+    guides = tuple(fold_guides or ())
+    return _prepare_profile_mapper(
+        rows, axis=axis, fold_guides=guides, geometry=_profile_geometry(rows),
+    )

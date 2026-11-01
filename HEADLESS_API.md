@@ -784,3 +784,25 @@ cells retain saved content, and legacy tuple cell keys only signal authored
 empty clears. GUI only submits source stores and copies returned Features
 into the original Save/Reload schema. No hole coordinate transform,
 manufacturing CUTTING/DXF authorization or new geometry is introduced.
+
+
+## FinalScene canonical Fold profile 3D mapping Engine API (#2517)
+
+`manufacturing_api.fold_profile_base_index`,
+`fold_profile_geometry(profile, *, enabled_folds=None)`,
+`fold_profile_bend_mask(profile, axis, cross_position, fold_guides, *, tol=1e-6)`,
+`fold_profile_map_with_guides(position, cross_position, profile, *, axis, fold_guides)`,
+`fold_profile_map(position, boundaries, folded)` and
+`fold_profile_flat_map(position, boundaries, *, profile=None)` expose the
+existing authoritative `ae_engine.assembly_geometry_folded_mesh` material-to-formed
+cross-section mapping to the FinalScene GUI. Former Phase6 functions are
+compatibility delegates, not a second physical Fold algorithm. The engine's
+already-established source-owned formed_length exception is preserved while
+unfolded BEND stations continue to use physical material length. Finite BEND
+guide spans determine local bend activation; unlisted legacy folds retain the
+existing enabled behavior. `prepare_fold_profile_mapper(profile, *, axis,
+fold_guides=())` returns the canonical source-scoped prepared Engine callable,
+using the existing per-mask chain cache rather than rebuilding a Fold for each
+visible 3D vertex. A GUI display cache must invalidate when any Fold profile
+or source BEND guide changes. No new Fold compensation, 2D CUTTING or DXF
+certification follows. #2517 remains OPEN.
