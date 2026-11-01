@@ -8,6 +8,10 @@ whd_schema: WHD_DOC_META_V1
 
 目的：讓 GUI、自動拆圖、CLI 或其他 Python 程式都使用同一個 AE 出圖入口，不必建立 Tkinter GUI，也不必直接呼叫 `ae.export_xxx_dxf()`。
 
+## Assembly physical dimension evidence API (#2517)
+
+`manufacturing_api.project_assembly_physical_dimension_evidence(part, *, thickness)` consumes one already-resolved physical Assembly part and returns immutable `AssemblyPhysicalDimensionEvidence` rows. For real Receiving Box Body left/right SIDE fold profiles, Engine reuses the canonical `apply_outside_dimension_compensation` adjacent-BEND rule (while preserving explicit `formed_length` source). For physical Dividers, it reports the original material extent and saved `fw_physical_face` / `core_physical_segment` outside metadata. `phase6_final_scene_projection._phase6_assembly_physical_dimension_lines` only formats operator-facing Chinese labels and numbers; no physical/BEND arithmetic remains there. Unrelated, missing or empty parts return no rows. This is read-only UI evidence, not manufacturing permission, dimensional overwrite, new CUTTING/BEND/DXF certification or a substitute for approved Registry evidence.
+
 ## Receiving settings assembled world mesh API (#2517)
 
 `manufacturing_api.resolve_receiving_settings_assembly_world_meshes(assembly_parts, *, finished_dimensions, thickness, preserve_endcap_core_origin=False)` consumes already-resolved canonical Assembly part DTOs and returns physical source roles, part IDs and actual world XYZ triangles for the 2D inspection path. The Engine alone computes Box Body piece-local folding/placement, the same true-T world skins from `build_joint_world_geometry`, physical EndCap mating and thickness projection. `receiving_settings_preview_2d._assembly_world_meshes` forwards only source input and maps raw roles to UI labels; its existing XY projection still calls `project_solid_mesh_xy_outline`. This is read-only visualization evidence, not permission to manufacture, CUTTING, BEND or DXF certification. Legacy incompatible/incomplete geometry remains fail-closed; family/Set/Bay source, saved Features, and official manufacturing data are unchanged.
