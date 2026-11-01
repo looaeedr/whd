@@ -550,7 +550,9 @@ def test_all_final_scene_parts_do_not_restore_triangle_grid_overlays():
     # whenever a legitimate category is added. Assert the actual render
     # contract and forbid a raw triangulated mesh artist instead.
     assert source.count("gridless_mesh_collection(") >= 6
-    assert "pad_artist = gridless_mesh_collection(" in source
-    assert "ax.add_collection3d(pad_artist)" in source
+    assert "trial_skins = manufacturing_api.project_receiving_assembly_trial_world_skin_meshes(" in source
+    assert "for skin in trial_skins:" in source
+    assert "poly = gridless_mesh_collection(" in source
+    assert "ax.add_collection3d(poly)" in source
     assert "Poly3DCollection(" not in source
     assert "antialiaseds=False" in mesh_helper
