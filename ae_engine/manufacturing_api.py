@@ -1148,3 +1148,10 @@ from .receiving_nfb_partial_batch_dispatcher import (
     require_highlighted_nfb_inner_doors,
     export_highlighted_nfb_inner_doors,
 )
+
+
+# #2517: paired real NFB PART_ONLY CHECK/Q belongs exclusively to Engine.
+from .receiving_nfb_pair_quantity_check import (
+    NfbPairedPartOnlyDxf, NfbPairedQuantityInput, NfbPairedQuantityCheck,
+    group_reopened_nfb_pair_check_q, save_checked_reopened_nfb_pair_q_dxf,
+)
