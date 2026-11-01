@@ -195,6 +195,9 @@ from .receiving_inner_door_inventory import (
 from .receiving_inner_door_editor import (
     InnerDoorHoleEditorContext, resolve_inner_door_hole_editor_context,
 )
+from .quantity_export_source_policy import (
+    QuantityExportSourceDecision, plan_quantity_export_source,
+)
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,
     assert_legacy_nfb_export_scope_safe,
