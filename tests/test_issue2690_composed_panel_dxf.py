@@ -161,6 +161,9 @@ def test_validation_of_names_inventory_request_and_unverified_cutting(tmp_path):
         ((("P1", _geometry()),), "PHYSICAL_INVENTORY_INVALID"),
         ((("P1", _geometry(("base_plate:nfb_layer:0", _flat("x")))),),
          "RECEIVING_NFB_TIER_BASE_MANUFACTURING_UNVERIFIED"),
+        ((("P1", _geometry(("door", _flat(
+            "door", metadata={"stable_id": "tail"},
+        )))),), "COMPOSED_DXF_PHYSICAL_ID_SOURCE_MISMATCH"),
     ]:
         with pytest.raises(ValueError, match=code):
             manufacturing_api.save_composed_panel_dxf(
