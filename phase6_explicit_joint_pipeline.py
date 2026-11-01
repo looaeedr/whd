@@ -3,7 +3,7 @@
 
 No manufacturing/collision implementation is permitted in this module.
 """
-from ae_engine.explicit_joint_pipeline import (
+from ae_engine.manufacturing_api import (
     EXPLICIT_JOINT_PIPELINE_STAGES,
     ExplicitJointPipelineOps,
     ExplicitJointPipelineRequest,

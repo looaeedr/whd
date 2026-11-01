@@ -51,7 +51,7 @@ def test_p7_r_f_stage_owner_has_no_reverse_or_duplicate_manufacturing_path():
     engine = importlib.import_module("ae_engine.explicit_joint_pipeline")
     source = inspect.getsource(engine)
     shim_source = inspect.getsource(owner)
-    assert "from ae_engine.explicit_joint_pipeline import" in shim_source
+    assert "from ae_engine.manufacturing_api import" in shim_source
     assert "def resolve_explicit_joint_reliefs" not in shim_source
 
     assert "phase6_manufacturing_geometry" not in source

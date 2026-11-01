@@ -335,7 +335,22 @@ from .assembly_joint import (
 )
 from .assembly_joint import joint_registry_diagnostic_info
 from .manufacturing_relief_evidence import resolve_manufacturing_relief_evidence
-from .explicit_joint_pipeline import resolve_manufacturing_explicit_joint_reliefs
+from .explicit_joint_pipeline import (
+    EXPLICIT_JOINT_PIPELINE_STAGES,
+    ExplicitJointPipelineOps,
+    ExplicitJointPipelineRequest,
+    ExplicitJointCandidateInventory,
+    ExplicitJointOwnerDecision,
+    normalize_candidate_inventory,
+    decide_owner_registry,
+    query_world_geometry,
+    solve_explicit_joint_candidate,
+    apply_resolved_cut,
+    assemble_diagnostics_evidence,
+    assemble_mutation_result,
+    resolve_explicit_joint_reliefs,
+    resolve_manufacturing_explicit_joint_reliefs,
+)
 from .assembly_placement import (
     SCENE_ASSEMBLY_PLACEMENTS, resolve_legacy_door_cell_scene_placement,
     resolve_scene_assembly_placement,

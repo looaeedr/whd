@@ -38,7 +38,7 @@ def test_engine_no_reverse_dependency_and_phase6_is_only_adapter():
     assert "replace(base, render_data=temp_render)" in source
     shim = inspect.getsource(historic)
     assert "def resolve_explicit_joint_reliefs" not in shim
-    assert "from ae_engine.explicit_joint_pipeline import" in shim
+    assert "from ae_engine.manufacturing_api import" in shim
     facade = inspect.getsource(_phase6_resolve_explicit_joint_reliefs)
     assert "manufacturing_api.resolve_manufacturing_explicit_joint_reliefs(" in facade
     assert "ExplicitJointPipelineOps(" not in facade
