@@ -26,7 +26,7 @@ def _part(key, material, *, offset=(0, 0, 0), placement="offset"):
 
 def test_headless_world_meshes_keep_holes_offsets_and_source_part_identity():
     material = box(0, 0, 100, 70).difference(
-        Point(45, 35).buffer(7, resolution=12)
+        Point(45, 35).buffer(7, quad_segs=12)
     )
     witness = material.wkb
     parts = (_part("door:left", material),
@@ -51,13 +51,13 @@ def test_real_receiving_split_box_body_uses_exact_physical_world_skins():
     rows = api.resolve_receiving_settings_assembly_world_meshes(
         (body,), finished_dimensions=dims, thickness=2.0,
     )
-    keys = {key for _, key, _mesh in rows}
-    assert keys == {
-        "box_body:left_side", "box_body:back", "box_body:right_side",
-    }
+    roles = {role for role, _key, _mesh in rows}
+    assert roles == {"left_side", "back", "right_side"}
     for role, key, mesh in rows:
-        assert role in {"left_side", "back", "right_side"}
-        assert mesh == tuple(world[key])
+        # Original physical piece IDs use underscores; world owner keys use
+        # "box_body:" namespace. Preserve both identities exactly as sourced.
+        assert key == f"box_body_{role}"
+        assert mesh == tuple(world[f"box_body:{role}"])
 
 
 def test_invalid_multisheet_outside_width_source_fails_closed():
