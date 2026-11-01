@@ -1756,6 +1756,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         adapter.select_set(int(set_index) + 1)
         adapter.select_bay(int(bay_index) + 1)
 
+    def rename_bay(set_index, bay_index, name):
+        adapter = self.receiving_adapter(namespace)
+        changed = adapter.rename_bay(int(set_index), int(bay_index), name)
+        if changed:
+            # GUI only updates the authoritative source DTO. A text-only rename
+            # must not invalidate or rebuild FinalScene manufacturing geometry.
+            self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        return changed
+
     def select_existing_setting(set_index, bay_index, kind):
         """Bind the list choice to the original per-bay setting value/owner.
 
@@ -4260,6 +4269,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         get_inner_candidate_ports=inner_candidate_ports,
         get_nfb_transaction_ports=nfb_transaction_ports,
         select_bay=select_bay,
+        rename_bay=rename_bay,
         on_setting_selected=select_existing_setting,
         get_brand=(single_brand if single else
                    lambda: self.receiving_switch_adapter(namespace).brand),
