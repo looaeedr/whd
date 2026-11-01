@@ -42,6 +42,12 @@ def test_gui_invokes_engine_plan_and_retires_changed_physical_dxf(monkeypatch):
         "model": "受電箱", "active_mode": "set_bay",
         "box_body_structure": {"active_type": "three_piece_side_back_split"},
     })
+    # A live workspace structure takes precedence over the saved fallback.
+    app.designer_workspace = SimpleNamespace(
+        box_body_structure_state=lambda: {
+            "active_type": "three_piece_side_back_split",
+        },
+    )
     witness = [("raw", "A")]
     calls = []
     monkeypatch.setattr(
