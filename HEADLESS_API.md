@@ -20,6 +20,19 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.resolve_box_body_structure_mid_meshes(render_data, *, thickness)` exposes the existing canonical Engine's physical Box Body piece-local fold and world placement to both 3D FinalScene and Receiving settings 2D inspection. For already-resolved real multipart Box Body material it returns ordered immutable `(source_piece, placed_mid_surface_triangles)` pairs; placeholder-only sources return empty and invalid outside-W provenance fails closed via the existing `resolve_box_body_formed_width_datum`. The 3D compatibility method `phase6_final_scene_projection._phase6_box_body_structure_meshes` now only converts the Engine tuple to its historic list shape; it no longer builds Fold meshes or transforms physical points. The Engine 2D inspector shares the same public seam rather than a second private copy. Real-T physical skins, collision, CUTTING, BEND, DXF, saved material and certified source remain unchanged.
 
+## BasePlate operator blank dimension API (#2517)
+
+`manufacturing_api.base_plate_blank_dimensions(*, w, h, shrink_top, shrink_bottom,
+shrink_left, shrink_right, bend)` is the single headless Engine owner for the
+legacy standalone BasePlate unfolded W/H. Both certified-family and custom
+corner BasePlate geometry builders use the same helper; the main GUI calculation
+summary now only submits operator inputs and formats its returned dimensions.
+It retains the previous numeric contract and missing-part display behavior.
+The result is a display/blank projection, **not** a receiving NFB tier or
+physical BasePlate certification: those remain source-specific via their own
+canonical Receiving builders and explicit manufacturing gates. No new DXF
+capability is granted.
+
 ## Receiving candidate quantity draft API (#2517)
 
 `manufacturing_api.AllocationDraft` and `validate_quantity_allocation` are public

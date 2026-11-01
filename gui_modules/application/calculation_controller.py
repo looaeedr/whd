@@ -97,8 +97,15 @@ def update_calculations(self):
         
         # 3.5 計算底板
         if self._phase6_logical_part_present(existing_parts, "base_plate"):
-            base_plate_w = val['w'] - val['base_plate_shrink_left'] - val['base_plate_shrink_right'] + 2.0 * val['base_plate_bend']
-            base_plate_h = val['h'] - val['base_plate_shrink_top'] - val['base_plate_shrink_bottom'] + 2.0 * val['base_plate_bend']
+            from ae_engine import manufacturing_api
+            base_plate_w, base_plate_h = manufacturing_api.base_plate_blank_dimensions(
+                w=val["w"], h=val["h"],
+                shrink_top=val["base_plate_shrink_top"],
+                shrink_bottom=val["base_plate_shrink_bottom"],
+                shrink_left=val["base_plate_shrink_left"],
+                shrink_right=val["base_plate_shrink_right"],
+                bend=val["base_plate_bend"],
+            )
         else:
             base_plate_w = base_plate_h = None
         
