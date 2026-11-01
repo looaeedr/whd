@@ -201,6 +201,10 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 
 `manufacturing_api.project_assembly_collision_display_audit` 接管原 FinalScene GUI 的實體 BoxBody piece／內門框／Head Tail 組合 world mesh 來源、visible keys 選取及 `audit_all_physical_part_pairs` 呼叫。原 Certified Registry Relief 與 `ASSEMBLY_COLLISION_MISSING_VISIBLE_PARTS` 等 fail-closed 規則保持既有 Engine 唯一判準；GUI 只快取和描繪未證實交叉。另由 `manufacturing_api` 公開既存 `restore_unrelieved_endcap_material`、`restored_endcap_relief_delta`、`thicken_triangle_surface`、`MeshInterferenceDiagnostic`、`collision_part_display_name`，Phase6 renderer 不再直接 import 底層幾何／碰撞分類。此為 3D 顯示診斷 API，不修改全箱 2D／3D／Save→Reload／正式 DXF、亦不新增製造認證；#2517 OPEN。
 
+### #2517 Manufacturing Request RAW 實體板件來源及 Set/Bay 擁有權 Engine API（2026-11-01）
+
+`manufacturing_api.canonical_manufacturing_request_part_keys(snapshot, available_parts)` 將原 `phase6_manufacturing_adapter._canonical_part_keys` 中 Receiving 已提交 NFB 底板來源的缺件補齊、雙層四片固定耳唯一 owner 身份重建、衍生 BoxBody／tier BasePlate／PAD 非 RAW ID 過濾移回 Engine；沿用 `receiving_base_plate_values`、`receiving_base_fixing_plate_previews` 與 `physical_part_identity` 的原有判準及錯誤處理。GUI 不再直接讀取低階來源模組，也不自推板件身份。Engine 回傳同順序 immutable RAW PartSpec key tuple，非新的 CUTTING/BEND/DXF/焊接製造認證；#2517 OPEN。
+
 ### #2517 FinalScene Joint 接觸／穿透／保留／退讓 3D 診斷世界來源 Engine API（2026-11-01）
 
 `manufacturing_api.project_joint_diagnostic_display_sources(render_data)` 由無 Tk 的 `ae_engine.joint_diagnostic_display` 讀取**已由 Joint Solver 建立**的 `ResolvedJointDiagnostic`，以 `selected_joint_id` 選取現行 source；僅保留 contact／penetration／preserve／relief 的合法三維世界線段與已解析方向向量，輸出不可變 `JointDiagnosticOverlaySource`。原 `phase6_final_scene_render_helpers._draw_joint_diagnostic_overlays` 只按 Engineer-result role 選 Matplotlib 畫筆、畫線與方向箭頭，不再自己過濾 Joint 來源、判斷世界座標或計算方向差分。非有限／不完整世界線段不會被呈現為診斷來源。這只是 solver 診斷的 read-only 3D 顯示，不變更 Registry 認證、Joint 接觸解算、世界碰撞報告、CUTTING／BEND／DXF 或 Save→Reload；金庫型與受電箱共用，#2517 仍 OPEN。

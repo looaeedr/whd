@@ -6,6 +6,19 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Canonical RAW manufacturing request physical-part inventory
+
+`manufacturing_api.canonical_manufacturing_request_part_keys(snapshot, available_parts)`
+接受使用者的 existing/available parts 與當前快照，從現有 Engine
+Receiving BasePlate 及 NFB／Set／Bay EAR 來源補入已證實的實體
+raw request ID，並排除衍生 BoxBody 子板、已展開 NFB tier Base
+與未放行 PAD 2D 視圖 ID；僅可回傳既有真實 owner。
+GUI `phase6_manufacturing_adapter._canonical_part_keys` 已不再決定實體來源，
+只消費這個 API 的 immutable tuple。無人工設定底板來源也可保留
+已提交且具證據的 Receiving BasePlate；無來源則不得偽造。
+這不是製造授權或 DXF 放行。
+
+
 ## #2517 FinalScene full physical assembly collision audit Engine API
 
 `manufacturing_api.project_assembly_collision_display_audit(assembly_parts, finished_dimensions, sheet_thickness, visible_part_keys=None, visible_box_body_piece_keys=None, certified_relief_diagnostics=())` 是同程序無 Tk 的公開 Engine API。委派既有 `build_joint_world_geometry` 和 `audit_all_physical_part_pairs`，以真實實體板件（非 box_body 複合代理）決定各 pair 與認證 Relief 接觸。GUI 僅在操作員開啟干涉顯示時做相同來源快取、繪圖和繁中狀態。EndCap 顯示診斷材料復原、厚板成形 solid 與原本 `MeshInterferenceDiagnostic` 均沿用 `manufacturing_api` 的公開入口。此審核不自動放行 CUTTING／BEND／DXF／MFG-2；`NO_NONCOPLANAR_CROSSING` 不代表已認證安全。

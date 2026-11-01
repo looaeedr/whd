@@ -138,6 +138,7 @@ from .assembly_geometry import (
     triangle_bounds as physical_mesh_world_bounds,
     place_assembly_triangles as project_assembly_world_triangles,
 )
+from .manufacturing_request_parts import canonical_manufacturing_request_part_keys
 from .assembly_collision_display_api import project_assembly_collision_display_audit
 from .assembly_all_parts_collision import collision_part_display_name
 from .receiving_base_display_source import (
@@ -1553,6 +1554,26 @@ def export_current_receiving_multibay_dxf(
     from .receiving_csv_multibay_manufacturing import export_current_receiving_multibay_dxf as execute
     return execute(saved_snapshot, physical_bay_geometry_provider=physical_bay_geometry_provider,
                    flags=flags, output_dir=output_dir, overwrite=overwrite)
+
+
+def plan_receiving_grouped_dxf(layout, mode):
+    """Preview exact group labels/names from persisted Receiving Set/Bay authority."""
+    from .receiving_dxf_groups import plan_receiving_grouped_dxf as plan
+    return plan(layout, mode)
+
+
+def export_grouped_receiving_multibay_dxf(
+    saved_snapshot, *, physical_bay_geometry_provider,
+    flags, output_dir, group_mode, pre_commit_guard, overwrite=False,
+):
+    """Source-verified current Bay flats -> group DXFs (no MFG-2 release)."""
+    from .receiving_csv_multibay_manufacturing import export_current_receiving_multibay_dxf
+    return export_current_receiving_multibay_dxf(
+        saved_snapshot,
+        physical_bay_geometry_provider=physical_bay_geometry_provider,
+        flags=flags, output_dir=output_dir, overwrite=overwrite,
+        group_mode=group_mode, pre_commit_guard=pre_commit_guard,
+    )
 
 
 def export_receiving_ear_side_manufacturing_marking_dxf(
