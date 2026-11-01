@@ -1385,7 +1385,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def double_click_panel_name(event):
         if (rename_bay is None or applied["mode"] != "set_bay"
                 or applied["set_index"] is None):
-            return
+            return click_bay(event)
         for index, box in enumerate(canvas._receiving_panel_name_hitboxes):
             if box is None or not (box[0] <= event.x <= box[2]
                                     and box[1] <= event.y <= box[3]):
@@ -1408,6 +1408,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             entry.focus_set()
             entry.selection_range(0, tk.END)
             return "break"
+        # Tk promotes a second rapid Button-1 to Double-Button-1 even when
+        # no panel name was hit. Preserve the previous two-click Bay toggle.
+        return click_bay(event)
 
     def render():
         if panel_editor["entry"] is not None:
