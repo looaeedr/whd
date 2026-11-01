@@ -690,7 +690,7 @@ Engine 按既有規則保留未操作格位的舊 Feature、允許已操作格�
 基準段、折後 3D 座標與有限 BEND span 的每點 fold mask。
 `phase6_final_scene_projection` 六個舊入口只相容委派；
 不再在 GUI 保留一套 angle／sin／cos／Fold 長度演算。
-既有 Receiving source-owned `formed_length` 僅影響相對應折後 leg，
+`prepare_fold_profile_mapper` 依來源 profile／BEND guide 準備 Engine 既有的 per-mask Fold chain，供 GUI 繪圖時重用，變更來源必須失效；禁止每個 3D vertex 重算 Fold。既有 Receiving source-owned `formed_length` 僅影響相對應折後 leg，
 展開 CUTTING／BEND 保持物理料長；未有 BEND guide 的舊 profile
 仍依原有 fallback 判斷。完整 FinalScene／3D 組合採同一 Engine
 權威，不新增機械公式或 CUTTING／DXF 認證；#2517 保持 OPEN。

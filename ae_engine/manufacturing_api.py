@@ -1074,3 +1074,17 @@ def fold_profile_flat_map(position, boundaries, *, profile=None):
     from .assembly_geometry_folded_mesh import _profile_flat_map as resolve
     return resolve(position, boundaries, profile=profile)
 
+
+
+def prepare_fold_profile_mapper(profile, *, axis, fold_guides=()):
+    """Prepare one Engine-owned fold mapper per rendered source, not per vertex.
+
+    Same bounded mask/chain memoization as actual canonical assembly mesh; the
+    caller must replace it whenever any source profile or BEND guide changes.
+    """
+    from .assembly_geometry_folded_mesh import _profile_geometry, _prepare_profile_mapper
+    rows = tuple(profile or ())
+    guides = tuple(fold_guides or ())
+    return _prepare_profile_mapper(
+        rows, axis=axis, fold_guides=guides, geometry=_profile_geometry(rows),
+    )

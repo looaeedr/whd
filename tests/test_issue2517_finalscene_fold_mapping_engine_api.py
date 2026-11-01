@@ -111,3 +111,44 @@ def test_gui_is_adapter_only_not_a_duplicate_folding_or_angle_owner(monkeypatch)
         assert "manufacturing_api.fold_profile_" in source
         assert "math.sin(" not in source and "math.cos(" not in source
         assert "current_angle" not in source and "float(_num(" not in source
+
+
+def test_render_helper_reuses_prepared_engine_chains_and_invalidates_source(monkeypatch):
+    from ae_engine import assembly_geometry_folded_mesh as canonical
+    from ae_engine.manufacturing_render_data import FoldGuide
+    from phase6_final_scene_render_helpers import Phase6FinalSceneRenderHelpersMixin
+
+    original = canonical._profile_geometry
+    count = []
+    def counted(profile, **kwargs):
+        count.append(1)
+        return original(profile, **kwargs)
+    monkeypatch.setattr(canonical, "_profile_geometry", counted)
+
+    renderer = Phase6FinalSceneRenderHelpersMixin()
+    x_profile = [
+        {"len": 20.0, "angle": -90.0},
+        {"len": 60.0, "core": "W"},
+        {"len": 20.0},
+    ]
+    y_profile = [{"len": 80.0, "core": "D"}]
+    guides = (FoldGuide("x", 20.0, 10.0, 70.0),)
+
+    before = renderer._map_xy(30.0, 30.0, x_profile, y_profile, guides)
+    for x in range(240):
+        renderer._map_xy(x / 2.0, float(x % 80), x_profile, y_profile, guides)
+    assert len(count) <= 8, len(count)
+
+    # The same list identity is not permission to reuse an outdated Fold.
+    x_profile[0]["angle"] = 90.0
+    after = renderer._map_xy(30.0, 30.0, x_profile, y_profile, guides)
+    assert after != pytest.approx(before)
+    assert len(count) > 2
+
+    # The same Fold profile with a different finite BEND span is also fresh.
+    narrow = (FoldGuide("x", 20.0, 50.0, 70.0),)
+    altered = renderer._map_xy(30.0, 30.0, x_profile, y_profile, narrow)
+    assert altered != pytest.approx(after)
+
+    # Every source refresh is still bounded: no per-vertex Fold recreation.
+    assert len(count) < 30

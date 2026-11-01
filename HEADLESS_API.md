@@ -800,5 +800,9 @@ compatibility delegates, not a second physical Fold algorithm. The engine's
 already-established source-owned formed_length exception is preserved while
 unfolded BEND stations continue to use physical material length. Finite BEND
 guide spans determine local bend activation; unlisted legacy folds retain the
-existing enabled behavior. No new Fold compensation, 2D CUTTING or DXF
+existing enabled behavior. `prepare_fold_profile_mapper(profile, *, axis,
+fold_guides=())` returns the canonical source-scoped prepared Engine callable,
+using the existing per-mask chain cache rather than rebuilding a Fold for each
+visible 3D vertex. A GUI display cache must invalidate when any Fold profile
+or source BEND guide changes. No new Fold compensation, 2D CUTTING or DXF
 certification follows. #2517 remains OPEN.
