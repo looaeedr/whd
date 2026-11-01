@@ -209,6 +209,10 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 
 `manufacturing_api.validate_operator_manufacturing_quantity_context(input_snapshot, live_workspace_snapshot)` 將原 `phase6_manufacturing_adapter` 組 RAW request 與 cache lookup 前兩處直接 `require_valid_quantity_features`、合併目前 Workspace `quantity` 和 `receiving_quantity_box` 的規則統一收回 Engine。沿用既有 `receiving_quantity_box.require_valid_quantity_features` 對各版本 Head/Tail finished-face 特徵合法性與原 `不能輸出 DXF` 錯誤的單一判準；非數量模式 N/A。GUI 只取得 Workspace source 及呈現 Engine 拒絕，不新增補償或假製造權限；#2517 OPEN。
 
+### #2517 FinalScene Joint 接觸／穿透／保留／退讓 3D 診斷世界來源 Engine API（2026-11-01）
+
+`manufacturing_api.project_joint_diagnostic_display_sources(render_data)` 由無 Tk 的 `ae_engine.joint_diagnostic_display` 讀取**已由 Joint Solver 建立**的 `ResolvedJointDiagnostic`，以 `selected_joint_id` 選取現行 source；僅保留 contact／penetration／preserve／relief 的合法三維世界線段與已解析方向向量，輸出不可變 `JointDiagnosticOverlaySource`。原 `phase6_final_scene_render_helpers._draw_joint_diagnostic_overlays` 只按 Engineer-result role 選 Matplotlib 畫筆、畫線與方向箭頭，不再自己過濾 Joint 來源、判斷世界座標或計算方向差分。非有限／不完整世界線段不會被呈現為診斷來源。這只是 solver 診斷的 read-only 3D 顯示，不變更 Registry 認證、Joint 接觸解算、世界碰撞報告、CUTTING／BEND／DXF 或 Save→Reload；金庫型與受電箱共用，#2517 仍 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
