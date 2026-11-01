@@ -324,9 +324,19 @@ def _export_selected_resolved_parts(self, folder, flags):
         len(row.get("bays", ())) for row in raw_sets
         if isinstance(row, dict)
     ) if isinstance(raw_sets, (list, tuple)) else 0
-    if (receiving_live.get("model") == "受電箱"
+    # Legacy one-Bay projects with unconfigured Base still use the
+    # established selection-scoped PART_ONLY compatibility route. Grouped
+    # single-Bay export is available only for NFB-independent real sheets;
+    # never turn missing Base into a synthetic whole-cabinet approval.
+    safe_single_bay_group = bool(
+        physical_count == 1 and group_mode
+        and any(flags.get(key) for key in ("head", "tail", "door"))
+        and not any(value for key, value in flags.items()
+                    if key not in {"head", "tail", "door"})
+    )
+    if (receiving_live.get("model") in {"受電箱", "RECEIVING"}
             and receiving_live.get("active_mode", "set_bay") == "set_bay"
-            and (physical_count > 1 or (physical_count == 1 and group_mode))):
+            and (physical_count > 1 or safe_single_bay_group)):
         saved_layout = manufacturing_api.normalize_receiving_layout(raw_layout)
         if physical_count != sum(len(s["bays"]) for s in saved_layout["sets"]):
             raise ValueError("多連實體連數與目前標準組合體資料不一致")
