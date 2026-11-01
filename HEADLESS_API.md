@@ -1053,3 +1053,7 @@ permission. Actual UV/material and safety rejection remain in
 `project_receiving_ear_side_piece_2d_preview`. The primary 2D / FoldDesigner
 3D source and stale-primary cases and actual Save→Reload CHECK-only DXF
 regression remain the acceptance evidence.
+
+## Receiving settings physical world XY outline API (#2517)
+
+`manufacturing_api.project_solid_mesh_xy_outline(triangles)` consumes an already-resolved solid 3D mesh, uses Engine's canonical physical feature-edge extractor and returns deterministic world XY line pairs (five decimal places, duplicate / zero-length edges omitted). This is a headless, read-only 2D inspection projection; the WHD GUI owns only canvas rendering and selection. It does not create, validate or certify CUTTING, BEND, DXF, NFB, EAR or PAD manufacturing data. Legacy GUI assembly mesh orchestration is a separate #2517 migration.

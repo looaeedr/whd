@@ -1245,3 +1245,6 @@ from .receiving_ear_side_display_context import (
     ReceivingEarSideDisplayContext,
     resolve_receiving_ear_side_display_context,
 )
+
+# #2517: read-only world XY physical-feature projection for Receiving settings.
+from .receiving_settings_orthographic_projection import project_solid_mesh_xy_outline
