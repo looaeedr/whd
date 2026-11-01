@@ -129,6 +129,11 @@ from .physical_sheet_editor_context import (
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .receiving_endcap_feature_preview import receiving_endcap_feature_preview_shapes
 from .receiving_ear_side_preview import project_receiving_ear_side_piece_2d_preview
+from .receiving_nfb_verified_scope import (
+    NfbCsvVerifiedPhysicalSite, NfbCsvVerifiedExportScope,
+    NfbCsvVerifiedSelectorProof, resolve_verified_csv_v5_export_scope,
+    capture_verified_csv_v5_pair_display_proof, verified_csv_v5_operator_label,
+)
 from .receiving_nfb_v5_source_preview import (
     ReceivingNfbV5SourcePreview, ReceivingNfbV5SourcePreviewCache,
 )
@@ -1114,6 +1119,25 @@ def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
     from .solid_mesh_feature_edges import physical_solid_mesh_feature_segments as resolve
     return resolve(triangles, tolerance=tolerance)
 
+
+
+def build_door_operator_part_spec(
+    values, *, model_name, features=(), indicator_hole=None,
+    door_indicator=None, door_indicator_offset=(0.0, 0.0),
+    use_box_distance=False, corner_policy=None, frame_edges=None,
+    indicator_window_groups=None, nameplate_center_datum_top=None,
+) -> DoorPartSpec:
+    """Public Engine-owned Door operator → canonical manufacturing PartSpec."""
+    from .door_operator_part_spec import build_door_operator_part_spec as build
+    return build(
+        values, model_name=model_name, features=features,
+        indicator_hole=indicator_hole, door_indicator=door_indicator,
+        door_indicator_offset=door_indicator_offset,
+        use_box_distance=use_box_distance, corner_policy=corner_policy,
+        frame_edges=frame_edges,
+        indicator_window_groups=indicator_window_groups,
+        nameplate_center_datum_top=nameplate_center_datum_top,
+    )
 
 # #2517: physical Receiving NFB highlighted partial DXF batch is Engine-owned.
 # The GUI import path is a compatibility facade, never a second release gate.

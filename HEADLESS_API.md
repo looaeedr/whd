@@ -846,6 +846,22 @@ Matplotlib paints returned segments. No redefinition of canonical material,
 geometry, CUTTING, 2D/3D certification or DXF capability follows.
 
 
+
+## Door operator input → physical DoorPartSpec Engine API (#2517)
+
+`manufacturing_api.build_door_operator_part_spec(values, *, model_name,
+features=(), indicator_hole=None, door_indicator=None,
+door_indicator_offset=(0,0), use_box_distance=False, corner_policy=None,
+frame_edges=None, indicator_window_groups=None,
+nameplate_center_datum_top=None)` is the canonical headless source of the
+single-door and already-selected door-cell PartSpec. The GUI gathers current
+operator inputs only; Engine owns every material request field and the legacy
+`feature_space="legacy_unfolded"` export coordinate contract. Existing
+DoorPartSpec fields, the caller's physical per-cell edges/size, nameplate
+datum, Fold/Corner inputs, and downstream 2D/3D/DXF/Save→Reload remain
+unchanged. This API does not approve manufacturing, override Certified
+Registry geometry, or create a second physical cell topology. #2517 OPEN.
+
 ## Receiving highlighted Set/Bay NFB inner-door partial DXF public Engine API (#2517)
 
 `manufacturing_api.require_highlighted_nfb_inner_doors(ports, set_index,

@@ -35,6 +35,9 @@ whd_schema: WHD_DOC_META_V1
 **#2517 受電箱 NFB 多 Bay 內門部分出圖公開 API（2026-11-01）**：`manufacturing_api.require_highlighted_nfb_inner_doors`、`manufacturing_api.export_highlighted_nfb_inner_doors` 接管原 GUI `receiving_nfb_partial_batch_dispatcher` 的已提交來源、真實 Set/Bay/version 與實體內門 ID 查核、批次 DXF 隔離暫存、無覆寫原子發布及失敗回滾。原 GUI module 僅作公開 API 相容 re-export；`manifest`／`partial_export` 仍是來源必須即時重驗的原正式 port，過期／跨 Bay／偽造 typed receipt 必拒絕。明確選擇 allow_held 時僅放行 READY 內門並產生未出圖 Bay 報告，不把底板／PAD／EAR 誤計為已出板片；不新增孔位／CUTTING／DXF 認證或整箱製造權，#2517 持續 OPEN。
 
 
+**#2517 Receiving NFB CSV 已出圖範圍來源證明 Engine API（2026-11-01）**：`manufacturing_api.resolve_verified_csv_v5_export_scope` 由既有 `receiving_nfb_model_identity.selected_numeric_spec`、`receiving_nfb_y_projection.project_nfb_inner_door_nominal_y` 確認精確 Set/Bay、W、實體孔身分與 X/Y/rotation；`capture_verified_csv_v5_pair_display_proof` / `verified_csv_v5_operator_label` 由 Engine 唯一校驗已提交 snapshot、原品牌 CSV 真實 bytes、已實際存檔並重新開啟的兩／三片 PART_ONLY DXF 真實 bytes 與目前來源是否完全相等。GUI exporter 只採原本的 typed 成功 receipt，`receiving_nfb_verified_scope_display` 只傳輸來源與回傳顯示標籤，不再持有 SHA、來源型號／物理身份及是否可以標示過去已出圖的決策。Proof 為 immutable 的暫存歷史輸出展示憑據，不寫入專案；來源或輸出檔任何漂移立即失效、不推定全箱／EAR／PAD／下一次正式製造權限。原出圖、Save→Reload、Fail closed 不改；#2517 保持 OPEN。
+
+
 **#2517 Receiving NFB V5 CSV 來源預覽公開 API（2026-11-01）**：`manufacturing_api.ReceivingNfbV5SourcePreviewCache.load(brand, model_ref)` 與 immutable `ReceivingNfbV5SourcePreview` 將原 GUI 的 V5 廠牌／型號身份比對、`brand_csv_path` 檔案版本簽章、當次 CSV 解析與最多 8 筆的 per-editor source cache 改由 Engine 擁有。既有 `receiving_nfb_model_identity.selected_numeric_spec` 和 `receiving_nfb_numeric_catalog` 仍是唯一型號／孔位數值來源；原 CSV 在解析期間改變版本則拒絕緩存，未知／跨品牌身份 fail-closed。GUI `receiving_nfb_source_preview.NfbDxfSourcePreviewPanel` 僅依 Engine 回傳的來源實體和數值畫 source-only 示意、處理縮放及 verified-output 標籤，不再直接解析 NFB 身份或讀 CSV 檔案來源時間。舊 DXF 預覽、同來源快取、缺數值禁止製造、Set/Bay 提交／出圖／DXF 認證均保留原界線；此 API 不構成 CUTTING／DXF 製造核准，#2517 維持 OPEN。
 
 
@@ -713,3 +716,19 @@ Engine 按既有規則保留未操作格位的舊 Feature、允許已操作格�
 `phase6_final_scene_projection._phase6_mesh_feature_segments` 僅相容委派，
 GUI 的 Matplotlib 不再決定實體特徵邊。FinalScene 製造材料來源不變，
 此線段資料純顯示，不新增 CUTTING、DXF／碰撞認證；#2517 持續 OPEN。
+
+
+
+### #2517 單門／多門 DoorPartSpec 公開建構 API（2026-11-01）
+
+`manufacturing_api.build_door_operator_part_spec(values, *, model_name,
+features, indicator_hole, door_indicator, door_indicator_offset,
+use_box_distance, corner_policy, frame_edges, indicator_window_groups,
+nameplate_center_datum_top)` 接收 GUI 的當次操作資料後，由 Engine
+產生 immutable `DoorPartSpec`。GUI
+`_door_part_spec_from_values` 僅取得／傳遞操作輸入，不能再次
+自行決定 `feature_space`、Fold 欄位、FrameEdges、
+指示燈與名牌孔的製造 request 語意。既有 `legacy_unfolded`
+feature 座標空間、單門及 door-cell physical 尺寸、後續
+Door finished-face、2D/3D/DXF、Save→Reload 與 Certified Registry
+權責原樣保留，無新增製造核准；#2517 維持 OPEN。
