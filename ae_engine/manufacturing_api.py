@@ -1263,7 +1263,10 @@ def resolve_box_body_formed_width_datum(pieces):
     return resolve(pieces)
 
 # #2517: Receiving settings physical assembled world meshes are Engine-owned.
-from .receiving_settings_assembly_mesh import resolve_receiving_settings_assembly_world_meshes
+from .receiving_settings_assembly_mesh import (
+    resolve_receiving_settings_assembly_world_meshes,
+    resolve_box_body_structure_mid_meshes,
+)
 
 # #2517: physical material/outside/BEND dimension evidence for FinalScene UI.
 from .assembly_physical_dimensions import (
