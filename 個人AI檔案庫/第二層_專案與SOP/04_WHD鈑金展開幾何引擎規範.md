@@ -197,6 +197,10 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 
 `manufacturing_api.project_operator_door_layout_peer_cells(cells, render_data_by_part_key)` 由無 Tk 的 `ae_engine.operator_door_layout_peer_2d` 按現行 `door_c<column>_r<row>` 物理實體身分，讀取**已解析的 canonical Door FinalScene** 的 `scene`／`material.bounds`，回傳不可變 `DoorLayoutPeerCell`。這個入口僅支援已存在的實體來源，缺少 Scene 或空實體輸出 `present=False`，不得用相鄰格、Legacy 預覽或輸入 W/H 代填真實來源；重複／錯誤格位及非法實體界限 fail-closed。原 `gui_modules/application/render_snapshots.door_layout_overview_snapshot` 的 peer 模式只接收 Engine 已驗證的格位、場景及尺寸，保留未提交時的 local 操作模式；不再自行決定實體 key／來源界限。原 `max(size,1e-9)` 是顯示防零除下限，不是料尺寸或製造放行。金庫型與受電箱共用，並維持 Save→Reload、2D／3D／DXF 既有母源；不新增 CUTTING、MFG2 或 DXF 權限，#2517 仍 OPEN。
 
+### #2517 FinalScene 全實體板件干涉來源及厚板公共 API（2026-11-01）
+
+`manufacturing_api.project_assembly_collision_display_audit` 接管原 FinalScene GUI 的實體 BoxBody piece／內門框／Head Tail 組合 world mesh 來源、visible keys 選取及 `audit_all_physical_part_pairs` 呼叫。原 Certified Registry Relief 與 `ASSEMBLY_COLLISION_MISSING_VISIBLE_PARTS` 等 fail-closed 規則保持既有 Engine 唯一判準；GUI 只快取和描繪未證實交叉。另由 `manufacturing_api` 公開既存 `restore_unrelieved_endcap_material`、`restored_endcap_relief_delta`、`thicken_triangle_surface`、`MeshInterferenceDiagnostic`、`collision_part_display_name`，Phase6 renderer 不再直接 import 底層幾何／碰撞分類。此為 3D 顯示診斷 API，不修改全箱 2D／3D／Save→Reload／正式 DXF、亦不新增製造認證；#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
