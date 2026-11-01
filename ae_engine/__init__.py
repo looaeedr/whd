@@ -135,6 +135,7 @@ from .manufacturing_api import (
     recompute_door_layout, door_layout_cells,
     validate_door_layout_width_commit, validate_door_layout_height_commit,
     apply_receiving_endcap_candidate_to_bays,
+    mark_receiving_bays_live_version,
 )
 from .cabinet_types import (
     CabinetTypeRegistration, registered_cabinet_types, resolve_cabinet_type,
@@ -276,6 +277,7 @@ __all__ = [
     "DoorLayoutColumnState", "DoorLayoutResolvedColumn",
     "DoorLayoutRecomputeResult", "DoorLayoutCommitValidation",
     "apply_receiving_endcap_candidate_to_bays",
+    "mark_receiving_bays_live_version",
     "ManufacturingPolicy", "ManufacturingContext",
     "DoorPartSpec", "BoxBodyPartSpec", "EndCapPartSpec", "BasePlatePartSpec",
     "IndicatorBoxPartSpec", "CustomFoldPartSpec", "PartExportResult", "PartSpec",

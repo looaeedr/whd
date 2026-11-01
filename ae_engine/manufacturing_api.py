@@ -932,6 +932,11 @@ def apply_receiving_endcap_candidate_to_bays(
         layout, role, set_index, bay_indices, features, version_id=version_id,
     )
 
+def mark_receiving_bays_live_version(layout, role, set_index, bay_indices):
+    """Public headless Engine transition for highlighted Live version provenance."""
+    from .receiving_version_transactions import mark_receiving_bays_live_version as _mark
+    return _mark(layout, role, set_index, bay_indices)
+
 def apply_receiving_inner_door_candidate_to_bays(layout, config, set_index, bay_indices, *, version_id=None):
     """Public Engine API: one source-backed inner-door candidate Apply."""
     from .receiving_inner_door_pairing import (

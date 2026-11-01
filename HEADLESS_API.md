@@ -8,6 +8,21 @@ whd_schema: WHD_DOC_META_V1
 
 目的：讓 GUI、自動拆圖、CLI 或其他 Python 程式都使用同一個 AE 出圖入口，不必建立 Tkinter GUI，也不必直接呼叫 `ae.export_xxx_dxf()`。
 
+## Receiving highlighted Live applied-version provenance API (#2517)
+
+`manufacturing_api.mark_receiving_bays_live_version(layout, role,
+set_index, bay_indices)` is the headless Engine state transaction for explicit
+operator 即時 Apply. It validates Head, Tail or Inner Door role and exact
+physical Set/Bay selection, then unlinks shared applied-version references for
+the selected Bays only and commits the canonical empty-string Live marker.
+Returns the detached layout, sorted highlighted indices and physical Bay IDs.
+
+This does **not** clear or replace actual saved Hole Editor Features, NFB
+source, accepted X evidence, topology or 2D/3D/DXF manufacturing geometry.
+The GUI only forwards operator action and marks presentation dirty IDs;
+Save→Reload retains the distinct None (never applied) and "" (explicit Live)
+version states.
+
 ## GUI／引擎權責（2026-10-31）
 
 全域硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 的唯一 CURRENT owner 是 AI 庫 `第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；此檔是 REFERENCE。GUI 全功能只處理操作與輸入，所有製造資料、公式、實體板件、孔位／折展開及 2D/3D/DXF 的 canonical 結果由引擎公開 API 處理。既有舊 GUI adapters 的存在**不代表每個箱型與功能均已完成改造**。遇 API 不支援，回引擎開發／測試或明確拒絕，不許 GUI 私做 fallback。對外 CADSplit Worker `capabilities/prepare/export` 僅宣告實際已驗證與授權的能力。靜態 CI gate：`tools/gui_engine_api_boundary_gate.py`，但它不代替行為契約測試或平台 required status check。
