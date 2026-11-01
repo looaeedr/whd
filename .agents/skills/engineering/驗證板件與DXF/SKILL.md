@@ -8,6 +8,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 
 # 驗證板件與DXF
+## WHD API／製造施工前必讀
+
+- 當本 Skill 涉及 **WHD API、Engine、Family（金庫型／受電箱）、CADSplit Bridge、製造／DXF 出圖或跨版本相容**時，先讀 GitHub `localX` exact HEAD 的 [AI 庫 04 CURRENT](../../../../個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md)，再讀 [WHD × CADSplit API 架構與權威整合 v5.1（REFERENCE）](../../../../docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md) **全文**；不能只讀本 Skill 就跳過整合規範。這是 `AGENTS.md::CADSPLIT_WHD_API_REFERENCE_READ_GATE_V1` 的導覽，不是第二份製造權威。
+- 驗證 Bridge、單件／批次 DXF、來源 Set/Bay 與實體身份時須依實際 exporter 的 Save→Reload／DXF reopen 證據，不能把 API 成功當加工合格； 施工前沿用 `SOURCE_READ_EVIDENCE` 簡述 **repo/ref、完整 Git SHA、文件路徑與相關章節、權威判斷**；沒真正讀取就不得宣稱規範核對完成。**使用者已確認產品規則優先**，不得以 CADSplit 現有程式缺陷、現有測試或此 REFERENCE 推翻正式製造權威。
+
 
 ## 專案技能邊界
 
