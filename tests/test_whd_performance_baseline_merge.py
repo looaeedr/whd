@@ -118,7 +118,7 @@ def test_baseline_cli_preserves_unfiltered_legacy_mode():
               / "tools/whd_performance_baseline.py").read_text(encoding="utf-8")
     assert "choices=(1, 3), default=None" in script
     assert "if args.bay_scope is not None else (3, 1)" in script
-    assert "for sample in range(args.samples)" in script
+    assert "if args.sample_index is not None else range(args.samples)" in script
 
 
 def _isolated() -> dict[tuple[int, int], dict]:
