@@ -240,7 +240,7 @@ def _compose(rows, *, gap):
             row_height = max(row_height, height)
             # Deliberate CHECK-only provenance label outside the flat blank.
             scene.add(TextPrimitive(
-                physical_id, Vec2(dx+x0, y_cursor+gap/4), "CHECK",
+                physical_id, Vec2(dx+x0, y_cursor-gap/3), "CHECK",
                 5.0, 1, 2, "composed_physical_source",
             ))
         scene.add(TextPrimitive(
