@@ -183,18 +183,32 @@ class Phase6FinalSceneRenderHelpersMixin:
             )
 
     def _map_xy(self, x, y, x_profile, y_profile, fold_guides):
-        if fold_guides:
-            ux, zx = _phase6_profile_map_with_guides(
-                float(x), float(y), x_profile, axis="x", fold_guides=fold_guides
+        """Render-only memo for canonical Engine Fold chains; never persist truth.
+
+        GUI caches only the prepared callable and a detached INPUT snapshot.
+        A modified profile, angle, formed length or BEND span invalidates the
+        mapping before the next point; Engine alone owns Fold calculations.
+        """
+        from copy import deepcopy
+        from ae_engine import manufacturing_api
+
+        source = (
+            tuple(x_profile or ()),
+            tuple(y_profile or ()),
+            tuple(fold_guides or ()),
+        )
+        cached = getattr(self, "_phase6_prepared_fold_mapping", None)
+        if cached is None or cached[0] != source:
+            x_mapper = manufacturing_api.prepare_fold_profile_mapper(
+                source[0], axis="x", fold_guides=source[2],
             )
-            uy, zy = _phase6_profile_map_with_guides(
-                float(y), float(x), y_profile, axis="y", fold_guides=fold_guides
+            y_mapper = manufacturing_api.prepare_fold_profile_mapper(
+                source[1], axis="y", fold_guides=source[2],
             )
-        else:
-            xb, xf = _phase6_profile_geometry(x_profile)
-            yb, yf = _phase6_profile_geometry(y_profile)
-            ux, zx = _phase6_profile_map(float(x), xb, xf)
-            uy, zy = _phase6_profile_map(float(y), yb, yf)
+            cached = (deepcopy(source), x_mapper, y_mapper)
+            self._phase6_prepared_fold_mapping = cached
+        ux, zx = cached[1](float(x), float(y))
+        uy, zy = cached[2](float(y), float(x))
         return (ux, uy, zx + zy)
 
     def _draw_assembly_box_body_bends(

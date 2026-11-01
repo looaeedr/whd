@@ -229,60 +229,18 @@ def _export_authoritative_part(self, spec, output_path, context=None):
     )
 
 def _box_body_divider_from_payload(key, payload):
-        from ae_engine.door_dividers import derive_box_body_dividers
+    """UI input normalization only; Engine selects the physical Divider."""
+    divider_input = collect_divider_input(
+        key, payload, default_depth=ae.D, default_thickness=ae.T,
+    )
+    return manufacturing_api.resolve_fold_designer_divider_part(key, divider_input)
 
-        divider_input = collect_divider_input(
-            key,
-            payload,
-            default_depth=ae.D,
-            default_thickness=ae.T,
-        )
-        dividers = derive_box_body_dividers(
-            divider_input["columns"],
-            depth=divider_input["depth"],
-            thickness=divider_input["thickness"],
-            layout_scope=divider_input["layout_scope"],
-            handle_edges=divider_input["handle_edges"],
-            model_name=divider_input["model_name"],
-        )
-        divider = next((item for item in dividers if item.stable_id == key), None)
-        if divider is None:
-            raise ValueError(f"中隔 stable_id 不存在於 authoritative topology: {key}")
-        return divider
 
 def _inner_door_frame_from_payload(key, payload):
-        from ae_engine.inner_door_frames import (
-            InnerDoorFrameSet,
-            derive_all_inner_door_frames,
-        )
-        data = dict(payload or {})
-        if cabinet_family_policy.has_inner_door_frame_derivation(data):
-            frame_sets = list(cabinet_family_policy.derive_inner_door_frame_sets(data))
-        else:
-            frame_sets = []
-            thickness = float(data.get("t", ae.T))
-            for item in tuple(data.get("inner_doors") or ()):
-                if not isinstance(item, dict):
-                    continue
-                stable_id = str(item.get("stable_id") or "").strip()
-                spans = item.get("frame_spans")
-                if not stable_id or not isinstance(spans, dict) or not spans:
-                    continue
-                included = tuple(
-                    str(side).strip().lower()
-                    for side in tuple(item.get("included_frame_sides") or ("top", "bottom", "left", "right"))
-                )
-                frame_sets.append(InnerDoorFrameSet(
-                    inner_door_id=stable_id,
-                    spans=dict(spans),
-                    thickness=thickness,
-                    included_sides=included,
-                ))
-        frames = derive_all_inner_door_frames(tuple(frame_sets))
-        frame = next((item for item in frames if item.stable_id == key), None)
-        if frame is None:
-            raise ValueError(f"內門框 stable_id 不存在於 authoritative topology: {key}")
-        return frame
+    """The Engine owns Family/legacy frame topology and stable identity."""
+    return manufacturing_api.resolve_fold_designer_frame_part(
+        key, payload, default_thickness=ae.T,
+    )
 
 
 def _query_receiving_resolved_base_render_data(self, key, payload):
@@ -457,12 +415,8 @@ def _query_fold_designer_render_data(self, part_key, payload):
         return sheet(manufacturing_api.build_box_body_divider_render_data(divider))
 
     if key.startswith("inner_door:") and key.endswith(":panel"):
-        data = dict(payload or {})
-        panels = cabinet_family_policy.derive_inner_door_panels(data)
-        panel = next((item for item in panels if item.stable_id == key), None)
-        if panel is None:
-            raise ValueError(f"內門板 stable_id 不存在於 authoritative topology: {key}")
-        features = tuple(data.get("features") or ())
+        panel = manufacturing_api.resolve_fold_designer_panel_part(key, payload)
+        features = tuple(dict(payload or {}).get("features") or ())
         # The canonical inner-door panel factory consumes only the immutable
         # physical panel and finished-face features. It reads no DXF/source
         # file. Do not apply this cross-transaction reuse to frame/divider

@@ -13,124 +13,45 @@ axes/canvas, own Tk/UI state, import the bridge, or invoke application owners.
 from __future__ import annotations
 
 from ae_engine.display_dimensions import folded_outside_envelope
+from ae_engine import manufacturing_api
 from phase6_final_scene_contracts import AssemblySceneRenderData
 from phase6_fold_profiles import _num, engine_segment_length_to_ui
 
 
 def _phase6_profile_base_index(profile):
-    """Return the semantic finished-face/core segment used as the 3D base plane."""
-    segs = list(profile or ())
-    if not segs:
-        return 0
-    # Prefer explicit W-piece/back cores when a multi-piece Box Body is being
-    # rendered. A right W-split piece can also carry the legacy D core, so the
-    # old "middle core" heuristic would incorrectly make the side face the base.
-    for preferred in ("W_PART", "W_BACK", "W"):
-        for i, seg in enumerate(segs):
-            if str(seg.get("core") or "") == preferred:
-                return i
-    core_indices = [i for i, seg in enumerate(segs) if seg.get("core")]
-    if core_indices:
-        return core_indices[len(core_indices) // 2]
-    return min(len(segs) - 1, len(segs) // 2)
+    """Compatibility: Engine selects the real physical 3D Fold base segment."""
+    return manufacturing_api.fold_profile_base_index(profile)
 
 
 def _phase6_profile_geometry(profile, *, enabled_folds=None):
-    """Return cumulative unfolded boundaries and folded endpoints.
-
-    ``enabled_folds[i]`` controls only the bend after segment ``i``.  This is
-    how finite manufacturing BEND spans can leave a retained tongue attached
-    while later folds in the same axis still occur.
-    """
-    import math
-
-    segs = list(profile or ())
-    if not segs:
-        return (0.0, 1.0), ((-0.5, 0.0), (0.5, 0.0))
-    if enabled_folds is None:
-        enabled_folds = (True,) * max(0, len(segs) - 1)
-    else:
-        enabled_folds = tuple(bool(v) for v in enabled_folds)
-
-    raw_u = [0.0]
-    raw_z = [0.0]
-    angles = []
-    current_angle = 0.0
-    cumulative = [0.0]
-    for i, seg in enumerate(segs):
-        length = max(0.0, float(_num(seg.get("len", 0.0))))
-        angles.append(current_angle)
-        rad = math.radians(current_angle)
-        raw_u.append(raw_u[-1] + length * math.cos(rad))
-        raw_z.append(raw_z[-1] + length * math.sin(rad))
-        cumulative.append(cumulative[-1] + length)
-        if i < len(segs) - 1 and "angle" in seg:
-            if i >= len(enabled_folds) or enabled_folds[i]:
-                current_angle -= float(_num(seg.get("angle", 0.0)))
-
-    base_idx = _phase6_profile_base_index(segs)
-    base_angle = math.radians(angles[base_idx] if angles else 0.0)
-    rotated = []
-    for u, z in zip(raw_u, raw_z):
-        ru = u * math.cos(-base_angle) - z * math.sin(-base_angle)
-        rz = u * math.sin(-base_angle) + z * math.cos(-base_angle)
-        rotated.append((ru, rz))
-    center = (rotated[base_idx][0] + rotated[base_idx + 1][0]) / 2.0
-    z0 = rotated[base_idx][1]
-    folded = tuple((u - center, z - z0) for u, z in rotated)
-    return tuple(cumulative), folded
+    """Compatibility: use the same folded material chain as Engine assembly."""
+    return manufacturing_api.fold_profile_geometry(profile, enabled_folds=enabled_folds)
 
 
 def _phase6_fold_mask_for_cross_coordinate(profile, axis, cross_position, fold_guides, *, tol=1e-6):
-    """Return one enabled/disabled flag per profile bend using final BEND spans."""
-    segs = list(profile or ())
-    boundaries = [0.0]
-    for seg in segs:
-        boundaries.append(boundaries[-1] + max(0.0, float(_num(seg.get("len", 0.0)))))
-    guides = tuple(g for g in (fold_guides or ()) if str(getattr(g, "axis", "")) == str(axis))
-    mask = []
-    cross = float(cross_position)
-    for i in range(max(0, len(segs) - 1)):
-        boundary = boundaries[i + 1]
-        matches = [g for g in guides if abs(float(g.position) - boundary) <= tol]
-        if not matches:
-            # Custom/legacy scenes without an explicit matching BEND keep the
-            # editor profile behavior instead of silently dropping a fold.
-            mask.append(True)
-            continue
-        mask.append(any(float(g.span_start) - tol <= cross <= float(g.span_end) + tol for g in matches))
-    return tuple(mask)
+    """Compatibility: Engine owns finite BEND-span fold activation."""
+    return manufacturing_api.fold_profile_bend_mask(
+        profile, axis, cross_position, fold_guides, tol=tol,
+    )
 
 
 def _phase6_profile_map_with_guides(position, cross_position, profile, *, axis, fold_guides):
-    mask = _phase6_fold_mask_for_cross_coordinate(profile, axis, cross_position, fold_guides)
-    boundaries, folded = _phase6_profile_geometry(profile, enabled_folds=mask)
-    return _phase6_profile_map(position, boundaries, folded)
+    """Compatibility: fold one mesh coordinate using canonical Engine geometry."""
+    return manufacturing_api.fold_profile_map_with_guides(
+        position, cross_position, profile, axis=axis, fold_guides=fold_guides,
+    )
 
 
 def _phase6_profile_map(position, boundaries, folded):
-    """Map one unfolded scalar to a folded cross-section coordinate (u, z)."""
-    value = float(position)
-    total = float(boundaries[-1])
-    value = min(max(value, 0.0), total)
-    index = len(boundaries) - 2
-    for i in range(len(boundaries) - 1):
-        if value <= boundaries[i + 1] + 1e-9:
-            index = i
-            break
-    lo, hi = float(boundaries[index]), float(boundaries[index + 1])
-    ratio = 0.0 if hi <= lo else (value - lo) / (hi - lo)
-    u0, z0 = folded[index]
-    u1, z1 = folded[index + 1]
-    return (u0 + (u1 - u0) * ratio, z0 + (z1 - z0) * ratio)
+    """Compatibility: Engine owns material-space to formed-space mapping."""
+    return manufacturing_api.fold_profile_map(position, boundaries, folded)
 
 
 def _phase6_profile_flat_map(position, boundaries, *, profile=None):
-    """Map one unfolded scalar onto the semantic unbent base plane."""
-    seg_count = max(1, len(boundaries) - 1)
-    base_idx = _phase6_profile_base_index(profile) if profile is not None else min(seg_count - 1, seg_count // 2)
-    center = (float(boundaries[base_idx]) + float(boundaries[base_idx + 1])) / 2.0
-    return float(position) - center, 0.0
+    """Compatibility: Engine owns the unbent semantic base datum."""
+    return manufacturing_api.fold_profile_flat_map(
+        position, boundaries, profile=profile,
+    )
 
 
 def _phase6_folded_mesh_from_polygon(
@@ -149,60 +70,10 @@ def _phase6_folded_mesh_from_polygon(
 
 
 def _phase6_mesh_feature_segments(triangles, *, tolerance=1e-6):
-    """Return physical solid edges that are visible geometric features.
-
-    Coplanar triangulation diagonals are excluded.  Boundary edges and shared
-    edges whose adjacent face normals are non-coplanar are retained.  On a
-    thickened formed sheet this yields the actual outer/inner hole rims, sheet
-    perimeter, bend/miter edges, and thickness corners on the physical skins.
-    """
-    import math
-    from collections import defaultdict
-
-    inv_tol = 1.0 / max(float(tolerance), 1e-12)
-
-    def key(point):
-        return tuple(int(round(float(v) * inv_tol)) for v in point)
-
-    def normal(tri):
-        a, b, c = tri[:3]
-        ux, uy, uz = (float(b[i]) - float(a[i]) for i in range(3))
-        vx, vy, vz = (float(c[i]) - float(a[i]) for i in range(3))
-        nx = uy * vz - uz * vy
-        ny = uz * vx - ux * vz
-        nz = ux * vy - uy * vx
-        mag = math.sqrt(nx * nx + ny * ny + nz * nz)
-        if mag <= 1e-12:
-            return None
-        return (nx / mag, ny / mag, nz / mag)
-
-    edges = defaultdict(list)
-    original = {}
-    for tri in triangles or ():
-        if len(tri) < 3:
-            continue
-        n = normal(tri)
-        if n is None:
-            continue
-        for a, b in ((tri[0], tri[1]), (tri[1], tri[2]), (tri[2], tri[0])):
-            ka, kb = key(a), key(b)
-            edge = (ka, kb) if ka <= kb else (kb, ka)
-            edges[edge].append(n)
-            original[ka] = tuple(float(v) for v in a)
-            original[kb] = tuple(float(v) for v in b)
-
-    segments = []
-    for edge, normals in edges.items():
-        visible = len(normals) == 1
-        if not visible and len(normals) >= 2:
-            base = normals[0]
-            visible = any(
-                abs(sum(base[i] * other[i] for i in range(3))) < 1.0 - 1e-6
-                for other in normals[1:]
-            )
-        if visible:
-            segments.append((original[edge[0]], original[edge[1]]))
-    return tuple(segments)
+    """FinalScene presentation compatibility, not a physical-edge formula."""
+    return manufacturing_api.physical_solid_mesh_feature_segments(
+        triangles, tolerance=tolerance,
+    )
 
 
 def _phase6_fitted_limits_from_vertices(vertices, padding=0.06):
