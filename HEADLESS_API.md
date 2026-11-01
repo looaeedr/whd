@@ -882,6 +882,24 @@ compatibility re-export of these public functions. No whole-cabinet
 manufacturing, new hole/CUTTING formula, DXF certification, or external
 installer capability follows from this move. #2517 remains OPEN.
 
+
+## Receiving NFB physically reopened pair CHECK/Q public Engine API (#2517)
+
+`manufacturing_api.NfbPairedPartOnlyDxf`, `NfbPairedQuantityInput`,
+`NfbPairedQuantityCheck`, `group_reopened_nfb_pair_check_q(inputs)`
+and `save_checked_reopened_nfb_pair_q_dxf(checked, output_directory)`
+are the headless owners of real current-source inner-door plus BasePlate
+**PART_ONLY** CHECK/Q. The Engine requires the typed exporter receipt,
+real Set/Bay/version and physical owner IDs, original current source SHA,
+matching saved NFB hole metadata, two unchanged DXF reopen comparisons,
+positive integer piece counts and actual material/process parameters. It
+uses the existing NFB physical gate and geometry-equivalence grouping;
+only explicitly verified paired parts can be written with Q, without
+overwriting. Neither filename nor cached readiness can grant whole MFG-2,
+EAR, PAD or complete-cabinet manufacturing. The old GUI quantity module
+and NFB pair output DTO remain compatible imports that alias Engine
+objects; no second manufacture/quantity formula exists in GUI.
+
 ## Derived physical part namespace/selection sync Engine API (#2517)
 
 The pure immutable `DerivedPartRequestAssemblyInput`,

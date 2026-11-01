@@ -16,6 +16,7 @@ from ae_engine.contracts import BasePlatePartSpec
 from ae_engine.manufacturing_render_data import PartRenderData
 from ae_engine.manufacturing_api import (
     save_resolved_manufacturing_geometry_dxf,
+    NfbPairedPartOnlyDxf,
     NfbCsvVerifiedPhysicalSite, NfbCsvVerifiedExportScope,
     resolve_verified_csv_v5_export_scope,
 )
@@ -33,20 +34,6 @@ from ae_engine.receiving_nfb_ui1b_bridge import NfbVerifiedDraftSubmission
 from .receiving_nfb_base_partial_export_action import (
     prepare_verified_receiving_nfb_base_plate,
 )
-
-
-@dataclass(frozen=True)
-class NfbPairedPartOnlyDxf:
-    inner_door_path: str
-    base_plate_path: str
-    receipt: NfbDoorBasePairReceipt
-    inner_door_render_data: PartRenderData
-    base_plate_render_data: PartRenderData
-    source_path: str
-    set_id: str
-    bay_id: str
-    version_id: str
-    scope: str = "PAIR_PART_ONLY_NOT_WHOLE_CABINET"
 
 
 def export_verified_receiving_nfb_door_base_pair(
