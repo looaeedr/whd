@@ -263,6 +263,16 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+
+**[CONFIRMED PRODUCT RULE｜2026-11-02] 全箱型共用既有 Engine 製造架構，不為受電箱另開一條製造路線。** 這是對 #2517 與 CADSplit #15 的原則性澄清，優先於舊的「另開外部 export」施工建議：
+
+- **唯一製造 owner、按能力重用既有入口。** WHD GUI 與 CADSplit 的可信 operator/source adapter 都交由 `ae_engine.contracts`／`ae_engine.manufacturing_api` 的同一套公開 Engine 能力執行；單一板件沿用 `generate_part(PartSpec, ..., ManufacturingContext)`，組合、數量、Set/Bay、NFB、已解析實體板件／FinalScene、批次 DXF 則選用當版**已存在且適用**的製造／解算／驗證 API。共用的是 Family／Topology／Policy／geometry／Registry／輸出權威，**不等於強迫所有操作呼叫同一函式**。
+- **新箱型只擴充差異。** 在 `ae_engine/cabinet_types/registry.py` 登記 identity／alias，受電箱特有 Factory/Topology/Policy 在 `cabinet_types/receiving.py`、`policy.py` 與既有 canonical owner 擴充；不得複製金庫型 Door／BoxBody／EndCap exporter、另造 Receiving 專用製造 pipeline／API／GUI／Bridge，或以來源盤名、Set/Bay、W/H/D/T 猜出 `physical_part_id`、Fold、Corner 或 Factory Policy。既有 API 不能表達的**真新操作**才可向後相容加入口，不能因新增 Family 而加入口。
+- **source-only ≠ 正式製造。** `ae_engine.integration_api.dispatch_manufacturing_integration(ManufacturingIntegrationRequest(operation="export", ...))` 只有 source identity、Family 等資訊；目前所有已實作 Family 一旦進入該分支，固定回 `EXTERNAL_EXPORT_NOT_CERTIFIED`／`WHD_INTEGRATION_MANUFACTURING_NOT_CERTIFIED`，不會出 DXF。2026-11-02 CADSplit #15 以兩張真 DXF 呼叫已確認此事；**這不是受電箱被禁止用共用 Engine，也不是缺 CSV 欄位的問題**。禁止單純刪掉拒絕分支、把 source-only `export` 改造成第二個製造 executor，或誤導 CADSplit 把它當唯一正式製造入口。舊安裝版 Worker/EXE 仍退役。
+- **應補的是同一條來源接線。** CADSplit 從原始 DXF／finalized info_data 保留來源證據；可信 Project／Factory authority 補足 PartSpec／實體拓樸／Set/Bay 對應所需的已確認輸入；WHD Engine 做製造身分、Family/Part/Operation 適用性、幾何與 Registry 判定；既有 verified DXF Save→Reload 檢核及來源漂移 guard 才能宣稱當次輸出通過。缺任一必要權威只拒絕受影響的 Part／Operation，舊版金庫型合法能力不因受電箱未完成而停用。
+- **現況不得冒稱完成。** `cabinet_types.registry` 目前主要是 identity；`manufacturing_api._export_to_temp()` 仍主要按 `PartSpec` 類別分派，尚未全入口落實 Family×Part×Operation 製造資格。CADSplit 既有金庫型 Door／EndCap Bridge 能組出 `PartSpec` 並呼叫 `generate_part`，不代表其所有 DXF 都已認證；Receiving 有條件式 Engine resolved/verified batch 路徑，但原圖正常流程尚未證實能完整組出可信請求。後續施工在 #2517 補 **既有** API／Family seam、正反例與金庫型不退化驗收，不得用文件、`prepare` 或「可匯入」代替實際 DXF 回讀驗證。
+
+
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
 
 **#2517 箱身多片真實板厚世界座標 Engine API（2026-11-01）**：`manufacturing_api.resolve_box_body_true_world_piece_meshes(part, dimensions, thickness)` 將 3D FinalScene `_phase6_box_body_true_world_piece_meshes` 原來自行重複的物理 Box Body 源寬資格、唯一實體 ID、W/H/D、真實 T 厚網格與世界位置驗證，統一委派既有 `ae_engine.receiving_settings_assembly_mesh` 求解器及 canonical `build_joint_world_geometry`；Receiving 2D 組合視圖也共用同一公開 API。只傳已解析實體 DTO，不改來源／形狀／順序；無片、預覽占位返回空，非法來源 fail-closed。不新增製造演算法、CUTTING/BEND/DXF 認證，#2517 持續 OPEN。
