@@ -261,20 +261,20 @@ class Phase6CornerDataUnfoldProjection:
 
 
 def _phase6_box_body_piece_dimension_projections(render_data) -> tuple[Phase6PartDimensionProjection, ...]:
-    """Project resolved physical Box Body pieces without recomputing any dimensions."""
-    rows = []
-    for piece in tuple(getattr(render_data, "pieces", ()) or ()):
-        role = str(getattr(piece, "role", "") or "").strip()
-        key = f"box_body:{role}" if role else str(getattr(piece, "key", "") or "")
-        formed_w, formed_h = tuple(float(v) for v in piece.formed_outer_dimensions)
-        blank_w, blank_h = tuple(float(v) for v in piece.material_dimensions)
-        rows.append(Phase6PartDimensionProjection(
-            part_key=key,
-            label=_phase6_part_label(key),
-            formed_width=formed_w, formed_height=formed_h,
-            blank_width=blank_w, blank_height=blank_h,
-        ))
-    return tuple(rows)
+    """GUI presentation of canonical Engine physical BoxBody piece rows."""
+    return tuple(
+        Phase6PartDimensionProjection(
+            part_key=piece.part_key,
+            label=_phase6_part_label(piece.part_key),
+            formed_width=piece.formed_width,
+            formed_height=piece.formed_height,
+            blank_width=piece.blank_width,
+            blank_height=piece.blank_height,
+        )
+        for piece in manufacturing_api.project_box_body_assembly_panel_piece_rows(
+            render_data,
+        )
+    )
 
 
 _phase6_is_box_body_physical_piece_key = _dm7_is_box_body_physical_piece_key
