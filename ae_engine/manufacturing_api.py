@@ -243,6 +243,13 @@ from .sheetmetal_features import (
     feature_to_legacy_hole,
     legacy_hole_to_feature,
     resolve_door_indicator_layout,
+    CanvasTransform,
+    ResolvedCircle,
+    ResolvedRect,
+    feature_reference_anchor as _hole_editor_feature_reference_anchor,
+    feature_reference_point as _hole_editor_feature_reference_point,
+    hit_test_resolved_features as _hole_editor_hit_test_resolved_features,
+    resolve_surface_features as _hole_editor_resolve_surface_features,
 )
 from .sheetmetal_geometry import (
     EndCapAssemblySemantics,
@@ -1274,6 +1281,32 @@ def project_fold_designer_snapshot_part_features(
     """Public headless Door-grid Feature source-to-physical identity projection."""
     from .door_layout_feature_projection import project_fold_designer_snapshot_part_features as project
     return project(snapshot, surface_features, door_layout_features)
+
+
+# #2517: Hole Editor canvas receives only canonical Engine feature geometry.
+# The Canvas owns pixels and widget hit targets, not surface validation,
+# reference-anchor policy or resolved manufacturing feature positions.
+
+def resolve_hole_editor_canvas_features(surface, features, width, height):
+    """Resolve validated world-space holes through the canonical feature owner.
+
+    A tuple prevents a GUI consumer from mutating the Engine result cache in
+    place.  Invalid footprints still raise ValueError (no preview fallback).
+    """
+    return tuple(_hole_editor_resolve_surface_features(surface, features, width, height))
+
+
+def hole_editor_canvas_reference_point(feature, width, height):
+    """Resolve the saved reference anchor and its true feature-space point."""
+    anchor = _hole_editor_feature_reference_anchor(feature)
+    return _hole_editor_feature_reference_point(feature, anchor, width, height)
+
+
+def hit_test_hole_editor_canvas_features(point, resolved_features, *, tolerance):
+    """Use the canonical finite, nonboolean Hole Editor hit-test policy."""
+    return _hole_editor_hit_test_resolved_features(
+        point, resolved_features, tolerance=tolerance,
+    )
 
 
 # #2517: canonical Fold material/formed coordinate mapping exposed to GUI clients.
