@@ -80,6 +80,8 @@ from .manufacturing_api import (
     apply_receiving_inner_door_candidate_to_bays,
     apply_receiving_bay_dimensions,
     resize_receiving_bays_with_family_defaults,
+    receiving_inner_door_stable_id_for_cell,
+    remap_receiving_door_layout_after_delete,
     apply_receiving_endcap_candidate_to_bays,
 )
 from .cabinet_types import (
@@ -168,6 +170,8 @@ __all__ = [
     "apply_receiving_inner_door_candidate_to_bays",
     "apply_receiving_bay_dimensions",
     "resize_receiving_bays_with_family_defaults",
+    "receiving_inner_door_stable_id_for_cell",
+    "remap_receiving_door_layout_after_delete",
     "apply_receiving_endcap_candidate_to_bays",
     "ManufacturingPolicy", "ManufacturingContext",
     "DoorPartSpec", "BoxBodyPartSpec", "EndCapPartSpec", "BasePlatePartSpec",

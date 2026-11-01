@@ -1346,16 +1346,8 @@ class Phase6ApplicationHost:
 
     @staticmethod
     def _receiving_inner_door_stable_id_for_cell(cell_key):
-        key = str(cell_key or "").strip()
-        if key == "0:0":
-            return "upper"
-        if key == "0:1":
-            return "lower"
-        try:
-            column, row = (int(v) for v in key.split(":", 1))
-        except (TypeError, ValueError):
-            raise ValueError(f"invalid door cell key: {cell_key!r}")
-        return f"c{column + 1}r{row + 1}"
+        """Operator-facing adapter; physical part identity belongs to Engine."""
+        return manufacturing_api.receiving_inner_door_stable_id_for_cell(cell_key)
 
     def _receiving_inner_door_enabled(self, cell_key):
         key = str(cell_key or "").strip()

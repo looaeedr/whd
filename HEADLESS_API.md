@@ -660,3 +660,20 @@ Shrinking uses the same canonical tail-only resize; GUI alone handles
 destructive confirmation, selection and dirty UI bookkeeping. Source-only
 low-level `resize_receiving_bays` retains its old copy-by-value semantics.
 No new manufacturing DXF/CUTTING authority is introduced.
+
+## Door-layout deletion physical identity and feature-source remap (#2517)
+
+`manufacturing_api.receiving_inner_door_stable_id_for_cell(cell_key)`
+is the Engine-owned persisted physical inner-door ID resolver
+(`0:0=upper`, `0:1=lower`, other cells `cNrN`).
+`manufacturing_api.remap_receiving_door_layout_after_delete(
+*, operation, column_index, row_index=None, inner_doors=None,
+cell_sources=None, physical_sources=None)` is a pure headless transaction
+for deletion of a Door grid row/column. It stages the new physical inner-door
+identity list, keyed per-cell input stores, and detached physical feature
+snapshots for the main 2D surface, Workspace and Fold Designer (including
+per-face features) before exposing any result. It moves existing panel-hole
+keys and rebuilds `door_cN_rN` feature owners; conflicting physical source
+identities reject the entire transaction. GUI only forwards the operator
+deletion and applies returned workspaces, never generates physical part IDs.
+No source transformation certifies CUTTING/DXF manufacture.

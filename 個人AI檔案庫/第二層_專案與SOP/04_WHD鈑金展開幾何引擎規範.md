@@ -606,3 +606,7 @@ frame-only route.
 ### #2517 Receiving 新增實體 Bay Family 預設尺寸 Engine API（2026-11-01）
 
 `manufacturing_api.resize_receiving_bays_with_family_defaults(layout, *, set_index, bay_count)` 是 GUI 增減 Receiving 實體 Bay 的公開 Engine 入口；擴增時呼叫 canonical `receiving_layout.resize_receiving_bays` 建立實體拓樸、Joint、共享來源，再由 Engine `cabinet_types.receiving.BOX_BODY_DEFAULTS` 決定**僅新 Bay**的實際 W/H/D，委派既有 `apply_receiving_bay_dimensions` 同步 Door partition／NFB X 確認依據。既有 Bay 的操作者尺寸及來源均保留，不再由 GUI 計算或由上一 Bay 自訂 W/H/D 取代 Family 預設。減少 Bay 的使用者確認／選取／dirty bookkeeping 仍由 GUI 擁有；低層 `resize_receiving_bays` 的純 copy-by-value 契約未更動，Save→Reload 和已提交 NFB 驗證不放寬。無新 CUTTING、DXF 製造認證；#2517 保持 OPEN。
+
+### #2517 Door Layout 刪除列／欄時的實體內門身分與孔位來源（2026-11-01）
+
+公開 `manufacturing_api.receiving_inner_door_stable_id_for_cell(cell_key)` 保留 `0:0→upper`、`0:1→lower`、其他 `cNrN` 實體內門 ID；`manufacturing_api.remap_receiving_door_layout_after_delete(operation, column_index, row_index, inner_doors, cell_sources, physical_sources)` 是**純 Engine、原來源不可變**的物理身分與全部來源重映射交易。刪除 Door 欄／列後，依實際 cell 索引重新鍵入內門 stable IDs、原有 `inner_door:<stable_id>:*` 孔位來源、`door_cN_rN` 2D Door cell 孔位，以及主 Workspace／Fold Designer 的物理來源及面特徵；來源衝突在 GUI 寫入前 fail-closed。GUI `door_layout_host_adapter` 只提交刪除動作、收集 UI/Workspace snapshots 並套用 Engine 的單次完整結果，`gui.py` 不再自行製造 stable ID。保持現行 Save→Reload source 資料、上／下內門實體身分、DXF source guard、門格合法分割與獨立實體孔位語意；不新增任何 CUTTING／DXF 認證。本批與 Receiving live version #2592、Head/Tail relief #2598 分開，#2517 保持 OPEN。
