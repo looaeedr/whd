@@ -143,7 +143,7 @@ def test_staged_corruption_cannot_replace_existing_output(tmp_path, monkeypatch)
             scene = DrawingScene()  # simulate dropped material in staged output
         return real_save(path, scene)
     monkeypatch.setattr(composed_panel_dxf, "save_scene_dxf", corrupt_composite)
-    with pytest.raises(ValueError, match="COMBINED_ROUNDTRIP_FAILED"):
+    with pytest.raises(ValueError, match="SHEET_READBACK_MISMATCH"):
         manufacturing_api.save_composed_panel_dxf(
             (("P1", _geometry(("door", _flat("door")))),),
             target, pre_commit_guard=lambda: None, overwrite=True,
