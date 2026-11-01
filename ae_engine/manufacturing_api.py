@@ -903,3 +903,21 @@ def resize_receiving_bays_with_family_defaults(layout, *, set_index, bay_count):
     """Public Engine Receiving Family default projection on new Bay creation."""
     from .receiving_layout import resize_receiving_bays_with_family_defaults as resize
     return resize(layout, set_index=set_index, bay_count=bay_count)
+
+def receiving_inner_door_stable_id_for_cell(cell_key):
+    """Public physical inner-door stable identity for an authored Door cell."""
+    from .door_layout_physical_remap import receiving_inner_door_stable_id_for_cell as resolve
+    return resolve(cell_key)
+
+
+def remap_receiving_door_layout_after_delete(
+    *, operation, column_index, row_index=None, inner_doors=None,
+    cell_sources=None, physical_sources=None,
+):
+    """Public Engine atomic Door-grid deletion/physical-source remap."""
+    from .door_layout_physical_remap import remap_receiving_door_layout_after_delete as remap
+    return remap(
+        operation=operation, column_index=column_index, row_index=row_index,
+        inner_doors=inner_doors, cell_sources=cell_sources,
+        physical_sources=physical_sources,
+    )
