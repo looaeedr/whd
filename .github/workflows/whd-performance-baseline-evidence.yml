@@ -31,15 +31,16 @@ concurrency:
 
 jobs:
   measured-tk-bays:
-    # Separate runners retain real Tk isolation; parallel processes on one
-    # runner would contaminate performance numbers via CPU/memory contention.
-    name: Measured Tk samples (${{ matrix.bays }} Bay, isolated)
+    # Each real worker gets its own runner. Do not time multiple GUI processes
+    # on a shared runner or dilute the original three samples and five cycles.
+    name: Measured Tk sample (${{ matrix.bays }} Bay, sample ${{ matrix.sample }})
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
         bays: [3, 1]
+        sample: [0, 1, 2]
     env:
       TZ: Asia/Taipei
       OMP_NUM_THREADS: '1'
@@ -88,7 +89,8 @@ jobs:
           xvfb-run -a -s "-screen 0 1600x1000x24" \
             python tools/whd_performance_baseline.py \
             --samples 3 --cycles 5 --bay-scope ${{ matrix.bays }} \
-            --output work/perf/baseline-b${{ matrix.bays }}.json
+            --sample-index ${{ matrix.sample }} \
+            --output work/perf/baseline-b${{ matrix.bays }}-s${{ matrix.sample }}.json
       - name: Print sample counts median and P95 without inventing missing data
         if: always()
         shell: bash
@@ -96,7 +98,7 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          p = Path('work/perf/baseline-b${{ matrix.bays }}.json')
+          p = Path('work/perf/baseline-b${{ matrix.bays }}-s${{ matrix.sample }}.json')
           if not p.exists():
               print('BASELINE_REPORT_MISSING; inspect worker logs and artifact')
           else:
@@ -115,14 +117,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: whd-issue1816-tk-baseline-b${{ matrix.bays }}
+          name: whd-issue1816-tk-baseline-b${{ matrix.bays }}-s${{ matrix.sample }}
           path: work/perf/
           if-no-files-found: error
           retention-days: 14
 
   baseline-evidence:
     # Keep the existing required check name and original aggregate artifact.
-    # A Bay sample failure blocks publication; no partial "GREEN" evidence.
+    # Any of the six genuine worker failures blocks publication.
     name: Measured Tk baseline (Linux cloud reference)
     needs: measured-tk-bays
     runs-on: ubuntu-24.04
@@ -139,23 +141,19 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Download independent 3 Bay raw evidence
+      - name: Download all six independent Bay/sample artifacts
         uses: actions/download-artifact@v4
         with:
-          name: whd-issue1816-tk-baseline-b3
-          path: work/perf/b3
-      - name: Download independent 1 Bay raw evidence
-        uses: actions/download-artifact@v4
-        with:
-          name: whd-issue1816-tk-baseline-b1
-          path: work/perf/b1
+          pattern: whd-issue1816-tk-baseline-b*-s*
+          path: work/perf
+          merge-multiple: false
       - name: Reconcile all real samples at one immutable source SHA
         run: |
           set -euo pipefail
           python tools/merge_whd_performance_baseline.py \
             --input-dir work/perf \
             --head-sha "${{ github.event.pull_request.head.sha }}" \
-            --samples 3 --cycles 5
+            --samples 3 --cycles 5 --isolated-samples
           python - <<'PY'
           import json
           from pathlib import Path
