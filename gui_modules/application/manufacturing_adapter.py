@@ -26,11 +26,6 @@ from phase6_fold_profiles import (
     profile_to_fold_segments,
 )
 from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
-from phase6_assembly_relief_state import (
-    build_current_source_signature,
-    committed_relief_cuts,
-    relief_profile_fingerprint,
-)
 
 
 def _endcap_profiles_for_assembly(values, stored_profiles, assembly_type, part_key):
@@ -120,7 +115,7 @@ def _end_cap_part_spec_from_values(
 
 @staticmethod
 def _phase6_relief_profile_signature(profile):
-    return relief_profile_fingerprint(profile)
+    return manufacturing_api.relief_profile_fingerprint(profile)
 
 
 def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
@@ -156,7 +151,7 @@ def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
             ("ytop1", ae.ytop1_def), ("ybottom1", ae.ybottom1_def),
         )
     }
-    current_source = build_current_source_signature(
+    current_source = manufacturing_api.build_current_source_signature(
         scalar_source=scalar_source,
         joint_graph_fingerprint=graph_fp,
         structure_state=structure_state,
@@ -166,7 +161,7 @@ def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
         box_body_profile=body_profile,
         part_profiles={str(key): deepcopy(dict(stored_profiles or {}))},
     )
-    return committed_relief_cuts(state, str(key), current_source)
+    return manufacturing_api.committed_relief_cuts(state, str(key), current_source)
 
 def _end_cap_part_spec(self, val, *, is_tail):
     key = "tail" if is_tail else "head"

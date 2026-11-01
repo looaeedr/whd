@@ -1115,9 +1115,9 @@ def _phase6_collect_workspace_state(self):
 
 
 def _phase6_relief_profile_fingerprint(profile):
-    from phase6_assembly_relief_state import relief_profile_fingerprint
+    from ae_engine import manufacturing_api
 
-    return relief_profile_fingerprint(profile)
+    return manufacturing_api.relief_profile_fingerprint(profile)
 
 def _phase6_current_relief_source_signature(self, required):
     return _phase6_composition(self).current_relief_source_signature(
@@ -1126,9 +1126,9 @@ def _phase6_current_relief_source_signature(self, required):
 
 
 def _phase6_relief_source_matches_current(saved_source, current_source, required):
-    from phase6_assembly_relief_state import source_matches_current
+    from ae_engine import manufacturing_api
 
-    return source_matches_current(saved_source, current_source, required)
+    return manufacturing_api.source_matches_current(saved_source, current_source, required)
 
 def _phase6_serialize_assembly_relief_state(self):
     return _phase6_composition(self).serialize_assembly_relief_state(

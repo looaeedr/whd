@@ -476,7 +476,7 @@ def collect_workspace_state(self, namespace):
 def current_relief_source_signature(self, namespace, required_parts):
     """Collect current mechanical identity for persisted relief replay."""
     from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
-    from phase6_assembly_relief_state import build_current_source_signature
+    from ae_engine import manufacturing_api
 
     app = self.app
     required = lambda name: self._required(namespace, name)
@@ -499,7 +499,7 @@ def current_relief_source_signature(self, namespace, required_parts):
         dict(getattr(app, "_phase6_input_snapshot", {}) or {})
     )
     wanted = tuple(str(key) for key in tuple(required_parts or ()))
-    return build_current_source_signature(
+    return manufacturing_api.build_current_source_signature(
         scalar_source=source,
         joint_graph_fingerprint=resolved_joint_graph_fingerprint(graph_snapshot),
         structure_state=deepcopy(
@@ -519,7 +519,7 @@ def current_relief_source_signature(self, namespace, required_parts):
 
 def serialize_assembly_relief_state(self, namespace):
     """Serialize resolved relief through the canonical persisted-state owner."""
-    from phase6_assembly_relief_state import build_persisted_relief_state
+    from ae_engine import manufacturing_api
 
     app = self.app
     required = lambda name: self._required(namespace, name)
@@ -548,7 +548,7 @@ def serialize_assembly_relief_state(self, namespace):
         )
         or {}
     )
-    return build_persisted_relief_state(
+    return manufacturing_api.build_persisted_relief_state(
         required_parts=required_parts,
         solutions=solutions,
         source_signature=source_signature,

@@ -324,6 +324,10 @@ operator inputs and displays these results; the Engine's atomic Head/Tail
 commit and canonical PartSpec replay remain the production authority.
 No additional CUTTING/DXF approval is implied.
 
+## Headless persisted Assembly Relief source, atomic commit and replay (#2517)
+
+`manufacturing_api.build_current_source_signature`、`source_matches_current`、`relief_profile_fingerprint`、`structure_fingerprint`、`build_persisted_relief_state` 與 `committed_relief_cuts` 由 `ae_engine.assembly_relief_state` 唯一實作，並由根包公開。輸入為已解析的 Family／Joint Graph source fingerprint、BoxBody/Head/Tail Fold 與 Certified Registry revision；任何 stale 保存來源不能取得舊 CUT，Head/Tail 原子提交保持原有驗證。舊 `phase6_assembly_relief_state` 只重匯出同物件，GUI／Phase6 透過公開 Engine API 使用；這不等於新增製造出圖能力，無版本鎖定。
+
 ## Atomic EndCap Head/Tail relief commit API (#2517)
 
 `manufacturing_api.endcap_relief_transaction_committable(required_parts, solutions)`
