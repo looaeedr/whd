@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -177,6 +178,11 @@ def test_product_pr_trigger_covers_worker_gui_manufacturing_and_test_authority()
     assert paths.index("tests/**") < paths.index("!tests/knowledge/**")
     assert "group: whd-product-regression-pr-" in source
     assert "cancel-in-progress: true" in source
-    assert "shard: [" + ", ".join(str(i) for i in range(18)) + "]" in source
+    # Scheduling order may change, but all 18 canonical shard IDs must exist
+    # exactly once. Do not silently drop or duplicate a logical shard.
+    matrices = re.findall(r"(?m)^\\s+shard: \\[([0-9, ]+)\\]$", source)
+    assert len(matrices) == 1
+    shard_ids = [int(value.strip()) for value in matrices[0].split(",")]
+    assert sorted(shard_ids) == list(range(18))
     assert "name: Canonical Product Regression" in source
     assert "--merge-junit junit/shard-17.xml" in source
