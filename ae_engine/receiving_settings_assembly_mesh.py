@@ -1,0 +1,160 @@
+# -*- coding: utf-8 -*-
+"""Canonical Receiving settings 2D inspection's source physical world meshes.
+
+Only already-resolved Manufacturing/Assembly DTOs enter this API. World
+placement, true multi-piece skins, EndCap mating and surface thickening belong
+to Engine; GUI decides only role labels, visibility and canvas painting.
+These triangles are read-only inspection data, not CUTTING/DXF certification.
+"""
+from __future__ import annotations
+
+from .assembly_geometry import (
+    build_joint_world_geometry,
+    folded_mesh_from_polygon,
+    place_assembly_triangles,
+    place_box_body_structure_points,
+    place_endcap_against_box_body,
+    thicken_triangle_surface,
+)
+from .box_body_world_datum import resolve_box_body_formed_width_datum
+
+
+def _contract_profile_rows(profile):
+    """Use the original resolved physical fold segments without recomputation."""
+    rows = []
+    for seg in profile or ():
+        row = {"len": float(getattr(seg, "length", 0.0))}
+        angle = getattr(seg, "angle", None)
+        if angle is not None:
+            row["angle"] = float(angle)
+        core = getattr(seg, "core", None)
+        if core:
+            row["core"] = str(core)
+        key = getattr(seg, "phase6_key", None)
+        if key:
+            row["phase6_key"] = str(key)
+        rows.append(row)
+    return rows
+
+
+def _structure_meshes(render_data, *, thickness):
+    """Resolve original Box Body piece-local mid-surfaces in assembly position."""
+    pieces = tuple(getattr(render_data, "pieces", ()) or ())
+    if not pieces:
+        return ()
+    total_w = resolve_box_body_formed_width_datum(pieces)
+    if total_w is None:
+        return ()
+    out = []
+    for piece in pieces:
+        data = piece.render_data
+        x_profile = _contract_profile_rows(piece.fold_profile)
+        minx, miny, maxx, maxy = map(float, data.material.bounds)
+        y_profile = [{"len": maxy - miny}]
+        local = folded_mesh_from_polygon(
+            data.material, x_profile, y_profile,
+            fold_guides=tuple(getattr(data, "fold_guides", ()) or ()),
+        )
+        transformed = [
+            tuple(
+                place_box_body_structure_points(
+                    (point,), piece, total_w=total_w,
+                    thickness=thickness, x_profile=x_profile,
+                )[0]
+                for point in tri
+            )
+            for tri in local
+        ]
+        out.append((piece, tuple(transformed)))
+    return tuple(out)
+
+
+def _true_world_piece_meshes(part, *, dimensions, thickness):
+    """Use canonical real-T world skins, never a reprojected preview substitute."""
+    pieces = tuple(getattr(getattr(part, "render_data", None), "pieces", ()) or ())
+    if not pieces:
+        return ()
+    if resolve_box_body_formed_width_datum(pieces) is None:
+        return ()
+    if str(getattr(part, "part_key", "")) != "box_body":
+        raise ValueError("multi-piece world skins must originate in box_body")
+    if dimensions is None or len(dimensions) != 3:
+        raise ValueError("box_body true-world mesh requires assembled W/H/D")
+    world = build_joint_world_geometry(
+        (part,), tuple(float(value) for value in dimensions), float(thickness),
+    )["world_triangles_by_part"]
+    rows = []
+    for piece in pieces:
+        key = "box_body:" + str(getattr(piece, "role", "") or "")
+        actual = tuple(world.get(key, ()) or ())
+        if not actual:
+            raise ValueError(f"missing physical mesh for {key}")
+        rows.append((piece, actual))
+    return tuple(rows)
+
+
+def resolve_receiving_settings_assembly_world_meshes(
+    assembly_parts, *, finished_dimensions, thickness,
+    preserve_endcap_core_origin=False,
+):
+    """Physical (source role, part key, world triangles) for Receiving 2D view.
+
+    All transforms use existing canonical Engine primitives. No Tk, Phase6,
+    user-viewport state, manufacturing permission or fallback rules live here.
+    """
+    box_body_world = None
+    rows = []
+    for part in tuple(assembly_parts or ()):
+        data = part.render_data
+        pieces = tuple(getattr(data, "pieces", ()) or ())
+        physical_world = ()
+        if pieces:
+            meshes = _structure_meshes(data, thickness=thickness)
+            physical_world = _true_world_piece_meshes(
+                part, dimensions=finished_dimensions, thickness=thickness,
+            )
+            local = [triangle for _piece, mesh in meshes for triangle in mesh]
+        else:
+            meshes = ()
+            local = folded_mesh_from_polygon(
+                data.material, tuple(dict(x) for x in part.x_profile),
+                tuple(dict(y) for y in part.y_profile),
+                fold_guides=tuple(getattr(data, "fold_guides", ()) or ()),
+            )
+        placement = str(getattr(part, "placement", "offset") or "offset")
+        offset = getattr(part, "offset", (0, 0, 0))
+        if placement in {"top", "head", "bottom", "tail"} and box_body_world:
+            kwargs = {"sheet_thickness": thickness}
+            if preserve_endcap_core_origin:
+                kwargs["preserve_core_origin"] = True
+            placed = thicken_triangle_surface(
+                place_endcap_against_box_body(
+                    local, placement, box_body_world, offset, **kwargs
+                ),
+                thickness,
+            )
+        else:
+            placed = place_assembly_triangles(
+                local, placement, finished_dimensions, offset,
+            )
+        if str(part.part_key) == "box_body":
+            box_body_world = tuple(placed)
+        if not placed:
+            continue
+        if not pieces:
+            rows.append((str(part.part_key), str(part.part_key), tuple(placed)))
+            continue
+        cursor = 0
+        actual_by_role = {
+            str(piece.role): world_mesh for piece, world_mesh in physical_world
+        }
+        for piece, piece_mesh in meshes:
+            count = len(piece_mesh)
+            world_piece = tuple(
+                actual_by_role.get(str(piece.role), ())
+                or placed[cursor:cursor + count]
+            )
+            cursor += count
+            if world_piece:
+                rows.append((str(piece.role), str(piece.key), world_piece))
+    return tuple(rows)

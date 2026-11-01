@@ -1259,3 +1259,6 @@ def resolve_box_body_formed_width_datum(pieces):
     """Public Engine authority for physical multipart Box Body outside W datum."""
     from .box_body_world_datum import resolve_box_body_formed_width_datum as resolve
     return resolve(pieces)
+
+# #2517: Receiving settings physical assembled world meshes are Engine-owned.
+from .receiving_settings_assembly_mesh import resolve_receiving_settings_assembly_world_meshes
