@@ -17,6 +17,7 @@ from .door_layout_numeric_transitions import (
 
 from .manufacturing_api import (
     list_cabinet_model_choices,
+    normalize_panel_name, set_cabinet_panel_name, rename_receiving_panel,
     project_operator_door_blank_dimensions,
     project_operator_door_cell_result,
     project_operator_door_cell_features,
