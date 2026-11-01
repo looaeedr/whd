@@ -21,6 +21,9 @@ from .manufacturing_api import (
     receiving_endcap_feature_preview_shapes,
     ReceivingInnerDoorInventoryLayer, resolve_receiving_inner_door_preview_inventory,
     ReceivingNfbV5SourcePreview, ReceivingNfbV5SourcePreviewCache,
+    NfbCsvVerifiedPhysicalSite, NfbCsvVerifiedExportScope,
+    NfbCsvVerifiedSelectorProof, resolve_verified_csv_v5_export_scope,
+    capture_verified_csv_v5_pair_display_proof, verified_csv_v5_operator_label,
     project_receiving_ear_side_piece_2d_preview,
     DoorPartProjection, door_part_projections, project_part_dimensions,
     resolve_live_operator_finished_dimensions, resolve_material_mesh_profiles,
@@ -32,6 +35,8 @@ from .manufacturing_api import (
     DerivedPartRequestAssemblyInput, DerivedPartProjectionRequest, DerivedPartSyncPlan,
     build_derived_part_projection_request, build_derived_part_sync_plan,
     DerivedPartProfileProjection, DerivedPartFeatureProjection, DerivedPartNamespaceProjection,
+    FrozenMappingValue, FrozenSequenceValue,
+    profile_projection, feature_projection, namespace_projection,
     materialize_profiles, materialize_features, materialize_namespace,
     resolve_fold_designer_divider_part, resolve_fold_designer_frame_part, resolve_fold_designer_panel_part,
     fold_profile_base_index, fold_profile_geometry, fold_profile_bend_mask,
@@ -126,6 +131,7 @@ from .certified_relief_registry import (
     certified_rule_revision_exists, build_relief_promotion_candidate,
 )
 from . import ae, manufacturing_api
+from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
     "ae", "manufacturing_api", "generate_part", "resolve_policy",
@@ -140,6 +146,9 @@ __all__ = [
     "receiving_endcap_feature_preview_shapes",
     "ReceivingInnerDoorInventoryLayer", "resolve_receiving_inner_door_preview_inventory",
     "ReceivingNfbV5SourcePreview", "ReceivingNfbV5SourcePreviewCache",
+    "NfbCsvVerifiedPhysicalSite", "NfbCsvVerifiedExportScope",
+    "NfbCsvVerifiedSelectorProof", "resolve_verified_csv_v5_export_scope",
+    "capture_verified_csv_v5_pair_display_proof", "verified_csv_v5_operator_label",
     "project_receiving_ear_side_piece_2d_preview",
     "DoorPartProjection", "door_part_projections", "project_part_dimensions",
     "resolve_live_operator_finished_dimensions", "resolve_material_mesh_profiles",
@@ -151,6 +160,8 @@ __all__ = [
     "DerivedPartRequestAssemblyInput", "DerivedPartProjectionRequest", "DerivedPartSyncPlan",
     "build_derived_part_projection_request", "build_derived_part_sync_plan",
     "DerivedPartProfileProjection", "DerivedPartFeatureProjection", "DerivedPartNamespaceProjection",
+    "FrozenMappingValue", "FrozenSequenceValue",
+    "profile_projection", "feature_projection", "namespace_projection",
     "materialize_profiles", "materialize_features", "materialize_namespace",
     "resolve_fold_designer_divider_part", "resolve_fold_designer_frame_part", "resolve_fold_designer_panel_part",
     "fold_profile_base_index", "fold_profile_geometry", "fold_profile_bend_mask",
