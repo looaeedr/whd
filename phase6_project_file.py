@@ -292,6 +292,13 @@ def _materialize_project_snapshot(snapshot):
     from ae_engine.receiving_layout import ensure_receiving_layout, project_primary_bay_legacy_aliases
 
     result = migrate_legacy_snapshot_joints(dict(snapshot or {}))
+    # A single-cabinet panel label is project input, not a derived/render key.
+    # Receiving owns independent labels on each canonical Set/Bay instead.
+    from ae_engine.panel_naming import normalize_panel_name
+    if not is_receiving_snapshot(result):
+        result["panel_name"] = normalize_panel_name(
+            result.get("panel_name", ""), allow_blank=True,
+        )
     if is_receiving_snapshot(result):
         result = ensure_receiving_layout(result)
         # Existing Door normalization still consumes d/t from the single-Bay
