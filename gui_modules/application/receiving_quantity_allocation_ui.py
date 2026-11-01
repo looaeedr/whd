@@ -10,9 +10,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from ae_engine.receiving_hole_candidates import version_label
-from ae_engine.receiving_quantity_allocation import (
-    AllocationDraft, validate_quantity_allocation,
-)
+from ae_engine.manufacturing_api import AllocationDraft, validate_quantity_allocation
 
 
 class ReceivingQuantityAllocationUI:
@@ -77,19 +75,9 @@ class ReceivingQuantityAllocationUI:
         self.draft.add_version(self.role, remaining[0])
 
     def _replace_version(self, old, new):
-        current = self.draft.quantities[self.role]
         if new == old:
             return
-        if new not in self.reconcile()[self.role] or new in current:
-            raise ValueError("版本不存在或已加入配置")
-        # Keep the row order, but replace only its candidate identity.
-        self.draft.quantities[self.role] = {
-            (new if key == old else key): count
-            for key, count in current.items()
-        }
-        self.draft.assigned[self.role].clear()
-        self.draft.step[self.role] = 1
-        self.draft.active_version[self.role] = new
+        self.draft.replace_version(self.role, old, new, self.reconcile()[self.role])
 
     def _count(self, version_id, delta):
         current = self.draft.quantities[self.role][version_id]
@@ -149,7 +137,7 @@ class ReceivingQuantityAllocationUI:
             ttk.Button(
                 host, text="下一步：指定配置",
                 state="normal" if self.draft.ready_for_positioning(role) else "disabled",
-                command=lambda: self._operation(lambda: self.draft.step.__setitem__(role, 2)),
+                command=lambda: self._operation(lambda: self.draft.set_step(role, 2)),
             ).pack(anchor="e", pady=(5, 0))
         else:
             ttk.Label(host, text="2. 指定配置｜先選版本，再點簡易 2D 的連").pack(
@@ -172,7 +160,7 @@ class ReceivingQuantityAllocationUI:
             row.pack(anchor="e", pady=(4, 0))
             ttk.Button(
                 row, text="返回數量",
-                command=lambda: self._operation(lambda: self.draft.step.__setitem__(role, 1)),
+                command=lambda: self._operation(lambda: self.draft.set_step(role, 1)),
             ).pack(side="left", padx=(0, 5))
             can_apply = self._ready_to_apply()
             ttk.Button(
@@ -184,7 +172,7 @@ class ReceivingQuantityAllocationUI:
                 ttk.Label(host, text="配置已套用").pack(anchor="w")
 
     def _select_version(self, key):
-        self.draft.active_version[self.role] = key
+        self.draft.select_version(self.role, key)
         self.on_render()
 
     def _ready_to_apply(self):

@@ -8,6 +8,17 @@ whd_schema: WHD_DOC_META_V1
 
 目的：讓 GUI、自動拆圖、CLI 或其他 Python 程式都使用同一個 AE 出圖入口，不必建立 Tkinter GUI，也不必直接呼叫 `ae.export_xxx_dxf()`。
 
+## Receiving candidate quantity draft API (#2517)
+
+`manufacturing_api.AllocationDraft` and `validate_quantity_allocation` are public
+headless APIs for Receiving Head/Tail candidate quantity allocation. Use
+`draft.replace_version(role, old_id, new_id, available_ids)` to retain row order
+and quantity while invalidating pending assignments; `select_version` and
+`set_step` validate existing selections and allocation readiness. The GUI
+only invokes these Engine operations. All draft transitions are transient and
+do not commit physical Set/Bay features; apply remains the separate validated
+Engine operation. No manufacturing or DXF permission is added.
+
 ## Shared cabinet model selector API (#2517)
 
 `manufacturing_api.list_cabinet_model_choices(available_baselines=None)` is the

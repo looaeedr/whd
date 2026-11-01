@@ -30,6 +30,10 @@ whd_schema: WHD_DOC_META_V1
 
 因此 04 的責任是回答「engine 現在怎麼分層、公開哪些 API、各 authority 怎麼接起來」，不是把 Registry JSON 內容重新抄一份。
 
+### #2517 Receiving candidate quantity draft public API (2026-11-01)
+
+`manufacturing_api.AllocationDraft` / `validate_quantity_allocation` are the public Engine boundary for Receiving candidate Head/Tail draft selections. `AllocationDraft.replace_version`, `select_version`, and `set_step` own per-role candidate identity replacement, row order/quantity preservation, assignment invalidation, and two-step readiness. `receiving_quantity_allocation_ui` only presents the controls and forwards operator actions. Draft-only changes never commit Set/Bay physical features; the original validated `apply_receiving_endcap_quantity_configuration` remains the sole project mutation. Existing multi-Set/Bay Save→Reload and Tk confirmation requirements remain; no new CUTTING/DXF certification. #2517 OPEN.
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 3D 組合物理尺寸證據 Engine API（2026-11-01）**：`manufacturing_api.project_assembly_physical_dimension_evidence` 由已解析實體 Box Body 左／右側板 Fold profile 按既有 Engine 相鄰 BEND／T 算法讀取折後包外各段（保留正式 `formed_length`），對中隔則讀真實 material span、原 `physical_geometry_contract` 的 FW/core 包外。`phase6_final_scene_projection._phase6_assembly_physical_dimension_lines` 只負責 UI 繁體中文與數值格式，不再直接重算補償／讀物理 bbox。結果 immutable、唯讀，未變更 CUTTING、BEND、DXF、Save→Reload 或製造放行；#2517 持續 OPEN。
