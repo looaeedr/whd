@@ -6,6 +6,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # WHD API 功能、參數與連結速查表
 
+> **自動更新的功能／參數網頁：[WHD API Explorer](https://looaeedr.github.io/whd/api/)**（GitHub Pages 的 Actions 來源必須已開啟）。每次 WHD `localX` 更新會自動重建網頁，不需再人工增加 API 列。
+>
+> 本檔目前是首版核對快照，**新增 API 請看自動重建的網頁或其 GitHub Actions `whd-public-api-catalog` artifact**；不要把手動快照當成即時完整清單。
+>
 > **先從這一頁查。** 這是「**每項功能 → Python 呼叫名稱 → 參數 → 回傳／範圍 → 實際程式連結**」的查詢入口。  
 > 本頁 2026-11-01 依 `looaeedr/whd localX@af31a68e6af5c1e7edfa6e13b4a6c71d21938738` 實際原始碼核對；`localX` 持續更新，施工時仍應核對該分支最新函式簽名。
 >
