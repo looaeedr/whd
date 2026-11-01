@@ -1022,3 +1022,12 @@ def project_fold_designer_snapshot_dimensions(snapshot, indicator_layer_groups):
     """Public Engine ownership for original Fold Designer snapshot part sizes."""
     from .fold_designer_snapshot_dimensions import project_fold_designer_snapshot_dimensions as project
     return project(snapshot, indicator_layer_groups)
+
+
+
+def project_fold_designer_snapshot_part_features(
+    snapshot, surface_features, door_layout_features,
+):
+    """Public headless Door-grid Feature source-to-physical identity projection."""
+    from .door_layout_feature_projection import project_fold_designer_snapshot_part_features as project
+    return project(snapshot, surface_features, door_layout_features)
