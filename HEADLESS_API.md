@@ -328,6 +328,10 @@ No additional CUTTING/DXF approval is implied.
 
 `manufacturing_api.resolve_fold_designer_base_plate_source(part_key, input_snapshot, *, width, height, thickness, frame_width, model_name, corner_policy=None)` owns the operator BasePlate request values and canonical committed Receiving NFB source priority. It forwards the existing `receiving_base_plate_values` without reimplementing CSV/brand/PAD/LEFT/CENTER/tier geometry. A verified selected real BasePlate replaces the legacy generic preview W/H/folds and owns its corners (`corner_policy=None`); missing optional sources retain the original preview-only values and do **not** certify MFG/DXF. Receiving cell keys remain unsupported. GUI consumes the returned values/policy and calls its already-public `build_base_plate_operator_part_spec` delegate. Vault/legacy model requests and Save→Reload are unchanged.
 
+## FinalScene physical BEND / CUTTING Fold source Engine API (#2517)
+
+`manufacturing_api.scene_fold_boundaries(scene, material)` 從**既有正式** `DrawingScene` BEND 線與材料 bounds 擷取 X/Y 展開段邊界（原數值公差不變）；`profile_to_scene_boundaries(profile, boundaries)` 保留操作折向與 core，但每段實際料長以 BEND 差分為準；`fold_ownership_exemptions(material, xb, yb)` 依真實 CUTTING polygon 裁斷上下／左右角部重疊折彎的 owner。全部由 `ae_engine.final_scene_fold_source` 唯一實作，不使用 3D 展示網格回填製造真值。舊 Phase6 `_phase6_scene_fold_boundaries`、`_phase6_profile_to_scene_boundaries`、`_phase6_fold_ownership_exemptions` 保留相容函式但僅公開 Engine API 委派。此批不建立新 Certified Registry／CUTTING／DXF 來源，也不變更保存 schema。
+
 ## Fold Designer Door-cell / BasePlate-cell physical topology Engine API (#2517)
 
 `manufacturing_api.resolve_fold_designer_payload_topology(part_key, payload)` 由原 Phase6 轉移到無 Tk Engine，沿用同一 `derive_door_layout_cells`、`door_layout_export_filename` 的門格 start W/H、四邊 `DoorFrameEdges`、正式 `door_c<col>_r<row>`／`base_plate_c<col>_r<row>` 身分。已保存「未知類型」仍正規成自訂；不存在/缺失的門格必須拒絕，不使用其他門格製造尺寸。GUI `_payload_topology_context` 現為 public API 相容委派。這是操作來源選片／request，不放行新 CUTTING／DXF。

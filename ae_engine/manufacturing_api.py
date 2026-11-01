@@ -1270,6 +1270,11 @@ def build_door_operator_part_spec(
         nameplate_center_datum_top=nameplate_center_datum_top,
     )
 
+# #2517: FinalScene Fold material/BEND/corner source authority, not GUI inference.
+from .final_scene_fold_source import (
+    scene_fold_boundaries, profile_to_scene_boundaries, fold_ownership_exemptions,
+)
+
 # #2517: Fold Designer physical Door/BasePlate cell selection is Engine-owned.
 from .fold_designer_payload_topology import resolve_fold_designer_payload_topology
 
