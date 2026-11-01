@@ -328,6 +328,10 @@ No additional CUTTING/DXF approval is implied.
 
 `manufacturing_api.resolve_fold_designer_base_plate_source(part_key, input_snapshot, *, width, height, thickness, frame_width, model_name, corner_policy=None)` owns the operator BasePlate request values and canonical committed Receiving NFB source priority. It forwards the existing `receiving_base_plate_values` without reimplementing CSV/brand/PAD/LEFT/CENTER/tier geometry. A verified selected real BasePlate replaces the legacy generic preview W/H/folds and owns its corners (`corner_policy=None`); missing optional sources retain the original preview-only values and do **not** certify MFG/DXF. Receiving cell keys remain unsupported. GUI consumes the returned values/policy and calls its already-public `build_base_plate_operator_part_spec` delegate. Vault/legacy model requests and Save→Reload are unchanged.
 
+## FinalScene BoxBody BEND world-lines Engine API (#2517)
+
+`manufacturing_api.project_assembly_box_body_bend_segments(scene, x_profile, y_profile, fold_guides, local_reference, placement, dimensions, offset)` 和 `project_box_body_structure_bend_segments(render_data, *, thickness, local_reference=None, placement="box_body", dimensions=None, offset=(0,0,0), visible_piece_keys=None)` 回傳由**正式 DrawingScene BEND** 和 Engine Fold mapper／`place_assembly_points`／`place_box_body_structure_points` 推得、不可變的組合 3D 世界線段。`contract_fold_profile_rows` 只依實際 resolved FoldSegment 轉出已存在長度／角度／core／phase6_key；Phase6 相容 wrapper 保留。原 GUI `_draw_assembly_box_body_bends`、`_draw_box_body_structure_bends` 現只將 Engine 結果畫線（沿用樣式、可見子板過濾、背板不顯示 BEND）；從不根據 3D 線反寫製造 BEND 或宣稱新 DXF 認證。
+
 ## EndCap physical CUTTING hole rims in FinalScene 3D (#2517)
 
 `manufacturing_api.project_endcap_cutting_hole_rim_segments(material, x_profile, y_profile, fold_guides, local_surface, placed_surface, placement)` 接收**已解算** EndCap 真實 2D CUTTING polygon／Fold Profile／一對相同點位 local+world 實體網格，從 Engine 將 material inner rings 投影至 Head/Tail 的 3D 世界線段。保留原 Fold mapper、首點實體原點和 Head/Tail 方向；沒有真孔、非 EndCap、缺真實網格便回傳空 tuple，不從 GUI 外框或虛假孔猜測出圖。FinalScene GUI 只把 Engine 回傳線段交 Matplotlib 顯示，這不是新孔加工認證。

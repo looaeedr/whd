@@ -138,20 +138,8 @@ def _phase6_profile_operator_fold_values(profile):
 
 
 def _phase6_contract_profile_rows(profile):
-    rows = []
-    for seg in profile or ():
-        row = {"len": float(getattr(seg, "length", 0.0))}
-        angle = getattr(seg, "angle", None)
-        if angle is not None:
-            row["angle"] = float(angle)
-        core = getattr(seg, "core", None)
-        if core:
-            row["core"] = str(core)
-        key = getattr(seg, "phase6_key", None)
-        if key:
-            row["phase6_key"] = str(key)
-        rows.append(row)
-    return rows
+    """Compatibility: Engine owns FoldSegment material row serialization."""
+    return manufacturing_api.contract_fold_profile_rows(profile)
 
 
 def _phase6_box_body_piece_world_mapper(piece, *, total_w, thickness, x_profile):

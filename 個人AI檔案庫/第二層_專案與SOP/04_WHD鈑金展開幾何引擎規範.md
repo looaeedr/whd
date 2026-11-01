@@ -132,6 +132,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.project_endcap_cutting_hole_rim_segments`（`ae_engine.endcap_cutting_hole_rims`）將原 `phase6_final_scene_render_helpers._draw_endcap_cutting_hole_rims` 內對 Head/Tail 已解算 local／world 裝配表面首點和真實 material inner rings 的物理座標投影搬到 Engine，單一現有 Fold Profile mapper 負責 X/Y 回投，不使用展示三角形 T-junction 當 CUTTING，亦不猜成品中心。GUI 僅轉交原資料、顏色和 line style 進行 3D 顯示；空網格／無孔／非 EndCap 回傳空線段，沒有新 Registry HIT、孔位／折邊、DXF 或正式 X 授權。原始 Head/Tail 正負號、world origin 及幾何公差維持同值，#2517 OPEN。
 
+### #2517 FinalScene 箱身 BEND 製造來源世界線段 Engine API（2026-11-01）
+
+`ae_engine.final_scene_box_body_bend_lines` 唯一持有 `manufacturing_api.project_assembly_box_body_bend_segments` 與 `project_box_body_structure_bend_segments`；前者接受正式 Box Body 製造 Scene BEND／Fold Guide／裝配 local reference，後者用正式 Box Body physical `pieces`（含已保存 FoldSegment）轉真正多片 3D 世界 BEND。兩個 port 重用已存在的 `assembly_geometry_primitives.place_assembly_points`、`assembly_geometry_folded_mesh.place_box_body_structure_points` 和正式 Fold mapper；不複製 Factory／Registry／料長公式。原 GUI FinalScene Render Helpers 只呼叫公開 Engine、畫線；原單片／多片可見過濾、背板隱藏 BEND 顯示、樣式不變。 `contract_fold_profile_rows` 也搬回同一 Engine，Phase6 舊名保留薄相容入口。Save→Reload 及製造／2D／3D／DXF 原資料不變，沒有新加工認證或正式 X 發布，#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。

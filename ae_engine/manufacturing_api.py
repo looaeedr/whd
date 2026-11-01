@@ -1270,6 +1270,13 @@ def build_door_operator_part_spec(
         nameplate_center_datum_top=nameplate_center_datum_top,
     )
 
+# #2517: BoxBody BEND overlay points consume canonical material/assembly world.
+from .final_scene_box_body_bend_lines import (
+    contract_fold_profile_rows,
+    project_assembly_box_body_bend_segments,
+    project_box_body_structure_bend_segments,
+)
+
 # #2517: Real CUTTING inner-ring 3D world projection comes from Engine.
 from .endcap_cutting_hole_rims import project_endcap_cutting_hole_rim_segments
 
