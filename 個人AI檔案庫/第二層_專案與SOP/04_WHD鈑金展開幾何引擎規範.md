@@ -8,6 +8,10 @@ whd_schema: WHD_DOC_META_V1
 
 > 本文件的 CURRENT 區只描述 **現行 ae_engine 製造架構、公開 API 與 authority boundary**。實際 Corner/Relief 製造公式仍由 Certified Registry 與其 canonical references 擁有；本文件不得複製一套第二公式來源。
 
+## [CURRENT] #2517 Fold Editor Add／Remove Engine API（2026-11-02）
+
+`manufacturing_api.operator_fold_editor_add_segment` 和 `operator_fold_editor_remove_segment` 將原 `Phase6BendingUI.add/remove` 實體折段追加、核心段刪除限制、對稱真實 `phase6_key` 配對與刪除後相鄰 BEND 補償搬回 `ae_engine.operator_fold_editor`；完全沿用原 `can_remove_box_body_fold_segment` 及 `apply_outside_dimension_compensation`。GUI 只送輸入並保留既有 Profiles Vault list 身分；未合法刪除回 `None` 且 Engine 不更動輸入。金庫型／受電箱用同一 API，原 Family policy 控制箱身對稱允許，不因新入口鎖舊版本；已認證 Factory/Registry／實體 2D／3D／DXF／Save→Reload 不改，不新增工廠製造放行，#2517 OPEN。
+
 ## [CURRENT] #2689–#2694 盤名與合併 DXF Engine API（2026-11-01）
 
 **資料身分與保存：** `ae_engine.receiving_layout` 的每個 physical Set/Bay 都有獨立 `panel_name`，按全工程單調 `next_panel_number` 自動取 P1、P2…；刪連不回收、改名不重編、跨套不得重名，Save→Reload 保存這兩項 operator-owned canonical input。 `manufacturing_api.rename_receiving_panel(layout, set_index, bay_index, panel_name)` 是唯一改名入口；盤名只是顯示／DXF 分組名稱，絕不替代板件的 `stable_id`、物理身分、Certified Registry 或 2D/3D 幾何。金庫型單箱 `panel_name` 預設空白，`manufacturing_api.set_cabinet_panel_name(snapshot, name)` 驗證並保存。

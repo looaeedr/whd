@@ -16,7 +16,6 @@ from phase6_fold_profiles import (
     _num,
     _ui_len,
     apply_outside_dimension_compensation,
-    can_remove_segment,
     engine_angle_to_ui,
     engine_segment_length_to_ui,
 )
@@ -412,70 +411,33 @@ class Phase6BendingUI(original.BendingUI):
     def add(self, pos):
         self._mark_workspace_dirty()
         self.save()
-        active_dict = self.get_active_dict()
-        segs = active_dict[self._active_profile_key(active_dict)]
-        if pos == 0:
-            segs.insert(0, {"angle": 90, "len": 50, "ui_len_add": getattr(self.state, "phase6_thickness", 2.0)})
-        else:
-            if segs:
-                segs[-1]["angle"] = -90
-            segs.append({"len": 50})
-        apply_outside_dimension_compensation(segs, getattr(self.state, "phase6_thickness", 2.0))
-        self.render(); self.update_cb()
+        active = self.get_active_dict()
+        segs = active[self._active_profile_key(active)]
+        # Keep the bound list identity shared with the existing Profiles Vault.
+        segs[:] = manufacturing_api.operator_fold_editor_add_segment(
+            segs, pos, getattr(self.state, "phase6_thickness", 2.0),
+        )
+        self.render()
+        self.update_cb()
 
     def remove(self, idx):
         self._mark_workspace_dirty()
         self.save()
-        active_dict = self.get_active_dict()
-        segs = active_dict[self._active_profile_key(active_dict)]
-        if not (0 <= idx < len(segs)):
-            return
-        if not can_remove_segment(segs[idx]):
-            return
-
-        remove_indexes = [idx]
+        active = self.get_active_dict()
+        segs = active[self._active_profile_key(active)]
         owner = getattr(self.update_cb, "__self__", None)
         symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
-        is_symmetric_box = (
+        symmetric_box = (
             symmetry_allowed
             and bool(getattr(self.state, "symmetric", False))
             and getattr(self.state, "phase6_fold_ui_vault_key", None) == "箱身"
         )
-        if is_symmetric_box:
-            pair = {
-                "zl1": "zr1", "zr1": "zl1",
-                "zl2": "zr2", "zr2": "zl2",
-                "fw_left": "fw_right", "fw_right": "fw_left",
-                "d_left": "d_right", "d_right": "d_left",
-            }
-            source_key = str(segs[idx].get("phase6_key") or "")
-            if source_key in pair:
-                target_key = pair[source_key]
-                mirror_idx = next(
-                    (i for i, seg in enumerate(segs) if str(seg.get("phase6_key") or "") == target_key),
-                    None,
-                )
-            elif source_key:
-                mirror_idx = None
-            else:
-                candidate_idx = len(segs) - 1 - idx
-                if (
-                    0 <= candidate_idx < len(segs)
-                    and not str(segs[candidate_idx].get("phase6_key") or "")
-                ):
-                    mirror_idx = candidate_idx
-                else:
-                    mirror_idx = None
-            if mirror_idx is not None and mirror_idx != idx:
-                if not (0 <= mirror_idx < len(segs)) or not can_remove_segment(segs[mirror_idx]):
-                    return
-                remove_indexes.append(mirror_idx)
-
-        for remove_idx in sorted(set(remove_indexes), reverse=True):
-            segs.pop(remove_idx)
-        if segs and "angle" in segs[-1]:
-            del segs[-1]["angle"]
-        apply_outside_dimension_compensation(segs, getattr(self.state, "phase6_thickness", 2.0))
-        self.render(); self.update_cb()
-
-
+        updated = manufacturing_api.operator_fold_editor_remove_segment(
+            segs, idx, getattr(self.state, "phase6_thickness", 2.0),
+            symmetric_box_body=symmetric_box,
+        )
+        if updated is None:
+            return
+        segs[:] = updated
+        self.render()
+        self.update_cb()
