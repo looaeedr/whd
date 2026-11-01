@@ -1270,6 +1270,9 @@ def build_door_operator_part_spec(
         nameplate_center_datum_top=nameplate_center_datum_top,
     )
 
+# #2517: Real CUTTING inner-ring 3D world projection comes from Engine.
+from .endcap_cutting_hole_rims import project_endcap_cutting_hole_rim_segments
+
 # #2517: FinalScene Fold material/BEND/corner source authority, not GUI inference.
 from .final_scene_fold_source import (
     scene_fold_boundaries, profile_to_scene_boundaries, fold_ownership_exemptions,

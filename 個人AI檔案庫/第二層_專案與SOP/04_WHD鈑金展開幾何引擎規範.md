@@ -128,6 +128,10 @@ whd_schema: WHD_DOC_META_V1
 
 `ae_engine.final_scene_fold_source` 新公開 `manufacturing_api.scene_fold_boundaries`、`profile_to_scene_boundaries`、`fold_ownership_exemptions`，將原 Phase6 FinalScene 由真正製造 `DrawingScene` BEND 線／材料 CUTTING shape 推得的材料段邊界、折向 Profile 與角落雙折所有權全部原樣移入無 Tk Engine。GUI `phase6_final_scene_projection._phase6_scene_fold_boundaries` 等三個相容函式只傳入 scene／material／operator profile，不能另行推定成品 W/H、BEND、折彎補償或局部截角。原始 1e-6 線位 dedupe、材邊條件、公差與既有 `ae_engine.assembly_geometry_folded_mesh` 的 `fold_exemptions` 消費保持不變，完全不增加 Factory／DXF/製造 cert，#2517 OPEN。
 
+### #2517 EndCap 真實 CUTTING 內孔的 3D 世界投影 Engine API（2026-11-01）
+
+`manufacturing_api.project_endcap_cutting_hole_rim_segments`（`ae_engine.endcap_cutting_hole_rims`）將原 `phase6_final_scene_render_helpers._draw_endcap_cutting_hole_rims` 內對 Head/Tail 已解算 local／world 裝配表面首點和真實 material inner rings 的物理座標投影搬到 Engine，單一現有 Fold Profile mapper 負責 X/Y 回投，不使用展示三角形 T-junction 當 CUTTING，亦不猜成品中心。GUI 僅轉交原資料、顏色和 line style 進行 3D 顯示；空網格／無孔／非 EndCap 回傳空線段，沒有新 Registry HIT、孔位／折邊、DXF 或正式 X 授權。原始 Head/Tail 正負號、world origin 及幾何公差維持同值，#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
