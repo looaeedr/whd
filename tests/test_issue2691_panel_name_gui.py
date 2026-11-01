@@ -43,7 +43,8 @@ def _click_at(canvas, coords):
 
 def test_native_receiving_label_canvas_edit_error_escape_and_two_sets(monkeypatch):
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("800x600+0+0")
+    root.update()  # The transient child must map to receive actual Tk mouse events.
     state = {"layout": _layout()}
     selected = []
     warnings = []
