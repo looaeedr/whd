@@ -40,6 +40,7 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=fold-designer-bridge-ownership role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md -->
 
 <!-- WHD_AUTHORITY contract=manufacturing-architecture role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md -->
+<!-- WHD_AUTHORITY contract=manufacturing-architecture role=REFERENCE path=docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md canonical=個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md -->
 <!-- WHD_AUTHORITY contract=manufacturing-architecture role=HISTORICAL path=handoff/01_ARCHITECTURE.md -->
 
 <!-- WHD_AUTHORITY contract=cadsplit-whd-worker-cli role=CURRENT path=integration_cli/cadsplit_worker.py -->
