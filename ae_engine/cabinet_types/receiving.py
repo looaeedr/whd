@@ -664,7 +664,7 @@ def resolve_back_panel_contract(
     family-owned 24-mm top extension. The four mounting-slot datums and the
     optional 650x200 rear opening are manufacturing coordinates.
     """
-    from phase6_box_body_structure import BackPanelMode, back_panel_mode
+    from ae_engine.box_body_structure_state import BackPanelMode, back_panel_mode
 
     data = dict(snapshot or {})
     if not is_receiving_snapshot(data):
@@ -761,7 +761,7 @@ def box_body_symmetry_allowed() -> bool:
 
 
 def _side_back_config(state=None):
-    from phase6_box_body_structure import BoxBodyStructureType
+    from ae_engine.box_body_structure_state import BoxBodyStructureType
 
     result = resolve_box_body_structure_state(state)
     cfg = result["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
@@ -896,6 +896,6 @@ def default_bottom_wrap_enabled() -> bool:
 
 def bottom_relief_registry_applicable(state=None) -> bool:
     """Family-side applicability input only; Registry remains the answer owner."""
-    from phase6_box_body_structure import BoxBodyStructureType
+    from ae_engine.box_body_structure_state import BoxBodyStructureType
     resolved = resolve_box_body_structure_state(state)
     return resolved.get("active_type") == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
