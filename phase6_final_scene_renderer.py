@@ -220,12 +220,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                         bool(getattr(render_data, "ignore_fixed_corner_relief", False))
                         and str(getattr(part, "part_key", "")) in {"head", "tail"}
                     ):
-                        from ae_engine.assembly_geometry import (
-                            restore_unrelieved_endcap_material,
-                            restored_endcap_relief_delta,
-                        )
-                        fold_material = restore_unrelieved_endcap_material(part_material)
-                        diagnostic_relief_delta = restored_endcap_relief_delta(part_material)
+                        fold_material = manufacturing_api.restore_unrelieved_endcap_material(part_material)
+                        diagnostic_relief_delta = manufacturing_api.restored_endcap_relief_delta(part_material)
                     local = _phase6_folded_mesh_from_polygon(
                         fold_material,
                         tuple(dict(seg) for seg in part.x_profile),
@@ -258,8 +254,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     # Display that same T-thick solid rather than the
                     # zero-thickness mid-surface (front is T/2 too far back).
                     # No geometry or manufacturing input is modified.
-                    from ae_engine.assembly_geometry import thicken_triangle_surface
-                    placed = thicken_triangle_surface(placed, request.thickness)
+                    placed = manufacturing_api.thicken_triangle_surface(placed, request.thickness)
                 placed_piece_meshes = ()
                 if getattr(part_data, "pieces", None):
                     if physical_piece_world:
@@ -471,10 +466,6 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     for p in assembly_parts
                 )
             ):
-                from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
-                from ae_engine.assembly_all_parts_collision import (
-                    audit_all_physical_part_pairs, collision_part_display_name,
-                )
                 # A renderer instance persists across 3D redraws: reuse a verified
                 # result for the SAME immutable scene objects and user controls.
                 scene_key = (
@@ -488,27 +479,10 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 ):
                     audit = self._all_parts_collision_cache[1]
                 else:
-                    physical = _phase6_build_joint_world_geometry(
+                    audit = manufacturing_api.project_assembly_collision_display_audit(
                         assembly_parts, request.finished_dimensions, request.thickness,
-                    )
-                    world_parts = physical["world_triangles_by_part"]
-                    selected = (
-                        {key for key in world_parts if key != "box_body"}
-                        if visible_part_keys is None else
-                        {key for key in world_parts if (
-                            (key.startswith("box_body:") and "box_body" in visible_part_keys)
-                            or key in visible_part_keys
-                        )}
-                    )
-                    if visible_box_body_piece_keys is not None:
-                        selected = {
-                            key for key in selected
-                            if not key.startswith("box_body:")
-                            or key.startswith("box_body:divider:")
-                            or key in visible_box_body_piece_keys
-                        }
-                    audit = audit_all_physical_part_pairs(
-                        world_parts, visible_part_keys=selected,
+                        visible_part_keys=visible_part_keys,
+                        visible_box_body_piece_keys=visible_box_body_piece_keys,
                         certified_relief_diagnostics=tuple(
                             getattr(render_data, "collision_certification_diagnostics", ()) or ()
                         ),
@@ -526,7 +500,6 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     ))
             if interference_segments:
                 from mpl_toolkits.mplot3d.art3d import Line3DCollection
-                from ae_engine.assembly_geometry import MeshInterferenceDiagnostic
                 if interference_targets:
                     ax.add_collection3d(gridless_mesh_collection(
                         interference_targets, facecolor="#eab308", opacity=0.42,
@@ -535,13 +508,12 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     interference_segments, colors="#eab308", linewidths=2.5,
                     linestyles="solid", alpha=0.95,
                 ))
-                self.last_interference_diagnostic = MeshInterferenceDiagnostic(
+                self.last_interference_diagnostic = manufacturing_api.MeshInterferenceDiagnostic(
                     tuple(interference_targets), tuple(interference_points),
                     interference_pairs, tuple(interference_segments)
                 )
             else:
-                from ae_engine.assembly_geometry import MeshInterferenceDiagnostic
-                self.last_interference_diagnostic = MeshInterferenceDiagnostic((), (), 0, ())
+                self.last_interference_diagnostic = manufacturing_api.MeshInterferenceDiagnostic((), (), 0, ())
             # Preserve the legacy RED certified-interference diagnostic.
             # Amber unverified crossings are a separate audit, not a forged
             # positive-volume collision result.
@@ -582,8 +554,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                 f"{len(audit.unresolved)} 組有未證實合法交線（橘色），不可判定為零碰撞"
                             )
                             collision_text += "".join(
-                                f"\n  {collision_part_display_name(row.left)} ↔ "
-                                f"{collision_part_display_name(row.right)}："
+                                f"\n  {manufacturing_api.collision_part_display_name(row.left)} ↔ "
+                                f"{manufacturing_api.collision_part_display_name(row.right)}："
                                 f"{row.pair_count} 組交線；"
                                 f"X{row.region_xyz[0]} Y{row.region_xyz[1]} Z{row.region_xyz[2]} mm"
                                 for row in audit.unresolved[:5]

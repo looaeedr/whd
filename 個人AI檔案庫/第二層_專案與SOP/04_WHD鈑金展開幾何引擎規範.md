@@ -197,6 +197,10 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 
 `manufacturing_api.project_operator_door_layout_peer_cells(cells, render_data_by_part_key)` 由無 Tk 的 `ae_engine.operator_door_layout_peer_2d` 按現行 `door_c<column>_r<row>` 物理實體身分，讀取**已解析的 canonical Door FinalScene** 的 `scene`／`material.bounds`，回傳不可變 `DoorLayoutPeerCell`。這個入口僅支援已存在的實體來源，缺少 Scene 或空實體輸出 `present=False`，不得用相鄰格、Legacy 預覽或輸入 W/H 代填真實來源；重複／錯誤格位及非法實體界限 fail-closed。原 `gui_modules/application/render_snapshots.door_layout_overview_snapshot` 的 peer 模式只接收 Engine 已驗證的格位、場景及尺寸，保留未提交時的 local 操作模式；不再自行決定實體 key／來源界限。原 `max(size,1e-9)` 是顯示防零除下限，不是料尺寸或製造放行。金庫型與受電箱共用，並維持 Save→Reload、2D／3D／DXF 既有母源；不新增 CUTTING、MFG2 或 DXF 權限，#2517 仍 OPEN。
 
+### #2517 FinalScene 全實體板件干涉來源及厚板公共 API（2026-11-01）
+
+`manufacturing_api.project_assembly_collision_display_audit` 接管原 FinalScene GUI 的實體 BoxBody piece／內門框／Head Tail 組合 world mesh 來源、visible keys 選取及 `audit_all_physical_part_pairs` 呼叫。原 Certified Registry Relief 與 `ASSEMBLY_COLLISION_MISSING_VISIBLE_PARTS` 等 fail-closed 規則保持既有 Engine 唯一判準；GUI 只快取和描繪未證實交叉。另由 `manufacturing_api` 公開既存 `restore_unrelieved_endcap_material`、`restored_endcap_relief_delta`、`thicken_triangle_surface`、`MeshInterferenceDiagnostic`、`collision_part_display_name`，Phase6 renderer 不再直接 import 底層幾何／碰撞分類。此為 3D 顯示診斷 API，不修改全箱 2D／3D／Save→Reload／正式 DXF、亦不新增製造認證；#2517 OPEN。
+
 ### #2517 FinalScene Joint 接觸／穿透／保留／退讓 3D 診斷世界來源 Engine API（2026-11-01）
 
 `manufacturing_api.project_joint_diagnostic_display_sources(render_data)` 由無 Tk 的 `ae_engine.joint_diagnostic_display` 讀取**已由 Joint Solver 建立**的 `ResolvedJointDiagnostic`，以 `selected_joint_id` 選取現行 source；僅保留 contact／penetration／preserve／relief 的合法三維世界線段與已解析方向向量，輸出不可變 `JointDiagnosticOverlaySource`。原 `phase6_final_scene_render_helpers._draw_joint_diagnostic_overlays` 只按 Engineer-result role 選 Matplotlib 畫筆、畫線與方向箭頭，不再自己過濾 Joint 來源、判斷世界座標或計算方向差分。非有限／不完整世界線段不會被呈現為診斷來源。這只是 solver 診斷的 read-only 3D 顯示，不變更 Registry 認證、Joint 接觸解算、世界碰撞報告、CUTTING／BEND／DXF 或 Save→Reload；金庫型與受電箱共用，#2517 仍 OPEN。
