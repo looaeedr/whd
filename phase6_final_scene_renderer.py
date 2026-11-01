@@ -416,47 +416,34 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             # upstream from physical FinalScene and passed as DISPLAY ONLY,
             # not added to the manufacturing part list/BOM or DXF export.
             # No triangle-grid edges or invented weld lines.
-            self.last_formed_ear_display_ids = ()
+            # The Engine, not the renderer, verifies trial EAR/PAD physical
+            # source flags and reads the real assembled world meshes.
+            trial_skins = manufacturing_api.project_receiving_assembly_trial_world_skin_meshes(
+                formed_fixing_plate_skins=tuple(
+                    getattr(render_data, "formed_fixing_plate_skins", ()) or ()
+                ),
+                formed_nfb_pad_skins=tuple(
+                    getattr(render_data, "formed_nfb_pad_skins", ()) or ()
+                ),
+                show_fixing_plate_mesh=bool(
+                    getattr(render_data, "show_fixing_plate_mesh", True)
+                ),
+            )
             visible_ears = []
-            for formed in tuple(getattr(render_data, "formed_fixing_plate_skins", ()) or ()):
-                # Hide only EAR physical surfaces. Source-backed SIDE MARKING
-                # below must remain visible while the owning side is visible.
-                if not bool(getattr(render_data, "show_fixing_plate_mesh", True)):
-                    continue
-                if (not getattr(formed, "source_bend_verified", False)
-                        or not getattr(formed, "actual_signed_forming_constructed", False)
-                        or getattr(formed, "manufacturing_ready", True)
-                        or getattr(formed, "weld_contact_verified", True)):
-                    raise ValueError("EAR_3D_SOURCE_OR_MANUFACTURING_GATE_FAILED")
-                skin_tris = tuple(
-                    tuple(tuple(float(v) for v in point) for point in face.world)
-                    for face in tuple(formed.mapped_world_skins or ())
-                )
-                if not skin_tris:
-                    raise ValueError("EAR_3D_FORMED_SKIN_EMPTY")
+            visible_pads = []
+            for skin in trial_skins:
+                if skin.role == "EAR":
+                    color = "#f97316"
+                    visible_ears.append(skin.part_id)
+                else:
+                    color = "#a78bfa"
+                    visible_pads.append(skin.part_id)
                 poly = gridless_mesh_collection(
-                    skin_tris, facecolor="#f97316", opacity=0.92,
+                    skin.world_triangles, facecolor=color, opacity=0.92,
                 )
                 ax.add_collection3d(poly)
-                triangles.extend(skin_tris)
-                visible_ears.append(str(formed.part_id))
+                triangles.extend(skin.world_triangles)
             self.last_formed_ear_display_ids = tuple(visible_ears)
-            self.last_formed_pad_display_ids = ()
-            visible_pads = []
-            for pad in tuple(getattr(render_data, "formed_nfb_pad_skins", ()) or ()):
-                if (pad.manufacturing_ready or pad.assembly_contact_certified
-                        or not pad.source_flat_and_bend_verified
-                        or not pad.actual_base_squares_present):
-                    raise ValueError("PAD_3D_PREVIEW_SOURCE_OR_MFG_GATE_INVALID")
-                triangles_pad = tuple(pad.world_triangles or ())
-                if not triangles_pad:
-                    raise ValueError("PAD_3D_PREVIEW_EMPTY_MESH")
-                pad_artist = gridless_mesh_collection(
-                    triangles_pad, facecolor="#a78bfa", opacity=0.92,
-                )
-                ax.add_collection3d(pad_artist)
-                triangles.extend(triangles_pad)
-                visible_pads.append(str(pad.part_id))
             self.last_formed_pad_display_ids = tuple(visible_pads)
             # EAR contact lines are MARKING on the mother SIDE plate, not
             # a mesh-grid overlay or an EAR CUTTING/BEND feature.  Only draw
