@@ -81,7 +81,8 @@ def test_native_receiving_label_canvas_edit_error_escape_and_two_sets(monkeypatc
 
         # Existing click outside a label continues to select the physical Bay.
         x0, y0, x1, y1 = canvas._receiving_bay_hitboxes[1]
-        canvas.event_generate("<Button-1>", x=int((x0+x1)/2), y=int(y1-7))
+        canvas.event_generate("<Button-1>", x=int((x0+x1)/2),
+                              y=int((y0+y1)/2))
         root.update()
         assert win._receiving_multi_applied["selected"] == 1
         assert selected[-1] == (0, 1)
