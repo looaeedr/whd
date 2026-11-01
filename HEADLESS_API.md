@@ -134,6 +134,10 @@ CUTTING/BEND/DXF export or external API capability.
 
 The project GUI now calls `manufacturing_api` for Door filename, committed numeric CSV quantity batch, all-physical-Bay export, real EAR SIDE MARKING, CHECK-only side and PAD+Base partial CHECK/Q. Existing canonical source proof, DXF readback, atomicity and release/unsupported gate stay with their original Engine owners. Common model/layout/quantity/source naming are also exposed as read-only operations. Engine `receiving_csv_quantity_manufacturing` no longer imports GUI for part-selection intent. Existing older APIs remain usable; no version lock or additional manufacturing certification is introduced.
 
+## Zero static Engine-to-Phase6 reverse imports (#2517)
+
+The engine-only Receiving Quantity, Set/Bay, NFB committed FinalScene, fixed-plate formation, EAR SIDE CHECK and joint-marking production owners import their existing canonical `ae_engine.receiving_quantity_versions`, `ae_engine.box_body_structure_state` and `ae_engine.assembly_geometry` directly. All 264 Engine Python files were reviewed for direct reverse Phase6/GUI/Bridge imports. A normal pytest AST contract now fails if any `ae_engine/**/*.py` file reintroduces a static Phase6/GUI/Bridge/Tk import. Existing physical source, Bay identity, verified world geometry, cutting/marking and DXF authority are unchanged; this is not a new machining capability or a version lock.
+
 ## Direct Engine BoxBody, Certified Registry and CSV NFB dependencies (#2517)
 
 Four Engine implementation modules now import their canonical BoxBody state, Receiving Quantity model and formed-FW readback directly from Engine; they do not loop through the old `phase6_box_body_structure`, `phase6_fold_profiles` or `phase6_quantity_model` compatibility facades. The old public API names and calculations are retained without new manufacturing capabilities or behavior changes.

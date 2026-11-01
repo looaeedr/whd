@@ -233,7 +233,7 @@ def _legacy_structure_state(snapshot: Mapping[str, object]) -> Mapping[str, obje
 
 def _legacy_back_panel_mode(snapshot: Mapping[str, object]) -> str:
     from ae_engine.cabinet_types import receiving
-    from phase6_box_body_structure import back_panel_mode
+    from .box_body_structure_state import back_panel_mode
 
     state = _legacy_structure_state(snapshot)
     resolved = receiving.resolve_box_body_structure_state(dict(state) if isinstance(state, Mapping) else None)
@@ -312,7 +312,7 @@ def ensure_receiving_layout(snapshot: Mapping[str, object] | None) -> dict[str, 
 
 def _set_transient_back_panel_mode(snapshot: dict[str, object], mode: str) -> None:
     from ae_engine.cabinet_types import receiving
-    from phase6_box_body_structure import set_side_back_back_panel_mode
+    from .box_body_structure_state import set_side_back_back_panel_mode
 
     def projected(state: object) -> dict[str, object]:
         resolved = receiving.resolve_box_body_structure_state(state if isinstance(state, Mapping) else None)
@@ -771,7 +771,7 @@ def project_receiving_bay_legacy_aliases(
     # Validation/legacy projection must never mutate the persisted authority.
     result["receiving_layout"] = persisted_layout
     if result.get("active_mode") == "quantity":
-        from phase6_quantity_model import normalize_quantity_snapshot
+        from .receiving_quantity_versions import normalize_quantity_snapshot
         result = normalize_quantity_snapshot(result)
         result["surface_features"] = {**dict(result.get("surface_features") or {}),
                                       **{role: deepcopy(result["part_features"][role]) for role in ("head", "tail")}}

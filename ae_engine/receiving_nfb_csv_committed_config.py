@@ -90,7 +90,7 @@ def preview_quantity_nfb_submission(snapshot, quantity_model, config):
     remains unchanged. Re-run the same canonical validators on a detached
     model and return only a candidate projection; caller commits later.
     """
-    from phase6_quantity_model import QuantityModel
+    from .receiving_quantity_versions import QuantityModel
     from .receiving_quantity_box import project_common_box
 
     if not isinstance(quantity_model, QuantityModel):

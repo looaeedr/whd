@@ -52,6 +52,10 @@ whd_schema: WHD_DOC_META_V1
 
 `gui_modules/project/export_actions.py` 中 Door 輸出檔名、Receiving 數值 CSV 數量批次、多 Set/Bay、EAR side MARKING、SIDE CHECK-only、PAD+Base PART_ONLY 輸出一律走 `manufacturing_api` 公開入口，既有 Engine 物理來源／Factory／檢核／原子提交／DXF 回讀皆保持原有判準，未新增整箱製造放行。舊版已有的 Python API 不鎖版本，新功能僅有新 Engine 提供。 `receiving_csv_quantity_manufacturing` 不再反向引入 `gui_modules.project.export_actions` 判斷物理板件選取，統一調用同引擎 `manufacturing_export_selection.resolved_export_intention_key`；GUI 保留操作狀態、輸出位置、UI 訊息，不再進入內部 Engine 模組。#2517 OPEN。
 
+### #2517 全 `ae_engine` 反向 Phase6 靜態依賴移除（2026-11-01）
+
+已逐檔查核 `ae_engine` 264 個 Python 檔案的 `from/import phase6_*` 與 `gui_modules` 直接依賴；本次移除最後一批 8 個 Engine 實作模組對舊 `phase6_quantity_model`、`phase6_box_body_structure`、`phase6_manufacturing_geometry` 相容 facade 的直接匯入。實際權威仍為既有 `ae_engine.receiving_quantity_versions` 的 `QuantityModel`／normalize／inherited NFB brand 檢核，`ae_engine.box_body_structure_state` 的背板模式，及 `ae_engine.assembly_geometry.build_joint_world_geometry`。EAR SIDE CHECK-only／Joint MARKING 世界幾何仍是相同的 Engine 函式，保留原呼叫接縫別名及已提交身份、DXF reopening、atomic failure gate，不產生來源計算或公式副本。附加單一 pytest AST 全庫靜態契約：若 `ae_engine/**/*.py` 再直接匯入 Phase6、GUI、Bridge 或 Tk 即 RED；此檢查不涵蓋動態字串式載入或其它非 import 層面的架構責任，#2517 仍 OPEN。AI 04／07 與 Certified Registry 製造權威未改，舊版 Phase6 只是不具新能力的操作相容入口，禁止版本鎖定。
+
 ### #2517 Engine BoxBody／Receiving／Registry 反向 Phase6 import 清理（2026-11-01）
 
 `ae_engine.box_body_piece_features`、`ae_engine.cabinet_types.receiving`、`ae_engine.certified_relief_registry` 與 `ae_engine.receiving_nfb_v5_part_only_manufacturing` 不再透過 `phase6_box_body_structure`、`phase6_fold_profiles`、`phase6_quantity_model` 反向取得製造設定與計算。其原相容匯入本就由 `manufacturing_api` 重匯出相同的 Engine owner；改為直接引用 `ae_engine.box_body_structure_state` 的 StructureType／BackPanelMode／side rear bend material length、`ae_engine.box_body_editor_readback.formed_box_body_fw_widths` 與 `ae_engine.receiving_quantity_versions.quantity_inherited_nfb_brand_conflicts`。不建立新的箱體策略、公式、Family/BEND 補償或門檻；Receiving 背板模式、Registered Relief、CSV NFB 單層來源驗證及所有舊版 Phase6 Python import identity 保持不變，沒有多出一份 Registry。#2517 仍 OPEN，其他 import 依賴須另依實際掃描判定。
