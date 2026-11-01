@@ -126,6 +126,9 @@ from .receiving_quantity_versions import (
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
     normalize_quantity_snapshot, quantity_only_change,
 )
+from .receiving_ear_display_sources import (
+    receiving_ear_assembly_display_source_key, resolve_receiving_ear_assembly_display_skins,
+)
 from .project_snapshot_state import (
     normalize_authoritative_door_state, normalize_project_snapshot_authority,
 )
