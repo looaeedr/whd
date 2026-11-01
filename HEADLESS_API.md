@@ -324,6 +324,10 @@ operator inputs and displays these results; the Engine's atomic Head/Tail
 commit and canonical PartSpec replay remain the production authority.
 No additional CUTTING/DXF approval is implied.
 
+## Fold Designer Receiving BasePlate physical-source selection API (#2517)
+
+`manufacturing_api.resolve_fold_designer_base_plate_source(part_key, input_snapshot, *, width, height, thickness, frame_width, model_name, corner_policy=None)` owns the operator BasePlate request values and canonical committed Receiving NFB source priority. It forwards the existing `receiving_base_plate_values` without reimplementing CSV/brand/PAD/LEFT/CENTER/tier geometry. A verified selected real BasePlate replaces the legacy generic preview W/H/folds and owns its corners (`corner_policy=None`); missing optional sources retain the original preview-only values and do **not** certify MFG/DXF. Receiving cell keys remain unsupported. GUI consumes the returned values/policy and calls its already-public `build_base_plate_operator_part_spec` delegate. Vault/legacy model requests and Save→Reload are unchanged.
+
 ## Fold Designer Door-cell / BasePlate-cell physical topology Engine API (#2517)
 
 `manufacturing_api.resolve_fold_designer_payload_topology(part_key, payload)` 由原 Phase6 轉移到無 Tk Engine，沿用同一 `derive_door_layout_cells`、`door_layout_export_filename` 的門格 start W/H、四邊 `DoorFrameEdges`、正式 `door_c<col>_r<row>`／`base_plate_c<col>_r<row>` 身分。已保存「未知類型」仍正規成自訂；不存在/缺失的門格必須拒絕，不使用其他門格製造尺寸。GUI `_payload_topology_context` 現為 public API 相容委派。這是操作來源選片／request，不放行新 CUTTING／DXF。

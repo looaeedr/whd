@@ -1276,6 +1276,7 @@ from .fold_designer_payload_topology import resolve_fold_designer_payload_topolo
 # #2517: BasePlate / IndicatorBox operator PartSpecs share public Engine owner.
 from .operator_auxiliary_part_specs import (
     build_base_plate_operator_part_spec, build_indicator_box_operator_part_spec,
+    resolve_fold_designer_base_plate_source,
 )
 
 # #2517: headless Head/Tail operator PartSpec material/Family/Joint authority.

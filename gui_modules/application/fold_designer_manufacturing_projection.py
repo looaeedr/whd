@@ -620,31 +620,14 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
             self, data, w, h, t, fw, model, unknown, features, policy, door_cell
         )
     elif key == "base_plate" or key.startswith("base_plate_c"):
-        values = {
-            "w": w, "h": h, "t": t, "fw": fw,
-            "base_plate_shrink_top": float(data.get("base_plate_shrink_top", 0)),
-            "base_plate_shrink_bottom": float(data.get("base_plate_shrink_bottom", 0)),
-            "base_plate_shrink_left": float(data.get("base_plate_shrink_left", 0)),
-            "base_plate_shrink_right": float(data.get("base_plate_shrink_right", 0)),
-            "base_plate_bend": float(data.get("base_plate_bend", 20)),
-            "receiving_bend_pattern": data.get("receiving_bend_pattern"),
-            "physical_id": key,
-            "model": model,
-        }
-        if model in {"受電箱", "RECEIVING"}:
-            if key != "base_plate":
-                raise ValueError("RECEIVING_BASE_PLATE_LEGACY_CELL_UNSUPPORTED")
-            from ae_engine.receiving_base_plate_config import receiving_base_plate_values
-            physical = receiving_base_plate_values(data)
-            if physical is not None:
-                # Physical Receiving base height/folds are NOT the cabinet H,
-                # a door cell H, or the ordinary family base shrink defaults.
-                values.update(physical)
-                # This already selected physical contour owns its corner cuts;
-                # the generic family corner policy must not replace it.
-                policy = None
+        # GUI forwards the operator payload, current selected cell and policy.
+        # Engine alone chooses any actual Receiving NFB physical BasePlate.
+        values, base_policy = manufacturing_api.resolve_fold_designer_base_plate_source(
+            key, data, width=w, height=h, thickness=t, frame_width=fw,
+            model_name=model, corner_policy=policy,
+        )
         spec = self._base_plate_part_spec_from_values(
-            values, features=features, corner_policy=policy,
+            values, features=features, corner_policy=base_policy,
         )
     elif key == "indicator_box":
         groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or (1,)))
