@@ -41,6 +41,8 @@ whd_schema: WHD_DOC_META_V1
 **#2517 Receiving 內門縮圖 NFB 型號／層數公開 API（2026-11-01）**：`manufacturing_api.resolve_receiving_inner_door_preview_inventory(config)` 回傳 immutable `ReceivingInnerDoorInventoryLayer`，以既有 `receiving_shared_settings.switch_filenames_in_layer`、`receiving_nfb_model_identity.display_model_ref` 投影真正儲存的每層開關身份、重複數量與顯示標籤，支援 legacy `.dxf` 與 V5 `nfbv5:廠牌:型號`。數量先依完整身份分組，不能因跨品牌同名合併；舊 0/1/2 顆存檔相容與原本可見層數契約不變。GUI `receiving_inner_door_thumbnail` 只畫縮圖文字及數量 glyph，不再直接 import 低階 Engine 型號驗證或解析身份；這不是孔位、3D、CUTTING、DXF 來源／製造認證。#2517 持續 OPEN。
 
 
+**#2517 正式板件 ResolvedManufacturingPart 組裝 API（2026-11-01）**：`manufacturing_api.materialize_resolved_manufacturing_parts(parts)` 使用既有 Engine frozen DTO，按原始順序組裝已解析實體板件 Render、Fold X/Y 的各段 mapping 複本、placement、offset；Phase6 只轉送已解析資料，不建立第二份 canonical 製造板件。仍由 `ResolvedManufacturingGeometry` 拒絕重複 part key，保留實體資料／保存／2D／3D／DXF 權威，不新增任何 Fold／CUTTING 公式；#2517 OPEN。
+
 **#2517 USER_ADDED Explicit Joint relief 求解公開 API（2026-11-01）**：`manufacturing_api.resolve_manufacturing_explicit_joint_reliefs` 由 `ae_engine.explicit_joint_pipeline` 唯一持有原 Phase7 A6 七階段實體製造／碰撞／裁切、World/UV 驗證、saved-cut replay、provisional 診斷；callbacks 只來自 Engine 既有 `assembly_joint`、`assembly_collision`、`assembly_geometry`，不反向 import Phase6/Tk/FinalScene；`phase6_manufacturing_geometry` 只委派 Engine，舊 `phase6_explicit_joint_pipeline` 只作 import shim。臨時驗證材料由原 resolved part immutable dataclass replace 或等價 headless DTO 建立，不改已認證 cut／Save→Reload／Registry，未新增 CUTTING／DXF 能力；#2517 OPEN。
 
 **#2517 Relief rule trace／Joint diagnostic 公開 API（2026-11-01）**：`manufacturing_api.resolve_manufacturing_relief_evidence(resolved_parts, solutions, joints)` 統一由 Engine 將既有 solver EndCap corner、3D shadow、Receiving bottom-WRAP metadata 與 Registry Joint ownership 投影成 `ResolvedReliefRuleTrace`、`ResolvedJointDiagnostic`。保留既有 trace 順序、`USER_ADDED` 獨立 relief pipeline、legal contact／穿透診斷及 deep-copy evidence；Phase6 只組合 Engine 結果供顯示。沒有新增 Certified Registry 來源、CUTTING／DXF 授權；#2517 仍 OPEN。
@@ -708,7 +710,6 @@ Engine 按既有規則保留未操作格位的舊 Feature、允許已操作格�
 `phase6_final_scene_projection._phase6_mesh_feature_segments` 僅相容委派，
 GUI 的 Matplotlib 不再決定實體特徵邊。FinalScene 製造材料來源不變，
 此線段資料純顯示，不新增 CUTTING、DXF／碰撞認證；#2517 持續 OPEN。
-
 
 ### #2517 多片 Box Body 實體外側 W 定位 Engine API（2026-11-01）
 

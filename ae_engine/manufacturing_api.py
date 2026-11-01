@@ -338,6 +338,7 @@ from .assembly_joint import (
 )
 from .assembly_joint import joint_registry_diagnostic_info
 from .manufacturing_relief_evidence import resolve_manufacturing_relief_evidence
+from .resolved_manufacturing_parts import materialize_resolved_manufacturing_parts
 from .explicit_joint_pipeline import (
     EXPLICIT_JOINT_PIPELINE_STAGES,
     ExplicitJointPipelineOps,
@@ -1112,7 +1113,6 @@ def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
     """Public Engine physical solid mesh feature-boundary projection."""
     from .solid_mesh_feature_edges import physical_solid_mesh_feature_segments as resolve
     return resolve(triangles, tolerance=tolerance)
-
 
 def resolve_box_body_formed_width_datum(pieces):
     """Public Engine authority for physical multipart Box Body outside W datum."""
