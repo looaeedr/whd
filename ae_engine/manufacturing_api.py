@@ -1428,6 +1428,9 @@ from .receiving_nfb_v5_operator_preview import (
 )
 
 
+# #2517: source-verified Receiving EAR 3D side marking is Engine-owned.
+from .receiving_fixed_plate_side_contact import project_receiving_ear_side_marking_segments
+
 # #2517: Receiving side EAR read-only 2D/3D source identity and cache stamp.
 from .receiving_ear_side_display_context import (
     ReceivingEarSideDisplayContext,
