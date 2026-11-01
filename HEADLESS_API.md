@@ -861,3 +861,23 @@ DoorPartSpec fields, the caller's physical per-cell edges/size, nameplate
 datum, Fold/Corner inputs, and downstream 2D/3D/DXF/Save→Reload remain
 unchanged. This API does not approve manufacturing, override Certified
 Registry geometry, or create a second physical cell topology. #2517 OPEN.
+
+## Receiving highlighted Set/Bay NFB inner-door partial DXF public Engine API (#2517)
+
+`manufacturing_api.require_highlighted_nfb_inner_doors(ports, set_index,
+bay_indices, *, allow_held=False)` and
+`manufacturing_api.export_highlighted_nfb_inner_doors(ports, *,
+set_index, bay_indices, output_directory, allow_held=False)` are the
+headless, Engine-owned operation for current-source-verified Receiving
+highlighted Set/Bay **inner-door only** partial export. Existing live
+`manifest` and real `partial_export` ports are mandatory; a UI READY
+indicator cannot grant authority. The Engine rechecks each physical
+Set/Bay/version and inner-door stable ID before publishing, rejects
+forged writer manifests or stale source, stages all actual DXFs, forbids
+overwriting, and atomically links outputs with rollback on publish failure.
+Explicit `allow_held=True` publishes READY sheets only and an honest
+held-Bay JSON manifest; unrelated BasePlate/PAD/EAR pieces are never
+counted as emitted. The historical GUI import module is only a
+compatibility re-export of these public functions. No whole-cabinet
+manufacturing, new hole/CUTTING formula, DXF certification, or external
+installer capability follows from this move. #2517 remains OPEN.

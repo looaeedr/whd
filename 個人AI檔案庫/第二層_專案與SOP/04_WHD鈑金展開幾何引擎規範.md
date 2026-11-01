@@ -32,6 +32,9 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 受電箱 NFB 多 Bay 內門部分出圖公開 API（2026-11-01）**：`manufacturing_api.require_highlighted_nfb_inner_doors`、`manufacturing_api.export_highlighted_nfb_inner_doors` 接管原 GUI `receiving_nfb_partial_batch_dispatcher` 的已提交來源、真實 Set/Bay/version 與實體內門 ID 查核、批次 DXF 隔離暫存、無覆寫原子發布及失敗回滾。原 GUI module 僅作公開 API 相容 re-export；`manifest`／`partial_export` 仍是來源必須即時重驗的原正式 port，過期／跨 Bay／偽造 typed receipt 必拒絕。明確選擇 allow_held 時僅放行 READY 內門並產生未出圖 Bay 報告，不把底板／PAD／EAR 誤計為已出板片；不新增孔位／CUTTING／DXF 認證或整箱製造權，#2517 持續 OPEN。
+
+
 **#2517 Receiving NFB CSV 已出圖範圍來源證明 Engine API（2026-11-01）**：`manufacturing_api.resolve_verified_csv_v5_export_scope` 由既有 `receiving_nfb_model_identity.selected_numeric_spec`、`receiving_nfb_y_projection.project_nfb_inner_door_nominal_y` 確認精確 Set/Bay、W、實體孔身分與 X/Y/rotation；`capture_verified_csv_v5_pair_display_proof` / `verified_csv_v5_operator_label` 由 Engine 唯一校驗已提交 snapshot、原品牌 CSV 真實 bytes、已實際存檔並重新開啟的兩／三片 PART_ONLY DXF 真實 bytes 與目前來源是否完全相等。GUI exporter 只採原本的 typed 成功 receipt，`receiving_nfb_verified_scope_display` 只傳輸來源與回傳顯示標籤，不再持有 SHA、來源型號／物理身份及是否可以標示過去已出圖的決策。Proof 為 immutable 的暫存歷史輸出展示憑據，不寫入專案；來源或輸出檔任何漂移立即失效、不推定全箱／EAR／PAD／下一次正式製造權限。原出圖、Save→Reload、Fail closed 不改；#2517 保持 OPEN。
 
 
