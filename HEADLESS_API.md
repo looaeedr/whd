@@ -1349,6 +1349,19 @@ permission. Actual UV/material and safety rejection remain in
 3D source and stale-primary cases and actual Save→Reload CHECK-only DXF
 regression remain the acceptance evidence.
 
+## FinalScene 3D operator dimension guides (#2517)
+
+`manufacturing_api.project_operator_dimension_guides(x_profile, y_profile,
+*, triangles=(), thickness=None)` returns a frozen
+`OperatorDimensionGuidePlan` with three width strokes, three height strokes,
+and their two label positions. The existing Engine Fold material base section
+is a fallback only when no resolved formed 3D surface is available. Actual
+formed physical mesh uses `folded_outside_envelope` as the shared outside
+dimension authority; invalid mesh data fails closed. WHD GUI only draws
+Engine-provided world positions and formats the already-resolved W/H values.
+Legacy 5.5% line offset / 1.2% tick are visualization spacing, not a new
+manufacturing compensation or authorization.
+
 ## Joint contact MARKING world source display API (#2517)
 
 `manufacturing_api.project_joint_marking_world_segments(render_data)`

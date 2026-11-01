@@ -11,12 +11,9 @@ from __future__ import annotations
 from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from whd_theme import WHD_THEME
 from phase6_final_scene_projection import (
-    _phase6_profile_base_index,
-    _phase6_profile_geometry,
     _phase6_profile_map_with_guides,
     _phase6_profile_map,
     _phase6_mesh_feature_segments,
-    _phase6_folded_outside_envelope,
     format_operator_info_text,
 )
 
@@ -364,40 +361,36 @@ class Phase6FinalSceneRenderHelpersMixin:
         )
 
     def _draw_operator_dimensions(self, request, triangles):
+        """Paint the Engine's physical Fold/outside-world dimension guides."""
+        from ae_engine import manufacturing_api
+
         ax = self.renderer.ax3d
         dims = self._resolved_finished_dimensions(request, triangles)
-        if not dims or not all(callable(getattr(ax, name, None)) for name in ("plot", "text", "text2D")):
+        if not dims or not all(callable(getattr(ax, name, None))
+                               for name in ("plot", "text", "text2D")):
             return
+        guides = manufacturing_api.project_operator_dimension_guides(
+            request.x_profile, request.y_profile,
+            triangles=triangles, thickness=request.thickness,
+        )
         width, height = dims[:2]
-        depth = dims[2] if len(dims) > 2 else None
-        xb, xf = _phase6_profile_geometry(request.x_profile)
-        yb, yf = _phase6_profile_geometry(request.y_profile)
-        xi = _phase6_profile_base_index(request.x_profile)
-        yi = _phase6_profile_base_index(request.y_profile)
-        x0, x1 = float(xf[xi][0]), float(xf[xi + 1][0])
-        y0, y1 = float(yf[yi][0]), float(yf[yi + 1][0])
-        envelope = _phase6_folded_outside_envelope(triangles, request.thickness)
-        if envelope is not None:
-            _, bounds = envelope
-            x0, x1 = bounds[0]
-            y0, y1 = bounds[1]
-        span = max(abs(x1 - x0), abs(y1 - y0), 1.0)
-        off = span * 0.055
-        tick = span * 0.012
-        wy = min(y0, y1) - off
-        hx = min(x0, x1) - off
-        ax.plot([x0, x1], [wy, wy], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
-        ax.plot([x0, x0], [wy - tick, wy + tick], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
-        ax.plot([x1, x1], [wy - tick, wy + tick], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
-        ax.text((x0 + x1) / 2.0, wy, 0.0, f"W {self._number_text(width)} mm", ha="center", va="top", color=WHD_THEME["text"])
-        ax.plot([hx, hx], [y0, y1], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
-        ax.plot([hx - tick, hx + tick], [y0, y0], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
-        ax.plot([hx - tick, hx + tick], [y1, y1], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
-        ax.text(hx, (y0 + y1) / 2.0, 0.0, f"H {self._number_text(height)} mm", ha="right", va="center", color=WHD_THEME["text"])
+        for a, b in guides.width_segments:
+            ax.plot([a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
+                    linewidth=1.0, color=WHD_THEME["muted_text"])
+        ax.text(*guides.width_label_position,
+                f"W {self._number_text(width)} mm",
+                ha="center", va="top", color=WHD_THEME["text"])
+        for a, b in guides.height_segments:
+            ax.plot([a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
+                    linewidth=1.0, color=WHD_THEME["muted_text"])
+        ax.text(*guides.height_label_position,
+                f"H {self._number_text(height)} mm",
+                ha="right", va="center", color=WHD_THEME["text"])
         info = format_operator_info_text(
             request, dimensions=dims, number_text=self._number_text
         )
-        ax.text2D(0.015, 0.985, info, transform=ax.transAxes, ha="left", va="top", color=WHD_THEME["text"])
+        ax.text2D(0.015, 0.985, info, transform=ax.transAxes,
+                  ha="left", va="top", color=WHD_THEME["text"])
 
     def _draw_joint_diagnostic_overlays(self, render_data):
         diagnostics = tuple(getattr(render_data, "joint_diagnostics", ()) or ())
