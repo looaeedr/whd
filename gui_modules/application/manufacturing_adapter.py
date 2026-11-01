@@ -15,10 +15,8 @@ from copy import deepcopy
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from ae_engine.contracts import (
-    BasePlatePartSpec,
     BoxBodyPartSpec,
     DoorPartSpec,
-    IndicatorBoxPartSpec,
     ManufacturingContext,
 )
 from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
@@ -290,55 +288,32 @@ def _validate_door_layout_indicator_fit(self, cell, state, val):
     )
 
 def _base_plate_part_spec_from_values(self, val, *, features, corner_policy=None):
-    return BasePlatePartSpec(
-        width=float(val['w']), height=float(val['h']), thickness=float(val['t']),
-        shrink_top=float(val['base_plate_shrink_top']),
-        shrink_bottom=float(val['base_plate_shrink_bottom']),
-        shrink_left=float(val['base_plate_shrink_left']),
-        shrink_right=float(val['base_plate_shrink_right']),
-        bend=float(val['base_plate_bend']),
-        features=tuple(features or ()), corner_policy=corner_policy,
+    """Forward the current operator/saved sources to the headless Engine."""
+    return manufacturing_api.build_base_plate_operator_part_spec(
+        val,
+        features=features,
+        corner_policy=corner_policy,
         box_body_structure_state=self.workspace_controller.box_body_structure_state(),
-        box_body_fold_profile=profile_to_fold_segments(self.workspace_controller.box_body_profile() or ()),
-        model_name=str(val.get('model', '')).strip() or None,
-        # Same pre-existing Base Plate producer; the Receiving pattern is
-        # received from the real part snapshot, not a second editor.
-        receiving_bend_pattern=(
-            val.get('receiving_bend_pattern')
-            if str(val.get('model', '')).strip() in {'受電箱', 'RECEIVING'}
-            else None
-        ),
-        physical_id=str(val.get('physical_id') or 'base_plate'),
-        # #1502: one already selected/committed Receiving NFB depth pair.
-        # It is computed in receiving_base_plate_values from the Bay/Set,
-        # not editable as a second independent Base Plate dimension owner.
-        receiving_nfb_depth_pair_mm=(
-            val.get('receiving_nfb_depth_pair_mm')
-            if str(val.get('model', '')).strip() in {'受電箱', 'RECEIVING'}
-            else None
-        ),
+        box_body_fold_profile=self.workspace_controller.box_body_profile() or (),
     )
+
 
 def _base_plate_part_spec(self, val):
     return self._base_plate_part_spec_from_values(
         val, features=self.surface_features["base_plate"],
-        corner_policy=(
-            self._manual_corner_policy('base_plate', val['fw'])
-        ),
+        corner_policy=self._manual_corner_policy("base_plate", val["fw"]),
     )
+
 
 def _indicator_box_part_spec_from_values(self, val, layer_groups, *, features):
-    return IndicatorBoxPartSpec(
-        layer_groups=tuple(int(v) for v in layer_groups),
-        thickness=float(val['t']), model_name=None,
-        features=tuple(features or ()), corner_policy=None,
+    return manufacturing_api.build_indicator_box_operator_part_spec(
+        val, layer_groups, features=features,
     )
 
+
 def _indicator_box_part_spec(self, val, layer_groups, *, features):
-    return IndicatorBoxPartSpec(
-        layer_groups=tuple(int(v) for v in layer_groups),
-        thickness=float(val['t']), model_name=None,
-        features=tuple(features or ()), corner_policy=None,
+    return manufacturing_api.build_indicator_box_operator_part_spec(
+        val, layer_groups, features=features,
     )
 
 def _indicator_door_part_spec_from_values(self, val, layer_groups, *, features):
