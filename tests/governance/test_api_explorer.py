@@ -88,3 +88,12 @@ def test_generated_output_is_deterministic_and_json_embedded(tmp_path):
     assert "API_DATA" not in a_html
     assert "search.addEventListener" in a_html
     assert all(row["link"].startswith("https://github.com/looaeedr/whd/") for row in rows)
+
+
+def test_pages_first_deploy_is_not_blocked_by_unauthenticated_probe():
+    workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/whd-api-explorer.yml").read_text(encoding="utf-8")
+    assert "uses: actions/upload-pages-artifact@v3" in workflow
+    assert "uses: actions/deploy-pages@v4" in workflow
+    assert "needs: build" in workflow
+    assert "pages_enabled" not in workflow
+    assert "api.github.com/repos/" not in workflow
