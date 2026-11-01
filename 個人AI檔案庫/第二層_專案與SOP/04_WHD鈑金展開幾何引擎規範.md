@@ -156,6 +156,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.project_receiving_ear_side_marking_segments(formed_ear_skins, visible_side_piece_keys=None)` 是受電箱固定片（EAR）在組合 3D SIDE 視圖的唯一實體來源選擇／驗證入口。Engine `receiving_fixed_plate_side_contact` 先驗證 2／4 片完整物理 owner、唯一 `part_id`、真實 T2/BEND23 formed skin，再依實體側板 `box_body:left_side`／`box_body:right_side` 顯示範圍輸出世界座標線段；空來源返回空 tuple，不以隱藏側板掩蓋錯誤來源。GUI `phase6_final_scene_render_helpers._draw_receiving_ear_side_markings` 僅接收並描繪 Engine 回傳的三條上定位／短提示線，不再自行選擇接觸面或實體 owner。此線為 **DISPLAY ONLY**，不代表 side UV MARKING、焊接認證或 DXF 出圖授權；已核准的固定片折彎、NFB、2D／3D／製造來源與 Save→Reload 契約不變。#2517 持續 OPEN。
 
+### #2517 EndCap pre-solve 固定截角 delta 世界干涉診斷 Engine API（2026-11-01）
+
+`ae_engine.endcap_relief_interference_preview.project_assembled_endcap_relief_interference` 經 `manufacturing_api`／根包公開；從已提交 pre-solve probe 取得 `restored_endcap_relief_delta`，或沿用舊 `ignore_fixed_corner_relief` 操作 fallback 的 delta，使用既有 Engine `folded_mesh_from_polygon`／`resolve_assembled_endcap_world_skins`／`detect_world_mesh_surface_interference`。GUI `phase6_final_scene_renderer` 只轉交原始 Engine 來源並顯示診斷，不再自行用已切角後的展示材料猜碰撞。未得到有效 delta 或世界網格則不顯示；不得將整片 EndCap 原料放進干涉判斷製造假陽性。現有 Registry、Relief CUTTING、DXF、Save→Reload 全不改，#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。

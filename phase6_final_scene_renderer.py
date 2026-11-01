@@ -339,47 +339,16 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     and box_body_collision_mesh
                     and part_key in {"head", "tail"}
                 ):
-                    from ae_engine.assembly_geometry import (
-                        detect_world_mesh_surface_interference,
+                    diagnostic = (
+                        manufacturing_api.project_assembled_endcap_relief_interference(
+                            part, probe_parts.get(part_key), render_data,
+                            diagnostic_relief_delta=diagnostic_relief_delta,
+                            box_body_collision_mesh=box_body_collision_mesh,
+                            box_body_world=box_body_world,
+                            placement=placement, offset=offset,
+                            thickness=request.thickness,
+                        )
                     )
-                    # Collision diagnostics must use the pre-solve EndCap probe,
-                    # never the already-relieved display material.  We still probe
-                    # only the fixed-relief delta so intended mating seams on the full
-                    # sheet are not reported as broad false positives.
-                    collision_target = ()
-                    probe_part = probe_parts.get(part_key)
-                    probe_data = getattr(probe_part, "render_data", None) if probe_part is not None else None
-                    if probe_data is not None and getattr(probe_data, "material", None) is not None:
-                        from ae_engine.assembly_geometry import restored_endcap_relief_delta
-                        delta_material = restored_endcap_relief_delta(probe_data.material)
-                        probe_x = tuple(dict(seg) for seg in getattr(probe_part, "x_profile", ()) or ())
-                        probe_y = tuple(dict(seg) for seg in getattr(probe_part, "y_profile", ()) or ())
-                        probe_guides = tuple(getattr(probe_data, "fold_guides", ()) or ())
-                    elif bool(getattr(render_data, "ignore_fixed_corner_relief", False)):
-                        delta_material = diagnostic_relief_delta
-                        probe_x = tuple(dict(seg) for seg in part.x_profile)
-                        probe_y = tuple(dict(seg) for seg in part.y_profile)
-                        probe_guides = tuple(getattr(part_data, "fold_guides", ()) or ())
-                    else:
-                        delta_material = None
-                        probe_x = probe_y = probe_guides = ()
-                    if delta_material is not None and not getattr(delta_material, "is_empty", True):
-                        delta_local = _phase6_folded_mesh_from_polygon(
-                            delta_material, probe_x, probe_y, fold_guides=probe_guides,
-                        )
-                        collision_target = (
-                            manufacturing_api.resolve_assembled_endcap_world_skins(
-                                delta_local, placement=placement,
-                                box_body_world=box_body_world, offset=offset,
-                                thickness=request.thickness,
-                                preserve_core_origin=bool(getattr(
-                                    render_data, "preserve_endcap_core_origin", False
-                                )),
-                            ).solid_triangles
-                        )
-                    diagnostic = detect_world_mesh_surface_interference(
-                        box_body_collision_mesh, collision_target
-                    ) if collision_target else None
                     if diagnostic is not None and diagnostic.has_interference:
                         interference_targets.extend(diagnostic.target_triangles)
                         interference_points.extend(diagnostic.intersection_points)

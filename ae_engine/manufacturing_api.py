@@ -1270,6 +1270,11 @@ def build_door_operator_part_spec(
         nameplate_center_datum_top=nameplate_center_datum_top,
     )
 
+# #2517: Pre-solve EndCap fixed-relief delta and world collision diagnostics.
+from .endcap_relief_interference_preview import (
+    project_assembled_endcap_relief_interference,
+)
+
 # #2517: BoxBody collision diagnostics consume canonical physical solid skins.
 from .box_body_collision_source_mesh import project_box_body_collision_source_mesh
 
