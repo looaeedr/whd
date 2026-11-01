@@ -103,7 +103,7 @@ def test_manufacturing_adapter_delegates_replay_contract_to_neutral_owner():
     assert body is not None
     assert "manufacturing_api.resolve_operator_committed_relief_cuts(" in body
     assert "build_current_source_signature(" not in body
-    assert "committed_relief_cuts(" not in body
+    assert "return manufacturing_api.committed_relief_cuts(" not in body
     assert "certified_rule_revision_exists" not in body
     assert "RELIEF_CONTRACT_VERSION" not in body
     assert "structure_fingerprint" not in body
