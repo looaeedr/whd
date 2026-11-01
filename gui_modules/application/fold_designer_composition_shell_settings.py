@@ -87,7 +87,7 @@ from phase6_assembly_panel import Phase6AssemblyPanel
 from phase6_manufacturing_adapter import operator_finished_dimensions_for_app
 from phase6_final_scene_view import Phase6FinalSceneViewAdapter
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
-from phase6_derived_part_projection import (
+from ae_engine.manufacturing_api import (
     DerivedPartRequestAssemblyInput,
     build_derived_part_projection_request,
     build_derived_part_sync_plan,

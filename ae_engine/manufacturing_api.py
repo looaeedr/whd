@@ -1186,6 +1186,27 @@ from .receiving_nfb_manifest_validation import (
     validate_receiving_nfb_highlighted_manifest,
 )
 
+# Canonical Engine owner for Door/BasePlate/Divider/InnerDoor physical namespaces,
+# retired GUI-owned immutable request/sync intent builder (#2517).
+from .derived_part_projection import (
+    FrozenMappingValue,
+    FrozenSequenceValue,
+    DerivedPartProfileProjection,
+    DerivedPartFeatureProjection,
+    DerivedPartNamespaceProjection,
+    DerivedPartProjectionRequest,
+    DerivedPartRequestAssemblyInput,
+    DerivedPartSyncPlan,
+    build_derived_part_projection_request,
+    build_derived_part_sync_plan,
+    profile_projection,
+    feature_projection,
+    namespace_projection,
+    materialize_profiles,
+    materialize_features,
+    materialize_namespace,
+)
+
 
 # #2517 Receiving CSV V5 physical BasePlate trial/source & display gate.
 # Public, GUI-independent: never a manufacturing/DXF certification.

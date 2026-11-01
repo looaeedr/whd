@@ -978,6 +978,23 @@ every DXF operation must separately revalidate sources through the existing
 typed NFB Engine manifest/export gate. No new PAD/EAR/MFG-2 authorization,
 CUTTING formula, or DXF capability is introduced.
 
+## Derived physical part namespace/selection sync Engine API (#2517)
+
+The pure immutable `DerivedPartRequestAssemblyInput`,
+`DerivedPartProjectionRequest`, `DerivedPartSyncPlan` and
+`manufacturing_api.build_derived_part_projection_request` /
+`manufacturing_api.build_derived_part_sync_plan` are now owned in
+`ae_engine.derived_part_projection`. This moves the existing source
+reconciliation rules for `door_cN_rN`, `base_plate_cN_rN`,
+`box_body:divider:` and `inner_door:` namespaces, stale part/Feature
+stash, active/selected physical ID repair, and Receiving's existing single
+Base Plate preservation into Engine unchanged. The original
+`phase6_derived_part_projection` is an import-only compatibility mirror.
+GUI composition only collects already-derived profiles/physical sources,
+calls the Engine public API, and applies its immutable plan via the existing
+workspace mutation owner. No second family formula, new NFB source, DXF
+entitlement, or Save→Reload schema. #2517 OPEN.
+
 
 ## Receiving CSV-V5 unapproved inner-door/base real source trial API (#2517)
 
