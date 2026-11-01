@@ -1436,3 +1436,9 @@ from .operator_door_2d_preview import (
     project_operator_door_divider_frame_preview,
     project_operator_door_indicator_guides,
 )
+
+# #2517 canonical BoxBody physical 2D source and operator piece identity.
+from .operator_box_body_2d import (
+    project_receiving_box_body_2d_source,
+    project_box_body_2d_piece_inventory,
+)

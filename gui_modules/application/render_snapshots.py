@@ -253,44 +253,35 @@ def box_body_render_snapshot(host, val, *, face_dimensions_fn=box_body_face_dime
         resolve = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
         if not callable(resolve):
             raise ValueError("受電箱側板 2D 缺少 FoldDesigner 實體製造來源")
-        geometry = resolve()
-        box_body = geometry.part("box_body")
-        render_data = box_body.render_data
-        if not tuple(getattr(render_data, "pieces", ()) or ()):
-            raise ValueError("受電箱側板 2D 缺少現行物理板件")
+        render_data = manufacturing_api.project_receiving_box_body_2d_source(
+            resolve()
+        )
     else:
         spec = host._box_body_part_spec(val)
         render_data = host._authoritative_render_data(
             spec, host._manufacturing_context(draw_stock=False)
         )
     selected_piece_key = host._refresh_box_body_piece_tabs_2d(render_data)
-    if selected_piece_key:
-        selected_role = selected_piece_key.split(":", 1)[1]
-        selected_piece = next(
-            (
-                piece
-                for piece in tuple(getattr(render_data, "pieces", ()) or ())
-                if str(getattr(piece, "role", "") or "") == selected_role
-            ),
-            None,
-        )
-        if selected_piece is not None:
-            # #1503: only the selected Receiving physical SIDE gets a
-            # display-only source-world->UV EAR weld footprint. Production
-            # BoxBody data and DXF inventory remain the original render_data.
-            blocker = None
-            if selected_piece_key in {"box_body:left_side", "box_body:right_side"}:
-                from .receiving_ear_side_2d import present_receiving_ear_side_piece_2d
-                selected_piece, blocker = present_receiving_ear_side_piece_2d(
-                    host, render_data, selected_piece, selected_piece_key,
-                )
-            return {
-                "mode": "piece",
-                "render_data": render_data,
-                "piece": selected_piece,
-                "piece_key": selected_piece_key,
-                "ear_marking_preview_blocker": blocker,
-            }
+    piece_keys, selected_piece = manufacturing_api.project_box_body_2d_piece_inventory(
+        render_data, selected_piece_key,
+    )
+    if selected_piece is not None:
+        # #1503: only the selected Receiving physical SIDE gets a
+        # display-only source-world->UV EAR weld footprint. Production
+        # BoxBody data and DXF inventory remain the original render_data.
+        blocker = None
+        if selected_piece_key in {"box_body:left_side", "box_body:right_side"}:
+            from .receiving_ear_side_2d import present_receiving_ear_side_piece_2d
+            selected_piece, blocker = present_receiving_ear_side_piece_2d(
+                host, render_data, selected_piece, selected_piece_key,
+            )
+        return {
+            "mode": "piece",
+            "render_data": render_data,
+            "piece": selected_piece,
+            "piece_key": selected_piece_key,
+            "ear_marking_preview_blocker": blocker,
+        }
 
     bounds = tuple(float(v) for v in render_data.material.bounds)
     contexts = getattr(render_data, "box_body_face_contexts", None)
@@ -307,10 +298,7 @@ def box_body_render_snapshot(host, val, *, face_dimensions_fn=box_body_face_dime
         "dimensions": face_dimensions_fn(
             w=val["w"], h=val["h"], d=val["d"]
         ),
-        "piece_keys": tuple(
-            f"box_body:{str(piece.role)}"
-            for piece in tuple(getattr(render_data, "pieces", ()) or ())
-        ),
+        "piece_keys": piece_keys,
     }
 
 
