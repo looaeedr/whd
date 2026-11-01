@@ -1229,3 +1229,12 @@ def build_box_body_operator_part_spec(
         head_ybottom1=head_ybottom1, tail_ybottom1=tail_ybottom1,
         snapshot=snapshot,
     )
+
+
+# #2517 Receiving CSV V5 physical BasePlate trial/source & display gate.
+# Public, GUI-independent: never a manufacturing/DXF certification.
+from .receiving_nfb_v5_operator_preview import (
+    preview_receiving_nfb_v5_real_base_sources,
+    require_receiving_nfb_v5_inner_door_trial_preview,
+    require_receiving_nfb_v5_base_trial_preview,
+)
