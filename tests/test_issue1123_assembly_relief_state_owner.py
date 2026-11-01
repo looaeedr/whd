@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 from shapely.geometry import box
 
-from phase6_assembly_relief_state import (
+from ae_engine.manufacturing_api import (
     RELIEF_CONTRACT_VERSION,
     build_current_source_signature,
     build_persisted_relief_state,
@@ -17,7 +17,8 @@ from phase6_assembly_relief_state import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-OWNER = ROOT / "phase6_assembly_relief_state.py"
+OWNER = ROOT / "ae_engine" / "assembly_relief_state.py"
+FACADE = ROOT / "phase6_assembly_relief_state.py"
 ADAPTER = ROOT / "gui_modules" / "application" / "manufacturing_adapter.py"
 BRIDGE = ROOT / "fold_designer_bridge.py"
 
@@ -50,6 +51,20 @@ def _source(*, graph="G1", structure=None, family="金庫型", assembly_type="IN
 
 def test_neutral_owner_exists_without_bridge_gui_or_solver_imports():
     text = OWNER.read_text(encoding="utf-8")
+    facade = FACADE.read_text(encoding="utf-8")
+    from ae_engine import manufacturing_api as public
+    from phase6_assembly_relief_state import (
+        build_current_source_signature as old_builder,
+        committed_relief_cuts as old_replay,
+        source_matches_current as old_match,
+        build_persisted_relief_state as old_persist,
+    )
+    assert old_builder is public.build_current_source_signature
+    assert old_replay is public.committed_relief_cuts
+    assert old_match is public.source_matches_current
+    assert old_persist is public.build_persisted_relief_state
+    assert "def source_matches_current" not in facade
+    assert "def build_persisted_relief_state" not in facade
     tree = ast.parse(text)
     names = {node.name for node in tree.body if isinstance(node, ast.FunctionDef)}
     assert {
@@ -86,8 +101,8 @@ def test_manufacturing_adapter_delegates_replay_contract_to_neutral_owner():
     func = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "_resolved_committed_assembly_relief_cuts")
     body = ast.get_source_segment(text, func)
     assert body is not None
-    assert "build_current_source_signature(" in body
-    assert "committed_relief_cuts(" in body
+    assert "manufacturing_api.build_current_source_signature(" in body
+    assert "manufacturing_api.committed_relief_cuts(" in body
     assert "certified_rule_revision_exists" not in body
     assert "RELIEF_CONTRACT_VERSION" not in body
     assert "structure_fingerprint" not in body
@@ -104,10 +119,10 @@ def test_bridge_delegates_persisted_contract_to_neutral_owner():
     serialize_body = ast.get_source_segment(text, funcs["_phase6_serialize_assembly_relief_state"])
     fingerprint_body = ast.get_source_segment(text, funcs["_phase6_relief_profile_fingerprint"])
 
-    assert source_body is not None and "build_current_source_signature(" in source_body
-    assert match_body is not None and "source_matches_current(" in match_body
-    assert serialize_body is not None and "build_persisted_relief_state(" in serialize_body
-    assert fingerprint_body is not None and "relief_profile_fingerprint(" in fingerprint_body
+    assert source_body is not None and "current_relief_source_signature(" in source_body
+    assert match_body is not None and "manufacturing_api.source_matches_current(" in match_body
+    assert serialize_body is not None and "serialize_assembly_relief_state(" in serialize_body
+    assert fingerprint_body is not None and "manufacturing_api.relief_profile_fingerprint(" in fingerprint_body
     for body in (source_body, match_body, serialize_body, fingerprint_body):
         assert "certified_rule_revision_exists" not in body
         assert "RELIEF_CONTRACT_VERSION" not in body
@@ -229,3 +244,43 @@ def test_persisted_state_is_atomic_and_preserves_only_current_prior_transaction(
         "source": {},
         "parts": {},
     }
+
+def test_composition_save_and_replay_are_public_engine_only():
+    source = (
+        ROOT / "gui_modules" / "application" / "fold_designer_composition_state.py"
+    ).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    methods = {
+        node.name: ast.get_source_segment(source, node)
+        for node in tree.body if isinstance(node, ast.FunctionDef)
+    }
+    assert "manufacturing_api.build_current_source_signature(" in (
+        methods["current_relief_source_signature"] or ""
+    )
+    assert "manufacturing_api.build_persisted_relief_state(" in (
+        methods["serialize_assembly_relief_state"] or ""
+    )
+    assert "from phase6_assembly_relief_state" not in source
+    from ae_engine import (
+        build_current_source_signature as root_source,
+        committed_relief_cuts as root_replay,
+    )
+    assert root_source is build_current_source_signature
+    assert root_replay is committed_relief_cuts
+
+
+def test_headless_save_reload_rejects_source_and_profile_drift():
+    import json
+    from copy import deepcopy
+    saved = _source()
+    reloaded = json.loads(json.dumps(saved, ensure_ascii=False))
+    assert source_matches_current(reloaded, saved, ["head"])
+    changed = deepcopy(saved)
+    changed["part_profiles"]["head"]["Y"][0]["len"] += 1.0
+    assert not source_matches_current(reloaded, changed, ["head"])
+    changed = deepcopy(saved)
+    changed["box_body_formed_fw"]["right"] += 0.01
+    assert not source_matches_current(reloaded, changed, ["head"])
+    changed = deepcopy(saved)
+    changed["cabinet_family"] = "受電箱"
+    assert not source_matches_current(reloaded, changed, ["head"])

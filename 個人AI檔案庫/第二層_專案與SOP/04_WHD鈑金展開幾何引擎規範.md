@@ -108,6 +108,10 @@ whd_schema: WHD_DOC_META_V1
 
 `ae_engine.operator_auxiliary_part_specs` 正式擁有 `manufacturing_api.build_base_plate_operator_part_spec`／`build_indicator_box_operator_part_spec`，原 `gui_modules/application/manufacturing_adapter.py` 的 `_base_plate_part_spec_from_values`、`_indicator_box_part_spec_from_values`、`_indicator_box_part_spec` 僅轉送既有輸入。BasePlate 操作 W/H/T、四側縮邊、BEND、BoxBody 既存 Structure/Fold、操作者 Corner/Feature，以及 Receiving 既有 NFB source bend pattern／已提交深淺 pair 和物理 ID 均由 Engine 建構同一 `BasePlatePartSpec`；原有 `受電箱`／`RECEIVING` saved key 判準不變，金庫型不得意外承接 Receiving 專用來源。IndicatorBox 所有入口共用唯一 `IndicatorBoxPartSpec` 轉換，無第二組 GUI int／T 解釋。只移動原製造 Request 組裝責任，仍使用既有物理與 Certified Registry／DXF 原始來源，不新增 NFB、CUTTING、DXF 認證、鎖版或正式 X；#2517 OPEN。
 
+### #2517 Assembly Relief 保存來源指紋／原子 Head Tail／已提交 CUT replay Engine API（2026-11-01）
+
+`ae_engine.assembly_relief_state` 現唯一擁有舊 `phase6_assembly_relief_state.py` 完整保存／回放判準：`RELIEF_CONTRACT_VERSION`、`relief_profile_fingerprint`、`structure_fingerprint`、`build_current_source_signature`、`source_matches_current`、`committed_relief_cuts`、`build_persisted_relief_state`。全數經 `manufacturing_api`／根包公開，同一 Python 物件由 Phase6 舊路徑相容重匯出；GUI `manufacturing_adapter`、Fold Designer composition 與 Bridge 直接消費公開 API，不再以 Phase6 佔有 Registry 版本／驗證原子保存決策。這批只搬移既有狀態演算法，保留已保存 JSON schema、Head/Tail 一起提交、已認證 rule_id/revision 與舊高階 assembly_type mirror 不作實體身份、Box Body／EndCap material Fold 指紋與 world formed FW 用於拒絕 stale replay。實際 Joint geometry／Registry／3D solver 仍為既有 Engine owner；無新增 CUTTING／DXF 認證或正式 X 發布，#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。

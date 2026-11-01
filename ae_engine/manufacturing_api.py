@@ -1278,6 +1278,19 @@ from .operator_auxiliary_part_specs import (
 # #2517: headless Head/Tail operator PartSpec material/Family/Joint authority.
 from .endcap_operator_part_spec import build_endcap_operator_part_spec
 
+# #2517: Head/Tail persisted assembly-relief source and atomic replay authority.
+# Expose one Engine-owned contract; Phase6/UI may only forward operator state.
+from .assembly_relief_state import (
+    RELIEF_CONTRACT_VERSION,
+    relief_profile_fingerprint,
+    structure_fingerprint,
+    build_current_source_signature,
+    source_matches_current,
+    committed_relief_cuts,
+    build_persisted_relief_state,
+)
+
+
 # #2517: physical Receiving NFB highlighted partial DXF batch is Engine-owned.
 # The GUI import path is a compatibility facade, never a second release gate.
 from .receiving_nfb_partial_batch_dispatcher import (
