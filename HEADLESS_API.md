@@ -6,6 +6,19 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Scene source authority for Receiving Bay, Joint and EndCap reserve
+
+`ae_engine.manufacturing_api.project_manufacturing_scene_settings_overlay(snapshot, global_settings)`
+只在目前有 Receiving Set/Bay runtime selection 時，排除全域設定中
+Door／NFB／Receiving layout 等 Bay 主權欄位，避免製造場景遭舊 settings 覆蓋。
+`project_manufacturing_scene_joint_source(snapshot)` 沿用現行
+`assembly_joint.migrate_legacy_snapshot_joints` 產生 canonical persisted Joint
+schema/rows（Detached output）；`project_manufacturing_bottom_relief_structure(snapshot,
+part_key, box_body_structure, bottom_wrap_state=...)` 沿用當前 Family policy 與
+EndCap BOTTOM wrap/reserve 判準。三個公開 API 均不含 GUI/Tk，不新增幾何公式、
+新製造資格或 DXF 放行；GUI 只提供輸入與轉接顯示資料。
+
+
 ## #2517 Receiving inner-door Quantity Confirm All precommit
 
 `ae_engine.manufacturing_api.preview_quantity_inner_door_confirm(snapshot, quantity_model, part_key, features, staged_config, *, include_missing_heights=False)` returns `(projected_snapshot, typed_nfb_config_or_none)` and does **not** mutate the live QuantityModel or snapshot. It runs the existing validated door settings, Receiving Family common-box projection and exact NFB CSV physical-hole/source gates, then the detached selected-version preflight. A native-feature-only edit returns `None` for the NFB config. Both original GUI Confirm All paths call this public API **before** mutating the live quantity or saving; Single preserves omitted layer heights, while the direct 3D operator path clears omitted heights with `include_missing_heights=True` for legacy parity. The caller must commit the returned typed source only after success. This is not a manufacturing-export capability.

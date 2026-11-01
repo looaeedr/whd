@@ -8,6 +8,18 @@ whd_schema: WHD_DOC_META_V1
 
 > 本文件的 CURRENT 區只描述 **現行 ae_engine 製造架構、公開 API 與 authority boundary**。實際 Corner/Relief 製造公式仍由 Certified Registry 與其 canonical references 擁有；本文件不得複製一套第二公式來源。
 
+## [CURRENT] #2689–#2694 盤名與合併 DXF Engine API（2026-11-01）
+
+**資料身分與保存：** `ae_engine.receiving_layout` 的每個 physical Set/Bay 都有獨立 `panel_name`，按全工程單調 `next_panel_number` 自動取 P1、P2…；刪連不回收、改名不重編、跨套不得重名，Save→Reload 保存這兩項 operator-owned canonical input。 `manufacturing_api.rename_receiving_panel(layout, set_index, bay_index, panel_name)` 是唯一改名入口；盤名只是顯示／DXF 分組名稱，絕不替代板件的 `stable_id`、物理身分、Certified Registry 或 2D/3D 幾何。金庫型單箱 `panel_name` 預設空白，`manufacturing_api.set_cabinet_panel_name(snapshot, name)` 驗證並保存。
+
+**製造／儲存 API：** `manufacturing_api.save_composed_panel_dxf(panels, output_path, pre_commit_guard=..., overwrite=False)` 接受已解析 `ResolvedManufacturingGeometry` 多片真實 flat `DrawingScene`，以不重疊 offset 排版，獨立 Save→Reload 原片及合併檔的 CUTTING、BEND、MARKING、BLIND_HOLE 等圖元、CHECK 來源與 material；保存每片實體 ID，拒絕未認證 NFB/PAD/EAR、來源漂移和目的檔碰撞。它**不**用 3D 裝配 world 座標反推加工 UV，也不因合併格式擴大 MFG-2／NC 合法範圍。箱身物理片沿 Engine 原有 topology/owner 次序排列，其他實體片列於旁側；不能把 row order 當成新的鈑金尺寸或焊接世界定位權威。
+
+**受電箱分組：** `manufacturing_api.plan_receiving_grouped_dxf(layout, mode)` 只讀 canonical Set/Bay 次序，可選 `PER_SET`（第1套.dxf、第2套.dxf…）、`ALL`（全部.dxf）、`END_VS_MIDDLE`（頭尾盤.dxf＋非空才有中間盤.dxf）。頭尾盤是**每套首末 Bay** 而非 `head/tail` 板件，一連只歸一次。 `manufacturing_api.export_grouped_receiving_multibay_dxf(saved_snapshot, physical_bay_geometry_provider=..., flags=..., output_dir=..., group_mode=..., pre_commit_guard=...)` 先由現行 CSV/Source/Registry/實體-owner gate 驗證並重新讀回每片，再做多檔 stage→單批 atomic publish；不可因某片缺來源而默默減片或發布完整製造。先前 `export_current_receiving_multibay_dxf` 每片檔相容 API 保留。
+
+**GUI 接線：** `gui_modules/layout/left_panel.py` 只呈現模式與 Engine filename preview，`gui_modules/project/export_actions.py` 經公開 `manufacturing_api` 發出選取、來源狀態及匯出。金庫型匯出單檔，`manufacturing_api.vault_panel_dxf_filename(panel_name, at=...)` 在空名時依 `Asia/Taipei` 輸出 `金庫型_YYYYMMDD_HHMMSS.dxf`，有名時輸出 `<盤名>.dxf`；碰撞需操作者明確同意，不默默覆蓋。
+
+**放行界線：** 成功生成分組 DXF ≠ Receiving 完整整箱 MFG-2/NC 已核准；#2344 仍獨立掌握工廠放行。以上擴充僅是增開公開 API／操作能力，不鎖舊 Family、不設第二製造入口、不變更 Certified Registry 的公式。
+
 ## [CURRENT] ae_engine Manufacturing / Certified Registry Contract
 
 <!-- WHD_AUTHORITY_ROLE: CURRENT -->
@@ -216,6 +228,10 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 ### #2517 FinalScene Joint 接觸／穿透／保留／退讓 3D 診斷世界來源 Engine API（2026-11-01）
 
 `manufacturing_api.project_joint_diagnostic_display_sources(render_data)` 由無 Tk 的 `ae_engine.joint_diagnostic_display` 讀取**已由 Joint Solver 建立**的 `ResolvedJointDiagnostic`，以 `selected_joint_id` 選取現行 source；僅保留 contact／penetration／preserve／relief 的合法三維世界線段與已解析方向向量，輸出不可變 `JointDiagnosticOverlaySource`。原 `phase6_final_scene_render_helpers._draw_joint_diagnostic_overlays` 只按 Engineer-result role 選 Matplotlib 畫筆、畫線與方向箭頭，不再自己過濾 Joint 來源、判斷世界座標或計算方向差分。非有限／不完整世界線段不會被呈現為診斷來源。這只是 solver 診斷的 read-only 3D 顯示，不變更 Registry 認證、Joint 接觸解算、世界碰撞報告、CUTTING／BEND／DXF 或 Save→Reload；金庫型與受電箱共用，#2517 仍 OPEN。
+
+### #2517 Phase6 Manufacturing Scene Set/Bay／Joint／BOTTOM Reserve 唯一來源 Engine API（2026-11-02）
+
+`manufacturing_api.project_manufacturing_scene_settings_overlay`、`project_manufacturing_scene_joint_source`、`project_manufacturing_bottom_relief_structure` 將原 `phase6_manufacturing_adapter.build_scene_payload_for_app` 的 Receiving 當前 Set/Bay Door/NFB 保留規則、舊 Joint 快照 migration、Family EndCap BOTTOM 實體避讓 reserve 投影移入無 Tk Engine。權威仍為既有 `ae_engine.receiving_layout.RECEIVING_DOOR_STATE_KEYS`、`assembly_joint.migrate_legacy_snapshot_joints`、`cabinet_types.policy`／`endcap_bottom_wrap_state`；不允許全域舊 settings 覆蓋當前 Bay 來源、不變更切割折彎公式或製造認證。GUI 只做場景來源收集、API 調用及顯示；#2517 OPEN。
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 

@@ -16,6 +16,9 @@ from .door_layout_numeric_transitions import (
 )
 
 from .manufacturing_api import (
+    project_manufacturing_scene_settings_overlay,
+    project_manufacturing_scene_joint_source,
+    project_manufacturing_bottom_relief_structure,
     validate_operator_manufacturing_quantity_context,
     canonical_manufacturing_request_part_keys,
     project_assembly_collision_display_audit, collision_part_display_name,
@@ -90,6 +93,7 @@ from .manufacturing_api import (
     PhysicalSheetEditorContext, resolve_physical_sheet_editor_context,
     receiving_endcap_feature_preview_shapes,
     ReceivingInnerDoorInventoryLayer, resolve_receiving_inner_door_preview_inventory,
+    preview_quantity_inner_door_confirm,
     ReceivingNfbV5SourcePreview, ReceivingNfbV5SourcePreviewCache,
     NfbCsvVerifiedPhysicalSite, NfbCsvVerifiedExportScope,
     NfbCsvVerifiedSelectorProof, resolve_verified_csv_v5_export_scope,
@@ -206,8 +210,7 @@ from .manufacturing_api import (
     indicator_small_door_spec,
     indicator_small_door_operator_spec,
     rebase_receiving_set_parent_nfb_brand,
-    candidate_committed_csv_nfb_config,
-    preview_quantity_inner_door_confirm, validate_candidate_nfb_replacement,
+    candidate_committed_csv_nfb_config, validate_candidate_nfb_replacement,
     replace_candidate_bay_nfb, apply_receiving_inner_door_quantity_configuration,
     apply_receiving_endcap_quantity_configuration,
     apply_receiving_inner_door_candidate_to_bays,
@@ -236,6 +239,9 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "project_manufacturing_scene_settings_overlay",
+    "project_manufacturing_scene_joint_source",
+    "project_manufacturing_bottom_relief_structure",
     "validate_operator_manufacturing_quantity_context",
     "canonical_manufacturing_request_part_keys",
     "project_assembly_collision_display_audit", "collision_part_display_name",

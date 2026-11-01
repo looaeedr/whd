@@ -139,6 +139,11 @@ from .assembly_geometry import (
     triangle_bounds as physical_mesh_world_bounds,
     place_assembly_triangles as project_assembly_world_triangles,
 )
+from .manufacturing_scene_payload import (
+    project_manufacturing_scene_settings_overlay,
+    project_manufacturing_scene_joint_source,
+    project_manufacturing_bottom_relief_structure,
+)
 from .operator_quantity_validation import validate_operator_manufacturing_quantity_context
 from .manufacturing_request_parts import canonical_manufacturing_request_part_keys
 from .assembly_collision_display_api import project_assembly_collision_display_audit
@@ -1051,7 +1056,6 @@ def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
         rebase_receiving_set_parent_nfb_brand as _engine_rebase,
     )
     return _engine_rebase(set_row, proposed_brand)
-
 
 def preview_quantity_inner_door_confirm(
     snapshot, quantity_model, part_key, features, staged_config, *,
