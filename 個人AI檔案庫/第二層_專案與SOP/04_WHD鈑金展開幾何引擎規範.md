@@ -30,6 +30,10 @@ whd_schema: WHD_DOC_META_V1
 
 因此 04 的責任是回答「engine 現在怎麼分層、公開哪些 API、各 authority 怎麼接起來」，不是把 Registry JSON 內容重新抄一份。
 
+### #2517 Door 主畫面展開摘要 Engine 公開 API（2026-11-01）
+
+`manufacturing_api.project_operator_door_blank_dimensions` 將 `calculation_controller.update_calculations` 原單門 Baseline → 既有 AE 舊版顯示 fallback 與多門格實體 start W/H／frame_edges 展開尺寸委派給 Engine；GUI 僅選目前操作者看的門格及格式化尺寸。正式 `DoorPartSpec`／FinalScene／feature／DXF 來源未改，舊 fallback **僅限顯示**且不得升格為已驗證製造權威。保留沒有門板時「-」、基準存在／缺失的舊摘要語意，以及原 Save→Reload／2D／3D／DXF 契約，不新增任何 CUTTING/DXF 認證；#2517 OPEN。
+
 ### #2517 BasePlate 展開摘要唯一 Engine 計算公開 API（2026-11-01）
 
 `manufacturing_api.base_plate_blank_dimensions` 以既有 `sheetmetal_part_adapters` 的 BasePlate 料寬／料高計算為唯一擁有者，正式 `build_base_plate_result`／自訂角 `build_unknown_base_plate_result` 與 GUI `calculation_controller.update_calculations` 共用同一函式。GUI 只傳操作者 W/H／縮邊／折邊並顯示返回尺寸，不再另算公式。保留沒有底板時「-」、獨立板件契約及原 2D/3D/DXF/Save→Reload 行為；此函式**不取代**受電箱 NFB/多層實體底板的專用來源，亦不代表已取得 CUTTING／DXF 製造認證。#2517 OPEN。

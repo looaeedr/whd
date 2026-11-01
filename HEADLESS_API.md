@@ -16,6 +16,20 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.resolve_box_body_structure_mid_meshes(render_data, *, thickness)` exposes the existing canonical Engine's physical Box Body piece-local fold and world placement to both 3D FinalScene and Receiving settings 2D inspection. For already-resolved real multipart Box Body material it returns ordered immutable `(source_piece, placed_mid_surface_triangles)` pairs; placeholder-only sources return empty and invalid outside-W provenance fails closed via the existing `resolve_box_body_formed_width_datum`. The 3D compatibility method `phase6_final_scene_projection._phase6_box_body_structure_meshes` now only converts the Engine tuple to its historic list shape; it no longer builds Fold meshes or transforms physical points. The Engine 2D inspector shares the same public seam rather than a second private copy. Real-T physical skins, collision, CUTTING, BEND, DXF, saved material and certified source remain unchanged.
 
+## Door operator blank summary Engine API (#2517)
+
+`manufacturing_api.project_operator_door_blank_dimensions(values, *,
+material_frame_width, baseline_model="", selected_cell_size=None,
+frame_edges=None)` projects the original main-GUI read-only unfolded Door
+W/H from exact operator inputs. The Engine alone chooses the existing
+single-Door baseline-stretched display result versus AE's legacy blank
+calculation fallback. When a multi-Door cell is selected, its real start W/H
+and frame edges are supplied and the same Engine AE blank calculator runs.
+GUI only selects the current cell and formats numbers; it no longer calls
+private/legacy AE Door geometry functions. Neither baseline failure fallback
+nor this display-only summary is certified FinalScene, trusted manufacture,
+CUTTING/BEND/DXF export or external API capability.
+
 ## BasePlate operator blank dimension API (#2517)
 
 `manufacturing_api.base_plate_blank_dimensions(*, w, h, shrink_top, shrink_bottom,
