@@ -4023,44 +4023,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 raise ValueError("內門開孔編輯返回錯誤的實體板件")
             if mode == "single" and self.app.designer_workspace.active_mode == "quantity":
                 if staged_config is not None:
-                    from ae_engine.receiving_quantity_box import update_common_box
-                    config = validate_door_config(staged_config)
-                    changes = {
-                        "inner_door_layers": config["layers"],
-                        "inner_door_models": deepcopy(config["models"]),
-                    }
-                    if config.get("layer_heights_mm") is not None:
-                        changes["inner_door_layer_heights_mm"] = deepcopy(
-                            config["layer_heights_mm"]
-                        )
-                    # Persist in the actual quantity-box authority, never
-                    # solely in synthetic top-level receiving_* projection.
-                    # That projection is rebuilt on every mode/UI refresh.
-                    projected = update_common_box(
-                        self.app._phase6_input_snapshot, changes,
+                    from ae_engine import manufacturing_api
+                    quantity = self.app.designer_workspace.quantity_model
+                    projected, typed = manufacturing_api.preview_quantity_inner_door_confirm(
+                        self.app._phase6_input_snapshot, quantity, part_key,
+                        features, staged_config,
                     )
-                    # Confirm All accepts the validated original CSV holes
-                    # for this selected quantity-version independently of
-                    # physical Base Plate source selection. NFB identity is
-                    # NOT manufacturing approval. Previously the extra
-                    # receiving_base_plate gate silently dropped submitted
-                    # NFBConfig in the normal Single GUI, so source resolution,
-                    # 2D SIDE EAR and 3D tier parts could never even inspect
-                    # these confirmed model identities. Never fabricate an
-                    # unresolved Base Plate or relax MFG/NC guards here.
-                    if any(getattr(row, "source_type", None) ==
-                           "NFB_CSV_SOURCE" for row in features):
-                        from ae_engine.receiving_nfb_csv_committed_config import (
-                            committed_csv_nfb_config, preview_quantity_nfb_submission,
-                        )
-                        typed = committed_csv_nfb_config(part_key, features, config)
-                        quantity = self.app.designer_workspace.quantity_model
-                        # Validate a DETACHED version plus the real Family
-                        # projection first. A rejected Confirm All must not
-                        # leave an already-submitted live quantity NFBConfig.
-                        projected = preview_quantity_nfb_submission(
-                            projected, quantity, typed,
-                        )
+                    # A detached Engine Family/source check MUST precede live
+                    # version mutation. None means native-only features.
+                    if typed is not None:
                         quantity.set_version_nfb_config(
                             quantity.selected_version_id, submitted=True,
                             config=typed,
