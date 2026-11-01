@@ -134,20 +134,23 @@ def test_render_helper_reuses_prepared_engine_chains_and_invalidates_source(monk
     y_profile = [{"len": 80.0, "core": "D"}]
     guides = (FoldGuide("x", 20.0, 10.0, 70.0),)
 
-    before = renderer._map_xy(30.0, 30.0, x_profile, y_profile, guides)
+    before = renderer._map_xy(10.0, 30.0, x_profile, y_profile, guides)
     for x in range(240):
         renderer._map_xy(x / 2.0, float(x % 80), x_profile, y_profile, guides)
     assert len(count) <= 8, len(count)
 
     # The same list identity is not permission to reuse an outdated Fold.
     x_profile[0]["angle"] = 90.0
-    after = renderer._map_xy(30.0, 30.0, x_profile, y_profile, guides)
+    prior_count = len(count)
+    after = renderer._map_xy(10.0, 30.0, x_profile, y_profile, guides)
+    assert len(count) > prior_count  # same mutable profile, new source => reprepare
     assert after != pytest.approx(before)
-    assert len(count) > 2
 
     # The same Fold profile with a different finite BEND span is also fresh.
     narrow = (FoldGuide("x", 20.0, 50.0, 70.0),)
-    altered = renderer._map_xy(30.0, 30.0, x_profile, y_profile, narrow)
+    prior_count = len(count)
+    altered = renderer._map_xy(10.0, 30.0, x_profile, y_profile, narrow)
+    assert len(count) > prior_count  # same Fold chain, changed BEND span
     assert altered != pytest.approx(after)
 
     # Every source refresh is still bounded: no per-vertex Fold recreation.
