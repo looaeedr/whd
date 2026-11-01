@@ -1414,6 +1414,17 @@ Engine-provided world positions and formats the already-resolved W/H values.
 Legacy 5.5% line offset / 1.2% tick are visualization spacing, not a new
 manufacturing compensation or authorization.
 
+## FinalScene Joint-local 3D solver diagnostic display source (#2517)
+
+`manufacturing_api.project_joint_diagnostic_display_sources(render_data)`
+returns frozen `JointDiagnosticOverlaySource` rows derived exclusively from
+existing resolved Joint-local diagnostic segments and selected Joint ID.
+Each row keeps four read-only world line groups (contact, penetration,
+preserve and relief), plus an optional verified direction origin/vector.
+Invalid/non-finite geometric segments are excluded; no solver, registry
+certification, new Joint relief or DXF manufacturing grant occurs. GUI merely
+paints these validated 3D source rows with existing role colours.
+
 ## Canonical multi-Door peer 2D source readback (#2517)
 
 `manufacturing_api.project_operator_door_layout_peer_cells(cells,
