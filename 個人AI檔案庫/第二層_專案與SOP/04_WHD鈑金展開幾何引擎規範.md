@@ -710,3 +710,19 @@ Engine 按既有規則保留未操作格位的舊 Feature、允許已操作格�
 `phase6_final_scene_projection._phase6_mesh_feature_segments` 僅相容委派，
 GUI 的 Matplotlib 不再決定實體特徵邊。FinalScene 製造材料來源不變，
 此線段資料純顯示，不新增 CUTTING、DXF／碰撞認證；#2517 持續 OPEN。
+
+
+
+### #2517 單門／多門 DoorPartSpec 公開建構 API（2026-11-01）
+
+`manufacturing_api.build_door_operator_part_spec(values, *, model_name,
+features, indicator_hole, door_indicator, door_indicator_offset,
+use_box_distance, corner_policy, frame_edges, indicator_window_groups,
+nameplate_center_datum_top)` 接收 GUI 的當次操作資料後，由 Engine
+產生 immutable `DoorPartSpec`。GUI
+`_door_part_spec_from_values` 僅取得／傳遞操作輸入，不能再次
+自行決定 `feature_space`、Fold 欄位、FrameEdges、
+指示燈與名牌孔的製造 request 語意。既有 `legacy_unfolded`
+feature 座標空間、單門及 door-cell physical 尺寸、後續
+Door finished-face、2D/3D/DXF、Save→Reload 與 Certified Registry
+權責原樣保留，無新增製造核准；#2517 維持 OPEN。

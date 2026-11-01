@@ -1113,3 +1113,23 @@ def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
     """Public Engine physical solid mesh feature-boundary projection."""
     from .solid_mesh_feature_edges import physical_solid_mesh_feature_segments as resolve
     return resolve(triangles, tolerance=tolerance)
+
+
+
+def build_door_operator_part_spec(
+    values, *, model_name, features=(), indicator_hole=None,
+    door_indicator=None, door_indicator_offset=(0.0, 0.0),
+    use_box_distance=False, corner_policy=None, frame_edges=None,
+    indicator_window_groups=None, nameplate_center_datum_top=None,
+) -> DoorPartSpec:
+    """Public Engine-owned Door operator → canonical manufacturing PartSpec."""
+    from .door_operator_part_spec import build_door_operator_part_spec as build
+    return build(
+        values, model_name=model_name, features=features,
+        indicator_hole=indicator_hole, door_indicator=door_indicator,
+        door_indicator_offset=door_indicator_offset,
+        use_box_distance=use_box_distance, corner_policy=corner_policy,
+        frame_edges=frame_edges,
+        indicator_window_groups=indicator_window_groups,
+        nameplate_center_datum_top=nameplate_center_datum_top,
+    )
