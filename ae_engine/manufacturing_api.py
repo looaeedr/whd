@@ -130,6 +130,12 @@ from .receiving_quantity_versions import (
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
     normalize_quantity_snapshot, quantity_only_change,
 )
+from .assembly_geometry import (
+    folded_mesh_from_polygon as folded_material_mid_mesh,
+    place_box_body_structure_points as project_box_body_structure_world_points,
+    triangle_bounds as physical_mesh_world_bounds,
+    place_assembly_triangles as project_assembly_world_triangles,
+)
 from .receiving_base_display_source import (
     ReceivingBasePlateDisplaySource, inspect_receiving_base_plate_display_source,
 )

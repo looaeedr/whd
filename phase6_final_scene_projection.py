@@ -58,9 +58,7 @@ def _phase6_folded_mesh_from_polygon(
     material, x_profile, y_profile, *, fold_exemptions=(), fold_guides=()
 ):
     """Compatibility wrapper around shared manufacturing-space folding."""
-    from ae_engine.assembly_geometry import folded_mesh_from_polygon
-
-    return list(folded_mesh_from_polygon(
+    return list(manufacturing_api.folded_material_mid_mesh(
         material,
         x_profile,
         y_profile,
@@ -144,10 +142,8 @@ def _phase6_contract_profile_rows(profile):
 
 def _phase6_box_body_piece_world_mapper(piece, *, total_w, thickness, x_profile):
     """Compatibility adapter to the shared assembly-geometry role transform."""
-    from ae_engine.assembly_geometry import place_box_body_structure_points
-
     def world(point):
-        placed = place_box_body_structure_points(
+        placed = manufacturing_api.project_box_body_structure_world_points(
             (point,), piece, total_w=total_w, thickness=thickness, x_profile=x_profile
         )
         return placed[0]
@@ -251,16 +247,14 @@ def format_operator_info_text(request, *, dimensions=None, number_text=None):
 
 
 def _phase6_triangle_bounds(triangles):
-    from ae_engine.assembly_geometry import triangle_bounds
-
-    return triangle_bounds(triangles)
+    return manufacturing_api.physical_mesh_world_bounds(triangles)
 
 
 def _phase6_place_assembly_triangles(triangles, placement, dimensions, offset):
-    """Compatibility wrapper around the shared assembly-space transform."""
-    from ae_engine.assembly_geometry import place_assembly_triangles
-
-    return place_assembly_triangles(triangles, placement, dimensions, offset)
+    """Compatibility: Engine owns physical assembly world placement."""
+    return manufacturing_api.project_assembly_world_triangles(
+        triangles, placement, dimensions, offset,
+    )
 
 
 def make_assembly_scene_render_data(

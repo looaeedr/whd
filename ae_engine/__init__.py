@@ -16,6 +16,8 @@ from .door_layout_numeric_transitions import (
 )
 
 from .manufacturing_api import (
+    folded_material_mid_mesh, project_box_body_structure_world_points,
+    physical_mesh_world_bounds, project_assembly_world_triangles,
     ReceivingBasePlateDisplaySource, inspect_receiving_base_plate_display_source,
     receiving_ear_assembly_display_source_key, resolve_receiving_ear_assembly_display_skins,
     normalize_authoritative_door_state, normalize_project_snapshot_authority,
@@ -223,6 +225,8 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "folded_material_mid_mesh", "project_box_body_structure_world_points",
+    "physical_mesh_world_bounds", "project_assembly_world_triangles",
     "ReceivingBasePlateDisplaySource", "inspect_receiving_base_plate_display_source",
     "receiving_ear_assembly_display_source_key", "resolve_receiving_ear_assembly_display_skins",
     "normalize_authoritative_door_state", "normalize_project_snapshot_authority",
