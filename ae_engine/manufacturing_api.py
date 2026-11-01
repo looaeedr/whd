@@ -1424,3 +1424,9 @@ from .manufacturing_contracts import (
 # Imported last to keep existing policy and Family functions initialized.
 from .assembly_scene_part import AssemblyScenePart
 from .manufacturing_resolver import resolve as resolve_manufacturing_request
+
+# #2517: only Engine selects current Receiving NFB physical BasePlate 2D source.
+from .operator_base_plate_2d import (
+    project_receiving_base_plate_2d_snapshot,
+    project_legacy_base_plate_2d_bounds,
+)
