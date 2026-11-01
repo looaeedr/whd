@@ -1270,6 +1270,9 @@ def build_door_operator_part_spec(
         nameplate_center_datum_top=nameplate_center_datum_top,
     )
 
+# #2517: Fold Designer physical Door/BasePlate cell selection is Engine-owned.
+from .fold_designer_payload_topology import resolve_fold_designer_payload_topology
+
 # #2517: BasePlate / IndicatorBox operator PartSpecs share public Engine owner.
 from .operator_auxiliary_part_specs import (
     build_base_plate_operator_part_spec, build_indicator_box_operator_part_spec,

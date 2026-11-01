@@ -324,6 +324,10 @@ operator inputs and displays these results; the Engine's atomic Head/Tail
 commit and canonical PartSpec replay remain the production authority.
 No additional CUTTING/DXF approval is implied.
 
+## Fold Designer Door-cell / BasePlate-cell physical topology Engine API (#2517)
+
+`manufacturing_api.resolve_fold_designer_payload_topology(part_key, payload)` 由原 Phase6 轉移到無 Tk Engine，沿用同一 `derive_door_layout_cells`、`door_layout_export_filename` 的門格 start W/H、四邊 `DoorFrameEdges`、正式 `door_c<col>_r<row>`／`base_plate_c<col>_r<row>` 身分。已保存「未知類型」仍正規成自訂；不存在/缺失的門格必須拒絕，不使用其他門格製造尺寸。GUI `_payload_topology_context` 現為 public API 相容委派。這是操作來源選片／request，不放行新 CUTTING／DXF。
+
 ## Operator committed Assembly Relief replay via Engine API (#2517)
 
 `manufacturing_api.resolve_operator_committed_relief_cuts(part_key, values, *, relief_state, joint_state=None, structure_state=None, cabinet_family="", box_body_profile=(), part_profiles=None)` 是 GUI 操作快照進入 Engine 的 read-only replay 入口：由 Engine 計算正式 Joint Graph 機械來源、成形 BoxBody FW／Fold、legacy scalar defaults，接既有唯一 `build_current_source_signature` 和 `committed_relief_cuts`；stale source、未知已保存幾何不回放。舊 GUI 只傳值／顯示，disabled 則不查未初始化型材。這不啟用新 DXF 加工或另立來源。
