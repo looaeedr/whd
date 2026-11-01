@@ -80,7 +80,10 @@ def _exports(node: ast.Module) -> set[str] | None:
 
 
 def category(name: str, origins: set[str]) -> str:
-    if "ae_engine.integration_api" in origins:
+    # The index stores full callable paths, not bare module names.
+    # Match the integration module boundary without claiming any other
+    # ae_engine.* symbol is an external integration/manufacturing API.
+    if any(path.startswith("ae_engine.integration_api.") for path in origins):
         return "integration"
     if name.startswith(("export_", "save_", "generate_")):
         return "export"
