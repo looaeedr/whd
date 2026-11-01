@@ -562,6 +562,14 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
         raise ValueError(f"unsupported Receiving Bay fields: {sorted(unknown)}")
     if "panel_name" in changes:
         name = normalize_panel_name(changes["panel_name"])
+        siblings = {
+            str(other["panel_name"]).casefold()
+            for si, group in enumerate(normalized["sets"])
+            for bi, other in enumerate(group["bays"])
+            if (si, bi) != (set_index, bay_index)
+        }
+        if name.casefold() in siblings:
+            raise ValueError("受電箱盤名不得重複")
         if name != bay["panel_name"]:
             match = PANEL_NUMBER_RE.fullmatch(name)
             if match:
