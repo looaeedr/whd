@@ -128,7 +128,11 @@ from .corner_dimension_projection import (
 from .physical_sheet_editor_context import (
     PhysicalSheetEditorContext, resolve_physical_sheet_editor_context,
 )
-from .indicator_editor_geometry import resolve_indicator_editor_components
+from .indicator_editor_geometry import (
+    resolve_indicator_editor_components,
+    resolve_indicator_box_editor_geometry,
+    resolve_indicator_door_editor_geometry,
+)
 from .receiving_endcap_feature_preview import receiving_endcap_feature_preview_shapes
 from .receiving_ear_side_preview import project_receiving_ear_side_piece_2d_preview
 from .receiving_single_bay_door_snapshot import (
@@ -211,6 +215,11 @@ from .cabinet_types.policy import door_material_frame_width
 
 
 from .operator_door_blank_projection import project_operator_door_blank_dimensions
+from .operator_hole_editor_projection import (
+    OperatorHoleEditorGeometry,
+    project_operator_hole_editor_door,
+    project_operator_hole_editor_base_plate,
+)
 from .operator_door_cell_projection import (
     project_operator_door_cell_result,
     project_operator_door_cell_features,
