@@ -144,6 +144,9 @@ from .manufacturing_scene_payload import (
     project_manufacturing_scene_joint_source,
     project_manufacturing_bottom_relief_structure,
 )
+from .manufacturing_cache_source_plan import (
+    ManufacturingCacheSourcePlan, plan_manufacturing_cache_source,
+)
 from .operator_quantity_validation import validate_operator_manufacturing_quantity_context
 from .manufacturing_request_parts import canonical_manufacturing_request_part_keys
 from .assembly_collision_display_api import project_assembly_collision_display_audit
