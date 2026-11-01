@@ -218,6 +218,21 @@ class ReceivingSetBayAdapter:
             self.mark_current_bay_dirty()
         return changed
 
+    def rename_bay(self, set_index: int, bay_index: int, panel_name: str) -> bool:
+        """Commit one named Bay via public Engine API; preserve current selection."""
+        before = self._layout["sets"][set_index]["bays"][bay_index]["panel_name"]
+        candidate = manufacturing_api.rename_receiving_panel(
+            self._layout, set_index=set_index, bay_index=bay_index,
+            panel_name=panel_name,
+        )
+        after = candidate["sets"][set_index]["bays"][bay_index]["panel_name"]
+        self._layout = candidate
+        if after != before:
+            self._session_dirty_ids.add(
+                str(candidate["sets"][set_index]["bays"][bay_index]["stable_id"])
+            )
+        return after != before
+
     def update_setting(self, kind, value):
         from ae_engine.receiving_shared_settings import edit_setting
         self._layout = edit_setting(self._layout, set_index=self.selection.set_index,

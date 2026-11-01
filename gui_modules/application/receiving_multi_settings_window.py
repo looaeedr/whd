@@ -133,7 +133,7 @@ def extract_original_door_marks(scene):
     return {"nameplate": nameplate, "handle": handle}
 
 
-def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_labels=None, bay_dimensions=None):
+def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_labels=None, bay_dimensions=None, panel_names=None):
     """Cheap front-elevation sketch: touching bays with basic upper/lower doors.
 
     Selection is a pure presentation overlay. No FinalScene, manufacturing or
@@ -142,6 +142,7 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
     count = max(1, int(count))
     canvas.delete("all")
     canvas._receiving_bay_hitboxes = ()
+    canvas._receiving_panel_name_hitboxes = ()
     selected_bays = ({selected} if isinstance(selected, int)
                      else set(selected or ()))
     selected_bays = frozenset(index for index in selected_bays
@@ -173,6 +174,7 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
     bottom = (height + max(h for _, h in physical) * scale) / 2
     cursor_x = left
     hitboxes = []
+    name_hitboxes = []
     for index, (physical_w, physical_h) in enumerate(physical):
         x0, x1 = cursor_x, cursor_x + physical_w * scale
         cursor_x = x1
@@ -241,8 +243,26 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
                     text=label, fill="#ffffff", width=max(18, bay_w-4),
                     font=("TkDefaultFont", 9, "bold"), tags=("applied_version",),
                 )
+        # Operator label: never a manufactured part/feature identity.
+        names = panel_names or ()
+        name = str(names[index]) if index < len(names) else ""
+        if name:
+            text_id = canvas.create_text(
+                (x0 + x1) / 2, top + min(20.0, max(10.0, bay_h * 0.10)),
+                text=name, fill="#ffffff", width=max(12.0, bay_w - 6.0),
+                font=("TkDefaultFont", 10, "bold"),
+                tags=("receiving_panel_name", f"receiving_panel_name_{index}"),
+            )
+            bbox = canvas.bbox(text_id)
+            name_hitboxes.append((
+                max(x0, bbox[0]), max(top, bbox[1]),
+                min(x1, bbox[2]), min(top + bay_h, bbox[3]),
+            ) if bbox else None)
+        else:
+            name_hitboxes.append(None)
         hitboxes.append((x0, top, x1, top + bay_h))
     canvas._receiving_bay_hitboxes = tuple(hitboxes)
+    canvas._receiving_panel_name_hitboxes = tuple(name_hitboxes)
     return count
 
 
@@ -263,7 +283,7 @@ def dimension_group_summary(bays):
 def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         resize_connections, resize_sets=None,
                         get_candidate_ports=None, get_inner_candidate_ports=None,
-                        select_bay=None,
+                        select_bay=None, rename_bay=None,
                         on_setting_selected=None, get_brand=None,
                         set_brand=None, get_brand_change_impact=None,
                         get_settings_ports=None,
@@ -311,6 +331,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     brand_changed = {"value": False}
 
     def close():
+        cancel_panel_name_edit(redraw=False)
         sketch_redraw.cancel()
         close_real_preview()
         close_manager()
@@ -1328,8 +1349,72 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     mark_cache = {"key": None, "values": ()}
     size_cache = {"set_index": None, "dimensions": ()}
+    panel_editor = {"entry": None, "item": None, "set_index": None, "bay_index": None}
+
+    def cancel_panel_name_edit(_event=None, *, redraw=True):
+        entry = panel_editor["entry"]
+        if entry is None:
+            return "break"
+        if panel_editor["item"] is not None:
+            canvas.delete(panel_editor["item"])
+        entry.destroy()
+        panel_editor.update(entry=None, item=None, set_index=None, bay_index=None)
+        win._receiving_panel_name_entry = None
+        if redraw and win.winfo_exists():
+            render()
+        return "break"
+
+    def commit_panel_name_edit(_event=None):
+        entry = panel_editor["entry"]
+        if entry is None:
+            return "break"
+        try:
+            if rename_bay is None:
+                raise ValueError("盤名編輯入口尚未接通")
+            rename_bay(panel_editor["set_index"], panel_editor["bay_index"], entry.get())
+        except (ValueError, IndexError, RuntimeError) as exc:
+            warn(exc)
+            if entry.winfo_exists():
+                entry.focus_set()
+            return "break"
+        cancel_panel_name_edit(redraw=False)
+        size_cache["set_index"] = None
+        render()
+        return "break"
+
+    def double_click_panel_name(event):
+        if (rename_bay is None or applied["mode"] != "set_bay"
+                or applied["set_index"] is None):
+            return click_bay(event)
+        for index, box in enumerate(canvas._receiving_panel_name_hitboxes):
+            if box is None or not (box[0] <= event.x <= box[2]
+                                    and box[1] <= event.y <= box[3]):
+                continue
+            cancel_panel_name_edit(redraw=False)
+            old_name = tuple(size_cache["dimensions"])[index].get("panel_name", "")
+            entry = ttk.Entry(canvas, width=20)
+            entry.insert(0, str(old_name))
+            x0, y0, x1, y1 = canvas._receiving_bay_hitboxes[index]
+            item = canvas.create_window(
+                (x0 + x1) / 2, (box[1] + box[3]) / 2,
+                window=entry, width=max(40.0, min(180.0, x1 - x0)),
+                tags=("receiving_panel_name_editor",),
+            )
+            panel_editor.update(entry=entry, item=item,
+                                set_index=applied["set_index"], bay_index=index)
+            win._receiving_panel_name_entry = entry
+            entry.bind("<Return>", commit_panel_name_edit)
+            entry.bind("<Escape>", cancel_panel_name_edit)
+            entry.focus_set()
+            entry.selection_range(0, tk.END)
+            return "break"
+        # Tk promotes a second rapid Button-1 to Double-Button-1 even when
+        # no panel name was hit. Preserve the previous two-click Bay toggle.
+        return click_bay(event)
 
     def render():
+        if panel_editor["entry"] is not None:
+            return  # Keep an in-place edit across Configure events.
         # The main sketch always remains a Set/Bay highlighter. Quantity
         # allocation uses the separate version-manager window's own canvas.
         canvas.configure(scrollregion=(0, 0, 0, 0))
@@ -1373,7 +1458,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             )
             size_cache["set_index"] = applied["set_index"]
         paint_connected_bays(canvas, count, selected, marks, labels,
-                             bay_dimensions=size_cache["dimensions"])
+                             bay_dimensions=size_cache["dimensions"],
+                             panel_names=tuple(
+                                 row.get("panel_name", "")
+                                 for row in size_cache["dimensions"]
+                             ) if applied["mode"] == "set_bay" else ())
         canvas._receiving_selected_bay = (
             applied["selected"] if applied["mode"] == "set_bay" else None
         )
@@ -1623,6 +1712,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def adjust_sets(delta):
         if resize_sets is None or mode_var.get() != "set_bay":
             return False
+        cancel_panel_name_edit(redraw=False)
         try:
             if not ensure_set_mode():
                 return False
@@ -1646,6 +1736,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             return warn(exc)
 
     def resize(index, delta):
+        cancel_panel_name_edit(redraw=False)
         try:
             if not ensure_set_mode():
                 return False
@@ -1660,6 +1751,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             return warn(exc)
 
     def apply(index):
+        cancel_panel_name_edit(redraw=False)
         try:
             if not ensure_set_mode():
                 return False
@@ -1673,6 +1765,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if select_bay is not None:
                 select_bay(index, 0)
             refresh_dimension_rows()
+            size_cache["set_index"] = None
             render()
             return True
         except (ValueError, IndexError, RuntimeError) as exc:
@@ -1681,6 +1774,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def click_bay(event):
         if applied["mode"] != "set_bay" or applied["set_index"] is None:
             return
+        # Leaving the inline editor cancels only that draft; the normal Bay
+        # selection/highlight transaction must still repaint immediately.
+        if panel_editor["entry"] is not None:
+            cancel_panel_name_edit(redraw=False)
         for index, (x0, y0, x1, y1) in enumerate(canvas._receiving_bay_hitboxes):
             if x0 <= event.x <= x1 and y0 <= event.y <= y1:
                 try:
@@ -1718,6 +1815,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     def change_mode():
         target = mode_var.get()
+        if target != applied["mode"]:
+            cancel_panel_name_edit(redraw=False)
         if mode_transition["busy"]:
             mode_var.set(applied["mode"])
             return
@@ -1746,6 +1845,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # The Version Manager still owns its separate 數量配置 page.
 
     canvas.bind("<Button-1>", click_bay)
+    canvas.bind("<Double-Button-1>", double_click_panel_name)
     sketch_redraw = _IdleCanvasRedraw(canvas, render)
     canvas.bind("<Configure>", sketch_redraw.request)
     refresh_rows()
@@ -1785,6 +1885,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_setting_list = setting_list
     win._receiving_multi_selected_setting = selected_setting
     win._receiving_multi_canvas = canvas
+    win._receiving_panel_name_entry = None
+    win._receiving_panel_name_edit = double_click_panel_name
+    win._receiving_panel_name_commit = commit_panel_name_edit
+    win._receiving_panel_name_cancel = cancel_panel_name_edit
     win._receiving_multi_applied = applied
     win._receiving_multi_refresh = refresh_rows
     win._receiving_multi_apply = apply
