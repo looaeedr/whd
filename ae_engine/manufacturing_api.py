@@ -1280,6 +1280,8 @@ from .endcap_operator_part_spec import build_endcap_operator_part_spec
 
 # #2517: Head/Tail persisted assembly-relief source and atomic replay authority.
 # Expose one Engine-owned contract; Phase6/UI may only forward operator state.
+from .operator_relief_replay import resolve_operator_committed_relief_cuts
+
 from .assembly_relief_state import (
     RELIEF_CONTRACT_VERSION,
     relief_profile_fingerprint,

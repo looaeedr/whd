@@ -112,6 +112,10 @@ whd_schema: WHD_DOC_META_V1
 
 `ae_engine.assembly_relief_state` 現唯一擁有舊 `phase6_assembly_relief_state.py` 完整保存／回放判準：`RELIEF_CONTRACT_VERSION`、`relief_profile_fingerprint`、`structure_fingerprint`、`build_current_source_signature`、`source_matches_current`、`committed_relief_cuts`、`build_persisted_relief_state`。全數經 `manufacturing_api`／根包公開，同一 Python 物件由 Phase6 舊路徑相容重匯出；GUI `manufacturing_adapter`、Fold Designer composition 與 Bridge 直接消費公開 API，不再以 Phase6 佔有 Registry 版本／驗證原子保存決策。這批只搬移既有狀態演算法，保留已保存 JSON schema、Head/Tail 一起提交、已認證 rule_id/revision 與舊高階 assembly_type mirror 不作實體身份、Box Body／EndCap material Fold 指紋與 world formed FW 用於拒絕 stale replay。實際 Joint geometry／Registry／3D solver 仍為既有 Engine owner；無新增 CUTTING／DXF 認證或正式 X 發布，#2517 OPEN。
 
+### #2517 GUI 已保存 Assembly Relief CUT 來源回放 request → Engine API（2026-11-01）
+
+`manufacturing_api.resolve_operator_committed_relief_cuts(part_key, values, *, relief_state, joint_state, structure_state, cabinet_family, box_body_profile, part_profiles)` 將原 `gui_modules/application/manufacturing_adapter.py::_resolved_committed_assembly_relief_cuts` 的製造 scalar keys／`ae.*_def`、Joint Graph 機械指紋、Box Body 實體成形 FW 與保存來源比對移回 `ae_engine.operator_relief_replay`。GUI 現只蒐集操作者資料／目前工作區狀態後委派同一 Engine owner；未啟用 Relief 仍不讀取未初始化 BoxBody Profile。引擎沿用 `assembly_joint.resolved_joint_graph_fingerprint`／`box_body_editor_readback.formed_box_body_fw_widths` 與前批唯一 `assembly_relief_state` 保存契約；舊資料 invalid graph 時仍不回放 CUT，source 的 W／Family／Joint／Fold 變更皆不得復活舊已提交裁切。僅轉移公開 API 權責，不更改 Registry、Verified CUT、DXF／3D、Save→Reload schema 或正式 X，#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
