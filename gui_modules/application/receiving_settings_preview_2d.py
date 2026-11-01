@@ -31,19 +31,16 @@ def _role_group(key):
 
 
 def physical_drawings(request):
-    """Read-only manufacturing inspection compatibility API.
+    """Compatibility iterator over Engine-owned physical source drawings.
 
-    Export/verification consumers still inspect each original physical
-    DrawingScene. The actual 2D settings view does NOT use this function;
-    it draws only world-positioned assembled meshes.
+    This is NOT a flattened or certified manufacturing batch. The actual 2D
+    settings view paints world-positioned meshes returned by Engine separately.
     """
-    for part in request.render_data.assembly_parts:
-        pieces = tuple(getattr(part.render_data, "pieces", ()) or ())
-        if pieces:
-            for piece in pieces:
-                yield str(piece.role), str(piece.key), piece.render_data
-        else:
-            yield _role_group(part.part_key), str(part.part_key), part.render_data
+    sources = manufacturing_api.project_receiving_settings_physical_drawings(
+        tuple(getattr(request.render_data, "assembly_parts", ()) or ()),
+    )
+    for role, key, render_data in sources:
+        yield _role_group(role), key, render_data
 
 
 def _assembly_world_meshes(request):

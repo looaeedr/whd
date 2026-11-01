@@ -201,3 +201,22 @@ def resolve_receiving_settings_assembly_world_meshes(
             if world_piece:
                 rows.append((str(piece.role), str(piece.key), world_piece))
     return tuple(rows)
+
+
+def project_receiving_settings_physical_drawings(assembly_parts):
+    """Return source-owned (role, stable key, DrawingScene) without flattening.
+
+    The Receiving settings inspection sink must not infer physical multipart
+    identity from GUI roles. Preserve every source part's native render data:
+    these are not world meshes or approved manufacturing export requests.
+    """
+    rows = []
+    for part in tuple(assembly_parts or ()):
+        pieces = tuple(getattr(part.render_data, "pieces", ()) or ())
+        if pieces:
+            for piece in pieces:
+                rows.append((str(piece.role), str(piece.key), piece.render_data))
+        else:
+            key = str(part.part_key)
+            rows.append((key, key, part.render_data))
+    return tuple(rows)

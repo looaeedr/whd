@@ -171,6 +171,8 @@ Family Identity（cabinet_types.registry）＋ Family Policy / Topology
 
 
 
+
+
 - `cabinet_types/registry.py` 目前主要提供 `CabinetTypeRegistration`、別名及註冊；`vault.py` 目前只有註冊資訊，`receiving.py` 已包含多項受電箱 Family 規則；`policy.py` 透過 registry 與 module hook 提供**部分** Family-aware 能力分派。這證明擴充點存在，但不是完整的製造權限宣告或全路徑分派。
 - `manufacturing_api._export_to_temp` 依 `PartSpec` 類別進入 Door／BoxBody／EndCap／BasePlate 等 exporter；`_base_plate_export` 仍直接判斷 `受電箱`／`RECEIVING`，需逐項釐清可移回既有 Family Policy 的差異。**目前沒有證據證明整體入口已在執行前統一拒絕未支援 Family／Part／Operation，也不能反推此處造成所有金庫型／受電箱故障**。
 - #2638 的 `cabinet_model_choices.py` 是將 GUI 原有清單邏輯搬入 Engine 的唯讀 API；仍直接特殊判斷金庫型的 baseline。這是待清理的 Family-specific selector policy，但非第二套製造 executor，也沒有足夠實證宣稱它導致製造故障。

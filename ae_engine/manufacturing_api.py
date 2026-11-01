@@ -266,7 +266,7 @@ from .sheetmetal_part_adapters import (
     build_finished_reference_guide,
 )
 from .cabinet_types import policy as cabinet_family_policy
-from .cabinet_types.policy import door_material_frame_width
+from .cabinet_types.policy import door_material_frame_width, box_body_symmetry_allowed
 
 
 
@@ -1577,6 +1577,7 @@ def resolve_box_body_formed_width_datum(pieces):
 # #2517: Receiving settings physical assembled world meshes are Engine-owned.
 from .receiving_settings_assembly_mesh import (
     resolve_receiving_settings_assembly_world_meshes,
+    project_receiving_settings_physical_drawings,
     resolve_box_body_structure_mid_meshes,
     resolve_box_body_true_world_piece_meshes,
     AssembledEndcapWorldSkins,
@@ -1727,4 +1728,10 @@ from .operator_box_body_2d import (
     project_receiving_box_body_2d_source,
     project_box_body_2d_piece_inventory,
     BoxBodyAssemblyPanelPiece, project_box_body_assembly_panel_piece_rows,
+)
+
+# #2517: CADCraft viewer CHECK geometry belongs to Engine, never GUI/DXF authority.
+from .operator_cadcraft_preview import (
+    CadcraftPreviewError, project_cadcraft_check_scene,
+    save_cadcraft_check_scene_dxf,
 )

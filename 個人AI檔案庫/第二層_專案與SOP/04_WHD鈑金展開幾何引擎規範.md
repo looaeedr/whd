@@ -12,9 +12,17 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.resolve_hole_editor_canvas_features(surface, features, width, height)` 直接委派既有 `sheetmetal_features.resolve_surface_features`，回傳 immutable tuple 的世界座標解析孔位；超出物理 Feature Surface 的非法孔仍明確 `ValueError`。 `manufacturing_api.hole_editor_canvas_reference_point(feature, width, height)` 使用既有 saved reference-anchor authority；`manufacturing_api.hit_test_hole_editor_canvas_features(point, resolved_features, tolerance=...)` 沿用 Engine 有限／非 bool 的點選容差檢查。公開顯示 DTO `CanvasTransform`、`ResolvedCircle`、`ResolvedRect`、`Vec2` 沿用單一 Engine 類型。GUI `phase6_hole_editor_canvas_view.py` 只做 Canvas pixel placement、繪製、操作與結果呈現，不再直接 import 私有 `ae_engine.sheetmetal_features`。金庫型與受電箱共用相同 Feature Surface 合約；本次不變更 Feature 的實體製造／DXF、保存內容、2D／3D 真實板件與 Registry，不可把只讀孔位預覽當成製造放行，#2517 仍 OPEN。
 
+## [CURRENT] #2517 BoxBody 對稱折彎 Family capability 公開 API（2026-11-02）
+
+`manufacturing_api.box_body_symmetry_allowed(source)`／根包同名入口只是既有 `cabinet_types.policy.box_body_symmetry_allowed` 的正式公開重匯出，無第二套 Family 判準。 `phase6_bending_ui._phase6_box_symmetry_allowed` 仍由 GUI 選擇 live 型號／snapshot，實際受電箱不允許箱身對稱與金庫型支援對稱完全取 Engine public capability，GUI 不再私自 import Family policy；原 UI toggle/state、Save→Reload、BEND／2D／3D／DXF／Registry 不變，不新增製造授權；#2517 OPEN。
+
 ## [CURRENT] #2517 Fold Editor 唯讀包外列顯示 Engine API（2026-11-02）
 
 `manufacturing_api.project_operator_fold_editor_display_rows(material_segments, thickness)` 在原有 `ae_engine.operator_fold_editor` 中使用同一 `apply_outside_dimension_compensation`／`fold_material_segment_outside_length`，從已保存真正料長與當下 BEND 拓樸產生獨立唯讀的操作者包外長度、正負操作方向與角度顯示列；不信任過時 `ui_len_add`，不修改 canonical source。舊 `Phase6BendingUI.render` 僅在呼叫原始 Tk renderer 的期間傳入顯示副本，`refresh_active_profile` 也只消費同一 Engine 結果；移除 GUI 展示時直接修改／還原實體 Fold 列的做法。原 GUI `save/add/remove/mirror` 的 Engine source、金庫型／受電箱、Save→Reload 和真正 2D／3D／DXF／Certified Registry 全數不變；僅顯示 API，不取得額外 CUTTING/DXF 放行，#2517 OPEN。
+
+## [CURRENT] #2517 GUI 全入口掃描後的實體回讀與 CADCraft CHECK Engine API（2026-11-02）
+
+全庫從 `localX@b82e34f498efe7d2fb9cfab769b900704de744a6` 掃過 159 個 GUI／Phase6／Fold Designer Python 入口及 23 個 `integration_cli` 入口；此為**靜態候選掃描**，不是每條功能已通過製造驗收。第一批實作讓 `fold_designer_bridge._phase6_box_body_piece_dimension_projections` 直接消費既有 `project_box_body_assembly_panel_piece_rows`；讓受電箱 Settings `physical_drawings` 消費新 `project_receiving_settings_physical_drawings`，只保留 GUI 角色顯示；CADCraft 唯讀的 finished-face 特徵解析與 CHECK DXF 由 `project_cadcraft_check_scene`、`save_cadcraft_check_scene_dxf` 在 `ae_engine.operator_cadcraft_preview` 執行，GUI 僅開啟外部檢查工具。CHECK 預覽不具 CUTTING/BEND/DXF 正式製造資格，不接收 CADCraft 產物回寫作為 canonical 幾何，不更動已認證 Registry／Factory。其他手動 CADCraft 回傳與剩餘 GUI 製造私有 import 尚屬 #2517 待遷範圍，不能宣稱全部完成。
 
 ## [CURRENT] #2517 Fold Editor Add／Remove Engine API（2026-11-02）
 
@@ -263,7 +271,6 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
-
 **[CONFIRMED PRODUCT RULE｜2026-11-02] 全箱型共用既有 Engine 製造架構，不為受電箱另開一條製造路線。** 這是對 #2517 與 CADSplit #15 的原則性澄清，優先於舊的「另開外部 export」施工建議：
 
 - **唯一製造 owner、按能力重用既有入口。** WHD GUI 與 CADSplit 的可信 operator/source adapter 都交由 `ae_engine.contracts`／`ae_engine.manufacturing_api` 的同一套公開 Engine 能力執行；單一板件沿用 `generate_part(PartSpec, ..., ManufacturingContext)`，組合、數量、Set/Bay、NFB、已解析實體板件／FinalScene、批次 DXF 則選用當版**已存在且適用**的製造／解算／驗證 API。共用的是 Family／Topology／Policy／geometry／Registry／輸出權威，**不等於強迫所有操作呼叫同一函式**。
@@ -271,6 +278,7 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 - **source-only ≠ 正式製造。** `ae_engine.integration_api.dispatch_manufacturing_integration(ManufacturingIntegrationRequest(operation="export", ...))` 只有 source identity、Family 等資訊；目前所有已實作 Family 一旦進入該分支，固定回 `EXTERNAL_EXPORT_NOT_CERTIFIED`／`WHD_INTEGRATION_MANUFACTURING_NOT_CERTIFIED`，不會出 DXF。2026-11-02 CADSplit #15 以兩張真 DXF 呼叫已確認此事；**這不是受電箱被禁止用共用 Engine，也不是缺 CSV 欄位的問題**。禁止單純刪掉拒絕分支、把 source-only `export` 改造成第二個製造 executor，或誤導 CADSplit 把它當唯一正式製造入口。舊安裝版 Worker/EXE 仍退役。
 - **應補的是同一條來源接線。** CADSplit 從原始 DXF／finalized info_data 保留來源證據；可信 Project／Factory authority 補足 PartSpec／實體拓樸／Set/Bay 對應所需的已確認輸入；WHD Engine 做製造身分、Family/Part/Operation 適用性、幾何與 Registry 判定；既有 verified DXF Save→Reload 檢核及來源漂移 guard 才能宣稱當次輸出通過。缺任一必要權威只拒絕受影響的 Part／Operation，舊版金庫型合法能力不因受電箱未完成而停用。
 - **現況不得冒稱完成。** `cabinet_types.registry` 目前主要是 identity；`manufacturing_api._export_to_temp()` 仍主要按 `PartSpec` 類別分派，尚未全入口落實 Family×Part×Operation 製造資格。CADSplit 既有金庫型 Door／EndCap Bridge 能組出 `PartSpec` 並呼叫 `generate_part`，不代表其所有 DXF 都已認證；Receiving 有條件式 Engine resolved/verified batch 路徑，但原圖正常流程尚未證實能完整組出可信請求。後續施工在 #2517 補 **既有** API／Family seam、正反例與金庫型不退化驗收，不得用文件、`prepare` 或「可匯入」代替實際 DXF 回讀驗證。
+
 
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。

@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import Mapping
 
 import fold_designer_original as original
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine import manufacturing_api
 from phase6_fold_profiles import _ui_len
 
@@ -40,7 +39,7 @@ def _phase6_box_symmetry_allowed(owner) -> bool:
             live = ""
         if live:
             model = live
-    return cabinet_family_policy.box_body_symmetry_allowed(model)
+    return manufacturing_api.box_body_symmetry_allowed(model)
 
 
 def _phase6_legacy_symmetry_widgets(owner, *, exclude=None):
