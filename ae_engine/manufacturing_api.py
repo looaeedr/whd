@@ -1553,6 +1553,9 @@ from .assembly_physical_dimensions import (
 # operations remain owned by their existing headless Engine modules.
 from .sheetmetal_part_adapters import door_layout_export_filename
 from .receiving_nfb_model_identity import parse_numeric_model_ref
+from .quantity_export_source_policy import (
+    QuantityExportSourceDecision, plan_quantity_export_source,
+)
 from .receiving_layout import normalize_receiving_layout
 from .receiving_quantity_box import project_common_box
 from .manufacturing_equivalence import ManufacturingParameters
