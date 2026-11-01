@@ -771,3 +771,21 @@ immutable Plan。Receiving 原單一 Base Plate 的保留／two-tier
 存量相容判斷不改動，未引入第二份 NFB、孔、Fold、2D／3D／DXF
 或 Save→Reload 物理規則。本 API 只處理已衍生實體選片，
 不是加工輸出認證；#2517 保持 OPEN。
+
+
+
+### #2517 BoxBodyPartSpec 操作輸入 → Engine 製造 request（2026-11-01）
+
+`manufacturing_api.build_box_body_operator_part_spec` 與
+`ae_engine.box_body_operator_part_spec` 是金庫型／受電箱
+BoxBodyPartSpec 製造 request 組合權威。GUI
+`_box_body_part_spec_from_values` 僅蒐集 workspace 當前輸入、
+Head/Tail Y Fold、結構 state、Features 和 override；不得再決定
+箱身實體 piece Features、EndCap `ybottom1` 物理 readback、
+Family BoxBody Structure／Back Panel contract 或材料 Fold DTO。
+既有 source profile `ui_len_add` 由 Engine canonical
+`fold_material_segment_outside_length` 處理，手動 override
+優先次序與原 `ae.ybottom1_def` fallback 不變。
+本變更不更動 #2621 outside-W datum、NFB 製造、尺寸
+補償公式、2D／3D／DXF 認證或 Save→Reload schema；
+#2517 持續 OPEN。
