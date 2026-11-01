@@ -53,6 +53,7 @@ from .manufacturing_api import (
     project_operator_door_indicator_guides,
     DoorLayoutPeerCell, project_operator_door_layout_peer_cells,
     project_receiving_box_body_2d_source, project_box_body_2d_piece_inventory,
+    BoxBodyAssemblyPanelPiece, project_box_body_assembly_panel_piece_rows,
     QuantityManufacturingBatch, quantity_manufacturing_groups,
     quantity_nfb_checked_manufacturing_groups,
     door_layout_export_filename, parse_numeric_model_ref,
