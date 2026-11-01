@@ -157,13 +157,19 @@ def _phase6_box_body_piece_dimension_lines(render_data) -> tuple[str, ...]:
         "left": "左箱身", "middle": "中箱身", "right": "右箱身",
     }
     rows = []
-    for piece in tuple(getattr(render_data, "pieces", ()) or ()):
-        label = labels.get(str(getattr(piece, "role", "") or ""), "箱身板件")
-        fw, fh = tuple(float(v) for v in piece.formed_outer_dimensions)
-        bw, bh = tuple(float(v) for v in piece.material_dimensions)
+    # The Assembly panel, FinalScene text and headless Engine client all
+    # consume one physical-piece ID and dimension readback from Engine.
+    for piece in manufacturing_api.project_box_body_assembly_panel_piece_rows(
+        render_data,
+    ):
+        part_key = str(piece.part_key)
+        role = part_key.split(":", 1)[1] if part_key.startswith("box_body:") else ""
+        label = labels.get(role, "箱身板件")
         rows.append(
-            f"{label}：成形 {_default_number_text(fw)} × {_default_number_text(fh)} mm；"
-            f"展開 {_default_number_text(bw)} × {_default_number_text(bh)} mm"
+            f"{label}：成形 {_default_number_text(piece.formed_width)} × "
+            f"{_default_number_text(piece.formed_height)} mm；"
+            f"展開 {_default_number_text(piece.blank_width)} × "
+            f"{_default_number_text(piece.blank_height)} mm"
         )
     return tuple(rows)
 
