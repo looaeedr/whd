@@ -121,6 +121,9 @@ from .receiving_quantity_versions import (
     normalize_quantity_snapshot, quantity_only_change,
 )
 from .indicator_editor_geometry import resolve_indicator_editor_components
+from .corner_dimension_projection import (
+    RenderCornerDimensionGroup, project_render_corner_relief_measurements,
+)
 from .receiving_endcap_feature_preview import receiving_endcap_feature_preview_shapes
 from .receiving_inner_door_editor import (
     InnerDoorHoleEditorContext, resolve_inner_door_hole_editor_context,
