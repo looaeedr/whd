@@ -85,3 +85,25 @@ def test_ci_and_current_authorities_reference_guard():
     assert "git show" in workflow
     assert "tools/gui_engine_api_boundary_gate.py" in workflow
     assert "tests/governance/test_gui_engine_api_boundary_gate.py" in workflow
+
+
+def test_current_cadsplit_wire_is_source_only_not_external_manufacturing() -> None:
+    root = Path(__file__).resolve().parents[2]
+    ai_04 = (root / "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md").read_text(
+        encoding="utf-8"
+    )
+    current = ai_04.split("## [HISTORICAL/SUPERSEDED] Legacy ae_engine notes")[0]
+    assert "外部 CADSplit 的 seam 是已授權" not in current
+    for phrase in (
+        "外部 CADSplit 目前沒有可用的已驗證製造 API seam",
+        "source-only JSON/CLI 通訊相容介面",
+        "WHD_OPERATION_NOT_IMPLEMENTED",
+        "manufacturing_verified=false",
+        "不具有獨立製造權威",
+    ):
+        assert phrase in current, f"CURRENT 04 CADSplit API boundary mismatch: {phrase}"
+
+    wire = (root / "docs/integrations/CADSplit_WHD_Contract.md").read_text(encoding="utf-8")
+    assert "zero enabled capabilities" in wire
+    assert "WHD_OPERATION_NOT_IMPLEMENTED" in wire
+    assert "not\nevidence of an installed Worker" in wire
