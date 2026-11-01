@@ -6,7 +6,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from ae_engine import manufacturing_api, endcap_relief_solution_committable
+from ae_engine import (
+    manufacturing_api, endcap_relief_solution_committable,
+    endcap_relief_transaction_committable,
+)
 from phase6_manufacturing_geometry import _phase6_solution_is_committable as legacy
 
 
@@ -47,3 +50,53 @@ def test_actual_solved_endcap_verified_solution_uses_same_public_policy():
     assert solution.verified is True
     assert endcap_relief_solution_committable(solution) is True
     assert legacy(solution) is True
+
+
+@pytest.mark.parametrize("required,solution_flags,expected", [
+    (("head", "tail"), {"head": True, "tail": True}, True),
+    (("head",), {"head": True}, True),
+    (("head", "tail"), {"head": True}, False),
+    (("head", "tail"), {"head": True, "tail": False}, False),
+    (("head",), {"tail": True}, False),
+    ((), {}, False),
+])
+def test_engine_atomic_endcap_transaction_fails_closed(
+    required, solution_flags, expected,
+):
+    solutions = {
+        key: SimpleNamespace(verified=value, rule_id=None, trust_level="")
+        for key, value in solution_flags.items()
+    }
+    assert manufacturing_api.endcap_relief_transaction_committable(
+        required, solutions,
+    ) is expected
+
+
+def test_engine_atomic_transaction_preserves_certified_conflict_authority():
+    head = SimpleNamespace(
+        verified=False, rule_id="certified-head", trust_level="ENGINE_CONFLICT",
+    )
+    tail = SimpleNamespace(
+        verified=True, rule_id=None, trust_level="",
+    )
+    assert manufacturing_api.endcap_relief_transaction_committable(
+        ("head", "tail"), {"head": head, "tail": tail},
+    ) is True
+    tail.trust_level = "UNVERIFIED"
+    tail.verified = False
+    assert manufacturing_api.endcap_relief_transaction_committable(
+        ("head", "tail"), {"head": head, "tail": tail},
+    ) is False
+
+
+def test_phase6_atomic_commit_does_not_repeat_engine_policy():
+    import phase6_manufacturing_service as service
+
+    assert callable(manufacturing_api.endcap_relief_transaction_committable)
+    assert (
+        manufacturing_api.endcap_relief_transaction_committable
+        is endcap_relief_transaction_committable
+    )
+    source = inspect.getsource(service.resolve)
+    assert "endcap_relief_transaction_committable(" in source
+    assert "atomic_committable = all(" not in source

@@ -191,7 +191,9 @@ from .custom_fold_api import (
     descriptor_from_snapshot, build_custom_part_profiles, custom_part_spec,
 )
 from .keyed_fold_reconciliation import merge_keyed_fold_profiles
-from .relief_commit_policy import endcap_relief_solution_committable
+from .relief_commit_policy import (
+    endcap_relief_solution_committable, endcap_relief_transaction_committable,
+)
 from .manufacturing_cache_signature import (
     canonical_manufacturing_signature_value, manufacturing_state_fingerprint,
 )

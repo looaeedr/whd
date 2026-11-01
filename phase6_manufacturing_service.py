@@ -28,7 +28,10 @@ from ae_engine.contracts import (
     ResolvedManufacturingPart,
     ResolvedReliefRuleTrace,
 )
-from ae_engine.manufacturing_api import replay_resolved_endcap_render, resolve_live_cabinet_family
+from ae_engine.manufacturing_api import (
+    replay_resolved_endcap_render, resolve_live_cabinet_family,
+    endcap_relief_transaction_committable,
+)
 from ae_engine.joint_marking_policy import resolve_joint_marking_foundation_status
 from ae_engine.receiving_joint_marking import (
     joint_marking_export_summary as _joint_marking_export_summary,
@@ -236,10 +239,8 @@ def resolve(request):
                 except Exception as exc:
                     errors[key] = str(exc)
 
-            atomic_committable = all(
-                key in solutions
-                and _phase6_solution_is_committable(solutions[key])
-                for key in required
+            atomic_committable = endcap_relief_transaction_committable(
+                required, solutions,
             )
 
             if atomic_committable:
