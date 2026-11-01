@@ -9,6 +9,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 
 # 寫成規格書
+## WHD API／製造施工前必讀
+
+- 當本 Skill 涉及 **WHD API、Engine、Family（金庫型／受電箱）、CADSplit Bridge、製造／DXF 出圖或跨版本相容**時，先讀 GitHub `localX` exact HEAD 的 [AI 庫 04 CURRENT](../../../../個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md)，再讀 [WHD × CADSplit API 架構與權威整合 v5.1（REFERENCE）](../../../../docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md) **全文**；不能只讀本 Skill 就跳過整合規範。這是 `AGENTS.md::CADSPLIT_WHD_API_REFERENCE_READ_GATE_V1` 的導覽，不是第二份製造權威。
+- 撰寫規格時把目標、現況與驗收證據分級，不能把尚未實作的 CADSplit 全自動製造寫成已完成； 施工前沿用 `SOURCE_READ_EVIDENCE` 簡述 **repo/ref、完整 Git SHA、文件路徑與相關章節、權威判斷**；沒真正讀取就不得宣稱規範核對完成。**使用者已確認產品規則優先**，不得以 CADSplit 現有程式缺陷、現有測試或此 REFERENCE 推翻正式製造權威。
+
 
 把已確認的需求與專案證據整理成可施工規格。**不得只靠聊天記憶寫 WHD 規格。**
 
