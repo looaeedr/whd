@@ -12,7 +12,7 @@ whd_schema: WHD_DOC_META_V1
 
 <!-- WHD_AUTHORITY_ROLE: CURRENT -->
 
-> **CADSplit × WHD API 整合必讀 REFERENCE（`CADSPLIT_WHD_API_REFERENCE_READ_GATE_V1`）**：凡涉及 CADSplit 自動拆圖／WHD Engine API／箱型 Family 擴充／來源 Set/Bay／製造實體身份／跨版本／DXF 驗收的施工，先讀本 04 CURRENT，再讀 [`docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md`](../../docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md) 全文，並核對實際程式／測試。v5.1 只作權責導覽與已確認需求／現況／待實作之分類，不得覆蓋本 CURRENT 或當作已認證製造能力。
+> **WHD × CADSplit API／製造必讀 REFERENCE（`CADSPLIT_WHD_API_REFERENCE_READ_GATE_V1`）**：凡 WHD API、Engine、Family（金庫型／受電箱）、Bridge、CADSplit 自動拆圖／來源 Set/Bay 與 canonical 製造身份、跨版本或製造／DXF 驗收，施工前先讀本 04 CURRENT，再讀 [`docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md`](../../docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md) **全文**。依 `AGENTS.md::SOURCE_READ_EVIDENCE` 附 repo/ref/完整 SHA、路徑、相關章節及權威判斷；未讀不得宣稱核對完成。v5.1 僅 REFERENCE，不得覆蓋使用者已確認的產品規範、本 CURRENT、Certified Registry 或 07；CADSplit 現行缺陷與測試不能反向決定產品規範。
 
 ### 1. Current scope 與 Source of Truth 邊界
 
