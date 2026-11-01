@@ -16,6 +16,7 @@ from .door_layout_numeric_transitions import (
 )
 
 from .manufacturing_api import (
+    ReceivingBasePlateDisplaySource, inspect_receiving_base_plate_display_source,
     receiving_ear_assembly_display_source_key, resolve_receiving_ear_assembly_display_skins,
     normalize_authoritative_door_state, normalize_project_snapshot_authority,
     list_cabinet_model_choices,
@@ -220,6 +221,7 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "ReceivingBasePlateDisplaySource", "inspect_receiving_base_plate_display_source",
     "receiving_ear_assembly_display_source_key", "resolve_receiving_ear_assembly_display_skins",
     "normalize_authoritative_door_state", "normalize_project_snapshot_authority",
     "ae", "manufacturing_api", "generate_part", "resolve_policy",

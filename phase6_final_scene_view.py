@@ -67,24 +67,16 @@ from phase6_final_scene_renderer import (
 
 
 def receiving_base_source_display_warnings(snapshot, cabinet_family):
-    """Explain unresolved physical sources, never demand obsolete manual fields.
-
-    Current #1502 may uniquely derive a CENTER/LEFT physical base from
-    committed NFB CSV and source geometry without receiving_base_plate.
-    The same canonical resolver used by production must decide; do not
-    mistake an absent legacy manual mapping for absent material.
-    """
-    if cabinet_family != "受電箱":
-        return ()
-    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
-    try:
-        resolved = receiving_base_plate_values(snapshot)
-    except (ValueError, TypeError, KeyError) as exc:
+    """UI text only; Engine decides true physical Base Plate source status."""
+    evidence = manufacturing_api.inspect_receiving_base_plate_display_source(
+        snapshot, cabinet_family,
+    )
+    if evidence.status == "INVALID":
         return (
-            "受電箱實體底板來源驗證失敗：" + str(exc)
+            "受電箱實體底板來源驗證失敗：" + evidence.reason
             + "；不可冒用通用底板或假畫固定片打標線",
         )
-    if resolved is None:
+    if evidence.status == "UNAVAILABLE":
         return (
             "受電箱實體底板尚未配置或來源不足：請核對目前 NFB "
             "CSV／已提交層別及原實體板件來源；"

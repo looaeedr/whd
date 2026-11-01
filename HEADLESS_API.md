@@ -6,6 +6,17 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Receiving Base Plate 顯示來源診斷（不可當製造許可）
+
+`manufacturing_api.inspect_receiving_base_plate_display_source(snapshot, cabinet_family)`
+使用既有受電箱實體底板來源解析器回傳 immutable
+`ReceivingBasePlateDisplaySource.status`，狀態為
+`NOT_APPLICABLE`／`UNAVAILABLE`／`INVALID`／`RESOLVED_DISPLAY_ONLY`。
+`reason` 保留現有失敗原因；GUI 僅把結果顯示為繁中警告，不再讀低階
+`receiving_base_plate_config` 或自行判定物理板件來源。`RESOLVED_DISPLAY_ONLY`
+只代表顯示來源可取得，不構成 CUTTING／DXF／EAR 焊接／整箱 MFG-2 核准。
+
+
 ## #2517 Receiving EAR 真實單／雙層組合 3D 顯示來源
 
 `manufacturing_api.receiving_ear_assembly_display_source_key(snapshot)` 供 GUI

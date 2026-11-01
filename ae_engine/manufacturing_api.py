@@ -130,6 +130,9 @@ from .receiving_quantity_versions import (
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
     normalize_quantity_snapshot, quantity_only_change,
 )
+from .receiving_base_display_source import (
+    ReceivingBasePlateDisplaySource, inspect_receiving_base_plate_display_source,
+)
 from .receiving_ear_display_sources import (
     receiving_ear_assembly_display_source_key, resolve_receiving_ear_assembly_display_skins,
 )
