@@ -43,6 +43,7 @@ from .manufacturing_api import (
     project_receiving_base_plate_2d_snapshot, project_legacy_base_plate_2d_bounds,
     project_operator_door_divider_frame_preview,
     project_operator_door_indicator_guides,
+    DoorLayoutPeerCell, project_operator_door_layout_peer_cells,
     project_receiving_box_body_2d_source, project_box_body_2d_piece_inventory,
     QuantityManufacturingBatch, quantity_manufacturing_groups,
     quantity_nfb_checked_manufacturing_groups,
