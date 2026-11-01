@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Receiving PAD 3D source and fail-closed display gate
+
+`manufacturing_api.receiving_pad_assembly_display_active`、`receiving_pad_assembly_display_source_key`、`resolve_receiving_pad_assembly_display_skins` 為同程式公開 API。由 Engine 原有 CSV、tooling、BasePlate 實際 CUTTING 四方孔、真實折後世界面重新核驗可顯示 PAD；每次來源指紋改變就重解算。已宣稱 manufacturing_ready 或 assembly_contact_certified 的來源不能被展示為合法 preview。GUI 僅保存顯示快取與警告；不等於工廠 CUTTING/BEND/DXF 或 MFG-2 核准。
+
+
 ## #2517 FinalScene material mesh and world coordinate APIs
 
 ae_engine.manufacturing_api.folded_material_mid_mesh、
