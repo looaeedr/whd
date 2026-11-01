@@ -76,6 +76,7 @@ from .endcap_factory_fold import (
 from .cabinet_family_model_transition import (
     FamilyModelTransition, FamilyModelPlan, plan_cabinet_family_model_transition,
 )
+from .cabinet_model_choices import list_cabinet_model_choices
 from .assembly_intent_transactions import (
     AssemblyIntentTransition, normalize_assembly_type, commit_assembly_intent_state,
 )

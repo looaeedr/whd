@@ -30,7 +30,6 @@ from ae_engine.engineering_drawing import build_engineering_drawing_projection
 from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from ae_engine.cabinet_types import (
     policy as cabinet_family_policy,
-    registered_cabinet_types,
     resolve_cabinet_type,
 )
 
@@ -612,33 +611,8 @@ class Phase6ApplicationHost:
 
     @staticmethod
     def _baseline_model_choices():
-        """One visible selector owns both cabinet type and baseline model.
-
-        Registered implemented families are valid model choices even when they
-        intentionally have no baseline DXF folder (受電箱 phase 1).  Physical
-        baseline folders remain valid choices, and 自訂 stays last.
-        """
-        choices = []
-        seen = set()
-        physical_models = [normalize_custom_model_name(name) for name in ae.get_baseline_list()]
-        for name in physical_models:
-            name = normalize_custom_model_name(name)
-            if name and name not in seen and not is_unknown_model(name):
-                choices.append(name)
-                seen.add(name)
-        # Formula-only implemented families (currently 受電箱) must be visible
-        # in the same selector even without a baseline DXF directory.  金庫型
-        # remains resource-backed: do not invent it when its baseline is absent.
-        for item in registered_cabinet_types():
-            if not item.implemented:
-                continue
-            name = str(item.canonical_name or "").strip()
-            if name == "金庫型" and name not in seen:
-                continue
-            if name and name not in seen:
-                choices.append(name)
-                seen.add(name)
-        return with_unknown_model(choices)
+        """One shared Engine catalog for Vault, Receiving and Custom choices."""
+        return manufacturing_api.list_cabinet_model_choices()
 
     def _endcap_depth_comp_t_for_family(self, model_name=None):
         source = (
