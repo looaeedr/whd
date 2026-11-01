@@ -58,13 +58,41 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install GUI and benchmark dependencies
+      # An existing Ubuntu runner image may already provide a working GUI
+      # stack. Probe a real Tk window inside Xvfb before skipping any apt step;
+      # missing or broken components still use the original install fallback.
+      - name: Probe existing Xvfb and real Tk
+        id: gui-runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v Xvfb >/dev/null 2>&1 \
+            && command -v xvfb-run >/dev/null 2>&1 \
+            && xvfb-run -a python -c 'import tkinter; root = tkinter.Tk(); root.update(); root.destroy()'; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+            echo 'CI_TK_RUNTIME_PREINSTALLED=true; skip APT'
+          else
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+            echo 'CI_TK_RUNTIME_PREINSTALLED=false; install GUI runtime'
+          fi
+      - name: Install missing GUI runtime
+        if: steps.gui-runtime.outputs.available != 'true'
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb python3-tk
+      - name: Install benchmark Python dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
           python -m pip install -r requirements.txt matplotlib pytest psutil
+      - name: Verify real Tk before measurements
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -c 'import tkinter; root = tkinter.Tk(); root.update(); root.destroy()'
+          echo 'CI_TK_RUNTIME_READY=true'
       - name: Record environment and immutable inputs
         shell: bash
         run: |
