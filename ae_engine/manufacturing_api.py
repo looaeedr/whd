@@ -126,6 +126,9 @@ from .receiving_quantity_versions import (
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
     normalize_quantity_snapshot, quantity_only_change,
 )
+from .project_snapshot_state import (
+    normalize_authoritative_door_state, normalize_project_snapshot_authority,
+)
 from .corner_dimension_projection import (
     RenderCornerDimensionGroup, project_render_corner_relief_measurements,
 )

@@ -6,6 +6,20 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Project Save／Reload Engine authority（同程序 Python API）
+
+`ae_engine.manufacturing_api.normalize_authoritative_door_state(snapshot)` 及
+`normalize_project_snapshot_authority(snapshot)` 接受保存的 Door／Receiving
+來源快照，回傳獨立的 canonical state，驗證 Door Layout 物理數值、Handle edges、
+內門共享 Divider stable ID、Receiving 各 Set/Bay Door state 與 Quantity。
+無效來源明確 ValueError；不需要 Tk，不寫 DXF。GUI
+`phase6_project_file` 僅保留 .p6fold JSON/schema／Feature codec 與檔案操作；
+Save 和 Reload 共用同一 Engine owner 且不保存 derived FinalScene。
+本入口未新增製造認證，正式 2D／3D／DXF 仍須走各自現有的 Engine 解算與驗收。
+
+
+
+
 ## CADSplit／WHD 同程序 Engine 整合入口（第一批：來源接線，未開啟外部製造）
 
 現有公開路徑 `ae_engine.manufacturing_api` 新增同程序 Python 入口
