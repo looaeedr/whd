@@ -1238,3 +1238,10 @@ from .receiving_nfb_v5_operator_preview import (
     require_receiving_nfb_v5_inner_door_trial_preview,
     require_receiving_nfb_v5_base_trial_preview,
 )
+
+
+# #2517: Receiving side EAR read-only 2D/3D source identity and cache stamp.
+from .receiving_ear_side_display_context import (
+    ReceivingEarSideDisplayContext,
+    resolve_receiving_ear_side_display_context,
+)

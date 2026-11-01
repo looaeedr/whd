@@ -45,28 +45,19 @@ def present_receiving_ear_side_piece_2d(
             snapshot = dict(canonical)
         else:
             snapshot = dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
-        if snapshot.get("model") not in ("受電箱", "RECEIVING"):
-            return source_piece, None
-        if snapshot.get("nfb_config_submitted") is not True:
-            # A legacy/unconfigured Receiving side has no EAR weld footprint;
-            # do not borrow a stale submitted NFB from the main GUI mirror.
-            main = (dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
-                    if designer is not None else snapshot)
-            if main.get("nfb_config_submitted") is True:
-                raise ValueError("EAR_2D_PREVIEW_PRIMARY_SOURCE_DRIFT")
-            return source_piece, None
-
-        import hashlib
-        # The source-stamp and rendered primitives participate in the cache.
-        # A changed Bay, actual source hole, baseline or layer invalidates it.
-        owners = tuple(
-            (p.role, (p.render_data.metadata or {}).get("baseline_source_sha256"),
-             repr(tuple(p.render_data.scene.primitives or ())))
-            for p in tuple(getattr(aggregate_render_data, "pieces", ()) or ())
+        # The GUI selects the canonical editor snapshot, not manufacturing
+        # status. Engine resolves eligibility, dimensions and source identity.
+        main_mirror = None
+        if (designer is not None
+                and snapshot.get("model") in ("受電箱", "RECEIVING")
+                and snapshot.get("nfb_config_submitted") is not True):
+            main_mirror = dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
+        context = manufacturing_api.resolve_receiving_ear_side_display_context(
+            snapshot, key, aggregate_render_data, main_mirror=main_mirror,
         )
-        stamp = hashlib.sha256(
-            repr((snapshot, key, owners)).encode("utf-8")
-        ).hexdigest()
+        if not context.should_project:
+            return source_piece, None
+        stamp = context.source_stamp
         cached = getattr(host, "_receiving_ear_side_2d_display_cache", None)
         if cached is not None and cached[0] == stamp:
             return cached[1], cached[2]
@@ -82,8 +73,8 @@ def present_receiving_ear_side_piece_2d(
             geometry = geometry_provider(designer if designer is not None else host)
         displayed = project_receiving_ear_side_piece_2d_preview(
             snapshot, source_piece, piece_key=key, geometry=geometry,
-            dimensions=(float(snapshot["w"]), float(snapshot["h"]), float(snapshot["d"])),
-            sheet_thickness=float(snapshot["t"]),
+            dimensions=context.dimensions,
+            sheet_thickness=context.sheet_thickness,
             display_only_marking_overlap=True,
         )
         result = displayed, None
@@ -106,25 +97,20 @@ def present_receiving_ear_side_designer_piece_3d(
     no EAR MARKING despite a valid submitted NFB. This is a cached, read-only
     VIEW copy only; actual manufacturing and DXF owners stay unchanged.
     """
-    from hashlib import sha256
-
     key = str(piece_key)
     original = source_piece.render_data
-    if (key not in {"box_body:left_side", "box_body:right_side"}
-            or snapshot.get("model") not in ("受電箱", "RECEIVING")
-            or snapshot.get("nfb_config_submitted") is not True):
+    # A 3D isolated side needs the same Engine-owned source evidence as 2D.
+    preflight = manufacturing_api.resolve_receiving_ear_side_display_context(
+        snapshot, key,
+    )
+    if not preflight.should_project:
         host.last_receiving_ear_single_piece_blocker = None
         return original
     aggregate = geometry.part("box_body").render_data
-    owners = tuple(
-        (
-            row.role,
-            (row.render_data.metadata or {}).get("baseline_source_sha256"),
-            repr(tuple(row.render_data.scene.primitives or ())),
-        )
-        for row in tuple(getattr(aggregate, "pieces", ()) or ())
+    context = manufacturing_api.resolve_receiving_ear_side_display_context(
+        snapshot, key, aggregate,
     )
-    stamp = sha256(repr((snapshot, key, owners)).encode("utf-8")).hexdigest()
+    stamp = context.source_stamp
     cache = getattr(host, "_receiving_ear_single_piece_display_cache", None)
     if not isinstance(cache, dict):
         cache = {}
@@ -136,8 +122,8 @@ def present_receiving_ear_side_designer_piece_3d(
         displayed = project_receiving_ear_side_piece_2d_preview(
             snapshot, source_piece, piece_key=key,
             geometry=geometry,
-            dimensions=(float(snapshot["w"]), float(snapshot["h"]), float(snapshot["d"])),
-            sheet_thickness=float(snapshot["t"]),
+            dimensions=context.dimensions,
+            sheet_thickness=context.sheet_thickness,
             display_only_marking_overlap=True,
         ).render_data
         blocker = None

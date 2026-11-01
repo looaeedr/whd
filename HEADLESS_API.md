@@ -1033,3 +1033,23 @@ These return render data **for read-only visualization only**, not DXF
 authorization; the current part-only/welded-EAR/PAD/MFG-2 gates remain
 untouched. The existing #1901 real physical tier, SHA/Set/Bay drift and
 single/two-layer proofs remain the acceptance sources.
+
+
+## Receiving EAR side 2D/3D display source context (#2517)
+
+`manufacturing_api.resolve_receiving_ear_side_display_context(snapshot,
+piece_key, aggregate_render_data=None, *, main_mirror=None)` returns the
+immutable `ReceivingEarSideDisplayContext`. It decides *read-only
+visualization eligibility*, not manufacturing readiness: the true committed
+FoldDesigner snapshot is preferred to the non-authoritative main-GUI mirror,
+stale primary submitted-NFB claims fail closed, and the actual physical
+Box Body child piece roles, baseline source SHA and scene primitives form the
+same 2D/3D cache invalidation digest. The Engine returns the existing actual
+outside-W/H/D and thickness for a downstream verified EAR SIDE MARKING
+projection; GUI uses these values, renders, and stores display-only caches.
+
+This does NOT grant EAR welding, PAD, DXF, CUTTING or whole MFG-2 production
+permission. Actual UV/material and safety rejection remain in
+`project_receiving_ear_side_piece_2d_preview`. The primary 2D / FoldDesigner
+3D source and stale-primary cases and actual Save→Reload CHECK-only DXF
+regression remain the acceptance evidence.
