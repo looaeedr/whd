@@ -1419,3 +1419,8 @@ from .manufacturing_contracts import (
     manufacturing_request_fingerprint,
     thaw_manufacturing_value,
 )
+
+# #2517 single Engine manufacturer resolver for Phase6 + headless clients.
+# Imported last to keep existing policy and Family functions initialized.
+from .assembly_scene_part import AssemblyScenePart
+from .manufacturing_resolver import resolve as resolve_manufacturing_request
