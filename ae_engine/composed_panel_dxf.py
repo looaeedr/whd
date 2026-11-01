@@ -289,17 +289,27 @@ def save_composed_panel_dxf(
                 raise ValueError("COMPOSED_DXF_ORIGINAL_FLAT_ROUNDTRIP_FAILED:" + physical_id)
         staged = stage / path.name
         save_scene_dxf(staged, composite.scene)
-        # Full independent material and BEND acceptance covers the whole sheet.
-        verified = verify_saved_part_render_data_dxf(composite, staged)
-        if not verified.ok:
-            raise ValueError("COMPOSED_DXF_COMBINED_ROUNDTRIP_FAILED:" +
-                             ",".join(issue.category for issue in verified.issues))
-        # Strict second DXF reopen checks every original primitive, including
-        # arbitrary-layer MARKING, BLIND_HOLE, CHECK/text, arcs-as-polylines,
-        # colors, geometry and provenance labels. No serializer is used to
-        # produce the *actual* side of this comparison.
+        # Existing single-part material verification intentionally treats
+        # second closed CUTTING outlines as holes. Do NOT feed an entire
+        # multi-blank modelspace into that single-blank acceptance function.
+        # Every original flat passed its own material/BEND/holes verification
+        # above; now independently reopen the COMPOSED bytes and prove all of
+        # each physical sheet's translated features appear exactly once.
         actual = Counter(_actual_signature(entity)
                          for entity in ezdxf.readfile(staged).modelspace())
+        remaining = actual.copy()
+        for receipt, (_, physical_id, render) in zip(sheets, originals):
+            dx, dy = receipt.offset
+            source = Counter(_source_signature(_translated(p, dx, dy))
+                             for p in render.scene.primitives)
+            for signature, quantity in source.items():
+                if remaining[signature] < quantity:
+                    raise ValueError(
+                        "COMPOSED_DXF_SHEET_READBACK_MISMATCH:" + physical_id
+                    )
+                remaining[signature] -= quantity
+        # The only remaining entities must be the exact non-cutting provenance
+        # CHECK texts. No dropped, duplicated or foreign entity is accepted.
         expected = Counter(_source_signature(p) for p in composite.scene.primitives)
         if actual != expected:
             raise ValueError("COMPOSED_DXF_EXACT_PRIMITIVE_READBACK_MISMATCH")
