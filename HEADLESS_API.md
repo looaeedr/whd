@@ -6,6 +6,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Hole Editor Canvas canonical feature projection
+
+UI 使用 `ae_engine.manufacturing_api.resolve_hole_editor_canvas_features(surface, features, width, height)` 取得 validated world-space Feature tuple，`hole_editor_canvas_reference_point(feature, width, height)` 取得儲存的參考錨點，`hit_test_hole_editor_canvas_features(point, resolved_features, tolerance=...)` 使用 Engine 的實體命中規則。GUI 只負責 transform 與 Canvas 畫面；非法孔位不會由 GUI 重做 fallback。此 API 是孔位 read-only preview 接口，不自行發放 CUTTING／DXF 製造權限，既有製造 API 不受影響。
+
 ## #2517 Real part parent identity for operator navigation
 
 `manufacturing_api.project_physical_part_navigation_rows(available_parts)` 依
