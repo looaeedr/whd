@@ -43,6 +43,10 @@ EndCap BOTTOM wrap/reserve 判準。三個公開 API 均不含 GUI/Tk，不新�
 新製造資格或 DXF 放行；GUI 只提供輸入與轉接顯示資料。
 
 
+## #2517 Fold Editor headless structural add/delete transactions
+
+`manufacturing_api.add_operator_fold_editor_rows(segments, position, thickness)` returns detached current material Fold rows with the original front/end added-physical-segment contract and recalculated adjacent BEND/T metadata. `manufacturing_api.remove_operator_fold_editor_rows(segments, source_index, thickness, *, symmetric_box_body)` returns a detached updated Fold or `None` if the operator requested an invalid or non-removable structural segment or its paired target is fixed. Only actual stable `phase6_key` peers (or genuinely unkeyed legacy opposite rows) can mirror; no UI guesses a manufacturing pair. GUI owns widgets/selection/refresh only. These are editing source transitions; **not** an approved manufacturing/export certification.
+
 ## #2517 Fold Editor operator material commit and structural mirror source
 
 `manufacturing_api.commit_operator_fold_editor_rows(old_segments, operator_rows, thickness)` accepts existing material Fold rows and typed operator outside lengths/angles; it returns detached material Fold rows after re-evaluating the **new** true adjacent BEND topology using the canonical Engine BoxBody conversion. `manufacturing_api.plan_operator_fold_mirror_target(segments, source_index, field, *, is_box_body)` returns frozen `OperatorFoldMirrorPlan(target_index, block_legacy_fallback)` from actual structural key pairing. GUI `phase6_bending_ui.save/apply_mirror` only parses Tk inputs, applies the Engine result and refreshes. Vault structural folds cannot fall back to positional pairing; Receiving family continues to prohibit BoxBody symmetry. These APIs do not certify CUTTING/BEND/DXF manufacturing output.
