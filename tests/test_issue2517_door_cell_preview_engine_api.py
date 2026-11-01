@@ -44,7 +44,7 @@ def test_engine_cell_result_matches_existing_structural_preview(family):
         (expected.width, expected.height),
     )
     assert result.outline == expected.outline
-    assert result.bend_lines == expected.bend_lines
+    assert result.bends == expected.bends
 
 
 def _features(result, state, family="金庫型", **values_override):
