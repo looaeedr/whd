@@ -25,6 +25,18 @@ Joint relief pipeline; Phase6 only composes that pipeline's returned records
 and Family divider records with these Engine DTOs for GUI display. No new
 physical geometry, certification or 2D/3D/DXF manufacturing authority.
 
+## Fold Designer physical Divider / inner-door selection API (#2517)
+
+`manufacturing_api.resolve_fold_designer_divider_part(part_key, divider_input)`,
+`resolve_fold_designer_frame_part(part_key, payload, *, default_thickness)`,
+and `resolve_fold_designer_panel_part(part_key, payload)` select existing
+authoritative Box Body Divider, inner-door frame or panel by physical stable ID.
+The Engine performs complete Family/Topology derivation and rejects stale or
+unavailable part IDs; the GUI only normalizes operator Divider fields, forwards
+current snapshots, then displays the Engine-produced render. The existing
+Family dimensions, Fold and baseline/3D/DXF rules are unchanged. These APIs
+do not certify a previously unsupported part or complete #2517.
+
 ## Canonical AssemblyJoint manufacturing graph API (#2517)
 
 `manufacturing_api.resolve_manufacturing_joint_graph(input_snapshot,

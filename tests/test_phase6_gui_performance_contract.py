@@ -1712,3 +1712,27 @@ def test_issue1818_navigation_only_never_bypasses_non_receiving_relief_publish()
     before, after = deepcopy(base), deepcopy(target)
     after['model'] = '金庫型'
     assert not navigation_only_change(before, after)
+
+
+def test_tk_benchmark_observes_actual_engine_endcap_replay_seam(monkeypatch):
+    """#2517: the benchmark must measure a real invoked API, not a removed alias."""
+    from tools.whd_performance_baseline import Probe
+    import phase6_manufacturing_service as service
+
+    calls = []
+    sentinel = object()
+    monkeypatch.setattr(
+        service, "replay_resolved_endcap_render",
+        lambda part, solution: calls.append((part, solution)) or sentinel,
+    )
+    probe = Probe()
+    with probe.stack:
+        probe.observe_supplemental_material_factory(
+            service, "replay_resolved_endcap_render", "service_relief_replay_material",
+        )
+        assert service._replay_endcap_render("physical", "verified") is sentinel
+        assert probe.counts["supplemental_material_factory_calls"] == 1
+        assert probe.supplemental_material_builds[
+            "service_relief_replay_material:str"
+        ] == 1
+    assert calls == [("physical", "verified")]
