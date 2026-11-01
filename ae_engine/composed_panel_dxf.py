@@ -186,13 +186,13 @@ def _source_rows(panels):
         rows = tuple(resolved_physical_render_parts(geometry))
         if not rows or len({key for key, _ in rows}) != len(rows):
             raise ValueError("COMPOSED_DXF_PHYSICAL_INVENTORY_INVALID")
-        guard_rows = tuple((panel_name + ":" + key, "", render)
+        guard_rows = tuple((key, "", render)
                            for key, render in rows)
         _reject_unapproved_nfb_pad_ear_manufacturing(guard_rows)
         _validate_nfb_base_part_scope(guard_rows, part_only=False)
         for key, render in rows:
             reject_unverified_receiving_nfb_tier_base(
-                render, output_key=panel_name + ":" + key,
+                render, output_key=key,
             )
             meta = getattr(render, "metadata", None) or {}
             if (meta.get("baseline_fit_error")
