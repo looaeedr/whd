@@ -1414,6 +1414,19 @@ Engine-provided world positions and formats the already-resolved W/H values.
 Legacy 5.5% line offset / 1.2% tick are visualization spacing, not a new
 manufacturing compensation or authorization.
 
+## Canonical multi-Door peer 2D source readback (#2517)
+
+`manufacturing_api.project_operator_door_layout_peer_cells(cells,
+render_data_by_part_key)` returns frozen `DoorLayoutPeerCell` rows with
+canonical `door_cN_rM` source identity, existing material-scene pair and
+physical unfolded bounds. The GUI draws present rows or leaves missing/empty
+peers hidden; it does not choose physical source owners, compute peer bounds
+or recreate an uncommitted Door. Duplicate/invalid grid identity and
+invalid/non-finite physical bounds fail closed. Legacy local operator preview
+is unchanged when no peer resolved-source mapping was supplied.
+The existing 1e-9 viewport floor is DISPLAY only; no geometry, DXF, or
+manufacturing approval is derived from it.
+
 ## Joint contact MARKING world source display API (#2517)
 
 `manufacturing_api.project_joint_marking_world_segments(render_data)`
