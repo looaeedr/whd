@@ -320,6 +320,7 @@ from .assembly_joint import (
     joint_relief_state_item_matches, resolve_manufacturing_joint_graph,
 )
 from .assembly_joint import joint_registry_diagnostic_info
+from .manufacturing_relief_evidence import resolve_manufacturing_relief_evidence
 from .assembly_placement import (
     SCENE_ASSEMBLY_PLACEMENTS, resolve_legacy_door_cell_scene_placement,
     resolve_scene_assembly_placement,
