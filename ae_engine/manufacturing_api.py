@@ -129,6 +129,9 @@ from .physical_sheet_editor_context import (
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .receiving_endcap_feature_preview import receiving_endcap_feature_preview_shapes
 from .receiving_ear_side_preview import project_receiving_ear_side_piece_2d_preview
+from .receiving_nfb_v5_source_preview import (
+    ReceivingNfbV5SourcePreview, ReceivingNfbV5SourcePreviewCache,
+)
 from .receiving_inner_door_inventory import (
     ReceivingInnerDoorInventoryLayer, resolve_receiving_inner_door_preview_inventory,
 )
@@ -1104,7 +1107,6 @@ def prepare_fold_profile_mapper(profile, *, axis, fold_guides=()):
     return _prepare_profile_mapper(
         rows, axis=axis, fold_guides=guides, geometry=_profile_geometry(rows),
     )
-
 
 def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
     """Public Engine physical solid mesh feature-boundary projection."""

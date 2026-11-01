@@ -822,7 +822,6 @@ visible 3D vertex. A GUI display cache must invalidate when any Fold profile
 or source BEND guide changes. No new Fold compensation, 2D CUTTING or DXF
 certification follows. #2517 remains OPEN.
 
-
 ## Physical solid-mesh feature edge API (#2517)
 
 `manufacturing_api.physical_solid_mesh_feature_segments(triangles, *,
