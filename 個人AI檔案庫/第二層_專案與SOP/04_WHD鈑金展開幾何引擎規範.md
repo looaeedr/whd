@@ -32,6 +32,8 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 AssemblyJoint 製造拓樸公開 API（2026-11-01）**：`manufacturing_api.resolve_manufacturing_joint_graph(input_snapshot, available_part_keys)` 使用既有 Engine `migrate_legacy_snapshot_joints` 與 `ResolvedAssemblyGraph` 一次處理保存 schema migration、真實可用板件 Joint 篩選、自訂板件未確認 placement 的 fail-closed，以及 Joint ID／region 驗證。Phase6 僅傳 snapshot 與可用實體板件清單，不再決定製造拓樸；原始保存值、Assembly Intent／Certified Registry／CUTTING／DXF 權威不變；#2517 保持 OPEN。
+
 **#2517 EndCap Assembly relief 求解／診斷公開 API（2026-11-01）**：`manufacturing_api.solve_endcap_assembly_relief(body_part, endcap_part, ...)` 使用既有 Engine World-backprojected solver，處理實體 Box Body／Head/Tail Render、Fold profile、放置位置／Family 與已確認裝配語意；`manufacturing_api.endcap_relief_solution_diagnostic(solution)` 根據既有 Engine certified/verified policy 分類 3D Shadow 與未驗證穿透，保留原錯誤訊息。`phase6_manufacturing_service` 僅提交來源與呈現結果，不再直接呼叫 private collision 求解器或重寫認證診斷。不新增截角公式、CUTTING／DXF 認證；#2517 仍 OPEN。
 
 **#2517 EndCap Head/Tail 原子提交 API（2026-11-01）**：`manufacturing_api.endcap_relief_transaction_committable(required_parts, solutions)` 依 Engine 既有 `endcap_relief_solution_committable` 認證判準，對實體 Head/Tail 同批採全有或全無決策；任一必要解不存在、不可提交或空集合時拒絕。`phase6_manufacturing_service` 僅提交所需實體身份與已解析結果，不再自組 `all()` 決定製造發布。保留既有已認證 ENGINE_CONFLICT 與 3D 影子診斷分離；不新增 CUTTING 或 DXF 認證，#2517 保持 OPEN。
