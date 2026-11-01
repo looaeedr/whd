@@ -43,6 +43,12 @@ from .manufacturing_api import (
     FoldDesignerSnapshotDimensions, project_fold_designer_snapshot_dimensions,
     project_fold_designer_snapshot_part_features,
     build_door_operator_part_spec,
+    DerivedPartRequestAssemblyInput, DerivedPartProjectionRequest, DerivedPartSyncPlan,
+    build_derived_part_projection_request, build_derived_part_sync_plan,
+    DerivedPartProfileProjection, DerivedPartFeatureProjection, DerivedPartNamespaceProjection,
+    FrozenMappingValue, FrozenSequenceValue,
+    profile_projection, feature_projection, namespace_projection,
+    materialize_profiles, materialize_features, materialize_namespace,
     resolve_fold_designer_divider_part, resolve_fold_designer_frame_part, resolve_fold_designer_panel_part,
     fold_profile_base_index, fold_profile_geometry, fold_profile_bend_mask,
     fold_profile_map_with_guides, fold_profile_map, fold_profile_flat_map,
@@ -136,6 +142,7 @@ from .certified_relief_registry import (
     certified_rule_revision_exists, build_relief_promotion_candidate,
 )
 from . import ae, manufacturing_api
+from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
     "ae", "manufacturing_api", "generate_part", "resolve_policy",
@@ -172,6 +179,12 @@ __all__ = [
     "FoldDesignerSnapshotDimensions", "project_fold_designer_snapshot_dimensions",
     "project_fold_designer_snapshot_part_features",
     "build_door_operator_part_spec",
+    "DerivedPartRequestAssemblyInput", "DerivedPartProjectionRequest", "DerivedPartSyncPlan",
+    "build_derived_part_projection_request", "build_derived_part_sync_plan",
+    "DerivedPartProfileProjection", "DerivedPartFeatureProjection", "DerivedPartNamespaceProjection",
+    "FrozenMappingValue", "FrozenSequenceValue",
+    "profile_projection", "feature_projection", "namespace_projection",
+    "materialize_profiles", "materialize_features", "materialize_namespace",
     "resolve_fold_designer_divider_part", "resolve_fold_designer_frame_part", "resolve_fold_designer_panel_part",
     "fold_profile_base_index", "fold_profile_geometry", "fold_profile_bend_mask",
     "fold_profile_map_with_guides", "fold_profile_map", "fold_profile_flat_map",

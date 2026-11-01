@@ -756,3 +756,18 @@ Door finished-face、2D/3D/DXF、Save→Reload 與 Certified Registry
 ### #2517 Receiving singleton Bay Door snapshot API（2026-11-01）
 
 **#2517 Receiving 單一 Bay 內門操作 Save→Reload Engine API（2026-11-01）**：`manufacturing_api.project_receiving_single_bay_door_controls(snapshot)` 將原 `fold_designer_snapshot_projection._snapshot_workspace_state` 的 Receiving 唯一 Set／唯一 Bay 操作內門 `door_state` 寫回權責搬入 Engine，由 `receiving_layout.RECEIVING_DOOR_STATE_KEYS` 和 `update_receiving_bay` 的唯一已存 schema 驗證／交易。只有已存在的 singleton Bay、Set/Bay 模式、非空 `inner_doors` 才從 GUI 根層當次輸入複製門狀態；多 Set／多 Bay／Quantity／非 Receiving 一律不投影、不覆蓋其他已提交 Bay。輸入 layout 與原始 GUI snapshot 不被修改，GUI 僅把 Engine 回傳的 detached persisted layout 放進待保存 snapshot。保留原 70/105 mm 內門位移 Save→Reload 相容及 2D/3D/正式 DXF 權威不變；不增加新的 CUTTING／製造授權，#2517 仍 OPEN。
+
+### #2517 衍生實體板件 namespace／選片修復 Engine 公開 API（2026-11-01）
+
+`ae_engine.derived_part_projection` 與
+`manufacturing_api.build_derived_part_projection_request`、
+`build_derived_part_sync_plan` 是 Door-cell／BasePlate-cell／Divider／
+InnerDoor 實體 namespace、既有 Feature/Profile stash 與
+active/selected physical ID repair 的唯一 Engine 權威。
+由原 `phase6_derived_part_projection` 純函式機械式搬移，GUI
+舊模組僅相容 import；Composition 蒐集 Domain Engine
+既有 Derivation 結果送 Engine，Navigation Owner 只套用
+immutable Plan。Receiving 原單一 Base Plate 的保留／two-tier
+存量相容判斷不改動，未引入第二份 NFB、孔、Fold、2D／3D／DXF
+或 Save→Reload 物理規則。本 API 只處理已衍生實體選片，
+不是加工輸出認證；#2517 保持 OPEN。
