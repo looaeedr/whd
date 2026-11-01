@@ -98,6 +98,18 @@ def _true_world_piece_meshes(part, *, dimensions, thickness):
     return tuple(rows)
 
 
+def resolve_box_body_true_world_piece_meshes(part, *, dimensions, thickness):
+    """Public Engine true-T world skins for an already-resolved Box Body.
+
+    Uses the canonical joint world geometry and source piece identities.
+    For preview stubs returns empty; for incomplete physical provenance
+    fails closed. Does not create manufacturing authorization.
+    """
+    return _true_world_piece_meshes(
+        part, dimensions=dimensions, thickness=thickness,
+    )
+
+
 def resolve_receiving_settings_assembly_world_meshes(
     assembly_parts, *, finished_dimensions, thickness,
     preserve_endcap_core_origin=False,
@@ -115,7 +127,7 @@ def resolve_receiving_settings_assembly_world_meshes(
         physical_world = ()
         if pieces:
             meshes = resolve_box_body_structure_mid_meshes(data, thickness=thickness)
-            physical_world = _true_world_piece_meshes(
+            physical_world = resolve_box_body_true_world_piece_meshes(
                 part, dimensions=finished_dimensions, thickness=thickness,
             )
             local = [triangle for _piece, mesh in meshes for triangle in mesh]

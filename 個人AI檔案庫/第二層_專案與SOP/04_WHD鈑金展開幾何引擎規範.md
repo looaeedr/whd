@@ -36,6 +36,8 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 箱身多片真實板厚世界座標 Engine API（2026-11-01）**：`manufacturing_api.resolve_box_body_true_world_piece_meshes(part, dimensions, thickness)` 將 3D FinalScene `_phase6_box_body_true_world_piece_meshes` 原來自行重複的物理 Box Body 源寬資格、唯一實體 ID、W/H/D、真實 T 厚網格與世界位置驗證，統一委派既有 `ae_engine.receiving_settings_assembly_mesh` 求解器及 canonical `build_joint_world_geometry`；Receiving 2D 組合視圖也共用同一公開 API。只傳已解析實體 DTO，不改來源／形狀／順序；無片、預覽占位返回空，非法來源 fail-closed。不新增製造演算法、CUTTING/BEND/DXF 認證，#2517 持續 OPEN。
+
 **#2517 箱身多片折後中面網格公開 Engine API（2026-11-01）**：`manufacturing_api.resolve_box_body_structure_mid_meshes(render_data, thickness=...)` 沿用已存在的 Engine `_structure_meshes` 唯一實體折後 source owner，回傳按原始 physical piece 順序的組合位置中面網格；只有預覽 stub 回空，非法外側 W 來源沿原驗證拒絕。3D FinalScene `_phase6_box_body_structure_meshes` 不再自行折料、複算 Box Body 世界定位，只將公開 Engine 回傳轉為舊 list，相同 API 也供受電箱 2D 設定頁重用；真實 T 厚板、成形物理身份、製造 BEND/CUTTING、碰撞與 DXF 權威沒有改變。#2517 維持 OPEN。
 
 **#2517 3D 組合物理尺寸證據 Engine API（2026-11-01）**：`manufacturing_api.project_assembly_physical_dimension_evidence` 由已解析實體 Box Body 左／右側板 Fold profile 按既有 Engine 相鄰 BEND／T 算法讀取折後包外各段（保留正式 `formed_length`），對中隔則讀真實 material span、原 `physical_geometry_contract` 的 FW/core 包外。`phase6_final_scene_projection._phase6_assembly_physical_dimension_lines` 只負責 UI 繁體中文與數值格式，不再直接重算補償／讀物理 bbox。結果 immutable、唯讀，未變更 CUTTING、BEND、DXF、Save→Reload 或製造放行；#2517 持續 OPEN。

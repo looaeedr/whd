@@ -8,6 +8,10 @@ whd_schema: WHD_DOC_META_V1
 
 目的：讓 GUI、自動拆圖、CLI 或其他 Python 程式都使用同一個 AE 出圖入口，不必建立 Tkinter GUI，也不必直接呼叫 `ae.export_xxx_dxf()`。
 
+## Box Body true-thickness world-skin Engine API (#2517)
+
+`manufacturing_api.resolve_box_body_true_world_piece_meshes(part, *, dimensions, thickness)` uses the existing `ae_engine.receiving_settings_assembly_mesh` true-T world-skin solver, backed by `build_joint_world_geometry`, on a pre-resolved physical Box Body aggregate. It returns ordered `(canonical_piece, true_world_triangles)` tuples using the same physical piece roles and XYZ coordinates as manufacturing/collision source. The Receiving settings 2D assembled inspection and the FinalScene 3D renderer both call the same public boundary; Phase6 `_phase6_box_body_true_world_piece_meshes` is now a forwarding adapter without physical-datum, part identity, placement or mesh logic. Missing pieces/preview stubs return empty and invalid dimensions, part identity or incomplete physical width fail closed. This is read-only presentation data: no fold, material, collision semantics, CUTTING, BEND, DXF certification or approved source is changed.
+
 ## Box Body formed mid-surface assembly API (#2517)
 
 `manufacturing_api.resolve_box_body_structure_mid_meshes(render_data, *, thickness)` exposes the existing canonical Engine's physical Box Body piece-local fold and world placement to both 3D FinalScene and Receiving settings 2D inspection. For already-resolved real multipart Box Body material it returns ordered immutable `(source_piece, placed_mid_surface_triangles)` pairs; placeholder-only sources return empty and invalid outside-W provenance fails closed via the existing `resolve_box_body_formed_width_datum`. The 3D compatibility method `phase6_final_scene_projection._phase6_box_body_structure_meshes` now only converts the Engine tuple to its historic list shape; it no longer builds Fold meshes or transforms physical points. The Engine 2D inspector shares the same public seam rather than a second private copy. Real-T physical skins, collision, CUTTING, BEND, DXF, saved material and certified source remain unchanged.
