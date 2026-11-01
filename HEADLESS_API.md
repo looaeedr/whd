@@ -717,3 +717,16 @@ fails before project mutation. `None` is a deliberate settings reset,
 not an inferred manufactured blank. The GUI only submits the detached
 validated selection and rolls back its project state if the external
 geometry update callback fails. No new DXF/CUTTING authorization follows.
+
+## Receiving Switch operator topology public Engine transaction (#2517)
+
+`manufacturing_api.normalize_receiving_switch_operator_layout(layout)`
+and `manufacturing_api.apply_receiving_switch_operator_action(layout, *,
+operation, brand=None, layer_index=None, delta=None)` publicly expose the
+canonical `receiving_switch_layout` state transitions. Supported actions
+are `set_brand`, `add_layer`, `remove_layer` and `resize_connections`.
+The Engine owns stable layer IDs, tail-only resize, brand validation,
+index/type safety, and the >=1 layer/connection lower bounds. Results are
+`(detached_layout, changed_flag)`, never manufacturing approval. GUI
+adapters only parse literal operator input and commit the Engine result.
+No fabricated NFB opening, CUTTING, or DXF release is implied.

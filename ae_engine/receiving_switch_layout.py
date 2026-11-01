@@ -142,3 +142,39 @@ def set_layer_connection_count(
     layers[index] = row
     result["layers"] = layers
     return normalize_receiving_switch_layout(result)
+
+def apply_receiving_switch_operator_action(
+    layout: Mapping[str, object] | None, *,
+    operation: str, brand: object = None,
+    layer_index: int | None = None, delta: int | None = None,
+) -> tuple[dict[str, object], bool]:
+    """Canonical physical Switch layer/connection operator transaction.
+
+    Returns a detached normalized layout and a changed flag. Pure input
+    selection does not manufacture a cutout or approve NFB model/source.
+    """
+    source = normalize_receiving_switch_layout(layout)
+    if operation == "set_brand":
+        candidate = set_switch_brand(source, brand)
+    elif operation == "add_layer":
+        candidate = resize_switch_layers(source, len(source["layers"]) + 1)
+    elif operation == "remove_layer":
+        count = len(source["layers"])
+        if count <= 1:
+            return source, False
+        candidate = resize_switch_layers(source, count - 1)
+    elif operation == "resize_connections":
+        if type(layer_index) is not int or type(delta) is not int:
+            raise ValueError("Receiving switch layer index/delta must be integers")
+        if layer_index < 0 or layer_index >= len(source["layers"]):
+            raise IndexError("Receiving switch layer_index out of range")
+        current = source["layers"][layer_index]["connection_count"]
+        wanted = max(1, current + delta)
+        if wanted == current:
+            return source, False
+        candidate = set_layer_connection_count(
+            source, layer_index=layer_index, connection_count=wanted,
+        )
+    else:
+        raise ValueError(f"unsupported Receiving switch action: {operation!r}")
+    return candidate, candidate != source

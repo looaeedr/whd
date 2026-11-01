@@ -620,3 +620,7 @@ frame-only route.
 ### #2517 Receiving Base Plate 實體來源與焊耳孔預檢 Engine API（2026-11-01）
 
 `manufacturing_api.validate_receiving_base_plate_settings(input_snapshot=..., settings_values=..., config=...)` 為受電箱既有 Base Plate 物理選型提交的公開 Headless Engine 預檢：先以 CURRENT `receiving_base_plate_blank_dimensions` 裁決實際板材展開，再透過 `build_receiving_base_plate_result` 與 `ae._receiving_base_weld_ear_mount_slots` 驗證目前 LEFT／RIGHT／CENTER source 的焊耳安裝孔距及拓樸，任何來源不吻合均 fail-closed，回傳 detached 設定（取消選型回傳 None）。GUI `receiving_base_plate_settings_transaction` 只轉交輸入、提交 Engine 驗證結果及控制 submit callback 失敗時回復原專案，不再直接 import 製造板材建構、私有 EAR 孔演算法或 DrawingScene。保留既有 Receiving Base Plate #1502 操作、儲存與重新讀回／2D／3D 不變，預覽／手動設定不自動取得 DXF/CUTTING 製造批准；#2517 保持 OPEN。
+
+### #2517 Receiving Switch 層數／連數／品牌操作的公開 Engine 交易（2026-11-01）
+
+`manufacturing_api.normalize_receiving_switch_operator_layout` 與 `apply_receiving_switch_operator_action(layout, *, operation, brand=None, layer_index=None, delta=None)` 是原 `receiving_switch_layout` CURRENT 來源的 Headless 公開入口。Engine 擁有真實 Switch 層 stable ID、尾端層數增減、至少一層／一連、每層連數增減下界、品牌合法性與物理層索引的 fail-closed 選取；每次回傳 detached normalized layout 和 changed flag，沒有直接產生 CUTTING 或預設 NFB 型號的權利。GUI `ReceivingSwitchLayoutAdapter` 只把操作員整數輸入（含既有整數文字）送往 Engine 並提交回傳值，不再 import 內部 `ae_engine.receiving_switch_layout` 或自行決定物理連數增減。既有 Save→Reload、Receiving switch brands 與 source-only 預覽規則不變；#2517 保持 OPEN。
