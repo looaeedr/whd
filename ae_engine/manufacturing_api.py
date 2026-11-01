@@ -347,6 +347,71 @@ def apply_cabinet_family_endcap_policy(
     )
 
 
+def resolve_operator_snapshot_corner_policy(
+    part_key, *, corner_state=None, input_snapshot=None,
+    settings_values=None, endcap_fw_state=None,
+):
+    """Resolve saved Phase6 operator corners using the canonical Engine policy.
+
+    GUI provides the raw operator state only.  No preview-derived dimensions,
+    new Relief formula, or manufacturing certification is introduced.
+    Incomplete saved corner state remains absent rather than invented.
+    """
+    from .corner_type_ui import policy_from_corner_state
+
+    part_key = str(part_key)
+    raw = dict((corner_state or {}).get(part_key, {}) or {})
+    corner_keys = ("bottom_left", "bottom_right", "top_left", "top_right")
+    if not all(key in raw for key in corner_keys):
+        return None
+    selections = {
+        key: endcap_corner_selection_from_raw(raw[key])
+        for key in corner_keys
+    }
+
+    snapshot = dict(input_snapshot or {})
+    snapshot.update(dict(settings_values or {}))
+    snapshot["endcap_fw"] = (
+        normalize_endcap_fw_state(snapshot)
+        if endcap_fw_state is None else endcap_fw_state
+    )
+
+    def legacy_number(value, default):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return float(default)
+
+    fw = (
+        resolve_endcap_fw(snapshot, part_key)
+        if part_key in ENDCAP_FW_PARTS
+        else legacy_number(snapshot.get("fw", 25), 25)
+    )
+    try:
+        if (
+            part_key in ENDCAP_FW_PARTS
+            and cabinet_family_policy.supports_bottom_wrap_controls(snapshot)
+        ):
+            thickness = legacy_number(snapshot.get("t", 2.0), 2.0)
+            return FourCornerTypePolicy(
+                bottom_left=selections["bottom_left"],
+                bottom_right=selections["bottom_right"],
+                top_left=selections["top_left"],
+                top_right=selections["top_right"],
+                fw=float(fw),
+                bottom_fw=cabinet_family_policy.effective_endcap_bottom_fw(
+                    snapshot,
+                    snapshot.get("box_body_structure"),
+                    thickness=thickness,
+                    default_fw=float(fw),
+                ),
+            )
+    except Exception:
+        # Preserve the existing optional Family projection fallback. This
+        # does not convert a preview policy into production authorization.
+        pass
+    return policy_from_corner_state(selections, fw=fw)
+
 def map_door_features_to_unfolded_material(
     spec: DoorPartSpec, context: ManufacturingContext | None = None,
 ):
