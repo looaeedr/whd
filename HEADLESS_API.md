@@ -396,6 +396,10 @@ row; it no longer inspects physical hole proof state. Invalid brands fail
 closed. Existing Save→Reload and physical NFB tests remain the acceptance
 oracle; this does not authorize new CUTTING or DXF.
 
+## Phase6 operator snapshot CornerPolicy Engine API（#2517）
+
+`manufacturing_api.resolve_operator_snapshot_corner_policy(part_key, *, corner_state=None, input_snapshot=None, settings_values=None, endcap_fw_state=None)` 接收完整 raw 四角和操作者快照，由 Engine 統一解析既有 CornerType、EndCap FW 四態與 Cabinet Family 底部 FW；四角未填完整回傳 `None`。`phase6_manufacturing_adapter._corner_policy_for_app` 僅傳值，`operator_finished_dimensions_for_app` 維持以既有 Engine `resolve_live_operator_finished_dimensions` 讀取成形尺寸。本入口不新增材料公式、CUTTING／DXF 認證或版號鎖定。
+
 ## Live manual CornerType policy（#2517）
 
 `manufacturing_api.resolve_live_corner_policy(state_map, part_key, fw, *, model_name=None, cabinet_family=None)` 將原本 `gui.py::_manual_corner_policy` 的即時手動狀態與已知 Family／自訂預設交給 Engine。明確編輯維持既有 typed CornerType（包含尚未遷移的 C02 rotation）並使用 Engine `policy_from_corner_state`；缺少手動狀態時，已知箱型由 Certified Registry 載入預設，自訂由 Engine `new_manual_corner_state` 設定原有 CROSS 標準預設。GUI 只傳狀態與 Family；此步不改 Registry、CUTTING、FinalScene 或 DXF 認證。與先前保存 payload 的轉換函式是**不同入口**，避免把手動 C02 強制套用另一種正規化規則。

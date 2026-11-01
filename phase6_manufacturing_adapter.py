@@ -28,8 +28,6 @@ from phase6_manufacturing_contracts import (
 from phase6_part_navigation import is_box_body_physical_piece_key
 from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
 from ae_engine.cabinet_types import policy as cabinet_family_policy
-from ae_engine.corner_type_ui import policy_from_corner_state
-from ae_engine.sheetmetal_geometry import FourCornerTypePolicy
 from phase6_endcap_semantics import (
     ENDCAP_FW_PARTS,
     normalize_endcap_bottom_wrap_state,
@@ -51,8 +49,6 @@ from phase6_manufacturing_cache import (
 )
 
 
-_CORNER_KEYS = ("bottom_left", "bottom_right", "top_left", "top_right")
-
 
 def read_standard_part_profiles(part_key, profiles, original_snapshot):
     """Phase6 compatibility: Engine owns material Fold reverse projection."""
@@ -62,47 +58,14 @@ def read_standard_part_profiles(part_key, profiles, original_snapshot):
 
 
 def _corner_policy_for_app(app: Any, part_key: str):
-    raw_state = dict(
-        (getattr(app, "_phase6_corner_state", {}) or {}).get(part_key, {}) or {}
+    """Collect operator CornerType inputs; Engine owns manufacturing policy."""
+    return manufacturing_api.resolve_operator_snapshot_corner_policy(
+        part_key,
+        corner_state=getattr(app, "_phase6_corner_state", None),
+        input_snapshot=getattr(app, "_phase6_input_snapshot", None),
+        settings_values=getattr(app, "_settings_values", None),
+        endcap_fw_state=getattr(app, "_phase6_endcap_fw_state", None),
     )
-    if not all(key in raw_state for key in _CORNER_KEYS):
-        return None
-    selections = {
-        key: selection_from_raw(raw_state[key])
-        for key in _CORNER_KEYS
-    }
-    snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    snapshot.update(dict(getattr(app, "_settings_values", {}) or {}))
-    snapshot["endcap_fw"] = deepcopy(
-        getattr(app, "_phase6_endcap_fw_state", normalize_endcap_fw_state(snapshot))
-    )
-    fw = (
-        resolve_endcap_fw(snapshot, part_key)
-        if str(part_key) in ENDCAP_FW_PARTS
-        else _num(snapshot.get("fw", 25), 25)
-    )
-    try:
-        if (
-            cabinet_family_policy.supports_bottom_wrap_controls(snapshot)
-            and str(part_key) in ENDCAP_FW_PARTS
-        ):
-            thickness = _num(snapshot.get("t", 2.0), 2.0)
-            return FourCornerTypePolicy(
-                bottom_left=selections["bottom_left"],
-                bottom_right=selections["bottom_right"],
-                top_left=selections["top_left"],
-                top_right=selections["top_right"],
-                fw=float(fw),
-                bottom_fw=cabinet_family_policy.effective_endcap_bottom_fw(
-                    snapshot,
-                    snapshot.get("box_body_structure"),
-                    thickness=thickness,
-                    default_fw=float(fw),
-                ),
-            )
-    except Exception:
-        pass
-    return policy_from_corner_state(selections, fw=fw)
 
 
 def operator_finished_dimensions_for_app(
