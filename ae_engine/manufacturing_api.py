@@ -1160,3 +1160,9 @@ from .receiving_nfb_base_partial_export import (
     prepare_verified_receiving_nfb_base_plate,
     export_verified_receiving_nfb_base_plate,
 )
+
+
+# #2517: Engine is the only Receiving NFB real partial inner-door exporter.
+from .receiving_nfb_inner_door_partial_export import (
+    export_verified_receiving_nfb_inner_door,
+)

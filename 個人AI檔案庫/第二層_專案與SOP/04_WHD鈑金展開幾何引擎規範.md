@@ -32,6 +32,10 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 受電箱 NFB 實體內門 PART_ONLY 出圖 Engine API（2026-11-01）**：`manufacturing_api.export_verified_receiving_nfb_inner_door` 將原 GUI `receiving_nfb_partial_export_action` 中已提交 Set/Bay/version、Switch 品牌、唯一實體內門穩定 ID、原始 DXF SHA＋上層 handle/revision、保存孔位／世界 X 與旋轉、無覆寫 PART_ONLY DXF writer 驗證全部搬到 Engine；GUI 檔只保留公開 API 相容匯入與操作參數。原 1501 正反測試的 mock 點移到同一 Engine 函式，不更改其失敗判定、來源數值或真正 writer。內門單件未核准 BasePlate／PAD／EAR／整箱 MFG-2／額外 CUTTING 或 DXF，#2517 OPEN。
+
+
+
 **#2517 受電箱 NFB 實體底板 PART_ONLY 放行 Engine API（2026-11-01）**：`manufacturing_api.nfb_verification_geometry_changed`、`prepare_verified_receiving_nfb_base_plate`、`export_verified_receiving_nfb_base_plate` 將原 GUI BasePlate 的實際 Set/Bay/version 提交證據、現行 NFB 原 DXF SHA、上／下來源 handle、BasePlatePartSpec／Family 物理身分、已確認孔位、真正 DXF PART_ONLY 保存與拒絕全部遷入 Engine。GUI 原 `receiving_nfb_base_partial_export_action` 只保留相容 API 匯入，`receiving_nfb_partial_export_action` 也共用 Engine 來源幾何指紋；沿用既有 verified geometry composer 和原子 DXF writer。三個 Receiving BasePlate 原始折型、舊資料、斷來源／錯板件拒絕保持原契約。**個別底板**不能冒充 PAD／EAR 焊接／整箱 MFG-2 放行，未新增 CUTTING 或 DXF 製造認證；#2517 OPEN。
 
 
