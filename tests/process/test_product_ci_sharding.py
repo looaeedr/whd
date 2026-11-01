@@ -207,7 +207,13 @@ def test_eighteen_shard_workflow_keeps_complete_exact_selectors_and_artifact_gat
     # any JUnit artifact is missing, final acceptance must fail closed.
     workflow = (Path(__file__).resolve().parents[2]
                 / ".github/workflows/whd-product-regression.yml").read_text(encoding="utf-8")
-    assert "shard: [" + ", ".join(str(i) for i in range(18)) + "]" in workflow
+    # The physical runner launch order may change while the 18 logical
+    # owners and all canonical artifact inputs remain complete.
+    priority = (14, 0, 6, 10, 8, 16, 13, 3, 11, 5, 9, 15, 17,
+                12, 2, 4, 7, 1)
+    assert sorted(priority) == list(range(18))
+    assert sum(index in (14, 15, 16, 17) for index in priority[:13]) >= 2
+    assert "shard: [" + ", ".join(map(str, priority)) + "]" in workflow
     assert workflow.count("--shard-count 18") == 2
     # Collection runs alongside the shards without skipping final case proof.
     assert "needs: [prepare, test-shard, canonical-collection]" in workflow
