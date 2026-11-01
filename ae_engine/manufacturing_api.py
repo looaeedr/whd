@@ -121,6 +121,9 @@ from .receiving_quantity_versions import (
     normalize_quantity_snapshot, quantity_only_change,
 )
 from .indicator_editor_geometry import resolve_indicator_editor_components
+from .receiving_inner_door_editor import (
+    InnerDoorHoleEditorContext, resolve_inner_door_hole_editor_context,
+)
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,
     assert_legacy_nfb_export_scope_safe,

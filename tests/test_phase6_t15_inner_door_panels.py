@@ -713,73 +713,71 @@ def test_corner_data_inner_door_double_click_opens_original_hole_editor(monkeypa
 
 
 def test_receiving_inner_door_work_area_follows_actual_cell_not_panel_blank():
+    from ae_engine import manufacturing_api
     from ae_engine.cabinet_types import policy as cabinet_family_policy
-    from ae_engine.sheetmetal_part_adapters import DoorFrameEdges, build_door_result
     from ae_engine.sheetmetal_features import (
         CircleFeature, FeatureAnchor, Vec2, feature_is_within_surface,
-        feature_surface_from_structural_result, feature_reference_anchor,
-        reference_distances,
+        feature_reference_anchor, reference_distances,
     )
-    from gui_modules.application.receiving_inner_door_hole_editor import inner_door_work_area_guide
 
     snapshot = _receiving_snapshot()
     snapshot["inner_doors"] = [
         *snapshot["inner_doors"],
         {"stable_id": "lower", "cell_key": "0:1", "included_frame_sides": ["top", "left", "right"]},
     ]
-    panels = cabinet_family_policy.derive_inner_door_panels(snapshot)
-    for panel in panels:
-        structural = build_door_result(
-            w=panel.width, h=panel.height, t=panel.thickness,
-            fw=25, gap_w=0, gap_h=0,
-            fold_left=19, fold_right=19, fold_top=19, fold_bottom=19,
-            frame_edges=DoorFrameEdges(left=False, right=False, top=False, bottom=False),
+    for panel in cabinet_family_policy.derive_inner_door_panels(snapshot):
+        context = manufacturing_api.resolve_inner_door_hole_editor_context(
+            snapshot, panel.stable_id,
         )
-        guide = inner_door_work_area_guide(snapshot, panel, structural)
+        assert context.panel == panel
+        structural = context.structural
+        guide = context.work_area_guide
+        surface = context.feature_surface
         assert guide.width == pytest.approx(800)
         assert guide.height == pytest.approx(1100 if panel.cell_key == "0:0" else 500)
-        # The outer work-area rectangle is ONLY a dimension datum, never an
-        # expanded CUTTING surface.
-        surface = feature_surface_from_structural_result("door", structural)
+        # The outer work-area rectangle remains a measurement datum, never
+        # an expanded CUTTING surface or feature containment region.
         forbidden = CircleFeature(
             diameter=8, anchor=FeatureAnchor.PANEL_CENTER,
-            offset=Vec2(guide.min_point.x - structural.width/2 + 2, 0),
+            offset=Vec2(guide.min_point.x - structural.width / 2 + 2, 0),
         )
-        assert not feature_is_within_surface(surface, forbidden, structural.width, structural.height)
+        assert not feature_is_within_surface(
+            surface, forbidden, structural.width, structural.height,
+        )
         centered = CircleFeature(
             diameter=8, anchor=FeatureAnchor.PANEL_CENTER, offset=Vec2(0, 0),
         )
-        assert feature_is_within_surface(surface, centered, structural.width, structural.height)
-        # Edge-distance input/readout uses the work-cell datum, while the hole
-        # keeps its original local manufacturing position and center anchor.
+        assert feature_is_within_surface(
+            surface, centered, structural.width, structural.height,
+        )
         distances = reference_distances(
             surface, [centered], 0, feature_reference_anchor(centered),
             structural.width, structural.height, reference_guide=guide,
         )
         assert distances.x_edge_distance == pytest.approx(400.0)
-        assert distances.y_edge_distance == pytest.approx(524.0 if panel.cell_key == "0:0" else 224.0)
+        assert distances.y_edge_distance == pytest.approx(
+            524.0 if panel.cell_key == "0:0" else 224.0
+        )
 
 
 def test_receiving_inner_door_work_area_scales_with_multicolumn_layout():
+    from ae_engine import manufacturing_api
     from ae_engine.cabinet_types import policy as cabinet_family_policy
-    from ae_engine.sheetmetal_part_adapters import DoorFrameEdges, build_door_result
-    from gui_modules.application.receiving_inner_door_hole_editor import inner_door_work_area_guide
 
-    snap = _receiving_snapshot()
-    snap["door_layout_columns"] = [[300.0, [1000.0, 600.0]], [500.0, [1100.0, 500.0]]]
-    snap["inner_doors"] = [
+    snapshot = _receiving_snapshot()
+    snapshot["door_layout_columns"] = [
+        [300.0, [1000.0, 600.0]], [500.0, [1100.0, 500.0]],
+    ]
+    snapshot["inner_doors"] = [
         {"stable_id": "right_upper", "cell_key": "1:0"},
         {"stable_id": "left_lower", "cell_key": "0:1"},
     ]
-    for panel in cabinet_family_policy.derive_inner_door_panels(snap):
-        structural = build_door_result(
-            w=panel.width, h=panel.height, t=panel.thickness,
-            fw=25, gap_w=0, gap_h=0,
-            fold_left=19, fold_right=19, fold_top=19, fold_bottom=19,
-            frame_edges=DoorFrameEdges(left=False, right=False, top=False, bottom=False),
+    for panel in cabinet_family_policy.derive_inner_door_panels(snapshot):
+        context = manufacturing_api.resolve_inner_door_hole_editor_context(
+            snapshot, panel.stable_id,
         )
-        guide = inner_door_work_area_guide(snap, panel, structural)
-        assert (guide.width, guide.height) == pytest.approx(
+        assert context.panel == panel
+        assert (context.work_area_guide.width, context.work_area_guide.height) == pytest.approx(
             (500, 1100) if panel.cell_key == "1:0" else (300, 600)
         )
 
