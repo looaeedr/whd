@@ -82,7 +82,7 @@ def test_vault_blank_and_named_save_reload_are_deterministic(tmp_path):
                    "snapshot": manufacturing_api.set_cabinet_panel_name(
                        {"model": "金庫型"}, name,
                    ), "final_geometry": {}}
-        path = write_project(tmp_path / (name or "empty") / "vault.p6fold", project)
+        path = write_project(tmp_path / f"vault-{name or 'empty'}.p6fold", project)
         snapshot = read_project(path)["snapshot"]
         assert snapshot["panel_name"] == name
         assert manufacturing_api.vault_panel_dxf_filename(
