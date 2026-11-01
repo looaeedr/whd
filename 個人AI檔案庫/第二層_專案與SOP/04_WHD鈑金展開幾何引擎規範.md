@@ -20,6 +20,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.project_operator_fold_editor_display_rows(material_segments, thickness)` 在原有 `ae_engine.operator_fold_editor` 中使用同一 `apply_outside_dimension_compensation`／`fold_material_segment_outside_length`，從已保存真正料長與當下 BEND 拓樸產生獨立唯讀的操作者包外長度、正負操作方向與角度顯示列；不信任過時 `ui_len_add`，不修改 canonical source。舊 `Phase6BendingUI.render` 僅在呼叫原始 Tk renderer 的期間傳入顯示副本，`refresh_active_profile` 也只消費同一 Engine 結果；移除 GUI 展示時直接修改／還原實體 Fold 列的做法。原 GUI `save/add/remove/mirror` 的 Engine source、金庫型／受電箱、Save→Reload 和真正 2D／3D／DXF／Certified Registry 全數不變；僅顯示 API，不取得額外 CUTTING/DXF 放行，#2517 OPEN。
 
+## [CURRENT] #2517 GUI 全入口掃描後的實體回讀與 CADCraft CHECK Engine API（2026-11-02）
+
+全庫從 `localX@b82e34f498efe7d2fb9cfab769b900704de744a6` 掃過 159 個 GUI／Phase6／Fold Designer Python 入口及 23 個 `integration_cli` 入口；此為**靜態候選掃描**，不是每條功能已通過製造驗收。第一批實作讓 `fold_designer_bridge._phase6_box_body_piece_dimension_projections` 直接消費既有 `project_box_body_assembly_panel_piece_rows`；讓受電箱 Settings `physical_drawings` 消費新 `project_receiving_settings_physical_drawings`，只保留 GUI 角色顯示；CADCraft 唯讀的 finished-face 特徵解析與 CHECK DXF 由 `project_cadcraft_check_scene`、`save_cadcraft_check_scene_dxf` 在 `ae_engine.operator_cadcraft_preview` 執行，GUI 僅開啟外部檢查工具。CHECK 預覽不具 CUTTING/BEND/DXF 正式製造資格，不接收 CADCraft 產物回寫作為 canonical 幾何，不更動已認證 Registry／Factory。其他手動 CADCraft 回傳與剩餘 GUI 製造私有 import 尚屬 #2517 待遷範圍，不能宣稱全部完成。
+
 ## [CURRENT] #2517 Fold Editor Add／Remove Engine API（2026-11-02）
 
 `manufacturing_api.operator_fold_editor_add_segment` 和 `operator_fold_editor_remove_segment` 將原 `Phase6BendingUI.add/remove` 實體折段追加、核心段刪除限制、對稱真實 `phase6_key` 配對與刪除後相鄰 BEND 補償搬回 `ae_engine.operator_fold_editor`；完全沿用原 `can_remove_box_body_fold_segment` 及 `apply_outside_dimension_compensation`。GUI 只送輸入並保留既有 Profiles Vault list 身分；未合法刪除回 `None` 且 Engine 不更動輸入。金庫型／受電箱用同一 API，原 Family policy 控制箱身對稱允許，不因新入口鎖舊版本；已認證 Factory/Registry／實體 2D／3D／DXF／Save→Reload 不改，不新增工廠製造放行，#2517 OPEN。

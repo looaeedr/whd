@@ -59,6 +59,8 @@ from .manufacturing_api import (
     DoorLayoutPeerCell, project_operator_door_layout_peer_cells,
     project_receiving_box_body_2d_source, project_box_body_2d_piece_inventory,
     BoxBodyAssemblyPanelPiece, project_box_body_assembly_panel_piece_rows,
+    project_receiving_settings_physical_drawings,
+    CadcraftPreviewError, project_cadcraft_check_scene, save_cadcraft_check_scene_dxf,
     QuantityManufacturingBatch, quantity_manufacturing_groups,
     quantity_nfb_checked_manufacturing_groups,
     door_layout_export_filename, parse_numeric_model_ref,
@@ -250,6 +252,8 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "project_receiving_settings_physical_drawings",
+    "CadcraftPreviewError", "project_cadcraft_check_scene", "save_cadcraft_check_scene_dxf",
     "CanvasTransform", "ResolvedCircle", "ResolvedRect",
     "resolve_hole_editor_canvas_features", "hole_editor_canvas_reference_point",
     "hit_test_hole_editor_canvas_features",
