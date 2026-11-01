@@ -107,3 +107,41 @@ def test_current_cadsplit_wire_is_source_only_not_external_manufacturing() -> No
     assert "zero enabled capabilities" in wire
     assert "WHD_OPERATION_NOT_IMPLEMENTED" in wire
     assert "not\nevidence of an installed Worker" in wire
+
+def test_cadsplit_api_reference_is_discoverable_before_manufacturing_work() -> None:
+    """Existing API gate must retain the complete reading path, not a second CURRENT."""
+    root = Path(__file__).resolve().parents[2]
+    owner = "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
+    reference = "docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md"
+    gate = "CADSPLIT_WHD_API_REFERENCE_READ_GATE_V1"
+
+    agents = (root / "AGENTS.md").read_text(encoding="utf-8")
+    current = (root / owner).read_text(encoding="utf-8")
+    authority_map = (root / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(
+        encoding="utf-8"
+    )
+    reference_text = (root / reference).read_text(encoding="utf-8")
+
+    assert gate in agents and gate in current
+    assert reference in agents and reference in current
+    assert "先" in agents and "全文" in agents
+    assert (
+        f"<!-- WHD_AUTHORITY contract=manufacturing-architecture role=CURRENT path={owner} -->"
+        in authority_map
+    )
+    assert (
+        f"<!-- WHD_AUTHORITY contract=manufacturing-architecture role=REFERENCE "
+        f"path={reference} canonical={owner} -->"
+        in authority_map
+    )
+    assert authority_map.count(
+        "<!-- WHD_AUTHORITY contract=manufacturing-architecture role=CURRENT "
+    ) == 1
+    assert reference_text.startswith(
+        "---\\n"
+        "whd_doc_role: REFERENCE\\n"
+        "whd_contract: manufacturing-architecture\\n"
+        f"whd_canonical: {owner}\\n"
+    )
+    for key in ("CADSplit", "Set/Bay", "全自動", "Save→Reload"):
+        assert key in reference_text
