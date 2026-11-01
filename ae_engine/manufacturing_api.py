@@ -1270,6 +1270,11 @@ def build_door_operator_part_spec(
         nameplate_center_datum_top=nameplate_center_datum_top,
     )
 
+# #2517: BasePlate / IndicatorBox operator PartSpecs share public Engine owner.
+from .operator_auxiliary_part_specs import (
+    build_base_plate_operator_part_spec, build_indicator_box_operator_part_spec,
+)
+
 # #2517: headless Head/Tail operator PartSpec material/Family/Joint authority.
 from .endcap_operator_part_spec import build_endcap_operator_part_spec
 

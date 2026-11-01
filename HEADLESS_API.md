@@ -404,6 +404,10 @@ oracle; this does not authorize new CUTTING or DXF.
 
 `manufacturing_api.build_endcap_operator_part_spec(values, *, model_name, is_tail, holes, corner_policy=None, fold_profiles=None, depth_comp_t=None, resolved_assembly_relief_cuts=(), box_body_formed_fw_left=None, box_body_formed_fw_right=None, box_body_structure_state=None, endcap_bottom_wrap_state=None, assembly_joints=None, assembly_joint_state=None)` 將 Head/Tail 輸入製成單一 Engine `EndCapPartSpec` Request。Factory Family 2T/3T、Bottom WRAP reserve、折材 DTO 與 CUT 來源不在 GUI 計算。缺必要操作尺寸照舊拒絕；PartSpec 可建不表示已完成 DXF/整箱製造認證，也不強制舊 client 升級。
 
+## BasePlate and IndicatorBox operator PartSpec public APIs（#2517）
+
+`manufacturing_api.build_base_plate_operator_part_spec(values, *, features, corner_policy=None, box_body_structure_state=None, box_body_fold_profile=None)` 將真實操作與已保存的結構、材料 Fold、Receiving 已確認的 NFB BasePlate 來源欄位包入同一 `BasePlatePartSpec`。`manufacturing_api.build_indicator_box_operator_part_spec(values, layer_groups, *, features)` 接收指示燈箱 group/T，產生唯一 `IndicatorBoxPartSpec`；GUI 不再各自組裝實體 DTO。兩項只是 request 入口，不允許沒有 source 的 NFB 直接加工，也不增加新 CUTTING/DXF 認證。
+
 ## Live manual CornerType policy（#2517）
 
 `manufacturing_api.resolve_live_corner_policy(state_map, part_key, fw, *, model_name=None, cabinet_family=None)` 將原本 `gui.py::_manual_corner_policy` 的即時手動狀態與已知 Family／自訂預設交給 Engine。明確編輯維持既有 typed CornerType（包含尚未遷移的 C02 rotation）並使用 Engine `policy_from_corner_state`；缺少手動狀態時，已知箱型由 Certified Registry 載入預設，自訂由 Engine `new_manual_corner_state` 設定原有 CROSS 標準預設。GUI 只傳狀態與 Family；此步不改 Registry、CUTTING、FinalScene 或 DXF 認證。與先前保存 payload 的轉換函式是**不同入口**，避免把手動 C02 強制套用另一種正規化規則。
