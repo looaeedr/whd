@@ -779,6 +779,31 @@ def save_resolved_manufacturing_geometry_batch_dxf(
     )
 
 
+def save_verified_resolved_manufacturing_geometry_batch_dxf(
+    instances,
+    output_dir: str | os.PathLike[str],
+    *,
+    pre_commit_guard,
+    overwrite: bool = False,
+) -> dict[str, str]:
+    """Save namespaced Engine-resolved parts only after all staged DXFs reopen.
+
+    This is an in-process Engine sink, NOT a source-only CADSplit CLI permission
+    or an assertion that the input constitutes a complete cabinet assembly.
+    The caller owns a trusted, revalidated immutable project/source guard.
+    """
+    return _manufacturing_export.save_resolved_manufacturing_geometry_batch_dxf(
+        instances,
+        output_dir,
+        save_part_render_data_dxf=save_part_render_data_dxf,
+        box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES,
+        overwrite=overwrite,
+        part_only=False,
+        verify_all_staged=True,
+        pre_commit_guard=pre_commit_guard,
+    )
+
+
 def save_verified_final_scene_batch_dxf(
     parts,
     output_dir: str | os.PathLike[str],
