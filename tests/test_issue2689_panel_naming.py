@@ -152,3 +152,27 @@ def test_public_ae_engine_exports_are_stable():
     assert normalize_panel_name is api.normalize_panel_name
     assert rename_receiving_panel is api.rename_receiving_panel
     assert set_cabinet_panel_name is api.set_cabinet_panel_name
+
+def test_panel_label_and_global_counter_do_not_invalidate_physical_preview_cache():
+    from gui_modules.application.fold_designer_composition_receiving import (
+        _receiving_bay_preview_fingerprint_snapshot,
+    )
+    from phase6_sync_envelope import stable_fingerprint
+    original = resize_receiving_bays(layout(), set_index=0, bay_count=3)
+    renamed = api.rename_receiving_panel(
+        original, set_index=0, bay_index=1, panel_name="PANEL-B",
+    )
+    changed = resize_receiving_bays(renamed, set_index=0, bay_count=4)
+    changed = resize_receiving_bays(changed, set_index=0, bay_count=3)
+    assert changed["next_panel_number"] > original["next_panel_number"]
+    def key(saved):
+        snapshot = {"model": "受電箱", "active_mode": "set_bay", "receiving_layout": saved}
+        return stable_fingerprint(_receiving_bay_preview_fingerprint_snapshot(
+            snapshot, set_index=0, bay_index=0,
+            allow_suffix_topology_reuse=True,
+        ))
+    assert key(original) == key(renamed) == key(changed)
+    physical = update_receiving_bay(
+        changed, set_index=0, bay_index=1, width=900,
+    )
+    assert key(physical) != key(changed)
