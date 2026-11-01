@@ -11,6 +11,11 @@ import json
 from copy import deepcopy
 from pathlib import Path
 from typing import Mapping
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from tools.whd_performance_baseline import memory_trends, summarize
 
