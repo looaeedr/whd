@@ -32,6 +32,10 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 受電箱 EAR 固定片側板 2D／單板 3D 來源預覽 Engine API（2026-11-01）**：`manufacturing_api.resolve_receiving_ear_side_display_context`／immutable `ReceivingEarSideDisplayContext` 統一 GUI 兩個入口重複的 FoldDesigner 已提交 NFB 來源判定、主視窗鏡像來源漂移拒絕、原始 Box Body 實體板件 baseline SHA／真實圖元快取指紋及 W/H/D/T 包外來源輸入。GUI `receiving_ear_side_2d` 只讀取/選擇視窗快照、呼叫 Engine `project_receiving_ear_side_piece_2d_preview` 並保留 Canvas／隔離單板顯示快取；實際 EAR UV／MARKING 的唯一來源仍是原 Engine。保留 #1503 受電箱左右側板標記、真實 2D/3D、主視窗過期拒絕與 Save→Reload CHECK DXF 正反案例；**此 read-only 顯示不是 EAR 焊接、PAD、CUTTING、DXF 或整箱 MFG-2 製造核准**，#2517 OPEN。
+
+
+
 **#2517 受電箱 NFB CSV V5 真實單／雙層底板來源預覽 Engine API（2026-11-01）**：`manufacturing_api.preview_receiving_nfb_v5_real_base_sources` 接管原 GUI `receiving_nfb_v5_scene_preview` 自行做的實體底板原始 PartSpec 身份、包外尺寸／T、縮邊與實際折型、Set/Bay 提交來源、NFB 層別及兩片獨立實體 BasePlate 來源核對；沿用原 Engine `source_receiving_nfb_tier_base_specs` 與真實 V5 source preview，不複製製造公式。`require_receiving_nfb_v5_inner_door_trial_preview`／`require_receiving_nfb_v5_base_trial_preview` 將 GUI 畫出未核准 FinalScene 前的試作狀態／製造旗標拒絕也移到 Engine；GUI 只拿驗過的 render data 在 Canvas 畫圖。現有 #1901 真實底板 Set/Bay/source stale 與 #1502 單雙層案例保持原判準，**此預覽絕非 DXF、EAR、PAD、整箱 MFG-2 製造放行**，#2517 OPEN。
 
 
