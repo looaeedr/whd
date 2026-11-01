@@ -140,6 +140,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.project_assembly_scene_marking_segments` 使用原正式 `DrawingScene` MARKING／Fold Profile／已解析 assembly local reference 經唯一 Engine `place_assembly_points` 投影世界線段；`marking_line_signature` 與 `joint_marking_flat_signatures` 依原有 9 位小數無向端點及既有 `JOINT_PLACEMENT_MARKING` metadata 去重，真正 Joint 物理接觸線保持使用已保存 world 線段，不由 GUI 自行回推。Head/Tail flat fallback 不開放；原 GUI `_draw_assembly_scene_markings` 只畫線並保留既有視覺樣式。Engine 內 `final_scene_box_body_bend_lines` 沿用既有 Fold／world 核心，未改任何 Registry／DXF MARKING 或 Save→Reload 來源。#2517 OPEN，正式 X 未發布。
 
+### #2517 FinalScene 獨立板件 BEND／MARKING／BLIND_HOLE 3D Engine API（2026-11-01）
+
+`manufacturing_api.project_independent_scene_bend_segments`／`project_independent_scene_annotation_paths`（`ae_engine.final_scene_independent_annotations`）接管 FinalScene GUI 原 `_draw_scene_bends`、`_draw_scene_markings` 的實體 `DrawingScene` BEND、MARKING、BLIND_HOLE Fold→3D 線段投影；唯一座標根據為正式 material Fold Mapper，不另造 Factory、料長、孔位或 3D 衝突公式。現有 64 等分圓／閉合折線／MARKING 與 BLIND_HOLE 樣式都保持，GUI 只取 API 回傳線段並繪製，不以 UI 網格取代 CUTTING。舊製造／3D／DXF／Save→Reload／檔案格式不更動，#2517 OPEN、未發布正式 X。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
