@@ -405,7 +405,9 @@ def test_r2_10_render_snapshots_passes_model_name_and_frame_width_to_derive_box_
         called_kwargs.update(kwargs)
         return ()
 
-    monkeypatch.setattr(render_snapshots.door_dividers, "derive_box_body_dividers", fake_derive)
+    # The canonical divider factory now lives behind the public Engine 2D seam.
+    from ae_engine import operator_door_2d_preview
+    monkeypatch.setattr(operator_door_2d_preview.door_dividers, "derive_box_body_dividers", fake_derive)
     host = SimpleNamespace(
         door_layout_scope="main",
         door_layout_handle_edges={},
