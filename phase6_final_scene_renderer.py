@@ -408,13 +408,9 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 opacity = float(request.alpha_bend)
                 # Outer Door is intentionally readable even when the shared
                 # sheet transparency is lowered to inspect the cabinet internals.
-                is_outer_door = (
-                    part_key == "door" or
-                    (part_key.startswith("door_c") and "_r" in part_key)
-                )
-                is_inner_panel = (
-                    part_key.startswith("inner_door:") and part_key.endswith(":panel")
-                )
+                door_role = manufacturing_api.door_display_part_role(part_key)
+                is_outer_door = door_role == "outer"
+                is_inner_panel = door_role == "inner"
                 if is_outer_door or is_inner_panel:
                     opacity = 1.0
                 divider_presentation = _phase6_assembly_part_presentation(part_key, opacity)
@@ -712,61 +708,18 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         material = render_data.material
         fold_guides = tuple(getattr(render_data, "fold_guides", ()) or ())
         part_key = str(request.part_key)
-        fixed_plate_display = False
-        x_profile, y_profile = request.x_profile, request.y_profile
-        if (part_key.startswith("base_plate:fixing_plate:")
-                and (getattr(render_data, "metadata", None) or {}).get("source_profile") == "large"):
-            # #1503: the independent 3D tab previously reused blank editor
-            # profiles, hence rendered the genuine BEND23 source as FLAT.
-            # Consume the SAME source-verified signed +90 fold as assembly.
-            # Only the on-screen mesh uses the T2 MID-skin hinge at y=22.
-            # The original PartRenderData / CUTTING / DXF BEND at y=23 is
-            # unchanged; do not introduce any bend compensation.
-            from ae_engine.receiving_fixed_plate_formed_skins import (
-                verified_receiving_fixing_plate_local_fold,
-            )
-            from ae_engine.assembly_geometry import (
-                folded_mesh_with_flat_uv_from_polygon,
-                thicken_triangle_surface,
-            )
-            hinge_y, x_profile, y_profile, physical_guides = (
-                verified_receiving_fixing_plate_local_fold(render_data)
-            )
-            mapped = folded_mesh_with_flat_uv_from_polygon(
-                material, x_profile, y_profile, fold_guides=physical_guides,
-            )
-            triangles = thicken_triangle_surface(
-                tuple(face.local for face in mapped),
-                float(render_data.metadata["thickness"]),
-            )
-            fold_guides = physical_guides
-            fixed_plate_display = True
-        if part_key == "box_body:left_side":
-            # This independent 3D input sink must depict the FINISHED solid,
-            # not a zero-thickness material midplane.  Use the same pure
-            # formed/outside correction as the assembly collision mesh,
-            # but fold the ACTIVE operator profile (never copy world assembly).
-            from ae_engine.assembly_geometry import (
-                folded_mesh_with_flat_uv_from_polygon, thicken_triangle_surface,
-            )
-            from ae_engine.assembly_geometry_folded_mesh import (
-                fit_receiving_left_zl1_formed_outside,
-            )
-            mapped = folded_mesh_with_flat_uv_from_polygon(
-                material, request.x_profile, request.y_profile,
-                fold_guides=fold_guides,
-            )
-            formed = fit_receiving_left_zl1_formed_outside(
-                request.x_profile, mapped,
-                tuple(item.local for item in mapped),
-                thickness=request.thickness, axis=2,
-            )
-            triangles = thicken_triangle_surface(formed, request.thickness)
-        elif not fixed_plate_display:
-            triangles = _phase6_folded_mesh_from_polygon(
-                material, request.x_profile, request.y_profile,
-                fold_guides=fold_guides,
-            )
+        # Actual physical standalone mesh ownership remains in Engine.
+        # The GUI only consumes the projected mesh, fold guide and 3D-only
+        # verified fixing-plate hinge; original DXF BEND remains unchanged.
+        mesh = manufacturing_api.project_independent_part_view_mesh(
+            part_key, render_data, x_profile=request.x_profile,
+            y_profile=request.y_profile, thickness=request.thickness,
+        )
+        triangles = list(mesh.triangles)
+        x_profile, y_profile = mesh.x_profile, mesh.y_profile
+        fold_guides = mesh.fold_guides
+        hinge_y = mesh.fixed_plate_hinge_y
+        fixed_plate_display = hinge_y is not None
         if not triangles:
             raise ValueError("3D CUTTING mesh is empty")
         self._remove_original_bend_surfaces()
@@ -777,11 +730,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 pass
         face, edge = self._COLORS.get(str(request.part_key), ("#64748b", "#334155"))
         part_key = str(request.part_key)
-        is_door = (
-            part_key == "door"
-            or (part_key.startswith("door_c") and "_r" in part_key)
-            or (part_key.startswith("inner_door:") and part_key.endswith(":panel"))
-        )
+        is_door = manufacturing_api.door_display_part_role(part_key) != "other"
         poly = gridless_mesh_collection(
             triangles, facecolor=face,
             opacity=1.0 if is_door else float(request.alpha_bend),

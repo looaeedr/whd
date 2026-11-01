@@ -27,3 +27,17 @@ def is_derived_physical_part_key(value: object) -> bool:
         or (key.startswith("inner_door:") and key.endswith("_frame"))
         or (key.startswith("inner_door:") and key.endswith(":panel"))
     )
+
+
+def door_display_part_role(value: object) -> str:
+    """Canonical persisted Door/panel identity for 3D presentation, not release.
+
+    Display opacity and true CUTTING hole-rim visibility may depend on this
+    immutable physical identity. A lookalike name must not be a Door sheet.
+    """
+    key = str(value or "")
+    if key == "door" or re.fullmatch(r"door_c\d+_r\d+", key) is not None:
+        return "outer"
+    if key.startswith("inner_door:") and key.endswith(":panel"):
+        return "inner"
+    return "other"
