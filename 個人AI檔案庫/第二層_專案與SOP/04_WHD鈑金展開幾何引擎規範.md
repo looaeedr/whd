@@ -44,6 +44,10 @@ whd_schema: WHD_DOC_META_V1
 
 因此 04 的責任是回答「engine 現在怎麼分層、公開哪些 API、各 authority 怎麼接起來」，不是把 Registry JSON 內容重新抄一份。
 
+### #2517 Fold 編輯器包外→料長提交與箱身鏡射目標 Engine API（2026-11-02）
+
+`manufacturing_api.commit_operator_fold_editor_rows(old_segments, operator_rows, thickness)` 由無 Tk 的 `ae_engine.operator_fold_editor` 將操作員輸入的包外長度與角度依**新拓樸**相鄰真實 BEND 數 × T 交既有 `box_body_fold_profile.apply_outside_dimension_compensation` 與 `box_body_editor_readback.box_body_ui_segment_length_to_material` 決定物理料長，保留原 `phase6_key`／`core`／負方向欄位；輸出新 detached material Fold rows，GUI 只採用回傳值寫入 Workspace。 `plan_operator_fold_mirror_target(segments, source_index, field, *, is_box_body)` 回傳 immutable `OperatorFoldMirrorPlan`，由 Engine 依真實結構鍵決定左／右同源折邊或明確禁止 legacy positional fallback；受電箱原不允許箱身對稱，仍由現有 Family `box_body_symmetry_allowed` gate 阻擋。保留金庫型原 UI、舊序列正反算、Save→Reload、2D/3D/DXF 共用 material source，不新增折彎公式或製造放行。#2517 保持 OPEN。
+
 ### #2517 組合面板 BoxBody 子板件實體尺寸與截角來源 Engine API（2026-11-02）
 
 `manufacturing_api.project_box_body_assembly_panel_piece_rows(render_data)` 從**已解算的真實** `BoxBodyPartRenderData.pieces` 生成唯讀 `BoxBodyAssemblyPanelPiece`：現行 `box_body:<role>`／歷史明確 `piece.key`、成形包外 W/H、展開料 W/H 以及與該片同源的 `source_render_data`。這是現有 Engine BoxBody source readback 的操作展示投影，不自算幾何、折彎、截角或另建板件。 `phase6_assembly_presentation.project_box_body_piece_rows` 只附顯示 label；`phase6_assembly_panel.refresh_box_body_piece_info` 直接使用同一份 source 作既有 corner 文字，不再從 UI role 字串反查物理板件。無角色的歷史板件只有顯示鍵和尺寸，不得冒稱實體截角來源（`source_render_data=None`，原面板顯示 `截角尺寸：無`）。已核准的 Save→Reload、實體 2D/3D／CUTTING／DXF 與 Registry 權威不變；不得由此 API 宣稱加工放行。#2517 OPEN。
