@@ -73,6 +73,6 @@ def project_box_body_assembly_panel_piece_rows(render_data):
             formed_height=formed_height,
             blank_width=blank_width,
             blank_height=blank_height,
-            source_render_data=getattr(piece, "render_data", None),
+            source_render_data=(getattr(piece, "render_data", None) if role else None),
         ))
     return tuple(rows)
