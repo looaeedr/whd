@@ -1189,3 +1189,24 @@ from .receiving_nfb_manifest_validation import (
 
 # #2517: read-only world XY physical-feature projection for Receiving settings.
 from .receiving_settings_orthographic_projection import project_solid_mesh_xy_outline
+
+# Canonical Engine owner for Door/BasePlate/Divider/InnerDoor physical namespaces,
+# retired GUI-owned immutable request/sync intent builder (#2517).
+from .derived_part_projection import (
+    FrozenMappingValue,
+    FrozenSequenceValue,
+    DerivedPartProfileProjection,
+    DerivedPartFeatureProjection,
+    DerivedPartNamespaceProjection,
+    DerivedPartProjectionRequest,
+    DerivedPartRequestAssemblyInput,
+    DerivedPartSyncPlan,
+    build_derived_part_projection_request,
+    build_derived_part_sync_plan,
+    profile_projection,
+    feature_projection,
+    namespace_projection,
+    materialize_profiles,
+    materialize_features,
+    materialize_namespace,
+)
