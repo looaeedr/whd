@@ -93,6 +93,9 @@ def resolve(request):
     resolved_joint_graph = resolve_manufacturing_joint_graph(
         snapshot, available,
     )
+    # The downstream explicit-joint relief path consumes the Engine-resolved
+    # eligible Joint identities; never re-migrate or re-filter them in Phase6.
+    joints = resolved_joint_graph.joints
 
     parts = []
     for part_input in tuple(request.parts or ()):

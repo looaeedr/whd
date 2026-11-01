@@ -71,3 +71,4 @@ def test_phase6_uses_public_graph_api_not_private_identity_logic():
     assert "AssemblyJoint.from_dict(" not in src
     assert "ResolvedAssemblyGraph(" not in src
     assert "自訂板件尚無已確認 assembly placement" not in src
+    assert "joints = resolved_joint_graph.joints" in src
