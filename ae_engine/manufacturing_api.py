@@ -26,6 +26,10 @@ import threading
 from typing import Literal, Mapping
 
 from . import ae
+from .door_layout_numeric_transitions import (
+    DoorLayoutColumnState, DoorLayoutResolvedColumn,
+    DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
+)
 from .dxf_serialization import save_scene_dxf
 from .cabinet_types.policy import resolve_box_body_back_panel_contract
 from .cabinet_types.receiving import resolve_box_body_structure_state as resolve_receiving_box_body_structure_state

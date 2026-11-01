@@ -7,7 +7,7 @@ selection mapping remains here; no size partition or geometry is calculated.
 from __future__ import annotations
 
 from typing import Callable, Mapping, Sequence
-from ae_engine import (
+from ae_engine.manufacturing_api import (
     DoorLayoutColumnState, DoorLayoutResolvedColumn,
     DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
 )
