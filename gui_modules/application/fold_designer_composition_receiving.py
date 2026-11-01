@@ -1388,6 +1388,16 @@ def settings_panel(self, namespace):
             config=config,
         )
 
+    def commit_vault_panel_name(name):
+        from ae_engine import manufacturing_api
+        if str(app.baseline_model_var.get() or "").strip() != "金庫型":
+            raise ValueError("只有金庫型單箱入口可以編輯此盤名")
+        source = app._phase6_input_snapshot
+        candidate = manufacturing_api.set_cabinet_panel_name(source, name)
+        source.update(candidate)
+        # Label-only input: no manufacturing solve or preview invalidation.
+        return candidate["panel_name"]
+
     panel = Phase6SettingsPanel(
         values_snapshot=lambda: dict(app._settings_values),
         stage_setting_update=lambda key, value: self.stage_setting_update(
@@ -1449,6 +1459,10 @@ def settings_panel(self, namespace):
         ui_text_size_changed=lambda key: self.apply_ui_text_size(
             namespace, key
         ),
+        panel_name_getter=lambda: str(
+            app._phase6_input_snapshot.get("panel_name") or ""
+        ),
+        panel_name_changed=lambda name: commit_vault_panel_name(name),
     )
     self._settings_panel = panel
     app.settings_panel = panel
@@ -1755,6 +1769,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         adapter = self.receiving_adapter(namespace)
         adapter.select_set(int(set_index) + 1)
         adapter.select_bay(int(bay_index) + 1)
+
+    def rename_bay(set_index, bay_index, name):
+        adapter = self.receiving_adapter(namespace)
+        changed = adapter.rename_bay(int(set_index), int(bay_index), name)
+        if changed:
+            # GUI only updates the authoritative source DTO. A text-only rename
+            # must not invalidate or rebuild FinalScene manufacturing geometry.
+            self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        return changed
 
     def select_existing_setting(set_index, bay_index, kind):
         """Bind the list choice to the original per-bay setting value/owner.
@@ -4260,6 +4283,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         get_inner_candidate_ports=inner_candidate_ports,
         get_nfb_transaction_ports=nfb_transaction_ports,
         select_bay=select_bay,
+        rename_bay=rename_bay,
         on_setting_selected=select_existing_setting,
         get_brand=(single_brand if single else
                    lambda: self.receiving_switch_adapter(namespace).brand),

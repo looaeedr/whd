@@ -147,6 +147,8 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         corner_target_changed: Callable[[str, str], object] | None = None,
         baseline_model_changed: Callable[[], object] | None = None,
         ui_text_size_changed: Callable[[str], object] | None = None,
+        panel_name_getter: Callable[[], str] | None = None,
+        panel_name_changed: Callable[[str], str] | None = None,
     ):
         self._values_snapshot = values_snapshot
         self._stage_setting_update = stage_setting_update
@@ -177,6 +179,8 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         self._corner_target_changed = corner_target_changed
         self._baseline_model_changed = baseline_model_changed
         self._ui_text_size_changed = ui_text_size_changed
+        self._panel_name_getter = panel_name_getter or (lambda: "")
+        self._panel_name_changed = panel_name_changed
 
         # 3D 右側由單一「參數鎖定」控制整塊參數面板；解鎖後進階參數
         # 直接跟著顯示，不再需要第二層「顯示進階設定」操作。
@@ -212,6 +216,9 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         self.left_global_cells: dict[str, object] = {}
         self.baseline_model_var = None
         self.baseline_model_combo = None
+        self.panel_name_frame = None
+        self.panel_name_var = None
+        self.panel_name_entry = None
         self.ui_text_size_var = None
         self.ui_text_size_combo = None
         self.save_global_settings_button = None
@@ -230,6 +237,21 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         )
         self.baseline_model_combo.grid(row=0, column=1, columnspan=2, sticky="ew", padx=2, pady=2)
         self.baseline_model_var.trace_add("write", lambda *_a: self._emit_baseline_model_changed())
+
+        # Vault is a single cabinet. Its label is read from the project,
+        # not from Settings defaults and never from a second GUI authority.
+        self.panel_name_frame = ttk.Frame(self.left_global_controls)
+        ttk.Label(self.panel_name_frame, text="盤名：").pack(side=tk.LEFT)
+        self.panel_name_var = tk.StringVar(master=self.left_global_controls)
+        self.panel_name_entry = ttk.Entry(
+            self.panel_name_frame, textvariable=self.panel_name_var,
+            width=17, style="Editable.TEntry",
+        )
+        self.panel_name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.panel_name_entry.bind("<Return>", self.commit_panel_name)
+        self.panel_name_entry.bind("<Escape>", self.cancel_panel_name)
+        self.panel_name_frame.grid(row=0, column=3, sticky="ew", padx=2, pady=2)
+        self.refresh_panel_name(force=True)
 
         values = dict(self._values_snapshot())
         self.left_global_vars = {
@@ -289,11 +311,44 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
             pass
         self._stage_setting_update(key, value)
 
+    def refresh_panel_name(self, *, force=False):
+        frame, entry, var = self.panel_name_frame, self.panel_name_entry, self.panel_name_var
+        if frame is None or var is None or self.baseline_model_var is None:
+            return
+        if self.baseline_model_var.get().strip() != "金庫型" or self._panel_name_changed is None:
+            frame.grid_remove()
+            return
+        frame.grid()
+        if force or entry is None or entry.focus_get() is not entry:
+            name = str(self._panel_name_getter() or "")
+            if var.get() != name:
+                var.set(name)
+
+    def commit_panel_name(self, _event=None):
+        if (self.panel_name_var is None or self._panel_name_changed is None
+                or self.baseline_model_var.get().strip() != "金庫型"):
+            return "break"
+        try:
+            # Validate/commit via public Engine API; UI never holds a name copy.
+            self._panel_name_changed(self.panel_name_var.get())
+        except (ValueError, RuntimeError) as exc:
+            from tkinter import messagebox
+            messagebox.showwarning("盤名", str(exc), parent=self.panel_name_frame.winfo_toplevel())
+            self.panel_name_entry.focus_set()  # Keep the invalid draft editable.
+            return "break"
+        self.refresh_panel_name(force=True)
+        return "break"
+
+    def cancel_panel_name(self, _event=None):
+        self.refresh_panel_name(force=True)
+        return "break"
+
     def _emit_baseline_model_changed(self):
         if self._guard or self._rendering:
             return
         if self._baseline_model_changed is not None:
             self._baseline_model_changed()
+        self.refresh_panel_name(force=True)
 
     def _emit_ui_text_size_changed(self):
         if self._guard or self._rendering or self.ui_text_size_var is None:
@@ -729,6 +784,7 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
                         var.set(text)
         finally:
             self._guard = False
+        self.refresh_panel_name()
 
     def toggle_advanced(self):
         # 相容舊 caller；新版 UI 由外層參數鎖統一控制，進階區固定隨面板顯示。
