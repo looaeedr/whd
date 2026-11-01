@@ -4,6 +4,10 @@ from .contracts import (
     ManufacturingPolicy, ManufacturingContext, DoorPartSpec, BoxBodyPartSpec,
     EndCapPartSpec, BasePlatePartSpec, IndicatorBoxPartSpec, CustomFoldPartSpec, PartExportResult, PartSpec,
 )
+from .integration_api import (
+    ManufacturingIntegrationRequest, ManufacturingIntegrationResponse,
+    ManufacturingSourceIdentity, dispatch_manufacturing_integration,
+)
 from .door_layout_numeric_transitions import (
     DoorLayoutColumnState, DoorLayoutResolvedColumn,
     DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
@@ -162,6 +166,8 @@ from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
     "ae", "manufacturing_api", "generate_part", "resolve_policy",
+    "ManufacturingIntegrationRequest", "ManufacturingIntegrationResponse",
+    "ManufacturingSourceIdentity", "dispatch_manufacturing_integration",
     "base_plate_blank_dimensions",
     "project_operator_door_blank_dimensions",
     "expected_baseline_path_for", "receiving_baseline_source_stamp",
