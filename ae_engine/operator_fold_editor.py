@@ -11,7 +11,9 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from .box_body_fold_profile import apply_outside_dimension_compensation
-from .box_body_editor_readback import box_body_ui_segment_length_to_material
+from .box_body_editor_readback import (
+    box_body_ui_segment_length_to_material, can_remove_box_body_fold_segment,
+)
 
 
 def commit_operator_fold_editor_rows(
@@ -129,3 +131,75 @@ def plan_operator_fold_mirror_target(
         if other_key:
             return OperatorFoldMirrorPlan(None, True)
     return OperatorFoldMirrorPlan(None, False)
+
+
+def add_operator_fold_editor_rows(
+    segments: Sequence[Mapping[str, object]],
+    position: int,
+    thickness: float,
+) -> list[dict]:
+    """Apply the original physical new-front/new-end Fold operation in Engine.
+
+    The operator's Add action is presentation-only; only this Engine owner
+    creates a material segment, assigns the boundary bend and reapplies the
+    canonical adjacent BEND/T compensation. Never mutate caller rows.
+    """
+    candidate = [dict(row) for row in segments]
+    if position == 0:
+        candidate.insert(
+            0, {"angle": 90, "len": 50, "ui_len_add": thickness},
+        )
+    else:
+        if candidate:
+            candidate[-1]["angle"] = -90
+        candidate.append({"len": 50})
+    return apply_outside_dimension_compensation(candidate, thickness)
+
+
+def remove_operator_fold_editor_rows(
+    segments: Sequence[Mapping[str, object]],
+    source_index: int,
+    thickness: float,
+    *,
+    symmetric_box_body: bool,
+) -> list[dict] | None:
+    """Remove only authorized physical Fold rows, including a safe mirror.
+
+    `None` means the existing source cannot be changed (invalid index, fixed
+    core/FW or non-removable mirrored counterpart). A successful result is a
+    detached material Fold sequence with its final boundary bend removed.
+    """
+    candidate = [dict(row) for row in segments]
+    if not 0 <= source_index < len(candidate):
+        return None
+    if not can_remove_box_body_fold_segment(candidate[source_index]):
+        return None
+    indexes = [source_index]
+    if symmetric_box_body:
+        source_key = str(candidate[source_index].get("phase6_key") or "")
+        if source_key in _BOX_BODY_MIRROR_PAIRS and source_key != "w":
+            mirror_key = _BOX_BODY_MIRROR_PAIRS[source_key]
+            mirror_index = next(
+                (i for i, row in enumerate(candidate)
+                 if str(row.get("phase6_key") or "") == mirror_key),
+                None,
+            )
+        elif source_key:
+            mirror_index = None
+        else:
+            mirror_index = len(candidate) - 1 - source_index
+            if (
+                not 0 <= mirror_index < len(candidate)
+                or str(candidate[mirror_index].get("phase6_key") or "")
+            ):
+                mirror_index = None
+        if mirror_index is not None and mirror_index != source_index:
+            if not can_remove_box_body_fold_segment(candidate[mirror_index]):
+                return None
+            indexes.append(mirror_index)
+
+    for index in sorted(set(indexes), reverse=True):
+        candidate.pop(index)
+    if candidate:
+        candidate[-1].pop("angle", None)
+    return apply_outside_dimension_compensation(candidate, thickness)
