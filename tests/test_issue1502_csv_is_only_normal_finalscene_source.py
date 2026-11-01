@@ -156,7 +156,12 @@ def test_resolver_has_normal_source_seam_not_a_new_operator_export_button():
     import phase6_manufacturing_service
     from gui_modules.application import receiving_multi_settings_window
     from ae_engine import manufacturing_api
-    resolver = inspect.getsource(phase6_manufacturing_service.resolve)
+    # The normal FinalScene manufacturing solver moved to Engine; do not
+    # mistake the old UI compatibility forwarding function for the authority.
+    assert "manufacturing_api.resolve_manufacturing_request(request)" in (
+        inspect.getsource(phase6_manufacturing_service.resolve)
+    )
+    resolver = inspect.getsource(manufacturing_api.resolve_manufacturing_request)
     engine = inspect.getsource(manufacturing_api.resolve_receiving_nfb_assembly_parts)
     window = inspect.getsource(receiving_multi_settings_window)
     # The ordinary resolver must consume the public Engine manufacturing path,

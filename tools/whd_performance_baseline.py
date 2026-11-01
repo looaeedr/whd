@@ -370,6 +370,7 @@ def worker(args):
     import ezdxf
     import phase6_manufacturing_adapter as adapter
     import phase6_manufacturing_service as service
+    import ae_engine.manufacturing_resolver as engine_resolver
     from ae_engine import manufacturing_api
     from ae_engine import receiving_base_fixing_plate_geometry as fixing_plate_geometry
     from phase6_manufacturing_cache import ManufacturingCacheService
@@ -413,15 +414,15 @@ def worker(args):
             fixing_plate_geometry, 'build_fixing_plate_source_render_data',
             'fixing_plate_source_flat', part_id=True)
         probe.observe_supplemental_material_factory(
-            service, 'replay_resolved_endcap_render', 'service_relief_replay_material')
-        probe.wrap(service, '_replay_endcap_render', 'relief_replay_requests')
+            engine_resolver, 'replay_resolved_endcap_render', 'service_relief_replay_material')
+        probe.wrap(engine_resolver, '_replay_endcap_render', 'relief_replay_requests')
         for factory in ('build_part_render_data',
                         'build_box_body_structure_render_data',
                         'build_box_body_divider_render_data',
                         'build_inner_door_panel_render_data',
                         'build_inner_door_frame_render_data'):
             probe.observe_material_factory(manufacturing_api, factory)
-        probe.observe_world_skin(service, '_phase6_build_joint_world_geometry')
+        probe.observe_world_skin(engine_resolver, 'build_joint_world_geometry')
         probe.wrap(adapter, '_domain_inputs_for_part', 'part_materialization', part_arg=1)
         probe.wrap(Phase6FinalSceneRenderer, 'render', 'scene_render')
         probe.wrap(FigureCanvasTkAgg, 'draw', 'canvas_draw')
