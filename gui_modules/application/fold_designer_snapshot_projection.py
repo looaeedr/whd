@@ -3,15 +3,12 @@
 Projection only: authoritative state remains owned by the existing controllers/services.
 """
 from copy import deepcopy
-from dataclasses import replace
 import tkinter as tk
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.contracts import ManufacturingContext
 from ae_engine.corner_type_ui import is_unknown_model
 from ae_engine.sheetmetal_geometry import EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS
-from ae_engine.sheetmetal_part_adapters import DoorFrameEdges, door_layout_feature_map_to_part_features
 from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
 from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bottom_wrap_state
 from phase6_settings_center import load_factory_defaults_from_ae
@@ -148,29 +145,10 @@ def _snapshot_workspace_state(self, snapshot):
     for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout"):
         if key in workspace_state:
             snapshot[key] = deepcopy(workspace_state[key])
-    # The primary GUI's inner-door offset/checkbox controls are live editing
-    # sources. Once a fresh Receiving Family has an actual persisted Bay,
-    # saving only those root UI fields would leave the Bay's initial 80-mm
-    # door_state as older authority and silently overwrite edited 70/105 mm
-    # after Save/Reload. Project the current main GUI door controls into its
-    # uniquely owned singleton Bay, without changing other/multi Bay data.
-    if (snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("active_mode", "set_bay") == "set_bay"
-            and isinstance(snapshot.get("receiving_layout"), dict)):
-        layout = snapshot["receiving_layout"]
-        sets = layout.get("sets") or []
-        if (len(sets) == 1 and len(sets[0].get("bays") or []) == 1
-                and snapshot.get("inner_doors")):
-            from ae_engine.receiving_layout import (
-                RECEIVING_DOOR_STATE_KEYS, update_receiving_bay,
-            )
-            source_door = {
-                key: deepcopy(snapshot[key]) for key in RECEIVING_DOOR_STATE_KEYS
-                if key in snapshot
-            }
-            snapshot["receiving_layout"] = update_receiving_bay(
-                layout, set_index=0, bay_index=0, door_state=source_door,
-            )
+    # Engine alone decides whether root Door controls own the sole Receiving Bay.
+    bay_layout = manufacturing_api.project_receiving_single_bay_door_controls(snapshot)
+    if bay_layout is not None:
+        snapshot["receiving_layout"] = bay_layout
     custom = workspace_state.get("custom_parts")
     if custom is not None:
         snapshot["custom_parts"] = deepcopy(custom)
@@ -185,28 +163,7 @@ def _snapshot_workspace_state(self, snapshot):
 
     active = self.workspace_controller.active_part
     snapshot["active_part"] = active if active in ordered else (ordered[0] if ordered else None)
-    snapshot["part_features"] = {
-        str(key): list(features or ())
-        for key, features in dict(self.surface_features or {}).items()
-    }
-    if snapshot.get("multi_door_enabled") and snapshot.get("door_layout_columns"):
-        door_layout_map = getattr(self, "door_layout_features", {}) or {}
-        formal_door_features = door_layout_feature_map_to_part_features(
-            tuple(
-                (float(row[0]), tuple(float(v) for v in row[1]))
-                for row in snapshot["door_layout_columns"]
-            ),
-            door_layout_map,
-        )
-        for key, features in formal_door_features.items():
-            if features or key not in snapshot["part_features"]:
-                snapshot["part_features"][key] = list(features)
-            else:
-                parts = str(key).removeprefix("door_c").split("_r")
-                if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
-                    cell_key = (int(parts[0]) - 1, int(parts[1]) - 1)
-                    if cell_key in door_layout_map or f"{cell_key[0]}:{cell_key[1]}" in door_layout_map:
-                        snapshot["part_features"][key] = list(features)
+    _snapshot_part_features(self, snapshot)
 
     snapshot["part_face_features"] = {
         "box_body": {
@@ -216,64 +173,27 @@ def _snapshot_workspace_state(self, snapshot):
     }
     return committed_profiles
 
-def _snapshot_part_dimensions(self, snapshot):
-    """Project existing manufacturing dimension APIs; never rebuild geometry here."""
-    w, h, d, t, fw = (
-        snapshot["w"], snapshot["h"], snapshot["d"], snapshot["t"], snapshot["fw"]
+def _snapshot_part_features(self, snapshot):
+    """Save operator Feature stores from one canonical Engine identity projection."""
+    snapshot["part_features"] = manufacturing_api.project_fold_designer_snapshot_part_features(
+        snapshot,
+        getattr(self, "surface_features", None),
+        getattr(self, "door_layout_features", None),
     )
-    door_material_fw = self._door_material_frame_width(
-        fw, t, model_name=snapshot.get("model")
-    )
-    door_w, door_h = ae.calculate_door_finished_size(
-        w, h, door_material_fw,
-        snapshot["door_gap_w"], snapshot["door_gap_h"], t,
-        frame_edges=DoorFrameEdges(),
-    )
-    door_w = max(1.0, float(door_w))
-    door_h = max(1.0, float(door_h))
-    base_w = max(
-        1.0,
-        w - snapshot["base_plate_shrink_left"] - snapshot["base_plate_shrink_right"],
-    )
-    base_h = max(
-        1.0,
-        h - snapshot["base_plate_shrink_top"] - snapshot["base_plate_shrink_bottom"],
-    )
-    if snapshot.get("model") in {"受電箱", "RECEIVING"}:
-        from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
-        physical_size = receiving_base_plate_blank_dimensions(snapshot)
-        if physical_size is not None:
-            base_w, base_h = physical_size
+    return snapshot
 
+
+def _snapshot_part_dimensions(self, snapshot):
+    """Collect operator controls; Engine alone projects physical dimensions."""
     try:
         layers = max(1, int(self.indicator_l_var.get()))
         groups = [int(self.indicator_layer_g_vars[i].get()) for i in range(layers)]
-        policy = replace(
-            manufacturing_api.resolve_policy(),
-            frame_width=float(fw),
-            door_gap_w=float(snapshot["door_gap_w"]),
-            door_gap_h=float(snapshot["door_gap_h"]),
-            indicator_box_fold=float(snapshot["indicator_box_fold"]),
-            indicator_small_door_fold=float(snapshot["indicator_door_fold"]),
-        )
-        indicator_ctx = ManufacturingContext(policy=policy)
-        ib_w, ib_h = manufacturing_api.indicator_box_unfolded_size(
-            groups, thickness=t, context=indicator_ctx
-        )
-        id_w, id_h = manufacturing_api.indicator_small_door_unfolded_size(
-            groups, thickness=t, context=indicator_ctx
-        )
     except Exception:
         groups = [1]
-        indicator_ctx = ManufacturingContext()
-        ib_w, ib_h = manufacturing_api.indicator_box_unfolded_size(
-            groups, thickness=t, context=indicator_ctx
-        )
-        id_w, id_h = manufacturing_api.indicator_small_door_unfolded_size(
-            groups, thickness=t, context=indicator_ctx
-        )
-
-    snapshot["indicator_layer_groups"] = list(groups)
+    dimensions = manufacturing_api.project_fold_designer_snapshot_dimensions(
+        snapshot, groups,
+    )
+    snapshot["indicator_layer_groups"] = list(dimensions.indicator_layer_groups)
     try:
         if self.is_door_indicator_var.get():
             count = max(1, int(self.door_indicator_l_var.get()))
@@ -292,13 +212,7 @@ def _snapshot_part_dimensions(self, snapshot):
     )
     snapshot["door_indicator_box_enabled"] = bool(self.is_indicator_box_var.get())
     snapshot["part_dimensions"] = {
-        "box_body": {"width": w, "height": h},
-        "head": {"width": w, "height": d},
-        "tail": {"width": w, "height": d},
-        "door": {"width": door_w, "height": door_h},
-        "base_plate": {"width": base_w, "height": base_h},
-        "indicator_box": {"width": ib_w, "height": ib_h},
-        "indicator_door": {"width": id_w, "height": id_h},
+        key: dict(size) for key, size in dimensions.part_dimensions.items()
     }
     return snapshot
 

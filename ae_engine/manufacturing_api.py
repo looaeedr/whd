@@ -26,6 +26,10 @@ import threading
 from typing import Literal, Mapping
 
 from . import ae
+from .door_layout_numeric_transitions import (
+    DoorLayoutColumnState, DoorLayoutResolvedColumn,
+    DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
+)
 from .dxf_serialization import save_scene_dxf
 from .cabinet_types.policy import resolve_box_body_back_panel_contract
 from .cabinet_types.receiving import resolve_box_body_structure_state as resolve_receiving_box_body_structure_state
@@ -116,7 +120,32 @@ from .receiving_quantity_versions import (
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
     normalize_quantity_snapshot, quantity_only_change,
 )
+from .corner_dimension_projection import (
+    RenderCornerDimensionGroup, project_render_corner_relief_measurements,
+)
+from .physical_sheet_editor_context import (
+    PhysicalSheetEditorContext, resolve_physical_sheet_editor_context,
+)
 from .indicator_editor_geometry import resolve_indicator_editor_components
+from .receiving_endcap_feature_preview import receiving_endcap_feature_preview_shapes
+from .receiving_ear_side_preview import project_receiving_ear_side_piece_2d_preview
+from .receiving_single_bay_door_snapshot import (
+    project_receiving_single_bay_door_controls,
+)
+from .receiving_nfb_verified_scope import (
+    NfbCsvVerifiedPhysicalSite, NfbCsvVerifiedExportScope,
+    NfbCsvVerifiedSelectorProof, resolve_verified_csv_v5_export_scope,
+    capture_verified_csv_v5_pair_display_proof, verified_csv_v5_operator_label,
+)
+from .receiving_nfb_v5_source_preview import (
+    ReceivingNfbV5SourcePreview, ReceivingNfbV5SourcePreviewCache,
+)
+from .receiving_inner_door_inventory import (
+    ReceivingInnerDoorInventoryLayer, resolve_receiving_inner_door_preview_inventory,
+)
+from .receiving_inner_door_editor import (
+    InnerDoorHoleEditorContext, resolve_inner_door_hole_editor_context,
+)
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,
     assert_legacy_nfb_export_scope_safe,
@@ -179,6 +208,8 @@ from .cabinet_types.policy import door_material_frame_width
 
 
 from .display_dimensions import resolve_live_operator_finished_dimensions
+from .live_cabinet_family import resolve_live_cabinet_family
+from .assembly_mesh_profiles import resolve_material_mesh_profiles
 from .standard_part_fold_profiles import build_standard_part_fold_profiles
 from .standard_part_fold_readback import read_standard_part_fold_profiles
 from .custom_part_catalog import (
@@ -189,7 +220,12 @@ from .custom_fold_api import (
     descriptor_from_snapshot, build_custom_part_profiles, custom_part_spec,
 )
 from .keyed_fold_reconciliation import merge_keyed_fold_profiles
-from .relief_commit_policy import endcap_relief_solution_committable
+from .relief_commit_policy import (
+    endcap_relief_solution_committable, endcap_relief_transaction_committable,
+)
+from .endcap_assembly_resolution import (
+    solve_endcap_assembly_relief, endcap_relief_solution_diagnostic,
+)
 from .manufacturing_cache_signature import (
     canonical_manufacturing_signature_value, manufacturing_state_fingerprint,
 )
@@ -298,6 +334,7 @@ from .assembly_collision import (
 from .assembly_collision import (
     serialize_joint_relief_polygons, restore_joint_relief_cut_geometry,
 )
+from .endcap_verified_replay import replay_resolved_endcap_render
 from .assembly_geometry import build_joint_world_geometry
 from .assembly_geometry_folded_mesh import (
     expand_box_body_fw_world_mid, shift_multistage_terminal_fold_world_mid,
@@ -305,9 +342,27 @@ from .assembly_geometry_folded_mesh import (
 )
 from .assembly_joint import (
     side_wrap_target_corners, resolve_box_body_piece_solver_key,
-    joint_relief_state_item_matches,
+    joint_relief_state_item_matches, resolve_manufacturing_joint_graph,
 )
 from .assembly_joint import joint_registry_diagnostic_info
+from .manufacturing_relief_evidence import resolve_manufacturing_relief_evidence
+from .resolved_manufacturing_parts import materialize_resolved_manufacturing_parts
+from .explicit_joint_pipeline import (
+    EXPLICIT_JOINT_PIPELINE_STAGES,
+    ExplicitJointPipelineOps,
+    ExplicitJointPipelineRequest,
+    ExplicitJointCandidateInventory,
+    ExplicitJointOwnerDecision,
+    normalize_candidate_inventory,
+    decide_owner_registry,
+    query_world_geometry,
+    solve_explicit_joint_candidate,
+    apply_resolved_cut,
+    assemble_diagnostics_evidence,
+    assemble_mutation_result,
+    resolve_explicit_joint_reliefs,
+    resolve_manufacturing_explicit_joint_reliefs,
+)
 from .assembly_placement import (
     SCENE_ASSEMBLY_PLACEMENTS, resolve_legacy_door_cell_scene_placement,
     resolve_scene_assembly_placement,
@@ -881,3 +936,317 @@ def mark_receiving_bays_live_version(layout, role, set_index, bay_indices):
     """Public headless Engine transition for highlighted Live version provenance."""
     from .receiving_version_transactions import mark_receiving_bays_live_version as _mark
     return _mark(layout, role, set_index, bay_indices)
+
+def apply_receiving_inner_door_candidate_to_bays(layout, config, set_index, bay_indices, *, version_id=None):
+    """Public Engine API: one source-backed inner-door candidate Apply."""
+    from .receiving_inner_door_pairing import (
+        apply_receiving_inner_door_candidate_to_bays as _apply,
+    )
+    return _apply(layout, config, set_index, bay_indices, version_id=version_id)
+
+def apply_receiving_bay_dimensions(
+    layout, set_index, bay_indices, *, width, height, depth, expected_count,
+):
+    """Public Engine atomic Receiving Bay W/H/D and NFB X proof transition."""
+    from .receiving_layout import apply_receiving_bay_dimensions as _apply
+    return _apply(
+        layout, set_index, bay_indices, width=width, height=height,
+        depth=depth, expected_count=expected_count,
+    )
+
+def resize_receiving_bays_with_family_defaults(layout, *, set_index, bay_count):
+    """Public Engine Receiving Family default projection on new Bay creation."""
+    from .receiving_layout import resize_receiving_bays_with_family_defaults as resize
+    return resize(layout, set_index=set_index, bay_count=bay_count)
+
+def receiving_inner_door_stable_id_for_cell(cell_key):
+    """Public physical inner-door stable identity for an authored Door cell."""
+    from .door_layout_physical_remap import receiving_inner_door_stable_id_for_cell as resolve
+    return resolve(cell_key)
+
+
+def remap_receiving_door_layout_after_delete(
+    *, operation, column_index, row_index=None, inner_doors=None,
+    cell_sources=None, physical_sources=None, cell_transitions=None,
+):
+    """Public Engine atomic Door-grid deletion/physical-source remap."""
+    from .door_layout_physical_remap import remap_receiving_door_layout_after_delete as remap
+    return remap(
+        operation=operation, column_index=column_index, row_index=row_index,
+        inner_doors=inner_doors, cell_sources=cell_sources,
+        physical_sources=physical_sources, cell_transitions=cell_transitions,
+    )
+
+def recompute_door_layout(columns, *, total_width, total_height, selected_key):
+    """Public Engine operator Door W/H partition/remainder transaction."""
+    from .door_layout_numeric_transitions import recompute_door_layout as compute
+    return compute(
+        columns, total_width=total_width, total_height=total_height,
+        selected_key=selected_key,
+    )
+
+
+def door_layout_cells(columns, *, total_width, total_height):
+    """Public Engine projection of canonical Door W/H source cells."""
+    from .door_layout_numeric_transitions import door_layout_cells as project
+    return project(columns, total_width=total_width, total_height=total_height)
+
+
+def validate_door_layout_width_commit(columns, column_index, total_width, current):
+    """Public Engine guard for Door column W operator edits."""
+    from .door_layout_numeric_transitions import validate_width_commit as validate
+    return validate(columns, column_index, total_width, current)
+
+
+def validate_door_layout_height_commit(
+    columns, column_index, row_index, total_height, current,
+):
+    """Public Engine guard for Door row H operator edits."""
+    from .door_layout_numeric_transitions import validate_height_commit as validate
+    return validate(columns, column_index, row_index, total_height, current)
+
+def validate_receiving_base_plate_settings(
+    *, input_snapshot, settings_values, config,
+):
+    """Public Engine physical Receiving Base Plate and weld-EAR preflight."""
+    from .receiving_base_plate_settings_validation import (
+        validate_receiving_base_plate_settings as validate,
+    )
+    return validate(
+        input_snapshot=input_snapshot, settings_values=settings_values,
+        config=config,
+    )
+
+def normalize_receiving_switch_operator_layout(layout):
+    """Public Engine port for Receiving Switch input topology state."""
+    from .receiving_switch_layout import normalize_receiving_switch_layout
+    return normalize_receiving_switch_layout(layout)
+
+
+def apply_receiving_switch_operator_action(
+    layout, *, operation, brand=None, layer_index=None, delta=None,
+):
+    """Public Engine transaction for physical Receiving Switch input edits."""
+    from .receiving_switch_layout import apply_receiving_switch_operator_action as apply
+    return apply(
+        layout, operation=operation, brand=brand,
+        layer_index=layer_index, delta=delta,
+    )
+
+def resolve_fold_designer_divider_part(part_key, divider_input):
+    """Public Engine selection of one canonical Box Body Divider physical part."""
+    from .fold_designer_physical_selection import resolve_fold_designer_divider_part as resolve
+    return resolve(part_key, divider_input)
+
+
+def resolve_fold_designer_frame_part(part_key, payload, *, default_thickness):
+    """Public Engine Family/legacy inner-door frame physical-part selection."""
+    from .fold_designer_physical_selection import resolve_fold_designer_frame_part as resolve
+    return resolve(part_key, payload, default_thickness=default_thickness)
+
+
+def resolve_fold_designer_panel_part(part_key, payload):
+    """Public Engine inner-door panel identity from canonical Family topology."""
+    from .fold_designer_physical_selection import resolve_fold_designer_panel_part as resolve
+    return resolve(part_key, payload)
+
+
+
+from .fold_designer_snapshot_dimensions import FoldDesignerSnapshotDimensions
+
+
+def project_fold_designer_snapshot_dimensions(snapshot, indicator_layer_groups):
+    """Public Engine ownership for original Fold Designer snapshot part sizes."""
+    from .fold_designer_snapshot_dimensions import project_fold_designer_snapshot_dimensions as project
+    return project(snapshot, indicator_layer_groups)
+
+
+
+def project_fold_designer_snapshot_part_features(
+    snapshot, surface_features, door_layout_features,
+):
+    """Public headless Door-grid Feature source-to-physical identity projection."""
+    from .door_layout_feature_projection import project_fold_designer_snapshot_part_features as project
+    return project(snapshot, surface_features, door_layout_features)
+
+
+# #2517: canonical Fold material/formed coordinate mapping exposed to GUI clients.
+
+def fold_profile_base_index(profile):
+    """Public Engine Fold mapping; canonical assembly_geometry_folded_mesh owns math."""
+    from .assembly_geometry_folded_mesh import _profile_base_index as resolve
+    return resolve(profile)
+
+
+def fold_profile_geometry(profile, *, enabled_folds=None):
+    """Public Engine Fold mapping; canonical assembly_geometry_folded_mesh owns math."""
+    from .assembly_geometry_folded_mesh import _profile_geometry as resolve
+    return resolve(profile, enabled_folds=enabled_folds)
+
+
+def fold_profile_bend_mask(profile, axis, cross_position, fold_guides, *, tol=1e-6):
+    """Public Engine Fold mapping; canonical assembly_geometry_folded_mesh owns math."""
+    from .assembly_geometry_folded_mesh import _fold_mask_for_cross_coordinate as resolve
+    return resolve(profile, axis, cross_position, fold_guides, tol=tol)
+
+
+def fold_profile_map_with_guides(position, cross_position, profile, *, axis, fold_guides):
+    """Public Engine Fold mapping; canonical assembly_geometry_folded_mesh owns math."""
+    from .assembly_geometry_folded_mesh import _profile_map_with_guides as resolve
+    return resolve(position, cross_position, profile, axis=axis, fold_guides=fold_guides)
+
+
+def fold_profile_map(position, boundaries, folded):
+    """Public Engine Fold mapping; canonical assembly_geometry_folded_mesh owns math."""
+    from .assembly_geometry_folded_mesh import _profile_map as resolve
+    return resolve(position, boundaries, folded)
+
+
+def fold_profile_flat_map(position, boundaries, *, profile=None):
+    """Public Engine Fold mapping; canonical assembly_geometry_folded_mesh owns math."""
+    from .assembly_geometry_folded_mesh import _profile_flat_map as resolve
+    return resolve(position, boundaries, profile=profile)
+
+
+
+def prepare_fold_profile_mapper(profile, *, axis, fold_guides=()):
+    """Prepare one Engine-owned fold mapper per rendered source, not per vertex.
+
+    Same bounded mask/chain memoization as actual canonical assembly mesh; the
+    caller must replace it whenever any source profile or BEND guide changes.
+    """
+    from .assembly_geometry_folded_mesh import _profile_geometry, _prepare_profile_mapper
+    rows = tuple(profile or ())
+    guides = tuple(fold_guides or ())
+    return _prepare_profile_mapper(
+        rows, axis=axis, fold_guides=guides, geometry=_profile_geometry(rows),
+    )
+
+def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
+    """Public Engine physical solid mesh feature-boundary projection."""
+    from .solid_mesh_feature_edges import physical_solid_mesh_feature_segments as resolve
+    return resolve(triangles, tolerance=tolerance)
+
+
+
+def build_door_operator_part_spec(
+    values, *, model_name, features=(), indicator_hole=None,
+    door_indicator=None, door_indicator_offset=(0.0, 0.0),
+    use_box_distance=False, corner_policy=None, frame_edges=None,
+    indicator_window_groups=None, nameplate_center_datum_top=None,
+) -> DoorPartSpec:
+    """Public Engine-owned Door operator → canonical manufacturing PartSpec."""
+    from .door_operator_part_spec import build_door_operator_part_spec as build
+    return build(
+        values, model_name=model_name, features=features,
+        indicator_hole=indicator_hole, door_indicator=door_indicator,
+        door_indicator_offset=door_indicator_offset,
+        use_box_distance=use_box_distance, corner_policy=corner_policy,
+        frame_edges=frame_edges,
+        indicator_window_groups=indicator_window_groups,
+        nameplate_center_datum_top=nameplate_center_datum_top,
+    )
+
+# #2517: physical Receiving NFB highlighted partial DXF batch is Engine-owned.
+# The GUI import path is a compatibility facade, never a second release gate.
+from .receiving_nfb_partial_batch_dispatcher import (
+    require_highlighted_nfb_inner_doors,
+    export_highlighted_nfb_inner_doors,
+)
+
+
+# #2517: paired real NFB PART_ONLY CHECK/Q belongs exclusively to Engine.
+from .receiving_nfb_pair_quantity_check import (
+    NfbPairedPartOnlyDxf, NfbPairedQuantityInput, NfbPairedQuantityCheck,
+    group_reopened_nfb_pair_check_q, save_checked_reopened_nfb_pair_q_dxf,
+)
+
+
+# #2517: Source-current Receiving NFB BasePlate physical PART_ONLY release.
+from .receiving_nfb_base_partial_export import (
+    nfb_verification_geometry_changed,
+    prepare_verified_receiving_nfb_base_plate,
+    export_verified_receiving_nfb_base_plate,
+)
+
+
+# #2517: Engine is the only Receiving NFB real partial inner-door exporter.
+from .receiving_nfb_inner_door_partial_export import (
+    export_verified_receiving_nfb_inner_door,
+)
+
+
+# #2517: Receiving original-source / CSV V5 pair PART_ONLY actual DXF ownership.
+# Existing GUI entry re-exports these typed Engine operations without manufacture.
+from .receiving_nfb_pair_export import (
+    export_verified_receiving_nfb_door_base_pair,
+    NfbCsvPairedPartOnlyDxf, NfbCsvTwoTierPartOnlyDxf,
+    export_current_csv_nfb_door_base_pair,
+)
+
+
+# #2517: read-only Receiving NFB physical-manifest safety before GUI disclosure.
+from .receiving_nfb_manifest_validation import (
+    validate_receiving_nfb_manifest_view,
+    validate_receiving_nfb_highlighted_manifest,
+)
+
+# Canonical Engine owner for Door/BasePlate/Divider/InnerDoor physical namespaces,
+# retired GUI-owned immutable request/sync intent builder (#2517).
+from .derived_part_projection import (
+    FrozenMappingValue,
+    FrozenSequenceValue,
+    DerivedPartProfileProjection,
+    DerivedPartFeatureProjection,
+    DerivedPartNamespaceProjection,
+    DerivedPartProjectionRequest,
+    DerivedPartRequestAssemblyInput,
+    DerivedPartSyncPlan,
+    build_derived_part_projection_request,
+    build_derived_part_sync_plan,
+    profile_projection,
+    feature_projection,
+    namespace_projection,
+    materialize_profiles,
+    materialize_features,
+    materialize_namespace,
+)
+
+
+
+def build_box_body_operator_part_spec(
+    values, *, model_name, features=(), face_features=None,
+    head_corner_policy=None, tail_corner_policy=None, fold_profile=(),
+    structure_state=None, source_part_features=None,
+    endcap_y_profiles=None, head_ybottom1=None, tail_ybottom1=None,
+    snapshot=None,
+) -> BoxBodyPartSpec:
+    """Public Engine physical BoxBodyPartSpec operator/family projection."""
+    from .box_body_operator_part_spec import build_box_body_operator_part_spec as build
+    return build(
+        values, model_name=model_name, features=features,
+        face_features=face_features,
+        head_corner_policy=head_corner_policy,
+        tail_corner_policy=tail_corner_policy,
+        fold_profile=fold_profile, structure_state=structure_state,
+        source_part_features=source_part_features,
+        endcap_y_profiles=endcap_y_profiles,
+        head_ybottom1=head_ybottom1, tail_ybottom1=tail_ybottom1,
+        snapshot=snapshot,
+    )
+
+
+# #2517 Receiving CSV V5 physical BasePlate trial/source & display gate.
+# Public, GUI-independent: never a manufacturing/DXF certification.
+from .receiving_nfb_v5_operator_preview import (
+    preview_receiving_nfb_v5_real_base_sources,
+    require_receiving_nfb_v5_inner_door_trial_preview,
+    require_receiving_nfb_v5_base_trial_preview,
+)
+
+
+# #2517: Receiving side EAR read-only 2D/3D source identity and cache stamp.
+from .receiving_ear_side_display_context import (
+    ReceivingEarSideDisplayContext,
+    resolve_receiving_ear_side_display_context,
+)

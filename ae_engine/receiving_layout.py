@@ -956,3 +956,112 @@ def receiving_bay_joint_face_features(layout, *, set_index, bay_index, thickness
         participant = resolved.right_bay if joint_index == bay_index - 1 else resolved.left_bay
         result.setdefault(participant.face_key, []).extend(participant.features)
     return result
+
+def apply_receiving_bay_dimensions(layout, set_index, bay_indices, *, width, height, depth, expected_count):
+    """Engine-owned atomic W/H/D operator transaction for selected real Bays."""
+    from ae_engine.sheetmetal_part_adapters import complete_partition
+    if type(set_index) is not int or not 0 <= set_index < len(layout["sets"]):
+        raise ValueError("套不存在")
+    index = set_index
+    for label, value in (("W", width), ("H", height), ("D", depth), ("數量", expected_count)):
+        if type(value) is not int or value <= 0:
+            raise ValueError(f"{label} 必須為正整數")
+        if label != "數量":
+            # The canonical Receiving _number() rejects unrepresentable
+            # physical dimensions. Reject before even staging a Bay edit.
+            try:
+                float(value)
+            except (OverflowError, ValueError) as exc:
+                raise ValueError(f"{label} 超出可表示尺寸") from exc
+    try:
+        selected = tuple(bay_indices)
+    except TypeError as exc:
+        raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體") from exc
+    bay_count = len(layout["sets"][index]["bays"])
+    # Verify every physical Bay ID before hashing; bool aliases int 1
+    # and nested UI arrays otherwise cause unhandled TypeError.
+    if (len(selected) != expected_count
+            or any(type(i) is not int or not 0 <= i < bay_count for i in selected)
+            or len(set(selected)) != len(selected)):
+        raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體")
+    # One operator confirmation is one atomic topology transaction. The
+    # old loop called update_receiving_bay() for every highlighted Bay;
+    # that helper normalizes the *entire* Set/Bay/Joint layout twice on
+    # each call, rebuilding even untouched Bays. Keep the same per-Bay
+    # door-partition checks but validate the final candidate only once.
+    candidate, dirty = layout, []
+    for bay_index in selected:
+        current = candidate["sets"][index]["bays"][bay_index]
+        changes = {"width": width, "height": height, "depth": depth}
+        if all(float(current[k]) == v for k, v in changes.items()):
+            continue
+        door = current.get("door_state")
+        if door and (float(current["width"]) != width or float(current["height"]) != height):
+            columns = door.get("door_layout_columns") or ()
+            if door.get("multi_door_enabled") and not columns:
+                raise ValueError(f"第{bay_index + 1}連門分割資料不完整")
+            if columns:
+                widths = complete_partition([item[0] for item in columns[:-1]], width)
+                if not widths.valid or len(widths.values) != len(columns):
+                    raise ValueError(f"第{bay_index + 1}連 W 不符合門分割")
+                new_cols = []
+                for new_w, (_, heights) in zip(widths.values, columns):
+                    sizes = complete_partition(heights[:-1], height)
+                    if not sizes.valid or len(sizes.values) != len(heights):
+                        raise ValueError(f"第{bay_index + 1}連 H 不符合門分割")
+                    new_cols.append([new_w, list(sizes.values)])
+                changes["door_state"] = {**deepcopy(door), "door_layout_columns": new_cols}
+        if not dirty:
+            candidate = deepcopy(layout)
+        # Existing update_receiving_bay() casts numeric inputs to float
+        # before canonical normalization; preserve that data contract.
+        updated_bay = {
+            **current, **{axis: float(value) for axis, value in changes.items()
+                          if axis in ("width", "height", "depth")},
+            **({"door_state": changes["door_state"]} if "door_state" in changes else {}),
+        }
+        if (float(current["width"]) != width
+                and updated_bay.get("nfb_config_submitted") is True):
+            # This fast multi-selection operator intentionally bypasses
+            # update_receiving_bay's repeated full-layout normalization.
+            # It must still enforce that same per-Bay X datum invalidation
+            # when the physical width changes; never keep old confirmed X.
+            from ae_engine.receiving_nfb_persistence import reconfirm_copied_nfb_config
+            updated_bay["nfb_config"] = reconfirm_copied_nfb_config(
+                updated_bay["nfb_config"]
+            )
+        candidate["sets"][index]["bays"][bay_index] = updated_bay
+        dirty.append(str(current["stable_id"]))
+    if not dirty:
+        return layout, ()
+    # Normalize and check *all* dependencies/Joints once. Any failure
+    # leaves both the canonical layout and dirty bookkeeping unchanged.
+    validated = normalize_receiving_layout(candidate)
+    return validated, tuple(dirty)
+
+def resize_receiving_bays_with_family_defaults(layout, *, set_index, bay_count):
+    """Engine-owned real-Bay topology resize with Receiving Family new-Bay W/H/D.
+
+    The low-level copy-by-value resize stays available to source migration and
+    tests. This operator transaction resets *only newly appended* Bay sizes
+    to current live Receiving Family defaults; existing physical Bays, shared
+    sources and Joint identities retain their canonical authority.
+    """
+    from .cabinet_types.receiving import BOX_BODY_DEFAULTS
+
+    before_count = len(layout["sets"][set_index]["bays"])
+    candidate = resize_receiving_bays(
+        layout, set_index=set_index, bay_count=bay_count,
+    )
+    new_count = len(candidate["sets"][set_index]["bays"])
+    if new_count <= before_count:
+        return candidate
+    defaults = tuple(float(BOX_BODY_DEFAULTS[axis]) for axis in ("w", "h", "d"))
+    if any(not value.is_integer() or value <= 0 for value in defaults):
+        raise ValueError("受電箱預設 W/H/D 必須為正整數毫米")
+    candidate, _changed = apply_receiving_bay_dimensions(
+        candidate, set_index, tuple(range(before_count, new_count)),
+        width=int(defaults[0]), height=int(defaults[1]), depth=int(defaults[2]),
+        expected_count=new_count - before_count,
+    )
+    return candidate

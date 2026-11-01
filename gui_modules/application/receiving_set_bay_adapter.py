@@ -166,25 +166,9 @@ class ReceivingSetBayAdapter:
             self._confirm_if_required(removed)
             self._persisted_ids.difference_update(removed)
             self._session_dirty_ids.difference_update(removed)
-        candidate = resize_receiving_bays(
-            self._layout,
-            set_index=self._selection.set_index,
-            bay_count=wanted,
+        candidate = manufacturing_api.resize_receiving_bays_with_family_defaults(
+            self._layout, set_index=self._selection.set_index, bay_count=wanted,
         )
-        if wanted > current:
-            # New Bay dimensions originate from the Receiving Family authority,
-            # not from the previously selected Bay's possibly custom size.
-            from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
-            defaults = tuple(float(BOX_BODY_DEFAULTS[axis]) for axis in ("w", "h", "d"))
-            if any(not value.is_integer() or value <= 0 for value in defaults):
-                raise ValueError("受電箱預設 W/H/D 必須為正整數毫米")
-            builder = ReceivingSetBayAdapter(candidate)
-            builder.apply_dimensions_to_bays(
-                self._selection.set_index, tuple(range(current, wanted)),
-                width=int(defaults[0]), height=int(defaults[1]),
-                depth=int(defaults[2]), expected_count=wanted - current,
-            )
-            candidate = builder.layout
         self._layout = candidate
         new_count = self.bay_count()
         self._selection = ReceivingSelection(
@@ -209,88 +193,15 @@ class ReceivingSetBayAdapter:
         self._selection = ReceivingSelection(set_index=set_index, bay_index=bay_index)
 
     def apply_dimensions_to_bays(self, set_index, bay_indices, *, width, height, depth, expected_count):
-        """Apply W/H/D to explicitly highlighted real Bays, atomically."""
-        from ae_engine.sheetmetal_part_adapters import complete_partition
-        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
-            raise ValueError("套不存在")
-        index = set_index
-        for label, value in (("W", width), ("H", height), ("D", depth), ("數量", expected_count)):
-            if type(value) is not int or value <= 0:
-                raise ValueError(f"{label} 必須為正整數")
-            if label != "數量":
-                # The canonical Receiving _number() rejects unrepresentable
-                # physical dimensions. Reject before even staging a Bay edit.
-                try:
-                    float(value)
-                except (OverflowError, ValueError) as exc:
-                    raise ValueError(f"{label} 超出可表示尺寸") from exc
-        try:
-            selected = tuple(bay_indices)
-        except TypeError as exc:
-            raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體") from exc
-        bay_count = len(self._layout["sets"][index]["bays"])
-        # Verify every physical Bay ID before hashing; bool aliases int 1
-        # and nested UI arrays otherwise cause unhandled TypeError.
-        if (len(selected) != expected_count
-                or any(type(i) is not int or not 0 <= i < bay_count for i in selected)
-                or len(set(selected)) != len(selected)):
-            raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體")
-        # One operator confirmation is one atomic topology transaction. The
-        # old loop called update_receiving_bay() for every highlighted Bay;
-        # that helper normalizes the *entire* Set/Bay/Joint layout twice on
-        # each call, rebuilding even untouched Bays. Keep the same per-Bay
-        # door-partition checks but validate the final candidate only once.
-        candidate, dirty = self._layout, []
-        for bay_index in selected:
-            current = candidate["sets"][index]["bays"][bay_index]
-            changes = {"width": width, "height": height, "depth": depth}
-            if all(float(current[k]) == v for k, v in changes.items()):
-                continue
-            door = current.get("door_state")
-            if door and (float(current["width"]) != width or float(current["height"]) != height):
-                columns = door.get("door_layout_columns") or ()
-                if door.get("multi_door_enabled") and not columns:
-                    raise ValueError(f"第{bay_index + 1}連門分割資料不完整")
-                if columns:
-                    widths = complete_partition([item[0] for item in columns[:-1]], width)
-                    if not widths.valid or len(widths.values) != len(columns):
-                        raise ValueError(f"第{bay_index + 1}連 W 不符合門分割")
-                    new_cols = []
-                    for new_w, (_, heights) in zip(widths.values, columns):
-                        sizes = complete_partition(heights[:-1], height)
-                        if not sizes.valid or len(sizes.values) != len(heights):
-                            raise ValueError(f"第{bay_index + 1}連 H 不符合門分割")
-                        new_cols.append([new_w, list(sizes.values)])
-                    changes["door_state"] = {**deepcopy(door), "door_layout_columns": new_cols}
-            if not dirty:
-                candidate = deepcopy(self._layout)
-            # Existing update_receiving_bay() casts numeric inputs to float
-            # before canonical normalization; preserve that data contract.
-            updated_bay = {
-                **current, **{axis: float(value) for axis, value in changes.items()
-                              if axis in ("width", "height", "depth")},
-                **({"door_state": changes["door_state"]} if "door_state" in changes else {}),
-            }
-            if (float(current["width"]) != width
-                    and updated_bay.get("nfb_config_submitted") is True):
-                # This fast multi-selection operator intentionally bypasses
-                # update_receiving_bay's repeated full-layout normalization.
-                # It must still enforce that same per-Bay X datum invalidation
-                # when the physical width changes; never keep old confirmed X.
-                from ae_engine.receiving_nfb_persistence import reconfirm_copied_nfb_config
-                updated_bay["nfb_config"] = reconfirm_copied_nfb_config(
-                    updated_bay["nfb_config"]
-                )
-            candidate["sets"][index]["bays"][bay_index] = updated_bay
-            dirty.append(str(current["stable_id"]))
-        if not dirty:
-            return 0
-        # Normalize and check *all* dependencies/Joints once. Any failure
-        # leaves both the canonical layout and dirty bookkeeping unchanged.
-        validated = normalize_receiving_layout(candidate)
-        self._layout = validated
-        self._session_dirty_ids.update(dirty)
-        return len(dirty)
+        """Forward the operator's highlighted dimensions to canonical Engine."""
+        candidate, changed_ids = manufacturing_api.apply_receiving_bay_dimensions(
+            self._layout, set_index, bay_indices, width=width, height=height,
+            depth=depth, expected_count=expected_count,
+        )
+        if changed_ids:
+            self._layout = candidate
+            self._session_dirty_ids.update(changed_ids)
+        return len(changed_ids)
 
     def update_current_bay(self, **changes: object) -> bool:
         before = self.current_bay()
@@ -361,65 +272,12 @@ class ReceivingSetBayAdapter:
         return len(changed_ids)
 
     def apply_inner_door_candidate_to_bays(self, config, set_index, bay_indices, *, version_id=None):
-        """Apply one isolated inner-door candidate only to real highlighted Bays."""
-        from ae_engine.receiving_inner_door_candidates import validate_door_config
-        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
-        source = validate_door_config(config)
-        from ae_engine.receiving_shared_settings import validate_setting
-        version_id = validate_setting("inner_door_version_id", version_id)
-        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
-            raise ValueError("選取的套不存在")
-        # Validate highlight members *before* set(): True aliases integer
-        # Bay 1 and nested unhashable UI values otherwise raise TypeError.
-        # Neither may alter any physical NFB Bay or candidate assignment.
-        try:
-            supplied = tuple(bay_indices)
-        except TypeError as exc:
-            raise ValueError("請在簡易圖高亮有效的連") from exc
-        count = len(self._layout["sets"][set_index]["bays"])
-        if (not supplied or any(type(i) is not int or not 0 <= i < count
-                                for i in supplied)):
-            raise ValueError("請在簡易圖高亮有效的連")
-        selected = tuple(sorted(set(supplied)))
-        # Stage a candidate's current CSV source identities. Merely saving a
-        # version does not touch any physical Bay; only explicit Apply can
-        # submit the version's existing Hole Editor NFB features into each
-        # selected Bay's source projection. Manual NFB X remains unverified
-        # and manufacturing-ready flags are NEVER promoted by this bridge.
-        csv_config = manufacturing_api.candidate_committed_csv_nfb_config(source)
-        # Explicit Apply REPLACES the initial submitted NFB + physical
-        # features as one Bay transaction; never union them. Non-NFB or
-        # unverified mixed CUTTING cannot overwrite a submitted source.
-        manufacturing_api.validate_candidate_nfb_replacement(
-            self._layout, ((set_index, bi) for bi in selected), source, csv_config,
-            rejection_message="此連 NFB 已提交；非 CSV 候選不得覆寫原開孔",
+        """Forward operator Apply to the public Engine; track only GUI dirty IDs."""
+        candidate, selected, ids = manufacturing_api.apply_receiving_inner_door_candidate_to_bays(
+            self._layout, config, set_index, bay_indices, version_id=version_id,
         )
-        candidate = self._layout
-        for bi in selected:
-            for kind, value in (
-                ("inner_door_layers", source["layers"]),
-                ("inner_door_models", source["models"]),
-                ("inner_door_features", source.get("features", {})),
-                ("inner_door_layer_heights_mm", source.get("layer_heights_mm")),
-                ("inner_door_version_id", version_id),
-            ):
-                candidate = unlink_setting(
-                    candidate, set_index=set_index, bay_index=bi, kind=kind,
-                )
-                candidate = edit_setting(
-                    candidate, set_index=set_index, bay_index=bi,
-                    kind=kind, value=value,
-                )
-        if csv_config is not None:
-            for bi in selected:
-                candidate = manufacturing_api.replace_candidate_bay_nfb(
-                    candidate, set_index, bi, csv_config,
-                )
         self._layout = candidate
-        self._session_dirty_ids.update(
-            str(candidate["sets"][set_index]["bays"][bi]["stable_id"])
-            for bi in selected
-        )
+        self._session_dirty_ids.update(ids)
         return selected
 
     def mark_live_version_for_bays(self, role, set_index, bay_indices):

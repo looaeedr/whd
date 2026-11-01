@@ -6,15 +6,7 @@ production FinalScene, manufacturing DXF, or a weld/MFG certification bit.
 """
 from __future__ import annotations
 
-from dataclasses import replace
-
-from ae_engine.manufacturing_scene_access import owner_render_data
-from ae_engine.receiving_fixed_plate_side_mark_preview import (
-    build_receiving_ear_side_marking_previews,
-)
-from ae_engine.receiving_fixed_plate_side_uv_marking import (
-    resolve_receiving_ear_side_uv_receipts,
-)
+from ae_engine import manufacturing_api
 
 
 def project_receiving_ear_side_piece_2d_preview(
@@ -22,76 +14,14 @@ def project_receiving_ear_side_piece_2d_preview(
     dimensions, sheet_thickness, world_geometry=None,
     display_only_marking_overlap=False,
 ):
-    """Return a separate displayed piece, preserving real manufacturing source.
-
-    The 2D renderer consumes returned piece.render_data.scene. The original
-    manufacturing geometry/BoxBody structural source remains unchanged.
-    """
-    key = str(piece_key)
-    if key not in {"box_body:left_side", "box_body:right_side"}:
-        raise ValueError("EAR_2D_PREVIEW_EXPECTS_PHYSICAL_SIDE")
-    if snapshot.get("model") not in ("受電箱", "RECEIVING") or snapshot.get("nfb_config_submitted") is not True:
-        raise ValueError("EAR_2D_PREVIEW_REQUIRES_SUBMITTED_RECEIVING")
-    if str(getattr(source_piece, "role", "") or "").lower() != key.split(":", 1)[1]:
-        raise ValueError("EAR_2D_PREVIEW_PIECE_ROLE_MISMATCH")
-
-    real_source = owner_render_data(geometry, key)
-    data = source_piece.render_data
-    if real_source is None or data is None or data.material is None:
-        raise ValueError("EAR_2D_PREVIEW_REAL_SIDE_OWNER_MISSING")
-    # Both paths must represent the SAME authored source flat, not a stale
-    # alternate preview, different CUTTING, or a side borrowed from another bay.
-    if not data.material.equals(real_source.material):
-        raise ValueError("EAR_2D_PREVIEW_SOURCE_AND_MANUFACTURING_SIDE_DRIFT")
-    # Joint-placement marks may be added on the canonical manufacturing path;
-    # only source material and baseline identity have to remain the same.
-    source_stamp = (data.metadata or {}).get("baseline_source_sha256")
-    canonical_stamp = (real_source.metadata or {}).get("baseline_source_sha256")
-    if source_stamp is not None and canonical_stamp is not None and source_stamp != canonical_stamp:
-        raise ValueError("EAR_2D_PREVIEW_SIDE_BASELINE_SOURCE_DRIFT")
-
-    if world_geometry is None:
-        from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
-        world_geometry = _phase6_build_joint_world_geometry(
-            tuple(geometry.parts or ()),
-            tuple(dimensions),
-            float(sheet_thickness),
-        )
-    receipts = resolve_receiving_ear_side_uv_receipts(
-        snapshot, world_geometry=world_geometry, geometry=geometry,
+    """Compatibility: UI delegates real side source checks to the public Engine."""
+    return manufacturing_api.project_receiving_ear_side_piece_2d_preview(
+        snapshot, source_piece, piece_key=piece_key, geometry=geometry,
+        dimensions=dimensions, sheet_thickness=sheet_thickness,
+        world_geometry=world_geometry,
+        display_only_marking_overlap=display_only_marking_overlap,
     )
-    sides = {
-        side: owner_render_data(geometry, side)
-        for side in ("box_body:left_side", "box_body:right_side")
-    }
-    previews = build_receiving_ear_side_marking_previews(
-        receipts, sides,
-        display_only_marking_overlap=bool(display_only_marking_overlap),
-    )
-    if key not in previews:
-        raise ValueError("EAR_2D_PREVIEW_NOT_PROJECTED_TO_OWNER")
-    before = dict(data.metadata or {})
-    # A display-only scene copy. Keep source flags unchanged, particularly
-    # manufacturing_ready=False; NEVER turn a preview into a DXF source.
-    shown = replace(
-        data,
-        scene=previews[key],
-        metadata={
-            **before,
-            "ear_side_mark_preview_only": True,
-            "ear_side_mark_preview_owner": key,
-            "ear_side_mark_preview_count": sum(
-                len(r.marking_segments) for r in receipts if r.side_piece_id == key
-            ),
-            # A display-only mode that can expose real EAR contact even
-            # when unrelated original joint MARKING crosses its weld zone.
-            # Do not treat this as manufacturing conflict certification.
-            "ear_side_existing_marking_overlap_display_mode": bool(
-                display_only_marking_overlap
-            ),
-        },
-    )
-    return replace(source_piece, render_data=shown)
+
 
 def present_receiving_ear_side_piece_2d(
     host, aggregate_render_data, source_piece, piece_key, *,
@@ -115,28 +45,19 @@ def present_receiving_ear_side_piece_2d(
             snapshot = dict(canonical)
         else:
             snapshot = dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
-        if snapshot.get("model") not in ("受電箱", "RECEIVING"):
-            return source_piece, None
-        if snapshot.get("nfb_config_submitted") is not True:
-            # A legacy/unconfigured Receiving side has no EAR weld footprint;
-            # do not borrow a stale submitted NFB from the main GUI mirror.
-            main = (dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
-                    if designer is not None else snapshot)
-            if main.get("nfb_config_submitted") is True:
-                raise ValueError("EAR_2D_PREVIEW_PRIMARY_SOURCE_DRIFT")
-            return source_piece, None
-
-        import hashlib
-        # The source-stamp and rendered primitives participate in the cache.
-        # A changed Bay, actual source hole, baseline or layer invalidates it.
-        owners = tuple(
-            (p.role, (p.render_data.metadata or {}).get("baseline_source_sha256"),
-             repr(tuple(p.render_data.scene.primitives or ())))
-            for p in tuple(getattr(aggregate_render_data, "pieces", ()) or ())
+        # The GUI selects the canonical editor snapshot, not manufacturing
+        # status. Engine resolves eligibility, dimensions and source identity.
+        main_mirror = None
+        if (designer is not None
+                and snapshot.get("model") in ("受電箱", "RECEIVING")
+                and snapshot.get("nfb_config_submitted") is not True):
+            main_mirror = dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
+        context = manufacturing_api.resolve_receiving_ear_side_display_context(
+            snapshot, key, aggregate_render_data, main_mirror=main_mirror,
         )
-        stamp = hashlib.sha256(
-            repr((snapshot, key, owners)).encode("utf-8")
-        ).hexdigest()
+        if not context.should_project:
+            return source_piece, None
+        stamp = context.source_stamp
         cached = getattr(host, "_receiving_ear_side_2d_display_cache", None)
         if cached is not None and cached[0] == stamp:
             return cached[1], cached[2]
@@ -152,8 +73,8 @@ def present_receiving_ear_side_piece_2d(
             geometry = geometry_provider(designer if designer is not None else host)
         displayed = project_receiving_ear_side_piece_2d_preview(
             snapshot, source_piece, piece_key=key, geometry=geometry,
-            dimensions=(float(snapshot["w"]), float(snapshot["h"]), float(snapshot["d"])),
-            sheet_thickness=float(snapshot["t"]),
+            dimensions=context.dimensions,
+            sheet_thickness=context.sheet_thickness,
             display_only_marking_overlap=True,
         )
         result = displayed, None
@@ -176,25 +97,20 @@ def present_receiving_ear_side_designer_piece_3d(
     no EAR MARKING despite a valid submitted NFB. This is a cached, read-only
     VIEW copy only; actual manufacturing and DXF owners stay unchanged.
     """
-    from hashlib import sha256
-
     key = str(piece_key)
     original = source_piece.render_data
-    if (key not in {"box_body:left_side", "box_body:right_side"}
-            or snapshot.get("model") not in ("受電箱", "RECEIVING")
-            or snapshot.get("nfb_config_submitted") is not True):
+    # A 3D isolated side needs the same Engine-owned source evidence as 2D.
+    preflight = manufacturing_api.resolve_receiving_ear_side_display_context(
+        snapshot, key,
+    )
+    if not preflight.should_project:
         host.last_receiving_ear_single_piece_blocker = None
         return original
     aggregate = geometry.part("box_body").render_data
-    owners = tuple(
-        (
-            row.role,
-            (row.render_data.metadata or {}).get("baseline_source_sha256"),
-            repr(tuple(row.render_data.scene.primitives or ())),
-        )
-        for row in tuple(getattr(aggregate, "pieces", ()) or ())
+    context = manufacturing_api.resolve_receiving_ear_side_display_context(
+        snapshot, key, aggregate,
     )
-    stamp = sha256(repr((snapshot, key, owners)).encode("utf-8")).hexdigest()
+    stamp = context.source_stamp
     cache = getattr(host, "_receiving_ear_single_piece_display_cache", None)
     if not isinstance(cache, dict):
         cache = {}
@@ -206,8 +122,8 @@ def present_receiving_ear_side_designer_piece_3d(
         displayed = project_receiving_ear_side_piece_2d_preview(
             snapshot, source_piece, piece_key=key,
             geometry=geometry,
-            dimensions=(float(snapshot["w"]), float(snapshot["h"]), float(snapshot["d"])),
-            sheet_thickness=float(snapshot["t"]),
+            dimensions=context.dimensions,
+            sheet_thickness=context.sheet_thickness,
             display_only_marking_overlap=True,
         ).render_data
         blocker = None

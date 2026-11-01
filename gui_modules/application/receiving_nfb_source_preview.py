@@ -6,10 +6,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from ae_engine.receiving_nfb_2d_preview import Nfb2DViewport, NfbDxfPreviewCache
-from ae_engine.receiving_nfb_model_identity import (
-    parse_numeric_model_ref, selected_numeric_spec,
-)
-from ae_engine.receiving_nfb_numeric_catalog import brand_csv_path
+from ae_engine import manufacturing_api
 
 _ACI_COLORS = {30:"#ffb064", 150:"#54c6ff", 212:"#cfb6ff", 3:"#69df90"}
 
@@ -32,9 +29,8 @@ class NfbDxfSourcePreviewPanel:
         self._numeric_mode=False
         self._numeric_zoom=1.0
         self._numeric_pan=(0.0,0.0)
-        # Ephemeral source-only preview cache; never store manufacturing authority.
-        # Keys include brand, model and source file revision.
-        self._numeric_sources={}
+        # Engine owns source identity, CSV revision and bounded preview caching.
+        self._numeric_sources=manufacturing_api.ReceivingNfbV5SourcePreviewCache()
         self.identity=tk.StringVar(master=self.frame,value="請選取左側 NFB 型號")
         self.reason=tk.StringVar(master=self.frame,value="尚未選擇 NFB 型號來源｜僅預覽")
         bar=ttk.Frame(self.frame)
@@ -74,29 +70,15 @@ class NfbDxfSourcePreviewPanel:
         if isinstance(filename,str) and filename.startswith("nfbv5:"):
             self._numeric_mode=True
             self.frame.configure(text="NFB 數值規格 CSV｜僅預覽")
-            parsed=parse_numeric_model_ref(filename)
             try:
-                if parsed is None or parsed[0]!=brand:
-                    raise ValueError("V5 型號與選定廠牌不符")
-                source_stamp=brand_csv_path(brand).stat()
-                key=("v5",brand,filename,source_stamp.st_mtime_ns,
-                     source_stamp.st_ctime_ns,source_stamp.st_size)
-                spec=self._numeric_sources.get(key)
-                if spec is None:
-                    # Selecting/highlighting the same source must not
-                    # reparse every row of the numeric brand CSV.
-                    spec=selected_numeric_spec(brand,filename)
-                    if spec is None:
-                        raise ValueError("廠牌 CSV 已無此型號")
-                    self._numeric_sources[key]=spec
-                    # Bound memory across repeated model/brand revisions.
-                    if len(self._numeric_sources)>8:
-                        self._numeric_sources.pop(next(iter(self._numeric_sources)))
+                source=self._numeric_sources.load(brand,filename)
+                key=source.source_key
+                spec=source.spec
             except (ValueError,OSError,UnicodeError) as exc:
                 self._numeric_spec=None
                 self._source_key=None
                 self.viewport.preview=None
-                self.identity.set(f"{brand}｜{parsed[1] if parsed else filename}")
+                self.identity.set(f"{brand}｜{self._numeric_sources.display_model_label(filename)}")
                 self.reason.set(f"V5 數值來源未定：{exc}｜禁止製造")
                 self.paint()
                 return

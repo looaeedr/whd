@@ -75,21 +75,14 @@ def _phase6_assembly_relief_clearance(self):
 
 
 def _phase6_current_cabinet_family(self):
+    """Read operator input only; Engine owns Family precedence and fallback."""
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     model_var = getattr(self, "baseline_model_var", None)
-    model = str(snapshot.get("model") or snapshot.get("cabinet_type") or "").strip()
     try:
-        live_model = str(model_var.get() or "").strip() if model_var is not None else ""
+        live_model = model_var.get() if model_var is not None else None
     except Exception:
-        live_model = ""
-    if live_model:
-        model = live_model
-    try:
-        from ae_engine.cabinet_types.registry import resolve_cabinet_type
-        return resolve_cabinet_type(model).canonical_name
-    except Exception:
-        # 自訂/舊基準型號仍可命中 cabinet_family=ANY 的已認證 Assembly 規則。
-        return model or "金庫型"
+        live_model = None
+    return manufacturing_api.resolve_live_cabinet_family(snapshot, live_model)
 
 
 def _phase6_solution_is_committable(solution):
@@ -209,31 +202,15 @@ def _phase6_resolve_explicit_joint_reliefs(
     parts, joints, *, finished_dimensions, sheet_thickness, clearance=0.0,
     committed_state=None,
 ):
-    """Resolve USER_ADDED reliefs through the bounded Phase 7 A6 pipeline."""
-    from phase6_explicit_joint_pipeline import (
-        ExplicitJointPipelineOps,
-        resolve_explicit_joint_reliefs,
-    )
-
-    ops = ExplicitJointPipelineOps(
-        box_body_piece_solver_key=_phase6_box_body_piece_solver_key,
-        side_wrap_target_corners=_phase6_side_wrap_target_corners,
-        build_world_geometry=_phase6_build_joint_world_geometry,
-        state_item_matches=_phase6_joint_relief_state_item_matches,
-        cut_geometry_from_state_item=_phase6_cut_geometry_from_state_item,
-        apply_cut_to_owner=_phase6_apply_resolved_cut_to_owner,
-        apply_cut_to_part=_phase6_apply_resolved_cut_to_part,
-        relief_polygon_coords=_phase6_relief_polygon_coords,
-    )
-    return resolve_explicit_joint_reliefs(
-        parts,
-        joints,
+    """Compatibility: Engine owns seven-stage USER_ADDED physical relief."""
+    return manufacturing_api.resolve_manufacturing_explicit_joint_reliefs(
+        parts, joints,
         finished_dimensions=finished_dimensions,
         sheet_thickness=sheet_thickness,
         clearance=clearance,
         committed_state=committed_state,
-        ops=ops,
     )
+
 
 def _phase6_resolve_family_divider_reliefs(
     parts, *, finished_dimensions, sheet_thickness, clearance=0.0
@@ -254,37 +231,5 @@ def _phase6_request_part(request, part_key):
 
 
 def _phase6_request_profiles_for_material(part_input, material):
-    """Reproduce Phase 1 mesh-profile normalization from immutable request data."""
-    key = str(part_input.part_key or "")
-    x_prof = [dict(seg) for seg in tuple(part_input.x_profile or ())]
-    y_prof = [dict(seg) for seg in tuple(part_input.y_profile or ())]
-
-    def material_span(axis):
-        # Only the whole Box Body and a one-axis frame/divider need this
-        # geometric fallback. Other physical pieces already own both fold
-        # profiles; inspecting unrelated bounds could abort valid assembly.
-        from math import isfinite
-        try:
-            raw = tuple(material.bounds)
-            if len(raw) != 4 or any(isinstance(v, bool) for v in raw):
-                raise ValueError("material bounds must have four real values")
-            minx, miny, maxx, maxy = (float(value) for value in raw)
-            if not all(isfinite(value) for value in (minx, miny, maxx, maxy)):
-                raise ValueError("material bounds must be finite")
-            span = (maxx - minx) if axis == "x" else (maxy - miny)
-            if not isfinite(span) or span <= 0.0:
-                raise ValueError("derived material span must be positive")
-            return span
-        except (AttributeError, TypeError, ValueError, OverflowError) as exc:
-            raise ValueError("physical material bounds unavailable for mesh profile") from exc
-
-    if key == "box_body":
-        return x_prof, [{"len": material_span("y")}]
-    if key.startswith("box_body:divider:") or (
-        key.startswith("inner_door:") and key.endswith("_frame")
-    ):
-        if x_prof and not y_prof:
-            y_prof = [{"len": material_span("y")}]
-        elif y_prof and not x_prof:
-            x_prof = [{"len": material_span("x")}]
-    return x_prof, y_prof
+    """Compatibility shim; only Engine resolves physical mesh Fold fallback."""
+    return manufacturing_api.resolve_material_mesh_profiles(part_input, material)

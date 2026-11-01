@@ -1,301 +1,45 @@
-# WHD 尺寸硬契約（CURRENT：個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md）：
-# 3D 操作輸入為唯一資料來源，輸入的是折後包外尺寸及折彎方向；不可用下游組合體回寫輸入。
-# 同一拓樸／板厚 T：料長 = 包外 − 實際相鄰 BEND 數(0/1/2)*T；包外 = 料長 + 同一折彎數*T。
-# 展開 BEND = 料長前綴和；由展開邊界與 BEND 差分得料長，再按拓樸/T 可反算包外，正反算須一致。
-# 單板3D、組合3D、2D及製造/DXF都由這份輸入推導；角度正負只定折彎方向，WRAP/OVERLAY 是裝配語意.
+"""Compatibility mirror for Engine-owned immutable physical part sync plans.
 
-"""Pure immutable planning seam for topology-derived physical-part synchronization.
-
-This module deliberately owns no workspace/navigation mutation and no manufacturing
-geometry formulas. Callers derive authoritative profiles/features through their
-existing domain owners, freeze those projections into a request, and receive a
-stable plan describing the workspace intent to apply elsewhere.
+All types, namespace repair and stash decisions are canonical ae_engine API.
+GUI retains only historical names for old callers and test contracts.
 """
-from __future__ import annotations
+import ae_engine as _engine
 
-from dataclasses import dataclass
-from typing import Any, Iterable, Mapping
+FrozenMappingValue = _engine.FrozenMappingValue
+FrozenSequenceValue = _engine.FrozenSequenceValue
+DerivedPartProfileProjection = _engine.DerivedPartProfileProjection
+DerivedPartFeatureProjection = _engine.DerivedPartFeatureProjection
+DerivedPartNamespaceProjection = _engine.DerivedPartNamespaceProjection
+DerivedPartProjectionRequest = _engine.DerivedPartProjectionRequest
+DerivedPartRequestAssemblyInput = _engine.DerivedPartRequestAssemblyInput
+DerivedPartSyncPlan = _engine.DerivedPartSyncPlan
+build_derived_part_projection_request = _engine.build_derived_part_projection_request
+build_derived_part_sync_plan = _engine.build_derived_part_sync_plan
+profile_projection = _engine.profile_projection
+feature_projection = _engine.feature_projection
+namespace_projection = _engine.namespace_projection
+materialize_profiles = _engine.materialize_profiles
+materialize_features = _engine.materialize_features
+materialize_namespace = _engine.materialize_namespace
+_freeze = _engine._freeze
+_thaw = _engine._thaw
+_unique_keys = _engine._unique_keys
 
-
-@dataclass(frozen=True)
-class FrozenMappingValue:
-    items: tuple[tuple[str, Any], ...] = ()
-
-
-@dataclass(frozen=True)
-class FrozenSequenceValue:
-    items: tuple[Any, ...] = ()
-
-
-def _freeze(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return FrozenMappingValue(
-            tuple((str(key), _freeze(item)) for key, item in value.items())
-        )
-    if isinstance(value, (list, tuple)):
-        return FrozenSequenceValue(tuple(_freeze(item) for item in value))
-    if isinstance(value, (set, frozenset)):
-        frozen = tuple(_freeze(item) for item in value)
-        return FrozenSequenceValue(tuple(sorted(frozen, key=repr)))
-    return value
-
-
-def _thaw(value: Any) -> Any:
-    if isinstance(value, FrozenMappingValue):
-        return {key: _thaw(item) for key, item in value.items}
-    if isinstance(value, FrozenSequenceValue):
-        return [_thaw(item) for item in value.items]
-    return value
-
-
-@dataclass(frozen=True)
-class DerivedPartProfileProjection:
-    part_key: str
-    profiles: FrozenMappingValue = FrozenMappingValue()
-
-
-@dataclass(frozen=True)
-class DerivedPartFeatureProjection:
-    part_key: str
-    features: FrozenSequenceValue = FrozenSequenceValue()
-
-
-@dataclass(frozen=True)
-class DerivedPartNamespaceProjection:
-    namespace: str
-    parts: tuple[DerivedPartProfileProjection, ...] = ()
-
-
-@dataclass(frozen=True)
-class DerivedPartProjectionRequest:
-    namespaces: tuple[DerivedPartNamespaceProjection, ...] = ()
-    remove_part_keys: tuple[str, ...] = ()
-    add_parts: tuple[DerivedPartProfileProjection, ...] = ()
-    stash_profiles: tuple[DerivedPartProfileProjection, ...] = ()
-    stash_features: tuple[DerivedPartFeatureProjection, ...] = ()
-    active_part_repair: str | None = None
-    selected_part_repair: str | None = None
-
-
-@dataclass(frozen=True)
-class DerivedPartRequestAssemblyInput:
-    """Already-derived projections plus workspace identity needed to assemble intent."""
-
-    door_part_keys: tuple[str, ...]
-    door_profiles: Mapping[str, Mapping[str, Iterable[Any]]]
-    base_plate_profiles: Mapping[str, Mapping[str, Iterable[Any]]]
-    divider_profiles: Mapping[str, Mapping[str, Iterable[Any]]]
-    inner_profiles: Mapping[str, Mapping[str, Iterable[Any]]]
-    box_piece_profiles: Mapping[str, Mapping[str, Iterable[Any]]]
-    current_piece_keys: tuple[str, ...]
-    source_parts: tuple[str, ...]
-    available_parts: tuple[str, ...]
-    source_part_features: Mapping[str, Iterable[Any]]
-    known_feature_keys: tuple[str, ...]
-    single_door_profiles: Mapping[str, Iterable[Any]] | None
-    single_base_plate_profiles: Mapping[str, Iterable[Any]] | None
-    active_part: str | None
-    selected_part: str | None
-    # Receiving keeps the existing ONE Base Plate part; Door-cell-derived
-    # base_plate_cN_rN are not physical NFB mounting plates.
-    preserve_single_base_plate: bool = False
-
-
-@dataclass(frozen=True)
-class DerivedPartSyncPlan:
-    namespaces: tuple[DerivedPartNamespaceProjection, ...] = ()
-    remove_part_keys: tuple[str, ...] = ()
-    add_parts: tuple[DerivedPartProfileProjection, ...] = ()
-    stash_profiles: tuple[DerivedPartProfileProjection, ...] = ()
-    stash_features: tuple[DerivedPartFeatureProjection, ...] = ()
-    active_part_repair: str | None = None
-    selected_part_repair: str | None = None
-
-
-def _unique_keys(values: Iterable[str]) -> tuple[str, ...]:
-    return tuple(dict.fromkeys(str(value) for value in values))
-
-
-def build_derived_part_projection_request(
-    data: DerivedPartRequestAssemblyInput,
-) -> DerivedPartProjectionRequest:
-    """Assemble immutable workspace intent from already-derived projections.
-
-    Domain derivation stays with the caller/current domain owners.  This owner
-    only decides namespace replacement, add/remove/stash intent, and legacy
-    active/selected identity repair before the navigation owner applies a plan.
-    """
-    if not isinstance(data, DerivedPartRequestAssemblyInput):
-        raise TypeError("data must be DerivedPartRequestAssemblyInput")
-
-    door_keys = tuple(str(key) for key in data.door_part_keys)
-    available = set(str(key) for key in data.available_parts)
-    source_parts = set(str(key) for key in data.source_parts)
-    known_features = set(str(key) for key in data.known_feature_keys)
-    current_piece_keys = set(str(key) for key in data.current_piece_keys)
-
-    remove_part_keys: list[str] = []
-    add_parts: list[DerivedPartProfileProjection] = []
-    stash_profiles: list[DerivedPartProfileProjection] = []
-    stash_features: list[DerivedPartFeatureProjection] = []
-
-    if door_keys and "door" in available:
-        remove_part_keys.append("door")
-    for key in door_keys:
-        if key not in known_features and key in data.source_part_features:
-            stash_features.append(
-                feature_projection(key, data.source_part_features[key])
-            )
-    if (
-        not door_keys
-        and "door" in source_parts
-        and "door" not in available
-        and data.single_door_profiles is not None
-    ):
-        door_projection = profile_projection("door", data.single_door_profiles)
-        add_parts.append(door_projection)
-        # A hidden standard part may still own a stashed profile from the
-        # family it was removed under. Reactivation must replace that stale
-        # stash with the target family's freshly derived profile.
-        stash_profiles.append(door_projection)
-
-    if door_keys and "base_plate" in available and not data.preserve_single_base_plate:
-        remove_part_keys.append("base_plate")
-    if (
-        (not door_keys or data.preserve_single_base_plate)
-        and "base_plate" in source_parts
-        and "base_plate" not in available
-        and data.single_base_plate_profiles is not None
-    ):
-        base_projection = profile_projection(
-            "base_plate", data.single_base_plate_profiles
-        )
-        add_parts.append(base_projection)
-        stash_profiles.append(base_projection)
-
-    desired_piece_keys = set(str(key) for key in data.box_piece_profiles)
-    for key in sorted(current_piece_keys - desired_piece_keys):
-        remove_part_keys.append(key)
-    for key, profiles in data.box_piece_profiles.items():
-        projection = profile_projection(key, profiles)
-        if key in available:
-            stash_profiles.append(projection)
-        else:
-            add_parts.append(projection)
-
-    active_repair = None
-    selected_repair = None
-    if door_keys:
-        first_door = door_keys[0]
-        first_base = first_door.replace("door_", "base_plate_", 1)
-        if data.active_part == "door":
-            active_repair = first_door
-        elif data.active_part == "base_plate" and not data.preserve_single_base_plate:
-            active_repair = first_base
-        elif data.preserve_single_base_plate and str(data.active_part or "").startswith("base_plate_c") and "base_plate" in source_parts:
-            active_repair = "base_plate"
-        if data.selected_part == "door":
-            selected_repair = first_door
-        elif data.selected_part == "base_plate" and not data.preserve_single_base_plate:
-            selected_repair = first_base
-        elif data.preserve_single_base_plate and str(data.selected_part or "").startswith("base_plate_c") and "base_plate" in source_parts:
-            selected_repair = "base_plate"
-
-    return DerivedPartProjectionRequest(
-        namespaces=(
-            namespace_projection("door_c", data.door_profiles),
-            namespace_projection("base_plate_c",
-                                 {} if data.preserve_single_base_plate else data.base_plate_profiles),
-            namespace_projection("box_body:divider:", data.divider_profiles),
-            namespace_projection("inner_door:", data.inner_profiles),
-        ),
-        remove_part_keys=tuple(remove_part_keys),
-        add_parts=tuple(add_parts),
-        stash_profiles=tuple(stash_profiles),
-        stash_features=tuple(stash_features),
-        active_part_repair=active_repair,
-        selected_part_repair=selected_repair,
-    )
-
-
-def build_derived_part_sync_plan(
-    request: DerivedPartProjectionRequest,
-) -> DerivedPartSyncPlan:
-    """Return a deterministic immutable plan without touching workspace state."""
-    if not isinstance(request, DerivedPartProjectionRequest):
-        raise TypeError("request must be DerivedPartProjectionRequest")
-    return DerivedPartSyncPlan(
-        namespaces=tuple(request.namespaces),
-        remove_part_keys=_unique_keys(request.remove_part_keys),
-        add_parts=tuple(request.add_parts),
-        stash_profiles=tuple(request.stash_profiles),
-        stash_features=tuple(request.stash_features),
-        active_part_repair=request.active_part_repair,
-        selected_part_repair=request.selected_part_repair,
-    )
-
-
-def profile_projection(
-    part_key: str,
-    profiles: Mapping[str, Iterable[Any]],
-) -> DerivedPartProfileProjection:
-    """Freeze already-derived authoritative profiles; no geometry is calculated here."""
-    frozen = _freeze(dict(profiles or {}))
-    if not isinstance(frozen, FrozenMappingValue):
-        raise TypeError("profile projection must freeze to a mapping")
-    return DerivedPartProfileProjection(str(part_key), frozen)
-
-
-def feature_projection(
-    part_key: str,
-    features: Iterable[Any],
-) -> DerivedPartFeatureProjection:
-    """Freeze already-derived authoritative features; no geometry is calculated here."""
-    frozen = _freeze(tuple(features or ()))
-    if not isinstance(frozen, FrozenSequenceValue):
-        raise TypeError("feature projection must freeze to a sequence")
-    return DerivedPartFeatureProjection(str(part_key), frozen)
-
-
-def namespace_projection(
-    namespace: str,
-    part_profiles: Mapping[str, Mapping[str, Iterable[Any]]],
-) -> DerivedPartNamespaceProjection:
-    """Freeze a namespace replacement while preserving caller-provided order."""
-    return DerivedPartNamespaceProjection(
-        namespace=str(namespace),
-        parts=tuple(
-            profile_projection(key, profiles)
-            for key, profiles in dict(part_profiles or {}).items()
-        ),
-    )
-
-
-def materialize_profiles(
-    projection: DerivedPartProfileProjection,
-) -> dict[str, list[Any]]:
-    """Return a detached mutable copy for the existing workspace mutation API."""
-    value = _thaw(projection.profiles)
-    if not isinstance(value, dict):
-        raise TypeError("profile projection did not materialize to a mapping")
-    return value
-
-
-def materialize_features(
-    projection: DerivedPartFeatureProjection,
-) -> list[Any]:
-    """Return a detached mutable copy for the existing workspace mutation API."""
-    value = _thaw(projection.features)
-    if not isinstance(value, list):
-        raise TypeError("feature projection did not materialize to a sequence")
-    return value
-
-
-def materialize_namespace(
-    projection: DerivedPartNamespaceProjection,
-) -> dict[str, dict[str, list[Any]]]:
-    """Materialize one namespace only at the workspace mutation boundary."""
-    return {
-        item.part_key: materialize_profiles(item)
-        for item in projection.parts
-    }
+__all__ = [
+    "FrozenMappingValue",
+    "FrozenSequenceValue",
+    "DerivedPartProfileProjection",
+    "DerivedPartFeatureProjection",
+    "DerivedPartNamespaceProjection",
+    "DerivedPartProjectionRequest",
+    "DerivedPartRequestAssemblyInput",
+    "DerivedPartSyncPlan",
+    "build_derived_part_projection_request",
+    "build_derived_part_sync_plan",
+    "profile_projection",
+    "feature_projection",
+    "namespace_projection",
+    "materialize_profiles",
+    "materialize_features",
+    "materialize_namespace"
+]
