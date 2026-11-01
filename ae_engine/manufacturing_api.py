@@ -115,6 +115,7 @@ from .box_body_editor_readback import (
 from .operator_fold_editor import (
     OperatorFoldMirrorPlan, commit_operator_fold_editor_rows,
     plan_operator_fold_mirror_target,
+    operator_fold_editor_add_segment, operator_fold_editor_remove_segment,
 )
 from .box_body_editor_readback import (
     formed_box_body_fw_widths,
