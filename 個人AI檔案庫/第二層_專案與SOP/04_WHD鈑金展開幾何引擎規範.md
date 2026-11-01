@@ -172,6 +172,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.normalize_authoritative_door_state`／`normalize_project_snapshot_authority` 將 `phase6_project_file` 原本自算的已保存 Door Layout、Handle edge、內門共享 Divider stable ID 重綁、derived frame／finished size 清除、Receiving 各 Set/Bay Door source 與 Quantity state 正規化移回 Engine。原 Phase6 只保留 .p6fold JSON／Feature codec、schema 驗證、檔案路徑與 GUI 操作。Save 與 Reload 呼叫同一公開 API，拒絕不合法的實體來源；多 Bay legacy aliases 只作記憶體相容投影，FinalScene 仍由正式來源重解算而不進專案保存。這是 source authority 責任移轉，不更改已確認的 Factory、Topology、Registry、CUTTING／BEND／DXF 或額外授權任何製造能力；#2517 OPEN。
 
+### #2517 受電箱 EAR 單／雙層組合 3D 真實板材來源 Engine API（2026-11-01）
+
+`manufacturing_api.resolve_receiving_ear_assembly_display_skins` 將原 `phase6_final_scene_view._formed_ear_assembly_preview` 的 EAR 完整物理 owner（每層左／右，共 2／4 片）、canonical BasePlate parent ID、來源 T2／BEND23 是否真正驗證、任何 weld／MFG-ready 旗標拒絕統一交還 Engine；由原 `resolve_receiving_tier_ear_mating_xy` 與 `build_receiving_formed_fixing_plate_skins` 唯一製造來源解算。另由 `receiving_ear_assembly_display_source_key` 提供既有來源+DXF SHA 快取指紋，GUI 僅維持顯示快取、固定片開關與錯誤提示，不再自行決定物理來源真假。此為 `DISPLAY_ONLY`，不是側板 UV MARKING、焊接接觸、成套 MFG-2 或 DXF 製造放行；未改現存 source DXF、CUTTING／BEND、Save→Reload 或現有 T2／BEND23 幾何，#2517 持續 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
