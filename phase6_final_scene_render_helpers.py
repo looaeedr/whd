@@ -353,33 +353,13 @@ class Phase6FinalSceneRenderHelpersMixin:
     def _draw_receiving_ear_side_markings(
         self, formed_ear_skins, *, visible_side_piece_keys=None,
     ):
-        """Show base-lower/ear-upper positioning with two 20-mm fold hints.
+        """Only paint source-verified Engine world segments for Receiving EAR."""
+        from ae_engine import manufacturing_api
 
-        Keep the bottom open and preserve actual folded EAR mesh and BEND.
-        These strokes are source-referenced overlay, not bent-part dimensions.
-        """
-        from ae_engine.receiving_fixed_plate_side_contact import (
-            derive_receiving_ear_side_contact_from_formed_skin,
-            receiving_ear_positioning_world_segments,
+        segments = manufacturing_api.project_receiving_ear_side_marking_segments(
+            formed_ear_skins, visible_side_piece_keys=visible_side_piece_keys,
         )
-
-        rows = tuple(formed_ear_skins or ())
-        if not rows:
-            return ()
-        if len(rows) not in (2, 4) or len({r.part_id for r in rows}) != len(rows):
-            raise ValueError("EAR_ASSEMBLY_MARKING_SOURCE_OWNER_COUNT_INVALID")
-        allowed = (
-            {"box_body:left_side", "box_body:right_side"}
-            if visible_side_piece_keys is None
-            else set(visible_side_piece_keys)
-        )
-        segments = []
-        for formed in rows:
-            receipt = derive_receiving_ear_side_contact_from_formed_skin(formed)
-            if receipt.side_piece_id not in allowed:
-                continue
-            segments.extend(receiving_ear_positioning_world_segments(receipt))
-        # Open-bottom top + short fold hints, never contact rectangle border.
+        # Source-verified side positioning, NOT manufacturing UV MARKING.
         ax = self.renderer.ax3d
         if callable(getattr(ax, "plot", None)):
             for a, b in segments:
@@ -388,7 +368,7 @@ class Phase6FinalSceneRenderHelpersMixin:
                     color="#facc15", linewidth=3.0,
                     linestyle="-", alpha=1.0, zorder=30,
                 )
-        return tuple(segments)
+        return segments
 
     def _resolved_finished_dimensions(self, request, triangles):
         return resolve_operator_finished_dimensions(
