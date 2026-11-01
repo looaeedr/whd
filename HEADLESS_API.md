@@ -899,3 +899,24 @@ overwriting. Neither filename nor cached readiness can grant whole MFG-2,
 EAR, PAD or complete-cabinet manufacturing. The old GUI quantity module
 and NFB pair output DTO remain compatible imports that alias Engine
 objects; no second manufacture/quantity formula exists in GUI.
+
+
+## Receiving source-current NFB BasePlate PART_ONLY public Engine API (#2517)
+
+`manufacturing_api.nfb_verification_geometry_changed(current, verified)`,
+`prepare_verified_receiving_nfb_base_plate(bundle, *, layout, current_snapshot,
+base_spec, index_path, profile_path)`, and
+`export_verified_receiving_nfb_base_plate(bundle, *, layout, current_snapshot,
+base_spec, output_directory, index_path, profile_path)` now own the historical
+Receiving NFB original physical BasePlate source checks and real PART_ONLY DXF
+operation. The Engine revalidates a signed live submitted Set/Bay/version,
+original indexed DXF SHA, exact saved NFBConfig, physical BasePlatePartSpec and
+inner-door identity, original upper profile handle/revision, lower fixing
+reference and real source-derived holes, before using the existing geometry
+composer and atomic DXF writer. The previous GUI base action is a public
+Engine API re-export, and the shared geometry-staleness check used by the
+inner-door GUI export is also the same Engine function. Existing three Base
+Plate bend patterns and positive/negative saved DXF tests stay unchanged.
+An individual BasePlate remains **PART_ONLY**, not complete MFG-2,
+manufacturing-ready EAR weld, PAD or whole-cabinet release. No new numeric
+source, CUTTING formula or DXF certification is introduced.

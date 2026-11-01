@@ -25,23 +25,7 @@ from ae_engine.receiving_switch_model_catalog import INDEX_PATH
 from ae_engine.receiving_nfb_editable_source import resolve_editable_nfb_source_profile
 
 
-_GEOMETRY_KEYS = (
-    "model", "w", "h", "d", "t", "fw", "door_gap_w", "door_gap_h",
-    "inner_doors", "door_layout_columns", "box_body_profile",
-    "multi_door_enabled", "door_layout_scope",
-)
-
-
-def nfb_verification_geometry_changed(current: Mapping[str, object],
-                                      verified: Mapping[str, object]) -> bool:
-    """Shared read-only geometry fingerprint for UI readiness and real DXF.
-
-    A status preview must invalidate the SAME fields as the manufacturing
-    export action, including door gaps/flange and active layout scope.
-    """
-    if not isinstance(current, Mapping) or not isinstance(verified, Mapping):
-        raise TypeError("NFB verified geometry requires two snapshots")
-    return any(current.get(key) != verified.get(key) for key in _GEOMETRY_KEYS)
+from ae_engine.manufacturing_api import nfb_verification_geometry_changed
 
 
 def export_verified_receiving_nfb_inner_door(
