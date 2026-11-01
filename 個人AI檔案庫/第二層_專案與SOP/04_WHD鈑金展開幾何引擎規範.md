@@ -679,3 +679,18 @@ Engine 按既有規則保留未操作格位的舊 Feature、允許已操作格�
 隔離的 `part_features`。GUI 不再解析 `door_cN_rN` 或決定物理 Feature
 合併；既有 Save→Reload schema、2D/3D/CUTTING/DXF 工廠不更改。
 不新增機械規則與 DXF 製造授權，#2517 維持 OPEN。
+
+
+### #2517 FinalScene Fold Profile 3D 座標／BEND span 公開 Engine API（2026-11-01）
+
+`manufacturing_api.fold_profile_base_index`、`fold_profile_geometry`、
+`fold_profile_bend_mask`、`fold_profile_map_with_guides`、
+`fold_profile_map`、`fold_profile_flat_map` 統一經既有
+`ae_engine.assembly_geometry_folded_mesh` 執行材長展開累計、語意 W
+基準段、折後 3D 座標與有限 BEND span 的每點 fold mask。
+`phase6_final_scene_projection` 六個舊入口只相容委派；
+不再在 GUI 保留一套 angle／sin／cos／Fold 長度演算。
+既有 Receiving source-owned `formed_length` 僅影響相對應折後 leg，
+展開 CUTTING／BEND 保持物理料長；未有 BEND guide 的舊 profile
+仍依原有 fallback 判斷。完整 FinalScene／3D 組合採同一 Engine
+權威，不新增機械公式或 CUTTING／DXF 認證；#2517 保持 OPEN。
