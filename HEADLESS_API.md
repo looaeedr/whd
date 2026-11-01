@@ -6,6 +6,18 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Real part parent identity for operator navigation
+
+`manufacturing_api.project_physical_part_navigation_rows(available_parts)` 依
+既有物理 Part ID authority 回傳 immutable `(part_key, parent_key, depth)`
+序列，保留原始 Workspace 順序：只有實際有 `box_body` aggregate
+時才掛入物理側／背板；Receiving 雙層底板與各層左右固定耳依真正
+`base_plate:nfb_layer:0/1` owner 歸屬；缺 owner 不假造父板。
+GUI `phase6_part_navigation.project_hierarchy` 只建立操作導覽行、
+繁中標籤與選取反應，不再自行解析製造身份字串。
+本 API 不核准 CUTTING／BEND／DXF，也不新增製造板件。
+
+
 ## #2517 Receiving manufactured source-aware cache history plan
 
 `manufacturing_api.plan_manufacturing_cache_source(snapshot, workspace_structure=None)`

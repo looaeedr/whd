@@ -297,6 +297,7 @@ from .endcap_assembly_resolution import (
 from .manufacturing_cache_signature import (
     canonical_manufacturing_signature_value, manufacturing_state_fingerprint,
 )
+from .physical_part_navigation import project_physical_part_navigation_rows
 from .physical_part_identity import (
     is_box_body_physical_piece_key, is_derived_physical_part_key,
     door_display_part_role,

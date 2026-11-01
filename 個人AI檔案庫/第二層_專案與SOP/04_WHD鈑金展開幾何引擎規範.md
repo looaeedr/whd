@@ -237,6 +237,10 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 
 `manufacturing_api.plan_manufacturing_cache_source(snapshot, workspace_structure)` 將原 `phase6_manufacturing_adapter._cache_service_for_app` 中 Receiving Set/Bay cache 容量、有效 BoxBody 結構白名單、三片式專用左右／後板來源包含判定交給 Engine。唯一來源仍為 `box_body_structure_state.BoxBodyStructureType` 及 `manufacturing_baseline_policy.receiving_baseline_source_stamp`（真實 DXF fingerprint／reload generation）；未知結構不復用原製造結果，GUI 只接實際資源 Context 與管理 bounded cache。非 Receiving 模式維持單份快取，正式製造／DXF 閘門不變，#2517 OPEN。
 
+### #2517 真實板件 BoxBody／Receiving 分層固定耳父子身份 Engine API（2026-11-02）
+
+`manufacturing_api.project_physical_part_navigation_rows(available_parts)` 將原 `phase6_part_navigation.project_hierarchy` 中 BoxBody 實體子板、受電箱 BasePlate 單／雙層與四片固定耳的 owner 解析收回無 Tk Engine，沿用 `physical_part_identity.is_box_body_physical_piece_key` 與現行 NFB tier identity。只消費 Workspace 已存在的板件，不創造父板，不更動操作者清單順序；GUI 僅轉 `NavigationRow` 顯示及管理 selection。此為身份只讀投影，非製造放行，#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
