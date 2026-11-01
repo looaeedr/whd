@@ -413,27 +413,25 @@ class Phase6BendingUI(original.BendingUI):
         self._mark_workspace_dirty()
         self.save()
         active_dict = self.get_active_dict()
-        segs = active_dict[self._active_profile_key(active_dict)]
-        if pos == 0:
-            segs.insert(0, {"angle": 90, "len": 50, "ui_len_add": getattr(self.state, "phase6_thickness", 2.0)})
-        else:
-            if segs:
-                segs[-1]["angle"] = -90
-            segs.append({"len": 50})
-        apply_outside_dimension_compensation(segs, getattr(self.state, "phase6_thickness", 2.0))
-        self.render(); self.update_cb()
+        active_key = self._active_profile_key(active_dict)
+        material = manufacturing_api.add_operator_fold_editor_rows(
+            active_dict[active_key], pos,
+            getattr(self.state, "phase6_thickness", 2.0),
+        )
+        active_dict[active_key] = material
+        # Existing operator source cache remains paired with the edited X Fold.
+        vault_key = getattr(self.state, "phase6_fold_ui_vault_key", None)
+        vault_profiles = getattr(self.state, "profiles_vault", None)
+        if vault_key and active_key == "X" and vault_profiles is not None:
+            vault_profiles[vault_key] = material
+        self.render()
+        self.update_cb()
 
     def remove(self, idx):
         self._mark_workspace_dirty()
         self.save()
         active_dict = self.get_active_dict()
-        segs = active_dict[self._active_profile_key(active_dict)]
-        if not (0 <= idx < len(segs)):
-            return
-        if not can_remove_segment(segs[idx]):
-            return
-
-        remove_indexes = [idx]
+        active_key = self._active_profile_key(active_dict)
         owner = getattr(self.update_cb, "__self__", None)
         symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
         is_symmetric_box = (
@@ -441,41 +439,20 @@ class Phase6BendingUI(original.BendingUI):
             and bool(getattr(self.state, "symmetric", False))
             and getattr(self.state, "phase6_fold_ui_vault_key", None) == "箱身"
         )
-        if is_symmetric_box:
-            pair = {
-                "zl1": "zr1", "zr1": "zl1",
-                "zl2": "zr2", "zr2": "zl2",
-                "fw_left": "fw_right", "fw_right": "fw_left",
-                "d_left": "d_right", "d_right": "d_left",
-            }
-            source_key = str(segs[idx].get("phase6_key") or "")
-            if source_key in pair:
-                target_key = pair[source_key]
-                mirror_idx = next(
-                    (i for i, seg in enumerate(segs) if str(seg.get("phase6_key") or "") == target_key),
-                    None,
-                )
-            elif source_key:
-                mirror_idx = None
-            else:
-                candidate_idx = len(segs) - 1 - idx
-                if (
-                    0 <= candidate_idx < len(segs)
-                    and not str(segs[candidate_idx].get("phase6_key") or "")
-                ):
-                    mirror_idx = candidate_idx
-                else:
-                    mirror_idx = None
-            if mirror_idx is not None and mirror_idx != idx:
-                if not (0 <= mirror_idx < len(segs)) or not can_remove_segment(segs[mirror_idx]):
-                    return
-                remove_indexes.append(mirror_idx)
+        material = manufacturing_api.remove_operator_fold_editor_rows(
+            active_dict[active_key], idx,
+            getattr(self.state, "phase6_thickness", 2.0),
+            symmetric_box_body=is_symmetric_box,
+        )
+        if material is None:
+            return
+        active_dict[active_key] = material
+        vault_key = getattr(self.state, "phase6_fold_ui_vault_key", None)
+        vault_profiles = getattr(self.state, "profiles_vault", None)
+        if vault_key and active_key == "X" and vault_profiles is not None:
+            vault_profiles[vault_key] = material
+        self.render()
+        self.update_cb()
 
-        for remove_idx in sorted(set(remove_indexes), reverse=True):
-            segs.pop(remove_idx)
-        if segs and "angle" in segs[-1]:
-            del segs[-1]["angle"]
-        apply_outside_dimension_compensation(segs, getattr(self.state, "phase6_thickness", 2.0))
-        self.render(); self.update_cb()
 
 
