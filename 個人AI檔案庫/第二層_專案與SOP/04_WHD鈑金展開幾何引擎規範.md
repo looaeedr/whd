@@ -44,6 +44,10 @@ whd_schema: WHD_DOC_META_V1
 
 因此 04 的責任是回答「engine 現在怎麼分層、公開哪些 API、各 authority 怎麼接起來」，不是把 Registry JSON 內容重新抄一份。
 
+### #2517 組合面板 BoxBody 子板件實體尺寸與截角來源 Engine API（2026-11-02）
+
+`manufacturing_api.project_box_body_assembly_panel_piece_rows(render_data)` 從**已解算的真實** `BoxBodyPartRenderData.pieces` 生成唯讀 `BoxBodyAssemblyPanelPiece`：現行 `box_body:<role>`／歷史明確 `piece.key`、成形包外 W/H、展開料 W/H 以及與該片同源的 `source_render_data`。這是現有 Engine BoxBody source readback 的操作展示投影，不自算幾何、折彎、截角或另建板件。 `phase6_assembly_presentation.project_box_body_piece_rows` 只附顯示 label；`phase6_assembly_panel.refresh_box_body_piece_info` 直接使用同一份 source 作既有 corner 文字，不再從 UI role 字串反查物理板件。已核准的 Save→Reload、實體 2D/3D／CUTTING／DXF 與 Registry 權威不變；不得由此 API 宣稱加工放行。#2517 OPEN。
+
 ### #2517 受電箱內門 Confirm All Quantity 來源預檢 Engine 公開 API（2026-11-02）
 
 `manufacturing_api.preview_quantity_inner_door_confirm(snapshot, quantity_model, part_key, features, staged_config, *, include_missing_heights=False)` 是原有 Single 設定與 3D 直接內門開孔編輯器共用的無 Tk、detached Engine 預檢。Family `validate_door_config`、共同箱體 `update_common_box`、真實 CSV 孔 `committed_csv_nfb_config` 與 Quantity 版本 `preview_quantity_nfb_submission` 仍由原 Engine owner 唯一驗證；返回 `(projected_snapshot, typed_nfb_config_or_none)`。兩個 GUI 僅在整體預檢成功後寫入 live version、project snapshot、workspace 與重畫；沒有 CSV NFB 只保存設定與 native Features，不能冒稱提交 NFB。為保留既有 Save→Reload，直接 3D 入口明確以 `include_missing_heights=True` 清除缺省層高，Single 設定入口保留舊高度。錯誤不得污染已提交來源；本操作不修改金庫型、物理 CUTTING、DXF 或取得製造放行，#2517 仍 OPEN。
