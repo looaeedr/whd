@@ -139,6 +139,11 @@ def dispatch_manufacturing_integration(
         )
 
     if operation == "export":
+        # Scope of this refusal: source-identity-only integration, NOT an
+        # authorization check for the established in-process generate_part /
+        # verified resolved-part manufacturing APIs. A trusted typed request
+        # must call those APIs directly and obey their own physical/Registry
+        # checks; never use this source-only status as a global Family veto.
         return ManufacturingIntegrationResponse(
             operation=operation, family=family_reg.canonical_name,
             source=request.source, family_implemented=True,
