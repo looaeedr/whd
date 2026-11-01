@@ -1345,6 +1345,21 @@ permission. Actual UV/material and safety rejection remain in
 3D source and stale-primary cases and actual Save→Reload CHECK-only DXF
 regression remain the acceptance evidence.
 
+## Receiving EAR assembled SIDE positioning world segments (#2517)
+
+`manufacturing_api.project_receiving_ear_side_marking_segments(formed_ear_skins,
+*, visible_side_piece_keys=None)` exposes read-only 3D positioning strokes
+from the actual submitted Receiving EAR folded T2/BEND23 world skins.
+The Engine validates two/four unique physical EAR owners and every source
+skin before selecting visible physical Box Body sides; outputs an immutable
+tuple of three world-space segments per visible EAR (one base-lower
+installation line and two 20-mm short visual fold hints).
+Empty sources or hidden sides return an empty tuple. Invalid sources fail
+closed. The GUI only paints these verified segments.
+
+This is DISPLAY ONLY; it does not create side UV MARKING or approve welding,
+manufacturing, NFB, CUTTING, DXF or additional bend compensation.
+
 ## Receiving settings physical world XY outline API (#2517)
 
 `manufacturing_api.project_solid_mesh_xy_outline(triangles)` consumes an already-resolved solid 3D mesh, uses Engine's canonical physical feature-edge extractor and returns deterministic world XY line pairs (five decimal places, duplicate / zero-length edges omitted). This is a headless, read-only 2D inspection projection; the WHD GUI owns only canvas rendering and selection. It does not create, validate or certify CUTTING, BEND, DXF, NFB, EAR or PAD manufacturing data. Legacy GUI assembly mesh orchestration is a separate #2517 migration.
