@@ -16,6 +16,7 @@ from .door_layout_numeric_transitions import (
 )
 
 from .manufacturing_api import (
+    validate_operator_manufacturing_quantity_context,
     canonical_manufacturing_request_part_keys,
     project_assembly_collision_display_audit, collision_part_display_name,
     restore_unrelieved_endcap_material, restored_endcap_relief_delta,
@@ -234,6 +235,7 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "validate_operator_manufacturing_quantity_context",
     "canonical_manufacturing_request_part_keys",
     "project_assembly_collision_display_audit", "collision_part_display_name",
     "restore_unrelieved_endcap_material", "restored_endcap_relief_delta",

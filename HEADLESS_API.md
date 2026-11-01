@@ -6,6 +6,19 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Quantity live manufacturing Feature legality Engine gate
+
+`manufacturing_api.validate_operator_manufacturing_quantity_context(input_snapshot, live_workspace_snapshot=None)`
+僅在 `active_mode=quantity` 時，從 Workspace 的 `quantity`／
+`receiving_quantity_box` 即時來源覆蓋同名舊欄位，再交由原
+`ae_engine.receiving_quantity_box.require_valid_quantity_features` 檢查
+所有版本 Head/Tail finished-face Features。越界或失效仍拋出原
+`不能輸出 DXF：...` 拒絕；其他模式不做 Quantity 檢查。
+GUI 建 request 與 cache hit 前都只呼叫此公開 API，不再直接讀取
+Engine 低階模組或自行合併製造特徵。本入口不更動 2D/3D、尺寸、
+原始 Save→Reload、DXF 製造規則或版本資料。
+
+
 ## #2517 Canonical RAW manufacturing request physical-part inventory
 
 `manufacturing_api.canonical_manufacturing_request_part_keys(snapshot, available_parts)`
