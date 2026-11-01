@@ -6,6 +6,17 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Receiving EAR 真實單／雙層組合 3D 顯示來源
+
+`manufacturing_api.receiving_ear_assembly_display_source_key(snapshot)` 供 GUI
+根據既有 T2 來源 DXF SHA 與目前 snapshot 取得顯示快取鍵；
+`resolve_receiving_ear_assembly_display_skins(snapshot)` 使用原 Engine
+真實 EAR 2／4 片 T2 BEND23 成形面，驗證唯一 physical part ID、
+Base Plate 層別歸屬與 source BEND，對任何焊接完成／製造就緒旗標拒絕。
+`phase6_final_scene_view` 不再自行進行物理來源驗證。此結果僅供
+3D `DISPLAY_ONLY`，不能當成實體側板 UV MARKING、焊接／DXF／MFG-2 放行。
+
+
 ## #2517 Project Save／Reload Engine authority（同程序 Python API）
 
 `ae_engine.manufacturing_api.normalize_authoritative_door_state(snapshot)` 及

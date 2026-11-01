@@ -509,9 +509,20 @@ def test_issue1817_unknown_cross_bay_dependencies_never_trim_far_dimensions():
             assert stable_fingerprint(ka) != stable_fingerprint(kb), (
                 "unknown user cross-Bay dependency incorrectly reused an old FinalScene"
             )
-            assert ka == a and kb == b, (
-                "unknown user-defined dependency must use full authoritative key"
-            )
+            # Operator panel labels and the next-P allocator are persisted
+            # inputs but never physical geometry. All other unknown cross-Bay
+            # authority must remain fully present in the preview key.
+            def without_display_labels(source):
+                physical = deepcopy(source)
+                receiving = physical["receiving_layout"]
+                receiving.pop("next_panel_number", None)
+                for group in receiving["sets"]:
+                    for bay in group["bays"]:
+                        bay.pop("panel_name", None)
+                return physical
+
+            assert ka == without_display_labels(a)
+            assert kb == without_display_labels(b)
 
 
 def test_issue1817_preview_key_discards_only_recomputed_selected_bay_joint_locks():

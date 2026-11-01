@@ -32,6 +32,10 @@ from .door_layout_numeric_transitions import (
     DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
 )
 from .dxf_serialization import save_scene_dxf
+# Operator panel naming: public input boundary, independent of geometry.
+from .panel_naming import normalize_panel_name, set_cabinet_panel_name
+from .receiving_layout import rename_receiving_panel
+
 from .integration_api import (
     ManufacturingIntegrationRequest, ManufacturingIntegrationResponse,
     ManufacturingSourceIdentity, dispatch_manufacturing_integration,
@@ -125,6 +129,9 @@ from .receiving_quantity_versions import (
     SCHEMA, SCHEMA_V2, SCHEMA_V3, QUANTITY_MODE, SET_BAY_MODE,
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
     normalize_quantity_snapshot, quantity_only_change,
+)
+from .receiving_ear_display_sources import (
+    receiving_ear_assembly_display_source_key, resolve_receiving_ear_assembly_display_skins,
 )
 from .project_snapshot_state import (
     normalize_authoritative_door_state, normalize_project_snapshot_authority,
