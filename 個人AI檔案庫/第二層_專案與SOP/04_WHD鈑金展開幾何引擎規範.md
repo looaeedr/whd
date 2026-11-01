@@ -201,6 +201,10 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 
 `manufacturing_api.project_assembly_collision_display_audit` 接管原 FinalScene GUI 的實體 BoxBody piece／內門框／Head Tail 組合 world mesh 來源、visible keys 選取及 `audit_all_physical_part_pairs` 呼叫。原 Certified Registry Relief 與 `ASSEMBLY_COLLISION_MISSING_VISIBLE_PARTS` 等 fail-closed 規則保持既有 Engine 唯一判準；GUI 只快取和描繪未證實交叉。另由 `manufacturing_api` 公開既存 `restore_unrelieved_endcap_material`、`restored_endcap_relief_delta`、`thicken_triangle_surface`、`MeshInterferenceDiagnostic`、`collision_part_display_name`，Phase6 renderer 不再直接 import 底層幾何／碰撞分類。此為 3D 顯示診斷 API，不修改全箱 2D／3D／Save→Reload／正式 DXF、亦不新增製造認證；#2517 OPEN。
 
+### #2517 Manufacturing Request RAW 實體板件來源及 Set/Bay 擁有權 Engine API（2026-11-01）
+
+`manufacturing_api.canonical_manufacturing_request_part_keys(snapshot, available_parts)` 將原 `phase6_manufacturing_adapter._canonical_part_keys` 中 Receiving 已提交 NFB 底板來源的缺件補齊、雙層四片固定耳唯一 owner 身份重建、衍生 BoxBody／tier BasePlate／PAD 非 RAW ID 過濾移回 Engine；沿用 `receiving_base_plate_values`、`receiving_base_fixing_plate_previews` 與 `physical_part_identity` 的原有判準及錯誤處理。GUI 不再直接讀取低階來源模組，也不自推板件身份。Engine 回傳同順序 immutable RAW PartSpec key tuple，非新的 CUTTING/BEND/DXF/焊接製造認證；#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。

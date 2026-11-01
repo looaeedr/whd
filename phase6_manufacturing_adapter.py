@@ -412,71 +412,11 @@ def _finished_dimensions_for_part(app: Any, part_key: str, provider=None) -> Any
 
 
 def _canonical_part_keys(app: Any) -> tuple[str, ...]:
+    """Only adapt operator selection to canonical Engine RAW PartSpec IDs."""
     workspace = getattr(app, "designer_workspace", None)
-    values = tuple(getattr(workspace, "available_parts", ()) or ())
-    snapshot = getattr(app, "_phase6_input_snapshot", None)
-    # A saved Receiving v3 may have an old workspace existing_parts list
-    # without BasePlate even while its current submitted NFB CSV + actual
-    # original physical source prove that BasePlate is required. Register
-    # exactly that ONE physical root source in the manufacturing request;
-    # the canonical two-tier expander owns its replacement by tier blanks.
-    # This does NOT mutate existing_parts, invent a missing blank, or grant
-    # manufacturing readiness. No submitted/unique original -> no part.
-    if (isinstance(snapshot, Mapping)
-            and snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("nfb_config_submitted") is True
-            and "base_plate" not in values):
-        from ae_engine.receiving_base_plate_config import receiving_base_plate_values
-        try:
-            verified_source = receiving_base_plate_values(snapshot)
-        except (ValueError, TypeError, KeyError):
-            verified_source = None
-        if verified_source is not None:
-            values = values + ("base_plate",)
-    if (isinstance(snapshot, Mapping)
-            and snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("nfb_config_submitted") is True
-            and isinstance(snapshot.get("nfb_config"), Mapping)
-            and snapshot["nfb_config"].get("layer_count") == 2):
-        # Live layout may still list two ORIGINAL EAR parts after the native
-        # hole editor commits a two-tier NFB. Their current owner is NOT the
-        # legacy base_plate: it has been replaced by distinct tier bases.
-        # Re-derive authorized IDs from the actual source model/Bay and
-        # replace *only* these stale fixed-plate entries in the manufacturing
-        # request, before any 2D/3D rendering. No invented geometry or release.
-        from ae_engine.receiving_base_fixing_plate import (
-            receiving_base_fixing_plate_previews,
-        )
-        try:
-            current = tuple(receiving_base_fixing_plate_previews(
-                snapshot, available_parts=("base_plate",),
-            ))
-        except ValueError as exc:
-            # Switching/reloading a saved Bay may briefly carry a stale
-            # root NFB alias before its committed per-Bay identity is
-            # projected. Never reintroduce unverified EAR sheets here after
-            # the BasePlate guard above rejected that source. Other geometry
-            # faults still surface rather than being hidden as empty parts.
-            if str(exc) != "EAR_Z_NFB_SOURCE_IDENTITY_DRIFT":
-                raise
-            current = ()
-        if len(current) == 4 and len({row.part_id for row in current}) == 4:
-            values = tuple(
-                part for part in values
-                if not str(part).startswith("base_plate:fixing_plate:")
-            ) + tuple(row.part_id for row in current)
-    return tuple(
-        str(key)
-        for key in values
-        if str(key or "")
-        and not is_box_body_physical_piece_key(key)
-        # Two tier Base Plates are generated from the single source root
-        # inside the canonical manufacturing resolver. They are real 2D
-        # navigation identities but not additional RAW source inputs.
-        and not str(key).startswith("base_plate:nfb_layer:")
-        # User-selectable PAD 2D is source-backed but an unreleased
-        # preview, never a separate RAW manufacturing PartSpec input.
-        and not str(key).startswith("nfb_pad:")
+    return manufacturing_api.canonical_manufacturing_request_part_keys(
+        getattr(app, "_phase6_input_snapshot", None),
+        tuple(getattr(workspace, "available_parts", ()) or ()),
     )
 
 
