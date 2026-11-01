@@ -7,6 +7,7 @@ import pytest
 from ae_engine import manufacturing_api, resolve_receiving_nfb_assembly_parts
 import ae_engine.receiving_nfb_assembly as owner
 import ae_engine.receiving_nfb_layer_physical_parts as layers
+import ae_engine.receiving_nfb_committed_final_scene as committed
 import phase6_manufacturing_service as service
 
 
@@ -35,7 +36,7 @@ def test_public_engine_runs_existing_physical_stages_in_exact_order(
         return final
 
     monkeypatch.setattr(owner, "expand_receiving_nfb_layer_parts", expand)
-    monkeypatch.setattr(owner, "apply_committed_csv_v5_to_canonical_parts", apply)
+    monkeypatch.setattr(committed, "apply_committed_csv_v5_to_canonical_parts", apply)
     snapshot = {"model": model, "nfb_config_submitted": submitted}
     actual = resolve_receiving_nfb_assembly_parts(snapshot, (root,))
     assert manufacturing_api.resolve_receiving_nfb_assembly_parts is resolve_receiving_nfb_assembly_parts
@@ -52,7 +53,7 @@ def test_committed_csv_errors_reject_without_preparing_fake_scene(monkeypatch):
     def fail(snapshot, parts):
         assert parts == first
         raise ValueError("NFB_COMMITTED_CSV_REAL_BASE_PART_MISSING")
-    monkeypatch.setattr(owner, "apply_committed_csv_v5_to_canonical_parts", fail)
+    monkeypatch.setattr(committed, "apply_committed_csv_v5_to_canonical_parts", fail)
     with pytest.raises(ValueError, match="NFB_COMMITTED_CSV_REAL_BASE_PART_MISSING"):
         resolve_receiving_nfb_assembly_parts(
             {"model": "受電箱", "nfb_config_submitted": True}, first,

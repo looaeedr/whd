@@ -7,7 +7,6 @@ PartSpecs and committed CSV V5 proof remain the sole numeric source of truth.
 from __future__ import annotations
 
 from .receiving_nfb_layer_physical_parts import expand_receiving_nfb_layer_parts
-from .receiving_nfb_committed_final_scene import apply_committed_csv_v5_to_canonical_parts
 
 
 def resolve_receiving_nfb_assembly_parts(snapshot, assembly_parts):
@@ -19,5 +18,10 @@ def resolve_receiving_nfb_assembly_parts(snapshot, assembly_parts):
     parts = tuple(expand_receiving_nfb_layer_parts(snapshot, assembly_parts))
     if (snapshot.get("model") in ("受電箱", "RECEIVING")
             and snapshot.get("nfb_config_submitted") is True):
+        # The CSV proof module depends on public manufacturing_api. Import
+        # only after that API has initialized and a submitted source is valid.
+        from .receiving_nfb_committed_final_scene import (
+            apply_committed_csv_v5_to_canonical_parts,
+        )
         parts = tuple(apply_committed_csv_v5_to_canonical_parts(snapshot, parts))
     return parts
