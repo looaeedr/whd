@@ -129,6 +129,9 @@ from .physical_sheet_editor_context import (
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .receiving_endcap_feature_preview import receiving_endcap_feature_preview_shapes
 from .receiving_ear_side_preview import project_receiving_ear_side_piece_2d_preview
+from .receiving_single_bay_door_snapshot import (
+    project_receiving_single_bay_door_controls,
+)
 from .receiving_nfb_verified_scope import (
     NfbCsvVerifiedPhysicalSite, NfbCsvVerifiedExportScope,
     NfbCsvVerifiedSelectorProof, resolve_verified_csv_v5_export_scope,
@@ -1159,6 +1162,28 @@ from .receiving_nfb_base_partial_export import (
     nfb_verification_geometry_changed,
     prepare_verified_receiving_nfb_base_plate,
     export_verified_receiving_nfb_base_plate,
+)
+
+
+# #2517: Engine is the only Receiving NFB real partial inner-door exporter.
+from .receiving_nfb_inner_door_partial_export import (
+    export_verified_receiving_nfb_inner_door,
+)
+
+
+# #2517: Receiving original-source / CSV V5 pair PART_ONLY actual DXF ownership.
+# Existing GUI entry re-exports these typed Engine operations without manufacture.
+from .receiving_nfb_pair_export import (
+    export_verified_receiving_nfb_door_base_pair,
+    NfbCsvPairedPartOnlyDxf, NfbCsvTwoTierPartOnlyDxf,
+    export_current_csv_nfb_door_base_pair,
+)
+
+
+# #2517: read-only Receiving NFB physical-manifest safety before GUI disclosure.
+from .receiving_nfb_manifest_validation import (
+    validate_receiving_nfb_manifest_view,
+    validate_receiving_nfb_highlighted_manifest,
 )
 
 # Canonical Engine owner for Door/BasePlate/Divider/InnerDoor physical namespaces,
