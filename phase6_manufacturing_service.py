@@ -31,6 +31,7 @@ from ae_engine.contracts import (
 from ae_engine.manufacturing_api import (
     replay_resolved_endcap_render, resolve_live_cabinet_family,
     endcap_relief_transaction_committable,
+    solve_endcap_assembly_relief, endcap_relief_solution_diagnostic,
 )
 from ae_engine.joint_marking_policy import resolve_joint_marking_foundation_status
 from ae_engine.receiving_joint_marking import (
@@ -62,7 +63,6 @@ from phase6_manufacturing_geometry import (
     _phase6_request_profiles_for_material,
     _phase6_resolve_explicit_joint_reliefs,
     _phase6_resolve_family_divider_reliefs,
-    _phase6_solution_is_committable,
 )
 
 
@@ -196,46 +196,26 @@ def resolve(request):
             None,
         )
         if body_part is not None:
-            from ae_engine.assembly_collision import (
-                solve_world_backprojected_endcap_relief,
-            )
-
             by_key = {part.part_key: part for part in parts}
             for key in required:
                 part = by_key[key]
                 try:
-                    solution = solve_world_backprojected_endcap_relief(
-                        box_body_render_data=body_part.render_data,
-                        endcap_render_data=part.render_data,
-                        box_body_x_profile=body_part.x_profile,
-                        endcap_x_profile=part.x_profile,
-                        endcap_y_profile=part.y_profile,
+                    solution = solve_endcap_assembly_relief(
+                        body_part, part,
                         finished_dimensions=dims,
-                        endcap_placement=part.placement,
                         sheet_thickness=thickness,
                         clearance=clearance,
                         assembly_intent=assembly_intent_value(
                             request.assembly_intent
                         ),
                         assembly_graph=resolved_joint_graph,
-                        endcap_part=key,
                         cabinet_family=_cabinet_family(request),
                         allow_3d_fallback=fallback_enabled,
-                        assembly_joint=None,
                     )
                     solutions[key] = solution
-                    if not bool(getattr(solution, "verified", False)):
-                        if _phase6_solution_is_committable(solution):
-                            errors[key] = (
-                                "已認證公式與立體影子驗證衝突；正式結果仍採已認證公式"
-                            )
-                        else:
-                            reason = dict(
-                                getattr(solution, "shadow_validation", {}) or {}
-                            ).get("reason")
-                            errors[key] = str(
-                                reason or "3D 回折驗證仍有材料穿透"
-                            )
+                    diagnostic = endcap_relief_solution_diagnostic(solution)
+                    if diagnostic is not None:
+                        errors[key] = diagnostic
                 except Exception as exc:
                     errors[key] = str(exc)
 
