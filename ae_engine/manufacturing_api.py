@@ -123,6 +123,9 @@ from .receiving_quantity_versions import (
 from .corner_dimension_projection import (
     RenderCornerDimensionGroup, project_render_corner_relief_measurements,
 )
+from .physical_sheet_editor_context import (
+    PhysicalSheetEditorContext, resolve_physical_sheet_editor_context,
+)
 from .indicator_editor_geometry import resolve_indicator_editor_components
 from .receiving_endcap_feature_preview import receiving_endcap_feature_preview_shapes
 from .receiving_inner_door_editor import (
