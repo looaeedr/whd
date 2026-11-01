@@ -726,3 +726,19 @@ nameplate_center_datum_top)` 接收 GUI 的當次操作資料後，由 Engine
 feature 座標空間、單門及 door-cell physical 尺寸、後續
 Door finished-face、2D/3D/DXF、Save→Reload 與 Certified Registry
 權責原樣保留，無新增製造核准；#2517 維持 OPEN。
+
+
+### #2517 衍生實體板件 namespace／選片修復 Engine 公開 API（2026-11-01）
+
+`ae_engine.derived_part_projection` 與
+`manufacturing_api.build_derived_part_projection_request`、
+`build_derived_part_sync_plan` 是 Door-cell／BasePlate-cell／Divider／
+InnerDoor 實體 namespace、既有 Feature/Profile stash 與
+active/selected physical ID repair 的唯一 Engine 權威。
+由原 `phase6_derived_part_projection` 純函式機械式搬移，GUI
+舊模組僅相容 import；Composition 蒐集 Domain Engine
+既有 Derivation 結果送 Engine，Navigation Owner 只套用
+immutable Plan。Receiving 原單一 Base Plate 的保留／two-tier
+存量相容判斷不改動，未引入第二份 NFB、孔、Fold、2D／3D／DXF
+或 Save→Reload 物理規則。本 API 只處理已衍生實體選片，
+不是加工輸出認證；#2517 保持 OPEN。

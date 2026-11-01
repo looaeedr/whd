@@ -1133,3 +1133,25 @@ def build_door_operator_part_spec(
         indicator_window_groups=indicator_window_groups,
         nameplate_center_datum_top=nameplate_center_datum_top,
     )
+
+
+# Canonical Engine owner for Door/BasePlate/Divider/InnerDoor physical namespaces,
+# retired GUI-owned immutable request/sync intent builder (#2517).
+from .derived_part_projection import (
+    FrozenMappingValue,
+    FrozenSequenceValue,
+    DerivedPartProfileProjection,
+    DerivedPartFeatureProjection,
+    DerivedPartNamespaceProjection,
+    DerivedPartProjectionRequest,
+    DerivedPartRequestAssemblyInput,
+    DerivedPartSyncPlan,
+    build_derived_part_projection_request,
+    build_derived_part_sync_plan,
+    profile_projection,
+    feature_projection,
+    namespace_projection,
+    materialize_profiles,
+    materialize_features,
+    materialize_namespace,
+)
