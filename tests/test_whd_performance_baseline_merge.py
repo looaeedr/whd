@@ -216,3 +216,29 @@ def test_new_baseline_cli_supports_one_real_worker_and_preserves_legacy_path():
     assert "args.sample_index is not None and args.bay_scope is None" in script
     assert "for sample in ((args.sample_index,) if args.sample_index is not None else range(args.samples))" in script
     assert "if args.bay_scope is not None else (3, 1)" in script
+
+
+def test_perf_workflow_probes_real_tk_before_skipping_apt():
+    """A missing GUI dependency must install normally, never skip measurements."""
+    from pathlib import Path
+
+    workflow = (
+        Path(__file__).resolve().parents[1]
+        / ".github/workflows/whd-performance-baseline-evidence.yml"
+    ).read_text(encoding="utf-8")
+    assert "id: gui-runtime" in workflow
+    assert "command -v Xvfb" in workflow
+    assert "command -v xvfb-run" in workflow
+    assert "xvfb-run -a python -c 'import tkinter; root = tkinter.Tk();" in workflow
+    assert "if: steps.gui-runtime.outputs.available != 'true'" in workflow
+    assert "sudo apt-get update -qq" in workflow
+    assert "sudo apt-get install -y -qq xvfb python3-tk" in workflow
+    assert "name: Verify real Tk before measurements" in workflow
+
+    # Performance evidence still requires all six independent Tk processes,
+    # five cycles each, exact source SHA, and fail-closed reconciliation.
+    assert "bays: [3, 1]" in workflow
+    assert "sample: [0, 1, 2]" in workflow
+    assert "--samples 3 --cycles 5 --bay-scope" in workflow
+    assert "--samples 3 --cycles 5 --isolated-samples" in workflow
+    assert "name: whd-issue1816-tk-baseline-b${{ matrix.bays }}-s${{ matrix.sample }}" in workflow
