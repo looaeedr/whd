@@ -180,6 +180,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.project_receiving_assembly_trial_world_skin_meshes(formed_fixing_plate_skins=(), formed_nfb_pad_skins=(), show_fixing_plate_mesh=True)` 於 `ae_engine.receiving_assembly_trial_display_skins` 讀取**既有真正 T2/BEND23 formed EAR skins** 與 NFB PAD 已解析 world meshes。Engine 統一驗證 EAR 的 source BEND、signed forming、未核准 manufacturing/weld，以及 PAD 的 flat+BEND、實體 Base 四定位方孔、未認證接觸與 manufacturing flag，回傳不可變 `ReceivingAssemblyTrialSkinMesh(role, part_id, world_triangles)` 序列，無來源即空。原 FinalScene Renderer 不再自行審核實體旗標或由 face.world 重建三角網格；僅按角色著色並畫 Engine 已驗證網格，保留 EAR 顯示開關獨立於 PAD／SIDE MARKING 的現有語意與原錯誤拒絕碼。這些仍為 DISPLAY-ONLY TRIAL，沒有 PAD/EAR 焊接、MFG-2、CUTTING、DXF 或製造權限；現有 2D／3D／Save→Reload 來源不變，#2517 OPEN。
 
+### #2517 FinalScene Receiving Base Plate 實體來源顯示診斷 Engine API（2026-11-01）
+
+`manufacturing_api.inspect_receiving_base_plate_display_source(snapshot, cabinet_family)` 將原 `phase6_final_scene_view.receiving_base_source_display_warnings` 自行判斷的 Receiving 底板實體來源是否可解析／失敗／未設定移至 `ae_engine.receiving_base_display_source`。Engine 僅委派現行 `receiving_base_plate_config.receiving_base_plate_values` 唯一實體來源判準，回傳 immutable `ReceivingBasePlateDisplaySource`（`RESOLVED_DISPLAY_ONLY`／`UNAVAILABLE`／`INVALID`／`NOT_APPLICABLE`）；GUI 僅呈現原繁中警告。保留 NFB 已提交 CSV／Set/Bay 自動來源與舊版沒有手動底板設定的判準，不增加新的箱型入口、Fold／CUTTING／BEND／DXF 或 EAR 焊接製造認證，#2517 持續 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
