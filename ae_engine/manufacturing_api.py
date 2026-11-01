@@ -1009,3 +1009,13 @@ def resolve_fold_designer_panel_part(part_key, payload):
     """Public Engine inner-door panel identity from canonical Family topology."""
     from .fold_designer_physical_selection import resolve_fold_designer_panel_part as resolve
     return resolve(part_key, payload)
+
+
+
+from .fold_designer_snapshot_dimensions import FoldDesignerSnapshotDimensions
+
+
+def project_fold_designer_snapshot_dimensions(snapshot, indicator_layer_groups):
+    """Public Engine ownership for original Fold Designer snapshot part sizes."""
+    from .fold_designer_snapshot_dimensions import project_fold_designer_snapshot_dimensions as project
+    return project(snapshot, indicator_layer_groups)
