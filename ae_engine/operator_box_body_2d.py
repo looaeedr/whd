@@ -34,3 +34,45 @@ def project_box_body_2d_piece_inventory(render_data, selected_piece_key):
             None,
         )
     return keys, selected
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class BoxBodyAssemblyPanelPiece:
+    """Read-only operator evidence from one actual physical BoxBody sheet."""
+
+    part_key: str
+    formed_width: float
+    formed_height: float
+    blank_width: float
+    blank_height: float
+    source_render_data: object | None
+
+
+def project_box_body_assembly_panel_piece_rows(render_data):
+    """Project actual BoxBody pieces once; GUI only labels and formats rows.
+
+    The source render data for the same physical piece is carried through
+    unchanged for the existing certified corner readback. A legacy piece
+    without a role keeps its explicit source key; do not invent geometry.
+    """
+    rows = []
+    for piece in tuple(getattr(render_data, "pieces", ()) or ()):
+        role = str(getattr(piece, "role", "") or "").strip()
+        key = f"box_body:{role}" if role else str(getattr(piece, "key", "") or "")
+        formed_width, formed_height = (
+            float(value) for value in tuple(piece.formed_outer_dimensions)
+        )
+        blank_width, blank_height = (
+            float(value) for value in tuple(piece.material_dimensions)
+        )
+        rows.append(BoxBodyAssemblyPanelPiece(
+            part_key=key,
+            formed_width=formed_width,
+            formed_height=formed_height,
+            blank_width=blank_width,
+            blank_height=blank_height,
+            source_render_data=getattr(piece, "render_data", None),
+        ))
+    return tuple(rows)
