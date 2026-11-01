@@ -677,3 +677,18 @@ keys and rebuilds `door_cN_rN` feature owners; conflicting physical source
 identities reject the entire transaction. GUI only forwards the operator
 deletion and applies returned workspaces, never generates physical part IDs.
 No source transformation certifies CUTTING/DXF manufacture.
+
+## Door-grid numeric partition and edit validation Engine API (#2517)
+
+`manufacturing_api.recompute_door_layout(columns, *, total_width,
+total_height, selected_key)`, `door_layout_cells(columns, *, total_width,
+total_height)`, `validate_door_layout_width_commit(columns, column_index,
+total_width, current)`, and `validate_door_layout_height_commit(columns,
+column_index, row_index, total_height, current)` are the public headless
+Engine ports backed by `ae_engine.door_layout_numeric_transitions`.
+The same authoritative 0.01 mm partition completion, preserved authored
+fixed cells, auto-remainder retention, physical cell index checks, finite
+positive W/H validation and canonical cell projection apply in GUI and
+headless paths. The existing GUI DoorLayoutController signatures remain
+compatibility forwarding adapters; Tk variables, operator selection and
+presentation effects stay in GUI. No new DXF/CUTTING authorization.

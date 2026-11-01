@@ -610,3 +610,7 @@ frame-only route.
 ### #2517 Door Layout 刪除列／欄時的實體內門身分與孔位來源（2026-11-01）
 
 公開 `manufacturing_api.receiving_inner_door_stable_id_for_cell(cell_key)` 保留 `0:0→upper`、`0:1→lower`、其他 `cNrN` 實體內門 ID；`manufacturing_api.remap_receiving_door_layout_after_delete(operation, column_index, row_index, inner_doors, cell_sources, physical_sources)` 是**純 Engine、原來源不可變**的物理身分與全部來源重映射交易。刪除 Door 欄／列後，依實際 cell 索引重新鍵入內門 stable IDs、原有 `inner_door:<stable_id>:*` 孔位來源、`door_cN_rN` 2D Door cell 孔位，以及主 Workspace／Fold Designer 的物理來源及面特徵；來源衝突在 GUI 寫入前 fail-closed。GUI `door_layout_host_adapter` 只提交刪除動作、收集 UI/Workspace snapshots 並套用 Engine 的單次完整結果，`gui.py` 不再自行製造 stable ID。保持現行 Save→Reload source 資料、上／下內門實體身分、DXF source guard、門格合法分割與獨立實體孔位語意；不新增任何 CUTTING／DXF 認證。本批與 Receiving live version #2592、Head/Tail relief #2598 分開，#2517 保持 OPEN。
+
+### #2517 Door Layout W/H 門格數量補足／編輯閘門 Engine API（2026-11-01）
+
+`ae_engine.door_layout_numeric_transitions` 是原 Phase7 A2 門格定向驗證演算法的唯一 Engine 數值 owner。公開 `manufacturing_api.recompute_door_layout(columns, *, total_width, total_height, selected_key)` 用現行 `complete_partition`、相同 0.01 容差與 operator-owned fixed／auto 語意，回傳型別化剩餘欄寬、逐欄層高、合法選取；`door_layout_cells` 仍委派原 canonical `validate_door_layout_dimensions`；`validate_door_layout_width_commit`／`validate_door_layout_height_commit` 在 Engine 執行門格編輯上限、餘數自動欄／列判定及非有限／布林／索引拒絕。GUI `door_layout_controller.py` 只保留舊簽名委派與門格 UI key remap，不再保存第二套尺寸／容差算法，`door_layout_host_adapter` 既有 Tk 與畫面生命周期不變。型別化 DTO 也由 `ae_engine.__init__` 匯出；不更動 Saved Door source、2D/3D/DXF manufactured geometry 或其認證範圍，#2517 保持 OPEN。

@@ -924,3 +924,31 @@ def remap_receiving_door_layout_after_delete(
         inner_doors=inner_doors, cell_sources=cell_sources,
         physical_sources=physical_sources, cell_transitions=cell_transitions,
     )
+
+def recompute_door_layout(columns, *, total_width, total_height, selected_key):
+    """Public Engine operator Door W/H partition/remainder transaction."""
+    from .door_layout_numeric_transitions import recompute_door_layout as compute
+    return compute(
+        columns, total_width=total_width, total_height=total_height,
+        selected_key=selected_key,
+    )
+
+
+def door_layout_cells(columns, *, total_width, total_height):
+    """Public Engine projection of canonical Door W/H source cells."""
+    from .door_layout_numeric_transitions import door_layout_cells as project
+    return project(columns, total_width=total_width, total_height=total_height)
+
+
+def validate_door_layout_width_commit(columns, column_index, total_width, current):
+    """Public Engine guard for Door column W operator edits."""
+    from .door_layout_numeric_transitions import validate_width_commit as validate
+    return validate(columns, column_index, total_width, current)
+
+
+def validate_door_layout_height_commit(
+    columns, column_index, row_index, total_height, current,
+):
+    """Public Engine guard for Door row H operator edits."""
+    from .door_layout_numeric_transitions import validate_height_commit as validate
+    return validate(columns, column_index, row_index, total_height, current)
