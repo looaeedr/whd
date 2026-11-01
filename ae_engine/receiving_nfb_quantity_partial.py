@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from collections.abc import Mapping
 from pathlib import Path
 
 from ae_engine.cabinet_types import policy
@@ -188,6 +189,95 @@ def select_quantity_nfb_partial(batch, workspace_snapshot, *,
         if len(matches) != 1:
             raise ValueError("NFB verified part absent/ambiguous in canonical inventory")
     return QuantityNfbPartialSelection(tuple(selected), tuple(reports))
+
+
+@dataclass(frozen=True)
+class QuantityOperatorExportSelection:
+    """The actual physical-source selection, never a GUI-owned BOM decision."""
+
+    partial_selection: QuantityNfbPartialSelection | None
+    full_selection: QuantityNfbPartialSelection | None
+    selected_reports: tuple
+    selected_demands: tuple
+    checked_batch: object | None
+
+
+def plan_quantity_operator_export_selection(
+    batch, workspace_snapshot, flags, *, partial_selector=None,
+):
+    """Project operator checkbox intent onto Engine-proven Quantity physical IDs.
+
+    The NFB partial verifier still determines physical READY/BLOCKED owners;
+    this planner only intersects that source-verified inventory with the
+    operator's requested part kinds.  No blocked part becomes a demand and no
+    GUI may create synthetic accepted physical identities or quantities.
+    """
+    from .manufacturing_export_selection import resolved_export_intention_key
+    from .quantity_manufacturing_groups import QuantityManufacturingBatch
+
+    if not isinstance(batch, QuantityManufacturingBatch):
+        raise TypeError("QUANTITY_OPERATOR_EXPORT_REQUIRES_CANONICAL_BATCH")
+    if not isinstance(workspace_snapshot, Mapping) or not isinstance(flags, Mapping):
+        raise TypeError("QUANTITY_OPERATOR_EXPORT_REQUIRES_INPUT_SNAPSHOTS")
+
+    def requested(source_part_id):
+        key = str(source_part_id)
+        return key.startswith("custom:") or bool(
+            flags.get(resolved_export_intention_key(key), False)
+        )
+
+    quantity = workspace_snapshot.get("quantity") or {}
+    if not isinstance(quantity, Mapping):
+        raise ValueError("QUANTITY_OPERATOR_EXPORT_INVALID_QUANTITY")
+    versions = quantity.get("versions", ()) or ()
+    if not isinstance(versions, (list, tuple)):
+        raise ValueError("QUANTITY_OPERATOR_EXPORT_INVALID_VERSIONS")
+
+    full = None
+    selected_rows = ()
+    partial_selection = None
+    checked_batch = None
+    if any(
+        isinstance(row, Mapping) and row.get("nfb_config_submitted") is True
+        for row in versions
+    ):
+        resolver = partial_selector or select_quantity_nfb_partial
+        full = resolver(batch, workspace_snapshot)
+        if not isinstance(full, QuantityNfbPartialSelection):
+            raise TypeError("QUANTITY_OPERATOR_EXPORT_INVALID_SOURCE_PROOF")
+        selected_rows = tuple(row for row in full.rows
+                              if requested(row["source_part_id"]))
+        selected_keys = {(row["version_id"], row["part_id"])
+                         for row in selected_rows}
+        partial_selection = QuantityNfbPartialSelection(
+            tuple(d for d in full.demands
+                  if (d.version_id, d.physical_id) in selected_keys),
+            selected_rows,
+        )
+        selected_versions = {row["version_id"] for row in selected_rows}
+        updated = {(d.version_id, d.physical_id): d for d in full.demands}
+        checked_batch = replace(
+            batch,
+            versions=tuple(v for v in batch.versions
+                           if v.version_id in selected_versions),
+            requests=tuple(r for r in batch.requests
+                           if r[0] in selected_versions),
+            demands=tuple(
+                updated.get((d.version_id, d.physical_id), d)
+                for d in batch.demands
+                if (d.version_id, d.physical_id) in selected_keys
+            ),
+        )
+    physical = partial_selection.demands if partial_selection else batch.demands
+    selected_demands = tuple(d for d in physical
+                             if requested(d.source_part_id))
+    return QuantityOperatorExportSelection(
+        partial_selection=partial_selection,
+        full_selection=full,
+        selected_reports=selected_rows,
+        selected_demands=selected_demands,
+        checked_batch=checked_batch,
+    )
 
 
 def quantity_partial_live_manifests(selection, workspace_snapshot, selected_rows):
