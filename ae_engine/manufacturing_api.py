@@ -1305,6 +1305,11 @@ from .endcap_relief_interference_preview import (
 # #2517: BoxBody collision diagnostics consume canonical physical solid skins.
 from .box_body_collision_source_mesh import project_box_body_collision_source_mesh
 
+# #2517 Engine owns Joint-local solver 3D display-source selection.
+from .joint_diagnostic_display import (
+    JointDiagnosticOverlaySource, project_joint_diagnostic_display_sources,
+)
+
 # #2517: Standalone FinalScene physical BEND, MARKING and BLIND_HOLE paths.
 from .final_scene_independent_annotations import (
     project_independent_scene_bend_segments,
