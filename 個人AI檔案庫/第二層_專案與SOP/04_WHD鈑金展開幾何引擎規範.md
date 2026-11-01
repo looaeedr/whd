@@ -45,6 +45,10 @@ whd_schema: WHD_DOC_META_V1
 
 **#2517 Live Cabinet Family identity API（2026-11-01）**：公開 `manufacturing_api.resolve_live_cabinet_family(input_snapshot, live_model=None)` 統一 GUI 即時選擇型號優先序、Cabinet Registry 正規 Family 與舊版未知／空值 fallback。Phase6 GUI 只讀 snapshot 與 selector，`phase6_manufacturing_service` 也使用同一 API，避免 3D Joint／Receiving Marking 再有第二份型號判定。未註冊自訂來源保留原始名稱供既有 Family=ANY Joint 使用，空值維持既有金庫型相容預設；不新增 CUTTING／DXF 認證或幾何公式，#2517 仍 OPEN。
 
+### #2517 Receiving EndCap saved-feature thumbnail public API (2026-11-01)
+
+- `manufacturing_api.receiving_endcap_feature_preview_shapes(features, width, depth)` (also exported by `ae_engine`) is the headless owner of saved EndCap feature anchors, legacy-hole conversion, rotation and per-layer contour projection used by the Receiving Head/Tail operator thumbnail. Unknown/invalid features are reported, never fabricated as CUTTING. GUI keeps only rendering style, scaling and UI fallback labels; the old GUI `endcap_preview_geometry` symbol is a compatibility delegator with no feature geometry calculation. This read-only feature thumbnail **is not** canonical FinalScene or new DXF/CUTTING certification, and #2517 remains OPEN.
+
 ### #2517 Receiving inner-door Hole Editor context API (2026-11-01)
 
 - Public `manufacturing_api.resolve_inner_door_hole_editor_context(input_snapshot, part_key)` and immutable `InnerDoorHoleEditorContext` (also exported by `ae_engine`) own physical panel identity, existing Vault-door structural/feature surface, finished and Receiving work-area measurement guides, and the canonical CUTTING/BEND render for one active inner-door editor. GUI only submits a snapshot/physical part key and draws the returned result. The large reference guide is **display-only**: never use it as manufacturing CUTTING or FeatureSurface containment; no new NFB/DXF certification granted. #2517 remains OPEN.
