@@ -1270,6 +1270,9 @@ def build_door_operator_part_spec(
         nameplate_center_datum_top=nameplate_center_datum_top,
     )
 
+# #2517: headless Head/Tail operator PartSpec material/Family/Joint authority.
+from .endcap_operator_part_spec import build_endcap_operator_part_spec
+
 # #2517: physical Receiving NFB highlighted partial DXF batch is Engine-owned.
 # The GUI import path is a compatibility facade, never a second release gate.
 from .receiving_nfb_partial_batch_dispatcher import (

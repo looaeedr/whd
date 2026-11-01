@@ -100,6 +100,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.resolve_operator_snapshot_corner_policy` 公開接收已保存四角 raw CornerType、操作快照、設定覆蓋與 EndCap FW 四態，不啟動 Tk 即由既有 Engine `endcap_corner_selection_from_raw`、`resolve_endcap_fw`、`corner_type_ui.policy_from_corner_state` 及 Cabinet Family `effective_endcap_bottom_fw` 建立唯一正式 Policy。原 `phase6_manufacturing_adapter._corner_policy_for_app` 僅轉送輸入，再由 `operator_finished_dimensions_for_app` 傳遞 Engine Policy DTO；缺四角維持 `None`，金庫型原語意、受電箱既有 Bottom FW、舊 Family 可選投影 fallback 與保存後結果保持原樣。此切片不新增截角公式、Registry、CUTTING／DXF 出圖認證或外部 Worker 能力，#2517 仍 OPEN。
 
+### #2517 Phase6 Head/Tail EndCapPartSpec 操作製造 Request Engine API（2026-11-01）
+
+`manufacturing_api.build_endcap_operator_part_spec` 與 `ae_engine.endcap_operator_part_spec` 現為 EndCap Head/Tail 不依賴 Tk 的唯一操作製造 PartSpec 建構 owner。GUI `gui_modules/application/manufacturing_adapter.py::_end_cap_part_spec_from_values` 只蒐集 W/H/D/T/FW、操作者 Fold、洞資料、已保存 CornerPolicy、BoxBody structure、AssemblyJoint 與 Bottom WRAP state，再呼叫 Engine；不再自行決定 Family D 補償、Head/Tail X/Y Fold DTO、Bottom WRAP 製造退讓或裁切實體資料。既有 Vault 3T／Receiving 2T Family Policy、完整既存 AssemblyJoint schema／圖狀態與 reserve_u/v 投影、手動 depth_comp_t 優先、過去無效可選 WRAP 投影的相容容錯及已驗證 relief CUT 僅作 request 轉送，全部依現有 Engine 來源；未新增公式、Factory Registry、CUTTING／DXF 出圖認證，#2517 仍 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。

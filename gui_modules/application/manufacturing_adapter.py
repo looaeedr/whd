@@ -14,20 +14,14 @@ from copy import deepcopy
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.contracts import (
     BasePlatePartSpec,
     BoxBodyPartSpec,
     DoorPartSpec,
-    EndCapPartSpec,
     IndicatorBoxPartSpec,
     ManufacturingContext,
 )
 from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
-from phase6_endcap_semantics import (
-    normalize_endcap_bottom_wrap_state,
-    resolve_endcap_bottom_wrap,
-)
 from phase6_fold_profiles import (
     engine_segment_length_to_ui,
     formed_box_body_fw_widths,
@@ -100,73 +94,30 @@ def _end_cap_part_spec_from_values(
     box_body_formed_fw_left=None, box_body_formed_fw_right=None,
     box_body_structure_state=None, endcap_bottom_wrap_state=None, assembly_joints=None,
 ):
-    profiles = dict(fold_profiles or {})
-    x_rows = [dict(row) for row in profiles.get("X", ())]
-    y_rows = [dict(row) for row in profiles.get("Y", ())]
-
-    if depth_comp_t is None:
-        depth_comp_t = cabinet_family_policy.endcap_depth_comp_t(model_name)
-
-    # Scalar folds remain the canonical/legacy request values.  Fold Profile
-    # precedence is resolved exactly once inside AE manufacturing_api.
-    fold_left = float(val['yl1'])
-    fold_right = float(val['yr1'])
-    fold_top = float(val['ytop1'])
-    fold_bottom = float(val['ybottom1'])
-
+    """Collect operator/committed state; Engine owns physical EndCap PartSpec."""
+    controller = getattr(self, "workspace_controller", None)
     if box_body_structure_state is None:
-        controller = getattr(self, "workspace_controller", None)
         getter = getattr(controller, "box_body_structure_state", None)
-        resolved_structure_state = deepcopy(dict(getter() if callable(getter) else {}))
-    else:
-        resolved_structure_state = deepcopy(dict(box_body_structure_state or {}))
+        box_body_structure_state = getter() if callable(getter) else {}
+    assembly_joint_state = None
     if assembly_joints is None:
-        joint_state = dict(getattr(self, "assembly_joint_state", {}) or {})
-        resolved_assembly_joints = tuple(deepcopy(joint_state.get("assembly_joints", ())) or ())
-    else:
-        resolved_assembly_joints = tuple(deepcopy(tuple(assembly_joints or ())))
-        joint_state = {"assembly_joints": resolved_assembly_joints}
-    if cabinet_family_policy.supports_bottom_wrap_controls(model_name):
-        try:
-            part_key = "tail" if is_tail else "head"
-            wrap_state = endcap_bottom_wrap_state
-            if wrap_state is None:
-                wrap_state = getattr(self, "endcap_bottom_wrap_state", None)
-            if wrap_state is None:
-                wrap_state = normalize_endcap_bottom_wrap_state({"model": model_name})
-            projection_snapshot = {"model": model_name, **joint_state}
-            item = resolve_endcap_bottom_wrap(projection_snapshot, part_key, state=wrap_state)
-            # enabled is graph-owned; Receiving state retains only geometric
-            # reserve inputs for the certified BOTTOM WRAP formula.
-            resolved_structure_state = cabinet_family_policy.set_bottom_relief_reserves(
-                model_name,
-                resolved_structure_state,
-                reserve_u=item["reserve_u"],
-                reserve_v=item["reserve_v"],
-            )
-        except Exception:
-            pass
-
-    return EndCapPartSpec(
-        width=float(val['w']), height=float(val['h']), depth=float(val['d']),
-        thickness=float(val['t']), frame_width=float(val['fw']),
-        model_name=model_name, is_tail=bool(is_tail),
-        fold_left=fold_left, fold_right=fold_right,
-        fold_top=fold_top, fold_bottom=fold_bottom,
-        box_fold_left=float(val['zl1']), box_fold_right=float(val['zr1']),
-        box_body_formed_fw_left=(None if box_body_formed_fw_left is None else float(box_body_formed_fw_left)),
-        box_body_formed_fw_right=(None if box_body_formed_fw_right is None else float(box_body_formed_fw_right)),
-        box_body_structure_state=resolved_structure_state,
-        assembly_joints=resolved_assembly_joints,
-        fold_profile_x=profile_to_fold_segments(x_rows),
-        fold_profile_y=profile_to_fold_segments(y_rows),
-        holes=tuple(holes or ()), corner_policy=corner_policy,
-        depth_comp_t=float(depth_comp_t),
-        resolved_assembly_relief_cuts=tuple(
-            tuple((float(x), float(y)) for x, y in polygon)
-            for polygon in tuple(resolved_assembly_relief_cuts or ())
-            if len(polygon) >= 3
-        ),
+        assembly_joint_state = dict(
+            getattr(self, "assembly_joint_state", {}) or {}
+        )
+        assembly_joints = assembly_joint_state.get("assembly_joints", ())
+    if endcap_bottom_wrap_state is None:
+        endcap_bottom_wrap_state = getattr(self, "endcap_bottom_wrap_state", None)
+    return manufacturing_api.build_endcap_operator_part_spec(
+        val, model_name=model_name, is_tail=is_tail, holes=holes,
+        corner_policy=corner_policy, fold_profiles=fold_profiles,
+        depth_comp_t=depth_comp_t,
+        resolved_assembly_relief_cuts=resolved_assembly_relief_cuts,
+        box_body_formed_fw_left=box_body_formed_fw_left,
+        box_body_formed_fw_right=box_body_formed_fw_right,
+        box_body_structure_state=box_body_structure_state,
+        endcap_bottom_wrap_state=endcap_bottom_wrap_state,
+        assembly_joints=assembly_joints,
+        assembly_joint_state=assembly_joint_state,
     )
 
 @staticmethod
