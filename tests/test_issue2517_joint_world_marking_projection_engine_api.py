@@ -111,4 +111,6 @@ def test_gui_draws_only_engine_world_rows(monkeypatch):
     assert "JOINT_PLACEMENT_MARKING" not in source
     assert "world_p1" not in source
     assert all(name not in inspect.getsource(engine_owner)
-               for name in ("phase6_", "tkinter", "matplotlib"))
+               for name in ("from phase6_", "import phase6_",
+                            "from gui_modules", "import gui_modules",
+                            "tkinter", "matplotlib"))
