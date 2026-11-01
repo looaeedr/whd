@@ -43,6 +43,9 @@ from .manufacturing_api import (
     OperatorHoleEditorGeometry,
     project_operator_hole_editor_door,
     project_operator_hole_editor_base_plate,
+    CanvasTransform, ResolvedCircle, ResolvedRect,
+    resolve_hole_editor_canvas_features, hole_editor_canvas_reference_point,
+    hit_test_hole_editor_canvas_features,
     AssemblyScenePart, resolve_manufacturing_request,
     ManufacturingResolveRequest, ManufacturingPartInput, ManufacturingResolveResult,
     ManufacturingDiagnosticsResult, ManufacturingMutationResult, ManufacturingEffects,
@@ -245,6 +248,9 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "CanvasTransform", "ResolvedCircle", "ResolvedRect",
+    "resolve_hole_editor_canvas_features", "hole_editor_canvas_reference_point",
+    "hit_test_hole_editor_canvas_features",
     "project_physical_part_navigation_rows",
     "ManufacturingCacheSourcePlan", "plan_manufacturing_cache_source",
     "project_manufacturing_scene_settings_overlay",
