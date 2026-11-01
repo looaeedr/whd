@@ -262,11 +262,15 @@ def test_t1_module_purity_and_authority_source_scan():
     assert "tkinter" not in lowered
     assert "fold_designer_bridge" not in source
     assert "phase6_settings_panel" not in source
-    assert "manufacturing_api" not in source
+    # The presentation adapter consumes the Engine public physical-piece
+    # projection; it does not own its part identity or dimensions.
+    assert "manufacturing_api.project_box_body_assembly_panel_piece_rows" in source
     assert "resolve_geometry(" not in source
     assert "designer_workspace" not in source
     assert "project_controller" not in source
     assert "workspace." not in source
 
     assert "operator_part_selector_keys" in source
-    assert "pieces" in source
+    assert "source_render_data" in source
+    assert "getattr(render_data, \"pieces\"" not in source
+    assert 'f"box_body:{role}"' not in source

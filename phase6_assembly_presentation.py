@@ -11,6 +11,7 @@ import re
 from typing import Callable, Iterable, Mapping
 
 from phase6_part_navigation import operator_part_selector_keys
+from ae_engine import manufacturing_api
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,7 @@ class AssemblyBoxBodyPieceRow:
     formed_height: float
     blank_width: float
     blank_height: float
+    source_render_data: object | None = None
 
 
 _DOOR_KEY = re.compile(r"door_c\d+_r\d+")
@@ -159,25 +161,19 @@ def project_box_body_piece_rows(
     *,
     label_for: Callable[[str], str],
 ) -> tuple[AssemblyBoxBodyPieceRow, ...]:
-    """Copy render-time BoxBody physical-piece dimensions into pure rows."""
-    rows: list[AssemblyBoxBodyPieceRow] = []
-    for piece in tuple(getattr(render_data, "pieces", ()) or ()):
-        role = str(getattr(piece, "role", "") or "").strip()
-        key = f"box_body:{role}" if role else str(getattr(piece, "key", "") or "")
-        formed_width, formed_height = (
-            float(value) for value in tuple(piece.formed_outer_dimensions)
+    """Label Engine-owned BoxBody physical pieces; do not inspect manufacture."""
+
+    return tuple(
+        AssemblyBoxBodyPieceRow(
+            part_key=source.part_key,
+            label=str(label_for(source.part_key)),
+            formed_width=source.formed_width,
+            formed_height=source.formed_height,
+            blank_width=source.blank_width,
+            blank_height=source.blank_height,
+            source_render_data=source.source_render_data,
         )
-        blank_width, blank_height = (
-            float(value) for value in tuple(piece.material_dimensions)
+        for source in manufacturing_api.project_box_body_assembly_panel_piece_rows(
+            render_data,
         )
-        rows.append(
-            AssemblyBoxBodyPieceRow(
-                part_key=key,
-                label=str(label_for(key)),
-                formed_width=formed_width,
-                formed_height=formed_height,
-                blank_width=blank_width,
-                blank_height=blank_height,
-            )
-        )
-    return tuple(rows)
+    )
