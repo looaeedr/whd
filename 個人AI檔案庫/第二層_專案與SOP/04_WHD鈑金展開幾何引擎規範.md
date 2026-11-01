@@ -699,3 +699,12 @@ Engine 按既有規則保留未操作格位的舊 Feature、允許已操作格�
 展開 CUTTING／BEND 保持物理料長；未有 BEND guide 的舊 profile
 仍依原有 fallback 判斷。完整 FinalScene／3D 組合採同一 Engine
 權威，不新增機械公式或 CUTTING／DXF 認證；#2517 保持 OPEN。
+
+### #2517 厚板 3D 網格特徵邊 Engine 公開 API（2026-11-01）
+
+`manufacturing_api.physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6)`
+由 `ae_engine.solid_mesh_feature_edges` 接手已成形實體 3D 網格的
+法向量比較、可見外周／孔緣／折邊／板厚邊與共平面三角剖分對角線剔除。
+`phase6_final_scene_projection._phase6_mesh_feature_segments` 僅相容委派，
+GUI 的 Matplotlib 不再決定實體特徵邊。FinalScene 製造材料來源不變，
+此線段資料純顯示，不新增 CUTTING、DXF／碰撞認證；#2517 持續 OPEN。

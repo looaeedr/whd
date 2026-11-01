@@ -1107,3 +1107,8 @@ def prepare_fold_profile_mapper(profile, *, axis, fold_guides=()):
     return _prepare_profile_mapper(
         rows, axis=axis, fold_guides=guides, geometry=_profile_geometry(rows),
     )
+
+def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
+    """Public Engine physical solid mesh feature-boundary projection."""
+    from .solid_mesh_feature_edges import physical_solid_mesh_feature_segments as resolve
+    return resolve(triangles, tolerance=tolerance)

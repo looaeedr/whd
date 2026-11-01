@@ -821,3 +821,14 @@ using the existing per-mask chain cache rather than rebuilding a Fold for each
 visible 3D vertex. A GUI display cache must invalidate when any Fold profile
 or source BEND guide changes. No new Fold compensation, 2D CUTTING or DXF
 certification follows. #2517 remains OPEN.
+
+## Physical solid-mesh feature edge API (#2517)
+
+`manufacturing_api.physical_solid_mesh_feature_segments(triangles, *,
+tolerance=1e-6)` projects real exposed perimeter, hole rims, fold/miter
+creases and thickness edges from an already-authoritative thickened 3D
+physical mesh, excluding coplanar triangulation diagonals. The engine
+implementation `ae_engine.solid_mesh_feature_edges` is the moved original
+FinalScene algorithm. GUI `_phase6_mesh_feature_segments` only forwards and
+Matplotlib paints returned segments. No redefinition of canonical material,
+geometry, CUTTING, 2D/3D certification or DXF capability follows.
