@@ -1178,3 +1178,10 @@ from .receiving_nfb_pair_export import (
     NfbCsvPairedPartOnlyDxf, NfbCsvTwoTierPartOnlyDxf,
     export_current_csv_nfb_door_base_pair,
 )
+
+
+# #2517: read-only Receiving NFB physical-manifest safety before GUI disclosure.
+from .receiving_nfb_manifest_validation import (
+    validate_receiving_nfb_manifest_view,
+    validate_receiving_nfb_highlighted_manifest,
+)
