@@ -6,6 +6,44 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## CADSplit／WHD 同程序 Engine 整合入口（第一批：來源接線，未開啟外部製造）
+
+現有公開路徑 `ae_engine.manufacturing_api` 新增同程序 Python 入口
+`dispatch_manufacturing_integration(ManufacturingIntegrationRequest(...))`；
+根包 `ae_engine` 也匯出同一函式與 immutable `ManufacturingSourceIdentity`、
+`ManufacturingIntegrationRequest`、`ManufacturingIntegrationResponse`。
+此入口僅提供 `capabilities / prepare / export` 的穩定請求與結果契約，
+不新增第二套製造 exporter，也**不是 HTTP/CLI endpoint 或安裝版 Worker**。
+
+```python
+from ae_engine import (
+    ManufacturingIntegrationRequest, ManufacturingSourceIdentity,
+    dispatch_manufacturing_integration,
+)
+source = ManufacturingSourceIdentity(
+    panel_key="P1", source_revision="<實際來源版本>",
+    set_id="source-set-A", bay_id="source-bay-1",
+)
+result = dispatch_manufacturing_integration(
+    ManufacturingIntegrationRequest("prepare", family="受電箱", source=source)
+)
+assert result.status == "SOURCE_ACCEPTED_NOT_MANUFACTURING_READY"
+assert result.manufacturing_authorized is False
+```
+
+- `capabilities` 僅表示 Python 入口存在、可辨識 Family；`implemented=True` 不構成製造授權。
+- `prepare` 僅接收 CADSplit 的 source key／revision／Set-Bay **來源關聯**；
+  不建立或推斷 physical_part_id、Fold、PartSpec、DXF，並明確回報仍需 Engine 解算。
+- `export` 在沒有經認證的外部製造鏈之前回
+  `EXTERNAL_EXPORT_NOT_CERTIFIED`，不呼叫製造 exporter、不寫 DXF。
+- 已存在的 WHD `generate_part`、resolved batch 與 verified FinalScene API 完全保留；
+  真正從 CADSplit 原圖自動取得可信製造輸入、operation/part 資格及 DXF Save→Reload
+  還要分範圍施工與驗收，**不能以此第一批入口宣稱已完成自動製造**。
+- `integration_cli/cadsplit_worker.py` 的 source-only JSON/CLI 仍完全停用製造，
+  `WHD-Engine.exe` 已退役。架構與權威以 AI 庫 04 CURRENT 與
+  `docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md` 為準。
+
+
 目的：讓 GUI、自動拆圖、CLI 或其他 Python 程式都使用同一個 AE 出圖入口，不必建立 Tkinter GUI，也不必直接呼叫 `ae.export_xxx_dxf()`。
 
 ## EndCap physical assembled world skins API (#2517)
