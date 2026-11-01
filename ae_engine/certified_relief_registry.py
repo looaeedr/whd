@@ -120,7 +120,7 @@ def _side_rear_bend_from_structure_state(
     if not structure_state:
         return None
     try:
-        from phase6_box_body_structure import side_rear_bend_material_length
+        from .box_body_structure_state import side_rear_bend_material_length
         return abs(float(side_rear_bend_material_length(
             structure_state, float(sheet_thickness)
         )))
@@ -152,7 +152,7 @@ def _physical_cut_from_relief(corner_name, relief, blank_bounds):
 def _formed_box_body_fw_from_profile(profile, side_key: str, sheet_thickness: float) -> float | None:
     # One Source of Truth with the Fold Editor / main GUI.  Do not reimplement
     # outside-dimension bend counting inside the 3D Registry.
-    from phase6_fold_profiles import formed_box_body_fw_widths
+    from .box_body_editor_readback import formed_box_body_fw_widths
 
     rows = [dict(seg) if isinstance(seg, dict) else {
         "len": getattr(seg, "length", 0.0),

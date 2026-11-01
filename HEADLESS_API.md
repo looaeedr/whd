@@ -134,6 +134,10 @@ CUTTING/BEND/DXF export or external API capability.
 
 The project GUI now calls `manufacturing_api` for Door filename, committed numeric CSV quantity batch, all-physical-Bay export, real EAR SIDE MARKING, CHECK-only side and PAD+Base partial CHECK/Q. Existing canonical source proof, DXF readback, atomicity and release/unsupported gate stay with their original Engine owners. Common model/layout/quantity/source naming are also exposed as read-only operations. Engine `receiving_csv_quantity_manufacturing` no longer imports GUI for part-selection intent. Existing older APIs remain usable; no version lock or additional manufacturing certification is introduced.
 
+## Direct Engine BoxBody, Certified Registry and CSV NFB dependencies (#2517)
+
+Four Engine implementation modules now import their canonical BoxBody state, Receiving Quantity model and formed-FW readback directly from Engine; they do not loop through the old `phase6_box_body_structure`, `phase6_fold_profiles` or `phase6_quantity_model` compatibility facades. The old public API names and calculations are retained without new manufacturing capabilities or behavior changes.
+
 ## Engine-native canonical manufacturing resolver (#2517)
 
 `ae_engine.manufacturing_api.resolve_manufacturing_request(ManufacturingResolveRequest(...))` returns the same immutable `ManufacturingResolveResult` as the old `phase6_manufacturing_service.resolve` entry. The whole solver (Family, joint/relief, material fold profiles, FinalScene physical parts, 3D evidence, physical NFB, MARKING and response envelope) is implemented in `ae_engine.manufacturing_resolver`; its immutable `AssemblyScenePart` type is also Engine-owned and aliased by `phase6_final_scene_contracts`. Phase6 retains only UI DTO presentation, request adapters and backwards-compatible call paths. No additional source certification or manufacturing capability is introduced; existing fail-closed guards still govern DXF.
