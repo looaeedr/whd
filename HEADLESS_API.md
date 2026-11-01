@@ -328,6 +328,10 @@ No additional CUTTING/DXF approval is implied.
 
 `manufacturing_api.resolve_fold_designer_base_plate_source(part_key, input_snapshot, *, width, height, thickness, frame_width, model_name, corner_policy=None)` owns the operator BasePlate request values and canonical committed Receiving NFB source priority. It forwards the existing `receiving_base_plate_values` without reimplementing CSV/brand/PAD/LEFT/CENTER/tier geometry. A verified selected real BasePlate replaces the legacy generic preview W/H/folds and owns its corners (`corner_policy=None`); missing optional sources retain the original preview-only values and do **not** certify MFG/DXF. Receiving cell keys remain unsupported. GUI consumes the returned values/policy and calls its already-public `build_base_plate_operator_part_spec` delegate. Vault/legacy model requests and Save→Reload are unchanged.
 
+## EndCap physical CUTTING hole rims in FinalScene 3D (#2517)
+
+`manufacturing_api.project_endcap_cutting_hole_rim_segments(material, x_profile, y_profile, fold_guides, local_surface, placed_surface, placement)` 接收**已解算** EndCap 真實 2D CUTTING polygon／Fold Profile／一對相同點位 local+world 實體網格，從 Engine 將 material inner rings 投影至 Head/Tail 的 3D 世界線段。保留原 Fold mapper、首點實體原點和 Head/Tail 方向；沒有真孔、非 EndCap、缺真實網格便回傳空 tuple，不從 GUI 外框或虛假孔猜測出圖。FinalScene GUI 只把 Engine 回傳線段交 Matplotlib 顯示，這不是新孔加工認證。
+
 ## FinalScene physical BEND / CUTTING Fold source Engine API (#2517)
 
 `manufacturing_api.scene_fold_boundaries(scene, material)` 從**既有正式** `DrawingScene` BEND 線與材料 bounds 擷取 X/Y 展開段邊界（原數值公差不變）；`profile_to_scene_boundaries(profile, boundaries)` 保留操作折向與 core，但每段實際料長以 BEND 差分為準；`fold_ownership_exemptions(material, xb, yb)` 依真實 CUTTING polygon 裁斷上下／左右角部重疊折彎的 owner。全部由 `ae_engine.final_scene_fold_source` 唯一實作，不使用 3D 展示網格回填製造真值。舊 Phase6 `_phase6_scene_fold_boundaries`、`_phase6_profile_to_scene_boundaries`、`_phase6_fold_ownership_exemptions` 保留相容函式但僅公開 Engine API 委派。此批不建立新 Certified Registry／CUTTING／DXF 來源，也不變更保存 schema。

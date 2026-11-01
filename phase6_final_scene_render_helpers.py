@@ -410,48 +410,14 @@ class Phase6FinalSceneRenderHelpersMixin:
         self, material, x_profile, y_profile, fold_guides,
         local_surface, placed_surface, placement, color,
     ):
-        """Project only actual CUTTING inner rings into the finished 3D.
-
-        Unlike raw triangulation boundaries this never shows T-junction mesh
-        seams. The mapping uses the SAME local Fold Profile and actual paired
-        local/world EndCap placement as the shaded manufactured surface.
-        """
-        if not local_surface or not placed_surface or material is None:
-            return
+        """Draw only Engine-projected physical CUTTING inner rings."""
+        from ae_engine import manufacturing_api
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        plane = str(placement or "").lower()
-        if plane not in {"head", "top", "tail", "bottom"}:
-            return
-        # EndCap placement is rigid: worldX=localX+offset,
-        # head worldY=-localZ+offset / worldZ=-localY+offset,
-        # tail worldY=+localZ+offset / worldZ=+localY+offset.
-        # Reference both origins from the actual triangulated model, never a
-        # guessed finished-width/height center.
-        p0 = tuple(float(x) for x in local_surface[0][0])
-        w0 = tuple(float(x) for x in placed_surface[0][0])
-        sign = -1 if plane in {"head", "top"} else 1
-        polys = ([material] if getattr(material, "geom_type", "") == "Polygon"
-                 else tuple(getattr(material, "geoms", ()) or ()))
-        segments = []
-        for poly in polys:
-            if getattr(poly, "geom_type", "") != "Polygon":
-                continue
-            for inner_ring in poly.interiors:
-                positions = []
-                for x, y in inner_ring.coords:
-                    local = self._map_xy(
-                        x, y, x_profile, y_profile, fold_guides,
-                    )
-                    positions.append((
-                        w0[0] + float(local[0]) - p0[0],
-                        w0[1] + sign * (float(local[2]) - p0[2]),
-                        w0[2] + sign * (float(local[1]) - p0[1]),
-                    ))
-                segments.extend(
-                    (a, b) for a, b in zip(positions, positions[1:])
-                    if any(abs(a[i] - b[i]) > 1e-9 for i in range(3))
-                )
+        segments = manufacturing_api.project_endcap_cutting_hole_rim_segments(
+            material, x_profile, y_profile, fold_guides,
+            local_surface, placed_surface, placement,
+        )
         if segments:
             self.renderer.ax3d.add_collection3d(Line3DCollection(
                 segments, colors=color, linewidths=1.4, linestyles="solid",
