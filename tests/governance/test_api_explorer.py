@@ -97,3 +97,45 @@ def test_pages_first_deploy_is_not_blocked_by_unauthenticated_probe():
     assert "needs: build" in workflow
     assert "pages_enabled" not in workflow
     assert "api.github.com/repos/" not in workflow
+
+
+def test_integration_category_uses_full_callable_paths_not_bare_module_name(tmp_path):
+    """Both real integration callables appear under the integration filter."""
+    _source_tree(tmp_path)
+    _write(tmp_path, "ae_engine/integration_api.py",
+           (tmp_path / "ae_engine/integration_api.py").read_text(encoding="utf-8")
+           + "\ndef export_verified_resolved_integration_bays(bays, output_dir, *, pre_commit_guard):\n"
+           + '    """Already-resolved Receiving physical parts only."""\n'
+           + "    return ()\n")
+    _write(tmp_path, "ae_engine/__init__.py",
+           "__all__ = ['dispatch_manufacturing_integration', "
+           "'export_verified_resolved_integration_bays']\n"
+           "from .integration_api import (dispatch_manufacturing_integration, "
+           "export_verified_resolved_integration_bays)\n")
+    markdown, html, rows = generate(tmp_path)
+    integration = [row for row in rows if row["category"] == "integration"]
+    assert {row["name"] for row in integration} == {
+        "dispatch_manufacturing_integration",
+        "export_verified_resolved_integration_bays",
+    }
+    assert all(
+        any(path.startswith("ae_engine.integration_api.") for path in row["entrypoints"])
+        for row in integration
+    )
+    assert all("ae_engine." + row["name"] in row["entrypoints"] for row in integration)
+    assert "## CADSplit／WHD 整合入口（2）" in markdown
+    assert '<option value="integration">CADSplit／WHD 整合入口</option>' in html
+    assert html.count('"category": "integration"') == 2
+    assert next(row for row in rows if row["name"] == "describe_source")["category"] == "view"
+
+
+def test_real_engine_integration_callables_are_not_missing_from_catalog():
+    from tools.build_api_explorer import ROOT
+
+    rows = find_public_api(ROOT)
+    integration = {row["name"]: row for row in rows if row["category"] == "integration"}
+    assert "dispatch_manufacturing_integration" in integration
+    assert "export_verified_resolved_integration_bays" in integration
+    for name in ("dispatch_manufacturing_integration", "export_verified_resolved_integration_bays"):
+        assert "ae_engine.integration_api." + name in integration[name]["entrypoints"]
+        assert integration[name]["source"] == "ae_engine/integration_api.py"
