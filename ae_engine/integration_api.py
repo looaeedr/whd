@@ -9,7 +9,11 @@ identities and manufacturing geometry remain owned by WHD Engine.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from pathlib import Path
+from types import MappingProxyType
+from typing import Literal, Mapping, Sequence
+
+from .contracts import ResolvedManufacturingGeometry
 
 from .cabinet_types import registered_cabinet_types, resolve_cabinet_type
 
@@ -148,3 +152,82 @@ def dispatch_manufacturing_integration(
         status="SOURCE_ACCEPTED_NOT_MANUFACTURING_READY",
         reason="WHD_INTEGRATION_ENGINE_RESOLUTION_REQUIRED",
     )
+
+
+@dataclass(frozen=True)
+class ManufacturingResolvedBayInput:
+    """Source identity + already-authoritative Engine physical geometry.
+
+    CADSplit supplies the original source key. It must NOT manufacture the
+    geometry or derive physical part keys from Set/Bay source labels.
+    """
+
+    family: str
+    source: ManufacturingSourceIdentity
+    resolved_geometry: ResolvedManufacturingGeometry
+
+
+@dataclass(frozen=True)
+class VerifiedIntegrationBatchExport:
+    """Only the exact staged physical DXFs were reopened and verified."""
+
+    output_files: Mapping[str, str]
+    physical_dxf_roundtrip_verified: bool = True
+    complete_assembly_certified: bool = False
+    external_cli_enabled: bool = False
+
+
+def export_verified_resolved_integration_bays(
+    bays: Sequence[ManufacturingResolvedBayInput],
+    output_dir: str | Path,
+    *,
+    pre_commit_guard,
+    overwrite: bool = False,
+) -> VerifiedIntegrationBatchExport:
+    """Commit already-resolved Receiving parts after WHD staged DXF verification.
+
+    The guard is supplied by the trusted in-process project state owner and
+    invoked before staging AND after independent DXF reopen. No raw source DXF,
+    JSON, preview, or "prepare" response can be promoted to manufacturing here.
+    The old source-only CLI remains disabled.
+    """
+    if not callable(pre_commit_guard):
+        raise ValueError("WHD_PRECOMMIT_GUARD_REQUIRED")
+    selected = tuple(bays)
+    if not selected or len(selected) > 20:
+        raise ValueError("WHD_VERIFIED_BAY_COUNT_INVALID")
+
+    # Import at call time to preserve the public ae_engine import direction.
+    from . import manufacturing_api
+
+    seen: set[str] = set()
+    instances: list[tuple[str, ResolvedManufacturingGeometry]] = []
+    for item in selected:
+        if not isinstance(item, ManufacturingResolvedBayInput):
+            raise TypeError("ManufacturingResolvedBayInput required")
+        try:
+            registration = resolve_cabinet_type(item.family)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("WHD_INTEGRATION_FAMILY_UNKNOWN") from exc
+        if registration.canonical_name != "受電箱" or not registration.implemented:
+            raise ValueError("WHD_VERIFIED_BAY_RECEIVING_ONLY")
+        source = item.source
+        if not _valid_source(source) or source.set_id is None or source.bay_id is None:
+            raise ValueError("RECEIVING_STABLE_SOURCE_SET_BAY_REQUIRED")
+        if (not isinstance(item.resolved_geometry, ResolvedManufacturingGeometry)
+                or not item.resolved_geometry.parts):
+            raise ValueError("RECEIVING_ENGINE_RESOLVED_GEOMETRY_REQUIRED")
+        namespace = manufacturing_api.receiving_manufacturing_instance_namespace(
+            set_id=source.set_id, bay_id=source.bay_id,
+        )
+        if namespace.casefold() in seen:
+            raise ValueError("RECEIVING_DUPLICATE_OUTPUT_NAMESPACE")
+        seen.add(namespace.casefold())
+        instances.append((namespace, item.resolved_geometry))
+
+    files = manufacturing_api.save_verified_resolved_manufacturing_geometry_batch_dxf(
+        tuple(instances), output_dir,
+        pre_commit_guard=pre_commit_guard,
+        overwrite=overwrite,
+    )
+    return VerifiedIntegrationBatchExport(output_files=MappingProxyType(dict(files)))

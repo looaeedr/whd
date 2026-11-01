@@ -431,8 +431,12 @@ def save_resolved_manufacturing_geometry_batch_dxf(
     box_body_physical_piece_roles,
     overwrite: bool = False,
     part_only: bool = False,
+    verify_all_staged: bool = False,
+    pre_commit_guard=None,
 ) -> dict[str, str]:
-    """Atomically export multiple stable manufacturing instances into one inventory."""
+    """Atomically export instances; verified callers reopen every staged DXF."""
+    if verify_all_staged and not callable(pre_commit_guard):
+        raise ValueError("WHD_PRECOMMIT_GUARD_REQUIRED")
     rows = []
     seen_namespaces: set[str] = set()
     for instance_namespace, resolved_geometry in tuple(instances or ()):
@@ -447,12 +451,16 @@ def save_resolved_manufacturing_geometry_batch_dxf(
                 instance_namespace=namespace,
             )
             rows.append((f'{namespace}:{part_id}', filename, render_data))
+    if verify_all_staged and not 1 <= len(rows) <= 20:
+        raise ValueError("WHD_VERIFIED_BATCH_SIZE_INVALID")
     return _save_resolved_rows_atomic(
         rows,
         output_dir,
         save_part_render_data_dxf=save_part_render_data_dxf,
         overwrite=overwrite,
         part_only=part_only,
+        verify_all_staged=verify_all_staged,
+        pre_commit_guard=pre_commit_guard,
     )
 
 
