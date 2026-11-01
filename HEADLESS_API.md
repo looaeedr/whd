@@ -769,3 +769,18 @@ Indicator controls retain the historical single-group display fallback, never
 manufacturing/DXF authorization. Distinct multi-door cell identities remain
 owned by `project_part_dimensions`, not this legacy root overview. This is a
 move-only ownership change; existing geometry/Save→Reload policy is unchanged.
+
+
+
+## Original Fold Designer Door-grid Feature ownership Engine API (#2517)
+
+`manufacturing_api.project_fold_designer_snapshot_part_features(snapshot,
+surface_features, door_layout_features)` is the pure headless ownership seam
+for operator-authored Door cell Features and formal physical part identities.
+It uses the existing canonical `door_layout_feature_map_to_part_features`
+for `door_cN_rN` IDs and `col:row` content; the Engine preserves the exact
+saved-part merge rule: edited empty cells clear stale features, unedited
+cells retain saved content, and legacy tuple cell keys only signal authored
+empty clears. GUI only submits source stores and copies returned Features
+into the original Save/Reload schema. No hole coordinate transform,
+manufacturing CUTTING/DXF authorization or new geometry is introduced.

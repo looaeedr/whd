@@ -9,7 +9,6 @@ import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from ae_engine.corner_type_ui import is_unknown_model
 from ae_engine.sheetmetal_geometry import EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS
-from ae_engine.sheetmetal_part_adapters import door_layout_feature_map_to_part_features
 from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
 from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bottom_wrap_state
 from phase6_settings_center import load_factory_defaults_from_ae
@@ -183,28 +182,7 @@ def _snapshot_workspace_state(self, snapshot):
 
     active = self.workspace_controller.active_part
     snapshot["active_part"] = active if active in ordered else (ordered[0] if ordered else None)
-    snapshot["part_features"] = {
-        str(key): list(features or ())
-        for key, features in dict(self.surface_features or {}).items()
-    }
-    if snapshot.get("multi_door_enabled") and snapshot.get("door_layout_columns"):
-        door_layout_map = getattr(self, "door_layout_features", {}) or {}
-        formal_door_features = door_layout_feature_map_to_part_features(
-            tuple(
-                (float(row[0]), tuple(float(v) for v in row[1]))
-                for row in snapshot["door_layout_columns"]
-            ),
-            door_layout_map,
-        )
-        for key, features in formal_door_features.items():
-            if features or key not in snapshot["part_features"]:
-                snapshot["part_features"][key] = list(features)
-            else:
-                parts = str(key).removeprefix("door_c").split("_r")
-                if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
-                    cell_key = (int(parts[0]) - 1, int(parts[1]) - 1)
-                    if cell_key in door_layout_map or f"{cell_key[0]}:{cell_key[1]}" in door_layout_map:
-                        snapshot["part_features"][key] = list(features)
+    _snapshot_part_features(self, snapshot)
 
     snapshot["part_face_features"] = {
         "box_body": {
@@ -213,6 +191,16 @@ def _snapshot_workspace_state(self, snapshot):
         }
     }
     return committed_profiles
+
+def _snapshot_part_features(self, snapshot):
+    """Save operator Feature stores from one canonical Engine identity projection."""
+    snapshot["part_features"] = manufacturing_api.project_fold_designer_snapshot_part_features(
+        snapshot,
+        getattr(self, "surface_features", None),
+        getattr(self, "door_layout_features", None),
+    )
+    return snapshot
+
 
 def _snapshot_part_dimensions(self, snapshot):
     """Collect operator controls; Engine alone projects physical dimensions."""

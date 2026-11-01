@@ -655,3 +655,17 @@ Receiving physical Base Plate blank、Indicator shared unfolded factory 與
 多門格各 cell 的真正 physical IDs 與尺寸仍由
 `project_part_dimensions` 統一投影，此 root 快照 API 不製造 cell。
 不新增 CUTTING／DXF 認證，#2517 仍 OPEN。
+
+
+
+### #2517 Fold Designer 多門格 Feature 實體來源公開 API（2026-11-01）
+
+`manufacturing_api.project_fold_designer_snapshot_part_features(snapshot, surface_features, door_layout_features)`
+由 Engine 承接 Fold Designer 的 Door-cell 操作 Feature store 與正式
+`door_cN_rN` 實體板件身分對應。唯一 canonical 格位與 ID 來源仍是
+`sheetmetal_part_adapters.door_layout_feature_map_to_part_features`；
+Engine 按既有規則保留未操作格位的舊 Feature、允許已操作格位空值清空
+舊 Feature、接受 legacy tuple 格位標記作為空值提交證據，並回傳與輸入
+隔離的 `part_features`。GUI 不再解析 `door_cN_rN` 或決定物理 Feature
+合併；既有 Save→Reload schema、2D/3D/CUTTING/DXF 工廠不更改。
+不新增機械規則與 DXF 製造授權，#2517 維持 OPEN。
