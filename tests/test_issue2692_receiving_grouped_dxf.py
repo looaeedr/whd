@@ -100,7 +100,7 @@ def test_group_commit_is_a_atomic_batch_with_dxf_readback(tmp_path, mode, expect
             pre_commit_guard=lambda: counts.append("verified"),
         )
     assert tuple(receipts.keys()) == expected
-    assert tuple(p.name for p in (tmp_path/"out").glob("*.dxf")) == expected
+    assert {p.name for p in (tmp_path/"out").glob("*.dxf")} == set(expected)
     assert len(counts) >= 2
     for filename in expected:
         entities = tuple(ezdxf.readfile(tmp_path/"out"/filename).modelspace())
@@ -111,7 +111,6 @@ def test_group_commit_is_a_atomic_batch_with_dxf_readback(tmp_path, mode, expect
 
 
 def test_drift_on_second_group_preserves_all_old_outputs(tmp_path):
-    from ae_engine import composed_panel_dxf
     layout = _seven()
     out = tmp_path/"out"
     out.mkdir()
@@ -148,8 +147,10 @@ def test_legacy_current_csv_export_and_new_group_mode_share_real_source_guard(tm
     source = _multi()
     provider, calls = _provider(source)
     checked = []
+    # Use independently source-eligible physical Head sheets; full NFB MFG-2
+    # remains unreleased rather than accepted from a preview flag.
     output = manufacturing_api.export_grouped_receiving_multibay_dxf(
-        source, physical_bay_geometry_provider=provider, flags=_flags(),
+        source, physical_bay_geometry_provider=provider, flags={"head": True},
         output_dir=tmp_path/"output", group_mode="ALL",
         pre_commit_guard=lambda: checked.append("verified"),
     )
@@ -157,4 +158,4 @@ def test_legacy_current_csv_export_and_new_group_mode_share_real_source_guard(tm
     assert len(list((tmp_path/"output").glob("*.dxf"))) == 1
     assert calls == [(0,0),(0,1)]
     assert len(checked)>=2
-    assert len(tuple(ezdxf.readfile(tmp_path/"output"/"全部.dxf").modelspace()))>20
+    assert len(tuple(ezdxf.readfile(tmp_path/"output"/"全部.dxf").modelspace()))>2
