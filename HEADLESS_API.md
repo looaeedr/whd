@@ -34,6 +34,10 @@ private/legacy AE Door geometry functions. Neither baseline failure fallback
 nor this display-only summary is certified FinalScene, trusted manufacture,
 CUTTING/BEND/DXF export or external API capability.
 
+## EndCap operator blank summary and baseline Fold defaults API (#2517)
+
+`manufacturing_api.project_operator_endcap_blank_dimensions(values, baseline_model="")` supplies the same legacy main-window EndCap summary when no Fold profile is committed: baseline-first AE projection or its pre-existing no-baseline formula. Committed profiles remain measured from FinalScene material bounds. `manufacturing_api.read_operator_baseline_fold_defaults(model_name, thickness=...)` reads existing known-family EndCap/Door baseline Fold defaults, retaining no-Door-source and legacy failed-Door-load UI semantics without letting GUI infer manufacture. Both are read-only operator views, not certified CUTTING/DXF or new Family admission.
+
 ## BasePlate operator blank dimension API (#2517)
 
 `manufacturing_api.base_plate_blank_dimensions(*, w, h, shrink_top, shrink_bottom,

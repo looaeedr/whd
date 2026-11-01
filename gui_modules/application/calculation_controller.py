@@ -3,7 +3,7 @@
 Formula/manufacturing authority remains in AE and existing application owners.
 This module only coordinates authoritative inputs/results and UI projection.
 """
-import ae_engine.ae as ae
+from ae_engine import manufacturing_api
 
 
 def update_calculations(self):
@@ -46,19 +46,10 @@ def update_calculations(self):
             y_w = y_maxx - y_minx
             y_d = y_maxy - y_miny
         else:
-            if baseline:
-                geom = ae.get_stretched_end_cap_data(
-                    baseline, val['w'], val['h'], val['d'], val['t'],
-                    FW_val=val['fw'], is_tail=False
-                )
-                y_w = geom.params['total_width']
-                y_d = geom.params['total_depth']
-            else:
-                y_w = ae.calculate_y_width(val['yl1'], val['yr1'], val['w'], val['t'])
-                y_d = ae.calculate_y_depth(
-                    val['ytop1'], val['ybottom1'], val['d'], val['t'], val['fw']
-                )
-        
+            y_w, y_d = manufacturing_api.project_operator_endcap_blank_dimensions(
+                val, baseline_model=baseline,
+            )
+
         # 3. 計算門 Door：GUI 只選使用者正在看的單門或多門格，
         # 正式料尺寸與 legacy 基準來源優先序都由公開 Engine API 判定。
         door_material_fw = self._door_material_frame_width(val['fw'], val['t'])

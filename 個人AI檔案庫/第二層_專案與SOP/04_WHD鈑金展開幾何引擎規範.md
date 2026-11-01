@@ -36,6 +36,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.project_operator_door_blank_dimensions` 將 `calculation_controller.update_calculations` 原單門 Baseline → 既有 AE 舊版顯示 fallback 與多門格實體 start W/H／frame_edges 展開尺寸委派給 Engine；GUI 僅選目前操作者看的門格及格式化尺寸。正式 `DoorPartSpec`／FinalScene／feature／DXF 來源未改，舊 fallback **僅限顯示**且不得升格為已驗證製造權威。保留沒有門板時「-」、基準存在／缺失的舊摘要語意，以及原 Save→Reload／2D／3D／DXF 契約，不新增任何 CUTTING/DXF 認證；#2517 OPEN。
 
+### #2517 EndCap 摘要／金庫型基準 Fold 預設 Engine 公開 API（2026-11-01）
+
+`manufacturing_api.project_operator_endcap_blank_dimensions` 將主畫面 EndCap 無已提交 Fold Profile 時的 baseline-first 總料寬／深回讀與舊 AE 公式回退統一移入 Engine；已有 committed Profile 時仍由同一 FinalScene material bounds 作準。 `manufacturing_api.read_operator_baseline_fold_defaults` 將金庫型型號切換時的 EndCap／Door 基準 Fold 預設及舊 Door DXF 解析失敗的四數值 UI 相容回退搬入 Engine；GUI 僅將回傳數值填入操作欄。兩者只供操作顯示／預設，不是正式製造或 DXF 認證，保留自訂／受電箱既有路徑與原 Save→Reload／2D／3D 來源；#2517 OPEN。
+
 ### #2517 BasePlate 展開摘要唯一 Engine 計算公開 API（2026-11-01）
 
 `manufacturing_api.base_plate_blank_dimensions` 以既有 `sheetmetal_part_adapters` 的 BasePlate 料寬／料高計算為唯一擁有者，正式 `build_base_plate_result`／自訂角 `build_unknown_base_plate_result` 與 GUI `calculation_controller.update_calculations` 共用同一函式。GUI 只傳操作者 W/H／縮邊／折邊並顯示返回尺寸，不再另算公式。保留沒有底板時「-」、獨立板件契約及原 2D/3D/DXF/Save→Reload 行為；此函式**不取代**受電箱 NFB/多層實體底板的專用來源，亦不代表已取得 CUTTING／DXF 製造認證。#2517 OPEN。

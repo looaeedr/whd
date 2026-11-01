@@ -8,7 +8,6 @@ from copy import deepcopy
 import tkinter as tk
 from tkinter import messagebox
 
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from ae_engine.contracts import ManufacturingContext
 from ae_engine.cabinet_types import policy as cabinet_family_policy
@@ -255,8 +254,10 @@ def on_baseline_changed(self):
         t_val = float(self.t_var.get()) if self.t_var.get() else 2.0
         
         # 1. 載入封頭尾基準檔分析折彎參數
-        geom = ae.get_stretched_end_cap_data(val, 500, 500, 150, t_val, FW_val=None, is_tail=False)
-        p = geom.params
+        baseline_folds = manufacturing_api.read_operator_baseline_fold_defaults(
+            val, thickness=t_val,
+        )
+        p = baseline_folds["endcap"]
         
         self.yl1_var.set(f"{p['yl1']:.1f}".replace(".0", ""))
         self.yr1_var.set(f"{p['yr1']:.1f}".replace(".0", ""))
@@ -276,24 +277,12 @@ def on_baseline_changed(self):
         # 箱身.dxf 只映射固定加工特徵，不反推/覆寫 zl1/zl2/zr1/zr2/z_comp。
 
         # 3. 檢查並加載目前型號的門基準；GUI 不自行組 baseline 路徑。
-        if ae.has_baseline_part(val, "門.dxf"):
-            try:
-                door_fw = self._door_material_frame_width(
-                    self.fw_z_var.get(), t_val, model_name=val
-                )
-                geom_door = ae.get_stretched_door_data(
-                    val, 500, 500, t_val, door_fw
-                )
-                pd = geom_door.params
-                self.door_fold_l_var.set(f"{pd['door_fold_l']:.1f}".replace(".0", ""))
-                self.door_fold_r_var.set(f"{pd['door_fold_r']:.1f}".replace(".0", ""))
-                self.door_fold_t_var.set(f"{pd['door_fold_t']:.1f}".replace(".0", ""))
-                self.door_fold_b_var.set(f"{pd['door_fold_b']:.1f}".replace(".0", ""))
-            except Exception as door_err:
-                self.door_fold_l_var.set("19")
-                self.door_fold_r_var.set("15")
-                self.door_fold_t_var.set("15")
-                self.door_fold_b_var.set("15")
+        pd = baseline_folds["door"]
+        if pd is not None:
+            self.door_fold_l_var.set(f"{pd['door_fold_l']:.1f}".replace(".0", ""))
+            self.door_fold_r_var.set(f"{pd['door_fold_r']:.1f}".replace(".0", ""))
+            self.door_fold_t_var.set(f"{pd['door_fold_t']:.1f}".replace(".0", ""))
+            self.door_fold_b_var.set(f"{pd['door_fold_b']:.1f}".replace(".0", ""))
     except Exception as e:
         messagebox.showerror("基準檔載入出錯", f"無法讀取基準檔參數: {e}")
 
