@@ -267,7 +267,7 @@ def _submitted_csv_holes(snapshot):
     # Quantity version parent changed while an INHERIT unit still points at
     # a different brand's saved V5 model: preserve its identity but forbid
     # any CURRENT manufacturing source, pending explicit operator reselection.
-    from phase6_quantity_model import quantity_inherited_nfb_brand_conflicts
+    from .receiving_quantity_versions import quantity_inherited_nfb_brand_conflicts
     stale_units = quantity_inherited_nfb_brand_conflicts(snapshot)
     if stale_units:
         raise ValueError(
@@ -292,7 +292,7 @@ def _submitted_csv_holes(snapshot):
         # a separately saved Set/Bay or a second editable NFB configuration.
         # Resolve its *current* identity here rather than requiring a stale
         # Set/Bay runtime selector that quantity projection correctly removes.
-        from phase6_quantity_model import QuantityModel
+        from .receiving_quantity_versions import QuantityModel
         from .receiving_quantity_box import project_common_box
         quantity_model = QuantityModel.from_payload(snapshot.get("quantity"))
         selected_nfb = quantity_model.nfb_config_for_version(

@@ -1036,7 +1036,7 @@ def resolve_receiving_joint_markings(
     frame_by_id = {str(frame.stable_id): frame for frame in frames}
     try:
         if world_geometry is None:
-            from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
+            from .assembly_geometry import build_joint_world_geometry as _phase6_build_joint_world_geometry
 
             world = _phase6_build_joint_world_geometry(
                 tuple(geometry.parts or ()), dimensions, float(sheet_thickness)

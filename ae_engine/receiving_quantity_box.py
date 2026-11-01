@@ -126,7 +126,7 @@ def project_common_box(snapshot):
     result.pop("nfb_config", None)
     quantity = result.get("quantity")
     if isinstance(quantity, Mapping):
-        from phase6_quantity_model import QuantityModel, SCHEMA_V3
+        from .receiving_quantity_versions import QuantityModel, SCHEMA_V3
         model = QuantityModel.from_payload(quantity)
         # Preserve EXACT pre-v3 common-box projection/cache semantics for all
         # existing projects. Only an explicitly version-owned V3 brand may
@@ -208,7 +208,7 @@ def quantity_feature_errors(snapshot):
     """Re-resolve every version against the existing finished-face authority."""
     if not isinstance(snapshot, Mapping) or snapshot.get("active_mode") != "quantity":
         return ()
-    from phase6_quantity_model import QuantityModel
+    from .receiving_quantity_versions import QuantityModel
     from ae_engine.cabinet_types.receiving import is_receiving_snapshot
     from ae_engine.sheetmetal_features import (
         resolve_endcap_finished_face_guide, feature_surface_from_rect,

@@ -67,7 +67,7 @@ def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness,
                    for i, k in enumerate(("w", "h", "d")))):
         raise ValueError("EAR_SIDE_CHECK_REQUIRES_CURRENT_MATCHING_SUBMITTED_SNAPSHOT")
 
-    from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
+    from .assembly_geometry import build_joint_world_geometry as _phase6_build_joint_world_geometry
     world = _phase6_build_joint_world_geometry(
         tuple(geometry.parts or ()), tuple(float(v) for v in dimensions), 2.,
     )
