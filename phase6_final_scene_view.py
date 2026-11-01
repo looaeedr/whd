@@ -16,6 +16,7 @@ from __future__ import annotations
 # Importing mpl_toolkits.mplot3d.art3d first can circularly import
 # matplotlib.projections and leave the global registry without Axes3D.
 from phase6_fold_profiles import _num
+from ae_engine import manufacturing_api
 
 from phase6_final_scene_contracts import (
     AssemblyScenePart,
@@ -174,40 +175,25 @@ class Phase6FinalSceneViewAdapter:
         )
 
     def _formed_ear_assembly_preview(self, snapshot, visible_set):
-        """Source-backed world skins, NEVER extra manufacturing assembly parts.
-
-        Failure leaves the cabinet 3D usable without painting an uncertified
-        EAR. No padding, DXF intermediates, new PartSpec, or production gate.
-        """
-        if snapshot.get("model") not in ("受電箱", "RECEIVING") or snapshot.get("nfb_config_submitted") is not True:
+        """Display/caching only; Engine verifies physical EAR source and safety."""
+        if (snapshot.get("model") not in ("受電箱", "RECEIVING")
+                or snapshot.get("nfb_config_submitted") is not True):
             self.last_formed_ear_display_blocker = None
             return ()
-        import hashlib
-        from ae_engine.receiving_base_fixing_plate_geometry import SOURCE_DXF_SHA256
-        source_key = hashlib.sha256(
-            (SOURCE_DXF_SHA256 + repr(snapshot)).encode("utf-8")
-        ).hexdigest()
+        try:
+            source_key = manufacturing_api.receiving_ear_assembly_display_source_key(
+                snapshot
+            )
+        except (ValueError, TypeError) as exc:
+            self.last_formed_ear_display_blocker = str(exc)
+            self._formed_ear_display_cache = None
+            return ()
         cached = self._formed_ear_display_cache
         if cached is None or cached[0] != source_key:
             try:
-                from ae_engine.receiving_tier_ear_assembly_xy import (
-                    resolve_receiving_tier_ear_mating_xy,
+                formed = manufacturing_api.resolve_receiving_ear_assembly_display_skins(
+                    snapshot
                 )
-                from ae_engine.receiving_fixed_plate_formed_skins import (
-                    build_receiving_formed_fixing_plate_skins,
-                )
-                owners = resolve_receiving_tier_ear_mating_xy(snapshot)
-                if len(owners) not in (2, 4):
-                    raise ValueError("EAR_ASSEMBLY_DISPLAY_OWNER_COUNT_INVALID")
-                formed = tuple(build_receiving_formed_fixing_plate_skins(
-                    snapshot, entry.ear_id,
-                ) for entry in owners)
-                if (len({row.part_id for row in formed}) != len(formed)
-                        or {row.base_part_id for row in formed}
-                           != {entry.parent_base_id for entry in owners}
-                        or any(row.manufacturing_ready or row.weld_contact_verified
-                               or not row.source_bend_verified for row in formed)):
-                    raise ValueError("EAR_ASSEMBLY_DISPLAY_SOURCE_INCONSISTENT")
                 blocker = None
             except (ValueError, TypeError) as exc:
                 formed = ()
@@ -216,10 +202,7 @@ class Phase6FinalSceneViewAdapter:
         else:
             formed, blocker = cached[1:]
         self.last_formed_ear_display_blocker = blocker
-        # Display-only EAR visibility is independent of Base Plate visibility.
-        # Its own show_fixing_plate_mesh switch is applied by the 3D renderer.
-        # Never suppress the EAR when a parent plate is hidden: this is also
-        # needed to inspect weld contact surfaces with the plate out of view.
+        # Display-only EAR has its own visibility switch in the renderer.
         return tuple(formed)
 
     def _require_renderer(self) -> Phase6FinalSceneRenderer:
