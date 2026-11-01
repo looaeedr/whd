@@ -32,6 +32,8 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 Receiving committed NFB 實體板件組合公開 API（2026-11-01）**：`manufacturing_api.resolve_receiving_nfb_assembly_parts(snapshot, parts)` 統一 Engine 原有兩段程序：先以既有 `expand_receiving_nfb_layer_parts` 展開獨立兩層 Base Plate 實體；僅 Receiving 且 `nfb_config_submitted is True` 再以既有 `apply_committed_csv_v5_to_canonical_parts` 套用已提交 CSV 螺絲孔／來源 FinalScene。Engine 層板件生成改以 `dataclasses.replace(root, ...)` 重建相同 frozen dataclass 型別，移除 `phase6_final_scene_contracts` 反向 import。保留未提交候選、單層、來源身份漂移、缺正式 Z／CSV 的既有 fail-closed；不另發明 NFB 孔位、EAR、CUTTING／DXF 或認證。#2517 保持 OPEN。
+
 **#2517 Relief rule trace／Joint diagnostic 公開 API（2026-11-01）**：`manufacturing_api.resolve_manufacturing_relief_evidence(resolved_parts, solutions, joints)` 統一由 Engine 將既有 solver EndCap corner、3D shadow、Receiving bottom-WRAP metadata 與 Registry Joint ownership 投影成 `ResolvedReliefRuleTrace`、`ResolvedJointDiagnostic`。保留既有 trace 順序、`USER_ADDED` 獨立 relief pipeline、legal contact／穿透診斷及 deep-copy evidence；Phase6 只組合 Engine 結果供顯示。沒有新增 Certified Registry 來源、CUTTING／DXF 授權；#2517 仍 OPEN。
 
 **#2517 AssemblyJoint 製造拓樸公開 API（2026-11-01）**：`manufacturing_api.resolve_manufacturing_joint_graph(input_snapshot, available_part_keys)` 使用既有 Engine `migrate_legacy_snapshot_joints` 與 `ResolvedAssemblyGraph` 一次處理保存 schema migration、真實可用板件 Joint 篩選、自訂板件未確認 placement 的 fail-closed，以及 Joint ID／region 驗證。Phase6 僅傳 snapshot 與可用實體板件清單，不再決定製造拓樸；原始保存值、Assembly Intent／Certified Registry／CUTTING／DXF 權威不變；#2517 保持 OPEN。

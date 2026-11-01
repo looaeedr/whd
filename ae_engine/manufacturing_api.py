@@ -324,6 +324,7 @@ from .assembly_joint import (
 )
 from .assembly_joint import joint_registry_diagnostic_info
 from .manufacturing_relief_evidence import resolve_manufacturing_relief_evidence
+from .receiving_nfb_assembly import resolve_receiving_nfb_assembly_parts
 from .assembly_placement import (
     SCENE_ASSEMBLY_PLACEMENTS, resolve_legacy_door_cell_scene_placement,
     resolve_scene_assembly_placement,
