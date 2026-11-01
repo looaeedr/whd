@@ -229,15 +229,14 @@ class Phase6FinalSceneRenderHelpersMixin:
             )
 
     def _draw_scene_bends(self, scene, x_profile, y_profile, fold_guides=()):
-        from ae_engine.sheetmetal_drawing import LinePrimitive
+        """Draw only Engine-projected true single-part BEND segments."""
+        from ae_engine import manufacturing_api
 
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
-        for primitive in getattr(scene, "primitives", ()):
-            if not isinstance(primitive, LinePrimitive) or str(primitive.layer).upper() != "BEND":
-                continue
-            a = self._map_xy(primitive.p1.x, primitive.p1.y, x_profile, y_profile, fold_guides)
-            b = self._map_xy(primitive.p2.x, primitive.p2.y, x_profile, y_profile, fold_guides)
+        for a, b in manufacturing_api.project_independent_scene_bend_segments(
+            scene, x_profile, y_profile, fold_guides,
+        ):
             self.renderer.ax3d.plot(
                 [a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
                 color="#2563eb", linewidth=1.15, linestyle="-", alpha=0.95,
@@ -265,47 +264,23 @@ class Phase6FinalSceneRenderHelpersMixin:
             )
 
     def _draw_scene_markings(self, scene, x_profile, y_profile, fold_guides=()):
-        import math
-        from ae_engine.sheetmetal_drawing import PolylinePrimitive, CirclePrimitive, LinePrimitive
+        """Paint real MARKING and BLIND_HOLE paths projected by Engine."""
+        from ae_engine import manufacturing_api
 
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
-        for primitive in getattr(scene, "primitives", ()):
-            layer = str(getattr(primitive, "layer", "") or "").upper()
-            if layer not in {"MARKING", "BLIND_HOLE"}:
-                continue
-            paths = []
-            if isinstance(primitive, CirclePrimitive):
-                pts = []
-                for i in range(65):
-                    angle = 2.0 * math.pi * i / 64.0
-                    pts.append(self._map_xy(
-                        float(primitive.center.x) + float(primitive.radius) * math.cos(angle),
-                        float(primitive.center.y) + float(primitive.radius) * math.sin(angle),
-                        x_profile, y_profile, fold_guides,
-                    ))
-                paths.append(pts)
-            elif isinstance(primitive, LinePrimitive):
-                paths.append([
-                    self._map_xy(primitive.p1.x, primitive.p1.y, x_profile, y_profile, fold_guides),
-                    self._map_xy(primitive.p2.x, primitive.p2.y, x_profile, y_profile, fold_guides),
-                ])
-            elif isinstance(primitive, PolylinePrimitive):
-                pts = [self._map_xy(p.x, p.y, x_profile, y_profile, fold_guides) for p in primitive.points]
-                if primitive.closed and pts:
-                    pts.append(pts[0])
-                paths.append(pts)
-            for pts in paths:
-                if len(pts) < 2:
-                    continue
-                self.renderer.ax3d.plot(
-                    [p[0] for p in pts], [p[1] for p in pts], [p[2] for p in pts],
-                    color=("#f59e0b" if layer == "MARKING" else "#ef4444"),
-                    linewidth=(2.2 if layer == "MARKING" else 1.0),
-                    linestyle=("-" if layer == "MARKING" else "--"),
-                    alpha=(1.0 if layer == "MARKING" else 0.9),
-                    zorder=(20 if layer == "MARKING" else 8),
-                )
+        paths = manufacturing_api.project_independent_scene_annotation_paths(
+            scene, x_profile, y_profile, fold_guides,
+        )
+        for layer, pts in paths:
+            self.renderer.ax3d.plot(
+                [p[0] for p in pts], [p[1] for p in pts], [p[2] for p in pts],
+                color=("#f59e0b" if layer == "MARKING" else "#ef4444"),
+                linewidth=(2.2 if layer == "MARKING" else 1.0),
+                linestyle=("-" if layer == "MARKING" else "--"),
+                alpha=(1.0 if layer == "MARKING" else 0.9),
+                zorder=(20 if layer == "MARKING" else 8),
+            )
 
     @staticmethod
     def _marking_line_signature(p1, p2):
