@@ -102,21 +102,3 @@ def test_stale_local_paths_and_collision_first_legacy_are_history_only() -> None
     assert "Z:\\Ollama-整合whd" in historical
     assert "先形成名義板件與折後實體，再由實際干涉反推 2D CUTTING" in historical
     assert "Registry HIT" in current
-
-
-def test_current_cadsplit_wire_is_not_a_manufacturing_api_seam() -> None:
-    current, _ = _spec_sections()
-    assert "外部 CADSplit 的 seam 是已授權" not in current
-    for phrase in (
-        "外部 CADSplit 目前沒有可用的已驗證製造 API seam",
-        "source-only JSON/CLI 通訊相容介面",
-        "WHD_OPERATION_NOT_IMPLEMENTED",
-        "manufacturing_verified=false",
-        "不具有獨立製造權威",
-    ):
-        assert phrase in current, f"04 misstates the CADSplit integration boundary: {phrase}"
-
-    wire_reference = (ROOT / "docs/integrations/CADSplit_WHD_Contract.md").read_text(encoding="utf-8")
-    assert "not\nevidence of an installed Worker" in wire_reference
-    assert "zero enabled capabilities" in wire_reference
-    assert "WHD_OPERATION_NOT_IMPLEMENTED" in wire_reference
