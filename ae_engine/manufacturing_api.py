@@ -313,7 +313,7 @@ from .assembly_geometry_folded_mesh import (
 )
 from .assembly_joint import (
     side_wrap_target_corners, resolve_box_body_piece_solver_key,
-    joint_relief_state_item_matches,
+    joint_relief_state_item_matches, resolve_manufacturing_joint_graph,
 )
 from .assembly_joint import joint_registry_diagnostic_info
 from .assembly_placement import (

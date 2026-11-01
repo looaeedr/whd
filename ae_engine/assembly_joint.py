@@ -966,3 +966,34 @@ def joint_registry_diagnostic_info(joint, render_by_part, solution_by_part):
     }
 
 
+def resolve_manufacturing_joint_graph(snapshot, available_part_keys):
+    """Own legacy Joint migration, live-part membership and physical graph.
+
+    Preserve the existing Phase6 manufacturing behavior without inventing a
+    second Family/Intent topology, unplaced custom part, or GUI dependency.
+    """
+    available = {str(key) for key in tuple(available_part_keys or ())}
+    migrated = migrate_legacy_snapshot_joints(dict(snapshot))
+    joints = tuple(
+        raw if isinstance(raw, AssemblyJoint) else AssemblyJoint.from_dict(raw)
+        for raw in tuple(migrated.get("assembly_joints", ()) or ())
+        if str(
+            getattr(
+                raw, "subject_part",
+                raw.get("subject_part", "") if isinstance(raw, dict) else "",
+            )
+        ) in available
+        and str(
+            getattr(
+                raw, "target_part",
+                raw.get("target_part", "") if isinstance(raw, dict) else "",
+            )
+        ) in available
+    )
+    if any(
+        str(joint.subject_part).startswith("custom:")
+        or str(joint.target_part).startswith("custom:")
+        for joint in joints
+    ):
+        raise ValueError("自訂板件尚無已確認 assembly placement，不能建立組裝 joint")
+    return ResolvedAssemblyGraph(tuple(sorted(available)), joints)

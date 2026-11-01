@@ -17,11 +17,6 @@ from ae_engine.assembly_mesh_reuse import mesh_build_scope
 from copy import deepcopy
 from dataclasses import replace
 
-from ae_engine.assembly_joint import (
-    AssemblyJoint,
-    ResolvedAssemblyGraph,
-    migrate_legacy_snapshot_joints,
-)
 from ae_engine.contracts import (
     ResolvedJointDiagnostic,
     ResolvedManufacturingGeometry,
@@ -32,6 +27,7 @@ from ae_engine.manufacturing_api import (
     replay_resolved_endcap_render, resolve_live_cabinet_family,
     endcap_relief_transaction_committable,
     solve_endcap_assembly_relief, endcap_relief_solution_diagnostic,
+    resolve_manufacturing_joint_graph,
 )
 from ae_engine.joint_marking_policy import resolve_joint_marking_foundation_status
 from ae_engine.receiving_joint_marking import (
@@ -94,28 +90,9 @@ def resolve(request):
         )
         snapshot = restore_receiving_nfb_dto_selectors(snapshot)
 
-    snapshot_for_joints = migrate_legacy_snapshot_joints(dict(snapshot))
-    joints = tuple(
-        raw if isinstance(raw, AssemblyJoint) else AssemblyJoint.from_dict(raw)
-        for raw in tuple(snapshot_for_joints.get("assembly_joints", ()) or ())
-        if str(
-            getattr(
-                raw,
-                "subject_part",
-                raw.get("subject_part", "") if isinstance(raw, dict) else "",
-            )
-        ) in available
-        and str(
-            getattr(
-                raw,
-                "target_part",
-                raw.get("target_part", "") if isinstance(raw, dict) else "",
-            )
-        ) in available
+    resolved_joint_graph = resolve_manufacturing_joint_graph(
+        snapshot, available,
     )
-    if any(str(j.subject_part).startswith("custom:") or str(j.target_part).startswith("custom:") for j in joints):
-        raise ValueError("自訂板件尚無已確認 assembly placement，不能建立組裝 joint")
-    resolved_joint_graph = ResolvedAssemblyGraph(tuple(sorted(available)), joints)
 
     parts = []
     for part_input in tuple(request.parts or ()):
