@@ -134,6 +134,7 @@ def test_t005a_new_set_bay1_always_samples_set1_bay1_at_creation_time():
     set2_bay1 = layout["sets"][1]["bays"][0]
     assert set2_bay1 == {
         "stable_id": "receiving:set:2:bay:1",
+        "panel_name": "P3",
         "width": pytest.approx(810),
         "height": pytest.approx(1700),
         "depth": pytest.approx(420),
