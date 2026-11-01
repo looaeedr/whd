@@ -1153,6 +1153,14 @@ from .receiving_nfb_pair_quantity_check import (
     group_reopened_nfb_pair_check_q, save_checked_reopened_nfb_pair_q_dxf,
 )
 
+
+# #2517: Source-current Receiving NFB BasePlate physical PART_ONLY release.
+from .receiving_nfb_base_partial_export import (
+    nfb_verification_geometry_changed,
+    prepare_verified_receiving_nfb_base_plate,
+    export_verified_receiving_nfb_base_plate,
+)
+
 # Canonical Engine owner for Door/BasePlate/Divider/InnerDoor physical namespaces,
 # retired GUI-owned immutable request/sync intent builder (#2517).
 from .derived_part_projection import (
