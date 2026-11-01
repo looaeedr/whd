@@ -8,6 +8,8 @@ These triangles are read-only inspection data, not CUTTING/DXF certification.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from .assembly_geometry import (
     build_joint_world_geometry,
     folded_mesh_from_polygon,
@@ -110,6 +112,34 @@ def resolve_box_body_true_world_piece_meshes(part, *, dimensions, thickness):
     )
 
 
+@dataclass(frozen=True)
+class AssembledEndcapWorldSkins:
+    """Read-only actual world mid-surface and true-T sheet solid."""
+
+    formed_surface: tuple
+    solid_triangles: tuple
+
+
+def resolve_assembled_endcap_world_skins(
+    local_triangles, *, placement, box_body_world, thickness,
+    offset=(0.0, 0.0, 0.0), preserve_core_origin=False,
+):
+    """Canonical Head/Tail world mating, then true-thickness physical skins.
+
+    Caller owns resolved material and operator intent; no UI state, fallback
+    preview geometry, manufacturing certification, or policy is introduced.
+    """
+    surface = place_endcap_against_box_body(
+        local_triangles, placement, box_body_world, offset,
+        sheet_thickness=thickness,
+        preserve_core_origin=bool(preserve_core_origin),
+    )
+    return AssembledEndcapWorldSkins(
+        formed_surface=tuple(surface),
+        solid_triangles=tuple(thicken_triangle_surface(surface, thickness)),
+    )
+
+
 def resolve_receiving_settings_assembly_world_meshes(
     assembly_parts, *, finished_dimensions, thickness,
     preserve_endcap_core_origin=False,
@@ -141,15 +171,11 @@ def resolve_receiving_settings_assembly_world_meshes(
         placement = str(getattr(part, "placement", "offset") or "offset")
         offset = getattr(part, "offset", (0, 0, 0))
         if placement in {"top", "head", "bottom", "tail"} and box_body_world:
-            kwargs = {"sheet_thickness": thickness}
-            if preserve_endcap_core_origin:
-                kwargs["preserve_core_origin"] = True
-            placed = thicken_triangle_surface(
-                place_endcap_against_box_body(
-                    local, placement, box_body_world, offset, **kwargs
-                ),
-                thickness,
-            )
+            placed = resolve_assembled_endcap_world_skins(
+                local, placement=placement, box_body_world=box_body_world,
+                thickness=thickness, offset=offset,
+                preserve_core_origin=preserve_endcap_core_origin,
+            ).solid_triangles
         else:
             placed = place_assembly_triangles(
                 local, placement, finished_dimensions, offset,

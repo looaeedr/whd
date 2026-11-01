@@ -36,6 +36,8 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
+
 **#2517 箱身多片真實板厚世界座標 Engine API（2026-11-01）**：`manufacturing_api.resolve_box_body_true_world_piece_meshes(part, dimensions, thickness)` 將 3D FinalScene `_phase6_box_body_true_world_piece_meshes` 原來自行重複的物理 Box Body 源寬資格、唯一實體 ID、W/H/D、真實 T 厚網格與世界位置驗證，統一委派既有 `ae_engine.receiving_settings_assembly_mesh` 求解器及 canonical `build_joint_world_geometry`；Receiving 2D 組合視圖也共用同一公開 API。只傳已解析實體 DTO，不改來源／形狀／順序；無片、預覽占位返回空，非法來源 fail-closed。不新增製造演算法、CUTTING/BEND/DXF 認證，#2517 持續 OPEN。
 
 **#2517 箱身多片折後中面網格公開 Engine API（2026-11-01）**：`manufacturing_api.resolve_box_body_structure_mid_meshes(render_data, thickness=...)` 沿用已存在的 Engine `_structure_meshes` 唯一實體折後 source owner，回傳按原始 physical piece 順序的組合位置中面網格；只有預覽 stub 回空，非法外側 W 來源沿原驗證拒絕。3D FinalScene `_phase6_box_body_structure_meshes` 不再自行折料、複算 Box Body 世界定位，只將公開 Engine 回傳轉為舊 list，相同 API 也供受電箱 2D 設定頁重用；真實 T 厚板、成形物理身份、製造 BEND/CUTTING、碰撞與 DXF 權威沒有改變。#2517 維持 OPEN。
