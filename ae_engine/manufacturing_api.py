@@ -32,7 +32,7 @@ from .door_layout_numeric_transitions import (
     DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
 )
 from .dxf_serialization import save_scene_dxf
-# Public operator-owned panel naming input boundary (no manufacturing geometry).
+# Operator panel naming: public input boundary, independent of geometry.
 from .panel_naming import normalize_panel_name, set_cabinet_panel_name
 from .receiving_layout import rename_receiving_panel
 
@@ -129,6 +129,9 @@ from .receiving_quantity_versions import (
     SCHEMA, SCHEMA_V2, SCHEMA_V3, QUANTITY_MODE, SET_BAY_MODE,
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
     normalize_quantity_snapshot, quantity_only_change,
+)
+from .project_snapshot_state import (
+    normalize_authoritative_door_state, normalize_project_snapshot_authority,
 )
 from .corner_dimension_projection import (
     RenderCornerDimensionGroup, project_render_corner_relief_measurements,
@@ -237,7 +240,10 @@ from .operator_endcap_blank_projection import (
     project_operator_endcap_blank_dimensions,
     read_operator_baseline_fold_defaults,
 )
-from .display_dimensions import resolve_live_operator_finished_dimensions
+from .display_dimensions import (
+    resolve_live_operator_finished_dimensions,
+    OperatorDimensionGuidePlan, project_operator_dimension_guides,
+)
 from .live_cabinet_family import resolve_live_cabinet_family
 from .assembly_mesh_profiles import resolve_material_mesh_profiles
 from .standard_part_fold_profiles import build_standard_part_fold_profiles

@@ -16,6 +16,7 @@ from .door_layout_numeric_transitions import (
 )
 
 from .manufacturing_api import (
+    normalize_authoritative_door_state, normalize_project_snapshot_authority,
     list_cabinet_model_choices,
     normalize_panel_name, set_cabinet_panel_name, rename_receiving_panel,
     project_operator_door_blank_dimensions,
@@ -84,6 +85,7 @@ from .manufacturing_api import (
     project_receiving_ear_side_marking_segments,
     DoorPartProjection, door_part_projections, project_part_dimensions,
     resolve_live_operator_finished_dimensions, resolve_material_mesh_profiles,
+    OperatorDimensionGuidePlan, project_operator_dimension_guides,
     InnerDoorHoleEditorContext, resolve_inner_door_hole_editor_context,
     resolve_live_cabinet_family,
     FoldDesignerSnapshotDimensions, project_fold_designer_snapshot_dimensions,
@@ -217,6 +219,7 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "normalize_authoritative_door_state", "normalize_project_snapshot_authority",
     "ae", "manufacturing_api", "generate_part", "resolve_policy",
     "ManufacturingIntegrationRequest", "ManufacturingIntegrationResponse",
     "ManufacturingSourceIdentity", "dispatch_manufacturing_integration",
@@ -279,6 +282,7 @@ __all__ = [
     "project_receiving_ear_side_piece_2d_preview", "project_receiving_ear_side_marking_segments",
     "DoorPartProjection", "door_part_projections", "project_part_dimensions",
     "resolve_live_operator_finished_dimensions", "resolve_material_mesh_profiles",
+    "OperatorDimensionGuidePlan", "project_operator_dimension_guides",
     "InnerDoorHoleEditorContext", "resolve_inner_door_hole_editor_context",
     "resolve_live_cabinet_family",
     "FoldDesignerSnapshotDimensions", "project_fold_designer_snapshot_dimensions",

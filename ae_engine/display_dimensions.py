@@ -106,6 +106,65 @@ def folded_outside_envelope(triangles, thickness):
     return dims, bounds
 
 
+ 
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class OperatorDimensionGuidePlan:
+    """Read-only 3D operator overlay positions, not manufacturing dimensions."""
+
+    width_segments: tuple
+    height_segments: tuple
+    width_label_position: tuple[float, float, float]
+    height_label_position: tuple[float, float, float]
+
+
+def project_operator_dimension_guides(
+    x_profile, y_profile, *, triangles=(), thickness=None,
+) -> OperatorDimensionGuidePlan:
+    """Resolve all physical Fold/formed-mesh display guide positions in Engine.
+
+    The same original Fold material base section provides fallback coordinates;
+    actual folded 3D outside envelope, when present, overrides both axes.
+    The 5.5% offset and 1.2% tick length are existing DISPLAY-only styling.
+    They must never feed material dimensions, CUTTING, or manufacturing DXF.
+    """
+    from .assembly_geometry_folded_mesh import (
+        _profile_geometry, _profile_base_index,
+    )
+
+    _xb, xf = _profile_geometry(x_profile)
+    _yb, yf = _profile_geometry(y_profile)
+    xi, yi = _profile_base_index(x_profile), _profile_base_index(y_profile)
+    x0, x1 = float(xf[xi][0]), float(xf[xi + 1][0])
+    y0, y1 = float(yf[yi][0]), float(yf[yi + 1][0])
+    envelope = folded_outside_envelope(triangles, thickness)
+    if envelope is not None:
+        _measured, bounds = envelope
+        x0, x1 = bounds[0]
+        y0, y1 = bounds[1]
+
+    span = max(abs(x1 - x0), abs(y1 - y0), 1.0)
+    offset, tick = span * 0.055, span * 0.012
+    wy, hx = min(y0, y1) - offset, min(x0, x1) - offset
+    z = 0.0
+    return OperatorDimensionGuidePlan(
+        width_segments=(
+            ((x0, wy, z), (x1, wy, z)),
+            ((x0, wy - tick, z), (x0, wy + tick, z)),
+            ((x1, wy - tick, z), (x1, wy + tick, z)),
+        ),
+        height_segments=(
+            ((hx, y0, z), (hx, y1, z)),
+            ((hx - tick, y0, z), (hx + tick, y0, z)),
+            ((hx - tick, y1, z), (hx + tick, y1, z)),
+        ),
+        width_label_position=((x0 + x1) / 2.0, wy, z),
+        height_label_position=(hx, (y0 + y1) / 2.0, z),
+    )
+
+
 def resolve_operator_finished_dimensions(
     part_key,
     *,
