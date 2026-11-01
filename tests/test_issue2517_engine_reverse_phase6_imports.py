@@ -27,7 +27,12 @@ def test_legacy_phase6_names_are_exact_canonical_engine_owners():
     assert BoxBodyStructureType is PublicStructure is LegacyStructure
     assert BackPanelMode is PublicBackPanel is LegacyBackPanel
     assert side_rear_bend_material_length is LegacyRearBend
-    assert formed_box_body_fw_widths is LegacyFormedFw
+    # Phase6 keeps a read-only wrapper for old GUI callers, not identity.
+    # It must delegate to the exact Engine formed-FW formula.
+    import inspect
+    assert "manufacturing_api.formed_box_body_fw_widths(profile, thickness)" in inspect.getsource(LegacyFormedFw)
+    profile = ({"len": 20.0, "angle": 90}, {"len": 600.0, "core": "W"}, {"len": 20.0})
+    assert LegacyFormedFw(profile, 2.0) == formed_box_body_fw_widths(profile, 2.0)
     assert quantity_inherited_nfb_brand_conflicts is PublicNfbConflicts is LegacyNfbConflicts
     assert piece_features.BoxBodyStructureType is BoxBodyStructureType
     assert piece_features.normalize_box_body_structure_state is normalize_box_body_structure_state
