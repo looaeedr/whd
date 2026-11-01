@@ -920,3 +920,22 @@ Plate bend patterns and positive/negative saved DXF tests stay unchanged.
 An individual BasePlate remains **PART_ONLY**, not complete MFG-2,
 manufacturing-ready EAR weld, PAD or whole-cabinet release. No new numeric
 source, CUTTING formula or DXF certification is introduced.
+
+
+## Receiving NFB real physical inner-door PART_ONLY export public Engine API (#2517)
+
+`manufacturing_api.export_verified_receiving_nfb_inner_door(bundle, *,
+layout, current_snapshot, output_path, index_path, profile_path)` now owns
+the original source-current real inner-door **PART_ONLY** DXF export previously
+implemented under the GUI operator action. It revalidates the actual
+NfbVerifiedDraftSubmission, saved Set/Bay/version and parent switch brand,
+source-only original DXF indexed profile SHA/handle/revision, unique physical
+upper inner-door panel from current canonical Family, saved physical hole IDs,
+confirmed WORLD-X and rotations, before calling the existing Engine
+`export_current_nfb_inner_door_partial_dxf` with no overwrite. The single
+geometry-staleness fingerprint is already Engine-owned and is shared with
+BasePlate and the GUI operation's preview invalidation. The GUI legacy
+module now only re-exports these Engine public functions. The prior UI
+mock-injection test now patches the canonical Engine implementation without
+loosening any negative tests. This grants no middle/base/PAD/EAR, quantity
+Q or complete-cabinet manufacturing, nor new CUTTING/DXF certification.
