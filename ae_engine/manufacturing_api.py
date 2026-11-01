@@ -199,6 +199,7 @@ from .sheetmetal_geometry import (
     resolve_endcap_policy_assembly_semantics,
 )
 from .sheetmetal_part_adapters import (
+    base_plate_blank_dimensions,
     build_box_body_result_from_fold_profile,
     build_door_result,
     build_unknown_door_result,

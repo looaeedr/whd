@@ -30,6 +30,10 @@ whd_schema: WHD_DOC_META_V1
 
 因此 04 的責任是回答「engine 現在怎麼分層、公開哪些 API、各 authority 怎麼接起來」，不是把 Registry JSON 內容重新抄一份。
 
+### #2517 BasePlate 展開摘要唯一 Engine 計算公開 API（2026-11-01）
+
+`manufacturing_api.base_plate_blank_dimensions` 以既有 `sheetmetal_part_adapters` 的 BasePlate 料寬／料高計算為唯一擁有者，正式 `build_base_plate_result`／自訂角 `build_unknown_base_plate_result` 與 GUI `calculation_controller.update_calculations` 共用同一函式。GUI 只傳操作者 W/H／縮邊／折邊並顯示返回尺寸，不再另算公式。保留沒有底板時「-」、獨立板件契約及原 2D/3D/DXF/Save→Reload 行為；此函式**不取代**受電箱 NFB/多層實體底板的專用來源，亦不代表已取得 CUTTING／DXF 製造認證。#2517 OPEN。
+
 ### #2517 Receiving candidate quantity draft public API (2026-11-01)
 
 `manufacturing_api.AllocationDraft` / `validate_quantity_allocation` are the public Engine boundary for Receiving candidate Head/Tail draft selections. `AllocationDraft.replace_version`, `select_version`, and `set_step` own per-role candidate identity replacement, row order/quantity preservation, assignment invalidation, and two-step readiness. `receiving_quantity_allocation_ui` only presents the controls and forwards operator actions. Draft-only changes never commit Set/Bay physical features; the original validated `apply_receiving_endcap_quantity_configuration` remains the sole project mutation. Existing multi-Set/Bay Save→Reload and Tk confirmation requirements remain; no new CUTTING/DXF certification. #2517 OPEN.
