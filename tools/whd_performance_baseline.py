@@ -1073,6 +1073,8 @@ def main():
     parser.add_argument('--samples', type=int, default=3)
     parser.add_argument('--bay-scope', type=int, choices=(1, 3), default=None,
                         help='Run exactly one Bay size on this isolated runner; default preserves both')
+    parser.add_argument('--sample-index', type=int, default=None,
+                        help='Run only this original worker index on an isolated runner; default preserves all samples')
     parser.add_argument('--cycles', type=int, default=10)
     parser.add_argument('--memory-interval-ms', type=int, default=50,
                         help='RSS polling interval; sampled maximum is NOT exact peak')
@@ -1085,6 +1087,10 @@ def main():
     args = parser.parse_args()
     if min(args.samples, args.cycles) < 1:
         parser.error('samples and cycles must be positive')
+    if args.sample_index is not None and not 0 <= args.sample_index < args.samples:
+        parser.error('sample-index must be in the declared sample range')
+    if args.sample_index is not None and args.bay_scope is None:
+        parser.error('isolated sample-index requires an explicit bay-scope')
     if not 10 <= args.memory_interval_ms <= 1000:
         parser.error('memory-interval-ms must be between 10 and 1000')
     output = Path(args.output).resolve()
@@ -1100,7 +1106,7 @@ def main():
                     config_sha256=hashlib.sha256((ROOT/'config.ini').read_bytes()).hexdigest(),
                     harness_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                     samples=args.samples, cycles=args.cycles,
-                    bay_scope=args.bay_scope,
+                    bay_scope=args.bay_scope, sample_index=args.sample_index,
                     memory_interval_ms=args.memory_interval_ms,
                     memory_peak_definition='maximum sampled RSS, not instantaneous peak',
                     os_highwater_definition='VmHWM kernel lifetime process RSS peak; not operation-local; null when unsupported',
@@ -1112,7 +1118,7 @@ def main():
     # assertion fails before paying for three unrelated 1-Bay samples.
     # Both worker families and all samples/cycles still execute on GREEN.
     for bays in ((args.bay_scope,) if args.bay_scope is not None else (3, 1)):
-        for sample in range(args.samples):
+        for sample in ((args.sample_index,) if args.sample_index is not None else range(args.samples)):
             journal=output.with_name(f'{output.stem}-b{bays}-s{sample}.jsonl')
             journal.write_text('',encoding='utf-8')
             command=[sys.executable,__file__,'--worker','--bays',str(bays),
