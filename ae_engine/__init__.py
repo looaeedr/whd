@@ -83,6 +83,7 @@ from .manufacturing_api import (
     project_receiving_ear_side_marking_segments,
     DoorPartProjection, door_part_projections, project_part_dimensions,
     resolve_live_operator_finished_dimensions, resolve_material_mesh_profiles,
+    OperatorDimensionGuidePlan, project_operator_dimension_guides,
     InnerDoorHoleEditorContext, resolve_inner_door_hole_editor_context,
     resolve_live_cabinet_family,
     FoldDesignerSnapshotDimensions, project_fold_designer_snapshot_dimensions,
