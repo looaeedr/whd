@@ -53,8 +53,10 @@ def _piece(role="left", start=0.0, end=100.0):
 def test_one_sheet_world_bends_equal_canonical_assembly_transform():
     scene = _scene()
     x, y, guides = _profiles()
-    original = (((20.0, 10.0, 0.0), (20.0, 70.0, 0.0)),
-                ((20.0, 40.0, 0.0), (80.0, 40.0, 0.0)))
+    # The canonical Fold mapper centers the core, even with zero bend angles.
+    # Use fixed formed-space goldens, not uncentered flat CUTTING coordinates.
+    original = (((-30.0, -30.0, 0.0), (-30.0, 30.0, 0.0)),
+                ((-30.0, 0.0, 0.0), (30.0, 0.0, 0.0)))
     for placement in ("box_body", "door"):
         result = project_assembly_box_body_bend_segments(
             scene, x, y, guides, _reference(), placement, (100, 80, 40),
@@ -85,8 +87,10 @@ def test_physical_piece_world_bends_match_existing_placement_and_filters():
     # Every visible side/band has two real source BEND lines; back is suppressed.
     assert len(rows) == 4
     x_profile = contract_fold_profile_rows(left.fold_profile)
-    original = (((20.0, 10.0, 0.0), (20.0, 70.0, 0.0)),
-                ((20.0, 40.0, 0.0), (80.0, 40.0, 0.0)))
+    # The canonical Fold mapper centers the core, even with zero bend angles.
+    # Use fixed formed-space goldens, not uncentered flat CUTTING coordinates.
+    original = (((-30.0, -30.0, 0.0), (-30.0, 30.0, 0.0)),
+                ((-30.0, 0.0, 0.0), (30.0, 0.0, 0.0)))
     assert rows[:2] == tuple(
         place_box_body_structure_points(line, left, total_w=300.0,
                                         thickness=2.0, x_profile=x_profile)
