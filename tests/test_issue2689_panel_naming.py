@@ -100,11 +100,8 @@ def test_legacy_layout_migrates_without_guessing_from_reused_stable_id():
 def test_counter_type_must_be_valid_when_explicit(counter):
     current = layout()
     current["next_panel_number"] = counter
-    if counter is None:
-        assert normalize_receiving_layout(current)["next_panel_number"] == 2
-    else:
-        with pytest.raises(ValueError):
-            normalize_receiving_layout(current)
+    with pytest.raises(ValueError):
+        normalize_receiving_layout(current)
 
 
 def test_counter_cannot_regress_below_explicit_p_names():
