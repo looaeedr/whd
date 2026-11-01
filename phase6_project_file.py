@@ -294,7 +294,7 @@ def _materialize_project_snapshot(snapshot):
     result = migrate_legacy_snapshot_joints(dict(snapshot or {}))
     # A single-cabinet panel label is project input, not a derived/render key.
     # Receiving owns independent labels on each canonical Set/Bay instead.
-    from ae_engine.panel_naming import normalize_panel_name
+    from ae_engine.manufacturing_api import normalize_panel_name
     if not is_receiving_snapshot(result):
         result["panel_name"] = normalize_panel_name(
             result.get("panel_name", ""), allow_blank=True,
