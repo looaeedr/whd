@@ -1270,6 +1270,9 @@ def build_door_operator_part_spec(
         nameplate_center_datum_top=nameplate_center_datum_top,
     )
 
+# #2517: BoxBody collision diagnostics consume canonical physical solid skins.
+from .box_body_collision_source_mesh import project_box_body_collision_source_mesh
+
 # #2517: Standalone FinalScene physical BEND, MARKING and BLIND_HOLE paths.
 from .final_scene_independent_annotations import (
     project_independent_scene_bend_segments,

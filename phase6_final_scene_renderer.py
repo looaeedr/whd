@@ -291,21 +291,14 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                 local, placement, request.finished_dimensions, offset,
                             )
                     if bool(getattr(render_data, "show_interference", False)):
-                        from ae_engine.assembly_geometry import thicken_triangle_surface
-                        if getattr(part_data, "pieces", None):
-                            collision = []
-                            for _piece, piece_tris in placed_piece_meshes:
-                                # Already true-thickness world meshes; applying
-                                # thicken again creates false collision volumes.
-                                collision.extend(
-                                    piece_tris if physical_piece_world else
-                                    thicken_triangle_surface(piece_tris, request.thickness)
-                                )
-                            box_body_collision_mesh = tuple(collision)
-                        else:
-                            box_body_collision_mesh = thicken_triangle_surface(
-                                box_body_world, request.thickness
+                        box_body_collision_mesh = (
+                            manufacturing_api.project_box_body_collision_source_mesh(
+                                part_data, box_body_world=box_body_world,
+                                placed_piece_meshes=placed_piece_meshes,
+                                physical_piece_world=physical_piece_world,
+                                thickness=request.thickness,
                             )
+                        )
                     if getattr(part_data, "pieces", None):
                         if part_visible:
                             face, edge = self._COLORS.get(str(part.part_key), ("#64748b", "#334155"))
