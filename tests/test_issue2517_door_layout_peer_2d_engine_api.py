@@ -8,7 +8,7 @@ from copy import deepcopy
 import inspect
 
 import pytest
-from shapely.geometry import box
+from shapely.geometry import box, Polygon
 
 from ae_engine import manufacturing_api, project_operator_door_layout_peer_cells
 from ae_engine.operator_door_layout_peer_2d import DoorLayoutPeerCell
@@ -80,7 +80,7 @@ def test_empty_and_incomplete_peers_remain_hidden_without_neighbor_fallback():
     cells = _cells()
     sources = {
         "door_c1_r1": _render(box(0, 0, 20, 30), None),
-        "door_c1_r2": _render(box(0, 0, 0, 10), object()),
+        "door_c1_r2": _render(Polygon(), object()),
     }
     output = project_operator_door_layout_peer_cells(cells, sources)
     assert all(not row.present for row in output)
