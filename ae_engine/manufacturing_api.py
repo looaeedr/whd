@@ -1185,3 +1185,7 @@ from .receiving_nfb_manifest_validation import (
     validate_receiving_nfb_manifest_view,
     validate_receiving_nfb_highlighted_manifest,
 )
+
+
+# #2517: read-only world XY physical-feature projection for Receiving settings.
+from .receiving_settings_orthographic_projection import project_solid_mesh_xy_outline
