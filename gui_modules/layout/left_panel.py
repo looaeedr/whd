@@ -146,8 +146,10 @@ def build_left_panel(host, ctrl_pad_frame):
         if not isinstance(snapshot, dict):
             snapshot = {}
         if snapshot.get("model") not in {"受電箱", "RECEIVING"}:
+            host.receiving_dxf_group_combo.state(["disabled"])
             host.receiving_dxf_group_preview_var.set("金庫型：以盤名或輸出日期時間命名單一 DXF")
             return
+        host.receiving_dxf_group_combo.state(["!disabled"])
         try:
             from ae_engine import manufacturing_api
             groups = manufacturing_api.plan_receiving_grouped_dxf(
@@ -179,13 +181,13 @@ def build_left_panel(host, ctrl_pad_frame):
     parts_box.pack(fill=tk.X, pady=(0, 8))
 
     host._phase6_output_part_widgets = {
-        "box_body": make_chk(parts_box, "箱身 (Z)  →  box_body_z.dxf", host.export_z_var),
-        "head": make_chk(parts_box, "封頭 (Y)  →  end_cap_head.dxf", host.export_head_var),
-        "tail": make_chk(parts_box, "封尾 (Y)  →  end_cap_tail.dxf", host.export_tail_var),
-        "door": make_chk(parts_box, "門 (Door)  →  door_unfold.dxf / 多門 door_cN_rM.dxf", host.export_door_var),
-        "base_plate": make_chk(parts_box, "底板  →  base_plate.dxf", host.export_base_plate_var),
-        "indicator_box": make_chk(parts_box, "指示燈盒子  →  indicator_box.dxf", host.export_ib_var),
-        "indicator_door": make_chk(parts_box, "指示燈小門  →  indicator_door.dxf", host.export_ib_door_var),
+        "box_body": make_chk(parts_box, "箱身 (Z)", host.export_z_var),
+        "head": make_chk(parts_box, "封頭 (Y)", host.export_head_var),
+        "tail": make_chk(parts_box, "封尾 (Y)", host.export_tail_var),
+        "door": make_chk(parts_box, "門 (Door)", host.export_door_var),
+        "base_plate": make_chk(parts_box, "底板", host.export_base_plate_var),
+        "indicator_box": make_chk(parts_box, "指示燈盒子", host.export_ib_var),
+        "indicator_door": make_chk(parts_box, "指示燈小門", host.export_ib_door_var),
     }
     for index, key in enumerate(("box_body", "head", "tail", "door", "base_plate", "indicator_box", "indicator_door")):
         pady = (6, 1) if index == 0 else ((1, 6) if index == 6 else (1, 1))
