@@ -11,6 +11,7 @@ from typing import Mapping
 
 import fold_designer_original as original
 from ae_engine.cabinet_types import policy as cabinet_family_policy
+from ae_engine import manufacturing_api
 from phase6_fold_profiles import (
     _num,
     _ui_len,
@@ -18,8 +19,6 @@ from phase6_fold_profiles import (
     can_remove_segment,
     engine_angle_to_ui,
     engine_segment_length_to_ui,
-    ui_angle_to_engine,
-    ui_segment_length_to_engine,
 )
 
 
@@ -244,69 +243,33 @@ class Phase6BendingUI(original.BendingUI):
         symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
         if symmetry_allowed and getattr(self.state, "symmetric", False):
             active = self.get_active_dict()
-            profile_key = self._active_profile_key(active)
-            segs = active.get(profile_key, ())
-            is_box = getattr(self.state, "phase6_fold_ui_vault_key", None) == "箱身"
-            pair = {
-                "zl1": "zr1", "zr1": "zl1",
-                "zl2": "zr2", "zr2": "zl2",
-                "fw_left": "fw_right", "fw_right": "fw_left",
-                "d_left": "d_right", "d_right": "d_left",
-                "w": "w",
-            }
+            segs = active.get(self._active_profile_key(active), ())
             try:
-                source_key = str(segs[idx].get("phase6_key") or "")
-                target_idx = None
-                if is_box and source_key in pair:
-                    if key == "len":
-                        target_key = pair[source_key]
-                        target_idx = next(
-                            (i for i, seg in enumerate(segs) if str(seg.get("phase6_key") or "") == target_key),
-                            None,
-                        )
-                    elif key == "angle" and idx + 1 < len(segs):
-                        next_key = str(segs[idx + 1].get("phase6_key") or "")
-                        if next_key in pair:
-                            target_left = pair[next_key]
-                            target_right = pair[source_key]
-                            target_idx = next(
-                                (
-                                    i for i in range(len(segs) - 1)
-                                    if str(segs[i].get("phase6_key") or "") == target_left
-                                    and str(segs[i + 1].get("phase6_key") or "") == target_right
-                                ),
-                                None,
-                            )
-                if target_idx is not None and target_idx != idx and key in self.controls[target_idx]:
+                plan = manufacturing_api.plan_operator_fold_mirror_target(
+                    segs, idx, key,
+                    is_box_body=(
+                        getattr(self.state, "phase6_fold_ui_vault_key", None)
+                        == "箱身"
+                    ),
+                )
+                target_idx = plan.target_index
+                if (
+                    target_idx is not None and target_idx != idx
+                    and key in self.controls[target_idx]
+                ):
                     value = original.get_int(self.controls[idx][key].get())
                     self.controls[target_idx][key].set(str(value))
-                    self.save(); self.update_cb()
+                    self.save()
+                    self.update_cb()
                     return None
-
-                if is_box:
-                    # Never fall back from a known structural Phase6 row to raw
-                    # positional mirroring: after asymmetric add/remove history
-                    # that is exactly how FW/D/Z fields became cross-wired.
-                    if source_key in pair:
-                        self.save(); self.update_cb()
-                        return None
-                    # Unkeyed operator-added folds may still mirror by position,
-                    # but only when the opposite candidate is also unkeyed.
-                    legacy_idx = (
-                        len(self.controls) - 1 - idx
-                        if key == "len" else len(self.controls) - 2 - idx
-                    )
-                    if 0 <= legacy_idx < len(segs):
-                        candidate_key = str(segs[legacy_idx].get("phase6_key") or "")
-                        if candidate_key:
-                            self.save(); self.update_cb()
-                            return None
+                if plan.block_legacy_fallback:
+                    self.save()
+                    self.update_cb()
+                    return None
             except (TypeError, ValueError, IndexError, KeyError):
                 pass
             return super().apply_mirror(idx, key)
-        # Original BendingUI returns immediately when symmetry is off, which
-        # leaves typed edits only in Tk variables. Phase6 must persist every
-        # asymmetric edit into the authoritative Fold Chain before recomputing.
+        # With symmetry off, still commit every typed outside Fold edit.
         self.save()
         self.update_cb()
         return None
@@ -424,40 +387,27 @@ class Phase6BendingUI(original.BendingUI):
     def save(self):
         active_dict = self.get_active_dict()
         active_key = self._active_profile_key(active_dict)
-        old_segs = list(active_dict[active_key])
+        old_segments = active_dict[active_key]
         thickness = getattr(self.state, "phase6_thickness", 2.0)
 
-        # Build the edited bend topology first, so changing an angle and a length
-        # in the same row uses the NEW adjacent-bend count for outside -> material.
-        topology = []
+        # Tk only parses the operator's typed values. Engine alone determines
+        # the new adjacent-BEND topology, material lengths and structural keys.
+        edits = []
         for ctrl in self.controls:
-            seg = {"len": 0}
+            row = {}
             if "angle" in ctrl:
-                seg["angle"] = ui_angle_to_engine(original.get_int(ctrl["angle"].get()))
-            topology.append(seg)
-        apply_outside_dimension_compensation(topology, thickness)
+                row["angle"] = original.get_int(ctrl["angle"].get())
+            edits.append(row)
+        for row, ctrl in zip(edits, self.controls):
+            row["len"] = original.get_int(ctrl["len"].get())
 
-        new_segs = []
-        for index, ctrl in enumerate(self.controls):
-            old = old_segs[index] if index < len(old_segs) else {}
-            ui_length = original.get_int(ctrl["len"].get())
-            conversion = dict(old)
-            conversion["ui_len_add"] = topology[index].get("ui_len_add", 0)
-            length = ui_segment_length_to_engine(conversion, abs(ui_length))
-            seg = {"len": length}
-            if "phase6_ui_sign" in old or ui_length < 0:
-                seg["phase6_ui_sign"] = -1.0 if ui_length < 0 else 1.0
-            if "angle" in topology[index]:
-                seg["angle"] = topology[index]["angle"]
-            for key in ("core", "phase6_key"):
-                if key in old:
-                    seg[key] = old[key]
-            new_segs.append(seg)
-        apply_outside_dimension_compensation(new_segs, thickness)
-        active_dict[active_key] = new_segs
+        new_segments = manufacturing_api.commit_operator_fold_editor_rows(
+            old_segments, edits, thickness,
+        )
+        active_dict[active_key] = new_segments
         vault_key = getattr(self.state, "phase6_fold_ui_vault_key", None)
         if vault_key and active_key == "X":
-            self.state.profiles_vault[vault_key] = new_segs
+            self.state.profiles_vault[vault_key] = new_segments
 
     def add(self, pos):
         self._mark_workspace_dirty()
