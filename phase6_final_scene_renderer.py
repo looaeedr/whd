@@ -433,15 +433,17 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             visible_pads = []
             for skin in trial_skins:
                 if skin.role == "EAR":
-                    color = "#f97316"
                     visible_ears.append(skin.part_id)
+                    poly = gridless_mesh_collection(
+                        skin.world_triangles, facecolor="#f97316", opacity=0.92,
+                    )
+                    ax.add_collection3d(poly)
                 else:
-                    color = "#a78bfa"
                     visible_pads.append(skin.part_id)
-                poly = gridless_mesh_collection(
-                    skin.world_triangles, facecolor=color, opacity=0.92,
-                )
-                ax.add_collection3d(poly)
+                    pad_artist = gridless_mesh_collection(
+                        skin.world_triangles, facecolor="#a78bfa", opacity=0.92,
+                    )
+                    ax.add_collection3d(pad_artist)
                 triangles.extend(skin.world_triangles)
             self.last_formed_ear_display_ids = tuple(visible_ears)
             self.last_formed_pad_display_ids = tuple(visible_pads)
