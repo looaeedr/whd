@@ -126,7 +126,7 @@ def test_integration_category_uses_full_callable_paths_not_bare_module_name(tmp_
     assert "## CADSplit／WHD 整合入口（2）" in markdown
     assert '<option value="integration">CADSplit／WHD 整合入口</option>' in html
     assert html.count('"category": "integration"') == 2
-    assert {row["name"] for row in rows if row["category"] == "source"} == {"describe_source"}
+    assert next(row for row in rows if row["name"] == "describe_source")["category"] == "view"
 
 
 def test_real_engine_integration_callables_are_not_missing_from_catalog():
