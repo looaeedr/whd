@@ -32,6 +32,8 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 Fold Designer 實體中隔／內門框／內門板選片 API（2026-11-01）**：`manufacturing_api.resolve_fold_designer_divider_part`、`resolve_fold_designer_frame_part`、`resolve_fold_designer_panel_part` 依既有 canonical Door grid、Cabinet Family 與 Frame/Panel Part topology 選擇真正 physical stable ID；不存在的選片 fail-closed。GUI 僅正規化操作員中隔欄位、提交 payload，拿回 Engine Part 再呈現既有 FinalScene。Family 補償、Frame/Panel 尺寸與製造 2D/3D/DXF 公式沒有新版本，也不增加任何認證；#2517 仍 OPEN。
+
 **#2517 AssemblyJoint 製造拓樸公開 API（2026-11-01）**：`manufacturing_api.resolve_manufacturing_joint_graph(input_snapshot, available_part_keys)` 使用既有 Engine `migrate_legacy_snapshot_joints` 與 `ResolvedAssemblyGraph` 一次處理保存 schema migration、真實可用板件 Joint 篩選、自訂板件未確認 placement 的 fail-closed，以及 Joint ID／region 驗證。Phase6 僅傳 snapshot 與可用實體板件清單，不再決定製造拓樸；原始保存值、Assembly Intent／Certified Registry／CUTTING／DXF 權威不變；#2517 保持 OPEN。
 
 **#2517 EndCap Assembly relief 求解／診斷公開 API（2026-11-01）**：`manufacturing_api.solve_endcap_assembly_relief(body_part, endcap_part, ...)` 使用既有 Engine World-backprojected solver，處理實體 Box Body／Head/Tail Render、Fold profile、放置位置／Family 與已確認裝配語意；`manufacturing_api.endcap_relief_solution_diagnostic(solution)` 根據既有 Engine certified/verified policy 分類 3D Shadow 與未驗證穿透，保留原錯誤訊息。`phase6_manufacturing_service` 僅提交來源與呈現結果，不再直接呼叫 private collision 求解器或重寫認證診斷。不新增截角公式、CUTTING／DXF 認證；#2517 仍 OPEN。
