@@ -38,11 +38,12 @@ def test_headless_source_dimensions_and_legacy_key_fallback_are_immutable():
         ),
         BoxBodyAssemblyPanelPiece(
             "box_body:legacy_piece", 101.0, 201.0, 111.0, 211.0,
-            pieces[1].render_data,
+            None,
         ),
     )
     assert payload.pieces[0].formed_outer_dimensions == old.pieces[0].formed_outer_dimensions
     assert payload.pieces[1].material_dimensions == old.pieces[1].material_dimensions
+    assert rows[1].source_render_data is None  # no valid role: no physical corner source
     with pytest.raises(FrozenInstanceError):
         rows[0].formed_width = -1
 
