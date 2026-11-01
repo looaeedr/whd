@@ -13,7 +13,7 @@ import tempfile
 
 from .cadcraft_paths import cadcraft_binary
 from ae_engine import manufacturing_api
-from ae_engine.operator_cadcraft_preview import CadcraftPreviewError
+CadcraftPreviewError = manufacturing_api.CadcraftPreviewError
 
 
 def find_cadcraft_gui(*, configured=None):
