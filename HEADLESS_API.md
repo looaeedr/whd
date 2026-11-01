@@ -13,6 +13,21 @@ whd_schema: WHD_DOC_META_V1
 全域硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 的唯一 CURRENT owner 是 AI 庫 `第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；此檔是 REFERENCE。GUI 全功能只處理操作與輸入，所有製造資料、公式、實體板件、孔位／折展開及 2D/3D/DXF 的 canonical 結果由引擎公開 API 處理。既有舊 GUI adapters 的存在**不代表每個箱型與功能均已完成改造**。遇 API 不支援，回引擎開發／測試或明確拒絕，不許 GUI 私做 fallback。對外 CADSplit Worker `capabilities/prepare/export` 僅宣告實際已驗證與授權的能力。靜態 CI gate：`tools/gui_engine_api_boundary_gate.py`，但它不代替行為契約測試或平台 required status check。
 
 
+## Explicit USER_ADDED Joint physical relief Engine API (#2517)
+
+`manufacturing_api.resolve_manufacturing_explicit_joint_reliefs(parts, joints,
+*, finished_dimensions, sheet_thickness, clearance=0, committed_state=None)`
+runs the existing seven-stage physical/UV Joint collision, owner selection,
+verified-cut application and saved-cut replay in `ae_engine.explicit_joint_pipeline`.
+It constructs the physical callback table exclusively from canonical Engine
+Joint/Collision/Geometry functions. `phase6_manufacturing_geometry` delegates
+and `phase6_explicit_joint_pipeline` is a backwards import-only compatibility
+module, not a second solver. Temporary replay uses the incoming frozen
+resolved-part dataclass where possible, otherwise an equivalent headless DTO;
+Engine never imports Phase6 FinalScene/Tk. Existing USER_ADDED provisional 3D
+status, failed/partial rejection, diagnostics and Save→Reload ownership are
+preserved. This move does not grant new CUTTING/DXF certification.
+
 ## Manufacturing Relief rule traces and Joint diagnostics API (#2517)
 
 `manufacturing_api.resolve_manufacturing_relief_evidence(resolved_parts, solutions, joints)`

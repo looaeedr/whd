@@ -202,31 +202,15 @@ def _phase6_resolve_explicit_joint_reliefs(
     parts, joints, *, finished_dimensions, sheet_thickness, clearance=0.0,
     committed_state=None,
 ):
-    """Resolve USER_ADDED reliefs through the bounded Phase 7 A6 pipeline."""
-    from phase6_explicit_joint_pipeline import (
-        ExplicitJointPipelineOps,
-        resolve_explicit_joint_reliefs,
-    )
-
-    ops = ExplicitJointPipelineOps(
-        box_body_piece_solver_key=_phase6_box_body_piece_solver_key,
-        side_wrap_target_corners=_phase6_side_wrap_target_corners,
-        build_world_geometry=_phase6_build_joint_world_geometry,
-        state_item_matches=_phase6_joint_relief_state_item_matches,
-        cut_geometry_from_state_item=_phase6_cut_geometry_from_state_item,
-        apply_cut_to_owner=_phase6_apply_resolved_cut_to_owner,
-        apply_cut_to_part=_phase6_apply_resolved_cut_to_part,
-        relief_polygon_coords=_phase6_relief_polygon_coords,
-    )
-    return resolve_explicit_joint_reliefs(
-        parts,
-        joints,
+    """Compatibility: Engine owns seven-stage USER_ADDED physical relief."""
+    return manufacturing_api.resolve_manufacturing_explicit_joint_reliefs(
+        parts, joints,
         finished_dimensions=finished_dimensions,
         sheet_thickness=sheet_thickness,
         clearance=clearance,
         committed_state=committed_state,
-        ops=ops,
     )
+
 
 def _phase6_resolve_family_divider_reliefs(
     parts, *, finished_dimensions, sheet_thickness, clearance=0.0

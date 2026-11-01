@@ -20,10 +20,8 @@ def test_p7_r_f_explicit_joint_resolver_is_a_bounded_pipeline_facade():
     owner = importlib.import_module("phase6_explicit_joint_pipeline")
     facade_source = inspect.getsource(facade._phase6_resolve_explicit_joint_reliefs)
 
-    assert "phase6_explicit_joint_pipeline" in Path(
-        facade.__file__
-    ).read_text(encoding="utf-8")
-    assert "resolve_explicit_joint_reliefs" in facade_source
+    assert "manufacturing_api.resolve_manufacturing_explicit_joint_reliefs" in facade_source
+    assert "resolve_manufacturing_explicit_joint_reliefs" in facade_source
     assert len(facade_source.splitlines()) <= 60
 
     for forbidden in (
@@ -50,11 +48,17 @@ def test_p7_r_f_explicit_joint_resolver_is_a_bounded_pipeline_facade():
 
 def test_p7_r_f_stage_owner_has_no_reverse_or_duplicate_manufacturing_path():
     owner = importlib.import_module("phase6_explicit_joint_pipeline")
-    source = inspect.getsource(owner)
+    engine = importlib.import_module("ae_engine.explicit_joint_pipeline")
+    source = inspect.getsource(engine)
+    shim_source = inspect.getsource(owner)
+    assert "from ae_engine.explicit_joint_pipeline import" in shim_source
+    assert "def resolve_explicit_joint_reliefs" not in shim_source
 
     assert "phase6_manufacturing_geometry" not in source
     assert "fold_designer_bridge" not in source
     assert "def resolve_explicit_joint_reliefs" in source
+    assert "def resolve_manufacturing_explicit_joint_reliefs" in source
+    assert "from phase6_" not in source
 
     # The pipeline may orchestrate the canonical collision APIs, but it must not
     # grow a second raw backprojection/registry implementation.
