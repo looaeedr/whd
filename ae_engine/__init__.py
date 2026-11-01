@@ -7,6 +7,8 @@ from .contracts import (
 from .integration_api import (
     ManufacturingIntegrationRequest, ManufacturingIntegrationResponse,
     ManufacturingSourceIdentity, dispatch_manufacturing_integration,
+    ManufacturingResolvedBayInput, VerifiedIntegrationBatchExport,
+    export_verified_resolved_integration_bays,
 )
 from .door_layout_numeric_transitions import (
     DoorLayoutColumnState, DoorLayoutResolvedColumn,
@@ -168,6 +170,8 @@ __all__ = [
     "ae", "manufacturing_api", "generate_part", "resolve_policy",
     "ManufacturingIntegrationRequest", "ManufacturingIntegrationResponse",
     "ManufacturingSourceIdentity", "dispatch_manufacturing_integration",
+    "ManufacturingResolvedBayInput", "VerifiedIntegrationBatchExport",
+    "export_verified_resolved_integration_bays",
     "base_plate_blank_dimensions",
     "project_operator_door_blank_dimensions",
     "expected_baseline_path_for", "receiving_baseline_source_stamp",
