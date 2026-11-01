@@ -11,6 +11,7 @@ from .door_layout_numeric_transitions import (
 
 from .manufacturing_api import (
     list_cabinet_model_choices,
+    project_operator_door_blank_dimensions,
     base_plate_blank_dimensions,
     generate_part, resolve_policy, expected_baseline_path_for, receiving_baseline_source_stamp,
     expected_shared_indicator_baselines, map_door_features_to_unfolded_material,
@@ -158,6 +159,7 @@ from .derived_part_projection import _freeze, _thaw, _unique_keys
 __all__ = [
     "ae", "manufacturing_api", "generate_part", "resolve_policy",
     "base_plate_blank_dimensions",
+    "project_operator_door_blank_dimensions",
     "expected_baseline_path_for", "receiving_baseline_source_stamp",
     "expected_shared_indicator_baselines", "map_door_features_to_unfolded_material",
     "expected_endcap_feature_baseline",
