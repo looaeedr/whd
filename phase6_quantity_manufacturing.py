@@ -18,11 +18,9 @@ from phase6_manufacturing_contracts import (
 from phase6_quantity_model import QuantityModel
 # Compatibility re-exports: actual physical Q grouping and NFB CHECK authority
 # reside in Engine. Old callers retain the same public Python names.
-from ae_engine.quantity_manufacturing_groups import (
-    QuantityManufacturingBatch,
-    quantity_manufacturing_groups,
-    quantity_nfb_checked_manufacturing_groups,
-)
+QuantityManufacturingBatch = manufacturing_api.QuantityManufacturingBatch
+quantity_manufacturing_groups = manufacturing_api.quantity_manufacturing_groups
+quantity_nfb_checked_manufacturing_groups = manufacturing_api.quantity_nfb_checked_manufacturing_groups
 
 
 def build_quantity_manufacturing_requests(base_request, workspace_snapshot):
