@@ -164,6 +164,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.project_joint_marking_world_segments(render_data)` 以既有 Engine-resolved FinalScene `metadata["joint_markings"]` 為唯一來源，篩選 `JOINT_PLACEMENT_MARKING` 且已有正確三維 `world_p1/world_p2` 的實體接觸標註，回傳不可變的 3D 世界線段；不從 flat `p1/p2` 推測 3D、也不補算 Fold／Joint placement。原 `phase6_final_scene_render_helpers._draw_joint_marking_world_rows` 僅呼叫 Engine 公開 API 並畫線，不再解讀來源身分或 world 座標。原 `joint_marking_flat_signatures` 去重與 `project_assembly_scene_marking_segments` 非接觸 MARKING 投影路徑完全保留，金庫型／受電箱共用同一來源。此為 DISPLAY-only 既有 Joint 資料呈現，不授予新增接觸認證、CUTTING／DXF 或其他製造 release；#2517 繼續 OPEN。
 
+### #2517 FinalScene 單板 3D 成品尺寸標註線 Engine API（2026-11-01）
+
+`manufacturing_api.project_operator_dimension_guides(x_profile, y_profile, triangles=(), thickness=None)` 與不可變 `OperatorDimensionGuidePlan` 由 `ae_engine.display_dimensions` 以**既有 canonical Fold 物理核心段**及**真正已成形 3D world mesh 外包絡**計算尺寸線端點、刻度與 W/H 文字座標；有真實網格時與 `resolve_operator_finished_dimensions` 使用完全相同的 `folded_outside_envelope`，沒有網格時保留原 Fold core 座標。原 `phase6_final_scene_render_helpers._draw_operator_dimensions` 只取 Engine 的 6 條線與 2 個文字定位點、顯示已解析的 W/H／原文字，不再自行計算 Fold 起迄、mesh 外包絡或尺寸線偏移。原 5.5% offset／1.2% tick 僅為顯示樣式，不參與任何料尺寸、折彎補償、孔位或 DXF 製造。保留金庫型／受電箱、原 Save→Reload、2D／3D、失效物理網格 fail-closed 與所有 Certified Registry 權限；#2517 仍 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
