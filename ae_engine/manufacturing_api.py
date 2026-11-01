@@ -211,6 +211,11 @@ from .cabinet_types.policy import door_material_frame_width
 
 
 from .operator_door_blank_projection import project_operator_door_blank_dimensions
+from .operator_door_cell_projection import (
+    project_operator_door_cell_result,
+    project_operator_door_cell_features,
+    project_operator_door_cell_baseline,
+)
 from .operator_endcap_blank_projection import (
     project_operator_endcap_blank_dimensions,
     read_operator_baseline_fold_defaults,

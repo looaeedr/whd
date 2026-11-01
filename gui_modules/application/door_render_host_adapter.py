@@ -6,21 +6,9 @@ navigation, or project transactions.
 """
 from __future__ import annotations
 
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
-from ae_engine.sheetmetal_geometry import Vec2
-from ae_engine.sheetmetal_features import (
-    CanvasTransform,
-    DoorIndicatorContext,
-    ResolvedRect,
-    feature_surface_from_structural_result,
-    resolve_door_indicator_features,
-    resolve_door_indicator_layout,
-    resolve_surface_features,
-)
-from ae_engine.sheetmetal_part_adapters import build_door_result
+from ae_engine.sheetmetal_features import CanvasTransform
 
 from gui_modules.application.render_snapshots import (
     indicator_box_render_snapshot as _indicator_box_render_snapshot_impl,
@@ -100,113 +88,33 @@ def _door_layout_indicator_state_for_key(self, key):
 
 def _door_layout_cell_result(self, cell, val=None):
     val = val or self.get_float_values()
-    return build_door_result(
-        w=cell.start_width, h=cell.start_height, t=val['t'],
-        fw=self._door_material_frame_width(val['fw'], val['t']),
-        gap_w=val['door_gap_w'], gap_h=val['door_gap_h'],
-        fold_left=val['door_fold_l'], fold_right=val['door_fold_r'],
-        fold_top=val['door_fold_t'], fold_bottom=val['door_fold_b'],
+    return manufacturing_api.project_operator_door_cell_result(
+        val, cell_width=cell.start_width, cell_height=cell.start_height,
         frame_edges=cell.edges,
+        material_frame_width=self._door_material_frame_width(val["fw"], val["t"]),
     )
 
 
 def _door_layout_cell_resolved_features(self, cell, result, key):
-    resolved = []
-    features = self.door_layout_features.setdefault(key, [])
-    if features:
-        surface = feature_surface_from_structural_result("door", result)
-        try:
-            resolved.extend(resolve_surface_features(surface, features, result.width, result.height))
-        except ValueError:
-            pass
-    state = self._door_layout_indicator_state_for_key(key)
-    mode = state.get("mode", "indicator" if state.get("enabled") else "none")
-    if mode in {"indicator", "indicator_box"}:
-        try:
-            material_fw = self._door_material_frame_width(
-                self.fw_z_var.get(), self.t_var.get()
-            )
-            finished_w, finished_h = ae.calculate_door_finished_size(
-                cell.start_width, cell.start_height, material_fw,
-                self.door_gap_w_var.get(), self.door_gap_h_var.get(), self.t_var.get(),
-                frame_edges=cell.edges,
-            )
-            context = DoorIndicatorContext(
-                finished_width=float(finished_w), finished_height=float(finished_h),
-                left_fold=float(self.door_fold_l_var.get()), bottom_fold=float(self.door_fold_b_var.get()),
-            )
-            groups = tuple(int(v) for v in state.get("groups", [2])[:int(state.get("layers", 1))])
-            if mode == "indicator":
-                layout = resolve_door_indicator_layout(
-                    context, groups,
-                    Vec2(float(state.get("offset_x", 0.0)), float(state.get("offset_y", 0.0))),
-                )
-                resolved.extend(layout.features)
-            else:
-                hole_w, hole_h = manufacturing_api.indicator_box_opening_size(groups, thickness=float(self.t_var.get()))
-                resolved.append(ResolvedRect(
-                    center=Vec2(
-                        context.left_fold + context.finished_width / 2.0 + float(state.get("offset_x", 0.0)),
-                        context.bottom_fold + context.finished_height / 2.0 + float(state.get("offset_y", 0.0)),
-                    ),
-                    width=hole_w, height=hole_h, layer="CUTTING", source_type="indicator_box_opening",
-                ))
-        except Exception:
-            pass
-    return resolved
+    return manufacturing_api.project_operator_door_cell_features(
+        result,
+        self.door_layout_features.setdefault(key, []),
+        self._door_layout_indicator_state_for_key(key),
+        cell_width=cell.start_width, cell_height=cell.start_height,
+        frame_edges=cell.edges,
+        family_model=self._baseline_source_model(),
+        frame_width=self.fw_z_var.get(), thickness=self.t_var.get(),
+        gap_w=self.door_gap_w_var.get(), gap_h=self.door_gap_h_var.get(),
+        fold_left=self.door_fold_l_var.get(), fold_bottom=self.door_fold_b_var.get(),
+    )
 
 
 def _door_layout_baseline_scene(self, cell, val):
-    family_model = self._baseline_source_model()
-    baseline_model = (
-        cabinet_family_policy.baseline_feature_model_name(family_model)
-        if family_model else None
+    return manufacturing_api.project_operator_door_cell_baseline(
+        val, family_model=self._baseline_source_model(),
+        cell_width=cell.start_width, cell_height=cell.start_height,
+        frame_edges=cell.edges, cache=self._door_layout_baseline_cache,
     )
-    if not baseline_model or not ae.has_baseline_part(baseline_model, "門.dxf"):
-        return None, ae.baseline_source_label("", "門.dxf")
-    source_fp = ae.baseline_source_fingerprint(
-        ae.baseline_expected_path(baseline_model, "門.dxf")
-    )
-    cache_key = (
-        source_fp, family_model, baseline_model,
-        float(cell.start_width), float(cell.start_height),
-        float(val['t']), float(val['fw']),
-        float(val['door_gap_w']), float(val['door_gap_h']),
-        float(val['door_fold_l']), float(val['door_fold_r']),
-        float(val['door_fold_t']), float(val['door_fold_b']),
-        bool(cell.edges.left), bool(cell.edges.right),
-        bool(cell.edges.top), bool(cell.edges.bottom),
-    )
-    if cache_key in self._door_layout_baseline_cache:
-        return (
-            self._door_layout_baseline_cache[cache_key],
-            ae.baseline_source_label(baseline_model, "門.dxf"),
-        )
-    try:
-        # FW conversion belongs to the cabinet family (Receiving), while
-        # fixed certified Door features may come from its shared Vault baseline.
-        material_fw = self._door_material_frame_width(
-            val['fw'], val['t'], model_name=family_model
-        )
-        data = ae.get_stretched_door_data(
-            baseline_model,
-            cell.start_width, cell.start_height, val['t'], material_fw,
-            val['door_gap_w'], val['door_gap_h'],
-            val['door_fold_l'], val['door_fold_r'],
-            val['door_fold_t'], val['door_fold_b'],
-            frame_edges=cell.edges,
-            nameplate_center_datum_top=(
-                cabinet_family_policy.door_nameplate_center_datum_top(
-                    family_model
-                )
-            ),
-        )
-        self._door_layout_baseline_cache[cache_key] = data.scene
-        return data.scene, ae.baseline_source_label(
-            baseline_model, "門.dxf"
-        )
-    except Exception:
-        return None, "未使用基準檔（程式計算生成）"
 
 
 def _door_layout_overview_snapshot(self, render_data_by_part_key=None):
