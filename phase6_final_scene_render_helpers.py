@@ -17,8 +17,6 @@ from phase6_final_scene_projection import (
     _phase6_profile_map,
     _phase6_mesh_feature_segments,
     _phase6_folded_outside_envelope,
-    _phase6_contract_profile_rows,
-    _phase6_box_body_piece_world_mapper,
     format_operator_info_text,
 )
 
@@ -215,25 +213,16 @@ class Phase6FinalSceneRenderHelpersMixin:
         self, scene, x_profile, y_profile, fold_guides, local_reference,
         placement, dimensions, offset,
     ):
-        """Draw Box Body manufacturing BEND guides in shared assembly coordinates."""
-        from ae_engine.sheetmetal_drawing import LinePrimitive
-        from ae_engine.assembly_geometry import place_assembly_points
+        """Paint Engine-projected physical BoxBody BEND world segments."""
+        from ae_engine import manufacturing_api
 
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
-        for primitive in getattr(scene, "primitives", ()):
-            if not isinstance(primitive, LinePrimitive) or str(primitive.layer).upper() != "BEND":
-                continue
-            local_points = (
-                self._map_xy(primitive.p1.x, primitive.p1.y, x_profile, y_profile, fold_guides),
-                self._map_xy(primitive.p2.x, primitive.p2.y, x_profile, y_profile, fold_guides),
-            )
-            world_points = place_assembly_points(
-                local_points, local_reference, placement, dimensions, offset
-            )
-            if len(world_points) != 2:
-                continue
-            a, b = world_points
+        segments = manufacturing_api.project_assembly_box_body_bend_segments(
+            scene, x_profile, y_profile, fold_guides,
+            local_reference, placement, dimensions, offset,
+        )
+        for a, b in segments:
             self.renderer.ax3d.plot(
                 [a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
                 color="#2563eb", linewidth=1.35, linestyle="-", alpha=0.98,
@@ -259,53 +248,21 @@ class Phase6FinalSceneRenderHelpersMixin:
         placement="box_body", dimensions=None, offset=(0.0, 0.0, 0.0),
         visible_piece_keys=None,
     ):
-        """Draw BEND lines only for visible BoxBody pieces while retaining full geometry."""
-        from ae_engine.sheetmetal_drawing import LinePrimitive
-        from ae_engine.assembly_geometry import place_assembly_points
+        """Draw the canonical Engine world BEND lines; never manufacture them."""
+        from ae_engine import manufacturing_api
 
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
-        pieces = tuple(getattr(render_data, "pieces", ()) or ())
-        if not pieces:
-            return
-        total_w = max(float(getattr(p, "formed_w_end", 0.0)) for p in pieces)
-        visible_set = None if visible_piece_keys is None else set(visible_piece_keys)
-        for piece in pieces:
-            piece_role = str(getattr(piece, "role", "") or "").strip()
-            piece_key = f"box_body:{piece_role}"
-            if visible_set is not None and piece_key not in visible_set:
-                continue
-            # The back panel is a broad operator-facing reference surface.
-            # Keep its physical CUTTING geometry/holes, but suppress display-only
-            # bend overlays that make the panel look like a wireframe.
-            if piece_role == "back":
-                continue
-            data = piece.render_data
-            x_profile = _phase6_contract_profile_rows(piece.fold_profile)
-            minx, miny, maxx, maxy = map(float, data.material.bounds)
-            y_profile = [{"len": maxy - miny}]
-            fold_guides = tuple(getattr(data, "fold_guides", ()) or ())
-            world = _phase6_box_body_piece_world_mapper(
-                piece, total_w=total_w, thickness=thickness, x_profile=x_profile
+        segments = manufacturing_api.project_box_body_structure_bend_segments(
+            render_data, thickness=thickness, local_reference=local_reference,
+            placement=placement, dimensions=dimensions, offset=offset,
+            visible_piece_keys=visible_piece_keys,
+        )
+        for a, b in segments:
+            self.renderer.ax3d.plot(
+                [a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
+                color="#2563eb", linewidth=1.35, linestyle="-", alpha=0.98,
             )
-            for primitive in getattr(data.scene, "primitives", ()):
-                if not isinstance(primitive, LinePrimitive) or str(primitive.layer).upper() != "BEND":
-                    continue
-                points = (
-                    world(self._map_xy(primitive.p1.x, primitive.p1.y, x_profile, y_profile, fold_guides)),
-                    world(self._map_xy(primitive.p2.x, primitive.p2.y, x_profile, y_profile, fold_guides)),
-                )
-                if local_reference is not None:
-                    points = place_assembly_points(
-                        points, local_reference, placement, dimensions, offset
-                    )
-                if len(points) != 2:
-                    continue
-                a, b = points
-                self.renderer.ax3d.plot(
-                    [a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
-                    color="#2563eb", linewidth=1.35, linestyle="-", alpha=0.98,
-                )
 
     def _draw_scene_markings(self, scene, x_profile, y_profile, fold_guides=()):
         import math
