@@ -189,6 +189,13 @@ def normalize_project_snapshot_authority(snapshot):
     from ae_engine.receiving_layout import ensure_receiving_layout, project_primary_bay_legacy_aliases
 
     result = migrate_legacy_snapshot_joints(dict(snapshot or {}))
+    # Single-cabinet panel names are project input, owned here alongside
+    # the rest of canonical Save/Reload authority (#2696).
+    from .panel_naming import normalize_panel_name
+    if not is_receiving_snapshot(result):
+        result["panel_name"] = normalize_panel_name(
+            result.get("panel_name", ""), allow_blank=True,
+        )
     if is_receiving_snapshot(result):
         result = ensure_receiving_layout(result)
         # Existing Door normalization still consumes d/t from the single-Bay

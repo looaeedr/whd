@@ -8,6 +8,7 @@ project truth and therefore never belong in ``receiving_layout``.
 from __future__ import annotations
 
 from copy import deepcopy
+from .panel_naming import normalize_panel_name, PANEL_NUMBER_RE
 from ae_engine.receiving_shared_settings import normalize_set_settings, setting_value
 from typing import Mapping
 
@@ -71,12 +72,14 @@ def new_receiving_layout(*, width: object, height: object, depth: object, back_p
     """Return the deterministic fresh/migrated one-Set one-Bay layout."""
     return {
         "schema": RECEIVING_LAYOUT_SCHEMA,
+        "next_panel_number": 2,
         "sets": [
             {
                 "stable_id": "receiving:set:1",
                 "bays": [
                     {
                         "stable_id": "receiving:set:1:bay:1",
+                        "panel_name": "P1",
                         "width": _number(width, label="Receiving Bay width"),
                         "height": _number(height, label="Receiving Bay height"),
                         "depth": _number(depth, label="Receiving Bay depth"),
@@ -104,6 +107,35 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
     if not isinstance(raw_sets, (list, tuple)) or not raw_sets:
         raise ValueError("Receiving layout must contain at least Set1")
 
+    # Old v1 projects had no names/counter; migrate them in physical Set/Bay
+    # order. Once materialized, the counter is project authority and survives
+    # tail deletion even when a legacy stable_id is reused.
+    has_counter = "next_panel_number" in layout
+    raw_next = layout.get("next_panel_number")
+    if has_counter and (type(raw_next) is not int or raw_next < 1):
+        raise ValueError("next_panel_number 必須是正整數")
+    named: set[str] = set()
+    highest_p = 0
+    for raw_set in raw_sets:
+        if not isinstance(raw_set, Mapping):
+            raise ValueError("Receiving Set 必須是物件")
+        for raw_bay in raw_set.get("bays", ()):
+            if not isinstance(raw_bay, Mapping):
+                raise ValueError("Receiving Bay 必須是物件")
+            if "panel_name" not in raw_bay:
+                continue
+            name = normalize_panel_name(raw_bay["panel_name"])
+            key = name.casefold()
+            if key in named:
+                raise ValueError("受電箱盤名不得重複")
+            named.add(key)
+            match = PANEL_NUMBER_RE.fullmatch(name)
+            if match:
+                highest_p = max(highest_p, int(match.group(1)))
+    if has_counter and raw_next <= highest_p:
+        raise ValueError("next_panel_number 不能重用已使用 P 編號")
+    next_number = raw_next if has_counter else highest_p + 1
+
     seen_ids: set[str] = set()
     sets: list[dict[str, object]] = []
     for set_index, raw_set in enumerate(raw_sets, start=1):
@@ -125,8 +157,19 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
             if bay_id in seen_ids:
                 raise ValueError(f"duplicate Receiving stable_id: {bay_id}")
             seen_ids.add(bay_id)
+            if "panel_name" in raw_bay:
+                panel_name = normalize_panel_name(raw_bay["panel_name"])
+            else:
+                # Migration/new Bay only: never duplicate the cloned Bay label.
+                panel_name = f"P{next_number}"
+                while panel_name.casefold() in named:
+                    next_number += 1
+                    panel_name = f"P{next_number}"
+                named.add(panel_name.casefold())
+                next_number += 1
             bay = {
                 "stable_id": bay_id,
+                "panel_name": panel_name,
                 "width": _number(raw_bay.get("width"), label=f"Receiving Set{set_index} Bay{bay_index} width"),
                 "height": _number(raw_bay.get("height"), label=f"Receiving Set{set_index} Bay{bay_index} height"),
                 "depth": _number(raw_bay.get("depth"), label=f"Receiving Set{set_index} Bay{bay_index} depth"),
@@ -204,7 +247,7 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                 bay["back_panel_mode"] = setting_value(selected, index, "back_panel_mode")
         sets.append(selected)
 
-    return {"schema": RECEIVING_LAYOUT_SCHEMA, "sets": sets}
+    return {"schema": RECEIVING_LAYOUT_SCHEMA, "next_panel_number": next_number, "sets": sets}
 
 
 def primary_bay(layout: Mapping[str, object]) -> dict[str, object]:
@@ -512,11 +555,29 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
     bay = deepcopy(dict(bays[bay_index]))
     original_width = bay["width"]
     original_height = bay["height"]
-    allowed = {"width", "height", "depth", "back_panel_mode", "door_state",
+    allowed = {"width", "height", "depth", "back_panel_mode", "door_state", "panel_name",
                "nfb_config_submitted", "nfb_config"}
     unknown = set(changes) - allowed
     if unknown:
         raise ValueError(f"unsupported Receiving Bay fields: {sorted(unknown)}")
+    if "panel_name" in changes:
+        name = normalize_panel_name(changes["panel_name"])
+        siblings = {
+            str(other["panel_name"]).casefold()
+            for si, group in enumerate(normalized["sets"])
+            for bi, other in enumerate(group["bays"])
+            if (si, bi) != (set_index, bay_index)
+        }
+        if name.casefold() in siblings:
+            raise ValueError("受電箱盤名不得重複")
+        if name != bay["panel_name"]:
+            match = PANEL_NUMBER_RE.fullmatch(name)
+            if match:
+                number = int(match.group(1))
+                if number < normalized["next_panel_number"]:
+                    raise ValueError("已分配或刪除的 P 編號不可重新使用")
+                normalized["next_panel_number"] = number + 1
+        bay["panel_name"] = name
     if "width" in changes:
         bay["width"] = _number(changes["width"], label="Receiving Bay width")
     if "height" in changes:
@@ -590,6 +651,15 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
         "joints": [deepcopy(dict(row)) for row in selected["joints"]],
     }
     return normalize_receiving_layout(normalized)
+
+
+def rename_receiving_panel(
+    layout: Mapping[str, object], *, set_index: int, bay_index: int, panel_name: str,
+) -> dict[str, object]:
+    """Public Engine operation for a single Bay label, not a physical part ID."""
+    return update_receiving_bay(
+        layout, set_index=set_index, bay_index=bay_index, panel_name=panel_name,
+    )
 
 
 def _validate_common_receiving_state(snapshot: Mapping[str, object]) -> None:

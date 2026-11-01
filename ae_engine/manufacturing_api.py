@@ -32,6 +32,10 @@ from .door_layout_numeric_transitions import (
     DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
 )
 from .dxf_serialization import save_scene_dxf
+# Operator panel naming: public input boundary, independent of geometry.
+from .panel_naming import normalize_panel_name, set_cabinet_panel_name
+from .receiving_layout import rename_receiving_panel
+
 from .integration_api import (
     ManufacturingIntegrationRequest, ManufacturingIntegrationResponse,
     ManufacturingSourceIdentity, dispatch_manufacturing_integration,

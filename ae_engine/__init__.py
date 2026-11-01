@@ -19,6 +19,7 @@ from .manufacturing_api import (
     receiving_ear_assembly_display_source_key, resolve_receiving_ear_assembly_display_skins,
     normalize_authoritative_door_state, normalize_project_snapshot_authority,
     list_cabinet_model_choices,
+    normalize_panel_name, set_cabinet_panel_name, rename_receiving_panel,
     project_operator_door_blank_dimensions,
     project_operator_door_cell_result,
     project_operator_door_cell_features,

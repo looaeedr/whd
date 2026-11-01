@@ -698,6 +698,31 @@ def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_inde
     if not all(isinstance(row, dict) and row.get("stable_id")
                for row in bays):
         return fingerprint_snapshot
+    # Only the operator label and its monotonic allocator are non-geometric.
+    # Keep every physical ID, Fold/Joint/NFB setting and unknown extension in
+    # the source key. Never mutate the canonical project or manufacturing input.
+    # Do this before early returns so a label edit cannot rebuild a physical
+    # FinalScene even when a custom Joint requires conservative cache policy.
+    if not all(isinstance(group, dict)
+               and isinstance(group.get("bays"), list)
+               and all(isinstance(row, dict) for row in group["bays"])
+               for group in sets):
+        return fingerprint_snapshot
+    shallow_layout = {key: value for key, value in layout.items()
+                      if key != "next_panel_number"}
+    shallow_sets = []
+    for group in sets:
+        copy_group = dict(group)
+        copy_group["bays"] = [
+            {key: value for key, value in row.items() if key != "panel_name"}
+            for row in group["bays"]
+        ]
+        shallow_sets.append(copy_group)
+    shallow_layout["sets"] = shallow_sets
+    fingerprint_snapshot["receiving_layout"] = shallow_layout
+    layout, sets = shallow_layout, shallow_sets
+    selected = sets[set_index]
+    bays, joints = selected["bays"], selected["joints"]
     # Custom joints, custom parts and committed Joint relief may connect
     # non-neighboring Bays. Even with both optimization flags disabled, the
     # ordinary path below would still hide trailing dimensions. Never reuse
