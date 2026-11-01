@@ -4,6 +4,11 @@ from .contracts import (
     ManufacturingPolicy, ManufacturingContext, DoorPartSpec, BoxBodyPartSpec,
     EndCapPartSpec, BasePlatePartSpec, IndicatorBoxPartSpec, CustomFoldPartSpec, PartExportResult, PartSpec,
 )
+from .door_layout_numeric_transitions import (
+    DoorLayoutColumnState, DoorLayoutResolvedColumn,
+    DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
+)
+
 from .manufacturing_api import (
     generate_part, resolve_policy, expected_baseline_path_for, receiving_baseline_source_stamp,
     expected_shared_indicator_baselines, map_door_features_to_unfolded_material,
@@ -83,6 +88,8 @@ from .manufacturing_api import (
     resize_receiving_bays_with_family_defaults,
     receiving_inner_door_stable_id_for_cell,
     remap_receiving_door_layout_after_delete,
+    recompute_door_layout, door_layout_cells,
+    validate_door_layout_width_commit, validate_door_layout_height_commit,
     apply_receiving_endcap_candidate_to_bays,
 )
 from .cabinet_types import (
@@ -174,6 +181,10 @@ __all__ = [
     "resize_receiving_bays_with_family_defaults",
     "receiving_inner_door_stable_id_for_cell",
     "remap_receiving_door_layout_after_delete",
+    "recompute_door_layout", "door_layout_cells",
+    "validate_door_layout_width_commit", "validate_door_layout_height_commit",
+    "DoorLayoutColumnState", "DoorLayoutResolvedColumn",
+    "DoorLayoutRecomputeResult", "DoorLayoutCommitValidation",
     "apply_receiving_endcap_candidate_to_bays",
     "ManufacturingPolicy", "ManufacturingContext",
     "DoorPartSpec", "BoxBodyPartSpec", "EndCapPartSpec", "BasePlatePartSpec",
