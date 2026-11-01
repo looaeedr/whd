@@ -44,6 +44,54 @@ assert result.manufacturing_authorized is False
   `docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md` 為準。
 
 
+
+### 第二批：Receiving 已解析 Set/Bay 的提交前 DXF 驗證
+
+`ae_engine.export_verified_resolved_integration_bays(bays, output_dir, *,
+pre_commit_guard, overwrite=False)` 是**同程序 Engine Sink**，不是原圖直接自動
+製造的入口。每一個 `ManufacturingResolvedBayInput` 必須攜帶：
+1. `family="受電箱"`（或現有 alias `RECEIVING`）；
+2. CADSplit 已確認的 `ManufacturingSourceIdentity(panel_key, source_revision,
+   set_id, bay_id)`，作為來源與輸出命名空間追溯，**不是** `physical_part_id`；
+3. **WHD Engine 已解析** 的 `ResolvedManufacturingGeometry`，內含真正實體板件。
+   原圖、來源 JSON、Preview、`prepare` 結果不能代替這個輸入。
+
+呼叫者必須提供可信的 `pre_commit_guard`，由既有專案／來源狀態持有者
+確認原圖、版本、實體解算及提交授權仍有效。Engine 會在**任何輸出提交前**
+驗證重複 Set/Bay 命名空間與 NFB／EAR／PAD 製造條件，對每一片 Engine
+physical-part DXF 逐片暫存 → 獨立 Save→Reload 驗證 → 再跑 guard → 原子提交。
+任何失敗均不將該批新 DXF 提交成正式結果。
+
+```python
+from ae_engine import (
+    ManufacturingResolvedBayInput, ManufacturingSourceIdentity,
+    export_verified_resolved_integration_bays,
+)
+# resolved_geometry_A 必須是 WHD Engine 已確認的 ResolvedManufacturingGeometry
+# project_guard 必須是此操作的可信專案狀態驗證函式
+result = export_verified_resolved_integration_bays(
+    (ManufacturingResolvedBayInput(
+        family="受電箱",
+        source=ManufacturingSourceIdentity(
+            panel_key="P1", source_revision="已讀取的真實 SHA",
+            set_id="Set-1", bay_id="Bay-1",
+        ),
+        resolved_geometry=resolved_geometry_A,
+    ),),
+    output_dir,
+    pre_commit_guard=project_guard,
+)
+assert result.physical_dxf_roundtrip_verified
+assert not result.complete_assembly_certified
+```
+
+相同底層批次能力也由 `manufacturing_api.save_verified_resolved_manufacturing_geometry_batch_dxf`
+提供（要求 `pre_commit_guard`）。**驗證範圍僅包含本次提交的實體 DXF，
+不能推論整箱所有物理片、未提供的 NFB／EAR／PAD、CADSplit 跨程式接線
+或全自動來源解算已經通過。**既有 `dispatch_manufacturing_integration("export")`
+繼續 fail-closed，source-only CLI 仍不啟用。
+
+
 目的：讓 GUI、自動拆圖、CLI 或其他 Python 程式都使用同一個 AE 出圖入口，不必建立 Tkinter GUI，也不必直接呼叫 `ae.export_xxx_dxf()`。
 
 ## EndCap physical assembled world skins API (#2517)
