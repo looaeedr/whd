@@ -200,6 +200,18 @@ def _source_rows(panels):
                     or (meta.get("nfb_v5_trial_status")
                         and meta.get("nfb_trial_export_approved") is not True)):
                 raise ValueError("COMPOSED_DXF_SOURCE_NOT_MANUFACTURING_APPROVED")
+            # A caller-changed logical output name must never retag a
+            # canonical physical sheet. Box Body may legitimately carry its
+            # root identity while the Engine exposes a split physical piece.
+            stable = str(meta.get("stable_id") or "")
+            if stable and stable != key and not (
+                    stable == "box_body" and key.startswith("box_body:")):
+                raise ValueError("COMPOSED_DXF_PHYSICAL_ID_SOURCE_MISMATCH")
+            topology = getattr(render, "unfolded_topology", None)
+            if (key.startswith("box_body:")
+                    and getattr(topology, "source", "") == "BOX_BODY_PHYSICAL_PIECE"
+                    and str(getattr(topology, "piece_id", "")) != key.partition(":")[2]):
+                raise ValueError("COMPOSED_DXF_BOX_BODY_TOPOLOGY_ID_MISMATCH")
             if not isinstance(render, PartRenderData) or render.scene is None:
                 raise ValueError("COMPOSED_DXF_PHYSICAL_FLAT_SCENE_REQUIRED")
         # The Engine's canonical box-body pieces are ordered by the owner
