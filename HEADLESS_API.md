@@ -43,8 +43,6 @@ assert result.manufacturing_authorized is False
   `WHD-Engine.exe` 已退役。架構與權威以 AI 庫 04 CURRENT 與
   `docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md` 為準。
 
-
-
 ### 第二批：Receiving 已解析 Set/Bay 的提交前 DXF 驗證
 
 `ae_engine.export_verified_resolved_integration_bays(bays, output_dir, *,
@@ -123,6 +121,10 @@ CUTTING/BEND/DXF export or external API capability.
 ## Door-layout operator single-cell preview projection API (#2517)
 
 `manufacturing_api.project_operator_door_cell_result(values, *, cell_width, cell_height, frame_edges, material_frame_width)` returns the existing structural Door cell preview; `project_operator_door_cell_features(result, saved_features, indicator_state, *, cell_width, cell_height, frame_edges, family_model, frame_width, thickness, gap_w, gap_h, fold_left, fold_bottom)` resolves saved holes and Indicator/Box CUTTING preview through the existing Engine sources. `project_operator_door_cell_baseline(values, *, family_model, cell_width, cell_height, frame_edges, cache=None)` resolves the shared-family baseline Door preview and source fingerprint inside Engine while preserving the display cache and source label. None certifies manufacturing; actual DoorPartSpec/FinalScene, DXF export and source verification retain their existing gates. Legacy malformed preview input remains display-only fallback, never an export permission.
+
+## Operator Hole Editor Door/BasePlate/Indicator headless projections (#2517)
+
+`manufacturing_api.project_operator_hole_editor_door`, `project_operator_hole_editor_base_plate`, `resolve_indicator_box_editor_geometry` and `resolve_indicator_door_editor_geometry` provide the existing editor structural/read-only surfaces, finished dimensions and source scene/guide through Engine. The established paired `resolve_indicator_editor_components` remains unchanged for current clients; standalone Box/Small Door editor entrypoints no longer depend on loading the other source. GUI only owns selection, session/callbacks and error display. No CUTTING/DXF or part-manufacturing certification is added.
 
 ## EndCap operator blank summary and baseline Fold defaults API (#2517)
 

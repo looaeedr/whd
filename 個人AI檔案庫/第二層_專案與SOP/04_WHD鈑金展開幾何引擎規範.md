@@ -40,6 +40,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.project_operator_door_cell_result`、`project_operator_door_cell_features`、`project_operator_door_cell_baseline` 將 `door_render_host_adapter` 原有單格結構件、已保存開孔＋Indicator／IndicatorBox 孔投影、Family 共用基準 DXF 來源／nameplate datum 與 fingerprint cache key 全數委派 Engine。GUI 只選格、保存操作狀態、轉交原輸入並畫圖；不再直接呼叫 `ae.calculate_door_finished_size`、`ae.get_stretched_door_data` 或引入私有 `sheetmetal` 製造推導。保留既有 UI preview 的輸入不完整容錯、共用基準、來源標籤及 cache 效能，正式 PartSpec／FinalScene／DXF／Save→Reload 製造權威不變；這些 read-only API 不新增 CUTTING／DXF 認證。#2517 OPEN。
 
+### #2517 Hole Editor 四種操作板件預覽 Engine 公開 API（2026-11-01）
+
+`manufacturing_api.project_operator_hole_editor_door`／`project_operator_hole_editor_base_plate` 將 `hole_editor.py` 原 Door、BasePlate 結構件、成品尺寸、guide、Door baseline preview 委派 Engine；原 `resolve_indicator_editor_components` 保留原有雙板契約，同時拆出 `resolve_indicator_box_editor_geometry`／`resolve_indicator_door_editor_geometry` 獨立呼叫，避免只編輯一板卻要求另一基準 DXF 可用。GUI 僅收操作者值、回傳 UI state 和編輯／保存回呼；舊 Factory／Registry／2D／3D／DXF 製造路徑不改，不新增認證能力；#2517 OPEN。
+
 ### #2517 EndCap 摘要／金庫型基準 Fold 預設 Engine 公開 API（2026-11-01）
 
 `manufacturing_api.project_operator_endcap_blank_dimensions` 將主畫面 EndCap 無已提交 Fold Profile 時的 baseline-first 總料寬／深回讀與舊 AE 公式回退統一移入 Engine；已有 committed Profile 時仍由同一 FinalScene material bounds 作準。 `manufacturing_api.read_operator_baseline_fold_defaults` 將金庫型型號切換時的 EndCap／Door 基準 Fold 預設及舊 Door DXF 解析失敗的四數值 UI 相容回退搬入 Engine；GUI 僅將回傳數值填入操作欄。兩者只供操作顯示／預設，不是正式製造或 DXF 認證，保留自訂／受電箱既有路徑與原 Save→Reload／2D／3D 來源；#2517 OPEN。
