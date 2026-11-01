@@ -35,7 +35,7 @@ def test_headless_base_plate_preserves_operator_and_receiving_source(model, rece
     values = data(model)
     prior = deepcopy(values)
     structure = {"active_type": "three_piece"}
-    profile = [{"phase6_key": "w", "len": 794, "angle": None, "core": "W"}]
+    profile = [{"phase6_key": "w", "len": 794, "core": "W"}]
     actual = manufacturing_api.build_base_plate_operator_part_spec(
         values, features=({"source": "saved"},),
         box_body_structure_state=structure, box_body_fold_profile=profile,
