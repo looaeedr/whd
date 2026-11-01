@@ -75,39 +75,15 @@ class Phase6FinalSceneRenderHelpersMixin:
         local_reference=None, placement=None, dimensions=None,
         offset=(0.0, 0.0, 0.0),
     ):
-        """Highlight ONLY authoritative CUTTING inner rings on Door solids.
-
-        Using material polygon interiors rather than triangle sides avoids
-        tessellation diagonals without hiding real circular/rectangular holes.
-        Mapping follows the same folding/assembly placement as the solid.
-        """
+        """Paint only actual CUTTING inner-rings projected by public Engine."""
+        from ae_engine import manufacturing_api
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        polygons = (
-            (material,) if getattr(material, "geom_type", "") == "Polygon"
-            else tuple(getattr(material, "geoms", ()) or ())
+        segments = manufacturing_api.project_independent_cutting_hole_rim_segments(
+            material, x_profile, y_profile, fold_guides,
+            local_reference=local_reference, placement=placement,
+            dimensions=dimensions, offset=offset,
         )
-        segments = []
-        for polygon in polygons:
-            if getattr(polygon, "geom_type", "") != "Polygon":
-                continue
-            for ring in polygon.interiors:
-                local_points = tuple(
-                    self._map_xy(x, y, x_profile, y_profile, fold_guides)
-                    for x, y in ring.coords
-                )
-                if local_reference is not None:
-                    from ae_engine.assembly_geometry import place_assembly_points
-                    points = place_assembly_points(
-                        local_points, local_reference, placement,
-                        dimensions, offset,
-                    )
-                else:
-                    points = local_points
-                segments.extend(
-                    (u, v) for u, v in zip(points, points[1:])
-                    if any(abs(u[i] - v[i]) > 1e-9 for i in range(3))
-                )
         if segments:
             self.renderer.ax3d.add_collection3d(Line3DCollection(
                 segments, colors="#22d3ee", linewidths=2.2,

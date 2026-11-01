@@ -1274,6 +1274,8 @@ def build_door_operator_part_spec(
 from .final_scene_independent_annotations import (
     project_independent_scene_bend_segments,
     project_independent_scene_annotation_paths,
+    project_independent_cutting_hole_rim_segments,
+    project_independent_fixed_plate_hinge_segment,
 )
 
 # #2517: BoxBody BEND overlay points consume canonical material/assembly world.

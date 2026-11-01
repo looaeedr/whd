@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 
 from .final_scene_box_body_bend_lines import _mappers, _map_point
+from .assembly_geometry_primitives import place_assembly_points
 from .sheetmetal_drawing import LinePrimitive, PolylinePrimitive, CirclePrimitive
 
 
@@ -76,3 +77,54 @@ def _map_point_xy(x, y, map_x, map_y):
     ux, zx = map_x(float(x), float(y))
     uy, zy = map_y(float(y), float(x))
     return (ux, uy, zx + zy)
+
+
+def project_independent_cutting_hole_rim_segments(
+    material, x_profile, y_profile, fold_guides=(), *,
+    local_reference=None, placement=None, dimensions=None,
+    offset=(0.0, 0.0, 0.0),
+):
+    """Only true material CUTTING inner rings; never a tessellation/BLIND_HOLE."""
+    polygons = (
+        (material,) if getattr(material, "geom_type", "") == "Polygon"
+        else tuple(getattr(material, "geoms", ()) or ())
+    )
+    rings = tuple(
+        ring for polygon in polygons
+        if getattr(polygon, "geom_type", "") == "Polygon"
+        for ring in polygon.interiors
+    )
+    if not rings:
+        return ()
+    map_x, map_y = _mappers(x_profile, y_profile, fold_guides)
+    segments = []
+    for ring in rings:
+        local = tuple(
+            _map_point_xy(x, y, map_x, map_y) for x, y in ring.coords
+        )
+        points = (
+            place_assembly_points(
+                local, local_reference, placement, dimensions, offset,
+            ) if local_reference is not None else local
+        )
+        segments.extend(
+            (u, v) for u, v in zip(points, points[1:])
+            if any(abs(u[i] - v[i]) > 1e-9 for i in range(3))
+        )
+    return tuple(segments)
+
+
+def project_independent_fixed_plate_hinge_segment(render_data, view_mesh):
+    """MID-skin 3D hinge from verified Engine view; never replace DXF BEND23."""
+    hinge_y = getattr(view_mesh, "fixed_plate_hinge_y", None)
+    if hinge_y is None:
+        return ()
+    metadata = getattr(render_data, "metadata", None) or {}
+    source_width = float(metadata["source_flat_dimensions"][0])
+    map_x, map_y = _mappers(
+        view_mesh.x_profile, view_mesh.y_profile, view_mesh.fold_guides,
+    )
+    return (
+        _map_point_xy(0.0, float(hinge_y), map_x, map_y),
+        _map_point_xy(source_width, float(hinge_y), map_x, map_y),
+    )
