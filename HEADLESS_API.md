@@ -17,6 +17,7 @@ whd_schema: WHD_DOC_META_V1
 只代表顯示來源可取得，不構成 CUTTING／DXF／EAR 焊接／整箱 MFG-2 核准。
 
 
+
 ## #2517 Receiving EAR 真實單／雙層組合 3D 顯示來源
 
 `manufacturing_api.receiving_ear_assembly_display_source_key(snapshot)` 供 GUI
@@ -1407,6 +1408,22 @@ segments; the Engine ignores non-Joint rows, missing 3D points and malformed
 source rows. No flat-to-3D guessing, Fold recomputation or new contact
 certification is performed. This read-only view API works for Vault and
 Receiving and does not confer manufacturing/DXF approval.
+
+## Receiving assembled EAR/PAD source-gated 3D trial skins (#2517)
+
+`manufacturing_api.project_receiving_assembly_trial_world_skin_meshes(*,
+formed_fixing_plate_skins=(), formed_nfb_pad_skins=(),
+show_fixing_plate_mesh=True)` returns immutable
+`ReceivingAssemblyTrialSkinMesh(role, part_id, world_triangles)` results from
+existing verified formed real-world EAR T2/BEND23 and committed NFB PAD skin
+sources. It preserves legacy fail-closed gate codes for unverified folds,
+missing physical meshes, forged weld/manufacturing approvals and PAD source
+square defects. Hidden EAR mesh does not suppress independent PAD display or
+SIDE positioning MARKING. The GUI paints the resulting triangles; no GUI
+source flag/physical mesh decision remains in the assembled trial path.
+
+These are DISPLAY ONLY and do not authorize welding, PAD/EAR manufacturing,
+DXF, CUTTING, certification or a new FinalScene production part.
 
 ## Receiving EAR assembled SIDE positioning world segments (#2517)
 

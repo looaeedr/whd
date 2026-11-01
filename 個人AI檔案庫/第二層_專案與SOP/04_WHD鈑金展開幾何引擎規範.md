@@ -176,6 +176,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.resolve_receiving_ear_assembly_display_skins` 將原 `phase6_final_scene_view._formed_ear_assembly_preview` 的 EAR 完整物理 owner（每層左／右，共 2／4 片）、canonical BasePlate parent ID、來源 T2／BEND23 是否真正驗證、任何 weld／MFG-ready 旗標拒絕統一交還 Engine；由原 `resolve_receiving_tier_ear_mating_xy` 與 `build_receiving_formed_fixing_plate_skins` 唯一製造來源解算。另由 `receiving_ear_assembly_display_source_key` 提供既有來源+DXF SHA 快取指紋，GUI 僅維持顯示快取、固定片開關與錯誤提示，不再自行決定物理來源真假。此為 `DISPLAY_ONLY`，不是側板 UV MARKING、焊接接觸、成套 MFG-2 或 DXF 製造放行；未改現存 source DXF、CUTTING／BEND、Save→Reload 或現有 T2／BEND23 幾何，#2517 持續 OPEN。
 
+### #2517 Receiving 組合 3D EAR／PAD 真實世界網格 Engine API（2026-11-01）
+
+`manufacturing_api.project_receiving_assembly_trial_world_skin_meshes(formed_fixing_plate_skins=(), formed_nfb_pad_skins=(), show_fixing_plate_mesh=True)` 於 `ae_engine.receiving_assembly_trial_display_skins` 讀取**既有真正 T2/BEND23 formed EAR skins** 與 NFB PAD 已解析 world meshes。Engine 統一驗證 EAR 的 source BEND、signed forming、未核准 manufacturing/weld，以及 PAD 的 flat+BEND、實體 Base 四定位方孔、未認證接觸與 manufacturing flag，回傳不可變 `ReceivingAssemblyTrialSkinMesh(role, part_id, world_triangles)` 序列，無來源即空。原 FinalScene Renderer 不再自行審核實體旗標或由 face.world 重建三角網格；僅按角色著色並畫 Engine 已驗證網格，保留 EAR 顯示開關獨立於 PAD／SIDE MARKING 的現有語意與原錯誤拒絕碼。這些仍為 DISPLAY-ONLY TRIAL，沒有 PAD/EAR 焊接、MFG-2、CUTTING、DXF 或製造權限；現有 2D／3D／Save→Reload 來源不變，#2517 OPEN。
+
 ### #2517 FinalScene Receiving Base Plate 實體來源顯示診斷 Engine API（2026-11-01）
 
 `manufacturing_api.inspect_receiving_base_plate_display_source(snapshot, cabinet_family)` 將原 `phase6_final_scene_view.receiving_base_source_display_warnings` 自行判斷的 Receiving 底板實體來源是否可解析／失敗／未設定移至 `ae_engine.receiving_base_display_source`。Engine 僅委派現行 `receiving_base_plate_config.receiving_base_plate_values` 唯一實體來源判準，回傳 immutable `ReceivingBasePlateDisplaySource`（`RESOLVED_DISPLAY_ONLY`／`UNAVAILABLE`／`INVALID`／`NOT_APPLICABLE`）；GUI 僅呈現原繁中警告。保留 NFB 已提交 CSV／Set/Bay 自動來源與舊版沒有手動底板設定的判準，不增加新的箱型入口、Fold／CUTTING／BEND／DXF 或 EAR 焊接製造認證，#2517 持續 OPEN。
