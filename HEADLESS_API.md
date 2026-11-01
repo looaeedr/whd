@@ -1349,6 +1349,16 @@ permission. Actual UV/material and safety rejection remain in
 3D source and stale-primary cases and actual Save→Reload CHECK-only DXF
 regression remain the acceptance evidence.
 
+## Joint contact MARKING world source display API (#2517)
+
+`manufacturing_api.project_joint_marking_world_segments(render_data)`
+returns the existing resolved source-labelled `JOINT_PLACEMENT_MARKING`
+world-point pairs from FinalScene metadata. The GUI only renders these 3D
+segments; the Engine ignores non-Joint rows, missing 3D points and malformed
+source rows. No flat-to-3D guessing, Fold recomputation or new contact
+certification is performed. This read-only view API works for Vault and
+Receiving and does not confer manufacturing/DXF approval.
+
 ## Receiving EAR assembled SIDE positioning world segments (#2517)
 
 `manufacturing_api.project_receiving_ear_side_marking_segments(formed_ear_skins,
