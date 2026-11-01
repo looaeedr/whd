@@ -33,7 +33,7 @@ EndCap BOTTOM wrap/reserve 判準。三個公開 API 均不含 GUI/Tk，不新�
 
 ## #2517 BoxBody Assembly operator physical-piece panel readback
 
-`manufacturing_api.project_box_body_assembly_panel_piece_rows(render_data)` returns frozen `BoxBodyAssemblyPanelPiece` rows derived only from actual `BoxBodyPartRenderData.pieces`: canonical `box_body:<role>` or existing explicit legacy piece key, formed outer W/H, material W/H, and the **same** physical `source_render_data` for existing corner display. `phase6_assembly_presentation.project_box_body_piece_rows` adds localized labels, while the Assembly widget formats numbers and corner text without inferring source by string role. Missing pieces return empty rows; invalid dimensions fail rather than invent results. No new manufacturing or DXF certification.
+`manufacturing_api.project_box_body_assembly_panel_piece_rows(render_data)` returns frozen `BoxBodyAssemblyPanelPiece` rows derived only from actual `BoxBodyPartRenderData.pieces`: canonical `box_body:<role>` or existing explicit legacy piece key, formed outer W/H, material W/H, and the **same** physical `source_render_data` for existing corner display. `phase6_assembly_presentation.project_box_body_piece_rows` adds localized labels, while the Assembly widget formats numbers and corner text without inferring source by string role. Missing pieces return empty rows; invalid dimensions fail rather than invent results. Legacy role-less pieces retain their explicit display keys and dimensions but return no corner source, preserving the original `截角尺寸：無` fallback. No new manufacturing or DXF certification.
 
 ## #2517 Receiving inner-door Quantity Confirm All precommit
 
