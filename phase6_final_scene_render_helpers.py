@@ -309,25 +309,14 @@ class Phase6FinalSceneRenderHelpersMixin:
 
     @staticmethod
     def _marking_line_signature(p1, p2):
-        a = (round(float(p1[0]), 9), round(float(p1[1]), 9))
-        b = (round(float(p2[0]), 9), round(float(p2[1]), 9))
-        return tuple(sorted((a, b)))
+        """Legacy GUI import, Engine owns canonical MARKING identity."""
+        from ae_engine import manufacturing_api
+        return manufacturing_api.marking_line_signature(p1, p2)
 
     def _joint_marking_flat_signatures(self, render_data):
-        metadata = dict(getattr(render_data, "metadata", {}) or {})
-        signatures = set()
-        for row in tuple(metadata.get("joint_markings") or ()):
-            if not isinstance(row, dict):
-                try:
-                    row = dict(row)
-                except Exception:
-                    continue
-            if str(row.get("source") or "") != "JOINT_PLACEMENT_MARKING":
-                continue
-            if row.get("p1") is None or row.get("p2") is None:
-                continue
-            signatures.add(self._marking_line_signature(row["p1"], row["p2"]))
-        return signatures
+        """Forward the existing Engine verified Joint source identities."""
+        from ae_engine import manufacturing_api
+        return manufacturing_api.joint_marking_flat_signatures(render_data)
 
     def _draw_joint_marking_world_rows(self, render_data):
         """Draw contact-derived joint MARKING in canonical assembly world space.
@@ -392,71 +381,21 @@ class Phase6FinalSceneRenderHelpersMixin:
         offset,
         joint_marking_signatures=(),
     ):
-        """Project non-contact flat MARKING through the ordinary assembly placement.
-
-        Contact-derived JOINT_PLACEMENT_MARKING is drawn from the exact world
-        boundary stored by the manufacturing solver and is skipped here.
-        """
-        from ae_engine.assembly_geometry import place_assembly_points
-        from ae_engine.sheetmetal_drawing import LinePrimitive
+        """Paint Engine-projected non-contact MARKING, no GUI Fold/world math."""
+        from ae_engine import manufacturing_api
 
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
-        placement_key = str(placement or "offset").lower()
-        joint_marking_signatures = set(joint_marking_signatures or ())
-        if placement_key in {"top", "head", "bottom", "tail"}:
-            # EndCaps use a dedicated mating transform. Their contact-derived
-            # joint marks are rendered from canonical world metadata above;
-            # do not guess a second flat-point transform for other marks here.
-            return
-
-        for primitive in getattr(scene, "primitives", ()):
-            if (
-                not isinstance(primitive, LinePrimitive)
-                or str(getattr(primitive, "layer", "") or "").upper() != "MARKING"
-            ):
-                continue
-            signature = self._marking_line_signature(
-                (primitive.p1.x, primitive.p1.y),
-                (primitive.p2.x, primitive.p2.y),
-            )
-            if signature in joint_marking_signatures:
-                continue
-            local_points = (
-                self._map_xy(
-                    primitive.p1.x,
-                    primitive.p1.y,
-                    x_profile,
-                    y_profile,
-                    fold_guides,
-                ),
-                self._map_xy(
-                    primitive.p2.x,
-                    primitive.p2.y,
-                    x_profile,
-                    y_profile,
-                    fold_guides,
-                ),
-            )
-            world_points = place_assembly_points(
-                local_points,
-                local_reference,
-                placement,
-                dimensions,
-                offset,
-            )
-            if len(world_points) != 2:
-                continue
-            a, b = world_points
+        segments = manufacturing_api.project_assembly_scene_marking_segments(
+            scene, x_profile, y_profile, fold_guides,
+            local_reference, placement, dimensions, offset,
+            joint_marking_signatures=joint_marking_signatures,
+        )
+        for a, b in segments:
             self.renderer.ax3d.plot(
-                [a[0], b[0]],
-                [a[1], b[1]],
-                [a[2], b[2]],
-                color="#f59e0b",
-                linewidth=2.2,
-                linestyle="-",
-                alpha=1.0,
-                zorder=20,
+                [a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
+                color="#f59e0b", linewidth=2.2, linestyle="-",
+                alpha=1.0, zorder=20,
             )
 
 

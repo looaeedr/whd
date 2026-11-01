@@ -1275,6 +1275,8 @@ from .final_scene_box_body_bend_lines import (
     contract_fold_profile_rows,
     project_assembly_box_body_bend_segments,
     project_box_body_structure_bend_segments,
+    marking_line_signature, joint_marking_flat_signatures,
+    project_assembly_scene_marking_segments,
 )
 
 # #2517: Real CUTTING inner-ring 3D world projection comes from Engine.
