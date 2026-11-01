@@ -994,3 +994,22 @@ GUI composition only collects already-derived profiles/physical sources,
 calls the Engine public API, and applies its immutable plan via the existing
 workspace mutation owner. No second family formula, new NFB source, DXF
 entitlement, or Save→Reload schema. #2517 OPEN.
+
+
+
+## Physical BoxBody operator → Engine manufacturing PartSpec (#2517)
+
+`manufacturing_api.build_box_body_operator_part_spec(values, *, model_name,
+features=(), face_features=None, head_corner_policy=None,
+tail_corner_policy=None, fold_profile=(), structure_state=None,
+source_part_features=None, endcap_y_profiles=None, head_ybottom1=None,
+tail_ybottom1=None, snapshot=None)` is the public headless BoxBodyPartSpec
+owner for Vault and Receiving. GUI only collects live input, workspace
+Fold/Features and override values. Engine chooses the existing canonical
+Family structure state, rear-panel manufacturing contract, physical
+BoxBody piece Features (excluding Divider namespace), Fold material
+segments and the actual Head/Tail Y/ybottom1 outside Fold readback;
+explicit Head/Tail overrides retain priority over profile and scalar
+fallback. This is an ownership move, not a new compensation formula,
+Certified Registry rule, Rear W datum, 2D/3D/DXF certification or a
+Save→Reload format. #2517 remains OPEN.
