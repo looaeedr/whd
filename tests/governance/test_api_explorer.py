@@ -96,4 +96,4 @@ def test_pages_first_deploy_is_not_blocked_by_unauthenticated_probe():
     assert "uses: actions/deploy-pages@v4" in workflow
     assert "needs: build" in workflow
     assert "pages_enabled" not in workflow
-    assert "/pages\" || true" not in workflow
+    assert "api.github.com/repos/" not in workflow
