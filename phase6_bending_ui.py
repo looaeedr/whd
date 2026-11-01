@@ -12,13 +12,7 @@ from typing import Mapping
 import fold_designer_original as original
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine import manufacturing_api
-from phase6_fold_profiles import (
-    _num,
-    _ui_len,
-    apply_outside_dimension_compensation,
-    engine_angle_to_ui,
-    engine_segment_length_to_ui,
-)
+from phase6_fold_profiles import _ui_len
 
 
 def resolve_profile_key(active_dict: Mapping[str, object], requested: object) -> str:
@@ -278,35 +272,39 @@ class Phase6BendingUI(original.BendingUI):
         active_dict = self.get_active_dict()
         active_key = self._active_profile_key(active_dict)
         segs = active_dict[active_key]
-        apply_outside_dimension_compensation(segs, getattr(self.state, "phase6_thickness", 2.0))
-        if len(self.controls) != len(segs):
+        display_rows = manufacturing_api.project_operator_fold_editor_display_rows(
+            segs, getattr(self.state, "phase6_thickness", 2.0),
+        )
+        if len(self.controls) != len(display_rows):
             self.render(); return False
-        for ctrl, seg in zip(self.controls, segs):
-            if (("angle" in ctrl) != ("angle" in seg)) or "len" not in ctrl:
+        for ctrl, row in zip(self.controls, display_rows):
+            if (("angle" in ctrl) != ("angle" in row)) or "len" not in ctrl:
                 self.render(); return False
         self._phase6_refreshing_controls = True
         try:
-            for index, (ctrl, seg) in enumerate(zip(self.controls, segs)):
+            for index, (ctrl, row, material) in enumerate(zip(self.controls, display_rows, segs)):
                 if "angle" in ctrl:
-                    text = str(original.get_int(engine_angle_to_ui(seg.get("angle", 0))))
-                    if ctrl["angle"].get() != text:
-                        ctrl["angle"].set(text)
-                operator_length = engine_segment_length_to_ui(seg)
-                if float(seg.get("phase6_ui_sign", 1.0) or 1.0) < 0.0:
-                    operator_length = -operator_length
-                length_text = str(original.get_int(operator_length))
+                    angle_text = str(original.get_int(row.get("angle", 0)))
+                    if ctrl["angle"].get() != angle_text:
+                        ctrl["angle"].set(angle_text)
+                length_text = str(original.get_int(row["len"]))
                 if ctrl["len"].get() != length_text:
                     ctrl["len"].set(length_text)
                 labels = self.container.grid_slaves(row=index + 1, column=5)
                 if labels:
-                    core = seg.get("core")
-                    material_text = f"料 {_ui_len(seg.get('len'))}"
+                    core = material.get("core")
+                    material_text = f"料 {_ui_len(material.get('len'))}"
                     labels[0].configure(text=f"{material_text} / {core}" if core else material_text)
         finally:
             self._phase6_refreshing_controls = False
         return True
 
     def get_active_dict(self):
+        # Only the original renderer sees detached operator-facing view rows.
+        # All other callers continue to observe canonical material Fold state.
+        view = getattr(self, "_phase6_operator_render_rows", None)
+        if view is not None:
+            return view
         custom = getattr(self.state, "phase6_fold_ui_profiles", None)
         if custom is not None:
             return custom
@@ -343,31 +341,22 @@ class Phase6BendingUI(original.BendingUI):
         active_dict = self.get_active_dict()
         active_key = self._active_profile_key(active_dict)
         segs = active_dict[active_key]
-        apply_outside_dimension_compensation(segs, getattr(self.state, "phase6_thickness", 2.0))
-        saved = []
-        for seg in segs:
-            original_values = {}
-            if "angle" in seg:
-                original_values["angle"] = seg["angle"]
-                seg["angle"] = engine_angle_to_ui(seg["angle"])
-            if _num(seg.get("ui_len_add")):
-                original_values["len"] = seg["len"]
-                operator_length = engine_segment_length_to_ui(seg)
-                if float(seg.get("phase6_ui_sign", 1.0) or 1.0) < 0.0:
-                    operator_length = -operator_length
-                seg["len"] = operator_length
-            if original_values:
-                saved.append((seg, original_values))
+        # Engine owns outside-length and bend-angle presentation conversion.
+        # The legacy BendingUI consumes only detached read-only display rows:
+        # canonical material segments remain untouched, even during render.
+        projected = manufacturing_api.project_operator_fold_editor_display_rows(
+            segs, getattr(self.state, "phase6_thickness", 2.0),
+        )
+        view = dict(active_dict)
+        view[active_key] = projected
+        self._phase6_operator_render_rows = view
         try:
             super().render()
         finally:
-            for seg, values in saved:
-                seg.update(values)
+            self._phase6_operator_render_rows = None
 
         for index, seg in enumerate(segs):
             row = index + 1
-            # The editable value is always operator outside dimension; show the
-            # authoritative material segment beside it for cutting/corner work.
             length_labels = self.container.grid_slaves(row=row, column=3)
             if length_labels:
                 try:

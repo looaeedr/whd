@@ -12,6 +12,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.resolve_hole_editor_canvas_features(surface, features, width, height)` 直接委派既有 `sheetmetal_features.resolve_surface_features`，回傳 immutable tuple 的世界座標解析孔位；超出物理 Feature Surface 的非法孔仍明確 `ValueError`。 `manufacturing_api.hole_editor_canvas_reference_point(feature, width, height)` 使用既有 saved reference-anchor authority；`manufacturing_api.hit_test_hole_editor_canvas_features(point, resolved_features, tolerance=...)` 沿用 Engine 有限／非 bool 的點選容差檢查。公開顯示 DTO `CanvasTransform`、`ResolvedCircle`、`ResolvedRect`、`Vec2` 沿用單一 Engine 類型。GUI `phase6_hole_editor_canvas_view.py` 只做 Canvas pixel placement、繪製、操作與結果呈現，不再直接 import 私有 `ae_engine.sheetmetal_features`。金庫型與受電箱共用相同 Feature Surface 合約；本次不變更 Feature 的實體製造／DXF、保存內容、2D／3D 真實板件與 Registry，不可把只讀孔位預覽當成製造放行，#2517 仍 OPEN。
 
+## [CURRENT] #2517 Fold Editor 唯讀包外列顯示 Engine API（2026-11-02）
+
+`manufacturing_api.project_operator_fold_editor_display_rows(material_segments, thickness)` 在原有 `ae_engine.operator_fold_editor` 中使用同一 `apply_outside_dimension_compensation`／`fold_material_segment_outside_length`，從已保存真正料長與當下 BEND 拓樸產生獨立唯讀的操作者包外長度、正負操作方向與角度顯示列；不信任過時 `ui_len_add`，不修改 canonical source。舊 `Phase6BendingUI.render` 僅在呼叫原始 Tk renderer 的期間傳入顯示副本，`refresh_active_profile` 也只消費同一 Engine 結果；移除 GUI 展示時直接修改／還原實體 Fold 列的做法。原 GUI `save/add/remove/mirror` 的 Engine source、金庫型／受電箱、Save→Reload 和真正 2D／3D／DXF／Certified Registry 全數不變；僅顯示 API，不取得額外 CUTTING/DXF 放行，#2517 OPEN。
+
 ## [CURRENT] #2517 Fold Editor Add／Remove Engine API（2026-11-02）
 
 `manufacturing_api.operator_fold_editor_add_segment` 和 `operator_fold_editor_remove_segment` 將原 `Phase6BendingUI.add/remove` 實體折段追加、核心段刪除限制、對稱真實 `phase6_key` 配對與刪除後相鄰 BEND 補償搬回 `ae_engine.operator_fold_editor`；完全沿用原 `can_remove_box_body_fold_segment` 及 `apply_outside_dimension_compensation`。GUI 只送輸入並保留既有 Profiles Vault list 身分；未合法刪除回 `None` 且 Engine 不更動輸入。金庫型／受電箱用同一 API，原 Family policy 控制箱身對稱允許，不因新入口鎖舊版本；已認證 Factory/Registry／實體 2D／3D／DXF／Save→Reload 不改，不新增工廠製造放行，#2517 OPEN。
