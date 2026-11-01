@@ -7,11 +7,12 @@ only widget values, labels and event dispatch.
 """
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from .box_body_fold_profile import apply_outside_dimension_compensation
-from .box_body_editor_readback import box_body_ui_segment_length_to_material
+from .box_body_editor_readback import box_body_ui_segment_length_to_material, can_remove_box_body_fold_segment
 
 
 def commit_operator_fold_editor_rows(
@@ -129,3 +130,66 @@ def plan_operator_fold_mirror_target(
         if other_key:
             return OperatorFoldMirrorPlan(None, True)
     return OperatorFoldMirrorPlan(None, False)
+
+def operator_fold_editor_add_segment(
+    segments: Sequence[Mapping[str, object]], position: int, thickness: float,
+) -> list[dict]:
+    """Extend the material Fold chain using existing editor entry semantics."""
+    updated = deepcopy(list(segments))
+    if position == 0:
+        updated.insert(0, {"angle": 90, "len": 50, "ui_len_add": thickness})
+    else:
+        if updated:
+            updated[-1]["angle"] = -90
+        updated.append({"len": 50})
+    apply_outside_dimension_compensation(updated, thickness)
+    return updated
+
+
+def operator_fold_editor_remove_segment(
+    segments: Sequence[Mapping[str, object]],
+    index: int,
+    thickness: float,
+    *,
+    symmetric_box_body: bool = False,
+) -> list[dict] | None:
+    """Remove optional Fold rows, honoring real keyed symmetric counterparts.
+
+    Return None for invalid/protected edits. Never alter caller-owned profiles.
+    All adjacent-BEND T compensation uses the existing canonical Engine rule.
+    """
+    source = tuple(segments)
+    if not isinstance(index, int) or not 0 <= index < len(source):
+        return None
+    if not can_remove_box_body_fold_segment(source[index]):
+        return None
+    targets = [index]
+    if symmetric_box_body:
+        source_key = str(source[index].get("phase6_key") or "")
+        partner = None
+        if source_key in _BOX_BODY_MIRROR_PAIRS:
+            other_key = _BOX_BODY_MIRROR_PAIRS[source_key]
+            partner = next(
+                (i for i, row in enumerate(source)
+                 if str(row.get("phase6_key") or "") == other_key),
+                None,
+            )
+        elif not source_key:
+            candidate = len(source) - 1 - index
+            if (
+                0 <= candidate < len(source)
+                and not str(source[candidate].get("phase6_key") or "")
+            ):
+                partner = candidate
+        # A keyed row with no matching semantic mate is never mirrored by index.
+        if partner is not None and partner != index:
+            if not can_remove_box_body_fold_segment(source[partner]):
+                return None
+            targets.append(partner)
+    updated = deepcopy(list(source))
+    for target in sorted(set(targets), reverse=True):
+        updated.pop(target)
+    if updated:
+        updated[-1].pop("angle", None)
+    apply_outside_dimension_compensation(updated, thickness)
+    return updated
