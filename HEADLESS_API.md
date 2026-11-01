@@ -18,6 +18,7 @@ Save 和 Reload 共用同一 Engine owner 且不保存 derived FinalScene。
 本入口未新增製造認證，正式 2D／3D／DXF 仍須走各自現有的 Engine 解算與驗收。
 
 
+
 ## CADSplit／WHD 同程序 Engine 整合入口（第一批：來源接線，未開啟外部製造）
 
 現有公開路徑 `ae_engine.manufacturing_api` 新增同程序 Python 入口
@@ -1360,6 +1361,16 @@ permission. Actual UV/material and safety rejection remain in
 `project_receiving_ear_side_piece_2d_preview`. The primary 2D / FoldDesigner
 3D source and stale-primary cases and actual Save→Reload CHECK-only DXF
 regression remain the acceptance evidence.
+
+## Joint contact MARKING world source display API (#2517)
+
+`manufacturing_api.project_joint_marking_world_segments(render_data)`
+returns the existing resolved source-labelled `JOINT_PLACEMENT_MARKING`
+world-point pairs from FinalScene metadata. The GUI only renders these 3D
+segments; the Engine ignores non-Joint rows, missing 3D points and malformed
+source rows. No flat-to-3D guessing, Fold recomputation or new contact
+certification is performed. This read-only view API works for Vault and
+Receiving and does not confer manufacturing/DXF approval.
 
 ## Receiving EAR assembled SIDE positioning world segments (#2517)
 

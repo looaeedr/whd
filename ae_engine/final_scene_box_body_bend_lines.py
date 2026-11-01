@@ -157,6 +157,36 @@ def joint_marking_flat_signatures(render_data):
     return frozenset(signatures)
 
 
+
+def project_joint_marking_world_segments(render_data):
+    """Read the already-resolved Joint placement world lines from Engine.
+
+    Only source-labelled JOINT_PLACEMENT_MARKING metadata qualifies; the
+    physical solver has supplied both endpoints, so no Fold/placement
+    guessing or recomputation is permitted. This is a display-only
+    projection and does not approve new manufacturing MARKING or DXF.
+    """
+    metadata = dict(getattr(render_data, "metadata", {}) or {})
+    segments = []
+    for raw in tuple(metadata.get("joint_markings") or ()):
+        if not isinstance(raw, dict):
+            try:
+                raw = dict(raw)
+            except Exception:
+                continue
+        if str(raw.get("source") or "") != "JOINT_PLACEMENT_MARKING":
+            continue
+        a, b = raw.get("world_p1"), raw.get("world_p2")
+        if a is None or b is None or len(a) != 3 or len(b) != 3:
+            continue
+        # Preserve the existing display order and the solver's world
+        # coordinates, including repeated source lines; never infer 3D
+        # positions from flat p1/p2 or an unverified preview.
+        segments.append((tuple(float(v) for v in a),
+                         tuple(float(v) for v in b)))
+    return tuple(segments)
+
+
 def project_assembly_scene_marking_segments(
     scene, x_profile, y_profile, fold_guides,
     local_reference, placement, dimensions, offset,

@@ -160,6 +160,10 @@ whd_schema: WHD_DOC_META_V1
 
 `ae_engine.endcap_relief_interference_preview.project_assembled_endcap_relief_interference` 經 `manufacturing_api`／根包公開；從已提交 pre-solve probe 取得 `restored_endcap_relief_delta`，或沿用舊 `ignore_fixed_corner_relief` 操作 fallback 的 delta，使用既有 Engine `folded_mesh_from_polygon`／`resolve_assembled_endcap_world_skins`／`detect_world_mesh_surface_interference`。GUI `phase6_final_scene_renderer` 只轉交原始 Engine 來源並顯示診斷，不再自行用已切角後的展示材料猜碰撞。未得到有效 delta 或世界網格則不顯示；不得將整片 EndCap 原料放進干涉判斷製造假陽性。現有 Registry、Relief CUTTING、DXF、Save→Reload 全不改，#2517 OPEN。
 
+### #2517 Joint 接觸標註世界座標來源 Engine 公開 API（2026-11-01）
+
+`manufacturing_api.project_joint_marking_world_segments(render_data)` 以既有 Engine-resolved FinalScene `metadata["joint_markings"]` 為唯一來源，篩選 `JOINT_PLACEMENT_MARKING` 且已有正確三維 `world_p1/world_p2` 的實體接觸標註，回傳不可變的 3D 世界線段；不從 flat `p1/p2` 推測 3D、也不補算 Fold／Joint placement。原 `phase6_final_scene_render_helpers._draw_joint_marking_world_rows` 僅呼叫 Engine 公開 API 並畫線，不再解讀來源身分或 world 座標。原 `joint_marking_flat_signatures` 去重與 `project_assembly_scene_marking_segments` 非接觸 MARKING 投影路徑完全保留，金庫型／受電箱共用同一來源。此為 DISPLAY-only 既有 Joint 資料呈現，不授予新增接觸認證、CUTTING／DXF 或其他製造 release；#2517 繼續 OPEN。
+
 ### #2517 專案 Save→Reload Door／Receiving 身分狀態 Engine API（2026-11-01）
 
 `manufacturing_api.normalize_authoritative_door_state`／`normalize_project_snapshot_authority` 將 `phase6_project_file` 原本自算的已保存 Door Layout、Handle edge、內門共享 Divider stable ID 重綁、derived frame／finished size 清除、Receiving 各 Set/Bay Door source 與 Quantity state 正規化移回 Engine。原 Phase6 只保留 .p6fold JSON／Feature codec、schema 驗證、檔案路徑與 GUI 操作。Save 與 Reload 呼叫同一公開 API，拒絕不合法的實體來源；多 Bay legacy aliases 只作記憶體相容投影，FinalScene 仍由正式來源重解算而不進專案保存。這是 source authority 責任移轉，不更改已確認的 Factory、Topology、Registry、CUTTING／BEND／DXF 或額外授權任何製造能力；#2517 OPEN。

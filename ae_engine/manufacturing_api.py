@@ -1295,6 +1295,7 @@ from .final_scene_box_body_bend_lines import (
     project_assembly_box_body_bend_segments,
     project_box_body_structure_bend_segments,
     marking_line_signature, joint_marking_flat_signatures,
+    project_joint_marking_world_segments,
     project_assembly_scene_marking_segments,
 )
 
