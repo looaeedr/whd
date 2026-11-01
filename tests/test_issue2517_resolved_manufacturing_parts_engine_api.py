@@ -37,7 +37,7 @@ def test_engine_builds_same_ordered_physical_dtos_without_geometry_inference():
     x["len"] = 999.0
     y["len"] = 999.0
     assert result[0].x_profile[0]["len"] == 17.0
-    assert "len" not in result[0].y_profile[0]
+    assert result[0].y_profile[0]["len"] == 22.0
 
 
 def test_empty_physical_set_is_preserved_and_duplicate_fails_at_engine_contract():
