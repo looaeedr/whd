@@ -155,11 +155,20 @@ def test_resolver_has_normal_source_seam_not_a_new_operator_export_button():
     import inspect
     import phase6_manufacturing_service
     from gui_modules.application import receiving_multi_settings_window
+    from ae_engine import manufacturing_api
     resolver = inspect.getsource(phase6_manufacturing_service.resolve)
+    engine = inspect.getsource(manufacturing_api.resolve_receiving_nfb_assembly_parts)
     window = inspect.getsource(receiving_multi_settings_window)
-    assert "apply_committed_csv_v5_to_canonical_parts" in resolver
-    assert "expand_receiving_nfb_layer_parts" in resolver
-    assert resolver.index("expand_receiving_nfb_layer_parts") < resolver.index(
+    # The ordinary resolver must consume the public Engine manufacturing path,
+    # not reach into private NFB physical/CSV modules from Phase6.
+    assert "resolve_receiving_nfb_assembly_parts(snapshot, parts)" in resolver
+    assert "apply_committed_csv_v5_to_canonical_parts" not in resolver
+    assert "expand_receiving_nfb_layer_parts" not in resolver
+    # Engine still expands the true layer blanks before applying the sole
+    # committed CSV source; no new preview/DXF-only output path is allowed.
+    assert "expand_receiving_nfb_layer_parts" in engine
+    assert "apply_committed_csv_v5_to_canonical_parts" in engine
+    assert engine.index("expand_receiving_nfb_layer_parts") < engine.index(
         "apply_committed_csv_v5_to_canonical_parts"
     )
     assert "輸出 CSV 底板 DXF（單片）" not in window

@@ -24,6 +24,7 @@ from ae_engine.manufacturing_api import (
     solve_endcap_assembly_relief, endcap_relief_solution_diagnostic,
     resolve_manufacturing_joint_graph,
     resolve_manufacturing_relief_evidence,
+    resolve_receiving_nfb_assembly_parts,
     materialize_resolved_manufacturing_parts,
 )
 from ae_engine.joint_marking_policy import resolve_joint_marking_foundation_status
@@ -130,26 +131,9 @@ def resolve(request):
                 offset=offset,
             )
         )
-    # A configured upper Door with two NFB tiers owns TWO physical Base
-    # Plate blanks (plus future pair of welded fixing plates per tier).
-    # The root one-plate render is not duplicated as a fake third plate.
-    # Each source blank carries its own FinalScene identity and remains
-    # manufacturing-blocked until per-layer screw holes and ear weld
-    # contact/MARKING are independently certified.
-    from ae_engine.receiving_nfb_layer_physical_parts import (
-        expand_receiving_nfb_layer_parts,
-    )
-    parts = list(expand_receiving_nfb_layer_parts(snapshot, parts))
-
-    # The current committed NFBConfig + brand CSV are the ONLY numeric NFB
-    # geometry source. Cut screws into the same canonical 2D/3D FinalScene
-    # *during normal resolution*, never behind a new GUI/export button.
-    if (snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("nfb_config_submitted") is True):
-        from ae_engine.receiving_nfb_committed_final_scene import (
-            apply_committed_csv_v5_to_canonical_parts,
-        )
-        parts = list(apply_committed_csv_v5_to_canonical_parts(snapshot, parts))
+    # Physical NFB tier construction and committed CSV FinalScene projection
+    # are an atomic Engine-owned manufacturing sequence, not Phase6 formulas.
+    parts = list(resolve_receiving_nfb_assembly_parts(snapshot, parts))
 
     if not parts:
         raise ValueError("no parts available for assembly 3D display")

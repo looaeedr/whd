@@ -8,6 +8,19 @@ whd_schema: WHD_DOC_META_V1
 
 目的：讓 GUI、自動拆圖、CLI 或其他 Python 程式都使用同一個 AE 出圖入口，不必建立 Tkinter GUI，也不必直接呼叫 `ae.export_xxx_dxf()`。
 
+## Receiving committed NFB physical assembly API (#2517)
+
+`manufacturing_api.resolve_receiving_nfb_assembly_parts(snapshot, parts)`
+owns the existing two-stage canonical FinalScene route: first expand actual
+two-tier Base Plate blanks with their manufacturing-blocked metadata, then
+apply the committed CSV V5 NFB holes to the same physical scene **only** for
+a Receiving snapshot with `nfb_config_submitted is True`. Draft, single-tier,
+identity-drift and incomplete manufacturing sources retain all existing
+fail-closed behavior. The Engine tier builder now uses immutable
+`dataclasses.replace(root, ...)` rather than importing a Phase6 GUI part
+class; concrete part type and output shape remain identical. No new NFB
+pitch, hole position, EAR, CUTTING/DXF or certification rule is invented.
+
 ## Receiving highlighted Live applied-version provenance API (#2517)
 
 `manufacturing_api.mark_receiving_bays_live_version(layout, role,
