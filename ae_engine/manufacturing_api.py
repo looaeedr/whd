@@ -255,7 +255,13 @@ from .endcap_assembly_resolution import (
 from .manufacturing_cache_signature import (
     canonical_manufacturing_signature_value, manufacturing_state_fingerprint,
 )
-from .physical_part_identity import is_box_body_physical_piece_key, is_derived_physical_part_key
+from .physical_part_identity import (
+    is_box_body_physical_piece_key, is_derived_physical_part_key,
+    door_display_part_role,
+)
+from .independent_part_view_mesh import (
+    IndependentPartViewMesh, project_independent_part_view_mesh,
+)
 
 from .part_dimension_projection import (
     DoorPartProjection, door_part_projections, project_part_dimensions,
