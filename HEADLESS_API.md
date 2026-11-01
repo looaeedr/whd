@@ -754,3 +754,18 @@ index/type safety, and the >=1 layer/connection lower bounds. Results are
 `(detached_layout, changed_flag)`, never manufacturing approval. GUI
 adapters only parse literal operator input and commit the Engine result.
 No fabricated NFB opening, CUTTING, or DXF release is implied.
+
+
+
+## Original Fold Designer snapshot part dimensions Engine API (#2517)
+
+`manufacturing_api.project_fold_designer_snapshot_dimensions(snapshot,
+indicator_layer_groups)` returns `FoldDesignerSnapshotDimensions` with the
+seven legacy root part sizes and normalized Indicator groups. The GUI only
+reads control values and submits the unchanged operator snapshot; canonical
+Door finished-face size, physical Receiving Base Plate blank size, and shared
+Indicator Box / Small Door unfolded sizes are Engine-owned. Existing invalid
+Indicator controls retain the historical single-group display fallback, never
+manufacturing/DXF authorization. Distinct multi-door cell identities remain
+owned by `project_part_dimensions`, not this legacy root overview. This is a
+move-only ownership change; existing geometry/Save→Reload policy is unchanged.

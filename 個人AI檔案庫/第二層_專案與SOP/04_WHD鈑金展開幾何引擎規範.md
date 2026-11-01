@@ -636,3 +636,18 @@ frame-only route.
 ### #2517 Receiving Switch 層數／連數／品牌操作的公開 Engine 交易（2026-11-01）
 
 `manufacturing_api.normalize_receiving_switch_operator_layout` 與 `apply_receiving_switch_operator_action(layout, *, operation, brand=None, layer_index=None, delta=None)` 是原 `receiving_switch_layout` CURRENT 來源的 Headless 公開入口。Engine 擁有真實 Switch 層 stable ID、尾端層數增減、至少一層／一連、每層連數增減下界、品牌合法性與物理層索引的 fail-closed 選取；每次回傳 detached normalized layout 和 changed flag，沒有直接產生 CUTTING 或預設 NFB 型號的權利。GUI `ReceivingSwitchLayoutAdapter` 只把操作員整數輸入（含既有整數文字）送往 Engine 並提交回傳值，不再 import 內部 `ae_engine.receiving_switch_layout` 或自行決定物理連數增減。既有 Save→Reload、Receiving switch brands 與 source-only 預覽規則不變；#2517 保持 OPEN。
+
+
+
+### #2517 Fold Designer 原始快照板件尺寸公開 API（2026-11-01）
+
+`manufacturing_api.project_fold_designer_snapshot_dimensions(snapshot, indicator_layer_groups)`
+與 `FoldDesignerSnapshotDimensions` 由 Engine 投影原始 Fold Designer
+root 快照的箱身／封頭／封尾／單門／底板／指示燈盒／小門實體尺寸；GUI
+`_snapshot_part_dimensions` 僅讀取操作員 layer/group 與顯示設定，
+並保存 Engine 回傳的尺寸。Door Family FW、既有 formed Door 計算、
+Receiving physical Base Plate blank、Indicator shared unfolded factory 與
+原單組顯示 fallback 保持既有來源與結果，不建立第二套公式。
+多門格各 cell 的真正 physical IDs 與尺寸仍由
+`project_part_dimensions` 統一投影，此 root 快照 API 不製造 cell。
+不新增 CUTTING／DXF 認證，#2517 仍 OPEN。
