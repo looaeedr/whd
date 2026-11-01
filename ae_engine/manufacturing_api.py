@@ -1185,3 +1185,12 @@ from .receiving_nfb_manifest_validation import (
     validate_receiving_nfb_manifest_view,
     validate_receiving_nfb_highlighted_manifest,
 )
+
+
+# #2517 Receiving CSV V5 physical BasePlate trial/source & display gate.
+# Public, GUI-independent: never a manufacturing/DXF certification.
+from .receiving_nfb_v5_operator_preview import (
+    preview_receiving_nfb_v5_real_base_sources,
+    require_receiving_nfb_v5_inner_door_trial_preview,
+    require_receiving_nfb_v5_base_trial_preview,
+)

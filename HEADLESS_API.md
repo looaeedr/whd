@@ -977,3 +977,23 @@ These are **read-only display safety checks**, not manufacturing approval:
 every DXF operation must separately revalidate sources through the existing
 typed NFB Engine manifest/export gate. No new PAD/EAR/MFG-2 authorization,
 CUTTING formula, or DXF capability is introduced.
+
+
+## Receiving CSV-V5 unapproved inner-door/base real source trial API (#2517)
+
+`manufacturing_api.preview_receiving_nfb_v5_real_base_sources(snapshot,
+inner_door_id, *, door, configured_holes, root_base_spec)` is the
+sole Engine owner for the GUI's existing one-/two-tier BasePlate preview
+source validation. It verifies the real BasePlate PartSpec against current
+Receiving sheet dimensions, bend pattern, physical ID and true submitted
+Set/Bay source; the actual tier PartSpecs come from the same canonical
+`source_receiving_nfb_tier_base_specs` as physical Assembly FinalScene.
+The GUI now merely calls this API and paints its original trial data.
+
+`require_receiving_nfb_v5_inner_door_trial_preview(trial)` and
+`require_receiving_nfb_v5_base_trial_preview(trial)` reject a forged
+manufacturing-ready/approved trial before the UI renders any FinalScene.
+These return render data **for read-only visualization only**, not DXF
+authorization; the current part-only/welded-EAR/PAD/MFG-2 gates remain
+untouched. The existing #1901 real physical tier, SHA/Set/Bay drift and
+single/two-layer proofs remain the acceptance sources.
