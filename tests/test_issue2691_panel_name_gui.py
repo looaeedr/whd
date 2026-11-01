@@ -90,7 +90,10 @@ def test_native_receiving_label_canvas_edit_error_escape_and_two_sets(monkeypatc
 
         label = canvas._receiving_panel_name_hitboxes[1]
         x, y = _click_at(canvas, label)
-        canvas.event_generate("<Double-Button-1>", x=x, y=y)
+        # Tcl event_generate forbids the Double modifier; exercise the exact
+        # production callback bound to <Double-Button-1> instead.
+        assert canvas.bind("<Double-Button-1>")
+        win._receiving_panel_name_edit(SimpleNamespace(x=x, y=y))
         root.update()
         entry = win._receiving_panel_name_entry
         assert entry is not None and entry.get() == "P2"
@@ -115,7 +118,10 @@ def test_native_receiving_label_canvas_edit_error_escape_and_two_sets(monkeypatc
 
         label = canvas._receiving_panel_name_hitboxes[1]
         x, y = _click_at(canvas, label)
-        canvas.event_generate("<Double-Button-1>", x=x, y=y)
+        # Tcl event_generate forbids the Double modifier; exercise the exact
+        # production callback bound to <Double-Button-1> instead.
+        assert canvas.bind("<Double-Button-1>")
+        win._receiving_panel_name_edit(SimpleNamespace(x=x, y=y))
         entry = win._receiving_panel_name_entry
         assert entry is not None
         entry.delete(0, tk.END)
