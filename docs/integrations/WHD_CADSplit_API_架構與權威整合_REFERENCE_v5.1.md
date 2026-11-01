@@ -163,6 +163,13 @@ Family Identity（cabinet_types.registry）＋ Family Policy / Topology
 6. **來源與認證另算。** API 可呼叫不等於製造通過；各 Family／Part／Operation 按其實際 Registry、baseline、工藝和 Save→Reload 的已認證條件判定。
 
 **現行程式查核（`CURRENT IMPLEMENTATION`，非已驗證故障原因）：**
+**2026-11-02 使用者再次確認（`CONFIRMED PRODUCT RULE`；以 AI 庫 04 CURRENT 為權威）：** 「同一條擴充」是現有 `ae_engine.contracts`／`manufacturing_api` 的共用製造體系，新增 Receiving Family 差異只能在既有 Family／Topology／Policy owner 延伸；不是要求所有作業只呼叫 `generate_part`，也不是為受電箱新設 `dispatch_manufacturing_integration(export)` 平行製造路由。CADSplit 金庫型已能以完整 Door／EndCap `PartSpec` 呼叫既有 `generate_part`；Receiving 應從可信原圖來源與 Project/Factory state 補齊完整真實 `PartSpec` 或既有適用 Engine 製造 Request，經相同 Engine owner 製造及 DXF Save→Reload，不得自行造 Fold、Corner、物理板件身份或額外 JSON／Bridge／GUI。
+
+**真圖 API 證據與拒絕語意（`CURRENT IMPLEMENTATION`）：** CADSplit [#15 真實 API 實測](https://github.com/looaeedr/CADSplit/issues/15#issuecomment-6565031621) 分別以 `p1~.dxf`、`a-pt1~.dxf` 來源身分呼叫 `dispatch_manufacturing_integration(operation="export")`，得到 `EXTERNAL_EXPORT_NOT_CERTIFIED`／`WHD_INTEGRATION_MANUFACTURING_NOT_CERTIFIED`、`manufacturing_authorized=false`，製造 DXF 0。WHD `ae_engine/integration_api.py` 這個 source-only `export` 分支對所有進入的已實作 Family 都固定拒絕；它**不是**金庫型已使用的 `generate_part` 出圖路徑，不能由此推論 Receiving Engine 本體不能製造，也不能靠追加 CSV 欄位取消拒絕。不得為了讓這項呼叫成功而刪除 fail-closed、偷換 source-only 入口用途，或把它升級成第二條製造權威。
+
+**未完成的共同接線驗收：** 以同一可追溯來源／當版 Family×Part×Operation 核對資料所有權及必需欄位；對完整可信的 Vault／Receiving Request 分別測真實 Engine 解算與 DXF 獨立重開，對缺 Factory/Topology/Set-Bay/Features/revision、未支援 Part 或漂移做負向拒絕，且保證金庫型既有可用操作不退化。未實際測試者標未完成，source-only `prepare`、`capabilities`、Family `implemented=True` 均不等於製造放行。
+
+
 
 - `cabinet_types/registry.py` 目前主要提供 `CabinetTypeRegistration`、別名及註冊；`vault.py` 目前只有註冊資訊，`receiving.py` 已包含多項受電箱 Family 規則；`policy.py` 透過 registry 與 module hook 提供**部分** Family-aware 能力分派。這證明擴充點存在，但不是完整的製造權限宣告或全路徑分派。
 - `manufacturing_api._export_to_temp` 依 `PartSpec` 類別進入 Door／BoxBody／EndCap／BasePlate 等 exporter；`_base_plate_export` 仍直接判斷 `受電箱`／`RECEIVING`，需逐項釐清可移回既有 Family Policy 的差異。**目前沒有證據證明整體入口已在執行前統一拒絕未支援 Family／Part／Operation，也不能反推此處造成所有金庫型／受電箱故障**。
