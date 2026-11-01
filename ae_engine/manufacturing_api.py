@@ -1400,3 +1400,22 @@ from .quantity_manufacturing_groups import (
     quantity_manufacturing_groups,
     quantity_nfb_checked_manufacturing_groups,
 )
+
+# #2517 canonical immutable manufacturing request/result and fingerprint owner.
+# Phase6 compatibility exports these identical API objects rather than formulas.
+from .manufacturing_contracts import (
+    FrozenMapping,
+    FrozenObjectMapping,
+    ManufacturingPartInput,
+    ManufacturingResolveRequest,
+    ManufacturingDiagnosticsResult,
+    ManufacturingMutationResult,
+    ManufacturingEffects,
+    ManufacturingCacheReceipt,
+    ManufacturingResolveResult,
+    canonical_manufacturing_json,
+    freeze_manufacturing_value,
+    manufacturing_fingerprint,
+    manufacturing_request_fingerprint,
+    thaw_manufacturing_value,
+)
