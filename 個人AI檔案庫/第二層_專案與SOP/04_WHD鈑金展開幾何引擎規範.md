@@ -152,6 +152,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.project_box_body_collision_source_mesh`（`ae_engine.box_body_collision_source_mesh`）將 FinalScene Renderer 原 BoxBody 結構／整片干涉網格加厚及實體來源選擇移入 Engine。多片已由 Engine 驗證的 `physical_piece_world` 是 **已含真實 T 的 skin**，禁止再加厚一次；舊版中面 fallback 和整片 BoxBody 只以現有 `thicken_triangle_surface` 各處理一次。GUI 僅轉交已解析 part／mesh／thickness，原 `detect_world_mesh_surface_interference`、顯示／CUTTING／Relief 與 tolerance 均不動，無新的製造認證，#2517 OPEN。
 
+### #2517 EndCap pre-solve 固定截角 delta 世界干涉診斷 Engine API（2026-11-01）
+
+`ae_engine.endcap_relief_interference_preview.project_assembled_endcap_relief_interference` 經 `manufacturing_api`／根包公開；從已提交 pre-solve probe 取得 `restored_endcap_relief_delta`，或沿用舊 `ignore_fixed_corner_relief` 操作 fallback 的 delta，使用既有 Engine `folded_mesh_from_polygon`／`resolve_assembled_endcap_world_skins`／`detect_world_mesh_surface_interference`。GUI `phase6_final_scene_renderer` 只轉交原始 Engine 來源並顯示診斷，不再自行用已切角後的展示材料猜碰撞。未得到有效 delta 或世界網格則不顯示；不得將整片 EndCap 原料放進干涉判斷製造假陽性。現有 Registry、Relief CUTTING、DXF、Save→Reload 全不改，#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
