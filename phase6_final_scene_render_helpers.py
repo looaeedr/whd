@@ -270,32 +270,17 @@ class Phase6FinalSceneRenderHelpersMixin:
         return manufacturing_api.joint_marking_flat_signatures(render_data)
 
     def _draw_joint_marking_world_rows(self, render_data):
-        """Draw contact-derived joint MARKING in canonical assembly world space.
+        """Draw Engine-resolved contact Joint world MARKING; no GUI source logic."""
+        from ae_engine import manufacturing_api
 
-        The manufacturing solver stores both the flat primitive and the exact
-        world contact boundary in the same metadata row.  Assembly 3D consumes
-        that row instead of re-deriving placement from renderer coordinates, so
-        composite pieces and EndCaps preserve the manufacturing geometry owner.
-        """
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
-        metadata = dict(getattr(render_data, "metadata", {}) or {})
-        for raw in tuple(metadata.get("joint_markings") or ()):
-            if not isinstance(raw, dict):
-                try:
-                    raw = dict(raw)
-                except Exception:
-                    continue
-            if str(raw.get("source") or "") != "JOINT_PLACEMENT_MARKING":
-                continue
-            a = raw.get("world_p1")
-            b = raw.get("world_p2")
-            if a is None or b is None or len(a) != 3 or len(b) != 3:
-                continue
+        segments = manufacturing_api.project_joint_marking_world_segments(
+            render_data,
+        )
+        for a, b in segments:
             self.renderer.ax3d.plot(
-                [float(a[0]), float(b[0])],
-                [float(a[1]), float(b[1])],
-                [float(a[2]), float(b[2])],
+                [a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
                 color="#f59e0b",
                 linewidth=2.2,
                 linestyle="-",
