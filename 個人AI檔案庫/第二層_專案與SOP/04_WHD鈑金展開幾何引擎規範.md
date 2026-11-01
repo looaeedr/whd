@@ -32,6 +32,9 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 受電箱設定頁實體組合 2D XY 邊線 Engine API（2026-11-01）**：`manufacturing_api.project_solid_mesh_xy_outline` 從已解析的實體 3D mesh 經既有 `physical_solid_mesh_feature_segments` 生成唯讀世界 X/Y 邊線，保留原五位小數、零長線剔除及無向去重。GUI `receiving_settings_preview_2d._projected_outline` 只負責公開 API 委派；Canvas 色彩、角色顯示及互動仍在 GUI。此視圖不能作為 CUTTING、BEND、DXF、NFB、PAD、EAR 製造權威；其餘組合網格的 GUI 既有路徑仍待後續獨立遷移，#2517 OPEN。
+
+
 **#2517 受電箱 NFB 製造清單 read-only Engine Validation API（2026-11-01）**：`manufacturing_api.validate_receiving_nfb_manifest_view` 與 `validate_receiving_nfb_highlighted_manifest` 接管 GUI 原本的物理片數／READY 狀態一致性、CSV V5 尚未製造診斷、Set/Bay/version 身份與多 Bay 選片驗證。GUI `receiving_nfb_manifest_view` 僅將已驗證的來源證據呈現繁體中文，不得自行證明可加工或製造合格。此 API 僅是**防止顯示假綠燈的 read-only report 檢核**；實際放行仍須當次來源重驗與 typed `NfbPartialExportManifest.require_export`／正式 Engine DXF writer。原 #1501 UI 文字與正反回歸保留，絕不藉 UI status 宣稱 PAD／EAR／整箱 MFG-2 已認證；#2517 OPEN。
 
 
