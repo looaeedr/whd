@@ -19,9 +19,8 @@ from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.contracts import BoxBodyPartSpec, EndCapPartSpec, ManufacturingContext
 from ae_engine.corner_type_ui import (
     is_unknown_model,
-    normalize_custom_model_name,
 )
-from ae_engine.sheetmetal_part_adapters import DoorFrameEdges, derive_door_layout_cells, door_layout_export_filename
+from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
 from phase6_fold_profiles import formed_box_body_fw_widths
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
 from gui_modules.parts.panels.divider import collect_divider_input
@@ -467,61 +466,11 @@ def _query_fold_designer_render_data(self, part_key, payload):
     return self._authoritative_render_data(spec, context)
 
 def _payload_topology_context(part_key, payload):
-    data = dict(payload or {})
-    key = str(part_key or "")
-    w = float(data.get("w", ae.W))
-    h = float(data.get("h", ae.H))
-    d = float(data.get("d", ae.D))
-    t = float(data.get("t", ae.T))
-    fw = float(data.get("fw", ae.FW))
-    model = normalize_custom_model_name(data.get("model"))
-    unknown = is_unknown_model(model)
-    corner_state = data.get("corner_state") or {}
-    features = tuple(data.get("features") or ())
-    face_features = data.get("face_features") or {}
-    door_cell = None
-    base_plate_cell = None
-    if key.startswith("door_c"):
-        columns = tuple(
-            (float(row[0]), tuple(float(value) for value in row[1]))
-            for row in tuple(data.get("door_layout_columns") or ())
-        )
-        if not columns:
-            raise ValueError(f"門格缺少 authoritative multi-door topology: {key}")
-        door_cell = next(
-            (
-                cell for cell in derive_door_layout_cells(columns)
-                if door_layout_export_filename(cell).removesuffix(".dxf") == key
-            ),
-            None,
-        )
-        if door_cell is None:
-            raise ValueError(f"門格 stable_id 不存在於 authoritative topology: {key}")
-        w = float(door_cell.start_width)
-        h = float(door_cell.start_height)
-    elif key.startswith("base_plate_c"):
-        columns = tuple(
-            (float(row[0]), tuple(float(value) for value in row[1]))
-            for row in tuple(data.get("door_layout_columns") or ())
-        )
-        if not columns:
-            raise ValueError(f"底板缺少 authoritative multi-door topology: {key}")
-        owner_door_key = key.replace("base_plate_", "door_", 1)
-        base_plate_cell = next(
-            (
-                cell for cell in derive_door_layout_cells(columns)
-                if door_layout_export_filename(cell).removesuffix(".dxf") == owner_door_key
-            ),
-            None,
-        )
-        if base_plate_cell is None:
-            raise ValueError(f"底板 stable_id 不存在於 authoritative topology: {key}")
-        w = float(base_plate_cell.start_width)
-        h = float(base_plate_cell.start_height)
-    return (
-        data, key, w, h, d, t, fw, model, unknown, corner_state,
-        features, face_features, door_cell, base_plate_cell,
+    """GUI compatibility: Engine owns physical Door/BasePlate cell selection."""
+    return manufacturing_api.resolve_fold_designer_payload_topology(
+        part_key, payload,
     )
+
 
 def _payload_policy(self, data, corner_state, part, fw, unknown, thickness):
     resolved = self._fold_designer_corner_policy_from_payload(corner_state, part, fw)

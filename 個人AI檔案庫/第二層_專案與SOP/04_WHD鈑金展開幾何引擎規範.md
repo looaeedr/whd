@@ -116,6 +116,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.resolve_operator_committed_relief_cuts(part_key, values, *, relief_state, joint_state, structure_state, cabinet_family, box_body_profile, part_profiles)` 將原 `gui_modules/application/manufacturing_adapter.py::_resolved_committed_assembly_relief_cuts` 的製造 scalar keys／`ae.*_def`、Joint Graph 機械指紋、Box Body 實體成形 FW 與保存來源比對移回 `ae_engine.operator_relief_replay`。GUI 現只蒐集操作者資料／目前工作區狀態後委派同一 Engine owner；未啟用 Relief 仍不讀取未初始化 BoxBody Profile。引擎沿用 `assembly_joint.resolved_joint_graph_fingerprint`／`box_body_editor_readback.formed_box_body_fw_widths` 與前批唯一 `assembly_relief_state` 保存契約；舊資料 invalid graph 時仍不回放 CUT，source 的 W／Family／Joint／Fold 變更皆不得復活舊已提交裁切。僅轉移公開 API 權責，不更改 Registry、Verified CUT、DXF／3D、Save→Reload schema 或正式 X，#2517 OPEN。
 
+### #2517 Fold Designer Door／BasePlate 門格實體來源 Engine API（2026-11-01）
+
+`manufacturing_api.resolve_fold_designer_payload_topology(part_key, payload)` 是 Fold Designer 顯示／出圖 request 前的 `door_cN_rN`、`base_plate_cN_rN` 物理來源選擇權威，唯一實作在 `ae_engine.fold_designer_payload_topology`。它沿用既有 `sheetmetal_part_adapters.derive_door_layout_cells` 的每欄寬／由上而下列高／四邊 FrameEdges，及原生 `door_layout_export_filename` stable ID；BasePlate-cell 必須指向對應真正 Door-cell 而非猜測 W/H。原 GUI `fold_designer_manufacturing_projection._payload_topology_context` 只呼叫公開 Engine API，不再自行遍歷物理門格；缺欄、失效 stable_id 仍 fail-closed，`未知類型` 舊資料正規化與 W/H 缺省保留。這批不更動 Certified Registry、Door／Base Plate 料長、2D／3D／DXF 解算、Save→Reload schema 或製造認證，#2517 OPEN。
+
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
