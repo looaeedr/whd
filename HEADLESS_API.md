@@ -130,6 +130,10 @@ CUTTING/BEND/DXF export or external API capability.
 
 `manufacturing_api.project_independent_part_view_mesh(part_key, render_data, *, x_profile, y_profile, thickness)` returns an immutable `IndependentPartViewMesh`: actual 3D triangles, applied profiles/guides and optional verified fixing-plate 3D-only hinge. Existing source-verified EAR BEND23 and Receiving left-side formed/outside fit are consumed inside Engine; GUI draws the returned physical mesh without inventing fold geometry. `manufacturing_api.door_display_part_role(part_key)` classifies exact canonical outer Door/multi-cell or inner-door physical panel for view opacity and hole-rim behavior. Read-only display APIs; no new manufacturing release, 2D/DXF modification or source-state mutation.
 
+## GUI project DXF exporting through public Engine boundary (#2517)
+
+The project GUI now calls `manufacturing_api` for Door filename, committed numeric CSV quantity batch, all-physical-Bay export, real EAR SIDE MARKING, CHECK-only side and PAD+Base partial CHECK/Q. Existing canonical source proof, DXF readback, atomicity and release/unsupported gate stay with their original Engine owners. Common model/layout/quantity/source naming are also exposed as read-only operations. Engine `receiving_csv_quantity_manufacturing` no longer imports GUI for part-selection intent. Existing older APIs remain usable; no version lock or additional manufacturing certification is introduced.
+
 ## EndCap operator blank summary and baseline Fold defaults API (#2517)
 
 `manufacturing_api.project_operator_endcap_blank_dimensions(values, baseline_model="")` supplies the same legacy main-window EndCap summary when no Fold profile is committed: baseline-first AE projection or its pre-existing no-baseline formula. Committed profiles remain measured from FinalScene material bounds. `manufacturing_api.read_operator_baseline_fold_defaults(model_name, thickness=...)` reads existing known-family EndCap/Door baseline Fold defaults, retaining no-Door-source and legacy failed-Door-load UI semantics without letting GUI infer manufacture. Both are read-only operator views, not certified CUTTING/DXF or new Family admission.

@@ -18,7 +18,6 @@ from collections.abc import Mapping
 from tkinter import filedialog, messagebox
 
 from ae_engine import manufacturing_api
-from ae_engine.sheetmetal_part_adapters import door_layout_export_filename
 
 
 def export_multi_door_layout_dxfs(self, folder, val, *, draw_stock=False):
@@ -26,7 +25,7 @@ def export_multi_door_layout_dxfs(self, folder, val, *, draw_stock=False):
     exported = []
     context = self._manufacturing_context(draw_stock=draw_stock)
     for cell in self.get_door_layout_cells():
-        filename = door_layout_export_filename(cell)
+        filename = manufacturing_api.door_layout_export_filename(cell)
         filepath = os.path.join(folder, filename)
         self._export_authoritative_part(self._door_layout_part_spec(cell, val), filepath, context)
         exported.append(filename)
@@ -208,12 +207,9 @@ def _export_selected_resolved_parts(self, folder, flags):
         )
         numeric_submissions = ()
         if mode_source.get("model") == "受電箱" and submitted_rows:
-            from ae_engine.receiving_nfb_model_identity import (
-                parse_numeric_model_ref,
-            )
             numeric_submissions = tuple(
                 bool((row.get("nfb_config") or {}).get("holes"))
-                and all(parse_numeric_model_ref(hole.get("model_filename"))
+                and all(manufacturing_api.parse_numeric_model_ref(hole.get("model_filename"))
                         is not None
                         for hole in (row.get("nfb_config") or {}).get("holes", ()))
                 for row in submitted_rows
@@ -222,10 +218,7 @@ def _export_selected_resolved_parts(self, folder, flags):
                 raise ValueError("NFB 數量版本混用數值 CSV 與舊 DXF，禁止混源整批出圖")
         if numeric_submissions and all(numeric_submissions):
             # One original button; independently revalidate EVERY version.
-            from ae_engine.receiving_csv_quantity_manufacturing import (
-                export_current_csv_quantity_manufacturing,
-            )
-            outputs = export_current_csv_quantity_manufacturing(
+            outputs = manufacturing_api.export_current_csv_quantity_manufacturing(
                 batch, folder, flags=flags, overwrite=True,
             )
             return ([os.path.basename(path) for path in outputs.values()], [])
@@ -317,15 +310,11 @@ def _export_selected_resolved_parts(self, folder, flags):
     if (receiving_live.get("model") == "受電箱"
             and receiving_live.get("active_mode", "set_bay") == "set_bay"
             and physical_count > 1):
-        from ae_engine.receiving_layout import normalize_receiving_layout
-        saved_layout = normalize_receiving_layout(raw_layout)
+        saved_layout = manufacturing_api.normalize_receiving_layout(raw_layout)
         if physical_count != sum(len(s["bays"]) for s in saved_layout["sets"]):
             raise ValueError("多連實體連數與目前標準組合體資料不一致")
         if physical_count > 1:
             import fold_designer_bridge as receiving_bridge
-            from ae_engine.receiving_csv_multibay_manufacturing import (
-                export_current_receiving_multibay_dxf,
-            )
             composition = receiving_bridge._phase6_composition(designer)
             # AC-09/24: HEAD/TAIL/outer DOOR have no NFB source dependency.
             # Preview an isolated Bay whose unselected NFB is unsubmitted;
@@ -359,7 +348,7 @@ def _export_selected_resolved_parts(self, folder, flags):
                     current.render_data.assembly_parts, saved_layout,
                     set_index=set_index, bay_index=bay_index,
                 )
-            outputs = export_current_receiving_multibay_dxf(
+            outputs = manufacturing_api.export_current_receiving_multibay_dxf(
                 receiving_live,
                 physical_bay_geometry_provider=actual_bay_geometry,
                 flags=flags,output_dir=folder,overwrite=True,
@@ -613,10 +602,7 @@ def export_receiving_ear_side_manufacturing_dxf(self):
     if not folder:
         return None
     try:
-        from ae_engine.receiving_ear_side_manufacturing_marking import (
-            export_receiving_ear_side_manufacturing_marking_dxf,
-        )
-        receipt = export_receiving_ear_side_manufacturing_marking_dxf(
+        receipt = manufacturing_api.export_receiving_ear_side_manufacturing_marking_dxf(
             snapshot, geometry, folder, dimensions=dimensions,
             sheet_thickness=thickness, overwrite=False,
         )
@@ -666,10 +652,7 @@ def export_receiving_ear_side_check_dxf(self):
         return None
 
     try:
-        from ae_engine.receiving_fixed_plate_side_check_dxf import (
-            export_receiving_ear_side_check_only_dxf,
-        )
-        receipt = export_receiving_ear_side_check_only_dxf(
+        receipt = manufacturing_api.export_receiving_ear_side_check_only_dxf(
             snapshot, geometry, folder,
             dimensions=dimensions, sheet_thickness=thickness,
             overwrite=False,
@@ -801,11 +784,6 @@ def export_receiving_pad_base_part_only_dxf(self):
     """
     from pathlib import Path
     from tkinter import simpledialog
-    from ae_engine.manufacturing_equivalence import ManufacturingParameters
-    from ae_engine.receiving_nfb_pad_pair_manufacturing import (
-        export_verified_pad_base_part_only,
-    )
-    from ae_engine.manufacturing_export import safe_dxf_part_stem
     try:
         self._flush_phase6_authoritative_state()
         designer = getattr(self, "fold_designer_app", None)
@@ -814,10 +792,7 @@ def export_receiving_pad_base_part_only_dxf(self):
                 or snapshot.get("model") not in ("受電箱", "RECEIVING")
                 or snapshot.get("nfb_config_submitted") is not True):
             raise ValueError("須在受電箱提交 NFB 後，才能輸出 PAD＋底板")
-        from ae_engine.receiving_nfb_pad_operator_parts import (
-            committed_nfb_pad_draft_parts,
-        )
-        if not committed_nfb_pad_draft_parts(snapshot):
+        if not manufacturing_api.committed_nfb_pad_draft_parts(snapshot):
             raise ValueError("目前沒有已提交且具已確認孔位的 PAD 實體板件")
         from fold_designer_bridge import _phase6_final_scene_adapter
         scene = _phase6_final_scene_adapter(designer).query_assembly_render_data()
@@ -848,14 +823,13 @@ def export_receiving_pad_base_part_only_dxf(self):
         quantity_version = None
         if snapshot.get("active_mode") == "quantity":
             from phase6_quantity_model import QuantityModel
-            from ae_engine.receiving_quantity_box import project_common_box
             model = QuantityModel.from_payload(snapshot.get("quantity"))
             quantity_version = model.selected_version_id
             committed = model.nfb_config_for_version(quantity_version)
             if (committed.get("nfb_config_submitted") is not True
                     or committed.get("nfb_config") != snapshot.get("nfb_config")):
                 raise ValueError("PAD＋底板數量版本的 NFB 來源已失效")
-            snapshot = project_common_box(snapshot)
+            snapshot = manufacturing_api.project_common_box(snapshot)
         runtime=snapshot.get("_receiving_runtime_selection")
         if quantity_version is None and not isinstance(runtime, Mapping):
             # Recover the exact one-Bay source identity only from the current
@@ -886,10 +860,10 @@ def export_receiving_pad_base_part_only_dxf(self):
         root=filedialog.askdirectory(title="選擇 PAD＋底板 CHECK/Q 輸出資料夾")
         if not root:
             return
-        output=Path(root)/(safe_dxf_part_stem(version_id)+"__PAD_BASE_PAIR_CHECK_Q")
-        result=export_verified_pad_base_part_only(
+        output=Path(root)/(manufacturing_api.safe_dxf_part_stem(version_id)+"__PAD_BASE_PAIR_CHECK_Q")
+        result=manufacturing_api.export_verified_pad_base_part_only(
             snapshot,parts,output,version_id=version_id,box_count=qty,
-            parameters=ManufacturingParameters(material,float(snapshot["t"]),process),
+            parameters=manufacturing_api.ManufacturingParameters(material,float(snapshot["t"]),process),
         )
     except (ValueError, TypeError, KeyError, FileExistsError, OSError) as exc:
         messagebox.showerror("PAD＋底板無法製造輸出", str(exc))

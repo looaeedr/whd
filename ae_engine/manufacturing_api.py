@@ -1331,3 +1331,64 @@ from .assembly_physical_dimensions import (
     AssemblyPhysicalDimensionEvidence,
     project_assembly_physical_dimension_evidence,
 )
+
+# #2517 GUI project export adapter: all certification and actual atomic DXF
+# operations remain owned by their existing headless Engine modules.
+from .sheetmetal_part_adapters import door_layout_export_filename
+from .receiving_nfb_model_identity import parse_numeric_model_ref
+from .receiving_layout import normalize_receiving_layout
+from .receiving_quantity_box import project_common_box
+from .manufacturing_equivalence import ManufacturingParameters
+from .receiving_nfb_pad_operator_parts import committed_nfb_pad_draft_parts
+
+
+def safe_dxf_part_stem(part_id: str) -> str:
+    return _manufacturing_export.safe_dxf_part_stem(part_id)
+
+
+def export_current_csv_quantity_manufacturing(
+    batch, output_dir, *, flags, overwrite=False,
+):
+    """Preserve canonical source-verified quantity batch and atomic DXF checks."""
+    from .receiving_csv_quantity_manufacturing import export_current_csv_quantity_manufacturing as execute
+    return execute(batch, output_dir, flags=flags, overwrite=overwrite)
+
+
+def export_current_receiving_multibay_dxf(
+    saved_snapshot, *, physical_bay_geometry_provider,
+    flags, output_dir, overwrite=False,
+):
+    """Every physical Set/Bay still goes through the original certified gate."""
+    from .receiving_csv_multibay_manufacturing import export_current_receiving_multibay_dxf as execute
+    return execute(saved_snapshot, physical_bay_geometry_provider=physical_bay_geometry_provider,
+                   flags=flags, output_dir=output_dir, overwrite=overwrite)
+
+
+def export_receiving_ear_side_manufacturing_marking_dxf(
+    snapshot, geometry, output_dir, *, dimensions, sheet_thickness,
+    overwrite=False,
+):
+    """Only existing certified physical side MARKING; no new manufacturing scope."""
+    from .receiving_ear_side_manufacturing_marking import export_receiving_ear_side_manufacturing_marking_dxf as execute
+    return execute(snapshot, geometry, output_dir, dimensions=dimensions,
+                   sheet_thickness=sheet_thickness, overwrite=overwrite)
+
+
+def export_receiving_ear_side_check_only_dxf(
+    snapshot, geometry, output_dir, *, dimensions, sheet_thickness,
+    overwrite=False,
+):
+    """Existing CHECK-only receipt must not become manufacturing authorization."""
+    from .receiving_fixed_plate_side_check_dxf import export_receiving_ear_side_check_only_dxf as execute
+    return execute(snapshot, geometry, output_dir, dimensions=dimensions,
+                   sheet_thickness=sheet_thickness, overwrite=overwrite)
+
+
+def export_verified_pad_base_part_only(
+    snapshot, assembly_parts, output_directory, *,
+    version_id: str, box_count: int, parameters: ManufacturingParameters,
+):
+    """Preserve strict PAD+Base paired PART_ONLY CHECK/Q production boundary."""
+    from .receiving_nfb_pad_pair_manufacturing import export_verified_pad_base_part_only as execute
+    return execute(snapshot, assembly_parts, output_directory, version_id=version_id,
+                   box_count=box_count, parameters=parameters)
