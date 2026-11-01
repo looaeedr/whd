@@ -324,32 +324,10 @@ def _phase6_box_body_true_world_piece_meshes(part, *, dimensions, thickness):
 
 
 def _phase6_box_body_structure_meshes(render_data, *, thickness):
-    """Return assembled Box Body structure meshes in structure-local coordinates."""
-    pieces = tuple(getattr(render_data, "pieces", ()) or ())
-    if not pieces:
-        return []
-    # Use the identical real-vs-preview outside datum gate as world skins.
-    total_w = _phase6_box_body_formed_width_datum(pieces)
-    if total_w is None:
-        return []
-    out = []
-
-    for piece in pieces:
-        data = piece.render_data
-        x_profile = _phase6_contract_profile_rows(piece.fold_profile)
-        minx, miny, maxx, maxy = map(float, data.material.bounds)
-        y_profile = [{"len": maxy - miny}]
-        local = _phase6_folded_mesh_from_polygon(
-            data.material, x_profile, y_profile,
-            fold_guides=tuple(getattr(data, "fold_guides", ()) or ()),
-        )
-        world = _phase6_box_body_piece_world_mapper(
-            piece, total_w=total_w, thickness=thickness, x_profile=x_profile
-        )
-        transformed = [tuple(world(point) for point in tri) for tri in local]
-        out.append((piece, tuple(transformed)))
-    return out
-
+    """Compatibility list: Engine owns physical Box Body mid-surface folding."""
+    return list(manufacturing_api.resolve_box_body_structure_mid_meshes(
+        render_data, thickness=thickness,
+    ))
 
 def format_operator_info_text(request, *, dimensions=None, number_text=None):
     """Format already-resolved operator display information for every View sink."""

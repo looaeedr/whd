@@ -69,6 +69,11 @@ def _structure_meshes(render_data, *, thickness):
     return tuple(out)
 
 
+def resolve_box_body_structure_mid_meshes(render_data, *, thickness):
+    """Public Engine read-only physical Box Body mid-surface projection."""
+    return _structure_meshes(render_data, thickness=thickness)
+
+
 def _true_world_piece_meshes(part, *, dimensions, thickness):
     """Use canonical real-T world skins, never a reprojected preview substitute."""
     pieces = tuple(getattr(getattr(part, "render_data", None), "pieces", ()) or ())
@@ -109,7 +114,7 @@ def resolve_receiving_settings_assembly_world_meshes(
         pieces = tuple(getattr(data, "pieces", ()) or ())
         physical_world = ()
         if pieces:
-            meshes = _structure_meshes(data, thickness=thickness)
+            meshes = resolve_box_body_structure_mid_meshes(data, thickness=thickness)
             physical_world = _true_world_piece_meshes(
                 part, dimensions=finished_dimensions, thickness=thickness,
             )
