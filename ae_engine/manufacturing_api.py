@@ -1057,6 +1057,20 @@ def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
     )
     return _engine_rebase(set_row, proposed_brand)
 
+def preview_quantity_inner_door_confirm(
+    snapshot, quantity_model, part_key, features, staged_config, *,
+    include_missing_heights=False,
+):
+    """Public Engine Quantity inner-door Confirm-All precommit projection."""
+    from .receiving_nfb_csv_committed_config import (
+        preview_quantity_inner_door_confirm as preview,
+    )
+    return preview(
+        snapshot, quantity_model, part_key, features, staged_config,
+        include_missing_heights=include_missing_heights,
+    )
+
+
 def candidate_committed_csv_nfb_config(source):
     """Public Engine NFB candidate provenance query (deferred owner import)."""
     from .receiving_nfb_csv_committed_config import candidate_committed_csv_nfb_config as resolve

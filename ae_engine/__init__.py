@@ -93,6 +93,7 @@ from .manufacturing_api import (
     PhysicalSheetEditorContext, resolve_physical_sheet_editor_context,
     receiving_endcap_feature_preview_shapes,
     ReceivingInnerDoorInventoryLayer, resolve_receiving_inner_door_preview_inventory,
+    preview_quantity_inner_door_confirm,
     ReceivingNfbV5SourcePreview, ReceivingNfbV5SourcePreviewCache,
     NfbCsvVerifiedPhysicalSite, NfbCsvVerifiedExportScope,
     NfbCsvVerifiedSelectorProof, resolve_verified_csv_v5_export_scope,

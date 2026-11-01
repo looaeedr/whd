@@ -103,6 +103,45 @@ def preview_quantity_nfb_submission(snapshot, quantity_model, config):
     projected["quantity"] = candidate.snapshot()
     return project_common_box(projected)
 
+
+def preview_quantity_inner_door_confirm(
+    snapshot, quantity_model, part_key, features, staged_config, *,
+    include_missing_heights=False,
+):
+    """Detached Engine preflight for both Receiving Quantity inner-door entry paths.
+
+    Validates the staged Family configuration, resolves its shared-box source,
+    and (only for actual CSV holes) verifies physical NFB provenance against
+    a detached quantity version BEFORE either GUI may commit the live model.
+    The caller alone commits the returned NFBConfig and applies the projected
+    snapshot; preview is never manufacturing certification.
+    """
+    from .receiving_inner_door_candidates import validate_door_config
+    from .receiving_quantity_box import update_common_box
+
+    config = validate_door_config(staged_config)
+    changes = {
+        "inner_door_layers": config["layers"],
+        "inner_door_models": deepcopy(config["models"]),
+    }
+    # Direct 3D edits historically clear missing heights; the Single settings
+    # editor historically preserves them. Maintain both persisted contracts.
+    if include_missing_heights or config.get("layer_heights_mm") is not None:
+        changes["inner_door_layer_heights_mm"] = deepcopy(
+            config.get("layer_heights_mm")
+        )
+    projected = update_common_box(snapshot, changes)
+    if not any(getattr(row, "source_type", None) == "NFB_CSV_SOURCE"
+               for row in features):
+        return projected, None
+
+    typed = committed_csv_nfb_config(part_key, features, config)
+    projected = preview_quantity_nfb_submission(
+        projected, quantity_model, typed,
+    )
+    return projected, typed
+
+
 def candidate_committed_csv_nfb_config(source):
     """Select the sole verified physical NFB CSV source; reject mixed CUTTING."""
     feature_map = dict(source.get("features") or {})

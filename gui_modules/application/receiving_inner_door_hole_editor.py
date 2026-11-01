@@ -105,14 +105,13 @@ def open_inner_door_hole_editor(
             # selection was silently discarded by the next canonical
             # Set/Bay projection. Commit its complete CSV source AND holes
             # through the same physical Bay adapter as Single settings.
-            from ae_engine.receiving_inner_door_candidates import validate_door_config
             import fold_designer_bridge as bridge
             owner = bridge._phase6_composition(app)
-            config = validate_door_config(staged)
-            config = deepcopy(config)
-            config.setdefault("features", {})[part_key] = deepcopy(list(final_features))
             mode = workspace.active_mode
             if mode == "set_bay":
+                from ae_engine.receiving_inner_door_candidates import validate_door_config
+                config = deepcopy(validate_door_config(staged))
+                config.setdefault("features", {})[part_key] = deepcopy(list(final_features))
                 adapter = owner.receiving_adapter(vars(bridge))
                 selected = adapter.selection
                 adapter.apply_inner_door_candidate_to_bays(
@@ -125,29 +124,17 @@ def open_inner_door_hole_editor(
                 )
                 app.submit_update_intent("geometry", commit=True)
             elif mode == "quantity":
-                from ae_engine.receiving_quantity_box import update_common_box
-                from ae_engine.receiving_nfb_csv_committed_config import (
-                    committed_csv_nfb_config, preview_quantity_nfb_submission,
-                )
                 from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
                 current = app._phase6_input_snapshot
-                projected = update_common_box(current, {
-                    "inner_door_layers": config["layers"],
-                    "inner_door_models": deepcopy(config["models"]),
-                    "inner_door_layer_heights_mm": deepcopy(
-                        config.get("layer_heights_mm")
-                    ),
-                })
-                typed = committed_csv_nfb_config(
-                    part_key, final_features, config,
-                )
                 quantity = workspace.quantity_model
-                projected = preview_quantity_nfb_submission(
-                    projected, quantity, typed,
+                projected, typed = manufacturing_api.preview_quantity_inner_door_confirm(
+                    current, quantity, part_key, final_features, staged,
+                    include_missing_heights=True,
                 )
+                # Engine checked the detached Quantity version and Family box
+                # before any live version or project snapshot mutation.
                 quantity.set_version_nfb_config(
-                    quantity.selected_version_id, submitted=True,
-                    config=typed,
+                    quantity.selected_version_id, submitted=True, config=typed,
                 )
                 current.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
                 current.update(projected)

@@ -44,6 +44,10 @@ whd_schema: WHD_DOC_META_V1
 
 因此 04 的責任是回答「engine 現在怎麼分層、公開哪些 API、各 authority 怎麼接起來」，不是把 Registry JSON 內容重新抄一份。
 
+### #2517 受電箱內門 Confirm All Quantity 來源預檢 Engine 公開 API（2026-11-02）
+
+`manufacturing_api.preview_quantity_inner_door_confirm(snapshot, quantity_model, part_key, features, staged_config, *, include_missing_heights=False)` 是原有 Single 設定與 3D 直接內門開孔編輯器共用的無 Tk、detached Engine 預檢。Family `validate_door_config`、共同箱體 `update_common_box`、真實 CSV 孔 `committed_csv_nfb_config` 與 Quantity 版本 `preview_quantity_nfb_submission` 仍由原 Engine owner 唯一驗證；返回 `(projected_snapshot, typed_nfb_config_or_none)`。兩個 GUI 僅在整體預檢成功後寫入 live version、project snapshot、workspace 與重畫；沒有 CSV NFB 只保存設定與 native Features，不能冒稱提交 NFB。為保留既有 Save→Reload，直接 3D 入口明確以 `include_missing_heights=True` 清除缺省層高，Single 設定入口保留舊高度。錯誤不得污染已提交來源；本操作不修改金庫型、物理 CUTTING、DXF 或取得製造放行，#2517 仍 OPEN。
+
 ### #2517 Door 主畫面展開摘要 Engine 公開 API（2026-11-01）
 
 `manufacturing_api.project_operator_door_blank_dimensions` 將 `calculation_controller.update_calculations` 原單門 Baseline → 既有 AE 舊版顯示 fallback 與多門格實體 start W/H／frame_edges 展開尺寸委派給 Engine；GUI 僅選目前操作者看的門格及格式化尺寸。正式 `DoorPartSpec`／FinalScene／feature／DXF 來源未改，舊 fallback **僅限顯示**且不得升格為已驗證製造權威。保留沒有門板時「-」、基準存在／缺失的舊摘要語意，以及原 Save→Reload／2D／3D／DXF 契約，不新增任何 CUTTING/DXF 認證；#2517 OPEN。
