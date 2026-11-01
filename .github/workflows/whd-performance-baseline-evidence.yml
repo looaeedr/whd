@@ -7,6 +7,8 @@ on:
     paths:
       - '.github/workflows/whd-performance-baseline-evidence.yml'
       - 'tools/whd_performance_baseline.py'
+      - 'tools/merge_whd_performance_baseline.py'
+      - 'tests/test_whd_performance_baseline_merge.py'
       # True Tk performance evidence must run when certified physical
       # source-flat geometry/triangulation costs change, not just harnesses.
       - 'ae_engine/receiving_base_fixing_plate_geometry.py'
@@ -28,10 +30,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  measured-tk-baseline:
-    name: Measured Tk baseline (Linux cloud reference)
+  measured-tk-bays:
+    # Separate runners retain real Tk isolation; parallel processes on one
+    # runner would contaminate performance numbers via CPU/memory contention.
+    name: Measured Tk samples (${{ matrix.bays }} Bay, isolated)
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        bays: [3, 1]
     env:
       TZ: Asia/Taipei
       OMP_NUM_THREADS: '1'
@@ -79,7 +87,8 @@ jobs:
           set -euo pipefail
           xvfb-run -a -s "-screen 0 1600x1000x24" \
             python tools/whd_performance_baseline.py \
-            --samples 3 --cycles 5 --output work/perf/baseline.json
+            --samples 3 --cycles 5 --bay-scope ${{ matrix.bays }} \
+            --output work/perf/baseline-b${{ matrix.bays }}.json
       - name: Print sample counts median and P95 without inventing missing data
         if: always()
         shell: bash
@@ -87,7 +96,7 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          p = Path('work/perf/baseline.json')
+          p = Path('work/perf/baseline-b${{ matrix.bays }}.json')
           if not p.exists():
               print('BASELINE_REPORT_MISSING; inspect worker logs and artifact')
           else:
@@ -104,6 +113,61 @@ jobs:
           PY
       - name: Keep raw measurement journals and evidence even on failure
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-issue1816-tk-baseline-b${{ matrix.bays }}
+          path: work/perf/
+          if-no-files-found: error
+          retention-days: 14
+
+  baseline-evidence:
+    # Keep the existing required check name and original aggregate artifact.
+    # A Bay sample failure blocks publication; no partial "GREEN" evidence.
+    name: Measured Tk baseline (Linux cloud reference)
+    needs: measured-tk-bays
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - name: Checkout exact candidate for evidence reconciliation
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download independent 3 Bay raw evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: whd-issue1816-tk-baseline-b3
+          path: work/perf/b3
+      - name: Download independent 1 Bay raw evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: whd-issue1816-tk-baseline-b1
+          path: work/perf/b1
+      - name: Reconcile all real samples at one immutable source SHA
+        run: |
+          set -euo pipefail
+          python tools/merge_whd_performance_baseline.py \
+            --input-dir work/perf \
+            --head-sha "${{ github.event.pull_request.head.sha }}" \
+            --samples 3 --cycles 5
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("work/perf/baseline.json").read_text(encoding="utf-8"))
+          print("BASELINE_HEAD_SHA:", data["metadata"]["source_sha"])
+          print("BASELINE_KIND: LINUX_CLOUD_REFERENCE, not Windows UAT")
+          print("BASELINE_PENDING:", data["metadata"]["pending"])
+          for entry in data["summary"]:
+              print(json.dumps(entry, ensure_ascii=False, sort_keys=True))
+          print("FAILED_SAMPLES:", sum(row["status"] != "ok" for row in data["rows"]))
+          PY
+      - name: Preserve original consolidated evidence and both raw runner environments
         uses: actions/upload-artifact@v4
         with:
           name: whd-issue1816-tk-baseline-raw
