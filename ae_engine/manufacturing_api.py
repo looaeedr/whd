@@ -194,6 +194,9 @@ from .keyed_fold_reconciliation import merge_keyed_fold_profiles
 from .relief_commit_policy import (
     endcap_relief_solution_committable, endcap_relief_transaction_committable,
 )
+from .endcap_assembly_resolution import (
+    solve_endcap_assembly_relief, endcap_relief_solution_diagnostic,
+)
 from .manufacturing_cache_signature import (
     canonical_manufacturing_signature_value, manufacturing_state_fingerprint,
 )

@@ -32,6 +32,8 @@ whd_schema: WHD_DOC_META_V1
 
 ### 1.1 GUI → Engine API 單向製造權責 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
+**#2517 EndCap Assembly relief 求解／診斷公開 API（2026-11-01）**：`manufacturing_api.solve_endcap_assembly_relief(body_part, endcap_part, ...)` 使用既有 Engine World-backprojected solver，處理實體 Box Body／Head/Tail Render、Fold profile、放置位置／Family 與已確認裝配語意；`manufacturing_api.endcap_relief_solution_diagnostic(solution)` 根據既有 Engine certified/verified policy 分類 3D Shadow 與未驗證穿透，保留原錯誤訊息。`phase6_manufacturing_service` 僅提交來源與呈現結果，不再直接呼叫 private collision 求解器或重寫認證診斷。不新增截角公式、CUTTING／DXF 認證；#2517 仍 OPEN。
+
 **#2517 EndCap Head/Tail 原子提交 API（2026-11-01）**：`manufacturing_api.endcap_relief_transaction_committable(required_parts, solutions)` 依 Engine 既有 `endcap_relief_solution_committable` 認證判準，對實體 Head/Tail 同批採全有或全無決策；任一必要解不存在、不可提交或空集合時拒絕。`phase6_manufacturing_service` 僅提交所需實體身份與已解析結果，不再自組 `all()` 決定製造發布。保留既有已認證 ENGINE_CONFLICT 與 3D 影子診斷分離；不新增 CUTTING 或 DXF 認證，#2517 保持 OPEN。
 
 **#2517 verified EndCap relief canonical replay（2026-11-01）**：公開 `manufacturing_api.replay_resolved_endcap_render(part_input, solution)` 是已認證 EndCap Joint/relief 2D CUT 的唯一 PartSpec replay owner，直接依既有 Engine `serialize_joint_relief_polygons` 與 `build_part_render_data` 重建正式 FinalScene；`phase6_manufacturing_service._replay_endcap_render` 僅委派。保留無 PartSpec 輕量 headless 已解析 Render 相容路徑；正式 canonical material 存在性與 2D/3D solver symmetric-difference 面積閘門（既有 1e-5 閾值）也統一移到 Engine，Phase6 不再自行計算製造幾何差異，不能把 solver preview 當正式製造或新增 DXF 認證；#2517 保持 OPEN。
