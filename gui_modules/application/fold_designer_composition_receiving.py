@@ -294,12 +294,19 @@ def commit_receiving_current_bay_controls(self, namespace):
     adapter = self.receiving_adapter(namespace)
     if adapter is None:
         return False
-    required = lambda name: self._required(namespace, name)
-    original = required("original")
+    # Operator W/H/D are physical outside dimensions, not rounded UI lengths.
+    # The existing public Engine validator owns type, finite, positive and
+    # fractional-mm semantics before the Bay transaction can mutate state.
     requested = {
-        "width": original.get_int(app.v_w.get()),
-        "height": original.get_int(app.v_h.get()),
-        "depth": original.get_int(app.v_d.get()),
+        "width": manufacturing_api.normalize_operator_source_dimension(
+            app.v_w.get(), field="w",
+        ),
+        "height": manufacturing_api.normalize_operator_source_dimension(
+            app.v_h.get(), field="h",
+        ),
+        "depth": manufacturing_api.normalize_operator_source_dimension(
+            app.v_d.get(), field="d",
+        ),
     }
     current_bay = adapter.current_bay()
     dimensions_changed = any(
