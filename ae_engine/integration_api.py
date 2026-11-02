@@ -13,7 +13,10 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Literal, Mapping, Sequence
 
-from .contracts import ResolvedManufacturingGeometry
+from .contracts import (
+    DoorPartSpec, EndCapPartSpec, ManufacturingContext,
+    ResolvedManufacturingGeometry, ResolvedManufacturingPart, PartSpec,
+)
 
 from .cabinet_types import registered_cabinet_types, resolve_cabinet_type
 
@@ -169,7 +172,64 @@ class ManufacturingResolvedBayInput:
 
     family: str
     source: ManufacturingSourceIdentity
-    resolved_geometry: ResolvedManufacturingGeometry
+    resolved_geometry: ResolvedManufacturingGeometry | None = None
+    # Already-confirmed Engine PartSpecs, NOT raw DXF, CSV or source-view labels.
+    # Exclusive with resolved_geometry; the same Engine renderer resolves them.
+    confirmed_parts: tuple[tuple[str, PartSpec], ...] = ()
+
+
+def _resolve_confirmed_integration_parts(
+    confirmed_parts: Sequence[tuple[str, PartSpec]],
+    *,
+    family_name: str,
+    context: ManufacturingContext,
+) -> ResolvedManufacturingGeometry:
+    """Resolve typed, independently authored physical parts through Engine.
+
+    This is the existing FinalScene renderer, not an alternate manufacturing
+    exporter. The limited roles are intentionally part-scoped: an incomplete
+    Cabinet/BoxBody/NFB cannot be inferred from a source-view drawing.
+    """
+    from . import manufacturing_api
+
+    parts = tuple(confirmed_parts)
+    if not parts:
+        raise ValueError("RECEIVING_CONFIRMED_PARTS_REQUIRED")
+    resolved: list[ResolvedManufacturingPart] = []
+    seen: set[str] = set()
+    for entry in parts:
+        if not isinstance(entry, tuple) or len(entry) != 2:
+            raise ValueError("RECEIVING_CONFIRMED_PART_INVALID")
+        part_key, spec = entry
+        if part_key in seen:
+            raise ValueError("RECEIVING_CONFIRMED_PART_DUPLICATE")
+        # Exact physical role, never a manufacturing identity guessed from
+        # CADSplit's displayed source-panel name or an NFB preview key.
+        if part_key == "door" and type(spec) is DoorPartSpec:
+            if (spec.feature_space != "finished_face"
+                    or any(getattr(spec, key) is None for key in (
+                        "gap_w", "gap_h", "fold_left", "fold_right",
+                        "fold_top", "fold_bottom",
+                    ))):
+                raise ValueError("RECEIVING_DOOR_AUTHORED_VALUES_REQUIRED")
+        elif part_key in ("head", "tail") and type(spec) is EndCapPartSpec:
+            if (spec.is_tail != (part_key == "tail")
+                    or not spec.fold_profile_x or not spec.fold_profile_y
+                    or spec.corner_policy is None):
+                raise ValueError("RECEIVING_ENDCAP_AUTHORED_FOLD_REQUIRED")
+        else:
+            raise ValueError("RECEIVING_CONFIRMED_PART_SCOPE_UNSUPPORTED")
+        try:
+            if resolve_cabinet_type(spec.model_name).canonical_name != family_name:
+                raise ValueError("RECEIVING_CONFIRMED_PART_FAMILY_MISMATCH")
+        except (KeyError, TypeError):
+            raise ValueError("RECEIVING_CONFIRMED_PART_FAMILY_MISMATCH") from None
+        seen.add(part_key)
+        render_data = manufacturing_api.build_part_render_data(spec, context)
+        resolved.append(ResolvedManufacturingPart(
+            part_key=part_key, render_data=render_data,
+        ))
+    return ResolvedManufacturingGeometry(parts=tuple(resolved))
 
 
 @dataclass(frozen=True)
@@ -188,13 +248,16 @@ def export_verified_resolved_integration_bays(
     *,
     pre_commit_guard,
     overwrite: bool = False,
+    context: ManufacturingContext | None = None,
 ) -> VerifiedIntegrationBatchExport:
-    """Commit already-resolved Receiving parts after WHD staged DXF verification.
+    """Commit trusted Receiving parts after WHD staged DXF verification.
 
-    The guard is supplied by the trusted in-process project state owner and
-    invoked before staging AND after independent DXF reopen. No raw source DXF,
-    JSON, preview, or "prepare" response can be promoted to manufacturing here.
-    The old source-only CLI remains disabled.
+    Either supply already Engine-resolved geometry or complete, confirmed
+    physical PartSpecs for supported Door/Head/Tail roles; the latter are
+    resolved using the exact same canonical Engine FinalScene path. Raw DXF,
+    JSON, source-only prepare or guessed Factory parameters remain rejected.
+    The trusted project owner guards pre-stage and post-reopen commit; the
+    retired source-only CLI remains disabled.
     """
     if not callable(pre_commit_guard):
         raise ValueError("WHD_PRECOMMIT_GUARD_REQUIRED")
@@ -219,8 +282,20 @@ def export_verified_resolved_integration_bays(
         source = item.source
         if not _valid_source(source) or source.set_id is None or source.bay_id is None:
             raise ValueError("RECEIVING_STABLE_SOURCE_SET_BAY_REQUIRED")
-        if (not isinstance(item.resolved_geometry, ResolvedManufacturingGeometry)
-                or not item.resolved_geometry.parts):
+        if item.confirmed_parts:
+            if item.resolved_geometry is not None:
+                raise ValueError("RECEIVING_AMBIGUOUS_MANUFACTURING_INPUT")
+            if context is not None and not isinstance(context, ManufacturingContext):
+                raise TypeError("ManufacturingContext required")
+            resolved_geometry = _resolve_confirmed_integration_parts(
+                item.confirmed_parts,
+                family_name=registration.canonical_name,
+                context=context or ManufacturingContext(),
+            )
+        else:
+            resolved_geometry = item.resolved_geometry
+        if (not isinstance(resolved_geometry, ResolvedManufacturingGeometry)
+                or not resolved_geometry.parts):
             raise ValueError("RECEIVING_ENGINE_RESOLVED_GEOMETRY_REQUIRED")
         namespace = manufacturing_api.receiving_manufacturing_instance_namespace(
             set_id=source.set_id, bay_id=source.bay_id,
@@ -228,7 +303,7 @@ def export_verified_resolved_integration_bays(
         if namespace.casefold() in seen:
             raise ValueError("RECEIVING_DUPLICATE_OUTPUT_NAMESPACE")
         seen.add(namespace.casefold())
-        instances.append((namespace, item.resolved_geometry))
+        instances.append((namespace, resolved_geometry))
 
     files = manufacturing_api.save_verified_resolved_manufacturing_geometry_batch_dxf(
         tuple(instances), output_dir,
