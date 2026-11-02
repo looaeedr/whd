@@ -105,6 +105,8 @@ from .receiving_operator_projection import (
     project_receiving_original_door_marks,
     project_receiving_operator_door_cell_sources,
     project_receiving_initial_door_source_scenes,
+    project_receiving_nfb_work_area_height_mm,
+    validate_receiving_nfb_layer_heights_for_work_area,
 )
 from .assembly_intent_transactions import (
     AssemblyIntentTransition, normalize_assembly_type, commit_assembly_intent_state,

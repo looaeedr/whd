@@ -6,6 +6,8 @@ Family registry and BoxBody topology.  They do not grant manufacturing export.
 """
 from __future__ import annotations
 
+from math import isfinite
+
 from .box_body_structure_state import BoxBodyStructureType
 from .cabinet_types.policy import canonical_family_name
 from .cabinet_types.receiving import BOX_BODY_DEFAULTS
@@ -142,3 +144,48 @@ def project_receiving_initial_door_source_scenes(snapshot, resolved):
     if any(parts.get(key) is None for key in ("door_c1_r1", "door_c1_r2")):
         return ()
     return (parts["door_c1_r1"], parts["door_c1_r2"])
+
+
+
+def project_receiving_nfb_work_area_height_mm(snapshot) -> float:
+    """Project the existing NFB editor's actual Door work area, never a new Y.
+
+    A single top Door cell owns the preview height; for other layouts the
+    existing whole-box H fallback is preserved. Invalid dimensions fail
+    closed rather than authorizing a synthetic millimetre length.
+    """
+    from .sheetmetal_part_adapters import derive_door_layout_cells
+
+    source = dict(snapshot or {})
+    columns = source.get("door_layout_columns") or ()
+    cells = derive_door_layout_cells(columns) if columns else ()
+    upper = [cell for cell in cells if cell.row_index == 0]
+    raw = (upper[0].start_height if len(upper) == 1
+           else source.get("h", 0.0))
+    if isinstance(raw, bool):
+        raise ValueError("內門作業區高度未定")
+    try:
+        height = float(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("內門作業區高度未定") from exc
+    if not isfinite(height) or height <= 0:
+        raise ValueError("內門作業區高度未定")
+    return height
+
+
+def validate_receiving_nfb_layer_heights_for_work_area(
+    snapshot, heights, *, layer_count: int,
+) -> list[float]:
+    """Use the same Engine source for saved tier validation and preview.
+
+    This validates an editor input only. It does not approve a nominal Y,
+    physical NFB source, cutting hole, or manufacturing release.
+    """
+    from .receiving_shared_settings import validate_setting
+
+    checked = validate_setting("inner_door_layer_heights_mm", heights)
+    count = validate_setting("inner_door_layers", layer_count)
+    height = project_receiving_nfb_work_area_height_mm(snapshot)
+    if checked[count - 1] >= height:
+        raise ValueError("層高必須在目前內門作業區內，且第一層須在第二層上方")
+    return checked
