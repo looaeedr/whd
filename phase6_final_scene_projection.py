@@ -298,7 +298,11 @@ def make_assembly_scene_render_data(
             else tuple(str(key) for key in visible_box_body_piece_keys)
         ),
         "show_interference": bool(show_interference),
-        "ignore_fixed_corner_relief": bool(ignore_fixed_corner_relief),
+        # Physical EndCap relief visibility is not a Python truthiness flag:
+        # serialized "false" must agree with the immutable Engine request.
+        "ignore_fixed_corner_relief": manufacturing_api.normalize_operator_3d_fallback_flag(
+            ignore_fixed_corner_relief,
+        ),
         "interference_probe_parts": tuple(interference_probe_parts or ()),
         "joint_diagnostics": tuple(joint_diagnostics or ()),
         "collision_certification_diagnostics": tuple(
