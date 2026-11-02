@@ -167,7 +167,10 @@ def _export_authoritative_part(self, spec, output_path, context=None):
     render_data = self._authoritative_render_data(spec, ctx)
     if getattr(render_data, "pieces", None):
         output = Path(output_path)
-        return manufacturing_api.generate_box_body_structure_parts(spec, output.parent, ctx)
+        return manufacturing_api.generate_box_body_structure_parts(
+            spec, output.parent, ctx,
+            resolved_render_data=render_data, verify_reopen=True,
+        )
     return manufacturing_api.save_part_render_data_dxf(
         render_data, output_path,
         overwrite=bool(getattr(ctx, "overwrite", False)),
