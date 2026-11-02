@@ -197,7 +197,7 @@ def _confirmed_door_layout_projections(
 
     cell_keys = {
         key for key, _ in parts
-        if isinstance(key, str) and re.fullmatch(r"door_c[1-9]\\d*_r[1-9]\\d*", key)
+        if isinstance(key, str) and re.fullmatch(r"door_c[1-9]\d*_r[1-9]\d*", key)
     }
     if not columns:
         if cell_keys:
