@@ -4,8 +4,6 @@ whd_contract: project-reference
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
-# Headless Manufacturing API（Phase 6：AE Engine Clean Break）
-
 ## #2517 BasePlate manufacturing uses canonical Cabinet Family policy
 
 `manufacturing_api.generate_part(BasePlatePartSpec, ..., ManufacturingContext)`
