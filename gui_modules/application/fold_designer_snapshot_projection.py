@@ -130,17 +130,17 @@ def _snapshot_base_state(self):
     snapshot["baseline_models"] = baseline_models
     snapshot["baseline_unknown_value"] = corner_catalog.custom_model_name
     snapshot["factory_defaults"] = load_factory_defaults_from_ae(ae)
-    if snapshot["model"] in {"受電箱", "RECEIVING"}:
-        designer = getattr(self, "fold_designer_app", None)
-        stored = (
-            getattr(designer, "_phase6_input_snapshot", None)
-            or getattr(self, "_phase6_input_snapshot", None)
-            or {}
-        )
-        if "receiving_base_plate" in stored:
-            # Keep the existing physical plate choice across GUI snapshot and
-            # project Save/Reload; never derive it from the DXF sketch layout.
-            snapshot["receiving_base_plate"] = deepcopy(stored["receiving_base_plate"])
+    designer = getattr(self, "fold_designer_app", None)
+    stored = (
+        getattr(designer, "_phase6_input_snapshot", None)
+        or getattr(self, "_phase6_input_snapshot", None)
+        or {}
+    )
+    # Engine alone decides whether this Family owns a physical BasePlate.
+    # Only carry a detached *committed* source; never derive a pattern here.
+    snapshot.update(manufacturing_api.project_operator_receiving_base_plate_snapshot_source(
+        snapshot, stored,
+    ))
     return snapshot
 
 def _snapshot_workspace_state(self, snapshot):
