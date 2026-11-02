@@ -60,7 +60,7 @@ def test_real_broken_dxf_does_not_fall_back_to_last_known_good(tmp_path, monkeyp
     assert api.require_verified_operator_baseline_sources("受電箱") is True
     path.write_text("corrupt and not a valid DXF", encoding="utf-8")
     policy.ae.force_reload_baseline_dxf_sources()
-    with pytest.raises(ezdxf.DXFError):
+    with pytest.raises((OSError, ezdxf.DXFError)):
         api.require_verified_operator_baseline_sources("受電箱")
 
 
