@@ -125,6 +125,12 @@ from .operator_endcap_settings_transactions import (
     operator_endcap_fw_override, operator_endcap_bottom_wrap,
     operator_endcap_edge_relation,
 )
+
+# BoxBody structural Settings physical rows and persisted lock ownership.
+from .operator_box_body_settings_projection import (
+    operator_toggle_box_body_structure_lock,
+    project_operator_box_body_structure_settings,
+)
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
     ENDCAP_BOTTOM_WRAP_MODES, normalize_endcap_bottom_wrap_state,
