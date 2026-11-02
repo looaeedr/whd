@@ -60,12 +60,22 @@ def test_headless_cache_rejects_invalid_clearance(invalid):
         _headless_signature(relief_clearance=invalid)
 
 
-def test_bridge_clearance_uses_engine_instead_of_an_invalid_zero_fallback():
+def test_bridge_preview_legacy_zero_is_never_manufacturing_cache_authority():
     app = SimpleNamespace(assembly_relief_clearance_var=SimpleNamespace(get=lambda: "bad"))
+    # Existing uncommitted UI preview remains finite rather than raising.
+    assert _phase6_assembly_relief_clearance(app) == 0.0
     with pytest.raises(ValueError, match="MANUFACTURING_RELIEF_CLEARANCE_INVALID"):
-        _phase6_assembly_relief_clearance(app)
+        api.normalize_operator_relief_clearance("bad")
     app.assembly_relief_clearance_var = SimpleNamespace(get=lambda: "-2")
     assert _phase6_assembly_relief_clearance(app) == 0.0
+
+
+def test_gui_manufacturing_cache_rejects_invalid_clearance_even_if_preview_uses_zero():
+    app = _app()
+    app.assembly_relief_clearance_var = SimpleNamespace(get=lambda: "bad")
+    assert _phase6_assembly_relief_clearance(app) == 0.0
+    with pytest.raises(ValueError, match="MANUFACTURING_RELIEF_CLEARANCE_INVALID"):
+        _phase6_manufacturing_state_signature(app)
 
 
 def test_gui_cache_signature_no_longer_uses_nonempty_string_truthiness():

@@ -60,10 +60,17 @@ def _phase6_relief_polygon_coords(geometry):
 
 
 def _phase6_assembly_relief_clearance(self):
-    """Read operator clearance; the same Engine API owns every validation path."""
+    """Legacy UI preview only: invalid edits render with finite zero tolerance.
+
+    Actual manufacturing cache and full requests strictly validate raw input
+    through the Engine public API; this visual fallback never authorizes output.
+    """
     var = getattr(self, "assembly_relief_clearance_var", None)
     raw = var.get() if var is not None else "0"
-    return manufacturing_api.normalize_operator_relief_clearance(raw)
+    try:
+        return manufacturing_api.normalize_operator_relief_clearance(raw)
+    except ValueError:
+        return 0.0
 
 
 def _phase6_current_cabinet_family(self):
@@ -168,6 +175,8 @@ def _phase6_manufacturing_state_signature(self):
 
     assembly = getattr(self, "_phase6_assembly_type", None)
     ignore_var = getattr(self, "assembly_ignore_fixed_corner_var", None)
+    clearance_var = getattr(self, "assembly_relief_clearance_var", None)
+    raw_clearance = clearance_var.get() if clearance_var is not None else "0"
     return manufacturing_api.manufacturing_state_fingerprint(
         input_snapshot=deepcopy(dict(getattr(self, "_phase6_input_snapshot", {}) or {})),
         settings_values=deepcopy(dict(getattr(self, "_settings_values", {}) or {})),
@@ -181,7 +190,9 @@ def _phase6_manufacturing_state_signature(self):
         ignore_fixed_corner=manufacturing_api.normalize_operator_3d_fallback_flag(
             getattr(ignore_var, "get", lambda: False)()
         ),
-        relief_clearance=_phase6_assembly_relief_clearance(self),
+        relief_clearance=manufacturing_api.normalize_operator_relief_clearance(
+            raw_clearance
+        ),
     )
 
 
