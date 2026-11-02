@@ -726,7 +726,7 @@ def _base_plate_export(spec: BasePlatePartSpec, filepath: str, context: Manufact
         raise ValueError("RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING")
     # Receiving base plate uses final_scene path to preserve nominal blank
     # geometry and apply local seam reliefs consistently with 2D/render.
-    if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions or is_receiving:
+    if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions or requires_pattern:
         render_data = build_part_render_data(spec, context)
         # The legacy generic BasePlate exporter bypassed the shared FinalScene
         # manufacturing guard. Use exactly the same guarded serializer as
