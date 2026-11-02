@@ -60,40 +60,48 @@ def test_receiving_alias_never_falls_back_when_dedicated_sources_missing(
 
 
 @pytest.mark.parametrize("family", ["RO", "ro", "落地盤"])
-def test_registered_unimplemented_family_cannot_create_direct_final_scene(
+def test_unimplemented_family_keeps_read_only_geometry_but_cannot_export(
     family, tmp_path
 ):
-    spec = replace(spec_for_mode(), model_name=family)
-    with pytest.raises(ValueError, match="CABINET_FAMILY_NOT_IMPLEMENTED: RO"):
-        build_box_body_structure_render_data(
-            spec, ManufacturingContext(resource_root=tmp_path),
-        )
+    # Quantity/BOM and 2D/3D readback are not a DXF manufacturing license.
     door = DoorPartSpec(
         width=500, height=600, thickness=2, frame_width=25, model_name=family,
     )
+    preview = build_part_render_data(
+        door, ManufacturingContext(resource_root=tmp_path),
+    )
+    assert preview.scene is not None
+    assert preview.material is not None
+
+    output_dir = tmp_path / "output"
     with pytest.raises(ValueError, match="CABINET_FAMILY_NOT_IMPLEMENTED: RO"):
-        build_part_render_data(door, ManufacturingContext(resource_root=tmp_path))
+        generate_box_body_structure_parts(
+            replace(spec_for_mode(), model_name=family),
+            output_dir,
+            ManufacturingContext(resource_root=tmp_path),
+        )
+    assert not output_dir.exists()
     assert not list(tmp_path.rglob("*.dxf"))
 
 
 @pytest.mark.parametrize("family", ["RO", "ro", "落地盤"])
-def test_canonical_request_resolver_rejects_unimplemented_family_before_scene(
-    family
-):
+def test_canonical_request_resolver_keeps_read_only_family_semantics(family):
     request = ManufacturingResolveRequest(
         input_snapshot={"model": family}, cabinet_model=family,
         canonical_part_keys=(),
     )
-    with pytest.raises(ValueError, match="CABINET_FAMILY_NOT_IMPLEMENTED: RO"):
+    # A no-part request is still invalid, but not because RO previews are
+    # forbidden. Manufacturing authorization belongs at the export sink.
+    with pytest.raises(ValueError, match="no parts available"):
         resolve_manufacturing_request(request)
 
 
-def test_canonical_request_resolver_rejects_unimplemented_snapshot_when_no_model():
+def test_canonical_request_resolver_preserves_snapshot_family_preview():
     request = ManufacturingResolveRequest(
         input_snapshot={"model": "落地盤"}, cabinet_model="",
         canonical_part_keys=(),
     )
-    with pytest.raises(ValueError, match="CABINET_FAMILY_NOT_IMPLEMENTED: RO"):
+    with pytest.raises(ValueError, match="no parts available"):
         resolve_manufacturing_request(request)
 
 
