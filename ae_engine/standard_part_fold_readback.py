@@ -6,15 +6,37 @@ preventing the GUI adapter from interpreting manufacturing Fold profiles.
 """
 from __future__ import annotations
 
+from math import isfinite
+
 from .standard_part_fold_profiles import _is_door_part_key, _is_base_plate_part_key
 from .cabinet_types.policy import canonical_family_name
+
+
+def _finite_material_length(value, *, key):
+    """Read an actual material Fold row, not a truthy/defaulted GUI value.
+
+    An explicit None, bool, negative or nonfinite saved length cannot become
+    zero/one or NaN in project Settings. A genuine numeric zero remains legal
+    for legacy flat folds; signed direction belongs to the angle/UI metadata.
+    """
+    if value is None or isinstance(value, bool):
+        raise ValueError(f"STANDARD_PART_FOLD_LENGTH_INVALID:{key}")
+    try:
+        length = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"STANDARD_PART_FOLD_LENGTH_INVALID:{key}") from exc
+    if not isfinite(length) or length < 0:
+        raise ValueError(f"STANDARD_PART_FOLD_LENGTH_INVALID:{key}")
+    return length
 
 
 def _profile_value(profile, key, default=0):
     for seg in profile or ():
         if seg.get("phase6_key") == key:
-            return float(seg.get("len") or 0)
-    return float(default or 0)
+            return _finite_material_length(seg.get("len"), key=key)
+    # Existing saved setting remains the fallback only when a keyed Fold
+    # row is genuinely absent, never when that row contains invalid source.
+    return _finite_material_length(default, key=key)
 
 
 def read_standard_part_fold_profiles(part_key, profiles, original_snapshot):
