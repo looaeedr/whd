@@ -15,9 +15,9 @@ from ae_engine.sheetmetal_features import (
 from ae_engine.sheetmetal_geometry import Vec2
 from ae_engine import manufacturing_api
 
-PROJECT_SCHEMA_V1 = "phase6-fold-project-v1"
-PROJECT_SCHEMA_V2 = "phase6-fold-project-v2"
-PROJECT_SCHEMA_V3 = "phase6-fold-project-v3"
+PROJECT_SCHEMA_V1 = manufacturing_api.PROJECT_SCHEMA_V1
+PROJECT_SCHEMA_V2 = manufacturing_api.PROJECT_SCHEMA_V2
+PROJECT_SCHEMA_V3 = manufacturing_api.PROJECT_SCHEMA_V3
 # Existing generic callers still construct v1 payloads. Receiving projects are
 # promoted to v2 by write_project once ReceivingLayout is present.
 PROJECT_SCHEMA = PROJECT_SCHEMA_V1
@@ -94,52 +94,19 @@ def _decode(value):
 
 
 def validate_project(payload, *, for_read=False):
-    if not isinstance(payload, dict):
-        raise ValueError("Phase6 專案必須是 JSON 物件")
-    schema = payload.get("schema")
-    if schema not in {PROJECT_SCHEMA_V1, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3}:
-        raise ValueError(f"不支援的 Phase6 專案格式：{schema!r}")
-    if not isinstance(payload.get("snapshot"), dict):
-        raise ValueError("Phase6 專案缺少 snapshot")
-    if schema in {PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3}:
-        from ae_engine.cabinet_types.receiving import is_receiving_snapshot
-        if not is_receiving_snapshot(payload["snapshot"]):
-            raise ValueError("Receiving project v2/v3 requires Receiving family")
-    if for_read:
-        from ae_engine.receiving_nfb_persistence import contains_submitted_nfb
-        submitted = contains_submitted_nfb(payload["snapshot"])
-        if submitted and schema != PROJECT_SCHEMA_V3:
-            raise ValueError("submitted NFB project cannot be loaded through an old schema")
-        if schema == PROJECT_SCHEMA_V3 and not submitted:
-            raise ValueError("NFB project v3 has no committed NFBConfig")
-    return payload
+    """Compatibility port: Engine owns the saved project schema decision."""
+    return manufacturing_api.validate_operator_project_payload(
+        payload, for_read=for_read,
+    )
 
 
 def _materialize_project_snapshot(snapshot):
-    """Engine owns source normalization for both Save and Reload."""
+    """Compatibility adapter: Engine owns saved source normalization."""
     return manufacturing_api.normalize_project_snapshot_authority(snapshot)
 
 
 def write_project(path, payload):
-    validate_project(payload)
-    from ae_engine.cabinet_types.receiving import is_receiving_snapshot
-    from ae_engine.receiving_layout import strip_legacy_receiving_aliases
-
-    materialized = dict(payload)
-    snapshot = _materialize_project_snapshot(payload.get("snapshot") or {})
-    if is_receiving_snapshot(snapshot):
-        from ae_engine.receiving_nfb_persistence import contains_submitted_nfb
-        materialized["schema"] = (PROJECT_SCHEMA_V3 if contains_submitted_nfb(snapshot)
-                                  else PROJECT_SCHEMA_V2)
-        snapshot = strip_legacy_receiving_aliases(snapshot)
-    elif materialized.get("schema") in {PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3}:
-        raise ValueError("Receiving project v2/v3 requires Receiving family")
-    else:
-        materialized["schema"] = PROJECT_SCHEMA_V1
-    materialized["snapshot"] = manufacturing_api.normalize_quantity_snapshot(snapshot, for_save=True)
-    # Final geometry is a derived diagnostic/render cache, never project truth.
-    # Persist only authoritative state; Reload must deterministically re-solve it.
-    materialized["final_geometry"] = {}
+    materialized = manufacturing_api.project_operator_project_for_write(payload)
     target = Path(path)
     if target.suffix.lower() != PROJECT_EXTENSION:
         target = target.with_suffix(PROJECT_EXTENSION)
@@ -151,22 +118,7 @@ def write_project(path, payload):
 def read_project(path):
     source = Path(path)
     raw = json.loads(source.read_text(encoding="utf-8"))
-    decoded = _decode(raw)
-    validate_project(decoded, for_read=True)
-    from ae_engine.cabinet_types.receiving import is_receiving_snapshot
-    from ae_engine.receiving_layout import project_primary_bay_legacy_aliases
-
-    decoded["snapshot"] = _materialize_project_snapshot(decoded["snapshot"])
-    if is_receiving_snapshot(decoded["snapshot"]):
-        # In-memory compatibility projection only.  Re-saving strips aliases
-        # again, so v2 never gains a second persisted W/H/D or panel-mode owner.
-        from ae_engine.receiving_nfb_persistence import contains_submitted_nfb
-        decoded["schema"] = (PROJECT_SCHEMA_V3 if contains_submitted_nfb(decoded["snapshot"])
-                             else PROJECT_SCHEMA_V2)
-        decoded["snapshot"] = project_primary_bay_legacy_aliases(decoded["snapshot"])
-    # Ignore legacy files that persisted derived geometry/probe evidence.
-    decoded["final_geometry"] = {}
-    return decoded
+    return manufacturing_api.project_operator_project_for_read(_decode(raw))
 
 
 def project_path_from_argv(argv):

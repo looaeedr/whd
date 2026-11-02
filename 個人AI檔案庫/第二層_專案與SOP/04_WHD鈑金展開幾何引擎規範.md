@@ -18,6 +18,12 @@ whd_schema: WHD_DOC_META_V1
 原 `phase6_settings_transitions` 在 GUI 側合成 EndCap FW follow／override、Head/Tail WRAP reserve 和 Assembly Joint 交易，雖然最終呼叫 Engine 低層 helper，GUI 仍決定快照組合、source fallback 與物理 state 提交。現在 `manufacturing_api.operator_endcap_fw_follow`、`operator_endcap_fw_override`、`operator_endcap_bottom_wrap`、`operator_endcap_edge_relation` 統一擷取不可變 copy-on-write 輸入並呼叫既有 `endcap_factory_fold`、`endcap_bottom_wrap_state`、`assembly_joint` Canonical owner。WRAP 傳回 Engine `OperatorBottomWrapTransition(state,resolved)`；GUI 舊名稱 `BottomWrapTransition` 僅為型別別名。沿用金庫型／受電箱現有 FW 四態、Head/Tail linked→leader→independent、Joint Graph 優先、保存狀態及拒絕未支援板件，不變更工廠補償、Registry、DXF 認證或原始製造入口。#2517 仍 OPEN。
 
 
+
+## [CURRENT] #2517 封頭／封尾 FW、WRAP reserve、Joint 交易單一公開 Engine API（2026-11-02）
+
+原 `phase6_settings_transitions` 在 GUI 側合成 EndCap FW follow／override、Head/Tail WRAP reserve 和 Assembly Joint 交易，雖然最終呼叫 Engine 低層 helper，GUI 仍決定快照組合、source fallback 與物理 state 提交。現在 `manufacturing_api.operator_endcap_fw_follow`、`operator_endcap_fw_override`、`operator_endcap_bottom_wrap`、`operator_endcap_edge_relation` 統一擷取不可變 copy-on-write 輸入並呼叫既有 `endcap_factory_fold`、`endcap_bottom_wrap_state`、`assembly_joint` Canonical owner。WRAP 傳回 Engine `OperatorBottomWrapTransition(state,resolved)`；GUI 舊名稱 `BottomWrapTransition` 僅為型別別名。沿用金庫型／受電箱現有 FW 四態、Head/Tail linked→leader→independent、Joint Graph 優先、保存狀態及拒絕未支援板件，不變更工廠補償、Registry、DXF 認證或原始製造入口。#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 受電箱原始門板把手／銘牌孔位來源辨識 Engine API（2026-11-02）
 
 原 GUI `gui_modules/application/receiving_multi_settings_window.extract_original_door_marks(scene)` 會自己從 `DrawingScene` 的 `CUTTING` 外框、帶 `source_type="nameplate_mount"` 身分的圓孔與唯一內輪廓判定門板把手與銘牌孔位，形成第二份來源辨識邏輯。現保留既有函式作兼容 GUI 單向轉接，將原算法原樣移至 `ae_engine.receiving_operator_projection.project_receiving_original_door_marks(scene)`，對外公開 `manufacturing_api.project_receiving_original_door_marks(scene)`。回傳既有正規化預覽 `{"nameplate": ..., "handle": ...}`；缺外框／多個內框時拒絕猜測，保留來源 Layer 與身分條件，GUI 只按比例繪圖，不再認定物理孔位。這是原圖來源的唯讀預覽映射，**不是補充新孔位、CUTTING 修改、成品尺寸定義或 DXF 製造認證**。#2517 仍 OPEN。
@@ -1237,3 +1243,7 @@ preview-only 不得偽裝成實體；任一非有限、布林或部分缺失的
 ## [CURRENT] #2517 Registry 候選截角 3D 驗證由 Engine 公開 API 擁有（2026-11-02）
 
 Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、結構、T、組合意圖；公開 manufacturing_api.validate_operator_relief_registry_candidate_3d 經 Engine operator_relief_candidate_3d 唯一執行現存候選公式驗證、evaluate_editable_endcap_rule_record 與 solve_world_backprojected_endcap_relief，回傳與舊 GUI 一致的 candidate-specific 3D 證據。候選 Shadow 不改 Registry，不授權製造；缺實體、錯誤身份、意圖不符或公式不適用皆 fail closed。現存金庫型／受電箱機械權威不變，#2517 OPEN。
+
+## [CURRENT] #2517 Phase6 專案 Schema／NFB Save→Reload 唯一 Engine API（2026-11-02）
+
+原 phase6_project_file.py 直接依 Family、受電箱提交 NFB、Set/Bay／Quantity 來源判斷 v1/v2/v3、保存時剝除 legacy aliases、載入時重建 UI aliases，現統一交由 ae_engine.operator_project_persistence 和公開 manufacturing_api.validate_operator_project_payload、project_operator_project_for_write、project_operator_project_for_read；GUI 保留檔案選擇、UTF-8 JSON／Features 編解碼和對話操作。Engine 沿用 normalize_project_snapshot_authority、normalize_quantity_snapshot、receiving_layout 與 committed NFB source owner，防止 v3 提交來源被降為舊版後悄悄丟失，保存不得保留 derived final_geometry。保留金庫型 v1、Receiving v2/v3 的歷史檔可讀相容性與原有拒絕錯誤。此 API 僅確認專案狀態權威，不新增 DXF 製造資格，#2517 OPEN。
