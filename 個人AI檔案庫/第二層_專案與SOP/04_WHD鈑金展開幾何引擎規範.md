@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 BoxBody 製造請求的 Head/Tail 下折段來源 Engine API（2026-11-02）
+
+`phase6_manufacturing_adapter.build_scene_payload_for_app` 原本在 GUI 相容層以 `phase6_key="ybottom1"` 掃描封頭／封尾 Y Fold profile，並將 `engine_segment_length_to_ui` 的物理長度回讀寫到 `head_ybottom1`／`tail_ybottom1`，形成製造 request 的實體折段身份決策。現改由 `manufacturing_api.project_manufacturing_endcap_bottom_fold_inputs(endcap_profiles)`（`ae_engine.endcap_xy_readback`）唯一辨識 Head/Tail 來源並用既有 `fold_material_segment_outside_length`（含相鄰 BEND 的 `ui_len_add`）回讀；GUI 僅將已儲存 profile map 作為輸入，未辨識來源時不覆寫任何數值。這是現行製造 API 的物理輸入接線，不新增 EndCap 截角、Joint、料長補償、CUTTING 製造公式，也不解鎖未認證的 Receiving 外部 export。#2517 OPEN。
+
+
 ## [CURRENT] #2517 受電箱內門 NFB 作業區高度與層高檢查 Engine API（2026-11-02）
 
 `fold_designer_composition_receiving.inner_edit` 過去在 Tk 的「讀取層高」及「草稿預覽」兩處各自呼叫 `derive_door_layout_cells`、推算第一列 Door 工作區高度，並自行比較操作層高是否超出工作區。現將兩處收斂到 `manufacturing_api.project_receiving_nfb_work_area_height_mm(snapshot)` 與 `manufacturing_api.validate_receiving_nfb_layer_heights_for_work_area(snapshot, heights, *, layer_count)`，唯一實作在 `ae_engine.receiving_operator_projection`，沿用 `receiving_shared_settings.validate_setting` 對兩槽數值與一／二層的合法性判斷。單一上排 Door cell 取該實體 cell 的高度；沒有唯一上排 cell 的既存相容模式仍回退原 snapshot `h`，但無效、非有限或非正尺寸拒絕投影。GUI 僅讀 Tk 欄位、呼叫 API、顯示錯誤／唯讀預覽；不改既有一層 550、兩層 330／830、舊版 290／790（未寫入 operator heights 時）等不同權威來源，**不開放切孔、名義 Y 認證、成品出圖或外部製造授權**。#2517 OPEN。

@@ -15,6 +15,26 @@ def fold_material_segment_outside_length(seg: Mapping[str, object]):
     return _ui_len(_num(seg.get("len")) + _num(seg.get("ui_len_add")))
 
 
+def project_manufacturing_endcap_bottom_fold_inputs(endcap_profiles) -> dict[str, float]:
+    """Read original Head/Tail lower Fold sources for BoxBody manufacturing.
+
+    The GUI supplies the detached stored profiles, but Engine recognizes
+    the physical ybottom1 identity and converts the outside span with the
+    existing adjacent-BEND metadata rule. Missing sources remain absent.
+    """
+    values = {}
+    sources = endcap_profiles or {}
+    for part_key, target in (
+        ("head", "head_ybottom1"), ("tail", "tail_ybottom1"),
+    ):
+        profile = sources.get(part_key) or {}
+        for segment in list(dict(profile).get("Y", ()) or ()):
+            if str(segment.get("phase6_key") or "") == "ybottom1":
+                values[target] = float(fold_material_segment_outside_length(segment))
+                break
+    return values
+
+
 def resolve_endcap_xy_outside_dimensions(profiles: Mapping[str, Sequence[Mapping[str, object]]], original_snapshot: Mapping[str, object]) -> dict:
     """Read EndCap editor topology back into legacy scalar adapter values.
 
