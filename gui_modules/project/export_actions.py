@@ -646,14 +646,9 @@ def export_receiving_ear_side_check_dxf(self):
         if not callable(resolver):
             raise ValueError("固定片側板 CHECK 缺少現行製造幾何")
         snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
-        if (snapshot.get("model") != "受電箱"
-                or snapshot.get("nfb_config_submitted") is not True
-                or snapshot.get("active_mode") == "quantity"):
-            raise ValueError("固定片 CHECK 限受電箱已提交的單只／套連實體；數量版本須逐版驗證")
-        dimensions = tuple(float(snapshot[key]) for key in ("w", "h", "d"))
-        thickness = float(snapshot["t"])
-        if dimensions[0] <= 0 or thickness <= 0:
-            raise ValueError("固定片側板 CHECK 箱寬與側板厚度必須為正")
+        dimensions, thickness = manufacturing_api.receiving_ear_side_check_operator_inputs(
+            snapshot,
+        )
         geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片 CHECK 不可用", str(exc))

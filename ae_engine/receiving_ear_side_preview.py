@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from .cabinet_types.policy import canonical_family_name
+
 from .assembly_geometry import build_joint_world_geometry
 from .manufacturing_scene_access import owner_render_data
 from .receiving_fixed_plate_side_mark_preview import (
@@ -32,7 +34,7 @@ def project_receiving_ear_side_piece_2d_preview(
     key = str(piece_key)
     if key not in {"box_body:left_side", "box_body:right_side"}:
         raise ValueError("EAR_2D_PREVIEW_EXPECTS_PHYSICAL_SIDE")
-    if snapshot.get("model") not in ("受電箱", "RECEIVING") or snapshot.get("nfb_config_submitted") is not True:
+    if canonical_family_name(snapshot) != "受電箱" or snapshot.get("nfb_config_submitted") is not True:
         raise ValueError("EAR_2D_PREVIEW_REQUIRES_SUBMITTED_RECEIVING")
     if str(getattr(source_piece, "role", "") or "").lower() != key.split(":", 1)[1]:
         raise ValueError("EAR_2D_PREVIEW_PIECE_ROLE_MISMATCH")

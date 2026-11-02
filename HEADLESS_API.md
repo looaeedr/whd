@@ -6,6 +6,22 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Receiving EAR SIDE source-only previews and CHECK operator inputs
+
+The existing `resolve_receiving_ear_side_display_context` and
+`project_receiving_ear_side_piece_2d_preview` now resolve every registered
+Receiving alias using the canonical Cabinet Family policy. The GUI forwards
+its FoldDesigner source and optional stale-primary mirror; the Engine decides
+whether a physical SIDE can show actual source UV/MARKING. For the separate
+non-production CHECK-only action,
+`manufacturing_api.receiving_ear_side_check_operator_inputs(snapshot)`
+returns `(dimensions, thickness)` after validating the submitted operator
+source and non-quantity mode, without a file-picker or side effect. Existing
+`export_receiving_ear_side_check_only_dxf` still applies its independent
+real source, geometry, atomic save and DXF reopen gates. Neither function
+certifies welding, EAR/PAD production or external source-only manufacturing.
+
+
 ## #2517 canonical resolver uses saved Family when live model is omitted
 
 The existing `manufacturing_api.resolve_manufacturing_request` consumes the
