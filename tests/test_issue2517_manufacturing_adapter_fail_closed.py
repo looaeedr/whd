@@ -19,9 +19,13 @@ def test_invalid_box_body_profile_readback_does_not_fall_back_to_snapshot(monkey
         _phase6_box_whd={},
         state=SimpleNamespace(profiles_vault={"箱身": [{"len": 200}]}),
     )
-    with pytest.raises(ValueError, match="MANUFACTURING_SCENE_PROFILE_INVALID:box_body") as error:
-        adapter.build_scene_payload_for_app(app, "box_body")
-    assert isinstance(error.value.__cause__, RuntimeError)
+    payload = adapter.build_scene_payload_for_app(app, "box_body")
+    assert payload["_manufacturing_profile_readback_error"] == (
+        "MANUFACTURING_SCENE_PROFILE_INVALID:box_body"
+    )
+    assert payload["w"] == 400  # A draft preview still renders its operator input.
+    with pytest.raises(ValueError, match="MANUFACTURING_SCENE_PROFILE_INVALID:box_body"):
+        adapter._scene_values_for_part(app, "box_body", builder=lambda _: payload)
 
 
 def test_invalid_endcap_profile_readback_does_not_fall_back_to_snapshot(monkeypatch):
@@ -33,9 +37,12 @@ def test_invalid_endcap_profile_readback_does_not_fall_back_to_snapshot(monkeypa
         designer_workspace=SimpleNamespace(active_part="head"),
         state=SimpleNamespace(profiles={"X": [{"len": 100}], "Y": [{"len": 200}]}),
     )
-    with pytest.raises(ValueError, match="MANUFACTURING_SCENE_PROFILE_INVALID:head") as error:
-        adapter.build_scene_payload_for_app(app, "head")
-    assert isinstance(error.value.__cause__, RuntimeError)
+    payload = adapter.build_scene_payload_for_app(app, "head")
+    assert payload["_manufacturing_profile_readback_error"] == (
+        "MANUFACTURING_SCENE_PROFILE_INVALID:head"
+    )
+    with pytest.raises(ValueError, match="MANUFACTURING_SCENE_PROFILE_INVALID:head"):
+        adapter._scene_values_for_part(app, "head", builder=lambda _: payload)
 
 
 @pytest.mark.parametrize("raw", [1, True, "bad", object()])
@@ -70,3 +77,20 @@ def test_malformed_input_snapshot_aborts_before_manufacturing_request():
     app = SimpleNamespace(_phase6_input_snapshot=42)
     with pytest.raises(ValueError, match="MANUFACTURING_INPUT_MAPPING_INVALID"):
         adapter.build_manufacturing_request(app)
+
+
+def test_manufacturing_request_aborts_on_unverified_draft_profile(monkeypatch):
+    monkeypatch.setattr(adapter, "read_box_body_profile", _failing)
+    monkeypatch.setattr(adapter, "_canonical_part_keys", lambda app: ("box_body",))
+    app = SimpleNamespace(
+        _phase6_input_snapshot={"model": "金庫型", "w": 400, "h": 500, "d": 200, "t": 2},
+        _settings_values={"t": 2},
+        _phase6_box_whd={"w": 400, "h": 500, "d": 200},
+        state=SimpleNamespace(profiles_vault={"箱身": [{"len": 200}]}),
+        designer_workspace=SimpleNamespace(available_parts=("box_body",)),
+    )
+    with pytest.raises(ValueError, match="MANUFACTURING_SCENE_PROFILE_INVALID:box_body"):
+        adapter.build_manufacturing_request(
+            app,
+            scene_payload_builder=lambda key: adapter.build_scene_payload_for_app(app, key),
+        )
