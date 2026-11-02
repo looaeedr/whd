@@ -697,6 +697,9 @@ def build_box_body_structure_render_data(
     from .sheetmetal_drawing import DrawingScene, structural_result_to_primitives, resolved_features_to_primitives
 
     ctx = context or ManufacturingContext()
+    # A registered-but-unimplemented Family cannot use this direct physical
+    # FinalScene constructor to bypass the shared generate_part gate.
+    cabinet_family_policy.require_implemented_manufacturing_family(spec.model_name)
     if not spec.fold_profile:
         raise ValueError("多件式箱身需要權威 Fold Profile")
     structure = resolve_box_body_structure(
@@ -715,7 +718,7 @@ def build_box_body_structure_render_data(
     # Dedicated Receiving source files own physical-piece fixed processing,
     # not the Vault's generic integral BoxBody feature layer.
     receiving_physical = (
-        str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}
+        cabinet_family_policy.canonical_family_name(spec.model_name) == "受電箱"
         and str(structure.structure_type.value) == "three_piece_side_back_split"
     )
     pieces = []
@@ -1075,6 +1078,11 @@ def build_part_render_data(
     spec: PartSpec, context: ManufacturingContext | None = None
 ) -> PartRenderData:
     """Return final manufacturing material + scene through the bounded render owner."""
+    # Direct callers (including confirmed Parts and GUI 2D/3D) share the
+    # same registered-Family manufacturing prohibition as generate_part.
+    cabinet_family_policy.require_implemented_manufacturing_family(
+        getattr(spec, "model_name", None)
+    )
     from .contracts import CustomFoldPartSpec
     if isinstance(spec, CustomFoldPartSpec):
         from .custom_fold_manufacturing import build_custom_fold_render_data
