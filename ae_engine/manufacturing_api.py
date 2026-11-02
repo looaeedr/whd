@@ -1861,6 +1861,7 @@ from .operator_door_layout_peer_2d import (
 from .operator_door_2d_preview import (
     project_operator_door_divider_frame_preview,
     project_operator_door_indicator_guides,
+    project_operator_hole_editor_indicator_box_opening,
 )
 
 # #2517 canonical BoxBody physical 2D source and operator piece identity.

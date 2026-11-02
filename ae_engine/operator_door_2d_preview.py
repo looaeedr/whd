@@ -11,7 +11,7 @@ from .ae import FW as default_frame_width
 from . import assembly_placement, door_dividers, inner_door_frames
 from .cabinet_types import policy as cabinet_family_policy
 from .sheetmetal_features import (
-    DoorIndicatorContext,
+    DoorIndicatorContext, ResolvedRect,
     measure_door_indicator_position,
     resolve_door_indicator_dimension_guides,
     resolve_door_indicator_layout,
@@ -78,6 +78,44 @@ def project_operator_door_divider_frame_preview(
         "frames": tuple(frame_payloads),
     }
 
+
+
+def project_operator_hole_editor_indicator_box_opening(
+    indicator_context: DoorIndicatorContext, layer_groups, *,
+    thickness: float, offset_x: float = 0.0, offset_y: float = 0.0,
+) -> ResolvedRect:
+    """Resolve the main Door's IndicatorBox CUTTING preview through Engine.
+
+    This is a view of the existing physical opening size and finished-face
+    placement, not an independent manufacturing or release permission.
+    """
+    from math import isfinite
+
+    from .manufacturing_door_indicator import indicator_box_opening_size
+
+    values = (
+        indicator_context.left_fold, indicator_context.bottom_fold,
+        indicator_context.finished_width, indicator_context.finished_height,
+        thickness, offset_x, offset_y,
+    )
+    if any(isinstance(value, bool) for value in values):
+        raise ValueError("指示燈盒預覽需要有限尺寸與座標")
+    try:
+        numbers = tuple(float(value) for value in values)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("指示燈盒預覽需要有限尺寸與座標") from exc
+    if not all(isfinite(value) for value in numbers):
+        raise ValueError("指示燈盒預覽需要有限尺寸與座標")
+    left, bottom, finished_w, finished_h, t, ox, oy = numbers
+    if finished_w <= 0 or finished_h <= 0 or t <= 0:
+        raise ValueError("指示燈盒預覽尺寸必須大於 0")
+    width, height = indicator_box_opening_size(layer_groups, thickness=t)
+    return ResolvedRect(
+        center=Vec2(left + finished_w / 2.0 + ox,
+                    bottom + finished_h / 2.0 + oy),
+        width=width, height=height,
+        layer="CUTTING", source_type="indicator_box_opening",
+    )
 
 
 def project_operator_door_indicator_guides(
