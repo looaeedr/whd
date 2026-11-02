@@ -252,7 +252,10 @@ def resolve_live_operator_finished_dimensions(
     The existing canonical finished-dimension resolver remains the sole
     mesh/outside-size and CornerType geometry authority.
     """
-    from .operator_settings_transactions import normalize_operator_source_dimension
+    from .operator_settings_transactions import (
+        normalize_operator_source_dimension,
+        project_receiving_manufacturing_request_settings,
+    )
 
     snapshot = dict(input_snapshot or {})
     settings = dict(settings_values or {})
@@ -265,11 +268,12 @@ def resolve_live_operator_finished_dimensions(
     for axis in ("w", "h", "d"):
         if axis not in snapshot and axis in whd:
             snapshot[axis] = whd[axis]
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
-        settings.update({
-            axis: whd[axis] for axis in ("w", "h", "d")
-            if axis in whd
-        })
+    # The live viewer and canonical manufacturing request must consume the
+    # same Engine Family registry and validated current Receiving Bay source.
+    # A GUI-side model allowlist misses registered aliases like "receiving".
+    settings = project_receiving_manufacturing_request_settings(
+        snapshot, settings, whd,
+    )
     return resolve_operator_finished_dimensions(
         part_key,
         snapshot=snapshot,
