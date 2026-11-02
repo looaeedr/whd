@@ -1904,6 +1904,7 @@ from .receiving_raw_source_cache import (
     receiving_raw_source_cache_kind,
     project_receiving_raw_source_cache_ticket,
     receiving_raw_source_cache_entry_valid,
+    project_operator_inner_door_panel_preview_cache_signature,
 )
 
 # #2517: the Receiving PAD+Base operator's selected Quantity/Set-Bay source
@@ -1917,3 +1918,6 @@ from .operator_receiving_endcap_hole_context import (
     ReceivingEndcapHoleEditorContext,
     project_receiving_endcap_hole_editor_context,
 )
+
+# #2517 Physical-sheet finished-face Features have one Engine transform owner.
+from .physical_sheet_features import with_physical_sheet_features

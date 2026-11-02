@@ -6,6 +6,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 實體 2D 板件孔位與受電箱內門板快取資格 Engine API（2026-11-02）
+
+`gui_modules/application/fold_designer_manufacturing_projection._query_fold_designer_render_data` 不再從 GUI 直接 import `ae_engine.physical_sheet_features.with_physical_sheet_features` 做展開板件孔位幾何，也不在 GUI 判斷 Receiving Family/Set-Bay 或呼叫 `phase6_manufacturing_contracts.manufacturing_fingerprint` 取得內門板素材快取鍵。前者由既有實體孔位函式直接經公開 `manufacturing_api.with_physical_sheet_features` 傳入同源實體 Render/Features；後者由 `manufacturing_api.project_operator_inner_door_panel_preview_cache_signature(snapshot, panel, features)` 在 `ae_engine.receiving_raw_source_cache` 統一校驗實體 `InnerDoorPanelPart`、Family、當前實體 Bay 與 typed Feature 指紋，並與既有 panel ticket 共用算法。GUI 只保留對不可變素材的 LRU、操作者輸入與畫面呈現；簽章只證明 raw preview 輸入相同，不能當作製造、CUTTING、外部 export 或 Save→Reload 認證。#2517 OPEN。
+
 ## [CURRENT] #2517 原 DXF 出圖路由與未配置底板的重試資格移回 Engine API（2026-11-02）
 
 原 `gui_modules/project/export_actions.py::_export_selected_resolved_parts` 自行認定金庫型合併模式、Receiving EAR/NFB 已提交 CSV 與舊式出圖前置拒絕的條件；`export_selected_dxf` 用製造錯誤字串判斷是否允許排除尚未配置底板。現在改用現有 Engine `manufacturing_selected_export` 擴充公開 `manufacturing_api.plan_selected_resolved_export_route` 取得 frozen 出圖路由計畫，及 `plan_unconfigured_receiving_base_export_retry` 僅對既有明確未配置底板錯誤產生排除底板之候選操作意圖。GUI 不得自行解釋來源證明、ERROR 或認定缺底板可製造；GUI 仍保有使用者明確同意的對話框，拒絕時不動既有檔，接受後必須以原 Engine 實體來源與嚴格製造 API 重跑。沿用既有 Vault/Receiving API、CURRENT NFB CSV、EAR 側板、PAD、保存來源漂移、DXF 逐片重開及原子輸出，**沒有新增任何製造認證或外部 source-only export**。#2517 OPEN。

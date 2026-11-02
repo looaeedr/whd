@@ -1773,3 +1773,18 @@ Fold Designer only invokes the one public API and caches its returned
 canonical FinalScene / physical-sheet result. This selection adds no new
 Family rule, geometry formula, DXF certification, or fallback; existing
 Save→Reload and manufacturing acceptance gates are unchanged.
+
+
+### #2517 Physical-sheet 2D Features and Receiving inner-door preview cache
+
+`manufacturing_api.with_physical_sheet_features(part_key, render, features)`
+preserves the one existing Engine feature placement/FinalScene material
+transformation for physical PAD, fixing plate, Divider and inner-door frame;
+the GUI no longer imports its lower-level feature implementation.
+
+`manufacturing_api.project_operator_inner_door_panel_preview_cache_signature(snapshot, panel, features)`
+returns the same deterministic source-free panel/Feature fingerprint used by
+the Engine raw-source ticket, or `None` for invalid Family, Set/Bay mode,
+physical panel identity or unsupported Feature input. The GUI only stores
+bounded cached raw preview material. Neither API bypasses original canonical
+manufacturing, DXF reopening, source verification or certificate gates.
