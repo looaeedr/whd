@@ -60,6 +60,59 @@ def normalize_fold_designer_indicator_groups(
     return tuple(result)
 
 
+def normalize_operator_hole_editor_indicator_state(raw: Mapping[str, object]) -> dict[str, object]:
+    """Validate CURRENT live Indicator controls before any physical hole commit.
+
+    Persisted saved-state repair is a separate compatibility operation. A live
+    enabled hole source may never fabricate the layer count, lamp groups or
+    offsets when a Tk read is invalid; all GUI consumers share this Engine gate.
+    """
+    if not isinstance(raw, Mapping):
+        raise ValueError("指示燈即時輸入必須是明確的操作資料")
+    mode = raw.get("mode")
+    if mode == "none":
+        # Disabled controls have no physical geometry; their unused fields need
+        # not be valid in order to switch the Indicator off.
+        return dict(mode="none", layers=1, groups=[2] * 6,
+                    offset_x=0.0, offset_y=0.0, is_box_dist=False)
+    if mode not in ("indicator", "indicator_box"):
+        raise ValueError("指示燈模式無效")
+    layers = normalize_fold_designer_indicator_groups((raw.get("layers"),))[0]
+    if layers > 6:
+        raise ValueError("指示燈層數／組數無效：最多六層")
+    group_source = raw.get("groups")
+    if not isinstance(group_source, (tuple, list)) or len(group_source) < layers:
+        raise ValueError("指示燈層數／組數無效：缺少實際組數")
+    groups = normalize_fold_designer_indicator_groups(group_source[:layers])
+    if any(group > 8 for group in groups):
+        raise ValueError("指示燈層數／組數無效：單層最多八組")
+
+    def finite_offset(key: str) -> float:
+        source = raw.get(key)
+        if isinstance(source, bool):
+            raise ValueError(f"指示燈 {key} 偏移必須是有限數字")
+        try:
+            value = float(source)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"指示燈 {key} 偏移必須是有限數字") from exc
+        if not math.isfinite(value):
+            raise ValueError(f"指示燈 {key} 偏移必須是有限數字")
+        return value
+
+    flag = raw.get("is_box_dist")
+    if isinstance(flag, bool):
+        is_box_dist = flag
+    elif type(flag) is int and flag in (0, 1):
+        is_box_dist = bool(flag)
+    elif isinstance(flag, str) and flag.strip().lower() in ("true", "false", "1", "0"):
+        is_box_dist = flag.strip().lower() in ("true", "1")
+    else:
+        raise ValueError("指示燈箱距設定無效")
+    return dict(mode=mode, layers=layers, groups=list(groups) + [2] * (6 - layers),
+                offset_x=finite_offset("offset_x"), offset_y=finite_offset("offset_y"),
+                is_box_dist=is_box_dist)
+
+
 def _require_positive_source_length(raw: object, field: str) -> float:
     if isinstance(raw, bool):
         raise ValueError(f"{field} 必須是正數有限的物理尺寸")

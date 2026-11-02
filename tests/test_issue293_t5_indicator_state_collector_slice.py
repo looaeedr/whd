@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
-VIEW = ROOT / "gui_modules" / "editors" / "hole_editor_view.py"
+VIEW = ROOT / "gui_modules" / "editors" / "hole_editor_controls.py"
 TARGET_CALLBACK = "collect_indicator_state"
 
 
@@ -49,20 +49,9 @@ def test_indicator_state_callback_moves_out_of_unified_root():
 
 def test_collector_uses_late_bound_var_providers_and_delegates_normalization():
     cls = _collector_class()
-    current = {
-        "mode": None,
-        "layers": None,
-        "groups": [],
-        "x": None,
-        "y": None,
-        "box": None,
-    }
+    current = {"mode": None, "layers": None, "groups": [],
+               "x": None, "y": None, "box": None}
     normalized = []
-
-    def normalize(state):
-        normalized.append(state)
-        return {"normalized": state}
-
     collector = cls(
         mode_var_provider=lambda: current["mode"],
         layers_var_provider=lambda: current["layers"],
@@ -70,48 +59,33 @@ def test_collector_uses_late_bound_var_providers_and_delegates_normalization():
         offset_x_var_provider=lambda: current["x"],
         offset_y_var_provider=lambda: current["y"],
         box_dist_var_provider=lambda: current["box"],
-        normalize_state=normalize,
+        normalize_state=lambda raw: normalized.append(raw) or {"normalized": raw},
     )
     assert collector.collect() is None
-    assert normalized == []
-
     current.update({
-        "mode": _Var("indicator_box"),
-        "layers": _Var("2"),
+        "mode": _Var("indicator_box"), "layers": _Var("2"),
         "groups": [_Var("3"), _Var("bad")],
-        "x": _Var("12.5"),
-        "y": _Var("-4"),
-        "box": _Var(1),
+        "x": _Var("12.5"), "y": _Var("-4"), "box": _Var(1),
     })
-    result = collector.collect()
-    expected = {
-        "mode": "indicator_box",
-        "layers": 2,
-        "groups": [3, 2, 2, 2, 2, 2],
-        "offset_x": 12.5,
-        "offset_y": -4.0,
-        "is_box_dist": True,
+    raw = collector.collect()["normalized"]
+    assert raw == {
+        "mode": "indicator_box", "layers": "2", "groups": ["3", "bad"],
+        "offset_x": "12.5", "offset_y": "-4", "is_box_dist": 1,
     }
-    assert normalized == [expected]
-    assert result == {"normalized": expected}
+    assert normalized == [raw]
 
 
-def test_collector_preserves_fallbacks_and_six_group_limit():
+def test_collector_does_not_read_inactive_controls_or_fabricate_physical_defaults():
     cls = _collector_class()
-    captured = []
+    observed = []
     collector = cls(
-        mode_var_provider=lambda: _Var("indicator"),
-        layers_var_provider=lambda: _Var("bad"),
-        group_vars_provider=lambda: [_Var("0"), _Var("4"), _Var("5"), _Var("6"), _Var("7"), _Var("8"), _Var("9")],
-        offset_x_var_provider=lambda: _Var("bad"),
-        offset_y_var_provider=lambda: _Var("bad"),
-        box_dist_var_provider=lambda: _Var(False),
-        normalize_state=lambda state: captured.append(state) or state,
+        mode_var_provider=lambda: _Var("none"),
+        layers_var_provider=lambda: (_ for _ in ()).throw(AssertionError("inactive layers")),
+        group_vars_provider=lambda: (_ for _ in ()).throw(AssertionError("inactive groups")),
+        offset_x_var_provider=lambda: (_ for _ in ()).throw(AssertionError("inactive x")),
+        offset_y_var_provider=lambda: (_ for _ in ()).throw(AssertionError("inactive y")),
+        box_dist_var_provider=lambda: (_ for _ in ()).throw(AssertionError("inactive flag")),
+        normalize_state=lambda state: observed.append(state) or state,
     )
-    result = collector.collect()
-    assert result["layers"] == 1
-    assert result["groups"] == [1, 4, 5, 6, 7, 8]
-    assert result["offset_x"] == 0.0
-    assert result["offset_y"] == 0.0
-    assert result["is_box_dist"] is False
-    assert captured == [result]
+    assert collector.collect() == {"mode": "none"}
+    assert observed == [{"mode": "none"}]
