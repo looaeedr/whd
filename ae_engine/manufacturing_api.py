@@ -751,8 +751,11 @@ def _end_cap_export(spec: EndCapPartSpec, filepath: str, context: ManufacturingC
     # Export must share the same EndCap resolver validation as 2D/3D.
     # Legacy formula export may still consume scalar requests for compatibility,
     # but invalid CornerType assembly semantics must fail before any DXF is written.
-    resolve_endcap_request(spec)
-    expected = _expected_baseline_path(spec.model_name, "封頭尾.dxf", context)
+    resolved = resolve_endcap_request(spec)
+    # The same Engine Family feature-source policy drives DXF provenance and
+    # FinalScene hole mapping. Receiving's shared Vault DXF supplies ONLY
+    # certified fixed holes, never the Vault 3T material/Corner geometry.
+    expected = expected_baseline_path_for(spec, context)
     baseline = expected if expected is not None and expected.is_file() else None
     has_resolved_geometry = bool(
         spec.corner_policy is not None
@@ -764,7 +767,12 @@ def _end_cap_export(spec: EndCapPartSpec, filepath: str, context: ManufacturingC
         render_data = build_part_render_data(spec, context)
         save_part_render_data_dxf(render_data, filepath, overwrite=True)
         return "final_scene_end_cap_export", baseline, expected
-    if baseline is not None:
+    feature_source_model = cabinet_family_policy.baseline_feature_model_name(
+        spec.model_name
+    )
+    if (baseline is not None
+            and (feature_source_model is None or feature_source_model == spec.model_name)
+            and abs(float(resolved.depth_comp_t) - 3.0) <= 1e-9):
         _call(
             ae.export_stretched_end_cap_dxf,
             filepath, spec.model_name,
@@ -785,7 +793,9 @@ def _end_cap_export(spec: EndCapPartSpec, filepath: str, context: ManufacturingC
         draw_stock=context.draw_stock, is_tail=spec.is_tail,
         holes=_legacy_endcap_holes(spec),
     )
-    return "export_end_cap_dxf", baseline, expected
+    # Formula-only compatibility did not consume shared feature source bytes:
+    # never report their mere presence as a manufacturing baseline used.
+    return "export_end_cap_dxf", None, expected
 
 
 def _base_plate_export(spec: BasePlatePartSpec, filepath: str, context: ManufacturingContext):
