@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 CADCraft 已確認來源孔位入 Session 前置驗證 Engine API（2026-11-02）
+
+`manufacturing_api.verify_cadcraft_verified_candidate_stage(output, whd_candidates, existing_features, surface, width, height)` 接收 WHD 既有 finished-face Features／實體 Surface 與 CADCraft 隔離交換 DXF，於 Engine 內驗證候選數量／CUTTING、實際物理面積、舊孔碰撞、外部圖元幾何及公制、交換檔容量和 SHA256，僅回傳已驗證來源 fingerprint。GUI `cadcraft_command_session_bridge.stage_verified_cadcraft_drawing` 只檢查原 Session 有效狀態、呼叫公開 API、核對 Session 未改變後執行原本 `preview_all`；Confirm／Cancel／Undo 的原子回滾與 hash 再驗均保留。原 `_MAX_EXCHANGE_BYTES` 由 Engine 常數單一來源提供，不增加另一套 Factory／CSV／DXF 或任何 CADCraft 製造認證。#2517 OPEN。
+
+
 ## [CURRENT] #2517 CADCraft 手動孔位回傳統一 Engine API（2026-11-02）
 
 既有 `tools.issue1959_whd_cadcraft_command_draw` 的交換檔 R2010／mm／封閉形狀／圖元順序驗證遷至 `ae_engine.cadcraft_exchange_proof`；GUI 的 CADCraft 新孔形解析、原孔位平移、真實裁切面內驗證／孔位碰撞、零孔原始空檔驗證則遷至 `ae_engine.cadcraft_manual_return`。唯一公開呼叫為 `manufacturing_api.verify_cadcraft_manual_ticket_seed`、`project_cadcraft_manual_return_changes`、`cadcraft_new_hole_from_entity`、`cadcraft_feature_footprint_polygon` 等。GUI 只保存短效 Session ticket、完整來源 hash、回傳驗證結果 preview／cancel／confirm；歷史 GUI／CLI 名稱為薄相容轉接，不保留第二份製造公式。CADCraft 僅輸入經 WHD 核對的候選新孔，不是製造權威；CUTTING 只能經原 WHD Session 明確確認後由既有 Engine 再生，NFB 認證、Factory、source-only 出圖限制完全不變。#2517 OPEN。

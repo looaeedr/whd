@@ -13,17 +13,10 @@ from typing import Sequence
 
 from ae_engine import manufacturing_api
 
-from ae_engine.sheetmetal_features import (
-    CircleFeature, FeatureAnchor, ProfileFeature, RectFeature,
-    feature_is_strictly_within_surface, resolve_surface_features,
-)
 from phase6_hole_editor_session import HoleEditorAction, Phase6HoleEditorSession
-from tools.issue1959_whd_cadcraft_command_draw import (
-    CadcraftCommandProofError, from_whd_resolved, verify_dxf,
-)
+from tools.issue1959_whd_cadcraft_command_draw import CadcraftCommandProofError
 
-_ACCEPTED_TYPES = (CircleFeature, RectFeature, ProfileFeature)
-_MAX_EXCHANGE_BYTES = 3_000_000
+_MAX_EXCHANGE_BYTES = manufacturing_api.CADCRAFT_MAX_EXCHANGE_BYTES
 
 
 def _polygon(feature, width: float, height: float):
@@ -96,39 +89,15 @@ def stage_verified_cadcraft_drawing(
         raise TypeError("WHD_PHASE6_SESSION_REQUIRED")
     if session.has_active_edit:
         raise CadcraftCommandProofError("PREEXISTING_ACTIVE_EDIT")
-    candidates = tuple(whd_candidates)
-    if not candidates or len(candidates) > 100:
-        raise CadcraftCommandProofError("INVALID_WHD_CANDIDATE_COUNT")
+    # Session remains the only transaction owner; Engine verifies all
+    # finished-face geometry and independent CADCraft DXF proof.
     current = session.snapshot()
-    if not all(isinstance(f, _ACCEPTED_TYPES) and f.layer == "CUTTING"
-               for f in candidates):
-        raise CadcraftCommandProofError("ONLY_VERIFIED_WHD_CUTTING_FEATURES")
-    if not all(isinstance(f, _ACCEPTED_TYPES) for f in current.features):
-        raise CadcraftCommandProofError("UNKNOWN_EXISTING_WHD_FEATURE")
-    try:
-        for feature in candidates:
-            if not feature_is_strictly_within_surface(surface, feature, width, height):
-                raise CadcraftCommandProofError("OUTSIDE_WHD_PHYSICAL_SURFACE")
-        footprints = [_polygon(f, width, height) for f in (*current.features, *candidates)]
-        offset = len(current.features)
-        for index in range(offset, len(footprints)):
-            for previous in range(index):
-                if footprints[index].intersects(footprints[previous]):
-                    raise CadcraftCommandProofError("WHD_FEATURE_COLLISION")
-        resolved = tuple(resolve_surface_features(surface, candidates, width, height))
-        intent = from_whd_resolved(resolved)
-        output = Path(output)
-        if output.stat().st_size > _MAX_EXCHANGE_BYTES:
-            raise CadcraftCommandProofError("CADCRAFT_EXCHANGE_TOO_LARGE")
-        verify_dxf(output, intent)
-        checked_hash = sha256(output.read_bytes()).hexdigest()
-        # Recheck that we did not lose the selected context during verification.
-        if session.snapshot() != current:
-            raise CadcraftCommandProofError("WHD_SESSION_CHANGED_DURING_PROOF")
-    except (OSError, ValueError, TypeError, IndexError) as exc:
-        if isinstance(exc, CadcraftCommandProofError):
-            raise
-        raise CadcraftCommandProofError("CADCRAFT_STAGE_VALIDATION_FAILED") from exc
+    candidates = tuple(whd_candidates)
+    checked_hash = manufacturing_api.verify_cadcraft_verified_candidate_stage(
+        output, candidates, current.features, surface, width, height,
+    )
+    if session.snapshot() != current:
+        raise CadcraftCommandProofError("WHD_SESSION_CHANGED_DURING_PROOF")
 
     intended = current.features + candidates
     session.execute(HoleEditorAction.preview_all(intended))

@@ -1773,3 +1773,9 @@ from .cadcraft_manual_return import (
     verify_cadcraft_manual_ticket_seed,
     project_cadcraft_manual_return_changes,
 )
+
+# #2517 CADCraft verified-candidate stage geometry is Engine-only.
+from .cadcraft_manual_return import (
+    CADCRAFT_MAX_EXCHANGE_BYTES,
+    verify_cadcraft_verified_candidate_stage,
+)

@@ -1659,3 +1659,7 @@ or DXF is newly synthesized or certified.
 ### #2517 CADCraft manual-return Engine API (2026-11-02)
 
 Disposable WHD→CADCraft R2010/mm proof, original immutable source-prefix, candidate circle/closed profile validation, physical surface collision, new-hole import and empty original exchange checks are now Engine-owned under `ae_engine.cadcraft_exchange_proof` and `ae_engine.cadcraft_manual_return`. Public `manufacturing_api.verify_cadcraft_manual_ticket_seed(path, originals, surface, width, height)` checks issue provenance; `project_cadcraft_manual_return_changes(output, original, surface, width, height)` returns (verified candidate features, moves, additions) without changing a saved Project; `cadcraft_new_hole_from_entity` and `cadcraft_feature_footprint_polygon` preserve the existing coordinate and shape contract. GUI and tools retain compatibility routes. A CADCraft exchange is never a trusted manufacturing DXF.
+
+### #2517 verified CADCraft candidate-stage Engine API (2026-11-02)
+
+`manufacturing_api.verify_cadcraft_verified_candidate_stage(output, whd_candidates, existing_features, surface, width, height)` verifies the originally WHD-authored finished-face Features, physical boundary/intersection, isolated CADCraft mm DXF entities and bounded file SHA256 before any Phase6 Session preview. It returns the audited SHA; the old `stage_verified_cadcraft_drawing` GUI facade exclusively controls the original Session Preview/Confirm/Cancel/Undo. This is not a manufacturing DXF or source-only certification.
