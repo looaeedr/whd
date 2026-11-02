@@ -1941,3 +1941,11 @@ from .physical_sheet_features import with_physical_sheet_features
 from .operator_relief_candidate_3d import (
     validate_operator_relief_registry_candidate_3d,
 )
+
+# #2517 project schema / Receiving NFB authority belongs to Engine, not file codec.
+from .operator_project_persistence import (
+    PROJECT_SCHEMA_V1, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
+    validate_operator_project_payload,
+    project_operator_project_for_write,
+    project_operator_project_for_read,
+)
