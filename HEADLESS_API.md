@@ -1675,3 +1675,7 @@ Use the existing `manufacturing_api.project_operator_base_navigation_identity(sn
 ### #2517 Receiving Set/Bay GUI transactions through existing Engine API
 
 `ReceivingSetBayAdapter` calls public `manufacturing_api` for Set/Bay/Joint state transitions, shared setting edit/share/unlink, brand policy and all NFB atomic submit/copy/restore/optimistic Undo transactions, as well as stable ID and readiness projections. Existing Engine receiving_layout/receiving_shared_settings/receiving_nfb_transactions implementations remain the single source of business authority; GUI only owns selection, explicit operator confirmation and temporary dirty/Undo tracking. Source-only and NFB manufacturing approvals are unchanged.
+
+### #2517 Receiving physical Bay preview provenance Engine API
+
+`project_receiving_bay_preview_fingerprint_snapshot(snapshot, set_index, bay_index, allow_upstream_translation=False, allow_suffix_topology_reuse=False)` selects only independent operator display cache-key inputs. `project_receiving_bay_preview_face_features_key` ignores exactly the temporary side-lock aliases that the canonical Bay solver replaces. `receiving_default_local_joints_only` rejects custom/cross-Bay Joint authority. `plan_receiving_bay_preview_offset_rebase(parts, old_anchor, new_anchor)` proposes translations of immutable rendered part placements only; GUI validates the supported phase6 FinalScene envelope before applying them. None of these authorizes material or MFG DXF. Unknown dependencies trigger full canonical resolve.
