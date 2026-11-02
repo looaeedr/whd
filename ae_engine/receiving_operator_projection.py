@@ -97,3 +97,48 @@ def project_receiving_original_door_marks(scene):
     ]
     handle = tuple(xy(pt) for pt in interior[0].points) if len(interior) == 1 else ()
     return {"nameplate": nameplate, "handle": handle}
+
+
+
+def project_receiving_operator_door_cell_sources(
+    snapshot, *, set_index: int, bay_index: int,
+):
+    """Select the one original two-face Receiving Bay Door source via Engine.
+
+    This preserves current Bay legacy projection and strict physical topology
+    selection. Unsupported sketches are absent, never replaced by fabricated
+    cells. The caller may render each corresponding baseline scene.
+    """
+    from .receiving_layout import project_receiving_bay_legacy_aliases
+    from .sheetmetal_part_adapters import derive_door_layout_cells
+
+    projected = project_receiving_bay_legacy_aliases(
+        snapshot, set_index=set_index, bay_index=bay_index,
+    )
+    columns = projected.get("door_layout_columns") or ()
+    if not projected.get("multi_door_enabled") or not columns:
+        return None
+    cells = derive_door_layout_cells(columns)
+    if len(cells) != 2 or any(cell.column_index != 0 for cell in cells):
+        return None
+    return projected, tuple(sorted(cells, key=lambda item: item.row_index))
+
+
+def project_receiving_initial_door_source_scenes(snapshot, resolved):
+    """Read exactly the original pair of Door scenes from committed Receiving.
+
+    Return source scene objects only, not new geometry or a manufacturing grant.
+    Identity and order derive from canonical Door part keys.
+    """
+    if canonical_family_name(snapshot) != "受電箱":
+        return ()
+    parts = {
+        str(part.part_key): getattr(part.render_data, "scene", None)
+        for part in tuple(getattr(resolved, "parts", ()) or ())
+        if str(getattr(part, "part_key", "") or "") in {
+            "door_c1_r1", "door_c1_r2",
+        }
+    }
+    if any(parts.get(key) is None for key in ("door_c1_r1", "door_c1_r2")):
+        return ()
+    return (parts["door_c1_r1"], parts["door_c1_r2"])

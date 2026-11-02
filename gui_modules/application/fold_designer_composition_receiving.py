@@ -1584,10 +1584,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         self.app.submit_update_intent("geometry", commit=True)
 
     def existing_door_marks(set_index, bay_index):
-        # The lightweight diagram reuses ONLY the existing Door baseline.
-        # Do not synthesize handle/nameplate positions when source is missing.
-        from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
-        from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
+        # The baseline scene owner is GUI; selection of physical Bay cells is Engine.
         from .receiving_multi_settings_window import extract_original_door_marks
 
         host = getattr(self.app._scene_query_callback, "__self__", None)
@@ -1595,19 +1592,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             return ()
         snapshot = dict(self.app._phase6_input_snapshot)
         snapshot["receiving_layout"] = self.receiving_adapter(namespace).layout
-        projected = project_receiving_bay_legacy_aliases(
-            snapshot, set_index=int(set_index), bay_index=int(bay_index)
+        selection = manufacturing_api.project_receiving_operator_door_cell_sources(
+            snapshot, set_index=int(set_index), bay_index=int(bay_index),
         )
-        columns = projected.get("door_layout_columns") or ()
-        if not projected.get("multi_door_enabled") or not columns:
+        if selection is None:
             return ()
-        cells = derive_door_layout_cells(columns)
-        # The operator sketch has two Door faces in a single column.
-        # Do not invent a projection for unsupported multi-column topology.
-        if len(cells) != 2 or any(cell.column_index != 0 for cell in cells):
-            return ()
+        projected, cells = selection
         result = []
-        for cell in sorted(cells, key=lambda item: item.row_index):
+        for cell in cells:
             scene, _status = host._door_layout_baseline_scene(cell, projected)
             if scene is None:
                 return ()
@@ -1615,35 +1607,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         return tuple(result)
 
     def cached_initial_door_marks():
-        """Show original handle/nameplate from committed Assembly, no DXF read.
-
-        The pre-rendered scenes are only a preview source. Never use a stale
-        scene from another family or invent positions from nominal sizes.
-        Applied Set/Bay sketches continue to load their exact source through
-        existing_door_marks().
-        """
+        """Only draw the exact Engine-identified Door pair from committed Assembly."""
         from .receiving_multi_settings_window import extract_original_door_marks
 
-        if str(self.app._phase6_input_snapshot.get("model") or "") not in {
-            "受電箱", "RECEIVING"
-        }:
-            return ()
-        resolved = getattr(
-            self.app, "_phase6_last_resolved_manufacturing_geometry", None
+        scenes = manufacturing_api.project_receiving_initial_door_source_scenes(
+            self.app._phase6_input_snapshot,
+            getattr(self.app, "_phase6_last_resolved_manufacturing_geometry", None),
         )
-        parts = {
-            str(part.part_key): getattr(part.render_data, "scene", None)
-            for part in tuple(getattr(resolved, "parts", ()) or ())
-            if str(getattr(part, "part_key", "") or "") in {
-                "door_c1_r1", "door_c1_r2"
-            }
-        }
-        if any(parts.get(key) is None for key in ("door_c1_r1", "door_c1_r2")):
+        if not scenes:
             return ()
-        return ((
-            extract_original_door_marks(parts["door_c1_r1"]),
-            extract_original_door_marks(parts["door_c1_r2"]),
-        ),)
+        return (tuple(extract_original_door_marks(scene) for scene in scenes),)
 
     def resize_sets(delta):
         switch = self.receiving_switch_adapter(namespace)
