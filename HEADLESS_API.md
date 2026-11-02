@@ -51,6 +51,10 @@ EndCap BOTTOM wrap/reserve 判準。三個公開 API 均不含 GUI/Tk，不新�
 
 `manufacturing_api.box_body_symmetry_allowed(family_or_snapshot)` is the existing single Cabinet Family policy function re-exported through the Engine public boundary and root `ae_engine`. Phase6 Fold GUI only chooses the operator's currently selected model and asks this public capability whether the symmetry control is allowed; original Vault/Receiving behavior, symmetric state clearing, fold topology and manufacturing results are unchanged. This is not new geometry, CUTTING or DXF certification.
 
+## #2517 Receiving BoxBody three physical sheets using existing verified Bay export
+
+Already-confirmed Receiving `BoxBodyPartSpec` with real three-piece side/back state, Fold and back-panel policy is accepted as `("box_body", spec)` in the same `ManufacturingResolvedBayInput.confirmed_parts` port. Engine delegates to existing `build_box_body_structure_render_data`, requires exactly left-side/back/right-side physical pieces, then uses the unchanged staged Save→Reload writer to export three independent DXFs. A missing dedicated baseline, structural source or physical contract fails before output. This does not certify NFB/PAD/EAR or total-cabinet assembly.
+
 ## #2517 Confirmed source PartSpecs through existing verified Bay DXF path
 
 `ManufacturingResolvedBayInput(family, source, confirmed_parts=((part_key, PartSpec), ...))` may now supply already-authoritative, typed physical Door/Head/Tail inputs to the **existing** `export_verified_resolved_integration_bays` API. Engine itself calls its canonical `build_part_render_data` before the unchanged independently verified staged DXF writer; a caller-supplied pre/post source guard is still mandatory. `confirmed_parts` and `resolved_geometry` are mutually exclusive, and incomplete Fold/Corner, wrong-family, untrusted role, guessed NFB/BoxBody and raw source-only requests fail closed. Existing resolved-geometry clients are unchanged. This is a partial in-process adapter, not external CLI manufacturing certification or a complete-cabinet release.
