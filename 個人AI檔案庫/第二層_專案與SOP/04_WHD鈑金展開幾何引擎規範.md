@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 派生板件選單 Receiving BasePlate／NFB Tier／PAD／EAR Engine API（2026-11-02）
+
+`manufacturing_api.project_operator_base_navigation_identity`、`project_operator_multidoor_base_plate_dimensions`、`project_operator_receiving_auxiliary_navigation` 將 Fold Designer `sync_authoritative_derived_parts` 中原 GUI 直接認定實體根底板／雙 NFB Tier／門格底板收縮、補出已提交來源、固定片與 PAD 的實體資格及 2D Fold Profiles，統一搬入無 Tk 的 `ae_engine.operator_derived_navigation`；由原 `receiving_base_plate_values`、`receiving_nfb_layer_centers`、`receiving_base_plate_3d_profiles`、`committed_nfb_pad_draft_parts`／Fixing Plate source owner 判定來源。GUI 只擷取 Workspace 即時孔位／已保存快照、透過公開 API 接收 Profiles 並呼叫現有 `Phase6WorkspaceNavigationController.sync_derived_parts`，保持當前選取、已儲存／候選 PAD 來源優先與兩層隱藏根底板規則。這些選單 Fold 行與固定片圖樣僅供顯示，絕不新增 NFB MFG-2、PAD/EAR 焊接製造放行、外部 source-only Export 資格；2D/3D/DXF 正式製造仍由唯一 FinalScene／Registry owner 決定。#2517 OPEN。
+
+
 ## [CURRENT] #2517 CADCraft 已確認來源孔位入 Session 前置驗證 Engine API（2026-11-02）
 
 `manufacturing_api.verify_cadcraft_verified_candidate_stage(output, whd_candidates, existing_features, surface, width, height)` 接收 WHD 既有 finished-face Features／實體 Surface 與 CADCraft 隔離交換 DXF，於 Engine 內驗證候選數量／CUTTING、實際物理面積、舊孔碰撞、外部圖元幾何及公制、交換檔容量和 SHA256，僅回傳已驗證來源 fingerprint。GUI `cadcraft_command_session_bridge.stage_verified_cadcraft_drawing` 只檢查原 Session 有效狀態、呼叫公開 API、核對 Session 未改變後執行原本 `preview_all`；Confirm／Cancel／Undo 的原子回滾與 hash 再驗均保留。原 `_MAX_EXCHANGE_BYTES` 由 Engine 常數單一來源提供，不增加另一套 Factory／CSV／DXF 或任何 CADCraft 製造認證。#2517 OPEN。
