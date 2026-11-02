@@ -1858,3 +1858,10 @@ from .receiving_bay_preview_source import (
     project_receiving_bay_preview_fingerprint_snapshot,
     plan_receiving_bay_preview_offset_rebase,
 )
+
+# #2517 original physical Receiving BasePlate/PAD/EAR 2D source API.
+from .operator_receiving_physical_2d import (
+    resolve_operator_receiving_base_2d_source,
+    resolve_operator_receiving_pad_2d_source,
+    resolve_operator_receiving_fixing_2d_source,
+)

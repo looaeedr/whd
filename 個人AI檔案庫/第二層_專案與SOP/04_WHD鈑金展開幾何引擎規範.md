@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 2D 實體底板／PAD／固定片來源單一 Engine API（2026-11-02）
+
+`fold_designer_manufacturing_projection.py::_query_fold_designer_render_data` 不再自行認定 NFB 單層原底板、雙層 `base_plate:nfb_layer:[01]`、source-backed PAD 或原固定片的 2D 實體材料、Bay 來源漂移與 MFG status。新增 `ae_engine.operator_receiving_physical_2d`，由既有正式 `manufacturing_api` 公開 `resolve_operator_receiving_base_2d_source`、`resolve_operator_receiving_pad_2d_source`、`resolve_operator_receiving_fixing_2d_source`，直接委派已存在的 committed NFB/BasePlate/PAD/EAR source owners 和 canonical ResolvedManufacturingGeometry；GUI 只傳當前來源、供應既有 geometry resolver 與將 RenderData 套上特徵。選定 Bay 必須匹配同一真實 Set/Bay 的 W/H/D、Door/NFB 身分，禁止跨 Bay 借材；缺來源／偽造 PartKey／PAD 冒充可製造均維持拒絕。此輸出只代表原實體 2D RenderData；正式 DXF、MFG-2、EAR／PAD 工法尚未獲放行，必須照 Certified Registry gate。#2517 OPEN。
+
+
 ## [CURRENT] #2517 Receiving Bay 2D／3D 預覽快取資格回歸 Engine API（2026-11-02）
 
 `fold_designer_composition_receiving.py` 原自行決定何種 Set/Bay／Joint／NFB／自訂板件改動可重用實體預覽、忽略哪些來源 Joint lock feature、何時允許平移快取 3D 實體。現將這些物理來源依賴判斷遷至無 GUI／Phase6 依賴的 `ae_engine.receiving_bay_preview_source`，公開 `manufacturing_api.project_receiving_bay_preview_fingerprint_snapshot`、`project_receiving_bay_preview_face_features_key`、`receiving_default_local_joints_only`、`plan_receiving_bay_preview_offset_rebase`；GUI 保留相容代理與 immutable FinalScene View 容器包裝、快取 LRU/Session UI。未知 cross-Bay Joint、source/Feature/metadata 及碰撞/干涉狀態不准重用；所有實體正式製造／DXF 必須仍走 canonical resolve，預覽快取與座標平移不能當製造證明。沿用 #1817 大量真實 Set/Bay／joint、2D/3D、保存回讀及來源 SHA 測試。#2517 OPEN。
