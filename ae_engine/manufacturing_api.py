@@ -2056,6 +2056,8 @@ from .operator_part_session_profiles import (
     project_operator_receiving_base_plate_save_profiles,
     can_skip_operator_receiving_part_save,
     project_operator_receiving_settings_live_dimensions,
+    project_operator_quantity_box_dimensions,
+    project_operator_part_session_source_dimensions,
 )
 
 # #2517: original fixing-plate source-flat DXF is source evidence only.

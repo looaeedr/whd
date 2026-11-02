@@ -87,7 +87,13 @@ class Phase6PartSessionOwner:
             bridge.apply_outside_dimension_compensation(profiles.get(fold_axis, []), float(t_val))
             app.designer_workspace.stash_profiles(key, profiles)
             return
-        bridge._phase6_replace_mapping(app, '_phase6_box_whd', {'w': bridge.original.get_int(app.v_w.get()), 'h': bridge.original.get_int(app.v_h.get()), 'd': bridge.original.get_int(app.v_d.get())})
+        bridge._phase6_replace_mapping(
+            app, '_phase6_box_whd',
+            bridge.manufacturing_api.project_operator_part_session_source_dimensions(
+                app._phase6_input_snapshot,
+                {axis: getattr(app, 'v_' + axis).get() for axis in ('w', 'h', 'd')},
+            ),
+        )
         if bridge._phase6_is_box_body_physical_piece_key(key):
             profiles = {'X': bridge.clone_profile(app.state.profiles.get('X', [])), 'Y': bridge.clone_profile(app.state.profiles.get('Y', []))}
             if bridge._phase6_is_side_back_editable_piece_key(key):
@@ -108,8 +114,13 @@ class Phase6PartSessionOwner:
                 # Only the *already committed* live Receiving dimensions may
                 # replace them during a Settings-only Part save.
                 values.update(receiving_settings_whd)
-            if app._phase6_input_snapshot.get('receiving_quantity_box') and app._phase6_input_snapshot.get('active_mode') == 'quantity':
-                values.update({axis: float(app._phase6_input_snapshot['receiving_quantity_box'][axis]) for axis in ('w', 'h', 'd')})
+            quantity_dimensions = (
+                bridge.manufacturing_api.project_operator_quantity_box_dimensions(
+                    app._phase6_input_snapshot,
+                )
+            )
+            if quantity_dimensions is not None:
+                values.update(quantity_dimensions)
             bridge._phase6_store_editor_values(app, values, notify=notify)
             app._phase6_input_snapshot['endcap_fw'] = bridge.deepcopy(app._phase6_endcap_fw_state)
             bridge._phase6_rebuild_linked_endcaps(app)
@@ -145,13 +156,23 @@ class Phase6PartSessionOwner:
                 values.pop('fw', None)
             else:
                 values = {} if flat_x else {'yl1': bridge._ui_len(x['yl1'].get('len')), 'yr1': bridge._ui_len(x['yr1'].get('len'))}
-            if app._phase6_input_snapshot.get('receiving_quantity_box') and app._phase6_input_snapshot.get('active_mode') == 'quantity':
-                values.update({axis: float(app._phase6_input_snapshot['receiving_quantity_box'][axis]) for axis in ('w', 'h', 'd')})
+            quantity_dimensions = (
+                bridge.manufacturing_api.project_operator_quantity_box_dimensions(
+                    app._phase6_input_snapshot,
+                )
+            )
+            if quantity_dimensions is not None:
+                values.update(quantity_dimensions)
+            # Verify every changed physical outside dimension before writing
+            # project state. No rounding/abs or Quantity-string GUI branches.
+            endcap_dimensions = {
+                axis: bridge.manufacturing_api.normalize_operator_source_dimension(
+                    values[axis], field=axis,
+                )
+                for axis in ('w', 'd') if axis in values
+            }
             bridge._phase6_store_editor_values(app, values, notify=notify)
-            if 'w' in values:
-                app._phase6_box_whd['w'] = float(values['w']) if app._phase6_input_snapshot.get('receiving_quantity_box') else bridge.original.get_int(values['w'])
-            if 'd' in values:
-                app._phase6_box_whd['d'] = float(values['d']) if app._phase6_input_snapshot.get('receiving_quantity_box') else bridge.original.get_int(values['d'])
+            app._phase6_box_whd.update(endcap_dimensions)
             w_text = str(app._phase6_box_whd['w'])
             d_text = str(app._phase6_box_whd['d'])
             if app.v_w.get() != w_text:
