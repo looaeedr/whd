@@ -180,33 +180,47 @@ def _snapshot_part_features(self, snapshot):
 
 
 def _snapshot_part_dimensions(self, snapshot):
-    """Collect operator controls; Engine alone projects physical dimensions."""
-    try:
-        layers = max(1, int(self.indicator_l_var.get()))
-        groups = [int(self.indicator_layer_g_vars[i].get()) for i in range(layers)]
-    except Exception:
-        groups = [1]
+    """Collect operator inputs; Engine validates Indicator and physical sizes.
+
+    Disabled Indicator controls retain the legacy display-only seed, but an
+    enabled malformed group may never be saved as a fabricated (1,) or ().
+    No snapshot mutation occurs before both enabled sources are valid.
+    """
+    box_enabled = bool(self.is_indicator_box_var.get())
+    door_enabled = bool(self.is_door_indicator_var.get())
+
+    def read_groups(layer_var, group_vars, *, label):
+        try:
+            count = manufacturing_api.normalize_fold_designer_indicator_groups(
+                (layer_var.get(),)
+            )[0]
+            raw_groups = [group_vars[i].get() for i in range(count)]
+        except Exception as exc:
+            raise ValueError(f"{label}層數／組數無效，拒絕保存快照") from exc
+        return manufacturing_api.normalize_fold_designer_indicator_groups(
+            raw_groups
+        )
+
+    groups = (
+        read_groups(self.indicator_l_var, self.indicator_layer_g_vars, label="指示燈盒")
+        if box_enabled else (1,)
+    )
+    direct_groups = (
+        read_groups(self.door_indicator_l_var,
+                    self.door_indicator_layer_g_vars, label="門板指示燈")
+        if door_enabled else ()
+    )
     dimensions = manufacturing_api.project_fold_designer_snapshot_dimensions(
         snapshot, groups,
     )
-    snapshot["indicator_layer_groups"] = list(dimensions.indicator_layer_groups)
-    try:
-        if self.is_door_indicator_var.get():
-            count = max(1, int(self.door_indicator_l_var.get()))
-            snapshot["door_indicator_groups"] = [
-                int(self.door_indicator_layer_g_vars[i].get())
-                for i in range(count)
-            ]
-        else:
-            snapshot["door_indicator_groups"] = []
-    except Exception:
-        snapshot["door_indicator_groups"] = []
-
-    snapshot["door_indicator_offset"] = (
+    offsets = (
         float(self.door_indicator_offset_x),
         float(self.door_indicator_offset_y),
     )
-    snapshot["door_indicator_box_enabled"] = bool(self.is_indicator_box_var.get())
+    snapshot["indicator_layer_groups"] = list(dimensions.indicator_layer_groups)
+    snapshot["door_indicator_groups"] = list(direct_groups)
+    snapshot["door_indicator_offset"] = offsets
+    snapshot["door_indicator_box_enabled"] = box_enabled
     snapshot["part_dimensions"] = {
         key: dict(size) for key, size in dimensions.part_dimensions.items()
     }

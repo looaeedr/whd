@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 指示燈操作來源／快照物理尺寸不得靜默降級（2026-11-02）
+
+- 原 `ae_engine.fold_designer_snapshot_dimensions.project_fold_designer_snapshot_dimensions` 遇到指示燈盒群組或製造 policy 異常，會默默替換成 `groups=(1,)`／預設 `ManufacturingContext()`，讓專案快照看起來像有效的製造來源；現改成 Engine 直接驗證並拒絕無效的層數／組數／成品尺寸，不得把 `bool`、小數群組、零／負數變成實體孔位。既有 public `manufacturing_api.project_fold_designer_snapshot_dimensions` 保持同一入口；新增共享的 `normalize_fold_designer_indicator_groups` 供 GUI 操作來源消費。
+- `gui_modules/application/fold_designer_snapshot_projection._snapshot_part_dimensions` 只讀取啟用中的兩類指示燈操作欄位（盒體與門板直裝），兩者都完成 Engine 驗證後才一次寫入 snapshot。啟用時組數失敗不可偷偷寫 `[1]` 或 `[]`，不得遺失 CUTTING 孔位；停用時沿用既有一層的純顯示預覽種子（不構成實際製造要求）。
+- Engine 投影不再將門板／底板物理尺寸以 `max(1, …)` 捏造 1 mm；非法尺寸 fail closed。正式 CUTTING／BEND／DXF 權威與原認證狀態不變；未發布 X。回歸 `tests/test_issue2517_fold_designer_snapshot_dimensions_engine_api.py`。
+
 ## [CURRENT] #2517 Settings 外部布林同步與包外 W/H/D 交易一致性 Engine API（2026-11-02）
 
 - `ae_engine.manufacturing_api.normalize_operator_settings_updates(settings_values, updates, external_apply_guard=...)` 由 Engine 統一轉換外部操作的布林值（`"false"` 不再被 `bool(raw)` 當成 true），以及 W/H/D 等保存實體欄位。無法辨認的明確布林輸入直接拒絕；W/H/D 必須為正、有限、非 bool 的包外尺寸。舊版非物理數值欄位的未知 key／無效字串仍可略過，但 NaN/Inf 不得污染值。純視覺 `ui_text_size` 選擇維持 GUI owner，不在 Engine 生產值中判斷。
