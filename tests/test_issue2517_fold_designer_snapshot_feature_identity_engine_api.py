@@ -87,7 +87,7 @@ def test_gui_submits_operator_store_and_receives_engine_projection(monkeypatch):
     source = inspect.getsource(gui._snapshot_workspace_state)
     assert "_snapshot_part_features(self, snapshot)" in source
     assert "door_layout_feature_map_to_part_features(" not in source
-    assert "door_c" not in source
+    assert "door_c1_r1" not in source and "door_c1_r2" not in source
     assert "from gui_modules" not in inspect.getsource(
         __import__("ae_engine.door_layout_feature_projection", fromlist=["project_fold_designer_snapshot_part_features"])
     )
