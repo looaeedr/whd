@@ -141,3 +141,26 @@ def commit_operator_settings_state(
     return OperatorSettingsCommitTransition(
         next_settings, next_snapshot, next_box, committed
     )
+
+
+def project_receiving_manufacturing_request_settings(
+    input_snapshot: Mapping[str, object],
+    settings_values: Mapping[str, object],
+    working_box: Mapping[str, object],
+) -> dict[str, object]:
+    """Use Engine Family identity for current Receiving Bay request dimensions.
+
+    The detached Settings projection must never depend on a GUI model-string
+    allowlist. A malformed live physical value must not replace trusted data.
+    """
+    from .cabinet_types.policy import canonical_family_name
+
+    result = deepcopy(dict(settings_values))
+    if canonical_family_name(input_snapshot) != "受電箱":
+        return result
+    for axis in ("w", "h", "d"):
+        if axis in working_box:
+            result[axis] = normalize_operator_source_dimension(
+                working_box[axis], field=axis,
+            )
+    return result
