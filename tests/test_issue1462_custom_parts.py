@@ -110,12 +110,13 @@ def test_real_designer_add_rename_save_reload_keeps_top_level_custom(tmp_path,mo
         # X span. A dict descriptor previously went through getattr(..., "X").
         import fold_designer_bridge as bridge
         seen_profiles = []
-        annotate = bridge.apply_outside_dimension_compensation
-        def record_saved_axis(rows, thickness):
-            seen_profiles.append(tuple(row.get("phase6_key") for row in rows))
-            return annotate(rows, thickness)
+        annotate = bridge.manufacturing_api.project_operator_custom_fold_save_profiles
+        def record_saved_axis(snapshot, physical_id, profiles):
+            assert physical_id == key
+            seen_profiles.append(tuple(row.get("phase6_key") for row in profiles["Y"]))
+            return annotate(snapshot, physical_id, profiles)
         with monkeypatch.context() as patch:
-            patch.setattr(bridge, "apply_outside_dimension_compensation", record_saved_axis)
+            patch.setattr(bridge.manufacturing_api, "project_operator_custom_fold_save_profiles", record_saved_axis)
             app._save_current_part()
         assert seen_profiles and "custom_flange" in seen_profiles[-1]
         with pytest.raises(ValueError,match="正式 Fold"):
