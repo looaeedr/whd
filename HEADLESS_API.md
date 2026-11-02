@@ -1616,3 +1616,7 @@ or DXF is newly synthesized or certified.
 ### #2517 Confirmed Receiving multi-Door layout → verified Engine DXF
 
 `ManufacturingResolvedBayInput(family="受電箱", source=..., confirmed_parts=(("door_c1_r1", DoorPartSpec(...)), ...), door_layout_columns=((width, (height, ...)), ...))` extends the same `export_verified_resolved_integration_bays` API without a new exporter. The existing Engine `door_part_projections` validates the complete physical Door grid, W/H, T/FW/gap and FrameEdges, and compares BoxBody W/H when supplied. Reject incomplete or drifted layout before DXF output. Existing single-Door, Factory/Registry, verified staged Save→Reload and source-only refusal are unchanged.
+
+### #2517 Receiving BasePlate canonical aliases and existing verified batch DXF
+
+`cabinet_types.policy.base_plate_requires_explicit_bend_pattern(model_name)` now determines Receiving status consistently through `manufacturing_api.generate_part`, `build_part_scene` and `build_part_render_data`. Known Receiving aliases including lower/mixed-case must use a confirmed pattern, and missing pattern remains nonmanufacturable. `ManufacturingResolvedBayInput.confirmed_parts=(("base_plate", BasePlatePartSpec(...)),)` permits only an expressly authored ordinary LEFT_FLAT_SIDE / RIGHT_FLAT_SIDE source with no NFB-tier/paired depth ownership, using the existing `export_verified_resolved_integration_bays` staged DXF and two source guards; CENTER/NFB/PAD/EAR need separate qualified evidence. This does not enable source-only CLI export or certify a complete assembly.

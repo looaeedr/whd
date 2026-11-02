@@ -294,7 +294,7 @@ def build_part_scene(
             # Exporters reject it before writing any manufacturing DXF; do not
             # block the rest of a Receiving project's GUI/Set/Bay navigation.
             if receiving_pattern is not None:
-                if str(spec.model_name or "").strip() not in {"受電箱", "RECEIVING"}:
+                if not cabinet_family_policy.base_plate_requires_explicit_bend_pattern(spec.model_name):
                     raise ValueError("Receiving pattern cannot modify another family's Base Plate")
                 if spec.corner_policy is not None:
                     raise ValueError("Receiving bend drawing cannot silently override corner-policy geometry")
