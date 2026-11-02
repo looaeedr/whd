@@ -1833,6 +1833,8 @@ from .operator_derived_navigation import (
     project_operator_base_navigation_identity,
     project_operator_multidoor_base_plate_dimensions,
     project_operator_receiving_auxiliary_navigation,
+    OperatorDerivedDividerInnerProfiles,
+    project_operator_derived_divider_inner_profiles,
 )
 
 # #2517: Receiving Set/Bay operator client uses public API only.

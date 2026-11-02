@@ -1234,3 +1234,7 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 Phase6 專案 Schema／NFB Save→Reload 唯一 Engine API（2026-11-02）
 
 原 phase6_project_file.py 直接依 Family、受電箱提交 NFB、Set/Bay／Quantity 來源判斷 v1/v2/v3、保存時剝除 legacy aliases、載入時重建 UI aliases，現統一交由 ae_engine.operator_project_persistence 和公開 manufacturing_api.validate_operator_project_payload、project_operator_project_for_write、project_operator_project_for_read；GUI 保留檔案選擇、UTF-8 JSON／Features 編解碼和對話操作。Engine 沿用 normalize_project_snapshot_authority、normalize_quantity_snapshot、receiving_layout 與 committed NFB source owner，防止 v3 提交來源被降為舊版後悄悄丟失，保存不得保留 derived final_geometry。保留金庫型 v1、Receiving v2/v3 的歷史檔可讀相容性與原有拒絕錯誤。此 API 僅確認專案狀態權威，不新增 DXF 製造資格，#2517 OPEN。
+
+## [CURRENT] #2517 Divider／InnerDoor Frame／Panel 物理導覽來源統一 Engine API（2026-11-02）
+
+\`manufacturing_api.project_operator_derived_divider_inner_profiles(snapshot)\` 在既有 \`ae_engine.operator_derived_navigation\` 透過 Family policy、\`derive_box_body_dividers\`、\`derive_all_inner_door_frames\`、\`derive_inner_door_panels\` 與各自 \`part_profiles\` 實體權威，產出同一批 Divider、內門框／內門板 stable IDs 及 Fold Profiles；\`fold_designer_composition_shell_settings.sync_authoritative_derived_parts\` 僅收取公開 API 的只讀映射並執行選單同步。原 Receiving 的 top／left／right 實體框、共享 Divider 底端與 Panel 獨立成品尺寸／折料不改；原 Vault/Custom 儲存的 legacy frame_spans 仍保留（不能以 GUI 猜新尺寸）。原保存、FinalScene、DXF 不得重建另一組實體身分，本 API 只投影資料，不增任何製造放行。#2517 持續 OPEN。
