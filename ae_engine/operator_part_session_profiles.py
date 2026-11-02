@@ -35,3 +35,45 @@ def project_operator_receiving_base_plate_save_profiles(snapshot, part_key):
             or family_policy.canonical_family_name(snapshot) != "受電箱"):
         return None
     return receiving_base_plate_3d_profiles(snapshot)
+
+def can_skip_operator_receiving_part_save(
+    snapshot, *, previous_active, save_outgoing, was_non_single,
+    stored_profiles=None, live_profiles=None, live_dimensions=None,
+    committed_dimensions=None,
+):
+    """Only unchanged, source-equivalent Receiving navigation is display-only.
+
+    The editor may show stale projected BoxBody/EndCap values after a Set/Bay
+    transaction. Refuse to suppress save for missing or malformed live values.
+    Caller identity never controls physical-source ownership.
+    """
+    from collections.abc import Mapping
+
+    if (not save_outgoing
+            or not isinstance(snapshot, Mapping)
+            or family_policy.canonical_family_name(snapshot) != "受電箱"
+            or snapshot.get("active_mode") != "set_bay"):
+        return False
+    part = str(previous_active or "")
+    if was_non_single and part == "box_body":
+        return True
+    if part not in {"head", "tail"}:
+        return False
+    if not all(isinstance(value, Mapping) for value in (
+        stored_profiles, live_profiles, live_dimensions, committed_dimensions,
+    )):
+        return False
+    try:
+        unchanged_fold = all(
+            list(live_profiles.get(axis, ()) or ())
+            == list(stored_profiles.get(axis, ()) or ())
+            for axis in ("X", "Y")
+        )
+        unchanged_whd = all(
+            abs(float(live_dimensions[axis]) - float(committed_dimensions[axis]))
+            <= 1e-9 for axis in ("w", "h", "d")
+        )
+    except (TypeError, ValueError, KeyError, AttributeError, OverflowError):
+        return False
+    return unchanged_fold and unchanged_whd
+

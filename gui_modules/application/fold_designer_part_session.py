@@ -313,45 +313,33 @@ class Phase6PartSessionOwner:
         # working Bay dimensions, linked Head/Tail and base-plate profiles,
         # then invalidates the certified Divider CROSS. Any pending settings
         # above have already been committed through their own authority.
-        skip_hidden_receiving_assembly_save = (
-            was_non_single
-            and str(getattr(plan, 'previous_active', '') or '') == 'box_body'
-            and str((getattr(app, '_phase6_input_snapshot', {}) or {}).get('model') or '') in {'受電箱', 'RECEIVING'}
-            and (getattr(app, '_phase6_input_snapshot', {}) or {}).get('active_mode') == 'set_bay'
+        # UI supplies raw operator data; Engine decides whether this navigation
+        # can safely suppress an outgoing physical-state save.
+        previous_part = str(getattr(plan, "previous_active", "") or "")
+        endcap_outgoing = bool(plan.save_outgoing and previous_part in {"head", "tail"})
+        operator_dimensions = None
+        if endcap_outgoing:
+            try:
+                operator_dimensions = {
+                    axis: getattr(app, "v_" + axis).get()
+                    for axis in ("w", "h", "d")
+                }
+            except (TypeError, ValueError, KeyError, AttributeError):
+                # Failed reads are not evidence that the editor is unchanged.
+                pass
+        skip_source_save = bridge.manufacturing_api.can_skip_operator_receiving_part_save(
+            getattr(app, "_phase6_input_snapshot", {}) or {},
+            previous_active=previous_part,
+            save_outgoing=plan.save_outgoing,
+            was_non_single=was_non_single,
+            stored_profiles=(
+                app.designer_workspace.profiles_for(previous_part, {}) or {}
+            ) if endcap_outgoing else None,
+            live_profiles=getattr(app.state, "profiles", None) if endcap_outgoing else None,
+            live_dimensions=operator_dimensions,
+            committed_dimensions=getattr(app, "_phase6_box_whd", None),
         )
-        # A no-edit Receiving Head/Tail part navigation is also display-
-        # only. Do not persist the legacy projected EndCap editor on every
-        # switch: commit_editor_values would overwrite current Bay W/H/D and
-        # rebuild BasePlate after a purely visual selection. An *actual*
-        # edited fold profile or dimension must still take the real save path.
-        skip_unchanged_receiving_endcap_save = False
-        if (plan.save_outgoing and not skip_hidden_receiving_assembly_save
-                and str(plan.previous_active) in {'head', 'tail'}):
-            snapshot = getattr(app, '_phase6_input_snapshot', {}) or {}
-            if (snapshot.get('model') in {'受電箱', 'RECEIVING'}
-                    and snapshot.get('active_mode') == 'set_bay'):
-                stored = app.designer_workspace.profiles_for(plan.previous_active, {}) or {}
-                live = getattr(app.state, 'profiles', {}) or {}
-                try:
-                    unchanged_fold = all(
-                        bridge.clone_profile(tuple(live.get(axis, ()) or ()))
-                        == bridge.clone_profile(tuple(stored.get(axis, ()) or ()))
-                        for axis in ('X', 'Y')
-                    )
-                    unchanged_whd = all(
-                        abs(float(getattr(app, 'v_'+axis).get())
-                            - float(app._phase6_box_whd[axis])) <= 1e-9
-                        for axis in ('w', 'h', 'd')
-                    )
-                    skip_unchanged_receiving_endcap_save = (
-                        unchanged_fold and unchanged_whd
-                    )
-                except (TypeError, ValueError, KeyError, AttributeError):
-                    # Unknown editor state is not display-only.
-                    skip_unchanged_receiving_endcap_save = False
-        if plan.save_outgoing and not (
-                skip_hidden_receiving_assembly_save
-                or skip_unchanged_receiving_endcap_save):
+        if plan.save_outgoing and not skip_source_save:
             self.save_current_part()
             pending = getattr(app, '_job', None)
             if pending:

@@ -1386,3 +1386,7 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 Fold Designer 來源固定片 DXF／工作區實體 Placement API 邊界（2026-11-02）
 
 原 GUI `gui_modules/application/fold_designer_composition_state.export_selected_dxf_from_3d` 從 `ae_engine.receiving_base_fixing_plate_geometry` 直接 import `save_independent_source_flat_dxf`，繞過既有公開 Engine facade；`collect_workspace_state` 直接注入 `ae_engine.assembly_placement.resolve_assembly_placement` 作為實體版件 Save→Reload 的位置解析器。現於既有 `ae_engine.manufacturing_api` **原 callable 同一身份重匯出** `save_operator_fixing_plate_source_flat_dxf` 與 `resolve_operator_assembly_placement`；GUI 只控制操作者選擇／確認／路徑／錯誤顯示，並將 workspace snapshot 與 Part IDs 交給公開 API。原 `save_independent_source_flat_dxf` 的真實 SOURCE T2 CUTTING／BEND23、atomic write、反讀幾何查核、不可覆寫、非法 Part ID／缺 NFB tier source 拒絕完全不改；**source-flat specimen 不是正式成形／焊接／整箱製造 DXF 認證**，不能取得外部 source-only export 之外的製造授權。Assembly Placement 原 engine owner 唯一，保留 Vault／Receiving 實體 3D 和存檔重載身分與座標，沒有 GUI 自行推算物理偏移。#2517 持續 OPEN。
+
+## [CURRENT] #2517 Receiving Set/Bay Part Session 無變更導航儲存判斷由 Engine 擁有（2026-11-02）
+
+GUI Fold Designer 的 `activate_part` 不得以 model 字串／Fold list／W-H-D 差值自行決定是否略過可能寫回製造來源的 Part Session save。由公開 `manufacturing_api.can_skip_operator_receiving_part_save` 依 canonical Family、Set/Bay mode、上一個實體 part、顯示模式、前後實際 Fold 與 live/committed W-H-D 判定；只有 Receiving 非單板 Assembly 離開隱藏 BoxBody，或來源可證明完全未編輯的 Head/Tail，才能視為 display-only。缺少值、讀取錯誤、折型異動或 W/H/D 異動都必須走既有儲存，不得無聲跳過。GUI 僅收集 Tk 欄位、處理換頁與呼叫 Engine；不新增幾何算法、出圖分流、製造認證或外部 source-only 放行。#2517 持續 OPEN。
