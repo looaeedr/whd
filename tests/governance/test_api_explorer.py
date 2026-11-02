@@ -139,3 +139,79 @@ def test_real_engine_integration_callables_are_not_missing_from_catalog():
     for name in ("dispatch_manufacturing_integration", "export_verified_resolved_integration_bays"):
         assert "ae_engine.integration_api." + name in integration[name]["entrypoints"]
         assert integration[name]["source"] == "ae_engine/integration_api.py"
+
+
+def test_receiving_gui_calls_are_discovered_from_real_ast_without_importing_gui(tmp_path):
+    _source_tree(tmp_path)
+    _write(tmp_path, "gui_modules/application/receiving_set_bay_adapter.py",
+           "from ae_engine import manufacturing_api as engine\n"
+           "def update():\n"
+           "    return engine.describe_source('P1')\n")
+    _write(tmp_path, "gui.py",
+           "from ae_engine.manufacturing_api import save_verified_parts as save\n"
+           "def export():\n"
+           "    return save([], guard=object())\n")
+    _write(tmp_path, "phase6_bending_ui.py",
+           "import ae_engine.manufacturing_api as mfg\n"
+           "def fold():\n"
+           "    return mfg.describe_source('fold')\n")
+    _write(tmp_path, "gui_modules/application/receiving_unused.py",
+           "from ae_engine import manufacturing_api\n"
+           "unrelated = manufacturing_api.describe_source\n"
+           "from ae_engine.receiving_layout import guessed_internal_part\n"
+           "def ignore():\n"
+           "    return guessed_internal_part()\n")
+
+    markdown, html, rows = generate(tmp_path)
+    by_name = {r["name"]: r for r in rows}
+    feature = by_name["describe_source"]
+    assert [(s["source"], s["line"], s["scope"]) for s in feature["gui_usage"]] == [
+        ("gui_modules/application/receiving_set_bay_adapter.py", 3, "receiving"),
+        ("phase6_bending_ui.py", 3, "shared"),
+    ]
+    assert feature["gui_usage"][0]["link"].endswith(
+        "/gui_modules/application/receiving_set_bay_adapter.py#L3"
+    )
+    assert [s["source"] for s in by_name["save_verified_parts"]["gui_usage"]] == ["gui.py"]
+    assert not by_name["dispatch_manufacturing_integration"]["gui_usage"]
+    assert "## 受電箱 GUI 直接呼叫的公開 API（1）" in markdown
+    assert "gui_modules/application/receiving_set_bay_adapter.py:3" in markdown
+    assert 'id="scope"' in html
+    assert '"scope": "receiving"' in html
+    assert '"scope": "shared"' in html
+    assert 'scope.addEventListener("change",draw)' in html
+
+
+def test_receiving_gui_explorer_does_not_claim_runtime_or_external_certification(tmp_path):
+    _source_tree(tmp_path)
+    _write(tmp_path, "gui_modules/application/receiving_example.py",
+           "from ae_engine import manufacturing_api\n"
+           "manufacturing_api.save_verified_parts([], guard=None)\n")
+    markdown, html, rows = generate(tmp_path)
+    assert len(rows) == 3
+    assert "靜態呼叫" in markdown
+    assert "靜態呼叫" in html
+    assert "非製造認證" in html
+    assert "HTTP／Swagger" in html
+    assert "製造資格" in markdown
+
+
+def test_gui_change_triggers_existing_pages_workflow():
+    workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/whd-api-explorer.yml").read_text(encoding="utf-8")
+    for trigger in ("gui.py", "fold_designer_bridge.py", "phase6_*.py", "gui_modules/**"):
+        assert workflow.count("'" + trigger + "'") >= 2
+    assert "branches: [localX]" in workflow
+    assert "actions/deploy-pages@v4" in workflow
+
+
+def test_real_receiving_gui_calls_are_in_live_public_catalog():
+    from tools.build_api_explorer import ROOT
+
+    _, _, rows = generate(ROOT)
+    matched = {
+        r["name"] for r in rows
+        if any(site["scope"] == "receiving" for site in r["gui_usage"])
+    }
+    assert "rename_receiving_panel" in matched
+    assert "apply_receiving_bay_dimensions" in matched
+    assert "preview_quantity_inner_door_confirm" in matched
