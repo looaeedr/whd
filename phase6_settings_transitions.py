@@ -150,9 +150,7 @@ def commit_settings(
 
 
 def toggle_box_structure_lock(state: Mapping[str, object]) -> dict:
-    return set_structure_locked(
-        state, not bool(dict(state).get("locked", True))
-    )
+    return manufacturing_api.operator_toggle_box_body_structure_lock(state)
 
 
 def activate_box_structure(
@@ -160,7 +158,7 @@ def activate_box_structure(
     type_id: object,
     total_w: float,
 ) -> dict:
-    return activate_structure_with_defaults(state, type_id, total_w)
+    return manufacturing_api.activate_structure_with_defaults(state, type_id, total_w)
 
 
 def apply_box_structure_numeric(
@@ -184,7 +182,7 @@ def reconcile_width_structure(
 ) -> dict:
     # Keep the original type until the sole physical size gate. float(True)
     # would otherwise turn a corrupt 1-mm boolean into an apparently valid W.
-    return reconcile_box_body_structure_for_total_w_change(
+    return manufacturing_api.reconcile_box_body_structure_for_total_w_change(
         state, new_w
     )
 

@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 箱身分片設定物理值與鎖定切換統一 Engine API（2026-11-02）
+
+- `ae_engine.manufacturing_api.project_operator_box_body_structure_settings(state, total_w, snapshot=...)` 直接由 canonical `ae_engine.box_body_structure_state` 和 Family policy 回傳箱身四種結構的實體 ID、二片／三片 W 包外值、受電箱側板後折 OUTSIDE／MATERIAL datum、後板寬補償和避讓留肉設定。保存 W 矛盾立即拒絕，GUI 不得自行計算另一份。
+- `operator_toggle_box_body_structure_lock(state)` 先由 Engine Save→Reload normalization 解碼歷史文字 `locked="false"`／`"0"`，再不可變地切換，禁止以 `bool("false")` 誤判鎖定。原公開 `activate_structure_with_defaults`、`reconcile_box_body_structure_for_total_w_change` 在 Settings adapter 直接呼叫。
+- GUI `fold_designer_composition_settings.py` 只展示真實資料與控制項，沒有增加 CUTTING、BEND、DXF 或任何新的製造認證。驗收測試 `tests/test_issue2517_box_structure_settings_projection_engine_api.py` 覆蓋兩種 Family／四種結構、Save→Reload、矛盾尺寸 fail closed 和舊資料鎖定值。
+
 ## [CURRENT] #2517 BoxBody 製造請求的 Head/Tail 下折段來源 Engine API（2026-11-02）
 
 `phase6_manufacturing_adapter.build_scene_payload_for_app` 原本在 GUI 相容層以 `phase6_key="ybottom1"` 掃描封頭／封尾 Y Fold profile，並將 `engine_segment_length_to_ui` 的物理長度回讀寫到 `head_ybottom1`／`tail_ybottom1`，形成製造 request 的實體折段身份決策。現改由 `manufacturing_api.project_manufacturing_endcap_bottom_fold_inputs(endcap_profiles)`（`ae_engine.endcap_xy_readback`）唯一辨識 Head/Tail 來源並用既有 `fold_material_segment_outside_length`（含相鄰 BEND 的 `ui_len_add`）回讀；GUI 僅將已儲存 profile map 作為輸入，未辨識來源時不覆寫任何數值；已辨識但無法解析／非有限的原始折段長度則明確拒絕，不能將舊 `_num` 展示 fallback 的 0 mm 當成製造來源。這是現行製造 API 的物理輸入接線，不新增 EndCap 截角、Joint、料長補償、CUTTING 製造公式，也不解鎖未認證的 Receiving 外部 export。#2517 OPEN。

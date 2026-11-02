@@ -150,80 +150,16 @@ def settings_context_extension_projection(self, namespace, context):
         }
 
     def box_structure_projection():
-        state = required("_phase6_box_structure_state")(app)
-        active = BoxBodyStructureType(state["active_type"])
-        cfg = state["configs"][active.value]
-        total_w = required("_phase6_box_structure_w")(app)
-        piece_values = {}
-        mode = "integral"
-        if active is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
-            mode = "two_w"
-            left, right = required("resolve_two_piece_widths")(
-                state, total_w
-            )
-            piece_values = {
-                "box_body:left": (
-                    "width", "W 包外", left, "mm", "left"
-                ),
-                "box_body:right": (
-                    "width", "W 包外", right, "mm", "right"
-                ),
-            }
-        elif active is BoxBodyStructureType.THREE_PIECE_W_SPLIT:
-            mode = "three_w"
-            left, middle, right = required("resolve_three_piece_widths")(
-                state, total_w
-            )
-            piece_values = {
-                "box_body:left": (
-                    "width", "W 包外", left, "mm", "left"
-                ),
-                "box_body:middle": (
-                    "width", "W 包外", middle, "mm", "middle"
-                ),
-                "box_body:right": (
-                    "width", "W 包外", right, "mm", "right"
-                ),
-            }
-        elif active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
-            mode = "side_back"
-            snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
-            outside_family = (
-                cabinet_family_policy.box_body_profile_uses_outside_dimensions(
-                    snapshot
-                )
-            )
-            rear_bend = (
-                required("side_rear_bend_outside_length")(
-                    state, float(snapshot.get("t", 2.0))
-                )
-                if outside_family
-                else float(cfg.get("side_rear_bend", 15))
-            )
-            width_comp_t = float(cfg.get("back_width_comp_t", 0.5))
-            piece_values = {
-                "box_body:left_side": (
-                    "rear_bend",
-                    "後折",
-                    rear_bend,
-                    "mm",
-                    "side_rear_bend",
-                ),
-                "box_body:back": (
-                    "width_comp_t",
-                    "寬補償",
-                    width_comp_t,
-                    "T",
-                    "back_width_comp_t",
-                ),
-                "box_body:right_side": (
-                    "rear_bend",
-                    "後折",
-                    rear_bend,
-                    "mm",
-                    "side_rear_bend",
-                ),
-            }
+        # Engine owns real split dimensions and Family physical datums;
+        # GUI only paints the Settings readback supplied by the API.
+        structural = manufacturing_api.project_operator_box_body_structure_settings(
+            required("_phase6_box_structure_state")(app),
+            required("_phase6_box_structure_w")(app),
+            snapshot=getattr(app, "_phase6_input_snapshot", {}) or {},
+        )
+        active = structural["active_type"]
+        mode = structural["mode"]
+        piece_values = structural["piece_values"]
 
         projections = ()
         projection_error = None
@@ -293,34 +229,6 @@ def settings_context_extension_projection(self, namespace, context):
                 }
             )
 
-        advanced_fields = ()
-        if mode in {"two_w", "three_w"}:
-            advanced_fields = (
-                {
-                    "label": "封頭尾額外避讓",
-                    "field": "endcap_extra_relief",
-                    "value": cfg.get("endcap_extra_relief", 5),
-                    "suffix": "mm",
-                },
-                {
-                    "label": "封頭尾單邊留肉",
-                    "field": "endcap_single_side_meat_t",
-                    "value": cfg.get("endcap_single_side_meat_t", 0.5),
-                    "suffix": "T",
-                },
-                {
-                    "label": "底板避讓總長",
-                    "field": "baseplate_relief_length",
-                    "value": cfg.get("baseplate_relief_length", 20),
-                    "suffix": "mm",
-                },
-                {
-                    "label": "底板單邊留肉",
-                    "field": "baseplate_single_side_meat_t",
-                    "value": cfg.get("baseplate_single_side_meat_t", 0.5),
-                    "suffix": "T",
-                },
-            )
         advanced_flags = dict(
             getattr(app, "_phase6_box_structure_advanced_open", {}) or {}
         )
@@ -329,11 +237,11 @@ def settings_context_extension_projection(self, namespace, context):
             "mode": mode,
             "pieces": tuple(pieces),
             "projection_error": projection_error,
-            "seam_bend": cfg.get("seam_bend", 12),
+            "seam_bend": structural["seam_bend"],
             "advanced_open": bool(
                 advanced_flags.get(active.value, False)
             ),
-            "advanced_fields": advanced_fields,
+            "advanced_fields": structural["advanced_fields"],
         }
 
     def bottom_wrap_projection(part_key):

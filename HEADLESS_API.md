@@ -1798,3 +1798,8 @@ the Engine raw-source ticket, or `None` for invalid Family, Set/Bay mode,
 physical panel identity or unsupported Feature input. The GUI only stores
 bounded cached raw preview material. Neither API bypasses original canonical
 manufacturing, DXF reopening, source verification or certificate gates.
+
+
+### #2517 BoxBody operator Settings physical projection and lock API
+
+`manufacturing_api.project_operator_box_body_structure_settings(state, total_w, snapshot=...)` returns the existing four-topology operator Settings projection of real physical piece IDs, W split widths, Receiving rear-fold outside datums and relief values, using canonical Engine state and Family policy. Invalid saved width contradictions fail closed. `operator_toggle_box_body_structure_lock(state)` uses persisted boolean normalization (including historical string `"false"`) before toggling without mutating input. GUI delegates the existing public Engine W activate/reconcile functions and no longer computes physical Settings readback. No additional manufacturing/DXF certification is implied.
