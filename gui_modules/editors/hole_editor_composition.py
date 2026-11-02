@@ -156,7 +156,9 @@ def _build_shell_and_indicator(s):
         offset_x_var_provider=lambda: s.indicator_offset_x_var,
         offset_y_var_provider=lambda: s.indicator_offset_y_var,
         box_dist_var_provider=lambda: s.indicator_box_dist_var,
-        normalize_state=host._normalize_door_indicator_state,
+        normalize_state=lambda raw: host._normalize_door_indicator_state(
+            d.manufacturing_api.normalize_operator_hole_editor_indicator_state(raw)
+        ),
     )
     s.collect_indicator_state = indicator_state_collector.collect
     (

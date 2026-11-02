@@ -1387,7 +1387,10 @@ def resolve_fold_designer_panel_part(part_key, payload):
 
 
 
-from .fold_designer_snapshot_dimensions import FoldDesignerSnapshotDimensions, normalize_fold_designer_indicator_groups
+from .fold_designer_snapshot_dimensions import (
+    FoldDesignerSnapshotDimensions, normalize_fold_designer_indicator_groups,
+    normalize_operator_hole_editor_indicator_state,
+)
 
 
 def project_fold_designer_snapshot_dimensions(snapshot, indicator_layer_groups):

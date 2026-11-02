@@ -205,25 +205,29 @@ class HoleEditorIndicatorFitValidation:
         self.disabled_state = disabled_state
 
     def validate(self, show_error=False):
-        context = self.door_indicator_context_provider()
-        if self.door_indicator_state_provider() is None or context is None:
-            self.fit_error[0] = None
-            self.confirm_button.configure(state=self.normal_state)
-            return True
-        state_now = self.collect_state()
-        if state_now is None or state_now.get("mode") == "none":
+        if self.door_indicator_state_provider() is None:
             self.fit_error[0] = None
             self.confirm_button.configure(state=self.normal_state)
             return True
         try:
-            self.validate_fit(
-                mode=state_now["mode"],
-                groups=tuple(int(v) for v in state_now["groups"][:state_now["layers"]]),
-                finished_width=float(context.finished_width),
-                finished_height=float(context.finished_height),
-                thickness=float(self.door_thickness_provider() or 0.0),
-                offset=(float(state_now["offset_x"]), float(state_now["offset_y"])),
-            )
+            # Live source validation must be inside the same fail-closed gate
+            # as geometric fit. Previously a bad read could raise before
+            # disabling Confirm and keep an old, plausible geometry.
+            state_now = self.collect_state()
+            if state_now is None:
+                raise ValueError("指示燈即時操作資料缺失")
+            if state_now.get("mode") != "none":
+                context = self.door_indicator_context_provider()
+                if context is None:
+                    raise ValueError("指示燈成品面幾何來源缺失")
+                self.validate_fit(
+                    mode=state_now["mode"],
+                    groups=tuple(state_now["groups"][:state_now["layers"]]),
+                    finished_width=float(context.finished_width),
+                    finished_height=float(context.finished_height),
+                    thickness=float(self.door_thickness_provider() or 0.0),
+                    offset=(state_now["offset_x"], state_now["offset_y"]),
+                )
         except (ValueError, TypeError) as exc:
             self.fit_error[0] = str(exc)
             self.confirm_button.configure(state=self.disabled_state)
@@ -233,7 +237,6 @@ class HoleEditorIndicatorFitValidation:
         self.fit_error[0] = None
         self.confirm_button.configure(state=self.normal_state)
         return True
-
 
 class HoleEditorTransientActions:
     """Own transient editor transaction commands while reusing session authority."""
@@ -621,9 +624,17 @@ class HoleEditorModalLifecycle:
             except (ValueError, TypeError, RuntimeError) as exc:
                 messagebox.showerror("內門開孔驗證失敗", str(exc), parent=self.editor)
                 return
+        # Recheck the live source BEFORE closing the hole transaction: a
+        # last invalid Tk read must not partially commit physical holes.
+        committed = None
+        if self.door_indicator_state is not None:
+            try:
+                committed = self.collect_indicator_state()
+            except (ValueError, TypeError) as exc:
+                messagebox.showerror("指示燈配置無法套用", str(exc), parent=self.editor)
+                return
         self.hole_session.finish(commit=True)
         if self.door_indicator_state is not None:
-            committed = self.collect_indicator_state()
             if committed is not None:
                 self.door_indicator_state.clear()
                 self.door_indicator_state.update(committed)
