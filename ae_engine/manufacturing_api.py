@@ -89,7 +89,10 @@ from .endcap_factory_fold import (
 from .cabinet_family_model_transition import (
     FamilyModelTransition, FamilyModelPlan, plan_cabinet_family_model_transition,
 )
-from .cabinet_model_choices import list_cabinet_model_choices
+from .cabinet_model_choices import (
+    list_cabinet_model_choices, OperatorCornerSelectionCatalog,
+    project_operator_corner_selection_catalog,
+)
 from .operator_quantity_manufacturing import (
     build_operator_quantity_manufacturing_requests,
     resolve_operator_quantity_manufacturing_batch,
@@ -184,6 +187,7 @@ from .receiving_ear_display_sources import (
 )
 from .project_snapshot_state import (
     normalize_authoritative_door_state, normalize_project_snapshot_authority,
+    project_operator_assembly_joint_snapshot,
 )
 from .corner_dimension_projection import (
     RenderCornerDimensionGroup, project_render_corner_relief_measurements,
@@ -209,6 +213,8 @@ from .receiving_nfb_verified_scope import (
 from .receiving_nfb_v5_source_preview import (
     ReceivingNfbV5SourcePreview, ReceivingNfbV5SourcePreviewCache,
 )
+# Indexed legacy DXF source is read-only. This API does not authorize CUTTING.
+from .receiving_nfb_2d_preview import NfbDxfPreviewCache, Nfb2DViewport
 from .receiving_inner_door_inventory import (
     ReceivingInnerDoorInventoryLayer, resolve_receiving_inner_door_preview_inventory,
 )
