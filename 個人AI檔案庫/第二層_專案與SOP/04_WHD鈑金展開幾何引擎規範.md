@@ -1256,3 +1256,7 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 Divider／InnerDoor Frame／Panel 物理導覽來源統一 Engine API（2026-11-02）
 
 \`manufacturing_api.project_operator_derived_divider_inner_profiles(snapshot)\` 在既有 \`ae_engine.operator_derived_navigation\` 透過 Family policy、\`derive_box_body_dividers\`、\`derive_all_inner_door_frames\`、\`derive_inner_door_panels\` 與各自 \`part_profiles\` 實體權威，產出同一批 Divider、內門框／內門板 stable IDs 及 Fold Profiles；\`fold_designer_composition_shell_settings.sync_authoritative_derived_parts\` 僅收取公開 API 的只讀映射並執行選單同步。原 Receiving 的 top／left／right 實體框、共享 Divider 底端與 Panel 獨立成品尺寸／折料不改；原 Vault/Custom 儲存的 legacy frame_spans 仍保留（不能以 GUI 猜新尺寸）。原保存、FinalScene、DXF 不得重建另一組實體身分，本 API 只投影資料，不增任何製造放行。#2517 持續 OPEN。
+
+## [CURRENT] #2517 Receiving BasePlate 設定／縮量鎖定／重載資格單一 Engine API（2026-11-02）
+
+原 GUI \`fold_designer_composition_settings\` 使用字串比對 Receiving Family 並直接呼叫 \`receiving_base_plate_values\` 組合板件縮量與折型來源；\`fold_designer_composition_registry_edges\` 在四邊縮量 commit/render 各有一份 Receiving 字串判定；\`gui_modules.project_actions.load_phase6_project\` 在重載時再次私下解析已提交 NFB 的底板實體資格。統一移至既有 \`ae_engine.receiving_operator_projection\`，由 \`manufacturing_api.project_operator_receiving_base_plate_settings\`、\`operator_base_plate_edge_shrink_editable\`、\`project_operator_receiving_base_plate_reload\` 做 Family alias、來源解析、來源錯誤與唯讀導覽資格判斷。GUI 只呈現／保留原儲存 source、同步 2D 選單；錯誤／缺來源不推測替代物理板件。原金庫型可編輯四邊縮量、Receiving 不可修改來源尺寸；原 v1/v2/v3 Save→Reload、防止舊 NFB 製造放行與來源認證閘門不變。此批不新增 DXF 或 MFG-2 放行，#2517 OPEN。
