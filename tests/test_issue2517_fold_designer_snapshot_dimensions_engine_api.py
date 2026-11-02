@@ -72,18 +72,55 @@ def test_engine_preserves_real_physical_dimensions_and_gui_parity(model):
     assert json.loads(json.dumps(gui_request))["part_dimensions"] == result.part_dimensions
 
 
-def test_indicator_invalid_group_preserves_legacy_preview_fallback_and_does_not_mutate():
+@pytest.mark.parametrize("bad", ([0], [-1], ["corrupt"], [True], [2.5], [], ["2.5"]))
+def test_invalid_enabled_indicator_groups_rejected_not_replaced(bad):
     data = snapshot()
-    before = deepcopy(data)
-    bad = api.project_fold_designer_snapshot_dimensions(data, [0])
-    expected = api.project_fold_designer_snapshot_dimensions(data, [1])
-    assert bad == expected
-    assert bad.indicator_layer_groups == (1,)
+    original = deepcopy(data)
+    with pytest.raises(ValueError, match="指示燈"):
+        api.project_fold_designer_snapshot_dimensions(data, bad)
+    assert data == original
+
+
+def test_gui_bad_enabled_box_is_rejected_without_partial_snapshot():
+    data = snapshot()
     host = _controls(["corrupt"])
-    projected = gui._snapshot_part_dimensions(host, deepcopy(data))
-    assert projected["indicator_layer_groups"] == [1]
-    assert projected["part_dimensions"] == expected.part_dimensions
+    before = deepcopy(data)
+    with pytest.raises(ValueError, match="指示燈"):
+        gui._snapshot_part_dimensions(host, data)
     assert data == before
+
+
+def test_gui_disabled_box_controls_may_keep_display_only_one_layer():
+    data = snapshot()
+    host = _controls(["invalid"])
+    host.is_indicator_box_var = SimpleNamespace(get=lambda: False)
+    assert gui._snapshot_part_dimensions(host, data)["indicator_layer_groups"] == [1]
+    assert data["door_indicator_box_enabled"] is False
+
+
+def test_gui_bad_enabled_direct_indicator_fails_before_any_snapshot_commit():
+    data = snapshot()
+    host = _controls([2])
+    host.is_door_indicator_var = SimpleNamespace(get=lambda: True)
+    host.door_indicator_l_var = SimpleNamespace(get=lambda: 2)
+    host.door_indicator_layer_g_vars = [SimpleNamespace(get=lambda: 3)]
+    original = deepcopy(data)
+    with pytest.raises(ValueError, match="門板指示燈"):
+        gui._snapshot_part_dimensions(host, data)
+    assert data == original
+
+
+@pytest.mark.parametrize("model", ("金庫型", "受電箱"))
+def test_unphysical_door_or_baseplate_outside_sizes_do_not_become_one_mm(model):
+    data = snapshot(model)
+    for key, invalid in (("w", -800), ("h", float("nan")), ("t", True)):
+        damaged = {**data, key: invalid}
+        with pytest.raises(ValueError, match="物理尺寸"):
+            api.project_fold_designer_snapshot_dimensions(damaged, [2])
+    if model == "金庫型":
+        data.update(base_plate_shrink_left=450., base_plate_shrink_right=450.)
+        with pytest.raises(ValueError, match="底板成品寬"):
+            api.project_fold_designer_snapshot_dimensions(data, [2])
 
 
 def test_multi_door_root_overview_is_not_a_second_physical_cell_authority():
