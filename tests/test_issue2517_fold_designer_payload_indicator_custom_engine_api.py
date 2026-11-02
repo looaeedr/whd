@@ -136,6 +136,8 @@ def test_real_multi_door_indicator_uses_same_part_spec_and_independent_dxf(tmp_p
     render = api.build_part_render_data(spec)
     assert render.material.area > 0
     path = tmp_path / "door_c1_r1.dxf"
-    api.generate_part(spec, path)
+    # Fold Designer's official manufacturing export saves its *cached*
+    # FinalScene, not the alternative legacy baseline-stretching exporter.
+    api.save_part_render_data_dxf(render, path, verify_reopen=True)
     assert len(ezdxf.readfile(path).modelspace()) > 0
     assert api.verify_saved_part_render_data_dxf(render, path).ok
