@@ -13,9 +13,7 @@ publication, cache lookup, and compatibility mirrors live outside this module.
 from __future__ import annotations
 
 from .assembly_mesh_reuse import mesh_build_scope
-from .cabinet_types.policy import (
-    canonical_family_name, require_implemented_manufacturing_family,
-)
+from .cabinet_types.policy import canonical_family_name
 
 from copy import deepcopy
 from dataclasses import replace
@@ -100,14 +98,6 @@ def resolve(request):
     settings = thaw_manufacturing_value(request.settings)
     if not isinstance(snapshot, dict) or not isinstance(settings, dict):
         raise TypeError("manufacturing request snapshot/settings must thaw to mappings")
-    # The caller's live Family selector takes precedence over a stale snapshot.
-    # Missing explicit selectors retain the legacy snapshot/ANY behavior.
-    requested_family = (
-        str(request.cabinet_model or "").strip()
-        or snapshot.get("model")
-        or snapshot.get("cabinet_type")
-    )
-    require_implemented_manufacturing_family(requested_family)
     if canonical_family_name(snapshot) == "受電箱":
         from .receiving_nfb_manufacturing_transport import (
             restore_receiving_nfb_dto_selectors,
