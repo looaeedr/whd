@@ -7,7 +7,8 @@ from shapely.geometry import box
 
 from ae_engine import manufacturing_api, replay_resolved_endcap_render
 from ae_engine.contracts import EndCapPartSpec, ManufacturingContext
-from phase6_manufacturing_service import _replay_endcap_render
+from ae_engine.manufacturing_api import ManufacturingResolveRequest, ManufacturingResolveResult
+from phase6_manufacturing_service import resolve as phase6_resolve
 
 
 def _part():
@@ -45,21 +46,23 @@ def test_public_engine_owner_replays_verified_relief_without_mutating_spec(monke
     assert len(new.resolved_assembly_relief_cuts[0]) == 4
 
 
-def test_phase6_delegates_to_engine_and_does_not_serialize_cuts(monkeypatch):
-    witness = object()
-    part = object()
-    solution = object()
-    calls = []
+def test_phase6_service_delegates_immutable_manufacturing_request_to_engine(monkeypatch):
+    """Legacy Phase6 service no longer owns a second EndCap relief replay."""
+    request = object.__new__(ManufacturingResolveRequest)
+    response = object.__new__(ManufacturingResolveResult)
+    seen = []
 
-    def fake_replay(p, s):
-        calls.append((p, s))
-        return witness
+    def engine(received):
+        seen.append(received)
+        return response
 
-    monkeypatch.setattr("phase6_manufacturing_service.replay_resolved_endcap_render", fake_replay)
-    assert _replay_endcap_render(part, solution) is witness
-    assert calls == [(part, solution)]
-    assert "resolved_assembly_relief_cuts" not in inspect.getsource(_replay_endcap_render)
-    assert "serialize_joint_relief_polygons" not in inspect.getsource(_replay_endcap_render)
+    monkeypatch.setattr(manufacturing_api, "resolve_manufacturing_request", engine)
+    assert phase6_resolve(request) is response
+    assert seen == [request]
+    source = inspect.getsource(phase6_resolve)
+    assert "manufacturing_api.resolve_manufacturing_request(request)" in source
+    assert "resolved_assembly_relief_cuts" not in source
+    assert "serialize_joint_relief_polygons" not in source
 
 
 def test_lightweight_headless_fallback_and_fail_closed_without_part_spec():
