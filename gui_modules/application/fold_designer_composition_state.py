@@ -557,10 +557,9 @@ def build_project_snapshot(self, namespace):
     """Capture one complete reloadable Fold Designer project payload."""
     app = self.app
     required = lambda name: self._required(namespace, name)
-    try:
-        app._save_current_part(notify=False)
-    except Exception:
-        pass
+    # A failed active-Part commit must not persist a stale Fold/Feature profile.
+    # The Save/Save As owner handles the error and preserves existing bytes.
+    app._save_current_part(notify=False)
     model_var = getattr(app, "baseline_model_var", None)
     model = str(
         model_var.get()

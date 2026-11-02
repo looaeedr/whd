@@ -1408,3 +1408,8 @@ Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或�
 - 主 GUI `gui_modules/application/render_snapshots.py` 先前用 `snapshot["model"] in ("受電箱", "RECEIVING")` 自行判定是否選用已提交 Receiving NFB BasePlate／BoxBody 的實體 2D FinalScene。正式 Family Registry 還支援 `receiving`、大小寫別名，因此同一受電箱可被錯導到 GUI 舊通用板件預覽，與已核准的實體 3D／DXF 來源分裂。
 - 現在兩個 2D 入口只將原 Project snapshot 傳給公開 `manufacturing_api.uses_operator_receiving_committed_2d_source(snapshot)`；實作位於 `ae_engine/operator_box_body_2d.py`，使用唯一 `cabinet_types.policy.canonical_family_name`。True 時仍必須呼叫原本正式 `project_receiving_base_plate_2d_snapshot` 或 `project_receiving_box_body_2d_source`，缺少已提交 resolver／physical FinalScene 依原 fail-closed 拒絕，**不得回退通用圖**；非 Receiving 保留原單板件合法流程。這只是來源路由，不新增製造幾何公式、Set/Bay、外部 CLI 認證或 DXF 放行。
 - 定向回歸同時覆蓋 Registry 別名、真實兩層 NFB BasePlate material identity、真實 BoxBody SIDE mother scene／EAR 表示層及未配置來源的拒絕；所選 2D 實體仍是製造／3D 的同一 Engine resolved scene，真正 DXF Save→Reload 和其他板件製造放行仍由各自既有正式流程驗證。#2517 仍 OPEN。
+
+## [CURRENT] #2517 Fold Designer 專案儲存不能忽略當前板件提交失敗（2026-11-03）
+
+- 原 `gui_modules/application/fold_designer_composition_state.py::build_project_snapshot` 在建立 Save/Save As payload 前呼叫 `_save_current_part(notify=False)`，但 `except Exception: pass` 會把任何當前板件 Fold、孔位或來源提交失敗吞掉，再從較舊的 Workspace 製作專案快照，破壞來源與 Save→Reload 同源承諾。
+- 現在直接將真實 Part Session commit 失敗往上傳遞；原 `save_project_file` 既有錯誤提示與 write boundary 會拒絕後續寫檔，保留舊有檔案位元組，正向成功路徑不變。這是 GUI 應負責的交易錯誤呈現／取消保存，不發明任何 Engine 幾何、Board 身份、Fold/Feature 公式或第二儲存權威。測試覆蓋 ValueError／RuntimeError 原因回傳、未觸發 write、既有專案位元組未變及 source method 不再吞錯；已有正向 `tests/test_issue2517_project_save_reload_engine_authority.py` 與實體 GUI Save→Reload 繼續驗證。#2517 仍 OPEN。
