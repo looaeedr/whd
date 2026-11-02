@@ -161,8 +161,9 @@ def _source_world_x_from_committed_editor_feature(
 
 def _submitted_csv_holes(snapshot):
     """Get canonical selected Bay's full config; no separate editor authority."""
+    from .cabinet_types.policy import canonical_family_name
     if (not isinstance(snapshot, Mapping)
-            or snapshot.get("model") not in ("受電箱", "RECEIVING")):
+            or canonical_family_name(snapshot) != "受電箱"):
         return ()
     submitted = snapshot.get("nfb_config_submitted", False)
     if type(submitted) is not bool:
