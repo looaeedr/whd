@@ -11,7 +11,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Sequence
 
-from shapely.geometry import Point, Polygon
+from ae_engine import manufacturing_api
 
 from ae_engine.sheetmetal_features import (
     CircleFeature, FeatureAnchor, ProfileFeature, RectFeature,
@@ -26,31 +26,9 @@ _ACCEPTED_TYPES = (CircleFeature, RectFeature, ProfileFeature)
 _MAX_EXCHANGE_BYTES = 3_000_000
 
 
-def _polygon(feature, width: float, height: float) -> Polygon:
-    """Build finished-face physical footprints, never from DXF render hints."""
-    from ae_engine.sheetmetal_features import feature_finished_point
-    from ae_engine.sheetmetal_feature_core import _rotate_local_point
-    center = feature_finished_point(feature, width, height)
-    if isinstance(feature, CircleFeature):
-        return Point(center.x, center.y).buffer(float(feature.diameter) / 2, quad_segs=64)
-    if isinstance(feature, RectFeature):
-        half_width, half_height = float(feature.width) / 2, float(feature.height) / 2
-        local = (
-            type(center)(-half_width, -half_height),
-            type(center)(half_width, -half_height),
-            type(center)(half_width, half_height),
-            type(center)(-half_width, half_height),
-        )
-        points = [center + _rotate_local_point(p, feature.rotation_deg) for p in local]
-    elif isinstance(feature, ProfileFeature) and not feature.layered_profiles:
-        points = [center + _rotate_local_point(p, feature.rotation_deg)
-                  for p in feature.points]
-    else:
-        raise CadcraftCommandProofError("UNSUPPORTED_EXISTING_FEATURE_GEOMETRY")
-    polygon = Polygon([(p.x, p.y) for p in points])
-    if not polygon.is_valid or polygon.area <= 1e-8:
-        raise CadcraftCommandProofError("INVALID_WHD_FEATURE_FOOTPRINT")
-    return polygon
+def _polygon(feature, width: float, height: float):
+    """Legacy bridge forwards canonical WHD feature footprints to Engine."""
+    return manufacturing_api.cadcraft_feature_footprint_polygon(feature, width, height)
 
 
 @dataclass
