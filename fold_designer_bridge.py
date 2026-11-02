@@ -1711,90 +1711,42 @@ def _phase6_part_label(value: object, *, snapshot=None) -> str:
 
 
 def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
-    """Shadow-validate exactly one editable candidate without mutating the registry."""
-    from ae_engine.certified_relief_registry import evaluate_editable_endcap_rule_record, _validate_editable_rule_record
-    from ae_engine.assembly_collision import solve_world_backprojected_endcap_relief
-
-    candidate_id = str(candidate_id or "").strip()
-    if not candidate_id:
-        raise ValueError("candidate-specific 3D validation requires candidate_id")
-    raw = _validate_editable_rule_record(record)
-    intent = str(raw.get("assembly_intent") or "").strip()
-    current_intent = str(getattr(getattr(self, "_phase6_assembly_type", None), "value", getattr(self, "_phase6_assembly_type", "")) or "")
-    if current_intent and intent and current_intent != intent:
-        raise ValueError(f"candidate assembly_intent={intent} does not match current assembly={current_intent}")
-
+    """Collect operator inputs; Engine evaluates Registry candidate 3D."""
     callback = getattr(self, "_scene_query_callback", None)
     if callback is None:
         raise RuntimeError("3D final-scene provider is not connected")
     available = set(getattr(getattr(self, "designer_workspace", None), "available_parts", ()) or ())
-    if "box_body" not in available:
-        raise ValueError("candidate-specific 3D validation requires box_body")
-
-    def _base_part(part_key):
+    parts = {}
+    for part_key in ("box_body", "head", "tail"):
+        if part_key not in available:
+            continue
         payload = _phase6_scene_query_payload_for_part(self, part_key)
         payload["_use_committed_relief"] = False
         render_data = callback(part_key, payload)
         if render_data is None or getattr(render_data, "material", None) is None:
             raise ValueError(f"candidate validation render data unavailable: {part_key}")
-        x_profile, y_profile = _phase6_mesh_profiles_for_part(self, part_key, render_data.material)
-        return render_data, tuple(dict(seg) for seg in x_profile), tuple(dict(seg) for seg in y_profile)
-
-    body_render, body_x, _body_y = _base_part("box_body")
+        x_profile, y_profile = _phase6_mesh_profiles_for_part(
+            self, part_key, render_data.material,
+        )
+        parts[part_key] = (
+            render_data,
+            tuple(dict(segment) for segment in x_profile),
+            tuple(dict(segment) for segment in y_profile),
+        )
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     settings = dict(getattr(self, "_settings_values", {}) or {})
-    thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
-    dims = _phase6_operator_finished_dimensions(self)
-    clearance = _phase6_assembly_relief_clearance(self)
-    solutions = {}
-    validated_parts = []
-    for part_key in ("head", "tail"):
-        if part_key not in available:
-            continue
-        end_render, end_x, end_y = _base_part(part_key)
-        ephemeral = evaluate_editable_endcap_rule_record(
-            raw,
-            endcap_render_data=end_render,
-            box_body_x_profile=body_x,
-            endcap_x_profile=end_x,
-            endcap_y_profile=end_y,
-            sheet_thickness=thickness,
-            box_body_structure_state=_phase6_box_structure_state(self),
-        )
-        if ephemeral is None:
-            raise ValueError(f"candidate formula does not apply to {part_key}")
-        solution = solve_world_backprojected_endcap_relief(
-            box_body_render_data=body_render,
-            endcap_render_data=end_render,
-            box_body_x_profile=body_x,
-            endcap_x_profile=end_x,
-            endcap_y_profile=end_y,
-            finished_dimensions=dims,
-            endcap_placement=_PHASE6_ASSEMBLY_PLACEMENTS.get(part_key, "top" if part_key == "head" else "bottom"),
-            sheet_thickness=thickness,
-            clearance=clearance,
-            assembly_intent=intent,
-            cabinet_family=_phase6_current_cabinet_family(self),
-            allow_3d_fallback=False,
-            certified_result_override=ephemeral,
-        )
-        validated_parts.append(part_key)
-        solutions[part_key] = {
-            "verified": bool(getattr(solution, "verified", False)),
-            "trust_level": str(getattr(solution, "trust_level", "") or ""),
-            "rule_id": getattr(solution, "rule_id", None),
-            "rule_revision": getattr(solution, "rule_revision", None),
-            "residual_pair_count": int(getattr(getattr(solution, "residual_projection", None), "pair_count", 0) or 0),
-        }
-
-    zero = bool(validated_parts) and all(bool(item["verified"]) for item in solutions.values())
-    return {
-        "candidate_specific": True,
-        "candidate_id": candidate_id,
-        "zero_penetration": bool(zero),
-        "validated_parts": validated_parts,
-        "solutions": solutions,
-    }
+    raw_intent = getattr(self, "_phase6_assembly_type", "")
+    return manufacturing_api.validate_operator_relief_registry_candidate_3d(
+        record,
+        candidate_id=candidate_id,
+        assembly_intent=str(getattr(raw_intent, "value", raw_intent) or ""),
+        part_inputs=parts,
+        finished_dimensions=_phase6_operator_finished_dimensions(self),
+        sheet_thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
+        clearance=_phase6_assembly_relief_clearance(self),
+        box_body_structure_state=_phase6_box_structure_state(self),
+        cabinet_family=_phase6_current_cabinet_family(self),
+    )
 
 
 def _phase6_joint_form_add(self):

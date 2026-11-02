@@ -11,6 +11,7 @@ whd_schema: WHD_DOC_META_V1
 `gui_modules/application/fold_designer_composition_receiving` 的 Set/Bay 原始門預覽原先在 GUI 呼叫私有 `project_receiving_bay_legacy_aliases`、`derive_door_layout_cells`，並自行判斷「只有一欄、兩片實體 Door」；初始來源又由 GUI 字串比對 Family 與 `door_c1_r1/r2` 製造身份。兩段現改從 `manufacturing_api.project_receiving_operator_door_cell_sources(snapshot, *, set_index, bay_index)` 與 `manufacturing_api.project_receiving_initial_door_source_scenes(snapshot, resolved)` 取得 Engine 已確認的 Bay snapshot/typed DoorLayoutCell 及已解析 Assembly 的真實原圖場景順序。GUI 只向既有 baseline scene provider 要求圖元並透過 `project_receiving_original_door_marks` 顯示；來源缺失、未啟用雙門、多欄／三列等不符目前兩面 sketch 的拓樸均維持不投影，無隱含單門 fallback。Engine 保持對既存 Save→Reload／Bay stable ID、原 scene 與 Source Type 的唯一識別；這是唯讀 SOURCE 顯示映射，**不構成生成新孔、CUTTING、成品 3D 或 DXF 製造認證**。#2517 仍 OPEN。
 
 
+
 ## [CURRENT] #2517 受電箱原始門板把手／銘牌孔位來源辨識 Engine API（2026-11-02）
 
 原 GUI `gui_modules/application/receiving_multi_settings_window.extract_original_door_marks(scene)` 會自己從 `DrawingScene` 的 `CUTTING` 外框、帶 `source_type="nameplate_mount"` 身分的圓孔與唯一內輪廓判定門板把手與銘牌孔位，形成第二份來源辨識邏輯。現保留既有函式作兼容 GUI 單向轉接，將原算法原樣移至 `ae_engine.receiving_operator_projection.project_receiving_original_door_marks(scene)`，對外公開 `manufacturing_api.project_receiving_original_door_marks(scene)`。回傳既有正規化預覽 `{"nameplate": ..., "handle": ...}`；缺外框／多個內框時拒絕猜測，保留來源 Layer 與身分條件，GUI 只按比例繪圖，不再認定物理孔位。這是原圖來源的唯讀預覽映射，**不是補充新孔位、CUTTING 修改、成品尺寸定義或 DXF 製造認證**。#2517 仍 OPEN。
@@ -1226,3 +1227,7 @@ preview-only 不得偽裝成實體；任一非有限、布林或部分缺失的
 ## [CURRENT] #2517 Receiving BasePlate Family alias 真實製造與 confirmed Bay 對接（2026-11-02）
 
 既有 `cabinet_types.policy.base_plate_requires_explicit_bend_pattern` 是受電箱 BasePlate 的唯一 Family capability。正式 `generate_part`、`build_part_scene` 與 `build_part_render_data` 現一致使用 canonical Family／aliases；`受電箱`、`RECEIVING`、大小寫與前後空白 alias 的已確認 LEFT／RIGHT 折型都經原 FinalScene DXF 出圖及 Save→Reload，缺折型仍阻擋。原 `ManufacturingResolvedBayInput.confirmed_parts` 可選 `("base_plate", BasePlatePartSpec)`，僅接受原本已有正規製造來源的 LEFT_FLAT_SIDE／RIGHT_FLAT_SIDE、普通 `base_plate` 實體；原 `build_part_render_data`／verified batch DXF／source pre-post guard 仍是單一權威，拒絕未確認 CENTER、NFB depth pair/tier、PAD/EAR 或其他冒名角色。此批不給 NFB MFG-2、全箱或外部 CLI 新放行；source-only `EXTERNAL_EXPORT_NOT_CERTIFIED` 保留，#2517 OPEN。
+
+## [CURRENT] #2517 Registry 候選截角 3D 驗證由 Engine 公開 API 擁有（2026-11-02）
+
+Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、結構、T、組合意圖；公開 manufacturing_api.validate_operator_relief_registry_candidate_3d 經 Engine operator_relief_candidate_3d 唯一執行現存候選公式驗證、evaluate_editable_endcap_rule_record 與 solve_world_backprojected_endcap_relief，回傳與舊 GUI 一致的 candidate-specific 3D 證據。候選 Shadow 不改 Registry，不授權製造；缺實體、錯誤身份、意圖不符或公式不適用皆 fail closed。現存金庫型／受電箱機械權威不變，#2517 OPEN。

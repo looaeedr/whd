@@ -1933,3 +1933,8 @@ from .operator_receiving_endcap_hole_context import (
 
 # #2517 Physical-sheet finished-face Features have one Engine transform owner.
 from .physical_sheet_features import with_physical_sheet_features
+
+# #2517 Registry candidate shadow 3D belongs to the Engine, never Tk/GUI.
+from .operator_relief_candidate_3d import (
+    validate_operator_relief_registry_candidate_3d,
+)
