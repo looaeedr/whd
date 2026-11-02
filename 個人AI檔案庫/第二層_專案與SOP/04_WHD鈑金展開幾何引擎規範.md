@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 原 DXF 出圖路由與未配置底板的重試資格移回 Engine API（2026-11-02）
+
+原 `gui_modules/project/export_actions.py::_export_selected_resolved_parts` 自行認定金庫型合併模式、Receiving EAR/NFB 已提交 CSV 與舊式出圖前置拒絕的條件；`export_selected_dxf` 用製造錯誤字串判斷是否允許排除尚未配置底板。現在改用現有 Engine `manufacturing_selected_export` 擴充公開 `manufacturing_api.plan_selected_resolved_export_route` 取得 frozen 出圖路由計畫，及 `plan_unconfigured_receiving_base_export_retry` 僅對既有明確未配置底板錯誤產生排除底板之候選操作意圖。GUI 不得自行解釋來源證明、ERROR 或認定缺底板可製造；GUI 仍保有使用者明確同意的對話框，拒絕時不動既有檔，接受後必須以原 Engine 實體來源與嚴格製造 API 重跑。沿用既有 Vault/Receiving API、CURRENT NFB CSV、EAR 側板、PAD、保存來源漂移、DXF 逐片重開及原子輸出，**沒有新增任何製造認證或外部 source-only export**。#2517 OPEN。
+
+
 ## [CURRENT] #2517 Fold Designer 製造前來源驗證單一 Engine API（2026-11-02）
 
 `gui_modules/application/fold_designer_manufacturing_projection.py::_require_verified_baseline_sources_for_manufacturing` 不再直接呼叫低層 `ae.baseline_part_path`／`ae.load_baseline_dxf_source_with_status` 或自訂箱身、封頭尾、門的 DXF 驗證策略；GUI 僅提供使用者當下選定的 model，交由正式 `manufacturing_api.require_verified_operator_baseline_sources(model_name)`。真正來源選取與新鮮 `VERIFIED` 解析由既有 `ae_engine.manufacturing_baseline_policy` 單一 Engine owner 執行，維持原本未指定型號及不存在之 optional baseline 不在此預檢自行造來源、存在但無法驗證者拒絕正式 export；不把舊預覽的 last-known-good 當可製造證據。正式 PartSpec／FinalScene／Factory Policy／Registry／DXF Save→Reload 的原有出口與驗證仍必須執行，這項 source preflight 本身不增加金庫型或受電箱的製造認證，也不開放 source-only 外部 export。#2517 OPEN。
