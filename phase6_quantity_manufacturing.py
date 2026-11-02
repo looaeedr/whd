@@ -1,132 +1,27 @@
-# WHD 尺寸硬契約（CURRENT：個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md）：
-# 3D 操作輸入為唯一資料來源，輸入的是折後包外尺寸及折彎方向；不可用下游組合體回寫輸入。
-# 同一拓樸／板厚 T：料長 = 包外 − 實際相鄰 BEND 數(0/1/2)*T；包外 = 料長 + 同一折彎數*T。
-# 展開 BEND = 料長前綴和；由展開邊界與 BEND 差分得料長，再按拓樸/T 可反算包外，正反算須一致。
-# 單板3D、組合3D、2D及製造/DXF都由這份輸入推導；角度正負只定折彎方向，WRAP/OVERLAY 是裝配語意.
+# -*- coding: utf-8 -*-
+"""Compatibility facade: Quantity manufacturing calculations belong to Engine.
 
-"""Read-only quantity manufacturing boundary around the existing resolver."""
-from copy import deepcopy
-from dataclasses import replace
-
+GUI still routes the already-established Phase6 resolution callback.  Source,
+version projection, PartSpec replay and physical demand/BOM rules are Engine API.
+"""
 from ae_engine import manufacturing_api
-from ae_engine.contracts import EndCapPartSpec
-from ae_engine.manufacturing_quantity import ResolvedQuantityVersion
-from ae_engine.receiving_quantity_box import require_valid_quantity_features
-from phase6_manufacturing_contracts import (
-    manufacturing_request_fingerprint, thaw_manufacturing_value,
-)
-from phase6_quantity_model import QuantityModel
-# Compatibility re-exports: actual physical Q grouping and NFB CHECK authority
-# reside in Engine. Old callers retain the same public Python names.
+
 QuantityManufacturingBatch = manufacturing_api.QuantityManufacturingBatch
 quantity_manufacturing_groups = manufacturing_api.quantity_manufacturing_groups
 quantity_nfb_checked_manufacturing_groups = manufacturing_api.quantity_nfb_checked_manufacturing_groups
 
 
 def build_quantity_manufacturing_requests(base_request, workspace_snapshot):
-    """Materialize versions from immutable request data and a workspace snapshot."""
-    live = deepcopy(workspace_snapshot)
-    if live.get("active_mode") != "quantity" or not live.get("quantity"):
-        raise ValueError("quantity manufacturing requires active quantity mode")
-    source = thaw_manufacturing_value(base_request.input_snapshot)
-    source.update(live)
-    source.update(thaw_manufacturing_value(base_request.settings))
-    source.update(thaw_manufacturing_value(base_request.box_dimensions))
-    source["model"] = base_request.cabinet_model
-    require_valid_quantity_features(source)
-    owner = QuantityModel.from_payload(live["quantity"])
-    if source["model"] in ("受電箱", "RECEIVING"):
-        from ae_engine.receiving_quantity_box import project_common_box
-        source = project_common_box(source)
-    base = base_request
-    requests = []
-    for row in owner.snapshot()["versions"]:
-        version_id = row["version_id"]
-        selected = QuantityModel.from_payload(owner.snapshot())
-        selected.select(version_id)
-        snapshot = deepcopy(source)
-        snapshot["quantity"] = selected.snapshot()
-        if snapshot["model"] in ("受電箱", "RECEIVING"):
-            # Rebuild the SOURCE-owned singleton Bay for THIS version.
-            # Previously only the initial selected version was projected
-            # before the loop, and all later versions could borrow its NFB
-            # model/holes when manufacturing the same common box.
-            from ae_engine.receiving_quantity_box import project_common_box
-            from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
-            snapshot = project_common_box(snapshot)
-            snapshot = project_receiving_bay_legacy_aliases(
-                snapshot, set_index=0, bay_index=0,
-            )
-        snapshot["part_features"] = deepcopy(snapshot.get("part_features") or {})
-        parts = []
-        for part in base.parts:
-            if part.part_key not in {"head", "tail"}:
-                parts.append(part)
-                continue
-            features = tuple(selected.features_for(part.part_key))
-            if not isinstance(part.part_spec, EndCapPartSpec):
-                raise ValueError(f"canonical EndCap PartSpec unavailable: {part.part_key}")
-            # Keep every shared Fold/policy/relief input; only typed holes vary.
-            spec = replace(part.part_spec, holes=features)
-            render = manufacturing_api.build_part_render_data(spec, part.manufacturing_context)
-            values = thaw_manufacturing_value(part.scene_values)
-            values["features"] = features
-            values["quantity"] = selected.snapshot()
-            snapshot["part_features"][part.part_key] = list(features)
-            parts.append(replace(
-                part, scene_values=values, features=features, part_spec=spec,
-                render_data=render, committed_render_data=render,
-            ))
-        request = replace(
-            base, input_snapshot=snapshot, parts=tuple(parts),
-            source_fingerprint="", cache_key_fingerprint="",
-        )
-        request = replace(request, source_fingerprint=manufacturing_request_fingerprint(request))
-        requests.append((version_id, row["piece_count"], request))
-    return tuple(requests)
+    """Legacy GUI route to the common public Engine request builder."""
+    return manufacturing_api.build_operator_quantity_manufacturing_requests(
+        base_request, workspace_snapshot,
+    )
 
 
 def resolve_quantity_manufacturing(base_request, workspace_snapshot):
-    """Produce demand for export/BOM consumers without applying resolver effects."""
+    """Legacy GUI route to the common public Engine quantity resolver."""
     import phase6_manufacturing_service as service
-    requests = build_quantity_manufacturing_requests(base_request, workspace_snapshot)
-    versions = tuple(
-        ResolvedQuantityVersion(version_id, count, service.resolve(request).geometry)
-        for version_id, count, request in requests
+    return manufacturing_api.resolve_operator_quantity_manufacturing_batch(
+        base_request, workspace_snapshot, resolve_request=service.resolve,
+        request_builder=build_quantity_manufacturing_requests,
     )
-    # Stable identity and multiplicity come from the persisted custom catalog.
-    # Removed/disabled metadata cannot create an inventory row on its own.
-    counts = {
-        key: row["per_box_count"]
-        for key, row in (workspace_snapshot.get("custom_parts") or {}).get("items", {}).items()
-    }
-    demands = manufacturing_api.resolved_quantity_physical_demands(
-        versions, per_box_counts=counts
-    )
-    if base_request.cabinet_model in ("受電箱", "RECEIVING"):
-        # PAD is a physical sheet, not an ephemeral 3D preview. Preserve one
-        # genuine per-owner item in each version's BOM with the version box
-        # multiplicity. Never manufacture it here: the canonical DXF PAD gate
-        # still rejects trial-only parts until full T2 contact is certified.
-        from ae_engine.receiving_nfb_pad_delivery import (
-            pad_bom_demands_from_committed_snapshot,
-        )
-        pad_demands=[]
-        for version_id, piece_count, request in requests:
-            # build_quantity_manufacturing_requests already supplies a
-            # detached version-specific dict. Thawing it would coerce source
-            # integer Set/Bay indices to floats (e.g. 0 -> 0.0), which
-            # violates canonical receiving scope identity.
-            payload=request.input_snapshot
-            source=(deepcopy(payload) if isinstance(payload,dict)
-                    else thaw_manufacturing_value(payload))
-            pad_demands.extend(pad_bom_demands_from_committed_snapshot(
-                version_id,source,piece_count=piece_count))
-        seen={(row.version_id,row.physical_id) for row in demands}
-        if any((row.version_id,row.physical_id) in seen for row in pad_demands):
-            raise ValueError("PAD_QUANTITY_BOM_DUPLICATE_PHYSICAL_SOURCE")
-        demands=tuple(demands)+tuple(pad_demands)
-    return QuantityManufacturingBatch(versions, demands, requests)
-
-
-

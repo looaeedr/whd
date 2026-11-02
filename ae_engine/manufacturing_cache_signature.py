@@ -8,6 +8,7 @@ fingerprint algorithm preserves the historic exact cache key contract.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from .cabinet_types.policy import canonical_family_name
 import hashlib
 import json
 
@@ -65,7 +66,7 @@ def manufacturing_state_fingerprint(
     settings = dict(settings_values or {})
     working_box = dict(working_box or {})
     settings.pop("ui_text_size", None)
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+    if canonical_family_name(snapshot) == "受電箱":
         settings.update({
             axis: working_box[axis] for axis in ("w", "h", "d")
             if axis in working_box
