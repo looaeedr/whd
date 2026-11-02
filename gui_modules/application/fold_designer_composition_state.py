@@ -377,9 +377,6 @@ def export_selected_dxf_from_3d(self):
     key = str(getattr(getattr(self.app, "designer_workspace", None), "active_part", "") or "")
     if key.startswith("base_plate:fixing_plate:"):
         from tkinter import filedialog, messagebox
-        from ae_engine.receiving_base_fixing_plate_geometry import (
-            save_independent_source_flat_dxf,
-        )
         if not messagebox.askokcancel(
             "底板固定片｜來源平面圖",
             "只匯出新版固定片.dxf 的來源平面 CUTTING／BEND；T2 來源 BEND23 已核對。"
@@ -398,7 +395,7 @@ def export_selected_dxf_from_3d(self):
         if not path:
             return None
         try:
-            saved = save_independent_source_flat_dxf(key, path)
+            saved = manufacturing_api.save_operator_fixing_plate_source_flat_dxf(key, path)
         except Exception as exc:
             messagebox.showerror("來源 DXF 匯出失敗", str(exc))
             return None
@@ -408,7 +405,6 @@ def export_selected_dxf_from_3d(self):
 
 def collect_workspace_state(self, namespace):
     """Assemble one application snapshot around the canonical workspace owner."""
-    from ae_engine.assembly_placement import resolve_assembly_placement
 
     app = self.app
     required = lambda name: self._required(namespace, name)
@@ -440,7 +436,7 @@ def collect_workspace_state(self, namespace):
                 dict(
                     getattr(app, "_phase6_input_snapshot", {}) or {}
                 ),
-                resolver=resolve_assembly_placement,
+                resolver=manufacturing_api.resolve_operator_assembly_placement,
             )
         )
     except Exception:

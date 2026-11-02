@@ -2004,3 +2004,17 @@ from .operator_project_persistence import (
 
 # #2517: original inner-door NFB editor physical-source stage is Engine-owned.
 from .receiving_nfb_hole_stage import plan_operator_inner_door_nfb_hole_stage
+
+
+# #2517: original fixing-plate source-flat DXF is source evidence only.
+# Re-export the EXISTING source owner. Never redirect to MFG-2 or an
+# unverified whole-cabinet export, and never instantiate a second writer.
+from .receiving_base_fixing_plate_geometry import (
+    save_independent_source_flat_dxf as save_operator_fixing_plate_source_flat_dxf,
+)
+
+# #2517: persisted physical placement uses the same canonical Engine resolver
+# as 3D assembly and Save -> Reload; GUI may only supply the snapshot and IDs.
+from .assembly_placement import (
+    resolve_assembly_placement as resolve_operator_assembly_placement,
+)
