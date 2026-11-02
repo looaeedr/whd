@@ -66,9 +66,10 @@ def test_duplicate_eligible_joint_ids_fail_graph_validation():
 
 def test_phase6_uses_public_graph_api_not_private_identity_logic():
     src = inspect.getsource(service.resolve)
-    assert "resolve_manufacturing_joint_graph(" in src
+    assert "manufacturing_api.resolve_manufacturing_request(request)" in src
+    assert "resolve_manufacturing_joint_graph(" not in src
     assert "migrate_legacy_snapshot_joints(" not in src
     assert "AssemblyJoint.from_dict(" not in src
     assert "ResolvedAssemblyGraph(" not in src
     assert "自訂板件尚無已確認 assembly placement" not in src
-    assert "joints = resolved_joint_graph.joints" in src
+    assert "joints = resolved_joint_graph.joints" not in src
