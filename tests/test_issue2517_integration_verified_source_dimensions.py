@@ -47,7 +47,7 @@ def test_original_p1_source_dimensions_enter_existing_verified_engine_export(tmp
     assert outcome.physical_dxf_roundtrip_verified
     assert not outcome.complete_assembly_certified
     assert len(outcome.output_files) == 5
-    assert any("box_body__back" in str(path) for path in outcome.output_files.values())
+    assert sum("box_body" in Path(path).stem for path in outcome.output_files.values()) == 3
     for filename in outcome.output_files.values():
         doc = ezdxf.readfile(filename)
         assert any(entity.dxf.layer == "CUTTING" for entity in doc.modelspace())
