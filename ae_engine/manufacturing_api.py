@@ -410,6 +410,10 @@ from .manufacturing_baseline_policy import (
     _has_named_parameter,
 )
 
+from .indicator_box_marking_layout import (
+    IndicatorBoxMarkingLayout, project_indicator_box_marking_layout,
+)
+
 from .manufacturing_door_indicator import (
     _resolved_door_params,
     _resolved_door_corner_policy,
