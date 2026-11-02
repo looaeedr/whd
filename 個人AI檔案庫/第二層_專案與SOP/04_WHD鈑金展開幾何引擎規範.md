@@ -11,6 +11,11 @@ whd_schema: WHD_DOC_META_V1
 `receiving_ear_side_display_context`、`receiving_ear_side_preview` 與舊有 CHECK-only DXF 來源驗證統一經 `cabinet_types.policy.canonical_family_name` 識別已註冊的 Receiving Family aliases，不再在 Engine／GUI 各維護一份僅匹配「受電箱」「RECEIVING」的判斷。2D 的 GUI 只傳 FoldDesigner 來源，必要時把 primary mirror 交 Engine 判斷來源漂移；CHECK 動作先呼叫 `manufacturing_api.receiving_ear_side_check_operator_inputs` 做無副作用的提交／模式／尺寸預檢，再走原 `export_receiving_ear_side_check_only_dxf`。來源側真實物理板材、UV／折彎／CUTTING 衝突、正反側 MARKING、DXF 原子儲存重開及失敗拒絕不變。CHECK 永遠是非製造驗證，不能授權 EAR 焊接、NFB/PAD MFG-2、整箱或 source-only 外部 export；金庫型仍拒絕。#2517 OPEN。
 
 
+## [CURRENT] #2517 Receiving Bay 2D／3D 預覽快取資格回歸 Engine API（2026-11-02）
+
+`fold_designer_composition_receiving.py` 原自行決定何種 Set/Bay／Joint／NFB／自訂板件改動可重用實體預覽、忽略哪些來源 Joint lock feature、何時允許平移快取 3D 實體。現將這些物理來源依賴判斷遷至無 GUI／Phase6 依賴的 `ae_engine.receiving_bay_preview_source`，公開 `manufacturing_api.project_receiving_bay_preview_fingerprint_snapshot`、`project_receiving_bay_preview_face_features_key`、`receiving_default_local_joints_only`、`plan_receiving_bay_preview_offset_rebase`；GUI 保留相容代理與 immutable FinalScene View 容器包裝、快取 LRU/Session UI。未知 cross-Bay Joint、source/Feature/metadata 及碰撞/干涉狀態不准重用；所有實體正式製造／DXF 必須仍走 canonical resolve，預覽快取與座標平移不能當製造證明。沿用 #1817 大量真實 Set/Bay／joint、2D/3D、保存回讀及來源 SHA 測試。#2517 OPEN。
+
+
 ## [CURRENT] #2517 Receiving Set/Bay 共用設定／NFB 交易公開 Engine API（2026-11-02）
 
 `ReceivingSetBayAdapter` 原直接呼叫 `ae_engine.receiving_layout`、`receiving_shared_settings`、`receiving_nfb_transactions` 與製造 Readiness 內部模組，現改為只經 `manufacturing_api` 公開入口操作 Set/Bay／Joint 追加、刪除、更新、來源 stable_id、每連設定分享／解除分享、NFB 原子 Submit／Copy／Restore／Undo、開關品牌及 Readiness。真正的交易、來源資格與資料驗證仍由既有 Engine owner 實作；GUI 不複製公式，只保留 Session 選取、刪除確認、Undo 收據與 dirty flags。原 `receiving_layout_stable_ids` 名稱在 GUI 留相容代理，實作搬回 `ae_engine.receiving_layout`。金庫型、原 Factory/Registry、2D/3D/DXF、Save→Reload、source-only gate 不變；NFB 來源證據與 explicit Confirm／optimistic Undo 保持原拒絕語意，不新增製造放行。#2517 OPEN。

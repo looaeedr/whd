@@ -1856,3 +1856,11 @@ def restore_receiving_nfb_bays_unconfigured(
 def undo_receiving_nfb_transaction(layout, receipt):
     from .receiving_nfb_transactions import undo_nfb_transaction
     return undo_nfb_transaction(layout, receipt)
+
+# #2517 Receiving physical Bay preview source/reuse policy belongs to Engine.
+from .receiving_bay_preview_source import (
+    project_receiving_bay_preview_face_features_key,
+    receiving_default_local_joints_only,
+    project_receiving_bay_preview_fingerprint_snapshot,
+    plan_receiving_bay_preview_offset_rebase,
+)
