@@ -1334,3 +1334,8 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 指示燈盒線槽 MARKING 與操作欄位共用 Engine 來源（2026-11-02）
 
 `manufacturing_api.project_indicator_box_marking_layout(layer_groups)` 將既有指示燈盒實體 MARKING 線槽打標孔的組數、X 起點、水平間距與第一層 Y 位置集中於 `ae_engine.indicator_box_marking_layout`。原 `ae_engine.ae_door_indicator.get_indicator_box_data` 產生的 `MARKING` 圓孔與一字線直接使用同一份投影，主 GUI `cabinet_controller._refresh_indicator_box_result_values` 僅把此公開 API 回傳值帶入可編輯欄位，不再維護第二份 171/90/191/50/150/178.5 物理規則。仍沿用既有 `sheetmetal_features.indicator_box_outer_size` 與 `_normalize_indicator_groups` 來源驗證；原多層群組及金庫型／受電箱同一指示燈盒圖面維持，未擴充 CUTTING／DXF／外部 export 認證。實際 MARKING 圓心可直接與 API positions 對照；#2517 OPEN。
+
+
+## [CURRENT] #2517 圓孔排列實體預覽由 Engine API 決策（2026-11-02）
+
+`gui_modules/editors/hole_editor_round_settings._RoundHoleSettingsDialog` 原本自行以實體孔心距選最近鄰孔、決定對齊後孔位、實際填滿／重新填滿、選出須取代原孔的實體結果。現由 `manufacturing_api.nearest_operator_round_hole_neighbor_index` 與 `manufacturing_api.plan_operator_round_hole_preview` 接管，實作放在 `ae_engine.operator_round_hole_projection`，沿用 `sheetmetal_feature_reference` 已存在的 `align_circle_to_neighbor`、`generate_round_fill/refill` 與 `feature_is_within_surface`；GUI 只收操作者方向、間距、對齊、是否重新填滿，並把 Engine 的 detached `OperatorRoundHolePreview` 交既有 `HoleEditorAction.preview_all`。完整確定／取消／Undo 仍由 `Phase6HoleEditorSession` 執行。非法孔身份、鄰孔選擇或無法在板面生成的孔位 fail-closed 且不修改來源，不新增 Family 或第二份孔位／DXF 製造公式，不放行外部未認證 export；#2517 保持 OPEN。
