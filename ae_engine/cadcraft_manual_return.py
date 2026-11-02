@@ -7,6 +7,7 @@ The result is a candidate tuple for the existing reversible hole-editor Session.
 from __future__ import annotations
 
 from dataclasses import replace
+from hashlib import sha256
 from pathlib import Path
 
 import ezdxf
@@ -246,4 +247,48 @@ def project_cadcraft_manual_return_changes(output: Path, original: tuple, surfac
                 raise CadcraftCommandProofError("WHD_FEATURE_COLLISION")
     return tuple(updated), tuple(moves), additions
 
+CADCRAFT_MAX_EXCHANGE_BYTES = 3_000_000
 
+
+def verify_cadcraft_verified_candidate_stage(
+    output: Path, whd_candidates, existing_features, surface, width: float, height: float,
+) -> str:
+    """Audit isolated CADCraft candidate drawing against already-WHD Features.
+
+    This verifies geometry only and returns the witnessed file SHA256; no
+    Session commit, DXF manufacturing authority or project write occurs.
+    """
+    candidates = tuple(whd_candidates)
+    existing = tuple(existing_features)
+    accepted_types = (CircleFeature, RectFeature, ProfileFeature)
+    if not candidates or len(candidates) > 100:
+        raise CadcraftCommandProofError("INVALID_WHD_CANDIDATE_COUNT")
+    if not all(isinstance(f, accepted_types) and f.layer == "CUTTING"
+               for f in candidates):
+        raise CadcraftCommandProofError("ONLY_VERIFIED_WHD_CUTTING_FEATURES")
+    if not all(isinstance(f, accepted_types) for f in existing):
+        raise CadcraftCommandProofError("UNKNOWN_EXISTING_WHD_FEATURE")
+    try:
+        for feature in candidates:
+            if not feature_is_strictly_within_surface(surface, feature, width, height):
+                raise CadcraftCommandProofError("OUTSIDE_WHD_PHYSICAL_SURFACE")
+        footprints = [
+            cadcraft_feature_footprint_polygon(f, width, height)
+            for f in (*existing, *candidates)
+        ]
+        offset = len(existing)
+        for index in range(offset, len(footprints)):
+            for previous in range(index):
+                if footprints[index].intersects(footprints[previous]):
+                    raise CadcraftCommandProofError("WHD_FEATURE_COLLISION")
+        resolved = tuple(resolve_surface_features(surface, candidates, width, height))
+        intent = from_whd_resolved(resolved)
+        path = Path(output)
+        if path.stat().st_size > CADCRAFT_MAX_EXCHANGE_BYTES:
+            raise CadcraftCommandProofError("CADCRAFT_EXCHANGE_TOO_LARGE")
+        verify_dxf(path, intent)
+        return sha256(path.read_bytes()).hexdigest()
+    except (OSError, ValueError, TypeError, IndexError) as exc:
+        if isinstance(exc, CadcraftCommandProofError):
+            raise
+        raise CadcraftCommandProofError("CADCRAFT_STAGE_VALIDATION_FAILED") from exc
