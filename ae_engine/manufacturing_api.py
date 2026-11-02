@@ -353,6 +353,7 @@ from .manufacturing_baseline_policy import (
     expected_baseline_path_for,
     expected_endcap_feature_baseline,
     receiving_baseline_source_stamp,
+    require_verified_operator_baseline_sources,
     _baseline_path,
     _extract_endcap_shared_6p4_mother_rule,
     _divider_post_relief_center_frame,

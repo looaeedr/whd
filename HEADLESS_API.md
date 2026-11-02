@@ -1729,3 +1729,15 @@ Use `manufacturing_api.receiving_raw_source_cache_kind(part_key, payload)` to li
 ### #2517 Receiving physical Bay EndCap Hole Editor Engine context
 
 `manufacturing_api.project_receiving_endcap_hole_editor_context(snapshot, layout, set_index=..., bay_index=..., role="head"|"tail")` returns the canonical selected Bay's finished-face FeatureSurface, original physical W/D, RectGuide and independent Shared Settings Hole Features. GUI uses these exact fields to open the existing reversible Hole Editor and only commits verified edited source through the existing multi-Bay share/unlink and Save→Reload transactions. Non-Receiving, invalid role or Set/Bay owner is rejected; no external source-only or manufacturing certificate is granted.
+
+
+### #2517 Fold Designer operator baseline source preflight uses public Engine API
+
+`manufacturing_api.require_verified_operator_baseline_sources(model_name)` preserves the
+existing Vault/Receiving Fold Designer export preflight for `箱身.dxf`,
+`封頭尾.dxf`, and `門.dxf`. The Engine alone resolves present source paths
+and requires `VERIFIED` parsing with no last-known-good fallback. An unset
+operator model or genuinely absent optional source retains its legacy behavior;
+a corrupt or unverified present DXF still prevents export. The GUI forwards
+only the chosen model. This preflight is not standalone manufacturing
+authorization; all existing FinalScene/Factory/Registry/Save→Reload gates remain.
