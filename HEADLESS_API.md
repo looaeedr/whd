@@ -1841,3 +1841,7 @@ manufacturing, DXF reopening, source verification or certificate gates.
 ### #2517 Canonical live BoxBody 2D face dimension source
 
 `manufacturing_api.project_operator_box_body_face_dimensions(w=..., h=..., d=...)` uses strict Engine operator source validation and returns the unmodified core physical face map `{left:(D,H),back:(W,H),right:(D,H)}`. The GUI renderer no longer imports private Engine sheetmetal geometry. Receiving physical SIDE remains on its canonical FinalScene branch; no new DXF certification.
+
+## #2517 CustomFold Part Session / Hole Editor public Engine seam (2026-11-02)
+
+`manufacturing_api.project_operator_custom_fold_save_profiles(snapshot, part_id, profiles)` returns detached X/Y saved profiles after the canonical CustomFold descriptor, thickness, physical single-axis and flat-span checks. It delegates the actual adjacent-BEND × T formed-length annotation to the existing Engine fold owner. GUI must not choose the manufacturing fold axis or mutate the source profiles. `manufacturing_api.custom_fold_feature_context(spec)` re-exports the same Engine feature plane used by CustomFold FinalScene/DXF; `custom_part_spec` remains the manufacturing request contract. Tested X/Y, Vault/Receiving, invalid input, physical DXF Save→Reload. This does not certify missing assemblies or the source-only external CLI.

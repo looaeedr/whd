@@ -1394,3 +1394,7 @@ GUI Fold Designer 的 `activate_part` 不得以 model 字串／Fold list／W-H-D
 ## [CURRENT] #2517 Part Session Settings Flush 的 Receiving 已提交 W/H/D 來源由 Engine API 投影（2026-11-02）
 
 Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或自行擷取 W/H/D 決定把 Settings flush 的舊視窗尺寸覆蓋 live Bay。公開 `manufacturing_api.project_operator_receiving_settings_live_dimensions` 由 Engine 依 canonical Family、是否正在套用 Settings 與已提交來源完整性判斷；有可信 W/H/D 時以既有 Engine `normalize_operator_source_dimension` 檢查正數有限值，保留來源數字原型回傳供 UI 同步和後續 BoxBody 投影使用，無值時維持原流程，非法物理值明確拒絕。Vault、未在套用 Settings、其他部件與 2D／3D／DXF 原製造路徑不改；GUI 僅作 Tk 同步與 Session 交易協調。#2517 仍 OPEN。
+
+## [CURRENT] #2517 CustomFold Part Session 儲存與開孔編輯走同一公開 Engine API（2026-11-02）
+
+原 GUI `gui_modules/application/fold_designer_part_session.py` 在自訂板件 Save 中自行讀取 FoldAxis／T、挑選實體折彎軸、呼叫兼容補償函式把 `ui_len_add` 原地寫入 GUI Profile；開孔時又直接從 Engine 內部模組 import `custom_fold_feature_context`。現在由正式 `manufacturing_api.project_operator_custom_fold_save_profiles(snapshot, part_id, profiles)` 呼叫既有 `ae_engine.custom_fold_api`：共用 `CustomPartCatalog` descriptor、現行 `build_custom_part_profiles` 的厚度合法性、`custom_part_spec` 的單軸／另一軸 span 驗證與 `box_body_fold_profile.apply_outside_dimension_compensation` 的唯一相鄰 BEND × T owner，輸出 detached X/Y Profiles，不改輸入。GUI 只傳入操作 snapshot／part ID／編輯 rows 並保存；Hole Editor 使用公開 `manufacturing_api.custom_part_spec` 與原同一 callable `manufacturing_api.custom_fold_feature_context`，不得另算實體孔位平面。既有 X/Y CustomFold `PartSpec → FinalScene → DXF Save/Reload` 的測試仍為製造真值；金庫型／受電箱皆不得由 GUI 決定折法，非法板厚／Flat span 拒絕。這不新增箱體製造公式、Set/Bay 或外部 CLI 認證；#2517 OPEN。

@@ -54,3 +54,33 @@ def custom_part_spec(snapshot, key, *, features=(), profiles=None):
                            for seg,row in zip(profile_to_fold_segments(compensated),compensated)),
         transverse_length=item["transverse_length"],thickness=float(snapshot.get("t",2)),
         features=tuple(features))
+
+
+def project_operator_custom_fold_save_profiles(snapshot, key, profiles):
+    """Project one operator-edited CustomFold into detached canonical saved rows.
+
+    The physical fold axis, thickness and flat transverse span are Engine
+    contracts. GUI provides only source metadata and edited X/Y rows; it must
+    never select the compensated axis or add material/formed lengths itself.
+    """
+    from copy import deepcopy
+
+    if not isinstance(profiles, Mapping):
+        raise ValueError("CUSTOM_FOLD_SAVE_PROFILES_INVALID")
+    # Reuse the existing CustomFold Family-independent canonical policy for
+    # descriptor and thickness validation; never guess a GUI-side default.
+    item = descriptor_from_snapshot(snapshot, key)
+    build_custom_part_profiles(snapshot, key)
+    try:
+        detached = {
+            axis: deepcopy(list(profiles[axis])) for axis in ("X", "Y")
+        }
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("CUSTOM_FOLD_SAVE_PROFILES_INVALID") from exc
+    # The same PartSpec rejects mismatched flat spans or a second folded axis.
+    custom_part_spec(snapshot, key, profiles=detached)
+    axis = item["fold_axis"]
+    detached[axis] = apply_outside_dimension_compensation(
+        detached[axis], snapshot.get("t", 2),
+    )
+    return detached

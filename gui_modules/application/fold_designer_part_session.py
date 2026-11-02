@@ -72,19 +72,13 @@ class Phase6PartSessionOwner:
             return
         custom_spec = app.designer_workspace.custom_part(key)
         if custom_spec is not None:
-            profiles = {axis: bridge.clone_profile(app.state.profiles.get(axis, ())) for axis in ("X", "Y")}
-            fold_axis = str(
-                custom_spec.get("fold_axis", "X")
-                if isinstance(custom_spec, Mapping)
-                else getattr(custom_spec, "fold_axis", "X")
-            ).upper()
-            t_val = bridge._num(
-                getattr(app, "_settings_values", {}).get(
-                    "t", getattr(app, "_phase6_input_snapshot", {}).get("t", 2.0)
-                ),
-                2.0,
+            snapshot = {**app._phase6_input_snapshot, **app.designer_workspace.snapshot()}
+            snapshot["t"] = getattr(app, "_settings_values", {}).get(
+                "t", snapshot.get("t", 2.0)
             )
-            bridge.apply_outside_dimension_compensation(profiles.get(fold_axis, []), float(t_val))
+            profiles = bridge.manufacturing_api.project_operator_custom_fold_save_profiles(
+                snapshot, key, app.state.profiles,
+            )
             app.designer_workspace.stash_profiles(key, profiles)
             return
         bridge._phase6_replace_mapping(app, '_phase6_box_whd', {'w': bridge.original.get_int(app.v_w.get()), 'h': bridge.original.get_int(app.v_h.get()), 'd': bridge.original.get_int(app.v_d.get())})
@@ -196,12 +190,10 @@ class Phase6PartSessionOwner:
                 widget = getattr(app, name, None)
                 if widget is not None and widget.winfo_manager():
                     widget.pack_forget()
-            from phase6_custom_fold_profiles import build_custom_part_profiles, custom_part_spec
-            from ae_engine.custom_fold_manufacturing import custom_fold_feature_context
             def install_profiles(reset=False):
                 snapshot={**app._phase6_input_snapshot,**app.designer_workspace.snapshot()}
                 profiles=None if reset else app.designer_workspace.profiles_for(key)
-                profiles=profiles or build_custom_part_profiles(snapshot,key)
+                profiles=profiles or bridge.manufacturing_api.build_custom_part_profiles(snapshot,key)
                 app.designer_workspace.stash_profiles(key,profiles)
                 app.state.profiles.update({axis:bridge.clone_profile(profiles[axis]) for axis in ("X","Y")})
                 app.state.struct_mode="standard"
@@ -253,8 +245,8 @@ class Phase6PartSessionOwner:
                     raise ValueError("目前未連接既有 Hole Editor")
                 snapshot={**app._phase6_input_snapshot,**app.designer_workspace.snapshot()}
                 features=app.designer_workspace.features_for(key)
-                spec=custom_part_spec(snapshot,key,profiles=app.designer_workspace.profiles_for(key))
-                surface,width,height,guide=custom_fold_feature_context(spec)
+                spec=bridge.manufacturing_api.custom_part_spec(snapshot,key,profiles=app.designer_workspace.profiles_for(key))
+                surface,width,height,guide=bridge.manufacturing_api.custom_fold_feature_context(spec)
                 def commit():
                     app.designer_workspace.stash_features(key,features)
                     app._load_part_holes(key)

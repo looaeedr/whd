@@ -361,7 +361,10 @@ from .custom_part_catalog import (
 )
 from .custom_fold_api import (
     descriptor_from_snapshot, build_custom_part_profiles, custom_part_spec,
+    project_operator_custom_fold_save_profiles,
 )
+# The custom Hole Editor must consume exactly the manufactured feature plane.
+from .custom_fold_manufacturing import custom_fold_feature_context
 from .keyed_fold_reconciliation import merge_keyed_fold_profiles
 from .relief_commit_policy import (
     endcap_relief_solution_committable, endcap_relief_transaction_committable,
