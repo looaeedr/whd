@@ -433,9 +433,14 @@ def save_resolved_manufacturing_geometry_batch_dxf(
     part_only: bool = False,
     verify_all_staged: bool = False,
     pre_commit_guard=None,
+    geometry_only_verification: bool = False,
 ) -> dict[str, str]:
-    """Atomically export instances; verified callers reopen every staged DXF."""
-    if verify_all_staged and not callable(pre_commit_guard):
+    """Atomically export canonical DXF; geometry-only verification is not source certification."""
+    if type(geometry_only_verification) is not bool:
+        raise TypeError("geometry_only_verification must be bool")
+    if geometry_only_verification and not verify_all_staged:
+        raise ValueError("WHD_GEOMETRY_ONLY_REQUIRES_STAGED_VERIFICATION")
+    if verify_all_staged and not geometry_only_verification and not callable(pre_commit_guard):
         raise ValueError("WHD_PRECOMMIT_GUARD_REQUIRED")
     rows = []
     seen_namespaces: set[str] = set()

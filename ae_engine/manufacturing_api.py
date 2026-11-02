@@ -1027,8 +1027,15 @@ def save_resolved_manufacturing_geometry_batch_dxf(
     *,
     overwrite: bool = False,
     part_only: bool = False,
+    verify_reopen: bool = False,
 ) -> dict[str, str]:
-    """Export multi-Bay DXF; part_only never certifies incomplete EAR/box assembly."""
+    """Export canonical DXF; optional staged geometry-only Save→Reload.
+
+    Does not certify original source revision or complete Set/Bay. Use
+    guarded verified-integration for those independent requirements.
+    """
+    if type(verify_reopen) is not bool:
+        raise TypeError("verify_reopen must be bool")
     return _manufacturing_export.save_resolved_manufacturing_geometry_batch_dxf(
         instances,
         output_dir,
@@ -1036,6 +1043,8 @@ def save_resolved_manufacturing_geometry_batch_dxf(
         box_body_physical_piece_roles=_BOX_BODY_PHYSICAL_PIECE_ROLES,
         overwrite=overwrite,
         part_only=part_only,
+        verify_all_staged=verify_reopen,
+        geometry_only_verification=verify_reopen,
     )
 
 
