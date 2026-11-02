@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Settings 外部布林同步與包外 W/H/D 交易一致性 Engine API（2026-11-02）
+
+- `ae_engine.manufacturing_api.normalize_operator_settings_updates(settings_values, updates, external_apply_guard=...)` 由 Engine 統一轉換外部操作的布林值（`"false"` 不再被 `bool(raw)` 當成 true），以及 W/H/D 等保存實體欄位。無法辨認的明確布林輸入直接拒絕；W/H/D 必須為正、有限、非 bool 的包外尺寸。舊版非物理數值欄位的未知 key／無效字串仍可略過，但 NaN/Inf 不得污染值。純視覺 `ui_text_size` 選擇維持 GUI owner，不在 Engine 生產值中判斷。
+- `commit_operator_settings_state(settings_values, input_snapshot, box_whd, values)` 在同一不可變交易裡先驗 W/H/D，再將完全相同且保留小數的包外值提交至 Settings、保存 Snapshot 和 `box_whd`。原 `_ui_len` 會 round(abs(...))，可能將負尺寸變成正尺寸／將小數折後包外值改掉，已禁止用於實體 W/H/D 交易；Fold Editor 純顯示整數規則不變。無效來源不可部分提交，也不能拿預覽反推正式製造尺寸。
+- `phase6_settings_transitions.normalize_updates/commit_settings` 現僅負責 GUI 選項及委派 Engine；`SettingsCommitTransition` 保留型別相容別名。涵蓋金庫型／受電箱、Save→Reload、非法文字／零／負數／NaN／Inf／bool、精度與無變異驗收 `tests/test_issue2517_operator_settings_transactions_engine_api.py`；不新增 DXF 認證或正式 X 發行。
+
+
 ## [CURRENT] #2517 EndCap Relief 3D fallback 選項由 Engine 型別驗證（2026-11-02）
 
 `phase6_manufacturing_adapter.build_manufacturing_request` 與 `ae_engine.manufacturing_contracts.ManufacturingResolveRequest` 原分別對 `assembly_ignore_fixed_corner_var`／`allow_3d_fallback` 呼叫 Python `bool(...)`，導致舊字串 `"false"` 被誤當成 True，繼而將錯誤的 3D fallback 允許選擇傳到 `manufacturing_resolver.solve_endcap_assembly_relief`。新增 `manufacturing_api.normalize_operator_3d_fallback_flag(raw)`：原生 bool、0/1 整數與浮點及明確文字 `true/false/1/0` 可正確正規化；空字串或 None 為 False，不明文字／非 0/1 數字／物件拒絕。GUI 只讀取操作值；Engine Request 在 immutable fingerprint 前再次驗證。原 EndCap relief 幾何、實際 source/certification、Joint solver、CUTTING、DXF 皆不改，也不新增外部製造授權。#2517 OPEN。

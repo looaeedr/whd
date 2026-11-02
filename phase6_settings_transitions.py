@@ -46,19 +46,14 @@ from phase6_endcap_semantics import (
     set_endcap_fw_follow,
 )
 from phase6_settings_center import normalize_ui_text_size
-from phase6_fold_profiles import _num, _ui_len
 
 
 CORNER_KEYS = manufacturing_api.MANUAL_CORNER_KEYS
 CORNER_PAIR_KEYS = manufacturing_api.MANUAL_CORNER_PAIR_KEYS
 
 
-@dataclass(frozen=True)
-class SettingsCommitTransition:
-    settings_values: dict[str, object]
-    input_snapshot: dict[str, object]
-    box_whd: dict[str, object]
-    committed: dict[str, object]
+# Compatibility name; physical Settings transaction owner is Engine.
+SettingsCommitTransition = manufacturing_api.OperatorSettingsCommitTransition
 
 
 # Compatibility type; only Engine owns the WRAP transaction/result.
@@ -100,22 +95,17 @@ def normalize_updates(
     *,
     external_apply_guard: bool = False,
 ) -> dict[str, object]:
-    clean: dict[str, object] = {}
-    for key, raw in dict(updates or {}).items():
-        if key not in settings_values:
-            continue
-        if key == "ui_text_size":
-            value: object = normalize_ui_text_size(raw)
-        elif isinstance(settings_values.get(key), bool):
-            value = bool(raw)
-        else:
-            try:
-                value = float(raw)
-            except (TypeError, ValueError):
-                continue
-        if external_apply_guard and settings_values.get(key) == value:
-            continue
-        clean[key] = value
+    # Only the visual text-size choice remains in the GUI adapter. The
+    # Engine decides bool coercion, W/H/D and numeric source validity.
+    clean = manufacturing_api.normalize_operator_settings_updates(
+        settings_values, updates,
+        external_apply_guard=external_apply_guard,
+    )
+    raw = dict(updates or {})
+    if "ui_text_size" in raw and "ui_text_size" in settings_values:
+        value = normalize_ui_text_size(raw["ui_text_size"])
+        if not external_apply_guard or settings_values["ui_text_size"] != value:
+            clean["ui_text_size"] = value
     return clean
 
 
@@ -125,27 +115,12 @@ def commit_settings(
     box_whd: Mapping[str, object],
     values: Mapping[str, object] | None,
 ) -> SettingsCommitTransition:
-    next_settings = deepcopy(dict(settings_values))
-    next_snapshot = deepcopy(dict(input_snapshot))
-    next_box = deepcopy(dict(box_whd))
-    committed = deepcopy(dict(values or {}))
-    if not committed:
-        return SettingsCommitTransition(
-            next_settings, next_snapshot, next_box, committed
-        )
-
-    next_settings.update(committed)
-    next_snapshot.update(committed)
+    # UI-only string normalization does not affect manufacturing.
+    committed = dict(values or {})
     if "ui_text_size" in committed:
-        normalized = normalize_ui_text_size(committed["ui_text_size"])
-        next_settings["ui_text_size"] = normalized
-        next_snapshot["ui_text_size"] = normalized
-        committed["ui_text_size"] = normalized
-    for key in ("w", "h", "d"):
-        if key in committed:
-            next_box[key] = _ui_len(committed[key])
-    return SettingsCommitTransition(
-        next_settings, next_snapshot, next_box, committed
+        committed["ui_text_size"] = normalize_ui_text_size(committed["ui_text_size"])
+    return manufacturing_api.commit_operator_settings_state(
+        settings_values, input_snapshot, box_whd, committed,
     )
 
 
