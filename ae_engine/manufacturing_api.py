@@ -1894,6 +1894,7 @@ from .operator_door_2d_preview import (
 
 # #2517 canonical BoxBody physical 2D source and operator piece identity.
 from .operator_box_body_2d import (
+    uses_operator_receiving_committed_2d_source,
     project_receiving_box_body_2d_source,
     project_box_body_2d_piece_inventory,
     BoxBodyAssemblyPanelPiece, project_box_body_assembly_panel_piece_rows,

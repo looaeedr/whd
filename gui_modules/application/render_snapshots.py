@@ -210,8 +210,7 @@ def base_plate_render_snapshot(host, val):
     # The currently resolved real FinalScene owns both 2D/3D materials.
     designer = getattr(host, "fold_designer_app", None)
     current = getattr(designer, "_phase6_input_snapshot", None)
-    if (isinstance(current, dict)
-            and current.get("model") in ("受電箱", "RECEIVING")):
+    if manufacturing_api.uses_operator_receiving_committed_2d_source(current):
         resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
         if not callable(resolver):
             raise ValueError("受電箱底板缺少已提交的製造幾何來源")
@@ -260,8 +259,7 @@ def box_body_render_snapshot(host, val, *, face_dimensions_fn=None):
     # disagree with the committed FoldDesigner geometry, hiding MARKING.
     designer = getattr(host, "fold_designer_app", None)
     current = getattr(designer, "_phase6_input_snapshot", None)
-    if (isinstance(current, dict)
-            and current.get("model") in ("受電箱", "RECEIVING")):
+    if manufacturing_api.uses_operator_receiving_committed_2d_source(current):
         resolve = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
         if not callable(resolve):
             raise ValueError("受電箱側板 2D 缺少 FoldDesigner 實體製造來源")

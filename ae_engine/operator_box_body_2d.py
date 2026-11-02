@@ -8,6 +8,21 @@ no generic fallback may replace the Receiving committed FinalScene.
 from __future__ import annotations
 
 
+def uses_operator_receiving_committed_2d_source(snapshot):
+    """Route physical 2D source by the same registered Family as manufacturing.
+
+    Both primary BasePlate and BoxBody 2D tabs must read the *committed*
+    Receiving FinalScene regardless of the operator's registered model alias.
+    This merely chooses the existing physical-source reader; it never asserts
+    that an NFB/EAR sheet is certified for manufacturing export.
+    """
+    from collections.abc import Mapping
+    from .cabinet_types import policy as family_policy
+
+    return (isinstance(snapshot, Mapping)
+            and family_policy.canonical_family_name(snapshot) == "受電箱")
+
+
 def project_receiving_box_body_2d_source(geometry):
     """Return current resolved, actually formed BoxBody source or reject."""
     box_body = geometry.part("box_body")
