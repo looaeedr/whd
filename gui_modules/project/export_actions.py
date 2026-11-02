@@ -67,46 +67,23 @@ def export_multi_door_indicator_box_parts(
 
 
 def _selected_export_flags(self, existing_parts, has_indicator_box):
-    # Main GUI's old presence mirror does not contain the physical Receiving
-    # tier owners committed in FoldDesigner's authoritative workspace.
-    # Read just these live derived IDs for the EXISTING checkbox rather than
-    # silently dropping both actual Base Plate sheets from the original
-    # button. The normal FinalScene export still checks each real source.
-    real_parts = set(existing_parts or ())
+    """Read GUI checkbox intent; Engine owns the physical inventory grouping."""
     designer = getattr(self, "fold_designer_app", None)
     snapshot = getattr(designer, "_phase6_input_snapshot", None)
-    if (isinstance(snapshot, Mapping)
-            and manufacturing_api.resolve_live_cabinet_family(snapshot) == "受電箱"
-            and snapshot.get("nfb_config_submitted") is True):
-        workspace = getattr(designer, "designer_workspace", None)
-        if workspace is not None:
-            real_parts.update(
-                part for part in workspace.available_parts
-                if str(part).startswith(("base_plate:nfb_layer:", "inner_door:"))
-            )
-    return {
-        "box_body": bool(self.export_z_var.get() and "box_body" in existing_parts),
-        "head": bool(self.export_head_var.get() and "head" in existing_parts),
-        "tail": bool(self.export_tail_var.get() and "tail" in existing_parts),
-        "door": bool(
-            self.export_door_var.get()
-            and self._phase6_logical_part_present(real_parts, "door")
-        ),
-        "base_plate": bool(
-            self.export_base_plate_var.get()
-            and self._phase6_logical_part_present(real_parts, "base_plate")
-        ),
-        "indicator_box": bool(
-            self.export_ib_var.get()
-            and "indicator_box" in existing_parts
-            and has_indicator_box
-        ),
-        "indicator_door": bool(
-            self.export_ib_door_var.get()
-            and "indicator_door" in existing_parts
-            and has_indicator_box
-        ),
-    }
+    workspace = getattr(designer, "designer_workspace", None)
+    available = getattr(workspace, "available_parts", ()) if workspace is not None else ()
+    return manufacturing_api.selected_project_export_flags(
+        snapshot, existing_parts, available, {
+            "box_body": self.export_z_var.get(),
+            "head": self.export_head_var.get(),
+            "tail": self.export_tail_var.get(),
+            "door": self.export_door_var.get(),
+            "base_plate": self.export_base_plate_var.get(),
+            "indicator_box": self.export_ib_var.get(),
+            "indicator_door": self.export_ib_door_var.get(),
+        },
+        has_indicator_box=has_indicator_box,
+    )
 
 
 def _validate_selected_indicator_exports(self, flags, val):
