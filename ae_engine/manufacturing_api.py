@@ -1779,3 +1779,11 @@ from .cadcraft_manual_return import (
     CADCRAFT_MAX_EXCHANGE_BYTES,
     verify_cadcraft_verified_candidate_stage,
 )
+
+# #2517 operator physical-part selector uses Engine-owned source eligibility.
+from .operator_derived_navigation import (
+    OperatorBaseNavigationIdentity, OperatorReceivingAuxiliaryNavigation,
+    project_operator_base_navigation_identity,
+    project_operator_multidoor_base_plate_dimensions,
+    project_operator_receiving_auxiliary_navigation,
+)

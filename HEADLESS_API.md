@@ -1663,3 +1663,7 @@ Disposable WHD→CADCraft R2010/mm proof, original immutable source-prefix, cand
 ### #2517 verified CADCraft candidate-stage Engine API (2026-11-02)
 
 `manufacturing_api.verify_cadcraft_verified_candidate_stage(output, whd_candidates, existing_features, surface, width, height)` verifies the originally WHD-authored finished-face Features, physical boundary/intersection, isolated CADCraft mm DXF entities and bounded file SHA256 before any Phase6 Session preview. It returns the audited SHA; the old `stage_verified_cadcraft_drawing` GUI facade exclusively controls the original Session Preview/Confirm/Cancel/Undo. This is not a manufacturing DXF or source-only certification.
+
+### #2517 physical navigation provenance: BasePlate / NFB tier / PAD / EAR
+
+Use the existing `manufacturing_api.project_operator_base_navigation_identity(snapshot, source_parts)` to determine source-owned Receiving root versus actual submitted two-tier NFB physical identity; `project_operator_multidoor_base_plate_dimensions(snapshot)` projects Vault Door-cell bottom plates without manufacturing a Receiving per-Door phantom; `project_operator_receiving_auxiliary_navigation(snapshot, available_parts=..., source_part_features=..., live_features=...)` returns Engine-sourced fixing-plate, NFB tier and PAD 2D navigation Fold profiles. GUI applies these immutable operator-source projections to the existing workspace navigation. Display-only profiles are not CUTTING, MFG-2 or external source-only certification.
