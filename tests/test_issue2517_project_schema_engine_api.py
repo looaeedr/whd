@@ -67,8 +67,8 @@ def test_bad_source_never_writes_a_project_file(tmp_path):
     path = tmp_path / "reject.p6fold"
     with pytest.raises(ValueError):
         gui.write_project(path, {
-            "schema": api.PROJECT_SCHEMA_V1,
-            "snapshot": {"model": "金庫型", "t": float("nan")},
+            "schema": api.PROJECT_SCHEMA_V3,
+            "snapshot": {"model": "金庫型", "t": 2.0},
         })
     assert not path.exists()
 
