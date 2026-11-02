@@ -456,12 +456,11 @@ def build_manufacturing_request(
     snapshot = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
     settings = _mapping(getattr(app, "_settings_values", {}) or {})
     box_dimensions = _mapping(getattr(app, "_phase6_box_whd", {}) or {})
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
-        # Detached Manufacturing request. Defaults are never modified.
-        settings.update({
-            axis: box_dimensions[axis] for axis in ("w", "h", "d")
-            if axis in box_dimensions
-        })
+    # Engine Family registry owns physical source routing for every alias.
+    # GUI only forwards the detached operator Settings and live box values.
+    settings = manufacturing_api.project_receiving_manufacturing_request_settings(
+        snapshot, settings, box_dimensions,
+    )
     # A request assembled from a sparse input snapshot must still carry the
     # actual operator W/H/D/T of THIS app, never infer geometry from a cached
     # display or a different Bay. Existing authoritative values take priority.
