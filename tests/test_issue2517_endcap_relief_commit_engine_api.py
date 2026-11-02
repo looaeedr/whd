@@ -98,5 +98,6 @@ def test_phase6_atomic_commit_does_not_repeat_engine_policy():
         is endcap_relief_transaction_committable
     )
     source = inspect.getsource(service.resolve)
-    assert "endcap_relief_transaction_committable(" in source
+    assert "manufacturing_api.resolve_manufacturing_request(request)" in source
+    assert "endcap_relief_transaction_committable(" not in source
     assert "atomic_committable = all(" not in source
