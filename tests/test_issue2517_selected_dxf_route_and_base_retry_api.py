@@ -39,7 +39,9 @@ def test_vault_grouped_route_preserves_original_guard_and_unselected_route():
     _flags(box_body=True),
 ])
 def test_receiving_old_nfb_scene_guards_unselected_body_only(flags):
-    snapshot = {"model": "受電箱", "nfb_config_submitted": True}
+    # A real legacy NFB source must carry a valid stored DXF model identity.
+    snapshot = {"model": "受電箱", "nfb_config_submitted": True,
+                "nfb_config": {"holes": [{"model_filename": "supplier-base.dxf"}]}}
     plan = manufacturing_api.plan_selected_resolved_export_route(snapshot, flags)
     assert not plan.vault_composed
     guarded = dict(plan.legacy_guard_flags)
@@ -56,9 +58,20 @@ def test_current_csv_receiving_uses_source_verified_selected_export():
     plan = manufacturing_api.plan_selected_resolved_export_route(snapshot, flags)
     assert not plan.vault_composed
     assert plan.legacy_guard_flags is None
+
+
+def test_quantity_normal_ear_route_still_blocks_before_manufacture(monkeypatch):
+    from ae_engine import manufacturing_selected_export as source
+    # Isolate the route policy after a source-verified current CSV result;
+    # invalid incomplete QuantityModel payloads must fail their own gate.
+    monkeypatch.setattr(
+        source, "selected_export_manufacturing_policy",
+        lambda _source, _flags: (True, ({"physical_hole_id": "nfb-1"},)),
+    )
     with pytest.raises(ValueError, match="QUANTITY_NOT_VERIFIED"):
         manufacturing_api.plan_selected_resolved_export_route(
-            {**snapshot, "active_mode": "quantity"}, flags,
+            {"model": "受電箱", "active_mode": "quantity"},
+            _flags(box_body=True, door=True, base_plate=True),
         )
 
 
@@ -67,7 +80,8 @@ def test_non_csv_non_auto_side_and_unrelated_selection_keep_legacy_gate():
     flags = _flags(head=True)
     plan = manufacturing_api.plan_selected_resolved_export_route(snapshot, flags)
     assert dict(plan.legacy_guard_flags) == flags
-    committed = {"model": "受電箱", "nfb_config_submitted": True}
+    committed = {"model": "受電箱", "nfb_config_submitted": True,
+                 "nfb_config": {"holes": [{"model_filename": "supplier-base.dxf"}]}}
     plan = manufacturing_api.plan_selected_resolved_export_route(
         committed, flags,
     )
