@@ -17,6 +17,10 @@ whd_schema: WHD_DOC_META_V1
 
 > 本文件的 CURRENT 區只描述 **現行 ae_engine 製造架構、公開 API 與 authority boundary**。實際 Corner/Relief 製造公式仍由 Certified Registry 與其 canonical references 擁有；本文件不得複製一套第二公式來源。
 
+## [CURRENT] #2517 Receiving Family alias 三片實體基準源／FinalScene 防繞過（2026-11-02）
+
+`manufacturing_scene_orchestration.build_box_body_structure_render_data(BoxBodyPartSpec)` 仍使用原三片實體板件求解與專用 `receiving_panel_baselines` 的 `左側板.dxf`／`右側板.dxf`／`後面板.dxf`；只把原硬比對 `{"受電箱","RECEIVING"}` 改成既有 `cabinet_types.policy.canonical_family_name`，所以 Registered `受電箱`／`RECEIVING`／任意大小寫 alias 不得略過 Dedicated Baseline／來源 SHA／固定孔／後板契約，不得落回一般箱體三片無來源的通用產線。缺任一必要受信任基準檔仍明確拒絕、不產出 DXF。 `build_part_render_data`、`build_box_body_structure_render_data` 與 `manufacturing_resolver.resolve(ManufacturingResolveRequest)` 繼續支援 RO 等箱型的唯讀幾何／數量 BOM（這不是正式製造許可）；只有真正寫實體 DXF 的 `generate_box_body_structure_parts` 重用現有 `require_implemented_manufacturing_family`，已註冊 `RO／落地盤 implemented=False` 必須在建立輸出目錄之前拒絕，不得從唯讀板件繞過 `generate_part` 的製造限制。Resolver 對 Receiving snapshot 的 NFB source-selector rehydrate 同樣按 Family alias 正規化，不再只認大寫 `RECEIVING`。金庫型既有幾何、折型、直接 API 及未知舊 model 相容行為不變；本修復只守住已存在來源與 Family 判準，不新增平行 exporter、工廠公式、NFB/PAD/EAR/整箱 MFG-2 認證或 source-only 外部出口。#2517 仍 OPEN。
+
 ## [CURRENT] #2517 受電箱三片式箱身沿用既有 Engine 實體製造入口（2026-11-02）
 
 原 `ManufacturingResolvedBayInput.confirmed_parts` 擴充同一個 `("box_body", BoxBodyPartSpec)` 實體選項，必須有已確認 `fold_profile`、`back_panel_contract` 與 `three_piece_side_back_split` 結構。Engine 仍用原 `build_box_body_structure_render_data(spec, context)`（直接讀既有受電箱三張實體基準來源），產出 `left_side`／`back`／`right_side` 真實實體 `pieces`；既有 `save_verified_resolved_manufacturing_geometry_batch_dxf` 分拆每片、staged Save→Reload、雙 guard 與原子提交。沒有新箱身 exporter；不得用 exploded preview、來源 P 盤標籤或一張箱身複合圖當三片 DXF。缺真實三片、來源基準檔、Fold 或後面板契約則拒絕，NFB/PAD/EAR 仍維持原獨立認證，source-only CLI 不開放。#2517 OPEN。

@@ -715,7 +715,7 @@ def build_box_body_structure_render_data(
     # Dedicated Receiving source files own physical-piece fixed processing,
     # not the Vault's generic integral BoxBody feature layer.
     receiving_physical = (
-        str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}
+        cabinet_family_policy.canonical_family_name(spec.model_name) == "受電箱"
         and str(structure.structure_type.value) == "three_piece_side_back_split"
     )
     pieces = []
@@ -823,6 +823,9 @@ def generate_box_body_structure_parts(
     context: ManufacturingContext | None = None,
 ) -> tuple[PartExportResult, ...]:
     """Export every physical Box Body piece from the same resolved FinalScenes."""
+    # Read-only FinalScene/quantity projection supports historical families;
+    # actual DXF publication must not allow registered unimplemented models.
+    cabinet_family_policy.require_implemented_manufacturing_family(spec.model_name)
     ctx = context or ManufacturingContext()
     data = build_box_body_structure_render_data(spec, ctx)
     root = Path(output_dir)
