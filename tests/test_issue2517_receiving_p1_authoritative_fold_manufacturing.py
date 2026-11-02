@@ -95,7 +95,11 @@ def test_p1_source_and_confirmed_fold_generate_real_receiving_dxf_roundtrip(tmp_
     for output in result.output_files.values():
         doc = ezdxf.readfile(output)
         layers = {entity.dxf.layer for entity in doc.modelspace()}
-        assert "CUTTING" in layers and "BEND" in layers
+        assert "CUTTING" in layers
+        # CURRENT 07: Receiving rear sheet is a genuinely flat blank, so
+        # fabricating BEND merely to satisfy a test would corrupt manufacture.
+        if "back" not in Path(output).stem:
+            assert "BEND" in layers
 
 
 def test_missing_receiving_authored_fold_never_invents_factory_geometry():
