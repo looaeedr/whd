@@ -6,6 +6,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 多 Bay 匯出來源決策與獨立 NFB 預覽 Engine API（2026-11-02）
+
+`gui_modules/project/export_actions.py::_export_selected_resolved_parts` 不再自行決定受電箱實體 Bay 數、分組單 Bay 合格性及 Head/Tail/外門獨立出圖時的 NFB 提交狀態遮蔽。統一呼叫 `manufacturing_api.plan_receiving_multibay_export_source(snapshot, flags, group_mode)` 取得 detached `ReceivingMultiBayExportPlan`，使用 `preview_layout_for_bay(si, bi)` 產生不變動保存來源的局部預覽。任何包含底板、箱身等 NFB 依賴板件都不遮蔽真實 NFB，且舊未分組單 Bay 繼續走既有出圖。GUI 僅取得真實 Bay FinalScene 並傳入原正式 Engine 匯出入口，既有 CSV、EAR/PAD、幾何、DXF 重開、來源漂移、原子提交及不完整來源拒絕全部保持，沒有新增製造資格或外部能力。#2517 OPEN。
+
 ## [CURRENT] #2517 PAD＋底板版本／Set-Bay 出圖來源移至 Engine API（2026-11-02）
 
 GUI `export_receiving_pad_base_part_only_dxf` 不再解析 QuantityModel 的 selected version、Set/Bay 單連 fallback 或自行組裝物理輸出身份；它只取操作者材質／製程／Q，並呼叫 `manufacturing_api.resolve_receiving_pad_base_export_source(snapshot)` 取得與當下已提交來源一致的獨立快照及 `version_id`，再交原有 `export_verified_pad_base_part_only` 執行實體 PAD+Base CHECK/Q。Engine 沿用既有 QuantityModel、project_common_box 與 Set/Bay authority，不重建 Family 或出口；錯誤版本、缺少／不一致 NFB、模糊多 Bay 都拒絕。GUI 的有命名 DXF 覆寫提示也改用既有 `resolve_live_cabinet_family`，支援 Receiving 正規別名；不得藉來源解析授權整箱、EAR 焊接、PAD MFG-2 或任意 export。#2517 繼續 OPEN。

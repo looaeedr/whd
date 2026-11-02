@@ -6,6 +6,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Receiving multi-Bay operator source selection
+
+`manufacturing_api.plan_receiving_multibay_export_source(snapshot, flags, group_mode=None)` now returns `ReceivingMultiBayExportPlan`. Engine determines real persisted Bay count, grouped single-Bay independent-sheet eligibility and whether each Bay may use a detached NFB-disabled HEAD/TAIL/outer DOOR preview via `preview_layout_for_bay(si, bi)`. A BasePlate, BoxBody or other NFB-dependent selection never masks submitted NFB. The GUI only requests actual current Bay FinalScene and uses the existing Engine export APIs. Legacy ungrouped single-Bay export is unchanged; verified physical source, manufacturing gate, atomic DXF and re-open checks remain in the original exporter. This is a source-plan, not new certification.
+
 ## #2517 Receiving PAD+Base CHECK/Q operator source selection
 
 `manufacturing_api.resolve_receiving_pad_base_export_source(snapshot)` returns
