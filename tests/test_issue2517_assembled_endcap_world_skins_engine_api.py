@@ -93,4 +93,4 @@ def test_3d_renderer_endcap_display_and_probe_only_call_public_engine():
     assert "place_endcap_against_box_body(" not in source
     assert "formed_surface_for_edges = skins.formed_surface" in source
     assert "placed = skins.solid_triangles" in source
-    assert "collision_target = (" in source
+    assert "collision_target = (" not in source
