@@ -41,9 +41,10 @@ def export_multi_door_indicator_box_parts(
     context = self._manufacturing_context(draw_stock=draw_stock)
     for cell in self.get_door_layout_cells():
         key = self._door_layout_cell_key(cell)
-        displayed = self._door_layout_indicator_state_for_key(key)
         states = getattr(self, "door_layout_indicator_states", None)
-        raw = states.get(key) if isinstance(states, Mapping) else displayed
+        # The display accessor mutates the stored row. Validate raw input first.
+        raw = (states.get(key) if isinstance(states, Mapping)
+               else self._door_layout_indicator_state_for_key(key))
         state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)
         if state.get("mode") != "indicator_box":
             continue
@@ -95,8 +96,11 @@ def _validate_selected_indicator_exports(self, flags, val):
     if self.multi_door_enabled_var.get():
         for cell in self.get_door_layout_cells():
             key = self._door_layout_cell_key(cell)
-            state = self._door_layout_indicator_state_for_key(key)
-            if state.get("mode") != "none":
+            states = getattr(self, "door_layout_indicator_states", None)
+            raw = (states.get(key) if isinstance(states, Mapping)
+                   else self._door_layout_indicator_state_for_key(key))
+            state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)
+            if state["mode"] != "none":
                 self._validate_door_layout_indicator_fit(cell, state, val)
     else:
         self._validate_single_door_indicator_fit(val)

@@ -208,9 +208,11 @@ def _door_layout_part_spec(self, cell, val):
     key = self._door_layout_cell_key(cell)
     # Read the committed per-cell source, never the GUI's presentation-repaired
     # copy when real state is available. Engine alone validates physical lamps.
-    displayed = self._door_layout_indicator_state_for_key(key)
     states = getattr(self, "door_layout_indicator_states", None)
-    raw = states.get(key) if isinstance(states, Mapping) else displayed
+    # The display accessor normalizes *in place*: it must not run before
+    # Engine validates the original committed physical source.
+    raw = (states.get(key) if isinstance(states, Mapping)
+           else self._door_layout_indicator_state_for_key(key))
     state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)
     mode = state["mode"]
     groups = tuple(state["groups"][:state["layers"]]) if mode != "none" else ()

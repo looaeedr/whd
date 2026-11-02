@@ -110,3 +110,76 @@ def test_gui_export_and_door_part_spec_have_no_manufacturing_group_cast():
         assert "project_operator_door_cell_indicator_manufacturing_source(" in source
         assert "max(1, min(6, int(" not in source
         assert "tuple(int(v)" not in source
+
+
+def _install_real_mutating_display_accessor(host, display, visited):
+    """Model the actual Door render adapter's in-place state normalization."""
+    def accessor(key):
+        visited.append(("display-mutated", key))
+        state = host.door_layout_indicator_states.get(key)
+        normalized = deepcopy(display)
+        if state is None:
+            host.door_layout_indicator_states[key] = normalized
+            return normalized
+        state.clear()
+        state.update(normalized)
+        return state
+    host._door_layout_indicator_state_for_key = accessor
+
+
+@pytest.mark.parametrize("invalid", (
+    {"groups": [False, 2]},
+    {"groups": [0, 2]},
+    {"layers": True},
+    {"layers": 7},
+    {"offset_x": float("nan")},
+))
+def test_actual_mutating_gui_accessor_cannot_repair_invalid_manufacturing_source(
+    tmp_path, invalid,
+):
+    source = _state(**invalid)
+    original = deepcopy(source)
+    host, visited = _host(source)
+    _install_real_mutating_display_accessor(host, _state(), visited)
+    # Preflight must also refuse to mutate the original source, otherwise the
+    # later Door/Box manufacturing calls can never detect the invalid row.
+    host.multi_door_enabled_var = SimpleNamespace(get=lambda: True)
+    flags = {"door": True, "indicator_box": True, "indicator_door": True}
+    with pytest.raises(ValueError):
+        export._validate_selected_indicator_exports(host, flags, VAL)
+    with pytest.raises(ValueError):
+        adapter._door_layout_part_spec(host, CELL, VAL)
+    with pytest.raises(ValueError):
+        export.export_multi_door_indicator_box_parts(host, str(tmp_path), VAL)
+    assert source == original
+    assert host.door_layout_indicator_states["0:0"] is source
+    assert visited == []
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_valid_physical_source_never_reads_mutating_display_fallback(tmp_path):
+    source = _state(groups=[3, 2, 2, 2, 2, 2])
+    before = deepcopy(source)
+    host, visited = _host(source)
+    _install_real_mutating_display_accessor(
+        host, _state(groups=[8, 8, 2, 2, 2, 2]), visited,
+    )
+    assert adapter._door_layout_part_spec(host, CELL, VAL)["indicator_hole"] is not None
+    assert export.export_multi_door_indicator_box_parts(host, str(tmp_path), VAL) == [
+        "indicator_box_c1_r1.dxf", "indicator_door_c1_r1.dxf",
+    ]
+    assert source == before
+    assert not any(item[0] == "display-mutated" for item in visited)
+    assert [call[1] for call in visited if call[0] in ("box", "small-door")] == [
+        (3, 2), (3, 2),
+    ]
+
+
+def test_absent_cell_never_creates_display_imputed_manufacturing_state(tmp_path):
+    host, visited = _host(_state())
+    host.door_layout_indicator_states = {}
+    _install_real_mutating_display_accessor(host, _state(), visited)
+    assert adapter._door_layout_part_spec(host, CELL, VAL)["indicator_hole"] is None
+    assert export.export_multi_door_indicator_box_parts(host, str(tmp_path), VAL) == []
+    assert host.door_layout_indicator_states == {}
+    assert not any(item[0] == "display-mutated" for item in visited)
