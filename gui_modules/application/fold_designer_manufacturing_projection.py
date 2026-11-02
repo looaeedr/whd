@@ -243,64 +243,14 @@ def _inner_door_frame_from_payload(key, payload):
 
 
 def _query_receiving_resolved_base_render_data(self, key, payload):
-    if key == "base_plate" and (payload or {}).get("_use_committed_relief") is not False:
-        owner = getattr(self, "fold_designer_app", None)
-        current = getattr(owner, "_phase6_input_snapshot", None)
-        if (isinstance(current, Mapping)
-                and current.get("model") in ("受電箱", "RECEIVING")
-                and current.get("nfb_config_submitted") is True
-                and isinstance(current.get("nfb_config"), Mapping)
-                and current["nfb_config"].get("layer_count") == 1):
-            from ae_engine.receiving_base_plate_config import receiving_base_plate_values
-            try:
-                known_base = receiving_base_plate_values(current)
-            except (ValueError, TypeError, KeyError):
-                known_base = None
-            if known_base is not None:
-                resolved = getattr(owner, "_phase6_last_resolved_manufacturing_geometry", None)
-                found = next(
-                    (part for part in tuple(getattr(resolved, "parts", ()) or ())
-                     if str(part.part_key) == key), None,
-                )
-                if found is None:
-                    resolver = getattr(owner, "_phase6_resolve_manufacturing_geometry", None)
-                    if not callable(resolver):
-                        raise ValueError("RECEIVING_ONE_TIER_2D_SOURCE_UNAVAILABLE")
-                    resolved = resolver()
-                    found = next(
-                        (part for part in tuple(getattr(resolved, "parts", ()) or ())
-                         if str(part.part_key) == key), None,
-                    )
-                if found is None or getattr(found.render_data, "unfolded_topology", None) is None:
-                    raise ValueError("RECEIVING_ONE_TIER_2D_PHYSICAL_PART_MISSING")
-                return found.render_data
-    if key.startswith("base_plate:nfb_layer:"):
-        import re
-        if not re.fullmatch(r"base_plate:nfb_layer:[01]", key):
-            raise ValueError("RECEIVING_NFB_TIER_2D_PART_ID_INVALID")
-        owner = getattr(self, "fold_designer_app", None)
-        current = getattr(owner, "_phase6_input_snapshot", None)
-        if (not isinstance(current, Mapping)
-                or current.get("nfb_config_submitted") is not True):
-            raise ValueError("RECEIVING_NFB_TIER_2D_NOT_SUBMITTED")
-        resolved = getattr(owner, "_phase6_last_resolved_manufacturing_geometry", None)
-        found = next(
-            (part for part in tuple(getattr(resolved, "parts", ()) or ())
-             if str(part.part_key) == key), None,
-        )
-        if found is None:
-            resolver = getattr(owner, "_phase6_resolve_manufacturing_geometry", None)
-            if not callable(resolver):
-                raise ValueError("RECEIVING_NFB_TIER_2D_SOURCE_UNAVAILABLE")
-            resolved = resolver()
-            found = next(
-                (part for part in tuple(getattr(resolved, "parts", ()) or ())
-                 if str(part.part_key) == key), None,
-            )
-        if found is None or getattr(found.render_data, "unfolded_topology", None) is None:
-            raise ValueError("RECEIVING_NFB_TIER_2D_PHYSICAL_PART_MISSING")
-        return found.render_data
-    return None
+    """GUI supplies current source and lazy FinalScene callback; Engine decides sheet."""
+    owner = getattr(self, "fold_designer_app", None)
+    return manufacturing_api.resolve_operator_receiving_base_2d_source(
+        key, payload,
+        getattr(owner, "_phase6_input_snapshot", None),
+        cached_geometry=getattr(owner, "_phase6_last_resolved_manufacturing_geometry", None),
+        resolve_geometry=getattr(owner, "_phase6_resolve_manufacturing_geometry", None),
+    )
 
 
 def _query_fold_designer_render_data(self, part_key, payload):
@@ -320,95 +270,14 @@ def _query_fold_designer_render_data(self, part_key, payload):
     if receiving_base is not None:
         return receiving_base
     if key.startswith("nfb_pad:"):
-        # The operator's current committed V5 source, never a stale
-        # navigation key or a profile-only fabricated sheet.
         owner = getattr(self, "fold_designer_app", None)
-        current = getattr(owner, "_phase6_input_snapshot", None)
-        if not isinstance(current, Mapping):
-            raise ValueError("PAD_OPERATOR_2D_SNAPSHOT_UNAVAILABLE")
-        from ae_engine.receiving_nfb_pad_operator_parts import (
-            committed_nfb_pad_draft_parts,
-        )
-        matches = tuple(
-            part for part in committed_nfb_pad_draft_parts(current)
-            if part.part_id == key
-        )
-        if len(matches) != 1:
-            raise ValueError("PAD_OPERATOR_2D_STALE_OR_UNAUTHORIZED_PART")
-        part = matches[0]
-        if (part.manufacturing_ready
-                or part.render_data.metadata.get("manufacturing_ready")
-                or part.render_data.metadata.get("nfb_deferred_manufacturing_role")
-                    != "PAD"):
-            raise ValueError("PAD_OPERATOR_2D_MFG_GATE_INVALID")
-        return sheet(part.render_data)
+        return sheet(manufacturing_api.resolve_operator_receiving_pad_2d_source(
+            key, getattr(owner, "_phase6_input_snapshot", None),
+        ))
     if key.startswith("base_plate:fixing_plate:"):
-        # Native independent PartRenderData, not the BasePlatePartSpec blank
-        # and not a drawing-only menu simulation.
-        from ae_engine.receiving_base_fixing_plate import (
-            receiving_base_fixing_plate_previews,
-        )
-        from ae_engine.receiving_base_fixing_plate_geometry import (
-            build_fixing_plate_source_render_data,
-        )
-        # The part-specific scene payload may be intentionally minimal:
-        # a child fixing-plate PartSpec has no separate NFB/Bay authority.
-        # Derive the physical owner from this *current* application's
-        # receiving snapshot, not a stale root-base payload or the part ID
-        # being queried. This exact same source drives 2D material and
-        # 3D formed weld contacts; it cannot grant manufacturing release.
-        source = dict(payload or {})
-        live = _read_live_receiving_snapshot(self)
-        selection = source.get("_receiving_runtime_selection")
-        if isinstance(selection, Mapping):
-            # Bay-specific material is resolved through an isolated
-            # ManufacturingRequest. Never overwrite Bay3's W/H/D and Door
-            # from an unrelated live Bay1 while drawing a fixing plate.
-            from ae_engine.receiving_layout import (
-                project_receiving_bay_legacy_aliases,
-            )
-            si, bi = selection.get("set_index"), selection.get("bay_index")
-            if type(si) is not int or type(bi) is not int:
-                raise ValueError("BASE_FIXING_PLATE_BAY_SELECTOR_INVALID")
-            authoritative = project_receiving_bay_legacy_aliases(
-                source, set_index=si, bay_index=bi,
-            )
-            for field in (
-                "w", "h", "d", "_receiving_runtime_selection",
-                "multi_door_enabled", "door_layout_columns",
-                "inner_doors", "nfb_config", "nfb_config_submitted",
-            ):
-                if source.get(field) != authoritative.get(field):
-                    raise ValueError(
-                        f"BASE_FIXING_PLATE_BAY_SOURCE_DRIFT:{field}:"
-                        f" selected={selection!r}"
-                    )
-            # Provenanced source includes the selected Bay's committed NFB.
-            # A missing or malformed source is not rescued from another Bay.
-        elif isinstance(live, Mapping):
-            # The direct single-part editor can pass a minimal PartSpec.
-            # Without a verified Bay selector only the LIVE snapshot may
-            # authorize physical fixing-plate geometry.
-            for name in ("nfb_config", "nfb_config_submitted"):
-                source.pop(name, None)
-            for name in (
-                "model", "w", "h", "d", "t", "receiving_base_plate",
-                "receiving_layout", "_receiving_runtime_selection",
-                "nfb_config", "nfb_config_submitted", "inner_doors",
-                "receiving_inner_door_layer_heights_mm",
-            ):
-                if name in live:
-                    source[name] = live[name]
-        physical = receiving_base_fixing_plate_previews(
-            source, available_parts=("base_plate",),
-        )
-        if key not in {part.part_id for part in physical}:
-            raise ValueError(
-                "BASE_FIXING_PLATE_NOT_AUTHORIZED_FOR_THIS_CABINET:"
-                f" requested={key}; current="
-                f"{tuple(part.part_id for part in physical)}"
-            )
-        return sheet(build_fixing_plate_source_render_data(key, snapshot=source))
+        return sheet(manufacturing_api.resolve_operator_receiving_fixing_2d_source(
+            key, payload, live_snapshot=_read_live_receiving_snapshot(self),
+        ))
     if key.startswith("box_body:divider:"):
         divider = _box_body_divider_from_payload(key, payload)
         return sheet(manufacturing_api.build_box_body_divider_render_data(divider))

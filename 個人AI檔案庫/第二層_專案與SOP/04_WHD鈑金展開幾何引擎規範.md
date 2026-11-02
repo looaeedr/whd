@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 2D 實體底板／PAD／固定片來源單一 Engine API（2026-11-02）
+
+`fold_designer_manufacturing_projection.py::_query_fold_designer_render_data` 不再自行認定 NFB 單層原底板、雙層 `base_plate:nfb_layer:[01]`、source-backed PAD 或原固定片的 2D 實體材料、Bay 來源漂移與 MFG status。新增 `ae_engine.operator_receiving_physical_2d`，由既有正式 `manufacturing_api` 公開 `resolve_operator_receiving_base_2d_source`、`resolve_operator_receiving_pad_2d_source`、`resolve_operator_receiving_fixing_2d_source`，直接委派已存在的 committed NFB/BasePlate/PAD/EAR source owners 和 canonical ResolvedManufacturingGeometry；GUI 只傳當前來源、供應既有 geometry resolver 與將 RenderData 套上特徵。選定 Bay 必須匹配同一真實 Set/Bay 的 W/H/D、Door/NFB 身分，禁止跨 Bay 借材；缺來源／偽造 PartKey／PAD 冒充可製造均維持拒絕。此輸出只代表原實體 2D RenderData；正式 DXF、MFG-2、EAR／PAD 工法尚未獲放行，必須照 Certified Registry gate。#2517 OPEN。
+
+
 ## [CURRENT] #2517 Receiving EAR 側板顯示與 CHECK 來源別名統一（2026-11-02）
 
 `receiving_ear_side_display_context`、`receiving_ear_side_preview` 與舊有 CHECK-only DXF 來源驗證統一經 `cabinet_types.policy.canonical_family_name` 識別已註冊的 Receiving Family aliases，不再在 Engine／GUI 各維護一份僅匹配「受電箱」「RECEIVING」的判斷。2D 的 GUI 只傳 FoldDesigner 來源，必要時把 primary mirror 交 Engine 判斷來源漂移；CHECK 動作先呼叫 `manufacturing_api.receiving_ear_side_check_operator_inputs` 做無副作用的提交／模式／尺寸預檢，再走原 `export_receiving_ear_side_check_only_dxf`。來源側真實物理板材、UV／折彎／CUTTING 衝突、正反側 MARKING、DXF 原子儲存重開及失敗拒絕不變。CHECK 永遠是非製造驗證，不能授權 EAR 焊接、NFB/PAD MFG-2、整箱或 source-only 外部 export；金庫型仍拒絕。#2517 OPEN。
