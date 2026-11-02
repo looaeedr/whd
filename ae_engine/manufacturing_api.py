@@ -576,6 +576,11 @@ def save_part_render_data_dxf(
     blocked = metadata.get("baseline_fit_error")
     if blocked:
         raise ValueError(str(blocked))
+    # A preview-only Receiving base plate must fail equally in single-part
+    # FinalScene saves and in the verified batch sink. Never serialize its
+    # generic contour as an approved physical manufacturing DXF.
+    if metadata.get("receiving_base_plate_unconfigured") is True:
+        raise ValueError("RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING")
     # Numeric V5 CUTTING is a real 2D/3D trial, not an export authorization.
     # Only a separately certified manufacturing adapter can lift this gate.
     if (metadata.get("nfb_v5_trial_status")

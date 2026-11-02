@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from .contracts import BoxBodyPartSpec, EndCapPartSpec, BasePlatePartSpec
+from .cabinet_types import policy as cabinet_family_policy
 
 
 def build_part_render_data(
@@ -59,7 +60,7 @@ def build_part_render_data(
 
     metadata = {}
     if isinstance(spec, BasePlatePartSpec):
-        is_receiving = str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}
+        is_receiving = cabinet_family_policy.base_plate_requires_explicit_bend_pattern(spec.model_name)
         if spec.receiving_bend_pattern is not None:
             metadata = {
                 "stable_id": str(spec.physical_id or "base_plate"),

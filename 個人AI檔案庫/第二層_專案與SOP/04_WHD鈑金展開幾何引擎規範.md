@@ -1116,3 +1116,7 @@ preview-only 不得偽裝成實體；任一非有限、布林或部分缺失的
 ## [CURRENT] #2517 Receiving 多門格 confirmed PartSpec → 正式 Engine DXF（2026-11-02）
 
 `ManufacturingResolvedBayInput.door_layout_columns` 是使用者已確認的多門格位輸入，只能與完整 `confirmed_parts` 共用。現有 `export_verified_resolved_integration_bays` 會透過唯一 Engine `manufacturing_api.door_part_projections` 驗證全部 `door_cN_rN` 實體身分、W/H、T/FW/gap、左右上下 FrameEdges 與已提供的 BoxBody W/H；缺格／漂移先拒絕，不能從來源 P 盤名猜物理格位。合法格位繼續走既有 `build_part_render_data`／verified batch DXF writer 的 staged Save→Reload 和來源雙 guard。原單門、三片箱身、source-only `EXTERNAL_EXPORT_NOT_CERTIFIED`、Factory/Registry 安全邊界全保留；非整箱 MFG-2 或外部 CLI 認證。
+
+## [CURRENT] #2517 Receiving BasePlate Family alias 真實製造與 confirmed Bay 對接（2026-11-02）
+
+既有 `cabinet_types.policy.base_plate_requires_explicit_bend_pattern` 是受電箱 BasePlate 的唯一 Family capability。正式 `generate_part`、`build_part_scene` 與 `build_part_render_data` 現一致使用 canonical Family／aliases；`受電箱`、`RECEIVING`、大小寫與前後空白 alias 的已確認 LEFT／RIGHT 折型都經原 FinalScene DXF 出圖及 Save→Reload，缺折型仍阻擋。原 `ManufacturingResolvedBayInput.confirmed_parts` 可選 `("base_plate", BasePlatePartSpec)`，僅接受原本已有正規製造來源的 LEFT_FLAT_SIDE／RIGHT_FLAT_SIDE、普通 `base_plate` 實體；原 `build_part_render_data`／verified batch DXF／source pre-post guard 仍是單一權威，拒絕未確認 CENTER、NFB depth pair/tier、PAD/EAR 或其他冒名角色。此批不給 NFB MFG-2、全箱或外部 CLI 新放行；source-only `EXTERNAL_EXPORT_NOT_CERTIFIED` 保留，#2517 OPEN。

@@ -16,7 +16,8 @@ from types import MappingProxyType
 from typing import Literal, Mapping, Sequence
 
 from .contracts import (
-    BoxBodyPartSpec, DoorPartSpec, EndCapPartSpec, ManufacturingContext,
+    BasePlatePartSpec, BoxBodyPartSpec, DoorPartSpec, EndCapPartSpec,
+    ManufacturingContext,
     ResolvedManufacturingGeometry, ResolvedManufacturingPart, PartSpec,
 )
 
@@ -288,6 +289,16 @@ def _resolve_confirmed_integration_parts(
                     or not spec.fold_profile_x or not spec.fold_profile_y
                     or spec.corner_policy is None):
                 raise ValueError("RECEIVING_ENDCAP_AUTHORED_FOLD_REQUIRED")
+        elif part_key == "base_plate" and type(spec) is BasePlatePartSpec:
+            # Only a known ordinary LEFT/RIGHT physical plate is admissible to
+            # this verified Cabinet batch. CENTER source depends on separate
+            # committed NFB depth evidence; NFB tier/PAD/EAR have their own
+            # certified part-only export and must not become a plain base_plate.
+            if (spec.receiving_bend_pattern not in
+                    ("LEFT_FLAT_SIDE", "RIGHT_FLAT_SIDE")
+                    or spec.physical_id not in (None, "base_plate")
+                    or spec.receiving_nfb_depth_pair_mm is not None):
+                raise ValueError("RECEIVING_BASE_PLATE_SOURCE_UNVERIFIED")
         elif part_key == "box_body" and type(spec) is BoxBodyPartSpec:
             if (not spec.fold_profile or not spec.back_panel_contract
                     or spec.structure_state.get("active_type")
@@ -340,7 +351,8 @@ def export_verified_resolved_integration_bays(
     """Commit trusted Receiving parts after WHD staged DXF verification.
 
     Either supply already Engine-resolved geometry or complete, confirmed
-    physical PartSpecs for Door/Head/Tail and confirmed three-piece BoxBody;
+    physical PartSpecs for Door/Head/Tail, ordinary LEFT/RIGHT BasePlate,
+    and confirmed three-piece BoxBody;
     the latter are resolved through the existing physical-piece FinalScene
     solver, never an exploded layout preview. Raw DXF,
     JSON, source-only prepare or guessed Factory parameters remain rejected.
