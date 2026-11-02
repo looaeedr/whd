@@ -6,6 +6,61 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 WHD GUI／CADSplit 完全同一條 Engine 製造鏈（2026-11-02，使用者最高優先決策）
+
+> **「WHD 的 GUI 怎麼取得 Engine 的製造結果，CADSplit 就應該怎麼取得；差別只有操作資料的來源。」這是強制、不可折衷的正式架構規則，不是提案、建議或可選實作。任何依 caller 區分正式製造路徑的設計都屬架構違規，必須修正。**
+
+```text
+GUI／CADSplit 操作來源（來源可不同、Engine 契約相同） → WHD 公開 Engine API〔Family／Policy／Topology／Set-Bay（需要時）〕 → PartSpec／FinalScene → 同源 2D／3D／DXF → 正式驗證
+
+```
+
+**五條不可違反的硬規則（使用者 2026-11-02 確認）**
+1. **唯一製造權威**：GUI／CADSplit 只提供操作或來源資料，**絕不可自行決定製造幾何**；製造由 WHD Engine 負責。
+2. **唯一製造結果**：同一 Family、Part、Operation 與等價可信來源，在同版 Engine 必須使用**相同適用公開 API 契約與 canonical 製造結果**；不可依 caller 分流。
+3. **箱型差異只在 Engine**：Family／Policy／Topology／正式 Registry 決定金庫型、受電箱差異；**GUI、CADSplit、Bridge 禁止第二套公式／製造出口**。
+4. **Set/Bay 按需存在**：涉及多盤或裝配的實體 Set／Bay 拓樸及身份由 Engine 管理；**獨立單板件不需也不得被強迫建立 Set/Bay**。
+5. **輸出不可分裂**：2D、3D、DXF 必須由同一 canonical FinalScene／核准等價製造幾何衍生，**不可各算各的**；驗證幾何、來源、DXF Save→Reload／reopen（依操作適用範圍）。
+
+**PartSpec 是製造資料契約而非固定呼叫時序。** 它可以由公開 API 接收為已確認輸入，也可以由 Engine 依來源、Family／Policy 解析建立；上方為**責任鏈，不是強制 API 先被呼叫、PartSpec 才能建立的執行順序**。單板和 Set/Bay／批次／NFB 按操作使用既有適用的公開 API，不強迫全用一個函式。合法板件逐件製造與驗證，缺資料逐件報錯，整套完整性再由 Engine 核對 Set/Bay／BOM／裝配。現行 source-only external CLI 的未認證拒絕維持，不能用它否決已具備的正式 Python Engine API，也不得繞過其資格保護。
+
+**責任：來源由 GUI／CADSplit 提供；製造與 PartSpec 解算由 Engine；2D／3D／DXF 同源輸出並驗證。**
+
+- **唯一差異只在來源收集。** GUI 由人工操作、當前 Project state 與已確認設定組合；CADSplit 使用原始 DXF、來源圖元／把手、CSV、尺寸、孔位／來源關聯、Set/Bay、source key／revision 及已確認 Project/Factory 資料自動取得**等價正式輸入**。CADSplit source label 不是 canonical physical-part identity；物理板件、實際 Factory/Fold/Corner/Topology 與製造准入由 Engine 正式 owner 決定。資料不足就報缺項，**不准**猜測、套金庫型參數、以 UI bbox 反推或要求日常另選外部 JSON／baseline 來湊出假資料。
+- **同一套不代表同一個函式。** 針對**相同的 Part／Operation**，GUI 調用哪個已適用的公開製造 API，CADSplit 就調用**同一 API 與契約**；單板件用適用的 `generate_part`，組合／多板件／Set-Bay／Quantity／NFB 用其原有適用的正式 Engine API。**不准**為 CADSplit／Receiving 另外做製造 executor、重複 Fold、Corner、孔／CUTTING／BEND、組裝、DXF 公式，或讓 CADSplit 調用 GUI／Tk 的內部程序。
+- **相同輸入必須有相同製造語意。** 在相同 Engine 版本／Registry／baseline、等價經確認 Request 下，GUI 和 CADSplit 必須有同一實體 ID、同一 canonical geometry／FinalScene／Features／BEND／CUTTING、相同 DXF 寫入與獨立 reopen 驗證，且成功、缺項和 unsupported 結果**不能因 caller 而不同**。不同 Engine 版本仍可使用各自既有功能，無需 lockstep SHA；不可宣稱不同版本 DXF bytes 必然相等，須記錄來源和版本分別驗證。
+- **逐板件合法出圖與整套完整性分開。** 有完整合法資料的板件先走正式 API 並逐件 DXF Save／Reload／reopen 驗收；缺資料的板件單獨回報，不得阻礙其他合法板件。**完整 Set/Bay／成套成功**另由 Engine 實際 Set/Bay、physical-part inventory、BOM 和裝配關係驗證，不能拿部分成功冒充整套出圖。
+- **source-only CLI 不能凌駕原本的製造 API。** `integration_cli/cadsplit_worker.py` 目前仍是未認證的 source-only wire，`WHD_OPERATION_NOT_IMPLEMENTED`／`EXTERNAL_EXPORT_NOT_CERTIFIED` 等拒絕保留，**不得刪除保護偽造對外製造成功**；但也**絕不能**要求具備完整正式 `PartSpec`／Engine Request 的 CADSplit 內嵌 Python 製造流程改走這個未認證 `dispatch_manufacturing_integration(export)`，再以拒絕結果說 WHD Engine 無法製造。真正缺 API 就回既有 Engine／Family 擴充並認證，**不可再開平行通路**。
+- **驗收不是比畫面。** 後續施工須以 GUI／CADSplit 來源 adapter 建立等價的真實 Engine Request，確認**同一正式公開 API**、真實 DXF reopen、Save→Reload、各種 Family／Part、缺項逐件隔離與整套組裝判斷；未執行不可宣稱通過。**此文件寫入只確認架構要求，不能聲稱 CADSplit 已全面接線、外部 export 已認證或 #2517 已完成。**
+
+本節為 `manufacturing-architecture` 唯一 CURRENT；API REFERENCE 與 Skills 必須服從，**不得再建立第二份製造 authority／新 SOP／平行 API**。
+
+
+## [CURRENT] #2517 Settings Fold Profile 計畫由同一公開 Engine API 決定（2026-11-02）
+
+- `ae_engine.manufacturing_api.plan_operator_settings_fold_profiles(...)` 為 Settings 包外尺寸 → 物理板件 Fold 計畫的唯一計算／保留權威，Head/Tail X/Y、Door／BasePlate／CustomFold、BoxBody，與 derived physical IDs 遵循同一實體 identity policy。
+- GUI `phase6_settings_profile_projection.build_settings_profile_projection` 只把不可變操作輸入轉送 Engine，將回傳值裝回唯讀 `SettingsProfileProjectionPlan`；不得再自算 reset、keyed merge、Tail 裝配 Fold 順序或 active physical profiles。
+- Engine 單獨接受無 Tk 的 source snapshot/settings/profile，返回 detached snapshot、part_dimensions、box_body_profile、part_profiles、active_profiles 與 derived_sync_required；既有專案的自訂 Fold/保存後回讀必須保留，invalid CustomFold metadata 必須拒絕。此投影不是正式 DXF 製造放行。
+
+
+## [CURRENT] #2517 BoxBody 即時 2D 面尺寸由公開 Engine 單一來源投影（2026-11-02）
+
+- 原 `gui_modules/application/render_snapshots.box_body_render_snapshot` 直接引用 `ae_engine.sheetmetal_features.box_body_face_dimensions`，沒有遵守 GUI 只使用公開 `manufacturing_api` 的設計。現在一般箱身 2D 面預覽把 W/H/D 交由 `manufacturing_api.project_operator_box_body_face_dimensions(w=...,h=...,d=...)`；接收箱實體 SIDE 的 FinalScene 路徑維持不變。
+- 公開 API 先沿用 `normalize_operator_source_dimension`，拒絕 bool、非有限、零／負的物理尺寸，再委派原 Engine `sheetmetal_feature_core.box_body_face_dimensions`；不另寫或改變面尺寸公式，左／背／右面 tuple 及順序一致。保留測試可注入的 `face_dimensions_fn` 相容 seam，正常 GUI 預設固定走 Engine。
+- 驗收 `tests/test_issue2517_box_body_face_2d_render_engine_api.py`；不影響 DXF 認證，正式 X 未發布。
+
+## [CURRENT] #2517 即時 2D 指示燈盒／小門／主門與保存快照同一群組來源 Engine API（2026-11-02）
+
+- 原 `gui_modules/application/render_snapshots.py` 三條 live 2D 預覽路徑（獨立指示燈盒、指示燈小門及主門的兩種指示燈）仍以 `max(1, int(...))` 自行解釋層數／組數。這會在即時預覽將 `0` 靜默補成一層，將 `True` 轉成 1，或把非整數 float 截去小數，與已修好的 Fold Designer project snapshot 保存來源不一致。
+- 現改為所有啟用的 live 2D 指示燈先交由既有公開 `manufacturing_api.normalize_fold_designer_indicator_groups` 處理層數及每層組數；GUI 只收集原始控制值，任何缺列、bool、無效字串、零／負數、小數來源均 fail closed。無效來源不可以通過 `_indicator_box_part_spec`、`_indicator_door_part_spec_from_values` 或 `_single_door_part_spec`，避免 2D 空洞錯漏與製造投影不一致。
+- 保留不啟用時的原有空指示燈語意、合法整數群組、既有 Family 幾何、Save→Reload 與 DXF 認證；沒有另設 Engine／GUI 版本化製造入口。驗收 `tests/test_issue2517_live_indicator_render_groups_engine_api.py`。
+
+## [CURRENT] #2517 Fold Designer 上游 W/H/D/T/FW 實體操作讀取不得掉回 AE 預設（2026-11-02）
+
+- `gui_modules/application/fold_designer_snapshot_projection._snapshot_base_state` 原本用 `float(var.get())`，遇到 W/H/D/T/FW 控制值無效／讀取異常會無聲退回 `ae.W/H/D/T/FW`，令實際操作來源被預設值替換後繞過下游製造檢查。現在 GUI 只負責讀值，傳至 `manufacturing_api.normalize_operator_source_dimension(value, field=...)` 與 `normalize_operator_source_dimensions(snapshot)`（Engine 公開 API），統一拒絕來源缺失、bool、NaN/Inf、零或負值。
+- `_collect_main_setting_values()` 回傳的已套用 Settings 若覆蓋了原物理欄位，在完成快照前亦由 Engine 全面驗證；合法的 W/H/D/T/FW 保留原小數精度，Snapshot 與其中的 Settings payload 不得不一致。其他非實體 UI 欄位延用原容錯，GUI 不新增幾何公式。
+- 此更改只消除入口的假預設和保存不一致；不是把未認證的 CADSplit source-only 視為正式製造輸入，不增加 CUTTING／BEND／DXF 認證，也不發布正式 X。測試 `tests/test_issue2517_fold_designer_snapshot_source_readback_engine_api.py`。
+
 ## [CURRENT] #2517 Fold Designer 指示燈操作來源／快照物理尺寸不得靜默降級（2026-11-02）
 
 - 原 `ae_engine.fold_designer_snapshot_dimensions.project_fold_designer_snapshot_dimensions` 遇到指示燈盒群組或製造 policy 異常，會默默替換成 `groups=(1,)`／預設 `ManufacturingContext()`，讓專案快照看起來像有效的製造來源；現改成 Engine 直接驗證並拒絕無效的層數／組數／成品尺寸，不得把 `bool`、小數群組、零／負數變成實體孔位。既有 public `manufacturing_api.project_fold_designer_snapshot_dimensions` 保持同一入口；新增共享的 `normalize_fold_designer_indicator_groups` 供 GUI 操作來源消費。
@@ -1304,6 +1359,25 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 活動 3D Mesh Profile 與左右側板實體 Fold 單一 Engine API（2026-11-02）
 
 原 fold_designer_bridge._phase6_mesh_profiles_for_part 在 GUI 直接呼叫 box_body_structure.project_side_back_3d_input_fold_to_physical、cabinet_types.policy.box_body_profile_uses_outside_dimensions，並依 material.bounds 補完 Divider／內門框缺軸長度。現統一改由 manufacturing_api.project_operator_3d_mesh_profiles 進入 ae_engine.assembly_mesh_profiles，從相同 Family 和既有物理 Fold source 單向投影，不把 Mesh 當 operator 輸入。GUI 只供應當前／儲存／箱身 Fold Profiles、active part、來源快照與 Render material。沿用原 Receiving LEFT outside 補償與 RIGHT 反序 angle 移轉，並復用 resolve_material_mesh_profiles 只對需要 material bounds 的 BoxBody／Divider／Frame 進行有限正尺寸校驗，完整兩軸 Fold 不受無關材質錯誤影響。原 Registry candidate 3D 會透過原 GUI adapter 消費此 API；不新增製造公式、DXF 或外部 source-only 授權。#2517 OPEN。
+
+
+## [CURRENT] #2517 指示燈盒線槽 MARKING 與操作欄位共用 Engine 來源（2026-11-02）
+
+`manufacturing_api.project_indicator_box_marking_layout(layer_groups)` 將既有指示燈盒實體 MARKING 線槽打標孔的組數、X 起點、水平間距與第一層 Y 位置集中於 `ae_engine.indicator_box_marking_layout`。原 `ae_engine.ae_door_indicator.get_indicator_box_data` 產生的 `MARKING` 圓孔與一字線直接使用同一份投影，主 GUI `cabinet_controller._refresh_indicator_box_result_values` 僅把此公開 API 回傳值帶入可編輯欄位，不再維護第二份 171/90/191/50/150/178.5 物理規則。仍沿用既有 `sheetmetal_features.indicator_box_outer_size` 與 `_normalize_indicator_groups` 來源驗證；原多層群組及金庫型／受電箱同一指示燈盒圖面維持，未擴充 CUTTING／DXF／外部 export 認證。實際 MARKING 圓心可直接與 API positions 對照；#2517 OPEN。
+
+
+## [CURRENT] #2517 圓孔排列實體預覽由 Engine API 決策（2026-11-02）
+
+`gui_modules/editors/hole_editor_round_settings._RoundHoleSettingsDialog` 原本自行以實體孔心距選最近鄰孔、決定對齊後孔位、實際填滿／重新填滿、選出須取代原孔的實體結果。現由 `manufacturing_api.nearest_operator_round_hole_neighbor_index` 與 `manufacturing_api.plan_operator_round_hole_preview` 接管，實作放在 `ae_engine.operator_round_hole_projection`，沿用 `sheetmetal_feature_reference` 已存在的 `align_circle_to_neighbor`、`generate_round_fill/refill` 與 `feature_is_within_surface`；GUI 只收操作者方向、間距、對齊、是否重新填滿，並把 Engine 的 detached `OperatorRoundHolePreview` 交既有 `HoleEditorAction.preview_all`。完整確定／取消／Undo 仍由 `Phase6HoleEditorSession` 執行。非法孔身份、鄰孔選擇或無法在板面生成的孔位 fail-closed 且不修改來源，不新增 Family 或第二份孔位／DXF 製造公式，不放行外部未認證 export；#2517 保持 OPEN。
+
+
+## [CURRENT] #2517 Hole Editor 指示燈盒開口實體 2D 預覽由 Engine API 決策（2026-11-02）
+
+原 `gui_modules/editors/hole_editor_render.HoleEditorCanvasRenderer.draw_extra` 在 `indicator_box` 模式用 Door 的 left/bottom fold、finished face W/H 和 operator offset 私下計算 CUTTING `ResolvedRect` 的中心。現經公開 `manufacturing_api.project_operator_hole_editor_indicator_box_opening`，由既有 `ae_engine.operator_door_2d_preview` 使用原 `manufacturing_door_indicator.indicator_box_opening_size` 生成同一 `ResolvedRect`，GUI 僅傳入已有 `DoorIndicatorContext`、群組、T 和偏移並顯示；輸入 NaN/Inf/布林或非法尺寸 fail-closed。孔心位置與舊顯示相容，來源使用現行金庫型／受電箱 Door physical API，2D/3D/CUTTING/DXF/Save→Reload 仍由各自原本正式 Engine 工廠與測試驗證；這是預覽統一，不授權任何原本未認證的製造或外部 export。#2517 OPEN。
+
+## [CURRENT] #2517 Receiving 已確認 EndCap 原始孔位 → 正式 Engine DXF（2026-11-02）
+
+既有 manufacturing_api.build_receiving_factory_confirmed_parts 和 ManufacturingResolvedBayInput 擴充可選 confirmed_endcap_features，只接收由可信來源／操作者確認並已按 Engine canonical 實體 role 對應的 head/tail 成品面 1:1 mm CUTTING CircleFeature／RectFeature／ProfileFeature。禁止用 CADSplit P 盤視圖名猜 Head/Tail、未解析 DXF 圖元冒孔位；非法 role、型別、成品面錨點、非有限座標及非正尺寸 fail closed。Engine 沿原建構 EndCapPartSpec(holes=...)、Family／Corner／FinalScene 和 verified physical DXF Save→Reload 接續，無第二製造算法或輸出系統。未提供孔位維持舊行為；其他板件孔位、全套 Set/Bay、NFB 或 source-only 外部 export 未因此獲得認證，#2517 OPEN。
 
 ## [CURRENT] #2517 受電箱底板 Part Session 啟用／儲存 Fold 來源單一 Engine API（2026-11-02）
 

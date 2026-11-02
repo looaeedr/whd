@@ -35,6 +35,19 @@ route.
 
 ## Current runtime state
 
+## 強制同源規則：source-only wire 不是 CADSplit 的第二條製造路徑
+
+**唯一正式責任鏈：** `GUI／CADSplit 操作來源（來源不同、Engine 契約相同） → WHD 公開 Engine API〔Family／Policy／Topology／Set-Bay（按需）〕 → PartSpec／FinalScene → 同源 2D／3D／DXF → 正式驗證`。
+
+**五條硬規則：唯一製造權威＝Engine；同 Family／Part／Operation 使用同一公開製造契約及 canonical 結果；箱型差異只在 Engine Family／Policy／Topology；Set/Bay 只由需要它的 Engine 操作管理、單板件不強迫建立；2D／3D／DXF 由同一正式幾何衍生並按需驗證幾何、來源與 DXF Save→Reload。**
+
+**PartSpec 可作為已確認的公開 API 輸入，也可由 Engine 依 Family／Policy 解析產生；此圖是責任鏈，不是強制 API 先呼叫、再建立 PartSpec 的執行時序。** 不得因函式簽名差異另建 CADSplit 製造 API。
+
+**WHD GUI 怎麼用正式 Engine API 取得製造結果，CADSplit 就必須怎麼做；只可在操作來源（GUI controls／Project 相對 CADSplit DXF→CSV／孔位／尺寸／source link）不同。** 兩邊都要形成可信、等價的 Request／PartSpec／Context 並走同一適用的 `manufacturing_api`，由同一 Family／Registry／物理板件／FinalScene／DXF reopen 驗證。任何 CADSplit 專用 DXF executor、私有製造公式、caller 例外認證都**嚴禁**。完整來源的板件逐片出圖，不完整板件逐片報錯；完整 Set/Bay 另驗 BOM 與裝配。
+
+**本 wire 現在仍是 source-only、沒有製造資格，保留所有 fail-closed 拒絕。** 它的拒絕**不能**用來否決 CADSplit 既有合法內嵌 Python Engine 公開製造入口；反之也不得為了外部 export 而取消認證。權威 AI 庫 04 CURRENT；本 REFERENCE 不創造新的已啟用能力。
+
+
 Source-mode `capabilities` reports:
 
 - `engine_version=source-only-unreleased`;

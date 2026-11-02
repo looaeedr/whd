@@ -821,13 +821,24 @@ def generate_box_body_structure_parts(
     spec: BoxBodyPartSpec,
     output_dir: str | os.PathLike[str],
     context: ManufacturingContext | None = None,
+    *, resolved_render_data: BoxBodyStructureRenderData | None = None,
+    verify_reopen: bool = False,
 ) -> tuple[PartExportResult, ...]:
     """Export every physical Box Body piece from the same resolved FinalScenes."""
     # Read-only FinalScene/quantity projection supports historical families;
     # actual DXF publication must not allow registered unimplemented models.
     cabinet_family_policy.require_implemented_manufacturing_family(spec.model_name)
     ctx = context or ManufacturingContext()
-    data = build_box_body_structure_render_data(spec, ctx)
+    if type(verify_reopen) is not bool:
+        raise TypeError("verify_reopen must be bool")
+    if resolved_render_data is not None and not isinstance(
+        resolved_render_data, BoxBodyStructureRenderData
+    ):
+        raise TypeError("resolved_render_data must be an Engine BoxBodyStructureRenderData")
+    # GUI's cached canonical physical sheets are already the Engine result.
+    # Never rebuild them merely to write DXF; legacy callers still resolve once.
+    data = (resolved_render_data if resolved_render_data is not None
+            else build_box_body_structure_render_data(spec, ctx))
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)
     labels = {
@@ -844,16 +855,37 @@ def generate_box_body_structure_parts(
     ]
     if blocked:
         raise ValueError("; ".join(f"{role}: {reason}" for role, reason in blocked))
+    if verify_reopen:
+        # Reuse Engine's existing verified, atomic multi-physical-part sink.
+        # Every real piece must reopen and match its exact cached FinalScene
+        # before ANY new output may replace a previous accepted DXF.
+        staged = _manufacturing_export._save_resolved_rows_atomic(
+            tuple(
+                (piece.key, labels.get(piece.role, piece.key) + ".dxf",
+                 piece.render_data)
+                for piece in data.pieces
+            ),
+            root,
+            save_part_render_data_dxf=lambda render, path, *, overwrite:
+                _manufacturing_export.save_part_render_data_dxf(
+                    render.scene, path, serializer=save_scene_dxf,
+                    overwrite=overwrite,
+                ),
+            overwrite=bool(ctx.overwrite), verify_all_staged=True,
+        )
+    else:
+        staged = {}
     results = []
     for piece in data.pieces:
         name = labels.get(piece.role, piece.key) + ".dxf"
-        path = root / name
-        _manufacturing_export.save_part_render_data_dxf(
-            piece.render_data.scene,
-            path,
-            serializer=save_scene_dxf,
-            overwrite=bool(ctx.overwrite),
-        )
+        path = Path(staged[piece.key]) if verify_reopen else root / name
+        if not verify_reopen:
+            _manufacturing_export.save_part_render_data_dxf(
+                piece.render_data.scene,
+                path,
+                serializer=save_scene_dxf,
+                overwrite=bool(ctx.overwrite),
+            )
         source = piece.render_data.metadata.get("baseline_source_path")
         results.append(PartExportResult(
             part_kind=piece.key, output_path=str(path),

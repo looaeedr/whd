@@ -136,6 +136,7 @@ from .operator_box_body_settings_projection import (
 from .operator_settings_transactions import (
     OperatorSettingsCommitTransition, normalize_operator_settings_boolean,
     normalize_operator_settings_updates, commit_operator_settings_state,
+    normalize_operator_source_dimension, normalize_operator_source_dimensions,
 )
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
@@ -325,6 +326,10 @@ from .cabinet_types.policy import door_material_frame_width, box_body_symmetry_a
 
 
 from .operator_door_blank_projection import project_operator_door_blank_dimensions
+from .operator_round_hole_projection import (
+    OperatorRoundHolePreview, nearest_operator_round_hole_neighbor_index,
+    plan_operator_round_hole_preview,
+)
 from .operator_hole_editor_projection import (
     OperatorHoleEditorGeometry,
     project_operator_hole_editor_door,
@@ -347,6 +352,7 @@ from .live_cabinet_family import resolve_live_cabinet_family
 from .assembly_mesh_profiles import (
     resolve_material_mesh_profiles, project_operator_3d_mesh_profiles,
 )
+from .operator_settings_fold_plan import plan_operator_settings_fold_profiles
 from .standard_part_fold_profiles import build_standard_part_fold_profiles
 from .standard_part_fold_readback import read_standard_part_fold_profiles
 from .custom_part_catalog import (
@@ -406,6 +412,10 @@ from .manufacturing_baseline_policy import (
     _supported_kwargs,
     _call,
     _has_named_parameter,
+)
+
+from .indicator_box_marking_layout import (
+    IndicatorBoxMarkingLayout, project_indicator_box_marking_layout,
 )
 
 from .manufacturing_door_indicator import (
@@ -630,6 +640,7 @@ def save_part_render_data_dxf(
     output_path: str | os.PathLike[str],
     *,
     overwrite: bool = False,
+    verify_reopen: bool = False,
 ) -> str:
     """Serialize an already-built authoritative FinalScene to DXF."""
     metadata = getattr(render_data, "metadata", None) or {}
@@ -649,6 +660,25 @@ def save_part_render_data_dxf(
     # Specific V5 trial guard takes priority, then the more general tier
     # physical-base gate handles unsourced/forged non-V5 scenes.
     _manufacturing_export.reject_unverified_receiving_nfb_tier_base(render_data)
+    if type(verify_reopen) is not bool:
+        raise TypeError("verify_reopen must be bool")
+    if verify_reopen:
+        # The same Engine-owned stage -> real DXF reopen -> canonical
+        # geometry comparison -> atomic commit used by verified batch export.
+        # Never verify after replacing a user's previously valid output.
+        destination = Path(output_path)
+        staged = _manufacturing_export._save_resolved_rows_atomic(
+            ((destination.name, destination.name, render_data),),
+            destination.parent,
+            save_part_render_data_dxf=lambda part, target, *, overwrite:
+                _manufacturing_export.save_part_render_data_dxf(
+                    part.scene, target, serializer=save_scene_dxf,
+                    overwrite=overwrite,
+                ),
+            overwrite=overwrite,
+            verify_all_staged=True,
+        )
+        return staged[destination.name]
     return _manufacturing_export.save_part_render_data_dxf(
         render_data.scene,
         output_path,
@@ -1367,6 +1397,18 @@ def project_fold_designer_snapshot_dimensions(snapshot, indicator_layer_groups):
 
 
 
+def project_operator_box_body_face_dimensions(
+    *, w: object, h: object, d: object,
+) -> dict[str, tuple[float, float]]:
+    """Existing canonical BoxBody face map after strict operator source checks."""
+    from .sheetmetal_feature_core import box_body_face_dimensions
+    values = {
+        key: normalize_operator_source_dimension(raw, field=key)
+        for key, raw in (("w", w), ("h", h), ("d", d))
+    }
+    return box_body_face_dimensions(**values)
+
+
 def project_fold_designer_snapshot_part_features(
     snapshot, surface_features, door_layout_features,
 ):
@@ -1635,6 +1677,7 @@ def build_box_body_operator_part_spec(
 
 def build_receiving_factory_confirmed_parts(
     source_dimensions, *, confirmation=None, operator_snapshot=None,
+    confirmed_endcap_features=None,
 ):
     """Public WHD Engine source W/H/D/T -> confirmed Receiving PartSpec boundary.
 
@@ -1646,6 +1689,7 @@ def build_receiving_factory_confirmed_parts(
     return build(
         source_dimensions, confirmation=confirmation,
         operator_snapshot=operator_snapshot,
+        confirmed_endcap_features=confirmed_endcap_features,
     )
 
 
@@ -1839,6 +1883,7 @@ from .operator_door_layout_peer_2d import (
 from .operator_door_2d_preview import (
     project_operator_door_divider_frame_preview,
     project_operator_door_indicator_guides,
+    project_operator_hole_editor_indicator_box_opening,
 )
 
 # #2517 canonical BoxBody physical 2D source and operator piece identity.

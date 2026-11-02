@@ -18,11 +18,46 @@ from .cabinet_types import policy as family_policy
 from .endcap_factory_fold import build_endcap_xy_fold_profiles
 from .endcap_operator_part_spec import build_endcap_operator_part_spec
 from .sheetmetal_geometry import FourCornerTypePolicy
+from .sheetmetal_feature_core import CircleFeature, RectFeature, ProfileFeature, FeatureAnchor
 
 _SOURCE_KEYS = frozenset(("w", "h", "d", "t"))
 _BOX_KEYS = ("fw", "zl1", "zl2", "zr2")
 _PARTS = ("box_body", "head", "tail")
 _FAMILY = "受電箱"
+
+
+def _confirmed_endcap_source_features(raw):
+    """Accept explicitly confirmed Head/Tail CUTTING Features in finished-face mm."""
+    if raw is None:
+        return {}
+    if not isinstance(raw, Mapping) or set(raw) - {"head", "tail"}:
+        raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+    result = {}
+    for role, rows in raw.items():
+        if not isinstance(rows, (tuple, list)):
+            raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+        for feature in rows:
+            if not isinstance(feature, (CircleFeature, RectFeature, ProfileFeature)):
+                raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+            if feature.anchor is not FeatureAnchor.ABSOLUTE_FINISHED_FACE or feature.layer != "CUTTING":
+                raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+            coords = [feature.offset.x, feature.offset.y]
+            if isinstance(feature, CircleFeature):
+                coords.append(feature.diameter)
+                if type(feature.diameter) not in (int, float) or feature.diameter <= 0:
+                    raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+            elif isinstance(feature, RectFeature):
+                coords.extend((feature.width, feature.height))
+                if any(type(v) not in (int, float) or v <= 0 for v in (feature.width, feature.height)):
+                    raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+            else:
+                if len(feature.points) < 3:
+                    raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+                coords.extend(a for point in feature.points for a in (point.x, point.y))
+            if any(type(v) not in (int, float) or not isfinite(float(v)) for v in coords):
+                raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+        result[role] = tuple(deepcopy(rows))
+    return result
 
 
 def _source_dimensions(value: Mapping[str, object]) -> dict[str, float]:
@@ -102,6 +137,7 @@ def build_receiving_factory_confirmed_parts(
     source_dimensions: Mapping[str, object], *,
     confirmation: str | None = None,
     operator_snapshot: Mapping[str, object] | None = None,
+    confirmed_endcap_features: Mapping[str, object] | None = None,
 ):
     """Resolve a confirmed Receiving P1/Bay's Body, Head and Tail via WHD Engine.
 
@@ -121,6 +157,7 @@ def build_receiving_factory_confirmed_parts(
     This subset is NOT full-cabinet/NFB/Feature certification.
     """
     source = _source_dimensions(source_dimensions)
+    features_by_role = _confirmed_endcap_source_features(confirmed_endcap_features)
     if confirmation not in ("fresh_family_confirmed", "saved_operator_confirmed"):
         raise ValueError("RECEIVING_OPERATOR_CONFIRMATION_REQUIRED")
 
@@ -171,7 +208,7 @@ def build_receiving_factory_confirmed_parts(
     for part in ("head", "tail"):
         spec = build_endcap_operator_part_spec(
             endcap_values, model_name=_FAMILY,
-            is_tail=(part == "tail"), holes=(),
+            is_tail=(part == "tail"), holes=features_by_role.get(part, ()),
             fold_profiles=folds[part],
             corner_policy=policies[part],
             box_body_structure_state=structure,

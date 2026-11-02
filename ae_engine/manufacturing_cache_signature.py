@@ -9,6 +9,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from .cabinet_types.policy import canonical_family_name
+from .manufacturing_contracts import (
+    normalize_operator_3d_fallback_flag,
+    normalize_operator_relief_clearance,
+)
 import hashlib
 import json
 
@@ -86,8 +90,8 @@ def manufacturing_state_fingerprint(
         tuple(available_parts or ()),
         dict(part_profiles or {}),
         assembly_intent,
-        bool(ignore_fixed_corner),
-        relief_clearance,
+        normalize_operator_3d_fallback_flag(ignore_fixed_corner),
+        normalize_operator_relief_clearance(relief_clearance),
     )
     normalized = canonical_manufacturing_signature_value(state)
     payload = json.dumps(

@@ -6,6 +6,19 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## 【最高優先架構規則】WHD GUI／CADSplit 必須走同一 Engine 正式製造 API（2026-11-02）
+
+**唯一正式責任鏈：** `GUI／CADSplit 操作來源（來源不同、Engine 契約相同） → WHD 公開 Engine API〔Family／Policy／Topology／Set-Bay（按需）〕 → PartSpec／FinalScene → 同源 2D／3D／DXF → 正式驗證`。
+
+**五條硬規則：唯一製造權威＝Engine；同 Family／Part／Operation 使用同一公開製造契約及 canonical 結果；箱型差異只在 Engine Family／Policy／Topology；Set/Bay 只由需要它的 Engine 操作管理、單板件不強迫建立；2D／3D／DXF 由同一正式幾何衍生並按需驗證幾何、來源與 DXF Save→Reload。**
+
+**PartSpec 可作為已確認的公開 API 輸入，也可由 Engine 依 Family／Policy 解析產生；此圖是責任鏈，不是強制 API 先呼叫、再建立 PartSpec 的執行時序。** 不得因函式簽名差異另建 CADSplit 製造 API。
+
+**WHD GUI 如何取得 Engine 的正式製造結果，CADSplit 就必須如何取得；唯一差別是操作來源。** GUI 的操作欄位／Project，與 CADSplit 的原始 DXF→CSV／孔位／尺寸／來源 Set/Bay／已確認設定，都應形成語意等價的 `Request／PartSpec／Context`。接著按**相同 Part／Operation** 使用同一套既有 `manufacturing_api` 公開製造 API（單板件適用 `generate_part`，組合／批次／NFB 用其各自適用的既有 API），共用 Family／Topology／Policy／Registry、實體板件／FinalScene、真實 DXF 寫入、獨立 reopen 和 Save→Reload。**不得**按 GUI／CADSplit 身分分叉、另算幾何、另建 Bridge 製造或用另一套未認證出口替換正式 API。
+
+合法板件逐片產生並驗證，缺資料逐件拒絕，完整 Set/Bay 另驗真實 physical BOM／裝配；等價可信請求與相同 Engine 版本的製造結果與錯誤語意必須 caller-independent。不同 Engine 版本功能集合可不同，不強制同 SHA。既有 source-only `dispatch_manufacturing_integration(export)` 尚未認證，**不能被改造成偽造成功，也不能被用來禁止已存在的正式 Python 製造呼叫**。本節是 **REFERENCE**，唯一 CURRENT 權威仍為 AI 庫 04；寫入並不代表 CADSplit 接線或製造資格已驗收。
+
+
 ## #2517 EndCap settings operator FW / WRAP / Joint public transactions (2026-11-02)
 
 `manufacturing_api.operator_endcap_fw_follow(snapshot, settings, state, part_key, follow_box)` and `operator_endcap_fw_override(snapshot, settings, state, part_key, value)` perform copied operator state commits under the existing four-state EndCap FW engine. `operator_endcap_bottom_wrap(snapshot, state, part_key, reserve_u, reserve_v)` returns `OperatorBottomWrapTransition(state, resolved)` with canonical linked Head/Tail reserve and Joint-aware readback. `operator_endcap_edge_relation(snapshot, part_key, edge, relation)` forwards the actual Assembly Joint commit. GUI compatibility transition functions only call these public functions. Invalid part/relation requests remain rejected, inputs stay unchanged, and existing Save→Reload/Factory policy continue unchanged. No new geometry, relief, whole-cabinet manufacturing or external export certification.
@@ -1813,3 +1826,18 @@ manufacturing, DXF reopening, source verification or certificate gates.
 ### #2517 Fold Designer Snapshot Indicator and physical-dimension strict readback
 
 `manufacturing_api.normalize_fold_designer_indicator_groups(values)` checks positive integral group sources, rejecting invalid booleans, fractions and empty lists; `manufacturing_api.project_fold_designer_snapshot_dimensions(snapshot, groups)` no longer substitutes invalid enabled groups or corrupted manufacturing policy with a fabricated default `(1,)` and does not clamp nonphysical Door/BasePlate W/H to 1 mm. The GUI `_snapshot_part_dimensions` validates BOTH enabled Indicator Box and main Door lamp sources before writing any snapshot fields, so invalid enabled inputs fail closed instead of erasing required apertures. Disabled Indicator Box controls retain the old UI-only one-layer size seed. No new certified export is implied.
+
+
+### #2517 Fold Designer source input readback fail-closed
+
+`manufacturing_api.normalize_operator_source_dimension(value, field=...)` and `normalize_operator_source_dimensions(snapshot)` are canonical Engine validation for operator enclosure W/H/D, sheet thickness T and frame width FW before saving Fold Designer projects. Invalid UI control sources cannot silently become factory AE defaults; the GUI revalidates any applied settings overlay and keeps Snapshot and embedded Settings physically identical, preserving fractional mm values. Nonphysical legacy GUI defaults and official manufacturing/DXF certification remain unchanged.
+
+
+### #2517 Live Indicator 2D source parity with Engine snapshot groups
+
+`gui_modules.application.render_snapshots` uses the existing public `manufacturing_api.normalize_fold_designer_indicator_groups` for layer count and group values in Indicator Box, Indicator Small Door, and both enabled sources of the main Door live 2D previews. No `max(1,int(...))` UI reinterpretation: malformed, unavailable, boolean, zero, fractional and negative counts fail before any physical part spec. Disabled main-Door indicators retain their established NONE/empty semantics. This preserves identical Engine group validation for live preview versus saved project and does not change DXF certification.
+
+
+### #2517 Canonical live BoxBody 2D face dimension source
+
+`manufacturing_api.project_operator_box_body_face_dimensions(w=..., h=..., d=...)` uses strict Engine operator source validation and returns the unmodified core physical face map `{left:(D,H),back:(W,H),right:(D,H)}`. The GUI renderer no longer imports private Engine sheetmetal geometry. Receiving physical SIDE remains on its canonical FinalScene branch; no new DXF certification.

@@ -397,25 +397,8 @@ def _refresh_indicator_box_result_values(self, val):
     self.result_ib_door_h_var.set(f"{ib_door_h:.2f} mm")
     self.indicator_g_var.set(str(g_max))
 
-    x_left_light = 171.0
-    x_right_light = 171.0 + 90.0 * max(0, g_max - 1)
-    if g_max <= 1:
-        hc = 1
-    elif g_max <= 3:
-        hc = 2
-    elif g_max <= 5:
-        hc = 3
-    else:
-        hc = 4
-    if hc > 1:
-        max_pitch = (x_right_light - x_left_light) / (hc - 1)
-        hp = max(50.0, float(int(max_pitch // 50) * 50))
-        x_mid = (x_left_light + x_right_light) / 2.0
-        hx = x_mid - (hc - 1) * hp / 2.0
-    else:
-        hp = 150.0
-        hx = 191.0 if g_max == 1 else 172.5
-    self.ib_hole_start_x_var.set(f"{hx:.1f}".replace(".0", ""))
-    self.ib_hole_pitch_var.set(f"{int(hp)}")
-    self.ib_hole_count_var.set(str(hc))
-    self.ib_hole_y_var.set("178.5")
+    marking = manufacturing_api.project_indicator_box_marking_layout(layer_groups)
+    self.ib_hole_start_x_var.set(f"{marking.start_x:.1f}".replace(".0", ""))
+    self.ib_hole_pitch_var.set(f"{int(marking.pitch)}")
+    self.ib_hole_count_var.set(str(marking.count))
+    self.ib_hole_y_var.set(f"{marking.first_row_y:.1f}".replace(".0", ""))
