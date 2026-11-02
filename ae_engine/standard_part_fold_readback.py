@@ -7,6 +7,7 @@ preventing the GUI adapter from interpreting manufacturing Fold profiles.
 from __future__ import annotations
 
 from .standard_part_fold_profiles import _is_door_part_key, _is_base_plate_part_key
+from .cabinet_types.policy import canonical_family_name
 
 
 def _profile_value(profile, key, default=0):
@@ -28,8 +29,7 @@ def read_standard_part_fold_profiles(part_key, profiles, original_snapshot):
             "door_fold_t": _profile_value(y, "door_fold_t", original_snapshot.get("door_fold_t", 20)),
         }
     if (str(part_key) == "base_plate"
-            and str(original_snapshot.get("model") or "").strip()
-            in {"受電箱", "RECEIVING"}):
+            and canonical_family_name(original_snapshot) == "受電箱"):
         # The Receiving root base is NOT the generic four-flange plate.
         # Its X can contain four physical bends (or none for a flat side),
         # while Y still has the source BEND20. The true source is the
