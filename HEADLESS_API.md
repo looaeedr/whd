@@ -4,6 +4,8 @@ whd_contract: project-reference
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
+# Headless Manufacturing API（Phase 6：AE Engine Clean Break）
+
 ## #2517 BasePlate manufacturing uses canonical Cabinet Family policy
 
 `manufacturing_api.generate_part(BasePlatePartSpec, ..., ManufacturingContext)`
@@ -16,7 +18,6 @@ bend pattern is missing. Vault/generic BasePlate legacy exporter behavior is
 preserved. The Family hook does not certify a new physical part, a complete
 Bay, NFB/PAD/EAR or source-only external export.
 
-# Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
 ## #2517 Hole Editor Canvas canonical feature projection
 
