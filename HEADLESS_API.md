@@ -13,11 +13,13 @@ registered `RECEIVING` case/whitespace alias through the existing Cabinet
 Family registry. Every confirmed three-piece `left_side`, `back`, `right_side`
 continues to consume the dedicated verified source DXF and SHA; missing
 `基準檔/受電箱` material fails rather than manufacturing an unsourced
-generic multi-piece DXF. The same registered-but-unimplemented Family guard
-applies to direct `build_part_render_data`, three-piece FinalScene, and the
-immutable canonical `resolve_manufacturing_request` route. The resolver's
-Receiving NFB selector rehydrate uses canonical Family identity, including
-lowercase aliases. This is not an expansion of DXF certification, and does not
+generic multi-piece DXF. The registered-but-unimplemented Family gate applies to the actual
+`generate_box_body_structure_parts` DXF output sink, not to direct read-only
+`build_part_render_data`, three-piece FinalScene, or immutable canonical
+`resolve_manufacturing_request`: those remain usable for legacy RO quantity/BOM
+and display projections, without granting manufacturing permission. The
+resolver's Receiving NFB selector rehydrate uses canonical Family identity,
+including lowercase aliases. This is not an expansion of DXF certification, and does not
 enable the source-only integration export.
 
 ## #2517 BasePlate manufacturing uses canonical Cabinet Family policy
