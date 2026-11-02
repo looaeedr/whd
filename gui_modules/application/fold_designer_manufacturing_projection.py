@@ -169,7 +169,9 @@ def _export_authoritative_part(self, spec, output_path, context=None):
         output = Path(output_path)
         return manufacturing_api.generate_box_body_structure_parts(spec, output.parent, ctx)
     return manufacturing_api.save_part_render_data_dxf(
-        render_data, output_path, overwrite=bool(getattr(ctx, "overwrite", False))
+        render_data, output_path,
+        overwrite=bool(getattr(ctx, "overwrite", False)),
+        verify_reopen=True,
     )
 
 def _box_body_divider_from_payload(key, payload):
