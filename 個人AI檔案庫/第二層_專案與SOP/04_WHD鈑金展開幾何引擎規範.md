@@ -11,6 +11,10 @@ whd_schema: WHD_DOC_META_V1
 原 `phase6_settings_transitions` 在 GUI 側合成 EndCap FW follow／override、Head/Tail WRAP reserve 和 Assembly Joint 交易，雖然最終呼叫 Engine 低層 helper，GUI 仍決定快照組合、source fallback 與物理 state 提交。現在 `manufacturing_api.operator_endcap_fw_follow`、`operator_endcap_fw_override`、`operator_endcap_bottom_wrap`、`operator_endcap_edge_relation` 統一擷取不可變 copy-on-write 輸入並呼叫既有 `endcap_factory_fold`、`endcap_bottom_wrap_state`、`assembly_joint` Canonical owner。WRAP 傳回 Engine `OperatorBottomWrapTransition(state,resolved)`；GUI 舊名稱 `BottomWrapTransition` 僅為型別別名。沿用金庫型／受電箱現有 FW 四態、Head/Tail linked→leader→independent、Joint Graph 優先、保存狀態及拒絕未支援板件，不變更工廠補償、Registry、DXF 認證或原始製造入口。#2517 仍 OPEN。
 
 
+## [CURRENT] #2517 受電箱原始門板把手／銘牌孔位來源辨識 Engine API（2026-11-02）
+
+原 GUI `gui_modules/application/receiving_multi_settings_window.extract_original_door_marks(scene)` 會自己從 `DrawingScene` 的 `CUTTING` 外框、帶 `source_type="nameplate_mount"` 身分的圓孔與唯一內輪廓判定門板把手與銘牌孔位，形成第二份來源辨識邏輯。現保留既有函式作兼容 GUI 單向轉接，將原算法原樣移至 `ae_engine.receiving_operator_projection.project_receiving_original_door_marks(scene)`，對外公開 `manufacturing_api.project_receiving_original_door_marks(scene)`。回傳既有正規化預覽 `{"nameplate": ..., "handle": ...}`；缺外框／多個內框時拒絕猜測，保留來源 Layer 與身分條件，GUI 只按比例繪圖，不再認定物理孔位。這是原圖來源的唯讀預覽映射，**不是補充新孔位、CUTTING 修改、成品尺寸定義或 DXF 製造認證**。#2517 仍 OPEN。
+
 
 ## [CURRENT] #2517 Fold Designer 截角選單／Joint snapshot 與 NFB 來源預覽公開 API（2026-11-02）
 
