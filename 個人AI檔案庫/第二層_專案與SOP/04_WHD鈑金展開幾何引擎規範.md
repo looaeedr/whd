@@ -6,10 +6,9 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
-## [CURRENT] #2517 Receiving 多門格 confirmed PartSpec → 正式 Engine DXF（2026-11-02）
+## [CURRENT] #2517 共用單板製造拒絕已註冊但未實作 Family（2026-11-02）
 
-`ManufacturingResolvedBayInput.door_layout_columns` 是使用者已確認的多門格位輸入，只能與完整 `confirmed_parts` 共用。現有 `export_verified_resolved_integration_bays` 會透過唯一 Engine `manufacturing_api.door_part_projections` 驗證全部 `door_cN_rN` 實體身分、W/H、T/FW/gap、左右上下 FrameEdges 與已提供的 BoxBody W/H；缺格／漂移先拒絕，不能從來源 P 盤名猜物理格位。合法格位繼續走既有 `build_part_render_data`／verified batch DXF writer 的 staged Save→Reload 和來源雙 guard。原單門、三片箱身、source-only `EXTERNAL_EXPORT_NOT_CERTIFIED`、Factory/Registry 安全邊界全保留；非整箱 MFG-2 或外部 CLI 認證。
-
+`manufacturing_api.generate_part(PartSpec, output_path, context)` 在建立目錄或暫存 DXF 前，呼叫既有 Family Registry owner 的 `cabinet_types.policy.require_implemented_manufacturing_family(spec.model_name)`；若 `RO/落地盤` 之類已註冊 Family 仍為 `implemented=False`，須回 `CABINET_FAMILY_NOT_IMPLEMENTED` 且不執行 exporter、不得建立 DXF。金庫型、受電箱（含 alias）沿既有正式單板 API 及各 Part 專屬來源 gate 繼續；`model_name=None` 與尚未建檔的歷史工廠字串為相容目的暫保留既有行為，不能把此相容視作製造認證。此 gate 只是「已知但未實作 Family 不得偷用舊公式」的必要條件，**不**聲稱所有 Family×Part×Operation 已經通過正式 Registry／DXF 核可。source-only `dispatch_manufacturing_integration(export)` 的拒絕維持原樣，#2517 OPEN。
 
 ## [CURRENT] #2517 受電箱 BasePlate 正式製造 Family Gate（2026-11-02）
 
@@ -1095,3 +1094,7 @@ preview-only 不得偽裝成實體；任一非有限、布林或部分缺失的
 必須同時有 `formed_w_start=0` 與正數有限 `formed_outer_width`
 原來源才能接受。沿用既有物理 Part provenance 與 world mesh，
 不創新製造尺寸、CUTTING／DXF 規則或認證；#2517 OPEN。
+
+## [CURRENT] #2517 Receiving 多門格 confirmed PartSpec → 正式 Engine DXF（2026-11-02）
+
+`ManufacturingResolvedBayInput.door_layout_columns` 是使用者已確認的多門格位輸入，只能與完整 `confirmed_parts` 共用。現有 `export_verified_resolved_integration_bays` 會透過唯一 Engine `manufacturing_api.door_part_projections` 驗證全部 `door_cN_rN` 實體身分、W/H、T/FW/gap、左右上下 FrameEdges 與已提供的 BoxBody W/H；缺格／漂移先拒絕，不能從來源 P 盤名猜物理格位。合法格位繼續走既有 `build_part_render_data`／verified batch DXF writer 的 staged Save→Reload 和來源雙 guard。原單門、三片箱身、source-only `EXTERNAL_EXPORT_NOT_CERTIFIED`、Factory/Registry 安全邊界全保留；非整箱 MFG-2 或外部 CLI 認證。
