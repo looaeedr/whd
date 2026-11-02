@@ -247,10 +247,9 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
     """
     stable_id = str(stable_id or "").strip()
     if stable_id == "base_plate":
-        model=str(snapshot.get("model") or "").strip()
         source_z=(
             _receiving_source_nfb_base_center_z(snapshot)
-            if model in {"受電箱","RECEIVING"} else None
+            if cabinet_family_policy.canonical_family_name(snapshot) == "受電箱" else None
         )
         verified_source=source_z is not None
         # #1502 CURRENT confirmed assembly: the base is ALWAYS cabinet

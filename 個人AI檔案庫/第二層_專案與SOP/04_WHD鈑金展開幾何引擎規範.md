@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving BasePlate／EAR／PAD 正式 Family aliases 單一來源（2026-11-02）
+
+`receiving_base_plate_config.receiving_base_plate_values`、`receiving_base_fixing_plate.receiving_base_fixing_plate_previews`、`receiving_nfb_pad_operator_parts.committed_nfb_pad_draft_parts` 不再在 Engine 內用僅匹配「受電箱」「RECEIVING」大小寫敏感的第二份族別字串決策，改委派 `cabinet_types.policy.canonical_family_name`／既有 Registry aliases；以同一實體提交的 numeric V5 CSV、Set/Bay 與來源折型條件決定是否能投影。金庫型及非 Receiving Family 仍不得冒名取得底板／EAR／PAD，舊保存資料與 Factory 機械公式不變。此修復只消除 Family alias 路徑分岐；正式 BasePlate DXF 繼續沿用唯一 `generate_part` 與原來源 Gate；PAD、EAR、NFB MFG-2 未獲新增製造資格，source-only `EXTERNAL_EXPORT_NOT_CERTIFIED` 保持拒絕。#2517 OPEN。
+
+
 ## [CURRENT] #2517 派生板件選單 Receiving BasePlate／NFB Tier／PAD／EAR Engine API（2026-11-02）
 
 `manufacturing_api.project_operator_base_navigation_identity`、`project_operator_multidoor_base_plate_dimensions`、`project_operator_receiving_auxiliary_navigation` 將 Fold Designer `sync_authoritative_derived_parts` 中原 GUI 直接認定實體根底板／雙 NFB Tier／門格底板收縮、補出已提交來源、固定片與 PAD 的實體資格及 2D Fold Profiles，統一搬入無 Tk 的 `ae_engine.operator_derived_navigation`；由原 `receiving_base_plate_values`、`receiving_nfb_layer_centers`、`receiving_base_plate_3d_profiles`、`committed_nfb_pad_draft_parts`／Fixing Plate source owner 判定來源。GUI 只擷取 Workspace 即時孔位／已保存快照、透過公開 API 接收 Profiles 並呼叫現有 `Phase6WorkspaceNavigationController.sync_derived_parts`，保持當前選取、已儲存／候選 PAD 來源優先與兩層隱藏根底板規則。這些選單 Fold 行與固定片圖樣僅供顯示，絕不新增 NFB MFG-2、PAD/EAR 焊接製造放行、外部 source-only Export 資格；2D/3D/DXF 正式製造仍由唯一 FinalScene／Registry owner 決定。#2517 OPEN。
