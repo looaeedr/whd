@@ -189,3 +189,77 @@ def validate_receiving_nfb_layer_heights_for_work_area(
     if checked[count - 1] >= height:
         raise ValueError("層高必須在目前內門作業區內，且第一層須在第二層上方")
     return checked
+
+
+def operator_base_plate_edge_shrink_editable(snapshot) -> bool:
+    """Source-derived Receiving BasePlate never exposes free shrink editing."""
+    return not receiving_family_supports_back_panel_mode(snapshot)
+
+
+def project_operator_receiving_base_plate_settings(snapshot, *, context="base_plate"):
+    """Read-only BasePlate settings from the SAME physical Family source as MFG.
+
+    A stale/unresolved NFB source reports its error; it cannot be converted
+    into a GUI-local guessed bend variant or a manufacturing approval.
+    """
+    if str(context) != "base_plate" or not receiving_family_supports_back_panel_mode(snapshot):
+        return None
+    from copy import deepcopy
+    from .receiving_base_plate_config import receiving_base_plate_values
+
+    source = dict(snapshot or {})
+    stored = source.get("receiving_base_plate")
+    derived = None
+    error = ""
+    if stored is None:
+        try:
+            resolved = receiving_base_plate_values(source)
+        except (ValueError, TypeError, KeyError) as exc:
+            error = str(exc)
+        else:
+            if resolved is not None:
+                derived = {
+                    "pattern": resolved["receiving_bend_pattern"],
+                    "height": resolved["h"],
+                    "shrink_top": resolved["base_plate_shrink_top"],
+                    "shrink_bottom": resolved["base_plate_shrink_bottom"],
+                    "shrink_left": resolved["base_plate_shrink_left"],
+                    "shrink_right": resolved["base_plate_shrink_right"],
+                    "bend": resolved["base_plate_bend"],
+                }
+    return {
+        "configured": stored is not None or derived is not None,
+        "values": deepcopy(stored or derived or {}),
+        "source_derived": derived is not None,
+        "source_error": error,
+    }
+
+
+def project_operator_receiving_base_plate_reload(saved_snapshot, effective_snapshot):
+    """Plan physical BasePlate restore and post-load navigation from source.
+
+    Read-only plan: no saved project mutation and no inferred part identity.
+    Even a submitted NFB flag cannot create an unproven physical BasePlate.
+    """
+    from copy import deepcopy
+    from .receiving_base_plate_config import receiving_base_plate_values
+
+    saved = dict(saved_snapshot or {})
+    effective = dict(effective_snapshot or {})
+    receiving = receiving_family_supports_back_panel_mode(saved)
+    restore = receiving and "receiving_base_plate" in saved
+    stored = deepcopy(saved.get("receiving_base_plate")) if restore else None
+    if restore:
+        effective["receiving_base_plate"] = deepcopy(stored)
+    should_refresh = False
+    if (receiving and receiving_family_supports_back_panel_mode(effective)
+            and effective.get("nfb_config_submitted") is True):
+        try:
+            should_refresh = receiving_base_plate_values(effective) is not None
+        except (ValueError, TypeError, KeyError):
+            should_refresh = False
+    return {
+        "restore": restore,
+        "saved_base_plate": stored,
+        "refresh_derived_navigation": should_refresh,
+    }
