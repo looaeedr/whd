@@ -51,6 +51,10 @@ EndCap BOTTOM wrap/reserve 判準。三個公開 API 均不含 GUI/Tk，不新�
 
 `manufacturing_api.box_body_symmetry_allowed(family_or_snapshot)` is the existing single Cabinet Family policy function re-exported through the Engine public boundary and root `ae_engine`. Phase6 Fold GUI only chooses the operator's currently selected model and asks this public capability whether the symmetry control is allowed; original Vault/Receiving behavior, symmetric state clearing, fold topology and manufacturing results are unchanged. This is not new geometry, CUTTING or DXF certification.
 
+## #2517 Confirmed source PartSpecs through existing verified Bay DXF path
+
+`ManufacturingResolvedBayInput(family, source, confirmed_parts=((part_key, PartSpec), ...))` may now supply already-authoritative, typed physical Door/Head/Tail inputs to the **existing** `export_verified_resolved_integration_bays` API. Engine itself calls its canonical `build_part_render_data` before the unchanged independently verified staged DXF writer; a caller-supplied pre/post source guard is still mandatory. `confirmed_parts` and `resolved_geometry` are mutually exclusive, and incomplete Fold/Corner, wrong-family, untrusted role, guessed NFB/BoxBody and raw source-only requests fail closed. Existing resolved-geometry clients are unchanged. This is a partial in-process adapter, not external CLI manufacturing certification or a complete-cabinet release.
+
 ## #2517 Fold Editor immutable display projection
 
 `manufacturing_api.project_operator_fold_editor_display_rows(material_segments, thickness)` projects detached read-only operator outside lengths, signed direction and UI bend angle from actual current material BEND topology, reusing the existing Engine compensation/readback. `phase6_bending_ui.render/refresh_active_profile` consume this projected view without mutating the saved Fold chain even transiently; ordinary `save/add/remove/mirror` remain separate public Engine commit paths. This display projection alone does not certify CUTTING/BEND/DXF or change Save→Reload schemas.

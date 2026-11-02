@@ -8,6 +8,10 @@ whd_schema: WHD_DOC_META_V1
 
 > 本文件的 CURRENT 區只描述 **現行 ae_engine 製造架構、公開 API 與 authority boundary**。實際 Corner/Relief 製造公式仍由 Certified Registry 與其 canonical references 擁有；本文件不得複製一套第二公式來源。
 
+## [CURRENT] #2517 CADSplit confirmed PartSpec → 同一正式 Engine FinalScene／DXF API（2026-11-02）
+
+`export_verified_resolved_integration_bays` 原有已解析 `ResolvedManufacturingGeometry` 契約不變；`ManufacturingResolvedBayInput` 現可選擇 **互斥** 的 `confirmed_parts=((part_key, PartSpec), ...)`，再由同一個 `manufacturing_api.build_part_render_data` 解析成真實 FinalScene，透過原 `save_verified_resolved_manufacturing_geometry_batch_dxf` staged Save→Reload、來源 pre/post guard 及原子提交。當次先限定受電箱已確認外門 `DoorPartSpec(feature_space="finished_face")`（含明確 gap/fold）及明確兩軸 Fold／Corner 的 Head/Tail `EndCapPartSpec`；BoxBody 三片/NFB PAD/EAR/內門格和全箱 MFG-2 不可從原圖或預覽自行補造，必須先用現有 Engine 實體解算取得已解析結果。Family、實體角色、重複、雙來源、未確認必要欄位都 fail-closed；source-only `dispatch_manufacturing_integration(export)` 繼續 `EXTERNAL_EXPORT_NOT_CERTIFIED`，不是同程序正式 API 的全域禁令。保留既有 Python 公開入口，不新增平行 exporter、CLI/Worker 權限或 Registry 放行。#2517 OPEN。
+
 ## [CURRENT] #2517 Hole Editor Canvas 已解析孔位公開 API（2026-11-02）
 
 `manufacturing_api.resolve_hole_editor_canvas_features(surface, features, width, height)` 直接委派既有 `sheetmetal_features.resolve_surface_features`，回傳 immutable tuple 的世界座標解析孔位；超出物理 Feature Surface 的非法孔仍明確 `ValueError`。 `manufacturing_api.hole_editor_canvas_reference_point(feature, width, height)` 使用既有 saved reference-anchor authority；`manufacturing_api.hit_test_hole_editor_canvas_features(point, resolved_features, tolerance=...)` 沿用 Engine 有限／非 bool 的點選容差檢查。公開顯示 DTO `CanvasTransform`、`ResolvedCircle`、`ResolvedRect`、`Vec2` 沿用單一 Engine 類型。GUI `phase6_hole_editor_canvas_view.py` 只做 Canvas pixel placement、繪製、操作與結果呈現，不再直接 import 私有 `ae_engine.sheetmetal_features`。金庫型與受電箱共用相同 Feature Surface 合約；本次不變更 Feature 的實體製造／DXF、保存內容、2D／3D 真實板件與 Registry，不可把只讀孔位預覽當成製造放行，#2517 仍 OPEN。
