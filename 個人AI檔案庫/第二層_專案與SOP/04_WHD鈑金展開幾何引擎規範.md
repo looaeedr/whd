@@ -1437,3 +1437,7 @@ Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或�
 ## [CURRENT] #2517 多門格指示燈 GUI 專案快照不准把非法實體孔數修成預設值（2026-11-03）
 
 `gui_modules/application/fold_designer_snapshot_projection.py::_snapshot_base_state` 原先直接使用 GUI `normalize_door_indicator_state` 來保存每一格指示燈，該顯示相容函式會把非法層數、布林孔數、非有限偏移變成 1／2／0，造成儲存來源與 Engine 實體製造判準分裂。正式存檔現在交由公開 `manufacturing_api.project_operator_door_layout_indicator_snapshot_states` 對每格呼叫現有 `project_operator_door_cell_indicator_manufacturing_source`，使用 Hole Editor 同一份 Engine 驗證規則，輸出 detached、具有舊版 `enabled/box_enabled` 閱讀相容欄位的合法物理來源。啟用但來源不完整／非法時失敗且不提交快照；停用時未使用的欄位不會產生孔；歷史 flags 僅決定 mode。GUI 原本的顯示相容函式可繼續處理畫面，不得成為實體 Save／製造資料權威。金庫型／受電箱的 GUI Snapshot→Project Save→Reload 對應真實來源與非法拒絕測試；製造門檻與 DXF 寫入器未改，#2517 仍 OPEN。
+
+## [CURRENT] #2517 門格 Door PartSpec 與獨立指示燈盒／小門 DXF 必須使用未經 GUI 修補的 Engine 實體來源（2026-11-03）
+
+主 GUI `manufacturing_adapter._door_layout_part_spec` 與 `export_actions.export_multi_door_indicator_box_parts` 原本均對層數執行 `max(1,min(6,int(...)))`，再用 `int(groups)` 自行決定實際孔數；而 GUI `_door_layout_indicator_state_for_key` 可能已做畫面相容修補。兩條製造入口現在優先讀取已提交的原始 `door_layout_indicator_states[physical_cell_key]`（只有無此來源容器的舊 client 才從既有展示適配器取輸入），經同一公開 `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source` 驗證才建 Door PartSpec 或指示燈盒／小門 PartSpec；沒有原始實體來源，不得因展示值而增加孔位；非法層數、孔數、偏移與模式不得出圖。DXF 真正寫入仍沿用既有 `_export_authoritative_part` → Engine FinalScene sink，沒有新公式、沒有新放行權。定向測試覆蓋 Door、兩獨立板件、無效來源無呼叫／無輸出、禁用 GUI 數值修補回長；#2517 仍 OPEN。
