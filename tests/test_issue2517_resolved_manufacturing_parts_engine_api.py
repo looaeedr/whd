@@ -50,6 +50,7 @@ def test_empty_physical_set_is_preserved_and_duplicate_fails_at_engine_contract(
 
 def test_service_delegates_and_no_longer_builds_canonical_part_spec():
     src = inspect.getsource(service.resolve)
-    assert "materialize_resolved_manufacturing_parts(parts)" in src
+    assert "manufacturing_api.resolve_manufacturing_request(request)" in src
+    assert "materialize_resolved_manufacturing_parts(parts)" not in src
     assert "ResolvedManufacturingPart(" not in src
     assert "dict(seg) for seg in tuple(part.x_profile or ())" not in src
