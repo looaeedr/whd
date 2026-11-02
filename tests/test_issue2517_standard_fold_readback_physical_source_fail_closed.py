@@ -53,12 +53,27 @@ def test_numeric_zero_and_fractional_material_source_keep_exact_saved_value(
 ):
     snapshot = _source()
     profiles = api.build_standard_part_fold_profiles(snapshot, part)
-    keyed = next(seg for seg in profiles["X"] if seg.get("phase6_key") == source_key)
     previous = snapshot.copy()
-    keyed["len"] = "17.25"
+    # Physical BasePlate/Indicator settings are shared by four flanges.
+    # Test fractional/zero source while preserving their real equality gate.
+    peers = {
+        "base_plate": "base_bend_",
+        "indicator_box": "ib_fold_",
+        "indicator_door": "id_fold_",
+    }
+    prefix = peers.get(part)
+    rows = [
+        seg for axis in ("X", "Y") for seg in profiles[axis]
+        if (str(seg.get("phase6_key") or "").startswith(prefix) if prefix
+            else seg.get("phase6_key") == source_key)
+    ]
+    assert len(rows) == (1 if part == "door" else 4)
+    for seg in rows:
+        seg["len"] = "17.25"
     assert api.read_standard_part_fold_profiles(part, profiles, snapshot)[result_key] == pytest.approx(17.25)
     assert gui_readback(part, profiles, snapshot)[result_key] == pytest.approx(17.25)
-    keyed["len"] = 0
+    for seg in rows:
+        seg["len"] = 0
     # A real material-space zero is not the same as explicit None.
     assert api.read_standard_part_fold_profiles(part, profiles, snapshot)[result_key] == 0.0
     assert snapshot == previous
