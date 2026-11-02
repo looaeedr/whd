@@ -338,7 +338,9 @@ from .display_dimensions import (
     OperatorDimensionGuidePlan, project_operator_dimension_guides,
 )
 from .live_cabinet_family import resolve_live_cabinet_family
-from .assembly_mesh_profiles import resolve_material_mesh_profiles
+from .assembly_mesh_profiles import (
+    resolve_material_mesh_profiles, project_operator_3d_mesh_profiles,
+)
 from .standard_part_fold_profiles import build_standard_part_fold_profiles
 from .standard_part_fold_readback import read_standard_part_fold_profiles
 from .custom_part_catalog import (
