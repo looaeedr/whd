@@ -108,7 +108,7 @@ def test_fail_closed_on_other_part_role_and_operation():
 
 def test_gui_uses_only_engine_admission_before_undoable_preview():
     from gui_modules.editors import hole_editor_composition as gui
-    source = inspect.getsource(gui._bind_editor_actions)
+    source = inspect.getsource(gui._build_navigation_and_lifecycle)
     assert source.count("d.manufacturing_api.plan_operator_inner_door_nfb_hole_stage(") == 2
     assert "feature_is_strictly_within_surface(" not in source
     assert "from ae_engine.sheetmetal_features import ProfileFeature" not in source
