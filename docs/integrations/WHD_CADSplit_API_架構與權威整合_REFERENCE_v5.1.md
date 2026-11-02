@@ -30,6 +30,28 @@ whd_schema: WHD_DOC_META_V1
 
 ## 1. 正式權威鏈與文件優先序
 
+### 0.1 【CONFIRMED PRODUCT RULE，強制】GUI／CADSplit 正式製造流程完全相同（2026-11-02）
+
+**唯一正式責任鏈：** `GUI／CADSplit 操作來源（來源可不同、Engine 契約相同） → WHD 公開 Engine API〔Family／Policy／Topology／Set-Bay（需要時）〕 → PartSpec／FinalScene → 同源 2D／3D／DXF → 正式驗證`
+
+**五條不可違反的硬規則（使用者 2026-11-02 確認）**
+1. **唯一製造權威**：GUI／CADSplit 只提供操作或來源資料，**絕不可自行決定製造幾何**；製造由 WHD Engine 負責。
+2. **唯一製造結果**：同一 Family、Part、Operation 與等價可信來源，在同版 Engine 必須使用**相同適用公開 API 契約與 canonical 製造結果**；不可依 caller 分流。
+3. **箱型差異只在 Engine**：Family／Policy／Topology／正式 Registry 決定金庫型、受電箱差異；**GUI、CADSplit、Bridge 禁止第二套公式／製造出口**。
+4. **Set/Bay 按需存在**：涉及多盤或裝配的實體 Set／Bay 拓樸及身份由 Engine 管理；**獨立單板件不需也不得被強迫建立 Set/Bay**。
+5. **輸出不可分裂**：2D、3D、DXF 必須由同一 canonical FinalScene／核准等價製造幾何衍生，**不可各算各的**；驗證幾何、來源、DXF Save→Reload／reopen（依操作適用範圍）。
+
+**PartSpec 是製造資料契約而非固定呼叫時序。** 它可以由公開 API 接收為已確認輸入，也可以由 Engine 依來源、Family／Policy 解析建立；上方為**責任鏈，不是強制 API 先被呼叫、PartSpec 才能建立的執行順序**。單板和 Set/Bay／批次／NFB 按操作使用既有適用的公開 API，不強迫全用一個函式。合法板件逐件製造與驗證，缺資料逐件報錯，整套完整性再由 Engine 核對 Set/Bay／BOM／裝配。現行 source-only external CLI 的未認證拒絕維持，不能用它否決已具備的正式 Python Engine API，也不得繞過其資格保護。
+
+此為 AI 庫 04 CURRENT 的強制架構鏡射，**不是** CADSplit 已全面接線的宣告。
+
+**WHD GUI 怎樣取得 Engine 正式製造結果，CADSplit 就必須怎樣取得；唯一不同只能是操作／來源資料從何處收集。** GUI 收使用者操作與已確認 Project；CADSplit 從原始 DXF→CSV／孔位／尺寸／Set-Bay 來源關聯和已確認專案狀態自動產生**等價 Engine Request／PartSpec／Context**。此後必須使用**相同 Part／Operation 適用的公開 `manufacturing_api` 製造 API**、Family／Topology／Policy／Registry、canonical physical parts／FinalScene、實際 DXF Save→Reload／獨立 reopen；不可再分「GUI 製造」與「CADSplit 製造」兩條實作。
+
+**絕對禁止**在 CADSplit／Bridge 另建製造 API／DXF exporter、重算 Fold／Corner／孔位／CUTTING／BEND、呼叫 GUI 私有製造、拿 Vault 預設填 Receiving 缺項、把未認證的 source-only CLI 當正式 Python 製造唯一入口，或解除其拒絕來偽造認證。單板件、Set/Bay、組合、Quantity、NFB 按既有**作業種類**選適用正式 API，**不是**強迫全用單一 `generate_part`。合法板件各自輸出並獨立回讀，無效板件各自回缺項；整套成功另比實際 Set/Bay、BOM、物理板件與裝配。**相同 Engine 版本及等價可信輸入下，正式結果／拒絕不得因 caller 不同而異。** 跨版本可保留舊功能但須各自追溯與驗證，不強制同 SHA。
+
+**此為 AI 庫 04 CURRENT 的強制規則轉述，本文仍是 REFERENCE。** `integration_cli` 目前 source-only 禁止製造的現況維持，不能用它的拒絕否定原本正式 Engine API，也不能把本段文字冒充已完成串接。驗收需真實雙來源的同 API 呼叫、DXF reopen、Save→Reload、逐片錯誤隔離和完整 Set/Bay 組合證據。
+
+
 | 領域／疑問 | 唯一權威或現行主要來源 | 文件角色 | 不可混淆之處 |
 |---|---|---|---|
 | 產品已確認的機械需求 | 使用者已核准的產品／機械需求 | 最高需求權威 | 舊測試與預覽不得反推未核准尺寸 |
