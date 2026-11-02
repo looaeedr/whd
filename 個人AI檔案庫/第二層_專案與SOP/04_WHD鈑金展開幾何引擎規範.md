@@ -1378,3 +1378,7 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 Receiving 已確認 EndCap 原始孔位 → 正式 Engine DXF（2026-11-02）
 
 既有 manufacturing_api.build_receiving_factory_confirmed_parts 和 ManufacturingResolvedBayInput 擴充可選 confirmed_endcap_features，只接收由可信來源／操作者確認並已按 Engine canonical 實體 role 對應的 head/tail 成品面 1:1 mm CUTTING CircleFeature／RectFeature／ProfileFeature。禁止用 CADSplit P 盤視圖名猜 Head/Tail、未解析 DXF 圖元冒孔位；非法 role、型別、成品面錨點、非有限座標及非正尺寸 fail closed。Engine 沿原建構 EndCapPartSpec(holes=...)、Family／Corner／FinalScene 和 verified physical DXF Save→Reload 接續，無第二製造算法或輸出系統。未提供孔位維持舊行為；其他板件孔位、全套 Set/Bay、NFB 或 source-only 外部 export 未因此獲得認證，#2517 OPEN。
+
+## [CURRENT] #2517 受電箱底板 Part Session 啟用／儲存 Fold 來源單一 Engine API（2026-11-02）
+
+原 GUI gui_modules.application.fold_designer_part_session 的活化來源判斷以 model 字串限定受電箱，另在 save_current_part 直接呼叫 ae_engine.receiving_base_plate_3d_profiles，造成既有 Family alias 在切換後可能使用錯誤的 generic 編輯器快取。現把兩條路徑統一交 ae_engine.operator_part_session_profiles，公開 manufacturing_api.project_operator_part_activation_profiles 與 project_operator_receiving_base_plate_save_profiles。Engine 透過同一 cabinet_types.policy.canonical_family_name 辨識 Receiving alias；來源已具 receiving_ 實體 Fold 識別時，啟用只採用當前 canonical defaults，不讓舊 Profile 反寫；實際儲存只對已配置且可物理解析的受電箱底板呼叫原 receiving_base_plate_3d_profiles，失敗不降級為假 Fold，無配置與金庫型仍保留歷史 editable profile。GUI 只 stash 回 Engine 投影並維持原 Session/Save→Reload。此入口不授權 NFB CUTTING、DXF 或 source-only 製造；原實體 33／35 mm Fold、CURRENT 07 和正式 Registry gate 不變。#2517 OPEN。
