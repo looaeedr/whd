@@ -59,7 +59,10 @@ def export_current_receiving_multibay_dxf(
         pre_commit_guard()
     if type(overwrite) is not bool:
         raise TypeError("RECEIVING_MULTIBAY_OVERWRITE_MUST_BE_BOOL")
-    if saved_snapshot.get("model") not in {"受電箱","RECEIVING"}:
+    # Canonical Family Registry owns aliases for every GUI/Engine client.
+    # Raw string matching rejected the registered lowercase "receiving" alias.
+    from .cabinet_types.policy import canonical_family_name
+    if canonical_family_name(saved_snapshot) != "受電箱":
         raise ValueError("RECEIVING_MULTIBAY_CURRENT_FAMILY_REQUIRED")
     if saved_snapshot.get("active_mode","set_bay")!="set_bay":
         raise ValueError("RECEIVING_MULTIBAY_NOT_QUANTITY_MODE")
