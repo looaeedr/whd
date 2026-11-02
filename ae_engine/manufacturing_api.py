@@ -640,6 +640,7 @@ def save_part_render_data_dxf(
     output_path: str | os.PathLike[str],
     *,
     overwrite: bool = False,
+    verify_reopen: bool = False,
 ) -> str:
     """Serialize an already-built authoritative FinalScene to DXF."""
     metadata = getattr(render_data, "metadata", None) or {}
@@ -659,6 +660,25 @@ def save_part_render_data_dxf(
     # Specific V5 trial guard takes priority, then the more general tier
     # physical-base gate handles unsourced/forged non-V5 scenes.
     _manufacturing_export.reject_unverified_receiving_nfb_tier_base(render_data)
+    if type(verify_reopen) is not bool:
+        raise TypeError("verify_reopen must be bool")
+    if verify_reopen:
+        # The same Engine-owned stage -> real DXF reopen -> canonical
+        # geometry comparison -> atomic commit used by verified batch export.
+        # Never verify after replacing a user's previously valid output.
+        destination = Path(output_path)
+        staged = _manufacturing_export._save_resolved_rows_atomic(
+            ((destination.name, destination.name, render_data),),
+            destination.parent,
+            save_part_render_data_dxf=lambda part, target, *, overwrite:
+                _manufacturing_export.save_part_render_data_dxf(
+                    part.scene, target, serializer=save_scene_dxf,
+                    overwrite=overwrite,
+                ),
+            overwrite=overwrite,
+            verify_all_staged=True,
+        )
+        return staged[destination.name]
     return _manufacturing_export.save_part_render_data_dxf(
         render_data.scene,
         output_path,
