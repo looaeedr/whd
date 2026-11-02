@@ -122,7 +122,7 @@ def test_real_multi_door_indicator_uses_same_part_spec_and_independent_dxf(tmp_p
     """An enabled cell must export real Engine hole geometry, not only pass mocks."""
     host = SimpleNamespace(_door_part_spec_from_values=(
         lambda values, **kw: api.build_door_operator_part_spec(
-            values, model_name="金庫型", **kw,
+            values, **kw,
         )
     ))
     cell = SimpleNamespace(column_index=0, row_index=0, edges=None)
