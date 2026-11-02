@@ -77,3 +77,26 @@ def can_skip_operator_receiving_part_save(
         return False
     return unchanged_fold and unchanged_whd
 
+
+def project_operator_receiving_settings_live_dimensions(
+    snapshot, live_dimensions, *, applying_settings=False,
+):
+    """Project the already-committed box source over stale Settings UI fields.
+
+    This is a read-only source selection, never a manufacturing resize.
+    Invalid present physical values must not fall back to cached UI dimensions.
+    """
+    from collections.abc import Mapping
+    from .operator_settings_transactions import normalize_operator_source_dimension
+
+    if (not applying_settings
+            or family_policy.canonical_family_name(snapshot) != "受電箱"
+            or not isinstance(live_dimensions, Mapping)
+            or not all(axis in live_dimensions for axis in ("w", "h", "d"))):
+        return None
+    # Validate by the same Engine authority used on Settings commit, preserving
+    # the original source values/types for the legacy operator controls.
+    for axis in ("w", "h", "d"):
+        normalize_operator_source_dimension(live_dimensions[axis], field=axis)
+    return {axis: live_dimensions[axis] for axis in ("w", "h", "d")}
+
