@@ -1225,3 +1225,7 @@ preview-only 不得偽裝成實體；任一非有限、布林或部分缺失的
 ## [CURRENT] #2517 Registry 候選截角 3D 驗證由 Engine 公開 API 擁有（2026-11-02）
 
 Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、結構、T、組合意圖；公開 manufacturing_api.validate_operator_relief_registry_candidate_3d 經 Engine operator_relief_candidate_3d 唯一執行現存候選公式驗證、evaluate_editable_endcap_rule_record 與 solve_world_backprojected_endcap_relief，回傳與舊 GUI 一致的 candidate-specific 3D 證據。候選 Shadow 不改 Registry，不授權製造；缺實體、錯誤身份、意圖不符或公式不適用皆 fail closed。現存金庫型／受電箱機械權威不變，#2517 OPEN。
+
+## [CURRENT] #2517 Phase6 專案 Schema／NFB Save→Reload 唯一 Engine API（2026-11-02）
+
+原 phase6_project_file.py 直接依 Family、受電箱提交 NFB、Set/Bay／Quantity 來源判斷 v1/v2/v3、保存時剝除 legacy aliases、載入時重建 UI aliases，現統一交由 ae_engine.operator_project_persistence 和公開 manufacturing_api.validate_operator_project_payload、project_operator_project_for_write、project_operator_project_for_read；GUI 保留檔案選擇、UTF-8 JSON／Features 編解碼和對話操作。Engine 沿用 normalize_project_snapshot_authority、normalize_quantity_snapshot、receiving_layout 與 committed NFB source owner，防止 v3 提交來源被降為舊版後悄悄丟失，保存不得保留 derived final_geometry。保留金庫型 v1、Receiving v2/v3 的歷史檔可讀相容性與原有拒絕錯誤。此 API 僅確認專案狀態權威，不新增 DXF 製造資格，#2517 OPEN。
