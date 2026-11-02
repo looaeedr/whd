@@ -876,6 +876,15 @@ def endcap_corner_policy(*, frame_width: float, thickness: float, side_rear_bend
     )
 
 
+def base_plate_requires_explicit_bend_pattern() -> bool:
+    """Receiving BasePlate requires its confirmed physical bend pattern.
+
+    The public generate_part path must reject missing source patterns before
+    falling back to the generic Vault-compatible exporter.
+    """
+    return True
+
+
 def box_body_profile_uses_outside_dimensions() -> bool:
     """Receiving operator BoxBody Fold values enter the family as outside dimensions."""
     return True

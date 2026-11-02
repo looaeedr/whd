@@ -274,6 +274,16 @@ def family_fixes_box_body_structure(source) -> bool:
     return bool(_call(source, "family_fixes_box_body_structure", False))
 
 
+def base_plate_requires_explicit_bend_pattern(source) -> bool:
+    """Ask the registered Family whether BasePlate manufacturing needs a source pattern.
+
+    A missing hook means the existing generic BasePlate behaviour is unchanged.
+    Family lookup resolves canonical names and aliases without changing the
+    shared manufacturing executor or treating registration as certification.
+    """
+    return bool(_call(source, "base_plate_requires_explicit_bend_pattern", False))
+
+
 def box_body_symmetry_allowed(source) -> bool:
     """Return whether the cabinet family permits generic mirrored BoxBody editing.
 

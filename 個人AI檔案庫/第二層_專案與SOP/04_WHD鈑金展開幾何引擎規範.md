@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱 BasePlate 正式製造 Family Gate（2026-11-02）
+
+既有 `manufacturing_api.generate_part(BasePlatePartSpec, ..., ManufacturingContext)` 仍是金庫型與受電箱共同單板出口，不增設 Receiving 專用 exporter。受電箱「必須提供已確認 `receiving_bend_pattern`，並走 guarded FinalScene 出圖」的判斷由 `cabinet_types.receiving.base_plate_requires_explicit_bend_pattern` 提供，經既有 `cabinet_types.policy.base_plate_requires_explicit_bend_pattern` canonical Family/alias hook 呼叫；不再由 `_base_plate_export` 字串硬判 `{"受電箱","RECEIVING"}`。因此 `受電箱`／`RECEIVING`／大小寫 alias 都不能因原字串不相等而落入通用底板出口。未給明確折型依舊拒絕 `RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING`，不產生 DXF；金庫型／未指定 Family 的舊通用 BasePlate exporter、CornerPolicy、目的檔交易語意不變。此項修正只封住 Family alias 的既有製造分派缺口，絕非新的 NFB/PAD/EAR/整箱製造認證，不改 source-only `dispatch_manufacturing_integration(export)` 閘門；#2517 OPEN。
+
+
 > 本文件的 CURRENT 區只描述 **現行 ae_engine 製造架構、公開 API 與 authority boundary**。實際 Corner/Relief 製造公式仍由 Certified Registry 與其 canonical references 擁有；本文件不得複製一套第二公式來源。
 
 ## [CURRENT] #2517 受電箱三片式箱身沿用既有 Engine 實體製造入口（2026-11-02）
