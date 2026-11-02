@@ -43,6 +43,7 @@ from .integration_api import (
 )
 from .cabinet_types.policy import (
     resolve_box_body_back_panel_contract, base_plate_requires_explicit_bend_pattern,
+    require_implemented_manufacturing_family,
 )
 from .cabinet_types.receiving import resolve_box_body_structure_state as resolve_receiving_box_body_structure_state
 from .box_body_structure_state import (
