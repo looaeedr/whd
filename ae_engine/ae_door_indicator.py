@@ -14,6 +14,8 @@ import sys
 import ezdxf
 import configparser
 
+from .indicator_box_marking_layout import project_indicator_box_marking_layout
+
 from .sheetmetal_geometry import (
     Vec2,
     EndCapGeometry,
@@ -693,36 +695,13 @@ def get_indicator_box_data(layer_groups, T_val=2.0, corner_policy=None):
             scene.add_circle((cx - 22.0, y_top_light + 48.0), 1.6, layer='CUTTING')
             scene.add_circle((cx + 22.0, y_top_light + 48.0), 1.6, layer='CUTTING')
             
-    # 4. 計算統一對齊的線槽打標孔 X 座標 (使用最多組的 g_max 來計算)
-    if g_max <= 1:
-        hc = 1
-    elif g_max <= 3:
-        hc = 2
-    elif g_max <= 5:
-        hc = 3
-    else:
-        hc = 4
-        
-    x_left_light = 171.0
-    x_right_light = 171.0 + 90.0 * max(0, g_max - 1)
-    if hc > 1:
-        max_pitch = (x_right_light - x_left_light) / (hc - 1)
-        hp = max(50.0, float(int(max_pitch // 50) * 50))
-    else:
-        hp = 150.0
-        
-    marking_xs = []
-    for k in range(hc):
-        if hc > 1:
-            x_mid = (x_left_light + x_right_light) / 2.0
-            cx = x_mid - (hc - 1) * hp / 2.0 + hp * k
-        else:
-            cx = 191.0
-        marking_xs.append(cx)
-        
+    # 4. Engine owns the physical MARKING layout used also by the GUI.
+    marking_layout = project_indicator_box_marking_layout(groups)
+    marking_xs = marking_layout.positions_x
+
     # 5. 線槽打標孔 (帶水平一字線，每一層在對應的 Y=178.5+280*(layers-1-ly)，X 統一對齊 g_max)
     for ly in range(layers):
-        hy = 178.5 + 280.0 * (layers - 1 - ly)
+        hy = marking_layout.first_row_y + 280.0 * (layers - 1 - ly)
         for cx in marking_xs:
             if cx < W_val - 49.0:
                 scene.add_circle((cx, hy), 2.0, layer='MARKING')

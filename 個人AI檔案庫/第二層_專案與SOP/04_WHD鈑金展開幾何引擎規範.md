@@ -1329,3 +1329,8 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 活動 3D Mesh Profile 與左右側板實體 Fold 單一 Engine API（2026-11-02）
 
 原 fold_designer_bridge._phase6_mesh_profiles_for_part 在 GUI 直接呼叫 box_body_structure.project_side_back_3d_input_fold_to_physical、cabinet_types.policy.box_body_profile_uses_outside_dimensions，並依 material.bounds 補完 Divider／內門框缺軸長度。現統一改由 manufacturing_api.project_operator_3d_mesh_profiles 進入 ae_engine.assembly_mesh_profiles，從相同 Family 和既有物理 Fold source 單向投影，不把 Mesh 當 operator 輸入。GUI 只供應當前／儲存／箱身 Fold Profiles、active part、來源快照與 Render material。沿用原 Receiving LEFT outside 補償與 RIGHT 反序 angle 移轉，並復用 resolve_material_mesh_profiles 只對需要 material bounds 的 BoxBody／Divider／Frame 進行有限正尺寸校驗，完整兩軸 Fold 不受無關材質錯誤影響。原 Registry candidate 3D 會透過原 GUI adapter 消費此 API；不新增製造公式、DXF 或外部 source-only 授權。#2517 OPEN。
+
+
+## [CURRENT] #2517 指示燈盒線槽 MARKING 與操作欄位共用 Engine 來源（2026-11-02）
+
+`manufacturing_api.project_indicator_box_marking_layout(layer_groups)` 將既有指示燈盒實體 MARKING 線槽打標孔的組數、X 起點、水平間距與第一層 Y 位置集中於 `ae_engine.indicator_box_marking_layout`。原 `ae_engine.ae_door_indicator.get_indicator_box_data` 產生的 `MARKING` 圓孔與一字線直接使用同一份投影，主 GUI `cabinet_controller._refresh_indicator_box_result_values` 僅把此公開 API 回傳值帶入可編輯欄位，不再維護第二份 171/90/191/50/150/178.5 物理規則。仍沿用既有 `sheetmetal_features.indicator_box_outer_size` 與 `_normalize_indicator_groups` 來源驗證；原多層群組及金庫型／受電箱同一指示燈盒圖面維持，未擴充 CUTTING／DXF／外部 export 認證。實際 MARKING 圓心可直接與 API positions 對照；#2517 OPEN。
