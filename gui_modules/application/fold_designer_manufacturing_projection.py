@@ -193,22 +193,9 @@ def _authoritative_render_data(self, spec, context=None):
 
 
 def _require_verified_baseline_sources_for_manufacturing(self):
-    """Fail closed when a baseline-backed manufacturing source is not freshly verified."""
+    """GUI only forwards operator-selected model; Engine verifies source custody."""
     model = self._baseline_source_model() if hasattr(self, "_baseline_source_model") else ""
-    if not model:
-        return True
-    for filename in ("箱身.dxf", "封頭尾.dxf", "門.dxf"):
-        path = ae.baseline_part_path(model, filename)
-        if not path:
-            continue
-        _doc, status = ae.load_baseline_dxf_source_with_status(
-            path, allow_unverified_source=False
-        )
-        if status != ae.BASELINE_SOURCE_VERIFIED:
-            raise RuntimeError(
-                f"基準來源尚未驗證：{model}/{filename}；正式製造輸出已停止。"
-            )
-    return True
+    return manufacturing_api.require_verified_operator_baseline_sources(model)
 
 def _export_authoritative_part(self, spec, output_path, context=None):
     """Save the exact cached FinalScene used by 2D/3D without rebuilding it."""
