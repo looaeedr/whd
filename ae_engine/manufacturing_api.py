@@ -1871,3 +1871,11 @@ from .operator_receiving_physical_2d import (
     resolve_operator_receiving_pad_2d_source,
     resolve_operator_receiving_fixing_2d_source,
 )
+
+# #2517 source-correct Receiving raw material preview cache; MFG remains canonical.
+from .receiving_raw_source_cache import (
+    ReceivingRawSourceCacheTicket,
+    receiving_raw_source_cache_kind,
+    project_receiving_raw_source_cache_ticket,
+    receiving_raw_source_cache_entry_valid,
+)
