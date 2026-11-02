@@ -508,7 +508,7 @@ def build_manufacturing_request(
             app, "box_body", finished_dimensions_provider
         ),
         assembly_intent=_assembly_intent(app),
-        allow_3d_fallback=bool(
+        allow_3d_fallback=manufacturing_api.normalize_operator_3d_fallback_flag(
             _safe_var_get(getattr(app, "assembly_ignore_fixed_corner_var", None), False)
         ),
         relief_clearance=_relief_clearance(app),
