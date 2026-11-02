@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Settings Fold Profile 計畫由同一公開 Engine API 決定（2026-11-02）
+
+- `ae_engine.manufacturing_api.plan_operator_settings_fold_profiles(...)` 為 Settings 包外尺寸 → 物理板件 Fold 計畫的唯一計算／保留權威，Head/Tail X/Y、Door／BasePlate／CustomFold、BoxBody，與 derived physical IDs 遵循同一實體 identity policy。
+- GUI `phase6_settings_profile_projection.build_settings_profile_projection` 只把不可變操作輸入轉送 Engine，將回傳值裝回唯讀 `SettingsProfileProjectionPlan`；不得再自算 reset、keyed merge、Tail 裝配 Fold 順序或 active physical profiles。
+- Engine 單獨接受無 Tk 的 source snapshot/settings/profile，返回 detached snapshot、part_dimensions、box_body_profile、part_profiles、active_profiles 與 derived_sync_required；既有專案的自訂 Fold/保存後回讀必須保留，invalid CustomFold metadata 必須拒絕。此投影不是正式 DXF 製造放行。
+
+
 ## [CURRENT] #2517 BoxBody 即時 2D 面尺寸由公開 Engine 單一來源投影（2026-11-02）
 
 - 原 `gui_modules/application/render_snapshots.box_body_render_snapshot` 直接引用 `ae_engine.sheetmetal_features.box_body_face_dimensions`，沒有遵守 GUI 只使用公開 `manufacturing_api` 的設計。現在一般箱身 2D 面預覽把 W/H/D 交由 `manufacturing_api.project_operator_box_body_face_dimensions(w=...,h=...,d=...)`；接收箱實體 SIDE 的 FinalScene 路徑維持不變。
