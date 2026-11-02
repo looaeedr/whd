@@ -1989,19 +1989,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 heights = [float(field.get().strip()) for field in layer_height_vars]
             except (TypeError, ValueError) as exc:
                 raise ValueError("請輸入有效的第一層、第二層高度（mm）") from exc
-            heights = validate_setting("inner_door_layer_heights_mm", heights)
-            snapshot = _current_mode_snapshot(self, namespace)
-            columns = snapshot.get("door_layout_columns") or ()
-            from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
-            cells = derive_door_layout_cells(columns) if columns else ()
-            upper_cells = [item for item in cells if item.row_index == 0]
-            work_height = (
-                float(upper_cells[0].start_height) if len(upper_cells) == 1
-                else float(snapshot.get("h", 0.0))
+            return manufacturing_api.validate_receiving_nfb_layer_heights_for_work_area(
+                _current_mode_snapshot(self, namespace), heights,
+                layer_count=layers.get(),
             )
-            if work_height <= 0 or heights[layers.get()-1] >= work_height:
-                raise ValueError("層高必須在目前內門作業區內，且第一層須在第二層上方")
-            return heights
         summary_row = ttk.Frame(frame)
         summary_row.pack(fill="x", pady=(4, 6))
         controls = ttk.Frame(summary_row)
@@ -2108,17 +2099,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 width = adapter.layout["sets"][selection.set_index]["bays"][
                     selection.bay_index]["width"]
                 snapshot = _current_mode_snapshot(self, namespace)
-                columns = snapshot.get("door_layout_columns") or ()
-                from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
-                cells = derive_door_layout_cells(columns) if columns else ()
-                upper = [c for c in cells if c.row_index == 0]
-                # Match the work-area fallback already used by the height
-                # input validator. -1 was incorrectly masking every preview
-                # when the project has no explicit door-layout columns.
-                height = (float(upper[0].start_height) if len(upper) == 1
-                          else float(snapshot.get("h", 0.0)))
-                if height <= 0:
-                    raise ValueError("內門作業區高度未定")
+                # Same Engine work-area authority as the editor input gate.
+                height = manufacturing_api.project_receiving_nfb_work_area_height_mm(
+                    snapshot,
+                )
                 projection = nfb_ui1a_preview(
                     draft_state["draft"], bay_width_mm=width,
                     upper_cell_height_mm=height,

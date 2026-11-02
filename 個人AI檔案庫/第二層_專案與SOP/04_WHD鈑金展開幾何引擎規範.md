@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱內門 NFB 作業區高度與層高檢查 Engine API（2026-11-02）
+
+`fold_designer_composition_receiving.inner_edit` 過去在 Tk 的「讀取層高」及「草稿預覽」兩處各自呼叫 `derive_door_layout_cells`、推算第一列 Door 工作區高度，並自行比較操作層高是否超出工作區。現將兩處收斂到 `manufacturing_api.project_receiving_nfb_work_area_height_mm(snapshot)` 與 `manufacturing_api.validate_receiving_nfb_layer_heights_for_work_area(snapshot, heights, *, layer_count)`，唯一實作在 `ae_engine.receiving_operator_projection`，沿用 `receiving_shared_settings.validate_setting` 對兩槽數值與一／二層的合法性判斷。單一上排 Door cell 取該實體 cell 的高度；沒有唯一上排 cell 的既存相容模式仍回退原 snapshot `h`，但無效、非有限或非正尺寸拒絕投影。GUI 僅讀 Tk 欄位、呼叫 API、顯示錯誤／唯讀預覽；不改既有一層 550、兩層 330／830、舊版 290／790（未寫入 operator heights 時）等不同權威來源，**不開放切孔、名義 Y 認證、成品出圖或外部製造授權**。#2517 OPEN。
+
+
 ## [CURRENT] #2517 受電箱兩片門原始來源身份與 Bay 拓樸 Engine API（2026-11-02）
 
 `gui_modules/application/fold_designer_composition_receiving` 的 Set/Bay 原始門預覽原先在 GUI 呼叫私有 `project_receiving_bay_legacy_aliases`、`derive_door_layout_cells`，並自行判斷「只有一欄、兩片實體 Door」；初始來源又由 GUI 字串比對 Family 與 `door_c1_r1/r2` 製造身份。兩段現改從 `manufacturing_api.project_receiving_operator_door_cell_sources(snapshot, *, set_index, bay_index)` 與 `manufacturing_api.project_receiving_initial_door_source_scenes(snapshot, resolved)` 取得 Engine 已確認的 Bay snapshot/typed DoorLayoutCell 及已解析 Assembly 的真實原圖場景順序。GUI 只向既有 baseline scene provider 要求圖元並透過 `project_receiving_original_door_marks` 顯示；來源缺失、未啟用雙門、多欄／三列等不符目前兩面 sketch 的拓樸均維持不投影，無隱含單門 fallback。Engine 保持對既存 Save→Reload／Bay stable ID、原 scene 與 Source Type 的唯一識別；這是唯讀 SOURCE 顯示映射，**不構成生成新孔、CUTTING、成品 3D 或 DXF 製造認證**。#2517 仍 OPEN。
