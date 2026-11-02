@@ -77,8 +77,16 @@ def _assembly_intent_value(value):
 
 
 def _cabinet_family(request: ManufacturingResolveRequest) -> str:
-    """Use the same public Engine Family resolution as the live Phase6 GUI."""
-    return resolve_live_cabinet_family({"model": request.cabinet_model})
+    """Resolve the trusted snapshot Family with the live selector as override.
+
+    The immutable request's cabinet_model may be empty for Python consumers.
+    In that case the saved source model must not silently become Vault while
+    the other manufacturing stages still consume a Receiving snapshot.
+    """
+    snapshot = thaw_manufacturing_value(request.input_snapshot)
+    return resolve_live_cabinet_family(
+        snapshot, live_model=request.cabinet_model,
+    )
 
 
 def _replay_endcap_render(part_input, solution):
