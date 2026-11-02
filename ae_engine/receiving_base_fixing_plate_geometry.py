@@ -110,6 +110,74 @@ def _slot(cx, cy, length, diameter):
     )
 
 
+
+@dataclass(frozen=True)
+class FixingPlateSourcePreview2D:
+    """Original-DXF flat CUTTING/BEND display data, never manufacturing proof."""
+
+    width_mm: float
+    height_mm: float
+    thickness_mm: float
+    source_slot_size_mm: tuple[float, float]
+    outline_xy_mm: tuple[tuple[float, float], ...]
+    slots_xy_mm: tuple[tuple[tuple[float, float], ...], ...]
+    bend_line_xy_mm: tuple[tuple[float, float], tuple[float, float]] | None
+    selected_pitch_mm: float | None
+    source_dxf_sha256: str
+    manufacturing_ready: bool = False
+
+
+def project_receiving_fixing_plate_source_2d(preview) -> FixingPlateSourcePreview2D:
+    """Project real original-source contours instead of GUI pseudo geometry.
+
+    Source T2 BEND exists; forming direction/weld Z remain unverified.
+    """
+    from .receiving_base_fixing_plate import BaseFixingPlatePreview, MANUFACTURING_STATUS
+
+    pattern = source_pattern(LARGE_SOURCE)
+    if not isinstance(preview, BaseFixingPlatePreview):
+        raise TypeError("FIXING_PLATE_PREVIEW_SOURCE_REQUIRED")
+    if (
+        not preview.part_id.startswith(BASE_FIXING_PLATE_PREFIX)
+        or not preview.part_id.endswith((":left", ":right"))
+        or preview.manufacturing_ready
+        or preview.manufacturing_status != MANUFACTURING_STATUS
+        or preview.stock_thickness_mm != pattern.thickness
+        or preview.nominal_source_outline_mm != (pattern.width, pattern.height)
+        or preview.nominal_source_slot_centers_mm != pattern.slot_centers
+        or preview.source_slot_size_mm != (pattern.slot_length, pattern.slot_width)
+        or preview.source_top_corner_radius_mm != pattern.corner_radius
+        or preview.nominal_fold_from_weld_edge_mm != pattern.source_fold_reference
+    ):
+        raise ValueError("FIXING_PLATE_PREVIEW_SOURCE_DRIFT")
+    pair = preview.applicable_slot_pair_indexes
+    if pair not in (None, (0, 3), (1, 2)):
+        raise ValueError("FIXING_PLATE_PREVIEW_SLOT_PAIR_INVALID")
+    pitch = (
+        abs(pattern.slot_centers[pair[1]][0] - pattern.slot_centers[pair[0]][0])
+        if pair is not None else None
+    )
+    bend = (
+        ((0.0, pattern.source_fold_reference),
+         (pattern.width, pattern.source_fold_reference))
+        if pattern.source_fold_reference is not None else None
+    )
+    return FixingPlateSourcePreview2D(
+        width_mm=pattern.width,
+        height_mm=pattern.height,
+        thickness_mm=pattern.thickness,
+        source_slot_size_mm=(pattern.slot_length, pattern.slot_width),
+        outline_xy_mm=_outline(pattern),
+        slots_xy_mm=tuple(
+            _slot(cx, cy, pattern.slot_length, pattern.slot_width)
+            for cx, cy in pattern.slot_centers
+        ),
+        bend_line_xy_mm=bend,
+        selected_pitch_mm=pitch,
+        source_dxf_sha256=SOURCE_DXF_SHA256,
+    )
+
+
 def _source_flat_cutting_scene(pattern):
     """New independent DrawingScene with exactly the original source contours."""
     from .sheetmetal_drawing import DrawingScene

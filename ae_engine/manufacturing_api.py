@@ -198,6 +198,9 @@ from .indicator_editor_geometry import (
 )
 from .receiving_endcap_feature_preview import receiving_endcap_feature_preview_shapes
 from .receiving_ear_side_preview import project_receiving_ear_side_piece_2d_preview
+from .receiving_base_fixing_plate_geometry import (
+    FixingPlateSourcePreview2D, project_receiving_fixing_plate_source_2d,
+)
 from .receiving_single_bay_door_snapshot import (
     project_receiving_single_bay_door_controls,
 )
