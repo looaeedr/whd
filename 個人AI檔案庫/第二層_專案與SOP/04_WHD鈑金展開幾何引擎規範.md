@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 GUI 實體板件選取與匯出核取來源統一 Engine API（2026-11-02）
+
+受電箱雙層實體底板、內門板，以及金庫型單門／多門原先由 `gui_modules/parts/panels/common.py::logical_part_present` 判斷物理 ID，主選擇 DXF 的 `gui_modules/project/export_actions.py::_selected_export_flags` 也自辨識 Receiving/NFB 真實板件並推算匯出核取旗標。現統一由公開 `manufacturing_api.logical_part_present`、`selected_project_export_flags` 依已存在之實體 ID 和已提交 NFB 來源決定；GUI 只收集當下勾選值、主畫面舊清單、workspace 已存在之身分。未提交、非 Receiving 或只有固定耳的假底板不得認定為已存在；雙層底板、內門、金庫型舊門格相容。此為選擇入口權責遷移，不授權製造；原 Engine FinalScene／CSV／PAD／EAR／NFB、Save→Reload、DXF 回讀與原子交易皆不變。#2517 OPEN。
+
+
 ## [CURRENT] #2517 Receiving 多 Bay 匯出來源決策與獨立 NFB 預覽 Engine API（2026-11-02）
 
 `gui_modules/project/export_actions.py::_export_selected_resolved_parts` 不再自行決定受電箱實體 Bay 數、分組單 Bay 合格性及 Head/Tail/外門獨立出圖時的 NFB 提交狀態遮蔽。統一呼叫 `manufacturing_api.plan_receiving_multibay_export_source(snapshot, flags, group_mode)` 取得 detached `ReceivingMultiBayExportPlan`，使用 `preview_layout_for_bay(si, bi)` 產生不變動保存來源的局部預覽。任何包含底板、箱身等 NFB 依賴板件都不遮蔽真實 NFB，且舊未分組單 Bay 繼續走既有出圖。GUI 僅取得真實 Bay FinalScene 並傳入原正式 Engine 匯出入口，既有 CSV、EAR/PAD、幾何、DXF 重開、來源漂移、原子提交及不完整來源拒絕全部保持，沒有新增製造資格或外部能力。#2517 OPEN。

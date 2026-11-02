@@ -6,6 +6,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Engine-owned logical export checkbox physical inventory
+
+`manufacturing_api.logical_part_present(parts, role)` projects real Door/inner-door, BasePlate/two NFB tiers and BoxBody physical children into the legacy GUI logical role. `manufacturing_api.selected_project_export_flags(snapshot, existing_parts, workspace_parts, requested_flags, has_indicator_box=...)` returns selected existing roles only. A committed Receiving NFB source can augment an old primary-screen inventory from current workspace physical IDs; a missing/unsubmitted source, fixing plate or other Family cannot forge tier BasePlate presence. The GUI collects checkbox values and forwards observed inventory; it cannot decide physical part identities. This remains a read-only selection plan, not a manufacture/CSV/DXF certification. The original FinalScene source gates, NFB/Pad/EAR policy, atomic save and DXF reopen remain mandatory.
+
 ## #2517 Receiving multi-Bay operator source selection
 
 `manufacturing_api.plan_receiving_multibay_export_source(snapshot, flags, group_mode=None)` now returns `ReceivingMultiBayExportPlan`. Engine determines real persisted Bay count, grouped single-Bay independent-sheet eligibility and whether each Bay may use a detached NFB-disabled HEAD/TAIL/outer DOOR preview via `preview_layout_for_bay(si, bi)`. A BasePlate, BoxBody or other NFB-dependent selection never masks submitted NFB. The GUI only requests actual current Bay FinalScene and uses the existing Engine export APIs. Legacy ungrouped single-Bay export is unchanged; verified physical source, manufacturing gate, atomic DXF and re-open checks remain in the original exporter. This is a source-plan, not new certification.
