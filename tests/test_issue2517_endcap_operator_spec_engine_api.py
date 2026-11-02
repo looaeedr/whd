@@ -1,6 +1,7 @@
 """#2517 EndCap Head/Tail operator manufacturing PartSpec belongs to Engine."""
 from copy import deepcopy
 from dataclasses import FrozenInstanceError
+import ast
 import inspect
 import json
 from types import SimpleNamespace
@@ -140,7 +141,20 @@ def test_gui_adapter_forwards_only_real_operator_state(monkeypatch):
     ):
         assert forbidden not in source
     engine_source = inspect.getsource(owner.build_endcap_operator_part_spec)
-    assert "phase6_" not in engine_source and "tkinter" not in engine_source
+    # Fold Profile's persisted "phase6_key" is a data field, not a reverse
+    # Python dependency. Verify actual imports instead of matching strings.
+    imports = []
+    for node in ast.walk(ast.parse(engine_source)):
+        if isinstance(node, ast.Import):
+            imports.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            imports.append(node.module or "")
+    assert not any(
+        name == "tkinter" or name.startswith((
+            "tkinter.", "phase6_", "gui_modules", "fold_designer_bridge",
+        ))
+        for name in imports
+    )
 
 
 def test_legacy_gui_implicit_structure_and_joint_readback_uses_same_engine():
