@@ -43,6 +43,7 @@ from .integration_api import (
 )
 from .cabinet_types.policy import (
     resolve_box_body_back_panel_contract, base_plate_requires_explicit_bend_pattern,
+    require_implemented_manufacturing_family,
 )
 from .cabinet_types.receiving import resolve_box_body_structure_state as resolve_receiving_box_body_structure_state
 from .box_body_structure_state import (
@@ -813,6 +814,9 @@ def generate_part(
     context: ManufacturingContext | None = None,
 ) -> PartExportResult:
     """Export one part without GUI dependency, replacing destination atomically."""
+    # No registered-but-unimplemented Family may inherit the generic Vault
+    # formula merely because its PartSpec has a familiar physical shape.
+    require_implemented_manufacturing_family(getattr(spec, "model_name", None))
     ctx = context or ManufacturingContext()
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
