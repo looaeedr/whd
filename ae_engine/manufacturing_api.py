@@ -326,6 +326,10 @@ from .cabinet_types.policy import door_material_frame_width, box_body_symmetry_a
 
 
 from .operator_door_blank_projection import project_operator_door_blank_dimensions
+from .operator_round_hole_projection import (
+    OperatorRoundHolePreview, nearest_operator_round_hole_neighbor_index,
+    plan_operator_round_hole_preview,
+)
 from .operator_hole_editor_projection import (
     OperatorHoleEditorGeometry,
     project_operator_hole_editor_door,
