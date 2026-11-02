@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 BoxBody 即時 2D 面尺寸由公開 Engine 單一來源投影（2026-11-02）
+
+- 原 `gui_modules/application/render_snapshots.box_body_render_snapshot` 直接引用 `ae_engine.sheetmetal_features.box_body_face_dimensions`，沒有遵守 GUI 只使用公開 `manufacturing_api` 的設計。現在一般箱身 2D 面預覽把 W/H/D 交由 `manufacturing_api.project_operator_box_body_face_dimensions(w=...,h=...,d=...)`；接收箱實體 SIDE 的 FinalScene 路徑維持不變。
+- 公開 API 先沿用 `normalize_operator_source_dimension`，拒絕 bool、非有限、零／負的物理尺寸，再委派原 Engine `sheetmetal_feature_core.box_body_face_dimensions`；不另寫或改變面尺寸公式，左／背／右面 tuple 及順序一致。保留測試可注入的 `face_dimensions_fn` 相容 seam，正常 GUI 預設固定走 Engine。
+- 驗收 `tests/test_issue2517_box_body_face_2d_render_engine_api.py`；不影響 DXF 認證，正式 X 未發布。
+
 ## [CURRENT] #2517 即時 2D 指示燈盒／小門／主門與保存快照同一群組來源 Engine API（2026-11-02）
 
 - 原 `gui_modules/application/render_snapshots.py` 三條 live 2D 預覽路徑（獨立指示燈盒、指示燈小門及主門的兩種指示燈）仍以 `max(1, int(...))` 自行解釋層數／組數。這會在即時預覽將 `0` 靜默補成一層，將 `True` 轉成 1，或把非整數 float 截去小數，與已修好的 Fold Designer project snapshot 保存來源不一致。
