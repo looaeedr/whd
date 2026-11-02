@@ -76,7 +76,7 @@ def _selected_export_flags(self, existing_parts, has_indicator_box):
     designer = getattr(self, "fold_designer_app", None)
     snapshot = getattr(designer, "_phase6_input_snapshot", None)
     if (isinstance(snapshot, Mapping)
-            and snapshot.get("model") in ("受電箱", "RECEIVING")
+            and manufacturing_api.resolve_live_cabinet_family(snapshot) == "受電箱"
             and snapshot.get("nfb_config_submitted") is True):
         workspace = getattr(designer, "designer_workspace", None)
         if workspace is not None:
@@ -296,7 +296,7 @@ def _export_selected_resolved_parts(self, folder, flags):
         and not any(value for key, value in flags.items()
                     if key not in {"head", "tail", "door"})
     )
-    if (receiving_live.get("model") in {"受電箱", "RECEIVING"}
+    if (manufacturing_api.resolve_live_cabinet_family(receiving_live) == "受電箱"
             and receiving_live.get("active_mode", "set_bay") == "set_bay"
             and (physical_count > 1 or safe_single_bay_group)):
         saved_layout = manufacturing_api.normalize_receiving_layout(raw_layout)
@@ -595,7 +595,7 @@ def export_receiving_ear_side_manufacturing_dxf(self):
         if not callable(resolver):
             raise ValueError("側板正式 MARKING 缺少現行製造幾何")
         snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
-        if (snapshot.get("model") != "受電箱"
+        if (manufacturing_api.resolve_live_cabinet_family(snapshot) != "受電箱"
                 or snapshot.get("nfb_config_submitted") is not True
                 or snapshot.get("active_mode") == "quantity"):
             raise ValueError("側板製造 MARKING 限已提交的單只／套連實體，數量版本須逐版核對")
@@ -818,7 +818,7 @@ def export_receiving_pad_base_part_only_dxf(self):
         designer = getattr(self, "fold_designer_app", None)
         snapshot = getattr(designer, "_phase6_input_snapshot", None)
         if (not isinstance(snapshot, Mapping)
-                or snapshot.get("model") not in ("受電箱", "RECEIVING")
+                or manufacturing_api.resolve_live_cabinet_family(snapshot) != "受電箱"
                 or snapshot.get("nfb_config_submitted") is not True):
             raise ValueError("須在受電箱提交 NFB 後，才能輸出 PAD＋底板")
         if not manufacturing_api.committed_nfb_pad_draft_parts(snapshot):
