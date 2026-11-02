@@ -1382,3 +1382,7 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 受電箱底板 Part Session 啟用／儲存 Fold 來源單一 Engine API（2026-11-02）
 
 原 GUI gui_modules.application.fold_designer_part_session 的活化來源判斷以 model 字串限定受電箱，另在 save_current_part 直接呼叫 ae_engine.receiving_base_plate_3d_profiles，造成既有 Family alias 在切換後可能使用錯誤的 generic 編輯器快取。現把兩條路徑統一交 ae_engine.operator_part_session_profiles，公開 manufacturing_api.project_operator_part_activation_profiles 與 project_operator_receiving_base_plate_save_profiles。Engine 透過同一 cabinet_types.policy.canonical_family_name 辨識 Receiving alias；來源已具 receiving_ 實體 Fold 識別時，啟用只採用當前 canonical defaults，不讓舊 Profile 反寫；實際儲存只對已配置且可物理解析的受電箱底板呼叫原 receiving_base_plate_3d_profiles，失敗不降級為假 Fold，無配置與金庫型仍保留歷史 editable profile。GUI 只 stash 回 Engine 投影並維持原 Session/Save→Reload。此入口不授權 NFB CUTTING、DXF 或 source-only 製造；原實體 33／35 mm Fold、CURRENT 07 和正式 Registry gate 不變。#2517 OPEN。
+
+## [CURRENT] #2517 Receiving Set/Bay Part Session 無變更導航儲存判斷由 Engine 擁有（2026-11-02）
+
+GUI Fold Designer 的 `activate_part` 不得以 model 字串／Fold list／W-H-D 差值自行決定是否略過可能寫回製造來源的 Part Session save。由公開 `manufacturing_api.can_skip_operator_receiving_part_save` 依 canonical Family、Set/Bay mode、上一個實體 part、顯示模式、前後實際 Fold 與 live/committed W-H-D 判定；只有 Receiving 非單板 Assembly 離開隱藏 BoxBody，或來源可證明完全未編輯的 Head/Tail，才能視為 display-only。缺少值、讀取錯誤、折型異動或 W/H/D 異動都必須走既有儲存，不得無聲跳過。GUI 僅收集 Tk 欄位、處理換頁與呼叫 Engine；不新增幾何算法、出圖分流、製造認證或外部 source-only 放行。#2517 持續 OPEN。

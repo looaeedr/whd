@@ -2054,4 +2054,5 @@ from .receiving_nfb_hole_stage import plan_operator_inner_door_nfb_hole_stage
 from .operator_part_session_profiles import (
     project_operator_part_activation_profiles,
     project_operator_receiving_base_plate_save_profiles,
+    can_skip_operator_receiving_part_save,
 )
