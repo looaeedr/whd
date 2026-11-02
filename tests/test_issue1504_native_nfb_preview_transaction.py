@@ -80,5 +80,11 @@ def test_receiving_nfb_tab_reuses_native_preview_all_instead_of_bypassing_sessio
     body = src[start:end]
     assert "HoleEditorAction.preview_all(" in body
     assert "s.hole_session.execute(" in body
-    assert "if feature_is_strictly_within_surface" not in body
-    assert 'source_type != "NFB_CSV_SOURCE"' in body
+    assert "feature_is_strictly_within_surface(" not in body
+    assert "d.manufacturing_api.plan_operator_inner_door_nfb_hole_stage(" in body
+    assert 'mode="csv_replace"' in body
+    from ae_engine import receiving_nfb_hole_stage as owner
+    import inspect
+    engine = inspect.getsource(owner.plan_operator_inner_door_nfb_hole_stage)
+    assert 'feature.source_type != "NFB_CSV_SOURCE"' in engine
+    assert "feature_is_strictly_within_surface(" in engine
