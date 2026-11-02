@@ -60,18 +60,10 @@ def _phase6_relief_polygon_coords(geometry):
 
 
 def _phase6_assembly_relief_clearance(self):
-    """UI-only clearance is nonnegative finite; never widen manufacturing by infinity."""
-    from math import isfinite
-
+    """Read operator clearance; the same Engine API owns every validation path."""
     var = getattr(self, "assembly_relief_clearance_var", None)
     raw = var.get() if var is not None else "0"
-    try:
-        value = float(str(raw).strip() or "0")
-    except (TypeError, ValueError, OverflowError):
-        value = 0.0
-    # Keep the existing invalid-text fallback and negative-value clamp, but
-    # reject NaN/Inf rather than letting +Inf hide every collision residual.
-    return max(0.0, value) if isfinite(value) else 0.0
+    return manufacturing_api.normalize_operator_relief_clearance(raw)
 
 
 def _phase6_current_cabinet_family(self):
@@ -161,11 +153,18 @@ def _phase6_manufacturing_state_signature(self):
     available = tuple(getattr(workspace, "available_parts", ()) or ())
     profiles = {}
     if workspace is not None:
-        for key in available:
-            try:
-                profiles[key] = deepcopy(workspace.profiles_for(key, {}) or {})
-            except Exception:
-                profiles[key] = {}
+        profiles_for = getattr(workspace, "profiles_for", None)
+        if callable(profiles_for):
+            for key in available:
+                try:
+                    profiles[key] = deepcopy(profiles_for(key, {}) or {})
+                except Exception as exc:
+                    # A failed Fold source cannot match a prior cached manufacture.
+                    raise ValueError(
+                        f"MANUFACTURING_CACHE_PROFILE_READ_FAILED:{key}"
+                    ) from exc
+        else:
+            profiles = {key: {} for key in available}
 
     assembly = getattr(self, "_phase6_assembly_type", None)
     ignore_var = getattr(self, "assembly_ignore_fixed_corner_var", None)
@@ -179,7 +178,9 @@ def _phase6_manufacturing_state_signature(self):
         available_parts=available,
         part_profiles=profiles,
         assembly_intent=getattr(assembly, "value", assembly),
-        ignore_fixed_corner=bool(getattr(ignore_var, "get", lambda: False)()),
+        ignore_fixed_corner=manufacturing_api.normalize_operator_3d_fallback_flag(
+            getattr(ignore_var, "get", lambda: False)()
+        ),
         relief_clearance=_phase6_assembly_relief_clearance(self),
     )
 
