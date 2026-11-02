@@ -293,9 +293,23 @@ def test_independent_door_partition_rejects_wrong_total_and_roundtrips(tmp_path)
     snapshot = receiving.apply_family_defaults({"t": 2})
     snapshot = ensure_receiving_layout(snapshot)
     layout = resize_receiving_bays(snapshot["receiving_layout"], set_index=0, bay_count=2)
-    invalid = update_receiving_bay(layout, set_index=0, bay_index=1, width=900)
+    # W-only operator changes preserve authored leading cells and let the
+    # Engine re-complete the final Door remainder; this is intentionally legal.
+    automatic = update_receiving_bay(layout, set_index=0, bay_index=1, width=900)
+    projected = project_receiving_bay_legacy_aliases(
+        {**snapshot, "receiving_layout": automatic}, bay_index=1,
+    )
+    assert projected["door_layout_columns"][0][0] == 900
+    # An explicitly authored stale Door layout is a different transaction:
+    # the caller opted out of automatic remainder completion and must fail.
+    stale_door = deepcopy(layout["sets"][0]["bays"][1]["door_state"])
+    invalid = update_receiving_bay(
+        layout, set_index=0, bay_index=1, width=900, door_state=stale_door,
+    )
     with pytest.raises(ReceivingBayProjectionError):
-        project_receiving_bay_legacy_aliases({**snapshot, "receiving_layout": invalid}, bay_index=1)
+        project_receiving_bay_legacy_aliases(
+            {**snapshot, "receiving_layout": invalid}, bay_index=1,
+        )
     door = deepcopy(layout["sets"][0]["bays"][1]["door_state"])
     door["door_layout_columns"][0][0] = 900
     valid = update_receiving_bay(layout, set_index=0, bay_index=1, width=900, door_state=door)
