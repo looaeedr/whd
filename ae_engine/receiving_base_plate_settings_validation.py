@@ -14,7 +14,8 @@ def validate_receiving_base_plate_settings(
     """Validate physical plate and weld EAR slots before accepting operator state."""
     if not isinstance(input_snapshot, dict):
         raise ValueError("受電箱實體底板缺少可提交的專案狀態")
-    if str(input_snapshot.get("model") or "").strip() not in {"受電箱", "RECEIVING"}:
+    from .cabinet_types.policy import canonical_family_name
+    if canonical_family_name(input_snapshot) != "受電箱":
         raise ValueError("只有受電箱可選擇專用底板")
     if config is not None and not isinstance(config, Mapping):
         raise ValueError("受電箱底板配置必須是完整欄位")

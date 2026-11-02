@@ -1853,3 +1853,7 @@ manufacturing, DXF reopening, source verification or certificate gates.
 ## #2517 Fold Designer multi-door Indicator / CustomFold manufacturing request (2026-11-03)
 
 Use `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)` on the saved *raw* per-cell Indicator state before any PartSpec, not GUI compatibility normalization: the existing Engine live-Indicator contract checks active layer counts, group counts and offsets, while disabled cells remain plain doors. Explicit legacy mode flags select only mode, not missing physical geometry. `manufacturing_api.custom_part_spec` is the same headless CustomFold PartSpec used by the GUI payload and independent DXF export, including Family aliases and canonical X/Y fold data. No second exporter, no external source-only CLI authorization.
+
+## #2517 Receiving explicit BasePlate source across snapshot / Settings / Save→Reload (2026-11-03)
+
+`manufacturing_api.project_operator_receiving_base_plate_snapshot_source(operator_snapshot, persisted)` returns only a detached, explicitly present `receiving_base_plate` source for a Family Registry-identified Receiving project; absent input remains absent and a deliberate reset remains null. GUI must never infer physical plate variants from a DXF sketch or its own string checks. `validate_receiving_base_plate_settings` now checks the same Family Registry and retains its original material/EAR geometry validation. This is Project source persistence, not DXF release or external Worker certification.

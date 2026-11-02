@@ -110,6 +110,7 @@ from .receiving_operator_projection import (
     operator_base_plate_edge_shrink_editable,
     project_operator_receiving_base_plate_settings,
     project_operator_receiving_base_plate_reload,
+    project_operator_receiving_base_plate_snapshot_source,
 )
 from .assembly_intent_transactions import (
     AssemblyIntentTransition, normalize_assembly_type, commit_assembly_intent_state,

@@ -196,6 +196,28 @@ def operator_base_plate_edge_shrink_editable(snapshot) -> bool:
     return not receiving_family_supports_back_panel_mode(snapshot)
 
 
+def project_operator_receiving_base_plate_snapshot_source(snapshot, persisted):
+    """Detach the saved explicit Receiving BasePlate source for GUI snapshots.
+
+    Family routing comes from the same registered physical owner as Settings
+    and manufacturing. A missing source stays missing, and an explicit reset
+    stays None; source-flat geometry / NFB patterns are never inferred here.
+    """
+    from collections.abc import Mapping
+    from copy import deepcopy
+
+    if not receiving_family_supports_back_panel_mode(snapshot):
+        return {}
+    if not isinstance(persisted, Mapping):
+        raise ValueError("RECEIVING_BASE_PLATE_SNAPSHOT_SOURCE_INVALID")
+    if "receiving_base_plate" not in persisted:
+        return {}
+    config = persisted["receiving_base_plate"]
+    if config is not None and not isinstance(config, Mapping):
+        raise ValueError("RECEIVING_BASE_PLATE_SNAPSHOT_SOURCE_INVALID")
+    return {"receiving_base_plate": deepcopy(config)}
+
+
 def project_operator_receiving_base_plate_settings(snapshot, *, context="base_plate"):
     """Read-only BasePlate settings from the SAME physical Family source as MFG.
 
