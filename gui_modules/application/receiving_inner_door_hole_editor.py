@@ -6,10 +6,12 @@ inner-door dimensions remain with their established authority owners.
 """
 from __future__ import annotations
 
+from ae_engine import manufacturing_api
+
 
 def is_inner_door_sheet(part_key: object) -> bool:
-    key = str(part_key or "")
-    return key.startswith("inner_door:") and key.endswith(":panel")
+    """Only the public Engine may recognize a canonical physical Door panel."""
+    return manufacturing_api.door_display_part_role(part_key) == "inner"
 
 
 
@@ -59,8 +61,6 @@ def open_inner_door_hole_editor(
 
     if host is None or not callable(getattr(host, "_open_unified_hole_editor", None)):
         raise ValueError("未連接既有金庫型門板開孔編輯器")
-
-    from ae_engine import manufacturing_api
 
     snapshot = dict(app._phase6_input_snapshot if physical_snapshot is None
                     else physical_snapshot)

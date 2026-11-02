@@ -18,6 +18,7 @@ from collections.abc import Mapping
 from tkinter import filedialog, messagebox
 
 from ae_engine import manufacturing_api
+from gui_modules.application.render_snapshots import _collect_live_indicator_groups
 
 
 def export_multi_door_layout_dxfs(self, folder, val, *, draw_stock=False):
@@ -363,17 +364,6 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
         except Exception as ex:
             errors.append(f"end_cap_tail.dxf: {ex}")
 
-    indicator_hole = None
-    if self.is_indicator_box_var.get():
-        try:
-            layers = int(self.indicator_l_var.get())
-            groups = tuple(int(self.indicator_layer_g_vars[i].get()) for i in range(layers))
-            indicator_hole = manufacturing_api.indicator_box_opening_size(
-                groups, thickness=val["t"]
-            )
-        except Exception:
-            pass
-
     if flags["door"]:
         try:
             if self.multi_door_enabled_var.get():
@@ -381,16 +371,24 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
                     self.export_multi_door_layout_dxfs(folder, val, draw_stock=draw_stock)
                 )
             else:
+                # The live Door preview and manufacturing DXF must accept the
+                # same physical indicator inputs. Never turn a failed enabled
+                # opening/group source into an apparently valid blank Door.
+                indicator_hole = None
+                if self.is_indicator_box_var.get():
+                    box_groups = _collect_live_indicator_groups(
+                        self.indicator_l_var, self.indicator_layer_g_vars,
+                        label="指示燈盒",
+                    )
+                    indicator_hole = manufacturing_api.indicator_box_opening_size(
+                        box_groups, thickness=val["t"]
+                    )
                 door_indicator = None
                 if self.is_door_indicator_var.get():
-                    try:
-                        layers = int(self.door_indicator_l_var.get())
-                        door_indicator = tuple(
-                            int(self.door_indicator_layer_g_vars[i].get())
-                            for i in range(layers)
-                        )
-                    except Exception:
-                        pass
+                    door_indicator = _collect_live_indicator_groups(
+                        self.door_indicator_l_var, self.door_indicator_layer_g_vars,
+                        label="門上指示燈",
+                    )
                 run_part(
                     "door_unfold.dxf",
                     self._single_door_part_spec(
@@ -431,8 +429,10 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
 
     if flags["indicator_box"] and not self.multi_door_enabled_var.get():
         try:
-            layers = int(self.indicator_l_var.get())
-            groups = tuple(int(self.indicator_layer_g_vars[i].get()) for i in range(layers))
+            groups = _collect_live_indicator_groups(
+                self.indicator_l_var, self.indicator_layer_g_vars,
+                label="指示燈盒",
+            )
             run_part(
                 "indicator_box.dxf",
                 self._indicator_box_part_spec(
@@ -446,8 +446,10 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
 
     if flags["indicator_door"] and not self.multi_door_enabled_var.get():
         try:
-            layers = int(self.indicator_l_var.get())
-            groups = tuple(int(self.indicator_layer_g_vars[i].get()) for i in range(layers))
+            groups = _collect_live_indicator_groups(
+                self.indicator_l_var, self.indicator_layer_g_vars,
+                label="指示燈盒",
+            )
             run_part(
                 "indicator_door.dxf",
                 self._indicator_door_part_spec(

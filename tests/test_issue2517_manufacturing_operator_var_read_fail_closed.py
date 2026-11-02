@@ -27,7 +27,7 @@ class BrokenVar:
 def test_unreadable_existing_operator_variable_cannot_silently_default(attr, default):
     app = SimpleNamespace(**{attr: BrokenVar()})
     with pytest.raises(ValueError, match=f"MANUFACTURING_OPERATOR_SOURCE_READ_FAILED:{attr}") as exc:
-        _manufacturing_operator_var_get(app, attr, default)
+        _manufacturing_operator_var_get(getattr(app, attr, None), attr, default)
     assert isinstance(exc.value.__cause__, RuntimeError)
 
 
@@ -37,7 +37,7 @@ def test_unreadable_existing_operator_variable_cannot_silently_default(attr, def
     ("baseline_model_var", ""),
 ])
 def test_missing_optional_controls_retain_facade_defaults(attr, default):
-    assert _manufacturing_operator_var_get(SimpleNamespace(), attr, default) == default
+    assert _manufacturing_operator_var_get(None, attr, default) == default
 
 
 def test_direct_value_and_live_tk_value_are_read_as_operator_input():
