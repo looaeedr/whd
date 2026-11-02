@@ -1094,3 +1094,7 @@ preview-only 不得偽裝成實體；任一非有限、布林或部分缺失的
 必須同時有 `formed_w_start=0` 與正數有限 `formed_outer_width`
 原來源才能接受。沿用既有物理 Part provenance 與 world mesh，
 不創新製造尺寸、CUTTING／DXF 規則或認證；#2517 OPEN。
+
+## [CURRENT] #2517 Receiving 多門格 confirmed PartSpec → 正式 Engine DXF（2026-11-02）
+
+`ManufacturingResolvedBayInput.door_layout_columns` 是使用者已確認的多門格位輸入，只能與完整 `confirmed_parts` 共用。現有 `export_verified_resolved_integration_bays` 會透過唯一 Engine `manufacturing_api.door_part_projections` 驗證全部 `door_cN_rN` 實體身分、W/H、T/FW/gap、左右上下 FrameEdges 與已提供的 BoxBody W/H；缺格／漂移先拒絕，不能從來源 P 盤名猜物理格位。合法格位繼續走既有 `build_part_render_data`／verified batch DXF writer 的 staged Save→Reload 和來源雙 guard。原單門、三片箱身、source-only `EXTERNAL_EXPORT_NOT_CERTIFIED`、Factory/Registry 安全邊界全保留；非整箱 MFG-2 或外部 CLI 認證。

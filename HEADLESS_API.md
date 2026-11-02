@@ -1612,3 +1612,7 @@ are present and finite. An incomplete or forged width/role source fails
 closed with the original diagnostic errors. GUI only forwards resolved
 Engine piece DTOs; no physical 3D mesh, manufacturing material, 2D CUTTING
 or DXF is newly synthesized or certified.
+
+### #2517 Confirmed Receiving multi-Door layout → verified Engine DXF
+
+`ManufacturingResolvedBayInput(family="受電箱", source=..., confirmed_parts=(("door_c1_r1", DoorPartSpec(...)), ...), door_layout_columns=((width, (height, ...)), ...))` extends the same `export_verified_resolved_integration_bays` API without a new exporter. The existing Engine `door_part_projections` validates the complete physical Door grid, W/H, T/FW/gap and FrameEdges, and compares BoxBody W/H when supplied. Reject incomplete or drifted layout before DXF output. Existing single-Door, Factory/Registry, verified staged Save→Reload and source-only refusal are unchanged.
