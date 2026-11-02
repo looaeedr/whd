@@ -36,7 +36,6 @@ from phase6_endcap_semantics import (
 from phase6_fold_profiles import (
     _num,
     clone_profile,
-    engine_segment_length_to_ui,
     read_box_body_profile,
     read_endcap_xy_profiles,
 )
@@ -201,19 +200,15 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
 
     if key == "box_body":
         profiles_for = getattr(workspace, "profiles_for", None)
-        for child_key, target in (
-            ("head", "head_ybottom1"),
-            ("tail", "tail_ybottom1"),
-        ):
-            profiles = (
-                profiles_for(child_key, {}) or {}
-                if callable(profiles_for)
-                else {}
+        endcap_sources = {
+            part: (profiles_for(part, {}) or {}) if callable(profiles_for) else {}
+            for part in ("head", "tail")
+        }
+        values.update(
+            manufacturing_api.project_manufacturing_endcap_bottom_fold_inputs(
+                endcap_sources,
             )
-            for row in list(dict(profiles).get("Y", ()) or ()):
-                if str(row.get("phase6_key") or "") == "ybottom1":
-                    values[target] = float(engine_segment_length_to_ui(row))
-                    break
+        )
 
     from phase6_custom_parts import is_custom_part
     if is_custom_part(key):

@@ -133,6 +133,7 @@ from .endcap_bottom_wrap_state import (
 )
 from .endcap_xy_readback import (
     fold_material_segment_outside_length, resolve_endcap_xy_outside_dimensions,
+    project_manufacturing_endcap_bottom_fold_inputs,
     endcap_derived_core_lengths, reconcile_endcap_live_outside_dimensions,
 )
 from .endcap_editor_fold import (
