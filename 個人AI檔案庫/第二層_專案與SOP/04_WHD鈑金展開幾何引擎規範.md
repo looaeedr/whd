@@ -1417,3 +1417,7 @@ Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或�
 ## [CURRENT] #2517 Manufacturing Request T 實體來源禁止隱性 2mm 預設（2026-11-03）
 
 `phase6_manufacturing_adapter.build_manufacturing_request` 原本在製造輸入不足或 Settings 板厚字串錯誤時，使用相容 `_num(...,2.0)` 默默將 T 改成 2mm。此來源 fallback 已不符合 #2517 的公開 Engine 契約及 CURRENT 07 操作員包外來源。GUI Request adapter 現只依序取得已確認 Snapshot `t`、否則 Settings `t`，交由既有公開 `manufacturing_api.normalize_operator_source_dimension(raw, field="t")` 驗證正值、有限數字、非 bool；缺少或格式錯誤時阻止建構製造 Request，不可帶假 T 進入 Fold／2D／3D／DXF。合法小數厚度保留，舊式 Fold Editor 展示精度不改。沒有新增任何製造幾何、Family 公式、CADSplit 專用 API 或 source-only CLI 認證。
+
+## [CURRENT] #2517 主門／多門 2D 預覽實體 W/H/T/FW 讀取共用 Engine 驗證（2026-11-03）
+
+`gui_modules/application/render_snapshots.py` 的單門 2D 原用 GUI `float()` 取得操作員 W/H/T/FW，多門概覽也直接 `float()` 取得 W/H，導致 NaN／Infinity 等非有限來源可能進入 PartSpec 或預覽尺寸。現兩條路只讀取 GUI 控制項，直接交由已存在的公開 `manufacturing_api.normalize_operator_source_dimension(raw, field=...)` 驗證正數、有限值、非布林與合法小數；單門來源無效時不得呼叫 PartSpec／FinalScene，概覽維持既有 `error` 呈現。門縫與折邊等可能合法為零的其它操作參數不變，沒有 GUI 自製尺寸公式、第二套 Door 製造入口，也不開放任何未驗證的 DXF 認證。
