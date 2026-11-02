@@ -1405,6 +1405,7 @@ from .fold_designer_snapshot_dimensions import (
     FoldDesignerSnapshotDimensions, normalize_fold_designer_indicator_groups,
     normalize_operator_hole_editor_indicator_state,
     project_operator_door_cell_indicator_manufacturing_source,
+    project_operator_door_layout_indicator_snapshot_states,
 )
 
 

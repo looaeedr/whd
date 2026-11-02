@@ -161,6 +161,32 @@ def project_operator_door_cell_indicator_manufacturing_source(raw):
     })
 
 
+def project_operator_door_layout_indicator_snapshot_states(states):
+    """Project per-cell operator Indicator source into a safe saved snapshot.
+
+    Live GUI presentation can repair old controls for display, but its repair
+    must never write fabricated lamp holes to the authoritative project.
+    All enabled cells use the same Engine validation as manufacturing and the
+    Hole Editor. Return detached states with legacy mode flags for old readers.
+    """
+    if not isinstance(states, Mapping):
+        raise ValueError("門格指示燈來源必須是有效對照表")
+    projected = {}
+    for cell_key, raw in states.items():
+        key = str(cell_key)
+        try:
+            validated = project_operator_door_cell_indicator_manufacturing_source(raw)
+        except ValueError as exc:
+            raise ValueError(f"門格 {key} 指示燈來源無效：{exc}") from exc
+        mode = validated["mode"]
+        projected[key] = {
+            **validated,
+            "enabled": mode == "indicator",
+            "box_enabled": mode == "indicator_box",
+        }
+    return projected
+
+
 def _require_positive_source_length(raw: object, field: str) -> float:
     if isinstance(raw, bool):
         raise ValueError(f"{field} 必須是正數有限的物理尺寸")
