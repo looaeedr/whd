@@ -1676,6 +1676,12 @@ def export_receiving_ear_side_manufacturing_marking_dxf(
                    sheet_thickness=sheet_thickness, overwrite=overwrite)
 
 
+def receiving_ear_side_check_operator_inputs(snapshot):
+    """Operator preflight for existing source-backed CHECK-only side DXFs."""
+    from .receiving_fixed_plate_side_check_dxf import receiving_ear_side_check_operator_inputs as check
+    return check(snapshot)
+
+
 def export_receiving_ear_side_check_only_dxf(
     snapshot, geometry, output_dir, *, dimensions, sheet_thickness,
     overwrite=False,

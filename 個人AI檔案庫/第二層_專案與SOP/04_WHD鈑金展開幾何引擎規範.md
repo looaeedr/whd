@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving EAR 側板顯示與 CHECK 來源別名統一（2026-11-02）
+
+`receiving_ear_side_display_context`、`receiving_ear_side_preview` 與舊有 CHECK-only DXF 來源驗證統一經 `cabinet_types.policy.canonical_family_name` 識別已註冊的 Receiving Family aliases，不再在 Engine／GUI 各維護一份僅匹配「受電箱」「RECEIVING」的判斷。2D 的 GUI 只傳 FoldDesigner 來源，必要時把 primary mirror 交 Engine 判斷來源漂移；CHECK 動作先呼叫 `manufacturing_api.receiving_ear_side_check_operator_inputs` 做無副作用的提交／模式／尺寸預檢，再走原 `export_receiving_ear_side_check_only_dxf`。來源側真實物理板材、UV／折彎／CUTTING 衝突、正反側 MARKING、DXF 原子儲存重開及失敗拒絕不變。CHECK 永遠是非製造驗證，不能授權 EAR 焊接、NFB/PAD MFG-2、整箱或 source-only 外部 export；金庫型仍拒絕。#2517 OPEN。
+
+
 ## [CURRENT] #2517 Receiving Set/Bay 共用設定／NFB 交易公開 Engine API（2026-11-02）
 
 `ReceivingSetBayAdapter` 原直接呼叫 `ae_engine.receiving_layout`、`receiving_shared_settings`、`receiving_nfb_transactions` 與製造 Readiness 內部模組，現改為只經 `manufacturing_api` 公開入口操作 Set/Bay／Joint 追加、刪除、更新、來源 stable_id、每連設定分享／解除分享、NFB 原子 Submit／Copy／Restore／Undo、開關品牌及 Readiness。真正的交易、來源資格與資料驗證仍由既有 Engine owner 實作；GUI 不複製公式，只保留 Session 選取、刪除確認、Undo 收據與 dirty flags。原 `receiving_layout_stable_ids` 名稱在 GUI 留相容代理，實作搬回 `ae_engine.receiving_layout`。金庫型、原 Factory/Registry、2D/3D/DXF、Save→Reload、source-only gate 不變；NFB 來源證據與 explicit Confirm／optimistic Undo 保持原拒絕語意，不新增製造放行。#2517 OPEN。

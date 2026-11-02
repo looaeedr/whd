@@ -13,6 +13,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
 
+from .cabinet_types.policy import canonical_family_name
+
 
 _SIDE_KEYS = frozenset(("box_body:left_side", "box_body:right_side"))
 
@@ -37,7 +39,7 @@ def resolve_receiving_ear_side_display_context(
     key = str(piece_key)
     if not isinstance(snapshot, Mapping):
         raise TypeError("EAR_SIDE_DISPLAY_REQUIRES_SOURCE_SNAPSHOT")
-    if key not in _SIDE_KEYS or snapshot.get("model") not in ("受電箱", "RECEIVING"):
+    if key not in _SIDE_KEYS or canonical_family_name(snapshot) != "受電箱":
         return ReceivingEarSideDisplayContext(False, key)
     if snapshot.get("nfb_config_submitted") is not True:
         if main_mirror is not None and (

@@ -45,16 +45,17 @@ def present_receiving_ear_side_piece_2d(
             snapshot = dict(canonical)
         else:
             snapshot = dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
-        # The GUI selects the canonical editor snapshot, not manufacturing
-        # status. Engine resolves eligibility, dimensions and source identity.
-        main_mirror = None
-        if (designer is not None
-                and snapshot.get("model") in ("受電箱", "RECEIVING")
-                and snapshot.get("nfb_config_submitted") is not True):
-            main_mirror = dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
+        # Engine, not GUI model strings, decides whether this physical SIDE
+        # owns an EAR preview. Consult the primary mirror only when its first
+        # source preflight is inactive, to retain stale-claim diagnostics.
         context = manufacturing_api.resolve_receiving_ear_side_display_context(
-            snapshot, key, aggregate_render_data, main_mirror=main_mirror,
+            snapshot, key, aggregate_render_data,
         )
+        if designer is not None and not context.should_project:
+            main_mirror = dict(host._compose_phase6_project_snapshot_from_main_gui() or {})
+            context = manufacturing_api.resolve_receiving_ear_side_display_context(
+                snapshot, key, aggregate_render_data, main_mirror=main_mirror,
+            )
         if not context.should_project:
             return source_piece, None
         stamp = context.source_stamp
