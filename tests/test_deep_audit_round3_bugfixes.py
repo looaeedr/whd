@@ -714,7 +714,7 @@ def test_r3_14_actual_fixing_plate_source_export_warning_is_multiline_and_cancel
     presentation and routing acceptance only, not a claim of released DXF.
     """
     from tkinter import filedialog, messagebox
-    from ae_engine import receiving_base_fixing_plate_geometry as source_flat
+    from ae_engine import manufacturing_api as source_flat_api
     from gui_modules.application.fold_designer_composition_state import (
         export_selected_dxf_from_3d,
     )
@@ -732,7 +732,7 @@ def test_r3_14_actual_fixing_plate_source_export_warning_is_multiline_and_cancel
         lambda **kw: file_dialogs.append(kw) or "should-not-write.dxf",
     )
     monkeypatch.setattr(
-        source_flat, "save_independent_source_flat_dxf",
+        source_flat_api, "save_operator_fixing_plate_source_flat_dxf",
         lambda *args: source_writes.append(args),
     )
     monkeypatch.setattr(
@@ -770,7 +770,7 @@ def test_r3_14_actual_fixing_plate_source_export_confirm_keeps_source_only_label
 ):
     """Accepted source-flat export retains the dialog and original physical owner."""
     from tkinter import filedialog, messagebox
-    from ae_engine import receiving_base_fixing_plate_geometry as source_flat
+    from ae_engine import manufacturing_api as source_flat_api
     from gui_modules.application.fold_designer_composition_state import (
         export_selected_dxf_from_3d,
     )
@@ -784,7 +784,7 @@ def test_r3_14_actual_fixing_plate_source_export_confirm_keeps_source_only_label
         lambda **kwargs: requested.append(kwargs) or "/tmp/source-only.dxf",
     )
     monkeypatch.setattr(
-        source_flat, "save_independent_source_flat_dxf",
+        source_flat_api, "save_operator_fixing_plate_source_flat_dxf",
         lambda key, path: exported.append((key, path)) or path,
     )
     monkeypatch.setattr(
