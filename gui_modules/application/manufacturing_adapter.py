@@ -11,6 +11,7 @@ objects and validation/export contexts.  AE/manufacturing modules remain the
 geometry, formula, DXF and process authority.
 """
 from copy import deepcopy
+from collections.abc import Mapping
 
 from ae_engine import manufacturing_api
 from ae_engine.contracts import (
@@ -205,10 +206,14 @@ def _single_door_part_spec(self, val, *, indicator_hole=None, door_indicator=Non
 
 def _door_layout_part_spec(self, cell, val):
     key = self._door_layout_cell_key(cell)
-    state = self._door_layout_indicator_state_for_key(key)
-    layers = max(1, min(6, int(state.get("layers", 1))))
-    groups = tuple(int(v) for v in list(state.get("groups", [2] * 6))[:layers])
-    mode = state.get("mode", "indicator" if state.get("enabled") else "none")
+    # Read the committed per-cell source, never the GUI's presentation-repaired
+    # copy when real state is available. Engine alone validates physical lamps.
+    displayed = self._door_layout_indicator_state_for_key(key)
+    states = getattr(self, "door_layout_indicator_states", None)
+    raw = states.get(key) if isinstance(states, Mapping) else displayed
+    state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)
+    mode = state["mode"]
+    groups = tuple(state["groups"][:state["layers"]]) if mode != "none" else ()
     door_val = dict(val)
     door_val["w"] = cell.start_width
     door_val["h"] = cell.start_height

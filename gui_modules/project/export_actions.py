@@ -41,12 +41,14 @@ def export_multi_door_indicator_box_parts(
     context = self._manufacturing_context(draw_stock=draw_stock)
     for cell in self.get_door_layout_cells():
         key = self._door_layout_cell_key(cell)
-        state = self._door_layout_indicator_state_for_key(key)
+        displayed = self._door_layout_indicator_state_for_key(key)
+        states = getattr(self, "door_layout_indicator_states", None)
+        raw = states.get(key) if isinstance(states, Mapping) else displayed
+        state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)
         if state.get("mode") != "indicator_box":
             continue
         self._validate_door_layout_indicator_fit(cell, state, val)
-        layers = max(1, min(6, int(state.get("layers", 1))))
-        groups = tuple(int(v) for v in list(state.get("groups", [2] * 6))[:layers])
+        groups = tuple(state["groups"][:state["layers"]])
         stem = f"c{cell.column_index + 1}_r{cell.row_index + 1}"
 
         if export_box:
