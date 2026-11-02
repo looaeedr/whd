@@ -1390,3 +1390,7 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 Receiving Set/Bay Part Session 無變更導航儲存判斷由 Engine 擁有（2026-11-02）
 
 GUI Fold Designer 的 `activate_part` 不得以 model 字串／Fold list／W-H-D 差值自行決定是否略過可能寫回製造來源的 Part Session save。由公開 `manufacturing_api.can_skip_operator_receiving_part_save` 依 canonical Family、Set/Bay mode、上一個實體 part、顯示模式、前後實際 Fold 與 live/committed W-H-D 判定；只有 Receiving 非單板 Assembly 離開隱藏 BoxBody，或來源可證明完全未編輯的 Head/Tail，才能視為 display-only。缺少值、讀取錯誤、折型異動或 W/H/D 異動都必須走既有儲存，不得無聲跳過。GUI 僅收集 Tk 欄位、處理換頁與呼叫 Engine；不新增幾何算法、出圖分流、製造認證或外部 source-only 放行。#2517 持續 OPEN。
+
+## [CURRENT] #2517 Part Session Settings Flush 的 Receiving 已提交 W/H/D 來源由 Engine API 投影（2026-11-02）
+
+Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或自行擷取 W/H/D 決定把 Settings flush 的舊視窗尺寸覆蓋 live Bay。公開 `manufacturing_api.project_operator_receiving_settings_live_dimensions` 由 Engine 依 canonical Family、是否正在套用 Settings 與已提交來源完整性判斷；有可信 W/H/D 時以既有 Engine `normalize_operator_source_dimension` 檢查正數有限值，保留來源數字原型回傳供 UI 同步和後續 BoxBody 投影使用，無值時維持原流程，非法物理值明確拒絕。Vault、未在套用 Settings、其他部件與 2D／3D／DXF 原製造路徑不改；GUI 僅作 Tk 同步與 Session 交易協調。#2517 仍 OPEN。

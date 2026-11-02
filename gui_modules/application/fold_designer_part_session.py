@@ -49,23 +49,23 @@ class Phase6PartSessionOwner:
         # W800/D350 after the user committed W820/D360.  Never save those
         # stale header values or fold-profile dimensions over the live Bay.
         # Keep the ordinary Part save and physical CUTTING validation intact.
-        receiving_settings_whd = None
-        if (getattr(app, "_phase6_applying_settings", False)
-                and str(app._phase6_input_snapshot.get("model") or "") in {"受電箱", "RECEIVING"}):
-            current_box = dict(getattr(app, "_phase6_box_whd", {}) or {})
-            if all(axis in current_box for axis in ("w", "h", "d")):
-                receiving_settings_whd = {
-                    axis: current_box[axis] for axis in ("w", "h", "d")
-                }
-                previous_guard = getattr(app, "_phase6_settings_guard", False)
-                app._phase6_settings_guard = True
-                try:
-                    for axis, dimension in receiving_settings_whd.items():
-                        variable = getattr(app, "v_" + axis)
-                        if str(variable.get()) != str(dimension):
-                            variable.set(str(dimension))
-                finally:
-                    app._phase6_settings_guard = previous_guard
+        receiving_settings_whd = (
+            bridge.manufacturing_api.project_operator_receiving_settings_live_dimensions(
+                app._phase6_input_snapshot,
+                getattr(app, "_phase6_box_whd", None),
+                applying_settings=bool(getattr(app, "_phase6_applying_settings", False)),
+            )
+        )
+        if receiving_settings_whd is not None:
+            previous_guard = getattr(app, "_phase6_settings_guard", False)
+            app._phase6_settings_guard = True
+            try:
+                for axis, dimension in receiving_settings_whd.items():
+                    variable = getattr(app, "v_" + axis)
+                    if str(variable.get()) != str(dimension):
+                        variable.set(str(dimension))
+            finally:
+                app._phase6_settings_guard = previous_guard
         try:
             app.bend_ui.save()
         except Exception:
