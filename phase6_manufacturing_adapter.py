@@ -394,11 +394,9 @@ def _assembly_intent(app: Any) -> str:
 
 
 def _relief_clearance(app: Any) -> float:
+    """Read the operator entry; Engine owns numeric clearance validation."""
     raw = _safe_var_get(getattr(app, "assembly_relief_clearance_var", None), "0")
-    try:
-        return max(0.0, float(str(raw).strip() or "0"))
-    except (TypeError, ValueError):
-        return 0.0
+    return manufacturing_api.normalize_operator_relief_clearance(raw)
 
 
 def _cabinet_model(app: Any, snapshot: dict) -> str:

@@ -1771,6 +1771,7 @@ from .manufacturing_contracts import (
     FrozenObjectMapping,
     ManufacturingPartInput,
     ManufacturingResolveRequest,
+    normalize_operator_relief_clearance,
     ManufacturingDiagnosticsResult,
     ManufacturingMutationResult,
     ManufacturingEffects,

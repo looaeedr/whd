@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Assembly Joint relief clearance 製造 Request 單一 Engine API（2026-11-02）
+
+`phase6_manufacturing_adapter._relief_clearance` 原在 GUI 側將操作欄位 `max(0, float(...))` 並在無效文字時回退 0，造成實體 Joint clearance 的裁切、壞資料處置不一致。現由 `manufacturing_api.normalize_operator_relief_clearance(raw)`（`ae_engine.manufacturing_contracts`）作唯一數值權威：空欄／缺值 0、有限非負值保留、負數歸零、非法／非有限／布林來源明確拒絕。`ManufacturingResolveRequest.__post_init__` 重用同一函式並保留既有十二位小數正規化，使 GUI 與 headless request 一致。GUI 僅讀 Tk 欄位、呼叫公開 API。本批不改 Joint 工廠幾何、補償、碰撞或退讓算法，無新增 CUTTING、DXF 製造放行或外部 export 認證。#2517 OPEN。
+
+
 ## [CURRENT] #2517 箱身分片設定物理值與鎖定切換統一 Engine API（2026-11-02）
 
 - `ae_engine.manufacturing_api.project_operator_box_body_structure_settings(state, total_w, snapshot=...)` 直接由 canonical `ae_engine.box_body_structure_state` 和 Family policy 回傳箱身四種結構的實體 ID、二片／三片 W 包外值、受電箱側板後折 OUTSIDE／MATERIAL datum、後板寬補償和避讓留肉設定。保存 W 矛盾立即拒絕，GUI 不得自行計算另一份。
