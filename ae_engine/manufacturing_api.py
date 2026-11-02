@@ -1890,3 +1890,9 @@ from .receiving_raw_source_cache import (
 from .receiving_pad_base_export_selection import (
     ReceivingPadBaseExportSource, resolve_receiving_pad_base_export_source,
 )
+
+# #2517 Receiving selected physical Bay Head/Tail Hole Editor geometry API.
+from .operator_receiving_endcap_hole_context import (
+    ReceivingEndcapHoleEditorContext,
+    project_receiving_endcap_hole_editor_context,
+)

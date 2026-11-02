@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 封頭／封尾 Hole Editor 完成面及共享孔位 Engine API（2026-11-02）
+
+原 `fold_designer_composition_receiving.receiving_settings_ports.holes` 在 GUI 直接計算當下 Bay 的 W/D/T、EndCap 完成面 `resolve_endcap_finished_face_guide`、`feature_surface_from_rect`、原點參考 `RectGuide`，並自行調用 `receiving_shared_settings.setting_value` 讀取連動的 Head/Tail 孔。現改由無 GUI／Phase6 反向依賴的 `ae_engine.operator_receiving_endcap_hole_context` 提供 `manufacturing_api.project_receiving_endcap_hole_editor_context(snapshot, layout, set_index, bay_index, role)`；以同一份已驗證 Receiving Family 與當前實體 Set/Bay 的 canonical Width/Depth、CURRENT 07 完成面折彎語意、既有 Head/Tail Shared Settings 回傳同源 `surface`、`reference_guide`、`features`、W/D。GUI 只開既有 Unified Hole Editor，保持原 Session 交易、勾選多連分享／取消、Save→Reload 與來源 Hole Features 回存路徑；不得將快取或 CADCraft CHECK 當製造來源。非 Receiving、虛假角色、bool Set/Bay、跨連借材、無效實體都拒絕，不新增任何 NFB／PAD／EAR／外部製造放行。#2517 OPEN。
+
+
 ## [CURRENT] #2517 GUI 實體板件選取與匯出核取來源統一 Engine API（2026-11-02）
 
 受電箱雙層實體底板、內門板，以及金庫型單門／多門原先由 `gui_modules/parts/panels/common.py::logical_part_present` 判斷物理 ID，主選擇 DXF 的 `gui_modules/project/export_actions.py::_selected_export_flags` 也自辨識 Receiving/NFB 真實板件並推算匯出核取旗標。現統一由公開 `manufacturing_api.logical_part_present`、`selected_project_export_flags` 依已存在之實體 ID 和已提交 NFB 來源決定；GUI 只收集當下勾選值、主畫面舊清單、workspace 已存在之身分。未提交、非 Receiving 或只有固定耳的假底板不得認定為已存在；雙層底板、內門、金庫型舊門格相容。此為選擇入口權責遷移，不授權製造；原 Engine FinalScene／CSV／PAD／EAR／NFB、Save→Reload、DXF 回讀與原子交易皆不變。#2517 OPEN。
