@@ -1756,3 +1756,20 @@ from .operator_cadcraft_preview import (
     CadcraftPreviewError, project_cadcraft_check_scene,
     save_cadcraft_check_scene_dxf,
 )
+
+# #2517 CADCraft manual return geometry: Engine-owned CHECK, never manufacturing.
+from .cadcraft_exchange_proof import (
+    CadcraftCommandProofError,
+    DrawInstruction as CadcraftDrawInstruction,
+    from_whd_resolved as cadcraft_exchange_from_whd_resolved,
+    verify_dxf as verify_cadcraft_exchange_dxf,
+)
+from .cadcraft_manual_return import (
+    cadcraft_feature_footprint_polygon,
+    cadcraft_new_hole_from_entity,
+    cadcraft_is_axis_aligned_rectangle,
+    cadcraft_manual_feature_eligible,
+    cadcraft_manual_finite_positive,
+    verify_cadcraft_manual_ticket_seed,
+    project_cadcraft_manual_return_changes,
+)

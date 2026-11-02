@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 CADCraft 手動孔位回傳統一 Engine API（2026-11-02）
+
+既有 `tools.issue1959_whd_cadcraft_command_draw` 的交換檔 R2010／mm／封閉形狀／圖元順序驗證遷至 `ae_engine.cadcraft_exchange_proof`；GUI 的 CADCraft 新孔形解析、原孔位平移、真實裁切面內驗證／孔位碰撞、零孔原始空檔驗證則遷至 `ae_engine.cadcraft_manual_return`。唯一公開呼叫為 `manufacturing_api.verify_cadcraft_manual_ticket_seed`、`project_cadcraft_manual_return_changes`、`cadcraft_new_hole_from_entity`、`cadcraft_feature_footprint_polygon` 等。GUI 只保存短效 Session ticket、完整來源 hash、回傳驗證結果 preview／cancel／confirm；歷史 GUI／CLI 名稱為薄相容轉接，不保留第二份製造公式。CADCraft 僅輸入經 WHD 核對的候選新孔，不是製造權威；CUTTING 只能經原 WHD Session 明確確認後由既有 Engine 再生，NFB 認證、Factory、source-only 出圖限制完全不變。#2517 OPEN。
+
+
 ## [CURRENT] #2517 Quantity 多版本製造請求／PAD BOM 完整 Engine API（2026-11-02）
 
 `manufacturing_api.build_operator_quantity_manufacturing_requests(base_request, workspace_snapshot)` 與 `resolve_operator_quantity_manufacturing_batch(base_request, workspace_snapshot, resolve_request=...)` 將原 `phase6_quantity_manufacturing` 的版本專屬 Head/Tail PartSpec／來源 Features、Receiving singleton Bay／NFB alias 投影、fingerprint 及已解析 PAD 物理數量 BOM 一次遷回 Engine；GUI 舊函式只保留呼叫相同公開 API 的薄相容層。現有 `phase6_manufacturing_service.resolve` 可作同程序既有解析回呼，不是新的 GUI 製造演算法或外部 Worker。受電箱任意大小寫 `RECEIVING` alias 經 `cabinet_types.policy.canonical_family_name` 同一 Family owner 判斷，不再由 GUI 寫兩字串特例；`manufacturing_cache_signature` 同樣正規化來源 Family 的 W/H/D live override。原數量／版本語意、現有切板 DXF Gate、來源與 Save→Reload 契約不擴權；未驗證 PAD 或 NFB 不因此放行。#2517 OPEN。
