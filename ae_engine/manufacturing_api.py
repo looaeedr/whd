@@ -103,6 +103,8 @@ from .receiving_operator_projection import (
     receiving_family_supports_back_panel_mode,
     receiving_back_panel_mode_control_applicable,
     project_receiving_original_door_marks,
+    project_receiving_operator_door_cell_sources,
+    project_receiving_initial_door_source_scenes,
 )
 from .assembly_intent_transactions import (
     AssemblyIntentTransition, normalize_assembly_type, commit_assembly_intent_state,

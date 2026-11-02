@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱兩片門原始來源身份與 Bay 拓樸 Engine API（2026-11-02）
+
+`gui_modules/application/fold_designer_composition_receiving` 的 Set/Bay 原始門預覽原先在 GUI 呼叫私有 `project_receiving_bay_legacy_aliases`、`derive_door_layout_cells`，並自行判斷「只有一欄、兩片實體 Door」；初始來源又由 GUI 字串比對 Family 與 `door_c1_r1/r2` 製造身份。兩段現改從 `manufacturing_api.project_receiving_operator_door_cell_sources(snapshot, *, set_index, bay_index)` 與 `manufacturing_api.project_receiving_initial_door_source_scenes(snapshot, resolved)` 取得 Engine 已確認的 Bay snapshot/typed DoorLayoutCell 及已解析 Assembly 的真實原圖場景順序。GUI 只向既有 baseline scene provider 要求圖元並透過 `project_receiving_original_door_marks` 顯示；來源缺失、未啟用雙門、多欄／三列等不符目前兩面 sketch 的拓樸均維持不投影，無隱含單門 fallback。Engine 保持對既存 Save→Reload／Bay stable ID、原 scene 與 Source Type 的唯一識別；這是唯讀 SOURCE 顯示映射，**不構成生成新孔、CUTTING、成品 3D 或 DXF 製造認證**。#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 受電箱原始門板把手／銘牌孔位來源辨識 Engine API（2026-11-02）
 
 原 GUI `gui_modules/application/receiving_multi_settings_window.extract_original_door_marks(scene)` 會自己從 `DrawingScene` 的 `CUTTING` 外框、帶 `source_type="nameplate_mount"` 身分的圓孔與唯一內輪廓判定門板把手與銘牌孔位，形成第二份來源辨識邏輯。現保留既有函式作兼容 GUI 單向轉接，將原算法原樣移至 `ae_engine.receiving_operator_projection.project_receiving_original_door_marks(scene)`，對外公開 `manufacturing_api.project_receiving_original_door_marks(scene)`。回傳既有正規化預覽 `{"nameplate": ..., "handle": ...}`；缺外框／多個內框時拒絕猜測，保留來源 Layer 與身分條件，GUI 只按比例繪圖，不再認定物理孔位。這是原圖來源的唯讀預覽映射，**不是補充新孔位、CUTTING 修改、成品尺寸定義或 DXF 製造認證**。#2517 仍 OPEN。
