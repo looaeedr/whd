@@ -86,7 +86,21 @@ def test_hidden_receiving_original_base_is_reactivated_without_door_base_clones(
 def test_real_receiving_composition_passes_preservation_intent_from_model():
     source=Path('gui_modules/application/fold_designer_composition_shell_settings.py').read_text(encoding='utf-8')
     assert "receiving_single_base" in source
-    assert 'str(snapshot.get("model") or "").strip()' in source
+    # Physical Family/source eligibility moved to public Engine, so the GUI
+    # must no longer carry a raw model-name predicate.
+    from ae_engine import manufacturing_api as api
+    for alias in ("受電箱", "RECEIVING", "receiving"):
+        source_snapshot = {
+            "model": alias, "existing_parts": ("door", "base_plate"),
+            "door_layout_columns": [(800.0, [1100.0, 500.0])],
+        }
+        identity = api.project_operator_base_navigation_identity(
+            source_snapshot, source_snapshot["existing_parts"],
+        )
+        assert identity.receiving_single_base
+        assert identity.preserve_navigation_root
+        assert not api.project_operator_multidoor_base_plate_dimensions(source_snapshot)
+    assert "manufacturing_api.project_operator_base_navigation_identity(" in source
     # One-tier retains the historical root; two-tier publishes *only*
     # the two genuine tier PartSpecs, with the root kept internal to MFG.
     assert "preserve_single_base_plate=preserve_navigation_root" in source

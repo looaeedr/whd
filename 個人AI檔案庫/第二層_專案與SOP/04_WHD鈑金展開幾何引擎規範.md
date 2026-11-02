@@ -11,6 +11,7 @@ whd_schema: WHD_DOC_META_V1
 `phase6_manufacturing_adapter.build_scene_payload_for_app` 原本在 GUI 相容層以 `phase6_key="ybottom1"` 掃描封頭／封尾 Y Fold profile，並將 `engine_segment_length_to_ui` 的物理長度回讀寫到 `head_ybottom1`／`tail_ybottom1`，形成製造 request 的實體折段身份決策。現改由 `manufacturing_api.project_manufacturing_endcap_bottom_fold_inputs(endcap_profiles)`（`ae_engine.endcap_xy_readback`）唯一辨識 Head/Tail 來源並用既有 `fold_material_segment_outside_length`（含相鄰 BEND 的 `ui_len_add`）回讀；GUI 僅將已儲存 profile map 作為輸入，未辨識來源時不覆寫任何數值；已辨識但無法解析／非有限的原始折段長度則明確拒絕，不能將舊 `_num` 展示 fallback 的 0 mm 當成製造來源。這是現行製造 API 的物理輸入接線，不新增 EndCap 截角、Joint、料長補償、CUTTING 製造公式，也不解鎖未認證的 Receiving 外部 export。#2517 OPEN。
 
 
+
 ## [CURRENT] #2517 受電箱內門 NFB 作業區高度與層高檢查 Engine API（2026-11-02）
 
 `fold_designer_composition_receiving.inner_edit` 過去在 Tk 的「讀取層高」及「草稿預覽」兩處各自呼叫 `derive_door_layout_cells`、推算第一列 Door 工作區高度，並自行比較操作層高是否超出工作區。現將兩處收斂到 `manufacturing_api.project_receiving_nfb_work_area_height_mm(snapshot)` 與 `manufacturing_api.validate_receiving_nfb_layer_heights_for_work_area(snapshot, heights, *, layer_count)`，唯一實作在 `ae_engine.receiving_operator_projection`，沿用 `receiving_shared_settings.validate_setting` 對兩槽數值與一／二層的合法性判斷。單一上排 Door cell 取該實體 cell 的高度；沒有唯一上排 cell 的既存相容模式仍回退原 snapshot `h`，但無效、非有限或非正尺寸拒絕投影。GUI 僅讀 Tk 欄位、呼叫 API、顯示錯誤／唯讀預覽；不改既有一層 550、兩層 330／830、舊版 290／790（未寫入 operator heights 時）等不同權威來源，**不開放切孔、名義 Y 認證、成品出圖或外部製造授權**。#2517 OPEN。
@@ -1257,3 +1258,7 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 Phase6 專案 Schema／NFB Save→Reload 唯一 Engine API（2026-11-02）
 
 原 phase6_project_file.py 直接依 Family、受電箱提交 NFB、Set/Bay／Quantity 來源判斷 v1/v2/v3、保存時剝除 legacy aliases、載入時重建 UI aliases，現統一交由 ae_engine.operator_project_persistence 和公開 manufacturing_api.validate_operator_project_payload、project_operator_project_for_write、project_operator_project_for_read；GUI 保留檔案選擇、UTF-8 JSON／Features 編解碼和對話操作。Engine 沿用 normalize_project_snapshot_authority、normalize_quantity_snapshot、receiving_layout 與 committed NFB source owner，防止 v3 提交來源被降為舊版後悄悄丟失，保存不得保留 derived final_geometry。保留金庫型 v1、Receiving v2/v3 的歷史檔可讀相容性與原有拒絕錯誤。此 API 僅確認專案狀態權威，不新增 DXF 製造資格，#2517 OPEN。
+
+## [CURRENT] #2517 Divider／InnerDoor Frame／Panel 物理導覽來源統一 Engine API（2026-11-02）
+
+\`manufacturing_api.project_operator_derived_divider_inner_profiles(snapshot)\` 在既有 \`ae_engine.operator_derived_navigation\` 透過 Family policy、\`derive_box_body_dividers\`、\`derive_all_inner_door_frames\`、\`derive_inner_door_panels\` 與各自 \`part_profiles\` 實體權威，產出同一批 Divider、內門框／內門板 stable IDs 及 Fold Profiles；\`fold_designer_composition_shell_settings.sync_authoritative_derived_parts\` 僅收取公開 API 的只讀映射並執行選單同步。原 Receiving 的 top／left／right 實體框、共享 Divider 底端與 Panel 獨立成品尺寸／折料不改；原 Vault/Custom 儲存的 legacy frame_spans 仍保留（不能以 GUI 猜新尺寸）。原保存、FinalScene、DXF 不得重建另一組實體身分，本 API 只投影資料，不增任何製造放行。#2517 持續 OPEN。

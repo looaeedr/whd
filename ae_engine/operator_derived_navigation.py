@@ -180,3 +180,89 @@ def project_operator_receiving_auxiliary_navigation(
         nfb_tier_profiles=MappingProxyType(tier_profiles),
         pad_profiles=MappingProxyType(pad_profiles),
     )
+
+
+@dataclass(frozen=True)
+class OperatorDerivedDividerInnerProfiles:
+    """Resolved physical source for the part selector, without GUI ownership.
+
+    Profile maps are fresh for each request; immutable top-level mappings
+    prevent accidental replacement of physical parts by the workspace caller.
+    """
+    divider_profiles: Mapping[str, object]
+    inner_profiles: Mapping[str, object]
+    divider_part_ids: tuple[str, ...]
+    inner_part_ids: tuple[str, ...]
+
+
+def project_operator_derived_divider_inner_profiles(snapshot):
+    """Derive Divider, InnerDoor frame and panel once from canonical Family.
+
+    Preserve the historical order: frame IDs first, then panel IDs for the
+    legacy sync return; the workspace profile map always adds panel first.
+    Physical sizes, material lengths and topology remain in their original
+    ae_engine family/part owners. No DXF or manufacturing release here.
+    """
+    from .cabinet_types import policy as family
+    from .door_dividers import derive_box_body_dividers, divider_part_profiles
+    from .inner_door_frames import (
+        InnerDoorFrameSet, derive_all_inner_door_frames, inner_door_frame_part_profiles,
+    )
+    from .inner_door_panels import inner_door_panel_part_profiles
+
+    data = dict(snapshot or {})
+    divider_profiles = {}
+    columns = list(data.get("door_layout_columns") or ())
+    if bool(data.get("multi_door_enabled", False)) and columns:
+        normalized_columns = tuple(
+            (float(row[0]), tuple(float(value) for value in row[1]))
+            for row in columns
+        )
+        dividers = derive_box_body_dividers(
+            normalized_columns,
+            depth=float(data.get("d", 0.0)),
+            thickness=float(data.get("t", 0.0)),
+            layout_scope=(str(data.get("door_layout_scope") or "main").strip() or "main"),
+            handle_edges=dict(data.get("door_handle_edges") or {}),
+            model_name=str(data.get("model") or "").strip() or None,
+            frame_width=float(data.get("fw", 0.0)),
+        )
+        divider_profiles = divider_part_profiles(dividers)
+
+    frame_sets = []
+    if family.has_inner_door_frame_derivation(data):
+        frame_sets.extend(family.derive_inner_door_frame_sets(data))
+    else:
+        # Legacy custom/Vault snapshots may persist explicit frame spans.
+        thickness = float(data.get("t", 0.0))
+        for item in list(data.get("inner_doors") or ()):
+            if not isinstance(item, Mapping):
+                continue
+            spans = item.get("frame_spans")
+            if not isinstance(spans, Mapping) or not spans:
+                continue
+            stable_id = str(item.get("stable_id") or "").strip()
+            if not stable_id:
+                continue
+            included = tuple(
+                str(side).strip().lower()
+                for side in (item.get("included_frame_sides")
+                             or ("top", "bottom", "left", "right"))
+            )
+            frame_sets.append(InnerDoorFrameSet(
+                inner_door_id=stable_id, spans=dict(spans),
+                thickness=thickness, included_sides=included,
+            ))
+    frames = derive_all_inner_door_frames(tuple(frame_sets))
+    panels = family.derive_inner_door_panels(data)
+    inner_profiles = inner_door_panel_part_profiles(panels)
+    inner_profiles.update(inner_door_frame_part_profiles(frames))
+    return OperatorDerivedDividerInnerProfiles(
+        divider_profiles=MappingProxyType(divider_profiles),
+        inner_profiles=MappingProxyType(inner_profiles),
+        divider_part_ids=tuple(divider_profiles),
+        inner_part_ids=tuple(
+            [*(frame.stable_id for frame in frames),
+             *(panel.stable_id for panel in panels)]
+        ),
+    )

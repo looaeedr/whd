@@ -344,66 +344,11 @@ def sync_authoritative_derived_parts(
     is_piece_key = required("_phase6_is_box_body_physical_piece_key")
     current_piece_keys = {key for key in available_parts if is_piece_key(key)}
 
-    divider_profiles = {}
-    columns = list(snapshot.get("door_layout_columns") or ())
-    if bool(snapshot.get("multi_door_enabled", False)) and columns:
-        from ae_engine.door_dividers import derive_box_body_dividers, divider_part_profiles
-
-        normalized_columns = tuple(
-            (float(row[0]), tuple(float(value) for value in row[1]))
-            for row in columns
-        )
-        dividers = derive_box_body_dividers(
-            normalized_columns,
-            depth=float(snapshot.get("d", 0.0)),
-            thickness=float(snapshot.get("t", 0.0)),
-            layout_scope=(str(snapshot.get("door_layout_scope") or "main").strip() or "main"),
-            handle_edges=dict(snapshot.get("door_handle_edges") or {}),
-            model_name=str(snapshot.get("model") or "").strip() or None,
-            frame_width=float(snapshot.get("fw", 0.0)),
-        )
-        divider_profiles = divider_part_profiles(dividers)
-
-    from ae_engine.inner_door_frames import (
-        InnerDoorFrameSet,
-        derive_all_inner_door_frames,
-        inner_door_frame_part_profiles,
-    )
-    from ae_engine.inner_door_panels import inner_door_panel_part_profiles
-
-    frame_sets = []
-    thickness = float(snapshot.get("t", 0.0))
-    if cabinet_family_policy.has_inner_door_frame_derivation(snapshot):
-        frame_sets.extend(cabinet_family_policy.derive_inner_door_frame_sets(snapshot))
-    else:
-        for item in list(snapshot.get("inner_doors") or ()):
-            if not isinstance(item, Mapping):
-                continue
-            spans = item.get("frame_spans")
-            if not isinstance(spans, Mapping) or not spans:
-                continue
-            stable_id = str(item.get("stable_id") or "").strip()
-            if not stable_id:
-                continue
-            included = tuple(
-                str(side).strip().lower()
-                for side in (item.get("included_frame_sides") or ("top", "bottom", "left", "right"))
-            )
-            frame_sets.append(
-                InnerDoorFrameSet(
-                    inner_door_id=stable_id,
-                    spans=dict(spans),
-                    thickness=thickness,
-                    included_sides=included,
-                )
-            )
-    frames = derive_all_inner_door_frames(tuple(frame_sets))
-    panels = cabinet_family_policy.derive_inner_door_panels(snapshot)
-    # The real inner-door sheet must appear before its separate frame pieces
-    # in the single-cabinet operator part selector.  Do not make opening
-    # multi-settings a prerequisite to see or manufacture the panel.
-    inner_profiles = inner_door_panel_part_profiles(panels)
-    inner_profiles.update(inner_door_frame_part_profiles(frames))
+    # Physical Divider / InnerDoor frame/panel identities and Fold profiles
+    # are derived once inside the public Engine API. GUI only syncs workspace.
+    physical = manufacturing_api.project_operator_derived_divider_inner_profiles(snapshot)
+    divider_profiles = dict(physical.divider_profiles)
+    inner_profiles = dict(physical.inner_profiles)
 
     single_door_profiles = (
         build_profiles(snapshot, "door")
@@ -480,7 +425,7 @@ def sync_authoritative_derived_parts(
 
     return (
         tuple(divider_profiles),
-        tuple([*(frame.stable_id for frame in frames), *(panel.stable_id for panel in panels)]),
+        physical.inner_part_ids,
     )
 
 def settings_service(self):
