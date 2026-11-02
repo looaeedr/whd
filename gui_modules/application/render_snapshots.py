@@ -68,8 +68,12 @@ def indicator_door_render_snapshot(host, val):
 
 def door_layout_overview_snapshot(host, render_data_by_part_key=None):
     try:
-        total_w = float(host.w_var.get())
-        total_h = float(host.h_var.get())
+        total_w = manufacturing_api.normalize_operator_source_dimension(
+            host.w_var.get(), field="w",
+        )
+        total_h = manufacturing_api.normalize_operator_source_dimension(
+            host.h_var.get(), field="h",
+        )
         columns = host.get_door_layout_columns()
         cells = host.get_door_layout_cells()
         val = host.get_float_values()
@@ -134,10 +138,18 @@ def door_layout_divider_frame_snapshot(host, columns, val):
 
 def single_door_render_snapshot(host):
     door_val = {
-        "w": float(host.w_var.get()),
-        "h": float(host.h_var.get()),
-        "t": float(host.t_var.get()),
-        "fw": float(host.fw_z_var.get()),
+        "w": manufacturing_api.normalize_operator_source_dimension(
+            host.w_var.get(), field="w",
+        ),
+        "h": manufacturing_api.normalize_operator_source_dimension(
+            host.h_var.get(), field="h",
+        ),
+        "t": manufacturing_api.normalize_operator_source_dimension(
+            host.t_var.get(), field="t",
+        ),
+        "fw": manufacturing_api.normalize_operator_source_dimension(
+            host.fw_z_var.get(), field="fw",
+        ),
         "door_gap_w": float(host.door_gap_w_var.get()),
         "door_gap_h": float(host.door_gap_h_var.get()),
         "door_fold_l": float(host.door_fold_l_var.get()),
