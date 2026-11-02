@@ -69,6 +69,24 @@ def build_box_body_operator_part_spec(
             },
         )
     )
+    # Receiving's confirmed side/back split is manufactured from its canonical
+    # Fold Profile and physical pieces, not the legacy integral Z scalar tail.
+    # Do not invent zr1/z_comp in CADSplit (or from Vault config.ini).
+    # An absent canonical Fold still fails closed at this Engine boundary.
+    is_receiving_split = (
+        family_policy.canonical_family_name(model_name) == "受電箱"
+        and str(canonical_structure.get("active_type")) == "three_piece_side_back_split"
+        and bool(fold_profile)
+        and bool(back_panel_contract)
+    )
+
+    def legacy_only_scalar(key):
+        if key in values:
+            return float(values[key])
+        if is_receiving_split and key in ("zr1", "z_comp"):
+            return None
+        raise KeyError(key)
+
     y_profiles = dict(endcap_y_profiles or {})
     resolved_head = (
         _endcap_lower_outside_value(y_profiles.get("head", ()), values)
@@ -87,9 +105,9 @@ def build_box_body_operator_part_spec(
         model_name=model_name,
         zl1=float(values["zl1"]),
         zl2=float(values["zl2"]),
-        zr1=float(values["zr1"]),
+        zr1=legacy_only_scalar("zr1"),
         zr2=float(values["zr2"]),
-        z_comp=float(values["z_comp"]),
+        z_comp=legacy_only_scalar("z_comp"),
         fold_profile=profile_to_fold_segments(fold_profile or ()),
         features=tuple(features or ()),
         face_features={
