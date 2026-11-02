@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 即時 2D 指示燈盒／小門／主門與保存快照同一群組來源 Engine API（2026-11-02）
+
+- 原 `gui_modules/application/render_snapshots.py` 三條 live 2D 預覽路徑（獨立指示燈盒、指示燈小門及主門的兩種指示燈）仍以 `max(1, int(...))` 自行解釋層數／組數。這會在即時預覽將 `0` 靜默補成一層，將 `True` 轉成 1，或把非整數 float 截去小數，與已修好的 Fold Designer project snapshot 保存來源不一致。
+- 現改為所有啟用的 live 2D 指示燈先交由既有公開 `manufacturing_api.normalize_fold_designer_indicator_groups` 處理層數及每層組數；GUI 只收集原始控制值，任何缺列、bool、無效字串、零／負數、小數來源均 fail closed。無效來源不可以通過 `_indicator_box_part_spec`、`_indicator_door_part_spec_from_values` 或 `_single_door_part_spec`，避免 2D 空洞錯漏與製造投影不一致。
+- 保留不啟用時的原有空指示燈語意、合法整數群組、既有 Family 幾何、Save→Reload 與 DXF 認證；沒有另設 Engine／GUI 版本化製造入口。驗收 `tests/test_issue2517_live_indicator_render_groups_engine_api.py`。
+
 ## [CURRENT] #2517 Fold Designer 上游 W/H/D/T/FW 實體操作讀取不得掉回 AE 預設（2026-11-02）
 
 - `gui_modules/application/fold_designer_snapshot_projection._snapshot_base_state` 原本用 `float(var.get())`，遇到 W/H/D/T/FW 控制值無效／讀取異常會無聲退回 `ae.W/H/D/T/FW`，令實際操作來源被預設值替換後繞過下游製造檢查。現在 GUI 只負責讀值，傳至 `manufacturing_api.normalize_operator_source_dimension(value, field=...)` 與 `normalize_operator_source_dimensions(snapshot)`（Engine 公開 API），統一拒絕來源缺失、bool、NaN/Inf、零或負值。
