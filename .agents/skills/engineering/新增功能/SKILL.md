@@ -34,6 +34,15 @@ whd_schema: WHD_DOC_META_V1
 
 ### GUI／Engine API 權責硬閘門
 
+**唯一正式責任鏈：** `GUI／CADSplit 操作來源（來源不同、Engine 契約相同） → WHD 公開 Engine API〔Family／Policy／Topology／Set-Bay（按需）〕 → PartSpec／FinalScene → 同源 2D／3D／DXF → 正式驗證`。
+
+**五條硬規則：唯一製造權威＝Engine；同 Family／Part／Operation 使用同一公開製造契約及 canonical 結果；箱型差異只在 Engine Family／Policy／Topology；Set/Bay 只由需要它的 Engine 操作管理、單板件不強迫建立；2D／3D／DXF 由同一正式幾何衍生並按需驗證幾何、來源與 DXF Save→Reload。**
+
+**PartSpec 可作為已確認的公開 API 輸入，也可由 Engine 依 Family／Policy 解析產生；此圖是責任鏈，不是強制 API 先呼叫、再建立 PartSpec 的執行時序。** 不得因函式簽名差異另建 CADSplit 製造 API。
+
+**【不可妥協的同源製造要求】WHD GUI 怎麼從 Engine 取得正式製造結果，CADSplit 就必須用同一套適用的 Engine 公開 API 取得；**唯一不同只是操作資料來源。GUI 收操作者欄位／Project，CADSplit 收 DXF→CSV／尺寸／孔位／來源 Set/Bay 與已確認狀態；其餘 Request／PartSpec／Context、Family／Topology／Policy／Registry、canonical physical parts／FinalScene、真實 DXF→Save／Reload→獨立 reopen 必須相同。**禁止**開 CADSplit 專用製造入口、讓 Bridge 或 GUI 重算 Fold／Corner／孔位／CUTTING／BEND、拿金庫型參數填受電箱、將停用 source-only external CLI 當作正式 Python Engine 製造的唯一門；也不可取消 source-only 拒絕冒充認證。單板、Set/Bay、批次／NFB 各復用原本適用的公開 API；合法板件逐件出圖、缺項單件失敗，整套另驗真實物理板件與裝配。**相同 Engine 版本及等價請求下，caller 不得改變製造結果或錯誤。** PR 必須提供雙來源進同一 API 的可重現驗收，未驗不能稱 CADSplit 已接通。僅 AI 庫 04 CURRENT 有架構權威，本 Skill 不另立規格。
+
+
 任何新增功能（不只門板）須先確認引擎公開 API／request／response／capability；GUI 只負責輸入、操作與顯示。缺製造能力先補 `ae_engine` 的 API 與測試，不准讓 GUI 補製造公式、孔位、展開、實體板件解析、DXF 或未認證 fallback；未支援就明確拒絕。以 `AGENTS.md::GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 和 AI 庫 04 CURRENT 為權威。PR 必須驗 request→Engine→result→GUI、Save→Reload、受影響 2D/3D/DXF，並通過 `GUI Engine API Ownership Gate`，不能只驗畫面。
 
 

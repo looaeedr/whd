@@ -11,16 +11,10 @@ from math import isfinite
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from ae_engine import manufacturing_api
 from ae_engine.sheetmetal_features import (
-    CircleFeature,
-    RectFeature,
-    align_circle_to_neighbor,
-    circle_center_distance_from_gap,
-    circle_gap_from_center_distance,
-    feature_finished_point,
-    feature_is_within_surface,
-    generate_round_fill,
-    generate_round_refill,
+    CircleFeature, RectFeature,
+    circle_center_distance_from_gap, circle_gap_from_center_distance,
 )
 from phase6_hole_editor_session import HoleEditorAction
 from phase6_hole_editor_canvas_view import Phase6HoleEditorCanvasView
@@ -146,16 +140,9 @@ class _RoundHoleSettingsDialog:
         self._bind_close_contract()
 
     def _find_neighbor(self):
-        seed_point = feature_finished_point(self.selected_feature, self.width, self.height)
-        nearest_distance = None
-        for other_i, other in enumerate(self.seed_snapshot):
-            if other_i == self.idx or not isinstance(other, CircleFeature):
-                continue
-            point = feature_finished_point(other, self.width, self.height)
-            distance = (point.x - seed_point.x) ** 2 + (point.y - seed_point.y) ** 2
-            if nearest_distance is None or distance < nearest_distance:
-                self.neighbor_index = other_i
-                nearest_distance = distance
+        self.neighbor_index = manufacturing_api.nearest_operator_round_hole_neighbor_index(
+            self.seed_snapshot, self.idx, width=self.width, height=self.height,
+        )
 
     def _build_body(self):
         outer = tk.Frame(self.dialog, bg=self.theme["bg"])
@@ -312,45 +299,27 @@ class _RoundHoleSettingsDialog:
             raise ValueError("間距不可小於 0")
         return value
 
-    def _aligned_seed(self):
-        seed = self.selected_feature
-        if self.neighbor_index is None:
-            return seed
-        direction = self.direction_map[self.round_direction.get()]
-        axis = "x" if direction in {"left", "right", "both_horizontal"} else "y"
-        neighbor = self.seed_snapshot[self.neighbor_index]
-        candidate = align_circle_to_neighbor(seed, neighbor, self.round_alignment.get(), axis, self.width, self.height)
-        return candidate if feature_is_within_surface(self.surface, candidate, self.width, self.height) else seed
-
     def _apply_pattern(self, refill=False):
         try:
             value = self._driver_value()
             direction = self.direction_map[self.round_direction.get()]
-            seed = self._aligned_seed()
-            generator = generate_round_refill if refill else generate_round_fill
-            result = generator(
-                seed, self.surface, width=self.width, height=self.height,
-                direction=direction, driver=self.round_driver.get(), value=value,
+            plan = manufacturing_api.plan_operator_round_hole_preview(
+                self.seed_snapshot, self.idx, self.surface,
+                width=self.width, height=self.height,
+                direction=direction, driver=self.round_driver.get(),
+                value=value, alignment=self.round_alignment.get(),
+                neighbor_index=self.neighbor_index, refill=refill,
             )
-            if not result:
-                raise ValueError("目前設定無法在合法板面內產生圓孔排列")
         except ValueError as exc:
             messagebox.showerror("圓孔排列", str(exc), parent=self.dialog)
             return
-        original_point = feature_finished_point(self.selected_feature, self.width, self.height)
-        seed_result = min(
-            result,
-            key=lambda feature: (
-                (feature_finished_point(feature, self.width, self.height).x - original_point.x) ** 2
-                + (feature_finished_point(feature, self.width, self.height).y - original_point.y) ** 2
-            ),
-        )
-        preview_features = list(self.seed_snapshot)
-        preview_features[self.idx] = seed_result
-        preview_features.extend(feature for feature in result if feature is not seed_result)
-        self.hole_session.execute(HoleEditorAction.preview_all(preview_features, selected_index=self.idx))
+        self.hole_session.execute(HoleEditorAction.preview_all(
+            plan.features, selected_index=plan.selected_index,
+        ))
         self._refresh_all()
-        self.status_var.set(f"預覽：{len(result)} 孔；{'重新填滿' if refill else '填滿'}。")
+        self.status_var.set(
+            f"預覽：{plan.generated_count} 孔；{'重新填滿' if refill else '填滿'}。"
+        )
 
     def _refresh_all(self):
         self.refresh_created()

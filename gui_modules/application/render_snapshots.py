@@ -8,7 +8,6 @@ consumed by gui_modules.rendering.
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from ae_engine.corner_type_ui import is_unknown_model
-from ae_engine.sheetmetal_features import box_body_face_dimensions
 
 
 def _collect_live_indicator_groups(layer_var, group_vars, *, label):
@@ -253,7 +252,7 @@ def base_plate_render_snapshot(host, val):
     }
 
 
-def box_body_render_snapshot(host, val, *, face_dimensions_fn=box_body_face_dimensions):
+def box_body_render_snapshot(host, val, *, face_dimensions_fn=None):
     # Primary GUI is a presentation shell when a Receiving FoldDesigner
     # workspace is open. The side mother-sheet must be the SAME physical
     # source as its NFB/EAR world-contact solver. Rebuilding a different
@@ -308,9 +307,9 @@ def box_body_render_snapshot(host, val, *, face_dimensions_fn=box_body_face_dime
         "contexts": contexts,
         "selected_face": host.box_body_face_selected_var.get(),
         "baseline_status": ae.box_body_baseline_source_label(baseline),
-        "dimensions": face_dimensions_fn(
-            w=val["w"], h=val["h"], d=val["d"]
-        ),
+        "dimensions": (
+            face_dimensions_fn or manufacturing_api.project_operator_box_body_face_dimensions
+        )(w=val["w"], h=val["h"], d=val["d"]),
         "piece_keys": piece_keys,
     }
 
