@@ -14,6 +14,12 @@ whd_schema: WHD_DOC_META_V1
 - 驗證 Bridge、單件／批次 DXF、來源 Set/Bay 與實體身份時須依實際 exporter 的 Save→Reload／DXF reopen 證據，不能把 API 成功當加工合格； 施工前沿用 `SOURCE_READ_EVIDENCE` 簡述 **repo/ref、完整 Git SHA、文件路徑與相關章節、權威判斷**；沒真正讀取就不得宣稱規範核對完成。**使用者已確認產品規則優先**，不得以 CADSplit 現有程式缺陷、現有測試或此 REFERENCE 推翻正式製造權威。
 
 
+## 【硬性驗收】GUI 與 CADSplit 製造結果必須同源
+
+**WHD GUI 如何透過 Engine 取得正式製造結果，CADSplit 必須完全照辦；差異僅限來源資料收集。** 測試用 GUI 當次欄位／Project 及 CADSplit DXF→CSV／尺寸／孔位／來源／Set/Bay 形成**等價 Engine Request／PartSpec／Context**，在同一 Engine 版本／Registry／baseline／Family／Part／Operation 下，必須走**相同適用的公開製造 API**，核對 physical IDs、canonical Features／FinalScene／CUTTING／BEND、實際 DXF 寫檔／獨立 reopen、Save→Reload 以及同樣的拒絕語意。不可只比 UI、preview、檔名或 wire schema；不可用 private CADSplit exporter／GUI 公式冒充一致性。有效板件逐件輸出／回讀，缺項逐件報錯；整套 Set/Bay 必須另驗實際 BOM／裝配／輸出數，不准部分完成冒充成套。不同 Engine 版本不強制相同 SHA，須各自追溯能力及證據。
+
+**保留 source-only CLI 未認證的拒絕，但不得拿它的拒絕阻止已具備正式 Python Engine 能力的 CADSplit 內嵌流程；不得解除 wire 保護冒充已認證外部 export。** 若沒有真實雙入口、相同 API、DXF reopen 的證據，就標未驗證，**絕不可宣稱 CADSplit 正常路徑已全部打通。** AI 庫 04 CURRENT 才是規則權威，本 Skill 只做驗證。
+
 ## 專案技能邊界
 
 - `修改DXF` **不是本專案 Skill**，不得因名稱含 DXF 就把外部／其他專案的 DXF 修改能力加入 WHD Registry、README、Preflight 或 router。

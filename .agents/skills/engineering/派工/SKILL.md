@@ -15,6 +15,10 @@ whd_schema: WHD_DOC_META_V1
 
 **產品修改先讀再寫**：GitHub／雲端施工者同樣受正式 `AGENTS.md` 的 `SOURCE_READ_BEFORE_MUTATION_V1` 約束。先讀相關程式實際函式及呼叫鏈、CURRENT 文檔／基準資料與測試，回報 `SOURCE_READ_EVIDENCE`；未完成即 `SOURCE_READ_PRECONDITION_FAILED`，只准續查、不准先改後補證據。不得因此改走 DC／RC。
 
+## 【必須落地】WHD GUI／CADSplit 製造路徑完全一致
+
+**CADSplit 使用 WHD GUI 已用的同一套正式 Engine API 取得結果，僅操作來源不同。** GUI 讀操作／Project；CADSplit 讀 DXF→CSV／尺寸／孔位／Set/Bay 關聯與已確認狀態；構造等價的 `Request／PartSpec／Context`，**之後對同 Part／Operation 調用相同的 `manufacturing_api`**，同 Family／Policy／Registry、同 physical-part／FinalScene、同 DXF Save→Reload/reopen。單板／組合／批次／NFB 依相應既有 API，不因 caller 分流。**禁止**重做 CADSplit 製造公式或新 Bridge exporter、套 Vault 預設、強迫合法內嵌 Engine 出圖改走停用的 source-only CLI、取消未認證拒絕。合法板件逐件成功、缺資料逐件失敗、整套 Set/Bay 另驗物理板件／裝配。施工與驗收必須證明同版本等價 Request 的輸出與錯誤 caller-independent，**不能只說「接好 Bridge」就結案**。規則權威為 AI 庫 04 CURRENT；不得新增另一套治理或 CI。
+
 ## 全域 DC 預設禁止（施工與整合皆不預設呼叫）
 
 `/派工` 施工及 CI GREEN 後的 `localX` 整合預設只使用 GitHub／雲端，**不因此自動授權 DC**。不要呼叫 `list_devices`、`ping` 探測本機；Windows `Z:\localX` 由使用者以 fast-forward 更新及 GUI 驗收。只有當次明確授權 DC 目的／裝置／路徑／操作且外部核准，才能在指定範圍使用；拒絕不得繞過。

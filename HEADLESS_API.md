@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## 【最高優先架構規則】WHD GUI／CADSplit 必須走同一 Engine 正式製造 API（2026-11-02）
+
+**WHD GUI 如何取得 Engine 的正式製造結果，CADSplit 就必須如何取得；唯一差別是操作來源。** GUI 的操作欄位／Project，與 CADSplit 的原始 DXF→CSV／孔位／尺寸／來源 Set/Bay／已確認設定，都應形成語意等價的 `Request／PartSpec／Context`。接著按**相同 Part／Operation** 使用同一套既有 `manufacturing_api` 公開製造 API（單板件適用 `generate_part`，組合／批次／NFB 用其各自適用的既有 API），共用 Family／Topology／Policy／Registry、實體板件／FinalScene、真實 DXF 寫入、獨立 reopen 和 Save→Reload。**不得**按 GUI／CADSplit 身分分叉、另算幾何、另建 Bridge 製造或用另一套未認證出口替換正式 API。
+
+合法板件逐片產生並驗證，缺資料逐件拒絕，完整 Set/Bay 另驗真實 physical BOM／裝配；等價可信請求與相同 Engine 版本的製造結果與錯誤語意必須 caller-independent。不同 Engine 版本功能集合可不同，不強制同 SHA。既有 source-only `dispatch_manufacturing_integration(export)` 尚未認證，**不能被改造成偽造成功，也不能被用來禁止已存在的正式 Python 製造呼叫**。本節是 **REFERENCE**，唯一 CURRENT 權威仍為 AI 庫 04；寫入並不代表 CADSplit 接線或製造資格已驗收。
+
+
 ## #2517 EndCap settings operator FW / WRAP / Joint public transactions (2026-11-02)
 
 `manufacturing_api.operator_endcap_fw_follow(snapshot, settings, state, part_key, follow_box)` and `operator_endcap_fw_override(snapshot, settings, state, part_key, value)` perform copied operator state commits under the existing four-state EndCap FW engine. `operator_endcap_bottom_wrap(snapshot, state, part_key, reserve_u, reserve_v)` returns `OperatorBottomWrapTransition(state, resolved)` with canonical linked Head/Tail reserve and Joint-aware readback. `operator_endcap_edge_relation(snapshot, part_key, edge, relation)` forwards the actual Assembly Joint commit. GUI compatibility transition functions only call these public functions. Invalid part/relation requests remain rejected, inputs stay unchanged, and existing Save→Reload/Factory policy continue unchanged. No new geometry, relief, whole-cabinet manufacturing or external export certification.

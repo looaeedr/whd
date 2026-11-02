@@ -20,6 +20,10 @@ whd_schema: WHD_DOC_META_V1
 
 使用者下達 `/接手` 時，優先透過 Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 執行。不因缺少另一個 Agent、工作槽、狀態交易或工單接取紀錄而停止。
 
+## GUI／CADSplit 同一套 Engine 製造 API：不准例外
+
+**WHD GUI 怎麼取得 Engine 的正式製造結果，CADSplit 必須以相同方式取得；唯一差別就是操作資料來源。** 兩端來源分別收集後，轉為同等可信的 Engine Request／PartSpec／Context，再調用同一 Part／Operation 適用的既有公開 `manufacturing_api`，共用 Family／Policy／Registry、physical part、FinalScene、DXF 存取／獨立 reopen。**嚴禁**以 CADSplit 專用製造入口、GUI 內部計算、Bridge/Worker 平行工廠、金庫型猜測參數替代，亦不得把尚未認證的 source-only CLI 拒絕當成原正式 Python Engine API 不可用的藉口，或取消該拒絕來偽造認證。逐件有合法資料先製造、缺資料個別拒絕，完整 Set/Bay 另驗 BOM 與組合。等價可信 Request 在同版 Engine 下，輸出及拒絕不能因 caller 不同而改變。**未經真實雙入口驗證，不得宣稱完工。** 本 Skill 只執行 AI 庫 04 CURRENT，不能另定第二套製造規範。
+
 ## 全域 DC 硬閘門
 
 依 `AGENTS.md` 的 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`，只有使用者當次明確 `/接手` 選用 RC，或明確允許指定 DC 裝置／路徑／操作時才能調用 DC，且外部平台審查仍須核准；一般 `/派工` 的 CI GREEN 與 `localX` 整合都不是 DC 授權。**單純要求改程式、修改治理、檢查 GitHub、核准 push 或「繼續」均不授予 DC 存取**；不論 `list_devices`、`ping`、讀取檔案或執行命令，未先滿足豁免都禁止。若別的任務確有需求，回報原因、裝置／路徑、操作及影響，標記 `DC_AUTHORIZATION_REQUIRED`，先取得明確核准。任何 CI 或外部工具拒絕都不能繞過。

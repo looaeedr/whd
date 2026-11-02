@@ -6,6 +6,40 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 WHD GUI／CADSplit 完全同一條 Engine 製造鏈（2026-11-02，使用者最高優先決策）
+
+> **「WHD 的 GUI 怎麼取得 Engine 的製造結果，CADSplit 就應該怎麼取得；差別只有操作資料的來源。」這是強制、不可折衷的正式架構規則，不是提案、建議或可選實作。任何依 caller 區分正式製造路徑的設計都屬架構違規，必須修正。**
+
+```text
+WHD GUI：操作者欄位／已確認 Project settings ─┐
+                                                ├→ 同等可信的操作輸入／來源證據
+CADSplit：原 DXF → CSV／尺寸／孔位／來源 Set/Bay ┘
+                                 ↓ 僅此一段可因入口不同
+                 同一 Engine Request／PartSpec／Context 語意
+                                 ↓
+            同一適用的 ae_engine.manufacturing_api 公開製造 API
+                                 ↓
+           同一 Family／Topology／Factory Policy／Certified Registry／baseline
+                                 ↓
+             同一 canonical physical parts／Features／FinalScene
+                                 ↓
+                     實際 DXF → Save／Reload → 獨立 reopen
+                                 ↓
+               逐板件結果、缺項／unsupported、來源與版本證據
+                         ↙                     ↘
+                   GUI 顯示                  CADSplit 顯示
+```
+
+- **唯一差異只在來源收集。** GUI 由人工操作、當前 Project state 與已確認設定組合；CADSplit 使用原始 DXF、來源圖元／把手、CSV、尺寸、孔位／來源關聯、Set/Bay、source key／revision 及已確認 Project/Factory 資料自動取得**等價正式輸入**。CADSplit source label 不是 canonical physical-part identity；物理板件、實際 Factory/Fold/Corner/Topology 與製造准入由 Engine 正式 owner 決定。資料不足就報缺項，**不准**猜測、套金庫型參數、以 UI bbox 反推或要求日常另選外部 JSON／baseline 來湊出假資料。
+- **同一套不代表同一個函式。** 針對**相同的 Part／Operation**，GUI 調用哪個已適用的公開製造 API，CADSplit 就調用**同一 API 與契約**；單板件用適用的 `generate_part`，組合／多板件／Set-Bay／Quantity／NFB 用其原有適用的正式 Engine API。**不准**為 CADSplit／Receiving 另外做製造 executor、重複 Fold、Corner、孔／CUTTING／BEND、組裝、DXF 公式，或讓 CADSplit 調用 GUI／Tk 的內部程序。
+- **相同輸入必須有相同製造語意。** 在相同 Engine 版本／Registry／baseline、等價經確認 Request 下，GUI 和 CADSplit 必須有同一實體 ID、同一 canonical geometry／FinalScene／Features／BEND／CUTTING、相同 DXF 寫入與獨立 reopen 驗證，且成功、缺項和 unsupported 結果**不能因 caller 而不同**。不同 Engine 版本仍可使用各自既有功能，無需 lockstep SHA；不可宣稱不同版本 DXF bytes 必然相等，須記錄來源和版本分別驗證。
+- **逐板件合法出圖與整套完整性分開。** 有完整合法資料的板件先走正式 API 並逐件 DXF Save／Reload／reopen 驗收；缺資料的板件單獨回報，不得阻礙其他合法板件。**完整 Set/Bay／成套成功**另由 Engine 實際 Set/Bay、physical-part inventory、BOM 和裝配關係驗證，不能拿部分成功冒充整套出圖。
+- **source-only CLI 不能凌駕原本的製造 API。** `integration_cli/cadsplit_worker.py` 目前仍是未認證的 source-only wire，`WHD_OPERATION_NOT_IMPLEMENTED`／`EXTERNAL_EXPORT_NOT_CERTIFIED` 等拒絕保留，**不得刪除保護偽造對外製造成功**；但也**絕不能**要求具備完整正式 `PartSpec`／Engine Request 的 CADSplit 內嵌 Python 製造流程改走這個未認證 `dispatch_manufacturing_integration(export)`，再以拒絕結果說 WHD Engine 無法製造。真正缺 API 就回既有 Engine／Family 擴充並認證，**不可再開平行通路**。
+- **驗收不是比畫面。** 後續施工須以 GUI／CADSplit 來源 adapter 建立等價的真實 Engine Request，確認**同一正式公開 API**、真實 DXF reopen、Save→Reload、各種 Family／Part、缺項逐件隔離與整套組裝判斷；未執行不可宣稱通過。**此文件寫入只確認架構要求，不能聲稱 CADSplit 已全面接線、外部 export 已認證或 #2517 已完成。**
+
+本節為 `manufacturing-architecture` 唯一 CURRENT；API REFERENCE 與 Skills 必須服從，**不得再建立第二份製造 authority／新 SOP／平行 API**。
+
+
 ## [CURRENT] #2517 Settings Fold Profile 計畫由同一公開 Engine API 決定（2026-11-02）
 
 - `ae_engine.manufacturing_api.plan_operator_settings_fold_profiles(...)` 為 Settings 包外尺寸 → 物理板件 Fold 計畫的唯一計算／保留權威，Head/Tail X/Y、Door／BasePlate／CustomFold、BoxBody，與 derived physical IDs 遵循同一實體 identity policy。

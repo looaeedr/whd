@@ -35,6 +35,13 @@ route.
 
 ## Current runtime state
 
+## 強制同源規則：source-only wire 不是 CADSplit 的第二條製造路徑
+
+**WHD GUI 怎麼用正式 Engine API 取得製造結果，CADSplit 就必須怎麼做；只可在操作來源（GUI controls／Project 相對 CADSplit DXF→CSV／孔位／尺寸／source link）不同。** 兩邊都要形成可信、等價的 Request／PartSpec／Context 並走同一適用的 `manufacturing_api`，由同一 Family／Registry／物理板件／FinalScene／DXF reopen 驗證。任何 CADSplit 專用 DXF executor、私有製造公式、caller 例外認證都**嚴禁**。完整來源的板件逐片出圖，不完整板件逐片報錯；完整 Set/Bay 另驗 BOM 與裝配。
+
+**本 wire 現在仍是 source-only、沒有製造資格，保留所有 fail-closed 拒絕。** 它的拒絕**不能**用來否決 CADSplit 既有合法內嵌 Python Engine 公開製造入口；反之也不得為了外部 export 而取消認證。權威 AI 庫 04 CURRENT；本 REFERENCE 不創造新的已啟用能力。
+
+
 Source-mode `capabilities` reports:
 
 - `engine_version=source-only-unreleased`;

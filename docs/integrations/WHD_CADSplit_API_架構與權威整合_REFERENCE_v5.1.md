@@ -30,6 +30,15 @@ whd_schema: WHD_DOC_META_V1
 
 ## 1. 正式權威鏈與文件優先序
 
+### 0.1 【CONFIRMED PRODUCT RULE，強制】GUI／CADSplit 正式製造流程完全相同（2026-11-02）
+
+**WHD GUI 怎樣取得 Engine 正式製造結果，CADSplit 就必須怎樣取得；唯一不同只能是操作／來源資料從何處收集。** GUI 收使用者操作與已確認 Project；CADSplit 從原始 DXF→CSV／孔位／尺寸／Set-Bay 來源關聯和已確認專案狀態自動產生**等價 Engine Request／PartSpec／Context**。此後必須使用**相同 Part／Operation 適用的公開 `manufacturing_api` 製造 API**、Family／Topology／Policy／Registry、canonical physical parts／FinalScene、實際 DXF Save→Reload／獨立 reopen；不可再分「GUI 製造」與「CADSplit 製造」兩條實作。
+
+**絕對禁止**在 CADSplit／Bridge 另建製造 API／DXF exporter、重算 Fold／Corner／孔位／CUTTING／BEND、呼叫 GUI 私有製造、拿 Vault 預設填 Receiving 缺項、把未認證的 source-only CLI 當正式 Python 製造唯一入口，或解除其拒絕來偽造認證。單板件、Set/Bay、組合、Quantity、NFB 按既有**作業種類**選適用正式 API，**不是**強迫全用單一 `generate_part`。合法板件各自輸出並獨立回讀，無效板件各自回缺項；整套成功另比實際 Set/Bay、BOM、物理板件與裝配。**相同 Engine 版本及等價可信輸入下，正式結果／拒絕不得因 caller 不同而異。** 跨版本可保留舊功能但須各自追溯與驗證，不強制同 SHA。
+
+**此為 AI 庫 04 CURRENT 的強制規則轉述，本文仍是 REFERENCE。** `integration_cli` 目前 source-only 禁止製造的現況維持，不能用它的拒絕否定原本正式 Engine API，也不能把本段文字冒充已完成串接。驗收需真實雙來源的同 API 呼叫、DXF reopen、Save→Reload、逐片錯誤隔離和完整 Set/Bay 組合證據。
+
+
 | 領域／疑問 | 唯一權威或現行主要來源 | 文件角色 | 不可混淆之處 |
 |---|---|---|---|
 | 產品已確認的機械需求 | 使用者已核准的產品／機械需求 | 最高需求權威 | 舊測試與預覽不得反推未核准尺寸 |
