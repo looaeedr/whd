@@ -924,10 +924,6 @@ def receiving_layer_preview_payload(self, namespace, layer_index):
     }
 
 def receiving_settings_ports(self, namespace, set_index):
-    from ae_engine.receiving_shared_settings import setting_value
-    from ae_engine.sheetmetal_features import (
-        resolve_endcap_finished_face_guide, feature_surface_from_rect, RectGuide, Vec2,
-    )
     adapter = self.receiving_adapter(namespace)
     adapter.select_set(set_index + 1)
 
@@ -988,13 +984,13 @@ def receiving_settings_ports(self, namespace, set_index):
     def holes(role, indices=None):
         if indices is not None and not tuple(indices):
             return False
-        bay = adapter.current_bay()
-        width, depth = float(bay["width"]), float(bay["depth"])
-        thickness = float(self.app._phase6_input_snapshot.get("t", 2))
-        guide = resolve_endcap_finished_face_guide(width, depth, thickness)
-        surface = feature_surface_from_rect(f"{role}_finished_face", guide.min_point, guide.max_point)
-        row = adapter.layout["sets"][set_index]
-        features = setting_value(row, adapter.selection.bay_index, f"{role}_features")
+        # Engine owns the selected Bay's physical finished face, source
+        # features and reference dimensions; GUI retains Session and sharing.
+        context = manufacturing_api.project_receiving_endcap_hole_editor_context(
+            self.app._phase6_input_snapshot, adapter.layout,
+            set_index=set_index, bay_index=adapter.selection.bay_index, role=role,
+        )
+        features = context.features
         host = getattr(self.app._scene_query_callback, "__self__", None)
         if host is None or not hasattr(host, "_open_unified_hole_editor"):
             raise ValueError("目前未連接既有 Hole Editor")
@@ -1010,10 +1006,11 @@ def receiving_settings_ports(self, namespace, set_index):
             commit()
 
         host._open_unified_hole_editor(
-            role, "封頭" if role == "head" else "封尾", surface, width, depth,
+            role, "封頭" if role == "head" else "封尾",
+            context.surface, context.width, context.depth,
             feature_list_override=features,
             sync_callback=save_features,
-            reference_guide=RectGuide(Vec2(0, 0), Vec2(width, depth), "finished_boundary"),
+            reference_guide=context.reference_guide,
         )
 
     return {

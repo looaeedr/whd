@@ -1717,3 +1717,7 @@ Use the existing `manufacturing_api.project_operator_base_navigation_identity(sn
 ### #2517 Receiving source-witnessed raw Panel/Frame/Divider cache API
 
 Use `manufacturing_api.receiving_raw_source_cache_kind(part_key, payload)` to limit the physical candidate to a registered Receiving Bay. `project_receiving_raw_source_cache_ticket(part_key, payload, typed_part=...)` creates an Engine-derived immutable panel key, exact source-bound A/B/D frame witness, or *two-baseline* Divider witness. `receiving_raw_source_cache_entry_valid(ticket, material)` confirms unchanged source parser/fingerprint/byte SHA and original Factory metadata. Missing/unverified source, changed Feature or unsupported DTO always runs the existing canonical Factory. GUI's bounded preview LRU is a nonmanufacturing optimization, not approval for CUTTING or external DXF.
+
+### #2517 Receiving physical Bay EndCap Hole Editor Engine context
+
+`manufacturing_api.project_receiving_endcap_hole_editor_context(snapshot, layout, set_index=..., bay_index=..., role="head"|"tail")` returns the canonical selected Bay's finished-face FeatureSurface, original physical W/D, RectGuide and independent Shared Settings Hole Features. GUI uses these exact fields to open the existing reversible Hole Editor and only commits verified edited source through the existing multi-Bay share/unlink and Save→Reload transactions. Non-Receiving, invalid role or Set/Bay owner is rejected; no external source-only or manufacturing certificate is granted.
