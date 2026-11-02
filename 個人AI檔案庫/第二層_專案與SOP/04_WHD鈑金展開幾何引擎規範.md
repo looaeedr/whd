@@ -1221,3 +1221,7 @@ preview-only 不得偽裝成實體；任一非有限、布林或部分缺失的
 ## [CURRENT] #2517 Receiving BasePlate Family alias 真實製造與 confirmed Bay 對接（2026-11-02）
 
 既有 `cabinet_types.policy.base_plate_requires_explicit_bend_pattern` 是受電箱 BasePlate 的唯一 Family capability。正式 `generate_part`、`build_part_scene` 與 `build_part_render_data` 現一致使用 canonical Family／aliases；`受電箱`、`RECEIVING`、大小寫與前後空白 alias 的已確認 LEFT／RIGHT 折型都經原 FinalScene DXF 出圖及 Save→Reload，缺折型仍阻擋。原 `ManufacturingResolvedBayInput.confirmed_parts` 可選 `("base_plate", BasePlatePartSpec)`，僅接受原本已有正規製造來源的 LEFT_FLAT_SIDE／RIGHT_FLAT_SIDE、普通 `base_plate` 實體；原 `build_part_render_data`／verified batch DXF／source pre-post guard 仍是單一權威，拒絕未確認 CENTER、NFB depth pair/tier、PAD/EAR 或其他冒名角色。此批不給 NFB MFG-2、全箱或外部 CLI 新放行；source-only `EXTERNAL_EXPORT_NOT_CERTIFIED` 保留，#2517 OPEN。
+
+## [CURRENT] #2517 Registry 候選截角 3D 驗證由 Engine 公開 API 擁有（2026-11-02）
+
+Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、結構、T、組合意圖；公開 manufacturing_api.validate_operator_relief_registry_candidate_3d 經 Engine operator_relief_candidate_3d 唯一執行現存候選公式驗證、evaluate_editable_endcap_rule_record 與 solve_world_backprojected_endcap_relief，回傳與舊 GUI 一致的 candidate-specific 3D 證據。候選 Shadow 不改 Registry，不授權製造；缺實體、錯誤身份、意圖不符或公式不適用皆 fail closed。現存金庫型／受電箱機械權威不變，#2517 OPEN。
