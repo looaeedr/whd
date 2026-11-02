@@ -1619,6 +1619,9 @@ from .quantity_export_source_policy import (
     QuantityExportSourceDecision, plan_quantity_export_source,
 )
 from .receiving_layout import normalize_receiving_layout
+from .receiving_multibay_export_selection import (
+    ReceivingMultiBayExportPlan, plan_receiving_multibay_export_source,
+)
 from .receiving_quantity_box import project_common_box
 from .manufacturing_equivalence import ManufacturingParameters
 from .receiving_nfb_pad_operator_parts import committed_nfb_pad_draft_parts
