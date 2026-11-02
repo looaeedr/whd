@@ -1334,3 +1334,7 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 指示燈盒線槽 MARKING 與操作欄位共用 Engine 來源（2026-11-02）
 
 `manufacturing_api.project_indicator_box_marking_layout(layer_groups)` 將既有指示燈盒實體 MARKING 線槽打標孔的組數、X 起點、水平間距與第一層 Y 位置集中於 `ae_engine.indicator_box_marking_layout`。原 `ae_engine.ae_door_indicator.get_indicator_box_data` 產生的 `MARKING` 圓孔與一字線直接使用同一份投影，主 GUI `cabinet_controller._refresh_indicator_box_result_values` 僅把此公開 API 回傳值帶入可編輯欄位，不再維護第二份 171/90/191/50/150/178.5 物理規則。仍沿用既有 `sheetmetal_features.indicator_box_outer_size` 與 `_normalize_indicator_groups` 來源驗證；原多層群組及金庫型／受電箱同一指示燈盒圖面維持，未擴充 CUTTING／DXF／外部 export 認證。實際 MARKING 圓心可直接與 API positions 對照；#2517 OPEN。
+
+## [CURRENT] #2517 Receiving 已確認 EndCap 原始孔位 → 正式 Engine DXF（2026-11-02）
+
+既有 manufacturing_api.build_receiving_factory_confirmed_parts 和 ManufacturingResolvedBayInput 擴充可選 confirmed_endcap_features，只接收由可信來源／操作者確認並已按 Engine canonical 實體 role 對應的 head/tail 成品面 1:1 mm CUTTING CircleFeature／RectFeature／ProfileFeature。禁止用 CADSplit P 盤視圖名猜 Head/Tail、未解析 DXF 圖元冒孔位；非法 role、型別、成品面錨點、非有限座標及非正尺寸 fail closed。Engine 沿原建構 EndCapPartSpec(holes=...)、Family／Corner／FinalScene 和 verified physical DXF Save→Reload 接續，無第二製造算法或輸出系統。未提供孔位維持舊行為；其他板件孔位、全套 Set/Bay、NFB 或 source-only 外部 export 未因此獲得認證，#2517 OPEN。
