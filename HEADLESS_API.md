@@ -12,7 +12,6 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.plan_unconfigured_receiving_base_export_retry(errors, flags)` returns a tuple of operator selection flags with only BasePlate removed **exclusively** for the existing exact unconfigured-base error. Other manufacturing errors, unrelated selections and missing BasePlate return `None`. The GUI alone prompts the operator; declining means no export. If accepted, the remaining sheets must be re-resolved by the same verified Engine pipeline before the outer atomic commit. Original DXF reopening, existing source drift and original Vault/Receiving routes remain mandatory.
 
-
 ## #2517 Engine-owned logical export checkbox physical inventory
 
 `manufacturing_api.logical_part_present(parts, role)` projects real Door/inner-door, BasePlate/two NFB tiers and BoxBody physical children into the legacy GUI logical role. `manufacturing_api.selected_project_export_flags(snapshot, existing_parts, workspace_parts, requested_flags, has_indicator_box=...)` returns selected existing roles only. A committed Receiving NFB source can augment an old primary-screen inventory from current workspace physical IDs; a missing/unsubmitted source, fixing plate or other Family cannot forge tier BasePlate presence. The GUI collects checkbox values and forwards observed inventory; it cannot decide physical part identities. This remains a read-only selection plan, not a manufacture/CSV/DXF certification. The original FinalScene source gates, NFB/Pad/EAR policy, atomic save and DXF reopen remain mandatory.
@@ -1748,3 +1747,16 @@ operator model or genuinely absent optional source retains its legacy behavior;
 a corrupt or unverified present DXF still prevents export. The GUI forwards
 only the chosen model. This preflight is not standalone manufacturing
 authorization; all existing FinalScene/Factory/Registry/Save→Reload gates remain.
+
+
+### #2517 Operator exact raw PartRenderData cache-source plan
+
+`manufacturing_api.plan_operator_raw_material_reuse(spec, snapshot, context=...)`
+returns `OperatorRawMaterialReusePlan(eligible, source_stamp)`. Only original
+Receiving Set/Bay raw BoxBody or not-yet-relieved EndCap can reuse exact typed
+material between witnessed W/H/D edits. Engine decides Family, physical
+multipart structure, required baseline files and mandatory original
+`封頭尾.dxf` witness. GUI only maintains its original bounded LRU and
+invalidates on changed source witness. A missing or changed source never
+releases manufacturing or allows reuse; final Joint/assembly solve, CUTTING
+DXF verification and all Factory/Registry gates always run normally.

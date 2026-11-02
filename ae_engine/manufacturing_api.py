@@ -165,6 +165,7 @@ from .manufacturing_scene_payload import (
 )
 from .manufacturing_cache_source_plan import (
     ManufacturingCacheSourcePlan, plan_manufacturing_cache_source,
+    OperatorRawMaterialReusePlan, plan_operator_raw_material_reuse,
 )
 from .operator_quantity_validation import validate_operator_manufacturing_quantity_context
 from .manufacturing_request_parts import canonical_manufacturing_request_part_keys
