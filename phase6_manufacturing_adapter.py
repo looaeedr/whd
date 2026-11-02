@@ -34,7 +34,6 @@ from phase6_endcap_semantics import (
     selection_from_raw,
 )
 from phase6_fold_profiles import (
-    _num,
     clone_profile,
     read_box_body_profile,
     read_endcap_xy_profiles,
@@ -469,7 +468,13 @@ def build_manufacturing_request(
             snapshot.setdefault(axis, box_dimensions[axis])
         elif axis in settings:
             snapshot.setdefault(axis, settings[axis])
-    snapshot.setdefault("t", _num(settings.get("t", snapshot.get("t", 2.0)), 2.0))
+    # Manufacturing T is operator-owned outside-source data, never a hidden
+    # 2 mm AE default when source reads fail or legacy snapshots are sparse.
+    # An existing project snapshot wins over a stale Settings cache.
+    raw_t = snapshot["t"] if "t" in snapshot else settings.get("t")
+    snapshot["t"] = manufacturing_api.normalize_operator_source_dimension(
+        raw_t, field="t",
+    )
     corner_state = _mapping(getattr(app, "_phase6_corner_state", {}) or {})
     endcap_fw = _mapping(getattr(app, "_phase6_endcap_fw_state", {}) or {})
     endcap_bottom_wrap = _mapping(getattr(app, "_phase6_endcap_bottom_wrap_state", {}) or {})
