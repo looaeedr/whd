@@ -100,3 +100,43 @@ def project_operator_receiving_settings_live_dimensions(
         normalize_operator_source_dimension(live_dimensions[axis], field=axis)
     return {axis: live_dimensions[axis] for axis in ("w", "h", "d")}
 
+
+def project_operator_quantity_box_dimensions(snapshot):
+    """Only a configured Receiving Quantity box overrides stale editor inputs.
+
+    The existing Engine Quantity owner validates this confirmed physical source.
+    A missing legacy common box leaves the original operator-input path intact;
+    an explicitly malformed box never falls back to the stale GUI header.
+    """
+    from collections.abc import Mapping
+    from .receiving_quantity_box import normalize_common_box
+
+    if (not isinstance(snapshot, Mapping)
+            or family_policy.canonical_family_name(snapshot) != "受電箱"
+            or snapshot.get("active_mode") != "quantity"
+            or snapshot.get("receiving_quantity_box") is None):
+        return None
+    box = normalize_common_box(snapshot["receiving_quantity_box"])
+    return {axis: box[axis] for axis in ("w", "h", "d")}
+
+
+def project_operator_part_session_source_dimensions(snapshot, operator_dimensions):
+    """Read the same positive, fractional outside W/H/D as the Engine request.
+
+    A confirmed Receiving Quantity box is the sole size authority even when
+    legacy Fold Designer header fields still show a previous Set/Bay size.
+    """
+    from collections.abc import Mapping
+    from .operator_settings_transactions import normalize_operator_source_dimension
+
+    quantity = project_operator_quantity_box_dimensions(snapshot)
+    if quantity is not None:
+        return quantity
+    if not isinstance(operator_dimensions, Mapping):
+        raise ValueError("Part Session 包外 W/H/D 來源資料缺失")
+    return {
+        axis: normalize_operator_source_dimension(
+            operator_dimensions.get(axis), field=axis,
+        )
+        for axis in ("w", "h", "d")
+    }

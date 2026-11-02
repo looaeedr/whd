@@ -1394,3 +1394,7 @@ GUI Fold Designer 的 `activate_part` 不得以 model 字串／Fold list／W-H-D
 ## [CURRENT] #2517 Part Session Settings Flush 的 Receiving 已提交 W/H/D 來源由 Engine API 投影（2026-11-02）
 
 Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或自行擷取 W/H/D 決定把 Settings flush 的舊視窗尺寸覆蓋 live Bay。公開 `manufacturing_api.project_operator_receiving_settings_live_dimensions` 由 Engine 依 canonical Family、是否正在套用 Settings 與已提交來源完整性判斷；有可信 W/H/D 時以既有 Engine `normalize_operator_source_dimension` 檢查正數有限值，保留來源數字原型回傳供 UI 同步和後續 BoxBody 投影使用，無值時維持原流程，非法物理值明確拒絕。Vault、未在套用 Settings、其他部件與 2D／3D／DXF 原製造路徑不改；GUI 僅作 Tk 同步與 Session 交易協調。#2517 仍 OPEN。
+
+## [CURRENT] #2517 Part Session 包外 W/H/D 與 Receiving Quantity 共用尺寸來源由 Engine API 統一（2026-11-02）
+
+`gui_modules.application.fold_designer_part_session.save_current_part` 原在每次 Part save 先以 GUI `get_int` 把畫面 W/H/D 截成整數，再於 BoxBody 和 Head/Tail 兩處直接用 `float(receiving_quantity_box[axis])` 覆寫，且封頭尾依欄位是否存在決定整數／浮點寫回，可能丟失合法小數、讓過時 UI Set/Bay 尺寸污染已提交的 Quantity 共用箱體，或使無效來源靜默走兼容 coercion。現由公開 `manufacturing_api.project_operator_part_session_source_dimensions` 與 `project_operator_quantity_box_dimensions` 共同使用 Engine Family registry 與 `receiving_quantity_box.normalize_common_box` 的正式共用箱體來源；非 Quantity 保留操作欄位並走 `normalize_operator_source_dimension` 正數有限非 bool 驗證，不做取整。明確配置的受電箱 Quantity W/H/D 無論 GUI 標頭是否落後，都採用同一 canonical 共用箱體；未配置的 legacy 專案仍依原操作輸入（非補猜模式來源）；配置不合法則拒絕而不得 fallback。Head/Tail 由既有 Engine Fold 解算取得的 W/D 在更新 GUI 交易前走相同公共尺寸驗證，不再依是否存在 `receiving_quantity_box` 決定整數化。GUI 只收操作值、呼叫公開 API、執行原 Session UI 導航；無第二製造幾何算法或新出口認證。#2517 保持 OPEN。
