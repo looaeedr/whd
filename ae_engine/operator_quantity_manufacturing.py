@@ -82,12 +82,20 @@ def build_operator_quantity_manufacturing_requests(base_request, workspace_snaps
     return tuple(requests)
 
 
-def resolve_operator_quantity_manufacturing_batch(base_request, workspace_snapshot, *, resolve_request):
+def resolve_operator_quantity_manufacturing_batch(
+    base_request, workspace_snapshot, *, resolve_request, request_builder=None,
+):
     """Produce demand for export/BOM consumers without applying resolver effects."""
     if not callable(resolve_request):
         raise TypeError("resolve_request must be callable")
     from .manufacturing_api import resolved_quantity_physical_demands
-    requests = build_operator_quantity_manufacturing_requests(base_request, workspace_snapshot)
+    # Legacy Phase6 tests may inject the already-witnessed selected requests;
+    # normal callers always use the canonical Engine builder. This read-only
+    # BOM path never grants manufacturing export/certification.
+    builder = build_operator_quantity_manufacturing_requests if request_builder is None else request_builder
+    if not callable(builder):
+        raise TypeError("request_builder must be callable")
+    requests = builder(base_request, workspace_snapshot)
     versions = tuple(
         ResolvedQuantityVersion(version_id, count, resolve_request(request).geometry)
         for version_id, count, request in requests

@@ -23,4 +23,5 @@ def resolve_quantity_manufacturing(base_request, workspace_snapshot):
     import phase6_manufacturing_service as service
     return manufacturing_api.resolve_operator_quantity_manufacturing_batch(
         base_request, workspace_snapshot, resolve_request=service.resolve,
+        request_builder=build_quantity_manufacturing_requests,
     )
