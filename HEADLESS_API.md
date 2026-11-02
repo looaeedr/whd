@@ -1643,3 +1643,7 @@ or DXF is newly synthesized or certified.
 ### #2517 Confirmed Receiving multi-Door layout → verified Engine DXF
 
 `ManufacturingResolvedBayInput(family="受電箱", source=..., confirmed_parts=(("door_c1_r1", DoorPartSpec(...)), ...), door_layout_columns=((width, (height, ...)), ...))` extends the same `export_verified_resolved_integration_bays` API without a new exporter. The existing Engine `door_part_projections` validates the complete physical Door grid, W/H, T/FW/gap and FrameEdges, and compares BoxBody W/H when supplied. Reject incomplete or drifted layout before DXF output. Existing single-Door, Factory/Registry, verified staged Save→Reload and source-only refusal are unchanged.
+
+## #2517 Receiving operator projections (Engine API, 2026-11-02)
+
+`manufacturing_api.receiving_default_box_dimensions()` returns a fresh W/H/D mapping from the registered Receiving Family defaults. `manufacturing_api.receiving_default_preview_dimensions(snapshot)` returns a W/H/D tuple for the current quantity or Set/Bay settings mode; it never manufactures geometry. `manufacturing_api.receiving_family_supports_back_panel_mode(snapshot)` resolves the registered Receiving Family (including its aliases). `manufacturing_api.receiving_back_panel_mode_control_applicable(snapshot, structure_state)` additionally requires the existing three-piece side/back split structure. The Receiving GUI consumes these APIs without importing the private Family policy or mutable defaults; Vault and source-only external manufacturing permissions are unchanged.

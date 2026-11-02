@@ -90,6 +90,12 @@ from .cabinet_family_model_transition import (
     FamilyModelTransition, FamilyModelPlan, plan_cabinet_family_model_transition,
 )
 from .cabinet_model_choices import list_cabinet_model_choices
+from .receiving_operator_projection import (
+    receiving_default_box_dimensions,
+    receiving_default_preview_dimensions,
+    receiving_family_supports_back_panel_mode,
+    receiving_back_panel_mode_control_applicable,
+)
 from .assembly_intent_transactions import (
     AssemblyIntentTransition, normalize_assembly_type, commit_assembly_intent_state,
 )

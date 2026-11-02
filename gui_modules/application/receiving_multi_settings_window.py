@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from ae_engine.receiving_hole_candidates import version_label
 
-from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
+from ae_engine import manufacturing_api
 
 
 class _IdleCanvasRedraw:
@@ -66,15 +66,8 @@ def display_dimension(value):
 
 
 def default_preview_dimensions(snapshot):
-    data = dict(snapshot or {})
-    if data.get("active_mode") == "quantity":
-        box = data.get("receiving_quantity_box") or BOX_BODY_DEFAULTS
-    else:
-        sets = (data.get("receiving_layout") or {}).get("sets") or ()
-        bays = sets[0].get("bays") or () if sets else ()
-        box = ({"w": bays[0]["width"], "h": bays[0]["height"],
-                "d": bays[0]["depth"]} if bays else BOX_BODY_DEFAULTS)
-    return tuple(float(box[axis]) for axis in ("w", "h", "d"))
+    """Compatibility route: dimensions come exclusively from Engine API."""
+    return manufacturing_api.receiving_default_preview_dimensions(snapshot)
 
 
 def extract_original_door_marks(scene):
@@ -1512,9 +1505,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         entry_row = ttk.Frame(size_groups_host)
         entry_row.pack(anchor="w", pady=3)
         if not size_input:
-            from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
+            defaults = manufacturing_api.receiving_default_box_dimensions()
             size_input.update({
-                key: tk.StringVar(master=win, value=display_dimension(BOX_BODY_DEFAULTS[axis]))
+                key: tk.StringVar(master=win, value=display_dimension(defaults[axis]))
                 for key, axis in (("width", "w"), ("height", "h"), ("depth", "d"))
             })
             size_input["count"] = tk.StringVar(master=win, value="1")
