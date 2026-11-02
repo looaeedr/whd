@@ -69,9 +69,8 @@ def test_engine_layer_builder_has_no_reverse_gui_type_dependency():
 
 def test_phase6_only_consumes_public_engine_manufacturing_sequence():
     source = inspect.getsource(service.resolve)
-    assert "resolve_receiving_nfb_assembly_parts(snapshot, parts)" in source
+    assert "manufacturing_api.resolve_manufacturing_request(request)" in source
+    assert "resolve_receiving_nfb_assembly_parts(snapshot, parts)" not in source
     assert "expand_receiving_nfb_layer_parts(" not in source
     assert "apply_committed_csv_v5_to_canonical_parts(" not in source
-    assert "nfb_config_submitted" not in source.split(
-        "resolved_joint_graph = resolve_manufacturing_joint_graph(", 1
-    )[1].split("if not parts:", 1)[0]
+    assert "nfb_config_submitted" not in source
