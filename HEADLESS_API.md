@@ -1818,3 +1818,8 @@ manufacturing, DXF reopening, source verification or certificate gates.
 ### #2517 Fold Designer source input readback fail-closed
 
 `manufacturing_api.normalize_operator_source_dimension(value, field=...)` and `normalize_operator_source_dimensions(snapshot)` are canonical Engine validation for operator enclosure W/H/D, sheet thickness T and frame width FW before saving Fold Designer projects. Invalid UI control sources cannot silently become factory AE defaults; the GUI revalidates any applied settings overlay and keeps Snapshot and embedded Settings physically identical, preserving fractional mm values. Nonphysical legacy GUI defaults and official manufacturing/DXF certification remain unchanged.
+
+
+### #2517 Live Indicator 2D source parity with Engine snapshot groups
+
+`gui_modules.application.render_snapshots` uses the existing public `manufacturing_api.normalize_fold_designer_indicator_groups` for layer count and group values in Indicator Box, Indicator Small Door, and both enabled sources of the main Door live 2D previews. No `max(1,int(...))` UI reinterpretation: malformed, unavailable, boolean, zero, fractional and negative counts fail before any physical part spec. Disabled main-Door indicators retain their established NONE/empty semantics. This preserves identical Engine group validation for live preview versus saved project and does not change DXF certification.

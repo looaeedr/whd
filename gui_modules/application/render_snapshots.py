@@ -11,9 +11,31 @@ from ae_engine.corner_type_ui import is_unknown_model
 from ae_engine.sheetmetal_features import box_body_face_dimensions
 
 
+def _collect_live_indicator_groups(layer_var, group_vars, *, label):
+    """Collect operator controls; Engine alone validates physical group counts.
+
+    The live 2D preview must obey the same positive-integral source contract
+    as Fold Designer Save→Reload. Do not coerce bool, fraction or zero into a
+    plausible 1-layer manufacturing source.
+    """
+    try:
+        count = manufacturing_api.normalize_fold_designer_indicator_groups(
+            (layer_var.get(),)
+        )[0]
+        raw_groups = [group_vars[i].get() for i in range(count)]
+        return manufacturing_api.normalize_fold_designer_indicator_groups(
+            raw_groups
+        )
+    except Exception as exc:
+        raise ValueError(
+            f"{label}層數／組數無效，不可省略或捏造實體孔位"
+        ) from exc
+
+
 def indicator_box_render_snapshot(host, val):
-    count = max(1, int(host.indicator_l_var.get()))
-    layer_groups = tuple(int(host.indicator_layer_g_vars[i].get()) for i in range(count))
+    layer_groups = _collect_live_indicator_groups(
+        host.indicator_l_var, host.indicator_layer_g_vars, label="指示燈盒"
+    )
     spec = host._indicator_box_part_spec(
         val, layer_groups, features=host.surface_features["indicator_box"]
     )
@@ -29,8 +51,9 @@ def indicator_box_render_snapshot(host, val):
 
 
 def indicator_door_render_snapshot(host, val):
-    count = max(1, int(host.indicator_l_var.get()))
-    layer_groups = tuple(int(host.indicator_layer_g_vars[i].get()) for i in range(count))
+    layer_groups = _collect_live_indicator_groups(
+        host.indicator_l_var, host.indicator_layer_g_vars, label="指示燈盒"
+    )
     spec, context = host._indicator_door_part_spec_from_values(
         val, layer_groups, features=host.surface_features["indicator_door"]
     )
@@ -126,15 +149,9 @@ def single_door_render_snapshot(host):
 
     indicator_hole = None
     if host.is_indicator_box_var.get():
-        try:
-            count = max(1, int(host.indicator_l_var.get()))
-            groups = tuple(int(host.indicator_layer_g_vars[i].get()) for i in range(count))
-        except (TypeError, ValueError, IndexError) as exc:
-            # Do not manufacture a plausible *unperforated* Door when the
-            # operator explicitly requested an indicator-box opening.
-            raise ValueError("指示燈盒層數／組數無效，門板預覽不可省略開孔") from exc
-        if any(group <= 0 for group in groups):
-            raise ValueError("指示燈盒層數／組數必須大於 0，門板預覽不可省略開孔")
+        groups = _collect_live_indicator_groups(
+            host.indicator_l_var, host.indicator_layer_g_vars, label="指示燈盒"
+        )
         # The Engine alone determines the actual physical opening and rejects
         # incompatible group/T sources; never recover by dropping the cutout.
         indicator_hole = manufacturing_api.indicator_box_opening_size(
@@ -143,16 +160,10 @@ def single_door_render_snapshot(host):
 
     door_indicator = None
     if host.is_door_indicator_var.get():
-        try:
-            count = max(1, int(host.door_indicator_l_var.get()))
-            door_indicator = tuple(
-                int(host.door_indicator_layer_g_vars[i].get()) for i in range(count)
-            )
-        except (TypeError, ValueError, IndexError) as exc:
-            # The requested physical lamp/nameplate source cannot become NONE.
-            raise ValueError("門上指示燈層數／組數無效，門板預覽不可省略指示燈") from exc
-        if any(group <= 0 for group in door_indicator):
-            raise ValueError("門上指示燈層數／組數必須大於 0，門板預覽不可省略指示燈")
+        door_indicator = _collect_live_indicator_groups(
+            host.door_indicator_l_var, host.door_indicator_layer_g_vars,
+            label="門上指示燈",
+        )
 
     spec = host._single_door_part_spec(
         door_val, indicator_hole=indicator_hole, door_indicator=door_indicator
