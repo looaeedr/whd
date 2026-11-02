@@ -24,7 +24,7 @@ from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
 from phase6_fold_profiles import formed_box_body_fw_widths
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
 from gui_modules.parts.panels.divider import collect_divider_input
-from gui_modules.parts.panels.door import collect_door_input, normalize_door_indicator_state
+from gui_modules.parts.panels.door import collect_door_input
 from gui_modules.parts.panels.indicator_box import collect_indicator_box_input
 from gui_modules.parts.panels.multipart import collect_multipart_input
 
@@ -309,10 +309,11 @@ def _door_part_spec_from_payload_context(
             or getattr(self, "door_layout_indicator_states", None)
             or {}
         )
-        state = normalize_door_indicator_state(states.get(cell_key))
-        layers = max(1, min(6, int(state.get("layers", 1))))
-        groups = tuple(int(v) for v in list(state.get("groups", [2] * 6))[:layers])
-        mode = state.get("mode", "indicator" if state.get("enabled") else "none")
+        state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(
+            states.get(cell_key)
+        )
+        mode = state["mode"]
+        groups = tuple(state["groups"][:state["layers"]]) if mode != "none" else ()
         indicator_hole = (
             manufacturing_api.indicator_box_opening_size(groups, thickness=t)
             if mode == "indicator_box" else None
@@ -321,11 +322,20 @@ def _door_part_spec_from_payload_context(
         ind_offset = (float(state.get("offset_x", 0.0)), float(state.get("offset_y", 0.0)))
         use_box_dist = bool(state.get("is_box_dist", False))
     else:
-        groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or ()))
-        direct = tuple(int(v) for v in (data.get("door_indicator_groups") or ()))
+        box_enabled = bool(data.get("door_indicator_box_enabled"))
+        groups = (
+            manufacturing_api.normalize_fold_designer_indicator_groups(
+                data.get("indicator_layer_groups") or (),
+            ) if box_enabled else ()
+        )
+        direct_source = data.get("door_indicator_groups") or ()
+        direct = (
+            manufacturing_api.normalize_fold_designer_indicator_groups(direct_source)
+            if direct_source else ()
+        )
         indicator_hole = (
             manufacturing_api.indicator_box_opening_size(groups, thickness=t)
-            if bool(data.get("door_indicator_box_enabled")) and groups else None
+            if box_enabled else None
         )
         ind_offset = tuple(data.get("door_indicator_offset") or (0.0, 0.0))
         use_box_dist = bool(data.get("use_box_distance", False))
@@ -363,10 +373,10 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
         "door" if door_cell is not None
         else ("base_plate" if base_plate_cell is not None else key)
     )
-    from phase6_custom_parts import is_custom_part
-    if is_custom_part(key):
-        from phase6_custom_fold_profiles import custom_part_spec
-        return custom_part_spec(data, key, features=features, profiles=data.get("fold_profiles")), ManufacturingContext(draw_stock=False)
+    if manufacturing_api.is_custom_part(key):
+        return manufacturing_api.custom_part_spec(
+            data, key, features=features, profiles=data.get("fold_profiles"),
+        ), ManufacturingContext(draw_stock=False)
     policy = payload_policy(policy_part)
     context = ManufacturingContext(draw_stock=False)
 

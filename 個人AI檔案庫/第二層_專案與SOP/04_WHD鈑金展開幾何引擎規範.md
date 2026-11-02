@@ -1421,3 +1421,9 @@ Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或�
 ## [CURRENT] #2517 主門／多門 2D 預覽實體 W/H/T/FW 讀取共用 Engine 驗證（2026-11-03）
 
 `gui_modules/application/render_snapshots.py` 的單門 2D 原用 GUI `float()` 取得操作員 W/H/T/FW，多門概覽也直接 `float()` 取得 W/H，導致 NaN／Infinity 等非有限來源可能進入 PartSpec 或預覽尺寸。現兩條路只讀取 GUI 控制項，直接交由已存在的公開 `manufacturing_api.normalize_operator_source_dimension(raw, field=...)` 驗證正數、有限值、非布林與合法小數；單門來源無效時不得呼叫 PartSpec／FinalScene，概覽維持既有 `error` 呈現。門縫與折邊等可能合法為零的其它操作參數不變，沒有 GUI 自製尺寸公式、第二套 Door 製造入口，也不開放任何未驗證的 DXF 認證。
+
+## [CURRENT] #2517 Fold Designer 多門格 Indicator 製造來源拒絕暗中補值；CustomFold Payload 只走公開 Engine API（2026-11-03）
+
+原 `gui_modules/application/fold_designer_manufacturing_projection.py::_door_part_spec_from_payload_context` 先用 GUI 相容狀態正規化、再做 `max(1,min(6,int(layers)))` 和 `int(groups)`，會把非法小數、布林或缺失實體孔位資料修成可出圖數值。現在製造 payload 直接傳每一格已儲存的原始狀態給公開 `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source`：Engine 只接受明確有效的啟用來源，使用既有 `normalize_operator_hole_editor_indicator_state` 的層數、組數、偏移、互斥模式驗證；缺少 physical groups、非法數字與不可能的層數 fail closed。不啟用時仍是無孔門板；歷史 `enabled/box_enabled` flags 只用來還原模式，不得補失去的實體組數。單門 saved payload 的啟用指示燈群組也使用既有 Engine `normalize_fold_designer_indicator_groups`，不再在 GUI `int()` 轉型。
+
+同一製造 payload 中的 CustomFold 不再透過 `phase6_custom_fold_profiles` 相容模組，而直接以 `manufacturing_api.is_custom_part` 與 `manufacturing_api.custom_part_spec` 取得正式 PartSpec，沿用既有 Family／PartSpec／FinalScene／DXF 來源。定向測試覆蓋兩種模式、真實 X/Y 金庫型及受電箱 DXF Save→Reload、非法孔數／偏移、明確未知模式拒絕及不改來源；多門格真實 Door PartSpec／DXF 回讀，不表示外部 CLI 或未確認完整 Set/Bay 獲得認證。#2517 仍 OPEN。
