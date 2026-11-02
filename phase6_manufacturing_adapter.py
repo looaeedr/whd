@@ -242,6 +242,24 @@ def _safe_var_get(value: Any, default: Any = None) -> Any:
     return default if value is None else value
 
 
+def _manufacturing_operator_var_get(control: Any, attr: str, default: Any) -> Any:
+    """Read one operator control only, never a full application owner.
+
+    Missing controls retain the established headless/facade default. A control
+    that exists but fails to read is different: never manufacture from a
+    guessed default or stale model when the live source has become unreadable.
+    """
+    var = control
+    if var is None:
+        return default
+    getter = getattr(var, "get", None)
+    if not callable(getter):
+        return var
+    try:
+        return getter()
+    except Exception as exc:
+        raise ValueError(f"MANUFACTURING_OPERATOR_SOURCE_READ_FAILED:{attr}") from exc
+
 def _mapping(value: Any) -> dict:
     """Detach client mappings; malformed manufacturing inputs fail closed."""
     if value is None:
@@ -408,12 +426,12 @@ def _assembly_intent(app: Any) -> str:
 
 def _relief_clearance(app: Any) -> float:
     """Read the operator entry; Engine owns numeric clearance validation."""
-    raw = _safe_var_get(getattr(app, "assembly_relief_clearance_var", None), "0")
+    raw = _manufacturing_operator_var_get(getattr(app, "assembly_relief_clearance_var", None), "assembly_relief_clearance_var", "0")
     return manufacturing_api.normalize_operator_relief_clearance(raw)
 
 
 def _cabinet_model(app: Any, snapshot: dict) -> str:
-    live = _safe_var_get(getattr(app, "baseline_model_var", None), "")
+    live = _manufacturing_operator_var_get(getattr(app, "baseline_model_var", None), "baseline_model_var", "")
     value = str(live or "").strip()
     if value:
         return value
@@ -522,7 +540,7 @@ def build_manufacturing_request(
         ),
         assembly_intent=_assembly_intent(app),
         allow_3d_fallback=manufacturing_api.normalize_operator_3d_fallback_flag(
-            _safe_var_get(getattr(app, "assembly_ignore_fixed_corner_var", None), False)
+            _manufacturing_operator_var_get(getattr(app, "assembly_ignore_fixed_corner_var", None), "assembly_ignore_fixed_corner_var", False)
         ),
         relief_clearance=_relief_clearance(app),
         cabinet_model=_cabinet_model(app, snapshot),

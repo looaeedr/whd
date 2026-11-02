@@ -16,24 +16,11 @@ from .receiving_inner_door_hole_editor import sync_inner_door_hole_editor_button
 
 
 def _activation_profiles_from_authoritative_source(key, snapshot, stored, defaults):
-    """A configured Receiving Base uses its physical source, not old UI cache.
-
-    Generic/base_plate_bend workspace profiles may survive project reloads.
-    They cannot override the actual NFB-derived CUTTING/BEND topology. An
-    unconfigured legacy project keeps its previous editable preview behavior.
-    """
-    is_receiving = str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}
-    if key == "base_plate" and is_receiving:
-        x = tuple(defaults.get("X", ()) or ())
-        y = tuple(defaults.get("Y", ()) or ())
-        if (x and y
-                and all(str(row.get("phase6_key") or "").startswith("receiving_")
-                        for row in x + y)):
-            return defaults, True
-    if stored is None:
-        return defaults, True
-    return stored, False
-
+    """Compatibility facade; Engine owns physical BasePlate activation."""
+    from ae_engine import manufacturing_api
+    return manufacturing_api.project_operator_part_activation_profiles(
+        key, snapshot, stored, defaults,
+    )
 
 
 
@@ -127,17 +114,13 @@ class Phase6PartSessionOwner:
             app._phase6_input_snapshot['endcap_fw'] = bridge.deepcopy(app._phase6_endcap_fw_state)
             bridge._phase6_rebuild_linked_endcaps(app)
             return
-        if (key == 'base_plate'
-                and str(app._phase6_input_snapshot.get('model') or '').strip()
-                in {'受電箱', 'RECEIVING'}):
-            from ae_engine.receiving_base_plate_3d_profiles import (
-                receiving_base_plate_3d_profiles,
+        if key == 'base_plate':
+            physical = bridge.manufacturing_api.project_operator_receiving_base_plate_save_profiles(
+                app._phase6_input_snapshot, key,
             )
-            physical = receiving_base_plate_3d_profiles(app._phase6_input_snapshot)
             if physical is not None:
-                # Source-owned folds are read-only derived projections. Saving
-                # an old generic editor buffer would revive a wrong sheet when
-                # the operator next selects this part or saves the project.
+                # Save exact source-owned physical folds; never reuse a stale
+                # generic editor buffer as an NFB manufactured sheet.
                 app.designer_workspace.stash_profiles(key, physical)
                 return
         profiles = {'X': bridge.clone_profile(app.state.profiles.get('X', [])), 'Y': bridge.clone_profile(app.state.profiles.get('Y', []))}
