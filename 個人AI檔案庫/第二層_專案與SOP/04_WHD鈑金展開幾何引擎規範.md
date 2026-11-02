@@ -1374,3 +1374,7 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 Hole Editor 指示燈盒開口實體 2D 預覽由 Engine API 決策（2026-11-02）
 
 原 `gui_modules/editors/hole_editor_render.HoleEditorCanvasRenderer.draw_extra` 在 `indicator_box` 模式用 Door 的 left/bottom fold、finished face W/H 和 operator offset 私下計算 CUTTING `ResolvedRect` 的中心。現經公開 `manufacturing_api.project_operator_hole_editor_indicator_box_opening`，由既有 `ae_engine.operator_door_2d_preview` 使用原 `manufacturing_door_indicator.indicator_box_opening_size` 生成同一 `ResolvedRect`，GUI 僅傳入已有 `DoorIndicatorContext`、群組、T 和偏移並顯示；輸入 NaN/Inf/布林或非法尺寸 fail-closed。孔心位置與舊顯示相容，來源使用現行金庫型／受電箱 Door physical API，2D/3D/CUTTING/DXF/Save→Reload 仍由各自原本正式 Engine 工廠與測試驗證；這是預覽統一，不授權任何原本未認證的製造或外部 export。#2517 OPEN。
+
+## [CURRENT] #2517 Receiving 已確認 EndCap 原始孔位 → 正式 Engine DXF（2026-11-02）
+
+既有 manufacturing_api.build_receiving_factory_confirmed_parts 和 ManufacturingResolvedBayInput 擴充可選 confirmed_endcap_features，只接收由可信來源／操作者確認並已按 Engine canonical 實體 role 對應的 head/tail 成品面 1:1 mm CUTTING CircleFeature／RectFeature／ProfileFeature。禁止用 CADSplit P 盤視圖名猜 Head/Tail、未解析 DXF 圖元冒孔位；非法 role、型別、成品面錨點、非有限座標及非正尺寸 fail closed。Engine 沿原建構 EndCapPartSpec(holes=...)、Family／Corner／FinalScene 和 verified physical DXF Save→Reload 接續，無第二製造算法或輸出系統。未提供孔位維持舊行為；其他板件孔位、全套 Set/Bay、NFB 或 source-only 外部 export 未因此獲得認證，#2517 OPEN。
