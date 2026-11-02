@@ -78,6 +78,6 @@ def test_source_features_are_not_manufacturing_confirmation(tmp_path):
             tmp_path / "blocked", pre_commit_guard=lambda: None)
     with pytest.raises(ValueError, match="RECEIVING_AMBIGUOUS_MANUFACTURING_INPUT"):
         export_verified_resolved_integration_bays(
-            (_bay({"head": (_circle(),)}, resolved_geometry=ResolvedManufacturingGeometry()),),
+            (_bay({"head": (_circle(),)}, resolved_geometry=ResolvedManufacturingGeometry(parts=())),),
             tmp_path / "blocked", pre_commit_guard=lambda: None)
     assert not (tmp_path / "blocked").exists()
