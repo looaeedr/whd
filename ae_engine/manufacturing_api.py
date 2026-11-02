@@ -814,6 +814,9 @@ def generate_part(
     context: ManufacturingContext | None = None,
 ) -> PartExportResult:
     """Export one part without GUI dependency, replacing destination atomically."""
+    # No registered-but-unimplemented Family may inherit the generic Vault
+    # formula merely because its PartSpec has a familiar physical shape.
+    require_implemented_manufacturing_family(getattr(spec, "model_name", None))
     ctx = context or ManufacturingContext()
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
