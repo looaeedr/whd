@@ -90,6 +90,10 @@ from .cabinet_family_model_transition import (
     FamilyModelTransition, FamilyModelPlan, plan_cabinet_family_model_transition,
 )
 from .cabinet_model_choices import list_cabinet_model_choices
+from .operator_quantity_manufacturing import (
+    build_operator_quantity_manufacturing_requests,
+    resolve_operator_quantity_manufacturing_batch,
+)
 from .receiving_operator_projection import (
     receiving_default_box_dimensions,
     receiving_default_preview_dimensions,

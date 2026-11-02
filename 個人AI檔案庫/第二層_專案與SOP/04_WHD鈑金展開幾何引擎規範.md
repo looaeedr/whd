@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Quantity 多版本製造請求／PAD BOM 完整 Engine API（2026-11-02）
+
+`manufacturing_api.build_operator_quantity_manufacturing_requests(base_request, workspace_snapshot)` 與 `resolve_operator_quantity_manufacturing_batch(base_request, workspace_snapshot, resolve_request=...)` 將原 `phase6_quantity_manufacturing` 的版本專屬 Head/Tail PartSpec／來源 Features、Receiving singleton Bay／NFB alias 投影、fingerprint 及已解析 PAD 物理數量 BOM 一次遷回 Engine；GUI 舊函式只保留呼叫相同公開 API 的薄相容層。現有 `phase6_manufacturing_service.resolve` 可作同程序既有解析回呼，不是新的 GUI 製造演算法或外部 Worker。受電箱任意大小寫 `RECEIVING` alias 經 `cabinet_types.policy.canonical_family_name` 同一 Family owner 判斷，不再由 GUI 寫兩字串特例；`manufacturing_cache_signature` 同樣正規化來源 Family 的 W/H/D live override。原數量／版本語意、現有切板 DXF Gate、來源與 Save→Reload 契約不擴權；未驗證 PAD 或 NFB 不因此放行。#2517 OPEN。
+
+
 ## [CURRENT] #2517 Receiving 操作預設／後板模式 GUI→Engine 公開 API（2026-11-02）
 
 `manufacturing_api.receiving_default_box_dimensions` 由受電箱現有 Family `BOX_BODY_DEFAULTS` 提供獨立 W/H/D 拷貝；`receiving_default_preview_dimensions` 由已保存 quantity／Set-Bay snapshot 決定唯讀尺寸。後板模式顯示與切換的 Family alias 條件交由 `receiving_family_supports_back_panel_mode`，三片式側背分離拓樸適用條件由 `receiving_back_panel_mode_control_applicable` 決定。GUI `receiving_multi_settings_window` 與 `fold_designer_composition_receiving` 只顯示、傳送 snapshot 與控制指令；舊模式暫存、保存結構、獨立尺寸、舊金庫型製造 API 及受電箱 DXF 出口均不變。本批不宣稱 NFB／內門／外部 source-only 製造認證；#2517 OPEN。
