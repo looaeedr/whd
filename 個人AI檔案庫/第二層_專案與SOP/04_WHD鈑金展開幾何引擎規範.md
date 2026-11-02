@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving EAR 側板顯示與 CHECK 來源別名統一（2026-11-02）
+
+`receiving_ear_side_display_context`、`receiving_ear_side_preview` 與舊有 CHECK-only DXF 來源驗證統一經 `cabinet_types.policy.canonical_family_name` 識別已註冊的 Receiving Family aliases，不再在 Engine／GUI 各維護一份僅匹配「受電箱」「RECEIVING」的判斷。2D 的 GUI 只傳 FoldDesigner 來源，必要時把 primary mirror 交 Engine 判斷來源漂移；CHECK 動作先呼叫 `manufacturing_api.receiving_ear_side_check_operator_inputs` 做無副作用的提交／模式／尺寸預檢，再走原 `export_receiving_ear_side_check_only_dxf`。來源側真實物理板材、UV／折彎／CUTTING 衝突、正反側 MARKING、DXF 原子儲存重開及失敗拒絕不變。CHECK 永遠是非製造驗證，不能授權 EAR 焊接、NFB/PAD MFG-2、整箱或 source-only 外部 export；金庫型仍拒絕。#2517 OPEN。
+
+
 ## [CURRENT] #2517 Receiving Bay 2D／3D 預覽快取資格回歸 Engine API（2026-11-02）
 
 `fold_designer_composition_receiving.py` 原自行決定何種 Set/Bay／Joint／NFB／自訂板件改動可重用實體預覽、忽略哪些來源 Joint lock feature、何時允許平移快取 3D 實體。現將這些物理來源依賴判斷遷至無 GUI／Phase6 依賴的 `ae_engine.receiving_bay_preview_source`，公開 `manufacturing_api.project_receiving_bay_preview_fingerprint_snapshot`、`project_receiving_bay_preview_face_features_key`、`receiving_default_local_joints_only`、`plan_receiving_bay_preview_offset_rebase`；GUI 保留相容代理與 immutable FinalScene View 容器包裝、快取 LRU/Session UI。未知 cross-Bay Joint、source/Feature/metadata 及碰撞/干涉狀態不准重用；所有實體正式製造／DXF 必須仍走 canonical resolve，預覽快取與座標平移不能當製造證明。沿用 #1817 大量真實 Set/Bay／joint、2D/3D、保存回讀及來源 SHA 測試。#2517 OPEN。
