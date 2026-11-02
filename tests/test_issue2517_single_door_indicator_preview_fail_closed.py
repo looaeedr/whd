@@ -44,16 +44,23 @@ def _host(*, box_enabled=False, box_count="1", box_groups=("2",),
     return value, calls
 
 
-@pytest.mark.parametrize("which", ("box_bad_groups", "box_missing_group", "door_bad_groups", "door_missing_group"))
+@pytest.mark.parametrize("which", (
+    "box_bad_groups", "box_missing_group", "box_zero_group", "box_negative_group",
+    "door_bad_groups", "door_missing_group", "door_zero_group", "door_negative_group",
+))
 def test_invalid_enabled_indicator_never_builds_a_door_without_requested_holes(which):
     kwargs = {
         "box_bad_groups": dict(box_enabled=True, box_groups=("not-a-number",)),
         "box_missing_group": dict(box_enabled=True, box_count="2", box_groups=("2",)),
+        "box_zero_group": dict(box_enabled=True, box_groups=("0",)),
+        "box_negative_group": dict(box_enabled=True, box_groups=("-1",)),
         "door_bad_groups": dict(door_enabled=True, door_groups=("not-a-number",)),
         "door_missing_group": dict(door_enabled=True, door_count="2", door_groups=("3",)),
+        "door_zero_group": dict(door_enabled=True, door_groups=("0",)),
+        "door_negative_group": dict(door_enabled=True, door_groups=("-1",)),
     }
     host, calls = _host(**kwargs[which])
-    with pytest.raises(ValueError, match="層數／組數無效"):
+    with pytest.raises(ValueError, match="層數／組數(?:無效|必須大於 0)"):
         single_door_render_snapshot(host)
     assert not calls
 
