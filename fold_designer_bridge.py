@@ -1880,38 +1880,23 @@ def _phase6_query_final_render_data(self):
     return _phase6_final_scene_adapter(self).query_final_render_data()
 
 def _phase6_mesh_profiles_for_part(self, part_key, material):
+    """Collect current UI Fold inputs; Engine owns the physical 3D profiles."""
     key = str(part_key or "")
-    if key == "box_body":
-        x_profile = list((getattr(self.state, "profiles_vault", {}) or {}).get("箱身", ()) or ())
-        minx, miny, maxx, maxy = material.bounds
-        return x_profile, [{"len": float(maxy - miny)}]
-    if key == self.designer_workspace.active_part:
-        profiles = getattr(self.state, "profiles", {}) or {}
-    else:
-        profiles = self.designer_workspace.profiles_for(key, {}) or {}
-    x_prof = list(profiles.get("X", ()))
-    y_prof = list(profiles.get("Y", ()))
-    if key in {"box_body:left_side", "box_body:right_side", "box_body:back"}:
-        # 3D INPUT is the source. Convert operator material folds to physical
-        # folds BEFORE rendering the independent piece 3D. Assembly consumes
-        # the same forward projection, NEVER the reverse.
-        from ae_engine.box_body_structure import project_side_back_3d_input_fold_to_physical
-        source = getattr(self, "_phase6_input_snapshot", {}) or {}
-        settings = getattr(self, "_settings_values", {}) or {}
-        thickness = _num(settings.get("t", source.get("t", 2.0)), 2.0)
-        receiving = cabinet_family_policy.box_body_profile_uses_outside_dimensions(source)
-        x_prof = project_side_back_3d_input_fold_to_physical(
-            x_prof, role=key.split(":", 1)[1],
-            receiving=receiving, thickness=thickness,
-        )
-    if key.startswith("box_body:divider:") or (key.startswith("inner_door:") and key.endswith("_frame")):
-        minx, miny, maxx, maxy = material.bounds
-        if x_prof and not y_prof:
-            y_prof = [{"len": float(maxy - miny)}]
-        elif y_prof and not x_prof:
-            x_prof = [{"len": float(maxx - minx)}]
-    return x_prof, y_prof
-
+    active = self.designer_workspace.active_part
+    saved = (
+        self.designer_workspace.profiles_for(key, {}) or {}
+        if key != "box_body" and key != active else {}
+    )
+    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
+    settings = getattr(self, "_settings_values", {}) or {}
+    return manufacturing_api.project_operator_3d_mesh_profiles(
+        key, material=material, active_part=active,
+        active_profiles=getattr(self.state, "profiles", {}) or {},
+        saved_profiles=saved,
+        vault_profiles=getattr(self.state, "profiles_vault", {}) or {},
+        snapshot=snapshot,
+        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
+    )
 
 
 def _phase6_final_scene_view_request(self):

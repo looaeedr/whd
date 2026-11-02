@@ -46,3 +46,36 @@ def resolve_material_mesh_profiles(part_input, material):
         elif y_prof and not x_prof:
             x_prof = [{"len": material_span("x")}]
     return x_prof, y_prof
+
+
+def project_operator_3d_mesh_profiles(
+    part_key, *, material, active_part, active_profiles, saved_profiles,
+    vault_profiles, snapshot, thickness,
+):
+    """One-way interactive 3D source-to-physical Fold profile projection.
+
+    Family and side/back Fold owners are canonical; this API neither infers
+    geometry from a mesh nor grants manufacturing/DXF authority.
+    """
+    from types import SimpleNamespace
+    from .box_body_structure import project_side_back_3d_input_fold_to_physical
+    from .cabinet_types import policy as family_policy
+
+    key = str(part_key or "")
+    if key == "box_body":
+        x_profile = tuple((vault_profiles or {}).get("箱身", ()) or ())
+        y_profile = ()
+    else:
+        source = (active_profiles if key == active_part else saved_profiles) or {}
+        x_profile = tuple(source.get("X", ()) or ())
+        y_profile = tuple(source.get("Y", ()) or ())
+    if key in ("box_body:left_side", "box_body:right_side", "box_body:back"):
+        x_profile = project_side_back_3d_input_fold_to_physical(
+            x_profile, role=key.split(":", 1)[1],
+            receiving=family_policy.box_body_profile_uses_outside_dimensions(snapshot),
+            thickness=thickness,
+        )
+    return resolve_material_mesh_profiles(
+        SimpleNamespace(part_key=key, x_profile=x_profile, y_profile=y_profile),
+        material,
+    )
