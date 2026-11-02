@@ -1959,3 +1959,6 @@ from .operator_project_persistence import (
     project_operator_project_for_write,
     project_operator_project_for_read,
 )
+
+# #2517: original inner-door NFB editor physical-source stage is Engine-owned.
+from .receiving_nfb_hole_stage import plan_operator_inner_door_nfb_hole_stage
