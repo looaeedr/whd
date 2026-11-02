@@ -274,6 +274,26 @@ def family_fixes_box_body_structure(source) -> bool:
     return bool(_call(source, "family_fixes_box_body_structure", False))
 
 
+def require_implemented_manufacturing_family(source) -> str | None:
+    """Reject registered but unimplemented families at the shared export boundary.
+
+    A missing model or historically unregistered model is left to the existing
+    exporter for backward compatibility. Registry identity by itself does not
+    certify any particular Part or manufacturing operation.
+    """
+    name = _raw_family_name(source)
+    if not name:
+        return None
+    try:
+        registration = resolve_cabinet_type(name)
+    except KeyError:
+        # Do not reclassify legacy factory-model strings without source review.
+        return None
+    if not registration.implemented:
+        raise ValueError(f"CABINET_FAMILY_NOT_IMPLEMENTED: {registration.canonical_name}")
+    return registration.canonical_name
+
+
 def base_plate_requires_explicit_bend_pattern(source) -> bool:
     """Ask the registered Family whether BasePlate manufacturing needs a source pattern.
 
