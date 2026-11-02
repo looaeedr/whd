@@ -6,6 +6,19 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱兩片門原始來源身份與 Bay 拓樸 Engine API（2026-11-02）
+
+`gui_modules/application/fold_designer_composition_receiving` 的 Set/Bay 原始門預覽原先在 GUI 呼叫私有 `project_receiving_bay_legacy_aliases`、`derive_door_layout_cells`，並自行判斷「只有一欄、兩片實體 Door」；初始來源又由 GUI 字串比對 Family 與 `door_c1_r1/r2` 製造身份。兩段現改從 `manufacturing_api.project_receiving_operator_door_cell_sources(snapshot, *, set_index, bay_index)` 與 `manufacturing_api.project_receiving_initial_door_source_scenes(snapshot, resolved)` 取得 Engine 已確認的 Bay snapshot/typed DoorLayoutCell 及已解析 Assembly 的真實原圖場景順序。GUI 只向既有 baseline scene provider 要求圖元並透過 `project_receiving_original_door_marks` 顯示；來源缺失、未啟用雙門、多欄／三列等不符目前兩面 sketch 的拓樸均維持不投影，無隱含單門 fallback。Engine 保持對既存 Save→Reload／Bay stable ID、原 scene 與 Source Type 的唯一識別；這是唯讀 SOURCE 顯示映射，**不構成生成新孔、CUTTING、成品 3D 或 DXF 製造認證**。#2517 仍 OPEN。
+
+
+
+
+## [CURRENT] #2517 封頭／封尾 FW、WRAP reserve、Joint 交易單一公開 Engine API（2026-11-02）
+
+原 `phase6_settings_transitions` 在 GUI 側合成 EndCap FW follow／override、Head/Tail WRAP reserve 和 Assembly Joint 交易，雖然最終呼叫 Engine 低層 helper，GUI 仍決定快照組合、source fallback 與物理 state 提交。現在 `manufacturing_api.operator_endcap_fw_follow`、`operator_endcap_fw_override`、`operator_endcap_bottom_wrap`、`operator_endcap_edge_relation` 統一擷取不可變 copy-on-write 輸入並呼叫既有 `endcap_factory_fold`、`endcap_bottom_wrap_state`、`assembly_joint` Canonical owner。WRAP 傳回 Engine `OperatorBottomWrapTransition(state,resolved)`；GUI 舊名稱 `BottomWrapTransition` 僅為型別別名。沿用金庫型／受電箱現有 FW 四態、Head/Tail linked→leader→independent、Joint Graph 優先、保存狀態及拒絕未支援板件，不變更工廠補償、Registry、DXF 認證或原始製造入口。#2517 仍 OPEN。
+
+
+
 ## [CURRENT] #2517 封頭／封尾 FW、WRAP reserve、Joint 交易單一公開 Engine API（2026-11-02）
 
 原 `phase6_settings_transitions` 在 GUI 側合成 EndCap FW follow／override、Head/Tail WRAP reserve 和 Assembly Joint 交易，雖然最終呼叫 Engine 低層 helper，GUI 仍決定快照組合、source fallback 與物理 state 提交。現在 `manufacturing_api.operator_endcap_fw_follow`、`operator_endcap_fw_override`、`operator_endcap_bottom_wrap`、`operator_endcap_edge_relation` 統一擷取不可變 copy-on-write 輸入並呼叫既有 `endcap_factory_fold`、`endcap_bottom_wrap_state`、`assembly_joint` Canonical owner。WRAP 傳回 Engine `OperatorBottomWrapTransition(state,resolved)`；GUI 舊名稱 `BottomWrapTransition` 僅為型別別名。沿用金庫型／受電箱現有 FW 四態、Head/Tail linked→leader→independent、Joint Graph 優先、保存狀態及拒絕未支援板件，不變更工廠補償、Registry、DXF 認證或原始製造入口。#2517 仍 OPEN。
