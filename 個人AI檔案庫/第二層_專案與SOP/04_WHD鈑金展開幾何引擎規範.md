@@ -1413,3 +1413,7 @@ Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或�
 
 - 原 `gui_modules/application/fold_designer_composition_state.py::build_project_snapshot` 在建立 Save/Save As payload 前呼叫 `_save_current_part(notify=False)`，但 `except Exception: pass` 會把任何當前板件 Fold、孔位或來源提交失敗吞掉，再從較舊的 Workspace 製作專案快照，破壞來源與 Save→Reload 同源承諾。
 - 現在直接將真實 Part Session commit 失敗往上傳遞；原 `save_project_file` 既有錯誤提示與 write boundary 會拒絕後續寫檔，保留舊有檔案位元組，正向成功路徑不變。這是 GUI 應負責的交易錯誤呈現／取消保存，不發明任何 Engine 幾何、Board 身份、Fold/Feature 公式或第二儲存權威。測試覆蓋 ValueError／RuntimeError 原因回傳、未觸發 write、既有專案位元組未變及 source method 不再吞錯；已有正向 `tests/test_issue2517_project_save_reload_engine_authority.py` 與實體 GUI Save→Reload 繼續驗證。#2517 仍 OPEN。
+
+## [CURRENT] #2517 Manufacturing Request T 實體來源禁止隱性 2mm 預設（2026-11-03）
+
+`phase6_manufacturing_adapter.build_manufacturing_request` 原本在製造輸入不足或 Settings 板厚字串錯誤時，使用相容 `_num(...,2.0)` 默默將 T 改成 2mm。此來源 fallback 已不符合 #2517 的公開 Engine 契約及 CURRENT 07 操作員包外來源。GUI Request adapter 現只依序取得已確認 Snapshot `t`、否則 Settings `t`，交由既有公開 `manufacturing_api.normalize_operator_source_dimension(raw, field="t")` 驗證正值、有限數字、非 bool；缺少或格式錯誤時阻止建構製造 Request，不可帶假 T 進入 Fold／2D／3D／DXF。合法小數厚度保留，舊式 Fold Editor 展示精度不改。沒有新增任何製造幾何、Family 公式、CADSplit 專用 API 或 source-only CLI 認證。
