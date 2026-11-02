@@ -517,7 +517,7 @@ def show_receiving_base_fixing_plate_preview(host, preview):
     ).pack(padx=12, pady=(3, 4))
     tk.Label(
         win,
-        text="藍色虛線為原圖已有 BEND；折向及焊接 Z 尚未驗證。\\n"
+        text="藍色虛線為原圖已有 BEND；折向及焊接 Z 尚未驗證。\n"
              "僅供來源 2D 檢視，不得作為正式下料、折彎或整箱製造圖。",
         fg="#9a3412", justify="center",
     ).pack(padx=12, pady=(0, 8))
