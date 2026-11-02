@@ -778,7 +778,7 @@ def commit_base_plate_edge_shrink(
     # edge shrink is NEVER an editable control for this cabinet family.
     # Do not zero the persisted geometric shrink or silently rewrite the base.
     snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    if str(snapshot.get("model") or "").strip() in ("受電箱", "RECEIVING"):
+    if not manufacturing_api.operator_base_plate_edge_shrink_editable(snapshot):
         return False
     original = required("original")
     try:
@@ -815,7 +815,7 @@ def render_base_plate_edge_controls(self, namespace):
     # Do not build them at all for a Receiving BasePlate. Other families
     # continue to use their physical per-edge edit controls.
     snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    if str(snapshot.get("model") or "").strip() in ("受電箱", "RECEIVING"):
+    if not manufacturing_api.operator_base_plate_edge_shrink_editable(snapshot):
         return None
 
     hosts = self.ensure_drawing_edge_hosts(namespace)
