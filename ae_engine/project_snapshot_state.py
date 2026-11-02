@@ -183,6 +183,23 @@ def normalize_authoritative_door_state(snapshot):
     return result
 
 
+def project_operator_assembly_joint_snapshot(
+    prior_state: Mapping[str, object] | None,
+    *, existing_parts, assembly_type,
+) -> dict[str, object]:
+    """Migrate the operator's saved Joint graph against current physical parts.
+
+    The Engine alone resolves legacy intent-derived edges and schema version.
+    The input is detached, not modified, and no geometry is reconstructed here.
+    """
+    from .assembly_joint import migrate_legacy_snapshot_joints
+
+    source = dict(prior_state or {})
+    source["existing_parts"] = list(existing_parts)
+    source["assembly_type"] = assembly_type
+    return migrate_legacy_snapshot_joints(source)
+
+
 def normalize_project_snapshot_authority(snapshot):
     from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
     from ae_engine.cabinet_types.receiving import is_receiving_snapshot

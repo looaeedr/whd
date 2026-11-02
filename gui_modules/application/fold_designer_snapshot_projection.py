@@ -7,9 +7,6 @@ import tkinter as tk
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.corner_type_ui import is_unknown_model
-from ae_engine.sheetmetal_geometry import EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS
-from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
 from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bottom_wrap_state
 from phase6_settings_center import load_factory_defaults_from_ae
 from gui_modules.parts.panels.door import normalize_door_indicator_state
@@ -98,16 +95,14 @@ def _snapshot_base_state(self):
     snapshot["settings"] = dict(settings)
     snapshot["corner_state"] = self._serialize_manual_corner_state()
     snapshot["corner_pair_same"] = deepcopy(self.manual_corner_pair_same)
-    snapshot["corner_editable"] = is_unknown_model(self.baseline_var.get())
-    snapshot["corner_type_labels"] = {
-        type_id.value: CORNER_TYPE_LABELS[type_id]
-        for type_id in EDITABLE_CORNER_TYPE_IDS
-    }
     baseline_models = self._baseline_model_choices()
-    snapshot["baseline_models"] = baseline_models
-    snapshot["baseline_unknown_value"] = next(
-        (model for model in baseline_models if is_unknown_model(model)), "自訂"
+    corner_catalog = manufacturing_api.project_operator_corner_selection_catalog(
+        snapshot["model"], baseline_models,
     )
+    snapshot["corner_editable"] = corner_catalog.editable
+    snapshot["corner_type_labels"] = dict(corner_catalog.labels)
+    snapshot["baseline_models"] = baseline_models
+    snapshot["baseline_unknown_value"] = corner_catalog.custom_model_name
     snapshot["factory_defaults"] = load_factory_defaults_from_ae(ae)
     if snapshot["model"] in {"受電箱", "RECEIVING"}:
         designer = getattr(self, "fold_designer_app", None)
@@ -153,10 +148,11 @@ def _snapshot_workspace_state(self, snapshot):
     if custom is not None:
         snapshot["custom_parts"] = deepcopy(custom)
 
-    joint_state = dict(getattr(self, "assembly_joint_state", {}) or {})
-    joint_state["existing_parts"] = list(ordered)
-    joint_state["assembly_type"] = snapshot["assembly_type"]
-    joint_state = migrate_legacy_snapshot_joints(joint_state)
+    joint_state = manufacturing_api.project_operator_assembly_joint_snapshot(
+        getattr(self, "assembly_joint_state", None),
+        existing_parts=ordered,
+        assembly_type=snapshot["assembly_type"],
+    )
     self.assembly_joint_state = joint_state
     snapshot["assembly_joint_schema_version"] = joint_state["assembly_joint_schema_version"]
     snapshot["assembly_joints"] = deepcopy(joint_state["assembly_joints"])
