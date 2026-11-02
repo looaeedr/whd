@@ -10,6 +10,10 @@ whd_schema: WHD_DOC_META_V1
 
 原 `gui_modules/project/export_actions.py::_export_selected_resolved_parts` 自行認定金庫型合併模式、Receiving EAR/NFB 已提交 CSV 與舊式出圖前置拒絕的條件；`export_selected_dxf` 用製造錯誤字串判斷是否允許排除尚未配置底板。現在改用現有 Engine `manufacturing_selected_export` 擴充公開 `manufacturing_api.plan_selected_resolved_export_route` 取得 frozen 出圖路由計畫，及 `plan_unconfigured_receiving_base_export_retry` 僅對既有明確未配置底板錯誤產生排除底板之候選操作意圖。GUI 不得自行解釋來源證明、ERROR 或認定缺底板可製造；GUI 仍保有使用者明確同意的對話框，拒絕時不動既有檔，接受後必須以原 Engine 實體來源與嚴格製造 API 重跑。沿用既有 Vault/Receiving API、CURRENT NFB CSV、EAR 側板、PAD、保存來源漂移、DXF 逐片重開及原子輸出，**沒有新增任何製造認證或外部 source-only export**。#2517 OPEN。
 
+## [CURRENT] #2517 Fold Designer 單件／多片箱身板料渲染路由 Engine API（2026-11-02）
+
+`gui_modules/application/fold_designer_manufacturing_projection._authoritative_render_data` 原本在 GUI 比較 `BoxBodyPartSpec`、`BoxBodyStructureType.INTEGRAL` 與 `normalize_box_body_structure_state`，自行選 `build_part_render_data` 或 `build_box_body_structure_render_data`。現統一呼叫公開 `manufacturing_api.build_operator_part_render_data(spec, context)`；Engine 從同一份 canonical typed `PartSpec` 與結構 state 決定實體板件的單片或多片 FinalScene，GUI 只管理前輪由 Engine 來源證明的 LRU 與結果呈現。沿用原有 Factory Render、完成面規則與舊未知結構相容路由；不另建板件拓撲公式、Family 補償或外部製造通道，正式 DXF/Save→Reload/Registry/Collision 驗證仍不變。#2517 OPEN。
+
 ## [CURRENT] #2517 Receiving 原始板料重用資格與來源證明改走 Engine（2026-11-02）
 
 `gui_modules/application/fold_designer_manufacturing_projection._authoritative_render_data` 曾在 GUI 自行判斷是否為受電箱 Set/Bay、哪些未解聯立 relief 的 Head/Tail 或 BoxBody 才能跨 W/H/D 暫存原始 `PartRenderData`，並在 GUI 選三片式實體後讀基準 DXF witness。現以 `manufacturing_api.plan_operator_raw_material_reuse(spec, snapshot, context=...)` 由 `ae_engine.manufacturing_cache_source_plan` 回傳 `OperatorRawMaterialReusePlan(eligible, source_stamp)`；必須維持原本 3 張基準檔、三片式實體專用 DXF、Head/Tail `封頭尾.dxf` 存在與新鮮來源條件。GUI 只負責 LRU capacity、快取命中與來源變動清除，不持有 Family／實體板件／來源資格製造規則。此快取只供 exact-typed raw 板料性能重用，正式 FinalScene 的 Joint／碰撞／組合／DXF CUTTING 與 Save→Reload 必須照常每次執行，不能以 source_stamp 或快取代表認證，亦不增加外部製造權限。#2517 OPEN。

@@ -572,6 +572,22 @@ from .manufacturing_scene_orchestration import (
     build_part_render_data,
 )
 
+def build_operator_part_render_data(
+    spec: PartSpec, context: ManufacturingContext | None = None,
+) -> PartRenderData | BoxBodyStructureRenderData:
+    """Route one physical operator PartSpec to its authoritative Engine render.
+
+    GUI must not decide whether the BoxBody is an integral sheet or a
+    multi-sheet structure. Preserve the legacy canonical normalization and
+    two existing factories; do not issue manufacturing/export authorization.
+    """
+    if isinstance(spec, BoxBodyPartSpec):
+        structure = normalize_box_body_structure_state(spec.structure_state)
+        if structure.get("active_type") != BoxBodyStructureType.INTEGRAL.value:
+            return build_box_body_structure_render_data(spec, context)
+    return build_part_render_data(spec, context)
+
+
 def save_part_render_data_dxf(
     render_data: PartRenderData,
     output_path: str | os.PathLike[str],

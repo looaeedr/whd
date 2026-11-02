@@ -1760,3 +1760,16 @@ multipart structure, required baseline files and mandatory original
 invalidates on changed source witness. A missing or changed source never
 releases manufacturing or allows reuse; final Joint/assembly solve, CUTTING
 DXF verification and all Factory/Registry gates always run normally.
+
+
+### #2517 Fold Designer authoritative physical PartSpec rendering
+
+`manufacturing_api.build_operator_part_render_data(spec, context=None)` owns
+the original integral-vs-multipart BoxBody manufacturing render dispatch.
+Given the same typed `PartSpec` and `ManufacturingContext`, Engine chooses
+`build_box_body_structure_render_data` for an active multipart BoxBody or
+`build_part_render_data` for integral BoxBody and other physical parts.
+Fold Designer only invokes the one public API and caches its returned
+canonical FinalScene / physical-sheet result. This selection adds no new
+Family rule, geometry formula, DXF certification, or fallback; existing
+Save→Reload and manufacturing acceptance gates are unchanged.
