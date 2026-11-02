@@ -41,3 +41,59 @@ def receiving_back_panel_mode_control_applicable(snapshot, structure_state) -> b
         and str((structure_state or {}).get("active_type") or "")
         == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
     )
+
+
+def project_receiving_original_door_marks(scene):
+    """Project only identified original Door nameplate holes and handle contour.
+
+    No fallback coordinates: when the original baseline does not identify the
+    features unambiguously, the lightweight sketch draws none.
+    Normalized vectors are presentation-only, never manufacturing geometry.
+    """
+    from .sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+
+    empty = {"nameplate": (), "handle": ()}
+    if scene is None:
+        return empty
+    outlines = [
+        p for p in scene.primitives
+        if isinstance(p, PolylinePrimitive) and p.layer == "CUTTING"
+        and p.closed and len(p.points) >= 3
+    ]
+    if not outlines:
+        return empty
+
+    def bounds(polyline):
+        xs = [float(pt.x) for pt in polyline.points]
+        ys = [float(pt.y) for pt in polyline.points]
+        return min(xs), min(ys), max(xs), max(ys)
+
+    outer = max(outlines, key=lambda item:
+                (bounds(item)[2] - bounds(item)[0]) *
+                (bounds(item)[3] - bounds(item)[1]))
+    x0, y0, x1, y1 = bounds(outer)
+    if x1 <= x0 or y1 <= y0:
+        return empty
+
+    def xy(point):
+        return ((float(point.x) - x0) / (x1 - x0),
+                1.0 - (float(point.y) - y0) / (y1 - y0))
+
+    # Only the stable feature identity from the original Door baseline
+    # identifies nameplate circles; do not guess from radius or position.
+    nameplate = tuple(
+        (*xy(p.center), float(p.radius) / (x1 - x0),
+         float(p.radius) / (y1 - y0))
+        for p in scene.primitives
+        if isinstance(p, CirclePrimitive)
+        and p.layer == "CUTTING" and p.source_type == "nameplate_mount"
+    )
+    # The certified Door baseline has exactly one extra interior CUTTING
+    # contour for the handle. Multiple candidates are ambiguous: draw none.
+    interior = [
+        p for p in outlines if p is not outer
+        and bounds(p)[0] > x0 and bounds(p)[1] > y0
+        and bounds(p)[2] < x1 and bounds(p)[3] < y1
+    ]
+    handle = tuple(xy(pt) for pt in interior[0].points) if len(interior) == 1 else ()
+    return {"nameplate": nameplate, "handle": handle}
