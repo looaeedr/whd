@@ -1871,3 +1871,9 @@ from .operator_receiving_physical_2d import (
     resolve_operator_receiving_pad_2d_source,
     resolve_operator_receiving_fixing_2d_source,
 )
+
+# #2517: the Receiving PAD+Base operator's selected Quantity/Set-Bay source
+# belongs to Engine. This does not authorize partial or whole-cabinet MFG.
+from .receiving_pad_base_export_selection import (
+    ReceivingPadBaseExportSource, resolve_receiving_pad_base_export_source,
+)

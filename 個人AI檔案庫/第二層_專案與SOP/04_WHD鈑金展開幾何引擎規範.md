@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 PAD＋底板版本／Set-Bay 出圖來源移至 Engine API（2026-11-02）
+
+GUI `export_receiving_pad_base_part_only_dxf` 不再解析 QuantityModel 的 selected version、Set/Bay 單連 fallback 或自行組裝物理輸出身份；它只取操作者材質／製程／Q，並呼叫 `manufacturing_api.resolve_receiving_pad_base_export_source(snapshot)` 取得與當下已提交來源一致的獨立快照及 `version_id`，再交原有 `export_verified_pad_base_part_only` 執行實體 PAD+Base CHECK/Q。Engine 沿用既有 QuantityModel、project_common_box 與 Set/Bay authority，不重建 Family 或出口；錯誤版本、缺少／不一致 NFB、模糊多 Bay 都拒絕。GUI 的有命名 DXF 覆寫提示也改用既有 `resolve_live_cabinet_family`，支援 Receiving 正規別名；不得藉來源解析授權整箱、EAR 焊接、PAD MFG-2 或任意 export。#2517 繼續 OPEN。
+
+
 ## [CURRENT] #2517 Receiving 2D 實體底板／PAD／固定片來源單一 Engine API（2026-11-02）
 
 `fold_designer_manufacturing_projection.py::_query_fold_designer_render_data` 不再自行認定 NFB 單層原底板、雙層 `base_plate:nfb_layer:[01]`、source-backed PAD 或原固定片的 2D 實體材料、Bay 來源漂移與 MFG status。新增 `ae_engine.operator_receiving_physical_2d`，由既有正式 `manufacturing_api` 公開 `resolve_operator_receiving_base_2d_source`、`resolve_operator_receiving_pad_2d_source`、`resolve_operator_receiving_fixing_2d_source`，直接委派已存在的 committed NFB/BasePlate/PAD/EAR source owners 和 canonical ResolvedManufacturingGeometry；GUI 只傳當前來源、供應既有 geometry resolver 與將 RenderData 套上特徵。選定 Bay 必須匹配同一真實 Set/Bay 的 W/H/D、Door/NFB 身分，禁止跨 Bay 借材；缺來源／偽造 PartKey／PAD 冒充可製造均維持拒絕。此輸出只代表原實體 2D RenderData；正式 DXF、MFG-2、EAR／PAD 工法尚未獲放行，必須照 Certified Registry gate。#2517 OPEN。

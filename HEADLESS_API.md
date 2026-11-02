@@ -6,6 +6,19 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Receiving PAD+Base CHECK/Q operator source selection
+
+`manufacturing_api.resolve_receiving_pad_base_export_source(snapshot)` returns
+`ReceivingPadBaseExportSource(snapshot, version_id)` for exactly the selected
+committed Quantity version or persisted Set/Bay; the returned snapshot is
+independent of the GUI input. It reuses existing `QuantityModel` and
+`project_common_box` authority, and refuses unsubmitted, mismatched or
+ambiguous source identity. The GUI still collects material, process and count;
+`export_verified_pad_base_part_only` remains the sole physical CHECK/Q
+manufacturing and DXF validation entry. This source-selection API grants no
+whole-cabinet, PAD/EAR welding or MFG-2 release.
+
+
 ## #2517 Receiving EAR SIDE source-only previews and CHECK operator inputs
 
 The existing `resolve_receiving_ear_side_display_context` and

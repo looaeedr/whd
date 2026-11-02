@@ -774,7 +774,7 @@ def export_selected_dxf(self):
         new_named_mode = (
             mode_field is not None and
             isinstance(live, Mapping) and
-            live.get("model") in {"受電箱", "RECEIVING", "金庫型"}
+            manufacturing_api.resolve_live_cabinet_family(live) in {"受電箱", "金庫型"}
         )
         if new_named_mode:
             existing = [
@@ -847,45 +847,10 @@ def export_receiving_pad_base_part_only_dxf(self):
             initialvalue=1,minvalue=1)
         if qty is None:
             return
-        # A Quantity version is never a persistent Set/Bay identity.
-        # Derive source proof from exactly its submitted version.
-        quantity_version = None
-        if snapshot.get("active_mode") == "quantity":
-            from phase6_quantity_model import QuantityModel
-            model = QuantityModel.from_payload(snapshot.get("quantity"))
-            quantity_version = model.selected_version_id
-            committed = model.nfb_config_for_version(quantity_version)
-            if (committed.get("nfb_config_submitted") is not True
-                    or committed.get("nfb_config") != snapshot.get("nfb_config")):
-                raise ValueError("PAD＋底板數量版本的 NFB 來源已失效")
-            snapshot = manufacturing_api.project_common_box(snapshot)
-        runtime=snapshot.get("_receiving_runtime_selection")
-        if quantity_version is None and not isinstance(runtime, Mapping):
-            # Recover the exact one-Bay source identity only from the current
-            # saved singleton. Never borrow another Bay or a previous selector.
-            layout=snapshot.get("receiving_layout")
-            sets=layout.get("sets") if isinstance(layout, Mapping) else None
-            if (snapshot.get("active_mode", "set_bay") != "set_bay"
-                    or not isinstance(sets, (list, tuple)) or len(sets) != 1
-                    or not isinstance(sets[0].get("bays"), (list, tuple))
-                    or len(sets[0]["bays"]) != 1
-                    or sets[0]["bays"][0].get("nfb_config_submitted") is not True
-                    or sets[0]["bays"][0].get("nfb_config") != snapshot.get("nfb_config")):
-                raise ValueError("PAD＋底板沒有目前 Set／Bay 的實體選取")
-            runtime={
-                "set_id": sets[0]["stable_id"],
-                "bay_id": sets[0]["bays"][0]["stable_id"],
-                "set_index": 0, "bay_index": 0,
-            }
-            snapshot={**snapshot, "_receiving_runtime_selection": runtime}
-        if quantity_version is not None:
-            version_id = quantity_version
-        else:
-            set_id=str(runtime.get("set_id") or "").strip()
-            bay_id=str(runtime.get("bay_id") or "").strip()
-            if not set_id or not bay_id:
-                raise ValueError("PAD＋底板缺少 Set／Bay 實際識別碼")
-            version_id=f"{set_id}__{bay_id}"
+        # Only Engine may select a persisted Quantity version or Set/Bay
+        # manufacturing identity. UI supplies material, process and Q only.
+        selected = manufacturing_api.resolve_receiving_pad_base_export_source(snapshot)
+        snapshot, version_id = selected.snapshot, selected.version_id
         root=filedialog.askdirectory(title="選擇 PAD＋底板 CHECK/Q 輸出資料夾")
         if not root:
             return
