@@ -134,7 +134,12 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
             else:
                 values.update(read_standard_part_profiles(key, profiles, values))
     except Exception:
-        pass
+        # Draft/preview payloads may contain incomplete Fold profiles. Keep the
+        # previous partial display usable, but mark it as NOT manufacturing-ready.
+        # The immutable manufacturing request boundary rejects this evidence.
+        values["_manufacturing_profile_readback_error"] = (
+            f"MANUFACTURING_SCENE_PROFILE_INVALID:{key}"
+        )
 
     model_var = getattr(app, "baseline_model_var", None)
     values["model"] = str(
@@ -238,10 +243,13 @@ def _safe_var_get(value: Any, default: Any = None) -> Any:
 
 
 def _mapping(value: Any) -> dict:
-    try:
-        return dict(value or {})
-    except Exception:
+    """Detach client mappings; malformed manufacturing inputs fail closed."""
+    if value is None:
         return {}
+    try:
+        return dict(value)
+    except Exception as exc:
+        raise ValueError("MANUFACTURING_INPUT_MAPPING_INVALID") from exc
 
 
 def _profile_inputs_for_part(app: Any, part_key: str) -> tuple[tuple, tuple]:
@@ -274,8 +282,10 @@ def _workspace_value(workspace: Any, method_name: str, part_key: str, default: A
         return default
     try:
         return method(part_key)
-    except Exception:
-        return default
+    except Exception as exc:
+        raise ValueError(
+            f"MANUFACTURING_WORKSPACE_INPUT_FAILED:{method_name}:{part_key}"
+        ) from exc
 
 
 def _box_body_structure(workspace: Any) -> Any:
@@ -284,8 +294,8 @@ def _box_body_structure(workspace: Any) -> Any:
         return {}
     try:
         return method() or {}
-    except Exception:
-        return {}
+    except Exception as exc:
+        raise ValueError("MANUFACTURING_BOX_BODY_STRUCTURE_UNAVAILABLE") from exc
 
 
 def _scene_values_for_part(app: Any, part_key: str, builder=None) -> Any:
@@ -295,6 +305,9 @@ def _scene_values_for_part(app: Any, part_key: str, builder=None) -> Any:
     payload = builder(part_key)
     if payload is None:
         raise ValueError(f"manufacturing scene input unavailable: {part_key}")
+    if isinstance(payload, Mapping) and payload.get("_manufacturing_profile_readback_error"):
+        # A partial editor preview is never a certified manufacturing input.
+        raise ValueError(str(payload["_manufacturing_profile_readback_error"]))
     return payload
 
 

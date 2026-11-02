@@ -1633,6 +1633,22 @@ def build_box_body_operator_part_spec(
     )
 
 
+def build_receiving_factory_confirmed_parts(
+    source_dimensions, *, confirmation=None, operator_snapshot=None,
+):
+    """Public WHD Engine source W/H/D/T -> confirmed Receiving PartSpec boundary.
+
+    Family defaults, saved Fold/Corner state and physical request construction
+    remain inside Engine. This reuses the existing manufacture/DXF exporter,
+    and cannot authorize source-only CADSplit prepare/export.
+    """
+    from .receiving_factory_requests import build_receiving_factory_confirmed_parts as build
+    return build(
+        source_dimensions, confirmation=confirmation,
+        operator_snapshot=operator_snapshot,
+    )
+
+
 # #2517 Receiving CSV V5 physical BasePlate trial/source & display gate.
 # Public, GUI-independent: never a manufacturing/DXF certification.
 from .receiving_nfb_v5_operator_preview import (
