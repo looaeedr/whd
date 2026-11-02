@@ -89,8 +89,8 @@ def test_receiving_2d_delegates_endcap_world_geometry_to_shared_engine(monkeypat
 
 def test_3d_renderer_endcap_display_and_probe_only_call_public_engine():
     source = inspect.getsource(Phase6FinalSceneRenderer)
-    assert source.count("manufacturing_api.resolve_assembled_endcap_world_skins(") == 2
+    assert source.count("manufacturing_api.resolve_assembled_endcap_world_skins(") == 1
     assert "place_endcap_against_box_body(" not in source
     assert "formed_surface_for_edges = skins.formed_surface" in source
     assert "placed = skins.solid_triangles" in source
-    assert "collision_target = (" in source
+    assert "collision_target = (" not in source

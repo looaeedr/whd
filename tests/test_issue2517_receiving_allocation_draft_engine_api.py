@@ -19,7 +19,7 @@ def test_public_engine_quantity_draft_and_gui_compatibility():
     assert manufacturing_api.AllocationDraft is AllocationDraft
     assert manufacturing_api.validate_quantity_allocation is validate_quantity_allocation
     assert "from ae_engine.manufacturing_api import AllocationDraft, validate_quantity_allocation" in (
-        Path(ReceivingQuantityAllocationUI.__module__.replace(".", "/") + ".py").read_text()
+        Path(ReceivingQuantityAllocationUI.__module__.replace(".", "/") + ".py").read_text(encoding="utf-8")
     )
 
 
@@ -95,7 +95,7 @@ def test_gui_replaces_candidate_through_engine_without_direct_business_mutation(
     assert draft.quantities["head"] == {"head-v3": 1}
     ui._select_version("head-v3")
     assert rendered == [True]
-    gui_source = Path("gui_modules/application/receiving_quantity_allocation_ui.py").read_text()
+    gui_source = Path("gui_modules/application/receiving_quantity_allocation_ui.py").read_text(encoding="utf-8")
     assert "self.draft.quantities[self.role] =" not in gui_source
     assert "self.draft.active_version[self.role] =" not in gui_source
     assert "self.draft.step.__setitem__" not in gui_source

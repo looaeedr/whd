@@ -92,10 +92,11 @@ def test_joint_registry_diagnostic_preserves_status_and_excludes_explicit(monkey
 
 def test_phase6_only_consumes_engine_evidence_without_private_geometry():
     source = inspect.getsource(phase6.resolve)
-    assert "resolve_manufacturing_relief_evidence(" in source
+    assert "manufacturing_api.resolve_manufacturing_request(request)" in source
+    assert "resolve_manufacturing_relief_evidence(" not in source
     assert "ResolvedReliefRuleTrace(" not in source
     assert "ResolvedJointDiagnostic(" not in source
     assert "joint_relief_ownership(" not in source
     assert "_phase6_joint_registry_diagnostic_info(" not in source
-    assert "diagnostics.extend(tuple(divider_joint_diagnostics or ()))" in source
-    assert "diagnostics.extend(tuple(explicit_joint_diagnostics or ()))" in source
+    assert "diagnostics.extend(tuple(divider_joint_diagnostics or ()))" not in source
+    assert "diagnostics.extend(tuple(explicit_joint_diagnostics or ()))" not in source

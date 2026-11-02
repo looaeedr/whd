@@ -75,7 +75,7 @@ def test_two_bay_original_export_routes_alias_to_engine_multibay_gate(
     host = _native_callback_host(monkeypatch, source, [])
     def proof(*_args, **_kwargs):
         raise ValueError("ENGINE_MULTIBAY_GATE_REACHED")
-    monkeypatch.setattr(manufacturing_api, "normalize_receiving_layout", proof)
+    monkeypatch.setattr(manufacturing_api, "export_current_receiving_multibay_dxf", proof)
     with pytest.raises(ValueError, match="ENGINE_MULTIBAY_GATE_REACHED"):
         gui._export_selected_resolved_parts(
             host, str(tmp_path),
@@ -84,6 +84,31 @@ def test_two_bay_original_export_routes_alias_to_engine_multibay_gate(
         )
     assert source == original
     assert not list(tmp_path.glob("*.dxf"))
+
+
+
+def test_multibay_engine_accepts_registered_receiving_alias_not_vault(tmp_path):
+    """The public multibay export gate uses Family Registry, never raw label case."""
+    from ae_engine.receiving_layout import new_receiving_layout
+
+    one_bay = new_receiving_layout(width=800, height=1600, depth=350)
+    for model in ("receiving", "RECEIVING", "受電箱"):
+        with pytest.raises(
+            ValueError, match="RECEIVING_MULTIBAY_REQUIRES_MULTIPLE_PHYSICAL_BAYS",
+        ):
+            manufacturing_api.export_current_receiving_multibay_dxf(
+                {"model": model, "active_mode": "set_bay",
+                 "receiving_layout": one_bay},
+                physical_bay_geometry_provider=None, flags={},
+                output_dir=tmp_path,
+            )
+    with pytest.raises(ValueError, match="RECEIVING_MULTIBAY_CURRENT_FAMILY_REQUIRED"):
+        manufacturing_api.export_current_receiving_multibay_dxf(
+            {"model": "vault", "active_mode": "set_bay",
+             "receiving_layout": one_bay},
+            physical_bay_geometry_provider=None, flags={},
+            output_dir=tmp_path,
+        )
 
 
 def test_real_side_marking_button_uses_engine_registered_receiving_family(

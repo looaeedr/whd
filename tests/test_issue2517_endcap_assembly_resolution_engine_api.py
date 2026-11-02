@@ -57,13 +57,11 @@ def test_diagnostic_matches_existing_endcap_truth_table(solution, expected):
 
 def test_phase6_calls_public_engine_boundary_without_trust_or_shadow_policy():
     source = inspect.getsource(service.resolve)
-    assert "solve_endcap_assembly_relief(" in source
-    assert "endcap_relief_solution_diagnostic(" in source
+    assert "manufacturing_api.resolve_manufacturing_request(request)" in source
+    assert "solve_endcap_assembly_relief(" not in source
+    assert "endcap_relief_solution_diagnostic(" not in source
     assert "solve_world_backprojected_endcap_relief" not in source
-    endcap_block = source.split("for key in required:", 1)[1].split(
-        "atomic_committable =", 1
-    )[0]
-    assert "shadow_validation" not in endcap_block
+    assert "shadow_validation" not in source
     assert "已認證公式與立體影子驗證衝突" not in source
     assert "_phase6_solution_is_committable(" not in source
 

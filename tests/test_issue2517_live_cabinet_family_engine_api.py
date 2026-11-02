@@ -6,7 +6,7 @@ import pytest
 
 from ae_engine import manufacturing_api, resolve_live_cabinet_family
 from phase6_manufacturing_geometry import _phase6_current_cabinet_family
-from phase6_manufacturing_service import _cabinet_family
+from phase6_manufacturing_service import resolve as phase6_resolve
 
 
 @pytest.mark.parametrize("model", ("金庫型", "受電箱"))
@@ -49,7 +49,11 @@ def test_invalid_widget_getter_uses_saved_snapshot_not_hidden_gui_policy():
     assert _phase6_current_cabinet_family(app) == "受電箱"
 
 
-def test_phase6_manufacturing_service_uses_same_engine_family():
-    for model in ("受電箱", "金庫型", "  UNREGISTERED ", ""):
-        assert _cabinet_family(SimpleNamespace(cabinet_model=model)) == resolve_live_cabinet_family({"model": model})
-    assert "resolve_cabinet_type" not in inspect.getsource(_cabinet_family)
+def test_phase6_manufacturing_service_uses_engine_request_not_local_family_policy():
+    # The old service-local _cabinet_family was removed as part of #2517.
+    # The GUI live selector above still checks actual Family behavior; the
+    # Phase6 service may only forward the typed request to Engine.
+    source = inspect.getsource(phase6_resolve)
+    assert "manufacturing_api.resolve_manufacturing_request(request)" in source
+    assert "resolve_cabinet_type" not in source
+    assert "_cabinet_family" not in source
