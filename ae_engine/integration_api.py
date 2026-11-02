@@ -9,6 +9,8 @@ identities and manufacturing geometry remain owned by WHD Engine.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
+import re
 from pathlib import Path
 from types import MappingProxyType
 from typing import Literal, Mapping, Sequence
@@ -176,6 +178,70 @@ class ManufacturingResolvedBayInput:
     # Already-confirmed Engine PartSpecs, NOT raw DXF, CSV or source-view labels.
     # Exclusive with resolved_geometry; the same Engine renderer resolves them.
     confirmed_parts: tuple[tuple[str, PartSpec], ...] = ()
+    door_layout_columns: tuple[tuple[float, tuple[float, ...]], ...] = ()
+
+
+def _confirmed_door_layout_projections(
+    parts: tuple[tuple[str, PartSpec], ...],
+    columns: tuple[tuple[float, tuple[float, ...]], ...],
+    *,
+    family_name: str,
+):
+    """Require exact authored Door-grid ownership before manufacturing.
+
+    Use the existing Engine physical cell projector; source DXF labels never
+    become physical identities, and incomplete grids cannot stage DXFs.
+    """
+    from . import manufacturing_api
+    from .sheetmetal_part_adapters import validate_door_layout_dimensions
+
+    cell_keys = {
+        key for key, _ in parts
+        if isinstance(key, str) and re.fullmatch(r"door_c[1-9]\\d*_r[1-9]\\d*", key)
+    }
+    if not columns:
+        if cell_keys:
+            raise ValueError("RECEIVING_DOOR_LAYOUT_REQUIRED")
+        return {}
+
+    doors = [(key, spec) for key, spec in parts if key == "door" or key in cell_keys]
+    if not doors or any(type(spec) is not DoorPartSpec for _, spec in doors):
+        raise ValueError("RECEIVING_DOOR_TOPOLOGY_INCOMPLETE")
+    first = doors[0][1]
+    try:
+        boxes = [spec for key, spec in parts
+                 if key == "box_body" and type(spec) is BoxBodyPartSpec]
+        if boxes:
+            validate_door_layout_dimensions(
+                columns, total_width=boxes[0].width, total_height=boxes[0].height,
+            )
+        projected = manufacturing_api.door_part_projections({
+            "model": family_name, "multi_door_enabled": True,
+            "door_layout_columns": columns,
+            "t": first.thickness, "fw": first.frame_width,
+            "door_gap_w": first.gap_w, "door_gap_h": first.gap_h,
+        })
+    except (ValueError, TypeError, OverflowError) as exc:
+        raise ValueError("RECEIVING_DOOR_LAYOUT_INVALID") from exc
+    expected = {cell.part_key: cell for cell in projected}
+    if not expected or {key for key, _ in doors} != set(expected):
+        raise ValueError("RECEIVING_DOOR_TOPOLOGY_INCOMPLETE")
+    for key, spec in doors:
+        cell = expected[key]
+        try:
+            common = all(math.isclose(
+                float(getattr(spec, attr)), float(getattr(first, attr)),
+                rel_tol=0.0, abs_tol=1e-6,
+            ) for attr in ("thickness", "frame_width", "gap_w", "gap_h"))
+            dimensions = (
+                math.isclose(float(spec.width), cell.start_width, rel_tol=0.0, abs_tol=1e-6)
+                and math.isclose(float(spec.height), cell.start_height, rel_tol=0.0, abs_tol=1e-6)
+            )
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("RECEIVING_DOOR_TOPOLOGY_MISMATCH") from exc
+        if not common or not dimensions or spec.frame_edges != cell.frame_edges:
+            raise ValueError("RECEIVING_DOOR_TOPOLOGY_MISMATCH")
+    return expected
 
 
 def _resolve_confirmed_integration_parts(
@@ -183,6 +249,7 @@ def _resolve_confirmed_integration_parts(
     *,
     family_name: str,
     context: ManufacturingContext,
+    door_layout_columns: tuple[tuple[float, tuple[float, ...]], ...] = (),
 ) -> ResolvedManufacturingGeometry:
     """Resolve typed, independently authored physical parts through Engine.
 
@@ -194,6 +261,9 @@ def _resolve_confirmed_integration_parts(
     from . import manufacturing_api
 
     parts = tuple(confirmed_parts)
+    projections = _confirmed_door_layout_projections(
+        parts, tuple(door_layout_columns), family_name=family_name,
+    )
     if not parts:
         raise ValueError("RECEIVING_CONFIRMED_PARTS_REQUIRED")
     resolved: list[ResolvedManufacturingPart] = []
@@ -206,7 +276,7 @@ def _resolve_confirmed_integration_parts(
             raise ValueError("RECEIVING_CONFIRMED_PART_DUPLICATE")
         # Exact physical role, never a manufacturing identity guessed from
         # CADSplit's displayed source-panel name or an NFB preview key.
-        if part_key == "door" and type(spec) is DoorPartSpec:
+        if (part_key == "door" or part_key in projections) and type(spec) is DoorPartSpec:
             if (spec.feature_space != "finished_face"
                     or any(getattr(spec, key) is None for key in (
                         "gap_w", "gap_h", "fold_left", "fold_right",
@@ -309,8 +379,11 @@ def export_verified_resolved_integration_bays(
                 item.confirmed_parts,
                 family_name=registration.canonical_name,
                 context=context or ManufacturingContext(),
+                door_layout_columns=item.door_layout_columns,
             )
         else:
+            if item.door_layout_columns:
+                raise ValueError("RECEIVING_DOOR_LAYOUT_REQUIRES_CONFIRMED_PARTS")
             resolved_geometry = item.resolved_geometry
         if (not isinstance(resolved_geometry, ResolvedManufacturingGeometry)
                 or not resolved_geometry.parts):
