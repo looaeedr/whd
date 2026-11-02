@@ -252,11 +252,16 @@ def resolve_live_operator_finished_dimensions(
     The existing canonical finished-dimension resolver remains the sole
     mesh/outside-size and CornerType geometry authority.
     """
-    from .box_body_fold_profile import _num
+    from .operator_settings_transactions import normalize_operator_source_dimension
 
     snapshot = dict(input_snapshot or {})
     settings = dict(settings_values or {})
     whd = dict(working_box or {})
+    # The live 2D/3D finished-size read must use the same authoritative
+    # physical T as build_manufacturing_request. A saved project wins over
+    # stale Settings; neither source may invent a default plate thickness.
+    raw_t = snapshot["t"] if "t" in snapshot else settings.get("t")
+    operator_t = normalize_operator_source_dimension(raw_t, field="t")
     for axis in ("w", "h", "d"):
         if axis not in snapshot and axis in whd:
             snapshot[axis] = whd[axis]
@@ -270,7 +275,7 @@ def resolve_live_operator_finished_dimensions(
         snapshot=snapshot,
         settings=settings,
         triangles=triangles,
-        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
+        thickness=operator_t,
         head_corner_policy=head_corner_policy,
         tail_corner_policy=tail_corner_policy,
     )
