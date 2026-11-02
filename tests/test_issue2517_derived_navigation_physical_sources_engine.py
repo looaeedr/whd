@@ -86,4 +86,15 @@ def test_gui_derived_navigation_calls_public_api_instead_of_owning_physical_sour
     engine = (root / "ae_engine/operator_derived_navigation.py").read_text(
         encoding="utf-8"
     )
-    assert "gui_modules" not in engine and "phase6_" not in engine
+    # A data key named phase6_key and source documentation are not imports.
+    # Only an actual reverse import would violate the Engine/GUI boundary.
+    import ast
+    module = ast.parse(engine)
+    imports = (
+        [name.name for node in ast.walk(module) if isinstance(node, ast.Import)
+         for name in node.names]
+        + [node.module or "" for node in ast.walk(module)
+           if isinstance(node, ast.ImportFrom)]
+    )
+    assert not any(name.startswith(("gui_modules", "phase6_"))
+                   for name in imports)
