@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from functools import partial
 
+from ae_engine import manufacturing_api
+
 
 class HoleEditorCanvasRenderer:
     """Render the live hole-editor frame without owning domain state."""
@@ -170,18 +172,10 @@ class HoleEditorCanvasRenderer:
                     self._draw_dimension(canvas_obj, tr, x_guide, "X", dy=-12)
                     self._draw_dimension(canvas_obj, tr, y_guide, "Y", dx=-28, angle=90)
             elif state["mode"] == "indicator_box":
-                hole_w, hole_h = self.indicator_box_opening_size(
-                    groups, thickness=float(context["door_thickness"] or 0.0)
-                )
-                center = self.vec2_factory(
-                    indicator_context.left_fold
-                    + indicator_context.finished_width / 2.0 + state["offset_x"],
-                    indicator_context.bottom_fold
-                    + indicator_context.finished_height / 2.0 + state["offset_y"],
-                )
-                feature = self.resolved_rect_factory(
-                    center=center, width=hole_w, height=hole_h,
-                    layer="CUTTING", source_type="indicator_box_opening",
+                feature = manufacturing_api.project_operator_hole_editor_indicator_box_opening(
+                    indicator_context, groups,
+                    thickness=context["door_thickness"],
+                    offset_x=state["offset_x"], offset_y=state["offset_y"],
                 )
                 self.render_resolved_features(
                     canvas_obj, [feature], tr, color="#64d2ff"
