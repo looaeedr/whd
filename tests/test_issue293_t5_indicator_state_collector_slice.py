@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
-VIEW = ROOT / "gui_modules" / "editors" / "hole_editor_view.py"
+VIEW = ROOT / "gui_modules" / "editors" / "hole_editor_controls.py"
 TARGET_CALLBACK = "collect_indicator_state"
 
 
