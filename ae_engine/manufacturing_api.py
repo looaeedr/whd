@@ -1879,3 +1879,9 @@ from .receiving_raw_source_cache import (
     project_receiving_raw_source_cache_ticket,
     receiving_raw_source_cache_entry_valid,
 )
+
+# #2517: the Receiving PAD+Base operator's selected Quantity/Set-Bay source
+# belongs to Engine. This does not authorize partial or whole-cabinet MFG.
+from .receiving_pad_base_export_selection import (
+    ReceivingPadBaseExportSource, resolve_receiving_pad_base_export_source,
+)
