@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Selected DXF route and unconfigured Base retry (2026-11-02)
+
+`manufacturing_api.plan_selected_resolved_export_route(snapshot, flags, group_mode=None)` returns frozen `SelectedResolvedExportRoute(vault_composed, legacy_guard_flags)`. It consolidates the already-existing Vault combined-panel dispatch and Receiving EAR/NFB legacy guard policy; a source-verified current CSV must go through the original Engine exporter rather than the obsolete legacy NFB gate. An unverified Receiving EAR-side normal export in Quantity mode is still rejected. This planning result cannot certify physical parts or authorize MFG-2 production.
+
+`manufacturing_api.plan_unconfigured_receiving_base_export_retry(errors, flags)` returns a tuple of operator selection flags with only BasePlate removed **exclusively** for the existing exact unconfigured-base error. Other manufacturing errors, unrelated selections and missing BasePlate return `None`. The GUI alone prompts the operator; declining means no export. If accepted, the remaining sheets must be re-resolved by the same verified Engine pipeline before the outer atomic commit. Original DXF reopening, existing source drift and original Vault/Receiving routes remain mandatory.
+
 ## #2517 Engine-owned logical export checkbox physical inventory
 
 `manufacturing_api.logical_part_present(parts, role)` projects real Door/inner-door, BasePlate/two NFB tiers and BoxBody physical children into the legacy GUI logical role. `manufacturing_api.selected_project_export_flags(snapshot, existing_parts, workspace_parts, requested_flags, has_indicator_box=...)` returns selected existing roles only. A committed Receiving NFB source can augment an old primary-screen inventory from current workspace physical IDs; a missing/unsubmitted source, fixing plate or other Family cannot forge tier BasePlate presence. The GUI collects checkbox values and forwards observed inventory; it cannot decide physical part identities. This remains a read-only selection plan, not a manufacture/CSV/DXF certification. The original FinalScene source gates, NFB/Pad/EAR policy, atomic save and DXF reopen remain mandatory.

@@ -6,6 +6,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 原 DXF 出圖路由與未配置底板的重試資格移回 Engine API（2026-11-02）
+
+原 `gui_modules/project/export_actions.py::_export_selected_resolved_parts` 自行認定金庫型合併模式、Receiving EAR/NFB 已提交 CSV 與舊式出圖前置拒絕的條件；`export_selected_dxf` 用製造錯誤字串判斷是否允許排除尚未配置底板。現在改用現有 Engine `manufacturing_selected_export` 擴充公開 `manufacturing_api.plan_selected_resolved_export_route` 取得 frozen 出圖路由計畫，及 `plan_unconfigured_receiving_base_export_retry` 僅對既有明確未配置底板錯誤產生排除底板之候選操作意圖。GUI 不得自行解釋來源證明、ERROR 或認定缺底板可製造；GUI 仍保有使用者明確同意的對話框，拒絕時不動既有檔，接受後必須以原 Engine 實體來源與嚴格製造 API 重跑。沿用既有 Vault/Receiving API、CURRENT NFB CSV、EAR 側板、PAD、保存來源漂移、DXF 逐片重開及原子輸出，**沒有新增任何製造認證或外部 source-only export**。#2517 OPEN。
+
 ## [CURRENT] #2517 Fold Designer 單件／多片箱身板料渲染路由 Engine API（2026-11-02）
 
 `gui_modules/application/fold_designer_manufacturing_projection._authoritative_render_data` 原本在 GUI 比較 `BoxBodyPartSpec`、`BoxBodyStructureType.INTEGRAL` 與 `normalize_box_body_structure_state`，自行選 `build_part_render_data` 或 `build_box_body_structure_render_data`。現統一呼叫公開 `manufacturing_api.build_operator_part_render_data(spec, context)`；Engine 從同一份 canonical typed `PartSpec` 與結構 state 決定實體板件的單片或多片 FinalScene，GUI 只管理前輪由 Engine 來源證明的 LRU 與結果呈現。沿用原有 Factory Render、完成面規則與舊未知結構相容路由；不另建板件拓撲公式、Family 補償或外部製造通道，正式 DXF/Save→Reload/Registry/Collision 驗證仍不變。#2517 OPEN。

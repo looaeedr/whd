@@ -222,6 +222,9 @@ from .manufacturing_legacy_export_guard import (
 from .manufacturing_selected_export import (
     save_selected_resolved_manufacturing_dxf,
     selected_export_manufacturing_policy,
+    SelectedResolvedExportRoute,
+    plan_selected_resolved_export_route,
+    plan_unconfigured_receiving_base_export_retry,
 )
 from .manufacturing_export_selection import (
     resolved_export_intention_key,

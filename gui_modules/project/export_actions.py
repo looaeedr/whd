@@ -283,9 +283,17 @@ def _export_selected_resolved_parts(self, folder, flags):
             )
         return ([os.path.basename(path) for path in outputs.values()], [])
 
-    if mode_source.get("model") == "金庫型" and group_mode is not None:
+    # Engine owns Vault grouping and Receiving NFB/EAR route policy.
+    # GUI only follows the selected route and collects operator consent.
+    export_route = manufacturing_api.plan_selected_resolved_export_route(
+        mode_source, flags, group_mode,
+    )
+    if export_route.legacy_guard_flags is not None:
+        _assert_legacy_nfb_export_scope_safe(
+            self, dict(export_route.legacy_guard_flags),
+        )
+    if export_route.vault_composed:
         # GUI never projects/serializes manufacturing geometry.
-        _assert_legacy_nfb_export_scope_safe(self, flags)
         resolved = resolver()
         selected = manufacturing_api.select_resolved_export_geometry(
             resolved, flags,
@@ -300,27 +308,8 @@ def _export_selected_resolved_parts(self, folder, flags):
         )
         return ([filename], [])
 
-    # #1503: the original selected-DXF action applies authenticated EAR
-    # positioning marks to LEFT/RIGHT physical side plates automatically.
-    # No extra operator button or forged cabinet/PAD release.
+    # All Receiving EAR/NFB source-route guards are decided by Engine.
     receiving_snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
-    auto_side, committed_csv = manufacturing_api.selected_export_manufacturing_policy(
-        receiving_snapshot, flags,
-    )
-    if auto_side:
-        if receiving_snapshot.get("active_mode") == "quantity":
-            raise ValueError("EAR_SIDE_NORMAL_EXPORT_QUANTITY_NOT_VERIFIED")
-        # For current CSV, the SAME atomic exporter independently proves the
-        # real door, both tier bases, signed formed EARs and side marks. The
-        # obsolete old-supplier-DXF gate must NOT preempt that proof.
-        if not committed_csv:
-            _assert_legacy_nfb_export_scope_safe(self, {**flags, "box_body": False})
-    elif committed_csv and bool(flags.get("door") or flags.get("base_plate")):
-        # Individual CSV sheets use the same current source proof path and
-        # must not be routed back to the obsolete DXF-only legacy guard.
-        pass
-    else:
-        _assert_legacy_nfb_export_scope_safe(self, flags)
     resolved = resolver()
     outputs = manufacturing_api.save_selected_resolved_manufacturing_dxf(
         receiving_snapshot, resolved, flags, folder,
@@ -615,14 +604,6 @@ def export_receiving_ear_side_check_dxf(self):
     return receipt
 
 
-def _is_unconfigured_receiving_base_export_error(errors):
-    """Match only the explicit missing-plate-pattern guard, never arbitrary DXF failures."""
-    return tuple(str(error) for error in errors) == (
-        "canonical resolved export: "
-        "RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING: base_plate",
-    )
-
-
 def export_selected_dxf(self):
     """Batch export selected existing parts through authoritative manufacturing APIs."""
     self._flush_phase6_authoritative_state()
@@ -656,8 +637,11 @@ def export_selected_dxf(self):
         exported, errors = _export_selected_parts(
             self, stage_folder, val, flags, bool(self.draw_stock_var.get())
         )
-        if flags.get("base_plate", False) and _is_unconfigured_receiving_base_export_error(errors):
-            other_flags = {**flags, "base_plate": False}
+        retry_intent = manufacturing_api.plan_unconfigured_receiving_base_export_retry(
+            errors, flags,
+        )
+        if retry_intent is not None:
+            other_flags = dict(retry_intent)
             if not any(other_flags.values()):
                 errors = [
                     "受電箱底板尚未設定實體板型與尺寸。"
