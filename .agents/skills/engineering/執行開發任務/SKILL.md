@@ -22,6 +22,8 @@ whd_schema: WHD_DOC_META_V1
 
 ## GUI／CADSplit 同一套 Engine 製造 API：不准例外
 
+**【不可違反的唯一正式責任鏈】** `GUI／CADSplit 操作來源（來源可不同、Engine 輸入契約相同） → WHD 公開 Engine API〔Family／Policy／Topology／Set-Bay 按需〕 → PartSpec／FinalScene → 同源 2D／3D／DXF → 驗證`。**五條硬規則：① 唯一製造權威 Engine；② 同 Family／Part／Operation 同公開 API 與 canonical 結果；③ 箱型差異只在 Engine Family／Policy／Topology；④ Set/Bay 只按實體操作需要存在，獨立板件不得強迫建立；⑤ 2D／3D／DXF 必須同源並按操作適用範圍完成幾何／來源／DXF Save→Reload 驗證。** **PartSpec 既可由公開 API 接收作為已確認輸入，也可以由 Engine 解析建立；箭頭表示責任而非固定執行時序。** 不准讓 GUI 或 CADSplit 自算製造，也不准開第二條 CADSplit 製造接口。以上服從 AI 庫 04 CURRENT，不是技能自創製造規格。
+
 **WHD GUI 怎麼取得 Engine 的正式製造結果，CADSplit 必須以相同方式取得；唯一差別就是操作資料來源。** 兩端來源分別收集後，轉為同等可信的 Engine Request／PartSpec／Context，再調用同一 Part／Operation 適用的既有公開 `manufacturing_api`，共用 Family／Policy／Registry、physical part、FinalScene、DXF 存取／獨立 reopen。**嚴禁**以 CADSplit 專用製造入口、GUI 內部計算、Bridge/Worker 平行工廠、金庫型猜測參數替代，亦不得把尚未認證的 source-only CLI 拒絕當成原正式 Python Engine API 不可用的藉口，或取消該拒絕來偽造認證。逐件有合法資料先製造、缺資料個別拒絕，完整 Set/Bay 另驗 BOM 與組合。等價可信 Request 在同版 Engine 下，輸出及拒絕不能因 caller 不同而改變。**未經真實雙入口驗證，不得宣稱完工。** 本 Skill 只執行 AI 庫 04 CURRENT，不能另定第二套製造規範。
 
 ## 全域 DC 硬閘門

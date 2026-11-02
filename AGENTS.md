@@ -9,8 +9,6 @@ whd_schema: WHD_DOC_META_V1
 
 ## GUI 僅負責操作／輸入，製造唯一由引擎 API 負責硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1`
 
-- **【最高優先、不可例外】WHD GUI 與 CADSplit 正式製造完全共用 Engine API：WHD GUI 怎樣從 Engine 取得正式製造結果，CADSplit 就必須怎樣取得；唯一可不同的是操作資料來源。** GUI 收操作者輸入與已確認 Project，CADSplit 從原始 DXF→CSV、尺寸、孔位、來源 Set/Bay 關聯與已確認設定收集來源；二者都要形成**同等語意**的 immutable Request／PartSpec／Context，接著使用**相同 Part/Operation 適用的公開 `manufacturing_api` 製造 API**、Family／Topology／Policy／Certified Registry、canonical physical parts／FinalScene、實際 DXF→Save／Reload→獨立 reopen 驗證。**嚴禁**替 CADSplit 或受電箱建立第二套製造 API／Geometry／Bridge exporter、在 CADSplit 自算 Fold／孔位／CUTTING／BEND、呼叫 GUI/Tk 內部製造、拿金庫型預設填補受電箱缺項、以未認證 source-only `dispatch_manufacturing_integration(export)` 取代已具備的正式 Python Engine API，或取消 source-only 防護冒充製造認證。合法板件逐片先出圖、缺資料逐片報錯，宣稱整套／Bay 完成須另外核實實際 Set/Bay 與物理板件／裝配關係；**相同 Engine 版本與等價正式請求下，caller 不得影響製造成功、拒絕或 DXF 語意。** 單板、組合、批次、NFB 各用已存在且適用的公開 API，不強迫全部改走單一函式。這是 AI 庫 04 的 CURRENT 強制產品架構，不是新增治理流程；**未做真實雙入口驗證不得宣稱 CADSplit 已全面接通**。
-
 - **所有箱型／所有功能，不限門板**：金庫型、受電箱、每個實體板件、數量／套／連／Bay、孔、折、截角、組合、2D、3D、DXF 及 Save→Reload 都適用。GUI（`gui.py`、`gui_modules/`、`fold_designer_bridge.py`、`phase6_*.py`）只負責操作者輸入、欄位型別／格式檢查、操作選取、API 呼叫、結果／錯誤呈現；不得持有任何製造公式、成品尺寸推導、板件身分判定、展開孔位／折彎補償、DXF 製造或第二份 canonical geometry。
 - **唯一單向鏈**：GUI → immutable request/PartSpec/Context → Engine 公開 API（或經驗證的外部 Worker operation）→ Family/Topology/Policy/Certified Registry → canonical FinalScene／實體板件／製造結果 → GUI 顯示。Engine 不得反向依賴 GUI/Tk；GUI 不得呼叫 `ae_engine.ae.export_*`、私有 `sheetmetal_*`、`ezdxf`、製造計算或未認證的 fallback。
 - **缺 API 就回引擎補，不讓 GUI 製造**：先實作 Engine API、schema、capability 與定向測試；未完成時 GUI 明確顯示 unsupported/error，不能自推答案或將預覽當作出圖。金庫型／受電箱的每個功能都要能由 API request→response 測試證實；`feature_catalog`、33 組功能盤點、內部 helper、UI 操作存在，不等於已接線／已獲製造授權。資料來源權威仍由 CURRENT 07、Factory Policy、Certified Registry、基準檔負責。
@@ -36,6 +34,21 @@ whd_schema: WHD_DOC_META_V1
 - `X=cleanup/2d-3d-sync` **只在正式發布、發版前比較及其受信任 gate 查核時讀取**；X 的舊 `AGENTS.md` 不得覆蓋 `localX` 的施工／技能／環境選路。X-only 提交不得默默 merge、rebase 或複製到 `localX`。沒有當次 `/推推` 不可發布 X。
 - GitHub repository default `main` 是歷史分支；GitHub fetch/search 未指定 ref 或無法證明所讀分支／HEAD 時不能當成施工證據，必須重讀 `localX`。使用 CoreELEC/RC/DC 不是因為 `localX` 需要本機 checkout，而只在當次使用者明確選擇對應裝置與操作並通過外部核准時採用；一般 `/派工`、BUG 修復、QA、治理改動不探測 CoreELEC。
 - 舊 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 僅供歷史事件分類；現在治理變更也先走 `localX`，不因治理白名單繞過正式 X 的當次 `/推推`（使用者驗收與發布授權）或受信任發布閘門。
+
+## 【不得違反】GUI／CADSplit 製造資料／製造／輸出責任鏈
+
+`GUI／CADSplit 操作來源（來源可不同、Engine 契約相同） → WHD 公開 Engine API〔Family／Policy／Topology／Set-Bay（需要時）〕 → PartSpec／FinalScene → 同源 2D／3D／DXF → 正式驗證`
+
+**五條不可違反的硬規則（使用者 2026-11-02 確認）**
+1. **唯一製造權威**：GUI／CADSplit 只提供操作或來源資料，**絕不可自行決定製造幾何**；製造由 WHD Engine 負責。
+2. **唯一製造結果**：同一 Family、Part、Operation 與等價可信來源，在同版 Engine 必須使用**相同適用公開 API 契約與 canonical 製造結果**；不可依 caller 分流。
+3. **箱型差異只在 Engine**：Family／Policy／Topology／正式 Registry 決定金庫型、受電箱差異；**GUI、CADSplit、Bridge 禁止第二套公式／製造出口**。
+4. **Set/Bay 按需存在**：涉及多盤或裝配的實體 Set／Bay 拓樸及身份由 Engine 管理；**獨立單板件不需也不得被強迫建立 Set/Bay**。
+5. **輸出不可分裂**：2D、3D、DXF 必須由同一 canonical FinalScene／核准等價製造幾何衍生，**不可各算各的**；驗證幾何、來源、DXF Save→Reload／reopen（依操作適用範圍）。
+
+**PartSpec 是製造資料契約而非固定呼叫時序。** 它可以由公開 API 接收為已確認輸入，也可以由 Engine 依來源、Family／Policy 解析建立；上方為**責任鏈，不是強制 API 先被呼叫、PartSpec 才能建立的執行順序**。單板和 Set/Bay／批次／NFB 按操作使用既有適用的公開 API，不強迫全用一個函式。合法板件逐件製造與驗證，缺資料逐件報錯，整套完整性再由 Engine 核對 Set/Bay／BOM／裝配。現行 source-only external CLI 的未認證拒絕維持，不能用它否決已具備的正式 Python Engine API，也不得繞過其資格保護。
+
+**資料提供者：** GUI 收操作／Project；CADSplit 收原 DXF／CSV／尺寸／孔位／來源關聯與已確認設定。**唯一製造者：** WHD Engine 公開 API＋Family／Policy／Topology。**同源輸出：** 2D／3D／DXF 依 Engine canonical 結果，GUI／CADSplit 只呈現或操作輸出，不能自製幾何。以上是 AI 庫 04 CURRENT 強制規則；未實測雙來源等價 Request、DXF reopen、失敗隔離，不得宣稱 CADSplit 全面打通。
 
 ## 所有產品修改前先讀程式與文檔硬閘門 `SOURCE_READ_BEFORE_MUTATION_V1`
 

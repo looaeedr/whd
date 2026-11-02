@@ -11,24 +11,20 @@ whd_schema: WHD_DOC_META_V1
 > **「WHD 的 GUI 怎麼取得 Engine 的製造結果，CADSplit 就應該怎麼取得；差別只有操作資料的來源。」這是強制、不可折衷的正式架構規則，不是提案、建議或可選實作。任何依 caller 區分正式製造路徑的設計都屬架構違規，必須修正。**
 
 ```text
-WHD GUI：操作者欄位／已確認 Project settings ─┐
-                                                ├→ 同等可信的操作輸入／來源證據
-CADSplit：原 DXF → CSV／尺寸／孔位／來源 Set/Bay ┘
-                                 ↓ 僅此一段可因入口不同
-                 同一 Engine Request／PartSpec／Context 語意
-                                 ↓
-            同一適用的 ae_engine.manufacturing_api 公開製造 API
-                                 ↓
-           同一 Family／Topology／Factory Policy／Certified Registry／baseline
-                                 ↓
-             同一 canonical physical parts／Features／FinalScene
-                                 ↓
-                     實際 DXF → Save／Reload → 獨立 reopen
-                                 ↓
-               逐板件結果、缺項／unsupported、來源與版本證據
-                         ↙                     ↘
-                   GUI 顯示                  CADSplit 顯示
+GUI／CADSplit 操作來源（來源可不同、Engine 契約相同） → WHD 公開 Engine API〔Family／Policy／Topology／Set-Bay（需要時）〕 → PartSpec／FinalScene → 同源 2D／3D／DXF → 正式驗證
+
 ```
+
+**五條不可違反的硬規則（使用者 2026-11-02 確認）**
+1. **唯一製造權威**：GUI／CADSplit 只提供操作或來源資料，**絕不可自行決定製造幾何**；製造由 WHD Engine 負責。
+2. **唯一製造結果**：同一 Family、Part、Operation 與等價可信來源，在同版 Engine 必須使用**相同適用公開 API 契約與 canonical 製造結果**；不可依 caller 分流。
+3. **箱型差異只在 Engine**：Family／Policy／Topology／正式 Registry 決定金庫型、受電箱差異；**GUI、CADSplit、Bridge 禁止第二套公式／製造出口**。
+4. **Set/Bay 按需存在**：涉及多盤或裝配的實體 Set／Bay 拓樸及身份由 Engine 管理；**獨立單板件不需也不得被強迫建立 Set/Bay**。
+5. **輸出不可分裂**：2D、3D、DXF 必須由同一 canonical FinalScene／核准等價製造幾何衍生，**不可各算各的**；驗證幾何、來源、DXF Save→Reload／reopen（依操作適用範圍）。
+
+**PartSpec 是製造資料契約而非固定呼叫時序。** 它可以由公開 API 接收為已確認輸入，也可以由 Engine 依來源、Family／Policy 解析建立；上方為**責任鏈，不是強制 API 先被呼叫、PartSpec 才能建立的執行順序**。單板和 Set/Bay／批次／NFB 按操作使用既有適用的公開 API，不強迫全用一個函式。合法板件逐件製造與驗證，缺資料逐件報錯，整套完整性再由 Engine 核對 Set/Bay／BOM／裝配。現行 source-only external CLI 的未認證拒絕維持，不能用它否決已具備的正式 Python Engine API，也不得繞過其資格保護。
+
+**責任：來源由 GUI／CADSplit 提供；製造與 PartSpec 解算由 Engine；2D／3D／DXF 同源輸出並驗證。**
 
 - **唯一差異只在來源收集。** GUI 由人工操作、當前 Project state 與已確認設定組合；CADSplit 使用原始 DXF、來源圖元／把手、CSV、尺寸、孔位／來源關聯、Set/Bay、source key／revision 及已確認 Project/Factory 資料自動取得**等價正式輸入**。CADSplit source label 不是 canonical physical-part identity；物理板件、實際 Factory/Fold/Corner/Topology 與製造准入由 Engine 正式 owner 決定。資料不足就報缺項，**不准**猜測、套金庫型參數、以 UI bbox 反推或要求日常另選外部 JSON／baseline 來湊出假資料。
 - **同一套不代表同一個函式。** 針對**相同的 Part／Operation**，GUI 調用哪個已適用的公開製造 API，CADSplit 就調用**同一 API 與契約**；單板件用適用的 `generate_part`，組合／多板件／Set-Bay／Quantity／NFB 用其原有適用的正式 Engine API。**不准**為 CADSplit／Receiving 另外做製造 executor、重複 Fold、Corner、孔／CUTTING／BEND、組裝、DXF 公式，或讓 CADSplit 調用 GUI／Tk 的內部程序。
