@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 上游 W/H/D/T/FW 實體操作讀取不得掉回 AE 預設（2026-11-02）
+
+- `gui_modules/application/fold_designer_snapshot_projection._snapshot_base_state` 原本用 `float(var.get())`，遇到 W/H/D/T/FW 控制值無效／讀取異常會無聲退回 `ae.W/H/D/T/FW`，令實際操作來源被預設值替換後繞過下游製造檢查。現在 GUI 只負責讀值，傳至 `manufacturing_api.normalize_operator_source_dimension(value, field=...)` 與 `normalize_operator_source_dimensions(snapshot)`（Engine 公開 API），統一拒絕來源缺失、bool、NaN/Inf、零或負值。
+- `_collect_main_setting_values()` 回傳的已套用 Settings 若覆蓋了原物理欄位，在完成快照前亦由 Engine 全面驗證；合法的 W/H/D/T/FW 保留原小數精度，Snapshot 與其中的 Settings payload 不得不一致。其他非實體 UI 欄位延用原容錯，GUI 不新增幾何公式。
+- 此更改只消除入口的假預設和保存不一致；不是把未認證的 CADSplit source-only 視為正式製造輸入，不增加 CUTTING／BEND／DXF 認證，也不發布正式 X。測試 `tests/test_issue2517_fold_designer_snapshot_source_readback_engine_api.py`。
+
 ## [CURRENT] #2517 Fold Designer 指示燈操作來源／快照物理尺寸不得靜默降級（2026-11-02）
 
 - 原 `ae_engine.fold_designer_snapshot_dimensions.project_fold_designer_snapshot_dimensions` 遇到指示燈盒群組或製造 policy 異常，會默默替換成 `groups=(1,)`／預設 `ManufacturingContext()`，讓專案快照看起來像有效的製造來源；現改成 Engine 直接驗證並拒絕無效的層數／組數／成品尺寸，不得把 `bool`、小數群組、零／負數變成實體孔位。既有 public `manufacturing_api.project_fold_designer_snapshot_dimensions` 保持同一入口；新增共享的 `normalize_fold_designer_indicator_groups` 供 GUI 操作來源消費。

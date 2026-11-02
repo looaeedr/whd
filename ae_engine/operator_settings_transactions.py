@@ -12,6 +12,7 @@ from typing import Mapping
 
 
 PHYSICAL_DIMENSION_KEYS = frozenset({"w", "h", "d"})
+PHYSICAL_SNAPSHOT_SOURCE_KEYS = ("w", "h", "d", "t", "fw")
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,30 @@ def _positive_physical_dimension(value: object, key: str) -> float:
     if not math.isfinite(number) or number <= 0:
         raise ValueError(f"{key.upper()} 包外尺寸必須是大於 0 的有限數值")
     return number
+
+
+def normalize_operator_source_dimension(value: object, *, field: str) -> float:
+    """Validate the exact UI-supplied finished physical source before fallback.
+
+    W/H/D, plate thickness T and frame width FW are operator manufacturing
+    inputs. Absence, invalid Tk reads, bool, NaN, zero and negative values must
+    not become AE factory defaults during Fold Designer Save→Reload.
+    """
+    name = str(field).strip().lower()
+    if name not in PHYSICAL_SNAPSHOT_SOURCE_KEYS:
+        raise ValueError(f"未支援的實體來源欄位：{name}")
+    return _positive_physical_dimension(value, name)
+
+
+def normalize_operator_source_dimensions(
+    values: Mapping[str, object],
+) -> dict[str, float]:
+    """Read-only physical snapshot input contract, preserving fractional mm."""
+    source = dict(values)
+    return {
+        key: normalize_operator_source_dimension(source.get(key), field=key)
+        for key in PHYSICAL_SNAPSHOT_SOURCE_KEYS
+    }
 
 
 def normalize_operator_settings_updates(

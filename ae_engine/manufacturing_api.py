@@ -136,6 +136,7 @@ from .operator_box_body_settings_projection import (
 from .operator_settings_transactions import (
     OperatorSettingsCommitTransition, normalize_operator_settings_boolean,
     normalize_operator_settings_updates, commit_operator_settings_state,
+    normalize_operator_source_dimension, normalize_operator_source_dimensions,
 )
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
@@ -2004,7 +2005,6 @@ from .operator_project_persistence import (
 
 # #2517: original inner-door NFB editor physical-source stage is Engine-owned.
 from .receiving_nfb_hole_stage import plan_operator_inner_door_nfb_hole_stage
-
 
 # #2517: original fixing-plate source-flat DXF is source evidence only.
 # Re-export the EXISTING source owner. Never redirect to MFG-2 or an

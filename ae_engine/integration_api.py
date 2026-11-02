@@ -180,6 +180,12 @@ class ManufacturingResolvedBayInput:
     # Exclusive with resolved_geometry; the same Engine renderer resolves them.
     confirmed_parts: tuple[tuple[str, PartSpec], ...] = ()
     door_layout_columns: tuple[tuple[float, tuple[float, ...]], ...] = ()
+    # Additive Engine-owned request path: source provides only original outside
+    # W/H/D/T and the saved/fresh operator decision. CADSplit must not assemble
+    # FW/Fold/Corner or typed physical manufacturing PartSpecs.
+    source_dimensions_mm: Mapping[str, object] | None = None
+    operator_confirmation: str | None = None
+    operator_snapshot: Mapping[str, object] | None = None
 
 
 def _confirmed_door_layout_projections(
@@ -350,11 +356,13 @@ def export_verified_resolved_integration_bays(
 ) -> VerifiedIntegrationBatchExport:
     """Commit trusted Receiving parts after WHD staged DXF verification.
 
-    Either supply already Engine-resolved geometry or complete, confirmed
-    physical PartSpecs for Door/Head/Tail, ordinary LEFT/RIGHT BasePlate,
-    and confirmed three-piece BoxBody;
-    the latter are resolved through the existing physical-piece FinalScene
-    solver, never an exploded layout preview. Raw DXF,
+    Supply Engine-resolved geometry, confirmed physical PartSpecs, or just
+    source W/H/D/T plus an explicitly confirmed fresh-Family/saved-operator
+    state. The last form is resolved entirely by the Engine's existing
+    canonical request builder. Door/Head/Tail, ordinary LEFT/RIGHT BasePlate,
+    and three-piece BoxBody remain independently authored where needed.
+    The existing physical-piece FinalScene is the sole manufacturing solver.
+    Raw DXF,
     JSON, source-only prepare or guessed Factory parameters remain rejected.
     The trusted project owner guards pre-stage and post-reopen commit; the
     retired source-only CLI remains disabled.
@@ -382,7 +390,32 @@ def export_verified_resolved_integration_bays(
         source = item.source
         if not _valid_source(source) or source.set_id is None or source.bay_id is None:
             raise ValueError("RECEIVING_STABLE_SOURCE_SET_BAY_REQUIRED")
-        if item.confirmed_parts:
+        source_request = (
+            item.source_dimensions_mm is not None
+            or item.operator_confirmation is not None
+            or item.operator_snapshot is not None
+        )
+        if source_request:
+            # This is the SAME previously certified verified-geometry/physical
+            # DXF route, not a new exporter or a source-only authorization.
+            if (item.confirmed_parts or item.resolved_geometry is not None
+                    or item.door_layout_columns):
+                raise ValueError("RECEIVING_AMBIGUOUS_MANUFACTURING_INPUT")
+            if item.source_dimensions_mm is None:
+                raise ValueError("RECEIVING_SOURCE_DIMENSIONS_REQUIRED")
+            if context is not None and not isinstance(context, ManufacturingContext):
+                raise TypeError("ManufacturingContext required")
+            confirmed_parts = manufacturing_api.build_receiving_factory_confirmed_parts(
+                item.source_dimensions_mm,
+                confirmation=item.operator_confirmation,
+                operator_snapshot=item.operator_snapshot,
+            )
+            resolved_geometry = _resolve_confirmed_integration_parts(
+                confirmed_parts,
+                family_name=registration.canonical_name,
+                context=context or ManufacturingContext(),
+            )
+        elif item.confirmed_parts:
             if item.resolved_geometry is not None:
                 raise ValueError("RECEIVING_AMBIGUOUS_MANUFACTURING_INPUT")
             if context is not None and not isinstance(context, ManufacturingContext):

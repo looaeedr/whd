@@ -1813,3 +1813,8 @@ manufacturing, DXF reopening, source verification or certificate gates.
 ### #2517 Fold Designer Snapshot Indicator and physical-dimension strict readback
 
 `manufacturing_api.normalize_fold_designer_indicator_groups(values)` checks positive integral group sources, rejecting invalid booleans, fractions and empty lists; `manufacturing_api.project_fold_designer_snapshot_dimensions(snapshot, groups)` no longer substitutes invalid enabled groups or corrupted manufacturing policy with a fabricated default `(1,)` and does not clamp nonphysical Door/BasePlate W/H to 1 mm. The GUI `_snapshot_part_dimensions` validates BOTH enabled Indicator Box and main Door lamp sources before writing any snapshot fields, so invalid enabled inputs fail closed instead of erasing required apertures. Disabled Indicator Box controls retain the old UI-only one-layer size seed. No new certified export is implied.
+
+
+### #2517 Fold Designer source input readback fail-closed
+
+`manufacturing_api.normalize_operator_source_dimension(value, field=...)` and `normalize_operator_source_dimensions(snapshot)` are canonical Engine validation for operator enclosure W/H/D, sheet thickness T and frame width FW before saving Fold Designer projects. Invalid UI control sources cannot silently become factory AE defaults; the GUI revalidates any applied settings overlay and keeps Snapshot and embedded Settings physically identical, preserving fractional mm values. Nonphysical legacy GUI defaults and official manufacturing/DXF certification remain unchanged.

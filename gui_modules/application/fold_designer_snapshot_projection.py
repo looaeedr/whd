@@ -11,13 +11,29 @@ from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bott
 from phase6_settings_center import load_factory_defaults_from_ae
 from gui_modules.parts.panels.door import normalize_door_indicator_state
 
+def _read_snapshot_numeric_control(var, fallback=0.0, *, physical_field=None):
+    """Read only GUI input; Engine rejects unavailable physical source data."""
+    try:
+        raw = var.get()
+    except (TypeError, ValueError, tk.TclError) as exc:
+        if physical_field is not None:
+            raise ValueError(
+                f"{physical_field.upper()} 實體尺寸來源無法讀取，禁止使用預設值"
+            ) from exc
+        return float(fallback)
+    if physical_field is not None:
+        return manufacturing_api.normalize_operator_source_dimension(
+            raw, field=physical_field,
+        )
+    try:
+        return float(raw)
+    except (TypeError, ValueError, OverflowError):
+        return float(fallback)
+
+
 def _snapshot_base_state(self):
     """Project current GUI adapters into the existing Fold Designer snapshot schema."""
-    def number(var, fallback=0.0):
-        try:
-            return float(var.get())
-        except (TypeError, ValueError, tk.TclError):
-            return float(fallback)
+    number = _read_snapshot_numeric_control
 
     workspace_active = str(self.workspace_controller.active_part or "").strip()
     box_body_active_piece = (
@@ -29,11 +45,11 @@ def _snapshot_base_state(self):
     snapshot = {
         "model": self.baseline_var.get().strip(),
         "_runtime_project_path": self.project_controller.project_path,
-        "w": number(self.w_var, ae.W),
-        "h": number(self.h_var, ae.H),
-        "d": number(self.d_var, ae.D),
-        "t": number(self.t_var, ae.T),
-        "fw": number(self.fw_z_var, ae.FW),
+        "w": number(self.w_var, ae.W, physical_field="w"),
+        "h": number(self.h_var, ae.H, physical_field="h"),
+        "d": number(self.d_var, ae.D, physical_field="d"),
+        "t": number(self.t_var, ae.T, physical_field="t"),
+        "fw": number(self.fw_z_var, ae.FW, physical_field="fw"),
         "zl1": number(self.zl1_var, ae.zl1_def),
         "zl2": number(self.zl2_var, ae.zl2_def),
         "zr2": number(self.zr2_var, ae.zr2_def),
@@ -90,8 +106,18 @@ def _snapshot_base_state(self):
     else:
         snapshot["door_layout_columns"] = []
 
-    settings = self._collect_main_setting_values()
+    settings = dict(self._collect_main_setting_values())
     snapshot.update({key: value for key, value in settings.items() if key in snapshot})
+    # Settings overlays cannot bypass the input validator. Preserve the
+    # identical fractional physical source in Snapshot and Settings payload.
+    physical_source = manufacturing_api.normalize_operator_source_dimensions(
+        snapshot
+    )
+    snapshot.update(physical_source)
+    settings.update({
+        key: value for key, value in physical_source.items()
+        if key in settings
+    })
     snapshot["settings"] = dict(settings)
     snapshot["corner_state"] = self._serialize_manual_corner_state()
     snapshot["corner_pair_same"] = deepcopy(self.manual_corner_pair_same)
