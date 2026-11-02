@@ -1135,3 +1135,13 @@ def resize_receiving_bays_with_family_defaults(layout, *, set_index, bay_count):
         expected_count=new_count - before_count,
     )
     return candidate
+
+def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]:
+    """Stable physical Set/Bay/Joint IDs in original canonical saved order."""
+    normalized = normalize_receiving_layout(layout)
+    result: list[str] = []
+    for set_row in normalized["sets"]:
+        result.append(str(set_row["stable_id"]))
+        result.extend(str(row["stable_id"]) for row in set_row["bays"])
+        result.extend(str(row["stable_id"]) for row in set_row["joints"])
+    return tuple(result)

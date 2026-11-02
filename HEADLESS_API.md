@@ -1671,3 +1671,7 @@ Use the existing `manufacturing_api.project_operator_base_navigation_identity(sn
 ### #2517 registered Receiving alias parity for BasePlate / EAR / PAD source projections
 
 `receiving_base_plate_values`, `receiving_base_fixing_plate_previews` and `committed_nfb_pad_draft_parts` now use the same `cabinet_types.policy.canonical_family_name` capability as the public Engine manufacturing API; case/whitespace aliases are not a second source of truth. All existing typed NFB CSV, Bay ownership, physical bend-pattern and staged DXF constraints continue to apply. This read-only/provenance consistency does not release NFB MFG-2, PAD/EAR welding or source-only external exports.
+
+### #2517 Receiving Set/Bay GUI transactions through existing Engine API
+
+`ReceivingSetBayAdapter` calls public `manufacturing_api` for Set/Bay/Joint state transitions, shared setting edit/share/unlink, brand policy and all NFB atomic submit/copy/restore/optimistic Undo transactions, as well as stable ID and readiness projections. Existing Engine receiving_layout/receiving_shared_settings/receiving_nfb_transactions implementations remain the single source of business authority; GUI only owns selection, explicit operator confirmation and temporary dirty/Undo tracking. Source-only and NFB manufacturing approvals are unchanged.
