@@ -7,16 +7,27 @@ on:
     branches: [localX]
     paths:
       - 'ae_engine/**'
+      - 'gui.py'
+      - 'fold_designer_bridge.py'
+      - 'phase6_*.py'
+      - 'gui_modules/**'
       - 'tools/build_api_explorer.py'
+      - 'tools/api_gui_call_index.py'
       - '.github/workflows/whd-api-explorer.yml'
   pull_request:
     branches: [localX]
     paths:
       - 'ae_engine/**'
+      - 'gui.py'
+      - 'fold_designer_bridge.py'
+      - 'phase6_*.py'
+      - 'gui_modules/**'
       - 'tools/build_api_explorer.py'
+      - 'tools/api_gui_call_index.py'
       - 'tests/governance/test_api_explorer.py'
       - '.github/workflows/whd-api-explorer.yml'
       - 'API_INDEX.md'
+      - 'docs/api/**'
   workflow_dispatch:
 
 permissions:

@@ -13,6 +13,11 @@ from html import escape
 import json
 from pathlib import Path
 
+try:
+    from tools.api_gui_call_index import attach_gui_call_sites
+except ModuleNotFoundError:  # direct: python tools/build_api_explorer.py
+    from api_gui_call_index import attach_gui_call_sites
+
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY_MODULES = ("ae_engine/__init__.py", "ae_engine/manufacturing_api.py", "ae_engine/integration_api.py")
 SOURCE_BASE = "https://github.com/looaeedr/whd/blob/localX/"
@@ -162,7 +167,7 @@ def render_markdown(rows: list[dict]) -> str:
         "---",
         "# WHD API 功能／參數／連結 — 自動產生索引",
         "",
-        "**這頁由 \u0060tools/build_api_explorer.py\u0060 從 \u0060ae_engine\u0060 公開 Python 函式自動產生；不手動維護 API 名單。**",
+        "**這頁從 `ae_engine` 公開 Python 函式及 GUI／Phase6 的真實呼叫 AST 自動產生；不手動維護 API 名單。**",
         "",
         "- [網頁式 API 查詢器（需 GitHub Pages 啟用）](https://looaeedr.github.io/whd/api/)",
         "- [HTML 查詢器原始碼](docs/api/index.html)",
@@ -175,6 +180,22 @@ def render_markdown(rows: list[dict]) -> str:
         f"公開 callable 共 **{len(rows)}** 項（依來源檔＋函式去重；可有多個公開 import 路徑）。",
         "",
     ]
+    receiving = [r for r in rows if any(s["scope"] == "receiving" for s in r.get("gui_usage", ()))]
+    lines.extend([
+        f"## 受電箱 GUI 直接呼叫的公開 API（{len(receiving)}）",
+        "",
+        "以下只記錄 AST 中的實際 Python 呼叫位置；共用 GUI／Phase6 函式請在網頁選「全部 GUI／Phase6 呼叫」查詢。"
+        " 靜態呼叫 ≠ 執行成功、API 製造認證或完整 GUI 覆蓋。",
+        "",
+        "| API／原始碼 | GUI 呼叫位置 | 參數簽名 |",
+        "| --- | --- | --- |",
+    ])
+    for row in receiving:
+        sites = [site for site in row["gui_usage"] if site["scope"] == "receiving"]
+        where = "<br>".join("[" + site["source"] + ":" + str(site["line"]) + "](" + site["link"] + ")" for site in sites)
+        safe_signature = row["signature"].replace("|", "\\|")
+        lines.append(f"| [{row['name']}]({row['link']}) | {where} | `{safe_signature}` |")
+    lines.append("")
     for key, title in CATEGORIES:
         subset = [r for r in rows if r["category"] == key]
         lines.extend([f"## {title}（{len(subset)}）", "", "| 功能／原始碼 | Python 呼叫路徑 | 參數與回傳簽名 | 說明／製造範圍 |", "| --- | --- | --- | --- |"])
@@ -190,7 +211,7 @@ def render_markdown(rows: list[dict]) -> str:
     lines.extend([
         "## 自動更新方式",
         "",
-        "GitHub Actions 每次 \u0060localX\u0060 push 會從當次 source 重建網頁查詢器並部署 GitHub Pages（必須啟用 Pages 的 Actions 來源）。",
+        "GitHub Actions 每次 `localX` Engine、GUI／Phase6 或索引產生器相關變更會從當次 source 重建網頁查詢器並部署 GitHub Pages（必須啟用 Pages 的 Actions 來源）。",
         "新加入 \u0060ae_engine.manufacturing_api\u0060／\u0060ae_engine.integration_api\u0060／\u0060ae_engine.__init__\u0060 公開的 Python 函式會自動進入下一版 catalog，含函式簽名、說明與可點擊的原始碼位置。",
         "這份版本化 Markdown 在 PR 建立時使用 \u0060python tools/build_api_explorer.py\u0060 再產生，CI 可檢查是否與程式保持同步；不以 GUI 欄位或測試 helper 假冒正式公開 API。",
         "",
@@ -224,26 +245,29 @@ a{color:LinkText}
 .tablewrap{overflow-x:auto}
 </style></head>
 <body>
-<h1>WHD API 功能、參數與連結</h1>
-<p>自動從 <code>ae_engine</code> 的公開 Python 函式產生。新增 API 後，<code>localX</code> 更新會觸發自動重建；無須人工新增資料列。</p>
-<p class="small">只有同程序 Python API，沒有 HTTP／Swagger endpoint。可列出函式 ≠ 可製造。真正製造取決於可信來源、Engine Family／Policy／Registry、PartSpec 與 Save→Reload 驗證。</p>
+<h1>WHD API｜受電箱 GUI 與 Engine 接線查詢</h1>
+<p>從 <code>ae_engine</code> 公開函式與 GUI／Phase6 實際呼叫位置自動產生。Engine 或 GUI 呼叫變更合入 <code>localX</code> 後，由既有 GitHub Actions 重建網頁。</p>
+<p class="small">「受電箱 GUI」表示受電箱相關原始碼的直接靜態呼叫；共用 GUI 接口另可切換檢視。未命中不表示無間接呼叫。Python API 可見 ≠ 已完成真正 DXF 製造驗收；本網站不是 HTTP／Swagger endpoint。</p>
 <p><a href="https://github.com/looaeedr/whd/blob/localX/HEADLESS_API.md">詳細 API 文件</a> · <a href="https://github.com/looaeedr/whd/blob/localX/API_INDEX.md">Markdown 功能表</a></p>
 <div class="toolbar">
+<select id="scope" aria-label="GUI 呼叫範圍"><option value="receiving">受電箱 GUI 直接呼叫</option><option value="gui">全部 GUI／Phase6 直接呼叫</option><option value="all">所有公開 Engine API</option><option value="unused">GUI 無直接呼叫記錄</option></select>
 <input id="search" type="search" placeholder="搜尋功能、Python API、參數或說明" aria-label="搜尋 API">
 <select id="cat" aria-label="功能分類"><option value="">所有功能</option>CAT_OPTIONS</select>
 </div>
 <p id="count" role="status"></p>
-<div class="tablewrap"><table><thead><tr><th>功能／原始碼</th><th>Python 呼叫入口</th><th>參數與回傳</th><th>用途／狀態</th></tr></thead><tbody id="items"></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>功能／原始碼</th><th>Python 呼叫入口</th><th>參數與回傳</th><th>用途／製造範圍</th><th>GUI 呼叫證據</th></tr></thead><tbody id="items"></tbody></table></div>
 <script>
 const rows = API_DATA;
-const search = document.getElementById("search"), cat = document.getElementById("cat");
+const search = document.getElementById("search"), cat = document.getElementById("cat"), scope = document.getElementById("scope");
 const items = document.getElementById("items"), count = document.getElementById("count");
 function el(tag, parent, value) {const n=document.createElement(tag);if(value!==undefined)n.textContent=value;parent.appendChild(n);return n}
 function draw() {
  const q=search.value.trim().toLocaleLowerCase();
  const filtered=rows.filter(r=>(!cat.value||r.category===cat.value)&&
- (!q||[r.name,r.signature,r.doc,r.status,...r.entrypoints].join(" ").toLocaleLowerCase().includes(q)));
- count.textContent="符合 "+filtered.length+" / "+rows.length+" 項公開函式";
+ (scope.value==="all" || (scope.value==="receiving" && r.gui_usage.some(s=>s.scope==="receiving")) ||
+ (scope.value==="gui" && r.gui_usage.length>0) || (scope.value==="unused" && !r.gui_usage.length))&&
+ (!q||[r.name,r.signature,r.doc,r.status,...r.entrypoints,...r.gui_usage.map(s=>s.source)].join(" ").toLocaleLowerCase().includes(q)));
+ count.textContent="符合 "+filtered.length+" / "+rows.length+" 項公開函式（靜態呼叫證據，非製造認證）";
  items.replaceChildren();
  for(const r of filtered){
    const tr=el("tr",items);
@@ -251,15 +275,18 @@ function draw() {
    const c2=el("td",tr);for(const path of r.entrypoints){el("code",c2,path);el("div",c2);}
    el("code",el("td",tr),r.signature);
    const c4=el("td",tr);el("div",c4,r.doc);el("small",c4,r.status);
+   const c5=el("td",tr);const sources=scope.value==="receiving" ? r.gui_usage.filter(s=>s.scope==="receiving") : r.gui_usage;
+   if(!sources.length){el("small",c5,"未發現 GUI 直接呼叫");}
+   for(const site of sources){const a=el("a",c5,site.source+":"+site.line+"（"+(site.scope==="receiving"?"受電箱":"共用")+"）");a.href=site.link;a.target="_blank";a.rel="noopener noreferrer";el("div",c5);}
  }
 }
-search.addEventListener("input",draw);cat.addEventListener("change",draw);draw();
+search.addEventListener("input",draw);cat.addEventListener("change",draw);scope.addEventListener("change",draw);draw();
 </script></body></html>
 """.replace("API_DATA",data).replace("CAT_OPTIONS",options)
 
 
 def generate(root: Path = ROOT) -> tuple[str, str, list[dict]]:
-    rows = find_public_api(root)
+    rows = attach_gui_call_sites(root, find_public_api(root))
     return render_markdown(rows), render_html(rows), rows
 
 
