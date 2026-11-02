@@ -129,11 +129,15 @@ def single_door_render_snapshot(host):
         try:
             count = max(1, int(host.indicator_l_var.get()))
             groups = tuple(int(host.indicator_layer_g_vars[i].get()) for i in range(count))
-            indicator_hole = manufacturing_api.indicator_box_opening_size(
-                groups, thickness=door_val["t"]
-            )
-        except Exception:
-            indicator_hole = None
+        except (TypeError, ValueError, IndexError) as exc:
+            # Do not manufacture a plausible *unperforated* Door when the
+            # operator explicitly requested an indicator-box opening.
+            raise ValueError("指示燈盒層數／組數無效，門板預覽不可省略開孔") from exc
+        # The Engine alone determines the actual physical opening and rejects
+        # incompatible group/T sources; never recover by dropping the cutout.
+        indicator_hole = manufacturing_api.indicator_box_opening_size(
+            groups, thickness=door_val["t"]
+        )
 
     door_indicator = None
     if host.is_door_indicator_var.get():
@@ -142,8 +146,9 @@ def single_door_render_snapshot(host):
             door_indicator = tuple(
                 int(host.door_indicator_layer_g_vars[i].get()) for i in range(count)
             )
-        except Exception:
-            door_indicator = None
+        except (TypeError, ValueError, IndexError) as exc:
+            # The requested physical lamp/nameplate source cannot become NONE.
+            raise ValueError("門上指示燈層數／組數無效，門板預覽不可省略指示燈") from exc
 
     spec = host._single_door_part_spec(
         door_val, indicator_hole=indicator_hole, door_indicator=door_indicator
