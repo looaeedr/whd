@@ -1988,3 +1988,9 @@ from .operator_project_persistence import (
 
 # #2517: original inner-door NFB editor physical-source stage is Engine-owned.
 from .receiving_nfb_hole_stage import plan_operator_inner_door_nfb_hole_stage
+
+# #2517: physical Receiving BasePlate Part Session source is Engine-owned.
+from .operator_part_session_profiles import (
+    project_operator_part_activation_profiles,
+    project_operator_receiving_base_plate_save_profiles,
+)
