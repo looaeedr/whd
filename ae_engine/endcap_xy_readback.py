@@ -6,6 +6,7 @@ material FW, and canonical EndCap topology. No GUI/Phase6 reverse import.
 """
 from __future__ import annotations
 from collections.abc import Mapping, Sequence
+from math import isfinite
 from .cabinet_types import policy as cabinet_family_policy
 from .box_body_fold_profile import _num, _ui_len, _common_dimension_len
 
@@ -30,6 +31,17 @@ def project_manufacturing_endcap_bottom_fold_inputs(endcap_profiles) -> dict[str
         profile = sources.get(part_key) or {}
         for segment in list(dict(profile).get("Y", ()) or ()):
             if str(segment.get("phase6_key") or "") == "ybottom1":
+                # Legacy _num() treats nonnumeric input as zero for display.
+                # An actual manufacturing-request source may not invent 0 mm.
+                raw = segment.get("len")
+                if isinstance(raw, bool):
+                    raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID")
+                try:
+                    measured = float(raw)
+                except (TypeError, ValueError, OverflowError) as exc:
+                    raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID") from exc
+                if not isfinite(measured):
+                    raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID")
                 values[target] = float(fold_material_segment_outside_length(segment))
                 break
     return values
