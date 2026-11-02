@@ -95,6 +95,13 @@ def test_saved_confirmed_engine_state_uses_actual_physical_profiles_not_fresh_fa
         )
         for part in ("head", "tail")
     }
+    saved["endcap_corner_policies"] = {
+        part: family_policy.endcap_corner_policy(
+            "受電箱", frame_width=saved["fw"], thickness=saved["t"],
+            state=saved["box_body_structure_state"],
+        )
+        for part in ("head", "tail")
+    }
     before = deepcopy(saved)
     parts = _build(source, confirmation="saved_operator_confirmed", operator_snapshot=saved)
     assert saved == before
