@@ -61,10 +61,8 @@ class SettingsCommitTransition:
     committed: dict[str, object]
 
 
-@dataclass(frozen=True)
-class BottomWrapTransition:
-    state: dict[str, object]
-    resolved: dict[str, object]
+# Compatibility type; only Engine owns the WRAP transaction/result.
+BottomWrapTransition = manufacturing_api.OperatorBottomWrapTransition
 
 
 CornerStateTransition = manufacturing_api.CornerStateTransition
@@ -198,16 +196,9 @@ def endcap_fw_follow(
     part_key: str,
     follow_box: bool,
 ) -> dict:
-    snapshot = deepcopy(dict(input_snapshot))
-    snapshot.update(deepcopy(dict(settings_values)))
-    state = deepcopy(dict(endcap_fw_state or {}))
-    set_endcap_fw_follow(
-        state,
-        str(part_key),
-        bool(follow_box),
-        box_fw=_num(snapshot.get("fw", 25), 25),
+    return manufacturing_api.operator_endcap_fw_follow(
+        input_snapshot, settings_values, endcap_fw_state, part_key, follow_box,
     )
-    return state
 
 
 def endcap_fw_override(
@@ -217,16 +208,9 @@ def endcap_fw_override(
     part_key: str,
     value: object,
 ) -> dict:
-    snapshot = deepcopy(dict(input_snapshot))
-    snapshot.update(deepcopy(dict(settings_values)))
-    state = deepcopy(dict(endcap_fw_state or {}))
-    commit_endcap_fw(
-        state,
-        str(part_key),
-        _num(value),
-        box_fw=_num(snapshot.get("fw", 25), 25),
+    return manufacturing_api.operator_endcap_fw_override(
+        input_snapshot, settings_values, endcap_fw_state, part_key, value,
     )
-    return state
 
 
 def bottom_wrap(
@@ -237,25 +221,9 @@ def bottom_wrap(
     reserve_u: float,
     reserve_v: float,
 ) -> BottomWrapTransition:
-    snapshot = deepcopy(dict(input_snapshot))
-    state = deepcopy(dict(endcap_bottom_wrap_state or {}))
-    if not state:
-        state.update(normalize_endcap_bottom_wrap_state(snapshot))
-    commit_endcap_bottom_wrap(
-        state,
-        str(part_key),
-        reserve_u=float(reserve_u),
-        reserve_v=float(reserve_v),
-    )
-    snapshot["endcap_bottom_wrap"] = deepcopy(state)
-    resolved = resolve_endcap_bottom_wrap(
-        snapshot,
-        str(part_key),
-        state=state,
-    )
-    return BottomWrapTransition(
-        state=deepcopy(state),
-        resolved=deepcopy(resolved),
+    return manufacturing_api.operator_endcap_bottom_wrap(
+        input_snapshot, endcap_bottom_wrap_state, part_key,
+        reserve_u=reserve_u, reserve_v=reserve_v,
     )
 
 
@@ -265,11 +233,8 @@ def endcap_edge_relation(
     edge: str,
     relation: object,
 ) -> dict:
-    return set_part_edge_relation(
-        deepcopy(dict(input_snapshot)),
-        str(part_key),
-        str(edge).upper(),
-        relation,
+    return manufacturing_api.operator_endcap_edge_relation(
+        input_snapshot, part_key, edge, relation,
     )
 
 

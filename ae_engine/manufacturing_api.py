@@ -113,6 +113,11 @@ from .corner_state_transactions import (
     ensure_corner_part, corner_selection, corner_targets, commit_corner_pair,
     commit_corner_type, commit_corner_mode, commit_corner_parameters, apply_corner_preset,
 )
+from .operator_endcap_settings_transactions import (
+    OperatorBottomWrapTransition, operator_endcap_fw_follow,
+    operator_endcap_fw_override, operator_endcap_bottom_wrap,
+    operator_endcap_edge_relation,
+)
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
     ENDCAP_BOTTOM_WRAP_MODES, normalize_endcap_bottom_wrap_state,
