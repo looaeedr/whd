@@ -6,6 +6,17 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 canonical resolver uses saved Family when live model is omitted
+
+The existing `manufacturing_api.resolve_manufacturing_request` consumes the
+immutable `ManufacturingResolveRequest`. The Engine's single Family resolver
+uses `resolve_live_cabinet_family(input_snapshot, live_model=cabinet_model)`:
+the explicit live selection takes precedence, otherwise the saved snapshot
+`model/cabinet_type` remains authoritative, including `receiving` aliases.
+Empty and historical unknown-model behavior remains compatible. This choice
+feeds both EndCap Relief and Receiving Joint MARKING/PAIRING, without creating
+a second executor, guessing Factory policy or certifying any new DXF.
+
 ## #2517 canonical Receiving three-piece DXF baseline Family alias
 
 `manufacturing_api.build_box_body_structure_render_data` resolves `受電箱` and every
