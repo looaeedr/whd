@@ -6,6 +6,17 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 canonical resolver uses saved Family when live model is omitted
+
+The existing `manufacturing_api.resolve_manufacturing_request` consumes the
+immutable `ManufacturingResolveRequest`. The Engine's single Family resolver
+uses `resolve_live_cabinet_family(input_snapshot, live_model=cabinet_model)`:
+the explicit live selection takes precedence, otherwise the saved snapshot
+`model/cabinet_type` remains authoritative, including `receiving` aliases.
+Empty and historical unknown-model behavior remains compatible. This choice
+feeds both EndCap Relief and Receiving Joint MARKING/PAIRING, without creating
+a second executor, guessing Factory policy or certifying any new DXF.
+
 ## #2517 canonical Receiving three-piece DXF baseline Family alias
 
 `manufacturing_api.build_box_body_structure_render_data` resolves `受電箱` and every
@@ -1632,6 +1643,14 @@ or DXF is newly synthesized or certified.
 ### #2517 Confirmed Receiving multi-Door layout → verified Engine DXF
 
 `ManufacturingResolvedBayInput(family="受電箱", source=..., confirmed_parts=(("door_c1_r1", DoorPartSpec(...)), ...), door_layout_columns=((width, (height, ...)), ...))` extends the same `export_verified_resolved_integration_bays` API without a new exporter. The existing Engine `door_part_projections` validates the complete physical Door grid, W/H, T/FW/gap and FrameEdges, and compares BoxBody W/H when supplied. Reject incomplete or drifted layout before DXF output. Existing single-Door, Factory/Registry, verified staged Save→Reload and source-only refusal are unchanged.
+
+## #2517 Receiving operator projections (Engine API, 2026-11-02)
+
+`manufacturing_api.receiving_default_box_dimensions()` returns a fresh W/H/D mapping from the registered Receiving Family defaults. `manufacturing_api.receiving_default_preview_dimensions(snapshot)` returns a W/H/D tuple for the current quantity or Set/Bay settings mode; it never manufactures geometry. `manufacturing_api.receiving_family_supports_back_panel_mode(snapshot)` resolves the registered Receiving Family (including its aliases). `manufacturing_api.receiving_back_panel_mode_control_applicable(snapshot, structure_state)` additionally requires the existing three-piece side/back split structure. The Receiving GUI consumes these APIs without importing the private Family policy or mutable defaults; Vault and source-only external manufacturing permissions are unchanged.
+
+## #2517 Engine-owned Quantity manufacturing replay (2026-11-02)
+
+`manufacturing_api.build_operator_quantity_manufacturing_requests(base_request, workspace_snapshot)` replays saved Quantity versions with canonical EndCap Features and source fingerprints. `manufacturing_api.resolve_operator_quantity_manufacturing_batch(base_request, workspace_snapshot, resolve_request=...)` derives the same physical BOM plus committed Receiving PAD evidence using the existing geometry resolver, without inventing an exporter. The two old `phase6_quantity_manufacturing` functions are compatibility routes. A registered Receiving alias is resolved by the Engine Family policy, including mixed/lowercase selector values. This read-only/verified request path is not source-only CLI manufacturing certification.
 
 ### #2517 Receiving BasePlate canonical aliases and existing verified batch DXF
 

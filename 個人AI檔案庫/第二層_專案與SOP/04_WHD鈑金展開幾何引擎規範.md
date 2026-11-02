@@ -6,6 +6,16 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Quantity 多版本製造請求／PAD BOM 完整 Engine API（2026-11-02）
+
+`manufacturing_api.build_operator_quantity_manufacturing_requests(base_request, workspace_snapshot)` 與 `resolve_operator_quantity_manufacturing_batch(base_request, workspace_snapshot, resolve_request=...)` 將原 `phase6_quantity_manufacturing` 的版本專屬 Head/Tail PartSpec／來源 Features、Receiving singleton Bay／NFB alias 投影、fingerprint 及已解析 PAD 物理數量 BOM 一次遷回 Engine；GUI 舊函式只保留呼叫相同公開 API 的薄相容層。現有 `phase6_manufacturing_service.resolve` 可作同程序既有解析回呼，不是新的 GUI 製造演算法或外部 Worker。受電箱任意大小寫 `RECEIVING` alias 經 `cabinet_types.policy.canonical_family_name` 同一 Family owner 判斷，不再由 GUI 寫兩字串特例；`manufacturing_cache_signature` 同樣正規化來源 Family 的 W/H/D live override。原數量／版本語意、現有切板 DXF Gate、來源與 Save→Reload 契約不擴權；未驗證 PAD 或 NFB 不因此放行。#2517 OPEN。
+
+
+## [CURRENT] #2517 Receiving 操作預設／後板模式 GUI→Engine 公開 API（2026-11-02）
+
+`manufacturing_api.receiving_default_box_dimensions` 由受電箱現有 Family `BOX_BODY_DEFAULTS` 提供獨立 W/H/D 拷貝；`receiving_default_preview_dimensions` 由已保存 quantity／Set-Bay snapshot 決定唯讀尺寸。後板模式顯示與切換的 Family alias 條件交由 `receiving_family_supports_back_panel_mode`，三片式側背分離拓樸適用條件由 `receiving_back_panel_mode_control_applicable` 決定。GUI `receiving_multi_settings_window` 與 `fold_designer_composition_receiving` 只顯示、傳送 snapshot 與控制指令；舊模式暫存、保存結構、獨立尺寸、舊金庫型製造 API 及受電箱 DXF 出口均不變。本批不宣稱 NFB／內門／外部 source-only 製造認證；#2517 OPEN。
+
+
 ## [CURRENT] #2517 共用單板製造拒絕已註冊但未實作 Family（2026-11-02）
 
 `manufacturing_api.generate_part(PartSpec, output_path, context)` 在建立目錄或暫存 DXF 前，呼叫既有 Family Registry owner 的 `cabinet_types.policy.require_implemented_manufacturing_family(spec.model_name)`；若 `RO/落地盤` 之類已註冊 Family 仍為 `implemented=False`，須回 `CABINET_FAMILY_NOT_IMPLEMENTED` 且不執行 exporter、不得建立 DXF。金庫型、受電箱（含 alias）沿既有正式單板 API 及各 Part 專屬來源 gate 繼續；`model_name=None` 與尚未建檔的歷史工廠字串為相容目的暫保留既有行為，不能把此相容視作製造認證。此 gate 只是「已知但未實作 Family 不得偷用舊公式」的必要條件，**不**聲稱所有 Family×Part×Operation 已經通過正式 Registry／DXF 核可。source-only `dispatch_manufacturing_integration(export)` 的拒絕維持原樣，#2517 OPEN。
@@ -16,6 +26,10 @@ whd_schema: WHD_DOC_META_V1
 
 
 > 本文件的 CURRENT 區只描述 **現行 ae_engine 製造架構、公開 API 與 authority boundary**。實際 Corner/Relief 製造公式仍由 Certified Registry 與其 canonical references 擁有；本文件不得複製一套第二公式來源。
+
+## [CURRENT] #2517 Canonical Resolver 的已保存 Family 與 live override 同源（2026-11-02）
+
+`manufacturing_resolver._cabinet_family(ManufacturingResolveRequest)` 現直接沿用既有 `resolve_live_cabinet_family(input_snapshot, live_model=request.cabinet_model)`，而非只用 `cabinet_model` 一欄；當同程序 Python caller 沒有重複填寫 live model，已保存 snapshot 的 `model/cabinet_type` 仍是正式 Family 權威，含受電箱大小寫 alias。明確提供的 live selector 照既有 precedence 優先於舊 snapshot；全空時保留金庫型既有相容 default，未註冊歷史型號也不因本次改動全域停用。這個 Family 結果同時供既有 EndCap relief 及 Receiving Joint MARKING/PAIRING 的 canonical 分派，不讓 Receiving snapshot 默默落成 Vault；不是新製造 executor、不變更 Fold/Corner/Registry、也不因選到 Receiving 自動發出 DXF 放行。GUI 不新增任何 Family 推導；#2517 OPEN。
 
 ## [CURRENT] #2517 Receiving Family alias 三片實體基準源／FinalScene 防繞過（2026-11-02）
 
