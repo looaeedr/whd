@@ -130,7 +130,7 @@ def test_real_multi_door_indicator_uses_same_part_spec_and_independent_dxf(tmp_p
                         offset_x=0.0, offset_y=0.0)
     spec = gui._door_part_spec_from_payload_context(
         host, {"door_layout_indicator_states": {"0:0": source}},
-        500.0, 600.0, 2.0, 25.0, "金庫型", False, (), None, cell,
+        800.0, 1600.0, 2.0, 25.0, "金庫型", False, (), None, cell,
     )
     assert spec.door_indicator == (1, 1)
     render = api.build_part_render_data(spec)
