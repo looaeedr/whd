@@ -1368,6 +1368,18 @@ def project_fold_designer_snapshot_dimensions(snapshot, indicator_layer_groups):
 
 
 
+def project_operator_box_body_face_dimensions(
+    *, w: object, h: object, d: object,
+) -> dict[str, tuple[float, float]]:
+    """Existing canonical BoxBody face map after strict operator source checks."""
+    from .sheetmetal_feature_core import box_body_face_dimensions
+    values = {
+        key: normalize_operator_source_dimension(raw, field=key)
+        for key, raw in (("w", w), ("h", h), ("d", d))
+    }
+    return box_body_face_dimensions(**values)
+
+
 def project_fold_designer_snapshot_part_features(
     snapshot, surface_features, door_layout_features,
 ):
