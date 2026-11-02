@@ -56,9 +56,14 @@ def test_nfb_tier_must_be_real_submitted_receiving_physical_part():
             "base_plate:nfb_layer:1", {}, {**current,"model":"金庫型"},
             cached_geometry=scene,
         )
+    with pytest.raises(ValueError, match="SOURCE_UNAVAILABLE"):
+        api.resolve_operator_receiving_base_2d_source(
+            "base_plate:nfb_layer:0", {}, current, cached_geometry=scene,
+        )
     with pytest.raises(ValueError, match="PHYSICAL_PART_MISSING"):
         api.resolve_operator_receiving_base_2d_source(
             "base_plate:nfb_layer:0", {}, current, cached_geometry=scene,
+            resolve_geometry=lambda: scene,
         )
 
 
