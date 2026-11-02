@@ -113,6 +113,52 @@ def normalize_operator_hole_editor_indicator_state(raw: Mapping[str, object]) ->
                 is_box_dist=is_box_dist)
 
 
+def project_operator_door_cell_indicator_manufacturing_source(raw):
+    """Validate saved Door-cell indicator inputs before creating physical holes.
+
+    Legacy enabled/box_enabled flags select only the mode; they never supply
+    a missing physical layer/group. Disabled old cells remain valid plain doors.
+    Active holes use the same strict Engine source gate as the Hole Editor.
+    """
+    if raw is None:
+        return normalize_operator_hole_editor_indicator_state({"mode": "none"})
+    if not isinstance(raw, Mapping):
+        raise ValueError("門格指示燈製造來源必須是有效物件")
+    mode = raw.get("mode")
+    if mode not in ("none", "indicator", "indicator_box"):
+        # Old saved cells may have only explicit enabled flags. Preserve that
+        # legacy identity, but never repair the physical groups or dimensions.
+        def legacy_flag(key):
+            value = raw.get(key, False)
+            if isinstance(value, bool):
+                return value
+            if type(value) is int and value in (0, 1):
+                return bool(value)
+            if isinstance(value, str):
+                normalized = value.strip().lower()
+                if normalized in ("1", "true", "yes", "on"):
+                    return True
+                if normalized in ("0", "false", "no", "off", ""):
+                    return False
+            raise ValueError("門格指示燈啟用來源無效")
+        box_enabled = legacy_flag("box_enabled")
+        direct_enabled = legacy_flag("enabled")
+        if box_enabled and direct_enabled:
+            raise ValueError("門格指示燈互斥模式來源無效")
+        mode = ("indicator_box" if box_enabled else
+                "indicator" if direct_enabled else "none")
+    return normalize_operator_hole_editor_indicator_state({
+        "mode": mode,
+        "layers": raw.get("layers"),
+        "groups": raw.get("groups"),
+        # Old saved offsets defaulted to zero on missing keys, never on bad
+        # present data. Their physical meaning stays Engine validated.
+        "offset_x": raw.get("offset_x", 0.0),
+        "offset_y": raw.get("offset_y", 0.0),
+        "is_box_dist": raw.get("is_box_dist", False),
+    })
+
+
 def _require_positive_source_length(raw: object, field: str) -> float:
     if isinstance(raw, bool):
         raise ValueError(f"{field} 必須是正數有限的物理尺寸")

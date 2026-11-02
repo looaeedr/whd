@@ -1849,3 +1849,7 @@ manufacturing, DXF reopening, source verification or certificate gates.
 ## #2517 Primary Receiving BasePlate / BoxBody 2D source route (2026-11-03)
 
 `manufacturing_api.uses_operator_receiving_committed_2d_source(snapshot)` is a source-routing predicate that resolves model aliases using the same registered Family owner as manufacturing. For a Receiving source the GUI must pass already committed geometry to the existing public `project_receiving_base_plate_2d_snapshot` / `project_receiving_box_body_2d_source` APIs; a missing live resolver is a hard error, never an implicit legacy panel fallback. The predicate neither manufactures a sheet nor certifies NFB/EAR or external CLI export. Vault/unregistered project models retain their previous presentation path.
+
+## #2517 Fold Designer multi-door Indicator / CustomFold manufacturing request (2026-11-03)
+
+Use `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)` on the saved *raw* per-cell Indicator state before any PartSpec, not GUI compatibility normalization: the existing Engine live-Indicator contract checks active layer counts, group counts and offsets, while disabled cells remain plain doors. Explicit legacy mode flags select only mode, not missing physical geometry. `manufacturing_api.custom_part_spec` is the same headless CustomFold PartSpec used by the GUI payload and independent DXF export, including Family aliases and canonical X/Y fold data. No second exporter, no external source-only CLI authorization.
