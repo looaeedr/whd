@@ -199,10 +199,10 @@ def _query_receiving_resolved_base_render_data(self, key, payload):
 
 
 def _query_fold_designer_render_data(self, part_key, payload):
-    from ae_engine.physical_sheet_features import with_physical_sheet_features
-
     def sheet(render):
-        return with_physical_sheet_features(str(part_key), render, (payload or {}).get('features', ()))
+        return manufacturing_api.with_physical_sheet_features(
+            str(part_key), render, (payload or {}).get('features', ()),
+        )
     if str(part_key or "").startswith("indicator"):
         payload = collect_indicator_box_input(payload)
     if str(part_key or "").startswith("box_body:part:"):
@@ -236,33 +236,26 @@ def _query_fold_designer_render_data(self, part_key, payload):
         # factories: those read dedicated physical baseline source data.
         snapshot = _read_live_receiving_snapshot(self)
         owner = getattr(self, "_derived_cache_owner", None)
-        eligible = (
-            isinstance(snapshot, Mapping)
-            and snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("active_mode") == "set_bay"
-            and isinstance(owner, Phase6DerivedCacheOwner)
+        # Engine owns physical panel identity, active Bay Family and the
+        # deterministic source-free Feature signature. GUI owns only the LRU.
+        fingerprint = (
+            manufacturing_api.project_operator_inner_door_panel_preview_cache_signature(
+                snapshot, panel, features,
+            )
+            if isinstance(owner, Phase6DerivedCacheOwner) else None
         )
-        if eligible:
-            from phase6_manufacturing_contracts import manufacturing_fingerprint
-            try:
-                # No arbitrary repr fallback: unknown feature/part input must
-                # be manufactured normally instead of guessed equivalent.
-                fingerprint = manufacturing_fingerprint(
-                    {"panel": panel, "features": features})
-            except (TypeError, ValueError, OverflowError):
-                fingerprint = None
-            if fingerprint is not None:
-                history = owner._receiving_inner_door_panel_history
-                if fingerprint in history:
-                    history.move_to_end(fingerprint)
-                    return history[fingerprint]
-                material = manufacturing_api.build_inner_door_panel_render_data(
-                    panel, features=features)
-                history[fingerprint] = material
+        if fingerprint is not None:
+            history = owner._receiving_inner_door_panel_history
+            if fingerprint in history:
                 history.move_to_end(fingerprint)
-                while len(history) > 8:
-                    history.popitem(last=False)
-                return material
+                return history[fingerprint]
+            material = manufacturing_api.build_inner_door_panel_render_data(
+                panel, features=features)
+            history[fingerprint] = material
+            history.move_to_end(fingerprint)
+            while len(history) > 8:
+                history.popitem(last=False)
+            return material
         return manufacturing_api.build_inner_door_panel_render_data(
             panel, features=features,
         )

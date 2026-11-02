@@ -6,6 +6,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 實體 2D 板件孔位與受電箱內門板快取資格 Engine API（2026-11-02）
+
+`gui_modules/application/fold_designer_manufacturing_projection._query_fold_designer_render_data` 不再從 GUI 直接 import `ae_engine.physical_sheet_features.with_physical_sheet_features` 做展開板件孔位幾何，也不在 GUI 判斷 Receiving Family/Set-Bay 或呼叫 `phase6_manufacturing_contracts.manufacturing_fingerprint` 取得內門板素材快取鍵。前者由既有實體孔位函式直接經公開 `manufacturing_api.with_physical_sheet_features` 傳入同源實體 Render/Features；後者由 `manufacturing_api.project_operator_inner_door_panel_preview_cache_signature(snapshot, panel, features)` 在 `ae_engine.receiving_raw_source_cache` 統一校驗實體 `InnerDoorPanelPart`、Family、當前實體 Bay 與 typed Feature 指紋，並與既有 panel ticket 共用算法。GUI 只保留對不可變素材的 LRU、操作者輸入與畫面呈現；簽章只證明 raw preview 輸入相同，不能當作製造、CUTTING、外部 export 或 Save→Reload 認證。#2517 OPEN。
+
 ## [CURRENT] #2517 Fold Designer 單件／多片箱身板料渲染路由 Engine API（2026-11-02）
 
 `gui_modules/application/fold_designer_manufacturing_projection._authoritative_render_data` 原本在 GUI 比較 `BoxBodyPartSpec`、`BoxBodyStructureType.INTEGRAL` 與 `normalize_box_body_structure_state`，自行選 `build_part_render_data` 或 `build_box_body_structure_render_data`。現統一呼叫公開 `manufacturing_api.build_operator_part_render_data(spec, context)`；Engine 從同一份 canonical typed `PartSpec` 與結構 state 決定實體板件的單片或多片 FinalScene，GUI 只管理前輪由 Engine 來源證明的 LRU 與結果呈現。沿用原有 Factory Render、完成面規則與舊未知結構相容路由；不另建板件拓撲公式、Family 補償或外部製造通道，正式 DXF/Save→Reload/Registry/Collision 驗證仍不變。#2517 OPEN。

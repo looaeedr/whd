@@ -47,6 +47,31 @@ def receiving_raw_source_cache_kind(part_key, payload):
     return None
 
 
+def _source_free_panel_signature(panel, features):
+    """Same typed panel + finished-face features, never a GUI repr fallback."""
+    try:
+        return manufacturing_fingerprint({
+            "panel": panel, "features": tuple(features or ()),
+        })
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def project_operator_inner_door_panel_preview_cache_signature(snapshot, panel, features):
+    """Return exact Receiving panel preview reuse key, or None if ineligible.
+
+    Source-free physical inner-door panels have no baseline file to witness.
+    The Engine validates Family, active real Bay mode, panel identity and
+    deterministic typed Feature input; a signature cannot approve DXF export.
+    """
+    from .inner_door_panels import InnerDoorPanelPart
+    if not isinstance(panel, InnerDoorPanelPart):
+        return None
+    if receiving_raw_source_cache_kind(panel.stable_id, snapshot) != "panel":
+        return None
+    return _source_free_panel_signature(panel, features)
+
+
 def _source_stamp(path: Path):
     """Parser revision and exact source bytes both affect cache validity."""
     return str(path), baseline_source_fingerprint(path), sha256(path.read_bytes()).hexdigest()
@@ -69,11 +94,8 @@ def project_receiving_raw_source_cache_ticket(part_key, payload, *, typed_part=N
         panel = next((part for part in panels if part.stable_id == key), None)
         if panel is None:
             return None
-        try:
-            signature = manufacturing_fingerprint({
-                "panel": panel, "features": features,
-            })
-        except (TypeError, ValueError, OverflowError):
+        signature = _source_free_panel_signature(panel, features)
+        if signature is None:
             return None
         return ReceivingRawSourceCacheTicket(kind=kind, signature=signature,
                                             physical_part_id=key)
