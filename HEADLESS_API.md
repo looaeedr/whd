@@ -19,6 +19,7 @@ manufacturing and DXF validation entry. This source-selection API grants no
 whole-cabinet, PAD/EAR welding or MFG-2 release.
 
 
+
 ## #2517 Receiving EAR SIDE source-only previews and CHECK operator inputs
 
 The existing `resolve_receiving_ear_side_display_context` and
@@ -1712,3 +1713,7 @@ Use the existing `manufacturing_api.project_operator_base_navigation_identity(sn
 ### #2517 Receiving physical 2D BasePlate / PAD / EAR public Engine source API
 
 `resolve_operator_receiving_base_2d_source(key, payload, current_snapshot, cached_geometry=None, resolve_geometry=None)` returns canonical committed BasePlate or NFB tier RenderData, and refuses unsupported/unsubmitted physical child IDs. `resolve_operator_receiving_pad_2d_source(key, snapshot)` accepts only current submitted V5 PAD with the original nonmanufacturing role. `resolve_operator_receiving_fixing_2d_source(key, payload, live_snapshot=None)` checks the selected Set/Bay's W/H/D, Door/NFB identity, then returns original fixing EAR 2D geometry. GUI receives source render data only; the existing canonical Engine FinalScene and export Gate still decide real manufacturing authorization.
+
+### #2517 Receiving source-witnessed raw Panel/Frame/Divider cache API
+
+Use `manufacturing_api.receiving_raw_source_cache_kind(part_key, payload)` to limit the physical candidate to a registered Receiving Bay. `project_receiving_raw_source_cache_ticket(part_key, payload, typed_part=...)` creates an Engine-derived immutable panel key, exact source-bound A/B/D frame witness, or *two-baseline* Divider witness. `receiving_raw_source_cache_entry_valid(ticket, material)` confirms unchanged source parser/fingerprint/byte SHA and original Factory metadata. Missing/unverified source, changed Feature or unsupported DTO always runs the existing canonical Factory. GUI's bounded preview LRU is a nonmanufacturing optimization, not approval for CUTTING or external DXF.

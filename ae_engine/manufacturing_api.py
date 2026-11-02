@@ -1872,6 +1872,14 @@ from .operator_receiving_physical_2d import (
     resolve_operator_receiving_fixing_2d_source,
 )
 
+# #2517 source-correct Receiving raw material preview cache; MFG remains canonical.
+from .receiving_raw_source_cache import (
+    ReceivingRawSourceCacheTicket,
+    receiving_raw_source_cache_kind,
+    project_receiving_raw_source_cache_ticket,
+    receiving_raw_source_cache_entry_valid,
+)
+
 # #2517: the Receiving PAD+Base operator's selected Quantity/Set-Bay source
 # belongs to Engine. This does not authorize partial or whole-cabinet MFG.
 from .receiving_pad_base_export_selection import (

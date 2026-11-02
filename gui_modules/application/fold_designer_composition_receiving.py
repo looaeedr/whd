@@ -597,191 +597,86 @@ def _receiving_bay_preview_fingerprint_snapshot(
 
 
 def _receiving_cached_bay_inner_door_panel(owner, part_key, payload, factory):
-    """Memoize only the exact source-free raw panel used by a real Bay request.
-
-    Per-Bay construction routes its own projected payload through a callback
-    bound to the primary GUI host; that host has a different current snapshot.
-    This cache therefore belongs to the Receiving composition, not the host
-    and not the global manufacturing result. All Joint/relief/collision/world
-    transforms still execute in the downstream full resolver. Frame/Divider
-    material reads certified DXF files and is never served by this helper.
-    """
-    key = str(part_key or "")
-    if not (key.startswith("inner_door:") and key.endswith(":panel")
-            and isinstance(payload, Mapping)
-            and payload.get("model") in ("受電箱", "RECEIVING")
-            and payload.get("active_mode") == "set_bay"):
-        return factory()
+    """Raw source-free physical panel cache: eligibility/signature from Engine."""
     from collections import OrderedDict
-    from ae_engine.cabinet_types import policy as family_policy
-    from phase6_manufacturing_contracts import manufacturing_fingerprint
-
-    panels = family_policy.derive_inner_door_panels(dict(payload))
-    panel = next((part for part in panels if part.stable_id == key), None)
-    if panel is None:
-        return factory()  # Let the canonical factory raise on invalid topology.
-    features = tuple(payload.get("features") or ())
-    try:
-        signature = manufacturing_fingerprint({
-            "panel": panel, "features": features,
-        })
-    except (TypeError, ValueError, OverflowError):
-        return factory()  # Unknown Feature DTO: never guess equivalence.
+    ticket = manufacturing_api.project_receiving_raw_source_cache_ticket(
+        part_key, payload,
+    )
+    if ticket is None or ticket.kind != "panel":
+        return factory()
     history = getattr(owner, "_receiving_raw_inner_door_panel_history", None)
     if history is None:
         history = OrderedDict()
         owner._receiving_raw_inner_door_panel_history = history
-    if signature in history:
-        history.move_to_end(signature)
-        return history[signature]
+    if ticket.signature in history:
+        history.move_to_end(ticket.signature)
+        return history[ticket.signature]
     material = factory()
-    history[signature] = material
-    history.move_to_end(signature)
+    history[ticket.signature] = material
+    history.move_to_end(ticket.signature)
     while len(history) > 8:
         history.popitem(last=False)
     return material
 
 
 def _receiving_cached_bay_inner_door_frame(owner, part_key, payload, factory):
-    """Reuse raw verified A/B/D frame material only with identical source bytes.
-
-    The source parser generation and exact file content both take part in
-    the key. A missing/unreadable/unknown source always uses the canonical
-    factory (which performs the original verified-source checks). Never
-    memoize Divider or the generic bottom side.
-    """
-    key = str(part_key or "")
-    if not (key.startswith("inner_door:") and key.endswith("_frame")
-            and isinstance(payload, Mapping)
-            and payload.get("model") in ("受電箱", "RECEIVING")
-            and payload.get("active_mode") == "set_bay"):
+    """Only Engine-witnessed A/B/D frame can reuse exact raw material."""
+    if manufacturing_api.receiving_raw_source_cache_kind(part_key, payload) != "frame":
         return factory()
     from collections import OrderedDict
-    from hashlib import sha256
-    from ae_engine.baseline_source import baseline_source_fingerprint
-    from ae_engine.receiving_frame_baseline import frame_source_file
-    from phase6_manufacturing_contracts import manufacturing_fingerprint
     from .fold_designer_manufacturing_projection import _inner_door_frame_from_payload
 
-    # This uses the SAME physical frame derivation as the production factory.
-    frame = _inner_door_frame_from_payload(key, payload)
-    if frame.side not in ("top", "left", "right"):
-        return factory()
-    source = frame_source_file()
-
-    def stamp():
-        fingerprint = baseline_source_fingerprint(source)
-        digest = sha256(source.read_bytes()).hexdigest()
-        return fingerprint, digest
-
-    try:
-        fingerprint, digest = stamp()
-        signature = manufacturing_fingerprint({
-            "frame": frame,
-            "source": fingerprint,
-            "sha256": digest,
-            # The host adds the user's physical-sheet features after making
-            # the source-backed frame. They are part of the final 2D material.
-            "features": tuple(payload.get("features") or ()),
-        })
-    except (OSError, TypeError, ValueError, OverflowError):
+    # Keep this existing public Engine PartSpec adapter for GUI test/client
+    # compatibility; physical key, DXF witness and reuse proof are Engine-owned.
+    frame = _inner_door_frame_from_payload(str(part_key or ""), payload)
+    ticket = manufacturing_api.project_receiving_raw_source_cache_ticket(
+        part_key, payload, typed_part=frame,
+    )
+    if ticket is None:
         return factory()
     history = getattr(owner, "_receiving_raw_inner_door_frame_history", None)
     if history is None:
         history = OrderedDict()
         owner._receiving_raw_inner_door_frame_history = history
-    if signature in history:
-        history.move_to_end(signature)
-        return history[signature]
-
+    if ticket.signature in history:
+        history.move_to_end(ticket.signature)
+        return history[ticket.signature]
     material = factory()
-    metadata = dict(getattr(material, "metadata", {}) or {})
-    # Only a successful certified production factory result with matching
-    # origin can authorize a new retained entry, and avoid a source swap
-    # between reading the key and the geometry factory.
-    try:
-        still_same = stamp() == (fingerprint, digest)
-    except OSError:
-        still_same = False
-    if (still_same
-            and metadata.get("receiving_frame_source_sha256") == digest
-            and metadata.get("receiving_frame_source_path") == str(source)):
-        history[signature] = material
-        history.move_to_end(signature)
+    if manufacturing_api.receiving_raw_source_cache_entry_valid(ticket, material):
+        history[ticket.signature] = material
+        history.move_to_end(ticket.signature)
         while len(history) > 8:
             history.popitem(last=False)
     return material
 
 
 def _receiving_cached_bay_box_body_divider(owner, part_key, payload, factory):
-    """Reuse only the exact source-certified raw Divider for this Receiving Bay.
-
-    The Divider's fixed source holes and Ø6.4 shared mother rule depend on
-    *two* DXF baselines. A changed typed part, user feature, parser generation,
-    byte digest or missing source must run the canonical factory again.
-    Cross-part Joint, positioning and final manufacturing still re-resolve.
-    """
-    key = str(part_key or "")
-    if not (key.startswith("box_body:divider:")
-            and isinstance(payload, Mapping)
-            and payload.get("model") in ("受電箱", "RECEIVING")
-            and payload.get("active_mode") == "set_bay"):
+    """Engine-witnessed two-DXF source proof controls Divider raw reuse."""
+    if manufacturing_api.receiving_raw_source_cache_kind(part_key, payload) != "divider":
         return factory()
     from collections import OrderedDict
-    from hashlib import sha256
-    from ae_engine.baseline_source import baseline_source_fingerprint
-    from ae_engine.cabinet_types import policy as family_policy
-    from ae_engine.contracts import ManufacturingContext
-    from ae_engine.manufacturing_baseline_policy import _baseline_path
-    from phase6_manufacturing_contracts import manufacturing_fingerprint
     from .fold_designer_manufacturing_projection import _box_body_divider_from_payload
 
-    divider = _box_body_divider_from_payload(key, payload)
-    model = family_policy.baseline_feature_model_name(divider.model_name)
-    if not family_policy.divider_uses_endcap_6p4_shared_datum(divider.model_name):
-        return factory()
-    ctx = ManufacturingContext()
-    required = tuple(_baseline_path(model, filename, ctx)
-                     for filename in ("中隔.dxf", "封頭尾.dxf"))
-    if any(path is None for path in required):
-        return factory()  # Neither missing source is an authorization.
-    def source_stamp():
-        return tuple((
-            str(path), baseline_source_fingerprint(path),
-            sha256(path.read_bytes()).hexdigest(),
-        ) for path in required)
-    try:
-        witness = source_stamp()
-        signature = manufacturing_fingerprint({
-            "divider": divider,
-            "features": tuple(payload.get("features") or ()),
-            "sources": witness,
-        })
-    except (OSError, TypeError, ValueError, OverflowError):
+    divider = _box_body_divider_from_payload(str(part_key or ""), payload)
+    ticket = manufacturing_api.project_receiving_raw_source_cache_ticket(
+        part_key, payload, typed_part=divider,
+    )
+    if ticket is None:
         return factory()
     history = getattr(owner, "_receiving_raw_divider_history", None)
     if history is None:
         history = OrderedDict()
         owner._receiving_raw_divider_history = history
-    if signature in history:
-        history.move_to_end(signature)
-        return history[signature]
-
-    result = factory()  # Real source verification and Ø6.4 extraction.
-    metadata = dict(getattr(result, "metadata", {}) or {})
-    try:
-        still_same = source_stamp() == witness
-    except OSError:
-        still_same = False
-    if (still_same
-            and metadata.get("stable_id") == str(divider.stable_id)
-            and metadata.get("baseline_feature_model") == model
-            and metadata.get("endcap_shared_6p4_mother_rule") is not None):
-        history[signature] = result
-        history.move_to_end(signature)
+    if ticket.signature in history:
+        history.move_to_end(ticket.signature)
+        return history[ticket.signature]
+    material = factory()  # Still the real verified-source Factory.
+    if manufacturing_api.receiving_raw_source_cache_entry_valid(ticket, material):
+        history[ticket.signature] = material
+        history.move_to_end(ticket.signature)
         while len(history) > 8:
             history.popitem(last=False)
-    return result
+    return material
 
 
 def _retain_committed_receiving_bay_preview(cache, key, receipt):

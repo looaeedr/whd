@@ -11,6 +11,12 @@ whd_schema: WHD_DOC_META_V1
 GUI `export_receiving_pad_base_part_only_dxf` 不再解析 QuantityModel 的 selected version、Set/Bay 單連 fallback 或自行組裝物理輸出身份；它只取操作者材質／製程／Q，並呼叫 `manufacturing_api.resolve_receiving_pad_base_export_source(snapshot)` 取得與當下已提交來源一致的獨立快照及 `version_id`，再交原有 `export_verified_pad_base_part_only` 執行實體 PAD+Base CHECK/Q。Engine 沿用既有 QuantityModel、project_common_box 與 Set/Bay authority，不重建 Family 或出口；錯誤版本、缺少／不一致 NFB、模糊多 Bay 都拒絕。GUI 的有命名 DXF 覆寫提示也改用既有 `resolve_live_cabinet_family`，支援 Receiving 正規別名；不得藉來源解析授權整箱、EAR 焊接、PAD MFG-2 或任意 export。#2517 繼續 OPEN。
 
 
+
+## [CURRENT] #2517 Receiving 原始門板／框／隔板製造素材快取來源 Engine API（2026-11-02）
+
+受電箱 `fold_designer_composition_receiving.py` 的 `_receiving_cached_bay_inner_door_panel`、`_receiving_cached_bay_inner_door_frame`、`_receiving_cached_bay_box_body_divider` 原在 GUI 判斷 Family／Bay、製造物理 Spec、來源 DXF 解析器代次與完整 SHA256、原成品 features，並自行核對實體素材 metadata 可否沿用。現統一移至 `ae_engine.receiving_raw_source_cache` 及公開 `manufacturing_api.receiving_raw_source_cache_kind`、`project_receiving_raw_source_cache_ticket`、`receiving_raw_source_cache_entry_valid`；GUI 只持有各 8 筆 LRU 及委託既有 PartSpec API／Factory。Frame A/B/D 需完整 `框.dxf` path／parser generation／bytes SHA 與回傳 metadata 匹配；Divider 需 `中隔.dxf` 與 `封頭尾.dxf` 兩份來源及 Ø6.4 mother rule metadata 完整匹配；Panel 只接受已存在於 canonical Family 內門板的純實體規格與孔位組合。Family 別名使用 Registry，而不是 GUI 的兩組敏感字串。未受支援的任何模式、缺來源、不完整 DTO、來源更新、Factory metadata 不一致均回落既有 Engine 正式工廠，不得快取假權威。整體 FinalScene、碰撞、材料 2D/3D／製造 DXF 必須仍做 canonical resolve；來源快取只是 GUI 效能，不能當出圖資格。#2517 OPEN。
+
+
 ## [CURRENT] #2517 Receiving 2D 實體底板／PAD／固定片來源單一 Engine API（2026-11-02）
 
 `fold_designer_manufacturing_projection.py::_query_fold_designer_render_data` 不再自行認定 NFB 單層原底板、雙層 `base_plate:nfb_layer:[01]`、source-backed PAD 或原固定片的 2D 實體材料、Bay 來源漂移與 MFG status。新增 `ae_engine.operator_receiving_physical_2d`，由既有正式 `manufacturing_api` 公開 `resolve_operator_receiving_base_2d_source`、`resolve_operator_receiving_pad_2d_source`、`resolve_operator_receiving_fixing_2d_source`，直接委派已存在的 committed NFB/BasePlate/PAD/EAR source owners 和 canonical ResolvedManufacturingGeometry；GUI 只傳當前來源、供應既有 geometry resolver 與將 RenderData 套上特徵。選定 Bay 必須匹配同一真實 Set/Bay 的 W/H/D、Door/NFB 身分，禁止跨 Bay 借材；缺來源／偽造 PartKey／PAD 冒充可製造均維持拒絕。此輸出只代表原實體 2D RenderData；正式 DXF、MFG-2、EAR／PAD 工法尚未獲放行，必須照 Certified Registry gate。#2517 OPEN。
