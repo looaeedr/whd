@@ -1773,6 +1773,8 @@ from .manufacturing_contracts import (
     FrozenObjectMapping,
     ManufacturingPartInput,
     ManufacturingResolveRequest,
+    normalize_operator_relief_clearance,
+    normalize_operator_3d_fallback_flag,
     ManufacturingDiagnosticsResult,
     ManufacturingMutationResult,
     ManufacturingEffects,

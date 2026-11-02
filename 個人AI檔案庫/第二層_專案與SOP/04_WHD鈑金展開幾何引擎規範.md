@@ -6,6 +6,16 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 EndCap Relief 3D fallback 選項由 Engine 型別驗證（2026-11-02）
+
+`phase6_manufacturing_adapter.build_manufacturing_request` 與 `ae_engine.manufacturing_contracts.ManufacturingResolveRequest` 原分別對 `assembly_ignore_fixed_corner_var`／`allow_3d_fallback` 呼叫 Python `bool(...)`，導致舊字串 `"false"` 被誤當成 True，繼而將錯誤的 3D fallback 允許選擇傳到 `manufacturing_resolver.solve_endcap_assembly_relief`。新增 `manufacturing_api.normalize_operator_3d_fallback_flag(raw)`：原生 bool、0/1 整數與浮點及明確文字 `true/false/1/0` 可正確正規化；空字串或 None 為 False，不明文字／非 0/1 數字／物件拒絕。GUI 只讀取操作值；Engine Request 在 immutable fingerprint 前再次驗證。原 EndCap relief 幾何、實際 source/certification、Joint solver、CUTTING、DXF 皆不改，也不新增外部製造授權。#2517 OPEN。
+
+
+## [CURRENT] #2517 Assembly Joint relief clearance 製造 Request 單一 Engine API（2026-11-02）
+
+`phase6_manufacturing_adapter._relief_clearance` 原在 GUI 側將操作欄位 `max(0, float(...))` 並在無效文字時回退 0，造成實體 Joint clearance 的裁切、壞資料處置不一致。現由 `manufacturing_api.normalize_operator_relief_clearance(raw)`（`ae_engine.manufacturing_contracts`）作唯一數值權威：空欄／缺值 0、有限非負值保留、負數歸零、非法／非有限／布林來源明確拒絕。`ManufacturingResolveRequest.__post_init__` 重用同一函式並保留既有十二位小數正規化，使 GUI 與 headless request 一致。GUI 僅讀 Tk 欄位、呼叫公開 API。本批不改 Joint 工廠幾何、補償、碰撞或退讓算法，無新增 CUTTING、DXF 製造放行或外部 export 認證。#2517 OPEN。
+
+
 ## [CURRENT] #2517 箱身分片設定物理值與鎖定切換統一 Engine API（2026-11-02）
 
 - `ae_engine.manufacturing_api.project_operator_box_body_structure_settings(state, total_w, snapshot=...)` 直接由 canonical `ae_engine.box_body_structure_state` 和 Family policy 回傳箱身四種結構的實體 ID、二片／三片 W 包外值、受電箱側板後折 OUTSIDE／MATERIAL datum、後板寬補償和避讓留肉設定。保存 W 矛盾立即拒絕，GUI 不得自行計算另一份。
