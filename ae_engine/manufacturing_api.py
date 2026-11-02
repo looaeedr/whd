@@ -226,6 +226,8 @@ from .manufacturing_export_selection import (
     resolved_export_intention_key,
     select_resolved_export_geometry,
     resolve_receiving_bay_local_export_geometry,
+    logical_part_present,
+    selected_project_export_flags,
 )
 from . import manufacturing_verification as _manufacturing_verification
 from . import manufacturing_export as _manufacturing_export
