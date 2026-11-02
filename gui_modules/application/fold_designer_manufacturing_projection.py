@@ -138,15 +138,7 @@ def _authoritative_render_data(self, spec, context=None):
             return render_data
     if cache_key in cache:
         return cache[cache_key]
-    if isinstance(spec, BoxBodyPartSpec):
-        from phase6_box_body_structure import BoxBodyStructureType, normalize_box_body_structure_state
-        structure = normalize_box_body_structure_state(spec.structure_state)
-        if structure.get("active_type") != BoxBodyStructureType.INTEGRAL.value:
-            render_data = manufacturing_api.build_box_body_structure_render_data(spec, ctx)
-        else:
-            render_data = manufacturing_api.build_part_render_data(spec, ctx)
-    else:
-        render_data = manufacturing_api.build_part_render_data(spec, ctx)
+    render_data = manufacturing_api.build_operator_part_render_data(spec, ctx)
     cache[cache_key] = render_data
     if len(cache) > 32:
         cache.pop(next(iter(cache)))
