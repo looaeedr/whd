@@ -11,6 +11,19 @@ whd_schema: WHD_DOC_META_V1
 `ManufacturingResolvedBayInput(family="受電箱", source=..., confirmed_parts=(("door_c1_r1", DoorPartSpec(...)), ...), door_layout_columns=((width, (height, ...)), ...))` extends the same `export_verified_resolved_integration_bays` API without a new exporter. The existing Engine `door_part_projections` validates the complete physical Door grid, W/H, T/FW/gap and FrameEdges, and compares BoxBody W/H when supplied. Reject incomplete or drifted layout before DXF output. Existing single-Door, Factory/Registry, verified staged Save→Reload and source-only refusal are unchanged.
 
 
+## #2517 BasePlate manufacturing uses canonical Cabinet Family policy
+
+`manufacturing_api.generate_part(BasePlatePartSpec, ..., ManufacturingContext)`
+remains the shared single-part manufacturing entry. Its Receiving requirement for
+`receiving_bend_pattern` and guarded FinalScene DXF export is now decided by
+`cabinet_types.policy.base_plate_requires_explicit_bend_pattern(model_name)`,
+which resolves registered aliases case-insensitively; both `受電箱` and
+`RECEIVING` (including case variants) fail before export when the confirmed
+bend pattern is missing. Vault/generic BasePlate legacy exporter behavior is
+preserved. The Family hook does not certify a new physical part, a complete
+Bay, NFB/PAD/EAR or source-only external export.
+
+
 ## #2517 Hole Editor Canvas canonical feature projection
 
 UI 使用 `ae_engine.manufacturing_api.resolve_hole_editor_canvas_features(surface, features, width, height)` 取得 validated world-space Feature tuple，`hole_editor_canvas_reference_point(feature, width, height)` 取得儲存的參考錨點，`hit_test_hole_editor_canvas_features(point, resolved_features, tolerance=...)` 使用 Engine 的實體命中規則。GUI 只負責 transform 與 Canvas 畫面；非法孔位不會由 GUI 重做 fallback。此 API 是孔位 read-only preview 接口，不自行發放 CUTTING／DXF 製造權限，既有製造 API 不受影響。
