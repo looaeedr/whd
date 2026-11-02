@@ -1803,3 +1803,8 @@ manufacturing, DXF reopening, source verification or certificate gates.
 ### #2517 BoxBody operator Settings physical projection and lock API
 
 `manufacturing_api.project_operator_box_body_structure_settings(state, total_w, snapshot=...)` returns the existing four-topology operator Settings projection of real physical piece IDs, W split widths, Receiving rear-fold outside datums and relief values, using canonical Engine state and Family policy. Invalid saved width contradictions fail closed. `operator_toggle_box_body_structure_lock(state)` uses persisted boolean normalization (including historical string `"false"`) before toggling without mutating input. GUI delegates the existing public Engine W activate/reconcile functions and no longer computes physical Settings readback. No additional manufacturing/DXF certification is implied.
+
+
+### #2517 Operator Settings physical W/H/D commit and external boolean sync
+
+`manufacturing_api.normalize_operator_settings_boolean(raw)`, `normalize_operator_settings_updates(settings_values, updates, external_apply_guard=False)` and `commit_operator_settings_state(settings_values, input_snapshot, box_whd, values)` are canonical headless Engine APIs for operator Settings physical dimensions and typed booleans. W/H/D must be positive finite numbers, remain fractional when supplied, and be committed identically across saved Snapshot, settings and box_whd; they are never processed by Fold Editor display-only `round(abs())`. Serialized `"false"` is false; malformed explicit booleans or dimensions fail closed rather than altering manufactured geometry. The GUI continues to normalize `ui_text_size` as a visual choice only. This API does not authorize new DXF output or release.

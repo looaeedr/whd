@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Settings 外部布林同步與包外 W/H/D 交易一致性 Engine API（2026-11-02）
+
+- `ae_engine.manufacturing_api.normalize_operator_settings_updates(settings_values, updates, external_apply_guard=...)` 由 Engine 統一轉換外部操作的布林值（`"false"` 不再被 `bool(raw)` 當成 true），以及 W/H/D 等保存實體欄位。無法辨認的明確布林輸入直接拒絕；W/H/D 必須為正、有限、非 bool 的包外尺寸。舊版非物理數值欄位的未知 key／無效字串仍可略過，但 NaN/Inf 不得污染值。純視覺 `ui_text_size` 選擇維持 GUI owner，不在 Engine 生產值中判斷。
+- `commit_operator_settings_state(settings_values, input_snapshot, box_whd, values)` 在同一不可變交易裡先驗 W/H/D，再將完全相同且保留小數的包外值提交至 Settings、保存 Snapshot 和 `box_whd`。原 `_ui_len` 會 round(abs(...))，可能將負尺寸變成正尺寸／將小數折後包外值改掉，已禁止用於實體 W/H/D 交易；Fold Editor 純顯示整數規則不變。無效來源不可部分提交，也不能拿預覽反推正式製造尺寸。
+- `phase6_settings_transitions.normalize_updates/commit_settings` 現僅負責 GUI 選項及委派 Engine；`SettingsCommitTransition` 保留型別相容別名。涵蓋金庫型／受電箱、Save→Reload、非法文字／零／負數／NaN／Inf／bool、精度與無變異驗收 `tests/test_issue2517_operator_settings_transactions_engine_api.py`；不新增 DXF 認證或正式 X 發行。
+
 ## [CURRENT] #2517 Assembly Joint relief clearance 製造 Request 單一 Engine API（2026-11-02）
 
 `phase6_manufacturing_adapter._relief_clearance` 原在 GUI 側將操作欄位 `max(0, float(...))` 並在無效文字時回退 0，造成實體 Joint clearance 的裁切、壞資料處置不一致。現由 `manufacturing_api.normalize_operator_relief_clearance(raw)`（`ae_engine.manufacturing_contracts`）作唯一數值權威：空欄／缺值 0、有限非負值保留、負數歸零、非法／非有限／布林來源明確拒絕。`ManufacturingResolveRequest.__post_init__` 重用同一函式並保留既有十二位小數正規化，使 GUI 與 headless request 一致。GUI 僅讀 Tk 欄位、呼叫公開 API。本批不改 Joint 工廠幾何、補償、碰撞或退讓算法，無新增 CUTTING、DXF 製造放行或外部 export 認證。#2517 OPEN。

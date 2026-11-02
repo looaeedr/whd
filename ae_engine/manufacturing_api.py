@@ -131,6 +131,12 @@ from .operator_box_body_settings_projection import (
     operator_toggle_box_body_structure_lock,
     project_operator_box_body_structure_settings,
 )
+
+# Engine-owned operator Settings dimensions and external-sync coercion.
+from .operator_settings_transactions import (
+    OperatorSettingsCommitTransition, normalize_operator_settings_boolean,
+    normalize_operator_settings_updates, commit_operator_settings_state,
+)
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
     ENDCAP_BOTTOM_WRAP_MODES, normalize_endcap_bottom_wrap_state,
