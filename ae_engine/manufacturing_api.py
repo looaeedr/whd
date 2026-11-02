@@ -136,6 +136,7 @@ from .operator_box_body_settings_projection import (
 from .operator_settings_transactions import (
     OperatorSettingsCommitTransition, normalize_operator_settings_boolean,
     normalize_operator_settings_updates, commit_operator_settings_state,
+    normalize_operator_source_dimension, normalize_operator_source_dimensions,
 )
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
