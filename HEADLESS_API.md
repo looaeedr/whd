@@ -1667,3 +1667,7 @@ Disposable WHD→CADCraft R2010/mm proof, original immutable source-prefix, cand
 ### #2517 physical navigation provenance: BasePlate / NFB tier / PAD / EAR
 
 Use the existing `manufacturing_api.project_operator_base_navigation_identity(snapshot, source_parts)` to determine source-owned Receiving root versus actual submitted two-tier NFB physical identity; `project_operator_multidoor_base_plate_dimensions(snapshot)` projects Vault Door-cell bottom plates without manufacturing a Receiving per-Door phantom; `project_operator_receiving_auxiliary_navigation(snapshot, available_parts=..., source_part_features=..., live_features=...)` returns Engine-sourced fixing-plate, NFB tier and PAD 2D navigation Fold profiles. GUI applies these immutable operator-source projections to the existing workspace navigation. Display-only profiles are not CUTTING, MFG-2 or external source-only certification.
+
+### #2517 registered Receiving alias parity for BasePlate / EAR / PAD source projections
+
+`receiving_base_plate_values`, `receiving_base_fixing_plate_previews` and `committed_nfb_pad_draft_parts` now use the same `cabinet_types.policy.canonical_family_name` capability as the public Engine manufacturing API; case/whitespace aliases are not a second source of truth. All existing typed NFB CSV, Bay ownership, physical bend-pattern and staged DXF constraints continue to apply. This read-only/provenance consistency does not release NFB MFG-2, PAD/EAR welding or source-only external exports.

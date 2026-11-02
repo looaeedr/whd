@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from math import isfinite
 from typing import Mapping
 
-from .receiving_base_plate_config import RECEIVING_FAMILIES
+from .cabinet_types.policy import canonical_family_name
 from .receiving_weld_ear_policy import (
     resolve_receiving_large_weld_ear_fit, receiving_source_fixing_pitch_x_mm,
 )
@@ -80,7 +80,7 @@ def receiving_base_fixing_plate_previews(
         # cannot create a plausible (but unowned) child fixing plate.
         return ()
     model = str(data.get("model") or data.get("baseline_model") or "").strip()
-    if (model not in RECEIVING_FAMILIES
+    if (canonical_family_name(model) != "受電箱"
             or (BASE_FIXING_PLATE_PARENT_ID not in parts
                 and not any(p.startswith("base_plate:nfb_layer:") for p in parts))):
         return ()
