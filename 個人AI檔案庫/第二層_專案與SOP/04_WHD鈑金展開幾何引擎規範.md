@@ -6,6 +6,10 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 原始板料重用資格與來源證明改走 Engine（2026-11-02）
+
+`gui_modules/application/fold_designer_manufacturing_projection._authoritative_render_data` 曾在 GUI 自行判斷是否為受電箱 Set/Bay、哪些未解聯立 relief 的 Head/Tail 或 BoxBody 才能跨 W/H/D 暫存原始 `PartRenderData`，並在 GUI 選三片式實體後讀基準 DXF witness。現以 `manufacturing_api.plan_operator_raw_material_reuse(spec, snapshot, context=...)` 由 `ae_engine.manufacturing_cache_source_plan` 回傳 `OperatorRawMaterialReusePlan(eligible, source_stamp)`；必須維持原本 3 張基準檔、三片式實體專用 DXF、Head/Tail `封頭尾.dxf` 存在與新鮮來源條件。GUI 只負責 LRU capacity、快取命中與來源變動清除，不持有 Family／實體板件／來源資格製造規則。此快取只供 exact-typed raw 板料性能重用，正式 FinalScene 的 Joint／碰撞／組合／DXF CUTTING 與 Save→Reload 必須照常每次執行，不能以 source_stamp 或快取代表認證，亦不增加外部製造權限。#2517 OPEN。
+
 ## [CURRENT] #2517 Fold Designer 製造前來源驗證單一 Engine API（2026-11-02）
 
 `gui_modules/application/fold_designer_manufacturing_projection.py::_require_verified_baseline_sources_for_manufacturing` 不再直接呼叫低層 `ae.baseline_part_path`／`ae.load_baseline_dxf_source_with_status` 或自訂箱身、封頭尾、門的 DXF 驗證策略；GUI 僅提供使用者當下選定的 model，交由正式 `manufacturing_api.require_verified_operator_baseline_sources(model_name)`。真正來源選取與新鮮 `VERIFIED` 解析由既有 `ae_engine.manufacturing_baseline_policy` 單一 Engine owner 執行，維持原本未指定型號及不存在之 optional baseline 不在此預檢自行造來源、存在但無法驗證者拒絕正式 export；不把舊預覽的 last-known-good 當可製造證據。正式 PartSpec／FinalScene／Factory Policy／Registry／DXF Save→Reload 的原有出口與驗證仍必須執行，這項 source preflight 本身不增加金庫型或受電箱的製造認證，也不開放 source-only 外部 export。#2517 OPEN。

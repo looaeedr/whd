@@ -107,54 +107,20 @@ def _authoritative_render_data(self, spec, context=None):
     owner = getattr(self, "_derived_cache_owner", None)
     cache_key = (repr(spec), repr(ctx))
     snapshot = _read_live_receiving_snapshot(self)
-    # EndCap raw material is independent of a different Bay's W/H/D only
-    # when the exact typed inputs are identical and no pre-solved assembly
-    # cuts/embedded relief are present. Do not retain final solved endcaps.
-    raw_endcap = (
-        isinstance(spec, EndCapPartSpec)
-        and not spec.resolved_assembly_relief_cuts
-        and spec.assembly_relief is None
-    )
-    eligible = (
-        (isinstance(spec, BoxBodyPartSpec) or raw_endcap)
-        and isinstance(snapshot, Mapping)
-        and snapshot.get("model") == "受電箱"
-        and snapshot.get("active_mode") == "set_bay"
-        and str(spec.model_name) == "受電箱"
-        and isinstance(owner, Phase6DerivedCacheOwner)
+    # Engine alone decides physical source eligibility, structure coverage
+    # and Head/Tail DXF witness. GUI owns only bounded LRU and invalidation.
+    plan = (
+        manufacturing_api.plan_operator_raw_material_reuse(
+            spec, snapshot, context=ctx,
+        )
+        if isinstance(owner, Phase6DerivedCacheOwner) else None
     )
     history = (
-        owner._receiving_exact_material_history if eligible else None
+        owner._receiving_exact_material_history
+        if plan is not None and plan.eligible else None
     )
-    source_stamp = None
+    source_stamp = plan.source_stamp if plan is not None else None
     if history is not None:
-        # Same verified baseline source-generation seam used by the complete
-        # manufacturing cache. Missing/unreadable witness forbids reuse.
-        from phase6_manufacturing_adapter import _receiving_baseline_source_stamp
-        from phase6_box_body_structure import (
-            BoxBodyStructureType, normalize_box_body_structure_state,
-        )
-        structure_state = (
-            spec.structure_state if isinstance(spec, BoxBodyPartSpec)
-            else spec.box_body_structure_state
-        )
-        is_dedicated_three_piece = (
-            normalize_box_body_structure_state(structure_state).get("active_type")
-            == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
-        )
-        source_stamp = _receiving_baseline_source_stamp(
-            str(spec.model_name),
-            context=ctx,
-            include_physical_panels=is_dedicated_three_piece,
-        )
-        # Unlike the existing BoxBody fallback, a Receiving EndCap must
-        # have a real witnessed 封頭尾 DXF. A missing optional source never
-        # certifies cross-transaction reuse of EndCap material.
-        if raw_endcap and source_stamp is not None and not any(
-            len(row) >= 2 and row[0] == "封頭尾.dxf" and row[1] is not None
-            for row in source_stamp
-        ):
-            source_stamp = None
         if source_stamp is None:
             history.clear()
             owner._receiving_exact_material_stamp = None
