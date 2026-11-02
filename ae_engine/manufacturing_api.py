@@ -1787,3 +1787,66 @@ from .operator_derived_navigation import (
     project_operator_multidoor_base_plate_dimensions,
     project_operator_receiving_auxiliary_navigation,
 )
+
+# #2517: Receiving Set/Bay operator client uses public API only.
+# The physical transactions remain exclusively owned by existing Engine modules.
+from .receiving_layout import (
+    normalize_receiving_layout, receiving_layout_stable_ids,
+    append_receiving_set, receiving_destructive_tail_ids,
+    resize_receiving_sets, update_receiving_bay,
+    receiving_joint_alignment_editability, update_receiving_joint_alignment,
+    project_receiving_bay_legacy_aliases,
+)
+from .receiving_shared_settings import (
+    edit_setting as edit_receiving_shared_setting,
+    share_setting as share_receiving_shared_setting,
+    unlink_setting as unlink_receiving_shared_setting,
+)
+from .receiving_manufacturing_readiness import (
+    ReceivingManufacturingFailure, evaluate_receiving_manufacturing_readiness,
+    receiving_readiness_projection,
+)
+
+
+def require_receiving_operator_brand(brand):
+    """Validate one exact operator brand against existing switch policy."""
+    from .receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+    if brand not in RECEIVING_SWITCH_BRANDS:
+        raise ValueError("不支援的開關品牌")
+    return brand
+
+
+def submit_receiving_nfb_bays(
+    layout, *, set_index, bay_indices, version_id, configs, evidence, confirm,
+):
+    from .receiving_nfb_transactions import submit_nfb_bays
+    return submit_nfb_bays(
+        layout, set_index=set_index, bay_indices=bay_indices,
+        version_id=version_id, configs=configs, evidence=evidence, confirm=confirm,
+    )
+
+
+def copy_receiving_submitted_nfb_bay(
+    layout, *, set_index, source_bay_index, target_bay_index,
+    version_id, target_config, evidence, confirm,
+):
+    from .receiving_nfb_transactions import copy_submitted_nfb_bay
+    return copy_submitted_nfb_bay(
+        layout, set_index=set_index, source_bay_index=source_bay_index,
+        target_bay_index=target_bay_index, version_id=version_id,
+        target_config=target_config, evidence=evidence, confirm=confirm,
+    )
+
+
+def restore_receiving_nfb_bays_unconfigured(
+    layout, *, set_index, bay_indices, confirm,
+):
+    from .receiving_nfb_transactions import restore_nfb_bays_unconfigured
+    return restore_nfb_bays_unconfigured(
+        layout, set_index=set_index, bay_indices=bay_indices, confirm=confirm,
+    )
+
+
+def undo_receiving_nfb_transaction(layout, receipt):
+    from .receiving_nfb_transactions import undo_nfb_transaction
+    return undo_nfb_transaction(layout, receipt)

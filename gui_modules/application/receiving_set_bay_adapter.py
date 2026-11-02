@@ -13,22 +13,9 @@ from typing import Callable, Iterable, Mapping
 
 from ae_engine import manufacturing_api
 
-from ae_engine.receiving_manufacturing_readiness import (
-    ReceivingManufacturingFailure,
-    evaluate_receiving_manufacturing_readiness,
-    receiving_readiness_projection,
-)
-from ae_engine.receiving_layout import (
-    append_receiving_set,
-    normalize_receiving_layout,
-    project_receiving_bay_legacy_aliases,
-    receiving_destructive_tail_ids,
-    receiving_joint_alignment_editability,
-    resize_receiving_bays,
-    resize_receiving_sets,
-    update_receiving_bay,
-    update_receiving_joint_alignment,
-)
+def normalize_receiving_layout(layout):
+    """Legacy monkeypatch-compatible function; Engine owns normalization."""
+    return manufacturing_api.normalize_receiving_layout(layout)
 
 
 class ReceivingDestructiveEditConfirmationRequired(RuntimeError):
@@ -41,13 +28,8 @@ class ReceivingDestructiveEditConfirmationRequired(RuntimeError):
 
 
 def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]:
-    normalized = normalize_receiving_layout(layout)
-    result: list[str] = []
-    for set_row in normalized["sets"]:
-        result.append(str(set_row["stable_id"]))
-        result.extend(str(row["stable_id"]) for row in set_row["bays"])
-        result.extend(str(row["stable_id"]) for row in set_row["joints"])
-    return tuple(result)
+    """GUI compatibility: request authoritative Set/Bay/Joint IDs from Engine."""
+    return manufacturing_api.receiving_layout_stable_ids(layout)
 
 
 def _operator_integer(value, name):
@@ -112,7 +94,7 @@ class ReceivingSetBayAdapter:
             raise IndexError("Receiving Set selection is not progressively available")
         created = wanted == existing + 1
         if created:
-            self._layout = append_receiving_set(self._layout)
+            self._layout = manufacturing_api.append_receiving_set(self._layout)
         self._selection = ReceivingSelection(set_index=wanted - 1, bay_index=0)
         return created
 
@@ -158,7 +140,7 @@ class ReceivingSetBayAdapter:
         wanted = _operator_integer(bay_count, "Bay count")
         current = self.bay_count()
         if wanted < current:
-            removed = receiving_destructive_tail_ids(
+            removed = manufacturing_api.receiving_destructive_tail_ids(
                 self._layout,
                 set_index=self._selection.set_index,
                 bay_count=wanted,
@@ -180,11 +162,11 @@ class ReceivingSetBayAdapter:
         wanted = _operator_integer(set_count, "Set count")
         current = len(self._layout["sets"])
         if wanted < current:
-            removed = receiving_destructive_tail_ids(self._layout, set_count=wanted)
+            removed = manufacturing_api.receiving_destructive_tail_ids(self._layout, set_count=wanted)
             self._confirm_if_required(removed)
             self._persisted_ids.difference_update(removed)
             self._session_dirty_ids.difference_update(removed)
-        self._layout = resize_receiving_sets(self._layout, set_count=wanted)
+        self._layout = manufacturing_api.resize_receiving_sets(self._layout, set_count=wanted)
         set_index = min(self._selection.set_index, wanted - 1)
         bay_index = min(
             self._selection.bay_index,
@@ -205,7 +187,7 @@ class ReceivingSetBayAdapter:
 
     def update_current_bay(self, **changes: object) -> bool:
         before = self.current_bay()
-        updated = update_receiving_bay(
+        updated = manufacturing_api.update_receiving_bay(
             self._layout,
             set_index=self._selection.set_index,
             bay_index=self._selection.bay_index,
@@ -234,28 +216,23 @@ class ReceivingSetBayAdapter:
         return after != before
 
     def update_setting(self, kind, value):
-        from ae_engine.receiving_shared_settings import edit_setting
-        self._layout = edit_setting(self._layout, set_index=self.selection.set_index,
+        self._layout = manufacturing_api.edit_receiving_shared_setting(self._layout, set_index=self.selection.set_index,
                                     bay_index=self.selection.bay_index, kind=kind, value=value)
         self.mark_current_bay_dirty()
 
     def share_setting(self, kind, bay_indices):
-        from ae_engine.receiving_shared_settings import share_setting
-        self._layout = share_setting(self._layout, set_index=self.selection.set_index,
+        self._layout = manufacturing_api.share_receiving_shared_setting(self._layout, set_index=self.selection.set_index,
                                      source_bay_index=self.selection.bay_index,
                                      bay_indices=bay_indices, kind=kind)
         self.mark_current_bay_dirty()
 
     def unlink_setting(self, kind):
-        from ae_engine.receiving_shared_settings import unlink_setting
-        self._layout = unlink_setting(self._layout, set_index=self.selection.set_index,
+        self._layout = manufacturing_api.unlink_receiving_shared_setting(self._layout, set_index=self.selection.set_index,
                                       bay_index=self.selection.bay_index, kind=kind)
         self.mark_current_bay_dirty()
 
     def set_brand(self, brand):
-        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
-        if brand not in RECEIVING_SWITCH_BRANDS:
-            raise ValueError("不支援的開關品牌")
+        brand = manufacturing_api.require_receiving_operator_brand(brand)
         candidate = deepcopy(self._layout)
         index = self.selection.set_index
         updated, changed = manufacturing_api.rebase_receiving_set_parent_nfb_brand(
@@ -329,8 +306,7 @@ class ReceivingSetBayAdapter:
     def submit_nfb_to_bays(
         self, *, set_index, bay_indices, version_id, configs, evidence, confirm,
     ):
-        from ae_engine.receiving_nfb_transactions import submit_nfb_bays
-        return self._nfb_apply_outcome(submit_nfb_bays(
+        return self._nfb_apply_outcome(manufacturing_api.submit_receiving_nfb_bays(
             self._layout, set_index=set_index, bay_indices=bay_indices,
             version_id=version_id, configs=configs, evidence=evidence,
             confirm=confirm,
@@ -340,8 +316,7 @@ class ReceivingSetBayAdapter:
         self, *, set_index, source_bay_index, target_bay_index,
         version_id, target_config, evidence, confirm,
     ):
-        from ae_engine.receiving_nfb_transactions import copy_submitted_nfb_bay
-        return self._nfb_apply_outcome(copy_submitted_nfb_bay(
+        return self._nfb_apply_outcome(manufacturing_api.copy_receiving_submitted_nfb_bay(
             self._layout, set_index=set_index,
             source_bay_index=source_bay_index, target_bay_index=target_bay_index,
             version_id=version_id, target_config=target_config,
@@ -349,8 +324,7 @@ class ReceivingSetBayAdapter:
         ))
 
     def restore_nfb_unconfigured(self, *, set_index, bay_indices, confirm):
-        from ae_engine.receiving_nfb_transactions import restore_nfb_bays_unconfigured
-        return self._nfb_apply_outcome(restore_nfb_bays_unconfigured(
+        return self._nfb_apply_outcome(manufacturing_api.restore_receiving_nfb_bays_unconfigured(
             self._layout, set_index=set_index, bay_indices=bay_indices,
             confirm=confirm,
         ))
@@ -360,11 +334,10 @@ class ReceivingSetBayAdapter:
         return bool(self._nfb_undo_receipts)
 
     def undo_last_nfb_transaction(self):
-        from ae_engine.receiving_nfb_transactions import undo_nfb_transaction
         if not self._nfb_undo_receipts:
             raise ValueError("沒有可復原的內門 NFB 操作")
         receipt = self._nfb_undo_receipts[-1]
-        restored = undo_nfb_transaction(self._layout, receipt)
+        restored = manufacturing_api.undo_receiving_nfb_transaction(self._layout, receipt)
         self._layout = restored
         self._nfb_undo_receipts.pop()
         self._session_dirty_ids.update(change.stable_id for change in receipt.changes)
@@ -372,9 +345,7 @@ class ReceivingSetBayAdapter:
 
     def set_global_brand(self, brand):
         """Rebase Set brand and affected inherited NFB X in one transaction."""
-        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
-        if brand not in RECEIVING_SWITCH_BRANDS:
-            raise ValueError("不支援的開關品牌")
+        brand = manufacturing_api.require_receiving_operator_brand(brand)
         candidate = deepcopy(self._layout)
         changed = False
         for index, set_row in enumerate(candidate["sets"]):
@@ -390,7 +361,7 @@ class ReceivingSetBayAdapter:
 
     def current_joint_editability(self, joint_index: int) -> dict[str, bool]:
         index = _operator_integer(joint_index, "Joint index")
-        return receiving_joint_alignment_editability(
+        return manufacturing_api.receiving_joint_alignment_editability(
             self._layout,
             set_index=self._selection.set_index,
             joint_index=index,
@@ -404,7 +375,7 @@ class ReceivingSetBayAdapter:
         height_alignment: object | None = None,
     ) -> None:
         index = _operator_integer(joint_index, "Joint index")
-        candidate = update_receiving_joint_alignment(
+        candidate = manufacturing_api.update_receiving_joint_alignment(
             self._layout,
             set_index=self._selection.set_index,
             joint_index=index,
@@ -418,7 +389,7 @@ class ReceivingSetBayAdapter:
     def project_current_bay(self, snapshot: Mapping[str, object]) -> dict[str, object]:
         payload = deepcopy(dict(snapshot or {}))
         payload["receiving_layout"] = self.layout
-        return project_receiving_bay_legacy_aliases(
+        return manufacturing_api.project_receiving_bay_legacy_aliases(
             payload,
             set_index=self._selection.set_index,
             bay_index=self._selection.bay_index,
@@ -426,11 +397,11 @@ class ReceivingSetBayAdapter:
         )
     def project_manufacturing_readiness(
         self,
-        failures: Iterable[ReceivingManufacturingFailure] = (),
+        failures: Iterable[manufacturing_api.ReceivingManufacturingFailure] = (),
     ) -> tuple[dict[str, object], ...]:
         """Project READY/BLOCKED diagnostics without becoming validity authority."""
-        report = evaluate_receiving_manufacturing_readiness(self._layout, failures)
-        return receiving_readiness_projection(report)
+        report = manufacturing_api.evaluate_receiving_manufacturing_readiness(self._layout, failures)
+        return manufacturing_api.receiving_readiness_projection(report)
 
 
 
@@ -459,9 +430,7 @@ class ReceivingSwitchProjectionAdapter:
         return counts[index]
 
     def set_brand(self, brand):
-        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
-        if brand not in RECEIVING_SWITCH_BRANDS:
-            raise ValueError("不支援的開關品牌")
+        brand = manufacturing_api.require_receiving_operator_brand(brand)
         changed = self.brand != brand
         self.adapter.set_brand(brand)
         return changed

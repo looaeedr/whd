@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Set/Bay 共用設定／NFB 交易公開 Engine API（2026-11-02）
+
+`ReceivingSetBayAdapter` 原直接呼叫 `ae_engine.receiving_layout`、`receiving_shared_settings`、`receiving_nfb_transactions` 與製造 Readiness 內部模組，現改為只經 `manufacturing_api` 公開入口操作 Set/Bay／Joint 追加、刪除、更新、來源 stable_id、每連設定分享／解除分享、NFB 原子 Submit／Copy／Restore／Undo、開關品牌及 Readiness。真正的交易、來源資格與資料驗證仍由既有 Engine owner 實作；GUI 不複製公式，只保留 Session 選取、刪除確認、Undo 收據與 dirty flags。原 `receiving_layout_stable_ids` 名稱在 GUI 留相容代理，實作搬回 `ae_engine.receiving_layout`。金庫型、原 Factory/Registry、2D/3D/DXF、Save→Reload、source-only gate 不變；NFB 來源證據與 explicit Confirm／optimistic Undo 保持原拒絕語意，不新增製造放行。#2517 OPEN。
+
+
 ## [CURRENT] #2517 Receiving BasePlate／EAR／PAD 正式 Family aliases 單一來源（2026-11-02）
 
 `receiving_base_plate_config.receiving_base_plate_values`、`receiving_base_fixing_plate.receiving_base_fixing_plate_previews`、`receiving_nfb_pad_operator_parts.committed_nfb_pad_draft_parts` 不再在 Engine 內用僅匹配「受電箱」「RECEIVING」大小寫敏感的第二份族別字串決策，改委派 `cabinet_types.policy.canonical_family_name`／既有 Registry aliases；以同一實體提交的 numeric V5 CSV、Set/Bay 與來源折型條件決定是否能投影。金庫型及非 Receiving Family 仍不得冒名取得底板／EAR／PAD，舊保存資料與 Factory 機械公式不變。此修復只消除 Family alias 路徑分岐；正式 BasePlate DXF 繼續沿用唯一 `generate_part` 與原來源 Gate；PAD、EAR、NFB MFG-2 未獲新增製造資格，source-only `EXTERNAL_EXPORT_NOT_CERTIFIED` 保持拒絕。#2517 OPEN。
