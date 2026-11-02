@@ -14,7 +14,7 @@ from types import MappingProxyType
 from typing import Literal, Mapping, Sequence
 
 from .contracts import (
-    DoorPartSpec, EndCapPartSpec, ManufacturingContext,
+    BoxBodyPartSpec, DoorPartSpec, EndCapPartSpec, ManufacturingContext,
     ResolvedManufacturingGeometry, ResolvedManufacturingPart, PartSpec,
 )
 
@@ -187,8 +187,9 @@ def _resolve_confirmed_integration_parts(
     """Resolve typed, independently authored physical parts through Engine.
 
     This is the existing FinalScene renderer, not an alternate manufacturing
-    exporter. The limited roles are intentionally part-scoped: an incomplete
-    Cabinet/BoxBody/NFB cannot be inferred from a source-view drawing.
+    exporter. Three-piece BoxBody can only enter via the original Engine
+    physical-piece solver; partial Cabinet/NFB cannot be inferred from a
+    source-view drawing.
     """
     from . import manufacturing_api
 
@@ -217,6 +218,11 @@ def _resolve_confirmed_integration_parts(
                     or not spec.fold_profile_x or not spec.fold_profile_y
                     or spec.corner_policy is None):
                 raise ValueError("RECEIVING_ENDCAP_AUTHORED_FOLD_REQUIRED")
+        elif part_key == "box_body" and type(spec) is BoxBodyPartSpec:
+            if (not spec.fold_profile or not spec.back_panel_contract
+                    or spec.structure_state.get("active_type")
+                        != "three_piece_side_back_split"):
+                raise ValueError("RECEIVING_BOX_BODY_AUTHORED_FOLD_REQUIRED")
         else:
             raise ValueError("RECEIVING_CONFIRMED_PART_SCOPE_UNSUPPORTED")
         try:
@@ -225,7 +231,18 @@ def _resolve_confirmed_integration_parts(
         except (KeyError, TypeError):
             raise ValueError("RECEIVING_CONFIRMED_PART_FAMILY_MISMATCH") from None
         seen.add(part_key)
-        render_data = manufacturing_api.build_part_render_data(spec, context)
+        if part_key == "box_body":
+            # The existing Engine-only structural FinalScene resolves exactly
+            # three physical sheets; never serialize a combined preview blank.
+            render_data = manufacturing_api.build_box_body_structure_render_data(
+                spec, context,
+            )
+            roles = tuple(piece.role for piece in render_data.pieces)
+            if (len(roles) != 3
+                    or set(roles) != {"left_side", "back", "right_side"}):
+                raise ValueError("RECEIVING_BOX_BODY_PHYSICAL_ROLES_INVALID")
+        else:
+            render_data = manufacturing_api.build_part_render_data(spec, context)
         resolved.append(ResolvedManufacturingPart(
             part_key=part_key, render_data=render_data,
         ))
@@ -253,8 +270,9 @@ def export_verified_resolved_integration_bays(
     """Commit trusted Receiving parts after WHD staged DXF verification.
 
     Either supply already Engine-resolved geometry or complete, confirmed
-    physical PartSpecs for supported Door/Head/Tail roles; the latter are
-    resolved using the exact same canonical Engine FinalScene path. Raw DXF,
+    physical PartSpecs for Door/Head/Tail and confirmed three-piece BoxBody;
+    the latter are resolved through the existing physical-piece FinalScene
+    solver, never an exploded layout preview. Raw DXF,
     JSON, source-only prepare or guessed Factory parameters remain rejected.
     The trusted project owner guards pre-stage and post-reopen commit; the
     retired source-only CLI remains disabled.

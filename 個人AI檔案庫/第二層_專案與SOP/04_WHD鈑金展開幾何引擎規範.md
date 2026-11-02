@@ -8,6 +8,10 @@ whd_schema: WHD_DOC_META_V1
 
 > 本文件的 CURRENT 區只描述 **現行 ae_engine 製造架構、公開 API 與 authority boundary**。實際 Corner/Relief 製造公式仍由 Certified Registry 與其 canonical references 擁有；本文件不得複製一套第二公式來源。
 
+## [CURRENT] #2517 受電箱三片式箱身沿用既有 Engine 實體製造入口（2026-11-02）
+
+原 `ManufacturingResolvedBayInput.confirmed_parts` 擴充同一個 `("box_body", BoxBodyPartSpec)` 實體選項，必須有已確認 `fold_profile`、`back_panel_contract` 與 `three_piece_side_back_split` 結構。Engine 仍用原 `build_box_body_structure_render_data(spec, context)`（直接讀既有受電箱三張實體基準來源），產出 `left_side`／`back`／`right_side` 真實實體 `pieces`；既有 `save_verified_resolved_manufacturing_geometry_batch_dxf` 分拆每片、staged Save→Reload、雙 guard 與原子提交。沒有新箱身 exporter；不得用 exploded preview、來源 P 盤標籤或一張箱身複合圖當三片 DXF。缺真實三片、來源基準檔、Fold 或後面板契約則拒絕，NFB/PAD/EAR 仍維持原獨立認證，source-only CLI 不開放。#2517 OPEN。
+
 ## [CURRENT] #2517 CADSplit confirmed PartSpec → 同一正式 Engine FinalScene／DXF API（2026-11-02）
 
 `export_verified_resolved_integration_bays` 原有已解析 `ResolvedManufacturingGeometry` 契約不變；`ManufacturingResolvedBayInput` 現可選擇 **互斥** 的 `confirmed_parts=((part_key, PartSpec), ...)`，再由同一個 `manufacturing_api.build_part_render_data` 解析成真實 FinalScene，透過原 `save_verified_resolved_manufacturing_geometry_batch_dxf` staged Save→Reload、來源 pre/post guard 及原子提交。當次先限定受電箱已確認外門 `DoorPartSpec(feature_space="finished_face")`（含明確 gap/fold）及明確兩軸 Fold／Corner 的 Head/Tail `EndCapPartSpec`；BoxBody 三片/NFB PAD/EAR/內門格和全箱 MFG-2 不可從原圖或預覽自行補造，必須先用現有 Engine 實體解算取得已解析結果。Family、實體角色、重複、雙來源、未確認必要欄位都 fail-closed；source-only `dispatch_manufacturing_integration(export)` 繼續 `EXTERNAL_EXPORT_NOT_CERTIFIED`，不是同程序正式 API 的全域禁令。保留既有 Python 公開入口，不新增平行 exporter、CLI/Worker 權限或 Registry 放行。#2517 OPEN。
