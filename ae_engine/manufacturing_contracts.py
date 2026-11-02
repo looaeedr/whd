@@ -17,8 +17,28 @@ from dataclasses import dataclass, fields, is_dataclass
 from enum import Enum
 import hashlib
 import json
+from math import isfinite
 from numbers import Integral, Real
 from typing import Any
+
+
+def normalize_operator_relief_clearance(raw: object) -> float:
+    """Canonical nonnegative, finite Assembly Joint relief clearance in mm.
+
+    Empty operator input retains the historical zero default. Invalid/nonfinite
+    values must not enter a manufacturing request or semantic cache identity.
+    """
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return 0.0
+    if isinstance(raw, bool):
+        raise ValueError("MANUFACTURING_RELIEF_CLEARANCE_INVALID")
+    try:
+        value = float(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("MANUFACTURING_RELIEF_CLEARANCE_INVALID") from exc
+    if not isfinite(value):
+        raise ValueError("MANUFACTURING_RELIEF_CLEARANCE_INVALID")
+    return max(0.0, value)
 
 
 @dataclass(frozen=True)
@@ -285,7 +305,10 @@ class ManufacturingResolveRequest:
 
         object.__setattr__(self, "assembly_intent", str(self.assembly_intent or ""))
         object.__setattr__(self, "allow_3d_fallback", bool(self.allow_3d_fallback))
-        object.__setattr__(self, "relief_clearance", round(float(self.relief_clearance or 0.0), 12))
+        object.__setattr__(
+            self, "relief_clearance",
+            round(normalize_operator_relief_clearance(self.relief_clearance), 12),
+        )
         object.__setattr__(self, "cabinet_model", str(self.cabinet_model or ""))
 
     def semantic_payload(self) -> FrozenMapping:
