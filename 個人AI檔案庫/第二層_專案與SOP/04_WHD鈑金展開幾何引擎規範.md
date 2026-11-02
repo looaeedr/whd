@@ -1433,3 +1433,7 @@ Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或�
 原始 Fold Designer 主 GUI `_snapshot_base_state` 只用 `{"受電箱","RECEIVING"}` 判斷是否把已提交的 `receiving_base_plate` 複製到專案快照；Engine 物理底板 Settings preflight 亦僅允許同樣兩個字面值。Family Registry 接受 `receiving`／混合大小寫，因此同一受電箱從編輯、快照到 `.p6fold` Save→Reload 可能丟失明確實體型式或拒絕本來合法的底板設定。
 
 現改由既有 `ae_engine.receiving_operator_projection.receiving_family_supports_back_panel_mode`（共用 Registry）決定：公開 `manufacturing_api.project_operator_receiving_base_plate_snapshot_source(snapshot, persisted)` 僅 deep-copy 已提交、明確存在的 `receiving_base_plate`，沒有資料就不補、明確 None 保持 reset；非法配置型別 fail closed、其他 Family 一律不攜帶受電箱來源。原 `validate_receiving_base_plate_settings` 改走同一 `cabinet_types.policy.canonical_family_name`，其真實 EAR 孔／板件輪廓檢查完全保留，**沒有放寬實體製造認證、沒有新增 Fold／DXF 公式**。實際主 GUI snapshot、合法金庫型拒絕、來源不變性與 `.p6fold` 保存重開驗證；#2517 仍 OPEN。
+
+## [CURRENT] #2517 多門格指示燈 GUI 專案快照不准把非法實體孔數修成預設值（2026-11-03）
+
+`gui_modules/application/fold_designer_snapshot_projection.py::_snapshot_base_state` 原先直接使用 GUI `normalize_door_indicator_state` 來保存每一格指示燈，該顯示相容函式會把非法層數、布林孔數、非有限偏移變成 1／2／0，造成儲存來源與 Engine 實體製造判準分裂。正式存檔現在交由公開 `manufacturing_api.project_operator_door_layout_indicator_snapshot_states` 對每格呼叫現有 `project_operator_door_cell_indicator_manufacturing_source`，使用 Hole Editor 同一份 Engine 驗證規則，輸出 detached、具有舊版 `enabled/box_enabled` 閱讀相容欄位的合法物理來源。啟用但來源不完整／非法時失敗且不提交快照；停用時未使用的欄位不會產生孔；歷史 flags 僅決定 mode。GUI 原本的顯示相容函式可繼續處理畫面，不得成為實體 Save／製造資料權威。金庫型／受電箱的 GUI Snapshot→Project Save→Reload 對應真實來源與非法拒絕測試；製造門檻與 DXF 寫入器未改，#2517 仍 OPEN。

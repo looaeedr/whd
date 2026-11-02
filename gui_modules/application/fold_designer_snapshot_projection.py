@@ -9,7 +9,6 @@ import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bottom_wrap_state
 from phase6_settings_center import load_factory_defaults_from_ae
-from gui_modules.parts.panels.door import normalize_door_indicator_state
 
 def _read_snapshot_numeric_control(var, fallback=0.0, *, physical_field=None):
     """Read only GUI input; Engine rejects unavailable physical source data."""
@@ -86,10 +85,11 @@ def _snapshot_base_state(self):
         "door_handle_edges": deepcopy(getattr(self, "door_layout_handle_edges", {}) or {}),
         "inner_doors": deepcopy(getattr(self, "receiving_inner_doors", []) or []),
         "door_nameplate_center_datum_top": getattr(self, "door_nameplate_center_datum_top", None),
-        "door_layout_indicator_states": {
-            str(key): normalize_door_indicator_state(state)
-            for key, state in dict(getattr(self, "door_layout_indicator_states", {}) or {}).items()
-        },
+        "door_layout_indicator_states": (
+            manufacturing_api.project_operator_door_layout_indicator_snapshot_states(
+                getattr(self, "door_layout_indicator_states", None) or {}
+            )
+        ),
         "door_layout_indicator_box_features": deepcopy(
             getattr(self, "door_layout_indicator_box_features", {}) or {}
         ),

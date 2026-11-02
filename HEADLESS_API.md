@@ -1857,3 +1857,7 @@ Use `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source
 ## #2517 Receiving explicit BasePlate source across snapshot / Settings / Save→Reload (2026-11-03)
 
 `manufacturing_api.project_operator_receiving_base_plate_snapshot_source(operator_snapshot, persisted)` returns only a detached, explicitly present `receiving_base_plate` source for a Family Registry-identified Receiving project; absent input remains absent and a deliberate reset remains null. GUI must never infer physical plate variants from a DXF sketch or its own string checks. `validate_receiving_base_plate_settings` now checks the same Family Registry and retains its original material/EAR geometry validation. This is Project source persistence, not DXF release or external Worker certification.
+
+## #2517 Door-cell Indicator snapshot source must use Engine's manufacturing validator (2026-11-03)
+
+Use `manufacturing_api.project_operator_door_layout_indicator_snapshot_states(per_cell_inputs)` when producing a Fold Designer project snapshot. It delegates every active cell to the existing Engine manufacturing/Hole Editor validation, retains detached `mode/enabled/box_enabled` legacy view fields, and rejects missing or bad physical groups/layers/offsets before saving. GUI's legacy presentation `normalize_door_indicator_state` may display repaired controls but cannot authorize saved manufacturing source. A disabled cell creates no holes; no external Worker capability or manufacturing release is implied.
