@@ -1741,3 +1741,16 @@ operator model or genuinely absent optional source retains its legacy behavior;
 a corrupt or unverified present DXF still prevents export. The GUI forwards
 only the chosen model. This preflight is not standalone manufacturing
 authorization; all existing FinalScene/Factory/Registry/Save→Reload gates remain.
+
+
+### #2517 Operator exact raw PartRenderData cache-source plan
+
+`manufacturing_api.plan_operator_raw_material_reuse(spec, snapshot, context=...)`
+returns `OperatorRawMaterialReusePlan(eligible, source_stamp)`. Only original
+Receiving Set/Bay raw BoxBody or not-yet-relieved EndCap can reuse exact typed
+material between witnessed W/H/D edits. Engine decides Family, physical
+multipart structure, required baseline files and mandatory original
+`封頭尾.dxf` witness. GUI only maintains its original bounded LRU and
+invalidates on changed source witness. A missing or changed source never
+releases manufacturing or allows reuse; final Joint/assembly solve, CUTTING
+DXF verification and all Factory/Registry gates always run normally.
