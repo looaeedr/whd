@@ -1441,3 +1441,8 @@ Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或�
 ## [CURRENT] #2517 門格 Door PartSpec 與獨立指示燈盒／小門 DXF 必須使用未經 GUI 修補的 Engine 實體來源（2026-11-03）
 
 主 GUI `manufacturing_adapter._door_layout_part_spec` 與 `export_actions.export_multi_door_indicator_box_parts` 原本均對層數執行 `max(1,min(6,int(...)))`，再用 `int(groups)` 自行決定實際孔數；而 GUI `_door_layout_indicator_state_for_key` 可能已做畫面相容修補。兩條製造入口現在優先讀取已提交的原始 `door_layout_indicator_states[physical_cell_key]`（只有無此來源容器的舊 client 才從既有展示適配器取輸入），經同一公開 `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source` 驗證才建 Door PartSpec 或指示燈盒／小門 PartSpec；沒有原始實體來源，不得因展示值而增加孔位；非法層數、孔數、偏移與模式不得出圖。DXF 真正寫入仍沿用既有 `_export_authoritative_part` → Engine FinalScene sink，沒有新公式、沒有新放行權。定向測試覆蓋 Door、兩獨立板件、無效來源無呼叫／無輸出、禁用 GUI 數值修補回長；#2517 仍 OPEN。
+
+
+### #2517 門格原始來源必須在 GUI 顯示 accessor 原地修補之前驗證（2026-11-03）
+
+`door_render_host_adapter._door_layout_indicator_state_for_key` 是顯示相容入口，會對既有 `door_layout_indicator_states[key]` 原地 `clear()/update()` 修補。即使 Door PartSpec 或指示燈盒／小門獨立 DXF 隨後呼叫嚴格的 `project_operator_door_cell_indicator_manufacturing_source`，若**先呼叫顯示 accessor**，Engine 看到的已非原始物理來源，非法 bool／零／過量群組、層數或 NaN 偏移可能變成合法預設。正式路徑 `manufacturing_adapter._door_layout_part_spec`、`export_actions.export_multi_door_indicator_box_parts` 與 `_validate_selected_indicator_exports` 現必須先讀既有來源容器中的原始 row，交同一 Engine API 驗證；只有根本沒有來源容器的舊相容 client 才使用顯示 accessor。原容器存在但特定 cell 缺少時由 Engine 判為未啟用，**不得創造實體孔位、不得就地修改來源**。定向測試模擬真實會修改原 dict 的 GUI accessor，要求非法來源在預檢、Door PartSpec 與獨立 DXF 出口全部拒絕、不產生檔案且保留原資料；不修改 Family／Factory／FinalScene／DXF 製造算法或認證。#2517 維持 OPEN。
