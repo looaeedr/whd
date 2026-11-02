@@ -5,7 +5,6 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
-from ae_engine.receiving_nfb_2d_preview import Nfb2DViewport, NfbDxfPreviewCache
 from ae_engine import manufacturing_api
 
 _ACI_COLORS = {30:"#ffb064", 150:"#54c6ff", 212:"#cfb6ff", 3:"#69df90"}
@@ -20,8 +19,8 @@ class NfbDxfSourcePreviewPanel:
         self.canvas=tk.Canvas(self.frame,width=396,height=415,
                               background="#101c27",highlightthickness=0)
         self.canvas.pack(fill="both",expand=True,padx=6,pady=6)
-        self.cache=NfbDxfPreviewCache()
-        self.viewport=Nfb2DViewport()
+        self.cache=manufacturing_api.NfbDxfPreviewCache()
+        self.viewport=manufacturing_api.Nfb2DViewport()
         self._index_path=index_path
         self._source_key=None
         self._drag_point=None
