@@ -15,7 +15,6 @@ from pathlib import Path
 import tkinter as tk
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.receiving_layout import (
     ensure_receiving_layout as ensure_receiving_preview_layout,
     resize_receiving_bays as resize_receiving_preview_bays,
@@ -334,13 +333,10 @@ def back_panel_mode_control_is_applicable(self, namespace):
     app = self.app
     required = lambda name: self._required(namespace, name)
     snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
-    if cabinet_family_policy.canonical_family_name(snapshot) != "受電箱":
+    if not manufacturing_api.receiving_family_supports_back_panel_mode(snapshot):
         return False
     state = required("_phase6_box_structure_state")(app)
-    return (
-        str(state.get("active_type") or "")
-        == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
-    )
+    return manufacturing_api.receiving_back_panel_mode_control_applicable(snapshot, state)
 
 def refresh_back_panel_mode_control(self, namespace):
     """Project canonical rear-panel mode beside the Receiving switch selector."""
@@ -386,7 +382,7 @@ def select_back_panel_mode(self, namespace, var):
     if mode is None:
         return None
     snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
-    if cabinet_family_policy.canonical_family_name(snapshot) != "受電箱":
+    if not manufacturing_api.receiving_family_supports_back_panel_mode(snapshot):
         return None
     state = required("_phase6_box_structure_state")(app)
     try:
@@ -1552,7 +1548,6 @@ def _apply_mode_snapshot(self, namespace, source, *, require_committed=False):
 
 
 def _switch_mode(self, namespace, target):
-    from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
     from phase6_receiving_modes import ReceivingModeSession
     from shapely.errors import GEOSException
     from tkinter import messagebox
@@ -1569,7 +1564,7 @@ def _switch_mode(self, namespace, target):
         # Fresh mode data uses Receiving Family defaults (800x1600x350).
         # There is no operator-facing initialization dialog. Returning to an
         # existing session still restores that session's original dimensions.
-        dimensions = {key: int(BOX_BODY_DEFAULTS[key]) for key in ("w", "h", "d")}
+        dimensions = manufacturing_api.receiving_default_box_dimensions()
     source = _current_mode_snapshot(self, namespace)
     planned = deepcopy(session)
     was_dirty = app.designer_workspace.dirty

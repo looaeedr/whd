@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 操作預設／後板模式 GUI→Engine 公開 API（2026-11-02）
+
+`manufacturing_api.receiving_default_box_dimensions` 由受電箱現有 Family `BOX_BODY_DEFAULTS` 提供獨立 W/H/D 拷貝；`receiving_default_preview_dimensions` 由已保存 quantity／Set-Bay snapshot 決定唯讀尺寸。後板模式顯示與切換的 Family alias 條件交由 `receiving_family_supports_back_panel_mode`，三片式側背分離拓樸適用條件由 `receiving_back_panel_mode_control_applicable` 決定。GUI `receiving_multi_settings_window` 與 `fold_designer_composition_receiving` 只顯示、傳送 snapshot 與控制指令；舊模式暫存、保存結構、獨立尺寸、舊金庫型製造 API 及受電箱 DXF 出口均不變。本批不宣稱 NFB／內門／外部 source-only 製造認證；#2517 OPEN。
+
+
 ## [CURRENT] #2517 共用單板製造拒絕已註冊但未實作 Family（2026-11-02）
 
 `manufacturing_api.generate_part(PartSpec, output_path, context)` 在建立目錄或暫存 DXF 前，呼叫既有 Family Registry owner 的 `cabinet_types.policy.require_implemented_manufacturing_family(spec.model_name)`；若 `RO/落地盤` 之類已註冊 Family 仍為 `implemented=False`，須回 `CABINET_FAMILY_NOT_IMPLEMENTED` 且不執行 exporter、不得建立 DXF。金庫型、受電箱（含 alias）沿既有正式單板 API 及各 Part 專屬來源 gate 繼續；`model_name=None` 與尚未建檔的歷史工廠字串為相容目的暫保留既有行為，不能把此相容視作製造認證。此 gate 只是「已知但未實作 Family 不得偷用舊公式」的必要條件，**不**聲稱所有 Family×Part×Operation 已經通過正式 Registry／DXF 核可。source-only `dispatch_manufacturing_integration(export)` 的拒絕維持原樣，#2517 OPEN。
