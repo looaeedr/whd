@@ -75,7 +75,7 @@ def test_gui_single_part_exports_cached_engine_finalscene_with_verification(monk
     actual = gui._export_authoritative_part(host, spec, destination, ctx)
     assert actual == str(destination)
     assert calls == [(render, destination, {
-        "overwrite": False, "verify_reopen": True,
+        "overwrite": ctx.overwrite, "verify_reopen": True,
     })]
 
 
