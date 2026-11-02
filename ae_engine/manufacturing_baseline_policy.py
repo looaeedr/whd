@@ -245,7 +245,11 @@ def expected_baseline_path_for(
     if isinstance(spec, BoxBodyPartSpec):
         return _expected_baseline_path(spec.model_name, "箱身.dxf", ctx)
     if isinstance(spec, EndCapPartSpec):
-        return _expected_baseline_path(spec.model_name, "封頭尾.dxf", ctx)
+        # The Family owns the fixed-hole source independently from the target
+        # sheet's manufactured Fold/Corner/depth compensation. Receiving reuses
+        # certified Vault hole features; it has no Receiving/封頭尾.dxf source.
+        source_model = _endcap_baseline_feature_model_name(spec.model_name)
+        return _expected_baseline_path(source_model or spec.model_name, "封頭尾.dxf", ctx)
     if isinstance(spec, IndicatorBoxPartSpec):
         return _indicator_shared_expected_path("盒子.dxf", ctx, model_name=spec.model_name)
     return None
