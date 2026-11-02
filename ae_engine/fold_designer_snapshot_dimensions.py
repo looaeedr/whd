@@ -125,7 +125,9 @@ def project_operator_door_cell_indicator_manufacturing_source(raw):
     if not isinstance(raw, Mapping):
         raise ValueError("門格指示燈製造來源必須是有效物件")
     mode = raw.get("mode")
-    if mode not in ("none", "indicator", "indicator_box"):
+    if mode is not None and mode not in ("none", "indicator", "indicator_box"):
+        raise ValueError("門格指示燈模式來源無效")
+    if mode is None:
         # Old saved cells may have only explicit enabled flags. Preserve that
         # legacy identity, but never repair the physical groups or dimensions.
         def legacy_flag(key):

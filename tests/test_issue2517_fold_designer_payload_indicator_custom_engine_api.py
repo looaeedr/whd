@@ -64,6 +64,10 @@ def test_disabled_corrupt_control_and_legacy_mode_are_not_fabricated():
         api.project_operator_door_cell_indicator_manufacturing_source(old)
     with pytest.raises(ValueError):
         api.project_operator_door_cell_indicator_manufacturing_source(False)
+    with pytest.raises(ValueError, match="模式來源無效"):
+        api.project_operator_door_cell_indicator_manufacturing_source(
+            _indicator(mode="unknown"),
+        )
 
 
 def _payload(model, cat, key, t=2.0):
@@ -112,3 +116,26 @@ def test_gui_manufacturing_payload_uses_public_api_not_compat_or_truncation():
     assert "project_operator_door_cell_indicator_manufacturing_source(" in door
     assert "layers = max(1, min(6, int(" not in door
     assert "tuple(int(v)" not in door
+
+
+def test_real_multi_door_indicator_uses_same_part_spec_and_independent_dxf(tmp_path):
+    """An enabled cell must export real Engine hole geometry, not only pass mocks."""
+    host = SimpleNamespace(_door_part_spec_from_values=(
+        lambda values, **kw: api.build_door_operator_part_spec(
+            values, model_name="金庫型", **kw,
+        )
+    ))
+    cell = SimpleNamespace(column_index=0, row_index=0, edges=None)
+    source = _indicator("indicator", groups=[1, 1, 2, 2, 2, 2],
+                        offset_x=0.0, offset_y=0.0)
+    spec = gui._door_part_spec_from_payload_context(
+        host, {"door_layout_indicator_states": {"0:0": source}},
+        500.0, 600.0, 2.0, 25.0, "金庫型", False, (), None, cell,
+    )
+    assert spec.door_indicator == (1, 1)
+    render = api.build_part_render_data(spec)
+    assert render.material.area > 0
+    path = tmp_path / "door_c1_r1.dxf"
+    api.generate_part(spec, path)
+    assert len(ezdxf.readfile(path).modelspace()) > 0
+    assert api.verify_saved_part_render_data_dxf(render, path).ok
