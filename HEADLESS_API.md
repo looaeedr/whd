@@ -6,6 +6,20 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 canonical Receiving three-piece DXF baseline Family alias
+
+`manufacturing_api.build_box_body_structure_render_data` resolves `受電箱` and every
+registered `RECEIVING` case/whitespace alias through the existing Cabinet
+Family registry. Every confirmed three-piece `left_side`, `back`, `right_side`
+continues to consume the dedicated verified source DXF and SHA; missing
+`基準檔/受電箱` material fails rather than manufacturing an unsourced
+generic multi-piece DXF. The same registered-but-unimplemented Family guard
+applies to direct `build_part_render_data`, three-piece FinalScene, and the
+immutable canonical `resolve_manufacturing_request` route. The resolver's
+Receiving NFB selector rehydrate uses canonical Family identity, including
+lowercase aliases. This is not an expansion of DXF certification, and does not
+enable the source-only integration export.
+
 ## #2517 BasePlate manufacturing uses canonical Cabinet Family policy
 
 `manufacturing_api.generate_part(BasePlatePartSpec, ..., ManufacturingContext)`
