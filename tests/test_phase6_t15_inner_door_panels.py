@@ -209,7 +209,19 @@ def test_derived_sheet_holes_confirm_cancel_reload_and_real_dxf(tmp_path, monkey
             assert not edited.material.contains(point), key
             assert tuple(edited.fold_guides) == tuple(baseline.fold_guides)
             output = tmp_path / f'{keys.index(key)}.dxf'
-            if key.startswith('base_plate:fixing_plate:'):
+            if key == 'base_plate' and (
+                edited.metadata.get('receiving_base_plate_unconfigured') is True
+            ):
+                # The editor keeps the preview Feature and Save/Reload, but a
+                # Receiving bottom plate without a confirmed physical pattern
+                # is never a legal manufacturing DXF.
+                with pytest.raises(
+                    ValueError,
+                    match='RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING',
+                ):
+                    save_part_render_data_dxf(edited, output)
+                assert not output.exists(), key
+            elif key.startswith('base_plate:fixing_plate:'):
                 # The Hole Editor may preserve a source-flat fixing-plate
                 # feature, but an arbitrary edited preview is NOT the
                 # separately source/skin/side-contact-certified folded EAR.
