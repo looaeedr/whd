@@ -11,6 +11,12 @@ whd_schema: WHD_DOC_META_V1
 `gui_modules/application/fold_designer_snapshot_projection.py` 原本在 GUI 直接引用 `ae_engine.corner_type_ui` 的自訂型號判斷、`sheetmetal_geometry` 的截角選單常數及 `assembly_joint.migrate_legacy_snapshot_joints`。現由 `manufacturing_api.project_operator_corner_selection_catalog(model, baseline_models)` 提供凍結的選單資料，並由 `manufacturing_api.project_operator_assembly_joint_snapshot(prior_state, *, existing_parts, assembly_type)` 將操作者的現有實體清單與已選組合型態交給原 Engine Joint v2 migration。GUI 僅存回 Engine 回傳的 schema/joints，保留原本金庫型、受電箱、舊版自訂 alias、既存使用者 Joint 與 Save→Reload 行為，不另造 Joint 物理規則。另將舊 NFB DXF 真實來源的唯讀 `NfbDxfPreviewCache`／`Nfb2DViewport` 經 `manufacturing_api` 公開供 GUI 顯示，維持原 CSV 身分／來源 revision 防混用；這只是 SOURCE preview，**不開啟 CUTTING、MFG-2、整箱製造、外部 CLI export 或新 Factory 認證**。#2517 仍 OPEN。
 
 
+
+## [CURRENT] #2517 受電箱固定片來源 2D 實體輪廓唯一 Engine API（2026-11-02）
+
+`manufacturing_api.project_receiving_fixing_plate_source_2d(preview)` 接收 Engine 的 `BaseFixingPlatePreview`，嚴格檢查來源輪廓、孔位、T2、原 DXF 折線與孔組，從 `ae_engine.receiving_base_fixing_plate_geometry` 唯一已登錄來源 `_outline/_slot` 產生不可變 `FixingPlateSourcePreview2D` 顯示 DTO；孔組距離由原始位置推導，不在 GUI 硬編。GUI `phase6_navigation_view_adapter.show_receiving_base_fixing_plate_preview` 僅做 Tk 像素繪製，移除另一套圓弧／長圓孔物理計算及錯誤 T3、無 BEND 文案。實際原始來源為 T2 256×105，含既有 BEND 線；此 Preview **不提供折向／焊接 Z／成形或整箱製造認證**，不解鎖 DXF 或外部 source-only export。#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 實體 2D 板件孔位與受電箱內門板快取資格 Engine API（2026-11-02）
 
 `gui_modules/application/fold_designer_manufacturing_projection._query_fold_designer_render_data` 不再從 GUI 直接 import `ae_engine.physical_sheet_features.with_physical_sheet_features` 做展開板件孔位幾何，也不在 GUI 判斷 Receiving Family/Set-Bay 或呼叫 `phase6_manufacturing_contracts.manufacturing_fingerprint` 取得內門板素材快取鍵。前者由既有實體孔位函式直接經公開 `manufacturing_api.with_physical_sheet_features` 傳入同源實體 Render/Features；後者由 `manufacturing_api.project_operator_inner_door_panel_preview_cache_signature(snapshot, panel, features)` 在 `ae_engine.receiving_raw_source_cache` 統一校驗實體 `InnerDoorPanelPart`、Family、當前實體 Bay 與 typed Feature 指紋，並與既有 panel ticket 共用算法。GUI 只保留對不可變素材的 LRU、操作者輸入與畫面呈現；簽章只證明 raw preview 輸入相同，不能當作製造、CUTTING、外部 export 或 Save→Reload 認證。#2517 OPEN。

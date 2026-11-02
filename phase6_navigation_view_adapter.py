@@ -468,24 +468,20 @@ def on_structure_tree_click(
 
 
 def show_receiving_base_fixing_plate_preview(host, preview):
-    """Show the user's original large-ear flat source, never a fake formed blank.
-
-    Deliberately separate from Part activation/export: the source silhouette
-    is valid for review, but its BEND, weld contact/Z and complete manufacturing
-    result are not approved.
-    """
-    import math
+    """Render only Engine-sourced original DXF; never manufacture in Tk."""
     import tkinter as tk
+    from ae_engine import manufacturing_api
 
+    plane = manufacturing_api.project_receiving_fixing_plate_source_2d(preview)
     win = tk.Toplevel(getattr(host, "root", None))
     win.title(preview.display_name + "｜來源 2D 預覽（製造待驗證）")
     win.resizable(False, False)
     tk.Label(
         win,
-        text=preview.display_name + "　來源平面外形｜板厚 T3",
+        text=f"{preview.display_name}　原始 DXF 平面外形｜板厚 T{plane.thickness_mm:g}",
         font=("Microsoft JhengHei", 11, "bold"),
     ).pack(padx=14, pady=(12, 4))
-    w, h = preview.nominal_source_outline_mm
+    w, h = plane.width_mm, plane.height_mm
     scale, margin = 1.8, 35
     canvas = tk.Canvas(
         win, width=int(w * scale + 2 * margin),
@@ -497,51 +493,32 @@ def show_receiving_base_fixing_plate_preview(host, preview):
     def screen(x, y):
         return (margin + scale * x, margin + scale * (h - y))
 
-    r = preview.source_top_corner_radius_mm
-    outline = [(0., 0.), (w, 0.), (w, h-r)]
-    outline += [
-        (w-r + r*math.cos(math.radians(a)),
-         h-r + r*math.sin(math.radians(a)))
-        for a in range(0, 91, 10)
-    ]
-    outline.append((r, h))
-    outline += [
-        (r + r*math.cos(math.radians(a)),
-         h-r + r*math.sin(math.radians(a)))
-        for a in range(90, 181, 10)
-    ]
     canvas.create_polygon(
-        *(coord for xy in outline for coord in screen(*xy)),
+        *(coord for xy in plane.outline_xy_mm for coord in screen(*xy)),
         fill="#f8fafc", outline="#334155", width=2,
     )
-    slot_length, slot_width = preview.source_slot_size_mm
-    radius = slot_width / 2
-    half_separation = (slot_length - slot_width) / 2
-    for cx, cy in preview.nominal_source_slot_centers_mm:
-        slot = []
-        slot += [
-            (cx + half_separation + radius*math.cos(math.radians(a)),
-             cy + radius*math.sin(math.radians(a)))
-            for a in range(-90, 91, 10)
-        ]
-        slot += [
-            (cx - half_separation + radius*math.cos(math.radians(a)),
-             cy + radius*math.sin(math.radians(a)))
-            for a in range(90, 271, 10)
-        ]
+    for slot in plane.slots_xy_mm:
         canvas.create_polygon(
             *(coord for xy in slot for coord in screen(*xy)),
             fill="white", outline="#334155", width=2,
         )
-    pair = preview.applicable_slot_pair_indexes
-    pitch = "210 mm" if pair == (0, 3) else "140 mm" if pair == (1, 2) else "待配置（210／140 擇一）"
+    if plane.bend_line_xy_mm is not None:
+        canvas.create_line(
+            *(coord for xy in plane.bend_line_xy_mm for coord in screen(*xy)),
+            fill="#2563eb", width=2, dash=(6, 4),
+        )
+    pitch = (f"{plane.selected_pitch_mm:g} mm"
+             if plane.selected_pitch_mm is not None else "待配置（來源孔組不可自選）")
+    slot_l, slot_w = plane.source_slot_size_mm
     tk.Label(
-        win, text=f"原圖 256×105 mm｜長圓孔 25×11 mm｜本底板對孔 {pitch}",
+        win,
+        text=(f"原圖 {w:g}×{h:g} mm｜長圓孔 {slot_l:g}×{slot_w:g} mm"
+              f"｜本底板對孔 {pitch}"),
     ).pack(padx=12, pady=(3, 4))
     tk.Label(
         win,
-        text="23 mm 是裝配推得的名義折線，原大片來源尚無正式折線。工廠不使用折彎補償；折向／焊接 Z 待驗證。\\n"
-             "此為來源 2D 檢視，不能作為正式下料或折彎圖。",
+        text="藍色虛線為原圖已有 BEND；折向及焊接 Z 尚未驗證。\n"
+             "僅供來源 2D 檢視，不得作為正式下料、折彎或整箱製造圖。",
         fg="#9a3412", justify="center",
     ).pack(padx=12, pady=(0, 8))
     tk.Button(win, text="關閉", command=win.destroy).pack(pady=(0, 12))

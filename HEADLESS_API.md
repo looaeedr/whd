@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 Receiving fixing-plate original-DXF source-only 2D preview (2026-11-02)
+
+`manufacturing_api.project_receiving_fixing_plate_source_2d(preview)` returns frozen `FixingPlateSourcePreview2D` for an Engine-issued `BaseFixingPlatePreview`, with exact original T2 256×105 source contour, 25×11 slot outlines, an existing BEND at y=23, verified source-profile SHA and applicable selected hole pitch. The geometry reuses original source-flat Engine contours; the Tk view never calculates hole or contour geometry. Drift or unknown pair fails closed. This display contract **does not** certify forming direction, weld Z, assembled fixing plate, production DXF, or external export.
+
+
 ## #2517 Selected DXF route and unconfigured Base retry (2026-11-02)
 
 `manufacturing_api.plan_selected_resolved_export_route(snapshot, flags, group_mode=None)` returns frozen `SelectedResolvedExportRoute(vault_composed, legacy_guard_flags)`. It consolidates the already-existing Vault combined-panel dispatch and Receiving EAR/NFB legacy guard policy; a source-verified current CSV must go through the original Engine exporter rather than the obsolete legacy NFB gate. An unverified Receiving EAR-side normal export in Quantity mode is still rejected. This planning result cannot certify physical parts or authorize MFG-2 production.
