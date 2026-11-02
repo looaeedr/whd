@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+## #2517 EndCap settings operator FW / WRAP / Joint public transactions (2026-11-02)
+
+`manufacturing_api.operator_endcap_fw_follow(snapshot, settings, state, part_key, follow_box)` and `operator_endcap_fw_override(snapshot, settings, state, part_key, value)` perform copied operator state commits under the existing four-state EndCap FW engine. `operator_endcap_bottom_wrap(snapshot, state, part_key, reserve_u, reserve_v)` returns `OperatorBottomWrapTransition(state, resolved)` with canonical linked Head/Tail reserve and Joint-aware readback. `operator_endcap_edge_relation(snapshot, part_key, edge, relation)` forwards the actual Assembly Joint commit. GUI compatibility transition functions only call these public functions. Invalid part/relation requests remain rejected, inputs stay unchanged, and existing Save→Reload/Factory policy continue unchanged. No new geometry, relief, whole-cabinet manufacturing or external export certification.
+
+
 ## #2517 Receiving fixing-plate original-DXF source-only 2D preview (2026-11-02)
 
 `manufacturing_api.project_receiving_fixing_plate_source_2d(preview)` returns frozen `FixingPlateSourcePreview2D` for an Engine-issued `BaseFixingPlatePreview`, with exact original T2 256×105 source contour, 25×11 slot outlines, an existing BEND at y=23, verified source-profile SHA and applicable selected hole pitch. The geometry reuses original source-flat Engine contours; the Tk view never calculates hole or contour geometry. Drift or unknown pair fails closed. This display contract **does not** certify forming direction, weld Z, assembled fixing plate, production DXF, or external export.
