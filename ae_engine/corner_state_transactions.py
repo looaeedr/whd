@@ -28,6 +28,18 @@ class CornerStateTransition:
     value: object = None
 
 
+def replace_corner_state(
+    corner_state: Mapping[str, object] | None,
+    corner_pair_same: Mapping[str, object] | None,
+) -> CornerStateTransition:
+    """Engine-owned detached replacement of persisted manual Corner state."""
+    return CornerStateTransition(
+        deepcopy(dict(corner_state or {})),
+        deepcopy(dict(corner_pair_same or {})),
+        None,
+    )
+
+
 def ensure_corner_part(
     corner_state: Mapping[str, object] | None,
     corner_pair_same: Mapping[str, object] | None,

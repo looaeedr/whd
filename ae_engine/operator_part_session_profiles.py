@@ -6,6 +6,9 @@ manufacturing DXF approval or a replacement for canonical FinalScene.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
+from copy import deepcopy
+
 from .cabinet_types import policy as family_policy
 from .receiving_base_plate_3d_profiles import receiving_base_plate_3d_profiles
 
@@ -140,3 +143,38 @@ def project_operator_part_session_source_dimensions(snapshot, operator_dimension
         )
         for axis in ("w", "h", "d")
     }
+
+
+def operator_receiving_navigation_only_sync_change(previous, current) -> bool:
+    """Prove only the selected existing part changed; unknown fields fail closed.
+
+    Compare complete payloads, including removed keys, rather than trusting the
+    sender's delta or geometry cache. Transport metadata is not product state.
+    """
+    if not isinstance(previous, Mapping) or not isinstance(current, Mapping):
+        return False
+    old, new = deepcopy(dict(previous)), deepcopy(dict(current))
+    changed = False
+    for payload in (old, new):
+        # This optimization is certified only for Receiving multi-Bay
+        # navigation. Other families (e.g. vault) must publish their derived
+        # EndCap relief during the normal part activation transition; merely
+        # changing active_part is not display-only for those factories.
+        if (payload.get("model") not in ("受電箱", "RECEIVING")
+                or payload.get("active_mode") != "set_bay"):
+            return False
+        workspace = payload.get("workspace")
+        if not isinstance(workspace, dict):
+            return False
+        active = payload.get("active_part")
+        if (not active or workspace.get("active_part") != active
+                or active not in tuple(workspace.get("existing_parts") or ())):
+            return False
+    changed = old["active_part"] != new["active_part"]
+    for payload in (old, new):
+        for name in ("origin", "revision", "fingerprint", "transaction_id", "delta", "active_part"):
+            payload.pop(name, None)
+        payload["workspace"].pop("active_part", None)
+    return changed and old == new
+
+

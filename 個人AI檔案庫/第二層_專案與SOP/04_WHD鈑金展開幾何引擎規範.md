@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 GUI 殘留 Family／Corner／Receiving 導覽物理決策由 Engine 公開 API 擁有（2026-11-03）
+
+- 原 GUI `phase6_settings_transitions.plan_external_model_change` 決定目標箱型變更；現在委派 `manufacturing_api.plan_operator_external_model_change`（同型別 `OperatorExternalModelPlan`，現行字串／空值與 change 判準原樣移轉），正式 Family 切換仍由既有 `plan_cabinet_family_model_transition` 執行，不能繞過 Factory／Registry。
+- 原 GUI `phase6_settings_transitions.replace_corner_state` 的正式 Corner 保存態深拷貝改由 `manufacturing_api.replace_corner_state` 返回原 `CornerStateTransition`。不改使用者 Corner 選擇、對稱聯動、Registry 截角或製造幾何。
+- 原中立同步 adapter `phase6_sync_envelope.navigation_only_change` 曾自行識別 Receiving Set/Bay、存在實體板件及完整 state 同源才能省略實體 publish。此物理判準原樣移到既有 `ae_engine.operator_part_session_profiles.operator_receiving_navigation_only_sync_change`，由 `manufacturing_api` 公開；GUI 僅送兩個 state、根據 Engine 判斷執行或跳過 UI 傳輸，不重新決定可否略過物理狀態。Legacy 語意保留：僅 `受電箱`／`RECEIVING` 與 `set_bay` 的唯一實體 active_part 變動，其他 Payload 差異 fail closed；不是製造允許或完整 Set/Bay 認證。
+- 驗收 `tests/test_issue2517_gui_residual_physical_state_engine_api.py` 與既有 Settings／live-sync／Receiving Part Session／Save→Reload 回歸；來源不修改、Headless=GUI、Vault 與物理差異 fail closed。此為 move-only，無新尺寸公式、2D／3D／DXF 資格、外部 source-only CLI 放行，#2517 OPEN。
+
+
 ## [CURRENT] #2517 Settings 標準／自訂 Part Fold 由同一 Engine API 路由（2026-11-03）
 
 - GUI phase6_settings_profile_projection.build_standard_part_profiles 原本用 custom: 判斷製造身分，分別轉交 CustomFold／標準 Fold API。現在由既有 Engine operator_settings_fold_plan 中唯一的 build_operator_default_part_fold_profiles 統一決策，經 manufacturing_api 正式公開；GUI 只傳入 snapshot 和 part_key，Engine 的 Settings 整體計畫同樣改用這條 helper。
