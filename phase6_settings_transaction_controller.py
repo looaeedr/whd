@@ -530,7 +530,7 @@ class Phase6SettingsTransactionController:
         self, previous: str | None
     ) -> None:
         self._orchestration.restore_active_transaction(previous)
-    def commit_symmetry(self, state, value: bool) -> bool:
+    def commit_symmetry(self, state, value: object) -> bool:
         committed = settings_transitions.normalize_symmetry(value)
         setattr(state, "symmetric", committed)
         self.mark_workspace_dirty()
