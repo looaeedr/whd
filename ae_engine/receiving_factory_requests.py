@@ -239,16 +239,16 @@ def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation, co
     if confirmation == "saved_operator_confirmed":
         saved_features = values.get("part_features", {})
         if not isinstance(saved_features, Mapping):
-            raise ValueError("RECEIVING_SAVED_DOOR_SOURCE_FEATURES_MISMATCH")
+            raise ValueError("RECEIVING_CONFIRMED_DOOR_SOURCE_INVALID: RECEIVING_SAVED_DOOR_SOURCE_FEATURES_MISMATCH")
         for cell in projections:
             if cell.part_key in saved_features:
                 saved_rows = saved_features[cell.part_key]
                 if not isinstance(saved_rows, (list, tuple)):
-                    raise ValueError("RECEIVING_SAVED_DOOR_SOURCE_FEATURES_MISMATCH")
+                    raise ValueError("RECEIVING_CONFIRMED_DOOR_SOURCE_INVALID: RECEIVING_SAVED_DOOR_SOURCE_FEATURES_MISMATCH")
             else:
                 saved_rows = ()
             if saved_rows and tuple(saved_rows) != features_by_part.get(cell.part_key, ()):
-                raise ValueError("RECEIVING_SAVED_DOOR_SOURCE_FEATURES_MISMATCH")
+                raise ValueError("RECEIVING_CONFIRMED_DOOR_SOURCE_INVALID: RECEIVING_SAVED_DOOR_SOURCE_FEATURES_MISMATCH")
 
     return tuple((cell.part_key, DoorPartSpec(
         width=cell.start_width, height=cell.start_height,
