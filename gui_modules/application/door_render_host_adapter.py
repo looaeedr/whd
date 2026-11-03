@@ -6,6 +6,8 @@ navigation, or project transactions.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from ae_engine import manufacturing_api
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
 from ae_engine.sheetmetal_features import CanvasTransform
@@ -96,10 +98,16 @@ def _door_layout_cell_result(self, cell, val=None):
 
 
 def _door_layout_cell_resolved_features(self, cell, result, key):
+    # Drawing a preview cannot rewrite committed raw hole data. The legacy
+    # display accessor normalizes an existing row *in place*. Only clients
+    # without a cell-state store use it as a compatibility input adapter.
+    states = getattr(self, "door_layout_indicator_states", None)
+    raw = (states.get(key) if isinstance(states, Mapping)
+           else self._door_layout_indicator_state_for_key(key))
     return manufacturing_api.project_operator_door_cell_features(
         result,
         self.door_layout_features.setdefault(key, []),
-        self._door_layout_indicator_state_for_key(key),
+        raw,
         cell_width=cell.start_width, cell_height=cell.start_height,
         frame_edges=cell.edges,
         family_model=self._baseline_source_model(),
