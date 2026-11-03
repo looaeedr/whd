@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 指示燈 X/Y 偏移的唯一 Engine 來源驗證（2026-11-03）
+
+- 原 `gui_modules/application/fold_designer_snapshot_projection._snapshot_part_dimensions` 以 Python `float(self.door_indicator_offset_x/y)` 將即時使用者數值寫入 `door_indicator_offset` 保存快照，能把 `True` 變成 1 mm 或將 NaN/Inf 直接寫進 Project；同一指示燈 Hole Editor／正式 Feature 製造路徑的 `ae_engine.fold_designer_snapshot_dimensions.normalize_operator_hole_editor_indicator_state` 已嚴格拒絕非有限偏移，GUI/Headless 來源不同權威。
+- 現在上述原 Engine owner 抽出 `normalize_fold_designer_indicator_offsets(x, y)` 並經**既有** `manufacturing_api` 公開，Hole Editor 與原 Fold Designer Project Save 共用同一個有限非布林檢查。合法帶正負號位置、零與小數精度原樣保留；X、Y 任一無效則在 GUI 改變任一 Snapshot 欄位之前拒絕，無 1 mm/0 mm 杜撰 fallback。不改 `door_indicator_offset` 的 tuple/JSON list wire、門格的正式儲存 DTO、Hole Editor 模式、CUTTING 孔位公式或 DXF/外部 CLI 資格。
+- 驗收 `tests/test_issue2517_fold_designer_indicator_offset_engine_api.py` 與 `test_issue2517_fold_designer_snapshot_dimensions_engine_api.py`，包括 Vault/Receiving、正負偏移、Headless 與 GUI 共用 API、JSON Save→Reload、禁布林/NaN/Inf、未修改快照及現有產品／GUI API Gate 回歸；#2517 OPEN。
+
+
 ## [CURRENT] #2517 Receiving Bay 3D 製造預覽 Fold／Joint／箱身結構種子移入公開 Engine（2026-11-03）
 
 - GUI 原 receiving_bay_preview_request 在 cache miss 後自行決定從哪些來源建立 BoxBody Fold、Head/Tail 專用 Fold、所選 Bay 的相鄰接合 Joint lock 特徵與 workspace/root 的 BoxBody structure 優先順序，雖公式已存在 Engine 仍由 GUI 組裝多個製造物理來源。現統一委派 `manufacturing_api.project_receiving_bay_preview_physical_seed`（`ae_engine.receiving_bay_preview_source`）返回 `ReceivingBayPreviewPhysicalSeed`，沿用同一組 `merge_box_body_fold_profile`、`build_endcap_xy_fold_profiles`、`receiving_bay_joint_face_features` 原 Engine 來源；不引入新的補償或孔位規則。

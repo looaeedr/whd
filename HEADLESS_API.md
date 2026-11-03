@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：原 Fold Designer 保存的門板指示燈 `door_indicator_offset` 由 `manufacturing_api.normalize_fold_designer_indicator_offsets(offset_x, offset_y)` 驗證，與 `normalize_operator_hole_editor_indicator_state` 共用同一 Engine 有限非布林偏移判準；允許正負及 0 mm，不接受 bool／NaN／Inf／壞來源。只增加原公開 API 的製造輸入規範，不新增 Feature 算式／DXF writer。
+
 > #2517（2026-11-03）：Receiving Bay 3D 已選定的 physical preview Fold／Joint／BoxBody structure 由公開 `manufacturing_api.project_receiving_bay_preview_physical_seed(snapshot, set_index, bay_index, existing_box_body_profile, existing_box_body_faces)` 統一給出 `ReceivingBayPreviewPhysicalSeed`。GUI 只把 Engine 製造輸入種子套進隔離 workspace 並送真正的 resolver；並無 DXF/Export 新認證。
 
 > #2517（2026-11-03）：Receiving Bay 層級 Preview 輸入以公開 `manufacturing_api.project_receiving_bay_preview_operator_inputs(source_snapshot, settings_values, set_index, bay_index)` 產生 `ReceivingBayPreviewOperatorInputs`，由 Engine 選定 Bay W/H/D、保存的 Door／NFB／Set-Bay identity 與 part_dimensions；GUI 不得用全域過期設定覆蓋 Bay 製造來源。這是隔離 input projection，沒有 DXF/Export 授權。

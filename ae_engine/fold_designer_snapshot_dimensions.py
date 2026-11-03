@@ -60,6 +60,32 @@ def normalize_fold_designer_indicator_groups(
     return tuple(result)
 
 
+def normalize_fold_designer_indicator_offsets(
+    offset_x: object, offset_y: object,
+) -> tuple[float, float]:
+    """Validate the same signed physical offsets for snapshot and Hole Editor.
+
+    An operator offset is a signed position, not a finished panel size:
+    negative or zero millimetres remain valid.  Bool, NaN, infinity, missing
+    and malformed live values can never become manufactured hole positions.
+    """
+    def finite_offset(source: object, label: str) -> float:
+        if isinstance(source, bool):
+            raise ValueError(f"指示燈 {label} 偏移必須是有限數字")
+        try:
+            value = float(source)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"指示燈 {label} 偏移必須是有限數字") from exc
+        if not math.isfinite(value):
+            raise ValueError(f"指示燈 {label} 偏移必須是有限數字")
+        return value
+
+    return (
+        finite_offset(offset_x, "offset_x"),
+        finite_offset(offset_y, "offset_y"),
+    )
+
+
 def normalize_operator_hole_editor_indicator_state(raw: Mapping[str, object]) -> dict[str, object]:
     """Validate CURRENT live Indicator controls before any physical hole commit.
 
@@ -87,17 +113,9 @@ def normalize_operator_hole_editor_indicator_state(raw: Mapping[str, object]) ->
     if any(group > 8 for group in groups):
         raise ValueError("指示燈層數／組數無效：單層最多八組")
 
-    def finite_offset(key: str) -> float:
-        source = raw.get(key)
-        if isinstance(source, bool):
-            raise ValueError(f"指示燈 {key} 偏移必須是有限數字")
-        try:
-            value = float(source)
-        except (TypeError, ValueError, OverflowError) as exc:
-            raise ValueError(f"指示燈 {key} 偏移必須是有限數字") from exc
-        if not math.isfinite(value):
-            raise ValueError(f"指示燈 {key} 偏移必須是有限數字")
-        return value
+    offset_x, offset_y = normalize_fold_designer_indicator_offsets(
+        raw.get("offset_x"), raw.get("offset_y"),
+    )
 
     flag = raw.get("is_box_dist")
     if isinstance(flag, bool):
@@ -109,7 +127,7 @@ def normalize_operator_hole_editor_indicator_state(raw: Mapping[str, object]) ->
     else:
         raise ValueError("指示燈箱距設定無效")
     return dict(mode=mode, layers=layers, groups=list(groups) + [2] * (6 - layers),
-                offset_x=finite_offset("offset_x"), offset_y=finite_offset("offset_y"),
+                offset_x=offset_x, offset_y=offset_y,
                 is_box_dist=is_box_dist)
 
 
