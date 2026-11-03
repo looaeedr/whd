@@ -1814,7 +1814,7 @@ class Phase6ApplicationHost:
         return _on_box_body_canvas_press_impl(self, event)
 
     def _box_body_baseline_faces(self, val):
-        return _box_body_baseline_faces_impl(self, val, ae_module=ae)
+        return _box_body_baseline_faces_impl(self, val)
 
     def _box_body_face_baseline_scene(self, face_key, val):
         resolved = self._box_body_baseline_faces(val).get(face_key, [])
@@ -1825,7 +1825,7 @@ class Phase6ApplicationHost:
         return scene
 
     def open_box_body_face_editor(self, face_key):
-        return _open_box_body_face_editor_impl(self, face_key, messagebox_module=messagebox, face_dimensions_fn=box_body_face_dimensions, vertical_offsets_fn=box_body_vertical_offsets, surface_builder=feature_surface_from_rect, guide_type=RectGuide, vec2_type=Vec2, baseline_label_fn=ae.box_body_baseline_source_label)
+        return _open_box_body_face_editor_impl(self, face_key, messagebox_module=messagebox, face_dimensions_fn=box_body_face_dimensions, vertical_offsets_fn=box_body_vertical_offsets, surface_builder=feature_surface_from_rect, guide_type=RectGuide, vec2_type=Vec2, baseline_label_fn=manufacturing_api.operator_box_body_baseline_source_label)
 
     @staticmethod
     def _box_body_piece_label(part_key):

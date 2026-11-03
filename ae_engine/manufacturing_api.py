@@ -2141,3 +2141,46 @@ from .receiving_base_fixing_plate_geometry import (
 from .assembly_placement import (
     resolve_assembly_placement as resolve_operator_assembly_placement,
 )
+
+# #2517: box-body editable-face fixed-feature baseline uses the same Engine
+# source mapping as the manufacturing strip; GUI does not read ae/DXF sources.
+def project_operator_box_body_baseline_face_features(
+    model_name, values: Mapping[str, object], *,
+    head_corner_policy=None, tail_corner_policy=None, cache=None,
+):
+    """Project the existing source-backed face Features for the editor preview.
+
+    This is a read-only source projection, not independent manufacturing
+    certification. Engine alone selects the baseline, source fingerprint and
+    mapping. A caller-supplied display cache only avoids repeated DXF reads.
+    """
+    empty = {"left": [], "back": [], "right": []}
+    if not model_name or not ae.has_baseline_part(model_name, "箱身.dxf"):
+        return empty
+
+    source_fp = ae.baseline_source_fingerprint(
+        ae.baseline_expected_path(model_name, "箱身.dxf")
+    )
+    cache_key = (
+        source_fp, model_name,
+        values["w"], values["h"], values["d"], values["t"], values["fw"],
+        values["zl1"], values["zl2"], values["zr1"], values["zr2"],
+        values["z_comp"], head_corner_policy, tail_corner_policy,
+    )
+    source_cache = cache if cache is not None else {}
+    if cache_key not in source_cache:
+        source_cache[cache_key] = ae.get_box_body_baseline_face_features(
+            model_name,
+            w=values["w"], h=values["h"], d=values["d"],
+            t=values["t"], fw=values["fw"],
+            zl1=values["zl1"], zl2=values["zl2"],
+            zr1=values["zr1"], zr2=values["zr2"],
+            z_comp=values["z_comp"],
+            head_corner_policy=head_corner_policy,
+            tail_corner_policy=tail_corner_policy,
+        )
+    return source_cache[cache_key]
+
+
+# Textual source status is also an Engine projection, not a GUI ae call.
+operator_box_body_baseline_source_label = ae.box_body_baseline_source_label
