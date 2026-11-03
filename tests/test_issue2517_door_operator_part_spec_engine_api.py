@@ -263,3 +263,16 @@ def test_gui_and_headless_door_refuse_unconfirmed_box_opening_dimensions(
         gui._door_part_spec_from_values(
             host, _values(), model_name="受電箱", features=(), **options,
         )
+
+
+def test_disabled_door_keeps_valid_legacy_offsets_without_enabling_holes():
+    source = _values()
+    spec = manufacturing_api.build_door_operator_part_spec(
+        source, model_name="金庫型",
+        door_indicator=None, indicator_hole=None,
+        door_indicator_offset=("-7.5", "12"),
+        use_box_distance=True,
+    )
+    assert spec.door_indicator is None and spec.indicator_hole is None
+    assert spec.door_indicator_offset == (-7.5, 12.0)
+    assert spec.use_box_distance is True
