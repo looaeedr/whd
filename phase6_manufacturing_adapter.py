@@ -576,10 +576,21 @@ def build_manufacturing_request(
     )
 
 
+def _manufacturing_live_family_snapshot(app: Any) -> dict:
+    """Detach the strict live Family source before any manufacturing cache lookup."""
+    snapshot = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
+    live_family = _cabinet_model(app, snapshot)
+    if live_family:
+        snapshot["model"] = live_family
+    return snapshot
+
+
 def _legacy_manufacturing_signature(app: Any) -> str:
-    """Phase 1 cheap semantic signature retained as the T5 pre-scan key source."""
+    """Phase 1 Engine semantic fingerprint with the same live Family as the request."""
     from phase6_manufacturing_geometry import _phase6_manufacturing_state_signature
-    return _phase6_manufacturing_state_signature(app)
+    return _phase6_manufacturing_state_signature(
+        app, input_snapshot_override=_manufacturing_live_family_snapshot(app),
+    )
 
 
 def build_manufacturing_cache_key(app: Any) -> ManufacturingCacheKey:
@@ -600,7 +611,7 @@ def _receiving_baseline_source_stamp(
 def _cache_service_for_app(app: Any) -> ManufacturingCacheService:
     # The Engine decides history eligibility and which physical DXF source
     # classes must be witnessed. GUI only manages the bounded cache object.
-    snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
+    snapshot = _manufacturing_live_family_snapshot(app)
     workspace = getattr(app, "designer_workspace", None)
     plan = manufacturing_api.plan_manufacturing_cache_source(
         snapshot, _box_body_structure(workspace),
