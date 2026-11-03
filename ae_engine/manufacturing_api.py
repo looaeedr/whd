@@ -1688,6 +1688,20 @@ from .receiving_nfb_pair_quantity_check import (
 )
 
 
+# #2517: GUI baseline labeling and quantity-export source validation must
+# pass through the existing public Engine entrypoint (not internal imports).
+def is_unknown_operator_model(model_name):
+    """Legacy custom-model selector for read-only baseline panel routing."""
+    from .corner_type_ui import is_unknown_model
+    return is_unknown_model(model_name)
+
+
+def require_valid_operator_quantity_features(snapshot):
+    """Reject invalid Receiving quantity hole sources before any DXF write."""
+    from .receiving_quantity_box import require_valid_quantity_features
+    return require_valid_quantity_features(snapshot)
+
+
 # #2517: Source-current Receiving NFB BasePlate physical PART_ONLY release.
 from .receiving_nfb_base_partial_export import (
     nfb_verification_geometry_changed,

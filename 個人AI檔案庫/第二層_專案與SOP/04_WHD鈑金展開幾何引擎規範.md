@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 封頭／封尾成形 FW 與單只出圖來源檢查使用公開 Engine（2026-11-03）
+
+- `gui_modules/application/fold_designer_manufacturing_projection.py` 建立 Head/Tail 物理 `EndCapPartSpec` 時，箱身折後 FW 寬度必須直接消費現行公開 `manufacturing_api.formed_box_body_fw_widths(profile, thickness)`，不通過 GUI Fold adapter 或建立第二套求解。
+- 單只 Receiving quantity 孔位／保存來源正式出圖前保留 `receiving_quantity_box.require_valid_quantity_features` 既有真實檢查，GUI 只能透過公開 `manufacturing_api.require_valid_operator_quantity_features(snapshot)` 使用；不允許略過實體孔位失效的拒絕。
+- 自訂／未知類型 baseline 操作導覽，沿用公開 `manufacturing_api.is_unknown_operator_model(model)` 委派既有 Engine 名稱判斷。移除 GUI 製造投影中的無用內部 `cabinet_types`／`sheetmetal_part_adapters`／`corner_type_ui` 引用。上述皆為現有 Engine 來源重接線，不改 Family、料長／折彎補償或正式 DXF 幾何。
+
+
 ## [CURRENT] #2517 Receiving 內門內退距離／啟用物理來源與 GUI finished dimensions 全由 Engine（2026-11-03）
 
 - `gui.py` 內門啟用、已存內退距離讀取及編輯 commit 一律使用公開 `manufacturing_api.normalize_operator_receiving_inner_door_inward_offset`、`resolve_operator_receiving_inner_door_inward_offset`、`project_operator_receiving_inner_door_enabled_source`。後者由既有 `receiving_inner_door_stable_id_for_cell` 與 Family Policy 決定實體 ID、內門框既存邊、預設內退毫米值；GUI 不得自行決定、用 `float(True)` 偽造 1mm、讓 NaN/Inf 通過非負檢查，也不可把**存在但損壞**的已保存物理值默默回填 Family 預設。合法 0 mm／正小數與不同門格獨立保存保持原樣；UI commit 失敗不變更物理來源，不能因回復顯示而改寫損壞來源。
