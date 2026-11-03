@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Bay 現場 Feature/內門 Panel 選擇/世界快取來源見證由 Engine（2026-11-03）
+
+- 原 GUI `sync_receiving_current_bay` 自行用 `inner_door:`／`:panel` 字串識別需發佈的 Hole Editor 實體面特徵，並直接讀 `surface_features`、重建鄰 Bay Joint side-lock。現在全部透過 Engine 公開 `manufacturing_api.project_operator_receiving_live_bay_features` 取得 immutable `OperatorReceivingLiveBayFeaturePlan`，GUI 只 stash 到 workspace。
+- 原 `current_inner_editor_part_key` 從 `derive_inner_door_panels` 自行以 Cell `:0` 選上層實體內門；改公開 `resolve_receiving_upper_inner_door_editor_part_key`，同原 Family 衍生 Part，缺失或多片 fail closed。Hole Editor 仍使用既有 `resolve_inner_door_hole_editor_context`，非自行計算 CUTTING。
+- Receiving Bay LRU 原用 GUI `float(bay[width/height/depth])` 製造來源 prefix 和直接選世界錨；現在統一由 `manufacturing_api.project_receiving_bay_preview_cache_source_witness` 提供不可變 `ReceivingBayPreviewCacheSourceWitness`，錨點沿用既有 `receiving_bay_assembly_offsets` Joint 權威。此只是預覽快取證據，不是 DXF／外部 source-only 輸出資格。四連 Bay、Quantity、非法選取、Panel 唯一性由 `tests/test_issue2517_receiving_live_feature_and_cache_witness_engine_api.py` 驗收；#2517 OPEN。
+
 ## [CURRENT] #2517 原始製造請求與 Fold Designer 預覽共用單一 Engine 實體 Part source router（2026-11-03）
 
 - GUI 原 `phase6_manufacturing_adapter._profile_inputs_for_part` 自行以 `custom:` 字串決定從 saved CustomFold Catalog 補建 Fold；`_domain_inputs_for_part` 與 `_materialize_committed_endcap_inputs` 自行以 `head/tail/custom:` 判斷需直接 PartSpec 與 committed relief 第二階段；`fold_designer_manufacturing_projection._query_fold_designer_render_data` 亦自行以多組實體 part_key 前綴／後綴決定 indicator/multipart/door 操作輸入和 NFB PAD／固定耳／Divider／InnerDoor panel/frame 使用哪個 Engine 製造來源。以上現在同批統一交 `ae_engine.manufacturing_request_parts.plan_operator_manufacturing_part_source`（公開 `manufacturing_api`）回傳不可變 `OperatorManufacturingPartSourcePlan`。

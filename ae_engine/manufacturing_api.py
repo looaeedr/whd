@@ -276,6 +276,7 @@ from .receiving_inner_door_inventory import (
 )
 from .receiving_inner_door_editor import (
     InnerDoorHoleEditorContext, resolve_inner_door_hole_editor_context,
+    resolve_receiving_upper_inner_door_editor_part_key,
 )
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,
@@ -2056,6 +2057,7 @@ def undo_receiving_nfb_transaction(layout, receipt):
 
 # #2517 Receiving physical Bay preview source/reuse policy belongs to Engine.
 from .receiving_bay_preview_source import (
+    ReceivingBayPreviewCacheSourceWitness, project_receiving_bay_preview_cache_source_witness,
     ReceivingBayPreviewPhysicalSeed, project_receiving_bay_preview_physical_seed,
     ReceivingBayPreviewOperatorInputs, project_receiving_bay_preview_operator_inputs,
     ReceivingBayPreviewReusePolicy, plan_receiving_bay_preview_reuse_policy,
@@ -2115,6 +2117,7 @@ from .receiving_nfb_hole_stage import plan_operator_inner_door_nfb_hole_stage
 
 # #2517: physical Receiving BasePlate Part Session source is Engine-owned.
 from .operator_part_session_profiles import (
+    OperatorReceivingLiveBayFeaturePlan, project_operator_receiving_live_bay_features,
     project_operator_part_activation_profiles,
     project_operator_receiving_base_plate_save_profiles,
     can_skip_operator_receiving_part_save,
