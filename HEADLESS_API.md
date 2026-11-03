@@ -1903,3 +1903,7 @@ Use `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source
 ## #2517 Door-cell Indicator snapshot source must use Engine's manufacturing validator (2026-11-03)
 
 Use `manufacturing_api.project_operator_door_layout_indicator_snapshot_states(per_cell_inputs)` when producing a Fold Designer project snapshot. It delegates every active cell to the existing Engine manufacturing/Hole Editor validation, retains detached `mode/enabled/box_enabled` legacy view fields, and rejects missing or bad physical groups/layers/offsets before saving. GUI's legacy presentation `normalize_door_indicator_state` may display repaired controls but cannot authorize saved manufacturing source. A disabled cell creates no holes; no external Worker capability or manufacturing release is implied.
+
+### #2517 BoxBody face baseline preview (2026-11-03)
+
+Use manufacturing_api.project_operator_box_body_baseline_face_features(model_name, values, head_corner_policy=..., tail_corner_policy=..., cache=optional_view_cache) to read the existing baseline file's left/back/right editor Features from Engine, or three empty face lists if no known source. The source fingerprint and mapping remain Engine-owned; this preview projection does not certify DXF export. GUI shows the label using manufacturing_api.operator_box_body_baseline_source_label(model_name). Same physical BoxBody manufacturing API remains unchanged.

@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 箱身三面基準固定特徵只經公開 Engine API（2026-11-03）
+
+- GUI 的箱身左／背／右面 Hole Editor 原本直接透過 ae 模組查找「箱身.dxf」基準、source fingerprint 與低階固定特徵投影；現在由公開 manufacturing_api.project_operator_box_body_baseline_face_features 使用原有 Engine 映射，保留金庫型／受電箱既有 source-miss 三面空值語意，以及來源 fingerprint＋W/H/D/T/FW／Fold／Corner 快取鍵。
+- GUI 只提交已選 model、操作值及原有公開 Engine Corner policy，並顯示 Engine 的面 Features；來源標籤透過 manufacturing_api.operator_box_body_baseline_source_label。仍是唯讀編輯器基準投影，不是新增製造工廠或 DXF 認證；製造 FinalScene／Save→Reload 保持原 Engine 路線。
+- tests/test_issue2517_box_body_baseline_face_public_api.py 驗公開請求與現有真實金庫型基準面源等價、快取／無來源拒絕以及 GUI 委派。#2517 全功能總驗收未因此完成。
+
+
 ## [CURRENT] #2517 Door 2D Preview 使用原始指示燈實體來源，禁止偽孔（2026-11-03）
 
 - `gui_modules/application/door_render_host_adapter._door_layout_cell_resolved_features` 以前會先將存檔的 `door_layout_indicator_states` 轉成展示相容預設，再交 Engine 畫實體指示燈孔；布林孔數、零／小數、過大層數或無效偏移有被改成合法預設而出現「預覽偽 CUTTING」風險。此 2D 入口改讀原始 cell row 且**不寫回**；缺 cell 不補建，只有完全沒有來源容器的舊 client 才保留展示 accessor 相容讀取。

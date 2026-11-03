@@ -12,6 +12,7 @@ records. It does not build part specs or derive manufacturing geometry.
 
 import tkinter as tk
 
+from ae_engine import manufacturing_api
 from ae_engine.sheetmetal_geometry import Vec2
 
 
@@ -306,47 +307,18 @@ def draw_end_cap_preview(
 
 
 
-def box_body_baseline_faces(host, val, *, ae_module):
-    model = host._baseline_source_model()
-    if not model or not ae_module.has_baseline_part(model, "箱身.dxf"):
-        return {"left": [], "back": [], "right": []}
 
-    head_policy, tail_policy = host._box_body_corner_policies(val["fw"])
-    source_fp = ae_module.baseline_source_fingerprint(
-        ae_module.baseline_expected_path(model, "箱身.dxf")
-    )
-    cache_key = (
-        source_fp,
-        model,
-        val["w"],
-        val["h"],
-        val["d"],
-        val["t"],
-        val["fw"],
-        val["zl1"],
-        val["zl2"],
-        val["zr1"],
-        val["zr2"],
-        val["z_comp"],
-        head_policy,
-        tail_policy,
-    )
-    if cache_key not in host._box_body_baseline_face_cache:
-        host._box_body_baseline_face_cache[cache_key] = (
-            ae_module.get_box_body_baseline_face_features(
-                model,
-                w=val["w"],
-                h=val["h"],
-                d=val["d"],
-                t=val["t"],
-                fw=val["fw"],
-                zl1=val["zl1"],
-                zl2=val["zl2"],
-                zr1=val["zr1"],
-                zr2=val["zr2"],
-                z_comp=val["z_comp"],
-                head_corner_policy=head_policy,
-                tail_corner_policy=tail_policy,
-            )
+def box_body_baseline_faces(host, val):
+    """Read source-backed editor faces only from the public Engine boundary."""
+    model = host._baseline_source_model()
+    if not model:
+        return manufacturing_api.project_operator_box_body_baseline_face_features(
+            model, val
         )
-    return host._box_body_baseline_face_cache[cache_key]
+    head_policy, tail_policy = host._box_body_corner_policies(val["fw"])
+    return manufacturing_api.project_operator_box_body_baseline_face_features(
+        model, val,
+        head_corner_policy=head_policy,
+        tail_corner_policy=tail_policy,
+        cache=getattr(host, "_box_body_baseline_face_cache", None),
+    )
