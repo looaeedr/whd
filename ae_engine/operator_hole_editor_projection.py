@@ -7,7 +7,11 @@ from dataclasses import dataclass
 
 from . import ae
 from .contracts import DoorPartSpec
-from .sheetmetal_features import DoorIndicatorContext, feature_surface_from_structural_result
+from .sheetmetal_features import (
+    DoorIndicatorContext, RectGuide, box_body_face_dimensions,
+    feature_surface_from_rect, feature_surface_from_structural_result,
+)
+from .sheetmetal_geometry import Vec2, box_body_vertical_offsets
 from .sheetmetal_part_adapters import (
     DoorFrameEdges, build_base_plate_result, build_door_result,
     build_finished_reference_guide, build_unknown_base_plate_result,
@@ -25,6 +29,43 @@ class OperatorHoleEditorGeometry:
     baseline_status: str
     door_indicator_context: DoorIndicatorContext | None = None
     door_frame_edges: DoorFrameEdges | None = None
+
+
+
+def project_operator_hole_editor_box_body_face(
+    face_key: str, values: Mapping[str, object], *,
+    head_corner_policy=None, tail_corner_policy=None,
+    baseline_scene=None, baseline_status="未使用基準檔（程式計算生成）",
+) -> OperatorHoleEditorGeometry:
+    """Read-only WHD left/back/right face Hole Editor physical projection.
+
+    Preserve the existing BoxBody face and vertical-corner authority instead
+    of computing its surface rectangle and thickness offsets inside the GUI.
+    This is editor display geometry; manufacturing stays with FinalScene/DXF.
+    """
+    if face_key not in {"left", "back", "right"}:
+        raise ValueError(f"未知箱身面: {face_key}")
+    v = values
+    dimensions = box_body_face_dimensions(w=v["w"], h=v["h"], d=v["d"])
+    width, height = dimensions[face_key]
+    bottom_outer, top_outer = box_body_vertical_offsets(
+        v["t"],
+        head_corner_policy=head_corner_policy,
+        tail_corner_policy=tail_corner_policy,
+    )
+    surface = feature_surface_from_rect(
+        f"box_body_{face_key}",
+        Vec2(v["t"], bottom_outer),
+        Vec2(width - v["t"], height - top_outer),
+    )
+    guide = RectGuide(
+        Vec2(0.0, 0.0), Vec2(width, height), "enclosure_boundary",
+    )
+    return OperatorHoleEditorGeometry(
+        surface=surface, width=width, height=height,
+        reference_guide=guide, baseline_scene=baseline_scene,
+        baseline_status=baseline_status,
+    )
 
 
 def project_operator_hole_editor_door_cell(

@@ -55,7 +55,6 @@ from ae_engine.sheetmetal_geometry import (
     box_body_vertical_offsets,
 )
 from ae_engine.sheetmetal_features import (
-    box_body_face_dimensions,
     box_body_face_contexts_from_strip,
     resolve_box_body_face_features,
     CanvasTransform,
@@ -91,7 +90,6 @@ from ae_engine.sheetmetal_features import (
     ResolvedProfile,
     resolve_endcap_features,
     endcap_feature_context_from_geometry,
-    feature_surface_from_rect,
     feature_is_within_surface,
     move_feature_within_surface,
     feature_surface_from_structural_result,
@@ -111,7 +109,6 @@ from ae_engine.sheetmetal_features import (
     align_circle_to_neighbor,
     generate_round_fill,
     generate_round_refill,
-    RectGuide,
 )
 
 
@@ -1825,7 +1822,12 @@ class Phase6ApplicationHost:
         return scene
 
     def open_box_body_face_editor(self, face_key):
-        return _open_box_body_face_editor_impl(self, face_key, messagebox_module=messagebox, face_dimensions_fn=box_body_face_dimensions, vertical_offsets_fn=box_body_vertical_offsets, surface_builder=feature_surface_from_rect, guide_type=RectGuide, vec2_type=Vec2, baseline_label_fn=manufacturing_api.operator_box_body_baseline_source_label)
+        return _open_box_body_face_editor_impl(
+            self, face_key,
+            messagebox_module=messagebox,
+            editor_projection=manufacturing_api.project_operator_hole_editor_box_body_face,
+            baseline_label_fn=manufacturing_api.operator_box_body_baseline_source_label,
+        )
 
     @staticmethod
     def _box_body_piece_label(part_key):
@@ -1848,7 +1850,7 @@ class Phase6ApplicationHost:
         return _draw_box_body_piece_preview_impl(self, aggregate_render_data, piece, part_key, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, ear_marking_preview_blocker=ear_marking_preview_blocker)
 
     def _box_body_render_snapshot(self, val):
-        return _box_body_render_snapshot_impl(self, val, face_dimensions_fn=box_body_face_dimensions)
+        return _box_body_render_snapshot_impl(self, val, face_dimensions_fn=manufacturing_api.project_operator_box_body_face_dimensions)
     def draw_box_body(self, val):
         canvas = self.canvas_z; canvas.delete("all"); self.box_body_face_bounds = {}
         cw = canvas.winfo_width(); ch = canvas.winfo_height()
