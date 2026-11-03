@@ -8,7 +8,54 @@ Pure translation planning cannot modify any existing FinalScene/PartSpec.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
+from dataclasses import dataclass
+
+from .custom_part_catalog import is_custom_part
+
 from .cabinet_types.policy import canonical_family_name
+
+@dataclass(frozen=True)
+class ReceivingBayPreviewReusePolicy:
+    """Read-only physical preview provenance flags; never DXF certification."""
+
+    receiving_set_bay: bool
+    requires_live_custom_catalog: bool
+    allow_upstream_translation: bool
+    allow_suffix_topology_reuse: bool
+
+
+def plan_receiving_bay_preview_reuse_policy(
+    snapshot, *, bay_index, candidate=False, available_parts=(),
+) -> ReceivingBayPreviewReusePolicy:
+    """Single Engine decision for committed Bay preview cache dependencies.
+
+    The caller owns only LRU retention and GUI rendering, never physical
+    CustomPart identity, upstream translation or source dependency policy.
+    The fingerprint projector independently checks Joint topology and values.
+    """
+    live_custom = any(is_custom_part(key) for key in tuple(available_parts or ()))
+    receiving = (
+        isinstance(snapshot, Mapping)
+        and canonical_family_name(snapshot) == "受電箱"
+        and snapshot.get("active_mode", "set_bay") == "set_bay"
+    )
+    state = snapshot if receiving else {}
+    physical_dependencies = bool(
+        live_custom or state.get("assembly_joints")
+        or state.get("custom_parts") or state.get("joint_relief_state")
+    )
+    allow_translation = bool(
+        receiving and not candidate and type(bay_index) is int
+        and bay_index >= 2 and not physical_dependencies
+    )
+    return ReceivingBayPreviewReusePolicy(
+        receiving_set_bay=bool(receiving),
+        requires_live_custom_catalog=live_custom,
+        allow_upstream_translation=allow_translation,
+        allow_suffix_topology_reuse=bool(receiving and not candidate),
+    )
+
 
 def project_receiving_bay_preview_face_features_key(face_features):
     """Ignore only transient Joint locks which the real per-Bay solver replaces.
