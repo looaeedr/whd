@@ -706,7 +706,6 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     from copy import deepcopy
     from phase6_manufacturing_adapter import build_manufacturing_request, build_scene_payload_for_app
     from phase6_manufacturing_service import resolve
-    from phase6_fold_profiles import merge_box_body_profile, build_endcap_xy_profiles
     from phase6_designer_workspace import Phase6DesignerWorkspace
     from ae_engine.display_dimensions import resolve_operator_finished_dimensions
     app = self.app
@@ -786,15 +785,11 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
                 return rebased
         # Missing prior world-anchor proof or unsupported render envelope:
         # do not reuse, use the real canonical manufacturing calculation.
-    box_profile = merge_box_body_profile(app.state.profiles_vault.get("箱身", ()), snapshot)
-    profile_map = {key: build_endcap_xy_profiles(snapshot, part_key=key) for key in ("head", "tail")}
     workspace = app.designer_workspace
-    structure = snapshot.get("workspace", {}).get("box_body_structure", snapshot.get("box_body_structure", {}))
-    from ae_engine.receiving_layout import receiving_bay_joint_face_features
-    joint_faces = receiving_bay_joint_face_features(
-        snapshot["receiving_layout"], set_index=set_index, bay_index=bay_index,
-        thickness=float(snapshot.get("t", 2)), frame_width=float(snapshot.get("fw", 29)),
-        existing=workspace.face_features_for("box_body"),
+    seed = manufacturing_api.project_receiving_bay_preview_physical_seed(
+        snapshot, set_index=set_index, bay_index=bay_index,
+        existing_box_body_profile=app.state.profiles_vault.get("箱身", ()),
+        existing_box_body_faces=workspace.face_features_for("box_body"),
     )
     proxy_workspace = Phase6DesignerWorkspace.from_snapshot({
         **snapshot, "existing_parts": workspace.available_parts,
@@ -805,17 +800,17 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         "custom_parts": workspace.shared_snapshot().get("custom_parts"),
         "part_profiles": workspace.part_profiles_snapshot(),
         "part_features": {**workspace.part_features_snapshot(), **snapshot.get("part_features", {})},
-        "part_face_features": {**workspace.part_face_features_snapshot(), "box_body": joint_faces},
+        "part_face_features": {**workspace.part_face_features_snapshot(), "box_body": seed.box_body_joint_faces},
     })
-    proxy_workspace.set_box_body_structure_state(structure)
-    for key, profiles in profile_map.items():
+    proxy_workspace.set_box_body_structure_state(seed.box_body_structure_state)
+    for key, profiles in seed.endcap_profiles.items():
         proxy_workspace.stash_profiles(key, profiles)
     proxy = SimpleNamespace(**app.__dict__)
     proxy._phase6_input_snapshot = snapshot
     proxy._settings_values = settings
     proxy._phase6_box_whd = {key: snapshot[key] for key in ("w", "h", "d")}
     proxy.designer_workspace = proxy_workspace
-    proxy.state = SimpleNamespace(profiles_vault={"箱身": box_profile}, profiles={})
+    proxy.state = SimpleNamespace(profiles_vault={"箱身": seed.box_body_profile}, profiles={})
     self.sync_authoritative_derived_parts(
         namespace,
         projected_snapshot=snapshot,

@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：Receiving Bay 3D 已選定的 physical preview Fold／Joint／BoxBody structure 由公開 `manufacturing_api.project_receiving_bay_preview_physical_seed(snapshot, set_index, bay_index, existing_box_body_profile, existing_box_body_faces)` 統一給出 `ReceivingBayPreviewPhysicalSeed`。GUI 只把 Engine 製造輸入種子套進隔離 workspace 並送真正的 resolver；並無 DXF/Export 新認證。
+
 > #2517（2026-11-03）：Receiving Bay 層級 Preview 輸入以公開 `manufacturing_api.project_receiving_bay_preview_operator_inputs(source_snapshot, settings_values, set_index, bay_index)` 產生 `ReceivingBayPreviewOperatorInputs`，由 Engine 選定 Bay W/H/D、保存的 Door／NFB／Set-Bay identity 與 part_dimensions；GUI 不得用全域過期設定覆蓋 Bay 製造來源。這是隔離 input projection，沒有 DXF/Export 授權。
 
 > #2517（2026-11-03）：Receiving Bay Preview 的實體 Assembly member／世界位移由公開 `manufacturing_api.project_receiving_bay_preview_assembly_members(layout, resolved_parts, set_index, bay_index)` 產生 immutable `ReceivingBayWorldAssemblyProjection`；GUI 不再排除實體 part 或自行把 Bay offset 加到物理 part。位置由既有 Engine Joint／包外 W/H/D 計算，非法三軸或未定 placement 拒絕；僅 VIEW，非製造新認證。
