@@ -102,7 +102,8 @@ def test_invalid_standalone_indicator_source_rejected_before_any_part_spec(
     with pytest.raises(ValueError, match="指示燈"):
         gui._fold_designer_part_spec_from_payload(_host(calls), part, raw)
     assert calls == []
-    assert raw == before
+    # NaN is not self-equal; compare source representation without sanitizing it.
+    assert repr(raw) == repr(before)
     if part == "indicator_box":
         with pytest.raises(ValueError, match="指示燈"):
             api.build_indicator_box_operator_part_spec(
