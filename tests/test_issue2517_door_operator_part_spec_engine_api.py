@@ -238,3 +238,28 @@ def test_disabled_invalid_indicator_controls_do_not_block_plain_door(
     assert direct.door_indicator is None and direct.indicator_hole is None
     assert direct.door_indicator_offset == (0.0, 0.0)
     assert direct.use_box_distance is False
+
+
+@pytest.mark.parametrize("opening", (
+    (True, 80.0),
+    (80.0, False),
+    (float("nan"), 120.0),
+    (80.0, float("inf")),
+    (0, 120.0),
+    (-2, 120.0),
+    ("invalid", 120.0),
+))
+def test_gui_and_headless_door_refuse_unconfirmed_box_opening_dimensions(
+    opening,
+):
+    """An enabled IndicatorBox CUTTING opening cannot coerce bool/nonfinite mm."""
+    host = SimpleNamespace(door_nameplate_center_datum_top=None)
+    options = dict(indicator_hole=opening, door_indicator_offset=(0, 0))
+    with pytest.raises((ValueError, TypeError)):
+        manufacturing_api.build_door_operator_part_spec(
+            _values(), model_name="受電箱", features=(), **options,
+        )
+    with pytest.raises((ValueError, TypeError)):
+        gui._door_part_spec_from_values(
+            host, _values(), model_name="受電箱", features=(), **options,
+        )
