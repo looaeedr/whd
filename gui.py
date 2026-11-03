@@ -17,6 +17,7 @@ import time
 import sys
 from pathlib import Path
 from copy import deepcopy
+from collections.abc import Mapping
 from phase6_sync_envelope import stable_fingerprint
 from dataclasses import replace
 from tkinter import ttk
@@ -1485,15 +1486,19 @@ class Phase6ApplicationHost:
         return _door_layout_entry_menu_impl(self, entry, column_index=column_index, row_index=row_index)
     def open_door_indicator_component_editor(self, key, component):
         """Open the Engine-resolved Indicator Box/Small Door feature editor."""
-        state = self._door_layout_indicator_state_for_key(key)
-        if state.get("mode") != "indicator_box" or component not in {
-            "indicator_box", "indicator_door",
-        }:
+        if component not in {"indicator_box", "indicator_door"}:
             return
         try:
+            # Display normalization mutates the persisted row in place. Read
+            # committed source before any presentation accessor can repair it.
+            states = getattr(self, "door_layout_indicator_states", None)
+            raw = (states.get(key) if isinstance(states, Mapping)
+                   else self._door_layout_indicator_state_for_key(key))
+            state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)
+            if state["mode"] != "indicator_box":
+                return
             val = self.get_float_values()
-            layers = max(1, min(6, int(state.get("layers", 1))))
-            groups = [int(v) for v in list(state.get("groups", [2] * 6))[:layers]]
+            groups = tuple(state["groups"][:state["layers"]])
             # The canonical shared Indicator geometry is already consumed by
             # Phase6's _indicator_component_editor_contexts. Never generate
             # another manufacturing surface or finished-face guide in GUI.
