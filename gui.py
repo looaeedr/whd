@@ -28,7 +28,6 @@ from gui_modules.runtime_error_log import install_tk_exception_logging, write_ru
 import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
-from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from ae_engine.cabinet_types import (
     policy as cabinet_family_policy,
     resolve_cabinet_type,
@@ -618,7 +617,7 @@ class Phase6ApplicationHost:
             Phase6ApplicationHost._current_cabinet_type_name(self)
             if model_name is None else model_name
         )
-        return cabinet_family_policy.endcap_depth_comp_t(source)
+        return manufacturing_api.project_operator_endcap_depth_comp_t(source)
 
     def _known_corner_state_for_current_family(self, parts):
         return known_model_corner_state(
@@ -917,7 +916,7 @@ class Phase6ApplicationHost:
                     snapshot.get("fw"), field="fw",
                 )
             )
-        return resolve_operator_finished_dimensions(
+        return manufacturing_api.resolve_operator_finished_dimensions(
             key,
             snapshot=snapshot,
             settings=settings,
@@ -1339,19 +1338,15 @@ class Phase6ApplicationHost:
             item for item in list(getattr(self, "receiving_inner_doors", []) or [])
             if isinstance(item, dict) and str(item.get("cell_key") or "").strip() == key
         ), None)
-        default = cabinet_family_policy.default_inner_door_inward_offset_mm(
-            {"model": str(self.baseline_var.get() or "").strip()}, default=0.0
+        return manufacturing_api.resolve_operator_receiving_inner_door_inward_offset(
+            {"model": str(self.baseline_var.get() or "").strip()}, item,
         )
-        try:
-            return float((item or {}).get("inward_offset_mm", default))
-        except (TypeError, ValueError):
-            return float(default)
 
     def _set_receiving_inner_door_inward_offset(self, cell_key, value):
         key = str(cell_key or "").strip()
-        offset = float(value)
-        if offset < 0:
-            raise ValueError("內門內退尺寸不可小於 0")
+        offset = manufacturing_api.normalize_operator_receiving_inner_door_inward_offset(
+            value,
+        )
         found = False
         items = []
         for raw in list(getattr(self, "receiving_inner_doors", []) or []):
@@ -1375,7 +1370,13 @@ class Phase6ApplicationHost:
         try:
             value = self._set_receiving_inner_door_inward_offset(key, var.get())
         except (TypeError, ValueError):
-            var.set(self._fold_designer_number_text(self._receiving_inner_door_inward_offset(key)))
+            # Invalid saved physical offsets are not silently corrected or
+            # persisted by an unrelated failing edit.
+            try:
+                current = self._receiving_inner_door_inward_offset(key)
+            except (TypeError, ValueError):
+                return False
+            var.set(self._fold_designer_number_text(current))
             return False
         var.set(self._fold_designer_number_text(value))
         owner = getattr(self, "_derived_cache_owner", None)
@@ -1397,18 +1398,10 @@ class Phase6ApplicationHost:
         existing = next((item for item in items if str(item.get("cell_key") or "").strip() == key), None)
         items = [item for item in items if str(item.get("cell_key") or "").strip() != key]
         if bool(enabled):
-            stable_id = str((existing or {}).get("stable_id") or self._receiving_inner_door_stable_id_for_cell(key)).strip()
-            item = deepcopy(existing or {})
-            default_offset = cabinet_family_policy.default_inner_door_inward_offset_mm(
-                {"model": str(self.baseline_var.get() or "").strip()}, default=0.0
-            )
-            item.update({
-                "stable_id": stable_id,
-                "cell_key": key,
-                "included_frame_sides": list(item.get("included_frame_sides") or ("top", "left", "right")),
-                "inward_offset_mm": float(item.get("inward_offset_mm", default_offset)),
-            })
-            items.append(item)
+            items.append(manufacturing_api.project_operator_receiving_inner_door_enabled_source(
+                {"model": str(self.baseline_var.get() or "").strip()},
+                key, existing=existing,
+            ))
         def sort_key(item):
             raw = str(item.get("cell_key") or "")
             try:

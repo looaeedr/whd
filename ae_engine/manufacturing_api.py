@@ -1339,6 +1339,26 @@ def resize_receiving_bays_with_family_defaults(layout, *, set_index, bay_count):
     from .receiving_layout import resize_receiving_bays_with_family_defaults as resize
     return resize(layout, set_index=set_index, bay_count=bay_count)
 
+# #2517: GUI supplies physical inner-door operator input, not policy/default math.
+from .operator_receiving_inner_door_source import (
+    normalize_operator_receiving_inner_door_inward_offset,
+    resolve_operator_receiving_inner_door_inward_offset,
+    project_operator_receiving_inner_door_enabled_source,
+)
+
+
+def project_operator_endcap_depth_comp_t(source):
+    """Public Family Policy projection for existing Head/Tail 2D/3D calls."""
+    from .cabinet_types import policy as cabinet_family_policy
+    return cabinet_family_policy.endcap_depth_comp_t(source)
+
+
+def resolve_operator_finished_dimensions(*args, **kwargs):
+    """Public read-only 2D/3D finished dimensions from established Engine."""
+    from .display_dimensions import resolve_operator_finished_dimensions as project
+    return project(*args, **kwargs)
+
+
 def receiving_inner_door_stable_id_for_cell(cell_key):
     """Public physical inner-door stable identity for an authored Door cell."""
     from .door_layout_physical_remap import receiving_inner_door_stable_id_for_cell as resolve

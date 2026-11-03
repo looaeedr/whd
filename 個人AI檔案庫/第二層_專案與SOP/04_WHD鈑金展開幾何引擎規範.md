@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 內門內退距離／啟用物理來源與 GUI finished dimensions 全由 Engine（2026-11-03）
+
+- `gui.py` 內門啟用、已存內退距離讀取及編輯 commit 一律使用公開 `manufacturing_api.normalize_operator_receiving_inner_door_inward_offset`、`resolve_operator_receiving_inner_door_inward_offset`、`project_operator_receiving_inner_door_enabled_source`。後者由既有 `receiving_inner_door_stable_id_for_cell` 與 Family Policy 決定實體 ID、內門框既存邊、預設內退毫米值；GUI 不得自行決定、用 `float(True)` 偽造 1mm、讓 NaN/Inf 通過非負檢查，也不可把**存在但損壞**的已保存物理值默默回填 Family 預設。合法 0 mm／正小數與不同門格獨立保存保持原樣；UI commit 失敗不變更物理來源，不能因回復顯示而改寫損壞來源。
+- 原 WHD 主 GUI 的 `_phase6_resolved_finished_dimensions` 只透過公開 `manufacturing_api.resolve_operator_finished_dimensions` 消費既有 Engine 成品 2D/3D 尺寸；`_endcap_depth_comp_t_for_family` 改透過 `manufacturing_api.project_operator_endcap_depth_comp_t`，不新增或複製第二套尺寸／Family 補償公式。上述只改 GUI/Engine 邊界，不變更既有 PartSpec／FinalScene、DXF Save→Reload 認證。
+- 既有 `tests/test_phase6_t17_receiving_inner_door_80.py` 的實際 Tk/保存回讀契約保持；新 `tests/test_issue2517_receiving_inner_door_offset_public_engine_api.py` 包含金庫型／受電箱預設、非法值 fail closed、GUI 委派與來源原子性，經現有 canonical Product Regression 跑實測。
+
+
 ## [CURRENT] #2517 Main GUI 包外 T/FW 與 Fold Designer 舊版 Gap/Fold 參數單一 Engine 來源（2026-11-03）
 
 - 主 GUI `_phase6_resolved_finished_dimensions` 的箱身 FW 及所有板件 T 必須用 `manufacturing_api.normalize_operator_source_dimension` 驗證 snapshot 原始來源，缺值、bool、零、NaN/Inf 不得退回 `ae.FW`／`ae.T` 製造出看似有效的成形尺寸。既有最終幾何仍用唯一 Engine finished dimension provider。
