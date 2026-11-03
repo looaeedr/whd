@@ -214,29 +214,18 @@ def sync_receiving_current_bay(
             "d": projected["d"],
         },
     )
-    if "surface_features" in projected:
-        for role in ("head", "tail"):
-            if role in projected["surface_features"]:
-                app.designer_workspace.stash_features(role, projected["surface_features"][role])
-    if projected.get("active_mode") == "set_bay":
-        # The current physical Bay is now the Hole Editor's live owner;
-        # switching Bays must refresh the actual 2D/3D workspace as well.
-        physical_features = projected.get("part_features") or {}
-        for key in app.designer_workspace.available_parts:
-            if str(key).startswith("inner_door:") and str(key).endswith(":panel"):
-                app.designer_workspace.stash_features(
-                    key, physical_features.get(key, []),
-                )
-    from ae_engine.receiving_layout import receiving_bay_joint_face_features
     workspace = app.designer_workspace
-    workspace.stash_face_features("box_body", receiving_bay_joint_face_features(
-        adapter.layout,
+    feature_plan = manufacturing_api.project_operator_receiving_live_bay_features(
+        projected, available_parts=workspace.available_parts,
+        layout=adapter.layout,
         set_index=adapter.selection.set_index,
         bay_index=adapter.selection.bay_index,
-        thickness=float(projected.get("t", 2)),
-        frame_width=float(projected.get("fw", 29)),
-        existing=workspace.face_features_for("box_body"),
-    ))
+        existing_box_body_faces=workspace.face_features_for("box_body"),
+    )
+    for key, features in (*feature_plan.surface_updates,
+                          *feature_plan.inner_panel_updates):
+        workspace.stash_features(key, features)
+    workspace.stash_face_features("box_body", feature_plan.box_body_joint_faces)
     original = required("original")
     number = float if projected.get("active_mode") == "quantity" else original.get_int
     app.state.w = number(projected["w"])
@@ -706,46 +695,27 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     from copy import deepcopy
     from phase6_manufacturing_adapter import build_manufacturing_request, build_scene_payload_for_app
     from phase6_manufacturing_service import resolve
-    from phase6_fold_profiles import merge_box_body_profile, build_endcap_xy_profiles
-    from phase6_settings_profile_projection import project_part_dimensions
     from phase6_designer_workspace import Phase6DesignerWorkspace
-    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
     from ae_engine.display_dimensions import resolve_operator_finished_dimensions
     app = self.app
     source = dict(app._phase6_input_snapshot)
     if preview_layout is not None:
-        # Candidate previews run on an isolated layout clone, NEVER live state.
+        # Candidate UI previews use an isolated source, never live layout state.
         source["receiving_layout"] = preview_layout
-    snapshot = project_receiving_bay_legacy_aliases(
-        source, set_index=set_index, bay_index=bay_index,
+    operator_inputs = manufacturing_api.project_receiving_bay_preview_operator_inputs(
+        source, app._settings_values, set_index=set_index, bay_index=bay_index,
     )
-    settings = {**dict(app._settings_values), **{key: snapshot[key] for key in ("w", "h", "d")}}
-    # Global settings are defaults, NOT authority for a selected Bay's Door
-    # topology, NFB submission or Set/Bay identity. Updating the full map
-    # used to reintroduce stale root door_layout_columns after a Bay resize
-    # (900x1700 over the old 800x1600), failing OPEN-Y manufacture.
-    from ae_engine.receiving_layout import (
-        RECEIVING_DOOR_STATE_KEYS, RECEIVING_RUNTIME_SELECTION_KEY,
-    )
-    bay_authoritative = set(RECEIVING_DOOR_STATE_KEYS) | {
-        "nfb_config", "nfb_config_submitted",
-        "receiving_layout", RECEIVING_RUNTIME_SELECTION_KEY,
-    }
-    snapshot.update({
-        name: value for name, value in settings.items()
-        if name not in bay_authoritative
-    })
-    snapshot["part_dimensions"] = project_part_dimensions(snapshot)
+    snapshot = operator_inputs.snapshot
+    settings = operator_inputs.settings_values
     from phase6_sync_envelope import stable_fingerprint
-    # Physical custom parts come from the live shared workspace, not
-    # necessarily the last committed input snapshot. A cached Bay must
-    # invalidate when a custom sheet's metadata changes before Save.
-    # Avoid snapshotting all profiles on every redraw when there are no
-    # active custom parts (the hot-path preview-cache optimization).
+    # Engine alone classifies physical Bay reuse and custom source identity.
     workspace = app.designer_workspace
+    reuse_policy = manufacturing_api.plan_receiving_bay_preview_reuse_policy(
+        snapshot, bay_index=bay_index, candidate=preview_layout is not None,
+        available_parts=getattr(workspace, "available_parts", ()),
+    )
     live_custom_catalog = None
-    if any(str(key).startswith("custom:") for key in
-           getattr(workspace, "available_parts", ())):
+    if reuse_policy.requires_live_custom_catalog:
         reader = getattr(workspace, "shared_snapshot", None)
         if not callable(reader):
             raise ValueError("RECEIVING_BAY_CUSTOM_PART_AUTHORITY_MISSING")
@@ -756,21 +726,22 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         {**snapshot, "custom_parts": live_custom_catalog}
         if live_custom_catalog is not None else snapshot
     )
-    # Only normal committed Bay previews may rebase world placement. Candidate
-    # editors and user-defined/cross-part joints keep the full prefix key.
-    allow_rebase = (preview_layout is None and bay_index >= 2
-                    and snapshot.get("model") in ("受電箱", "RECEIVING")
-                    and snapshot.get("active_mode", "set_bay") == "set_bay"
-                    and not any(key_snapshot.get(k) for k in (
-                        "assembly_joints", "custom_parts", "joint_relief_state")))
+    # Never let stale project metadata authorize world-offset translation:
+    # re-evaluate the physical dependency policy after a live catalog read.
+    if live_custom_catalog is not None:
+        reuse_policy = manufacturing_api.plan_receiving_bay_preview_reuse_policy(
+            key_snapshot, bay_index=bay_index,
+            candidate=preview_layout is not None,
+            available_parts=getattr(workspace, "available_parts", ()),
+        )
+    allow_rebase = reuse_policy.allow_upstream_translation
     fingerprint = stable_fingerprint({"snapshot": manufacturing_api.project_receiving_bay_preview_fingerprint_snapshot(
         key_snapshot, set_index=set_index, bay_index=bay_index,
         allow_upstream_translation=allow_rebase,
-        allow_suffix_topology_reuse=(preview_layout is None),
+        allow_suffix_topology_reuse=reuse_policy.allow_suffix_topology_reuse,
     ), "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": (manufacturing_api.project_receiving_bay_preview_face_features_key(
         app.designer_workspace.part_face_features_snapshot())
-        if snapshot.get("model") in ("受電箱", "RECEIVING")
-        and snapshot.get("active_mode", "set_bay") == "set_bay"
+        if reuse_policy.receiving_set_bay
         else app.designer_workspace.part_face_features_snapshot()), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
     cache = getattr(self, "_receiving_bay_preview_cache", {})
     cache_key = (set_index, bay_index)
@@ -778,10 +749,10 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     virtual_key = (set_index, bay_index, fingerprint)
     if preview_layout is not None and virtual_key in virtual_cache:
         return virtual_cache[virtual_key]
-    prefix = tuple(
-        (float(bay["width"]), float(bay["height"]), float(bay["depth"]))
-        for bay in snapshot["receiving_layout"]["sets"][set_index]["bays"][:bay_index + 1]
+    cache_witness = manufacturing_api.project_receiving_bay_preview_cache_source_witness(
+        snapshot["receiving_layout"], set_index=set_index, bay_index=bay_index,
     )
+    prefix = cache_witness.source_prefix
     if preview_layout is None and cache_key in cache and cache[cache_key][0] == fingerprint:
         hit = _retain_committed_receiving_bay_preview(
             cache, cache_key, cache[cache_key],
@@ -791,9 +762,7 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         if len(hit) >= 4:
             if hit[3] == prefix:
                 return hit[1]
-            from ae_engine.receiving_layout import receiving_bay_assembly_offsets
-            current_anchor = receiving_bay_assembly_offsets(
-                snapshot["receiving_layout"], set_index=set_index)[bay_index]
+            current_anchor = cache_witness.world_anchor
             rebased = _receiving_rebase_preview_world_offsets(
                 hit[1], hit[2], current_anchor)
             if rebased is not None:
@@ -803,15 +772,11 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
                 return rebased
         # Missing prior world-anchor proof or unsupported render envelope:
         # do not reuse, use the real canonical manufacturing calculation.
-    box_profile = merge_box_body_profile(app.state.profiles_vault.get("箱身", ()), snapshot)
-    profile_map = {key: build_endcap_xy_profiles(snapshot, part_key=key) for key in ("head", "tail")}
     workspace = app.designer_workspace
-    structure = snapshot.get("workspace", {}).get("box_body_structure", snapshot.get("box_body_structure", {}))
-    from ae_engine.receiving_layout import receiving_bay_joint_face_features
-    joint_faces = receiving_bay_joint_face_features(
-        snapshot["receiving_layout"], set_index=set_index, bay_index=bay_index,
-        thickness=float(snapshot.get("t", 2)), frame_width=float(snapshot.get("fw", 29)),
-        existing=workspace.face_features_for("box_body"),
+    seed = manufacturing_api.project_receiving_bay_preview_physical_seed(
+        snapshot, set_index=set_index, bay_index=bay_index,
+        existing_box_body_profile=app.state.profiles_vault.get("箱身", ()),
+        existing_box_body_faces=workspace.part_face_features_snapshot().get("box_body", {}),
     )
     proxy_workspace = Phase6DesignerWorkspace.from_snapshot({
         **snapshot, "existing_parts": workspace.available_parts,
@@ -822,17 +787,17 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         "custom_parts": workspace.shared_snapshot().get("custom_parts"),
         "part_profiles": workspace.part_profiles_snapshot(),
         "part_features": {**workspace.part_features_snapshot(), **snapshot.get("part_features", {})},
-        "part_face_features": {**workspace.part_face_features_snapshot(), "box_body": joint_faces},
+        "part_face_features": {**workspace.part_face_features_snapshot(), "box_body": seed.box_body_joint_faces},
     })
-    proxy_workspace.set_box_body_structure_state(structure)
-    for key, profiles in profile_map.items():
+    proxy_workspace.set_box_body_structure_state(seed.box_body_structure_state)
+    for key, profiles in seed.endcap_profiles.items():
         proxy_workspace.stash_profiles(key, profiles)
     proxy = SimpleNamespace(**app.__dict__)
     proxy._phase6_input_snapshot = snapshot
     proxy._settings_values = settings
     proxy._phase6_box_whd = {key: snapshot[key] for key in ("w", "h", "d")}
     proxy.designer_workspace = proxy_workspace
-    proxy.state = SimpleNamespace(profiles_vault={"箱身": box_profile}, profiles={})
+    proxy.state = SimpleNamespace(profiles_vault={"箱身": seed.box_body_profile}, profiles={})
     self.sync_authoritative_derived_parts(
         namespace,
         projected_snapshot=snapshot,
@@ -863,11 +828,14 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         if preview_layout is not None:
             # Candidate editing is isolated from committed Bay material reuse.
             return render()
-        if str(key).startswith("box_body:divider:"):
+        kind = manufacturing_api.receiving_raw_source_cache_kind(
+            key, source_payload,
+        )
+        if kind == "divider":
             return _receiving_cached_bay_box_body_divider(
                 self, key, source_payload, render,
             )
-        if str(key).startswith("inner_door:") and str(key).endswith("_frame"):
+        if kind == "frame":
             return _receiving_cached_bay_inner_door_frame(
                 self, key, source_payload, render,
             )
@@ -890,13 +858,16 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
             f"projected_selection={snapshot.get('_receiving_runtime_selection')!r}; "
             f"cause={exc}"
         ) from exc
-    from ae_engine.receiving_layout import receiving_bay_assembly_offsets
-    bay_offset = receiving_bay_assembly_offsets(snapshot["receiving_layout"], set_index=set_index)[bay_index]
+    placed = manufacturing_api.project_receiving_bay_preview_assembly_members(
+        snapshot["receiving_layout"], resolved.parts,
+        set_index=set_index, bay_index=bay_index,
+    )
+    bay_offset = placed.bay_offset
     parts = tuple(AssemblyScenePart(
         part_key=part.part_key, render_data=part.render_data,
         x_profile=part.x_profile, y_profile=part.y_profile,
-        placement=part.placement, offset=tuple(a + b for a, b in zip(part.offset, bay_offset)),
-    ) for part in resolved.parts if part.placement != "standalone")
+        placement=part.placement, offset=world_offset,
+    ) for part, world_offset in placed.part_placements)
     result = FinalSceneViewRequest(
         render_data=AssemblySceneRenderData(assembly_parts=parts, preserve_endcap_core_origin=True),
         x_profile=(), y_profile=(), part_key="assembly",
@@ -3672,15 +3643,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         return source
 
     def current_inner_editor_part_key():
-        from ae_engine.cabinet_types import policy as receiving_family_policy
-        physical = current_inner_editor_snapshot()
-        upper = tuple(
-            panel.stable_id for panel in receiving_family_policy.derive_inner_door_panels(physical)
-            if str(panel.cell_key).endswith(":0")
+        return manufacturing_api.resolve_receiving_upper_inner_door_editor_part_key(
+            current_inner_editor_snapshot(),
         )
-        if len(upper) != 1:
-            raise ValueError("原開孔編輯器必須對應一片明確的上層實體內門")
-        return upper[0]
 
     def launch_inner_editor(part_key, *, mode, version_id=None, initial_features=None,
                             after_saved=None):

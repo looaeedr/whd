@@ -77,15 +77,11 @@ def _normalize_door_indicator_state(self, state):
 
 
 def _door_layout_indicator_state_for_key(self, key):
-    state = self.door_layout_indicator_states.get(key)
-    normalized = self._normalize_door_indicator_state(state)
-    if state is None:
-        state = normalized
-        self.door_layout_indicator_states[key] = state
-    else:
-        state.clear()
-        state.update(normalized)
-    return state
+    # Presentation repair is read-only. Manufacturing and project Save must
+    # still see the original saved source until the operator commits a change.
+    return self._normalize_door_indicator_state(
+        self.door_layout_indicator_states.get(key)
+    )
 
 
 def _door_layout_cell_result(self, cell, val=None):
@@ -98,16 +94,17 @@ def _door_layout_cell_result(self, cell, val=None):
 
 
 def _door_layout_cell_resolved_features(self, cell, result, key):
-    # Drawing a preview cannot rewrite committed raw hole data. The legacy
-    # display accessor normalizes an existing row *in place*. Only clients
-    # without a cell-state store use it as a compatibility input adapter.
+    # Read the physical row before any display-only repair. An absent cell
+    # must remain absent, and invalid lamp counts must not render as CUTTING.
     states = getattr(self, "door_layout_indicator_states", None)
-    raw = (states.get(key) if isinstance(states, Mapping)
-           else self._door_layout_indicator_state_for_key(key))
+    preview_indicator_state = (
+        states.get(key) if isinstance(states, Mapping)
+        else self._door_layout_indicator_state_for_key(key)
+    )
     return manufacturing_api.project_operator_door_cell_features(
         result,
-        self.door_layout_features.setdefault(key, []),
-        raw,
+        self.door_layout_features.get(key, []),
+        preview_indicator_state,
         cell_width=cell.start_width, cell_height=cell.start_height,
         frame_edges=cell.edges,
         family_model=self._baseline_source_model(),

@@ -57,14 +57,12 @@ def project_operator_door_cell_features(
             ))
         except ValueError:
             pass
-    # Preview can preserve other authored features on a malformed lamp row,
-    # but it may never fabricate CUTTING from bool/fractional/zero groups.
-    # The same strict Engine source contract owns manufacturing and previews.
+    # Preview tolerates malformed inputs by omitting only their optional
+    # lamp/box opening, never by converting them to valid-looking CUTTING.
+    # Physical indicator counts and offsets share the manufacturing gate.
     try:
-        state = project_operator_door_cell_indicator_manufacturing_source(
-            indicator_state
-        )
-    except (ValueError, TypeError):
+        state = project_operator_door_cell_indicator_manufacturing_source(indicator_state)
+    except (TypeError, ValueError):
         state = {"mode": "none"}
     mode = state["mode"]
     if mode in {"indicator", "indicator_box"}:

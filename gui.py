@@ -1489,8 +1489,8 @@ class Phase6ApplicationHost:
         if component not in {"indicator_box", "indicator_door"}:
             return
         try:
-            # Display normalization mutates the persisted row in place. Read
-            # committed source before any presentation accessor can repair it.
+            # Always validate the original committed source. Display-only
+            # normalization must not authorize or rewrite physical holes.
             states = getattr(self, "door_layout_indicator_states", None)
             raw = (states.get(key) if isinstance(states, Mapping)
                    else self._door_layout_indicator_state_for_key(key))
@@ -1516,13 +1516,17 @@ class Phase6ApplicationHost:
         guide = info.reference_guide
         baseline_scene, status = info.baseline_scene, info.baseline_status
         if component == "indicator_box":
-            feature_store = self.door_layout_indicator_box_features.setdefault(key, [])
+            feature_target = self.door_layout_indicator_box_features
             title = "指示燈盒子"
         else:
-            feature_store = self.door_layout_indicator_door_features.setdefault(key, [])
+            feature_target = self.door_layout_indicator_door_features
             title = "指示燈小門"
+        # The hole editor receives a private working list. Opening it must
+        # not create a physical Feature row or mutate saved Features.
+        feature_store = list(feature_target.get(key, []))
 
         def sync_indicator_component_features():
+            feature_target[key] = list(feature_store)
             designer = getattr(self, "fold_designer_app", None)
             if designer is not None and isinstance(getattr(designer, "_phase6_input_snapshot", None), dict):
                 designer._phase6_input_snapshot["door_layout_indicator_box_features"] = {
@@ -1563,9 +1567,9 @@ class Phase6ApplicationHost:
                 pass
 
         self.door_layout_selected_var.set(f"{int(column_index)}:{int(row_index)}")
-        cell = self.get_selected_door_layout_cell()
-        key = self._door_layout_cell_key(cell)
         try:
+            cell = self.get_selected_door_layout_cell()
+            key = self._door_layout_cell_key(cell)
             val = self.get_float_values()
             # The host's main-Settings W/H/D may intentionally differ from
             # the active Receiving designer. Project current Bay/Quantity
@@ -1581,25 +1585,31 @@ class Phase6ApplicationHost:
                     )
                     if key in snapshot
                 })
-                val.update({axis: float(whd[axis]) for axis in ("w", "h", "d")})
+                # Forward validated live source without GUI coercion (bool
+                # must never become a valid-looking 1-mm manufactured value).
+                val.update({axis: whd[axis] for axis in ("w", "h", "d")})
             result = self._door_layout_cell_result(cell, val)
-            surface = feature_surface_from_structural_result("door", result)
-            # Use the exact DoorPartSpec shared with indicator-fit and export.
-            # Engine owns Family material FW and the finished-face geometry.
+            # The same DoorPartSpec drives both the editor and physical DXF.
+            # Engine owns the selected cell surface, finished-face reference
+            # guide, Fold datum and physical frame edges.
             door_spec = self._door_layout_part_spec(cell, val)
-            finished_w, finished_h = manufacturing_api.door_finished_face_size(door_spec)
-            reference_guide = build_finished_reference_guide(
-                "door", result, finished_width=finished_w, finished_height=finished_h,
+            baseline_scene, baseline_status = self._door_layout_baseline_scene(cell, val)
+            editor_geometry = manufacturing_api.project_operator_hole_editor_door_cell(
+                result, door_spec,
+                baseline_scene=baseline_scene, baseline_status=baseline_status,
             )
         except Exception as exc:
             messagebox.showerror("開孔失敗", str(exc))
             return
         designer = getattr(self, 'fold_designer_app', None)
-        physical_key = f'door_c{cell.column_index + 1}_r{cell.row_index + 1}'
+        physical_key = manufacturing_api.door_layout_part_key(cell)
         workspace = getattr(designer, 'designer_workspace', None)
-        features = (workspace.features_for(physical_key) if workspace is not None
-                    and physical_key in workspace.available_parts
-                    else self.door_layout_features.setdefault(key, []))
+        # Stage edits in a detached list; only sync_features commits them.
+        features = list(
+            workspace.features_for(physical_key) if workspace is not None
+            and physical_key in workspace.available_parts
+            else self.door_layout_features.get(key, [])
+        )
 
         def sync_features():
             self.door_layout_features[key] = list(features)
@@ -1630,37 +1640,25 @@ class Phase6ApplicationHost:
                     self._authoritative_part_render_cache.pop(physical_key, None)
                 if hasattr(self, "_request_phase6_update"):
                     self._request_phase6_update("geometry")
-        # Only commit callbacks may update physical Door-cell state. Passing
-        # the in-place display accessor here would mutate saved holes merely
-        # by opening the editor, even if the user cancels without changes.
-        states = getattr(self, "door_layout_indicator_states", None)
-        indicator_state = (
-            self._normalize_door_indicator_state(states.get(key))
-            if isinstance(states, Mapping)
-            else self._door_layout_indicator_state_for_key(key)
-        )
-        indicator_context = DoorIndicatorContext(
-            finished_width=finished_w, finished_height=finished_h,
-            left_fold=val['door_fold_l'], bottom_fold=val['door_fold_b'],
-        )
-        baseline_scene, baseline_status = self._door_layout_baseline_scene(cell, val)
+        indicator_state = self._door_layout_indicator_state_for_key(key)
         self._open_unified_hole_editor(
             "door", f"門板 C{cell.column_index+1}-R{cell.row_index+1}",
-            surface, result.width, result.height,
-            reference_guide=reference_guide,
+            editor_geometry.surface, editor_geometry.width, editor_geometry.height,
+            reference_guide=editor_geometry.reference_guide,
             feature_list_override=features,
             sync_callback=sync_features,
             door_indicator_state=indicator_state,
-            door_indicator_context=indicator_context,
+            door_indicator_context=editor_geometry.door_indicator_context,
             door_indicator_commit=lambda state, key=key: self._apply_multi_door_indicator_state(key, state),
-            door_frame_edges=cell.edges, door_gap_w=val['door_gap_w'], door_gap_h=val['door_gap_h'],
+            door_frame_edges=editor_geometry.door_frame_edges, door_gap_w=val['door_gap_w'], door_gap_h=val['door_gap_h'],
             door_frame_width=val['fw'], door_thickness=val['t'],
             on_close=self.draw_door_layout_overview,
-            baseline_scene=baseline_scene, baseline_status_text=baseline_status,
+            baseline_scene=editor_geometry.baseline_scene,
+            baseline_status_text=editor_geometry.baseline_status,
             indicator_component_context_provider=lambda state, key=key, val=val: self._indicator_component_editor_contexts(
                 state, val,
-                box_features=self.door_layout_indicator_box_features.setdefault(key, []),
-                door_features=self.door_layout_indicator_door_features.setdefault(key, []),
+                box_features=self.door_layout_indicator_box_features.get(key, []),
+                door_features=self.door_layout_indicator_door_features.get(key, []),
             ),
         )
 

@@ -31,25 +31,13 @@ class Phase6FinalSceneRenderHelpersMixin:
                 pass
 
     def _add_mesh_boundary_lines(self, triangles, color):
-        from collections import Counter
+        """Draw source-derived physical open edges, not GUI triangulation."""
+        from ae_engine import manufacturing_api
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        def key(point):
-            return tuple(round(float(v), 6) for v in point)
-
-        edges = Counter()
-        original_points = {}
-        for tri in triangles:
-            for a, b in ((tri[0], tri[1]), (tri[1], tri[2]), (tri[2], tri[0])):
-                ka, kb = key(a), key(b)
-                edge = tuple(sorted((ka, kb)))
-                edges[edge] += 1
-                original_points[ka] = a
-                original_points[kb] = b
-        segments = []
-        for edge, count in edges.items():
-            if count == 1:
-                segments.append((original_points[edge[0]], original_points[edge[1]]))
+        segments = manufacturing_api.project_physical_solid_mesh_display_segments(
+            triangles, mode="boundary",
+        )
         if segments:
             self.renderer.ax3d.add_collection3d(
                 Line3DCollection(segments, colors=color, linewidths=1.15)
@@ -89,65 +77,13 @@ class Phase6FinalSceneRenderHelpersMixin:
         return len(segments)
 
     def _add_mesh_boundary_and_crease_lines(self, triangles, color, *, creases_only=False):
-        """Draw real folded-sheet creases without exposing triangulation seams.
-
-        In smooth mode, unmatched triangle sides are not reliable physical
-        boundaries: fragmented tessellation exposed them as diagonal artifacts.
-        Draw only edges shared by different physical face normals, while BEND,
-        MARKING and CUTTING retain their original source geometry.  Legacy
-        mode continues to support drawing actual open mesh perimeters.
-        """
-        import math
-        from collections import defaultdict
+        """Paint real Engine 3D mesh creases, not tessellation diagonals."""
+        from ae_engine import manufacturing_api
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        def key(point):
-            return tuple(round(float(v), 6) for v in point)
-
-        def normal(tri):
-            a, b, c = tri[:3]
-            ux, uy, uz = (float(b[i]) - float(a[i]) for i in range(3))
-            vx, vy, vz = (float(c[i]) - float(a[i]) for i in range(3))
-            nx = uy * vz - uz * vy
-            ny = uz * vx - ux * vz
-            nz = ux * vy - uy * vx
-            mag = math.sqrt(nx * nx + ny * ny + nz * nz)
-            if mag <= 1e-12:
-                return None
-            return (nx / mag, ny / mag, nz / mag)
-
-        edges = defaultdict(list)
-        original_points = {}
-        for tri in triangles or ():
-            if len(tri) < 3:
-                continue
-            n = normal(tri)
-            if n is None:
-                continue
-            for a, b in ((tri[0], tri[1]), (tri[1], tri[2]), (tri[2], tri[0])):
-                ka, kb = key(a), key(b)
-                edge = tuple(sorted((ka, kb)))
-                edges[edge].append(n)
-                original_points[ka] = a
-                original_points[kb] = b
-
-        segments = []
-        for edge, normals in edges.items():
-            # Unmatched polygon/triangulation edges are NOT proof of a
-            # real external outline.  In smooth 3D mode draw ONLY crease
-            # edges shared by genuine non-coplanar faces.  Authoritative
-            # BEND, CUTTING, and MARKING geometry remains separate.
-            visible = not creases_only and len(normals) == 1
-            if not visible and len(normals) >= 2:
-                base = normals[0]
-                for other in normals[1:]:
-                    dot = sum(base[i] * other[i] for i in range(3))
-                    if abs(dot) < 1.0 - 1e-6:
-                        visible = True
-                        break
-            if visible:
-                segments.append((original_points[edge[0]], original_points[edge[1]]))
-
+        segments = manufacturing_api.project_physical_solid_mesh_display_segments(
+            triangles, mode="crease" if creases_only else "boundary_and_crease",
+        )
         if segments:
             self.renderer.ax3d.add_collection3d(
                 Line3DCollection(segments, colors=color, linewidths=1.35, linestyles="solid")

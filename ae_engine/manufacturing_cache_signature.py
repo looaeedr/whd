@@ -70,6 +70,11 @@ def manufacturing_state_fingerprint(
     settings = dict(settings_values or {})
     working_box = dict(working_box or {})
     settings.pop("ui_text_size", None)
+    if snapshot.get("model") or snapshot.get("cabinet_type"):
+        # The saved/strictly supplied operator Family outranks stale Settings.
+        # A Settings mirror must never erase physical Family from the digest.
+        settings.pop("model", None)
+        settings.pop("cabinet_type", None)
     if canonical_family_name(snapshot) == "受電箱":
         settings.update({
             axis: working_box[axis] for axis in ("w", "h", "d")
@@ -79,6 +84,8 @@ def manufacturing_state_fingerprint(
         "settings", "endcap_fw", "endcap_bottom_wrap", "assembly_type",
         "corner_state", "corner_pair_same", "active_part", "part_dimensions",
     }
+    mirror_keys.discard("model")
+    mirror_keys.discard("cabinet_type")
     snapshot = {key: value for key, value in snapshot.items() if key not in mirror_keys}
     state = (
         snapshot,

@@ -6,7 +6,7 @@ never manufactures CUTTING material or grants DXF capability. (#2517)
 """
 from __future__ import annotations
 
-def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
+def _project_mesh_edge_segments(triangles, *, tolerance=1e-6, mode):
     """Return physical solid edges that are visible geometric features.
 
     Coplanar triangulation diagonals are excluded.  Boundary edges and shared
@@ -51,8 +51,8 @@ def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
 
     segments = []
     for edge, normals in edges.items():
-        visible = len(normals) == 1
-        if not visible and len(normals) >= 2:
+        visible = mode in ("all", "boundary") and len(normals) == 1
+        if not visible and len(normals) >= 2 and mode in ("all", "crease"):
             base = normals[0]
             visible = any(
                 abs(sum(base[i] * other[i] for i in range(3))) < 1.0 - 1e-6
@@ -62,3 +62,23 @@ def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
             segments.append((original[edge[0]], original[edge[1]]))
     return tuple(segments)
 
+
+def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
+    """Legacy physical feature edges: open boundary plus genuine crease."""
+    return _project_mesh_edge_segments(triangles, tolerance=tolerance, mode="all")
+
+
+def project_physical_solid_mesh_display_segments(triangles, *, mode, tolerance=1e-6):
+    """Return real 3D boundary/crease display segments from the same Engine mesh.
+
+    Modes: boundary (open real edges); crease (shared noncoplanar edges);
+    boundary_and_crease (legacy combined). Not a CUTTING/BEND/DXF authority.
+    """
+    modes = {
+        "boundary": "boundary",
+        "crease": "crease",
+        "boundary_and_crease": "all",
+    }
+    if mode not in modes:
+        raise ValueError(f"unknown physical mesh display mode: {mode!r}")
+    return _project_mesh_edge_segments(triangles, tolerance=tolerance, mode=modes[mode])

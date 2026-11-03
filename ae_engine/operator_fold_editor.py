@@ -31,6 +31,14 @@ def _finite_operator_fold_number(raw, *, field):
     return raw if type(raw) in (int, float) else number
 
 
+def _positive_fold_thickness(raw):
+    """One physical T source gate shared by all Fold edit transactions."""
+    physical_t = _finite_operator_fold_number(raw, field="thickness")
+    if physical_t <= 0:
+        raise ValueError("FOLD_EDITOR_SOURCE_INVALID:thickness")
+    return physical_t
+
+
 def normalize_operator_fold_editor_control(raw, *, field):
     """Public Engine parser for the legacy whole-mm Fold editor controls.
 
@@ -55,9 +63,7 @@ def commit_operator_fold_editor_rows(
     """
     source = tuple(old_segments)
     edits = tuple(operator_rows)
-    physical_t = _finite_operator_fold_number(thickness, field="thickness")
-    if physical_t <= 0:
-        raise ValueError("FOLD_EDITOR_SOURCE_INVALID:thickness")
+    physical_t = _positive_fold_thickness(thickness)
     topology: list[dict] = []
     for row in edits:
         seg = {"len": 0}
@@ -177,15 +183,23 @@ def plan_operator_fold_mirror_target(
 def operator_fold_editor_add_segment(
     segments: Sequence[Mapping[str, object]], position: int, thickness: float,
 ) -> list[dict]:
-    """Extend the material Fold chain using existing editor entry semantics."""
+    """Extend the material Fold chain using existing editor entry semantics.
+
+    The public caller supplies only a front/back action and actual sheet T.
+    Never persist a bool/nonfinite T in a physical Fold, or let the legacy
+    compensation calculation silently replace malformed T with 0.
+    """
+    if type(position) is not int:
+        raise ValueError("FOLD_EDITOR_SOURCE_INVALID:position")
+    physical_t = _positive_fold_thickness(thickness)
     updated = deepcopy(list(segments))
     if position == 0:
-        updated.insert(0, {"angle": 90, "len": 50, "ui_len_add": thickness})
+        updated.insert(0, {"angle": 90, "len": 50, "ui_len_add": physical_t})
     else:
         if updated:
             updated[-1]["angle"] = -90
         updated.append({"len": 50})
-    apply_outside_dimension_compensation(updated, thickness)
+    apply_outside_dimension_compensation(updated, physical_t)
     return updated
 
 
@@ -202,10 +216,11 @@ def operator_fold_editor_remove_segment(
     All adjacent-BEND T compensation uses the existing canonical Engine rule.
     """
     source = tuple(segments)
-    if not isinstance(index, int) or not 0 <= index < len(source):
+    if type(index) is not int or not 0 <= index < len(source):
         return None
     if not can_remove_box_body_fold_segment(source[index]):
         return None
+    physical_t = _positive_fold_thickness(thickness)
     targets = [index]
     if symmetric_box_body:
         source_key = str(source[index].get("phase6_key") or "")
@@ -234,7 +249,7 @@ def operator_fold_editor_remove_segment(
         updated.pop(target)
     if updated:
         updated[-1].pop("angle", None)
-    apply_outside_dimension_compensation(updated, thickness)
+    apply_outside_dimension_compensation(updated, physical_t)
     return updated
 
 
@@ -250,9 +265,18 @@ def project_operator_fold_editor_display_rows(
     signed operator dimension is display orientation, never negative material.
     Only the view copies use the opposite UI angle convention for +/-90.
     """
-    views = apply_outside_dimension_compensation(
-        [deepcopy(dict(row)) for row in material_segments], thickness,
-    )
+    physical_t = _positive_fold_thickness(thickness)
+    source_rows = []
+    for material in material_segments:
+        row = deepcopy(dict(material))
+        # Display may discard stale ui_len_add and reconstruct actual BEND
+        # compensation, but it must never invent a material length of 0
+        # from an invalid source. A legacy None angle remains a flat segment.
+        _finite_operator_fold_number(row.get("len"), field="len")
+        if row.get("angle") is not None:
+            _finite_operator_fold_number(row["angle"], field="angle")
+        source_rows.append(row)
+    views = apply_outside_dimension_compensation(source_rows, physical_t)
     projected = []
     for row in views:
         view = dict(row)

@@ -26,6 +26,19 @@ from .physical_part_identity import is_derived_physical_part_key
 from .standard_part_fold_profiles import build_standard_part_fold_profiles
 
 
+def build_operator_default_part_fold_profiles(
+    snapshot: Mapping[str, object], part_key: str,
+) -> dict[str, list[dict]]:
+    """Engine routing for standard and persisted CustomFold physical profiles.
+
+    A missing CustomFold descriptor must fail closed instead of falling back
+    to a generic three-segment standard panel.
+    """
+    if is_custom_part(part_key):
+        return build_custom_part_profiles(snapshot, part_key)
+    return build_standard_part_fold_profiles(snapshot, part_key)
+
+
 def plan_operator_settings_fold_profiles(
     *,
     settings_values: Mapping[str, object],
@@ -61,10 +74,8 @@ def plan_operator_settings_fold_profiles(
             continue
         if key in {"head", "tail"}:
             defaults = build_endcap_xy_fold_profiles(snapshot, part_key=key)
-        elif is_custom_part(key):
-            defaults = build_custom_part_profiles(snapshot, key)
         else:
-            defaults = build_standard_part_fold_profiles(snapshot, key)
+            defaults = build_operator_default_part_fold_profiles(snapshot, key)
         existing = dict(saved.get(key, {}) or {})
         updated = (
             defaults

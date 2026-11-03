@@ -239,9 +239,8 @@ def _snapshot_part_dimensions(self, snapshot):
     dimensions = manufacturing_api.project_fold_designer_snapshot_dimensions(
         snapshot, groups,
     )
-    offsets = (
-        float(self.door_indicator_offset_x),
-        float(self.door_indicator_offset_y),
+    offsets = manufacturing_api.normalize_fold_designer_indicator_offsets(
+        self.door_indicator_offset_x, self.door_indicator_offset_y,
     )
     snapshot["indicator_layer_groups"] = list(dimensions.indicator_layer_groups)
     snapshot["door_indicator_groups"] = list(direct_groups)

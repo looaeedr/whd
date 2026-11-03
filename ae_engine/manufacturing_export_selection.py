@@ -108,21 +108,46 @@ def select_resolved_export_geometry(resolved_geometry, flags):
 def resolve_receiving_bay_local_export_geometry(
     assembly_parts, saved_layout, *, set_index: int, bay_index: int,
 ) -> ResolvedManufacturingGeometry:
-    """Remove only the canonical Set/Bay assembly translation before DXF."""
-    anchor = receiving_bay_assembly_offsets(
-        saved_layout, set_index=set_index,
-    )[bay_index]
-    physical = tuple(
-        ResolvedManufacturingPart(
-            part_key=p.part_key,
-            render_data=p.render_data,
-            x_profile=p.x_profile,
-            y_profile=p.y_profile,
-            placement=p.placement,
-            offset=tuple(float(x) - float(y) for x, y in zip(p.offset, anchor)),
-        )
-        for p in tuple(assembly_parts or ())
-    )
-    if any(part.placement == "standalone" for part in physical):
-        raise ValueError("多連出圖禁止以單件預覽取代組合體實體")
-    return ResolvedManufacturingGeometry(parts=physical)
+    """Remove exactly one certified Set/Bay XYZ translation before DXF.
+
+    An incomplete or nonfinite world offset must never be truncated by zip()
+    or carried as a fake local manufacturing placement. The source scene's
+    original physical parts and render data remain unchanged.
+    """
+    from math import isfinite
+
+    anchors = receiving_bay_assembly_offsets(saved_layout, set_index=set_index)
+    if type(bay_index) is not int or not 0 <= bay_index < len(anchors):
+        raise IndexError("RECEIVING_BAY_EXPORT_INDEX_INVALID")
+    anchor = tuple(float(value) for value in anchors[bay_index])
+    if len(anchor) != 3 or not all(isfinite(value) for value in anchor):
+        raise ValueError("RECEIVING_BAY_EXPORT_WORLD_ANCHOR_INVALID")
+
+    physical = []
+    for part in tuple(assembly_parts or ()):
+        placement = getattr(part, "placement", None)
+        if placement == "standalone":
+            raise ValueError("多連出圖禁止以單件預覽取代組合體實體")
+        if not isinstance(placement, str) or not placement:
+            raise ValueError("RECEIVING_BAY_EXPORT_PLACEMENT_INVALID")
+        raw = getattr(part, "offset", None)
+        if not isinstance(raw, (tuple, list)) or len(raw) != 3:
+            raise ValueError("RECEIVING_BAY_EXPORT_WORLD_OFFSET_INVALID")
+        try:
+            if any(isinstance(value, bool) for value in raw):
+                raise ValueError("boolean physical world offset")
+            world = tuple(float(value) for value in raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("RECEIVING_BAY_EXPORT_WORLD_OFFSET_INVALID") from exc
+        local = tuple(world[i] - anchor[i] for i in range(3))
+        if not all(isfinite(value) for value in world + local):
+            raise ValueError("RECEIVING_BAY_EXPORT_WORLD_OFFSET_INVALID")
+        physical.append(ResolvedManufacturingPart(
+            part_key=part.part_key,
+            render_data=part.render_data,
+            x_profile=part.x_profile,
+            y_profile=part.y_profile,
+            placement=placement,
+            offset=local,
+        ))
+    return ResolvedManufacturingGeometry(parts=tuple(physical))

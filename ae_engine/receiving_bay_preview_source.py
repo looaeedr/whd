@@ -8,7 +8,158 @@ Pure translation planning cannot modify any existing FinalScene/PartSpec.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
+from dataclasses import dataclass
+
+from .custom_part_catalog import is_custom_part
+
 from .cabinet_types.policy import canonical_family_name
+
+@dataclass(frozen=True)
+class ReceivingBayPreviewReusePolicy:
+    """Read-only physical preview provenance flags; never DXF certification."""
+
+    receiving_set_bay: bool
+    requires_live_custom_catalog: bool
+    allow_upstream_translation: bool
+    allow_suffix_topology_reuse: bool
+
+
+def plan_receiving_bay_preview_reuse_policy(
+    snapshot, *, bay_index, candidate=False, available_parts=(),
+) -> ReceivingBayPreviewReusePolicy:
+    """Single Engine decision for committed Bay preview cache dependencies.
+
+    The caller owns only LRU retention and GUI rendering, never physical
+    CustomPart identity, upstream translation or source dependency policy.
+    The fingerprint projector independently checks Joint topology and values.
+    """
+    live_custom = any(is_custom_part(key) for key in tuple(available_parts or ()))
+    receiving = (
+        isinstance(snapshot, Mapping)
+        and canonical_family_name(snapshot) == "受電箱"
+        and snapshot.get("active_mode", "set_bay") == "set_bay"
+    )
+    state = snapshot if receiving else {}
+    physical_dependencies = bool(
+        live_custom or state.get("assembly_joints")
+        or state.get("custom_parts") or state.get("joint_relief_state")
+    )
+    allow_translation = bool(
+        receiving and not candidate and type(bay_index) is int
+        and bay_index >= 2 and not physical_dependencies
+    )
+    return ReceivingBayPreviewReusePolicy(
+        receiving_set_bay=bool(receiving),
+        requires_live_custom_catalog=live_custom,
+        allow_upstream_translation=allow_translation,
+        allow_suffix_topology_reuse=bool(receiving and not candidate),
+    )
+
+
+@dataclass(frozen=True)
+class ReceivingBayPreviewOperatorInputs:
+    """Detached Engine-selected Bay source for the existing preview pipeline.
+
+    Contains the projected manufacturing snapshot and UI settings values;
+    neither value grants export, nor changes the committed source layout.
+    """
+    snapshot: dict[str, object]
+    settings_values: dict[str, object]
+
+
+def project_receiving_bay_preview_operator_inputs(
+    source_snapshot, settings_values, *, set_index, bay_index,
+) -> ReceivingBayPreviewOperatorInputs:
+    """Merge operator-global defaults without overwriting physical Bay authority.
+
+    A selected Bay's W/H/D, persisted Door topology, NFB submission, identity
+    and ReceivingLayout must remain authoritative even if the main GUI holds
+    stale global settings from an earlier Bay. All finished dimensions are
+    computed by the existing Engine part-dimension projection.
+    """
+    from .receiving_layout import (
+        RECEIVING_DOOR_STATE_KEYS, RECEIVING_RUNTIME_SELECTION_KEY,
+        project_receiving_bay_legacy_aliases,
+    )
+    from .part_dimension_projection import project_part_dimensions
+
+    if not isinstance(source_snapshot, Mapping):
+        raise TypeError("RECEIVING_BAY_PREVIEW_SOURCE_MAPPING_REQUIRED")
+    if not isinstance(settings_values, Mapping):
+        raise TypeError("RECEIVING_BAY_PREVIEW_SETTINGS_MAPPING_REQUIRED")
+
+    snapshot = project_receiving_bay_legacy_aliases(
+        source_snapshot, set_index=set_index, bay_index=bay_index,
+    )
+    settings = {
+        **dict(settings_values),
+        **{key: snapshot[key] for key in ("w", "h", "d")},
+    }
+    authoritative = set(RECEIVING_DOOR_STATE_KEYS) | {
+        "nfb_config", "nfb_config_submitted",
+        "receiving_layout", RECEIVING_RUNTIME_SELECTION_KEY,
+    }
+    snapshot.update({
+        name: value for name, value in settings.items()
+        if name not in authoritative
+    })
+    snapshot["part_dimensions"] = project_part_dimensions(snapshot)
+    return ReceivingBayPreviewOperatorInputs(snapshot, settings)
+
+
+@dataclass(frozen=True)
+class ReceivingBayPreviewPhysicalSeed:
+    """Existing Engine factory inputs for one isolated real Receiving Bay."""
+
+    box_body_profile: list[dict]
+    endcap_profiles: dict[str, dict[str, list[dict]]]
+    box_body_joint_faces: dict[str, list]
+    box_body_structure_state: object
+
+
+def project_receiving_bay_preview_physical_seed(
+    snapshot, *, set_index, bay_index,
+    existing_box_body_profile=(), existing_box_body_faces=None,
+) -> ReceivingBayPreviewPhysicalSeed:
+    """Resolve Bay Fold, Joint lock and structure authority entirely in Engine.
+
+    Only call after an operator Bay snapshot has been selected by
+    project_receiving_bay_preview_operator_inputs. The caller only creates an
+    isolated workspace; this never approves or caches manufacturing.
+    """
+    from .box_body_fold_profile import merge_box_body_fold_profile
+    from .endcap_factory_fold import build_endcap_xy_fold_profiles
+    from .receiving_layout import receiving_bay_joint_face_features
+
+    if not isinstance(snapshot, Mapping) or canonical_family_name(snapshot) != "受電箱":
+        raise ValueError("RECEIVING_BAY_PREVIEW_FAMILY_REQUIRED")
+    if snapshot.get("active_mode", "set_bay") != "set_bay":
+        raise ValueError("RECEIVING_BAY_PREVIEW_SET_BAY_MODE_REQUIRED")
+
+    source = snapshot.get("workspace", {})
+    if not isinstance(source, Mapping):
+        raise ValueError("RECEIVING_BAY_STRUCTURE_SOURCE_INVALID")
+    structure = source.get(
+        "box_body_structure", snapshot.get("box_body_structure", {}),
+    )
+    layout = snapshot["receiving_layout"]
+    box = merge_box_body_fold_profile(existing_box_body_profile, snapshot)
+    endcaps = {
+        key: build_endcap_xy_fold_profiles(snapshot, part_key=key)
+        for key in ("head", "tail")
+    }
+    faces = receiving_bay_joint_face_features(
+        layout, set_index=set_index, bay_index=bay_index,
+        thickness=float(snapshot.get("t", 2)),
+        frame_width=float(snapshot.get("fw", 29)),
+        existing=existing_box_body_faces,
+    )
+    return ReceivingBayPreviewPhysicalSeed(
+        box_body_profile=box, endcap_profiles=endcaps,
+        box_body_joint_faces=faces, box_body_structure_state=structure,
+    )
+
 
 def project_receiving_bay_preview_face_features_key(face_features):
     """Ignore only transient Joint locks which the real per-Bay solver replaces.
@@ -202,6 +353,82 @@ def project_receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, b
     shallow_layout["sets"] = shallow_sets
     fingerprint_snapshot["receiving_layout"] = shallow_layout
     return fingerprint_snapshot
+
+@dataclass(frozen=True)
+class ReceivingBayWorldAssemblyProjection:
+    """One Engine-selected Bay world datum and ordered visible physical parts."""
+
+    bay_offset: tuple[float, float, float]
+    part_placements: tuple[tuple[object, tuple[float, float, float]], ...]
+
+
+@dataclass(frozen=True)
+class ReceivingBayPreviewCacheSourceWitness:
+    """Immutable Bay source-prefix and canonical neighbouring-Joint origin."""
+    source_prefix: tuple[tuple[float, float, float], ...]
+    world_anchor: tuple[float, float, float]
+
+
+def project_receiving_bay_preview_cache_source_witness(
+    layout, *, set_index, bay_index,
+) -> ReceivingBayPreviewCacheSourceWitness:
+    """Proof of physical Bay history for bounded GUI preview cache reuse."""
+    from .receiving_layout import receiving_bay_assembly_offsets
+    offsets = receiving_bay_assembly_offsets(layout, set_index=set_index)
+    if type(bay_index) is not int or not 0 <= bay_index < len(offsets):
+        raise IndexError("Receiving preview bay_index out of range")
+    rows = layout["sets"][set_index]["bays"][:bay_index + 1]
+    return ReceivingBayPreviewCacheSourceWitness(
+        source_prefix=tuple(
+            (float(b["width"]), float(b["height"]), float(b["depth"]))
+            for b in rows
+        ),
+        world_anchor=tuple(float(x) for x in offsets[bay_index]),
+    )
+
+
+def project_receiving_bay_preview_assembly_members(
+    layout, resolved_parts, *, set_index, bay_index,
+) -> ReceivingBayWorldAssemblyProjection:
+    """Place actual resolved Bay sheets in Engine-derived joint world space.
+
+    The caller has already resolved the canonical PartSpecs/FinalScene.
+    This is read-only display placement: standalone sheets do not belong
+    to a Bay Assembly. Invalid world offsets fail closed rather than being
+    truncated by zip() or projected as a partially assembled cabinet.
+    """
+    from math import isfinite
+    from .receiving_layout import receiving_bay_assembly_offsets
+
+    offsets = receiving_bay_assembly_offsets(layout, set_index=set_index)
+    if type(bay_index) is not int or not 0 <= bay_index < len(offsets):
+        raise IndexError("Receiving preview bay_index out of range")
+    bay_offset = tuple(float(x) for x in offsets[bay_index])
+    if len(bay_offset) != 3 or not all(isfinite(x) for x in bay_offset):
+        raise ValueError("RECEIVING_BAY_WORLD_OFFSET_INVALID")
+
+    projected = []
+    for part in tuple(resolved_parts or ()):
+        role = getattr(part, "placement", None)
+        if role == "standalone":
+            continue
+        if not isinstance(role, str) or not role:
+            raise ValueError("RECEIVING_BAY_ASSEMBLY_PLACEMENT_MISSING")
+        raw = getattr(part, "offset", None)
+        if not isinstance(raw, (list, tuple)) or len(raw) != 3:
+            raise ValueError("RECEIVING_BAY_PART_WORLD_OFFSET_INVALID")
+        try:
+            if any(isinstance(x, bool) for x in raw):
+                raise ValueError("bool offset")
+            local = tuple(float(x) for x in raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("RECEIVING_BAY_PART_WORLD_OFFSET_INVALID") from exc
+        world = tuple(a + b for a, b in zip(local, bay_offset))
+        if not all(isfinite(x) for x in local + world):
+            raise ValueError("RECEIVING_BAY_PART_WORLD_OFFSET_INVALID")
+        projected.append((part, world))
+    return ReceivingBayWorldAssemblyProjection(bay_offset, tuple(projected))
+
 
 def plan_receiving_bay_preview_offset_rebase(parts, old_anchor, new_anchor):
     """Plan immutable world placement deltas; never alter sheets or source parts.

@@ -30,6 +30,18 @@ class InnerDoorHoleEditorContext:
     frame_edges: DoorFrameEdges
 
 
+def resolve_receiving_upper_inner_door_editor_part_key(snapshot) -> str:
+    """Select unique actual upper-cell panel from canonical Receiving Family."""
+    ids = tuple(
+        p.stable_id
+        for p in cabinet_family_policy.derive_inner_door_panels(snapshot)
+        if str(p.cell_key).endswith(":0")
+    )
+    if len(ids) != 1:
+        raise ValueError("原開孔編輯器必須對應一片明確的上層實體內門")
+    return ids[0]
+
+
 def resolve_inner_door_hole_editor_context(input_snapshot, part_key: str) -> InnerDoorHoleEditorContext:
     """Reuse Family/Topology/Certified Door authority; never compute in GUI."""
     if not is_inner_door_panel_part_key(part_key):

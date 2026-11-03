@@ -7,21 +7,48 @@ No new Fold, rear-panel, corner, relief or DXF formula is defined here.
 from __future__ import annotations
 
 from copy import deepcopy
+from math import isfinite
 from typing import Mapping
 
 from . import ae
 from .box_body_fold_profile import profile_to_fold_segments
 from .cabinet_types import policy as family_policy
 from .contracts import BoxBodyPartSpec
-from .endcap_xy_readback import fold_material_segment_outside_length
+from .endcap_xy_readback import project_manufacturing_endcap_bottom_fold_inputs
+
+
+def _confirmed_endcap_lower_length(raw):
+    """Validate the explicit or saved physical EndCap bottom outside length.
+
+    An absent legacy Fold may use the existing Settings fallback, but an
+    explicit bool, NaN, Infinity, negative or nonnumeric length is not proof
+    of physical geometry. Do not reinterpret True as a 1-mm manufactured Fold.
+    """
+    if isinstance(raw, bool):
+        raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID")
+    try:
+        number = float(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID") from exc
+    if not isfinite(number) or number < 0:
+        raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID")
+    return number
 
 
 def _endcap_lower_outside_value(rows, values):
-    """Select the existing Y/ybottom1 physical Fold, else operator fallback."""
-    for item in rows or ():
-        if str(item.get("phase6_key") or "") == "ybottom1":
-            return float(fold_material_segment_outside_length(item))
-    return float(values.get("ybottom1", ae.ybottom1_def))
+    """Read the same validated manufacturing ybottom1 as the GUI adapter.
+
+    Source presence selects the real authored material/Fold. The historical
+    value fallback only applies when no ybottom1 row exists at all.
+    """
+    measured = project_manufacturing_endcap_bottom_fold_inputs({
+        "head": {"Y": rows or ()},
+    })
+    if "head_ybottom1" in measured:
+        return measured["head_ybottom1"]
+    return _confirmed_endcap_lower_length(
+        values.get("ybottom1", ae.ybottom1_def),
+    )
 
 
 def build_box_body_operator_part_spec(
@@ -90,11 +117,11 @@ def build_box_body_operator_part_spec(
     y_profiles = dict(endcap_y_profiles or {})
     resolved_head = (
         _endcap_lower_outside_value(y_profiles.get("head", ()), values)
-        if head_ybottom1 is None else float(head_ybottom1)
+        if head_ybottom1 is None else _confirmed_endcap_lower_length(head_ybottom1)
     )
     resolved_tail = (
         _endcap_lower_outside_value(y_profiles.get("tail", ()), values)
-        if tail_ybottom1 is None else float(tail_ybottom1)
+        if tail_ybottom1 is None else _confirmed_endcap_lower_length(tail_ybottom1)
     )
     return BoxBodyPartSpec(
         width=float(values["w"]),

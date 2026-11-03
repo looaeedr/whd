@@ -31,17 +31,21 @@ def project_manufacturing_endcap_bottom_fold_inputs(endcap_profiles) -> dict[str
         profile = sources.get(part_key) or {}
         for segment in list(dict(profile).get("Y", ()) or ()):
             if str(segment.get("phase6_key") or "") == "ybottom1":
-                # Legacy _num() treats nonnumeric input as zero for display.
-                # An actual manufacturing-request source may not invent 0 mm.
-                raw = segment.get("len")
-                if isinstance(raw, bool):
-                    raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID")
-                try:
-                    measured = float(raw)
-                except (TypeError, ValueError, OverflowError) as exc:
-                    raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID") from exc
-                if not isfinite(measured):
-                    raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID")
+                # Legacy _num() accepts bool as 1 and treats an invalid
+                # ui_len_add as 0 for presentation. Both `len` and the
+                # explicitly saved adjacent-BEND compensation contribute
+                # to the manufactured outside dimension and must be valid.
+                # Only a genuinely *absent* legacy ui_len_add means zero.
+                for field in ("len", "ui_len_add"):
+                    raw = segment.get(field, 0.0) if field == "ui_len_add" else segment.get(field)
+                    if isinstance(raw, bool):
+                        raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID")
+                    try:
+                        measured = float(raw)
+                    except (TypeError, ValueError, OverflowError) as exc:
+                        raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID") from exc
+                    if not isfinite(measured):
+                        raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID")
                 values[target] = float(fold_material_segment_outside_length(segment))
                 break
     return values

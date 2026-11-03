@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from . import ae
+from .contracts import DoorPartSpec
 from .sheetmetal_features import DoorIndicatorContext, feature_surface_from_structural_result
 from .sheetmetal_part_adapters import (
     DoorFrameEdges, build_base_plate_result, build_door_result,
@@ -24,6 +25,38 @@ class OperatorHoleEditorGeometry:
     baseline_status: str
     door_indicator_context: DoorIndicatorContext | None = None
     door_frame_edges: DoorFrameEdges | None = None
+
+
+def project_operator_hole_editor_door_cell(
+    result, spec: DoorPartSpec, *, baseline_scene=None,
+    baseline_status="未使用基準檔（程式計算生成）",
+) -> OperatorHoleEditorGeometry:
+    """Project a selected Door cell from its already-resolved physical sources.
+
+    The GUI passes the actual Engine structural result and the same DoorPartSpec
+    used for DXF. Never reconstruct a default whole Door (which would lose the
+    selected cell's frame edges) or recompute a finished-face formula in GUI.
+    This is read-only editor geometry, not a manufacturing release.
+    """
+    from .manufacturing_door_indicator import door_finished_face_size
+
+    if spec.fold_left is None or spec.fold_bottom is None:
+        raise ValueError("門格 Hole Editor 缺少已確認的門板折邊")
+    finished_w, finished_h = door_finished_face_size(spec)
+    return OperatorHoleEditorGeometry(
+        surface=feature_surface_from_structural_result("door", result),
+        width=result.width, height=result.height,
+        reference_guide=build_finished_reference_guide(
+            "door", result, finished_width=finished_w, finished_height=finished_h,
+        ),
+        baseline_scene=baseline_scene,
+        baseline_status=baseline_status,
+        door_indicator_context=DoorIndicatorContext(
+            finished_width=finished_w, finished_height=finished_h,
+            left_fold=spec.fold_left, bottom_fold=spec.fold_bottom,
+        ),
+        door_frame_edges=spec.frame_edges,
+    )
 
 
 def project_operator_hole_editor_door(

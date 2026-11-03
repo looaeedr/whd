@@ -20,6 +20,21 @@ from .endcap_bottom_wrap_state import normalize_endcap_bottom_wrap_state
 
 
 @dataclass(frozen=True)
+class OperatorExternalModelPlan:
+    changed: bool
+    target_model: str
+
+
+def plan_operator_external_model_change(
+    model: object,
+    current_model: object,
+) -> OperatorExternalModelPlan:
+    target = str(model or "").strip()
+    current = str(current_model or "").strip()
+    return OperatorExternalModelPlan(bool(target and target != current), target)
+
+
+@dataclass(frozen=True)
 class FamilyModelTransition:
     new_model: str
     old_model: str

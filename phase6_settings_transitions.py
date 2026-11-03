@@ -7,7 +7,6 @@ bridge, workspace, callback, scheduler, or renderer ownership.
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
 from typing import Any, Mapping
 
 from ae_engine import manufacturing_api
@@ -70,10 +69,8 @@ AssemblyIntentTransition = manufacturing_api.AssemblyIntentTransition
 ExternalSyncPlan = manufacturing_api.OperatorExternalSyncPlan
 
 
-@dataclass(frozen=True)
-class ExternalModelPlan:
-    changed: bool
-    target_model: str
+# Compatibility type; Engine decides whether a cabinet Family change is real.
+ExternalModelPlan = manufacturing_api.OperatorExternalModelPlan
 
 
 FamilyModelTransition = manufacturing_api.FamilyModelTransition
@@ -310,11 +307,7 @@ def replace_corner_state(
     corner_state: Mapping[str, object] | None,
     corner_pair_same: Mapping[str, object] | None,
 ) -> CornerStateTransition:
-    return CornerStateTransition(
-        deepcopy(dict(corner_state or {})),
-        deepcopy(dict(corner_pair_same or {})),
-        None,
-    )
+    return manufacturing_api.replace_corner_state(corner_state, corner_pair_same)
 
 
 def plan_external_sync(
@@ -349,9 +342,9 @@ def plan_external_model_change(
     model: object,
     current_model: object,
 ) -> ExternalModelPlan:
-    target = str(model or "").strip()
-    current = str(current_model or "").strip()
-    return ExternalModelPlan(bool(target and target != current), target)
+    return manufacturing_api.plan_operator_external_model_change(
+        model, current_model,
+    )
 
 
 def apply_corner_preset(

@@ -88,6 +88,7 @@ from .endcap_factory_fold import (
 )
 from .cabinet_family_model_transition import (
     FamilyModelTransition, FamilyModelPlan, plan_cabinet_family_model_transition,
+    OperatorExternalModelPlan, plan_operator_external_model_change,
 )
 from .cabinet_model_choices import (
     list_cabinet_model_choices, OperatorCornerSelectionCatalog,
@@ -134,6 +135,7 @@ from .corner_state_transactions import (
     CornerStateTransition, MANUAL_CORNER_KEYS, MANUAL_CORNER_PAIR_KEYS,
     ensure_corner_part, corner_selection, corner_targets, commit_corner_pair,
     commit_corner_type, commit_corner_mode, commit_corner_parameters, apply_corner_preset,
+    replace_corner_state, project_operator_corner_ini_rotation,
 )
 from .operator_endcap_settings_transactions import (
     OperatorBottomWrapTransition, operator_endcap_fw_follow,
@@ -153,7 +155,10 @@ from .operator_settings_transactions import (
     plan_operator_external_sync, normalize_operator_settings_boolean,
     normalize_operator_settings_updates, commit_operator_settings_state,
     normalize_operator_source_dimension, normalize_operator_source_dimensions,
+    PHYSICAL_SNAPSHOT_SOURCE_KEYS,
     project_receiving_manufacturing_request_settings,
+    operator_legacy_shared_base_plate_shrink,
+    apply_operator_legacy_runtime_manufacturing_policies,
 )
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
@@ -216,7 +221,10 @@ from .manufacturing_cache_source_plan import (
     OperatorRawMaterialReusePlan, plan_operator_raw_material_reuse,
 )
 from .operator_quantity_validation import validate_operator_manufacturing_quantity_context
-from .manufacturing_request_parts import canonical_manufacturing_request_part_keys
+from .manufacturing_request_parts import (
+    canonical_manufacturing_request_part_keys,
+    OperatorManufacturingPartSourcePlan, plan_operator_manufacturing_part_source,
+)
 from .assembly_collision_display_api import project_assembly_collision_display_audit
 from .assembly_all_parts_collision import collision_part_display_name
 from .receiving_base_display_source import (
@@ -268,6 +276,7 @@ from .receiving_inner_door_inventory import (
 )
 from .receiving_inner_door_editor import (
     InnerDoorHoleEditorContext, resolve_inner_door_hole_editor_context,
+    resolve_receiving_upper_inner_door_editor_part_key,
 )
 from .manufacturing_legacy_export_guard import (
     has_submitted_nfb_in_current_snapshot,
@@ -337,6 +346,7 @@ from .sheetmetal_part_adapters import (
     build_door_result,
     build_unknown_door_result,
     build_finished_reference_guide,
+    door_layout_part_key,
 )
 from .cabinet_types import policy as cabinet_family_policy
 from .cabinet_types.policy import door_material_frame_width, box_body_symmetry_allowed
@@ -351,6 +361,7 @@ from .operator_round_hole_projection import (
 from .operator_hole_editor_projection import (
     OperatorHoleEditorGeometry,
     project_operator_hole_editor_door,
+    project_operator_hole_editor_door_cell,
     project_operator_hole_editor_base_plate,
 )
 from .operator_door_cell_projection import (
@@ -370,7 +381,9 @@ from .live_cabinet_family import resolve_live_cabinet_family
 from .assembly_mesh_profiles import (
     resolve_material_mesh_profiles, project_operator_3d_mesh_profiles,
 )
-from .operator_settings_fold_plan import plan_operator_settings_fold_profiles
+from .operator_settings_fold_plan import (
+    plan_operator_settings_fold_profiles, build_operator_default_part_fold_profiles,
+)
 from .standard_part_fold_profiles import build_standard_part_fold_profiles
 from .standard_part_fold_readback import read_standard_part_fold_profiles
 from .custom_part_catalog import (
@@ -1419,6 +1432,7 @@ def resolve_fold_designer_panel_part(part_key, payload):
 
 from .fold_designer_snapshot_dimensions import (
     FoldDesignerSnapshotDimensions, normalize_fold_designer_indicator_groups,
+    normalize_fold_designer_indicator_offsets,
     normalize_operator_hole_editor_indicator_state,
     project_operator_door_cell_indicator_manufacturing_source,
     project_operator_door_layout_indicator_snapshot_states,
@@ -1534,6 +1548,15 @@ def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
     """Public Engine physical solid mesh feature-boundary projection."""
     from .solid_mesh_feature_edges import physical_solid_mesh_feature_segments as resolve
     return resolve(triangles, tolerance=tolerance)
+
+
+
+def project_physical_solid_mesh_display_segments(triangles, *, mode, tolerance=1e-6):
+    """Public source-backed FinalScene mesh display edges, no GUI geometry."""
+    from .solid_mesh_feature_edges import (
+        project_physical_solid_mesh_display_segments as resolve,
+    )
+    return resolve(triangles, mode=mode, tolerance=tolerance)
 
 
 
@@ -2036,6 +2059,11 @@ def undo_receiving_nfb_transaction(layout, receipt):
 
 # #2517 Receiving physical Bay preview source/reuse policy belongs to Engine.
 from .receiving_bay_preview_source import (
+    ReceivingBayPreviewCacheSourceWitness, project_receiving_bay_preview_cache_source_witness,
+    ReceivingBayPreviewPhysicalSeed, project_receiving_bay_preview_physical_seed,
+    ReceivingBayPreviewOperatorInputs, project_receiving_bay_preview_operator_inputs,
+    ReceivingBayPreviewReusePolicy, plan_receiving_bay_preview_reuse_policy,
+    ReceivingBayWorldAssemblyProjection, project_receiving_bay_preview_assembly_members,
     project_receiving_bay_preview_face_features_key,
     receiving_default_local_joints_only,
     project_receiving_bay_preview_fingerprint_snapshot,
@@ -2091,9 +2119,11 @@ from .receiving_nfb_hole_stage import plan_operator_inner_door_nfb_hole_stage
 
 # #2517: physical Receiving BasePlate Part Session source is Engine-owned.
 from .operator_part_session_profiles import (
+    OperatorReceivingLiveBayFeaturePlan, project_operator_receiving_live_bay_features,
     project_operator_part_activation_profiles,
     project_operator_receiving_base_plate_save_profiles,
     can_skip_operator_receiving_part_save,
+    operator_receiving_navigation_only_sync_change,
     project_operator_receiving_settings_live_dimensions,
     project_operator_quantity_box_dimensions,
     project_operator_part_session_source_dimensions,

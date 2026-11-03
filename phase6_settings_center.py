@@ -8,11 +8,13 @@ Fold Designer keeps its own transaction-local draft until the main GUI commits.
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
-from dataclasses import dataclass, is_dataclass, replace
+from dataclasses import dataclass
 import configparser
 from pathlib import Path
 from types import MappingProxyType
 from typing import Iterable
+
+from ae_engine import manufacturing_api
 
 
 GLOBAL_CONTEXT = "global"
@@ -155,14 +157,27 @@ def _parser_for_ae(ae_module) -> configparser.ConfigParser:
 
 def _coerce(spec: SettingSpec, raw):
     if spec.kind == "bool":
-        if isinstance(raw, bool):
-            return raw
-        return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+        # A malformed saved boolean must not silently become False.
+        return manufacturing_api.normalize_operator_settings_boolean(raw)
     if spec.kind == "choice":
         if spec.key == "ui_text_size":
             return normalize_ui_text_size(raw)
         return str(raw).strip()
-    return float(raw)
+    if spec.key in manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS:
+        # Outside physical W/H/D/T/FW are validated once in the Engine,
+        # including bool, NaN, infinity, zero and negative source values.
+        return manufacturing_api.normalize_operator_source_dimension(
+            raw, field=spec.key,
+        )
+    # Other numeric Fold/Hole/Relief/plate settings keep their existing signed
+    # ranges. The Engine's pre-existing numeric gate alone rejects bool, NaN
+    # and infinity; do not invent GUI manufacturing limits or formulas.
+    normalized = manufacturing_api.normalize_operator_settings_updates(
+        {spec.key: spec.default}, {spec.key: raw},
+    )
+    if spec.key not in normalized:
+        raise ValueError(f"{spec.key} 設定值必須是有限數值")
+    return normalized[spec.key]
 
 
 def _runtime_default(ae_module, spec: SettingSpec):
@@ -317,88 +332,29 @@ def apply_settings_to_ae(ae_module, values: Mapping[str, object], *, keys: Itera
     specs = _selected_specs(keys=keys) if keys is not None else tuple(
         _SPEC_BY_KEY[k] for k in values.keys() if k in _SPEC_BY_KEY
     )
+    # Validate every supplied scalar before touching the shared AE runtime.
+    # One invalid Fold/Hole/Relief value cannot partially commit other fields.
+    normalized = tuple(
+        (spec, _coerce(spec, values[spec.key]))
+        for spec in specs if spec.key in values
+    )
     relief_changes = {}
-    for spec in specs:
-        if spec.key not in values:
-            continue
-        value = _coerce(spec, values[spec.key])
+    for spec, value in normalized:
         if spec.relief_attr:
             relief_changes[spec.relief_attr] = value
         elif spec.runtime_attr:
             setattr(ae_module, spec.runtime_attr, value)
 
-    if relief_changes:
-        current = getattr(ae_module, "RELIEF_CONFIG", None)
-        if current is not None:
-            try:
-                if is_dataclass(current):
-                    current = replace(current, **relief_changes)
-                else:
-                    for name, value in relief_changes.items():
-                        setattr(current, name, value)
-                setattr(ae_module, "RELIEF_CONFIG", current)
-            except Exception:
-                # A custom/frozen non-dataclass engine object may not be mutable;
-                # persistence still succeeds and explicit PartSpec values remain safe.
-                pass
-
-    # Fixed EndCap holes are consumed through a policy object created at engine
-    # import time.  Rebuild that object too, otherwise editing the hidden HOLES
-    # values would update module scalars but not the actual preview/DXF geometry.
-    fixed_hole_keys = {
-        "hang_hole_r", "hang_hole_y_up", "sq_x_left", "sq_y_bottom",
-        "sq_width", "sq_height", "bottom_hole_r", "bottom_hole_y",
-    }
-    if fixed_hole_keys.intersection(values):
-        policy = getattr(ae_module, "VAULT_ENDCAP_FEATURE_POLICY", None)
-        if policy is not None:
-            def point_like(current, x, y):
-                try:
-                    return type(current)(float(x), float(y))
-                except Exception:
-                    return (float(x), float(y))
-            changes = {
-                "hanging_hole_radius": float(getattr(ae_module, "hang_hole_r", 3.2)),
-                "hanging_hole_y_from_top_bend": float(getattr(ae_module, "hang_hole_y_up", 6.0)),
-                "square_hole_origin": point_like(
-                    getattr(policy, "square_hole_origin", (3.0, 18.0)),
-                    getattr(ae_module, "sq_x_left", 3.0), getattr(ae_module, "sq_y_bottom", 18.0),
-                ),
-                "square_hole_size": point_like(
-                    getattr(policy, "square_hole_size", (4.0, 4.0)),
-                    getattr(ae_module, "sq_width", 4.0), getattr(ae_module, "sq_height", 4.0),
-                ),
-                "tail_bottom_hole_radius": float(getattr(ae_module, "bottom_hole_r", 2.5)),
-                "tail_bottom_hole_y": float(getattr(ae_module, "bottom_hole_y", 5.0)),
-            }
-            try:
-                if is_dataclass(policy):
-                    policy = replace(policy, **changes)
-                else:
-                    for name, value in changes.items():
-                        setattr(policy, name, value)
-                setattr(ae_module, "VAULT_ENDCAP_FEATURE_POLICY", policy)
-            except Exception:
-                pass
-
-    # Maintain legacy shared base-plate default only when the four edge values
-    # are equal; explicit runtime GUI values remain authoritative otherwise.
-    shrink_keys = (
-        "base_plate_shrink_top", "base_plate_shrink_bottom",
-        "base_plate_shrink_left", "base_plate_shrink_right",
+    manufacturing_api.apply_operator_legacy_runtime_manufacturing_policies(
+        ae_module, values, relief_changes=relief_changes,
     )
-    if all(k in values for k in shrink_keys):
-        vals = [float(values[k]) for k in shrink_keys]
-        if max(vals) - min(vals) < 1e-9:
-            setattr(ae_module, "base_plate_shrink_def", vals[0])
-
 
 def _format_ini_value(spec: SettingSpec, value: object) -> str:
     if spec.kind == "bool":
         return "true" if bool(_coerce(spec, value)) else "false"
     if spec.kind == "choice":
         return str(_coerce(spec, value))
-    number = float(value)
+    number = _coerce(spec, value)
     return str(int(number)) if number.is_integer() else str(number)
 
 
@@ -439,16 +395,14 @@ def save_defaults_to_ini(
 
     # If all four specific shrink values are the same, keep the old key in sync
     # so older engine versions still see the same default.
-    shrink_keys = (
-        "base_plate_shrink_top", "base_plate_shrink_bottom",
-        "base_plate_shrink_left", "base_plate_shrink_right",
-    )
-    if context == "base_plate" and all(k in values for k in shrink_keys):
-        vals = [float(values[k]) for k in shrink_keys]
-        if max(vals) - min(vals) < 1e-9:
+    if context == "base_plate":
+        legacy_shrink = manufacturing_api.operator_legacy_shared_base_plate_shrink(values)
+        if legacy_shrink is not None:
             if not parser.has_section("BASE_PLATE"):
                 parser.add_section("BASE_PLATE")
-            parser.set("BASE_PLATE", "shrink", _format_ini_value(_SPEC_BY_KEY[shrink_keys[0]], vals[0]))
+            parser.set("BASE_PLATE", "shrink", _format_ini_value(
+                _SPEC_BY_KEY["base_plate_shrink_top"], legacy_shrink,
+            ))
 
     ini_path.parent.mkdir(parents=True, exist_ok=True)
     with ini_path.open("w", encoding="utf-8") as fh:
@@ -462,7 +416,7 @@ def save_defaults_to_ini(
         apply_settings_to_ae(ae_module, values, keys=changed_keys)
 
 CORNER_PARTS = ("head", "tail", "door", "base_plate", "indicator_box", "indicator_door")
-CORNER_KEYS = ("top_left", "top_right", "bottom_left", "bottom_right")
+CORNER_KEYS = manufacturing_api.MANUAL_CORNER_KEYS
 
 
 def _corner_section(part_key: str) -> str:
@@ -491,9 +445,9 @@ def load_corner_defaults_from_ini(ae_module):
             if not parser.has_option(section, corner_key):
                 continue
             type_id = parser.get(section, corner_key, fallback="CROSS").strip().upper()
-            rotation = parser.getint(section, f"{corner_key}_rotation", fallback=0) % 4
-            if type_id != "C02":
-                rotation = 0
+            rotation = manufacturing_api.project_operator_corner_ini_rotation(
+                type_id, parser.getint(section, f"{corner_key}_rotation", fallback=0),
+            )
             raw = {"type_id": type_id, "rotation_quadrants": rotation}
             text_fields = {
                 "cross_mode": f"{corner_key}_cross_mode",
@@ -511,10 +465,13 @@ def load_corner_defaults_from_ini(ae_module):
             }
             for field, option in float_fields.items():
                 if parser.has_option(section, option):
-                    try:
-                        raw[field] = parser.getfloat(section, option)
-                    except ValueError:
-                        pass
+                    # The Engine owns finite, non-bool Corner source values;
+                    # malformed saved options cannot become geometry input.
+                    normalized = manufacturing_api.normalize_operator_settings_updates(
+                        {field: 0.0}, {field: parser.get(section, option)},
+                    )
+                    if field in normalized:
+                        raw[field] = normalized[field]
             corner_state[corner_key] = raw
         if corner_state:
             states[part_key] = corner_state
@@ -542,15 +499,23 @@ def save_corner_defaults_to_ini(ae_module, corner_state, corner_pair_same, *, co
     if not parser.has_section(section):
         parser.add_section(section)
     pairs = dict((corner_pair_same or {}).get(part_key) or {})
-    parser.set(section, "top_same", "true" if bool(pairs.get("top", True)) else "false")
-    parser.set(section, "bottom_same", "true" if bool(pairs.get("bottom", True)) else "false")
+    top_same = manufacturing_api.normalize_operator_settings_boolean(
+        pairs.get("top", True),
+    )
+    bottom_same = manufacturing_api.normalize_operator_settings_boolean(
+        pairs.get("bottom", True),
+    )
+    parser.set(section, "top_same", "true" if top_same else "false")
+    parser.set(section, "bottom_same", "true" if bottom_same else "false")
     corners = dict((corner_state or {}).get(part_key) or {})
     for corner_key in CORNER_KEYS:
         raw = corners.get(corner_key)
         if not isinstance(raw, Mapping):
             continue
         type_id = str(raw.get("type_id", "CROSS")).strip().upper()
-        rotation = int(raw.get("rotation_quadrants", 0) or 0) % 4 if type_id == "C02" else 0
+        rotation = manufacturing_api.project_operator_corner_ini_rotation(
+            type_id, raw.get("rotation_quadrants", 0),
+        )
         parser.set(section, corner_key, type_id)
         parser.set(section, f"{corner_key}_rotation", str(rotation))
 
@@ -567,11 +532,12 @@ def save_corner_defaults_to_ini(ae_module, corner_state, corner_pair_same, *, co
                 parser.remove_option(section, option)
                 continue
             if field.endswith("_t"):
-                try:
-                    text = f"{float(value):g}"
-                except (TypeError, ValueError):
-                    parser.remove_option(section, option)
-                    continue
+                normalized = manufacturing_api.normalize_operator_settings_updates(
+                    {field: 0.0}, {field: value},
+                )
+                if field not in normalized:
+                    raise ValueError(f"截角 {field} 必須是有限數值")
+                text = f"{normalized[field]:g}"
             else:
                 text = str(getattr(value, "value", value)).strip().lower()
             parser.set(section, option, text)

@@ -45,6 +45,15 @@ def _confirmed_finished_face_cutting_features(raw, *, allowed_roles, invalid_cod
                 raise ValueError(invalid_code)
             if feature.anchor is not FeatureAnchor.ABSOLUTE_FINISHED_FACE or feature.layer != "CUTTING":
                 raise ValueError(invalid_code)
+            # Both Head/Tail and Door receive source-confirmed physical CUTTING.
+            # A Profile's layered sub-contours can encode another, unconfirmed
+            # manufacturing operation. No part role may silently inherit it.
+            if isinstance(feature, ProfileFeature) and feature.layered_profiles:
+                raise ValueError(invalid_code)
+            # Python bool is an integer subclass; never turn True into an
+            # unconfirmed one-degree physical rotation on EndCap CUTTING.
+            if type(feature.rotation_deg) is not int:
+                raise ValueError(invalid_code)
             coords = [feature.offset.x, feature.offset.y]
             if isinstance(feature, CircleFeature):
                 coords.append(feature.diameter)
@@ -78,14 +87,8 @@ def _confirmed_door_source_features(raw, *, part_keys):
         verified = _confirmed_finished_face_cutting_features(
             raw, allowed_roles=set(part_keys), invalid_code=code,
         )
-        for rows in verified.values():
-            for item in rows:
-                # Layered profiles can otherwise embed an unconfirmed second
-                # operation even when their primary feature says CUTTING.
-                if isinstance(item, ProfileFeature) and item.layered_profiles:
-                    raise ValueError(code)
-                if type(item.rotation_deg) is not int:
-                    raise ValueError(code)
+        # The same confirmed CUTTING source guard applies to Door and
+        # Head/Tail; avoid maintaining a second Door-only physical policy.
     except (AttributeError, TypeError, ValueError, OverflowError) as exc:
         raise ValueError(code) from exc
     return verified
@@ -110,7 +113,11 @@ def _saved_operator_state(source: dict[str, float], operator_snapshot):
     if not isinstance(operator_snapshot, Mapping):
         raise ValueError("RECEIVING_SAVED_PHYSICAL_STATE_INCOMPLETE")
     saved = deepcopy(dict(operator_snapshot))
-    if family_policy.canonical_family_name(saved.get("model")) != _FAMILY:
+    # The Family Registry accepts both persisted model and cabinet_type.
+    # Read the *same saved snapshot identity* as GUI and other Engine APIs:
+    # a cabinet_type-only legacy project must not be rejected or replaced
+    # with fresh factory defaults. A conflicting explicit model still wins.
+    if family_policy.canonical_family_name(saved) != _FAMILY:
         raise ValueError("RECEIVING_SAVED_PHYSICAL_STATE_INCOMPLETE")
     try:
         for key in _SOURCE_KEYS:
