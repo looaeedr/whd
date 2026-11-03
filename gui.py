@@ -1630,7 +1630,15 @@ class Phase6ApplicationHost:
                     self._authoritative_part_render_cache.pop(physical_key, None)
                 if hasattr(self, "_request_phase6_update"):
                     self._request_phase6_update("geometry")
-        indicator_state = self._door_layout_indicator_state_for_key(key)
+        # Only commit callbacks may update physical Door-cell state. Passing
+        # the in-place display accessor here would mutate saved holes merely
+        # by opening the editor, even if the user cancels without changes.
+        states = getattr(self, "door_layout_indicator_states", None)
+        indicator_state = (
+            self._normalize_door_indicator_state(states.get(key))
+            if isinstance(states, Mapping)
+            else self._door_layout_indicator_state_for_key(key)
+        )
         indicator_context = DoorIndicatorContext(
             finished_width=finished_w, finished_height=finished_h,
             left_fold=val['door_fold_l'], bottom_fold=val['door_fold_b'],
