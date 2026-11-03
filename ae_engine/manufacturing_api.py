@@ -360,6 +360,7 @@ from .operator_round_hole_projection import (
 from .operator_hole_editor_projection import (
     OperatorHoleEditorGeometry,
     project_operator_hole_editor_door,
+    project_operator_hole_editor_door_cell,
     project_operator_hole_editor_base_plate,
 )
 from .operator_door_cell_projection import (

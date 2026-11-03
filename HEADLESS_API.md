@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：多門格 Door Hole Editor 使用公開 `manufacturing_api.project_operator_hole_editor_door_cell(result, door_spec, baseline_scene=..., baseline_status=...)`，從同一 Engine DoorPartSpec／已解算 cell 結構投影不可變 `OperatorHoleEditorGeometry`（surface／material width/height／finished-face guide／IndicatorContext／frame_edges）。GUI 不再直接使用低層 `feature_surface_from_structural_result` 或 `build_finished_reference_guide` 計算正式編輯面；此唯讀編輯投影不解鎖製造 DXF 或外部 source-only export。
+
 > #2517（2026-11-03）：原 Fold Designer 保存的門板指示燈 `door_indicator_offset` 由 `manufacturing_api.normalize_fold_designer_indicator_offsets(offset_x, offset_y)` 驗證，與 `normalize_operator_hole_editor_indicator_state` 共用同一 Engine 有限非布林偏移判準；允許正負及 0 mm，不接受 bool／NaN／Inf／壞來源。只增加原公開 API 的製造輸入規範，不新增 Feature 算式／DXF writer。
 
 > #2517（2026-11-03）：Receiving operator Set/Bay 現場 Feature 與 Joint lock 使用 `manufacturing_api.project_operator_receiving_live_bay_features`，上層內門 Hole Editor 的唯一 Part ID 使用 `resolve_receiving_upper_inner_door_editor_part_key`，預覽 cache 的 physical Bay prefix/Joint world anchor 使用 `project_receiving_bay_preview_cache_source_witness`；均只屬 UI source/preview，非 Export certification。
