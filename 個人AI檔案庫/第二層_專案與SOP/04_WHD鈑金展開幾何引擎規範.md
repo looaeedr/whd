@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Head/Tail Hole Editor 三入口同一公開 Engine finished-face 投影（2026-11-03）
+
+- 主 WHD GUI 封頭／封尾、受電箱 Set/Bay 實體封頭／封尾及未 Apply 的受電箱候選版本編輯器，**同用**公開 `manufacturing_api.project_operator_hole_editor_endcap(role, width, depth, thickness)`。沿用既有 `resolve_endcap_finished_face_guide`、`feature_surface_from_rect`、`RectGuide`，由 Engine 產生可開孔面和 finished boundary；GUI 只傳原始操作／Bay 尺寸、選 Role、顯示和提交明確確認的 Features。
+- Engine 對 W/D/T 共用 `normalize_operator_source_dimension`：bool、NaN/Inf、非正數、無法轉為物理尺寸的舊保存來源須先拒絕，不得 `float(True)` 變 1mm；Receiving Bay 維持直接選擇本 Bay 實體來源及舊專案缺 T 使用 2mm 的既有相容值。候選版本仍只在 Confirm 寫回，Cancel 不寫入。
+- 主 GUI 舊孔位轉換走既有 `manufacturing_api.legacy_hole_to_feature`／`feature_to_legacy_hole`，不另算第二份座標。此 API 是唯讀操作編輯器投影，不自行認證製造，也不變更既有 `PartSpec → FinalScene → DXF Save→Reload` 權威。
+- 產品回歸含 `tests/test_issue2517_endcap_hole_editor_shared_engine_source.py`、原 `tests/test_issue293_t5_hole_editor_routing.py`、`tests/test_issue2517_receiving_endcap_hole_context_api.py`；#2517 全產品總驗收仍需逐項真實證據。
+
+
 ## [CURRENT] #2517 箱身面 Hole Editor 可加工面及基準界線由 Engine 投影（2026-11-03）
 
 - GUI 原箱身左／背／右面編輯器自行依 W/H/D/T、兩端 CornerPolicy 推出開孔面四角及 Reference Guide，透過低階 feature_surface_from_rect／box_body_vertical_offsets 組合實體範圍；現在委派 manufacturing_api.project_operator_hole_editor_box_body_face，沿用相同 box_body_face_dimensions、Corner vertical offsets 與現有 OperatorHoleEditorGeometry。
