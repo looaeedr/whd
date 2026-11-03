@@ -198,7 +198,7 @@ def operator_receiving_navigation_only_sync_change(previous, current) -> bool:
         # navigation. Other families (e.g. vault) must publish their derived
         # EndCap relief during the normal part activation transition; merely
         # changing active_part is not display-only for those factories.
-        if (payload.get("model") not in ("受電箱", "RECEIVING")
+        if (family_policy.canonical_family_name(payload) != "受電箱"
                 or payload.get("active_mode") != "set_bay"):
             return False
         workspace = payload.get("workspace")

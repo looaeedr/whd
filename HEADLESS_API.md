@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：Receiving Set/Bay 只有切換已存在的實體 Part 且其他物理來源完全同源，才可由既有公開 `manufacturing_api.operator_receiving_navigation_only_sync_change(previous, current)` 判定省略重複 publish。Family 身分採既有 Engine Registry `cabinet_types.policy.canonical_family_name`，接受合法 `受電箱`／`RECEIVING`／小寫／混合大小寫及舊 `cabinet_type`；其他 Family、Quantity 模式、未確認 Part 或任何實體來源變更一律不省略。GUI `phase6_sync_envelope.navigation_only_change` 仍只是委派；沒有新增機械驗證或 DXF 認證。
+
 > #2517（2026-11-03）：Receiving 當前多門格 Hole Editor 尺寸來源經既有公開 `manufacturing_api.receiving_family_supports_back_panel_mode(snapshot)` 判定 Family Registry 別名，`project_operator_receiving_settings_live_dimensions(snapshot, whd, applying_settings=True)` 驗證現行 Bay W/H/D（缺失、bool、NaN、Inf、非正值均拒絕），而不是退回舊 Settings 畫面或自行 `float()`。實體門格特徵 ID 使用公開 `manufacturing_api.door_layout_part_key(cell)`，原 owner 為 `ae_engine.sheetmetal_part_adapters.door_layout_part_key`，與 Fold Designer／DXF 共用同一 cell identity。GUI 僅選 cell 和輸入數值，不新增門格幾何、DXF 出口或外部認證。
 
 > #2517（2026-11-03）：多門格 Door Hole Editor 使用公開 `manufacturing_api.project_operator_hole_editor_door_cell(result, door_spec, baseline_scene=..., baseline_status=...)`，從同一 Engine DoorPartSpec／已解算 cell 結構投影不可變 `OperatorHoleEditorGeometry`（surface／material width/height／finished-face guide／IndicatorContext／frame_edges）。GUI 不再直接使用低層 `feature_surface_from_structural_result` 或 `build_finished_reference_guide` 計算正式編輯面；此唯讀編輯投影不解鎖製造 DXF 或外部 source-only export。
