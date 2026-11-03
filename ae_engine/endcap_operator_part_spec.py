@@ -111,7 +111,7 @@ def build_endcap_operator_part_spec(
     )
     if cabinet_family_policy.supports_bottom_wrap_controls(model_name):
         try:
-            part_key = "tail" if is_tail else "head"
+            part_key = "tail" if tail else "head"
             wrap_state = (
                 endcap_bottom_wrap_state if endcap_bottom_wrap_state is not None
                 else normalize_endcap_bottom_wrap_state({"model": model_name})
