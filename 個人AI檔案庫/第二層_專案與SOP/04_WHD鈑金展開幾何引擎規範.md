@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Main／Designer 共享實體 Workspace 狀態由 Engine 公開 API 單獨擁有（2026-11-03）
+
+- 原 GUI `phase6_workspace_state.SharedWorkspaceState`、`normalize_existing_parts`、`MANDATORY_PART`、`PART_ORDER`、`ACTIVE_REPAIR_POLICIES` 及 active-part 修復判定移入 `ae_engine.workspace_state`，透過 `manufacturing_api` 公開；舊 `phase6_workspace_state.py` 只保留相容 alias，不能維持第二份物理清單／CustomPart metadata／Profile stash 邏輯。
+- Main `Phase6WorkspaceController`、Designer `Phase6DesignerWorkspace` 繼續各自持有**獨立** `SharedWorkspaceState` instance 與 GUI 生命周期；Main／Designer 的 present/dirty/switching／Save→Reload shell 行為不搬入 Engine。Engine 原用 `custom_part_catalog` 和 `box_body_structure_state` 的既有幾何／來源合法性，沒有新算製造公式、DXF 或未認證出口。
+- `tests/test_issue2517_workspace_physical_state_engine_api.py` 與既有 workspace state/controller/designer 測試檢查 Engine/GUI 完全同一 callable/class、實體 presence/CustomPart ID fail-closed、無反向依賴及各 client 狀態獨立；原始 Project／2D／3D／DXF 輸入語意與持久格式保持不變。#2517 仍 OPEN。
+
 ## [CURRENT] #2517 Receiving 模式初始化與 Session 物理來源改由 Engine 公開 API（2026-11-03）
 
 - `manufacturing_api.fresh_receiving_mode(mode, dimensions, *, thickness=2.0, auto_nfb=False)` 與 `manufacturing_api.ReceivingModeSession` 現由 `ae_engine.receiving_mode_session` 實作。新模式一 Set/Bay、門格分割、Quantity 版本、既有 CSV NFB 初始來源、跨模式 CustomPart ID 保留及 Project-global 候選資料移交仍沿用原 Engine／Family 驗證；GUI `phase6_receiving_modes.py` 僅保留相同函式／型別別名，不再執行物理來源組裝或自行維護第二套切換規則。

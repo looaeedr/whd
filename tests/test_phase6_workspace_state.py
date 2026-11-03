@@ -70,13 +70,24 @@ def test_snapshot_is_defensive_and_structure_is_canonicalized():
 
 def test_shared_core_has_only_shared_fields_and_no_forbidden_dependencies():
     import phase6_workspace_state
+    import ae_engine.workspace_state as engine_state
+    from ae_engine import manufacturing_api
 
-    source = Path(phase6_workspace_state.__file__).read_text(encoding="utf-8")
+    source = Path(engine_state.__file__).read_text(encoding="utf-8")
     forbidden_imports = (
         "tkinter", "phase6_project_session", "phase6_project_controller",
-        "fold_designer_bridge", "renderer", "manufacturing_api", "ae_engine",
+        "fold_designer_bridge", "renderer", "manufacturing_api",
+        "phase6_", "gui_modules",
     )
     assert not [name for name in forbidden_imports if name in source]
+    assert phase6_workspace_state.SharedWorkspaceState is (
+        engine_state.SharedWorkspaceState
+        is manufacturing_api.SharedWorkspaceState
+    )
+    assert (phase6_workspace_state.normalize_existing_parts
+            is manufacturing_api.normalize_existing_parts)
+    assert (phase6_workspace_state._repair_active
+            is manufacturing_api.repair_workspace_active_part)
 
     state = phase6_workspace_state.SharedWorkspaceState()
     assert not hasattr(state, "selected_part")
