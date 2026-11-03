@@ -362,6 +362,31 @@ class ReceivingBayWorldAssemblyProjection:
     part_placements: tuple[tuple[object, tuple[float, float, float]], ...]
 
 
+@dataclass(frozen=True)
+class ReceivingBayPreviewCacheSourceWitness:
+    """Immutable Bay source-prefix and canonical neighbouring-Joint origin."""
+    source_prefix: tuple[tuple[float, float, float], ...]
+    world_anchor: tuple[float, float, float]
+
+
+def project_receiving_bay_preview_cache_source_witness(
+    layout, *, set_index, bay_index,
+) -> ReceivingBayPreviewCacheSourceWitness:
+    """Proof of physical Bay history for bounded GUI preview cache reuse."""
+    from .receiving_layout import receiving_bay_assembly_offsets
+    offsets = receiving_bay_assembly_offsets(layout, set_index=set_index)
+    if type(bay_index) is not int or not 0 <= bay_index < len(offsets):
+        raise IndexError("Receiving preview bay_index out of range")
+    rows = layout["sets"][set_index]["bays"][:bay_index + 1]
+    return ReceivingBayPreviewCacheSourceWitness(
+        source_prefix=tuple(
+            (float(b["width"]), float(b["height"]), float(b["depth"]))
+            for b in rows
+        ),
+        world_anchor=tuple(float(x) for x in offsets[bay_index]),
+    )
+
+
 def project_receiving_bay_preview_assembly_members(
     layout, resolved_parts, *, set_index, bay_index,
 ) -> ReceivingBayWorldAssemblyProjection:
