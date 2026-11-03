@@ -789,7 +789,7 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     seed = manufacturing_api.project_receiving_bay_preview_physical_seed(
         snapshot, set_index=set_index, bay_index=bay_index,
         existing_box_body_profile=app.state.profiles_vault.get("箱身", ()),
-        existing_box_body_faces=workspace.face_features_for("box_body"),
+        existing_box_body_faces=workspace.part_face_features_snapshot().get("box_body", {}),
     )
     proxy_workspace = Phase6DesignerWorkspace.from_snapshot({
         **snapshot, "existing_parts": workspace.available_parts,
