@@ -707,35 +707,18 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     from phase6_manufacturing_adapter import build_manufacturing_request, build_scene_payload_for_app
     from phase6_manufacturing_service import resolve
     from phase6_fold_profiles import merge_box_body_profile, build_endcap_xy_profiles
-    from phase6_settings_profile_projection import project_part_dimensions
     from phase6_designer_workspace import Phase6DesignerWorkspace
-    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
     from ae_engine.display_dimensions import resolve_operator_finished_dimensions
     app = self.app
     source = dict(app._phase6_input_snapshot)
     if preview_layout is not None:
-        # Candidate previews run on an isolated layout clone, NEVER live state.
+        # Candidate UI previews use an isolated source, never live layout state.
         source["receiving_layout"] = preview_layout
-    snapshot = project_receiving_bay_legacy_aliases(
-        source, set_index=set_index, bay_index=bay_index,
+    operator_inputs = manufacturing_api.project_receiving_bay_preview_operator_inputs(
+        source, app._settings_values, set_index=set_index, bay_index=bay_index,
     )
-    settings = {**dict(app._settings_values), **{key: snapshot[key] for key in ("w", "h", "d")}}
-    # Global settings are defaults, NOT authority for a selected Bay's Door
-    # topology, NFB submission or Set/Bay identity. Updating the full map
-    # used to reintroduce stale root door_layout_columns after a Bay resize
-    # (900x1700 over the old 800x1600), failing OPEN-Y manufacture.
-    from ae_engine.receiving_layout import (
-        RECEIVING_DOOR_STATE_KEYS, RECEIVING_RUNTIME_SELECTION_KEY,
-    )
-    bay_authoritative = set(RECEIVING_DOOR_STATE_KEYS) | {
-        "nfb_config", "nfb_config_submitted",
-        "receiving_layout", RECEIVING_RUNTIME_SELECTION_KEY,
-    }
-    snapshot.update({
-        name: value for name, value in settings.items()
-        if name not in bay_authoritative
-    })
-    snapshot["part_dimensions"] = project_part_dimensions(snapshot)
+    snapshot = operator_inputs.snapshot
+    settings = operator_inputs.settings_values
     from phase6_sync_envelope import stable_fingerprint
     # Engine alone classifies physical Bay reuse and custom source identity.
     workspace = app.designer_workspace

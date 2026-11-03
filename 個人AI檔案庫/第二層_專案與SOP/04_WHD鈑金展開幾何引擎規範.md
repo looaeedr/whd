@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 指定 Bay 的全域 Settings／門分割／NFB 實體來源合併移入 Engine（2026-11-03）
+
+- GUI `receiving_bay_preview_request` 原本從 global `app._settings_values` 覆蓋 Bay snapshot 前，自行維護 `RECEIVING_DOOR_STATE_KEYS`、`nfb_config`、`nfb_config_submitted`、`receiving_layout`、`_receiving_runtime_selection` 等例外清單，並決定重算 `part_dimensions`；此處能令舊根層 Door 拓樸污染所選盤位。現在一律呼叫 `manufacturing_api.project_receiving_bay_preview_operator_inputs(source_snapshot, settings_values, set_index, bay_index)`，Engine `ae_engine.receiving_bay_preview_source` 封裝 canonical `project_receiving_bay_legacy_aliases`、Bay 專屬尺寸優先、門／NFB／Selection 欄位保護及 `part_dimension_projection.project_part_dimensions` 。
+- 返回 `ReceivingBayPreviewOperatorInputs(snapshot, settings_values)` 是**隔離操作資料**（不是已認證製造結果）；GUI 僅管理候選 Layout clone、preview workspace／cache、呼叫實體 ManufacturingResolveRequest。原此路徑的 global T／FW 等操作設定優先順序維持不變，Bay W/H/D 與保存之 Door layout 不可被舊根層覆蓋。Receiving 四連／不同 Bay／候選尺寸與 Stale Door／NFB 來源以 `tests/test_issue2517_receiving_bay_operator_input_engine_api.py` 保護；沒有加新 Door 分割、實體幾何、CUTTING／BEND／DXF 或外部 source-only 例外。
+- Family／Topology／Set-Bay source → Engine request → canonical PartSpec／FinalScene 原鏈不變。#2517 OPEN；正式 X 未發布。
+
 ## [CURRENT] #2517 Receiving Bay 3D 物理世界裝配位置由 Engine 公開 API 唯一投影（2026-11-03）
 
 - 原 GUI receiving_bay_preview_request 在 resolve 真實製造板件後，仍直接以 `if part.placement != "standalone"` 決定哪些實體要加入 Bay Assembly，並用 `tuple(a+b for zip(part.offset, bay_offset))` 計算世界裝配座標。這違反 GUI 只消費 Engine 製造物理結果原則；現在透過既有 receiving_bay_assembly_offsets（相鄰 Joint＋包外 W/H/D）及 Engine `receiving_bay_preview_source.project_receiving_bay_preview_assembly_members` 統一回傳不可變 `ReceivingBayWorldAssemblyProjection`（Bay origin 與已確認非 standalone 實體 Part＋world offset），經 `manufacturing_api` 公開。

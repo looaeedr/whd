@@ -57,6 +57,57 @@ def plan_receiving_bay_preview_reuse_policy(
     )
 
 
+@dataclass(frozen=True)
+class ReceivingBayPreviewOperatorInputs:
+    """Detached Engine-selected Bay source for the existing preview pipeline.
+
+    Contains the projected manufacturing snapshot and UI settings values;
+    neither value grants export, nor changes the committed source layout.
+    """
+    snapshot: dict[str, object]
+    settings_values: dict[str, object]
+
+
+def project_receiving_bay_preview_operator_inputs(
+    source_snapshot, settings_values, *, set_index, bay_index,
+) -> ReceivingBayPreviewOperatorInputs:
+    """Merge operator-global defaults without overwriting physical Bay authority.
+
+    A selected Bay's W/H/D, persisted Door topology, NFB submission, identity
+    and ReceivingLayout must remain authoritative even if the main GUI holds
+    stale global settings from an earlier Bay. All finished dimensions are
+    computed by the existing Engine part-dimension projection.
+    """
+    from .receiving_layout import (
+        RECEIVING_DOOR_STATE_KEYS, RECEIVING_RUNTIME_SELECTION_KEY,
+        project_receiving_bay_legacy_aliases,
+    )
+    from .part_dimension_projection import project_part_dimensions
+
+    if not isinstance(source_snapshot, Mapping):
+        raise TypeError("RECEIVING_BAY_PREVIEW_SOURCE_MAPPING_REQUIRED")
+    if not isinstance(settings_values, Mapping):
+        raise TypeError("RECEIVING_BAY_PREVIEW_SETTINGS_MAPPING_REQUIRED")
+
+    snapshot = project_receiving_bay_legacy_aliases(
+        source_snapshot, set_index=set_index, bay_index=bay_index,
+    )
+    settings = {
+        **dict(settings_values),
+        **{key: snapshot[key] for key in ("w", "h", "d")},
+    }
+    authoritative = set(RECEIVING_DOOR_STATE_KEYS) | {
+        "nfb_config", "nfb_config_submitted",
+        "receiving_layout", RECEIVING_RUNTIME_SELECTION_KEY,
+    }
+    snapshot.update({
+        name: value for name, value in settings.items()
+        if name not in authoritative
+    })
+    snapshot["part_dimensions"] = project_part_dimensions(snapshot)
+    return ReceivingBayPreviewOperatorInputs(snapshot, settings)
+
+
 def project_receiving_bay_preview_face_features_key(face_features):
     """Ignore only transient Joint locks which the real per-Bay solver replaces.
 
