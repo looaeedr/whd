@@ -110,7 +110,11 @@ def _saved_operator_state(source: dict[str, float], operator_snapshot):
     if not isinstance(operator_snapshot, Mapping):
         raise ValueError("RECEIVING_SAVED_PHYSICAL_STATE_INCOMPLETE")
     saved = deepcopy(dict(operator_snapshot))
-    if family_policy.canonical_family_name(saved.get("model")) != _FAMILY:
+    # The Family Registry accepts both persisted model and cabinet_type.
+    # Read the *same saved snapshot identity* as GUI and other Engine APIs:
+    # a cabinet_type-only legacy project must not be rejected or replaced
+    # with fresh factory defaults. A conflicting explicit model still wins.
+    if family_policy.canonical_family_name(saved) != _FAMILY:
         raise ValueError("RECEIVING_SAVED_PHYSICAL_STATE_INCOMPLETE")
     try:
         for key in _SOURCE_KEYS:
