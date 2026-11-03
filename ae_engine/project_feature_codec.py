@@ -23,8 +23,28 @@ def _encode(value):
     if isinstance(value, Enum):
         return value.value
     if isinstance(value, Vec2):
-        return {"__phase6_type__": "Vec2", "x": float(value.x), "y": float(value.y)}
+        # A saved authored position must be readable as the same physical
+        # position. The read path already rejects boolean, missing, nonfinite
+        # and overflowing coordinates; reject them before writing as well.
+        return {
+            "__phase6_type__": "Vec2",
+            "x": _finite_saved_coordinate(value.x),
+            "y": _finite_saved_coordinate(value.y),
+        }
     if isinstance(value, (CircleFeature, RectFeature, ProfileFeature)):
+        _as_vec2(value.offset)
+        if isinstance(value, CircleFeature):
+            _finite_saved_feature_dimension(value.diameter, field="diameter")
+        elif isinstance(value, RectFeature):
+            _finite_saved_feature_dimension(value.width, field="width")
+            _finite_saved_feature_dimension(value.height, field="height")
+        else:
+            for point in value.points:
+                _as_vec2(point)
+            for _layer, points, closed in value.layered_profiles:
+                for point in points:
+                    _as_vec2(point)
+                _saved_profile_closed_flag(closed)
         row = {"__phase6_type__": type(value).__name__}
         for field in fields(value):
             row[field.name] = _encode(getattr(value, field.name))
