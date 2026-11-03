@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import inspect
+from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
@@ -35,8 +36,12 @@ def test_door_indicator_editor_delegates_to_engine_and_retains_feature_store(mon
         def invalidate(self, key):
             seen["invalidate"] = key
     host = SimpleNamespace(
+        door_layout_indicator_states={"0:0": {
+            "mode": "indicator_box", "layers": 2, "groups": [2, 3, 4],
+            "offset_x": 0.0, "offset_y": 0.0, "is_box_dist": False,
+        }},
         _door_layout_indicator_state_for_key=lambda key:
-            {"mode": "indicator_box", "layers": 2, "groups": [2, 3, 4]},
+            pytest.fail("display accessor cannot repair physical manufacturing source"),
         get_float_values=lambda: {"t": 2.0},
         _indicator_door_part_spec=lambda vals, groups, *, features:
             seen.update({"spec_features": features}) or spec,
@@ -99,3 +104,77 @@ def test_gui_indicator_component_geometry_has_no_low_level_manufacturing_owner()
         "- 2.0 *",
     ):
         assert token not in source
+
+
+@pytest.mark.parametrize("invalid", (
+    {"layers": True},
+    {"layers": 0},
+    {"layers": 1.5},
+    {"layers": 7},
+    {"groups": [False, 2]},
+    {"groups": [0, 2]},
+    {"groups": [9, 2]},
+    {"offset_x": float("nan")},
+    {"offset_y": "not-a-number"},
+))
+def test_component_editor_rejects_unrepaired_physical_input_without_side_effects(
+    monkeypatch, invalid,
+):
+    raw = {
+        "mode": "indicator_box", "layers": 2,
+        "groups": [3, 2, 2, 2, 2, 2],
+        "offset_x": 0.0, "offset_y": 0.0, "is_box_dist": False,
+    }
+    raw.update(invalid)
+    before = deepcopy(raw)
+    calls = []
+    def repairing_display(key):
+        calls.append("display-repaired")
+        raw.clear()
+        raw.update({
+            "mode": "indicator_box", "layers": 1, "groups": [2] * 6,
+            "offset_x": 0.0, "offset_y": 0.0, "is_box_dist": False,
+        })
+        return raw
+    monkeypatch.setattr(gui.messagebox, "showerror", lambda title, msg:
+                        calls.append(("refused", title, msg)))
+    host = SimpleNamespace(
+        door_layout_indicator_states={"0:0": raw},
+        _door_layout_indicator_state_for_key=repairing_display,
+        get_float_values=lambda: calls.append("read-after-bad-source"),
+        _indicator_door_part_spec=lambda *args, **kw: calls.append("part-built"),
+        _open_unified_hole_editor=lambda *args, **kw: calls.append("editor-open"),
+    )
+    gui.Phase6ApplicationHost.open_door_indicator_component_editor(
+        host, "0:0", "indicator_box",
+    )
+    assert raw == before
+    assert len(calls) == 1 and calls[0][0] == "refused"
+    assert calls[0][1] == "開孔失敗"
+
+
+def test_missing_saved_cell_does_not_fabricate_an_indicator_editor(monkeypatch):
+    calls = []
+    monkeypatch.setattr(gui.messagebox, "showerror", lambda *args:
+                        calls.append(("error", args)))
+    host = SimpleNamespace(
+        door_layout_indicator_states={},
+        _door_layout_indicator_state_for_key=lambda key:
+            calls.append("fabricated-display-state"),
+        get_float_values=lambda: calls.append("read"),
+    )
+    gui.Phase6ApplicationHost.open_door_indicator_component_editor(
+        host, "0:0", "indicator_box",
+    )
+    assert calls == []
+    assert host.door_layout_indicator_states == {}
+
+
+def test_component_editor_source_has_no_gui_physical_group_cast():
+    source = inspect.getsource(
+        gui.Phase6ApplicationHost.open_door_indicator_component_editor
+    )
+    assert "project_operator_door_cell_indicator_manufacturing_source(" in source
+    assert "_door_layout_indicator_state_for_key(key)" in source  # legacy only
+    assert "max(1, min(6, int(" not in source
+    assert "groups = [int(v)" not in source

@@ -314,11 +314,10 @@ def _indicator_door_part_spec(self, val, layer_groups, *, features):
 
 def _indicator_component_editor_contexts(self, state, val, *, box_features, door_features):
     """View-only adapter: ask the engine for physical surfaces and display them."""
-    state = self._normalize_door_indicator_state(state)
-    layers = max(1, min(6, int(state.get("layers", 1))))
-    groups = tuple(int(v) for v in list(state.get("groups", [2] * 6))[:layers])
-    if not groups:
-        groups = (2,)
+    # The component geometry must use the same strict, unsanitized physical
+    # source as Door manufacturing, not the GUI's display-repair function.
+    state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(state)
+    groups = tuple(state["groups"][:state["layers"]])
     door_spec = self._indicator_door_part_spec(val, groups, features=door_features)
     geometry = manufacturing_api.resolve_indicator_editor_components(
         groups, thickness=val["t"], door_spec=door_spec,
