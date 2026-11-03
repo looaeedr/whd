@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
@@ -217,3 +218,96 @@ def test_gui_cell_preview_delegates_all_three_decisions(monkeypatch):
         "cabinet_family_policy.",
     ):
         assert forbidden not in source
+
+
+@pytest.mark.parametrize("invalid", (
+    {"groups": [True], "layers": 1},
+    {"groups": [1.5], "layers": 1},
+    {"groups": [0], "layers": 1},
+    {"groups": [9], "layers": 1},
+    {"groups": [2], "layers": True},
+    {"groups": [2], "layers": 7},
+    {"groups": [2], "layers": 1, "offset_x": float("nan")},
+))
+def test_preview_does_not_fabricate_physical_indicator_holes_from_bad_source(invalid):
+    v = values()
+    result = manufacturing_api.project_operator_door_cell_result(
+        v, cell_width=420.0, cell_height=600.0,
+        frame_edges=DoorFrameEdges(), material_frame_width=25.0,
+    )
+    raw = {
+        "mode": "indicator", "groups": [2], "layers": 1,
+        "offset_x": 0.0, "offset_y": 0.0, "is_box_dist": False,
+    }
+    raw.update(invalid)
+    before = deepcopy(raw)
+    assert _features(result, raw) == []
+    assert raw == before
+
+
+def test_gui_door_cell_2d_preview_does_not_invoke_mutating_display_accessor(monkeypatch):
+    raw = {
+        "mode": "indicator", "groups": [False, 2], "layers": 1,
+        "offset_x": 0.0, "offset_y": 0.0, "is_box_dist": False,
+    }
+    before = deepcopy(raw)
+    visited = []
+    class Var:
+        def __init__(self, v): self.v = v
+        def get(self): return self.v
+    def manufacturing_preview(result, features, state, **kwargs):
+        visited.append(("engine", state))
+        return []
+    monkeypatch.setattr(
+        manufacturing_api, "project_operator_door_cell_features",
+        manufacturing_preview,
+    )
+    host = SimpleNamespace(
+        door_layout_indicator_states={"0:0": raw},
+        _door_layout_indicator_state_for_key=lambda key:
+            pytest.fail("display accessor would mutate saved physical source"),
+        door_layout_features={},
+        _baseline_source_model=lambda: "金庫型",
+        fw_z_var=Var(25.0), t_var=Var(2.0),
+        door_gap_w_var=Var(3.5), door_gap_h_var=Var(4.0),
+        door_fold_l_var=Var(15.0), door_fold_b_var=Var(14.0),
+    )
+    cell = SimpleNamespace(
+        start_width=420.0, start_height=600.0, edges=DoorFrameEdges(),
+    )
+    assert gui_adapter._door_layout_cell_resolved_features(
+        host, cell, object(), "0:0"
+    ) == []
+    assert visited == [("engine", raw)]
+    assert host.door_layout_indicator_states["0:0"] is raw
+    assert raw == before
+
+
+def test_door_2d_preview_absent_cell_does_not_create_saved_state(monkeypatch):
+    visited = []
+    monkeypatch.setattr(
+        manufacturing_api, "project_operator_door_cell_features",
+        lambda result, features, state, **kwargs:
+            visited.append(state) or [],
+    )
+    class Var:
+        def __init__(self, v): self.v = v
+        def get(self): return self.v
+    host = SimpleNamespace(
+        door_layout_indicator_states={},
+        _door_layout_indicator_state_for_key=lambda key:
+            pytest.fail("missing cell must not be initialized as physical source"),
+        door_layout_features={},
+        _baseline_source_model=lambda: "金庫型",
+        fw_z_var=Var(25.0), t_var=Var(2.0),
+        door_gap_w_var=Var(3.5), door_gap_h_var=Var(4.0),
+        door_fold_l_var=Var(15.0), door_fold_b_var=Var(14.0),
+    )
+    cell = SimpleNamespace(
+        start_width=420.0, start_height=600.0, edges=DoorFrameEdges(),
+    )
+    assert gui_adapter._door_layout_cell_resolved_features(
+        host, cell, object(), "0:0"
+    ) == []
+    assert visited == [None]
+    assert host.door_layout_indicator_states == {}
