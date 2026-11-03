@@ -68,10 +68,17 @@ def build_door_operator_part_spec(
             "door_fold_t", "door_fold_b",
         )
     }
-    offsets = normalize_fold_designer_indicator_offsets(
-        door_indicator_offset[0], door_indicator_offset[1],
-    )
-    distance_mode = normalize_operator_settings_boolean(use_box_distance)
+    # Disabled Indicator controls are not physical manufacturing sources.
+    # Their stale Tk/project values must neither fabricate holes nor block a
+    # plain Door. Enabled lamp/box opening inputs are always strict.
+    if door_indicator is None and indicator_hole is None:
+        offsets = (0.0, 0.0)
+        distance_mode = False
+    else:
+        offsets = normalize_fold_designer_indicator_offsets(
+            door_indicator_offset[0], door_indicator_offset[1],
+        )
+        distance_mode = normalize_operator_settings_boolean(use_box_distance)
     groups = (
         normalize_fold_designer_indicator_groups(indicator_window_groups)
         if indicator_window_groups else None
