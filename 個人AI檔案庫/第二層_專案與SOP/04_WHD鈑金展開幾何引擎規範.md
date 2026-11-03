@@ -93,6 +93,7 @@ whd_schema: WHD_DOC_META_V1
 
 - `manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_layout_columns=..., confirmed_door_features=...)` 及既有 `ManufacturingResolvedBayInput.confirmed_door_features` 讓明確已確認的 `door_cN_rN` 實體門格 CUTTING Feature 進入原有 `DoorPartSpec(feature_space="finished_face")`，由既有 Engine finished-face→材料投影、FinalScene、DXF Save→Reload/reopen 製造；**不建立 CADSplit 專用 exporter**。
 - 僅接收合法 Door 實體 ID、typed Circle/Rect/Profile Feature、`ABSOLUTE_FINISHED_FACE` 來源座標及 `CUTTING` 圖層；未確認 Door 拓樸、非法／NaN 幾何、錯誤 Role、混入其他加工層／layered profile 均拒絕。舊 `confirmed_endcap_features` 使用相同 Engine finished-face 檢核語意，既有 Head/Tail API 保持相容。
+- 已確認 EndCap／Door **共用** `ae_engine.receiving_factory_requests._confirmed_finished_face_cutting_features` 的來源准入：Profile 的 `layered_profiles` 會夾帶第二層未確認加工（即使主層為 CUTTING），一律拒絕；所有板件的 `rotation_deg` 必須是明確 int，不容 `True → 1°` 或非整數隱式轉換。原門孔驗證不能只套用 Door 而放過 Head/Tail；現有正規 EndCap／Door PartSpec、真實 DXF Save→Reload 及 source-only fail-closed 不變。
 - `saved_operator_confirmed` 之已存 `part_features` 不允許被空 Features 默默取代：任何已存非空門孔必須與本次顯式確認的 typed Feature 逐件一致，否則先拒絕、不寫 DXF；沒有保存孔位的 Fresh／Saved 操作仍維持原本結果。
 - 驗收 `tests/test_issue2517_receiving_confirmed_door_cutting_source.py`：確認門孔與 HEADLESS 同一 Spec／DXF 重開、保存態來源一致性、非法操作拒絕、Source-only 原拒絕保持。這只認證**實際出圖的板件**，不是完整 Set/Bay/NFB、外部 source-only CLI 或正式 X 的製造放行；#2517 OPEN。
 
