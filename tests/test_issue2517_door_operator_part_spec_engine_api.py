@@ -114,3 +114,98 @@ def test_gui_no_longer_selects_door_feature_space_or_material_folds():
     assert "DoorFrameEdges()" not in source
     engine = inspect.getsource(manufacturing_api.build_door_operator_part_spec)
     assert "from .door_operator_part_spec import" in engine
+
+
+@pytest.mark.parametrize("model", ("金庫型", "受電箱"))
+@pytest.mark.parametrize("field,invalid", (
+    ("w", True),
+    ("w", 0.0),
+    ("h", float("inf")),
+    ("t", float("nan")),
+    ("fw", False),
+    ("door_gap_w", True),
+    ("door_gap_h", float("inf")),
+    ("door_fold_l", float("nan")),
+    ("door_fold_r", False),
+    ("door_fold_t", "1e309"),
+    ("door_fold_b", "not-a-number"),
+))
+def test_engine_and_real_gui_adapter_reject_invalid_door_physical_source_before_manufacture(
+    model, field, invalid, tmp_path,
+):
+    """Physical source rejection must match in both public and GUI entrypoints."""
+    data = _values()
+    data[field] = invalid
+    original = repr(data)
+    host = SimpleNamespace(door_nameplate_center_datum_top=None)
+    with pytest.raises((TypeError, ValueError)):
+        manufacturing_api.build_door_operator_part_spec(
+            data, model_name=model, features=(),
+        )
+    with pytest.raises((TypeError, ValueError)):
+        gui._door_part_spec_from_values(
+            host, data, model_name=model, features=(),
+        )
+    assert repr(data) == original
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("kw,invalid", (
+    ("door_indicator_offset", (True, 0.0)),
+    ("door_indicator_offset", (0.0, float("nan"))),
+    ("door_indicator_offset", (float("inf"), 0.0)),
+    ("use_box_distance", "ambiguous"),
+    ("use_box_distance", float("nan")),
+    ("door_indicator", (True,)),
+    ("door_indicator", (1.5,)),
+    ("indicator_window_groups", (0,)),
+    ("indicator_window_groups", (False,)),
+    ("nameplate_center_datum_top", float("nan")),
+    ("nameplate_center_datum_top", True),
+))
+def test_engine_and_gui_reject_invalid_door_auxiliary_physical_source(
+    kw, invalid,
+):
+    before = repr(invalid)
+    host = SimpleNamespace(door_nameplate_center_datum_top=None)
+    options = {kw: invalid}
+    with pytest.raises((TypeError, ValueError)):
+        manufacturing_api.build_door_operator_part_spec(
+            _values(), model_name="受電箱", **options,
+        )
+    if kw != "nameplate_center_datum_top":
+        with pytest.raises((TypeError, ValueError)):
+            gui._door_part_spec_from_values(
+                host, _values(), model_name="受電箱", features=(), **options,
+            )
+    assert repr(invalid) == before
+
+
+@pytest.mark.parametrize("model", ("金庫型", "受電箱"))
+def test_numeric_text_and_signed_door_offsets_keep_legacy_source_compatibility(
+    model,
+):
+    host = SimpleNamespace(door_nameplate_center_datum_top="65.5")
+    val = _values()
+    val["door_fold_b"] = "-2.5"  # Signed Fold is an Engine mechanical concern.
+    before = deepcopy(val)
+    engine = manufacturing_api.build_door_operator_part_spec(
+        val, model_name=model, door_indicator_offset=("-7.25", "0"),
+        use_box_distance="false", door_indicator=["2", "3"],
+        indicator_window_groups=["1", 2.0],
+        nameplate_center_datum_top="65.5",
+    )
+    guispec = gui._door_part_spec_from_values(
+        host, val, model_name=model, features=(),
+        door_indicator_offset=("-7.25", "0"),
+        use_box_distance="false", door_indicator=["2", "3"],
+        indicator_window_groups=["1", 2.0],
+    )
+    assert engine == guispec
+    assert (engine.door_indicator_offset, engine.use_box_distance) == (
+        (-7.25, 0.0), False,
+    )
+    assert engine.door_indicator == (2, 3)
+    assert engine.indicator_window_groups == (1, 2)
+    assert engine.fold_bottom == -2.5
+    assert val == before
