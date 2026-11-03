@@ -65,7 +65,7 @@ def test_2d_door_preview_does_not_create_missing_feature_row(monkeypatch):
     )
     cell = SimpleNamespace(start_width=500.0, start_height=800.0, edges=object())
     assert view._door_layout_cell_resolved_features(host, cell, object(), "0:0") == ()
-    assert seen[0][0] == [] and seen[0][1]["mode"] == "none"
+    assert seen[0][0] == [] and seen[0][1] is None
     assert host.door_layout_features == {}
     assert host.door_layout_indicator_states == {}
 
