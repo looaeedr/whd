@@ -32,6 +32,35 @@ class OperatorHoleEditorGeometry:
 
 
 
+
+def project_operator_hole_editor_endcap(
+    role: str, *, width: object, depth: object, thickness: object,
+) -> OperatorHoleEditorGeometry:
+    """Existing Head/Tail finished-face Hole Editor geometry; fail closed on raw source.
+
+    The same projection is used by the main GUI, Receiving Bay and candidate
+    editors. It never authorizes manufacturing export or constructs a PartSpec.
+    """
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    from .sheetmetal_features import resolve_endcap_finished_face_guide
+
+    if role not in {"head", "tail"}:
+        raise ValueError("ENDCAP_HOLE_EDITOR_ROLE_INVALID")
+    w = normalize_operator_source_dimension(width, field="w")
+    d = normalize_operator_source_dimension(depth, field="d")
+    t = normalize_operator_source_dimension(thickness, field="t")
+    guide = resolve_endcap_finished_face_guide(w, d, t)
+    return OperatorHoleEditorGeometry(
+        surface=feature_surface_from_rect(
+            f"{role}_finished_face", guide.min_point, guide.max_point,
+        ),
+        width=w, height=d,
+        reference_guide=RectGuide(
+            Vec2(0.0, 0.0), Vec2(w, d), "finished_boundary",
+        ),
+        baseline_scene=None, baseline_status="未使用基準檔（程式計算生成）",
+    )
+
 def project_operator_hole_editor_box_body_face(
     face_key: str, values: Mapping[str, object], *,
     head_corner_policy=None, tail_corner_policy=None,

@@ -90,19 +90,18 @@ def test_issue293_head_tail_routing_preserves_adapter_contract(monkeypatch):
     errors = []
     monkeypatch.setattr(hole_editor.messagebox, "showerror", lambda *a, **k: errors.append((a, k)))
 
-    guide = SimpleNamespace(min_point="MIN", max_point="MAX")
     surface = object()
     reference_guide = object()
-    monkeypatch.setattr(hole_editor, "resolve_endcap_finished_face_guide", lambda w, h, t: guide)
-    monkeypatch.setattr(
-        hole_editor,
-        "feature_surface_from_rect",
-        lambda key, min_point, max_point: surface,
-    )
-    monkeypatch.setattr(hole_editor, "legacy_hole_to_feature", lambda hole: f"feature:{hole}")
-    monkeypatch.setattr(hole_editor, "feature_to_legacy_hole", lambda feature, w, h: f"legacy:{feature}:{w}:{h}")
-    monkeypatch.setattr(hole_editor, "Vec2", lambda x, y: (x, y))
-    monkeypatch.setattr(hole_editor, "RectGuide", lambda a, b, kind: reference_guide)
+    calls = []
+    def project(role, **values):
+        calls.append((role, values))
+        return SimpleNamespace(surface=surface, width=float(values["width"]),
+                               height=float(values["depth"]), reference_guide=reference_guide)
+    monkeypatch.setattr(hole_editor.manufacturing_api, "project_operator_hole_editor_endcap", project)
+    monkeypatch.setattr(hole_editor.manufacturing_api, "legacy_hole_to_feature",
+                        lambda hole: f"feature:{hole}")
+    monkeypatch.setattr(hole_editor.manufacturing_api, "feature_to_legacy_hole",
+                        lambda feature, w, h: f"legacy:{feature}:{w}:{h}")
 
     class Host:
         def __init__(self):
@@ -121,6 +120,7 @@ def test_issue293_head_tail_routing_preserves_adapter_contract(monkeypatch):
     hole_editor.open_hole_editor(host, "head")
     assert errors == []
     assert host.surface_features["head"] == ["feature:H1"]
+    assert calls == [("head", {"width": 800, "depth": 300, "thickness": 2})]
     assert len(host.calls) == 1
     args, kwargs = host.calls[0]
     assert args[:5] == ("head", "封頭", surface, 800.0, 300.0)
