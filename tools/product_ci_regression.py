@@ -525,25 +525,20 @@ PYTEST_PATHS = (
 )
 
 
-# #2517 exact source→GUI/Engine→FinalScene/DXF and Save→Reload acceptance
-# omitted from the 2026-10-29 measured 304-file suite. The original duration
-# manifest remains historical evidence: do not invent timing data for new tests.
+# #2517 total acceptance: automatically collect every existing issue2517 real
+# product test alongside native Hole Editor routing. All 297 current issue
+# files were outside the 2026-10-29 measured 304-file baseline.
+# The original duration manifest remains historical evidence and is not faked.
 _ISSUE2517_ACCEPTANCE_PATHS = (
-    "tests/test_issue2517_door_cell_preview_engine_api.py",
-    "tests/test_issue2517_receiving_endcap_corrupt_confirmed_feature_error_contract.py",
-    "tests/test_issue2517_box_body_baseline_face_public_api.py",
-    "tests/test_issue2517_box_body_face_editor_geometry_engine_api.py",
-    "tests/test_issue2517_endcap_hole_editor_shared_engine_source.py",
-    "tests/test_issue293_t5_hole_editor_routing.py",
-    "tests/test_issue2517_receiving_endcap_hole_context_api.py",
-    "tests/test_issue2517_confirmed_multi_door_verified_integration_api.py",
-    "tests/test_issue2517_confirmed_receiving_box_body_three_physical_dxf.py",
-    "tests/test_issue2517_project_feature_write_read_source_parity.py",
-    "tests/test_issue2517_door_indicator_dxf_source_parity.py",
-    "tests/test_issue2517_finalscene_family_control_source_parity.py",
+    tuple("tests/" + path.name
+          for path in sorted((ROOT / "tests").glob("test_issue2517_*.py")))
+    + ("tests/test_issue293_t5_hole_editor_routing.py",)
 )
+# Fixed, measured-manifest-independent acceptance lanes; no fabricated times.
+# Keep original 304 historical files in their existing measured 18 lanes.
 _ISSUE2517_ACCEPTANCE_OWNERS = {
-    path: index + 2 for index, path in enumerate(_ISSUE2517_ACCEPTANCE_PATHS)
+    path: 2 + (index % 16)
+    for index, path in enumerate(_ISSUE2517_ACCEPTANCE_PATHS)
 }
 PYTEST_PATHS += _ISSUE2517_ACCEPTANCE_PATHS
 

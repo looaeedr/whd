@@ -63,7 +63,7 @@ def _draw_preview(monkeypatch, saved_states, *, key="0:0"):
     {"offset_x": "nan"},
     {"offset_y": True},
 ))
-def test_preview_repairs_only_detached_presentation_and_preserves_bad_source(
+def test_preview_sends_raw_bad_source_to_engine_without_making_cutting_valid(
     monkeypatch, invalid,
 ):
     raw = {
@@ -75,10 +75,13 @@ def test_preview_repairs_only_detached_presentation_and_preserves_bad_source(
     source = {"0:0": raw}
     rendered = _draw_preview(monkeypatch, source)
 
-    # Preview may display the legacy repaired values; it may never commit
-    # those values into the state later consumed by strict DoorPartSpec/DXF.
-    assert rendered == normalize_door_indicator_state(original)
-    assert rendered is not raw
+    # The physical Engine must receive the exact source, including invalid
+    # values. A distinct UI view may display repaired values but must never
+    # promote them to a valid DoorPartSpec/CUTTING source.
+    assert rendered is raw
+    assert rendered == original
+    display_only = normalize_door_indicator_state(original)
+    assert display_only is not rendered
     assert source == {"0:0": original}
     assert source["0:0"] is raw
     with pytest.raises(ValueError):
@@ -90,7 +93,7 @@ def test_preview_repairs_only_detached_presentation_and_preserves_bad_source(
 def test_missing_door_cell_preview_does_not_create_manufacturing_source(monkeypatch):
     saved = {}
     shown = _draw_preview(monkeypatch, saved)
-    assert shown["mode"] == "none"
+    assert shown is None
     assert saved == {}
 
 
@@ -101,14 +104,22 @@ def test_valid_preview_uses_detached_display_without_rewriting_json_source(monke
     }
     before = json.dumps(raw, sort_keys=True)
     shown = _draw_preview(monkeypatch, {"0:0": raw})
-    assert shown["mode"] == "indicator_box"
-    assert shown["layers"] == 1
-    assert shown["offset_x"] == -1.25
+    assert shown is raw
+    assert shown["layers"] == "1"
+    assert shown["offset_x"] == "-1.25"
+    # A separate presentation normalization may render numeric strings but
+    # must not replace the raw object passed into Engine or persisted to disk.
+    presentation = normalize_door_indicator_state(shown)
+    assert presentation["mode"] == "indicator_box"
+    assert presentation["layers"] == 1
+    assert presentation["offset_x"] == -1.25
+    assert presentation is not raw
     assert json.dumps(raw, sort_keys=True) == before
 
 
 def test_preview_source_does_not_call_mutating_accessor():
     source = inspect.getsource(view._door_layout_cell_resolved_features)
     assert "_door_layout_indicator_state_for_key(" not in source
-    assert "_normalize_door_indicator_state(" in source
+    assert "_normalize_door_indicator_state(" not in source
+    assert "states.get(key)" in source
     assert "manufacturing_api.project_operator_door_cell_features(" in source

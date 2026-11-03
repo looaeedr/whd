@@ -42,6 +42,9 @@ def test_gui_invokes_engine_plan_and_retires_changed_physical_dxf(monkeypatch):
         "model": "受電箱", "active_mode": "set_bay",
         "box_body_structure": {"active_type": "three_piece_side_back_split"},
     })
+    # The source fixture starts with a live Vault operator selection. Select
+    # Receiving in the actual control as well as in the saved snapshot.
+    app.baseline_model_var = SimpleNamespace(get=lambda: "受電箱")
     # A live workspace structure takes precedence over the saved fallback.
     app.designer_workspace = SimpleNamespace(
         box_body_structure_state=lambda: {
@@ -74,6 +77,7 @@ def test_unknown_structure_never_stamps_or_reuses_production(monkeypatch):
         "model": "受電箱", "active_mode": "set_bay",
         "box_body_structure": {"active_type": "unverified"},
     })
+    app.baseline_model_var = SimpleNamespace(get=lambda: "受電箱")
     monkeypatch.setattr(
         api, "receiving_baseline_source_stamp",
         lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("not source certified")),
@@ -83,6 +87,17 @@ def test_unknown_structure_never_stamps_or_reuses_production(monkeypatch):
     assert service.max_entries == 2
     assert _cache_service_for_app(app).result is None
     assert service._receiving_baseline_stamp is None
+
+
+def test_live_vault_family_selection_does_not_reuse_saved_receiving_history():
+    app = _app()
+    # Saved snapshot alone cannot switch actual operator Family; the live
+    # readable selection remains Vault and must not claim Receiving history.
+    app._phase6_input_snapshot.update({
+        "model": "受電箱", "active_mode": "set_bay",
+        "box_body_structure": {"active_type": "three_piece_side_back_split"},
+    })
+    assert _cache_service_for_app(app).max_entries == 1
 
 
 def test_gui_no_longer_classifies_boxbody_structure_or_history_capability():

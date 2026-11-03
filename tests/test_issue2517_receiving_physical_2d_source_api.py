@@ -112,7 +112,10 @@ def test_gui_uses_public_sources_not_internal_nfb_owner_or_part_identity_rules()
     source = (Path(__file__).resolve().parents[1] /
               "gui_modules/application/fold_designer_manufacturing_projection.py").read_text(encoding="utf-8")
     start = source.index("def _query_receiving_resolved_base_render_data(")
-    end = source.index("    if key.startswith(\"box_body:divider:\"):", start)
+    # The original inline part-key conditional was replaced by Engine-owned
+    # plan_operator_manufacturing_part_source routing. Cover the entire current
+    # public 2D source dispatch instead of relying on a retired source marker.
+    end = source.index("def _payload_topology_context(", start)
     excerpt = source[start:end]
     for api_name in (
         "resolve_operator_receiving_base_2d_source",
