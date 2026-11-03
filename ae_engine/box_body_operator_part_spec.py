@@ -15,6 +15,20 @@ from .box_body_fold_profile import profile_to_fold_segments
 from .cabinet_types import policy as family_policy
 from .contracts import BoxBodyPartSpec
 from .endcap_xy_readback import project_manufacturing_endcap_bottom_fold_inputs
+from .operator_settings_transactions import normalize_operator_source_dimension
+
+
+def _finite_operator_body_fold(raw, field):
+    """Retain signed Z fold inputs but reject booleans and nonfinite lengths."""
+    if isinstance(raw, bool):
+        raise ValueError(f"BOX_BODY_OPERATOR_SOURCE_INVALID: {field}")
+    try:
+        value = float(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"BOX_BODY_OPERATOR_SOURCE_INVALID: {field}") from exc
+    if not isfinite(value):
+        raise ValueError(f"BOX_BODY_OPERATOR_SOURCE_INVALID: {field}")
+    return value
 
 
 def _confirmed_endcap_lower_length(raw):
@@ -73,6 +87,10 @@ def build_box_body_operator_part_spec(
     selecting which physical Fold/structure/back panel/part Feature belongs
     in the manufacturing PartSpec is exclusively Engine-owned.
     """
+    physical = {
+        key: normalize_operator_source_dimension(values[key], field=key)
+        for key in ("w", "h", "d", "t", "fw")
+    }
     source_structure = deepcopy(dict(structure_state or {}))
     canonical_structure = family_policy.resolve_box_body_structure_state(
         model_name, source_structure,
@@ -109,7 +127,7 @@ def build_box_body_operator_part_spec(
 
     def legacy_only_scalar(key):
         if key in values:
-            return float(values[key])
+            return _finite_operator_body_fold(values[key], key)
         if is_receiving_split and key in ("zr1", "z_comp"):
             return None
         raise KeyError(key)
@@ -124,16 +142,16 @@ def build_box_body_operator_part_spec(
         if tail_ybottom1 is None else _confirmed_endcap_lower_length(tail_ybottom1)
     )
     return BoxBodyPartSpec(
-        width=float(values["w"]),
-        height=float(values["h"]),
-        depth=float(values["d"]),
-        thickness=float(values["t"]),
-        frame_width=float(values["fw"]),
+        width=physical["w"],
+        height=physical["h"],
+        depth=physical["d"],
+        thickness=physical["t"],
+        frame_width=physical["fw"],
         model_name=model_name,
-        zl1=float(values["zl1"]),
-        zl2=float(values["zl2"]),
+        zl1=_finite_operator_body_fold(values["zl1"], "zl1"),
+        zl2=_finite_operator_body_fold(values["zl2"], "zl2"),
         zr1=legacy_only_scalar("zr1"),
-        zr2=float(values["zr2"]),
+        zr2=_finite_operator_body_fold(values["zr2"], "zr2"),
         z_comp=legacy_only_scalar("z_comp"),
         fold_profile=profile_to_fold_segments(fold_profile or ()),
         features=tuple(features or ()),

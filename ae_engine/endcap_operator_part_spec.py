@@ -8,6 +8,7 @@ does not by itself certify output DXF or a complete assembly.
 from __future__ import annotations
 
 from copy import deepcopy
+from math import isfinite
 
 from .box_body_fold_profile import profile_to_fold_segments
 from .cabinet_types import policy as cabinet_family_policy
@@ -15,6 +16,22 @@ from .contracts import EndCapPartSpec
 from .endcap_bottom_wrap_state import (
     normalize_endcap_bottom_wrap_state, resolve_endcap_bottom_wrap,
 )
+from .operator_settings_transactions import (
+    normalize_operator_settings_boolean, normalize_operator_source_dimension,
+)
+
+
+def _finite_operator_fold(raw, field):
+    """Keep existing signed Fold/reserve semantics, reject invented numeric mm."""
+    if isinstance(raw, bool):
+        raise ValueError(f"ENDCAP_OPERATOR_SOURCE_INVALID: {field}")
+    try:
+        value = float(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"ENDCAP_OPERATOR_SOURCE_INVALID: {field}") from exc
+    if not isfinite(value):
+        raise ValueError(f"ENDCAP_OPERATOR_SOURCE_INVALID: {field}")
+    return value
 
 
 def build_endcap_operator_part_spec(
@@ -32,6 +49,11 @@ def build_endcap_operator_part_spec(
     is tolerated exactly as before; manufacturing source verification is not
     bypassed by this readback compatibility.
     """
+    physical = {
+        key: normalize_operator_source_dimension(values[key], field=key)
+        for key in ("w", "h", "d", "t", "fw")
+    }
+    tail = normalize_operator_settings_boolean(is_tail)
     profiles = dict(fold_profiles or {})
     x_rows = [dict(row) for row in profiles.get("X", ())]
     y_rows = [dict(row) for row in profiles.get("Y", ())]
@@ -54,12 +76,12 @@ def build_endcap_operator_part_spec(
                 and x_rows[0].get("phase6_key") == "endcap_w_flat"):
             raise ValueError("RECEIVING_ENDCAP_X_FOLD_SOURCE_REQUIRED")
         from .endcap_xy_readback import resolve_endcap_xy_outside_dimensions
-        from math import isclose, isfinite
+        from math import isclose
         projected = resolve_endcap_xy_outside_dimensions(
             profiles, {**source_values, "model": model_name}
         )
         for key in ("w", "d"):
-            observed = float(source_values[key])
+            observed = physical[key]
             if not isfinite(observed) or not isclose(
                 float(projected[key]), observed, rel_tol=0.0, abs_tol=1e-6
             ):
@@ -70,7 +92,7 @@ def build_endcap_operator_part_spec(
 
     def scalar(key):
         if key in source_values:
-            return float(source_values[key])
+            return _finite_operator_fold(source_values[key], key)
         if is_receiving and key == "zr1" and x_rows and y_rows and corner_policy is not None:
             return None  # Receiving split side/body has no terminal zr1 Fold.
         raise KeyError(key)
@@ -89,7 +111,7 @@ def build_endcap_operator_part_spec(
     )
     if cabinet_family_policy.supports_bottom_wrap_controls(model_name):
         try:
-            part_key = "tail" if is_tail else "head"
+            part_key = "tail" if tail else "head"
             wrap_state = (
                 endcap_bottom_wrap_state if endcap_bottom_wrap_state is not None
                 else normalize_endcap_bottom_wrap_state({"model": model_name})
@@ -107,27 +129,27 @@ def build_endcap_operator_part_spec(
             pass
 
     return EndCapPartSpec(
-        width=float(values["w"]), height=float(values["h"]),
-        depth=float(values["d"]), thickness=float(values["t"]),
-        frame_width=float(values["fw"]), model_name=model_name,
-        is_tail=bool(is_tail),
+        width=physical["w"], height=physical["h"],
+        depth=physical["d"], thickness=physical["t"],
+        frame_width=physical["fw"], model_name=model_name,
+        is_tail=tail,
         fold_left=scalar("yl1"), fold_right=scalar("yr1"),
         fold_top=scalar("ytop1"), fold_bottom=scalar("ybottom1"),
         box_fold_left=scalar("zl1"), box_fold_right=scalar("zr1"),
         box_body_formed_fw_left=(
             None if box_body_formed_fw_left is None
-            else float(box_body_formed_fw_left)
+            else _finite_operator_fold(box_body_formed_fw_left, "box_body_formed_fw_left")
         ),
         box_body_formed_fw_right=(
             None if box_body_formed_fw_right is None
-            else float(box_body_formed_fw_right)
+            else _finite_operator_fold(box_body_formed_fw_right, "box_body_formed_fw_right")
         ),
         box_body_structure_state=structure,
         assembly_joints=joints,
         fold_profile_x=profile_to_fold_segments(x_rows),
         fold_profile_y=profile_to_fold_segments(y_rows),
         holes=tuple(holes or ()), corner_policy=corner_policy,
-        depth_comp_t=float(depth_comp_t),
+        depth_comp_t=_finite_operator_fold(depth_comp_t, "depth_comp_t"),
         resolved_assembly_relief_cuts=tuple(
             tuple((float(x), float(y)) for x, y in polygon)
             for polygon in tuple(resolved_assembly_relief_cuts or ())
