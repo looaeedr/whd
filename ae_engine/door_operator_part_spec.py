@@ -72,8 +72,19 @@ def build_door_operator_part_spec(
     # Their stale Tk/project values must neither fabricate holes nor block a
     # plain Door. Enabled lamp/box opening inputs are always strict.
     if door_indicator is None and indicator_hole is None:
-        offsets = (0.0, 0.0)
-        distance_mode = False
+        # Keep valid legacy operator settings for later UI re-enablement,
+        # but ignore stale invalid disabled controls. This is never a CUTTING
+        # source while both indicator modes are off.
+        try:
+            offsets = normalize_fold_designer_indicator_offsets(
+                door_indicator_offset[0], door_indicator_offset[1],
+            )
+        except (TypeError, ValueError, IndexError, KeyError):
+            offsets = (0.0, 0.0)
+        try:
+            distance_mode = normalize_operator_settings_boolean(use_box_distance)
+        except (TypeError, ValueError):
+            distance_mode = False
     else:
         offsets = normalize_fold_designer_indicator_offsets(
             door_indicator_offset[0], door_indicator_offset[1],
