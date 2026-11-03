@@ -78,6 +78,10 @@ def test_gui_builds_single_and_multidoor_specs_with_existing_feature_ownership()
         state["mode"] = "indicator"
         state["layers"] = 1
         state["groups"] = [2, 2, 2, 2, 2, 2]
+        # The display accessor is intentionally detached: a physical change
+        # enters the Project only through the operator's explicit commit.
+        assert app.door_layout_indicator_states.get(key) is not state
+        app._apply_multi_door_indicator_state(key, state)
 
         multi = app._door_layout_part_spec(cell, val)
         assert isinstance(multi, DoorPartSpec)
