@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_layout_columns=...)` 可在**明確確認**的 Receiving 操作來源下建立 Door cell PartSpec；`ManufacturingResolvedBayInput.door_layout_columns` 在 source-confirmed 模式傳入相同拓樸，沿用 `export_verified_resolved_integration_bays` 的正式 DXF reopen。未確認的 Door Features、拓樸不符或已存門格不同均拒絕，並未開放 source-only CLI。
+
 ## 【最高優先架構規則】WHD GUI／CADSplit 必須走同一 Engine 正式製造 API（2026-11-02）
 
 **唯一正式責任鏈：** `GUI／CADSplit 操作來源（來源不同、Engine 契約相同） → WHD 公開 Engine API〔Family／Policy／Topology／Set-Bay（按需）〕 → PartSpec／FinalScene → 同源 2D／3D／DXF → 正式驗證`。
