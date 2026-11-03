@@ -159,3 +159,22 @@ def test_fresh_door_features_need_confirmed_topology_and_original_source(tmp_pat
     assert refused.status == "EXTERNAL_EXPORT_NOT_CERTIFIED"
     assert not refused.manufacturing_authorized
     assert not (tmp_path / "out").exists()
+
+
+def test_saved_confirmed_feature_does_not_authorize_separate_indicator_hole():
+    """Source-confirmed CUTTING must not erase an independent saved lamp cutout."""
+    saved = _saved()
+    saved["part_features"] = {UPPER: [_hole()]}
+    saved["door_layout_indicator_states"] = {"0:0": {
+        "mode": "indicator", "layers": 1,
+        "groups": [2, 2, 2, 2, 2, 2],
+        "offset_x": 0.0, "offset_y": 0.0, "is_box_dist": False,
+    }}
+    before = deepcopy(saved)
+    with pytest.raises(ValueError, match="RECEIVING_CONFIRMED_DOOR_SOURCE_INVALID"):
+        manufacturing_api.build_receiving_factory_confirmed_parts(
+            SOURCE, confirmation="saved_operator_confirmed",
+            operator_snapshot=saved, confirmed_door_layout_columns=COLUMNS,
+            confirmed_door_features={UPPER: (_hole(),)},
+        )
+    assert saved == before
