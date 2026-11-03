@@ -208,31 +208,32 @@ def _query_fold_designer_render_data(self, part_key, payload):
         return manufacturing_api.with_physical_sheet_features(
             str(part_key), render, (payload or {}).get('features', ()),
         )
-    if str(part_key or "").startswith("indicator"):
-        payload = collect_indicator_box_input(payload)
-    if str(part_key or "").startswith("box_body:part:"):
-        payload = collect_multipart_input(payload)
-    if str(part_key or "").startswith("door:"):
-        payload = collect_door_input(payload)
     """Return the same authoritative final geometry used by 2D consumers."""
     key = str(part_key or "")
+    source_plan = manufacturing_api.plan_operator_manufacturing_part_source(key)
+    if source_plan.input_adapter == "indicator":
+        payload = collect_indicator_box_input(payload)
+    elif source_plan.input_adapter == "multipart":
+        payload = collect_multipart_input(payload)
+    elif source_plan.input_adapter == "door":
+        payload = collect_door_input(payload)
     receiving_base = _query_receiving_resolved_base_render_data(self, key, payload)
     if receiving_base is not None:
         return receiving_base
-    if key.startswith("nfb_pad:"):
+    if source_plan.render_source == "nfb_pad":
         owner = getattr(self, "fold_designer_app", None)
         return sheet(manufacturing_api.resolve_operator_receiving_pad_2d_source(
             key, getattr(owner, "_phase6_input_snapshot", None),
         ))
-    if key.startswith("base_plate:fixing_plate:"):
+    if source_plan.render_source == "fixing_plate":
         return sheet(manufacturing_api.resolve_operator_receiving_fixing_2d_source(
             key, payload, live_snapshot=_read_live_receiving_snapshot(self),
         ))
-    if key.startswith("box_body:divider:"):
+    if source_plan.render_source == "divider":
         divider = _box_body_divider_from_payload(key, payload)
         return sheet(manufacturing_api.build_box_body_divider_render_data(divider))
 
-    if key.startswith("inner_door:") and key.endswith(":panel"):
+    if source_plan.render_source == "inner_panel":
         panel = manufacturing_api.resolve_fold_designer_panel_part(key, payload)
         features = tuple(dict(payload or {}).get("features") or ())
         # The canonical inner-door panel factory consumes only the immutable
@@ -265,7 +266,7 @@ def _query_fold_designer_render_data(self, part_key, payload):
             panel, features=features,
         )
 
-    if key.startswith("inner_door:") and key.endswith("_frame"):
+    if source_plan.render_source == "inner_frame":
         frame = _inner_door_frame_from_payload(key, payload)
         return sheet(manufacturing_api.build_inner_door_frame_render_data(frame))
 

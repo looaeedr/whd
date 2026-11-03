@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：`manufacturing_api.plan_operator_manufacturing_part_source(part_key, has_saved_profiles=True)` 回傳 immutable `OperatorManufacturingPartSourcePlan`，供 GUI、CADSplit/headless 客戶端共用實體 part ID 的 CustomFold 預設、原始 PartSpec provider、EndCap committed relief 兩段式與 Fold Designer 2D／3D rendered source route。此計畫只描述既有源別，不替代 Factory／Family／DXF release 證明。
+
 > #2517（2026-11-03）：Receiving Bay 3D 已選定的 physical preview Fold／Joint／BoxBody structure 由公開 `manufacturing_api.project_receiving_bay_preview_physical_seed(snapshot, set_index, bay_index, existing_box_body_profile, existing_box_body_faces)` 統一給出 `ReceivingBayPreviewPhysicalSeed`。GUI 只把 Engine 製造輸入種子套進隔離 workspace 並送真正的 resolver；並無 DXF/Export 新認證。
 
 > #2517（2026-11-03）：Receiving Bay 層級 Preview 輸入以公開 `manufacturing_api.project_receiving_bay_preview_operator_inputs(source_snapshot, settings_values, set_index, bay_index)` 產生 `ReceivingBayPreviewOperatorInputs`，由 Engine 選定 Bay W/H/D、保存的 Door／NFB／Set-Bay identity 與 part_dimensions；GUI 不得用全域過期設定覆蓋 Bay 製造來源。這是隔離 input projection，沒有 DXF/Export 授權。
