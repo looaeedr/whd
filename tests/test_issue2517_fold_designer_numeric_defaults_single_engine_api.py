@@ -13,7 +13,11 @@ from ae_engine import ae, manufacturing_api as api
 from gui_modules.application import fold_designer_manufacturing_projection as gui
 
 
-_DEFAULTS = {
+def _legacy_expected_at_call_time():
+    # Original GUI consulted ae.*_def dynamically on each operator call.
+    # Other product tests legitimately mutate compatibility defaults; a
+    # module-import-time snapshot would assert a stale fake contract.
+    return {
     "door": {"door_gap_w": ae.door_gap_w_def, "door_gap_h": ae.door_gap_h_def,
              "door_fold_l": ae.door_fold_left_def, "door_fold_r": ae.door_fold_right_def,
              "door_fold_t": ae.door_fold_top_def, "door_fold_b": ae.door_fold_bottom_def},
@@ -28,15 +32,15 @@ _DEFAULTS = {
     "indicator_door": {"door_gap_w": ae.door_gap_w_def,
                        "door_gap_h": ae.door_gap_h_def,
                        "indicator_door_fold": getattr(ae, "indicator_small_door_fold_def", 19.0)},
-}
+    }
 
 
 @pytest.mark.parametrize("family", ("金庫型", "受電箱"))
-@pytest.mark.parametrize("part", tuple(_DEFAULTS))
+@pytest.mark.parametrize("part", ("door", "box_body", "head", "tail", "indicator_door"))
 def test_engine_legacy_absent_only_source_matches_original_part_defaults(family, part):
     raw = {"model": family, "w": 800, "h": 1500, "d": 380, "t": 2, "fw": 29}
     prior = deepcopy(raw)
-    expected = {k: float(v) for k, v in _DEFAULTS[part].items()}
+    expected = {k: float(v) for k, v in _legacy_expected_at_call_time()[part].items()}
     assert api.resolve_fold_designer_legacy_numeric_settings(
         raw, part_name=part,
     ) == expected
@@ -141,3 +145,14 @@ def test_gui_does_not_import_ae_defaults_or_cast_saved_fold_manufacturing_values
 def test_main_gui_physical_source_rejects_missing_or_corrupt_before_finished_scene(field, bad):
     with pytest.raises(ValueError, match="包外尺寸"):
         api.normalize_operator_source_dimension(bad, field=field)
+
+
+def test_legacy_defaults_are_the_live_engine_source_not_import_time_snapshot(monkeypatch):
+    """The original UI used live ae defaults; preserve that exact contract."""
+    previous = ae.door_fold_right_def
+    monkeypatch.setattr(ae, "door_fold_right_def", previous + 7.25)
+    result = api.resolve_fold_designer_legacy_numeric_settings(
+        {"model": "金庫型"}, part_name="door",
+    )
+    assert result["door_fold_r"] == previous + 7.25
+    assert result == {k: float(v) for k, v in _legacy_expected_at_call_time()["door"].items()}
