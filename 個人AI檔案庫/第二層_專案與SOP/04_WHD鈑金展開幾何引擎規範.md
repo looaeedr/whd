@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Settings 標準／自訂 Part Fold 由同一 Engine API 路由（2026-11-03）
+
+- GUI phase6_settings_profile_projection.build_standard_part_profiles 原本用 custom: 判斷製造身分，分別轉交 CustomFold／標準 Fold API。現在由既有 Engine operator_settings_fold_plan 中唯一的 build_operator_default_part_fold_profiles 統一決策，經 manufacturing_api 正式公開；GUI 只傳入 snapshot 和 part_key，Engine 的 Settings 整體計畫同樣改用這條 helper。
+- CustomFold 必須保持既有持久化 CustomPartCatalog descriptor／合法 physical ID，缺資料 fail closed；不可降級成普通三片折邊。金庫型／受電箱標準 Door／BasePlate／Indicator 和自訂 X／Y 皆沿用原 Factory Fold、T 補償與 HEAD/TAIL 專用入口，不更動物理幾何、DXF 或外部 source-only 權限。
+- 新 tests/test_issue2517_settings_default_part_fold_route_engine_api.py，與原 standard_part_fold_engine_api、operator_settings_fold_plan、CustomFold 保存／DXF 測試交叉驗證。#2517 維持 OPEN，正式 X 未發布。
+
 ## [CURRENT] #2517 FinalScene 實體 Mesh 的 3D 顯示邊界與折線改為 Engine 單一來源（2026-11-03）
 
 - GUI Phase6FinalSceneRenderHelpersMixin 原本持有兩份 triangle 邊緣統計、法向量和物理折線判定，與 Engine 既有 solid_mesh_feature_edges 是重複權威。現在兩種 Legacy GUI 顯示都呼叫公開 manufacturing_api.project_physical_solid_mesh_display_segments(mode)，由同一 Engine 內核統一提供 boundary、crease、boundary_and_crease。

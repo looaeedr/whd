@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：GUI 與 Engine Settings Plan 的標準／自訂板件預設 X/Y Fold 共用公開 manufacturing_api.build_operator_default_part_fold_profiles(snapshot, part_key)。自訂板件缺少合法 metadata 不得回退成標準 Fold；Head/Tail 原專屬 API 與 DXF 認證不變。
+
 > #2517（2026-11-03）：3D FinalScene Mesh 的外輪廓與真實 crease 由公開 Engine API project_physical_solid_mesh_display_segments 支援 boundary/crease/boundary_and_crease，GUI 僅繪製；與既有 physical_solid_mesh_feature_segments 共用判定。僅 VIEW，非 CUTTING/BEND/DXF 授權。
 
 > #2517（2026-11-03）：`manufacturing_api.plan_operator_external_sync(envelope, last_external_revision=...)` 為外部 Settings 同步來源／revision 的正式 Engine request→immutable `OperatorExternalSyncPlan`；原 GUI `phase6_settings_transitions.plan_external_sync` 只委派，同型別 alias 不變。僅移轉既有狀態交易，不新增製造能力或外部 source-only CLI 放行。
