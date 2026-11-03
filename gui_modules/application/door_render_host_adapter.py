@@ -97,9 +97,11 @@ def _door_layout_cell_resolved_features(self, cell, result, key):
     # Read the physical row before any display-only repair. An absent cell
     # must remain absent, and invalid lamp counts must not render as CUTTING.
     states = getattr(self, "door_layout_indicator_states", None)
-    preview_indicator_state = (
-        states.get(key) if isinstance(states, Mapping)
-        else self._door_layout_indicator_state_for_key(key)
+    # Strict manufacturing keeps the saved row untouched. Preview receives
+    # only a detached and safely normalized presentation copy; it may never
+    # invoke the legacy state accessor, which can mutate saved source.
+    preview_indicator_state = self._normalize_door_indicator_state(
+        states.get(key) if isinstance(states, Mapping) else None
     )
     return manufacturing_api.project_operator_door_cell_features(
         result,
