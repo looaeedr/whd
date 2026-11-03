@@ -208,7 +208,9 @@ def test_gui_cell_preview_delegates_all_three_decisions(monkeypatch):
         host, cell, v,
     ) == (tokens[2], "source")
     assert [x[0] for x in seen] == ["result", "features", "baseline"]
-    assert seen[1][1][1] is host.door_layout_features["0:0"]
+    assert seen[1][1][1] == []
+    # A preview is read-only; missing source rows must not become saved Features.
+    assert host.door_layout_features == {}
     assert seen[2][1][0] is v
     source = Path(gui_adapter.__file__).read_text(encoding="utf-8")
     for forbidden in (
