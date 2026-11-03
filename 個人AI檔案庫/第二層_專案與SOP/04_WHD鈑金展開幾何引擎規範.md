@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 .p6fold Feature/Vec2 實體孔位座標必須具備完整有限來源（2026-11-03）
+
+- `phase6_project_file.read_project` 的 Feature／Vec2 還原只經公開 `manufacturing_api.decode_project_value`、`decode_project_feature`、`project_vec2_from_raw`，唯一實作在 `ae_engine.project_feature_codec`。有標記的實體 `Vec2` 及孔位 Feature 的明確 `offset`／Profile 頂點與輪廓座標均需提供完整 X/Y，且不得是 bool、NaN、Infinity、不可轉成有限數字或溢位來源；不可把遺漏的 X/Y 靜默補成 0，亦不得 `True → 1 mm`。外來損壞專案在回讀即拒絕，而非產出移位的 CUTTING 孔。
+- 沿用舊專案合法數字字串、完整 X/Y 陣列、Vec2 原物件及**整個 Feature.offset 欄位缺席**時的既有明確零偏移預設；不更動已確認 Feature Anchor、Family、2D／3D／DXF 幾何算法或外部 source-only 認證。正常受電箱確認門孔沿原 `confirmed_door_features` → DoorPartSpec／FinalScene → verified DXF Save→Reload 測試；非法儲存來源 fail-closed，不宣稱整套 #2517 已完成。
+
 ## [CURRENT] #2517 Receiving Bay 3D 製造預覽 Fold／Joint／箱身結構種子移入公開 Engine（2026-11-03）
 
 - GUI 原 receiving_bay_preview_request 在 cache miss 後自行決定從哪些來源建立 BoxBody Fold、Head/Tail 專用 Fold、所選 Bay 的相鄰接合 Joint lock 特徵與 workspace/root 的 BoxBody structure 優先順序，雖公式已存在 Engine 仍由 GUI 組裝多個製造物理來源。現統一委派 `manufacturing_api.project_receiving_bay_preview_physical_seed`（`ae_engine.receiving_bay_preview_source`）返回 `ReceivingBayPreviewPhysicalSeed`，沿用同一組 `merge_box_body_fold_profile`、`build_endcap_xy_fold_profiles`、`receiving_bay_joint_face_features` 原 Engine 來源；不引入新的補償或孔位規則。
