@@ -202,3 +202,74 @@ def test_legacy_saved_joint_schema_version_survives_gui_to_engine(monkeypatch):
     assert isinstance(got, EndCapPartSpec)
     assert snapshots[0]["assembly_joint_schema_version"] == 3
     assert snapshots[0]["assembly_joints"] == got.assembly_joints
+
+
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+@pytest.mark.parametrize("field,invalid", (
+    ("w", True), ("h", float("nan")), ("d", 0),
+    ("t", False), ("fw", float("inf")),
+    ("yl1", True), ("yr1", float("nan")),
+    ("ytop1", float("inf")), ("ybottom1", False),
+    ("zl1", "1e309"), ("zr1", True),
+))
+def test_gui_and_engine_reject_untrusted_head_tail_source_before_partspec(
+    family, field, invalid, tmp_path,
+):
+    data = values(family)
+    data[field] = invalid
+    before = repr(data)
+    with pytest.raises((TypeError, ValueError)):
+        manufacturing_api.build_endcap_operator_part_spec(
+            data, model_name=family, is_tail=False, holes=(),
+        )
+    host = SimpleNamespace(
+        workspace_controller=SimpleNamespace(
+            box_body_structure_state=lambda: {},
+        ),
+        assembly_joint_state={},
+    )
+    with pytest.raises((TypeError, ValueError)):
+        gui._end_cap_part_spec_from_values(
+            host, data, model_name=family, is_tail=False, holes=(),
+        )
+    assert repr(data) == before
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+def test_head_tail_boolean_identity_and_valid_numeric_source_are_engine_owned(
+    family,
+):
+    data = values(family)
+    data.update(w="800.25", yl1="-17.5", zr1="0")
+    before = deepcopy(data)
+    head = manufacturing_api.build_endcap_operator_part_spec(
+        data, model_name=family, is_tail="false", holes=(),
+    )
+    tail = manufacturing_api.build_endcap_operator_part_spec(
+        data, model_name=family, is_tail="true", holes=(),
+    )
+    assert head.is_tail is False and tail.is_tail is True
+    assert head.width == tail.width == 800.25
+    assert head.fold_left == -17.5 and tail.box_fold_right == 0.0
+    assert data == before
+    with pytest.raises(ValueError):
+        manufacturing_api.build_endcap_operator_part_spec(
+            data, model_name=family, is_tail="not-a-boolean", holes=(),
+        )
+
+
+@pytest.mark.parametrize("option,invalid", (
+    ("depth_comp_t", True),
+    ("depth_comp_t", float("nan")),
+    ("box_body_formed_fw_left", False),
+    ("box_body_formed_fw_right", float("inf")),
+))
+def test_head_tail_optional_manufacturing_numbers_must_be_finite(
+    option, invalid,
+):
+    with pytest.raises((TypeError, ValueError)):
+        manufacturing_api.build_endcap_operator_part_spec(
+            values("金庫型"), model_name="金庫型",
+            is_tail=False, holes=(), **{option: invalid},
+        )
