@@ -12,6 +12,14 @@ whd_schema: WHD_DOC_META_V1
 - crease 僅取合法非共面共享實體邊，拒絕三角細分對角線冒充物理 Fold；boundary 僅取非退化實體網格邊。原 physical_solid_mesh_feature_segments 與 VIEW 組合結果維持一致。這只是來源已確認的成形 mesh 視圖投影，不產生 CUTTING、BEND、DXF 或製造新認證。
 - tests/test_issue2517_finalscene_mesh_edge_modes_engine_api.py 和既有 solid_mesh_feature_edges 測試對比 Headless/GUI、真實折面、退化輸入與非法模式；原 Save→Reload、Family、CURRENT 07 包外／料長語意保持不變。#2517 OPEN。
 
+
+## [CURRENT] #2517 外部 Settings 同步來源與 Revision 判準由公開 Engine API 決定（2026-11-03）
+
+- `ae_engine.operator_settings_transactions.plan_operator_external_sync` 經 `manufacturing_api.plan_operator_external_sync` 正式公開，回傳 immutable `OperatorExternalSyncPlan`。原 `phase6_settings_transitions.plan_external_sync` 只傳 `envelope`、`last_external_revision`，`ExternalSyncPlan` 保留 Engine 同型別相容別名；`phase6_settings_service` 僅依回傳 Plan 更新 session revision／transaction id。
+- 將現行 `origin=main_gui`、revision 排序、`WRONG_ORIGIN`／`INVALID_REVISION`／`STALE_REVISION`／`OK` 原樣移轉，保持舊 GUI/Designer／存檔使用者已驗證行為；**不**用此操作新增 CUTTING、BEND、DXF 授權或 CADSplit 製造路徑。無 Tk／GUI 反向依賴。
+- 驗收 `tests/test_issue2517_external_sync_engine_api.py`（headless Engine/GUI 同 Request→Plan、同一 immutable DTO、失敗不改 revision、Settings 複製隔離）。#2517 保持 OPEN、未發布正式 X。
+
+
 ## [CURRENT] #2517 已確認 Receiving Door 孔位來源沿用既有 Engine Feature／DXF（2026-11-03）
 
 - `manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_layout_columns=..., confirmed_door_features=...)` 及既有 `ManufacturingResolvedBayInput.confirmed_door_features` 讓明確已確認的 `door_cN_rN` 實體門格 CUTTING Feature 進入原有 `DoorPartSpec(feature_space="finished_face")`，由既有 Engine finished-face→材料投影、FinalScene、DXF Save→Reload/reopen 製造；**不建立 CADSplit 專用 exporter**。
