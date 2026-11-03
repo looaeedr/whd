@@ -230,6 +230,15 @@ class Phase6BendingUI(original.BendingUI):
     def apply_mirror(self, idx, key):
         if getattr(self, "_phase6_refreshing_controls", False):
             return
+        # Mirror may fall through to the legacy positional UI handler.
+        # Validate every live control *before* either path can write a Fold;
+        # old get_int() silently converts malformed text into a real 0 mm.
+        for ctrl in self.controls:
+            for field in ("len", "angle"):
+                if field in ctrl:
+                    manufacturing_api.normalize_operator_fold_editor_control(
+                        ctrl[field].get(), field=field,
+                    )
         self._mark_workspace_dirty()
         owner = getattr(self.update_cb, "__self__", None)
         symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
@@ -249,7 +258,9 @@ class Phase6BendingUI(original.BendingUI):
                     target_idx is not None and target_idx != idx
                     and key in self.controls[target_idx]
                 ):
-                    value = original.get_int(self.controls[idx][key].get())
+                    value = manufacturing_api.normalize_operator_fold_editor_control(
+                        self.controls[idx][key].get(), field=key,
+                    )
                     self.controls[target_idx][key].set(str(value))
                     self.save()
                     self.update_cb()
@@ -383,10 +394,14 @@ class Phase6BendingUI(original.BendingUI):
         for ctrl in self.controls:
             row = {}
             if "angle" in ctrl:
-                row["angle"] = original.get_int(ctrl["angle"].get())
+                row["angle"] = manufacturing_api.normalize_operator_fold_editor_control(
+                    ctrl["angle"].get(), field="angle",
+                )
             edits.append(row)
         for row, ctrl in zip(edits, self.controls):
-            row["len"] = original.get_int(ctrl["len"].get())
+            row["len"] = manufacturing_api.normalize_operator_fold_editor_control(
+                ctrl["len"].get(), field="len",
+            )
 
         new_segments = manufacturing_api.commit_operator_fold_editor_rows(
             old_segments, edits, thickness,

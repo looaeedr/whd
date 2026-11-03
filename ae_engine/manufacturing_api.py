@@ -173,6 +173,7 @@ from .box_body_editor_readback import (
 )
 from .operator_fold_editor import (
     OperatorFoldMirrorPlan, commit_operator_fold_editor_rows,
+    normalize_operator_fold_editor_control,
     plan_operator_fold_mirror_target,
     operator_fold_editor_add_segment, operator_fold_editor_remove_segment,
     project_operator_fold_editor_display_rows,
