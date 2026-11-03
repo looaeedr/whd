@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from math import isnan
 from types import SimpleNamespace
 import inspect
 
