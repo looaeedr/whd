@@ -195,14 +195,6 @@ def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation, co
             )
             for cell in cells:
                 part_key = f"door_c{cell.column_index + 1}_r{cell.row_index + 1}"
-                if part_key in features:
-                    authored = features[part_key]
-                    if not isinstance(authored, (tuple, list)):
-                        raise ValueError("unverified saved Door features")
-                    if authored:
-                        raise ValueError(
-                            "saved Door holes need separately confirmed Feature inputs"
-                        )
                 # Persisted GUI projects use zero-based col:row keys; accept
                 # canonical physical IDs and older tuple keys as well.
                 candidates = (
