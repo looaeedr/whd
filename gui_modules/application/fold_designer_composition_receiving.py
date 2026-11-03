@@ -1670,10 +1670,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         candidates_for, candidate_features, create_candidate, update_candidate,
         delete_candidate, duplicate_candidate, normalize_candidates,
     )
-    from ae_engine.sheetmetal_features import (
-        resolve_endcap_finished_face_guide, feature_surface_from_rect, RectGuide, Vec2,
-    )
-
     def candidate_adapter():
         return self.receiving_adapter(namespace)
 
@@ -1698,11 +1694,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # An editor opens on the active Bay's finished face as a coordinate
         # guide, but its candidate data has no Bay assignment until Apply.
         bay = adapter.current_bay()
-        width, depth = float(bay["width"]), float(bay["depth"])
-        t = float(self.app._phase6_input_snapshot.get("t", 2))
-        guide = resolve_endcap_finished_face_guide(width, depth, t)
-        surface = feature_surface_from_rect(
-            f"{role}_finished_face", guide.min_point, guide.max_point,
+        geometry = manufacturing_api.project_operator_hole_editor_endcap(
+            role, width=bay["width"], depth=bay["depth"],
+            thickness=self.app._phase6_input_snapshot.get("t", 2),
         )
         draft = [] if version_id is None else candidate_features(original, role, version_id)
         host = getattr(self.app._scene_query_callback, "__self__", None)
@@ -1723,13 +1717,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         return host._open_unified_hole_editor(
             role, "封頭" if role == "head" else "封尾",
-            surface, width, depth,
+            geometry.surface, geometry.width, geometry.height,
             feature_list_override=draft,
             sync_callback=lambda: None,
             on_confirm=confirmed,
-            reference_guide=RectGuide(
-                Vec2(0, 0), Vec2(width, depth), "finished_boundary"
-            ),
+            reference_guide=geometry.reference_guide,
         )
 
     def copy_candidate(role, version_id, destination):

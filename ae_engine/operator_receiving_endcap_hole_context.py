@@ -13,10 +13,8 @@ from dataclasses import dataclass
 
 from .cabinet_types.policy import canonical_family_name
 from .receiving_shared_settings import setting_value
-from .sheetmetal_features import (
-    RectGuide, Vec2, feature_surface_from_rect,
-    resolve_endcap_finished_face_guide,
-)
+from .sheetmetal_features import RectGuide
+from .operator_hole_editor_projection import project_operator_hole_editor_endcap
 
 
 @dataclass(frozen=True)
@@ -58,17 +56,13 @@ def project_receiving_endcap_hole_editor_context(
     bay = bays[bay_index]
     if not isinstance(bay, Mapping):
         raise ValueError("RECEIVING_ENDCAP_HOLE_EDITOR_BAY_INVALID")
-    width, depth = float(bay["width"]), float(bay["depth"])
-    thickness = float(snapshot.get("t", 2))
-    face = resolve_endcap_finished_face_guide(width, depth, thickness)
-    surface = feature_surface_from_rect(
-        f"{role}_finished_face", face.min_point, face.max_point,
-    )
-    reference = RectGuide(
-        Vec2(0, 0), Vec2(width, depth), "finished_boundary",
+    projected = project_operator_hole_editor_endcap(
+        role, width=bay["width"], depth=bay["depth"],
+        thickness=snapshot.get("t", 2),
     )
     features = setting_value(selected, bay_index, f"{role}_features")
     return ReceivingEndcapHoleEditorContext(
-        role=role, width=width, depth=depth,
-        surface=surface, reference_guide=reference, features=features,
+        role=role, width=projected.width, depth=projected.height,
+        surface=projected.surface, reference_guide=projected.reference_guide,
+        features=features,
     )

@@ -16,16 +16,6 @@ from phase6_hole_editor_session import Phase6HoleEditorSession
 
 from ae_engine import manufacturing_api
 from ae_engine.corner_type_ui import is_unknown_model
-from ae_engine.sheetmetal_features import (
-    RectGuide,
-    Vec2,
-    feature_surface_from_rect,
-    feature_to_legacy_hole,
-    legacy_hole_to_feature,
-    resolve_endcap_finished_face_guide,
-)
-
-
 
 
 class HoleEditorSessionFactory:
@@ -688,44 +678,34 @@ def open_hole_editor(host, key):
         messagebox.showerror("輸入錯誤", "請先確保主畫面所有數值輸入正確")
         return
 
-    width = float(values["w"])
-    height = float(values["d"])
-    thickness = float(values["t"])
-    face_guide = resolve_endcap_finished_face_guide(width, height, thickness)
-    surface = feature_surface_from_rect(
-        f"{key}_finished_face",
-        face_guide.min_point,
-        face_guide.max_point,
+    geometry = manufacturing_api.project_operator_hole_editor_endcap(
+        key, width=values["w"], depth=values["d"], thickness=values["t"],
     )
+    width, height = geometry.width, geometry.height
 
     legacy = host.tail_holes if key == "tail" else host.head_holes
     app = getattr(host, 'fold_designer_app', None)
     workspace = getattr(app, 'designer_workspace', None)
     host.surface_features[key] = (workspace.features_for(key) if workspace is not None
-                                 else [legacy_hole_to_feature(hole) for hole in legacy])
+                                 else [manufacturing_api.legacy_hole_to_feature(hole) for hole in legacy])
 
     def sync_legacy():
         legacy[:] = [
-            feature_to_legacy_hole(feature, width, height)
+            manufacturing_api.feature_to_legacy_hole(feature, width, height)
             for feature in host.surface_features[key]
         ]
         if workspace is not None:
             workspace.stash_features(key, host.surface_features[key])
             app.submit_update_intent('geometry', commit=True)
 
-    reference_guide = RectGuide(
-        Vec2(0.0, 0.0),
-        Vec2(width, height),
-        "finished_boundary",
-    )
     host._open_unified_hole_editor(
         key,
         label_map[key],
-        surface,
+        geometry.surface,
         width,
         height,
         sync_callback=sync_legacy,
-        reference_guide=reference_guide,
+        reference_guide=geometry.reference_guide,
     )
 
 
