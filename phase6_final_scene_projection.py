@@ -15,7 +15,6 @@ from __future__ import annotations
 from ae_engine.display_dimensions import folded_outside_envelope
 from ae_engine import manufacturing_api
 from phase6_final_scene_contracts import AssemblySceneRenderData
-from phase6_fold_profiles import _num, engine_segment_length_to_ui
 
 
 def _phase6_profile_base_index(profile):
@@ -123,16 +122,17 @@ def _phase6_folded_outside_envelope(triangles, thickness):
     return folded_outside_envelope(triangles, thickness)
 
 
-def _phase6_profile_operator_fold_values(profile):
-    out = []
-    for seg in profile or ():
-        if seg.get("core"):
-            continue
-        try:
-            out.append(float(engine_segment_length_to_ui(seg)))
-        except Exception:
-            out.append(float(_num(seg.get("len", 0.0))))
-    return out
+def _phase6_profile_operator_fold_values(profile, *, thickness=2.0):
+    """Only format Engine-projected outside Fold lengths for FinalScene views.
+
+    Recompute from actual BEND and sheet T. Stale saved ui_len_add must not
+    disagree with the Fold editor/3D physical source, nor allow a GUI fallback
+    to fabricate 0 mm on invalid physical material.
+    """
+    display = manufacturing_api.project_operator_fold_editor_display_rows(
+        profile or (), thickness,
+    )
+    return [abs(float(row["len"])) for row in display if not row.get("core")]
 
 
 def _phase6_contract_profile_rows(profile):
@@ -235,8 +235,17 @@ def format_operator_info_text(request, *, dimensions=None, number_text=None):
         return ""
     width, height = dims[:2]
     depth = dims[2] if len(dims) > 2 else None
-    xfold = " / ".join(number_text(v) for v in _phase6_profile_operator_fold_values(request.x_profile)) or "-"
-    yfold = " / ".join(number_text(v) for v in _phase6_profile_operator_fold_values(request.y_profile)) or "-"
+    thickness = getattr(request, "thickness", 2.0)
+    xfold = " / ".join(
+        number_text(v) for v in _phase6_profile_operator_fold_values(
+            request.x_profile, thickness=thickness,
+        )
+    ) or "-"
+    yfold = " / ".join(
+        number_text(v) for v in _phase6_profile_operator_fold_values(
+            request.y_profile, thickness=thickness,
+        )
+    ) or "-"
     finished = (
         f"折後包外：W {number_text(width)} × H {number_text(height)} × D {number_text(depth)} mm"
         if depth is not None else
