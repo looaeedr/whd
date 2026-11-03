@@ -1646,6 +1646,13 @@ from .assembly_relief_state import (
 )
 
 
+# #2517: legacy Fold Designer numeric defaults are solely Engine owned.
+# The GUI forwards raw operator values; present corrupt values fail closed.
+from .operator_fold_designer_numeric_source import (
+    fold_designer_legacy_source_default,
+    resolve_fold_designer_legacy_numeric_settings,
+)
+
 # #2517: physical Receiving NFB highlighted partial DXF batch is Engine-owned.
 # The GUI import path is a compatibility facade, never a second release gate.
 from .receiving_nfb_partial_batch_dispatcher import (
