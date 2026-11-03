@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 FinalScene 實體 Mesh 的 3D 顯示邊界與折線改為 Engine 單一來源（2026-11-03）
+
+- GUI Phase6FinalSceneRenderHelpersMixin 原本持有兩份 triangle 邊緣統計、法向量和物理折線判定，與 Engine 既有 solid_mesh_feature_edges 是重複權威。現在兩種 Legacy GUI 顯示都呼叫公開 manufacturing_api.project_physical_solid_mesh_display_segments(mode)，由同一 Engine 內核統一提供 boundary、crease、boundary_and_crease。
+- crease 僅取合法非共面共享實體邊，拒絕三角細分對角線冒充物理 Fold；boundary 僅取非退化實體網格邊。原 physical_solid_mesh_feature_segments 與 VIEW 組合結果維持一致。這只是來源已確認的成形 mesh 視圖投影，不產生 CUTTING、BEND、DXF 或製造新認證。
+- tests/test_issue2517_finalscene_mesh_edge_modes_engine_api.py 和既有 solid_mesh_feature_edges 測試對比 Headless/GUI、真實折面、退化輸入與非法模式；原 Save→Reload、Family、CURRENT 07 包外／料長語意保持不變。#2517 OPEN。
+
 ## [CURRENT] #2517 已確認 Receiving Door 孔位來源沿用既有 Engine Feature／DXF（2026-11-03）
 
 - `manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_layout_columns=..., confirmed_door_features=...)` 及既有 `ManufacturingResolvedBayInput.confirmed_door_features` 讓明確已確認的 `door_cN_rN` 實體門格 CUTTING Feature 進入原有 `DoorPartSpec(feature_space="finished_face")`，由既有 Engine finished-face→材料投影、FinalScene、DXF Save→Reload/reopen 製造；**不建立 CADSplit 專用 exporter**。

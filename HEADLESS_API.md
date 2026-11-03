@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：3D FinalScene Mesh 的外輪廓與真實 crease 由公開 Engine API project_physical_solid_mesh_display_segments 支援 boundary/crease/boundary_and_crease，GUI 僅繪製；與既有 physical_solid_mesh_feature_segments 共用判定。僅 VIEW，非 CUTTING/BEND/DXF 授權。
+
 > #2517 2026-11-03：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_features={"door_c1_r1": (CircleFeature(...),)})` 與原 `ManufacturingResolvedBayInput.confirmed_door_features` 共用已確認的 Door 來源；孔位必須是 finished-face CUTTING typed Feature／正式實體門格 ID，已保存孔位需完全一致。實際出口仍為 `export_verified_resolved_integration_bays` 的同一 Engine FinalScene／DXF reopen；未放行 source-only CLI／整套 NFB。
 
 > #2517（2026-11-03）：`.p6fold` 實體 Feature／Vec2 的編碼及重載經公開 `manufacturing_api.encode_project_value/decode_project_value`，原 GUI `phase6_project_file` 僅作檔案／JSON 傳輸層並保留舊名 aliases；wire 不變、未證實的製造不被賦予認證。
