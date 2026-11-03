@@ -160,11 +160,48 @@ def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation):
             )
             if cells != saved_cells:
                 raise ValueError("confirmed Door layout differs from saved state")
-            features = values.get("part_features") or {}
+            features = values.get("part_features", {})
             if not isinstance(features, Mapping):
                 raise ValueError("unverified saved Door features")
-            if any(features.get(f"door_c{cell.column_index + 1}_r{cell.row_index + 1}") for cell in cells):
-                raise ValueError("saved Door holes need separately confirmed Feature inputs")
+            # A saved cell can own two independent physical hole sources:
+            # ordinary authored Features and Door-cell indicator state.  This
+            # factory path has no separately confirmed Door-hole input, so it
+            # must not export a hole-less DXF for an illuminated saved cell.
+            indicator_states = values.get("door_layout_indicator_states", {})
+            if not isinstance(indicator_states, Mapping):
+                raise ValueError("unverified saved Door indicator source")
+            from .fold_designer_snapshot_dimensions import (
+                project_operator_door_cell_indicator_manufacturing_source,
+            )
+            for cell in cells:
+                part_key = f"door_c{cell.column_index + 1}_r{cell.row_index + 1}"
+                if part_key in features:
+                    authored = features[part_key]
+                    if not isinstance(authored, (tuple, list)):
+                        raise ValueError("unverified saved Door features")
+                    if authored:
+                        raise ValueError(
+                            "saved Door holes need separately confirmed Feature inputs"
+                        )
+                # Persisted GUI projects use zero-based col:row keys; accept
+                # canonical physical IDs and older tuple keys as well.
+                candidates = (
+                    f"{cell.column_index}:{cell.row_index}",
+                    (cell.column_index, cell.row_index),
+                    part_key,
+                )
+                present = [indicator_states[key] for key in candidates
+                           if key in indicator_states]
+                if len(present) > 1:
+                    raise ValueError("ambiguous saved Door indicator source")
+                if present:
+                    indicator = project_operator_door_cell_indicator_manufacturing_source(
+                        present[0],
+                    )
+                    if indicator["mode"] != "none":
+                        raise ValueError(
+                            "saved Door indicator holes need separately confirmed Feature inputs"
+                        )
         for key in _DOOR_VALUES:
             value = values[key]
             if (type(value) not in (float, int) or not isfinite(float(value))
