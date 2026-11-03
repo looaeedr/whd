@@ -2052,6 +2052,7 @@ def undo_receiving_nfb_transaction(layout, receipt):
 
 # #2517 Receiving physical Bay preview source/reuse policy belongs to Engine.
 from .receiving_bay_preview_source import (
+    ReceivingBayPreviewOperatorInputs, project_receiving_bay_preview_operator_inputs,
     ReceivingBayPreviewReusePolicy, plan_receiving_bay_preview_reuse_policy,
     ReceivingBayWorldAssemblyProjection, project_receiving_bay_preview_assembly_members,
     project_receiving_bay_preview_face_features_key,

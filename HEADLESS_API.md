@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：Receiving Bay 層級 Preview 輸入以公開 `manufacturing_api.project_receiving_bay_preview_operator_inputs(source_snapshot, settings_values, set_index, bay_index)` 產生 `ReceivingBayPreviewOperatorInputs`，由 Engine 選定 Bay W/H/D、保存的 Door／NFB／Set-Bay identity 與 part_dimensions；GUI 不得用全域過期設定覆蓋 Bay 製造來源。這是隔離 input projection，沒有 DXF/Export 授權。
+
 > #2517（2026-11-03）：Receiving Bay Preview 的實體 Assembly member／世界位移由公開 `manufacturing_api.project_receiving_bay_preview_assembly_members(layout, resolved_parts, set_index, bay_index)` 產生 immutable `ReceivingBayWorldAssemblyProjection`；GUI 不再排除實體 part 或自行把 Bay offset 加到物理 part。位置由既有 Engine Joint／包外 W/H/D 計算，非法三軸或未定 placement 拒絕；僅 VIEW，非製造新認證。
 
 > #2517（2026-11-03）：Receiving Set/Bay 的預覽來源重用由 manufacturing_api.plan_receiving_bay_preview_reuse_policy 以 immutable ReceivingBayPreviewReusePolicy 決定需讀 live CustomPartCatalog、上游平移及 suffix topology flags；GUI 不再自行判定物理 source ID。Raw panel/frame/divider 快取仍由 receiving_raw_source_cache_kind + DXF SHA ticket 驗證，不是正式製造認證。
