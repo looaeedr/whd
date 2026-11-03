@@ -804,6 +804,25 @@ def _single_door_indicator_state_snapshot(self):
         mode = "indicator" if self.is_door_indicator_var.get() else "none"
         layer_var = self.door_indicator_l_var
         group_vars = self.door_indicator_layer_g_vars
+    if mode != "none":
+        # Live physical holes are validated before display repair or export.
+        # Preserve the raw operator values: int()/clamp/default and bool()
+        # coercion here could turn corrupt input into manufactured holes.
+        validated = manufacturing_api.normalize_operator_hole_editor_indicator_state({
+            "mode": mode,
+            "layers": layer_var.get(),
+            "groups": [variable.get() for variable in group_vars[:6]],
+            "offset_x": self.door_indicator_offset_x,
+            "offset_y": self.door_indicator_offset_y,
+            "is_box_dist": self.is_box_dist_var.get(),
+        })
+        return {
+            **validated,
+            "enabled": mode == "indicator",
+            "box_enabled": mode == "indicator_box",
+        }
+    # A disabled mode has no physical holes. Keep the existing legacy
+    # display-only repair and saved inactive controls for older projects.
     try:
         layers = max(1, min(6, int(layer_var.get())))
     except ValueError:
