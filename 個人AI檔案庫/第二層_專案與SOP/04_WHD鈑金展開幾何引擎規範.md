@@ -34,6 +34,7 @@ whd_schema: WHD_DOC_META_V1
 
 - 現有 `build_receiving_factory_confirmed_parts(source_dimensions, confirmation=..., operator_snapshot=..., confirmed_door_layout_columns=...)` 是**加法擴充**，未確認門格時仍只產生 BoxBody／Head／Tail；有明確已確認的 `door_layout_columns` 才使用 Engine `door_part_projections` 建立 `DoorPartSpec(feature_space="finished_face")`，並且經現有 `export_verified_resolved_integration_bays` 的同一 FinalScene/DXF Save→Reload/reopen 出圖，不另建 CADSplit executor。
 - 使用者確認的來源 W/H 必須與列寬及各列高度精確相容；`saved_operator_confirmed` 還須與實際已保存的多門格拓樸相同。Door 原始孔位若存在但尚未被此來源契約正式證明，**整批拒絕**，不能以空孔位出圖。參數來自已確認 Family 新建預設或保存狀態，不能以 DXF 盤名推造 Door／Fold／孔位。
+- 已保存的 `door_layout_indicator_states` 與 `part_features` 是兩條不同物理來源：本次確認門格的 `DoorPartSpec` 尚未具備來自已保存指示燈／指示燈盒的已確認 finished-face Feature 契約。`build_receiving_factory_confirmed_parts` 在 `saved_operator_confirmed` 模式會按 canonical 門格位置 `col:row`（含舊 tuple／`door_cN_rN` 相容鍵）用既有 `project_operator_door_cell_indicator_manufacturing_source` 驗證**未經 GUI 修補**的原始狀態；存在啟用的孔位或無效來源就拒絕整批，不得靜默製造空孔門板。未啟用、缺少該 cell、無關舊 cell 的內容仍不捏造孔位，不更動既有三主板／合法無孔上下門及 DXF sink；真實 `.p6fold` Save→Reload→禁止不完整 DXF 已有回歸。這是防來源遺失，不表示指示燈孔位已獲自動製造認證。#2517 仍 OPEN。
 - `ManufacturingResolvedBayInput.door_layout_columns` 對 source-only 已確認 Request 可明確啟用 Door；沒有製造確認／資料不符照舊 fail closed。這只證明指定實體板件的製造與 DXF reopen，**不代表完整 Set/Bay/BOM、NFB、CADSplit source-only CLI 或正式 X 已放行**。
 
 
