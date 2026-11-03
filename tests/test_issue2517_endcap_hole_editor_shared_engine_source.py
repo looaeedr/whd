@@ -106,3 +106,13 @@ def test_gui_main_and_candidate_delegate_without_second_geometry_implementation(
               ).read_text(encoding="utf-8")
     assert "project_operator_hole_editor_endcap(" in engine
     assert 'float(bay["width"])' not in engine
+
+
+@pytest.mark.parametrize("field", ("width", "depth", "thickness"))
+@pytest.mark.parametrize("invalid", (10 ** 400, "1e10000"))
+def test_endcap_editor_refuses_physical_overflow_before_geometry(field, invalid):
+    """A huge persisted coordinate must not overflow into valid material mm."""
+    values = {"width": 800, "depth": 350, "thickness": 2}
+    values[field] = invalid
+    with pytest.raises(ValueError, match="包外尺寸"):
+        api.project_operator_hole_editor_endcap("head", **values)
