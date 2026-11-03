@@ -444,10 +444,14 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
             values, features=features, corner_policy=base_policy,
         )
     elif key == "indicator_box":
-        groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or (1,)))
+        groups = manufacturing_api.normalize_fold_designer_indicator_groups(
+            data["indicator_layer_groups"] if "indicator_layer_groups" in data else (1,)
+        )
         spec = self._indicator_box_part_spec_from_values({"t": t}, groups, features=features)
     elif key == "indicator_door":
-        groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or (1,)))
+        groups = manufacturing_api.normalize_fold_designer_indicator_groups(
+            data["indicator_layer_groups"] if "indicator_layer_groups" in data else (1,)
+        )
         spec, context = self._indicator_door_part_spec_from_values(
             {
                 "t": t,
