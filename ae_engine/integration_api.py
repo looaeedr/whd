@@ -189,6 +189,7 @@ class ManufacturingResolvedBayInput:
     operator_confirmation: str | None = None
     operator_snapshot: Mapping[str, object] | None = None
     confirmed_endcap_features: Mapping[str, object] | None = None
+    confirmed_door_features: Mapping[str, object] | None = None
 
 
 def _confirmed_door_layout_projections(
@@ -398,6 +399,7 @@ def export_verified_resolved_integration_bays(
             or item.operator_confirmation is not None
             or item.operator_snapshot is not None
             or item.confirmed_endcap_features is not None
+            or item.confirmed_door_features is not None
         )
         if source_request:
             # This is the SAME previously certified verified-geometry/physical
@@ -414,6 +416,7 @@ def export_verified_resolved_integration_bays(
                 operator_snapshot=item.operator_snapshot,
                 confirmed_endcap_features=item.confirmed_endcap_features,
                 confirmed_door_layout_columns=item.door_layout_columns,
+                confirmed_door_features=item.confirmed_door_features,
             )
             resolved_geometry = _resolve_confirmed_integration_parts(
                 confirmed_parts,
