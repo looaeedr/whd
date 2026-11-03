@@ -109,5 +109,6 @@ def test_main_gui_uses_engine_key_list_and_no_private_raw_truthiness():
     assert "manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS" in code
     assert "manufacturing_api.normalize_operator_source_dimension(" in code
     assert "manufacturing_api.normalize_operator_settings_boolean(" in code
-    assert "return float(raw)" in code  # legacy nonphysical numeric only
+    assert "manufacturing_api.normalize_operator_settings_updates(" in code
+    assert "return float(raw)" not in code
     assert 'return str(raw).strip().lower() in {' not in code

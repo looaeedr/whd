@@ -169,7 +169,15 @@ def _coerce(spec: SettingSpec, raw):
         return manufacturing_api.normalize_operator_source_dimension(
             raw, field=spec.key,
         )
-    return float(raw)
+    # Other numeric Fold/Hole/Relief/plate settings keep their existing signed
+    # ranges. The Engine's pre-existing numeric gate alone rejects bool, NaN
+    # and infinity; do not invent GUI manufacturing limits or formulas.
+    normalized = manufacturing_api.normalize_operator_settings_updates(
+        {spec.key: spec.default}, {spec.key: raw},
+    )
+    if spec.key not in normalized:
+        raise ValueError(f"{spec.key} 設定值必須是有限數值")
+    return normalized[spec.key]
 
 
 def _runtime_default(ae_module, spec: SettingSpec):
@@ -324,11 +332,14 @@ def apply_settings_to_ae(ae_module, values: Mapping[str, object], *, keys: Itera
     specs = _selected_specs(keys=keys) if keys is not None else tuple(
         _SPEC_BY_KEY[k] for k in values.keys() if k in _SPEC_BY_KEY
     )
+    # Validate every supplied scalar before touching the shared AE runtime.
+    # One invalid Fold/Hole/Relief value cannot partially commit other fields.
+    normalized = tuple(
+        (spec, _coerce(spec, values[spec.key]))
+        for spec in specs if spec.key in values
+    )
     relief_changes = {}
-    for spec in specs:
-        if spec.key not in values:
-            continue
-        value = _coerce(spec, values[spec.key])
+    for spec, value in normalized:
         if spec.relief_attr:
             relief_changes[spec.relief_attr] = value
         elif spec.runtime_attr:
