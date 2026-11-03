@@ -140,14 +140,12 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
             f"MANUFACTURING_SCENE_PROFILE_INVALID:{key}"
         )
 
-    model_var = getattr(app, "baseline_model_var", None)
-    values["model"] = str(
-        _safe_var_get(
-            model_var,
-            getattr(app, "_phase6_baseline_initial_model", "") or "",
-        )
-        or ""
-    ).strip()
+    # Resolve the same live operator Family source for preview and the
+    # immutable manufacturing request. A broken live Tk control must not
+    # silently replace the selected Family with a stale initial default.
+    values["model"] = _cabinet_model(
+        app, getattr(app, "_phase6_input_snapshot", {}) or {},
+    )
     values["endcap_fw"] = deepcopy(
         getattr(app, "_phase6_endcap_fw_state", normalize_endcap_fw_state(values))
     )
@@ -441,11 +439,22 @@ def _relief_clearance(app: Any) -> float:
 
 
 def _cabinet_model(app: Any, snapshot: dict) -> str:
-    live = _manufacturing_operator_var_get(getattr(app, "baseline_model_var", None), "baseline_model_var", "")
+    """One source priority for GUI FinalScene and Engine manufacturing request.
+
+    A readable live Family selection wins. A blank/missing selection retains
+    the actual saved project Family, then the old new-project initial model.
+    A broken present control is rejected rather than treated as missing.
+    """
+    live = _manufacturing_operator_var_get(
+        getattr(app, "baseline_model_var", None), "baseline_model_var", "",
+    )
     value = str(live or "").strip()
     if value:
         return value
-    return str(snapshot.get("model") or snapshot.get("cabinet_type") or "").strip()
+    return str(
+        snapshot.get("model") or snapshot.get("cabinet_type")
+        or getattr(app, "_phase6_baseline_initial_model", "") or ""
+    ).strip()
 
 
 def build_manufacturing_request(
