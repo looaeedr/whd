@@ -23,6 +23,49 @@ class OperatorSettingsCommitTransition:
     committed: dict[str, object]
 
 
+@dataclass(frozen=True)
+class OperatorExternalSyncPlan:
+    """Engine-owned source/revision decision for operator Settings updates."""
+    accepted: bool
+    revision: int
+    transaction_id: str
+    settings: dict[str, object]
+    reason: str
+
+
+def plan_operator_external_sync(
+    envelope: Mapping[str, object] | None, *, last_external_revision: int,
+) -> OperatorExternalSyncPlan:
+    """Validate the existing external Settings source/revision contract.
+
+    Keep exact historical revision handling and fail-closed reasons so older
+    GUI projects still read the same transaction; UI merely applies the plan.
+    """
+    raw = dict(envelope or {})
+    current_revision = int(last_external_revision or 0)
+    if str(raw.get("origin") or "") != "main_gui":
+        return OperatorExternalSyncPlan(
+            False, current_revision, "", {}, "WRONG_ORIGIN",
+        )
+    try:
+        revision = int(raw.get("revision", 0) or 0)
+    except (TypeError, ValueError):
+        return OperatorExternalSyncPlan(
+            False, current_revision, "", {}, "INVALID_REVISION",
+        )
+    if revision <= current_revision:
+        return OperatorExternalSyncPlan(
+            False, revision, str(raw.get("transaction_id") or ""),
+            {}, "STALE_REVISION",
+        )
+    transaction_id = str(raw.get("transaction_id") or "")
+    delta = dict(raw.get("delta") or {})
+    settings = dict(delta.get("settings") or {})
+    return OperatorExternalSyncPlan(
+        True, revision, transaction_id, settings, "OK",
+    )
+
+
 def normalize_operator_settings_boolean(raw: object) -> bool:
     """Decode serialized operator bools without bool('false') == True."""
     if isinstance(raw, bool):
