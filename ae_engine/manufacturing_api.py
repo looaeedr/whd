@@ -1537,6 +1537,15 @@ def physical_solid_mesh_feature_segments(triangles, *, tolerance=1e-6):
 
 
 
+def project_physical_solid_mesh_display_segments(triangles, *, mode, tolerance=1e-6):
+    """Public source-backed FinalScene mesh display edges, no GUI geometry."""
+    from .solid_mesh_feature_edges import (
+        project_physical_solid_mesh_display_segments as resolve,
+    )
+    return resolve(triangles, mode=mode, tolerance=tolerance)
+
+
+
 def build_door_operator_part_spec(
     values, *, model_name, features=(), indicator_hole=None,
     door_indicator=None, door_indicator_offset=(0.0, 0.0),
