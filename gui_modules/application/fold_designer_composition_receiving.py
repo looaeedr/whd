@@ -737,15 +737,14 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     })
     snapshot["part_dimensions"] = project_part_dimensions(snapshot)
     from phase6_sync_envelope import stable_fingerprint
-    # Physical custom parts come from the live shared workspace, not
-    # necessarily the last committed input snapshot. A cached Bay must
-    # invalidate when a custom sheet's metadata changes before Save.
-    # Avoid snapshotting all profiles on every redraw when there are no
-    # active custom parts (the hot-path preview-cache optimization).
+    # Engine alone classifies physical Bay reuse and custom source identity.
     workspace = app.designer_workspace
+    reuse_policy = manufacturing_api.plan_receiving_bay_preview_reuse_policy(
+        snapshot, bay_index=bay_index, candidate=preview_layout is not None,
+        available_parts=getattr(workspace, "available_parts", ()),
+    )
     live_custom_catalog = None
-    if any(str(key).startswith("custom:") for key in
-           getattr(workspace, "available_parts", ())):
+    if reuse_policy.requires_live_custom_catalog:
         reader = getattr(workspace, "shared_snapshot", None)
         if not callable(reader):
             raise ValueError("RECEIVING_BAY_CUSTOM_PART_AUTHORITY_MISSING")
@@ -756,21 +755,22 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         {**snapshot, "custom_parts": live_custom_catalog}
         if live_custom_catalog is not None else snapshot
     )
-    # Only normal committed Bay previews may rebase world placement. Candidate
-    # editors and user-defined/cross-part joints keep the full prefix key.
-    allow_rebase = (preview_layout is None and bay_index >= 2
-                    and snapshot.get("model") in ("受電箱", "RECEIVING")
-                    and snapshot.get("active_mode", "set_bay") == "set_bay"
-                    and not any(key_snapshot.get(k) for k in (
-                        "assembly_joints", "custom_parts", "joint_relief_state")))
+    # Never let stale project metadata authorize world-offset translation:
+    # re-evaluate the physical dependency policy after a live catalog read.
+    if live_custom_catalog is not None:
+        reuse_policy = manufacturing_api.plan_receiving_bay_preview_reuse_policy(
+            key_snapshot, bay_index=bay_index,
+            candidate=preview_layout is not None,
+            available_parts=getattr(workspace, "available_parts", ()),
+        )
+    allow_rebase = reuse_policy.allow_upstream_translation
     fingerprint = stable_fingerprint({"snapshot": manufacturing_api.project_receiving_bay_preview_fingerprint_snapshot(
         key_snapshot, set_index=set_index, bay_index=bay_index,
         allow_upstream_translation=allow_rebase,
-        allow_suffix_topology_reuse=(preview_layout is None),
+        allow_suffix_topology_reuse=reuse_policy.allow_suffix_topology_reuse,
     ), "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": (manufacturing_api.project_receiving_bay_preview_face_features_key(
         app.designer_workspace.part_face_features_snapshot())
-        if snapshot.get("model") in ("受電箱", "RECEIVING")
-        and snapshot.get("active_mode", "set_bay") == "set_bay"
+        if reuse_policy.receiving_set_bay
         else app.designer_workspace.part_face_features_snapshot()), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
     cache = getattr(self, "_receiving_bay_preview_cache", {})
     cache_key = (set_index, bay_index)
@@ -863,11 +863,14 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         if preview_layout is not None:
             # Candidate editing is isolated from committed Bay material reuse.
             return render()
-        if str(key).startswith("box_body:divider:"):
+        kind = manufacturing_api.receiving_raw_source_cache_kind(
+            key, source_payload,
+        )
+        if kind == "divider":
             return _receiving_cached_bay_box_body_divider(
                 self, key, source_payload, render,
             )
-        if str(key).startswith("inner_door:") and str(key).endswith("_frame"):
+        if kind == "frame":
             return _receiving_cached_bay_inner_door_frame(
                 self, key, source_payload, render,
             )

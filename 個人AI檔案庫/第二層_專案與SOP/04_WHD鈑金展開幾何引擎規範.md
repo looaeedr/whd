@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Bay 預覽快取准入及來源類型判準統一由 Engine（2026-11-03）
+
+- 原 GUI receiving_bay_preview_request 自行以 model/active_mode/bay_index/custom Parts/Assembly Joints/Relief 決定快取世界座標平移及 suffix 裁剪，並以 custom: 前綴決定是否讀取 live CustomPartCatalog；現移至 ae_engine.receiving_bay_preview_source.plan_receiving_bay_preview_reuse_policy，透過 manufacturing_api 公開 immutable ReceivingBayPreviewReusePolicy。GUI 僅讀取 workspace live metadata、管理 bounded LRU 及顯示既有 FinalScene。
+- GUI 原用字串判定 inner_door Frame 與 box_body Divider cache 分流，現使用既有 manufacturing_api.receiving_raw_source_cache_kind；typed Part／來源 DXF SHA／meta 檢查仍由既有 Engine raw-cache ticket 與 Factory 執行。Candidate Bay 不得重用 committed offset、跨板件 Joint/Relief/CustomPart 禁止平移；獨立 fingerprint projector 仍做保守 source-based 次級檢查，沒有擴增任何 manufacturing 資格。
+- 新 tests/test_issue2517_receiving_bay_reuse_policy_engine_api.py 與既有 Receiving Bay/Raw Source Cache/Set-Bay 真實回歸交叉驗證。Preview 重用不代表 CUTTING／BEND／2D／3D／DXF Save→Reload 認證或 source-only external export，#2517 保持 OPEN。
+
 ## [CURRENT] #2517 Main GUI Settings W/H/D/T/FW 來源及布林轉換由 Engine API 驗證（2026-11-03）
 
 - `phase6_settings_center._coerce` 不再以 Python `float(raw)` 接收金庫型／受電箱的 `W/H/D/T/FW` 實體輸入，也不再將無法辨識的 UI/INI 布林文字直接轉成 `False`；物理來源鍵以 `manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS` 公開的 Engine 唯一契約判斷，原始欄位值透過 `normalize_operator_source_dimension(raw, field=...)` 和 `normalize_operator_settings_boolean(raw)`。
