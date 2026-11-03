@@ -100,8 +100,8 @@ def _door_layout_cell_resolved_features(self, cell, result, key):
     # Strict manufacturing keeps the saved row untouched. Preview receives
     # only a detached and safely normalized presentation copy; it may never
     # invoke the legacy state accessor, which can mutate saved source.
-    preview_indicator_state = self._normalize_door_indicator_state(
-        states.get(key) if isinstance(states, Mapping) else None
+    preview_indicator_state = _normalize_door_indicator_state(
+        self, states.get(key) if isinstance(states, Mapping) else None
     )
     return manufacturing_api.project_operator_door_cell_features(
         result,
