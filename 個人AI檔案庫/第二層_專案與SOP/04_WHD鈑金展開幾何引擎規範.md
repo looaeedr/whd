@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 固定孔／Relief／舊底板縮量 runtime 更新統一由 Engine 公開 API 擁有（2026-11-03）
+
+- `phase6_settings_center.apply_settings_to_ae` 只負責 SettingSpec→AE 模組操作輸入欄位的寫入；原本在 GUI 層依 `RELIEF_CONFIG`、`VAULT_ENDCAP_FEATURE_POLICY` 重建正式製造特徵並決定 BasePlate 四邊同縮的舊版共用值，已原語意移至 `ae_engine.operator_settings_transactions.apply_operator_legacy_runtime_manufacturing_policies`，經 `manufacturing_api` 正式公開。金庫型固有 EndCap 掛孔、方孔、底孔從原 `ae_engine.sheetmetal_features.VaultEndCapFeaturePolicy` 來源讀回；Receiving 仍**不**套用 Vault 固定孔。
+- `manufacturing_api.operator_legacy_shared_base_plate_shrink` 統一 runtime 與 `config.ini` 舊 `BASE_PLATE.shrink` 相容更新：原四方向全部存在、數值差距小於 `1e-9` 才維持 legacy 單值；分邊不同或缺任一欄時只保留個別設定，不臆造共用加工量。INI 寫入與 GUI 顯示由原 client 負責，不將檔案管理轉移 Engine。
+- 原`RELIEF_CONFIG`、`VAULT_ENDCAP_FEATURE_POLICY` 的 dataclass/可變物件更新次序、讀回 fallback 與錯誤處理語意均保留，沒有新 Family、Cutting／BEND 公式、替代 DXF writer 或 source-only CLI 放行。驗收 `tests/test_issue2517_settings_runtime_manufacturing_policy_engine_api.py` 與既有 Settings、EndCap Features／DXF、Save→Reload 回歸，#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 GUI 殘留 Family／Corner／Receiving 導覽物理決策由 Engine 公開 API 擁有（2026-11-03）
 
 - 原 GUI `phase6_settings_transitions.plan_external_model_change` 決定目標箱型變更；現在委派 `manufacturing_api.plan_operator_external_model_change`（同型別 `OperatorExternalModelPlan`，現行字串／空值與 change 判準原樣移轉），正式 Family 切換仍由既有 `plan_cabinet_family_model_transition` 執行，不能繞過 Factory／Registry。

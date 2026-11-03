@@ -8,11 +8,13 @@ Fold Designer keeps its own transaction-local draft until the main GUI commits.
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
-from dataclasses import dataclass, is_dataclass, replace
+from dataclasses import dataclass
 import configparser
 from pathlib import Path
 from types import MappingProxyType
 from typing import Iterable
+
+from ae_engine import manufacturing_api
 
 
 GLOBAL_CONTEXT = "global"
@@ -327,71 +329,9 @@ def apply_settings_to_ae(ae_module, values: Mapping[str, object], *, keys: Itera
         elif spec.runtime_attr:
             setattr(ae_module, spec.runtime_attr, value)
 
-    if relief_changes:
-        current = getattr(ae_module, "RELIEF_CONFIG", None)
-        if current is not None:
-            try:
-                if is_dataclass(current):
-                    current = replace(current, **relief_changes)
-                else:
-                    for name, value in relief_changes.items():
-                        setattr(current, name, value)
-                setattr(ae_module, "RELIEF_CONFIG", current)
-            except Exception:
-                # A custom/frozen non-dataclass engine object may not be mutable;
-                # persistence still succeeds and explicit PartSpec values remain safe.
-                pass
-
-    # Fixed EndCap holes are consumed through a policy object created at engine
-    # import time.  Rebuild that object too, otherwise editing the hidden HOLES
-    # values would update module scalars but not the actual preview/DXF geometry.
-    fixed_hole_keys = {
-        "hang_hole_r", "hang_hole_y_up", "sq_x_left", "sq_y_bottom",
-        "sq_width", "sq_height", "bottom_hole_r", "bottom_hole_y",
-    }
-    if fixed_hole_keys.intersection(values):
-        policy = getattr(ae_module, "VAULT_ENDCAP_FEATURE_POLICY", None)
-        if policy is not None:
-            def point_like(current, x, y):
-                try:
-                    return type(current)(float(x), float(y))
-                except Exception:
-                    return (float(x), float(y))
-            changes = {
-                "hanging_hole_radius": float(getattr(ae_module, "hang_hole_r", 3.2)),
-                "hanging_hole_y_from_top_bend": float(getattr(ae_module, "hang_hole_y_up", 6.0)),
-                "square_hole_origin": point_like(
-                    getattr(policy, "square_hole_origin", (3.0, 18.0)),
-                    getattr(ae_module, "sq_x_left", 3.0), getattr(ae_module, "sq_y_bottom", 18.0),
-                ),
-                "square_hole_size": point_like(
-                    getattr(policy, "square_hole_size", (4.0, 4.0)),
-                    getattr(ae_module, "sq_width", 4.0), getattr(ae_module, "sq_height", 4.0),
-                ),
-                "tail_bottom_hole_radius": float(getattr(ae_module, "bottom_hole_r", 2.5)),
-                "tail_bottom_hole_y": float(getattr(ae_module, "bottom_hole_y", 5.0)),
-            }
-            try:
-                if is_dataclass(policy):
-                    policy = replace(policy, **changes)
-                else:
-                    for name, value in changes.items():
-                        setattr(policy, name, value)
-                setattr(ae_module, "VAULT_ENDCAP_FEATURE_POLICY", policy)
-            except Exception:
-                pass
-
-    # Maintain legacy shared base-plate default only when the four edge values
-    # are equal; explicit runtime GUI values remain authoritative otherwise.
-    shrink_keys = (
-        "base_plate_shrink_top", "base_plate_shrink_bottom",
-        "base_plate_shrink_left", "base_plate_shrink_right",
+    manufacturing_api.apply_operator_legacy_runtime_manufacturing_policies(
+        ae_module, values, relief_changes=relief_changes,
     )
-    if all(k in values for k in shrink_keys):
-        vals = [float(values[k]) for k in shrink_keys]
-        if max(vals) - min(vals) < 1e-9:
-            setattr(ae_module, "base_plate_shrink_def", vals[0])
-
 
 def _format_ini_value(spec: SettingSpec, value: object) -> str:
     if spec.kind == "bool":
@@ -439,16 +379,14 @@ def save_defaults_to_ini(
 
     # If all four specific shrink values are the same, keep the old key in sync
     # so older engine versions still see the same default.
-    shrink_keys = (
-        "base_plate_shrink_top", "base_plate_shrink_bottom",
-        "base_plate_shrink_left", "base_plate_shrink_right",
-    )
-    if context == "base_plate" and all(k in values for k in shrink_keys):
-        vals = [float(values[k]) for k in shrink_keys]
-        if max(vals) - min(vals) < 1e-9:
+    if context == "base_plate":
+        legacy_shrink = manufacturing_api.operator_legacy_shared_base_plate_shrink(values)
+        if legacy_shrink is not None:
             if not parser.has_section("BASE_PLATE"):
                 parser.add_section("BASE_PLATE")
-            parser.set("BASE_PLATE", "shrink", _format_ini_value(_SPEC_BY_KEY[shrink_keys[0]], vals[0]))
+            parser.set("BASE_PLATE", "shrink", _format_ini_value(
+                _SPEC_BY_KEY["base_plate_shrink_top"], legacy_shrink,
+            ))
 
     ini_path.parent.mkdir(parents=True, exist_ok=True)
     with ini_path.open("w", encoding="utf-8") as fh:

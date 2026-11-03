@@ -156,6 +156,8 @@ from .operator_settings_transactions import (
     normalize_operator_settings_updates, commit_operator_settings_state,
     normalize_operator_source_dimension, normalize_operator_source_dimensions,
     project_receiving_manufacturing_request_settings,
+    operator_legacy_shared_base_plate_shrink,
+    apply_operator_legacy_runtime_manufacturing_policies,
 )
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
