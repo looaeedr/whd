@@ -80,8 +80,9 @@ def test_shared_core_has_only_shared_fields_and_no_forbidden_dependencies():
         "phase6_", "gui_modules",
     )
     assert not [name for name in forbidden_imports if name in source]
-    assert phase6_workspace_state.SharedWorkspaceState is (
-        engine_state.SharedWorkspaceState
+    assert (
+        phase6_workspace_state.SharedWorkspaceState
+        is engine_state.SharedWorkspaceState
         is manufacturing_api.SharedWorkspaceState
     )
     assert (phase6_workspace_state.normalize_existing_parts
