@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from .box_body_structure_state import (
     BoxBodyStructureType, normalize_box_body_structure_state,
 )
+from .cabinet_types.policy import canonical_family_name
 from .contracts import BoxBodyPartSpec, EndCapPartSpec
 from .manufacturing_baseline_policy import receiving_baseline_source_stamp
 
@@ -32,7 +33,7 @@ def plan_manufacturing_cache_source(snapshot, workspace_structure=None):
     """
     eligible = (
         isinstance(snapshot, Mapping)
-        and str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}
+        and canonical_family_name(snapshot) == "受電箱"
         and snapshot.get("active_mode") == "set_bay"
     )
     if not eligible:
