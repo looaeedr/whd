@@ -157,13 +157,18 @@ def _parser_for_ae(ae_module) -> configparser.ConfigParser:
 
 def _coerce(spec: SettingSpec, raw):
     if spec.kind == "bool":
-        if isinstance(raw, bool):
-            return raw
-        return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+        # A malformed saved boolean must not silently become False.
+        return manufacturing_api.normalize_operator_settings_boolean(raw)
     if spec.kind == "choice":
         if spec.key == "ui_text_size":
             return normalize_ui_text_size(raw)
         return str(raw).strip()
+    if spec.key in manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS:
+        # Outside physical W/H/D/T/FW are validated once in the Engine,
+        # including bool, NaN, infinity, zero and negative source values.
+        return manufacturing_api.normalize_operator_source_dimension(
+            raw, field=spec.key,
+        )
     return float(raw)
 
 
@@ -338,7 +343,7 @@ def _format_ini_value(spec: SettingSpec, value: object) -> str:
         return "true" if bool(_coerce(spec, value)) else "false"
     if spec.kind == "choice":
         return str(_coerce(spec, value))
-    number = float(value)
+    number = _coerce(spec, value)
     return str(int(number)) if number.is_integer() else str(number)
 
 
