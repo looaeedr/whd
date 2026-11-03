@@ -62,9 +62,12 @@ def _sync_state(active="head", *, family="受電箱", mode="set_bay"):
     }
 
 
-def test_receiving_navigation_only_physical_skip_through_same_engine_gate():
-    before = _sync_state("head")
-    after = _sync_state("tail")
+@pytest.mark.parametrize("family", [
+    "受電箱", "RECEIVING", "receiving", "ReCeIvInG", "  receiving  ",
+])
+def test_receiving_navigation_only_physical_skip_through_same_engine_gate(family):
+    before = _sync_state("head", family=family)
+    after = _sync_state("tail", family=family)
     original = deepcopy((before, after))
     assert api.operator_receiving_navigation_only_sync_change(before, after) is True
     assert gui_sync.navigation_only_change(before, after) is True
@@ -77,6 +80,25 @@ def test_receiving_navigation_only_physical_skip_through_same_engine_gate():
                            "transaction_id": "tx:16", "fingerprint": "x",
                            "delta": {"active_part": "tail"}})
     assert gui_sync.navigation_only_change(before, metadata_after) is True
+
+
+def test_legacy_cabinet_type_alias_has_same_navigation_source_authority():
+    before = _sync_state("head")
+    after = _sync_state("tail")
+    for snapshot in (before, after):
+        snapshot["cabinet_type"] = "receiving"
+        snapshot.pop("model")
+    original = deepcopy((before, after))
+    assert api.operator_receiving_navigation_only_sync_change(before, after) is True
+    assert gui_sync.navigation_only_change(before, after) is True
+    assert (before, after) == original
+
+
+@pytest.mark.parametrize("family", ["金庫型", "RO", "UNKNOWN"])
+def test_unrelated_families_never_skip_physical_sync(family):
+    before = _sync_state("head", family=family)
+    after = _sync_state("tail", family=family)
+    assert api.operator_receiving_navigation_only_sync_change(before, after) is False
 
 
 @pytest.mark.parametrize("change", [
