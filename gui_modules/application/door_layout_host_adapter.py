@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import tkinter as tk
 
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from gui_modules.application.door_layout_controller import (
     DoorLayoutColumnState as _DoorLayoutColumnState,
@@ -42,14 +41,30 @@ def _new_door_layout_column(self, width, heights, *, width_auto=False, height_au
 
 def set_door_layout_columns(self, columns):
     """Replace Door layout with explicit user values, then append any W/H remainders."""
-    model = []
+    # Validate every authored physical cell *before* creating Tk rows or
+    # modifying the saved Door layout; bool/NaN must not become 1mm holes.
+    validated = []
     for width, heights in columns:
         height_values = list(heights)
         if not height_values:
             raise ValueError("每一欄至少需要一層高度")
-        model.append(self._new_door_layout_column(width, height_values))
-    if not model:
+        validated.append((
+            manufacturing_api.normalize_operator_source_dimension(
+                width, field="w",
+            ),
+            [
+                manufacturing_api.normalize_operator_source_dimension(
+                    height, field="h",
+                )
+                for height in height_values
+            ],
+        ))
+    if not validated:
         raise ValueError("門配置至少需要一欄")
+    model = [
+        self._new_door_layout_column(width, heights)
+        for width, heights in validated
+    ]
     self.door_layout_columns = model
     self.door_layout_selected_var.set("0:0")
     self._recompute_door_layout_remainders(rebuild=False)
@@ -59,11 +74,14 @@ def set_door_layout_columns(self, columns):
 def _ensure_door_layout_default(self):
     if self.door_layout_columns:
         return
-    try:
-        width = float(self.w_var.get())
-        height = float(self.h_var.get())
-    except ValueError:
-        width, height = ae.W, ae.H
+    # An invalid source must never turn into AE's factory W/H defaults.
+    # The exact positive, finite physical dimensions belong to Engine.
+    width = manufacturing_api.normalize_operator_source_dimension(
+        self.w_var.get(), field="w",
+    )
+    height = manufacturing_api.normalize_operator_source_dimension(
+        self.h_var.get(), field="h",
+    )
     self.door_layout_columns = [self._new_door_layout_column(width, [height])]
     self._recompute_door_layout_remainders(rebuild=False)
 
@@ -89,8 +107,12 @@ def _recompute_door_layout_remainders(self, *, rebuild=True):
     if not self.door_layout_columns:
         return
     try:
-        total_width = float(self.w_var.get())
-        total_height = float(self.h_var.get())
+        total_width = manufacturing_api.normalize_operator_source_dimension(
+            self.w_var.get(), field="w",
+        )
+        total_height = manufacturing_api.normalize_operator_source_dimension(
+            self.h_var.get(), field="h",
+        )
     except ValueError as exc:
         raise ValueError("W / H 必須先填入有效數字") from exc
     result = _recompute_door_layout_impl(
@@ -122,7 +144,17 @@ def get_door_layout_columns(self):
     columns = []
     for column_index, column in enumerate(self.door_layout_columns, start=1):
         if isinstance(column, (list, tuple)):
-            columns.append((float(column[0]), [float(h) for h in list(column[1])]))
+            columns.append((
+                manufacturing_api.normalize_operator_source_dimension(
+                    column[0], field="w",
+                ),
+                [
+                    manufacturing_api.normalize_operator_source_dimension(
+                        value, field="h",
+                    )
+                    for value in list(column[1])
+                ],
+            ))
             continue
         width = self._parse_layout_value(column["width_var"], f"欄 {column_index} 寬度")
         heights = [
@@ -400,17 +432,23 @@ def remove_door_layout_column(self, column_index):
         return
     if self.door_layout_columns[column_index].get("width_auto"):
         return
+    # Verify before identity remap/deletion, so corrupt H cannot erase the
+    # operator's last saved Door column and silently regenerate AE.H.
+    replacement_height = (
+        manufacturing_api.normalize_operator_source_dimension(
+            self.h_var.get(), field="h",
+        )
+        if len(self.door_layout_columns) == 1 else None
+    )
     self._remap_door_layout_owned_data(
         operation="delete_column", column_index=column_index,
     )
     del self.door_layout_columns[column_index]
     self.door_layout_selected_var.set("0:0")
     if not self.door_layout_columns:
-        try:
-            total_h = float(self.h_var.get())
-        except ValueError:
-            total_h = ae.H
-        self.door_layout_columns = [self._new_door_layout_column(0.0, [total_h], width_auto=True, height_auto=[True])]
+        self.door_layout_columns = [self._new_door_layout_column(
+            0.0, [replacement_height], width_auto=True, height_auto=[True],
+        )]
     self._recompute_door_layout_remainders(rebuild=True)
     self._on_door_layout_value_changed(recompute=False)
 
