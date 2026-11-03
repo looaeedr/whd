@@ -169,6 +169,10 @@ def test_engine_and_gui_reject_invalid_door_auxiliary_physical_source(
     before = repr(invalid)
     host = SimpleNamespace(door_nameplate_center_datum_top=None)
     options = {kw: invalid}
+    # Optional lamp positions / box-distance only matter when an actual
+    # indicator or opening exists. Plain Doors ignore disabled controls.
+    if kw in ("door_indicator_offset", "use_box_distance"):
+        options["door_indicator"] = (2,)
     with pytest.raises((TypeError, ValueError)):
         manufacturing_api.build_door_operator_part_spec(
             _values(), model_name="受電箱", **options,
@@ -209,3 +213,28 @@ def test_numeric_text_and_signed_door_offsets_keep_legacy_source_compatibility(
     assert engine.indicator_window_groups == (1, 2)
     assert engine.fold_bottom == -2.5
     assert val == before
+
+
+@pytest.mark.parametrize("model", ("金庫型", "受電箱"))
+def test_disabled_invalid_indicator_controls_do_not_block_plain_door(
+    model,
+):
+    """No lamp/box means disabled indicator fields are not manufacturing data."""
+    host = SimpleNamespace(door_nameplate_center_datum_top=None)
+    values = _values()
+    options = dict(
+        door_indicator=None,
+        indicator_hole=None,
+        door_indicator_offset=(float("nan"), True),
+        use_box_distance="not-a-boolean",
+    )
+    direct = manufacturing_api.build_door_operator_part_spec(
+        values, model_name=model, features=(), **options,
+    )
+    via_gui = gui._door_part_spec_from_values(
+        host, values, model_name=model, features=(), **options,
+    )
+    assert via_gui == direct
+    assert direct.door_indicator is None and direct.indicator_hole is None
+    assert direct.door_indicator_offset == (0.0, 0.0)
+    assert direct.use_box_distance is False
