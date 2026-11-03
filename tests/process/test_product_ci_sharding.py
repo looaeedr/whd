@@ -180,35 +180,28 @@ def test_each_selector_appears_in_exactly_one_shard(count):
 
 
 def test_issue2517_new_real_acceptance_suites_are_collected_and_run_exactly_once():
-    """New API, original GUI and DXF cases cannot disappear behind 21 green jobs."""
-    expected = {
-        "tests/test_issue2517_door_cell_preview_engine_api.py",
-        "tests/test_issue2517_receiving_endcap_corrupt_confirmed_feature_error_contract.py",
-        "tests/test_issue2517_box_body_baseline_face_public_api.py",
-        "tests/test_issue2517_box_body_face_editor_geometry_engine_api.py",
-        "tests/test_issue2517_endcap_hole_editor_shared_engine_source.py",
-        "tests/test_issue293_t5_hole_editor_routing.py",
-        "tests/test_issue2517_receiving_endcap_hole_context_api.py",
-        "tests/test_issue2517_confirmed_multi_door_verified_integration_api.py",
-        "tests/test_issue2517_confirmed_receiving_box_body_three_physical_dxf.py",
-        "tests/test_issue2517_project_feature_write_read_source_parity.py",
-        "tests/test_issue2517_door_indicator_dxf_source_parity.py",
-        "tests/test_issue2517_finalscene_family_control_source_parity.py",
+    """Every issue2517 source test must actually run under the existing CI."""
+    root = Path(__file__).resolve().parents[2]
+    issue_files = {
+        "tests/" + path.name
+        for path in (root / "tests").glob("test_issue2517_*.py")
     }
+    expected = issue_files | {"tests/test_issue293_t5_hole_editor_routing.py"}
+    assert len(issue_files) >= 297, "a relevant issue2517 test was removed"
     assert set(regression._ISSUE2517_ACCEPTANCE_PATHS) == expected
-    assert expected.isdisjoint(
-        set(PYTEST_PATHS) - set(regression._ISSUE2517_ACCEPTANCE_PATHS)
-    )
-    assert len(set(regression._ISSUE2517_ACCEPTANCE_OWNERS.values())) == len(expected)
-    assert set(regression._ISSUE2517_ACCEPTANCE_OWNERS.values()) == set(range(2, 14))
+    assert len(regression._ISSUE2517_ACCEPTANCE_PATHS) == len(expected)
+    assert expected.issubset(PYTEST_PATHS)
+    assert len(set(PYTEST_PATHS)) == len(PYTEST_PATHS)
+    assert set(regression._ISSUE2517_ACCEPTANCE_OWNERS.values()) == set(range(2, 18))
     for filename in expected:
-        assert (Path(__file__).resolve().parents[2] / filename).is_file()
+        assert (root / filename).is_file()
     seen = Counter(path for i in range(18) for path in shard_paths(i, 18))
     assert all(seen[filename] == 1 for filename in expected)
-    # Historical assignments must not change to fabricate measured seconds.
+    # Preserve immutable, measured October assignments and measured 304 count.
     manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
     assert set(manifest["file_owners"]).isdisjoint(expected)
     assert manifest["canonical_file_count"] == 304
+
 
 
 def test_measured_rebalance_keeps_all_exact_selectors_unchanged_and_whole():
