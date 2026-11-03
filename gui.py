@@ -1587,13 +1587,14 @@ class Phase6ApplicationHost:
                 })
                 val.update({axis: float(whd[axis]) for axis in ("w", "h", "d")})
             result = self._door_layout_cell_result(cell, val)
-            surface = feature_surface_from_structural_result("door", result)
-            # Use the exact DoorPartSpec shared with indicator-fit and export.
-            # Engine owns Family material FW and the finished-face geometry.
+            # The same DoorPartSpec drives both the editor and physical DXF.
+            # Engine owns the selected cell surface, finished-face reference
+            # guide, Fold datum and physical frame edges.
             door_spec = self._door_layout_part_spec(cell, val)
-            finished_w, finished_h = manufacturing_api.door_finished_face_size(door_spec)
-            reference_guide = build_finished_reference_guide(
-                "door", result, finished_width=finished_w, finished_height=finished_h,
+            baseline_scene, baseline_status = self._door_layout_baseline_scene(cell, val)
+            editor_geometry = manufacturing_api.project_operator_hole_editor_door_cell(
+                result, door_spec,
+                baseline_scene=baseline_scene, baseline_status=baseline_status,
             )
         except Exception as exc:
             messagebox.showerror("開孔失敗", str(exc))
@@ -1638,24 +1639,20 @@ class Phase6ApplicationHost:
                 if hasattr(self, "_request_phase6_update"):
                     self._request_phase6_update("geometry")
         indicator_state = self._door_layout_indicator_state_for_key(key)
-        indicator_context = DoorIndicatorContext(
-            finished_width=finished_w, finished_height=finished_h,
-            left_fold=val['door_fold_l'], bottom_fold=val['door_fold_b'],
-        )
-        baseline_scene, baseline_status = self._door_layout_baseline_scene(cell, val)
         self._open_unified_hole_editor(
             "door", f"門板 C{cell.column_index+1}-R{cell.row_index+1}",
-            surface, result.width, result.height,
-            reference_guide=reference_guide,
+            editor_geometry.surface, editor_geometry.width, editor_geometry.height,
+            reference_guide=editor_geometry.reference_guide,
             feature_list_override=features,
             sync_callback=sync_features,
             door_indicator_state=indicator_state,
-            door_indicator_context=indicator_context,
+            door_indicator_context=editor_geometry.door_indicator_context,
             door_indicator_commit=lambda state, key=key: self._apply_multi_door_indicator_state(key, state),
-            door_frame_edges=cell.edges, door_gap_w=val['door_gap_w'], door_gap_h=val['door_gap_h'],
+            door_frame_edges=editor_geometry.door_frame_edges, door_gap_w=val['door_gap_w'], door_gap_h=val['door_gap_h'],
             door_frame_width=val['fw'], door_thickness=val['t'],
             on_close=self.draw_door_layout_overview,
-            baseline_scene=baseline_scene, baseline_status_text=baseline_status,
+            baseline_scene=editor_geometry.baseline_scene,
+            baseline_status_text=editor_geometry.baseline_status,
             indicator_component_context_provider=lambda state, key=key, val=val: self._indicator_component_editor_contexts(
                 state, val,
                 box_features=self.door_layout_indicator_box_features.get(key, []),

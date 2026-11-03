@@ -77,16 +77,17 @@ def test_door_cell_editor_stages_features_until_explicit_sync(monkeypatch, exist
         lambda _host: None,
     )
     monkeypatch.setattr(
-        gui, "feature_surface_from_structural_result",
-        lambda *args: "door-surface",
-    )
-    monkeypatch.setattr(
-        gui, "build_finished_reference_guide",
-        lambda *args, **kwargs: "guide",
-    )
-    monkeypatch.setattr(
-        manufacturing_api, "door_finished_face_size",
-        lambda spec: (400.0, 650.0),
+        manufacturing_api, "project_operator_hole_editor_door_cell",
+        lambda result, spec, **kwargs: SimpleNamespace(
+            surface="door-surface", width=result.width, height=result.height,
+            reference_guide="guide",
+            door_indicator_context=SimpleNamespace(
+                finished_width=400.0, finished_height=650.0,
+            ),
+            door_frame_edges=object(),
+            baseline_scene=kwargs.get("baseline_scene"),
+            baseline_status=kwargs.get("baseline_status"),
+        ),
     )
     monkeypatch.setattr(gui.messagebox, "showerror", lambda *args:
                         pytest.fail("unexpected GUI failure " + repr(args)))
