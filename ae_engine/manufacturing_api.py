@@ -97,6 +97,12 @@ from .operator_quantity_manufacturing import (
     build_operator_quantity_manufacturing_requests,
     resolve_operator_quantity_manufacturing_batch,
 )
+from .project_feature_codec import (
+    _encode as encode_project_value,
+    _as_vec2 as project_vec2_from_raw,
+    _decode_feature as decode_project_feature,
+    _decode as decode_project_value,
+)
 from .workspace_state import (
     MANDATORY_PART, PART_ORDER, ACTIVE_REPAIR_POLICIES,
     normalize_existing_parts, _repair_active as repair_workspace_active_part,

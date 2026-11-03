@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：`.p6fold` 實體 Feature／Vec2 的編碼及重載經公開 `manufacturing_api.encode_project_value/decode_project_value`，原 GUI `phase6_project_file` 僅作檔案／JSON 傳輸層並保留舊名 aliases；wire 不變、未證實的製造不被賦予認證。
+
 > #2517（2026-11-03）：Main／Designer 的 physical Workspace 共用實體狀態改由公開 `manufacturing_api.SharedWorkspaceState`、`normalize_existing_parts` 與物理清單常數建立，GUI `phase6_workspace_state` 是相容別名，不再決定物理 presence、CustomPart ID 或結構；UI lifecycle 仍分離，原 Save→Reload 與製造不變。
 
 > #2517（2026-11-03）：受電箱模式初始狀態／切換由 `manufacturing_api.fresh_receiving_mode` 與 `manufacturing_api.ReceivingModeSession` 決定，GUI 原模組保留同名相容別名；初始實體板件清單共用 `manufacturing_api.DEFAULT_OPERATOR_EXISTING_PARTS`。不改既有 Save→Reload 格式或現行製造／外部 CLI 認證。
