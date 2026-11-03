@@ -13,14 +13,20 @@ from . import ae
 from .box_body_fold_profile import profile_to_fold_segments
 from .cabinet_types import policy as family_policy
 from .contracts import BoxBodyPartSpec
-from .endcap_xy_readback import fold_material_segment_outside_length
+from .endcap_xy_readback import project_manufacturing_endcap_bottom_fold_inputs
 
 
 def _endcap_lower_outside_value(rows, values):
-    """Select the existing Y/ybottom1 physical Fold, else operator fallback."""
-    for item in rows or ():
-        if str(item.get("phase6_key") or "") == "ybottom1":
-            return float(fold_material_segment_outside_length(item))
+    """Read the same validated manufacturing ybottom1 as the GUI adapter.
+
+    Source presence selects the real authored material/Fold. The historical
+    value fallback only applies when no ybottom1 row exists at all.
+    """
+    measured = project_manufacturing_endcap_bottom_fold_inputs({
+        "head": {"Y": rows or ()},
+    })
+    if "head_ybottom1" in measured:
+        return measured["head_ybottom1"]
     return float(values.get("ybottom1", ae.ybottom1_def))
 
 
