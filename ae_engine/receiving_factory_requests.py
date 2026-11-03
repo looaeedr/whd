@@ -17,12 +17,16 @@ from .box_body_operator_part_spec import build_box_body_operator_part_spec
 from .cabinet_types import policy as family_policy
 from .endcap_factory_fold import build_endcap_xy_fold_profiles
 from .endcap_operator_part_spec import build_endcap_operator_part_spec
+from .contracts import DoorPartSpec
+from .part_dimension_projection import door_part_projections
+from .sheetmetal_part_adapters import validate_door_layout_dimensions
 from .sheetmetal_geometry import FourCornerTypePolicy
 from .sheetmetal_feature_core import CircleFeature, RectFeature, ProfileFeature, FeatureAnchor
 
 _SOURCE_KEYS = frozenset(("w", "h", "d", "t"))
 _BOX_KEYS = ("fw", "zl1", "zl2", "zr2")
-_PARTS = ("box_body", "head", "tail")
+_CORE_PARTS = ("box_body", "head", "tail")
+_DOOR_VALUES = ("fw", "door_gap_w", "door_gap_h", "door_fold_l", "door_fold_r", "door_fold_t", "door_fold_b")
 _FAMILY = "受電箱"
 
 
@@ -133,11 +137,72 @@ def _saved_operator_state(source: dict[str, float], operator_snapshot):
     return saved, structure, body_rows, folds, policies
 
 
+
+def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation):
+    """Use explicit, confirmed Door topology and the existing Engine projector.
+
+    No source-panel labels, inferred upper/lower heights or preview-only holes
+    may enter canonical manufacturing. Empty columns preserve the old 3-role
+    source contract for callers that have not confirmed Doors.
+    """
+    if not confirmed_columns:
+        return ()
+    try:
+        cells = validate_door_layout_dimensions(
+            confirmed_columns, total_width=source["w"], total_height=source["h"],
+        )
+        if confirmation == "saved_operator_confirmed":
+            if values.get("multi_door_enabled") is not True:
+                raise ValueError("disabled saved Door layout")
+            saved_cells = validate_door_layout_dimensions(
+                values.get("door_layout_columns") or (),
+                total_width=source["w"], total_height=source["h"],
+            )
+            if cells != saved_cells:
+                raise ValueError("confirmed Door layout differs from saved state")
+            features = values.get("part_features") or {}
+            if not isinstance(features, Mapping):
+                raise ValueError("unverified saved Door features")
+            if any(features.get(f"door_c{cell.column_index + 1}_r{cell.row_index + 1}") for cell in cells):
+                raise ValueError("saved Door holes need separately confirmed Feature inputs")
+        for key in _DOOR_VALUES:
+            value = values[key]
+            if (type(value) not in (float, int) or not isfinite(float(value))
+                    or (float(value) <= 0 if key not in ("door_gap_w", "door_gap_h")
+                        else float(value) < 0)):
+                raise ValueError(f"invalid confirmed Door setting: {key}")
+        projections = door_part_projections({
+            **values, "model": _FAMILY, "multi_door_enabled": True,
+            "door_layout_columns": confirmed_columns,
+        })
+        if len(projections) != len(cells) or any(
+            row.formed_width <= 0 or row.formed_height <= 0
+            or not isfinite(row.formed_width) or not isfinite(row.formed_height)
+            for row in projections
+        ):
+            raise ValueError("invalid Door finished size")
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("RECEIVING_CONFIRMED_DOOR_SOURCE_INVALID") from exc
+
+    return tuple((cell.part_key, DoorPartSpec(
+        width=cell.start_width, height=cell.start_height,
+        thickness=float(values["t"]), frame_width=float(values["fw"]),
+        model_name=_FAMILY, gap_w=float(values["door_gap_w"]),
+        gap_h=float(values["door_gap_h"]),
+        fold_left=float(values["door_fold_l"]),
+        fold_right=float(values["door_fold_r"]),
+        fold_top=float(values["door_fold_t"]),
+        fold_bottom=float(values["door_fold_b"]),
+        frame_edges=cell.frame_edges, feature_space="finished_face",
+    )) for cell in projections)
+
+
 def build_receiving_factory_confirmed_parts(
     source_dimensions: Mapping[str, object], *,
     confirmation: str | None = None,
     operator_snapshot: Mapping[str, object] | None = None,
     confirmed_endcap_features: Mapping[str, object] | None = None,
+    confirmed_door_layout_columns=(),
 ):
     """Resolve a confirmed Receiving P1/Bay's Body, Head and Tail via WHD Engine.
 
@@ -214,5 +279,9 @@ def build_receiving_factory_confirmed_parts(
             box_body_structure_state=structure,
         )
         parts.append((part, spec))
-    assert tuple(key for key, _ in parts) == _PARTS
+    assert tuple(key for key, _ in parts) == _CORE_PARTS
+    parts.extend(_confirmed_door_parts(
+        values, source, tuple(confirmed_door_layout_columns or ()),
+        confirmation=confirmation,
+    ))
     return tuple(parts)

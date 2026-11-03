@@ -180,6 +180,8 @@ class ManufacturingResolvedBayInput:
     # Exclusive with resolved_geometry; the same Engine renderer resolves them.
     confirmed_parts: tuple[tuple[str, PartSpec], ...] = ()
     door_layout_columns: tuple[tuple[float, tuple[float, ...]], ...] = ()
+    # Optional explicitly confirmed Door topology; same Engine multi-Door PartSpec
+    # and verified DXF path, never inferred from a DXF source-panel label.
     # Additive Engine-owned request path: source provides only original outside
     # W/H/D/T and the saved/fresh operator decision. CADSplit must not assemble
     # FW/Fold/Corner or typed physical manufacturing PartSpecs.
@@ -400,8 +402,7 @@ def export_verified_resolved_integration_bays(
         if source_request:
             # This is the SAME previously certified verified-geometry/physical
             # DXF route, not a new exporter or a source-only authorization.
-            if (item.confirmed_parts or item.resolved_geometry is not None
-                    or item.door_layout_columns):
+            if item.confirmed_parts or item.resolved_geometry is not None:
                 raise ValueError("RECEIVING_AMBIGUOUS_MANUFACTURING_INPUT")
             if item.source_dimensions_mm is None:
                 raise ValueError("RECEIVING_SOURCE_DIMENSIONS_REQUIRED")
@@ -412,11 +413,13 @@ def export_verified_resolved_integration_bays(
                 confirmation=item.operator_confirmation,
                 operator_snapshot=item.operator_snapshot,
                 confirmed_endcap_features=item.confirmed_endcap_features,
+                confirmed_door_layout_columns=item.door_layout_columns,
             )
             resolved_geometry = _resolve_confirmed_integration_parts(
                 confirmed_parts,
                 family_name=registration.canonical_name,
                 context=context or ManufacturingContext(),
+                door_layout_columns=item.door_layout_columns,
             )
         elif item.confirmed_parts:
             if item.resolved_geometry is not None:
