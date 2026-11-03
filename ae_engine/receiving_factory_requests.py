@@ -30,38 +30,65 @@ _DOOR_VALUES = ("fw", "door_gap_w", "door_gap_h", "door_fold_l", "door_fold_r", 
 _FAMILY = "受電箱"
 
 
-def _confirmed_endcap_source_features(raw):
-    """Accept explicitly confirmed Head/Tail CUTTING Features in finished-face mm."""
+def _confirmed_finished_face_cutting_features(raw, *, allowed_roles, invalid_code):
+    """Validate explicitly source-confirmed CUTTING in finished-face coordinates."""
     if raw is None:
         return {}
-    if not isinstance(raw, Mapping) or set(raw) - {"head", "tail"}:
-        raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+    if not isinstance(raw, Mapping) or set(raw) - set(allowed_roles):
+        raise ValueError(invalid_code)
     result = {}
     for role, rows in raw.items():
         if not isinstance(rows, (tuple, list)):
-            raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+            raise ValueError(invalid_code)
         for feature in rows:
             if not isinstance(feature, (CircleFeature, RectFeature, ProfileFeature)):
-                raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+                raise ValueError(invalid_code)
             if feature.anchor is not FeatureAnchor.ABSOLUTE_FINISHED_FACE or feature.layer != "CUTTING":
-                raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+                raise ValueError(invalid_code)
             coords = [feature.offset.x, feature.offset.y]
             if isinstance(feature, CircleFeature):
                 coords.append(feature.diameter)
                 if type(feature.diameter) not in (int, float) or feature.diameter <= 0:
-                    raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+                    raise ValueError(invalid_code)
             elif isinstance(feature, RectFeature):
                 coords.extend((feature.width, feature.height))
                 if any(type(v) not in (int, float) or v <= 0 for v in (feature.width, feature.height)):
-                    raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+                    raise ValueError(invalid_code)
             else:
                 if len(feature.points) < 3:
-                    raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+                    raise ValueError(invalid_code)
                 coords.extend(a for point in feature.points for a in (point.x, point.y))
             if any(type(v) not in (int, float) or not isfinite(float(v)) for v in coords):
-                raise ValueError("RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID")
+                raise ValueError(invalid_code)
         result[role] = tuple(deepcopy(rows))
     return result
+
+
+def _confirmed_endcap_source_features(raw):
+    return _confirmed_finished_face_cutting_features(
+        raw, allowed_roles={"head", "tail"},
+        invalid_code="RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID",
+    )
+
+
+def _confirmed_door_source_features(raw, *, part_keys):
+    """Only Engine physical Door cell IDs may carry confirmed CUTTING inputs."""
+    code = "RECEIVING_DOOR_SOURCE_FEATURES_INVALID"
+    try:
+        verified = _confirmed_finished_face_cutting_features(
+            raw, allowed_roles=set(part_keys), invalid_code=code,
+        )
+        for rows in verified.values():
+            for item in rows:
+                # Layered profiles can otherwise embed an unconfirmed second
+                # operation even when their primary feature says CUTTING.
+                if isinstance(item, ProfileFeature) and item.layered_profiles:
+                    raise ValueError(code)
+                if type(item.rotation_deg) is not int:
+                    raise ValueError(code)
+    except (AttributeError, TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(code) from exc
+    return verified
 
 
 def _source_dimensions(value: Mapping[str, object]) -> dict[str, float]:
@@ -138,7 +165,7 @@ def _saved_operator_state(source: dict[str, float], operator_snapshot):
 
 
 
-def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation):
+def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation, confirmed_features=None):
     """Use explicit, confirmed Door topology and the existing Engine projector.
 
     No source-panel labels, inferred upper/lower heights or preview-only holes
@@ -160,11 +187,6 @@ def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation):
             )
             if cells != saved_cells:
                 raise ValueError("confirmed Door layout differs from saved state")
-            features = values.get("part_features") or {}
-            if not isinstance(features, Mapping):
-                raise ValueError("unverified saved Door features")
-            if any(features.get(f"door_c{cell.column_index + 1}_r{cell.row_index + 1}") for cell in cells):
-                raise ValueError("saved Door holes need separately confirmed Feature inputs")
         for key in _DOOR_VALUES:
             value = values[key]
             if (type(value) not in (float, int) or not isfinite(float(value))
@@ -184,6 +206,21 @@ def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation):
     except (KeyError, TypeError, ValueError, OverflowError) as exc:
         raise ValueError("RECEIVING_CONFIRMED_DOOR_SOURCE_INVALID") from exc
 
+    features_by_part = _confirmed_door_source_features(
+        confirmed_features, part_keys=(cell.part_key for cell in projections),
+    )
+    if confirmation == "saved_operator_confirmed":
+        saved_features = values.get("part_features") or {}
+        if not isinstance(saved_features, Mapping):
+            raise ValueError("RECEIVING_SAVED_DOOR_SOURCE_FEATURES_MISMATCH")
+        for cell in projections:
+            saved_rows = saved_features.get(cell.part_key) or ()
+            if saved_rows and (
+                not isinstance(saved_rows, (list, tuple))
+                or tuple(saved_rows) != features_by_part.get(cell.part_key)
+            ):
+                raise ValueError("RECEIVING_SAVED_DOOR_SOURCE_FEATURES_MISMATCH")
+
     return tuple((cell.part_key, DoorPartSpec(
         width=cell.start_width, height=cell.start_height,
         thickness=float(values["t"]), frame_width=float(values["fw"]),
@@ -194,6 +231,7 @@ def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation):
         fold_top=float(values["door_fold_t"]),
         fold_bottom=float(values["door_fold_b"]),
         frame_edges=cell.frame_edges, feature_space="finished_face",
+        features=features_by_part.get(cell.part_key, ()),
     )) for cell in projections)
 
 
@@ -203,6 +241,7 @@ def build_receiving_factory_confirmed_parts(
     operator_snapshot: Mapping[str, object] | None = None,
     confirmed_endcap_features: Mapping[str, object] | None = None,
     confirmed_door_layout_columns=(),
+    confirmed_door_features: Mapping[str, object] | None = None,
 ):
     """Resolve a confirmed Receiving P1/Bay's Body, Head and Tail via WHD Engine.
 
@@ -225,6 +264,8 @@ def build_receiving_factory_confirmed_parts(
     features_by_role = _confirmed_endcap_source_features(confirmed_endcap_features)
     if confirmation not in ("fresh_family_confirmed", "saved_operator_confirmed"):
         raise ValueError("RECEIVING_OPERATOR_CONFIRMATION_REQUIRED")
+    if confirmed_door_features is not None and not confirmed_door_layout_columns:
+        raise ValueError("RECEIVING_DOOR_LAYOUT_REQUIRED_FOR_FEATURES")
 
     if confirmation == "fresh_family_confirmed":
         if operator_snapshot is not None:
@@ -282,6 +323,6 @@ def build_receiving_factory_confirmed_parts(
     assert tuple(key for key, _ in parts) == _CORE_PARTS
     parts.extend(_confirmed_door_parts(
         values, source, tuple(confirmed_door_layout_columns or ()),
-        confirmation=confirmation,
+        confirmation=confirmation, confirmed_features=confirmed_door_features,
     ))
     return tuple(parts)

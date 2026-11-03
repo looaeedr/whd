@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517 2026-11-03：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_features={"door_c1_r1": (CircleFeature(...),)})` 與原 `ManufacturingResolvedBayInput.confirmed_door_features` 共用已確認的 Door 來源；孔位必須是 finished-face CUTTING typed Feature／正式實體門格 ID，已保存孔位需完全一致。實際出口仍為 `export_verified_resolved_integration_bays` 的同一 Engine FinalScene／DXF reopen；未放行 source-only CLI／整套 NFB。
+
 > #2517（2026-11-03）：`.p6fold` 實體 Feature／Vec2 的編碼及重載經公開 `manufacturing_api.encode_project_value/decode_project_value`，原 GUI `phase6_project_file` 僅作檔案／JSON 傳輸層並保留舊名 aliases；wire 不變、未證實的製造不被賦予認證。
 
 > #2517（2026-11-03）：Main／Designer 的 physical Workspace 共用實體狀態改由公開 `manufacturing_api.SharedWorkspaceState`、`normalize_existing_parts` 與物理清單常數建立，GUI `phase6_workspace_state` 是相容別名，不再決定物理 presence、CustomPart ID 或結構；UI lifecycle 仍分離，原 Save→Reload 與製造不變。

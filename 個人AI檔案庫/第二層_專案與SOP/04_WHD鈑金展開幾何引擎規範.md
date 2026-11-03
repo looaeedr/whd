@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 已確認 Receiving Door 孔位來源沿用既有 Engine Feature／DXF（2026-11-03）
+
+- `manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_layout_columns=..., confirmed_door_features=...)` 及既有 `ManufacturingResolvedBayInput.confirmed_door_features` 讓明確已確認的 `door_cN_rN` 實體門格 CUTTING Feature 進入原有 `DoorPartSpec(feature_space="finished_face")`，由既有 Engine finished-face→材料投影、FinalScene、DXF Save→Reload/reopen 製造；**不建立 CADSplit 專用 exporter**。
+- 僅接收合法 Door 實體 ID、typed Circle/Rect/Profile Feature、`ABSOLUTE_FINISHED_FACE` 來源座標及 `CUTTING` 圖層；未確認 Door 拓樸、非法／NaN 幾何、錯誤 Role、混入其他加工層／layered profile 均拒絕。舊 `confirmed_endcap_features` 使用相同 Engine finished-face 檢核語意，既有 Head/Tail API 保持相容。
+- `saved_operator_confirmed` 之已存 `part_features` 不允許被空 Features 默默取代：任何已存非空門孔必須與本次顯式確認的 typed Feature 逐件一致，否則先拒絕、不寫 DXF；沒有保存孔位的 Fresh／Saved 操作仍維持原本結果。
+- 驗收 `tests/test_issue2517_receiving_confirmed_door_cutting_source.py`：確認門孔與 HEADLESS 同一 Spec／DXF 重開、保存態來源一致性、非法操作拒絕、Source-only 原拒絕保持。這只認證**實際出圖的板件**，不是完整 Set/Bay/NFB、外部 source-only CLI 或正式 X 的製造放行；#2517 OPEN。
+
+
 ## [CURRENT] #2517 .p6fold Feature／Vec2 序列化與來源還原由 Engine 公開 API 擁有（2026-11-03）
 
 - `phase6_project_file` 原有 `_encode/_decode/_decode_feature/_as_vec2` 全部以**原語意**搬到 `ae_engine.project_feature_codec`，透過 `manufacturing_api.encode_project_value`、`decode_project_value`、`decode_project_feature`、`project_vec2_from_raw` 公開；舊 GUI 名稱僅是相同物件 aliases，GUI 只操作 FilePath/JSON 文字傳輸與 Windows 檔案關聯。Circle/Rect/Profile Feature 與 Vec2 的反序列化和 Anchor/offset/source_params/layered_profiles 語意不再由 GUI 定義。

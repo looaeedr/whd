@@ -7,6 +7,8 @@ whd_schema: WHD_DOC_META_V1
 
 # WHD × CADSplit API 架構與權威整合說明
 
+> #2517 2026-11-03 增量：已確認 Receiving 門格孔位經原 `ManufacturingResolvedBayInput.confirmed_door_features` → `manufacturing_api.build_receiving_factory_confirmed_parts` → DoorPartSpec／FinalScene／verified DXF。只接受已確認 `door_cN_rN` 的 finished-face CUTTING Feature，保存孔位若不一致則拒絕，不得把未確認來源變空孔；無新 CADSplit exporter 或 source-only CLI 認證。
+
 > #2517（2026-11-03）：在原 `ManufacturingResolvedBayInput` 上提供已確認 `door_layout_columns` 時，來源 W/H/D/T 與經確認的 Family／已存操作狀態可由 `manufacturing_api.build_receiving_factory_confirmed_parts` 建立受電箱上下門 `DoorPartSpec`，沿用現有 verified Engine DXF。門格總 W/H、保存拓樸、未確認 Door 孔位均 fail closed；未提供門格時沿用原三種主板件。此為既有 Python Engine API 的加法能力，非 source-only CLI 放行，也非整套製造驗收。
 
 > **文件性質：權威來源整合版（REFERENCE，不是第二份 CURRENT）**  

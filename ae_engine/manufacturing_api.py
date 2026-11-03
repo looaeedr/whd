@@ -1711,6 +1711,7 @@ def build_box_body_operator_part_spec(
 def build_receiving_factory_confirmed_parts(
     source_dimensions, *, confirmation=None, operator_snapshot=None,
     confirmed_endcap_features=None, confirmed_door_layout_columns=(),
+    confirmed_door_features=None,
 ):
     """Public WHD Engine source W/H/D/T -> confirmed Receiving PartSpec boundary.
 
@@ -1724,6 +1725,7 @@ def build_receiving_factory_confirmed_parts(
         operator_snapshot=operator_snapshot,
         confirmed_endcap_features=confirmed_endcap_features,
         confirmed_door_layout_columns=confirmed_door_layout_columns,
+        confirmed_door_features=confirmed_door_features,
     )
 
 
