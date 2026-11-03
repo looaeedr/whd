@@ -20,7 +20,7 @@ from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine import manufacturing_api
 from ae_engine.manufacturing_api import (
     DoorPartProjection, door_part_projections, project_part_dimensions,
-    build_standard_part_fold_profiles, merge_keyed_fold_profiles,
+    merge_keyed_fold_profiles,
 )
 from ae_engine.sheetmetal_part_adapters import (
     DoorFrameEdges,
@@ -160,12 +160,8 @@ def is_derived_physical_part_key(value: object) -> bool:
 def build_standard_part_profiles(
     snapshot: Mapping[str, object], part_key: str,
 ) -> dict[str, list[dict]]:
-    """Settings view routes custom extension or forwards standard Fold to Engine."""
-    from phase6_custom_parts import is_custom_part
-    if is_custom_part(part_key):
-        from phase6_custom_fold_profiles import build_custom_part_profiles
-        return build_custom_part_profiles(snapshot, part_key)
-    return build_standard_part_fold_profiles(snapshot, part_key)
+    """GUI compatibility: Engine alone selects persisted CustomFold or standard Fold."""
+    return manufacturing_api.build_operator_default_part_fold_profiles(snapshot, part_key)
 
 
 def merge_keyed_profiles(existing_profiles, default_profiles):
