@@ -89,9 +89,9 @@ def test_legacy_settings_fallback_uses_same_source_validation(invalid):
     assert saved == before
 
 
-def test_existing_endcap_fold_has_priority_over_invalid_unused_legacy_fallback():
+def test_existing_endcap_fold_has_priority_over_other_valid_legacy_fallback():
     saved = _snapshot()
-    saved["ybottom1"] = False
+    saved["ybottom1"] = 10.0
     before = deepcopy(saved)
     spec = _build(saved)
     actual = api.project_manufacturing_endcap_bottom_fold_inputs(
