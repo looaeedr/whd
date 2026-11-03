@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Main GUI Settings W/H/D/T/FW 來源及布林轉換由 Engine API 驗證（2026-11-03）
+
+- `phase6_settings_center._coerce` 不再以 Python `float(raw)` 接收金庫型／受電箱的 `W/H/D/T/FW` 實體輸入，也不再將無法辨識的 UI/INI 布林文字直接轉成 `False`；物理來源鍵以 `manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS` 公開的 Engine 唯一契約判斷，原始欄位值透過 `normalize_operator_source_dimension(raw, field=...)` 和 `normalize_operator_settings_boolean(raw)`。
+- 這一移轉沿用既有 Engine 數值規則：原有合法小數與字串數字維持精度；`True/False` 不充當毫米、`NaN/Inf`、零與負包外 W/H/D/T/FW 不可被誤存到已提交 Settings 或 `config.ini`。既有 `SettingsService.update` 遇到不合法來源時延續 skip，不得將該欄位寫入 runtime；顯式 `apply_settings_to_ae`／INI 寫入則在變更前依現有呼叫方式拒絕。UI `ui_text_size` 仍由 GUI 處理，其餘未定義正負製造語意的舊 scalar 不擅改允許範圍。
+- 驗收 `tests/test_issue2517_settings_center_physical_source_engine_api.py`，回歸 Settings 主 GUI、Fold Designer 共用物理來源、Save→Reload 和 DXF 正式 Engine 路徑。不新增 Family 公式、CUTTING／BEND 作業入口、替代 DXF exporter 或 source-only CLI 認證。#2517 OPEN。
+
+
 ## [CURRENT] #2517 固定孔／Relief／舊底板縮量 runtime 更新統一由 Engine 公開 API 擁有（2026-11-03）
 
 - `phase6_settings_center.apply_settings_to_ae` 只負責 SettingSpec→AE 模組操作輸入欄位的寫入；原本在 GUI 層依 `RELIEF_CONFIG`、`VAULT_ENDCAP_FEATURE_POLICY` 重建正式製造特徵並決定 BasePlate 四邊同縮的舊版共用值，已原語意移至 `ae_engine.operator_settings_transactions.apply_operator_legacy_runtime_manufacturing_policies`，經 `manufacturing_api` 正式公開。金庫型固有 EndCap 掛孔、方孔、底孔從原 `ae_engine.sheetmetal_features.VaultEndCapFeaturePolicy` 來源讀回；Receiving 仍**不**套用 Vault 固定孔。
