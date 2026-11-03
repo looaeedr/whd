@@ -8,18 +8,18 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from .manufacturing_export_selection import select_resolved_export_geometry
+from .cabinet_types.policy import canonical_family_name
 
 
 def selected_export_manufacturing_policy(receiving_snapshot, flags):
     """Engine-owned classification of Receiving NFB and side manufacturing."""
-    auto_side = (
-        bool(flags.get("box_body"))
-        and receiving_snapshot.get("model") == "受電箱"
-        and receiving_snapshot.get("nfb_config_submitted") is True
-    )
+    # The existing Family Registry decides the physical export route; aliases
+    # must never suppress current committed NFB/EAR verification.
+    receiving = canonical_family_name(receiving_snapshot) == "受電箱"
+    committed = receiving_snapshot.get("nfb_config_submitted") is True
+    auto_side = bool(flags.get("box_body")) and receiving and committed
     committed_csv = ()
-    if (receiving_snapshot.get("model") == "受電箱"
-            and receiving_snapshot.get("nfb_config_submitted") is True):
+    if receiving and committed:
         from .receiving_nfb_committed_final_scene import _submitted_csv_holes
         committed_csv = _submitted_csv_holes(receiving_snapshot)
     return auto_side, committed_csv
@@ -44,7 +44,7 @@ def plan_selected_resolved_export_route(
     if not isinstance(snapshot, Mapping) or not isinstance(flags, Mapping):
         raise TypeError("SELECTED_EXPORT_ROUTE_SNAPSHOT_REQUIRED")
     guard_flags = tuple((str(key), bool(value)) for key, value in flags.items())
-    if snapshot.get("model") == "金庫型" and group_mode is not None:
+    if canonical_family_name(snapshot) == "金庫型" and group_mode is not None:
         return SelectedResolvedExportRoute(True, guard_flags)
 
     auto_side, committed_csv = selected_export_manufacturing_policy(snapshot, flags)
