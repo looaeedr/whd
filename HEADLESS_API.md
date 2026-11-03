@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：`manufacturing_api.apply_operator_legacy_runtime_manufacturing_policies` 統一舊 AE Relief 與 Vault EndCap 固定孔 Policy 更新；`operator_legacy_shared_base_plate_shrink` 統一四邊同縮相容的 runtime/INI 決策。GUI SettingsService 仍傳輸／存檔，不自行重建 CUTTING Policy，無新製造出口。
+
 > #2517（2026-11-03）：`manufacturing_api.plan_operator_external_model_change`、`replace_corner_state`、`operator_receiving_navigation_only_sync_change` 已分別接手 GUI 的外部箱型判斷、Corner 保存態與 Receiving Set/Bay 只導覽 physical state 決定；原 GUI 同名函式僅委派，無新增 CUTTING／BEND／DXF 製造放行。
 
 > #2517（2026-11-03）：GUI 與 Engine Settings Plan 的標準／自訂板件預設 X/Y Fold 共用公開 manufacturing_api.build_operator_default_part_fold_profiles(snapshot, part_key)。自訂板件缺少合法 metadata 不得回退成標準 Fold；Head/Tail 原專屬 API 與 DXF 認證不變。

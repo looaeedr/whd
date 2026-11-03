@@ -6,7 +6,7 @@ absolute or replaced with a default during a Save/Reload transaction.
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, is_dataclass, replace
 import math
 from typing import Mapping
 
@@ -207,3 +207,93 @@ def project_receiving_manufacturing_request_settings(
                 working_box[axis], field=axis,
             )
     return result
+
+
+def operator_legacy_shared_base_plate_shrink(values: Mapping[str, object]) -> float | None:
+    """Preserve the old shared INI/runtime shrink only for four matching edges.
+
+    Modern per-edge input stays authoritative. No manufacturing geometry or
+    fabricated missing edge values are inferred from the legacy scalar.
+    """
+    shrink_keys = (
+        "base_plate_shrink_top", "base_plate_shrink_bottom",
+        "base_plate_shrink_left", "base_plate_shrink_right",
+    )
+    if all(k in values for k in shrink_keys):
+        vals = [float(values[k]) for k in shrink_keys]
+        if max(vals) - min(vals) < 1e-9:
+            return vals[0]
+    return None
+
+
+def apply_operator_legacy_runtime_manufacturing_policies(
+    ae_module, values: Mapping[str, object], *, relief_changes: Mapping[str, object] | None = None,
+) -> None:
+    """Engine owns live Relief and Vault EndCap fixed-hole material policy.
+
+    Called after the UI has transmitted normalized scalar settings to the
+    existing AE runtime adapter. Preserves the original legacy readback,
+    dataclass replacement, and absence behavior; no parallel exporter.
+    """
+    relief_changes = dict(relief_changes or {})
+    if relief_changes:
+        current = getattr(ae_module, "RELIEF_CONFIG", None)
+        if current is not None:
+            try:
+                if is_dataclass(current):
+                    current = replace(current, **relief_changes)
+                else:
+                    for name, value in relief_changes.items():
+                        setattr(current, name, value)
+                setattr(ae_module, "RELIEF_CONFIG", current)
+            except Exception:
+                # A custom/frozen non-dataclass engine object may not be mutable;
+                # persistence still succeeds and explicit PartSpec values remain safe.
+                pass
+
+    # Fixed EndCap holes are consumed through a policy object created at engine
+    # import time.  Rebuild that object too, otherwise editing the hidden HOLES
+    # values would update module scalars but not the actual preview/DXF geometry.
+    fixed_hole_keys = {
+        "hang_hole_r", "hang_hole_y_up", "sq_x_left", "sq_y_bottom",
+        "sq_width", "sq_height", "bottom_hole_r", "bottom_hole_y",
+    }
+    if fixed_hole_keys.intersection(values):
+        policy = getattr(ae_module, "VAULT_ENDCAP_FEATURE_POLICY", None)
+        if policy is not None:
+            def point_like(current, x, y):
+                try:
+                    return type(current)(float(x), float(y))
+                except Exception:
+                    return (float(x), float(y))
+            changes = {
+                "hanging_hole_radius": float(getattr(ae_module, "hang_hole_r", 3.2)),
+                "hanging_hole_y_from_top_bend": float(getattr(ae_module, "hang_hole_y_up", 6.0)),
+                "square_hole_origin": point_like(
+                    getattr(policy, "square_hole_origin", (3.0, 18.0)),
+                    getattr(ae_module, "sq_x_left", 3.0), getattr(ae_module, "sq_y_bottom", 18.0),
+                ),
+                "square_hole_size": point_like(
+                    getattr(policy, "square_hole_size", (4.0, 4.0)),
+                    getattr(ae_module, "sq_width", 4.0), getattr(ae_module, "sq_height", 4.0),
+                ),
+                "tail_bottom_hole_radius": float(getattr(ae_module, "bottom_hole_r", 2.5)),
+                "tail_bottom_hole_y": float(getattr(ae_module, "bottom_hole_y", 5.0)),
+            }
+            try:
+                if is_dataclass(policy):
+                    policy = replace(policy, **changes)
+                else:
+                    for name, value in changes.items():
+                        setattr(policy, name, value)
+                setattr(ae_module, "VAULT_ENDCAP_FEATURE_POLICY", policy)
+            except Exception:
+                pass
+
+    # Maintain legacy shared base-plate default only when the four edge values
+    # are equal; explicit runtime GUI values remain authoritative otherwise.
+    legacy_shrink = operator_legacy_shared_base_plate_shrink(values)
+    if legacy_shrink is not None:
+        setattr(ae_module, "base_plate_shrink_def", legacy_shrink)
+
+
