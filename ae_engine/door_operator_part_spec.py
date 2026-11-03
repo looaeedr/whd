@@ -79,6 +79,16 @@ def build_door_operator_part_spec(
             door_indicator_offset[0], door_indicator_offset[1],
         )
         distance_mode = normalize_operator_settings_boolean(use_box_distance)
+    opening = (
+        None if indicator_hole is None else (
+            normalize_operator_source_dimension(
+                indicator_hole[0], field="w",
+            ),
+            normalize_operator_source_dimension(
+                indicator_hole[1], field="h",
+            ),
+        )
+    )
     groups = (
         normalize_fold_designer_indicator_groups(indicator_window_groups)
         if indicator_window_groups else None
@@ -106,7 +116,7 @@ def build_door_operator_part_spec(
         frame_edges=frame_edges or DoorFrameEdges(),
         features=tuple(features or ()),
         feature_space="legacy_unfolded",
-        indicator_hole=indicator_hole,
+        indicator_hole=opening,
         door_indicator=indicator,
         door_indicator_offset=offsets,
         use_box_distance=distance_mode,
