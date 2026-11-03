@@ -1567,9 +1567,9 @@ class Phase6ApplicationHost:
                 pass
 
         self.door_layout_selected_var.set(f"{int(column_index)}:{int(row_index)}")
-        cell = self.get_selected_door_layout_cell()
-        key = self._door_layout_cell_key(cell)
         try:
+            cell = self.get_selected_door_layout_cell()
+            key = self._door_layout_cell_key(cell)
             val = self.get_float_values()
             # The host's main-Settings W/H/D may intentionally differ from
             # the active Receiving designer. Project current Bay/Quantity
@@ -1585,7 +1585,9 @@ class Phase6ApplicationHost:
                     )
                     if key in snapshot
                 })
-                val.update({axis: float(whd[axis]) for axis in ("w", "h", "d")})
+                # Forward validated live source without GUI coercion (bool
+                # must never become a valid-looking 1-mm manufactured value).
+                val.update({axis: whd[axis] for axis in ("w", "h", "d")})
             result = self._door_layout_cell_result(cell, val)
             # The same DoorPartSpec drives both the editor and physical DXF.
             # Engine owns the selected cell surface, finished-face reference
@@ -1600,7 +1602,7 @@ class Phase6ApplicationHost:
             messagebox.showerror("開孔失敗", str(exc))
             return
         designer = getattr(self, 'fold_designer_app', None)
-        physical_key = f'door_c{cell.column_index + 1}_r{cell.row_index + 1}'
+        physical_key = manufacturing_api.door_layout_part_key(cell)
         workspace = getattr(designer, 'designer_workspace', None)
         # Stage edits in a detached list; only sync_features commits them.
         features = list(
