@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from .physical_part_identity import is_box_body_physical_piece_key
 from .custom_part_catalog import is_custom_part
+from .cabinet_types.policy import canonical_family_name
 from .receiving_base_plate_config import receiving_base_plate_values
 from .receiving_base_fixing_plate import receiving_base_fixing_plate_previews
 
@@ -72,10 +73,12 @@ def plan_operator_manufacturing_part_source(part_key, *, has_saved_profiles=True
 def canonical_manufacturing_request_part_keys(snapshot, available_parts):
     """Resolve source-backed RAW canonical inputs, preserving legacy order."""
     values = tuple(available_parts or ())
-    if (isinstance(snapshot, Mapping)
-            and snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("nfb_config_submitted") is True
-            and "base_plate" not in values):
+    receiving_submitted = (
+        isinstance(snapshot, Mapping)
+        and canonical_family_name(snapshot) == "受電箱"
+        and snapshot.get("nfb_config_submitted") is True
+    )
+    if receiving_submitted and "base_plate" not in values:
         try:
             source = receiving_base_plate_values(snapshot)
         except (ValueError, TypeError, KeyError):
@@ -83,9 +86,7 @@ def canonical_manufacturing_request_part_keys(snapshot, available_parts):
         if source is not None:
             values = values + ("base_plate",)
 
-    if (isinstance(snapshot, Mapping)
-            and snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("nfb_config_submitted") is True
+    if (receiving_submitted
             and isinstance(snapshot.get("nfb_config"), Mapping)
             and snapshot["nfb_config"].get("layer_count") == 2):
         try:
