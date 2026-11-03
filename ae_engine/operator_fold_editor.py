@@ -9,12 +9,37 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+from math import isfinite
 from types import MappingProxyType
 from typing import Mapping, Sequence
 
 from .box_body_fold_profile import apply_outside_dimension_compensation, _num
 from .box_body_editor_readback import box_body_ui_segment_length_to_material, can_remove_box_body_fold_segment
 from .endcap_xy_readback import fold_material_segment_outside_length
+
+
+def _finite_operator_fold_number(raw, *, field):
+    """Preserve real numeric Fold input; never reinterpret invalid as zero."""
+    if isinstance(raw, bool):
+        raise ValueError(f"FOLD_EDITOR_SOURCE_INVALID:{field}")
+    try:
+        number = float(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"FOLD_EDITOR_SOURCE_INVALID:{field}") from exc
+    if not isfinite(number):
+        raise ValueError(f"FOLD_EDITOR_SOURCE_INVALID:{field}")
+    return raw if type(raw) in (int, float) else number
+
+
+def normalize_operator_fold_editor_control(raw, *, field):
+    """Public Engine parser for the legacy whole-mm Fold editor controls.
+
+    Use the same round-to-integer convention as the old UI on valid inputs,
+    but never turn a malformed length or angle into a fabricated zero.
+    """
+    if field not in ("len", "angle"):
+        raise ValueError("FOLD_EDITOR_CONTROL_FIELD_INVALID")
+    return int(round(_finite_operator_fold_number(raw, field=field)))
 
 
 def commit_operator_fold_editor_rows(
@@ -30,20 +55,23 @@ def commit_operator_fold_editor_rows(
     """
     source = tuple(old_segments)
     edits = tuple(operator_rows)
+    physical_t = _finite_operator_fold_number(thickness, field="thickness")
+    if physical_t <= 0:
+        raise ValueError("FOLD_EDITOR_SOURCE_INVALID:thickness")
     topology: list[dict] = []
     for row in edits:
         seg = {"len": 0}
         if "angle" in row:
-            ui_angle = row["angle"]
+            ui_angle = _finite_operator_fold_number(row["angle"], field="angle")
             engine_angle = -ui_angle if ui_angle in (90, -90) else ui_angle
             seg["angle"] = engine_angle
         topology.append(seg)
-    apply_outside_dimension_compensation(topology, thickness)
+    apply_outside_dimension_compensation(topology, physical_t)
 
     new_segments: list[dict] = []
     for index, row in enumerate(edits):
         old = source[index] if index < len(source) else {}
-        ui_length = row["len"]
+        ui_length = _finite_operator_fold_number(row["len"], field="len")
         conversion = dict(old)
         conversion["ui_len_add"] = topology[index].get("ui_len_add", 0)
         length = box_body_ui_segment_length_to_material(
@@ -59,7 +87,7 @@ def commit_operator_fold_editor_rows(
                 segment[key] = old[key]
         new_segments.append(segment)
 
-    apply_outside_dimension_compensation(new_segments, thickness)
+    apply_outside_dimension_compensation(new_segments, physical_t)
     return new_segments
 
 
