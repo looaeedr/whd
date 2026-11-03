@@ -16,6 +16,7 @@ whd_schema: WHD_DOC_META_V1
 
 - `phase6_project_file.read_project` 的 Feature／Vec2 還原只經公開 `manufacturing_api.decode_project_value`、`decode_project_feature`、`project_vec2_from_raw`，唯一實作在 `ae_engine.project_feature_codec`。有標記的實體 `Vec2` 及孔位 Feature 的明確 `offset`／Profile 頂點與輪廓座標均需提供完整 X/Y，且不得是 bool、NaN、Infinity、不可轉成有限數字或溢位來源；不可把遺漏的 X/Y 靜默補成 0，亦不得 `True → 1 mm`。外來損壞專案在回讀即拒絕，而非產出移位的 CUTTING 孔。
 - 沿用舊專案合法數字字串、完整 X/Y 陣列、Vec2 原物件及**整個 Feature.offset 欄位缺席**時的既有明確零偏移預設；不更動已確認 Feature Anchor、Family、2D／3D／DXF 幾何算法或外部 source-only 認證。正常受電箱確認門孔沿原 `confirmed_door_features` → DoorPartSpec／FinalScene → verified DXF Save→Reload 測試；非法儲存來源 fail-closed，不宣稱整套 #2517 已完成。
+- 同一 Engine `project_feature_codec._decode_feature` 的明確 Circle 直徑、Rect 寬高，只接受有限且非 bool 的數值來源（支援合法數字字串）；不可將 `True` 變成 1 mm 或把 NaN／Infinity 作為實體孔尺寸。保存的 Profile layered CUTTING 輪廓 `closed` 僅接受真正布林及舊 JSON 數字 0／1，不可由 `bool("false")` 偷轉成閉合切割。零／負數草稿尺寸保留原始數值，實際製造是否可用由既有幾何／Fit Gate 獨立審核，不在 codec 另造幾何。正常門孔沿原 verified DXF Save→Reload，非法已儲存 Feature 應在 `.p6fold` 回讀即拒絕。
 
 ## [CURRENT] #2517 Receiving Bay 3D 製造預覽 Fold／Joint／箱身結構種子移入公開 Engine（2026-11-03）
 
