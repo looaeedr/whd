@@ -525,6 +525,29 @@ PYTEST_PATHS = (
 )
 
 
+# #2517 exact source→GUI/Engine→FinalScene/DXF and Save→Reload acceptance
+# omitted from the 2026-10-29 measured 304-file suite. The original duration
+# manifest remains historical evidence: do not invent timing data for new tests.
+_ISSUE2517_ACCEPTANCE_PATHS = (
+    "tests/test_issue2517_door_cell_preview_engine_api.py",
+    "tests/test_issue2517_receiving_endcap_corrupt_confirmed_feature_error_contract.py",
+    "tests/test_issue2517_box_body_baseline_face_public_api.py",
+    "tests/test_issue2517_box_body_face_editor_geometry_engine_api.py",
+    "tests/test_issue2517_endcap_hole_editor_shared_engine_source.py",
+    "tests/test_issue293_t5_hole_editor_routing.py",
+    "tests/test_issue2517_receiving_endcap_hole_context_api.py",
+    "tests/test_issue2517_confirmed_multi_door_verified_integration_api.py",
+    "tests/test_issue2517_confirmed_receiving_box_body_three_physical_dxf.py",
+    "tests/test_issue2517_project_feature_write_read_source_parity.py",
+    "tests/test_issue2517_door_indicator_dxf_source_parity.py",
+    "tests/test_issue2517_finalscene_family_control_source_parity.py",
+)
+_ISSUE2517_ACCEPTANCE_OWNERS = {
+    path: index + 2 for index, path in enumerate(_ISSUE2517_ACCEPTANCE_PATHS)
+}
+PYTEST_PATHS += _ISSUE2517_ACCEPTANCE_PATHS
+
+
 def _sha256(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as fh:
@@ -673,6 +696,11 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
     for selector in PYTEST_PATHS:
         selectors_by_file.setdefault(selector.split("::", 1)[0], []).append(selector)
     canonical_files = set(selectors_by_file)
+    measured_files = canonical_files - set(_ISSUE2517_ACCEPTANCE_PATHS)
+    if (len(_ISSUE2517_ACCEPTANCE_PATHS) != len(set(_ISSUE2517_ACCEPTANCE_PATHS))
+            or len(_ISSUE2517_ACCEPTANCE_OWNERS) != len(_ISSUE2517_ACCEPTANCE_PATHS)
+            or any(not (ROOT / path).is_file() for path in _ISSUE2517_ACCEPTANCE_PATHS)):
+        raise ValueError("issue2517 acceptance selectors missing or duplicated")
     owners = manifest.get("file_owners", {})
     durations = manifest.get("file_seconds", {})
     split_file = manifest.get("split_file")
@@ -686,11 +714,12 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
     t15_critical = manifest.get("t15_critical_function")
     t15_functions = manifest.get("t15_source_functions")
     if (manifest.get("schema") != "WHD_PRODUCT_CI_FILE_DURATION_ASSIGNMENT_V2"
-            or manifest.get("canonical_selector_count") != len(PYTEST_PATHS)
-            or manifest.get("canonical_file_count") != len(canonical_files)
+            or manifest.get("canonical_selector_count") != (
+                len(PYTEST_PATHS) - len(_ISSUE2517_ACCEPTANCE_PATHS))
+            or manifest.get("canonical_file_count") != len(measured_files)
             or len(PYTEST_PATHS) != len(set(PYTEST_PATHS))
-            or set(owners) != canonical_files
-            or set(durations) != canonical_files
+            or set(owners) != measured_files
+            or set(durations) != measured_files
             or manifest.get("slow_shard_indices") != list(range(14))
             or manifest.get("short_shard_indices") != list(range(14, 18))
             or manifest.get("threshold_short_seconds") != 4
@@ -711,7 +740,7 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
             or manifest.get("t15_critical_owner") != 1
             or manifest.get("t15_remainder_owner") != 6):
         raise ValueError("18-shard duration manifest incomplete or stale")
-    for filename in canonical_files:
+    for filename in measured_files:
         seconds, owner = durations[filename], owners[filename]
         if (isinstance(seconds, bool) or not isinstance(seconds, (int, float))
                 or seconds <= 0 or isinstance(owner, bool)
@@ -839,6 +868,9 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
             if index in (1, 6):
                 assigned.extend(f"{t15_file}::{name}" for name in t15_functions
                                 if (name == t15_critical) == (index == 1))
+        elif selector in _ISSUE2517_ACCEPTANCE_OWNERS:
+            if _ISSUE2517_ACCEPTANCE_OWNERS[selector] == index:
+                assigned.append(selector)
         elif owners[selector.split("::", 1)[0]] == index:
             assigned.append(selector)
     if not assigned:
