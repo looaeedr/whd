@@ -265,9 +265,18 @@ def project_operator_fold_editor_display_rows(
     signed operator dimension is display orientation, never negative material.
     Only the view copies use the opposite UI angle convention for +/-90.
     """
-    views = apply_outside_dimension_compensation(
-        [deepcopy(dict(row)) for row in material_segments], thickness,
-    )
+    physical_t = _positive_fold_thickness(thickness)
+    source_rows = []
+    for material in material_segments:
+        row = deepcopy(dict(material))
+        # Display may discard stale ui_len_add and reconstruct actual BEND
+        # compensation, but it must never invent a material length of 0
+        # from an invalid source. A legacy None angle remains a flat segment.
+        _finite_operator_fold_number(row.get("len"), field="len")
+        if row.get("angle") is not None:
+            _finite_operator_fold_number(row["angle"], field="angle")
+        source_rows.append(row)
+    views = apply_outside_dimension_compensation(source_rows, physical_t)
     projected = []
     for row in views:
         view = dict(row)
