@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import pytest
 
 from ae_engine import manufacturing_api as api
+from ae_engine.receiving_base_fixing_plate import receiving_base_fixing_plate_previews
 from phase6_manufacturing_adapter import (
     _canonical_part_keys, build_manufacturing_request,
 )
@@ -42,7 +43,7 @@ def test_two_real_nfb_tiers_retain_one_base_and_exact_engine_ear_owners(family):
     canonical = _two_tier()
     expected = api.canonical_manufacturing_request_part_keys(canonical, RAW)
     expected_ears = tuple(
-        piece.part_id for piece in api.receiving_base_fixing_plate_previews(
+        piece.part_id for piece in receiving_base_fixing_plate_previews(
             canonical, available_parts=("base_plate",),
         )
     )
