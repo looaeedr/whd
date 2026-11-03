@@ -109,6 +109,7 @@ from ae_engine.sheetmetal_features import (
     align_circle_to_neighbor,
     generate_round_fill,
     generate_round_refill,
+    RectGuide,  # Existing unified HoleEditor composition dependency.
 )
 
 
