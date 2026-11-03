@@ -8,6 +8,7 @@ The GUI selects operator inputs but cannot certify parts or substitute source.
 from __future__ import annotations
 
 from .box_body_fold_profile import profile_to_fold_segments
+from .fold_designer_snapshot_dimensions import normalize_fold_designer_indicator_groups
 from .contracts import BasePlatePartSpec, IndicatorBoxPartSpec
 
 
@@ -87,7 +88,7 @@ def build_indicator_box_operator_part_spec(
 ) -> IndicatorBoxPartSpec:
     """Normalize the original operator IndicatorBox request in Engine."""
     return IndicatorBoxPartSpec(
-        layer_groups=tuple(int(v) for v in layer_groups),
+        layer_groups=normalize_fold_designer_indicator_groups(layer_groups),
         thickness=float(values["t"]),
         model_name=None,
         features=tuple(features or ()),
