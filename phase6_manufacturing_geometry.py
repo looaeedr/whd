@@ -154,8 +154,12 @@ def _phase6_signature_canonical_value(value):
     return manufacturing_api.canonical_manufacturing_signature_value(value)
 
 
-def _phase6_manufacturing_state_signature(self):
-    """Extract operator state only; Engine selects canonical cache dependencies."""
+def _phase6_manufacturing_state_signature(self, *, input_snapshot_override=None):
+    """Extract operator state only; Engine selects canonical cache dependencies.
+
+    The request adapter may supply a detached live Family snapshot. Standalone
+    legacy callers retain the original source-only signature semantics.
+    """
     workspace = getattr(self, "designer_workspace", None)
     available = tuple(getattr(workspace, "available_parts", ()) or ())
     profiles = {}
@@ -178,7 +182,10 @@ def _phase6_manufacturing_state_signature(self):
     clearance_var = getattr(self, "assembly_relief_clearance_var", None)
     raw_clearance = clearance_var.get() if clearance_var is not None else "0"
     return manufacturing_api.manufacturing_state_fingerprint(
-        input_snapshot=deepcopy(dict(getattr(self, "_phase6_input_snapshot", {}) or {})),
+        input_snapshot=deepcopy(dict(
+            input_snapshot_override if input_snapshot_override is not None
+            else getattr(self, "_phase6_input_snapshot", {}) or {}
+        )),
         settings_values=deepcopy(dict(getattr(self, "_settings_values", {}) or {})),
         working_box=deepcopy(dict(getattr(self, "_phase6_box_whd", {}) or {})),
         corner_state=deepcopy(dict(getattr(self, "_phase6_corner_state", {}) or {})),
