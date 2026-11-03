@@ -91,4 +91,52 @@ def test_host_has_no_ae_manufacturing_defaults_or_private_import():
               )
     assert "import ae_engine.ae" not in source
     assert "ae.W" not in source and "ae.H" not in source
-    assert source.count("manufacturing_api.normalize_operator_source_dimension(") == 3
+    assert source.count("manufacturing_api.normalize_operator_source_dimension(") == 9
+
+
+@pytest.mark.parametrize("column", (
+    (True, [440]), (0, [440]), (float("nan"), [440]),
+    (920, [True]), (920, [0]), (920, ["nan"]), (920, [400, "inf"]),
+))
+def test_explicit_multi_column_input_is_atomic_and_never_casts_invalid_physical_mm(column):
+    previous = {"width_auto": False, "saved_id": "door_c1_r1"}
+    host, calls = _host(920, 440, old=[previous])
+    with pytest.raises(ValueError, match="包外尺寸"):
+        adapter.set_door_layout_columns(host, [(920, [440]), column])
+    assert host.door_layout_columns == [previous]
+    assert calls == []
+
+
+def test_explicit_multi_column_input_preserves_valid_fractional_physical_mm():
+    host, calls = _host(1000, 500)
+    adapter.set_door_layout_columns(host, [("920.25", ["440.5"]), ("79.75", [59.5])])
+    assert host.door_layout_columns == [
+        {"width": 920.25, "heights": [440.5], "width_auto": False},
+        {"width": 79.75, "heights": [59.5], "width_auto": False},
+    ]
+    assert calls[0] == ("new", 920.25, [440.5], {})
+    assert calls[1] == ("new", 79.75, [59.5], {})
+    assert calls[2:] == [
+        ("selected", "0:0"),
+        ("recompute", {"rebuild": False}),
+    ]
+
+
+@pytest.mark.parametrize("column", (
+    (True, [440]), (920, [True]), (920, ["nan"]),
+))
+def test_loaded_legacy_tuple_is_revalidated_before_material_preview(column):
+    host, calls = _host(920, 440, old=[column])
+    with pytest.raises(ValueError, match="包外尺寸"):
+        adapter.get_door_layout_columns(host)
+    assert host.door_layout_columns == [column]
+    assert calls == []
+
+
+@pytest.mark.parametrize("bad", (True, float("nan"), "inf", 0, "-1", None))
+def test_door_layout_recompute_rejects_bad_wh_before_controller_or_ui_mutation(bad):
+    host, calls = _host(bad, 440, old=[{"width_auto": False}])
+    host._door_layout_controller_columns = lambda: calls.append(("controller",))
+    with pytest.raises(ValueError, match="W / H 必須先填入有效數字"):
+        adapter._recompute_door_layout_remainders(host, rebuild=False)
+    assert calls == []
