@@ -96,10 +96,16 @@ def _door_layout_cell_result(self, cell, val=None):
 
 
 def _door_layout_cell_resolved_features(self, cell, result, key):
+    # Preview-only compatibility repair must remain detached. The legacy
+    # display accessor repairs the saved dict in place, which would otherwise
+    # make malformed physical inputs appear valid to the later Engine/DXF gate.
+    preview_indicator_state = self._normalize_door_indicator_state(
+        self.door_layout_indicator_states.get(key)
+    )
     return manufacturing_api.project_operator_door_cell_features(
         result,
         self.door_layout_features.setdefault(key, []),
-        self._door_layout_indicator_state_for_key(key),
+        preview_indicator_state,
         cell_width=cell.start_width, cell_height=cell.start_height,
         frame_edges=cell.edges,
         family_model=self._baseline_source_model(),
