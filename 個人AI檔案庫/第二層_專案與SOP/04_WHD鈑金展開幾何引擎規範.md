@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 模式初始化與 Session 物理來源改由 Engine 公開 API（2026-11-03）
+
+- `manufacturing_api.fresh_receiving_mode(mode, dimensions, *, thickness=2.0, auto_nfb=False)` 與 `manufacturing_api.ReceivingModeSession` 現由 `ae_engine.receiving_mode_session` 實作。新模式一 Set/Bay、門格分割、Quantity 版本、既有 CSV NFB 初始來源、跨模式 CustomPart ID 保留及 Project-global 候選資料移交仍沿用原 Engine／Family 驗證；GUI `phase6_receiving_modes.py` 僅保留相同函式／型別別名，不再執行物理來源組裝或自行維護第二套切換規則。
+- Workspace 初始實體板件清單改用同一公開 `manufacturing_api.DEFAULT_OPERATOR_EXISTING_PARTS`，維持原 `box_body/head/tail/door/base_plate` 順序，不用 GUI 常數反向餵 Engine。首次切換的缺尺寸、非法尺寸、幾何驗證失敗及 inactive buffer 不得偷存；原 Session 僅為記憶體狀態，不改磁碟格式。
+- `tests/test_issue2517_receiving_mode_session_public_api.py` 與既有 `tests/test_issue1463_receiving_modes.py` 覆蓋委派、無 Engine→GUI 反依賴、兩模式建置、失敗原子性、CustomPart 身份及 Save→Reload。這是來源／權責遷移，不新增 CUTTING／BEND／DXF 認證，#2517 仍 OPEN。
+
 ## [CURRENT] #2517 BoxBody 對稱折彎即時開關原始布林來源必須走 Engine API（2026-11-03）
 
 - `phase6_settings_transitions.normalize_symmetry` 不再用 Python `bool(raw)` 代表製造對稱選項，直接委派公開 `manufacturing_api.normalize_operator_settings_boolean`；`phase6_settings_transaction_controller.commit_symmetry` 只在驗證成功後提交 `state.symmetric`，再標記 Workspace 變更。
