@@ -40,6 +40,21 @@ def replace_corner_state(
     )
 
 
+def project_operator_corner_ini_rotation(type_id: object, value: object) -> int:
+    """Engine-only legacy C02 rotation normalization for persisted Corner INI.
+
+    A C02's saved quadrant encodes width/height manufacturing direction.
+    Other types never take an INI rotation override; old wire IDs stay intact
+    until the existing EndCap Corner selection codec normalizes them.
+    """
+    kind = str(getattr(type_id, "value", type_id) or "").strip().upper()
+    if kind != CornerTypeId.C02.value:
+        return 0
+    return CornerTypeSelection(
+        CornerTypeId.C02, rotation_quadrants=value,
+    ).rotation_quadrants
+
+
 def ensure_corner_part(
     corner_state: Mapping[str, object] | None,
     corner_pair_same: Mapping[str, object] | None,

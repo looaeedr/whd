@@ -416,7 +416,7 @@ def save_defaults_to_ini(
         apply_settings_to_ae(ae_module, values, keys=changed_keys)
 
 CORNER_PARTS = ("head", "tail", "door", "base_plate", "indicator_box", "indicator_door")
-CORNER_KEYS = ("top_left", "top_right", "bottom_left", "bottom_right")
+CORNER_KEYS = manufacturing_api.MANUAL_CORNER_KEYS
 
 
 def _corner_section(part_key: str) -> str:
@@ -445,9 +445,9 @@ def load_corner_defaults_from_ini(ae_module):
             if not parser.has_option(section, corner_key):
                 continue
             type_id = parser.get(section, corner_key, fallback="CROSS").strip().upper()
-            rotation = parser.getint(section, f"{corner_key}_rotation", fallback=0) % 4
-            if type_id != "C02":
-                rotation = 0
+            rotation = manufacturing_api.project_operator_corner_ini_rotation(
+                type_id, parser.getint(section, f"{corner_key}_rotation", fallback=0),
+            )
             raw = {"type_id": type_id, "rotation_quadrants": rotation}
             text_fields = {
                 "cross_mode": f"{corner_key}_cross_mode",
@@ -465,10 +465,13 @@ def load_corner_defaults_from_ini(ae_module):
             }
             for field, option in float_fields.items():
                 if parser.has_option(section, option):
-                    try:
-                        raw[field] = parser.getfloat(section, option)
-                    except ValueError:
-                        pass
+                    # The Engine owns finite, non-bool Corner source values;
+                    # malformed saved options cannot become geometry input.
+                    normalized = manufacturing_api.normalize_operator_settings_updates(
+                        {field: 0.0}, {field: parser.get(section, option)},
+                    )
+                    if field in normalized:
+                        raw[field] = normalized[field]
             corner_state[corner_key] = raw
         if corner_state:
             states[part_key] = corner_state
@@ -496,15 +499,23 @@ def save_corner_defaults_to_ini(ae_module, corner_state, corner_pair_same, *, co
     if not parser.has_section(section):
         parser.add_section(section)
     pairs = dict((corner_pair_same or {}).get(part_key) or {})
-    parser.set(section, "top_same", "true" if bool(pairs.get("top", True)) else "false")
-    parser.set(section, "bottom_same", "true" if bool(pairs.get("bottom", True)) else "false")
+    top_same = manufacturing_api.normalize_operator_settings_boolean(
+        pairs.get("top", True),
+    )
+    bottom_same = manufacturing_api.normalize_operator_settings_boolean(
+        pairs.get("bottom", True),
+    )
+    parser.set(section, "top_same", "true" if top_same else "false")
+    parser.set(section, "bottom_same", "true" if bottom_same else "false")
     corners = dict((corner_state or {}).get(part_key) or {})
     for corner_key in CORNER_KEYS:
         raw = corners.get(corner_key)
         if not isinstance(raw, Mapping):
             continue
         type_id = str(raw.get("type_id", "CROSS")).strip().upper()
-        rotation = int(raw.get("rotation_quadrants", 0) or 0) % 4 if type_id == "C02" else 0
+        rotation = manufacturing_api.project_operator_corner_ini_rotation(
+            type_id, raw.get("rotation_quadrants", 0),
+        )
         parser.set(section, corner_key, type_id)
         parser.set(section, f"{corner_key}_rotation", str(rotation))
 
@@ -521,11 +532,12 @@ def save_corner_defaults_to_ini(ae_module, corner_state, corner_pair_same, *, co
                 parser.remove_option(section, option)
                 continue
             if field.endswith("_t"):
-                try:
-                    text = f"{float(value):g}"
-                except (TypeError, ValueError):
-                    parser.remove_option(section, option)
-                    continue
+                normalized = manufacturing_api.normalize_operator_settings_updates(
+                    {field: 0.0}, {field: value},
+                )
+                if field not in normalized:
+                    raise ValueError(f"截角 {field} 必須是有限數值")
+                text = f"{normalized[field]:g}"
             else:
                 text = str(getattr(value, "value", value)).strip().lower()
             parser.set(section, option, text)

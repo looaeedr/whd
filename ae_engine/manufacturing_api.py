@@ -135,7 +135,7 @@ from .corner_state_transactions import (
     CornerStateTransition, MANUAL_CORNER_KEYS, MANUAL_CORNER_PAIR_KEYS,
     ensure_corner_part, corner_selection, corner_targets, commit_corner_pair,
     commit_corner_type, commit_corner_mode, commit_corner_parameters, apply_corner_preset,
-    replace_corner_state,
+    replace_corner_state, project_operator_corner_ini_rotation,
 )
 from .operator_endcap_settings_transactions import (
     OperatorBottomWrapTransition, operator_endcap_fw_follow,
