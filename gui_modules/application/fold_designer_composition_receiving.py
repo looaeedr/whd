@@ -214,29 +214,18 @@ def sync_receiving_current_bay(
             "d": projected["d"],
         },
     )
-    if "surface_features" in projected:
-        for role in ("head", "tail"):
-            if role in projected["surface_features"]:
-                app.designer_workspace.stash_features(role, projected["surface_features"][role])
-    if projected.get("active_mode") == "set_bay":
-        # The current physical Bay is now the Hole Editor's live owner;
-        # switching Bays must refresh the actual 2D/3D workspace as well.
-        physical_features = projected.get("part_features") or {}
-        for key in app.designer_workspace.available_parts:
-            if str(key).startswith("inner_door:") and str(key).endswith(":panel"):
-                app.designer_workspace.stash_features(
-                    key, physical_features.get(key, []),
-                )
-    from ae_engine.receiving_layout import receiving_bay_joint_face_features
     workspace = app.designer_workspace
-    workspace.stash_face_features("box_body", receiving_bay_joint_face_features(
-        adapter.layout,
+    feature_plan = manufacturing_api.project_operator_receiving_live_bay_features(
+        projected, available_parts=workspace.available_parts,
+        layout=adapter.layout,
         set_index=adapter.selection.set_index,
         bay_index=adapter.selection.bay_index,
-        thickness=float(projected.get("t", 2)),
-        frame_width=float(projected.get("fw", 29)),
-        existing=workspace.face_features_for("box_body"),
-    ))
+        existing_box_body_faces=workspace.face_features_for("box_body"),
+    )
+    for key, features in (*feature_plan.surface_updates,
+                          *feature_plan.inner_panel_updates):
+        workspace.stash_features(key, features)
+    workspace.stash_face_features("box_body", feature_plan.box_body_joint_faces)
     original = required("original")
     number = float if projected.get("active_mode") == "quantity" else original.get_int
     app.state.w = number(projected["w"])
@@ -760,10 +749,10 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     virtual_key = (set_index, bay_index, fingerprint)
     if preview_layout is not None and virtual_key in virtual_cache:
         return virtual_cache[virtual_key]
-    prefix = tuple(
-        (float(bay["width"]), float(bay["height"]), float(bay["depth"]))
-        for bay in snapshot["receiving_layout"]["sets"][set_index]["bays"][:bay_index + 1]
+    cache_witness = manufacturing_api.project_receiving_bay_preview_cache_source_witness(
+        snapshot["receiving_layout"], set_index=set_index, bay_index=bay_index,
     )
+    prefix = cache_witness.source_prefix
     if preview_layout is None and cache_key in cache and cache[cache_key][0] == fingerprint:
         hit = _retain_committed_receiving_bay_preview(
             cache, cache_key, cache[cache_key],
@@ -773,9 +762,7 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         if len(hit) >= 4:
             if hit[3] == prefix:
                 return hit[1]
-            from ae_engine.receiving_layout import receiving_bay_assembly_offsets
-            current_anchor = receiving_bay_assembly_offsets(
-                snapshot["receiving_layout"], set_index=set_index)[bay_index]
+            current_anchor = cache_witness.world_anchor
             rebased = _receiving_rebase_preview_world_offsets(
                 hit[1], hit[2], current_anchor)
             if rebased is not None:
@@ -3656,15 +3643,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         return source
 
     def current_inner_editor_part_key():
-        from ae_engine.cabinet_types import policy as receiving_family_policy
-        physical = current_inner_editor_snapshot()
-        upper = tuple(
-            panel.stable_id for panel in receiving_family_policy.derive_inner_door_panels(physical)
-            if str(panel.cell_key).endswith(":0")
+        return manufacturing_api.resolve_receiving_upper_inner_door_editor_part_key(
+            current_inner_editor_snapshot(),
         )
-        if len(upper) != 1:
-            raise ValueError("原開孔編輯器必須對應一片明確的上層實體內門")
-        return upper[0]
 
     def launch_inner_editor(part_key, *, mode, version_id=None, initial_features=None,
                             after_saved=None):

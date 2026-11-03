@@ -8,9 +8,47 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from copy import deepcopy
+from dataclasses import dataclass
 
 from .cabinet_types import policy as family_policy
 from .receiving_base_plate_3d_profiles import receiving_base_plate_3d_profiles
+
+
+@dataclass(frozen=True)
+class OperatorReceivingLiveBayFeaturePlan:
+    """Source-correct physical features to publish for one selected Bay."""
+    surface_updates: tuple[tuple[str, object], ...]
+    inner_panel_updates: tuple[tuple[str, object], ...]
+    box_body_joint_faces: object
+
+
+def project_operator_receiving_live_bay_features(
+    snapshot, *, available_parts, layout, set_index, bay_index,
+    existing_box_body_faces=None,
+) -> OperatorReceivingLiveBayFeaturePlan:
+    """Engine owns all physical Feature and Joint source decisions for Bay switch."""
+    from .physical_part_identity import door_display_part_role
+    from .receiving_layout import receiving_bay_joint_face_features
+    if (not isinstance(snapshot, Mapping)
+            or family_policy.canonical_family_name(snapshot) != "受電箱"):
+        raise ValueError("RECEIVING_BAY_LIVE_FEATURE_FAMILY_REQUIRED")
+    surfaces = snapshot.get("surface_features") if "surface_features" in snapshot else {}
+    roles = tuple((key, surfaces[key]) for key in ("head", "tail") if key in surfaces)
+    panels = ()
+    if snapshot.get("active_mode") == "set_bay":
+        values = snapshot.get("part_features") or {}
+        panels = tuple(
+            (key, values.get(key, []))
+            for key in tuple(available_parts or ())
+            if door_display_part_role(key) == "inner"
+        )
+    faces = receiving_bay_joint_face_features(
+        layout, set_index=set_index, bay_index=bay_index,
+        thickness=float(snapshot.get("t", 2)),
+        frame_width=float(snapshot.get("fw", 29)),
+        existing=existing_box_body_faces,
+    )
+    return OperatorReceivingLiveBayFeaturePlan(roles, panels, faces)
 
 
 def project_operator_part_activation_profiles(part_key, snapshot, stored, defaults):
