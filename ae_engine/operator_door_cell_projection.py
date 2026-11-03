@@ -11,6 +11,9 @@ from collections.abc import Mapping, MutableMapping
 from . import ae
 from .cabinet_types import policy as cabinet_family_policy
 from .manufacturing_door_indicator import indicator_box_opening_size
+from .fold_designer_snapshot_dimensions import (
+    project_operator_door_cell_indicator_manufacturing_source,
+)
 from .sheetmetal_features import (
     DoorIndicatorContext, ResolvedRect, feature_surface_from_structural_result,
     resolve_door_indicator_layout, resolve_surface_features,
@@ -54,8 +57,14 @@ def project_operator_door_cell_features(
             ))
         except ValueError:
             pass
-    state = indicator_state
-    mode = state.get("mode", "indicator" if state.get("enabled") else "none")
+    # Preview tolerates malformed inputs by omitting only their optional
+    # lamp/box opening, never by converting them to valid-looking CUTTING.
+    # Physical indicator counts and offsets share the manufacturing gate.
+    try:
+        state = project_operator_door_cell_indicator_manufacturing_source(indicator_state)
+    except (TypeError, ValueError):
+        state = {"mode": "none"}
+    mode = state["mode"]
     if mode in {"indicator", "indicator_box"}:
         try:
             t = float(thickness)
@@ -71,11 +80,9 @@ def project_operator_door_cell_features(
                 finished_height=float(finished_h),
                 left_fold=float(fold_left), bottom_fold=float(fold_bottom),
             )
-            groups = tuple(
-                int(v) for v in state.get("groups", [2])[:int(state.get("layers", 1))]
-            )
-            offset_x = float(state.get("offset_x", 0.0))
-            offset_y = float(state.get("offset_y", 0.0))
+            groups = tuple(state["groups"][:state["layers"]])
+            offset_x = state["offset_x"]
+            offset_y = state["offset_y"]
             if mode == "indicator":
                 layout = resolve_door_indicator_layout(
                     context, groups, Vec2(offset_x, offset_y),

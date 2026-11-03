@@ -6,6 +6,8 @@ navigation, or project transactions.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from ae_engine import manufacturing_api
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
 from ae_engine.sheetmetal_features import CanvasTransform
@@ -92,10 +94,12 @@ def _door_layout_cell_result(self, cell, val=None):
 
 
 def _door_layout_cell_resolved_features(self, cell, result, key):
-    # Preview-only compatibility repair remains detached; neither an absent
-    # Indicator state nor absent Feature row becomes a persisted part source.
-    preview_indicator_state = self._normalize_door_indicator_state(
-        self.door_layout_indicator_states.get(key)
+    # Read the physical row before any display-only repair. An absent cell
+    # must remain absent, and invalid lamp counts must not render as CUTTING.
+    states = getattr(self, "door_layout_indicator_states", None)
+    preview_indicator_state = (
+        states.get(key) if isinstance(states, Mapping)
+        else self._door_layout_indicator_state_for_key(key)
     )
     return manufacturing_api.project_operator_door_cell_features(
         result,
