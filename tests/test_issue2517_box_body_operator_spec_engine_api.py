@@ -122,3 +122,52 @@ def test_invalid_operator_request_fails_closed_and_gui_has_no_second_solver():
     assert "resolve_box_body_back_panel_contract" not in source
     assert "fold_material_segment_outside_length" not in source
     assert "ybottom1" not in source.split("return manufacturing_api.")[0].replace("head_ybottom1", "").replace("tail_ybottom1", "")
+
+
+@pytest.mark.parametrize("model", ("金庫型", "受電箱"))
+@pytest.mark.parametrize("field,invalid", (
+    ("w", True), ("h", float("nan")), ("d", 0),
+    ("t", False), ("fw", float("inf")),
+    ("zl1", True), ("zl2", float("nan")),
+    ("zr1", float("inf")), ("zr2", False),
+    ("z_comp", "1e309"),
+))
+def test_gui_and_engine_reject_untrusted_box_body_sources_before_partspec(
+    model, field, invalid, tmp_path,
+):
+    data = values(model)
+    data[field] = invalid
+    original = repr(data)
+    with pytest.raises((TypeError, ValueError)):
+        manufacturing_api.build_box_body_operator_part_spec(
+            data, model_name=model,
+        )
+    controller = SimpleNamespace(
+        profile_for=lambda _part: {},
+        box_body_profile=lambda: (),
+        box_body_structure_state=lambda: {},
+        part_features_snapshot=lambda: {},
+    )
+    host = SimpleNamespace(workspace_controller=controller)
+    with pytest.raises((TypeError, ValueError)):
+        gui._box_body_part_spec_from_values(
+            host, data, model_name=model,
+            features=(), face_features={},
+        )
+    assert repr(data) == original
+    assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("model", ("金庫型", "受電箱"))
+def test_box_body_valid_numeric_text_and_signed_fold_sources_are_preserved(
+    model,
+):
+    data = values(model)
+    data.update(w="800.25", zl1="-15.5", zr2="0.0", z_comp="-2.5")
+    before = deepcopy(data)
+    spec = manufacturing_api.build_box_body_operator_part_spec(
+        data, model_name=model,
+    )
+    assert spec.width == 800.25
+    assert (spec.zl1, spec.zr2, spec.z_comp) == (-15.5, 0.0, -2.5)
+    assert data == before
