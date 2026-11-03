@@ -18,6 +18,7 @@ from .cabinet_types import policy as family_policy
 from .endcap_factory_fold import build_endcap_xy_fold_profiles
 from .endcap_operator_part_spec import build_endcap_operator_part_spec
 from .contracts import DoorPartSpec
+from .fold_designer_snapshot_dimensions import project_operator_door_cell_indicator_manufacturing_source
 from .part_dimension_projection import door_part_projections
 from .sheetmetal_part_adapters import validate_door_layout_dimensions
 from .sheetmetal_geometry import FourCornerTypePolicy
@@ -165,6 +166,29 @@ def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation):
                 raise ValueError("unverified saved Door features")
             if any(features.get(f"door_c{cell.column_index + 1}_r{cell.row_index + 1}") for cell in cells):
                 raise ValueError("saved Door holes need separately confirmed Feature inputs")
+            # The saved GUI records Indicator/IndicatorBox openings separately
+            # from part_features. Those live physical holes cannot disappear
+            # merely because this confirmed-source API has no authored
+            # Indicator Feature contract yet. Reuse the same Engine gate that
+            # validates Door-cell manufacturing/Save→Reload, without GUI repair.
+            indicator_states = values.get("door_layout_indicator_states", {})
+            if indicator_states is None:
+                indicator_states = {}
+            if not isinstance(indicator_states, Mapping):
+                raise ValueError("invalid saved Door Indicator source")
+            for cell in cells:
+                column, row = cell.column_index, cell.row_index
+                for cell_key in (
+                    f"{column}:{row}", (column, row),
+                    f"door_c{column + 1}_r{row + 1}",
+                ):
+                    if cell_key not in indicator_states:
+                        continue
+                    actual = project_operator_door_cell_indicator_manufacturing_source(
+                        indicator_states[cell_key]
+                    )
+                    if actual["mode"] != "none":
+                        raise ValueError("saved Door Indicator openings need confirmed Feature inputs")
         for key in _DOOR_VALUES:
             value = values[key]
             if (type(value) not in (float, int) or not isfinite(float(value))
