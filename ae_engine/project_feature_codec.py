@@ -75,21 +75,53 @@ def _as_vec2(value):
     raise ValueError(f"invalid Vec2 value: {value!r}")
 
 
+def _finite_saved_feature_dimension(value, *, field):
+    """Physical saved-hole sizes must not use bool -> 1 mm or nonfinite T."""
+    if isinstance(value, bool):
+        raise ValueError(f"invalid saved Feature dimension: {field}")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"invalid saved Feature dimension: {field}") from exc
+    if not isfinite(number):
+        raise ValueError(f"invalid saved Feature dimension: {field}")
+    return number
+
+
+def _saved_profile_closed_flag(raw):
+    """Respect a real persisted boolean; never interpret 'false' as True."""
+    if type(raw) is bool:
+        return raw
+    # Older profile payloads may have serialized boolean as the JSON 0/1
+    # numbers. Preserve these two exact values, never arbitrary truthiness.
+    if type(raw) in (int, float) and raw in (0, 1):
+        return bool(raw)
+    raise ValueError("invalid saved Profile closed flag")
+
+
 def _decode_feature(type_name, row):
     data = {k: _decode(v) for k, v in row.items() if k != "__phase6_type__"}
     data["anchor"] = FeatureAnchor(data.get("anchor", FeatureAnchor.PANEL_CENTER.value))
     data["offset"] = _as_vec2(data.get("offset", {"x": 0.0, "y": 0.0}))
     data["source_params"] = tuple(tuple(v) for v in data.get("source_params", ()) or ())
     if type_name == "CircleFeature":
+        if "diameter" in data:
+            data["diameter"] = _finite_saved_feature_dimension(data["diameter"], field="diameter")
         return CircleFeature(**data)
     if type_name == "RectFeature":
+        for field in ("width", "height"):
+            if field in data:
+                data[field] = _finite_saved_feature_dimension(data[field], field=field)
         return RectFeature(**data)
     if type_name == "ProfileFeature":
         data["points"] = tuple(_as_vec2(v) for v in data.get("points", ()) or ())
         layered = []
         for item in data.get("layered_profiles", ()) or ():
             layer, points, closed = item
-            layered.append((str(layer), tuple(_as_vec2(v) for v in points), bool(closed)))
+            layered.append((
+                str(layer), tuple(_as_vec2(v) for v in points),
+                _saved_profile_closed_flag(closed),
+            ))
         data["layered_profiles"] = tuple(layered)
         return ProfileFeature(**data)
     raise ValueError(f"unsupported feature type: {type_name}")

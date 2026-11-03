@@ -6,18 +6,17 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
-## [CURRENT] #2517 Fold Designer 指示燈 X/Y 偏移的唯一 Engine 來源驗證（2026-11-03）
+## [CURRENT] #2517 原始製造請求與 Fold Designer 預覽共用單一 Engine 實體 Part source router（2026-11-03）
 
-- 原 `gui_modules/application/fold_designer_snapshot_projection._snapshot_part_dimensions` 以 Python `float(self.door_indicator_offset_x/y)` 將即時使用者數值寫入 `door_indicator_offset` 保存快照，能把 `True` 變成 1 mm 或將 NaN/Inf 直接寫進 Project；同一指示燈 Hole Editor／正式 Feature 製造路徑的 `ae_engine.fold_designer_snapshot_dimensions.normalize_operator_hole_editor_indicator_state` 已嚴格拒絕非有限偏移，GUI/Headless 來源不同權威。
-- 現在上述原 Engine owner 抽出 `normalize_fold_designer_indicator_offsets(x, y)` 並經**既有** `manufacturing_api` 公開，Hole Editor 與原 Fold Designer Project Save 共用同一個有限非布林檢查。合法帶正負號位置、零與小數精度原樣保留；X、Y 任一無效則在 GUI 改變任一 Snapshot 欄位之前拒絕，無 1 mm/0 mm 杜撰 fallback。不改 `door_indicator_offset` 的 tuple/JSON list wire、門格的正式儲存 DTO、Hole Editor 模式、CUTTING 孔位公式或 DXF/外部 CLI 資格。
-- 驗收 `tests/test_issue2517_fold_designer_indicator_offset_engine_api.py` 與 `test_issue2517_fold_designer_snapshot_dimensions_engine_api.py`，包括 Vault/Receiving、正負偏移、Headless 與 GUI 共用 API、JSON Save→Reload、禁布林/NaN/Inf、未修改快照及現有產品／GUI API Gate 回歸；#2517 OPEN。
-
-
+- GUI 原 `phase6_manufacturing_adapter._profile_inputs_for_part` 自行以 `custom:` 字串決定從 saved CustomFold Catalog 補建 Fold；`_domain_inputs_for_part` 與 `_materialize_committed_endcap_inputs` 自行以 `head/tail/custom:` 判斷需直接 PartSpec 與 committed relief 第二階段；`fold_designer_manufacturing_projection._query_fold_designer_render_data` 亦自行以多組實體 part_key 前綴／後綴決定 indicator/multipart/door 操作輸入和 NFB PAD／固定耳／Divider／InnerDoor panel/frame 使用哪個 Engine 製造來源。以上現在同批統一交 `ae_engine.manufacturing_request_parts.plan_operator_manufacturing_part_source`（公開 `manufacturing_api`）回傳不可變 `OperatorManufacturingPartSourcePlan`。
+- GUI 只依 Engine 指定的 source plan 呼叫已存在 `build_operator_default_part_fold_profiles`、真實 Render／Spec Factory、NFB 2D source 和來源票據，不再自認實體 Part 身分；Panel LRU、Factory source SHA、EndCap committed pass 與 Family／Policy／Topology／2D／3D／DXF canonical 結果都沿用原邏輯。計畫只是 source/classifier，**不憑 part 名稱批准製造或啟用不完整 external export**。
+- `tests/test_issue2517_shared_physical_part_source_route_engine_api.py` 涵蓋 15 種既有實體 Part identity、CustomFold 真實 catalog 預設、PartSpec provider 呼叫次序、Head/Tail 第二階段和 GUI 去除重複 key prefix。#2517 OPEN；正式 X 未發布。
 
 ## [CURRENT] #2517 .p6fold Feature/Vec2 實體孔位座標必須具備完整有限來源（2026-11-03）
 
 - `phase6_project_file.read_project` 的 Feature／Vec2 還原只經公開 `manufacturing_api.decode_project_value`、`decode_project_feature`、`project_vec2_from_raw`，唯一實作在 `ae_engine.project_feature_codec`。有標記的實體 `Vec2` 及孔位 Feature 的明確 `offset`／Profile 頂點與輪廓座標均需提供完整 X/Y，且不得是 bool、NaN、Infinity、不可轉成有限數字或溢位來源；不可把遺漏的 X/Y 靜默補成 0，亦不得 `True → 1 mm`。外來損壞專案在回讀即拒絕，而非產出移位的 CUTTING 孔。
 - 沿用舊專案合法數字字串、完整 X/Y 陣列、Vec2 原物件及**整個 Feature.offset 欄位缺席**時的既有明確零偏移預設；不更動已確認 Feature Anchor、Family、2D／3D／DXF 幾何算法或外部 source-only 認證。正常受電箱確認門孔沿原 `confirmed_door_features` → DoorPartSpec／FinalScene → verified DXF Save→Reload 測試；非法儲存來源 fail-closed，不宣稱整套 #2517 已完成。
+- 同一 Engine `project_feature_codec._decode_feature` 的明確 Circle 直徑、Rect 寬高，只接受有限且非 bool 的數值來源（支援合法數字字串）；不可將 `True` 變成 1 mm 或把 NaN／Infinity 作為實體孔尺寸。保存的 Profile layered CUTTING 輪廓 `closed` 僅接受真正布林及舊 JSON 數字 0／1，不可由 `bool("false")` 偷轉成閉合切割。零／負數草稿尺寸保留原始數值，實際製造是否可用由既有幾何／Fit Gate 獨立審核，不在 codec 另造幾何。正常門孔沿原 verified DXF Save→Reload，非法已儲存 Feature 應在 `.p6fold` 回讀即拒絕。
 
 ## [CURRENT] #2517 Receiving Bay 3D 製造預覽 Fold／Joint／箱身結構種子移入公開 Engine（2026-11-03）
 
@@ -1565,3 +1564,9 @@ Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或�
 `door_render_host_adapter._door_layout_indicator_state_for_key` 是顯示相容入口，會對既有 `door_layout_indicator_states[key]` 原地 `clear()/update()` 修補。即使 Door PartSpec 或指示燈盒／小門獨立 DXF 隨後呼叫嚴格的 `project_operator_door_cell_indicator_manufacturing_source`，若**先呼叫顯示 accessor**，Engine 看到的已非原始物理來源，非法 bool／零／過量群組、層數或 NaN 偏移可能變成合法預設。正式路徑 `manufacturing_adapter._door_layout_part_spec`、`export_actions.export_multi_door_indicator_box_parts` 與 `_validate_selected_indicator_exports` 現必須先讀既有來源容器中的原始 row，交同一 Engine API 驗證；只有根本沒有來源容器的舊相容 client 才使用顯示 accessor。原容器存在但特定 cell 缺少時由 Engine 判為未啟用，**不得創造實體孔位、不得就地修改來源**。定向測試模擬真實會修改原 dict 的 GUI accessor，要求非法來源在預檢、Door PartSpec 與獨立 DXF 出口全部拒絕、不產生檔案且保留原資料；不修改 Family／Factory／FinalScene／DXF 製造算法或認證。#2517 維持 OPEN。
 
 **開孔編輯器同源補齊（2026-11-03）：** `gui.py::open_door_indicator_component_editor` 原先先呼叫會原地修補 `door_layout_indicator_states` 的展示 accessor，再以 GUI `int()`／層數裁切建 IndicatorBox／SmallDoor 編輯用 PartSpec；`manufacturing_adapter._indicator_component_editor_contexts` 亦重做同一套 GUI 孔數轉型。兩條入口現在改為直接消費原始已保存 Door-cell 操作資料與同一公開 `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source`，只用 Engine 回傳的合法 layers/groups 對接原 `resolve_indicator_editor_components`。沒有原始 cell 不增孔，非法來源在建 Spec／開 editor 前拒絕且不修改原資料；歷史無來源容器的客戶端只保留既有 accessor 作來源讀取，仍須通過 Engine 驗證。UI 顯示、Feature store、Confirm callback、正式 FinalScene／DXF、Factory 不變。驗收 `tests/test_issue2517_door_indicator_component_editor_engine_api.py` 與 `tests/test_engine_indicator_editor_boundary.py`；#2517 仍 OPEN。
+
+## [CURRENT] #2517 Fold Designer 指示燈 X/Y 偏移的唯一 Engine 來源驗證（2026-11-03）
+
+- 原 `gui_modules/application/fold_designer_snapshot_projection._snapshot_part_dimensions` 以 Python `float(self.door_indicator_offset_x/y)` 將即時使用者數值寫入 `door_indicator_offset` 保存快照，能把 `True` 變成 1 mm 或將 NaN/Inf 直接寫進 Project；同一指示燈 Hole Editor／正式 Feature 製造路徑的 `ae_engine.fold_designer_snapshot_dimensions.normalize_operator_hole_editor_indicator_state` 已嚴格拒絕非有限偏移，GUI/Headless 來源不同權威。
+- 現在上述原 Engine owner 抽出 `normalize_fold_designer_indicator_offsets(x, y)` 並經**既有** `manufacturing_api` 公開，Hole Editor 與原 Fold Designer Project Save 共用同一個有限非布林檢查。合法帶正負號位置、零與小數精度原樣保留；X、Y 任一無效則在 GUI 改變任一 Snapshot 欄位之前拒絕，無 1 mm/0 mm 杜撰 fallback。不改 `door_indicator_offset` 的 tuple/JSON list wire、門格的正式儲存 DTO、Hole Editor 模式、CUTTING 孔位公式或 DXF/外部 CLI 資格。
+- 驗收 `tests/test_issue2517_fold_designer_indicator_offset_engine_api.py` 與 `test_issue2517_fold_designer_snapshot_dimensions_engine_api.py`，包括 Vault/Receiving、正負偏移、Headless 與 GUI 共用 API、JSON Save→Reload、禁布林/NaN/Inf、未修改快照及現有產品／GUI API Gate 回歸；#2517 OPEN。

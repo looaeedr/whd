@@ -221,7 +221,10 @@ from .manufacturing_cache_source_plan import (
     OperatorRawMaterialReusePlan, plan_operator_raw_material_reuse,
 )
 from .operator_quantity_validation import validate_operator_manufacturing_quantity_context
-from .manufacturing_request_parts import canonical_manufacturing_request_part_keys
+from .manufacturing_request_parts import (
+    canonical_manufacturing_request_part_keys,
+    OperatorManufacturingPartSourcePlan, plan_operator_manufacturing_part_source,
+)
 from .assembly_collision_display_api import project_assembly_collision_display_audit
 from .assembly_all_parts_collision import collision_part_display_name
 from .receiving_base_display_source import (
