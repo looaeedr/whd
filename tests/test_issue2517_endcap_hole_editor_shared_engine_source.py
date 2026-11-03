@@ -129,3 +129,20 @@ def test_numeric_string_endcap_source_preserves_fractional_mm():
     assert (from_strings.width, from_strings.height) == (920.25, 440.5)
     assert from_strings.surface == from_floats.surface
     assert from_strings.reference_guide == from_floats.reference_guide
+
+
+def test_receiving_valid_fractional_string_source_equal_direct_engine_surface():
+    """Saved Bay numeric strings and direct headless inputs share real geometry."""
+    snapshot, layout, *_ = _source()
+    snapshot["t"] = "1.6"
+    bay = layout["sets"][0]["bays"][1]
+    bay["width"], bay["depth"] = "920.25", "440.5"
+    receiving = api.project_receiving_endcap_hole_editor_context(
+        snapshot, layout, set_index=0, bay_index=1, role="head",
+    )
+    direct = api.project_operator_hole_editor_endcap(
+        "head", width=920.25, depth=440.5, thickness=1.6,
+    )
+    assert (receiving.width, receiving.depth) == (920.25, 440.5)
+    assert receiving.surface == direct.surface
+    assert receiving.reference_guide == direct.reference_guide
