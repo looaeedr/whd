@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import inspect
+from copy import deepcopy
 from types import SimpleNamespace
 
 import pytest
@@ -106,3 +107,123 @@ def test_gui_has_no_duplicate_door_finished_size_calculation():
     assert "ae.calculate_door_finished_size(" not in method
     assert "manufacturing_api.door_material_frame_width(" in helper
     assert "cabinet_family_policy.door_material_frame_width(" not in helper
+
+
+def test_opening_door_hole_editor_uses_detached_display_without_rewriting_source(
+    monkeypatch,
+):
+    source = {
+        "mode": "indicator", "layers": 1, "groups": [2],
+        "offset_x": 3.25, "offset_y": -4.5, "is_box_dist": False,
+    }
+    before = deepcopy(source)
+    captured = {}
+    spec = DoorPartSpec(
+        width=500, height=300, thickness=2.0, frame_width=25.0,
+        model_name="受電箱", gap_w=3.5, gap_h=3.5,
+    )
+    cell = SimpleNamespace(
+        column_index=0, row_index=0, edges=DoorFrameEdges(),
+        start_width=500.0, start_height=300.0,
+    )
+    monkeypatch.setattr(
+        gui._door_layout_host_adapter, "_receiving_live_door_layout_source",
+        lambda host: None,
+    )
+    monkeypatch.setattr(gui, "feature_surface_from_structural_result",
+                        lambda *args: "face")
+    monkeypatch.setattr(gui, "build_finished_reference_guide",
+                        lambda *args, **kwargs: "guide")
+    monkeypatch.setattr(manufacturing_api, "door_finished_face_size",
+                        lambda _: (300.0, 200.0))
+    monkeypatch.setattr(gui.messagebox, "showerror",
+                        lambda *args: pytest.fail("unexpected error: " + str(args)))
+    host = SimpleNamespace(
+        last_unified_hole_editor=None,
+        door_layout_selected_var=SimpleNamespace(set=lambda _: None),
+        get_selected_door_layout_cell=lambda: cell,
+        _door_layout_cell_key=lambda _: "0:0",
+        get_float_values=lambda: {
+            "w": 500, "h": 600, "d": 200, "t": 2.0, "fw": 25.0,
+            "door_gap_w": 3.5, "door_gap_h": 3.5,
+            "door_fold_l": 20, "door_fold_b": 20,
+        },
+        _door_layout_cell_result=lambda *args: SimpleNamespace(
+            width=520.0, height=315.0,
+        ),
+        _door_layout_part_spec=lambda *args: spec,
+        door_layout_features={},
+        door_layout_indicator_states={"0:0": source},
+        door_layout_indicator_box_features={},
+        door_layout_indicator_door_features={},
+        _normalize_door_indicator_state=gui._normalize_door_indicator_state_impl,
+        _door_layout_indicator_state_for_key=lambda key:
+            pytest.fail("display accessor would mutate committed source"),
+        _door_layout_baseline_scene=lambda *args: (None, "baseline"),
+        _open_unified_hole_editor=lambda *args, **kwargs:
+            captured.update({"args": args, "kwargs": kwargs}),
+        _apply_multi_door_indicator_state=lambda *args: None,
+        draw_door_layout_overview=lambda: None,
+    )
+    gui.Phase6ApplicationHost.open_door_layout_cell_editor(host, 0, 0)
+    shown = captured["kwargs"]["door_indicator_state"]
+    assert shown is not source
+    assert shown["mode"] == "indicator"
+    assert shown["groups"][0] == 2
+    assert source == before
+    shown["groups"][0] = 8
+    assert source == before
+    assert host.door_layout_indicator_states["0:0"] is source
+
+
+def test_missing_cell_opens_display_draft_without_creating_saved_indicator(
+    monkeypatch,
+):
+    captured = {}
+    spec = DoorPartSpec(
+        width=500, height=300, thickness=2.0, frame_width=25.0,
+        model_name="受電箱", gap_w=3.5, gap_h=3.5,
+    )
+    cell = SimpleNamespace(
+        column_index=0, row_index=0, edges=DoorFrameEdges(),
+        start_width=500, start_height=300,
+    )
+    monkeypatch.setattr(gui._door_layout_host_adapter,
+                        "_receiving_live_door_layout_source", lambda host: None)
+    monkeypatch.setattr(gui, "feature_surface_from_structural_result",
+                        lambda *args: "face")
+    monkeypatch.setattr(gui, "build_finished_reference_guide",
+                        lambda *args, **kw: "guide")
+    monkeypatch.setattr(manufacturing_api, "door_finished_face_size",
+                        lambda *args: (300., 200.))
+    monkeypatch.setattr(gui.messagebox, "showerror",
+                        lambda *args: pytest.fail("unexpected error: " + str(args)))
+    host = SimpleNamespace(
+        door_layout_selected_var=SimpleNamespace(set=lambda _: None),
+        get_selected_door_layout_cell=lambda: cell,
+        _door_layout_cell_key=lambda _: "0:0",
+        get_float_values=lambda: {
+            "w": 500, "h": 600, "d": 200, "t": 2.0, "fw": 25.0,
+            "door_gap_w": 3.5, "door_gap_h": 3.5,
+            "door_fold_l": 20, "door_fold_b": 20,
+        },
+        _door_layout_cell_result=lambda *args: SimpleNamespace(
+            width=520.0, height=315.0,
+        ),
+        _door_layout_part_spec=lambda *args: spec,
+        door_layout_features={},
+        door_layout_indicator_states={},
+        door_layout_indicator_box_features={},
+        door_layout_indicator_door_features={},
+        _normalize_door_indicator_state=gui._normalize_door_indicator_state_impl,
+        _door_layout_indicator_state_for_key=lambda key:
+            pytest.fail("opening missing cell may not initialize physical source"),
+        _door_layout_baseline_scene=lambda *args: (None, "baseline"),
+        _open_unified_hole_editor=lambda *args, **kwargs:
+            captured.update(kwargs),
+        _apply_multi_door_indicator_state=lambda *args: None,
+        draw_door_layout_overview=lambda: None,
+    )
+    gui.Phase6ApplicationHost.open_door_layout_cell_editor(host, 0, 0)
+    assert captured["door_indicator_state"]["mode"] == "none"
+    assert host.door_layout_indicator_states == {}
