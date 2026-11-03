@@ -230,9 +230,8 @@ class Phase6BendingUI(original.BendingUI):
     def apply_mirror(self, idx, key):
         if getattr(self, "_phase6_refreshing_controls", False):
             return
-        # Mirror may fall through to the legacy positional UI handler.
-        # Validate every live control *before* either path can write a Fold;
-        # old get_int() silently converts malformed text into a real 0 mm.
+        # Strictly validate every live control before the Engine mirror plan
+        # can update the operator's saved material Fold source.
         for ctrl in self.controls:
             for field in ("len", "angle"):
                 if field in ctrl:
@@ -245,33 +244,29 @@ class Phase6BendingUI(original.BendingUI):
         if symmetry_allowed and getattr(self.state, "symmetric", False):
             active = self.get_active_dict()
             segs = active.get(self._active_profile_key(active), ())
-            try:
-                plan = manufacturing_api.plan_operator_fold_mirror_target(
-                    segs, idx, key,
-                    is_box_body=(
-                        getattr(self.state, "phase6_fold_ui_vault_key", None)
-                        == "箱身"
-                    ),
+            # The Engine owns both keyed structure and historical unkeyed
+            # mirror indices. Never fall through to the original BendingUI
+            # save, which strips physical segment identity and topology.
+            plan = manufacturing_api.plan_operator_fold_mirror_target(
+                segs, idx, key,
+                is_box_body=(
+                    getattr(self.state, "phase6_fold_ui_vault_key", None)
+                    == "箱身"
+                ),
+                resolve_legacy_position=True,
+            )
+            target_idx = plan.target_index
+            if (
+                target_idx is not None and target_idx != idx
+                and key in self.controls[target_idx]
+            ):
+                value = manufacturing_api.normalize_operator_fold_editor_control(
+                    self.controls[idx][key].get(), field=key,
                 )
-                target_idx = plan.target_index
-                if (
-                    target_idx is not None and target_idx != idx
-                    and key in self.controls[target_idx]
-                ):
-                    value = manufacturing_api.normalize_operator_fold_editor_control(
-                        self.controls[idx][key].get(), field=key,
-                    )
-                    self.controls[target_idx][key].set(str(value))
-                    self.save()
-                    self.update_cb()
-                    return None
-                if plan.block_legacy_fallback:
-                    self.save()
-                    self.update_cb()
-                    return None
-            except (TypeError, ValueError, IndexError, KeyError):
-                pass
-            return super().apply_mirror(idx, key)
+                self.controls[target_idx][key].set(str(value))
+            self.save()
+            self.update_cb()
+            return None
         # With symmetry off, still commit every typed outside Fold edit.
         self.save()
         self.update_cb()

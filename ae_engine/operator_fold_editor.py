@@ -114,17 +114,29 @@ def plan_operator_fold_mirror_target(
     field: str,
     *,
     is_box_body: bool,
+    resolve_legacy_position: bool = False,
 ) -> OperatorFoldMirrorPlan:
-    """Select an actual keyed structural counterpart, never an arbitrary FW.
+    """Select the semantic or legacy mirror position inside the Engine.
 
-    Non-BoxBody or genuinely unkeyed rows retain the existing original
-    BendingUI positional-mirror behavior. Keyed BoxBody rows can only mirror
-    known source-matched pair identities; absent matches do not fall back.
+    Old clients may still request an explicit structural veto and handle
+    unkeyed fallback themselves. New GUI callers opt into a fully resolved
+    legacy positional plan so they never call the old BendingUI manufacturing
+    save. The original valid mirror indices remain unchanged.
     """
+    rows = tuple(segments)
+
+    def legacy_target():
+        index = (
+            len(rows) - 1 - source_index
+            if field == "len" else len(rows) - 2 - source_index
+        )
+        return index if 0 <= index < len(rows) and index != source_index else None
+
     if not is_box_body:
+        if resolve_legacy_position:
+            return OperatorFoldMirrorPlan(legacy_target(), True)
         return OperatorFoldMirrorPlan(None, False)
 
-    rows = tuple(segments)
     source_key = str(rows[source_index].get("phase6_key") or "")
     target_index = None
     if source_key in _BOX_BODY_MIRROR_PAIRS:
@@ -150,15 +162,16 @@ def plan_operator_fold_mirror_target(
                 )
         return OperatorFoldMirrorPlan(target_index, True)
 
-    # Only genuinely unkeyed source/target rows may use old positional mirror.
-    legacy_index = (
-        len(rows) - 1 - source_index
-        if field == "len" else len(rows) - 2 - source_index
-    )
-    if 0 <= legacy_index < len(rows):
+    # A keyed potential target must never be replaced by positional guessing.
+    # With resolve_legacy_position, the Engine supplies the SAME index that
+    # the old BendingUI used when both rows are eligible for legacy mirroring.
+    legacy_index = legacy_target()
+    if legacy_index is not None:
         other_key = str(rows[legacy_index].get("phase6_key") or "")
         if other_key:
             return OperatorFoldMirrorPlan(None, True)
+    if resolve_legacy_position:
+        return OperatorFoldMirrorPlan(legacy_index, True)
     return OperatorFoldMirrorPlan(None, False)
 
 def operator_fold_editor_add_segment(
