@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Main GUI 包外 T/FW 與 Fold Designer 舊版 Gap/Fold 參數單一 Engine 來源（2026-11-03）
+
+- 主 GUI `_phase6_resolved_finished_dimensions` 的箱身 FW 及所有板件 T 必須用 `manufacturing_api.normalize_operator_source_dimension` 驗證 snapshot 原始來源，缺值、bool、零、NaN/Inf 不得退回 `ae.FW`／`ae.T` 製造出看似有效的成形尺寸。既有最終幾何仍用唯一 Engine finished dimension provider。
+- Fold Designer 原本 `ae.door_gap_*_def`、`door_fold_*_def`、`zl*/zr*`、`yl*/yr*/ytop1/ybottom1`、`indicator_small_door_fold_def` 的舊版缺欄位相容數值，統一由公開 `manufacturing_api.resolve_fold_designer_legacy_numeric_settings(data, part_name=...)` 提供；BoxBody head/tail `ybottom1` 專屬覆寫優先序維持不變。只有**缺欄位**允許保留舊版 Engine 預設；欄位存在卻非法（bool、NaN/Inf、無法轉為有限值）一律拒絕，不得偷偷使用另一個折／孔來源。
+- Divider/InnerDoor 舊路徑缺 D/T 的相容預設改經公開 `manufacturing_api.fold_designer_legacy_source_default("d"|"t")`，此項不得作為現行已確認製造請求 W/H/D/T/FW 缺值的授權。GUI 不直接引用 AE 工廠預設；已核准的 `PartSpec → FinalScene → 2D/3D/DXF Save→Reload` 及 Fold/Family 補償規則維持既有權威。
+- 以 `tests/test_issue2517_fold_designer_numeric_defaults_single_engine_api.py` 核對金庫型／受電箱、相容缺欄位、真實小數來源、非法值、GUI 公開 API 委派，並納入既有 canonical pytest 自動收集，不新增獨立製造算法或外部 exporter。
+
+
 ## [CURRENT] #2517 Head/Tail Hole Editor 三入口同一公開 Engine finished-face 投影（2026-11-03）
 
 - 主 WHD GUI 封頭／封尾、受電箱 Set/Bay 實體封頭／封尾及未 Apply 的受電箱候選版本編輯器，**同用**公開 `manufacturing_api.project_operator_hole_editor_endcap(role, width, depth, thickness)`。沿用既有 `resolve_endcap_finished_face_guide`、`feature_surface_from_rect`、`RectGuide`，由 Engine 產生可開孔面和 finished boundary；GUI 只傳原始操作／Bay 尺寸、選 Role、顯示和提交明確確認的 Features。

@@ -13,7 +13,6 @@ from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
 
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.contracts import BoxBodyPartSpec, EndCapPartSpec, ManufacturingContext
@@ -180,7 +179,8 @@ def _export_authoritative_part(self, spec, output_path, context=None):
 def _box_body_divider_from_payload(key, payload):
     """UI input normalization only; Engine selects the physical Divider."""
     divider_input = collect_divider_input(
-        key, payload, default_depth=ae.D, default_thickness=ae.T,
+        key, payload, default_depth=manufacturing_api.fold_designer_legacy_source_default("d"),
+        default_thickness=manufacturing_api.fold_designer_legacy_source_default("t"),
     )
     return manufacturing_api.resolve_fold_designer_divider_part(key, divider_input)
 
@@ -188,7 +188,8 @@ def _box_body_divider_from_payload(key, payload):
 def _inner_door_frame_from_payload(key, payload):
     """The Engine owns Family/legacy frame topology and stable identity."""
     return manufacturing_api.resolve_fold_designer_frame_part(
-        key, payload, default_thickness=ae.T,
+        key, payload,
+        default_thickness=manufacturing_api.fold_designer_legacy_source_default("t"),
     )
 
 
@@ -343,12 +344,9 @@ def _door_part_spec_from_payload_context(
     return self._door_part_spec_from_values(
         {
             "w": w, "h": h, "t": t, "fw": fw,
-            "door_gap_w": float(data.get("door_gap_w", ae.door_gap_w_def)),
-            "door_gap_h": float(data.get("door_gap_h", ae.door_gap_h_def)),
-            "door_fold_l": float(data.get("door_fold_l", ae.door_fold_left_def)),
-            "door_fold_r": float(data.get("door_fold_r", ae.door_fold_right_def)),
-            "door_fold_t": float(data.get("door_fold_t", ae.door_fold_top_def)),
-            "door_fold_b": float(data.get("door_fold_b", ae.door_fold_bottom_def)),
+            **manufacturing_api.resolve_fold_designer_legacy_numeric_settings(
+                data, part_name="door",
+            ),
         },
         model_name=(None if unknown else model),
         features=features,
@@ -382,14 +380,15 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
     context = ManufacturingContext(draw_stock=False)
 
     if key == "box_body":
+        box_source = manufacturing_api.resolve_fold_designer_legacy_numeric_settings(
+            data, part_name="box_body",
+        )
         spec = self._box_body_part_spec_from_values(
             {
                 "w": w, "h": h, "d": d, "t": t, "fw": fw,
-                "zl1": float(data.get("zl1", ae.zl1_def)),
-                "zl2": float(data.get("zl2", ae.zl2_def)),
-                "zr1": float(data.get("zr1", ae.zr1_def)),
-                "zr2": float(data.get("zr2", ae.zr2_def)),
-                "z_comp": float(data.get("z_comp", getattr(ae, "z_comp_def", 0.0))),
+                **{name: box_source[name] for name in (
+                    "zl1", "zl2", "zr1", "zr2", "z_comp",
+                )},
             },
             model_name=(None if unknown else model),
             features=features,
@@ -399,18 +398,15 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
             fold_profile=data.get("fold_profile"),
             structure_state=data.get("box_body_structure"),
             snapshot=data,
-            head_ybottom1=float(data.get("head_ybottom1", data.get("ybottom1", ae.ybottom1_def))),
-            tail_ybottom1=float(data.get("tail_ybottom1", data.get("ybottom1", ae.ybottom1_def))),
+            head_ybottom1=box_source["head_ybottom1"],
+            tail_ybottom1=box_source["tail_ybottom1"],
         )
     elif key in {"head", "tail"}:
         endcap_values = {
             "w": w, "h": h, "d": d, "t": t, "fw": fw,
-            "yl1": float(data.get("yl1", ae.yl1_def)),
-            "yr1": float(data.get("yr1", ae.yr1_def)),
-            "ytop1": float(data.get("ytop1", ae.ytop1_def)),
-            "ybottom1": float(data.get("ybottom1", ae.ybottom1_def)),
-            "zl1": float(data.get("zl1", ae.zl1_def)),
-            "zr1": float(data.get("zr1", ae.zr1_def)),
+            **manufacturing_api.resolve_fold_designer_legacy_numeric_settings(
+                data, part_name=key,
+            ),
         }
         resolved_cuts = data.get("resolved_assembly_relief_cuts")
         if resolved_cuts is None and bool(data.get("_use_committed_relief")):
@@ -461,13 +457,8 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
             {
                 "t": t,
                 "fw": fw,
-                "door_gap_w": float(data.get("door_gap_w", ae.door_gap_w_def)),
-                "door_gap_h": float(data.get("door_gap_h", ae.door_gap_h_def)),
-                "indicator_door_fold": float(
-                    data.get(
-                        "indicator_door_fold",
-                        getattr(ae, "indicator_small_door_fold_def", 19.0),
-                    )
+                **manufacturing_api.resolve_fold_designer_legacy_numeric_settings(
+                    data, part_name="indicator_door",
                 ),
             },
             groups,

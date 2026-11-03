@@ -913,13 +913,17 @@ class Phase6ApplicationHost:
         head_policy = tail_policy = None
         if key == "box_body":
             head_policy, tail_policy = self._box_body_corner_policies(
-                float(snapshot.get("fw", ae.FW))
+                manufacturing_api.normalize_operator_source_dimension(
+                    snapshot.get("fw"), field="fw",
+                )
             )
         return resolve_operator_finished_dimensions(
             key,
             snapshot=snapshot,
             settings=settings,
-            thickness=float(snapshot.get("t", ae.T)),
+            thickness=manufacturing_api.normalize_operator_source_dimension(
+                snapshot.get("t"), field="t",
+            ),
             head_corner_policy=head_policy,
             tail_corner_policy=tail_policy,
         )
