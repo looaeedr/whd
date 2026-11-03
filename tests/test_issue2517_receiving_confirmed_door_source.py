@@ -5,6 +5,8 @@ from pathlib import Path
 import ezdxf
 import pytest
 
+import phase6_project_file as project
+
 from ae_engine import manufacturing_api
 from ae_engine.cabinet_types import policy as family_policy
 from ae_engine.integration_api import (
@@ -143,4 +145,96 @@ def test_legacy_three_part_source_and_source_only_guard_unchanged():
     with pytest.raises(ValueError, match="RECEIVING_OPERATOR_CONFIRMATION_REQUIRED"):
         manufacturing_api.build_receiving_factory_confirmed_parts(
             SOURCE, confirmed_door_layout_columns=UPPER_LOWER,
+        )
+
+
+@pytest.mark.parametrize("key,mode", [
+    ("0:0", "indicator"),
+    ("0:1", "indicator_box"),
+    ("door_c1_r1", "indicator_box"),
+    ((0, 1), "indicator"),
+])
+def test_saved_active_indicator_cannot_become_a_blank_confirmed_door(key, mode):
+    """Every supported physical cell-key form must fail before PartSpec export."""
+    saved = _saved()
+    saved["door_layout_indicator_states"] = {key: {
+        "mode": mode, "layers": 1, "groups": [2] * 6,
+        "offset_x": 0.0, "offset_y": 0.0, "is_box_dist": False,
+    }}
+    before = deepcopy(saved)
+    with pytest.raises(ValueError, match="RECEIVING_CONFIRMED_DOOR_SOURCE_INVALID"):
+        manufacturing_api.build_receiving_factory_confirmed_parts(
+            SOURCE, confirmation="saved_operator_confirmed",
+            operator_snapshot=saved, confirmed_door_layout_columns=UPPER_LOWER,
+        )
+    assert saved == before
+
+
+@pytest.mark.parametrize("state", [
+    {"box_enabled": True, "layers": 1, "groups": [2] * 6,
+     "offset_x": 0, "offset_y": 0, "is_box_dist": False},
+    {"mode": "indicator", "layers": 1, "groups": [False, 2],
+     "offset_x": 0, "offset_y": 0, "is_box_dist": False},
+    {"mode": "unsupported"},
+])
+def test_saved_legacy_or_invalid_indicator_cannot_bypass_source_gate(state):
+    saved = _saved()
+    saved["door_layout_indicator_states"] = {"0:0": state}
+    with pytest.raises(ValueError, match="RECEIVING_CONFIRMED_DOOR_SOURCE_INVALID"):
+        manufacturing_api.build_receiving_factory_confirmed_parts(
+            SOURCE, confirmation="saved_operator_confirmed",
+            operator_snapshot=saved, confirmed_door_layout_columns=UPPER_LOWER,
+        )
+
+
+def test_saved_indicator_survives_project_reload_and_blocks_verified_dxf(tmp_path):
+    """A real .p6fold IndicatorBox hole must never be erased by source export."""
+    saved = _saved()
+    saved["door_layout_indicator_states"] = {"0:0": {
+        "mode": "indicator_box", "layers": 2,
+        "groups": [3, 2, 2, 2, 2, 2], "offset_x": 1.25,
+        "offset_y": -2.5, "is_box_dist": False,
+    }}
+    original = deepcopy(saved)
+    path = project.write_project(
+        tmp_path / "confirmed-door.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": saved},
+    )
+    restored = project.read_project(path)["snapshot"]
+    assert restored["door_layout_indicator_states"]["0:0"]["mode"] == "indicator_box"
+    assert restored["door_layout_indicator_states"]["0:0"]["groups"][:2] == [3, 2]
+    output = tmp_path / "out"
+    with pytest.raises(ValueError, match="RECEIVING_CONFIRMED_DOOR_SOURCE_INVALID"):
+        export_verified_resolved_integration_bays(
+            (_input(confirmation="saved_operator_confirmed", saved=restored),),
+            output, pre_commit_guard=lambda: None,
+            context=ManufacturingContext(resource_root=ROOT),
+        )
+    assert not output.exists()
+    assert saved == original
+
+
+def test_disabled_or_unrelated_indicators_do_not_block_plain_confirmed_doors():
+    saved = _saved()
+    saved["door_layout_indicator_states"] = {
+        "0:0": {"mode": "none", "layers": True, "groups": [False]},
+        "2:0": {"mode": "indicator_box", "layers": 1, "groups": [2],
+                "offset_x": 0, "offset_y": 0, "is_box_dist": False},
+    }
+    before = deepcopy(saved)
+    parts = manufacturing_api.build_receiving_factory_confirmed_parts(
+        SOURCE, confirmation="saved_operator_confirmed",
+        operator_snapshot=saved, confirmed_door_layout_columns=UPPER_LOWER,
+    )
+    assert [key for key, _ in parts][-2:] == ["door_c1_r1", "door_c1_r2"]
+    assert saved == before
+
+
+def test_saved_indicator_collection_must_be_a_mapping():
+    saved = _saved()
+    saved["door_layout_indicator_states"] = ["indicator_box"]
+    with pytest.raises(ValueError, match="RECEIVING_CONFIRMED_DOOR_SOURCE_INVALID"):
+        manufacturing_api.build_receiving_factory_confirmed_parts(
+            SOURCE, confirmation="saved_operator_confirmed",
+            operator_snapshot=saved, confirmed_door_layout_columns=UPPER_LOWER,
         )
