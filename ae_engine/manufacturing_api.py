@@ -149,7 +149,8 @@ from .operator_box_body_settings_projection import (
 
 # Engine-owned operator Settings dimensions and external-sync coercion.
 from .operator_settings_transactions import (
-    OperatorSettingsCommitTransition, normalize_operator_settings_boolean,
+    OperatorSettingsCommitTransition, OperatorExternalSyncPlan,
+    plan_operator_external_sync, normalize_operator_settings_boolean,
     normalize_operator_settings_updates, commit_operator_settings_state,
     normalize_operator_source_dimension, normalize_operator_source_dimensions,
     project_receiving_manufacturing_request_settings,
