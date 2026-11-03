@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Bay 3D 物理世界裝配位置由 Engine 公開 API 唯一投影（2026-11-03）
+
+- 原 GUI receiving_bay_preview_request 在 resolve 真實製造板件後，仍直接以 `if part.placement != "standalone"` 決定哪些實體要加入 Bay Assembly，並用 `tuple(a+b for zip(part.offset, bay_offset))` 計算世界裝配座標。這違反 GUI 只消費 Engine 製造物理結果原則；現在透過既有 receiving_bay_assembly_offsets（相鄰 Joint＋包外 W/H/D）及 Engine `receiving_bay_preview_source.project_receiving_bay_preview_assembly_members` 統一回傳不可變 `ReceivingBayWorldAssemblyProjection`（Bay origin 與已確認非 standalone 實體 Part＋world offset），經 `manufacturing_api` 公開。
+- GUI 只將 Engine 已解析的物理 PartRenderData／Fold Profile 配上 Engine 投影位置組裝 `AssemblyScenePart` 作 Matplotlib 顯示。不存在的 Bay、缺少 placement、布林／NaN／Inf／錯誤三軸 offset 必須 fail closed，不得透過 `zip` 截斷或從 3D bbox 猜座標。單獨 CustomFold 不屬 Bay Assembly，仍保持獨立板件身分；基準源／Set-Bay/Factory／Save→Reload 原契約不變。
+- 驗收 `tests/test_issue2517_receiving_bay_world_assembly_projection_engine_api.py` 搭配原 Receiving Bay Preview、Set/Bay Joint 與 Headless CI。此是已解析製造結果的 VIEW 位置投影，非新增 CUTTING、DXF、source-only external 製造認證；#2517 OPEN。
+
 ## [CURRENT] #2517 Receiving Bay 預覽快取准入及來源類型判準統一由 Engine（2026-11-03）
 
 - 原 GUI receiving_bay_preview_request 自行以 model/active_mode/bay_index/custom Parts/Assembly Joints/Relief 決定快取世界座標平移及 suffix 裁剪，並以 custom: 前綴決定是否讀取 live CustomPartCatalog；現移至 ae_engine.receiving_bay_preview_source.plan_receiving_bay_preview_reuse_policy，透過 manufacturing_api 公開 immutable ReceivingBayPreviewReusePolicy。GUI 僅讀取 workspace live metadata、管理 bounded LRU 及顯示既有 FinalScene。

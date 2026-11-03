@@ -893,13 +893,16 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
             f"projected_selection={snapshot.get('_receiving_runtime_selection')!r}; "
             f"cause={exc}"
         ) from exc
-    from ae_engine.receiving_layout import receiving_bay_assembly_offsets
-    bay_offset = receiving_bay_assembly_offsets(snapshot["receiving_layout"], set_index=set_index)[bay_index]
+    placed = manufacturing_api.project_receiving_bay_preview_assembly_members(
+        snapshot["receiving_layout"], resolved.parts,
+        set_index=set_index, bay_index=bay_index,
+    )
+    bay_offset = placed.bay_offset
     parts = tuple(AssemblyScenePart(
         part_key=part.part_key, render_data=part.render_data,
         x_profile=part.x_profile, y_profile=part.y_profile,
-        placement=part.placement, offset=tuple(a + b for a, b in zip(part.offset, bay_offset)),
-    ) for part in resolved.parts if part.placement != "standalone")
+        placement=part.placement, offset=world_offset,
+    ) for part, world_offset in placed.part_placements)
     result = FinalSceneViewRequest(
         render_data=AssemblySceneRenderData(assembly_parts=parts, preserve_endcap_core_origin=True),
         x_profile=(), y_profile=(), part_key="assembly",

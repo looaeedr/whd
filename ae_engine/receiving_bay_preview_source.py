@@ -250,6 +250,57 @@ def project_receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, b
     fingerprint_snapshot["receiving_layout"] = shallow_layout
     return fingerprint_snapshot
 
+@dataclass(frozen=True)
+class ReceivingBayWorldAssemblyProjection:
+    """One Engine-selected Bay world datum and ordered visible physical parts."""
+
+    bay_offset: tuple[float, float, float]
+    part_placements: tuple[tuple[object, tuple[float, float, float]], ...]
+
+
+def project_receiving_bay_preview_assembly_members(
+    layout, resolved_parts, *, set_index, bay_index,
+) -> ReceivingBayWorldAssemblyProjection:
+    """Place actual resolved Bay sheets in Engine-derived joint world space.
+
+    The caller has already resolved the canonical PartSpecs/FinalScene.
+    This is read-only display placement: standalone sheets do not belong
+    to a Bay Assembly. Invalid world offsets fail closed rather than being
+    truncated by zip() or projected as a partially assembled cabinet.
+    """
+    from math import isfinite
+    from .receiving_layout import receiving_bay_assembly_offsets
+
+    offsets = receiving_bay_assembly_offsets(layout, set_index=set_index)
+    if type(bay_index) is not int or not 0 <= bay_index < len(offsets):
+        raise IndexError("Receiving preview bay_index out of range")
+    bay_offset = tuple(float(x) for x in offsets[bay_index])
+    if len(bay_offset) != 3 or not all(isfinite(x) for x in bay_offset):
+        raise ValueError("RECEIVING_BAY_WORLD_OFFSET_INVALID")
+
+    projected = []
+    for part in tuple(resolved_parts or ()):
+        role = getattr(part, "placement", None)
+        if role == "standalone":
+            continue
+        if not isinstance(role, str) or not role:
+            raise ValueError("RECEIVING_BAY_ASSEMBLY_PLACEMENT_MISSING")
+        raw = getattr(part, "offset", None)
+        if not isinstance(raw, (list, tuple)) or len(raw) != 3:
+            raise ValueError("RECEIVING_BAY_PART_WORLD_OFFSET_INVALID")
+        try:
+            if any(isinstance(x, bool) for x in raw):
+                raise ValueError("bool offset")
+            local = tuple(float(x) for x in raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("RECEIVING_BAY_PART_WORLD_OFFSET_INVALID") from exc
+        world = tuple(a + b for a, b in zip(local, bay_offset))
+        if not all(isfinite(x) for x in local + world):
+            raise ValueError("RECEIVING_BAY_PART_WORLD_OFFSET_INVALID")
+        projected.append((part, world))
+    return ReceivingBayWorldAssemblyProjection(bay_offset, tuple(projected))
+
+
 def plan_receiving_bay_preview_offset_rebase(parts, old_anchor, new_anchor):
     """Plan immutable world placement deltas; never alter sheets or source parts.
 
