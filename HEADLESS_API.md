@@ -1907,3 +1907,7 @@ Use `manufacturing_api.project_operator_door_layout_indicator_snapshot_states(pe
 ### #2517 BoxBody face baseline preview (2026-11-03)
 
 Use manufacturing_api.project_operator_box_body_baseline_face_features(model_name, values, head_corner_policy=..., tail_corner_policy=..., cache=optional_view_cache) to read the existing baseline file's left/back/right editor Features from Engine, or three empty face lists if no known source. The source fingerprint and mapping remain Engine-owned; this preview projection does not certify DXF export. GUI shows the label using manufacturing_api.operator_box_body_baseline_source_label(model_name). Same physical BoxBody manufacturing API remains unchanged.
+
+### #2517 BoxBody face Hole Editor physical geometry (2026-11-03)
+
+manufacturing_api.project_operator_hole_editor_box_body_face(face_key, values, head_corner_policy=..., tail_corner_policy=..., baseline_scene=..., baseline_status=...) returns OperatorHoleEditorGeometry (surface, width, height, reference_guide, baseline_scene/status). This is the canonical Engine source for an editable left/back/right physical face boundary; GUI must not reconstruct the T and Corner vertical offsets. Read-only editor preview; actual manufacturing remains canonical FinalScene and verified DXF. Main GUI BoxBody snapshot uses project_operator_box_body_face_dimensions.

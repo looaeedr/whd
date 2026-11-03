@@ -193,16 +193,13 @@ def _refresh_box_body_after_hole_editor(host):
     return host.draw_box_body(host.get_float_values())
 
 
+
 def open_box_body_face_editor(
     host,
     face_key,
     *,
     messagebox_module,
-    face_dimensions_fn,
-    vertical_offsets_fn,
-    surface_builder,
-    guide_type,
-    vec2_type,
+    editor_projection,
     baseline_label_fn,
 ):
     if face_key not in {"left", "back", "right"}:
@@ -215,23 +212,13 @@ def open_box_body_face_editor(
         messagebox_module.showerror("輸入錯誤", str(exc))
         return None
 
-    dims = face_dimensions_fn(w=val["w"], h=val["h"], d=val["d"])
-    width, height = dims[face_key]
     head_policy, tail_policy = host._box_body_corner_policies(val["fw"])
-    bottom_outer, top_outer = vertical_offsets_fn(
-        val["t"],
+    geometry = editor_projection(
+        face_key, val,
         head_corner_policy=head_policy,
         tail_corner_policy=tail_policy,
-    )
-    surface = surface_builder(
-        f"box_body_{face_key}",
-        vec2_type(val["t"], bottom_outer),
-        vec2_type(width - val["t"], height - top_outer),
-    )
-    reference_guide = guide_type(
-        vec2_type(0.0, 0.0),
-        vec2_type(width, height),
-        "enclosure_boundary",
+        baseline_scene=host._box_body_face_baseline_scene(face_key, val),
+        baseline_status=baseline_label_fn(host.baseline_var.get()),
     )
     title = {
         "left": "箱身左側",
@@ -248,13 +235,13 @@ def open_box_body_face_editor(
     return host._open_unified_hole_editor(
         f"box_body_{face_key}",
         title,
-        surface,
-        width,
-        height,
-        reference_guide=reference_guide,
+        geometry.surface,
+        geometry.width,
+        geometry.height,
+        reference_guide=geometry.reference_guide,
         feature_list_override=host.box_body_face_features[face_key],
         sync_callback=sync_features,
-        baseline_scene=host._box_body_face_baseline_scene(face_key, val),
-        baseline_status_text=baseline_label_fn(host.baseline_var.get()),
+        baseline_scene=geometry.baseline_scene,
+        baseline_status_text=geometry.baseline_status,
         on_close=lambda: _refresh_box_body_after_hole_editor(host),
     )

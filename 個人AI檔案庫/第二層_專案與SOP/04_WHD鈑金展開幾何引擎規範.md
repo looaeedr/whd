@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 箱身面 Hole Editor 可加工面及基準界線由 Engine 投影（2026-11-03）
+
+- GUI 原箱身左／背／右面編輯器自行依 W/H/D/T、兩端 CornerPolicy 推出開孔面四角及 Reference Guide，透過低階 feature_surface_from_rect／box_body_vertical_offsets 組合實體範圍；現在委派 manufacturing_api.project_operator_hole_editor_box_body_face，沿用相同 box_body_face_dimensions、Corner vertical offsets 與現有 OperatorHoleEditorGeometry。
+- UI 僅選 face key、操作值、已有 Engine Corner policy、提供基準唯讀場景並開啟 Modal；原 Feature 提交、同步與關閉刷新順序不變。主 GUI BoxBody render snapshot 的面尺寸也改用既有 project_operator_box_body_face_dimensions；沒有新增 DXF writer、幾何補償或改變 FinalScene 製造認證。
+- tests/test_issue2517_box_body_face_editor_geometry_engine_api.py 比對金庫型和受電箱相同幾何、非法 face 拒絕與 GUI 真實委派；需完整 CI，#2517 整體結案仍以全入口驗收為準。
+
+
 ## [CURRENT] #2517 箱身三面基準固定特徵只經公開 Engine API（2026-11-03）
 
 - GUI 的箱身左／背／右面 Hole Editor 原本直接透過 ae 模組查找「箱身.dxf」基準、source fingerprint 與低階固定特徵投影；現在由公開 manufacturing_api.project_operator_box_body_baseline_face_features 使用原有 Engine 映射，保留金庫型／受電箱既有 source-miss 三面空值語意，以及來源 fingerprint＋W/H/D/T/FW／Fold／Corner 快取鍵。
