@@ -25,7 +25,7 @@ class OperatorExternalModelPlan:
     target_model: str
 
 
-def plan_external_model_change(
+def plan_operator_external_model_change(
     model: object,
     current_model: object,
 ) -> OperatorExternalModelPlan:
