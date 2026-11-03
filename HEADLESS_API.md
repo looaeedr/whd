@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：Main／Designer 的 physical Workspace 共用實體狀態改由公開 `manufacturing_api.SharedWorkspaceState`、`normalize_existing_parts` 與物理清單常數建立，GUI `phase6_workspace_state` 是相容別名，不再決定物理 presence、CustomPart ID 或結構；UI lifecycle 仍分離，原 Save→Reload 與製造不變。
+
 > #2517（2026-11-03）：受電箱模式初始狀態／切換由 `manufacturing_api.fresh_receiving_mode` 與 `manufacturing_api.ReceivingModeSession` 決定，GUI 原模組保留同名相容別名；初始實體板件清單共用 `manufacturing_api.DEFAULT_OPERATOR_EXISTING_PARTS`。不改既有 Save→Reload 格式或現行製造／外部 CLI 認證。
 
 > #2517（2026-11-03）：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_layout_columns=...)` 可在**明確確認**的 Receiving 操作來源下建立 Door cell PartSpec；`ManufacturingResolvedBayInput.door_layout_columns` 在 source-confirmed 模式傳入相同拓樸，沿用 `export_verified_resolved_integration_bays` 的正式 DXF reopen。未確認的 Door Features、拓樸不符或已存門格不同均拒絕，並未開放 source-only CLI。
