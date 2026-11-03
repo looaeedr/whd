@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Door 2D Preview 使用原始指示燈實體來源，禁止偽孔（2026-11-03）
+
+- `gui_modules/application/door_render_host_adapter._door_layout_cell_resolved_features` 以前會先將存檔的 `door_layout_indicator_states` 轉成展示相容預設，再交 Engine 畫實體指示燈孔；布林孔數、零／小數、過大層數或無效偏移有被改成合法預設而出現「預覽偽 CUTTING」風險。此 2D 入口改讀原始 cell row 且**不寫回**；缺 cell 不補建，只有完全沒有來源容器的舊 client 才保留展示 accessor 相容讀取。
+- 公開 `manufacturing_api.project_operator_door_cell_features` 沿用原有 `ae_engine.operator_door_cell_projection` 幾何與容錯：有效來源先經同一 `project_operator_door_cell_indicator_manufacturing_source` 判定實際 layers／groups／offset；非法來源僅略過「指示燈／盒開孔」預覽，不得以 `int(True)` 等轉換畫出加工孔，其他已編輯的合法 Features 照舊顯示。正式 DoorPartSpec／FinalScene／DXF 的拒絕路徑不變。
+- 現行 Door Hole Editor 已改用公開 `project_operator_hole_editor_door_cell` 和唯讀顯示 accessor、暫存 Feature 清單，不回退該新 API。測試 `tests/test_issue2517_door_cell_preview_engine_api.py` 包括原始狀態不變、缺 cell、非法層數／組數／NaN，以及既有金庫型／受電箱合法預覽；#2517 仍 OPEN，非整套製造認證。
+
+
 ## [CURRENT] #2517 Receiving 多門格開孔要使用已確認 Bay 尺寸與唯一實體 ID（2026-11-03）
 
 原 `door_layout_host_adapter._receiving_live_door_layout_source` 僅認得「受電箱」與大寫「RECEIVING」，遇到 Registry 合法別名 `receiving`／混合大小寫／`cabinet_type` 會退回 GUI 主 Settings 舊尺寸，讓開孔編輯器選錯實體門格。現只經公開 `manufacturing_api.receiving_family_supports_back_panel_mode` 確認 Family，活躍 Receiving 的 `_phase6_box_whd` 或 `door_layout_columns` 缺失都直接拒絕，不得退回不相干 W/H。原 `manufacturing_api.project_operator_receiving_settings_live_dimensions(..., applying_settings=True)` 驗證所選 Bay 的 W/H/D 來源，拒絕 bool、非有限數及非正值；GUI `open_door_layout_cell_editor` 不再用 `float()` 把來源改型，只傳 Engine 已驗證數值。原 GUI 手拼 `door_cN_rN` 的 Workspace／Feature 實體鍵改走公開 `manufacturing_api.door_layout_part_key(cell)`，其實作仍為 Engine `sheetmetal_part_adapters.door_layout_part_key`，與 DoorPartSpec、Fold Designer、DXF 的實體 ID 一致。選錯或非法 Bay 在開 Editor 前顯示錯誤，不得寫入 Project；完全不改 Door／CUTTING／Fold／DXF 公式與 source-only 出口限制。回歸覆蓋 Vault／Receiving 別名、缺 Bay、非法 W/H/D、Door Editor 及 source key，同原 Save→Reload／2D／3D／DXF API Gate。#2517 保持 OPEN。
