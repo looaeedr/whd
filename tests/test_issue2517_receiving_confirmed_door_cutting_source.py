@@ -116,7 +116,7 @@ def test_saved_operator_hole_source_matches_explicit_confirmation():
 
 
 @pytest.mark.parametrize("features,code", [
-    ({UPPER: (_hole(),)}, "RECEIVING_SAVED_DOOR_SOURCE_FEATURES_MISMATCH"),
+    ({UPPER: ()}, "RECEIVING_SAVED_DOOR_SOURCE_FEATURES_MISMATCH"),
     ({LOWER: (_hole(),)}, "RECEIVING_SAVED_DOOR_SOURCE_FEATURES_MISMATCH"),
     ({UPPER: (CircleFeature(8.0, FeatureAnchor.ABSOLUTE_FINISHED_FACE,
                             Vec2(float("nan"), 100.0)),)}, "RECEIVING_DOOR_SOURCE_FEATURES_INVALID"),
