@@ -75,15 +75,11 @@ def _normalize_door_indicator_state(self, state):
 
 
 def _door_layout_indicator_state_for_key(self, key):
-    state = self.door_layout_indicator_states.get(key)
-    normalized = self._normalize_door_indicator_state(state)
-    if state is None:
-        state = normalized
-        self.door_layout_indicator_states[key] = state
-    else:
-        state.clear()
-        state.update(normalized)
-    return state
+    # Presentation repair is read-only. Manufacturing and project Save must
+    # still see the original saved source until the operator commits a change.
+    return self._normalize_door_indicator_state(
+        self.door_layout_indicator_states.get(key)
+    )
 
 
 def _door_layout_cell_result(self, cell, val=None):
@@ -96,15 +92,14 @@ def _door_layout_cell_result(self, cell, val=None):
 
 
 def _door_layout_cell_resolved_features(self, cell, result, key):
-    # Preview-only compatibility repair must remain detached. The legacy
-    # display accessor repairs the saved dict in place, which would otherwise
-    # make malformed physical inputs appear valid to the later Engine/DXF gate.
+    # Preview-only compatibility repair remains detached; neither an absent
+    # Indicator state nor absent Feature row becomes a persisted part source.
     preview_indicator_state = self._normalize_door_indicator_state(
         self.door_layout_indicator_states.get(key)
     )
     return manufacturing_api.project_operator_door_cell_features(
         result,
-        self.door_layout_features.setdefault(key, []),
+        self.door_layout_features.get(key, []),
         preview_indicator_state,
         cell_width=cell.start_width, cell_height=cell.start_height,
         frame_edges=cell.edges,

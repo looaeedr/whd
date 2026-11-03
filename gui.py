@@ -1489,8 +1489,8 @@ class Phase6ApplicationHost:
         if component not in {"indicator_box", "indicator_door"}:
             return
         try:
-            # Display normalization mutates the persisted row in place. Read
-            # committed source before any presentation accessor can repair it.
+            # Always validate the original committed source. Display-only
+            # normalization must not authorize or rewrite physical holes.
             states = getattr(self, "door_layout_indicator_states", None)
             raw = (states.get(key) if isinstance(states, Mapping)
                    else self._door_layout_indicator_state_for_key(key))
@@ -1516,13 +1516,17 @@ class Phase6ApplicationHost:
         guide = info.reference_guide
         baseline_scene, status = info.baseline_scene, info.baseline_status
         if component == "indicator_box":
-            feature_store = self.door_layout_indicator_box_features.setdefault(key, [])
+            feature_target = self.door_layout_indicator_box_features
             title = "指示燈盒子"
         else:
-            feature_store = self.door_layout_indicator_door_features.setdefault(key, [])
+            feature_target = self.door_layout_indicator_door_features
             title = "指示燈小門"
+        # The hole editor receives a private working list. Opening it must
+        # not create a physical Feature row or mutate saved Features.
+        feature_store = list(feature_target.get(key, []))
 
         def sync_indicator_component_features():
+            feature_target[key] = list(feature_store)
             designer = getattr(self, "fold_designer_app", None)
             if designer is not None and isinstance(getattr(designer, "_phase6_input_snapshot", None), dict):
                 designer._phase6_input_snapshot["door_layout_indicator_box_features"] = {
@@ -1597,9 +1601,12 @@ class Phase6ApplicationHost:
         designer = getattr(self, 'fold_designer_app', None)
         physical_key = f'door_c{cell.column_index + 1}_r{cell.row_index + 1}'
         workspace = getattr(designer, 'designer_workspace', None)
-        features = (workspace.features_for(physical_key) if workspace is not None
-                    and physical_key in workspace.available_parts
-                    else self.door_layout_features.setdefault(key, []))
+        # Stage edits in a detached list; only sync_features commits them.
+        features = list(
+            workspace.features_for(physical_key) if workspace is not None
+            and physical_key in workspace.available_parts
+            else self.door_layout_features.get(key, [])
+        )
 
         def sync_features():
             self.door_layout_features[key] = list(features)
@@ -1651,8 +1658,8 @@ class Phase6ApplicationHost:
             baseline_scene=baseline_scene, baseline_status_text=baseline_status,
             indicator_component_context_provider=lambda state, key=key, val=val: self._indicator_component_editor_contexts(
                 state, val,
-                box_features=self.door_layout_indicator_box_features.setdefault(key, []),
-                door_features=self.door_layout_indicator_door_features.setdefault(key, []),
+                box_features=self.door_layout_indicator_box_features.get(key, []),
+                door_features=self.door_layout_indicator_door_features.get(key, []),
             ),
         )
 

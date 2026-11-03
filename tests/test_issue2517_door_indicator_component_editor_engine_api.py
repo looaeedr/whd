@@ -66,7 +66,10 @@ def test_door_indicator_editor_delegates_to_engine_and_retains_feature_store(mon
     assert seen["kwargs"]["baseline_scene"] is part.baseline_scene
     assert seen["kwargs"]["baseline_status_text"] == part.baseline_status
     expected_store = stored_box if component == "indicator_box" else stored_door
-    assert seen["kwargs"]["feature_list_override"] is expected_store
+    # Editor edits are staged, never allowed to mutate persisted feature lists
+    # until sync_callback actually commits them.
+    assert seen["kwargs"]["feature_list_override"] == expected_store
+    assert seen["kwargs"]["feature_list_override"] is not expected_store
     seen["kwargs"]["sync_callback"]()
     assert seen["invalidate"] == "geometry" and seen["update"] == "geometry"
 

@@ -42,7 +42,7 @@ def export_multi_door_indicator_box_parts(
     for cell in self.get_door_layout_cells():
         key = self._door_layout_cell_key(cell)
         states = getattr(self, "door_layout_indicator_states", None)
-        # The display accessor mutates the stored row. Validate raw input first.
+        # Validate the original stored row, never a display-normalized copy.
         raw = (states.get(key) if isinstance(states, Mapping)
                else self._door_layout_indicator_state_for_key(key))
         state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)
