@@ -74,10 +74,17 @@ def _confirmed_finished_face_cutting_features(raw, *, allowed_roles, invalid_cod
 
 
 def _confirmed_endcap_source_features(raw):
-    return _confirmed_finished_face_cutting_features(
-        raw, allowed_roles={"head", "tail"},
-        invalid_code="RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID",
-    )
+    """The Head/Tail public source error must match the strict Door boundary."""
+    code = "RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID"
+    try:
+        return _confirmed_finished_face_cutting_features(
+            raw, allowed_roles={"head", "tail"}, invalid_code=code,
+        )
+    except (AttributeError, TypeError, ValueError, OverflowError) as exc:
+        # Frozen Feature DTOs are not runtime-validated: a direct caller may
+        # still supply a missing Vec2, malformed Profile or overflowing int.
+        # Fail closed with the source contract, never stage a physical DXF.
+        raise ValueError(code) from exc
 
 
 def _confirmed_door_source_features(raw, *, part_keys):

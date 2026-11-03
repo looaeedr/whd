@@ -1513,6 +1513,7 @@ Fold Designer 只收集原有 box_body/head/tail 實體 RenderData、X/Y Fold、
 ## [CURRENT] #2517 Receiving 已確認 EndCap 原始孔位 → 正式 Engine DXF（2026-11-02）
 
 既有 manufacturing_api.build_receiving_factory_confirmed_parts 和 ManufacturingResolvedBayInput 擴充可選 confirmed_endcap_features，只接收由可信來源／操作者確認並已按 Engine canonical 實體 role 對應的 head/tail 成品面 1:1 mm CUTTING CircleFeature／RectFeature／ProfileFeature。禁止用 CADSplit P 盤視圖名猜 Head/Tail、未解析 DXF 圖元冒孔位；非法 role、型別、成品面錨點、非有限座標及非正尺寸 fail closed。Engine 沿原建構 EndCapPartSpec(holes=...)、Family／Corner／FinalScene 和 verified physical DXF Save→Reload 接續，無第二製造算法或輸出系統。未提供孔位維持舊行為；其他板件孔位、全套 Set/Bay、NFB 或 source-only 外部 export 未因此獲得認證，#2517 OPEN。
+已確認 Head/Tail 的 typed Feature 雖然宣告了 `Vec2`／Profile 頂點型別，直接公開 API 呼叫仍可能傳入 `offset=None`、非 Vec2、損壞的 `points` 或溢位整數。`ae_engine.receiving_factory_requests._confirmed_endcap_source_features` 現與原 Door 一樣將 `AttributeError`／`TypeError`／`OverflowError`／來源 `ValueError` 全部收斂為 `RECEIVING_ENDCAP_SOURCE_FEATURES_INVALID`；壞來源在建立 PartSpec／DXF staging 前拒絕，不能改以 Python 非正式例外流出。合法 Head/Tail CUTTING 仍使用相同 Engine `EndCapPartSpec`、verified physical DXF Save→Reload，不更改製造幾何、層級或 source-only 認證。
 
 ## [CURRENT] #2517 受電箱底板 Part Session 啟用／儲存 Fold 來源單一 Engine API（2026-11-02）
 
