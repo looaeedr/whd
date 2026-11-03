@@ -14,13 +14,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
-from ae_engine.contracts import BoxBodyPartSpec, EndCapPartSpec, ManufacturingContext
-from ae_engine.corner_type_ui import (
-    is_unknown_model,
-)
-from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
-from phase6_fold_profiles import formed_box_body_fw_widths
+from ae_engine.contracts import ManufacturingContext
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
 from gui_modules.parts.panels.divider import collect_divider_input
 from gui_modules.parts.panels.door import collect_door_input
@@ -35,7 +29,7 @@ def _fold_designer_secondary_scene_rows(scene):
 def _query_fold_designer_baseline_data(self, part_key, model, values):
     """Read operator inputs and display the Engine-owned source-hole result."""
     model = str(model or "").strip()
-    if not model or is_unknown_model(model):
+    if not model or manufacturing_api.is_unknown_operator_model(model):
         return []
     v = dict(values or {})
     try:
@@ -159,8 +153,9 @@ def _export_authoritative_part(self, spec, output_path, context=None):
     self._flush_phase6_authoritative_state()
     owner = getattr(self, "workspace_controller", None)
     if owner is not None and owner.workspace_snapshot().get("receiving_quantity_box"):
-        from ae_engine.receiving_quantity_box import require_valid_quantity_features
-        require_valid_quantity_features(self._make_original_fold_designer_snapshot())
+        manufacturing_api.require_valid_operator_quantity_features(
+            self._make_original_fold_designer_snapshot(),
+        )
     self._require_verified_baseline_sources_for_manufacturing()
     ctx = context or self._manufacturing_context(draw_stock=False)
     render_data = self._authoritative_render_data(spec, ctx)
@@ -413,7 +408,7 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
             resolved_cuts = self._resolved_committed_assembly_relief_cuts(
                 key, endcap_values, data.get("fold_profiles") or {}
             )
-        formed_fw_left, formed_fw_right = formed_box_body_fw_widths(
+        formed_fw_left, formed_fw_right = manufacturing_api.formed_box_body_fw_widths(
             data.get("box_body_profile") or self.workspace_controller.box_body_profile() or (),
             t,
         )
