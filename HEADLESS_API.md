@@ -6,6 +6,8 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
+> #2517（2026-11-03）：Receiving 當前多門格 Hole Editor 尺寸來源經既有公開 `manufacturing_api.receiving_family_supports_back_panel_mode(snapshot)` 判定 Family Registry 別名，`project_operator_receiving_settings_live_dimensions(snapshot, whd, applying_settings=True)` 驗證現行 Bay W/H/D（缺失、bool、NaN、Inf、非正值均拒絕），而不是退回舊 Settings 畫面或自行 `float()`。實體門格特徵 ID 使用公開 `manufacturing_api.door_layout_part_key(cell)`，原 owner 為 `ae_engine.sheetmetal_part_adapters.door_layout_part_key`，與 Fold Designer／DXF 共用同一 cell identity。GUI 僅選 cell 和輸入數值，不新增門格幾何、DXF 出口或外部認證。
+
 > #2517（2026-11-03）：多門格 Door Hole Editor 使用公開 `manufacturing_api.project_operator_hole_editor_door_cell(result, door_spec, baseline_scene=..., baseline_status=...)`，從同一 Engine DoorPartSpec／已解算 cell 結構投影不可變 `OperatorHoleEditorGeometry`（surface／material width/height／finished-face guide／IndicatorContext／frame_edges）。GUI 不再直接使用低層 `feature_surface_from_structural_result` 或 `build_finished_reference_guide` 計算正式編輯面；此唯讀編輯投影不解鎖製造 DXF 或外部 source-only export。
 
 > #2517（2026-11-03）：原 Fold Designer 保存的門板指示燈 `door_indicator_offset` 由 `manufacturing_api.normalize_fold_designer_indicator_offsets(offset_x, offset_y)` 驗證，與 `normalize_operator_hole_editor_indicator_state` 共用同一 Engine 有限非布林偏移判準；允許正負及 0 mm，不接受 bool／NaN／Inf／壞來源。只增加原公開 API 的製造輸入規範，不新增 Feature 算式／DXF writer。

@@ -346,6 +346,7 @@ from .sheetmetal_part_adapters import (
     build_door_result,
     build_unknown_door_result,
     build_finished_reference_guide,
+    door_layout_part_key,
 )
 from .cabinet_types import policy as cabinet_family_policy
 from .cabinet_types.policy import door_material_frame_width, box_body_symmetry_allowed

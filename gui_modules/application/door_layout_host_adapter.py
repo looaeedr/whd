@@ -8,6 +8,7 @@ from __future__ import annotations
 import tkinter as tk
 
 import ae_engine.ae as ae
+from ae_engine import manufacturing_api
 from gui_modules.application.door_layout_controller import (
     DoorLayoutColumnState as _DoorLayoutColumnState,
     door_layout_cells as _door_layout_cells_impl,
@@ -140,17 +141,26 @@ def _receiving_live_door_layout_source(self):
     """
     designer = getattr(self, "fold_designer_app", None)
     source = getattr(designer, "_phase6_input_snapshot", None)
-    if not isinstance(source, dict) or source.get("model") not in {"受電箱", "RECEIVING"}:
+    if (not isinstance(source, dict)
+            or not manufacturing_api.receiving_family_supports_back_panel_mode(source)):
         return None
     whd = getattr(designer, "_phase6_box_whd", None)
     if not isinstance(whd, dict) or any(axis not in whd for axis in ("w", "h", "d")):
-        return None
+        # A selected Receiving Family has an authoritative live Bay: falling
+        # back to the unrelated legacy GUI header would edit the wrong panel.
+        raise ValueError("目前受電箱缺少已確認的 Bay W/H/D 來源")
     columns = source.get("door_layout_columns")
     if not columns:
-        # Never substitute another Bay's legacy UI grid for an absent
-        # authoritative door topology.
         raise ValueError("目前受電箱缺少已配置門分割資料")
-    return source, whd
+    # This existing Engine port validates all W/H/D (including depth, which
+    # the 2D Door layout alone cannot check) and preserves the original
+    # numeric source types rather than converting bool/NaN in the GUI.
+    validated = manufacturing_api.project_operator_receiving_settings_live_dimensions(
+        source, whd, applying_settings=True,
+    )
+    if validated is None:
+        raise ValueError("受電箱門格 Bay 實體尺寸來源未通過 Engine 驗證")
+    return source, validated
 
 
 def get_door_layout_cells(self):
