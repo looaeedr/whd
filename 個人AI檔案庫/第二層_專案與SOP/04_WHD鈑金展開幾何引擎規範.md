@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 原始製造請求與 Fold Designer 預覽共用單一 Engine 實體 Part source router（2026-11-03）
+
+- GUI 原 `phase6_manufacturing_adapter._profile_inputs_for_part` 自行以 `custom:` 字串決定從 saved CustomFold Catalog 補建 Fold；`_domain_inputs_for_part` 與 `_materialize_committed_endcap_inputs` 自行以 `head/tail/custom:` 判斷需直接 PartSpec 與 committed relief 第二階段；`fold_designer_manufacturing_projection._query_fold_designer_render_data` 亦自行以多組實體 part_key 前綴／後綴決定 indicator/multipart/door 操作輸入和 NFB PAD／固定耳／Divider／InnerDoor panel/frame 使用哪個 Engine 製造來源。以上現在同批統一交 `ae_engine.manufacturing_request_parts.plan_operator_manufacturing_part_source`（公開 `manufacturing_api`）回傳不可變 `OperatorManufacturingPartSourcePlan`。
+- GUI 只依 Engine 指定的 source plan 呼叫已存在 `build_operator_default_part_fold_profiles`、真實 Render／Spec Factory、NFB 2D source 和來源票據，不再自認實體 Part 身分；Panel LRU、Factory source SHA、EndCap committed pass 與 Family／Policy／Topology／2D／3D／DXF canonical 結果都沿用原邏輯。計畫只是 source/classifier，**不憑 part 名稱批准製造或啟用不完整 external export**。
+- `tests/test_issue2517_shared_physical_part_source_route_engine_api.py` 涵蓋 15 種既有實體 Part identity、CustomFold 真實 catalog 預設、PartSpec provider 呼叫次序、Head/Tail 第二階段和 GUI 去除重複 key prefix。#2517 OPEN；正式 X 未發布。
+
 ## [CURRENT] #2517 Receiving Bay 3D 製造預覽 Fold／Joint／箱身結構種子移入公開 Engine（2026-11-03）
 
 - GUI 原 receiving_bay_preview_request 在 cache miss 後自行決定從哪些來源建立 BoxBody Fold、Head/Tail 專用 Fold、所選 Bay 的相鄰接合 Joint lock 特徵與 workspace/root 的 BoxBody structure 優先順序，雖公式已存在 Engine 仍由 GUI 組裝多個製造物理來源。現統一委派 `manufacturing_api.project_receiving_bay_preview_physical_seed`（`ae_engine.receiving_bay_preview_source`）返回 `ReceivingBayPreviewPhysicalSeed`，沿用同一組 `merge_box_body_fold_profile`、`build_endcap_xy_fold_profiles`、`receiving_bay_joint_face_features` 原 Engine 來源；不引入新的補償或孔位規則。

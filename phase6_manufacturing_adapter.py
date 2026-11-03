@@ -286,10 +286,18 @@ def _profile_inputs_for_part(app: Any, part_key: str) -> tuple[tuple, tuple]:
     else:
         profiles_for = getattr(workspace, "profiles_for", None)
         profiles = _mapping(profiles_for(key, {}) if callable(profiles_for) else {})
-    if key.startswith("custom:") and not profiles:
-        from phase6_custom_fold_profiles import build_custom_part_profiles
-        snapshot={**getattr(app,"_phase6_input_snapshot",{}),**getattr(app,"_settings_values",{}),**workspace.snapshot()}
-        profiles=build_custom_part_profiles(snapshot,key)
+    source_plan = manufacturing_api.plan_operator_manufacturing_part_source(
+        key, has_saved_profiles=bool(profiles),
+    )
+    if source_plan.requires_custom_default_profile:
+        snapshot = {
+            **getattr(app, "_phase6_input_snapshot", {}),
+            **getattr(app, "_settings_values", {}),
+            **workspace.snapshot(),
+        }
+        profiles = manufacturing_api.build_operator_default_part_fold_profiles(
+            snapshot, key,
+        )
     return tuple(profiles.get("X", ()) or ()), tuple(profiles.get("Y", ()) or ())
 
 
@@ -347,14 +355,15 @@ def _domain_inputs_for_part(
     committed_render_data = None
     part_spec = manufacturing_context = None
 
+    source_plan = manufacturing_api.plan_operator_manufacturing_part_source(key)
     if callable(render_data_provider):
         base_payload = dict(scene_values or {})
         base_payload["_use_committed_relief"] = False
         render_data = render_data_provider(key, base_payload)
-        if key not in {"head", "tail"}:
+        if not source_plan.needs_committed_relief:
             committed_render_data = render_data
 
-    if callable(part_spec_provider) and (key in {"head", "tail"} or key.startswith("custom:")):
+    if callable(part_spec_provider) and source_plan.requires_direct_part_spec:
         spec_payload = dict(scene_values or {})
         spec_payload["_use_committed_relief"] = False
         resolved = part_spec_provider(key, spec_payload)
@@ -377,7 +386,9 @@ def _materialize_committed_endcap_inputs(
         return parts
     result: list[ManufacturingPartInput] = []
     for part in parts:
-        if part.part_key not in {"head", "tail"}:
+        if not manufacturing_api.plan_operator_manufacturing_part_source(
+            part.part_key,
+        ).needs_committed_relief:
             result.append(part)
             continue
         # JSON thawing intentionally produces mappings for dataclasses. The
