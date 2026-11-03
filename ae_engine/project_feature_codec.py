@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import fields, is_dataclass
 from enum import Enum
+from math import isfinite
 
 from .sheetmetal_features import (
     CircleFeature, RectFeature, ProfileFeature, FeatureAnchor,
@@ -37,13 +38,40 @@ def _encode(value):
     return repr(value)
 
 
+def _finite_saved_coordinate(value):
+    """A persisted physical coordinate cannot be boolean or nonfinite.
+
+    Legacy numeric strings are supported, but missing coordinates are not
+    invented. An absent Feature.offset has its own explicit (0, 0) default.
+    """
+    if isinstance(value, bool):
+        raise ValueError("invalid Vec2 physical coordinate")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("invalid Vec2 physical coordinate") from exc
+    if not isfinite(number):
+        raise ValueError("invalid Vec2 physical coordinate")
+    return number
+
+
 def _as_vec2(value):
     if isinstance(value, Vec2):
+        _finite_saved_coordinate(value.x)
+        _finite_saved_coordinate(value.y)
         return value
     if isinstance(value, dict):
-        return Vec2(float(value.get("x", 0.0)), float(value.get("y", 0.0)))
+        if "x" not in value or "y" not in value:
+            raise ValueError("invalid Vec2 physical coordinate source")
+        return Vec2(
+            _finite_saved_coordinate(value["x"]),
+            _finite_saved_coordinate(value["y"]),
+        )
     if isinstance(value, (list, tuple)) and len(value) >= 2:
-        return Vec2(float(value[0]), float(value[1]))
+        return Vec2(
+            _finite_saved_coordinate(value[0]),
+            _finite_saved_coordinate(value[1]),
+        )
     raise ValueError(f"invalid Vec2 value: {value!r}")
 
 
@@ -74,7 +102,7 @@ def _decode(value):
         return value
     type_name = value.get("__phase6_type__")
     if type_name == "Vec2":
-        return Vec2(float(value["x"]), float(value["y"]))
+        return _as_vec2(value)
     if type_name in {"CircleFeature", "RectFeature", "ProfileFeature"}:
         return _decode_feature(type_name, value)
     return {str(k): _decode(v) for k, v in value.items()}
