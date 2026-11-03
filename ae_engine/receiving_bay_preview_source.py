@@ -108,6 +108,59 @@ def project_receiving_bay_preview_operator_inputs(
     return ReceivingBayPreviewOperatorInputs(snapshot, settings)
 
 
+@dataclass(frozen=True)
+class ReceivingBayPreviewPhysicalSeed:
+    """Existing Engine factory inputs for one isolated real Receiving Bay."""
+
+    box_body_profile: list[dict]
+    endcap_profiles: dict[str, dict[str, list[dict]]]
+    box_body_joint_faces: dict[str, list]
+    box_body_structure_state: object
+
+
+def project_receiving_bay_preview_physical_seed(
+    snapshot, *, set_index, bay_index,
+    existing_box_body_profile=(), existing_box_body_faces=None,
+) -> ReceivingBayPreviewPhysicalSeed:
+    """Resolve Bay Fold, Joint lock and structure authority entirely in Engine.
+
+    Only call after an operator Bay snapshot has been selected by
+    project_receiving_bay_preview_operator_inputs. The caller only creates an
+    isolated workspace; this never approves or caches manufacturing.
+    """
+    from .box_body_fold_profile import merge_box_body_fold_profile
+    from .endcap_factory_fold import build_endcap_xy_fold_profiles
+    from .receiving_layout import receiving_bay_joint_face_features
+
+    if not isinstance(snapshot, Mapping) or canonical_family_name(snapshot) != "受電箱":
+        raise ValueError("RECEIVING_BAY_PREVIEW_FAMILY_REQUIRED")
+    if snapshot.get("active_mode", "set_bay") != "set_bay":
+        raise ValueError("RECEIVING_BAY_PREVIEW_SET_BAY_MODE_REQUIRED")
+
+    source = snapshot.get("workspace", {})
+    if not isinstance(source, Mapping):
+        raise ValueError("RECEIVING_BAY_STRUCTURE_SOURCE_INVALID")
+    structure = source.get(
+        "box_body_structure", snapshot.get("box_body_structure", {}),
+    )
+    layout = snapshot["receiving_layout"]
+    box = merge_box_body_fold_profile(existing_box_body_profile, snapshot)
+    endcaps = {
+        key: build_endcap_xy_fold_profiles(snapshot, part_key=key)
+        for key in ("head", "tail")
+    }
+    faces = receiving_bay_joint_face_features(
+        layout, set_index=set_index, bay_index=bay_index,
+        thickness=float(snapshot.get("t", 2)),
+        frame_width=float(snapshot.get("fw", 29)),
+        existing=existing_box_body_faces,
+    )
+    return ReceivingBayPreviewPhysicalSeed(
+        box_body_profile=box, endcap_profiles=endcaps,
+        box_body_joint_faces=faces, box_body_structure_state=structure,
+    )
+
+
 def project_receiving_bay_preview_face_features_key(face_features):
     """Ignore only transient Joint locks which the real per-Bay solver replaces.
 

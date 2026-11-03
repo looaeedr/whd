@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Bay 3D 製造預覽 Fold／Joint／箱身結構種子移入公開 Engine（2026-11-03）
+
+- GUI 原 receiving_bay_preview_request 在 cache miss 後自行決定從哪些來源建立 BoxBody Fold、Head/Tail 專用 Fold、所選 Bay 的相鄰接合 Joint lock 特徵與 workspace/root 的 BoxBody structure 優先順序，雖公式已存在 Engine 仍由 GUI 組裝多個製造物理來源。現統一委派 `manufacturing_api.project_receiving_bay_preview_physical_seed`（`ae_engine.receiving_bay_preview_source`）返回 `ReceivingBayPreviewPhysicalSeed`，沿用同一組 `merge_box_body_fold_profile`、`build_endcap_xy_fold_profiles`、`receiving_bay_joint_face_features` 原 Engine 來源；不引入新的補償或孔位規則。
+- GUI 只在候選/已確認來源的隔離 workspace 內套用 Engine 返回值，沿用真實 `ManufacturingResolveRequest` → PartSpec/FinalScene。四連 Bay、不同 W/H/D、Joint lock 與 Head/Tail 原生方向、來源不變性、非 Receiving／Quantity fail-closed 由 `tests/test_issue2517_receiving_bay_preview_physical_seed_engine_api.py` 與既有回歸驗證。只改操作 preview source，不改正式 DXF／外部 source-only 認證、保存 schema 或 UI 排版。#2517 OPEN。
+
 ## [CURRENT] #2517 Receiving 指定 Bay 的全域 Settings／門分割／NFB 實體來源合併移入 Engine（2026-11-03）
 
 - GUI `receiving_bay_preview_request` 原本從 global `app._settings_values` 覆蓋 Bay snapshot 前，自行維護 `RECEIVING_DOOR_STATE_KEYS`、`nfb_config`、`nfb_config_submitted`、`receiving_layout`、`_receiving_runtime_selection` 等例外清單，並決定重算 `part_dimensions`；此處能令舊根層 Door 拓樸污染所選盤位。現在一律呼叫 `manufacturing_api.project_receiving_bay_preview_operator_inputs(source_snapshot, settings_values, set_index, bay_index)`，Engine `ae_engine.receiving_bay_preview_source` 封裝 canonical `project_receiving_bay_legacy_aliases`、Bay 專屬尺寸優先、門／NFB／Selection 欄位保護及 `part_dimension_projection.project_part_dimensions` 。
