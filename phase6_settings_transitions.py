@@ -356,7 +356,8 @@ def plan_external_sync(
 
 
 def normalize_symmetry(value: object) -> bool:
-    return bool(value)
+    # The symmetric BoxBody setting is physical Fold intent, not GUI truthiness.
+    return manufacturing_api.normalize_operator_settings_boolean(value)
 
 
 def settings_defaults_payload(

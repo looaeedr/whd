@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 BoxBody 對稱折彎即時開關原始布林來源必須走 Engine API（2026-11-03）
+
+- `phase6_settings_transitions.normalize_symmetry` 不再用 Python `bool(raw)` 代表製造對稱選項，直接委派公開 `manufacturing_api.normalize_operator_settings_boolean`；`phase6_settings_transaction_controller.commit_symmetry` 只在驗證成功後提交 `state.symmetric`，再標記 Workspace 變更。
+- `gui_modules/application/fold_designer_composition_registry_edges.on_box_symmetry_changed` 只讀取原始 Tk／Project 值並將 Engine 回傳的 bool 作為畫面結果；例如 `"false"`／`"0"` 不得當 True，NaN／不明字串不可更新狀態或觸發製造預覽刷新。Family 已禁止對稱時仍由現有 Engine Family capability 及原本政策將開關固定 False。
+- 不變更 BoxBody Fold、BEND、2D／3D／DXF 幾何、Save→Reload 或既有 Family/Registry；這是 GUI→Engine 同一原始來源契約的遷移，無新增對外製造准入。驗收 `tests/test_issue2517_box_symmetry_source_boolean_engine_api.py`，#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 Receiving 已確認上下門直接走同一 Engine API／verified DXF（2026-11-03）
 
 - 現有 `build_receiving_factory_confirmed_parts(source_dimensions, confirmation=..., operator_snapshot=..., confirmed_door_layout_columns=...)` 是**加法擴充**，未確認門格時仍只產生 BoxBody／Head／Tail；有明確已確認的 `door_layout_columns` 才使用 Engine `door_part_projections` 建立 `DoorPartSpec(feature_space="finished_face")`，並且經現有 `export_verified_resolved_integration_bays` 的同一 FinalScene/DXF Save→Reload/reopen 出圖，不另建 CADSplit executor。
