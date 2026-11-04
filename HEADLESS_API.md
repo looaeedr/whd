@@ -5,6 +5,8 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+> #2517（2026-11-05）已驗證 NFB 部分出圖清單新增唯讀 `manufacturing_api.project_receiving_verified_nfb_partial_manifest(scope=..., saved_bay=..., set_brand=..., source_inventory=..., verified_inner_door=..., source_path=...)`，重用原 `receiving_nfb_export_manifest` 的 NfbPhysicalScope／NfbActualPart 實體身份及既有 `derive_nfb_partial_export_manifest` 完整源 SHA、已確認 X、Part readiness 檢查；GUI 不再自行建 NfbActualPart、指定物理角色、推 `WHOLE_READY`。此為原來源清單的顯示投影，不認證整櫃製造，正式 DXF 仍須原 `require_export`／Save→Reload／實際來源重驗。
+
 > #2517（2026-11-05）NFB CURRENT CSV 多連來源清單改公開 `manufacturing_api.project_receiving_current_v5_nfb_physical_diagnostics(saved_bay, physical_snapshot=..., set_id=..., bay_id=..., version_id=..., physical_parts=...)`：既有 Engine Family／BasePlate owner 判斷已存在的 Upper Inner Door、單層／兩層底板與缺料原因，未受 NFB 影響的板件必須來自當前 Bay 的真 FinalScene Scene witness，status 仍為 `DRAFT`／`RECHECK_ONLY`，絕不授權正式製造。GUI 取唯讀獨立預覽時改用 `manufacturing_api.project_receiving_nfb_unsubmitted_preview_layout(layout, set_index=..., bay_index=...)`，先驗證真實 Set/Bay 再只複製預覽資料，不變更已提交來源或取得 DXF 資格；現有 `project_receiving_bay_legacy_aliases` 公開 API 被 GUI 正式復用。
 
 > #2517（2026-11-05）：`manufacturing_api.project_receiving_committed_csv_nfb_pair_layer_count(snapshot)` 是 Receiving 已提交 CSV NFB／既有實體底板來源的唯讀投影：回傳 `1`（既有 `base_plate` 完整）或 `2`（兩份 `base_plate:nfb_layer:0/1` 完整）及 `None`（未有可認證配對來源）。沿用原 `receiving_nfb_committed_final_scene` 的已提交來源、selected Bay、數字化 V5 Model 與 BasePlate PartSpec 檢查；不合法來源照舊拋出 Engine 例外，GUI 不得自行讀私有 `_submitted_csv_holes/_existing_source_specs`、決定物理角色或回退舊洞位。此 API 僅供 GUI 展示／路由，**不**代表 NFB 部分出圖、整箱 DXF 或 2D／3D 製造已放行；正式出口仍需各自完整來源與 Save→Reload 驗證。
