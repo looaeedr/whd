@@ -1830,6 +1830,13 @@ from .receiving_nfb_v5_operator_preview import (
 )
 
 
+# #2517 Receiving CSV NFB physical manifest/diagnostic preview source authority.
+# Does not license manufacture; the normal FinalScene/export rechecks source.
+from .receiving_nfb_v5_diagnostics import (
+    project_receiving_nfb_unsubmitted_preview_layout,
+    project_receiving_current_v5_nfb_physical_diagnostics,
+)
+
 # #2517: source-verified Receiving EAR 3D side marking is Engine-owned.
 from .receiving_fixed_plate_side_contact import project_receiving_ear_side_marking_segments
 
