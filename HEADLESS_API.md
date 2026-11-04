@@ -5,6 +5,8 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
+> #2517（2026-11-04）：受電箱 Set/Bay 輕量 2D 門分割新增唯讀 `manufacturing_api.project_receiving_operator_bay_door_split_ratio(bay)`，依已保存 Door topology 與既有 `validate_door_layout_dimensions` 回傳可唯一表示的二列高度比例；多欄不同分割或無有效啟用 Door 時不偽造單條門縫，非法物理資料拒絕；尚無保存 Door 狀態僅用 Receiving Family 預設比率作示意。GUI 只消費比例繪 Canvas，不再硬算 1100 mm；此 API 不批准正式 Door 製造或 DXF。
+
 
 > #2517（2026-11-03）：Receiving Set/Bay 只有切換已存在的實體 Part 且其他物理來源完全同源，才可由既有公開 `manufacturing_api.operator_receiving_navigation_only_sync_change(previous, current)` 判定省略重複 publish。Family 身分採既有 Engine Registry `cabinet_types.policy.canonical_family_name`，接受合法 `受電箱`／`RECEIVING`／小寫／混合大小寫及舊 `cabinet_type`；其他 Family、Quantity 模式、未確認 Part 或任何實體來源變更一律不省略。GUI `phase6_sync_envelope.navigation_only_change` 仍只是委派；沒有新增機械驗證或 DXF 認證。
 
