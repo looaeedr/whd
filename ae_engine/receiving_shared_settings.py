@@ -218,6 +218,43 @@ def edit_setting(layout, *, set_index, bay_index, kind, value):
     return normalize_receiving_layout(result)
 
 
+
+def edit_setting_for_bays(layout, *, set_index, bay_indices, kind, value):
+    """Atomically edit one shared Setting on explicit physical Bay selections.
+
+    Multi-Bay GUI Apply used to call edit_setting() once per Bay, mutating the
+    adapter after each success. A later invalid Bay could leave an earlier
+    Bay edited even when the operator's one Apply was rejected. Validate the
+    entire selection and value before altering a detached layout; normalize
+    and commit the entire Set only once. Linked Bays still share the same ref.
+    """
+    from .receiving_layout import normalize_receiving_layout
+
+    candidate = normalize_receiving_layout(layout)
+    _require_valid_index(set_index, len(candidate["sets"]), "組選取超出範圍")
+    row = candidate["sets"][set_index]
+    try:
+        indices = tuple(bay_indices)
+    except TypeError as exc:
+        raise IndexError("連選取超出範圍") from exc
+    bay_count = len(row["bays"])
+    if not indices:
+        raise ValueError("請選擇至少一個實體 Bay")
+    for index in indices:
+        _require_valid_index(index, bay_count, "連選取超出範圍")
+    if len(set(indices)) != len(indices):
+        raise ValueError("連選取不可重複")
+
+    verified_value = validate_setting(kind, value)
+    row["settings"] = normalize_set_settings(row.get("settings"), row["bays"])
+    setting = row["settings"][kind]
+    for index in indices:
+        stable_id = row["bays"][index]["stable_id"]
+        ref = setting["refs"][stable_id]
+        setting["values"][ref] = deepcopy(verified_value)
+    return normalize_receiving_layout(candidate)
+
+
 def share_setting(layout, *, set_index, bay_indices, kind, source_bay_index):
     from ae_engine.receiving_layout import normalize_receiving_layout
     result = normalize_receiving_layout(layout)

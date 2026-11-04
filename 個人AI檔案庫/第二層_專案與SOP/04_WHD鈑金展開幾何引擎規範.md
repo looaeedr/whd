@@ -5,6 +5,12 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 Receiving 多連共用設定 Apply 必須為一筆 Engine 原子交易（2026-11-04）
+
+- 實際查核：`gui_modules/application/fold_designer_composition_receiving.py::receiving_settings_ports.change` 原本依高亮順序直接 `adapter.select_bay`／`adapter.update_setting`，若第 N 連失敗，前面 N−1 連已改寫、dirty／select 狀態可能殘留，不符合同一次操作多實體 Bay 全有或全無契約。
+- 改為公開 `manufacturing_api.edit_receiving_shared_setting_for_bays(layout, set_index=..., bay_indices=..., kind=..., value=...)` 由現有 `ae_engine.receiving_shared_settings` 在未改寫原值的候選版檢查全部真實 Set/Bay index（嚴拒 bool／float／重複／越界）、Setting 型別、shared references，再一次 normalize／commit。已連動的相同 ref 仍以原 Engine 模式同步變更；GUI adapter 僅記錄所有受同一 ref 影響的 stable Bay IDs 為 dirty，且失敗時 layout／selection／dirty 均不可動。
+- 此改造不新增製造輸出、NFB／Door 幾何、CUTTING/BEND、DXF 或人工拆圖 API；現有單連、共享、解除連動契約保留。回歸 `tests/test_issue2517_receiving_set_bay_public_transactions.py` 核對合法批次與舊 Engine 單連等價、後段無效 Bay 全拒、linked setting、GUI 入口不再逐連寫入。正式放行仍需 GitHub exact-head 產品回歸及有授權的實機測試證據；不宣稱 #2517 全部完成。
+
 ## [CURRENT] #2517 NFB 跨 Bay Copy 路由與 EndCap Joint 摘要由 Engine 唯一投影（2026-11-04）
 
 - NFB 的操作者高亮連選取（必須同一 Set 內兩個不同且有效的真實 Bay，布林／浮點／不可雜湊異常值拒絕）由現有 `ae_engine.receiving_nfb_ui1b_bridge` 的 `select_operator_nfb_copy_bays` 和 `plan_operator_nfb_copy_direction` 經公開 `manufacturing_api` 提供。GUI 只持有 transient `pending_verified_nfb` 並在每次檢視／點擊時呼叫既有 `assert_live_verified_nfb` 取得即時有效的目標 Bay 集合；**已提交來源、獨立驗證目標及唯一方向**的物理資格僅由 Engine 計畫決策，並保留 `copy_live_verified_nfb`／`copy_submitted_nfb_bay` 的原子交易、重新驗來源、Confirm/Cancel、Save→Reload、Undo。任何沒有獨立世界 X／實體孔 ID／原 DXF 驗證的目標都不可借來源連的 X，也不解鎖正式 DXF。

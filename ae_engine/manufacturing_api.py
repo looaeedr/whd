@@ -2068,6 +2068,7 @@ from .receiving_layout import (
 )
 from .receiving_shared_settings import (
     edit_setting as edit_receiving_shared_setting,
+    edit_setting_for_bays as edit_receiving_shared_setting_for_bays,
     share_setting as share_receiving_shared_setting,
     unlink_setting as unlink_receiving_shared_setting,
 )

@@ -908,11 +908,10 @@ def receiving_settings_ports(self, namespace, set_index):
                    else tuple(indices))
         if not targets:
             return False
-        current = adapter.selection.bay_index
-        for index in targets:
-            adapter.select_bay(index + 1)
-            adapter.update_setting(kind, value)
-        adapter.select_bay(current + 1)
+        # One operator Apply is one canonical Engine transaction.  Do not
+        # update earlier Bays or move the selection before validating every
+        # highlighted physical target.
+        adapter.apply_setting_to_bays(kind, value, targets)
         commit()
         return True
 
