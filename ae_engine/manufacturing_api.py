@@ -1815,6 +1815,12 @@ def build_receiving_factory_confirmed_parts(
     )
 
 
+# #2517: GUI only requests the existing committed CSV physical pair source.
+# The underlying NFB source/PartSpec identities stay inside Engine.
+from .receiving_nfb_committed_final_scene import (
+    project_receiving_committed_csv_nfb_pair_layer_count,
+)
+
 # #2517 Receiving CSV V5 physical BasePlate trial/source & display gate.
 # Public, GUI-independent: never a manufacturing/DXF certification.
 from .receiving_nfb_v5_operator_preview import (

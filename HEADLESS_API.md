@@ -5,6 +5,8 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+> #2517（2026-11-05）：`manufacturing_api.project_receiving_committed_csv_nfb_pair_layer_count(snapshot)` 是 Receiving 已提交 CSV NFB／既有實體底板來源的唯讀投影：回傳 `1`（既有 `base_plate` 完整）或 `2`（兩份 `base_plate:nfb_layer:0/1` 完整）及 `None`（未有可認證配對來源）。沿用原 `receiving_nfb_committed_final_scene` 的已提交來源、selected Bay、數字化 V5 Model 與 BasePlate PartSpec 檢查；不合法來源照舊拋出 Engine 例外，GUI 不得自行讀私有 `_submitted_csv_holes/_existing_source_specs`、決定物理角色或回退舊洞位。此 API 僅供 GUI 展示／路由，**不**代表 NFB 部分出圖、整箱 DXF 或 2D／3D 製造已放行；正式出口仍需各自完整來源與 Save→Reload 驗證。
+
 > #2517（2026-11-04）NFB 跨 Bay 操作新公開唯讀 `manufacturing_api.select_operator_nfb_copy_bays(layout, set_index, selected_bays)` 與 `plan_operator_nfb_copy_direction(layout, set_index, selected_bays, verified_target_indices=...)`：只投影真實兩 Bay、已提交來源及獨立已驗證目標的唯一方向；實際 Copy 必須繼續走原 `copy_receiving_submitted_nfb_bay`／`copy_live_verified_nfb` 的 live physical proof + 原子 Confirm，不允許借用世界 X 或繞過驗證。
 
 > #2517（2026-11-04）唯讀 `manufacturing_api.project_operator_fixed_corner_summary(model_name, part_key, joint_state)`：EndCap 固定截角摘要沿既有 Family Registry 與 BOTTOM AssemblyJoint；受電箱所有正式別名同源、其他 Family 回 `None` 由既有 UI 保留原顯示。文字不構成製造幾何或 DXF 放行。
