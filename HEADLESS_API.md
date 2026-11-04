@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
+> #2517（2026-11-04）：`manufacturing_api.project_whd_cadcraft_command_instructions(surface=..., features=..., width=..., height=...)` 以 WHD finished-face 來源及既有 Engine 限制生成 CADCraft 隔離候選繪圖指令；`save_blank_cadcraft_exchange_drawing(output_dxf, preview_png)` 以 exclusive create 產生合法空白毫米 DXF + PNG 並拒絕覆寫。此流程不可充作任何正式製造 DXF、CUTTING 或 source-only 外部放行。GUI 不再 import `ezdxf` 直接建立交換檔。
+
+> #2517（2026-11-04）：`manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(snapshot, role="head"|"tail")` 將 Quantity 版本 Head/Tail 的可開孔 surface、finished dimensions、reference_guide 由同一 Engine 投影；Receiving Family 使用已存 common-box 或 Family 新建預設、其他 Family 使用既存實體 W/D，非法 T/W/D 及格式拒絕。GUI 只顯示、編輯、提交明確版本 Features，提交前用公開 `require_valid_operator_quantity_features`。
+
 > #2517（2026-11-04）：受電箱 Set/Bay 輕量 2D 門分割新增唯讀 `manufacturing_api.project_receiving_operator_bay_door_split_ratio(bay)`，依已保存 Door topology 與既有 `validate_door_layout_dimensions` 回傳可唯一表示的二列高度比例；多欄不同分割或無有效啟用 Door 時不偽造單條門縫，非法物理資料拒絕；尚無保存 Door 狀態僅用 Receiving Family 預設比率作示意。GUI 只消費比例繪 Canvas，不再硬算 1100 mm；此 API 不批准正式 Door 製造或 DXF。
 
 
