@@ -59,9 +59,16 @@ def test_receiving_confirm_stages_csv_holes_only_in_original_editor_transaction(
     assert "close_editor" in calls
     assert "csv_openings_to_editor_features" not in calls
     assert "verified_nfb_openings_to_editor_features" not in calls
-    # Basic independent source-model identity is still checked, not a hole
-    # geometry proof or new mandatory world-X form.
-    assert "model_spec" in calls
+    # Basic source-model identity still uses the shared public Engine catalog;
+    # this checks the real GUI call site, not an internal helper name.
+    public_catalog_calls = [
+        n.func.attr for n in ast.walk(confirm)
+        if isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Attribute)
+        and isinstance(n.func.value, ast.Name)
+        and n.func.value.id == "manufacturing_api"
+    ]
+    assert "resolve_receiving_nfb_model_spec" in public_catalog_calls
     assert "current_numeric_editor" in ast.unparse(confirm)
     source = _ui_source()
     assert 'ttk.Button(buttons, text="確定", command=confirm)' in source
