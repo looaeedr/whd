@@ -234,7 +234,10 @@ class ReceivingSetBayAdapter:
         # Linked settings remain shared. A user edit may alter the effective
         # value of an unselected sibling: mark every physical Bay sharing one
         # of the edited refs as dirty for safe destructive tail confirmations.
-        row = self._layout["sets"][set_index]
+        # Fresh layouts can omit the persisted shared-setting table until
+        # Engine normalizes the first Apply. Read the *validated candidate*,
+        # which already carries canonical refs for all impacted Bay identities.
+        row = candidate["sets"][set_index]
         refs = row["settings"][kind]["refs"]
         affected_refs = {
             refs[row["bays"][i]["stable_id"]] for i in indices
