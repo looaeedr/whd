@@ -1802,7 +1802,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
     from ae_engine.receiving_shared_settings import setting_value, switch_filenames_in_layer, pack_switch_layer, validate_setting, SETTING_DEFAULTS
     from ae_engine.receiving_switch_model_catalog import model_filenames, INDEX_PATH
     from ae_engine.receiving_nfb_model_identity import (
-        numeric_model_refs, display_model_ref, validate_stored_model_ref,
+        display_model_ref, validate_stored_model_ref,
     )
     from ae_engine.receiving_nfb_numeric_catalog import brand_csv_path
 
@@ -2181,7 +2181,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     continue
                 source_state["signature"][index] = signature
                 try:
-                    files = numeric_model_refs(brand)
+                    files = manufacturing_api.list_receiving_nfb_model_refs(brand)
                 except (ValueError,OSError,UnicodeError) as exc:
                     files = ()
                     warning.set("NFB數值規格.csv 讀取失敗：" + str(exc))
@@ -2304,7 +2304,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 return
             filename = source_state["files"][index][selected[0]]
             expected_brand = view_source_catalog(index)
-            if filename not in numeric_model_refs(expected_brand):
+            if filename not in manufacturing_api.list_receiving_nfb_model_refs(expected_brand):
                 warning.set("CSV 已變動，請重新選擇")
                 refresh_source(force=True)
                 return
@@ -2350,7 +2350,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             filename = source_state["files"][index][choice[0]]
             draft_state["draft"] = replace_nfb_slot_model(
                 draft_state["draft"],index,selected[0],filename,
-                catalog={brand:numeric_model_refs(brand)},
+                catalog={brand:manufacturing_api.list_receiving_nfb_model_refs(brand)},
             )
             sync_chosen()
             repaint(index)
@@ -2880,7 +2880,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 relevant = chosen[:layers.get()]
                 if current_numeric_editor:
                     from ae_engine.receiving_nfb_model_identity import parse_numeric_model_ref
-                    from ae_engine.receiving_nfb_numeric_catalog import model_spec
                     expected_models = []
                     for li, row in enumerate(active):
                         for si, slot in enumerate(row["slots"]):
@@ -2892,7 +2891,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                             )
                             parsed = parse_numeric_model_ref(ref)
                             if (parsed is None or parsed[0] != effective_brand
-                                    or model_spec(*parsed) is None):
+                                    or manufacturing_api.resolve_receiving_nfb_model_spec(
+                                        effective_brand, ref,
+                                    ) is None):
                                 raise ValueError("NFB 實際廠牌與 CSV 型號不符，請重新選擇")
                             expected_models.append(ref)
                     selected_models = [model for group in relevant for model in group]
@@ -2900,7 +2901,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         raise ValueError("NFB CSV 選型與開孔設定不同步，請重新檢查")
                 else:
                     selected_brand = current_nfb_parent_brand()
-                    latest_files = (set(numeric_model_refs(selected_brand))
+                    latest_files = (set(manufacturing_api.list_receiving_nfb_model_refs(selected_brand))
                                     | set(model_filenames(selected_brand)))
                     if any(filename not in latest_files
                            for layer_items in relevant for filename in layer_items):
@@ -3048,7 +3049,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     def verify_inner_models(config):
         selected_brand = current_nfb_parent_brand()
-        allowed = (set(numeric_model_refs(selected_brand))
+        allowed = (set(manufacturing_api.list_receiving_nfb_model_refs(selected_brand))
                    | set(model_filenames(selected_brand)))
         for layer_slot in config["models"][:config["layers"]]:
             for name in switch_filenames_in_layer(layer_slot):

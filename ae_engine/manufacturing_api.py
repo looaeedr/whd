@@ -2076,6 +2076,27 @@ def require_receiving_operator_brand(brand):
     return brand
 
 
+
+def list_receiving_nfb_model_refs(brand: str) -> tuple[str, ...]:
+    """List currently selectable V5 NFB identities for one exact CSV brand.
+
+    This is a read-only source catalog, not a certified hole or export route.
+    Existing saved legacy DXF references are deliberately not listed here.
+    """
+    from .receiving_nfb_model_identity import numeric_model_refs
+    return numeric_model_refs(brand)
+
+
+def resolve_receiving_nfb_model_spec(brand: str, model_ref: str):
+    """Look up the current brand-qualified V5 CSV dimensions without fallback.
+
+    Unknown, legacy, or cross-brand references return None. Missing numeric
+    fields remain None; returned numeric specs NEVER certify manufacture.
+    """
+    from .receiving_nfb_model_identity import selected_numeric_spec
+    return selected_numeric_spec(brand, model_ref)
+
+
 def submit_receiving_nfb_bays(
     layout, *, set_index, bay_indices, version_id, configs, evidence, confirm,
 ):
