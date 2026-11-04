@@ -2192,6 +2192,23 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         poll_job = {"id": None}
 
+        def cancel_poll_source(event=None):
+            # A parent Hole Editor can destroy the embedded NFB settings
+            # widget without using close_editor().  Cancel the Tcl timer
+            # before widget destruction removes the Python callback command.
+            if event is not None and event.widget is not modal:
+                return
+            job = poll_job["id"]
+            if job is None:
+                return
+            poll_job["id"] = None
+            try:
+                modal.after_cancel(job)
+            except tk.TclError:
+                pass
+
+        modal.bind("<Destroy>", cancel_poll_source, add="+")
+
         def poll_source():
             if not modal.winfo_exists():
                 return
