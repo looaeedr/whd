@@ -2021,6 +2021,8 @@ from .cadcraft_exchange_proof import (
     DrawInstruction as CadcraftDrawInstruction,
     from_whd_resolved as cadcraft_exchange_from_whd_resolved,
     verify_dxf as verify_cadcraft_exchange_dxf,
+    project_whd_cadcraft_command_instructions,
+    save_blank_cadcraft_exchange_drawing,
 )
 from .cadcraft_manual_return import (
     cadcraft_feature_footprint_polygon,
