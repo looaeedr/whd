@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from hashlib import sha256
 import faulthandler
+import os
+import sys
 import json
 from pathlib import Path
 import tkinter as tk
@@ -53,8 +55,15 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
             old["snapshot"]["d"], old["snapshot"]["t"]) == (800,1600,350,2)
     assert not contains_submitted_nfb(old["snapshot"])
 
-    # Temporary CI-only diagnostic: expose the exact stuck Tk stack after 45s.
-    faulthandler.dump_traceback_later(45, repeat=False, exit=True)
+    # Temporary Linux CI diagnostic: write stack to the parent Runner stderr,
+    # outside pytest's FD capture, then terminate only this RED test run.
+    diag_stream = None
+    parent_stderr = f"/proc/{os.getppid()}/fd/2"
+    if os.name == "posix" and os.path.exists(parent_stderr):
+        diag_stream = open(parent_stderr, "w", buffering=1)
+        print("ISSUE2517_TK_STACK_DIAGNOSTIC_ARMED", file=diag_stream, flush=True)
+    faulthandler.dump_traceback_later(45, repeat=False, exit=True,
+                                     file=diag_stream or sys.__stderr__)
     root = tk.Tk()
     root.withdraw()
     window = None
@@ -181,6 +190,8 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
             window.destroy()
         root.destroy()
         faulthandler.cancel_dump_traceback_later()
+        if diag_stream is not None:
+            diag_stream.close()
 
 
 def test_ac46_saved_submitted_nfb_is_never_silently_legacy_after_gui_reload(
