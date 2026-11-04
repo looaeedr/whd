@@ -365,6 +365,7 @@ from .operator_hole_editor_projection import (
     project_operator_hole_editor_door_cell,
     project_operator_hole_editor_box_body_face,
     project_operator_hole_editor_endcap,
+    project_operator_quantity_endcap_hole_editor_geometry,
     project_operator_hole_editor_base_plate,
 )
 from .operator_door_cell_projection import (
