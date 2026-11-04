@@ -66,6 +66,7 @@ from .manufacturing_api import (
     quantity_nfb_checked_manufacturing_groups,
     door_layout_export_filename, parse_numeric_model_ref,
     normalize_receiving_layout, project_common_box,
+    RECEIVING_QUANTITY_BOX_KEY, normalize_common_box, update_common_box,
     ManufacturingParameters, committed_nfb_pad_draft_parts,
     safe_dxf_part_stem, export_current_csv_quantity_manufacturing,
     export_current_receiving_multibay_dxf,
