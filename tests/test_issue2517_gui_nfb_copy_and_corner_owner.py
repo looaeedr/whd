@@ -123,13 +123,13 @@ def test_engine_corner_summary_accepts_all_registered_receiving_aliases(family, 
 def test_engine_corner_display_follows_real_bottom_joint_without_mutation():
     state = {"assembly_type": "WRAP_OVERLAY"}
     updated = set_part_edge_relation(
-        state, "head", "BOTTOM", AssemblyJointRelation.INSERT,
+        state, "head", "BOTTOM", AssemblyJointRelation.WRAP,
     )
     before = deepcopy(updated)
     caption = manufacturing_api.project_operator_fixed_corner_summary(
         "receiving", "head", updated,
     )
-    assert "BOTTOM＝嵌入" in caption
+    assert "BOTTOM＝WRAP" in caption
     assert updated == before
 
 
