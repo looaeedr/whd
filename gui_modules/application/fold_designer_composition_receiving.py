@@ -2998,8 +2998,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         parent=modal.winfo_toplevel(),
                     )):
                 return
-            # The same cleanup also runs for external parent/widget destroy.
-            cancel_poll_source()
+            # Cancel the Tk timer before destroying its Tcl callback command.
+            if poll_job["id"] is not None:
+                try:
+                    modal.after_cancel(poll_job["id"])
+                except tk.TclError:
+                    pass
+                poll_job["id"] = None
             if not saved:
                 rollback = getattr(modal, "_receiving_live_nfb_rollback", None)
                 if callable(rollback):
