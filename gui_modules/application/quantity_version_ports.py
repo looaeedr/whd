@@ -1,9 +1,6 @@
 """Application ports for feature-only quantity edits; no geometry calculation."""
 from copy import deepcopy
-from ae_engine.sheetmetal_features import (
-    resolve_endcap_finished_face_guide, feature_surface_from_rect, RectGuide, Vec2,
-)
-from ae_engine.receiving_quantity_box import require_valid_quantity_features
+from ae_engine import manufacturing_api
 
 
 def quantity_ports(composition, namespace):
@@ -48,16 +45,10 @@ def quantity_ports(composition, namespace):
         snapshot = source()
         version_id = model().selected_version_id
         features = model().features_for_version(version_id, role)
-        if snapshot["model"] == "受電箱":
-            # The quantity model must have an explicitly initialized common
-            # box. Never silently borrow Set/Bay dimensions to fabricate one.
-            from ae_engine.receiving_quantity_box import normalize_common_box, BOX_KEY
-            dimensions = normalize_common_box(snapshot.get(BOX_KEY))
-        else:
-            dimensions = snapshot
-        width, depth = float(dimensions["w"]), float(dimensions["d"])
-        guide = resolve_endcap_finished_face_guide(width, depth, float(snapshot.get("t", 2)))
-        surface = feature_surface_from_rect(f"{role}_finished_face", guide.min_point, guide.max_point)
+        geometry = manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(
+            snapshot, role=role,
+        )
+        width, depth = geometry.width, geometry.height
         host = getattr(app._scene_query_callback, "__self__", None)
         if host is None or not hasattr(host, "_open_unified_hole_editor"):
             raise ValueError("目前未連接既有 Hole Editor")
@@ -70,7 +61,7 @@ def quantity_ports(composition, namespace):
             candidate = QuantityModel.from_payload(model().snapshot())
             candidate.set_version_features(version_id, role, features)
             current["quantity"] = candidate.snapshot()
-            require_valid_quantity_features(current)
+            manufacturing_api.require_valid_operator_quantity_features(current)
             previous = model().features_for_version(version_id, role)
             edit(lambda owner: owner.set_version_features(version_id, role, features))
             if previous != features and version_id == model().selected_version_id:
@@ -78,9 +69,9 @@ def quantity_ports(composition, namespace):
 
         win = host._open_unified_hole_editor(
             role, f'{version_id}／{"封頭" if role == "head" else "封尾"}',
-            surface, width, depth, feature_list_override=features,
+            geometry.surface, width, depth, feature_list_override=features,
             sync_callback=commit,
-            reference_guide=RectGuide(Vec2(0, 0), Vec2(width, depth), "finished_boundary"),
+            reference_guide=geometry.reference_guide,
         )
         return win or getattr(host, "last_unified_hole_editor", None)
 
