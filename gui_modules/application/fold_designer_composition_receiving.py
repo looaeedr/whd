@@ -3145,10 +3145,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         def physical_manifest(set_index,bay_index):
             """Read-only live status from current saved NFB + original source."""
-            from ae_engine.receiving_nfb_export_manifest import (
-                NfbActualPart,INNER_DOOR,BASE_PLATE,MIDDLE_PLATE,
-                derive_nfb_partial_export_manifest,
-            )
             adapter=candidate_adapter()
             owner=adapter.layout["sets"][set_index]
             bay=owner["bays"][bay_index]
@@ -3232,29 +3228,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     current, bundle.snapshot_at_verification,
                 ):
                     raise ValueError("內門幾何已變更，來源驗證必須重新執行")
-                scope=bundle.scope
-                physical=[
-                    NfbActualPart(scope.inner_door_part_id,INNER_DOOR),
-                    *(NfbActualPart(p,BASE_PLATE)
-                      for p in scope.base_plate_part_ids),
-                    *(NfbActualPart(p,MIDDLE_PLATE)
-                      for p in scope.middle_plate_part_ids),
-                ]
-                manifest=derive_nfb_partial_export_manifest(
-                    scope=scope,actual_parts=physical,
-                    saved_bay=bay,set_brand=owner["switch_brand"],
+                details=manufacturing_api.project_receiving_verified_nfb_partial_manifest(
+                    scope=bundle.scope,
+                    saved_bay=bay,
+                    set_brand=owner["switch_brand"],
                     source_inventory=bundle.source_inventory,
                     verified_inner_door=bundle.verified_door,
                     source_path=bundle.source_path,
-                )
-                details=manifest.report()
-                details["status"]=(
-                    "WHOLE_READY" if manifest.whole_ready else "PARTIAL_ONLY"
-                )
-                details["reason"]=(
-                    "僅限以下已核實的實體板件；PAD 與整櫃焊接工藝另行驗收"
-                    if manifest.authorized_part_ids else
-                    "尚無可放行 NFB 加工板件"
                 )
                 # This is a view, NOT the exporter authority itself.
                 return details
