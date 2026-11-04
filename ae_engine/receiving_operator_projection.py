@@ -63,7 +63,17 @@ def project_receiving_operator_bay_door_split_ratio(bay) -> float | None:
         return default_ratio
     if not isinstance(state, Mapping):
         raise ValueError("Receiving Bay Door source must be a mapping")
-    enabled = state.get("multi_door_enabled")
+    if "multi_door_enabled" not in state:
+        # Migrated legacy projects may have a saved root Door column list but
+        # no saved enable decision. Validate that list if present, yet draw
+        # only the unconfirmed Family schematic: it is not active topology.
+        legacy_columns = state.get("door_layout_columns")
+        if legacy_columns:
+            validate_door_layout_dimensions(
+                legacy_columns, total_width=width, total_height=height,
+            )
+        return default_ratio
+    enabled = state["multi_door_enabled"]
     if type(enabled) is not bool:
         raise ValueError("Receiving Bay Door enable source must be boolean")
     if not enabled:
