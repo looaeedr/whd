@@ -281,3 +281,44 @@ def derive_nfb_partial_export_manifest(
     )))
     whole=not unresolved and all(row.may_export for row in rows)
     return NfbPartialExportManifest(scope,tuple(rows),unresolved,True,whole)
+
+
+
+def project_receiving_verified_nfb_partial_manifest(
+    *, scope: NfbPhysicalScope, saved_bay: Mapping[str, object],
+    set_brand: str | None, source_inventory: NfbSourceInventory | None,
+    verified_inner_door: NfbValidatedInnerDoorRender | None,
+    source_path: str | Path | None,
+) -> dict[str, object]:
+    """Project the existing verified NFB receipt as a display-only manifest.
+
+    A GUI must not mint physical-role assignments or determine READY itself.
+    Consume only typed IDs from the Engine-verified physical scope, and pass
+    the exact source/door receipt to the original live manifest validator.
+    The real partial DXF writer independently repeats export preflight.
+    """
+    if not isinstance(scope, NfbPhysicalScope):
+        raise TypeError("NFB actual physical scope required")
+    physical = (
+        NfbActualPart(scope.inner_door_part_id, INNER_DOOR),
+        *(NfbActualPart(part_id, BASE_PLATE)
+          for part_id in scope.base_plate_part_ids),
+        *(NfbActualPart(part_id, MIDDLE_PLATE)
+          for part_id in scope.middle_plate_part_ids),
+    )
+    manifest = derive_nfb_partial_export_manifest(
+        scope=scope,
+        actual_parts=physical,
+        saved_bay=saved_bay,
+        set_brand=set_brand,
+        source_inventory=source_inventory,
+        verified_inner_door=verified_inner_door,
+        source_path=source_path,
+    )
+    result = manifest.report()
+    result["status"] = "WHOLE_READY" if manifest.whole_ready else "PARTIAL_ONLY"
+    result["reason"] = (
+        "僅限以下已核實的實體板件；PAD 與整櫃焊接工藝另行驗收"
+        if manifest.authorized_part_ids else "尚無可放行 NFB 加工板件"
+    )
+    return result

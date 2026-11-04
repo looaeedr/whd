@@ -1830,6 +1830,11 @@ from .receiving_nfb_v5_operator_preview import (
 )
 
 
+# #2517 verified Receiving NFB DXF receipt manifest is an Engine-only display source.
+from .receiving_nfb_export_manifest import (
+    project_receiving_verified_nfb_partial_manifest,
+)
+
 # #2517 Receiving CSV NFB physical manifest/diagnostic preview source authority.
 # Does not license manufacture; the normal FinalScene/export rechecks source.
 from .receiving_nfb_v5_diagnostics import (
