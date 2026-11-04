@@ -13,7 +13,7 @@ from pathlib import Path
 import ezdxf
 from shapely.geometry import Polygon
 
-from .sheetmetal_features import ResolvedCircle, ResolvedProfile, ResolvedRect
+from .sheetmetal_features import (ResolvedCircle, ResolvedProfile, ResolvedRect, resolve_surface_features)
 
 
 class CadcraftCommandProofError(ValueError):
@@ -84,6 +84,91 @@ def from_whd_resolved(features: tuple[object, ...]) -> tuple[DrawInstruction, ..
         else:
             raise CadcraftCommandProofError("UNSUPPORTED_WHD_FEATURE")
     return tuple(result)
+
+
+
+def project_whd_cadcraft_command_instructions(
+    *, surface, features, width, height,
+) -> tuple[DrawInstruction, ...]:
+    """Isolated WHD finished-face holes -> CADCraft commands; not production.
+
+    Both surface resolution and geometry eligibility stay on the Engine side.
+    An empty, valid source means CADCraft may draw its first *candidate* hole,
+    not that WHD has approved a manufacturing feature.
+    """
+    if isinstance(width, bool) or isinstance(height, bool):
+        raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
+    try:
+        w, h = float(width), float(height)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS") from exc
+    if not all(math.isfinite(value) and value > 0 for value in (w, h)):
+        raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
+    originals = tuple(features)
+    if len(originals) > MAX_ENTITY_COUNT:
+        raise CadcraftCommandProofError("INVALID_WHD_CUTTING_FEATURE_COUNT")
+    if any(getattr(feature, "layer", None) != "CUTTING" for feature in originals):
+        raise CadcraftCommandProofError("CADCRAFT_TRIAL_SUPPORTS_CUTTING_HOLES_ONLY")
+    try:
+        resolved = tuple(resolve_surface_features(surface, originals, w, h))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise CadcraftCommandProofError("WHD_FEATURE_SURFACE_REJECTED") from exc
+    return from_whd_resolved(resolved) if resolved else ()
+
+
+def save_blank_cadcraft_exchange_drawing(output_dxf, preview_png) -> dict:
+    """Create only an empty mm exchange and PNG, exclusively, never overwrite.
+
+    This is a disposable CADCraft editing seed. It contains zero manufacturing
+    entities and cannot act as a CUTTING/BEND export or approved source.
+    """
+    import struct
+    import zlib
+
+    target, preview = Path(output_dxf), Path(preview_png)
+    if target.suffix.lower() != ".dxf" or preview.suffix.lower() != ".png":
+        raise CadcraftCommandProofError("INVALID_CADCRAFT_EXCHANGE_DESTINATION")
+    if target == preview or target.exists() or preview.exists():
+        raise CadcraftCommandProofError("REFUSE_TO_OVERWRITE_EXISTING_FILE")
+
+    document = ezdxf.new("R2010", units=ezdxf.units.MM)
+    created_dxf = False
+    created_png = False
+    try:
+        # 'x' reserves each new path atomically. A previously written drawing
+        # or concurrently created user file is never silently replaced.
+        try:
+            with target.open("xt", encoding="utf-8", newline="") as stream:
+                created_dxf = True
+                document.write(stream)
+        except FileExistsError as exc:
+            raise CadcraftCommandProofError("REFUSE_TO_OVERWRITE_EXISTING_FILE") from exc
+
+        def chunk(kind, payload):
+            return (struct.pack(">I", len(payload)) + kind + payload
+                    + struct.pack(">I", zlib.crc32(kind + payload) & 0xffffffff))
+
+        width_px, height_px = 320, 200
+        pixels = (bytes([0]) + bytes([255, 255, 255]) * width_px) * height_px
+        image = (
+            bytes([137, 80, 78, 71, 13, 10, 26, 10])
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", width_px, height_px, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(pixels))
+            + chunk(b"IEND", b"")
+        )
+        try:
+            with preview.open("xb") as stream:
+                created_png = True
+                stream.write(image)
+        except FileExistsError as exc:
+            raise CadcraftCommandProofError("REFUSE_TO_OVERWRITE_EXISTING_FILE") from exc
+    except Exception:
+        if created_png:
+            preview.unlink(missing_ok=True)
+        if created_dxf:
+            target.unlink(missing_ok=True)
+        raise
+    return {"status": "PASS", "scope": "EMPTY_WHD_ISSUED_EXCHANGE"}
 
 
 def _near(a: object, b: object) -> bool:
