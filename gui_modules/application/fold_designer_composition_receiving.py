@@ -1280,9 +1280,10 @@ def _switch_mode(self, namespace, target):
 
 def _common_preview_request(self, namespace):
     """Read committed physical-sheet drawings; the caller is a Scheduler."""
-    from ae_engine.receiving_quantity_box import require_valid_quantity_features
     from phase6_manufacturing_adapter import build_manufacturing_cache_key, resolve_for_app
-    require_valid_quantity_features(_current_mode_snapshot(self, namespace))
+    manufacturing_api.require_valid_operator_quantity_features(
+        _current_mode_snapshot(self, namespace)
+    )
     signature = build_manufacturing_cache_key(self.app).fingerprint
     if signature != getattr(self.app, "_phase6_last_resolved_manufacturing_signature", None):
         # The operator may open Common Box just after a mode switch or a
@@ -1630,9 +1631,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 "version_count": model.version_count}
 
     def set_single_size_quantity(width, height, depth, count):
-        from ae_engine.receiving_quantity_box import (
-            update_common_box, require_valid_quantity_features,
-        )
+        from ae_engine.receiving_quantity_box import update_common_box
         from phase6_quantity_model import QuantityModel, positive_piece_count
         new_count = positive_piece_count(count)
         snapshot = _current_mode_snapshot(self, namespace)
@@ -1642,7 +1641,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         model.set_piece_count(new_count)
         candidate = update_common_box(snapshot, {"w": width, "h": height, "d": depth})
         candidate["quantity"] = model.snapshot()
-        require_valid_quantity_features(candidate)
+        manufacturing_api.require_valid_operator_quantity_features(candidate)
         _apply_mode_snapshot(self, namespace, candidate)
         return True
 
