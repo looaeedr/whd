@@ -5,6 +5,12 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 NFB V5 多連實體清單／獨立預覽來源改由公開 Engine（2026-11-05）
+
+- `gui_modules/application/fold_designer_composition_receiving.py::open_receiving_multi_settings.physical_manifest` 原直接 import `receiving_nfb_v5_diagnostics` 與 Family／BasePlate 私有來源，依 UI 內的單層／雙層判斷編造物理依賴，並自行淺複製 Bay 強制 `nfb_config_submitted=False` 以預覽不受 NFB 影響的 Head/Tail／Door；GUI 不該決定實體板件身份與來源有效性。
+- 原 `ae_engine.receiving_nfb_v5_diagnostics` owner 現提供公開 `manufacturing_api.project_receiving_current_v5_nfb_physical_diagnostics(saved_bay, physical_snapshot=..., set_id=..., bay_id=..., version_id=..., physical_parts=...)`，從 **既有** Family 內門／實體底板來源與同一 Bay 實際 render Scene 判定 dependencies／unaffected／missing roles，再交原 `current_v5_nfb_diagnostics` 做逐顆 CURRENT CSV source/revision 只讀狀態。沒有真實 Scene 或物理來源不得顯示 NFB 不受影響的可加工板件。
+- `manufacturing_api.project_receiving_nfb_unsubmitted_preview_layout(layout, set_index=..., bay_index=...)` 在 Engine 先驗證真實 index、完整隔離複本，只為唯讀查核原本獨立板件。不得改動已存 Bay、取代 PartSpec、跳過 NFB 來源守門、將 DRAFT／RECHECK_ONLY 提升為出圖資格。GUI 原 `nfb_physical_bay_snapshot` 改用既有公開 `manufacturing_api.project_receiving_bay_legacy_aliases`。新測試 `tests/test_issue2517_receiving_nfb_v5_manifest_public_api.py` 與 AC-09/24 原測試一起核對；#2517 全入口／Windows UAT 未因此完成。
+
 ## [CURRENT] #2517 Receiving CSV NFB 內門＋底板部分出圖來源實體權威（2026-11-05）
 
 - 受電箱多連 NFB GUI 的 `current_csv_pair_source` 原直接呼叫 `ae_engine.receiving_nfb_committed_final_scene._submitted_csv_holes/_existing_source_specs`，自行決定哪一組 `base_plate`／`base_plate:nfb_layer:N` 具備來源，並在 PART_ONLY 出圖入口再次私讀 `layer_count`。這是 Engine 物理板件身份判斷，不屬於 GUI。
