@@ -61,6 +61,35 @@ def project_operator_hole_editor_endcap(
         baseline_scene=None, baseline_status="未使用基準檔（程式計算生成）",
     )
 
+
+def project_operator_quantity_endcap_hole_editor_geometry(
+    snapshot: Mapping[str, object], *, role: str,
+) -> OperatorHoleEditorGeometry:
+    """One Engine source for Quantity Head/Tail editor finished-face geometry.
+
+    Receiving Quantity uses only its explicitly saved common physical box or
+    the canonical fresh Receiving Family default. Neither a stale Set/Bay
+    layout nor GUI W/H/D aliases may replace the quantity owner. Other
+    Families preserve their own operator W/D. Material T must be validated by
+    the shared EndCap projector and never cast bool to 1 mm.
+    """
+    from .cabinet_types.policy import canonical_family_name
+    from .receiving_quantity_box import BOX_KEY, normalize_common_box
+
+    if role not in {"head", "tail"}:
+        raise ValueError("ENDCAP_HOLE_EDITOR_ROLE_INVALID")
+    if not isinstance(snapshot, Mapping):
+        raise ValueError("Quantity EndCap source must be a mapping")
+    source = dict(snapshot)
+    values = (normalize_common_box(source.get(BOX_KEY))
+              if canonical_family_name(source) == "受電箱"
+              else source)
+    return project_operator_hole_editor_endcap(
+        role, width=values["w"], depth=values["d"],
+        thickness=source.get("t", 2),
+    )
+
+
 def project_operator_hole_editor_box_body_face(
     face_key: str, values: Mapping[str, object], *,
     head_corner_policy=None, tail_corner_policy=None,
