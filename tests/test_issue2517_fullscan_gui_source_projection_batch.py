@@ -138,3 +138,94 @@ def test_cadcraft_gui_module_has_no_dxf_or_manufacturing_geometry():
               / "ae_engine/operator_cadcraft_preview.py").read_text(encoding="utf-8")
     assert "from gui_modules" not in engine
     assert "tkinter" not in engine
+
+
+def test_cadcraft_command_gui_has_no_private_dxf_writer_or_feature_resolver():
+    from gui_modules.editors import cadcraft_command_preview_bridge as adapter
+    source = Path(adapter.__file__).read_text(encoding="utf-8")
+    assert "import ezdxf" not in source
+    assert "resolve_surface_features(" not in source
+    assert "ezdxf.new(" not in source
+    assert "project_whd_cadcraft_command_instructions(" in source
+    assert "save_blank_cadcraft_exchange_drawing(" in source
+
+
+def test_cadcraft_command_engine_owns_finished_face_and_rejects_bad_source():
+    from gui_modules.editors.cadcraft_command_preview_bridge import (
+        prepare_whd_cadcraft_commands,
+    )
+
+    surface = feature_surface_from_rect("candidate", Vec2(0, 0), Vec2(100, 80))
+    feature = CircleFeature(
+        diameter=10, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(25, 30),
+    )
+    expected = manufacturing_api.project_whd_cadcraft_command_instructions(
+        surface=surface, features=(feature,), width=100, height=80,
+    )
+    from_gui = prepare_whd_cadcraft_commands(
+        surface=surface, features=[feature], width=100, height=80,
+    )
+    assert from_gui == expected
+    assert len(from_gui) == 1
+    assert (from_gui[0].kind, from_gui[0].points, from_gui[0].radius) == (
+        "circle", ((25.0, 30.0),), 5.0,
+    )
+    with pytest.raises(manufacturing_api.CadcraftCommandProofError,
+                       match="INVALID_WHD_FINISHED_FACE_DIMENSIONS"):
+        manufacturing_api.project_whd_cadcraft_command_instructions(
+            surface=surface, features=(), width=True, height=80,
+        )
+    with pytest.raises(manufacturing_api.CadcraftCommandProofError,
+                       match="CUTTING_HOLES_ONLY"):
+        manufacturing_api.project_whd_cadcraft_command_instructions(
+            surface=surface, features=(
+                CircleFeature(
+                    diameter=10, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                    offset=Vec2(25, 30), layer="BLIND_HOLE",
+                ),
+            ), width=100, height=80,
+        )
+    with pytest.raises(manufacturing_api.CadcraftCommandProofError,
+                       match="WHD_FEATURE_SURFACE_REJECTED"):
+        manufacturing_api.project_whd_cadcraft_command_instructions(
+            surface=surface, features=(
+                CircleFeature(
+                    diameter=10, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                    offset=Vec2(250, 250),
+                ),
+            ), width=100, height=80,
+        )
+
+
+def test_cadcraft_empty_exchange_engine_writes_only_isolated_mm_and_png(tmp_path):
+    from gui_modules.editors.cadcraft_command_preview_bridge import (
+        draw_whd_commands_with_cadcraft,
+    )
+    output = tmp_path / "whd-command-drawing.dxf"
+    preview = tmp_path / "whd-command-drawing.png"
+    result = draw_whd_commands_with_cadcraft(
+        instructions=(), executable="never-used-for-empty-source",
+        output_dir=tmp_path,
+    )
+    assert result.output_dxf == output
+    assert result.preview_png == preview
+    assert result.geometry_evidence == {
+        "status": "PASS", "scope": "EMPTY_WHD_ISSUED_EXCHANGE",
+    }
+    reopened = ezdxf.readfile(output)
+    assert reopened.header["$INSUNITS"] == 4
+    assert reopened.header["$MEASUREMENT"] == 1
+    assert not list(reopened.modelspace())
+    assert preview.read_bytes().startswith(bytes([137, 80, 78, 71, 13, 10, 26, 10]))
+    original_dxf, original_png = output.read_bytes(), preview.read_bytes()
+    with pytest.raises(manufacturing_api.CadcraftCommandProofError,
+                       match="REFUSE_TO_OVERWRITE"):
+        manufacturing_api.save_blank_cadcraft_exchange_drawing(output, preview)
+    assert (output.read_bytes(), preview.read_bytes()) == (original_dxf, original_png)
+    with pytest.raises(manufacturing_api.CadcraftCommandProofError,
+                       match="INVALID_CADCRAFT_EXCHANGE_DESTINATION"):
+        manufacturing_api.save_blank_cadcraft_exchange_drawing(
+            tmp_path / "not-a-dxf.txt", tmp_path / "wrong.png",
+        )
+    assert list(tmp_path.iterdir()) == [output, preview]
