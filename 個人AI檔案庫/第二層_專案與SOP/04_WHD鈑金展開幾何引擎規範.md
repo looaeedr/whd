@@ -5,6 +5,12 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 NFB 跨 Bay Copy 路由與 EndCap Joint 摘要由 Engine 唯一投影（2026-11-04）
+
+- NFB 的操作者高亮連選取（必須同一 Set 內兩個不同且有效的真實 Bay，布林／浮點／不可雜湊異常值拒絕）由現有 `ae_engine.receiving_nfb_ui1b_bridge` 的 `select_operator_nfb_copy_bays` 和 `plan_operator_nfb_copy_direction` 經公開 `manufacturing_api` 提供。GUI 只持有 transient `pending_verified_nfb` 並在每次檢視／點擊時呼叫既有 `assert_live_verified_nfb` 取得即時有效的目標 Bay 集合；**已提交來源、獨立驗證目標及唯一方向**的物理資格僅由 Engine 計畫決策，並保留 `copy_live_verified_nfb`／`copy_submitted_nfb_bay` 的原子交易、重新驗來源、Confirm/Cancel、Save→Reload、Undo。任何沒有獨立世界 X／實體孔 ID／原 DXF 驗證的目標都不可借來源連的 X，也不解鎖正式 DXF。
+- 受電箱 EndCap 固定截角的螢幕摘要由公開 `manufacturing_api.project_operator_fixed_corner_summary` 向既有 Family Registry `canonical_family_name` 與 `assembly_joint.edge_relation_for_part` 投影，`受電箱`／`RECEIVING`／`receiving` 為同一個實體 Family，不因 UI 字串大小寫不同而誤顯金庫型固定截角；頭尾端 BOTTOM WRAP／INSERT 等文字必須隨當下 Joint source。非受電箱或非 Head/Tail 沿用原 GUI 的既有展示文案；此 API 僅提供 readonly 說明、不新增幾何公式、Corner Registry、PartSpec 或製造出圖通道。
+- 這是 #2517 兩條已確定越界的 GUI 判斷移轉，**不是**全部 GUI 入口驗收完成，不發布 X。定向測試 `tests/test_issue2517_gui_nfb_copy_and_corner_owner.py` 加既有 `test_issue1500_nfb_operator_gui_transactions.py`、`test_receiving_cabinet_2d.py` 與一體 Engine 回歸；正式合併仍須 exact-HEAD GitHub Actions 全綠及 R5-2600 Windows 驗證。
+
 ## [CURRENT] #2517 CADCraft 隔離交換與數量模式 Head/Tail Hole Editor 的 Engine 單一來源（2026-11-04）
 
 - 原 `gui_modules/editors/cadcraft_command_preview_bridge.py` 在空 Hole Editor 畫面直接使用 `ezdxf.new` 建立毫米 DXF 與 PNG，並在 GUI 呼叫 `resolve_surface_features` 自行核對正式孔位。現統一由既有 `ae_engine.cadcraft_exchange_proof` 公開 `manufacturing_api.project_whd_cadcraft_command_instructions`、`save_blank_cadcraft_exchange_drawing` 完成來源驗證／輸出；GUI 僅調度隔離文件和 CADCraft CLI。空白交換 DXF 僅含有效 mm 標頭且無製造圖元，搭配白色 PNG；使用 exclusive create 避免覆寫已存在輸出，任何半途失敗清理僅限本次新建交換檔。其結果仍是 CADCraft 未確認候選／CHECK，不是正式 PartSpec、CUTTING/BEND 或製造 DXF；既有 Hole Editor Confirm/Cancel/Undo 和 Manual Return 驗證仍為獨立門檻。

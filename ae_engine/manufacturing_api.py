@@ -1700,6 +1700,12 @@ from .receiving_nfb_pair_quantity_check import (
 )
 
 
+# #2517: Receiving fixed EndCap corner display follows real Engine Family
+# aliases and resolved AssemblyJoint rather than a GUI-owned manufacturing
+# description. Rendering only; no production PartSpec or DXF authorization.
+from .operator_fixed_corner_summary import project_operator_fixed_corner_summary
+
+
 # #2517: GUI baseline labeling and quantity-export source validation must
 # pass through the existing public Engine entrypoint (not internal imports).
 def is_unknown_operator_model(model_name):
@@ -2107,6 +2113,23 @@ def submit_receiving_nfb_bays(
     return submit_nfb_bays(
         layout, set_index=set_index, bay_indices=bay_indices,
         version_id=version_id, configs=configs, evidence=evidence, confirm=confirm,
+    )
+
+
+def select_operator_nfb_copy_bays(layout, set_index, selected_bays):
+    """Public Engine selection check for exactly two highlighted physical Bays."""
+    from .receiving_nfb_ui1b_bridge import select_operator_nfb_copy_bays as select
+    return select(layout, set_index, selected_bays)
+
+
+def plan_operator_nfb_copy_direction(
+    layout, set_index, selected_bays, *, verified_target_indices,
+):
+    """Public Engine source/destination plan; atomic copy re-verifies both."""
+    from .receiving_nfb_ui1b_bridge import plan_operator_nfb_copy_direction as plan
+    return plan(
+        layout, set_index, selected_bays,
+        verified_target_indices=verified_target_indices,
     )
 
 
