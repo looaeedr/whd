@@ -13,7 +13,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, ttk, messagebox
 
 import gui
 import fold_designer_bridge as bridge
@@ -52,6 +52,11 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
             old["snapshot"]["d"], old["snapshot"]["t"]) == (800,1600,350,2)
     assert not contains_submitted_nfb(old["snapshot"])
 
+    # Unexpected validation warnings must fail with the original message,
+    # not block unattended CI in a native modal dialog for 900 seconds.
+    def fail_unexpected_warning(_title, message, **_kwargs):
+        raise AssertionError(f"Unexpected Receiving warning: {message}")
+    monkeypatch.setattr(messagebox, "showwarning", fail_unexpected_warning)
     root = tk.Tk()
     root.withdraw()
     window = None

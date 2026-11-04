@@ -31,6 +31,70 @@ def receiving_default_preview_dimensions(snapshot) -> tuple[float, float, float]
     return tuple(float(box[axis]) for axis in ("w", "h", "d"))
 
 
+
+def project_receiving_operator_bay_door_split_ratio(bay) -> float | None:
+    """Read-only two-row Bay seam for the lightweight operator sketch.
+
+    The drawn line must use the saved canonical Door topology, not a GUI
+    1100-mm fabrication guess. A Family-default schematic uses the actual
+    Receiving default ratio even when an operator changes Bay H. Complex
+    Door grids cannot be represented by a *single* horizontal seam, so the
+    caller must omit the fake line instead of fabricating two Door faces.
+    This is display provenance only; never manufacture from this ratio.
+    """
+    from collections.abc import Mapping
+    from .cabinet_types.receiving import default_door_layout_columns
+    from .sheetmetal_part_adapters import (
+        _finite_float, validate_door_layout_dimensions,
+    )
+
+    default = default_door_layout_columns()[0][1]
+    default_ratio = float(default[0]) / sum(float(h) for h in default)
+    if bay is None:
+        return default_ratio
+    if not isinstance(bay, Mapping):
+        raise ValueError("Receiving Bay preview source must be a mapping")
+    width = _finite_float(bay.get("width"), "Receiving Bay width")
+    height = _finite_float(bay.get("height"), "Receiving Bay height")
+    if width <= 0 or height <= 0:
+        raise ValueError("Receiving Bay preview dimensions must be positive")
+    state = bay.get("door_state")
+    if state is None:
+        return default_ratio
+    if not isinstance(state, Mapping):
+        raise ValueError("Receiving Bay Door source must be a mapping")
+    if "multi_door_enabled" not in state:
+        # Migrated legacy projects may have a saved root Door column list but
+        # no saved enable decision. Validate that list if present, yet draw
+        # only the unconfirmed Family schematic: it is not active topology.
+        legacy_columns = state.get("door_layout_columns")
+        if legacy_columns:
+            validate_door_layout_dimensions(
+                legacy_columns, total_width=width, total_height=height,
+            )
+        return default_ratio
+    enabled = state["multi_door_enabled"]
+    if type(enabled) is not bool:
+        raise ValueError("Receiving Bay Door enable source must be boolean")
+    if not enabled:
+        return None
+    columns = state.get("door_layout_columns") or ()
+    if not columns:
+        raise ValueError("Receiving Bay enabled Door topology lacks columns")
+    cells = validate_door_layout_dimensions(
+        columns, total_width=width, total_height=height,
+    )
+    first_rows = [cell.start_height for cell in cells if cell.row_index == 0]
+    second_rows = [cell for cell in cells if cell.row_index == 1]
+    if len(first_rows) != len(columns) or len(second_rows) != len(columns):
+        return None
+    if len(cells) != 2 * len(columns):
+        return None
+    if any(abs(row - first_rows[0]) > 1e-6 for row in first_rows[1:]):
+        return None
+    return float(first_rows[0]) / height
+
+
 def receiving_family_supports_back_panel_mode(snapshot) -> bool:
     """Use the registered Family identity, never GUI string matching."""
     return canonical_family_name(snapshot) == "受電箱"

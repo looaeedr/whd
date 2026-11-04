@@ -49,3 +49,79 @@ def test_receiving_gui_only_delegates_family_and_dimension_projection():
     assert "from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS" not in composer
     assert "BOX_BODY_DEFAULTS" not in window
     assert "manufacturing_api.receiving_default_preview_dimensions(snapshot)" in window
+
+
+def test_receiving_operator_bay_door_seam_uses_confirmed_engine_topology():
+    """Actual Bay Door 600/1000 must not be sketched as guessed 1100/500."""
+    default_ratio = 1100.0 / 1600.0
+    assert api.project_receiving_operator_bay_door_split_ratio(None) == default_ratio
+    assert api.project_receiving_operator_bay_door_split_ratio({
+        "width": 800, "height": 2000,
+    }) == default_ratio
+    bay = {
+        "width": 800, "height": 1600,
+        "door_state": {
+            "multi_door_enabled": True,
+            "door_layout_columns": [[800, [600, 1000]]],
+        },
+    }
+    assert api.project_receiving_operator_bay_door_split_ratio(bay) == 0.375
+    assert api.project_receiving_operator_bay_door_split_ratio({
+        **bay, "door_state": {
+            "multi_door_enabled": True,
+            "door_layout_columns": [[300, [600, 1000]], [500, [600, 1000]]],
+        },
+    }) == 0.375
+
+
+def test_legacy_saved_door_columns_without_enable_are_unconfirmed_schematic():
+    """Older .p6fold has Door columns but no committed enable flag."""
+    import pytest
+
+    base = {"width": 800, "height": 1600}
+    default = 1100.0 / 1600.0
+    assert api.project_receiving_operator_bay_door_split_ratio({
+        **base, "door_state": {},
+    }) == default
+    assert api.project_receiving_operator_bay_door_split_ratio({
+        **base, "door_state": {"door_layout_columns": [[800, [600, 1000]]]},
+    }) == default  # Unconfirmed saved legacy columns are not manufactured Door geometry.
+    with pytest.raises(ValueError):
+        api.project_receiving_operator_bay_door_split_ratio({
+            **base, "door_state": {"door_layout_columns": [[800, [600, 1100]]]},
+        })
+
+
+def test_receiving_operator_bay_door_seam_never_invents_unsupported_cells():
+    import pytest
+
+    base = {"width": 800, "height": 1600}
+    def door(columns, enabled=True):
+        return {
+            **base,
+            "door_state": {
+                "multi_door_enabled": enabled,
+                "door_layout_columns": columns,
+            },
+        }
+
+    assert api.project_receiving_operator_bay_door_split_ratio(
+        door([[800, [600, 1000]]], enabled=False),
+    ) is None
+    assert api.project_receiving_operator_bay_door_split_ratio(
+        door([[300, [600, 1000]], [500, [800, 800]]]),
+    ) is None
+    assert api.project_receiving_operator_bay_door_split_ratio(
+        door([[800, [400, 600, 600]]]),
+    ) is None
+
+    for source in (
+        door([[800, [True, 1599]]]),
+        door([[800, [600, 1100]]]),
+        door([[800, [600, 1000]]], enabled="yes"),
+        {"width": 800, "height": float("nan")},
+        {"width": True, "height": 1600},
+        {**base, "door_state": {"multi_door_enabled": True}},
+    ):
+        with pytest.raises(ValueError):
+            api.project_receiving_operator_bay_door_split_ratio(source)

@@ -102,13 +102,18 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
     # D is a depth axis: show it in the size summary, not as a false 2D width.
     source = tuple(bay_dimensions or ())
     physical = []
+    seam_ratios = []
     for index in range(count):
-        item = source[index] if index < len(source) else (800.0, 1600.0, 350.0)
+        item = (source[index] if index < len(source)
+                else manufacturing_api.receiving_default_preview_dimensions({}))
         if isinstance(item, dict):
             w, h = float(item["width"]), float(item["height"])
+            seam_ratio = manufacturing_api.project_receiving_operator_bay_door_split_ratio(item)
         else:
             w, h = float(item[0]), float(item[1])
+            seam_ratio = manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)
         physical.append((max(1.0, w), max(1.0, h)))
+        seam_ratios.append(seam_ratio)
     scale = min(usable_w / sum(w for w, _ in physical),
                 usable_h / max(h for _, h in physical))
     left = (width - sum(w for w, _ in physical) * scale) / 2
@@ -121,7 +126,8 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
         cursor_x = x1
         top, bay_h = bottom - physical_h * scale, physical_h * scale
         bay_w = x1 - x0
-        split = top + bay_h * min(1100.0 / physical_h, 0.999)
+        split = (top + bay_h * seam_ratios[index]
+                 if seam_ratios[index] is not None else None)
         active = index in selected_bays
         outline = "#42bdf4" if active else "#8faec4"
         fill = "#315775" if active else "#263a4d"
@@ -129,18 +135,20 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
                                 fill=fill, outline=outline,
                                 width=3 if active else 1)
         inset = min(7.0, max(2.0, bay_w * 0.07))
-        canvas.create_rectangle(x0 + inset, top + inset, x1 - inset, split - 2,
-                                outline="#c3d1dc", width=1)
-        canvas.create_rectangle(x0 + inset, split + 2, x1 - inset,
-                                top + bay_h - inset, outline="#c3d1dc", width=1)
-        canvas.create_line(x0 + inset, split, x1 - inset, split,
-                           fill="#e0c487", width=1)
+        if split is not None:
+            canvas.create_rectangle(x0 + inset, top + inset, x1 - inset, split - 2,
+                                    outline="#c3d1dc", width=1)
+            canvas.create_rectangle(x0 + inset, split + 2, x1 - inset,
+                                    top + bay_h - inset, outline="#c3d1dc", width=1)
+            canvas.create_line(x0 + inset, split, x1 - inset, split,
+                               fill="#e0c487", width=1,
+                               tags=("receiving_door_seam",))
         marks = (door_marks or ())
         this_bay = marks[index] if index < len(marks) else ()
-        door_faces = (
+        door_faces = (() if split is None else (
             (x0 + inset, top + inset, x1 - inset, split - 2),
             (x0 + inset, split + 2, x1 - inset, top + bay_h - inset),
-        )
+        ))
         for row_index, face in enumerate(door_faces):
             if row_index >= len(this_bay):
                 continue

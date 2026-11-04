@@ -934,3 +934,56 @@ def test_issue1818_real_cut_preview_latest_selection_wins_during_reentrant_provi
         if win is not None and win.winfo_exists():
             win._receiving_multi_close()
         root.destroy()
+
+
+def test_actual_tk_receiving_sketch_reads_saved_door_seam_from_public_engine():
+    """The original 2D Bay sketch must match confirmed 600/1000 Door topology."""
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        canvas = tk.Canvas(root, width=440, height=280)
+        saved = {
+            "width": 800, "height": 1600, "depth": 350,
+            "door_state": {
+                "multi_door_enabled": True,
+                "door_layout_columns": [[800, [600, 1000]]],
+            },
+        }
+        paint_connected_bays(canvas, 1, bay_dimensions=(saved,))
+        box = canvas._receiving_bay_hitboxes[0]
+        seam_ids = canvas.find_withtag("receiving_door_seam")
+        assert len(seam_ids) == 1
+        actual_y = canvas.coords(seam_ids[0])[1]
+        assert (actual_y - box[1]) / (box[3] - box[1]) == pytest.approx(600 / 1600)
+
+        # Fresh taller Bay must scale the Engine Family 1100/1600 default,
+        # not draw a fabricated physical 1100-mm seam in a 2000-mm box.
+        paint_connected_bays(canvas, 1, bay_dimensions=({
+            "width": 800, "height": 2000, "depth": 350,
+        },))
+        box = canvas._receiving_bay_hitboxes[0]
+        seam_ids = canvas.find_withtag("receiving_door_seam")
+        assert len(seam_ids) == 1
+        actual_y = canvas.coords(seam_ids[0])[1]
+        assert (actual_y - box[1]) / (box[3] - box[1]) == pytest.approx(1100 / 1600)
+    finally:
+        root.destroy()
+
+
+def test_actual_tk_receiving_sketch_never_displays_a_fake_complex_door_seam():
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        canvas = tk.Canvas(root, width=440, height=280)
+        source = {
+            "width": 800, "height": 1600, "depth": 350,
+            "door_state": {
+                "multi_door_enabled": True,
+                "door_layout_columns": [[300, [600, 1000]], [500, [800, 800]]],
+            },
+        }
+        paint_connected_bays(canvas, 1, bay_dimensions=(source,))
+        assert canvas.find_withtag("receiving_door_seam") == ()
+        assert len(canvas._receiving_bay_hitboxes) == 1
+    finally:
+        root.destroy()

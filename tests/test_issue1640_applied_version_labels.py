@@ -5,6 +5,8 @@ import pytest
 
 from ae_engine.receiving_layout import new_receiving_layout, resize_receiving_bays, normalize_receiving_layout
 from ae_engine.receiving_shared_settings import setting_value, validate_setting
+from ae_engine.sheetmetal_feature_core import CircleFeature, RectFeature, FeatureAnchor
+from ae_engine.sheetmetal_geometry import Vec2
 from gui_modules.application.receiving_multi_settings_window import paint_connected_bays
 from gui_modules.application.receiving_set_bay_adapter import ReceivingSetBayAdapter
 
@@ -19,12 +21,16 @@ def _adapter():
 
 def test_candidate_version_identity_is_saved_per_real_bay_not_per_dropdown():
     adapter = _adapter()
-    payload = [{"tag": "hole-A"}]
+    payload = [CircleFeature(
+        10.0, FeatureAnchor.ABSOLUTE_FINISHED_FACE, Vec2(200.0, 150.0),
+    )]
     assert adapter.apply_candidate_to_bays(
         "head", 0, (0, 2), payload, version_id="head-v2",
     ) == (0, 2)
     adapter.apply_candidate_to_bays(
-        "tail", 0, (1,), [{"tag": "hole-B"}], version_id="tail-v1",
+        "tail", 0, (1,), [RectFeature(
+            12.0, 8.0, FeatureAnchor.ABSOLUTE_FINISHED_FACE, Vec2(220.0, 100.0),
+        )], version_id="tail-v1",
     )
     row = normalize_receiving_layout(adapter.layout)["sets"][0]
     assert [setting_value(row, i, "head_version_id") for i in range(3)] == [
