@@ -146,3 +146,112 @@ def test_receiving_valid_fractional_string_source_equal_direct_engine_surface():
     assert (receiving.width, receiving.depth) == (920.25, 440.5)
     assert receiving.surface == direct.surface
     assert receiving.reference_guide == direct.reference_guide
+
+
+@pytest.mark.parametrize("model", ("受電箱", "RECEIVING", "receiving"))
+def test_quantity_endcap_uses_receiving_common_box_not_stale_global_dimensions(model):
+    snapshot = {
+        "model": model, "active_mode": "quantity",
+        "w": 990, "d": 550, "t": 1.6,
+        "receiving_quantity_box": {"w": 920, "h": 1800, "d": 430},
+    }
+    actual = api.project_operator_quantity_endcap_hole_editor_geometry(
+        snapshot, role="head",
+    )
+    expected = api.project_operator_hole_editor_endcap(
+        "head", width=920, depth=430, thickness=1.6,
+    )
+    assert actual == expected
+    assert snapshot["w"] == 990
+    fresh = api.project_operator_quantity_endcap_hole_editor_geometry(
+        {**snapshot, "receiving_quantity_box": None}, role="tail",
+    )
+    assert fresh == api.project_operator_hole_editor_endcap(
+        "tail", width=800, depth=350, thickness=1.6,
+    )
+
+
+@pytest.mark.parametrize("model", ("金庫型", "RO", "未知"))
+def test_quantity_endcap_other_families_keep_their_own_source(model):
+    actual = api.project_operator_quantity_endcap_hole_editor_geometry(
+        {"model": model, "w": 650, "d": 280, "t": 2},
+        role="tail",
+    )
+    assert actual == api.project_operator_hole_editor_endcap(
+        "tail", width=650, depth=280, thickness=2,
+    )
+
+
+@pytest.mark.parametrize("changed", (
+    {"t": True}, {"t": float("nan")}, {"t": 0}, {"t": float("inf")},
+    {"receiving_quantity_box": {"w": True, "h": 1600, "d": 350}},
+    {"receiving_quantity_box": {"w": 800, "h": 1600, "d": -40}},
+    {"receiving_quantity_box": "invalid-source"},
+))
+def test_quantity_endcap_rejects_invalid_physical_source_without_ui_fallback(changed):
+    source = {
+        "model": "受電箱", "active_mode": "quantity",
+        "w": 800, "d": 350, "t": 2,
+        "receiving_quantity_box": {"w": 800, "h": 1600, "d": 350},
+    }
+    source.update(changed)
+    with pytest.raises(ValueError):
+        api.project_operator_quantity_endcap_hole_editor_geometry(
+            source, role="head",
+        )
+
+
+def test_quantity_editor_port_is_public_engine_only_and_uses_actual_geometry():
+    from types import SimpleNamespace
+    from phase6_quantity_model import QuantityModel
+    from gui_modules.application.quantity_version_ports import quantity_ports
+
+    source = Path("gui_modules/application/quantity_version_ports.py").read_text(encoding="utf-8")
+    assert "resolve_endcap_finished_face_guide(" not in source
+    assert "feature_surface_from_rect(" not in source
+    assert "require_valid_quantity_features(" not in source
+    assert "manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(" in source
+    assert "manufacturing_api.require_valid_operator_quantity_features(" in source
+
+    class Host:
+        def __init__(self):
+            self.args = None
+            self.kwargs = None
+
+        def scene(self):
+            pass
+
+        def _open_unified_hole_editor(self, *args, **kwargs):
+            self.args, self.kwargs = args, kwargs
+            return "real-editor-return"
+
+    host = Host()
+    model = QuantityModel()
+    workspace = SimpleNamespace(
+        quantity_model=model,
+        snapshot=lambda: {"active_mode": "quantity", "quantity": model.snapshot()},
+    )
+    app = SimpleNamespace(
+        designer_workspace=workspace,
+        _phase6_input_snapshot={
+            "active_mode": "quantity",
+            "receiving_quantity_box": {"w": 920, "h": 1800, "d": 430},
+        },
+        _settings_values={"t": 1.6},
+        _phase6_box_whd={"w": 990, "h": 1800, "d": 550},
+        baseline_model_var=SimpleNamespace(get=lambda: "RECEIVING"),
+        _scene_query_callback=host.scene,
+    )
+    ui = quantity_ports(SimpleNamespace(app=app), None)
+    assert ui["holes"]("head") == "real-editor-return"
+    geometry = api.project_operator_quantity_endcap_hole_editor_geometry(
+        {"model": "RECEIVING", "t": 1.6,
+         "receiving_quantity_box": {"w": 920, "h": 1800, "d": 430}},
+        role="head",
+    )
+    assert host.args[2:] == (geometry.surface, geometry.width, geometry.height)
+    assert host.kwargs["reference_guide"] == geometry.reference_guide
+    app._settings_values["t"] = True
+    with pytest.raises(ValueError):
+        ui["holes"]("head")
+    assert host.args[2:] == (geometry.surface, geometry.width, geometry.height)

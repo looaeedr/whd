@@ -5,6 +5,12 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 CADCraft 隔離交換與數量模式 Head/Tail Hole Editor 的 Engine 單一來源（2026-11-04）
+
+- 原 `gui_modules/editors/cadcraft_command_preview_bridge.py` 在空 Hole Editor 畫面直接使用 `ezdxf.new` 建立毫米 DXF 與 PNG，並在 GUI 呼叫 `resolve_surface_features` 自行核對正式孔位。現統一由既有 `ae_engine.cadcraft_exchange_proof` 公開 `manufacturing_api.project_whd_cadcraft_command_instructions`、`save_blank_cadcraft_exchange_drawing` 完成來源驗證／輸出；GUI 僅調度隔離文件和 CADCraft CLI。空白交換 DXF 僅含有效 mm 標頭且無製造圖元，搭配白色 PNG；使用 exclusive create 避免覆寫已存在輸出，任何半途失敗清理僅限本次新建交換檔。其結果仍是 CADCraft 未確認候選／CHECK，不是正式 PartSpec、CUTTING/BEND 或製造 DXF；既有 Hole Editor Confirm/Cancel/Undo 和 Manual Return 驗證仍為獨立門檻。
+- 原 `gui_modules/application/quantity_version_ports.py::holes` 在 GUI 用 `resolve_endcap_finished_face_guide`、`feature_surface_from_rect`、`RectGuide` 直接構造受電箱／金庫型數量版本 Head/Tail 的物理編輯面，並直接 import `receiving_quantity_box` 驗證。現在統一走公開 `manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(snapshot, role=...)`，委派 Engine 既有 `project_operator_hole_editor_endcap` 及 `normalize_common_box`；Receiving Family 別名使用 Registry，缺少共用箱體仍由 Receiving Family 800/1600/350 預設，但不得借用過期 Set/Bay 或主 GUI W/D，明確損壞共用箱體、bool/NaN/Inf/非正 T/W/D 直接拒絕。版本 Hole Editor 提交前仍由公開 `manufacturing_api.require_valid_operator_quantity_features` 驗證，版本 ID、Cancel、Confirm、實際 DXF 都不建立第二條幾何權威。
+- 定向驗收重用 `tests/test_issue1959_cadcraft_append_holes.py`、`tests/test_issue2517_fullscan_gui_source_projection_batch.py`、`tests/test_issue1465_quantity_ui.py`、`tests/test_issue2517_endcap_hole_editor_shared_engine_source.py`；等價 Engine 輸出與 GUI 入口、DXF Save→Reload、真實 Tk、壞來源拒絕均須通過。這只消去兩條已證實越界，不宣稱 #2517 整張完成。
+
 
 ## [CURRENT] #2517 受電箱 Set/Bay 2D 示意門分割由 Engine 已存 Door 拓樸投影（2026-11-04）
 
