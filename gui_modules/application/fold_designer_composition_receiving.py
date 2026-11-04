@@ -251,8 +251,7 @@ def commit_receiving_current_bay_controls(self, namespace):
     if getattr(app, "_phase6_receiving_set_bay_guard", False):
         return False
     if app._phase6_input_snapshot.get("active_mode") == "quantity":
-        from ae_engine.receiving_quantity_box import update_common_box
-        candidate = update_common_box(_current_mode_snapshot(self, namespace),
+        candidate = manufacturing_api.update_common_box(_current_mode_snapshot(self, namespace),
                                      {axis: getattr(app, "v_" + axis).get() for axis in ("w", "h", "d")})
         # Quantity re-creates a source-owned singleton Receiving Set/Bay.
         # dict.update() does not delete the previous Set/Bay runtime pointer,
@@ -1039,7 +1038,6 @@ def settings_panel(self, namespace):
         # the actual quantity common-box owner atomically with the same
         # mode navigation transaction used by other receiving edits.
         if app.designer_workspace.active_mode == "quantity":
-            from ae_engine.receiving_quantity_box import update_common_box
             candidate = _current_mode_snapshot(self, namespace)
             commit_receiving_base_plate_settings(
                 input_snapshot=candidate,
@@ -1047,7 +1045,7 @@ def settings_panel(self, namespace):
                 submit_geometry_update=lambda: None,
                 config=config,
             )
-            source = update_common_box(
+            source = manufacturing_api.update_common_box(
                 candidate, {"receiving_base_plate": config},
             )
             _apply_mode_snapshot(self, namespace, source)
@@ -1311,14 +1309,12 @@ def _common_preview_request(self, namespace):
 
 def _open_common_box(self, namespace):
     from .receiving_set_bay_controls import open_receiving_layer_preview
-    from ae_engine.receiving_quantity_box import update_common_box, project_common_box, BOX_KEY
     from .command_router import _Phase6UpdateScheduler
     app = self.app
-    from ae_engine.receiving_quantity_box import normalize_common_box
     # Do not construct a common box from unrelated Set/Bay values: the owner
     # requires explicit quantity-mode initialization before any edit.
     try:
-        box = normalize_common_box(_current_mode_snapshot(self, namespace).get(BOX_KEY))
+        box = manufacturing_api.normalize_common_box(_current_mode_snapshot(self, namespace).get(manufacturing_api.RECEIVING_QUANTITY_BOX_KEY))
     except ValueError as exc:
         from tkinter import messagebox
         messagebox.showwarning("共用箱體尚未初始化", str(exc), parent=app.root)
@@ -1326,7 +1322,7 @@ def _open_common_box(self, namespace):
     listeners = []
     def change_common(changes):
         source = _current_mode_snapshot(self, namespace)
-        candidate = update_common_box(source, changes)
+        candidate = manufacturing_api.update_common_box(source, changes)
         _apply_mode_snapshot(self, namespace, candidate)
         from .receiving_settings_preview_2d import CommittedPreviewError
         for listener in tuple(listeners):
@@ -1347,7 +1343,7 @@ def _open_common_box(self, namespace):
             changes["door_state"] = door
         change_common(changes)
     ports = {
-        "row": lambda: project_common_box(_current_mode_snapshot(self, namespace))["receiving_layout"]["sets"][0],
+        "row": lambda: manufacturing_api.project_common_box(_current_mode_snapshot(self, namespace))["receiving_layout"]["sets"][0],
         "select": lambda index: None,
         "change": lambda kind, value, indices=(): change_common({kind: value}),
         "dimensions": dimensions,
@@ -1363,7 +1359,7 @@ def _open_common_box(self, namespace):
         return open_receiving_layer_preview(
             app.root, tk=tk, ttk=self._required(namespace, "original").ttk,
             layer_index=0, connection_count=1,
-            brand=normalize_common_box(_current_mode_snapshot(self, namespace).get(BOX_KEY))["switch_brand"],
+            brand=manufacturing_api.normalize_common_box(_current_mode_snapshot(self, namespace).get(manufacturing_api.RECEIVING_QUANTITY_BOX_KEY))["switch_brand"],
             render_request=request, preview_error=preview_error, settings_ports=ports,
             bay_request_provider=lambda: (_common_preview_request(self, namespace),),
             common_box=True,
@@ -1464,23 +1460,21 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         return setting_value(ports["row"](), int(bay_index), kind)
 
     def single_brand():
-        from ae_engine.receiving_quantity_box import normalize_common_box
         from phase6_quantity_model import QuantityModel
         source = _current_mode_snapshot(self, namespace)
-        box = normalize_common_box(source.get("receiving_quantity_box"))
+        box = manufacturing_api.normalize_common_box(source.get("receiving_quantity_box"))
         quantity = QuantityModel.from_payload(source["quantity"])
         return quantity.nfb_parent_brand_for_version(
             quantity.selected_version_id, legacy_default=box["switch_brand"],
         )
 
     def set_single_brand(value):
-        from ae_engine.receiving_quantity_box import normalize_common_box
         from phase6_quantity_model import QuantityModel
         source = _current_mode_snapshot(self, namespace)
         if source.get("active_mode") != "quantity":
             raise ValueError("單只品牌需在單箱體模式設定")
         quantity = QuantityModel.from_payload(source["quantity"])
-        box = normalize_common_box(source.get("receiving_quantity_box"))
+        box = manufacturing_api.normalize_common_box(source.get("receiving_quantity_box"))
         if (quantity.nfb_parent_brand_for_version(
                 quantity.selected_version_id, legacy_default=box["switch_brand"])
                 == value
@@ -1501,11 +1495,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             saved_parent_new_reselections,
         )
         if single:
-            from ae_engine.receiving_quantity_box import normalize_common_box
             from phase6_quantity_model import QuantityModel
             source = _current_mode_snapshot(self, namespace)
             q = QuantityModel.from_payload(source["quantity"])
-            common = normalize_common_box(source.get("receiving_quantity_box"))
+            common = manufacturing_api.normalize_common_box(source.get("receiving_quantity_box"))
             old = q.nfb_parent_brand_for_version(
                 q.selected_version_id, legacy_default=common["switch_brand"],
             )
@@ -1618,12 +1611,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         return changed
 
     def single_size_quantity():
-        from ae_engine.receiving_quantity_box import normalize_common_box
         from phase6_quantity_model import QuantityModel
         snapshot = _current_mode_snapshot(self, namespace)
         if snapshot.get("active_mode") != "quantity":
             raise ValueError("單只設定必須使用單箱體數量模式")
-        box = normalize_common_box(snapshot.get("receiving_quantity_box"))
+        box = manufacturing_api.normalize_common_box(snapshot.get("receiving_quantity_box"))
         model = QuantityModel.from_payload(snapshot.get("quantity"))
         return {"width": box["w"], "height": box["h"], "depth": box["d"],
                 "count": model.selected_piece_count,
@@ -1631,7 +1623,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 "version_count": model.version_count}
 
     def set_single_size_quantity(width, height, depth, count):
-        from ae_engine.receiving_quantity_box import update_common_box
         from phase6_quantity_model import QuantityModel, positive_piece_count
         new_count = positive_piece_count(count)
         snapshot = _current_mode_snapshot(self, namespace)
@@ -1639,7 +1630,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             raise ValueError("單只設定必須使用單箱體數量模式")
         model = QuantityModel.from_payload(snapshot.get("quantity"))
         model.set_piece_count(new_count)
-        candidate = update_common_box(snapshot, {"w": width, "h": height, "d": depth})
+        candidate = manufacturing_api.update_common_box(snapshot, {"w": width, "h": height, "d": depth})
         candidate["quantity"] = model.snapshot()
         manufacturing_api.require_valid_operator_quantity_features(candidate)
         _apply_mode_snapshot(self, namespace, candidate)
