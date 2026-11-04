@@ -151,7 +151,15 @@ def test_original_operator_action_is_shared_for_one_or_two_tiers():
     )
     gui = inspect.getsource(fold_designer_composition_receiving)
     modal = inspect.getsource(receiving_multi_settings_window)
-    assert 'count == 2' in gui
+    from ae_engine import manufacturing_api
+    # The actual one-/two-tier physical source decision belongs to Engine,
+    # not a GUI branch. Keep checking that the same operator action invokes it.
+    engine_source = inspect.getsource(
+        manufacturing_api.project_receiving_current_v5_nfb_physical_diagnostics
+    )
+    assert 'count == 2' in engine_source
+    assert 'source_receiving_nfb_tier_base_specs(' in engine_source
+    assert 'manufacturing_api.project_receiving_current_v5_nfb_physical_diagnostics(' in gui
     assert 'current_csv_pair_source(set_index, bay_index)' in gui
     assert 'export_current_csv_nfb_door_base_pair(' in gui
     assert 'text="輸出內門＋底板 DXF（成對部分）"' in modal
