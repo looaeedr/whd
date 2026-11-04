@@ -421,6 +421,32 @@ def _existing_source_specs(snapshot, holes):
     return {0: spec}
 
 
+
+def project_receiving_committed_csv_nfb_pair_layer_count(snapshot: Mapping[str, object]) -> int | None:
+    """Project a committed CSV pair's *existing* physical base source.
+
+    This is a read-only source/PartSpec readiness projection for GUI controls.
+    It neither authorizes manufacture nor constructs replacement base plates.
+    The normal FinalScene resolver still independently checks every source
+    and physical part at manufacturing/export time.
+    """
+    sourced = _submitted_csv_holes(snapshot)
+    if not sourced:
+        return None
+    specs = _existing_source_specs(snapshot, sourced[1])
+    layer_count = sourced[1][0].layer_count
+    if layer_count == 1:
+        if set(specs) == {0} and specs[0].physical_id == "base_plate":
+            return 1
+    elif layer_count == 2:
+        if set(specs) == {0, 1} and all(
+            specs[index].physical_id == f"base_plate:nfb_layer:{index}"
+            for index in (0, 1)
+        ):
+            return 2
+    return None
+
+
 def _without_derived_csv_door_features(snapshot, inner_door_id):
     """CSV Hole Editor Feature is an alias, not a second opening authority.
 
