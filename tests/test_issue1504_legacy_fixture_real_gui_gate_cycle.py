@@ -10,13 +10,10 @@ does not claim actual user Windows UAT, physical 2D/3D, marking or DXF output.
 from __future__ import annotations
 
 from hashlib import sha256
-import faulthandler
-import os
-import sys
 import json
 from pathlib import Path
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, ttk, messagebox
 
 import gui
 import fold_designer_bridge as bridge
@@ -55,15 +52,11 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
             old["snapshot"]["d"], old["snapshot"]["t"]) == (800,1600,350,2)
     assert not contains_submitted_nfb(old["snapshot"])
 
-    # Temporary Linux CI diagnostic: write stack to the parent Runner stderr,
-    # outside pytest's FD capture, then terminate only this RED test run.
-    diag_stream = None
-    parent_stderr = f"/proc/{os.getppid()}/fd/2"
-    if os.name == "posix" and os.path.exists(parent_stderr):
-        diag_stream = open(parent_stderr, "w", buffering=1)
-        print("ISSUE2517_TK_STACK_DIAGNOSTIC_ARMED", file=diag_stream, flush=True)
-    faulthandler.dump_traceback_later(45, repeat=False, exit=True,
-                                     file=diag_stream or sys.__stderr__)
+    # Unexpected validation warnings must fail with the original message,
+    # not block unattended CI in a native modal dialog for 900 seconds.
+    def fail_unexpected_warning(_title, message, **_kwargs):
+        raise AssertionError(f"Unexpected Receiving warning: {message}")
+    monkeypatch.setattr(messagebox, "showwarning", fail_unexpected_warning)
     root = tk.Tk()
     root.withdraw()
     window = None
@@ -189,9 +182,6 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
         if window is not None and window.winfo_exists():
             window.destroy()
         root.destroy()
-        faulthandler.cancel_dump_traceback_later()
-        if diag_stream is not None:
-            diag_stream.close()
 
 
 def test_ac46_saved_submitted_nfb_is_never_silently_legacy_after_gui_reload(
