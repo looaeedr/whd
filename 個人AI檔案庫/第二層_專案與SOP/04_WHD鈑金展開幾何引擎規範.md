@@ -5,6 +5,12 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 已驗證 NFB 來源部分出圖清單只由 Engine 定義實體角色（2026-11-05）
+
+- 原 NFB 多連 GUI `physical_manifest` 在已驗來源分支自行用 `NfbActualPart` 為 `scope.inner_door_part_id`／`base_plate_part_ids`／`middle_plate_part_ids` 分派物理角色，並呼叫內部 `derive_nfb_partial_export_manifest`、依 `manifest.whole_ready` 自行組顯示狀態。這些身份與部分製造資格是 Engine owner，不屬 GUI。
+- 正式來源新增公開唯讀 `manufacturing_api.project_receiving_verified_nfb_partial_manifest(scope=..., saved_bay=..., set_brand=..., source_inventory=..., verified_inner_door=..., source_path=...)`，在原 `ae_engine.receiving_nfb_export_manifest` 內組裝**既存且經驗證** `NfbPhysicalScope` 指向的實體角色，仍由原 `derive_nfb_partial_export_manifest` 驗來源 SHA、NFBConfig、實體 `may_export` 和缺料狀態；只回原格式報告供 GUI 顯示，不新增第二條 DXF 管線、無其他板件推測，不變更正式 `require_export`。
+- GUI 僅呼叫公開 API 並保留過期證據撤銷與失效阻擋；`WHOLE_READY` 只針對來源 NFB 清單，不聲稱整箱 PAD／焊接工藝驗收。對照測試 `tests/test_issue2517_receiving_verified_nfb_manifest_public_api.py` 驗報告與原 Engine 等價、真來源 SHA 過期拒絕，以及 GUI 無實體角色造表。#2517 全 GUI 入口仍未結案。
+
 ## [CURRENT] #2517 NFB V5 多連實體清單／獨立預覽來源改由公開 Engine（2026-11-05）
 
 - `gui_modules/application/fold_designer_composition_receiving.py::open_receiving_multi_settings.physical_manifest` 原直接 import `receiving_nfb_v5_diagnostics` 與 Family／BasePlate 私有來源，依 UI 內的單層／雙層判斷編造物理依賴，並自行淺複製 Bay 強制 `nfb_config_submitted=False` 以預覽不受 NFB 影響的 Head/Tail／Door；GUI 不該決定實體板件身份與來源有效性。
