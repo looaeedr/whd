@@ -74,6 +74,24 @@ def test_receiving_operator_bay_door_seam_uses_confirmed_engine_topology():
     }) == 0.375
 
 
+def test_legacy_saved_door_columns_without_enable_are_unconfirmed_schematic():
+    """Older .p6fold has Door columns but no committed enable flag."""
+    import pytest
+
+    base = {"width": 800, "height": 1600}
+    default = 1100.0 / 1600.0
+    assert api.project_receiving_operator_bay_door_split_ratio({
+        **base, "door_state": {},
+    }) == default
+    assert api.project_receiving_operator_bay_door_split_ratio({
+        **base, "door_state": {"door_layout_columns": [[800, [600, 1000]]]},
+    }) == default  # Unconfirmed saved legacy columns are not manufactured Door geometry.
+    with pytest.raises(ValueError):
+        api.project_receiving_operator_bay_door_split_ratio({
+            **base, "door_state": {"door_layout_columns": [[800, [600, 1100]]]},
+        })
+
+
 def test_receiving_operator_bay_door_seam_never_invents_unsupported_cells():
     import pytest
 
