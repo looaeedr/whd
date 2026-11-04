@@ -5,6 +5,12 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 Receiving CSV NFB 內門＋底板部分出圖來源實體權威（2026-11-05）
+
+- 受電箱多連 NFB GUI 的 `current_csv_pair_source` 原直接呼叫 `ae_engine.receiving_nfb_committed_final_scene._submitted_csv_holes/_existing_source_specs`，自行決定哪一組 `base_plate`／`base_plate:nfb_layer:N` 具備來源，並在 PART_ONLY 出圖入口再次私讀 `layer_count`。這是 Engine 物理板件身份判斷，不屬於 GUI。
+- Engine 唯一 owner `ae_engine.receiving_nfb_committed_final_scene.project_receiving_committed_csv_nfb_pair_layer_count(snapshot)` 經公開 `manufacturing_api` 輸出 `1`／`2`（來源與每層實體 ID 完整匹配）或 `None`（未具備）。沿用原 `_submitted_csv_holes` 來源／Set-Bay 追溯及 `_existing_source_specs` 實體來源檢查；來源驗證例外原樣往外傳，不能退回空白孔或猜底板。
+- GUI 只用該 API 決定來源狀態與單層既有 PartSpec 是否需要查詢；實際 `export_current_csv_nfb_door_base_pair` 仍重新驗證獨立來源、正式 FinalScene、CUTTING、DXF Save→Reload。此唯讀投影**不授權**全箱或 PART_ONLY 自動製造，不建立新底板、NFB 開孔或第二條幾何路徑。契約／GUI 邊界測試為 `tests/test_issue2517_receiving_committed_csv_pair_public_api.py`；#2517 全入口驗收仍未完成。
+
 ## [CURRENT] #2517 Receiving 封頭尾候選版本 Apply 高亮 Bay 原始身分不能被 GUI 去重（2026-11-04）
 
 - `gui_modules/application/fold_designer_composition_receiving.py::apply_candidate` 原先先做 `tuple(sorted(set(highlighted)))`，會把 `(1, True)` 折成看似合法的 `(1,)`，導致既有公開 Engine `apply_receiving_endcap_candidate_to_bays` 的真整數 Bay／Set index 拒絕被 GUI 預處理繞過；含不可雜湊項目也在 GUI 層意外拋 `TypeError`。不准把操作選取預先去重當成實體來源驗證。
