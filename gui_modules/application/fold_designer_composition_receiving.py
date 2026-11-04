@@ -130,25 +130,10 @@ from gui_modules.application.fold_designer_snapshot_projection import (
 )
 
 def _checked_nfb_copy_selection(layout, set_index, selected_bays):
-    """Resolve two unique physical Bay indices before any UI copy side effect."""
-    message = "NFB 複製請在同一套高亮來源連及目標連（恰好兩連）"
-    if type(set_index) is not int:
-        raise ValueError("NFB 複製的套位已不存在")
-    try:
-        if not 0 <= set_index < len(layout["sets"]):
-            raise ValueError("NFB 複製的套位已不存在")
-        bays = layout["sets"][set_index]["bays"]
-    except (TypeError, KeyError, IndexError) as exc:
-        raise ValueError("NFB 複製的套位已不存在") from exc
-    try:
-        indices = tuple(selected_bays)
-    except TypeError as exc:
-        raise ValueError(message) from exc
-    if (len(indices) != 2
-            or any(type(i) is not int or not 0 <= i < len(bays) for i in indices)
-            or len(set(indices)) != 2):
-        raise ValueError(message)
-    return indices, {i: bays[i] for i in indices}
+    """Legacy GUI entry, delegated to Engine's strict Bay identity check."""
+    return manufacturing_api.select_operator_nfb_copy_bays(
+        layout, set_index, selected_bays,
+    )
 
 
 def receiving_layout_applicable(self):
@@ -3145,34 +3130,31 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             return bundle,""
 
         def copy_pair(set_index, selected_bays):
-            """Select one committed source and one separately verified target.
+            """Use Engine's verified-source/target choice; GUI only stages proofs.
 
-            The highlighter, not a second selection popup, chooses exactly
-            two Bays. The source may be active or the destination may be
-            active. If both directions could apply, fail closed.
+            All target readiness evidence is checked *live* before asking
+            Engine to select a unique direction. The canonical Engine copy
+            transaction independently rechecks the chosen pair on Confirm.
             """
-            layout=candidate_adapter().layout
-            indices, selected = _checked_nfb_copy_selection(
+            layout = candidate_adapter().layout
+            indices, _ = _checked_nfb_copy_selection(
                 layout, set_index, selected_bays,
             )
-            options=[]
-            for source_bi in indices:
-                if selected[source_bi].get("nfb_config_submitted") is not True:
+            verified_targets = []
+            bundles = {}
+            for target_bi in indices:
+                if (set_index, target_bi) not in pending_verified_nfb:
                     continue
-                for target_bi in indices:
-                    if target_bi==source_bi:
-                        continue
-                    if (set_index,target_bi) not in pending_verified_nfb:
-                        continue
-                    bundle,reason=eligible_bundle(set_index,target_bi)
-                    if bundle is not None and bundle.can_submit:
-                        options.append((source_bi,bundle))
-            if len(options)!=1:
-                raise ValueError(
-                    "請先從已提交來源連複製，並在另一目標連核對獨立世界 X／實體來源；"
-                    "不可使用未配置來源或不明確的複製方向"
-                )
-            return options[0]
+                bundle, reason = eligible_bundle(set_index, target_bi)
+                if bundle is not None and bundle.can_submit:
+                    verified_targets.append(target_bi)
+                    bundles[target_bi] = bundle
+            source_bi, target_bi = manufacturing_api.plan_operator_nfb_copy_direction(
+                layout, set_index, indices,
+                verified_target_indices=tuple(verified_targets),
+            )
+            return source_bi, bundles[target_bi]
+
 
         def physical_manifest(set_index,bay_index):
             """Read-only live status from current saved NFB + original source."""
