@@ -100,3 +100,39 @@ def test_headless_tail_single_apply_and_gui_delegation(monkeypatch):
     assert setting_value(adapter.layout["sets"][1], 0, "tail_features") == _tail()
     assert setting_value(adapter.layout["sets"][1], 0, "tail_version_id") == "tail-v1"
     assert adapter.layout["sets"][0] == initial["sets"][0]
+
+
+@pytest.mark.parametrize("bad_highlights", (
+    (1, True), (True, 1), (0, False), (False, 0),
+    (1, 1.0), (0, []), ([], 0), (0, {}),
+    (0, -1), (0, 999), True, 0,
+))
+def test_mixed_bool_highlights_cannot_be_deduplicated_before_engine_check(bad_highlights):
+    """A GUI set() would erase invalid bool aliases before Engine sees them."""
+    adapter = _fixture()
+    before = deepcopy(adapter.layout)
+    selection = adapter.selection
+    dirty = set(adapter._session_dirty_ids)
+
+    with pytest.raises((ValueError, IndexError)):
+        adapter.apply_candidate_to_bays(
+            "head", 0, bad_highlights, _head(), version_id="head-v1",
+        )
+    assert adapter.layout == before
+    assert adapter.selection == selection
+    assert adapter._session_dirty_ids == dirty
+
+
+def test_gui_candidate_apply_does_not_sanitize_physical_bay_owners_before_engine():
+    """The nested GUI callback must forward the unmodified highlight object."""
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "gui_modules/application/fold_designer_composition_receiving.py"
+    ).read_text(encoding="utf-8")
+    method = source.split("    def apply_candidate(role, version_id, set_index, highlighted):", 1)[1]
+    method = method.split("\n    def apply_quantity_configuration(", 1)[0]
+    assert "sorted(set(highlighted))" not in method
+    assert "adapter.apply_candidate_to_bays(" in method
+    assert "role, set_index, highlighted, features, version_id=version_id" in method
