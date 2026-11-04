@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving CSV NFB 候選套用單一 Engine 交易（2026-11-04）
+
+- CADSplit 的 `modules/receiving_api_bridge.py::apply_receiving_nfb_csv_candidate` 原自行串聯 WHD 的 `candidate_committed_csv_nfb_config`、`validate_candidate_nfb_replacement`、`replace_candidate_bay_nfb` 三個公開 API；WHD 現提供統一 `manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)`，由 `ae_engine.receiving_nfb_csv_committed_config` 的原權威實作完整校驗／原子來源交易。僅 Set/Bay 來源與已確認 NFB CSV 候選套用；保留 CSV SHA、孔位 stable ID、混合 CUTTING 拒絕及 `manual_x_state=UNVERIFIED_BASIS`，不可視作已核准 X、開孔或正式製造。
+- API 校驗非 bool 的實際整數 Set/Bay、非空且不重複的有效選取；來源無效時不得局部改寫 layout。定向測試 `tests/test_issue2517_receiving_nfb_csv_candidate_public_api.py` 比對既有 Engine ports、跨兩 Bay 來源隔離、冪等、失效來源與混合 CUTTING。CADSplit 端目前仍有既有相同操作橋接，須另核對真正委派及 GUI／CADSplit 端到端 parity；不得把此 API 接口存在冒充 Windows UAT、DXF Save→Reload 或 #2517 完成。
+
 ## [CURRENT] #2517 Fold Designer 封頭／封尾成形 FW 與單只出圖來源檢查使用公開 Engine（2026-11-03）
 
 - `gui_modules/application/fold_designer_manufacturing_projection.py` 建立 Head/Tail 物理 `EndCapPartSpec` 時，箱身折後 FW 寬度必須直接消費現行公開 `manufacturing_api.formed_box_body_fw_widths(profile, thickness)`，不通過 GUI Fold adapter 或建立第二套求解。

@@ -8,6 +8,8 @@ UNVERIFIED_BASIS, never fabricated as CONFIRMED shop datum.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+
 from hashlib import sha256
 from copy import deepcopy
 
@@ -192,3 +194,52 @@ def replace_candidate_bay_nfb(layout, set_index, bay_index, csv_config):
         layout, set_index=set_index, bay_index=bay_index,
         nfb_config_submitted=True, nfb_config=selected,
     )
+
+def apply_receiving_nfb_csv_candidate(
+    layout: Mapping[str, object], *,
+    set_index: int,
+    bay_indices: Sequence[int],
+    source: Mapping[str, object],
+) -> dict[str, object]:
+    """Atomically apply a verified CSV NFB *source* to real Receiving Bays.
+
+    This exposes the existing CSV provenance and Bay-qualified identity
+    transaction as one public Engine operation for GUI and CADSplit alike.
+    It does not certify physical X, CUTTING or manufacturing readiness.
+    """
+    from .receiving_layout import normalize_receiving_layout
+
+    if type(set_index) is not int or set_index < 0:
+        raise ValueError("RECEIVING_SET_SELECTION_INVALID")
+    try:
+        selected = tuple(bay_indices)
+    except TypeError as exc:
+        raise ValueError("RECEIVING_BAY_SELECTION_INVALID") from exc
+    if not selected or any(type(i) is not int or i < 0 for i in selected):
+        raise ValueError("RECEIVING_BAY_SELECTION_INVALID")
+    if len(set(selected)) != len(selected):
+        raise ValueError("RECEIVING_BAY_SELECTION_DUPLICATE")
+
+    # Preflight the *entire* operation before writing any Bay; each writer
+    # returns a detached canonical layout, so caller state is never mutated.
+    normalized = normalize_receiving_layout(layout)
+    if set_index >= len(normalized["sets"]):
+        raise ValueError("RECEIVING_SET_SELECTION_INVALID")
+    count = len(normalized["sets"][set_index]["bays"])
+    if any(i >= count for i in selected):
+        raise ValueError("RECEIVING_BAY_SELECTION_INVALID")
+    if not isinstance(source, Mapping):
+        raise ValueError("RECEIVING_NFB_CSV_SOURCE_REQUIRED")
+    csv_config = candidate_committed_csv_nfb_config(source)
+    if csv_config is None:
+        raise ValueError("RECEIVING_NFB_CSV_SOURCE_REQUIRED")
+    validate_candidate_nfb_replacement(
+        normalized, ((set_index, i) for i in selected), source, csv_config,
+    )
+
+    updated = normalized
+    for bay_index in selected:
+        updated = replace_candidate_bay_nfb(
+            updated, set_index, bay_index, csv_config,
+        )
+    return updated

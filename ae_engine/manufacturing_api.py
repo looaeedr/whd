@@ -1255,6 +1255,16 @@ def preview_quantity_inner_door_confirm(
     )
 
 
+def apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source):
+    """Public Engine atomic CSV NFB source Apply; never manufacturing approval."""
+    from .receiving_nfb_csv_committed_config import (
+        apply_receiving_nfb_csv_candidate as _apply,
+    )
+    return _apply(
+        layout, set_index=set_index, bay_indices=bay_indices, source=source,
+    )
+
+
 def candidate_committed_csv_nfb_config(source):
     """Public Engine NFB candidate provenance query (deferred owner import)."""
     from .receiving_nfb_csv_committed_config import candidate_committed_csv_nfb_config as resolve
