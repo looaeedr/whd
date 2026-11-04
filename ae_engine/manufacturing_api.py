@@ -1700,6 +1700,12 @@ from .receiving_nfb_pair_quantity_check import (
 )
 
 
+# #2517: Receiving fixed EndCap corner display follows real Engine Family
+# aliases and resolved AssemblyJoint rather than a GUI-owned manufacturing
+# description. Rendering only; no production PartSpec or DXF authorization.
+from .operator_fixed_corner_summary import project_operator_fixed_corner_summary
+
+
 # #2517: GUI baseline labeling and quantity-export source validation must
 # pass through the existing public Engine entrypoint (not internal imports).
 def is_unknown_operator_model(model_name):
