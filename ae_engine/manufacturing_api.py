@@ -2110,6 +2110,23 @@ def submit_receiving_nfb_bays(
     )
 
 
+def select_operator_nfb_copy_bays(layout, set_index, selected_bays):
+    """Public Engine selection check for exactly two highlighted physical Bays."""
+    from .receiving_nfb_ui1b_bridge import select_operator_nfb_copy_bays as select
+    return select(layout, set_index, selected_bays)
+
+
+def plan_operator_nfb_copy_direction(
+    layout, set_index, selected_bays, *, verified_target_indices,
+):
+    """Public Engine source/destination plan; atomic copy re-verifies both."""
+    from .receiving_nfb_ui1b_bridge import plan_operator_nfb_copy_direction as plan
+    return plan(
+        layout, set_index, selected_bays,
+        verified_target_indices=verified_target_indices,
+    )
+
+
 def copy_receiving_submitted_nfb_bay(
     layout, *, set_index, source_bay_index, target_bay_index,
     version_id, target_config, evidence, confirm,
