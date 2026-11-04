@@ -924,10 +924,13 @@ def receiving_settings_ports(self, namespace, set_index):
         commit()
 
     def dimensions(width, height, depth, door_columns=None):
-        from ae_engine.sheetmetal_part_adapters import validate_door_layout_dimensions
         changes = {"width": width, "height": height, "depth": depth}
         if door_columns is not None:
-            validate_door_layout_dimensions(door_columns, total_width=width, total_height=height)
+            # Validate raw physical Door W/H using the public Engine boundary
+            # before changing a Bay or recording any GUI commit.
+            manufacturing_api.door_layout_cells(
+                door_columns, total_width=width, total_height=height,
+            )
             door_state = deepcopy(adapter.current_bay().get("door_state", {}))
             door_state["door_layout_columns"] = [[w, list(heights)] for w, heights in door_columns]
             door_state["multi_door_enabled"] = True
