@@ -3367,24 +3367,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             )
 
         def current_csv_pair_source(set_index, bay_index):
-            """Existing DXF action uses current CSV; old DXF evidence is legacy only."""
-            from ae_engine.receiving_nfb_committed_final_scene import (
-                _submitted_csv_holes, _existing_source_specs,
-            )
+            """Read current CSV physical-source eligibility through public Engine API."""
             current = nfb_physical_bay_snapshot(set_index, bay_index)
-            source = _submitted_csv_holes(current)
-            if not source:
-                return False
-            specs = _existing_source_specs(current, source[1])
-            count = source[1][0].layer_count
-            if count == 1:
-                return set(specs) == {0} and specs[0].physical_id == "base_plate"
-            if count == 2:
-                return set(specs) == {0, 1} and all(
-                    specs[i].physical_id == f"base_plate:nfb_layer:{i}"
-                    for i in (0, 1)
-                )
-            return False
+            return (
+                manufacturing_api.project_receiving_committed_csv_nfb_pair_layer_count(
+                    current,
+                ) is not None
+            )
 
         def export_partial_nfb_door_base_pair(set_index, bay_index, output_directory):
             """Existing PART_ONLY button: canonical CSV first; old DXF for old data."""
@@ -3393,18 +3382,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 export_current_csv_nfb_door_base_pair,
             )
             current = nfb_physical_bay_snapshot(set_index, bay_index)
-            if current_csv_pair_source(set_index, bay_index):
+            layer_count = manufacturing_api.project_receiving_committed_csv_nfb_pair_layer_count(
+                current,
+            )
+            if layer_count is not None:
                 # The same actual Bay assembly displayed in 2D/3D owns one
                 # real root or two real tier blanks; do not request a fake
                 # generic root PartSpec for a two-tier physical assembly.
-                from ae_engine.receiving_nfb_committed_final_scene import (
-                    _submitted_csv_holes,
-                )
-                owner = _submitted_csv_holes(current)
-                if not owner:
-                    raise ValueError("本連沒有現行有效的 CSV NFB 來源")
                 spec = None
-                if owner[1][0].layer_count == 1:
+                if layer_count == 1:
                     spec, _ = self.app._part_spec_query_callback(
                         "base_plate", current,
                     )
