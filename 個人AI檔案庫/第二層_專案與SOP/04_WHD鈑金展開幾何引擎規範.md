@@ -5,6 +5,12 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 Receiving 封頭尾候選版本 Apply 高亮 Bay 原始身分不能被 GUI 去重（2026-11-04）
+
+- `gui_modules/application/fold_designer_composition_receiving.py::apply_candidate` 原先先做 `tuple(sorted(set(highlighted)))`，會把 `(1, True)` 折成看似合法的 `(1,)`，導致既有公開 Engine `apply_receiving_endcap_candidate_to_bays` 的真整數 Bay／Set index 拒絕被 GUI 預處理繞過；含不可雜湊項目也在 GUI 層意外拋 `TypeError`。不准把操作選取預先去重當成實體來源驗證。
+- GUI 現將原始 `highlighted` 與 Candidate Feature、版本 ID 不改寫地送交既有 `ReceivingSetBayAdapter.apply_candidate_to_bays` → `manufacturing_api.apply_receiving_endcap_candidate_to_bays`，由 Engine 一次檢驗 Set/Bay、bool、非整數與錯誤版本，再沿原 Head/Tail shared-ref unlink／Feature 孔位套用單一事務；成功後才更新來源快取／製造預覽。沒有建立第二條候選交易或製造 API。
+- 測試 `tests/test_issue2517_receiving_endcap_single_apply_engine_api.py` 另外驗證真假 Bay 同時高亮、非法非可雜湊選取、Save→Reload／共享版本的原有契約與 GUI 不可靜默過濾。#2517 完整 GUI/CADSplit 製造驗收仍未完成，不發布 X。
+
 ## [CURRENT] #2517 Receiving 多連共用設定 Apply 必須為一筆 Engine 原子交易（2026-11-04）
 
 - 實際查核：`gui_modules/application/fold_designer_composition_receiving.py::receiving_settings_ports.change` 原本依高亮順序直接 `adapter.select_bay`／`adapter.update_setting`，若第 N 連失敗，前面 N−1 連已改寫、dirty／select 狀態可能殘留，不符合同一次操作多實體 Bay 全有或全無契約。
