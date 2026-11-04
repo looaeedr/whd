@@ -192,3 +192,108 @@ def actual_unrelated_nfb_scene_parts(
                 and getattr(render, "scene", None) is not None):
             unaffected.append(key)
     return tuple(unaffected)
+
+
+def project_receiving_nfb_unsubmitted_preview_layout(
+    layout: Mapping[str, object], *, set_index: int, bay_index: int,
+) -> dict[str, object]:
+    """Isolate one Bay's unrelated sheet preview without changing saved source.
+
+    Turning off the NFB submission only for this detached, read-only preview
+    does NOT revoke or authorize any CUTTING, FinalScene or DXF operation.
+    """
+    from copy import deepcopy
+
+    if not isinstance(layout, Mapping):
+        raise ValueError("NFB_PREVIEW_PHYSICAL_LAYOUT_REQUIRED")
+    sets = layout.get("sets")
+    if (type(set_index) is not int or type(bay_index) is not int
+            or not isinstance(sets, (tuple, list))
+            or not 0 <= set_index < len(sets)):
+        raise ValueError("NFB_PREVIEW_PHYSICAL_BAY_REQUIRED")
+    selected_set = sets[set_index]
+    if not isinstance(selected_set, Mapping):
+        raise ValueError("NFB_PREVIEW_PHYSICAL_BAY_REQUIRED")
+    bays = selected_set.get("bays")
+    if (not isinstance(bays, (tuple, list))
+            or not 0 <= bay_index < len(bays)
+            or not isinstance(bays[bay_index], Mapping)):
+        raise ValueError("NFB_PREVIEW_PHYSICAL_BAY_REQUIRED")
+
+    detached = deepcopy(dict(layout))
+    detached["sets"] = list(detached["sets"])
+    selected = dict(detached["sets"][set_index])
+    selected["bays"] = list(selected["bays"])
+    bay = dict(selected["bays"][bay_index])
+    bay["nfb_config_submitted"] = False
+    selected["bays"][bay_index] = bay
+    detached["sets"][set_index] = selected
+    return detached
+
+
+def project_receiving_current_v5_nfb_physical_diagnostics(
+    saved_bay: Mapping[str, object], *, physical_snapshot: Mapping[str, object],
+    set_id: str, bay_id: str, version_id: str | None,
+    physical_parts: Sequence[object] = (),
+) -> dict[str, object] | None:
+    """Bind saved CSV/NFB status to existing physical Door/Base sources.
+
+    The same canonical Engine family/PartSpec owners decide what exists.
+    Real unrelated sheets are accepted only with a rendered current FinalScene
+    witness; no missing source is guessed into a manufacturing approval.
+    """
+    dependencies: list[str] = []
+    has_door_source = False
+    has_base_source = False
+    try:
+        from .cabinet_types.policy import derive_inner_door_panels
+        upper = tuple(
+            panel for panel in derive_inner_door_panels(physical_snapshot)
+            if str(panel.cell_key).split(":")[-1] == "0"
+        )
+        if len(upper) == 1:
+            dependencies.append(upper[0].stable_id)
+            has_door_source = True
+    except (ValueError, TypeError, KeyError, IndexError):
+        pass
+
+    try:
+        from .receiving_base_plate_config import receiving_base_plate_values
+        from .receiving_nfb_layer_physical_parts import (
+            source_receiving_nfb_tier_base_specs,
+        )
+        count = saved_bay["nfb_config"]["layer_count"]
+        if count == 1 and receiving_base_plate_values(physical_snapshot) is not None:
+            dependencies.append("base_plate")
+            has_base_source = True
+        elif count == 2:
+            specs = source_receiving_nfb_tier_base_specs(
+                physical_snapshot, require_source_z=False,
+            )
+            if set(specs) == {0, 1}:
+                dependencies.extend(spec.physical_id for spec in specs.values())
+                has_base_source = True
+    except (ValueError, TypeError, KeyError, IndexError):
+        pass
+
+    unaffected: tuple[str, ...] = ()
+    try:
+        unaffected = actual_unrelated_nfb_scene_parts(
+            physical_parts, dependent_part_ids=tuple(dependencies),
+        )
+    except (ValueError, TypeError, KeyError, IndexError, AttributeError, OSError):
+        # A stale or malformed physical scene never supplies an unaffected
+        # manufacturing sheet. The saved CSV diagnostics remain inspectable.
+        pass
+
+    return current_v5_nfb_diagnostics(
+        saved_bay, set_id=set_id, bay_id=bay_id, version_id=version_id,
+        dependent_part_ids=tuple(dict.fromkeys(dependencies)),
+        unaffected_part_ids=unaffected,
+        missing_required_physical_roles=tuple(
+            role for role, sourced in (
+                ("INNER_DOOR", has_door_source),
+                ("BASE_PLATE", has_base_source),
+            ) if not sourced
+        ),
+    )
