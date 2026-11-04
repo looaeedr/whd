@@ -1725,17 +1725,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         if version_id is None or not highlighted:
             raise ValueError("請選擇候選版本及簡易圖高亮的連")
         adapter = candidate_adapter()
-        sets = adapter.layout["sets"]
-        if type(set_index) is not int or not 0 <= set_index < len(sets):
-            raise ValueError("請先選擇要套用的套")
-        targets = tuple(sorted(set(highlighted)))
-        if any(type(i) is not int or not 0 <= i < len(sets[set_index]["bays"]) for i in targets):
-            raise ValueError("簡易圖高亮的連已無效")
         features = candidate_features(candidate_library(), role, version_id)
-        # One validated all-or-nothing update; retains the active editor
-        # selection and avoids the old per-Bay UI/geometry churn.
+        # Submit the original highlighted physical Bay identities unchanged.
+        # The Engine transaction validates every index before any mutation:
+        # GUI set(highlighted) would turn (1, True) into a valid-looking (1,)
+        # and bypass the Engine's explicit rejection of boolean Bay aliases.
         adapter.apply_candidate_to_bays(
-            role, set_index, targets, features, version_id=version_id,
+            role, set_index, highlighted, features, version_id=version_id,
         )
         self.mark_receiving_switch_layout_dirty(namespace, adapter)
         self.sync_receiving_current_bay(namespace, refresh_controls=False)
