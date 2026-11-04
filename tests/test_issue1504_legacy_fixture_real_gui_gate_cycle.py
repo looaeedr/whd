@@ -10,6 +10,7 @@ does not claim actual user Windows UAT, physical 2D/3D, marking or DXF output.
 from __future__ import annotations
 
 from hashlib import sha256
+import faulthandler
 import json
 from pathlib import Path
 import tkinter as tk
@@ -52,6 +53,8 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
             old["snapshot"]["d"], old["snapshot"]["t"]) == (800,1600,350,2)
     assert not contains_submitted_nfb(old["snapshot"])
 
+    # Temporary CI-only diagnostic: expose the exact stuck Tk stack after 45s.
+    faulthandler.dump_traceback_later(45, repeat=False, exit=True)
     root = tk.Tk()
     root.withdraw()
     window = None
@@ -177,6 +180,7 @@ def test_real_legacy_fixture_gui_unconfigured_nfb_gates_cancel_save_reopen(
         if window is not None and window.winfo_exists():
             window.destroy()
         root.destroy()
+        faulthandler.cancel_dump_traceback_later()
 
 
 def test_ac46_saved_submitted_nfb_is_never_silently_legacy_after_gui_reload(
