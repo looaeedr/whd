@@ -228,4 +228,4 @@ def test_cadcraft_empty_exchange_engine_writes_only_isolated_mm_and_png(tmp_path
         manufacturing_api.save_blank_cadcraft_exchange_drawing(
             tmp_path / "not-a-dxf.txt", tmp_path / "wrong.png",
         )
-    assert list(tmp_path.iterdir()) == [output, preview]
+    assert set(tmp_path.iterdir()) == {output, preview}
