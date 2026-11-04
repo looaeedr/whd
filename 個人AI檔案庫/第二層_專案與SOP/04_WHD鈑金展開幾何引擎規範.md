@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱 Set/Bay 2D 示意門分割由 Engine 已存 Door 拓樸投影（2026-11-04）
+
+- `gui_modules/application/receiving_multi_settings_window.py::paint_connected_bays` 原本在已保存 Bay Door 600/1000 mm 時，仍以 GUI 固定 1100 mm 將輕量 2D 示意畫成 1100/500，且不同 H 的未確認示意沒有依 Receiving Family 預設等比縮放。這不是合法的 2D 顯示同源。
+- 新公開唯讀 `manufacturing_api.project_receiving_operator_bay_door_split_ratio(bay)` 經 Engine `receiving_operator_projection` 讀取已存 `door_state.multi_door_enabled/door_layout_columns`，使用現存 `validate_door_layout_dimensions` 核對 Bay W/H；能唯一表示兩列共用分界時回傳高度比例。多欄不同分界、三列以上或已明確停用 Door 則回傳 `None`，GUI 不畫假分界或假 Door 孔位；非法來源 fail closed。沒有已存拓樸的輕量草圖僅按 Receiving Family `default_door_layout_columns` 顯示等比示意；不是獲認證的實體門尺寸。
+- GUI 僅將 Engine 的比例換算成 Canvas 像素座標，不參與 DoorPartSpec、CUTTING、BEND、2D/3D 正式製造、DXF Save→Reload 或來源授權。金庫型原 GUI／Factory 出圖不改；`tests/test_issue2517_receiving_operator_projection_api.py` 及 `tests/test_receiving_multi_settings_stage_20261010.py` 驗證 Engine 已存來源、非法／多欄來源及原生 Tk 畫面。#2517 仍 OPEN。
+
 ## [CURRENT] #2517 Receiving CSV NFB 候選套用單一 Engine 交易（2026-11-04）
 
 - CADSplit 的 `modules/receiving_api_bridge.py::apply_receiving_nfb_csv_candidate` 原自行串聯 WHD 的 `candidate_committed_csv_nfb_config`、`validate_candidate_nfb_replacement`、`replace_candidate_bay_nfb` 三個公開 API；WHD 現提供統一 `manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)`，由 `ae_engine.receiving_nfb_csv_committed_config` 的原權威實作完整校驗／原子來源交易。僅 Set/Bay 來源與已確認 NFB CSV 候選套用；保留 CSV SHA、孔位 stable ID、混合 CUTTING 拒絕及 `manual_x_state=UNVERIFIED_BASIS`，不可視作已核准 X、開孔或正式製造。
