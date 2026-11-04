@@ -475,7 +475,7 @@ def test_ac24_forbid_forged_green_status_and_gui_source_is_connected():
     gui=(Path(__file__).resolve().parents[1] /
          "gui_modules/application/fold_designer_composition_receiving.py"
          ).read_text(encoding="utf-8")
-    assert "current_v5_nfb_diagnostics(" in gui
+    assert "manufacturing_api.project_receiving_current_v5_nfb_physical_diagnostics(" in gui
     assert 'setting_value(\n                        owner, bay_index, "inner_door_version_id",' in gui
     assert "committed_nfb_evidence.get((set_index,bay_index))" in gui
     assert 'export_current_csv_nfb_door_base_pair(' in gui
