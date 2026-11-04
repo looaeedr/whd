@@ -1426,10 +1426,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     def nfb_physical_bay_snapshot(set_index,bay_index):
         """Real selected Bay authority, not the unprojected root UI snapshot."""
-        from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
         source=_current_mode_snapshot(self,namespace)
         source["receiving_layout"]=candidate_adapter().layout
-        return project_receiving_bay_legacy_aliases(
+        return manufacturing_api.project_receiving_bay_legacy_aliases(
             source,set_index=set_index,bay_index=bay_index,
         )
 
@@ -3161,99 +3160,37 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 }
             bundle=committed_nfb_evidence.get((set_index,bay_index))
             if bundle is None:
-                # #1504 AC-09/24: the CURRENT CSV saved NFBConfig has no old
-                # manufacturer's DXF receipt (and needs none). Inspect each
-                # current source row, layer/unit and real part owner without
-                # granting physical CUTTING or storing a second DRAFT flag.
-                from ae_engine.receiving_nfb_v5_diagnostics import (
-                    current_v5_nfb_diagnostics,
-                )
+                # Existing numeric CSV NFB source has no legacy DXF receipt.
+                # Ask the public Engine to decide actual Door/Base identity,
+                # dependencies and source status. The temporary scene remains
+                # a read-only witness, never a manufacturing authorization.
                 from ae_engine.receiving_shared_settings import setting_value
                 current = nfb_physical_bay_snapshot(set_index, bay_index)
-                dependent = []
-                has_door_source = False
-                has_base_source = False
+                physical_parts = ()
                 try:
-                    from ae_engine.cabinet_types.policy import derive_inner_door_panels
-                    upper = tuple(p for p in derive_inner_door_panels(current)
-                                  if str(p.cell_key).split(":")[-1] == "0")
-                    if len(upper) == 1:
-                        dependent.append(upper[0].stable_id)
-                        has_door_source = True
-                except (ValueError, TypeError, KeyError, IndexError):
-                    pass  # Keep saved NFB units visible even if door is unresolved.
-                try:
-                    from ae_engine.receiving_base_plate_config import (
-                        receiving_base_plate_values,
+                    preview_layout = manufacturing_api.project_receiving_nfb_unsubmitted_preview_layout(
+                        adapter.layout,
+                        set_index=set_index, bay_index=bay_index,
                     )
-                    from ae_engine.receiving_nfb_layer_physical_parts import (
-                        source_receiving_nfb_tier_base_specs,
-                    )
-                    count = bay["nfb_config"]["layer_count"]
-                    if count == 1 and receiving_base_plate_values(current) is not None:
-                        dependent.append("base_plate")
-                        has_base_source = True
-                    elif count == 2:
-                        specs = source_receiving_nfb_tier_base_specs(
-                            current, require_source_z=False,
-                        )
-                        if set(specs) == {0, 1}:
-                            dependent.extend(spec.physical_id for spec in specs.values())
-                            has_base_source = True
-                except (ValueError, TypeError, KeyError, IndexError):
-                    pass  # Missing source is DRAFT, never an invented plate.
-                # The same current Bay FinalScene used by the original
-                # partial-DXF action identifies truly unrelated physical
-                # sheets. It is never a manufacturing authorization. Use
-                # the candidate-layout virtual cache rather than resynthesizing
-                # unrelated parts from model names or an older Bay.
-                from ae_engine.receiving_nfb_v5_diagnostics import (
-                    actual_unrelated_nfb_scene_parts,
-                )
-                unrelated = ()
-                try:
-                    # A stale NFB must not prevent resolving completely
-                    # independent HEAD/TAIL/outer DOOR sources. Clone only
-                    # this Bay's submission flag for the read-only scene,
-                    # never the saved NFBConfig or manufacturing authority.
-                    preview_layout=dict(adapter.layout)
-                    preview_sets=list(adapter.layout["sets"])
-                    preview_set=dict(preview_sets[set_index])
-                    preview_bays=list(preview_set["bays"])
-                    preview_bay=dict(preview_bays[bay_index])
-                    preview_bay["nfb_config_submitted"]=False
-                    preview_bays[bay_index]=preview_bay
-                    preview_set["bays"]=preview_bays
-                    preview_sets[set_index]=preview_set
-                    preview_layout["sets"]=preview_sets
                     actual = self.receiving_bay_preview_request(
                         namespace, set_index, bay_index,
                         preview_layout=preview_layout,
                     )
-                    unrelated = actual_unrelated_nfb_scene_parts(
-                        actual.render_data.assembly_parts,
-                        dependent_part_ids=tuple(dependent),
-                    )
+                    physical_parts = actual.render_data.assembly_parts
                 except (ValueError, TypeError, KeyError, IndexError,
                         AttributeError, OSError):
-                    # Fail closed: when current FinalScene cannot be resolved,
-                    # do not claim any unrelated physical sheet was inspected.
-                    unrelated = ()
-                v5 = current_v5_nfb_diagnostics(
+                    # Fail closed: no resolved real FinalScene means no
+                    # independently evidenced unaffected physical sheets.
+                    physical_parts = ()
+                v5 = manufacturing_api.project_receiving_current_v5_nfb_physical_diagnostics(
                     bay,
+                    physical_snapshot=current,
                     set_id=str(owner["stable_id"]),
                     bay_id=str(bay["stable_id"]),
                     version_id=setting_value(
                         owner, bay_index, "inner_door_version_id",
                     ),
-                    dependent_part_ids=tuple(dict.fromkeys(dependent)),
-                    unaffected_part_ids=unrelated,
-                    missing_required_physical_roles=tuple(
-                        role for role, sourced in (
-                            ("INNER_DOOR", has_door_source),
-                            ("BASE_PLATE", has_base_source),
-                        ) if not sourced
-                    ),
+                    physical_parts=physical_parts,
                 )
                 if v5 is not None:
                     return v5
