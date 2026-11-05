@@ -25,7 +25,9 @@ from .manufacturing_export import (
     _validate_nfb_base_part_scope, reject_unverified_receiving_nfb_tier_base,
     resolved_physical_render_parts,
 )
-from .manufacturing_render_data import PartRenderData, FoldGuide
+from .manufacturing_render_data import (
+    PartRenderData, FoldGuide, BoxBodyStructureRenderData,
+)
 from .manufacturing_verification import verify_saved_part_render_data_dxf
 from .panel_naming import normalize_panel_name
 from .sheetmetal_drawing import (
@@ -214,12 +216,50 @@ def _source_rows(panels, *, preserve_input_order=False):
                 raise ValueError("COMPOSED_DXF_BOX_BODY_TOPOLOGY_ID_MISMATCH")
             if not isinstance(render, PartRenderData) or render.scene is None:
                 raise ValueError("COMPOSED_DXF_PHYSICAL_FLAT_SCENE_REQUIRED")
-        # The Engine's canonical box-body pieces are ordered by the owner
-        # (formed_w_start), not by a guessed world-coordinate DXF projection.
-        body = [(key, data) for key, data in rows if key == "box_body"
-                or key.startswith("box_body:")]
+        # The incoming flattened physical rows may be in arbitrary order.
+        # When the canonical BoxBody owner supplies piece topology, it must
+        # determine LEFT/BACK/RIGHT (or LEFT/MIDDLE/RIGHT) in the packer.
+        # Formed W gives ORDER, not a flat UV x-position: every source blank
+        # retains its genuine CUTTING/BEND geometry and an independent gap.
+        body_owner = {}
+        for part in tuple(getattr(geometry, "parts", ()) or ()):
+            if (part.part_key != "box_body"
+                    or not isinstance(part.render_data, BoxBodyStructureRenderData)):
+                continue
+            for piece in part.render_data.pieces:
+                owner = "box_body:" + str(piece.key)
+                if owner in body_owner:
+                    raise ValueError("COMPOSED_DXF_DUPLICATE_BODY_TOPOLOGY_OWNER")
+                # Keep the genuine vertical assembly relationship, including
+                # inset/back panels. This only moves the complete flat rigidly.
+                body_owner[owner] = (
+                    _finite(piece.formed_w_start),
+                    _finite(piece.formed_y_offset),
+                    str(piece.role),
+                )
+        body = [(key, data) for key, data in rows
+                if key == "box_body" or key.startswith("box_body:")]
         others = [(key, data) for key, data in rows if (key, data) not in body]
-        groups.append((panel_name, tuple(body + others)))
+        if body_owner:
+            if set(body_owner) != {key for key, _ in body}:
+                raise ValueError("COMPOSED_DXF_BODY_TOPOLOGY_SOURCE_MISMATCH")
+            role_order = {
+                "left": 0, "left_side": 0, "integral": 0,
+                "middle": 1, "back": 1, "right": 2, "right_side": 2,
+            }
+            body.sort(key=lambda row: (
+                body_owner[row[0]][0],
+                role_order.get(body_owner[row[0]][2], 99),
+                row[0],
+            ))
+            minimum_y = min(record[1] for record in body_owner.values())
+            arranged_body = tuple((
+                key, data, body_owner[key][1] - minimum_y,
+            ) for key, data in body)
+        else:
+            arranged_body = tuple((key, data, 0.0) for key, data in body)
+        groups.append((panel_name, arranged_body
+                       + tuple((key, data, 0.0) for key, data in others)))
     if not groups:
         raise ValueError("COMPOSED_DXF_EMPTY_PANELS")
     return tuple(groups) if preserve_input_order else tuple(sorted(
@@ -237,10 +277,13 @@ def _compose(rows, *, gap):
     for panel_name, pieces in rows:
         x_cursor = 0.0
         row_height = 0.0
-        for physical_id, render in pieces:
+        for physical_id, render, assembly_y in pieces:
             bounds = _scene_bounds(render.scene)
             x0, y0, x1, y1 = bounds
-            dx, dy = x_cursor-x0, y_cursor-y0
+            # BoxBody y placement is canonical formed-piece data, not a
+            # second unfolded polygon or a guess from the 3D world bbox.
+            dy = y_cursor + assembly_y - y0
+            dx = x_cursor - x0
             moved = [_translated(p, dx, dy) for p in render.scene.primitives]
             scene.extend(moved)
             translated_materials.append(move_material(render.material, xoff=dx, yoff=dy))
@@ -251,7 +294,7 @@ def _compose(rows, *, gap):
             originals.append((panel_name, physical_id, render))
             width, height = x1-x0, y1-y0
             x_cursor += width + gap
-            row_height = max(row_height, height)
+            row_height = max(row_height, assembly_y + height)
             # Deliberate CHECK-only provenance label outside the flat blank.
             scene.add(TextPrimitive(
                 physical_id, Vec2(dx+x0, y_cursor-gap/3), "CHECK",
