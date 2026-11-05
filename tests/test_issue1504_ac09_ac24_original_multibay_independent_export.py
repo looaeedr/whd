@@ -202,3 +202,123 @@ def test_ac09_invalid_saved_nfb_still_displays_real_unrelated_head_from_same_bay
     assert any(row["part_id"]=="base_plate" and row["status"]=="BLOCKED"
                for row in current["part_rows"])
     assert source==original
+
+
+
+def _real_confirmed_multidoor_bay_source():
+    """Every Bay gets its own resolved WHD Factory Door cell FinalScenes."""
+    from ae_engine import manufacturing_api
+    from ae_engine.contracts import (
+        ManufacturingContext, ResolvedManufacturingGeometry,
+        ResolvedManufacturingPart,
+    )
+
+    snapshot = _multi()
+    source = {
+        key: float(snapshot[key]) for key in ("w", "h", "d", "t")
+    }
+    upper = float(int(source["h"]) // 2)
+    columns = ((source["w"], (upper, source["h"] - upper)),)
+    for group in snapshot["receiving_layout"]["sets"]:
+        for bay in group["bays"]:
+            bay["nfb_config_submitted"] = False
+            state = dict(bay.get("door_state") or {})
+            state["multi_door_enabled"] = True
+            state["door_layout_columns"] = [
+                [source["w"], [upper, source["h"] - upper]]
+            ]
+            bay["door_state"] = state
+    confirmed = dict(manufacturing_api.build_receiving_factory_confirmed_parts(
+        source, confirmation="fresh_family_confirmed",
+        confirmed_door_layout_columns=columns,
+    ))
+    keys = ("door_c1_r1", "door_c1_r2")
+    assert all(key in confirmed for key in keys)
+    context = ManufacturingContext(
+        resource_root=Path(__file__).resolve().parents[1],
+    )
+    parts = tuple(
+        ResolvedManufacturingPart(
+            part_key=key,
+            render_data=manufacturing_api.build_operator_part_render_data(
+                confirmed[key], context,
+            ),
+        )
+        for key in keys
+    )
+    assert all(getattr(part.render_data, "scene", None) is not None
+               for part in parts)
+    return snapshot, ResolvedManufacturingGeometry(parts=parts)
+
+
+def test_ac09_real_multidoor_cells_satisfy_each_bay_door_intent(tmp_path):
+    """No legacy 'door' alias is necessary to export two real Door cells."""
+    source, actual = _real_confirmed_multidoor_bay_source()
+    visited = []
+
+    def live(si, bi):
+        visited.append((si, bi))
+        return actual
+
+    output = tmp_path / "multidoor"
+    receipts = export_current_receiving_multibay_dxf(
+        source, physical_bay_geometry_provider=live,
+        flags=_flags(box_body=False, head=False, tail=False, door=True,
+                     base_plate=False, indicator_box=False,
+                     indicator_door=False),
+        output_dir=output, group_mode="PER_SET",
+        pre_commit_guard=lambda: None,
+    )
+    assert visited == [(0, 0), (0, 1)]
+    assert set(receipts) == {"第1套.dxf"}
+    grouped = output / "第1套.dxf"
+    assert grouped.is_file()
+    drawing = ezdxf.readfile(grouped)
+    assert not drawing.audit().errors
+    assert any(entity.dxf.layer == "CUTTING"
+               for entity in drawing.modelspace())
+
+
+def test_ac24_door_intent_still_rejects_bay_without_physical_door(tmp_path):
+    """The repaired identity projection must not synthesize missing parts."""
+    from ae_engine.contracts import (
+        ResolvedManufacturingGeometry, ResolvedManufacturingPart,
+    )
+    from ae_engine import manufacturing_api
+    from ae_engine.contracts import ManufacturingContext
+
+    source, actual = _real_confirmed_multidoor_bay_source()
+    context = ManufacturingContext(
+        resource_root=Path(__file__).resolve().parents[1],
+    )
+    raw = {
+        key: float(source[key]) for key in ("w", "h", "d", "t")
+    }
+    head_spec = dict(manufacturing_api.build_receiving_factory_confirmed_parts(
+        raw, confirmation="fresh_family_confirmed",
+    ))["head"]
+    head_only = ResolvedManufacturingGeometry(parts=(
+        ResolvedManufacturingPart(
+            part_key="head",
+            render_data=manufacturing_api.build_operator_part_render_data(
+                head_spec, context,
+            ),
+        ),
+    ))
+    out = tmp_path / "missing-second-bay-door"
+    with pytest.raises(
+        ValueError,
+        match="RECEIVING_MULTIBAY_SELECTED_INDEPENDENT_PHYSICAL_SOURCE_MISSING",
+    ):
+        export_current_receiving_multibay_dxf(
+            source,
+            physical_bay_geometry_provider=lambda si, bi: (
+                actual if bi == 0 else head_only
+            ),
+            flags=_flags(box_body=False, head=False, tail=False, door=True,
+                         base_plate=False, indicator_box=False,
+                         indicator_door=False),
+            output_dir=out, group_mode="PER_SET",
+            pre_commit_guard=lambda: None,
+        )
+    assert not tuple(out.rglob("*.dxf"))
