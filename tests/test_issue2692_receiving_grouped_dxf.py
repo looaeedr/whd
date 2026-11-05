@@ -159,3 +159,89 @@ def test_legacy_current_csv_export_and_new_group_mode_share_real_source_guard(tm
     assert calls == [(0,0),(0,1)]
     assert len(checked)>=2
     assert len(tuple(ezdxf.readfile(tmp_path/"output"/"全部.dxf").modelspace()))>2
+
+
+
+def test_grouped_physical_flats_retain_canonical_body_owner(tmp_path):
+    """Grouped Bay exporter may not lose order when it detaches the flat scenes."""
+    from ae_engine.manufacturing_render_data import (
+        BoxBodyPieceRenderData, BoxBodyStructureRenderData,
+    )
+    state = _seven()
+    ns = receiving_instance_namespace(
+        set_id=state["sets"][0]["stable_id"],
+        bay_id=state["sets"][0]["bays"][0]["stable_id"],
+    )
+    flats = {
+        "box_body_left_side": _flat("left", width=110.0),
+        "box_body_back": _flat("back", width=120.0, height=42.0),
+        "box_body_right_side": _flat("right", width=130.0),
+    }
+    # Source order is intentionally incorrect. Only the original Engine
+    # BoxBodyStructureRenderData knows real formed-width/order and back inset.
+    pieces = (
+        BoxBodyPieceRenderData("box_body_right_side", "right_side",
+                               800.0, 800.0, (), flats["box_body_right_side"]),
+        BoxBodyPieceRenderData("box_body_back", "back",
+                               100.0, 700.0, (), flats["box_body_back"],
+                               formed_y_offset=20.0),
+        BoxBodyPieceRenderData("box_body_left_side", "left_side",
+                               0.0, 0.0, (), flats["box_body_left_side"]),
+    )
+    owner = BoxBodyStructureRenderData(
+        "side_back", pieces, _flat("preview"), _flat("canonical"),
+    )
+    rows = list(_synthetic_rows(state))
+    rows.extend(
+        (ns, f"box_body:{piece.key}", f"{ns}__{piece.key}.dxf",
+         piece.render_data)
+        for piece in pieces
+    )
+    with TemporaryDirectory(dir=tmp_path) as staging:
+        receipts = commit_verified_receiving_groups(
+            state, "PER_SET", rows, staging, tmp_path / "output",
+            pre_commit_guard=lambda: None,
+            box_body_owner_by_namespace={ns: owner},
+        )
+    assert set(receipts) == {"第1套.dxf", "第2套.dxf"}
+    doc = ezdxf.readfile(tmp_path / "output" / "第1套.dxf")
+    checks = [e.plain_text() for e in doc.modelspace()
+              if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
+    assert checks.index("box_body:box_body_left_side") < (
+        checks.index("box_body:box_body_back")
+    ) < checks.index("box_body:box_body_right_side")
+    outlines = {}
+    for ent in doc.modelspace():
+        if ent.dxftype() != "LWPOLYLINE" or ent.dxf.layer != "CUTTING" or not ent.closed:
+            continue
+        pts = tuple(ent.get_points("xy"))
+        span = round(max(pt[0] for pt in pts) - min(pt[0] for pt in pts), 1)
+        if span in (110.0, 120.0, 130.0):
+            outlines[span] = min(pt[1] for pt in pts)
+    assert set(outlines) == {110.0, 120.0, 130.0}
+    assert outlines[120.0] - outlines[110.0] == 20.0
+    assert set((tmp_path / "output").glob("*.dxf")) == {
+        tmp_path / "output" / "第1套.dxf",
+        tmp_path / "output" / "第2套.dxf",
+    }
+
+
+def test_grouped_export_rejects_untrusted_body_owner_without_publishing(tmp_path):
+    state = _seven()
+    ns = receiving_instance_namespace(
+        set_id=state["sets"][0]["stable_id"],
+        bay_id=state["sets"][0]["bays"][0]["stable_id"],
+    )
+    out = tmp_path / "out"
+    out.mkdir()
+    old = out / "第1套.dxf"
+    old.write_bytes(b"old-file-preserved")
+    with TemporaryDirectory(dir=tmp_path) as staging:
+        with pytest.raises(TypeError, match="COMPOSED_DXF_BOX_BODY_OWNER_TYPE_INVALID"):
+            commit_verified_receiving_groups(
+                state, "PER_SET", _synthetic_rows(state), staging, out,
+                overwrite=True, pre_commit_guard=lambda: None,
+                box_body_owner_by_namespace={ns: object()},
+            )
+    assert old.read_bytes() == b"old-file-preserved"
+    assert not (out / "第2套.dxf").exists()
