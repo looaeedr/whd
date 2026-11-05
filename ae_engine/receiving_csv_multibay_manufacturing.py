@@ -113,7 +113,15 @@ def export_current_receiving_multibay_dxf(
         if only_independent_intent:
             requested=tuple(key for key in ("head", "tail", "door")
                             if bool(flags.get(key)))
-            if any(key not in logical for key in requested):
+            # An actual multi-Door FinalScene uses canonical cell IDs
+            # (door_c1_r1 / door_c1_r2), not the legacy "door" root.
+            # Check presence with the SAME Engine physical-to-intent projection
+            # used below for selection; never invent or borrow any Bay scene.
+            if any(
+                not any(resolved_export_intention_key(part_key) == key
+                        for part_key in logical)
+                for key in requested
+            ):
                 raise ValueError(
                     "RECEIVING_MULTIBAY_SELECTED_INDEPENDENT_PHYSICAL_SOURCE_MISSING"
                 )
