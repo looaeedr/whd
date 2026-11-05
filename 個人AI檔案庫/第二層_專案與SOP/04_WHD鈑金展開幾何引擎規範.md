@@ -5,6 +5,13 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2690／#2692 受電箱多板件合併 DXF 使用原 Engine 箱身組裝拓樸（2026-11-05）
+
+- 原 `ae_engine.composed_panel_dxf._source_rows` 在將 `BoxBodyStructureRenderData.pieces` 展成實體單片後，直接照任意傳入順序橫排。受電箱多連 `export_current_receiving_multibay_dxf` 甚至在驗證完 per-Bay 平板後只把 `(namespace, part_id, render)` 交給 `commit_verified_receiving_groups`，遺失原 `BoxBodyPieceRenderData.formed_w_start / formed_y_offset / role` 組裝 owner，可能造成順序或背板上下相對位置錯誤。
+- 改為 Engine `composed_panel_dxf.save_composed_panel_dxf` 在有 `BoxBodyStructureRenderData` 時，依真實 `formed_w_start` 與 canonical role 順序排列箱身物理展開板；`formed_y_offset` 僅用於整片 flat 的剛體上下平移，其他非箱身板件仍放旁邊。各平板之間保留 60 mm 最小間距；**不能**把 3D/world XYZ 或已彎曲實體位置投影成製造 UV，也不重算任何 CUTTING／BEND／孔位或材質。
+- Receiving group sink 將 `physical_bay_geometry_provider` 原件 `BoxBodyStructureRenderData` 作為唯讀拓樸 owner 與已驗證 flat 一併交給合併器；不可用 GUI 複製幾何或以 owner 取代實際已驗證的 FinalScene。owner 身分不吻合、位置非有限數等一律 fail closed，來源 SHA／NFB／EAR／PAD Gate、逐片及整組 DXF Save→Reload、原子提交／rollback 不放寬。原 `PER_SET`「第N套.dxf」、`ALL`「全部.dxf」、`END_VS_MIDDLE`「頭尾盤／中間盤.dxf」不變，Set/Bay 與盤名身分不變。
+- Windows R5-2600 的 RED 原生重現與新候選 regression：`tests/test_issue2690_composed_panel_dxf.py`、`tests/test_issue2692_receiving_grouped_dxf.py`；獨立 Windows pytest 邊界 25 passed，後續 GitHub exact HEAD Product Regression 與 Windows 接線仍須全綠後才能合併。此排版修復不代表 16 盤來源完整製造放行，#2517 維持 OPEN。
+
 ## [CURRENT] #2517 已驗證 NFB 來源部分出圖清單只由 Engine 定義實體角色（2026-11-05）
 
 - 原 NFB 多連 GUI `physical_manifest` 在已驗來源分支自行用 `NfbActualPart` 為 `scope.inner_door_part_id`／`base_plate_part_ids`／`middle_plate_part_ids` 分派物理角色，並呼叫內部 `derive_nfb_partial_export_manifest`、依 `manifest.whole_ready` 自行組顯示狀態。這些身份與部分製造資格是 Engine owner，不屬 GUI。
