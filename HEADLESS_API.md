@@ -5,6 +5,8 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+> #2690／#2692（2026-11-05）多板件合併 `save_composed_panel_dxf(..., box_body_owner_by_panel=None)` 可選擇傳入 Engine 原本已驗證的 `BoxBodyStructureRenderData` 來源 owner。箱身各實體展開板依 `formed_w_start`、物理角色及 `formed_y_offset` 整片平移排列，不依呼叫者任意順序；其餘板件排右側。多連正式 `export_grouped_receiving_multibay_dxf` 會透過現有 `commit_verified_receiving_groups` 將每個 Bay 的來源 BoxBody owner 與已驗證 flat 一起交給合併器。這不把 3D 轉成 UV、不重算切割、不解除來源／NFB／PAD／EAR Gate、Save→Reload／原子發檔。每套仍命名 `第N套.dxf`；全部／頭尾中間仍照既有三模式。未認證來源不得因有合併版型就產生 DXF。
+
 > #2517（2026-11-05）已驗證 NFB 部分出圖清單新增唯讀 `manufacturing_api.project_receiving_verified_nfb_partial_manifest(scope=..., saved_bay=..., set_brand=..., source_inventory=..., verified_inner_door=..., source_path=...)`，重用原 `receiving_nfb_export_manifest` 的 NfbPhysicalScope／NfbActualPart 實體身份及既有 `derive_nfb_partial_export_manifest` 完整源 SHA、已確認 X、Part readiness 檢查；GUI 不再自行建 NfbActualPart、指定物理角色、推 `WHOLE_READY`。此為原來源清單的顯示投影，不認證整櫃製造，正式 DXF 仍須原 `require_export`／Save→Reload／實際來源重驗。
 
 > #2517（2026-11-05）NFB CURRENT CSV 多連來源清單改公開 `manufacturing_api.project_receiving_current_v5_nfb_physical_diagnostics(saved_bay, physical_snapshot=..., set_id=..., bay_id=..., version_id=..., physical_parts=...)`：既有 Engine Family／BasePlate owner 判斷已存在的 Upper Inner Door、單層／兩層底板與缺料原因，未受 NFB 影響的板件必須來自當前 Bay 的真 FinalScene Scene witness，status 仍為 `DRAFT`／`RECHECK_ONLY`，絕不授權正式製造。GUI 取唯讀獨立預覽時改用 `manufacturing_api.project_receiving_nfb_unsubmitted_preview_layout(layout, set_index=..., bay_index=...)`，先驗證真實 Set/Bay 再只複製預覽資料，不變更已提交來源或取得 DXF 資格；現有 `project_receiving_bay_legacy_aliases` 公開 API 被 GUI 正式復用。

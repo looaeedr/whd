@@ -65,7 +65,7 @@ def plan_receiving_grouped_dxf(layout, mode):
 
 def commit_verified_receiving_groups(
     layout, mode, physical_rows, stage_dir, output_dir,
-    *, pre_commit_guard, overwrite=False,
+    *, pre_commit_guard, overwrite=False, box_body_owner_by_namespace=None,
 ):
     """Publish only complete *previously verified* per-Bay physical sheets.
 
@@ -94,11 +94,23 @@ def commit_verified_receiving_groups(
     }
     if set(by_namespace) != expected_namespaces:
         raise ValueError("RECEIVING_COMPOSED_DXF_INCOMPLETE_BAY_SOURCE")
+    # The grouped output has already flattened each BoxBody to certified
+    # per-piece scenes. Carry ONLY the original Engine owner topology; do
+    # not rebuild, substitute or trust a GUI-derived assembled flat.
+    from collections.abc import Mapping
+    if box_body_owner_by_namespace is not None and not isinstance(
+        box_body_owner_by_namespace, Mapping,
+    ):
+        raise TypeError("RECEIVING_COMPOSED_DXF_BODY_OWNER_MAPPING_REQUIRED")
+    owner_source = dict(box_body_owner_by_namespace or {})
+    if set(owner_source) - expected_namespaces:
+        raise ValueError("RECEIVING_COMPOSED_DXF_UNKNOWN_BODY_OWNER")
     from .composed_panel_dxf import save_composed_panel_dxf
     staged = {}
     stage = Path(stage_dir)
     for filename, cells in groups:
         panel_instances = []
+        group_body_owners = {}
         for si, bi, panel_name in cells:
             row = source["sets"][si]
             bay = row["bays"][bi]
@@ -106,6 +118,8 @@ def commit_verified_receiving_groups(
                 set_id=row["stable_id"], bay_id=bay["stable_id"],
             )
             records = by_namespace[ns]
+            if ns in owner_source:
+                group_body_owners[panel_name] = owner_source[ns]
             panel_instances.append((panel_name, ResolvedManufacturingGeometry(
                 parts=tuple(ResolvedManufacturingPart(key, render)
                             for key, render in records),
@@ -116,6 +130,7 @@ def commit_verified_receiving_groups(
         result = save_composed_panel_dxf(
             panel_instances, stage / filename, pre_commit_guard=pre_commit_guard,
             overwrite=False, preserve_input_order=True,
+            box_body_owner_by_panel=group_body_owners,
         )
         staged[filename] = Path(result.path)
     pre_commit_guard()  # Same immutable current-source witness before publish.

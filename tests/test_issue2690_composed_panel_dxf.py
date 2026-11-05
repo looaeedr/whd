@@ -174,3 +174,78 @@ def test_validation_of_names_inventory_request_and_unverified_cutting(tmp_path):
             (("P1", good),), target, pre_commit_guard=None,
         )
     assert not target.exists()
+
+
+
+def test_canonical_box_body_topology_drives_flat_packaging(tmp_path):
+    """Assembly's real formed-piece order and inset must survive flat packing."""
+    from ae_engine.manufacturing_render_data import (
+        BoxBodyPieceRenderData, BoxBodyStructureRenderData,
+    )
+    left = BoxBodyPieceRenderData(
+        "box_body_left_side", "left_side", 0.0, 0.0, (),
+        _flat("left"),
+    )
+    back = BoxBodyPieceRenderData(
+        "box_body_back", "back", 100.0, 700.0, (),
+        _flat("back", height=42), formed_y_offset=20.0,
+    )
+    right = BoxBodyPieceRenderData(
+        "box_body_right_side", "right_side", 800.0, 800.0, (),
+        _flat("right"),
+    )
+    # Deliberately scramble the pieces: a GUI display list is NOT the
+    # immutable BoxBody owner's manufacturing order.
+    assembly = BoxBodyStructureRenderData(
+        "side_back", (right, back, left),
+        _flat("exploded"), _flat("canonical"),
+    )
+    geometry = _geometry(
+        ("box_body", assembly),
+        ("door", _flat("door")),
+    )
+    path = tmp_path / "canonical-topology.dxf"
+    result = manufacturing_api.save_composed_panel_dxf(
+        (("P1", geometry),), path, pre_commit_guard=lambda: None,
+    )
+    assert tuple(sheet.physical_id for sheet in result.sheets) == (
+        "box_body:box_body_left_side",
+        "box_body:box_body_back",
+        "box_body:box_body_right_side",
+        "door",
+    )
+    # An inset back is elevated by the actual Engine formed_y_offset;
+    # every flat's own UV and hole features remain unchanged.
+    assert result.sheets[1].offset[1] - result.sheets[0].offset[1] == 20.0
+    last_right_edge = None
+    for sheet in result.sheets:
+        x0, _, x1, _ = sheet.flat_bounds
+        if last_right_edge is not None:
+            assert x0 + sheet.offset[0] - last_right_edge >= 59.99
+        last_right_edge = x1 + sheet.offset[0]
+    msp = ezdxf.readfile(path).modelspace()
+    assert sum(e.dxftype() == "CIRCLE" and e.dxf.layer == "CUTTING"
+               for e in msp) == 4
+    assert [e.plain_text() for e in msp if e.dxftype() == "MTEXT"
+            and e.dxf.layer == "CHECK"][-1] == "P1"
+
+
+def test_untrusted_body_topology_cannot_replace_existing_dxf(tmp_path):
+    from ae_engine.manufacturing_render_data import (
+        BoxBodyPieceRenderData, BoxBodyStructureRenderData,
+    )
+    bad = BoxBodyPieceRenderData(
+        "box_body_left_side", "left_side", float("nan"), 0.0, (),
+        _flat("left"),
+    )
+    source = BoxBodyStructureRenderData(
+        "side_back", (bad,), _flat("exploded"), _flat("canonical"),
+    )
+    target = tmp_path / "verified.dxf"
+    target.write_bytes(b"previous-good-verified-export")
+    with pytest.raises(ValueError, match="COMPOSED_DXF_INVALID_FLAT_COORDINATE"):
+        manufacturing_api.save_composed_panel_dxf(
+            (("P1", _geometry(("box_body", source))),),
+            target, pre_commit_guard=lambda: None, overwrite=True,
+        )
+    assert target.read_bytes() == b"previous-good-verified-export"
