@@ -74,6 +74,9 @@ def export_current_receiving_multibay_dxf(
     if not callable(physical_bay_geometry_provider):
         raise TypeError("RECEIVING_MULTIBAY_LIVE_BAY_RESOLVER_REQUIRED")
     output_rows=[]
+    # Preserve canonical BoxBody owner across the verified flat-sheet sink;
+    # the grouped composer otherwise sees only detached PartRenderData.
+    box_body_owners={}
     marking_proofs=[]
     expected_keys=set()
     verified_csv_filenames=set()
@@ -141,6 +144,13 @@ def export_current_receiving_multibay_dxf(
         # The source-facing body SIDE MARKING proves its own flange contact
         # on THIS Bay. Do not import the marks or EARs of Bay 1 into Bay 2.
         body_selected=bool(flags.get("box_body")) and "box_body" in logical
+        if body_selected:
+            from .manufacturing_render_data import BoxBodyStructureRenderData
+            for part in actual.parts:
+                if (part.part_key == "box_body"
+                        and isinstance(part.render_data, BoxBodyStructureRenderData)):
+                    box_body_owners[ns] = part.render_data
+                    break
         if is_csv and body_selected:
             dims=tuple(float(source[k]) for k in ("w","h","d"))
             thick=float(source["t"])
@@ -286,6 +296,7 @@ def export_current_receiving_multibay_dxf(
             return commit_verified_receiving_groups(
                 layout, group_mode, output_rows, staging, root,
                 pre_commit_guard=pre_commit_guard, overwrite=overwrite,
+                box_body_owner_by_namespace=box_body_owners,
             )
         return _atomic_commit_staged_dxfs(
             staged,root,overwrite=overwrite,
