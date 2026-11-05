@@ -7,6 +7,7 @@ material/cutting/fold features are translated rigidly without re-solving.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass
 from math import isfinite
 from pathlib import Path
@@ -174,10 +175,14 @@ def _actual_signature(entity):
     raise ValueError("COMPOSED_DXF_UNEXPECTED_DXF_ENTITY:" + kind)
 
 
-def _source_rows(panels, *, preserve_input_order=False):
+def _source_rows(panels, *, preserve_input_order=False, box_body_owner_by_panel=None):
     """Return physically owned, canonical input rows; never forge certification."""
     groups = []
     names = set()
+    if box_body_owner_by_panel is not None and not isinstance(
+        box_body_owner_by_panel, Mapping
+    ):
+        raise TypeError("COMPOSED_DXF_BOX_BODY_OWNER_MAPPING_REQUIRED")
     for name, geometry in tuple(panels or ()):
         panel_name = normalize_panel_name(name)
         if panel_name.casefold() in names:
@@ -221,12 +226,28 @@ def _source_rows(panels, *, preserve_input_order=False):
         # determine LEFT/BACK/RIGHT (or LEFT/MIDDLE/RIGHT) in the packer.
         # Formed W gives ORDER, not a flat UV x-position: every source blank
         # retains its genuine CUTTING/BEND geometry and an independent gap.
+        owners = [
+            part.render_data
+            for part in tuple(getattr(geometry, "parts", ()) or ())
+            if (part.part_key == "box_body"
+                and isinstance(part.render_data, BoxBodyStructureRenderData))
+        ]
+        detached_owner = (
+            box_body_owner_by_panel.get(panel_name)
+            if box_body_owner_by_panel is not None else None
+        )
+        if detached_owner is not None:
+            if not isinstance(detached_owner, BoxBodyStructureRenderData):
+                raise TypeError("COMPOSED_DXF_BOX_BODY_OWNER_TYPE_INVALID")
+            if owners and owners[0] is not detached_owner:
+                raise ValueError("COMPOSED_DXF_BOX_BODY_OWNER_AMBIGUOUS")
+            if not owners:
+                owners.append(detached_owner)
+        if len(owners) > 1:
+            raise ValueError("COMPOSED_DXF_BOX_BODY_OWNER_AMBIGUOUS")
         body_owner = {}
-        for part in tuple(getattr(geometry, "parts", ()) or ()):
-            if (part.part_key != "box_body"
-                    or not isinstance(part.render_data, BoxBodyStructureRenderData)):
-                continue
-            for piece in part.render_data.pieces:
+        for owner_data in owners:
+            for piece in owner_data.pieces:
                 owner = "box_body:" + str(piece.key)
                 if owner in body_owner:
                     raise ValueError("COMPOSED_DXF_DUPLICATE_BODY_TOPOLOGY_OWNER")
@@ -314,7 +335,7 @@ def _compose(rows, *, gap):
 
 def save_composed_panel_dxf(
     panels, output_path, *, pre_commit_guard, overwrite=False, gap=60.0,
-    preserve_input_order=False,
+    preserve_input_order=False, box_body_owner_by_panel=None,
 ):
     """Publish one staged, independently reopened multi-panel flat DXF.
 
@@ -332,7 +353,10 @@ def save_composed_panel_dxf(
         raise FileExistsError(str(path))
     if type(preserve_input_order) is not bool:
         raise TypeError("COMPOSED_DXF_ORDER_POLICY_MUST_BE_BOOL")
-    rows = _source_rows(panels, preserve_input_order=preserve_input_order)
+    rows = _source_rows(
+        panels, preserve_input_order=preserve_input_order,
+        box_body_owner_by_panel=box_body_owner_by_panel,
+    )
     pre_commit_guard()
     composite, sheets, originals = _compose(rows, gap=float(gap))
     # The original per-piece authority is checked independently, not inferred
