@@ -53,7 +53,6 @@ from ae_engine.sheetmetal_geometry import (
     CornerDirection,
     EDITABLE_CORNER_TYPE_IDS,
     CORNER_TYPE_LABELS,
-    normalize_corner_selection,
 )
 from ae_engine.sheetmetal_features import (
     box_body_face_contexts_from_strip,
@@ -129,6 +128,9 @@ from ae_engine.sheetmetal_part_adapters import (
 
 # Stable compatibility names consumed by HoleEditorCompositionDependencies.
 # Always pass public Engine geometry ownership into UI/session controllers.
+# Read-only CornerType compatibility remains a public Engine callable.
+normalize_corner_selection = manufacturing_api.operator_normalize_corner_selection
+
 measure_door_indicator_position = manufacturing_api.project_operator_door_indicator_position
 feature_with_reference_anchor = manufacturing_api.operator_hole_feature_with_reference_anchor
 feature_with_process = manufacturing_api.operator_hole_feature_with_process
@@ -1028,7 +1030,7 @@ class Phase6ApplicationHost:
     def _manual_selection_for_target(self, part_key, target_key):
         if target_key in CORNER_PAIR_CORNERS:
             target_key = CORNER_PAIR_CORNERS[target_key][0]
-        return normalize_corner_selection(self.manual_corner_state[part_key][target_key])
+        return manufacturing_api.operator_normalize_corner_selection(self.manual_corner_state[part_key][target_key])
 
     def select_manual_corner(self, corner_key):
         return _select_manual_corner_impl(self, corner_key)
