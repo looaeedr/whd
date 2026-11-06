@@ -2062,6 +2062,8 @@ from .receiving_multibay_export_selection import (
 from .receiving_quantity_box import (
     BOX_KEY as RECEIVING_QUANTITY_BOX_KEY,
     normalize_common_box, update_common_box, project_common_box,
+    project_operator_receiving_quantity_size_count,
+    apply_operator_receiving_quantity_size_count,
 )
 from .manufacturing_equivalence import ManufacturingParameters
 from .receiving_nfb_pad_operator_parts import committed_nfb_pad_draft_parts

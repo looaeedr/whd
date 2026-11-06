@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 單只尺寸 W/H/D＋數量版本件數由公開 Engine 完整交易（2026-11-07）
+
+- `fold_designer_composition_receiving` 的單只尺寸設定舊路徑：GUI 直接引入 `phase6_quantity_model.QuantityModel`，自己讀選中版本數量，接受操作者 W/H/D/件數後自行 `set_piece_count`、`update_common_box`、覆寫 `candidate["quantity"]`，再做 `require_valid_operator_quantity_features`。這些版本與實體尺寸關聯的結果是製造來源，不能讓 GUI 擁有跨兩個 Engine 入口的交易順序。
+- 新正式 `manufacturing_api.project_operator_receiving_quantity_size_count(snapshot)` 只從 Receiving Quantity 的 `receiving_quantity_box` 和 `QuantityModel` 讀取目前 selected 件數、所有版本總件數與物理 W/H/D；`manufacturing_api.apply_operator_receiving_quantity_size_count(snapshot, *, width, height, depth, count)` 以同一來源驗證 Family／模式／完整版本／共用箱體／真實 T，使用原 `positive_piece_count` 更新 detached selected 版本、原 `update_common_box` 更新物理 W/H/D，再 `require_valid_quantity_features` 檢查所有版本的封頭尾 CUTTING 孔是否仍在實體 finished-face 之內。未全部成功就不返回可提交的候選；輸入 snapshot 不改動。根包 `ae_engine` 亦公開同一 Engine callable。
+- GUI 僅送操作者四個欄位並用既有 `_apply_mode_snapshot` 刷新工作區，沒有第二份 QuantityModel 操作、物理計算或新製造預設。Set/Bay、NFB CSV、共同箱體的保存權威不變；非 selected 版本件數不可被目前編輯污染，真實 W 變更時 NFB datum recheck 與孔位越界仍服從既有 Engine Policy，並非輸入成功就獲 DXF 放行。
+- Headless 對照原 Engine `QuantityModel + update_common_box + require_valid_quantity_features`、非法件數/Family/模式/W/H/D/T/Quantity/Box 不改來源、選中與其他版本獨立、Save→Reload 及相關 2D/3D/DXF exact-SHA Product Regression 全部須驗證。
+
+
 ## [CURRENT] #2517 Quantity 實體底板共用箱體的 W/T 與焊耳孔由公開 Engine 一次投影（2026-11-07）
 
 - Fold Designer 原 `receiving_base_plate_for_current_mode` 在 Quantity（單只／數量模式）分支先以 GUI 的 `_settings_values` 暫時驗底板，再以另一個 `manufacturing_api.update_common_box` 寫入 `receiving_quantity_box`。其中 GUI Settings W/H/D 是開新專案用的**預設種子**，可與當前保存的共用箱體 W 不同；兩段式驗證會以錯誤 W 檢查焊接 EAR 孔，並把尚未綁定此實體箱寬的 config 當成有效來源。
