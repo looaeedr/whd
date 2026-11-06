@@ -12,12 +12,13 @@ from collections.abc import Mapping, Sequence
 
 from hashlib import sha256
 from copy import deepcopy
+from math import isfinite
 
 from .receiving_nfb_model_identity import numeric_model_ref
 from .receiving_nfb_numeric_catalog import brand_csv_path, model_spec
 from .receiving_nfb_persistence import normalize_nfb_config
 from .receiving_shared_settings import switch_filenames_in_layer, validate_setting
-from .sheetmetal_feature_core import ProfileFeature
+from .sheetmetal_feature_core import FeatureAnchor, ProfileFeature
 
 
 def committed_csv_nfb_config(part_key, features, config):
@@ -50,6 +51,23 @@ def committed_csv_nfb_config(part_key, features, config):
         key = (layer, slot)
         if key not in expected or key in seen:
             raise ValueError("NFB_CSV_COMMIT_MISSING_OR_DUPLICATE_SLOT")
+        # The original Hole Editor's CSV source denotes a real physical
+        # finished-face CUTTING hole, never a MARKING/preview polygon or
+        # a panel-relative feature that would move during manufacturing.
+        # The config stores only source identity; reject corrupt geometry
+        # now rather than persisting a fake submitted NFB source.
+        if (feature.layer != "CUTTING"
+                or feature.anchor is not FeatureAnchor.ABSOLUTE_FINISHED_FACE
+                or feature.layered_profiles):
+            raise ValueError("NFB_CSV_COMMIT_FINISHED_FACE_CUTTING_REQUIRED")
+        coordinates = (
+            (feature.offset.x, feature.offset.y)
+            + tuple(component for point in feature.points
+                    for component in (point.x, point.y))
+        )
+        if any(type(value) not in (int, float) or not isfinite(value)
+               for value in coordinates):
+            raise ValueError("NFB_CSV_COMMIT_FINITE_PHYSICAL_PROFILE_REQUIRED")
         brand, model = info.get("brand"), info.get("model")
         from .receiving_nfb_model_identity import parse_numeric_model_ref
         if parse_numeric_model_ref(expected[key]) != (brand, model):
