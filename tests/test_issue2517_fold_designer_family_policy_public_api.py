@@ -15,6 +15,7 @@ POLICY_NAMES = (
     "family_fixes_box_body_structure",
     "box_body_profile_uses_outside_dimensions",
     "supports_bottom_wrap_controls",
+    "endcap_fw_profile_uses_material_dimensions",
 )
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -55,5 +56,8 @@ def test_fold_designer_gui_does_not_import_internal_family_policy_or_registry():
     assert "manufacturing_api.resolve_cabinet_type(model)" in bridge
     assert "from ae_engine.certified_relief_registry import" not in corner
     assert "manufacturing_api.build_relief_promotion_candidate" in corner
-    for suffix in POLICY_NAMES[1:]:
+    session = (ROOT / "gui_modules/application/fold_designer_part_session.py").read_text(encoding="utf-8")
+    assert "bridge.cabinet_family_policy." not in session
+    assert "bridge.manufacturing_api.operator_endcap_fw_profile_uses_material_dimensions(" in session
+    for suffix in POLICY_NAMES[1:-1]:
         assert "manufacturing_api.operator_" + suffix + "(" in bridge
