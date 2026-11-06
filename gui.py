@@ -51,7 +51,6 @@ from ae_engine.sheetmetal_geometry import (
     EDITABLE_CORNER_TYPE_IDS,
     CORNER_TYPE_LABELS,
     normalize_corner_selection,
-    box_body_vertical_offsets,
 )
 from ae_engine.sheetmetal_features import (
     box_body_face_contexts_from_strip,
@@ -939,19 +938,13 @@ class Phase6ApplicationHost:
         return tuple(float(value) for value in dims)
 
     def _box_body_finished_height(self, val):
-        """Return the single folded box-body outside height from shared assembly semantics."""
-        h = float(val['h'])
-        t = float(val['t'])
-        head_policy, tail_policy = self._box_body_corner_policies(float(val['fw']))
-        if head_policy is None or tail_policy is None:
-            return h - 2.0 * t
-        bottom_outer, top_outer = box_body_vertical_offsets(
-            t, head_corner_policy=head_policy, tail_corner_policy=tail_policy
+        """Only forward the operator source to Engine's canonical outside-height owner."""
+        head_policy, tail_policy = self._box_body_corner_policies(val['fw'])
+        return manufacturing_api.project_operator_box_body_finished_height(
+            val['h'], val['t'],
+            head_corner_policy=head_policy,
+            tail_corner_policy=tail_policy,
         )
-        result = h - bottom_outer - top_outer
-        if result <= 0:
-            raise ValueError("箱身折後包外高度必須大於 0")
-        return float(result)
 
     _CORNER_MODE_LABELS = {
         CrossCornerMode.STANDARD: "標準",
