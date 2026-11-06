@@ -289,38 +289,25 @@ def _current_cabinet_type_name(self):
         return "金庫型"
 
 def _apply_manual_corner_snapshot(self, corner_state=None, pair_same=None):
-    for part_key, corners in (corner_state or {}).items():
-        if part_key not in self.manual_corner_state:
-            continue
-        for corner_key, raw in (corners or {}).items():
-            if corner_key not in self.manual_corner_state[part_key]:
-                continue
-            if isinstance(raw, dict):
-                type_id = raw.get("type_id", CornerTypeId.CROSS.value)
-                rotation = int(raw.get("rotation_quadrants", 0) or 0)
-                kwargs = {
-                    "cross_mode": raw.get("cross_mode"),
-                    "direction": raw.get("direction"),
-                    "amount_t": raw.get("amount_t"),
-                    "secondary_retain_t": raw.get("secondary_retain_t"),
-                    "secondary_depth_t": raw.get("secondary_depth_t"),
-                }
-            else:
-                type_id = raw
-                rotation = 0
-                kwargs = {}
-            try:
-                selection = CornerTypeSelection(CornerTypeId(type_id), rotation, **kwargs)
-                self.manual_corner_state[part_key][corner_key] = normalize_corner_selection(selection)
-            except (TypeError, ValueError):
-                continue
-    for part_key, pairs in (pair_same or {}).items():
-        if part_key not in self.manual_corner_pair_same:
-            continue
-        for pair_key, enabled in (pairs or {}).items():
-            if pair_key in self.manual_corner_pair_same[part_key]:
-                self.manual_corner_pair_same[part_key][pair_key] = bool(enabled)
-    self._enforce_known_model_corner_types(reset_all=False)
+    """Restore the entire saved Corner draft only after Engine validation."""
+    model_var = getattr(self, "baseline_var", None)
+    model = model_var.get() if model_var is not None else ""
+    next_state, next_pairs = manufacturing_api.propose_operator_saved_manual_corner_snapshot(
+        self.manual_corner_state, self.manual_corner_pair_same,
+        saved_corner_state=corner_state, saved_corner_pair_same=pair_same,
+        baseline_model=model, cabinet_family=self._current_cabinet_type_name(),
+    )
+    # Existing editor widgets retain their live per-part dict references.
+    for part_key, updated in next_state.items():
+        existing = self.manual_corner_state[part_key]
+        if existing != updated:
+            existing.clear()
+            existing.update(updated)
+    for part_key, updated in next_pairs.items():
+        existing = self.manual_corner_pair_same[part_key]
+        if existing != updated:
+            existing.clear()
+            existing.update(updated)
     self.refresh_corner_type_panel()
 
 def _apply_fold_designer_live_settings(self, values, *, recalculate=True):

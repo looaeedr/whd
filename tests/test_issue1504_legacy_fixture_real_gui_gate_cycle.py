@@ -337,6 +337,7 @@ def test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs(tmp_
     from copy import deepcopy
     from collections import Counter
     from tkinter import filedialog
+    import re
     import ezdxf
     from gui_modules.project.export_actions import _export_selected_parts
 
@@ -427,7 +428,14 @@ def test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs(tmp_
                     geometry = ()
                 entities.append((e.dxftype(), layer, color, geometry))
             assert entities, filename
-            signatures[str(filename)] = Counter(repr(row) for row in entities)
+            # Grouped Receiving DXFs now include an authoritative Taiwan-minute
+            # stamp. Separate export transactions may cross a minute boundary;
+            # compare the same physical panel/mode and all DXF entities, not
+            # the transaction clock as though it were manufacturing geometry.
+            assert re.fullmatch(r"\d{12}_.+\.dxf", str(filename)), filename
+            stable_name = re.sub(r"^\d{12}_", "", str(filename))
+            assert stable_name not in signatures
+            signatures[stable_name] = Counter(repr(row) for row in entities)
         return signatures
 
     root = tk.Tk()
