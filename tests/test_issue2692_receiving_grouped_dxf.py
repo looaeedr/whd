@@ -367,6 +367,75 @@ def _complete_committed_nfb_requests_for_core(source):
     ) for bi in range(len(layout["sets"][0]["bays"])))
 
 
+
+def test_main_grouped_export_includes_saved_confirmed_nfb_pair_in_one_file(tmp_path):
+    """Public Engine projects original approved pair Requests; no side NFB DXF."""
+    source = _multi()
+    layout, requests = _complete_committed_nfb_requests_for_core(source)
+    source["receiving_layout"] = layout
+    before = tuple(
+        (request.input_snapshot, request.canonical_part_keys)
+        for request in requests
+    )
+    provider, _calls = _provider(source)
+    result = manufacturing_api.export_grouped_receiving_multibay_dxf(
+        source, physical_bay_geometry_provider=provider,
+        flags={"head": True, "door": True, "base_plate": True},
+        output_dir=tmp_path / "out", group_mode="ALL",
+        pre_commit_guard=lambda: None, include_saved_nfb_pairs=True,
+    )
+    assert set(result) == {"全部.dxf"}
+    assert {path.name for path in (tmp_path / "out").rglob("*.dxf")} == {"全部.dxf"}
+    doc = ezdxf.readfile(result["全部.dxf"])
+    assert not doc.audit().errors
+    checks = [e.plain_text() for e in doc.modelspace()
+              if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
+    assert checks.count("head") == 2
+    assert sum(key.startswith("inner_door:") for key in checks) == 2
+    assert checks.count("base_plate") == 2
+    assert before == tuple(
+        (request.input_snapshot, request.canonical_part_keys)
+        for request in requests
+    )
+    assert not (tmp_path / "out" / "NFB_PART_ONLY").exists()
+
+
+def test_main_grouped_export_rejects_partly_confirmed_nfb_instead_of_partial_output(tmp_path):
+    source = _multi()
+    layout, _requests = _complete_committed_nfb_requests_for_core(source)
+    layout["sets"][0]["bays"][1]["nfb_config_submitted"] = False
+    source["receiving_layout"] = layout
+    provider, _calls = _provider(source)
+    with pytest.raises(ValueError, match="RECEIVING_COMPOSED_NFB_PARTIAL_BAY_CONFIRMATION"):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=provider,
+            flags={"head": True, "door": True, "base_plate": True},
+            output_dir=tmp_path / "out", group_mode="ALL",
+            pre_commit_guard=lambda: None, include_saved_nfb_pairs=True,
+        )
+    assert not list((tmp_path / "out").rglob("*.dxf"))
+
+
+def test_head_only_does_not_auto_include_unselected_nfb_pairs(tmp_path):
+    source = _multi()
+    layout, _requests = _complete_committed_nfb_requests_for_core(source)
+    source["receiving_layout"] = layout
+    provider, _calls = _provider(source)
+    result = manufacturing_api.export_grouped_receiving_multibay_dxf(
+        source, physical_bay_geometry_provider=provider,
+        flags={"head": True}, output_dir=tmp_path / "out",
+        group_mode="ALL", pre_commit_guard=lambda: None,
+        include_saved_nfb_pairs=True,
+    )
+    assert set(result) == {"全部.dxf"}
+    doc = ezdxf.readfile(result["全部.dxf"])
+    checks = [e.plain_text() for e in doc.modelspace()
+              if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
+    assert checks.count("head") == 2
+    assert not any(k == "base_plate" or k.startswith("inner_door:") for k in checks)
+
+
+
 def test_grouped_nfb_pair_verified_source_exports_only_one_composed_file(tmp_path):
     """Each source-confirmed NFB pair joins its own Bay; no parallel PART_ONLY files."""
     source = _multi()

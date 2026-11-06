@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI 合併出圖自動納入同源已確認 NFB pair（2026-11-06）
+
+- 之前的 Engine `export_grouped_receiving_multibay_dxf(nfb_pair_requests=...)` 已能驗證並排入每 Bay 內門＋底板；但主 GUI 的選取出圖按鈕沒有傳入 NFB Requests，造成使用者必須額外呼叫獨立 NFB 出口，不能以主按鈕得到一份已確認板件的 DXF。
+- 本次主 GUI 只傳 `include_saved_nfb_pairs=True` 給原有公開 Engine grouped 出口，絕不在 GUI 建構 X、PartSpec、孔位、幾何或決定實體 Bay 身分。Engine 僅在操作者**同時選擇 Door＋BasePlate**且存在已提交 NFB 的同一份已保存 Layout 時，要求**每個 Bay 都已確認**；部分確認直接整批拒絕，全數確認則用既有 `receiving_committed_nfb_pair_request_for_bay` 重建原始不可變請求，並由原有 `_verified_nfb_composed_pair_rows` 逐個比對最新來源 SHA／PartSpec、DXF Save→Reload。
+- Engine 在配對出圖時只從核心預覽排除將由該 pair 取代的 NFB 內門／底板物理鍵，避免同一板件在合併檔中重複；HEAD、TAIL、外門、箱身與 EAR/PAD 的既有製造政策不放寬。未選內門＋底板的 Head-only 不會偷偷輸出 NFB，未提交 NFB 的歷史 Legacy 行為不變。原子合併仍只寫正式分組檔，沒有獨立 NFB 生產資料夾。
+- 以上仍是已核對的 NFB PART_ONLY 併排，不代表軟體 MFG-2 完整箱體認證；Quantity 與 CADSplit 對同一主出圖入口的接線仍需各自驗收。
+
+
 ## [CURRENT] #2517 單 Bay 受電箱 ALL 合併不再退回逐板件（2026-11-06）
 
 - GUI 原本已將受電箱 DXF 合併預設設為 `ALL`，但 `plan_receiving_multibay_export_source` 針對只有一個 Bay、且不是僅 Head/Tail/Outer Door 的選取，仍回傳 `use_multibay=False`，因此可能退回逐板件 DXF；使用者要求所有盤體預設合併，受電箱另可選 `PER_SET` 或 `END_VS_MIDDLE`。

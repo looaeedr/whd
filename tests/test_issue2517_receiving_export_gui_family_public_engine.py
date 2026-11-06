@@ -87,6 +87,36 @@ def test_two_bay_original_export_routes_alias_to_engine_multibay_gate(
 
 
 
+
+def test_main_gui_grouped_dxf_opts_into_engine_saved_nfb_pairs(tmp_path, monkeypatch):
+    from tests.test_issue1502_current_csv_multi_bay_once import _multi
+    from tests.test_issue1502_multibay_original_gui_export_integration import (
+        _native_callback_host,
+    )
+
+    snapshot = _multi()
+    before = deepcopy(snapshot)
+    host = _native_callback_host(monkeypatch, snapshot, [])
+    host.receiving_dxf_group_mode_var = _Bool("ALL")
+    seen = []
+    def group_export(*_args, **kwargs):
+        seen.append(kwargs)
+        raise ValueError("ENGINE_COMPOSED_SOURCE_GATE_REACHED")
+    monkeypatch.setattr(manufacturing_api, "export_grouped_receiving_multibay_dxf",
+                        group_export)
+    with pytest.raises(ValueError, match="ENGINE_COMPOSED_SOURCE_GATE_REACHED"):
+        gui._export_selected_resolved_parts(
+            host, str(tmp_path),
+            {"head": True, "door": True, "base_plate": True},
+        )
+    assert len(seen) == 1
+    assert seen[0]["group_mode"] == "ALL"
+    assert seen[0]["include_saved_nfb_pairs"] is True
+    assert snapshot == before
+    assert not list(tmp_path.glob("*.dxf"))
+
+
+
 def test_multibay_engine_accepts_registered_receiving_alias_not_vault(tmp_path):
     """The public multibay export gate uses Family Registry, never raw label case."""
     from ae_engine.receiving_layout import new_receiving_layout

@@ -281,6 +281,9 @@ def _export_selected_resolved_parts(self, folder, flags):
                 physical_bay_geometry_provider=actual_bay_geometry,
                 flags=flags, output_dir=folder, group_mode=group_mode,
                 pre_commit_guard=source_guard, overwrite=True,
+                # Engine builds approved per-Bay NFB pair Requests from the
+                # saved source; GUI supplies neither hole X nor PartSpecs.
+                include_saved_nfb_pairs=True,
             )
         else:
             outputs = manufacturing_api.export_current_receiving_multibay_dxf(
