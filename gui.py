@@ -422,9 +422,6 @@ from phase6_endcap_semantics import (
     commit_box_fw, commit_endcap_fw,
     normalize_endcap_bottom_wrap_state, resolve_endcap_bottom_wrap,
 )
-from ae_engine.assembly_joint import (
-    migrate_legacy_snapshot_joints, sync_snapshot_intent_joints, ASSEMBLY_JOINT_SCHEMA_VERSION,
-)
 
 from phase6_settings_center import (
     GLOBAL_CONTEXT,

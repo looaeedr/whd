@@ -48,6 +48,8 @@ def test_gui_uses_one_existing_engine_owner_no_private_joint_sync_in_event():
     assert "manufacturing_api.commit_operator_box_assembly_joint_state(" in method
     assert "migrate_legacy_snapshot_joints(" not in method
     assert "sync_snapshot_intent_joints(" not in method
+    module_source = inspect.getsource(gui)
+    assert "from ae_engine.assembly_joint import" not in module_source
 
 
 @pytest.mark.parametrize("stable", ("INSERT", "OVERLAY", "INSERT_OVERLAY", "WRAP_OVERLAY"))
