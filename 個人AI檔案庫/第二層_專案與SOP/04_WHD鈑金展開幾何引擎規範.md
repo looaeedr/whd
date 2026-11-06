@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 單 Bay 受電箱 ALL 合併不再退回逐板件（2026-11-06）
+
+- GUI 原本已將受電箱 DXF 合併預設設為 `ALL`，但 `plan_receiving_multibay_export_source` 針對只有一個 Bay、且不是僅 Head/Tail/Outer Door 的選取，仍回傳 `use_multibay=False`，因此可能退回逐板件 DXF；使用者要求所有盤體預設合併，受電箱另可選 `PER_SET` 或 `END_VS_MIDDLE`。
+- 公開 Engine 來源路由現在對一個真實 Bay、明確選定任一合法 group mode 也使用既有 `export_grouped_receiving_multibay_dxf`；未選 group mode 的歷史單 Bay 呼叫仍保留舊路徑。僅 Head/Tail/Outer Door 的 NFB-independent 預覽資格不變；其他板件使用**未遮蔽**的同一份保存 NFB／CSV／PartSpec／FinalScene，原 Engine EAR/PAD、來源 SHA、逐片與單檔 DXF Save→Reload、原子批次提交與拒絕仍不可跳過。
+- GUI 的合併選項僅顯示於 Engine Registry 確認的受電箱（包括小寫別名），不由 GUI 寫死 Family 字串；金庫型仍維持既有單 DXF。正反驗收涵蓋單 Bay BoxBody＋Head 合併單檔、缺實體來源零輸出、單 Bay NFB 不被預覽快取遮蔽。Quantity 版本出圖仍走現有獨立 Engine 數量流程，**不得宣稱已使用此 Set/Bay grouping**；#2517 整體和 Windows UAT 尚未完成。
+
+
 ## [CURRENT] #2517 NFB 併入每 Set DXF 必須與同一份保存來源完全同義（2026-11-06）
 
 - 原 `export_grouped_receiving_multibay_dxf(nfb_pair_requests=...)` 的 Engine 私有驗證只對照 Set/Bay stable ID、W/H/D 和 Request 內自行核准的 NFB source；不同 Project 若同樣有預設 stable ID、尺寸，可能拿「別的 Bay 核准 Request」併入本 Project 核心出圖，形成同檔但不同源的 CUTTING。

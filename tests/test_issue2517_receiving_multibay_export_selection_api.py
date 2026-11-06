@@ -73,9 +73,14 @@ def test_legacy_one_bay_and_grouped_one_bay_eligibility():
         snapshot, _flags(head=True), "ALL",
     )
     assert group.use_multibay and group.bay_count == 1
-    assert not manufacturing_api.plan_receiving_multibay_export_source(
+    dependent = manufacturing_api.plan_receiving_multibay_export_source(
         snapshot, _flags(head=True, base_plate=True), "ALL",
-    ).use_multibay
+    )
+    assert dependent.use_multibay and dependent.bay_count == 1
+    assert not dependent.independent_only
+    assert dependent.preview_layout_for_bay(0, 0) is None
+    # A dependent selection must retain the saved original NFB configuration.
+    assert snapshot["receiving_layout"]["sets"][0]["bays"][0].get("nfb_config_submitted") is not True
     with pytest.raises(ValueError, match="未知"):
         manufacturing_api.plan_receiving_multibay_export_source(
             snapshot, _flags(head=True), "BAD",
@@ -107,3 +112,7 @@ def test_gui_no_longer_duplicates_multibay_policy():
     assert 'preview_bay["nfb_config_submitted"]' not in code
     assert "safe_single_bay_group" not in code
     assert "physical_count = sum(" not in code
+    preview = (Path(__file__).resolve().parents[1]
+               / "gui_modules/layout/left_panel.py").read_text(encoding="utf-8")
+    assert "manufacturing_api.resolve_live_cabinet_family(snapshot)" in preview
+    assert 'snapshot.get("model") not in {"受電箱", "RECEIVING"}' not in preview
