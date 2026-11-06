@@ -418,6 +418,10 @@ def build_receiving_factory_confirmed_parts(
             is_tail=(part == "tail"), holes=features_by_role.get(part, ()),
             fold_profiles=folds[part],
             corner_policy=policies[part],
+            # Match GUI's canonical EndCap owner: its assembly FW datum comes
+            # from this exact BoxBody Fold, not an absent or caller-computed
+            # formed-width scalar. The Engine recomputes adjacent real bends.
+            box_body_fold_profile=body_rows,
             box_body_structure_state=structure,
         )
         parts.append((part, spec))
