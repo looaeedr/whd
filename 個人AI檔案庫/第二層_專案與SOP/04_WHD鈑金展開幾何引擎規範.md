@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Factory 保存的 Head／Tail 孔位不可在確認來源中消失（2026-11-06）
+
+- `confirmed_endcap_features` 本來會對合法 Head/Tail finished-face typed CUTTING 做來源形狀驗證，卻沒有與 `saved_operator_confirmed` 原 `part_features["head"／"tail"]` 對照；因此已保存孔位可能在製造中被漏掉，或被另一份不符孔位取代。原 `receiving_factory_requests` 現在檢查：保存該角色有非空 Feature 時，對外確認必須逐 Feature 相同；保存角色的欄位不合法也拒絕 `RECEIVING_SAVED_ENDCAP_SOURCE_FEATURES_MISMATCH`，且不得先寫出部分 DXF。
+- 若保存的 Head／Tail 沒有原孔，但 CADSplit 有另外已確認的合法 CUTTING Feature，仍沿用原 `confirmed_endcap_features` 入口（不要求先寫入 GUI 保存值），避免把外部合法來源當成偽造。`EndCapPartSpec → FinalScene → verified Batch DXF` 原 owner 及 2D/3D 幾何不變；不增加第二個輸出器或偷偷接入 NFB/PAD/EAR。
+- 回歸 `tests/test_issue2517_receiving_factory_saved_endcap_cutting_source.py` 包含 Head/Tail 真孔→五張物理 DXF／Save→Reload、缺確認／保存衝突／非法保存欄位零 DXF，以及外部合法確認孔可用。#2517 全功能／整櫃及 Windows R5 UAT 仍未完成。
+
+
 ## [CURRENT] #2517 受電箱三片箱身原始保存孔位經公開 Factory／FinalScene 驗證（2026-11-06）
 
 - `build_receiving_factory_confirmed_parts` 的原 `BoxBodyPartSpec` 過去直接吃保存 `physical_piece_features`（可能未經正式來源資格確認），或遺失只存於 `part_features` 的三片實孔。向後相容的 `confirmed_box_body_piece_features` 必須與 `saved_operator_confirmed` 的原保存來源逐實體角色、逐 Feature 完全一致；角色限 `box_body:left_side`、`box_body:back`、`box_body:right_side`，均為材料板面 UV 的 typed `ABSOLUTE_FINISHED_FACE`／`CUTTING` Feature。`physical_piece_features` 與舊 `part_features` 若同時含實孔而不一致，必須拒絕，不可猜哪個版本為真。未提供確認但保存存在實孔，也拒絕製造而非靜默出無孔板。
