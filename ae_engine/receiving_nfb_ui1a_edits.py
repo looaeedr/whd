@@ -93,6 +93,86 @@ def editable_nfb_draft(draft):
     return state
 
 
+
+@dataclass(frozen=True)
+class ReceivingNfbEditorConfirmPlan:
+    """Only a source-draft transaction route, never a manufacturing approval."""
+    current_numeric_editor: bool
+    has_source_models: bool
+
+
+def plan_receiving_nfb_editor_confirm(
+    draft, current, chosen, *, layer_count, embedded, parent_brand,
+):
+    """Validate original Receiving inner-door NFB Confirm in the Engine.
+
+    Current numeric CSV editor entries may be staged in the original Hole
+    Editor, but legacy candidate serialization cannot silently drop slot
+    brand overrides, quarter-turns, physical X or stale model provenance.
+    GUI only supplies operator selections; this never emits CUTTING geometry.
+    """
+    from .receiving_nfb_model_identity import (
+        is_numeric_model_ref, parse_numeric_model_ref, numeric_model_refs,
+        selected_numeric_spec,
+    )
+    from .receiving_switch_model_catalog import model_filenames
+    from .receiving_nfb_ui1a import OVERRIDE, effective_nfb_slot_brand
+
+    if type(layer_count) is not int or layer_count not in (1, 2):
+        raise ValueError("NFB physical layers must be 1 or 2")
+    source_models = [
+        slot["filename"]
+        for layer in current["layers"][:layer_count]
+        for slot in layer["slots"]
+        if slot["filename"] is not None
+    ]
+    numeric = (
+        bool(embedded) and bool(source_models)
+        and all(is_numeric_model_ref(ref) for ref in source_models)
+    )
+    active = draft["layers"][:layer_count]
+    for row in (() if numeric else active):
+        if row["brand"]["mode"] == OVERRIDE:
+            raise ValueError("本層品牌覆寫仍是 NFB 草稿，尚不可存成舊版內門候選")
+        if row["rotation_deg"] != 0:
+            raise ValueError("NFB 草稿角度不能被舊版內門層數格式丟失")
+        for slot in row["slots"]:
+            if slot["filename"] is None or slot["brand"]["mode"] == OVERRIDE:
+                raise ValueError("空槽或單顆品牌覆寫仍是 NFB 草稿，不能丟失後儲存")
+            if (slot["rotation"]["mode"] == OVERRIDE
+                    or slot["manual_x_state"] != "NONE"
+                    or slot["manual_x_mm"] is not None):
+                raise ValueError("NFB 逐顆角度／X 位移尚未正式提交，不能丟失後儲存")
+            if slot["source_brand"] != draft["set_brand"]:
+                raise ValueError("品牌已變更，原型號待重選，不可直接存入舊版")
+
+    relevant = chosen[:layer_count]
+    if numeric:
+        expected_models = []
+        for li, row in enumerate(active):
+            for si, slot in enumerate(row["slots"]):
+                ref = slot["filename"]
+                if ref is None:
+                    continue
+                effective_brand = effective_nfb_slot_brand(current, li, si)
+                parsed = parse_numeric_model_ref(ref)
+                if (parsed is None or parsed[0] != effective_brand
+                        or selected_numeric_spec(effective_brand, ref) is None):
+                    raise ValueError("NFB 實際廠牌與 CSV 型號不符，請重新選擇")
+                expected_models.append(ref)
+        selected_models = [model for group in relevant for model in group]
+        if sorted(selected_models) != sorted(expected_models):
+            raise ValueError("NFB CSV 選型與開孔設定不同步，請重新檢查")
+    else:
+        latest_files = (
+            set(numeric_model_refs(parent_brand))
+            | set(model_filenames(parent_brand))
+        )
+        if any(filename not in latest_files
+               for group in relevant for filename in group):
+            raise ValueError("開關型號已不在廠牌 CSV，請重新選擇")
+    return ReceivingNfbEditorConfirmPlan(numeric, bool(source_models))
+
 def _reset_layer_x(layer):
     for slot in layer["slots"]:
         slot["manual_x_mm"]=None
