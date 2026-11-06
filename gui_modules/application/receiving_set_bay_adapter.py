@@ -216,9 +216,15 @@ class ReceivingSetBayAdapter:
         return after != before
 
     def update_setting(self, kind, value):
-        self._layout = manufacturing_api.edit_receiving_shared_setting(self._layout, set_index=self.selection.set_index,
-                                    bay_index=self.selection.bay_index, kind=kind, value=value)
-        self.mark_current_bay_dirty()
+        """Single-Bay editor can also change every sibling sharing its ref."""
+        candidate, affected_ids = (
+            manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(
+                self._layout, set_index=self.selection.set_index,
+                bay_indices=(self.selection.bay_index,), kind=kind, value=value,
+            )
+        )
+        self._layout = candidate
+        self._session_dirty_ids.update(affected_ids)
 
     def apply_setting_to_bays(self, kind, value, bay_indices):
         """Submit operator selection; Engine owns linked physical Bay impact."""
@@ -233,10 +239,16 @@ class ReceivingSetBayAdapter:
         return bool(affected_ids)
 
     def share_setting(self, kind, bay_indices):
-        self._layout = manufacturing_api.share_receiving_shared_setting(self._layout, set_index=self.selection.set_index,
-                                     source_bay_index=self.selection.bay_index,
-                                     bay_indices=bay_indices, kind=kind)
-        self.mark_current_bay_dirty()
+        """GUI never infers which physical Bay refs were linked by Engine."""
+        candidate, affected_ids = (
+            manufacturing_api.share_receiving_shared_setting_with_affected_ids(
+                self._layout, set_index=self.selection.set_index,
+                source_bay_index=self.selection.bay_index,
+                bay_indices=bay_indices, kind=kind,
+            )
+        )
+        self._layout = candidate
+        self._session_dirty_ids.update(affected_ids)
 
     def unlink_setting(self, kind):
         self._layout = manufacturing_api.unlink_receiving_shared_setting(self._layout, set_index=self.selection.set_index,
