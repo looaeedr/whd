@@ -299,6 +299,13 @@ def _confirmed_saved_ordinary_base_plate(values, *, structure, body_rows):
     from .sheetmetal_part_adapters import (
         RECEIVING_BASE_PATTERN_LEFT, RECEIVING_BASE_PATTERN_RIGHT,
     )
+    # The verified-Bay batch admits only ordinary LEFT/RIGHT sources.
+    # Reject CENTER/tier semantics before a family-specific EAR pitch probe
+    # so the API reports an explicit unsupported manufacturing role.
+    if config.get("pattern") not in (
+        RECEIVING_BASE_PATTERN_LEFT, RECEIVING_BASE_PATTERN_RIGHT,
+    ):
+        raise ValueError("RECEIVING_FACTORY_ORDINARY_BASE_PATTERN_UNVERIFIED")
     # This is the exact Engine settings preflight used on the operator side:
     # source dimensions, physical EAR pitch, contour and pattern must agree.
     validate_receiving_base_plate_settings(
