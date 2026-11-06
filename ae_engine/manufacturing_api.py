@@ -2138,6 +2138,13 @@ def submit_receiving_nfb_bays(
     )
 
 
+# #2517: expose the original source-verified UI-1A transaction owner unchanged.
+from .receiving_nfb_ui1b_bridge import (
+    NfbVerifiedDraftSubmission, assert_live_verified_nfb,
+    submit_live_verified_nfb, copy_live_verified_nfb,
+)
+
+
 def select_operator_nfb_copy_bays(layout, set_index, selected_bays):
     """Public Engine selection check for exactly two highlighted physical Bays."""
     from .receiving_nfb_ui1b_bridge import select_operator_nfb_copy_bays as select

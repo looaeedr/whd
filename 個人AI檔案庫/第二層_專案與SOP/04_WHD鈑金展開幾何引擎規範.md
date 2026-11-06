@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 Receiving 已驗來源 NFB Bay 提交／複製公開 Engine 接線（2026-11-06）
+
+- GUI `fold_designer_composition_receiving.py::nfb_transaction_ports` 原直接引用 `receiving_nfb_ui1b_bridge` 的 `NfbVerifiedDraftSubmission`、`assert_live_verified_nfb`、`submit_live_verified_nfb`、`copy_live_verified_nfb`。今改用 `manufacturing_api` 公開原件，套件根 `ae_engine` 同一物件；原 Engine 世界 X、來源 DXF SHA、Set/Bay/version、實體 Door、來源變更撤銷、獨立目標檢驗及 #1500 原子 Submit/Copy 不變。
+- GUI 只保留 transient proof 與 Confirm/Cancel/Undo，不能以暫存 READY 當製造核准或從來源連借目標連物理 X。正式 CUTTING／FinalScene／DXF Save→Reload 仍循既有製造 Gate；`tests/test_issue2517_nfb_verified_transaction_public_api.py` 加 #1500 原 Engine／Tk 測試覆蓋。#2517 全部 GUI 入口及 Windows UAT 尚未完成。
+
 ## [CURRENT] #2517 Receiving 原始內門 NFB CSV 開孔草稿沿用公開 Engine（2026-11-06）
 
 - `gui_modules/application/fold_designer_composition_receiving.py` 的 NFB 即時加入預覽及內嵌確認原本直接 import `receiving_nfb_csv_editor_features.editor_nfb_features_from_csv` 私有來源。兩處改為 `manufacturing_api.editor_nfb_features_from_csv`，套件 `ae_engine.editor_nfb_features_from_csv` 與該公開函式同一物件；原本實體內門、CSV 型號、工作面、碰撞檢查仍由現存 `ae_engine.receiving_nfb_csv_editor_features` 唯一 Engine owner 執行。
