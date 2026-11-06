@@ -1892,6 +1892,7 @@ def build_receiving_factory_confirmed_parts(
     confirmed_endcap_features=None, confirmed_door_layout_columns=(),
     confirmed_door_features=None, include_confirmed_base_plate=False,
     confirmed_base_plate_features=None, confirmed_box_body_piece_features=None,
+    confirmed_box_body_face_features=None,
 ):
     """Public WHD Engine source W/H/D/T -> confirmed Receiving PartSpec boundary.
 
@@ -1909,6 +1910,7 @@ def build_receiving_factory_confirmed_parts(
         include_confirmed_base_plate=include_confirmed_base_plate,
         confirmed_base_plate_features=confirmed_base_plate_features,
         confirmed_box_body_piece_features=confirmed_box_body_piece_features,
+        confirmed_box_body_face_features=confirmed_box_body_face_features,
     )
 
 

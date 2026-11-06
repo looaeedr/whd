@@ -30,7 +30,9 @@ _DOOR_VALUES = ("fw", "door_gap_w", "door_gap_h", "door_fold_l", "door_fold_r", 
 _FAMILY = "受電箱"
 
 
-def _confirmed_finished_face_cutting_features(raw, *, allowed_roles, invalid_code):
+def _confirmed_finished_face_cutting_features(
+    raw, *, allowed_roles, invalid_code, allow_relative_anchor=False,
+):
     """Validate explicitly source-confirmed CUTTING in finished-face coordinates."""
     if raw is None:
         return {}
@@ -43,7 +45,11 @@ def _confirmed_finished_face_cutting_features(raw, *, allowed_roles, invalid_cod
         for feature in rows:
             if not isinstance(feature, (CircleFeature, RectFeature, ProfileFeature)):
                 raise ValueError(invalid_code)
-            if feature.anchor is not FeatureAnchor.ABSOLUTE_FINISHED_FACE or feature.layer != "CUTTING":
+            if feature.layer != "CUTTING" or (
+                not isinstance(feature.anchor, FeatureAnchor)
+                or (not allow_relative_anchor
+                    and feature.anchor is not FeatureAnchor.ABSOLUTE_FINISHED_FACE)
+            ):
                 raise ValueError(invalid_code)
             # Both Head/Tail and Door receive source-confirmed physical CUTTING.
             # A Profile's layered sub-contours can encode another, unconfirmed
@@ -204,6 +210,49 @@ def _confirmed_saved_box_body_piece_features(values, confirmed, *, confirmation)
             code, "RECEIVING_FACTORY_BOX_BODY_FACE_SOURCE_UNCONFIRMED",
         ):
             raise
+        raise ValueError(code) from exc
+
+
+_BOX_BODY_FINISHED_FACES = frozenset(("left", "right", "back"))
+
+
+def _confirmed_saved_box_body_face_features(values, confirmed, *, confirmation):
+    """Validate original operator finished-face holes without manufacturing UV math.
+
+    The same Engine BoxBody structure resolver owns side/back placement and
+    actual seam clipping. Saved GUI source is part_face_features['box_body'];
+    it is independent of physical_piece_features (material-sheet UV).
+    """
+    code = "RECEIVING_FACTORY_BOX_BODY_FACE_SOURCE_UNCONFIRMED"
+    try:
+        physical = _confirmed_finished_face_cutting_features(
+            confirmed, allowed_roles=_BOX_BODY_FINISHED_FACES,
+            invalid_code=code, allow_relative_anchor=True,
+        )
+        if confirmation != "saved_operator_confirmed":
+            return physical
+
+        # Only the original saved 'box_body' face store is compared. Other
+        # feature owners (Doors, Indicator, etc.) retain their own diagnostics.
+        stores = values.get("part_face_features", {})
+        if not isinstance(stores, Mapping):
+            if confirmed is not None:
+                raise ValueError(code)
+            return {}
+        if "box_body" not in stores:
+            return physical
+        saved = stores["box_body"]
+        if not isinstance(saved, Mapping) or set(saved) - _BOX_BODY_FINISHED_FACES:
+            raise ValueError(code)
+        for face, rows in saved.items():
+            if not isinstance(rows, (tuple, list)):
+                raise ValueError(code)
+            # A saved empty face allows independently confirmed CADSplit source.
+            # A saved nonempty physical hole can never be omitted or replaced.
+            if rows and tuple(rows) != physical.get(face, ()):
+                raise ValueError(code)
+        return physical
+    except (AttributeError, TypeError, ValueError, OverflowError) as exc:
         raise ValueError(code) from exc
 
 
@@ -456,6 +505,7 @@ def build_receiving_factory_confirmed_parts(
     include_confirmed_base_plate: bool = False,
     confirmed_base_plate_features: Mapping[str, object] | None = None,
     confirmed_box_body_piece_features: Mapping[str, object] | None = None,
+    confirmed_box_body_face_features: Mapping[str, object] | None = None,
 ):
     """Resolve a confirmed Receiving P1/Bay's Body, Head and Tail via WHD Engine.
 
@@ -520,11 +570,15 @@ def build_receiving_factory_confirmed_parts(
     confirmed_body_pieces = _confirmed_saved_box_body_piece_features(
         values, confirmed_box_body_piece_features, confirmation=confirmation,
     )
+    confirmed_body_faces = _confirmed_saved_box_body_face_features(
+        values, confirmed_box_body_face_features, confirmation=confirmation,
+    )
     # Force the BoxBody owner to consume only source-confirmed sheets even
     # when a legacy saved snapshot contained extra, untrusted physical data.
     body_snapshot = {**values, "physical_piece_features": confirmed_body_pieces}
     body = build_box_body_operator_part_spec(
         values, model_name=_FAMILY,
+        face_features=confirmed_body_faces,
         fold_profile=body_rows,
         structure_state=structure,
         endcap_y_profiles={
