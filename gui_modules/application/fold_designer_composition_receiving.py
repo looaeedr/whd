@@ -129,6 +129,18 @@ from gui_modules.application.fold_designer_snapshot_projection import (
     _make_original_fold_designer_snapshot,
 )
 
+def _receiving_setting_value(set_row, bay_index, kind):
+    """Project an actual persisted Bay value through the public Engine API.
+
+    GUI must not import the private shared-setting storage policy or infer
+    physical per-Bay values from presentation state.
+    """
+    value, _linked_bays = manufacturing_api.project_receiving_shared_setting_group(
+        set_row, bay_index, kind,
+    )
+    return value
+
+
 def _checked_nfb_copy_selection(layout, set_index, selected_bays):
     """Legacy GUI entry, delegated to Engine's strict Bay identity check."""
     return manufacturing_api.select_operator_nfb_copy_bays(
@@ -1453,10 +1465,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         No editor popup, duplicated parser, or manufacturing calculation is
         initiated merely by selecting a category in the Listbox.
         """
-        from ae_engine.receiving_shared_settings import setting_value
         ports = self.receiving_settings_ports(namespace, int(set_index))
         ports["select"](int(bay_index))
-        return setting_value(ports["row"](), int(bay_index), kind)
+        return _receiving_setting_value(ports["row"](), int(bay_index), kind)
 
     def single_brand():
         # Quantity's selected version owns the parent; no Tk-side model policy.
@@ -1735,7 +1746,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         create_inner_candidate, update_inner_candidate,
         delete_inner_candidate, duplicate_inner_candidate,
     )
-    from ae_engine.receiving_shared_settings import setting_value, switch_filenames_in_layer, pack_switch_layer, validate_setting, SETTING_DEFAULTS
+    from ae_engine.receiving_shared_settings import switch_filenames_in_layer, pack_switch_layer, validate_setting, SETTING_DEFAULTS
     from ae_engine.receiving_switch_model_catalog import INDEX_PATH
     from ae_engine.receiving_nfb_model_identity import (
         display_model_ref, validate_stored_model_ref,
@@ -1786,9 +1797,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             set_row = adapter.layout["sets"][adapter.selection.set_index]
             bi = adapter.selection.bay_index
             initial = {
-                "layers": setting_value(set_row, bi, "inner_door_layers"),
-                "models": setting_value(set_row, bi, "inner_door_models"),
-                "layer_heights_mm": setting_value(set_row, bi, "inner_door_layer_heights_mm"),
+                "layers": _receiving_setting_value(set_row, bi, "inner_door_layers"),
+                "models": _receiving_setting_value(set_row, bi, "inner_door_models"),
+                "layer_heights_mm": _receiving_setting_value(set_row, bi, "inner_door_layer_heights_mm"),
             }
         else:
             initial = inner_config(inner_library(), version_id)
@@ -3056,7 +3067,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 # Ask the public Engine to decide actual Door/Base identity,
                 # dependencies and source status. The temporary scene remains
                 # a read-only witness, never a manufacturing authorization.
-                from ae_engine.receiving_shared_settings import setting_value
                 current = nfb_physical_bay_snapshot(set_index, bay_index)
                 physical_parts = ()
                 try:
@@ -3079,7 +3089,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     physical_snapshot=current,
                     set_id=str(owner["stable_id"]),
                     bay_id=str(bay["stable_id"]),
-                    version_id=setting_value(
+                    version_id=_receiving_setting_value(
                         owner, bay_index, "inner_door_version_id",
                     ),
                     physical_parts=physical_parts,
@@ -3385,10 +3395,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     def applied_version_labels(set_index):
         """Read ONLY persisted per-Bay identifiers from the current layout."""
-        from ae_engine.receiving_shared_settings import setting_value
         selected_set = candidate_adapter().layout["sets"][set_index]
         return tuple({
-            role: setting_value(selected_set, bi, kind)
+            role: _receiving_setting_value(selected_set, bi, kind)
             for role, kind in (
                 ("head", "head_version_id"),
                 ("tail", "tail_version_id"),
@@ -3401,11 +3410,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         selected = adapter.selection
         row = adapter.layout["sets"][selected.set_index]
         config = {
-            "layers": setting_value(row, selected.bay_index, "inner_door_layers"),
-            "models": setting_value(row, selected.bay_index, "inner_door_models"),
-            "features": setting_value(row, selected.bay_index, "inner_door_features"),
+            "layers": _receiving_setting_value(row, selected.bay_index, "inner_door_layers"),
+            "models": _receiving_setting_value(row, selected.bay_index, "inner_door_models"),
+            "features": _receiving_setting_value(row, selected.bay_index, "inner_door_features"),
         }
-        heights = setting_value(row, selected.bay_index, "inner_door_layer_heights_mm")
+        heights = _receiving_setting_value(row, selected.bay_index, "inner_door_layer_heights_mm")
         if heights is not None:
             config["layer_heights_mm"] = heights
         return config
