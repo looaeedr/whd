@@ -250,6 +250,20 @@ class ReceivingSetBayAdapter:
         self._layout = candidate
         self._session_dirty_ids.update(affected_ids)
 
+    def share_and_update_setting(self, kind, value, bay_indices):
+        """One Hole Editor save is one complete Engine source transaction."""
+        indices = tuple(bay_indices)
+        candidate, affected_ids = (
+            manufacturing_api.share_and_edit_receiving_shared_setting_with_affected_ids(
+                self._layout, set_index=self.selection.set_index,
+                bay_indices=indices,
+                source_bay_index=indices[0] if indices else self.selection.bay_index,
+                kind=kind, value=value,
+            )
+        )
+        self._layout = candidate
+        self._session_dirty_ids.update(affected_ids)
+
     def unlink_setting(self, kind):
         self._layout = manufacturing_api.unlink_receiving_shared_setting(self._layout, set_index=self.selection.set_index,
                                       bay_index=self.selection.bay_index, kind=kind)
