@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Quantity 候選配置 2D 示意門縫不得由 GUI 硬編（2026-11-06）
+
+- 受電箱封頭尾「數量配置」草稿只有連數與候選版本選取，尚無每一實體 Bay 的已確認 Door 拓樸。原 `receiving_quantity_allocation_ui.ReceivingQuantityAllocationUI.paint` 以 GUI 常數 `1100/1600` 決定上下門示意線；現須呼叫既有 `manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)` 使用 Receiving Family 預設的純示意比例，不能在 GUI 重製製造尺寸推導。
+- 已存 Set/Bay 的 2D 示意圖仍必須把實體 Bay 交給同一 Engine 公開 API；複雜門格不可假畫一條單純分割線。此批只更換 count-only 草稿的唯讀顯示來源，不更動實體 Door／NFB Features、Factory／FinalScene、3D、DXF 或 Save→Reload 放行；#2517／Windows 實機 UAT 維持未結案。
+
+
 ## [CURRENT] #2517 NFB 舊 DXF 原始來源預覽快取不得沿用已替換圖（2026-11-06）
 
 - 原 `ae_engine.receiving_nfb_2d_preview.NfbDxfPreviewCache.load` 只按 `brand/filename/path/size/mtime_ns` 緩存舊 NFB DXF 預覽；真來源內容若被等長替換並保留修改時間，GUI 可能繼續顯示過期圖元與原 SHA，誤導來源核對。本批保留原 `inspect_indexed_nfb_preview` 為唯一讀 DXF 來源 owner，增加 `st_ctime_ns` 作輔助版本因子，且每次選取都核對**原 DXF 位元組 SHA-256**（包含快取命中）；讀取前後重取 `size/mtime_ns/ctime_ns` 與 SHA，任一漂移時 fail closed，不寫入快取、不對失效圖出具當前來源快照。刪除／新建狀態仍需重讀，來源 unchanged 則可命中原受限 LRU。
