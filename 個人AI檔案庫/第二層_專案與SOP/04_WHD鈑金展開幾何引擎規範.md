@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 Fold Designer 內門 Single/Candidate Confirm 來源設定改走公開 Engine（2026-11-06）
+
+- `fold_designer_composition_receiving.py::inner_edit` 的 embedded staged settings 回復只呼叫 `manufacturing_api.validate_receiving_inner_door_config`，不直接 import 私有 `receiving_inner_door_candidates.validate_door_config`；此公開入口仍委派同一 Engine 驗證 owner。
+- `launch_inner_editor.confirmed` 針對 Set/Bay Single 與未套用 Candidate 皆使用既有 `manufacturing_api.prepare_receiving_inner_door_physical_confirm` 完整驗證實體內門 ID、來源設定、Feature，GUI 禁止自行複製／組合 `features[part_key]` 作為加工權威。Single 仍交原 Engine atomic Bay Apply；Candidate 只存獨立版本庫，未 Apply 不寫 Bay。Quantity 原預檢與 NFB CSV 確認交易不變，兩者均未授權 DXF。
+
 ## [CURRENT] #2517 內門直接 Confirm All 的實體設定組裝歸公開 Engine API（2026-11-06）
 
 - 受電箱內門 Hole Editor `receiving_inner_door_hole_editor.open_inner_door_hole_editor` 在直接 Set/Bay Confirm All 不能私有 import `receiving_inner_door_candidates.validate_door_config`、也不能在 GUI 依 `part_key` 自行組合 `features` 製造設定。須交 `manufacturing_api.prepare_receiving_inner_door_physical_confirm(staged_config, part_key, final_features)` 用既有實體身份 `door_display_part_role` 與既有 `validate_door_config` 驗證、深複製並產出 detached config，GUI 只交回既有 `ReceivingSetBayAdapter.apply_inner_door_candidate_to_bays`。非法實體門板或非法設定拒絕；任何拒絕之前不可更動持久化 Bay。
