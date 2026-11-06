@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer Head/Tail 四邊 Joint Policy 與舊 Joint 啟動狀態共用公開 Engine（2026-11-06）
+
+- 原 `fold_designer_bridge._phase6_endcap_joint_policy_rows` 在 GUI 直接將 `assembly_joint.migrate_legacy_snapshot_joints`、`assembly_intent.get_assembly_intent`、`assembly_joint.edge_relation_for_part` 組合成可編輯接合關係；`_phase6_bootstrap_authoritative_state` 也直接呼叫內部 Joint migration。這些是已保存物理 Joint 的解讀／遷移，不可由 GUI 持有其操作權威。
+- 原 Engine `assembly_joint.migrate_legacy_snapshot_joints` 僅以 `manufacturing_api.migrate_operator_assembly_joint_snapshot`（根包亦同名）公開**相同 callable**，保留 schema-1→v2、已選組合型態、明確使用者 Joint 和 Save→Reload 語意；原 Engine owner 增加 `project_operator_endcap_joint_edge_policies(snapshot, part_key, *, fallback_intent)`，直接呼叫該 migration、原 `get_assembly_intent` Registry 與 `edge_relation_for_part`，對真實 Head/Tail 的 TOP/BOTTOM/LEFT/RIGHT 回傳候選 relation/allowed/editable，非法來源不修改原快照。GUI 只轉換 Engine relation enum 為既有中文標籤，不再組裝 Policy。
+- 此為持久化來源與唯讀 Joint 控制項投影接線，不更動 Corner/Relief 的製造幾何、現有 Joint 提交交易、FinalScene 或 DXF。以 public-vs-owner 等價、四組 Assembly Intent、負向 source 不變性、GUI seam 及既有完整 CI 驗收；#2517/Windows R5 UAT 仍保持 OPEN。
+
 ## [CURRENT] #2517 Receiving Factory 保存的 Head／Tail 孔位不可在確認來源中消失（2026-11-06）
 
 - `confirmed_endcap_features` 本來會對合法 Head/Tail finished-face typed CUTTING 做來源形狀驗證，卻沒有與 `saved_operator_confirmed` 原 `part_features["head"／"tail"]` 對照；因此已保存孔位可能在製造中被漏掉，或被另一份不符孔位取代。原 `receiving_factory_requests` 現在檢查：保存該角色有非空 Feature 時，對外確認必須逐 Feature 相同；保存角色的欄位不合法也拒絕 `RECEIVING_SAVED_ENDCAP_SOURCE_FEATURES_MISMATCH`，且不得先寫出部分 DXF。

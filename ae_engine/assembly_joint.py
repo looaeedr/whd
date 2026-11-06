@@ -1076,3 +1076,33 @@ def resolve_manufacturing_joint_graph(snapshot, available_part_keys):
     ):
         raise ValueError("自訂板件尚無已確認 assembly placement，不能建立組裝 joint")
     return ResolvedAssemblyGraph(tuple(sorted(available)), joints)
+
+
+def project_operator_endcap_joint_edge_policies(
+    snapshot: Mapping[str, object], part_key: str, *, fallback_intent="INSERT_OVERLAY",
+) -> tuple[dict[str, object], ...]:
+    """Project all four physical Head/Tail edge relations from canonical Joint state.
+
+    This is a detached source/Policy preview, not a manufacturing authorization.
+    GUI supplies only the raw saved snapshot and current Assembly Intent.
+    """
+    from .assembly_intent import get_assembly_intent
+
+    if not isinstance(snapshot, Mapping):
+        raise ValueError("ENDCAP_JOINT_SOURCE_MAPPING_REQUIRED")
+    if part_key not in ("head", "tail"):
+        raise ValueError("ENDCAP_JOINT_PHYSICAL_PART_REQUIRED")
+
+    state = migrate_legacy_snapshot_joints(snapshot)
+    record = get_assembly_intent(state.get("assembly_type") or fallback_intent)
+    rows = []
+    for edge in ("TOP", "BOTTOM", "LEFT", "RIGHT"):
+        policy = record.edge_policy(edge)
+        relation = edge_relation_for_part(state, part_key, edge) or policy.default_relation
+        rows.append({
+            "edge": edge,
+            "relation": relation,
+            "allowed": tuple(policy.allowed_relations),
+            "editable": bool(policy.editable),
+        })
+    return tuple(rows)
