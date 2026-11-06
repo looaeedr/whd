@@ -424,11 +424,7 @@ def _corner_section(part_key: str) -> str:
 
 
 def load_corner_defaults_from_ini(ae_module):
-    """載入各板件可選的截角預設值，回傳可直接序列化的資料。
-
-    新的截角製造參數會和 type id 一起保存。舊 C01-C04 區段仍可讀取；
-    缺少的新語意欄位稍後由幾何引擎統一轉換並補回相容預設值。
-    """
+    """Read persisted INI only; Engine owns physical CornerType decoding."""
     parser = _parser_for_ae(ae_module)
     states = {}
     pairs = {}
@@ -436,43 +432,9 @@ def load_corner_defaults_from_ini(ae_module):
         section = _corner_section(part_key)
         if not parser.has_section(section):
             continue
-        pair_state = {
-            "top": parser.getboolean(section, "top_same", fallback=True),
-            "bottom": parser.getboolean(section, "bottom_same", fallback=True),
-        }
-        corner_state = {}
-        for corner_key in CORNER_KEYS:
-            if not parser.has_option(section, corner_key):
-                continue
-            type_id = parser.get(section, corner_key, fallback="CROSS").strip().upper()
-            rotation = manufacturing_api.project_operator_corner_ini_rotation(
-                type_id, parser.getint(section, f"{corner_key}_rotation", fallback=0),
-            )
-            raw = {"type_id": type_id, "rotation_quadrants": rotation}
-            text_fields = {
-                "cross_mode": f"{corner_key}_cross_mode",
-                "direction": f"{corner_key}_direction",
-            }
-            for field, option in text_fields.items():
-                if parser.has_option(section, option):
-                    value = parser.get(section, option).strip().lower()
-                    if value:
-                        raw[field] = value
-            float_fields = {
-                "amount_t": f"{corner_key}_amount_t",
-                "secondary_retain_t": f"{corner_key}_secondary_retain_t",
-                "secondary_depth_t": f"{corner_key}_secondary_depth_t",
-            }
-            for field, option in float_fields.items():
-                if parser.has_option(section, option):
-                    # The Engine owns finite, non-bool Corner source values;
-                    # malformed saved options cannot become geometry input.
-                    normalized = manufacturing_api.normalize_operator_settings_updates(
-                        {field: 0.0}, {field: parser.get(section, option)},
-                    )
-                    if field in normalized:
-                        raw[field] = normalized[field]
-            corner_state[corner_key] = raw
+        corner_state, pair_state = manufacturing_api.project_operator_corner_ini_load_section(
+            dict(parser.items(section)),
+        )
         if corner_state:
             states[part_key] = corner_state
         pairs[part_key] = pair_state
@@ -499,48 +461,14 @@ def save_corner_defaults_to_ini(ae_module, corner_state, corner_pair_same, *, co
     if not parser.has_section(section):
         parser.add_section(section)
     pairs = dict((corner_pair_same or {}).get(part_key) or {})
-    top_same = manufacturing_api.normalize_operator_settings_boolean(
-        pairs.get("top", True),
-    )
-    bottom_same = manufacturing_api.normalize_operator_settings_boolean(
-        pairs.get("bottom", True),
-    )
-    parser.set(section, "top_same", "true" if top_same else "false")
-    parser.set(section, "bottom_same", "true" if bottom_same else "false")
     corners = dict((corner_state or {}).get(part_key) or {})
-    for corner_key in CORNER_KEYS:
-        raw = corners.get(corner_key)
-        if not isinstance(raw, Mapping):
-            continue
-        type_id = str(raw.get("type_id", "CROSS")).strip().upper()
-        rotation = manufacturing_api.project_operator_corner_ini_rotation(
-            type_id, raw.get("rotation_quadrants", 0),
-        )
-        parser.set(section, corner_key, type_id)
-        parser.set(section, f"{corner_key}_rotation", str(rotation))
-
-        semantic_options = {
-            "cross_mode": f"{corner_key}_cross_mode",
-            "direction": f"{corner_key}_direction",
-            "amount_t": f"{corner_key}_amount_t",
-            "secondary_retain_t": f"{corner_key}_secondary_retain_t",
-            "secondary_depth_t": f"{corner_key}_secondary_depth_t",
-        }
-        for field, option in semantic_options.items():
-            value = raw.get(field)
-            if value is None or value == "":
-                parser.remove_option(section, option)
-                continue
-            if field.endswith("_t"):
-                normalized = manufacturing_api.normalize_operator_settings_updates(
-                    {field: 0.0}, {field: value},
-                )
-                if field not in normalized:
-                    raise ValueError(f"截角 {field} 必須是有限數值")
-                text = f"{normalized[field]:g}"
-            else:
-                text = str(getattr(value, "value", value)).strip().lower()
-            parser.set(section, option, text)
+    for option, value in manufacturing_api.project_operator_corner_ini_save_options(
+        corners, pairs,
+    ).items():
+        if value is None:
+            parser.remove_option(section, option)
+        else:
+            parser.set(section, option, value)
 
     ini_path.parent.mkdir(parents=True, exist_ok=True)
     with ini_path.open("w", encoding="utf-8") as fh:
