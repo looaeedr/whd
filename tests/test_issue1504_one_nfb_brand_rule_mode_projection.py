@@ -98,9 +98,13 @@ def test_all_inner_editor_gui_nfb_source_call_sites_use_same_active_mode_owner()
     # Quantity writes the selected VERSION parent, not the common dimensions.
     # Set/Bay continues using the one existing Set.switch_brand port.
     assert 'candidate = update_common_box(source, {"switch_brand": value})' not in gui
-    assert 'quantity.set_version_nfb_parent_brand(' in gui
-    assert 'quantity.nfb_parent_brand_for_version(' in gui
-    assert 'candidate["quantity"] = quantity.snapshot()' in gui
+    # The saved Quantity owner is still the same Engine model, but GUI
+    # must only call its public facade instead of deciding the transaction.
+    assert 'manufacturing_api.update_receiving_quantity_nfb_parent_brand(' in gui
+    assert 'manufacturing_api.project_receiving_quantity_nfb_parent_brand(' in gui
+    assert 'manufacturing_api.project_receiving_parent_brand_change_impact(' in gui
+    assert 'quantity.set_version_nfb_parent_brand(' not in gui
+    assert 'candidate["quantity"] = quantity.snapshot()' not in gui
     assert 'adapter.set_global_brand(value)' in gui
     assert 'def current_nfb_parent_brand():' in gui
     assert 'if _current_mode_snapshot(self, namespace).get("active_mode") == "quantity":' in gui

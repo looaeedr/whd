@@ -68,6 +68,76 @@ def draft_new_reselections(before, proposed):
                 count += 1
     return count
 
+
+def _quantity_nfb_parent_context(snapshot):
+    """Resolve only persisted Quantity-version NFB parent state, not Tk aliases."""
+    from collections.abc import Mapping
+    from .receiving_quantity_versions import QuantityModel
+    from .receiving_quantity_box import normalize_common_box
+
+    if not isinstance(snapshot, Mapping) or snapshot.get("active_mode") != "quantity":
+        raise ValueError("單只品牌需在單箱體模式設定")
+    quantity = QuantityModel.from_payload(snapshot["quantity"])
+    box = normalize_common_box(snapshot.get("receiving_quantity_box"))
+    brand = quantity.nfb_parent_brand_for_version(
+        quantity.selected_version_id, legacy_default=box["switch_brand"],
+    )
+    return quantity, box, brand
+
+
+def project_receiving_quantity_nfb_parent_brand(snapshot):
+    """Public read-only selected Quantity version's actual NFB brand."""
+    return _quantity_nfb_parent_context(snapshot)[2]
+
+
+def update_receiving_quantity_nfb_parent_brand(snapshot, proposed_brand):
+    """Return detached state + changed flag for one Quantity brand transaction.
+
+    The current selected version is authoritative; legacy common-box brand is
+    migration-only. Preserve other versions and every physical NFB source.
+    """
+    from copy import deepcopy
+
+    quantity, box, old_brand = _quantity_nfb_parent_context(snapshot)
+    candidate = deepcopy(dict(snapshot))
+    if (old_brand == proposed_brand
+            and all("nfb_parent_brand" in row
+                    for row in quantity.snapshot()["versions"])):
+        return candidate, False
+    changed = quantity.set_version_nfb_parent_brand(
+        quantity.selected_version_id, proposed_brand,
+        legacy_default=box["switch_brand"],
+    )
+    if changed:
+        candidate["quantity"] = quantity.snapshot()
+    return candidate, changed
+
+
+def project_receiving_parent_brand_change_impact(source, proposed_brand, *, mode):
+    """Read-only real saved hole IDs newly stale across Quantity or ALL Sets.
+
+    Do not infer manufacturing readiness, unset a valid override, or count
+    unsubmitted NFB draft slots. All actual Set/Bay ownership is Engine-side.
+    """
+    _require_brand(proposed_brand)
+    if mode == "quantity":
+        quantity, _box, old_brand = _quantity_nfb_parent_context(source)
+        return saved_parent_new_reselections(
+            quantity.nfb_config_for_version(quantity.selected_version_id),
+            old_brand, proposed_brand,
+        )
+    if mode == "set_bay":
+        from .receiving_layout import normalize_receiving_layout
+        layout = normalize_receiving_layout(source)
+        return sum(
+            saved_parent_new_reselections(
+                bay, set_row.get("switch_brand", "士林"), proposed_brand,
+            )
+            for set_row in layout["sets"] for bay in set_row["bays"]
+        )
+    raise ValueError("NFB 品牌預告模式不合法")
+
+
 def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
     """Return a detached Set row with stale inherited physical NFB X revoked.
 

@@ -1459,59 +1459,25 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         return setting_value(ports["row"](), int(bay_index), kind)
 
     def single_brand():
-        from phase6_quantity_model import QuantityModel
-        source = _current_mode_snapshot(self, namespace)
-        box = manufacturing_api.normalize_common_box(source.get("receiving_quantity_box"))
-        quantity = QuantityModel.from_payload(source["quantity"])
-        return quantity.nfb_parent_brand_for_version(
-            quantity.selected_version_id, legacy_default=box["switch_brand"],
+        # Quantity's selected version owns the parent; no Tk-side model policy.
+        return manufacturing_api.project_receiving_quantity_nfb_parent_brand(
+            _current_mode_snapshot(self, namespace),
         )
 
     def set_single_brand(value):
-        from phase6_quantity_model import QuantityModel
-        source = _current_mode_snapshot(self, namespace)
-        if source.get("active_mode") != "quantity":
-            raise ValueError("單只品牌需在單箱體模式設定")
-        quantity = QuantityModel.from_payload(source["quantity"])
-        box = manufacturing_api.normalize_common_box(source.get("receiving_quantity_box"))
-        if (quantity.nfb_parent_brand_for_version(
-                quantity.selected_version_id, legacy_default=box["switch_brand"])
-                == value
-                and all("nfb_parent_brand" in row
-                        for row in quantity.snapshot()["versions"])):
-            return False
-        if not quantity.set_version_nfb_parent_brand(
-                quantity.selected_version_id, value,
-                legacy_default=box["switch_brand"]):
-            return False
-        candidate = deepcopy(source)
-        candidate["quantity"] = quantity.snapshot()
-        _apply_mode_snapshot(self, namespace, candidate)
-        return True
+        candidate, changed = manufacturing_api.update_receiving_quantity_nfb_parent_brand(
+            _current_mode_snapshot(self, namespace), value,
+        )
+        if changed:
+            _apply_mode_snapshot(self, namespace, candidate)
+        return changed
 
     def preview_parent_brand_impact(value):
-        from ae_engine.receiving_nfb_brand_transition import (
-            saved_parent_new_reselections,
-        )
-        if single:
-            from phase6_quantity_model import QuantityModel
-            source = _current_mode_snapshot(self, namespace)
-            q = QuantityModel.from_payload(source["quantity"])
-            common = manufacturing_api.normalize_common_box(source.get("receiving_quantity_box"))
-            old = q.nfb_parent_brand_for_version(
-                q.selected_version_id, legacy_default=common["switch_brand"],
-            )
-            return saved_parent_new_reselections(
-                q.nfb_config_for_version(q.selected_version_id), old, value,
-            )
-        adapter = self.receiving_adapter(namespace)
-        # Global brand updates EVERY Set, not merely the currently displayed
-        # Set/Bay. Each physical Bay's submitted source gets its own notice.
-        return sum(
-            saved_parent_new_reselections(
-                bay, row.get("switch_brand", "士林"), value,
-            )
-            for row in adapter.layout["sets"] for bay in row["bays"]
+        # Operator chooses the scope; only Engine may count physical NFB slots.
+        source = (_current_mode_snapshot(self, namespace)
+                  if single else self.receiving_adapter(namespace).layout)
+        return manufacturing_api.project_receiving_parent_brand_change_impact(
+            source, value, mode="quantity" if single else "set_bay",
         )
 
     def set_global_brand(value):

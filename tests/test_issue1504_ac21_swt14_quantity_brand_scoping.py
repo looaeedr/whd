@@ -213,10 +213,13 @@ def test_ac21_swt14_original_gui_brand_selector_uses_selected_version_only():
          ).read_text(encoding="utf-8")
     block=gui.split("    def single_brand():",1)[1].split(
         "    def set_global_brand(value):",1)[0]
-    assert "quantity.selected_version_id" in block
-    assert "quantity.nfb_parent_brand_for_version(" in block
-    assert "quantity.set_version_nfb_parent_brand(" in block
-    assert 'candidate["quantity"] = quantity.snapshot()' in block
+    # Per-version ownership remains in QuantityModel, now reached only
+    # through public Engine APIs instead of duplicating that transaction in GUI.
+    assert "manufacturing_api.project_receiving_quantity_nfb_parent_brand(" in block
+    assert "manufacturing_api.update_receiving_quantity_nfb_parent_brand(" in block
+    assert "manufacturing_api.project_receiving_parent_brand_change_impact(" in block
+    assert "quantity.set_version_nfb_parent_brand(" not in block
+    assert 'candidate["quantity"] = quantity.snapshot()' not in block
     assert 'update_common_box(source, {"switch_brand": value})' not in block
     assert 'get_brand=(single_brand if single else' in gui
     assert 'set_brand=set_single_brand if single else set_global_brand' in gui

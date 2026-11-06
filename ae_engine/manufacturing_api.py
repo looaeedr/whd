@@ -2132,6 +2132,11 @@ def require_receiving_operator_brand(brand):
 
 # The public entry is the identical Engine owner, not a GUI-specific duplicate.
 from .receiving_nfb_ui1a_edits import plan_receiving_nfb_editor_confirm
+from .receiving_nfb_brand_transition import (
+    project_receiving_quantity_nfb_parent_brand,
+    update_receiving_quantity_nfb_parent_brand,
+    project_receiving_parent_brand_change_impact,
+)
 
 
 def list_receiving_nfb_model_refs(brand: str) -> tuple[str, ...]:

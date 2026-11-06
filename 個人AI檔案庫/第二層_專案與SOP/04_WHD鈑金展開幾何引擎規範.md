@@ -5,6 +5,13 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+
+## [CURRENT] #2517 NFB Parent Brand 的單只版本／全 Set-Bay 來源交易改由公開 Engine（2026-11-06）
+
+- 原 Receiving GUI `single_brand`／`set_single_brand` 自行讀取 `QuantityModel`、舊共用箱品牌及版本遷移，`preview_parent_brand_impact` 直接呼叫 `receiving_nfb_brand_transition.saved_parent_new_reselections`，並逐 Set/Bay 決定實體 NFB 受影響顆數。這些是已提交物理來源與版本權威，並非 GUI 展示規則。
+- 既有 owner `ae_engine.receiving_nfb_brand_transition` 新增 `project_receiving_quantity_nfb_parent_brand(snapshot)`、`update_receiving_quantity_nfb_parent_brand(snapshot, proposed_brand)`（回傳獨立候選快照與 changed，支援舊 common-box→獨立版本品牌原子遷移）以及 `project_receiving_parent_brand_change_impact(source, proposed_brand, *, mode)`（只計被新品牌影響的已提交 INHERIT 實體孔；選定 Quantity 版本或全部已保存 Set/Bay）。
+- `manufacturing_api` 與 `ae_engine` 根包匯出相同 Engine owner；GUI 只選作業模式、送目前儲存來源、顯示 warning，成功時才持久化 detached 候選。非法品牌／模式、破壞的 Quantity/Layout 資料均 fail closed。保持 NFB 已確認世界 X 撤銷保護／個別覆寫／版本與實體 Bay 隔離；此變更**不**產出新的孔位、PartSpec、CUTTING、FinalScene 或 DXF 製造資格。驗收 `tests/test_issue2517_nfb_parent_brand_operations_public_api.py`；#2517 整體與 Windows UAT 未因此結案。
+
 ## [CURRENT] #2517 Receiving NFB Confirm 來源／型號資格由 Engine 獨立驗證（2026-11-06）
 
 - 原 `gui_modules/application/fold_designer_composition_receiving.py::inner_edit.confirm` 直接用 `is_numeric_model_ref/parse_numeric_model_ref`、`effective_nfb_slot_brand`、CSV 型號清單及草稿角度／X 旗標，判斷實體槽位與品牌是否相符、舊版候選是否會丟失逐顆資料。這些是 Engine 來源／儲存資格，不是 GUI 顯示判斷。
