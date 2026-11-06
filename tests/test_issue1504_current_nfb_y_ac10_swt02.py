@@ -151,6 +151,7 @@ def test_nfb_ac10_fresh_original_editor_keeps_current_330_830_not_legacy_overrid
     """The ACTUAL WHD receiving editor must not revive superseded 550/800 defaults."""
     from pathlib import Path
     from ae_engine.receiving_shared_settings import SETTING_DEFAULTS, validate_setting
+    from ae_engine import manufacturing_api
     from ae_engine.receiving_inner_door_candidates import validate_door_config
 
     assert SETTING_DEFAULTS["inner_door_layer_heights_mm"] == [330.0, 830.0]
@@ -160,7 +161,9 @@ def test_nfb_ac10_fresh_original_editor_keeps_current_330_830_not_legacy_overrid
     start = text.index("    def inner_edit(role, version_id, after_saved,")
     end = text.index("    def current_inner_editor_config():", start)
     source = text[start:end]
-    assert 'SETTING_DEFAULTS["inner_door_layer_heights_mm"]' in source
+    assert manufacturing_api.receiving_inner_door_legacy_layer_height_defaults() == SETTING_DEFAULTS["inner_door_layer_heights_mm"]
+    assert "manufacturing_api.receiving_inner_door_legacy_layer_height_defaults()" in source
+    assert 'SETTING_DEFAULTS["inner_door_layer_heights_mm"]' not in source
     assert 'initial["layer_heights_mm"] = [550.0, 800.0]' not in source
     assert 'for v in initial["layer_heights_mm"]' in source
     assert 'layer_height_vars = tuple(' in source

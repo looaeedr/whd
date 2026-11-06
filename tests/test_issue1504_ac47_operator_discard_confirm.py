@@ -11,6 +11,8 @@ from pathlib import Path
 import textwrap
 import tkinter as tk
 
+from ae_engine import manufacturing_api
+
 
 ROOT = Path(__file__).resolve().parents[1]
 EDITOR = ROOT / "gui_modules/application/fold_designer_composition_receiving.py"
@@ -90,7 +92,7 @@ def _setup(*, response=False, embedded=False):
     node, body = _close_editor_function()
     modal = _Modal()
     msg = _MessageBox(response)
-    base_draft = {"layer_count": 1, "models": [["model:old"], []]}
+    base_draft = {"layer_count": 1, "models": [["400_140X257_107.dxf"], []]}
     embed_parent = _EmbeddedParent() if embedded else None
     returned = []
     data = {
@@ -99,13 +101,13 @@ def _setup(*, response=False, embedded=False):
         "initial_nfb_draft": deepcopy(base_draft),
         "layers": _Var(1),
         "initial": {
-            "layers": 1, "models": [["model:old"], ""],
+            "layers": 1, "models": [["400_140X257_107.dxf"], ""],
             "layer_heights_mm": [550.0, 800.0],
         },
-        "chosen": [["model:old"], []],
+        "chosen": [["400_140X257_107.dxf"], []],
         "layer_height_vars": (_Var("550"), _Var("800")),
         "nfb_source_viewed": {"value": False},
-        "switch_filenames_in_layer": lambda row: [row] if isinstance(row, str) and row else list(row),
+        "manufacturing_api": manufacturing_api,
         "messagebox": msg,
         "modal": modal,
         "poll_job": {"id": "source-preview-job"},
@@ -162,7 +164,7 @@ def test_ac47_preview_only_has_no_phantom_unsaved_change_prompt():
 def test_ac47_uncommitted_height_and_model_choices_require_discard_confirmation():
     for mutate in (
         lambda state: state["layer_height_vars"][0].set("333"),
-        lambda state: state["chosen"][0].append("model:another"),
+        lambda state: state["chosen"][0].append("nfbv5:士林:2P400"),
         lambda state: state["layers"].set(2),
     ):
         data, _node, msg, modal, _ = _setup(response=False)

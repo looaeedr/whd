@@ -2121,6 +2121,8 @@ from .receiving_layout import (
     project_receiving_bay_legacy_aliases,
 )
 from .receiving_shared_settings import (
+    switch_filenames_in_layer as receiving_nfb_switch_filenames_in_layer,
+    pack_switch_layer as pack_receiving_nfb_switch_layer,
     project_receiving_shared_setting_group,
     edit_setting as edit_receiving_shared_setting,
     edit_setting_for_bays as edit_receiving_shared_setting_for_bays,
@@ -2131,6 +2133,16 @@ from .receiving_manufacturing_readiness import (
     ReceivingManufacturingFailure, evaluate_receiving_manufacturing_readiness,
     receiving_readiness_projection,
 )
+
+
+def receiving_inner_door_legacy_layer_height_defaults() -> list[float]:
+    """Detach original legacy Quantity/editor fallback heights, no Y inference.
+
+    Only the Engine owns the original [330, 830] two-slot compatibility
+    default. This is source display fallback, not a new physical NFB datum.
+    """
+    from .receiving_shared_settings import SETTING_DEFAULTS
+    return list(SETTING_DEFAULTS["inner_door_layer_heights_mm"])
 
 
 def receiving_operator_switch_brand_choices() -> tuple[str, ...]:

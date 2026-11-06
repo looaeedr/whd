@@ -1746,7 +1746,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         create_inner_candidate, update_inner_candidate,
         delete_inner_candidate, duplicate_inner_candidate,
     )
-    from ae_engine.receiving_shared_settings import switch_filenames_in_layer, pack_switch_layer, validate_setting, SETTING_DEFAULTS
     from ae_engine.receiving_switch_model_catalog import INDEX_PATH
     from ae_engine.receiving_nfb_model_identity import (
         display_model_ref, validate_stored_model_ref,
@@ -1772,7 +1771,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             raise ValueError("內門版本權責錯誤")
         from tkinter import ttk, messagebox
         import tkinter as tk
-        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+        operator_brand_choices = manufacturing_api.receiving_operator_switch_brand_choices()
         from .receiving_nfb_source_preview import NfbDxfSourcePreviewPanel
         from ae_engine.receiving_nfb_ui1a_edits import (
             NfbUi1aEditSession, editable_nfb_draft, insert_nfb_slot,
@@ -1814,7 +1813,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     "models": quantity.get("receiving_inner_door_models", ["", ""]),
                     "layer_heights_mm": quantity.get(
                         "receiving_inner_door_layer_heights_mm",
-                        SETTING_DEFAULTS["inner_door_layer_heights_mm"],
+                        manufacturing_api.receiving_inner_door_legacy_layer_height_defaults(),
                     ),
                 }
             staged = getattr(owner_editor, "_receiving_staged_config", None)
@@ -1840,7 +1839,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             # Legacy configurations without operator heights keep their
             # previously saved Y until the user explicitly edits the rows.
             initial["layer_heights_mm"] = list(
-                SETTING_DEFAULTS["inner_door_layer_heights_mm"]
+                manufacturing_api.receiving_inner_door_legacy_layer_height_defaults()
             )
         # Existing drafts retain saved heights; new one-tier initializers use
         # the shared 550 rule, and a two-tier selection uses 330/830.
@@ -1922,7 +1921,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         )
         # The retired extra NFB physical-tier row must not be created:
         # the visible inner-door layer selector is the sole writer.
-        chosen = [list(switch_filenames_in_layer(slot))
+        chosen = [list(manufacturing_api.receiving_nfb_switch_filenames_in_layer(slot))
                   for slot in initial["models"]]
         layer_rows = []
         warning = tk.StringVar(master=modal, value="")
@@ -1993,16 +1992,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 "layer_heights_mm": staged_heights,
                 "layers": layers.get(),
                 "models": [
-                    pack_switch_layer(chosen[0]),
-                    pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
+                    manufacturing_api.pack_receiving_nfb_switch_layer(chosen[0]),
+                    manufacturing_api.pack_receiving_nfb_switch_layer(chosen[1]) if layers.get() == 2 else "",
                 ],
             }
             before = {
                 "layer_heights_mm": initial["layer_heights_mm"],
                 "layers": initial["layers"],
                 "models": [
-                    pack_switch_layer(switch_filenames_in_layer(initial["models"][0])),
-                    pack_switch_layer(switch_filenames_in_layer(initial["models"][1]))
+                    manufacturing_api.pack_receiving_nfb_switch_layer(manufacturing_api.receiving_nfb_switch_filenames_in_layer(initial["models"][0])),
+                    manufacturing_api.pack_receiving_nfb_switch_layer(manufacturing_api.receiving_nfb_switch_filenames_in_layer(initial["models"][1]))
                     if initial["layers"] == 2 else "",
                 ],
             }
@@ -2186,7 +2185,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if embed_parent is None or not live_nfb_preview["ready"]:
                 return
             from ae_engine.receiving_nfb_model_identity import is_numeric_model_ref
-            from ae_engine.receiving_shared_settings import pack_switch_layer
             selected = [ref for row in chosen[:layers.get()] for ref in row]
             if selected and not all(is_numeric_model_ref(ref) for ref in selected):
                 # Legacy DXF preview cannot produce a numeric CSV cutting
@@ -2201,8 +2199,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 "layers": layers.get(),
                 "layer_heights_mm": read_layer_heights(),
                 "models": [
-                    pack_switch_layer(chosen[0]),
-                    pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
+                    manufacturing_api.pack_receiving_nfb_switch_layer(chosen[0]),
+                    manufacturing_api.pack_receiving_nfb_switch_layer(chosen[1]) if layers.get() == 2 else "",
                 ],
                 "features": deepcopy(initial.get("features", {})),
             }
@@ -2535,7 +2533,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             brand_row = ttk.Frame(section)
             brand_row.grid(row=3, column=0, columnspan=3, sticky="w", pady=(2, 4))
             ttk.Label(brand_row, text="本層品牌").pack(side="left")
-            brand_choices = ("繼承本套", *RECEIVING_SWITCH_BRANDS)
+            brand_choices = ("繼承本套", *operator_brand_choices)
             layer_brand_var = tk.StringVar(master=modal, value="繼承本套")
             layer_brand_select = ttk.Combobox(
                 brand_row, textvariable=layer_brand_var, values=brand_choices,
@@ -2546,7 +2544,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             slot_brand_var = tk.StringVar(master=modal, value="繼承本層")
             slot_brand_select = ttk.Combobox(
                 brand_row, textvariable=slot_brand_var,
-                values=("繼承本層", *RECEIVING_SWITCH_BRANDS),
+                values=("繼承本層", *operator_brand_choices),
                 width=12, state="readonly",
             )
             slot_brand_select.pack(side="left", padx=3)
@@ -2801,8 +2799,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     "layers": layers.get(),
                     "layer_heights_mm": read_layer_heights(),
                     "models": [
-                        pack_switch_layer(chosen[0]),
-                        pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
+                        manufacturing_api.pack_receiving_nfb_switch_layer(chosen[0]),
+                        manufacturing_api.pack_receiving_nfb_switch_layer(chosen[1]) if layers.get() == 2 else "",
                     ],
                     "features": deepcopy(initial.get("features", {})),
                 }
@@ -2877,7 +2875,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     )
                 )
                 or chosen != [
-                    list(switch_filenames_in_layer(item))
+                    list(manufacturing_api.receiving_nfb_switch_filenames_in_layer(item))
                     for item in initial["models"]
                 ]
             )
