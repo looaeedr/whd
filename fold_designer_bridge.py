@@ -1424,59 +1424,38 @@ def _phase6_apply_box_structure_numeric(self, type_id, field, var):
         _phase6_after_box_structure_commit(self, state, rebuild=True)
 
 
-def _phase6_joint_rows(self):
-    snapshot = migrate_legacy_snapshot_joints(dict(getattr(self, "_phase6_input_snapshot", {}) or {}))
-    self._phase6_input_snapshot.update({
-        "assembly_joint_schema_version": snapshot["assembly_joint_schema_version"],
-        "assembly_joints": deepcopy(snapshot["assembly_joints"]),
-    })
-    return list(self._phase6_input_snapshot["assembly_joints"])
-
-
 def _phase6_add_user_joint(
     self, *, subject_part, target_part, relation, subject_region="", target_region="",
     clearance_policy="ZERO", contact_mode="AUTO", preserve_side="AUTO", relief_intent="AUTO",
     solver_constraints=None,
 ):
-    rows = _phase6_joint_rows(self)
-    rel = relation if isinstance(relation, AssemblyJointRelation) else AssemblyJointRelation(str(relation))
-    import uuid
-    joint = AssemblyJoint(
-        joint_id=f"user:{uuid.uuid4().hex}",
-        subject_part=str(subject_part), target_part=str(target_part),
-        subject_region=str(subject_region or ""), target_region=str(target_region or ""),
-        relation=rel, contact_mode=str(contact_mode or "AUTO"),
-        preserve_side=str(preserve_side or "AUTO"), relief_intent=str(relief_intent or "AUTO"),
-        clearance_policy=str(clearance_policy or "ZERO"),
-        solver_constraints=dict(solver_constraints or {}),
-        source=AssemblyJointSource.USER_ADDED,
+    # The Engine prepares and validates a detached Joint graph.  Only a
+    # successful transaction may write the original GUI project snapshot.
+    staged, row = manufacturing_api.commit_operator_user_assembly_joint(
+        getattr(self, "_phase6_input_snapshot", {}) or {},
+        subject_part=subject_part, target_part=target_part, relation=relation,
+        subject_region=subject_region, target_region=target_region,
+        clearance_policy=clearance_policy, contact_mode=contact_mode,
+        preserve_side=preserve_side, relief_intent=relief_intent,
+        solver_constraints=solver_constraints,
     )
-    key = (joint.subject_part, joint.target_part, joint.subject_region, joint.target_region, joint.relation.value)
-    for raw in rows:
-        existing = AssemblyJoint.from_dict(raw)
-        other = (existing.subject_part, existing.target_part, existing.subject_region, existing.target_region, existing.relation.value)
-        if other == key:
-            raise ValueError("相同 AssemblyJoint 已存在")
-    rows.append(joint.to_dict())
-    self._phase6_input_snapshot["assembly_joints"] = rows
-    return joint.to_dict()
+    self._phase6_input_snapshot.update({
+        "assembly_joint_schema_version": staged["assembly_joint_schema_version"],
+        "assembly_joints": deepcopy(staged["assembly_joints"]),
+    })
+    return row
 
 
 def _phase6_delete_user_joint(self, joint_id):
-    rows = _phase6_joint_rows(self)
-    found = None
-    kept = []
-    for raw in rows:
-        if str(raw.get("joint_id")) == str(joint_id):
-            found = AssemblyJoint.from_dict(raw)
-            continue
-        kept.append(raw)
-    if found is None:
-        return False
-    if found.source is not AssemblyJointSource.USER_ADDED:
-        raise ValueError("只有 USER_ADDED Joint 可以刪除")
-    self._phase6_input_snapshot["assembly_joints"] = kept
-    return True
+    staged, changed = manufacturing_api.remove_operator_user_assembly_joint(
+        getattr(self, "_phase6_input_snapshot", {}) or {}, joint_id,
+    )
+    if changed:
+        self._phase6_input_snapshot.update({
+            "assembly_joint_schema_version": staged["assembly_joint_schema_version"],
+            "assembly_joints": deepcopy(staged["assembly_joints"]),
+        })
+    return changed
 
 
 def _phase6_on_assembly_type_selected(self, *_args):
