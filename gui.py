@@ -1738,7 +1738,7 @@ class Phase6ApplicationHost:
             frame_width=fw_val,
             thickness=t_val,
             use_box_distance=self.is_box_dist_var.get(),
-            frame_edges=params.get('frame_edges') or DoorFrameEdges(),
+            frame_edges=params.get('frame_edges'),
             gap_w=self.door_gap_w_var.get(), gap_h=self.door_gap_h_var.get(),
         )
         new_x, new_y = self.ask_xy_dialog(position.distance_x, position.distance_y)
@@ -1751,7 +1751,7 @@ class Phase6ApplicationHost:
                 frame_width=fw_val,
                 thickness=t_val,
                 use_box_distance=self.is_box_dist_var.get(),
-                frame_edges=params.get('frame_edges') or DoorFrameEdges(),
+                frame_edges=params.get('frame_edges'),
                 gap_w=self.door_gap_w_var.get(), gap_h=self.door_gap_h_var.get(),
             )
             self.door_indicator_offset_x = target.x

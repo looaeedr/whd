@@ -196,3 +196,45 @@ def test_double_click_passes_exact_operator_thickness_fw_and_gaps_to_public_engi
                 "2.5", "24.5", "3.25", "4.75")
     assert (host.door_indicator_offset_x, host.door_indicator_offset_y) == (41.0, -23.0)
     assert len(events) == 1
+
+
+@pytest.mark.parametrize("invalid_edges", (
+    False, "", {}, {"left": True},
+    DoorFrameEdges(left=1), DoorFrameEdges(top=None),
+))
+def test_malformed_frame_edges_rejected_before_indicator_dialog_or_gui_commit(invalid_edges):
+    host, events = _host(xy=(10.0, 12.0), box_distance=True)
+    host.last_door_draw_params["frame_edges"] = invalid_edges
+    before = (host.door_indicator_offset_x, host.door_indicator_offset_y)
+    with pytest.raises(ValueError, match="DOOR_INDICATOR_POSITION_FRAME_EDGES_INVALID"):
+        gui.Phase6ApplicationHost.on_double_click_indicator(host)
+    assert (host.door_indicator_offset_x, host.door_indicator_offset_y) == before
+    assert events == []
+
+
+@pytest.mark.parametrize("invalid_edges", (
+    False, {}, DoorFrameEdges(bottom="false"), DoorFrameEdges(right=0),
+))
+def test_public_indicator_engine_refuses_malformed_frame_source_in_both_operations(invalid_edges):
+    kwargs = dict(MEASURE, use_box_distance=True, frame_edges=invalid_edges)
+    with pytest.raises(ValueError, match="DOOR_INDICATOR_POSITION_FRAME_EDGES_INVALID"):
+        api.project_operator_door_indicator_position(_layout(), CONTEXT, **kwargs)
+    with pytest.raises(ValueError, match="DOOR_INDICATOR_POSITION_FRAME_EDGES_INVALID"):
+        api.propose_operator_door_indicator_offset_candidate(
+            CONTEXT, GROUPS, x_distance=12.0, y_distance=34.0, **kwargs,
+        )
+
+
+def test_optional_missing_frame_edge_source_keeps_original_engine_default():
+    host, events = _host(xy=(None, None), box_distance=True)
+    host.last_door_draw_params.pop("frame_edges")
+    read = api.project_operator_door_indicator_position(
+        _layout(), CONTEXT, use_box_distance=True, frame_edges=None, **MEASURE,
+    )
+    baseline = owner.measure_door_indicator_position(
+        _layout(), CONTEXT, use_box_distance=True, frame_edges=DoorFrameEdges(), **MEASURE,
+    )
+    assert read == baseline
+    gui.Phase6ApplicationHost.on_double_click_indicator(host)
+    assert events == [("dialog", read.distance_x, read.distance_y)]
+    assert (host.door_indicator_offset_x, host.door_indicator_offset_y) == (41.0, -23.0)

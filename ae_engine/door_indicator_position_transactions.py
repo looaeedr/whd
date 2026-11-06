@@ -14,6 +14,7 @@ from .sheetmetal_features import (
     measure_door_indicator_position, door_indicator_offset_for_position,
 )
 from .sheetmetal_geometry import Vec2
+from .sheetmetal_part_adapters import DoorFrameEdges
 
 
 def _finite_input(value, label, *, positive=False, nonnegative=False) -> float:
@@ -31,12 +32,20 @@ def _finite_input(value, label, *, positive=False, nonnegative=False) -> float:
 
 
 def _validated_source(
-    context, *, frame_width, thickness, use_box_distance, gap_w, gap_h,
+    context, *, frame_width, thickness, use_box_distance, gap_w, gap_h, frame_edges,
 ):
     if not isinstance(context, DoorIndicatorContext):
         raise ValueError("DOOR_INDICATOR_POSITION_CONTEXT_INVALID")
     if type(use_box_distance) is not bool:
         raise ValueError("DOOR_INDICATOR_POSITION_DISTANCE_MODE_INVALID")
+    # A missing source means the existing four-sided default. A malformed
+    # supplied frame must not silently become four supported finished edges.
+    if frame_edges is not None:
+        if not isinstance(frame_edges, DoorFrameEdges) or any(
+            type(getattr(frame_edges, edge)) is not bool
+            for edge in ("left", "right", "top", "bottom")
+        ):
+            raise ValueError("DOOR_INDICATOR_POSITION_FRAME_EDGES_INVALID")
     for key, positive in (("finished_width", True), ("finished_height", True),
                           ("left_fold", False), ("bottom_fold", False)):
         _finite_input(getattr(context, key), "CONTEXT", positive=positive)
@@ -62,6 +71,7 @@ def project_operator_door_indicator_position(
     fw, t, gw, gh = _validated_source(
         context, frame_width=frame_width, thickness=thickness,
         use_box_distance=use_box_distance, gap_w=gap_w, gap_h=gap_h,
+        frame_edges=frame_edges,
     )
     if not isinstance(layout, DoorIndicatorLayout) or layout.context != context:
         raise ValueError("DOOR_INDICATOR_POSITION_LAYOUT_INVALID")
@@ -95,6 +105,7 @@ def propose_operator_door_indicator_offset_candidate(
     fw, t, gw, gh = _validated_source(
         context, frame_width=frame_width, thickness=thickness,
         use_box_distance=use_box_distance, gap_w=gap_w, gap_h=gap_h,
+        frame_edges=frame_edges,
     )
     x, y = normalize_fold_designer_indicator_offsets(x_distance, y_distance)
     candidate = door_indicator_offset_for_position(
