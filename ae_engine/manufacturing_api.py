@@ -2152,7 +2152,16 @@ from .receiving_layout import (
     update_receiving_joint_alignment,
     project_receiving_bay_legacy_aliases,
 )
+# Public editor-source projections reuse the existing canonical Engine owners.
+# These are detached draft readbacks, not NFB CUTTING or manufacturing approval.
+from .receiving_legacy_nfb_editor_bootstrap import (
+    recover_submitted_nfb_models_for_editor as recover_receiving_submitted_nfb_models_for_editor,
+)
+from .receiving_fresh_nfb_defaults import (
+    initial_fresh_receiving_nfb_models as initial_receiving_nfb_draft_models,
+)
 from .receiving_shared_settings import (
+    transition_receiving_nfb_layer_heights,
     switch_filenames_in_layer as receiving_nfb_switch_filenames_in_layer,
     pack_switch_layer as pack_receiving_nfb_switch_layer,
     project_receiving_shared_setting_group,
