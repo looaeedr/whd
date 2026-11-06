@@ -366,6 +366,23 @@ def _submitted_csv_holes(snapshot):
             or bays[bi].get("nfb_config_submitted") is not True
             or bays[bi].get("nfb_config") != config):
         raise ValueError("NFB_COMMITTED_CSV_BAY_IDENTITY_DRIFT")
+    # An identical saved root/Bay config does not prove that a once-CONFIRMED
+    # world X is still valid for this physical Bay.  A width, source model,
+    # rotation, or version change can invalidate the original datum without
+    # changing the stale hole value.  Reuse the persisted Engine proof check
+    # at the *headless manufacturing* boundary, not just at GUI reload.
+    from .receiving_nfb_persistence import normalize_nfb_saved_fields
+    normalized_bay = normalize_nfb_saved_fields(bays[bi])
+    normalized_by_id = {
+        row["physical_hole_id"]: row
+        for row in normalized_bay["nfb_config"]["holes"]
+    }
+    for saved_hole in validated["holes"]:
+        if (saved_hole.get("manual_x_state") == "CONFIRMED"
+                and normalized_by_id[saved_hole["physical_hole_id"]][
+                    "manual_x_state"
+                ] != "CONFIRMED"):
+            raise ValueError("NFB_COMMITTED_CSV_CONFIRMED_DATUM_STALE")
     upper = tuple(p for p in derive_inner_door_panels(snapshot)
                   if str(p.cell_key).split(":")[-1] == "0")
     if len(upper) != 1:
