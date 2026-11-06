@@ -744,6 +744,13 @@ compatibility delegation; this API does not certify new 2D/CUTTING/DXF output.
 
 ## Receiving NFB candidate source and Bay physical identity API（#2517）
 
+### #2517 Original inner-door CSV NFB Hole Editor physical drafts (2026-11-06)
+
+`manufacturing_api.editor_nfb_features_from_csv(snapshot, config, *, current_features=())` is the **existing** Engine source for original Receiving Hole Editor draft `NFB_CSV_SOURCE` `ProfileFeature` geometry. Both the live add/preview operation and the embedded NFB Confirm call this same public function; `from ae_engine import editor_nfb_features_from_csv` is the identical callable, not a second adapter or exporter. It validates the existing panel, CSV model source, original work-face boundaries and collisions and returns editable features only. Initial horizontal positions are an unverified *editor layout*, not a certified world X; the original Hole Editor must separately confirm source and changes, and formal FinalScene/DXF manufacture continues through its independent verified Engine paths. Older Engine versions lacking the new public name retain their existing capabilities; the current WHD GUI uses the present public API.
+
+Regression: `tests/test_issue2517_receiving_csv_editor_public_engine_api.py`; existing live editor test `tests/test_issue1504_live_second_nfb_main_canvas.py` retains preview/undo/Cancel/Confirm behavior.
+
+
 ### #2517 Receiving CSV NFB committed-source Apply transaction (2026-11-04)
 
 `manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)` performs the existing CSV NFB provenance query, mixed CUTTING guard and Bay-specific identity replacement atomically inside WHD Engine. The source must contain exactly one valid physical inner-door NFB CSV candidate; it rejects invalid/bool/out-of-range/duplicate Set/Bay selections, stale/missing CSV hole source and mixed non-NFB CUTTING. It returns a detached Receiving layout without mutating caller input or siblings and preserves `UNVERIFIED_BASIS` for unconfirmed horizontal X. This is **source-only candidate assignment**, not authorization of physical X/CUTTING, a manufacturing output, source-only external export or DXF certification. The canonical entry is available through both `from ae_engine import apply_receiving_nfb_csv_candidate` and `from ae_engine.manufacturing_api import apply_receiving_nfb_csv_candidate`; both names refer to the **same** Engine function. CADSplit's current source bridge calls this atomic Engine operation when available, retaining older three-port fallback only for older Engine versions; this does not establish Windows end-to-end UAT.
