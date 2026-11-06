@@ -300,6 +300,20 @@ def _submitted_csv_holes(snapshot):
     rows = config.get("holes")
     if not isinstance(rows, (tuple, list)) or not rows:
         raise ValueError("NFB_COMMITTED_CSV_SUBMITTED_CONFIG_INVALID")
+    if snapshot.get("active_mode") == "quantity" and "quantity" in snapshot:
+        # Even a syntactically valid legacy DXF root alias may be stale:
+        # the historic shortcut below returns without resolving the actual
+        # selected Quantity version. Never hide an owned V5 CSV hole behind
+        # a different legacy alias (or borrow a nonselected version's NFB).
+        # Matching true legacy owners retain their pre-V5 rendering path.
+        from .receiving_quantity_versions import QuantityModel
+        quantity_model = QuantityModel.from_payload(snapshot["quantity"])
+        selected_nfb = quantity_model.nfb_config_for_version(
+            quantity_model.selected_version_id
+        )
+        if (selected_nfb.get("nfb_config_submitted") is not True
+                or selected_nfb.get("nfb_config") != config):
+            raise ValueError("NFB_COMMITTED_CSV_QUANTITY_VERSION_IDENTITY_DRIFT")
     # Old projects with DXF references still use their own existing path;
     # a *mixed* CSV/DXF configuration cannot silently drop physical holes.
     parsed = tuple(
