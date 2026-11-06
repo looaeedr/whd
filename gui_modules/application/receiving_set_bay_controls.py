@@ -11,7 +11,11 @@ from dataclasses import dataclass
 from typing import Callable, Iterable
 
 
-from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+from ae_engine import manufacturing_api
+
+# Legacy bridge/extension import kept as a value-only facade of public Engine.
+# The widgets themselves always fetch their choices from the public API.
+RECEIVING_SWITCH_BRANDS = manufacturing_api.receiving_operator_switch_brand_choices()
 
 
 @dataclass(frozen=True)
@@ -40,11 +44,12 @@ def build_receiving_set_bay_controls(
     header = ttk.Frame(frame)
     header.pack(fill=tk.X, pady=(0, 4))
     ttk.Label(header, text="開關").pack(side=tk.LEFT, padx=(0, 6))
-    switch_brand_var = tk.StringVar(master=header, value=RECEIVING_SWITCH_BRANDS[0])
+    brand_choices = manufacturing_api.receiving_operator_switch_brand_choices()
+    switch_brand_var = tk.StringVar(master=header, value=brand_choices[0])
     switch_brand_selector = ttk.Combobox(
         header,
         textvariable=switch_brand_var,
-        values=RECEIVING_SWITCH_BRANDS,
+        values=brand_choices,
         state="readonly",
         width=8,
     )
@@ -264,7 +269,6 @@ def refresh_receiving_layer_rows(
 
 def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False):
     """以中文序號選連；選取與待套用狀態只存在此 presentation。"""
-    from ae_engine.receiving_shared_settings import setting_value
     from tkinter import messagebox
     panel = ttk.LabelFrame(parent, text="共用箱體設定" if common_box else "每連設定", padding=6)
     panel.pack(fill=tk.X, pady=(0, 6))
@@ -326,19 +330,25 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
             if callback:
                 callback()
             return
-        value = setting_value(current, index, kind)
         if not load_value and kind == "back_panel_mode":
-            value = mode_labels[value_var.get()]
+            value, matches = manufacturing_api.project_receiving_shared_setting_group(
+                current, index, kind, preview_value=mode_labels[value_var.get()],
+            )
         elif not load_value and kind == "inner_door_layers":
-            value = int(value_var.get())
-        matches = [i + 1 for i in range(len(current["bays"])) if setting_value(current, i, kind) == value]
+            value, matches = manufacturing_api.project_receiving_shared_setting_group(
+                current, index, kind, preview_value=int(value_var.get()),
+            )
+        else:
+            value, matches = manufacturing_api.project_receiving_shared_setting_group(
+                current, index, kind,
+            )
         for i, button in enumerate(selectors):
             label = "▶" if i == index else "●" if i in pending else "○"
             style_name = ("ReceivingActive.TButton" if i == index else
                           "ReceivingPending.TButton" if i in pending else
-                          "ReceivingMatch.TButton" if i + 1 in matches else "TButton")
+                          "ReceivingMatch.TButton" if i in matches else "TButton")
             button.configure(text=f"{label} 第{i + 1}連", style=style_name)
-        status.set("設定作用於所有孔型版本" if common_box else "目前相同設定：" + "、".join(map(str, matches)) + "連")
+        status.set("設定作用於所有孔型版本" if common_box else "目前相同設定：" + "、".join(str(i + 1) for i in matches) + "連")
         if kind == "back_panel_mode":
             value_selector.configure(values=tuple(mode_labels), state="readonly")
             value_var.set(next(label for label, mode in mode_labels.items() if mode == value))
@@ -349,7 +359,7 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
             value_selector.configure(values=(), state="disabled")
             value_var.set(f"{len(value)} 個特徵")
         panel._receiving_pending = frozenset(pending)
-        panel._receiving_matches = tuple(i - 1 for i in matches)
+        panel._receiving_matches = matches
         callback = getattr(panel, "_receiving_after_selection", None)
         if callback:
             callback()
@@ -374,11 +384,12 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
         button = ttk.Button(selection, text=f"第{index + 1}連", command=lambda index=index: select(index))
         button.grid(row=index // 8, column=index % 8, padx=2, pady=2, sticky="ew")
         selectors.append(button)
-    brand_var = tk.StringVar(master=panel, value=row.get("switch_brand", "士林"))
+    brand_choices = manufacturing_api.receiving_operator_switch_brand_choices()
+    brand_var = tk.StringVar(master=panel, value=row.get("switch_brand", brand_choices[0]))
     common = ttk.Frame(panel)
     common.pack(fill=tk.X, pady=4)
     ttk.Label(common, text="開關品牌" if common_box else "本套開關").pack(side=tk.LEFT)
-    brand = ttk.Combobox(common, textvariable=brand_var, values=RECEIVING_SWITCH_BRANDS, width=6, state="readonly")
+    brand = ttk.Combobox(common, textvariable=brand_var, values=brand_choices, width=6, state="readonly")
     brand.pack(side=tk.LEFT, padx=4)
     ttk.Button(common, text="套用品牌", command=lambda: safely(lambda: ports["brand"](brand_var.get()))).pack(side=tk.LEFT)
     for key, label in (("width", "寬"), ("height", "高"), ("depth", "深")):

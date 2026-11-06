@@ -2116,6 +2116,7 @@ from .receiving_layout import (
     project_receiving_bay_legacy_aliases,
 )
 from .receiving_shared_settings import (
+    project_receiving_shared_setting_group,
     edit_setting as edit_receiving_shared_setting,
     edit_setting_for_bays as edit_receiving_shared_setting_for_bays,
     share_setting as share_receiving_shared_setting,
@@ -2125,6 +2126,12 @@ from .receiving_manufacturing_readiness import (
     ReceivingManufacturingFailure, evaluate_receiving_manufacturing_readiness,
     receiving_readiness_projection,
 )
+
+
+def receiving_operator_switch_brand_choices() -> tuple[str, ...]:
+    """Public read-only Receiving switch-brand choices from the Engine owner."""
+    from .receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+    return tuple(RECEIVING_SWITCH_BRANDS)
 
 
 def require_receiving_operator_brand(brand):
