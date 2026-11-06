@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Quantity 實體底板共用箱體的 W/T 與焊耳孔由公開 Engine 一次投影（2026-11-07）
+
+- Fold Designer 原 `receiving_base_plate_for_current_mode` 在 Quantity（單只／數量模式）分支先以 GUI 的 `_settings_values` 暫時驗底板，再以另一個 `manufacturing_api.update_common_box` 寫入 `receiving_quantity_box`。其中 GUI Settings W/H/D 是開新專案用的**預設種子**，可與當前保存的共用箱體 W 不同；兩段式驗證會以錯誤 W 檢查焊接 EAR 孔，並把尚未綁定此實體箱寬的 config 當成有效來源。
+- 新正式 `manufacturing_api.project_operator_receiving_quantity_base_plate_settings(snapshot, config)`，亦從 `ae_engine` 根包公開同一 callable。Engine 先要求正確 Receiving／Quantity Family、明確 `receiving_quantity_box` 與真實 `QuantityModel`、明確有限正數 T，再依已保存共用箱體重投影 W/H/D／單 Bay 假別名；重用原 `validate_receiving_base_plate_settings` 的原始 CENTER／LEFT／RIGHT 實體板、真實 EAR 孔及原製造幾何，以共用箱體 W、來源 T 驗證，且只用 validated accepted config 經 `update_common_box` 生成完整 detached 來源。
+- GUI 僅交目前模式 snapshot 和操作者 config，消費 Engine 回傳結果供原 `_apply_mode_snapshot` 同步畫面；禁止把 GUI Settings default W 當成 Quantity 實體箱寬。未保存 Quantity／共用箱體、非法 Family／T／EAR 孔距、錯誤實體板型，均不得改動呼叫者來源。非 Quantity 單板仍走已存在的公開 Engine 原子提交，無新製造公式／DXF Writer。
+- 需核對 headless API 與原 Engine 同源，顯式取消、舊 root 寬度和 Settings default 漂移、負向拒絕及 Quantity Save→Reload；這個 API 成功不代表 FinalScene／DXF MFG-2 加工放行，仍需 exact-SHA Product Regression 及適用時的 DXF Save→Reload。
+
+
 ## [CURRENT] #2517 同源分組另存 CHECK-only debug 檢查圖及真實孔型 Q（2026-11-07）
 
 - 受電箱的 `emit_debug=True` 僅允許透過已通過逐片物理 FinalScene 與原始 DXF/CSV source guard 的 `manufacturing_api.export_grouped_receiving_multibay_dxf` 既有交易。加入同一 staged 原子提交的一張 `YYYYMMDDHHmm_p1~p16debug.dxf`；所有內容在 CHECK 層並標明 DEBUG ONLY／NOT FOR NC，不可當作 CUTTING/BEND 正式加工圖，不推導新工藝或形狀；未要求 debug 時原本所有 3 種分組交付數量不變。

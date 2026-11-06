@@ -1551,6 +1551,14 @@ def validate_receiving_base_plate_settings(
         config=config,
     )
 
+def project_operator_receiving_quantity_base_plate_settings(snapshot, config):
+    """Public detached Quantity Base Plate source/EAR projection."""
+    from .receiving_base_plate_settings_validation import (
+        project_operator_receiving_quantity_base_plate_settings as project,
+    )
+    return project(snapshot, config)
+
+
 def commit_operator_receiving_base_plate_settings(
     *, input_snapshot, settings_values, config, submit_geometry_update=None,
 ):
