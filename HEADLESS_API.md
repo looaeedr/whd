@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: manufacturing-architecture
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 ## #2517 Receiving BoxBody finished-face Hole Editor source → three physical sheets
 
 Pass `confirmed_box_body_face_features={"left":(...), "right":(...), "back":(...)}` to the existing public `manufacturing_api.build_receiving_factory_confirmed_parts` or via `ManufacturingResolvedBayInput.confirmed_box_body_face_features`. These typed finished-face CUTTING features correspond to the real GUI saved `operator_snapshot["part_face_features"]["box_body"]`. Saved nonempty authoring must exactly match confirmed features; missing, malformed or changed saved holes are rejected before manufacturing. Valid Engine FeatureAnchor values including `PANEL_CENTER` are preserved. CADSplit may submit separately confirmed original face features when that saved face has no authored hole. This differs from `confirmed_box_body_piece_features`, which owns physical-sheet material UV source. Both feed the original `BoxBodyPartSpec → canonical physical-piece face projection → FinalScene → verified independent DXF` pipeline. The Engine alone maps finished-face coordinates through topology and seam clipping. Test: `tests/test_issue2517_receiving_factory_confirmed_box_body_face_features.py`. No whole-cabinet/NFB/PAD/EAR/Windows certification granted.
