@@ -272,3 +272,90 @@ def test_shared_setting_affected_ids_fail_closed_atomically(bad_targets):
     assert raw == before
     assert adapter.layout == before
     assert adapter._session_dirty_ids == set()
+
+
+def test_single_bay_setting_edit_marks_every_linked_physical_bay_dirty():
+    """One door/head editor value edit changes all siblings sharing its ref."""
+    from copy import deepcopy
+    import ae_engine
+
+    raw = _multi_bay_shared_setting_layout()
+    linked = api.share_receiving_shared_setting(
+        raw, set_index=0, source_bay_index=0,
+        bay_indices=(0, 2), kind="inner_door_layers",
+    )
+    before = deepcopy(linked)
+    expected, affected = api.edit_receiving_shared_setting_for_bays_with_affected_ids(
+        linked, set_index=0, bay_indices=(2,), kind="inner_door_layers", value=2,
+    )
+    adapter = ReceivingSetBayAdapter(linked)
+    adapter.select_bay(3)
+    selection_before = adapter.selection
+    adapter.update_setting("inner_door_layers", 2)
+    assert adapter.selection == selection_before
+    assert adapter.layout == expected
+    assert adapter._session_dirty_ids == set(affected)
+    assert affected == tuple(expected["sets"][0]["bays"][i]["stable_id"] for i in (0, 2))
+    assert linked == before
+    assert ae_engine.edit_receiving_shared_setting_for_bays_with_affected_ids is (
+        api.edit_receiving_shared_setting_for_bays_with_affected_ids
+    )
+
+
+def test_share_setting_uses_engine_affected_ids_for_all_selected_targets():
+    """Linking nonadjacent Bays changes the target ref even with equal values."""
+    from copy import deepcopy
+    import ae_engine
+
+    raw = _multi_bay_shared_setting_layout()
+    before = deepcopy(raw)
+    expected, affected = api.share_receiving_shared_setting_with_affected_ids(
+        raw, set_index=0, source_bay_index=0,
+        bay_indices=(i for i in (2, 0)), kind="head_features",
+    )
+    assert expected == api.share_receiving_shared_setting(
+        raw, set_index=0, source_bay_index=0,
+        bay_indices=(2, 0), kind="head_features",
+    )
+    assert affected == tuple(expected["sets"][0]["bays"][i]["stable_id"] for i in (0, 2))
+    assert raw == before
+    assert ae_engine.share_receiving_shared_setting_with_affected_ids is (
+        api.share_receiving_shared_setting_with_affected_ids
+    )
+    adapter = ReceivingSetBayAdapter(raw)
+    selection_before = adapter.selection
+    adapter.share_setting("head_features", (2, 0))
+    assert adapter.layout == expected
+    assert adapter.selection == selection_before
+    assert adapter._session_dirty_ids == set(affected)
+
+
+@pytest.mark.parametrize("bad_targets", ((0, 99), (0, True), (0, []), (0,), (), None))
+def test_share_setting_invalid_targets_leave_layout_and_dirty_bookkeeping_untouched(bad_targets):
+    from copy import deepcopy
+
+    raw = _multi_bay_shared_setting_layout()
+    before = deepcopy(raw)
+    adapter = ReceivingSetBayAdapter(raw)
+    with pytest.raises((ValueError, IndexError)):
+        api.share_receiving_shared_setting_with_affected_ids(
+            raw, set_index=0, source_bay_index=0,
+            bay_indices=bad_targets, kind="inner_door_layers",
+        )
+    with pytest.raises((ValueError, IndexError)):
+        adapter.share_setting("inner_door_layers", bad_targets)
+    assert adapter.layout == before == raw
+    assert adapter._session_dirty_ids == set()
+
+
+def test_gui_single_and_share_setting_entrypoints_use_only_engine_affected_ids():
+    from inspect import getsource
+
+    single = getsource(ReceivingSetBayAdapter.update_setting)
+    linked = getsource(ReceivingSetBayAdapter.share_setting)
+    assert "edit_receiving_shared_setting_for_bays_with_affected_ids(" in single
+    assert "share_receiving_shared_setting_with_affected_ids(" in linked
+    for method in (single, linked):
+        assert "self._session_dirty_ids.update(affected_ids)" in method
+        assert "self.mark_current_bay_dirty()" not in method
+        assert '["settings"]' not in method
