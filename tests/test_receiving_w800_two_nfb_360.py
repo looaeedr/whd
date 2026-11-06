@@ -66,11 +66,11 @@ def test_real_w800_original_editor_initial_centers_are_360_apart():
                for f in features)
 
 
-def test_native_editor_initial_pitch_360_is_preview_only_not_verified_world_x():
+def test_committed_editor_centers_project_360_without_moving_base_or_guessing_x():
     snapshot, panel, selected = _w800_editor_two()
     features = editor_nfb_features_from_csv(snapshot, selected)
-    # Engine's nominal 360-mm pitch is a visual initial placement only.
-    # A CSV source hash plus an editor default cannot authorize physical X.
+    # The existing original-editor feature is the physical placement source,
+    # not the nominal table's unverified origin.
     committed = dict(snapshot)
     # The Receiving-tab height is committed alongside the original editor
     # aperture features; using a stale 550-mm legacy Y here would correctly
@@ -92,11 +92,8 @@ def test_native_editor_initial_pitch_360_is_preview_only_not_verified_world_x():
         )
         for index in range(2)
     ]
-    assert world_x == [None, None]
-    # The initial editable contours still preserve the user-confirmed
-    # relative pitch, without promoting an unconfirmed absolute origin.
-    centres = [_center_x(feature) for feature in features]
-    assert centres[1] - centres[0] == pytest.approx(360.0)
+    assert world_x[0] is not None and world_x[1] is not None
+    assert world_x[1] - world_x[0] == pytest.approx(360.0)
 
 
 def test_real_w800_same_tier_two_csv_screw_groups_keep_360_pitch_and_four_mounts(
