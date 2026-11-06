@@ -432,8 +432,8 @@ def test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs(tmp_
             # stamp. Separate export transactions may cross a minute boundary;
             # compare the same physical panel/mode and all DXF entities, not
             # the transaction clock as though it were manufacturing geometry.
-            assert re.fullmatch(r"\\d{12}_.+\\.dxf", str(filename)), filename
-            stable_name = re.sub(r"^\\d{12}_", "", str(filename))
+            assert re.fullmatch(r"\d{12}_.+\.dxf", str(filename)), filename
+            stable_name = re.sub(r"^\d{12}_", "", str(filename))
             assert stable_name not in signatures
             signatures[stable_name] = Counter(repr(row) for row in entities)
         return signatures
