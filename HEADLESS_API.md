@@ -1,3 +1,9 @@
+## #2517 Public Receiving CSV NFB request → physical DXF (PART_ONLY)
+
+Use `ae_engine.manufacturing_api.export_receiving_committed_nfb_csv_from_request(request, *, output_directory)` or the identical `ae_engine` root export. `request` must be a real `ManufacturingResolveRequest` with the current committed Receiving Set/Bay snapshot, actual physical render inputs, and operator-confirmed CSV V5 NFB world X. Engine executes the same canonical `resolve_manufacturing_request` as GUI/Phase6, expands NFB physical bases, then calls the original verified one-/two-tier `export_current_csv_nfb_door_base_pair` to check live CSV/source, physical FinalScene, installed XYZ, Save→Reload of every sheet and atomic file commit. Result is `NfbCsvPairedPartOnlyDxf` or `NfbCsvTwoTierPartOnlyDxf` (2 or 3 DXFs).
+
+`apply_receiving_nfb_csv_candidate` is already public but SOURCE-ONLY; applying a candidate does not automatically confirm its physical X or authorize DXF. This new manufacturing API never treats CADSplit source-block centres as trusted world X and does not release whole-cabinet, PAD/EAR or external source-only CLI export.
+
 ---
 whd_doc_role: REFERENCE
 whd_contract: project-reference
