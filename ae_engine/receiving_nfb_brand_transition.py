@@ -148,7 +148,12 @@ def update_receiving_all_set_nfb_parent_brand(layout, proposed_brand):
     """
     from .receiving_layout import normalize_receiving_layout
 
-    _require_brand(proposed_brand)
+    # Preserve the original all-Set GUI/API error contract while keeping the
+    # single source of truth for accepted physical switch brands.
+    try:
+        _require_brand(proposed_brand)
+    except ValueError as exc:
+        raise ValueError("不支援的開關品牌") from exc
     candidate = normalize_receiving_layout(layout)
     changed = False
     for index, set_row in enumerate(candidate["sets"]):
