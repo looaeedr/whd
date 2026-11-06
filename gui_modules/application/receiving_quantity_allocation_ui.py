@@ -234,6 +234,9 @@ class ReceivingQuantityAllocationUI:
         width = max(int(canvas.winfo_width()), int(canvas.cget("width")))
         height = max(int(canvas.winfo_height()), int(canvas.cget("height")))
         row_h = 148
+        # A Quantity draft has no saved physical Bay. Draw the Engine Family
+        # default schematic, never a GUI-authored fabrication seam.
+        seam_ratio = manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)
         canvas.configure(scrollregion=(0, 0, width, max(height, len(counts) * row_h + 10)))
         hitboxes = []
         assigned = self.draft.assigned[role]
@@ -259,7 +262,7 @@ class ReceivingQuantityAllocationUI:
                     width=3 if highlight else 1,
                 )
                 inset = min(6.0, max(2.0, bay_w * .08))
-                split = top + bay_h * 1100.0 / 1600.0
+                split = top + bay_h * seam_ratio
                 faces = (
                     (x0 + inset, top + inset, x1 - inset, split - 2),
                     (x0 + inset, split + 2, x1 - inset, top + bay_h - inset),
