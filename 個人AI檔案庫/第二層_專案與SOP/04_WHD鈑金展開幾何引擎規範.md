@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer Family Policy／Registry 呼叫改走公開 Engine（2026-11-06）
+
+- Fold Designer 主 Bridge 與 Corner Data 原直接 import `ae_engine.cabinet_types.policy`，用於 Family canonical name、三片箱身固定拓樸、BoxBody outside profile 與 WRAP availability。現改消費 `manufacturing_api.operator_canonical_family_name`、`operator_family_fixes_box_body_structure`、`operator_box_body_profile_uses_outside_dimensions`、`operator_supports_bottom_wrap_controls`（`ae_engine` 根包同名公開）。四者是現有 Engine Policy **同一 callable**，沒有新的 Family／製造公式、第二套投影或新持久化格式。非法／未知來源維持原 Owner 的 fail-closed／未支援語意，不得改動輸入。
+- Assembly Corner 的 Relief promotion 候選 builder 原從私有 Registry 取用，改用公開 `manufacturing_api.build_relief_promotion_candidate`（原 Engine Registry 與根包相同 callable）；Bridge 的 `resolve_cabinet_type` 亦改用 `manufacturing_api.resolve_cabinet_type`，而不直接引用私有 Registry 模組。候選仍受既有 Controller 原流程與 Registry gate 控制，不因 UI 生成候選即取得 CERTIFIED 製造資格。
+- Product Regression 原真 Tk `fold_designer_part_session.save_current_part` 仍經 `bridge.cabinet_family_policy.endcap_fw_profile_uses_material_dimensions` 讀取 EndCap FW 材料／外尺寸 Policy；現追加 `operator_endcap_fw_profile_uses_material_dimensions` 同一 Engine callable，Part Session 直接消費公開 `bridge.manufacturing_api`，無舊私有 Bridge 屬性依賴或 FW 公式複製。
+- 回歸驗證 facade/root 與 owner 相同 callable、兩 Family 和未知來源輸入不變、GUI 不再直接讀這些私有模組；2D／3D／DXF 算法、AssemblyJoint 已保存交易與正式 Save→Reload 不更動。#2517 全功能與 Windows R5 UAT 仍 OPEN。
+
+
 ## [CURRENT] #2517 Hole Editor 孔位移動／基準定位／切穿盲孔切換只接公開 Engine（2026-11-06）
 
 - `gui.py` 會以 `HoleEditorCompositionDependencies.from_namespace(globals())` 注入實體孔位操作到 `gui_modules/editors/hole_editor.py`：`feature_with_reference_anchor`、`feature_with_process`、`move_feature_by_reference_distance`、`feature_is_within_surface`、`move_feature_within_surface`。舊版直接從 `ae_engine.sheetmetal_features` 私有 re-export 匯入同一 Engine owner，讓 GUI 交易仍隱藏依賴內部幾何模組；這些實際編輯可改變孔位 finished-face 坐標、基準或 CUTTING／BLIND_HOLE，必須公開。

@@ -139,7 +139,7 @@ class Phase6PartSessionOwner:
                 raise ValueError('封頭/封尾 X 折彎資料不完整')
             fw_item = app._phase6_endcap_fw_state.setdefault(key, {'follow_box': True, 'value': bridge._num(app._phase6_input_snapshot.get('fw', 25), 25)})
             if 'fw' in y:
-                edited_fw = bridge.engine_segment_length_to_ui(y['fw']) if bridge.cabinet_family_policy.endcap_fw_profile_uses_material_dimensions(app._phase6_input_snapshot) else bridge._ui_len(y['fw'].get('len'))
+                edited_fw = bridge.engine_segment_length_to_ui(y['fw']) if bridge.manufacturing_api.operator_endcap_fw_profile_uses_material_dimensions(app._phase6_input_snapshot) else bridge._ui_len(y['fw'].get('len'))
                 effective_before = bridge.resolve_endcap_fw(app._phase6_input_snapshot, key, state=app._phase6_endcap_fw_state)
                 if abs(float(edited_fw) - float(effective_before)) > 1e-09:
                     bridge.commit_endcap_fw(app._phase6_endcap_fw_state, key, edited_fw, box_fw=bridge._num(app._phase6_input_snapshot.get('fw', 25), 25))

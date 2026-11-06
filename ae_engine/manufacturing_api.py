@@ -374,6 +374,17 @@ from .sheetmetal_part_adapters import (
 )
 from .cabinet_types import policy as cabinet_family_policy
 from .cabinet_types.policy import door_material_frame_width, box_body_symmetry_allowed
+from .cabinet_types.registry import resolve_cabinet_type
+from .certified_relief_registry import build_relief_promotion_candidate
+
+# Public, identity-preserving Engine operator Family policy projections.
+# GUI adapters must not import the private Family policy owner directly.
+operator_canonical_family_name = cabinet_family_policy.canonical_family_name
+operator_family_fixes_box_body_structure = cabinet_family_policy.family_fixes_box_body_structure
+operator_box_body_profile_uses_outside_dimensions = cabinet_family_policy.box_body_profile_uses_outside_dimensions
+operator_supports_bottom_wrap_controls = cabinet_family_policy.supports_bottom_wrap_controls
+operator_endcap_fw_profile_uses_material_dimensions = cabinet_family_policy.endcap_fw_profile_uses_material_dimensions
+
 
 
 
