@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 原生 NFB CSV 已提交來源的雙實體孔位身份不可矛盾（2026-11-06）
+
+- `ae_engine.receiving_nfb_committed_final_scene._source_world_x_from_committed_editor_feature` 會從原 Hole Editor `NFB_CSV_SOURCE` 恢復操作者已放置的 world X，以相同正式 `FinalScene` 進行 2D／3D／DXF。既有合法來源可以**僅有**實體 `hole_id`，或僅有 `layer_index/slot_index`；但當兩組同時存在時必須指向**同一顆**實體孔，不能因 `hole_id` 符合就跳過另一組相反的來源槽位，更不能讓 bool、缺半組 tier/slot 借到相同數值的實體身分。
+- 在原 Engine owner 增加 `NFB_CSV_EDITOR_PHYSICAL_SLOT_IDENTITY_CONFLICT` fail-closed，拒絕同孔 ID 指到別槽／同槽指到別孔 ID 的已提交混合來源，阻止跨槽 world X 污染實體內門／底板 CUTTING。未變更正式 CSV 尺寸、已確認 X、單一 Family／PartSpec／FinalScene 或製造放行。回歸 `tests/test_issue2517_nfb_csv_editor_hybrid_identity_gate.py` 使用原真實來源的多顆 NFB 和 `apply_committed_csv_v5_to_canonical_parts` 核對來源原子拒絕，並保留只帶一種身份的舊專案。
+
+
 ## [CURRENT] #2517 Receiving Head/Tail 候選數量配置預檢歸公開 Engine（2026-11-06）
 
 - `receiving_quantity_allocation_ui._ready_to_apply` 只提交當前版本 inventory、Set/Bay 數量、Head/Tail role、數量與配置到 `manufacturing_api.validate_receiving_candidate_quantity_preview`；不得在 GUI 推算下一版本 ID、重組候選實體 Feature 來源，或捏造 `None` Bay 拓樸代替 Engine。
