@@ -160,3 +160,39 @@ def test_live_gui_does_not_call_internal_door_position_owner():
     assert "manufacturing_api.project_operator_door_indicator_position(" in source_text
     assert "measure_door_indicator_position = manufacturing_api.project_operator_door_indicator_position" in source_text
     assert "manufacturing_api.propose_operator_door_indicator_offset_candidate(" in source_text
+
+
+@pytest.mark.parametrize("field,invalid", (
+    ("t_var", "oops"), ("t_var", ""), ("t_var", "nan"), ("t_var", "0"),
+    ("fw_z_var", "invalid"), ("fw_z_var", "Infinity"), ("fw_z_var", "-2"),
+    ("door_gap_w_var", "nan"), ("door_gap_h_var", "-1"), ("door_gap_h_var", "wrong"),
+))
+def test_invalid_live_physical_controls_do_not_open_editor_or_change_offsets(field, invalid):
+    host, events = _host(xy=(12.0, 15.0), box_distance=True)
+    setattr(host, field, _var(invalid))
+    original = (host.door_indicator_offset_x, host.door_indicator_offset_y)
+    with pytest.raises(ValueError, match="DOOR_INDICATOR_POSITION_"):
+        gui.Phase6ApplicationHost.on_double_click_indicator(host)
+    assert (host.door_indicator_offset_x, host.door_indicator_offset_y) == original
+    assert events == []
+
+
+def test_double_click_passes_exact_operator_thickness_fw_and_gaps_to_public_engine(monkeypatch):
+    host, events = _host(xy=(None, None), box_distance=False)
+    host.t_var = _var("2.5")
+    host.fw_z_var = _var("24.5")
+    host.door_gap_w_var = _var("3.25")
+    host.door_gap_h_var = _var("4.75")
+    seen = []
+    original = api.project_operator_door_indicator_position
+    def inspect_public(layout, context, **kwargs):
+        seen.append(kwargs)
+        return original(layout, context, **kwargs)
+    monkeypatch.setattr(api, "project_operator_door_indicator_position", inspect_public)
+    gui.Phase6ApplicationHost.on_double_click_indicator(host)
+    assert len(seen) == 1
+    assert (seen[0]["thickness"], seen[0]["frame_width"],
+            seen[0]["gap_w"], seen[0]["gap_h"]) == (
+                "2.5", "24.5", "3.25", "4.75")
+    assert (host.door_indicator_offset_x, host.door_indicator_offset_y) == (41.0, -23.0)
+    assert len(events) == 1

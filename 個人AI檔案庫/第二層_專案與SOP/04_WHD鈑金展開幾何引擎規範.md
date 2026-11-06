@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Door 指示燈雙擊編輯不再以 GUI 偽造板厚／FW 預設（2026-11-06）
+
+- 主 GUI `on_double_click_indicator` 原在無效 `t_var`／`fw_z_var` 時吞掉例外並改送 `2.0`／`62.0`，違反現有公開 `project_operator_door_indicator_position` 的 fail-closed 來源契約。此入口已由 Engine transaction 擁有距離計算／candidate 產生，僅需把板厚、FW、Door gaps 的**原操作輸入**傳給該同一公開 API。
+- 取消 GUI 的板厚／框寬無效 fallback；無效或非有限來源由 Engine 拒絕且不開輸入對話框、不改動已保存 offset。有效字串數值仍由 Engine 嚴格轉換，正式幾何、2D／3D／DXF 與 Save→Reload 使用既有 `door_indicator_position_transactions` 與 canonical Door Feature 解算，沒有 GUI 第二套公式。負向與 GUI 來源逐字 forwarding 見 `test_issue2517_main_gui_indicator_position_public_transaction.py`。
+
+
 ## [CURRENT] #2517 Fold Designer Registry 規則載入與舊專案自訂型號正規化只經公開 Engine（2026-11-06）
 
 - `fold_designer_bridge._phase6_registry_load_rule_rows` 原直接匯入內部 `certified_relief_registry.load_external_relief_rule_records`，取得 Certified Relief 原始規則資料供 Registry diagnostics；`_phase6_prepare_predecessor_init` 原直接使用 `corner_type_ui.normalize_custom_model_name` 決定舊專案／新模型的基準型號。兩者涉及認證來源或 persisted baseline identity，不應由 GUI 私接內部模組。
