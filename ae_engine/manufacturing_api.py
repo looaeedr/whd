@@ -2125,6 +2125,10 @@ def require_receiving_operator_brand(brand):
 
 
 
+# The public entry is the identical Engine owner, not a GUI-specific duplicate.
+from .receiving_nfb_ui1a_edits import plan_receiving_nfb_editor_confirm
+
+
 def list_receiving_nfb_model_refs(brand: str) -> tuple[str, ...]:
     """List currently selectable V5 NFB identities for one exact CSV brand.
 
