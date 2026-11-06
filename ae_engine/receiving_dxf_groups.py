@@ -27,7 +27,7 @@ def _taipei_output_stamp():
 
 
 def _group_output_filename(legacy_name, cells, stamp):
-    """Name only; the original verified physical sheet geometry is unchanged."""
+    """Global project label shared across ALL group names, never a subset."""
     if (not isinstance(stamp, str)
             or re.fullmatch(r"[0-9]{12}", stamp) is None):
         raise ValueError("RECEIVING_COMPOSED_DXF_TIMESTAMP_INVALID")
@@ -46,7 +46,7 @@ def _group_output_filename(legacy_name, cells, stamp):
     else:
         # Never invent a P-number for a renamed Bay.
         label = "_".join(n.casefold() for n in names)
-    name = f"{stamp}{label}{Path(legacy_name).stem}.dxf"
+    name = f"{stamp}_{label}{Path(legacy_name).stem}.dxf"
     if len(name) > 240:
         raise ValueError("RECEIVING_COMPOSED_DXF_FILENAME_TOO_LONG")
     return name
@@ -95,7 +95,7 @@ def plan_receiving_grouped_dxf(layout, mode, *, file_stamp=None):
             result += (("中間盤.dxf", tuple(middle)),)
     if file_stamp is not None:
         result = tuple(
-            (_group_output_filename(name, cells, file_stamp), cells)
+            (_group_output_filename(name, all_cells, file_stamp), cells)
             for name, cells in result
         )
         if len({name.casefold() for name, _ in result}) != len(result):
@@ -106,7 +106,7 @@ def plan_receiving_grouped_dxf(layout, mode, *, file_stamp=None):
 def commit_verified_receiving_groups(
     layout, mode, physical_rows, stage_dir, output_dir,
     *, pre_commit_guard, overwrite=False, box_body_owner_by_namespace=None,
-    _verified_nfb_pair_parts_by_namespace=None,
+    _verified_nfb_pair_parts_by_namespace=None, emit_debug=False,
 ):
     """Publish only complete *previously verified* per-Bay physical sheets.
 
@@ -117,7 +117,10 @@ def commit_verified_receiving_groups(
     """
     if not callable(pre_commit_guard):
         raise ValueError("RECEIVING_COMPOSED_DXF_PRECOMMIT_GUARD_REQUIRED")
-    groups = plan_receiving_grouped_dxf(layout, mode, file_stamp=_taipei_output_stamp())
+    if type(emit_debug) is not bool:
+        raise TypeError("RECEIVING_DEBUG_EXPORT_FLAG_MUST_BE_BOOL")
+    stamp = _taipei_output_stamp()
+    groups = plan_receiving_grouped_dxf(layout, mode, file_stamp=stamp)
     source = normalize_receiving_layout(layout)
     by_namespace = {}
     seen = set()
@@ -186,6 +189,27 @@ def commit_verified_receiving_groups(
             _verified_nfb_pair_parts=group_nfb_parts,
         )
         staged[filename] = Path(result.path)
+    if emit_debug:
+        # This is NOT an additional machining blank: the diagnostic contains
+        # CHECK-only exact copies of verified canonical source primitives.
+        # Stage and atomically publish alongside real groups or publish none.
+        from .receiving_verified_debug_dxf import save_verified_receiving_debug_dxf
+        all_cells = tuple(cell for _name, members in
+                          plan_receiving_grouped_dxf(layout, "ALL")
+                          for cell in members)
+        diagnostic = _group_output_filename("debug.dxf", all_cells, stamp)
+        ordered = []
+        for si, bi, name in all_cells:
+            set_row = source["sets"][si]
+            bay = set_row["bays"][bi]
+            ns = receiving_instance_namespace(
+                set_id=set_row["stable_id"], bay_id=bay["stable_id"],
+            )
+            ordered.append((name, tuple(by_namespace[ns])))
+        save_verified_receiving_debug_dxf(
+            stage / diagnostic, ordered, pre_commit_guard=pre_commit_guard,
+        )
+        staged[diagnostic] = stage / diagnostic
     pre_commit_guard()  # Same immutable current-source witness before publish.
     return _atomic_commit_staged_dxfs(
         staged, Path(output_dir), overwrite=overwrite,
