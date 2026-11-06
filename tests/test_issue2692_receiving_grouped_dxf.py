@@ -457,6 +457,11 @@ def test_grouped_nfb_same_ids_dimensions_but_foreign_csv_source_rejected(tmp_pat
         )
     assert not list((tmp_path / "out").rglob("*.dxf"))
 
+@pytest.mark.parametrize("mode, filenames", [
+    ("ALL", ("全部.dxf",)),
+    ("PER_SET", ("第1套.dxf",)),
+    ("END_VS_MIDDLE", ("頭尾盤.dxf",)),
+])
 def test_same_saved_nfb_source_allows_only_independent_core_flat_scope(
     tmp_path, mode, filenames,
 ):
