@@ -226,6 +226,17 @@ def export_current_receiving_multibay_dxf(
     if saved_snapshot.get("active_mode","set_bay")!="set_bay":
         raise ValueError("RECEIVING_MULTIBAY_NOT_QUANTITY_MODE")
     layout=normalize_receiving_layout(saved_snapshot.get("receiving_layout"))
+    # Externally supplied approved NFB pairs may join independent core flats.
+    # The same saved-layout fingerprint check later still rejects foreign NFB.
+    # GUI include_saved_nfb_pairs retains its own original selection policy.
+    independent_core_with_nfb_pair = (
+        nfb_pair_requests is not None and not include_saved_nfb_pairs
+    )
+    if independent_core_with_nfb_pair:
+        core_keys = {"box_body", "door", "head", "tail"}
+        if (not any(bool(flags.get(k)) for k in core_keys)
+                or any(bool(v) for k, v in flags.items() if k not in core_keys)):
+            raise ValueError("RECEIVING_COMPOSED_NFB_INDEPENDENT_CORE_SCOPE_REQUIRED")
     all_bays=tuple((i,j) for i,s in enumerate(layout["sets"])
                    for j,_ in enumerate(s["bays"]))
     # The original main export button has no second NFB output directory.
@@ -307,7 +318,8 @@ def export_current_receiving_multibay_dxf(
                 raise ValueError(
                     "RECEIVING_MULTIBAY_SELECTED_INDEPENDENT_PHYSICAL_SOURCE_MISSING"
                 )
-        is_csv=source.get("nfb_config_submitted") is True
+        is_csv=(source.get("nfb_config_submitted") is True
+                and not independent_core_with_nfb_pair)
         selected_logical=tuple(p for p in actual.parts
             if (p.part_key.startswith("custom:")
                 or bool(flags.get(resolved_export_intention_key(p.part_key),False)))
