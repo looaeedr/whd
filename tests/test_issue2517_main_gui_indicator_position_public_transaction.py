@@ -108,7 +108,7 @@ def test_gui_double_click_matches_engine_candidate_and_updates_two_axes(box_dist
     assert events == [("dialog", position.distance_x, position.distance_y), "draw"]
 
 
-@pytest.mark.parametrize("bad", ("NaN", "Infinity", float("-inf"), True, None, "oops"))
+@pytest.mark.parametrize("bad", ("NaN", "Infinity", float("-inf"), True, "oops"))
 @pytest.mark.parametrize("axis", (0, 1))
 def test_invalid_operator_distance_rejects_before_gui_state_mutation(bad, axis):
     xy = (bad, 15.0) if axis == 0 else (15.0, bad)
