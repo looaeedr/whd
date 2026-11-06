@@ -1364,6 +1364,20 @@ def preview_quantity_inner_door_confirm(
     )
 
 
+def commit_receiving_quantity_inner_door_confirm(
+    snapshot, quantity_model, part_key, features, staged_config, *,
+    include_missing_heights=False,
+):
+    """Public Engine atomic Quantity NFB inner-Door Confirm-All transaction."""
+    from .receiving_nfb_csv_committed_config import (
+        commit_receiving_quantity_inner_door_confirm as commit,
+    )
+    return commit(
+        snapshot, quantity_model, part_key, features, staged_config,
+        include_missing_heights=include_missing_heights,
+    )
+
+
 def apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source):
     """Public Engine atomic CSV NFB source Apply; never manufacturing approval."""
     from .receiving_nfb_csv_committed_config import (
