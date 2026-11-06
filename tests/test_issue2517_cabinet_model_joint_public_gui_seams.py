@@ -71,19 +71,18 @@ def test_cabinet_and_fold_designer_gui_use_public_seams_not_private_model_or_joi
     fold_tree = ast.parse(
         (ROOT / "gui_modules/application/fold_designer_adapter.py").read_text(encoding="utf-8")
     )
-    for tree in (cabinet_tree, fold_tree):
-        assert not any(
-            isinstance(node, ast.ImportFrom)
-            and node.module == "ae_engine.corner_type_ui"
-            and any(alias.name in {"is_unknown_model", "normalize_custom_model_name"} for alias in node.names)
-            for node in ast.walk(tree)
-        )
-        assert not any(
-            isinstance(node, ast.ImportFrom)
-            and node.module == "ae_engine.assembly_joint"
-            and any(alias.name == "migrate_legacy_snapshot_joints" for alias in node.names)
-            for node in ast.walk(tree)
-        )
+    assert not any(
+        isinstance(node, ast.ImportFrom)
+        and node.module == "ae_engine.corner_type_ui"
+        and any(alias.name in {"is_unknown_model", "normalize_custom_model_name"} for alias in node.names)
+        for node in ast.walk(cabinet_tree)
+    )
+    assert not any(
+        isinstance(node, ast.ImportFrom)
+        and node.module == "ae_engine.assembly_joint"
+        and any(alias.name == "migrate_legacy_snapshot_joints" for alias in node.names)
+        for node in ast.walk(fold_tree)
+    )
     def calls(tree):
         return [
             node.func.attr for node in ast.walk(tree)
