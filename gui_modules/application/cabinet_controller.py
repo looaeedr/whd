@@ -10,7 +10,6 @@ from tkinter import messagebox
 
 from ae_engine import manufacturing_api
 from ae_engine.contracts import ManufacturingContext
-from ae_engine.corner_type_ui import is_unknown_model, normalize_custom_model_name
 from phase6_endcap_semantics import (
     assembly_intent_label,
     assembly_intent_value,
@@ -111,7 +110,7 @@ def _apply_cabinet_family_for_current_model(self):
     as the starting point.  Project/3D snapshot restoration uses the
     baseline commit guard and therefore does not run this fresh-preset path.
     """
-    raw_model = normalize_custom_model_name(
+    raw_model = manufacturing_api.operator_normalize_custom_model_name(
         self.baseline_var.get() if getattr(self, "baseline_var", None) is not None else ""
     )
     new_type = self._current_cabinet_type_name()
@@ -125,7 +124,7 @@ def _apply_cabinet_family_for_current_model(self):
 
     # Custom is intentionally not another family preset.  It inherits the
     # current values exactly; later edits become the custom starting state.
-    if is_unknown_model(raw_model):
+    if manufacturing_api.is_unknown_operator_model(raw_model):
         self._active_cabinet_type = new_type
         owner = getattr(self, "_derived_cache_owner", None)
         if owner is not None:
@@ -210,9 +209,9 @@ def on_baseline_changed(self):
     val = self.baseline_var.get()
     previous = str(getattr(self, "_baseline_last_value", "") or "").strip()
     self._apply_cabinet_family_for_current_model()
-    if is_unknown_model(val) and previous and not is_unknown_model(previous):
+    if manufacturing_api.is_unknown_operator_model(val) and previous and not manufacturing_api.is_unknown_operator_model(previous):
         self._inherit_known_corner_state_into_custom()
-    elif val and not is_unknown_model(val) and val != previous:
+    elif val and not manufacturing_api.is_unknown_operator_model(val) and val != previous:
         self._enforce_known_model_corner_types(reset_all=True)
     current_intent = self._current_box_assembly_type()
     assembly_var = getattr(self, "box_assembly_type_var", None)
@@ -222,7 +221,7 @@ def on_baseline_changed(self):
             assembly_var.set(label)
     cb_assembly = getattr(self, "cb_box_assembly", None)
     if cb_assembly is not None:
-        cb_assembly.configure(state=("readonly" if is_unknown_model(val) else "disabled"))
+        cb_assembly.configure(state=("readonly" if manufacturing_api.is_unknown_operator_model(val) else "disabled"))
     self._baseline_last_value = str(val or "").strip()
     self.refresh_corner_type_panel()
     designer = getattr(self, "fold_designer_app", None)
@@ -237,7 +236,7 @@ def on_baseline_changed(self):
         return
     if not val:
         return
-    if is_unknown_model(val):
+    if manufacturing_api.is_unknown_operator_model(val):
         # 自訂沒有 baseline DXF；保留使用者輸入的折彎尺寸。
         self._request_phase6_update("baseline")
         return
