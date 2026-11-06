@@ -161,7 +161,12 @@ def inspect_indexed_nfb_preview(brand,filename,*,index_path=INDEX_PATH):
 
 
 class NfbDxfPreviewCache:
-    """Cache at most 8 real DXF sources by brand, basename, size and mtime."""
+    """Cache observed DXF by brand, path, size, mtime and change-time.
+
+    This is source-only preview: neither this cache nor its SHA certifies
+    manufacturing. The change-time prevents same-size/matched-mtime DXF
+    replacements from keeping stale visual source evidence.
+    """
     def __init__(self,max_entries=8):
         if type(max_entries) is not int or not 1<=max_entries<=32:
             raise ValueError("NFB preview cache budget invalid")
@@ -173,7 +178,7 @@ class NfbDxfPreviewCache:
         path=resolve_indexed_dxf_path(brand,filename,index_path=index_path)
         try:
             stat=path.stat()
-            revision=(stat.st_size,stat.st_mtime_ns)
+            revision=(stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns)
         except OSError:
             revision=None
         # Normalize resolved identity for same brand/model; never reuse an
@@ -183,6 +188,18 @@ class NfbDxfPreviewCache:
             self._entries.move_to_end(key)
             return self._entries[key]
         value=inspect_indexed_nfb_preview(brand,filename,index_path=index_path)
+        # Source inspection may take multiple DXF reads/virtual INSERT
+        # expansions. Never cache one observation against bytes that changed
+        # during the read, even if a writer restores size and mtime.
+        try:
+            after=path.stat()
+            observed_revision=(
+                after.st_size,after.st_mtime_ns,after.st_ctime_ns
+            )
+        except OSError:
+            observed_revision=None
+        if observed_revision!=revision:
+            raise ValueError("NFB DXF preview source changed during read")
         self.parse_count+=1
         # A changed or deleted source cannot reuse its old inventory.
         for stale in list(self._entries):

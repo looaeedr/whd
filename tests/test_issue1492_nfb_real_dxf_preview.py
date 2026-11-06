@@ -146,3 +146,72 @@ def test_canvas_world_roundtrip_and_reject_invalid_zoom(tmp_path):
     assert vp.to_world(*pixel,320,240)==pytest.approx(point)
     with pytest.raises(ValueError,match="zoom"):
         vp.zoom(0,320,240)
+
+
+def _marked_real_source(index):
+    """Actual indexed DXF containing a replaceable equal-length source marker."""
+    source = _real(index.parent/"士林"/"400_140X257_107.dxf")
+    doc = ezdxf.readfile(source)
+    doc.modelspace().add_text("SOURCE_AAAAA")
+    doc.saveas(source)
+    assert b"SOURCE_AAAAA" in source.read_bytes()
+    return source
+
+
+def test_same_size_same_mtime_replaced_original_dxf_invalidates_real_preview(tmp_path):
+    """A preserved mtime is not evidence of unchanged original DXF bytes."""
+    import os
+    index = _index(tmp_path)
+    source = _marked_real_source(index)
+    cache = NfbDxfPreviewCache()
+    original = cache.load("士林", source.name, index_path=index)
+    stat = source.stat()
+    old = source.read_bytes()
+    changed = old.replace(b"SOURCE_AAAAA", b"SOURCE_BBBBB", 1)
+    assert len(changed) == len(old) and changed != old
+    source.write_bytes(changed)
+    os.utime(source, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+    updated = source.stat()
+    assert updated.st_size == stat.st_size
+    assert updated.st_mtime_ns == stat.st_mtime_ns
+    assert updated.st_ctime_ns != stat.st_ctime_ns
+    current = cache.load("士林", source.name, index_path=index)
+    assert current is not original
+    assert current.status == PREVIEW_ONLY
+    assert current.source_sha256 != original.source_sha256
+    assert cache.parse_count == 2 and len(cache._entries) == 1
+    assert cache.load("士林", source.name, index_path=index) is current
+    assert cache.parse_count == 2
+    assert not current.manufacturing_ready
+
+
+def test_dxf_source_changed_during_inspection_is_not_cached(tmp_path, monkeypatch):
+    """A mid-inspection original-source revision must not become a cache hit."""
+    import os
+    from ae_engine import receiving_nfb_2d_preview as owner
+    index = _index(tmp_path)
+    source = _marked_real_source(index)
+    original_stat = source.stat()
+    original_bytes = source.read_bytes()
+    inspect = owner.inspect_indexed_nfb_preview
+
+    def racing_inspection(*args, **kwargs):
+        prior = inspect(*args, **kwargs)
+        edited = original_bytes.replace(b"SOURCE_AAAAA", b"SOURCE_CCCCC", 1)
+        assert len(edited) == len(original_bytes)
+        source.write_bytes(edited)
+        os.utime(source, ns=(original_stat.st_atime_ns, original_stat.st_mtime_ns))
+        return prior
+
+    monkeypatch.setattr(owner, "inspect_indexed_nfb_preview", racing_inspection)
+    cache = NfbDxfPreviewCache()
+    with pytest.raises(ValueError, match="source changed during read"):
+        cache.load("士林", source.name, index_path=index)
+    assert cache.parse_count == 0
+    assert not cache._entries
+    monkeypatch.setattr(owner, "inspect_indexed_nfb_preview", inspect)
+    fresh = cache.load("士林", source.name, index_path=index)
+    assert fresh.status == PREVIEW_ONLY
+    assert fresh.source_sha256 == inspect_nfb_dxf_source(source).source_sha256
+    assert cache.parse_count == 1
+    assert fresh.manufacturing_ready is False
