@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Head/Tail 候選數量配置預檢歸公開 Engine（2026-11-06）
+
+- `receiving_quantity_allocation_ui._ready_to_apply` 只提交當前版本 inventory、Set/Bay 數量、Head/Tail role、數量與配置到 `manufacturing_api.validate_receiving_candidate_quantity_preview`；不得在 GUI 推算下一版本 ID、重組候選實體 Feature 來源，或捏造 `None` Bay 拓樸代替 Engine。
+- Engine 仍以原本 `receiving_hole_candidates.normalize_candidates`、`receiving_quantity_allocation.validate_quantity_allocation` 和 `receiving_assignment_core.validate_positions` 驗來源／身份／套連／數量／配置，拒絕非法或 stale 來源，純唯讀且不變更 Project。GUI 原本可用的真實 `validate_quantity` port 維持優先；缺少時才用此唯讀預檢。版本 role 與顯示標籤改用 `manufacturing_api.validate_receiving_candidate_role` 和 `receiving_candidate_version_label` 同一 Engine owner。
+- 正式 Head/Tail 版本 Apply 仍走既有 Engine 原子 Set/Bay 交易，候選預覽不能取得 CUTTING／FinalScene／DXF 或 Registry 認證資格。#2517 尚未結案。
+
 ## [CURRENT] #2517 NFB 原始 Hole Editor 實體孔位恢復須驗完整 CSV 輪廓（2026-11-06）
 
 - 已提交的現行 CSV NFBConfig 若 `manual_x_state=UNVERIFIED_BASIS`，正常受電箱 FinalScene 的 `ae_engine.receiving_nfb_committed_final_scene._source_world_x_from_committed_editor_feature` 只有在**原實體內門**上找到本次來源 CSV SHA／品牌型號／實體層槽與 Hole Editor 已提交 `NFB_CSV_SOURCE`，且實際四角點經保存旋轉後仍為**同一份 CSV 矩形輪廓**、Y 基準一致，才可回收操作者已放置的 world X。原實作僅比四邊長，會錯認邊長相同的斜四邊形為原 NFB；現必須比整個四點順序（允許起點輪轉／順逆序）及 `rotation_deg` 與保存 NFB row 的一致性；僅允許正常位置平移，拒絕非矩形、錯角度、穿插線、非有限座標及來源變動。

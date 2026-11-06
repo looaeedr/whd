@@ -516,6 +516,10 @@ physical BasePlate certification: those remain source-specific via their own
 canonical Receiving builders and explicit manufacturing gates. No new DXF
 capability is granted.
 
+## #2517 Receiving candidate quantity readiness / identity public API
+
+`manufacturing_api.validate_receiving_candidate_quantity_preview(version_entries, counts, role, quantities, assigned, *, expected_counts=None)` performs a **detached** Head/Tail readiness check: it validates typed candidate Feature sources and IDs with the original Engine normalizer, builds temporary Set/Bay count topology inside Engine, then uses the same quantity/allocation validation as physical Apply. Missing/stale versions, invalid feature sources, invalid/bool/zero Bay counts, quantity mismatch or Set/Bay drift are refused with no changes to candidate sources or live Bays. The GUI supplies only the operator draft and version inventory; its existing optional live `validate_quantity` owner remains first. `validate_receiving_candidate_role` and `receiving_candidate_version_label` are public aliases of the original Engine identity/display owners. This preview does not grant manufacturing, FinalScene or DXF permission.
+
 ## Receiving candidate quantity draft API (#2517)
 
 `manufacturing_api.AllocationDraft` and `validate_quantity_allocation` are public

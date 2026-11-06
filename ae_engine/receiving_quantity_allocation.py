@@ -31,6 +31,47 @@ def validate_quantity_allocation(layout, library, role, quantities, assigned, *,
     )
 
 
+def validate_receiving_candidate_quantity_preview(version_entries, counts, role, quantities, assigned, *, expected_counts=None):
+    """Preflight Head/Tail candidate quantities with Engine-owned source and
+    temporary Set/Bay topology; do not mutate real Bays or approve DXF.
+    """
+    import re
+    from .receiving_hole_candidates import ROLES, normalize_candidates
+
+    role_key(role)
+    if (not isinstance(counts, (list, tuple)) or not counts
+            or any(type(count) is not int or count < 1 for count in counts)):
+        raise ValueError("受電箱套／連數量不合法")
+    if not isinstance(version_entries, Mapping) or set(version_entries) != set(ROLES):
+        raise ValueError("候選版本清單不合法")
+
+    library = normalize_candidates()
+    for candidate_role in ROLES:
+        entries = version_entries[candidate_role]
+        if not isinstance(entries, (list, tuple)):
+            raise ValueError("候選版本清單不合法")
+        highest = 0
+        for entry in entries:
+            if not isinstance(entry, Mapping):
+                raise ValueError("候選版本清單不合法")
+            version_id = entry.get("id")
+            if not isinstance(version_id, str):
+                raise ValueError("候選版本 ID 不合法")
+            match = re.fullmatch(rf"{candidate_role}-v([1-9][0-9]*)", version_id)
+            if match is None:
+                raise ValueError("候選版本 ID 不合法")
+            highest = max(highest, int(match.group(1)))
+        library[candidate_role] = {
+            "versions": deepcopy(list(entries)), "next_number": highest + 1,
+        }
+    library = normalize_candidates(library)
+    detached_layout = {"sets": [{"bays": [None] * count} for count in counts]}
+    return validate_quantity_allocation(
+        detached_layout, library, role, quantities, assigned,
+        expected_counts=expected_counts,
+    )
+
+
 class AllocationDraft:
     """Per-side quantity and 2D draft, never written to candidate library."""
 
