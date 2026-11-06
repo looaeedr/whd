@@ -456,3 +456,67 @@ def test_grouped_nfb_same_ids_dimensions_but_foreign_csv_source_rejected(tmp_pat
             nfb_pair_requests=requests,
         )
     assert not list((tmp_path / "out").rglob("*.dxf"))
+
+def test_same_saved_nfb_source_allows_only_independent_core_flat_scope(
+    tmp_path, mode, filenames,
+):
+    """An approved pair can share its exact saved source with independent core.
+
+    A non-NFB Body is never treated as an EAR/PAD certified whole cabinet.
+    Engine must still rederive every approved pair from this saved Layout.
+    """
+    from ae_engine.contracts import (
+        ResolvedManufacturingGeometry, ResolvedManufacturingPart,
+    )
+
+    source = _multi()
+    approved_layout, requests = _complete_committed_nfb_requests_for_core(source)
+    source["receiving_layout"] = approved_layout
+
+    def independent_core(si, bi):
+        return ResolvedManufacturingGeometry(parts=(
+            ResolvedManufacturingPart(
+                "head", _flat("head", width=80 + bi),
+            ),
+            ResolvedManufacturingPart(
+                "box_body", _flat("box_body", width=110 + bi),
+            ),
+        ))
+
+    out = tmp_path / "group"
+    files = manufacturing_api.export_grouped_receiving_multibay_dxf(
+        source, physical_bay_geometry_provider=independent_core,
+        flags={"head": True, "box_body": True},
+        output_dir=out, group_mode=mode,
+        pre_commit_guard=lambda: None, nfb_pair_requests=requests,
+    )
+    assert tuple(files) == filenames
+    assert len(tuple(out.glob("*.dxf"))) == len(filenames)
+    doc = ezdxf.readfile(next(out.glob("*.dxf")))
+    assert not doc.audit().errors
+    check = [e.plain_text() for e in doc.modelspace()
+             if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
+    assert check.count("head") == 2
+    assert check.count("box_body") == 2
+    assert sum(key.startswith("inner_door:") for key in check) == 2
+    assert check.count("base_plate") == 2
+    assert "nfb_pad" not in check
+    assert not list(out.rglob("NFB_PART_ONLY/*.dxf"))
+
+
+def test_nfb_composition_does_not_enable_non_core_selected_manufacturing(tmp_path):
+    """NFB pair proof does not authorize PAD/EAR or Base MFG-2 scope."""
+    source = _multi()
+    approved_layout, requests = _complete_committed_nfb_requests_for_core(source)
+    source["receiving_layout"] = approved_layout
+    provider, _calls = _provider(source)
+    with pytest.raises(
+        ValueError, match="RECEIVING_COMPOSED_NFB_INDEPENDENT_CORE_SCOPE_REQUIRED",
+    ):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=provider,
+            flags={"head": True, "base_plate": True},
+            output_dir=tmp_path / "out", group_mode="ALL",
+            pre_commit_guard=lambda: None, nfb_pair_requests=requests,
+        )
+    assert not tuple((tmp_path / "out").glob("*.dxf"))
