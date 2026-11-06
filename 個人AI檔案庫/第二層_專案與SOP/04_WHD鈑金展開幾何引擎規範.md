@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI 指示燈雙擊距離編輯使用公開 Engine Fail-Closed 候選交易（2026-11-06）
+
+- `gui.py::on_double_click_indicator` 原直接呼叫私有 `sheetmetal_features.measure_door_indicator_position` 和 `door_indicator_offset_for_position`。後者對雙擊視窗傳回的 `NaN`、`Inf`、布林或錯誤字串未先驗證，可能產生非法指示燈 X/Y 偏移，並由 GUI 原地提交、影響其後 Door 的 2D／3D／DXF 孔來源。
+- 公開 `manufacturing_api.project_operator_door_indicator_position` 與 `propose_operator_door_indicator_offset_candidate` 接受原有 DoorIndicatorContext/Layout/Groups、框寬、板厚、門縫與操作者距離；Engine `door_indicator_position_transactions` 僅驗證合法有限數值與來源型別，沿用**原** `sheetmetal_features.measure_door_indicator_position`／`door_indicator_offset_for_position` 作為唯一距離、座標、夾界算法，無第二套孔位／CUTTING。雙擊視窗資料無效則拒絕，GUI X/Y 舊值不變；合法候選才一次提交兩個現有偏移欄位。
+- Headless 與 GUI 測試核對原 Engine 完全相同位置、不同量測基準、來源不改動、非法負向不寫入、GUI 成功後新偏移經原 Hole Editor 儲存驗證；原 Door PartSpec／FinalScene／DXF 寫入器與封閉驗證未改。此批不代表 #2517、CADSplit 全 Bay 或 Windows R5 UAT 已完成。
+
+
 ## [CURRENT] #2517 Fold Designer 剩餘 Receiving Family／WRAP 可用性接入原公開 Policy（2026-11-06）
 
 - `fold_designer_composition_state.build_capability_owners` 原直接把內部 `cabinet_types.policy.canonical_family_name` 注入 ReceivingCapabilityOwner，`fold_designer_composition_settings` 的 bottom-wrap 控制則直接讀私有 `supports_bottom_wrap_controls`；兩者決定實體箱型操作准入／Joint WRAP 操作可用性，不是純展示數值。
