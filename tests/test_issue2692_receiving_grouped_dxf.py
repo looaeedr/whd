@@ -268,10 +268,13 @@ def _complete_committed_nfb_requests_for_core(source):
         for group in source["receiving_layout"]["sets"]
         for bay in group["bays"]
     ]
+    from ae_engine.receiving_layout import RECEIVING_DOOR_STATE_KEYS
     for bay in layout["sets"][0]["bays"]:
+        # Preserve the complete original Engine Door schema (including scope,
+        # nameplate, handle and inner-door topology), not a two-field mock.
         bay["door_state"] = {
-            "multi_door_enabled": True,
-            "door_layout_columns": deepcopy(fresh["door_layout_columns"]),
+            key: deepcopy(fresh[key])
+            for key in RECEIVING_DOOR_STATE_KEYS if key in fresh
         }
     for bi in range(len(layout["sets"][0]["bays"])):
         draft = api.candidate_receiving_nfb_csv_for_fresh_bay(
