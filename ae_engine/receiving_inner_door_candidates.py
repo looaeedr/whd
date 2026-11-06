@@ -38,6 +38,28 @@ def validate_door_config(config):
     return result
 
 
+def validate_receiving_inner_door_source_models(config, parent_brand):
+    """Check a saved candidate's actual CSV model eligibility for one parent.
+
+    Both legacy indexed-DXF identities and native V5 brand/model references
+    are eligible only under the selected parent brand.  This read-only source
+    gate does not authorize NFB holes, FinalScene, or manufacturing DXF.
+    """
+    from .receiving_nfb_model_identity import numeric_model_refs
+    from .receiving_switch_model_catalog import model_filenames
+    from .receiving_shared_settings import switch_filenames_in_layer
+
+    source = validate_door_config(config)
+    allowed = set(numeric_model_refs(parent_brand)) | set(model_filenames(parent_brand))
+    for layer_slot in source["models"][:source["layers"]]:
+        for name in switch_filenames_in_layer(layer_slot):
+            if name not in allowed:
+                raise ValueError(
+                    "內門版本型號已不在廠牌 CSV，請重新編輯選擇：" + name
+                )
+    return source
+
+
 def normalize_inner_candidates(value=None):
     if value is None:
         return {"schema": SCHEMA, "next_number": 1, "versions": []}

@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 內門候選型號與套連配置的單一公開 Engine 來源資格（2026-11-06）
+
+- Fold Designer 內門候選 Apply／Quantity 配置原本在 GUI `verify_inner_models` 自行把舊版「開關索引.csv」DXF 檔名與原生 CSV `nfbv5:<brand>:<model>` 型號清單合併為來源白名單，逐層判定當前 Parent Brand。這是已保存實體 NFB 型號的來源資格，不是展示規則。現在由 `ae_engine.receiving_inner_door_candidates.validate_receiving_inner_door_source_models(config, parent_brand)` 作唯一 owner；`manufacturing_api`／根包公開同一 callable。Engine 先使用原 `validate_door_config` 正規化 detached candidate，再以原 `numeric_model_refs` 與 `model_filenames` 兩套正式來源核對，保留同層重複實體孔、兩層與舊專案相容，來源缺失／跨品牌／不合法拒絕且不變更呼叫者。
+- Fold Designer 的候選 `inner_validate_quantity` 改用公開 `manufacturing_api.validate_receiving_inner_door_allocation`（原 `receiving_inner_door_pairing.validate_inner_door_allocation` 原件），版本標籤改用既有 `receiving_candidate_version_label`，GUI 不再直接 import 這兩個 Engine 內部 owner。單 Bay／數量 Apply 仍走原本 Engine 原子 Set-Bay 交易；未授權未確認 NFB world X／CUTTING／FinalScene／DXF、未放行 source-only CLI。驗收 `tests/test_issue2517_inner_door_candidate_source_public_api.py` 檢查 Vault 無關的 Receiving 舊 DXF／V5 型號、跨品牌失效、兩孔不去重、配置拒絕、GUI 同源，#2517／Windows 實機驗收仍未全部完成。
+
+
 ## [CURRENT] #2517 Receiving 共用設定相同 Bay 與品牌清單只由 Engine 投影（2026-11-06）
 
 - 受電箱「每連設定／共用設定」GUI 原本 `receiving_set_bay_controls._build_receiving_settings_editor.refresh` 直接 import `receiving_shared_settings.setting_value`，自行逐 Bay 掃相同值，並從私有 `receiving_switch_layout.RECEIVING_SWITCH_BRANDS` 取得候選品牌。這類包含實體 Set/Bay 儲存值與連動共用設定來源的業務判斷必須由 Engine 直接提供；GUI 僅留中文標示、顯示高亮、待操作選取與 Call API。
