@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Quantity 內門 NFB 確定全部必須同時提交版本與保存來源（2026-11-07）
+
+- 正式的單只／Quantity 受電箱內門「確定全部」，包含原 Fold Designer 設定入口及 3D 直接雙擊內門，原先雖由 `manufacturing_api.preview_quantity_inner_door_confirm` 先驗證 Factory Box 和 NFB CSV 實體來源，但接著在 GUI 分別 `quantity.set_version_nfb_config` 與 `_phase6_input_snapshot.clear/update`。任何中途失敗都有可能留下版本已提交、專案尚未對應的半交易；GUI 不可決定兩份製造來源的提交順序。
+- 新公開 `manufacturing_api.commit_receiving_quantity_inner_door_confirm`（`ae_engine` 根包相同 callable）重用原 Engine 全量 preview；以目前 QuantityModel 的 selected version 重新推導應提交的版本快照，核對正式 projected `quantity` 身分一致後，才在同一 Engine 函式內提交專案快照及原 QuantityModel NFB。原 `QuantityModel` 僅新增 Engine 內部無通知 rollback，若版本 on_change 中途失敗，兩份原始來源完整還原；非法 Family／Box／型號、非 CSV CUTTING、扭曲輪廓、錯誤模式、版本漂移都 fail closed。
+- GUI 的兩個「確定全部」入口只消費此交易結果並同步 workspace／畫面快取；既有 `include_missing_heights=True` 的 3D 直接進入語意與單只設定不強制清除舊層高的語意維持。Native-only Feature 確認不得虛構 NFB submitted；CSV 模型、原始 source SHA、physical CUTTING 及 `manual_x_state=UNVERIFIED_BASIS` 仍由既有 Engine 驗證，不因提交成功而給予加工放行。
+- 正反測試需覆蓋實際雙層 CSV Source、選中版本／其他版本不互借、原快照不被 preview 寫入、非法輸入不改來源、變更通知失敗無第二次通知且同時 rollback、兩條 GUI 路由無來源寫入；完整 Product／2D／3D／DXF Save→Reload 以本批 exact-HEAD CI 驗收。這個來源提交 API 不是全盤 MFG-2 認證或 #2517 整體完工。
+
+
 ## [CURRENT] #2517 使用者最新確認：合併 DXF 母盤完整盤名＋底線（2026-11-07）
 
 - 2026-11-07 使用者明確修正先前各群各取局部盤號規則：所有正式合圖檔案**共同使用整份已確認母盤 Set/Bay 的完整盤名跨度**，不是各組 subset 範圍。台灣時間 12 碼之後要有**一個底線**。例如 `202611071258_p1~p16全部.dxf`、`202611071258_p1~p16第1套.dxf`、`202611071258_p1~p16第2套.dxf`、`202611071258_p1~p16頭尾盤.dxf`、`202611071258_p1~p16中間盤.dxf`（第3套同規則）。分組內容的 Bay 身分和實際數量不變；僅名字共同引用母盤總範圍。自訂盤名仍保留真實資料，不得偽造連續 P 身分；其他未確認幾何不得因命名放行。

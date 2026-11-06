@@ -259,6 +259,17 @@ class QuantityModel:
             row.update(fields)
             self._changed()
 
+    def _restore_validated_owner_snapshot(self, payload):
+        """Engine transaction rollback: restore this owner's source without UI events.
+
+        Only called after an already-validated detached operator transaction
+        fails; never fabricate a selected version or its manufacturing NFB.
+        """
+        restored = type(self).from_payload(payload)
+        self._versions = restored._versions
+        self._selected = restored._selected
+        self._next_number = restored._next_number
+
     def snapshot(self):
         committed = any(r.get("nfb_config_submitted") is True for r in self._versions)
         version_brand = any("nfb_parent_brand" in r for r in self._versions)
