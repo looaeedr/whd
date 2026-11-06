@@ -371,6 +371,12 @@ from .operator_round_hole_projection import (
     OperatorRoundHolePreview, nearest_operator_round_hole_neighbor_index,
     plan_operator_round_hole_preview,
 )
+# GUI round-hole spacing fields use the same Engine geometric conversions
+# as the canonical physical-feature reference owner.
+from .sheetmetal_feature_reference import (
+    circle_center_distance_from_gap as operator_round_hole_center_distance_from_gap,
+    circle_gap_from_center_distance as operator_round_hole_gap_from_center_distance,
+)
 from .operator_hole_editor_projection import (
     OperatorHoleEditorGeometry,
     project_operator_hole_editor_door,

@@ -12,10 +12,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from ae_engine import manufacturing_api
-from ae_engine.sheetmetal_features import (
-    CircleFeature, RectFeature,
-    circle_center_distance_from_gap, circle_gap_from_center_distance,
-)
+from ae_engine.sheetmetal_features import CircleFeature, RectFeature
 from phase6_hole_editor_session import HoleEditorAction
 from phase6_hole_editor_canvas_view import Phase6HoleEditorCanvasView
 
@@ -264,7 +261,9 @@ class _RoundHoleSettingsDialog:
         self.round_driver.set("center")
         self.sync_guard = True
         try:
-            gap = circle_gap_from_center_distance(value, self.selected_feature.diameter, self.selected_feature.diameter)
+            gap = manufacturing_api.operator_round_hole_gap_from_center_distance(
+                value, self.selected_feature.diameter, self.selected_feature.diameter,
+            )
             self.round_gap.set(f"{gap:.2f}")
         finally:
             self.sync_guard = False
@@ -281,7 +280,9 @@ class _RoundHoleSettingsDialog:
         self.round_driver.set("gap")
         self.sync_guard = True
         try:
-            center = circle_center_distance_from_gap(value, self.selected_feature.diameter, self.selected_feature.diameter)
+            center = manufacturing_api.operator_round_hole_center_distance_from_gap(
+                value, self.selected_feature.diameter, self.selected_feature.diameter,
+            )
             self.round_center.set(f"{center:.2f}")
         finally:
             self.sync_guard = False
