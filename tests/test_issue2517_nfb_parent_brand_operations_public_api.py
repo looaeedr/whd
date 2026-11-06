@@ -16,6 +16,7 @@ from ae_engine.receiving_nfb_brand_transition import (
     project_receiving_quantity_nfb_parent_brand as engine_quantity_brand,
     update_receiving_quantity_nfb_parent_brand as engine_quantity_update,
     project_receiving_parent_brand_change_impact as engine_impact,
+    update_receiving_all_set_nfb_parent_brand as engine_global_brand,
 )
 from ae_engine.receiving_layout import append_receiving_set, new_receiving_layout
 from ae_engine.receiving_quantity_versions import QuantityModel
@@ -58,10 +59,13 @@ def test_public_facades_share_exact_nfb_parent_brand_owners():
     assert manufacturing_api.update_receiving_quantity_nfb_parent_brand is engine_quantity_update
     assert ae_engine.project_receiving_parent_brand_change_impact is engine_impact
     assert manufacturing_api.project_receiving_parent_brand_change_impact is engine_impact
+    assert ae_engine.update_receiving_all_set_nfb_parent_brand is engine_global_brand
+    assert manufacturing_api.update_receiving_all_set_nfb_parent_brand is engine_global_brand
     for name in (
         "project_receiving_quantity_nfb_parent_brand",
         "update_receiving_quantity_nfb_parent_brand",
         "project_receiving_parent_brand_change_impact",
+        "update_receiving_all_set_nfb_parent_brand",
     ):
         assert name in ae_engine.__all__
 
@@ -133,3 +137,56 @@ def test_gui_brand_entrypoints_only_supply_operator_scope_and_engine_result():
         assert "saved_parent_new_reselections(" not in entry
         assert "nfb_config_for_version(" not in entry
     assert '"set_bay"' in impact and '"quantity"' in impact
+
+
+def test_global_brand_engine_is_one_atomic_transaction_and_gui_is_only_client():
+    from gui_modules.application.receiving_set_bay_adapter import (
+        ReceivingSetBayAdapter,
+    )
+
+    raw = _two_set_submitted_layout()
+    before = deepcopy(raw)
+    expected = manufacturing_api.normalize_receiving_layout(raw)
+    for index, row in enumerate(expected["sets"]):
+        updated, changed = manufacturing_api.rebase_receiving_set_parent_nfb_brand(
+            row, "東元",
+        )
+        assert changed
+        expected["sets"][index] = updated
+
+    result, changed = engine_global_brand(raw, "東元")
+    assert changed is True
+    assert result == expected
+    assert raw == before
+    assert [row["switch_brand"] for row in result["sets"]] == ["東元", "東元"]
+    assert engine_impact(result, "東元", mode="set_bay") == 0
+
+    adapter = ReceivingSetBayAdapter(raw)
+    assert adapter.set_global_brand("東元") is True
+    assert adapter.layout == result
+    assert adapter.set_global_brand("東元") is False
+    assert adapter.layout == result
+    assert raw == before
+
+    returned, no_change = engine_global_brand(result, "東元")
+    assert no_change is False
+    assert returned == result and returned is not result
+
+    gui_code = getsource(ReceivingSetBayAdapter.set_global_brand)
+    assert "manufacturing_api.update_receiving_all_set_nfb_parent_brand(" in gui_code
+    assert "for index, set_row in enumerate" not in gui_code
+    assert "rebase_receiving_set_parent_nfb_brand(" not in gui_code
+
+
+def test_global_brand_invalid_late_set_is_rejected_without_partial_apply():
+    raw = _two_set_submitted_layout()
+    before = deepcopy(raw)
+    broken = deepcopy(raw)
+    broken["sets"][1]["switch_brand"] = "not-a-real-brand"
+
+    with pytest.raises(ValueError, match="品牌"):
+        engine_global_brand(raw, "not-a-real-brand")
+    with pytest.raises(ValueError):
+        engine_global_brand(broken, "東元")
+    assert broken["sets"][0] == before["sets"][0]
+    assert raw == before
