@@ -251,11 +251,23 @@ def _complete_committed_nfb_requests_for_core(source):
     """One real mother layout, two genuine approved NFB pairs, no cloned identities."""
     from copy import deepcopy
     api = manufacturing_api
-    layout = deepcopy(source["receiving_layout"])
     fresh = api.fresh_receiving_mode(
         "set_bay", {"w": source["w"], "h": source["h"], "d": source["d"]},
         thickness=source["t"],
     )
+    layout = api.resize_receiving_bays_with_family_defaults(
+        fresh["receiving_layout"], set_index=0,
+        bay_count=len(source["receiving_layout"]["sets"][0]["bays"]),
+    )
+    layout["sets"][0]["switch_brand"] = "士林"
+    assert [
+        (group["stable_id"], bay["stable_id"])
+        for group in layout["sets"] for bay in group["bays"]
+    ] == [
+        (group["stable_id"], bay["stable_id"])
+        for group in source["receiving_layout"]["sets"]
+        for bay in group["bays"]
+    ]
     for bay in layout["sets"][0]["bays"]:
         bay["door_state"] = {
             "multi_door_enabled": True,
