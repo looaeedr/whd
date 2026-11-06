@@ -101,12 +101,25 @@ def _source_world_x_from_committed_editor_feature(
         params = dict(feature.source_params)
         if params.get("part_id") != panel.stable_id:
             continue
-        identity = (
-            params.get("hole_id") == wanted[0]
-            if "hole_id" in params else
-            (params.get("layer_index"), params.get("slot_index")) == wanted[1:]
+        # Both original Hole Editor formats are valid: older physical
+        # (layer, slot) pairs and the newer explicit hole_id. However, when
+        # a saved feature carries BOTH identities, they must name the SAME
+        # physical NFB. The old either/or test trusted hole_id alone and
+        # could borrow a different unit's X on the same physical tier.
+        # A partially supplied or boolean tier/slot is not an exact owner.
+        has_hole_id = "hole_id" in params
+        has_slot = "layer_index" in params or "slot_index" in params
+        hole_matches = has_hole_id and params["hole_id"] == wanted[0]
+        slot_matches = (
+            type(params.get("layer_index")) is int
+            and type(params.get("slot_index")) is int
+            and (params["layer_index"], params["slot_index"]) == wanted[1:]
         )
-        if identity:
+        if (has_hole_id and has_slot
+                and (hole_matches or slot_matches)
+                and not (hole_matches and slot_matches)):
+            raise ValueError("NFB_CSV_EDITOR_PHYSICAL_SLOT_IDENTITY_CONFLICT")
+        if hole_matches if has_hole_id else slot_matches:
             matches.append((feature, params))
     if not matches:
         return None
