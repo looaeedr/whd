@@ -71,7 +71,7 @@ def test_original_three_sheet_holes_generate_verified_independent_dxfs(tmp_path)
     saved = _saved()
     features = _features()
     saved["physical_piece_features"] = {
-        key: list(rows) for key, rows in features.items()
+        key: tuple(rows) for key, rows in features.items()
     }
     original = deepcopy(saved)
     parts = dict(api.build_receiving_factory_confirmed_parts(
