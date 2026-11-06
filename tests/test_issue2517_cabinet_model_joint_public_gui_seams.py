@@ -93,4 +93,6 @@ def test_cabinet_and_fold_designer_gui_use_public_seams_not_private_model_or_joi
         ]
     assert calls(cabinet_tree).count("operator_normalize_custom_model_name") == 1
     assert calls(cabinet_tree).count("is_unknown_operator_model") == 6
-    assert calls(fold_tree).count("migrate_operator_assembly_joint_snapshot") == 1
+    # Eligibility and migration now live together in the public Joint Engine owner.
+    assert calls(fold_tree).count("migrate_operator_assembly_joint_snapshot") == 0
+    assert calls(fold_tree).count("project_operator_user_assembly_joint_parts") == 1
