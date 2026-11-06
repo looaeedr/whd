@@ -136,15 +136,20 @@ def _confirmed_saved_box_body_piece_features(values, confirmed, *, confirmation)
             # covered by a physical-sheet UV confirmation.
             raise ValueError("RECEIVING_FACTORY_BOX_BODY_FACE_SOURCE_UNCONFIRMED")
         stored_parts = values.get("part_features", {})
+        explicit = values.get("physical_piece_features")
         if not isinstance(stored_parts, Mapping):
-            raise ValueError(code)
+            if confirmed is not None or explicit is not None:
+                # An explicit Body request cannot trust an unreadable store.
+                raise ValueError(code)
+            # No BoxBody physical source was supplied. Leave malformed Door
+            # and BasePlate saved-state diagnostics to their original owners.
+            return {}
         if stored_parts.get("box_body"):
             raise ValueError("RECEIVING_FACTORY_BOX_BODY_FACE_SOURCE_UNCONFIRMED")
         legacy = {
             key: rows for key, rows in stored_parts.items()
             if isinstance(key, str) and key.startswith("box_body:")
         }
-        explicit = values.get("physical_piece_features")
         if explicit is not None and not isinstance(explicit, Mapping):
             raise ValueError(code)
         if explicit is not None and legacy:
