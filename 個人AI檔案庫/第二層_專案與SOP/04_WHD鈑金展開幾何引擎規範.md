@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 多連封頭／封尾 Hole Editor Save 必須同一原子 Engine 交易（2026-11-06）
+
+- `fold_designer_composition_receiving.receiving_settings_ports::holes/save_features` 原先在選取多個實體 Bay 時，先於 GUI 切換到第一個 Bay、呼叫 `adapter.share_setting(kind, targets)`，再呼叫 `adapter.update_setting(kind, features)`。若第二步 Feature 類型或來源驗證失敗，前一步已修改 Adapter 記憶中的 shared refs／dirty IDs，但未觸發 GUI commit；下一次操作可能帶著半套連動來源。這違反一次操作者儲存必須全有或全無的規則。
+- 既有 `ae_engine.receiving_shared_settings` owner 新增 `share_and_edit_setting_with_affected_ids(layout, *, set_index, bay_indices, source_bay_index, kind, value)`，在 detached canonical Layout 上先驗 Feature、再復用原 `share_setting_with_affected_ids`／`edit_setting_for_bays_with_affected_ids`，只有兩步均成功才回傳唯一候選 Layout 與所選目標＋原來源 linked siblings 的真實 stable IDs；任何非法孔／非法 Bay／非法來源不更改原 Layout。透過原 `manufacturing_api.share_and_edit_receiving_shared_setting_with_affected_ids` 與 `ae_engine` 根包同一公開函式，GUI 只保留操作選取、Editor 顯示與一次提交，無臨時 Bay 選取或重算 Feature。
+- `tests/test_issue2517_receiving_set_bay_public_transactions.py` 直接走真 `receiving_settings_ports.holes → Hole Editor sync_callback`（僅 stub Engine-approved Editor context 的顯示承載），驗無效 Feature 後 Layout/dirty/selection/project snapshot 全不變、隨後有效 Feature 跨 linked 與選中 Bay 完整同源成功，及 generator、非法後續 Bay 原子拒絕。原單連 Editor/API 與 Family 幾何規則不變；不放行未確認 NFB、FinalScene／CUTTING／製造 DXF。Windows 真機／全櫃驗收、#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 Receiving 單連編輯／建立連動的完整 Bay dirty 身分須由 Engine 提供（2026-11-06）
 
 - `ReceivingSetBayAdapter.update_setting` 對既有共享參照只標記當前 Bay dirty，實際 Engine `edit_setting` 會更改所有引用同一設定 ref 的 Bay；`share_setting` 會改選中目標的物理 refs，GUI 卻仍只標記來源 Bay。此時刪除尚未保存的目標 Bay 可能缺乏完整保護。即使設定值相同，共享 ref 變更也是實體設定來源變更，不可由 GUI 依值比對來判定。
