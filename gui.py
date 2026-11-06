@@ -64,8 +64,6 @@ from ae_engine.sheetmetal_features import (
     legacy_hole_to_feature,
     resolve_door_indicator_features,
     resolve_door_indicator_layout,
-    measure_door_indicator_position,
-    door_indicator_offset_for_position,
     door_enclosure_reference_offsets,
     door_enclosure_reference_guide,
     resolve_features_in_finished_face,
@@ -129,6 +127,7 @@ from ae_engine.sheetmetal_part_adapters import (
 
 # Stable compatibility names consumed by HoleEditorCompositionDependencies.
 # Always pass public Engine geometry ownership into UI/session controllers.
+measure_door_indicator_position = manufacturing_api.project_operator_door_indicator_position
 feature_with_reference_anchor = manufacturing_api.operator_hole_feature_with_reference_anchor
 feature_with_process = manufacturing_api.operator_hole_feature_with_process
 move_feature_by_reference_distance = manufacturing_api.operator_hole_move_feature_by_reference_distance
@@ -1736,7 +1735,7 @@ class Phase6ApplicationHost:
         except Exception:
             fw_val = 62.0
 
-        position = measure_door_indicator_position(
+        position = manufacturing_api.project_operator_door_indicator_position(
             layout,
             context,
             frame_width=fw_val,
@@ -1747,7 +1746,7 @@ class Phase6ApplicationHost:
         )
         new_x, new_y = self.ask_xy_dialog(position.distance_x, position.distance_y)
         if new_x is not None and new_y is not None:
-            target = door_indicator_offset_for_position(
+            target = manufacturing_api.propose_operator_door_indicator_offset_candidate(
                 context,
                 groups,
                 x_distance=new_x,

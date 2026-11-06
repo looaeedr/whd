@@ -369,6 +369,10 @@ from .sheetmetal_features import (
     hit_test_resolved_features as _hole_editor_hit_test_resolved_features,
     resolve_surface_features as _hole_editor_resolve_surface_features,
 )
+from .door_indicator_position_transactions import (
+    project_operator_door_indicator_position,
+    propose_operator_door_indicator_offset_candidate,
+)
 from .sheetmetal_geometry import (
     EndCapAssemblySemantics,
     FourCornerTypePolicy,
