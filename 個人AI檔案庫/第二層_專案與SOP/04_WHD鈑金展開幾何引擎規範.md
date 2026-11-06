@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 共用設定 Apply 受影響實體 Bay 身分由 Engine 返回（2026-11-06）
+
+- 原 `gui_modules/application/receiving_set_bay_adapter.py::apply_setting_to_bays` 已使用 Engine 原子提交 `edit_receiving_shared_setting_for_bays`，卻仍於 GUI 展開持久化 `settings[kind].refs`，自行判定哪些未選取但連動的實體 Bay 必須標記為 dirty，違反 Set/Bay 來源身份只能由 Engine 擁有的契約。
+- 原 `ae_engine.receiving_shared_settings` owner 新增 `edit_setting_for_bays_with_affected_ids`，並以公開 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids`（`ae_engine` 根包同一 callable）回傳 `(detached_layout, affected_stable_ids)`。完整選取、型別與 linked reference 仍由既有原子交易先驗證，影響範圍依驗證後**同一設定共享 ref**判定，非依相等設定值。GUI 僅保存 Engine 候選結果與標記回傳 ID；非法來源不可造成局部提交或 dirty 漏記。
+- 原 `edit_receiving_shared_setting_for_bays` 回傳型態保持相容，未變更保存 Schema／真實製造尺寸、孔位／2D／3D／DXF。定向 `tests/test_issue2517_receiving_set_bay_public_transactions.py` 覆蓋非相鄰連動、相等但獨立的 ref、一次性 generator、無效選取原子拒絕與 GUI 公開 seam。#2517／Windows UAT 與全櫃驗收仍 OPEN。
+
+
 ## [CURRENT] #2517 Assembly Relief 來源 Joint/FW 簽章只能由公開 Engine 決定（2026-11-06）
 
 - Fold Designer 的 `current_relief_source_signature` 原本在 GUI 直接呼叫私有 `resolved_joint_graph_fingerprint`、`migrate_legacy_snapshot_joints`，並把 box-body 成形 FW 與製造 replay source 的中間欄位自行組裝。這是持久化 Head/Tail 已認證 relief CUTTING 的來源資格，不應由 GUI 決定機械身分。
