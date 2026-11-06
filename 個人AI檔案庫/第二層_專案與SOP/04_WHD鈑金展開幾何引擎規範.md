@@ -6,6 +6,15 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 內門＋NFB 底板 PART_ONLY 出圖禁止非法真實內門 3D 安裝座標（2026-11-06）
+
+- 原 `receiving_nfb_pair_export.export_current_csv_nfb_door_base_pair` 在單／雙層 committed CSV 的實體 FinalScene 和 CUTTING 比對後，只驗真實 BasePlate 世界 XYZ，卻沒有驗安裝在同一 3D Assembly 的內門 `AssemblyScenePart.offset`；本地 2D/CUTTING 可以完全一致，但失效 `NaN`、缺軸、字串、布林或無限大的內門座標仍能落入 DXF 部分出口。
+- 原 Engine owner 直接重用已存在的 `_finite_installed_xyz`，對單層和雙層已確認內門實體 scene 的 world XYZ 要求三軸原生有限數字、拒絕無法安全轉浮點的超大整數；遇非法輸入分別回 `CSV_PAIR_REAL_DOOR_INSTALL_XYZ_INVALID`／`CSV_TWO_TIER_REAL_DOOR_INSTALL_XYZ_INVALID`，原子 writer 尚未啟動、不可留下任一板件 DXF。原 FinalScene/CUTTING 和真實底板安裝證明仍必須同時合格。
+- 回歸沿用原真來源及真實 DXF Save→Reload 測試的同一場景，單／雙層各對上述七組失效座標確認無部分輸出；這僅確保內門 3D 安裝資料有效，**不**冒稱已校驗其絕對 XYZ 與裝配拓樸完全相符，也不認證 EAR/PAD 焊接、MFG-2、整套 16 Bay 或 Windows UAT；#2517 保持 OPEN。
+
+
+
+
 ## [CURRENT] #2517 Receiving 多連封頭／封尾 Hole Editor Save 必須同一原子 Engine 交易（2026-11-06）
 
 - `fold_designer_composition_receiving.receiving_settings_ports::holes/save_features` 原先在選取多個實體 Bay 時，先於 GUI 切換到第一個 Bay、呼叫 `adapter.share_setting(kind, targets)`，再呼叫 `adapter.update_setting(kind, features)`。若第二步 Feature 類型或來源驗證失敗，前一步已修改 Adapter 記憶中的 shared refs／dirty IDs，但未觸發 GUI commit；下一次操作可能帶著半套連動來源。這違反一次操作者儲存必須全有或全無的規則。

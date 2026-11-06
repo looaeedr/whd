@@ -94,3 +94,34 @@ def test_oversized_integer_single_tier_xyz_fails_with_engine_source_error(
             base_spec=None, output_directory=tmp_path,
         )
     assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("invalid_offset", (
+    None,
+    (0.0, 0.0),
+    (False, 0.0, 0.0),
+    ("0", 0.0, 0.0),
+    (float("nan"), 0.0, 0.0),
+    (float("inf"), 0.0, 0.0),
+    (10 ** 1000, 0.0, 0.0),
+))
+def test_invalid_real_inner_door_xyz_rejects_csv_pair_before_any_dxf(
+    invalid_offset, tmp_path,
+):
+    """Same real CSV, CUTTING and Base; only the installed 3D Door is invalid."""
+    snapshot = _current()
+    parts = _scene(snapshot)
+    physical_door = next(p for p in parts if p.part_key.startswith("inner_door:"))
+    tampered = tuple(
+        replace(part, offset=invalid_offset) if part is physical_door else part
+        for part in parts
+    )
+    assert physical_door.render_data is next(
+        p.render_data for p in tampered if p.part_key == physical_door.part_key
+    )
+    with pytest.raises(ValueError, match="CSV_PAIR_REAL_DOOR_INSTALL_XYZ_INVALID"):
+        manufacturing_api.export_current_csv_nfb_door_base_pair(
+            snapshot, assembly_parts=tampered, base_spec=None,
+            output_directory=tmp_path,
+        )
+    assert not list(tmp_path.iterdir())
