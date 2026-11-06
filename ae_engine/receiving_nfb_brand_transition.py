@@ -138,6 +138,29 @@ def project_receiving_parent_brand_change_impact(source, proposed_brand, *, mode
     raise ValueError("NFB 品牌預告模式不合法")
 
 
+
+def update_receiving_all_set_nfb_parent_brand(layout, proposed_brand):
+    """Atomically rebase every real Set's parent brand via the existing owner.
+
+    A failed later Set must not leave earlier saved Bay NFB sources rebased.
+    Return a detached canonical layout and whether any Set changed; do not
+    infer models, manufacturing X or verified export eligibility.
+    """
+    from .receiving_layout import normalize_receiving_layout
+
+    _require_brand(proposed_brand)
+    candidate = normalize_receiving_layout(layout)
+    changed = False
+    for index, set_row in enumerate(candidate["sets"]):
+        updated, set_changed = rebase_receiving_set_parent_nfb_brand(
+            set_row, proposed_brand,
+        )
+        if set_changed:
+            candidate["sets"][index] = updated
+            changed = True
+    return candidate, changed
+
+
 def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
     """Return a detached Set row with stale inherited physical NFB X revoked.
 
