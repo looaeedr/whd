@@ -197,3 +197,73 @@ def test_valid_original_csv_source_remains_applicable_to_two_distinct_bays():
         for row in applied["sets"][0]["bays"]
     )
     assert original["sets"][0]["bays"][0].get("nfb_config_submitted") is not True
+
+
+@pytest.mark.parametrize("distortion", (
+    "one_vertex_moved",
+    "sheared_rectangle",
+    "crossed_vertex_order",
+    "wrong_model_rectangle",
+))
+def test_csv_candidate_rejects_forged_opening_shape_before_either_bay_is_submitted(
+    distortion,
+):
+    # Source SHA and model identity stay genuine: only the actual physical
+    # native Hole Editor contour is changed. Previously the source commit
+    # accepted all four and marked both real Bays as submitted, discarding
+    # the false geometry evidence until the later FinalScene gate.
+    layout = _layout()
+    before = deepcopy(layout)
+    source = _source()
+    feature = source["features"][PART][0]
+    points = feature.points
+    if distortion == "one_vertex_moved":
+        wrong = (Vec2(points[0].x + 7.0, points[0].y),) + points[1:]
+    elif distortion == "sheared_rectangle":
+        wrong = (
+            points[0], points[1],
+            Vec2(points[2].x + 13.0, points[2].y),
+            Vec2(points[3].x + 13.0, points[3].y),
+        )
+    elif distortion == "crossed_vertex_order":
+        wrong = (points[0], points[2], points[1], points[3])
+    else:
+        wrong = tuple(Vec2(p.x * 1.25, p.y) for p in points)
+    source["features"][PART][0] = replace(feature, points=wrong)
+    with pytest.raises(
+        ValueError, match="NFB_CSV_COMMIT_OPENING_SHAPE_DIFFERS_FROM_SOURCE",
+    ):
+        manufacturing_api.apply_receiving_nfb_csv_candidate(
+            layout, set_index=0, bay_indices=(0, 1), source=source,
+        )
+    assert layout == before
+
+
+def test_original_csv_editor_placed_rotated_and_reordered_contour_stays_legal():
+    # The native editor MAY translate X/Y or rotate the actual source polygon.
+    # Neither location nor orientation is an inferred manufacturing X proof.
+    layout = _layout()
+    source = _source()
+    first = source["features"][PART][0]
+    source["features"][PART][0] = replace(
+        first,
+        points=first.points[1:] + first.points[:1],
+        offset=Vec2(17.25, -5.0),
+        rotation_deg=90,
+    )
+    applied = manufacturing_api.apply_receiving_nfb_csv_candidate(
+        layout, set_index=0, bay_indices=(0, 1), source=source,
+    )
+    assert len(applied["sets"][0]["bays"]) == 2
+    assert all(bay["nfb_config_submitted"] is True
+               for bay in applied["sets"][0]["bays"])
+    assert all(
+        h["manual_x_state"] == "UNVERIFIED_BASIS"
+        and h["manual_x_mm"] is None
+        for bay in applied["sets"][0]["bays"]
+        for h in bay["nfb_config"]["holes"]
+    )
+    assert all(
+        bay["nfb_config"]["holes"][0]["rotation_deg"] == 90
+        for bay in applied["sets"][0]["bays"]
+    )
