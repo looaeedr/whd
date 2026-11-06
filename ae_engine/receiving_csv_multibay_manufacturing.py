@@ -221,6 +221,19 @@ def export_current_receiving_multibay_dxf(
     if saved_snapshot.get("active_mode","set_bay")!="set_bay":
         raise ValueError("RECEIVING_MULTIBAY_NOT_QUANTITY_MODE")
     layout=normalize_receiving_layout(saved_snapshot.get("receiving_layout"))
+    # A composed NFB pair has its own verified PART_ONLY release. The core
+    # BoxBody/outer Door/Head/Tail flats are independently sourced, and MUST
+    # NOT acquire the submitted NFB's unrelated EAR/PAD full-cabinet scope.
+    # The committed NFB pair is still re-created from THIS exact saved layout
+    # and compared by immutable manufacturing fingerprint before publication.
+    independent_core_with_nfb_pair = nfb_pair_requests is not None
+    if independent_core_with_nfb_pair:
+        core_keys = {"box_body", "door", "head", "tail"}
+        if (group_mode is None
+                or not any(bool(flags.get(key)) for key in core_keys)
+                or any(bool(v) for key, v in flags.items()
+                       if key not in core_keys)):
+            raise ValueError("RECEIVING_COMPOSED_NFB_INDEPENDENT_CORE_SCOPE_REQUIRED")
     all_bays=tuple((i,j) for i,s in enumerate(layout["sets"])
                    for j,_ in enumerate(s["bays"]))
     if len(all_bays)<1 or (len(all_bays)<2 and group_mode is None):
@@ -279,7 +292,12 @@ def export_current_receiving_multibay_dxf(
                 raise ValueError(
                     "RECEIVING_MULTIBAY_SELECTED_INDEPENDENT_PHYSICAL_SOURCE_MISSING"
                 )
-        is_csv=source.get("nfb_config_submitted") is True
+        # Only independent core parts pass this branch; no submitted NFB
+        # CUTTING, Base, PAD or EAR is authorized here. Their original
+        # committed physical pair is independently re-proven below, inside
+        # the same atomic grouped transaction.
+        is_csv=(source.get("nfb_config_submitted") is True
+                and not independent_core_with_nfb_pair)
         selected_logical=tuple(p for p in actual.parts
             if p.part_key.startswith("custom:")
             or bool(flags.get(resolved_export_intention_key(p.part_key),False)))
