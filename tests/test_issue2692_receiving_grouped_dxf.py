@@ -282,7 +282,7 @@ def _complete_committed_nfb_requests_for_core(source):
             layout, set_index=0, bay_index=bi, thickness_mm=source["t"],
             source=draft, confirmation="ACCEPT_CURRENT_WHD_NFB_DEFAULT_X",
         )
-    return tuple(api.receiving_committed_nfb_pair_request_for_bay(
+    return layout, tuple(api.receiving_committed_nfb_pair_request_for_bay(
         layout, set_index=0, bay_index=bi, thickness_mm=source["t"],
     ) for bi in range(len(layout["sets"][0]["bays"])))
 
@@ -290,9 +290,9 @@ def _complete_committed_nfb_requests_for_core(source):
 def test_grouped_nfb_pair_verified_source_exports_only_one_composed_file(tmp_path):
     """Each source-confirmed NFB pair joins its own Bay; no parallel PART_ONLY files."""
     source = _multi()
-    layout = source["receiving_layout"]
+    layout, requests = _complete_committed_nfb_requests_for_core(source)
+    source["receiving_layout"] = layout  # the SAME approved physical source
     provider, _calls = _provider(source)
-    requests = _complete_committed_nfb_requests_for_core(source)
     result = manufacturing_api.export_grouped_receiving_multibay_dxf(
         source, physical_bay_geometry_provider=provider,
         flags={"head": True}, output_dir=tmp_path / "out",
@@ -316,9 +316,10 @@ def test_grouped_nfb_pair_verified_source_exports_only_one_composed_file(tmp_pat
 
 def test_grouped_nfb_missing_second_pair_rejects_entire_group(tmp_path):
     source = _multi()
-    layout = source["receiving_layout"]
+    layout, approved = _complete_committed_nfb_requests_for_core(source)
+    source["receiving_layout"] = layout
     provider, _calls = _provider(source)
-    requests = _complete_committed_nfb_requests_for_core(source)[:1]
+    requests = approved[:1]
     with pytest.raises(ValueError, match="RECEIVING_COMPOSED_NFB_ALL_BAYS_REQUIRED"):
         manufacturing_api.export_grouped_receiving_multibay_dxf(
             source, physical_bay_geometry_provider=provider,
@@ -331,10 +332,43 @@ def test_grouped_nfb_missing_second_pair_rejects_entire_group(tmp_path):
 
 def test_grouped_nfb_wrong_bay_owner_rejected_before_output(tmp_path):
     source = _multi()
-    layout = source["receiving_layout"]
+    layout, approved = _complete_committed_nfb_requests_for_core(source)
+    source["receiving_layout"] = layout
     provider, _calls = _provider(source)
-    requests = tuple(reversed(_complete_committed_nfb_requests_for_core(source)))
+    requests = tuple(reversed(approved))
     with pytest.raises(ValueError, match="RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH"):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=provider,
+            flags={"head": True}, output_dir=tmp_path / "out",
+            group_mode="PER_SET", pre_commit_guard=lambda: None,
+            nfb_pair_requests=requests,
+        )
+    assert not list((tmp_path / "out").rglob("*.dxf"))
+
+
+
+def test_grouped_nfb_same_ids_dimensions_but_foreign_csv_source_rejected(tmp_path):
+    """A distinct project's approved pair cannot replace this saved Bay's NFB."""
+    source = _multi()
+    approved_layout, requests = _complete_committed_nfb_requests_for_core(source)
+    saved_layout = source["receiving_layout"]  # intentionally NOT the approved source
+    assert [
+        (group["stable_id"], bay["stable_id"],
+         bay["width"], bay["height"], bay["depth"])
+        for group in saved_layout["sets"] for bay in group["bays"]
+    ] == [
+        (group["stable_id"], bay["stable_id"],
+         bay["width"], bay["height"], bay["depth"])
+        for group in approved_layout["sets"] for bay in group["bays"]
+    ]
+    assert (
+        saved_layout["sets"][0]["bays"][0]["nfb_config"]
+        != approved_layout["sets"][0]["bays"][0]["nfb_config"]
+    )
+    provider, _calls = _provider(source)
+    with pytest.raises(
+        ValueError, match="RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH"
+    ):
         manufacturing_api.export_grouped_receiving_multibay_dxf(
             source, physical_bay_geometry_provider=provider,
             flags={"head": True}, output_dir=tmp_path / "out",

@@ -38,7 +38,7 @@ from .manufacturing_export_selection import resolved_export_intention_key
 
 
 
-def _verified_nfb_composed_pair_rows(layout, requests, output_root, guard):
+def _verified_nfb_composed_pair_rows(layout, requests, output_root, guard, *, thickness_mm):
     """Engine-only: verify every committed NFB pair before composing flat UV.
 
     Nothing from this proof stage becomes a separately published PART_ONLY
@@ -47,9 +47,13 @@ def _verified_nfb_composed_pair_rows(layout, requests, output_root, guard):
     """
     from .manufacturing_contracts import (
         ManufacturingResolveRequest, thaw_manufacturing_value,
+        manufacturing_request_fingerprint,
     )
     from .receiving_nfb_manufacturing_transport import restore_receiving_nfb_dto_selectors
     from .receiving_nfb_batch_pair_export import export_receiving_committed_nfb_csv_bays
+    from .receiving_nfb_default_pair_request import (
+        receiving_committed_nfb_pair_request_for_bay,
+    )
     from .receiving_nfb_pair_export import (
         _committed_csv_brand_source_hashes, _require_committed_csv_source_unchanged,
     )
@@ -68,8 +72,14 @@ def _verified_nfb_composed_pair_rows(layout, requests, output_root, guard):
     )
     if len(requests) != len(expected):
         raise ValueError("RECEIVING_COMPOSED_NFB_ALL_BAYS_REQUIRED")
+    positions = tuple(
+        (si, bi) for si, group in enumerate(layout["sets"])
+        for bi, _bay in enumerate(group["bays"])
+    )
     source_guards = []
-    for request, (set_id, bay_id, width, height, depth) in zip(requests, expected):
+    for (si, bi), request, (set_id, bay_id, width, height, depth) in zip(
+        positions, requests, expected
+    ):
         if not isinstance(request, ManufacturingResolveRequest):
             raise TypeError("RECEIVING_COMPOSED_NFB_ORIGINAL_REQUEST_REQUIRED")
         snapshot = restore_receiving_nfb_dto_selectors(
@@ -101,6 +111,22 @@ def _verified_nfb_composed_pair_rows(layout, requests, output_root, guard):
                 or (actual_id.get("set_id"), actual_id.get("bay_id")) != (set_id, bay_id)
                 or any(abs(float(snapshot.get(name, -1)) - dimension) > 1e-6
                        for name, dimension in (("w", width), ("h", height), ("d", depth)))):
+            raise ValueError("RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH")
+        # Never mix an approved NFB Request from another project that happens
+        # to use the same default Set/Bay IDs and W/H/D. Rebuild the exact
+        # public Engine Request from THIS saved Layout and its original T,
+        # then require identical canonical manufacturing semantics.
+        try:
+            saved_request = receiving_committed_nfb_pair_request_for_bay(
+                layout, set_index=si, bay_index=bi,
+                thickness_mm=thickness_mm,
+            )
+        except (ValueError, TypeError, KeyError, OverflowError) as exc:
+            raise ValueError(
+                "RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH"
+            ) from exc
+        if (manufacturing_request_fingerprint(saved_request)
+                != manufacturing_request_fingerprint(request)):
             raise ValueError("RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH")
         source = _submitted_csv_holes(snapshot)
         if not source:
@@ -411,6 +437,7 @@ def export_current_receiving_multibay_dxf(
             raise ValueError("RECEIVING_COMPOSED_NFB_GROUP_SCOPE_REQUIRED")
         nfb_rows, nfb_approved, grouping_guard = _verified_nfb_composed_pair_rows(
             layout, nfb_pair_requests, root, pre_commit_guard,
+            thickness_mm=saved_snapshot.get("t"),
         )
         for namespace, key, filename, render in nfb_rows:
             if filename in expected_keys:
