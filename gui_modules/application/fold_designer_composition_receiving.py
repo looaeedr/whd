@@ -1052,15 +1052,10 @@ def settings_panel(self, namespace):
         # the actual quantity common-box owner atomically with the same
         # mode navigation transaction used by other receiving edits.
         if app.designer_workspace.active_mode == "quantity":
-            candidate = _current_mode_snapshot(self, namespace)
-            commit_receiving_base_plate_settings(
-                input_snapshot=candidate,
-                settings_values=app._settings_values,
-                submit_geometry_update=lambda: None,
-                config=config,
-            )
-            source = manufacturing_api.update_common_box(
-                candidate, {"receiving_base_plate": config},
+            # Physical Quantity W/T and real weld EARs are one Engine source
+            # transaction. Settings W/H/D are UI default seeds, not this box.
+            source = manufacturing_api.project_operator_receiving_quantity_base_plate_settings(
+                _current_mode_snapshot(self, namespace), config,
             )
             _apply_mode_snapshot(self, namespace, source)
             return deepcopy(source.get("receiving_base_plate"))
