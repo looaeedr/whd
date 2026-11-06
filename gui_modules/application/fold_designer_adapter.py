@@ -41,7 +41,7 @@ from ae_engine.sheetmetal_part_adapters import (
     door_layout_feature_map_to_part_features,
 )
 from phase6_fold_profiles import formed_box_body_fw_widths
-from ae_engine.assembly_joint import AssemblyJointSource, migrate_legacy_snapshot_joints
+from ae_engine.assembly_joint import AssemblyJointSource
 from phase6_endcap_semantics import (
     normalize_endcap_fw_state,
     ASSEMBLY_TYPE_LABELS,
@@ -888,7 +888,7 @@ class Phase6FoldDesignerComposition:
             user_joint_parts=lambda: {
                 str(raw.get(field) or "")
                 for raw in tuple(
-                    migrate_legacy_snapshot_joints(
+                    manufacturing_api.migrate_operator_assembly_joint_snapshot(
                         dict(getattr(app, "_phase6_input_snapshot", {}) or {})
                     ).get("assembly_joints", ()) or ()
                 )
