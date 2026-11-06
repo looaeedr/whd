@@ -2064,10 +2064,10 @@ def export_current_receiving_multibay_dxf(
                    flags=flags, output_dir=output_dir, overwrite=overwrite)
 
 
-def plan_receiving_grouped_dxf(layout, mode):
-    """Preview exact group labels/names from persisted Receiving Set/Bay authority."""
+def plan_receiving_grouped_dxf(layout, mode, *, file_stamp=None):
+    """Preview Set/Bay groups; optional Taiwan-minute stamp for output names."""
     from .receiving_dxf_groups import plan_receiving_grouped_dxf as plan
-    return plan(layout, mode)
+    return plan(layout, mode, file_stamp=file_stamp)
 
 
 def export_grouped_receiving_multibay_dxf(
