@@ -12,6 +12,12 @@ whd_schema: WHD_DOC_META_V1
 - 現由 `manufacturing_api.operator_apply_fresh_family_defaults`、`operator_resolve_box_body_structure_state`、`operator_endcap_bottom_selection`、`operator_new_receiving_layout`、`operator_seed_fresh_receiving_nfb_source` 及已有 `migrate_operator_assembly_joint_snapshot` 呼叫；前五者與各自原 Engine owner 是**同一 callable**，`ae_engine` 根包亦公開。保留原先初始化時序、CSV `士林 2P400`、NFBConfig/part_features 的唯一 Engine 結果、不重算內門或孔位。
 - 公開 owner 與原 owner 等價、合法第一次建立和已確認 source 再呼叫不改、非法 Bay W/H/D、非 Set/Bay 模式與將來 Joint schema 不修改輸入快照，以及 `.p6fold` 真實 source Save→Reload 皆有定向測試。現有 Tk Family 切換、2D／3D／DXF 既有產品回歸不可跳過；本批未宣稱 GUI 整個切換過程在 CSV 故障下具備全 UI 原子交易，也未完成 CADSplit 整箱製造／Windows R5 實機驗收，#2517 OPEN。
 
+## [CURRENT] #2517 Fold Designer 剩餘 Receiving Family／WRAP 可用性接入原公開 Policy（2026-11-06）
+
+- `fold_designer_composition_state.build_capability_owners` 原直接把內部 `cabinet_types.policy.canonical_family_name` 注入 ReceivingCapabilityOwner，`fold_designer_composition_settings` 的 bottom-wrap 控制則直接讀私有 `supports_bottom_wrap_controls`；兩者決定實體箱型操作准入／Joint WRAP 操作可用性，不是純展示數值。
+- 已有 `manufacturing_api.operator_canonical_family_name` 與 `operator_supports_bottom_wrap_controls`（`ae_engine` 根包同名）直接公開原 Family Policy 同一 callable；GUI 兩處只替換公開入口，無新 Family、無第二套 Policy、無保存 Schema／Joint／Corner／CUTTING／2D／3D／DXF 公式變更。能力 Owner 的真呼叫與 owner 等價及非法/未知來源不改動快照由原 #2517 Family Policy 回歸擴充覆蓋，另受 exact-SHA Product Regression 驗證；#2517／Windows R5 UAT 保持 OPEN。
+
+
 ## [CURRENT] #2517 GUI 啟動手動截角／Joint 快照公開 Engine（2026-11-06）
 
 - `gui_modules/application/state_sync.py` 的初始手動截角與已存 INI 恢復沿用原 `CornerTypeSelection` 型別：`new_manual_corner_state`、`new_manual_corner_pair_same_state`、`assembly_type_from_corner_state`、`apply_box_assembly_type` 原先全部從內部 `ae_engine.corner_type_ui` 直接匯入並使用；原 `migrate_legacy_snapshot_joints` 則直接從私有 `assembly_joint` 匯入。現在四個 typed Engine owner 以 `manufacturing_api.operator_new_manual_corner_state`、`operator_new_manual_corner_pair_same_state`、`operator_assembly_type_from_corner_state`、`operator_apply_box_assembly_type`（根包亦公開）同一 callable 引出；Joint 直接復用已有 `migrate_operator_assembly_joint_snapshot`。GUI 不重寫預設值、Factory／Joint 拓樸、既有保存格式或截角幾何。

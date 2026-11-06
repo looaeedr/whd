@@ -9,7 +9,6 @@ from pathlib import Path
 import tkinter as tk
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.receiving_layout import (
     ensure_receiving_layout as ensure_receiving_preview_layout,
     resize_receiving_bays as resize_receiving_preview_bays,
@@ -869,7 +868,6 @@ def build_capability_owners(self) -> "FoldDesignerCapabilityOwners":
     )
 
     app = self.app
-    from ae_engine.cabinet_types import policy as cabinet_family_policy
     from phase6_project_controller import Phase6ProjectController
     from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
     from phase6_settings_service import Phase6SettingsTransactionService
@@ -929,7 +927,7 @@ def build_capability_owners(self) -> "FoldDesignerCapabilityOwners":
             publish_adapter=lambda adapter: setattr(
                 app, "_phase6_receiving_set_bay_adapter", adapter
             ),
-            canonical_family_name=cabinet_family_policy.canonical_family_name,
+            canonical_family_name=manufacturing_api.operator_canonical_family_name,
         )),
         assembly_corner=AssemblyCornerCapabilityOwner(
             AssemblyCornerCapabilityPorts(
