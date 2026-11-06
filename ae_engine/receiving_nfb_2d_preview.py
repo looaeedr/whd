@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from dataclasses import dataclass
+from hashlib import sha256
 from math import atan, atan2, cos, hypot, isfinite, pi, sin
 from pathlib import Path
 
@@ -160,12 +161,31 @@ def inspect_indexed_nfb_preview(brand,filename,*,index_path=INDEX_PATH):
                              f"無法讀取真實 DXF：{exc}",0,(),None)
 
 
+def _source_revision(path):
+    try:
+        stamp = path.stat()
+    except OSError:
+        return None
+    return (stamp.st_size, stamp.st_mtime_ns, stamp.st_ctime_ns)
+
+
+def _source_digest(path):
+    digest = sha256()
+    try:
+        with path.open('rb') as stream:
+            for chunk in iter(lambda: stream.read(1048576), b''):
+                digest.update(chunk)
+    except FileNotFoundError:
+        return None
+    return digest.hexdigest()
+
+
 class NfbDxfPreviewCache:
     """Cache observed DXF by brand, path, size, mtime and change-time.
 
     This is source-only preview: neither this cache nor its SHA certifies
-    manufacturing. The change-time prevents same-size/matched-mtime DXF
-    replacements from keeping stale visual source evidence.
+    manufacturing. A fresh byte SHA is required because file metadata can
+    remain unchanged after a DXF source replacement.
     """
     def __init__(self,max_entries=8):
         if type(max_entries) is not int or not 1<=max_entries<=32:
@@ -176,14 +196,11 @@ class NfbDxfPreviewCache:
 
     def load(self,brand,filename,*,index_path=INDEX_PATH):
         path=resolve_indexed_dxf_path(brand,filename,index_path=index_path)
-        try:
-            stat=path.stat()
-            revision=(stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns)
-        except OSError:
-            revision=None
+        revision=_source_revision(path)
+        source_digest=_source_digest(path)
         # Normalize resolved identity for same brand/model; never reuse an
         # identically named model from a different brand.
-        key=(brand,filename,str(path),revision)
+        key=(brand,filename,str(path),revision,source_digest)
         if key in self._entries:
             self._entries.move_to_end(key)
             return self._entries[key]
@@ -191,14 +208,12 @@ class NfbDxfPreviewCache:
         # Source inspection may take multiple DXF reads/virtual INSERT
         # expansions. Never cache one observation against bytes that changed
         # during the read, even if a writer restores size and mtime.
-        try:
-            after=path.stat()
-            observed_revision=(
-                after.st_size,after.st_mtime_ns,after.st_ctime_ns
-            )
-        except OSError:
-            observed_revision=None
-        if observed_revision!=revision:
+        observed_revision=_source_revision(path)
+        observed_digest=_source_digest(path)
+        if (observed_revision!=revision
+                or observed_digest!=source_digest
+                or (value.source_sha256 is not None
+                    and value.source_sha256!=source_digest)):
             raise ValueError("NFB DXF preview source changed during read")
         self.parse_count+=1
         # A changed or deleted source cannot reuse its old inventory.

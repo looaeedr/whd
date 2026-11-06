@@ -158,12 +158,15 @@ def _marked_real_source(index):
     return source
 
 
-def test_same_size_same_mtime_replaced_original_dxf_invalidates_real_preview(tmp_path):
+def test_same_size_same_mtime_replaced_original_dxf_invalidates_real_preview(tmp_path, monkeypatch):
     """A preserved mtime is not evidence of unchanged original DXF bytes."""
     import os
     index = _index(tmp_path)
     source = _marked_real_source(index)
     cache = NfbDxfPreviewCache()
+    from ae_engine import receiving_nfb_2d_preview as owner
+    frozen_revision = owner._source_revision(source)
+    monkeypatch.setattr(owner, "_source_revision", lambda _path: frozen_revision)
     original = cache.load("士林", source.name, index_path=index)
     stat = source.stat()
     old = source.read_bytes()
@@ -174,7 +177,7 @@ def test_same_size_same_mtime_replaced_original_dxf_invalidates_real_preview(tmp
     updated = source.stat()
     assert updated.st_size == stat.st_size
     assert updated.st_mtime_ns == stat.st_mtime_ns
-    assert updated.st_ctime_ns != stat.st_ctime_ns
+    # Prove SHA catches a rewrite even when the platform reports identical ctime.
     current = cache.load("士林", source.name, index_path=index)
     assert current is not original
     assert current.status == PREVIEW_ONLY
@@ -193,6 +196,8 @@ def test_dxf_source_changed_during_inspection_is_not_cached(tmp_path, monkeypatc
     source = _marked_real_source(index)
     original_stat = source.stat()
     original_bytes = source.read_bytes()
+    frozen_revision = owner._source_revision(source)
+    monkeypatch.setattr(owner, "_source_revision", lambda _path: frozen_revision)
     inspect = owner.inspect_indexed_nfb_preview
 
     def racing_inspection(*args, **kwargs):

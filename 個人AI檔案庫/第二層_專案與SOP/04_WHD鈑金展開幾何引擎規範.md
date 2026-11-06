@@ -8,8 +8,8 @@ whd_schema: WHD_DOC_META_V1
 
 ## [CURRENT] #2517 NFB 舊 DXF 原始來源預覽快取不得沿用已替換圖（2026-11-06）
 
-- 原 `ae_engine.receiving_nfb_2d_preview.NfbDxfPreviewCache.load` 只按 `brand/filename/path/size/mtime_ns` 緩存舊 NFB DXF 預覽；真來源內容若被等長替換並保留修改時間，GUI 可能繼續顯示過期圖元與原 SHA，誤導來源核對。本批保留原 `inspect_indexed_nfb_preview` 為唯一讀 DXF 來源 owner，增加 `st_ctime_ns` 作來源替換版本因子；讀取前後重取 `size/mtime_ns/ctime_ns`，漂移時 fail closed，不寫入快取、不對失效圖出具當前來源快照。刪除／新建狀態仍需重讀，來源 unchanged 則可命中原受限 LRU。
-- GUI `receiving_nfb_source_preview.NfbDxfSourcePreviewPanel` 照舊只顯示 Engine 原始圖元／SHA，保留 pan／zoom 且不建立來源 Pivot、正式 CUTTING、PartSpec、FinalScene 或 DXF 製造認證。測試沿用 `tests/test_issue1492_nfb_real_dxf_preview.py`，涵蓋真實 DXF 同尺寸同 mtime 替換及讀取期間變動；#2517、Windows UAT 仍須分別驗證。
+- 原 `ae_engine.receiving_nfb_2d_preview.NfbDxfPreviewCache.load` 只按 `brand/filename/path/size/mtime_ns` 緩存舊 NFB DXF 預覽；真來源內容若被等長替換並保留修改時間，GUI 可能繼續顯示過期圖元與原 SHA，誤導來源核對。本批保留原 `inspect_indexed_nfb_preview` 為唯一讀 DXF 來源 owner，增加 `st_ctime_ns` 作輔助版本因子，且每次選取都核對**原 DXF 位元組 SHA-256**（包含快取命中）；讀取前後重取 `size/mtime_ns/ctime_ns` 與 SHA，任一漂移時 fail closed，不寫入快取、不對失效圖出具當前來源快照。刪除／新建狀態仍需重讀，來源 unchanged 則可命中原受限 LRU。
+- GUI `receiving_nfb_source_preview.NfbDxfSourcePreviewPanel` 照舊只顯示 Engine 原始圖元／SHA，保留 pan／zoom 且不建立來源 Pivot、正式 CUTTING、PartSpec、FinalScene 或 DXF 製造認證。測試沿用 `tests/test_issue1492_nfb_real_dxf_preview.py`，涵蓋真實 DXF 同尺寸同 mtime、模擬相同 ctime 的來源替換及讀取期間變動；#2517、Windows UAT 仍須分別驗證。
 
 
 ## [CURRENT] #2517 Receiving Head/Tail 候選數量配置預檢歸公開 Engine（2026-11-06）
