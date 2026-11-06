@@ -199,6 +199,9 @@ class ManufacturingResolvedBayInput:
     # Confirmed original three-sheet BoxBody UV CUTTING from saved Hole Editor.
     # The Engine validates roles and exact saved-source parity before FinalScene.
     confirmed_box_body_piece_features: Mapping[str, object] | None = None
+    # Original finished-face left/right/back Hole Editor source, projected
+    # into independent physical sheets by canonical Engine Fold/Topology.
+    confirmed_box_body_face_features: Mapping[str, object] | None = None
 
 
 def _confirmed_door_layout_projections(
@@ -412,6 +415,7 @@ def export_verified_resolved_integration_bays(
             or item.include_confirmed_base_plate is not False
             or item.confirmed_base_plate_features is not None
             or item.confirmed_box_body_piece_features is not None
+            or item.confirmed_box_body_face_features is not None
         )
         if source_request:
             # This is the SAME previously certified verified-geometry/physical
@@ -432,6 +436,7 @@ def export_verified_resolved_integration_bays(
                 include_confirmed_base_plate=item.include_confirmed_base_plate,
                 confirmed_base_plate_features=item.confirmed_base_plate_features,
                 confirmed_box_body_piece_features=item.confirmed_box_body_piece_features,
+                confirmed_box_body_face_features=item.confirmed_box_body_face_features,
             )
             resolved_geometry = _resolve_confirmed_integration_parts(
                 confirmed_parts,
