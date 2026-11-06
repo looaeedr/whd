@@ -246,7 +246,12 @@ def test_shared_setting_affected_ids_use_canonical_refs_not_value_equality():
         raw, set_index=0, bay_indices=(0,),
         kind="inner_door_layers", value=1,
     )
-    assert unchanged == raw
+    assert unchanged == api.edit_receiving_shared_setting_for_bays(
+        raw, set_index=0, bay_indices=(0,),
+        kind="inner_door_layers", value=1,
+    )
+    # Old layouts may gain a canonical settings table even on a same-value Apply.
+    assert raw == _multi_bay_shared_setting_layout()
     assert unaffected == (raw["sets"][0]["bays"][0]["stable_id"],)
 
 
