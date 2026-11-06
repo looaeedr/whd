@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving BoxBody 保存 Finished-Face 孔來源公開 Engine 交易（2026-11-06）
+
+- WHD 主 GUI 原正式專案保存路徑是 `lifecycle._compose_phase6_project_snapshot_from_main_gui → workspace.part_face_features → snapshot.part_face_features["box_body"]`；`left`、`right`、`back` 是 **成品面座標**，不是 `physical_piece_features` 的板件材料 UV。Factory 原本只消費實體 UV 的 `confirmed_box_body_piece_features`，漏掉真實保存的 Finished-Face Hole Editor 孔。這會製造出三片沒有 operator 保存孔的 DXF。
+- 原 `manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_box_body_face_features={"left":(...),"right":(...),"back":(...)})` 與 `ManufacturingResolvedBayInput` 增加明確確認來源；只接受 typed `CircleFeature`/`RectFeature`/`ProfileFeature`、合法 `FeatureAnchor`（包含 `PANEL_CENTER`）、層 `CUTTING`、有效實體尺寸、有限座標與非巢狀輪廓。`saved_operator_confirmed` 若 `part_face_features["box_body"]` 有任何非空已保存面孔，確認來源必須逐 Feature 一致，不可漏掉或竄改。若保存面未產生孔，CADSplit 已獨立確認的合法來源仍可透過相同 Engine API。
+- 來源經原 `build_box_body_operator_part_spec(face_features=...) → build_box_body_structure_render_data → resolve_box_body_piece_face_features`，唯一 Engine owner 用真實 Fold／T 決定三片 side/back 成品面轉展開孔位、截裁；不在 Factory、GUI 或 CADSplit 重新計算。與材料板 UV 的 `confirmed_box_body_piece_features` 分開、兩者可同時存在。回歸 `tests/test_issue2517_receiving_factory_confirmed_box_body_face_features.py` 覆蓋 GUI 等價 PartSpec、三張真 DXF 的孔及獨立 Save→Reload、來源不改、錯誤來源零輸出。此為已確認部分板件，不表示 NFB/PAD/EAR／全櫃／Windows R5 UAT 完成；#2517 繼續 OPEN。
+
+
 ## [CURRENT] #2517 Fold Designer Family Policy／Registry 呼叫改走公開 Engine（2026-11-06）
 
 - Fold Designer 主 Bridge 與 Corner Data 原直接 import `ae_engine.cabinet_types.policy`，用於 Family canonical name、三片箱身固定拓樸、BoxBody outside profile 與 WRAP availability。現改消費 `manufacturing_api.operator_canonical_family_name`、`operator_family_fixes_box_body_structure`、`operator_box_body_profile_uses_outside_dimensions`、`operator_supports_bottom_wrap_controls`（`ae_engine` 根包同名公開）。四者是現有 Engine Policy **同一 callable**，沒有新的 Family／製造公式、第二套投影或新持久化格式。非法／未知來源維持原 Owner 的 fail-closed／未支援語意，不得改動輸入。
