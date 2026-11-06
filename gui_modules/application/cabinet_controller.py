@@ -18,15 +18,26 @@ from phase6_endcap_semantics import (
 
 
 def _inherit_known_corner_state_into_custom(self):
-    """把目前已知固定板件的實際截角狀態複製成自訂起點。"""
-    copied = self._known_corner_state_for_current_family(self.manual_corner_state.keys())
-    for part_key, corners in copied.items():
-        if part_key not in self.manual_corner_state:
-            continue
-        self.manual_corner_state[part_key].update(corners)
-        if part_key in self.manual_corner_pair_same:
-            self.manual_corner_pair_same[part_key]["top"] = True
-            self.manual_corner_pair_same[part_key]["bottom"] = True
+    """Use the certified Engine draft before copying known corners to Custom."""
+    # The current Custom label resolves to the same canonical family as the
+    # original known-corner lookup. Do not re-derive certified corner values
+    # or modify a live part before all source corners are validated.
+    family = self._current_cabinet_type_name()
+    next_state, next_pairs = manufacturing_api.propose_operator_known_model_corner_draft(
+        self.manual_corner_state, self.manual_corner_pair_same,
+        baseline_model=family, cabinet_family=family, reset_all=True,
+    )
+    # Preserve nested GUI aliases (e.g. open Hole Editor / settings widgets).
+    for part_key, updated in next_state.items():
+        existing = self.manual_corner_state[part_key]
+        if existing != updated:
+            existing.clear()
+            existing.update(updated)
+    for part_key, updated in next_pairs.items():
+        existing = self.manual_corner_pair_same[part_key]
+        if existing != updated:
+            existing.clear()
+            existing.update(updated)
 
 def _capture_cabinet_family_runtime(self):
     # The family preset itself must carry a real canonical Box Body profile.
