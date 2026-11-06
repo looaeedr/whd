@@ -136,11 +136,7 @@ from phase6_settings_panel import (
     build_choice_menubutton,
 )
 from ui_text_scale import prepare_text_scale_controller as _ui_prepare_text_scale_controller
-from ae_engine.assembly_joint import (
-    AssemblyJoint, AssemblyJointRelation, AssemblyJointSource,
-    migrate_legacy_snapshot_joints, edge_relation_for_part,
-)
-from ae_engine.assembly_intent import get_assembly_intent
+from ae_engine.assembly_joint import AssemblyJointRelation
 from ae_engine.sheetmetal_geometry import (
     CornerTypeId, CrossCornerMode, CornerDirection,
     EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS, normalize_corner_selection,
@@ -1489,26 +1485,21 @@ def _phase6_endcap_joint_policy_rows(self, part_key):
     part_key = str(part_key)
     if part_key not in ENDCAP_FW_PARTS:
         return ()
-    snapshot = migrate_legacy_snapshot_joints(
-        dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    source = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    policies = manufacturing_api.project_operator_endcap_joint_edge_policies(
+        source, part_key,
+        fallback_intent=getattr(
+            self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY,
+        ),
     )
-    intent_id = assembly_intent_value(
-        snapshot.get("assembly_type")
-        or getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)
-    )
-    record = get_assembly_intent(intent_id)
-    rows = []
-    for edge in ("TOP", "BOTTOM", "LEFT", "RIGHT"):
-        policy = record.edge_policy(edge)
-        relation = edge_relation_for_part(snapshot, part_key, edge) or policy.default_relation
-        rows.append({
-            "edge": edge,
-            "relation": relation,
-            "value": _ENDCAP_RELATION_LABELS[relation],
-            "allowed": tuple(_ENDCAP_RELATION_LABELS[item] for item in policy.allowed_relations),
-            "editable": bool(policy.editable),
-        })
-    return tuple(rows)
+    # Translate only approved Engine enum choices into Tk presentation labels.
+    return tuple({
+        "edge": item["edge"],
+        "relation": item["relation"],
+        "value": _ENDCAP_RELATION_LABELS[item["relation"]],
+        "allowed": tuple(_ENDCAP_RELATION_LABELS[value] for value in item["allowed"]),
+        "editable": item["editable"],
+    } for item in policies)
 
 
 def _phase6_on_endcap_edge_relation_selected(self, part_key, edge):
@@ -2015,7 +2006,7 @@ def _phase6_bootstrap_authoritative_state(self, snapshot):
     _phase6_replace_mapping(self, "_phase6_box_whd", {})
     _phase6_replace_mapping(self, "_phase6_pending_settings", {})
     snapshot = _phase6_snapshot_with_settings_fallback(
-        migrate_legacy_snapshot_joints(dict(snapshot or {}))
+        manufacturing_api.migrate_operator_assembly_joint_snapshot(dict(snapshot or {}))
     )
     initial_parts, initial_active = normalize_part_selection(
         snapshot.get("existing_parts", ("box_body", "head", "tail")),
