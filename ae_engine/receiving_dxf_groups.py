@@ -6,10 +6,9 @@ have verified EVERY staged physical sheet before this module runs.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
-from zoneinfo import ZoneInfo
 
 from .contracts import ResolvedManufacturingGeometry, ResolvedManufacturingPart
 from .manufacturing_export import (
@@ -24,7 +23,7 @@ RECEIVING_COMPOSED_DXF_MODES = frozenset({"PER_SET", "ALL", "END_VS_MIDDLE"})
 
 def _taipei_output_stamp():
     """Actual export minute, not the input DXF modification timestamp."""
-    return datetime.now(ZoneInfo("Asia/Taipei")).strftime("%Y%m%d%H%M")
+    return datetime.now(timezone(timedelta(hours=8))).strftime("%Y%m%d%H%M")
 
 
 def _group_output_filename(legacy_name, cells, stamp):
