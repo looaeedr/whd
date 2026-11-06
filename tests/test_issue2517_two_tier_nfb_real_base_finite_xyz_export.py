@@ -109,3 +109,29 @@ def test_oversized_integer_xyz_fails_as_source_error_not_uncaught_overflow(
         _export(snapshot, tampered, tmp_path)
     assert not list(tmp_path.iterdir())
     assert all(a.render_data is b.render_data for a, b in zip(parts, tampered))
+
+
+@pytest.mark.parametrize("invalid_offset", (
+    None,
+    (0.0, 0.0),
+    (False, 0.0, 0.0),
+    ("0", 0.0, 0.0),
+    (float("nan"), 0.0, 0.0),
+    (float("inf"), 0.0, 0.0),
+    (10 ** 1000, 0.0, 0.0),
+))
+def test_invalid_real_inner_door_xyz_rejects_three_tier_pair_dxfs_atomically(
+    invalid_offset, tmp_path,
+):
+    """Both actual base plates remain identical; no forged Door 3D placement."""
+    snapshot = _current_two_tiers()
+    parts = _actual_scene(snapshot)
+    physical_door = next(p for p in parts if p.part_key.startswith("inner_door:"))
+    tampered = tuple(
+        replace(part, offset=invalid_offset) if part is physical_door else part
+        for part in parts
+    )
+    assert all(a.render_data is b.render_data for a, b in zip(parts, tampered))
+    with pytest.raises(ValueError, match="CSV_TWO_TIER_REAL_DOOR_INSTALL_XYZ_INVALID"):
+        _export(snapshot, tampered, tmp_path)
+    assert not list(tmp_path.iterdir())

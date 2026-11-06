@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 內門＋NFB 底板 PART_ONLY 出圖禁止非法真實內門 3D 安裝座標（2026-11-06）
+
+- 原 `receiving_nfb_pair_export.export_current_csv_nfb_door_base_pair` 在單／雙層 committed CSV 的實體 FinalScene 和 CUTTING 比對後，只驗真實 BasePlate 世界 XYZ，卻沒有驗安裝在同一 3D Assembly 的內門 `AssemblyScenePart.offset`；本地 2D/CUTTING 可以完全一致，但失效 `NaN`、缺軸、字串、布林或無限大的內門座標仍能落入 DXF 部分出口。
+- 原 Engine owner 直接重用已存在的 `_finite_installed_xyz`，對單層和雙層已確認內門實體 scene 的 world XYZ 要求三軸原生有限數字、拒絕無法安全轉浮點的超大整數；遇非法輸入分別回 `CSV_PAIR_REAL_DOOR_INSTALL_XYZ_INVALID`／`CSV_TWO_TIER_REAL_DOOR_INSTALL_XYZ_INVALID`，原子 writer 尚未啟動、不可留下任一板件 DXF。原 FinalScene/CUTTING 和真實底板安裝證明仍必須同時合格。
+- 回歸沿用原真來源及真實 DXF Save→Reload 測試的同一場景，單／雙層各對上述七組失效座標確認無部分輸出；這僅確保內門 3D 安裝資料有效，**不**冒稱已校驗其絕對 XYZ 與裝配拓樸完全相符，也不認證 EAR/PAD 焊接、MFG-2、整套 16 Bay 或 Windows UAT；#2517 保持 OPEN。
+
+
 ## [CURRENT] #2517 NFB 全套品牌 Apply 必須是同一 Engine 原子交易（2026-11-06）
 
 - Receiving Set/Bay Adapter 的 `set_global_brand` 曾由 GUI `deepcopy(layout)` 後自行遍歷全部 Set，各自呼叫單套 `manufacturing_api.rebase_receiving_set_parent_nfb_brand`，再由 GUI 計算 changed／組裝持久化版本；這是跨套已提交物理 NFB parent source 的交易所有權，不能分散在 UI。

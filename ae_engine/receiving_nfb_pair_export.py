@@ -258,6 +258,12 @@ def export_current_csv_nfb_door_base_pair(
         return existing
     actual_door = exact_scene(door.part_id, door.render_data)
     actual_base = exact_scene(base.part_id, base.render_data)
+    # The physical Door's local CUTTING can match an authentic CSV while
+    # its cached 3D installed origin is non-finite, missing or mistyped.
+    # That is not a valid current assembly: reject both sheets before DXF.
+    installed_door = next(p for p in parts if p.part_key == door.part_id)
+    if not _finite_installed_xyz(getattr(installed_door, "offset", None)):
+        raise ValueError("CSV_PAIR_REAL_DOOR_INSTALL_XYZ_INVALID")
     # Scene geometry parity alone does not prove that this physical base is
     # still installed under the selected door. A caller can supply an old
     # cached 3D assembly with identical local CUTTING after a Bay/height/depth
@@ -435,6 +441,11 @@ def _export_current_csv_nfb_two_tier_pair(
                 or render.metadata.get("stable_id") != key):
             raise ValueError("CSV_TWO_TIER_FINALSCENE_DIFFERS_FROM_CSV:" + key)
         actual[key] = render
+    # Three valid local FinalScenes do not imply that the actual inner Door
+    # remains installed in a valid physical 3D coordinate frame.
+    installed_door = by_id[door.part_id]
+    if not _finite_installed_xyz(getattr(installed_door, "offset", None)):
+        raise ValueError("CSV_TWO_TIER_REAL_DOOR_INSTALL_XYZ_INVALID")
     depths = {row.layer_index: row
               for row in resolve_receiving_tier_base_z_targets(snapshot)}
     if set(depths) != {0, 1}:
