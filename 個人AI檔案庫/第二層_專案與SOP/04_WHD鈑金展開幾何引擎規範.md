@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱相鄰實體 Bay 接合對齊選項歸原 Engine Policy（2026-11-06）
+
+- 原 `receiving_set_bay_controls._build_receiving_settings_editor` 在接合控制建立與刷新兩個時機，GUI 直接比較兩連 `depth`／`height`，決定可編輯的前後齊／上下齊選項；但真正 Apply 本來就使用 `receiving_layout.receiving_joint_alignment_editability`。兩份判斷不應分裂。
+- 在原 Receiving Set/Bay/Joint Engine owner 新增唯讀 `project_receiving_joint_alignment_editability(set_row, joint_index)`，以已保存物理 Set row 查驗 joints/bays 真實相鄰身份、索引型別、正且有限的兩連 D/H，回傳 `depth_alignment`／`height_alignment` 是否可編輯；原完整 Layout `receiving_joint_alignment_editability(layout, set_index, joint_index)` 經 normalize 後委派**同一份** Engine 函式，GUI 也只消費公開 `manufacturing_api` 結果。不可讓 GUI 為判定接合而造假的 Set/Layout。
+- 未認證或破損來源應 fail closed；Tk 的 disabled/readonly 只呈現原 Engine Policy，`update_receiving_joint_alignment` 唯一實體提交權威不變。此改動不產製 Join 幾何／CUTTING／FinalScene／DXF，不解除 NFB/Factory/Registry gate；#2517 與 Windows 實機總驗收維持 OPEN。
+
+
 ## [CURRENT] #2517 Receiving 共用設定相同 Bay 與品牌清單只由 Engine 投影（2026-11-06）
 
 - 受電箱「每連設定／共用設定」GUI 原本 `receiving_set_bay_controls._build_receiving_settings_editor.refresh` 直接 import `receiving_shared_settings.setting_value`，自行逐 Bay 掃相同值，並從私有 `receiving_switch_layout.RECEIVING_SWITCH_BRANDS` 取得候選品牌。這類包含實體 Set/Bay 儲存值與連動共用設定來源的業務判斷必須由 Engine 直接提供；GUI 僅留中文標示、顯示高亮、待操作選取與 Call API。

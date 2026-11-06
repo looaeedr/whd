@@ -849,20 +849,44 @@ def project_receiving_bay_legacy_aliases(
 
 
 
+def project_receiving_joint_alignment_editability(
+    set_row: Mapping[str, object], joint_index: int
+) -> dict[str, bool]:
+    """Read-only editability of one saved physical Set's adjacent Bay Joint.
+
+    Shared by the operator Tk presentation and the authoritative Layout
+    transaction, without reconstructing a fake Layout in either client.
+    """
+    if not isinstance(set_row, Mapping):
+        raise ValueError("Receiving Set source must be a mapping")
+    bays, joints = set_row.get("bays"), set_row.get("joints")
+    if (not isinstance(bays, (list, tuple))
+            or not isinstance(joints, (list, tuple))
+            or not bays or len(joints) != len(bays) - 1):
+        raise ValueError("Receiving Set Joint source is invalid")
+    if type(joint_index) is not int or joint_index < 0 or joint_index >= len(joints):
+        raise IndexError("Receiving joint_index out of range")
+    left, right = bays[joint_index], bays[joint_index + 1]
+    if not isinstance(left, Mapping) or not isinstance(right, Mapping):
+        raise ValueError("Receiving Bay Joint source must be a mapping")
+    return {
+        "depth_alignment": (
+            _number(left.get("depth"), label="Receiving Bay depth")
+            != _number(right.get("depth"), label="Receiving Bay depth")
+        ),
+        "height_alignment": (
+            _number(left.get("height"), label="Receiving Bay height")
+            != _number(right.get("height"), label="Receiving Bay height")
+        ),
+    }
+
+
 def receiving_joint_alignment_editability(
     layout: Mapping[str, object], *, set_index: int, joint_index: int
 ) -> dict[str, bool]:
     """Return whether D/H alignment controls can affect this adjacent Bay pair."""
     _normalized, selected = _layout_set(layout, set_index)
-    joints = selected["joints"]
-    if type(joint_index) is not int or joint_index < 0 or joint_index >= len(joints):
-        raise IndexError("Receiving joint_index out of range")
-    left = selected["bays"][joint_index]
-    right = selected["bays"][joint_index + 1]
-    return {
-        "depth_alignment": float(left["depth"]) != float(right["depth"]),
-        "height_alignment": float(left["height"]) != float(right["height"]),
-    }
+    return project_receiving_joint_alignment_editability(selected, joint_index)
 
 
 def update_receiving_joint_alignment(

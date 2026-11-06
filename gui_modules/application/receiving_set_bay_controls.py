@@ -301,9 +301,11 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
     def refresh(*, load_value=True):
         current_row = ports["row"]()
         for joint_index, depth_widget, height_widget in joint_widgets:
-            left, right = current_row["bays"][joint_index:joint_index + 2]
-            depth_widget.configure(state="readonly" if left["depth"] != right["depth"] else "disabled")
-            height_widget.configure(state="readonly" if left["height"] != right["height"] else "disabled")
+            editable = manufacturing_api.project_receiving_joint_alignment_editability(
+                current_row, joint_index,
+            )
+            depth_widget.configure(state="readonly" if editable["depth_alignment"] else "disabled")
+            height_widget.configure(state="readonly" if editable["height_alignment"] else "disabled")
         current = ports["row"]()
         index = active.get()
         for key, var in fields.items():
@@ -451,9 +453,11 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
             height_labels = {"上齊": "TOP", "下齊": "BOTTOM"}
             depth = tk.StringVar(master=panel, value=next(k for k, v in depth_labels.items() if v == joint["depth_alignment"]))
             height = tk.StringVar(master=panel, value=next(k for k, v in height_labels.items() if v == joint["height_alignment"]))
-            left, right = row["bays"][index:index + 2]
-            d_selector = ttk.Combobox(joints, textvariable=depth, values=tuple(depth_labels), width=7, state="readonly" if left["depth"] != right["depth"] else "disabled")
-            h_selector = ttk.Combobox(joints, textvariable=height, values=tuple(height_labels), width=7, state="readonly" if left["height"] != right["height"] else "disabled")
+            editable = manufacturing_api.project_receiving_joint_alignment_editability(
+                row, index,
+            )
+            d_selector = ttk.Combobox(joints, textvariable=depth, values=tuple(depth_labels), width=7, state="readonly" if editable["depth_alignment"] else "disabled")
+            h_selector = ttk.Combobox(joints, textvariable=height, values=tuple(height_labels), width=7, state="readonly" if editable["height_alignment"] else "disabled")
             d_selector.grid(row=index // 3, column=(index % 3) * 3 + 1, padx=3)
             h_selector.grid(row=index // 3, column=(index % 3) * 3 + 2, padx=3)
             joint_widgets.append((index, d_selector, h_selector))
