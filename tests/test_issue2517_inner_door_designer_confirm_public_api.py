@@ -53,6 +53,9 @@ def test_real_gui_staged_and_single_candidate_confirm_use_public_engine_only():
     assert "from ae_engine.receiving_inner_door_candidates import validate_door_config" not in inner_edit
     confirm = source.split("    def launch_inner_editor(", 1)[1].split("    def edit_single_inner_door(", 1)[0]
     assert "from ae_engine.receiving_inner_door_candidates import validate_door_config" not in confirm
+    # A local facade import in the Quantity branch shadows the module-level
+    # binding and breaks Single/Candidate Confirm with UnboundLocalError.
+    assert "from ae_engine import manufacturing_api" not in confirm
     assert "validate_door_config(" not in confirm
     assert 'setdefault("features"' not in confirm
     assert confirm.count("manufacturing_api.prepare_receiving_inner_door_physical_confirm(") == 2

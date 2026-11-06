@@ -3527,7 +3527,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 raise ValueError("內門開孔編輯返回錯誤的實體板件")
             if mode == "single" and self.app.designer_workspace.active_mode == "quantity":
                 if staged_config is not None:
-                    from ae_engine import manufacturing_api
                     quantity = self.app.designer_workspace.quantity_model
                     projected, typed = manufacturing_api.preview_quantity_inner_door_confirm(
                         self.app._phase6_input_snapshot, quantity, part_key,
