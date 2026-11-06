@@ -425,14 +425,28 @@ def _export_current_csv_nfb_two_tier_pair(
     if set(depths) != {0, 1}:
         raise ValueError("CSV_TWO_TIER_INCOMPLETE_SOURCE_DEPTH")
     from ae_engine.receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+    from math import isfinite
+
     for index in (0, 1):
         target = depths[index]
         installed = by_id[trials[index].part_id]
-        offset = tuple(installed.offset)
+        offset = getattr(installed, "offset", None)
         y = project_nfb_inner_door_nominal_y(
             snapshot, inner_door_id, layer_count=2, slot_index=index,
         )
-        if (len(offset) != 3 or not target.physical_skin_z_resolved
+        # The same physical world-XYZ contract used by the one-tier pair
+        # must hold for EACH independent installed tier. float(nan)
+        # comparisons are always false and once allowed an invalid cached
+        # 3D placement to authorize three otherwise valid local DXFs.
+        if (not isinstance(offset, (tuple, list))
+                or len(offset) != 3
+                or any(type(value) not in (int, float)
+                       or not isfinite(value) for value in offset)
+                or type(y.box_world_y_mm) not in (int, float)
+                or not isfinite(y.box_world_y_mm)
+                or type(target.world_offset_z_mm) not in (int, float)
+                or not isfinite(target.world_offset_z_mm)
+                or not target.physical_skin_z_resolved
                 or abs(float(offset[0])) > 1e-6
                 or abs(float(offset[1]) - float(y.box_world_y_mm)) > 1e-6
                 or abs(float(offset[2]) - float(target.world_offset_z_mm)) > 1e-6):
