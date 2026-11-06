@@ -327,6 +327,17 @@ from .contracts import (
     PartExportResult,
     PartSpec,
 )
+# Hole Editor physical draft transformations use the original canonical owners.
+# The GUI stages returned immutable Features through its existing Session.
+from .sheetmetal_feature_reference import (
+    feature_with_reference_anchor as operator_hole_feature_with_reference_anchor,
+    feature_with_process as operator_hole_feature_with_process,
+    move_feature_by_reference_distance as operator_hole_move_feature_by_reference_distance,
+)
+from .sheetmetal_feature_surface import (
+    feature_is_within_surface as operator_hole_feature_is_within_surface,
+    move_feature_within_surface as operator_hole_move_feature_within_surface,
+)
 from .sheetmetal_features import (
     BoxBodyFaceContext,
     CircleFeature,
