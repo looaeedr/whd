@@ -341,6 +341,52 @@ def _submitted_csv_holes(snapshot):
                 validate_stored_model_ref(value)
             except ValueError as exc:
                 raise ValueError("NFB_COMMITTED_CSV_STORED_MODEL_INVALID") from exc
+        # The legacy root is a display/projection alias, not proof that the
+        # selected physical Set/Bay has no current CSV NFB source. The V5
+        # path below enforces this identity only *after* the legacy return.
+        # Keep old root-only DXF projects working, but never suppress a
+        # submitted Bay's different saved NFBConfig or an unresolved owner.
+        if snapshot.get("active_mode") != "quantity":
+            layout = snapshot.get("receiving_layout")
+            if isinstance(layout, Mapping):
+                sets = layout.get("sets")
+                if isinstance(sets, (tuple, list)):
+                    selector = snapshot.get("_receiving_runtime_selection")
+                    selected_bay = None
+                    if isinstance(selector, Mapping):
+                        si, bi = selector.get("set_index"), selector.get("bay_index")
+                        if (type(si) is int and 0 <= si < len(sets)
+                                and isinstance(sets[si], Mapping)
+                                and sets[si].get("stable_id") == selector.get("set_id")):
+                            bays = sets[si].get("bays")
+                            if (isinstance(bays, (tuple, list))
+                                    and type(bi) is int and 0 <= bi < len(bays)
+                                    and isinstance(bays[bi], Mapping)
+                                    and bays[bi].get("stable_id") == selector.get("bay_id")):
+                                selected_bay = bays[bi]
+                    if (selected_bay is None and len(sets) == 1
+                            and isinstance(sets[0], Mapping)):
+                        bays = sets[0].get("bays")
+                        if (isinstance(bays, (tuple, list)) and len(bays) == 1
+                                and isinstance(bays[0], Mapping)):
+                            selected_bay = bays[0]
+                    if selected_bay is not None:
+                        if (selected_bay.get("nfb_config_submitted") is True
+                                and selected_bay.get("nfb_config") != config):
+                            raise ValueError("NFB_COMMITTED_CSV_BAY_IDENTITY_DRIFT")
+                    elif any(
+                        isinstance(a_set, Mapping)
+                        and isinstance(a_set.get("bays"), (tuple, list))
+                        and any(
+                            isinstance(bay, Mapping)
+                            and bay.get("nfb_config_submitted") is True
+                            for bay in a_set["bays"]
+                        )
+                        for a_set in sets
+                    ):
+                        raise ValueError(
+                            "NFB_COMMITTED_CSV_ACTIVE_BAY_SELECTION_UNRESOLVED"
+                        )
         return ()
     if any(p is None for p in parsed):
         raise ValueError("NFB_COMMITTED_CSV_MIXED_UNRESOLVED_SOURCE")
