@@ -7,6 +7,8 @@ Tkinter 畫面仍由 gui.py 負責；本模組只保存可在沒有顯示環境�
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import Mapping
+from copy import deepcopy
 
 from .sheetmetal_geometry import (
     Vec2,
@@ -247,6 +249,45 @@ def known_model_corner_state(part_keys, cabinet_family="金庫型") -> dict[str,
         cabinet_family=cabinet_family,
         part_keys=tuple(part_keys or ()),
     )
+
+
+def propose_operator_known_model_corner_draft(
+    corner_state, corner_pair_same, *, baseline_model, cabinet_family,
+    reset_all=False,
+):
+    """Atomic typed draft using exactly the certified known-family Corner owner.
+
+    Existing same-type operator parameters stay intact unless reset_all is
+    explicit. No caller mapping is touched before all fixed corners resolve.
+    """
+    if (not isinstance(corner_state, Mapping)
+            or not isinstance(corner_pair_same, Mapping)
+            or type(reset_all) is not bool):
+        raise ValueError("KNOWN_CORNER_DRAFT_SOURCE_INVALID")
+    next_state = deepcopy(dict(corner_state))
+    next_pairs = deepcopy(dict(corner_pair_same))
+    model = str(baseline_model or "").strip()
+    if not model or is_unknown_model(model):
+        return next_state, next_pairs
+
+    fixed = known_model_corner_state(next_state.keys(), cabinet_family=cabinet_family)
+    for part_key, corners in fixed.items():
+        if part_key not in next_state:
+            continue
+        part_state = next_state[part_key]
+        if not isinstance(part_state, Mapping):
+            raise ValueError("KNOWN_CORNER_DRAFT_SOURCE_INVALID")
+        for corner_key, fixed_selection in corners.items():
+            current = normalize_corner_selection(part_state[corner_key])
+            if reset_all or current.type_id is not fixed_selection.type_id:
+                part_state[corner_key] = fixed_selection
+        if reset_all and part_key in next_pairs:
+            pair_state = next_pairs[part_key]
+            if not isinstance(pair_state, Mapping):
+                raise ValueError("KNOWN_CORNER_DRAFT_SOURCE_INVALID")
+            pair_state["top"] = True
+            pair_state["bottom"] = True
+    return next_state, next_pairs
 
 
 def new_manual_corner_state(part_keys) -> dict[str, dict[str, CornerTypeSelection]]:

@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI 已認證 Family 固定截角改為公開 Engine 原子草稿（2026-11-06）
+
+- `gui.py::_enforce_known_model_corner_types` 原由 GUI 直接調用私有 `corner_type_ui.known_model_corner_state`，再逐角對 `manual_corner_state` 原地寫入固定 `CornerTypeSelection`；來源若缺角或不合法，中途可能已有部分角被更改。既有 `corner_state_transactions.commit_corner_*` 走 raw JSON state，不可直接替代 typed Live Corner state。
+- 原 `ae_engine.corner_type_ui` owner 新增 `propose_operator_known_model_corner_draft`：先複製 typed 四角／pair state，在副本上用**原有** Registry `known_model_corner_state` 與 `normalize_corner_selection` 套用固定已認證 CornerType，保留原本「同類型人工參數不重置；reset_all 才還原類型及左右同參數」語意。任何來源錯誤皆不修改呼叫者。原 `known_model_corner_state` 也直接以 `operator_known_model_corner_state` 公開同一 callable。
+- 主 GUI 透過 `manufacturing_api` 取得完整成功候選才套入原 Live state，保留既有 nested dict 身分與 Saved CornerType 表示；自訂／未知模型維持不變。無新增 Family 製造公式、Relief Registry、Joint、PartSpec、2D／3D／DXF exporter。對照原 GUI/Engine 語意、非法不改、資料保存／回讀與現有產品完整回歸；#2517／Windows R5 UAT 仍 OPEN。
+
+
 ## [CURRENT] #2517 Fold Designer 已認證截角基準只經公開 Engine（2026-11-06）
 
 - `fold_designer_bridge._phase6_known_model_corner_state` 原直接呼叫內部 `corner_type_ui.known_model_corner_state`，以已確認 Family 與現存 part keys 讀取正式截角起始狀態。這是製造 CornerType 來源權威，即使 GUI 當下只顯示編輯資料也不得私接。
