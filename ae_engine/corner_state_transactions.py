@@ -6,9 +6,11 @@ all geometric/relief CUTTING authority. No second production formula is created.
 """
 from __future__ import annotations
 from copy import deepcopy
+import configparser
 from dataclasses import dataclass
 from typing import Mapping
 from .endcap_factory_fold import selection_from_raw, selection_to_raw
+from .operator_settings_transactions import (normalize_operator_settings_boolean, normalize_operator_settings_updates)
 from .sheetmetal_geometry import (
     CornerDirection, CornerTypeId, CornerTypeSelection, CrossCornerMode,
 )
@@ -53,6 +55,100 @@ def project_operator_corner_ini_rotation(type_id: object, value: object) -> int:
     return CornerTypeSelection(
         CornerTypeId.C02, rotation_quadrants=value,
     ).rotation_quadrants
+
+
+
+def project_operator_corner_ini_load_section(options: Mapping[str, object]):
+    """Project one persisted Corner INI section without file or Tk dependencies.
+
+    The GUI supplies already-interpolated INI key/value strings.  Preserve the
+    original ConfigParser boolean/integer semantics, including failure on
+    malformed saved data and legacy C02-only rotation handling.
+    """
+    if not isinstance(options, Mapping):
+        raise ValueError("CORNER_INI_SOURCE_INVALID")
+    parser = configparser.ConfigParser(interpolation=None)
+    parser.add_section("corner")
+    for key, value in options.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            raise ValueError("CORNER_INI_SOURCE_INVALID")
+        parser.set("corner", key, value)
+    pairs = {
+        "top": parser.getboolean("corner", "top_same", fallback=True),
+        "bottom": parser.getboolean("corner", "bottom_same", fallback=True),
+    }
+    corners = {}
+    for key in MANUAL_CORNER_KEYS:
+        if not parser.has_option("corner", key):
+            continue
+        type_id = parser.get("corner", key, fallback="CROSS").strip().upper()
+        rotation = project_operator_corner_ini_rotation(
+            type_id, parser.getint("corner", f"{key}_rotation", fallback=0),
+        )
+        raw = {"type_id": type_id, "rotation_quadrants": rotation}
+        for field in ("cross_mode", "direction"):
+            option = f"{key}_{field}"
+            if parser.has_option("corner", option):
+                value = parser.get("corner", option).strip().lower()
+                if value:
+                    raw[field] = value
+        for field in ("amount_t", "secondary_retain_t", "secondary_depth_t"):
+            option = f"{key}_{field}"
+            if parser.has_option("corner", option):
+                normalized = normalize_operator_settings_updates(
+                    {field: 0.0}, {field: parser.get("corner", option)},
+                )
+                if field in normalized:
+                    raw[field] = normalized[field]
+        corners[key] = raw
+    return corners, pairs
+
+
+def project_operator_corner_ini_save_options(
+    corners: Mapping[str, object], pairs: Mapping[str, object],
+):
+    """Project CornerType source to detached INI options; None removes an option.
+
+    No GUI client should replicate the manufacturing rotation, semantic-field
+    conversion or finite-number validation performed here.
+    """
+    if not isinstance(corners, Mapping) or not isinstance(pairs, Mapping):
+        raise ValueError("CORNER_INI_SOURCE_INVALID")
+    top_same = normalize_operator_settings_boolean(pairs.get("top", True))
+    bottom_same = normalize_operator_settings_boolean(pairs.get("bottom", True))
+    options = {
+        "top_same": "true" if top_same else "false",
+        "bottom_same": "true" if bottom_same else "false",
+    }
+    for key in MANUAL_CORNER_KEYS:
+        raw = corners.get(key)
+        if not isinstance(raw, Mapping):
+            continue
+        type_id = str(raw.get("type_id", "CROSS")).strip().upper()
+        rotation = project_operator_corner_ini_rotation(
+            type_id, raw.get("rotation_quadrants", 0),
+        )
+        options[key] = type_id
+        options[f"{key}_rotation"] = str(rotation)
+        for field in (
+            "cross_mode", "direction", "amount_t",
+            "secondary_retain_t", "secondary_depth_t",
+        ):
+            value = raw.get(field)
+            option = f"{key}_{field}"
+            if value is None or value == "":
+                options[option] = None
+                continue
+            if field.endswith("_t"):
+                normalized = normalize_operator_settings_updates(
+                    {field: 0.0}, {field: value},
+                )
+                if field not in normalized:
+                    raise ValueError(f"截角 {field} 必須是有限數值")
+                options[option] = f"{normalized[field]:g}"
+            else:
+                options[option] = str(getattr(value, "value", value)).strip().lower()
+    return options
 
 
 def ensure_corner_part(

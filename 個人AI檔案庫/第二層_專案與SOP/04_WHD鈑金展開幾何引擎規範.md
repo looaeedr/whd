@@ -6,6 +6,17 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 CornerType INI 保存／重開語意由公開 Engine 管理（2026-11-07）
+
+- 主 GUI `phase6_settings_center.load_corner_defaults_from_ini/save_corner_defaults_to_ini` 原在讀寫 `config.ini` 時自行組出每個 CornerType 的旋轉、CROSS 模式、方向和 `*_t` 製造來源欄位。這些來源會由 EndCap/其他 PartSpec 和 FinalScene 消費，不應在 GUI 保留第二份物理轉換邏輯。
+- 公開 `manufacturing_api.project_operator_corner_ini_load_section`、`project_operator_corner_ini_save_options`（`ae_engine` 根包同 callable）由原 `corner_state_transactions` owner 投影單一 INI section，不讀寫檔案、不依賴 Tk。C02 舊式旋轉、非 C02 旋轉歸零、成對布林、有限數值的 skip/reject、沒有參數時清除舊 option，延用原行為；非法來源須在存檔前拒絕、不得改寫既有 INI。
+- GUI 只做 `ConfigParser` 檔案傳輸與已保存 part section 的選擇；Engine 返回 detached 欄位映射。測試覆蓋舊 Corner 類型、完整 INI Save→Reload、非 Corner section 保持、原始來源不變與非法資料失敗隔離。不新增截角幾何、Relief、CUTTING、DXF 製造公式或新 Family 加工資格；受影響產品回歸依 GitHub exact-SHA 驗收。
+
+
+
+
+
+
 ## [CURRENT] #2517 主 GUI 已保存手動截角快照完整還原只由公開 Engine 原子候選（2026-11-07）
 
 - 原 `gui_modules/application/lifecycle.py::_apply_manual_corner_snapshot` 在 Project／Family runtime 恢復時由 GUI 逐角解析 raw `CornerTypeSelection` 並原地寫入 `manual_corner_state`／`manual_corner_pair_same`，再用已認證 Family 修正；後段來源或 Registry 錯誤可能留下前段已寫入的實體截角。

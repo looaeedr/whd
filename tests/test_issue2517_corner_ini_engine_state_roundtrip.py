@@ -119,10 +119,22 @@ def test_gui_ini_transport_delegates_physical_semantics_to_public_engine():
     assert CORNER_KEYS is api.MANUAL_CORNER_KEYS
     save_code = inspect.getsource(gui.save_corner_defaults_to_ini)
     read_code = inspect.getsource(gui.load_corner_defaults_from_ini)
+    assert api.project_operator_corner_ini_save_options is owner.project_operator_corner_ini_save_options
+    assert api.project_operator_corner_ini_load_section is owner.project_operator_corner_ini_load_section
+    assert "manufacturing_api.project_operator_corner_ini_save_options(" in save_code
+    assert "manufacturing_api.project_operator_corner_ini_load_section(" in read_code
+    # Rotation, pairing, and finite manufacturing values must be handled by
+    # the Engine section codec, never reinterpreted by the GUI file adapter.
     for code in (save_code, read_code):
-        assert "manufacturing_api.project_operator_corner_ini_rotation(" in code
-        assert "manufacturing_api.normalize_operator_settings_updates(" in code
-    assert "manufacturing_api.normalize_operator_settings_boolean(" in save_code
+        assert "manufacturing_api.project_operator_corner_ini_rotation(" not in code
+        assert "manufacturing_api.normalize_operator_settings_updates(" not in code
+        assert "manufacturing_api.normalize_operator_settings_boolean(" not in code
+    assert "project_operator_corner_ini_rotation(" in inspect.getsource(
+        owner.project_operator_corner_ini_load_section
+    )
+    assert "project_operator_corner_ini_rotation(" in inspect.getsource(
+        owner.project_operator_corner_ini_save_options
+    )
     assert "bool(pairs.get(" not in save_code
     assert "float(value)" not in save_code
     assert "from phase6_" not in inspect.getsource(owner)
