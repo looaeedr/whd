@@ -5,6 +5,13 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+
+## [CURRENT] #2517 Receiving NFB Confirm 來源／型號資格由 Engine 獨立驗證（2026-11-06）
+
+- 原 `gui_modules/application/fold_designer_composition_receiving.py::inner_edit.confirm` 直接用 `is_numeric_model_ref/parse_numeric_model_ref`、`effective_nfb_slot_brand`、CSV 型號清單及草稿角度／X 旗標，判斷實體槽位與品牌是否相符、舊版候選是否會丟失逐顆資料。這些是 Engine 來源／儲存資格，不是 GUI 顯示判斷。
+- `ae_engine.receiving_nfb_ui1a_edits.plan_receiving_nfb_editor_confirm(draft, current, chosen, *, layer_count, embedded, parent_brand)` 是唯一 owner，`manufacturing_api` 與 `ae_engine` 根包 re-export **同一函式**。回傳 immutable `ReceivingNfbEditorConfirmPlan(current_numeric_editor, has_source_models)` 只用於選擇原生 CSV Hole Editor 暫存或舊候選路由。保持既有 CSV 型號／有效品牌、實體層／slot 多重集比對、舊 DXF 名稱、Override／rotation／unverified-X 不得失真以及失效來源拒絕。
+- GUI 僅提交目前操作選取及實際 Parent Brand，Confirm 仍由原 Hole Editor 採 `editor_nfb_features_from_csv` 產生可編輯來源草稿及原儲存交易。此計畫**不是**正式 NFB 世界 X、實體 CUTTING、FinalScene 或 DXF Save→Reload 的製造認證；不新增 exporter、Factory Rule 或另一份產品幾何。驗收 `tests/test_issue2517_receiving_nfb_confirm_source_public_api.py`；Windows UAT 與 #2517 全範圍仍需另外核對。
+
 ## [CURRENT] #2517 Receiving 已驗來源 NFB Bay 提交／複製公開 Engine 接線（2026-11-06）
 
 - GUI `fold_designer_composition_receiving.py::nfb_transaction_ports` 原直接引用 `receiving_nfb_ui1b_bridge` 的 `NfbVerifiedDraftSubmission`、`assert_live_verified_nfb`、`submit_live_verified_nfb`、`copy_live_verified_nfb`。今改用 `manufacturing_api` 公開原件，套件根 `ae_engine` 同一物件；原 Engine 世界 X、來源 DXF SHA、Set/Bay/version、實體 Door、來源變更撤銷、獨立目標檢驗及 #1500 原子 Submit/Copy 不變。
