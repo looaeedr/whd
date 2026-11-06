@@ -39,11 +39,15 @@ def build_endcap_operator_part_spec(
     corner_policy=None, fold_profiles=None, depth_comp_t=None,
     resolved_assembly_relief_cuts=(),
     box_body_formed_fw_left=None, box_body_formed_fw_right=None,
+    box_body_fold_profile=None,
     box_body_structure_state=None, endcap_bottom_wrap_state=None,
     assembly_joints=None, assembly_joint_state=None,
 ) -> EndCapPartSpec:
     """Build the canonical Head/Tail PartSpec from operator and saved inputs.
 
+    The optional original BoxBody Fold profile is resolved into formed FW by
+    the same canonical Engine owner used by physical assembly. Legacy direct
+    formed-FW inputs remain compatible when no Fold source is supplied.
     Optional Bottom WRAP reserves are projected from Engine AssemblyJoint state,
     never from a GUI drawing.  Legacy malformed optional wrap-state projection
     is tolerated exactly as before; manufacturing source verification is not
@@ -54,6 +58,17 @@ def build_endcap_operator_part_spec(
         for key in ("w", "h", "d", "t", "fw")
     }
     tail = normalize_operator_settings_boolean(is_tail)
+    # The original BoxBody Fold is the authority for EndCap assembly FW
+    # occupation. Never make a GUI/CADSplit caller calculate formed widths
+    # before it can build this physical PartSpec.
+    if box_body_fold_profile is not None:
+        if (box_body_formed_fw_left is not None
+                or box_body_formed_fw_right is not None):
+            raise ValueError("ENDCAP_OPERATOR_FORMED_FW_DUPLICATE_SOURCE")
+        from .box_body_editor_readback import formed_box_body_fw_widths
+        box_body_formed_fw_left, box_body_formed_fw_right = (
+            formed_box_body_fw_widths(box_body_fold_profile, physical["t"])
+        )
     profiles = dict(fold_profiles or {})
     x_rows = [dict(row) for row in profiles.get("X", ())]
     y_rows = [dict(row) for row in profiles.get("Y", ())]

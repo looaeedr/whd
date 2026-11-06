@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 EndCap 成形 FW 必須由 Engine 直接消費原始 BoxBody Fold（2026-11-06）
+
+- `manufacturing_api.build_endcap_operator_part_spec(..., box_body_fold_profile=...)` 在原公開 EndCap PartSpec 建立契約上新增可選的已保存 BoxBody Fold 原始來源。由同一 Engine `box_body_editor_readback.formed_box_body_fw_widths` 對實際目前相鄰折彎與實體厚度計算左右 **formed** FW；不得在 GUI／CADSplit 先算製造 FW，再把失去 Fold 來源見證的兩個數字交給 Engine。箱身 Fold 完全無左右 FW 時保留 None，不能重生已刪實體 Fold；既存來源上的 stale `ui_len_add` 不得取代拓樸。
+- 舊 `box_body_formed_fw_left/right` 參數在**不提供**新 `box_body_fold_profile` 時維持相容；若兩種來源同時提供，Engine 明確拒絕 `ENDCAP_OPERATOR_FORMED_FW_DUPLICATE_SOURCE`，禁止來源競爭。GUI `manufacturing_adapter._end_cap_part_spec` 改只採集原始保存 Fold，不再呼叫 `formed_box_body_fw_widths` 計算製造資料；原 `EndCapPartSpec`、組裝、角、Relief、2D／3D／DXF Owner 不變。
+- 真正定向回歸 `tests/test_issue2517_endcap_formed_fw_source_public_api.py` 覆蓋兩 Family、Head/Tail、1T 邊界、stale UI metadata、已移除 Fold、原 source 不變、舊 API 相容、矛盾來源拒絕、GUI seam。formed FW 是裝配／碰撞 datum，不是獨立 CUTTING oracle；本修正不表示 #2517 全面、16 Bay 整櫃或 Windows UAT 完成。
+
+
 ## [CURRENT] #2517 已保存普通受電箱底板由 Engine 直接建立來源 PartSpec，並接入原 Verified Bay 出圖（2026-11-06）
 
 - `build_receiving_factory_confirmed_parts(..., include_confirmed_base_plate=True)` 是原公開 Engine source→PartSpec 接口的可選向後相容擴充。僅在 `saved_operator_confirmed`、原始 W/H/D/T 與保存狀態一致，且明確有 `receiving_base_plate` 實體來源時，沿用原 `validate_receiving_base_plate_settings` 的 EAR pitch／真實輪廓預檢、`receiving_base_plate_values` 與 `build_base_plate_operator_part_spec` 生出 `("base_plate", BasePlatePartSpec)`。GUI／CADSplit 不必在 client 自組縮量、BEND 或 BasePlatePartSpec。
