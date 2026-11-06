@@ -477,6 +477,7 @@ def test_fresh_real_bay_builds_legitimate_nfb_source_only_from_current_csv(
     assert all(
         f.source_type == "NFB_CSV_SOURCE" and f.layer == "CUTTING"
         and dict(f.source_params)["placement"] == "native_editor_initial"
+        and dict(f.source_params)["fresh_bay_auto_unconfirmed"] is True
         and len(dict(f.source_params)["csv_sha256"]) == 64
         for f in features
     )
@@ -578,6 +579,7 @@ def test_fresh_csv_candidate_native_initial_x_cannot_manufacture_without_placeme
     )
     assert all(
         dict(f.source_params)["placement"] == "native_editor_initial"
+        and dict(f.source_params)["fresh_bay_auto_unconfirmed"] is True
         for f in candidate["features"]["inner_door:upper:panel"]
     )
     applied = manufacturing_api.apply_receiving_nfb_csv_candidate(
