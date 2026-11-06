@@ -110,3 +110,49 @@ def test_gui_paths_delegate_precommit_to_public_api_without_local_csv_calculatio
     assert confirm.index("manufacturing_api.preview_quantity_inner_door_confirm(") < (
         confirm.index("quantity.set_version_nfb_config(")
     )
+
+
+def test_quantity_engine_projected_snapshot_drops_stale_physical_bay_selection():
+    from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
+
+    snapshot, quantity, part_key, staged, features = _inputs()
+    snapshot[RECEIVING_RUNTIME_SELECTION_KEY] = {
+        "set_index": 99, "bay_index": 99,
+        "set_id": "stale-set", "bay_id": "stale-bay",
+    }
+    source_before = deepcopy(snapshot)
+    quantity_before = quantity.snapshot()
+    for selected_features in ((), features):
+        projected, typed = manufacturing_api.preview_quantity_inner_door_confirm(
+            snapshot, quantity, part_key, selected_features, staged,
+        )
+        assert RECEIVING_RUNTIME_SELECTION_KEY not in projected
+        if not selected_features:
+            assert typed is None
+        else:
+            assert typed is not None
+        # GUI must replace all keys of the detached projection, not overlay
+        # it on a previous live snapshot and preserve stale manufacturing ID.
+        live = deepcopy(snapshot)
+        live.clear()
+        live.update(projected)
+        assert live == projected
+        assert RECEIVING_RUNTIME_SELECTION_KEY not in live
+    assert snapshot == source_before
+    assert quantity.snapshot() == quantity_before
+
+
+def test_quantity_gui_applies_whole_engine_projection_without_private_selector():
+    direct = inspect.getsource(open_inner_door_hole_editor)
+    assert "from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY" not in direct
+    assert "current.clear()" in direct
+    assert direct.index("current.clear()") < direct.index("current.update(projected)")
+    from pathlib import Path
+    source = (Path(__file__).resolve().parents[1] /
+              "gui_modules/application/fold_designer_composition_receiving.py"
+              ).read_text(encoding="utf-8")
+    assert "from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY" not in source
+    assert "app._phase6_input_snapshot.clear()" in source
+    assert "self.app._phase6_input_snapshot.clear()" in source
+    assert source.index("self.app._phase6_input_snapshot.clear()") < source.index(
+        "self.app._phase6_input_snapshot.update(projected)")
