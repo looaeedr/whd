@@ -2173,6 +2173,7 @@ from .receiving_nfb_brand_transition import (
     project_receiving_quantity_nfb_parent_brand,
     update_receiving_quantity_nfb_parent_brand,
     project_receiving_parent_brand_change_impact,
+    update_receiving_all_set_nfb_parent_brand,
 )
 
 

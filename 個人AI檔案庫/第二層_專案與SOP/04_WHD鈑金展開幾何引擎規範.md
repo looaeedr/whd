@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 NFB 全套品牌 Apply 必須是同一 Engine 原子交易（2026-11-06）
+
+- Receiving Set/Bay Adapter 的 `set_global_brand` 曾由 GUI `deepcopy(layout)` 後自行遍歷全部 Set，各自呼叫單套 `manufacturing_api.rebase_receiving_set_parent_nfb_brand`，再由 GUI 計算 changed／組裝持久化版本；這是跨套已提交物理 NFB parent source 的交易所有權，不能分散在 UI。
+- 原 Engine `receiving_nfb_brand_transition` owner 新增 `update_receiving_all_set_nfb_parent_brand(layout, proposed_brand)`；透過 `manufacturing_api` 與 `ae_engine` 根包重匯同一 callable。Engine 先查驗品牌與真實完整 Layout，使用原 `rebase_receiving_set_parent_nfb_brand` 一套套對 detached candidate 執行**全有或全無**的 Set 來源變更，回傳 `(detached_layout, changed)`。GUI 僅提交操作者品牌、保存 Engine 結果，不再自行遍歷實體 Set／推定 NFB 世界 X 是否失效。
+- 舊單套、Quantity 版本及 impact preview 公開 API 不變；保持現行 CSV、INHERIT/OVERRIDE、已確認 X 撤銷保護及 Save→Reload Schema。回歸 `tests/test_issue2517_nfb_parent_brand_operations_public_api.py` 驗跨兩套真實已提交來源、與原 Engine 單套 transition 一致、非法後套原子拒絕、原始 Layout 不修改及 GUI API seam。此提交不製造 NFB 孔、CUTTING、FinalScene、DXF；#2517／Windows UAT 與全櫃製造驗收仍 OPEN。
+
+
 ## [CURRENT] #2517 NFB 成對部分出圖實體底板 XYZ 非有限與極大整數一律安全拒絕（2026-11-06）
 
 - 受電箱單／雙層 NFB 的 `內門＋底板` PART_ONLY 正式 DXF，必須由 Engine 先驗證目前 FinalScene 所安裝的每一片真實底板 world XYZ，才能送進原子 DXF Save→Reload。已合併的 PR #2932（單層）和 #2936（雙層）阻擋 NaN、Infinity、布林、字串、缺失座標；但對 `10**1000` 類型的原生超大整數直接呼叫 `math.isfinite` 可產生未捕獲 `OverflowError`，且兩段驗證實作分離。

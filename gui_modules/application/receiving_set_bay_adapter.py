@@ -356,17 +356,10 @@ class ReceivingSetBayAdapter:
         return receipt
 
     def set_global_brand(self, brand):
-        """Rebase Set brand and affected inherited NFB X in one transaction."""
-        brand = manufacturing_api.require_receiving_operator_brand(brand)
-        candidate = deepcopy(self._layout)
-        changed = False
-        for index, set_row in enumerate(candidate["sets"]):
-            updated, set_changed = manufacturing_api.rebase_receiving_set_parent_nfb_brand(
-                set_row, brand,
-            )
-            if set_changed:
-                candidate["sets"][index] = updated
-            changed = set_changed or changed
+        """Submit one operator all-Set action to the public Engine owner."""
+        candidate, changed = manufacturing_api.update_receiving_all_set_nfb_parent_brand(
+            self._layout, brand,
+        )
         if changed:
             self._layout = candidate
         return changed
