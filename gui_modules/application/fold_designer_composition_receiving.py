@@ -3461,22 +3461,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if mode == "single" and self.app.designer_workspace.active_mode == "quantity":
                 if staged_config is not None:
                     quantity = self.app.designer_workspace.quantity_model
-                    projected, typed = manufacturing_api.preview_quantity_inner_door_confirm(
+                    projected, _typed = manufacturing_api.commit_receiving_quantity_inner_door_confirm(
                         self.app._phase6_input_snapshot, quantity, part_key,
                         features, staged_config,
                     )
-                    # A detached Engine Family/source check MUST precede live
-                    # version mutation. None means native-only features.
-                    if typed is not None:
-                        quantity.set_version_nfb_config(
-                            quantity.selected_version_id, submitted=True,
-                            config=typed,
-                        )
-                    # The detached Engine projection is the complete new
-                    # Quantity snapshot, without the old Set/Bay runtime ID.
-                    # Replace in-place so existing GUI references stay valid.
-                    self.app._phase6_input_snapshot.clear()
-                    self.app._phase6_input_snapshot.update(projected)
+                    # Engine owns the single source transaction across the
+                    # live Quantity version and the saved snapshot; the GUI
+                    # only synchronizes the workspace/view after acceptance.
                     # The workspace is the in-memory canonical mode owner.
                     # The next scheduler/SetBay sync otherwise restores its
                     # previous quantity-box value and silently discards NFB
