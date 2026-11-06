@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 圓孔中心距／孔邊間距來源與剩餘 Joint snapshot 統一公開 Engine（2026-11-06）
+
+- Hole Editor 的圓孔排列本身已透過 `manufacturing_api.plan_operator_round_hole_preview`，但 `hole_editor_round_settings._sync_from_center/_sync_from_gap` 顯示與草稿欄位仍直接使用內部 `sheetmetal_features.circle_gap_from_center_distance/circle_center_distance_from_gap`。同一 canonical `sheetmetal_feature_reference` 的兩個純換算 callable，現在由 `manufacturing_api.operator_round_hole_gap_from_center_distance/operator_round_hole_center_distance_from_gap`（及根包）公開，同一幾何／無新公式。GUI 繼續於轉換前檢查有限、正值與非負間距；改值只涉及 GUI 草稿，實際實體 Feature／CUTTING 仍由已有 Engine preview + Hole Editor session Confirm 提交。
+- `fold_designer_composition_state.corner_transaction_payload/collect_workspace_state` 原先尚直接呼叫 Joint v2 `migrate_legacy_snapshot_joints`；現在兩處都改走 #2970 原有 `manufacturing_api.migrate_operator_assembly_joint_snapshot`，沒有重新建議 Joint 關係、修改 schema 或改變 Save→Reload。
+- 此批不把展示 `Vec2`、`CirclePrimitive`、`DoorFrameEdges` 當作新的製造缺口；孔位到 PartSpec／2D／3D／DXF 的原 Engine 路徑、CADSplit 公開契約、正式輸出權限均未改動。需 public-vs-owner 實際換算與 GUI 同值、非法值不提交或改變草稿、Joint source 不變性及完整 exact-SHA CI；Windows GUI 實機驗收另行，#2517 OPEN。
+
 ## [CURRENT] #2517 Receiving Bay 預覽尺寸與 NFB CSV 孔位分流只經公開 Engine API（2026-11-06）
 
 - `gui_modules/application/fold_designer_composition_receiving.py::receiving_bay_preview_request` 原先直接 import `display_dimensions.resolve_operator_finished_dimensions`，而這個完成面尺寸投影本就已是公開 `manufacturing_api.resolve_operator_finished_dimensions`；GUI 現直接使用原公開入口，不另造尺寸或 DXF 幾何。

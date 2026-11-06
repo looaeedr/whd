@@ -38,7 +38,7 @@ from ae_engine.sheetmetal_part_adapters import (
     door_layout_feature_map_to_part_features,
 )
 from phase6_fold_profiles import formed_box_body_fw_widths
-from ae_engine.assembly_joint import AssemblyJointSource, migrate_legacy_snapshot_joints
+from ae_engine.assembly_joint import AssemblyJointSource
 from phase6_endcap_semantics import (
     normalize_endcap_fw_state,
     ASSEMBLY_TYPE_LABELS,
@@ -126,7 +126,7 @@ def corner_transaction_payload(self, namespace):
     app = self.app
     required = lambda name: self._required(namespace, name)
     source = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    graph_state = migrate_legacy_snapshot_joints(source)
+    graph_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(source)
     workspace = self.collect_workspace_state(namespace)
     clone = required("clone_profile")
     return {
@@ -442,7 +442,7 @@ def collect_workspace_state(self, namespace):
     except Exception:
         pass
 
-    graph_state = migrate_legacy_snapshot_joints(
+    graph_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(
         dict(getattr(app, "_phase6_input_snapshot", {}) or {})
     )
     return {
