@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 單連編輯／建立連動的完整 Bay dirty 身分須由 Engine 提供（2026-11-06）
+
+- `ReceivingSetBayAdapter.update_setting` 對既有共享參照只標記當前 Bay dirty，實際 Engine `edit_setting` 會更改所有引用同一設定 ref 的 Bay；`share_setting` 會改選中目標的物理 refs，GUI 卻仍只標記來源 Bay。此時刪除尚未保存的目標 Bay 可能缺乏完整保護。即使設定值相同，共享 ref 變更也是實體設定來源變更，不可由 GUI 依值比對來判定。
+- 單連編輯復用前已公開的 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids`，以一個 Bay 的 selection 執行相同原子 Apply，沿 canonical ref 回傳所有連動 Bay ID。建立連動改由原 `ae_engine.receiving_shared_settings` owner 新增 `share_setting_with_affected_ids`，公開 `manufacturing_api.share_receiving_shared_setting_with_affected_ids`／`ae_engine` 根包同一 callable，保留原 `share_setting` 完整驗證及回傳 Layout 契約，額外回傳操作所涉及的已驗證實體 Bay ID。GUI 只保存 Engine 候選、更新 dirty IDs，不能自行解讀 refs。
+- 定向回歸 `tests/test_issue2517_receiving_set_bay_public_transactions.py` 驗非連續選取、相等值但不同 refs、共享 sibling 一次性 editor 更新、非法／無效 Bay selection 原子拒絕、UI 不自組製造身分；保留舊 API、工程 Schema 和既有 Head/Tail Hole Editor 工作流程。此修復不授權未確認的 NFB、FinalScene、CUTTING、DXF；Windows UAT 與 #2517 全範圍仍待驗收。
+
+
 ## [CURRENT] #2517 NFB 全套品牌 Apply 必須是同一 Engine 原子交易（2026-11-06）
 
 - Receiving Set/Bay Adapter 的 `set_global_brand` 曾由 GUI `deepcopy(layout)` 後自行遍歷全部 Set，各自呼叫單套 `manufacturing_api.rebase_receiving_set_parent_nfb_brand`，再由 GUI 計算 changed／組裝持久化版本；這是跨套已提交物理 NFB parent source 的交易所有權，不能分散在 UI。
