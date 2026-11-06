@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Quantity 候選配置 2D 示意門縫不得由 GUI 硬編（2026-11-06）
+
+- 受電箱封頭尾「數量配置」草稿只有連數與候選版本選取，尚無每一實體 Bay 的已確認 Door 拓樸。原 `receiving_quantity_allocation_ui.ReceivingQuantityAllocationUI.paint` 以 GUI 常數 `1100/1600` 決定上下門示意線；現須呼叫既有 `manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)` 使用 Receiving Family 預設的純示意比例，不能在 GUI 重製製造尺寸推導。
+- 已存 Set/Bay 的 2D 示意圖仍必須把實體 Bay 交給同一 Engine 公開 API；複雜門格不可假畫一條單純分割線。此批只更換 count-only 草稿的唯讀顯示來源，不更動實體 Door／NFB Features、Factory／FinalScene、3D、DXF 或 Save→Reload 放行；#2517／Windows 實機 UAT 維持未結案。
+
+
 ## [CURRENT] #2517 Receiving Head/Tail 候選數量配置預檢歸公開 Engine（2026-11-06）
 
 - `receiving_quantity_allocation_ui._ready_to_apply` 只提交當前版本 inventory、Set/Bay 數量、Head/Tail role、數量與配置到 `manufacturing_api.validate_receiving_candidate_quantity_preview`；不得在 GUI 推算下一版本 ID、重組候選實體 Feature 來源，或捏造 `None` Bay 拓樸代替 Engine。

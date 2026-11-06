@@ -520,6 +520,10 @@ capability is granted.
 
 `manufacturing_api.validate_receiving_candidate_quantity_preview(version_entries, counts, role, quantities, assigned, *, expected_counts=None)` performs a **detached** Head/Tail readiness check: it validates typed candidate Feature sources and IDs with the original Engine normalizer, builds temporary Set/Bay count topology inside Engine, then uses the same quantity/allocation validation as physical Apply. Missing/stale versions, invalid feature sources, invalid/bool/zero Bay counts, quantity mismatch or Set/Bay drift are refused with no changes to candidate sources or live Bays. The GUI supplies only the operator draft and version inventory; its existing optional live `validate_quantity` owner remains first. `validate_receiving_candidate_role` and `receiving_candidate_version_label` are public aliases of the original Engine identity/display owners. This preview does not grant manufacturing, FinalScene or DXF permission.
 
+## #2517 Receiving Quantity allocation two-door schematic public projection
+
+The candidate quantity draft has only count/assignment state, not a saved physical Bay. `ReceivingQuantityAllocationUI.paint()` must obtain the two-door **schematic** seam from the existing `manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)` Engine Family projection, not embed the `1100/1600` dimension ratio in GUI. Actual Bay sketches still use the same Engine API with the saved Bay source; if a complex real door grid is not representable as one horizontal split, no fake seam can be manufactured from this view. This only changes readonly Tk presentation; it does not authorize physical Doors, FinalScene, CUTTING or DXF.
+
 ## Receiving candidate quantity draft API (#2517)
 
 `manufacturing_api.AllocationDraft` and `validate_quantity_allocation` are public
