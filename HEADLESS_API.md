@@ -17,7 +17,9 @@ whd_schema: WHD_DOC_META_V1
 
 > #2517（2026-11-04）唯讀 `manufacturing_api.project_operator_fixed_corner_summary(model_name, part_key, joint_state)`：EndCap 固定截角摘要沿既有 Family Registry 與 BOTTOM AssemblyJoint；受電箱所有正式別名同源、其他 Family 回 `None` 由既有 UI 保留原顯示。文字不構成製造幾何或 DXF 放行。
 
-> #2517（2026-11-04）Receiving `manufacturing_api.edit_receiving_shared_setting_for_bays(layout, set_index, bay_indices, kind, value)` 由既有 Engine shared-setting owner 對多連同一次 Apply 作完整選取、型別、Linked Ref 預檢與全有／全無更新；失敗不得部分更新 Bay、ref 或 GUI dirty 狀態。GUI `receiving_settings_ports.change` 只能交給 Adapter→此公開 API，單連 `edit_receiving_shared_setting`、Shared/Unlink 原公開契約仍適用。
+> #2517（2026-11-04）Receiving `manufacturing_api.edit_receiving_shared_setting_for_bays(layout, set_index, bay_indices, kind, value)`> #2517（2026-11-06）新增 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(layout, *, set_index, bay_indices, kind, value)`，將原 Engine 多連共享設定原子 Apply 及其連動實體 Bay dirty 來源一併公開，回傳 `(detached_layout, tuple[physical_bay_stable_id, ...])`。只從提交後 canonical `settings[kind].refs` 對應影響範圍，不按 GUI 猜測同值連動；保留舊 `edit_receiving_shared_setting_for_bays` dict 回傳相容、非法選取拒絕及舊專案結構。此設定 API 不認證 NFB、FinalScene、DXF／Save→Reload；#2517 整體仍 OPEN。
+
+ 由既有 Engine shared-setting owner 對多連同一次 Apply 作完整選取、型別、Linked Ref 預檢與全有／全無更新；失敗不得部分更新 Bay、ref 或 GUI dirty 狀態。GUI `receiving_settings_ports.change` 只能交給 Adapter→此公開 API，單連 `edit_receiving_shared_setting`、Shared/Unlink 原公開契約仍適用。
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 > #2517（2026-11-04）：`manufacturing_api.project_whd_cadcraft_command_instructions(surface=..., features=..., width=..., height=...)` 以 WHD finished-face 來源及既有 Engine 限制生成 CADCraft 隔離候選繪圖指令；`save_blank_cadcraft_exchange_drawing(output_dxf, preview_png)` 以 exclusive create 產生合法空白毫米 DXF + PNG 並拒絕覆寫。此流程不可充作任何正式製造 DXF、CUTTING 或 source-only 外部放行。GUI 不再 import `ezdxf` 直接建立交換檔。
 

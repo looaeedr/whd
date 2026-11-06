@@ -284,6 +284,34 @@ def edit_setting_for_bays(layout, *, set_index, bay_indices, kind, value):
     return normalize_receiving_layout(candidate)
 
 
+
+def edit_setting_for_bays_with_affected_ids(
+    layout, *, set_index, bay_indices, kind, value,
+):
+    """Apply a shared setting and return every affected physical Bay ID.
+
+    A selected Bay may share its reference with an unselected sibling. Dirty
+    tracking therefore follows the *validated canonical references*, not
+    equality of values (which can span independent setting references).
+    Caller-owned layout remains unchanged on success or rejection.
+    """
+    try:
+        indices = tuple(bay_indices)
+    except TypeError:
+        indices = bay_indices  # The original transaction rejects malformed input.
+    candidate = edit_setting_for_bays(
+        layout, set_index=set_index, bay_indices=indices, kind=kind, value=value,
+    )
+    row = candidate["sets"][set_index]
+    refs = row["settings"][kind]["refs"]
+    edited_refs = {refs[row["bays"][index]["stable_id"]] for index in indices}
+    affected_ids = tuple(
+        bay["stable_id"] for bay in row["bays"]
+        if refs[bay["stable_id"]] in edited_refs
+    )
+    return candidate, affected_ids
+
+
 def share_setting(layout, *, set_index, bay_indices, kind, source_bay_index):
     from ae_engine.receiving_layout import normalize_receiving_layout
     result = normalize_receiving_layout(layout)
