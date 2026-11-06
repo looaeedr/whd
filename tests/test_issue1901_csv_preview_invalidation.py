@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from ae_engine import manufacturing_api
 from gui_modules.application.receiving_nfb_source_preview import (
     NfbDxfSourcePreviewPanel,
 )
@@ -81,8 +82,8 @@ def _source_panel():
     panel._source_key = None
     panel._numeric_mode = False
     panel._numeric_spec = None
-    # __new__ bypasses the real Tk constructor: initialize the full cache contract.
-    panel._numeric_sources = {}
+    # __new__ bypasses Tk initialization; supply the real Engine-owned cache.
+    panel._numeric_sources = manufacturing_api.ReceivingNfbV5SourcePreviewCache()
     panel._index_path = None
     panel.paint = lambda: None
     panel.cache = SimpleNamespace(load=lambda *a, **k: (_ for _ in ()).throw(

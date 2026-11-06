@@ -31,6 +31,47 @@ def validate_quantity_allocation(layout, library, role, quantities, assigned, *,
     )
 
 
+def validate_receiving_candidate_quantity_preview(version_entries, counts, role, quantities, assigned, *, expected_counts=None):
+    """Preflight Head/Tail candidate quantities with Engine-owned source and
+    temporary Set/Bay topology; do not mutate real Bays or approve DXF.
+    """
+    import re
+    from .receiving_hole_candidates import ROLES, normalize_candidates
+
+    role_key(role)
+    if (not isinstance(counts, (list, tuple)) or not counts
+            or any(type(count) is not int or count < 1 for count in counts)):
+        raise ValueError("受電箱套／連數量不合法")
+    if not isinstance(version_entries, Mapping) or set(version_entries) != set(ROLES):
+        raise ValueError("候選版本清單不合法")
+
+    library = normalize_candidates()
+    for candidate_role in ROLES:
+        entries = version_entries[candidate_role]
+        if not isinstance(entries, (list, tuple)):
+            raise ValueError("候選版本清單不合法")
+        highest = 0
+        for entry in entries:
+            if not isinstance(entry, Mapping):
+                raise ValueError("候選版本清單不合法")
+            version_id = entry.get("id")
+            if not isinstance(version_id, str):
+                raise ValueError("候選版本 ID 不合法")
+            match = re.fullmatch(rf"{candidate_role}-v([1-9][0-9]*)", version_id)
+            if match is None:
+                raise ValueError("候選版本 ID 不合法")
+            highest = max(highest, int(match.group(1)))
+        library[candidate_role] = {
+            "versions": deepcopy(list(entries)), "next_number": highest + 1,
+        }
+    library = normalize_candidates(library)
+    detached_layout = {"sets": [{"bays": [None] * count} for count in counts]}
+    return validate_quantity_allocation(
+        detached_layout, library, role, quantities, assigned,
+        expected_counts=expected_counts,
+    )
+
+
 class AllocationDraft:
     """Per-side quantity and 2D draft, never written to candidate library."""
 
@@ -87,6 +128,41 @@ class AllocationDraft:
         self.assigned[role].clear()
         self.step[role] = 1
         self.active_version[role] = version_id
+
+    def replace_version(self, role, old_version, new_version, available):
+        """Atomically change one candidate identity, preserving its count and row order."""
+        self.validate_role(role)
+        current = self.quantities[role]
+        if old_version not in current:
+            raise ValueError("候選版本不存在")
+        if new_version == old_version:
+            return
+        if (not isinstance(new_version, str) or not new_version
+                or new_version not in available or new_version in current):
+            raise ValueError("版本不存在或已加入配置")
+        self.quantities[role] = {
+            (new_version if key == old_version else key): count
+            for key, count in current.items()
+        }
+        self.assigned[role].clear()
+        self.step[role] = 1
+        self.active_version[role] = new_version
+
+    def select_version(self, role, version_id):
+        """Select only a candidate already present in this role's draft."""
+        self.validate_role(role)
+        if version_id not in self.quantities[role]:
+            raise ValueError("候選版本不存在")
+        self.active_version[role] = version_id
+
+    def set_step(self, role, step):
+        """Own the transition to position selection without allowing invalid totals."""
+        self.validate_role(role)
+        if type(step) is not int or step not in (1, 2):
+            raise ValueError("配置步驟不合法")
+        if step == 2 and not self.ready_for_positioning(role):
+            raise ValueError("數量尚未配置完成")
+        self.step[role] = step
 
     def set_quantity(self, role, version_id, count):
         self.validate_role(role)

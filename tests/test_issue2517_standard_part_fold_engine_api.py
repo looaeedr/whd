@@ -43,8 +43,9 @@ def test_engine_standard_profiles_match_existing_material_ui_contract(key, expec
 def test_engine_is_public_and_gui_does_not_own_material_formulas():
     assert build_standard_part_fold_profiles is manufacturing_api.build_standard_part_fold_profiles
     source = inspect.getsource(settings.build_standard_part_profiles)
-    assert "build_standard_part_fold_profiles(snapshot, part_key)" in source
-    assert "build_custom_part_profiles(snapshot, part_key)" in source
+    assert "manufacturing_api.build_operator_default_part_fold_profiles(" in source
+    assert "build_standard_part_fold_profiles(snapshot, part_key)" not in source
+    assert "build_custom_part_profiles(snapshot, part_key)" not in source
     for token in ("_three_segment_profile", "outside_add", "x_core", "apply_outside_dimension_compensation"):
         assert token not in source
 

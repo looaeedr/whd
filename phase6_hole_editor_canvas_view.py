@@ -12,16 +12,13 @@ from typing import Callable, Mapping, Sequence
 import math
 import tkinter as tk
 
-from ae_engine.sheetmetal_features import (
-    CanvasTransform,
-    ResolvedCircle,
-    ResolvedRect,
-    Vec2,
-    feature_reference_anchor,
-    feature_reference_point,
-    hit_test_resolved_features,
-    resolve_surface_features,
-)
+from ae_engine import manufacturing_api as _engine
+
+# Public Engine data types are consumed only for Canvas display/transform.
+CanvasTransform = _engine.CanvasTransform
+ResolvedCircle = _engine.ResolvedCircle
+ResolvedRect = _engine.ResolvedRect
+Vec2 = _engine.Vec2
 
 
 def _rects_overlap(a, b, *, gap=0.0):
@@ -174,7 +171,7 @@ class Phase6HoleEditorCanvasView:
             return None
         point = self.transform.canvas_to_world(x, y)
         tolerance = 8.0 / self.transform.scale if self.transform.scale else 2.0
-        return hit_test_resolved_features(point, self._resolved, tolerance=tolerance)
+        return _engine.hit_test_hole_editor_canvas_features(point, self._resolved, tolerance=tolerance)
 
     def _resolved_canvas_rect(self, resolved_feature):
         tr = self.transform
@@ -304,7 +301,7 @@ class Phase6HoleEditorCanvasView:
         canvas.create_text(dim_x-18, (y_top+y_bottom)/2, text=f"H = {sh:.2f} mm", fill="#f2f2f7", font=("Consolas", 14, "bold"), angle=90)
 
         try:
-            self._resolved = list(resolve_surface_features(frame.surface, frame.features, frame.width, frame.height))
+            self._resolved = list(_engine.resolve_hole_editor_canvas_features(frame.surface, frame.features, frame.width, frame.height))
         except ValueError:
             self._resolved = []
         self._render_resolved_features(canvas, self._resolved, tr, color="#ff9f0a")
@@ -327,8 +324,7 @@ class Phase6HoleEditorCanvasView:
         selected = frame.selected_index
         if 0 <= selected < len(frame.features):
             feature = frame.features[selected]
-            anchor = feature_reference_anchor(feature)
-            reference_point = feature_reference_point(feature, anchor, frame.width, frame.height)
+            reference_point = _engine.hole_editor_canvas_reference_point(feature, frame.width, frame.height)
             measure_guide = frame.measure_guide or guide
             x0, y0 = tr.world_to_canvas(Vec2(measure_guide.min_point.x, reference_point.y))
             x1, y1 = tr.world_to_canvas(Vec2(measure_guide.max_point.x, reference_point.y))

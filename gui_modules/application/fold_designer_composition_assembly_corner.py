@@ -9,7 +9,6 @@ from pathlib import Path
 import tkinter as tk
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.receiving_layout import (
     ensure_receiving_layout as ensure_receiving_preview_layout,
     resize_receiving_bays as resize_receiving_preview_bays,
@@ -166,10 +165,6 @@ def on_assembly_diagnostic_changed(self):
 
 def create_relief_promotion_candidates(self, namespace):
     """Build non-mutating promotion manifests through the existing controller."""
-    from ae_engine.certified_relief_registry import (
-        build_relief_promotion_candidate,
-    )
-
     app = self.app
     required = lambda name: self._required(namespace, name)
     controller = self.capabilities.registry.diagnostics()
@@ -188,7 +183,7 @@ def create_relief_promotion_candidates(self, namespace):
         cabinet_family=required(
             "_phase6_current_cabinet_family"
         )(app),
-        builder=build_relief_promotion_candidate,
+        builder=manufacturing_api.build_relief_promotion_candidate,
     )
     required(
         "_phase6_sync_registry_diagnostics_compatibility_mirrors"
@@ -551,7 +546,7 @@ def corner_data_back_panel_mode_is_applicable(self, namespace):
     state = required("_phase6_box_structure_state")(app)
     return self.corner_data_view().back_panel_mode_is_applicable(
         getattr(self.corner_data_view(), "selected_part_key", None),
-        family_name=cabinet_family_policy.canonical_family_name(
+        family_name=manufacturing_api.operator_canonical_family_name(
             getattr(app, "_phase6_input_snapshot", {}) or {}
         ),
         active_type=state.get("active_type"),

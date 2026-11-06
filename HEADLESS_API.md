@@ -1,19 +1,1081 @@
 ---
 whd_doc_role: REFERENCE
+whd_contract: manufacturing-architecture
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
+## #2517 Receiving BoxBody finished-face Hole Editor source → three physical sheets
+
+Pass `confirmed_box_body_face_features={"left":(...), "right":(...), "back":(...)}` to the existing public `manufacturing_api.build_receiving_factory_confirmed_parts` or via `ManufacturingResolvedBayInput.confirmed_box_body_face_features`. These typed finished-face CUTTING features correspond to the real GUI saved `operator_snapshot["part_face_features"]["box_body"]`. Saved nonempty authoring must exactly match confirmed features; missing, malformed or changed saved holes are rejected before manufacturing. Valid Engine FeatureAnchor values including `PANEL_CENTER` are preserved. CADSplit may submit separately confirmed original face features when that saved face has no authored hole. This differs from `confirmed_box_body_piece_features`, which owns physical-sheet material UV source. Both feed the original `BoxBodyPartSpec → canonical physical-piece face projection → FinalScene → verified independent DXF` pipeline. The Engine alone maps finished-face coordinates through topology and seam clipping. Test: `tests/test_issue2517_receiving_factory_confirmed_box_body_face_features.py`. No whole-cabinet/NFB/PAD/EAR/Windows certification granted.
+
+## #2517 Saved Receiving Head/Tail CUTTING source parity
+
+Existing public `build_receiving_factory_confirmed_parts(..., confirmation="saved_operator_confirmed", operator_snapshot=saved, confirmed_endcap_features={"head": (...), "tail": (...)})` now rejects any **nonempty saved** `part_features.head/tail` omitted or changed in that explicit source. Invalid saved Head/Tail role contents fail closed with `RECEIVING_SAVED_ENDCAP_SOURCE_FEATURES_MISMATCH`; no partial DXF. Independently confirmed CADSplit CUTTING may still be supplied when the saved operator did not author that role, through the same existing typed finished-face EndCap feature API. The original EndCapPartSpec / canonical FinalScene / staged verified DXF Save→Reload paths remain unchanged. See `tests/test_issue2517_receiving_factory_saved_endcap_cutting_source.py`. This is not whole-cabinet/NFB/PAD/EAR certification.
+
+## #2517 Confirmed Receiving three-piece BoxBody physical Hole Editor source
+
+On the existing public `manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmation="saved_operator_confirmed", operator_snapshot=saved, confirmed_box_body_piece_features=source)` or the matching `ManufacturingResolvedBayInput.confirmed_box_body_piece_features` field, submit exact saved, typed physical-sheet material-UV CUTTING features for `box_body:left_side`, `box_body:back`, and `box_body:right_side`. Engine requires source equality with original saved `physical_piece_features` (or legacy `part_features` entries), disallows competing saved stores, unsupported piece roles and unsaved holes, then consumes the original BoxBody physical-sheet FinalScenes and verified per-sheet DXF. Nothing new may be inferred by CADSplit or GUI. Unconfirmed saved holes, finished-face BoxBody source, out-of-outline coordinates and non-CUTTING material are rejected with no staged output. Existing plain confirmed Cabinet parts remain compatible; no NFB/PAD/EAR/whole-cabinet manufacturing certification is granted. See `tests/test_issue2517_receiving_factory_confirmed_box_body_piece_features.py`.
+
+## #2517 Confirmed ordinary Receiving BasePlate CUTTING from original saved Hole Editor
+
+The public `manufacturing_api.build_receiving_factory_confirmed_parts(source_dimensions, confirmation="saved_operator_confirmed", operator_snapshot=saved, include_confirmed_base_plate=True, confirmed_base_plate_features={"base_plate": (saved_typed_cutting_features,)})` now consumes explicitly confirmed original BasePlate Hole Editor CUTTING. `ManufacturingResolvedBayInput.confirmed_base_plate_features` feeds the same factory through the existing verified Bay batch, not a separate exporter. Only typed `FeatureAnchor.ABSOLUTE_FINISHED_FACE`, layer `CUTTING`, physically contained original saved features are accepted; equality with original `operator_snapshot.part_features.base_plate` is mandatory. No silent hole dropping, missing confirm, unsaved extra holes, NFB-submitted, CENTER/tier, PAD or welded EAR manufacture. DXF Save→Reload and atomicity remain the original Engine owner's responsibility. See the factory source PartSpec regression tests.
+
+## #2517 Receiving Factory canonical EndCap Fold source parity
+
+`manufacturing_api.build_receiving_factory_confirmed_parts(source_dimensions, confirmation=..., operator_snapshot=...)` forwards the exact confirmed Engine BoxBody Fold profile to each existing `build_endcap_operator_part_spec(..., box_body_fold_profile=...)` request. Fresh Family and saved operator paths now derive EndCap left/right formed FW within the same Engine owner used by GUI, preserving their real topology and 1T/BEND semantics. Caller-provided computed formed widths are neither requested nor trusted. This retains the existing verified-part-only, non-whole-cabinet manufacturing scope. See `tests/test_issue2517_receiving_factory_source_engine_part_specs.py` for head/tail parity and real DXF Save→Reload checks.
+
+## #2517 Door-cell original Indicator source → public canonical Door PartSpec
+
+Use `ae_engine.manufacturing_api.build_door_operator_part_spec(values, *, model_name, features=(), indicator_source_state=original_saved_door_cell_indicator, ...)`. Engine performs the same strict live/saved original `project_operator_door_cell_indicator_manufacturing_source` validation as the Hole Editor and derives Indicator Box opening dimensions, real mode, active layer/group count, offsets and box-distance in one Door PartSpec transaction. GUI/CADSplit do not select physical lamp holes, compute opening sizes or repair saved physical state.
+
+Legacy direct `indicator_hole`, `door_indicator`, `door_indicator_offset`, `use_box_distance` and `indicator_window_groups` arguments remain supported when no `indicator_source_state` is passed. Original source and competing precomputed hole inputs cannot coexist (`DOOR_OPERATOR_INDICATOR_DUPLICATE_SOURCE`). Disabled mode creates no hole; enabled incomplete/invalid groups or offsets fail closed. This is PartSpec source ownership, not independent whole-cabinet or DXF certification. Test: `tests/test_issue2517_door_layout_indicator_source_public_api.py`.
+
+## #2517 EndCap formed FW from BoxBody Fold — public Engine request
+
+Use `ae_engine.manufacturing_api.build_endcap_operator_part_spec(values, *, model_name, is_tail, holes, box_body_fold_profile=original_saved_box_body_fold, ...)` to build a canonical Head/Tail PartSpec from original operator/committed physical Fold source. The Engine reuses `formed_box_body_fw_widths` and its current bend topology and T to derive `box_body_formed_fw_left/right`. GUI/CADSplit must not precompute those widths or use old `ui_len_add` as manufacturing authority. Absence of a FW fold remains `None`. When supplying `box_body_fold_profile`, do **not** also supply `box_body_formed_fw_left/right`: this conflict raises `ENDCAP_OPERATOR_FORMED_FW_DUPLICATE_SOURCE`.
+
+The legacy optional direct formed-width inputs remain compatible if no `box_body_fold_profile` is passed. This change only moves the assembly formed-FW calculation into Engine PartSpec creation and does not certify Cutting, whole-cabinet DXF or Windows UAT. See `tests/test_issue2517_endcap_formed_fw_source_public_api.py`.
+
+## #2517 Receiving CSV NFB multi-Bay atomic PART_ONLY DXF API
+
+For confirmed Receiving Set/Bay manufacturing inputs, call `ae_engine.manufacturing_api.export_receiving_committed_nfb_csv_bays(requests, *, output_directory, pre_commit_guard=None)`; the identical function is exported by `ae_engine`. Each request is the **existing immutable** `ManufacturingResolveRequest` with a verified current Set/Bay snapshot, operator-confirmed V5 NFB world-X and original physical door/BasePlate render inputs. Engine invokes the existing `export_current_csv_nfb_pair_from_request` per Bay, which owns canonical FinalScene reconstruction, actual 2D/3D installed placements, 2/3 DXF Save→Reload, CSV SHA and NFB physical identity. All selected Bays must succeed before **one** atomic destination commit. The optional `pre_commit_guard` checks the caller's independently trusted original source DXF revision before/after staging; changed or missing sources reject the entire batch.
+
+Result `NfbCsvMultiBayPartOnlyDxf` lists exactly which (set_id, bay_id) were exported, and each real part-only output path. **Not full cabinet production, PAD/EAR certification, a source-only request, or Windows 16-Bay UAT.** Unconfirmed Candidate Apply remains source-only and must not be promoted to manufacturing by this API.
+
+---
+whd_doc_role: REFERENCE
 whd_contract: project-reference
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
-# Headless Manufacturing API（Phase 6：AE Engine Clean Break）
+
+> #2690／#2692（2026-11-05）多板件合併 `save_composed_panel_dxf(..., box_body_owner_by_panel=None)` 可選擇傳入 Engine 原本已驗證的 `BoxBodyStructureRenderData` 來源 owner。箱身各實體展開板依 `formed_w_start`、物理角色及 `formed_y_offset` 整片平移排列，不依呼叫者任意順序；其餘板件排右側。多連正式 `export_grouped_receiving_multibay_dxf` 會透過現有 `commit_verified_receiving_groups` 將每個 Bay 的來源 BoxBody owner 與已驗證 flat 一起交給合併器。這不把 3D 轉成 UV、不重算切割、不解除來源／NFB／PAD／EAR Gate、Save→Reload／原子發檔。每套仍命名 `第N套.dxf`；全部／頭尾中間仍照既有三模式。未認證來源不得因有合併版型就產生 DXF。
+
+> #2517（2026-11-05）已驗證 NFB 部分出圖清單新增唯讀 `manufacturing_api.project_receiving_verified_nfb_partial_manifest(scope=..., saved_bay=..., set_brand=..., source_inventory=..., verified_inner_door=..., source_path=...)`，重用原 `receiving_nfb_export_manifest` 的 NfbPhysicalScope／NfbActualPart 實體身份及既有 `derive_nfb_partial_export_manifest` 完整源 SHA、已確認 X、Part readiness 檢查；GUI 不再自行建 NfbActualPart、指定物理角色、推 `WHOLE_READY`。此為原來源清單的顯示投影，不認證整櫃製造，正式 DXF 仍須原 `require_export`／Save→Reload／實際來源重驗。
+
+> #2517（2026-11-05）NFB CURRENT CSV 多連來源清單改公開 `manufacturing_api.project_receiving_current_v5_nfb_physical_diagnostics(saved_bay, physical_snapshot=..., set_id=..., bay_id=..., version_id=..., physical_parts=...)`：既有 Engine Family／BasePlate owner 判斷已存在的 Upper Inner Door、單層／兩層底板與缺料原因，未受 NFB 影響的板件必須來自當前 Bay 的真 FinalScene Scene witness，status 仍為 `DRAFT`／`RECHECK_ONLY`，絕不授權正式製造。GUI 取唯讀獨立預覽時改用 `manufacturing_api.project_receiving_nfb_unsubmitted_preview_layout(layout, set_index=..., bay_index=...)`，先驗證真實 Set/Bay 再只複製預覽資料，不變更已提交來源或取得 DXF 資格；現有 `project_receiving_bay_legacy_aliases` 公開 API 被 GUI 正式復用。
+
+> #2517（2026-11-05）：`manufacturing_api.project_receiving_committed_csv_nfb_pair_layer_count(snapshot)` 是 Receiving 已提交 CSV NFB／既有實體底板來源的唯讀投影：回傳 `1`（既有 `base_plate` 完整）或 `2`（兩份 `base_plate:nfb_layer:0/1` 完整）及 `None`（未有可認證配對來源）。沿用原 `receiving_nfb_committed_final_scene` 的已提交來源、selected Bay、數字化 V5 Model 與 BasePlate PartSpec 檢查；不合法來源照舊拋出 Engine 例外，GUI 不得自行讀私有 `_submitted_csv_holes/_existing_source_specs`、決定物理角色或回退舊洞位。此 API 僅供 GUI 展示／路由，**不**代表 NFB 部分出圖、整箱 DXF 或 2D／3D 製造已放行；正式出口仍需各自完整來源與 Save→Reload 驗證。
+
+> #2517（2026-11-04）NFB 跨 Bay 操作新公開唯讀 `manufacturing_api.select_operator_nfb_copy_bays(layout, set_index, selected_bays)` 與 `plan_operator_nfb_copy_direction(layout, set_index, selected_bays, verified_target_indices=...)`：只投影真實兩 Bay、已提交來源及獨立已驗證目標的唯一方向；實際 Copy 必須繼續走原 `copy_receiving_submitted_nfb_bay`／`copy_live_verified_nfb` 的 live physical proof + 原子 Confirm，不允許借用世界 X 或繞過驗證。
+
+> #2517（2026-11-04）唯讀 `manufacturing_api.project_operator_fixed_corner_summary(model_name, part_key, joint_state)`：EndCap 固定截角摘要沿既有 Family Registry 與 BOTTOM AssemblyJoint；受電箱所有正式別名同源、其他 Family 回 `None` 由既有 UI 保留原顯示。文字不構成製造幾何或 DXF 放行。
+
+> #2517（2026-11-04）Receiving `manufacturing_api.edit_receiving_shared_setting_for_bays(layout, set_index, bay_indices, kind, value)`> #2517（2026-11-06）新增 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(layout, *, set_index, bay_indices, kind, value)`，將原 Engine 多連共享設定原子 Apply 及其連動實體 Bay dirty 來源一併公開，回傳 `(detached_layout, tuple[physical_bay_stable_id, ...])`。只從提交後 canonical `settings[kind].refs` 對應影響範圍，不按 GUI 猜測同值連動；保留舊 `edit_receiving_shared_setting_for_bays` dict 回傳相容、非法選取拒絕及舊專案結構。此設定 API 不認證 NFB、FinalScene、DXF／Save→Reload；#2517 整體仍 OPEN。
+
+ 由既有 Engine shared-setting owner 對多連同一次 Apply 作完整選取、型別、Linked Ref 預檢與全有／全無更新；失敗不得部分更新 Bay、ref 或 GUI dirty 狀態。GUI `receiving_settings_ports.change` 只能交給 Adapter→此公開 API，單連 `edit_receiving_shared_setting`、Shared/Unlink 原公開契約仍適用。
+# Headless Manufacturing API（Phase 6：AE Engine Clean Break）> #2517（2026-11-06）Receiving 多連封頭尾 Hole Editor Save 新增原 Engine Owner 的 `manufacturing_api.share_and_edit_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_indices, source_bay_index, kind, value)`（根包相同 callable）。先驗 saved Feature，再在 detached canonical Layout 上使用既有 share／edit transaction，整筆成功才回傳 `(layout, affected_physical_bay_ids)`，包含選中 targets 與連動 source siblings；錯型孔或非法 Bay 不得部分更改 refs/dirty。GUI 不再先 share 再 edit 或暫時切 Bay；原物理製造門檻未更動。
+
+> #2517（2026-11-06）Receiving 單連共用設定 edit 復用 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(..., bay_indices=(current,))`，確保變更現有 linked ref 時所有實體 sibling 一併取得 Engine 回傳 dirty ID；新增 `manufacturing_api.share_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_indices, kind, source_bay_index)`，保留原 `share_receiving_shared_setting` 驗證及原子 Layout 更新，回傳 `(detached_layout, affected_physical_bay_ids)` 包含所選來源與目標，即使值相同仍不把獨立 refs 當作連動。GUI 不判定參照／來源；不變更製造認證或 DXF Gate。
+
+> #2517（2026-11-06）新增 `manufacturing_api.update_receiving_all_set_nfb_parent_brand(layout, proposed_brand)`：使用原 `receiving_nfb_brand_transition` 單套 Engine transition 在 detached canonical Layout 上原子重設所有實體 Set 的 NFB parent brand，回傳 `(layout, changed)`；先驗證完整 Set/Bay/品牌，錯誤不得部分提交。GUI `ReceivingSetBayAdapter.set_global_brand` 不再遍歷 Set 或組裝 NFB 失效資料，Quantity 品牌與 preview 接口不變。本入口不解除已提交 CSV NFB 的來源／已確認 X／FinalScene/DXF 製造驗證閘門。
+
+
+> #2517（2026-11-04）：`manufacturing_api.project_whd_cadcraft_command_instructions(surface=..., features=..., width=..., height=...)` 以 WHD finished-face 來源及既有 Engine 限制生成 CADCraft 隔離候選繪圖指令；`save_blank_cadcraft_exchange_drawing(output_dxf, preview_png)` 以 exclusive create 產生合法空白毫米 DXF + PNG 並拒絕覆寫。此流程不可充作任何正式製造 DXF、CUTTING 或 source-only 外部放行。GUI 不再 import `ezdxf` 直接建立交換檔。
+
+> #2517（2026-11-04）：`manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(snapshot, role="head"|"tail")` 將 Quantity 版本 Head/Tail 的可開孔 surface、finished dimensions、reference_guide 由同一 Engine 投影；Receiving Family 使用已存 common-box 或 Family 新建預設、其他 Family 使用既存實體 W/D，非法 T/W/D 及格式拒絕。GUI 只顯示、編輯、提交明確版本 Features，提交前用公開 `require_valid_operator_quantity_features`。
+
+> #2517（2026-11-04）：受電箱 Set/Bay 輕量 2D 門分割新增唯讀 `manufacturing_api.project_receiving_operator_bay_door_split_ratio(bay)`，依已保存 Door topology 與既有 `validate_door_layout_dimensions` 回傳可唯一表示的二列高度比例；多欄不同分割或無有效啟用 Door 時不偽造單條門縫，非法物理資料拒絕；尚無保存 Door 狀態僅用 Receiving Family 預設比率作示意。GUI 只消費比例繪 Canvas，不再硬算 1100 mm；此 API 不批准正式 Door 製造或 DXF。
+
+
+> #2517（2026-11-03）：Receiving Set/Bay 只有切換已存在的實體 Part 且其他物理來源完全同源，才可由既有公開 `manufacturing_api.operator_receiving_navigation_only_sync_change(previous, current)` 判定省略重複 publish。Family 身分採既有 Engine Registry `cabinet_types.policy.canonical_family_name`，接受合法 `受電箱`／`RECEIVING`／小寫／混合大小寫及舊 `cabinet_type`；其他 Family、Quantity 模式、未確認 Part 或任何實體來源變更一律不省略。GUI `phase6_sync_envelope.navigation_only_change` 仍只是委派；沒有新增機械驗證或 DXF 認證。
+
+> #2517（2026-11-03）：Receiving 當前多門格 Hole Editor 尺寸來源經既有公開 `manufacturing_api.receiving_family_supports_back_panel_mode(snapshot)` 判定 Family Registry 別名，`project_operator_receiving_settings_live_dimensions(snapshot, whd, applying_settings=True)` 驗證現行 Bay W/H/D（缺失、bool、NaN、Inf、非正值均拒絕），而不是退回舊 Settings 畫面或自行 `float()`。實體門格特徵 ID 使用公開 `manufacturing_api.door_layout_part_key(cell)`，原 owner 為 `ae_engine.sheetmetal_part_adapters.door_layout_part_key`，與 Fold Designer／DXF 共用同一 cell identity。GUI 僅選 cell 和輸入數值，不新增門格幾何、DXF 出口或外部認證。
+
+> #2517（2026-11-03）：多門格 Door Hole Editor 使用公開 `manufacturing_api.project_operator_hole_editor_door_cell(result, door_spec, baseline_scene=..., baseline_status=...)`，從同一 Engine DoorPartSpec／已解算 cell 結構投影不可變 `OperatorHoleEditorGeometry`（surface／material width/height／finished-face guide／IndicatorContext／frame_edges）。GUI 不再直接使用低層 `feature_surface_from_structural_result` 或 `build_finished_reference_guide` 計算正式編輯面；此唯讀編輯投影不解鎖製造 DXF 或外部 source-only export。
+
+> #2517（2026-11-03）：原 Fold Designer 保存的門板指示燈 `door_indicator_offset` 由 `manufacturing_api.normalize_fold_designer_indicator_offsets(offset_x, offset_y)` 驗證，與 `normalize_operator_hole_editor_indicator_state` 共用同一 Engine 有限非布林偏移判準；允許正負及 0 mm，不接受 bool／NaN／Inf／壞來源。只增加原公開 API 的製造輸入規範，不新增 Feature 算式／DXF writer。
+
+> #2517（2026-11-03）：Receiving operator Set/Bay 現場 Feature 與 Joint lock 使用 `manufacturing_api.project_operator_receiving_live_bay_features`，上層內門 Hole Editor 的唯一 Part ID 使用 `resolve_receiving_upper_inner_door_editor_part_key`，預覽 cache 的 physical Bay prefix/Joint world anchor 使用 `project_receiving_bay_preview_cache_source_witness`；均只屬 UI source/preview，非 Export certification。
+
+> #2517（2026-11-03）：`manufacturing_api.plan_operator_manufacturing_part_source(part_key, has_saved_profiles=True)` 回傳 immutable `OperatorManufacturingPartSourcePlan`，供 GUI、CADSplit/headless 客戶端共用實體 part ID 的 CustomFold 預設、原始 PartSpec provider、EndCap committed relief 兩段式與 Fold Designer 2D／3D rendered source route。此計畫只描述既有源別，不替代 Factory／Family／DXF release 證明。
+
+> #2517（2026-11-03）：Receiving Bay 3D 已選定的 physical preview Fold／Joint／BoxBody structure 由公開 `manufacturing_api.project_receiving_bay_preview_physical_seed(snapshot, set_index, bay_index, existing_box_body_profile, existing_box_body_faces)` 統一給出 `ReceivingBayPreviewPhysicalSeed`。GUI 只把 Engine 製造輸入種子套進隔離 workspace 並送真正的 resolver；並無 DXF/Export 新認證。
+
+> #2517（2026-11-03）：Receiving Bay 層級 Preview 輸入以公開 `manufacturing_api.project_receiving_bay_preview_operator_inputs(source_snapshot, settings_values, set_index, bay_index)` 產生 `ReceivingBayPreviewOperatorInputs`，由 Engine 選定 Bay W/H/D、保存的 Door／NFB／Set-Bay identity 與 part_dimensions；GUI 不得用全域過期設定覆蓋 Bay 製造來源。這是隔離 input projection，沒有 DXF/Export 授權。
+
+> #2517（2026-11-03）：Receiving Bay Preview 的實體 Assembly member／世界位移由公開 `manufacturing_api.project_receiving_bay_preview_assembly_members(layout, resolved_parts, set_index, bay_index)` 產生 immutable `ReceivingBayWorldAssemblyProjection`；GUI 不再排除實體 part 或自行把 Bay offset 加到物理 part。位置由既有 Engine Joint／包外 W/H/D 計算，非法三軸或未定 placement 拒絕；僅 VIEW，非製造新認證。
+
+> #2517（2026-11-03）：Receiving Set/Bay 的預覽來源重用由 manufacturing_api.plan_receiving_bay_preview_reuse_policy 以 immutable ReceivingBayPreviewReusePolicy 決定需讀 live CustomPartCatalog、上游平移及 suffix topology flags；GUI 不再自行判定物理 source ID。Raw panel/frame/divider 快取仍由 receiving_raw_source_cache_kind + DXF SHA ticket 驗證，不是正式製造認證。
+
+> #2517（2026-11-03）：主 GUI Settings 中 W/H/D/T/FW 的來源驗證共用公開 `PHYSICAL_SNAPSHOT_SOURCE_KEYS` 和 `normalize_operator_source_dimension`，布林值共用 `normalize_operator_settings_boolean`；非法毫米值不能走 GUI 的 `float(raw)` 被提交到 runtime／INI。這是原有 Engine 入參契約接線，非新增製造准入。
+
+> #2517（2026-11-03）：`manufacturing_api.apply_operator_legacy_runtime_manufacturing_policies` 統一舊 AE Relief 與 Vault EndCap 固定孔 Policy 更新；`operator_legacy_shared_base_plate_shrink` 統一四邊同縮相容的 runtime/INI 決策。GUI SettingsService 仍傳輸／存檔，不自行重建 CUTTING Policy，無新製造出口。
+
+> #2517（2026-11-03）：`manufacturing_api.plan_operator_external_model_change`、`replace_corner_state`、`operator_receiving_navigation_only_sync_change` 已分別接手 GUI 的外部箱型判斷、Corner 保存態與 Receiving Set/Bay 只導覽 physical state 決定；原 GUI 同名函式僅委派，無新增 CUTTING／BEND／DXF 製造放行。
+
+> #2517（2026-11-03）：GUI 與 Engine Settings Plan 的標準／自訂板件預設 X/Y Fold 共用公開 manufacturing_api.build_operator_default_part_fold_profiles(snapshot, part_key)。自訂板件缺少合法 metadata 不得回退成標準 Fold；Head/Tail 原專屬 API 與 DXF 認證不變。
+
+> #2517（2026-11-03）：3D FinalScene Mesh 的外輪廓與真實 crease 由公開 Engine API project_physical_solid_mesh_display_segments 支援 boundary/crease/boundary_and_crease，GUI 僅繪製；與既有 physical_solid_mesh_feature_segments 共用判定。僅 VIEW，非 CUTTING/BEND/DXF 授權。
+
+> #2517（2026-11-03）：`manufacturing_api.plan_operator_external_sync(envelope, last_external_revision=...)` 為外部 Settings 同步來源／revision 的正式 Engine request→immutable `OperatorExternalSyncPlan`；原 GUI `phase6_settings_transitions.plan_external_sync` 只委派，同型別 alias 不變。僅移轉既有狀態交易，不新增製造能力或外部 source-only CLI 放行。
+
+> #2517 2026-11-03：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_features={"door_c1_r1": (CircleFeature(...),)})` 與原 `ManufacturingResolvedBayInput.confirmed_door_features` 共用已確認的 Door 來源；孔位必須是 finished-face CUTTING typed Feature／正式實體門格 ID，已保存孔位需完全一致。實際出口仍為 `export_verified_resolved_integration_bays` 的同一 Engine FinalScene／DXF reopen；未放行 source-only CLI／整套 NFB。
+
+> #2517（2026-11-03）：`.p6fold` 實體 Feature／Vec2 的編碼及重載經公開 `manufacturing_api.encode_project_value/decode_project_value`，原 GUI `phase6_project_file` 僅作檔案／JSON 傳輸層並保留舊名 aliases；wire 不變、未證實的製造不被賦予認證。
+
+> #2517（2026-11-03）：Main／Designer 的 physical Workspace 共用實體狀態改由公開 `manufacturing_api.SharedWorkspaceState`、`normalize_existing_parts` 與物理清單常數建立，GUI `phase6_workspace_state` 是相容別名，不再決定物理 presence、CustomPart ID 或結構；UI lifecycle 仍分離，原 Save→Reload 與製造不變。
+
+> #2517（2026-11-03）：受電箱模式初始狀態／切換由 `manufacturing_api.fresh_receiving_mode` 與 `manufacturing_api.ReceivingModeSession` 決定，GUI 原模組保留同名相容別名；初始實體板件清單共用 `manufacturing_api.DEFAULT_OPERATOR_EXISTING_PARTS`。不改既有 Save→Reload 格式或現行製造／外部 CLI 認證。
+
+> #2517（2026-11-03）：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_layout_columns=...)` 可在**明確確認**的 Receiving 操作來源下建立 Door cell PartSpec；`ManufacturingResolvedBayInput.door_layout_columns` 在 source-confirmed 模式傳入相同拓樸，沿用 `export_verified_resolved_integration_bays` 的正式 DXF reopen。未確認的 Door Features、拓樸不符或已存門格不同均拒絕，並未開放 source-only CLI。
+
+---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
+> #2517（2026-11-06）**實際 NFB CSV API 接線修復**：已公開的 `manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)` / `ae_engine` 根包同名 callable 現不再只寫 Bay 的 `nfb_config_submitted/nfb_config`，而是復用唯一 Engine `apply_receiving_inner_door_candidate_to_bays` 交易，將 source 的真實 Hole Editor `ProfileFeature`、層數／型號／高度、每 Bay 個別的 NFBConfig 同次原子提交。真 FinalScene 的物理 X 必須可從 `project_receiving_bay_legacy_aliases` 的各 Bay `part_features` 及目前 CSV SHA/Y/旋轉重新求證；不能只拿 NFB 型號／提交旗標授權製造。選定 Bay 先與舊 shared refs 解連，不改未選 Bay；舊 API 簽章/return Layout 相容，錯誤不部分提交。回歸包含真 `Apply → FinalScene → 內門 DXF Save→Reload`，不放行尚未驗證的整箱 MFG-2／EAR／PAD。
+
+> #2690／#2692（2026-11-05）多板件合併 `save_composed_panel_dxf(..., box_body_owner_by_panel=None)` 可選擇傳入 Engine 原本已驗證的 `BoxBodyStructureRenderData` 來源 owner。箱身各實體展開板依 `formed_w_start`、物理角色及 `formed_y_offset` 整片平移排列，不依呼叫者任意順序；其餘板件排右側。多連正式 `export_grouped_receiving_multibay_dxf` 會透過現有 `commit_verified_receiving_groups` 將每個 Bay 的來源 BoxBody owner 與已驗證 flat 一起交給合併器。這不把 3D 轉成 UV、不重算切割、不解除來源／NFB／PAD／EAR Gate、Save→Reload／原子發檔。每套仍命名 `第N套.dxf`；全部／頭尾中間仍照既有三模式。未認證來源不得因有合併版型就產生 DXF。
+
+> #2517（2026-11-05）已驗證 NFB 部分出圖清單新增唯讀 `manufacturing_api.project_receiving_verified_nfb_partial_manifest(scope=..., saved_bay=..., set_brand=..., source_inventory=..., verified_inner_door=..., source_path=...)`，重用原 `receiving_nfb_export_manifest` 的 NfbPhysicalScope／NfbActualPart 實體身份及既有 `derive_nfb_partial_export_manifest` 完整源 SHA、已確認 X、Part readiness 檢查；GUI 不再自行建 NfbActualPart、指定物理角色、推 `WHOLE_READY`。此為原來源清單的顯示投影，不認證整櫃製造，正式 DXF 仍須原 `require_export`／Save→Reload／實際來源重驗。
+
+> #2517（2026-11-05）NFB CURRENT CSV 多連來源清單改公開 `manufacturing_api.project_receiving_current_v5_nfb_physical_diagnostics(saved_bay, physical_snapshot=..., set_id=..., bay_id=..., version_id=..., physical_parts=...)`：既有 Engine Family／BasePlate owner 判斷已存在的 Upper Inner Door、單層／兩層底板與缺料原因，未受 NFB 影響的板件必須來自當前 Bay 的真 FinalScene Scene witness，status 仍為 `DRAFT`／`RECHECK_ONLY`，絕不授權正式製造。GUI 取唯讀獨立預覽時改用 `manufacturing_api.project_receiving_nfb_unsubmitted_preview_layout(layout, set_index=..., bay_index=...)`，先驗證真實 Set/Bay 再只複製預覽資料，不變更已提交來源或取得 DXF 資格；現有 `project_receiving_bay_legacy_aliases` 公開 API 被 GUI 正式復用。
+
+> #2517（2026-11-05）：`manufacturing_api.project_receiving_committed_csv_nfb_pair_layer_count(snapshot)` 是 Receiving 已提交 CSV NFB／既有實體底板來源的唯讀投影：回傳 `1`（既有 `base_plate` 完整）或 `2`（兩份 `base_plate:nfb_layer:0/1` 完整）及 `None`（未有可認證配對來源）。沿用原 `receiving_nfb_committed_final_scene` 的已提交來源、selected Bay、數字化 V5 Model 與 BasePlate PartSpec 檢查；不合法來源照舊拋出 Engine 例外，GUI 不得自行讀私有 `_submitted_csv_holes/_existing_source_specs`、決定物理角色或回退舊洞位。此 API 僅供 GUI 展示／路由，**不**代表 NFB 部分出圖、整箱 DXF 或 2D／3D 製造已放行；正式出口仍需各自完整來源與 Save→Reload 驗證。
+
+> #2517（2026-11-04）NFB 跨 Bay 操作新公開唯讀 `manufacturing_api.select_operator_nfb_copy_bays(layout, set_index, selected_bays)` 與 `plan_operator_nfb_copy_direction(layout, set_index, selected_bays, verified_target_indices=...)`：只投影真實兩 Bay、已提交來源及獨立已驗證目標的唯一方向；實際 Copy 必須繼續走原 `copy_receiving_submitted_nfb_bay`／`copy_live_verified_nfb` 的 live physical proof + 原子 Confirm，不允許借用世界 X 或繞過驗證。
+
+> #2517（2026-11-04）唯讀 `manufacturing_api.project_operator_fixed_corner_summary(model_name, part_key, joint_state)`：EndCap 固定截角摘要沿既有 Family Registry 與 BOTTOM AssemblyJoint；受電箱所有正式別名同源、其他 Family 回 `None` 由既有 UI 保留原顯示。文字不構成製造幾何或 DXF 放行。
+
+> #2517（2026-11-04）Receiving `manufacturing_api.edit_receiving_shared_setting_for_bays(layout, set_index, bay_indices, kind, value)`> #2517（2026-11-06）新增 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(layout, *, set_index, bay_indices, kind, value)`，將原 Engine 多連共享設定原子 Apply 及其連動實體 Bay dirty 來源一併公開，回傳 `(detached_layout, tuple[physical_bay_stable_id, ...])`。只從提交後 canonical `settings[kind].refs` 對應影響範圍，不按 GUI 猜測同值連動；保留舊 `edit_receiving_shared_setting_for_bays` dict 回傳相容、非法選取拒絕及舊專案結構。此設定 API 不認證 NFB、FinalScene、DXF／Save→Reload；#2517 整體仍 OPEN。
+
+ 由既有 Engine shared-setting owner 對多連同一次 Apply 作完整選取、型別、Linked Ref 預檢與全有／全無更新；失敗不得部分更新 Bay、ref 或 GUI dirty 狀態。GUI `receiving_settings_ports.change` 只能交給 Adapter→此公開 API，單連 `edit_receiving_shared_setting`、Shared/Unlink 原公開契約仍適用。
+# Headless Manufacturing API（Phase 6：AE Engine Clean Break）> #2517（2026-11-06）Receiving 多連封頭尾 Hole Editor Save 新增原 Engine Owner 的 `manufacturing_api.share_and_edit_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_indices, source_bay_index, kind, value)`（根包相同 callable）。先驗 saved Feature，再在 detached canonical Layout 上使用既有 share／edit transaction，整筆成功才回傳 `(layout, affected_physical_bay_ids)`，包含選中 targets 與連動 source siblings；錯型孔或非法 Bay 不得部分更改 refs/dirty。GUI 不再先 share 再 edit 或暫時切 Bay；原物理製造門檻未更動。
+
+> #2517（2026-11-06）Receiving 單連共用設定 edit 復用 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(..., bay_indices=(current,))`，確保變更現有 linked ref 時所有實體 sibling 一併取得 Engine 回傳 dirty ID；新增 `manufacturing_api.share_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_indices, kind, source_bay_index)`，保留原 `share_receiving_shared_setting` 驗證及原子 Layout 更新，回傳 `(detached_layout, affected_physical_bay_ids)` 包含所選來源與目標，即使值相同仍不把獨立 refs 當作連動。GUI 不判定參照／來源；不變更製造認證或 DXF Gate。
+
+> #2517（2026-11-06）新增 `manufacturing_api.update_receiving_all_set_nfb_parent_brand(layout, proposed_brand)`：使用原 `receiving_nfb_brand_transition` 單套 Engine transition 在 detached canonical Layout 上原子重設所有實體 Set 的 NFB parent brand，回傳 `(layout, changed)`；先驗證完整 Set/Bay/品牌，錯誤不得部分提交。GUI `ReceivingSetBayAdapter.set_global_brand` 不再遍歷 Set 或組裝 NFB 失效資料，Quantity 品牌與 preview 接口不變。本入口不解除已提交 CSV NFB 的來源／已確認 X／FinalScene/DXF 製造驗證閘門。
+
+
+> #2517（2026-11-04）：`manufacturing_api.project_whd_cadcraft_command_instructions(surface=..., features=..., width=..., height=...)` 以 WHD finished-face 來源及既有 Engine 限制生成 CADCraft 隔離候選繪圖指令；`save_blank_cadcraft_exchange_drawing(output_dxf, preview_png)` 以 exclusive create 產生合法空白毫米 DXF + PNG 並拒絕覆寫。此流程不可充作任何正式製造 DXF、CUTTING 或 source-only 外部放行。GUI 不再 import `ezdxf` 直接建立交換檔。
+
+> #2517（2026-11-04）：`manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(snapshot, role="head"|"tail")` 將 Quantity 版本 Head/Tail 的可開孔 surface、finished dimensions、reference_guide 由同一 Engine 投影；Receiving Family 使用已存 common-box 或 Family 新建預設、其他 Family 使用既存實體 W/D，非法 T/W/D 及格式拒絕。GUI 只顯示、編輯、提交明確版本 Features，提交前用公開 `require_valid_operator_quantity_features`。
+
+> #2517（2026-11-04）：受電箱 Set/Bay 輕量 2D 門分割新增唯讀 `manufacturing_api.project_receiving_operator_bay_door_split_ratio(bay)`，依已保存 Door topology 與既有 `validate_door_layout_dimensions` 回傳可唯一表示的二列高度比例；多欄不同分割或無有效啟用 Door 時不偽造單條門縫，非法物理資料拒絕；尚無保存 Door 狀態僅用 Receiving Family 預設比率作示意。GUI 只消費比例繪 Canvas，不再硬算 1100 mm；此 API 不批准正式 Door 製造或 DXF。
+
+
+> #2517（2026-11-03）：Receiving Set/Bay 只有切換已存在的實體 Part 且其他物理來源完全同源，才可由既有公開 `manufacturing_api.operator_receiving_navigation_only_sync_change(previous, current)` 判定省略重複 publish。Family 身分採既有 Engine Registry `cabinet_types.policy.canonical_family_name`，接受合法 `受電箱`／`RECEIVING`／小寫／混合大小寫及舊 `cabinet_type`；其他 Family、Quantity 模式、未確認 Part 或任何實體來源變更一律不省略。GUI `phase6_sync_envelope.navigation_only_change` 仍只是委派；沒有新增機械驗證或 DXF 認證。
+
+> #2517（2026-11-03）：Receiving 當前多門格 Hole Editor 尺寸來源經既有公開 `manufacturing_api.receiving_family_supports_back_panel_mode(snapshot)` 判定 Family Registry 別名，`project_operator_receiving_settings_live_dimensions(snapshot, whd, applying_settings=True)` 驗證現行 Bay W/H/D（缺失、bool、NaN、Inf、非正值均拒絕），而不是退回舊 Settings 畫面或自行 `float()`。實體門格特徵 ID 使用公開 `manufacturing_api.door_layout_part_key(cell)`，原 owner 為 `ae_engine.sheetmetal_part_adapters.door_layout_part_key`，與 Fold Designer／DXF 共用同一 cell identity。GUI 僅選 cell 和輸入數值，不新增門格幾何、DXF 出口或外部認證。
+
+> #2517（2026-11-03）：多門格 Door Hole Editor 使用公開 `manufacturing_api.project_operator_hole_editor_door_cell(result, door_spec, baseline_scene=..., baseline_status=...)`，從同一 Engine DoorPartSpec／已解算 cell 結構投影不可變 `OperatorHoleEditorGeometry`（surface／material width/height／finished-face guide／IndicatorContext／frame_edges）。GUI 不再直接使用低層 `feature_surface_from_structural_result` 或 `build_finished_reference_guide` 計算正式編輯面；此唯讀編輯投影不解鎖製造 DXF 或外部 source-only export。
+
+> #2517（2026-11-03）：原 Fold Designer 保存的門板指示燈 `door_indicator_offset` 由 `manufacturing_api.normalize_fold_designer_indicator_offsets(offset_x, offset_y)` 驗證，與 `normalize_operator_hole_editor_indicator_state` 共用同一 Engine 有限非布林偏移判準；允許正負及 0 mm，不接受 bool／NaN／Inf／壞來源。只增加原公開 API 的製造輸入規範，不新增 Feature 算式／DXF writer。
+
+> #2517（2026-11-03）：Receiving operator Set/Bay 現場 Feature 與 Joint lock 使用 `manufacturing_api.project_operator_receiving_live_bay_features`，上層內門 Hole Editor 的唯一 Part ID 使用 `resolve_receiving_upper_inner_door_editor_part_key`，預覽 cache 的 physical Bay prefix/Joint world anchor 使用 `project_receiving_bay_preview_cache_source_witness`；均只屬 UI source/preview，非 Export certification。
+
+> #2517（2026-11-03）：`manufacturing_api.plan_operator_manufacturing_part_source(part_key, has_saved_profiles=True)` 回傳 immutable `OperatorManufacturingPartSourcePlan`，供 GUI、CADSplit/headless 客戶端共用實體 part ID 的 CustomFold 預設、原始 PartSpec provider、EndCap committed relief 兩段式與 Fold Designer 2D／3D rendered source route。此計畫只描述既有源別，不替代 Factory／Family／DXF release 證明。
+
+> #2517（2026-11-03）：Receiving Bay 3D 已選定的 physical preview Fold／Joint／BoxBody structure 由公開 `manufacturing_api.project_receiving_bay_preview_physical_seed(snapshot, set_index, bay_index, existing_box_body_profile, existing_box_body_faces)` 統一給出 `ReceivingBayPreviewPhysicalSeed`。GUI 只把 Engine 製造輸入種子套進隔離 workspace 並送真正的 resolver；並無 DXF/Export 新認證。
+
+> #2517（2026-11-03）：Receiving Bay 層級 Preview 輸入以公開 `manufacturing_api.project_receiving_bay_preview_operator_inputs(source_snapshot, settings_values, set_index, bay_index)` 產生 `ReceivingBayPreviewOperatorInputs`，由 Engine 選定 Bay W/H/D、保存的 Door／NFB／Set-Bay identity 與 part_dimensions；GUI 不得用全域過期設定覆蓋 Bay 製造來源。這是隔離 input projection，沒有 DXF/Export 授權。
+
+> #2517（2026-11-03）：Receiving Bay Preview 的實體 Assembly member／世界位移由公開 `manufacturing_api.project_receiving_bay_preview_assembly_members(layout, resolved_parts, set_index, bay_index)` 產生 immutable `ReceivingBayWorldAssemblyProjection`；GUI 不再排除實體 part 或自行把 Bay offset 加到物理 part。位置由既有 Engine Joint／包外 W/H/D 計算，非法三軸或未定 placement 拒絕；僅 VIEW，非製造新認證。
+
+> #2517（2026-11-03）：Receiving Set/Bay 的預覽來源重用由 manufacturing_api.plan_receiving_bay_preview_reuse_policy 以 immutable ReceivingBayPreviewReusePolicy 決定需讀 live CustomPartCatalog、上游平移及 suffix topology flags；GUI 不再自行判定物理 source ID。Raw panel/frame/divider 快取仍由 receiving_raw_source_cache_kind + DXF SHA ticket 驗證，不是正式製造認證。
+
+> #2517（2026-11-03）：主 GUI Settings 中 W/H/D/T/FW 的來源驗證共用公開 `PHYSICAL_SNAPSHOT_SOURCE_KEYS` 和 `normalize_operator_source_dimension`，布林值共用 `normalize_operator_settings_boolean`；非法毫米值不能走 GUI 的 `float(raw)` 被提交到 runtime／INI。這是原有 Engine 入參契約接線，非新增製造准入。
+
+> #2517（2026-11-03）：`manufacturing_api.apply_operator_legacy_runtime_manufacturing_policies` 統一舊 AE Relief 與 Vault EndCap 固定孔 Policy 更新；`operator_legacy_shared_base_plate_shrink` 統一四邊同縮相容的 runtime/INI 決策。GUI SettingsService 仍傳輸／存檔，不自行重建 CUTTING Policy，無新製造出口。
+
+> #2517（2026-11-03）：`manufacturing_api.plan_operator_external_model_change`、`replace_corner_state`、`operator_receiving_navigation_only_sync_change` 已分別接手 GUI 的外部箱型判斷、Corner 保存態與 Receiving Set/Bay 只導覽 physical state 決定；原 GUI 同名函式僅委派，無新增 CUTTING／BEND／DXF 製造放行。
+
+> #2517（2026-11-03）：GUI 與 Engine Settings Plan 的標準／自訂板件預設 X/Y Fold 共用公開 manufacturing_api.build_operator_default_part_fold_profiles(snapshot, part_key)。自訂板件缺少合法 metadata 不得回退成標準 Fold；Head/Tail 原專屬 API 與 DXF 認證不變。
+
+> #2517（2026-11-03）：3D FinalScene Mesh 的外輪廓與真實 crease 由公開 Engine API project_physical_solid_mesh_display_segments 支援 boundary/crease/boundary_and_crease，GUI 僅繪製；與既有 physical_solid_mesh_feature_segments 共用判定。僅 VIEW，非 CUTTING/BEND/DXF 授權。
+
+> #2517（2026-11-03）：`manufacturing_api.plan_operator_external_sync(envelope, last_external_revision=...)` 為外部 Settings 同步來源／revision 的正式 Engine request→immutable `OperatorExternalSyncPlan`；原 GUI `phase6_settings_transitions.plan_external_sync` 只委派，同型別 alias 不變。僅移轉既有狀態交易，不新增製造能力或外部 source-only CLI 放行。
+
+> #2517 2026-11-03：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_features={"door_c1_r1": (CircleFeature(...),)})` 與原 `ManufacturingResolvedBayInput.confirmed_door_features` 共用已確認的 Door 來源；孔位必須是 finished-face CUTTING typed Feature／正式實體門格 ID，已保存孔位需完全一致。實際出口仍為 `export_verified_resolved_integration_bays` 的同一 Engine FinalScene／DXF reopen；未放行 source-only CLI／整套 NFB。
+
+> #2517（2026-11-03）：`.p6fold` 實體 Feature／Vec2 的編碼及重載經公開 `manufacturing_api.encode_project_value/decode_project_value`，原 GUI `phase6_project_file` 僅作檔案／JSON 傳輸層並保留舊名 aliases；wire 不變、未證實的製造不被賦予認證。
+
+> #2517（2026-11-03）：Main／Designer 的 physical Workspace 共用實體狀態改由公開 `manufacturing_api.SharedWorkspaceState`、`normalize_existing_parts` 與物理清單常數建立，GUI `phase6_workspace_state` 是相容別名，不再決定物理 presence、CustomPart ID 或結構；UI lifecycle 仍分離，原 Save→Reload 與製造不變。
+
+> #2517（2026-11-03）：受電箱模式初始狀態／切換由 `manufacturing_api.fresh_receiving_mode` 與 `manufacturing_api.ReceivingModeSession` 決定，GUI 原模組保留同名相容別名；初始實體板件清單共用 `manufacturing_api.DEFAULT_OPERATOR_EXISTING_PARTS`。不改既有 Save→Reload 格式或現行製造／外部 CLI 認證。
+
+> #2517（2026-11-03）：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_layout_columns=...)` 可在**明確確認**的 Receiving 操作來源下建立 Door cell PartSpec；`ManufacturingResolvedBayInput.door_layout_columns` 在 source-confirmed 模式傳入相同拓樸，沿用 `export_verified_resolved_integration_bays` 的正式 DXF reopen。未確認的 Door Features、拓樸不符或已存門格不同均拒絕，並未開放 source-only CLI。
+
+---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
+> #2517（2026-11-06）**實際 NFB CSV API 接線修復**：已公開的 `manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)` / `ae_engine` 根包同名 callable 現不再只寫 Bay 的 `nfb_config_submitted/nfb_config`，而是復用唯一 Engine `apply_receiving_inner_door_candidate_to_bays` 交易，將 source 的真實 Hole Editor `ProfileFeature`、層數／型號／高度、每 Bay 個別的 NFBConfig 同次原子提交。真 FinalScene 的物理 X 必須可從 `project_receiving_bay_legacy_aliases` 的各 Bay `part_features` 及目前 CSV SHA/Y/旋轉重新求證；不能只拿 NFB 型號／提交旗標授權製造。選定 Bay 先與舊 shared refs 解連，不改未選 Bay；舊 API 簽章/return Layout 相容，錯誤不部分提交。回歸包含真 `Apply → FinalScene → 內門 DXF Save→Reload`，不放行尚未驗證的整箱 MFG-2／EAR／PAD。
+
+> #2690／#2692（2026-11-05）多板件合併 `save_composed_panel_dxf(..., box_body_owner_by_panel=None)` 可選擇傳入 Engine 原本已驗證的 `BoxBodyStructureRenderData` 來源 owner。箱身各實體展開板依 `formed_w_start`、物理角色及 `formed_y_offset` 整片平移排列，不依呼叫者任意順序；其餘板件排右側。多連正式 `export_grouped_receiving_multibay_dxf` 會透過現有 `commit_verified_receiving_groups` 將每個 Bay 的來源 BoxBody owner 與已驗證 flat 一起交給合併器。這不把 3D 轉成 UV、不重算切割、不解除來源／NFB／PAD／EAR Gate、Save→Reload／原子發檔。每套仍命名 `第N套.dxf`；全部／頭尾中間仍照既有三模式。未認證來源不得因有合併版型就產生 DXF。
+
+> #2517（2026-11-05）已驗證 NFB 部分出圖清單新增唯讀 `manufacturing_api.project_receiving_verified_nfb_partial_manifest(scope=..., saved_bay=..., set_brand=..., source_inventory=..., verified_inner_door=..., source_path=...)`，重用原 `receiving_nfb_export_manifest` 的 NfbPhysicalScope／NfbActualPart 實體身份及既有 `derive_nfb_partial_export_manifest` 完整源 SHA、已確認 X、Part readiness 檢查；GUI 不再自行建 NfbActualPart、指定物理角色、推 `WHOLE_READY`。此為原來源清單的顯示投影，不認證整櫃製造，正式 DXF 仍須原 `require_export`／Save→Reload／實際來源重驗。
+
+> #2517（2026-11-05）NFB CURRENT CSV 多連來源清單改公開 `manufacturing_api.project_receiving_current_v5_nfb_physical_diagnostics(saved_bay, physical_snapshot=..., set_id=..., bay_id=..., version_id=..., physical_parts=...)`：既有 Engine Family／BasePlate owner 判斷已存在的 Upper Inner Door、單層／兩層底板與缺料原因，未受 NFB 影響的板件必須來自當前 Bay 的真 FinalScene Scene witness，status 仍為 `DRAFT`／`RECHECK_ONLY`，絕不授權正式製造。GUI 取唯讀獨立預覽時改用 `manufacturing_api.project_receiving_nfb_unsubmitted_preview_layout(layout, set_index=..., bay_index=...)`，先驗證真實 Set/Bay 再只複製預覽資料，不變更已提交來源或取得 DXF 資格；現有 `project_receiving_bay_legacy_aliases` 公開 API 被 GUI 正式復用。
+
+> #2517（2026-11-05）：`manufacturing_api.project_receiving_committed_csv_nfb_pair_layer_count(snapshot)` 是 Receiving 已提交 CSV NFB／既有實體底板來源的唯讀投影：回傳 `1`（既有 `base_plate` 完整）或 `2`（兩份 `base_plate:nfb_layer:0/1` 完整）及 `None`（未有可認證配對來源）。沿用原 `receiving_nfb_committed_final_scene` 的已提交來源、selected Bay、數字化 V5 Model 與 BasePlate PartSpec 檢查；不合法來源照舊拋出 Engine 例外，GUI 不得自行讀私有 `_submitted_csv_holes/_existing_source_specs`、決定物理角色或回退舊洞位。此 API 僅供 GUI 展示／路由，**不**代表 NFB 部分出圖、整箱 DXF 或 2D／3D 製造已放行；正式出口仍需各自完整來源與 Save→Reload 驗證。
+
+> #2517（2026-11-04）NFB 跨 Bay 操作新公開唯讀 `manufacturing_api.select_operator_nfb_copy_bays(layout, set_index, selected_bays)` 與 `plan_operator_nfb_copy_direction(layout, set_index, selected_bays, verified_target_indices=...)`：只投影真實兩 Bay、已提交來源及獨立已驗證目標的唯一方向；實際 Copy 必須繼續走原 `copy_receiving_submitted_nfb_bay`／`copy_live_verified_nfb` 的 live physical proof + 原子 Confirm，不允許借用世界 X 或繞過驗證。
+
+> #2517（2026-11-04）唯讀 `manufacturing_api.project_operator_fixed_corner_summary(model_name, part_key, joint_state)`：EndCap 固定截角摘要沿既有 Family Registry 與 BOTTOM AssemblyJoint；受電箱所有正式別名同源、其他 Family 回 `None` 由既有 UI 保留原顯示。文字不構成製造幾何或 DXF 放行。
+
+> #2517（2026-11-04）Receiving `manufacturing_api.edit_receiving_shared_setting_for_bays(layout, set_index, bay_indices, kind, value)`> #2517（2026-11-06）新增 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(layout, *, set_index, bay_indices, kind, value)`，將原 Engine 多連共享設定原子 Apply 及其連動實體 Bay dirty 來源一併公開，回傳 `(detached_layout, tuple[physical_bay_stable_id, ...])`。只從提交後 canonical `settings[kind].refs` 對應影響範圍，不按 GUI 猜測同值連動；保留舊 `edit_receiving_shared_setting_for_bays` dict 回傳相容、非法選取拒絕及舊專案結構。此設定 API 不認證 NFB、FinalScene、DXF／Save→Reload；#2517 整體仍 OPEN。
+
+ 由既有 Engine shared-setting owner 對多連同一次 Apply 作完整選取、型別、Linked Ref 預檢與全有／全無更新；失敗不得部分更新 Bay、ref 或 GUI dirty 狀態。GUI `receiving_settings_ports.change` 只能交給 Adapter→此公開 API，單連 `edit_receiving_shared_setting`、Shared/Unlink 原公開契約仍適用。
+# Headless Manufacturing API（Phase 6：AE Engine Clean Break）> #2517（2026-11-06）Receiving 多連封頭尾 Hole Editor Save 新增原 Engine Owner 的 `manufacturing_api.share_and_edit_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_indices, source_bay_index, kind, value)`（根包相同 callable）。先驗 saved Feature，再在 detached canonical Layout 上使用既有 share／edit transaction，整筆成功才回傳 `(layout, affected_physical_bay_ids)`，包含選中 targets 與連動 source siblings；錯型孔或非法 Bay 不得部分更改 refs/dirty。GUI 不再先 share 再 edit 或暫時切 Bay；原物理製造門檻未更動。
+
+> #2517（2026-11-06）Receiving 單連共用設定 edit 復用 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(..., bay_indices=(current,))`，確保變更現有 linked ref 時所有實體 sibling 一併取得 Engine 回傳 dirty ID；新增 `manufacturing_api.share_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_indices, kind, source_bay_index)`，保留原 `share_receiving_shared_setting` 驗證及原子 Layout 更新，回傳 `(detached_layout, affected_physical_bay_ids)` 包含所選來源與目標，即使值相同仍不把獨立 refs 當作連動。GUI 不判定參照／來源；不變更製造認證或 DXF Gate。
+
+> #2517（2026-11-06）新增 `manufacturing_api.update_receiving_all_set_nfb_parent_brand(layout, proposed_brand)`：使用原 `receiving_nfb_brand_transition` 單套 Engine transition 在 detached canonical Layout 上原子重設所有實體 Set 的 NFB parent brand，回傳 `(layout, changed)`；先驗證完整 Set/Bay/品牌，錯誤不得部分提交。GUI `ReceivingSetBayAdapter.set_global_brand` 不再遍歷 Set 或組裝 NFB 失效資料，Quantity 品牌與 preview 接口不變。本入口不解除已提交 CSV NFB 的來源／已確認 X／FinalScene/DXF 製造驗證閘門。
+
+
+> #2517（2026-11-04）：`manufacturing_api.project_whd_cadcraft_command_instructions(surface=..., features=..., width=..., height=...)` 以 WHD finished-face 來源及既有 Engine 限制生成 CADCraft 隔離候選繪圖指令；`save_blank_cadcraft_exchange_drawing(output_dxf, preview_png)` 以 exclusive create 產生合法空白毫米 DXF + PNG 並拒絕覆寫。此流程不可充作任何正式製造 DXF、CUTTING 或 source-only 外部放行。GUI 不再 import `ezdxf` 直接建立交換檔。
+
+> #2517（2026-11-04）：`manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(snapshot, role="head"|"tail")` 將 Quantity 版本 Head/Tail 的可開孔 surface、finished dimensions、reference_guide 由同一 Engine 投影；Receiving Family 使用已存 common-box 或 Family 新建預設、其他 Family 使用既存實體 W/D，非法 T/W/D 及格式拒絕。GUI 只顯示、編輯、提交明確版本 Features，提交前用公開 `require_valid_operator_quantity_features`。
+
+> #2517（2026-11-04）：受電箱 Set/Bay 輕量 2D 門分割新增唯讀 `manufacturing_api.project_receiving_operator_bay_door_split_ratio(bay)`，依已保存 Door topology 與既有 `validate_door_layout_dimensions` 回傳可唯一表示的二列高度比例；多欄不同分割或無有效啟用 Door 時不偽造單條門縫，非法物理資料拒絕；尚無保存 Door 狀態僅用 Receiving Family 預設比率作示意。GUI 只消費比例繪 Canvas，不再硬算 1100 mm；此 API 不批准正式 Door 製造或 DXF。
+
+
+> #2517（2026-11-03）：Receiving Set/Bay 只有切換已存在的實體 Part 且其他物理來源完全同源，才可由既有公開 `manufacturing_api.operator_receiving_navigation_only_sync_change(previous, current)` 判定省略重複 publish。Family 身分採既有 Engine Registry `cabinet_types.policy.canonical_family_name`，接受合法 `受電箱`／`RECEIVING`／小寫／混合大小寫及舊 `cabinet_type`；其他 Family、Quantity 模式、未確認 Part 或任何實體來源變更一律不省略。GUI `phase6_sync_envelope.navigation_only_change` 仍只是委派；沒有新增機械驗證或 DXF 認證。
+
+> #2517（2026-11-03）：Receiving 當前多門格 Hole Editor 尺寸來源經既有公開 `manufacturing_api.receiving_family_supports_back_panel_mode(snapshot)` 判定 Family Registry 別名，`project_operator_receiving_settings_live_dimensions(snapshot, whd, applying_settings=True)` 驗證現行 Bay W/H/D（缺失、bool、NaN、Inf、非正值均拒絕），而不是退回舊 Settings 畫面或自行 `float()`。實體門格特徵 ID 使用公開 `manufacturing_api.door_layout_part_key(cell)`，原 owner 為 `ae_engine.sheetmetal_part_adapters.door_layout_part_key`，與 Fold Designer／DXF 共用同一 cell identity。GUI 僅選 cell 和輸入數值，不新增門格幾何、DXF 出口或外部認證。
+
+> #2517（2026-11-03）：多門格 Door Hole Editor 使用公開 `manufacturing_api.project_operator_hole_editor_door_cell(result, door_spec, baseline_scene=..., baseline_status=...)`，從同一 Engine DoorPartSpec／已解算 cell 結構投影不可變 `OperatorHoleEditorGeometry`（surface／material width/height／finished-face guide／IndicatorContext／frame_edges）。GUI 不再直接使用低層 `feature_surface_from_structural_result` 或 `build_finished_reference_guide` 計算正式編輯面；此唯讀編輯投影不解鎖製造 DXF 或外部 source-only export。
+
+> #2517（2026-11-03）：原 Fold Designer 保存的門板指示燈 `door_indicator_offset` 由 `manufacturing_api.normalize_fold_designer_indicator_offsets(offset_x, offset_y)` 驗證，與 `normalize_operator_hole_editor_indicator_state` 共用同一 Engine 有限非布林偏移判準；允許正負及 0 mm，不接受 bool／NaN／Inf／壞來源。只增加原公開 API 的製造輸入規範，不新增 Feature 算式／DXF writer。
+
+> #2517（2026-11-03）：Receiving operator Set/Bay 現場 Feature 與 Joint lock 使用 `manufacturing_api.project_operator_receiving_live_bay_features`，上層內門 Hole Editor 的唯一 Part ID 使用 `resolve_receiving_upper_inner_door_editor_part_key`，預覽 cache 的 physical Bay prefix/Joint world anchor 使用 `project_receiving_bay_preview_cache_source_witness`；均只屬 UI source/preview，非 Export certification。
+
+> #2517（2026-11-03）：`manufacturing_api.plan_operator_manufacturing_part_source(part_key, has_saved_profiles=True)` 回傳 immutable `OperatorManufacturingPartSourcePlan`，供 GUI、CADSplit/headless 客戶端共用實體 part ID 的 CustomFold 預設、原始 PartSpec provider、EndCap committed relief 兩段式與 Fold Designer 2D／3D rendered source route。此計畫只描述既有源別，不替代 Factory／Family／DXF release 證明。
+
+> #2517（2026-11-03）：Receiving Bay 3D 已選定的 physical preview Fold／Joint／BoxBody structure 由公開 `manufacturing_api.project_receiving_bay_preview_physical_seed(snapshot, set_index, bay_index, existing_box_body_profile, existing_box_body_faces)` 統一給出 `ReceivingBayPreviewPhysicalSeed`。GUI 只把 Engine 製造輸入種子套進隔離 workspace 並送真正的 resolver；並無 DXF/Export 新認證。
+
+> #2517（2026-11-03）：Receiving Bay 層級 Preview 輸入以公開 `manufacturing_api.project_receiving_bay_preview_operator_inputs(source_snapshot, settings_values, set_index, bay_index)` 產生 `ReceivingBayPreviewOperatorInputs`，由 Engine 選定 Bay W/H/D、保存的 Door／NFB／Set-Bay identity 與 part_dimensions；GUI 不得用全域過期設定覆蓋 Bay 製造來源。這是隔離 input projection，沒有 DXF/Export 授權。
+
+> #2517（2026-11-03）：Receiving Bay Preview 的實體 Assembly member／世界位移由公開 `manufacturing_api.project_receiving_bay_preview_assembly_members(layout, resolved_parts, set_index, bay_index)` 產生 immutable `ReceivingBayWorldAssemblyProjection`；GUI 不再排除實體 part 或自行把 Bay offset 加到物理 part。位置由既有 Engine Joint／包外 W/H/D 計算，非法三軸或未定 placement 拒絕；僅 VIEW，非製造新認證。
+
+> #2517（2026-11-03）：Receiving Set/Bay 的預覽來源重用由 manufacturing_api.plan_receiving_bay_preview_reuse_policy 以 immutable ReceivingBayPreviewReusePolicy 決定需讀 live CustomPartCatalog、上游平移及 suffix topology flags；GUI 不再自行判定物理 source ID。Raw panel/frame/divider 快取仍由 receiving_raw_source_cache_kind + DXF SHA ticket 驗證，不是正式製造認證。
+
+> #2517（2026-11-03）：主 GUI Settings 中 W/H/D/T/FW 的來源驗證共用公開 `PHYSICAL_SNAPSHOT_SOURCE_KEYS` 和 `normalize_operator_source_dimension`，布林值共用 `normalize_operator_settings_boolean`；非法毫米值不能走 GUI 的 `float(raw)` 被提交到 runtime／INI。這是原有 Engine 入參契約接線，非新增製造准入。
+
+> #2517（2026-11-03）：`manufacturing_api.apply_operator_legacy_runtime_manufacturing_policies` 統一舊 AE Relief 與 Vault EndCap 固定孔 Policy 更新；`operator_legacy_shared_base_plate_shrink` 統一四邊同縮相容的 runtime/INI 決策。GUI SettingsService 仍傳輸／存檔，不自行重建 CUTTING Policy，無新製造出口。
+
+> #2517（2026-11-03）：`manufacturing_api.plan_operator_external_model_change`、`replace_corner_state`、`operator_receiving_navigation_only_sync_change` 已分別接手 GUI 的外部箱型判斷、Corner 保存態與 Receiving Set/Bay 只導覽 physical state 決定；原 GUI 同名函式僅委派，無新增 CUTTING／BEND／DXF 製造放行。
+
+> #2517（2026-11-03）：GUI 與 Engine Settings Plan 的標準／自訂板件預設 X/Y Fold 共用公開 manufacturing_api.build_operator_default_part_fold_profiles(snapshot, part_key)。自訂板件缺少合法 metadata 不得回退成標準 Fold；Head/Tail 原專屬 API 與 DXF 認證不變。
+
+> #2517（2026-11-03）：3D FinalScene Mesh 的外輪廓與真實 crease 由公開 Engine API project_physical_solid_mesh_display_segments 支援 boundary/crease/boundary_and_crease，GUI 僅繪製；與既有 physical_solid_mesh_feature_segments 共用判定。僅 VIEW，非 CUTTING/BEND/DXF 授權。
+
+> #2517（2026-11-03）：`manufacturing_api.plan_operator_external_sync(envelope, last_external_revision=...)` 為外部 Settings 同步來源／revision 的正式 Engine request→immutable `OperatorExternalSyncPlan`；原 GUI `phase6_settings_transitions.plan_external_sync` 只委派，同型別 alias 不變。僅移轉既有狀態交易，不新增製造能力或外部 source-only CLI 放行。
+
+> #2517 2026-11-03：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_features={"door_c1_r1": (CircleFeature(...),)})` 與原 `ManufacturingResolvedBayInput.confirmed_door_features` 共用已確認的 Door 來源；孔位必須是 finished-face CUTTING typed Feature／正式實體門格 ID，已保存孔位需完全一致。實際出口仍為 `export_verified_resolved_integration_bays` 的同一 Engine FinalScene／DXF reopen；未放行 source-only CLI／整套 NFB。
+
+> #2517（2026-11-03）：`.p6fold` 實體 Feature／Vec2 的編碼及重載經公開 `manufacturing_api.encode_project_value/decode_project_value`，原 GUI `phase6_project_file` 僅作檔案／JSON 傳輸層並保留舊名 aliases；wire 不變、未證實的製造不被賦予認證。
+
+> #2517（2026-11-03）：Main／Designer 的 physical Workspace 共用實體狀態改由公開 `manufacturing_api.SharedWorkspaceState`、`normalize_existing_parts` 與物理清單常數建立，GUI `phase6_workspace_state` 是相容別名，不再決定物理 presence、CustomPart ID 或結構；UI lifecycle 仍分離，原 Save→Reload 與製造不變。
+
+> #2517（2026-11-03）：受電箱模式初始狀態／切換由 `manufacturing_api.fresh_receiving_mode` 與 `manufacturing_api.ReceivingModeSession` 決定，GUI 原模組保留同名相容別名；初始實體板件清單共用 `manufacturing_api.DEFAULT_OPERATOR_EXISTING_PARTS`。不改既有 Save→Reload 格式或現行製造／外部 CLI 認證。
+
+> #2517（2026-11-03）：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_layout_columns=...)` 可在**明確確認**的 Receiving 操作來源下建立 Door cell PartSpec；`ManufacturingResolvedBayInput.door_layout_columns` 在 source-confirmed 模式傳入相同拓樸，沿用 `export_verified_resolved_integration_bays` 的正式 DXF reopen。未確認的 Door Features、拓樸不符或已存門格不同均拒絕，並未開放 source-only CLI。
+
+## #2517 Receiving confirmed ordinary BasePlate source→Engine PartSpec→DXF API（2026-11-06）
+
+- 原 `manufacturing_api.build_receiving_factory_confirmed_parts(..., include_confirmed_base_plate=True)` 在 `saved_operator_confirmed` 下依原保存 `receiving_base_plate` + `validate_receiving_base_plate_settings` + `receiving_base_plate_values` → canonical `BasePlatePartSpec`，不用 client 建立尺寸／Fold／物理身份。
+- 可直接對 `ManufacturingResolvedBayInput(..., source_dimensions_mm=..., operator_confirmation="saved_operator_confirmed", operator_snapshot=..., include_confirmed_base_plate=True)` 呼叫既有 `export_verified_resolved_integration_bays`，原兩段 pre_commit_guard、真 DXF reopen、原子寫入不變。預設 False 舊 Request 不變。
+- 僅獨立普通 LEFT／RIGHT 底板：已提交 NFB、CENTER/Tier/PAD/EAR、未確認／缺來源、保存未驗底板 Features 一律 fail-closed；非 16 Bay 全箱 MFG-2 認證，外部 source-only CLI 保持拒絕。
+
+## 【最高優先架構規則】WHD GUI／CADSplit 必須走同一 Engine 正式製造 API（2026-11-02）
+
+**唯一正式責任鏈：** `GUI／CADSplit 操作來源（來源不同、Engine 契約相同） → WHD 公開 Engine API〔Family／Policy／Topology／Set-Bay（按需）〕 → PartSpec／FinalScene → 同源 2D／3D／DXF → 正式驗證`。
+
+**五條硬規則：唯一製造權威＝Engine；同 Family／Part／Operation 使用同一公開製造契約及 canonical 結果；箱型差異只在 Engine Family／Policy／Topology；Set/Bay 只由需要它的 Engine 操作管理、單板件不強迫建立；2D／3D／DXF 由同一正式幾何衍生並按需驗證幾何、來源與 DXF Save→Reload。**
+
+**PartSpec 可作為已確認的公開 API 輸入，也可由 Engine 依 Family／Policy 解析產生；此圖是責任鏈，不是強制 API 先呼叫、再建立 PartSpec 的執行時序。** 不得因函式簽名差異另建 CADSplit 製造 API。
+
+**WHD GUI 如何取得 Engine 的正式製造結果，CADSplit 就必須如何取得；唯一差別是操作來源。** GUI 的操作欄位／Project，與 CADSplit 的原始 DXF→CSV／孔位／尺寸／來源 Set/Bay／已確認設定，都應形成語意等價的 `Request／PartSpec／Context`。接著按**相同 Part／Operation** 使用同一套既有 `manufacturing_api` 公開製造 API（單板件適用 `generate_part`，組合／批次／NFB 用其各自適用的既有 API），共用 Family／Topology／Policy／Registry、實體板件／FinalScene、真實 DXF 寫入、獨立 reopen 和 Save→Reload。**不得**按 GUI／CADSplit 身分分叉、另算幾何、另建 Bridge 製造或用另一套未認證出口替換正式 API。
+
+合法板件逐片產生並驗證，缺資料逐件拒絕，完整 Set/Bay 另驗真實 physical BOM／裝配；等價可信請求與相同 Engine 版本的製造結果與錯誤語意必須 caller-independent。不同 Engine 版本功能集合可不同，不強制同 SHA。既有 source-only `dispatch_manufacturing_integration(export)` 尚未認證，**不能被改造成偽造成功，也不能被用來禁止已存在的正式 Python 製造呼叫**。本節是 **REFERENCE**，唯一 CURRENT 權威仍為 AI 庫 04；寫入並不代表 CADSplit 接線或製造資格已驗收。
+
+
+## #2517 EndCap settings operator FW / WRAP / Joint public transactions (2026-11-02)
+
+`manufacturing_api.operator_endcap_fw_follow(snapshot, settings, state, part_key, follow_box)` and `operator_endcap_fw_override(snapshot, settings, state, part_key, value)` perform copied operator state commits under the existing four-state EndCap FW engine. `operator_endcap_bottom_wrap(snapshot, state, part_key, reserve_u, reserve_v)` returns `OperatorBottomWrapTransition(state, resolved)` with canonical linked Head/Tail reserve and Joint-aware readback. `operator_endcap_edge_relation(snapshot, part_key, edge, relation)` forwards the actual Assembly Joint commit. GUI compatibility transition functions only call these public functions. Invalid part/relation requests remain rejected, inputs stay unchanged, and existing Save→Reload/Factory policy continue unchanged. No new geometry, relief, whole-cabinet manufacturing or external export certification.
+
+
+## #2517 Receiving fixing-plate original-DXF source-only 2D preview (2026-11-02)
+
+`manufacturing_api.project_receiving_fixing_plate_source_2d(preview)` returns frozen `FixingPlateSourcePreview2D` for an Engine-issued `BaseFixingPlatePreview`, with exact original T2 256×105 source contour, 25×11 slot outlines, an existing BEND at y=23, verified source-profile SHA and applicable selected hole pitch. The geometry reuses original source-flat Engine contours; the Tk view never calculates hole or contour geometry. Drift or unknown pair fails closed. This display contract **does not** certify forming direction, weld Z, assembled fixing plate, production DXF, or external export.
+
+
+## #2517 Selected DXF route and unconfigured Base retry (2026-11-02)
+
+`manufacturing_api.plan_selected_resolved_export_route(snapshot, flags, group_mode=None)` returns frozen `SelectedResolvedExportRoute(vault_composed, legacy_guard_flags)`. It consolidates the already-existing Vault combined-panel dispatch and Receiving EAR/NFB legacy guard policy; a source-verified current CSV must go through the original Engine exporter rather than the obsolete legacy NFB gate. An unverified Receiving EAR-side normal export in Quantity mode is still rejected. This planning result cannot certify physical parts or authorize MFG-2 production.
+
+`manufacturing_api.plan_unconfigured_receiving_base_export_retry(errors, flags)` returns a tuple of operator selection flags with only BasePlate removed **exclusively** for the existing exact unconfigured-base error. Other manufacturing errors, unrelated selections and missing BasePlate return `None`. The GUI alone prompts the operator; declining means no export. If accepted, the remaining sheets must be re-resolved by the same verified Engine pipeline before the outer atomic commit. Original DXF reopening, existing source drift and original Vault/Receiving routes remain mandatory.
+
+## #2517 Engine-owned logical export checkbox physical inventory
+
+`manufacturing_api.logical_part_present(parts, role)` projects real Door/inner-door, BasePlate/two NFB tiers and BoxBody physical children into the legacy GUI logical role. `manufacturing_api.selected_project_export_flags(snapshot, existing_parts, workspace_parts, requested_flags, has_indicator_box=...)` returns selected existing roles only. A committed Receiving NFB source can augment an old primary-screen inventory from current workspace physical IDs; a missing/unsubmitted source, fixing plate or other Family cannot forge tier BasePlate presence. The GUI collects checkbox values and forwards observed inventory; it cannot decide physical part identities. This remains a read-only selection plan, not a manufacture/CSV/DXF certification. The original FinalScene source gates, NFB/Pad/EAR policy, atomic save and DXF reopen remain mandatory.
+
+## #2517 Receiving multi-Bay operator source selection
+
+`manufacturing_api.plan_receiving_multibay_export_source(snapshot, flags, group_mode=None)` now returns `ReceivingMultiBayExportPlan`. Engine determines real persisted Bay count, grouped single-Bay independent-sheet eligibility and whether each Bay may use a detached NFB-disabled HEAD/TAIL/outer DOOR preview via `preview_layout_for_bay(si, bi)`. A BasePlate, BoxBody or other NFB-dependent selection never masks submitted NFB. The GUI only requests actual current Bay FinalScene and uses the existing Engine export APIs. Legacy ungrouped single-Bay export is unchanged; verified physical source, manufacturing gate, atomic DXF and re-open checks remain in the original exporter. This is a source-plan, not new certification.
+
+## #2517 Receiving PAD+Base CHECK/Q operator source selection
+
+`manufacturing_api.resolve_receiving_pad_base_export_source(snapshot)` returns
+`ReceivingPadBaseExportSource(snapshot, version_id)` for exactly the selected
+committed Quantity version or persisted Set/Bay; the returned snapshot is
+independent of the GUI input. It reuses existing `QuantityModel` and
+`project_common_box` authority, and refuses unsubmitted, mismatched or
+ambiguous source identity. The GUI still collects material, process and count;
+`export_verified_pad_base_part_only` remains the sole physical CHECK/Q
+manufacturing and DXF validation entry. This source-selection API grants no
+whole-cabinet, PAD/EAR welding or MFG-2 release.
+
+
+
+## #2517 Receiving EAR SIDE source-only previews and CHECK operator inputs
+
+The existing `resolve_receiving_ear_side_display_context` and
+`project_receiving_ear_side_piece_2d_preview` now resolve every registered
+Receiving alias using the canonical Cabinet Family policy. The GUI forwards
+its FoldDesigner source and optional stale-primary mirror; the Engine decides
+whether a physical SIDE can show actual source UV/MARKING. For the separate
+non-production CHECK-only action,
+`manufacturing_api.receiving_ear_side_check_operator_inputs(snapshot)`
+returns `(dimensions, thickness)` after validating the submitted operator
+source and non-quantity mode, without a file-picker or side effect. Existing
+`export_receiving_ear_side_check_only_dxf` still applies its independent
+real source, geometry, atomic save and DXF reopen gates. Neither function
+certifies welding, EAR/PAD production or external source-only manufacturing.
+
+
+## #2517 canonical resolver uses saved Family when live model is omitted
+
+The existing `manufacturing_api.resolve_manufacturing_request` consumes the
+immutable `ManufacturingResolveRequest`. The Engine's single Family resolver
+uses `resolve_live_cabinet_family(input_snapshot, live_model=cabinet_model)`:
+the explicit live selection takes precedence, otherwise the saved snapshot
+`model/cabinet_type` remains authoritative, including `receiving` aliases.
+Empty and historical unknown-model behavior remains compatible. This choice
+feeds both EndCap Relief and Receiving Joint MARKING/PAIRING, without creating
+a second executor, guessing Factory policy or certifying any new DXF.
+
+## #2517 canonical Receiving three-piece DXF baseline Family alias
+
+`manufacturing_api.build_box_body_structure_render_data` resolves `受電箱` and every
+registered `RECEIVING` case/whitespace alias through the existing Cabinet
+Family registry. Every confirmed three-piece `left_side`, `back`, `right_side`
+continues to consume the dedicated verified source DXF and SHA; missing
+`基準檔/受電箱` material fails rather than manufacturing an unsourced
+generic multi-piece DXF. The registered-but-unimplemented Family gate applies to the actual
+`generate_box_body_structure_parts` DXF output sink, not to direct read-only
+`build_part_render_data`, three-piece FinalScene, or immutable canonical
+`resolve_manufacturing_request`: those remain usable for legacy RO quantity/BOM
+and display projections, without granting manufacturing permission. The
+resolver's Receiving NFB selector rehydrate uses canonical Family identity,
+including lowercase aliases. This is not an expansion of DXF certification, and does not
+enable the source-only integration export.
+
+## #2517 BasePlate manufacturing uses canonical Cabinet Family policy
+
+`manufacturing_api.generate_part(BasePlatePartSpec, ..., ManufacturingContext)`
+remains the shared single-part manufacturing entry. Its Receiving requirement for
+`receiving_bend_pattern` and guarded FinalScene DXF export is now decided by
+`cabinet_types.policy.base_plate_requires_explicit_bend_pattern(model_name)`,
+which resolves registered aliases case-insensitively; both `受電箱` and
+`RECEIVING` (including case variants) fail before export when the confirmed
+bend pattern is missing. Vault/generic BasePlate legacy exporter behavior is
+preserved. The Family hook does not certify a new physical part, a complete
+Bay, NFB/PAD/EAR or source-only external export.
+
+
+## #2517 Hole Editor Canvas canonical feature projection
+
+UI 使用 `ae_engine.manufacturing_api.resolve_hole_editor_canvas_features(surface, features, width, height)` 取得 validated world-space Feature tuple，`hole_editor_canvas_reference_point(feature, width, height)` 取得儲存的參考錨點，`hit_test_hole_editor_canvas_features(point, resolved_features, tolerance=...)` 使用 Engine 的實體命中規則。GUI 只負責 transform 與 Canvas 畫面；非法孔位不會由 GUI 重做 fallback。此 API 是孔位 read-only preview 接口，不自行發放 CUTTING／DXF 製造權限，既有製造 API 不受影響。
+
+## #2517 Real part parent identity for operator navigation
+
+`manufacturing_api.project_physical_part_navigation_rows(available_parts)` 依
+既有物理 Part ID authority 回傳 immutable `(part_key, parent_key, depth)`
+序列，保留原始 Workspace 順序：只有實際有 `box_body` aggregate
+時才掛入物理側／背板；Receiving 雙層底板與各層左右固定耳依真正
+`base_plate:nfb_layer:0/1` owner 歸屬；缺 owner 不假造父板。
+GUI `phase6_part_navigation.project_hierarchy` 只建立操作導覽行、
+繁中標籤與選取反應，不再自行解析製造身份字串。
+本 API 不核准 CUTTING／BEND／DXF，也不新增製造板件。
+
+
+## #2517 Receiving manufactured source-aware cache history plan
+
+`manufacturing_api.plan_manufacturing_cache_source(snapshot, workspace_structure=None)`
+回傳 immutable `ManufacturingCacheSourcePlan`：`history_capacity`、
+`witness_required`、`include_physical_panels`。僅已選定 Receiving
+Set/Bay 可留兩份完整製造結果；BoxBody 結構未知時不可接受任何舊
+DXF 指紋，三片式左右／後實體板必須與通用箱身、封頭尾、門板一起
+使用既有 `manufacturing_api.receiving_baseline_source_stamp` 驗證。
+GUI 管理 cache／提供 resource Context，不選擇物理來源或結構分類。
+未知、遺失或不一致來源會清除快取；這不是新的製造放行或 DXF 規則。
+
+
+## #2517 Scene source authority for Receiving Bay, Joint and EndCap reserve
+
+`ae_engine.manufacturing_api.project_manufacturing_scene_settings_overlay(snapshot, global_settings)`
+只在目前有 Receiving Set/Bay runtime selection 時，排除全域設定中
+Door／NFB／Receiving layout 等 Bay 主權欄位，避免製造場景遭舊 settings 覆蓋。
+`project_manufacturing_scene_joint_source(snapshot)` 沿用現行
+`assembly_joint.migrate_legacy_snapshot_joints` 產生 canonical persisted Joint
+schema/rows（Detached output）；`project_manufacturing_bottom_relief_structure(snapshot,
+part_key, box_body_structure, bottom_wrap_state=...)` 沿用當前 Family policy 與
+EndCap BOTTOM wrap/reserve 判準。三個公開 API 均不含 GUI/Tk，不新增幾何公式、
+新製造資格或 DXF 放行；GUI 只提供輸入與轉接顯示資料。
+
+
+## #2517 BoxBody symmetry capability public Engine API
+
+`manufacturing_api.box_body_symmetry_allowed(family_or_snapshot)` is the existing single Cabinet Family policy function re-exported through the Engine public boundary and root `ae_engine`. Phase6 Fold GUI only chooses the operator's currently selected model and asks this public capability whether the symmetry control is allowed; original Vault/Receiving behavior, symmetric state clearing, fold topology and manufacturing results are unchanged. This is not new geometry, CUTTING or DXF certification.
+
+## #2517 Receiving BoxBody three physical sheets using existing verified Bay export
+
+Already-confirmed Receiving `BoxBodyPartSpec` with real three-piece side/back state, Fold and back-panel policy is accepted as `("box_body", spec)` in the same `ManufacturingResolvedBayInput.confirmed_parts` port. Engine delegates to existing `build_box_body_structure_render_data`, requires exactly left-side/back/right-side physical pieces, then uses the unchanged staged Save→Reload writer to export three independent DXFs. A missing dedicated baseline, structural source or physical contract fails before output. This does not certify NFB/PAD/EAR or total-cabinet assembly.
+
+## #2517 Confirmed source PartSpecs through existing verified Bay DXF path
+
+`ManufacturingResolvedBayInput(family, source, confirmed_parts=((part_key, PartSpec), ...))` may now supply already-authoritative, typed physical Door/Head/Tail inputs to the **existing** `export_verified_resolved_integration_bays` API. Engine itself calls its canonical `build_part_render_data` before the unchanged independently verified staged DXF writer; a caller-supplied pre/post source guard is still mandatory. `confirmed_parts` and `resolved_geometry` are mutually exclusive, and incomplete Fold/Corner, wrong-family, untrusted role, guessed NFB/BoxBody and raw source-only requests fail closed. Existing resolved-geometry clients are unchanged. This is a partial in-process adapter, not external CLI manufacturing certification or a complete-cabinet release.
+
+## #2517 Fold Editor immutable display projection
+
+`manufacturing_api.project_operator_fold_editor_display_rows(material_segments, thickness)` projects detached read-only operator outside lengths, signed direction and UI bend angle from actual current material BEND topology, reusing the existing Engine compensation/readback. `phase6_bending_ui.render/refresh_active_profile` consume this projected view without mutating the saved Fold chain even transiently; ordinary `save/add/remove/mirror` remain separate public Engine commit paths. This display projection alone does not certify CUTTING/BEND/DXF or change Save→Reload schemas.
+
+## #2517 Batch GUI source projections and CADCraft CHECK-only inspection
+
+The existing `manufacturing_api.project_box_body_assembly_panel_piece_rows(render_data)` now also supplies the Fold Designer BoxBody dimension sink. `project_receiving_settings_physical_drawings(assembly_parts)` returns ordered detached read-only triples `(physical_role, part_key, source_render_data)` from resolved AssemblyPart inputs, never flattening physical scenes. `project_cadcraft_check_scene(surface=..., features=..., width=..., height=..., baseline_scene=None)` and `save_cadcraft_check_scene_dxf(path, scene)` resolve the same finished-face Features and write a disposable millimetre CHECK inspection drawing. Errors are `CadcraftPreviewError`; GUI only presents errors and launches the external viewer. These APIs are **not** manufacturing certification and do not authorize CADCraft DXF as WHD's CUTTING or persisted project source.
+
+## #2517 Fold Editor operator material commit and structural mirror source
+
+`manufacturing_api.commit_operator_fold_editor_rows(old_segments, operator_rows, thickness)` accepts existing material Fold rows and typed operator outside lengths/angles; it returns detached material Fold rows after re-evaluating the **new** true adjacent BEND topology using the canonical Engine BoxBody conversion. `manufacturing_api.plan_operator_fold_mirror_target(segments, source_index, field, *, is_box_body)` returns frozen `OperatorFoldMirrorPlan(target_index, block_legacy_fallback)` from actual structural key pairing. GUI `phase6_bending_ui.save/apply_mirror` only parses Tk inputs, applies the Engine result and refreshes. Vault structural folds cannot fall back to positional pairing; Receiving family continues to prohibit BoxBody symmetry. These APIs do not certify CUTTING/BEND/DXF manufacturing output.
+
+## #2517 BoxBody Assembly operator physical-piece panel readback
+
+`manufacturing_api.project_box_body_assembly_panel_piece_rows(render_data)` returns frozen `BoxBodyAssemblyPanelPiece` rows derived only from actual `BoxBodyPartRenderData.pieces`: canonical `box_body:<role>` or existing explicit legacy piece key, formed outer W/H, material W/H, and the **same** physical `source_render_data` for existing corner display. `phase6_assembly_presentation.project_box_body_piece_rows` adds localized labels, while the Assembly widget formats numbers and corner text without inferring source by string role. Missing pieces return empty rows; invalid dimensions fail rather than invent results. Legacy role-less pieces retain their explicit display keys and dimensions but return no corner source, preserving the original `截角尺寸：無` fallback. No new manufacturing or DXF certification.
+
+## #2517 Receiving Fold Designer inner-door Single/Candidate Confirm public Engine port
+
+Both Fold Designer inner-door Set/Bay Single and uncommitted Candidate Confirm use `manufacturing_api.prepare_receiving_inner_door_physical_confirm(source_config, physical_part_id, features)`; this reuses the same canonical validator and physical panel identity as direct Corner Data Confirm. The embedded editor's staged settings restoration calls `manufacturing_api.validate_receiving_inner_door_config(staged_config)`, an Engine public wrapper over its original candidate validator. GUI no longer synthesizes a `features[part_key]` manufacturing source or privately validates candidate config. **Single** still applies to the selected Bay via the existing atomic Engine transaction; **Candidate** is only saved in the version library until an explicit Bay Apply. Quantity and original CSV confirmation transactions remain separate, and no manufacturing approval is implied.
+
+## #2517 Receiving physical inner-door direct Confirm All public Engine port
+
+`ae_engine.manufacturing_api.prepare_receiving_inner_door_physical_confirm(staged_config, part_key, final_features)` validates one canonical inner-door physical ID and existing inner-door candidate settings, produces a detached, validated per-panel feature config, and leaves its inputs unchanged. The original inner-door Hole Editor Set/Bay direct Confirm All passes that config to existing `ReceivingSetBayAdapter.apply_inner_door_candidate_to_bays`, whose public Engine operation still owns Bay selection and atomic Apply. GUI must not import `receiving_inner_door_candidates.validate_door_config` or assign canonical physical features itself. This request preparation does **not** verify CSV provenance or certify DXF; the existing downstream NFB and manufacture gates remain mandatory.
+
+## #2517 Receiving inner-door Quantity Confirm All precommit
+
+`ae_engine.manufacturing_api.preview_quantity_inner_door_confirm(snapshot, quantity_model, part_key, features, staged_config, *, include_missing_heights=False)` returns `(projected_snapshot, typed_nfb_config_or_none)` and does **not** mutate the live QuantityModel or snapshot. It runs the existing validated door settings, Receiving Family common-box projection and exact NFB CSV physical-hole/source gates, then the detached selected-version preflight. A native-feature-only edit returns `None` for the NFB config. Both original GUI Confirm All paths call this public API **before** mutating the live quantity or saving; Single preserves omitted layer heights, while the direct 3D operator path clears omitted heights with `include_missing_heights=True` for legacy parity. The caller must commit the returned typed source only after success. This is not a manufacturing-export capability.
+
+## #2517 Quantity live manufacturing Feature legality Engine gate
+
+`manufacturing_api.validate_operator_manufacturing_quantity_context(input_snapshot, live_workspace_snapshot=None)`
+僅在 `active_mode=quantity` 時，從 Workspace 的 `quantity`／
+`receiving_quantity_box` 即時來源覆蓋同名舊欄位，再交由原
+`ae_engine.receiving_quantity_box.require_valid_quantity_features` 檢查
+所有版本 Head/Tail finished-face Features。越界或失效仍拋出原
+`不能輸出 DXF：...` 拒絕；其他模式不做 Quantity 檢查。
+GUI 建 request 與 cache hit 前都只呼叫此公開 API，不再直接讀取
+Engine 低階模組或自行合併製造特徵。本入口不更動 2D/3D、尺寸、
+原始 Save→Reload、DXF 製造規則或版本資料。
+
+
+## #2517 Canonical RAW manufacturing request physical-part inventory
+
+`manufacturing_api.canonical_manufacturing_request_part_keys(snapshot, available_parts)`
+接受使用者的 existing/available parts 與當前快照，從現有 Engine
+Receiving BasePlate 及 NFB／Set／Bay EAR 來源補入已證實的實體
+raw request ID，並排除衍生 BoxBody 子板、已展開 NFB tier Base
+與未放行 PAD 2D 視圖 ID；僅可回傳既有真實 owner。
+GUI `phase6_manufacturing_adapter._canonical_part_keys` 已不再決定實體來源，
+只消費這個 API 的 immutable tuple。無人工設定底板來源也可保留
+已提交且具證據的 Receiving BasePlate；無來源則不得偽造。
+這不是製造授權或 DXF 放行。
+
+
+## #2517 FinalScene full physical assembly collision audit Engine API
+
+`manufacturing_api.project_assembly_collision_display_audit(assembly_parts, finished_dimensions, sheet_thickness, visible_part_keys=None, visible_box_body_piece_keys=None, certified_relief_diagnostics=())` 是同程序無 Tk 的公開 Engine API。委派既有 `build_joint_world_geometry` 和 `audit_all_physical_part_pairs`，以真實實體板件（非 box_body 複合代理）決定各 pair 與認證 Relief 接觸。GUI 僅在操作員開啟干涉顯示時做相同來源快取、繪圖和繁中狀態。EndCap 顯示診斷材料復原、厚板成形 solid 與原本 `MeshInterferenceDiagnostic` 均沿用 `manufacturing_api` 的公開入口。此審核不自動放行 CUTTING／BEND／DXF／MFG-2；`NO_NONCOPLANAR_CROSSING` 不代表已認證安全。
+
+
+## #2517 Receiving PAD 3D source and fail-closed display gate
+
+`manufacturing_api.receiving_pad_assembly_display_active`、`receiving_pad_assembly_display_source_key`、`resolve_receiving_pad_assembly_display_skins` 為同程式公開 API。由 Engine 原有 CSV、tooling、BasePlate 實際 CUTTING 四方孔、真實折後世界面重新核驗可顯示 PAD；每次來源指紋改變就重解算。已宣稱 manufacturing_ready 或 assembly_contact_certified 的來源不能被展示為合法 preview。GUI 僅保存顯示快取與警告；不等於工廠 CUTTING/BEND/DXF 或 MFG-2 核准。
+
+
+## #2517 FinalScene material mesh and world coordinate APIs
+
+ae_engine.manufacturing_api.folded_material_mid_mesh、
+project_box_body_structure_world_points、physical_mesh_world_bounds、
+project_assembly_world_triangles 是同程序 public Python API，
+完全沿用既有 Engine Fold／BoxBody／Assembly 幾何映射；
+Phase6 FinalScene 只保留顯示資料轉接。投影結果不是新的幾何計算公式，
+也不授權 CUTTING／BEND／DXF 或產品製造放行。
+
+
+## #2517 Receiving Base Plate 顯示來源診斷（不可當製造許可）
+
+`manufacturing_api.inspect_receiving_base_plate_display_source(snapshot, cabinet_family)`
+使用既有受電箱實體底板來源解析器回傳 immutable
+`ReceivingBasePlateDisplaySource.status`，狀態為
+`NOT_APPLICABLE`／`UNAVAILABLE`／`INVALID`／`RESOLVED_DISPLAY_ONLY`。
+`reason` 保留現有失敗原因；GUI 僅把結果顯示為繁中警告，不再讀低階
+`receiving_base_plate_config` 或自行判定物理板件來源。`RESOLVED_DISPLAY_ONLY`
+只代表顯示來源可取得，不構成 CUTTING／DXF／EAR 焊接／整箱 MFG-2 核准。
+
+
+
+## #2517 Receiving EAR 真實單／雙層組合 3D 顯示來源
+
+`manufacturing_api.receiving_ear_assembly_display_source_key(snapshot)` 供 GUI
+根據既有 T2 來源 DXF SHA 與目前 snapshot 取得顯示快取鍵；
+`resolve_receiving_ear_assembly_display_skins(snapshot)` 使用原 Engine
+真實 EAR 2／4 片 T2 BEND23 成形面，驗證唯一 physical part ID、
+Base Plate 層別歸屬與 source BEND，對任何焊接完成／製造就緒旗標拒絕。
+`phase6_final_scene_view` 不再自行進行物理來源驗證。此結果僅供
+3D `DISPLAY_ONLY`，不能當成實體側板 UV MARKING、焊接／DXF／MFG-2 放行。
+
+
+## #2517 Project Save／Reload Engine authority（同程序 Python API）
+
+`ae_engine.manufacturing_api.normalize_authoritative_door_state(snapshot)` 及
+`normalize_project_snapshot_authority(snapshot)` 接受保存的 Door／Receiving
+來源快照，回傳獨立的 canonical state，驗證 Door Layout 物理數值、Handle edges、
+內門共享 Divider stable ID、Receiving 各 Set/Bay Door state 與 Quantity。
+無效來源明確 ValueError；不需要 Tk，不寫 DXF。GUI
+`phase6_project_file` 僅保留 .p6fold JSON/schema／Feature codec 與檔案操作；
+Save 和 Reload 共用同一 Engine owner 且不保存 derived FinalScene。
+本入口未新增製造認證，正式 2D／3D／DXF 仍須走各自現有的 Engine 解算與驗收。
+
+
+
+
+## CADSplit／WHD 同程序 Engine 整合入口（第一批：來源接線，未開啟外部製造）
+
+現有公開路徑 `ae_engine.manufacturing_api` 新增同程序 Python 入口
+`dispatch_manufacturing_integration(ManufacturingIntegrationRequest(...))`；
+根包 `ae_engine` 也匯出同一函式與 immutable `ManufacturingSourceIdentity`、
+`ManufacturingIntegrationRequest`、`ManufacturingIntegrationResponse`。
+此入口僅提供 `capabilities / prepare / export` 的穩定請求與結果契約，
+不新增第二套製造 exporter，也**不是 HTTP/CLI endpoint 或安裝版 Worker**。
+
+```python
+from ae_engine import (
+    ManufacturingIntegrationRequest, ManufacturingSourceIdentity,
+    dispatch_manufacturing_integration,
+)
+source = ManufacturingSourceIdentity(
+    panel_key="P1", source_revision="<實際來源版本>",
+    set_id="source-set-A", bay_id="source-bay-1",
+)
+result = dispatch_manufacturing_integration(
+    ManufacturingIntegrationRequest("prepare", family="受電箱", source=source)
+)
+assert result.status == "SOURCE_ACCEPTED_NOT_MANUFACTURING_READY"
+assert result.manufacturing_authorized is False
+```
+
+- `capabilities` 僅表示 Python 入口存在、可辨識 Family；`implemented=True` 不構成製造授權。
+- `prepare` 僅接收 CADSplit 的 source key／revision／Set-Bay **來源關聯**；
+  不建立或推斷 physical_part_id、Fold、PartSpec、DXF，並明確回報仍需 Engine 解算。
+- `export` 在沒有經認證的外部製造鏈之前回
+  `EXTERNAL_EXPORT_NOT_CERTIFIED`，不呼叫製造 exporter、不寫 DXF。
+- 已存在的 WHD `generate_part`、resolved batch 與 verified FinalScene API 完全保留；
+  真正從 CADSplit 原圖自動取得可信製造輸入、operation/part 資格及 DXF Save→Reload
+  還要分範圍施工與驗收，**不能以此第一批入口宣稱已完成自動製造**。
+- `integration_cli/cadsplit_worker.py` 的 source-only JSON/CLI 仍完全停用製造，
+  `WHD-Engine.exe` 已退役。架構與權威以 AI 庫 04 CURRENT 與
+  `docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md` 為準。
+
+### 第二批：Receiving 已解析 Set/Bay 的提交前 DXF 驗證
+
+`ae_engine.export_verified_resolved_integration_bays(bays, output_dir, *,
+pre_commit_guard, overwrite=False)` 是**同程序 Engine Sink**，不是原圖直接自動
+製造的入口。每一個 `ManufacturingResolvedBayInput` 必須攜帶：
+1. `family="受電箱"`（或現有 alias `RECEIVING`）；
+2. CADSplit 已確認的 `ManufacturingSourceIdentity(panel_key, source_revision,
+   set_id, bay_id)`，作為來源與輸出命名空間追溯，**不是** `physical_part_id`；
+3. **WHD Engine 已解析** 的 `ResolvedManufacturingGeometry`，內含真正實體板件。
+   原圖、來源 JSON、Preview、`prepare` 結果不能代替這個輸入。
+
+呼叫者必須提供可信的 `pre_commit_guard`，由既有專案／來源狀態持有者
+確認原圖、版本、實體解算及提交授權仍有效。Engine 會在**任何輸出提交前**
+驗證重複 Set/Bay 命名空間與 NFB／EAR／PAD 製造條件，對每一片 Engine
+physical-part DXF 逐片暫存 → 獨立 Save→Reload 驗證 → 再跑 guard → 原子提交。
+任何失敗均不將該批新 DXF 提交成正式結果。
+
+```python
+from ae_engine import (
+    ManufacturingResolvedBayInput, ManufacturingSourceIdentity,
+    export_verified_resolved_integration_bays,
+)
+# resolved_geometry_A 必須是 WHD Engine 已確認的 ResolvedManufacturingGeometry
+# project_guard 必須是此操作的可信專案狀態驗證函式
+result = export_verified_resolved_integration_bays(
+    (ManufacturingResolvedBayInput(
+        family="受電箱",
+        source=ManufacturingSourceIdentity(
+            panel_key="P1", source_revision="已讀取的真實 SHA",
+            set_id="Set-1", bay_id="Bay-1",
+        ),
+        resolved_geometry=resolved_geometry_A,
+    ),),
+    output_dir,
+    pre_commit_guard=project_guard,
+)
+assert result.physical_dxf_roundtrip_verified
+assert not result.complete_assembly_certified
+```
+
+相同底層批次能力也由 `manufacturing_api.save_verified_resolved_manufacturing_geometry_batch_dxf`
+提供（要求 `pre_commit_guard`）。**驗證範圍僅包含本次提交的實體 DXF，
+不能推論整箱所有物理片、未提供的 NFB／EAR／PAD、CADSplit 跨程式接線
+或全自動來源解算已經通過。**既有 `dispatch_manufacturing_integration("export")`
+繼續 fail-closed，source-only CLI 仍不啟用。
+
 
 目的：讓 GUI、自動拆圖、CLI 或其他 Python 程式都使用同一個 AE 出圖入口，不必建立 Tkinter GUI，也不必直接呼叫 `ae.export_xxx_dxf()`。
+
+## EndCap physical assembled world skins API (#2517)
+
+`manufacturing_api.resolve_assembled_endcap_world_skins(local_triangles, *, placement, box_body_world, thickness, offset=(0,0,0), preserve_core_origin=False)` returns immutable `AssembledEndcapWorldSkins(formed_surface, solid_triangles)` for canonical Head/Tail assembly. The Engine applies existing `place_endcap_against_box_body` semantics (including Head/Tail orientation, T/2 physical skin mating and optional saved core origin), followed by existing `thicken_triangle_surface`. It is consumed in Receiving settings 2D inspection, FinalScene 3D display and the pre-solve fixed-relief collision delta probe; the GUI no longer directly decides physical EndCap mating or adds thickness in these paths. Display folded edges still use the exact returned formed surface; collision still uses the true-T solid. Invalid placement continues to fail closed and no manufacturing CUTTING, BEND, DXF, contact rules, saved source, Certified Registry or certification is changed.
+
+## Box Body true-thickness world-skin Engine API (#2517)
+
+`manufacturing_api.resolve_box_body_true_world_piece_meshes(part, *, dimensions, thickness)` uses the existing `ae_engine.receiving_settings_assembly_mesh` true-T world-skin solver, backed by `build_joint_world_geometry`, on a pre-resolved physical Box Body aggregate. It returns ordered `(canonical_piece, true_world_triangles)` tuples using the same physical piece roles and XYZ coordinates as manufacturing/collision source. The Receiving settings 2D assembled inspection and the FinalScene 3D renderer both call the same public boundary; Phase6 `_phase6_box_body_true_world_piece_meshes` is now a forwarding adapter without physical-datum, part identity, placement or mesh logic. Missing pieces/preview stubs return empty and invalid dimensions, part identity or incomplete physical width fail closed. This is read-only presentation data: no fold, material, collision semantics, CUTTING, BEND, DXF certification or approved source is changed.
+
+## Box Body formed mid-surface assembly API (#2517)
+
+`manufacturing_api.resolve_box_body_structure_mid_meshes(render_data, *, thickness)` exposes the existing canonical Engine's physical Box Body piece-local fold and world placement to both 3D FinalScene and Receiving settings 2D inspection. For already-resolved real multipart Box Body material it returns ordered immutable `(source_piece, placed_mid_surface_triangles)` pairs; placeholder-only sources return empty and invalid outside-W provenance fails closed via the existing `resolve_box_body_formed_width_datum`. The 3D compatibility method `phase6_final_scene_projection._phase6_box_body_structure_meshes` now only converts the Engine tuple to its historic list shape; it no longer builds Fold meshes or transforms physical points. The Engine 2D inspector shares the same public seam rather than a second private copy. Real-T physical skins, collision, CUTTING, BEND, DXF, saved material and certified source remain unchanged.
+
+## Door operator blank summary Engine API (#2517)
+
+`manufacturing_api.project_operator_door_blank_dimensions(values, *,
+material_frame_width, baseline_model="", selected_cell_size=None,
+frame_edges=None)` projects the original main-GUI read-only unfolded Door
+W/H from exact operator inputs. The Engine alone chooses the existing
+single-Door baseline-stretched display result versus AE's legacy blank
+calculation fallback. When a multi-Door cell is selected, its real start W/H
+and frame edges are supplied and the same Engine AE blank calculator runs.
+GUI only selects the current cell and formats numbers; it no longer calls
+private/legacy AE Door geometry functions. Neither baseline failure fallback
+nor this display-only summary is certified FinalScene, trusted manufacture,
+CUTTING/BEND/DXF export or external API capability.
+
+## Door-layout operator single-cell preview projection API (#2517)
+
+`manufacturing_api.project_operator_door_cell_result(values, *, cell_width, cell_height, frame_edges, material_frame_width)` returns the existing structural Door cell preview; `project_operator_door_cell_features(result, saved_features, indicator_state, *, cell_width, cell_height, frame_edges, family_model, frame_width, thickness, gap_w, gap_h, fold_left, fold_bottom)` resolves saved holes and Indicator/Box CUTTING preview through the existing Engine sources. `project_operator_door_cell_baseline(values, *, family_model, cell_width, cell_height, frame_edges, cache=None)` resolves the shared-family baseline Door preview and source fingerprint inside Engine while preserving the display cache and source label. None certifies manufacturing; actual DoorPartSpec/FinalScene, DXF export and source verification retain their existing gates. Legacy malformed preview input remains display-only fallback, never an export permission.
+
+## Operator Hole Editor Door/BasePlate/Indicator headless projections (#2517)
+
+`manufacturing_api.project_operator_hole_editor_door`, `project_operator_hole_editor_base_plate`, `resolve_indicator_box_editor_geometry` and `resolve_indicator_door_editor_geometry` provide the existing editor structural/read-only surfaces, finished dimensions and source scene/guide through Engine. The established paired `resolve_indicator_editor_components` remains unchanged for current clients; standalone Box/Small Door editor entrypoints no longer depend on loading the other source. GUI only owns selection, session/callbacks and error display. No CUTTING/DXF or part-manufacturing certification is added.
+
+## Standalone physical 3D mesh and Door display identity Engine API (#2517)
+
+`manufacturing_api.project_independent_part_view_mesh(part_key, render_data, *, x_profile, y_profile, thickness)` returns an immutable `IndependentPartViewMesh`: actual 3D triangles, applied profiles/guides and optional verified fixing-plate 3D-only hinge. Existing source-verified EAR BEND23 and Receiving left-side formed/outside fit are consumed inside Engine; GUI draws the returned physical mesh without inventing fold geometry. `manufacturing_api.door_display_part_role(part_key)` classifies exact canonical outer Door/multi-cell or inner-door physical panel for view opacity and hole-rim behavior. Read-only display APIs; no new manufacturing release, 2D/DXF modification or source-state mutation.
+
+## GUI project DXF exporting through public Engine boundary (#2517)
+
+The project GUI now calls `manufacturing_api` for Door filename, committed numeric CSV quantity batch, all-physical-Bay export, real EAR SIDE MARKING, CHECK-only side and PAD+Base partial CHECK/Q. Existing canonical source proof, DXF readback, atomicity and release/unsupported gate stay with their original Engine owners. Common model/layout/quantity/source naming are also exposed as read-only operations. Engine `receiving_csv_quantity_manufacturing` no longer imports GUI for part-selection intent. Existing older APIs remain usable; no version lock or additional manufacturing certification is introduced.
+
+## Zero static Engine-to-Phase6 reverse imports (#2517)
+
+The engine-only Receiving Quantity, Set/Bay, NFB committed FinalScene, fixed-plate formation, EAR SIDE CHECK and joint-marking production owners import their existing canonical `ae_engine.receiving_quantity_versions`, `ae_engine.box_body_structure_state` and `ae_engine.assembly_geometry` directly. All 264 Engine Python files were reviewed for direct reverse Phase6/GUI/Bridge imports. A normal pytest AST contract now fails if any `ae_engine/**/*.py` file reintroduces a static Phase6/GUI/Bridge/Tk import. Existing physical source, Bay identity, verified world geometry, cutting/marking and DXF authority are unchanged; this is not a new machining capability or a version lock.
+
+## Direct Engine BoxBody, Certified Registry and CSV NFB dependencies (#2517)
+
+Four Engine implementation modules now import their canonical BoxBody state, Receiving Quantity model and formed-FW readback directly from Engine; they do not loop through the old `phase6_box_body_structure`, `phase6_fold_profiles` or `phase6_quantity_model` compatibility facades. The old public API names and calculations are retained without new manufacturing capabilities or behavior changes.
+
+## Engine-native canonical manufacturing resolver (#2517)
+
+`ae_engine.manufacturing_api.resolve_manufacturing_request(ManufacturingResolveRequest(...))` returns the same immutable `ManufacturingResolveResult` as the old `phase6_manufacturing_service.resolve` entry. The whole solver (Family, joint/relief, material fold profiles, FinalScene physical parts, 3D evidence, physical NFB, MARKING and response envelope) is implemented in `ae_engine.manufacturing_resolver`; its immutable `AssemblyScenePart` type is also Engine-owned and aliased by `phase6_final_scene_contracts`. Phase6 retains only UI DTO presentation, request adapters and backwards-compatible call paths. No additional source certification or manufacturing capability is introduced; existing fail-closed guards still govern DXF.
+
+## Engine-owned BoxBody exact 2D physical source and piece selection (#2517)
+
+`manufacturing_api.project_receiving_box_body_2d_source(resolved_geometry)` returns the current actual BoxBody physical render data and rejects missing real Receiving `pieces`; callers must not synthesize a generic source. `manufacturing_api.project_box_body_2d_piece_inventory(render_data, selected_piece_key)` returns the canonical `box_body:<role>` keys and an existing selected part (or None for the original aggregate fallback). This is an immutable visual projection of actual current manufacturing parts; it does not generate a new DXF, certification, or MARKING. GUI side EAR weld overlays remain display-only and share the committed source.
+
+## Operator Door divider/frame and indicator 2D geometry (#2517)
+
+`manufacturing_api.project_operator_door_divider_frame_preview(project_snapshot, columns, values, layout_scope=..., handle_edges=..., model_name=...)` uses the canonical Engine Door dividers, Family inner-door frame sets and physical world placements. It returns `total_w`, `total_h`, divider and frame projection rows without requiring a Tk host. Preview-only independent error guards match the old GUI behavior. `manufacturing_api.project_operator_door_indicator_guides(finished_size, door_values, indicator_groups, spec, offset_x=..., offset_y=...)` returns the canonical Door Indicator context/layout and X/Y reference dimension guides (or absent values for an unrenderable preview). Both APIs expose the existing source geometry, not new manufacture/release approval.
+
+## Receiving BasePlate exact physical 2D projection (#2517)
+
+Use `manufacturing_api.project_receiving_base_plate_2d_snapshot(snapshot, resolved_geometry, active_part="...")` after the canonical Engine manufacturing request resolves. It selects the precise existing `base_plate` or selected `base_plate:nfb_layer:N` render data, verifies current committed numeric CSV source against actual topology and rejects stale/absent source rather than falling back to a generic fake sheet. Its response contains the same `render_data`, `bounds`, `world_bounds`, `box_rect`, `receiving_physical_part_key` and `receiving_tier_keys` that the original GUI preview consumed. For legacy non-Receiving plates, `project_legacy_base_plate_2d_bounds` supplies operator outline coordinates without GUI geometry arithmetic. This is display material projection only, not a production capability or DXF release.
+
+## Immutable manufacturing request, result and fingerprint contract (#2517)
+
+`ae_engine.manufacturing_api` and `ae_engine` now export `ManufacturingPartInput`, `ManufacturingResolveRequest`, `ManufacturingResolveResult`, diagnostic/mutation/effect/cache receipts, `FrozenMapping`, canonical serialization, freeze/thaw and request fingerprints. The implementation lives only in `ae_engine.manufacturing_contracts`; `phase6_manufacturing_contracts` retains backward-compatible aliases (identical class identity, not copies). Validated fingerprint ordering, immutable DTO behavior, integer Set/Bay selector identity and fail-closed Tk/callable rejection are unchanged. This exposes the existing request/response schema; it does **not** add any manufacturing approval, new geometry/DXF policy, or restrict existing clients.
+
+## Engine-owned physical Quantity grouping and NFB CHECK/Q API (#2517)
+
+`manufacturing_api.QuantityManufacturingBatch`, `manufacturing_api.quantity_manufacturing_groups(batch, *, demands=None)` and `manufacturing_api.quantity_nfb_checked_manufacturing_groups(batch, *, live_manifest_provider, partial)` now own canonical equivalence/Q grouping and verified live NFB manifest CHECK/Q. Existing `phase6_quantity_manufacturing` imports are aliases of these same Engine implementations; GUI retains its existing group callsite for backward-compatible operator export instrumentation (#1503 real Tk receipt) without retaining a second physical grouping formula. Receiving current CSV exporter imports only Engine thaw, grouping, and QuantityModel rather than the Phase6 presentation modules. The original source, manifest, identity, atomic batch DXF and capability gates remain in force. No additional manufacturing certification.
+
+## EndCap operator blank summary and baseline Fold defaults API (#2517)
+
+`manufacturing_api.project_operator_endcap_blank_dimensions(values, baseline_model="")` supplies the same legacy main-window EndCap summary when no Fold profile is committed: baseline-first AE projection or its pre-existing no-baseline formula. Committed profiles remain measured from FinalScene material bounds. `manufacturing_api.read_operator_baseline_fold_defaults(model_name, thickness=...)` reads existing known-family EndCap/Door baseline Fold defaults, retaining no-Door-source and legacy failed-Door-load UI semantics without letting GUI infer manufacture. Both are read-only operator views, not certified CUTTING/DXF or new Family admission.
+
+## BasePlate operator blank dimension API (#2517)
+
+`manufacturing_api.base_plate_blank_dimensions(*, w, h, shrink_top, shrink_bottom,
+shrink_left, shrink_right, bend)` is the single headless Engine owner for the
+legacy standalone BasePlate unfolded W/H. Both certified-family and custom
+corner BasePlate geometry builders use the same helper; the main GUI calculation
+summary now only submits operator inputs and formats its returned dimensions.
+It retains the previous numeric contract and missing-part display behavior.
+The result is a display/blank projection, **not** a receiving NFB tier or
+physical BasePlate certification: those remain source-specific via their own
+canonical Receiving builders and explicit manufacturing gates. No new DXF
+capability is granted.
+
+## #2517 Receiving candidate quantity readiness / identity public API
+
+`manufacturing_api.validate_receiving_candidate_quantity_preview(version_entries, counts, role, quantities, assigned, *, expected_counts=None)` performs a **detached** Head/Tail readiness check: it validates typed candidate Feature sources and IDs with the original Engine normalizer, builds temporary Set/Bay count topology inside Engine, then uses the same quantity/allocation validation as physical Apply. Missing/stale versions, invalid feature sources, invalid/bool/zero Bay counts, quantity mismatch or Set/Bay drift are refused with no changes to candidate sources or live Bays. The GUI supplies only the operator draft and version inventory; its existing optional live `validate_quantity` owner remains first. `validate_receiving_candidate_role` and `receiving_candidate_version_label` are public aliases of the original Engine identity/display owners. This preview does not grant manufacturing, FinalScene or DXF permission.
+
+## #2517 Multi-Set Receiving candidate labels share public Engine identity
+
+The operator-facing `receiving_multi_settings_window` uses the existing public `manufacturing_api.receiving_candidate_version_label(version_id)` for actual applied Head, Tail and Inner Door version labels, including its 2D Bay status overlays and candidate selection. GUI must not directly import `receiving_hole_candidates.version_label` or independently parse its ID. This is presentation-only; no candidate Apply, physical Bay, FinalScene, CUTTING or DXF behavior changes.
+
+## #2517 Receiving Quantity allocation two-door schematic public projection
+
+The candidate quantity draft has only count/assignment state, not a saved physical Bay. `ReceivingQuantityAllocationUI.paint()` must obtain the two-door **schematic** seam from the existing `manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)` Engine Family projection, not embed the `1100/1600` dimension ratio in GUI. Actual Bay sketches still use the same Engine API with the saved Bay source; if a complex real door grid is not representable as one horizontal split, no fake seam can be manufactured from this view. This only changes readonly Tk presentation; it does not authorize physical Doors, FinalScene, CUTTING or DXF.
+
+## #2517 Receiving physical Bay dimension group public API
+
+`manufacturing_api.project_receiving_bay_dimension_groups(bays)` (also `ae_engine.project_receiving_bay_dimension_groups`) exposes the existing Receiving Layout owner as a read-only projection over the **persisted physical Bay W/H/D sources**. It returns `((W,H,D), (zero_based_bay_indices, ...))` groups in first-appearance order. It validates all three dimensions using the original Engine positive-finite, non-boolean numeric source check; invalid/missing source dimensions fail closed. Nonadjacent Bays with equal dimensions remain distinct physical indices and are counted separately.
+
+The original multi-settings `dimension_group_summary` now only forwards to this public API. This is an operator confirmed-size/count table, not another Set/Bay state owner or manufacturing export authorization; existing Engine Bay edit/Factory/NFB/FinalScene/DXF validation remains unchanged.
+
+## #2517 Receiving inner-door NFB slot-source public API
+
+## #2517 Live NFB V5 model catalog content SHA snapshot (read-only)
+
+`manufacturing_api.project_receiving_nfb_v5_model_catalog_snapshot(brand)` and the root `ae_engine` facade expose the **same** existing-Engine-owned read-only operation. A frozen `ReceivingNfbV5ModelCatalogSnapshot` returns the exact CSV brand, full-byte SHA-256 revision, brand-qualified model references, and `manufacturing_ready=False`. Original `receiving_nfb_numeric_catalog.read_numeric_specs` still validates CSV schema, names and fields. Reading the source bytes before and after parsing rejects an in-flight replacement. The original Fold Designer NFB editor polls this public result and caches `(brand, source_sha256)` instead of guessing source revision from modification time and file size; any bad/missing source clears stale visible choices and retries. Same-size/same-mtime replacement of a legitimate CSV is detected. This cannot certify NFB physical world X, FinalScene, CUTTING, DXF or external manufacturing exports.
+
+
+manufacturing_api.receiving_nfb_switch_filenames_in_layer(slot) and pack_receiving_nfb_switch_layer(names) are exact callable aliases of the original receiving_shared_settings Engine source parser/packer; ae_engine root exports the same callables. They retain compact 0/1/multiple legacy slots, original numeric V5 references, duplicate physical switch occurrences and existing invalid-source rejection. GUI only sends draft data and displays the result.
+
+The same editor uses the existing receiving_operator_switch_brand_choices() Engine API for its Layer/Slot brand dropdown, keeping operator-only inheritance labels. The original Quantity-mode legacy two-slot height fallback is now publicly projected through receiving_inner_door_legacy_layer_height_defaults() as a detached copy of the original Engine SETTING_DEFAULTS, not a new computed NFB Y datum. These read/pack operations do not authorize world-X, CUTTING, FinalScene, formal DXF or external export.
+
+## #2517 Receiving physical Set/Joint alignment editability public projection
+
+`manufacturing_api.project_receiving_joint_alignment_editability(set_row, joint_index)` reads the **saved physical Set row**, validates adjacent Bay/Joint source identity, Bay dimensions and typed joint index, then returns the original Engine-owned `{depth_alignment: bool, height_alignment: bool}` policy. The canonical `receiving_joint_alignment_editability(layout, set_index=..., joint_index=...)` now delegates to this exact same Engine projector after normalizing its full physical layout; GUI never reconstructs a fake Layout or compares dimension strings itself. The original `update_receiving_joint_alignment` uses the same policy and only writes editable axes.
+
+The native Receiving settings panel uses this public projection on initial widget creation **and** refresh, instead of its former direct `left.depth != right.depth` / `left.height != right.height` checks. Invalid indices, corrupt row shape, boolean/NaN or nonpositive source dimensions fail closed. No new manufacturing geometry, Join/Lock/Factory rule, FinalScene or DXF permission is added.
+
+## #2517 Receiving shared-setting physical Bay equality and switch-brand operator APIs
+
+`manufacturing_api.receiving_operator_switch_brand_choices() -> tuple[str, ...]` returns the exact immutable choices from `receiving_switch_layout.RECEIVING_SWITCH_BRANDS` for both original Receiving selectors. It neither chooses a physical CSV source nor approves a vendor/model for manufacturing; existing `require_receiving_operator_brand` continues to enforce allowed selection.
+
+`manufacturing_api.project_receiving_shared_setting_group(set_row, bay_index, kind, *, preview_value=<omitted>) -> (value, zero_based_bay_indices)` is a read-only Engine projection of **actual saved physical Set/Bay** shared-setting values and their equality group. It delegates to the original `receiving_shared_settings.setting_value` and `validate_setting` source owners; an optional explicit operator preview value is validated and compared without modifying any saved Bay or linked references. The returned value is detached, and matching physical indices are immutable. Invalid Bay indices/kinds or malformed preview settings fail closed; omitted preview and explicit `None` are distinct (needed for legacy NFB height state). `ReceivingSetBayControls` GUI uses this instead of its own comparison across Bay refs. Its selected/highlighted/proposed state remains presentation-only; actual Apply/share/unlink still use original atomic public Engine transactions.
+
+These APIs are data readback/operator presentation contracts, not new FinalScene, NFB CUTTING, Registry certification or DXF authorization.
+
+## Receiving candidate quantity draft API (#2517)
+
+`manufacturing_api.AllocationDraft` and `validate_quantity_allocation` are public
+headless APIs for Receiving Head/Tail candidate quantity allocation. Use
+`draft.replace_version(role, old_id, new_id, available_ids)` to retain row order
+and quantity while invalidating pending assignments; `select_version` and
+`set_step` validate existing selections and allocation readiness. The GUI
+only invokes these Engine operations. All draft transitions are transient and
+do not commit physical Set/Bay features; apply remains the separate validated
+Engine operation. No manufacturing or DXF permission is added.
+
+## Shared cabinet model selector API (#2517)
+
+`manufacturing_api.list_cabinet_model_choices(available_baselines=None)` is the
+headless, read-only model catalog shared by the main WHD GUI and Fold Designer.
+Its baseline sources are read from AE when not supplied explicitly. Resource-backed
+金庫型 is listed only when its real baseline exists; the implemented formula-backed
+受電箱 is listed without a DXF baseline; unsupported registered families remain
+hidden unless a physical baseline model already exists. Custom/自訂 stays last.
+The GUI only presents these Engine-returned choices. This is an operator entry
+catalog, **not** a new manufacturing, DXF, CADSplit or certification capability.
+CURRENT architecture authority stays with AI library 04.
+
+
+## Assembly physical dimension evidence API (#2517)
+
+`manufacturing_api.project_assembly_physical_dimension_evidence(part, *, thickness)` consumes one already-resolved physical Assembly part and returns immutable `AssemblyPhysicalDimensionEvidence` rows. For real Receiving Box Body left/right SIDE fold profiles, Engine reuses the canonical `apply_outside_dimension_compensation` adjacent-BEND rule (while preserving explicit `formed_length` source). For physical Dividers, it reports the original material extent and saved `fw_physical_face` / `core_physical_segment` outside metadata. `phase6_final_scene_projection._phase6_assembly_physical_dimension_lines` only formats operator-facing Chinese labels and numbers; no physical/BEND arithmetic remains there. Unrelated, missing or empty parts return no rows. This is read-only UI evidence, not manufacturing permission, dimensional overwrite, new CUTTING/BEND/DXF certification or a substitute for approved Registry evidence.
+
+## Receiving settings assembled world mesh API (#2517)
+
+`manufacturing_api.resolve_receiving_settings_assembly_world_meshes(assembly_parts, *, finished_dimensions, thickness, preserve_endcap_core_origin=False)` consumes already-resolved canonical Assembly part DTOs and returns physical source roles, part IDs and actual world XYZ triangles for the 2D inspection path. The Engine alone computes Box Body piece-local folding/placement, the same true-T world skins from `build_joint_world_geometry`, physical EndCap mating and thickness projection. `receiving_settings_preview_2d._assembly_world_meshes` forwards only source input and maps raw roles to UI labels; its existing XY projection still calls `project_solid_mesh_xy_outline`. This is read-only visualization evidence, not permission to manufacture, CUTTING, BEND or DXF certification. Legacy incompatible/incomplete geometry remains fail-closed; family/Set/Bay source, saved Features, and official manufacturing data are unchanged.
+
+## Receiving committed NFB physical assembly API (#2517)
+
+`manufacturing_api.resolve_receiving_nfb_assembly_parts(snapshot, parts)`
+owns the existing two-stage canonical FinalScene route: first expand actual
+two-tier Base Plate blanks with their manufacturing-blocked metadata, then
+apply the committed CSV V5 NFB holes to the same physical scene **only** for
+a Receiving snapshot with `nfb_config_submitted is True`. Draft, single-tier,
+identity-drift and incomplete manufacturing sources retain all existing
+fail-closed behavior. The Engine tier builder now uses immutable
+`dataclasses.replace(root, ...)` rather than importing a Phase6 GUI part
+class; concrete part type and output shape remain identical. No new NFB
+pitch, hole position, EAR, CUTTING/DXF or certification rule is invented.
+
+## Receiving highlighted Live applied-version provenance API (#2517)
+
+`manufacturing_api.mark_receiving_bays_live_version(layout, role,
+set_index, bay_indices)` is the headless Engine state transaction for explicit
+operator 即時 Apply. It validates Head, Tail or Inner Door role and exact
+physical Set/Bay selection, then unlinks shared applied-version references for
+the selected Bays only and commits the canonical empty-string Live marker.
+Returns the detached layout, sorted highlighted indices and physical Bay IDs.
+
+This does **not** clear or replace actual saved Hole Editor Features, NFB
+source, accepted X evidence, topology or 2D/3D/DXF manufacturing geometry.
+The GUI only forwards operator action and marks presentation dirty IDs;
+Save→Reload retains the distinct None (never applied) and "" (explicit Live)
+version states.
 
 ## GUI／引擎權責（2026-10-31）
 
 全域硬閘門 `GUI_ENGINE_API_OWNERSHIP_HARD_GATE_V1` 的唯一 CURRENT owner 是 AI 庫 `第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`；此檔是 REFERENCE。GUI 全功能只處理操作與輸入，所有製造資料、公式、實體板件、孔位／折展開及 2D/3D/DXF 的 canonical 結果由引擎公開 API 處理。既有舊 GUI adapters 的存在**不代表每個箱型與功能均已完成改造**。遇 API 不支援，回引擎開發／測試或明確拒絕，不許 GUI 私做 fallback。對外 CADSplit Worker `capabilities/prepare/export` 僅宣告實際已驗證與授權的能力。靜態 CI gate：`tools/gui_engine_api_boundary_gate.py`，但它不代替行為契約測試或平台 required status check。
 
 
+## Canonical resolved physical part materialization API (#2517)
+
+`manufacturing_api.materialize_resolved_manufacturing_parts(parts)` returns
+the ordered tuple of existing immutable `ResolvedManufacturingPart` DTOs:
+physical part keys, authoritative RenderData, X/Y Fold-profile segment copies,
+assembly placement and offset. Phase6 passes already-solved parts, then
+receives the canonical Engine result for `ResolvedManufacturingGeometry`,
+Relief diagnostics, 2D/3D and DXF consumers. The per-segment mapping copies,
+original render references and ordering remain unchanged, and duplicate part
+identity still fails at the canonical geometry contract. No second Fold
+calculator, changed geometry or new CUTTING/DXF authority is introduced.
+
+## Explicit USER_ADDED Joint physical relief Engine API (#2517)
+
+`manufacturing_api.resolve_manufacturing_explicit_joint_reliefs(parts, joints,
+*, finished_dimensions, sheet_thickness, clearance=0, committed_state=None)`
+runs the existing seven-stage physical/UV Joint collision, owner selection,
+verified-cut application and saved-cut replay in `ae_engine.explicit_joint_pipeline`.
+It constructs the physical callback table exclusively from canonical Engine
+Joint/Collision/Geometry functions. `phase6_manufacturing_geometry` delegates
+and `phase6_explicit_joint_pipeline` is a backwards import-only compatibility
+module, not a second solver. Temporary replay uses the incoming frozen
+resolved-part dataclass where possible, otherwise an equivalent headless DTO;
+Engine never imports Phase6 FinalScene/Tk. Existing USER_ADDED provisional 3D
+status, failed/partial rejection, diagnostics and Save→Reload ownership are
+preserved. This move does not grant new CUTTING/DXF certification.
+
+## Manufacturing Relief rule traces and Joint diagnostics API (#2517)
+
+`manufacturing_api.resolve_manufacturing_relief_evidence(resolved_parts, solutions, joints)`
+returns the existing canonical `ResolvedReliefRuleTrace` and
+`ResolvedJointDiagnostic` DTOs, owned by Engine instead of Phase6. It
+preserves solved EndCap corner order and shadow geometry evidence, Receiving
+bottom-WRAP rule metadata, and normal Joint registry ownership/trust/contact
+diagnostics. `USER_ADDED` diagnostics remain owned by the separate explicit
+Joint relief pipeline; Phase6 only composes that pipeline's returned records
+and Family divider records with these Engine DTOs for GUI display. No new
+physical geometry, certification or 2D/3D/DXF manufacturing authority.
+
+## Fold Designer physical Divider / inner-door selection API (#2517)
+
+`manufacturing_api.resolve_fold_designer_divider_part(part_key, divider_input)`,
+`resolve_fold_designer_frame_part(part_key, payload, *, default_thickness)`,
+and `resolve_fold_designer_panel_part(part_key, payload)` select existing
+authoritative Box Body Divider, inner-door frame or panel by physical stable ID.
+The Engine performs complete Family/Topology derivation and rejects stale or
+unavailable part IDs; the GUI only normalizes operator Divider fields, forwards
+current snapshots, then displays the Engine-produced render. The existing
+Family dimensions, Fold and baseline/3D/DXF rules are unchanged. These APIs
+do not certify a previously unsupported part or complete #2517.
+
+## Canonical AssemblyJoint manufacturing graph API (#2517)
+
+`manufacturing_api.resolve_manufacturing_joint_graph(input_snapshot,
+available_part_keys)` owns existing schema migration, physical membership
+filtering, unplaced custom-joint fail-closed policy and canonical
+`ResolvedAssemblyGraph` validation used by assembly 3D and EndCap relief.
+Phase6 passes saved input and available physical part identity without
+duplicating Joint selection, migration, provenance or topology. Approved
+Assembly Intent, explicit historical Joint edges and Registry remain the only
+authorities. No new Joint geometry or CUTTING/DXF grant is introduced.
+
+## Headless EndCap assembly relief solve and diagnostic API (#2517)
+
+`manufacturing_api.solve_endcap_assembly_relief(body_part, endcap_part, *,
+finished_dimensions, sheet_thickness, clearance, assembly_intent,
+assembly_graph, cabinet_family, allow_3d_fallback)` owns the existing
+World-backprojected EndCap physical relief call. The Engine consumes actual
+Box Body and Head/Tail render data, Fold X/Y, placement and approved inputs.
+`manufacturing_api.endcap_relief_solution_diagnostic(solution)` owns verified,
+certified-with-shadow-conflict and unverified physical error classification;
+existing Chinese diagnostics are unchanged. Phase6 supplies already-resolved
+operator inputs and displays these results; the Engine's atomic Head/Tail
+commit and canonical PartSpec replay remain the production authority.
+No additional CUTTING/DXF approval is implied.
+
+## Fold Designer Receiving BasePlate physical-source selection API (#2517)
+
+`manufacturing_api.resolve_fold_designer_base_plate_source(part_key, input_snapshot, *, width, height, thickness, frame_width, model_name, corner_policy=None)` owns the operator BasePlate request values and canonical committed Receiving NFB source priority. It forwards the existing `receiving_base_plate_values` without reimplementing CSV/brand/PAD/LEFT/CENTER/tier geometry. A verified selected real BasePlate replaces the legacy generic preview W/H/folds and owns its corners (`corner_policy=None`); missing optional sources retain the original preview-only values and do **not** certify MFG/DXF. Receiving cell keys remain unsupported. GUI consumes the returned values/policy and calls its already-public `build_base_plate_operator_part_spec` delegate. Vault/legacy model requests and Save→Reload are unchanged.
+
+## EndCap fixed-relief pre-solve world interference Engine API (#2517)
+
+`manufacturing_api.project_assembled_endcap_relief_interference(part, probe_part, render_data, *, diagnostic_relief_delta, box_body_collision_mesh, box_body_world, placement, offset, thickness)` selects the current pre-solve EndCap probe's **actual fixed-relief delta** or the legacy operator `ignore_fixed_corner_relief` delta, projects it by the canonical Fold/assembly world mesh API, and delegates solely to existing `detect_world_mesh_surface_interference`. Absent/empty delta or an empty canonical solid returns no diagnostic. Critically it never uses the entire restored EndCap to claim false mating-seam collisions. The GUI receives a diagnostic for drawing only; no new relief/CUTTING geometry, registry certification, DXF or Save→Reload policy.
+
+## BoxBody interference diagnostic source mesh Engine API (#2517)
+
+`manufacturing_api.project_box_body_collision_source_mesh(render_data, *, box_body_world, placed_piece_meshes=(), physical_piece_world=(), thickness)` exclusively prepares the physically authoritative input mesh for the **existing** assembly interference detector. For multi-piece BoxBody it reuses pre-resolved true-thickness world skins without a second thickness offset; only fallback mid-surfaces and integral sheet worlds are converted with existing `thicken_triangle_surface` once. The GUI forwards resolved render data only; it cannot invent physical skins, material geometry or a second collision manufacturing standard. No change to canonical collision tolerance, relief CUTTING, Save→Reload or certified DXF.
+
+## Independent Door CUTTING true holes and verified 3D fixing-plate hinge (#2517)
+
+`manufacturing_api.project_independent_cutting_hole_rim_segments(material, x_profile, y_profile, fold_guides=(), *, local_reference=None, placement=None, dimensions=None, offset=(0,0,0))` projects only genuine CUTTING polygon interiors (including multipart shapes) through canonical Fold and, when available, `place_assembly_points`. It preserves the 1e-9 degenerate-edge check and returns immutable 3D lines. No hole produces no line; BLIND_HOLE and tessellation diagonals cannot become new CUTTING. `manufacturing_api.project_independent_fixed_plate_hinge_segment(render_data, view_mesh)` uses the Engine-verified `IndependentPartViewMesh.fixed_plate_hinge_y` and real `source_flat_dimensions` for the 3D-only fixing plate hinge. Existing verified MID-skin y=22 and original manufacturing/DXF BEND y=23 remain distinct. GUI only paints returned segments, no new factory or saved shape.
+
+## Standalone FinalScene BEND / MARKING / BLIND_HOLE 3D Engine APIs (#2517)
+
+`manufacturing_api.project_independent_scene_bend_segments(scene, x_profile, y_profile, fold_guides=())` 將正式 `DrawingScene` 上的 `BEND LinePrimitive` 用既有 Engine Fold mapper 轉成不可變 local 3D 線段；`project_independent_scene_annotation_paths(...)` 將既有 `MARKING`／`BLIND_HOLE` 的線、64 等分圓和封閉折線以原順序形成 `(layer, points)`，不把 BLIND_HOLE 誤當穿孔 CUTTING，忽略非支援 primitive。原 `Phase6FinalSceneRenderHelpersMixin._draw_scene_bends`／`_draw_scene_markings` 只繪圖，不再推導實體 Fold 座標；原顏色、線寬、虛線及透明度保持不變。這是顯示投影 API，不是新製造／DXF 認證或資料保存格式。
+
+## Assembly non-contact MARKING world projection Engine API (#2517)
+
+`manufacturing_api.project_assembly_scene_marking_segments(scene, x_profile, y_profile, fold_guides, local_reference, placement, dimensions, offset, joint_marking_signatures=())` 僅將現有 `DrawingScene` 上的平面非接觸式 MARKING，沿正式 Fold mapper 和 `place_assembly_points` 投影為不可變 3D 世界線段；EndCap Head/Tail 不使用此一般投影、沒有真實 mesh 則不畫。`marking_line_signature`、`joint_marking_flat_signatures` 使用原有無向、九位小數來源驗證，跳過已由 Certified Joint world metadata 產生的 `JOINT_PLACEMENT_MARKING`，絕不重複標記或自行推定接觸位置。Phase6 僅轉交原始場景、既有 Joint signatures 及繪圖樣式；不變更任何 DXF／Save→Reload、MARKING 認證或裝配規則。
+
+## FinalScene BoxBody BEND world-lines Engine API (#2517)
+
+`manufacturing_api.project_assembly_box_body_bend_segments(scene, x_profile, y_profile, fold_guides, local_reference, placement, dimensions, offset)` 和 `project_box_body_structure_bend_segments(render_data, *, thickness, local_reference=None, placement="box_body", dimensions=None, offset=(0,0,0), visible_piece_keys=None)` 回傳由**正式 DrawingScene BEND** 和 Engine Fold mapper／`place_assembly_points`／`place_box_body_structure_points` 推得、不可變的組合 3D 世界線段。`contract_fold_profile_rows` 只依實際 resolved FoldSegment 轉出已存在長度／角度／core／phase6_key；Phase6 相容 wrapper 保留。原 GUI `_draw_assembly_box_body_bends`、`_draw_box_body_structure_bends` 現只將 Engine 結果畫線（沿用樣式、可見子板過濾、背板不顯示 BEND）；從不根據 3D 線反寫製造 BEND 或宣稱新 DXF 認證。
+
+## EndCap physical CUTTING hole rims in FinalScene 3D (#2517)
+
+`manufacturing_api.project_endcap_cutting_hole_rim_segments(material, x_profile, y_profile, fold_guides, local_surface, placed_surface, placement)` 接收**已解算** EndCap 真實 2D CUTTING polygon／Fold Profile／一對相同點位 local+world 實體網格，從 Engine 將 material inner rings 投影至 Head/Tail 的 3D 世界線段。保留原 Fold mapper、首點實體原點和 Head/Tail 方向；沒有真孔、非 EndCap、缺真實網格便回傳空 tuple，不從 GUI 外框或虛假孔猜測出圖。FinalScene GUI 只把 Engine 回傳線段交 Matplotlib 顯示，這不是新孔加工認證。
+
+## FinalScene physical BEND / CUTTING Fold source Engine API (#2517)
+
+`manufacturing_api.scene_fold_boundaries(scene, material)` 從**既有正式** `DrawingScene` BEND 線與材料 bounds 擷取 X/Y 展開段邊界（原數值公差不變）；`profile_to_scene_boundaries(profile, boundaries)` 保留操作折向與 core，但每段實際料長以 BEND 差分為準；`fold_ownership_exemptions(material, xb, yb)` 依真實 CUTTING polygon 裁斷上下／左右角部重疊折彎的 owner。全部由 `ae_engine.final_scene_fold_source` 唯一實作，不使用 3D 展示網格回填製造真值。舊 Phase6 `_phase6_scene_fold_boundaries`、`_phase6_profile_to_scene_boundaries`、`_phase6_fold_ownership_exemptions` 保留相容函式但僅公開 Engine API 委派。此批不建立新 Certified Registry／CUTTING／DXF 來源，也不變更保存 schema。
+
+## Fold Designer Door-cell / BasePlate-cell physical topology Engine API (#2517)
+
+`manufacturing_api.resolve_fold_designer_payload_topology(part_key, payload)` 由原 Phase6 轉移到無 Tk Engine，沿用同一 `derive_door_layout_cells`、`door_layout_export_filename` 的門格 start W/H、四邊 `DoorFrameEdges`、正式 `door_c<col>_r<row>`／`base_plate_c<col>_r<row>` 身分。已保存「未知類型」仍正規成自訂；不存在/缺失的門格必須拒絕，不使用其他門格製造尺寸。GUI `_payload_topology_context` 現為 public API 相容委派。這是操作來源選片／request，不放行新 CUTTING／DXF。
+
+## Operator committed Assembly Relief replay via Engine API (#2517)
+
+`manufacturing_api.resolve_operator_committed_relief_cuts(part_key, values, *, relief_state, joint_state=None, structure_state=None, cabinet_family="", box_body_profile=(), part_profiles=None)` 是 GUI 操作快照進入 Engine 的 read-only replay 入口：由 Engine 計算正式 Joint Graph 機械來源、成形 BoxBody FW／Fold、legacy scalar defaults，接既有唯一 `build_current_source_signature` 和 `committed_relief_cuts`；stale source、未知已保存幾何不回放。舊 GUI 只傳值／顯示，disabled 則不查未初始化型材。這不啟用新 DXF 加工或另立來源。
+
+## Headless persisted Assembly Relief source, atomic commit and replay (#2517)
+
+`manufacturing_api.build_current_source_signature`、`source_matches_current`、`relief_profile_fingerprint`、`structure_fingerprint`、`build_persisted_relief_state` 與 `committed_relief_cuts` 由 `ae_engine.assembly_relief_state` 唯一實作，並由根包公開。輸入為已解析的 Family／Joint Graph source fingerprint、BoxBody/Head/Tail Fold 與 Certified Registry revision；任何 stale 保存來源不能取得舊 CUT，Head/Tail 原子提交保持原有驗證。舊 `phase6_assembly_relief_state` 只重匯出同物件，GUI／Phase6 透過公開 Engine API 使用；這不等於新增製造出圖能力，無版本鎖定。
+
+## Atomic EndCap Head/Tail relief commit API (#2517)
+
+`manufacturing_api.endcap_relief_transaction_committable(required_parts, solutions)`
+owns the all-or-nothing production decision for the existing Head/Tail
+physical relief transaction. It composes the existing certified/verified
+single-part Engine policy; a missing required result or empty transaction
+fails closed. Phase6 passes immutable required identities and solver results,
+then displays the Engine decision without reproducing physical trust rules.
+This does not certify new CUTTING, DXF or unverified 3D geometry.
+
+## Verified EndCap relief canonical replay API (#2517)
+
+`manufacturing_api.replay_resolved_endcap_render(part_input, verified_solution)`
+replays certified, verified physical relief via the same immutable PartSpec +
+ManufacturingContext → canonical `build_part_render_data` used for 2D and DXF.
+Only Engine serializes the solver's physical relief polygons and writes them
+into a detached `resolved_assembly_relief_cuts` PartSpec. The Phase6 assembly
+service only passes the already-resolved inputs: Engine also validates that
+canonical material is present and agrees with the solver's physical material
+to the original 1e-5 area tolerance before returning it. A preexisting lightweight
+headless fallback accepts `solved_render_data` only without a real PartSpec,
+and missing fallback rejects explicitly. No new Registry/CUTTING/DXF approval
+or independent geometry is introduced.
+
+## Live Cabinet Family identity for assembly manufacturing (#2517)
+
+`manufacturing_api.resolve_live_cabinet_family(input_snapshot, live_model=None)`
+is the public Engine owner of operator live-model precedence, registered
+Cabinet Family canonicalization and historical unknown/empty-model fallback.
+The GUI reads the live selector and saved snapshot without Family decisions;
+Phase6 manufacturing service uses the same headless API from its immutable
+request. Unknown/custom source names remain unchanged for Family=ANY Joint
+compatibility; an empty source retains the existing Vault fallback. This is
+identity routing only, not a new manufacturing capability or source geometry.
+
+## Assembly physical material mesh Fold profiles (#2517)
+
+`manufacturing_api.resolve_material_mesh_profiles(part_input, material)` is
+now the public Engine owner for request-time 3D assembly mesh X/Y Fold
+profile normalization. It retains explicit saved Fold profiles and only uses
+already-resolved physical material bounds for the whole Box Body Y span or
+missing single axis of divider/inner-door frame material. Invalid bounds are
+rejected only if the physical fallback is required. The Phase6 helper is a
+compatibility delegation; this API does not certify new 2D/CUTTING/DXF output.
+
+### NFB original Hole Editor physical source owner parity (2026-11-06)
+
+The committed `NFB_CSV_SOURCE` feature may identify its physical NFB by legacy `layer_index/slot_index` or newer explicit `hole_id`. When **both** are persisted, they must match the exact same selected physical hole and use typed integer tier/slot keys, otherwise the existing Engine source preflight fails `NFB_CSV_EDITOR_PHYSICAL_SLOT_IDENTITY_CONFLICT` before world-X is projected into the single normal FinalScene. A correct source from either original format still works. This is source identity validation, not NFB manufacturing release or a new CADSplit exporter. Regression `tests/test_issue2517_nfb_csv_editor_hybrid_identity_gate.py`.
+
+
+When the saved NFBConfig has no independent approved world X, WHD's original native Hole Editor `NFB_CSV_SOURCE` may supply the **operator-placed** physical opening X only if the existing Engine's `_source_world_x_from_committed_editor_feature` validates the complete four-corner contour (cyclic or reversed order accepted), current per-brand CSV source hash, actual physical door / tier / unit, stored rotation and tier Y. Same-edge-length skew, crossing contours and editor-vs-saved angle mismatch must fail closed: a saved source shape is never silently replaced with a different manufacturing CSV rectangle. The original `apply_committed_csv_v5_to_canonical_parts` consumes the validated source once for the canonical door/base 2D/3D scene; a DXF must be serialized from that scene and independently reopened/verified. This is a source-integrity gate, **not** a new manufacturing capability, world-X guess, CADSplit exporter or whole-box certification. Regression: `tests/test_issue2517_nfb_original_editor_contour_physical_source.py`.
+
+
+
+### Receiving committed NFB CSV editor contour → normal FinalScene (2026-11-06)
+
+When the saved NFBConfig has no independent approved world X, WHD's original native Hole Editor `NFB_CSV_SOURCE` may supply the **operator-placed** physical opening X only if the existing Engine's `_source_world_x_from_committed_editor_feature` validates the complete four-corner contour (cyclic or reversed order accepted), current per-brand CSV source hash, actual physical door / tier / unit, stored rotation and tier Y. Same-edge-length skew, crossing contours and editor-vs-saved angle mismatch must fail closed: a saved source shape is never silently replaced with a different manufacturing CSV rectangle. The original `apply_committed_csv_v5_to_canonical_parts` consumes the validated source once for the canonical door/base 2D/3D scene; a DXF must be serialized from that scene and independently reopened/verified. This is a source-integrity gate, **not** a new manufacturing capability, world-X guess, CADSplit exporter or whole-box certification. Regression: `tests/test_issue2517_nfb_original_editor_contour_physical_source.py`.
+
+### Original Receiving NFB Confirm source eligibility (2026-11-06)
+
+`manufacturing_api.plan_receiving_nfb_editor_confirm(draft, current, chosen, *, layer_count, embedded, parent_brand)` is the same callable as `ae_engine.plan_receiving_nfb_editor_confirm` and the existing `receiving_nfb_ui1a_edits` Engine owner. Both the embedded native CSV editor and standalone legacy candidate manager submit their operator source selections to this one validation plan, which rejects stale cross-brand V5 identities, missing or duplicate physical slots, legacy candidate loss of override/rotation/X, and source catalog drift. It returns immutable `ReceivingNfbEditorConfirmPlan(current_numeric_editor, has_source_models)`; GUI only stages via the original Hole Editor or saves an existing candidate version. Neither field authorizes physical X, FinalScene, CUTTING, DXF, or any other manufacturing operation. See `tests/test_issue2517_receiving_nfb_confirm_source_public_api.py`.
+
 ## Receiving NFB candidate source and Bay physical identity API（#2517）
+
+### #2517 Source-verified NFB Bay transactions use one public Engine bridge (2026-11-06)
+
+`manufacturing_api.NfbVerifiedDraftSubmission`, `assert_live_verified_nfb(adapter, bundle, *, current_snapshot)`, `submit_live_verified_nfb(adapter, bundle, *, current_snapshot, confirm)` and `copy_live_verified_nfb(adapter, *, source_bay_index, target_bundle, current_snapshot, confirm)` are **the original** `ae_engine.receiving_nfb_ui1b_bridge` type and callables exposed unchanged. The GUI stages a transient verified source, checks Bay/snapshot/source freshness at operation time, then uses the same Engine's atomic #1500 commit/copy. The Engine enforces source bytes/SHA, actual world X, Set/Bay/version identity and independently verified target proof; no preview flag, cross-Bay X borrowing or alternative DXF certification. The package-level `ae_engine` names are identical. Regression: `tests/test_issue2517_nfb_verified_transaction_public_api.py`, existing `tests/test_issue1500_nfb_ui1b_bridge.py` and native GUI transaction tests.
+
+### #2517 Original inner-door CSV NFB Hole Editor physical drafts (2026-11-06)
+
+`manufacturing_api.editor_nfb_features_from_csv(snapshot, config, *, current_features=())` is the **existing** Engine source for original Receiving Hole Editor draft `NFB_CSV_SOURCE` `ProfileFeature` geometry. Both the live add/preview operation and the embedded NFB Confirm call this same public function; `from ae_engine import editor_nfb_features_from_csv` is the identical callable, not a second adapter or exporter. It validates the existing panel, CSV model source, original work-face boundaries and collisions and returns editable features only. Initial horizontal positions are an unverified *editor layout*, not a certified world X; the original Hole Editor must separately confirm source and changes, and formal FinalScene/DXF manufacture continues through its independent verified Engine paths. Older Engine versions lacking the new public name retain their existing capabilities; the current WHD GUI uses the present public API.
+
+Regression: `tests/test_issue2517_receiving_csv_editor_public_engine_api.py`; existing live editor test `tests/test_issue1504_live_second_nfb_main_canvas.py` retains preview/undo/Cancel/Confirm behavior.
+
+
+### #2517 Receiving NFB complete headless request → FinalScene → DXF (2026-11-06)
+
+`manufacturing_api.export_current_csv_nfb_pair_from_request(request, *, output_directory)` accepts the **existing immutable** `ManufacturingResolveRequest` (including saved current Receiving Set/Bay NFBConfig and original physical Door/BasePlate render inputs). It first verifies a selected, actually committed physical NFB source, then runs the **same** public `resolve_manufacturing_request(request)` used by WHD GUI. The normal Engine resolver creates source-bound NFB CUTTING on installed original physical sheets; the original `export_current_csv_nfb_door_base_pair` then independently verifies the current FinalScene, physical installation XYZ, brand CSV bytes, original part IDs/CHECK Q and each staged DXF Save→Reload before atomic publication. This allows WHD GUI and a headless CADSplit Python adapter to share the same real request/result contract **without the external client preassembling `assembly_parts` or manufacturing CSV CUTTING itself**.
+
+The output is the existing typed `NfbCsvPairedPartOnlyDxf` (1 tier: door + 1 base) or `NfbCsvTwoTierPartOnlyDxf` (2 tiers: door + 2 bases). This **does not** derive original PartSpec/render inputs from raw source-only DXF/CSV, invent or confirm world X, approve EAR/PAD weld/whole-cabinet MFG-2, or enable `integration_cli` source-only wire manufacture. Original part inputs and fully committed current sources are mandatory; invalid/partial source fails before DXF. See `tests/test_issue2517_nfb_pair_request_to_finalscene_dxf_public_api.py`.
+
+Minimal contract:
+
+```python
+from ae_engine import export_current_csv_nfb_pair_from_request
+verified_part_only = export_current_csv_nfb_pair_from_request(
+    current_manufacturing_request, output_directory=existing_output_directory,
+)
+# source-verified physical parts are individually reopened, NOT a whole cabinet release
+```
+
+### #2517 Receiving CSV NFB committed-source Apply transaction (2026-11-04)
+
+`manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)` performs the existing CSV NFB provenance query, mixed CUTTING guard and Bay-specific identity replacement atomically inside WHD Engine. The source must contain exactly one valid physical inner-door NFB CSV candidate; it rejects invalid/bool/out-of-range/duplicate Set/Bay selections, stale/missing CSV hole source and mixed non-NFB CUTTING. The original editor contour must match the *exact four-corner opening from the same current CSV model*, allowing only its true rotation, operator translation, and cyclic/reversed point order; sheared, stretched or crossed rectangles cannot become a submitted source even with a genuine brand SHA. The same physical contour comparator is used by native Candidate Apply and the later canonical FinalScene recovery. It returns a detached Receiving layout without mutating caller input or siblings and preserves `UNVERIFIED_BASIS` for unconfirmed horizontal X. This is **source-only candidate assignment**, not authorization of physical X/CUTTING, a manufacturing output, source-only external export or DXF certification. The canonical entry is available through both `from ae_engine import apply_receiving_nfb_csv_candidate` and `from ae_engine.manufacturing_api import apply_receiving_nfb_csv_candidate`; both names refer to the **same** Engine function. CADSplit's current source bridge calls this atomic Engine operation when available, retaining older three-port fallback only for older Engine versions; this does not establish Windows end-to-end UAT.
+
+Minimal same-process call (the `source` must already contain a real, confirmed `NFB_CSV_SOURCE` `ProfileFeature`, not just a brand/model name):
+
+```python
+from ae_engine import apply_receiving_nfb_csv_candidate
+
+next_layout = apply_receiving_nfb_csv_candidate(
+    saved_layout,
+    set_index=0,
+    bay_indices=(0, 1),
+    source=confirmed_nfb_candidate,  # layers, models, features from the verified editor
+)
+# next_layout is detached; caller persists it only after its own Confirm.
+# X is still UNVERIFIED_BASIS. Never treat this as a manufacturing DXF approval.
+``` See `tests/test_issue2517_receiving_nfb_csv_candidate_public_api.py`.
 
 `manufacturing_api.candidate_committed_csv_nfb_config(source)` validates a
 single certified CSV-backed inner-door physical source and rejects mixed
@@ -28,6 +1090,10 @@ selected Bay. Native GUI single-Bay and quantity allocation share these Engine
 ports. Saved source, independent other Bays, and unverified X are preserved;
 no new CUTTING, DXF or NFB shop release is implied.
 
+### #2517 NFB Quantity / all-Set parent brand operator API (2026-11-06)
+
+`manufacturing_api.project_receiving_quantity_nfb_parent_brand(snapshot)` reads the **selected** Quantity version's true parent brand (old common-box brand remains migration-only). `manufacturing_api.update_receiving_quantity_nfb_parent_brand(snapshot, proposed_brand)` returns a detached `(snapshot, changed)` with legacy per-version migration and no caller mutation. `manufacturing_api.project_receiving_parent_brand_change_impact(source, proposed_brand, *, mode="quantity"|"set_bay")` counts only **newly** stale inherited physical NFB holes from the selected Quantity version or **every** persisted Set/Bay, excluding unsubmitted sources, explicit overrides and already stale sources. Both WHD GUI and external Python clients use the exact same Engine functions exported by `ae_engine` and `manufacturing_api`. GUI only selects current mode/scope and displays the warning. These are source/brand operations, **not** an NFB world-X, FinalScene, CUTTING or DXF manufacturing approval. Test: `tests/test_issue2517_nfb_parent_brand_operations_public_api.py`.
+
 ## Receiving NFB Set brand / inherited physical X confirmation API（#2517）
 
 `manufacturing_api.rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand)`
@@ -39,6 +1105,18 @@ unchanged. The Set/Bay GUI adapter selects the Set and commits the returned
 row; it no longer inspects physical hole proof state. Invalid brands fail
 closed. Existing Save→Reload and physical NFB tests remain the acceptance
 oracle; this does not authorize new CUTTING or DXF.
+
+## Phase6 operator snapshot CornerPolicy Engine API（#2517）
+
+`manufacturing_api.resolve_operator_snapshot_corner_policy(part_key, *, corner_state=None, input_snapshot=None, settings_values=None, endcap_fw_state=None)` 接收完整 raw 四角和操作者快照，由 Engine 統一解析既有 CornerType、EndCap FW 四態與 Cabinet Family 底部 FW；四角未填完整回傳 `None`。`phase6_manufacturing_adapter._corner_policy_for_app` 僅傳值，`operator_finished_dimensions_for_app` 維持以既有 Engine `resolve_live_operator_finished_dimensions` 讀取成形尺寸。本入口不新增材料公式、CUTTING／DXF 認證或版號鎖定。
+
+## Phase6 EndCap operator manufacturing PartSpec API（#2517）
+
+`manufacturing_api.build_endcap_operator_part_spec(values, *, model_name, is_tail, holes, corner_policy=None, fold_profiles=None, depth_comp_t=None, resolved_assembly_relief_cuts=(), box_body_formed_fw_left=None, box_body_formed_fw_right=None, box_body_structure_state=None, endcap_bottom_wrap_state=None, assembly_joints=None, assembly_joint_state=None)` 將 Head/Tail 輸入製成單一 Engine `EndCapPartSpec` Request。Factory Family 2T/3T、Bottom WRAP reserve、折材 DTO 與 CUT 來源不在 GUI 計算。缺必要操作尺寸照舊拒絕；PartSpec 可建不表示已完成 DXF/整箱製造認證，也不強制舊 client 升級。
+
+## BasePlate and IndicatorBox operator PartSpec public APIs（#2517）
+
+`manufacturing_api.build_base_plate_operator_part_spec(values, *, features, corner_policy=None, box_body_structure_state=None, box_body_fold_profile=None)` 將真實操作與已保存的結構、材料 Fold、Receiving 已確認的 NFB BasePlate 來源欄位包入同一 `BasePlatePartSpec`。`manufacturing_api.build_indicator_box_operator_part_spec(values, layer_groups, *, features)` 接收指示燈箱 group/T，產生唯一 `IndicatorBoxPartSpec`；GUI 不再各自組裝實體 DTO。兩項只是 request 入口，不允許沒有 source 的 NFB 直接加工，也不增加新 CUTTING/DXF 認證。
 
 ## Live manual CornerType policy（#2517）
 
@@ -561,3 +1639,665 @@ unlinks shared features/version refs for only the selected Bays and returns
 Other Bays/Sets and the other Head/Tail role stay unchanged, including existing
 Hole Editor source geometry. GUI only forwards and records UI dirty IDs.
 No new CUTTING, DXF or certified Registry manufacturing capability is granted.
+
+## Receiving single inner-door candidate Apply to selected Bays (#2517)
+
+`manufacturing_api.apply_receiving_inner_door_candidate_to_bays(
+layout, config, set_index, bay_indices, *, version_id=None)` applies one
+source-backed candidate (distinct from cross-Set quantity allocation).
+Engine validates all selected physical Bays, exact candidate settings, CSV NFB
+provenance and existing submitted CUTTING ownership before committing
+canonical shared settings, version and Bay-specific physical hole IDs. Returns
+`(detached_layout, sorted_bay_indices, physical_bay_stable_ids)`.
+GUI only forwards input and displays/records the returned state; invalid input
+never partially commits. Saved manual NFB X remains unverified and the API
+does not authorize new DXF/CUTTING manufacturing.
+
+## Receiving W/H/D multi-Bay operator batch Engine transaction (#2517)
+
+`manufacturing_api.apply_receiving_bay_dimensions(layout, set_index,
+bay_indices, *, width, height, depth, expected_count)` returns a detached
+canonical Receiving layout and exactly the physical Bay IDs whose W/H/D
+changed. It rejects incomplete/invalid highlighted physical selections and
+non-finite dimensions before staging, preserves authored leading Door
+partitions using the canonical Engine `complete_partition`, and revokes
+previously CONFIRMED NFB physical X evidence on width changes using
+`reconfirm_copied_nfb_config`. One batch validates the entire layout exactly
+once; no-op performs no normalization. GUI only commits the returned layout
+and updates operator dirty UI state. No new CUTTING/DXF approval is granted.
+
+## Receiving new Bay dimensions from Family Engine owner (#2517)
+
+`manufacturing_api.resize_receiving_bays_with_family_defaults(layout, *,
+set_index, bay_count)` is the public headless resize for the Receiving
+operator client. Canonical `resize_receiving_bays` creates persistent Bay,
+Joint and shared-setting identities. Newly appended Bays **only** receive the
+current Receiving Family's W/H/D defaults through the existing Engine
+`apply_receiving_bay_dimensions`, preserving any authored dimensions of
+pre-existing Bays and the canonical partition/NFB-X invalidation contract.
+Shrinking uses the same canonical tail-only resize; GUI alone handles
+destructive confirmation, selection and dirty UI bookkeeping. Source-only
+low-level `resize_receiving_bays` retains its old copy-by-value semantics.
+No new manufacturing DXF/CUTTING authority is introduced.
+
+## Door-layout deletion physical identity and feature-source remap (#2517)
+
+`manufacturing_api.receiving_inner_door_stable_id_for_cell(cell_key)`
+is the Engine-owned persisted physical inner-door ID resolver
+(`0:0=upper`, `0:1=lower`, other cells `cNrN`).
+`manufacturing_api.remap_receiving_door_layout_after_delete(
+*, operation, column_index, row_index=None, inner_doors=None,
+cell_sources=None, physical_sources=None)` is a pure headless transaction
+for deletion of a Door grid row/column. It stages the new physical inner-door
+identity list, keyed per-cell input stores, and detached physical feature
+snapshots for the main 2D surface, Workspace and Fold Designer (including
+per-face features) before exposing any result. It moves existing panel-hole
+keys and rebuilds `door_cN_rN` feature owners; conflicting physical source
+identities reject the entire transaction. GUI only forwards the operator
+deletion and applies returned workspaces, never generates physical part IDs.
+No source transformation certifies CUTTING/DXF manufacture.
+
+## Door-grid numeric partition and edit validation Engine API (#2517)
+
+`manufacturing_api.recompute_door_layout(columns, *, total_width,
+total_height, selected_key)`, `door_layout_cells(columns, *, total_width,
+total_height)`, `validate_door_layout_width_commit(columns, column_index,
+total_width, current)`, and `validate_door_layout_height_commit(columns,
+column_index, row_index, total_height, current)` are the public headless
+Engine ports backed by `ae_engine.door_layout_numeric_transitions`.
+The same authoritative 0.01 mm partition completion, preserved authored
+fixed cells, auto-remainder retention, physical cell index checks, finite
+positive W/H validation and canonical cell projection apply in GUI and
+headless paths. The existing GUI DoorLayoutController signatures remain
+compatibility forwarding adapters; Tk variables, operator selection and
+presentation effects stay in GUI. No new DXF/CUTTING authorization.
+
+## Receiving Base Plate operator physical preflight (#2517)
+
+`manufacturing_api.validate_receiving_base_plate_settings(
+*, input_snapshot, settings_values, config)` is the public headless Engine
+entry for validating a real selected Receiving Base Plate before GUI commit.
+It stages an immutable source probe, reuses
+`receiving_base_plate_blank_dimensions`, canonical
+`build_receiving_base_plate_result`, and the existing welded-EAR
+physical slot/pitch guard. A mismatch of CENTER vs LEFT/RIGHT geometry
+fails before project mutation. `None` is a deliberate settings reset,
+not an inferred manufactured blank. The GUI only submits the detached
+validated selection and rolls back its project state if the external
+geometry update callback fails. No new DXF/CUTTING authorization follows.
+
+## Receiving Switch operator topology public Engine transaction (#2517)
+
+`manufacturing_api.normalize_receiving_switch_operator_layout(layout)`
+and `manufacturing_api.apply_receiving_switch_operator_action(layout, *,
+operation, brand=None, layer_index=None, delta=None)` publicly expose the
+canonical `receiving_switch_layout` state transitions. Supported actions
+are `set_brand`, `add_layer`, `remove_layer` and `resize_connections`.
+The Engine owns stable layer IDs, tail-only resize, brand validation,
+index/type safety, and the >=1 layer/connection lower bounds. Results are
+`(detached_layout, changed_flag)`, never manufacturing approval. GUI
+adapters only parse literal operator input and commit the Engine result.
+No fabricated NFB opening, CUTTING, or DXF release is implied.
+
+
+
+## Original Fold Designer snapshot part dimensions Engine API (#2517)
+
+`manufacturing_api.project_fold_designer_snapshot_dimensions(snapshot,
+indicator_layer_groups)` returns `FoldDesignerSnapshotDimensions` with the
+seven legacy root part sizes and normalized Indicator groups. The GUI only
+reads control values and submits the unchanged operator snapshot; canonical
+Door finished-face size, physical Receiving Base Plate blank size, and shared
+Indicator Box / Small Door unfolded sizes are Engine-owned. Existing invalid
+Indicator controls retain the historical single-group display fallback, never
+manufacturing/DXF authorization. Distinct multi-door cell identities remain
+owned by `project_part_dimensions`, not this legacy root overview. This is a
+move-only ownership change; existing geometry/Save→Reload policy is unchanged.
+
+
+
+## Original Fold Designer Door-grid Feature ownership Engine API (#2517)
+
+`manufacturing_api.project_fold_designer_snapshot_part_features(snapshot,
+surface_features, door_layout_features)` is the pure headless ownership seam
+for operator-authored Door cell Features and formal physical part identities.
+It uses the existing canonical `door_layout_feature_map_to_part_features`
+for `door_cN_rN` IDs and `col:row` content; the Engine preserves the exact
+saved-part merge rule: edited empty cells clear stale features, unedited
+cells retain saved content, and legacy tuple cell keys only signal authored
+empty clears. GUI only submits source stores and copies returned Features
+into the original Save/Reload schema. No hole coordinate transform,
+manufacturing CUTTING/DXF authorization or new geometry is introduced.
+
+
+## FinalScene canonical Fold profile 3D mapping Engine API (#2517)
+
+`manufacturing_api.fold_profile_base_index`,
+`fold_profile_geometry(profile, *, enabled_folds=None)`,
+`fold_profile_bend_mask(profile, axis, cross_position, fold_guides, *, tol=1e-6)`,
+`fold_profile_map_with_guides(position, cross_position, profile, *, axis, fold_guides)`,
+`fold_profile_map(position, boundaries, folded)` and
+`fold_profile_flat_map(position, boundaries, *, profile=None)` expose the
+existing authoritative `ae_engine.assembly_geometry_folded_mesh` material-to-formed
+cross-section mapping to the FinalScene GUI. Former Phase6 functions are
+compatibility delegates, not a second physical Fold algorithm. The engine's
+already-established source-owned formed_length exception is preserved while
+unfolded BEND stations continue to use physical material length. Finite BEND
+guide spans determine local bend activation; unlisted legacy folds retain the
+existing enabled behavior. `prepare_fold_profile_mapper(profile, *, axis,
+fold_guides=())` returns the canonical source-scoped prepared Engine callable,
+using the existing per-mask chain cache rather than rebuilding a Fold for each
+visible 3D vertex. A GUI display cache must invalidate when any Fold profile
+or source BEND guide changes. No new Fold compensation, 2D CUTTING or DXF
+certification follows. #2517 remains OPEN.
+
+## Physical solid-mesh feature edge API (#2517)
+
+`manufacturing_api.physical_solid_mesh_feature_segments(triangles, *,
+tolerance=1e-6)` projects real exposed perimeter, hole rims, fold/miter
+creases and thickness edges from an already-authoritative thickened 3D
+physical mesh, excluding coplanar triangulation diagonals. The engine
+implementation `ae_engine.solid_mesh_feature_edges` is the moved original
+FinalScene algorithm. GUI `_phase6_mesh_feature_segments` only forwards and
+Matplotlib paints returned segments. No redefinition of canonical material,
+geometry, CUTTING, 2D/3D certification or DXF capability follows.
+
+
+
+## Door operator input → physical DoorPartSpec Engine API (#2517)
+
+`manufacturing_api.build_door_operator_part_spec(values, *, model_name,
+features=(), indicator_hole=None, door_indicator=None,
+door_indicator_offset=(0,0), use_box_distance=False, corner_policy=None,
+frame_edges=None, indicator_window_groups=None,
+nameplate_center_datum_top=None)` is the canonical headless source of the
+single-door and already-selected door-cell PartSpec. The GUI gathers current
+operator inputs only; Engine owns every material request field and the legacy
+`feature_space="legacy_unfolded"` export coordinate contract. Existing
+DoorPartSpec fields, the caller's physical per-cell edges/size, nameplate
+datum, Fold/Corner inputs, and downstream 2D/3D/DXF/Save→Reload remain
+unchanged. This API does not approve manufacturing, override Certified
+Registry geometry, or create a second physical cell topology. #2517 OPEN.
+
+## Receiving highlighted Set/Bay NFB inner-door partial DXF public Engine API (#2517)
+
+`manufacturing_api.require_highlighted_nfb_inner_doors(ports, set_index,
+bay_indices, *, allow_held=False)` and
+`manufacturing_api.export_highlighted_nfb_inner_doors(ports, *,
+set_index, bay_indices, output_directory, allow_held=False)` are the
+headless, Engine-owned operation for current-source-verified Receiving
+highlighted Set/Bay **inner-door only** partial export. Existing live
+`manifest` and real `partial_export` ports are mandatory; a UI READY
+indicator cannot grant authority. The Engine rechecks each physical
+Set/Bay/version and inner-door stable ID before publishing, rejects
+forged writer manifests or stale source, stages all actual DXFs, forbids
+overwriting, and atomically links outputs with rollback on publish failure.
+Explicit `allow_held=True` publishes READY sheets only and an honest
+held-Bay JSON manifest; unrelated BasePlate/PAD/EAR pieces are never
+counted as emitted. The historical GUI import module is only a
+compatibility re-export of these public functions. No whole-cabinet
+manufacturing, new hole/CUTTING formula, DXF certification, or external
+installer capability follows from this move. #2517 remains OPEN.
+
+
+## Receiving NFB physically reopened pair CHECK/Q public Engine API (#2517)
+
+`manufacturing_api.NfbPairedPartOnlyDxf`, `NfbPairedQuantityInput`,
+`NfbPairedQuantityCheck`, `group_reopened_nfb_pair_check_q(inputs)`
+and `save_checked_reopened_nfb_pair_q_dxf(checked, output_directory)`
+are the headless owners of real current-source inner-door plus BasePlate
+**PART_ONLY** CHECK/Q. The Engine requires the typed exporter receipt,
+real Set/Bay/version and physical owner IDs, original current source SHA,
+matching saved NFB hole metadata, two unchanged DXF reopen comparisons,
+positive integer piece counts and actual material/process parameters. It
+uses the existing NFB physical gate and geometry-equivalence grouping;
+only explicitly verified paired parts can be written with Q, without
+overwriting. Neither filename nor cached readiness can grant whole MFG-2,
+EAR, PAD or complete-cabinet manufacturing. The old GUI quantity module
+and NFB pair output DTO remain compatible imports that alias Engine
+objects; no second manufacture/quantity formula exists in GUI.
+
+
+## Receiving source-current NFB BasePlate PART_ONLY public Engine API (#2517)
+
+`manufacturing_api.nfb_verification_geometry_changed(current, verified)`,
+`prepare_verified_receiving_nfb_base_plate(bundle, *, layout, current_snapshot,
+base_spec, index_path, profile_path)`, and
+`export_verified_receiving_nfb_base_plate(bundle, *, layout, current_snapshot,
+base_spec, output_directory, index_path, profile_path)` now own the historical
+Receiving NFB original physical BasePlate source checks and real PART_ONLY DXF
+operation. The Engine revalidates a signed live submitted Set/Bay/version,
+original indexed DXF SHA, exact saved NFBConfig, physical BasePlatePartSpec and
+inner-door identity, original upper profile handle/revision, lower fixing
+reference and real source-derived holes, before using the existing geometry
+composer and atomic DXF writer. The previous GUI base action is a public
+Engine API re-export, and the shared geometry-staleness check used by the
+inner-door GUI export is also the same Engine function. Existing three Base
+Plate bend patterns and positive/negative saved DXF tests stay unchanged.
+An individual BasePlate remains **PART_ONLY**, not complete MFG-2,
+manufacturing-ready EAR weld, PAD or whole-cabinet release. No new numeric
+source, CUTTING formula or DXF certification is introduced.
+
+
+## Receiving NFB real physical inner-door PART_ONLY export public Engine API (#2517)
+
+`manufacturing_api.export_verified_receiving_nfb_inner_door(bundle, *,
+layout, current_snapshot, output_path, index_path, profile_path)` now owns
+the original source-current real inner-door **PART_ONLY** DXF export previously
+implemented under the GUI operator action. It revalidates the actual
+NfbVerifiedDraftSubmission, saved Set/Bay/version and parent switch brand,
+source-only original DXF indexed profile SHA/handle/revision, unique physical
+upper inner-door panel from current canonical Family, saved physical hole IDs,
+confirmed WORLD-X and rotations, before calling the existing Engine
+`export_current_nfb_inner_door_partial_dxf` with no overwrite. The single
+geometry-staleness fingerprint is already Engine-owned and is shared with
+BasePlate and the GUI operation's preview invalidation. The GUI legacy
+module now only re-exports these Engine public functions. The prior UI
+mock-injection test now patches the canonical Engine implementation without
+loosening any negative tests. This grants no middle/base/PAD/EAR, quantity
+Q or complete-cabinet manufacturing, nor new CUTTING/DXF certification.
+
+
+## Receiving native + CSV-V5 paired real DXF public Engine API (#2517)
+
+`manufacturing_api.export_verified_receiving_nfb_door_base_pair(bundle, *,
+layout, current_snapshot, base_spec, output_directory, index_path,
+profile_path)` is now the Engine-owned original-indexed-source real
+inner-door + BasePlate PART_ONLY atomic export. It reuses the exact
+live Set/Bay/version, actual base source validator, source-verified inner-door
+holes and world X, immutable physical receipt, real FinalScene and existing
+no-overwrite atomic DXF writer. `manufacturing_api.export_current_csv_nfb_door_base_pair(
+snapshot, *, assembly_parts, base_spec, output_directory)` is the same
+public operation for submitted numeric CSV V5; it selects 1-tier or 2-tier
+physical BasePlate sources, re-derives and compares every installed scene
+and signed stable ID, enforces actual tier depth/XYZ and existing CHECK/Q
+material equivalence, reopens the staged 2 or 3 actual DXFs before publishing
+all-or-none. The immutable `NfbCsvPairedPartOnlyDxf` and
+`NfbCsvTwoTierPartOnlyDxf` types and original `NfbPairedPartOnlyDxf` remain
+available from public Engine and legacy GUI imports as identical objects.
+The old GUI paired-export module has no geometry, PartSpec or manufacturing
+authority. Neither path authorizes PAD, welded EAR, whole MFG-2 or new
+CUTTING/DXF certification, and no numeric/3D formula was changed.
+
+
+## Receiving NFB read-only live manifest validation API (#2517)
+
+`manufacturing_api.validate_receiving_nfb_manifest_view(view)` and
+`validate_receiving_nfb_highlighted_manifest(ports, set_index, bay_indices)`
+reject contradictory actual ready-piece counts, forged READY flags, CSV-V5
+diagnostics masquerading as production parts, duplicate/invalid highlighted
+Bay selections and missing physical Set/Bay/version IDs. The latter reads
+each live manifest exactly once and returns validated detached display
+snapshots. The GUI now only paints the same Traditional Chinese warning
+and physical-part rows, never computes or validates manufacture eligibility.
+These are **read-only display safety checks**, not manufacturing approval:
+every DXF operation must separately revalidate sources through the existing
+typed NFB Engine manifest/export gate. No new PAD/EAR/MFG-2 authorization,
+CUTTING formula, or DXF capability is introduced.
+
+## Derived physical part namespace/selection sync Engine API (#2517)
+
+The pure immutable `DerivedPartRequestAssemblyInput`,
+`DerivedPartProjectionRequest`, `DerivedPartSyncPlan` and
+`manufacturing_api.build_derived_part_projection_request` /
+`manufacturing_api.build_derived_part_sync_plan` are now owned in
+`ae_engine.derived_part_projection`. This moves the existing source
+reconciliation rules for `door_cN_rN`, `base_plate_cN_rN`,
+`box_body:divider:` and `inner_door:` namespaces, stale part/Feature
+stash, active/selected physical ID repair, and Receiving's existing single
+Base Plate preservation into Engine unchanged. The original
+`phase6_derived_part_projection` is an import-only compatibility mirror.
+GUI composition only collects already-derived profiles/physical sources,
+calls the Engine public API, and applies its immutable plan via the existing
+workspace mutation owner. No second family formula, new NFB source, DXF
+entitlement, or Save→Reload schema. #2517 OPEN.
+
+
+
+## Physical BoxBody operator → Engine manufacturing PartSpec (#2517)
+
+`manufacturing_api.build_box_body_operator_part_spec(values, *, model_name,
+features=(), face_features=None, head_corner_policy=None,
+tail_corner_policy=None, fold_profile=(), structure_state=None,
+source_part_features=None, endcap_y_profiles=None, head_ybottom1=None,
+tail_ybottom1=None, snapshot=None)` is the public headless BoxBodyPartSpec
+owner for Vault and Receiving. GUI only collects live input, workspace
+Fold/Features and override values. Engine chooses the existing canonical
+Family structure state, rear-panel manufacturing contract, physical
+BoxBody piece Features (excluding Divider namespace), Fold material
+segments and the actual Head/Tail Y/ybottom1 outside Fold readback;
+explicit Head/Tail overrides retain priority over profile and scalar
+fallback. This is an ownership move, not a new compensation formula,
+Certified Registry rule, Rear W datum, 2D/3D/DXF certification or a
+Save→Reload format. #2517 remains OPEN.
+
+
+## Receiving CSV-V5 unapproved inner-door/base real source trial API (#2517)
+
+`manufacturing_api.preview_receiving_nfb_v5_real_base_sources(snapshot,
+inner_door_id, *, door, configured_holes, root_base_spec)` is the
+sole Engine owner for the GUI's existing one-/two-tier BasePlate preview
+source validation. It verifies the real BasePlate PartSpec against current
+Receiving sheet dimensions, bend pattern, physical ID and true submitted
+Set/Bay source; the actual tier PartSpecs come from the same canonical
+`source_receiving_nfb_tier_base_specs` as physical Assembly FinalScene.
+The GUI now merely calls this API and paints its original trial data.
+
+`require_receiving_nfb_v5_inner_door_trial_preview(trial)` and
+`require_receiving_nfb_v5_base_trial_preview(trial)` reject a forged
+manufacturing-ready/approved trial before the UI renders any FinalScene.
+These return render data **for read-only visualization only**, not DXF
+authorization; the current part-only/welded-EAR/PAD/MFG-2 gates remain
+untouched. The existing #1901 real physical tier, SHA/Set/Bay drift and
+single/two-layer proofs remain the acceptance sources.
+
+
+## Receiving EAR side 2D/3D display source context (#2517)
+
+`manufacturing_api.resolve_receiving_ear_side_display_context(snapshot,
+piece_key, aggregate_render_data=None, *, main_mirror=None)` returns the
+immutable `ReceivingEarSideDisplayContext`. It decides *read-only
+visualization eligibility*, not manufacturing readiness: the true committed
+FoldDesigner snapshot is preferred to the non-authoritative main-GUI mirror,
+stale primary submitted-NFB claims fail closed, and the actual physical
+Box Body child piece roles, baseline source SHA and scene primitives form the
+same 2D/3D cache invalidation digest. The Engine returns the existing actual
+outside-W/H/D and thickness for a downstream verified EAR SIDE MARKING
+projection; GUI uses these values, renders, and stores display-only caches.
+
+This does NOT grant EAR welding, PAD, DXF, CUTTING or whole MFG-2 production
+permission. Actual UV/material and safety rejection remain in
+`project_receiving_ear_side_piece_2d_preview`. The primary 2D / FoldDesigner
+3D source and stale-primary cases and actual Save→Reload CHECK-only DXF
+regression remain the acceptance evidence.
+
+## FinalScene 3D operator dimension guides (#2517)
+
+`manufacturing_api.project_operator_dimension_guides(x_profile, y_profile,
+*, triangles=(), thickness=None)` returns a frozen
+`OperatorDimensionGuidePlan` with three width strokes, three height strokes,
+and their two label positions. The existing Engine Fold material base section
+is a fallback only when no resolved formed 3D surface is available. Actual
+formed physical mesh uses `folded_outside_envelope` as the shared outside
+dimension authority; invalid mesh data fails closed. WHD GUI only draws
+Engine-provided world positions and formats the already-resolved W/H values.
+Legacy 5.5% line offset / 1.2% tick are visualization spacing, not a new
+manufacturing compensation or authorization.
+
+## FinalScene Joint-local 3D solver diagnostic display source (#2517)
+
+`manufacturing_api.project_joint_diagnostic_display_sources(render_data)`
+returns frozen `JointDiagnosticOverlaySource` rows derived exclusively from
+existing resolved Joint-local diagnostic segments and selected Joint ID.
+Each row keeps four read-only world line groups (contact, penetration,
+preserve and relief), plus an optional verified direction origin/vector.
+Invalid/non-finite geometric segments are excluded; no solver, registry
+certification, new Joint relief or DXF manufacturing grant occurs. GUI merely
+paints these validated 3D source rows with existing role colours.
+
+## Canonical multi-Door peer 2D source readback (#2517)
+
+`manufacturing_api.project_operator_door_layout_peer_cells(cells,
+render_data_by_part_key)` returns frozen `DoorLayoutPeerCell` rows with
+canonical `door_cN_rM` source identity, existing material-scene pair and
+physical unfolded bounds. The GUI draws present rows or leaves missing/empty
+peers hidden; it does not choose physical source owners, compute peer bounds
+or recreate an uncommitted Door. Duplicate/invalid grid identity and
+invalid/non-finite physical bounds fail closed. Legacy local operator preview
+is unchanged when no peer resolved-source mapping was supplied.
+The existing 1e-9 viewport floor is DISPLAY only; no geometry, DXF, or
+manufacturing approval is derived from it.
+
+## Joint contact MARKING world source display API (#2517)
+
+`manufacturing_api.project_joint_marking_world_segments(render_data)`
+returns the existing resolved source-labelled `JOINT_PLACEMENT_MARKING`
+world-point pairs from FinalScene metadata. The GUI only renders these 3D
+segments; the Engine ignores non-Joint rows, missing 3D points and malformed
+source rows. No flat-to-3D guessing, Fold recomputation or new contact
+certification is performed. This read-only view API works for Vault and
+Receiving and does not confer manufacturing/DXF approval.
+
+## Receiving assembled EAR/PAD source-gated 3D trial skins (#2517)
+
+`manufacturing_api.project_receiving_assembly_trial_world_skin_meshes(*,
+formed_fixing_plate_skins=(), formed_nfb_pad_skins=(),
+show_fixing_plate_mesh=True)` returns immutable
+`ReceivingAssemblyTrialSkinMesh(role, part_id, world_triangles)` results from
+existing verified formed real-world EAR T2/BEND23 and committed NFB PAD skin
+sources. It preserves legacy fail-closed gate codes for unverified folds,
+missing physical meshes, forged weld/manufacturing approvals and PAD source
+square defects. Hidden EAR mesh does not suppress independent PAD display or
+SIDE positioning MARKING. The GUI paints the resulting triangles; no GUI
+source flag/physical mesh decision remains in the assembled trial path.
+
+These are DISPLAY ONLY and do not authorize welding, PAD/EAR manufacturing,
+DXF, CUTTING, certification or a new FinalScene production part.
+
+## Receiving EAR assembled SIDE positioning world segments (#2517)
+
+`manufacturing_api.project_receiving_ear_side_marking_segments(formed_ear_skins,
+*, visible_side_piece_keys=None)` exposes read-only 3D positioning strokes
+from the actual submitted Receiving EAR folded T2/BEND23 world skins.
+The Engine validates two/four unique physical EAR owners and every source
+skin before selecting visible physical Box Body sides; outputs an immutable
+tuple of three world-space segments per visible EAR (one base-lower
+installation line and two 20-mm short visual fold hints).
+Empty sources or hidden sides return an empty tuple. Invalid sources fail
+closed. The GUI only paints these verified segments.
+
+This is DISPLAY ONLY; it does not create side UV MARKING or approve welding,
+manufacturing, NFB, CUTTING, DXF or additional bend compensation.
+
+## Receiving settings physical world XY outline API (#2517)
+
+`manufacturing_api.project_solid_mesh_xy_outline(triangles)` consumes an already-resolved solid 3D mesh, uses Engine's canonical physical feature-edge extractor and returns deterministic world XY line pairs (five decimal places, duplicate / zero-length edges omitted). This is a headless, read-only 2D inspection projection; the WHD GUI owns only canvas rendering and selection. It does not create, validate or certify CUTTING, BEND, DXF, NFB, EAR or PAD manufacturing data. Legacy GUI assembly mesh orchestration is a separate #2517 migration.
+
+## Box Body physical multipart outside-width datum Engine API (#2517)
+
+`manufacturing_api.resolve_box_body_formed_width_datum(pieces)` validates
+the actual canonical `formed_w_end` source of Box Body multipart physical
+skins before any FinalScene viewer uses or assembles a world mesh. Complete
+placeholder-only previews return `None`; real positive outside-W pieces
+are accepted; a zero-W-origin Receiving left SIDE is accepted only when
+both authoritative `formed_w_start == 0` and `formed_outer_width > 0`
+are present and finite. An incomplete or forged width/role source fails
+closed with the original diagnostic errors. GUI only forwards resolved
+Engine piece DTOs; no physical 3D mesh, manufacturing material, 2D CUTTING
+or DXF is newly synthesized or certified.
+
+### #2517 Confirmed Receiving multi-Door layout → verified Engine DXF
+
+`ManufacturingResolvedBayInput(family="受電箱", source=..., confirmed_parts=(("door_c1_r1", DoorPartSpec(...)), ...), door_layout_columns=((width, (height, ...)), ...))` extends the same `export_verified_resolved_integration_bays` API without a new exporter. The existing Engine `door_part_projections` validates the complete physical Door grid, W/H, T/FW/gap and FrameEdges, and compares BoxBody W/H when supplied. Reject incomplete or drifted layout before DXF output. Existing single-Door, Factory/Registry, verified staged Save→Reload and source-only refusal are unchanged.
+
+## #2517 Receiving operator projections (Engine API, 2026-11-02)
+
+`manufacturing_api.receiving_default_box_dimensions()` returns a fresh W/H/D mapping from the registered Receiving Family defaults. `manufacturing_api.receiving_default_preview_dimensions(snapshot)` returns a W/H/D tuple for the current quantity or Set/Bay settings mode; it never manufactures geometry. `manufacturing_api.receiving_family_supports_back_panel_mode(snapshot)` resolves the registered Receiving Family (including its aliases). `manufacturing_api.receiving_back_panel_mode_control_applicable(snapshot, structure_state)` additionally requires the existing three-piece side/back split structure. The Receiving GUI consumes these APIs without importing the private Family policy or mutable defaults; Vault and source-only external manufacturing permissions are unchanged.
+
+## #2517 Engine-owned Quantity manufacturing replay (2026-11-02)
+
+`manufacturing_api.build_operator_quantity_manufacturing_requests(base_request, workspace_snapshot)` replays saved Quantity versions with canonical EndCap Features and source fingerprints. `manufacturing_api.resolve_operator_quantity_manufacturing_batch(base_request, workspace_snapshot, resolve_request=...)` derives the same physical BOM plus committed Receiving PAD evidence using the existing geometry resolver, without inventing an exporter. The two old `phase6_quantity_manufacturing` functions are compatibility routes. A registered Receiving alias is resolved by the Engine Family policy, including mixed/lowercase selector values. This read-only/verified request path is not source-only CLI manufacturing certification.
+
+### #2517 Receiving BasePlate canonical aliases and existing verified batch DXF
+
+`cabinet_types.policy.base_plate_requires_explicit_bend_pattern(model_name)` now determines Receiving status consistently through `manufacturing_api.generate_part`, `build_part_scene` and `build_part_render_data`. Known Receiving aliases including lower/mixed-case must use a confirmed pattern, and missing pattern remains nonmanufacturable. `ManufacturingResolvedBayInput.confirmed_parts=(("base_plate", BasePlatePartSpec(...)),)` permits only an expressly authored ordinary LEFT_FLAT_SIDE / RIGHT_FLAT_SIDE source with no NFB-tier/paired depth ownership, using the existing `export_verified_resolved_integration_bays` staged DXF and two source guards; CENTER/NFB/PAD/EAR need separate qualified evidence. This does not enable source-only CLI export or certify a complete assembly.
+
+### #2517 CADCraft manual-return Engine API (2026-11-02)
+
+Disposable WHD→CADCraft R2010/mm proof, original immutable source-prefix, candidate circle/closed profile validation, physical surface collision, new-hole import and empty original exchange checks are now Engine-owned under `ae_engine.cadcraft_exchange_proof` and `ae_engine.cadcraft_manual_return`. Public `manufacturing_api.verify_cadcraft_manual_ticket_seed(path, originals, surface, width, height)` checks issue provenance; `project_cadcraft_manual_return_changes(output, original, surface, width, height)` returns (verified candidate features, moves, additions) without changing a saved Project; `cadcraft_new_hole_from_entity` and `cadcraft_feature_footprint_polygon` preserve the existing coordinate and shape contract. GUI and tools retain compatibility routes. A CADCraft exchange is never a trusted manufacturing DXF.
+
+### #2517 verified CADCraft candidate-stage Engine API (2026-11-02)
+
+`manufacturing_api.verify_cadcraft_verified_candidate_stage(output, whd_candidates, existing_features, surface, width, height)` verifies the originally WHD-authored finished-face Features, physical boundary/intersection, isolated CADCraft mm DXF entities and bounded file SHA256 before any Phase6 Session preview. It returns the audited SHA; the old `stage_verified_cadcraft_drawing` GUI facade exclusively controls the original Session Preview/Confirm/Cancel/Undo. This is not a manufacturing DXF or source-only certification.
+
+### #2517 physical navigation provenance: BasePlate / NFB tier / PAD / EAR
+
+Use the existing `manufacturing_api.project_operator_base_navigation_identity(snapshot, source_parts)` to determine source-owned Receiving root versus actual submitted two-tier NFB physical identity; `project_operator_multidoor_base_plate_dimensions(snapshot)` projects Vault Door-cell bottom plates without manufacturing a Receiving per-Door phantom; `project_operator_receiving_auxiliary_navigation(snapshot, available_parts=..., source_part_features=..., live_features=...)` returns Engine-sourced fixing-plate, NFB tier and PAD 2D navigation Fold profiles. GUI applies these immutable operator-source projections to the existing workspace navigation. Display-only profiles are not CUTTING, MFG-2 or external source-only certification.
+
+### #2517 registered Receiving alias parity for BasePlate / EAR / PAD source projections
+
+`receiving_base_plate_values`, `receiving_base_fixing_plate_previews` and `committed_nfb_pad_draft_parts` now use the same `cabinet_types.policy.canonical_family_name` capability as the public Engine manufacturing API; case/whitespace aliases are not a second source of truth. All existing typed NFB CSV, Bay ownership, physical bend-pattern and staged DXF constraints continue to apply. This read-only/provenance consistency does not release NFB MFG-2, PAD/EAR welding or source-only external exports.
+
+### #2517 Receiving Set/Bay GUI transactions through existing Engine API
+
+`ReceivingSetBayAdapter` calls public `manufacturing_api` for Set/Bay/Joint state transitions, shared setting edit/share/unlink, brand policy and all NFB atomic submit/copy/restore/optimistic Undo transactions, as well as stable ID and readiness projections. Existing Engine receiving_layout/receiving_shared_settings/receiving_nfb_transactions implementations remain the single source of business authority; GUI only owns selection, explicit operator confirmation and temporary dirty/Undo tracking. Source-only and NFB manufacturing approvals are unchanged.
+
+### #2517 Receiving physical Bay preview provenance Engine API
+
+`project_receiving_bay_preview_fingerprint_snapshot(snapshot, set_index, bay_index, allow_upstream_translation=False, allow_suffix_topology_reuse=False)` selects only independent operator display cache-key inputs. `project_receiving_bay_preview_face_features_key` ignores exactly the temporary side-lock aliases that the canonical Bay solver replaces. `receiving_default_local_joints_only` rejects custom/cross-Bay Joint authority. `plan_receiving_bay_preview_offset_rebase(parts, old_anchor, new_anchor)` proposes translations of immutable rendered part placements only; GUI validates the supported phase6 FinalScene envelope before applying them. None of these authorizes material or MFG DXF. Unknown dependencies trigger full canonical resolve.
+
+### #2517 Receiving physical 2D BasePlate / PAD / EAR public Engine source API
+
+`resolve_operator_receiving_base_2d_source(key, payload, current_snapshot, cached_geometry=None, resolve_geometry=None)` returns canonical committed BasePlate or NFB tier RenderData, and refuses unsupported/unsubmitted physical child IDs. `resolve_operator_receiving_pad_2d_source(key, snapshot)` accepts only current submitted V5 PAD with the original nonmanufacturing role. `resolve_operator_receiving_fixing_2d_source(key, payload, live_snapshot=None)` checks the selected Set/Bay's W/H/D, Door/NFB identity, then returns original fixing EAR 2D geometry. GUI receives source render data only; the existing canonical Engine FinalScene and export Gate still decide real manufacturing authorization.
+
+### #2517 Receiving source-witnessed raw Panel/Frame/Divider cache API
+
+Use `manufacturing_api.receiving_raw_source_cache_kind(part_key, payload)` to limit the physical candidate to a registered Receiving Bay. `project_receiving_raw_source_cache_ticket(part_key, payload, typed_part=...)` creates an Engine-derived immutable panel key, exact source-bound A/B/D frame witness, or *two-baseline* Divider witness. `receiving_raw_source_cache_entry_valid(ticket, material)` confirms unchanged source parser/fingerprint/byte SHA and original Factory metadata. Missing/unverified source, changed Feature or unsupported DTO always runs the existing canonical Factory. GUI's bounded preview LRU is a nonmanufacturing optimization, not approval for CUTTING or external DXF.
+
+### #2517 Receiving physical Bay EndCap Hole Editor Engine context
+
+`manufacturing_api.project_receiving_endcap_hole_editor_context(snapshot, layout, set_index=..., bay_index=..., role="head"|"tail")` returns the canonical selected Bay's finished-face FeatureSurface, original physical W/D, RectGuide and independent Shared Settings Hole Features. GUI uses these exact fields to open the existing reversible Hole Editor and only commits verified edited source through the existing multi-Bay share/unlink and Save→Reload transactions. Non-Receiving, invalid role or Set/Bay owner is rejected; no external source-only or manufacturing certificate is granted.
+
+
+### #2517 Fold Designer operator baseline source preflight uses public Engine API
+
+`manufacturing_api.require_verified_operator_baseline_sources(model_name)` preserves the
+existing Vault/Receiving Fold Designer export preflight for `箱身.dxf`,
+`封頭尾.dxf`, and `門.dxf`. The Engine alone resolves present source paths
+and requires `VERIFIED` parsing with no last-known-good fallback. An unset
+operator model or genuinely absent optional source retains its legacy behavior;
+a corrupt or unverified present DXF still prevents export. The GUI forwards
+only the chosen model. This preflight is not standalone manufacturing
+authorization; all existing FinalScene/Factory/Registry/Save→Reload gates remain.
+
+
+### #2517 Operator exact raw PartRenderData cache-source plan
+
+`manufacturing_api.plan_operator_raw_material_reuse(spec, snapshot, context=...)`
+returns `OperatorRawMaterialReusePlan(eligible, source_stamp)`. Only original
+Receiving Set/Bay raw BoxBody or not-yet-relieved EndCap can reuse exact typed
+material between witnessed W/H/D edits. Engine decides Family, physical
+multipart structure, required baseline files and mandatory original
+`封頭尾.dxf` witness. GUI only maintains its original bounded LRU and
+invalidates on changed source witness. A missing or changed source never
+releases manufacturing or allows reuse; final Joint/assembly solve, CUTTING
+DXF verification and all Factory/Registry gates always run normally.
+
+
+### #2517 Fold Designer authoritative physical PartSpec rendering
+
+`manufacturing_api.build_operator_part_render_data(spec, context=None)` owns
+the original integral-vs-multipart BoxBody manufacturing render dispatch.
+Given the same typed `PartSpec` and `ManufacturingContext`, Engine chooses
+`build_box_body_structure_render_data` for an active multipart BoxBody or
+`build_part_render_data` for integral BoxBody and other physical parts.
+Fold Designer only invokes the one public API and caches its returned
+canonical FinalScene / physical-sheet result. This selection adds no new
+Family rule, geometry formula, DXF certification, or fallback; existing
+Save→Reload and manufacturing acceptance gates are unchanged.
+
+
+### #2517 Physical-sheet 2D Features and Receiving inner-door preview cache
+
+`manufacturing_api.with_physical_sheet_features(part_key, render, features)`
+preserves the one existing Engine feature placement/FinalScene material
+transformation for physical PAD, fixing plate, Divider and inner-door frame;
+the GUI no longer imports its lower-level feature implementation.
+
+`manufacturing_api.project_operator_inner_door_panel_preview_cache_signature(snapshot, panel, features)`
+returns the same deterministic source-free panel/Feature fingerprint used by
+the Engine raw-source ticket, or `None` for invalid Family, Set/Bay mode,
+physical panel identity or unsupported Feature input. The GUI only stores
+bounded cached raw preview material. Neither API bypasses original canonical
+manufacturing, DXF reopening, source verification or certificate gates.
+
+
+### #2517 BoxBody operator Settings physical projection and lock API
+
+`manufacturing_api.project_operator_box_body_structure_settings(state, total_w, snapshot=...)` returns the existing four-topology operator Settings projection of real physical piece IDs, W split widths, Receiving rear-fold outside datums and relief values, using canonical Engine state and Family policy. Invalid saved width contradictions fail closed. `operator_toggle_box_body_structure_lock(state)` uses persisted boolean normalization (including historical string `"false"`) before toggling without mutating input. GUI delegates the existing public Engine W activate/reconcile functions and no longer computes physical Settings readback. No additional manufacturing/DXF certification is implied.
+
+
+### #2517 Operator Settings physical W/H/D commit and external boolean sync
+
+`manufacturing_api.normalize_operator_settings_boolean(raw)`, `normalize_operator_settings_updates(settings_values, updates, external_apply_guard=False)` and `commit_operator_settings_state(settings_values, input_snapshot, box_whd, values)` are canonical headless Engine APIs for operator Settings physical dimensions and typed booleans. W/H/D must be positive finite numbers, remain fractional when supplied, and be committed identically across saved Snapshot, settings and box_whd; they are never processed by Fold Editor display-only `round(abs())`. Serialized `"false"` is false; malformed explicit booleans or dimensions fail closed rather than altering manufactured geometry. The GUI continues to normalize `ui_text_size` as a visual choice only. This API does not authorize new DXF output or release.
+
+
+### #2517 Fold Designer Snapshot Indicator and physical-dimension strict readback
+
+`manufacturing_api.normalize_fold_designer_indicator_groups(values)` checks positive integral group sources, rejecting invalid booleans, fractions and empty lists; `manufacturing_api.project_fold_designer_snapshot_dimensions(snapshot, groups)` no longer substitutes invalid enabled groups or corrupted manufacturing policy with a fabricated default `(1,)` and does not clamp nonphysical Door/BasePlate W/H to 1 mm. The GUI `_snapshot_part_dimensions` validates BOTH enabled Indicator Box and main Door lamp sources before writing any snapshot fields, so invalid enabled inputs fail closed instead of erasing required apertures. Disabled Indicator Box controls retain the old UI-only one-layer size seed. No new certified export is implied.
+
+
+### #2517 Fold Designer source input readback fail-closed
+
+`manufacturing_api.normalize_operator_source_dimension(value, field=...)` and `normalize_operator_source_dimensions(snapshot)` are canonical Engine validation for operator enclosure W/H/D, sheet thickness T and frame width FW before saving Fold Designer projects. Invalid UI control sources cannot silently become factory AE defaults; the GUI revalidates any applied settings overlay and keeps Snapshot and embedded Settings physically identical, preserving fractional mm values. Nonphysical legacy GUI defaults and official manufacturing/DXF certification remain unchanged.
+
+
+### #2517 Live Indicator 2D source parity with Engine snapshot groups
+
+`gui_modules.application.render_snapshots` uses the existing public `manufacturing_api.normalize_fold_designer_indicator_groups` for layer count and group values in Indicator Box, Indicator Small Door, and both enabled sources of the main Door live 2D previews. No `max(1,int(...))` UI reinterpretation: malformed, unavailable, boolean, zero, fractional and negative counts fail before any physical part spec. Disabled main-Door indicators retain their established NONE/empty semantics. This preserves identical Engine group validation for live preview versus saved project and does not change DXF certification.
+
+
+### #2517 Canonical live BoxBody 2D face dimension source
+
+`manufacturing_api.project_operator_box_body_face_dimensions(w=..., h=..., d=...)` uses strict Engine operator source validation and returns the unmodified core physical face map `{left:(D,H),back:(W,H),right:(D,H)}`. The GUI renderer no longer imports private Engine sheetmetal geometry. Receiving physical SIDE remains on its canonical FinalScene branch; no new DXF certification.
+
+## #2517 CustomFold Part Session / Hole Editor public Engine seam (2026-11-02)
+
+`manufacturing_api.project_operator_custom_fold_save_profiles(snapshot, part_id, profiles)` returns detached X/Y saved profiles after the canonical CustomFold descriptor, thickness, physical single-axis and flat-span checks. It delegates the actual adjacent-BEND × T formed-length annotation to the existing Engine fold owner. GUI must not choose the manufacturing fold axis or mutate the source profiles. `manufacturing_api.custom_fold_feature_context(spec)` re-exports the same Engine feature plane used by CustomFold FinalScene/DXF; `custom_part_spec` remains the manufacturing request contract. Tested X/Y, Vault/Receiving, invalid input, physical DXF Save→Reload. This does not certify missing assemblies or the source-only external CLI.
+
+## #2517 Primary Receiving BasePlate / BoxBody 2D source route (2026-11-03)
+
+`manufacturing_api.uses_operator_receiving_committed_2d_source(snapshot)` is a source-routing predicate that resolves model aliases using the same registered Family owner as manufacturing. For a Receiving source the GUI must pass already committed geometry to the existing public `project_receiving_base_plate_2d_snapshot` / `project_receiving_box_body_2d_source` APIs; a missing live resolver is a hard error, never an implicit legacy panel fallback. The predicate neither manufactures a sheet nor certifies NFB/EAR or external CLI export. Vault/unregistered project models retain their previous presentation path.
+
+## #2517 Fold Designer multi-door Indicator / CustomFold manufacturing request (2026-11-03)
+
+Use `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)` on the saved *raw* per-cell Indicator state before any PartSpec, not GUI compatibility normalization: the existing Engine live-Indicator contract checks active layer counts, group counts and offsets, while disabled cells remain plain doors. Explicit legacy mode flags select only mode, not missing physical geometry. `manufacturing_api.custom_part_spec` is the same headless CustomFold PartSpec used by the GUI payload and independent DXF export, including Family aliases and canonical X/Y fold data. No second exporter, no external source-only CLI authorization.
+
+## #2517 Receiving explicit BasePlate source across snapshot / Settings / Save→Reload (2026-11-03)
+
+`manufacturing_api.project_operator_receiving_base_plate_snapshot_source(operator_snapshot, persisted)` returns only a detached, explicitly present `receiving_base_plate` source for a Family Registry-identified Receiving project; absent input remains absent and a deliberate reset remains null. GUI must never infer physical plate variants from a DXF sketch or its own string checks. `validate_receiving_base_plate_settings` now checks the same Family Registry and retains its original material/EAR geometry validation. This is Project source persistence, not DXF release or external Worker certification.
+
+## #2517 Door-cell Indicator snapshot source must use Engine's manufacturing validator (2026-11-03)
+
+Use `manufacturing_api.project_operator_door_layout_indicator_snapshot_states(per_cell_inputs)` when producing a Fold Designer project snapshot. It delegates every active cell to the existing Engine manufacturing/Hole Editor validation, retains detached `mode/enabled/box_enabled` legacy view fields, and rejects missing or bad physical groups/layers/offsets before saving. GUI's legacy presentation `normalize_door_indicator_state` may display repaired controls but cannot authorize saved manufacturing source. A disabled cell creates no holes; no external Worker capability or manufacturing release is implied.
+
+### #2517 BoxBody face baseline preview (2026-11-03)
+
+Use manufacturing_api.project_operator_box_body_baseline_face_features(model_name, values, head_corner_policy=..., tail_corner_policy=..., cache=optional_view_cache) to read the existing baseline file's left/back/right editor Features from Engine, or three empty face lists if no known source. The source fingerprint and mapping remain Engine-owned; this preview projection does not certify DXF export. GUI shows the label using manufacturing_api.operator_box_body_baseline_source_label(model_name). Same physical BoxBody manufacturing API remains unchanged.
+
+### #2517 BoxBody face Hole Editor physical geometry (2026-11-03)
+
+manufacturing_api.project_operator_hole_editor_box_body_face(face_key, values, head_corner_policy=..., tail_corner_policy=..., baseline_scene=..., baseline_status=...) returns OperatorHoleEditorGeometry (surface, width, height, reference_guide, baseline_scene/status). This is the canonical Engine source for an editable left/back/right physical face boundary; GUI must not reconstruct the T and Corner vertical offsets. Read-only editor preview; actual manufacturing remains canonical FinalScene and verified DXF. Main GUI BoxBody snapshot uses project_operator_box_body_face_dimensions.
+
+### #2517 Shared EndCap finished-face Hole Editor API (2026-11-03)
+
+`manufacturing_api.project_operator_hole_editor_endcap(role, *, width, depth, thickness)` is the headless read-only projection for Head/Tail editable face geometry across native GUI, Receiving selected Bay and unassigned candidate-version editor. Inputs are real source W/D/T; positive finite non-bool validation precedes any geometry. Returns `OperatorHoleEditorGeometry` (surface, width, height=depth, reference_guide); it does not authorize export or produce a PartSpec. Existing Receiving `project_receiving_endcap_hole_editor_context` reuses this projection while separately selecting the active Set/Bay source and features. Main GUI legacy Feature codec continues via public `manufacturing_api.legacy_hole_to_feature` / `feature_to_legacy_hole`. Actual DXF certification remains on the established FinalScene exporter.
+
+### #2517 Main GUI physical dimensions / Fold Designer legacy operator defaults (2026-11-03)
+
+`manufacturing_api.normalize_operator_source_dimension(raw, field="fw"|"t")` is mandatory for actual GUI original-snapshot dimensions; missing/invalid inputs fail closed, never silently become AE manufacturing defaults. `manufacturing_api.resolve_fold_designer_legacy_numeric_settings(saved_payload, part_name="box_body"|"head"|"tail"|"door"|"indicator_door")` resolves only optional legacy Gap/Fold operator values, with historical AE defaults **only for absent keys** and strict finite/non-bool validation for present keys. `fold_designer_legacy_source_default("d"|"t")` is only the original unconfirmed Divider/InnerDoor compatibility port, not a certified physical dimensions fallback. Actual PartSpec/FinalScene and DXF validation authority remains unchanged.
+
+### #2517 Receiving inner-door inward offset and finished display API (2026-11-03)
+
+Use `manufacturing_api.normalize_operator_receiving_inner_door_inward_offset(raw)` for confirmed operator physical inward mm (finite, nonboolean, nonnegative, including 0). `resolve_operator_receiving_inner_door_inward_offset(family_source, saved_item)` uses Family Policy default only when the saved field is absent. `project_operator_receiving_inner_door_enabled_source(family_source, cell_key, existing=...)` preserves actual Door physical identity/Frame sides and returns a detached source without mutating saved data; invalid present source never becomes manufactured 1mm. `resolve_operator_finished_dimensions(...)` and `project_operator_endcap_depth_comp_t(source)` route native GUI's existing 2D/3D dimension and Head/Tail Family sources through the PUBLIC headless Engine, without new geometry formulas or export authorization.
+
+### #2517 Fold Designer existing Engine-only seams (2026-11-03)
+
+The existing `manufacturing_api.formed_box_body_fw_widths` directly provides formed BoxBody FW offsets for EndCap PartSpecs. `manufacturing_api.require_valid_operator_quantity_features(snapshot)` is the public Receiving quantity hole-source guard before DXF. `manufacturing_api.is_unknown_operator_model(model)` retains legacy custom-model operator routing without GUI-private Engine imports. These are wrappers over existing authoritative Engine implementations, not new manufacturing logic or production certifications.
+
+
+## #2517 原生 NFB 數值 CSV → 實體 Bay 候選來源（2026-11-06）
+
+公開 `manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay(layout, *, set_index, bay_index, thickness_mm, layers, models, layer_heights_mm=None)`：對經 WHD 驗證且已確認廠牌／門拓樸的**新建**實體 Receiving Bay，以既有 Engine `fresh_receiving_mode` 建立內門、`project_receiving_bay_legacy_aliases` 綁定同一真實 Set/Bay，並由 `editor_nfb_features_from_csv` 直接讀取當前該廠牌 `NFB數值規格.csv` 產生合法 `NFB_CSV_SOURCE` ProfileFeature。沒有先前的 NFB DXF 或已保存的 `NFB_CSV_SOURCE` 也能建立候選。**不**由圖塊／型號猜廠牌或 X、不填補不完整數值、不覆寫已提交 Bay；非預設門拓樸須已有內門身份。候選僅為原生編輯器初始位置（`placement=native_editor_initial`），`manual_x_mm=None`／`UNVERIFIED_BASIS`。既有 `apply_receiving_nfb_csv_candidate` 可提交此**來源**，但須經獨立操作確認／實體 X／FinalScene 及正式 DXF Save→Reload Gate 才能製造；與 `export_receiving_committed_nfb_csv_bays` 的已確認請求不可混為一談。
+
+
+### #2517 NFB CSV-only first-candidate X is preview-only (2026-11-06)
+
+The public candidate_receiving_nfb_csv_for_fresh_bay may create a legitimate NFB_CSV_SOURCE from the current WHD numeric CSV on a real Receiving Bay without an older DXF/Feature. Its generated opening features carry source_params.placement=native_editor_initial AND source_params.fresh_bay_auto_unconfirmed=True. Even after apply_receiving_nfb_csv_candidate persists typed source with matching CSV SHA, the latter flag marks a machine-generated *unconfirmed* source: the extractor _source_world_x_from_committed_editor_feature returns None; manual_x_state=UNVERIFIED_BASIS/manual_x_mm=None cannot become production world X, and export_current_csv_nfb_pair_from_request must reject that sole source without writing DXF. Do **not** block every placement=native_editor_initial: WHD's original Hole Editor Confirm All is an explicit operator-confirmed source path which may retain the original visual-start marker without fresh_bay_auto_unconfirmed; its existing source-contour/Y/model/physical-owner verification and canonical FinalScene/2D/3D/DXF production remain valid. Independently confirmed current Engine datum X is also unaffected. No new NFB source DXF is needed for model opening geometry.
+
+
+### #2517 Explicit Engine-default NFB X acceptance and real paired batch DXF (2026-11-06)
+
+**Two separate operations**: candidate_receiving_nfb_csv_for_fresh_bay(...) returns draft NFB_CSV_SOURCE with fresh_bay_auto_unconfirmed=True, and apply_receiving_nfb_csv_candidate(...) persists *source only* without authorizing X. When the operator specifically approves **all current WHD default positions** on that Bay, call manufacturing_api.approve_receiving_nfb_csv_default_x(layout, *, set_index, bay_index, thickness_mm, source, confirmation="ACCEPT_CURRENT_WHD_NFB_DEFAULT_X") on the **not-yet-committed** real Engine Bay. It regenerates the candidate from current numeric CSV, validates exact source geometry, brand, door topology and stable Bay identity, persists the Engine's physical upper Door identity and applies one detached transaction. Result: (committed_layout, approved_source) with fresh_bay_default_x_confirmed=True; tampered/expired candidates or nonexplicit consent fail closed. No per-hole manual X is required, but an unconfirmed *preview* never becomes manufacturing proof.
+
+For a genuinely submitted Bay, manufacturing_api.receiving_committed_nfb_pair_request_for_bay(layout, *, set_index, bay_index, thickness_mm) reprojects the actual Engine inner Door, source NFB and original BasePlate to the same ManufacturingResolveRequest accepted by the existing export_current_csv_nfb_pair_from_request. Batch N verified requests using export_receiving_committed_nfb_csv_bays(..., pre_commit_guard=...) with atomic DXF Save→Reload and source revision rechecks. No CADSplit or GUI PartSpec/FinalScene/transform math, and no full-cabinet certification. 

@@ -205,6 +205,35 @@ def setting_value(set_row, bay_index, kind):
     return deepcopy(row["values"][row["refs"][bay["stable_id"]]])
 
 
+
+# Distinguish a caller's explicit None (legacy height source) from no UI preview.
+_RECEIVING_SHARED_PREVIEW_UNSET = object()
+
+
+def project_receiving_shared_setting_group(
+    set_row, bay_index, kind, *, preview_value=_RECEIVING_SHARED_PREVIEW_UNSET,
+):
+    """Read-only one physical Bay value and the actual Bays with equal values.
+
+    Only Engine owns saved shared-setting references and typed source values.
+    GUI may request a prospective operator value solely for highlighting;
+    no source/linked reference is changed or certified by this projection.
+    Returns a detached value and zero-based physical Bay indices.
+    """
+    if not isinstance(set_row, Mapping) or not isinstance(
+        set_row.get("bays"), (list, tuple)
+    ):
+        raise ValueError("每連設定來源不合法")
+    value = setting_value(set_row, bay_index, kind)
+    if preview_value is not _RECEIVING_SHARED_PREVIEW_UNSET:
+        value = validate_setting(kind, preview_value)
+    matching = tuple(
+        index for index in range(len(set_row["bays"]))
+        if setting_value(set_row, index, kind) == value
+    )
+    return value, matching
+
+
 def edit_setting(layout, *, set_index, bay_index, kind, value):
     from ae_engine.receiving_layout import normalize_receiving_layout
     result = normalize_receiving_layout(layout)
@@ -216,6 +245,71 @@ def edit_setting(layout, *, set_index, bay_index, kind, value):
     bay_id = selected["bays"][bay_index]["stable_id"]
     row["values"][row["refs"][bay_id]] = validate_setting(kind, value)
     return normalize_receiving_layout(result)
+
+
+
+def edit_setting_for_bays(layout, *, set_index, bay_indices, kind, value):
+    """Atomically edit one shared Setting on explicit physical Bay selections.
+
+    Multi-Bay GUI Apply used to call edit_setting() once per Bay, mutating the
+    adapter after each success. A later invalid Bay could leave an earlier
+    Bay edited even when the operator's one Apply was rejected. Validate the
+    entire selection and value before altering a detached layout; normalize
+    and commit the entire Set only once. Linked Bays still share the same ref.
+    """
+    from .receiving_layout import normalize_receiving_layout
+
+    candidate = normalize_receiving_layout(layout)
+    _require_valid_index(set_index, len(candidate["sets"]), "組選取超出範圍")
+    row = candidate["sets"][set_index]
+    try:
+        indices = tuple(bay_indices)
+    except TypeError as exc:
+        raise IndexError("連選取超出範圍") from exc
+    bay_count = len(row["bays"])
+    if not indices:
+        raise ValueError("請選擇至少一個實體 Bay")
+    for index in indices:
+        _require_valid_index(index, bay_count, "連選取超出範圍")
+    if len(set(indices)) != len(indices):
+        raise ValueError("連選取不可重複")
+
+    verified_value = validate_setting(kind, value)
+    row["settings"] = normalize_set_settings(row.get("settings"), row["bays"])
+    setting = row["settings"][kind]
+    for index in indices:
+        stable_id = row["bays"][index]["stable_id"]
+        ref = setting["refs"][stable_id]
+        setting["values"][ref] = deepcopy(verified_value)
+    return normalize_receiving_layout(candidate)
+
+
+
+def edit_setting_for_bays_with_affected_ids(
+    layout, *, set_index, bay_indices, kind, value,
+):
+    """Apply a shared setting and return every affected physical Bay ID.
+
+    A selected Bay may share its reference with an unselected sibling. Dirty
+    tracking therefore follows the *validated canonical references*, not
+    equality of values (which can span independent setting references).
+    Caller-owned layout remains unchanged on success or rejection.
+    """
+    try:
+        indices = tuple(bay_indices)
+    except TypeError:
+        indices = bay_indices  # The original transaction rejects malformed input.
+    candidate = edit_setting_for_bays(
+        layout, set_index=set_index, bay_indices=indices, kind=kind, value=value,
+    )
+    row = candidate["sets"][set_index]
+    refs = row["settings"][kind]["refs"]
+    edited_refs = {refs[row["bays"][index]["stable_id"]] for index in indices}
+    affected_ids = tuple(
+        bay["stable_id"] for bay in row["bays"]
+        if refs[bay["stable_id"]] in edited_refs
+    )
+    return candidate, affected_ids
 
 
 def share_setting(layout, *, set_index, bay_indices, kind, source_bay_index):
@@ -243,6 +337,67 @@ def share_setting(layout, *, set_index, bay_indices, kind, source_bay_index):
     for index in indices:
         row["refs"][selected["bays"][index]["stable_id"]] = ref
     return normalize_receiving_layout(result)
+
+
+
+def share_setting_with_affected_ids(
+    layout, *, set_index, bay_indices, kind, source_bay_index,
+):
+    """Apply one physical Bay link transaction and return affected Bay IDs.
+
+    The selected source and every selected target must be protected as edited,
+    even when an existing value is equal: sharing replaces physical refs, not
+    simply a displayed setting. Validation is entirely delegated to the
+    existing atomic Engine share_setting() owner.
+    """
+    try:
+        indices = tuple(bay_indices)
+    except TypeError:
+        indices = bay_indices  # Engine rejects malformed selection.
+    candidate = share_setting(
+        layout, set_index=set_index, bay_indices=indices,
+        kind=kind, source_bay_index=source_bay_index,
+    )
+    chosen = set(indices)
+    affected_ids = tuple(
+        bay["stable_id"]
+        for index, bay in enumerate(candidate["sets"][set_index]["bays"])
+        if index in chosen
+    )
+    return candidate, affected_ids
+
+
+
+def share_and_edit_setting_with_affected_ids(
+    layout, *, set_index, bay_indices, source_bay_index, kind, value,
+):
+    """Commit Hole Editor link + feature Apply as one Engine transaction.
+
+    A rejected feature list must not leave an earlier shared-ref mutation
+    in the caller's Layout. A source ref may already link other unselected
+    Bays, so dirty identities include both selected links and every Bay
+    whose saved feature value changes through that ref.
+    """
+    # Validate the candidate feature before performing even a detached link.
+    verified_value = validate_setting(kind, value)
+    try:
+        indices = tuple(bay_indices)
+    except TypeError:
+        indices = bay_indices  # Existing Engine link transaction rejects it.
+    linked, linked_ids = share_setting_with_affected_ids(
+        layout, set_index=set_index, bay_indices=indices,
+        source_bay_index=source_bay_index, kind=kind,
+    )
+    candidate, edited_ids = edit_setting_for_bays_with_affected_ids(
+        linked, set_index=set_index, bay_indices=(source_bay_index,),
+        kind=kind, value=verified_value,
+    )
+    affected = set(linked_ids) | set(edited_ids)
+    affected_ids = tuple(
+        bay["stable_id"] for bay in candidate["sets"][set_index]["bays"]
+        if bay["stable_id"] in affected
+    )
+    return candidate, affected_ids
 
 
 def unlink_setting(layout, *, set_index, bay_index, kind):

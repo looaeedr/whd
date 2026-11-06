@@ -17,6 +17,7 @@ import time
 import sys
 from pathlib import Path
 from copy import deepcopy
+from collections.abc import Mapping
 from phase6_sync_envelope import stable_fingerprint
 from dataclasses import replace
 from tkinter import ttk
@@ -27,10 +28,8 @@ from gui_modules.runtime_error_log import install_tk_exception_logging, write_ru
 import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
-from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from ae_engine.cabinet_types import (
     policy as cabinet_family_policy,
-    registered_cabinet_types,
     resolve_cabinet_type,
 )
 
@@ -52,10 +51,8 @@ from ae_engine.sheetmetal_geometry import (
     EDITABLE_CORNER_TYPE_IDS,
     CORNER_TYPE_LABELS,
     normalize_corner_selection,
-    box_body_vertical_offsets,
 )
 from ae_engine.sheetmetal_features import (
-    box_body_face_dimensions,
     box_body_face_contexts_from_strip,
     resolve_box_body_face_features,
     CanvasTransform,
@@ -66,8 +63,6 @@ from ae_engine.sheetmetal_features import (
     legacy_hole_to_feature,
     resolve_door_indicator_features,
     resolve_door_indicator_layout,
-    measure_door_indicator_position,
-    door_indicator_offset_for_position,
     door_enclosure_reference_offsets,
     door_enclosure_reference_guide,
     resolve_features_in_finished_face,
@@ -91,9 +86,6 @@ from ae_engine.sheetmetal_features import (
     ResolvedProfile,
     resolve_endcap_features,
     endcap_feature_context_from_geometry,
-    feature_surface_from_rect,
-    feature_is_within_surface,
-    move_feature_within_surface,
     feature_surface_from_structural_result,
     feature_surface_from_outline,
     resolve_surface_features,
@@ -101,17 +93,14 @@ from ae_engine.sheetmetal_features import (
     REFERENCE_ANCHOR_LABELS,
     REFERENCE_ANCHOR_BY_LABEL,
     feature_reference_anchor,
-    feature_with_reference_anchor,
     feature_reference_point,
     reference_distances,
-    move_feature_by_reference_distance,
-    feature_with_process,
     circle_center_distance_from_gap,
     circle_gap_from_center_distance,
     align_circle_to_neighbor,
     generate_round_fill,
     generate_round_refill,
-    RectGuide,
+    RectGuide,  # Existing unified HoleEditor composition dependency.
 )
 
 
@@ -135,21 +124,27 @@ from ae_engine.sheetmetal_part_adapters import (
 )
 
 
+# Stable compatibility names consumed by HoleEditorCompositionDependencies.
+# Always pass public Engine geometry ownership into UI/session controllers.
+measure_door_indicator_position = manufacturing_api.project_operator_door_indicator_position
+feature_with_reference_anchor = manufacturing_api.operator_hole_feature_with_reference_anchor
+feature_with_process = manufacturing_api.operator_hole_feature_with_process
+move_feature_by_reference_distance = manufacturing_api.operator_hole_move_feature_by_reference_distance
+feature_is_within_surface = manufacturing_api.operator_hole_feature_is_within_surface
+move_feature_within_surface = manufacturing_api.operator_hole_move_feature_within_surface
+
 from ae_engine.corner_type_ui import (
     UNKNOWN_MODEL_NAME,
     CUSTOM_MODEL_NAME,
     CORNER_KEYS,
     CORNER_LABELS,
     CORNER_PAIR_CORNERS,
-    apply_manual_corner_selection,
     with_unknown_model,
     is_unknown_model,
     normalize_custom_model_name,
     new_manual_corner_pair_same_state,
     new_manual_corner_state,
-    known_model_corner_state,
     policy_from_corner_state,
-    set_manual_corner_pair_same,
     build_corner_type_preview_geometry,
     apply_box_assembly_type, assembly_type_from_corner_state,
 )
@@ -425,9 +420,6 @@ from phase6_endcap_semantics import (
     commit_box_fw, commit_endcap_fw,
     normalize_endcap_bottom_wrap_state, resolve_endcap_bottom_wrap,
 )
-from ae_engine.assembly_joint import (
-    migrate_legacy_snapshot_joints, sync_snapshot_intent_joints, ASSEMBLY_JOINT_SCHEMA_VERSION,
-)
 
 from phase6_settings_center import (
     GLOBAL_CONTEXT,
@@ -612,66 +604,42 @@ class Phase6ApplicationHost:
 
     @staticmethod
     def _baseline_model_choices():
-        """One visible selector owns both cabinet type and baseline model.
-
-        Registered implemented families are valid model choices even when they
-        intentionally have no baseline DXF folder (受電箱 phase 1).  Physical
-        baseline folders remain valid choices, and 自訂 stays last.
-        """
-        choices = []
-        seen = set()
-        physical_models = [normalize_custom_model_name(name) for name in ae.get_baseline_list()]
-        for name in physical_models:
-            name = normalize_custom_model_name(name)
-            if name and name not in seen and not is_unknown_model(name):
-                choices.append(name)
-                seen.add(name)
-        # Formula-only implemented families (currently 受電箱) must be visible
-        # in the same selector even without a baseline DXF directory.  金庫型
-        # remains resource-backed: do not invent it when its baseline is absent.
-        for item in registered_cabinet_types():
-            if not item.implemented:
-                continue
-            name = str(item.canonical_name or "").strip()
-            if name == "金庫型" and name not in seen:
-                continue
-            if name and name not in seen:
-                choices.append(name)
-                seen.add(name)
-        return with_unknown_model(choices)
+        """One shared Engine catalog for Vault, Receiving and Custom choices."""
+        return manufacturing_api.list_cabinet_model_choices()
 
     def _endcap_depth_comp_t_for_family(self, model_name=None):
         source = (
             Phase6ApplicationHost._current_cabinet_type_name(self)
             if model_name is None else model_name
         )
-        return cabinet_family_policy.endcap_depth_comp_t(source)
+        return manufacturing_api.project_operator_endcap_depth_comp_t(source)
 
     def _known_corner_state_for_current_family(self, parts):
-        return known_model_corner_state(
+        return manufacturing_api.operator_known_model_corner_state(
             parts, cabinet_family=Phase6ApplicationHost._current_cabinet_type_name(self)
         )
 
     def _enforce_known_model_corner_types(self, *, reset_all=False):
-        """Keep known-model CornerType fixed while allowing same-type parameter overrides."""
+        """Apply only the fully validated typed Engine/Registry corner draft."""
         model = str(self.baseline_var.get() if hasattr(self, "baseline_var") else "").strip()
-        if not model or is_unknown_model(model):
-            return
-        fixed = self._known_corner_state_for_current_family(self.manual_corner_state.keys())
-        for part_key, corners in fixed.items():
-            if part_key not in self.manual_corner_state:
-                continue
-            for corner_key, fixed_selection in corners.items():
-                current = normalize_corner_selection(self.manual_corner_state[part_key][corner_key])
-                if reset_all or current.type_id is not fixed_selection.type_id:
-                    self.manual_corner_state[part_key][corner_key] = fixed_selection
-            if reset_all and part_key in self.manual_corner_pair_same:
-                self.manual_corner_pair_same[part_key]["top"] = True
-                self.manual_corner_pair_same[part_key]["bottom"] = True
-
-
-
-
+        next_state, next_pairs = manufacturing_api.propose_operator_known_model_corner_draft(
+            self.manual_corner_state, self.manual_corner_pair_same,
+            baseline_model=model,
+            cabinet_family=Phase6ApplicationHost._current_cabinet_type_name(self),
+            reset_all=reset_all,
+        )
+        # Install only after Engine validates the entire candidate.
+        # Preserve original nested dicts used by live GUI subscribers.
+        for part_key, updated in next_state.items():
+            existing = self.manual_corner_state[part_key]
+            if existing != updated:
+                existing.clear()
+                existing.update(updated)
+        for part_key, updated in next_pairs.items():
+            existing = self.manual_corner_pair_same[part_key]
+            if existing != updated:
+                existing.clear()
+                existing.update(updated)
 
 
     def _phase6_external_sync_envelope(self, delta):
@@ -774,14 +742,11 @@ class Phase6ApplicationHost:
             parts = tuple(self._phase6_current_existing_parts())
         except Exception:
             parts = ("box_body", "head", "tail")
-        state = dict(getattr(self, "assembly_joint_state", {}) or {})
-        state.setdefault("existing_parts", list(parts))
-        state["existing_parts"] = list(parts)
-        if not state.get("assembly_joint_schema_version"):
-            state["assembly_type"] = stable
-            state = migrate_legacy_snapshot_joints(state)
-        state = sync_snapshot_intent_joints(state, stable)
-        self.assembly_joint_state = state
+        # Commit one detached, Engine-validated Joint workspace transaction.
+        self.assembly_joint_state = manufacturing_api.commit_operator_box_assembly_joint_state(
+            getattr(self, "assembly_joint_state", {}) or {},
+            stable, available_parts=parts,
+        )
         label = assembly_intent_label(stable)
         if self.box_assembly_type_var.get() != label:
             self.box_assembly_type_var.set(label)
@@ -940,13 +905,17 @@ class Phase6ApplicationHost:
         head_policy = tail_policy = None
         if key == "box_body":
             head_policy, tail_policy = self._box_body_corner_policies(
-                float(snapshot.get("fw", ae.FW))
+                manufacturing_api.normalize_operator_source_dimension(
+                    snapshot.get("fw"), field="fw",
+                )
             )
-        return resolve_operator_finished_dimensions(
+        return manufacturing_api.resolve_operator_finished_dimensions(
             key,
             snapshot=snapshot,
             settings=settings,
-            thickness=float(snapshot.get("t", ae.T)),
+            thickness=manufacturing_api.normalize_operator_source_dimension(
+                snapshot.get("t"), field="t",
+            ),
             head_corner_policy=head_policy,
             tail_corner_policy=tail_policy,
         )
@@ -969,19 +938,13 @@ class Phase6ApplicationHost:
         return tuple(float(value) for value in dims)
 
     def _box_body_finished_height(self, val):
-        """Return the single folded box-body outside height from shared assembly semantics."""
-        h = float(val['h'])
-        t = float(val['t'])
-        head_policy, tail_policy = self._box_body_corner_policies(float(val['fw']))
-        if head_policy is None or tail_policy is None:
-            return h - 2.0 * t
-        bottom_outer, top_outer = box_body_vertical_offsets(
-            t, head_corner_policy=head_policy, tail_corner_policy=tail_policy
+        """Only forward the operator source to Engine's canonical outside-height owner."""
+        head_policy, tail_policy = self._box_body_corner_policies(val['fw'])
+        return manufacturing_api.project_operator_box_body_finished_height(
+            val['h'], val['t'],
+            head_corner_policy=head_policy,
+            tail_corner_policy=tail_policy,
         )
-        result = h - bottom_outer - top_outer
-        if result <= 0:
-            raise ValueError("箱身折後包外高度必須大於 0")
-        return float(result)
 
     _CORNER_MODE_LABELS = {
         CrossCornerMode.STANDARD: "標準",
@@ -1076,7 +1039,7 @@ class Phase6ApplicationHost:
             self.refresh_corner_type_panel()
             return
         enabled = self.manual_top_same_var.get() if pair_key == 'top' else self.manual_bottom_same_var.get()
-        set_manual_corner_pair_same(
+        manufacturing_api.operator_set_manual_corner_pair_same(
             self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key], pair_key, enabled
         )
         if enabled:
@@ -1099,7 +1062,7 @@ class Phase6ApplicationHost:
         type_id = CornerTypeId(type_id)
         current = self._manual_selection_for_target(part_key, target_key)
         selection = current if current.type_id is type_id else CornerTypeSelection(type_id)
-        apply_manual_corner_selection(
+        manufacturing_api.operator_apply_manual_corner_selection(
             self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key],
             target_key, selection,
         )
@@ -1126,7 +1089,7 @@ class Phase6ApplicationHost:
         if mode is None:
             return
         selection = CornerTypeSelection(CornerTypeId.CROSS, cross_mode=mode)
-        apply_manual_corner_selection(
+        manufacturing_api.operator_apply_manual_corner_selection(
             self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key],
             target_key, selection,
         )
@@ -1144,7 +1107,7 @@ class Phase6ApplicationHost:
         selection = self._selection_from_manual_corner_controls()
         if selection is None:
             return
-        apply_manual_corner_selection(
+        manufacturing_api.operator_apply_manual_corner_selection(
             self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key],
             target_key, selection,
         )
@@ -1346,16 +1309,8 @@ class Phase6ApplicationHost:
 
     @staticmethod
     def _receiving_inner_door_stable_id_for_cell(cell_key):
-        key = str(cell_key or "").strip()
-        if key == "0:0":
-            return "upper"
-        if key == "0:1":
-            return "lower"
-        try:
-            column, row = (int(v) for v in key.split(":", 1))
-        except (TypeError, ValueError):
-            raise ValueError(f"invalid door cell key: {cell_key!r}")
-        return f"c{column + 1}r{row + 1}"
+        """Operator-facing adapter; physical part identity belongs to Engine."""
+        return manufacturing_api.receiving_inner_door_stable_id_for_cell(cell_key)
 
     def _receiving_inner_door_enabled(self, cell_key):
         key = str(cell_key or "").strip()
@@ -1370,19 +1325,15 @@ class Phase6ApplicationHost:
             item for item in list(getattr(self, "receiving_inner_doors", []) or [])
             if isinstance(item, dict) and str(item.get("cell_key") or "").strip() == key
         ), None)
-        default = cabinet_family_policy.default_inner_door_inward_offset_mm(
-            {"model": str(self.baseline_var.get() or "").strip()}, default=0.0
+        return manufacturing_api.resolve_operator_receiving_inner_door_inward_offset(
+            {"model": str(self.baseline_var.get() or "").strip()}, item,
         )
-        try:
-            return float((item or {}).get("inward_offset_mm", default))
-        except (TypeError, ValueError):
-            return float(default)
 
     def _set_receiving_inner_door_inward_offset(self, cell_key, value):
         key = str(cell_key or "").strip()
-        offset = float(value)
-        if offset < 0:
-            raise ValueError("內門內退尺寸不可小於 0")
+        offset = manufacturing_api.normalize_operator_receiving_inner_door_inward_offset(
+            value,
+        )
         found = False
         items = []
         for raw in list(getattr(self, "receiving_inner_doors", []) or []):
@@ -1406,7 +1357,13 @@ class Phase6ApplicationHost:
         try:
             value = self._set_receiving_inner_door_inward_offset(key, var.get())
         except (TypeError, ValueError):
-            var.set(self._fold_designer_number_text(self._receiving_inner_door_inward_offset(key)))
+            # Invalid saved physical offsets are not silently corrected or
+            # persisted by an unrelated failing edit.
+            try:
+                current = self._receiving_inner_door_inward_offset(key)
+            except (TypeError, ValueError):
+                return False
+            var.set(self._fold_designer_number_text(current))
             return False
         var.set(self._fold_designer_number_text(value))
         owner = getattr(self, "_derived_cache_owner", None)
@@ -1428,18 +1385,10 @@ class Phase6ApplicationHost:
         existing = next((item for item in items if str(item.get("cell_key") or "").strip() == key), None)
         items = [item for item in items if str(item.get("cell_key") or "").strip() != key]
         if bool(enabled):
-            stable_id = str((existing or {}).get("stable_id") or self._receiving_inner_door_stable_id_for_cell(key)).strip()
-            item = deepcopy(existing or {})
-            default_offset = cabinet_family_policy.default_inner_door_inward_offset_mm(
-                {"model": str(self.baseline_var.get() or "").strip()}, default=0.0
-            )
-            item.update({
-                "stable_id": stable_id,
-                "cell_key": key,
-                "included_frame_sides": list(item.get("included_frame_sides") or ("top", "left", "right")),
-                "inward_offset_mm": float(item.get("inward_offset_mm", default_offset)),
-            })
-            items.append(item)
+            items.append(manufacturing_api.project_operator_receiving_inner_door_enabled_source(
+                {"model": str(self.baseline_var.get() or "").strip()},
+                key, existing=existing,
+            ))
         def sort_key(item):
             raw = str(item.get("cell_key") or "")
             try:
@@ -1519,15 +1468,19 @@ class Phase6ApplicationHost:
         return _door_layout_entry_menu_impl(self, entry, column_index=column_index, row_index=row_index)
     def open_door_indicator_component_editor(self, key, component):
         """Open the Engine-resolved Indicator Box/Small Door feature editor."""
-        state = self._door_layout_indicator_state_for_key(key)
-        if state.get("mode") != "indicator_box" or component not in {
-            "indicator_box", "indicator_door",
-        }:
+        if component not in {"indicator_box", "indicator_door"}:
             return
         try:
+            # Always validate the original committed source. Display-only
+            # normalization must not authorize or rewrite physical holes.
+            states = getattr(self, "door_layout_indicator_states", None)
+            raw = (states.get(key) if isinstance(states, Mapping)
+                   else self._door_layout_indicator_state_for_key(key))
+            state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)
+            if state["mode"] != "indicator_box":
+                return
             val = self.get_float_values()
-            layers = max(1, min(6, int(state.get("layers", 1))))
-            groups = [int(v) for v in list(state.get("groups", [2] * 6))[:layers]]
+            groups = tuple(state["groups"][:state["layers"]])
             # The canonical shared Indicator geometry is already consumed by
             # Phase6's _indicator_component_editor_contexts. Never generate
             # another manufacturing surface or finished-face guide in GUI.
@@ -1545,13 +1498,17 @@ class Phase6ApplicationHost:
         guide = info.reference_guide
         baseline_scene, status = info.baseline_scene, info.baseline_status
         if component == "indicator_box":
-            feature_store = self.door_layout_indicator_box_features.setdefault(key, [])
+            feature_target = self.door_layout_indicator_box_features
             title = "指示燈盒子"
         else:
-            feature_store = self.door_layout_indicator_door_features.setdefault(key, [])
+            feature_target = self.door_layout_indicator_door_features
             title = "指示燈小門"
+        # The hole editor receives a private working list. Opening it must
+        # not create a physical Feature row or mutate saved Features.
+        feature_store = list(feature_target.get(key, []))
 
         def sync_indicator_component_features():
+            feature_target[key] = list(feature_store)
             designer = getattr(self, "fold_designer_app", None)
             if designer is not None and isinstance(getattr(designer, "_phase6_input_snapshot", None), dict):
                 designer._phase6_input_snapshot["door_layout_indicator_box_features"] = {
@@ -1592,9 +1549,9 @@ class Phase6ApplicationHost:
                 pass
 
         self.door_layout_selected_var.set(f"{int(column_index)}:{int(row_index)}")
-        cell = self.get_selected_door_layout_cell()
-        key = self._door_layout_cell_key(cell)
         try:
+            cell = self.get_selected_door_layout_cell()
+            key = self._door_layout_cell_key(cell)
             val = self.get_float_values()
             # The host's main-Settings W/H/D may intentionally differ from
             # the active Receiving designer. Project current Bay/Quantity
@@ -1610,25 +1567,31 @@ class Phase6ApplicationHost:
                     )
                     if key in snapshot
                 })
-                val.update({axis: float(whd[axis]) for axis in ("w", "h", "d")})
+                # Forward validated live source without GUI coercion (bool
+                # must never become a valid-looking 1-mm manufactured value).
+                val.update({axis: whd[axis] for axis in ("w", "h", "d")})
             result = self._door_layout_cell_result(cell, val)
-            surface = feature_surface_from_structural_result("door", result)
-            # Use the exact DoorPartSpec shared with indicator-fit and export.
-            # Engine owns Family material FW and the finished-face geometry.
+            # The same DoorPartSpec drives both the editor and physical DXF.
+            # Engine owns the selected cell surface, finished-face reference
+            # guide, Fold datum and physical frame edges.
             door_spec = self._door_layout_part_spec(cell, val)
-            finished_w, finished_h = manufacturing_api.door_finished_face_size(door_spec)
-            reference_guide = build_finished_reference_guide(
-                "door", result, finished_width=finished_w, finished_height=finished_h,
+            baseline_scene, baseline_status = self._door_layout_baseline_scene(cell, val)
+            editor_geometry = manufacturing_api.project_operator_hole_editor_door_cell(
+                result, door_spec,
+                baseline_scene=baseline_scene, baseline_status=baseline_status,
             )
         except Exception as exc:
             messagebox.showerror("開孔失敗", str(exc))
             return
         designer = getattr(self, 'fold_designer_app', None)
-        physical_key = f'door_c{cell.column_index + 1}_r{cell.row_index + 1}'
+        physical_key = manufacturing_api.door_layout_part_key(cell)
         workspace = getattr(designer, 'designer_workspace', None)
-        features = (workspace.features_for(physical_key) if workspace is not None
-                    and physical_key in workspace.available_parts
-                    else self.door_layout_features.setdefault(key, []))
+        # Stage edits in a detached list; only sync_features commits them.
+        features = list(
+            workspace.features_for(physical_key) if workspace is not None
+            and physical_key in workspace.available_parts
+            else self.door_layout_features.get(key, [])
+        )
 
         def sync_features():
             self.door_layout_features[key] = list(features)
@@ -1660,28 +1623,24 @@ class Phase6ApplicationHost:
                 if hasattr(self, "_request_phase6_update"):
                     self._request_phase6_update("geometry")
         indicator_state = self._door_layout_indicator_state_for_key(key)
-        indicator_context = DoorIndicatorContext(
-            finished_width=finished_w, finished_height=finished_h,
-            left_fold=val['door_fold_l'], bottom_fold=val['door_fold_b'],
-        )
-        baseline_scene, baseline_status = self._door_layout_baseline_scene(cell, val)
         self._open_unified_hole_editor(
             "door", f"門板 C{cell.column_index+1}-R{cell.row_index+1}",
-            surface, result.width, result.height,
-            reference_guide=reference_guide,
+            editor_geometry.surface, editor_geometry.width, editor_geometry.height,
+            reference_guide=editor_geometry.reference_guide,
             feature_list_override=features,
             sync_callback=sync_features,
             door_indicator_state=indicator_state,
-            door_indicator_context=indicator_context,
+            door_indicator_context=editor_geometry.door_indicator_context,
             door_indicator_commit=lambda state, key=key: self._apply_multi_door_indicator_state(key, state),
-            door_frame_edges=cell.edges, door_gap_w=val['door_gap_w'], door_gap_h=val['door_gap_h'],
+            door_frame_edges=editor_geometry.door_frame_edges, door_gap_w=val['door_gap_w'], door_gap_h=val['door_gap_h'],
             door_frame_width=val['fw'], door_thickness=val['t'],
             on_close=self.draw_door_layout_overview,
-            baseline_scene=baseline_scene, baseline_status_text=baseline_status,
+            baseline_scene=editor_geometry.baseline_scene,
+            baseline_status_text=editor_geometry.baseline_status,
             indicator_component_context_provider=lambda state, key=key, val=val: self._indicator_component_editor_contexts(
                 state, val,
-                box_features=self.door_layout_indicator_box_features.setdefault(key, []),
-                door_features=self.door_layout_indicator_door_features.setdefault(key, []),
+                box_features=self.door_layout_indicator_box_features.get(key, []),
+                door_features=self.door_layout_indicator_door_features.get(key, []),
             ),
         )
 
@@ -1760,27 +1719,24 @@ class Phase6ApplicationHost:
         layout = params.get('indicator_layout')
         if context is None or not groups or layout is None:
             return
-        try:
-            t_val = float(self.t_var.get())
-        except Exception:
-            t_val = 2.0
-        try:
-            fw_val = float(self.fw_z_var.get())
-        except Exception:
-            fw_val = 62.0
+        # Use the actual operator source. The public Engine transaction
+        # validates thickness/FW/gaps before any edit dialog or offset write;
+        # never turn invalid live input into silent manufacturing defaults.
+        t_val = self.t_var.get()
+        fw_val = self.fw_z_var.get()
 
-        position = measure_door_indicator_position(
+        position = manufacturing_api.project_operator_door_indicator_position(
             layout,
             context,
             frame_width=fw_val,
             thickness=t_val,
             use_box_distance=self.is_box_dist_var.get(),
-            frame_edges=params.get('frame_edges') or DoorFrameEdges(),
-            gap_w=float(self.door_gap_w_var.get()), gap_h=float(self.door_gap_h_var.get()),
+            frame_edges=params.get('frame_edges'),
+            gap_w=self.door_gap_w_var.get(), gap_h=self.door_gap_h_var.get(),
         )
         new_x, new_y = self.ask_xy_dialog(position.distance_x, position.distance_y)
         if new_x is not None and new_y is not None:
-            target = door_indicator_offset_for_position(
+            target = manufacturing_api.propose_operator_door_indicator_offset_candidate(
                 context,
                 groups,
                 x_distance=new_x,
@@ -1788,8 +1744,8 @@ class Phase6ApplicationHost:
                 frame_width=fw_val,
                 thickness=t_val,
                 use_box_distance=self.is_box_dist_var.get(),
-                frame_edges=params.get('frame_edges') or DoorFrameEdges(),
-                gap_w=float(self.door_gap_w_var.get()), gap_h=float(self.door_gap_h_var.get()),
+                frame_edges=params.get('frame_edges'),
+                gap_w=self.door_gap_w_var.get(), gap_h=self.door_gap_h_var.get(),
             )
             self.door_indicator_offset_x = target.x
             self.door_indicator_offset_y = target.y
@@ -1837,7 +1793,7 @@ class Phase6ApplicationHost:
         return _on_box_body_canvas_press_impl(self, event)
 
     def _box_body_baseline_faces(self, val):
-        return _box_body_baseline_faces_impl(self, val, ae_module=ae)
+        return _box_body_baseline_faces_impl(self, val)
 
     def _box_body_face_baseline_scene(self, face_key, val):
         resolved = self._box_body_baseline_faces(val).get(face_key, [])
@@ -1848,7 +1804,12 @@ class Phase6ApplicationHost:
         return scene
 
     def open_box_body_face_editor(self, face_key):
-        return _open_box_body_face_editor_impl(self, face_key, messagebox_module=messagebox, face_dimensions_fn=box_body_face_dimensions, vertical_offsets_fn=box_body_vertical_offsets, surface_builder=feature_surface_from_rect, guide_type=RectGuide, vec2_type=Vec2, baseline_label_fn=ae.box_body_baseline_source_label)
+        return _open_box_body_face_editor_impl(
+            self, face_key,
+            messagebox_module=messagebox,
+            editor_projection=manufacturing_api.project_operator_hole_editor_box_body_face,
+            baseline_label_fn=manufacturing_api.operator_box_body_baseline_source_label,
+        )
 
     @staticmethod
     def _box_body_piece_label(part_key):
@@ -1871,7 +1832,7 @@ class Phase6ApplicationHost:
         return _draw_box_body_piece_preview_impl(self, aggregate_render_data, piece, part_key, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, ear_marking_preview_blocker=ear_marking_preview_blocker)
 
     def _box_body_render_snapshot(self, val):
-        return _box_body_render_snapshot_impl(self, val, face_dimensions_fn=box_body_face_dimensions)
+        return _box_body_render_snapshot_impl(self, val, face_dimensions_fn=manufacturing_api.project_operator_box_body_face_dimensions)
     def draw_box_body(self, val):
         canvas = self.canvas_z; canvas.delete("all"); self.box_body_face_bounds = {}
         cw = canvas.winfo_width(); ch = canvas.winfo_height()

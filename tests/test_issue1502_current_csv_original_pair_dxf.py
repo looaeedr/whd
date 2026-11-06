@@ -942,7 +942,8 @@ def test_ac51_swt30_exact_real_v5_pair_scope_selector_proof_expires_on_any_drift
     imported = brand_csv_path("士林").read_bytes()
     source_copy = tmp_path / "NFB數值規格.csv"
     source_copy.write_bytes(imported + b"\n# SOURCE_CHANGED")
-    monkeypatch.setattr(display, "brand_csv_path", lambda _brand: source_copy)
+    import ae_engine.receiving_nfb_verified_scope as engine_scope
+    monkeypatch.setattr(engine_scope, "brand_csv_path", lambda _brand: source_copy)
     assert display.verified_v5_model_operator_label(
         verified, saved, "士林", "nfbv5:士林:2P400",
     ) is None

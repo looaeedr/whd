@@ -43,10 +43,11 @@ def _receipts():
 
 
 def test_actual_side_uv_receipts_appear_on_display_copy_not_manufacturing(monkeypatch):
-    import gui_modules.application.receiving_ear_side_2d as live
+    # Canonical world→UV receipts are resolved within Engine, not the GUI.
+    import ae_engine.receiving_ear_side_preview as engine
     geometry, pieces = _side_geometry()
     rows = _receipts()
-    monkeypatch.setattr(live, "resolve_receiving_ear_side_uv_receipts",
+    monkeypatch.setattr(engine, "resolve_receiving_ear_side_uv_receipts",
                         lambda snapshot, **kw: rows)
     shown = project_receiving_ear_side_piece_2d_preview(
         _assembled(), pieces[0], piece_key="box_body:left_side",
@@ -67,9 +68,10 @@ def test_actual_side_uv_receipts_appear_on_display_copy_not_manufacturing(monkey
 
 
 def test_wrong_side_source_and_drift_fail_without_a_fake_display(monkeypatch):
-    import gui_modules.application.receiving_ear_side_2d as live
+    # Canonical world→UV receipts are resolved within Engine, not the GUI.
+    import ae_engine.receiving_ear_side_preview as engine
     geometry, pieces = _side_geometry()
-    monkeypatch.setattr(live, "resolve_receiving_ear_side_uv_receipts",
+    monkeypatch.setattr(engine, "resolve_receiving_ear_side_uv_receipts",
                         lambda *args, **kw: _receipts())
     kwargs = dict(geometry=geometry, dimensions=(800,1600,350),
                   sheet_thickness=2, world_geometry={})

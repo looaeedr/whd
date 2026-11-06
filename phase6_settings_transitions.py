@@ -7,7 +7,6 @@ bridge, workspace, callback, scheduler, or renderer ownership.
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
 from typing import Any, Mapping
 
 from ae_engine import manufacturing_api
@@ -46,25 +45,18 @@ from phase6_endcap_semantics import (
     set_endcap_fw_follow,
 )
 from phase6_settings_center import normalize_ui_text_size
-from phase6_fold_profiles import _num, _ui_len
 
 
 CORNER_KEYS = manufacturing_api.MANUAL_CORNER_KEYS
 CORNER_PAIR_KEYS = manufacturing_api.MANUAL_CORNER_PAIR_KEYS
 
 
-@dataclass(frozen=True)
-class SettingsCommitTransition:
-    settings_values: dict[str, object]
-    input_snapshot: dict[str, object]
-    box_whd: dict[str, object]
-    committed: dict[str, object]
+# Compatibility name; physical Settings transaction owner is Engine.
+SettingsCommitTransition = manufacturing_api.OperatorSettingsCommitTransition
 
 
-@dataclass(frozen=True)
-class BottomWrapTransition:
-    state: dict[str, object]
-    resolved: dict[str, object]
+# Compatibility type; only Engine owns the WRAP transaction/result.
+BottomWrapTransition = manufacturing_api.OperatorBottomWrapTransition
 
 
 CornerStateTransition = manufacturing_api.CornerStateTransition
@@ -73,19 +65,12 @@ CornerStateTransition = manufacturing_api.CornerStateTransition
 AssemblyIntentTransition = manufacturing_api.AssemblyIntentTransition
 
 
-@dataclass(frozen=True)
-class ExternalSyncPlan:
-    accepted: bool
-    revision: int
-    transaction_id: str
-    settings: dict[str, object]
-    reason: str
+# Compatible type: physical Settings sync authority lives in public Engine API.
+ExternalSyncPlan = manufacturing_api.OperatorExternalSyncPlan
 
 
-@dataclass(frozen=True)
-class ExternalModelPlan:
-    changed: bool
-    target_model: str
+# Compatibility type; Engine decides whether a cabinet Family change is real.
+ExternalModelPlan = manufacturing_api.OperatorExternalModelPlan
 
 
 FamilyModelTransition = manufacturing_api.FamilyModelTransition
@@ -102,22 +87,17 @@ def normalize_updates(
     *,
     external_apply_guard: bool = False,
 ) -> dict[str, object]:
-    clean: dict[str, object] = {}
-    for key, raw in dict(updates or {}).items():
-        if key not in settings_values:
-            continue
-        if key == "ui_text_size":
-            value: object = normalize_ui_text_size(raw)
-        elif isinstance(settings_values.get(key), bool):
-            value = bool(raw)
-        else:
-            try:
-                value = float(raw)
-            except (TypeError, ValueError):
-                continue
-        if external_apply_guard and settings_values.get(key) == value:
-            continue
-        clean[key] = value
+    # Only the visual text-size choice remains in the GUI adapter. The
+    # Engine decides bool coercion, W/H/D and numeric source validity.
+    clean = manufacturing_api.normalize_operator_settings_updates(
+        settings_values, updates,
+        external_apply_guard=external_apply_guard,
+    )
+    raw = dict(updates or {})
+    if "ui_text_size" in raw and "ui_text_size" in settings_values:
+        value = normalize_ui_text_size(raw["ui_text_size"])
+        if not external_apply_guard or settings_values["ui_text_size"] != value:
+            clean["ui_text_size"] = value
     return clean
 
 
@@ -127,34 +107,17 @@ def commit_settings(
     box_whd: Mapping[str, object],
     values: Mapping[str, object] | None,
 ) -> SettingsCommitTransition:
-    next_settings = deepcopy(dict(settings_values))
-    next_snapshot = deepcopy(dict(input_snapshot))
-    next_box = deepcopy(dict(box_whd))
-    committed = deepcopy(dict(values or {}))
-    if not committed:
-        return SettingsCommitTransition(
-            next_settings, next_snapshot, next_box, committed
-        )
-
-    next_settings.update(committed)
-    next_snapshot.update(committed)
+    # UI-only string normalization does not affect manufacturing.
+    committed = dict(values or {})
     if "ui_text_size" in committed:
-        normalized = normalize_ui_text_size(committed["ui_text_size"])
-        next_settings["ui_text_size"] = normalized
-        next_snapshot["ui_text_size"] = normalized
-        committed["ui_text_size"] = normalized
-    for key in ("w", "h", "d"):
-        if key in committed:
-            next_box[key] = _ui_len(committed[key])
-    return SettingsCommitTransition(
-        next_settings, next_snapshot, next_box, committed
+        committed["ui_text_size"] = normalize_ui_text_size(committed["ui_text_size"])
+    return manufacturing_api.commit_operator_settings_state(
+        settings_values, input_snapshot, box_whd, committed,
     )
 
 
 def toggle_box_structure_lock(state: Mapping[str, object]) -> dict:
-    return set_structure_locked(
-        state, not bool(dict(state).get("locked", True))
-    )
+    return manufacturing_api.operator_toggle_box_body_structure_lock(state)
 
 
 def activate_box_structure(
@@ -162,7 +125,7 @@ def activate_box_structure(
     type_id: object,
     total_w: float,
 ) -> dict:
-    return activate_structure_with_defaults(state, type_id, total_w)
+    return manufacturing_api.activate_structure_with_defaults(state, type_id, total_w)
 
 
 def apply_box_structure_numeric(
@@ -186,7 +149,7 @@ def reconcile_width_structure(
 ) -> dict:
     # Keep the original type until the sole physical size gate. float(True)
     # would otherwise turn a corrupt 1-mm boolean into an apparently valid W.
-    return reconcile_box_body_structure_for_total_w_change(
+    return manufacturing_api.reconcile_box_body_structure_for_total_w_change(
         state, new_w
     )
 
@@ -198,16 +161,9 @@ def endcap_fw_follow(
     part_key: str,
     follow_box: bool,
 ) -> dict:
-    snapshot = deepcopy(dict(input_snapshot))
-    snapshot.update(deepcopy(dict(settings_values)))
-    state = deepcopy(dict(endcap_fw_state or {}))
-    set_endcap_fw_follow(
-        state,
-        str(part_key),
-        bool(follow_box),
-        box_fw=_num(snapshot.get("fw", 25), 25),
+    return manufacturing_api.operator_endcap_fw_follow(
+        input_snapshot, settings_values, endcap_fw_state, part_key, follow_box,
     )
-    return state
 
 
 def endcap_fw_override(
@@ -217,16 +173,9 @@ def endcap_fw_override(
     part_key: str,
     value: object,
 ) -> dict:
-    snapshot = deepcopy(dict(input_snapshot))
-    snapshot.update(deepcopy(dict(settings_values)))
-    state = deepcopy(dict(endcap_fw_state or {}))
-    commit_endcap_fw(
-        state,
-        str(part_key),
-        _num(value),
-        box_fw=_num(snapshot.get("fw", 25), 25),
+    return manufacturing_api.operator_endcap_fw_override(
+        input_snapshot, settings_values, endcap_fw_state, part_key, value,
     )
-    return state
 
 
 def bottom_wrap(
@@ -237,25 +186,9 @@ def bottom_wrap(
     reserve_u: float,
     reserve_v: float,
 ) -> BottomWrapTransition:
-    snapshot = deepcopy(dict(input_snapshot))
-    state = deepcopy(dict(endcap_bottom_wrap_state or {}))
-    if not state:
-        state.update(normalize_endcap_bottom_wrap_state(snapshot))
-    commit_endcap_bottom_wrap(
-        state,
-        str(part_key),
-        reserve_u=float(reserve_u),
-        reserve_v=float(reserve_v),
-    )
-    snapshot["endcap_bottom_wrap"] = deepcopy(state)
-    resolved = resolve_endcap_bottom_wrap(
-        snapshot,
-        str(part_key),
-        state=state,
-    )
-    return BottomWrapTransition(
-        state=deepcopy(state),
-        resolved=deepcopy(resolved),
+    return manufacturing_api.operator_endcap_bottom_wrap(
+        input_snapshot, endcap_bottom_wrap_state, part_key,
+        reserve_u=reserve_u, reserve_v=reserve_v,
     )
 
 
@@ -265,11 +198,8 @@ def endcap_edge_relation(
     edge: str,
     relation: object,
 ) -> dict:
-    return set_part_edge_relation(
-        deepcopy(dict(input_snapshot)),
-        str(part_key),
-        str(edge).upper(),
-        relation,
+    return manufacturing_api.operator_endcap_edge_relation(
+        input_snapshot, part_key, edge, relation,
     )
 
 
@@ -377,48 +307,21 @@ def replace_corner_state(
     corner_state: Mapping[str, object] | None,
     corner_pair_same: Mapping[str, object] | None,
 ) -> CornerStateTransition:
-    return CornerStateTransition(
-        deepcopy(dict(corner_state or {})),
-        deepcopy(dict(corner_pair_same or {})),
-        None,
-    )
+    return manufacturing_api.replace_corner_state(corner_state, corner_pair_same)
 
 
 def plan_external_sync(
     envelope: Mapping[str, object] | None,
-    *,
-    last_external_revision: int,
+    *, last_external_revision: int,
 ) -> ExternalSyncPlan:
-    raw = dict(envelope or {})
-    current_revision = int(last_external_revision or 0)
-    if str(raw.get("origin") or "") != "main_gui":
-        return ExternalSyncPlan(
-            False, current_revision, "", {}, "WRONG_ORIGIN"
-        )
-    try:
-        revision = int(raw.get("revision", 0) or 0)
-    except (TypeError, ValueError):
-        return ExternalSyncPlan(
-            False, current_revision, "", {}, "INVALID_REVISION"
-        )
-    if revision <= current_revision:
-        return ExternalSyncPlan(
-            False,
-            revision,
-            str(raw.get("transaction_id") or ""),
-            {},
-            "STALE_REVISION",
-        )
-    transaction_id = str(raw.get("transaction_id") or "")
-    delta = dict(raw.get("delta") or {})
-    settings = dict(delta.get("settings") or {})
-    return ExternalSyncPlan(
-        True, revision, transaction_id, settings, "OK"
+    return manufacturing_api.plan_operator_external_sync(
+        envelope, last_external_revision=last_external_revision,
     )
 
 
 def normalize_symmetry(value: object) -> bool:
-    return bool(value)
+    # The symmetric BoxBody setting is physical Fold intent, not GUI truthiness.
+    return manufacturing_api.normalize_operator_settings_boolean(value)
 
 
 def settings_defaults_payload(
@@ -439,9 +342,9 @@ def plan_external_model_change(
     model: object,
     current_model: object,
 ) -> ExternalModelPlan:
-    target = str(model or "").strip()
-    current = str(current_model or "").strip()
-    return ExternalModelPlan(bool(target and target != current), target)
+    return manufacturing_api.plan_operator_external_model_change(
+        model, current_model,
+    )
 
 
 def apply_corner_preset(

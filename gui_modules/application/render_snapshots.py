@@ -7,24 +7,34 @@ consumed by gui_modules.rendering.
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-import ae_engine.assembly_placement as assembly_placement
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.corner_type_ui import is_unknown_model
-import ae_engine.door_dividers as door_dividers
-import ae_engine.inner_door_frames as inner_door_frames
-from ae_engine.sheetmetal_features import (
-    DoorIndicatorContext,
-    box_body_face_dimensions,
-    measure_door_indicator_position,
-    resolve_door_indicator_dimension_guides,
-    resolve_door_indicator_layout,
-)
-from ae_engine.sheetmetal_geometry import Vec2
+
+
+def _collect_live_indicator_groups(layer_var, group_vars, *, label):
+    """Collect operator controls; Engine alone validates physical group counts.
+
+    The live 2D preview must obey the same positive-integral source contract
+    as Fold Designer Save→Reload. Do not coerce bool, fraction or zero into a
+    plausible 1-layer manufacturing source.
+    """
+    try:
+        count = manufacturing_api.normalize_fold_designer_indicator_groups(
+            (layer_var.get(),)
+        )[0]
+        raw_groups = [group_vars[i].get() for i in range(count)]
+        return manufacturing_api.normalize_fold_designer_indicator_groups(
+            raw_groups
+        )
+    except Exception as exc:
+        raise ValueError(
+            f"{label}層數／組數無效，不可省略或捏造實體孔位"
+        ) from exc
 
 
 def indicator_box_render_snapshot(host, val):
-    count = max(1, int(host.indicator_l_var.get()))
-    layer_groups = tuple(int(host.indicator_layer_g_vars[i].get()) for i in range(count))
+    layer_groups = _collect_live_indicator_groups(
+        host.indicator_l_var, host.indicator_layer_g_vars, label="指示燈盒"
+    )
     spec = host._indicator_box_part_spec(
         val, layer_groups, features=host.surface_features["indicator_box"]
     )
@@ -40,8 +50,9 @@ def indicator_box_render_snapshot(host, val):
 
 
 def indicator_door_render_snapshot(host, val):
-    count = max(1, int(host.indicator_l_var.get()))
-    layer_groups = tuple(int(host.indicator_layer_g_vars[i].get()) for i in range(count))
+    layer_groups = _collect_live_indicator_groups(
+        host.indicator_l_var, host.indicator_layer_g_vars, label="指示燈盒"
+    )
     spec, context = host._indicator_door_part_spec_from_values(
         val, layer_groups, features=host.surface_features["indicator_door"]
     )
@@ -57,8 +68,12 @@ def indicator_door_render_snapshot(host, val):
 
 def door_layout_overview_snapshot(host, render_data_by_part_key=None):
     try:
-        total_w = float(host.w_var.get())
-        total_h = float(host.h_var.get())
+        total_w = manufacturing_api.normalize_operator_source_dimension(
+            host.w_var.get(), field="w",
+        )
+        total_h = manufacturing_api.normalize_operator_source_dimension(
+            host.h_var.get(), field="h",
+        )
         columns = host.get_door_layout_columns()
         cells = host.get_door_layout_cells()
         val = host.get_float_values()
@@ -66,11 +81,23 @@ def door_layout_overview_snapshot(host, render_data_by_part_key=None):
         return {"error": exc}
 
     cell_payloads = {}
-    for cell in cells:
-        column_index = int(cell.column_index)
-        row_index = int(cell.row_index)
-        key = f"{column_index}:{row_index}"
-        if render_data_by_part_key is None:
+    if render_data_by_part_key is not None:
+        # Engine alone owns stable physical Door key, peer source validity
+        # and bounds. GUI only selects how the read-only rows are painted.
+        for peer in manufacturing_api.project_operator_door_layout_peer_cells(
+            cells, render_data_by_part_key,
+        ):
+            key = (peer.column_index, peer.row_index)
+            cell_payloads[key] = (
+                {"mode": "peer", "scene": peer.scene,
+                 "width": peer.width, "height": peer.height}
+                if peer.present else {"mode": "none"}
+            )
+    else:
+        for cell in cells:
+            column_index = int(cell.column_index)
+            row_index = int(cell.row_index)
+            key = f"{column_index}:{row_index}"
             result = host._door_layout_cell_result(cell, val)
             baseline_scene, _baseline_status = host._door_layout_baseline_scene(cell, val)
             resolved = host._door_layout_cell_resolved_features(cell, result, key)
@@ -81,25 +108,6 @@ def door_layout_overview_snapshot(host, render_data_by_part_key=None):
                 "width": float(result.width),
                 "height": float(result.height),
             }
-        else:
-            stable_key = f"door_c{column_index + 1}_r{row_index + 1}"
-            peer_render_data = render_data_by_part_key.get(stable_key)
-            material = getattr(peer_render_data, "material", None)
-            scene = getattr(peer_render_data, "scene", None)
-            if (
-                material is not None
-                and scene is not None
-                and not bool(getattr(material, "is_empty", False))
-            ):
-                minx, miny, maxx, maxy = (float(v) for v in material.bounds)
-                cell_payloads[(column_index, row_index)] = {
-                    "mode": "peer",
-                    "scene": scene,
-                    "width": max(maxx - minx, 1e-9),
-                    "height": max(maxy - miny, 1e-9),
-                }
-            else:
-                cell_payloads[(column_index, row_index)] = {"mode": "none"}
 
     baseline_model = host._baseline_source_model() or ""
     return {
@@ -116,68 +124,32 @@ def door_layout_overview_snapshot(host, render_data_by_part_key=None):
 
 
 def door_layout_divider_frame_snapshot(host, columns, val):
-    t_val = float(val.get("t", 2.0))
+    # Only collect operator/project input; Engine owns canonical divider,
+    # inner-door-frame and assembled world placement identities.
     project_snapshot = host._compose_phase6_project_snapshot_from_main_gui()
-    total_w = float(project_snapshot.get("w", val.get("w", 0.0)))
-    total_h = float(project_snapshot.get("h", val.get("h", 0.0)))
-    divider_payloads = []
-    frame_payloads = []
-
-    try:
-        normalized = tuple(
-            (float(c[0]), tuple(float(h) for h in c[1])) for c in columns
-        )
-        dividers = door_dividers.derive_box_body_dividers(
-            normalized,
-            depth=float(val.get("d", 350.0)),
-            thickness=t_val,
-            layout_scope=getattr(host, "door_layout_scope", "main"),
-            handle_edges=getattr(host, "door_layout_handle_edges", {}),
-            model_name=host._baseline_source_model() if hasattr(host, "_baseline_source_model") else "",
-            frame_width=float(val.get("fw", ae.FW)),
-        )
-        for div in dividers:
-            placement = assembly_placement.resolve_assembly_placement(project_snapshot, div.stable_id)
-            divider_payloads.append({
-                "axis": str(div.axis),
-                "span": float(div.span),
-                "formed_core_depth": float(div.formed_core_depth),
-                "world_offset": tuple(float(v) for v in placement.world_offset),
-            })
-    except Exception:
-        pass
-
-    try:
-        if cabinet_family_policy.has_inner_door_frame_derivation(project_snapshot):
-            frame_sets = cabinet_family_policy.derive_inner_door_frame_sets(project_snapshot)
-            for fset in frame_sets:
-                for side in tuple(fset.included_sides):
-                    if side not in {"top", "left", "right"}:
-                        continue
-                    stable_id = inner_door_frames.inner_door_frame_stable_id(fset.inner_door_id, side)
-                    placement = assembly_placement.resolve_assembly_placement(project_snapshot, stable_id)
-                    frame_payloads.append({
-                        "side": str(side),
-                        "span": float(fset.spans[side]),
-                        "world_offset": tuple(float(v) for v in placement.world_offset),
-                    })
-    except Exception:
-        pass
-
-    return {
-        "total_w": total_w,
-        "total_h": total_h,
-        "dividers": tuple(divider_payloads),
-        "frames": tuple(frame_payloads),
-    }
+    baseline_model = host._baseline_source_model() if hasattr(host, "_baseline_source_model") else ""
+    return manufacturing_api.project_operator_door_divider_frame_preview(
+        project_snapshot, columns, val,
+        layout_scope=getattr(host, "door_layout_scope", "main"),
+        handle_edges=getattr(host, "door_layout_handle_edges", {}),
+        model_name=baseline_model,
+    )
 
 
 def single_door_render_snapshot(host):
     door_val = {
-        "w": float(host.w_var.get()),
-        "h": float(host.h_var.get()),
-        "t": float(host.t_var.get()),
-        "fw": float(host.fw_z_var.get()),
+        "w": manufacturing_api.normalize_operator_source_dimension(
+            host.w_var.get(), field="w",
+        ),
+        "h": manufacturing_api.normalize_operator_source_dimension(
+            host.h_var.get(), field="h",
+        ),
+        "t": manufacturing_api.normalize_operator_source_dimension(
+            host.t_var.get(), field="t",
+        ),
+        "fw": manufacturing_api.normalize_operator_source_dimension(
+            host.fw_z_var.get(), field="fw",
+        ),
         "door_gap_w": float(host.door_gap_w_var.get()),
         "door_gap_h": float(host.door_gap_h_var.get()),
         "door_fold_l": float(host.door_fold_l_var.get()),
@@ -188,24 +160,21 @@ def single_door_render_snapshot(host):
 
     indicator_hole = None
     if host.is_indicator_box_var.get():
-        try:
-            count = max(1, int(host.indicator_l_var.get()))
-            groups = tuple(int(host.indicator_layer_g_vars[i].get()) for i in range(count))
-            indicator_hole = manufacturing_api.indicator_box_opening_size(
-                groups, thickness=door_val["t"]
-            )
-        except Exception:
-            indicator_hole = None
+        groups = _collect_live_indicator_groups(
+            host.indicator_l_var, host.indicator_layer_g_vars, label="指示燈盒"
+        )
+        # The Engine alone determines the actual physical opening and rejects
+        # incompatible group/T sources; never recover by dropping the cutout.
+        indicator_hole = manufacturing_api.indicator_box_opening_size(
+            groups, thickness=door_val["t"]
+        )
 
     door_indicator = None
     if host.is_door_indicator_var.get():
-        try:
-            count = max(1, int(host.door_indicator_l_var.get()))
-            door_indicator = tuple(
-                int(host.door_indicator_layer_g_vars[i].get()) for i in range(count)
-            )
-        except Exception:
-            door_indicator = None
+        door_indicator = _collect_live_indicator_groups(
+            host.door_indicator_l_var, host.door_indicator_layer_g_vars,
+            label="門上指示燈",
+        )
 
     spec = host._single_door_part_spec(
         door_val, indicator_hole=indicator_hole, door_indicator=door_indicator
@@ -222,41 +191,14 @@ def single_door_render_snapshot(host):
         float(v) for v in manufacturing_api.door_finished_face_size(spec, finished_context)
     )
 
-    indicator_context = None
-    indicator_layout = None
-    x_guide = None
-    y_guide = None
     indicator_groups = tuple(door_indicator or ())
-    if indicator_groups:
-        try:
-            finished_w, finished_h = finished_size
-            indicator_context = DoorIndicatorContext(
-                finished_width=finished_w,
-                finished_height=finished_h,
-                left_fold=door_val["door_fold_l"],
-                bottom_fold=door_val["door_fold_b"],
-            )
-            indicator_layout = resolve_door_indicator_layout(
-                indicator_context,
-                indicator_groups,
-                Vec2(host.door_indicator_offset_x, host.door_indicator_offset_y),
-            )
-            position = measure_door_indicator_position(
-                indicator_layout,
-                indicator_context,
-                frame_width=door_val["fw"],
-                thickness=door_val["t"],
-                use_box_distance=spec.use_box_distance,
-                frame_edges=spec.frame_edges,
-                gap_w=door_val["door_gap_w"],
-                gap_h=door_val["door_gap_h"],
-            )
-            x_guide, y_guide = resolve_door_indicator_dimension_guides(position)
-        except Exception:
-            indicator_context = None
-            indicator_layout = None
-            x_guide = None
-            y_guide = None
+    (indicator_context, indicator_layout, x_guide, y_guide) = (
+        manufacturing_api.project_operator_door_indicator_guides(
+            finished_size, door_val, indicator_groups, spec,
+            offset_x=host.door_indicator_offset_x,
+            offset_y=host.door_indicator_offset_y,
+        )
+    )
 
     return {
         "render_data": render_data,
@@ -280,101 +222,16 @@ def base_plate_render_snapshot(host, val):
     # The currently resolved real FinalScene owns both 2D/3D materials.
     designer = getattr(host, "fold_designer_app", None)
     current = getattr(designer, "_phase6_input_snapshot", None)
-    if (isinstance(current, dict)
-            and current.get("model") in ("受電箱", "RECEIVING")):
-        # A committed, uniquely resolvable NFB+CSV source may supply the
-        # real BasePlatePartSpec without a separately saved manual pattern.
-        # Rendering must not depend on a manufacturing-release flag, while
-        # an unresolved source still must not generate a generic fake plate.
-        nfb = current.get("nfb_config")
-        nfb_rows = nfb.get("holes") if isinstance(nfb, dict) else None
-        numeric_source = (
-            current.get("nfb_config_submitted") is True
-            and isinstance(nfb_rows, (list, tuple))
-            and any(isinstance(row, dict)
-                    and str(row.get("model_filename") or "").startswith("nfbv5:")
-                    for row in nfb_rows)
-        )
-        expected_source = None
-        if numeric_source or not current.get("receiving_base_plate"):
-            from ae_engine.receiving_base_plate_config import receiving_base_plate_values
-            expected_source = receiving_base_plate_values(current)
-            if expected_source is None:
-                raise ValueError(
-                    "受電箱底板尚未設定實體來源型式，不能顯示舊式通用底板"
-                )
+    if manufacturing_api.uses_operator_receiving_committed_2d_source(current):
         resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
         if not callable(resolver):
             raise ValueError("受電箱底板缺少已提交的製造幾何來源")
         resolved = resolver()
-        part_keys = tuple(
-            p.part_key for p in tuple(resolved.parts or ())
-            if p.part_key == "base_plate"
-            or p.part_key.startswith("base_plate:nfb_layer:")
+        workspace = getattr(designer, "designer_workspace", None)
+        return manufacturing_api.project_receiving_base_plate_2d_snapshot(
+            current, resolved,
+            active_part=getattr(workspace, "active_part", ""),
         )
-        tiers = tuple(
-            key for key in part_keys
-            if key.startswith("base_plate:nfb_layer:")
-        )
-        if current.get("nfb_config_submitted") is True:
-            config = current.get("nfb_config")
-            count = config.get("layer_count") if isinstance(config, dict) else None
-            if count == 1 and "base_plate" in part_keys:
-                # One submitted NFB tier owns the existing real Base Plate.
-                # It must remain selectable in 2D even while DXF is blocked.
-                chosen = "base_plate"
-            elif count == 2 and tiers:
-                active = str(getattr(getattr(designer, "designer_workspace", None),
-                                     "active_part", "") or "")
-                chosen = active if active in tiers else tiers[0]
-            else:
-                raise ValueError(
-                    "已提交 NFB，但沒有對應的受電箱分層底板；不能回退舊式底板"
-                )
-        else:
-            if "base_plate" not in part_keys:
-                raise ValueError(
-                    "受電箱底板已選來源，但未產生實體底板；不能回退舊式底板"
-                )
-            chosen = "base_plate"
-        physical = resolved.part(chosen).render_data
-        # A delayed 2D refresh/cache must never resurrect a previous model's
-        # flat/folded source sheet after this Bay's current numeric CSV changed.
-        # This is a source-shape check, NOT a manufacturing release gate.
-        if numeric_source and expected_source is not None:
-            from ae_engine.sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
-            topology = getattr(physical, "unfolded_topology", None)
-            actual_pattern = (getattr(physical, "metadata", None) or {}).get(
-                "receiving_bend_pattern"
-            )
-            expected_pattern = expected_source["receiving_bend_pattern"]
-            height = (float(expected_source["h"])
-                      - float(expected_source["base_plate_shrink_top"])
-                      - float(expected_source["base_plate_shrink_bottom"]))
-            flat_width = (float(current["w"])
-                          - float(expected_source["base_plate_shrink_left"])
-                          - float(expected_source["base_plate_shrink_right"]))
-            if (topology is None or actual_pattern != expected_pattern
-                    or abs(float(topology.height) - height) > 1e-6
-                    or (expected_pattern != RECEIVING_BASE_PATTERN_CENTER
-                        and abs(float(topology.width) - flat_width) > 1e-6)):
-                raise ValueError(
-                    "受電箱底板目前 CSV 來源與已載入 2D 實體板型不一致"
-                )
-        if (getattr(physical, "unfolded_topology", None) is None
-                or getattr(physical, "material", None) is None):
-            raise ValueError("受電箱專屬底板缺少實際展開幾何")
-        bounds = tuple(float(v) for v in physical.material.bounds)
-        minx, miny, maxx, maxy = bounds
-        return {
-            "render_data": physical,
-            "bounds": bounds,
-            "world_bounds": bounds,
-            "box_rect": (minx, miny, maxx - minx, maxy - miny),
-            "bend": 0.0,
-            "receiving_physical_part_key": chosen,
-            "receiving_tier_keys": tiers,
-        }
     shrink_top = float(host.base_plate_shrink_top_var.get())
     shrink_bottom = float(host.base_plate_shrink_bottom_var.get())
     shrink_left = float(host.base_plate_shrink_left_var.get())
@@ -393,24 +250,20 @@ def base_plate_render_snapshot(host, val):
     render_data = host._authoritative_render_data(spec, context)
     bounds = tuple(float(v) for v in render_data.material.bounds)
     minx, miny, maxx, maxy = bounds
-    box_l = -(shrink_left - bend)
-    box_b = -(shrink_bottom - bend)
-    world_bounds = (
-        min(minx, box_l),
-        min(miny, box_b),
-        max(maxx, box_l + val["w"]),
-        max(maxy, box_b + val["h"]),
+    world_bounds, box_rect = manufacturing_api.project_legacy_base_plate_2d_bounds(
+        bounds, width=val["w"], height=val["h"],
+        shrink_left=shrink_left, shrink_bottom=shrink_bottom, bend=bend,
     )
     return {
         "render_data": render_data,
         "bounds": bounds,
         "world_bounds": tuple(float(v) for v in world_bounds),
-        "box_rect": (float(box_l), float(box_b), float(val["w"]), float(val["h"])),
+        "box_rect": box_rect,
         "bend": float(bend),
     }
 
 
-def box_body_render_snapshot(host, val, *, face_dimensions_fn=box_body_face_dimensions):
+def box_body_render_snapshot(host, val, *, face_dimensions_fn=None):
     # Primary GUI is a presentation shell when a Receiving FoldDesigner
     # workspace is open. The side mother-sheet must be the SAME physical
     # source as its NFB/EAR world-contact solver. Rebuilding a different
@@ -418,49 +271,39 @@ def box_body_render_snapshot(host, val, *, face_dimensions_fn=box_body_face_dime
     # disagree with the committed FoldDesigner geometry, hiding MARKING.
     designer = getattr(host, "fold_designer_app", None)
     current = getattr(designer, "_phase6_input_snapshot", None)
-    if (isinstance(current, dict)
-            and current.get("model") in ("受電箱", "RECEIVING")):
+    if manufacturing_api.uses_operator_receiving_committed_2d_source(current):
         resolve = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
         if not callable(resolve):
             raise ValueError("受電箱側板 2D 缺少 FoldDesigner 實體製造來源")
-        geometry = resolve()
-        box_body = geometry.part("box_body")
-        render_data = box_body.render_data
-        if not tuple(getattr(render_data, "pieces", ()) or ()):
-            raise ValueError("受電箱側板 2D 缺少現行物理板件")
+        render_data = manufacturing_api.project_receiving_box_body_2d_source(
+            resolve()
+        )
     else:
         spec = host._box_body_part_spec(val)
         render_data = host._authoritative_render_data(
             spec, host._manufacturing_context(draw_stock=False)
         )
     selected_piece_key = host._refresh_box_body_piece_tabs_2d(render_data)
-    if selected_piece_key:
-        selected_role = selected_piece_key.split(":", 1)[1]
-        selected_piece = next(
-            (
-                piece
-                for piece in tuple(getattr(render_data, "pieces", ()) or ())
-                if str(getattr(piece, "role", "") or "") == selected_role
-            ),
-            None,
-        )
-        if selected_piece is not None:
-            # #1503: only the selected Receiving physical SIDE gets a
-            # display-only source-world->UV EAR weld footprint. Production
-            # BoxBody data and DXF inventory remain the original render_data.
-            blocker = None
-            if selected_piece_key in {"box_body:left_side", "box_body:right_side"}:
-                from .receiving_ear_side_2d import present_receiving_ear_side_piece_2d
-                selected_piece, blocker = present_receiving_ear_side_piece_2d(
-                    host, render_data, selected_piece, selected_piece_key,
-                )
-            return {
-                "mode": "piece",
-                "render_data": render_data,
-                "piece": selected_piece,
-                "piece_key": selected_piece_key,
-                "ear_marking_preview_blocker": blocker,
-            }
+    piece_keys, selected_piece = manufacturing_api.project_box_body_2d_piece_inventory(
+        render_data, selected_piece_key,
+    )
+    if selected_piece is not None:
+        # #1503: only the selected Receiving physical SIDE gets a
+        # display-only source-world->UV EAR weld footprint. Production
+        # BoxBody data and DXF inventory remain the original render_data.
+        blocker = None
+        if selected_piece_key in {"box_body:left_side", "box_body:right_side"}:
+            from .receiving_ear_side_2d import present_receiving_ear_side_piece_2d
+            selected_piece, blocker = present_receiving_ear_side_piece_2d(
+                host, render_data, selected_piece, selected_piece_key,
+            )
+        return {
+            "mode": "piece",
+            "render_data": render_data,
+            "piece": selected_piece,
+            "piece_key": selected_piece_key,
+            "ear_marking_preview_blocker": blocker,
+        }
 
     bounds = tuple(float(v) for v in render_data.material.bounds)
     contexts = getattr(render_data, "box_body_face_contexts", None)
@@ -474,13 +317,10 @@ def box_body_render_snapshot(host, val, *, face_dimensions_fn=box_body_face_dime
         "contexts": contexts,
         "selected_face": host.box_body_face_selected_var.get(),
         "baseline_status": ae.box_body_baseline_source_label(baseline),
-        "dimensions": face_dimensions_fn(
-            w=val["w"], h=val["h"], d=val["d"]
-        ),
-        "piece_keys": tuple(
-            f"box_body:{str(piece.role)}"
-            for piece in tuple(getattr(render_data, "pieces", ()) or ())
-        ),
+        "dimensions": (
+            face_dimensions_fn or manufacturing_api.project_operator_box_body_face_dimensions
+        )(w=val["w"], h=val["h"], d=val["d"]),
+        "piece_keys": piece_keys,
     }
 
 

@@ -622,15 +622,20 @@ def on_box_symmetry_changed(self, namespace):
         return None
     if not required("_phase6_box_symmetry_allowed")(app):
         required("_phase6_apply_box_symmetry_policy")(app)
-        target = bool(getattr(app.state, "symmetric", False))
+        target = getattr(app.state, "symmetric", False)
         if hasattr(app, "bend_ui"):
             app.bend_ui._phase6_refresh_symmetry_bar()
     else:
         try:
-            target = bool(var.get())
+            target = var.get()
         except Exception:
             return None
-    self.settings_transactions().commit_symmetry(app.state, target)
+    try:
+        # Keep the raw Tk/project value until the public Engine boolean gate.
+        # Invalid saved strings/numbers must not commit or schedule re-render.
+        target = self.settings_transactions().commit_symmetry(app.state, target)
+    except (TypeError, ValueError):
+        return None
 
     pending = getattr(app, "_job", None)
     root = getattr(app, "root", None)
@@ -778,7 +783,7 @@ def commit_base_plate_edge_shrink(
     # edge shrink is NEVER an editable control for this cabinet family.
     # Do not zero the persisted geometric shrink or silently rewrite the base.
     snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    if str(snapshot.get("model") or "").strip() in ("受電箱", "RECEIVING"):
+    if not manufacturing_api.operator_base_plate_edge_shrink_editable(snapshot):
         return False
     original = required("original")
     try:
@@ -815,7 +820,7 @@ def render_base_plate_edge_controls(self, namespace):
     # Do not build them at all for a Receiving BasePlate. Other families
     # continue to use their physical per-edge edit controls.
     snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    if str(snapshot.get("model") or "").strip() in ("受電箱", "RECEIVING"):
+    if not manufacturing_api.operator_base_plate_edge_shrink_editable(snapshot):
         return None
 
     hosts = self.ensure_drawing_edge_hosts(namespace)

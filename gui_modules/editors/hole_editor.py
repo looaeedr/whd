@@ -14,32 +14,8 @@ from tkinter import messagebox
 from phase6_hole_editor_session import HoleEditorAction
 from phase6_hole_editor_session import Phase6HoleEditorSession
 
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.contracts import ManufacturingContext
 from ae_engine.corner_type_ui import is_unknown_model
-from ae_engine.sheetmetal_features import (
-    DoorIndicatorContext,
-    RectGuide,
-    Vec2,
-    feature_surface_from_rect,
-    feature_surface_from_structural_result,
-    feature_to_legacy_hole,
-    legacy_hole_to_feature,
-    resolve_endcap_finished_face_guide,
-)
-from ae_engine.sheetmetal_part_adapters import (
-    DoorFrameEdges,
-    build_base_plate_result,
-    build_door_result,
-    build_finished_reference_guide,
-    build_indicator_box_result,
-    build_unknown_base_plate_result,
-    build_unknown_door_result,
-    build_unknown_indicator_box_result,
-)
-
-
 
 
 class HoleEditorSessionFactory:
@@ -219,25 +195,29 @@ class HoleEditorIndicatorFitValidation:
         self.disabled_state = disabled_state
 
     def validate(self, show_error=False):
-        context = self.door_indicator_context_provider()
-        if self.door_indicator_state_provider() is None or context is None:
-            self.fit_error[0] = None
-            self.confirm_button.configure(state=self.normal_state)
-            return True
-        state_now = self.collect_state()
-        if state_now is None or state_now.get("mode") == "none":
+        if self.door_indicator_state_provider() is None:
             self.fit_error[0] = None
             self.confirm_button.configure(state=self.normal_state)
             return True
         try:
-            self.validate_fit(
-                mode=state_now["mode"],
-                groups=tuple(int(v) for v in state_now["groups"][:state_now["layers"]]),
-                finished_width=float(context.finished_width),
-                finished_height=float(context.finished_height),
-                thickness=float(self.door_thickness_provider() or 0.0),
-                offset=(float(state_now["offset_x"]), float(state_now["offset_y"])),
-            )
+            # Live source validation must be inside the same fail-closed gate
+            # as geometric fit. Previously a bad read could raise before
+            # disabling Confirm and keep an old, plausible geometry.
+            state_now = self.collect_state()
+            if state_now is None:
+                raise ValueError("指示燈即時操作資料缺失")
+            if state_now.get("mode") != "none":
+                context = self.door_indicator_context_provider()
+                if context is None:
+                    raise ValueError("指示燈成品面幾何來源缺失")
+                self.validate_fit(
+                    mode=state_now["mode"],
+                    groups=tuple(state_now["groups"][:state_now["layers"]]),
+                    finished_width=float(context.finished_width),
+                    finished_height=float(context.finished_height),
+                    thickness=float(self.door_thickness_provider() or 0.0),
+                    offset=(state_now["offset_x"], state_now["offset_y"]),
+                )
         except (ValueError, TypeError) as exc:
             self.fit_error[0] = str(exc)
             self.confirm_button.configure(state=self.disabled_state)
@@ -247,7 +227,6 @@ class HoleEditorIndicatorFitValidation:
         self.fit_error[0] = None
         self.confirm_button.configure(state=self.normal_state)
         return True
-
 
 class HoleEditorTransientActions:
     """Own transient editor transaction commands while reusing session authority."""
@@ -635,9 +614,17 @@ class HoleEditorModalLifecycle:
             except (ValueError, TypeError, RuntimeError) as exc:
                 messagebox.showerror("內門開孔驗證失敗", str(exc), parent=self.editor)
                 return
+        # Recheck the live source BEFORE closing the hole transaction: a
+        # last invalid Tk read must not partially commit physical holes.
+        committed = None
+        if self.door_indicator_state is not None:
+            try:
+                committed = self.collect_indicator_state()
+            except (ValueError, TypeError) as exc:
+                messagebox.showerror("指示燈配置無法套用", str(exc), parent=self.editor)
+                return
         self.hole_session.finish(commit=True)
         if self.door_indicator_state is not None:
-            committed = self.collect_indicator_state()
             if committed is not None:
                 self.door_indicator_state.clear()
                 self.door_indicator_state.update(committed)
@@ -691,102 +678,59 @@ def open_hole_editor(host, key):
         messagebox.showerror("輸入錯誤", "請先確保主畫面所有數值輸入正確")
         return
 
-    width = float(values["w"])
-    height = float(values["d"])
-    thickness = float(values["t"])
-    face_guide = resolve_endcap_finished_face_guide(width, height, thickness)
-    surface = feature_surface_from_rect(
-        f"{key}_finished_face",
-        face_guide.min_point,
-        face_guide.max_point,
+    geometry = manufacturing_api.project_operator_hole_editor_endcap(
+        key, width=values["w"], depth=values["d"], thickness=values["t"],
     )
+    width, height = geometry.width, geometry.height
 
     legacy = host.tail_holes if key == "tail" else host.head_holes
     app = getattr(host, 'fold_designer_app', None)
     workspace = getattr(app, 'designer_workspace', None)
     host.surface_features[key] = (workspace.features_for(key) if workspace is not None
-                                 else [legacy_hole_to_feature(hole) for hole in legacy])
+                                 else [manufacturing_api.legacy_hole_to_feature(hole) for hole in legacy])
 
     def sync_legacy():
         legacy[:] = [
-            feature_to_legacy_hole(feature, width, height)
+            manufacturing_api.feature_to_legacy_hole(feature, width, height)
             for feature in host.surface_features[key]
         ]
         if workspace is not None:
             workspace.stash_features(key, host.surface_features[key])
             app.submit_update_intent('geometry', commit=True)
 
-    reference_guide = RectGuide(
-        Vec2(0.0, 0.0),
-        Vec2(width, height),
-        "finished_boundary",
-    )
     host._open_unified_hole_editor(
         key,
         label_map[key],
-        surface,
+        geometry.surface,
         width,
         height,
         sync_callback=sync_legacy,
-        reference_guide=reference_guide,
+        reference_guide=geometry.reference_guide,
     )
 
 
 def _door_context(host, values):
     material_fw = host._door_material_frame_width(values["fw"], values["t"])
-    if is_unknown_model(host.baseline_var.get()):
-        result = build_unknown_door_result(
-            w=values["w"], h=values["h"], t=values["t"], fw=material_fw,
-            gap_w=values["door_gap_w"], gap_h=values["door_gap_h"],
-            fold_left=values["door_fold_l"], fold_right=values["door_fold_r"],
-            fold_top=values["door_fold_t"], fold_bottom=values["door_fold_b"],
-            corner_policy=host._manual_corner_policy("door", material_fw),
-        )
-    else:
-        result = build_door_result(
-            w=values["w"], h=values["h"], t=values["t"], fw=material_fw,
-            gap_w=values["door_gap_w"], gap_h=values["door_gap_h"],
-            fold_left=values["door_fold_l"], fold_right=values["door_fold_r"],
-            fold_top=values["door_fold_t"], fold_bottom=values["door_fold_b"],
-        )
-    surface = feature_surface_from_structural_result("door", result)
-    finished_w, finished_h = ae.calculate_door_finished_size(
-        values["w"], values["h"], material_fw,
-        values["door_gap_w"], values["door_gap_h"], values["t"],
-    )
-    reference_guide = build_finished_reference_guide(
-        "door", result, finished_width=finished_w, finished_height=finished_h
-    )
-    baseline_scene = None
-    baseline_status_text = "未使用基準檔（程式計算生成）"
-    model = host._baseline_source_model()
-    if model and ae.has_baseline_part(model, "門.dxf"):
-        try:
-            data = ae.get_stretched_door_data(
-                model, values["w"], values["h"], values["t"], material_fw,
-                values["door_gap_w"], values["door_gap_h"],
-                values["door_fold_l"], values["door_fold_r"],
-                values["door_fold_t"], values["door_fold_b"],
-                frame_edges=DoorFrameEdges(),
-            )
-            baseline_scene = data.scene
-            baseline_status_text = ae.baseline_source_label(model, "門.dxf")
-        except Exception:
-            baseline_status_text = "未使用基準檔（程式計算生成）"
-    return {
-        "title": "門板", "surface": surface, "width": result.width,
-        "height": result.height, "reference_guide": reference_guide,
-        "door_indicator_state": host._single_door_indicator_state_snapshot(),
-        "door_indicator_context": DoorIndicatorContext(
-            finished_width=finished_w, finished_height=finished_h,
-            left_fold=values["door_fold_l"], bottom_fold=values["door_fold_b"],
+    custom = is_unknown_model(host.baseline_var.get())
+    projection = manufacturing_api.project_operator_hole_editor_door(
+        values, material_frame_width=material_fw, is_custom=custom,
+        corner_policy=(
+            host._manual_corner_policy("door", material_fw) if custom else None
         ),
+        baseline_model=host._baseline_source_model(),
+    )
+    return {
+        "title": "門板", "surface": projection.surface,
+        "width": projection.width, "height": projection.height,
+        "reference_guide": projection.reference_guide,
+        "door_indicator_state": host._single_door_indicator_state_snapshot(),
+        "door_indicator_context": projection.door_indicator_context,
         "door_indicator_commit": host._apply_single_door_indicator_state,
-        "door_frame_edges": DoorFrameEdges(),
+        "door_frame_edges": projection.door_frame_edges,
         "door_gap_w": values["door_gap_w"], "door_gap_h": values["door_gap_h"],
         "door_frame_width": values["fw"], "door_thickness": values["t"],
-        "baseline_scene": baseline_scene,
-        "baseline_status_text": baseline_status_text,
+        "baseline_scene": projection.baseline_scene,
+        "baseline_status_text": projection.baseline_status,
         "indicator_component_context_provider": lambda state, val=values: host._indicator_component_editor_contexts(
             state, val,
             box_features=host.surface_features["indicator_box"],
@@ -796,125 +740,71 @@ def _door_context(host, values):
 
 
 def _base_plate_context(host, values):
-    baseline_status_text = "未使用基準檔（程式計算生成）"
-    if is_unknown_model(host.baseline_var.get()):
-        baseline_status_text = "自訂 / 手動截角"
-        result = build_unknown_base_plate_result(
-            w=values["w"], h=values["h"], t=values["t"],
-            shrink_top=values["base_plate_shrink_top"],
-            shrink_bottom=values["base_plate_shrink_bottom"],
-            shrink_left=values["base_plate_shrink_left"],
-            shrink_right=values["base_plate_shrink_right"],
-            bend=values["base_plate_bend"],
-            corner_policy=host._manual_corner_policy("base_plate", values["fw"]),
-        )
-    else:
-        result = build_base_plate_result(
-            w=values["w"], h=values["h"], t=values["t"],
-            shrink_top=values["base_plate_shrink_top"],
-            shrink_bottom=values["base_plate_shrink_bottom"],
-            shrink_left=values["base_plate_shrink_left"],
-            shrink_right=values["base_plate_shrink_right"],
-            bend=values["base_plate_bend"],
-        )
-    finished_w = values["w"] - values["base_plate_shrink_left"] - values["base_plate_shrink_right"]
-    finished_h = values["h"] - values["base_plate_shrink_top"] - values["base_plate_shrink_bottom"]
-    return {
-        "title": "底板",
-        "surface": feature_surface_from_structural_result("base_plate", result),
-        "width": result.width, "height": result.height,
-        "reference_guide": build_finished_reference_guide(
-            "base_plate", result, finished_width=finished_w, finished_height=finished_h
+    custom = is_unknown_model(host.baseline_var.get())
+    projection = manufacturing_api.project_operator_hole_editor_base_plate(
+        values, is_custom=custom,
+        corner_policy=(
+            host._manual_corner_policy("base_plate", values["fw"]) if custom else None
         ),
-        "baseline_status_text": baseline_status_text,
+    )
+    return {
+        "title": "底板", "surface": projection.surface,
+        "width": projection.width, "height": projection.height,
+        "reference_guide": projection.reference_guide,
+        "baseline_status_text": projection.baseline_status,
     }
+
+
+def _indicator_groups(host):
+    layers = int(host.indicator_l_var.get())
+    return [int(host.indicator_layer_g_vars[i].get()) for i in range(layers)]
 
 
 def _indicator_box_context(host, values):
     try:
-        layers = int(host.indicator_l_var.get())
-        groups = [int(host.indicator_layer_g_vars[i].get()) for i in range(layers)]
+        groups = _indicator_groups(host)
     except ValueError:
         messagebox.showerror("輸入錯誤", "指示燈排列參數無效")
         return None
     try:
-        data = ae.get_stretched_indicator_box_data(
-            "指示燈", groups, values["t"], corner_policy=None
+        part = manufacturing_api.resolve_indicator_box_editor_geometry(
+            groups, thickness=values["t"],
         )
     except Exception as exc:
         messagebox.showerror("開孔失敗", f"指示燈盒基準載入失敗: {exc}")
         return None
-    surface = ae.feature_surface_from_drawing_scene("indicator_box", data.scene)
-    width, height = data.params["w"], data.params["h"]
-    fold = float(getattr(ae, "indicator_box_fold_def", 49.0))
-    indicator_corner_policy = None
-    result = (
-        build_unknown_indicator_box_result(
-            total_width=width, total_height=height, t=values["t"], fold=fold,
-            corner_policy=indicator_corner_policy,
-        ) if indicator_corner_policy is not None else
-        build_indicator_box_result(total_width=width, total_height=height, t=values["t"], fold=fold)
-    )
     return {
-        "title": "指示燈盒", "surface": surface, "width": width, "height": height,
-        "reference_guide": build_finished_reference_guide(
-            "indicator_box", result,
-            finished_width=width - 2.0 * fold + values["t"],
-            finished_height=height - 2.0 * fold + values["t"],
-        ),
-        "baseline_scene": data.scene,
-        "baseline_status_text": ae.indicator_shared_baseline_source_label("盒子.dxf"),
+        "title": "指示燈盒", "surface": part.surface,
+        "width": part.width, "height": part.height,
+        "reference_guide": part.reference_guide,
+        "baseline_scene": part.baseline_scene,
+        "baseline_status_text": part.baseline_status,
     }
 
 
 def _indicator_door_context(host, values):
     try:
-        layers = int(host.indicator_l_var.get())
-        groups = [int(host.indicator_layer_g_vars[i].get()) for i in range(layers)]
+        groups = _indicator_groups(host)
     except ValueError:
         messagebox.showerror("輸入錯誤", "指示燈排列參數無效")
         return None
-    policy = replace(
-        manufacturing_api.resolve_policy(),
-        frame_width=float(values["fw"]),
-        door_gap_w=float(values["door_gap_w"]),
-        door_gap_h=float(values["door_gap_h"]),
-        indicator_small_door_fold=float(getattr(ae, "indicator_small_door_fold_def", 19.0)),
-    )
-    context = ManufacturingContext(policy=policy)
-    spec = manufacturing_api.indicator_small_door_spec(
-        groups, thickness=values["t"], context=context
-    )
-    finished_w, finished_h = manufacturing_api.door_finished_face_size(spec, context)
     try:
-        data = ae.get_stretched_door_data(
-            None, spec.width, spec.height, values["t"], values["fw"],
-            values["door_gap_w"], values["door_gap_h"],
-            spec.fold_left, spec.fold_right, spec.fold_top, spec.fold_bottom,
-            indicator_window_groups=groups,
+        spec, _context = manufacturing_api.indicator_small_door_operator_spec(
+            groups, thickness=values["t"], frame_width=values["fw"],
+            door_gap_w=values["door_gap_w"], door_gap_h=values["door_gap_h"],
+        )
+        part = manufacturing_api.resolve_indicator_door_editor_geometry(
+            groups, thickness=values["t"], door_spec=spec,
         )
     except Exception as exc:
         messagebox.showerror("開孔失敗", f"指示燈小門基準載入失敗: {exc}")
         return None
-    try:
-        surface = ae.feature_surface_from_drawing_scene("indicator_door", data.scene)
-    except ValueError as exc:
-        messagebox.showerror("開孔失敗", str(exc))
-        return None
-    result = build_door_result(
-        w=spec.width, h=spec.height, t=values["t"], fw=values["fw"],
-        gap_w=values["door_gap_w"], gap_h=values["door_gap_h"],
-        fold_left=spec.fold_left, fold_right=spec.fold_right,
-        fold_top=spec.fold_top, fold_bottom=spec.fold_bottom,
-    )
     return {
-        "title": "指示燈小門", "surface": surface,
-        "width": data.params["total_width"], "height": data.params["total_depth"],
-        "reference_guide": build_finished_reference_guide(
-            "indicator_door", result, finished_width=finished_w, finished_height=finished_h
-        ),
-        "baseline_scene": data.scene,
-        "baseline_status_text": ae.indicator_shared_baseline_source_label("小門.dxf"),
+        "title": "指示燈小門", "surface": part.surface,
+        "width": part.width, "height": part.height,
+        "reference_guide": part.reference_guide,
+        "baseline_scene": part.baseline_scene,
+        "baseline_status_text": part.baseline_status,
     }
 
 

@@ -60,6 +60,7 @@ def test_real_receiving_solve_reuses_meshes_without_changing_any_result(tmp_path
     import shapely.ops
     import gui
     import phase6_manufacturing_service as service
+    from ae_engine.manufacturing_resolver import resolve as canonical_resolve
     from phase6_project_file import PROJECT_SCHEMA_V2, write_project
     from phase6_receiving_modes import fresh_receiving_mode
 
@@ -85,7 +86,9 @@ def test_real_receiving_solve_reuses_meshes_without_changing_any_result(tmp_path
             calls.append(1)
             return triangulate(*args, **kwargs)
         monkeypatch.setattr(shapely.ops, 'triangulate', count)
-        reference = original.__wrapped__(request)
+        # Compare uncached Engine body with the same decorated Engine solve
+        # reached through the old Phase6 entry, not the thin compatibility wrapper.
+        reference = canonical_resolve.__wrapped__(request)
         before = len(calls)
         calls.clear()
         actual = original(request)

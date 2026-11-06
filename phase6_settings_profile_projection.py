@@ -20,7 +20,7 @@ from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine import manufacturing_api
 from ae_engine.manufacturing_api import (
     DoorPartProjection, door_part_projections, project_part_dimensions,
-    build_standard_part_fold_profiles, merge_keyed_fold_profiles,
+    merge_keyed_fold_profiles,
 )
 from ae_engine.sheetmetal_part_adapters import (
     DoorFrameEdges,
@@ -160,12 +160,8 @@ def is_derived_physical_part_key(value: object) -> bool:
 def build_standard_part_profiles(
     snapshot: Mapping[str, object], part_key: str,
 ) -> dict[str, list[dict]]:
-    """Settings view routes custom extension or forwards standard Fold to Engine."""
-    from phase6_custom_parts import is_custom_part
-    if is_custom_part(part_key):
-        from phase6_custom_fold_profiles import build_custom_part_profiles
-        return build_custom_part_profiles(snapshot, part_key)
-    return build_standard_part_fold_profiles(snapshot, part_key)
+    """GUI compatibility: Engine alone selects persisted CustomFold or standard Fold."""
+    return manufacturing_api.build_operator_default_part_fold_profiles(snapshot, part_key)
 
 
 def merge_keyed_profiles(existing_profiles, default_profiles):
@@ -176,65 +172,18 @@ def merge_keyed_profiles(existing_profiles, default_profiles):
 def build_settings_profile_projection(
     request: SettingsProfileProjectionRequest,
 ) -> SettingsProfileProjectionPlan:
-    """Build one deterministic Settings-to-profile plan with no runtime effects."""
-    settings_values = materialize_settings_profile_value(request.settings_values)
-    snapshot = materialize_settings_profile_value(request.input_snapshot)
-    snapshot.update(settings_values)
-
-    part_dimensions = project_part_dimensions(snapshot)
-    snapshot["part_dimensions"] = part_dimensions
-
-    current_box = materialize_settings_profile_value(request.box_body_profile)
-    box_profile = (
-        build_box_body_profile(snapshot)
-        if request.reset_box_profile
-        else merge_box_body_profile(current_box, snapshot)
-    )
-
-    existing_profiles = materialize_settings_profile_value(
-        request.existing_profiles
-    )
-    planned_profiles = {}
-    for key in request.available_parts:
-        if key == "box_body" or is_derived_physical_part_key(key):
-            continue
-        defaults = (
-            build_endcap_xy_profiles(snapshot, part_key=key)
-            if key in {"head", "tail"}
-            else build_standard_part_profiles(snapshot, key)
-        )
-        existing = dict(existing_profiles.get(key, {}) or {})
-        merged = (
-            defaults
-            if request.reset_all_profiles
-            else merge_keyed_profiles(existing, defaults)
-        )
-        if key in {"head", "tail"}:
-            merged = _phase6_normalize_endcap_profile_order(
-                merged,
-                snapshot,
-                key,
-            )
-        planned_profiles[key] = merged
-
-    active_profiles = {}
-    if request.active_part == "box_body":
-        active_profiles = {"X": box_profile}
-    elif (
-        request.active_part in planned_profiles
-        and not is_derived_physical_part_key(request.active_part)
-    ):
-        active_profiles = planned_profiles[request.active_part]
-
-    return SettingsProfileProjectionPlan(
-        snapshot=snapshot,
-        part_dimensions=part_dimensions,
-        box_body_profile=box_profile,
-        part_profiles=planned_profiles,
+    """Adapt immutable operator input to the Engine-owned physical Fold plan."""
+    plan = manufacturing_api.plan_operator_settings_fold_profiles(
+        settings_values=materialize_settings_profile_value(request.settings_values),
+        input_snapshot=materialize_settings_profile_value(request.input_snapshot),
+        available_parts=request.available_parts,
+        existing_profiles=materialize_settings_profile_value(request.existing_profiles),
+        box_body_profile=materialize_settings_profile_value(request.box_body_profile),
         active_part=request.active_part,
-        active_profiles=active_profiles,
-        derived_sync_required=True,
+        reset_box_profile=request.reset_box_profile,
+        reset_all_profiles=request.reset_all_profiles,
     )
+    return SettingsProfileProjectionPlan(**plan)
 
 
 __all__ = [

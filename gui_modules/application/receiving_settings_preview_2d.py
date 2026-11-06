@@ -5,6 +5,7 @@ nothing is flattened into individual manufacturing sheet drawings.
 """
 from __future__ import annotations
 
+from ae_engine import manufacturing_api
 from whd_theme import apply_mpl_dark_theme
 
 _LABELS = {"head": "封頭", "tail": "封尾", "box_body": "箱身", "door": "門",
@@ -30,103 +31,34 @@ def _role_group(key):
 
 
 def physical_drawings(request):
-    """Read-only manufacturing inspection compatibility API.
+    """Compatibility iterator over Engine-owned physical source drawings.
 
-    Export/verification consumers still inspect each original physical
-    DrawingScene. The actual 2D settings view does NOT use this function;
-    it draws only world-positioned assembled meshes.
+    This is NOT a flattened or certified manufacturing batch. The actual 2D
+    settings view paints world-positioned meshes returned by Engine separately.
     """
-    for part in request.render_data.assembly_parts:
-        pieces = tuple(getattr(part.render_data, "pieces", ()) or ())
-        if pieces:
-            for piece in pieces:
-                yield str(piece.role), str(piece.key), piece.render_data
-        else:
-            yield _role_group(part.part_key), str(part.part_key), part.render_data
+    sources = manufacturing_api.project_receiving_settings_physical_drawings(
+        tuple(getattr(request.render_data, "assembly_parts", ()) or ()),
+    )
+    for role, key, render_data in sources:
+        yield _role_group(role), key, render_data
 
 
 def _assembly_world_meshes(request):
-    """Reuse the exact formed-mesh and placement helpers of FinalSceneRenderer.
-
-    Compute once per committed geometry refresh. Hover/selection never remesh.
-    The returned meshes are grouped by original assembled part, not by sheet tile.
-    """
-    from phase6_final_scene_projection import (
-        _phase6_folded_mesh_from_polygon, _phase6_box_body_structure_meshes,
-        _phase6_box_body_true_world_piece_meshes, _phase6_place_assembly_triangles,
-    )
-    from ae_engine.assembly_geometry import (
-        place_endcap_against_box_body, thicken_triangle_surface,
-    )
-
-    box_body_world = None
-    for part in tuple(getattr(request.render_data, "assembly_parts", ()) or ()):
-        data = part.render_data
-        pieces = tuple(getattr(data, "pieces", ()) or ())
-        physical_world = ()
-        if pieces:
-            # Keep the original placed mid-surface as the EndCap Head/Tail
-            # mating reference; only the visible piece meshes switch to the
-            # manufacturing-owned actual assembled physical skins.
-            meshes = tuple(_phase6_box_body_structure_meshes(
-                data, thickness=request.thickness))
-            physical_world = _phase6_box_body_true_world_piece_meshes(
-                part, dimensions=request.finished_dimensions,
-                thickness=request.thickness,
-            )
-            local = [triangle for _piece, mesh in meshes for triangle in mesh]
-        else:
-            meshes = ()
-            local = _phase6_folded_mesh_from_polygon(
-                data.material, tuple(dict(x) for x in part.x_profile),
-                tuple(dict(y) for y in part.y_profile),
-                fold_guides=tuple(getattr(data, "fold_guides", ()) or ()),
-            )
-        placement = str(getattr(part, "placement", "offset") or "offset")
-        offset = getattr(part, "offset", (0, 0, 0))
-        if placement in {"top", "head", "bottom", "tail"} and box_body_world:
-            kwargs = {"sheet_thickness": request.thickness}
-            if getattr(request.render_data, "preserve_endcap_core_origin", False):
-                kwargs["preserve_core_origin"] = True
-            placed = thicken_triangle_surface(
-                place_endcap_against_box_body(
-                    local, placement, box_body_world, offset, **kwargs),
-                request.thickness,
-            )
-        else:
-            placed = _phase6_place_assembly_triangles(
-                local, placement, request.finished_dimensions, offset)
-        if str(part.part_key) == "box_body":
-            box_body_world = tuple(placed)
-        if not placed:
-            continue
-        if not pieces:
-            yield (_role_group(part.part_key), str(part.part_key), tuple(placed))
-            continue
-        cursor = 0
-        actual_by_role = {
-            str(piece.role): world_mesh for piece, world_mesh in physical_world
-        }
-        for piece, piece_mesh in meshes:
-            count = len(piece_mesh)
-            world_piece = tuple(actual_by_role.get(str(piece.role), ()) or
-                               placed[cursor:cursor + count])
-            cursor += count
-            if world_piece:
-                role = _role_group(piece.role)
-                yield (role, str(piece.key), world_piece)
+    """Render adapter only: Engine owns physical world mesh and placement."""
+    for role, key, mesh in manufacturing_api.resolve_receiving_settings_assembly_world_meshes(
+        tuple(getattr(request.render_data, "assembly_parts", ()) or ()),
+        finished_dimensions=request.finished_dimensions,
+        thickness=request.thickness,
+        preserve_endcap_core_origin=bool(
+            getattr(request.render_data, "preserve_endcap_core_origin", False)
+        ),
+    ):
+        yield (_role_group(role), key, mesh)
 
 
 def _projected_outline(triangles):
-    """Project existing canonical 3D feature edges onto world X/height Y."""
-    from phase6_final_scene_projection import _phase6_mesh_feature_segments
-    projected = set()
-    for start, end in _phase6_mesh_feature_segments(triangles):
-        p1 = (round(float(start[0]), 5), round(float(start[1]), 5))
-        p2 = (round(float(end[0]), 5), round(float(end[1]), 5))
-        if p1 != p2:
-            projected.add(tuple(sorted((p1, p2))))
-    return tuple(sorted(projected))
+    """Display adapter: world XY physical outline is resolved by Engine."""
+    return manufacturing_api.project_solid_mesh_xy_outline(triangles)
 
 
 def projected_assembly_parts(request):

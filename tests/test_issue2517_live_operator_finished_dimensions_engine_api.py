@@ -44,7 +44,7 @@ def test_public_owner_is_engine_and_gui_is_narrow_request_adapter():
     assert "tkinter" not in inspect.getsource(source.resolve_live_operator_finished_dimensions)
 
 
-@pytest.mark.parametrize("family", ["金庫型", "受電箱", "RECEIVING"])
+@pytest.mark.parametrize("family", ["金庫型", "受電箱", "RECEIVING", "receiving", "ReCeIvInG"])
 def test_live_sparse_snapshot_and_settings_matches_actual_app_client(family):
     app = _app(family,
         snapshot={"model": family, "h": 600, "t": 2},
@@ -92,17 +92,118 @@ def test_door_cell_keeps_existing_saved_physical_size():
     assert operator_finished_dimensions_for_app(app) == pytest.approx((335,535))
 
 
-def test_mesh_authority_and_nonfinite_thickness_refusal_share_real_engine():
+def test_mesh_authority_uses_saved_t_even_with_stale_settings_cache():
     triangles = (((0.0,0.0,0.0),(100.0,0.0,0.0),(0.0,200.0,0.0)),)
     app = _app(active="door")
-    assert _engine(app, triangles=triangles) == pytest.approx(
-        resolve_operator_finished_dimensions("door",
-            snapshot=app._phase6_input_snapshot,
-            settings=app._settings_values, triangles=triangles, thickness=2.0)
+    expected = resolve_operator_finished_dimensions(
+        "door", snapshot=app._phase6_input_snapshot,
+        settings=app._settings_values, triangles=triangles, thickness=2.0,
     )
-    assert operator_finished_dimensions_for_app(app, triangles=triangles) == pytest.approx(_engine(app, triangles=triangles))
+    assert _engine(app, triangles=triangles) == pytest.approx(expected)
+    assert operator_finished_dimensions_for_app(app, triangles=triangles) == pytest.approx(expected)
+    # ManufacturingResolveRequest already treats the committed snapshot as
+    # authoritative. A corrupt, stale Settings cache must not supersede it.
     app._settings_values["t"] = float("nan")
-    with pytest.raises(ValueError, match="FOLDED_ENVELOPE_INVALID_WORLD_MESH"):
-        _engine(app, triangles=triangles)
-    with pytest.raises(ValueError, match="FOLDED_ENVELOPE_INVALID_WORLD_MESH"):
-        operator_finished_dimensions_for_app(app, triangles=triangles)
+    assert _engine(app, triangles=triangles) == pytest.approx(expected)
+    assert operator_finished_dimensions_for_app(app, triangles=triangles) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("model", ["金庫型", "受電箱", "RECEIVING"])
+@pytest.mark.parametrize("bad", [None, True, False, "", "bad", "nan", "inf", 0, -2])
+def test_live_finished_dimensions_refuse_invalid_saved_physical_t(model, bad):
+    app = _app(model)
+    app._phase6_input_snapshot["t"] = bad
+    app._settings_values["t"] = 2.0
+    before = deepcopy((app._phase6_input_snapshot, app._settings_values))
+    with pytest.raises(ValueError, match="包外尺寸"):
+        _engine(app)
+    with pytest.raises(ValueError, match="包外尺寸"):
+        operator_finished_dimensions_for_app(app)
+    assert (app._phase6_input_snapshot, app._settings_values) == before
+
+
+@pytest.mark.parametrize("bad", [None, True, "", "bad", "nan", "inf", 0, -2])
+def test_sparse_live_finished_dimensions_refuse_invalid_settings_t(bad):
+    app = _app(snapshot={"model": "受電箱", "w": 800, "h": 1600, "d": 350},
+               settings={"t": bad})
+    with pytest.raises(ValueError, match="包外尺寸"):
+        _engine(app)
+
+
+def test_sparse_live_finished_dimensions_use_exact_settings_t_not_2mm_default():
+    triangles = (((0.0, 0.0, 0.0), (100.0, 0.0, 0.0), (0.0, 200.0, 0.0)),)
+    app = _app(snapshot={"model": "受電箱", "w": 800, "h": 1600, "d": 350},
+               settings={"t": "2.5"})
+    before = deepcopy((app._phase6_input_snapshot, app._settings_values))
+    assert _engine(app, part_key="box_body", triangles=triangles) == pytest.approx(
+        (100.0, 200.0, 5.0)
+    )
+    assert (app._phase6_input_snapshot, app._settings_values) == before
+
+
+def test_live_finished_dimensions_have_no_implicit_thickness_when_both_sources_absent():
+    app = _app(snapshot={"model": "金庫型", "w": 800, "h": 1600, "d": 350},
+               settings={})
+    with pytest.raises(ValueError, match="包外尺寸"):
+        _engine(app)
+
+
+
+@pytest.mark.parametrize("family", ["受電箱", "RECEIVING", "receiving", "ReCeIvInG"])
+def test_live_receiving_aliases_match_engine_manufacturing_request_settings(family):
+    from ae_engine import manufacturing_api as api
+
+    snapshot = {"model": family, "w": 999, "h": 1200, "d": 300, "t": 2.25}
+    old_settings = {"w": 111, "h": 222, "d": 333, "t": 2.25}
+    current_box = {"w": "820.25", "h": 1600.5, "d": "360.75"}
+    app = _app(snapshot=snapshot, settings=old_settings, whd=current_box)
+    before = deepcopy((snapshot, old_settings, current_box))
+    manufacturing = api.project_receiving_manufacturing_request_settings(
+        snapshot, old_settings, current_box,
+    )
+    expected = tuple(manufacturing[axis] for axis in ("w", "h", "d"))
+    assert expected == pytest.approx((820.25, 1600.5, 360.75))
+    assert _engine(app) == pytest.approx(expected)
+    assert operator_finished_dimensions_for_app(app) == pytest.approx(expected)
+    assert (snapshot, old_settings, current_box) == before
+
+
+def test_live_receiving_family_can_be_identified_by_saved_cabinet_type():
+    snapshot = {
+        "cabinet_type": "receiving", "w": 999, "h": 1200, "d": 300, "t": 2,
+    }
+    app = _app(snapshot=snapshot,
+               settings={"w": 111, "h": 222, "d": 333, "t": 2},
+               whd={"w": 820, "h": 1600, "d": 350})
+    assert _engine(app) == pytest.approx((820, 1600, 350))
+    assert operator_finished_dimensions_for_app(app) == pytest.approx((820, 1600, 350))
+
+
+@pytest.mark.parametrize("axis", ["w", "h", "d"])
+@pytest.mark.parametrize("bad", [True, False, None, 0, -3, "nan", "inf", "invalid"])
+def test_live_receiving_alias_fails_closed_on_invalid_current_bay_dimensions(axis, bad):
+    snapshot = {"model": "ReCeIvInG", "w": 800, "h": 1600, "d": 350, "t": 2}
+    settings = {"w": 800, "h": 1600, "d": 350, "t": 2}
+    box = {"w": 820, "h": 1650, "d": 360}
+    box[axis] = bad
+    app = _app(snapshot=snapshot, settings=settings, whd=box)
+    original = deepcopy((snapshot, settings, box))
+    with pytest.raises(ValueError, match="包外尺寸"):
+        _engine(app)
+    with pytest.raises(ValueError, match="包外尺寸"):
+        operator_finished_dimensions_for_app(app)
+    assert (snapshot, settings, box) == original
+
+
+def test_live_vault_does_not_reinterpret_working_box_as_receiving_bay():
+    app = _app(snapshot={"model": "金庫型", "w": 701, "h": 1201, "d": 301, "t": 2},
+               settings={"t": 2}, whd={"w": True, "h": "nan", "d": -1})
+    assert _engine(app) == pytest.approx((701, 1201, 301))
+    assert operator_finished_dimensions_for_app(app) == pytest.approx((701, 1201, 301))
+
+
+def test_live_finished_size_engine_uses_existing_family_projection_not_string_alias_list():
+    from ae_engine import display_dimensions
+    source = inspect.getsource(display_dimensions.resolve_live_operator_finished_dimensions)
+    assert "project_receiving_manufacturing_request_settings(" in source
+    assert 'in {"受電箱", "RECEIVING"}' not in source

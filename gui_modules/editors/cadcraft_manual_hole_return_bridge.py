@@ -7,26 +7,17 @@ CADCraft is never the manufacturing source of truth.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from hashlib import sha256
-import math
 from pathlib import Path
 
-import ezdxf
 
-from ae_engine.sheetmetal_features import (
-    CircleFeature, RectFeature, ProfileFeature, Vec2,
-    feature_is_strictly_within_surface, resolve_surface_features,
-)
+from ae_engine import manufacturing_api
 from gui_modules.editors.cadcraft_command_session_bridge import (
-    CadcraftSessionStage, _polygon, _MAX_EXCHANGE_BYTES,
+    CadcraftSessionStage, _MAX_EXCHANGE_BYTES,
 )
-from gui_modules.editors.cadcraft_new_hole_import import new_hole_from_cadcraft_entity
 from phase6_hole_editor_session import HoleEditorAction, Phase6HoleEditorSession
-from tools.issue1959_whd_cadcraft_command_draw import (
-    CadcraftCommandProofError, from_whd_resolved, verify_dxf,
-    _near, _number, _ring,
-)
+from tools.issue1959_whd_cadcraft_command_draw import CadcraftCommandProofError
 
 
 @dataclass(frozen=True)
@@ -67,19 +58,6 @@ def _read_limited(path: Path) -> bytes:
     return data
 
 
-def _eligible(feature) -> bool:
-    # An approved NFB CSV hole or an authored manufacturing source must not be
-    # silently de-linked from its governing source by this prototype.
-    return (
-        isinstance(feature, (CircleFeature, RectFeature, ProfileFeature))
-        and feature.layer == "CUTTING"
-        and not feature.source_type
-        and not feature.source_params
-        and not getattr(feature, "layered_profiles", ())
-        and not getattr(feature, "add_centerline", False)
-    )
-
-
 def create_manual_return_ticket(*, output: Path, features, session,
                                 surface, width: float, height: float):
     """Issue provenance only for the exact freshly proven WHD->CADCraft DXF."""
@@ -88,29 +66,16 @@ def create_manual_return_ticket(*, output: Path, features, session,
     snapshot = session.snapshot()
     originals = tuple(features)
     if (session.has_active_edit or len(originals) > 100
-            or snapshot.features != originals or not all(map(_eligible, originals))):
+            or snapshot.features != originals or not all(map(manufacturing_api.cadcraft_manual_feature_eligible, originals))):
         raise CadcraftCommandProofError("UNSUPPORTED_OR_DIRTY_WHD_SOURCE")
     w, h = float(width), float(height)
-    if not all(math.isfinite(v) and v > 0 for v in (w, h)):
+    if not all(manufacturing_api.cadcraft_manual_finite_positive(v) for v in (w, h)):
         raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
-    expected = (from_whd_resolved(
-        tuple(resolve_surface_features(surface, originals, w, h))
-    ) if originals else ())
     path = Path(output).resolve(strict=True)
     data = _read_limited(path)
-    if expected:
-        verify_dxf(path, expected)
-    else:
-        # Zero-entity proof: WHD issues only a fresh, empty, explicitly mm DXF.
-        # It is a short-lived ticket bound to this exact editor Session.
-        try:
-            document = ezdxf.readfile(path)
-        except (OSError, ValueError, ezdxf.DXFError) as exc:
-            raise CadcraftCommandProofError("INVALID_BLANK_EXCHANGE_DXF") from exc
-        if (document.header.get("$INSUNITS") != 4
-                or document.header.get("$MEASUREMENT") != 1
-                or any(document.modelspace())):
-            raise CadcraftCommandProofError("INVALID_BLANK_EXCHANGE_DXF")
+    manufacturing_api.verify_cadcraft_manual_ticket_seed(
+        path, originals, surface, w, h,
+    )
     if sha256(_read_limited(path)).digest() != sha256(data).digest():
         raise CadcraftCommandProofError("CADCRAFT_FILE_CHANGED_DURING_TICKET")
     return ManualReturnTicket(
@@ -120,82 +85,10 @@ def create_manual_return_ticket(*, output: Path, features, session,
 
 
 def _dxf_moves(output: Path, original: tuple, surface, width, height):
-    """Allow existing-hole translations and strictly append new holes, not deletes/resizes."""
-    expected = (from_whd_resolved(tuple(
-        resolve_surface_features(surface, original, width, height)
-    )) if original else ())
-    try:
-        doc = ezdxf.readfile(output)
-    except (OSError, ValueError, TypeError, ezdxf.DXFError) as exc:
-        raise CadcraftCommandProofError("CADCRAFT_DXF_PARSE_FAILED") from exc
-    if doc.header.get("$INSUNITS") != 4 or doc.header.get("$MEASUREMENT") != 1:
-        raise CadcraftCommandProofError("MILLIMETRE_HEADER_MISMATCH")
-    entities = list(doc.modelspace())
-    # Source holes must remain the original ordered prefix. Extra circles and
-    # contours are the *only* admissible additions, on this isolated drawing.
-    if len(entities) < len(original) or len(entities) > 100:
-        raise CadcraftCommandProofError("ENTITY_COUNT_MISMATCH")
-    moves = []
-    updated = []
-    for index, (entity, instruction, feature) in enumerate(zip(entities, expected, original)):
-        if entity.dxf.layer != "0":
-            raise CadcraftCommandProofError("UNEXPECTED_LAYER")
-        extrusion = tuple(entity.dxf.get("extrusion", (0, 0, 1)))
-        if len(extrusion) != 3 or not all(
-            _near(_number(a), b) for a, b in zip(extrusion, (0, 0, 1))
-        ):
-            raise CadcraftCommandProofError("UNEXPECTED_EXTRUSION")
-        if instruction.kind == "circle":
-            if entity.dxftype() != "CIRCLE":
-                raise CadcraftCommandProofError("CHANGED_ENTITY_TYPE")
-            center = entity.dxf.center
-            x, y, z, radius = map(_number, (center.x, center.y, center.z, entity.dxf.radius))
-            if not _near(z, 0) or not _near(radius, instruction.radius):
-                raise CadcraftCommandProofError("CIRCLE_SIZE_OR_PLANE_CHANGED")
-            dx, dy = x-instruction.points[0][0], y-instruction.points[0][1]
-        else:
-            if entity.dxftype() != "LWPOLYLINE" or not entity.closed:
-                raise CadcraftCommandProofError("OPEN_OR_CHANGED_PROFILE")
-            if not _near(_number(entity.dxf.get("const_width", 0)), 0):
-                raise CadcraftCommandProofError("POLYLINE_WIDTH_CHANGED")
-            if not _near(_number(entity.dxf.get("elevation", 0)), 0):
-                raise CadcraftCommandProofError("POLYLINE_ELEVATION_CHANGED")
-            vertices = list(entity.get_points("xyseb"))
-            if len(vertices) != len(instruction.points):
-                raise CadcraftCommandProofError("VERTEX_COUNT_MISMATCH")
-            points = tuple((_number(x), _number(y)) for x, y, *_ in vertices)
-            _ring(points)
-            dx = points[0][0]-instruction.points[0][0]
-            dy = points[0][1]-instruction.points[0][1]
-            for (x, y, start, end, bulge), (ex, ey) in zip(vertices, instruction.points):
-                if (not all(_near(_number(v), 0) for v in (start, end, bulge))
-                        or not _near(_number(x), ex+dx)
-                        or not _near(_number(y), ey+dy)):
-                    raise CadcraftCommandProofError("SHAPE_OR_ROTATION_CHANGED")
-        if abs(dx) > 1_000_000 or abs(dy) > 1_000_000:
-            raise CadcraftCommandProofError("OUT_OF_RANGE_TRANSLATION")
-        candidate = replace(feature, offset=Vec2(
-            _number(feature.offset.x+dx), _number(feature.offset.y+dy)
-        ))
-        if not feature_is_strictly_within_surface(surface, candidate, width, height):
-            raise CadcraftCommandProofError("OUTSIDE_WHD_PHYSICAL_SURFACE")
-        updated.append(candidate)
-        if not _near(dx, 0) or not _near(dy, 0):
-            moves.append((index, dx, dy))
-    additions = tuple(new_hole_from_cadcraft_entity(entity)
-                      for entity in entities[len(original):])
-    for feature in additions:
-        if not feature_is_strictly_within_surface(surface, feature, width, height):
-            raise CadcraftCommandProofError("OUTSIDE_WHD_PHYSICAL_SURFACE")
-    if not moves and not additions:
-        raise CadcraftCommandProofError("NO_MANUAL_HOLE_POSITION_CHANGE")
-    updated.extend(additions)
-    footprints = [_polygon(feature, width, height) for feature in updated]
-    for index, footprint in enumerate(footprints):
-        for preceding in footprints[:index]:
-            if footprint.intersects(preceding):
-                raise CadcraftCommandProofError("WHD_FEATURE_COLLISION")
-    return tuple(updated), tuple(moves), additions
+    """Compatibility: the Engine alone validates CADCraft DXF return geometry."""
+    return manufacturing_api.project_cadcraft_manual_return_changes(
+        output, original, surface, width, height,
+    )
 
 
 def stage_manual_cadcraft_return(ticket: ManualReturnTicket) -> ManualReturnPreview:

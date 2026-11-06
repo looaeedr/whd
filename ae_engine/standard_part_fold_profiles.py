@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from typing import Mapping
 from .box_body_fold_profile import _num, _ui_len, apply_outside_dimension_compensation
+from .cabinet_types.policy import canonical_family_name
 
 def _is_door_part_key(value: object) -> bool:
     key = str(value or "")
@@ -85,7 +86,7 @@ def build_standard_part_fold_profiles(
         profiles["Y"] = apply_outside_dimension_compensation(profiles["Y"], t)
         return profiles
 
-    if part_key == "base_plate" and str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}:
+    if part_key == "base_plate" and canonical_family_name(snapshot) == "受電箱":
         # Share the ONE actual FinalScene-derived BEND profile with assembly Z.
         from .receiving_base_plate_3d_profiles import receiving_base_plate_3d_profiles
         physical = receiving_base_plate_3d_profiles(snapshot)

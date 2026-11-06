@@ -686,10 +686,6 @@ class Phase6AssemblyPanel:
                 self.box_piece_corner_vars[key] = corner
                 self.bind_scroll(sub)
 
-        piece_by_role = {
-            str(getattr(piece, "role", "") or ""): piece
-            for piece in tuple(getattr(render_data, "pieces", ()) or ())
-        }
         for projection in projections:
             key = str(projection.part_key)
             self.box_piece_formed_vars[key].set(
@@ -702,11 +698,9 @@ class Phase6AssemblyPanel:
                 f"{number_text(projection.blank_width)} × "
                 f"{number_text(projection.blank_height)} mm"
             )
-            role = key.split(":", 1)[-1]
-            piece = piece_by_role.get(role)
             corner_text = (
-                corner_text_for_render_data(piece.render_data)
-                if piece is not None
+                corner_text_for_render_data(projection.source_render_data)
+                if projection.source_render_data is not None
                 else "截角尺寸：無"
             )
             self.box_piece_corner_vars[key].set(corner_text)

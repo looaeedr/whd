@@ -31,29 +31,15 @@ _measurement_text = measurement_text
 
 
 def render_data_corner_dimension_text(render_data):
-    """Return display text measured from canonical manufacturing material."""
-    from ae_engine.assembly_collision import measure_material_corner_reliefs
+    """Format Engine-owned physical corner measurements for UI labels."""
+    from ae_engine import manufacturing_api
 
+    rows = manufacturing_api.project_render_corner_relief_measurements(render_data)
     groups = []
-    pieces = tuple(getattr(render_data, "pieces", ()) or ())
-    if pieces:
-        for piece in pieces:
-            material = getattr(getattr(piece, "render_data", None), "material", None)
-            measurements = measure_material_corner_reliefs(material)
-            if not measurements:
-                continue
-            rows = [
-                f"{_CORNER_LABELS.get(m.corner_name, m.corner_name)} {measurement_text(m)}"
-                for m in measurements
-            ]
-            role = str(getattr(piece, "role", getattr(piece, "key", "板件")) or "板件")
-            groups.append(f"{role}：{' / '.join(rows)}")
-    else:
-        material = getattr(render_data, "material", None)
-        measurements = measure_material_corner_reliefs(material)
-        if measurements:
-            groups.extend(
-                f"{_CORNER_LABELS.get(m.corner_name, m.corner_name)} {measurement_text(m)}"
-                for m in measurements
-            )
+    for group in rows:
+        text = " / ".join(
+            f"{_CORNER_LABELS.get(m.corner_name, m.corner_name)} {measurement_text(m)}"
+            for m in group.measurements
+        )
+        groups.append(f"{group.role}：{text}" if group.role is not None else text)
     return "截角尺寸：" + ("；".join(groups) if groups else "無")

@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 import tkinter as tk
 from tkinter import ttk, messagebox
-from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
+from ae_engine import manufacturing_api
 
 
 @dataclass
@@ -43,9 +43,9 @@ def build_mode_controls(parent, *, on_switch, on_common, quantity_ports):
 def ask_initial_dimensions(parent, target):
     """Legacy compatibility only: return Family defaults, never open a dialog.
 
-    Fresh Receiving Set/Bay or Quantity sessions must use one deterministic
-    800 x 1600 x 350 default. No UI initialization/confirmation is allowed.
+    Fresh Receiving Set/Bay or Quantity dimensions come only from the public
+    Engine Family projection. No UI initialization dialog is allowed.
     """
     if target not in {"quantity", "set_bay"}:
         raise ValueError("不合法的受電箱操作模式")
-    return {key: int(BOX_BODY_DEFAULTS[key]) for key in ("w", "h", "d")}
+    return manufacturing_api.receiving_default_box_dimensions()

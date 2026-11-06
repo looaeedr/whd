@@ -765,6 +765,85 @@ def set_part_edge_relation(
     return result
 
 
+
+def add_user_assembly_joint(
+    snapshot: Mapping[str, object],
+    *,
+    subject_part,
+    target_part,
+    relation,
+    subject_region="",
+    target_region="",
+    clearance_policy="ZERO",
+    contact_mode="AUTO",
+    preserve_side="AUTO",
+    relief_intent="AUTO",
+    solver_constraints=None,
+) -> tuple[dict[str, object], dict[str, object]]:
+    """Atomically prepare a USER_ADDED joint without mutating the input source.
+
+    This is the original Fold Designer editor transaction, relocated to the
+    canonical Joint owner. A GUI commits the returned snapshot only on success.
+    It is not a manufacturing solver/Registry/DXF certification.
+    """
+    from uuid import uuid4
+
+    staged = migrate_legacy_snapshot_joints(snapshot)
+    normalized_relation = _relation(relation)
+    joint = AssemblyJoint(
+        joint_id=f"user:{uuid4().hex}",
+        subject_part=str(subject_part),
+        target_part=str(target_part),
+        subject_region=str(subject_region or ""),
+        target_region=str(target_region or ""),
+        relation=normalized_relation,
+        contact_mode=str(contact_mode or "AUTO"),
+        preserve_side=str(preserve_side or "AUTO"),
+        relief_intent=str(relief_intent or "AUTO"),
+        clearance_policy=str(clearance_policy or "ZERO"),
+        solver_constraints=deepcopy(dict(solver_constraints or {})),
+        source=AssemblyJointSource.USER_ADDED,
+    )
+    identity = (
+        joint.subject_part, joint.target_part,
+        joint.subject_region, joint.target_region, joint.relation.value,
+    )
+    rows = []
+    for raw in staged["assembly_joints"]:
+        previous = AssemblyJoint.from_dict(raw)
+        other = (
+            previous.subject_part, previous.target_part,
+            previous.subject_region, previous.target_region, previous.relation.value,
+        )
+        if identity == other:
+            raise ValueError("相同 AssemblyJoint 已存在")
+        rows.append(previous.to_dict())
+    row = joint.to_dict()
+    updated = dict(staged)
+    updated["assembly_joints"] = rows + [deepcopy(row)]
+    return updated, row
+
+
+def delete_user_assembly_joint(
+    snapshot: Mapping[str, object], joint_id,
+) -> tuple[dict[str, object], bool]:
+    """Prepare an atomic USER_ADDED removal; never remove derived/solver joints."""
+    staged = migrate_legacy_snapshot_joints(snapshot)
+    kept, selected = [], None
+    for raw in staged["assembly_joints"]:
+        if str(raw.get("joint_id")) == str(joint_id):
+            selected = AssemblyJoint.from_dict(raw)
+        else:
+            kept.append(deepcopy(raw))
+    if selected is None:
+        return staged, False
+    if selected.source is not AssemblyJointSource.USER_ADDED:
+        raise ValueError("只有 USER_ADDED Joint 可以刪除")
+    updated = dict(staged)
+    updated["assembly_joints"] = kept
+    return updated, True
+
+
 def _mechanical_region_name(value: object) -> str:
     raw = str(value or "").strip().lower()
     aliases = {
@@ -966,3 +1045,64 @@ def joint_registry_diagnostic_info(joint, render_by_part, solution_by_part):
     }
 
 
+def resolve_manufacturing_joint_graph(snapshot, available_part_keys):
+    """Own legacy Joint migration, live-part membership and physical graph.
+
+    Preserve the existing Phase6 manufacturing behavior without inventing a
+    second Family/Intent topology, unplaced custom part, or GUI dependency.
+    """
+    available = {str(key) for key in tuple(available_part_keys or ())}
+    migrated = migrate_legacy_snapshot_joints(dict(snapshot))
+    joints = tuple(
+        raw if isinstance(raw, AssemblyJoint) else AssemblyJoint.from_dict(raw)
+        for raw in tuple(migrated.get("assembly_joints", ()) or ())
+        if str(
+            getattr(
+                raw, "subject_part",
+                raw.get("subject_part", "") if isinstance(raw, dict) else "",
+            )
+        ) in available
+        and str(
+            getattr(
+                raw, "target_part",
+                raw.get("target_part", "") if isinstance(raw, dict) else "",
+            )
+        ) in available
+    )
+    if any(
+        str(joint.subject_part).startswith("custom:")
+        or str(joint.target_part).startswith("custom:")
+        for joint in joints
+    ):
+        raise ValueError("自訂板件尚無已確認 assembly placement，不能建立組裝 joint")
+    return ResolvedAssemblyGraph(tuple(sorted(available)), joints)
+
+
+def project_operator_endcap_joint_edge_policies(
+    snapshot: Mapping[str, object], part_key: str, *, fallback_intent="INSERT_OVERLAY",
+) -> tuple[dict[str, object], ...]:
+    """Project all four physical Head/Tail edge relations from canonical Joint state.
+
+    This is a detached source/Policy preview, not a manufacturing authorization.
+    GUI supplies only the raw saved snapshot and current Assembly Intent.
+    """
+    from .assembly_intent import get_assembly_intent
+
+    if not isinstance(snapshot, Mapping):
+        raise ValueError("ENDCAP_JOINT_SOURCE_MAPPING_REQUIRED")
+    if part_key not in ("head", "tail"):
+        raise ValueError("ENDCAP_JOINT_PHYSICAL_PART_REQUIRED")
+
+    state = migrate_legacy_snapshot_joints(snapshot)
+    record = get_assembly_intent(state.get("assembly_type") or fallback_intent)
+    rows = []
+    for edge in ("TOP", "BOTTOM", "LEFT", "RIGHT"):
+        policy = record.edge_policy(edge)
+        relation = edge_relation_for_part(state, part_key, edge) or policy.default_relation
+        rows.append({
+            "edge": edge,
+            "relation": relation,
+            "allowed": tuple(policy.allowed_relations),
+            "editable": bool(policy.editable),
+        })
+    return tuple(rows)

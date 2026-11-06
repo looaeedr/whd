@@ -193,34 +193,19 @@ class HoleEditorIndicatorStateCollector:
         mode_var = self.mode_var_provider()
         if mode_var is None:
             return None
-        try:
-            layers = max(1, min(6, int(self.layers_var_provider().get())))
-        except (TypeError, ValueError):
-            layers = 1
-        groups = []
-        for var in self.group_vars_provider():
-            try:
-                groups.append(max(1, int(var.get())))
-            except ValueError:
-                groups.append(2)
-        while len(groups) < 6:
-            groups.append(2)
-        try:
-            offset_x = float(self.offset_x_var_provider().get())
-        except ValueError:
-            offset_x = 0.0
-        try:
-            offset_y = float(self.offset_y_var_provider().get())
-        except ValueError:
-            offset_y = 0.0
-        return self.normalize_state({
-            "mode": mode_var.get(),
-            "layers": layers,
-            "groups": groups[:6],
-            "offset_x": offset_x,
-            "offset_y": offset_y,
-            "is_box_dist": bool(self.box_dist_var_provider().get()),
-        })
+        mode = mode_var.get()
+        # Only collect operator inputs here. The injected public Engine
+        # validator owns numeric/physical legitimacy, with no GUI defaults.
+        raw = {"mode": mode}
+        if mode != "none":
+            raw.update(
+                layers=self.layers_var_provider().get(),
+                groups=[var.get() for var in self.group_vars_provider()],
+                offset_x=self.offset_x_var_provider().get(),
+                offset_y=self.offset_y_var_provider().get(),
+                is_box_dist=self.box_dist_var_provider().get(),
+            )
+        return self.normalize_state(raw)
 
 class HoleEditorIndicatorGroupControls:
     """Own presentation-only rebuilding of indicator group rows."""

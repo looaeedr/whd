@@ -24,15 +24,9 @@ class AssemblyVisibility(tuple):
         return value
 
 
-@dataclass(frozen=True)
-class AssemblyScenePart:
-    part_key: str
-    render_data: object
-    x_profile: tuple[Mapping[str, object], ...]
-    y_profile: tuple[Mapping[str, object], ...]
-    placement: str = "offset"
-    offset: tuple[float, float, float] = (0.0, 0.0, 0.0)
-
+# Exact-identity old import path for saved FinalScene presentation adapters.
+# No duplicate manufacturing scene-part class remains in Phase6.
+from ae_engine.manufacturing_api import AssemblyScenePart
 
 @dataclass(frozen=True)
 class AssemblySceneRenderData:

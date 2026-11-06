@@ -428,7 +428,10 @@ def test_single_confirm_makes_real_tier_parts_and_side_marks_not_only_hole_draft
         # prove that a physical source sheet is absent. Instrument the
         # unchanged grouping seam to witness exactly which physical source
         # members the ORIGINAL UI actually wrote and in what quantities.
-        import phase6_quantity_manufacturing as qmanufacture
+        # Observe the actual canonical Engine Q group owner (the CSV exporter
+        # now imports it locally), not the retired Phase6 compatibility alias.
+        from importlib import import_module
+        qmanufacture = import_module("ae_engine.quantity_manufacturing_groups")
         actual_group_resolver = qmanufacture.quantity_manufacturing_groups
         emitted_groups=[]
         def record_real_group_receipts(*args,**kwargs):

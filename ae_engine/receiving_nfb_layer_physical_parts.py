@@ -162,7 +162,6 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
     from .receiving_base_plate_3d_profiles import receiving_base_plate_3d_profiles
     from .contracts import BasePlatePartSpec
     from .manufacturing_scene_orchestration import build_part_render_data
-    from phase6_final_scene_contracts import AssemblyScenePart
 
     values = receiving_base_plate_values(snapshot)
     if values is None:
@@ -244,7 +243,7 @@ def expand_receiving_nfb_layer_parts(snapshot, assembly_parts):
             "nfb_tier_base_back_skin_world_z_mm":
                 depth_target.base_back_skin_world_z_mm,
         })
-        generated.append(AssemblyScenePart(
+        generated.append(replace(root,
             part_key=identity,
             render_data=actual,
             x_profile=tuple(dict(s) for s in tier_profiles["X"]),

@@ -15,7 +15,6 @@ from pathlib import Path
 import tkinter as tk
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.receiving_layout import (
     ensure_receiving_layout as ensure_receiving_preview_layout,
     resize_receiving_bays as resize_receiving_preview_bays,
@@ -130,26 +129,23 @@ from gui_modules.application.fold_designer_snapshot_projection import (
     _make_original_fold_designer_snapshot,
 )
 
+def _receiving_setting_value(set_row, bay_index, kind):
+    """Project an actual persisted Bay value through the public Engine API.
+
+    GUI must not import the private shared-setting storage policy or infer
+    physical per-Bay values from presentation state.
+    """
+    value, _linked_bays = manufacturing_api.project_receiving_shared_setting_group(
+        set_row, bay_index, kind,
+    )
+    return value
+
+
 def _checked_nfb_copy_selection(layout, set_index, selected_bays):
-    """Resolve two unique physical Bay indices before any UI copy side effect."""
-    message = "NFB 複製請在同一套高亮來源連及目標連（恰好兩連）"
-    if type(set_index) is not int:
-        raise ValueError("NFB 複製的套位已不存在")
-    try:
-        if not 0 <= set_index < len(layout["sets"]):
-            raise ValueError("NFB 複製的套位已不存在")
-        bays = layout["sets"][set_index]["bays"]
-    except (TypeError, KeyError, IndexError) as exc:
-        raise ValueError("NFB 複製的套位已不存在") from exc
-    try:
-        indices = tuple(selected_bays)
-    except TypeError as exc:
-        raise ValueError(message) from exc
-    if (len(indices) != 2
-            or any(type(i) is not int or not 0 <= i < len(bays) for i in indices)
-            or len(set(indices)) != 2):
-        raise ValueError(message)
-    return indices, {i: bays[i] for i in indices}
+    """Legacy GUI entry, delegated to Engine's strict Bay identity check."""
+    return manufacturing_api.select_operator_nfb_copy_bays(
+        layout, set_index, selected_bays,
+    )
 
 
 def receiving_layout_applicable(self):
@@ -215,29 +211,18 @@ def sync_receiving_current_bay(
             "d": projected["d"],
         },
     )
-    if "surface_features" in projected:
-        for role in ("head", "tail"):
-            if role in projected["surface_features"]:
-                app.designer_workspace.stash_features(role, projected["surface_features"][role])
-    if projected.get("active_mode") == "set_bay":
-        # The current physical Bay is now the Hole Editor's live owner;
-        # switching Bays must refresh the actual 2D/3D workspace as well.
-        physical_features = projected.get("part_features") or {}
-        for key in app.designer_workspace.available_parts:
-            if str(key).startswith("inner_door:") and str(key).endswith(":panel"):
-                app.designer_workspace.stash_features(
-                    key, physical_features.get(key, []),
-                )
-    from ae_engine.receiving_layout import receiving_bay_joint_face_features
     workspace = app.designer_workspace
-    workspace.stash_face_features("box_body", receiving_bay_joint_face_features(
-        adapter.layout,
+    feature_plan = manufacturing_api.project_operator_receiving_live_bay_features(
+        projected, available_parts=workspace.available_parts,
+        layout=adapter.layout,
         set_index=adapter.selection.set_index,
         bay_index=adapter.selection.bay_index,
-        thickness=float(projected.get("t", 2)),
-        frame_width=float(projected.get("fw", 29)),
-        existing=workspace.face_features_for("box_body"),
-    ))
+        existing_box_body_faces=workspace.face_features_for("box_body"),
+    )
+    for key, features in (*feature_plan.surface_updates,
+                          *feature_plan.inner_panel_updates):
+        workspace.stash_features(key, features)
+    workspace.stash_face_features("box_body", feature_plan.box_body_joint_faces)
     original = required("original")
     number = float if projected.get("active_mode") == "quantity" else original.get_int
     app.state.w = number(projected["w"])
@@ -278,15 +263,13 @@ def commit_receiving_current_bay_controls(self, namespace):
     if getattr(app, "_phase6_receiving_set_bay_guard", False):
         return False
     if app._phase6_input_snapshot.get("active_mode") == "quantity":
-        from ae_engine.receiving_quantity_box import update_common_box
-        candidate = update_common_box(_current_mode_snapshot(self, namespace),
+        candidate = manufacturing_api.update_common_box(_current_mode_snapshot(self, namespace),
                                      {axis: getattr(app, "v_" + axis).get() for axis in ("w", "h", "d")})
         # Quantity re-creates a source-owned singleton Receiving Set/Bay.
-        # dict.update() does not delete the previous Set/Bay runtime pointer,
-        # even though project_common_box() removed it from the candidate.
-        # A stale pointer would pass to EAR Z export and falsely drift.
-        from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
-        app._phase6_input_snapshot.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
+        # Engine has already rebuilt the Quantity singleton and removed stale
+        # Set/Bay runtime identity. Replace the snapshot, do not overlay it:
+        # dict.update alone would retain an obsolete EAR Z selection pointer.
+        app._phase6_input_snapshot.clear()
         app._phase6_input_snapshot.update(candidate)
         app.designer_workspace.set_receiving_common_box(candidate["receiving_quantity_box"])
         self.receiving_adapter(namespace, reset=True)
@@ -295,12 +278,19 @@ def commit_receiving_current_bay_controls(self, namespace):
     adapter = self.receiving_adapter(namespace)
     if adapter is None:
         return False
-    required = lambda name: self._required(namespace, name)
-    original = required("original")
+    # Operator W/H/D are physical outside dimensions, not rounded UI lengths.
+    # The existing public Engine validator owns type, finite, positive and
+    # fractional-mm semantics before the Bay transaction can mutate state.
     requested = {
-        "width": original.get_int(app.v_w.get()),
-        "height": original.get_int(app.v_h.get()),
-        "depth": original.get_int(app.v_d.get()),
+        "width": manufacturing_api.normalize_operator_source_dimension(
+            app.v_w.get(), field="w",
+        ),
+        "height": manufacturing_api.normalize_operator_source_dimension(
+            app.v_h.get(), field="h",
+        ),
+        "depth": manufacturing_api.normalize_operator_source_dimension(
+            app.v_d.get(), field="d",
+        ),
     }
     current_bay = adapter.current_bay()
     dimensions_changed = any(
@@ -334,13 +324,10 @@ def back_panel_mode_control_is_applicable(self, namespace):
     app = self.app
     required = lambda name: self._required(namespace, name)
     snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
-    if cabinet_family_policy.canonical_family_name(snapshot) != "受電箱":
+    if not manufacturing_api.receiving_family_supports_back_panel_mode(snapshot):
         return False
     state = required("_phase6_box_structure_state")(app)
-    return (
-        str(state.get("active_type") or "")
-        == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
-    )
+    return manufacturing_api.receiving_back_panel_mode_control_applicable(snapshot, state)
 
 def refresh_back_panel_mode_control(self, namespace):
     """Project canonical rear-panel mode beside the Receiving switch selector."""
@@ -386,7 +373,7 @@ def select_back_panel_mode(self, namespace, var):
     if mode is None:
         return None
     snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
-    if cabinet_family_policy.canonical_family_name(snapshot) != "受電箱":
+    if not manufacturing_api.receiving_family_supports_back_panel_mode(snapshot):
         return None
     state = required("_phase6_box_structure_state")(app)
     try:
@@ -550,13 +537,8 @@ def confirm_receiving_opening(
     return True
 
 def _receiving_rebase_preview_world_offsets(request, old_anchor, new_anchor):
-    """Translate an immutable FinalScene preview; never rebuild or mutate sheets.
-
-    This is valid only after the local PartSpec/Joint fingerprint matches.
-    Unsupported/custom scene envelopes fail closed to the full solve caller.
-    """
+    """UI compatibility: only Engine plans physical world-offset translation."""
     from dataclasses import replace
-    from math import isfinite
     from phase6_final_scene_contracts import (
         AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest,
     )
@@ -566,381 +548,126 @@ def _receiving_rebase_preview_world_offsets(request, old_anchor, new_anchor):
     if (not isinstance(scene, AssemblySceneRenderData)
             or not scene.preserve_endcap_core_origin
             or scene.interference_probe_parts or scene.show_interference
-            or scene.joint_diagnostics or scene.collision_certification_diagnostics):
+            or scene.joint_diagnostics or scene.collision_certification_diagnostics
+            or not all(isinstance(part, AssemblyScenePart)
+                       for part in scene.assembly_parts)):
         return None
-    if len(old_anchor) != 3 or len(new_anchor) != 3:
+    offsets = manufacturing_api.plan_receiving_bay_preview_offset_rebase(
+        scene.assembly_parts, old_anchor, new_anchor,
+    )
+    if offsets is None:
         return None
-    delta = tuple(float(b) - float(a) for a, b in zip(old_anchor, new_anchor))
-    if not all(isfinite(v) for v in delta):
-        return None
-    parts = []
-    for part in scene.assembly_parts:
-        if (not isinstance(part, AssemblyScenePart)
-                or part.placement == "standalone" or len(part.offset) != 3):
-            return None
-        offset = tuple(float(v) + shift for v, shift in zip(part.offset, delta))
-        if not all(isfinite(v) for v in offset):
-            return None
-        parts.append(replace(part, offset=offset))
+    parts = tuple(
+        replace(part, offset=offset)
+        for part, offset in zip(scene.assembly_parts, offsets)
+    )
     return replace(request, render_data=replace(
-        scene, assembly_parts=tuple(parts)))
+        scene, assembly_parts=parts))
 
 
 def _receiving_bay_preview_face_features_key(face_features):
-    """Ignore only transient Joint locks which the real per-Bay solver replaces.
-
-    receiving_bay_joint_face_features removes the source_type below from
-    existing BoxBody faces and reconstructs the selected Bay's locks using
-    receiving_layout and the actual W/H/D/T/FW. Both remain in the preview
-    fingerprint. Authored faces and all non-BoxBody features still invalidate.
-    Never mutate the Designer workspace or the manufacturing input.
-    """
-    if not isinstance(face_features, dict):
-        return face_features
-    box_faces = face_features.get("box_body")
-    if not isinstance(box_faces, dict):
-        return face_features
-    if not all(isinstance(values, (list, tuple))
-               for values in box_faces.values()):
-        return face_features  # unknown schema: preserve full key
-    retained = {
-        face: remaining
-        for face, values in box_faces.items()
-        if (remaining := [feature for feature in values
-                         if getattr(feature, "source_type", "") !=
-                         "receiving_joint_side_lock"])
-    }
-    if retained == box_faces:
-        return face_features
-    return {**face_features, "box_body": retained}
+    """Legacy preview-cache test/client bridge; Engine owns feature provenance."""
+    return manufacturing_api.project_receiving_bay_preview_face_features_key(face_features)
 
 
 def _receiving_default_local_joints_only(rows):
-    """Allow suffix cache reuse only for certified local default EndCap joints.
-
-    The real GUI creates intent-derived Head/Tail to BoxBody joints even in a
-    fresh receiving project. These do not connect distant Bays. Any user,
-    solver, family, unknown or revised joint still fails closed to full solve.
-    """
-    from collections.abc import Mapping
-
-    if rows is None:
-        return True
-    if not isinstance(rows, (list, tuple)):
-        return False
-    for raw in rows:
-        if not isinstance(raw, Mapping):
-            return False
-        part, target = raw.get("subject_part"), raw.get("target_part")
-        edge, source = raw.get("edge"), raw.get("source")
-        if (part not in ("head", "tail") or target != "box_body"
-                or edge not in ("TOP", "BOTTOM", "LEFT", "RIGHT")
-                or raw.get("revision") != 1):
-            return False
-        origin = raw.get("migration_origin")
-        if source == "INTENT_DERIVED":
-            if origin != "ASSEMBLY_INTENT":
-                return False
-        elif source == "LEGACY_MIGRATED":
-            if origin not in ("ASSEMBLY_TYPE", "ENDCAP_BOTTOM_WRAP"):
-                return False
-        else:
-            return False
-        joint_id = raw.get("joint_id", "")
-        if (not isinstance(joint_id, str)
-                or not joint_id.startswith(f"{part}:box_body:{edge.lower()}:")
-                or not joint_id.endswith(":intent_derived")):
-            return False
-    return True
+    """Legacy preview-cache test/client bridge; Engine owns Joint eligibility."""
+    return manufacturing_api.receiving_default_local_joints_only(rows)
 
 
-def _receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, bay_index,
-                                                 allow_upstream_translation=False,
-                                                 allow_suffix_topology_reuse=False):
-    """Read-only key projection for provably unrelated *trailing* Bay dimensions.
-
-    The requesting Bay's own W/H/D, its left/right Joint participants and
-    every preceding Bay remain part of the key: the left chain controls
-    assembly X/Y/Z, and the immediate right neighbor controls side locks.
-    Only distant prefixes (with world-offset rebasing) and Bays strictly
-    AFTER the right neighbor are independent of this Bay's local sheet.
-    For tail-only topology resize, drop distant suffix rows AND the matching
-    unused per-Bay setting refs/values from the key; a SHARED setting value
-    referenced by this Bay or its neighbor is always retained.
-    All relevant IDs, nearby Joints, NFB, features, other Sets, model and
-    global geometry authority remain included and fail closed.
-    NEVER use this deliberately incomplete copy as a saved/solved layout.
-    """
-    # Copy-on-write only the key's suffix path. Deep-copying the entire
-    # projected project on every display refresh would itself be a slowdown.
-    fingerprint_snapshot = dict(snapshot)
-    if fingerprint_snapshot.get("model") not in ("受電箱", "RECEIVING"):
-        return fingerprint_snapshot
-    if fingerprint_snapshot.get("active_mode", "set_bay") != "set_bay":
-        return fingerprint_snapshot
-    layout = fingerprint_snapshot.get("receiving_layout")
-    if not isinstance(layout, dict) or layout.get("schema") != "receiving-layout-v1":
-        return fingerprint_snapshot
-    sets = layout.get("sets")
-    if not isinstance(sets, list) or type(set_index) is not int:
-        return fingerprint_snapshot
-    if not 0 <= set_index < len(sets) or type(bay_index) is not int:
-        return fingerprint_snapshot
-    selected = sets[set_index]
-    if not isinstance(selected, dict):
-        return fingerprint_snapshot
-    bays = selected.get("bays")
-    joints = selected.get("joints")
-    if not isinstance(bays, list) or not isinstance(joints, list):
-        return fingerprint_snapshot
-    if not 0 <= bay_index < len(bays) or len(joints) != len(bays) - 1:
-        return fingerprint_snapshot
-    if not all(isinstance(row, dict) and row.get("stable_id")
-               for row in bays):
-        return fingerprint_snapshot
-    # Custom joints, custom parts and committed Joint relief may connect
-    # non-neighboring Bays. Even with both optimization flags disabled, the
-    # ordinary path below would still hide trailing dimensions. Never reuse
-    # a possibly stale FinalScene: retain the entire authoritative key.
-    if (fingerprint_snapshot.get("custom_parts")
-            or fingerprint_snapshot.get("joint_relief_state")
-            or not _receiving_default_local_joints_only(
-                fingerprint_snapshot.get("assembly_joints"))):
-        return fingerprint_snapshot
-    keep_count = min(len(bays), bay_index + 2)
-    trim_suffix = allow_suffix_topology_reuse and keep_count < len(bays)
-    new_settings = None
-    if trim_suffix and "settings" in selected:
-        from collections.abc import Mapping
-        raw = selected["settings"]
-        if not isinstance(raw, Mapping):
-            return fingerprint_snapshot
-        included = tuple(str(row["stable_id"]) for row in bays[:keep_count])
-        new_settings = {}
-        for kind, row in raw.items():
-            if (not isinstance(row, Mapping) or set(row) != {"refs", "values"}
-                    or not isinstance(row["refs"], Mapping)
-                    or not isinstance(row["values"], Mapping)):
-                return fingerprint_snapshot
-            if any(bay_id not in row["refs"] for bay_id in included):
-                return fingerprint_snapshot
-            refs = {bay_id:row["refs"][bay_id] for bay_id in included}
-            if any(ref not in row["values"] for ref in refs.values()):
-                return fingerprint_snapshot
-            values = {ref:row["values"][ref] for ref in refs.values()}
-            new_settings[kind] = {"refs":refs, "values":values}
-    hidden = (() if trim_suffix else tuple(range(bay_index + 2, len(bays))))
-    if allow_upstream_translation and bay_index >= 2:
-        hidden += tuple(range(0, bay_index - 1))
-    if not hidden and not trim_suffix:
-        return fingerprint_snapshot
-    # Copy-on-write: only a derived *cache key*, never an output or saved DTO.
-    shallow_layout = dict(layout)
-    shallow_sets = list(sets)
-    shallow_set = dict(selected)
-    shallow_bays = list(bays[:keep_count] if trim_suffix else bays)
-    for position in hidden:
-        later = dict(bays[position])
-        for axis in ("width", "height", "depth"):
-            later.pop(axis, None)
-        shallow_bays[position] = later
-    shallow_set["bays"] = shallow_bays
-    if trim_suffix:
-        shallow_set["joints"] = list(joints[:keep_count - 1])
-        if new_settings is not None:
-            shallow_set["settings"] = new_settings
-    shallow_sets[set_index] = shallow_set
-    shallow_layout["sets"] = shallow_sets
-    fingerprint_snapshot["receiving_layout"] = shallow_layout
-    return fingerprint_snapshot
+def _receiving_bay_preview_fingerprint_snapshot(
+    snapshot, *, set_index, bay_index,
+    allow_upstream_translation=False, allow_suffix_topology_reuse=False,
+):
+    """Legacy preview-cache bridge; Engine owns all physical dependency decisions."""
+    return manufacturing_api.project_receiving_bay_preview_fingerprint_snapshot(
+        snapshot, set_index=set_index, bay_index=bay_index,
+        allow_upstream_translation=allow_upstream_translation,
+        allow_suffix_topology_reuse=allow_suffix_topology_reuse,
+    )
 
 
 def _receiving_cached_bay_inner_door_panel(owner, part_key, payload, factory):
-    """Memoize only the exact source-free raw panel used by a real Bay request.
-
-    Per-Bay construction routes its own projected payload through a callback
-    bound to the primary GUI host; that host has a different current snapshot.
-    This cache therefore belongs to the Receiving composition, not the host
-    and not the global manufacturing result. All Joint/relief/collision/world
-    transforms still execute in the downstream full resolver. Frame/Divider
-    material reads certified DXF files and is never served by this helper.
-    """
-    key = str(part_key or "")
-    if not (key.startswith("inner_door:") and key.endswith(":panel")
-            and isinstance(payload, Mapping)
-            and payload.get("model") in ("受電箱", "RECEIVING")
-            and payload.get("active_mode") == "set_bay"):
-        return factory()
+    """Raw source-free physical panel cache: eligibility/signature from Engine."""
     from collections import OrderedDict
-    from ae_engine.cabinet_types import policy as family_policy
-    from phase6_manufacturing_contracts import manufacturing_fingerprint
-
-    panels = family_policy.derive_inner_door_panels(dict(payload))
-    panel = next((part for part in panels if part.stable_id == key), None)
-    if panel is None:
-        return factory()  # Let the canonical factory raise on invalid topology.
-    features = tuple(payload.get("features") or ())
-    try:
-        signature = manufacturing_fingerprint({
-            "panel": panel, "features": features,
-        })
-    except (TypeError, ValueError, OverflowError):
-        return factory()  # Unknown Feature DTO: never guess equivalence.
+    ticket = manufacturing_api.project_receiving_raw_source_cache_ticket(
+        part_key, payload,
+    )
+    if ticket is None or ticket.kind != "panel":
+        return factory()
     history = getattr(owner, "_receiving_raw_inner_door_panel_history", None)
     if history is None:
         history = OrderedDict()
         owner._receiving_raw_inner_door_panel_history = history
-    if signature in history:
-        history.move_to_end(signature)
-        return history[signature]
+    if ticket.signature in history:
+        history.move_to_end(ticket.signature)
+        return history[ticket.signature]
     material = factory()
-    history[signature] = material
-    history.move_to_end(signature)
+    history[ticket.signature] = material
+    history.move_to_end(ticket.signature)
     while len(history) > 8:
         history.popitem(last=False)
     return material
 
 
 def _receiving_cached_bay_inner_door_frame(owner, part_key, payload, factory):
-    """Reuse raw verified A/B/D frame material only with identical source bytes.
-
-    The source parser generation and exact file content both take part in
-    the key. A missing/unreadable/unknown source always uses the canonical
-    factory (which performs the original verified-source checks). Never
-    memoize Divider or the generic bottom side.
-    """
-    key = str(part_key or "")
-    if not (key.startswith("inner_door:") and key.endswith("_frame")
-            and isinstance(payload, Mapping)
-            and payload.get("model") in ("受電箱", "RECEIVING")
-            and payload.get("active_mode") == "set_bay"):
+    """Only Engine-witnessed A/B/D frame can reuse exact raw material."""
+    if manufacturing_api.receiving_raw_source_cache_kind(part_key, payload) != "frame":
         return factory()
     from collections import OrderedDict
-    from hashlib import sha256
-    from ae_engine.baseline_source import baseline_source_fingerprint
-    from ae_engine.receiving_frame_baseline import frame_source_file
-    from phase6_manufacturing_contracts import manufacturing_fingerprint
     from .fold_designer_manufacturing_projection import _inner_door_frame_from_payload
 
-    # This uses the SAME physical frame derivation as the production factory.
-    frame = _inner_door_frame_from_payload(key, payload)
-    if frame.side not in ("top", "left", "right"):
-        return factory()
-    source = frame_source_file()
-
-    def stamp():
-        fingerprint = baseline_source_fingerprint(source)
-        digest = sha256(source.read_bytes()).hexdigest()
-        return fingerprint, digest
-
-    try:
-        fingerprint, digest = stamp()
-        signature = manufacturing_fingerprint({
-            "frame": frame,
-            "source": fingerprint,
-            "sha256": digest,
-            # The host adds the user's physical-sheet features after making
-            # the source-backed frame. They are part of the final 2D material.
-            "features": tuple(payload.get("features") or ()),
-        })
-    except (OSError, TypeError, ValueError, OverflowError):
+    # Keep this existing public Engine PartSpec adapter for GUI test/client
+    # compatibility; physical key, DXF witness and reuse proof are Engine-owned.
+    frame = _inner_door_frame_from_payload(str(part_key or ""), payload)
+    ticket = manufacturing_api.project_receiving_raw_source_cache_ticket(
+        part_key, payload, typed_part=frame,
+    )
+    if ticket is None:
         return factory()
     history = getattr(owner, "_receiving_raw_inner_door_frame_history", None)
     if history is None:
         history = OrderedDict()
         owner._receiving_raw_inner_door_frame_history = history
-    if signature in history:
-        history.move_to_end(signature)
-        return history[signature]
-
+    if ticket.signature in history:
+        history.move_to_end(ticket.signature)
+        return history[ticket.signature]
     material = factory()
-    metadata = dict(getattr(material, "metadata", {}) or {})
-    # Only a successful certified production factory result with matching
-    # origin can authorize a new retained entry, and avoid a source swap
-    # between reading the key and the geometry factory.
-    try:
-        still_same = stamp() == (fingerprint, digest)
-    except OSError:
-        still_same = False
-    if (still_same
-            and metadata.get("receiving_frame_source_sha256") == digest
-            and metadata.get("receiving_frame_source_path") == str(source)):
-        history[signature] = material
-        history.move_to_end(signature)
+    if manufacturing_api.receiving_raw_source_cache_entry_valid(ticket, material):
+        history[ticket.signature] = material
+        history.move_to_end(ticket.signature)
         while len(history) > 8:
             history.popitem(last=False)
     return material
 
 
 def _receiving_cached_bay_box_body_divider(owner, part_key, payload, factory):
-    """Reuse only the exact source-certified raw Divider for this Receiving Bay.
-
-    The Divider's fixed source holes and Ø6.4 shared mother rule depend on
-    *two* DXF baselines. A changed typed part, user feature, parser generation,
-    byte digest or missing source must run the canonical factory again.
-    Cross-part Joint, positioning and final manufacturing still re-resolve.
-    """
-    key = str(part_key or "")
-    if not (key.startswith("box_body:divider:")
-            and isinstance(payload, Mapping)
-            and payload.get("model") in ("受電箱", "RECEIVING")
-            and payload.get("active_mode") == "set_bay"):
+    """Engine-witnessed two-DXF source proof controls Divider raw reuse."""
+    if manufacturing_api.receiving_raw_source_cache_kind(part_key, payload) != "divider":
         return factory()
     from collections import OrderedDict
-    from hashlib import sha256
-    from ae_engine.baseline_source import baseline_source_fingerprint
-    from ae_engine.cabinet_types import policy as family_policy
-    from ae_engine.contracts import ManufacturingContext
-    from ae_engine.manufacturing_baseline_policy import _baseline_path
-    from phase6_manufacturing_contracts import manufacturing_fingerprint
     from .fold_designer_manufacturing_projection import _box_body_divider_from_payload
 
-    divider = _box_body_divider_from_payload(key, payload)
-    model = family_policy.baseline_feature_model_name(divider.model_name)
-    if not family_policy.divider_uses_endcap_6p4_shared_datum(divider.model_name):
-        return factory()
-    ctx = ManufacturingContext()
-    required = tuple(_baseline_path(model, filename, ctx)
-                     for filename in ("中隔.dxf", "封頭尾.dxf"))
-    if any(path is None for path in required):
-        return factory()  # Neither missing source is an authorization.
-    def source_stamp():
-        return tuple((
-            str(path), baseline_source_fingerprint(path),
-            sha256(path.read_bytes()).hexdigest(),
-        ) for path in required)
-    try:
-        witness = source_stamp()
-        signature = manufacturing_fingerprint({
-            "divider": divider,
-            "features": tuple(payload.get("features") or ()),
-            "sources": witness,
-        })
-    except (OSError, TypeError, ValueError, OverflowError):
+    divider = _box_body_divider_from_payload(str(part_key or ""), payload)
+    ticket = manufacturing_api.project_receiving_raw_source_cache_ticket(
+        part_key, payload, typed_part=divider,
+    )
+    if ticket is None:
         return factory()
     history = getattr(owner, "_receiving_raw_divider_history", None)
     if history is None:
         history = OrderedDict()
         owner._receiving_raw_divider_history = history
-    if signature in history:
-        history.move_to_end(signature)
-        return history[signature]
-
-    result = factory()  # Real source verification and Ø6.4 extraction.
-    metadata = dict(getattr(result, "metadata", {}) or {})
-    try:
-        still_same = source_stamp() == witness
-    except OSError:
-        still_same = False
-    if (still_same
-            and metadata.get("stable_id") == str(divider.stable_id)
-            and metadata.get("baseline_feature_model") == model
-            and metadata.get("endcap_shared_6p4_mother_rule") is not None):
-        history[signature] = result
-        history.move_to_end(signature)
+    if ticket.signature in history:
+        history.move_to_end(ticket.signature)
+        return history[ticket.signature]
+    material = factory()  # Still the real verified-source Factory.
+    if manufacturing_api.receiving_raw_source_cache_entry_valid(ticket, material):
+        history[ticket.signature] = material
+        history.move_to_end(ticket.signature)
         while len(history) > 8:
             history.popitem(last=False)
-    return result
+    return material
 
 
 def _retain_committed_receiving_bay_preview(cache, key, receipt):
@@ -963,46 +690,26 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     from copy import deepcopy
     from phase6_manufacturing_adapter import build_manufacturing_request, build_scene_payload_for_app
     from phase6_manufacturing_service import resolve
-    from phase6_fold_profiles import merge_box_body_profile, build_endcap_xy_profiles
-    from phase6_settings_profile_projection import project_part_dimensions
     from phase6_designer_workspace import Phase6DesignerWorkspace
-    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
-    from ae_engine.display_dimensions import resolve_operator_finished_dimensions
     app = self.app
     source = dict(app._phase6_input_snapshot)
     if preview_layout is not None:
-        # Candidate previews run on an isolated layout clone, NEVER live state.
+        # Candidate UI previews use an isolated source, never live layout state.
         source["receiving_layout"] = preview_layout
-    snapshot = project_receiving_bay_legacy_aliases(
-        source, set_index=set_index, bay_index=bay_index,
+    operator_inputs = manufacturing_api.project_receiving_bay_preview_operator_inputs(
+        source, app._settings_values, set_index=set_index, bay_index=bay_index,
     )
-    settings = {**dict(app._settings_values), **{key: snapshot[key] for key in ("w", "h", "d")}}
-    # Global settings are defaults, NOT authority for a selected Bay's Door
-    # topology, NFB submission or Set/Bay identity. Updating the full map
-    # used to reintroduce stale root door_layout_columns after a Bay resize
-    # (900x1700 over the old 800x1600), failing OPEN-Y manufacture.
-    from ae_engine.receiving_layout import (
-        RECEIVING_DOOR_STATE_KEYS, RECEIVING_RUNTIME_SELECTION_KEY,
-    )
-    bay_authoritative = set(RECEIVING_DOOR_STATE_KEYS) | {
-        "nfb_config", "nfb_config_submitted",
-        "receiving_layout", RECEIVING_RUNTIME_SELECTION_KEY,
-    }
-    snapshot.update({
-        name: value for name, value in settings.items()
-        if name not in bay_authoritative
-    })
-    snapshot["part_dimensions"] = project_part_dimensions(snapshot)
+    snapshot = operator_inputs.snapshot
+    settings = operator_inputs.settings_values
     from phase6_sync_envelope import stable_fingerprint
-    # Physical custom parts come from the live shared workspace, not
-    # necessarily the last committed input snapshot. A cached Bay must
-    # invalidate when a custom sheet's metadata changes before Save.
-    # Avoid snapshotting all profiles on every redraw when there are no
-    # active custom parts (the hot-path preview-cache optimization).
+    # Engine alone classifies physical Bay reuse and custom source identity.
     workspace = app.designer_workspace
+    reuse_policy = manufacturing_api.plan_receiving_bay_preview_reuse_policy(
+        snapshot, bay_index=bay_index, candidate=preview_layout is not None,
+        available_parts=getattr(workspace, "available_parts", ()),
+    )
     live_custom_catalog = None
-    if any(str(key).startswith("custom:") for key in
-           getattr(workspace, "available_parts", ())):
+    if reuse_policy.requires_live_custom_catalog:
         reader = getattr(workspace, "shared_snapshot", None)
         if not callable(reader):
             raise ValueError("RECEIVING_BAY_CUSTOM_PART_AUTHORITY_MISSING")
@@ -1013,21 +720,22 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         {**snapshot, "custom_parts": live_custom_catalog}
         if live_custom_catalog is not None else snapshot
     )
-    # Only normal committed Bay previews may rebase world placement. Candidate
-    # editors and user-defined/cross-part joints keep the full prefix key.
-    allow_rebase = (preview_layout is None and bay_index >= 2
-                    and snapshot.get("model") in ("受電箱", "RECEIVING")
-                    and snapshot.get("active_mode", "set_bay") == "set_bay"
-                    and not any(key_snapshot.get(k) for k in (
-                        "assembly_joints", "custom_parts", "joint_relief_state")))
-    fingerprint = stable_fingerprint({"snapshot": _receiving_bay_preview_fingerprint_snapshot(
+    # Never let stale project metadata authorize world-offset translation:
+    # re-evaluate the physical dependency policy after a live catalog read.
+    if live_custom_catalog is not None:
+        reuse_policy = manufacturing_api.plan_receiving_bay_preview_reuse_policy(
+            key_snapshot, bay_index=bay_index,
+            candidate=preview_layout is not None,
+            available_parts=getattr(workspace, "available_parts", ()),
+        )
+    allow_rebase = reuse_policy.allow_upstream_translation
+    fingerprint = stable_fingerprint({"snapshot": manufacturing_api.project_receiving_bay_preview_fingerprint_snapshot(
         key_snapshot, set_index=set_index, bay_index=bay_index,
         allow_upstream_translation=allow_rebase,
-        allow_suffix_topology_reuse=(preview_layout is None),
-    ), "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": (_receiving_bay_preview_face_features_key(
+        allow_suffix_topology_reuse=reuse_policy.allow_suffix_topology_reuse,
+    ), "profiles": app.designer_workspace.part_profiles_snapshot(), "features": app.designer_workspace.part_features_snapshot(), "face_features": (manufacturing_api.project_receiving_bay_preview_face_features_key(
         app.designer_workspace.part_face_features_snapshot())
-        if snapshot.get("model") in ("受電箱", "RECEIVING")
-        and snapshot.get("active_mode", "set_bay") == "set_bay"
+        if reuse_policy.receiving_set_bay
         else app.designer_workspace.part_face_features_snapshot()), "box_profile": app.state.profiles_vault.get("箱身", ()), "corners": app._phase6_corner_state})
     cache = getattr(self, "_receiving_bay_preview_cache", {})
     cache_key = (set_index, bay_index)
@@ -1035,10 +743,10 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     virtual_key = (set_index, bay_index, fingerprint)
     if preview_layout is not None and virtual_key in virtual_cache:
         return virtual_cache[virtual_key]
-    prefix = tuple(
-        (float(bay["width"]), float(bay["height"]), float(bay["depth"]))
-        for bay in snapshot["receiving_layout"]["sets"][set_index]["bays"][:bay_index + 1]
+    cache_witness = manufacturing_api.project_receiving_bay_preview_cache_source_witness(
+        snapshot["receiving_layout"], set_index=set_index, bay_index=bay_index,
     )
+    prefix = cache_witness.source_prefix
     if preview_layout is None and cache_key in cache and cache[cache_key][0] == fingerprint:
         hit = _retain_committed_receiving_bay_preview(
             cache, cache_key, cache[cache_key],
@@ -1048,9 +756,7 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         if len(hit) >= 4:
             if hit[3] == prefix:
                 return hit[1]
-            from ae_engine.receiving_layout import receiving_bay_assembly_offsets
-            current_anchor = receiving_bay_assembly_offsets(
-                snapshot["receiving_layout"], set_index=set_index)[bay_index]
+            current_anchor = cache_witness.world_anchor
             rebased = _receiving_rebase_preview_world_offsets(
                 hit[1], hit[2], current_anchor)
             if rebased is not None:
@@ -1060,15 +766,11 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
                 return rebased
         # Missing prior world-anchor proof or unsupported render envelope:
         # do not reuse, use the real canonical manufacturing calculation.
-    box_profile = merge_box_body_profile(app.state.profiles_vault.get("箱身", ()), snapshot)
-    profile_map = {key: build_endcap_xy_profiles(snapshot, part_key=key) for key in ("head", "tail")}
     workspace = app.designer_workspace
-    structure = snapshot.get("workspace", {}).get("box_body_structure", snapshot.get("box_body_structure", {}))
-    from ae_engine.receiving_layout import receiving_bay_joint_face_features
-    joint_faces = receiving_bay_joint_face_features(
-        snapshot["receiving_layout"], set_index=set_index, bay_index=bay_index,
-        thickness=float(snapshot.get("t", 2)), frame_width=float(snapshot.get("fw", 29)),
-        existing=workspace.face_features_for("box_body"),
+    seed = manufacturing_api.project_receiving_bay_preview_physical_seed(
+        snapshot, set_index=set_index, bay_index=bay_index,
+        existing_box_body_profile=app.state.profiles_vault.get("箱身", ()),
+        existing_box_body_faces=workspace.part_face_features_snapshot().get("box_body", {}),
     )
     proxy_workspace = Phase6DesignerWorkspace.from_snapshot({
         **snapshot, "existing_parts": workspace.available_parts,
@@ -1079,17 +781,17 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         "custom_parts": workspace.shared_snapshot().get("custom_parts"),
         "part_profiles": workspace.part_profiles_snapshot(),
         "part_features": {**workspace.part_features_snapshot(), **snapshot.get("part_features", {})},
-        "part_face_features": {**workspace.part_face_features_snapshot(), "box_body": joint_faces},
+        "part_face_features": {**workspace.part_face_features_snapshot(), "box_body": seed.box_body_joint_faces},
     })
-    proxy_workspace.set_box_body_structure_state(structure)
-    for key, profiles in profile_map.items():
+    proxy_workspace.set_box_body_structure_state(seed.box_body_structure_state)
+    for key, profiles in seed.endcap_profiles.items():
         proxy_workspace.stash_profiles(key, profiles)
     proxy = SimpleNamespace(**app.__dict__)
     proxy._phase6_input_snapshot = snapshot
     proxy._settings_values = settings
     proxy._phase6_box_whd = {key: snapshot[key] for key in ("w", "h", "d")}
     proxy.designer_workspace = proxy_workspace
-    proxy.state = SimpleNamespace(profiles_vault={"箱身": box_profile}, profiles={})
+    proxy.state = SimpleNamespace(profiles_vault={"箱身": seed.box_body_profile}, profiles={})
     self.sync_authoritative_derived_parts(
         namespace,
         projected_snapshot=snapshot,
@@ -1097,7 +799,9 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         projected_box_render_data=self._required(namespace, "_phase6_box_body_structure_render_data")(proxy),
     )
     def dimensions(key=None):
-        return resolve_operator_finished_dimensions(key or "box_body", snapshot=snapshot, settings=settings)
+        return manufacturing_api.resolve_operator_finished_dimensions(
+            key or "box_body", snapshot=snapshot, settings=settings,
+        )
     def feature_payload(key, payload):
         # committed fallback 解凍的 scene payload 是可序列化資料；孔特徵
         # 仍由 workspace 的 typed feature authority 提供，不能送入 legacy hole DTO。
@@ -1120,11 +824,14 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         if preview_layout is not None:
             # Candidate editing is isolated from committed Bay material reuse.
             return render()
-        if str(key).startswith("box_body:divider:"):
+        kind = manufacturing_api.receiving_raw_source_cache_kind(
+            key, source_payload,
+        )
+        if kind == "divider":
             return _receiving_cached_bay_box_body_divider(
                 self, key, source_payload, render,
             )
-        if str(key).startswith("inner_door:") and str(key).endswith("_frame"):
+        if kind == "frame":
             return _receiving_cached_bay_inner_door_frame(
                 self, key, source_payload, render,
             )
@@ -1147,13 +854,16 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
             f"projected_selection={snapshot.get('_receiving_runtime_selection')!r}; "
             f"cause={exc}"
         ) from exc
-    from ae_engine.receiving_layout import receiving_bay_assembly_offsets
-    bay_offset = receiving_bay_assembly_offsets(snapshot["receiving_layout"], set_index=set_index)[bay_index]
+    placed = manufacturing_api.project_receiving_bay_preview_assembly_members(
+        snapshot["receiving_layout"], resolved.parts,
+        set_index=set_index, bay_index=bay_index,
+    )
+    bay_offset = placed.bay_offset
     parts = tuple(AssemblyScenePart(
         part_key=part.part_key, render_data=part.render_data,
         x_profile=part.x_profile, y_profile=part.y_profile,
-        placement=part.placement, offset=tuple(a + b for a, b in zip(part.offset, bay_offset)),
-    ) for part in resolved.parts if part.placement != "standalone")
+        placement=part.placement, offset=world_offset,
+    ) for part, world_offset in placed.part_placements)
     result = FinalSceneViewRequest(
         render_data=AssemblySceneRenderData(assembly_parts=parts, preserve_endcap_core_origin=True),
         x_profile=(), y_profile=(), part_key="assembly",
@@ -1188,10 +898,6 @@ def receiving_layer_preview_payload(self, namespace, layer_index):
     }
 
 def receiving_settings_ports(self, namespace, set_index):
-    from ae_engine.receiving_shared_settings import setting_value
-    from ae_engine.sheetmetal_features import (
-        resolve_endcap_finished_face_guide, feature_surface_from_rect, RectGuide, Vec2,
-    )
     adapter = self.receiving_adapter(namespace)
     adapter.select_set(set_index + 1)
 
@@ -1213,11 +919,10 @@ def receiving_settings_ports(self, namespace, set_index):
                    else tuple(indices))
         if not targets:
             return False
-        current = adapter.selection.bay_index
-        for index in targets:
-            adapter.select_bay(index + 1)
-            adapter.update_setting(kind, value)
-        adapter.select_bay(current + 1)
+        # One operator Apply is one canonical Engine transaction.  Do not
+        # update earlier Bays or move the selection before validating every
+        # highlighted physical target.
+        adapter.apply_setting_to_bays(kind, value, targets)
         commit()
         return True
 
@@ -1230,10 +935,13 @@ def receiving_settings_ports(self, namespace, set_index):
         commit()
 
     def dimensions(width, height, depth, door_columns=None):
-        from ae_engine.sheetmetal_part_adapters import validate_door_layout_dimensions
         changes = {"width": width, "height": height, "depth": depth}
         if door_columns is not None:
-            validate_door_layout_dimensions(door_columns, total_width=width, total_height=height)
+            # Validate raw physical Door W/H using the public Engine boundary
+            # before changing a Bay or recording any GUI commit.
+            manufacturing_api.door_layout_cells(
+                door_columns, total_width=width, total_height=height,
+            )
             door_state = deepcopy(adapter.current_bay().get("door_state", {}))
             door_state["door_layout_columns"] = [[w, list(heights)] for w, heights in door_columns]
             door_state["multi_door_enabled"] = True
@@ -1252,13 +960,13 @@ def receiving_settings_ports(self, namespace, set_index):
     def holes(role, indices=None):
         if indices is not None and not tuple(indices):
             return False
-        bay = adapter.current_bay()
-        width, depth = float(bay["width"]), float(bay["depth"])
-        thickness = float(self.app._phase6_input_snapshot.get("t", 2))
-        guide = resolve_endcap_finished_face_guide(width, depth, thickness)
-        surface = feature_surface_from_rect(f"{role}_finished_face", guide.min_point, guide.max_point)
-        row = adapter.layout["sets"][set_index]
-        features = setting_value(row, adapter.selection.bay_index, f"{role}_features")
+        # Engine owns the selected Bay's physical finished face, source
+        # features and reference dimensions; GUI retains Session and sharing.
+        context = manufacturing_api.project_receiving_endcap_hole_editor_context(
+            self.app._phase6_input_snapshot, adapter.layout,
+            set_index=set_index, bay_index=adapter.selection.bay_index, role=role,
+        )
+        features = context.features
         host = getattr(self.app._scene_query_callback, "__self__", None)
         if host is None or not hasattr(host, "_open_unified_hole_editor"):
             raise ValueError("目前未連接既有 Hole Editor")
@@ -1267,17 +975,20 @@ def receiving_settings_ports(self, namespace, set_index):
             current = adapter.selection.bay_index
             targets = (current,) if indices is None else tuple(indices)
             if len(targets) > 1:
-                adapter.select_bay(targets[0] + 1)
-                adapter.share_setting(kind, targets)
-            adapter.update_setting(kind, features)
-            adapter.select_bay(current + 1)
+                # One operator save must not persist a link if Engine rejects
+                # the subsequent feature value. The first highlighted Bay is
+                # the original link source; leave current UI selection intact.
+                adapter.share_and_update_setting(kind, features, targets)
+            else:
+                adapter.update_setting(kind, features)
             commit()
 
         host._open_unified_hole_editor(
-            role, "封頭" if role == "head" else "封尾", surface, width, depth,
+            role, "封頭" if role == "head" else "封尾",
+            context.surface, context.width, context.depth,
             feature_list_override=features,
             sync_callback=save_features,
-            reference_guide=RectGuide(Vec2(0, 0), Vec2(width, depth), "finished_boundary"),
+            reference_guide=context.reference_guide,
         )
 
     return {
@@ -1341,7 +1052,6 @@ def settings_panel(self, namespace):
         # the actual quantity common-box owner atomically with the same
         # mode navigation transaction used by other receiving edits.
         if app.designer_workspace.active_mode == "quantity":
-            from ae_engine.receiving_quantity_box import update_common_box
             candidate = _current_mode_snapshot(self, namespace)
             commit_receiving_base_plate_settings(
                 input_snapshot=candidate,
@@ -1349,7 +1059,7 @@ def settings_panel(self, namespace):
                 submit_geometry_update=lambda: None,
                 config=config,
             )
-            source = update_common_box(
+            source = manufacturing_api.update_common_box(
                 candidate, {"receiving_base_plate": config},
             )
             _apply_mode_snapshot(self, namespace, source)
@@ -1362,6 +1072,16 @@ def settings_panel(self, namespace):
             ),
             config=config,
         )
+
+    def commit_vault_panel_name(name):
+        from ae_engine import manufacturing_api
+        if str(app.baseline_model_var.get() or "").strip() != "金庫型":
+            raise ValueError("只有金庫型單箱入口可以編輯此盤名")
+        source = app._phase6_input_snapshot
+        candidate = manufacturing_api.set_cabinet_panel_name(source, name)
+        source.update(candidate)
+        # Label-only input: no manufacturing solve or preview invalidation.
+        return candidate["panel_name"]
 
     panel = Phase6SettingsPanel(
         values_snapshot=lambda: dict(app._settings_values),
@@ -1424,6 +1144,10 @@ def settings_panel(self, namespace):
         ui_text_size_changed=lambda key: self.apply_ui_text_size(
             namespace, key
         ),
+        panel_name_getter=lambda: str(
+            app._phase6_input_snapshot.get("panel_name") or ""
+        ),
+        panel_name_changed=lambda name: commit_vault_panel_name(name),
     )
     self._settings_panel = panel
     app.settings_panel = panel
@@ -1513,7 +1237,6 @@ def _apply_mode_snapshot(self, namespace, source, *, require_committed=False):
 
 
 def _switch_mode(self, namespace, target):
-    from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
     from phase6_receiving_modes import ReceivingModeSession
     from shapely.errors import GEOSException
     from tkinter import messagebox
@@ -1530,7 +1253,7 @@ def _switch_mode(self, namespace, target):
         # Fresh mode data uses Receiving Family defaults (800x1600x350).
         # There is no operator-facing initialization dialog. Returning to an
         # existing session still restores that session's original dimensions.
-        dimensions = {key: int(BOX_BODY_DEFAULTS[key]) for key in ("w", "h", "d")}
+        dimensions = manufacturing_api.receiving_default_box_dimensions()
     source = _current_mode_snapshot(self, namespace)
     planned = deepcopy(session)
     was_dirty = app.designer_workspace.dirty
@@ -1569,9 +1292,10 @@ def _switch_mode(self, namespace, target):
 
 def _common_preview_request(self, namespace):
     """Read committed physical-sheet drawings; the caller is a Scheduler."""
-    from ae_engine.receiving_quantity_box import require_valid_quantity_features
     from phase6_manufacturing_adapter import build_manufacturing_cache_key, resolve_for_app
-    require_valid_quantity_features(_current_mode_snapshot(self, namespace))
+    manufacturing_api.require_valid_operator_quantity_features(
+        _current_mode_snapshot(self, namespace)
+    )
     signature = build_manufacturing_cache_key(self.app).fingerprint
     if signature != getattr(self.app, "_phase6_last_resolved_manufacturing_signature", None):
         # The operator may open Common Box just after a mode switch or a
@@ -1599,14 +1323,12 @@ def _common_preview_request(self, namespace):
 
 def _open_common_box(self, namespace):
     from .receiving_set_bay_controls import open_receiving_layer_preview
-    from ae_engine.receiving_quantity_box import update_common_box, project_common_box, BOX_KEY
     from .command_router import _Phase6UpdateScheduler
     app = self.app
-    from ae_engine.receiving_quantity_box import normalize_common_box
     # Do not construct a common box from unrelated Set/Bay values: the owner
     # requires explicit quantity-mode initialization before any edit.
     try:
-        box = normalize_common_box(_current_mode_snapshot(self, namespace).get(BOX_KEY))
+        box = manufacturing_api.normalize_common_box(_current_mode_snapshot(self, namespace).get(manufacturing_api.RECEIVING_QUANTITY_BOX_KEY))
     except ValueError as exc:
         from tkinter import messagebox
         messagebox.showwarning("共用箱體尚未初始化", str(exc), parent=app.root)
@@ -1614,7 +1336,7 @@ def _open_common_box(self, namespace):
     listeners = []
     def change_common(changes):
         source = _current_mode_snapshot(self, namespace)
-        candidate = update_common_box(source, changes)
+        candidate = manufacturing_api.update_common_box(source, changes)
         _apply_mode_snapshot(self, namespace, candidate)
         from .receiving_settings_preview_2d import CommittedPreviewError
         for listener in tuple(listeners):
@@ -1635,7 +1357,7 @@ def _open_common_box(self, namespace):
             changes["door_state"] = door
         change_common(changes)
     ports = {
-        "row": lambda: project_common_box(_current_mode_snapshot(self, namespace))["receiving_layout"]["sets"][0],
+        "row": lambda: manufacturing_api.project_common_box(_current_mode_snapshot(self, namespace))["receiving_layout"]["sets"][0],
         "select": lambda index: None,
         "change": lambda kind, value, indices=(): change_common({kind: value}),
         "dimensions": dimensions,
@@ -1651,7 +1373,7 @@ def _open_common_box(self, namespace):
         return open_receiving_layer_preview(
             app.root, tk=tk, ttk=self._required(namespace, "original").ttk,
             layer_index=0, connection_count=1,
-            brand=normalize_common_box(_current_mode_snapshot(self, namespace).get(BOX_KEY))["switch_brand"],
+            brand=manufacturing_api.normalize_common_box(_current_mode_snapshot(self, namespace).get(manufacturing_api.RECEIVING_QUANTITY_BOX_KEY))["switch_brand"],
             render_request=request, preview_error=preview_error, settings_ports=ports,
             bay_request_provider=lambda: (_common_preview_request(self, namespace),),
             common_box=True,
@@ -1718,10 +1440,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     def nfb_physical_bay_snapshot(set_index,bay_index):
         """Real selected Bay authority, not the unprojected root UI snapshot."""
-        from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
         source=_current_mode_snapshot(self,namespace)
         source["receiving_layout"]=candidate_adapter().layout
-        return project_receiving_bay_legacy_aliases(
+        return manufacturing_api.project_receiving_bay_legacy_aliases(
             source,set_index=set_index,bay_index=bay_index,
         )
 
@@ -1731,74 +1452,45 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         adapter.select_set(int(set_index) + 1)
         adapter.select_bay(int(bay_index) + 1)
 
+    def rename_bay(set_index, bay_index, name):
+        adapter = self.receiving_adapter(namespace)
+        changed = adapter.rename_bay(int(set_index), int(bay_index), name)
+        if changed:
+            # GUI only updates the authoritative source DTO. A text-only rename
+            # must not invalidate or rebuild FinalScene manufacturing geometry.
+            self.mark_receiving_switch_layout_dirty(namespace, adapter)
+        return changed
+
     def select_existing_setting(set_index, bay_index, kind):
         """Bind the list choice to the original per-bay setting value/owner.
 
         No editor popup, duplicated parser, or manufacturing calculation is
         initiated merely by selecting a category in the Listbox.
         """
-        from ae_engine.receiving_shared_settings import setting_value
         ports = self.receiving_settings_ports(namespace, int(set_index))
         ports["select"](int(bay_index))
-        return setting_value(ports["row"](), int(bay_index), kind)
+        return _receiving_setting_value(ports["row"](), int(bay_index), kind)
 
     def single_brand():
-        from ae_engine.receiving_quantity_box import normalize_common_box
-        from phase6_quantity_model import QuantityModel
-        source = _current_mode_snapshot(self, namespace)
-        box = normalize_common_box(source.get("receiving_quantity_box"))
-        quantity = QuantityModel.from_payload(source["quantity"])
-        return quantity.nfb_parent_brand_for_version(
-            quantity.selected_version_id, legacy_default=box["switch_brand"],
+        # Quantity's selected version owns the parent; no Tk-side model policy.
+        return manufacturing_api.project_receiving_quantity_nfb_parent_brand(
+            _current_mode_snapshot(self, namespace),
         )
 
     def set_single_brand(value):
-        from ae_engine.receiving_quantity_box import normalize_common_box
-        from phase6_quantity_model import QuantityModel
-        source = _current_mode_snapshot(self, namespace)
-        if source.get("active_mode") != "quantity":
-            raise ValueError("單只品牌需在單箱體模式設定")
-        quantity = QuantityModel.from_payload(source["quantity"])
-        box = normalize_common_box(source.get("receiving_quantity_box"))
-        if (quantity.nfb_parent_brand_for_version(
-                quantity.selected_version_id, legacy_default=box["switch_brand"])
-                == value
-                and all("nfb_parent_brand" in row
-                        for row in quantity.snapshot()["versions"])):
-            return False
-        if not quantity.set_version_nfb_parent_brand(
-                quantity.selected_version_id, value,
-                legacy_default=box["switch_brand"]):
-            return False
-        candidate = deepcopy(source)
-        candidate["quantity"] = quantity.snapshot()
-        _apply_mode_snapshot(self, namespace, candidate)
-        return True
+        candidate, changed = manufacturing_api.update_receiving_quantity_nfb_parent_brand(
+            _current_mode_snapshot(self, namespace), value,
+        )
+        if changed:
+            _apply_mode_snapshot(self, namespace, candidate)
+        return changed
 
     def preview_parent_brand_impact(value):
-        from ae_engine.receiving_nfb_brand_transition import (
-            saved_parent_new_reselections,
-        )
-        if single:
-            from ae_engine.receiving_quantity_box import normalize_common_box
-            from phase6_quantity_model import QuantityModel
-            source = _current_mode_snapshot(self, namespace)
-            q = QuantityModel.from_payload(source["quantity"])
-            common = normalize_common_box(source.get("receiving_quantity_box"))
-            old = q.nfb_parent_brand_for_version(
-                q.selected_version_id, legacy_default=common["switch_brand"],
-            )
-            return saved_parent_new_reselections(
-                q.nfb_config_for_version(q.selected_version_id), old, value,
-            )
-        adapter = self.receiving_adapter(namespace)
-        # Global brand updates EVERY Set, not merely the currently displayed
-        # Set/Bay. Each physical Bay's submitted source gets its own notice.
-        return sum(
-            saved_parent_new_reselections(
-                bay, row.get("switch_brand", "士林"), value,
-            )
-            for row in adapter.layout["sets"] for bay in row["bays"]
+        # Operator chooses the scope; only Engine may count physical NFB slots.
+        source = (_current_mode_snapshot(self, namespace)
+                  if single else self.receiving_adapter(namespace).layout)
+        return manufacturing_api.project_receiving_parent_brand_change_impact(
+            source, value, mode="quantity" if single else "set_bay",
         )
 
     def set_global_brand(value):
@@ -1829,10 +1521,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         self.app.submit_update_intent("geometry", commit=True)
 
     def existing_door_marks(set_index, bay_index):
-        # The lightweight diagram reuses ONLY the existing Door baseline.
-        # Do not synthesize handle/nameplate positions when source is missing.
-        from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
-        from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
+        # The baseline scene owner is GUI; selection of physical Bay cells is Engine.
         from .receiving_multi_settings_window import extract_original_door_marks
 
         host = getattr(self.app._scene_query_callback, "__self__", None)
@@ -1840,19 +1529,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             return ()
         snapshot = dict(self.app._phase6_input_snapshot)
         snapshot["receiving_layout"] = self.receiving_adapter(namespace).layout
-        projected = project_receiving_bay_legacy_aliases(
-            snapshot, set_index=int(set_index), bay_index=int(bay_index)
+        selection = manufacturing_api.project_receiving_operator_door_cell_sources(
+            snapshot, set_index=int(set_index), bay_index=int(bay_index),
         )
-        columns = projected.get("door_layout_columns") or ()
-        if not projected.get("multi_door_enabled") or not columns:
+        if selection is None:
             return ()
-        cells = derive_door_layout_cells(columns)
-        # The operator sketch has two Door faces in a single column.
-        # Do not invent a projection for unsupported multi-column topology.
-        if len(cells) != 2 or any(cell.column_index != 0 for cell in cells):
-            return ()
+        projected, cells = selection
         result = []
-        for cell in sorted(cells, key=lambda item: item.row_index):
+        for cell in cells:
             scene, _status = host._door_layout_baseline_scene(cell, projected)
             if scene is None:
                 return ()
@@ -1860,35 +1544,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         return tuple(result)
 
     def cached_initial_door_marks():
-        """Show original handle/nameplate from committed Assembly, no DXF read.
-
-        The pre-rendered scenes are only a preview source. Never use a stale
-        scene from another family or invent positions from nominal sizes.
-        Applied Set/Bay sketches continue to load their exact source through
-        existing_door_marks().
-        """
+        """Only draw the exact Engine-identified Door pair from committed Assembly."""
         from .receiving_multi_settings_window import extract_original_door_marks
 
-        if str(self.app._phase6_input_snapshot.get("model") or "") not in {
-            "受電箱", "RECEIVING"
-        }:
-            return ()
-        resolved = getattr(
-            self.app, "_phase6_last_resolved_manufacturing_geometry", None
+        scenes = manufacturing_api.project_receiving_initial_door_source_scenes(
+            self.app._phase6_input_snapshot,
+            getattr(self.app, "_phase6_last_resolved_manufacturing_geometry", None),
         )
-        parts = {
-            str(part.part_key): getattr(part.render_data, "scene", None)
-            for part in tuple(getattr(resolved, "parts", ()) or ())
-            if str(getattr(part, "part_key", "") or "") in {
-                "door_c1_r1", "door_c1_r2"
-            }
-        }
-        if any(parts.get(key) is None for key in ("door_c1_r1", "door_c1_r2")):
+        if not scenes:
             return ()
-        return ((
-            extract_original_door_marks(parts["door_c1_r1"]),
-            extract_original_door_marks(parts["door_c1_r2"]),
-        ),)
+        return (tuple(extract_original_door_marks(scene) for scene in scenes),)
 
     def resize_sets(delta):
         switch = self.receiving_switch_adapter(namespace)
@@ -1924,12 +1589,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         return changed
 
     def single_size_quantity():
-        from ae_engine.receiving_quantity_box import normalize_common_box
         from phase6_quantity_model import QuantityModel
         snapshot = _current_mode_snapshot(self, namespace)
         if snapshot.get("active_mode") != "quantity":
             raise ValueError("單只設定必須使用單箱體數量模式")
-        box = normalize_common_box(snapshot.get("receiving_quantity_box"))
+        box = manufacturing_api.normalize_common_box(snapshot.get("receiving_quantity_box"))
         model = QuantityModel.from_payload(snapshot.get("quantity"))
         return {"width": box["w"], "height": box["h"], "depth": box["d"],
                 "count": model.selected_piece_count,
@@ -1937,9 +1601,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 "version_count": model.version_count}
 
     def set_single_size_quantity(width, height, depth, count):
-        from ae_engine.receiving_quantity_box import (
-            update_common_box, require_valid_quantity_features,
-        )
         from phase6_quantity_model import QuantityModel, positive_piece_count
         new_count = positive_piece_count(count)
         snapshot = _current_mode_snapshot(self, namespace)
@@ -1947,9 +1608,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             raise ValueError("單只設定必須使用單箱體數量模式")
         model = QuantityModel.from_payload(snapshot.get("quantity"))
         model.set_piece_count(new_count)
-        candidate = update_common_box(snapshot, {"w": width, "h": height, "d": depth})
+        candidate = manufacturing_api.update_common_box(snapshot, {"w": width, "h": height, "d": depth})
         candidate["quantity"] = model.snapshot()
-        require_valid_quantity_features(candidate)
+        manufacturing_api.require_valid_operator_quantity_features(candidate)
         _apply_mode_snapshot(self, namespace, candidate)
         return True
 
@@ -1960,14 +1621,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
     # Candidate versions are project-wide and separate from QuantityModel and
     # per-Bay shared settings.  Only Apply copies a candidate into highlighted
     # receiving_layout Bays.
-    from ae_engine.receiving_hole_candidates import (
-        candidates_for, candidate_features, create_candidate, update_candidate,
-        delete_candidate, duplicate_candidate, normalize_candidates,
+    # Project hole candidate edits are copy-on-write Engine transactions.
+    from ae_engine.manufacturing_api import (
+        receiving_hole_candidates_for as candidates_for,
+        receiving_hole_candidate_features as candidate_features,
+        create_receiving_hole_candidate as create_candidate,
+        update_receiving_hole_candidate as update_candidate,
+        delete_receiving_hole_candidate as delete_candidate,
+        duplicate_receiving_hole_candidate as duplicate_candidate,
+        normalize_receiving_hole_candidates as normalize_candidates,
     )
-    from ae_engine.sheetmetal_features import (
-        resolve_endcap_finished_face_guide, feature_surface_from_rect, RectGuide, Vec2,
-    )
-
     def candidate_adapter():
         return self.receiving_adapter(namespace)
 
@@ -1992,11 +1655,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # An editor opens on the active Bay's finished face as a coordinate
         # guide, but its candidate data has no Bay assignment until Apply.
         bay = adapter.current_bay()
-        width, depth = float(bay["width"]), float(bay["depth"])
-        t = float(self.app._phase6_input_snapshot.get("t", 2))
-        guide = resolve_endcap_finished_face_guide(width, depth, t)
-        surface = feature_surface_from_rect(
-            f"{role}_finished_face", guide.min_point, guide.max_point,
+        geometry = manufacturing_api.project_operator_hole_editor_endcap(
+            role, width=bay["width"], depth=bay["depth"],
+            thickness=self.app._phase6_input_snapshot.get("t", 2),
         )
         draft = [] if version_id is None else candidate_features(original, role, version_id)
         host = getattr(self.app._scene_query_callback, "__self__", None)
@@ -2017,13 +1678,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         return host._open_unified_hole_editor(
             role, "封頭" if role == "head" else "封尾",
-            surface, width, depth,
+            geometry.surface, geometry.width, geometry.height,
             feature_list_override=draft,
             sync_callback=lambda: None,
             on_confirm=confirmed,
-            reference_guide=RectGuide(
-                Vec2(0, 0), Vec2(width, depth), "finished_boundary"
-            ),
+            reference_guide=geometry.reference_guide,
         )
 
     def copy_candidate(role, version_id, destination):
@@ -2043,17 +1702,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         if version_id is None or not highlighted:
             raise ValueError("請選擇候選版本及簡易圖高亮的連")
         adapter = candidate_adapter()
-        sets = adapter.layout["sets"]
-        if type(set_index) is not int or not 0 <= set_index < len(sets):
-            raise ValueError("請先選擇要套用的套")
-        targets = tuple(sorted(set(highlighted)))
-        if any(type(i) is not int or not 0 <= i < len(sets[set_index]["bays"]) for i in targets):
-            raise ValueError("簡易圖高亮的連已無效")
         features = candidate_features(candidate_library(), role, version_id)
-        # One validated all-or-nothing update; retains the active editor
-        # selection and avoids the old per-Bay UI/geometry churn.
+        # Submit the original highlighted physical Bay identities unchanged.
+        # The Engine transaction validates every index before any mutation:
+        # GUI set(highlighted) would turn (1, True) into a valid-looking (1,)
+        # and bypass the Engine's explicit rejection of boolean Bay aliases.
         adapter.apply_candidate_to_bays(
-            role, set_index, targets, features, version_id=version_id,
+            role, set_index, highlighted, features, version_id=version_id,
         )
         self.mark_receiving_switch_layout_dirty(namespace, adapter)
         self.sync_receiving_current_bay(namespace, refresh_controls=False)
@@ -2093,21 +1748,18 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     # Independent inner-door candidate data. It shares the UX mechanics with
     # endcaps, but never reads/writes receiving_hole_candidates or QuantityModel.
-    from ae_engine.receiving_inner_door_candidates import (
-        KEY as INNER_KEY, ROLE as INNER_ROLE,
-        normalize_inner_candidates, inner_versions, inner_config,
-        create_inner_candidate, update_inner_candidate,
-        delete_inner_candidate, duplicate_inner_candidate,
+    # Inner-door candidate edits use the Engine, not the GUI source layer.
+    from ae_engine.manufacturing_api import (
+        RECEIVING_INNER_DOOR_CANDIDATE_KEY as INNER_KEY,
+        RECEIVING_INNER_DOOR_CANDIDATE_ROLE as INNER_ROLE,
+        normalize_receiving_inner_door_candidates as normalize_inner_candidates,
+        receiving_inner_door_versions as inner_versions,
+        receiving_inner_door_candidate_config as inner_config,
+        create_receiving_inner_door_candidate as create_inner_candidate,
+        update_receiving_inner_door_candidate as update_inner_candidate,
+        delete_receiving_inner_door_candidate as delete_inner_candidate,
+        duplicate_receiving_inner_door_candidate as duplicate_inner_candidate,
     )
-    from ae_engine.receiving_inner_door_pairing import validate_inner_door_allocation
-    from ae_engine.receiving_hole_candidates import version_label
-    from ae_engine.receiving_shared_settings import setting_value, switch_filenames_in_layer, pack_switch_layer, validate_setting, SETTING_DEFAULTS
-    from ae_engine.receiving_switch_model_catalog import model_filenames, INDEX_PATH
-    from ae_engine.receiving_nfb_model_identity import (
-        numeric_model_refs, display_model_ref, validate_stored_model_ref,
-    )
-    from ae_engine.receiving_nfb_numeric_catalog import brand_csv_path
-
     def inner_library():
         return normalize_inner_candidates(
             self.app._phase6_input_snapshot.get(INNER_KEY)
@@ -2127,24 +1779,42 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             raise ValueError("內門版本權責錯誤")
         from tkinter import ttk, messagebox
         import tkinter as tk
-        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+        operator_brand_choices = manufacturing_api.receiving_operator_switch_brand_choices()
         from .receiving_nfb_source_preview import NfbDxfSourcePreviewPanel
-        from ae_engine.receiving_nfb_ui1a_edits import (
-            NfbUi1aEditSession, editable_nfb_draft, insert_nfb_slot,
-            delete_nfb_slot, move_nfb_slot, replace_nfb_slot_model,
-            set_nfb_manual_x, set_nfb_layer_rotation,
-            set_nfb_slot_rotation, effective_nfb_rotation,
-            nfb_x_reset_impact,
+        # NFB draft edits and reversible session are public Engine transactions.
+        from ae_engine.manufacturing_api import (
+            ReceivingNfbDraftEditSession as NfbUi1aEditSession,
+            normalize_receiving_nfb_editable_draft as editable_nfb_draft,
+            insert_receiving_nfb_draft_slot as insert_nfb_slot,
+            delete_receiving_nfb_draft_slot as delete_nfb_slot,
+            move_receiving_nfb_draft_slot as move_nfb_slot,
+            replace_receiving_nfb_draft_slot_model as replace_nfb_slot_model,
+            set_receiving_nfb_draft_manual_x as set_nfb_manual_x,
+            set_receiving_nfb_draft_layer_rotation as set_nfb_layer_rotation,
+            set_receiving_nfb_draft_slot_rotation as set_nfb_slot_rotation,
+            project_receiving_nfb_draft_rotation as effective_nfb_rotation,
+            project_receiving_nfb_draft_x_reset_impact as nfb_x_reset_impact,
         )
-        from ae_engine.receiving_nfb_brand_transition import (
-            draft_new_reselections,
+        # NFB draft-brand reselection projection has one Engine owner.
+        from ae_engine.manufacturing_api import (
+            project_receiving_nfb_draft_reselections as draft_new_reselections,
         )
-        from ae_engine.receiving_nfb_ui1a import (
-            INHERIT, OVERRIDE, NEEDS_RESELECTION, new_nfb_ui1a_draft,
-            reconcile_set_brand, set_nfb_draft_layer_count,
-            set_nfb_layer_brand, set_nfb_slot_brand, add_nfb_draft_slot,
-            select_nfb_slot_model, remove_nfb_draft_slot,
-            effective_nfb_layer_brand, effective_nfb_slot_brand, nfb_ui1a_preview,
+        # NFB UI-1A draft source transitions and nominal preview are Engine-owned.
+        from ae_engine.manufacturing_api import (
+            RECEIVING_NFB_DRAFT_INHERIT as INHERIT,
+            RECEIVING_NFB_DRAFT_OVERRIDE as OVERRIDE,
+            RECEIVING_NFB_DRAFT_NEEDS_RESELECTION as NEEDS_RESELECTION,
+            new_receiving_nfb_draft as new_nfb_ui1a_draft,
+            reconcile_receiving_nfb_draft_set_brand as reconcile_set_brand,
+            set_receiving_nfb_draft_layer_count as set_nfb_draft_layer_count,
+            set_receiving_nfb_draft_layer_brand as set_nfb_layer_brand,
+            set_receiving_nfb_draft_slot_brand as set_nfb_slot_brand,
+            add_receiving_nfb_draft_slot as add_nfb_draft_slot,
+            select_receiving_nfb_draft_slot_model as select_nfb_slot_model,
+            remove_receiving_nfb_draft_slot as remove_nfb_draft_slot,
+            project_receiving_nfb_draft_layer_brand as effective_nfb_layer_brand,
+            project_receiving_nfb_draft_slot_brand as effective_nfb_slot_brand,
+            preview_receiving_nfb_draft as nfb_ui1a_preview,
         )
 
         if version_id is None:
@@ -2152,9 +1822,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             set_row = adapter.layout["sets"][adapter.selection.set_index]
             bi = adapter.selection.bay_index
             initial = {
-                "layers": setting_value(set_row, bi, "inner_door_layers"),
-                "models": setting_value(set_row, bi, "inner_door_models"),
-                "layer_heights_mm": setting_value(set_row, bi, "inner_door_layer_heights_mm"),
+                "layers": _receiving_setting_value(set_row, bi, "inner_door_layers"),
+                "models": _receiving_setting_value(set_row, bi, "inner_door_models"),
+                "layer_heights_mm": _receiving_setting_value(set_row, bi, "inner_door_layer_heights_mm"),
             }
         else:
             initial = inner_config(inner_library(), version_id)
@@ -2169,13 +1839,12 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     "models": quantity.get("receiving_inner_door_models", ["", ""]),
                     "layer_heights_mm": quantity.get(
                         "receiving_inner_door_layer_heights_mm",
-                        SETTING_DEFAULTS["inner_door_layer_heights_mm"],
+                        manufacturing_api.receiving_inner_door_legacy_layer_height_defaults(),
                     ),
                 }
             staged = getattr(owner_editor, "_receiving_staged_config", None)
             if staged is not None:
-                from ae_engine.receiving_inner_door_candidates import validate_door_config
-                initial = validate_door_config(staged)
+                initial = manufacturing_api.validate_receiving_inner_door_config(staged)
             elif (version_id is None and
                     getattr(owner_editor, "_receiving_settings_mode", None)
                     in ("single", "candidate")):
@@ -2185,18 +1854,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 # including a new candidate based on that Bay. Never borrow
                 # its physical Features: candidate Confirm All creates only
                 # a candidate until explicit highlighted-Bay Apply.
-                from ae_engine.receiving_legacy_nfb_editor_bootstrap import (
-                    recover_submitted_nfb_models_for_editor,
-                )
                 source = current_inner_editor_snapshot()
-                initial = recover_submitted_nfb_models_for_editor(
+                initial = manufacturing_api.recover_receiving_submitted_nfb_models_for_editor(
                     initial, source,
                 )
         if initial.get("layer_heights_mm") is None:
             # Legacy configurations without operator heights keep their
             # previously saved Y until the user explicitly edits the rows.
             initial["layer_heights_mm"] = list(
-                SETTING_DEFAULTS["inner_door_layer_heights_mm"]
+                manufacturing_api.receiving_inner_door_legacy_layer_height_defaults()
             )
         # Existing drafts retain saved heights; new one-tier initializers use
         # the shared 550 rule, and a two-tier selection uses 330/830.
@@ -2208,10 +1874,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # Existing selections, an alternate explicit global brand, and
         # staged edits are never overwritten.
         if embed_parent is not None:
-            from ae_engine.receiving_fresh_nfb_defaults import (
-                initial_fresh_receiving_nfb_models,
-            )
-            initial["models"] = initial_fresh_receiving_nfb_models(
+            initial["models"] = manufacturing_api.initial_receiving_nfb_draft_models(
                 initial["models"],
                 layer_count=initial["layers"],
                 selected_brand=current_nfb_parent_brand(),
@@ -2245,7 +1908,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         frame.pack(fill="both", expand=True)
         modal._receiving_editor_scroll = modal_scroll
         ttk.Label(frame, text="內門｜" + ("即時" if version_id is None
-                        else version_label(version_id))).pack(anchor="w")
+                        else manufacturing_api.receiving_candidate_version_label(version_id))).pack(anchor="w")
         # Inner-door layer count IS the NFB mounting tier count. One Tk
         # value drives original candidate data, UI-1A draft and preview.
         # Keep the old name as an alias for stable existing test/GUI ports,
@@ -2261,19 +1924,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 heights = [float(field.get().strip()) for field in layer_height_vars]
             except (TypeError, ValueError) as exc:
                 raise ValueError("請輸入有效的第一層、第二層高度（mm）") from exc
-            heights = validate_setting("inner_door_layer_heights_mm", heights)
-            snapshot = _current_mode_snapshot(self, namespace)
-            columns = snapshot.get("door_layout_columns") or ()
-            from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
-            cells = derive_door_layout_cells(columns) if columns else ()
-            upper_cells = [item for item in cells if item.row_index == 0]
-            work_height = (
-                float(upper_cells[0].start_height) if len(upper_cells) == 1
-                else float(snapshot.get("h", 0.0))
+            return manufacturing_api.validate_receiving_nfb_layer_heights_for_work_area(
+                _current_mode_snapshot(self, namespace), heights,
+                layer_count=layers.get(),
             )
-            if work_height <= 0 or heights[layers.get()-1] >= work_height:
-                raise ValueError("層高必須在目前內門作業區內，且第一層須在第二層上方")
-            return heights
         summary_row = ttk.Frame(frame)
         summary_row.pack(fill="x", pady=(4, 6))
         controls = ttk.Frame(summary_row)
@@ -2287,7 +1941,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         )
         # The retired extra NFB physical-tier row must not be created:
         # the visible inner-door layer selector is the sole writer.
-        chosen = [list(switch_filenames_in_layer(slot))
+        chosen = [list(manufacturing_api.receiving_nfb_switch_filenames_in_layer(slot))
                   for slot in initial["models"]]
         layer_rows = []
         warning = tk.StringVar(master=modal, value="")
@@ -2358,16 +2012,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 "layer_heights_mm": staged_heights,
                 "layers": layers.get(),
                 "models": [
-                    pack_switch_layer(chosen[0]),
-                    pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
+                    manufacturing_api.pack_receiving_nfb_switch_layer(chosen[0]),
+                    manufacturing_api.pack_receiving_nfb_switch_layer(chosen[1]) if layers.get() == 2 else "",
                 ],
             }
             before = {
                 "layer_heights_mm": initial["layer_heights_mm"],
                 "layers": initial["layers"],
                 "models": [
-                    pack_switch_layer(switch_filenames_in_layer(initial["models"][0])),
-                    pack_switch_layer(switch_filenames_in_layer(initial["models"][1]))
+                    manufacturing_api.pack_receiving_nfb_switch_layer(manufacturing_api.receiving_nfb_switch_filenames_in_layer(initial["models"][0])),
+                    manufacturing_api.pack_receiving_nfb_switch_layer(manufacturing_api.receiving_nfb_switch_filenames_in_layer(initial["models"][1]))
                     if initial["layers"] == 2 else "",
                 ],
             }
@@ -2380,17 +2034,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 width = adapter.layout["sets"][selection.set_index]["bays"][
                     selection.bay_index]["width"]
                 snapshot = _current_mode_snapshot(self, namespace)
-                columns = snapshot.get("door_layout_columns") or ()
-                from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
-                cells = derive_door_layout_cells(columns) if columns else ()
-                upper = [c for c in cells if c.row_index == 0]
-                # Match the work-area fallback already used by the height
-                # input validator. -1 was incorrectly masking every preview
-                # when the project has no explicit door-layout columns.
-                height = (float(upper[0].start_height) if len(upper) == 1
-                          else float(snapshot.get("h", 0.0)))
-                if height <= 0:
-                    raise ValueError("內門作業區高度未定")
+                # Same Engine work-area authority as the editor input gate.
+                height = manufacturing_api.project_receiving_nfb_work_area_height_mm(
+                    snapshot,
+                )
                 projection = nfb_ui1a_preview(
                     draft_state["draft"], bay_width_mm=width,
                     upper_cell_height_mm=height,
@@ -2446,7 +2093,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             for slot in slots:
                 entry["assigned"].insert(
                     tk.END,
-                    (display_model_ref(slot["filename"]) if slot["filename"] else "（空槽）")
+                    (manufacturing_api.display_receiving_nfb_model_ref(slot["filename"]) if slot["filename"] else "（空槽）")
                 )
             if selected and selected[0] < len(slots):
                 entry["assigned"].selection_set(selected[0])
@@ -2490,25 +2137,44 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     continue
                 brand = view_source_catalog(index)
                 try:
-                    stat = brand_csv_path(brand).stat()
-                    stamp = (stat.st_mtime_ns, stat.st_size)
-                except OSError:
-                    stamp = (None, None)
-                signature = (brand, *stamp)
-                if not force and signature == source_state["signature"][index]:
-                    continue
-                source_state["signature"][index] = signature
-                try:
-                    files = numeric_model_refs(brand)
-                except (ValueError,OSError,UnicodeError) as exc:
+                    catalog = manufacturing_api.project_receiving_nfb_v5_model_catalog_snapshot(
+                        brand,
+                    )
+                except (ValueError, OSError, UnicodeError) as exc:
+                    # A transient invalid/missing CSV must clear old choices
+                    # and retry next poll, never keep a stale success stamp.
+                    source_state["signature"][index] = None
                     files = ()
                     warning.set("NFB數值規格.csv 讀取失敗：" + str(exc))
+                else:
+                    signature = (catalog.brand, catalog.source_sha256)
+                    if not force and signature == source_state["signature"][index]:
+                        continue
+                    source_state["signature"][index] = signature
+                    files = catalog.model_refs
                 source_state["files"][index] = files
                 entry["available"].delete(0, tk.END)
                 for filename in files:
-                    entry["available"].insert(tk.END, display_model_ref(filename))
+                    entry["available"].insert(tk.END, manufacturing_api.display_receiving_nfb_model_ref(filename))
 
         poll_job = {"id": None}
+
+        def cancel_poll_source(event=None):
+            # A parent Hole Editor can destroy the embedded NFB settings
+            # widget without using close_editor().  Cancel the Tcl timer
+            # before widget destruction removes the Python callback command.
+            if event is not None and event.widget is not modal:
+                return
+            job = poll_job["id"]
+            if job is None:
+                return
+            poll_job["id"] = None
+            try:
+                modal.after_cancel(job)
+            except tk.TclError:
+                pass
+
+        modal.bind("<Destroy>", cancel_poll_source, add="+")
 
         def poll_source():
             if not modal.winfo_exists():
@@ -2540,13 +2206,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         def stage_live_nfb_openings():
             if embed_parent is None or not live_nfb_preview["ready"]:
                 return
-            from ae_engine.receiving_nfb_model_identity import is_numeric_model_ref
-            from ae_engine.receiving_nfb_csv_editor_features import (
-                editor_nfb_features_from_csv,
-            )
-            from ae_engine.receiving_shared_settings import pack_switch_layer
             selected = [ref for row in chosen[:layers.get()] for ref in row]
-            if selected and not all(is_numeric_model_ref(ref) for ref in selected):
+            if not manufacturing_api.can_stage_receiving_nfb_csv_preview_refs(selected):
                 # Legacy DXF preview cannot produce a numeric CSV cutting
                 # feature; retain its existing explicit verification gate.
                 return
@@ -2559,12 +2220,12 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 "layers": layers.get(),
                 "layer_heights_mm": read_layer_heights(),
                 "models": [
-                    pack_switch_layer(chosen[0]),
-                    pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
+                    manufacturing_api.pack_receiving_nfb_switch_layer(chosen[0]),
+                    manufacturing_api.pack_receiving_nfb_switch_layer(chosen[1]) if layers.get() == 2 else "",
                 ],
                 "features": deepcopy(initial.get("features", {})),
             }
-            openings = editor_nfb_features_from_csv(
+            openings = manufacturing_api.editor_nfb_features_from_csv(
                 current_inner_editor_snapshot(), config,
                 current_features=pending(),
             )
@@ -2605,7 +2266,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 return
             filename = source_state["files"][index][selected[0]]
             expected_brand = view_source_catalog(index)
-            if filename not in numeric_model_refs(expected_brand):
+            if filename not in manufacturing_api.list_receiving_nfb_model_refs(expected_brand):
                 warning.set("CSV 已變動，請重新選擇")
                 refresh_source(force=True)
                 return
@@ -2651,7 +2312,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             filename = source_state["files"][index][choice[0]]
             draft_state["draft"] = replace_nfb_slot_model(
                 draft_state["draft"],index,selected[0],filename,
-                catalog={brand:numeric_model_refs(brand)},
+                catalog={brand:manufacturing_api.list_receiving_nfb_model_refs(brand)},
             )
             sync_chosen()
             repaint(index)
@@ -2893,7 +2554,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             brand_row = ttk.Frame(section)
             brand_row.grid(row=3, column=0, columnspan=3, sticky="w", pady=(2, 4))
             ttk.Label(brand_row, text="本層品牌").pack(side="left")
-            brand_choices = ("繼承本套", *RECEIVING_SWITCH_BRANDS)
+            brand_choices = ("繼承本套", *operator_brand_choices)
             layer_brand_var = tk.StringVar(master=modal, value="繼承本套")
             layer_brand_select = ttk.Combobox(
                 brand_row, textvariable=layer_brand_var, values=brand_choices,
@@ -2904,7 +2565,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             slot_brand_var = tk.StringVar(master=modal, value="繼承本層")
             slot_brand_select = ttk.Combobox(
                 brand_row, textvariable=slot_brand_var,
-                values=("繼承本層", *RECEIVING_SWITCH_BRANDS),
+                values=("繼承本層", *operator_brand_choices),
                 width=12, state="readonly",
             )
             slot_brand_select.pack(side="left", padx=3)
@@ -3053,13 +2714,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     draft_state["draft"], nfb_physical_layers.get(),
                 )
                 if previous_count != nfb_physical_layers.get():
-                    from ae_engine.receiving_shared_settings import (
-                        transition_receiving_nfb_layer_heights,
-                    )
                     try:
                         heights = [float(field.get().strip())
                                    for field in layer_height_vars]
-                        updated = transition_receiving_nfb_layer_heights(
+                        updated = manufacturing_api.transition_receiving_nfb_layer_heights(
                             heights, old_count=previous_count,
                             new_count=nfb_physical_layers.get(),
                         )
@@ -3146,72 +2804,21 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         def confirm():
             try:
-                from ae_engine.receiving_nfb_model_identity import is_numeric_model_ref
-                # Inner-door tiers and NFB mounting tiers already share one
-                # validated value. Do not invent another independent count.
-                # Current CSV CUTTING is saved as typed physical Hole Editor
-                # Features; no original DXF or lossy legacy brand/rotation
-                # serializer is required for this new settings entry.
-                source_models = [
-                    slot["filename"]
-                    for layer in edit_session.current["layers"][:nfb_physical_layers.get()]
-                    for slot in layer["slots"]
-                    if slot["filename"] is not None
-                ]
-                current_numeric_editor = (
-                    embed_parent is not None
-                    and bool(source_models)
-                    and all(is_numeric_model_ref(ref) for ref in source_models)
+                # Physical CSV/legacy model and source-brand qualification belongs
+                # to the Engine; this only selects which original editor route
+                # receives the validated transient NFB draft.
+                confirmation = manufacturing_api.plan_receiving_nfb_editor_confirm(
+                    draft_state["draft"], edit_session.current, chosen,
+                    layer_count=nfb_physical_layers.get(),
+                    embedded=embed_parent is not None,
+                    parent_brand=current_nfb_parent_brand(),
                 )
-                active = draft_state["draft"]["layers"][:nfb_physical_layers.get()]
-                for row in (() if current_numeric_editor else active):
-                    if row["brand"]["mode"] == OVERRIDE:
-                        raise ValueError("本層品牌覆寫仍是 NFB 草稿，尚不可存成舊版內門候選")
-                    if row["rotation_deg"]!=0:
-                        raise ValueError("NFB 草稿角度不能被舊版內門層數格式丟失")
-                    for slot in row["slots"]:
-                        if slot["filename"] is None or slot["brand"]["mode"] == OVERRIDE:
-                            raise ValueError("空槽或單顆品牌覆寫仍是 NFB 草稿，不能丟失後儲存")
-                        if (slot["rotation"]["mode"]==OVERRIDE
-                                or slot["manual_x_state"]!="NONE"
-                                or slot["manual_x_mm"] is not None):
-                            raise ValueError("NFB 逐顆角度／X 位移尚未正式提交，不能丟失後儲存")
-                        if slot["source_brand"] != draft_state["draft"]["set_brand"]:
-                            raise ValueError("品牌已變更，原型號待重選，不可直接存入舊版")
-                relevant = chosen[:layers.get()]
-                if current_numeric_editor:
-                    from ae_engine.receiving_nfb_model_identity import parse_numeric_model_ref
-                    from ae_engine.receiving_nfb_numeric_catalog import model_spec
-                    expected_models = []
-                    for li, row in enumerate(active):
-                        for si, slot in enumerate(row["slots"]):
-                            ref = slot["filename"]
-                            if ref is None:
-                                continue
-                            effective_brand = effective_nfb_slot_brand(
-                                edit_session.current, li, si,
-                            )
-                            parsed = parse_numeric_model_ref(ref)
-                            if (parsed is None or parsed[0] != effective_brand
-                                    or model_spec(*parsed) is None):
-                                raise ValueError("NFB 實際廠牌與 CSV 型號不符，請重新選擇")
-                            expected_models.append(ref)
-                    selected_models = [model for group in relevant for model in group]
-                    if sorted(selected_models) != sorted(expected_models):
-                        raise ValueError("NFB CSV 選型與開孔設定不同步，請重新檢查")
-                else:
-                    selected_brand = current_nfb_parent_brand()
-                    latest_files = (set(numeric_model_refs(selected_brand))
-                                    | set(model_filenames(selected_brand)))
-                    if any(filename not in latest_files
-                           for layer_items in relevant for filename in layer_items):
-                        raise ValueError("開關型號已不在廠牌 CSV，請重新選擇")
                 config = {
                     "layers": layers.get(),
                     "layer_heights_mm": read_layer_heights(),
                     "models": [
-                        pack_switch_layer(chosen[0]),
-                        pack_switch_layer(chosen[1]) if layers.get() == 2 else "",
+                        manufacturing_api.pack_receiving_nfb_switch_layer(chosen[0]),
+                        manufacturing_api.pack_receiving_nfb_switch_layer(chosen[1]) if layers.get() == 2 else "",
                     ],
                     "features": deepcopy(initial.get("features", {})),
                 }
@@ -3226,13 +2833,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     if not callable(stage_in_editor):
                         raise ValueError("主開孔編輯器尚未連接 NFB 交易暫存")
                     openings = None
-                    if current_numeric_editor or not source_models:
-                        from ae_engine.receiving_nfb_csv_editor_features import (
-                            editor_nfb_features_from_csv,
-                        )
+                    if (confirmation.current_numeric_editor
+                            or not confirmation.has_source_models):
                         parent_editor = modal.winfo_toplevel()
                         pending = getattr(parent_editor, "_receiving_pending_features", None)
-                        openings = editor_nfb_features_from_csv(
+                        openings = manufacturing_api.editor_nfb_features_from_csv(
                             current_inner_editor_snapshot(), config,
                             current_features=(pending() if callable(pending) else ()),
                         )
@@ -3288,7 +2893,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     )
                 )
                 or chosen != [
-                    list(switch_filenames_in_layer(item))
+                    list(manufacturing_api.receiving_nfb_switch_filenames_in_layer(item))
                     for item in initial["models"]
                 ]
             )
@@ -3348,15 +2953,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         persist_inner(delete_inner_candidate(inner_library(), version_id))
 
     def verify_inner_models(config):
-        selected_brand = current_nfb_parent_brand()
-        allowed = (set(numeric_model_refs(selected_brand))
-                   | set(model_filenames(selected_brand)))
-        for layer_slot in config["models"][:config["layers"]]:
-            for name in switch_filenames_in_layer(layer_slot):
-                if name not in allowed:
-                    raise ValueError(
-                        "內門版本型號已不在廠牌 CSV，請重新編輯選擇：" + name
-                    )
+        # Source eligibility is Engine-owned, shared by GUI and headless callers.
+        return manufacturing_api.validate_receiving_inner_door_source_models(
+            config, current_nfb_parent_brand(),
+        )
 
     def inner_apply(role, version_id, set_index, highlighted):
         if role != INNER_ROLE or version_id is None or not highlighted:
@@ -3373,7 +2973,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         return True
 
     def inner_validate_quantity(quantities, assigned, expected_counts):
-        plan = validate_inner_door_allocation(
+        plan = manufacturing_api.validate_receiving_inner_door_allocation(
             candidate_adapter().layout, inner_library(), quantities, assigned,
             expected_counts=expected_counts,
         )
@@ -3411,16 +3011,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     def nfb_transaction_ports():
         """Single Receiving authority, with real source-verified transient stage."""
-        from ae_engine.receiving_nfb_ui1b_bridge import (
-            NfbVerifiedDraftSubmission, assert_live_verified_nfb,
-            submit_live_verified_nfb, copy_live_verified_nfb,
-        )
-
         def stage_verified(bundle):
-            if not isinstance(bundle, NfbVerifiedDraftSubmission):
+            if not isinstance(bundle, manufacturing_api.NfbVerifiedDraftSubmission):
                 raise TypeError("NFB 必須提供真實來源與內門物理位置驗證")
             adapter=candidate_adapter()
-            assert_live_verified_nfb(
+            manufacturing_api.assert_live_verified_nfb(
                 adapter,bundle,current_snapshot=nfb_physical_bay_snapshot(
                     bundle.set_index,bundle.bay_index,
                 ),
@@ -3433,7 +3028,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if bundle is None:
                 return None,"尚未取得當前連的原始 DXF、實體世界 X 與內門板驗證"
             try:
-                assert_live_verified_nfb(
+                manufacturing_api.assert_live_verified_nfb(
                     candidate_adapter(),bundle,
                     current_snapshot=nfb_physical_bay_snapshot(
                     bundle.set_index,bundle.bay_index,
@@ -3445,41 +3040,34 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             return bundle,""
 
         def copy_pair(set_index, selected_bays):
-            """Select one committed source and one separately verified target.
+            """Use Engine's verified-source/target choice; GUI only stages proofs.
 
-            The highlighter, not a second selection popup, chooses exactly
-            two Bays. The source may be active or the destination may be
-            active. If both directions could apply, fail closed.
+            All target readiness evidence is checked *live* before asking
+            Engine to select a unique direction. The canonical Engine copy
+            transaction independently rechecks the chosen pair on Confirm.
             """
-            layout=candidate_adapter().layout
-            indices, selected = _checked_nfb_copy_selection(
+            layout = candidate_adapter().layout
+            indices, _ = _checked_nfb_copy_selection(
                 layout, set_index, selected_bays,
             )
-            options=[]
-            for source_bi in indices:
-                if selected[source_bi].get("nfb_config_submitted") is not True:
+            verified_targets = []
+            bundles = {}
+            for target_bi in indices:
+                if (set_index, target_bi) not in pending_verified_nfb:
                     continue
-                for target_bi in indices:
-                    if target_bi==source_bi:
-                        continue
-                    if (set_index,target_bi) not in pending_verified_nfb:
-                        continue
-                    bundle,reason=eligible_bundle(set_index,target_bi)
-                    if bundle is not None and bundle.can_submit:
-                        options.append((source_bi,bundle))
-            if len(options)!=1:
-                raise ValueError(
-                    "請先從已提交來源連複製，並在另一目標連核對獨立世界 X／實體來源；"
-                    "不可使用未配置來源或不明確的複製方向"
-                )
-            return options[0]
+                bundle, reason = eligible_bundle(set_index, target_bi)
+                if bundle is not None and bundle.can_submit:
+                    verified_targets.append(target_bi)
+                    bundles[target_bi] = bundle
+            source_bi, target_bi = manufacturing_api.plan_operator_nfb_copy_direction(
+                layout, set_index, indices,
+                verified_target_indices=tuple(verified_targets),
+            )
+            return source_bi, bundles[target_bi]
+
 
         def physical_manifest(set_index,bay_index):
             """Read-only live status from current saved NFB + original source."""
-            from ae_engine.receiving_nfb_export_manifest import (
-                NfbActualPart,INNER_DOOR,BASE_PLATE,MIDDLE_PLATE,
-                derive_nfb_partial_export_manifest,
-            )
             adapter=candidate_adapter()
             owner=adapter.layout["sets"][set_index]
             bay=owner["bays"][bay_index]
@@ -3491,99 +3079,36 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 }
             bundle=committed_nfb_evidence.get((set_index,bay_index))
             if bundle is None:
-                # #1504 AC-09/24: the CURRENT CSV saved NFBConfig has no old
-                # manufacturer's DXF receipt (and needs none). Inspect each
-                # current source row, layer/unit and real part owner without
-                # granting physical CUTTING or storing a second DRAFT flag.
-                from ae_engine.receiving_nfb_v5_diagnostics import (
-                    current_v5_nfb_diagnostics,
-                )
-                from ae_engine.receiving_shared_settings import setting_value
+                # Existing numeric CSV NFB source has no legacy DXF receipt.
+                # Ask the public Engine to decide actual Door/Base identity,
+                # dependencies and source status. The temporary scene remains
+                # a read-only witness, never a manufacturing authorization.
                 current = nfb_physical_bay_snapshot(set_index, bay_index)
-                dependent = []
-                has_door_source = False
-                has_base_source = False
+                physical_parts = ()
                 try:
-                    from ae_engine.cabinet_types.policy import derive_inner_door_panels
-                    upper = tuple(p for p in derive_inner_door_panels(current)
-                                  if str(p.cell_key).split(":")[-1] == "0")
-                    if len(upper) == 1:
-                        dependent.append(upper[0].stable_id)
-                        has_door_source = True
-                except (ValueError, TypeError, KeyError, IndexError):
-                    pass  # Keep saved NFB units visible even if door is unresolved.
-                try:
-                    from ae_engine.receiving_base_plate_config import (
-                        receiving_base_plate_values,
+                    preview_layout = manufacturing_api.project_receiving_nfb_unsubmitted_preview_layout(
+                        adapter.layout,
+                        set_index=set_index, bay_index=bay_index,
                     )
-                    from ae_engine.receiving_nfb_layer_physical_parts import (
-                        source_receiving_nfb_tier_base_specs,
-                    )
-                    count = bay["nfb_config"]["layer_count"]
-                    if count == 1 and receiving_base_plate_values(current) is not None:
-                        dependent.append("base_plate")
-                        has_base_source = True
-                    elif count == 2:
-                        specs = source_receiving_nfb_tier_base_specs(
-                            current, require_source_z=False,
-                        )
-                        if set(specs) == {0, 1}:
-                            dependent.extend(spec.physical_id for spec in specs.values())
-                            has_base_source = True
-                except (ValueError, TypeError, KeyError, IndexError):
-                    pass  # Missing source is DRAFT, never an invented plate.
-                # The same current Bay FinalScene used by the original
-                # partial-DXF action identifies truly unrelated physical
-                # sheets. It is never a manufacturing authorization. Use
-                # the candidate-layout virtual cache rather than resynthesizing
-                # unrelated parts from model names or an older Bay.
-                from ae_engine.receiving_nfb_v5_diagnostics import (
-                    actual_unrelated_nfb_scene_parts,
-                )
-                unrelated = ()
-                try:
-                    # A stale NFB must not prevent resolving completely
-                    # independent HEAD/TAIL/outer DOOR sources. Clone only
-                    # this Bay's submission flag for the read-only scene,
-                    # never the saved NFBConfig or manufacturing authority.
-                    preview_layout=dict(adapter.layout)
-                    preview_sets=list(adapter.layout["sets"])
-                    preview_set=dict(preview_sets[set_index])
-                    preview_bays=list(preview_set["bays"])
-                    preview_bay=dict(preview_bays[bay_index])
-                    preview_bay["nfb_config_submitted"]=False
-                    preview_bays[bay_index]=preview_bay
-                    preview_set["bays"]=preview_bays
-                    preview_sets[set_index]=preview_set
-                    preview_layout["sets"]=preview_sets
                     actual = self.receiving_bay_preview_request(
                         namespace, set_index, bay_index,
                         preview_layout=preview_layout,
                     )
-                    unrelated = actual_unrelated_nfb_scene_parts(
-                        actual.render_data.assembly_parts,
-                        dependent_part_ids=tuple(dependent),
-                    )
+                    physical_parts = actual.render_data.assembly_parts
                 except (ValueError, TypeError, KeyError, IndexError,
                         AttributeError, OSError):
-                    # Fail closed: when current FinalScene cannot be resolved,
-                    # do not claim any unrelated physical sheet was inspected.
-                    unrelated = ()
-                v5 = current_v5_nfb_diagnostics(
+                    # Fail closed: no resolved real FinalScene means no
+                    # independently evidenced unaffected physical sheets.
+                    physical_parts = ()
+                v5 = manufacturing_api.project_receiving_current_v5_nfb_physical_diagnostics(
                     bay,
+                    physical_snapshot=current,
                     set_id=str(owner["stable_id"]),
                     bay_id=str(bay["stable_id"]),
-                    version_id=setting_value(
+                    version_id=_receiving_setting_value(
                         owner, bay_index, "inner_door_version_id",
                     ),
-                    dependent_part_ids=tuple(dict.fromkeys(dependent)),
-                    unaffected_part_ids=unrelated,
-                    missing_required_physical_roles=tuple(
-                        role for role, sourced in (
-                            ("INNER_DOOR", has_door_source),
-                            ("BASE_PLATE", has_base_source),
-                        ) if not sourced
-                    ),
+                    physical_parts=physical_parts,
                 )
                 if v5 is not None:
                     return v5
@@ -3625,29 +3150,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     current, bundle.snapshot_at_verification,
                 ):
                     raise ValueError("內門幾何已變更，來源驗證必須重新執行")
-                scope=bundle.scope
-                physical=[
-                    NfbActualPart(scope.inner_door_part_id,INNER_DOOR),
-                    *(NfbActualPart(p,BASE_PLATE)
-                      for p in scope.base_plate_part_ids),
-                    *(NfbActualPart(p,MIDDLE_PLATE)
-                      for p in scope.middle_plate_part_ids),
-                ]
-                manifest=derive_nfb_partial_export_manifest(
-                    scope=scope,actual_parts=physical,
-                    saved_bay=bay,set_brand=owner["switch_brand"],
+                details=manufacturing_api.project_receiving_verified_nfb_partial_manifest(
+                    scope=bundle.scope,
+                    saved_bay=bay,
+                    set_brand=owner["switch_brand"],
                     source_inventory=bundle.source_inventory,
                     verified_inner_door=bundle.verified_door,
                     source_path=bundle.source_path,
-                )
-                details=manifest.report()
-                details["status"]=(
-                    "WHOLE_READY" if manifest.whole_ready else "PARTIAL_ONLY"
-                )
-                details["reason"]=(
-                    "僅限以下已核實的實體板件；PAD 與整櫃焊接工藝另行驗收"
-                    if manifest.authorized_part_ids else
-                    "尚無可放行 NFB 加工板件"
                 )
                 # This is a view, NOT the exporter authority itself.
                 return details
@@ -3697,24 +3206,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             )
 
         def current_csv_pair_source(set_index, bay_index):
-            """Existing DXF action uses current CSV; old DXF evidence is legacy only."""
-            from ae_engine.receiving_nfb_committed_final_scene import (
-                _submitted_csv_holes, _existing_source_specs,
-            )
+            """Read current CSV physical-source eligibility through public Engine API."""
             current = nfb_physical_bay_snapshot(set_index, bay_index)
-            source = _submitted_csv_holes(current)
-            if not source:
-                return False
-            specs = _existing_source_specs(current, source[1])
-            count = source[1][0].layer_count
-            if count == 1:
-                return set(specs) == {0} and specs[0].physical_id == "base_plate"
-            if count == 2:
-                return set(specs) == {0, 1} and all(
-                    specs[i].physical_id == f"base_plate:nfb_layer:{i}"
-                    for i in (0, 1)
-                )
-            return False
+            return (
+                manufacturing_api.project_receiving_committed_csv_nfb_pair_layer_count(
+                    current,
+                ) is not None
+            )
 
         def export_partial_nfb_door_base_pair(set_index, bay_index, output_directory):
             """Existing PART_ONLY button: canonical CSV first; old DXF for old data."""
@@ -3723,18 +3221,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 export_current_csv_nfb_door_base_pair,
             )
             current = nfb_physical_bay_snapshot(set_index, bay_index)
-            if current_csv_pair_source(set_index, bay_index):
+            layer_count = manufacturing_api.project_receiving_committed_csv_nfb_pair_layer_count(
+                current,
+            )
+            if layer_count is not None:
                 # The same actual Bay assembly displayed in 2D/3D owns one
                 # real root or two real tier blanks; do not request a fake
                 # generic root PartSpec for a two-tier physical assembly.
-                from ae_engine.receiving_nfb_committed_final_scene import (
-                    _submitted_csv_holes,
-                )
-                owner = _submitted_csv_holes(current)
-                if not owner:
-                    raise ValueError("本連沒有現行有效的 CSV NFB 來源")
                 spec = None
-                if owner[1][0].layer_count == 1:
+                if layer_count == 1:
                     spec, _ = self.app._part_spec_query_callback(
                         "base_plate", current,
                     )
@@ -3814,7 +3309,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             bundle,reason=eligible_bundle(set_index,bi)
             if bundle is None:
                 raise ValueError(reason)
-            result=submit_live_verified_nfb(
+            result=manufacturing_api.submit_live_verified_nfb(
                 candidate_adapter(),bundle,
                 current_snapshot=nfb_physical_bay_snapshot(
                     bundle.set_index,bundle.bay_index,
@@ -3829,7 +3324,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         def copy(set_index,bay_indices,confirm):
             source_bi,target_bundle=copy_pair(set_index,bay_indices)
-            result=copy_live_verified_nfb(
+            result=manufacturing_api.copy_live_verified_nfb(
                 candidate_adapter(),source_bay_index=source_bi,
                 target_bundle=target_bundle,
                 current_snapshot=nfb_physical_bay_snapshot(
@@ -3916,10 +3411,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     def applied_version_labels(set_index):
         """Read ONLY persisted per-Bay identifiers from the current layout."""
-        from ae_engine.receiving_shared_settings import setting_value
         selected_set = candidate_adapter().layout["sets"][set_index]
         return tuple({
-            role: setting_value(selected_set, bi, kind)
+            role: _receiving_setting_value(selected_set, bi, kind)
             for role, kind in (
                 ("head", "head_version_id"),
                 ("tail", "tail_version_id"),
@@ -3932,11 +3426,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         selected = adapter.selection
         row = adapter.layout["sets"][selected.set_index]
         config = {
-            "layers": setting_value(row, selected.bay_index, "inner_door_layers"),
-            "models": setting_value(row, selected.bay_index, "inner_door_models"),
-            "features": setting_value(row, selected.bay_index, "inner_door_features"),
+            "layers": _receiving_setting_value(row, selected.bay_index, "inner_door_layers"),
+            "models": _receiving_setting_value(row, selected.bay_index, "inner_door_models"),
+            "features": _receiving_setting_value(row, selected.bay_index, "inner_door_features"),
         }
-        heights = setting_value(row, selected.bay_index, "inner_door_layer_heights_mm")
+        heights = _receiving_setting_value(row, selected.bay_index, "inner_door_layer_heights_mm")
         if heights is not None:
             config["layer_heights_mm"] = heights
         return config
@@ -3953,76 +3447,35 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         return source
 
     def current_inner_editor_part_key():
-        from ae_engine.cabinet_types import policy as receiving_family_policy
-        physical = current_inner_editor_snapshot()
-        upper = tuple(
-            panel.stable_id for panel in receiving_family_policy.derive_inner_door_panels(physical)
-            if str(panel.cell_key).endswith(":0")
+        return manufacturing_api.resolve_receiving_upper_inner_door_editor_part_key(
+            current_inner_editor_snapshot(),
         )
-        if len(upper) != 1:
-            raise ValueError("原開孔編輯器必須對應一片明確的上層實體內門")
-        return upper[0]
 
     def launch_inner_editor(part_key, *, mode, version_id=None, initial_features=None,
                             after_saved=None):
         from .receiving_inner_door_hole_editor import open_inner_door_hole_editor
-        from ae_engine.receiving_inner_door_candidates import validate_door_config
-        from ae_engine.receiving_shared_settings import validate_setting
-        from copy import deepcopy
 
         def confirmed(actual_part, features, staged_config):
             if actual_part != part_key:
                 raise ValueError("內門開孔編輯返回錯誤的實體板件")
             if mode == "single" and self.app.designer_workspace.active_mode == "quantity":
                 if staged_config is not None:
-                    from ae_engine.receiving_quantity_box import update_common_box
-                    config = validate_door_config(staged_config)
-                    changes = {
-                        "inner_door_layers": config["layers"],
-                        "inner_door_models": deepcopy(config["models"]),
-                    }
-                    if config.get("layer_heights_mm") is not None:
-                        changes["inner_door_layer_heights_mm"] = deepcopy(
-                            config["layer_heights_mm"]
-                        )
-                    # Persist in the actual quantity-box authority, never
-                    # solely in synthetic top-level receiving_* projection.
-                    # That projection is rebuilt on every mode/UI refresh.
-                    projected = update_common_box(
-                        self.app._phase6_input_snapshot, changes,
+                    quantity = self.app.designer_workspace.quantity_model
+                    projected, typed = manufacturing_api.preview_quantity_inner_door_confirm(
+                        self.app._phase6_input_snapshot, quantity, part_key,
+                        features, staged_config,
                     )
-                    # Confirm All accepts the validated original CSV holes
-                    # for this selected quantity-version independently of
-                    # physical Base Plate source selection. NFB identity is
-                    # NOT manufacturing approval. Previously the extra
-                    # receiving_base_plate gate silently dropped submitted
-                    # NFBConfig in the normal Single GUI, so source resolution,
-                    # 2D SIDE EAR and 3D tier parts could never even inspect
-                    # these confirmed model identities. Never fabricate an
-                    # unresolved Base Plate or relax MFG/NC guards here.
-                    if any(getattr(row, "source_type", None) ==
-                           "NFB_CSV_SOURCE" for row in features):
-                        from ae_engine.receiving_nfb_csv_committed_config import (
-                            committed_csv_nfb_config, preview_quantity_nfb_submission,
-                        )
-                        typed = committed_csv_nfb_config(part_key, features, config)
-                        quantity = self.app.designer_workspace.quantity_model
-                        # Validate a DETACHED version plus the real Family
-                        # projection first. A rejected Confirm All must not
-                        # leave an already-submitted live quantity NFBConfig.
-                        projected = preview_quantity_nfb_submission(
-                            projected, quantity, typed,
-                        )
+                    # A detached Engine Family/source check MUST precede live
+                    # version mutation. None means native-only features.
+                    if typed is not None:
                         quantity.set_version_nfb_config(
                             quantity.selected_version_id, submitted=True,
                             config=typed,
                         )
-                    # Reset only the transient Set/Bay selector: CURRENT
-                    # quantity's fresh synthetic Bay must never inherit a
-                    # pointer into an obsolete persisted Set. Keep the strict
-                    # manufacturing identity guard intact.
-                    from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
-                    self.app._phase6_input_snapshot.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
+                    # The detached Engine projection is the complete new
+                    # Quantity snapshot, without the old Set/Bay runtime ID.
+                    # Replace in-place so existing GUI references stay valid.
+                    self.app._phase6_input_snapshot.clear()
                     self.app._phase6_input_snapshot.update(projected)
                     # The workspace is the in-memory canonical mode owner.
                     # The next scheduler/SetBay sync otherwise restores its
@@ -4069,10 +3522,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         )
                 # Single owns the *existing* physical Bay, never a candidate.
                 # Both settings and actual CUTTING must survive Bay reprojection.
-                current = (validate_door_config(staged_config) if staged_config is not None
-                           else current_inner_editor_config())
-                current = deepcopy(current)
-                current.setdefault("features", {})[part_key] = deepcopy(features)
+                source = (staged_config if staged_config is not None
+                          else current_inner_editor_config())
+                current = manufacturing_api.prepare_receiving_inner_door_physical_confirm(
+                    source, part_key, features,
+                )
                 # Reuse the adapter's atomic Set/Bay update; no version library
                 # is created and no other Bay is touched.
                 adapter.apply_inner_door_candidate_to_bays(
@@ -4087,9 +3541,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             config = (inner_config(inner_library(), version_id) if version_id is not None
                       else current_inner_editor_config())
             if staged_config is not None:
-                config = validate_door_config(staged_config)
-            config = deepcopy(config)
-            config.setdefault("features", {})[part_key] = deepcopy(features)
+                config = staged_config
+            config = manufacturing_api.prepare_receiving_inner_door_physical_confirm(
+                config, part_key, features,
+            )
             if version_id is None:
                 updated, selected_version = create_inner_candidate(inner_library(), config)
             else:
@@ -4235,6 +3690,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         get_inner_candidate_ports=inner_candidate_ports,
         get_nfb_transaction_ports=nfb_transaction_ports,
         select_bay=select_bay,
+        rename_bay=rename_bay,
         on_setting_selected=select_existing_setting,
         get_brand=(single_brand if single else
                    lambda: self.receiving_switch_adapter(namespace).brand),

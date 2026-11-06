@@ -26,22 +26,15 @@ from phase6_manufacturing_contracts import (
     thaw_manufacturing_value,
 )
 from phase6_part_navigation import is_box_body_physical_piece_key
-from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
-from ae_engine.cabinet_types import policy as cabinet_family_policy
-from ae_engine.corner_type_ui import policy_from_corner_state
-from ae_engine.sheetmetal_geometry import FourCornerTypePolicy
 from phase6_endcap_semantics import (
     ENDCAP_FW_PARTS,
     normalize_endcap_bottom_wrap_state,
     normalize_endcap_fw_state,
-    resolve_endcap_bottom_wrap,
     resolve_endcap_fw,
     selection_from_raw,
 )
 from phase6_fold_profiles import (
-    _num,
     clone_profile,
-    engine_segment_length_to_ui,
     read_box_body_profile,
     read_endcap_xy_profiles,
 )
@@ -50,8 +43,6 @@ from phase6_manufacturing_cache import (
     ManufacturingCacheService,
 )
 
-
-_CORNER_KEYS = ("bottom_left", "bottom_right", "top_left", "top_right")
 
 
 def read_standard_part_profiles(part_key, profiles, original_snapshot):
@@ -62,47 +53,14 @@ def read_standard_part_profiles(part_key, profiles, original_snapshot):
 
 
 def _corner_policy_for_app(app: Any, part_key: str):
-    raw_state = dict(
-        (getattr(app, "_phase6_corner_state", {}) or {}).get(part_key, {}) or {}
+    """Collect operator CornerType inputs; Engine owns manufacturing policy."""
+    return manufacturing_api.resolve_operator_snapshot_corner_policy(
+        part_key,
+        corner_state=getattr(app, "_phase6_corner_state", None),
+        input_snapshot=getattr(app, "_phase6_input_snapshot", None),
+        settings_values=getattr(app, "_settings_values", None),
+        endcap_fw_state=getattr(app, "_phase6_endcap_fw_state", None),
     )
-    if not all(key in raw_state for key in _CORNER_KEYS):
-        return None
-    selections = {
-        key: selection_from_raw(raw_state[key])
-        for key in _CORNER_KEYS
-    }
-    snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    snapshot.update(dict(getattr(app, "_settings_values", {}) or {}))
-    snapshot["endcap_fw"] = deepcopy(
-        getattr(app, "_phase6_endcap_fw_state", normalize_endcap_fw_state(snapshot))
-    )
-    fw = (
-        resolve_endcap_fw(snapshot, part_key)
-        if str(part_key) in ENDCAP_FW_PARTS
-        else _num(snapshot.get("fw", 25), 25)
-    )
-    try:
-        if (
-            cabinet_family_policy.supports_bottom_wrap_controls(snapshot)
-            and str(part_key) in ENDCAP_FW_PARTS
-        ):
-            thickness = _num(snapshot.get("t", 2.0), 2.0)
-            return FourCornerTypePolicy(
-                bottom_left=selections["bottom_left"],
-                bottom_right=selections["bottom_right"],
-                top_left=selections["top_left"],
-                top_right=selections["top_right"],
-                fw=float(fw),
-                bottom_fw=cabinet_family_policy.effective_endcap_bottom_fw(
-                    snapshot,
-                    snapshot.get("box_body_structure"),
-                    thickness=thickness,
-                    default_fw=float(fw),
-                ),
-            )
-    except Exception:
-        pass
-    return policy_from_corner_state(selections, fw=fw)
 
 
 def operator_finished_dimensions_for_app(
@@ -136,22 +94,10 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
 
     values = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
     settings_overlay = dict(getattr(app, "_settings_values", {}) or {})
-    if (values.get("model") in ("受電箱", "RECEIVING")
-            and isinstance(values.get("_receiving_runtime_selection"), Mapping)):
-        # Exact Set/Bay is the only authority for Door, NFB and placement.
-        # build_manufacturing_request already carries this Bay's dimensions;
-        # do not overwrite projected Door cells with the global settings
-        # during the second part-payload serialization seam.
-        from ae_engine.receiving_layout import (
-            RECEIVING_DOOR_STATE_KEYS, RECEIVING_RUNTIME_SELECTION_KEY,
-        )
-        per_bay = set(RECEIVING_DOOR_STATE_KEYS) | {
-            RECEIVING_RUNTIME_SELECTION_KEY, "receiving_layout",
-            "nfb_config", "nfb_config_submitted",
-        }
-        settings_overlay = {
-            k: v for k, v in settings_overlay.items() if k not in per_bay
-        }
+    # Engine protects current Receiving Set/Bay authority from stale globals.
+    settings_overlay = manufacturing_api.project_manufacturing_scene_settings_overlay(
+        values, settings_overlay,
+    )
     values.update(settings_overlay)
     values.update(dict(getattr(app, "_phase6_box_whd", {}) or {}))
     workspace = getattr(app, "designer_workspace", None)
@@ -187,16 +133,19 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
             else:
                 values.update(read_standard_part_profiles(key, profiles, values))
     except Exception:
-        pass
-
-    model_var = getattr(app, "baseline_model_var", None)
-    values["model"] = str(
-        _safe_var_get(
-            model_var,
-            getattr(app, "_phase6_baseline_initial_model", "") or "",
+        # Draft/preview payloads may contain incomplete Fold profiles. Keep the
+        # previous partial display usable, but mark it as NOT manufacturing-ready.
+        # The immutable manufacturing request boundary rejects this evidence.
+        values["_manufacturing_profile_readback_error"] = (
+            f"MANUFACTURING_SCENE_PROFILE_INVALID:{key}"
         )
-        or ""
-    ).strip()
+
+    # Resolve the same live operator Family source for preview and the
+    # immutable manufacturing request. A broken live Tk control must not
+    # silently replace the selected Family with a stale initial default.
+    values["model"] = _cabinet_model(
+        app, getattr(app, "_phase6_input_snapshot", {}) or {},
+    )
     values["endcap_fw"] = deepcopy(
         getattr(app, "_phase6_endcap_fw_state", normalize_endcap_fw_state(values))
     )
@@ -239,52 +188,29 @@ def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
         structure_state() if callable(structure_state) else {}
     )
 
-    source_graph = migrate_legacy_snapshot_joints(
-        dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    )
-    values["assembly_joint_schema_version"] = source_graph.get(
-        "assembly_joint_schema_version"
-    )
-    values["assembly_joints"] = deepcopy(
-        source_graph.get("assembly_joints", ())
-    )
+    values.update(manufacturing_api.project_manufacturing_scene_joint_source(
+        getattr(app, "_phase6_input_snapshot", {}) or {},
+    ))
 
-    if (
-        key in ENDCAP_FW_PARTS
-        and cabinet_family_policy.supports_bottom_wrap_controls(values)
-    ):
-        try:
-            item = resolve_endcap_bottom_wrap(
-                values,
-                key,
-                state=values["endcap_bottom_wrap"],
-            )
-            values["box_body_structure"] = (
-                cabinet_family_policy.set_bottom_relief_reserves(
-                    values,
-                    values["box_body_structure"],
-                    reserve_u=item["reserve_u"],
-                    reserve_v=item["reserve_v"],
-                )
-            )
-        except Exception:
-            pass
+    # Engine alone owns physical Family BOTTOM reserve projection.
+    values["box_body_structure"] = (
+        manufacturing_api.project_manufacturing_bottom_relief_structure(
+            values, key, values["box_body_structure"],
+            bottom_wrap_state=values["endcap_bottom_wrap"],
+        )
+    )
 
     if key == "box_body":
         profiles_for = getattr(workspace, "profiles_for", None)
-        for child_key, target in (
-            ("head", "head_ybottom1"),
-            ("tail", "tail_ybottom1"),
-        ):
-            profiles = (
-                profiles_for(child_key, {}) or {}
-                if callable(profiles_for)
-                else {}
+        endcap_sources = {
+            part: (profiles_for(part, {}) or {}) if callable(profiles_for) else {}
+            for part in ("head", "tail")
+        }
+        values.update(
+            manufacturing_api.project_manufacturing_endcap_bottom_fold_inputs(
+                endcap_sources,
             )
-            for row in list(dict(profiles).get("Y", ()) or ()):
-                if str(row.get("phase6_key") or "") == "ybottom1":
-                    values[target] = float(engine_segment_length_to_ui(row))
-                    break
+        )
 
     from phase6_custom_parts import is_custom_part
     if is_custom_part(key):
@@ -313,11 +239,32 @@ def _safe_var_get(value: Any, default: Any = None) -> Any:
     return default if value is None else value
 
 
-def _mapping(value: Any) -> dict:
+def _manufacturing_operator_var_get(control: Any, attr: str, default: Any) -> Any:
+    """Read one operator control only, never a full application owner.
+
+    Missing controls retain the established headless/facade default. A control
+    that exists but fails to read is different: never manufacture from a
+    guessed default or stale model when the live source has become unreadable.
+    """
+    var = control
+    if var is None:
+        return default
+    getter = getattr(var, "get", None)
+    if not callable(getter):
+        return var
     try:
-        return dict(value or {})
-    except Exception:
+        return getter()
+    except Exception as exc:
+        raise ValueError(f"MANUFACTURING_OPERATOR_SOURCE_READ_FAILED:{attr}") from exc
+
+def _mapping(value: Any) -> dict:
+    """Detach client mappings; malformed manufacturing inputs fail closed."""
+    if value is None:
         return {}
+    try:
+        return dict(value)
+    except Exception as exc:
+        raise ValueError("MANUFACTURING_INPUT_MAPPING_INVALID") from exc
 
 
 def _profile_inputs_for_part(app: Any, part_key: str) -> tuple[tuple, tuple]:
@@ -337,10 +284,18 @@ def _profile_inputs_for_part(app: Any, part_key: str) -> tuple[tuple, tuple]:
     else:
         profiles_for = getattr(workspace, "profiles_for", None)
         profiles = _mapping(profiles_for(key, {}) if callable(profiles_for) else {})
-    if key.startswith("custom:") and not profiles:
-        from phase6_custom_fold_profiles import build_custom_part_profiles
-        snapshot={**getattr(app,"_phase6_input_snapshot",{}),**getattr(app,"_settings_values",{}),**workspace.snapshot()}
-        profiles=build_custom_part_profiles(snapshot,key)
+    source_plan = manufacturing_api.plan_operator_manufacturing_part_source(
+        key, has_saved_profiles=bool(profiles),
+    )
+    if source_plan.requires_custom_default_profile:
+        snapshot = {
+            **getattr(app, "_phase6_input_snapshot", {}),
+            **getattr(app, "_settings_values", {}),
+            **workspace.snapshot(),
+        }
+        profiles = manufacturing_api.build_operator_default_part_fold_profiles(
+            snapshot, key,
+        )
     return tuple(profiles.get("X", ()) or ()), tuple(profiles.get("Y", ()) or ())
 
 
@@ -350,8 +305,10 @@ def _workspace_value(workspace: Any, method_name: str, part_key: str, default: A
         return default
     try:
         return method(part_key)
-    except Exception:
-        return default
+    except Exception as exc:
+        raise ValueError(
+            f"MANUFACTURING_WORKSPACE_INPUT_FAILED:{method_name}:{part_key}"
+        ) from exc
 
 
 def _box_body_structure(workspace: Any) -> Any:
@@ -360,8 +317,8 @@ def _box_body_structure(workspace: Any) -> Any:
         return {}
     try:
         return method() or {}
-    except Exception:
-        return {}
+    except Exception as exc:
+        raise ValueError("MANUFACTURING_BOX_BODY_STRUCTURE_UNAVAILABLE") from exc
 
 
 def _scene_values_for_part(app: Any, part_key: str, builder=None) -> Any:
@@ -371,6 +328,9 @@ def _scene_values_for_part(app: Any, part_key: str, builder=None) -> Any:
     payload = builder(part_key)
     if payload is None:
         raise ValueError(f"manufacturing scene input unavailable: {part_key}")
+    if isinstance(payload, Mapping) and payload.get("_manufacturing_profile_readback_error"):
+        # A partial editor preview is never a certified manufacturing input.
+        raise ValueError(str(payload["_manufacturing_profile_readback_error"]))
     return payload
 
 
@@ -393,14 +353,15 @@ def _domain_inputs_for_part(
     committed_render_data = None
     part_spec = manufacturing_context = None
 
+    source_plan = manufacturing_api.plan_operator_manufacturing_part_source(key)
     if callable(render_data_provider):
         base_payload = dict(scene_values or {})
         base_payload["_use_committed_relief"] = False
         render_data = render_data_provider(key, base_payload)
-        if key not in {"head", "tail"}:
+        if not source_plan.needs_committed_relief:
             committed_render_data = render_data
 
-    if callable(part_spec_provider) and (key in {"head", "tail"} or key.startswith("custom:")):
+    if callable(part_spec_provider) and source_plan.requires_direct_part_spec:
         spec_payload = dict(scene_values or {})
         spec_payload["_use_committed_relief"] = False
         resolved = part_spec_provider(key, spec_payload)
@@ -423,7 +384,9 @@ def _materialize_committed_endcap_inputs(
         return parts
     result: list[ManufacturingPartInput] = []
     for part in parts:
-        if part.part_key not in {"head", "tail"}:
+        if not manufacturing_api.plan_operator_manufacturing_part_source(
+            part.part_key,
+        ).needs_committed_relief:
             result.append(part)
             continue
         # JSON thawing intentionally produces mappings for dataclasses. The
@@ -449,71 +412,11 @@ def _finished_dimensions_for_part(app: Any, part_key: str, provider=None) -> Any
 
 
 def _canonical_part_keys(app: Any) -> tuple[str, ...]:
+    """Only adapt operator selection to canonical Engine RAW PartSpec IDs."""
     workspace = getattr(app, "designer_workspace", None)
-    values = tuple(getattr(workspace, "available_parts", ()) or ())
-    snapshot = getattr(app, "_phase6_input_snapshot", None)
-    # A saved Receiving v3 may have an old workspace existing_parts list
-    # without BasePlate even while its current submitted NFB CSV + actual
-    # original physical source prove that BasePlate is required. Register
-    # exactly that ONE physical root source in the manufacturing request;
-    # the canonical two-tier expander owns its replacement by tier blanks.
-    # This does NOT mutate existing_parts, invent a missing blank, or grant
-    # manufacturing readiness. No submitted/unique original -> no part.
-    if (isinstance(snapshot, Mapping)
-            and snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("nfb_config_submitted") is True
-            and "base_plate" not in values):
-        from ae_engine.receiving_base_plate_config import receiving_base_plate_values
-        try:
-            verified_source = receiving_base_plate_values(snapshot)
-        except (ValueError, TypeError, KeyError):
-            verified_source = None
-        if verified_source is not None:
-            values = values + ("base_plate",)
-    if (isinstance(snapshot, Mapping)
-            and snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("nfb_config_submitted") is True
-            and isinstance(snapshot.get("nfb_config"), Mapping)
-            and snapshot["nfb_config"].get("layer_count") == 2):
-        # Live layout may still list two ORIGINAL EAR parts after the native
-        # hole editor commits a two-tier NFB. Their current owner is NOT the
-        # legacy base_plate: it has been replaced by distinct tier bases.
-        # Re-derive authorized IDs from the actual source model/Bay and
-        # replace *only* these stale fixed-plate entries in the manufacturing
-        # request, before any 2D/3D rendering. No invented geometry or release.
-        from ae_engine.receiving_base_fixing_plate import (
-            receiving_base_fixing_plate_previews,
-        )
-        try:
-            current = tuple(receiving_base_fixing_plate_previews(
-                snapshot, available_parts=("base_plate",),
-            ))
-        except ValueError as exc:
-            # Switching/reloading a saved Bay may briefly carry a stale
-            # root NFB alias before its committed per-Bay identity is
-            # projected. Never reintroduce unverified EAR sheets here after
-            # the BasePlate guard above rejected that source. Other geometry
-            # faults still surface rather than being hidden as empty parts.
-            if str(exc) != "EAR_Z_NFB_SOURCE_IDENTITY_DRIFT":
-                raise
-            current = ()
-        if len(current) == 4 and len({row.part_id for row in current}) == 4:
-            values = tuple(
-                part for part in values
-                if not str(part).startswith("base_plate:fixing_plate:")
-            ) + tuple(row.part_id for row in current)
-    return tuple(
-        str(key)
-        for key in values
-        if str(key or "")
-        and not is_box_body_physical_piece_key(key)
-        # Two tier Base Plates are generated from the single source root
-        # inside the canonical manufacturing resolver. They are real 2D
-        # navigation identities but not additional RAW source inputs.
-        and not str(key).startswith("base_plate:nfb_layer:")
-        # User-selectable PAD 2D is source-backed but an unreleased
-        # preview, never a separate RAW manufacturing PartSpec input.
-        and not str(key).startswith("nfb_pad:")
+    return manufacturing_api.canonical_manufacturing_request_part_keys(
+        getattr(app, "_phase6_input_snapshot", None),
+        tuple(getattr(workspace, "available_parts", ()) or ()),
     )
 
 
@@ -530,19 +433,28 @@ def _assembly_intent(app: Any) -> str:
 
 
 def _relief_clearance(app: Any) -> float:
-    raw = _safe_var_get(getattr(app, "assembly_relief_clearance_var", None), "0")
-    try:
-        return max(0.0, float(str(raw).strip() or "0"))
-    except (TypeError, ValueError):
-        return 0.0
+    """Read the operator entry; Engine owns numeric clearance validation."""
+    raw = _manufacturing_operator_var_get(getattr(app, "assembly_relief_clearance_var", None), "assembly_relief_clearance_var", "0")
+    return manufacturing_api.normalize_operator_relief_clearance(raw)
 
 
 def _cabinet_model(app: Any, snapshot: dict) -> str:
-    live = _safe_var_get(getattr(app, "baseline_model_var", None), "")
+    """One source priority for GUI FinalScene and Engine manufacturing request.
+
+    A readable live Family selection wins. A blank/missing selection retains
+    the actual saved project Family, then the old new-project initial model.
+    A broken present control is rejected rather than treated as missing.
+    """
+    live = _manufacturing_operator_var_get(
+        getattr(app, "baseline_model_var", None), "baseline_model_var", "",
+    )
     value = str(live or "").strip()
     if value:
         return value
-    return str(snapshot.get("model") or snapshot.get("cabinet_type") or "").strip()
+    return str(
+        snapshot.get("model") or snapshot.get("cabinet_type")
+        or getattr(app, "_phase6_baseline_initial_model", "") or ""
+    ).strip()
 
 
 def build_manufacturing_request(
@@ -563,12 +475,11 @@ def build_manufacturing_request(
     snapshot = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
     settings = _mapping(getattr(app, "_settings_values", {}) or {})
     box_dimensions = _mapping(getattr(app, "_phase6_box_whd", {}) or {})
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
-        # Detached Manufacturing request. Defaults are never modified.
-        settings.update({
-            axis: box_dimensions[axis] for axis in ("w", "h", "d")
-            if axis in box_dimensions
-        })
+    # Engine Family registry owns physical source routing for every alias.
+    # GUI only forwards the detached operator Settings and live box values.
+    settings = manufacturing_api.project_receiving_manufacturing_request_settings(
+        snapshot, settings, box_dimensions,
+    )
     # A request assembled from a sparse input snapshot must still carry the
     # actual operator W/H/D/T of THIS app, never infer geometry from a cached
     # display or a different Bay. Existing authoritative values take priority.
@@ -577,16 +488,25 @@ def build_manufacturing_request(
             snapshot.setdefault(axis, box_dimensions[axis])
         elif axis in settings:
             snapshot.setdefault(axis, settings[axis])
-    snapshot.setdefault("t", _num(settings.get("t", snapshot.get("t", 2.0)), 2.0))
+    # Manufacturing T is operator-owned outside-source data, never a hidden
+    # 2 mm AE default when source reads fail or legacy snapshots are sparse.
+    # An existing project snapshot wins over a stale Settings cache.
+    raw_t = snapshot["t"] if "t" in snapshot else settings.get("t")
+    snapshot["t"] = manufacturing_api.normalize_operator_source_dimension(
+        raw_t, field="t",
+    )
     corner_state = _mapping(getattr(app, "_phase6_corner_state", {}) or {})
     endcap_fw = _mapping(getattr(app, "_phase6_endcap_fw_state", {}) or {})
     endcap_bottom_wrap = _mapping(getattr(app, "_phase6_endcap_bottom_wrap_state", {}) or {})
     workspace = getattr(app, "designer_workspace", None)
 
-    if snapshot.get("active_mode") == "quantity":
-        from ae_engine.receiving_quantity_box import require_valid_quantity_features
-        live = workspace.snapshot() if workspace is not None else {}
-        require_valid_quantity_features({**snapshot, **{key: live[key] for key in ("quantity", "receiving_quantity_box") if key in live}})
+    live = (
+        workspace.snapshot() if workspace is not None
+        and snapshot.get("active_mode") == "quantity" else {}
+    )
+    manufacturing_api.validate_operator_manufacturing_quantity_context(
+        snapshot, live,
+    )
 
     part_inputs: list[ManufacturingPartInput] = []
     scene_values_by_part = {}
@@ -643,8 +563,8 @@ def build_manufacturing_request(
             app, "box_body", finished_dimensions_provider
         ),
         assembly_intent=_assembly_intent(app),
-        allow_3d_fallback=bool(
-            _safe_var_get(getattr(app, "assembly_ignore_fixed_corner_var", None), False)
+        allow_3d_fallback=manufacturing_api.normalize_operator_3d_fallback_flag(
+            _manufacturing_operator_var_get(getattr(app, "assembly_ignore_fixed_corner_var", None), "assembly_ignore_fixed_corner_var", False)
         ),
         relief_clearance=_relief_clearance(app),
         cabinet_model=_cabinet_model(app, snapshot),
@@ -657,9 +577,15 @@ def build_manufacturing_request(
 
 
 def _legacy_manufacturing_signature(app: Any) -> str:
-    """Phase 1 cheap semantic signature retained as the T5 pre-scan key source."""
+    """Phase 1 Engine semantic fingerprint with the same live Family as the request."""
     from phase6_manufacturing_geometry import _phase6_manufacturing_state_signature
-    return _phase6_manufacturing_state_signature(app)
+    snapshot = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
+    live_family = _cabinet_model(app, snapshot)
+    if live_family:
+        snapshot["model"] = live_family
+    return _phase6_manufacturing_state_signature(
+        app, input_snapshot_override=snapshot,
+    )
 
 
 def build_manufacturing_cache_key(app: Any) -> ManufacturingCacheKey:
@@ -678,52 +604,34 @@ def _receiving_baseline_source_stamp(
 
 
 def _cache_service_for_app(app: Any) -> ManufacturingCacheService:
-    # Only the canonical Receiving Set/Bay editor may retain one *previous
-    # complete state* for tail add/remove undo. Other families and quantity
-    # projection retain the legacy single-result cache. No schema/key bypass.
-    snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
-    eligible = (
-        isinstance(snapshot, Mapping)
-        and str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}
-        and snapshot.get("active_mode") == "set_bay"
+    # The Engine decides history eligibility and which physical DXF source
+    # classes must be witnessed. GUI only manages the bounded cache object.
+    snapshot = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
+    live_family = _cabinet_model(app, snapshot)
+    if live_family:
+        snapshot["model"] = live_family
+    workspace = getattr(app, "designer_workspace", None)
+    plan = manufacturing_api.plan_manufacturing_cache_source(
+        snapshot, _box_body_structure(workspace),
     )
-    size = 2 if eligible else 1
     service = getattr(app, "_phase6_manufacturing_cache_service", None)
     if not isinstance(service, ManufacturingCacheService):
-        service = ManufacturingCacheService(max_entries=size)
+        service = ManufacturingCacheService(max_entries=plan.history_capacity)
         setattr(app, "_phase6_manufacturing_cache_service", service)
     else:
-        service.set_capacity(size)
-    if eligible:
-        # The complete semantic fingerprint does not include a raw DXF file's
-        # mtime/size/reload epoch. Before accepting *any* current or previous
-        # cached result, retire both when its source witness has changed.
-        # A complete resolved geometry receipt includes all physical BoxBody
-        # pieces, not just the three general BoxBody/Head/Door baselines.
-        # The Receiving 3-piece source-flat factory consumes three *dedicated*
-        # left/right/rear DXFs: changing any one must retire BOTH cached
-        # topology receipts, including 3->4->3 undo. Unknown structure cannot
-        # certify the complete source set, so it disables historical reuse.
-        from phase6_box_body_structure import BoxBodyStructureType
-        structure = _box_body_structure(getattr(app, "designer_workspace", None))
-        if not structure and isinstance(snapshot.get("box_body_structure"), Mapping):
-            structure = snapshot["box_body_structure"]
-        active = (
-            getattr(structure.get("active_type"), "value", structure.get("active_type"))
-            if isinstance(structure, Mapping) else None
-        )
-        recognized = {kind.value for kind in BoxBodyStructureType}
-        if active not in recognized:
-            stamp = None
-        else:
+        service.set_capacity(plan.history_capacity)
+    if plan.history_capacity == 2:
+        # Fail closed when the current BoxBody topology cannot identify all
+        # exact-source sheet files. Never reuse historical geometry on an
+        # ambiguous or unavailable raw material source.
+        stamp = None
+        if plan.witness_required:
             make_context = getattr(app, "_manufacturing_context", None)
             try:
                 ctx = make_context(draw_stock=False) if callable(make_context) else None
                 stamp = _receiving_baseline_source_stamp(
                     str(snapshot.get("model")), context=ctx,
-                    include_physical_panels=(
-                        active == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
-                    ),
+                    include_physical_panels=plan.include_physical_panels,
                 )
             except (TypeError, ValueError, OSError):
                 stamp = None
@@ -769,12 +677,15 @@ def resolve_manufacturing_for_app(
         if isinstance(cache_service, ManufacturingCacheService)
         else _cache_service_for_app(app)
     )
-    from ae_engine.receiving_quantity_box import require_valid_quantity_features
     source = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
     workspace = getattr(app, "designer_workspace", None)
-    if source.get("active_mode") == "quantity":
-        live = workspace.snapshot() if workspace is not None else {}
-        require_valid_quantity_features({**source, **{key: live[key] for key in ("quantity", "receiving_quantity_box") if key in live}})
+    live = (
+        workspace.snapshot() if workspace is not None
+        and source.get("active_mode") == "quantity" else {}
+    )
+    manufacturing_api.validate_operator_manufacturing_quantity_context(
+        source, live,
+    )
     key = build_manufacturing_cache_key(app)
     lookup = service.lookup(key)
     if lookup.result is not None:

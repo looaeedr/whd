@@ -331,3 +331,142 @@ def editor_nfb_features_from_csv(snapshot: Mapping, config, *, current_features=
            for brand, digest in source_hashes.items()):
         raise ValueError("NFB CSV 在編輯期間已更新，請重新加入")
     return tuple(result)
+
+
+def candidate_receiving_nfb_csv_for_fresh_bay(
+    layout: Mapping[str, object], *,
+    set_index: int, bay_index: int, thickness_mm: object,
+    layers: int, models, layer_heights_mm=None,
+) -> dict[str, object]:
+    """Build an unconfirmed native NFB CSV source for one real fresh Engine Bay.
+
+    Model opening geometry comes ONLY from the current WHD V5 numeric CSV.
+    The Engine generates the Receiving inner-door sheet and its editable hole
+    placement; a source DXF and a previously saved NFB_CSV_SOURCE are NOT
+    prerequisites. The returned source is an editor CANDIDATE, never a
+    confirmed world-X, verified FinalScene, or manufacturing entitlement.
+    """
+    from .cabinet_types import receiving
+    from .receiving_layout import (
+        normalize_receiving_layout, project_receiving_bay_legacy_aliases,
+    )
+    from .receiving_mode_session import fresh_receiving_mode
+    from .receiving_shared_settings import (
+        default_receiving_nfb_layer_heights, switch_filenames_in_layer,
+        validate_setting,
+    )
+    from .receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+    from .receiving_nfb_model_identity import parse_numeric_model_ref
+    from .receiving_nfb_numeric_catalog import model_spec
+    from .receiving_nfb_csv_committed_config import (
+        candidate_committed_csv_nfb_config,
+    )
+    from .sheetmetal_part_adapters import validate_door_layout_dimensions
+
+    normalized = normalize_receiving_layout(layout)
+    if type(set_index) is not int or not 0 <= set_index < len(normalized["sets"]):
+        raise ValueError("NFB_CSV_CANDIDATE_SET_INVALID")
+    selected_set = normalized["sets"][set_index]
+    if type(bay_index) is not int or not 0 <= bay_index < len(selected_set["bays"]):
+        raise ValueError("NFB_CSV_CANDIDATE_BAY_INVALID")
+    bay = selected_set["bays"][bay_index]
+    brand = selected_set.get("switch_brand")
+    if brand not in RECEIVING_SWITCH_BRANDS:
+        raise ValueError("NFB_CSV_CANDIDATE_CONFIRMED_BRAND_REQUIRED")
+    if bay.get("nfb_config_submitted") is True:
+        raise ValueError("NFB_CSV_CANDIDATE_ALREADY_SUBMITTED")
+
+    state = bay.get("door_state")
+    if (not isinstance(state, Mapping)
+            or state.get("multi_door_enabled") is not True
+            or not state.get("door_layout_columns")):
+        raise ValueError("NFB_CSV_CANDIDATE_REAL_DOOR_SOURCE_REQUIRED")
+    columns = deepcopy(state["door_layout_columns"])
+    validate_door_layout_dimensions(
+        columns, total_width=bay["width"], total_height=bay["height"],
+    )
+
+    # Only the Engine constructs the Family inner-door physical sheet.
+    # An explicitly non-default Door topology must provide its own saved
+    # inner-door identity: never silently manufacture a different split.
+    preview = fresh_receiving_mode(
+        "set_bay",
+        {"w": bay["width"], "h": bay["height"], "d": bay["depth"]},
+        thickness=thickness_mm,
+    )
+    if "inner_doors" in state:
+        preview["inner_doors"] = deepcopy(state["inner_doors"])
+    elif columns != preview["door_layout_columns"]:
+        raise ValueError("NFB_CSV_CANDIDATE_INNER_DOOR_TOPOLOGY_REQUIRED")
+    preview["door_layout_columns"] = columns
+
+    # Project the exact verified Set/Bay into the Engine's original physical
+    # editor. The transient inner-door seed is NOT persisted to other Bays.
+    transient = deepcopy(normalized)
+    transient_state = deepcopy(dict(state))
+    transient_state["inner_doors"] = deepcopy(preview["inner_doors"])
+    transient["sets"][set_index]["bays"][bay_index]["door_state"] = transient_state
+    preview["receiving_layout"] = transient
+    selected = project_receiving_bay_legacy_aliases(
+        preview, set_index=set_index, bay_index=bay_index,
+        validate_common=False,
+    )
+    identity = selected.get("_receiving_runtime_selection") or {}
+    if (identity.get("set_id") != selected_set["stable_id"]
+            or identity.get("bay_id") != bay["stable_id"]):
+        raise ValueError("NFB_CSV_CANDIDATE_PHYSICAL_BAY_ID_MISMATCH")
+
+    count = validate_setting("inner_door_layers", layers)
+    slots = validate_setting("inner_door_models", models)
+    if any(switch_filenames_in_layer(slots[i]) for i in range(count, 2)):
+        raise ValueError("NFB_CSV_CANDIDATE_INACTIVE_LAYER_HAS_MODEL")
+    for index in range(count):
+        names = switch_filenames_in_layer(slots[index])
+        if not names:
+            raise ValueError("NFB_CSV_CANDIDATE_MODEL_REQUIRED")
+        for ref in names:
+            parsed = parse_numeric_model_ref(ref)
+            if parsed is None or parsed[0] != brand:
+                raise ValueError("NFB_CSV_CANDIDATE_BRAND_MISMATCH")
+            spec = model_spec(*parsed)
+            if spec is None or not spec.dimensionally_complete:
+                raise ValueError("NFB_CSV_CANDIDATE_NUMERIC_CSV_INCOMPLETE")
+    heights = validate_setting(
+        "inner_door_layer_heights_mm",
+        (default_receiving_nfb_layer_heights(count)
+         if layer_heights_mm is None else layer_heights_mm),
+    )
+    source = {
+        "layers": count,
+        "models": slots,
+        "layer_heights_mm": heights,
+    }
+    features = editor_nfb_features_from_csv(selected, source)
+    # The *automatic fresh-Bay caller* has not gone through the operator's
+    # actual original Hole Editor Confirm All.  Preserve the established
+    # native_editor_initial visual placement (also used by the GUI), but
+    # distinguish these machine-generated candidates from a GUI-confirmed
+    # physical editor source.  CSV SHA, geometry and candidate Apply alone
+    # must never promote this automatic initial X to machining geometry.
+    from dataclasses import replace as replace_feature
+    features = tuple(
+        replace_feature(
+            feature,
+            source_params=(
+                *feature.source_params,
+                ("fresh_bay_auto_unconfirmed", True),
+            ),
+        )
+        for feature in features
+    )
+    part_ids = {dict(feature.source_params).get("part_id") for feature in features}
+    if len(part_ids) != 1 or not all(part_ids):
+        raise ValueError("NFB_CSV_CANDIDATE_ORIGINAL_INNER_DOOR_REQUIRED")
+    source["features"] = {part_ids.pop(): features}
+    verified = candidate_committed_csv_nfb_config(source)
+    if (verified is None or any(
+            hole["manual_x_state"] != "UNVERIFIED_BASIS"
+            or hole["manual_x_mm"] is not None
+            for hole in verified["holes"])):
+        raise ValueError("NFB_CSV_CANDIDATE_UNCONFIRMED_X_REQUIRED")
+    return source

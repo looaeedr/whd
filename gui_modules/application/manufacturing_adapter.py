@@ -11,33 +11,18 @@ objects and validation/export contexts.  AE/manufacturing modules remain the
 geometry, formula, DXF and process authority.
 """
 from copy import deepcopy
+from collections.abc import Mapping
 
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.contracts import (
-    BasePlatePartSpec,
     BoxBodyPartSpec,
     DoorPartSpec,
-    EndCapPartSpec,
-    IndicatorBoxPartSpec,
     ManufacturingContext,
 )
 from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
-from phase6_endcap_semantics import (
-    normalize_endcap_bottom_wrap_state,
-    resolve_endcap_bottom_wrap,
-)
 from phase6_fold_profiles import (
     engine_segment_length_to_ui,
-    formed_box_body_fw_widths,
     profile_to_fold_segments,
-)
-from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
-from phase6_assembly_relief_state import (
-    build_current_source_signature,
-    committed_relief_cuts,
-    relief_profile_fingerprint,
 )
 
 
@@ -57,53 +42,31 @@ def _box_body_part_spec_from_values(
     structure_state=None, head_ybottom1=None, tail_ybottom1=None,
     snapshot=None,
 ):
-    def resolved_ybottom(part_key):
-        profiles = self.workspace_controller.profile_for(part_key) or {}
-        rows = list(dict(profiles).get("Y", ()) or ())
-        for row in rows:
-            if str(row.get("phase6_key") or "") == "ybottom1":
-                return float(engine_segment_length_to_ui(row))
-        return float(val.get("ybottom1", ae.ybottom1_def))
-
-    source_structure = (
-        self.workspace_controller.box_body_structure_state()
-        if structure_state is None else deepcopy(dict(structure_state or {}))
-    )
-    structure_state = cabinet_family_policy.resolve_box_body_structure_state(
-        model_name, source_structure
-    )
-
-    # The engine, not the GUI adapter, owns the physical rear-panel sizing
-    # and family manufacturing contract (including Receiving W - 2.5T).
-    back_panel_contract = manufacturing_api.resolve_box_body_back_panel_contract(
-        model_name,
-        snapshot or val,
-        structure_state=structure_state,
+    """Collect operator/workspace inputs; Engine builds the real BoxBodyPartSpec."""
+    controller = self.workspace_controller
+    endcap_y_profiles = {}
+    for key, override in (("head", head_ybottom1), ("tail", tail_ybottom1)):
+        if override is None:
+            source = controller.profile_for(key) or {}
+            endcap_y_profiles[key] = list(dict(source).get("Y", ()) or ())
+    return manufacturing_api.build_box_body_operator_part_spec(
+        val,
+        model_name=model_name,
+        features=features,
+        face_features=face_features,
         head_corner_policy=head_corner_policy,
         tail_corner_policy=tail_corner_policy,
-    )
-
-    return BoxBodyPartSpec(
-        width=float(val['w']), height=float(val['h']), depth=float(val['d']),
-        thickness=float(val['t']), frame_width=float(val['fw']),
-        model_name=model_name,
-        zl1=float(val['zl1']), zl2=float(val['zl2']),
-        zr1=float(val['zr1']), zr2=float(val['zr2']),
-        z_comp=float(val['z_comp']),
-        fold_profile=profile_to_fold_segments(
-            fold_profile if fold_profile is not None else (self.workspace_controller.box_body_profile() or ())
-        ),
-        features=tuple(features or ()),
-        face_features={k: tuple(v) for k, v in dict(face_features or {}).items()},
-        physical_piece_features=deepcopy(dict((snapshot or {}).get('physical_piece_features', {
-            k: v for k, v in getattr(self.workspace_controller, 'part_features_snapshot', lambda: {})().items()
-            if str(k).startswith('box_body:') and not str(k).startswith('box_body:divider:')
-        }))),
-        head_corner_policy=head_corner_policy, tail_corner_policy=tail_corner_policy,
-        structure_state=deepcopy(dict(structure_state or {})),
-        back_panel_contract=deepcopy(dict(back_panel_contract or {})),
-        head_ybottom1=(resolved_ybottom("head") if head_ybottom1 is None else float(head_ybottom1)),
-        tail_ybottom1=(resolved_ybottom("tail") if tail_ybottom1 is None else float(tail_ybottom1)),
+        fold_profile=(fold_profile if fold_profile is not None
+                      else (controller.box_body_profile() or ())),
+        structure_state=(controller.box_body_structure_state()
+                         if structure_state is None else structure_state),
+        source_part_features=getattr(
+            controller, "part_features_snapshot", lambda: {}
+        )(),
+        endcap_y_profiles=endcap_y_profiles,
+        head_ybottom1=head_ybottom1,
+        tail_ybottom1=tail_ybottom1,
+        snapshot=snapshot,
     )
 
 def _box_body_part_spec(self, val):
@@ -120,126 +83,63 @@ def _end_cap_part_spec_from_values(
     self, val, *, model_name, is_tail, holes, corner_policy=None, fold_profiles=None,
     depth_comp_t=None, resolved_assembly_relief_cuts=(),
     box_body_formed_fw_left=None, box_body_formed_fw_right=None,
+    box_body_fold_profile=None,
     box_body_structure_state=None, endcap_bottom_wrap_state=None, assembly_joints=None,
 ):
-    profiles = dict(fold_profiles or {})
-    x_rows = [dict(row) for row in profiles.get("X", ())]
-    y_rows = [dict(row) for row in profiles.get("Y", ())]
-
-    if depth_comp_t is None:
-        depth_comp_t = cabinet_family_policy.endcap_depth_comp_t(model_name)
-
-    # Scalar folds remain the canonical/legacy request values.  Fold Profile
-    # precedence is resolved exactly once inside AE manufacturing_api.
-    fold_left = float(val['yl1'])
-    fold_right = float(val['yr1'])
-    fold_top = float(val['ytop1'])
-    fold_bottom = float(val['ybottom1'])
-
+    """Collect operator/committed state; Engine owns physical EndCap PartSpec."""
+    controller = getattr(self, "workspace_controller", None)
     if box_body_structure_state is None:
-        controller = getattr(self, "workspace_controller", None)
         getter = getattr(controller, "box_body_structure_state", None)
-        resolved_structure_state = deepcopy(dict(getter() if callable(getter) else {}))
-    else:
-        resolved_structure_state = deepcopy(dict(box_body_structure_state or {}))
+        box_body_structure_state = getter() if callable(getter) else {}
+    assembly_joint_state = None
     if assembly_joints is None:
-        joint_state = dict(getattr(self, "assembly_joint_state", {}) or {})
-        resolved_assembly_joints = tuple(deepcopy(joint_state.get("assembly_joints", ())) or ())
-    else:
-        resolved_assembly_joints = tuple(deepcopy(tuple(assembly_joints or ())))
-        joint_state = {"assembly_joints": resolved_assembly_joints}
-    if cabinet_family_policy.supports_bottom_wrap_controls(model_name):
-        try:
-            part_key = "tail" if is_tail else "head"
-            wrap_state = endcap_bottom_wrap_state
-            if wrap_state is None:
-                wrap_state = getattr(self, "endcap_bottom_wrap_state", None)
-            if wrap_state is None:
-                wrap_state = normalize_endcap_bottom_wrap_state({"model": model_name})
-            projection_snapshot = {"model": model_name, **joint_state}
-            item = resolve_endcap_bottom_wrap(projection_snapshot, part_key, state=wrap_state)
-            # enabled is graph-owned; Receiving state retains only geometric
-            # reserve inputs for the certified BOTTOM WRAP formula.
-            resolved_structure_state = cabinet_family_policy.set_bottom_relief_reserves(
-                model_name,
-                resolved_structure_state,
-                reserve_u=item["reserve_u"],
-                reserve_v=item["reserve_v"],
-            )
-        except Exception:
-            pass
-
-    return EndCapPartSpec(
-        width=float(val['w']), height=float(val['h']), depth=float(val['d']),
-        thickness=float(val['t']), frame_width=float(val['fw']),
-        model_name=model_name, is_tail=bool(is_tail),
-        fold_left=fold_left, fold_right=fold_right,
-        fold_top=fold_top, fold_bottom=fold_bottom,
-        box_fold_left=float(val['zl1']), box_fold_right=float(val['zr1']),
-        box_body_formed_fw_left=(None if box_body_formed_fw_left is None else float(box_body_formed_fw_left)),
-        box_body_formed_fw_right=(None if box_body_formed_fw_right is None else float(box_body_formed_fw_right)),
-        box_body_structure_state=resolved_structure_state,
-        assembly_joints=resolved_assembly_joints,
-        fold_profile_x=profile_to_fold_segments(x_rows),
-        fold_profile_y=profile_to_fold_segments(y_rows),
-        holes=tuple(holes or ()), corner_policy=corner_policy,
-        depth_comp_t=float(depth_comp_t),
-        resolved_assembly_relief_cuts=tuple(
-            tuple((float(x), float(y)) for x, y in polygon)
-            for polygon in tuple(resolved_assembly_relief_cuts or ())
-            if len(polygon) >= 3
-        ),
+        assembly_joint_state = dict(
+            getattr(self, "assembly_joint_state", {}) or {}
+        )
+        assembly_joints = assembly_joint_state.get("assembly_joints", ())
+    if endcap_bottom_wrap_state is None:
+        endcap_bottom_wrap_state = getattr(self, "endcap_bottom_wrap_state", None)
+    return manufacturing_api.build_endcap_operator_part_spec(
+        val, model_name=model_name, is_tail=is_tail, holes=holes,
+        corner_policy=corner_policy, fold_profiles=fold_profiles,
+        depth_comp_t=depth_comp_t,
+        resolved_assembly_relief_cuts=resolved_assembly_relief_cuts,
+        box_body_formed_fw_left=box_body_formed_fw_left,
+        box_body_formed_fw_right=box_body_formed_fw_right,
+        box_body_fold_profile=box_body_fold_profile,
+        box_body_structure_state=box_body_structure_state,
+        endcap_bottom_wrap_state=endcap_bottom_wrap_state,
+        assembly_joints=assembly_joints,
+        assembly_joint_state=assembly_joint_state,
     )
 
 @staticmethod
 def _phase6_relief_profile_signature(profile):
-    return relief_profile_fingerprint(profile)
+    return manufacturing_api.relief_profile_fingerprint(profile)
 
 
 def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
+    """Collect current operator inputs; Engine owns committed relief replay."""
     state = deepcopy(getattr(self, "assembly_relief_state", {}) or {})
     if not bool(state.get("enabled")):
+        # Preserve the historic uninitialized-BoxBody disabled short circuit.
         return ()
     controller = getattr(self, "workspace_controller", None)
-
-    body_profile_getter = getattr(controller, "box_body_profile", None)
-    body_profile = (body_profile_getter() if callable(body_profile_getter) else ()) or ()
-    formed_left, formed_right = formed_box_body_fw_widths(
-        body_profile, float(val.get("t", 0.0) or 0.0)
-    )
-
-    try:
-        graph_fp = resolved_joint_graph_fingerprint(
-            dict(getattr(self, "assembly_joint_state", {}) or {})
-        )
-    except Exception:
-        return ()
-
+    getter = getattr(controller, "box_body_profile", None)
+    body_profile = (getter() if callable(getter) else ()) or ()
     structure_getter = getattr(controller, "box_body_structure_state", None)
-    structure_state = structure_getter() if callable(structure_getter) else {}
-    family_getter = getattr(self, "_baseline_source_model", None)
-    cabinet_family = str(family_getter() if callable(family_getter) else "")
-
-    scalar_source = {
-        name: float(val.get(name, default))
-        for name, default in (
-            ("w", 0.0), ("h", 0.0), ("d", 0.0), ("t", 0.0), ("fw", 0.0),
-            ("zl1", ae.zl1_def), ("zr1", ae.zr1_def),
-            ("yl1", ae.yl1_def), ("yr1", ae.yr1_def),
-            ("ytop1", ae.ytop1_def), ("ybottom1", ae.ybottom1_def),
-        )
-    }
-    current_source = build_current_source_signature(
-        scalar_source=scalar_source,
-        joint_graph_fingerprint=graph_fp,
-        structure_state=structure_state,
-        cabinet_family=cabinet_family,
-        formed_left=formed_left,
-        formed_right=formed_right,
-        box_body_profile=body_profile,
-        part_profiles={str(key): deepcopy(dict(stored_profiles or {}))},
+    structure_state = (
+        structure_getter() if callable(structure_getter) else {}
     )
-    return committed_relief_cuts(state, str(key), current_source)
+    family_getter = getattr(self, "_baseline_source_model", None)
+    family = str(family_getter() if callable(family_getter) else "")
+    return manufacturing_api.resolve_operator_committed_relief_cuts(
+        key, val, relief_state=state,
+        joint_state=getattr(self, "assembly_joint_state", {}) or {},
+        structure_state=structure_state,
+        cabinet_family=family, box_body_profile=body_profile,
+        part_profiles=stored_profiles,
+    )
 
 def _end_cap_part_spec(self, val, *, is_tail):
     key = "tail" if is_tail else "head"
@@ -250,9 +150,6 @@ def _end_cap_part_spec(self, val, *, is_tail):
         local_val, stored_profiles, self._current_box_assembly_type(), key
     )
     resolved_cuts = self._resolved_committed_assembly_relief_cuts(key, local_val, stored_profiles)
-    formed_fw_left, formed_fw_right = formed_box_body_fw_widths(
-        self.workspace_controller.box_body_profile() or (), local_val.get("t", 0.0)
-    )
     return self._end_cap_part_spec_from_values(
         local_val, model_name=self._baseline_source_model(), is_tail=is_tail,
         holes=(self.tail_holes if is_tail else self.head_holes),
@@ -262,35 +159,30 @@ def _end_cap_part_spec(self, val, *, is_tail):
         fold_profiles=stored_profiles,
         depth_comp_t=self._endcap_depth_comp_t_for_family(self._baseline_source_model()),
         resolved_assembly_relief_cuts=resolved_cuts,
-        box_body_formed_fw_left=formed_fw_left,
-        box_body_formed_fw_right=formed_fw_right,
+        box_body_fold_profile=self.workspace_controller.box_body_profile() or (),
         box_body_structure_state=self.workspace_controller.box_body_structure_state(),
     )
 
 def _door_part_spec_from_values(
     self, val, *, model_name, features, indicator_hole=None, door_indicator=None,
     door_indicator_offset=(0.0, 0.0), use_box_distance=False, corner_policy=None,
-    frame_edges=None, indicator_window_groups=None,
-):
-    """Canonical Door state -> DoorPartSpec mapping used by 2D and 3D."""
-    return DoorPartSpec(
-        width=float(val['w']), height=float(val['h']),
-        thickness=float(val['t']), frame_width=float(val['fw']),
+    frame_edges=None, indicator_window_groups=None, indicator_source_state=None,
+) -> DoorPartSpec:
+    """GUI submits operator inputs; Engine owns canonical Door manufacturing spec."""
+    return manufacturing_api.build_door_operator_part_spec(
+        val,
         model_name=model_name,
-        gap_w=float(val['door_gap_w']), gap_h=float(val['door_gap_h']),
-        fold_left=float(val['door_fold_l']), fold_right=float(val['door_fold_r']),
-        fold_top=float(val['door_fold_t']), fold_bottom=float(val['door_fold_b']),
-        frame_edges=frame_edges or DoorFrameEdges(),
-        features=tuple(features or ()), feature_space="legacy_unfolded",
+        features=features,
         indicator_hole=indicator_hole,
-        door_indicator=tuple(door_indicator) if door_indicator else None,
-        door_indicator_offset=(float(door_indicator_offset[0]), float(door_indicator_offset[1])),
-        use_box_distance=bool(use_box_distance),
+        door_indicator=door_indicator,
+        door_indicator_offset=door_indicator_offset,
+        use_box_distance=use_box_distance,
         corner_policy=corner_policy,
-        indicator_window_groups=(tuple(indicator_window_groups) if indicator_window_groups else None),
-        nameplate_center_datum_top=(
-            None if getattr(self, "door_nameplate_center_datum_top", None) is None
-            else float(self.door_nameplate_center_datum_top)
+        frame_edges=frame_edges,
+        indicator_window_groups=indicator_window_groups,
+        indicator_source_state=indicator_source_state,
+        nameplate_center_datum_top=getattr(
+            self, "door_nameplate_center_datum_top", None
         ),
     )
 
@@ -312,10 +204,13 @@ def _single_door_part_spec(self, val, *, indicator_hole=None, door_indicator=Non
 
 def _door_layout_part_spec(self, cell, val):
     key = self._door_layout_cell_key(cell)
-    state = self._door_layout_indicator_state_for_key(key)
-    layers = max(1, min(6, int(state.get("layers", 1))))
-    groups = tuple(int(v) for v in list(state.get("groups", [2] * 6))[:layers])
-    mode = state.get("mode", "indicator" if state.get("enabled") else "none")
+    # Read the committed per-cell source, never the GUI's presentation-repaired
+    # copy when real state is available. Engine alone validates physical lamps.
+    states = getattr(self, "door_layout_indicator_states", None)
+    # The display accessor normalizes *in place*: it must not run before
+    # Engine validates the original committed physical source.
+    raw = (states.get(key) if isinstance(states, Mapping)
+           else self._door_layout_indicator_state_for_key(key))
     door_val = dict(val)
     door_val["w"] = cell.start_width
     door_val["h"] = cell.start_height
@@ -324,11 +219,7 @@ def _door_layout_part_spec(self, cell, val):
         model_name=self._baseline_source_model(),
         frame_edges=cell.edges,
         features=self.door_layout_features.get(key, []),
-        indicator_hole=(manufacturing_api.indicator_box_opening_size(groups, thickness=val['t'])
-                        if mode == "indicator_box" else None),
-        door_indicator=(groups if mode == "indicator" else None),
-        door_indicator_offset=(float(state.get("offset_x", 0.0)), float(state.get("offset_y", 0.0))),
-        use_box_distance=bool(state.get("is_box_dist", False)),
+        indicator_source_state=raw,
         corner_policy=(
             self._manual_corner_policy(
                 'door', self._door_material_frame_width(val['fw'], val['t'])
@@ -337,17 +228,17 @@ def _door_layout_part_spec(self, cell, val):
     )
 
 def _validate_indicator_state_fit(self, state, *, finished_width, finished_height, thickness):
-    state = self._normalize_door_indicator_state(state)
-    mode = state.get("mode", "none")
-    if mode == "none":
+    # Use the same strictly validated source that DoorPartSpec and Hole Editor
+    # consume. The GUI may not sanitize live physical groups or hole offsets.
+    source = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(state)
+    if source["mode"] == "none":
         return (0.0, 0.0)
-    layers = max(1, min(6, int(state.get("layers", 1))))
-    groups = tuple(int(v) for v in list(state.get("groups", [2] * 6))[:layers])
     return manufacturing_api.validate_door_indicator_fit(
-        mode=mode, groups=groups,
-        finished_width=float(finished_width), finished_height=float(finished_height),
-        thickness=float(thickness),
-        offset=(float(state.get("offset_x", 0.0)), float(state.get("offset_y", 0.0))),
+        mode=source["mode"],
+        groups=tuple(source["groups"][:source["layers"]]),
+        finished_width=finished_width, finished_height=finished_height,
+        thickness=thickness,
+        offset=(source["offset_x"], source["offset_y"]),
     )
 
 def _validate_single_door_indicator_fit(self, val, state=None):
@@ -366,55 +257,32 @@ def _validate_door_layout_indicator_fit(self, cell, state, val):
     )
 
 def _base_plate_part_spec_from_values(self, val, *, features, corner_policy=None):
-    return BasePlatePartSpec(
-        width=float(val['w']), height=float(val['h']), thickness=float(val['t']),
-        shrink_top=float(val['base_plate_shrink_top']),
-        shrink_bottom=float(val['base_plate_shrink_bottom']),
-        shrink_left=float(val['base_plate_shrink_left']),
-        shrink_right=float(val['base_plate_shrink_right']),
-        bend=float(val['base_plate_bend']),
-        features=tuple(features or ()), corner_policy=corner_policy,
+    """Forward the current operator/saved sources to the headless Engine."""
+    return manufacturing_api.build_base_plate_operator_part_spec(
+        val,
+        features=features,
+        corner_policy=corner_policy,
         box_body_structure_state=self.workspace_controller.box_body_structure_state(),
-        box_body_fold_profile=profile_to_fold_segments(self.workspace_controller.box_body_profile() or ()),
-        model_name=str(val.get('model', '')).strip() or None,
-        # Same pre-existing Base Plate producer; the Receiving pattern is
-        # received from the real part snapshot, not a second editor.
-        receiving_bend_pattern=(
-            val.get('receiving_bend_pattern')
-            if str(val.get('model', '')).strip() in {'受電箱', 'RECEIVING'}
-            else None
-        ),
-        physical_id=str(val.get('physical_id') or 'base_plate'),
-        # #1502: one already selected/committed Receiving NFB depth pair.
-        # It is computed in receiving_base_plate_values from the Bay/Set,
-        # not editable as a second independent Base Plate dimension owner.
-        receiving_nfb_depth_pair_mm=(
-            val.get('receiving_nfb_depth_pair_mm')
-            if str(val.get('model', '')).strip() in {'受電箱', 'RECEIVING'}
-            else None
-        ),
+        box_body_fold_profile=self.workspace_controller.box_body_profile() or (),
     )
+
 
 def _base_plate_part_spec(self, val):
     return self._base_plate_part_spec_from_values(
         val, features=self.surface_features["base_plate"],
-        corner_policy=(
-            self._manual_corner_policy('base_plate', val['fw'])
-        ),
+        corner_policy=self._manual_corner_policy("base_plate", val["fw"]),
     )
+
 
 def _indicator_box_part_spec_from_values(self, val, layer_groups, *, features):
-    return IndicatorBoxPartSpec(
-        layer_groups=tuple(int(v) for v in layer_groups),
-        thickness=float(val['t']), model_name=None,
-        features=tuple(features or ()), corner_policy=None,
+    return manufacturing_api.build_indicator_box_operator_part_spec(
+        val, layer_groups, features=features,
     )
 
+
 def _indicator_box_part_spec(self, val, layer_groups, *, features):
-    return IndicatorBoxPartSpec(
-        layer_groups=tuple(int(v) for v in layer_groups),
-        thickness=float(val['t']), model_name=None,
-        features=tuple(features or ()), corner_policy=None,
+    return manufacturing_api.build_indicator_box_operator_part_spec(
+        val, layer_groups, features=features,
     )
 
 def _indicator_door_part_spec_from_values(self, val, layer_groups, *, features):
@@ -437,11 +305,10 @@ def _indicator_door_part_spec(self, val, layer_groups, *, features):
 
 def _indicator_component_editor_contexts(self, state, val, *, box_features, door_features):
     """View-only adapter: ask the engine for physical surfaces and display them."""
-    state = self._normalize_door_indicator_state(state)
-    layers = max(1, min(6, int(state.get("layers", 1))))
-    groups = tuple(int(v) for v in list(state.get("groups", [2] * 6))[:layers])
-    if not groups:
-        groups = (2,)
+    # The component geometry must use the same strict, unsanitized physical
+    # source as Door manufacturing, not the GUI's display-repair function.
+    state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(state)
+    groups = tuple(state["groups"][:state["layers"]])
     door_spec = self._indicator_door_part_spec(val, groups, features=door_features)
     geometry = manufacturing_api.resolve_indicator_editor_components(
         groups, thickness=val["t"], door_spec=door_spec,

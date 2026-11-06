@@ -136,7 +136,7 @@ def test_issue1817_real_preview_method_hits_cached_object_for_far_bay_edit(monke
         receiving_bay_preview_request,
     )
     from phase6_settings_profile_projection import project_part_dimensions
-    import phase6_fold_profiles
+    from ae_engine import manufacturing_api
     canonical = receiving.apply_family_defaults({"t":2.0})
     canonical.update(model="受電箱", active_mode="set_bay", receiving_layout=_layout())
 
@@ -177,7 +177,7 @@ def test_issue1817_real_preview_method_hits_cached_object_for_far_bay_edit(monke
     def would_be_full_solve(*args, **kwargs):
         raise LookupError("full geometry rebuild required")
     monkeypatch.setattr(
-        phase6_fold_profiles, "merge_box_body_profile", would_be_full_solve)
+        manufacturing_api, "project_receiving_bay_preview_physical_seed", would_be_full_solve)
     app._phase6_input_snapshot = {
         **canonical,
         "receiving_layout":update_receiving_bay(
@@ -307,7 +307,7 @@ def test_issue1817_real_preview_method_rebases_far_prefix_without_rebuilding(mon
         AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest,
     )
     from phase6_settings_profile_projection import project_part_dimensions
-    import phase6_fold_profiles
+    from ae_engine import manufacturing_api
 
     canonical = receiving.apply_family_defaults({"t":2.0})
     canonical.update(model="受電箱",active_mode="set_bay",receiving_layout=_layout())
@@ -359,7 +359,7 @@ def test_issue1817_real_preview_method_rebases_far_prefix_without_rebuilding(mon
     def cannot_solve(*args,**kwargs):
         raise LookupError("unexpected full solve")
     monkeypatch.setattr(
-        phase6_fold_profiles, "merge_box_body_profile",cannot_solve)
+        manufacturing_api, "project_receiving_bay_preview_physical_seed",cannot_solve)
     changed=update_receiving_bay(
         canonical["receiving_layout"],set_index=0,bay_index=0,
         width=900,height=1760,depth=430)
@@ -509,9 +509,20 @@ def test_issue1817_unknown_cross_bay_dependencies_never_trim_far_dimensions():
             assert stable_fingerprint(ka) != stable_fingerprint(kb), (
                 "unknown user cross-Bay dependency incorrectly reused an old FinalScene"
             )
-            assert ka == a and kb == b, (
-                "unknown user-defined dependency must use full authoritative key"
-            )
+            # Operator panel labels and the next-P allocator are persisted
+            # inputs but never physical geometry. All other unknown cross-Bay
+            # authority must remain fully present in the preview key.
+            def without_display_labels(source):
+                physical = deepcopy(source)
+                receiving = physical["receiving_layout"]
+                receiving.pop("next_panel_number", None)
+                for group in receiving["sets"]:
+                    for bay in group["bays"]:
+                        bay.pop("panel_name", None)
+                return physical
+
+            assert ka == without_display_labels(a)
+            assert kb == without_display_labels(b)
 
 
 def test_issue1817_preview_key_discards_only_recomputed_selected_bay_joint_locks():
@@ -1057,7 +1068,7 @@ def test_r4_66_real_bay_preview_cache_invalidates_when_live_custom_part_metadata
     from types import SimpleNamespace
     from copy import deepcopy
     import pytest
-    import phase6_fold_profiles
+    from ae_engine import manufacturing_api
     import phase6_sync_envelope
     from ae_engine.cabinet_types import receiving
     from gui_modules.application.fold_designer_composition_receiving import (
@@ -1091,7 +1102,7 @@ def test_r4_66_real_bay_preview_cache_invalidates_when_live_custom_part_metadata
     monkeypatch.setattr(phase6_sync_envelope, "stable_fingerprint", record_signature)
     def abort_after_cache_key(*_args, **_kwargs):
         raise LookupError("after-cache-fingerprint")
-    monkeypatch.setattr(phase6_fold_profiles, "merge_box_body_profile", abort_after_cache_key)
+    monkeypatch.setattr(manufacturing_api, "project_receiving_bay_preview_physical_seed", abort_after_cache_key)
 
     with pytest.raises(LookupError, match="after-cache-fingerprint"):
         receiving_bay_preview_request(owner, None, 0, 0)

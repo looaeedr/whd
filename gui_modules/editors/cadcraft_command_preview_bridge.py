@@ -7,13 +7,12 @@ must run the subprocess off the Tk event thread.
 from __future__ import annotations
 
 from dataclasses import dataclass
-import math
 from pathlib import Path
 import tempfile
 from typing import Sequence
 
 from .cadcraft_paths import cadcraft_binary
-from ae_engine.sheetmetal_features import resolve_surface_features
+from ae_engine import manufacturing_api
 from tools.issue1959_whd_cadcraft_command_draw import (
     CadcraftCommandProofError, DrawInstruction,
     from_whd_resolved, run_proof,
@@ -132,27 +131,11 @@ def focus_started_cadcraft_window(process_id: int):
 
 def prepare_whd_cadcraft_commands(*, surface, features: Sequence,
                                    width: float, height: float) -> tuple[DrawInstruction, ...]:
-    """Read-only WHD authority check; captures immutable geometry for worker."""
-    if isinstance(width, bool) or isinstance(height, bool):
-        raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
-    try:
-        w, h = float(width), float(height)
-    except (TypeError, ValueError, OverflowError) as exc:
-        raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS") from exc
-    if not all(math.isfinite(v) and v > 0 for v in (w, h)):
-        raise CadcraftCommandProofError("INVALID_WHD_FINISHED_FACE_DIMENSIONS")
-    originals=tuple(features)
-    if len(originals)>100:
-        raise CadcraftCommandProofError("INVALID_WHD_CUTTING_FEATURE_COUNT")
-    if any(getattr(f, "layer", None)!="CUTTING" for f in originals):
-        raise CadcraftCommandProofError("CADCRAFT_TRIAL_SUPPORTS_CUTTING_HOLES_ONLY")
-    try:
-        resolved=tuple(resolve_surface_features(surface,originals,w,h))
-    except (ValueError,TypeError,AttributeError) as exc:
-        raise CadcraftCommandProofError("WHD_FEATURE_SURFACE_REJECTED") from exc
-    # Empty original faces are allowed: WHD emits a fresh blank metric exchange
-    # that CADCraft can open to draw the *first* hole. No manufacturing is made.
-    return from_whd_resolved(resolved) if resolved else ()
+    """Only forward WHD operator input; Engine validates all physical holes."""
+    return manufacturing_api.project_whd_cadcraft_command_instructions(
+        surface=surface, features=features, width=width, height=height,
+    )
+
 
 
 def draw_whd_commands_with_cadcraft(
@@ -170,30 +153,13 @@ def draw_whd_commands_with_cadcraft(
     if target.exists() or preview.exists():
         raise CadcraftCommandProofError("REFUSE_TO_OVERWRITE_EXISTING_FILE")
     if not instructions:
-        # CADCraft cannot draw a first hole from nonexistent prior geometry.
-        # WHD creates a disposable empty DXF in mm; CADCraft is then its editor,
-        # never the production drawing author. Both files are new and isolated.
-        import ezdxf
-        import struct
-        import zlib
-        blank = ezdxf.new("R2010", units=ezdxf.units.MM)
-        blank.saveas(target)
-        # Small valid blank PNG, constructed from the Python stdlib; no Pillow
-        # or native CADCraft process required to author the initial empty page.
-        def chunk(kind, payload):
-            return (struct.pack(">I", len(payload)) + kind + payload
-                    + struct.pack(">I", zlib.crc32(kind + payload) & 0xffffffff))
-        w, h = 320, 200
-        pixels = (bytes([0]) + bytes([255, 255, 255]) * w) * h
-        preview.write_bytes(
-            bytes([137, 80, 78, 71, 13, 10, 26, 10])
-            + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
-            + chunk(b"IDAT", zlib.compress(pixels))
-            + chunk(b"IEND", b"")
+        # Engine is the sole owner of metric DXF/blank PNG bytes and refusal.
+        # GUI only manages the disposable exchange path and returned ticket.
+        evidence = manufacturing_api.save_blank_cadcraft_exchange_drawing(
+            target, preview,
         )
         return CadcraftCommandDrawingResult(
-            output_dxf=target, preview_png=preview,
-            geometry_evidence={"status": "PASS", "scope": "EMPTY_WHD_ISSUED_EXCHANGE"},
+            output_dxf=target, preview_png=preview, geometry_evidence=evidence,
         )
     # run_proof refuses existing target/preview, makes a NEW drawing with
     # --metric and independently verifies exact CADCraft output geometry.

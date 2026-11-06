@@ -17,7 +17,7 @@ from phase6_part_navigation import (
     is_box_body_physical_piece_key,
     resolve_navigation,
 )
-from phase6_derived_part_projection import (
+from ae_engine.manufacturing_api import (
     DerivedPartSyncPlan,
     materialize_features as _materialize_derived_features,
     materialize_namespace as _materialize_derived_namespace,

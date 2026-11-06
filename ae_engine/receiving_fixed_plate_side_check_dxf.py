@@ -8,12 +8,14 @@ Only verified original W800/T2 folded SIDE and EAR worlds may participate.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from collections.abc import Mapping
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from math import isclose
 
 import ezdxf
 
+from .cabinet_types.policy import canonical_family_name
 from .manufacturing_api import (
     save_part_render_data_dxf,
     verify_saved_part_render_data_dxf,
@@ -50,6 +52,25 @@ class ReceivingEarSideCheckDxfReceipt:
     status: str = "RECEIVING_EAR_SIDE_CHECK_DXF_ONLY"
 
 
+def receiving_ear_side_check_operator_inputs(snapshot):
+    """Read-only pre-picker validation for a Receiving SIDE CHECK action.
+
+    This validates the operator's committed source and returns the exact
+    dimensions/T supplied to the existing CHECK-only exporter; it neither
+    resolves material nor authorizes manufacturing.
+    """
+    if (not isinstance(snapshot, Mapping)
+            or canonical_family_name(snapshot) != "受電箱"
+            or snapshot.get("nfb_config_submitted") is not True
+            or snapshot.get("active_mode") == "quantity"):
+        raise ValueError("固定片 CHECK 限受電箱已提交的單只／套連實體；數量版本須逐版驗證")
+    dimensions = tuple(float(snapshot[key]) for key in ("w", "h", "d"))
+    thickness = float(snapshot["t"])
+    if dimensions[0] <= 0 or thickness <= 0:
+        raise ValueError("固定片側板 CHECK 箱寬與側板厚度必須為正")
+    return dimensions, thickness
+
+
 def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness,
                    permit_independent_source_marking_crossing=False):
     # A GUI callback can be stale or return an unresolved object during
@@ -57,7 +78,7 @@ def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness,
     from .contracts import ResolvedManufacturingGeometry
     if not isinstance(geometry, ResolvedManufacturingGeometry):
         raise ValueError("EAR_SIDE_CHECK_ACTUAL_MANUFACTURING_GEOMETRY_REQUIRED")
-    if (snapshot.get("model") not in ("受電箱", "RECEIVING")
+    if (canonical_family_name(snapshot) != "受電箱"
             or snapshot.get("nfb_config_submitted") is not True
             or len(tuple(dimensions or ())) != 3
             or float(snapshot["w"]) <= 0
@@ -67,7 +88,7 @@ def _verified_pair(snapshot, geometry, *, dimensions, sheet_thickness,
                    for i, k in enumerate(("w", "h", "d")))):
         raise ValueError("EAR_SIDE_CHECK_REQUIRES_CURRENT_MATCHING_SUBMITTED_SNAPSHOT")
 
-    from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
+    from .assembly_geometry import build_joint_world_geometry as _phase6_build_joint_world_geometry
     world = _phase6_build_joint_world_geometry(
         tuple(geometry.parts or ()), tuple(float(v) for v in dimensions), 2.,
     )

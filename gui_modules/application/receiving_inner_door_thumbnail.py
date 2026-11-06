@@ -7,33 +7,21 @@ It must never request 3D geometry, DXF decoding or manufacturing.
 """
 from __future__ import annotations
 
-from collections import Counter
-
-from ae_engine.receiving_shared_settings import switch_filenames_in_layer
-from ae_engine.receiving_switch_model_catalog import display_model
+from ae_engine import manufacturing_api
 
 
 def inner_door_preview_rows(config):
-    """Pure representation for both main and editor thumbnails."""
-    if config is None:
-        return ()
-    if not isinstance(config, dict) or config.get("layers") not in (1, 2):
-        raise ValueError("無效的內門預覽層數")
-    models = config.get("models")
-    if not isinstance(models, (tuple, list)) or len(models) != 2:
-        raise ValueError("內門預覽必須有兩層開關欄位")
-    return tuple(
-        tuple(switch_filenames_in_layer(models[index]))
-        for index in range(config["layers"])
-    )
-
+    """Compatible read-only model-ref rows, projected by the public Engine."""
+    layers = manufacturing_api.resolve_receiving_inner_door_preview_inventory(config)
+    return tuple(layer.model_refs for layer in layers)
 
 def paint_inner_door_thumbnail(canvas, config, *, title="內門配置"):
     """Draw a small visual inventory, returning exact per-layer file lists.
 
     Can be safely called repeatedly during UI edits; Canvas owns only images.
     """
-    rows = inner_door_preview_rows(config)
+    inventory = manufacturing_api.resolve_receiving_inner_door_preview_inventory(config)
+    rows = tuple(layer.model_refs for layer in inventory)
     canvas.delete("all")
     width = max(230, int(canvas.winfo_width()), int(canvas.cget("width")))
     height = max(154, int(canvas.winfo_height()), int(canvas.cget("height")))
@@ -66,10 +54,10 @@ def paint_inner_door_thumbnail(canvas, config, *, title="內門配置"):
                     canvas.create_text(width - 22, y + 11,
                                        text=f"+{len(names)-marks}", anchor="e",
                                        fill="#f1bc68", font=("TkDefaultFont", 8))
-                counts = Counter(display_model(name) for name in names)
+                # Engine retains true stored-reference multiplicity, including V5.
                 summary = "、".join(
                     f"{label}×{count}" if count > 1 else label
-                    for label, count in counts.items()
+                    for label, count in inventory[idx].display_counts
                 )
                 # Clip the DISPLAY description, not the persisted filename.
                 if len(summary) > 32:

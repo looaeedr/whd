@@ -13,12 +13,12 @@ manufacturing geometry/DXF generation remains manufacturing_api authority.
 import os
 import shutil
 import tempfile
-from dataclasses import replace
+from copy import deepcopy
 from collections.abc import Mapping
 from tkinter import filedialog, messagebox
 
 from ae_engine import manufacturing_api
-from ae_engine.sheetmetal_part_adapters import door_layout_export_filename
+from gui_modules.application.render_snapshots import _collect_live_indicator_groups
 
 
 def export_multi_door_layout_dxfs(self, folder, val, *, draw_stock=False):
@@ -26,7 +26,7 @@ def export_multi_door_layout_dxfs(self, folder, val, *, draw_stock=False):
     exported = []
     context = self._manufacturing_context(draw_stock=draw_stock)
     for cell in self.get_door_layout_cells():
-        filename = door_layout_export_filename(cell)
+        filename = manufacturing_api.door_layout_export_filename(cell)
         filepath = os.path.join(folder, filename)
         self._export_authoritative_part(self._door_layout_part_spec(cell, val), filepath, context)
         exported.append(filename)
@@ -41,12 +41,15 @@ def export_multi_door_indicator_box_parts(
     context = self._manufacturing_context(draw_stock=draw_stock)
     for cell in self.get_door_layout_cells():
         key = self._door_layout_cell_key(cell)
-        state = self._door_layout_indicator_state_for_key(key)
+        states = getattr(self, "door_layout_indicator_states", None)
+        # Validate the original stored row, never a display-normalized copy.
+        raw = (states.get(key) if isinstance(states, Mapping)
+               else self._door_layout_indicator_state_for_key(key))
+        state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)
         if state.get("mode") != "indicator_box":
             continue
         self._validate_door_layout_indicator_fit(cell, state, val)
-        layers = max(1, min(6, int(state.get("layers", 1))))
-        groups = tuple(int(v) for v in list(state.get("groups", [2] * 6))[:layers])
+        groups = tuple(state["groups"][:state["layers"]])
         stem = f"c{cell.column_index + 1}_r{cell.row_index + 1}"
 
         if export_box:
@@ -68,46 +71,23 @@ def export_multi_door_indicator_box_parts(
 
 
 def _selected_export_flags(self, existing_parts, has_indicator_box):
-    # Main GUI's old presence mirror does not contain the physical Receiving
-    # tier owners committed in FoldDesigner's authoritative workspace.
-    # Read just these live derived IDs for the EXISTING checkbox rather than
-    # silently dropping both actual Base Plate sheets from the original
-    # button. The normal FinalScene export still checks each real source.
-    real_parts = set(existing_parts or ())
+    """Read GUI checkbox intent; Engine owns the physical inventory grouping."""
     designer = getattr(self, "fold_designer_app", None)
     snapshot = getattr(designer, "_phase6_input_snapshot", None)
-    if (isinstance(snapshot, Mapping)
-            and snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("nfb_config_submitted") is True):
-        workspace = getattr(designer, "designer_workspace", None)
-        if workspace is not None:
-            real_parts.update(
-                part for part in workspace.available_parts
-                if str(part).startswith(("base_plate:nfb_layer:", "inner_door:"))
-            )
-    return {
-        "box_body": bool(self.export_z_var.get() and "box_body" in existing_parts),
-        "head": bool(self.export_head_var.get() and "head" in existing_parts),
-        "tail": bool(self.export_tail_var.get() and "tail" in existing_parts),
-        "door": bool(
-            self.export_door_var.get()
-            and self._phase6_logical_part_present(real_parts, "door")
-        ),
-        "base_plate": bool(
-            self.export_base_plate_var.get()
-            and self._phase6_logical_part_present(real_parts, "base_plate")
-        ),
-        "indicator_box": bool(
-            self.export_ib_var.get()
-            and "indicator_box" in existing_parts
-            and has_indicator_box
-        ),
-        "indicator_door": bool(
-            self.export_ib_door_var.get()
-            and "indicator_door" in existing_parts
-            and has_indicator_box
-        ),
-    }
+    workspace = getattr(designer, "designer_workspace", None)
+    available = getattr(workspace, "available_parts", ()) if workspace is not None else ()
+    return manufacturing_api.selected_project_export_flags(
+        snapshot, existing_parts, available, {
+            "box_body": self.export_z_var.get(),
+            "head": self.export_head_var.get(),
+            "tail": self.export_tail_var.get(),
+            "door": self.export_door_var.get(),
+            "base_plate": self.export_base_plate_var.get(),
+            "indicator_box": self.export_ib_var.get(),
+            "indicator_door": self.export_ib_door_var.get(),
+        },
+        has_indicator_box=has_indicator_box,
+    )
 
 
 def _validate_selected_indicator_exports(self, flags, val):
@@ -116,8 +96,11 @@ def _validate_selected_indicator_exports(self, flags, val):
     if self.multi_door_enabled_var.get():
         for cell in self.get_door_layout_cells():
             key = self._door_layout_cell_key(cell)
-            state = self._door_layout_indicator_state_for_key(key)
-            if state.get("mode") != "none":
+            states = getattr(self, "door_layout_indicator_states", None)
+            raw = (states.get(key) if isinstance(states, Mapping)
+                   else self._door_layout_indicator_state_for_key(key))
+            state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)
+            if state["mode"] != "none":
                 self._validate_door_layout_indicator_fit(cell, state, val)
     else:
         self._validate_single_door_indicator_fit(val)
@@ -158,6 +141,15 @@ def _selected_resolved_geometry(resolved_geometry, flags):
     )
 
 
+def _current_authoritative_export_guard(designer, snapshot):
+    """GUI snapshots only the input revision; Engine owns all manufacturing."""
+    witness = deepcopy(snapshot)
+    def verify():
+        if getattr(designer, "_phase6_input_snapshot", None) != witness:
+            raise ValueError("DXF 出圖來源已變更，請重新確認盤名與板件")
+    return verify
+
+
 def _export_selected_resolved_parts(self, folder, flags):
     """Export the primary GUI's canonical resolved physical inventory when available."""
     designer = getattr(self, "fold_designer_app", None)
@@ -172,6 +164,9 @@ def _export_selected_resolved_parts(self, folder, flags):
     # input's existing migration rule owns legacy Receiving mode selection.
     mode_source = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
     active_mode = normalize_quantity_snapshot(mode_source)["active_mode"]
+    chosen = getattr(self, "receiving_dxf_group_mode_var", None)
+    group_mode = chosen.get() if chosen is not None else None
+    source_guard = _current_authoritative_export_guard(designer, mode_source)
     if workspace is not None and active_mode == "quantity":
         from phase6_manufacturing_adapter import (
             build_manufacturing_request, build_scene_payload_for_app,
@@ -189,61 +184,23 @@ def _export_selected_resolved_parts(self, folder, flags):
             finished_dimensions_provider=lambda key=None: operator_finished_dimensions_for_app(designer, key),
         )
         workspace_snapshot = workspace.snapshot()
-        quantity = workspace_snapshot.get("quantity") or {}
-        input_quantity = mode_source.get("quantity") or {}
-        def submitted_facts(payload):
-            return {row["version_id"]: row.get("nfb_config")
-                    for row in payload.get("versions", ())
-                    if row.get("nfb_config_submitted") is True}
-        if submitted_facts(input_quantity) != submitted_facts(quantity):
-            raise ValueError("NFB 數量版本與目前工作狀態不一致，請重新套用後再出圖")
-        batch = resolve_quantity_manufacturing(request, workspace_snapshot)
-        # Preserve old DXF projects: only a COMPLETE current numeric CSV
-        # version family goes through the newly source-proven batch action.
-        # Legacy test requests may not carry cabinet_model at all; project
-        # family and saved submitted per-version sources are the authorities.
-        submitted_rows = tuple(
-            row for row in quantity.get("versions", ())
-            if row.get("nfb_config_submitted") is True
+        # #2517: Engine determines whether saved/live NFB sources match and
+        # whether numeric CSV versions can use a single verified batch route.
+        # GUI owns only operator intent and the snapshot passed to the API.
+        source_policy = manufacturing_api.plan_quantity_export_source(
+            mode_source, workspace_snapshot,
         )
-        numeric_submissions = ()
-        if mode_source.get("model") == "受電箱" and submitted_rows:
-            from ae_engine.receiving_nfb_model_identity import (
-                parse_numeric_model_ref,
-            )
-            numeric_submissions = tuple(
-                bool((row.get("nfb_config") or {}).get("holes"))
-                and all(parse_numeric_model_ref(hole.get("model_filename"))
-                        is not None
-                        for hole in (row.get("nfb_config") or {}).get("holes", ()))
-                for row in submitted_rows
-            )
-            if any(numeric_submissions) and not all(numeric_submissions):
-                raise ValueError("NFB 數量版本混用數值 CSV 與舊 DXF，禁止混源整批出圖")
-        if numeric_submissions and all(numeric_submissions):
-            # One original button; independently revalidate EVERY version.
-            from ae_engine.receiving_csv_quantity_manufacturing import (
-                export_current_csv_quantity_manufacturing,
-            )
-            outputs = export_current_csv_quantity_manufacturing(
+        batch = resolve_quantity_manufacturing(request, workspace_snapshot)
+        if source_policy.use_current_csv_export:
+            outputs = manufacturing_api.export_current_csv_quantity_manufacturing(
                 batch, folder, flags=flags, overwrite=True,
             )
             return ([os.path.basename(path) for path in outputs.values()], [])
-        nfb_selection = None
-        if any(row.get("nfb_config_submitted") is True
-               for row in quantity.get("versions", ())):
-            full = manufacturing_api.select_quantity_nfb_partial(batch, workspace_snapshot)
-            selected_reports = tuple(row for row in full.rows
-                if row["source_part_id"].startswith("custom:")
-                or bool(flags.get(_resolved_export_intention_key(row["source_part_id"]), False)))
-            selected_keys = {(row["version_id"], row["part_id"]) for row in selected_reports}
-            nfb_selection = manufacturing_api.QuantityNfbPartialSelection(tuple(d for d in full.demands
-                if (d.version_id, d.physical_id) in selected_keys), selected_reports)
-        selected_demands = tuple(
-            row for row in (nfb_selection.demands if nfb_selection else batch.demands)
-            if row.source_part_id.startswith("custom:")
-            or bool(flags.get(_resolved_export_intention_key(row.source_part_id), False))
+        selection = manufacturing_api.plan_quantity_operator_export_selection(
+            batch, workspace_snapshot, flags,
         )
+        nfb_selection = selection.partial_selection
+        selected_demands = selection.selected_demands
         if not selected_demands:
             if nfb_selection is not None:
                 self._phase6_nfb_partial_export_report = nfb_selection.report()
@@ -260,18 +217,13 @@ def _export_selected_resolved_parts(self, folder, flags):
                              *diagnostics])
             return ([], ["canonical quantity export: no selected physical parts"])
         if nfb_selection is not None:
-            selected_versions = {row["version_id"] for row in selected_reports}
-            updated = {(d.version_id, d.physical_id): d for d in full.demands}
-            checked_batch = replace(
-                batch,
-                versions=tuple(v for v in batch.versions if v.version_id in selected_versions),
-                requests=tuple(r for r in batch.requests if r[0] in selected_versions),
-                demands=tuple(updated.get((d.version_id, d.physical_id), d)
-                              for d in batch.demands
-                              if (d.version_id, d.physical_id) in selected_keys),
-            )
+            # Source IDs, report selection and checked physical-demand batch
+            # are all projected by Engine, never reconstructed in GUI.
+            checked_batch = selection.checked_batch
             live_manifests = manufacturing_api.quantity_partial_live_manifests(
-                full, workspace_snapshot, selected_reports)
+                selection.full_selection, workspace_snapshot,
+                selection.selected_reports,
+            )
             groups, gate = quantity_nfb_checked_manufacturing_groups(
                 checked_batch, live_manifest_provider=lambda vid, _request: live_manifests[vid],
                 partial=True,
@@ -298,95 +250,73 @@ def _export_selected_resolved_parts(self, folder, flags):
             self._phase6_nfb_partial_export_report = report
         return (names, [])
 
-    # A Set/Bay production run must output EVERY physical Bay, not merely
-    # the currently selected Bay. Reuse precisely the same current Bay
-    # resolver that feeds the ordinary 2D/3D preview, de-translate its world
-    # assembly anchor back to local sheet coordinates, then validate/serialize
-    # each Bay under its stable Set/Bay namespace in ONE atomic transaction.
+    # Engine plans physical topology and independent-source preview eligibility.
     receiving_live = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
-    raw_layout = receiving_live.get("receiving_layout") or {}
-    raw_sets = raw_layout.get("sets", ()) if isinstance(raw_layout, dict) else ()
-    # Only a real multi-Bay topology enters the multi-Bay machinery.
-    # Older single-Bay NFB snapshots legitimately lack canonical schema/
-    # dimensions; validating those through the multi-Bay path would break
-    # previously verified ordinary single-box exports.
-    physical_count = sum(
-        len(row.get("bays", ())) for row in raw_sets
-        if isinstance(row, dict)
-    ) if isinstance(raw_sets, (list, tuple)) else 0
-    if (receiving_live.get("model") == "受電箱"
-            and receiving_live.get("active_mode", "set_bay") == "set_bay"
-            and physical_count > 1):
-        from ae_engine.receiving_layout import normalize_receiving_layout
-        saved_layout = normalize_receiving_layout(raw_layout)
-        if physical_count != sum(len(s["bays"]) for s in saved_layout["sets"]):
-            raise ValueError("多連實體連數與目前標準組合體資料不一致")
-        if physical_count > 1:
-            import fold_designer_bridge as receiving_bridge
-            from ae_engine.receiving_csv_multibay_manufacturing import (
-                export_current_receiving_multibay_dxf,
-            )
-            composition = receiving_bridge._phase6_composition(designer)
-            # AC-09/24: HEAD/TAIL/outer DOOR have no NFB source dependency.
-            # Preview an isolated Bay whose unselected NFB is unsubmitted;
-            # the actual saved source still owns every manufacturing gate.
-            independent_only = (
-                any(bool(flags.get(key)) for key in ("head", "tail", "door"))
-                and not any(bool(value) for key, value in flags.items()
-                            if key not in {"head", "tail", "door"})
-            )
-            def actual_bay_geometry(set_index, bay_index):
-                if independent_only:
-                    preview_layout=dict(saved_layout)
-                    preview_sets=list(saved_layout["sets"])
-                    preview_set=dict(preview_sets[set_index])
-                    preview_bays=list(preview_set["bays"])
-                    preview_bay=dict(preview_bays[bay_index])
-                    preview_bay["nfb_config_submitted"]=False
-                    preview_bays[bay_index]=preview_bay
-                    preview_set["bays"]=preview_bays
-                    preview_sets[set_index]=preview_set
-                    preview_layout["sets"]=preview_sets
-                    current=composition.receiving_bay_preview_request(
-                        vars(receiving_bridge), set_index, bay_index,
-                        preview_layout=preview_layout,
-                    )
-                else:
-                    current=composition.receiving_bay_preview_request(
-                        vars(receiving_bridge), set_index, bay_index,
-                    )
-                return manufacturing_api.resolve_receiving_bay_local_export_geometry(
-                    current.render_data.assembly_parts, saved_layout,
-                    set_index=set_index, bay_index=bay_index,
+    source_plan = manufacturing_api.plan_receiving_multibay_export_source(
+        receiving_live, flags, group_mode,
+    )
+    if source_plan.use_multibay:
+        import fold_designer_bridge as receiving_bridge
+        composition = receiving_bridge._phase6_composition(designer)
+
+        def actual_bay_geometry(set_index, bay_index):
+            preview_layout = source_plan.preview_layout_for_bay(set_index, bay_index)
+            if preview_layout is not None:
+                current = composition.receiving_bay_preview_request(
+                    vars(receiving_bridge), set_index, bay_index,
+                    preview_layout=preview_layout,
                 )
-            outputs = export_current_receiving_multibay_dxf(
+            else:
+                current = composition.receiving_bay_preview_request(
+                    vars(receiving_bridge), set_index, bay_index,
+                )
+            return manufacturing_api.resolve_receiving_bay_local_export_geometry(
+                current.render_data.assembly_parts, source_plan.layout,
+                set_index=set_index, bay_index=bay_index,
+            )
+
+        if group_mode is not None:
+            outputs = manufacturing_api.export_grouped_receiving_multibay_dxf(
                 receiving_live,
                 physical_bay_geometry_provider=actual_bay_geometry,
-                flags=flags,output_dir=folder,overwrite=True,
+                flags=flags, output_dir=folder, group_mode=group_mode,
+                pre_commit_guard=source_guard, overwrite=True,
             )
-            return ([os.path.basename(path) for path in outputs.values()], [])
+        else:
+            outputs = manufacturing_api.export_current_receiving_multibay_dxf(
+                receiving_live,
+                physical_bay_geometry_provider=actual_bay_geometry,
+                flags=flags, output_dir=folder, overwrite=True,
+            )
+        return ([os.path.basename(path) for path in outputs.values()], [])
 
-    # #1503: the original selected-DXF action applies authenticated EAR
-    # positioning marks to LEFT/RIGHT physical side plates automatically.
-    # No extra operator button or forged cabinet/PAD release.
-    receiving_snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
-    auto_side, committed_csv = manufacturing_api.selected_export_manufacturing_policy(
-        receiving_snapshot, flags,
+    # Engine owns Vault grouping and Receiving NFB/EAR route policy.
+    # GUI only follows the selected route and collects operator consent.
+    export_route = manufacturing_api.plan_selected_resolved_export_route(
+        mode_source, flags, group_mode,
     )
-    if auto_side:
-        if receiving_snapshot.get("active_mode") == "quantity":
-            raise ValueError("EAR_SIDE_NORMAL_EXPORT_QUANTITY_NOT_VERIFIED")
-        # For current CSV, the SAME atomic exporter independently proves the
-        # real door, both tier bases, signed formed EARs and side marks. The
-        # obsolete old-supplier-DXF gate must NOT preempt that proof.
-        if not committed_csv:
-            _assert_legacy_nfb_export_scope_safe(self, {**flags, "box_body": False})
-    elif committed_csv and bool(flags.get("door") or flags.get("base_plate")):
-        # Individual CSV sheets use the same current source proof path and
-        # must not be routed back to the obsolete DXF-only legacy guard.
-        pass
-    else:
-        _assert_legacy_nfb_export_scope_safe(self, flags)
+    if export_route.legacy_guard_flags is not None:
+        _assert_legacy_nfb_export_scope_safe(
+            self, dict(export_route.legacy_guard_flags),
+        )
+    if export_route.vault_composed:
+        # GUI never projects/serializes manufacturing geometry.
+        resolved = resolver()
+        selected = manufacturing_api.select_resolved_export_geometry(
+            resolved, flags,
+        )
+        filename = manufacturing_api.vault_panel_dxf_filename(
+            mode_source.get("panel_name", ""),
+        )
+        manufacturing_api.save_composed_panel_dxf(
+            ((filename[:-4], selected),),
+            os.path.join(folder, filename),
+            pre_commit_guard=source_guard, overwrite=False,
+        )
+        return ([filename], [])
+
+    # All Receiving EAR/NFB source-route guards are decided by Engine.
+    receiving_snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
     resolved = resolver()
     outputs = manufacturing_api.save_selected_resolved_manufacturing_dxf(
         receiving_snapshot, resolved, flags, folder,
@@ -440,17 +370,6 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
         except Exception as ex:
             errors.append(f"end_cap_tail.dxf: {ex}")
 
-    indicator_hole = None
-    if self.is_indicator_box_var.get():
-        try:
-            layers = int(self.indicator_l_var.get())
-            groups = tuple(int(self.indicator_layer_g_vars[i].get()) for i in range(layers))
-            indicator_hole = manufacturing_api.indicator_box_opening_size(
-                groups, thickness=val["t"]
-            )
-        except Exception:
-            pass
-
     if flags["door"]:
         try:
             if self.multi_door_enabled_var.get():
@@ -458,16 +377,24 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
                     self.export_multi_door_layout_dxfs(folder, val, draw_stock=draw_stock)
                 )
             else:
+                # The live Door preview and manufacturing DXF must accept the
+                # same physical indicator inputs. Never turn a failed enabled
+                # opening/group source into an apparently valid blank Door.
+                indicator_hole = None
+                if self.is_indicator_box_var.get():
+                    box_groups = _collect_live_indicator_groups(
+                        self.indicator_l_var, self.indicator_layer_g_vars,
+                        label="指示燈盒",
+                    )
+                    indicator_hole = manufacturing_api.indicator_box_opening_size(
+                        box_groups, thickness=val["t"]
+                    )
                 door_indicator = None
                 if self.is_door_indicator_var.get():
-                    try:
-                        layers = int(self.door_indicator_l_var.get())
-                        door_indicator = tuple(
-                            int(self.door_indicator_layer_g_vars[i].get())
-                            for i in range(layers)
-                        )
-                    except Exception:
-                        pass
+                    door_indicator = _collect_live_indicator_groups(
+                        self.door_indicator_l_var, self.door_indicator_layer_g_vars,
+                        label="門上指示燈",
+                    )
                 run_part(
                     "door_unfold.dxf",
                     self._single_door_part_spec(
@@ -508,8 +435,10 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
 
     if flags["indicator_box"] and not self.multi_door_enabled_var.get():
         try:
-            layers = int(self.indicator_l_var.get())
-            groups = tuple(int(self.indicator_layer_g_vars[i].get()) for i in range(layers))
+            groups = _collect_live_indicator_groups(
+                self.indicator_l_var, self.indicator_layer_g_vars,
+                label="指示燈盒",
+            )
             run_part(
                 "indicator_box.dxf",
                 self._indicator_box_part_spec(
@@ -523,8 +452,10 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
 
     if flags["indicator_door"] and not self.multi_door_enabled_var.get():
         try:
-            layers = int(self.indicator_l_var.get())
-            groups = tuple(int(self.indicator_layer_g_vars[i].get()) for i in range(layers))
+            groups = _collect_live_indicator_groups(
+                self.indicator_l_var, self.indicator_layer_g_vars,
+                label="指示燈盒",
+            )
             run_part(
                 "indicator_door.dxf",
                 self._indicator_door_part_spec(
@@ -592,7 +523,7 @@ def export_receiving_ear_side_manufacturing_dxf(self):
         if not callable(resolver):
             raise ValueError("側板正式 MARKING 缺少現行製造幾何")
         snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
-        if (snapshot.get("model") != "受電箱"
+        if (manufacturing_api.resolve_live_cabinet_family(snapshot) != "受電箱"
                 or snapshot.get("nfb_config_submitted") is not True
                 or snapshot.get("active_mode") == "quantity"):
             raise ValueError("側板製造 MARKING 限已提交的單只／套連實體，數量版本須逐版核對")
@@ -613,10 +544,7 @@ def export_receiving_ear_side_manufacturing_dxf(self):
     if not folder:
         return None
     try:
-        from ae_engine.receiving_ear_side_manufacturing_marking import (
-            export_receiving_ear_side_manufacturing_marking_dxf,
-        )
-        receipt = export_receiving_ear_side_manufacturing_marking_dxf(
+        receipt = manufacturing_api.export_receiving_ear_side_manufacturing_marking_dxf(
             snapshot, geometry, folder, dimensions=dimensions,
             sheet_thickness=thickness, overwrite=False,
         )
@@ -646,14 +574,9 @@ def export_receiving_ear_side_check_dxf(self):
         if not callable(resolver):
             raise ValueError("固定片側板 CHECK 缺少現行製造幾何")
         snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
-        if (snapshot.get("model") != "受電箱"
-                or snapshot.get("nfb_config_submitted") is not True
-                or snapshot.get("active_mode") == "quantity"):
-            raise ValueError("固定片 CHECK 限受電箱已提交的單只／套連實體；數量版本須逐版驗證")
-        dimensions = tuple(float(snapshot[key]) for key in ("w", "h", "d"))
-        thickness = float(snapshot["t"])
-        if dimensions[0] <= 0 or thickness <= 0:
-            raise ValueError("固定片側板 CHECK 箱寬與側板厚度必須為正")
+        dimensions, thickness = manufacturing_api.receiving_ear_side_check_operator_inputs(
+            snapshot,
+        )
         geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片 CHECK 不可用", str(exc))
@@ -666,10 +589,7 @@ def export_receiving_ear_side_check_dxf(self):
         return None
 
     try:
-        from ae_engine.receiving_fixed_plate_side_check_dxf import (
-            export_receiving_ear_side_check_only_dxf,
-        )
-        receipt = export_receiving_ear_side_check_only_dxf(
+        receipt = manufacturing_api.export_receiving_ear_side_check_only_dxf(
             snapshot, geometry, folder,
             dimensions=dimensions, sheet_thickness=thickness,
             overwrite=False,
@@ -690,14 +610,6 @@ def export_receiving_ear_side_check_dxf(self):
         + "\n" + "\n".join(path for _owner, path in receipt.output_paths),
     )
     return receipt
-
-
-def _is_unconfigured_receiving_base_export_error(errors):
-    """Match only the explicit missing-plate-pattern guard, never arbitrary DXF failures."""
-    return tuple(str(error) for error in errors) == (
-        "canonical resolved export: "
-        "RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING: base_plate",
-    )
 
 
 def export_selected_dxf(self):
@@ -733,8 +645,11 @@ def export_selected_dxf(self):
         exported, errors = _export_selected_parts(
             self, stage_folder, val, flags, bool(self.draw_stock_var.get())
         )
-        if flags.get("base_plate", False) and _is_unconfigured_receiving_base_export_error(errors):
-            other_flags = {**flags, "base_plate": False}
+        retry_intent = manufacturing_api.plan_unconfigured_receiving_base_export_retry(
+            errors, flags,
+        )
+        if retry_intent is not None:
+            other_flags = dict(retry_intent)
             if not any(other_flags.values()):
                 errors = [
                     "受電箱底板尚未設定實體板型與尺寸。"
@@ -775,6 +690,26 @@ def export_selected_dxf(self):
                     "此批不是整套完成；PAD／耳朵裝配尚未驗收。\n\n"
                     + details + "\n\n是否匯出以上合法板件與清單？"):
                 return
+        # Named outputs must not silently overwrite a previous export.
+        designer = getattr(self, "fold_designer_app", None)
+        live = getattr(designer, "_phase6_input_snapshot", None) or {}
+        mode_field = getattr(self, "receiving_dxf_group_mode_var", None)
+        new_named_mode = (
+            mode_field is not None and
+            isinstance(live, Mapping) and
+            manufacturing_api.resolve_live_cabinet_family(live) in {"受電箱", "金庫型"}
+        )
+        if new_named_mode:
+            existing = [
+                name for name in exported
+                if os.path.isfile(os.path.join(folder, name))
+            ]
+            if existing and not messagebox.askyesno(
+                "DXF 檔名已存在",
+                "以下 DXF 已存在，確定要覆寫嗎？\n" + "\n".join(existing),
+                default="no",
+            ):
+                return
         try:
             committed = _commit_staged_project_export(stage_folder, folder)
         except Exception as ex:
@@ -801,23 +736,15 @@ def export_receiving_pad_base_part_only_dxf(self):
     """
     from pathlib import Path
     from tkinter import simpledialog
-    from ae_engine.manufacturing_equivalence import ManufacturingParameters
-    from ae_engine.receiving_nfb_pad_pair_manufacturing import (
-        export_verified_pad_base_part_only,
-    )
-    from ae_engine.manufacturing_export import safe_dxf_part_stem
     try:
         self._flush_phase6_authoritative_state()
         designer = getattr(self, "fold_designer_app", None)
         snapshot = getattr(designer, "_phase6_input_snapshot", None)
         if (not isinstance(snapshot, Mapping)
-                or snapshot.get("model") not in ("受電箱", "RECEIVING")
+                or manufacturing_api.resolve_live_cabinet_family(snapshot) != "受電箱"
                 or snapshot.get("nfb_config_submitted") is not True):
             raise ValueError("須在受電箱提交 NFB 後，才能輸出 PAD＋底板")
-        from ae_engine.receiving_nfb_pad_operator_parts import (
-            committed_nfb_pad_draft_parts,
-        )
-        if not committed_nfb_pad_draft_parts(snapshot):
+        if not manufacturing_api.committed_nfb_pad_draft_parts(snapshot):
             raise ValueError("目前沒有已提交且具已確認孔位的 PAD 實體板件")
         from fold_designer_bridge import _phase6_final_scene_adapter
         scene = _phase6_final_scene_adapter(designer).query_assembly_render_data()
@@ -843,53 +770,17 @@ def export_receiving_pad_base_part_only_dxf(self):
             initialvalue=1,minvalue=1)
         if qty is None:
             return
-        # A Quantity version is never a persistent Set/Bay identity.
-        # Derive source proof from exactly its submitted version.
-        quantity_version = None
-        if snapshot.get("active_mode") == "quantity":
-            from phase6_quantity_model import QuantityModel
-            from ae_engine.receiving_quantity_box import project_common_box
-            model = QuantityModel.from_payload(snapshot.get("quantity"))
-            quantity_version = model.selected_version_id
-            committed = model.nfb_config_for_version(quantity_version)
-            if (committed.get("nfb_config_submitted") is not True
-                    or committed.get("nfb_config") != snapshot.get("nfb_config")):
-                raise ValueError("PAD＋底板數量版本的 NFB 來源已失效")
-            snapshot = project_common_box(snapshot)
-        runtime=snapshot.get("_receiving_runtime_selection")
-        if quantity_version is None and not isinstance(runtime, Mapping):
-            # Recover the exact one-Bay source identity only from the current
-            # saved singleton. Never borrow another Bay or a previous selector.
-            layout=snapshot.get("receiving_layout")
-            sets=layout.get("sets") if isinstance(layout, Mapping) else None
-            if (snapshot.get("active_mode", "set_bay") != "set_bay"
-                    or not isinstance(sets, (list, tuple)) or len(sets) != 1
-                    or not isinstance(sets[0].get("bays"), (list, tuple))
-                    or len(sets[0]["bays"]) != 1
-                    or sets[0]["bays"][0].get("nfb_config_submitted") is not True
-                    or sets[0]["bays"][0].get("nfb_config") != snapshot.get("nfb_config")):
-                raise ValueError("PAD＋底板沒有目前 Set／Bay 的實體選取")
-            runtime={
-                "set_id": sets[0]["stable_id"],
-                "bay_id": sets[0]["bays"][0]["stable_id"],
-                "set_index": 0, "bay_index": 0,
-            }
-            snapshot={**snapshot, "_receiving_runtime_selection": runtime}
-        if quantity_version is not None:
-            version_id = quantity_version
-        else:
-            set_id=str(runtime.get("set_id") or "").strip()
-            bay_id=str(runtime.get("bay_id") or "").strip()
-            if not set_id or not bay_id:
-                raise ValueError("PAD＋底板缺少 Set／Bay 實際識別碼")
-            version_id=f"{set_id}__{bay_id}"
+        # Only Engine may select a persisted Quantity version or Set/Bay
+        # manufacturing identity. UI supplies material, process and Q only.
+        selected = manufacturing_api.resolve_receiving_pad_base_export_source(snapshot)
+        snapshot, version_id = selected.snapshot, selected.version_id
         root=filedialog.askdirectory(title="選擇 PAD＋底板 CHECK/Q 輸出資料夾")
         if not root:
             return
-        output=Path(root)/(safe_dxf_part_stem(version_id)+"__PAD_BASE_PAIR_CHECK_Q")
-        result=export_verified_pad_base_part_only(
+        output=Path(root)/(manufacturing_api.safe_dxf_part_stem(version_id)+"__PAD_BASE_PAIR_CHECK_Q")
+        result=manufacturing_api.export_verified_pad_base_part_only(
             snapshot,parts,output,version_id=version_id,box_count=qty,
-            parameters=ManufacturingParameters(material,float(snapshot["t"]),process),
+            parameters=manufacturing_api.ManufacturingParameters(material,float(snapshot["t"]),process),
         )
     except (ValueError, TypeError, KeyError, FileExistsError, OSError) as exc:
         messagebox.showerror("PAD＋底板無法製造輸出", str(exc))
@@ -913,6 +804,25 @@ def _single_door_indicator_state_snapshot(self):
         mode = "indicator" if self.is_door_indicator_var.get() else "none"
         layer_var = self.door_indicator_l_var
         group_vars = self.door_indicator_layer_g_vars
+    if mode != "none":
+        # Live physical holes are validated before display repair or export.
+        # Preserve the raw operator values: int()/clamp/default and bool()
+        # coercion here could turn corrupt input into manufactured holes.
+        validated = manufacturing_api.normalize_operator_hole_editor_indicator_state({
+            "mode": mode,
+            "layers": layer_var.get(),
+            "groups": [variable.get() for variable in group_vars[:6]],
+            "offset_x": self.door_indicator_offset_x,
+            "offset_y": self.door_indicator_offset_y,
+            "is_box_dist": self.is_box_dist_var.get(),
+        })
+        return {
+            **validated,
+            "enabled": mode == "indicator",
+            "box_enabled": mode == "indicator_box",
+        }
+    # A disabled mode has no physical holes. Keep the existing legacy
+    # display-only repair and saved inactive controls for older projects.
     try:
         layers = max(1, min(6, int(layer_var.get())))
     except ValueError:

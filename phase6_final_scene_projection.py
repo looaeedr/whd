@@ -13,133 +13,51 @@ axes/canvas, own Tk/UI state, import the bridge, or invoke application owners.
 from __future__ import annotations
 
 from ae_engine.display_dimensions import folded_outside_envelope
+from ae_engine import manufacturing_api
 from phase6_final_scene_contracts import AssemblySceneRenderData
-from phase6_fold_profiles import _num, engine_segment_length_to_ui
 
 
 def _phase6_profile_base_index(profile):
-    """Return the semantic finished-face/core segment used as the 3D base plane."""
-    segs = list(profile or ())
-    if not segs:
-        return 0
-    # Prefer explicit W-piece/back cores when a multi-piece Box Body is being
-    # rendered. A right W-split piece can also carry the legacy D core, so the
-    # old "middle core" heuristic would incorrectly make the side face the base.
-    for preferred in ("W_PART", "W_BACK", "W"):
-        for i, seg in enumerate(segs):
-            if str(seg.get("core") or "") == preferred:
-                return i
-    core_indices = [i for i, seg in enumerate(segs) if seg.get("core")]
-    if core_indices:
-        return core_indices[len(core_indices) // 2]
-    return min(len(segs) - 1, len(segs) // 2)
+    """Compatibility: Engine selects the real physical 3D Fold base segment."""
+    return manufacturing_api.fold_profile_base_index(profile)
 
 
 def _phase6_profile_geometry(profile, *, enabled_folds=None):
-    """Return cumulative unfolded boundaries and folded endpoints.
-
-    ``enabled_folds[i]`` controls only the bend after segment ``i``.  This is
-    how finite manufacturing BEND spans can leave a retained tongue attached
-    while later folds in the same axis still occur.
-    """
-    import math
-
-    segs = list(profile or ())
-    if not segs:
-        return (0.0, 1.0), ((-0.5, 0.0), (0.5, 0.0))
-    if enabled_folds is None:
-        enabled_folds = (True,) * max(0, len(segs) - 1)
-    else:
-        enabled_folds = tuple(bool(v) for v in enabled_folds)
-
-    raw_u = [0.0]
-    raw_z = [0.0]
-    angles = []
-    current_angle = 0.0
-    cumulative = [0.0]
-    for i, seg in enumerate(segs):
-        length = max(0.0, float(_num(seg.get("len", 0.0))))
-        angles.append(current_angle)
-        rad = math.radians(current_angle)
-        raw_u.append(raw_u[-1] + length * math.cos(rad))
-        raw_z.append(raw_z[-1] + length * math.sin(rad))
-        cumulative.append(cumulative[-1] + length)
-        if i < len(segs) - 1 and "angle" in seg:
-            if i >= len(enabled_folds) or enabled_folds[i]:
-                current_angle -= float(_num(seg.get("angle", 0.0)))
-
-    base_idx = _phase6_profile_base_index(segs)
-    base_angle = math.radians(angles[base_idx] if angles else 0.0)
-    rotated = []
-    for u, z in zip(raw_u, raw_z):
-        ru = u * math.cos(-base_angle) - z * math.sin(-base_angle)
-        rz = u * math.sin(-base_angle) + z * math.cos(-base_angle)
-        rotated.append((ru, rz))
-    center = (rotated[base_idx][0] + rotated[base_idx + 1][0]) / 2.0
-    z0 = rotated[base_idx][1]
-    folded = tuple((u - center, z - z0) for u, z in rotated)
-    return tuple(cumulative), folded
+    """Compatibility: use the same folded material chain as Engine assembly."""
+    return manufacturing_api.fold_profile_geometry(profile, enabled_folds=enabled_folds)
 
 
 def _phase6_fold_mask_for_cross_coordinate(profile, axis, cross_position, fold_guides, *, tol=1e-6):
-    """Return one enabled/disabled flag per profile bend using final BEND spans."""
-    segs = list(profile or ())
-    boundaries = [0.0]
-    for seg in segs:
-        boundaries.append(boundaries[-1] + max(0.0, float(_num(seg.get("len", 0.0)))))
-    guides = tuple(g for g in (fold_guides or ()) if str(getattr(g, "axis", "")) == str(axis))
-    mask = []
-    cross = float(cross_position)
-    for i in range(max(0, len(segs) - 1)):
-        boundary = boundaries[i + 1]
-        matches = [g for g in guides if abs(float(g.position) - boundary) <= tol]
-        if not matches:
-            # Custom/legacy scenes without an explicit matching BEND keep the
-            # editor profile behavior instead of silently dropping a fold.
-            mask.append(True)
-            continue
-        mask.append(any(float(g.span_start) - tol <= cross <= float(g.span_end) + tol for g in matches))
-    return tuple(mask)
+    """Compatibility: Engine owns finite BEND-span fold activation."""
+    return manufacturing_api.fold_profile_bend_mask(
+        profile, axis, cross_position, fold_guides, tol=tol,
+    )
 
 
 def _phase6_profile_map_with_guides(position, cross_position, profile, *, axis, fold_guides):
-    mask = _phase6_fold_mask_for_cross_coordinate(profile, axis, cross_position, fold_guides)
-    boundaries, folded = _phase6_profile_geometry(profile, enabled_folds=mask)
-    return _phase6_profile_map(position, boundaries, folded)
+    """Compatibility: fold one mesh coordinate using canonical Engine geometry."""
+    return manufacturing_api.fold_profile_map_with_guides(
+        position, cross_position, profile, axis=axis, fold_guides=fold_guides,
+    )
 
 
 def _phase6_profile_map(position, boundaries, folded):
-    """Map one unfolded scalar to a folded cross-section coordinate (u, z)."""
-    value = float(position)
-    total = float(boundaries[-1])
-    value = min(max(value, 0.0), total)
-    index = len(boundaries) - 2
-    for i in range(len(boundaries) - 1):
-        if value <= boundaries[i + 1] + 1e-9:
-            index = i
-            break
-    lo, hi = float(boundaries[index]), float(boundaries[index + 1])
-    ratio = 0.0 if hi <= lo else (value - lo) / (hi - lo)
-    u0, z0 = folded[index]
-    u1, z1 = folded[index + 1]
-    return (u0 + (u1 - u0) * ratio, z0 + (z1 - z0) * ratio)
+    """Compatibility: Engine owns material-space to formed-space mapping."""
+    return manufacturing_api.fold_profile_map(position, boundaries, folded)
 
 
 def _phase6_profile_flat_map(position, boundaries, *, profile=None):
-    """Map one unfolded scalar onto the semantic unbent base plane."""
-    seg_count = max(1, len(boundaries) - 1)
-    base_idx = _phase6_profile_base_index(profile) if profile is not None else min(seg_count - 1, seg_count // 2)
-    center = (float(boundaries[base_idx]) + float(boundaries[base_idx + 1])) / 2.0
-    return float(position) - center, 0.0
+    """Compatibility: Engine owns the unbent semantic base datum."""
+    return manufacturing_api.fold_profile_flat_map(
+        position, boundaries, profile=profile,
+    )
 
 
 def _phase6_folded_mesh_from_polygon(
     material, x_profile, y_profile, *, fold_exemptions=(), fold_guides=()
 ):
     """Compatibility wrapper around shared manufacturing-space folding."""
-    from ae_engine.assembly_geometry import folded_mesh_from_polygon
-
-    return list(folded_mesh_from_polygon(
+    return list(manufacturing_api.folded_material_mid_mesh(
         material,
         x_profile,
         y_profile,
@@ -149,60 +67,10 @@ def _phase6_folded_mesh_from_polygon(
 
 
 def _phase6_mesh_feature_segments(triangles, *, tolerance=1e-6):
-    """Return physical solid edges that are visible geometric features.
-
-    Coplanar triangulation diagonals are excluded.  Boundary edges and shared
-    edges whose adjacent face normals are non-coplanar are retained.  On a
-    thickened formed sheet this yields the actual outer/inner hole rims, sheet
-    perimeter, bend/miter edges, and thickness corners on the physical skins.
-    """
-    import math
-    from collections import defaultdict
-
-    inv_tol = 1.0 / max(float(tolerance), 1e-12)
-
-    def key(point):
-        return tuple(int(round(float(v) * inv_tol)) for v in point)
-
-    def normal(tri):
-        a, b, c = tri[:3]
-        ux, uy, uz = (float(b[i]) - float(a[i]) for i in range(3))
-        vx, vy, vz = (float(c[i]) - float(a[i]) for i in range(3))
-        nx = uy * vz - uz * vy
-        ny = uz * vx - ux * vz
-        nz = ux * vy - uy * vx
-        mag = math.sqrt(nx * nx + ny * ny + nz * nz)
-        if mag <= 1e-12:
-            return None
-        return (nx / mag, ny / mag, nz / mag)
-
-    edges = defaultdict(list)
-    original = {}
-    for tri in triangles or ():
-        if len(tri) < 3:
-            continue
-        n = normal(tri)
-        if n is None:
-            continue
-        for a, b in ((tri[0], tri[1]), (tri[1], tri[2]), (tri[2], tri[0])):
-            ka, kb = key(a), key(b)
-            edge = (ka, kb) if ka <= kb else (kb, ka)
-            edges[edge].append(n)
-            original[ka] = tuple(float(v) for v in a)
-            original[kb] = tuple(float(v) for v in b)
-
-    segments = []
-    for edge, normals in edges.items():
-        visible = len(normals) == 1
-        if not visible and len(normals) >= 2:
-            base = normals[0]
-            visible = any(
-                abs(sum(base[i] * other[i] for i in range(3))) < 1.0 - 1e-6
-                for other in normals[1:]
-            )
-        if visible:
-            segments.append((original[edge[0]], original[edge[1]]))
-    return tuple(segments)
+    """FinalScene presentation compatibility, not a physical-edge formula."""
+    return manufacturing_api.physical_solid_mesh_feature_segments(
+        triangles, tolerance=tolerance,
+    )
 
 
 def _phase6_fitted_limits_from_vertices(vertices, padding=0.06):
@@ -224,81 +92,18 @@ def _phase6_fitted_limits_from_vertices(vertices, padding=0.06):
 
 
 def _phase6_scene_fold_boundaries(scene, material):
-    """Use final BEND primitives as unfolded fold positions."""
-    # 3D 輸入/Fold Profile 是上游；製造 scene BEND 為展開料長線位，FinalScene 僅投影成形。
-    # BEND/料長與包外在完整拓樸/T 下可雙向驗算；禁止由組合渲染資料回寫 3D 操作輸入。
-    from ae_engine.sheetmetal_drawing import LinePrimitive
-    minx, miny, maxx, maxy = (float(v) for v in material.bounds)
-    xs, ys = [], []
-    for primitive in getattr(scene, "primitives", ()):
-        if not isinstance(primitive, LinePrimitive) or str(getattr(primitive, "layer", "")).upper() != "BEND":
-            continue
-        x1, y1 = float(primitive.p1.x), float(primitive.p1.y)
-        x2, y2 = float(primitive.p2.x), float(primitive.p2.y)
-        if abs(x1 - x2) <= 1e-6 and minx + 1e-7 < x1 < maxx - 1e-7:
-            xs.append((x1 + x2) / 2.0)
-        elif abs(y1 - y2) <= 1e-6 and miny + 1e-7 < y1 < maxy - 1e-7:
-            ys.append((y1 + y2) / 2.0)
-
-    def uniq(values):
-        out = []
-        for value in sorted(values):
-            if not out or abs(value - out[-1]) > 1e-6:
-                out.append(value)
-        return out
-
-    return (tuple([minx] + uniq(xs) + [maxx]), tuple([miny] + uniq(ys) + [maxy]))
+    """Phase6 compatibility: Engine owns physical BEND-derived boundaries."""
+    return manufacturing_api.scene_fold_boundaries(scene, material)
 
 
 def _phase6_profile_to_scene_boundaries(profile, boundaries):
-    """Keep only bend angles from UI; material segment lengths come from final BENDs."""
-    segs = [dict(seg) for seg in (profile or ())]
-    if len(segs) != len(boundaries) - 1:
-        return segs
-    for i, seg in enumerate(segs):
-        seg["len"] = float(boundaries[i + 1]) - float(boundaries[i])
-        seg.pop("ui_len_add", None)
-    return segs
+    """Phase6 compatibility: Engine owns material profile source lengths."""
+    return manufacturing_api.profile_to_scene_boundaries(profile, boundaries)
 
 
 def _phase6_fold_ownership_exemptions(material, xb, yb):
-    """Infer double-fold corner ownership from final CUTTING topology only.
-
-    Material in a corner fold cell that touches only the horizontal outside edge
-    belongs to the top/bottom flange and must not also receive the X fold.  The
-    vertical-only case analogously suppresses the Y fold.
-    """
-    from shapely.geometry import box, LineString
-
-    if len(xb) < 3 or len(yb) < 3:
-        return []
-    x0, x1, xr1, xr0 = map(float, (xb[0], xb[1], xb[-2], xb[-1]))
-    y0, y1, yt1, yt0 = map(float, (yb[0], yb[1], yb[-2], yb[-1]))
-    specs = (
-        (box(x0, y0, x1, y1), LineString(((x0, y0), (x0, y1))), LineString(((x0, y0), (x1, y0)))),
-        (box(xr1, y0, xr0, y1), LineString(((xr0, y0), (xr0, y1))), LineString(((xr1, y0), (xr0, y0)))),
-        (box(x0, yt1, x1, yt0), LineString(((x0, yt1), (x0, yt0))), LineString(((x0, yt0), (x1, yt0)))),
-        (box(xr1, yt1, xr0, yt0), LineString(((xr0, yt1), (xr0, yt0))), LineString(((xr1, yt0), (xr0, yt0)))),
-    )
-
-    def polygon_parts(geom):
-        if geom.is_empty:
-            return []
-        if geom.geom_type == "Polygon":
-            return [geom] if geom.area > 1e-9 else []
-        return [g for g in getattr(geom, "geoms", ()) if g.geom_type == "Polygon" and g.area > 1e-9]
-
-    out = []
-    tol = 1e-7
-    for cell, vertical_edge, horizontal_edge in specs:
-        for piece in polygon_parts(material.intersection(cell)):
-            touches_v = piece.boundary.intersection(vertical_edge).length > tol
-            touches_h = piece.boundary.intersection(horizontal_edge).length > tol
-            if touches_h and not touches_v:
-                out.append(("x", piece))
-            elif touches_v and not touches_h:
-                out.append(("y", piece))
-    return out
+    """Phase6 compatibility: Engine owns local corner fold source semantics."""
+    return manufacturing_api.fold_ownership_exemptions(material, xb, yb)
 
 
 def _default_number_text(value):
@@ -317,41 +122,28 @@ def _phase6_folded_outside_envelope(triangles, thickness):
     return folded_outside_envelope(triangles, thickness)
 
 
-def _phase6_profile_operator_fold_values(profile):
-    out = []
-    for seg in profile or ():
-        if seg.get("core"):
-            continue
-        try:
-            out.append(float(engine_segment_length_to_ui(seg)))
-        except Exception:
-            out.append(float(_num(seg.get("len", 0.0))))
-    return out
+def _phase6_profile_operator_fold_values(profile, *, thickness=2.0):
+    """Only format Engine-projected outside Fold lengths for FinalScene views.
+
+    Recompute from actual BEND and sheet T. Stale saved ui_len_add must not
+    disagree with the Fold editor/3D physical source, nor allow a GUI fallback
+    to fabricate 0 mm on invalid physical material.
+    """
+    display = manufacturing_api.project_operator_fold_editor_display_rows(
+        profile or (), thickness,
+    )
+    return [abs(float(row["len"])) for row in display if not row.get("core")]
 
 
 def _phase6_contract_profile_rows(profile):
-    rows = []
-    for seg in profile or ():
-        row = {"len": float(getattr(seg, "length", 0.0))}
-        angle = getattr(seg, "angle", None)
-        if angle is not None:
-            row["angle"] = float(angle)
-        core = getattr(seg, "core", None)
-        if core:
-            row["core"] = str(core)
-        key = getattr(seg, "phase6_key", None)
-        if key:
-            row["phase6_key"] = str(key)
-        rows.append(row)
-    return rows
+    """Compatibility: Engine owns FoldSegment material row serialization."""
+    return manufacturing_api.contract_fold_profile_rows(profile)
 
 
 def _phase6_box_body_piece_world_mapper(piece, *, total_w, thickness, x_profile):
     """Compatibility adapter to the shared assembly-geometry role transform."""
-    from ae_engine.assembly_geometry import place_box_body_structure_points
-
     def world(point):
-        placed = place_box_body_structure_points(
+        placed = manufacturing_api.project_box_body_structure_world_points(
             (point,), piece, total_w=total_w, thickness=thickness, x_profile=x_profile
         )
         return placed[0]
@@ -365,70 +157,50 @@ def _phase6_box_body_piece_dimension_lines(render_data) -> tuple[str, ...]:
         "left": "左箱身", "middle": "中箱身", "right": "右箱身",
     }
     rows = []
-    for piece in tuple(getattr(render_data, "pieces", ()) or ()):
-        label = labels.get(str(getattr(piece, "role", "") or ""), "箱身板件")
-        fw, fh = tuple(float(v) for v in piece.formed_outer_dimensions)
-        bw, bh = tuple(float(v) for v in piece.material_dimensions)
+    # The Assembly panel, FinalScene text and headless Engine client all
+    # consume one physical-piece ID and dimension readback from Engine.
+    for piece in manufacturing_api.project_box_body_assembly_panel_piece_rows(
+        render_data,
+    ):
+        part_key = str(piece.part_key)
+        role = part_key.split(":", 1)[1] if part_key.startswith("box_body:") else ""
+        label = labels.get(role, "箱身板件")
         rows.append(
-            f"{label}：成形 {_default_number_text(fw)} × {_default_number_text(fh)} mm；"
-            f"展開 {_default_number_text(bw)} × {_default_number_text(bh)} mm"
+            f"{label}：成形 {_default_number_text(piece.formed_width)} × "
+            f"{_default_number_text(piece.formed_height)} mm；"
+            f"展開 {_default_number_text(piece.blank_width)} × "
+            f"{_default_number_text(piece.blank_height)} mm"
         )
     return tuple(rows)
 
 
 
 def _phase6_assembly_physical_dimension_lines(part, *, thickness):
-    """Presentation-only dimensions from the resolved source, never a new solve.
-
-    Material spans and formed/outside lengths are deliberately named separately
-    so a 22 mm first-fold material length cannot be mistaken for 24 mm outside.
-    """
-    key = str(getattr(part, "part_key", "") or "")
-    if key != "box_body":
-        if not key.startswith("box_body:divider:"):
-            return ()
-        material = getattr(getattr(part, "render_data", None), "material", None)
-        if material is None or getattr(material, "is_empty", True):
-            return ()
-        minx, miny, maxx, maxy = map(float, material.bounds)
-        contract = dict((getattr(part.render_data, "metadata", {}) or {}).get("physical_geometry_contract") or {})
-        fw = dict(contract.get("fw_physical_face") or {}).get("outside_dimension")
-        core = dict(contract.get("core_physical_segment") or {}).get("outside_dimension")
-        detail = []
-        if fw is not None:
-            detail.append(f"FW包外 {_default_number_text(fw)}")
-        if core is not None:
-            detail.append(f"核心包外 {_default_number_text(core)}")
-        suffix = ("；" + "、".join(detail)) if detail else ""
-        return (f"中隔：展開外框 {_default_number_text(maxx-minx)} × {_default_number_text(maxy-miny)} mm{suffix}",)
-
-    result = []
-    from phase6_fold_profiles import apply_outside_dimension_compensation
-    for piece in tuple(getattr(getattr(part, "render_data", None), "pieces", ()) or ()):
-        role = str(getattr(piece, "role", "") or "")
-        if role not in ("left_side", "right_side"):
-            continue
-        segs = tuple(getattr(piece, "fold_profile", None) or ())
-        if not segs:
-            continue
-        rows = [
-            {
-                "len": float(seg.length),
-                **({"angle": float(seg.angle)} if seg.angle is not None else {}),
-            }
-            for seg in segs
-        ]
-        apply_outside_dimension_compensation(rows, thickness)
-        outside = [
-            (float(seg.formed_length) if seg.formed_length is not None else
-             float(row["len"]) + float(row.get("ui_len_add", 0.0)))
-            for seg, row in zip(segs, rows)
-        ]
-        label = "左側板" if role == "left_side" else "右側板"
-        formatted = " / ".join(_default_number_text(v) for v in outside)
-        result.append(f"{label}：折後各段包外 {formatted} mm（依展開順序）")
-    return tuple(result)
-
+    """Format physical dimension evidence resolved exclusively by Engine."""
+    evidence = manufacturing_api.project_assembly_physical_dimension_evidence(
+        part, thickness=thickness,
+    )
+    lines = []
+    for item in evidence:
+        if item.role == "divider":
+            detail = []
+            if item.fw_outside is not None:
+                detail.append(f"FW包外 {_default_number_text(item.fw_outside)}")
+            if item.core_outside is not None:
+                detail.append(f"核心包外 {_default_number_text(item.core_outside)}")
+            suffix = ("；" + "、".join(detail)) if detail else ""
+            width, height = item.material_extent
+            lines.append(
+                f"中隔：展開外框 {_default_number_text(width)} × "
+                f"{_default_number_text(height)} mm{suffix}"
+            )
+        else:
+            label = "左側板" if item.role == "left_side" else "右側板"
+            formatted = " / ".join(
+                _default_number_text(value) for value in item.fold_outside
+            )
+            lines.append(f"{label}：折後各段包外 {formatted} mm（依展開順序）")
+    return tuple(lines)
 
 def _phase6_assembly_part_presentation(part_key, opacity):
     """Return shared-theme visual role and visible opacity, never edit material."""
@@ -439,112 +211,21 @@ def _phase6_assembly_part_presentation(part_key, opacity):
 
 
 def _phase6_box_body_formed_width_datum(pieces):
-    """Distinguish all-preview stubs from a corrupt partially located Box Body."""
-    from math import isfinite
-
-    widths = []
-    for piece in pieces:
-        raw = getattr(piece, "formed_w_end", 0.0)
-        if isinstance(raw, bool):
-            raise ValueError("BOX_BODY_PIECE_OUTSIDE_DATUM_INVALID")
-        try:
-            width = float(raw or 0.0)
-        except (TypeError, ValueError, OverflowError) as exc:
-            raise ValueError("BOX_BODY_PIECE_OUTSIDE_DATUM_INVALID") from exc
-        if not isfinite(width):
-            raise ValueError("BOX_BODY_PIECE_OUTSIDE_DATUM_INVALID")
-        widths.append(width)
-    total = max(widths, default=0.0)
-    if total <= 0.0:
-        # Preserve the original preview-only placeholder fallback.
-        return None
-    for piece, width in zip(pieces, widths):
-        if width > 0.0:
-            continue
-        # The canonical three-piece side/back type puts the left SIDE panel
-        # on outside-W=0, while its physical material span is formed_outer_width.
-        # This is not a missing W-split datum. Require both source anchors.
-        legitimate_left_side = False
-        if width == 0.0 and str(getattr(piece, "role", "")) == "left_side":
-            start = getattr(piece, "formed_w_start", None)
-            span = getattr(piece, "formed_outer_width", None)
-            try:
-                legitimate_left_side = (
-                    not isinstance(start, bool)
-                    and not isinstance(span, bool)
-                    and float(start) == 0.0
-                    and isfinite(float(span))
-                    and float(span) > 0.0
-                )
-            except (TypeError, ValueError, OverflowError):
-                legitimate_left_side = False
-        if not legitimate_left_side:
-            raise ValueError("BOX_BODY_PIECE_OUTSIDE_DATUM_INCOMPLETE")
-    return total
+    """Compatibility: Engine validates actual Box Body world-width provenance."""
+    return manufacturing_api.resolve_box_body_formed_width_datum(pieces)
 
 
 def _phase6_box_body_true_world_piece_meshes(part, *, dimensions, thickness):
-    """Actual assembled true-T world skins shared by manufacturing and viewers.
-
-    The old visual-only piece strips did NOT receive Manufacturing's physical
-    FW-material-to-outside and terminal-fold transforms. Do not apply the
-    scene placement twice: these skin triangles are already in world XYZ.
-    Only the physical box_body aggregate is eligible; other parts keep their
-    existing placement and Head/Tail mating path.
-    """
-    pieces = tuple(getattr(getattr(part, "render_data", None), "pieces", ()) or ())
-    if not pieces:
-        return ()
-    # Preview-only stubs without an assembled outside-width datum are not
-    # authoritative physical skins. Leave the prior non-physical fallback.
-    if _phase6_box_body_formed_width_datum(pieces) is None:
-        return ()
-    if str(getattr(part, "part_key", "")) != "box_body":
-        raise ValueError("multi-piece world skins must originate in box_body")
-    if dimensions is None or len(dimensions) != 3:
-        raise ValueError("box_body true-world mesh requires assembled W/H/D")
-    from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
-
-    world = _phase6_build_joint_world_geometry(
-        (part,), tuple(float(value) for value in dimensions), float(thickness)
-    )["world_triangles_by_part"]
-    rows = []
-    for piece in pieces:
-        key = "box_body:" + str(getattr(piece, "role", "") or "")
-        actual = tuple(world.get(key, ()) or ())
-        if not actual:
-            raise ValueError(f"missing physical mesh for {key}")
-        rows.append((piece, actual))
-    return tuple(rows)
-
+    """3D FinalScene adapter: true-T physical world skins belong to Engine."""
+    return manufacturing_api.resolve_box_body_true_world_piece_meshes(
+        part, dimensions=dimensions, thickness=thickness,
+    )
 
 def _phase6_box_body_structure_meshes(render_data, *, thickness):
-    """Return assembled Box Body structure meshes in structure-local coordinates."""
-    pieces = tuple(getattr(render_data, "pieces", ()) or ())
-    if not pieces:
-        return []
-    # Use the identical real-vs-preview outside datum gate as world skins.
-    total_w = _phase6_box_body_formed_width_datum(pieces)
-    if total_w is None:
-        return []
-    out = []
-
-    for piece in pieces:
-        data = piece.render_data
-        x_profile = _phase6_contract_profile_rows(piece.fold_profile)
-        minx, miny, maxx, maxy = map(float, data.material.bounds)
-        y_profile = [{"len": maxy - miny}]
-        local = _phase6_folded_mesh_from_polygon(
-            data.material, x_profile, y_profile,
-            fold_guides=tuple(getattr(data, "fold_guides", ()) or ()),
-        )
-        world = _phase6_box_body_piece_world_mapper(
-            piece, total_w=total_w, thickness=thickness, x_profile=x_profile
-        )
-        transformed = [tuple(world(point) for point in tri) for tri in local]
-        out.append((piece, tuple(transformed)))
-    return out
-
+    """Compatibility list: Engine owns physical Box Body mid-surface folding."""
+    return list(manufacturing_api.resolve_box_body_structure_mid_meshes(
+        render_data, thickness=thickness,
+    ))
 
 def format_operator_info_text(request, *, dimensions=None, number_text=None):
     """Format already-resolved operator display information for every View sink."""
@@ -554,8 +235,17 @@ def format_operator_info_text(request, *, dimensions=None, number_text=None):
         return ""
     width, height = dims[:2]
     depth = dims[2] if len(dims) > 2 else None
-    xfold = " / ".join(number_text(v) for v in _phase6_profile_operator_fold_values(request.x_profile)) or "-"
-    yfold = " / ".join(number_text(v) for v in _phase6_profile_operator_fold_values(request.y_profile)) or "-"
+    thickness = getattr(request, "thickness", 2.0)
+    xfold = " / ".join(
+        number_text(v) for v in _phase6_profile_operator_fold_values(
+            request.x_profile, thickness=thickness,
+        )
+    ) or "-"
+    yfold = " / ".join(
+        number_text(v) for v in _phase6_profile_operator_fold_values(
+            request.y_profile, thickness=thickness,
+        )
+    ) or "-"
     finished = (
         f"折後包外：W {number_text(width)} × H {number_text(height)} × D {number_text(depth)} mm"
         if depth is not None else
@@ -572,16 +262,14 @@ def format_operator_info_text(request, *, dimensions=None, number_text=None):
 
 
 def _phase6_triangle_bounds(triangles):
-    from ae_engine.assembly_geometry import triangle_bounds
-
-    return triangle_bounds(triangles)
+    return manufacturing_api.physical_mesh_world_bounds(triangles)
 
 
 def _phase6_place_assembly_triangles(triangles, placement, dimensions, offset):
-    """Compatibility wrapper around the shared assembly-space transform."""
-    from ae_engine.assembly_geometry import place_assembly_triangles
-
-    return place_assembly_triangles(triangles, placement, dimensions, offset)
+    """Compatibility: Engine owns physical assembly world placement."""
+    return manufacturing_api.project_assembly_world_triangles(
+        triangles, placement, dimensions, offset,
+    )
 
 
 def make_assembly_scene_render_data(
@@ -619,7 +307,11 @@ def make_assembly_scene_render_data(
             else tuple(str(key) for key in visible_box_body_piece_keys)
         ),
         "show_interference": bool(show_interference),
-        "ignore_fixed_corner_relief": bool(ignore_fixed_corner_relief),
+        # Physical EndCap relief visibility is not a Python truthiness flag:
+        # serialized "false" must agree with the immutable Engine request.
+        "ignore_fixed_corner_relief": manufacturing_api.normalize_operator_3d_fallback_flag(
+            ignore_fixed_corner_relief,
+        ),
         "interference_probe_parts": tuple(interference_probe_parts or ()),
         "joint_diagnostics": tuple(joint_diagnostics or ()),
         "collision_certification_diagnostics": tuple(

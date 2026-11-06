@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import tkinter as tk
 
-import ae_engine.ae as ae
+from ae_engine import manufacturing_api
 from gui_modules.application.door_layout_controller import (
     DoorLayoutColumnState as _DoorLayoutColumnState,
     door_layout_cells as _door_layout_cells_impl,
@@ -41,14 +41,30 @@ def _new_door_layout_column(self, width, heights, *, width_auto=False, height_au
 
 def set_door_layout_columns(self, columns):
     """Replace Door layout with explicit user values, then append any W/H remainders."""
-    model = []
+    # Validate every authored physical cell *before* creating Tk rows or
+    # modifying the saved Door layout; bool/NaN must not become 1mm holes.
+    validated = []
     for width, heights in columns:
         height_values = list(heights)
         if not height_values:
             raise ValueError("每一欄至少需要一層高度")
-        model.append(self._new_door_layout_column(width, height_values))
-    if not model:
+        validated.append((
+            manufacturing_api.normalize_operator_source_dimension(
+                width, field="w",
+            ),
+            [
+                manufacturing_api.normalize_operator_source_dimension(
+                    height, field="h",
+                )
+                for height in height_values
+            ],
+        ))
+    if not validated:
         raise ValueError("門配置至少需要一欄")
+    model = [
+        self._new_door_layout_column(width, heights)
+        for width, heights in validated
+    ]
     self.door_layout_columns = model
     self.door_layout_selected_var.set("0:0")
     self._recompute_door_layout_remainders(rebuild=False)
@@ -58,11 +74,14 @@ def set_door_layout_columns(self, columns):
 def _ensure_door_layout_default(self):
     if self.door_layout_columns:
         return
-    try:
-        width = float(self.w_var.get())
-        height = float(self.h_var.get())
-    except ValueError:
-        width, height = ae.W, ae.H
+    # An invalid source must never turn into AE's factory W/H defaults.
+    # The exact positive, finite physical dimensions belong to Engine.
+    width = manufacturing_api.normalize_operator_source_dimension(
+        self.w_var.get(), field="w",
+    )
+    height = manufacturing_api.normalize_operator_source_dimension(
+        self.h_var.get(), field="h",
+    )
     self.door_layout_columns = [self._new_door_layout_column(width, [height])]
     self._recompute_door_layout_remainders(rebuild=False)
 
@@ -88,8 +107,12 @@ def _recompute_door_layout_remainders(self, *, rebuild=True):
     if not self.door_layout_columns:
         return
     try:
-        total_width = float(self.w_var.get())
-        total_height = float(self.h_var.get())
+        total_width = manufacturing_api.normalize_operator_source_dimension(
+            self.w_var.get(), field="w",
+        )
+        total_height = manufacturing_api.normalize_operator_source_dimension(
+            self.h_var.get(), field="h",
+        )
     except ValueError as exc:
         raise ValueError("W / H 必須先填入有效數字") from exc
     result = _recompute_door_layout_impl(
@@ -121,7 +144,17 @@ def get_door_layout_columns(self):
     columns = []
     for column_index, column in enumerate(self.door_layout_columns, start=1):
         if isinstance(column, (list, tuple)):
-            columns.append((float(column[0]), [float(h) for h in list(column[1])]))
+            columns.append((
+                manufacturing_api.normalize_operator_source_dimension(
+                    column[0], field="w",
+                ),
+                [
+                    manufacturing_api.normalize_operator_source_dimension(
+                        value, field="h",
+                    )
+                    for value in list(column[1])
+                ],
+            ))
             continue
         width = self._parse_layout_value(column["width_var"], f"欄 {column_index} 寬度")
         heights = [
@@ -140,17 +173,26 @@ def _receiving_live_door_layout_source(self):
     """
     designer = getattr(self, "fold_designer_app", None)
     source = getattr(designer, "_phase6_input_snapshot", None)
-    if not isinstance(source, dict) or source.get("model") not in {"受電箱", "RECEIVING"}:
+    if (not isinstance(source, dict)
+            or not manufacturing_api.receiving_family_supports_back_panel_mode(source)):
         return None
     whd = getattr(designer, "_phase6_box_whd", None)
     if not isinstance(whd, dict) or any(axis not in whd for axis in ("w", "h", "d")):
-        return None
+        # A selected Receiving Family has an authoritative live Bay: falling
+        # back to the unrelated legacy GUI header would edit the wrong panel.
+        raise ValueError("目前受電箱缺少已確認的 Bay W/H/D 來源")
     columns = source.get("door_layout_columns")
     if not columns:
-        # Never substitute another Bay's legacy UI grid for an absent
-        # authoritative door topology.
         raise ValueError("目前受電箱缺少已配置門分割資料")
-    return source, whd
+    # This existing Engine port validates all W/H/D (including depth, which
+    # the 2D Door layout alone cannot check) and preserves the original
+    # numeric source types rather than converting bool/NaN in the GUI.
+    validated = manufacturing_api.project_operator_receiving_settings_live_dimensions(
+        source, whd, applying_settings=True,
+    )
+    if validated is None:
+        raise ValueError("受電箱門格 Bay 實體尺寸來源未通過 Engine 驗證")
+    return source, validated
 
 
 def get_door_layout_cells(self):
@@ -310,151 +352,103 @@ def add_door_layout_column(self):
     if auto_index is not None:
         self.commit_door_layout_width(auto_index)
 
-def _remap_door_layout_owned_data(self, mapper):
-    # Compute physical inner-door identity changes BEFORE editing any stores.
-    # A moved cell can change stable_id (e.g. c2r1 -> upper). Keep the panel
-    # hole features under the corresponding new physical key in both 2D and
-    # Workspace; moving only receiving_inner_doors[].cell_key loses the holes.
-    inner_doors = getattr(self, "receiving_inner_doors", None)
-    remapped_inner_doors = []
-    id_changes = {}
-    if isinstance(inner_doors, list):
-        for raw in inner_doors:
-            if not isinstance(raw, dict):
-                continue
-            cell_key = str(raw.get("cell_key", ""))
-            try:
-                col_s, row_s = cell_key.split(":", 1)
-                target = mapper(int(col_s), int(row_s))
-            except (TypeError, ValueError):
-                target = None
-            old_id = str(raw.get("stable_id") or "").strip()
-            if target is None:
-                if old_id:
-                    id_changes[old_id] = None
-                continue
-            new_cell_key = f"{target[0]}:{target[1]}"
-            new_id = (
-                self._receiving_inner_door_stable_id_for_cell(new_cell_key)
-                if hasattr(self, "_receiving_inner_door_stable_id_for_cell")
-                else old_id
-            )
-            item = dict(raw)
-            item["cell_key"] = new_cell_key
-            item["stable_id"] = new_id
-            remapped_inner_doors.append(item)
-            if old_id and old_id != new_id:
-                id_changes[old_id] = new_id
+def _remap_door_layout_owned_data(
+    self, mapper=None, *, operation=None, column_index=None, row_index=None,
+):
+    """Commit prevalidated Engine physical sources; accept legacy UI cell mappings."""
+    from ae_engine import manufacturing_api
 
-    def remap_inner_part_keys(original):
-        updated = {}
-        for key, value in dict(original or {}).items():
-            destination = str(key)
-            for old_id, new_id in id_changes.items():
-                old_prefix = f"inner_door:{old_id}:"
-                if destination.startswith(old_prefix):
-                    destination = (
-                        None if new_id is None
-                        else f"inner_door:{new_id}:" + destination[len(old_prefix):]
-                    )
-                    break
-            if destination is None:
-                continue
-            if destination in updated and updated[destination] != value:
-                raise ValueError(f"內門重映射特徵身份衝突: {destination}")
-            updated[destination] = value
-        return updated
-
-    for attr in (
+    cell_names = (
         "door_layout_features", "door_layout_indicator_states",
-        "door_layout_indicator_box_features", "door_layout_indicator_door_features",
-        "door_layout_handle_edges",
-    ):
-        setattr(
-            self, attr,
-            _remap_door_layout_owned_data_impl(getattr(self, attr, {}), mapper),
-        )
-    surface_features = getattr(self, "surface_features", None)
-    if isinstance(surface_features, dict):
-        updated = remap_inner_part_keys(surface_features)
-        for key in [k for k in updated if str(k).startswith("door_c")]:
-            updated.pop(key, None)
-        for cell_key, items in getattr(self, "door_layout_features", {}).items():
-            try:
-                col_s, row_s = str(cell_key).split(":", 1)
-                phys_key = f"door_c{int(col_s) + 1}_r{int(row_s) + 1}"
-            except (TypeError, ValueError):
-                continue
-            updated[phys_key] = list(items)
-        surface_features.clear()
-        surface_features.update(updated)
-
+        "door_layout_indicator_box_features",
+        "door_layout_indicator_door_features", "door_layout_handle_edges",
+    )
     controller = getattr(self, "workspace_controller", None)
-    if controller is not None:
-        part_features = controller.part_features_snapshot()
-        part_features = remap_inner_part_keys(part_features)
-        # Main 2D Door cells are a separate identity family; rebuild them from
-        # the same keyed Door layout authoritative collection.
-        for key in tuple(part_features):
-            if str(key).startswith("door_c"):
-                part_features.pop(key, None)
-        for cell_key, items in getattr(self, "door_layout_features", {}).items():
-            try:
-                col_s, row_s = str(cell_key).split(":", 1)
-                part_features[f"door_c{int(col_s) + 1}_r{int(row_s) + 1}"] = list(items)
-            except (TypeError, ValueError):
-                continue
-        controller.replace_part_features(part_features)
-        if id_changes and hasattr(controller, "part_face_features_snapshot"):
-            controller.replace_part_face_features(
-                remap_inner_part_keys(controller.part_face_features_snapshot())
-            )
-
-    # The open Fold Designer owns a second live workspace. Move its physical
-    # inner-door and per-cell features in the same transaction rather than
-    # allowing an old stable_id to be republished over the main Workspace.
     designer = getattr(self, "fold_designer_app", None)
     designer_workspace = getattr(designer, "designer_workspace", None)
-    if designer_workspace is not None:
-        designer_features = remap_inner_part_keys(
-            designer_workspace.part_features_snapshot()
-        )
-        for key in tuple(designer_features):
-            if str(key).startswith("door_c"):
-                designer_features.pop(key, None)
-        for cell_key, items in getattr(self, "door_layout_features", {}).items():
-            try:
-                col_s, row_s = str(cell_key).split(":", 1)
-                designer_features[f"door_c{int(col_s) + 1}_r{int(row_s) + 1}"] = list(items)
-            except (TypeError, ValueError):
-                continue
-        designer_workspace.replace_part_features(designer_features)
-        if id_changes and hasattr(designer_workspace, "part_face_features_snapshot"):
-            designer_workspace.replace_part_face_features(
-                remap_inner_part_keys(
-                    designer_workspace.part_face_features_snapshot()
-                )
-            )
+    surface = getattr(self, "surface_features", None)
 
-    if isinstance(inner_doors, list):
-        self.receiving_inner_doors = remapped_inner_doors
+    physical = {}
+    if isinstance(surface, dict):
+        physical["surface"] = surface
+    if controller is not None:
+        physical["workspace"] = controller.part_features_snapshot()
+        if hasattr(controller, "part_face_features_snapshot"):
+            physical["workspace_face"] = controller.part_face_features_snapshot()
+    if designer_workspace is not None:
+        physical["designer"] = designer_workspace.part_features_snapshot()
+        if hasattr(designer_workspace, "part_face_features_snapshot"):
+            physical["designer_face"] = designer_workspace.part_face_features_snapshot()
+
+    cell_sources = {name: getattr(self, name, {}) for name in cell_names}
+    transitions = None
+    if mapper is not None:
+        # Historical host callers supplied a UI positional callback. Translate
+        # only old/new GRID COORDINATES; Engine still resolves physical IDs.
+        if operation is not None or not callable(mapper):
+            raise ValueError("Invalid Door cell mapping request")
+        keys = {str(key) for rows in cell_sources.values()
+                for key in dict(rows or {})}
+        keys.update(str(row.get("cell_key", ""))
+                    for row in (getattr(self, "receiving_inner_doors", None) or ())
+                    if isinstance(row, dict))
+        transitions = {}
+        for key in keys:
+            try:
+                c_text, r_text = key.split(":", 1)
+                target = mapper(int(c_text), int(r_text))
+                transitions[key] = (
+                    None if target is None
+                    else f"{int(target[0])}:{int(target[1])}"
+                )
+            except (TypeError, ValueError):
+                transitions[key] = None
+        operation = "map_cells"
+    result = manufacturing_api.remap_receiving_door_layout_after_delete(
+        operation=operation, column_index=column_index, row_index=row_index,
+        inner_doors=getattr(self, "receiving_inner_doors", None),
+        cell_sources=cell_sources, physical_sources=physical,
+        cell_transitions=transitions,
+    )
+    for name, value in result["cell_sources"].items():
+        setattr(self, name, value)
+    stores = result["physical_sources"]
+    if "surface" in stores:
+        surface.clear()
+        surface.update(stores["surface"])
+    if "workspace" in stores:
+        controller.replace_part_features(stores["workspace"])
+    if result["identity_changes"] and "workspace_face" in stores:
+        controller.replace_part_face_features(stores["workspace_face"])
+    if "designer" in stores:
+        designer_workspace.replace_part_features(stores["designer"])
+    if result["identity_changes"] and "designer_face" in stores:
+        designer_workspace.replace_part_face_features(stores["designer_face"])
+    if isinstance(getattr(self, "receiving_inner_doors", None), list):
+        self.receiving_inner_doors = result["inner_doors"]
 
 def remove_door_layout_column(self, column_index):
     if not self.door_layout_columns:
         return
     if self.door_layout_columns[column_index].get("width_auto"):
         return
+    # Verify before identity remap/deletion, so corrupt H cannot erase the
+    # operator's last saved Door column and silently regenerate AE.H.
+    replacement_height = (
+        manufacturing_api.normalize_operator_source_dimension(
+            self.h_var.get(), field="h",
+        )
+        if len(self.door_layout_columns) == 1 else None
+    )
     self._remap_door_layout_owned_data(
-        lambda c, r: None if c == column_index else ((c - 1, r) if c > column_index else (c, r))
+        operation="delete_column", column_index=column_index,
     )
     del self.door_layout_columns[column_index]
     self.door_layout_selected_var.set("0:0")
     if not self.door_layout_columns:
-        try:
-            total_h = float(self.h_var.get())
-        except ValueError:
-            total_h = ae.H
-        self.door_layout_columns = [self._new_door_layout_column(0.0, [total_h], width_auto=True, height_auto=[True])]
+        self.door_layout_columns = [self._new_door_layout_column(
+            0.0, [replacement_height], width_auto=True, height_auto=[True],
+        )]
     self._recompute_door_layout_remainders(rebuild=True)
     self._on_door_layout_value_changed(recompute=False)
 
@@ -470,10 +464,7 @@ def remove_door_layout_height(self, column_index, row_index):
     if column["height_auto"][row_index]:
         return
     self._remap_door_layout_owned_data(
-        lambda c, r: (
-            None if c == column_index and r == row_index
-            else ((c, r - 1) if c == column_index and r > row_index else (c, r))
-        )
+        operation="delete_row", column_index=column_index, row_index=row_index,
     )
     del column["height_vars"][row_index]
     del column["height_auto"][row_index]

@@ -1609,7 +1609,8 @@ def test_nfb_ac28_signed_only_when_actual_native_two_unit_bay_is_atomic():
         ROOT / "gui_modules/application/fold_designer_composition_receiving.py"
     ).read_text(encoding="utf-8")
     assert "return adapter.submit_nfb_to_bays(" in bridge
-    assert "result=submit_live_verified_nfb(" in gui
+    assert "result=manufacturing_api.submit_live_verified_nfb(" in gui
+    assert "from ae_engine.receiving_nfb_ui1b_bridge import" not in gui
     assert 'return {"state": state, "stage_verified": stage_verified,' in gui
 
 def test_swt32_current_raw_dxf_to_actual_check_signoff_requires_exact_witness():

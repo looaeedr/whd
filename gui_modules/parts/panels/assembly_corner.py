@@ -1,6 +1,6 @@
 """Assembly/corner presentation and routing helpers only."""
 
-from ae_engine.assembly_joint import AssemblyJointRelation, edge_relation_for_part
+from ae_engine import manufacturing_api
 from ae_engine.corner_type_ui import CORNER_PAIR_CORNERS
 from ae_engine.sheetmetal_geometry import (
     CornerTypeId,
@@ -36,18 +36,13 @@ def sync_fold_designer_manual_corner_context(host, active_part):
 
 
 def fixed_corner_summary(host, part_key, current_cabinet_type_name):
-    if current_cabinet_type_name in {"受電箱", "RECEIVING"} and part_key in {"head", "tail"}:
-        joint_state = dict(getattr(host, "assembly_joint_state", {}) or {})
-        bottom_relation = edge_relation_for_part(joint_state, part_key, "BOTTOM")
-        if bottom_relation is AssemblyJointRelation.WRAP:
-            bottom_summary = "下方：包覆貼外（BOTTOM＝WRAP；FW 基準＝側板後折＋1T）"
-        elif bottom_relation is AssemblyJointRelation.INSERT:
-            bottom_summary = "下方：標準截角（BOTTOM＝嵌入；WRAP 關閉）"
-        elif bottom_relation is None:
-            bottom_summary = "下方：標準截角（BOTTOM Joint 未定義）"
-        else:
-            bottom_summary = f"下方：標準截角（BOTTOM＝{bottom_relation.value}）"
-        return "上方：嵌入貼外型（貼外留肉 1T／嵌入留肉 0.5T／深度 2T）\n" + bottom_summary
+    """Display Engine Family/Joint summary; legacy labels are display-only."""
+    summary = manufacturing_api.project_operator_fixed_corner_summary(
+        current_cabinet_type_name, part_key,
+        getattr(host, "assembly_joint_state", None),
+    )
+    if summary is not None:
+        return summary
     return host._FIXED_CORNER_SUMMARIES.get(part_key, "目前板件使用固定截角規則")
 
 

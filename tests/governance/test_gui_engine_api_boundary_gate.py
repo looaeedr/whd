@@ -85,3 +85,82 @@ def test_ci_and_current_authorities_reference_guard():
     assert "git show" in workflow
     assert "tools/gui_engine_api_boundary_gate.py" in workflow
     assert "tests/governance/test_gui_engine_api_boundary_gate.py" in workflow
+
+
+def test_current_cadsplit_wire_is_source_only_not_external_manufacturing() -> None:
+    root = Path(__file__).resolve().parents[2]
+    ai_04 = (root / "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md").read_text(
+        encoding="utf-8"
+    )
+    current = ai_04.split("## [HISTORICAL/SUPERSEDED] Legacy ae_engine notes")[0]
+    assert "外部 CADSplit 的 seam 是已授權" not in current
+    for phrase in (
+        "外部 CADSplit 目前沒有可用的已驗證製造 API seam",
+        "source-only JSON/CLI 通訊相容介面",
+        "WHD_OPERATION_NOT_IMPLEMENTED",
+        "manufacturing_verified=false",
+        "不具有獨立製造權威",
+    ):
+        assert phrase in current, f"CURRENT 04 CADSplit API boundary mismatch: {phrase}"
+
+    wire = (root / "docs/integrations/CADSplit_WHD_Contract.md").read_text(encoding="utf-8")
+    assert "zero enabled capabilities" in wire
+    assert "WHD_OPERATION_NOT_IMPLEMENTED" in wire
+    assert "not\nevidence of an installed Worker" in wire
+
+def test_cadsplit_api_reference_is_discoverable_before_manufacturing_work() -> None:
+    """Existing API gate must retain the complete reading path, not a second CURRENT."""
+    root = Path(__file__).resolve().parents[2]
+    owner = "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
+    reference = "docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md"
+    gate = "CADSPLIT_WHD_API_REFERENCE_READ_GATE_V1"
+
+    agents = (root / "AGENTS.md").read_text(encoding="utf-8")
+    current = (root / owner).read_text(encoding="utf-8")
+    authority_map = (root / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md").read_text(
+        encoding="utf-8"
+    )
+    reference_text = (root / reference).read_text(encoding="utf-8")
+
+    assert gate in agents and gate in current
+    assert reference in agents and reference in current
+    assert "先" in agents and "全文" in agents
+    for scope in ("WHD API", "Engine", "Family", "金庫型", "受電箱", "Bridge", "DXF", "版本相容性"):
+        assert scope in agents
+    for proof in ("SOURCE_READ_EVIDENCE", "完整 Git commit SHA", "相關章節", "權威判斷"):
+        assert proof in agents
+    assert "CADSplit 現有程式缺陷" in agents
+    assert (
+        f"<!-- WHD_AUTHORITY contract=manufacturing-architecture role=CURRENT path={owner} -->"
+        in authority_map
+    )
+    assert (
+        f"<!-- WHD_AUTHORITY contract=manufacturing-architecture role=REFERENCE "
+        f"path={reference} canonical={owner} -->"
+        in authority_map
+    )
+    assert authority_map.count(
+        "<!-- WHD_AUTHORITY contract=manufacturing-architecture role=CURRENT "
+    ) == 1
+    assert reference_text.startswith(
+        "---\n"
+        "whd_doc_role: REFERENCE\n"
+        "whd_contract: manufacturing-architecture\n"
+        "whd_canonical: null\n"
+        "whd_schema: WHD_DOC_META_V1\n"
+    )
+    for key in ("CADSplit", "Set/Bay", "全自動", "Save→Reload"):
+        assert key in reference_text
+
+    skill_paths = (
+        ".agents/skills/engineering/程式碼庫設計/SKILL.md",
+        ".agents/skills/engineering/寫成規格書/SKILL.md",
+        ".agents/skills/engineering/驗證板件與DXF/SKILL.md",
+    )
+    for path in skill_paths:
+        skill = (root / path).read_text(encoding="utf-8")
+        assert gate in skill, f"Missing API mandatory-read gate: {path}"
+        assert "WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md" in skill, path
+        assert "04_WHD鈑金展開幾何引擎規範.md" in skill, path
+        for term in ("SOURCE_READ_EVIDENCE", "Git SHA", "相關章節", "權威判斷"):
+            assert term in skill, (path, term)

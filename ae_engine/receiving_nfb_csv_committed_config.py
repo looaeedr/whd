@@ -8,14 +8,17 @@ UNVERIFIED_BASIS, never fabricated as CONFIRMED shop datum.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+
 from hashlib import sha256
 from copy import deepcopy
+from math import isfinite
 
 from .receiving_nfb_model_identity import numeric_model_ref
 from .receiving_nfb_numeric_catalog import brand_csv_path, model_spec
 from .receiving_nfb_persistence import normalize_nfb_config
 from .receiving_shared_settings import switch_filenames_in_layer, validate_setting
-from .sheetmetal_feature_core import ProfileFeature
+from .sheetmetal_feature_core import FeatureAnchor, ProfileFeature
 
 
 def committed_csv_nfb_config(part_key, features, config):
@@ -48,6 +51,23 @@ def committed_csv_nfb_config(part_key, features, config):
         key = (layer, slot)
         if key not in expected or key in seen:
             raise ValueError("NFB_CSV_COMMIT_MISSING_OR_DUPLICATE_SLOT")
+        # The original Hole Editor's CSV source denotes a real physical
+        # finished-face CUTTING hole, never a MARKING/preview polygon or
+        # a panel-relative feature that would move during manufacturing.
+        # The config stores only source identity; reject corrupt geometry
+        # now rather than persisting a fake submitted NFB source.
+        if (feature.layer != "CUTTING"
+                or feature.anchor is not FeatureAnchor.ABSOLUTE_FINISHED_FACE
+                or feature.layered_profiles):
+            raise ValueError("NFB_CSV_COMMIT_FINISHED_FACE_CUTTING_REQUIRED")
+        coordinates = (
+            (feature.offset.x, feature.offset.y)
+            + tuple(component for point in feature.points
+                    for component in (point.x, point.y))
+        )
+        if any(type(value) not in (int, float) or not isfinite(value)
+               for value in coordinates):
+            raise ValueError("NFB_CSV_COMMIT_FINITE_PHYSICAL_PROFILE_REQUIRED")
         brand, model = info.get("brand"), info.get("model")
         from .receiving_nfb_model_identity import parse_numeric_model_ref
         if parse_numeric_model_ref(expected[key]) != (brand, model):
@@ -63,6 +83,25 @@ def committed_csv_nfb_config(part_key, features, config):
         angle = int(feature.rotation_deg)
         if angle not in (0, 90, 180, 270) or angle != feature.rotation_deg:
             raise ValueError("NFB_CSV_COMMIT_ROTATION_UNSUPPORTED")
+        # Brand/model + CSV SHA prove the catalogue source but not that the
+        # submitted physical polygon is its real four-corner opening. A
+        # distorted or crossed editor contour must never be saved as a valid
+        # NFB source on one or many Bays, even if later DXF gates reject it.
+        # Reuse the exact contour owner used by the normal FinalScene.
+        from .sheetmetal_feature_core import _rotate_local_point
+        from .receiving_nfb_committed_final_scene import (
+            csv_editor_opening_matches_current_source,
+        )
+        actual_points = tuple(
+            (float(p.x + feature.offset.x), float(p.y + feature.offset.y))
+            for p in (
+                _rotate_local_point(point, angle) for point in feature.points
+            )
+        )
+        if not csv_editor_opening_matches_current_source(
+            actual_points, spec.opening_corners_xy_mm, angle,
+        ):
+            raise ValueError("NFB_CSV_COMMIT_OPENING_SHAPE_DIFFERS_FROM_SOURCE")
         seen[key] = {
             "physical_hole_id": f"{part_key}:nfb:layer:{layer}:slot:{slot}",
             "model_filename": numeric_model_ref(brand, model),
@@ -90,7 +129,7 @@ def preview_quantity_nfb_submission(snapshot, quantity_model, config):
     remains unchanged. Re-run the same canonical validators on a detached
     model and return only a candidate projection; caller commits later.
     """
-    from phase6_quantity_model import QuantityModel
+    from .receiving_quantity_versions import QuantityModel
     from .receiving_quantity_box import project_common_box
 
     if not isinstance(quantity_model, QuantityModel):
@@ -102,6 +141,45 @@ def preview_quantity_nfb_submission(snapshot, quantity_model, config):
     projected = deepcopy(dict(snapshot))
     projected["quantity"] = candidate.snapshot()
     return project_common_box(projected)
+
+
+def preview_quantity_inner_door_confirm(
+    snapshot, quantity_model, part_key, features, staged_config, *,
+    include_missing_heights=False,
+):
+    """Detached Engine preflight for both Receiving Quantity inner-door entry paths.
+
+    Validates the staged Family configuration, resolves its shared-box source,
+    and (only for actual CSV holes) verifies physical NFB provenance against
+    a detached quantity version BEFORE either GUI may commit the live model.
+    The caller alone commits the returned NFBConfig and applies the projected
+    snapshot; preview is never manufacturing certification.
+    """
+    from .receiving_inner_door_candidates import validate_door_config
+    from .receiving_quantity_box import update_common_box
+
+    config = validate_door_config(staged_config)
+    changes = {
+        "inner_door_layers": config["layers"],
+        "inner_door_models": deepcopy(config["models"]),
+    }
+    # Direct 3D edits historically clear missing heights; the Single settings
+    # editor historically preserves them. Maintain both persisted contracts.
+    if include_missing_heights or config.get("layer_heights_mm") is not None:
+        changes["inner_door_layer_heights_mm"] = deepcopy(
+            config.get("layer_heights_mm")
+        )
+    projected = update_common_box(snapshot, changes)
+    if not any(getattr(row, "source_type", None) == "NFB_CSV_SOURCE"
+               for row in features):
+        return projected, None
+
+    typed = committed_csv_nfb_config(part_key, features, config)
+    projected = preview_quantity_nfb_submission(
+        projected, quantity_model, typed,
+    )
+    return projected, typed
+
 
 def candidate_committed_csv_nfb_config(source):
     """Select the sole verified physical NFB CSV source; reject mixed CUTTING."""
@@ -153,3 +231,62 @@ def replace_candidate_bay_nfb(layout, set_index, bay_index, csv_config):
         layout, set_index=set_index, bay_index=bay_index,
         nfb_config_submitted=True, nfb_config=selected,
     )
+
+def apply_receiving_nfb_csv_candidate(
+    layout: Mapping[str, object], *,
+    set_index: int,
+    bay_indices: Sequence[int],
+    source: Mapping[str, object],
+) -> dict[str, object]:
+    """Atomically apply a verified CSV NFB *source* to real Receiving Bays.
+
+    This preserves the typed original Hole Editor features and the complete
+    canonical inner-door candidate settings with each Bay-qualified NFBConfig;
+    a source-only config without its physical contour is not manufacturable.
+    It does not certify physical X, CUTTING or manufacturing readiness.
+    """
+    from .receiving_layout import normalize_receiving_layout
+
+    if type(set_index) is not int or set_index < 0:
+        raise ValueError("RECEIVING_SET_SELECTION_INVALID")
+    try:
+        selected = tuple(bay_indices)
+    except TypeError as exc:
+        raise ValueError("RECEIVING_BAY_SELECTION_INVALID") from exc
+    if not selected or any(type(i) is not int or i < 0 for i in selected):
+        raise ValueError("RECEIVING_BAY_SELECTION_INVALID")
+    if len(set(selected)) != len(selected):
+        raise ValueError("RECEIVING_BAY_SELECTION_DUPLICATE")
+
+    # Preflight the *entire* operation before writing any Bay; each writer
+    # returns a detached canonical layout, so caller state is never mutated.
+    normalized = normalize_receiving_layout(layout)
+    if set_index >= len(normalized["sets"]):
+        raise ValueError("RECEIVING_SET_SELECTION_INVALID")
+    count = len(normalized["sets"][set_index]["bays"])
+    if any(i >= count for i in selected):
+        raise ValueError("RECEIVING_BAY_SELECTION_INVALID")
+    if not isinstance(source, Mapping):
+        raise ValueError("RECEIVING_NFB_CSV_SOURCE_REQUIRED")
+    csv_config = candidate_committed_csv_nfb_config(source)
+    if csv_config is None:
+        raise ValueError("RECEIVING_NFB_CSV_SOURCE_REQUIRED")
+    validate_candidate_nfb_replacement(
+        normalized, ((set_index, i) for i in selected), source, csv_config,
+    )
+
+    # CSV source Apply must save the native editor's exact physical holes
+    # alongside NFBConfig, not only its model/slot identities. The normal
+    # FinalScene recovers world X from projected inner_door_features; an NFB
+    # config alone is NOT a complete physical source. Reuse the existing
+    # inner-door candidate transaction that atomically detaches each selected
+    # Bay's shared refs, stores layers/models/heights/typed features, and
+    # qualifies its independently Bay-namespaced NFBConfig. This prevents
+    # selected Bays from overwriting unselected linked siblings.
+    from .receiving_inner_door_pairing import (
+        apply_receiving_inner_door_candidate_to_bays,
+    )
+    updated, _, _ = apply_receiving_inner_door_candidate_to_bays(
+        normalized, source, set_index, selected,
+    )
+    return updated

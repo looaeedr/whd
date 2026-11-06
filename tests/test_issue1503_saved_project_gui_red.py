@@ -24,17 +24,27 @@ MISSING_MESSAGE = "受電箱實體底板尚未配置"
 
 def test_auto_source_does_not_trigger_legacy_manual_base_warning(monkeypatch):
     """#1502: a genuine resolver result can exist without manual settings."""
-    import ae_engine.receiving_base_plate_config as source
+    from ae_engine import manufacturing_api
+    from ae_engine.receiving_base_display_source import ReceivingBasePlateDisplaySource
     from phase6_final_scene_view import receiving_base_source_display_warnings
     snapshot = {"model": "受電箱", "w": 800, "h": 1600, "d": 350,
                 "t": 2, "nfb_config_submitted": True}
     assert "receiving_base_plate" not in snapshot
 
-    monkeypatch.setattr(source, "receiving_base_plate_values",
-                        lambda data: {"receiving_bend_pattern": "CENTER_DOUBLE_SIDE_FOLD"})
+    # The GUI is now an API client. Mock its PUBLIC Engine status rather than
+    # a private physical resolver that FinalScene must no longer import.
+    monkeypatch.setattr(
+        manufacturing_api, "inspect_receiving_base_plate_display_source",
+        lambda data, family: ReceivingBasePlateDisplaySource("RESOLVED_DISPLAY_ONLY"),
+    )
     assert receiving_base_source_display_warnings(snapshot, "受電箱") == ()
 
-    monkeypatch.setattr(source, "receiving_base_plate_values", lambda data: None)
+    monkeypatch.setattr(
+        manufacturing_api, "inspect_receiving_base_plate_display_source",
+        lambda data, family: ReceivingBasePlateDisplaySource(
+            "UNAVAILABLE" if family == "受電箱" else "NOT_APPLICABLE"
+        ),
+    )
     missing = receiving_base_source_display_warnings(snapshot, "受電箱")
     assert len(missing) == 1 and "來源不足" in missing[0]
     assert receiving_base_source_display_warnings(snapshot, "金庫型") == ()

@@ -9,7 +9,6 @@ from pathlib import Path
 import tkinter as tk
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.receiving_layout import (
     ensure_receiving_layout as ensure_receiving_preview_layout,
     resize_receiving_bays as resize_receiving_preview_bays,
@@ -38,7 +37,7 @@ from ae_engine.sheetmetal_part_adapters import (
     door_layout_feature_map_to_part_features,
 )
 from phase6_fold_profiles import formed_box_body_fw_widths
-from ae_engine.assembly_joint import AssemblyJointSource, migrate_legacy_snapshot_joints
+from ae_engine.assembly_joint import AssemblyJointSource
 from phase6_endcap_semantics import (
     normalize_endcap_fw_state,
     ASSEMBLY_TYPE_LABELS,
@@ -126,7 +125,7 @@ def corner_transaction_payload(self, namespace):
     app = self.app
     required = lambda name: self._required(namespace, name)
     source = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    graph_state = migrate_legacy_snapshot_joints(source)
+    graph_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(source)
     workspace = self.collect_workspace_state(namespace)
     clone = required("clone_profile")
     return {
@@ -377,9 +376,6 @@ def export_selected_dxf_from_3d(self):
     key = str(getattr(getattr(self.app, "designer_workspace", None), "active_part", "") or "")
     if key.startswith("base_plate:fixing_plate:"):
         from tkinter import filedialog, messagebox
-        from ae_engine.receiving_base_fixing_plate_geometry import (
-            save_independent_source_flat_dxf,
-        )
         if not messagebox.askokcancel(
             "底板固定片｜來源平面圖",
             "只匯出新版固定片.dxf 的來源平面 CUTTING／BEND；T2 來源 BEND23 已核對。"
@@ -398,7 +394,7 @@ def export_selected_dxf_from_3d(self):
         if not path:
             return None
         try:
-            saved = save_independent_source_flat_dxf(key, path)
+            saved = manufacturing_api.save_operator_fixing_plate_source_flat_dxf(key, path)
         except Exception as exc:
             messagebox.showerror("來源 DXF 匯出失敗", str(exc))
             return None
@@ -408,7 +404,6 @@ def export_selected_dxf_from_3d(self):
 
 def collect_workspace_state(self, namespace):
     """Assemble one application snapshot around the canonical workspace owner."""
-    from ae_engine.assembly_placement import resolve_assembly_placement
 
     app = self.app
     required = lambda name: self._required(namespace, name)
@@ -440,13 +435,13 @@ def collect_workspace_state(self, namespace):
                 dict(
                     getattr(app, "_phase6_input_snapshot", {}) or {}
                 ),
-                resolver=resolve_assembly_placement,
+                resolver=manufacturing_api.resolve_operator_assembly_placement,
             )
         )
     except Exception:
         pass
 
-    graph_state = migrate_legacy_snapshot_joints(
+    graph_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(
         dict(getattr(app, "_phase6_input_snapshot", {}) or {})
     )
     return {
@@ -475,8 +470,7 @@ def collect_workspace_state(self, namespace):
 
 def current_relief_source_signature(self, namespace, required_parts):
     """Collect current mechanical identity for persisted relief replay."""
-    from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
-    from phase6_assembly_relief_state import build_current_source_signature
+    from ae_engine import manufacturing_api
 
     app = self.app
     required = lambda name: self._required(namespace, name)
@@ -491,25 +485,13 @@ def current_relief_source_signature(self, namespace, required_parts):
     box_profile = clone(
         (getattr(getattr(app, "state", None), "profiles_vault", {}) or {}).get("箱身", ()) or ()
     )
-    formed_left, formed_right = formed_box_body_fw_widths(
-        box_profile,
-        float(source.get("t", 0.0) or 0.0),
-    )
-    graph_snapshot = migrate_legacy_snapshot_joints(
-        dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    )
     wanted = tuple(str(key) for key in tuple(required_parts or ()))
-    return build_current_source_signature(
+    return manufacturing_api.build_operator_current_relief_source_signature(
         scalar_source=source,
-        joint_graph_fingerprint=resolved_joint_graph_fingerprint(graph_snapshot),
+        joint_state=dict(getattr(app, "_phase6_input_snapshot", {}) or {}),
         structure_state=deepcopy(
             getattr(app.designer_workspace, "box_body_structure_state", lambda: None)() or {}
         ),
-        cabinet_family=str(
-            source.get("model") or source.get("cabinet_type") or ""
-        ),
-        formed_left=formed_left,
-        formed_right=formed_right,
         box_body_profile=box_profile,
         part_profiles={
             key: deepcopy(getattr(app.designer_workspace, "profiles_for", lambda _k, _d=None: {})(key, {}) or {})
@@ -519,7 +501,7 @@ def current_relief_source_signature(self, namespace, required_parts):
 
 def serialize_assembly_relief_state(self, namespace):
     """Serialize resolved relief through the canonical persisted-state owner."""
-    from phase6_assembly_relief_state import build_persisted_relief_state
+    from ae_engine import manufacturing_api
 
     app = self.app
     required = lambda name: self._required(namespace, name)
@@ -548,7 +530,7 @@ def serialize_assembly_relief_state(self, namespace):
         )
         or {}
     )
-    return build_persisted_relief_state(
+    return manufacturing_api.build_persisted_relief_state(
         required_parts=required_parts,
         solutions=solutions,
         source_signature=source_signature,
@@ -561,10 +543,9 @@ def build_project_snapshot(self, namespace):
     """Capture one complete reloadable Fold Designer project payload."""
     app = self.app
     required = lambda name: self._required(namespace, name)
-    try:
-        app._save_current_part(notify=False)
-    except Exception:
-        pass
+    # A failed active-Part commit must not persist a stale Fold/Feature profile.
+    # The Save/Save As owner handles the error and preserves existing bytes.
+    app._save_current_part(notify=False)
     model_var = getattr(app, "baseline_model_var", None)
     model = str(
         model_var.get()
@@ -887,7 +868,6 @@ def build_capability_owners(self) -> "FoldDesignerCapabilityOwners":
     )
 
     app = self.app
-    from ae_engine.cabinet_types import policy as cabinet_family_policy
     from phase6_project_controller import Phase6ProjectController
     from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
     from phase6_settings_service import Phase6SettingsTransactionService
@@ -947,7 +927,7 @@ def build_capability_owners(self) -> "FoldDesignerCapabilityOwners":
             publish_adapter=lambda adapter: setattr(
                 app, "_phase6_receiving_set_bay_adapter", adapter
             ),
-            canonical_family_name=cabinet_family_policy.canonical_family_name,
+            canonical_family_name=manufacturing_api.operator_canonical_family_name,
         )),
         assembly_corner=AssemblyCornerCapabilityOwner(
             AssemblyCornerCapabilityPorts(

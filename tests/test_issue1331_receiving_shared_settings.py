@@ -80,16 +80,30 @@ def test_real_settings_preview_exports_every_piece_and_reload_keeps_each_bay(tmp
         assert doors[1].render_data.material.bounds[2] - doors[1].render_data.material.bounds[0] > doors[0].render_data.material.bounds[2] - doors[0].render_data.material.bounds[0]
         assert composition.receiving_bay_preview_request(namespace, 0, 0) is requests[0]
         inventory = []
+        preview_only = []
         for index, request in enumerate(requests):
             for part in request.render_data.assembly_parts:
                 physical = tuple(getattr(part.render_data, "pieces", ()) or ())
                 rows = [(piece.key, piece.render_data) for piece in physical] if physical else [(part.part_key, part.render_data)]
                 for ordinal, (key, data) in enumerate(rows):
                     path = tmp_path / f"bay{index}-part{len(inventory)}.dxf"
+                    if data.metadata.get("receiving_base_plate_unconfigured") is True:
+                        # Real Bay preview keeps this part, but without a
+                        # confirmed physical pattern it cannot produce a
+                        # manufacturing DXF. Do not count it as exported.
+                        with pytest.raises(
+                            ValueError,
+                            match="RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING",
+                        ):
+                            api.save_part_render_data_dxf(data, path, overwrite=True)
+                        assert not path.exists()
+                        preview_only.append((index, key))
+                        continue
                     api.save_part_render_data_dxf(data, path, overwrite=True)
                     assert api.verify_saved_part_render_data_dxf(data, path).ok, key
                     inventory.append(path)
-        assert len(inventory) >= 24
+        assert preview_only == [(0, "base_plate"), (1, "base_plate")]
+        assert len(inventory) + len(preview_only) >= 24
         payload = {"schema": project.PROJECT_SCHEMA_V2, "snapshot": {**snapshot, "receiving_layout": layout}, "final_geometry": {}}
         saved = project.write_project(tmp_path / "各連.p6fold", payload)
         loaded = project.read_project(saved)["snapshot"]
@@ -279,9 +293,23 @@ def test_independent_door_partition_rejects_wrong_total_and_roundtrips(tmp_path)
     snapshot = receiving.apply_family_defaults({"t": 2})
     snapshot = ensure_receiving_layout(snapshot)
     layout = resize_receiving_bays(snapshot["receiving_layout"], set_index=0, bay_count=2)
-    invalid = update_receiving_bay(layout, set_index=0, bay_index=1, width=900)
+    # W-only operator changes preserve authored leading cells and let the
+    # Engine re-complete the final Door remainder; this is intentionally legal.
+    automatic = update_receiving_bay(layout, set_index=0, bay_index=1, width=900)
+    projected = project_receiving_bay_legacy_aliases(
+        {**snapshot, "receiving_layout": automatic}, bay_index=1,
+    )
+    assert projected["door_layout_columns"][0][0] == 900
+    # An explicitly authored stale Door layout is a different transaction:
+    # the caller opted out of automatic remainder completion and must fail.
+    stale_door = deepcopy(layout["sets"][0]["bays"][1]["door_state"])
+    invalid = update_receiving_bay(
+        layout, set_index=0, bay_index=1, width=900, door_state=stale_door,
+    )
     with pytest.raises(ReceivingBayProjectionError):
-        project_receiving_bay_legacy_aliases({**snapshot, "receiving_layout": invalid}, bay_index=1)
+        project_receiving_bay_legacy_aliases(
+            {**snapshot, "receiving_layout": invalid}, bay_index=1,
+        )
     door = deepcopy(layout["sets"][0]["bays"][1]["door_state"])
     door["door_layout_columns"][0][0] = 900
     valid = update_receiving_bay(layout, set_index=0, bay_index=1, width=900, door_state=door)

@@ -8,6 +8,7 @@ project truth and therefore never belong in ``receiving_layout``.
 from __future__ import annotations
 
 from copy import deepcopy
+from .panel_naming import normalize_panel_name, PANEL_NUMBER_RE
 from ae_engine.receiving_shared_settings import normalize_set_settings, setting_value
 from typing import Mapping
 
@@ -71,12 +72,14 @@ def new_receiving_layout(*, width: object, height: object, depth: object, back_p
     """Return the deterministic fresh/migrated one-Set one-Bay layout."""
     return {
         "schema": RECEIVING_LAYOUT_SCHEMA,
+        "next_panel_number": 2,
         "sets": [
             {
                 "stable_id": "receiving:set:1",
                 "bays": [
                     {
                         "stable_id": "receiving:set:1:bay:1",
+                        "panel_name": "P1",
                         "width": _number(width, label="Receiving Bay width"),
                         "height": _number(height, label="Receiving Bay height"),
                         "depth": _number(depth, label="Receiving Bay depth"),
@@ -104,6 +107,35 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
     if not isinstance(raw_sets, (list, tuple)) or not raw_sets:
         raise ValueError("Receiving layout must contain at least Set1")
 
+    # Old v1 projects had no names/counter; migrate them in physical Set/Bay
+    # order. Once materialized, the counter is project authority and survives
+    # tail deletion even when a legacy stable_id is reused.
+    has_counter = "next_panel_number" in layout
+    raw_next = layout.get("next_panel_number")
+    if has_counter and (type(raw_next) is not int or raw_next < 1):
+        raise ValueError("next_panel_number 必須是正整數")
+    named: set[str] = set()
+    highest_p = 0
+    for raw_set in raw_sets:
+        if not isinstance(raw_set, Mapping):
+            raise ValueError("Receiving Set 必須是物件")
+        for raw_bay in raw_set.get("bays", ()):
+            if not isinstance(raw_bay, Mapping):
+                raise ValueError("Receiving Bay 必須是物件")
+            if "panel_name" not in raw_bay:
+                continue
+            name = normalize_panel_name(raw_bay["panel_name"])
+            key = name.casefold()
+            if key in named:
+                raise ValueError("受電箱盤名不得重複")
+            named.add(key)
+            match = PANEL_NUMBER_RE.fullmatch(name)
+            if match:
+                highest_p = max(highest_p, int(match.group(1)))
+    if has_counter and raw_next <= highest_p:
+        raise ValueError("next_panel_number 不能重用已使用 P 編號")
+    next_number = raw_next if has_counter else highest_p + 1
+
     seen_ids: set[str] = set()
     sets: list[dict[str, object]] = []
     for set_index, raw_set in enumerate(raw_sets, start=1):
@@ -125,8 +157,19 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
             if bay_id in seen_ids:
                 raise ValueError(f"duplicate Receiving stable_id: {bay_id}")
             seen_ids.add(bay_id)
+            if "panel_name" in raw_bay:
+                panel_name = normalize_panel_name(raw_bay["panel_name"])
+            else:
+                # Migration/new Bay only: never duplicate the cloned Bay label.
+                panel_name = f"P{next_number}"
+                while panel_name.casefold() in named:
+                    next_number += 1
+                    panel_name = f"P{next_number}"
+                named.add(panel_name.casefold())
+                next_number += 1
             bay = {
                 "stable_id": bay_id,
+                "panel_name": panel_name,
                 "width": _number(raw_bay.get("width"), label=f"Receiving Set{set_index} Bay{bay_index} width"),
                 "height": _number(raw_bay.get("height"), label=f"Receiving Set{set_index} Bay{bay_index} height"),
                 "depth": _number(raw_bay.get("depth"), label=f"Receiving Set{set_index} Bay{bay_index} depth"),
@@ -204,7 +247,7 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                 bay["back_panel_mode"] = setting_value(selected, index, "back_panel_mode")
         sets.append(selected)
 
-    return {"schema": RECEIVING_LAYOUT_SCHEMA, "sets": sets}
+    return {"schema": RECEIVING_LAYOUT_SCHEMA, "next_panel_number": next_number, "sets": sets}
 
 
 def primary_bay(layout: Mapping[str, object]) -> dict[str, object]:
@@ -233,7 +276,7 @@ def _legacy_structure_state(snapshot: Mapping[str, object]) -> Mapping[str, obje
 
 def _legacy_back_panel_mode(snapshot: Mapping[str, object]) -> str:
     from ae_engine.cabinet_types import receiving
-    from phase6_box_body_structure import back_panel_mode
+    from .box_body_structure_state import back_panel_mode
 
     state = _legacy_structure_state(snapshot)
     resolved = receiving.resolve_box_body_structure_state(dict(state) if isinstance(state, Mapping) else None)
@@ -312,7 +355,7 @@ def ensure_receiving_layout(snapshot: Mapping[str, object] | None) -> dict[str, 
 
 def _set_transient_back_panel_mode(snapshot: dict[str, object], mode: str) -> None:
     from ae_engine.cabinet_types import receiving
-    from phase6_box_body_structure import set_side_back_back_panel_mode
+    from .box_body_structure_state import set_side_back_back_panel_mode
 
     def projected(state: object) -> dict[str, object]:
         resolved = receiving.resolve_box_body_structure_state(state if isinstance(state, Mapping) else None)
@@ -512,11 +555,29 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
     bay = deepcopy(dict(bays[bay_index]))
     original_width = bay["width"]
     original_height = bay["height"]
-    allowed = {"width", "height", "depth", "back_panel_mode", "door_state",
+    allowed = {"width", "height", "depth", "back_panel_mode", "door_state", "panel_name",
                "nfb_config_submitted", "nfb_config"}
     unknown = set(changes) - allowed
     if unknown:
         raise ValueError(f"unsupported Receiving Bay fields: {sorted(unknown)}")
+    if "panel_name" in changes:
+        name = normalize_panel_name(changes["panel_name"])
+        siblings = {
+            str(other["panel_name"]).casefold()
+            for si, group in enumerate(normalized["sets"])
+            for bi, other in enumerate(group["bays"])
+            if (si, bi) != (set_index, bay_index)
+        }
+        if name.casefold() in siblings:
+            raise ValueError("受電箱盤名不得重複")
+        if name != bay["panel_name"]:
+            match = PANEL_NUMBER_RE.fullmatch(name)
+            if match:
+                number = int(match.group(1))
+                if number < normalized["next_panel_number"]:
+                    raise ValueError("已分配或刪除的 P 編號不可重新使用")
+                normalized["next_panel_number"] = number + 1
+        bay["panel_name"] = name
     if "width" in changes:
         bay["width"] = _number(changes["width"], label="Receiving Bay width")
     if "height" in changes:
@@ -590,6 +651,15 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
         "joints": [deepcopy(dict(row)) for row in selected["joints"]],
     }
     return normalize_receiving_layout(normalized)
+
+
+def rename_receiving_panel(
+    layout: Mapping[str, object], *, set_index: int, bay_index: int, panel_name: str,
+) -> dict[str, object]:
+    """Public Engine operation for a single Bay label, not a physical part ID."""
+    return update_receiving_bay(
+        layout, set_index=set_index, bay_index=bay_index, panel_name=panel_name,
+    )
 
 
 def _validate_common_receiving_state(snapshot: Mapping[str, object]) -> None:
@@ -771,7 +841,7 @@ def project_receiving_bay_legacy_aliases(
     # Validation/legacy projection must never mutate the persisted authority.
     result["receiving_layout"] = persisted_layout
     if result.get("active_mode") == "quantity":
-        from phase6_quantity_model import normalize_quantity_snapshot
+        from .receiving_quantity_versions import normalize_quantity_snapshot
         result = normalize_quantity_snapshot(result)
         result["surface_features"] = {**dict(result.get("surface_features") or {}),
                                       **{role: deepcopy(result["part_features"][role]) for role in ("head", "tail")}}
@@ -779,20 +849,65 @@ def project_receiving_bay_legacy_aliases(
 
 
 
+def project_receiving_bay_dimension_groups(bays):
+    """Project actual persisted Bay W/H/D groups in physical Bay order.
+
+    This is a read-only operator summary, not a manufacturing certification.
+    The same canonical Receiving source validation rejects invalid dimensions.
+    """
+    if not isinstance(bays, (list, tuple)):
+        raise ValueError("Receiving dimension groups require physical Bays")
+    groups = {}
+    for index, bay in enumerate(bays):
+        if not isinstance(bay, Mapping):
+            raise ValueError("Receiving dimension-group Bay must be a mapping")
+        dimensions = tuple(
+            _number(bay.get(axis), label=f"Receiving Bay {axis}")
+            for axis in ("width", "height", "depth")
+        )
+        groups.setdefault(dimensions, []).append(index)
+    return tuple((dimensions, tuple(indices))
+                 for dimensions, indices in groups.items())
+
+
+def project_receiving_joint_alignment_editability(
+    set_row: Mapping[str, object], joint_index: int
+) -> dict[str, bool]:
+    """Read-only editability of one saved physical Set's adjacent Bay Joint.
+
+    Shared by the operator Tk presentation and the authoritative Layout
+    transaction, without reconstructing a fake Layout in either client.
+    """
+    if not isinstance(set_row, Mapping):
+        raise ValueError("Receiving Set source must be a mapping")
+    bays, joints = set_row.get("bays"), set_row.get("joints")
+    if (not isinstance(bays, (list, tuple))
+            or not isinstance(joints, (list, tuple))
+            or not bays or len(joints) != len(bays) - 1):
+        raise ValueError("Receiving Set Joint source is invalid")
+    if type(joint_index) is not int or joint_index < 0 or joint_index >= len(joints):
+        raise IndexError("Receiving joint_index out of range")
+    left, right = bays[joint_index], bays[joint_index + 1]
+    if not isinstance(left, Mapping) or not isinstance(right, Mapping):
+        raise ValueError("Receiving Bay Joint source must be a mapping")
+    return {
+        "depth_alignment": (
+            _number(left.get("depth"), label="Receiving Bay depth")
+            != _number(right.get("depth"), label="Receiving Bay depth")
+        ),
+        "height_alignment": (
+            _number(left.get("height"), label="Receiving Bay height")
+            != _number(right.get("height"), label="Receiving Bay height")
+        ),
+    }
+
+
 def receiving_joint_alignment_editability(
     layout: Mapping[str, object], *, set_index: int, joint_index: int
 ) -> dict[str, bool]:
     """Return whether D/H alignment controls can affect this adjacent Bay pair."""
     _normalized, selected = _layout_set(layout, set_index)
-    joints = selected["joints"]
-    if type(joint_index) is not int or joint_index < 0 or joint_index >= len(joints):
-        raise IndexError("Receiving joint_index out of range")
-    left = selected["bays"][joint_index]
-    right = selected["bays"][joint_index + 1]
-    return {
-        "depth_alignment": float(left["depth"]) != float(right["depth"]),
-        "height_alignment": float(left["height"]) != float(right["height"]),
-    }
+    return project_receiving_joint_alignment_editability(selected, joint_index)
 
 
 def update_receiving_joint_alignment(
@@ -956,3 +1071,122 @@ def receiving_bay_joint_face_features(layout, *, set_index, bay_index, thickness
         participant = resolved.right_bay if joint_index == bay_index - 1 else resolved.left_bay
         result.setdefault(participant.face_key, []).extend(participant.features)
     return result
+
+def apply_receiving_bay_dimensions(layout, set_index, bay_indices, *, width, height, depth, expected_count):
+    """Engine-owned atomic W/H/D operator transaction for selected real Bays."""
+    from ae_engine.sheetmetal_part_adapters import complete_partition
+    if type(set_index) is not int or not 0 <= set_index < len(layout["sets"]):
+        raise ValueError("套不存在")
+    index = set_index
+    for label, value in (("W", width), ("H", height), ("D", depth), ("數量", expected_count)):
+        if type(value) is not int or value <= 0:
+            raise ValueError(f"{label} 必須為正整數")
+        if label != "數量":
+            # The canonical Receiving _number() rejects unrepresentable
+            # physical dimensions. Reject before even staging a Bay edit.
+            try:
+                float(value)
+            except (OverflowError, ValueError) as exc:
+                raise ValueError(f"{label} 超出可表示尺寸") from exc
+    try:
+        selected = tuple(bay_indices)
+    except TypeError as exc:
+        raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體") from exc
+    bay_count = len(layout["sets"][index]["bays"])
+    # Verify every physical Bay ID before hashing; bool aliases int 1
+    # and nested UI arrays otherwise cause unhandled TypeError.
+    if (len(selected) != expected_count
+            or any(type(i) is not int or not 0 <= i < bay_count for i in selected)
+            or len(set(selected)) != len(selected)):
+        raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體")
+    # One operator confirmation is one atomic topology transaction. The
+    # old loop called update_receiving_bay() for every highlighted Bay;
+    # that helper normalizes the *entire* Set/Bay/Joint layout twice on
+    # each call, rebuilding even untouched Bays. Keep the same per-Bay
+    # door-partition checks but validate the final candidate only once.
+    candidate, dirty = layout, []
+    for bay_index in selected:
+        current = candidate["sets"][index]["bays"][bay_index]
+        changes = {"width": width, "height": height, "depth": depth}
+        if all(float(current[k]) == v for k, v in changes.items()):
+            continue
+        door = current.get("door_state")
+        if door and (float(current["width"]) != width or float(current["height"]) != height):
+            columns = door.get("door_layout_columns") or ()
+            if door.get("multi_door_enabled") and not columns:
+                raise ValueError(f"第{bay_index + 1}連門分割資料不完整")
+            if columns:
+                widths = complete_partition([item[0] for item in columns[:-1]], width)
+                if not widths.valid or len(widths.values) != len(columns):
+                    raise ValueError(f"第{bay_index + 1}連 W 不符合門分割")
+                new_cols = []
+                for new_w, (_, heights) in zip(widths.values, columns):
+                    sizes = complete_partition(heights[:-1], height)
+                    if not sizes.valid or len(sizes.values) != len(heights):
+                        raise ValueError(f"第{bay_index + 1}連 H 不符合門分割")
+                    new_cols.append([new_w, list(sizes.values)])
+                changes["door_state"] = {**deepcopy(door), "door_layout_columns": new_cols}
+        if not dirty:
+            candidate = deepcopy(layout)
+        # Existing update_receiving_bay() casts numeric inputs to float
+        # before canonical normalization; preserve that data contract.
+        updated_bay = {
+            **current, **{axis: float(value) for axis, value in changes.items()
+                          if axis in ("width", "height", "depth")},
+            **({"door_state": changes["door_state"]} if "door_state" in changes else {}),
+        }
+        if (float(current["width"]) != width
+                and updated_bay.get("nfb_config_submitted") is True):
+            # This fast multi-selection operator intentionally bypasses
+            # update_receiving_bay's repeated full-layout normalization.
+            # It must still enforce that same per-Bay X datum invalidation
+            # when the physical width changes; never keep old confirmed X.
+            from ae_engine.receiving_nfb_persistence import reconfirm_copied_nfb_config
+            updated_bay["nfb_config"] = reconfirm_copied_nfb_config(
+                updated_bay["nfb_config"]
+            )
+        candidate["sets"][index]["bays"][bay_index] = updated_bay
+        dirty.append(str(current["stable_id"]))
+    if not dirty:
+        return layout, ()
+    # Normalize and check *all* dependencies/Joints once. Any failure
+    # leaves both the canonical layout and dirty bookkeeping unchanged.
+    validated = normalize_receiving_layout(candidate)
+    return validated, tuple(dirty)
+
+def resize_receiving_bays_with_family_defaults(layout, *, set_index, bay_count):
+    """Engine-owned real-Bay topology resize with Receiving Family new-Bay W/H/D.
+
+    The low-level copy-by-value resize stays available to source migration and
+    tests. This operator transaction resets *only newly appended* Bay sizes
+    to current live Receiving Family defaults; existing physical Bays, shared
+    sources and Joint identities retain their canonical authority.
+    """
+    from .cabinet_types.receiving import BOX_BODY_DEFAULTS
+
+    before_count = len(layout["sets"][set_index]["bays"])
+    candidate = resize_receiving_bays(
+        layout, set_index=set_index, bay_count=bay_count,
+    )
+    new_count = len(candidate["sets"][set_index]["bays"])
+    if new_count <= before_count:
+        return candidate
+    defaults = tuple(float(BOX_BODY_DEFAULTS[axis]) for axis in ("w", "h", "d"))
+    if any(not value.is_integer() or value <= 0 for value in defaults):
+        raise ValueError("受電箱預設 W/H/D 必須為正整數毫米")
+    candidate, _changed = apply_receiving_bay_dimensions(
+        candidate, set_index, tuple(range(before_count, new_count)),
+        width=int(defaults[0]), height=int(defaults[1]), depth=int(defaults[2]),
+        expected_count=new_count - before_count,
+    )
+    return candidate
+
+def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]:
+    """Stable physical Set/Bay/Joint IDs in original canonical saved order."""
+    normalized = normalize_receiving_layout(layout)
+    result: list[str] = []
+    for set_row in normalized["sets"]:
+        result.append(str(set_row["stable_id"]))
+        result.extend(str(row["stable_id"]) for row in set_row["bays"])
+        result.extend(str(row["stable_id"]) for row in set_row["joints"])
+    return tuple(result)

@@ -90,7 +90,8 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
         owners, durations = manifest["file_owners"], manifest["file_seconds"]
         assert len(owners) == len(durations) == 304
-        assert manifest["canonical_selector_count"] == len(PYTEST_PATHS)
+        assert manifest["canonical_selector_count"] == (
+            len(PYTEST_PATHS) - len(regression._ISSUE2517_ACCEPTANCE_PATHS))
         assert manifest["schema"] == "WHD_PRODUCT_CI_FILE_DURATION_ASSIGNMENT_V2"
         assert manifest["source_run_id"] == 40903796624
         assert manifest["observed_split_run_id"] == 40909061327
@@ -155,6 +156,8 @@ def test_each_selector_appears_in_exactly_one_shard(count):
                     assert index == (
                         1 if function == manifest["t15_critical_function"] else 6
                     )
+                elif node in regression._ISSUE2517_ACCEPTANCE_OWNERS:
+                    assert regression._ISSUE2517_ACCEPTANCE_OWNERS[node] == index
                 else:
                     assert owners[node.split("::", 1)[0]] == index
     else:
@@ -173,6 +176,32 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         for n, selector in enumerate(PYTEST_PATHS):
             if selector not in expected:
                 assert selector in shards[n % 3]
+
+
+
+def test_issue2517_new_real_acceptance_suites_are_collected_and_run_exactly_once():
+    """Every issue2517 source test must actually run under the existing CI."""
+    root = Path(__file__).resolve().parents[2]
+    issue_files = {
+        "tests/" + path.name
+        for path in (root / "tests").glob("test_issue2517_*.py")
+    }
+    expected = issue_files | {"tests/test_issue293_t5_hole_editor_routing.py"}
+    assert len(issue_files) >= 297, "a relevant issue2517 test was removed"
+    assert set(regression._ISSUE2517_ACCEPTANCE_PATHS) == expected
+    assert len(regression._ISSUE2517_ACCEPTANCE_PATHS) == len(expected)
+    assert expected.issubset(PYTEST_PATHS)
+    assert len(set(PYTEST_PATHS)) == len(PYTEST_PATHS)
+    assert set(regression._ISSUE2517_ACCEPTANCE_OWNERS.values()) == set(range(2, 18))
+    for filename in expected:
+        assert (root / filename).is_file()
+    seen = Counter(path for i in range(18) for path in shard_paths(i, 18))
+    assert all(seen[filename] == 1 for filename in expected)
+    # Preserve immutable, measured October assignments and measured 304 count.
+    manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
+    assert set(manifest["file_owners"]).isdisjoint(expected)
+    assert manifest["canonical_file_count"] == 304
+
 
 
 def test_measured_rebalance_keeps_all_exact_selectors_unchanged_and_whole():
@@ -207,7 +236,13 @@ def test_eighteen_shard_workflow_keeps_complete_exact_selectors_and_artifact_gat
     # any JUnit artifact is missing, final acceptance must fail closed.
     workflow = (Path(__file__).resolve().parents[2]
                 / ".github/workflows/whd-product-regression.yml").read_text(encoding="utf-8")
-    assert "shard: [" + ", ".join(str(i) for i in range(18)) + "]" in workflow
+    # The physical runner launch order may change while the 18 logical
+    # owners and all canonical artifact inputs remain complete.
+    priority = (14, 0, 6, 10, 8, 16, 13, 3, 11, 5, 9, 15, 17,
+                12, 2, 4, 7, 1)
+    assert sorted(priority) == list(range(18))
+    assert sum(index in (14, 15, 16, 17) for index in priority[:13]) >= 2
+    assert "shard: [" + ", ".join(map(str, priority)) + "]" in workflow
     assert workflow.count("--shard-count 18") == 2
     # Collection runs alongside the shards without skipping final case proof.
     assert "needs: [prepare, test-shard, canonical-collection]" in workflow

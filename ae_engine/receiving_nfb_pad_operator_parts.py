@@ -8,6 +8,7 @@ owns this unmanufacturable PartRenderData.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from .cabinet_types.policy import canonical_family_name
 
 from .receiving_nfb_pad_part import NfbPadDraftPart, build_nfb_pad_draft_part
 from .receiving_nfb_pad_generator import (
@@ -18,7 +19,7 @@ from .receiving_nfb_pad_generator import (
 def committed_nfb_pad_draft_parts(snapshot: Mapping) -> tuple[NfbPadDraftPart, ...]:
     """Derive separate non-MFG 2D PAD parts from exactly the current Bay."""
     if (not isinstance(snapshot, Mapping)
-            or snapshot.get("model") not in ("受電箱", "RECEIVING")
+            or canonical_family_name(snapshot) != "受電箱"
             or snapshot.get("nfb_config_submitted") is not True):
         return ()
     from .receiving_base_plate_config import receiving_base_plate_values

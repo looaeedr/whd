@@ -60,7 +60,7 @@ def _verified_formed_ear_parts(snapshot, original_geometry, *, dimensions, sheet
         # NFB version; never carry the previously selected Bay's source.
         from ae_engine.receiving_quantity_box import project_common_box
         from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
-        from phase6_quantity_model import QuantityModel
+        from .receiving_quantity_versions import QuantityModel
         raw_quantity = snapshot.get("quantity")
         model = QuantityModel.from_payload(raw_quantity)
         current = model.nfb_config_for_version(model.selected_version_id)

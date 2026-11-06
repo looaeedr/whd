@@ -56,7 +56,7 @@ def receiving_inner_door_real_world_skins(
     )
     if not isinstance(snapshot, Mapping):
         raise TypeError("Receiving inner-door geometry snapshot must be a mapping")
-    if str(snapshot.get("model") or "") not in ("受電箱", "RECEIVING"):
+    if family.canonical_family_name(snapshot) != "受電箱":
         raise ValueError("NFB Z skin datum requires Receiving cabinet")
     panels = [p for p in family.derive_inner_door_panels(snapshot)
               if str(p.inner_door_id) == str(inner_door_id)]

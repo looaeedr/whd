@@ -70,6 +70,59 @@ def _physical_feature_from_transport(value):
     return target(**fields)
 
 
+def csv_editor_opening_matches_current_source(
+    actual_points, source_corners, rotation_deg,
+) -> bool:
+    """Compare a placed four-corner editor contour to the exact CSV opening.
+
+    This is the SAME geometry gate for a native NFB CSV source at Confirm
+    and for its later original FinalScene world-X recovery. Translation and
+    cyclic/reversed vertex order are operator-equivalent; shear, crossings,
+    mismatched size and a different physical rectangle are not.
+    """
+    from math import hypot, isfinite
+    from .sheetmetal_geometry import Vec2
+    from .sheetmetal_feature_core import _rotate_local_point
+
+    if (type(rotation_deg) is not int or rotation_deg not in (0, 90, 180, 270)
+            or len(actual_points) != 4 or len(source_corners) != 4):
+        return False
+    try:
+        points = tuple((float(x), float(y)) for x, y in actual_points)
+        source = tuple((float(x), float(y)) for x, y in source_corners)
+        expected = tuple(
+            (float(p.x), float(p.y))
+            for p in (
+                _rotate_local_point(Vec2(x, y), rotation_deg)
+                for x, y in source
+            )
+        )
+    except (TypeError, ValueError, OverflowError):
+        return False
+    if not all(
+        isfinite(x) and isfinite(y)
+        for coordinates in (points, source, expected)
+        for x, y in coordinates
+    ):
+        return False
+    px = sum(x for x, _ in points) / 4.0
+    py = sum(y for _, y in points) / 4.0
+    sx = sum(x for x, _ in expected) / 4.0
+    sy = sum(y for _, y in expected) / 4.0
+    if not all(isfinite(v) for v in (px, py, sx, sy)):
+        return False
+    return any(
+        all(
+            hypot(
+                points[i][0] - px - expected[(start + direction*i) % 4][0] + sx,
+                points[i][1] - py - expected[(start + direction*i) % 4][1] + sy,
+            ) <= 1e-6
+            for i in range(4)
+        )
+        for start in range(4) for direction in (1, -1)
+    )
+
+
 def _source_world_x_from_committed_editor_feature(
     snapshot, panel, row, *, brand, model,
 ):
@@ -80,7 +133,7 @@ def _source_world_x_from_committed_editor_feature(
     and Y must agree with the same current numeric model and tier datum.
     """
     from hashlib import sha256
-    from math import hypot
+    from math import hypot, isfinite
     from .receiving_nfb_numeric_catalog import brand_csv_path, model_spec
     from .receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
     from .receiving_nfb_manufacturing_release import _resolve_physical_panel
@@ -101,11 +154,25 @@ def _source_world_x_from_committed_editor_feature(
         params = dict(feature.source_params)
         if params.get("part_id") != panel.stable_id:
             continue
-        identity = (
-            params.get("hole_id") == wanted[0]
-            if "hole_id" in params else
-            (params.get("layer_index"), params.get("slot_index")) == wanted[1:]
+        # Both original Hole Editor formats are valid: older physical
+        # (layer, slot) pairs and the newer explicit hole_id. However, when
+        # a saved feature carries BOTH identities, they must name the SAME
+        # physical NFB. The old either/or test trusted hole_id alone and
+        # could borrow a different unit's X on the same physical tier.
+        # A partially supplied or boolean tier/slot is not an exact owner.
+        has_hole_id = "hole_id" in params
+        has_slot = "layer_index" in params or "slot_index" in params
+        hole_matches = has_hole_id and params["hole_id"] == wanted[0]
+        slot_matches = (
+            type(params.get("layer_index")) is int
+            and type(params.get("slot_index")) is int
+            and (params["layer_index"], params["slot_index"]) == wanted[1:]
         )
+        if (has_hole_id and has_slot
+                and (hole_matches or slot_matches)
+                and not (hole_matches and slot_matches)):
+            raise ValueError("NFB_CSV_EDITOR_PHYSICAL_SLOT_IDENTITY_CONFLICT")
+        identity = hole_matches if has_hole_id else slot_matches
         if identity:
             matches.append((feature, params))
     if not matches:
@@ -113,6 +180,16 @@ def _source_world_x_from_committed_editor_feature(
     if len(matches) != 1:
         raise ValueError("NFB_CSV_EDITOR_DUPLICATE_COMMITTED_OPENING")
     feature, params = matches[0]
+    # #2517: the *automatic fresh-Bay* CSV generator carries the
+    # fresh_bay_auto_unconfirmed marker. The candidate's mathematically
+    # centered, source-hashed rectangle is an EDITOR preview, not evidence
+    # that any operator physically placed it. Refuse only this automatic
+    # source: the existing original Hole Editor Confirm All is a separate,
+    # operator-confirmed physical-source path and must retain its 2D/3D/DXF.
+    # A separately validated NFBConfig CONFIRMED X is handled before this
+    # fallback and requires a current physical datum.
+    if params.get("fresh_bay_auto_unconfirmed") is True:
+        return None
     csv_sha = sha256(brand_csv_path(brand).read_bytes()).hexdigest()
     spec = model_spec(brand, model)
     if (params.get("brand") != brand or params.get("model") != model
@@ -123,13 +200,25 @@ def _source_world_x_from_committed_editor_feature(
             or len(feature.points) != 4
             or feature.layered_profiles):
         raise ValueError("NFB_CSV_EDITOR_OPENING_SOURCE_STALE")
+    # A native-editor contour is usable as physical world-X evidence only
+    # when its saved rotation AND all four vertices agree with the same CSV
+    # opening. Equal edge lengths alone can also describe a sheared
+    # parallelogram, or a crossing polygon, which would silently be replaced
+    # by the CSV rectangle in the canonical FinalScene.
+    angle = row.get("rotation_deg", 0)
+    if (type(angle) is not int or angle not in (0, 90, 180, 270)
+            or isinstance(feature.rotation_deg, bool)
+            or not isinstance(feature.rotation_deg, (int, float))
+            or not isfinite(float(feature.rotation_deg))
+            or feature.rotation_deg != angle):
+        raise ValueError("NFB_CSV_EDITOR_ROTATION_DIFFERS_FROM_SOURCE")
     points = tuple(
         (float(rot.x + feature.offset.x),
          float(rot.y + feature.offset.y))
         for rot in (_rotate_local_point(p, feature.rotation_deg)
                     for p in feature.points)
     )
-    source = tuple((float(x),float(y)) for x,y in spec.opening_corners_xy_mm)
+    source = tuple((float(x), float(y)) for x, y in spec.opening_corners_xy_mm)
     expected_edges = sorted(round(hypot(source[(i+1)%4][0]-source[i][0],
                                         source[(i+1)%4][1]-source[i][1]), 6)
                             for i in range(4))
@@ -138,6 +227,12 @@ def _source_world_x_from_committed_editor_feature(
                           for i in range(4))
     if expected_edges != actual_edges:
         raise ValueError("NFB_CSV_EDITOR_OPENING_SIZE_DIFFERS_FROM_SOURCE")
+    if not all(isfinite(x) and isfinite(y) for x, y in points):
+        raise ValueError("NFB_CSV_EDITOR_OPENING_SHAPE_DIFFERS_FROM_SOURCE")
+    # Keep the exact same CSV rectangle check as native editor Confirm:
+    # only current-source geometry can serve as later world-X evidence.
+    if not csv_editor_opening_matches_current_source(points, source, angle):
+        raise ValueError("NFB_CSV_EDITOR_OPENING_SHAPE_DIFFERS_FROM_SOURCE")
     panel_now, placement = _resolve_physical_panel(
         snapshot, panel.inner_door_id,
     )
@@ -161,13 +256,29 @@ def _source_world_x_from_committed_editor_feature(
 
 def _submitted_csv_holes(snapshot):
     """Get canonical selected Bay's full config; no separate editor authority."""
+    from .cabinet_types.policy import canonical_family_name
     if (not isinstance(snapshot, Mapping)
-            or snapshot.get("model") not in ("受電箱", "RECEIVING")):
+            or canonical_family_name(snapshot) != "受電箱"):
         return ()
     submitted = snapshot.get("nfb_config_submitted", False)
     if type(submitted) is not bool:
         raise ValueError("NFB_COMMITTED_CSV_SUBMISSION_FACT_INVALID")
     if not submitted:
+        # Quantity versions are persistent NFB owners; the root is only a
+        # transient alias.  A missing/stale root submission flag must not
+        # silently turn a submitted selected version into an empty CUTTING
+        # source when a headless caller bypasses GUI projection/reload.
+        # Do not borrow a submitted *different* version for this selection.
+        if snapshot.get("active_mode") == "quantity" and "quantity" in snapshot:
+            from .receiving_quantity_versions import QuantityModel
+            quantity_model = QuantityModel.from_payload(snapshot["quantity"])
+            selected_version_nfb = quantity_model.nfb_config_for_version(
+                quantity_model.selected_version_id
+            )
+            if selected_version_nfb.get("nfb_config_submitted") is True:
+                raise ValueError(
+                    "NFB_COMMITTED_CSV_QUANTITY_VERSION_IDENTITY_DRIFT"
+                )
         # This is a projected root alias, not the persisted Set/Bay owner.
         # If the currently selected physical Bay remains submitted, a stale
         # false/missing root field must NOT erase its current NFB CUTTING.
@@ -234,6 +345,20 @@ def _submitted_csv_holes(snapshot):
     rows = config.get("holes")
     if not isinstance(rows, (tuple, list)) or not rows:
         raise ValueError("NFB_COMMITTED_CSV_SUBMITTED_CONFIG_INVALID")
+    if snapshot.get("active_mode") == "quantity" and "quantity" in snapshot:
+        # Even a syntactically valid legacy DXF root alias may be stale:
+        # the historic shortcut below returns without resolving the actual
+        # selected Quantity version. Never hide an owned V5 CSV hole behind
+        # a different legacy alias (or borrow a nonselected version's NFB).
+        # Matching true legacy owners retain their pre-V5 rendering path.
+        from .receiving_quantity_versions import QuantityModel
+        quantity_model = QuantityModel.from_payload(snapshot["quantity"])
+        selected_nfb = quantity_model.nfb_config_for_version(
+            quantity_model.selected_version_id
+        )
+        if (selected_nfb.get("nfb_config_submitted") is not True
+                or selected_nfb.get("nfb_config") != config):
+            raise ValueError("NFB_COMMITTED_CSV_QUANTITY_VERSION_IDENTITY_DRIFT")
     # Old projects with DXF references still use their own existing path;
     # a *mixed* CSV/DXF configuration cannot silently drop physical holes.
     parsed = tuple(
@@ -261,13 +386,59 @@ def _submitted_csv_holes(snapshot):
                 validate_stored_model_ref(value)
             except ValueError as exc:
                 raise ValueError("NFB_COMMITTED_CSV_STORED_MODEL_INVALID") from exc
+        # The legacy root is a display/projection alias, not proof that the
+        # selected physical Set/Bay has no current CSV NFB source. The V5
+        # path below enforces this identity only *after* the legacy return.
+        # Keep old root-only DXF projects working, but never suppress a
+        # submitted Bay's different saved NFBConfig or an unresolved owner.
+        if snapshot.get("active_mode") != "quantity":
+            layout = snapshot.get("receiving_layout")
+            if isinstance(layout, Mapping):
+                sets = layout.get("sets")
+                if isinstance(sets, (tuple, list)):
+                    selector = snapshot.get("_receiving_runtime_selection")
+                    selected_bay = None
+                    if isinstance(selector, Mapping):
+                        si, bi = selector.get("set_index"), selector.get("bay_index")
+                        if (type(si) is int and 0 <= si < len(sets)
+                                and isinstance(sets[si], Mapping)
+                                and sets[si].get("stable_id") == selector.get("set_id")):
+                            bays = sets[si].get("bays")
+                            if (isinstance(bays, (tuple, list))
+                                    and type(bi) is int and 0 <= bi < len(bays)
+                                    and isinstance(bays[bi], Mapping)
+                                    and bays[bi].get("stable_id") == selector.get("bay_id")):
+                                selected_bay = bays[bi]
+                    if (selected_bay is None and len(sets) == 1
+                            and isinstance(sets[0], Mapping)):
+                        bays = sets[0].get("bays")
+                        if (isinstance(bays, (tuple, list)) and len(bays) == 1
+                                and isinstance(bays[0], Mapping)):
+                            selected_bay = bays[0]
+                    if selected_bay is not None:
+                        if (selected_bay.get("nfb_config_submitted") is True
+                                and selected_bay.get("nfb_config") != config):
+                            raise ValueError("NFB_COMMITTED_CSV_BAY_IDENTITY_DRIFT")
+                    elif any(
+                        isinstance(a_set, Mapping)
+                        and isinstance(a_set.get("bays"), (tuple, list))
+                        and any(
+                            isinstance(bay, Mapping)
+                            and bay.get("nfb_config_submitted") is True
+                            for bay in a_set["bays"]
+                        )
+                        for a_set in sets
+                    ):
+                        raise ValueError(
+                            "NFB_COMMITTED_CSV_ACTIVE_BAY_SELECTION_UNRESOLVED"
+                        )
         return ()
     if any(p is None for p in parsed):
         raise ValueError("NFB_COMMITTED_CSV_MIXED_UNRESOLVED_SOURCE")
     # Quantity version parent changed while an INHERIT unit still points at
     # a different brand's saved V5 model: preserve its identity but forbid
     # any CURRENT manufacturing source, pending explicit operator reselection.
-    from phase6_quantity_model import quantity_inherited_nfb_brand_conflicts
+    from .receiving_quantity_versions import quantity_inherited_nfb_brand_conflicts
     stale_units = quantity_inherited_nfb_brand_conflicts(snapshot)
     if stale_units:
         raise ValueError(
@@ -292,7 +463,7 @@ def _submitted_csv_holes(snapshot):
         # a separately saved Set/Bay or a second editable NFB configuration.
         # Resolve its *current* identity here rather than requiring a stale
         # Set/Bay runtime selector that quantity projection correctly removes.
-        from phase6_quantity_model import QuantityModel
+        from .receiving_quantity_versions import QuantityModel
         from .receiving_quantity_box import project_common_box
         quantity_model = QuantityModel.from_payload(snapshot.get("quantity"))
         selected_nfb = quantity_model.nfb_config_for_version(
@@ -332,6 +503,23 @@ def _submitted_csv_holes(snapshot):
             or bays[bi].get("nfb_config_submitted") is not True
             or bays[bi].get("nfb_config") != config):
         raise ValueError("NFB_COMMITTED_CSV_BAY_IDENTITY_DRIFT")
+    # An identical saved root/Bay config does not prove that a once-CONFIRMED
+    # world X is still valid for this physical Bay.  A width, source model,
+    # rotation, or version change can invalidate the original datum without
+    # changing the stale hole value.  Reuse the persisted Engine proof check
+    # at the *headless manufacturing* boundary, not just at GUI reload.
+    from .receiving_nfb_persistence import normalize_nfb_saved_fields
+    normalized_bay = normalize_nfb_saved_fields(bays[bi])
+    normalized_by_id = {
+        row["physical_hole_id"]: row
+        for row in normalized_bay["nfb_config"]["holes"]
+    }
+    for saved_hole in validated["holes"]:
+        if (saved_hole.get("manual_x_state") == "CONFIRMED"
+                and normalized_by_id[saved_hole["physical_hole_id"]][
+                    "manual_x_state"
+                ] != "CONFIRMED"):
+            raise ValueError("NFB_COMMITTED_CSV_CONFIRMED_DATUM_STALE")
     upper = tuple(p for p in derive_inner_door_panels(snapshot)
                   if str(p.cell_key).split(":")[-1] == "0")
     if len(upper) != 1:
@@ -340,8 +528,13 @@ def _submitted_csv_holes(snapshot):
     centers = receiving_nfb_layer_centers(snapshot, door_id)
     # Only the physical tiers actually holding NFBs get a base/screw set.
     owners = {p.layer_index for p in centers}
+    # A submitted two-tier V5 config is a physical two-plate obligation.
+    # Silently returning no CSV source when either tier has no submitted
+    # hole would manufacture an apparently blank inner door and discard
+    # the other tier's actual operator source. Incomplete *draft* configs
+    # remain unsubmitted and never arrive at this manufacture boundary.
     if count == 2 and owners != {0, 1}:
-        return ()
+        raise ValueError("NFB_COMMITTED_CSV_TWO_TIER_OWNER_INCOMPLETE")
     if count == 1 and owners != {0}:
         return ()
     holes = []
@@ -418,6 +611,32 @@ def _existing_source_specs(snapshot, holes):
         physical_id="base_plate",
     )
     return {0: spec}
+
+
+
+def project_receiving_committed_csv_nfb_pair_layer_count(snapshot: Mapping[str, object]) -> int | None:
+    """Project a committed CSV pair's *existing* physical base source.
+
+    This is a read-only source/PartSpec readiness projection for GUI controls.
+    It neither authorizes manufacture nor constructs replacement base plates.
+    The normal FinalScene resolver still independently checks every source
+    and physical part at manufacturing/export time.
+    """
+    sourced = _submitted_csv_holes(snapshot)
+    if not sourced:
+        return None
+    specs = _existing_source_specs(snapshot, sourced[1])
+    layer_count = sourced[1][0].layer_count
+    if layer_count == 1:
+        if set(specs) == {0} and specs[0].physical_id == "base_plate":
+            return 1
+    elif layer_count == 2:
+        if set(specs) == {0, 1} and all(
+            specs[index].physical_id == f"base_plate:nfb_layer:{index}"
+            for index in (0, 1)
+        ):
+            return 2
+    return None
 
 
 def _without_derived_csv_door_features(snapshot, inner_door_id):

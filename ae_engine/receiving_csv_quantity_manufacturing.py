@@ -67,12 +67,12 @@ def export_current_csv_quantity_manufacturing(
     versions remain normal canonical parts, and quantities are their saved
     QuantityModel piece counts, not a duplicated Set/Bay multiplier.
     """
-    from phase6_manufacturing_contracts import thaw_manufacturing_value
-    from phase6_quantity_manufacturing import (
+    from .manufacturing_value_thaw import thaw_manufacturing_value
+    from .quantity_manufacturing_groups import (
         QuantityManufacturingBatch, quantity_manufacturing_groups,
     )
-    from phase6_quantity_model import QuantityModel
-    from gui_modules.project.export_actions import _resolved_export_intention_key
+    from .receiving_quantity_versions import QuantityModel
+    from .manufacturing_export_selection import resolved_export_intention_key
     from .receiving_fixed_plate_formed_manufacturing import (
         _verified_current_csv_manufacturing_owners,
         _verified_formed_ear_parts,
@@ -123,7 +123,7 @@ def export_current_csv_quantity_manufacturing(
         actual_saved = persisted.nfb_config_for_version(vid)
         selected = tuple(d for d in batch.demands if d.version_id == vid
                          and (d.source_part_id.startswith("custom:")
-                         or bool(flags.get(_resolved_export_intention_key(
+                         or bool(flags.get(resolved_export_intention_key(
                              d.source_part_id), False))))
         if not selected:
             continue

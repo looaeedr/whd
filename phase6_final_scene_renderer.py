@@ -16,6 +16,7 @@ import matplotlib.projections as _matplotlib_projections  # noqa: F401
 
 from typing import Callable
 
+from ae_engine import manufacturing_api
 from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_mpl_dark_theme
 from phase6_final_scene_contracts import (
@@ -219,12 +220,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                         bool(getattr(render_data, "ignore_fixed_corner_relief", False))
                         and str(getattr(part, "part_key", "")) in {"head", "tail"}
                     ):
-                        from ae_engine.assembly_geometry import (
-                            restore_unrelieved_endcap_material,
-                            restored_endcap_relief_delta,
-                        )
-                        fold_material = restore_unrelieved_endcap_material(part_material)
-                        diagnostic_relief_delta = restored_endcap_relief_delta(part_material)
+                        fold_material = manufacturing_api.restore_unrelieved_endcap_material(part_material)
+                        diagnostic_relief_delta = manufacturing_api.restored_endcap_relief_delta(part_material)
                     local = _phase6_folded_mesh_from_polygon(
                         fold_material,
                         tuple(dict(seg) for seg in part.x_profile),
@@ -235,24 +232,17 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 offset = getattr(part, "offset", (0.0, 0.0, 0.0))
                 formed_surface_for_edges = None
                 if placement in {"top", "head", "bottom", "tail"} and box_body_world:
-                    from ae_engine.assembly_geometry import (
-                        place_endcap_against_box_body,
-                        thicken_triangle_surface,
+                    # The Engine returns both the canonical formed surface used
+                    # by visual edges and its true-T physical solid.
+                    skins = manufacturing_api.resolve_assembled_endcap_world_skins(
+                        local, placement=placement, box_body_world=box_body_world,
+                        offset=offset, thickness=request.thickness,
+                        preserve_core_origin=bool(getattr(
+                            render_data, "preserve_endcap_core_origin", False
+                        )),
                     )
-                    # EndCaps are physical sheet, not a zero-thickness mid-surface.
-                    # Shift the semantic mid-plane outward by T/2 so the inside
-                    # skin mates the Box Body, then build both formed skins +
-                    # boundary/fold walls from the shared folded surface.
-                    mate_kwargs = {"sheet_thickness": request.thickness}
-                    if bool(getattr(render_data, "preserve_endcap_core_origin", False)):
-                        mate_kwargs["preserve_core_origin"] = True
-                    placed_surface = place_endcap_against_box_body(
-                        local, placement, box_body_world, offset, **mate_kwargs
-                    )
-                    formed_surface_for_edges = placed_surface
-                    placed = thicken_triangle_surface(
-                        placed_surface, request.thickness
-                    )
+                    formed_surface_for_edges = skins.formed_surface
+                    placed = skins.solid_triangles
                 else:
                     placed = _phase6_place_assembly_triangles(
                         local, placement, request.finished_dimensions, offset
@@ -264,8 +254,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     # Display that same T-thick solid rather than the
                     # zero-thickness mid-surface (front is T/2 too far back).
                     # No geometry or manufacturing input is modified.
-                    from ae_engine.assembly_geometry import thicken_triangle_surface
-                    placed = thicken_triangle_surface(placed, request.thickness)
+                    placed = manufacturing_api.thicken_triangle_surface(placed, request.thickness)
                 placed_piece_meshes = ()
                 if getattr(part_data, "pieces", None):
                     if physical_piece_world:
@@ -297,21 +286,14 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                 local, placement, request.finished_dimensions, offset,
                             )
                     if bool(getattr(render_data, "show_interference", False)):
-                        from ae_engine.assembly_geometry import thicken_triangle_surface
-                        if getattr(part_data, "pieces", None):
-                            collision = []
-                            for _piece, piece_tris in placed_piece_meshes:
-                                # Already true-thickness world meshes; applying
-                                # thicken again creates false collision volumes.
-                                collision.extend(
-                                    piece_tris if physical_piece_world else
-                                    thicken_triangle_surface(piece_tris, request.thickness)
-                                )
-                            box_body_collision_mesh = tuple(collision)
-                        else:
-                            box_body_collision_mesh = thicken_triangle_surface(
-                                box_body_world, request.thickness
+                        box_body_collision_mesh = (
+                            manufacturing_api.project_box_body_collision_source_mesh(
+                                part_data, box_body_world=box_body_world,
+                                placed_piece_meshes=placed_piece_meshes,
+                                physical_piece_world=physical_piece_world,
+                                thickness=request.thickness,
                             )
+                        )
                     if getattr(part_data, "pieces", None):
                         if part_visible:
                             face, edge = self._COLORS.get(str(part.part_key), ("#64748b", "#334155"))
@@ -352,48 +334,16 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     and box_body_collision_mesh
                     and part_key in {"head", "tail"}
                 ):
-                    from ae_engine.assembly_geometry import (
-                        detect_world_mesh_surface_interference,
-                        place_endcap_against_box_body,
-                        thicken_triangle_surface,
+                    diagnostic = (
+                        manufacturing_api.project_assembled_endcap_relief_interference(
+                            part, probe_parts.get(part_key), render_data,
+                            diagnostic_relief_delta=diagnostic_relief_delta,
+                            box_body_collision_mesh=box_body_collision_mesh,
+                            box_body_world=box_body_world,
+                            placement=placement, offset=offset,
+                            thickness=request.thickness,
+                        )
                     )
-                    # Collision diagnostics must use the pre-solve EndCap probe,
-                    # never the already-relieved display material.  We still probe
-                    # only the fixed-relief delta so intended mating seams on the full
-                    # sheet are not reported as broad false positives.
-                    collision_target = ()
-                    probe_part = probe_parts.get(part_key)
-                    probe_data = getattr(probe_part, "render_data", None) if probe_part is not None else None
-                    if probe_data is not None and getattr(probe_data, "material", None) is not None:
-                        from ae_engine.assembly_geometry import restored_endcap_relief_delta
-                        delta_material = restored_endcap_relief_delta(probe_data.material)
-                        probe_x = tuple(dict(seg) for seg in getattr(probe_part, "x_profile", ()) or ())
-                        probe_y = tuple(dict(seg) for seg in getattr(probe_part, "y_profile", ()) or ())
-                        probe_guides = tuple(getattr(probe_data, "fold_guides", ()) or ())
-                    elif bool(getattr(render_data, "ignore_fixed_corner_relief", False)):
-                        delta_material = diagnostic_relief_delta
-                        probe_x = tuple(dict(seg) for seg in part.x_profile)
-                        probe_y = tuple(dict(seg) for seg in part.y_profile)
-                        probe_guides = tuple(getattr(part_data, "fold_guides", ()) or ())
-                    else:
-                        delta_material = None
-                        probe_x = probe_y = probe_guides = ()
-                    if delta_material is not None and not getattr(delta_material, "is_empty", True):
-                        delta_local = _phase6_folded_mesh_from_polygon(
-                            delta_material, probe_x, probe_y, fold_guides=probe_guides,
-                        )
-                        probe_mate_kwargs = {"sheet_thickness": request.thickness}
-                        if bool(getattr(render_data, "preserve_endcap_core_origin", False)):
-                            probe_mate_kwargs["preserve_core_origin"] = True
-                        delta_surface = place_endcap_against_box_body(
-                            delta_local, placement, box_body_world, offset, **probe_mate_kwargs
-                        )
-                        collision_target = thicken_triangle_surface(
-                            delta_surface, request.thickness
-                        )
-                    diagnostic = detect_world_mesh_surface_interference(
-                        box_body_collision_mesh, collision_target
-                    ) if collision_target else None
                     if diagnostic is not None and diagnostic.has_interference:
                         interference_targets.extend(diagnostic.target_triangles)
                         interference_points.extend(diagnostic.intersection_points)
@@ -415,13 +365,9 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 opacity = float(request.alpha_bend)
                 # Outer Door is intentionally readable even when the shared
                 # sheet transparency is lowered to inspect the cabinet internals.
-                is_outer_door = (
-                    part_key == "door" or
-                    (part_key.startswith("door_c") and "_r" in part_key)
-                )
-                is_inner_panel = (
-                    part_key.startswith("inner_door:") and part_key.endswith(":panel")
-                )
+                door_role = manufacturing_api.door_display_part_role(part_key)
+                is_outer_door = door_role == "outer"
+                is_inner_panel = door_role == "inner"
                 if is_outer_door or is_inner_panel:
                     opacity = 1.0
                 divider_presentation = _phase6_assembly_part_presentation(part_key, opacity)
@@ -465,47 +411,36 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             # upstream from physical FinalScene and passed as DISPLAY ONLY,
             # not added to the manufacturing part list/BOM or DXF export.
             # No triangle-grid edges or invented weld lines.
-            self.last_formed_ear_display_ids = ()
+            # The Engine, not the renderer, verifies trial EAR/PAD physical
+            # source flags and reads the real assembled world meshes.
+            trial_skins = manufacturing_api.project_receiving_assembly_trial_world_skin_meshes(
+                formed_fixing_plate_skins=tuple(
+                    getattr(render_data, "formed_fixing_plate_skins", ()) or ()
+                ),
+                formed_nfb_pad_skins=tuple(
+                    getattr(render_data, "formed_nfb_pad_skins", ()) or ()
+                ),
+                show_fixing_plate_mesh=bool(
+                    getattr(render_data, "show_fixing_plate_mesh", True)
+                ),
+            )
             visible_ears = []
-            for formed in tuple(getattr(render_data, "formed_fixing_plate_skins", ()) or ()):
-                # Hide only EAR physical surfaces. Source-backed SIDE MARKING
-                # below must remain visible while the owning side is visible.
-                if not bool(getattr(render_data, "show_fixing_plate_mesh", True)):
-                    continue
-                if (not getattr(formed, "source_bend_verified", False)
-                        or not getattr(formed, "actual_signed_forming_constructed", False)
-                        or getattr(formed, "manufacturing_ready", True)
-                        or getattr(formed, "weld_contact_verified", True)):
-                    raise ValueError("EAR_3D_SOURCE_OR_MANUFACTURING_GATE_FAILED")
-                skin_tris = tuple(
-                    tuple(tuple(float(v) for v in point) for point in face.world)
-                    for face in tuple(formed.mapped_world_skins or ())
-                )
-                if not skin_tris:
-                    raise ValueError("EAR_3D_FORMED_SKIN_EMPTY")
-                poly = gridless_mesh_collection(
-                    skin_tris, facecolor="#f97316", opacity=0.92,
-                )
-                ax.add_collection3d(poly)
-                triangles.extend(skin_tris)
-                visible_ears.append(str(formed.part_id))
-            self.last_formed_ear_display_ids = tuple(visible_ears)
-            self.last_formed_pad_display_ids = ()
             visible_pads = []
-            for pad in tuple(getattr(render_data, "formed_nfb_pad_skins", ()) or ()):
-                if (pad.manufacturing_ready or pad.assembly_contact_certified
-                        or not pad.source_flat_and_bend_verified
-                        or not pad.actual_base_squares_present):
-                    raise ValueError("PAD_3D_PREVIEW_SOURCE_OR_MFG_GATE_INVALID")
-                triangles_pad = tuple(pad.world_triangles or ())
-                if not triangles_pad:
-                    raise ValueError("PAD_3D_PREVIEW_EMPTY_MESH")
-                pad_artist = gridless_mesh_collection(
-                    triangles_pad, facecolor="#a78bfa", opacity=0.92,
-                )
-                ax.add_collection3d(pad_artist)
-                triangles.extend(triangles_pad)
-                visible_pads.append(str(pad.part_id))
+            for skin in trial_skins:
+                if skin.role == "EAR":
+                    visible_ears.append(skin.part_id)
+                    poly = gridless_mesh_collection(
+                        skin.world_triangles, facecolor="#f97316", opacity=0.92,
+                    )
+                    ax.add_collection3d(poly)
+                else:
+                    visible_pads.append(skin.part_id)
+                    pad_artist = gridless_mesh_collection(
+                        skin.world_triangles, facecolor="#a78bfa", opacity=0.92,
+                    )
+                    ax.add_collection3d(pad_artist)
+                triangles.extend(skin.world_triangles)
+            self.last_formed_ear_display_ids = tuple(visible_ears)
             self.last_formed_pad_display_ids = tuple(visible_pads)
             # EAR contact lines are MARKING on the mother SIDE plate, not
             # a mesh-grid overlay or an EAR CUTTING/BEND feature.  Only draw
@@ -531,10 +466,6 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     for p in assembly_parts
                 )
             ):
-                from phase6_manufacturing_geometry import _phase6_build_joint_world_geometry
-                from ae_engine.assembly_all_parts_collision import (
-                    audit_all_physical_part_pairs, collision_part_display_name,
-                )
                 # A renderer instance persists across 3D redraws: reuse a verified
                 # result for the SAME immutable scene objects and user controls.
                 scene_key = (
@@ -548,27 +479,10 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 ):
                     audit = self._all_parts_collision_cache[1]
                 else:
-                    physical = _phase6_build_joint_world_geometry(
+                    audit = manufacturing_api.project_assembly_collision_display_audit(
                         assembly_parts, request.finished_dimensions, request.thickness,
-                    )
-                    world_parts = physical["world_triangles_by_part"]
-                    selected = (
-                        {key for key in world_parts if key != "box_body"}
-                        if visible_part_keys is None else
-                        {key for key in world_parts if (
-                            (key.startswith("box_body:") and "box_body" in visible_part_keys)
-                            or key in visible_part_keys
-                        )}
-                    )
-                    if visible_box_body_piece_keys is not None:
-                        selected = {
-                            key for key in selected
-                            if not key.startswith("box_body:")
-                            or key.startswith("box_body:divider:")
-                            or key in visible_box_body_piece_keys
-                        }
-                    audit = audit_all_physical_part_pairs(
-                        world_parts, visible_part_keys=selected,
+                        visible_part_keys=visible_part_keys,
+                        visible_box_body_piece_keys=visible_box_body_piece_keys,
                         certified_relief_diagnostics=tuple(
                             getattr(render_data, "collision_certification_diagnostics", ()) or ()
                         ),
@@ -586,7 +500,6 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     ))
             if interference_segments:
                 from mpl_toolkits.mplot3d.art3d import Line3DCollection
-                from ae_engine.assembly_geometry import MeshInterferenceDiagnostic
                 if interference_targets:
                     ax.add_collection3d(gridless_mesh_collection(
                         interference_targets, facecolor="#eab308", opacity=0.42,
@@ -595,13 +508,12 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     interference_segments, colors="#eab308", linewidths=2.5,
                     linestyles="solid", alpha=0.95,
                 ))
-                self.last_interference_diagnostic = MeshInterferenceDiagnostic(
+                self.last_interference_diagnostic = manufacturing_api.MeshInterferenceDiagnostic(
                     tuple(interference_targets), tuple(interference_points),
                     interference_pairs, tuple(interference_segments)
                 )
             else:
-                from ae_engine.assembly_geometry import MeshInterferenceDiagnostic
-                self.last_interference_diagnostic = MeshInterferenceDiagnostic((), (), 0, ())
+                self.last_interference_diagnostic = manufacturing_api.MeshInterferenceDiagnostic((), (), 0, ())
             # Preserve the legacy RED certified-interference diagnostic.
             # Amber unverified crossings are a separate audit, not a forged
             # positive-volume collision result.
@@ -642,8 +554,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                 f"{len(audit.unresolved)} 組有未證實合法交線（橘色），不可判定為零碰撞"
                             )
                             collision_text += "".join(
-                                f"\n  {collision_part_display_name(row.left)} ↔ "
-                                f"{collision_part_display_name(row.right)}："
+                                f"\n  {manufacturing_api.collision_part_display_name(row.left)} ↔ "
+                                f"{manufacturing_api.collision_part_display_name(row.right)}："
                                 f"{row.pair_count} 組交線；"
                                 f"X{row.region_xyz[0]} Y{row.region_xyz[1]} Z{row.region_xyz[2]} mm"
                                 for row in audit.unresolved[:5]
@@ -719,61 +631,18 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         material = render_data.material
         fold_guides = tuple(getattr(render_data, "fold_guides", ()) or ())
         part_key = str(request.part_key)
-        fixed_plate_display = False
-        x_profile, y_profile = request.x_profile, request.y_profile
-        if (part_key.startswith("base_plate:fixing_plate:")
-                and (getattr(render_data, "metadata", None) or {}).get("source_profile") == "large"):
-            # #1503: the independent 3D tab previously reused blank editor
-            # profiles, hence rendered the genuine BEND23 source as FLAT.
-            # Consume the SAME source-verified signed +90 fold as assembly.
-            # Only the on-screen mesh uses the T2 MID-skin hinge at y=22.
-            # The original PartRenderData / CUTTING / DXF BEND at y=23 is
-            # unchanged; do not introduce any bend compensation.
-            from ae_engine.receiving_fixed_plate_formed_skins import (
-                verified_receiving_fixing_plate_local_fold,
-            )
-            from ae_engine.assembly_geometry import (
-                folded_mesh_with_flat_uv_from_polygon,
-                thicken_triangle_surface,
-            )
-            hinge_y, x_profile, y_profile, physical_guides = (
-                verified_receiving_fixing_plate_local_fold(render_data)
-            )
-            mapped = folded_mesh_with_flat_uv_from_polygon(
-                material, x_profile, y_profile, fold_guides=physical_guides,
-            )
-            triangles = thicken_triangle_surface(
-                tuple(face.local for face in mapped),
-                float(render_data.metadata["thickness"]),
-            )
-            fold_guides = physical_guides
-            fixed_plate_display = True
-        if part_key == "box_body:left_side":
-            # This independent 3D input sink must depict the FINISHED solid,
-            # not a zero-thickness material midplane.  Use the same pure
-            # formed/outside correction as the assembly collision mesh,
-            # but fold the ACTIVE operator profile (never copy world assembly).
-            from ae_engine.assembly_geometry import (
-                folded_mesh_with_flat_uv_from_polygon, thicken_triangle_surface,
-            )
-            from ae_engine.assembly_geometry_folded_mesh import (
-                fit_receiving_left_zl1_formed_outside,
-            )
-            mapped = folded_mesh_with_flat_uv_from_polygon(
-                material, request.x_profile, request.y_profile,
-                fold_guides=fold_guides,
-            )
-            formed = fit_receiving_left_zl1_formed_outside(
-                request.x_profile, mapped,
-                tuple(item.local for item in mapped),
-                thickness=request.thickness, axis=2,
-            )
-            triangles = thicken_triangle_surface(formed, request.thickness)
-        elif not fixed_plate_display:
-            triangles = _phase6_folded_mesh_from_polygon(
-                material, request.x_profile, request.y_profile,
-                fold_guides=fold_guides,
-            )
+        # Actual physical standalone mesh ownership remains in Engine.
+        # The GUI only consumes the projected mesh, fold guide and 3D-only
+        # verified fixing-plate hinge; original DXF BEND remains unchanged.
+        mesh = manufacturing_api.project_independent_part_view_mesh(
+            part_key, render_data, x_profile=request.x_profile,
+            y_profile=request.y_profile, thickness=request.thickness,
+        )
+        triangles = list(mesh.triangles)
+        x_profile, y_profile = mesh.x_profile, mesh.y_profile
+        fold_guides = mesh.fold_guides
+        hinge_y = mesh.fixed_plate_hinge_y
+        fixed_plate_display = hinge_y is not None
         if not triangles:
             raise ValueError("3D CUTTING mesh is empty")
         self._remove_original_bend_surfaces()
@@ -784,11 +653,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 pass
         face, edge = self._COLORS.get(str(request.part_key), ("#64748b", "#334155"))
         part_key = str(request.part_key)
-        is_door = (
-            part_key == "door"
-            or (part_key.startswith("door_c") and "_r" in part_key)
-            or (part_key.startswith("inner_door:") and part_key.endswith(":panel"))
-        )
+        is_door = manufacturing_api.door_display_part_role(part_key) != "other"
         poly = gridless_mesh_collection(
             triangles, facecolor=face,
             opacity=1.0 if is_door else float(request.alpha_bend),
@@ -803,13 +668,15 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         # is deliberately 1 mm away at y=23 and must remain source-exact
         # in 2D/manufacturing, rather than be drawn as a false 3D hinge.
         if fixed_plate_display:
-            p = self._map_xy(0., hinge_y, x_profile, y_profile, fold_guides)
-            q = self._map_xy(float(render_data.metadata["source_flat_dimensions"][0]),
-                             hinge_y, x_profile, y_profile, fold_guides)
-            self.renderer.ax3d.plot(
-                [p[0], q[0]], [p[1], q[1]], [p[2], q[2]],
-                color="#2563eb", linewidth=1.15, alpha=0.95,
+            hinge_segment = manufacturing_api.project_independent_fixed_plate_hinge_segment(
+                render_data, mesh,
             )
+            if hinge_segment:
+                p, q = hinge_segment
+                self.renderer.ax3d.plot(
+                    [p[0], q[0]], [p[1], q[1]], [p[2], q[2]],
+                    color="#2563eb", linewidth=1.15, alpha=0.95,
+                )
         else:
             self._draw_scene_bends(scene, request.x_profile, request.y_profile, fold_guides=fold_guides)
         self._draw_scene_markings(scene, x_profile, y_profile, fold_guides=fold_guides)

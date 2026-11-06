@@ -8,6 +8,11 @@ fingerprint algorithm preserves the historic exact cache key contract.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from .cabinet_types.policy import canonical_family_name
+from .manufacturing_contracts import (
+    normalize_operator_3d_fallback_flag,
+    normalize_operator_relief_clearance,
+)
 import hashlib
 import json
 
@@ -65,7 +70,12 @@ def manufacturing_state_fingerprint(
     settings = dict(settings_values or {})
     working_box = dict(working_box or {})
     settings.pop("ui_text_size", None)
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+    if snapshot.get("model") or snapshot.get("cabinet_type"):
+        # The saved/strictly supplied operator Family outranks stale Settings.
+        # A Settings mirror must never erase physical Family from the digest.
+        settings.pop("model", None)
+        settings.pop("cabinet_type", None)
+    if canonical_family_name(snapshot) == "受電箱":
         settings.update({
             axis: working_box[axis] for axis in ("w", "h", "d")
             if axis in working_box
@@ -74,6 +84,8 @@ def manufacturing_state_fingerprint(
         "settings", "endcap_fw", "endcap_bottom_wrap", "assembly_type",
         "corner_state", "corner_pair_same", "active_part", "part_dimensions",
     }
+    mirror_keys.discard("model")
+    mirror_keys.discard("cabinet_type")
     snapshot = {key: value for key, value in snapshot.items() if key not in mirror_keys}
     state = (
         snapshot,
@@ -85,8 +97,8 @@ def manufacturing_state_fingerprint(
         tuple(available_parts or ()),
         dict(part_profiles or {}),
         assembly_intent,
-        bool(ignore_fixed_corner),
-        relief_clearance,
+        normalize_operator_3d_fallback_flag(ignore_fixed_corner),
+        normalize_operator_relief_clearance(relief_clearance),
     )
     normalized = canonical_manufacturing_signature_value(state)
     payload = json.dumps(

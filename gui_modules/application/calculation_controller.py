@@ -3,7 +3,7 @@
 Formula/manufacturing authority remains in AE and existing application owners.
 This module only coordinates authoritative inputs/results and UI projection.
 """
-import ae_engine.ae as ae
+from ae_engine import manufacturing_api
 
 
 def update_calculations(self):
@@ -46,59 +46,43 @@ def update_calculations(self):
             y_w = y_maxx - y_minx
             y_d = y_maxy - y_miny
         else:
-            if baseline:
-                geom = ae.get_stretched_end_cap_data(
-                    baseline, val['w'], val['h'], val['d'], val['t'],
-                    FW_val=val['fw'], is_tail=False
-                )
-                y_w = geom.params['total_width']
-                y_d = geom.params['total_depth']
-            else:
-                y_w = ae.calculate_y_width(val['yl1'], val['yr1'], val['w'], val['t'])
-                y_d = ae.calculate_y_depth(
-                    val['ytop1'], val['ybottom1'], val['d'], val['t'], val['fw']
-                )
-        
-        # 3. 計算門 Door。不存在的板件不建立/計算預覽資料。
+            y_w, y_d = manufacturing_api.project_operator_endcap_blank_dimensions(
+                val, baseline_model=baseline,
+            )
+
+        # 3. 計算門 Door：GUI 只選使用者正在看的單門或多門格，
+        # 正式料尺寸與 legacy 基準來源優先序都由公開 Engine API 判定。
         door_material_fw = self._door_material_frame_width(val['fw'], val['t'])
         if not self._phase6_logical_part_present(existing_parts, "door"):
             door_w = door_h = None
-        elif self.multi_door_enabled_var.get():
-            cell = self.get_selected_door_layout_cell()
-            door_w, door_h = ae.calculate_door_blank_size(
-                cell.start_width, cell.start_height, val['t'], door_material_fw,
-                val['door_gap_w'], val['door_gap_h'],
-                val['door_fold_l'], val['door_fold_r'],
-                val['door_fold_t'], val['door_fold_b'],
-                frame_edges=cell.edges,
-            )
-        elif baseline:
-            try:
-                geom_door = ae.get_stretched_door_data(baseline, val['w'], val['h'], val['t'], door_material_fw,
-                                                      val['door_gap_w'], val['door_gap_h'],
-                                                      val['door_fold_l'], val['door_fold_r'],
-                                                      val['door_fold_t'], val['door_fold_b'])
-                door_w = geom_door.params['total_width']
-                door_h = geom_door.params['total_depth']
-            except Exception:
-                door_w, door_h = ae.calculate_door_blank_size(
-                    val['w'], val['h'], val['t'], door_material_fw,
-                    val['door_gap_w'], val['door_gap_h'],
-                    val['door_fold_l'], val['door_fold_r'],
-                    val['door_fold_t'], val['door_fold_b']
-                )
         else:
-            door_w, door_h = ae.calculate_door_blank_size(
-                val['w'], val['h'], val['t'], door_material_fw,
-                val['door_gap_w'], val['door_gap_h'],
-                val['door_fold_l'], val['door_fold_r'],
-                val['door_fold_t'], val['door_fold_b']
+            from ae_engine import manufacturing_api
+            if self.multi_door_enabled_var.get():
+                cell = self.get_selected_door_layout_cell()
+                selected_cell_size = (cell.start_width, cell.start_height)
+                frame_edges = cell.edges
+            else:
+                selected_cell_size = None
+                frame_edges = None
+            door_w, door_h = manufacturing_api.project_operator_door_blank_dimensions(
+                val,
+                material_frame_width=door_material_fw,
+                baseline_model=baseline,
+                selected_cell_size=selected_cell_size,
+                frame_edges=frame_edges,
             )
         
         # 3.5 計算底板
         if self._phase6_logical_part_present(existing_parts, "base_plate"):
-            base_plate_w = val['w'] - val['base_plate_shrink_left'] - val['base_plate_shrink_right'] + 2.0 * val['base_plate_bend']
-            base_plate_h = val['h'] - val['base_plate_shrink_top'] - val['base_plate_shrink_bottom'] + 2.0 * val['base_plate_bend']
+            from ae_engine import manufacturing_api
+            base_plate_w, base_plate_h = manufacturing_api.base_plate_blank_dimensions(
+                w=val["w"], h=val["h"],
+                shrink_top=val["base_plate_shrink_top"],
+                shrink_bottom=val["base_plate_shrink_bottom"],
+                shrink_left=val["base_plate_shrink_left"],
+                shrink_right=val["base_plate_shrink_right"],
+                bend=val["base_plate_bend"],
+            )
         else:
             base_plate_w = base_plate_h = None
         

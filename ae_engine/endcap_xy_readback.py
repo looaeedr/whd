@@ -6,6 +6,7 @@ material FW, and canonical EndCap topology. No GUI/Phase6 reverse import.
 """
 from __future__ import annotations
 from collections.abc import Mapping, Sequence
+from math import isfinite
 from .cabinet_types import policy as cabinet_family_policy
 from .box_body_fold_profile import _num, _ui_len, _common_dimension_len
 
@@ -13,6 +14,41 @@ from .box_body_fold_profile import _num, _ui_len, _common_dimension_len
 def fold_material_segment_outside_length(seg: Mapping[str, object]):
     """Existing adjacent-BEND metadata affects the operator outside span."""
     return _ui_len(_num(seg.get("len")) + _num(seg.get("ui_len_add")))
+
+
+def project_manufacturing_endcap_bottom_fold_inputs(endcap_profiles) -> dict[str, float]:
+    """Read original Head/Tail lower Fold sources for BoxBody manufacturing.
+
+    The GUI supplies the detached stored profiles, but Engine recognizes
+    the physical ybottom1 identity and converts the outside span with the
+    existing adjacent-BEND metadata rule. Missing sources remain absent.
+    """
+    values = {}
+    sources = endcap_profiles or {}
+    for part_key, target in (
+        ("head", "head_ybottom1"), ("tail", "tail_ybottom1"),
+    ):
+        profile = sources.get(part_key) or {}
+        for segment in list(dict(profile).get("Y", ()) or ()):
+            if str(segment.get("phase6_key") or "") == "ybottom1":
+                # Legacy _num() accepts bool as 1 and treats an invalid
+                # ui_len_add as 0 for presentation. Both `len` and the
+                # explicitly saved adjacent-BEND compensation contribute
+                # to the manufactured outside dimension and must be valid.
+                # Only a genuinely *absent* legacy ui_len_add means zero.
+                for field in ("len", "ui_len_add"):
+                    raw = segment.get(field, 0.0) if field == "ui_len_add" else segment.get(field)
+                    if isinstance(raw, bool):
+                        raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID")
+                    try:
+                        measured = float(raw)
+                    except (TypeError, ValueError, OverflowError) as exc:
+                        raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID") from exc
+                    if not isfinite(measured):
+                        raise ValueError("ENDCAP_BOTTOM_FOLD_SOURCE_INVALID")
+                values[target] = float(fold_material_segment_outside_length(segment))
+                break
+    return values
 
 
 def resolve_endcap_xy_outside_dimensions(profiles: Mapping[str, Sequence[Mapping[str, object]]], original_snapshot: Mapping[str, object]) -> dict:

@@ -204,49 +204,47 @@ def test_r2_2a_custom_sheet_bending_ui_clears_stale_vault_and_rebuilds_from_acti
 
 
 
-def test_r2_2_save_current_part_custom_part_saves_bend_ui_and_outside_compensation(monkeypatch):
+def test_r2_2_save_current_part_custom_part_saves_bend_ui_and_outside_compensation():
+    """Use a real CustomPartCatalog source, not a source-less GUI dummy."""
+    from copy import deepcopy
+    from ae_engine import manufacturing_api as api
+
     order = []
+    catalog = api.CustomPartCatalog()
+    key = catalog.add(display_name="Plate 1", fold_axis="X",
+                      transverse_length=80.0, per_box_count=1)
+    physical_snapshot = {"t": 2.5, "custom_parts": catalog.snapshot()}
+    live_profiles = api.build_custom_part_profiles(physical_snapshot, key)
+    before = deepcopy(live_profiles)
 
     class DummyWorkspace:
         switching = False
-        active_part = "custom:plate_1"
+        active_part = key
 
-        def custom_part(self, key):
-            if key == "custom:plate_1":
-                return SimpleNamespace(
-                    key="custom:plate_1",
-                    display_name="Plate 1",
-                    finished_width=100.0,
-                    finished_height=80.0,
-                    fold_axis="X",
-                )
-            return None
+        def custom_part(self, part_id):
+            return catalog.get(part_id)
 
-        def stash_profiles(self, key, profiles):
-            order.append(("stash", key, profiles))
+        def snapshot(self):
+            return {"custom_parts": catalog.snapshot()}
 
-    monkeypatch.setattr(
-        fold_designer_bridge,
-        "apply_outside_dimension_compensation",
-        lambda segs, t: [s.__setitem__("compensated_t", t) for s in segs],
-    )
+        def stash_profiles(self, part_id, profiles):
+            order.append(("stash", part_id, profiles))
+
     app = SimpleNamespace(
         designer_workspace=DummyWorkspace(),
         bend_ui=SimpleNamespace(save=lambda: order.append(("bend_ui_save",))),
-        state=SimpleNamespace(
-            profiles={
-                "X": [{"len": 20.0, "angle": 90.0}],
-                "Y": [{"len": 80.0}],
-            }
-        ),
+        state=SimpleNamespace(profiles=live_profiles),
         _settings_values={"t": 2.5},
         _phase6_input_snapshot={"t": 2.0},
     )
     owner = Phase6PartSessionOwner().bind_application(app)
     owner.save_current_part()
     assert order[0] == ("bend_ui_save",)
-    assert order[1][0] == "stash"
-    assert order[1][2]["X"][0]["compensated_t"] == 2.5
+    assert order[1][0:2] == ("stash", key)
+    assert order[1][2]["X"][0]["ui_len_add"] == pytest.approx(2.5)
+    assert order[1][2]["X"][1]["ui_len_add"] == pytest.approx(2.5)
+    assert order[1][2]["Y"] == before["Y"]
+    assert live_profiles == before  # Detached Engine projection cannot mutate UI input.
 
 
 def test_r2_3_workspace_controller_quantity_mode_feature_sync_and_snapshot():
@@ -393,7 +391,9 @@ def test_r2_9_remap_door_layout_owned_data_remaps_handle_edges_inner_doors_and_s
     assert host.surface_features["door_c1_r1"] == ["f1"]
     assert "door_c2_r1" not in host.surface_features
     assert host.surface_features["head"] == ["h"]
-    assert host.receiving_inner_doors == [{"cell_key": "0:0", "stable_id": "inner_door:c1_r1"}]
+    # All real physical IDs now follow the canonical Engine upper/lower owner,
+    # not a host-injected resolver with a second private naming convention.
+    assert host.receiving_inner_doors == [{"cell_key": "0:0", "stable_id": "upper"}]
 
 
 def test_r2_10_render_snapshots_passes_model_name_and_frame_width_to_derive_box_body_dividers(monkeypatch):
@@ -403,7 +403,9 @@ def test_r2_10_render_snapshots_passes_model_name_and_frame_width_to_derive_box_
         called_kwargs.update(kwargs)
         return ()
 
-    monkeypatch.setattr(render_snapshots.door_dividers, "derive_box_body_dividers", fake_derive)
+    # The canonical divider factory now lives behind the public Engine 2D seam.
+    from ae_engine import operator_door_2d_preview
+    monkeypatch.setattr(operator_door_2d_preview.door_dividers, "derive_box_body_dividers", fake_derive)
     host = SimpleNamespace(
         door_layout_scope="main",
         door_layout_handle_edges={},

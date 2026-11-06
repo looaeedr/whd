@@ -25,7 +25,6 @@ from typing import Mapping, MutableMapping
 from whd_theme import WHD_THEME, apply_ttk_dark_theme, configure_tk_menu
 
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from phase6_designer_workspace import Phase6DesignerWorkspace
 from phase6_part_navigation import (
     NavigationIntent,
@@ -136,19 +135,14 @@ from phase6_settings_panel import (
     build_choice_menubutton,
 )
 from ui_text_scale import prepare_text_scale_controller as _ui_prepare_text_scale_controller
-from ae_engine.assembly_joint import (
-    AssemblyJoint, AssemblyJointRelation, AssemblyJointSource,
-    migrate_legacy_snapshot_joints, edge_relation_for_part,
-)
-from ae_engine.assembly_intent import get_assembly_intent
+from ae_engine.assembly_joint import AssemblyJointRelation
 from ae_engine.sheetmetal_geometry import (
     CornerTypeId, CrossCornerMode, CornerDirection,
     EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS, normalize_corner_selection,
 )
 
 from ae_engine.corner_type_ui import (
-    CUSTOM_MODEL_NAME, LEGACY_CUSTOM_MODEL_NAMES, known_model_corner_state,
-    normalize_custom_model_name,
+    CUSTOM_MODEL_NAME, LEGACY_CUSTOM_MODEL_NAMES,
 )
 
 from phase6_endcap_semantics import (
@@ -261,20 +255,20 @@ class Phase6CornerDataUnfoldProjection:
 
 
 def _phase6_box_body_piece_dimension_projections(render_data) -> tuple[Phase6PartDimensionProjection, ...]:
-    """Project resolved physical Box Body pieces without recomputing any dimensions."""
-    rows = []
-    for piece in tuple(getattr(render_data, "pieces", ()) or ()):
-        role = str(getattr(piece, "role", "") or "").strip()
-        key = f"box_body:{role}" if role else str(getattr(piece, "key", "") or "")
-        formed_w, formed_h = tuple(float(v) for v in piece.formed_outer_dimensions)
-        blank_w, blank_h = tuple(float(v) for v in piece.material_dimensions)
-        rows.append(Phase6PartDimensionProjection(
-            part_key=key,
-            label=_phase6_part_label(key),
-            formed_width=formed_w, formed_height=formed_h,
-            blank_width=blank_w, blank_height=blank_h,
-        ))
-    return tuple(rows)
+    """GUI presentation of canonical Engine physical BoxBody piece rows."""
+    return tuple(
+        Phase6PartDimensionProjection(
+            part_key=piece.part_key,
+            label=_phase6_part_label(piece.part_key),
+            formed_width=piece.formed_width,
+            formed_height=piece.formed_height,
+            blank_width=piece.blank_width,
+            blank_height=piece.blank_height,
+        )
+        for piece in manufacturing_api.project_box_body_assembly_panel_piece_rows(
+            render_data,
+        )
+    )
 
 
 _phase6_is_box_body_physical_piece_key = _dm7_is_box_body_physical_piece_key
@@ -452,10 +446,10 @@ def _phase6_sync_registry_diagnostics_compatibility_mirrors(
 
 def _phase6_registry_load_rule_rows(self):
     """Load Registry rows through the existing controller; no Tk ownership here."""
-    from ae_engine.certified_relief_registry import load_external_relief_rule_records
-
     controller = _phase6_registry_diagnostics(self)
-    rows = controller.load_rule_records(loader=load_external_relief_rule_records)
+    rows = controller.load_rule_records(
+        loader=manufacturing_api.operator_load_certified_relief_rule_records,
+    )
     _phase6_sync_registry_diagnostics_compatibility_mirrors(self, controller)
     return rows
 
@@ -798,7 +792,7 @@ class Phase6FoldDesignerApp(original.MainApp):
             self._phase6_last_w = float(source["receiving_quantity_box"]["w"])
             self._phase6_last_d = float(source["receiving_quantity_box"]["d"])
             return
-        if (cabinet_family_policy.canonical_family_name(source) == "受電箱"
+        if (manufacturing_api.operator_canonical_family_name(source) == "受電箱"
                 and source.get("receiving_layout")):
             # Set/Bay has the same single dimensional authority as Quantity.
             # A T/FW redraw must never interpret an older cached Fold core as
@@ -893,7 +887,7 @@ def _copy_features(snapshot, key):
 def _phase6_recalculate_part_dimensions(self):
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     settings = dict(getattr(self, "_settings_values", {}) or {})
-    if cabinet_family_policy.canonical_family_name(snapshot) == "受電箱":
+    if manufacturing_api.operator_canonical_family_name(snapshot) == "受電箱":
         # The live Receiving Bay/Quantity is the dimensional authority.
         # Saved Settings defaults are not the current W/H/D: re-applying
         # them during a fold/T edit destroys the operator's Bay dimensions.
@@ -1094,11 +1088,10 @@ def _phase6_known_model_corner_state(self):
     if live_model:
         model = live_model
     try:
-        from ae_engine.cabinet_types.registry import resolve_cabinet_type
-        family = resolve_cabinet_type(model).canonical_name
+        family = manufacturing_api.resolve_cabinet_type(model).canonical_name
     except Exception:
         family = "金庫型"
-    return known_model_corner_state(
+    return manufacturing_api.operator_known_model_corner_state(
         getattr(self, "available_parts", KNOWN_PARTS),
         cabinet_family=family,
     )
@@ -1115,9 +1108,9 @@ def _phase6_collect_workspace_state(self):
 
 
 def _phase6_relief_profile_fingerprint(profile):
-    from phase6_assembly_relief_state import relief_profile_fingerprint
+    from ae_engine import manufacturing_api
 
-    return relief_profile_fingerprint(profile)
+    return manufacturing_api.relief_profile_fingerprint(profile)
 
 def _phase6_current_relief_source_signature(self, required):
     return _phase6_composition(self).current_relief_source_signature(
@@ -1126,9 +1119,9 @@ def _phase6_current_relief_source_signature(self, required):
 
 
 def _phase6_relief_source_matches_current(saved_source, current_source, required):
-    from phase6_assembly_relief_state import source_matches_current
+    from ae_engine import manufacturing_api
 
-    return source_matches_current(saved_source, current_source, required)
+    return manufacturing_api.source_matches_current(saved_source, current_source, required)
 
 def _phase6_serialize_assembly_relief_state(self):
     return _phase6_composition(self).serialize_assembly_relief_state(
@@ -1344,7 +1337,7 @@ def _phase6_select_box_structure_type(self, var):
         return
     state = _phase6_box_structure_state(self)
     # 受電箱的側背分離是 Family 固定拓撲；選單仍常駐顯示，但不可切換。
-    if cabinet_family_policy.family_fixes_box_body_structure(
+    if manufacturing_api.operator_family_fixes_box_body_structure(
         getattr(self, "_phase6_input_snapshot", {}) or {}
     ):
         try:
@@ -1413,7 +1406,7 @@ def _phase6_apply_box_structure_numeric(self, type_id, field, var):
             field,
             value,
             total_w=_phase6_box_structure_w(self),
-            outside_family=cabinet_family_policy.box_body_profile_uses_outside_dimensions(
+            outside_family=manufacturing_api.operator_box_body_profile_uses_outside_dimensions(
                 getattr(self, "_phase6_input_snapshot", {}) or {}
             ),
         )
@@ -1424,59 +1417,38 @@ def _phase6_apply_box_structure_numeric(self, type_id, field, var):
         _phase6_after_box_structure_commit(self, state, rebuild=True)
 
 
-def _phase6_joint_rows(self):
-    snapshot = migrate_legacy_snapshot_joints(dict(getattr(self, "_phase6_input_snapshot", {}) or {}))
-    self._phase6_input_snapshot.update({
-        "assembly_joint_schema_version": snapshot["assembly_joint_schema_version"],
-        "assembly_joints": deepcopy(snapshot["assembly_joints"]),
-    })
-    return list(self._phase6_input_snapshot["assembly_joints"])
-
-
 def _phase6_add_user_joint(
     self, *, subject_part, target_part, relation, subject_region="", target_region="",
     clearance_policy="ZERO", contact_mode="AUTO", preserve_side="AUTO", relief_intent="AUTO",
     solver_constraints=None,
 ):
-    rows = _phase6_joint_rows(self)
-    rel = relation if isinstance(relation, AssemblyJointRelation) else AssemblyJointRelation(str(relation))
-    import uuid
-    joint = AssemblyJoint(
-        joint_id=f"user:{uuid.uuid4().hex}",
-        subject_part=str(subject_part), target_part=str(target_part),
-        subject_region=str(subject_region or ""), target_region=str(target_region or ""),
-        relation=rel, contact_mode=str(contact_mode or "AUTO"),
-        preserve_side=str(preserve_side or "AUTO"), relief_intent=str(relief_intent or "AUTO"),
-        clearance_policy=str(clearance_policy or "ZERO"),
-        solver_constraints=dict(solver_constraints or {}),
-        source=AssemblyJointSource.USER_ADDED,
+    # The Engine prepares and validates a detached Joint graph.  Only a
+    # successful transaction may write the original GUI project snapshot.
+    staged, row = manufacturing_api.commit_operator_user_assembly_joint(
+        getattr(self, "_phase6_input_snapshot", {}) or {},
+        subject_part=subject_part, target_part=target_part, relation=relation,
+        subject_region=subject_region, target_region=target_region,
+        clearance_policy=clearance_policy, contact_mode=contact_mode,
+        preserve_side=preserve_side, relief_intent=relief_intent,
+        solver_constraints=solver_constraints,
     )
-    key = (joint.subject_part, joint.target_part, joint.subject_region, joint.target_region, joint.relation.value)
-    for raw in rows:
-        existing = AssemblyJoint.from_dict(raw)
-        other = (existing.subject_part, existing.target_part, existing.subject_region, existing.target_region, existing.relation.value)
-        if other == key:
-            raise ValueError("相同 AssemblyJoint 已存在")
-    rows.append(joint.to_dict())
-    self._phase6_input_snapshot["assembly_joints"] = rows
-    return joint.to_dict()
+    self._phase6_input_snapshot.update({
+        "assembly_joint_schema_version": staged["assembly_joint_schema_version"],
+        "assembly_joints": deepcopy(staged["assembly_joints"]),
+    })
+    return row
 
 
 def _phase6_delete_user_joint(self, joint_id):
-    rows = _phase6_joint_rows(self)
-    found = None
-    kept = []
-    for raw in rows:
-        if str(raw.get("joint_id")) == str(joint_id):
-            found = AssemblyJoint.from_dict(raw)
-            continue
-        kept.append(raw)
-    if found is None:
-        return False
-    if found.source is not AssemblyJointSource.USER_ADDED:
-        raise ValueError("只有 USER_ADDED Joint 可以刪除")
-    self._phase6_input_snapshot["assembly_joints"] = kept
-    return True
+    staged, changed = manufacturing_api.remove_operator_user_assembly_joint(
+        getattr(self, "_phase6_input_snapshot", {}) or {}, joint_id,
+    )
+    if changed:
+        self._phase6_input_snapshot.update({
+            "assembly_joint_schema_version": staged["assembly_joint_schema_version"],
+            "assembly_joints": deepcopy(staged["assembly_joints"]),
+        })
+    return changed
 
 
 def _phase6_on_assembly_type_selected(self, *_args):
@@ -1510,26 +1482,21 @@ def _phase6_endcap_joint_policy_rows(self, part_key):
     part_key = str(part_key)
     if part_key not in ENDCAP_FW_PARTS:
         return ()
-    snapshot = migrate_legacy_snapshot_joints(
-        dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    source = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    policies = manufacturing_api.project_operator_endcap_joint_edge_policies(
+        source, part_key,
+        fallback_intent=getattr(
+            self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY,
+        ),
     )
-    intent_id = assembly_intent_value(
-        snapshot.get("assembly_type")
-        or getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)
-    )
-    record = get_assembly_intent(intent_id)
-    rows = []
-    for edge in ("TOP", "BOTTOM", "LEFT", "RIGHT"):
-        policy = record.edge_policy(edge)
-        relation = edge_relation_for_part(snapshot, part_key, edge) or policy.default_relation
-        rows.append({
-            "edge": edge,
-            "relation": relation,
-            "value": _ENDCAP_RELATION_LABELS[relation],
-            "allowed": tuple(_ENDCAP_RELATION_LABELS[item] for item in policy.allowed_relations),
-            "editable": bool(policy.editable),
-        })
-    return tuple(rows)
+    # Translate only approved Engine enum choices into Tk presentation labels.
+    return tuple({
+        "edge": item["edge"],
+        "relation": item["relation"],
+        "value": _ENDCAP_RELATION_LABELS[item["relation"]],
+        "allowed": tuple(_ENDCAP_RELATION_LABELS[value] for value in item["allowed"]),
+        "editable": item["editable"],
+    } for item in policies)
 
 
 def _phase6_on_endcap_edge_relation_selected(self, part_key, edge):
@@ -1572,7 +1539,7 @@ def _phase6_commit_receiving_bottom_wrap_controls(self, part_key, reserve_u_var,
     if str(part_key) not in ENDCAP_FW_PARTS:
         return None
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    if not cabinet_family_policy.supports_bottom_wrap_controls(snapshot):
+    if not manufacturing_api.operator_supports_bottom_wrap_controls(snapshot):
         return None
     current = resolve_endcap_bottom_wrap(
         snapshot, str(part_key),
@@ -1711,90 +1678,42 @@ def _phase6_part_label(value: object, *, snapshot=None) -> str:
 
 
 def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
-    """Shadow-validate exactly one editable candidate without mutating the registry."""
-    from ae_engine.certified_relief_registry import evaluate_editable_endcap_rule_record, _validate_editable_rule_record
-    from ae_engine.assembly_collision import solve_world_backprojected_endcap_relief
-
-    candidate_id = str(candidate_id or "").strip()
-    if not candidate_id:
-        raise ValueError("candidate-specific 3D validation requires candidate_id")
-    raw = _validate_editable_rule_record(record)
-    intent = str(raw.get("assembly_intent") or "").strip()
-    current_intent = str(getattr(getattr(self, "_phase6_assembly_type", None), "value", getattr(self, "_phase6_assembly_type", "")) or "")
-    if current_intent and intent and current_intent != intent:
-        raise ValueError(f"candidate assembly_intent={intent} does not match current assembly={current_intent}")
-
+    """Collect operator inputs; Engine evaluates Registry candidate 3D."""
     callback = getattr(self, "_scene_query_callback", None)
     if callback is None:
         raise RuntimeError("3D final-scene provider is not connected")
     available = set(getattr(getattr(self, "designer_workspace", None), "available_parts", ()) or ())
-    if "box_body" not in available:
-        raise ValueError("candidate-specific 3D validation requires box_body")
-
-    def _base_part(part_key):
+    parts = {}
+    for part_key in ("box_body", "head", "tail"):
+        if part_key not in available:
+            continue
         payload = _phase6_scene_query_payload_for_part(self, part_key)
         payload["_use_committed_relief"] = False
         render_data = callback(part_key, payload)
         if render_data is None or getattr(render_data, "material", None) is None:
             raise ValueError(f"candidate validation render data unavailable: {part_key}")
-        x_profile, y_profile = _phase6_mesh_profiles_for_part(self, part_key, render_data.material)
-        return render_data, tuple(dict(seg) for seg in x_profile), tuple(dict(seg) for seg in y_profile)
-
-    body_render, body_x, _body_y = _base_part("box_body")
+        x_profile, y_profile = _phase6_mesh_profiles_for_part(
+            self, part_key, render_data.material,
+        )
+        parts[part_key] = (
+            render_data,
+            tuple(dict(segment) for segment in x_profile),
+            tuple(dict(segment) for segment in y_profile),
+        )
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     settings = dict(getattr(self, "_settings_values", {}) or {})
-    thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
-    dims = _phase6_operator_finished_dimensions(self)
-    clearance = _phase6_assembly_relief_clearance(self)
-    solutions = {}
-    validated_parts = []
-    for part_key in ("head", "tail"):
-        if part_key not in available:
-            continue
-        end_render, end_x, end_y = _base_part(part_key)
-        ephemeral = evaluate_editable_endcap_rule_record(
-            raw,
-            endcap_render_data=end_render,
-            box_body_x_profile=body_x,
-            endcap_x_profile=end_x,
-            endcap_y_profile=end_y,
-            sheet_thickness=thickness,
-            box_body_structure_state=_phase6_box_structure_state(self),
-        )
-        if ephemeral is None:
-            raise ValueError(f"candidate formula does not apply to {part_key}")
-        solution = solve_world_backprojected_endcap_relief(
-            box_body_render_data=body_render,
-            endcap_render_data=end_render,
-            box_body_x_profile=body_x,
-            endcap_x_profile=end_x,
-            endcap_y_profile=end_y,
-            finished_dimensions=dims,
-            endcap_placement=_PHASE6_ASSEMBLY_PLACEMENTS.get(part_key, "top" if part_key == "head" else "bottom"),
-            sheet_thickness=thickness,
-            clearance=clearance,
-            assembly_intent=intent,
-            cabinet_family=_phase6_current_cabinet_family(self),
-            allow_3d_fallback=False,
-            certified_result_override=ephemeral,
-        )
-        validated_parts.append(part_key)
-        solutions[part_key] = {
-            "verified": bool(getattr(solution, "verified", False)),
-            "trust_level": str(getattr(solution, "trust_level", "") or ""),
-            "rule_id": getattr(solution, "rule_id", None),
-            "rule_revision": getattr(solution, "rule_revision", None),
-            "residual_pair_count": int(getattr(getattr(solution, "residual_projection", None), "pair_count", 0) or 0),
-        }
-
-    zero = bool(validated_parts) and all(bool(item["verified"]) for item in solutions.values())
-    return {
-        "candidate_specific": True,
-        "candidate_id": candidate_id,
-        "zero_penetration": bool(zero),
-        "validated_parts": validated_parts,
-        "solutions": solutions,
-    }
+    raw_intent = getattr(self, "_phase6_assembly_type", "")
+    return manufacturing_api.validate_operator_relief_registry_candidate_3d(
+        record,
+        candidate_id=candidate_id,
+        assembly_intent=str(getattr(raw_intent, "value", raw_intent) or ""),
+        part_inputs=parts,
+        finished_dimensions=_phase6_operator_finished_dimensions(self),
+        sheet_thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
+        clearance=_phase6_assembly_relief_clearance(self),
+        box_body_structure_state=_phase6_box_structure_state(self),
+        cabinet_family=_phase6_current_cabinet_family(self),
+    )
 
 
 def _phase6_joint_form_add(self):
@@ -1928,38 +1847,23 @@ def _phase6_query_final_render_data(self):
     return _phase6_final_scene_adapter(self).query_final_render_data()
 
 def _phase6_mesh_profiles_for_part(self, part_key, material):
+    """Collect current UI Fold inputs; Engine owns the physical 3D profiles."""
     key = str(part_key or "")
-    if key == "box_body":
-        x_profile = list((getattr(self.state, "profiles_vault", {}) or {}).get("箱身", ()) or ())
-        minx, miny, maxx, maxy = material.bounds
-        return x_profile, [{"len": float(maxy - miny)}]
-    if key == self.designer_workspace.active_part:
-        profiles = getattr(self.state, "profiles", {}) or {}
-    else:
-        profiles = self.designer_workspace.profiles_for(key, {}) or {}
-    x_prof = list(profiles.get("X", ()))
-    y_prof = list(profiles.get("Y", ()))
-    if key in {"box_body:left_side", "box_body:right_side", "box_body:back"}:
-        # 3D INPUT is the source. Convert operator material folds to physical
-        # folds BEFORE rendering the independent piece 3D. Assembly consumes
-        # the same forward projection, NEVER the reverse.
-        from ae_engine.box_body_structure import project_side_back_3d_input_fold_to_physical
-        source = getattr(self, "_phase6_input_snapshot", {}) or {}
-        settings = getattr(self, "_settings_values", {}) or {}
-        thickness = _num(settings.get("t", source.get("t", 2.0)), 2.0)
-        receiving = cabinet_family_policy.box_body_profile_uses_outside_dimensions(source)
-        x_prof = project_side_back_3d_input_fold_to_physical(
-            x_prof, role=key.split(":", 1)[1],
-            receiving=receiving, thickness=thickness,
-        )
-    if key.startswith("box_body:divider:") or (key.startswith("inner_door:") and key.endswith("_frame")):
-        minx, miny, maxx, maxy = material.bounds
-        if x_prof and not y_prof:
-            y_prof = [{"len": float(maxy - miny)}]
-        elif y_prof and not x_prof:
-            x_prof = [{"len": float(maxx - minx)}]
-    return x_prof, y_prof
-
+    active = self.designer_workspace.active_part
+    saved = (
+        self.designer_workspace.profiles_for(key, {}) or {}
+        if key != "box_body" and key != active else {}
+    )
+    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
+    settings = getattr(self, "_settings_values", {}) or {}
+    return manufacturing_api.project_operator_3d_mesh_profiles(
+        key, material=material, active_part=active,
+        active_profiles=getattr(self.state, "profiles", {}) or {},
+        saved_profiles=saved,
+        vault_profiles=getattr(self.state, "profiles_vault", {}) or {},
+        snapshot=snapshot,
+        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
+    )
 
 
 def _phase6_final_scene_view_request(self):
@@ -2039,7 +1943,7 @@ def _phase6_refresh_persistent_structure_controls(self):
     return _navigation_view_refresh_persistent_structure_controls(
         self,
         structure_label=_BOX_STRUCTURE_LABELS[active],
-        structure_fixed=cabinet_family_policy.family_fixes_box_body_structure(getattr(self, "_phase6_input_snapshot", {}) or {}),
+        structure_fixed=manufacturing_api.operator_family_fixes_box_body_structure(getattr(self, "_phase6_input_snapshot", {}) or {}),
         assembly_label=ASSEMBLY_TYPE_LABELS[getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)],
     )
 
@@ -2099,7 +2003,7 @@ def _phase6_bootstrap_authoritative_state(self, snapshot):
     _phase6_replace_mapping(self, "_phase6_box_whd", {})
     _phase6_replace_mapping(self, "_phase6_pending_settings", {})
     snapshot = _phase6_snapshot_with_settings_fallback(
-        migrate_legacy_snapshot_joints(dict(snapshot or {}))
+        manufacturing_api.migrate_operator_assembly_joint_snapshot(dict(snapshot or {}))
     )
     initial_parts, initial_active = normalize_part_selection(
         snapshot.get("existing_parts", ("box_body", "head", "tail")),
@@ -2158,7 +2062,7 @@ def _phase6_prepare_predecessor_init(self, root, snapshot):
     self._phase6_current_project_path = str(snapshot.get("_runtime_project_path") or "").strip() or None
     self._factory_defaults = dict(snapshot.get("factory_defaults") or {})
     self._baseline_models = list(snapshot.get("baseline_models") or ())
-    self._phase6_baseline_initial_model = normalize_custom_model_name(snapshot.get("model"))
+    self._phase6_baseline_initial_model = manufacturing_api.operator_normalize_custom_model_name(snapshot.get("model"))
     if self._phase6_baseline_initial_model and self._phase6_baseline_initial_model not in self._baseline_models:
         self._baseline_models.append(self._phase6_baseline_initial_model)
     self._baseline_unknown_value = str(snapshot.get("baseline_unknown_value") or CUSTOM_MODEL_NAME).strip()
@@ -2809,7 +2713,7 @@ def _phase6_refresh_linked_part_profiles(self, changed_keys):
         return
     snapshot = self._phase6_input_snapshot
     settings = dict(self._settings_values)
-    if cabinet_family_policy.canonical_family_name(snapshot) == "受電箱":
+    if manufacturing_api.operator_canonical_family_name(snapshot) == "受電箱":
         # Live Set/Bay (or Quantity) owns W/H/D. The default Settings values
         # are not a second cabinet dimension source when the operator edits T/FW.
         # Replaying stale W800/D350 here would overwrite a valid W820/D360 Bay.
@@ -2857,7 +2761,7 @@ def _phase6_refresh_linked_part_profiles(self, changed_keys):
 
 def _phase6_store_editor_values(self, values, *, notify=True):
     values = dict(values or {})
-    if cabinet_family_policy.canonical_family_name(
+    if manufacturing_api.operator_canonical_family_name(
         getattr(self, "_phase6_input_snapshot", {}) or {}
     ) == "受電箱":
         # The legacy Fold editor emits cached W/H/D along with fold changes.

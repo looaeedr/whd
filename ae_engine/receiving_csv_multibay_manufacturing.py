@@ -37,9 +37,164 @@ from .manufacturing_scene_access import owner_render_data
 from .manufacturing_export_selection import resolved_export_intention_key
 
 
+
+def _verified_nfb_composed_pair_rows(layout, requests, output_root, guard, *, thickness_mm):
+    """Engine-only: verify every committed NFB pair before composing flat UV.
+
+    Nothing from this proof stage becomes a separately published PART_ONLY
+    batch. An already-approved pair may be placed alongside independent
+    approved core flats, but the result never upgrades the cabinet to MFG-2.
+    """
+    from .manufacturing_contracts import (
+        ManufacturingResolveRequest, thaw_manufacturing_value,
+        manufacturing_request_fingerprint,
+    )
+    from .receiving_nfb_manufacturing_transport import restore_receiving_nfb_dto_selectors
+    from .receiving_nfb_batch_pair_export import export_receiving_committed_nfb_csv_bays
+    from .receiving_nfb_default_pair_request import (
+        receiving_committed_nfb_pair_request_for_bay,
+    )
+    from .receiving_nfb_pair_export import (
+        _committed_csv_brand_source_hashes, _require_committed_csv_source_unchanged,
+    )
+    from .manufacturing_export import resolved_physical_dxf_filename
+    from .manufacturing_api import resolve_manufacturing_request
+    from collections.abc import Sequence
+
+    if not isinstance(requests, (tuple, list)) or not requests:
+        raise ValueError("RECEIVING_COMPOSED_NFB_ALL_BAYS_REQUIRED")
+    expected = tuple(
+        (
+            str(group["stable_id"]), str(bay["stable_id"]),
+            float(bay["width"]), float(bay["height"]), float(bay["depth"]),
+        )
+        for group in layout["sets"] for bay in group["bays"]
+    )
+    if len(requests) != len(expected):
+        raise ValueError("RECEIVING_COMPOSED_NFB_ALL_BAYS_REQUIRED")
+    positions = tuple(
+        (si, bi) for si, group in enumerate(layout["sets"])
+        for bi, _bay in enumerate(group["bays"])
+    )
+    source_guards = []
+    for (si, bi), request, (set_id, bay_id, width, height, depth) in zip(
+        positions, requests, expected
+    ):
+        if not isinstance(request, ManufacturingResolveRequest):
+            raise TypeError("RECEIVING_COMPOSED_NFB_ORIGINAL_REQUEST_REQUIRED")
+        snapshot = restore_receiving_nfb_dto_selectors(
+            thaw_manufacturing_value(request.input_snapshot)
+        )
+        actual_id = snapshot.get("_receiving_runtime_selection")
+        # The immutable Request transport already contains its original
+        # canonical Set/Bay layout. Read just physical identity/dimensions:
+        # normalize_receiving_layout would re-interpret serialized current
+        # Hole Editor candidates and reject valid already-verified Features.
+        submitted_layout = snapshot.get("receiving_layout")
+        if (not isinstance(submitted_layout, dict)
+                or not isinstance(submitted_layout.get("sets"), (tuple, list))):
+            raise ValueError("RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH")
+        try:
+            submitted_bays = tuple(
+                (
+                    str(group["stable_id"]), str(bay["stable_id"]),
+                    float(bay["width"]), float(bay["height"]), float(bay["depth"]),
+                )
+                for group in submitted_layout["sets"] for bay in group["bays"]
+            )
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(
+                "RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH"
+            ) from exc
+        if (not isinstance(actual_id, dict)
+                or submitted_bays != expected
+                or (actual_id.get("set_id"), actual_id.get("bay_id")) != (set_id, bay_id)
+                or any(abs(float(snapshot.get(name, -1)) - dimension) > 1e-6
+                       for name, dimension in (("w", width), ("h", height), ("d", depth)))):
+            raise ValueError("RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH")
+        # Never mix an approved NFB Request from another project that happens
+        # to use the same default Set/Bay IDs and W/H/D. Rebuild the exact
+        # public Engine Request from THIS saved Layout and its original T,
+        # then require identical canonical manufacturing semantics.
+        try:
+            saved_request = receiving_committed_nfb_pair_request_for_bay(
+                layout, set_index=si, bay_index=bi,
+                thickness_mm=thickness_mm,
+            )
+        except (ValueError, TypeError, KeyError, OverflowError) as exc:
+            raise ValueError(
+                "RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH"
+            ) from exc
+        if (manufacturing_request_fingerprint(saved_request)
+                != manufacturing_request_fingerprint(request)):
+            raise ValueError("RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH")
+        source = _submitted_csv_holes(snapshot)
+        if not source:
+            raise ValueError("RECEIVING_COMPOSED_NFB_COMMITTED_SOURCE_REQUIRED")
+        source_guards.append((source[1], _committed_csv_brand_source_hashes(source[1])))
+
+    def checked_guard():
+        guard()
+        for holes, initial_hashes in source_guards:
+            _require_committed_csv_source_unchanged(holes, initial_hashes)
+
+    checked_guard()
+    rows = []
+    approved = {}
+    # Both the original single-Bay pair proof and the multi-Bay transaction
+    # must pass before the combined packer is given any NFB physical flat.
+    with TemporaryDirectory(prefix=".whd-composed-nfb-proof-", dir=str(output_root)) as temp:
+        batch = export_receiving_committed_nfb_csv_bays(
+            requests, output_directory=temp, pre_commit_guard=checked_guard,
+        )
+        if len(batch.bays) != len(expected):
+            raise ValueError("RECEIVING_COMPOSED_NFB_BATCH_INCOMPLETE")
+        for request, (set_id, bay_id, receipt) in zip(requests, batch.bays):
+            ns = receiving_instance_namespace(set_id=set_id, bay_id=bay_id)
+            if (set_id, bay_id) != (
+                expected[len(approved)][0], expected[len(approved)][1]
+            ):
+                raise ValueError("RECEIVING_COMPOSED_NFB_BATCH_IDENTITY_MISMATCH")
+            physical = resolve_manufacturing_request(request).geometry
+            physical_rows = tuple(resolved_physical_render_parts(physical))
+            keys = {key for key, _render in physical_rows}
+            doors = {key for key in keys if key.startswith("inner_door:")}
+            bases = {key for key in keys if (
+                key == "base_plate" or key.startswith("base_plate:nfb_layer:")
+            )}
+            if not doors or len(doors) != 1 or not bases or keys != doors | bases:
+                raise ValueError("RECEIVING_COMPOSED_NFB_PAIR_INVENTORY_INVALID")
+            receipt_paths = (receipt.inner_door_path,) + (
+                (receipt.base_plate_path,)
+                if hasattr(receipt, "base_plate_path")
+                else tuple(receipt.base_plate_paths)
+            )
+            expected_paths = {
+                str(Path(temp) / resolved_physical_dxf_filename(
+                    key, instance_namespace=ns, box_body_physical_piece_roles=(),
+                )) for key in keys
+            }
+            if set(receipt_paths) != expected_paths:
+                raise ValueError("RECEIVING_COMPOSED_NFB_PAIR_FILE_ID_MISMATCH")
+            for key, render in physical_rows:
+                filename = resolved_physical_dxf_filename(
+                    key, instance_namespace=ns, box_body_physical_piece_roles=(),
+                )
+                proof = Path(temp) / filename
+                # Match the canonical second resolution to the *actually*
+                # saved-and-reopened part-only DXF, not a claimed ready flag.
+                if not verify_saved_part_render_data_dxf(render, proof).ok:
+                    raise ValueError("RECEIVING_COMPOSED_NFB_PART_ROUNDTRIP_MISMATCH")
+                rows.append((ns, key, filename, render))
+            approved[ns] = frozenset(keys)
+        checked_guard()
+    return tuple(rows), approved, checked_guard
+
+
 def export_current_receiving_multibay_dxf(
     saved_snapshot, *, physical_bay_geometry_provider,
     flags, output_dir, overwrite=False,
+    group_mode=None, pre_commit_guard=None, nfb_pair_requests=None,
 ):
     """Write once for each CURRENT physical Set/Bay, with no source borrowing.
 
@@ -49,20 +204,33 @@ def export_current_receiving_multibay_dxf(
     a missing NFB Base Plate, unidentified source, forged EAR/PAD or stale
     left/right world-to-UV marking.
     """
+    if group_mode is not None:
+        from .receiving_dxf_groups import RECEIVING_COMPOSED_DXF_MODES
+        if group_mode not in RECEIVING_COMPOSED_DXF_MODES:
+            raise ValueError("RECEIVING_COMPOSED_DXF_MODE_UNSUPPORTED")
+        if not callable(pre_commit_guard):
+            raise ValueError("RECEIVING_COMPOSED_DXF_PRECOMMIT_GUARD_REQUIRED")
+        pre_commit_guard()
     if type(overwrite) is not bool:
         raise TypeError("RECEIVING_MULTIBAY_OVERWRITE_MUST_BE_BOOL")
-    if saved_snapshot.get("model") not in {"受電箱","RECEIVING"}:
+    # Canonical Family Registry owns aliases for every GUI/Engine client.
+    # Raw string matching rejected the registered lowercase "receiving" alias.
+    from .cabinet_types.policy import canonical_family_name
+    if canonical_family_name(saved_snapshot) != "受電箱":
         raise ValueError("RECEIVING_MULTIBAY_CURRENT_FAMILY_REQUIRED")
     if saved_snapshot.get("active_mode","set_bay")!="set_bay":
         raise ValueError("RECEIVING_MULTIBAY_NOT_QUANTITY_MODE")
     layout=normalize_receiving_layout(saved_snapshot.get("receiving_layout"))
     all_bays=tuple((i,j) for i,s in enumerate(layout["sets"])
                    for j,_ in enumerate(s["bays"]))
-    if len(all_bays)<2:
+    if len(all_bays)<1 or (len(all_bays)<2 and group_mode is None):
         raise ValueError("RECEIVING_MULTIBAY_REQUIRES_MULTIPLE_PHYSICAL_BAYS")
     if not callable(physical_bay_geometry_provider):
         raise TypeError("RECEIVING_MULTIBAY_LIVE_BAY_RESOLVER_REQUIRED")
     output_rows=[]
+    # Preserve canonical BoxBody owner across the verified flat-sheet sink;
+    # the grouped composer otherwise sees only detached PartRenderData.
+    box_body_owners={}
     marking_proofs=[]
     expected_keys=set()
     verified_csv_filenames=set()
@@ -99,7 +267,15 @@ def export_current_receiving_multibay_dxf(
         if only_independent_intent:
             requested=tuple(key for key in ("head", "tail", "door")
                             if bool(flags.get(key)))
-            if any(key not in logical for key in requested):
+            # An actual multi-Door FinalScene uses canonical cell IDs
+            # (door_c1_r1 / door_c1_r2), not the legacy "door" root.
+            # Check presence with the SAME Engine physical-to-intent projection
+            # used below for selection; never invent or borrow any Bay scene.
+            if any(
+                not any(resolved_export_intention_key(part_key) == key
+                        for part_key in logical)
+                for key in requested
+            ):
                 raise ValueError(
                     "RECEIVING_MULTIBAY_SELECTED_INDEPENDENT_PHYSICAL_SOURCE_MISSING"
                 )
@@ -130,6 +306,13 @@ def export_current_receiving_multibay_dxf(
         # The source-facing body SIDE MARKING proves its own flange contact
         # on THIS Bay. Do not import the marks or EARs of Bay 1 into Bay 2.
         body_selected=bool(flags.get("box_body")) and "box_body" in logical
+        if body_selected:
+            from .manufacturing_render_data import BoxBodyStructureRenderData
+            for part in actual.parts:
+                if (part.part_key == "box_body"
+                        and isinstance(part.render_data, BoxBodyStructureRenderData)):
+                    box_body_owners[ns] = part.render_data
+                    break
         if is_csv and body_selected:
             dims=tuple(float(source[k]) for k in ("w","h","d"))
             thick=float(source["t"])
@@ -247,6 +430,21 @@ def export_current_receiving_multibay_dxf(
     if not overwrite and any((root/name).exists() for _,_,name,_ in output_rows):
         raise FileExistsError("RECEIVING_MULTIBAY_EXISTING_DXF_NOT_OVERWRITTEN")
     root.mkdir(parents=True,exist_ok=True)
+    nfb_approved = {}
+    grouping_guard = pre_commit_guard
+    if nfb_pair_requests is not None:
+        if group_mode is None or bool(flags.get("base_plate")) or bool(flags.get("inner_door")):
+            raise ValueError("RECEIVING_COMPOSED_NFB_GROUP_SCOPE_REQUIRED")
+        nfb_rows, nfb_approved, grouping_guard = _verified_nfb_composed_pair_rows(
+            layout, nfb_pair_requests, root, pre_commit_guard,
+            thickness_mm=saved_snapshot.get("t"),
+        )
+        for namespace, key, filename, render in nfb_rows:
+            if filename in expected_keys:
+                raise ValueError("RECEIVING_COMPOSED_NFB_DUPLICATE_PHYSICAL_SHEET")
+            expected_keys.add(filename)
+            verified_csv_filenames.add(filename)
+            output_rows.append((namespace, key, filename, render))
     with TemporaryDirectory(prefix=".whd-multibay-csv-",dir=root) as staging:
         staged={}
         for namespace,key,filename,render in output_rows:
@@ -269,6 +467,14 @@ def export_current_receiving_multibay_dxf(
                 Path(staging)/filename, segments,
                 # Physical Bay source scoped before any other Bay is processed.
                 check_scene=source_scene,
+            )
+        if group_mode is not None:
+            from .receiving_dxf_groups import commit_verified_receiving_groups
+            return commit_verified_receiving_groups(
+                layout, group_mode, output_rows, staging, root,
+                pre_commit_guard=grouping_guard, overwrite=overwrite,
+                box_body_owner_by_namespace=box_body_owners,
+                _verified_nfb_pair_parts_by_namespace=nfb_approved,
             )
         return _atomic_commit_staged_dxfs(
             staged,root,overwrite=overwrite,

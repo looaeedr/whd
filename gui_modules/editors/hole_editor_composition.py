@@ -156,7 +156,9 @@ def _build_shell_and_indicator(s):
         offset_x_var_provider=lambda: s.indicator_offset_x_var,
         offset_y_var_provider=lambda: s.indicator_offset_y_var,
         box_dist_var_provider=lambda: s.indicator_box_dist_var,
-        normalize_state=host._normalize_door_indicator_state,
+        normalize_state=lambda raw: host._normalize_door_indicator_state(
+            d.manufacturing_api.normalize_operator_hole_editor_indicator_state(raw)
+        ),
     )
     s.collect_indicator_state = indicator_state_collector.collect
     (
@@ -682,74 +684,41 @@ def _build_navigation_and_lifecycle(s):
     if str(s.part_key).startswith("inner_door:"):
         def accept_verified_openings(verified):
             from phase6_hole_editor_session import HoleEditorAction
-            from ae_engine.sheetmetal_features import ProfileFeature
-            from ae_engine.sheetmetal_feature_surface import feature_is_strictly_within_surface
 
-            imported = tuple(verified)
-            if not imported or any(
-                not isinstance(feature, ProfileFeature)
-                or feature.source_type not in ("NFB_VERIFIED_SOURCE", "NFB_CSV_SOURCE")
-                for feature in imported
-            ):
-                raise ValueError("不能帶入未完成實體來源驗證的 NFB 孔")
-            existing = list(s.live_context.feature_list)
-            if any(getattr(feature, "source_type", "") in
-                   ("NFB_VERIFIED_SOURCE", "NFB_CSV_SOURCE")
-                   for feature in existing):
-                raise ValueError("此門板已有相同 NFB 來源主孔；請重新開啟編輯驗證")
-            for feature in imported:
-                if not feature_is_strictly_within_surface(
-                    s.live_context.surface, feature,
-                    s.live_context.width, s.live_context.height,
-                ):
-                    raise ValueError("NFB 來源主孔超出內門實體平面")
-            s.hole_session.execute(HoleEditorAction.preview_all(
-                [*existing, *imported],
-            ))
+            projected = d.manufacturing_api.plan_operator_inner_door_nfb_hole_stage(
+                part_key=s.part_key,
+                surface=s.live_context.surface,
+                width=s.live_context.width,
+                height=s.live_context.height,
+                current_features=s.live_context.feature_list,
+                incoming_features=verified,
+                mode="verified_append",
+            )
+            s.hole_session.execute(HoleEditorAction.preview_all(projected))
             s.refresh_created()
             s.sync_all()
-            # The external sync redraws the assembly preview, NOT this native
-            # Hole Editor canvas. Paint the newly imported CUTTING outlines now.
+            # External sync redraws assembly preview, not native Editor.
             s.redraw()
         s.editor._receiving_accept_verified_openings = accept_verified_openings
 
         def stage_selected_nfb_openings(openings):
-            # Re-selecting the NFB list replaces only prior CSV-generated
-            # holes; never touch an operator's ordinary Hole Editor features.
-            # Empty selection intentionally clears this tab's previous CSV
-            # drafts, and all operations stay inside the undoable session.
+            # The Engine plans exact CSV draft replacement; only the original
+            # Hole Editor Session owns transient edits and undo/confirm.
             from phase6_hole_editor_session import HoleEditorAction
-            from ae_engine.sheetmetal_features import ProfileFeature
-            from ae_engine.sheetmetal_feature_surface import feature_is_strictly_within_surface
 
-            staged = tuple(openings)
-            if any(not isinstance(f, ProfileFeature)
-                   or f.source_type != "NFB_CSV_SOURCE" for f in staged):
-                raise ValueError("NFB 頁籤只能暫存合法 CSV 主孔")
-            if any(dict(f.source_params).get("part_id") != s.part_key
-                   for f in staged):
-                raise ValueError("NFB 開孔不可帶入其他實體內門")
-            existing = list(s.live_context.feature_list)
-            if any(getattr(f, "source_type", None) == "NFB_VERIFIED_SOURCE"
-                   for f in existing) and staged:
-                raise ValueError("已有來源驗證的 NFB 孔，不可重複產生")
-            for feature in staged:
-                if not feature_is_strictly_within_surface(
-                    s.live_context.surface, feature,
-                    s.live_context.width, s.live_context.height,
-                ):
-                    raise ValueError("NFB 主孔超出目前內門板面")
-            retained = [feature for feature in existing
-                        if getattr(feature, "source_type", None) != "NFB_CSV_SOURCE"]
-            s.hole_session.execute(HoleEditorAction.preview_all(
-                [*retained, *staged],
-            ))
+            projected = d.manufacturing_api.plan_operator_inner_door_nfb_hole_stage(
+                part_key=s.part_key,
+                surface=s.live_context.surface,
+                width=s.live_context.width,
+                height=s.live_context.height,
+                current_features=s.live_context.feature_list,
+                incoming_features=openings,
+                mode="csv_replace",
+            )
+            s.hole_session.execute(HoleEditorAction.preview_all(projected))
             s.refresh_created()
             s.sync_all()
-            # The external sync redraws the assembly preview, NOT this native
-            # Hole Editor canvas. Paint the newly imported CUTTING outlines now.
             s.redraw()
-
         s.editor._receiving_stage_selected_nfb_openings = stage_selected_nfb_openings
         # The Receiving tab switches back after stage; paint again once its
         # main Canvas is mapped, not only while the settings tab is visible.

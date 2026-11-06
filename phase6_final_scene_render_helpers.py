@@ -11,14 +11,9 @@ from __future__ import annotations
 from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from whd_theme import WHD_THEME
 from phase6_final_scene_projection import (
-    _phase6_profile_base_index,
-    _phase6_profile_geometry,
     _phase6_profile_map_with_guides,
     _phase6_profile_map,
     _phase6_mesh_feature_segments,
-    _phase6_folded_outside_envelope,
-    _phase6_contract_profile_rows,
-    _phase6_box_body_piece_world_mapper,
     format_operator_info_text,
 )
 
@@ -36,25 +31,13 @@ class Phase6FinalSceneRenderHelpersMixin:
                 pass
 
     def _add_mesh_boundary_lines(self, triangles, color):
-        from collections import Counter
+        """Draw source-derived physical open edges, not GUI triangulation."""
+        from ae_engine import manufacturing_api
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        def key(point):
-            return tuple(round(float(v), 6) for v in point)
-
-        edges = Counter()
-        original_points = {}
-        for tri in triangles:
-            for a, b in ((tri[0], tri[1]), (tri[1], tri[2]), (tri[2], tri[0])):
-                ka, kb = key(a), key(b)
-                edge = tuple(sorted((ka, kb)))
-                edges[edge] += 1
-                original_points[ka] = a
-                original_points[kb] = b
-        segments = []
-        for edge, count in edges.items():
-            if count == 1:
-                segments.append((original_points[edge[0]], original_points[edge[1]]))
+        segments = manufacturing_api.project_physical_solid_mesh_display_segments(
+            triangles, mode="boundary",
+        )
         if segments:
             self.renderer.ax3d.add_collection3d(
                 Line3DCollection(segments, colors=color, linewidths=1.15)
@@ -77,39 +60,15 @@ class Phase6FinalSceneRenderHelpersMixin:
         local_reference=None, placement=None, dimensions=None,
         offset=(0.0, 0.0, 0.0),
     ):
-        """Highlight ONLY authoritative CUTTING inner rings on Door solids.
-
-        Using material polygon interiors rather than triangle sides avoids
-        tessellation diagonals without hiding real circular/rectangular holes.
-        Mapping follows the same folding/assembly placement as the solid.
-        """
+        """Paint only actual CUTTING inner-rings projected by public Engine."""
+        from ae_engine import manufacturing_api
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        polygons = (
-            (material,) if getattr(material, "geom_type", "") == "Polygon"
-            else tuple(getattr(material, "geoms", ()) or ())
+        segments = manufacturing_api.project_independent_cutting_hole_rim_segments(
+            material, x_profile, y_profile, fold_guides,
+            local_reference=local_reference, placement=placement,
+            dimensions=dimensions, offset=offset,
         )
-        segments = []
-        for polygon in polygons:
-            if getattr(polygon, "geom_type", "") != "Polygon":
-                continue
-            for ring in polygon.interiors:
-                local_points = tuple(
-                    self._map_xy(x, y, x_profile, y_profile, fold_guides)
-                    for x, y in ring.coords
-                )
-                if local_reference is not None:
-                    from ae_engine.assembly_geometry import place_assembly_points
-                    points = place_assembly_points(
-                        local_points, local_reference, placement,
-                        dimensions, offset,
-                    )
-                else:
-                    points = local_points
-                segments.extend(
-                    (u, v) for u, v in zip(points, points[1:])
-                    if any(abs(u[i] - v[i]) > 1e-9 for i in range(3))
-                )
         if segments:
             self.renderer.ax3d.add_collection3d(Line3DCollection(
                 segments, colors="#22d3ee", linewidths=2.2,
@@ -118,123 +77,75 @@ class Phase6FinalSceneRenderHelpersMixin:
         return len(segments)
 
     def _add_mesh_boundary_and_crease_lines(self, triangles, color, *, creases_only=False):
-        """Draw real folded-sheet creases without exposing triangulation seams.
-
-        In smooth mode, unmatched triangle sides are not reliable physical
-        boundaries: fragmented tessellation exposed them as diagonal artifacts.
-        Draw only edges shared by different physical face normals, while BEND,
-        MARKING and CUTTING retain their original source geometry.  Legacy
-        mode continues to support drawing actual open mesh perimeters.
-        """
-        import math
-        from collections import defaultdict
+        """Paint real Engine 3D mesh creases, not tessellation diagonals."""
+        from ae_engine import manufacturing_api
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        def key(point):
-            return tuple(round(float(v), 6) for v in point)
-
-        def normal(tri):
-            a, b, c = tri[:3]
-            ux, uy, uz = (float(b[i]) - float(a[i]) for i in range(3))
-            vx, vy, vz = (float(c[i]) - float(a[i]) for i in range(3))
-            nx = uy * vz - uz * vy
-            ny = uz * vx - ux * vz
-            nz = ux * vy - uy * vx
-            mag = math.sqrt(nx * nx + ny * ny + nz * nz)
-            if mag <= 1e-12:
-                return None
-            return (nx / mag, ny / mag, nz / mag)
-
-        edges = defaultdict(list)
-        original_points = {}
-        for tri in triangles or ():
-            if len(tri) < 3:
-                continue
-            n = normal(tri)
-            if n is None:
-                continue
-            for a, b in ((tri[0], tri[1]), (tri[1], tri[2]), (tri[2], tri[0])):
-                ka, kb = key(a), key(b)
-                edge = tuple(sorted((ka, kb)))
-                edges[edge].append(n)
-                original_points[ka] = a
-                original_points[kb] = b
-
-        segments = []
-        for edge, normals in edges.items():
-            # Unmatched polygon/triangulation edges are NOT proof of a
-            # real external outline.  In smooth 3D mode draw ONLY crease
-            # edges shared by genuine non-coplanar faces.  Authoritative
-            # BEND, CUTTING, and MARKING geometry remains separate.
-            visible = not creases_only and len(normals) == 1
-            if not visible and len(normals) >= 2:
-                base = normals[0]
-                for other in normals[1:]:
-                    dot = sum(base[i] * other[i] for i in range(3))
-                    if abs(dot) < 1.0 - 1e-6:
-                        visible = True
-                        break
-            if visible:
-                segments.append((original_points[edge[0]], original_points[edge[1]]))
-
+        segments = manufacturing_api.project_physical_solid_mesh_display_segments(
+            triangles, mode="crease" if creases_only else "boundary_and_crease",
+        )
         if segments:
             self.renderer.ax3d.add_collection3d(
                 Line3DCollection(segments, colors=color, linewidths=1.35, linestyles="solid")
             )
 
     def _map_xy(self, x, y, x_profile, y_profile, fold_guides):
-        if fold_guides:
-            ux, zx = _phase6_profile_map_with_guides(
-                float(x), float(y), x_profile, axis="x", fold_guides=fold_guides
+        """Render-only memo for canonical Engine Fold chains; never persist truth.
+
+        GUI caches only the prepared callable and a detached INPUT snapshot.
+        A modified profile, angle, formed length or BEND span invalidates the
+        mapping before the next point; Engine alone owns Fold calculations.
+        """
+        from copy import deepcopy
+        from ae_engine import manufacturing_api
+
+        source = (
+            tuple(x_profile or ()),
+            tuple(y_profile or ()),
+            tuple(fold_guides or ()),
+        )
+        cached = getattr(self, "_phase6_prepared_fold_mapping", None)
+        if cached is None or cached[0] != source:
+            x_mapper = manufacturing_api.prepare_fold_profile_mapper(
+                source[0], axis="x", fold_guides=source[2],
             )
-            uy, zy = _phase6_profile_map_with_guides(
-                float(y), float(x), y_profile, axis="y", fold_guides=fold_guides
+            y_mapper = manufacturing_api.prepare_fold_profile_mapper(
+                source[1], axis="y", fold_guides=source[2],
             )
-        else:
-            xb, xf = _phase6_profile_geometry(x_profile)
-            yb, yf = _phase6_profile_geometry(y_profile)
-            ux, zx = _phase6_profile_map(float(x), xb, xf)
-            uy, zy = _phase6_profile_map(float(y), yb, yf)
+            cached = (deepcopy(source), x_mapper, y_mapper)
+            self._phase6_prepared_fold_mapping = cached
+        ux, zx = cached[1](float(x), float(y))
+        uy, zy = cached[2](float(y), float(x))
         return (ux, uy, zx + zy)
 
     def _draw_assembly_box_body_bends(
         self, scene, x_profile, y_profile, fold_guides, local_reference,
         placement, dimensions, offset,
     ):
-        """Draw Box Body manufacturing BEND guides in shared assembly coordinates."""
-        from ae_engine.sheetmetal_drawing import LinePrimitive
-        from ae_engine.assembly_geometry import place_assembly_points
+        """Paint Engine-projected physical BoxBody BEND world segments."""
+        from ae_engine import manufacturing_api
 
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
-        for primitive in getattr(scene, "primitives", ()):
-            if not isinstance(primitive, LinePrimitive) or str(primitive.layer).upper() != "BEND":
-                continue
-            local_points = (
-                self._map_xy(primitive.p1.x, primitive.p1.y, x_profile, y_profile, fold_guides),
-                self._map_xy(primitive.p2.x, primitive.p2.y, x_profile, y_profile, fold_guides),
-            )
-            world_points = place_assembly_points(
-                local_points, local_reference, placement, dimensions, offset
-            )
-            if len(world_points) != 2:
-                continue
-            a, b = world_points
+        segments = manufacturing_api.project_assembly_box_body_bend_segments(
+            scene, x_profile, y_profile, fold_guides,
+            local_reference, placement, dimensions, offset,
+        )
+        for a, b in segments:
             self.renderer.ax3d.plot(
                 [a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
                 color="#2563eb", linewidth=1.35, linestyle="-", alpha=0.98,
             )
 
     def _draw_scene_bends(self, scene, x_profile, y_profile, fold_guides=()):
-        from ae_engine.sheetmetal_drawing import LinePrimitive
+        """Draw only Engine-projected true single-part BEND segments."""
+        from ae_engine import manufacturing_api
 
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
-        for primitive in getattr(scene, "primitives", ()):
-            if not isinstance(primitive, LinePrimitive) or str(primitive.layer).upper() != "BEND":
-                continue
-            a = self._map_xy(primitive.p1.x, primitive.p1.y, x_profile, y_profile, fold_guides)
-            b = self._map_xy(primitive.p2.x, primitive.p2.y, x_profile, y_profile, fold_guides)
+        for a, b in manufacturing_api.project_independent_scene_bend_segments(
+            scene, x_profile, y_profile, fold_guides,
+        ):
             self.renderer.ax3d.plot(
                 [a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
                 color="#2563eb", linewidth=1.15, linestyle="-", alpha=0.95,
@@ -245,146 +156,64 @@ class Phase6FinalSceneRenderHelpersMixin:
         placement="box_body", dimensions=None, offset=(0.0, 0.0, 0.0),
         visible_piece_keys=None,
     ):
-        """Draw BEND lines only for visible BoxBody pieces while retaining full geometry."""
-        from ae_engine.sheetmetal_drawing import LinePrimitive
-        from ae_engine.assembly_geometry import place_assembly_points
+        """Draw the canonical Engine world BEND lines; never manufacture them."""
+        from ae_engine import manufacturing_api
 
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
-        pieces = tuple(getattr(render_data, "pieces", ()) or ())
-        if not pieces:
-            return
-        total_w = max(float(getattr(p, "formed_w_end", 0.0)) for p in pieces)
-        visible_set = None if visible_piece_keys is None else set(visible_piece_keys)
-        for piece in pieces:
-            piece_role = str(getattr(piece, "role", "") or "").strip()
-            piece_key = f"box_body:{piece_role}"
-            if visible_set is not None and piece_key not in visible_set:
-                continue
-            # The back panel is a broad operator-facing reference surface.
-            # Keep its physical CUTTING geometry/holes, but suppress display-only
-            # bend overlays that make the panel look like a wireframe.
-            if piece_role == "back":
-                continue
-            data = piece.render_data
-            x_profile = _phase6_contract_profile_rows(piece.fold_profile)
-            minx, miny, maxx, maxy = map(float, data.material.bounds)
-            y_profile = [{"len": maxy - miny}]
-            fold_guides = tuple(getattr(data, "fold_guides", ()) or ())
-            world = _phase6_box_body_piece_world_mapper(
-                piece, total_w=total_w, thickness=thickness, x_profile=x_profile
+        segments = manufacturing_api.project_box_body_structure_bend_segments(
+            render_data, thickness=thickness, local_reference=local_reference,
+            placement=placement, dimensions=dimensions, offset=offset,
+            visible_piece_keys=visible_piece_keys,
+        )
+        for a, b in segments:
+            self.renderer.ax3d.plot(
+                [a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
+                color="#2563eb", linewidth=1.35, linestyle="-", alpha=0.98,
             )
-            for primitive in getattr(data.scene, "primitives", ()):
-                if not isinstance(primitive, LinePrimitive) or str(primitive.layer).upper() != "BEND":
-                    continue
-                points = (
-                    world(self._map_xy(primitive.p1.x, primitive.p1.y, x_profile, y_profile, fold_guides)),
-                    world(self._map_xy(primitive.p2.x, primitive.p2.y, x_profile, y_profile, fold_guides)),
-                )
-                if local_reference is not None:
-                    points = place_assembly_points(
-                        points, local_reference, placement, dimensions, offset
-                    )
-                if len(points) != 2:
-                    continue
-                a, b = points
-                self.renderer.ax3d.plot(
-                    [a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
-                    color="#2563eb", linewidth=1.35, linestyle="-", alpha=0.98,
-                )
 
     def _draw_scene_markings(self, scene, x_profile, y_profile, fold_guides=()):
-        import math
-        from ae_engine.sheetmetal_drawing import PolylinePrimitive, CirclePrimitive, LinePrimitive
+        """Paint real MARKING and BLIND_HOLE paths projected by Engine."""
+        from ae_engine import manufacturing_api
 
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
-        for primitive in getattr(scene, "primitives", ()):
-            layer = str(getattr(primitive, "layer", "") or "").upper()
-            if layer not in {"MARKING", "BLIND_HOLE"}:
-                continue
-            paths = []
-            if isinstance(primitive, CirclePrimitive):
-                pts = []
-                for i in range(65):
-                    angle = 2.0 * math.pi * i / 64.0
-                    pts.append(self._map_xy(
-                        float(primitive.center.x) + float(primitive.radius) * math.cos(angle),
-                        float(primitive.center.y) + float(primitive.radius) * math.sin(angle),
-                        x_profile, y_profile, fold_guides,
-                    ))
-                paths.append(pts)
-            elif isinstance(primitive, LinePrimitive):
-                paths.append([
-                    self._map_xy(primitive.p1.x, primitive.p1.y, x_profile, y_profile, fold_guides),
-                    self._map_xy(primitive.p2.x, primitive.p2.y, x_profile, y_profile, fold_guides),
-                ])
-            elif isinstance(primitive, PolylinePrimitive):
-                pts = [self._map_xy(p.x, p.y, x_profile, y_profile, fold_guides) for p in primitive.points]
-                if primitive.closed and pts:
-                    pts.append(pts[0])
-                paths.append(pts)
-            for pts in paths:
-                if len(pts) < 2:
-                    continue
-                self.renderer.ax3d.plot(
-                    [p[0] for p in pts], [p[1] for p in pts], [p[2] for p in pts],
-                    color=("#f59e0b" if layer == "MARKING" else "#ef4444"),
-                    linewidth=(2.2 if layer == "MARKING" else 1.0),
-                    linestyle=("-" if layer == "MARKING" else "--"),
-                    alpha=(1.0 if layer == "MARKING" else 0.9),
-                    zorder=(20 if layer == "MARKING" else 8),
-                )
+        paths = manufacturing_api.project_independent_scene_annotation_paths(
+            scene, x_profile, y_profile, fold_guides,
+        )
+        for layer, pts in paths:
+            self.renderer.ax3d.plot(
+                [p[0] for p in pts], [p[1] for p in pts], [p[2] for p in pts],
+                color=("#f59e0b" if layer == "MARKING" else "#ef4444"),
+                linewidth=(2.2 if layer == "MARKING" else 1.0),
+                linestyle=("-" if layer == "MARKING" else "--"),
+                alpha=(1.0 if layer == "MARKING" else 0.9),
+                zorder=(20 if layer == "MARKING" else 8),
+            )
 
     @staticmethod
     def _marking_line_signature(p1, p2):
-        a = (round(float(p1[0]), 9), round(float(p1[1]), 9))
-        b = (round(float(p2[0]), 9), round(float(p2[1]), 9))
-        return tuple(sorted((a, b)))
+        """Legacy GUI import, Engine owns canonical MARKING identity."""
+        from ae_engine import manufacturing_api
+        return manufacturing_api.marking_line_signature(p1, p2)
 
     def _joint_marking_flat_signatures(self, render_data):
-        metadata = dict(getattr(render_data, "metadata", {}) or {})
-        signatures = set()
-        for row in tuple(metadata.get("joint_markings") or ()):
-            if not isinstance(row, dict):
-                try:
-                    row = dict(row)
-                except Exception:
-                    continue
-            if str(row.get("source") or "") != "JOINT_PLACEMENT_MARKING":
-                continue
-            if row.get("p1") is None or row.get("p2") is None:
-                continue
-            signatures.add(self._marking_line_signature(row["p1"], row["p2"]))
-        return signatures
+        """Forward the existing Engine verified Joint source identities."""
+        from ae_engine import manufacturing_api
+        return manufacturing_api.joint_marking_flat_signatures(render_data)
 
     def _draw_joint_marking_world_rows(self, render_data):
-        """Draw contact-derived joint MARKING in canonical assembly world space.
+        """Draw Engine-resolved contact Joint world MARKING; no GUI source logic."""
+        from ae_engine import manufacturing_api
 
-        The manufacturing solver stores both the flat primitive and the exact
-        world contact boundary in the same metadata row.  Assembly 3D consumes
-        that row instead of re-deriving placement from renderer coordinates, so
-        composite pieces and EndCaps preserve the manufacturing geometry owner.
-        """
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
-        metadata = dict(getattr(render_data, "metadata", {}) or {})
-        for raw in tuple(metadata.get("joint_markings") or ()):
-            if not isinstance(raw, dict):
-                try:
-                    raw = dict(raw)
-                except Exception:
-                    continue
-            if str(raw.get("source") or "") != "JOINT_PLACEMENT_MARKING":
-                continue
-            a = raw.get("world_p1")
-            b = raw.get("world_p2")
-            if a is None or b is None or len(a) != 3 or len(b) != 3:
-                continue
+        segments = manufacturing_api.project_joint_marking_world_segments(
+            render_data,
+        )
+        for a, b in segments:
             self.renderer.ax3d.plot(
-                [float(a[0]), float(b[0])],
-                [float(a[1]), float(b[1])],
-                [float(a[2]), float(b[2])],
+                [a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
                 color="#f59e0b",
                 linewidth=2.2,
                 linestyle="-",
@@ -396,48 +225,14 @@ class Phase6FinalSceneRenderHelpersMixin:
         self, material, x_profile, y_profile, fold_guides,
         local_surface, placed_surface, placement, color,
     ):
-        """Project only actual CUTTING inner rings into the finished 3D.
-
-        Unlike raw triangulation boundaries this never shows T-junction mesh
-        seams. The mapping uses the SAME local Fold Profile and actual paired
-        local/world EndCap placement as the shaded manufactured surface.
-        """
-        if not local_surface or not placed_surface or material is None:
-            return
+        """Draw only Engine-projected physical CUTTING inner rings."""
+        from ae_engine import manufacturing_api
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-        plane = str(placement or "").lower()
-        if plane not in {"head", "top", "tail", "bottom"}:
-            return
-        # EndCap placement is rigid: worldX=localX+offset,
-        # head worldY=-localZ+offset / worldZ=-localY+offset,
-        # tail worldY=+localZ+offset / worldZ=+localY+offset.
-        # Reference both origins from the actual triangulated model, never a
-        # guessed finished-width/height center.
-        p0 = tuple(float(x) for x in local_surface[0][0])
-        w0 = tuple(float(x) for x in placed_surface[0][0])
-        sign = -1 if plane in {"head", "top"} else 1
-        polys = ([material] if getattr(material, "geom_type", "") == "Polygon"
-                 else tuple(getattr(material, "geoms", ()) or ()))
-        segments = []
-        for poly in polys:
-            if getattr(poly, "geom_type", "") != "Polygon":
-                continue
-            for inner_ring in poly.interiors:
-                positions = []
-                for x, y in inner_ring.coords:
-                    local = self._map_xy(
-                        x, y, x_profile, y_profile, fold_guides,
-                    )
-                    positions.append((
-                        w0[0] + float(local[0]) - p0[0],
-                        w0[1] + sign * (float(local[2]) - p0[2]),
-                        w0[2] + sign * (float(local[1]) - p0[1]),
-                    ))
-                segments.extend(
-                    (a, b) for a, b in zip(positions, positions[1:])
-                    if any(abs(a[i] - b[i]) > 1e-9 for i in range(3))
-                )
+        segments = manufacturing_api.project_endcap_cutting_hole_rim_segments(
+            material, x_profile, y_profile, fold_guides,
+            local_surface, placed_surface, placement,
+        )
         if segments:
             self.renderer.ax3d.add_collection3d(Line3DCollection(
                 segments, colors=color, linewidths=1.4, linestyles="solid",
@@ -455,104 +250,34 @@ class Phase6FinalSceneRenderHelpersMixin:
         offset,
         joint_marking_signatures=(),
     ):
-        """Project non-contact flat MARKING through the ordinary assembly placement.
-
-        Contact-derived JOINT_PLACEMENT_MARKING is drawn from the exact world
-        boundary stored by the manufacturing solver and is skipped here.
-        """
-        from ae_engine.assembly_geometry import place_assembly_points
-        from ae_engine.sheetmetal_drawing import LinePrimitive
+        """Paint Engine-projected non-contact MARKING, no GUI Fold/world math."""
+        from ae_engine import manufacturing_api
 
         if not callable(getattr(self.renderer.ax3d, "plot", None)):
             return
-        placement_key = str(placement or "offset").lower()
-        joint_marking_signatures = set(joint_marking_signatures or ())
-        if placement_key in {"top", "head", "bottom", "tail"}:
-            # EndCaps use a dedicated mating transform. Their contact-derived
-            # joint marks are rendered from canonical world metadata above;
-            # do not guess a second flat-point transform for other marks here.
-            return
-
-        for primitive in getattr(scene, "primitives", ()):
-            if (
-                not isinstance(primitive, LinePrimitive)
-                or str(getattr(primitive, "layer", "") or "").upper() != "MARKING"
-            ):
-                continue
-            signature = self._marking_line_signature(
-                (primitive.p1.x, primitive.p1.y),
-                (primitive.p2.x, primitive.p2.y),
-            )
-            if signature in joint_marking_signatures:
-                continue
-            local_points = (
-                self._map_xy(
-                    primitive.p1.x,
-                    primitive.p1.y,
-                    x_profile,
-                    y_profile,
-                    fold_guides,
-                ),
-                self._map_xy(
-                    primitive.p2.x,
-                    primitive.p2.y,
-                    x_profile,
-                    y_profile,
-                    fold_guides,
-                ),
-            )
-            world_points = place_assembly_points(
-                local_points,
-                local_reference,
-                placement,
-                dimensions,
-                offset,
-            )
-            if len(world_points) != 2:
-                continue
-            a, b = world_points
+        segments = manufacturing_api.project_assembly_scene_marking_segments(
+            scene, x_profile, y_profile, fold_guides,
+            local_reference, placement, dimensions, offset,
+            joint_marking_signatures=joint_marking_signatures,
+        )
+        for a, b in segments:
             self.renderer.ax3d.plot(
-                [a[0], b[0]],
-                [a[1], b[1]],
-                [a[2], b[2]],
-                color="#f59e0b",
-                linewidth=2.2,
-                linestyle="-",
-                alpha=1.0,
-                zorder=20,
+                [a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
+                color="#f59e0b", linewidth=2.2, linestyle="-",
+                alpha=1.0, zorder=20,
             )
 
 
     def _draw_receiving_ear_side_markings(
         self, formed_ear_skins, *, visible_side_piece_keys=None,
     ):
-        """Show base-lower/ear-upper positioning with two 20-mm fold hints.
+        """Only paint source-verified Engine world segments for Receiving EAR."""
+        from ae_engine import manufacturing_api
 
-        Keep the bottom open and preserve actual folded EAR mesh and BEND.
-        These strokes are source-referenced overlay, not bent-part dimensions.
-        """
-        from ae_engine.receiving_fixed_plate_side_contact import (
-            derive_receiving_ear_side_contact_from_formed_skin,
-            receiving_ear_positioning_world_segments,
+        segments = manufacturing_api.project_receiving_ear_side_marking_segments(
+            formed_ear_skins, visible_side_piece_keys=visible_side_piece_keys,
         )
-
-        rows = tuple(formed_ear_skins or ())
-        if not rows:
-            return ()
-        if len(rows) not in (2, 4) or len({r.part_id for r in rows}) != len(rows):
-            raise ValueError("EAR_ASSEMBLY_MARKING_SOURCE_OWNER_COUNT_INVALID")
-        allowed = (
-            {"box_body:left_side", "box_body:right_side"}
-            if visible_side_piece_keys is None
-            else set(visible_side_piece_keys)
-        )
-        segments = []
-        for formed in rows:
-            receipt = derive_receiving_ear_side_contact_from_formed_skin(formed)
-            if receipt.side_piece_id not in allowed:
-                continue
-            segments.extend(receiving_ear_positioning_world_segments(receipt))
-        # Open-bottom top + short fold hints, never contact rectangle border.
+        # Source-verified side positioning, NOT manufacturing UV MARKING.
         ax = self.renderer.ax3d
         if callable(getattr(ax, "plot", None)):
             for a, b in segments:
@@ -561,7 +286,7 @@ class Phase6FinalSceneRenderHelpersMixin:
                     color="#facc15", linewidth=3.0,
                     linestyle="-", alpha=1.0, zorder=30,
                 )
-        return tuple(segments)
+        return segments
 
     def _resolved_finished_dimensions(self, request, triangles):
         return resolve_operator_finished_dimensions(
@@ -572,73 +297,64 @@ class Phase6FinalSceneRenderHelpersMixin:
         )
 
     def _draw_operator_dimensions(self, request, triangles):
+        """Paint the Engine's physical Fold/outside-world dimension guides."""
+        from ae_engine import manufacturing_api
+
         ax = self.renderer.ax3d
         dims = self._resolved_finished_dimensions(request, triangles)
-        if not dims or not all(callable(getattr(ax, name, None)) for name in ("plot", "text", "text2D")):
+        if not dims or not all(callable(getattr(ax, name, None))
+                               for name in ("plot", "text", "text2D")):
             return
+        guides = manufacturing_api.project_operator_dimension_guides(
+            request.x_profile, request.y_profile,
+            triangles=triangles, thickness=request.thickness,
+        )
         width, height = dims[:2]
-        depth = dims[2] if len(dims) > 2 else None
-        xb, xf = _phase6_profile_geometry(request.x_profile)
-        yb, yf = _phase6_profile_geometry(request.y_profile)
-        xi = _phase6_profile_base_index(request.x_profile)
-        yi = _phase6_profile_base_index(request.y_profile)
-        x0, x1 = float(xf[xi][0]), float(xf[xi + 1][0])
-        y0, y1 = float(yf[yi][0]), float(yf[yi + 1][0])
-        envelope = _phase6_folded_outside_envelope(triangles, request.thickness)
-        if envelope is not None:
-            _, bounds = envelope
-            x0, x1 = bounds[0]
-            y0, y1 = bounds[1]
-        span = max(abs(x1 - x0), abs(y1 - y0), 1.0)
-        off = span * 0.055
-        tick = span * 0.012
-        wy = min(y0, y1) - off
-        hx = min(x0, x1) - off
-        ax.plot([x0, x1], [wy, wy], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
-        ax.plot([x0, x0], [wy - tick, wy + tick], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
-        ax.plot([x1, x1], [wy - tick, wy + tick], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
-        ax.text((x0 + x1) / 2.0, wy, 0.0, f"W {self._number_text(width)} mm", ha="center", va="top", color=WHD_THEME["text"])
-        ax.plot([hx, hx], [y0, y1], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
-        ax.plot([hx - tick, hx + tick], [y0, y0], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
-        ax.plot([hx - tick, hx + tick], [y1, y1], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
-        ax.text(hx, (y0 + y1) / 2.0, 0.0, f"H {self._number_text(height)} mm", ha="right", va="center", color=WHD_THEME["text"])
+        for a, b in guides.width_segments:
+            ax.plot([a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
+                    linewidth=1.0, color=WHD_THEME["muted_text"])
+        ax.text(*guides.width_label_position,
+                f"W {self._number_text(width)} mm",
+                ha="center", va="top", color=WHD_THEME["text"])
+        for a, b in guides.height_segments:
+            ax.plot([a[0], b[0]], [a[1], b[1]], [a[2], b[2]],
+                    linewidth=1.0, color=WHD_THEME["muted_text"])
+        ax.text(*guides.height_label_position,
+                f"H {self._number_text(height)} mm",
+                ha="right", va="center", color=WHD_THEME["text"])
         info = format_operator_info_text(
             request, dimensions=dims, number_text=self._number_text
         )
-        ax.text2D(0.015, 0.985, info, transform=ax.transAxes, ha="left", va="top", color=WHD_THEME["text"])
+        ax.text2D(0.015, 0.985, info, transform=ax.transAxes,
+                  ha="left", va="top", color=WHD_THEME["text"])
 
     def _draw_joint_diagnostic_overlays(self, render_data):
-        diagnostics = tuple(getattr(render_data, "joint_diagnostics", ()) or ())
-        selected = str(getattr(render_data, "selected_joint_id", "") or "")
-        if selected:
-            diagnostics = tuple(d for d in diagnostics if str(getattr(d, "joint_id", "")) == selected)
-        if not diagnostics:
-            return
+        """Paint read-only Engine-selected Joint contact diagnostics."""
+        from ae_engine import manufacturing_api
         from mpl_toolkits.mplot3d.art3d import Line3DCollection
-        styles = (
-            ("contact_segments", "#22c55e", 2.5, 0.85),
-            ("penetration_segments", "#ef4444", 3.2, 0.95),
-            ("preserve_segments", "#3b82f6", 2.5, 0.85),
-            ("relief_segments", "#eab308", 2.8, 0.9),
-        )
-        for diag in diagnostics:
-            for field, color, width, alpha in styles:
-                segments = tuple(
-                    segment for segment in tuple(getattr(diag, field, ()) or ())
-                    if len(segment) == 2 and all(len(point) >= 3 for point in segment)
-                )
-                if segments:
-                    self.renderer.ax3d.add_collection3d(Line3DCollection(
-                        segments, colors=color, linewidths=width, alpha=alpha,
-                    ))
-            direction = getattr(diag, "direction_segment", None)
-            if direction and len(direction) == 2:
-                a, b = direction
-                dx, dy, dz = (float(b[i]) - float(a[i]) for i in range(3))
+
+        styles = {
+            "contact_segments": ("#22c55e", 2.5, 0.85),
+            "penetration_segments": ("#ef4444", 3.2, 0.95),
+            "preserve_segments": ("#3b82f6", 2.5, 0.85),
+            "relief_segments": ("#eab308", 2.8, 0.9),
+        }
+        for source in manufacturing_api.project_joint_diagnostic_display_sources(
+            render_data,
+        ):
+            for field, segments in source.groups:
+                if not segments:
+                    continue
+                color, width, alpha = styles[field]
+                self.renderer.ax3d.add_collection3d(Line3DCollection(
+                    segments, colors=color, linewidths=width, alpha=alpha,
+                ))
+            if source.direction_origin is not None:
                 try:
                     self.renderer.ax3d.quiver(
-                        float(a[0]), float(a[1]), float(a[2]), dx, dy, dz,
-                        color="#a855f7", arrow_length_ratio=0.18, linewidth=2.0,
+                        *source.direction_origin, *source.direction_delta,
+                        color="#a855f7", arrow_length_ratio=0.18,
+                        linewidth=2.0,
                     )
                 except Exception:
                     pass

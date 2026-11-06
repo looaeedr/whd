@@ -8,9 +8,8 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-from ae_engine.receiving_hole_candidates import version_label
 
-from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS, default_door_layout_columns
+from ae_engine import manufacturing_api
 
 
 class _IdleCanvasRedraw:
@@ -66,74 +65,15 @@ def display_dimension(value):
 
 
 def default_preview_dimensions(snapshot):
-    data = dict(snapshot or {})
-    if data.get("active_mode") == "quantity":
-        box = data.get("receiving_quantity_box") or BOX_BODY_DEFAULTS
-    else:
-        sets = (data.get("receiving_layout") or {}).get("sets") or ()
-        bays = sets[0].get("bays") or () if sets else ()
-        box = ({"w": bays[0]["width"], "h": bays[0]["height"],
-                "d": bays[0]["depth"]} if bays else BOX_BODY_DEFAULTS)
-    return tuple(float(box[axis]) for axis in ("w", "h", "d"))
+    """Compatibility route: dimensions come exclusively from Engine API."""
+    return manufacturing_api.receiving_default_preview_dimensions(snapshot)
 
 
 def extract_original_door_marks(scene):
-    """Project only identified original Door nameplate holes and handle contour.
+    """Compatibility: Engine alone recognizes canonical Door source marks."""
+    return manufacturing_api.project_receiving_original_door_marks(scene)
 
-    No fallback coordinates: when the original baseline does not identify the
-    features unambiguously, the lightweight sketch draws none.
-    Normalized vectors are presentation-only, never manufacturing geometry.
-    """
-    from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
-
-    empty = {"nameplate": (), "handle": ()}
-    if scene is None:
-        return empty
-    outlines = [
-        p for p in scene.primitives
-        if isinstance(p, PolylinePrimitive) and p.layer == "CUTTING"
-        and p.closed and len(p.points) >= 3
-    ]
-    if not outlines:
-        return empty
-
-    def bounds(polyline):
-        xs = [float(pt.x) for pt in polyline.points]
-        ys = [float(pt.y) for pt in polyline.points]
-        return min(xs), min(ys), max(xs), max(ys)
-
-    outer = max(outlines, key=lambda item:
-                (bounds(item)[2] - bounds(item)[0]) *
-                (bounds(item)[3] - bounds(item)[1]))
-    x0, y0, x1, y1 = bounds(outer)
-    if x1 <= x0 or y1 <= y0:
-        return empty
-
-    def xy(point):
-        return ((float(point.x) - x0) / (x1 - x0),
-                1.0 - (float(point.y) - y0) / (y1 - y0))
-
-    # Only the stable feature identity from the original Door baseline
-    # identifies nameplate circles; do not guess from radius or position.
-    nameplate = tuple(
-        (*xy(p.center), float(p.radius) / (x1 - x0),
-         float(p.radius) / (y1 - y0))
-        for p in scene.primitives
-        if isinstance(p, CirclePrimitive)
-        and p.layer == "CUTTING" and p.source_type == "nameplate_mount"
-    )
-    # The certified Door baseline has exactly one extra interior CUTTING
-    # contour for the handle. Multiple candidates are ambiguous: draw none.
-    interior = [
-        p for p in outlines if p is not outer
-        and bounds(p)[0] > x0 and bounds(p)[1] > y0
-        and bounds(p)[2] < x1 and bounds(p)[3] < y1
-    ]
-    handle = tuple(xy(pt) for pt in interior[0].points) if len(interior) == 1 else ()
-    return {"nameplate": nameplate, "handle": handle}
-
-
-def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_labels=None, bay_dimensions=None):
+def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_labels=None, bay_dimensions=None, panel_names=None):
     """Cheap front-elevation sketch: touching bays with basic upper/lower doors.
 
     Selection is a pure presentation overlay. No FinalScene, manufacturing or
@@ -142,6 +82,7 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
     count = max(1, int(count))
     canvas.delete("all")
     canvas._receiving_bay_hitboxes = ()
+    canvas._receiving_panel_name_hitboxes = ()
     selected_bays = ({selected} if isinstance(selected, int)
                      else set(selected or ()))
     selected_bays = frozenset(index for index in selected_bays
@@ -160,25 +101,32 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
     # D is a depth axis: show it in the size summary, not as a false 2D width.
     source = tuple(bay_dimensions or ())
     physical = []
+    seam_ratios = []
     for index in range(count):
-        item = source[index] if index < len(source) else (800.0, 1600.0, 350.0)
+        item = (source[index] if index < len(source)
+                else manufacturing_api.receiving_default_preview_dimensions({}))
         if isinstance(item, dict):
             w, h = float(item["width"]), float(item["height"])
+            seam_ratio = manufacturing_api.project_receiving_operator_bay_door_split_ratio(item)
         else:
             w, h = float(item[0]), float(item[1])
+            seam_ratio = manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)
         physical.append((max(1.0, w), max(1.0, h)))
+        seam_ratios.append(seam_ratio)
     scale = min(usable_w / sum(w for w, _ in physical),
                 usable_h / max(h for _, h in physical))
     left = (width - sum(w for w, _ in physical) * scale) / 2
     bottom = (height + max(h for _, h in physical) * scale) / 2
     cursor_x = left
     hitboxes = []
+    name_hitboxes = []
     for index, (physical_w, physical_h) in enumerate(physical):
         x0, x1 = cursor_x, cursor_x + physical_w * scale
         cursor_x = x1
         top, bay_h = bottom - physical_h * scale, physical_h * scale
         bay_w = x1 - x0
-        split = top + bay_h * min(1100.0 / physical_h, 0.999)
+        split = (top + bay_h * seam_ratios[index]
+                 if seam_ratios[index] is not None else None)
         active = index in selected_bays
         outline = "#42bdf4" if active else "#8faec4"
         fill = "#315775" if active else "#263a4d"
@@ -186,18 +134,20 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
                                 fill=fill, outline=outline,
                                 width=3 if active else 1)
         inset = min(7.0, max(2.0, bay_w * 0.07))
-        canvas.create_rectangle(x0 + inset, top + inset, x1 - inset, split - 2,
-                                outline="#c3d1dc", width=1)
-        canvas.create_rectangle(x0 + inset, split + 2, x1 - inset,
-                                top + bay_h - inset, outline="#c3d1dc", width=1)
-        canvas.create_line(x0 + inset, split, x1 - inset, split,
-                           fill="#e0c487", width=1)
+        if split is not None:
+            canvas.create_rectangle(x0 + inset, top + inset, x1 - inset, split - 2,
+                                    outline="#c3d1dc", width=1)
+            canvas.create_rectangle(x0 + inset, split + 2, x1 - inset,
+                                    top + bay_h - inset, outline="#c3d1dc", width=1)
+            canvas.create_line(x0 + inset, split, x1 - inset, split,
+                               fill="#e0c487", width=1,
+                               tags=("receiving_door_seam",))
         marks = (door_marks or ())
         this_bay = marks[index] if index < len(marks) else ()
-        door_faces = (
+        door_faces = (() if split is None else (
             (x0 + inset, top + inset, x1 - inset, split - 2),
             (x0 + inset, split + 2, x1 - inset, top + bay_h - inset),
-        )
+        ))
         for row_index, face in enumerate(door_faces):
             if row_index >= len(this_bay):
                 continue
@@ -231,7 +181,7 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
                                  ("inner-door", "內門")):
                 version_id = by_role.get(role)
                 if version_id is not None:
-                    label = version_label(version_id) if version_id else "即時"
+                    label = manufacturing_api.receiving_candidate_version_label(version_id) if version_id else "即時"
                     label_lines.append(f"{prefix}：{label}")
             # Canvas text is a status overlay only; source is saved per-Bay
             # identity, never candidate dropdown presentation state.
@@ -241,8 +191,26 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
                     text=label, fill="#ffffff", width=max(18, bay_w-4),
                     font=("TkDefaultFont", 9, "bold"), tags=("applied_version",),
                 )
+        # Operator label: never a manufactured part/feature identity.
+        names = panel_names or ()
+        name = str(names[index]) if index < len(names) else ""
+        if name:
+            text_id = canvas.create_text(
+                (x0 + x1) / 2, top + min(20.0, max(10.0, bay_h * 0.10)),
+                text=name, fill="#ffffff", width=max(12.0, bay_w - 6.0),
+                font=("TkDefaultFont", 10, "bold"),
+                tags=("receiving_panel_name", f"receiving_panel_name_{index}"),
+            )
+            bbox = canvas.bbox(text_id)
+            name_hitboxes.append((
+                max(x0, bbox[0]), max(top, bbox[1]),
+                min(x1, bbox[2]), min(top + bay_h, bbox[3]),
+            ) if bbox else None)
+        else:
+            name_hitboxes.append(None)
         hitboxes.append((x0, top, x1, top + bay_h))
     canvas._receiving_bay_hitboxes = tuple(hitboxes)
+    canvas._receiving_panel_name_hitboxes = tuple(name_hitboxes)
     return count
 
 
@@ -252,18 +220,14 @@ def paint_one_cabinet(canvas, dimensions, door_columns=None):
 
 
 def dimension_group_summary(bays):
-    """Derive arbitrary-sized W/H/D groups from canonical physical Bays."""
-    rows = {}
-    for index, bay in enumerate(bays):
-        key = tuple(float(bay[field]) for field in ("width", "height", "depth"))
-        rows.setdefault(key, []).append(index)
-    return tuple((dimensions, tuple(indices)) for dimensions, indices in rows.items())
+    """Compatibility view; Engine alone groups physical Bay source sizes."""
+    return manufacturing_api.project_receiving_bay_dimension_groups(bays)
 
 
 def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         resize_connections, resize_sets=None,
                         get_candidate_ports=None, get_inner_candidate_ports=None,
-                        select_bay=None,
+                        select_bay=None, rename_bay=None,
                         on_setting_selected=None, get_brand=None,
                         set_brand=None, get_brand_change_impact=None,
                         get_settings_ports=None,
@@ -311,6 +275,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     brand_changed = {"value": False}
 
     def close():
+        cancel_panel_name_edit(redraw=False)
         sketch_redraw.cancel()
         close_real_preview()
         close_manager()
@@ -425,16 +390,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     if dialog_kind == "single":
         brand_row.pack(anchor="w", pady=(0, 8))
     ttk.Label(brand_row, text="NFB").pack(side="left", padx=(0, 8))
-    brand_var = tk.StringVar(master=win, value=get_brand() if get_brand else "士林")
-    from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+    brand_choices = manufacturing_api.receiving_operator_switch_brand_choices()
+    brand_var = tk.StringVar(master=win, value=get_brand() if get_brand else brand_choices[0])
     brand_selector = ttk.Combobox(
-        brand_row, textvariable=brand_var, values=RECEIVING_SWITCH_BRANDS,
+        brand_row, textvariable=brand_var, values=brand_choices,
         state="readonly", width=8,
     )
     brand_selector.pack(side="left")
     def apply_brand(_event=None):
         if set_brand is not None:
-            previous = get_brand() if get_brand else "士林"
+            previous = get_brand() if get_brand else brand_choices[0]
             proposed = brand_var.get()
             # Do not short-circuit same displayed Set brand: the one global
             # Set/Bay selector may still need to update other Sets that carry
@@ -589,7 +554,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         bi = selected_setting["bay_index"]
         if bi is None or selected_setting["set_index"] != si:
             bi = applied["selected"] if applied["selected"] is not None else 0
-        label = "即時" if selected_id is None else version_label(selected_id)
+        label = "即時" if selected_id is None else manufacturing_api.receiving_candidate_version_label(selected_id)
         popup.title(f"{role.replace('inner-door', '內門').replace('head', '封頭').replace('tail', '封尾')}｜{label}｜真實截角2D")
         real_preview["status"].set("正在取得既有 FinalScene 真實幾何…")
         def refresh_exact():
@@ -720,7 +685,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
             library = source()
             versions = library["versions"](role)
-            ids = {version_label(item["id"]): item["id"]
+            ids = {manufacturing_api.receiving_candidate_version_label(item["id"]): item["id"]
                    for item in versions}
             current_id = candidate_selected[role]
             if current_id not in ids.values():
@@ -1108,7 +1073,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         chosen = candidate_selected[role]
         title.configure(text=({"head": "封頭孔", "tail": "封尾孔",
                                "inner-door": "內門"}[role])
-                        + "｜" + ("即時" if chosen is None else version_label(chosen)))
+                        + "｜" + ("即時" if chosen is None else manufacturing_api.receiving_candidate_version_label(chosen)))
         buttons = manager_widgets["buttons"]
         for button in buttons:
             button.configure(state="normal" if chosen is not None else "disabled")
@@ -1328,8 +1293,72 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     mark_cache = {"key": None, "values": ()}
     size_cache = {"set_index": None, "dimensions": ()}
+    panel_editor = {"entry": None, "item": None, "set_index": None, "bay_index": None}
+
+    def cancel_panel_name_edit(_event=None, *, redraw=True):
+        entry = panel_editor["entry"]
+        if entry is None:
+            return "break"
+        if panel_editor["item"] is not None:
+            canvas.delete(panel_editor["item"])
+        entry.destroy()
+        panel_editor.update(entry=None, item=None, set_index=None, bay_index=None)
+        win._receiving_panel_name_entry = None
+        if redraw and win.winfo_exists():
+            render()
+        return "break"
+
+    def commit_panel_name_edit(_event=None):
+        entry = panel_editor["entry"]
+        if entry is None:
+            return "break"
+        try:
+            if rename_bay is None:
+                raise ValueError("盤名編輯入口尚未接通")
+            rename_bay(panel_editor["set_index"], panel_editor["bay_index"], entry.get())
+        except (ValueError, IndexError, RuntimeError) as exc:
+            warn(exc)
+            if entry.winfo_exists():
+                entry.focus_set()
+            return "break"
+        cancel_panel_name_edit(redraw=False)
+        size_cache["set_index"] = None
+        render()
+        return "break"
+
+    def double_click_panel_name(event):
+        if (rename_bay is None or applied["mode"] != "set_bay"
+                or applied["set_index"] is None):
+            return click_bay(event)
+        for index, box in enumerate(canvas._receiving_panel_name_hitboxes):
+            if box is None or not (box[0] <= event.x <= box[2]
+                                    and box[1] <= event.y <= box[3]):
+                continue
+            cancel_panel_name_edit(redraw=False)
+            old_name = tuple(size_cache["dimensions"])[index].get("panel_name", "")
+            entry = ttk.Entry(canvas, width=20)
+            entry.insert(0, str(old_name))
+            x0, y0, x1, y1 = canvas._receiving_bay_hitboxes[index]
+            item = canvas.create_window(
+                (x0 + x1) / 2, (box[1] + box[3]) / 2,
+                window=entry, width=max(40.0, min(180.0, x1 - x0)),
+                tags=("receiving_panel_name_editor",),
+            )
+            panel_editor.update(entry=entry, item=item,
+                                set_index=applied["set_index"], bay_index=index)
+            win._receiving_panel_name_entry = entry
+            entry.bind("<Return>", commit_panel_name_edit)
+            entry.bind("<Escape>", cancel_panel_name_edit)
+            entry.focus_set()
+            entry.selection_range(0, tk.END)
+            return "break"
+        # Tk promotes a second rapid Button-1 to Double-Button-1 even when
+        # no panel name was hit. Preserve the previous two-click Bay toggle.
+        return click_bay(event)
 
     def render():
+        if panel_editor["entry"] is not None:
+            return  # Keep an in-place edit across Configure events.
         # The main sketch always remains a Set/Bay highlighter. Quantity
         # allocation uses the separate version-manager window's own canvas.
         canvas.configure(scrollregion=(0, 0, 0, 0))
@@ -1373,7 +1402,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             )
             size_cache["set_index"] = applied["set_index"]
         paint_connected_bays(canvas, count, selected, marks, labels,
-                             bay_dimensions=size_cache["dimensions"])
+                             bay_dimensions=size_cache["dimensions"],
+                             panel_names=tuple(
+                                 row.get("panel_name", "")
+                                 for row in size_cache["dimensions"]
+                             ) if applied["mode"] == "set_bay" else ())
         canvas._receiving_selected_bay = (
             applied["selected"] if applied["mode"] == "set_bay" else None
         )
@@ -1423,9 +1456,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         entry_row = ttk.Frame(size_groups_host)
         entry_row.pack(anchor="w", pady=3)
         if not size_input:
-            from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
+            defaults = manufacturing_api.receiving_default_box_dimensions()
             size_input.update({
-                key: tk.StringVar(master=win, value=display_dimension(BOX_BODY_DEFAULTS[axis]))
+                key: tk.StringVar(master=win, value=display_dimension(defaults[axis]))
                 for key, axis in (("width", "w"), ("height", "h"), ("depth", "d"))
             })
             size_input["count"] = tk.StringVar(master=win, value="1")
@@ -1623,6 +1656,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def adjust_sets(delta):
         if resize_sets is None or mode_var.get() != "set_bay":
             return False
+        cancel_panel_name_edit(redraw=False)
         try:
             if not ensure_set_mode():
                 return False
@@ -1646,6 +1680,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             return warn(exc)
 
     def resize(index, delta):
+        cancel_panel_name_edit(redraw=False)
         try:
             if not ensure_set_mode():
                 return False
@@ -1660,6 +1695,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             return warn(exc)
 
     def apply(index):
+        cancel_panel_name_edit(redraw=False)
         try:
             if not ensure_set_mode():
                 return False
@@ -1673,6 +1709,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if select_bay is not None:
                 select_bay(index, 0)
             refresh_dimension_rows()
+            size_cache["set_index"] = None
             render()
             return True
         except (ValueError, IndexError, RuntimeError) as exc:
@@ -1681,6 +1718,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     def click_bay(event):
         if applied["mode"] != "set_bay" or applied["set_index"] is None:
             return
+        # Leaving the inline editor cancels only that draft; the normal Bay
+        # selection/highlight transaction must still repaint immediately.
+        if panel_editor["entry"] is not None:
+            cancel_panel_name_edit(redraw=False)
         for index, (x0, y0, x1, y1) in enumerate(canvas._receiving_bay_hitboxes):
             if x0 <= event.x <= x1 and y0 <= event.y <= y1:
                 try:
@@ -1718,6 +1759,8 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
     def change_mode():
         target = mode_var.get()
+        if target != applied["mode"]:
+            cancel_panel_name_edit(redraw=False)
         if mode_transition["busy"]:
             mode_var.set(applied["mode"])
             return
@@ -1746,6 +1789,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     # The Version Manager still owns its separate 數量配置 page.
 
     canvas.bind("<Button-1>", click_bay)
+    canvas.bind("<Double-Button-1>", double_click_panel_name)
     sketch_redraw = _IdleCanvasRedraw(canvas, render)
     canvas.bind("<Configure>", sketch_redraw.request)
     refresh_rows()
@@ -1785,6 +1829,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     win._receiving_multi_setting_list = setting_list
     win._receiving_multi_selected_setting = selected_setting
     win._receiving_multi_canvas = canvas
+    win._receiving_panel_name_entry = None
+    win._receiving_panel_name_edit = double_click_panel_name
+    win._receiving_panel_name_commit = commit_panel_name_edit
+    win._receiving_panel_name_cancel = cancel_panel_name_edit
     win._receiving_multi_applied = applied
     win._receiving_multi_refresh = refresh_rows
     win._receiving_multi_apply = apply

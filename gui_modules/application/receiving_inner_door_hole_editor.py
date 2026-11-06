@@ -6,10 +6,12 @@ inner-door dimensions remain with their established authority owners.
 """
 from __future__ import annotations
 
+from ae_engine import manufacturing_api
+
 
 def is_inner_door_sheet(part_key: object) -> bool:
-    key = str(part_key or "")
-    return key.startswith("inner_door:") and key.endswith(":panel")
+    """Only the public Engine may recognize a canonical physical Door panel."""
+    return manufacturing_api.door_display_part_role(part_key) == "inner"
 
 
 
@@ -25,46 +27,6 @@ def inner_door_commit_target(settings_mode):
     if settings_mode in (None, "single"):
         return "physical"
     raise ValueError("未知的內門編輯來源")
-
-
-def inner_door_work_area_guide(snapshot, panel, structural):
-    """Project the source door-layout cell into the local inner-door editor.
-
-    The outer 800×1100 (or selected cell W/H) is a measurement/display guide,
-    NOT a new CUTTING surface or feature-local coordinate system. Door feature
-    coordinates and manufacturing remain in the real 19-mm folded sheet.
-    """
-    from ae_engine.cabinet_types.receiving import (
-        DOOR_DEFAULTS, inner_door_panel_vertical_contract,
-    )
-    from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
-    from ae_engine.sheetmetal_features import RectGuide, Vec2
-
-    columns = tuple(snapshot.get("door_layout_columns") or ())
-    cells = derive_door_layout_cells(columns)
-    cell_key = str(panel.cell_key)
-    cell = next((item for item in cells
-                 if f"{item.column_index}:{item.row_index}" == cell_key), None)
-    if cell is None:
-        raise ValueError(f"內門 {panel.inner_door_id} 找不到所屬作業區 {cell_key}")
-
-    vertical = inner_door_panel_vertical_contract(
-        cell_height=cell.start_height,
-        thickness=panel.thickness,
-        gap_h=float(snapshot.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"])),
-    )
-    # Panel is vertically lower inside its work-area cell by half the top-frame
-    # occupation. In local unfolded-door coordinates the CELL center is higher
-    # than the panel center; X stays symmetrically centered between side frames.
-    cx = float(structural.width) / 2.0
-    cy = float(structural.height) / 2.0 - vertical["center_offset_y"]
-    half_w = float(cell.start_width) / 2.0
-    half_h = float(cell.start_height) / 2.0
-    return RectGuide(
-        Vec2(cx - half_w, cy - half_h),
-        Vec2(cx + half_w, cy + half_h),
-        "receiving_inner_door_work_area",
-    )
 
 
 def open_inner_door_hole_editor(
@@ -100,46 +62,15 @@ def open_inner_door_hole_editor(
     if host is None or not callable(getattr(host, "_open_unified_hole_editor", None)):
         raise ValueError("未連接既有金庫型門板開孔編輯器")
 
-    from ae_engine.cabinet_types import policy as cabinet_family_policy
-    from ae_engine.sheetmetal_part_adapters import (
-        build_door_result, build_finished_reference_guide, DoorFrameEdges,
-    )
-    from ae_engine.sheetmetal_features import feature_surface_from_structural_result
-    from ae_engine import manufacturing_api
-
     snapshot = dict(app._phase6_input_snapshot if physical_snapshot is None
                     else physical_snapshot)
-    panel = next((
-        item for item in cabinet_family_policy.derive_inner_door_panels(snapshot)
-        if item.stable_id == part_key
-    ), None)
-    if panel is None:
-        raise ValueError("目前專案沒有這片內門門板")
-
-    # Both editing and manufacturing use the Vault Door finished-face anchor,
-    # independent of the outer door's FW, gaps, and bending settings.
-    structural = build_door_result(
-        w=panel.width, h=panel.height, t=panel.thickness,
-        fw=25.0, gap_w=0.0, gap_h=0.0,
-        fold_left=19.0, fold_right=19.0,
-        fold_top=19.0, fold_bottom=19.0,
-        frame_edges=DoorFrameEdges(
-            left=False, right=False, top=False, bottom=False,
-        ),
+    context = manufacturing_api.resolve_inner_door_hole_editor_context(
+        snapshot, part_key,
     )
-    surface = feature_surface_from_structural_result("door", structural)
-    # Original checkbox: OFF measures from the real inner-door finished face;
-    # ON measures from its authoritative full work-area (e.g. 800 x 1100).
-    door_guide = build_finished_reference_guide(
-        "door", structural, finished_width=panel.width,
-        finished_height=panel.height,
-    )
-    work_area_guide = inner_door_work_area_guide(snapshot, panel, structural)
-    # The inner-door hole UI must show the same physical CUTTING/BEND as
-    # its produced DXF. Reuse Vault certified folding/corner rules without
-    # importing the OUTER Vault Door's fixed handle/nameplate holes into a
-    # Receiving inner-door/NFB physical hole owner.
-    render = manufacturing_api.build_inner_door_panel_render_data(panel)
+    panel = context.panel
+    structural = context.structural
+    surface = context.feature_surface
+    render = context.render
     from copy import deepcopy
     features = (workspace.features_for(part_key) if initial_features is None
                 else deepcopy(list(initial_features)))
@@ -174,14 +105,13 @@ def open_inner_door_hole_editor(
             # selection was silently discarded by the next canonical
             # Set/Bay projection. Commit its complete CSV source AND holes
             # through the same physical Bay adapter as Single settings.
-            from ae_engine.receiving_inner_door_candidates import validate_door_config
             import fold_designer_bridge as bridge
             owner = bridge._phase6_composition(app)
-            config = validate_door_config(staged)
-            config = deepcopy(config)
-            config.setdefault("features", {})[part_key] = deepcopy(list(final_features))
             mode = workspace.active_mode
             if mode == "set_bay":
+                config = manufacturing_api.prepare_receiving_inner_door_physical_confirm(
+                    staged, part_key, final_features,
+                )
                 adapter = owner.receiving_adapter(vars(bridge))
                 selected = adapter.selection
                 adapter.apply_inner_door_candidate_to_bays(
@@ -194,31 +124,20 @@ def open_inner_door_hole_editor(
                 )
                 app.submit_update_intent("geometry", commit=True)
             elif mode == "quantity":
-                from ae_engine.receiving_quantity_box import update_common_box
-                from ae_engine.receiving_nfb_csv_committed_config import (
-                    committed_csv_nfb_config, preview_quantity_nfb_submission,
-                )
-                from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
                 current = app._phase6_input_snapshot
-                projected = update_common_box(current, {
-                    "inner_door_layers": config["layers"],
-                    "inner_door_models": deepcopy(config["models"]),
-                    "inner_door_layer_heights_mm": deepcopy(
-                        config.get("layer_heights_mm")
-                    ),
-                })
-                typed = committed_csv_nfb_config(
-                    part_key, final_features, config,
-                )
                 quantity = workspace.quantity_model
-                projected = preview_quantity_nfb_submission(
-                    projected, quantity, typed,
+                projected, typed = manufacturing_api.preview_quantity_inner_door_confirm(
+                    current, quantity, part_key, final_features, staged,
+                    include_missing_heights=True,
                 )
+                # Engine checked the detached Quantity version and Family box
+                # before any live version or project snapshot mutation.
                 quantity.set_version_nfb_config(
-                    quantity.selected_version_id, submitted=True,
-                    config=typed,
+                    quantity.selected_version_id, submitted=True, config=typed,
                 )
-                current.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
+                # Apply the entire validated Engine projection, including its
+                # deletion of obsolete runtime Bay selection, in-place.
+                current.clear()
                 current.update(projected)
                 workspace.set_receiving_common_box(
                     projected["receiving_quantity_box"]
@@ -265,9 +184,9 @@ def open_inner_door_hole_editor(
         part_key, title, surface, structural.width, structural.height,
         # The operator editor always DISPLAYS the full work area (800x1100).
         # The checkbox changes measurement authority, not the shown size.
-        reference_guide=work_area_guide,
-        local_reference_guide=door_guide,
-        cabinet_reference_guide=work_area_guide,
+        reference_guide=context.work_area_guide,
+        local_reference_guide=context.local_reference_guide,
+        cabinet_reference_guide=context.work_area_guide,
         feature_list_override=features,
         # Every entry stays transient until native Confirm All, including
         # direct Corner Data / board-preview routes. Cancel All must never
@@ -275,9 +194,7 @@ def open_inner_door_hole_editor(
         sync_callback=lambda: None,
         **({"on_close": restore_settings_dialog} if settings_mode is not None else {}),
         on_confirm_features=confirm_settings,
-        door_frame_edges=DoorFrameEdges(
-            left=False, right=False, top=False, bottom=False,
-        ),
+        door_frame_edges=context.frame_edges,
         door_thickness=float(panel.thickness),
         baseline_scene=render.scene,
         baseline_status_text="金庫型門板共用折彎／截角；內門孔位獨立",

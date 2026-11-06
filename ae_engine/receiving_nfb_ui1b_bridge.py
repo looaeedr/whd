@@ -62,6 +62,71 @@ class NfbVerifiedDraftSubmission:
                      if p.part_id != self.scope.inner_door_part_id and not p.can_export)
 
 
+
+def select_operator_nfb_copy_bays(layout, set_index, selected_bays):
+    """Read two actual Bay references without mutating physical NFB state.
+
+    This is input selection only; an Engine-verified target and the canonical
+    copy_submitted_nfb_bay transaction are still mandatory for manufacturing.
+    Preserve operator highlight order, including target-before-source.
+    """
+    message = "NFB 複製請在同一套高亮來源連及目標連（恰好兩連）"
+    if type(set_index) is not int:
+        raise ValueError("NFB 複製的套位已不存在")
+    try:
+        if not 0 <= set_index < len(layout["sets"]):
+            raise ValueError("NFB 複製的套位已不存在")
+        bays = layout["sets"][set_index]["bays"]
+    except (TypeError, KeyError, IndexError) as exc:
+        raise ValueError("NFB 複製的套位已不存在") from exc
+    try:
+        indices = tuple(selected_bays)
+    except TypeError as exc:
+        raise ValueError(message) from exc
+    if (len(indices) != 2
+            or any(type(i) is not int or not 0 <= i < len(bays) for i in indices)
+            or len(set(indices)) != 2):
+        raise ValueError(message)
+    return indices, {i: bays[i] for i in indices}
+
+
+def plan_operator_nfb_copy_direction(
+    layout, set_index, selected_bays, *, verified_target_indices,
+) -> tuple[int, int]:
+    """Select exactly one submitted-source / separately verified-target pair.
+
+    verified_target_indices comes only from live assert_live_verified_nfb
+    checks, not from a stale GUI ready checkbox. This plan cannot copy any
+    material or approve manufacturing; copy_live_verified_nfb rechecks the
+    source, independent target proof and atomic transaction at commit.
+    """
+    indices, bays = select_operator_nfb_copy_bays(
+        layout, set_index, selected_bays,
+    )
+    try:
+        supplied = tuple(verified_target_indices)
+    except TypeError as exc:
+        raise ValueError("NFB 複製目標連尚未取得獨立驗證") from exc
+    if any(type(i) is not int or i not in indices for i in supplied):
+        raise ValueError("NFB 複製目標連不屬於選定實體 Bay")
+    if len(supplied) != len(set(supplied)):
+        raise ValueError("NFB 複製目標連驗證資料重複")
+    verified = set(supplied)
+    options = [
+        (source, target)
+        for source in indices
+        if bays[source].get("nfb_config_submitted") is True
+        for target in indices
+        if target != source and target in verified
+    ]
+    if len(options) != 1:
+        raise ValueError(
+            "請先從已提交來源連複製，並在另一目標連核對獨立世界 X／實體來源；"
+            "不可使用未配置來源或不明確的複製方向"
+        )
+    return options[0]
+
+
 def _nfb_config_proof_sha256(config: Mapping[str, object]) -> str:
     """Canonical digest of ALL saved NFBConfig values, not just physical X.
 

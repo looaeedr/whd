@@ -8,7 +8,7 @@
 """Box-body seam, base-plate relief, and physical-piece feature projection."""
 from __future__ import annotations
 
-from phase6_box_body_structure import (
+from .box_body_structure_state import (
     BoxBodyStructureType,
     normalize_box_body_structure_state,
 )

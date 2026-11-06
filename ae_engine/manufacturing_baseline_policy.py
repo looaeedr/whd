@@ -117,6 +117,30 @@ def _expected_baseline_path(model_name: str | None, filename: str, context: Manu
     return None
 
 
+def require_verified_operator_baseline_sources(model_name) -> bool:
+    """Require fresh, verified DXF sources for the original operator export preflight.
+
+    Keep the legacy optional-source behavior: an unset model or a genuinely
+    absent optional file is not manufactured by this check. A present file
+    must be freshly parsable, never a last-known-good preview. Canonical
+    Factory/Registry gates still independently govern actual DXF export.
+    """
+    if not model_name:
+        return True
+    for filename in ("箱身.dxf", "封頭尾.dxf", "門.dxf"):
+        path = ae.baseline_part_path(model_name, filename)
+        if not path:
+            continue
+        _doc, status = ae.load_baseline_dxf_source_with_status(
+            path, allow_unverified_source=False,
+        )
+        if status != ae.BASELINE_SOURCE_VERIFIED:
+            raise RuntimeError(
+                f"基準來源尚未驗證：{model_name}/{filename}；正式製造輸出已停止。"
+            )
+    return True
+
+
 def receiving_baseline_source_stamp(
     model: str, *, context=None, include_physical_panels=False,
 ):
@@ -221,7 +245,11 @@ def expected_baseline_path_for(
     if isinstance(spec, BoxBodyPartSpec):
         return _expected_baseline_path(spec.model_name, "箱身.dxf", ctx)
     if isinstance(spec, EndCapPartSpec):
-        return _expected_baseline_path(spec.model_name, "封頭尾.dxf", ctx)
+        # The Family owns the fixed-hole source independently from the target
+        # sheet's manufactured Fold/Corner/depth compensation. Receiving reuses
+        # certified Vault hole features; it has no Receiving/封頭尾.dxf source.
+        source_model = _endcap_baseline_feature_model_name(spec.model_name)
+        return _expected_baseline_path(source_model or spec.model_name, "封頭尾.dxf", ctx)
     if isinstance(spec, IndicatorBoxPartSpec):
         return _indicator_shared_expected_path("盒子.dxf", ctx, model_name=spec.model_name)
     return None

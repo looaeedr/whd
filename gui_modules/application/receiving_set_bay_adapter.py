@@ -13,22 +13,9 @@ from typing import Callable, Iterable, Mapping
 
 from ae_engine import manufacturing_api
 
-from ae_engine.receiving_manufacturing_readiness import (
-    ReceivingManufacturingFailure,
-    evaluate_receiving_manufacturing_readiness,
-    receiving_readiness_projection,
-)
-from ae_engine.receiving_layout import (
-    append_receiving_set,
-    normalize_receiving_layout,
-    project_receiving_bay_legacy_aliases,
-    receiving_destructive_tail_ids,
-    receiving_joint_alignment_editability,
-    resize_receiving_bays,
-    resize_receiving_sets,
-    update_receiving_bay,
-    update_receiving_joint_alignment,
-)
+def normalize_receiving_layout(layout):
+    """Legacy monkeypatch-compatible function; Engine owns normalization."""
+    return manufacturing_api.normalize_receiving_layout(layout)
 
 
 class ReceivingDestructiveEditConfirmationRequired(RuntimeError):
@@ -41,13 +28,8 @@ class ReceivingDestructiveEditConfirmationRequired(RuntimeError):
 
 
 def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]:
-    normalized = normalize_receiving_layout(layout)
-    result: list[str] = []
-    for set_row in normalized["sets"]:
-        result.append(str(set_row["stable_id"]))
-        result.extend(str(row["stable_id"]) for row in set_row["bays"])
-        result.extend(str(row["stable_id"]) for row in set_row["joints"])
-    return tuple(result)
+    """GUI compatibility: request authoritative Set/Bay/Joint IDs from Engine."""
+    return manufacturing_api.receiving_layout_stable_ids(layout)
 
 
 def _operator_integer(value, name):
@@ -112,7 +94,7 @@ class ReceivingSetBayAdapter:
             raise IndexError("Receiving Set selection is not progressively available")
         created = wanted == existing + 1
         if created:
-            self._layout = append_receiving_set(self._layout)
+            self._layout = manufacturing_api.append_receiving_set(self._layout)
         self._selection = ReceivingSelection(set_index=wanted - 1, bay_index=0)
         return created
 
@@ -158,7 +140,7 @@ class ReceivingSetBayAdapter:
         wanted = _operator_integer(bay_count, "Bay count")
         current = self.bay_count()
         if wanted < current:
-            removed = receiving_destructive_tail_ids(
+            removed = manufacturing_api.receiving_destructive_tail_ids(
                 self._layout,
                 set_index=self._selection.set_index,
                 bay_count=wanted,
@@ -166,25 +148,9 @@ class ReceivingSetBayAdapter:
             self._confirm_if_required(removed)
             self._persisted_ids.difference_update(removed)
             self._session_dirty_ids.difference_update(removed)
-        candidate = resize_receiving_bays(
-            self._layout,
-            set_index=self._selection.set_index,
-            bay_count=wanted,
+        candidate = manufacturing_api.resize_receiving_bays_with_family_defaults(
+            self._layout, set_index=self._selection.set_index, bay_count=wanted,
         )
-        if wanted > current:
-            # New Bay dimensions originate from the Receiving Family authority,
-            # not from the previously selected Bay's possibly custom size.
-            from ae_engine.cabinet_types.receiving import BOX_BODY_DEFAULTS
-            defaults = tuple(float(BOX_BODY_DEFAULTS[axis]) for axis in ("w", "h", "d"))
-            if any(not value.is_integer() or value <= 0 for value in defaults):
-                raise ValueError("受電箱預設 W/H/D 必須為正整數毫米")
-            builder = ReceivingSetBayAdapter(candidate)
-            builder.apply_dimensions_to_bays(
-                self._selection.set_index, tuple(range(current, wanted)),
-                width=int(defaults[0]), height=int(defaults[1]),
-                depth=int(defaults[2]), expected_count=wanted - current,
-            )
-            candidate = builder.layout
         self._layout = candidate
         new_count = self.bay_count()
         self._selection = ReceivingSelection(
@@ -196,11 +162,11 @@ class ReceivingSetBayAdapter:
         wanted = _operator_integer(set_count, "Set count")
         current = len(self._layout["sets"])
         if wanted < current:
-            removed = receiving_destructive_tail_ids(self._layout, set_count=wanted)
+            removed = manufacturing_api.receiving_destructive_tail_ids(self._layout, set_count=wanted)
             self._confirm_if_required(removed)
             self._persisted_ids.difference_update(removed)
             self._session_dirty_ids.difference_update(removed)
-        self._layout = resize_receiving_sets(self._layout, set_count=wanted)
+        self._layout = manufacturing_api.resize_receiving_sets(self._layout, set_count=wanted)
         set_index = min(self._selection.set_index, wanted - 1)
         bay_index = min(
             self._selection.bay_index,
@@ -209,92 +175,19 @@ class ReceivingSetBayAdapter:
         self._selection = ReceivingSelection(set_index=set_index, bay_index=bay_index)
 
     def apply_dimensions_to_bays(self, set_index, bay_indices, *, width, height, depth, expected_count):
-        """Apply W/H/D to explicitly highlighted real Bays, atomically."""
-        from ae_engine.sheetmetal_part_adapters import complete_partition
-        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
-            raise ValueError("套不存在")
-        index = set_index
-        for label, value in (("W", width), ("H", height), ("D", depth), ("數量", expected_count)):
-            if type(value) is not int or value <= 0:
-                raise ValueError(f"{label} 必須為正整數")
-            if label != "數量":
-                # The canonical Receiving _number() rejects unrepresentable
-                # physical dimensions. Reject before even staging a Bay edit.
-                try:
-                    float(value)
-                except (OverflowError, ValueError) as exc:
-                    raise ValueError(f"{label} 超出可表示尺寸") from exc
-        try:
-            selected = tuple(bay_indices)
-        except TypeError as exc:
-            raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體") from exc
-        bay_count = len(self._layout["sets"][index]["bays"])
-        # Verify every physical Bay ID before hashing; bool aliases int 1
-        # and nested UI arrays otherwise cause unhandled TypeError.
-        if (len(selected) != expected_count
-                or any(type(i) is not int or not 0 <= i < bay_count for i in selected)
-                or len(set(selected)) != len(selected)):
-            raise ValueError(f"右側必須高亮剛好 {expected_count} 個箱體")
-        # One operator confirmation is one atomic topology transaction. The
-        # old loop called update_receiving_bay() for every highlighted Bay;
-        # that helper normalizes the *entire* Set/Bay/Joint layout twice on
-        # each call, rebuilding even untouched Bays. Keep the same per-Bay
-        # door-partition checks but validate the final candidate only once.
-        candidate, dirty = self._layout, []
-        for bay_index in selected:
-            current = candidate["sets"][index]["bays"][bay_index]
-            changes = {"width": width, "height": height, "depth": depth}
-            if all(float(current[k]) == v for k, v in changes.items()):
-                continue
-            door = current.get("door_state")
-            if door and (float(current["width"]) != width or float(current["height"]) != height):
-                columns = door.get("door_layout_columns") or ()
-                if door.get("multi_door_enabled") and not columns:
-                    raise ValueError(f"第{bay_index + 1}連門分割資料不完整")
-                if columns:
-                    widths = complete_partition([item[0] for item in columns[:-1]], width)
-                    if not widths.valid or len(widths.values) != len(columns):
-                        raise ValueError(f"第{bay_index + 1}連 W 不符合門分割")
-                    new_cols = []
-                    for new_w, (_, heights) in zip(widths.values, columns):
-                        sizes = complete_partition(heights[:-1], height)
-                        if not sizes.valid or len(sizes.values) != len(heights):
-                            raise ValueError(f"第{bay_index + 1}連 H 不符合門分割")
-                        new_cols.append([new_w, list(sizes.values)])
-                    changes["door_state"] = {**deepcopy(door), "door_layout_columns": new_cols}
-            if not dirty:
-                candidate = deepcopy(self._layout)
-            # Existing update_receiving_bay() casts numeric inputs to float
-            # before canonical normalization; preserve that data contract.
-            updated_bay = {
-                **current, **{axis: float(value) for axis, value in changes.items()
-                              if axis in ("width", "height", "depth")},
-                **({"door_state": changes["door_state"]} if "door_state" in changes else {}),
-            }
-            if (float(current["width"]) != width
-                    and updated_bay.get("nfb_config_submitted") is True):
-                # This fast multi-selection operator intentionally bypasses
-                # update_receiving_bay's repeated full-layout normalization.
-                # It must still enforce that same per-Bay X datum invalidation
-                # when the physical width changes; never keep old confirmed X.
-                from ae_engine.receiving_nfb_persistence import reconfirm_copied_nfb_config
-                updated_bay["nfb_config"] = reconfirm_copied_nfb_config(
-                    updated_bay["nfb_config"]
-                )
-            candidate["sets"][index]["bays"][bay_index] = updated_bay
-            dirty.append(str(current["stable_id"]))
-        if not dirty:
-            return 0
-        # Normalize and check *all* dependencies/Joints once. Any failure
-        # leaves both the canonical layout and dirty bookkeeping unchanged.
-        validated = normalize_receiving_layout(candidate)
-        self._layout = validated
-        self._session_dirty_ids.update(dirty)
-        return len(dirty)
+        """Forward the operator's highlighted dimensions to canonical Engine."""
+        candidate, changed_ids = manufacturing_api.apply_receiving_bay_dimensions(
+            self._layout, set_index, bay_indices, width=width, height=height,
+            depth=depth, expected_count=expected_count,
+        )
+        if changed_ids:
+            self._layout = candidate
+            self._session_dirty_ids.update(changed_ids)
+        return len(changed_ids)
 
     def update_current_bay(self, **changes: object) -> bool:
         before = self.current_bay()
-        updated = update_receiving_bay(
+        updated = manufacturing_api.update_receiving_bay(
             self._layout,
             set_index=self._selection.set_index,
             bay_index=self._selection.bay_index,
@@ -307,29 +200,77 @@ class ReceivingSetBayAdapter:
             self.mark_current_bay_dirty()
         return changed
 
+    def rename_bay(self, set_index: int, bay_index: int, panel_name: str) -> bool:
+        """Commit one named Bay via public Engine API; preserve current selection."""
+        before = self._layout["sets"][set_index]["bays"][bay_index]["panel_name"]
+        candidate = manufacturing_api.rename_receiving_panel(
+            self._layout, set_index=set_index, bay_index=bay_index,
+            panel_name=panel_name,
+        )
+        after = candidate["sets"][set_index]["bays"][bay_index]["panel_name"]
+        self._layout = candidate
+        if after != before:
+            self._session_dirty_ids.add(
+                str(candidate["sets"][set_index]["bays"][bay_index]["stable_id"])
+            )
+        return after != before
+
     def update_setting(self, kind, value):
-        from ae_engine.receiving_shared_settings import edit_setting
-        self._layout = edit_setting(self._layout, set_index=self.selection.set_index,
-                                    bay_index=self.selection.bay_index, kind=kind, value=value)
-        self.mark_current_bay_dirty()
+        """Single-Bay editor can also change every sibling sharing its ref."""
+        candidate, affected_ids = (
+            manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(
+                self._layout, set_index=self.selection.set_index,
+                bay_indices=(self.selection.bay_index,), kind=kind, value=value,
+            )
+        )
+        self._layout = candidate
+        self._session_dirty_ids.update(affected_ids)
+
+    def apply_setting_to_bays(self, kind, value, bay_indices):
+        """Submit operator selection; Engine owns linked physical Bay impact."""
+        candidate, affected_ids = (
+            manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(
+                self._layout, set_index=self.selection.set_index,
+                bay_indices=bay_indices, kind=kind, value=value,
+            )
+        )
+        self._layout = candidate
+        self._session_dirty_ids.update(affected_ids)
+        return bool(affected_ids)
 
     def share_setting(self, kind, bay_indices):
-        from ae_engine.receiving_shared_settings import share_setting
-        self._layout = share_setting(self._layout, set_index=self.selection.set_index,
-                                     source_bay_index=self.selection.bay_index,
-                                     bay_indices=bay_indices, kind=kind)
-        self.mark_current_bay_dirty()
+        """GUI never infers which physical Bay refs were linked by Engine."""
+        candidate, affected_ids = (
+            manufacturing_api.share_receiving_shared_setting_with_affected_ids(
+                self._layout, set_index=self.selection.set_index,
+                source_bay_index=self.selection.bay_index,
+                bay_indices=bay_indices, kind=kind,
+            )
+        )
+        self._layout = candidate
+        self._session_dirty_ids.update(affected_ids)
+
+    def share_and_update_setting(self, kind, value, bay_indices):
+        """One Hole Editor save is one complete Engine source transaction."""
+        indices = tuple(bay_indices)
+        candidate, affected_ids = (
+            manufacturing_api.share_and_edit_receiving_shared_setting_with_affected_ids(
+                self._layout, set_index=self.selection.set_index,
+                bay_indices=indices,
+                source_bay_index=indices[0] if indices else self.selection.bay_index,
+                kind=kind, value=value,
+            )
+        )
+        self._layout = candidate
+        self._session_dirty_ids.update(affected_ids)
 
     def unlink_setting(self, kind):
-        from ae_engine.receiving_shared_settings import unlink_setting
-        self._layout = unlink_setting(self._layout, set_index=self.selection.set_index,
+        self._layout = manufacturing_api.unlink_receiving_shared_setting(self._layout, set_index=self.selection.set_index,
                                       bay_index=self.selection.bay_index, kind=kind)
         self.mark_current_bay_dirty()
 
     def set_brand(self, brand):
-        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
-        if brand not in RECEIVING_SWITCH_BRANDS:
-            raise ValueError("不支援的開關品牌")
+        brand = manufacturing_api.require_receiving_operator_brand(brand)
         candidate = deepcopy(self._layout)
         index = self.selection.set_index
         updated, changed = manufacturing_api.rebase_receiving_set_parent_nfb_brand(
@@ -361,98 +302,21 @@ class ReceivingSetBayAdapter:
         return len(changed_ids)
 
     def apply_inner_door_candidate_to_bays(self, config, set_index, bay_indices, *, version_id=None):
-        """Apply one isolated inner-door candidate only to real highlighted Bays."""
-        from ae_engine.receiving_inner_door_candidates import validate_door_config
-        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
-        source = validate_door_config(config)
-        from ae_engine.receiving_shared_settings import validate_setting
-        version_id = validate_setting("inner_door_version_id", version_id)
-        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
-            raise ValueError("選取的套不存在")
-        # Validate highlight members *before* set(): True aliases integer
-        # Bay 1 and nested unhashable UI values otherwise raise TypeError.
-        # Neither may alter any physical NFB Bay or candidate assignment.
-        try:
-            supplied = tuple(bay_indices)
-        except TypeError as exc:
-            raise ValueError("請在簡易圖高亮有效的連") from exc
-        count = len(self._layout["sets"][set_index]["bays"])
-        if (not supplied or any(type(i) is not int or not 0 <= i < count
-                                for i in supplied)):
-            raise ValueError("請在簡易圖高亮有效的連")
-        selected = tuple(sorted(set(supplied)))
-        # Stage a candidate's current CSV source identities. Merely saving a
-        # version does not touch any physical Bay; only explicit Apply can
-        # submit the version's existing Hole Editor NFB features into each
-        # selected Bay's source projection. Manual NFB X remains unverified
-        # and manufacturing-ready flags are NEVER promoted by this bridge.
-        csv_config = manufacturing_api.candidate_committed_csv_nfb_config(source)
-        # Explicit Apply REPLACES the initial submitted NFB + physical
-        # features as one Bay transaction; never union them. Non-NFB or
-        # unverified mixed CUTTING cannot overwrite a submitted source.
-        manufacturing_api.validate_candidate_nfb_replacement(
-            self._layout, ((set_index, bi) for bi in selected), source, csv_config,
-            rejection_message="此連 NFB 已提交；非 CSV 候選不得覆寫原開孔",
+        """Forward operator Apply to the public Engine; track only GUI dirty IDs."""
+        candidate, selected, ids = manufacturing_api.apply_receiving_inner_door_candidate_to_bays(
+            self._layout, config, set_index, bay_indices, version_id=version_id,
         )
-        candidate = self._layout
-        for bi in selected:
-            for kind, value in (
-                ("inner_door_layers", source["layers"]),
-                ("inner_door_models", source["models"]),
-                ("inner_door_features", source.get("features", {})),
-                ("inner_door_layer_heights_mm", source.get("layer_heights_mm")),
-                ("inner_door_version_id", version_id),
-            ):
-                candidate = unlink_setting(
-                    candidate, set_index=set_index, bay_index=bi, kind=kind,
-                )
-                candidate = edit_setting(
-                    candidate, set_index=set_index, bay_index=bi,
-                    kind=kind, value=value,
-                )
-        if csv_config is not None:
-            for bi in selected:
-                candidate = manufacturing_api.replace_candidate_bay_nfb(
-                    candidate, set_index, bi, csv_config,
-                )
         self._layout = candidate
-        self._session_dirty_ids.update(
-            str(candidate["sets"][set_index]["bays"][bi]["stable_id"])
-            for bi in selected
-        )
+        self._session_dirty_ids.update(ids)
         return selected
 
     def mark_live_version_for_bays(self, role, set_index, bay_indices):
-        """Explicit 即時 Apply only labels highlighted Bays, not their geometry."""
-        if role not in ("head", "tail", "inner-door"):
-            raise ValueError("不支援的版本角色")
-        if type(set_index) is not int or not 0 <= set_index < len(self._layout["sets"]):
-            raise ValueError("套不存在")
-        try:
-            supplied = tuple(bay_indices)
-        except TypeError as exc:
-            raise ValueError("請先高亮有效的連") from exc
-        count = len(self._layout["sets"][set_index]["bays"])
-        if (not supplied or any(
-                type(bi) is not int or not 0 <= bi < count for bi in supplied)):
-            raise ValueError("請先高亮有效的連")
-        indices = tuple(sorted(set(supplied)))
-        from ae_engine.receiving_shared_settings import unlink_setting, edit_setting
-        kind = role.replace("-", "_") + "_version_id"
-        candidate = self._layout
-        for bi in indices:
-            candidate = unlink_setting(
-                candidate, set_index=set_index, bay_index=bi, kind=kind,
-            )
-            candidate = edit_setting(
-                candidate, set_index=set_index, bay_index=bi,
-                kind=kind, value="",
-            )
-        self._layout = candidate
-        self._session_dirty_ids.update(
-            str(candidate["sets"][set_index]["bays"][bi]["stable_id"])
-            for bi in indices
+        """Forward Live Apply provenance transition; update GUI dirty marks."""
+        candidate, indices, changed_ids = manufacturing_api.mark_receiving_bays_live_version(
+            self._layout, role, set_index, bay_indices,
         )
+        self._layout = candidate
+        self._session_dirty_ids.update(changed_ids)
         return indices
 
     def apply_inner_door_quantity_configuration(
@@ -480,8 +344,7 @@ class ReceivingSetBayAdapter:
     def submit_nfb_to_bays(
         self, *, set_index, bay_indices, version_id, configs, evidence, confirm,
     ):
-        from ae_engine.receiving_nfb_transactions import submit_nfb_bays
-        return self._nfb_apply_outcome(submit_nfb_bays(
+        return self._nfb_apply_outcome(manufacturing_api.submit_receiving_nfb_bays(
             self._layout, set_index=set_index, bay_indices=bay_indices,
             version_id=version_id, configs=configs, evidence=evidence,
             confirm=confirm,
@@ -491,8 +354,7 @@ class ReceivingSetBayAdapter:
         self, *, set_index, source_bay_index, target_bay_index,
         version_id, target_config, evidence, confirm,
     ):
-        from ae_engine.receiving_nfb_transactions import copy_submitted_nfb_bay
-        return self._nfb_apply_outcome(copy_submitted_nfb_bay(
+        return self._nfb_apply_outcome(manufacturing_api.copy_receiving_submitted_nfb_bay(
             self._layout, set_index=set_index,
             source_bay_index=source_bay_index, target_bay_index=target_bay_index,
             version_id=version_id, target_config=target_config,
@@ -500,8 +362,7 @@ class ReceivingSetBayAdapter:
         ))
 
     def restore_nfb_unconfigured(self, *, set_index, bay_indices, confirm):
-        from ae_engine.receiving_nfb_transactions import restore_nfb_bays_unconfigured
-        return self._nfb_apply_outcome(restore_nfb_bays_unconfigured(
+        return self._nfb_apply_outcome(manufacturing_api.restore_receiving_nfb_bays_unconfigured(
             self._layout, set_index=set_index, bay_indices=bay_indices,
             confirm=confirm,
         ))
@@ -511,37 +372,27 @@ class ReceivingSetBayAdapter:
         return bool(self._nfb_undo_receipts)
 
     def undo_last_nfb_transaction(self):
-        from ae_engine.receiving_nfb_transactions import undo_nfb_transaction
         if not self._nfb_undo_receipts:
             raise ValueError("沒有可復原的內門 NFB 操作")
         receipt = self._nfb_undo_receipts[-1]
-        restored = undo_nfb_transaction(self._layout, receipt)
+        restored = manufacturing_api.undo_receiving_nfb_transaction(self._layout, receipt)
         self._layout = restored
         self._nfb_undo_receipts.pop()
         self._session_dirty_ids.update(change.stable_id for change in receipt.changes)
         return receipt
 
     def set_global_brand(self, brand):
-        """Rebase Set brand and affected inherited NFB X in one transaction."""
-        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
-        if brand not in RECEIVING_SWITCH_BRANDS:
-            raise ValueError("不支援的開關品牌")
-        candidate = deepcopy(self._layout)
-        changed = False
-        for index, set_row in enumerate(candidate["sets"]):
-            updated, set_changed = manufacturing_api.rebase_receiving_set_parent_nfb_brand(
-                set_row, brand,
-            )
-            if set_changed:
-                candidate["sets"][index] = updated
-            changed = set_changed or changed
+        """Submit one operator all-Set action to the public Engine owner."""
+        candidate, changed = manufacturing_api.update_receiving_all_set_nfb_parent_brand(
+            self._layout, brand,
+        )
         if changed:
             self._layout = candidate
         return changed
 
     def current_joint_editability(self, joint_index: int) -> dict[str, bool]:
         index = _operator_integer(joint_index, "Joint index")
-        return receiving_joint_alignment_editability(
+        return manufacturing_api.receiving_joint_alignment_editability(
             self._layout,
             set_index=self._selection.set_index,
             joint_index=index,
@@ -555,7 +406,7 @@ class ReceivingSetBayAdapter:
         height_alignment: object | None = None,
     ) -> None:
         index = _operator_integer(joint_index, "Joint index")
-        candidate = update_receiving_joint_alignment(
+        candidate = manufacturing_api.update_receiving_joint_alignment(
             self._layout,
             set_index=self._selection.set_index,
             joint_index=index,
@@ -569,7 +420,7 @@ class ReceivingSetBayAdapter:
     def project_current_bay(self, snapshot: Mapping[str, object]) -> dict[str, object]:
         payload = deepcopy(dict(snapshot or {}))
         payload["receiving_layout"] = self.layout
-        return project_receiving_bay_legacy_aliases(
+        return manufacturing_api.project_receiving_bay_legacy_aliases(
             payload,
             set_index=self._selection.set_index,
             bay_index=self._selection.bay_index,
@@ -577,11 +428,11 @@ class ReceivingSetBayAdapter:
         )
     def project_manufacturing_readiness(
         self,
-        failures: Iterable[ReceivingManufacturingFailure] = (),
+        failures: Iterable[manufacturing_api.ReceivingManufacturingFailure] = (),
     ) -> tuple[dict[str, object], ...]:
         """Project READY/BLOCKED diagnostics without becoming validity authority."""
-        report = evaluate_receiving_manufacturing_readiness(self._layout, failures)
-        return receiving_readiness_projection(report)
+        report = manufacturing_api.evaluate_receiving_manufacturing_readiness(self._layout, failures)
+        return manufacturing_api.receiving_readiness_projection(report)
 
 
 
@@ -610,9 +461,7 @@ class ReceivingSwitchProjectionAdapter:
         return counts[index]
 
     def set_brand(self, brand):
-        from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
-        if brand not in RECEIVING_SWITCH_BRANDS:
-            raise ValueError("不支援的開關品牌")
+        brand = manufacturing_api.require_receiving_operator_brand(brand)
         changed = self.brand != brand
         self.adapter.set_brand(brand)
         return changed

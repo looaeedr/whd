@@ -381,9 +381,25 @@ def build_unknown_door_result(
     )
 
 
-def build_base_plate_result(*, w, h, t, shrink_top, shrink_bottom, shrink_left, shrink_right, bend):
+def base_plate_blank_dimensions(
+    *, w, h, shrink_top, shrink_bottom, shrink_left, shrink_right, bend,
+) -> tuple[float, float]:
+    """One Engine-owned standalone BasePlate unfolded W/H calculation.
+
+    Also used for the legacy operator summary. Receiving NFB/physical BasePlate
+    source patterns have their own canonical builder: this does not certify
+    their manufacturing readiness or replace their selected physical size.
+    """
     total_width = _finite_float(w) - _finite_float(shrink_left) - _finite_float(shrink_right) + 2.0 * _finite_float(bend)
     total_height = _finite_float(h) - _finite_float(shrink_top) - _finite_float(shrink_bottom) + 2.0 * _finite_float(bend)
+    return total_width, total_height
+
+
+def build_base_plate_result(*, w, h, t, shrink_top, shrink_bottom, shrink_left, shrink_right, bend):
+    total_width, total_height = base_plate_blank_dimensions(
+        w=w, h=h, shrink_top=shrink_top, shrink_bottom=shrink_bottom,
+        shrink_left=shrink_left, shrink_right=shrink_right, bend=bend,
+    )
     geometry = FourSideFlangeGeometry(
         total_width=total_width,
         total_height=total_height,
@@ -408,8 +424,10 @@ def build_unknown_base_plate_result(
     *, w, h, t, shrink_top, shrink_bottom, shrink_left, shrink_right, bend,
     corner_policy: FourCornerTypePolicy,
 ):
-    total_width = _finite_float(w) - _finite_float(shrink_left) - _finite_float(shrink_right) + 2.0 * _finite_float(bend)
-    total_height = _finite_float(h) - _finite_float(shrink_top) - _finite_float(shrink_bottom) + 2.0 * _finite_float(bend)
+    total_width, total_height = base_plate_blank_dimensions(
+        w=w, h=h, shrink_top=shrink_top, shrink_bottom=shrink_bottom,
+        shrink_left=shrink_left, shrink_right=shrink_right, bend=bend,
+    )
     geometry = FourSideFlangeGeometry(
         total_width=total_width, total_height=total_height, thickness=_finite_float(t),
         left_fold=_finite_float(bend), right_fold=_finite_float(bend), top_fold=_finite_float(bend), bottom_fold=_finite_float(bend),

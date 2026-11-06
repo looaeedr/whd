@@ -9,10 +9,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
-from ae_engine.receiving_hole_candidates import version_label
-from ae_engine.receiving_quantity_allocation import (
-    AllocationDraft, validate_quantity_allocation,
-)
+from ae_engine import manufacturing_api
 
 
 class ReceivingQuantityAllocationUI:
@@ -26,10 +23,10 @@ class ReceivingQuantityAllocationUI:
         self.get_marks = get_marks
         self.on_render = on_render or (lambda: None)
         self.warn = warn or (lambda exc: None)
-        from ae_engine.receiving_hole_candidates import role_key
         self.roles = tuple(roles)
-        self.draft = AllocationDraft(
-            get_counts(), roles=self.roles, validate_role=validate_role or role_key,
+        self.draft = manufacturing_api.AllocationDraft(
+            get_counts(), roles=self.roles,
+            validate_role=validate_role or manufacturing_api.validate_receiving_candidate_role,
         )
         self.role = self.roles[0]
         self.host = None
@@ -77,19 +74,9 @@ class ReceivingQuantityAllocationUI:
         self.draft.add_version(self.role, remaining[0])
 
     def _replace_version(self, old, new):
-        current = self.draft.quantities[self.role]
         if new == old:
             return
-        if new not in self.reconcile()[self.role] or new in current:
-            raise ValueError("版本不存在或已加入配置")
-        # Keep the row order, but replace only its candidate identity.
-        self.draft.quantities[self.role] = {
-            (new if key == old else key): count
-            for key, count in current.items()
-        }
-        self.draft.assigned[self.role].clear()
-        self.draft.step[self.role] = 1
-        self.draft.active_version[self.role] = new
+        self.draft.replace_version(self.role, old, new, self.reconcile()[self.role])
 
     def _count(self, version_id, delta):
         current = self.draft.quantities[self.role][version_id]
@@ -109,11 +96,11 @@ class ReceivingQuantityAllocationUI:
         step = self.draft.step[role]
         if step == 1:
             ttk.Label(host, text="1. 決定數量｜全部套共 " + str(total) + " 連").pack(anchor="w", pady=(5, 4))
-            labels = {version_label(k): k for k in available[role]}
+            labels = {manufacturing_api.receiving_candidate_version_label(k): k for k in available[role]}
             for version_id, count in tuple(quantities.items()):
                 row = ttk.Frame(host)
                 row.pack(anchor="w", pady=2)
-                current = tk.StringVar(master=self.window, value=version_label(version_id))
+                current = tk.StringVar(master=self.window, value=manufacturing_api.receiving_candidate_version_label(version_id))
                 picker = ttk.Combobox(
                     row, textvariable=current, values=tuple(labels),
                     state="readonly", width=11,
@@ -149,7 +136,7 @@ class ReceivingQuantityAllocationUI:
             ttk.Button(
                 host, text="下一步：指定配置",
                 state="normal" if self.draft.ready_for_positioning(role) else "disabled",
-                command=lambda: self._operation(lambda: self.draft.step.__setitem__(role, 2)),
+                command=lambda: self._operation(lambda: self.draft.set_step(role, 2)),
             ).pack(anchor="e", pady=(5, 0))
         else:
             ttk.Label(host, text="2. 指定配置｜先選版本，再點簡易 2D 的連").pack(
@@ -161,7 +148,7 @@ class ReceivingQuantityAllocationUI:
             for version_id, count in quantities.items():
                 used = sum(value == version_id for value in assigned.values())
                 ttk.Radiobutton(
-                    host, text=f"{version_label(version_id)}　{used} / {count} 連",
+                    host, text=f"{manufacturing_api.receiving_candidate_version_label(version_id)}　{used} / {count} 連",
                     variable=selected, value=version_id,
                     command=lambda key=version_id: self._select_version(key),
                 ).pack(anchor="w", pady=2)
@@ -172,7 +159,7 @@ class ReceivingQuantityAllocationUI:
             row.pack(anchor="e", pady=(4, 0))
             ttk.Button(
                 row, text="返回數量",
-                command=lambda: self._operation(lambda: self.draft.step.__setitem__(role, 1)),
+                command=lambda: self._operation(lambda: self.draft.set_step(role, 1)),
             ).pack(side="left", padx=(0, 5))
             can_apply = self._ready_to_apply()
             ttk.Button(
@@ -184,13 +171,13 @@ class ReceivingQuantityAllocationUI:
                 ttk.Label(host, text="配置已套用").pack(anchor="w")
 
     def _select_version(self, key):
-        self.draft.active_version[self.role] = key
+        self.draft.select_version(self.role, key)
         self.on_render()
 
     def _ready_to_apply(self):
         try:
-            # Pure validation only: this never writes selected Bay features.
-            from ae_engine.receiving_hole_candidates import normalize_candidates
+            # Validate the operator draft via the public Engine. Never infer
+            # physical Bay topology, candidate IDs, or source Features in GUI.
             ports = self.get_ports()
             custom_validator = ports.get("validate_quantity")
             if custom_validator is not None:
@@ -200,19 +187,11 @@ class ReceivingQuantityAllocationUI:
                     self.draft.counts,
                 )
                 return True
-            library = normalize_candidates()
-            # Validator needs the available IDs and their feature values.
-            for role in ("head", "tail"):
-                entries = ports["versions"](role)
-                highest = max((int(item["id"].split("-v")[1]) for item in entries), default=0)
-                library[role] = {
-                    "versions": entries,
-                    "next_number": highest + 1,
-                }
-            layout = {"sets": [{"bays": [None] * n} for n in self.draft.counts]}
-            validate_quantity_allocation(
-                layout, library, self.role,
-                self.draft.quantities[self.role], self.draft.assigned[self.role],
+            manufacturing_api.validate_receiving_candidate_quantity_preview(
+                {role: ports["versions"](role) for role in ("head", "tail")},
+                self.draft.counts, self.role,
+                dict(self.draft.quantities[self.role]),
+                dict(self.draft.assigned[self.role]),
                 expected_counts=self.get_counts(),
             )
         except (ValueError, IndexError, TypeError):
@@ -255,6 +234,9 @@ class ReceivingQuantityAllocationUI:
         width = max(int(canvas.winfo_width()), int(canvas.cget("width")))
         height = max(int(canvas.winfo_height()), int(canvas.cget("height")))
         row_h = 148
+        # A Quantity draft has no saved physical Bay. Draw the Engine Family
+        # default schematic, never a GUI-authored fabrication seam.
+        seam_ratio = manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)
         canvas.configure(scrollregion=(0, 0, width, max(height, len(counts) * row_h + 10)))
         hitboxes = []
         assigned = self.draft.assigned[role]
@@ -280,7 +262,7 @@ class ReceivingQuantityAllocationUI:
                     width=3 if highlight else 1,
                 )
                 inset = min(6.0, max(2.0, bay_w * .08))
-                split = top + bay_h * 1100.0 / 1600.0
+                split = top + bay_h * seam_ratio
                 faces = (
                     (x0 + inset, top + inset, x1 - inset, split - 2),
                     (x0 + inset, split + 2, x1 - inset, top + bay_h - inset),
@@ -292,7 +274,7 @@ class ReceivingQuantityAllocationUI:
                 self._draw_original_door_marks(si, bi, faces)
                 canvas.create_text(
                     (x0 + x1) / 2, top + bay_h + 11,
-                    text=f"{bi + 1}：{version_label(choice) if choice else '未配置'}",
+                    text=f"{bi + 1}：{manufacturing_api.receiving_candidate_version_label(choice) if choice else '未配置'}",
                     fill="#e4edf6" if choice else "#a8b8c6",
                 )
                 hitboxes.append((si, bi, x0, top, x1, top + bay_h))

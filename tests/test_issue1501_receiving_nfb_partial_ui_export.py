@@ -9,6 +9,7 @@ from ae_engine.receiving_nfb_cutting_manufacturing import NfbUpperSourceProfile
 from ae_engine.receiving_nfb_part_readiness import NfbPhysicalScope
 from ae_engine.receiving_nfb_ui1b_bridge import NfbVerifiedDraftSubmission
 from gui_modules.application import receiving_nfb_partial_export_action as action
+from ae_engine import receiving_nfb_inner_door_partial_export as engine
 
 
 def _case(monkeypatch, *, changed_source=False):
@@ -51,23 +52,23 @@ def _case(monkeypatch, *, changed_source=False):
         stable_id="inner-part",cell_key="0:0",inner_door_id="upper",
     )
     monkeypatch.setattr(
-        action.cabinet_family_policy,"derive_inner_door_panels",
+        engine.cabinet_family_policy,"derive_inner_door_panels",
         lambda snapshot: (physical,),
     )
     monkeypatch.setattr(
-        action,"read_nfb_runtime_source_profiles_csv",
+        engine,"read_nfb_runtime_source_profiles_csv",
         lambda path: (profile,),
     )
     # This action contract mocks DXF I/O; actual format rebinding is tested
     # separately against real saved ezdxf bytes in #1502.
-    monkeypatch.setattr(action,"resolve_editable_nfb_source_profile",
+    monkeypatch.setattr(engine,"resolve_editable_nfb_source_profile",
                         lambda path, *, profile: profile)
     hits=[]
     def exporter(snapshot, inner_id, output_path, **kwargs):
         hits.append((snapshot,inner_id,output_path,kwargs))
         return str(output_path),SimpleNamespace(actual_export_count=1)
     monkeypatch.setattr(
-        action,"export_current_nfb_inner_door_partial_dxf",exporter,
+        engine,"export_current_nfb_inner_door_partial_dxf",exporter,
     )
     arguments={
         "layout":layout,
@@ -141,7 +142,7 @@ def test_profile_handle_changed_on_same_dxf_bytes_requires_reverification(monkey
         "587",(57.,96.),"SOURCE_ALIAS_SHA256_IDENTICAL","v2",
     )
     monkeypatch.setattr(
-        action,"read_nfb_runtime_source_profiles_csv",
+        engine,"read_nfb_runtime_source_profiles_csv",
         lambda path:(changed,),
     )
     with pytest.raises(ValueError,match="handle"):

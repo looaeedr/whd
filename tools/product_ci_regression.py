@@ -525,6 +525,24 @@ PYTEST_PATHS = (
 )
 
 
+# #2517 total acceptance: automatically collect every existing issue2517 real
+# product test alongside native Hole Editor routing. All 297 current issue
+# files were outside the 2026-10-29 measured 304-file baseline.
+# The original duration manifest remains historical evidence and is not faked.
+_ISSUE2517_ACCEPTANCE_PATHS = (
+    tuple("tests/" + path.name
+          for path in sorted((ROOT / "tests").glob("test_issue2517_*.py")))
+    + ("tests/test_issue293_t5_hole_editor_routing.py",)
+)
+# Fixed, measured-manifest-independent acceptance lanes; no fabricated times.
+# Keep original 304 historical files in their existing measured 18 lanes.
+_ISSUE2517_ACCEPTANCE_OWNERS = {
+    path: 2 + (index % 16)
+    for index, path in enumerate(_ISSUE2517_ACCEPTANCE_PATHS)
+}
+PYTEST_PATHS += _ISSUE2517_ACCEPTANCE_PATHS
+
+
 def _sha256(path: Path) -> str:
     h = hashlib.sha256()
     with path.open("rb") as fh:
@@ -673,6 +691,11 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
     for selector in PYTEST_PATHS:
         selectors_by_file.setdefault(selector.split("::", 1)[0], []).append(selector)
     canonical_files = set(selectors_by_file)
+    measured_files = canonical_files - set(_ISSUE2517_ACCEPTANCE_PATHS)
+    if (len(_ISSUE2517_ACCEPTANCE_PATHS) != len(set(_ISSUE2517_ACCEPTANCE_PATHS))
+            or len(_ISSUE2517_ACCEPTANCE_OWNERS) != len(_ISSUE2517_ACCEPTANCE_PATHS)
+            or any(not (ROOT / path).is_file() for path in _ISSUE2517_ACCEPTANCE_PATHS)):
+        raise ValueError("issue2517 acceptance selectors missing or duplicated")
     owners = manifest.get("file_owners", {})
     durations = manifest.get("file_seconds", {})
     split_file = manifest.get("split_file")
@@ -686,11 +709,12 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
     t15_critical = manifest.get("t15_critical_function")
     t15_functions = manifest.get("t15_source_functions")
     if (manifest.get("schema") != "WHD_PRODUCT_CI_FILE_DURATION_ASSIGNMENT_V2"
-            or manifest.get("canonical_selector_count") != len(PYTEST_PATHS)
-            or manifest.get("canonical_file_count") != len(canonical_files)
+            or manifest.get("canonical_selector_count") != (
+                len(PYTEST_PATHS) - len(_ISSUE2517_ACCEPTANCE_PATHS))
+            or manifest.get("canonical_file_count") != len(measured_files)
             or len(PYTEST_PATHS) != len(set(PYTEST_PATHS))
-            or set(owners) != canonical_files
-            or set(durations) != canonical_files
+            or set(owners) != measured_files
+            or set(durations) != measured_files
             or manifest.get("slow_shard_indices") != list(range(14))
             or manifest.get("short_shard_indices") != list(range(14, 18))
             or manifest.get("threshold_short_seconds") != 4
@@ -711,7 +735,7 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
             or manifest.get("t15_critical_owner") != 1
             or manifest.get("t15_remainder_owner") != 6):
         raise ValueError("18-shard duration manifest incomplete or stale")
-    for filename in canonical_files:
+    for filename in measured_files:
         seconds, owner = durations[filename], owners[filename]
         if (isinstance(seconds, bool) or not isinstance(seconds, (int, float))
                 or seconds <= 0 or isinstance(owner, bool)
@@ -839,6 +863,9 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
             if index in (1, 6):
                 assigned.extend(f"{t15_file}::{name}" for name in t15_functions
                                 if (name == t15_critical) == (index == 1))
+        elif selector in _ISSUE2517_ACCEPTANCE_OWNERS:
+            if _ISSUE2517_ACCEPTANCE_OWNERS[selector] == index:
+                assigned.append(selector)
         elif owners[selector.split("::", 1)[0]] == index:
             assigned.append(selector)
     if not assigned:

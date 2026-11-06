@@ -817,7 +817,10 @@ def test_audit116_bug59_receiving_live_door_source_rejects_boolean_dimensions(ba
             _phase6_box_whd=whd,
         )
     )
-    with pytest.raises(ValueError, match="bool"):
+    # Both canonical validators reject bool; selected-cell layout reports
+    # "bool", while the shared physical W/H/D source owner reports its
+    # positive/finite-dimension diagnostic.
+    with pytest.raises(ValueError, match="bool|有限數值"):
         get_door_layout_cells(host)
 
 

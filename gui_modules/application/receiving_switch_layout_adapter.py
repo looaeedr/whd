@@ -5,12 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Mapping
 
-from ae_engine.receiving_switch_layout import (
-    normalize_receiving_switch_layout,
-    resize_switch_layers,
-    set_layer_connection_count,
-    set_switch_brand,
-)
+from ae_engine import manufacturing_api
 
 
 def _ui_exact_integer(value: object, *, label: str) -> int:
@@ -37,7 +32,7 @@ class ReceivingSwitchLayoutAdapter:
     """
 
     def __init__(self, layout: Mapping[str, object] | None) -> None:
-        self._layout = normalize_receiving_switch_layout(layout)
+        self._layout = manufacturing_api.normalize_receiving_switch_operator_layout(layout)
 
     @property
     def layout(self) -> dict[str, object]:
@@ -58,31 +53,27 @@ class ReceivingSwitchLayoutAdapter:
         return int(rows[index]["connection_count"])
 
     def set_brand(self, brand: object) -> bool:
-        updated = set_switch_brand(self._layout, brand)
-        changed = updated != self._layout
-        self._layout = updated
+        self._layout, changed = manufacturing_api.apply_receiving_switch_operator_action(
+            self._layout, operation="set_brand", brand=brand,
+        )
         return changed
 
     def add_layer(self) -> None:
-        self._layout = resize_switch_layers(self._layout, len(self._layout["layers"]) + 1)
+        self._layout, _ = manufacturing_api.apply_receiving_switch_operator_action(
+            self._layout, operation="add_layer",
+        )
 
     def remove_layer(self) -> bool:
-        current = len(self._layout["layers"])
-        if current <= 1:
-            return False
-        self._layout = resize_switch_layers(self._layout, current - 1)
-        return True
+        self._layout, changed = manufacturing_api.apply_receiving_switch_operator_action(
+            self._layout, operation="remove_layer",
+        )
+        return changed
 
     def resize_connections(self, layer_index: int, delta: int) -> bool:
         index = _ui_exact_integer(layer_index, label="layer_index")
         adjustment = _ui_exact_integer(delta, label="delta")
-        current = self.connection_count(index)
-        wanted = max(1, current + adjustment)
-        if wanted == current:
-            return False
-        self._layout = set_layer_connection_count(
-            self._layout,
-            layer_index=index,
-            connection_count=wanted,
+        self._layout, changed = manufacturing_api.apply_receiving_switch_operator_action(
+            self._layout, operation="resize_connections",
+            layer_index=index, delta=adjustment,
         )
-        return True
+        return changed

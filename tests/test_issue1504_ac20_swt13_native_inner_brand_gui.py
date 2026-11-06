@@ -218,3 +218,32 @@ def test_swt13_original_inner_tk_unit_cancel_and_same_brand_override(monkeypatch
         if modal.winfo_exists():
             modal.destroy()
         root.destroy()
+
+
+def test_native_nfb_direct_modal_destroy_cancels_pending_csv_poll(monkeypatch):
+    """Actual Tk teardown must not leave an orphan `after` Tcl command.
+
+    The parent Hole Editor may destroy an embedded NFB settings widget
+    directly, without using the tab's Cancel/Confirm close_editor() path.
+    This reproduced a real R5-2600 "invalid command name ...poll_source".
+    """
+    root, _app, modal = _open_original_editor(monkeypatch)
+    try:
+        def pending_poll_ids():
+            tcl = root.tk
+            return {
+                job for job in tcl.call("after", "info")
+                if "poll_source" in str(tcl.call("after", "info", job))
+            }
+
+        before = pending_poll_ids()
+        assert before, "real NFB editor did not start its CSV source poll"
+        modal.destroy()  # External owner teardown: bypasses close_editor().
+        root.update()
+        assert not (before & pending_poll_ids()), (
+            "destroyed NFB tab left a Tcl timer targeting a deleted callback"
+        )
+    finally:
+        if modal.winfo_exists():
+            modal.destroy()
+        root.destroy()

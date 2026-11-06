@@ -9,7 +9,6 @@ from pathlib import Path
 import tkinter as tk
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.receiving_layout import (
     ensure_receiving_layout as ensure_receiving_preview_layout,
     resize_receiving_bays as resize_receiving_preview_bays,
@@ -150,80 +149,16 @@ def settings_context_extension_projection(self, namespace, context):
         }
 
     def box_structure_projection():
-        state = required("_phase6_box_structure_state")(app)
-        active = BoxBodyStructureType(state["active_type"])
-        cfg = state["configs"][active.value]
-        total_w = required("_phase6_box_structure_w")(app)
-        piece_values = {}
-        mode = "integral"
-        if active is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
-            mode = "two_w"
-            left, right = required("resolve_two_piece_widths")(
-                state, total_w
-            )
-            piece_values = {
-                "box_body:left": (
-                    "width", "W 包外", left, "mm", "left"
-                ),
-                "box_body:right": (
-                    "width", "W 包外", right, "mm", "right"
-                ),
-            }
-        elif active is BoxBodyStructureType.THREE_PIECE_W_SPLIT:
-            mode = "three_w"
-            left, middle, right = required("resolve_three_piece_widths")(
-                state, total_w
-            )
-            piece_values = {
-                "box_body:left": (
-                    "width", "W 包外", left, "mm", "left"
-                ),
-                "box_body:middle": (
-                    "width", "W 包外", middle, "mm", "middle"
-                ),
-                "box_body:right": (
-                    "width", "W 包外", right, "mm", "right"
-                ),
-            }
-        elif active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
-            mode = "side_back"
-            snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
-            outside_family = (
-                cabinet_family_policy.box_body_profile_uses_outside_dimensions(
-                    snapshot
-                )
-            )
-            rear_bend = (
-                required("side_rear_bend_outside_length")(
-                    state, float(snapshot.get("t", 2.0))
-                )
-                if outside_family
-                else float(cfg.get("side_rear_bend", 15))
-            )
-            width_comp_t = float(cfg.get("back_width_comp_t", 0.5))
-            piece_values = {
-                "box_body:left_side": (
-                    "rear_bend",
-                    "後折",
-                    rear_bend,
-                    "mm",
-                    "side_rear_bend",
-                ),
-                "box_body:back": (
-                    "width_comp_t",
-                    "寬補償",
-                    width_comp_t,
-                    "T",
-                    "back_width_comp_t",
-                ),
-                "box_body:right_side": (
-                    "rear_bend",
-                    "後折",
-                    rear_bend,
-                    "mm",
-                    "side_rear_bend",
-                ),
-            }
+        # Engine owns real split dimensions and Family physical datums;
+        # GUI only paints the Settings readback supplied by the API.
+        structural = manufacturing_api.project_operator_box_body_structure_settings(
+            required("_phase6_box_structure_state")(app),
+            required("_phase6_box_structure_w")(app),
+            snapshot=getattr(app, "_phase6_input_snapshot", {}) or {},
+        )
+        active = structural["active_type"]
+        mode = structural["mode"]
+        piece_values = structural["piece_values"]
 
         projections = ()
         projection_error = None
@@ -293,34 +228,6 @@ def settings_context_extension_projection(self, namespace, context):
                 }
             )
 
-        advanced_fields = ()
-        if mode in {"two_w", "three_w"}:
-            advanced_fields = (
-                {
-                    "label": "封頭尾額外避讓",
-                    "field": "endcap_extra_relief",
-                    "value": cfg.get("endcap_extra_relief", 5),
-                    "suffix": "mm",
-                },
-                {
-                    "label": "封頭尾單邊留肉",
-                    "field": "endcap_single_side_meat_t",
-                    "value": cfg.get("endcap_single_side_meat_t", 0.5),
-                    "suffix": "T",
-                },
-                {
-                    "label": "底板避讓總長",
-                    "field": "baseplate_relief_length",
-                    "value": cfg.get("baseplate_relief_length", 20),
-                    "suffix": "mm",
-                },
-                {
-                    "label": "底板單邊留肉",
-                    "field": "baseplate_single_side_meat_t",
-                    "value": cfg.get("baseplate_single_side_meat_t", 0.5),
-                    "suffix": "T",
-                },
-            )
         advanced_flags = dict(
             getattr(app, "_phase6_box_structure_advanced_open", {}) or {}
         )
@@ -329,11 +236,11 @@ def settings_context_extension_projection(self, namespace, context):
             "mode": mode,
             "pieces": tuple(pieces),
             "projection_error": projection_error,
-            "seam_bend": cfg.get("seam_bend", 12),
+            "seam_bend": structural["seam_bend"],
             "advanced_open": bool(
                 advanced_flags.get(active.value, False)
             ),
-            "advanced_fields": advanced_fields,
+            "advanced_fields": structural["advanced_fields"],
         }
 
     def bottom_wrap_projection(part_key):
@@ -342,7 +249,7 @@ def settings_context_extension_projection(self, namespace, context):
         )
         if (
             str(part_key) not in endcap_fw_parts
-            or not cabinet_family_policy.supports_bottom_wrap_controls(
+            or not manufacturing_api.operator_supports_bottom_wrap_controls(
                 snapshot
             )
         ):
@@ -499,46 +406,12 @@ def settings_context_extension_projection(self, namespace, context):
             "pairs": tuple(pair_rows),
         }
 
-    context = str(context)
     base_snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    is_receiving_base = (
-        context == "base_plate"
-        and str(base_snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}
+    receiving_base = manufacturing_api.project_operator_receiving_base_plate_settings(
+        base_snapshot, context=context,
     )
-    derived_base = None
-    derived_base_error = ""
-    if is_receiving_base and base_snapshot.get("receiving_base_plate") is None:
-        # Use the same source resolution as FinalScene/DXF, not a GUI-local
-        # default that could disagree with manufacturing.
-        from ae_engine.receiving_base_plate_config import receiving_base_plate_values
-        try:
-            resolved = receiving_base_plate_values(base_snapshot)
-        except (ValueError, TypeError, KeyError) as exc:
-            derived_base_error = str(exc)
-        else:
-            if resolved is not None:
-                derived_base = {
-                    "pattern": resolved["receiving_bend_pattern"],
-                    "height": resolved["h"],
-                    "shrink_top": resolved["base_plate_shrink_top"],
-                    "shrink_bottom": resolved["base_plate_shrink_bottom"],
-                    "shrink_left": resolved["base_plate_shrink_left"],
-                    "shrink_right": resolved["base_plate_shrink_right"],
-                    "bend": resolved["base_plate_bend"],
-                }
     return {
-        "receiving_base_plate": (
-            {
-                "configured": (base_snapshot.get("receiving_base_plate") is not None
-                               or derived_base is not None),
-                "values": deepcopy(
-                    base_snapshot.get("receiving_base_plate") or derived_base or {}
-                ),
-                "source_derived": derived_base is not None,
-                "source_error": derived_base_error,
-            }
-            if is_receiving_base else None
-        ),
+        "receiving_base_plate": receiving_base,
         "box_structure": (
             box_structure_projection()
             if context == "box_body"

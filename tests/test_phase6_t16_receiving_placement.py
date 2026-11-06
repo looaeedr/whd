@@ -303,13 +303,17 @@ def test_2d_receiving_overlay_consumes_authoritative_placement_not_local_50px_of
     from gui_modules.application import render_snapshots
     from gui_modules.rendering import door_view
 
+    from ae_engine import manufacturing_api
     snapshot_source = inspect.getsource(render_snapshots.door_layout_divider_frame_snapshot)
+    engine_source = inspect.getsource(manufacturing_api.project_operator_door_divider_frame_preview)
     divider_view = inspect.getsource(door_view._draw_door_layout_divider_payload)
     frame_view = inspect.getsource(door_view._draw_door_layout_frame_payload)
     render_source = divider_view + frame_view
-    assert "resolve_assembly_placement" in snapshot_source
-    assert "world_offset" in snapshot_source
-    assert "inset_px = 50.0 * scale" not in snapshot_source + render_source
+    # GUI delegates; the Engine must still use actual physical assembly placement.
+    assert "manufacturing_api.project_operator_door_divider_frame_preview(" in snapshot_source
+    assert "resolve_assembly_placement" in engine_source
+    assert "world_offset" in engine_source
+    assert "inset_px = 50.0 * scale" not in snapshot_source + engine_source + render_source
     assert "_door_layout_world_to_canvas" in render_source
 
 

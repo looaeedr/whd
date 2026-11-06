@@ -16,6 +16,7 @@ from __future__ import annotations
 # Importing mpl_toolkits.mplot3d.art3d first can circularly import
 # matplotlib.projections and leave the global registry without Axes3D.
 from phase6_fold_profiles import _num
+from ae_engine import manufacturing_api
 
 from phase6_final_scene_contracts import (
     AssemblyScenePart,
@@ -66,24 +67,16 @@ from phase6_final_scene_renderer import (
 
 
 def receiving_base_source_display_warnings(snapshot, cabinet_family):
-    """Explain unresolved physical sources, never demand obsolete manual fields.
-
-    Current #1502 may uniquely derive a CENTER/LEFT physical base from
-    committed NFB CSV and source geometry without receiving_base_plate.
-    The same canonical resolver used by production must decide; do not
-    mistake an absent legacy manual mapping for absent material.
-    """
-    if cabinet_family != "受電箱":
-        return ()
-    from ae_engine.receiving_base_plate_config import receiving_base_plate_values
-    try:
-        resolved = receiving_base_plate_values(snapshot)
-    except (ValueError, TypeError, KeyError) as exc:
+    """UI text only; Engine decides true physical Base Plate source status."""
+    evidence = manufacturing_api.inspect_receiving_base_plate_display_source(
+        snapshot, cabinet_family,
+    )
+    if evidence.status == "INVALID":
         return (
-            "受電箱實體底板來源驗證失敗：" + str(exc)
+            "受電箱實體底板來源驗證失敗：" + evidence.reason
             + "；不可冒用通用底板或假畫固定片打標線",
         )
-    if resolved is None:
+    if evidence.status == "UNAVAILABLE":
         return (
             "受電箱實體底板尚未配置或來源不足：請核對目前 NFB "
             "CSV／已提交層別及原實體板件來源；"
@@ -117,43 +110,35 @@ class Phase6FinalSceneViewAdapter:
         self.last_formed_pad_display_blocker = None
 
     def _formed_pad_assembly_preview(self, snapshot, visible_set, assembly_parts):
-        """Cached, source-matched PAD physical skins; DISPLAY ONLY, no MFG."""
-        if snapshot.get("model") not in ("受電箱","RECEIVING") or (
-                snapshot.get("nfb_config_submitted") is not True):
+        """GUI caches and filters only; Engine validates actual PAD sources."""
+        if not manufacturing_api.receiving_pad_assembly_display_active(snapshot):
             self.last_formed_pad_display_blocker = None
             return ()
         try:
-            from ae_engine.receiving_nfb_pad_preview_cache import (
-                pad_preview_source_fingerprint,
+            # The Engine fingerprint tracks CSV, tooling, real Base material
+            # and CUTTING squares. Do not reuse stale formed 3D skins.
+            source_key = manufacturing_api.receiving_pad_assembly_display_source_key(
+                snapshot, assembly_parts,
             )
-            # Source CSV, editable shared tooling, and actual Base Plate
-            # CUTTING material all invalidate a formerly valid cached mesh.
-            source_key = pad_preview_source_fingerprint(snapshot,assembly_parts)
         except (ValueError, TypeError, OSError, KeyError) as exc:
             self.last_formed_pad_display_blocker = str(exc)
             self._formed_pad_display_cache = None
             return ()
-        cached=self._formed_pad_display_cache
-        if cached is None or cached[0]!=source_key:
+        cached = self._formed_pad_display_cache
+        if cached is None or cached[0] != source_key:
             try:
-                from ae_engine.receiving_nfb_pad_assembly_preview import (
-                    build_committed_pad_assembly_display,
+                all_skins = manufacturing_api.resolve_receiving_pad_assembly_display_skins(
+                    snapshot, assembly_parts,
                 )
-                all_skins=build_committed_pad_assembly_display(snapshot,assembly_parts)
-                if any(skin.manufacturing_ready or skin.assembly_contact_certified
-                       for skin in all_skins):
-                    raise ValueError("PAD_DISPLAY_MFG_OR_CONTACT_GATE_INVALID")
-                blocker=None
+                blocker = None
             except (ValueError, TypeError, OSError, KeyError, AttributeError) as exc:
-                all_skins=()
-                blocker=str(exc)
-            self._formed_pad_display_cache=(source_key,all_skins,blocker)
+                all_skins = ()
+                blocker = str(exc)
+            self._formed_pad_display_cache = (source_key, all_skins, blocker)
         else:
-            all_skins,blocker=cached[1:]
-        self.last_formed_pad_display_blocker=blocker
-        return tuple(
-            skin for skin in all_skins if skin.parent_base_id in visible_set
-        )
+            all_skins, blocker = cached[1:]
+        self.last_formed_pad_display_blocker = blocker
+        return tuple(skin for skin in all_skins if skin.parent_base_id in visible_set)
 
     def _pad_display_warnings(self):
         """Surface a PAD failure; a blank 3D must not masquerade as complete."""
@@ -174,40 +159,25 @@ class Phase6FinalSceneViewAdapter:
         )
 
     def _formed_ear_assembly_preview(self, snapshot, visible_set):
-        """Source-backed world skins, NEVER extra manufacturing assembly parts.
-
-        Failure leaves the cabinet 3D usable without painting an uncertified
-        EAR. No padding, DXF intermediates, new PartSpec, or production gate.
-        """
-        if snapshot.get("model") not in ("受電箱", "RECEIVING") or snapshot.get("nfb_config_submitted") is not True:
+        """Display/caching only; Engine verifies physical EAR source and safety."""
+        if (snapshot.get("model") not in ("受電箱", "RECEIVING")
+                or snapshot.get("nfb_config_submitted") is not True):
             self.last_formed_ear_display_blocker = None
             return ()
-        import hashlib
-        from ae_engine.receiving_base_fixing_plate_geometry import SOURCE_DXF_SHA256
-        source_key = hashlib.sha256(
-            (SOURCE_DXF_SHA256 + repr(snapshot)).encode("utf-8")
-        ).hexdigest()
+        try:
+            source_key = manufacturing_api.receiving_ear_assembly_display_source_key(
+                snapshot
+            )
+        except (ValueError, TypeError) as exc:
+            self.last_formed_ear_display_blocker = str(exc)
+            self._formed_ear_display_cache = None
+            return ()
         cached = self._formed_ear_display_cache
         if cached is None or cached[0] != source_key:
             try:
-                from ae_engine.receiving_tier_ear_assembly_xy import (
-                    resolve_receiving_tier_ear_mating_xy,
+                formed = manufacturing_api.resolve_receiving_ear_assembly_display_skins(
+                    snapshot
                 )
-                from ae_engine.receiving_fixed_plate_formed_skins import (
-                    build_receiving_formed_fixing_plate_skins,
-                )
-                owners = resolve_receiving_tier_ear_mating_xy(snapshot)
-                if len(owners) not in (2, 4):
-                    raise ValueError("EAR_ASSEMBLY_DISPLAY_OWNER_COUNT_INVALID")
-                formed = tuple(build_receiving_formed_fixing_plate_skins(
-                    snapshot, entry.ear_id,
-                ) for entry in owners)
-                if (len({row.part_id for row in formed}) != len(formed)
-                        or {row.base_part_id for row in formed}
-                           != {entry.parent_base_id for entry in owners}
-                        or any(row.manufacturing_ready or row.weld_contact_verified
-                               or not row.source_bend_verified for row in formed)):
-                    raise ValueError("EAR_ASSEMBLY_DISPLAY_SOURCE_INCONSISTENT")
                 blocker = None
             except (ValueError, TypeError) as exc:
                 formed = ()
@@ -216,10 +186,7 @@ class Phase6FinalSceneViewAdapter:
         else:
             formed, blocker = cached[1:]
         self.last_formed_ear_display_blocker = blocker
-        # Display-only EAR visibility is independent of Base Plate visibility.
-        # Its own show_fixing_plate_mesh switch is applied by the 3D renderer.
-        # Never suppress the EAR when a parent plate is hidden: this is also
-        # needed to inspect weld contact surfaces with the plate out of view.
+        # Display-only EAR has its own visibility switch in the renderer.
         return tuple(formed)
 
     def _require_renderer(self) -> Phase6FinalSceneRenderer:

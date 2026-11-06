@@ -8,6 +8,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 
 # 程式碼庫設計
+## WHD API／製造施工前必讀
+
+- 當本 Skill 涉及 **WHD API、Engine、Family（金庫型／受電箱）、CADSplit Bridge、製造／DXF 出圖或跨版本相容**時，先讀 GitHub `localX` exact HEAD 的 [AI 庫 04 CURRENT](../../../../個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md)，再讀 [WHD × CADSplit API 架構與權威整合 v5.1（REFERENCE）](../../../../docs/integrations/WHD_CADSplit_API_架構與權威整合_REFERENCE_v5.1.md) **全文**；不能只讀本 Skill 就跳過整合規範。這是 `AGENTS.md::CADSPLIT_WHD_API_REFERENCE_READ_GATE_V1` 的導覽，不是第二份製造權威。
+- 設計 Family/Topology、公開 API/Adapter seam 時須區分現行實作與已核准產品決策； 施工前沿用 `SOURCE_READ_EVIDENCE` 簡述 **repo/ref、完整 Git SHA、文件路徑與相關章節、權威判斷**；沒真正讀取就不得宣稱規範核對完成。**使用者已確認產品規則優先**，不得以 CADSplit 現有程式缺陷、現有測試或此 REFERENCE 推翻正式製造權威。
+
 
 設計 **deep modules**：以小 interface 隱藏大量 implementation，放在乾淨 seam 上，並能透過同一 interface 測試。目標是 caller 的 **leverage**、maintainer 的 **locality** 與穩定的 test surface。
 

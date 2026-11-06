@@ -344,8 +344,11 @@ def indicator_small_door_operator_spec(
         ),
     )
     context = ManufacturingContext(policy=policy, draw_stock=False)
+    # The same physical group source gate serves GUI and headless callers.
+    from .fold_designer_snapshot_dimensions import normalize_fold_designer_indicator_groups
+
     base = indicator_small_door_spec(
-        tuple(int(value) for value in groups),
+        normalize_fold_designer_indicator_groups(groups),
         thickness=float(thickness), context=context,
     )
     return replace(

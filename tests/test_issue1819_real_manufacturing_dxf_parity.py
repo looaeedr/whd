@@ -19,6 +19,7 @@ def test_issue1819_real_manufacturing_cached_uncached_dxf_parity(
     import tkinter as tk
     import gui
     import phase6_manufacturing_service as manufacturing_service
+    from ae_engine.manufacturing_resolver import resolve as canonical_resolve
     from ae_engine import manufacturing_api as api
     from ae_engine.sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
     from phase6_manufacturing_cache import ManufacturingCacheKey, ManufacturingCacheService
@@ -73,7 +74,7 @@ def test_issue1819_real_manufacturing_cached_uncached_dxf_parity(
         request = captured[-1]
 
         started = time.perf_counter_ns()
-        without_cache = original_resolve.__wrapped__(request)
+        without_cache = canonical_resolve.__wrapped__(request)
         uncached_ms = (time.perf_counter_ns() - started) / 1e6
         started = time.perf_counter_ns()
         freshly_resolved = original_resolve(request)

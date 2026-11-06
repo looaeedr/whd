@@ -28,6 +28,19 @@ def is_numeric_model_ref(value: object) -> bool:
     return parse_numeric_model_ref(value) is not None
 
 
+def can_stage_receiving_nfb_csv_preview_refs(values) -> bool:
+    """Source-identity-only gate for the transient native Hole Editor preview.
+
+    Legacy DXF or invalid model refs must not trigger CSV feature replacement.
+    Empty drafts preserve legacy refresh behavior; the subsequent canonical
+    editor_nfb_features_from_csv remains the only physical-hole validator.
+    This is not a manufacturing/CUTTING approval.
+    """
+    if not isinstance(values, (tuple, list)):
+        raise ValueError("NFB_CSV_PREVIEW_REFS_SEQUENCE_REQUIRED")
+    return all(is_numeric_model_ref(item) for item in values)
+
+
 def validate_stored_model_ref(value: object) -> str:
     """Permit a stored V5 identity without depending on today's CSV contents.
 

@@ -4,22 +4,92 @@ No GUI imports or UI state. The caller supplies authoritative resolved source
 geometry and operator part-selection intent; WHD Engine owns actual sheets,
 manufacturing eligibility, atomic export, and physical DXF re-open checks.
 """
+from collections.abc import Mapping
+from dataclasses import dataclass
+
 from .manufacturing_export_selection import select_resolved_export_geometry
+from .cabinet_types.policy import canonical_family_name
 
 
 def selected_export_manufacturing_policy(receiving_snapshot, flags):
     """Engine-owned classification of Receiving NFB and side manufacturing."""
-    auto_side = (
-        bool(flags.get("box_body"))
-        and receiving_snapshot.get("model") == "受電箱"
-        and receiving_snapshot.get("nfb_config_submitted") is True
-    )
+    # The existing Family Registry decides the physical export route; aliases
+    # must never suppress current committed NFB/EAR verification.
+    receiving = canonical_family_name(receiving_snapshot) == "受電箱"
+    committed = receiving_snapshot.get("nfb_config_submitted") is True
+    auto_side = bool(flags.get("box_body")) and receiving and committed
     committed_csv = ()
-    if (receiving_snapshot.get("model") == "受電箱"
-            and receiving_snapshot.get("nfb_config_submitted") is True):
+    if receiving and committed:
         from .receiving_nfb_committed_final_scene import _submitted_csv_holes
         committed_csv = _submitted_csv_holes(receiving_snapshot)
     return auto_side, committed_csv
+
+
+@dataclass(frozen=True)
+class SelectedResolvedExportRoute:
+    """Read-only Engine route; never manufacturing eligibility or DXF approval."""
+
+    vault_composed: bool
+    legacy_guard_flags: tuple[tuple[str, bool], ...] | None
+
+
+def plan_selected_resolved_export_route(
+    snapshot: Mapping, flags: Mapping, group_mode: str | None = None,
+) -> SelectedResolvedExportRoute:
+    """Re-use existing Vault/Receiving exporters without GUI-owned NFB policy.
+
+    The actual export paths still verify the canonical FinalScene, current
+    NFB CSV, side EAR contacts, PAD source and staged output independently.
+    """
+    if not isinstance(snapshot, Mapping) or not isinstance(flags, Mapping):
+        raise TypeError("SELECTED_EXPORT_ROUTE_SNAPSHOT_REQUIRED")
+    guard_flags = tuple((str(key), bool(value)) for key, value in flags.items())
+    if canonical_family_name(snapshot) == "金庫型" and group_mode is not None:
+        return SelectedResolvedExportRoute(True, guard_flags)
+
+    auto_side, committed_csv = selected_export_manufacturing_policy(snapshot, flags)
+    if auto_side:
+        if snapshot.get("active_mode") == "quantity":
+            raise ValueError("EAR_SIDE_NORMAL_EXPORT_QUANTITY_NOT_VERIFIED")
+        if committed_csv:
+            return SelectedResolvedExportRoute(False, None)
+        # Without current CSV, HEAD/TAIL-independent legacy source check
+        # can proceed, but cannot claim an old full BoxBody as certified.
+        legacy = tuple(
+            (key, False if key == "box_body" else selected)
+            for key, selected in guard_flags
+        )
+        return SelectedResolvedExportRoute(False, legacy)
+    if committed_csv and (bool(flags.get("door")) or bool(flags.get("base_plate"))):
+        return SelectedResolvedExportRoute(False, None)
+    return SelectedResolvedExportRoute(False, guard_flags)
+
+
+_UNCONFIGURED_RECEIVING_BASE_ERROR = (
+    "canonical resolved export: "
+    "RECEIVING_BASE_PLATE_PATTERN_REQUIRED_FOR_MANUFACTURING: base_plate"
+)
+
+
+def plan_unconfigured_receiving_base_export_retry(
+    errors, flags: Mapping,
+) -> tuple[tuple[str, bool], ...] | None:
+    """Allow operator-confirmed retry only for the precise unconfigured Base.
+
+    Returning a filtered operator intention does *not* authorize manufacture.
+    A caller MUST obtain explicit operator consent and rerun the original
+    Engine exporter for every remaining selected physical sheet.
+    """
+    if not isinstance(flags, Mapping):
+        raise TypeError("RECEIVING_BASE_EXPORT_RETRY_FLAGS_REQUIRED")
+    if not bool(flags.get("base_plate")):
+        return None
+    if tuple(str(error) for error in errors) != (_UNCONFIGURED_RECEIVING_BASE_ERROR,):
+        return None
+    return tuple(
+        (str(key), False if key == "base_plate" else bool(value))
+        for key, value in flags.items()
+    )
 
 
 def save_selected_resolved_manufacturing_dxf(

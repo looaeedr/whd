@@ -7,9 +7,11 @@ from typing import Mapping
 
 from phase6_workspace_state import PART_ORDER, SharedWorkspaceState, normalize_existing_parts
 from phase6_quantity_model import QuantityModel
+from ae_engine import manufacturing_api
 
 
-DEFAULT_EXISTING_PARTS = {"box_body", "head", "tail", "door", "base_plate"}
+# The same Engine-owned physical presence defaults seed both GUI workspaces.
+DEFAULT_EXISTING_PARTS = set(manufacturing_api.DEFAULT_OPERATOR_EXISTING_PARTS)
 
 
 class Phase6WorkspaceController:

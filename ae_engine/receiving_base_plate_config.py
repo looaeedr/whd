@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from math import isfinite
 
+from .cabinet_types.policy import canonical_family_name
 from .sheetmetal_part_adapters import (
     RECEIVING_BASE_PATTERNS, build_receiving_base_plate_result,
 )
@@ -447,7 +448,7 @@ def receiving_base_plate_values(snapshot):
     dimension, NOT the height of the 1100-mm upper door or the full cabinet.
     """
     data = dict(snapshot or {})
-    if str(data.get("model") or "").strip() not in RECEIVING_FAMILIES:
+    if canonical_family_name(data) != "受電箱":
         return None
     # The selected/submitted NFBConfig and the current brand CSV are the
     # physical source authority, even when an older project has saved a

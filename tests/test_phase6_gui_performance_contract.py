@@ -1129,7 +1129,7 @@ def test_issue1817_receiving_unchanged_exact_partspec_reuses_material_across_whd
     from dataclasses import replace
     from types import SimpleNamespace
 
-    import phase6_manufacturing_adapter
+    from ae_engine import manufacturing_cache_source_plan as source_plan
     from ae_engine import manufacturing_api
     from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
     from gui_modules.application.fold_designer_manufacturing_projection import (
@@ -1140,8 +1140,8 @@ def test_issue1817_receiving_unchanged_exact_partspec_reuses_material_across_whd
 
     source_generation = ["verified-source-A"]
     monkeypatch.setattr(
-        phase6_manufacturing_adapter,
-        "_receiving_baseline_source_stamp",
+        source_plan,
+        "receiving_baseline_source_stamp",
         lambda model, **kwargs: tuple(source_generation) if (
             model == "受電箱" and kwargs["include_physical_panels"]
         ) else None,
@@ -1201,7 +1201,7 @@ def test_issue1817_receiving_unchanged_exact_partspec_reuses_material_across_whd
 
 def test_issue1817_cross_edit_retention_is_never_used_outside_receiving_set_bay(monkeypatch):
     from types import SimpleNamespace
-    import phase6_manufacturing_adapter
+    from ae_engine import manufacturing_cache_source_plan as source_plan
     from ae_engine import manufacturing_api
     from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
     from gui_modules.application.fold_designer_manufacturing_projection import (
@@ -1211,8 +1211,8 @@ def test_issue1817_cross_edit_retention_is_never_used_outside_receiving_set_bay(
     from phase6_box_body_structure import BoxBodyStructureType
 
     monkeypatch.setattr(
-        phase6_manufacturing_adapter,
-        "_receiving_baseline_source_stamp",
+        source_plan,
+        "receiving_baseline_source_stamp",
         lambda _model, **kwargs: (("source", "verified"),) if (
             kwargs["include_physical_panels"]
         ) else None,
@@ -1426,7 +1426,7 @@ def test_issue1817_receiving_raw_endcap_preserves_only_witnessed_exact_material(
         BoxBodyPartSpec, EndCapPartSpec, EndCapAssemblyReliefRequest,
         ManufacturingContext,
     )
-    import phase6_manufacturing_adapter as adapter
+    from ae_engine import manufacturing_cache_source_plan as source_plan
     from gui_modules.application.fold_designer_manufacturing_projection import (
         _authoritative_render_data,
     )
@@ -1439,7 +1439,7 @@ def test_issue1817_receiving_raw_endcap_preserves_only_witnessed_exact_material(
         return (("箱身.dxf", ("body", version[0])),
                 ("封頭尾.dxf", ("endcap", version[0])),
                 ("門.dxf", ("door", version[0])))
-    monkeypatch.setattr(adapter, "_receiving_baseline_source_stamp", witness)
+    monkeypatch.setattr(source_plan, "receiving_baseline_source_stamp", witness)
     calls = []
     monkeypatch.setattr(
         manufacturing_api, "build_part_render_data",
@@ -1490,13 +1490,13 @@ def test_issue1817_receiving_endcap_missing_dxf_source_never_reuses_old_material
     from types import SimpleNamespace
     from ae_engine import manufacturing_api
     from ae_engine.contracts import EndCapPartSpec, ManufacturingContext
-    import phase6_manufacturing_adapter as adapter
+    from ae_engine import manufacturing_cache_source_plan as source_plan
     from gui_modules.application.fold_designer_manufacturing_projection import (
         _authoritative_render_data,
     )
     from gui_modules.application.state_sync import Phase6DerivedCacheOwner
 
-    monkeypatch.setattr(adapter, "_receiving_baseline_source_stamp",
+    monkeypatch.setattr(source_plan, "receiving_baseline_source_stamp",
                         lambda _model, **_kw: (("箱身.dxf", ("a",)),
                                                 ("封頭尾.dxf", None),
                                                 ("門.dxf", None)))
@@ -1712,3 +1712,28 @@ def test_issue1818_navigation_only_never_bypasses_non_receiving_relief_publish()
     before, after = deepcopy(base), deepcopy(target)
     after['model'] = '金庫型'
     assert not navigation_only_change(before, after)
+
+
+def test_tk_benchmark_observes_actual_engine_endcap_replay_seam(monkeypatch):
+    """#2517: the benchmark must measure a real invoked API, not a removed alias."""
+    from tools.whd_performance_baseline import Probe
+    # Measure the real Engine function now invoked by the Phase6 adapter.
+    import ae_engine.manufacturing_resolver as service
+
+    calls = []
+    sentinel = object()
+    monkeypatch.setattr(
+        service, "replay_resolved_endcap_render",
+        lambda part, solution: calls.append((part, solution)) or sentinel,
+    )
+    probe = Probe()
+    with probe.stack:
+        probe.observe_supplemental_material_factory(
+            service, "replay_resolved_endcap_render", "service_relief_replay_material",
+        )
+        assert service._replay_endcap_render("physical", "verified") is sentinel
+        assert probe.counts["supplemental_material_factory_calls"] == 1
+        assert probe.supplemental_material_builds[
+            "service_relief_replay_material:str"
+        ] == 1
+    assert calls == [("physical", "verified")]

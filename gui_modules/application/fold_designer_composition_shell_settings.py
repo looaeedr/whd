@@ -87,7 +87,7 @@ from phase6_assembly_panel import Phase6AssemblyPanel
 from phase6_manufacturing_adapter import operator_finished_dimensions_for_app
 from phase6_final_scene_view import Phase6FinalSceneViewAdapter
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
-from phase6_derived_part_projection import (
+from ae_engine.manufacturing_api import (
     DerivedPartRequestAssemblyInput,
     build_derived_part_projection_request,
     build_derived_part_sync_plan,
@@ -290,23 +290,11 @@ def sync_authoritative_derived_parts(
     door_rows = required("_phase6_door_part_projections")(snapshot)
     source_part_features = dict(snapshot.get("part_features") or {})
     known_feature_keys = set(workspace.part_features_snapshot())
-    source_parts = tuple(snapshot.get("existing_parts") or ())
-    # A saved v3 Receiving project may omit the original BasePlate from the
-    # historical existing_parts list despite having a committed NFB and an
-    # authentic physical source. The manufacturing resolver can restore it,
-    # but the 2D part selector must use the SAME source authority.
-    # Never add it for drafts, unknown sources or non-Receiving families.
-    if (snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("nfb_config_submitted") is True
-            and "base_plate" not in source_parts):
-        from ae_engine.receiving_base_plate_config import receiving_base_plate_values
-        try:
-            original_base = receiving_base_plate_values(snapshot)
-        except (ValueError, TypeError, KeyError):
-            original_base = None
-        if original_base is not None:
-            source_parts += ("base_plate",)
     available_parts = tuple(workspace.available_parts)
+    identity = manufacturing_api.project_operator_base_navigation_identity(
+        snapshot, tuple(snapshot.get("existing_parts") or ()),
+    )
+    source_parts = identity.source_parts
 
     build_profiles = required("build_standard_part_profiles")
     door_profiles = {}
@@ -323,44 +311,20 @@ def sync_authoritative_derived_parts(
         local["part_dimensions"] = local_dims
         door_profiles[row.part_key] = build_profiles(local, row.part_key)
 
-    # Receiving uses its ORIGINAL base_plate component, not a Base Plate
-    # automatically manufactured for each Door cell (including the empty
-    # lower 500-mm section). Other families keep their existing multi-door
-    # base_plate_cN_rN projection unchanged.
-    receiving_single_base = str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}
-    # Submitted NFB in TWO real tiers replaces the single root physical
-    # BasePlate with TWO canonical tier PartSpecs. The original root remains
-    # an internal manufacturing INPUT (registered at _canonical_part_keys),
-    # never a third item in the operator's 2D selector.
-    receiving_two_tier = (
-        receiving_single_base
-        and snapshot.get("nfb_config_submitted") is True
-        and isinstance(snapshot.get("nfb_config"), Mapping)
-        and snapshot["nfb_config"].get("layer_count") == 2
-    )
-    preserve_navigation_root = receiving_single_base and not receiving_two_tier
+    # Physical source/identity and cell deductions belong to the Engine API.
+    receiving_single_base = identity.receiving_single_base
+    receiving_two_tier = identity.receiving_two_tier
+    preserve_navigation_root = identity.preserve_navigation_root
     base_plate_profiles = {}
     if door_rows and not receiving_single_base:
-        columns = tuple(
-            (float(row[0]), tuple(float(v) for v in row[1]))
-            for row in tuple(snapshot.get("door_layout_columns") or ())
-        )
-        number = required("_num")
-        shrink_left = number(snapshot.get("base_plate_shrink_left", 55), 55)
-        shrink_right = number(snapshot.get("base_plate_shrink_right", 55), 55)
-        shrink_top = number(snapshot.get("base_plate_shrink_top", 55), 55)
-        shrink_bottom = number(snapshot.get("base_plate_shrink_bottom", 55), 55)
-        for cell in derive_door_layout_cells(columns):
-            base_key = door_layout_part_key(cell).replace("door_", "base_plate_", 1)
+        cell_dimensions = manufacturing_api.project_operator_multidoor_base_plate_dimensions(snapshot)
+        for base_key, dims in cell_dimensions.items():
             local = dict(snapshot)
             local_dims = {
                 key: dict(value)
                 for key, value in dict(snapshot.get("part_dimensions") or {}).items()
             }
-            local_dims[base_key] = {
-                "width": max(1.0, float(cell.start_width) - shrink_left - shrink_right),
-                "height": max(1.0, float(cell.start_height) - shrink_top - shrink_bottom),
-            }
+            local_dims[base_key] = dict(dims)
             local["part_dimensions"] = local_dims
             base_plate_profiles[base_key] = build_profiles(local, base_key)
 
@@ -380,66 +344,11 @@ def sync_authoritative_derived_parts(
     is_piece_key = required("_phase6_is_box_body_physical_piece_key")
     current_piece_keys = {key for key in available_parts if is_piece_key(key)}
 
-    divider_profiles = {}
-    columns = list(snapshot.get("door_layout_columns") or ())
-    if bool(snapshot.get("multi_door_enabled", False)) and columns:
-        from ae_engine.door_dividers import derive_box_body_dividers, divider_part_profiles
-
-        normalized_columns = tuple(
-            (float(row[0]), tuple(float(value) for value in row[1]))
-            for row in columns
-        )
-        dividers = derive_box_body_dividers(
-            normalized_columns,
-            depth=float(snapshot.get("d", 0.0)),
-            thickness=float(snapshot.get("t", 0.0)),
-            layout_scope=(str(snapshot.get("door_layout_scope") or "main").strip() or "main"),
-            handle_edges=dict(snapshot.get("door_handle_edges") or {}),
-            model_name=str(snapshot.get("model") or "").strip() or None,
-            frame_width=float(snapshot.get("fw", 0.0)),
-        )
-        divider_profiles = divider_part_profiles(dividers)
-
-    from ae_engine.inner_door_frames import (
-        InnerDoorFrameSet,
-        derive_all_inner_door_frames,
-        inner_door_frame_part_profiles,
-    )
-    from ae_engine.inner_door_panels import inner_door_panel_part_profiles
-
-    frame_sets = []
-    thickness = float(snapshot.get("t", 0.0))
-    if cabinet_family_policy.has_inner_door_frame_derivation(snapshot):
-        frame_sets.extend(cabinet_family_policy.derive_inner_door_frame_sets(snapshot))
-    else:
-        for item in list(snapshot.get("inner_doors") or ()):
-            if not isinstance(item, Mapping):
-                continue
-            spans = item.get("frame_spans")
-            if not isinstance(spans, Mapping) or not spans:
-                continue
-            stable_id = str(item.get("stable_id") or "").strip()
-            if not stable_id:
-                continue
-            included = tuple(
-                str(side).strip().lower()
-                for side in (item.get("included_frame_sides") or ("top", "bottom", "left", "right"))
-            )
-            frame_sets.append(
-                InnerDoorFrameSet(
-                    inner_door_id=stable_id,
-                    spans=dict(spans),
-                    thickness=thickness,
-                    included_sides=included,
-                )
-            )
-    frames = derive_all_inner_door_frames(tuple(frame_sets))
-    panels = cabinet_family_policy.derive_inner_door_panels(snapshot)
-    # The real inner-door sheet must appear before its separate frame pieces
-    # in the single-cabinet operator part selector.  Do not make opening
-    # multi-settings a prerequisite to see or manufacture the panel.
-    inner_profiles = inner_door_panel_part_profiles(panels)
-    inner_profiles.update(inner_door_frame_part_profiles(frames))
+    # Physical Divider / InnerDoor frame/panel identities and Fold profiles
+    # are derived once inside the public Engine API. GUI only syncs workspace.
+    physical = manufacturing_api.project_operator_derived_divider_inner_profiles(snapshot)
+    divider_profiles = dict(physical.divider_profiles)
+    inner_profiles = dict(physical.inner_profiles)
 
     single_door_profiles = (
         build_profiles(snapshot, "door")
@@ -474,135 +383,25 @@ def sync_authoritative_derived_parts(
     plan = build_derived_part_sync_plan(request)
     navigation.apply_derived_sync_plan(plan)
 
-    # #1503: this is a real derived physical Part, not a menu-only label.
-    # Synchronize the W800/T2 left/right fixing plates into the authoritative
-    # workspace. Replacing the namespace also removes stale plates on Family
-    # or cabinet-dimension switches. A short source drawing is catalog-only.
-    from ae_engine.receiving_base_fixing_plate import (
-        BASE_FIXING_PLATE_PREFIX, receiving_base_fixing_plate_previews,
-    )
-    plate_previews = receiving_base_fixing_plate_previews(
-        snapshot, available_parts=workspace.available_parts,
+    # Engine alone checks receiving physical-source eligibility and profiles.
+    # Workspace remains the sole owner of the operator's 2D selection state.
+    derived_sources = manufacturing_api.project_operator_receiving_auxiliary_navigation(
+        snapshot,
+        available_parts=tuple(workspace.available_parts),
+        source_part_features=source_part_features,
+        live_features=workspace.part_features_snapshot(),
     )
     navigation.sync_derived_parts(
-        namespace=BASE_FIXING_PLATE_PREFIX,
-        part_profiles={
-            part.part_id: {
-                "X": [{"len": part.nominal_source_outline_mm[0],
-                       "phase6_key": "base_fixing_source_x"}],
-                "Y": [{"len": part.nominal_source_outline_mm[1],
-                       "phase6_key": "base_fixing_source_y"}],
-            }
-            for part in plate_previews
-        },
+        namespace="base_plate:fixing_plate:",
+        part_profiles=dict(derived_sources.fixing_plate_profiles),
     )
-
-    # #1503: assembly expansion already creates two physical NFB-tier Base
-    # Plates, but the original root-only navigation omitted BOTH from the
-    # operator's 2D part selector. Publish their exact source-derived
-    # profiles as navigation children; leave the root assembly input in
-    # place because the manufacturing service expands that ONE root into
-    # TWO actual FinalScene owners. Never create a tier for an unsubmitted
-    # draft or a Base Plate with no selected physical source.
-    tier_profiles = {}
-    if (receiving_single_base
-            and snapshot.get("nfb_config_submitted") is True
-            and isinstance(snapshot.get("nfb_config"), Mapping)
-            and snapshot["nfb_config"].get("layer_count") == 2):
-        # Do not gate the operator's 2D tier selector on a SECOND manually
-        # saved receiving_base_plate setting. The source-only
-        # receiving_base_plate_3d_profiles(snapshot) below already returns
-        # None for an unresolved physical shape and provides the SAME
-        # submitted numeric-CSV authority as the actual Phase6 FinalScene.
-        # Previously the real 3D scene had two tiers but 2D navigation
-        # silently omitted both unless the operator re-entered a base plate.
-        from ae_engine.receiving_nfb_base_assembly_xy import (
-            receiving_nfb_layer_centers,
-        )
-        from ae_engine.receiving_base_plate_3d_profiles import (
-            receiving_base_plate_3d_profiles,
-        )
-        upper = tuple(
-            row for row in tuple(snapshot.get("inner_doors") or ())
-            if isinstance(row, Mapping)
-            and str(row.get("cell_key") or "").split(":")[-1] == "0"
-            and str(row.get("stable_id") or "").strip()
-        )
-        if len(upper) == 1:
-            try:
-                centers = receiving_nfb_layer_centers(
-                    snapshot, str(upper[0]["stable_id"]),
-                )
-            except ValueError as exc:
-                # Switching between versions may briefly leave the old
-                # runtime Set/Bay selector. Never publish stale navigation.
-                if str(exc) not in {
-                    "RECEIVING_NFB_LAYER_SET_IDENTITY_DRIFT",
-                    "RECEIVING_NFB_LAYER_BAY_IDENTITY_DRIFT",
-                    "RECEIVING_NFB_LAYER_CONFIG_IDENTITY_DRIFT",
-                }:
-                    raise
-                centers = ()
-            if len(centers) == 2:
-                profiles = receiving_base_plate_3d_profiles(snapshot)
-                if profiles is not None:
-                    tier_profiles = {
-                        center.layer_part_id: deepcopy(profiles)
-                        for center in centers
-                    }
     navigation.sync_derived_parts(
         namespace="base_plate:nfb_layer:",
-        part_profiles=tier_profiles,
+        part_profiles=dict(derived_sources.nfb_tier_profiles),
     )
-
-    # PAD is its own genuine unfolded 2D sheet. Publish it in the existing
-    # Part selector but never as a RAW manufacturing input. The selected
-    # Bay's numeric V5 CSV and common tooling remain the sole source.
-    from ae_engine.receiving_nfb_pad_operator_parts import (
-        committed_nfb_pad_draft_parts,
-    )
-    # The original Hole Editor commits current NFB ProfileFeatures into
-    # the authoritative workspace before the async geometry snapshot is
-    # republished. A root-only snapshot still has the PREVIOUS features
-    # at this point and _submitted_csv_holes legitimately returns ().
-    # Reuse the CURRENT workspace's actual verified features, not inferred
-    # slot X, to make 2D source ownership match the subsequent 3D resolve.
-    # In dry-run projected workspace use only its projected features.
-    live_features = workspace.part_features_snapshot()
-    pad_source = {
-        **snapshot,
-        "part_features": {
-            **source_part_features,
-            **{
-                str(key): value for key, value in live_features.items()
-                if isinstance(key, str) and isinstance(value, (tuple, list))
-            },
-        },
-    }
-    # The canonical committed snapshot is also the source used by the
-    # assembly's PAD render. Prefer it when it already resolves a real PAD:
-    # a stale/empty workspace feature stash must not override a newly
-    # committed Hole Editor source and silently erase the 2D Part selector.
-    # Only fall back to the live workspace features during the short
-    # pre-republish window when the root snapshot has not caught up yet.
-    pad_preview_parts = ()
-    for candidate_source in (snapshot, pad_source):
-        try:
-            candidate_parts = committed_nfb_pad_draft_parts(candidate_source)
-        except (ValueError, TypeError, KeyError, OSError):
-            continue
-        if candidate_parts:
-            pad_preview_parts = candidate_parts
-            break
     navigation.sync_derived_parts(
         namespace="nfb_pad:",
-        part_profiles={
-            part.part_id: {
-                "X": tuple(dict(row) for row in part.x_profile),
-                "Y": tuple(dict(row) for row in part.y_profile),
-            }
-            for part in pad_preview_parts
-        },
+        part_profiles=dict(derived_sources.pad_profiles),
     )
     # No historical third root entry on two-tier navigation; once canonical
     # tier profiles are published, reconcile a stale root that survived an
@@ -626,7 +425,7 @@ def sync_authoritative_derived_parts(
 
     return (
         tuple(divider_profiles),
-        tuple([*(frame.stable_id for frame in frames), *(panel.stable_id for panel in panels)]),
+        physical.inner_part_ids,
     )
 
 def settings_service(self):

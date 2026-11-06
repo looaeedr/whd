@@ -53,15 +53,24 @@ def test_receiving_confirm_stages_csv_holes_only_in_original_editor_transaction(
         if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
     ]
     assert "stage_in_editor" in calls
-    assert "editor_nfb_features_from_csv" in calls
+    assert "editor_nfb_features_from_csv" not in calls  # The GUI must not call a private symbol.
     assert "stage_in_editor(config, openings)" in _ui_source()
     assert "after_saved" in calls
     assert "close_editor" in calls
     assert "csv_openings_to_editor_features" not in calls
     assert "verified_nfb_openings_to_editor_features" not in calls
-    # Basic independent source-model identity is still checked, not a hole
-    # geometry proof or new mandatory world-X form.
-    assert "model_spec" in calls
+    # The original editor must delegate the entire source/model qualification
+    # to one public Engine transaction plan, not repeat catalog checks in Tk.
+    public_catalog_calls = [
+        n.func.attr for n in ast.walk(confirm)
+        if isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Attribute)
+        and isinstance(n.func.value, ast.Name)
+        and n.func.value.id == "manufacturing_api"
+    ]
+    assert "plan_receiving_nfb_editor_confirm" in public_catalog_calls
+    assert "resolve_receiving_nfb_model_spec" not in public_catalog_calls
+    assert "editor_nfb_features_from_csv" in public_catalog_calls
     assert "current_numeric_editor" in ast.unparse(confirm)
     source = _ui_source()
     assert 'ttk.Button(buttons, text="確定", command=confirm)' in source

@@ -114,7 +114,10 @@ def test_tab_flow_uses_native_undoable_stage_and_preserves_confirm_owner():
         ROOT / "gui_modules/editors/hole_editor_composition.py"
     ).read_text(encoding="utf-8")
     assert "initial[\"layer_heights_mm\"] = [550.0, 800.0]" not in receiving
-    assert 'SETTING_DEFAULTS["inner_door_layer_heights_mm"]' in receiving
+    from ae_engine import manufacturing_api
+    assert manufacturing_api.receiving_inner_door_legacy_layer_height_defaults() == [330.0, 830.0]
+    assert "manufacturing_api.receiving_inner_door_legacy_layer_height_defaults()" in receiving
+    assert 'SETTING_DEFAULTS["inner_door_layer_heights_mm"]' not in receiving
     assert 'layer_height_vars[0].set("300")' not in receiving
     assert "transition_receiving_nfb_layer_heights(" in receiving
     assert "stage_in_editor(config, openings)" in receiving

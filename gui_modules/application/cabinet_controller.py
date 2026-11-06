@@ -8,17 +8,14 @@ from copy import deepcopy
 import tkinter as tk
 from tkinter import messagebox
 
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from ae_engine.contracts import ManufacturingContext
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.corner_type_ui import is_unknown_model, normalize_custom_model_name
 from phase6_endcap_semantics import (
     assembly_intent_label,
     assembly_intent_value,
     normalize_endcap_bottom_wrap_state,
 )
-from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
 from phase6_fold_profiles import build_box_body_profile
 
 
@@ -89,7 +86,7 @@ def _restore_cabinet_family_runtime(self, state):
         })
     joint_state = state.get("assembly_joint_state")
     if isinstance(joint_state, dict) and joint_state:
-        self.assembly_joint_state = migrate_legacy_snapshot_joints(deepcopy(joint_state))
+        self.assembly_joint_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(deepcopy(joint_state))
         stable = assembly_intent_value(self.assembly_joint_state.get("assembly_type", "INSERT_OVERLAY"))
         self.box_assembly_type_var.set(assembly_intent_label(stable))
     self.multi_door_enabled_var.set(bool(state.get("multi_door_enabled", False)))
@@ -151,7 +148,7 @@ def _apply_cabinet_family_for_current_model(self):
             or {}
         )
         base_settings = dict(vault_defaults.get("settings") or self.settings_service.snapshot().as_dict())
-        values = cabinet_family_policy.apply_fresh_family_defaults(base_settings, new_type)
+        values = manufacturing_api.operator_apply_fresh_family_defaults(base_settings, new_type)
         self._apply_fold_designer_live_settings(values, recalculate=False)
         self._set_box_assembly_type(values["assembly_type"], recalculate=False, notify_designer=False)
         self.multi_door_enabled_var.set(bool(values.get("multi_door_enabled", True)))
@@ -163,12 +160,12 @@ def _apply_cabinet_family_for_current_model(self):
         self.door_layout_handle_edges = deepcopy(dict(values.get("door_handle_edges") or {}))
         self.receiving_inner_doors = deepcopy(values.get("inner_doors") or [])
         self.door_nameplate_center_datum_top = float(values["door_nameplate_center_datum_top"])
-        structure = cabinet_family_policy.resolve_box_body_structure_state(
+        structure = manufacturing_api.operator_resolve_box_body_structure_state(
             new_type, self.workspace_controller.box_body_structure_state()
         )
         self.workspace_controller.set_box_body_structure_state(structure)
         self.endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state({"model": new_type})
-        bottom = cabinet_family_policy.endcap_bottom_selection(new_type)
+        bottom = manufacturing_api.operator_endcap_bottom_selection(new_type)
         for part in ("head", "tail"):
             self.manual_corner_state[part]["bottom_left"] = bottom
             self.manual_corner_state[part]["bottom_right"] = bottom
@@ -178,17 +175,14 @@ def _apply_cabinet_family_for_current_model(self):
         # hidden editor-only model draft. Persist its actual Set/Bay source in
         # the existing workspace so opening FoldDesigner/assembly sees the
         # same committed inner-door holes, BasePlate and derived fixing ears.
-        from ae_engine.receiving_fresh_nfb_defaults import (
-            seed_fresh_receiving_nfb_source,
-        )
-        from ae_engine.receiving_layout import new_receiving_layout
+        # Public Engine owns the native CSV source and single-Set/Bay identity.
         # Known-Family selection is a new cabinet. Do not inherit an old
         # edited Bay from a previous Receiving session through workspace.
-        snap["receiving_layout"] = new_receiving_layout(
+        snap["receiving_layout"] = manufacturing_api.operator_new_receiving_layout(
             width=snap["w"], height=snap["h"], depth=snap["d"],
         )
         snap["active_mode"] = "set_bay"
-        initial = seed_fresh_receiving_nfb_source(snap)
+        initial = manufacturing_api.operator_seed_fresh_receiving_nfb_source(snap)
         box_profile = build_box_body_profile(snap)
         workspace = self.workspace_controller.workspace_snapshot()
         workspace["receiving_layout"] = deepcopy(initial["receiving_layout"])
@@ -255,8 +249,10 @@ def on_baseline_changed(self):
         t_val = float(self.t_var.get()) if self.t_var.get() else 2.0
         
         # 1. 載入封頭尾基準檔分析折彎參數
-        geom = ae.get_stretched_end_cap_data(val, 500, 500, 150, t_val, FW_val=None, is_tail=False)
-        p = geom.params
+        baseline_folds = manufacturing_api.read_operator_baseline_fold_defaults(
+            val, thickness=t_val,
+        )
+        p = baseline_folds["endcap"]
         
         self.yl1_var.set(f"{p['yl1']:.1f}".replace(".0", ""))
         self.yr1_var.set(f"{p['yr1']:.1f}".replace(".0", ""))
@@ -276,24 +272,12 @@ def on_baseline_changed(self):
         # 箱身.dxf 只映射固定加工特徵，不反推/覆寫 zl1/zl2/zr1/zr2/z_comp。
 
         # 3. 檢查並加載目前型號的門基準；GUI 不自行組 baseline 路徑。
-        if ae.has_baseline_part(val, "門.dxf"):
-            try:
-                door_fw = self._door_material_frame_width(
-                    self.fw_z_var.get(), t_val, model_name=val
-                )
-                geom_door = ae.get_stretched_door_data(
-                    val, 500, 500, t_val, door_fw
-                )
-                pd = geom_door.params
-                self.door_fold_l_var.set(f"{pd['door_fold_l']:.1f}".replace(".0", ""))
-                self.door_fold_r_var.set(f"{pd['door_fold_r']:.1f}".replace(".0", ""))
-                self.door_fold_t_var.set(f"{pd['door_fold_t']:.1f}".replace(".0", ""))
-                self.door_fold_b_var.set(f"{pd['door_fold_b']:.1f}".replace(".0", ""))
-            except Exception as door_err:
-                self.door_fold_l_var.set("19")
-                self.door_fold_r_var.set("15")
-                self.door_fold_t_var.set("15")
-                self.door_fold_b_var.set("15")
+        pd = baseline_folds["door"]
+        if pd is not None:
+            self.door_fold_l_var.set(f"{pd['door_fold_l']:.1f}".replace(".0", ""))
+            self.door_fold_r_var.set(f"{pd['door_fold_r']:.1f}".replace(".0", ""))
+            self.door_fold_t_var.set(f"{pd['door_fold_t']:.1f}".replace(".0", ""))
+            self.door_fold_b_var.set(f"{pd['door_fold_b']:.1f}".replace(".0", ""))
     except Exception as e:
         messagebox.showerror("基準檔載入出錯", f"無法讀取基準檔參數: {e}")
 
@@ -408,25 +392,8 @@ def _refresh_indicator_box_result_values(self, val):
     self.result_ib_door_h_var.set(f"{ib_door_h:.2f} mm")
     self.indicator_g_var.set(str(g_max))
 
-    x_left_light = 171.0
-    x_right_light = 171.0 + 90.0 * max(0, g_max - 1)
-    if g_max <= 1:
-        hc = 1
-    elif g_max <= 3:
-        hc = 2
-    elif g_max <= 5:
-        hc = 3
-    else:
-        hc = 4
-    if hc > 1:
-        max_pitch = (x_right_light - x_left_light) / (hc - 1)
-        hp = max(50.0, float(int(max_pitch // 50) * 50))
-        x_mid = (x_left_light + x_right_light) / 2.0
-        hx = x_mid - (hc - 1) * hp / 2.0
-    else:
-        hp = 150.0
-        hx = 191.0 if g_max == 1 else 172.5
-    self.ib_hole_start_x_var.set(f"{hx:.1f}".replace(".0", ""))
-    self.ib_hole_pitch_var.set(f"{int(hp)}")
-    self.ib_hole_count_var.set(str(hc))
-    self.ib_hole_y_var.set("178.5")
+    marking = manufacturing_api.project_indicator_box_marking_layout(layer_groups)
+    self.ib_hole_start_x_var.set(f"{marking.start_x:.1f}".replace(".0", ""))
+    self.ib_hole_pitch_var.set(f"{int(marking.pitch)}")
+    self.ib_hole_count_var.set(str(marking.count))
+    self.ib_hole_y_var.set(f"{marking.first_row_y:.1f}".replace(".0", ""))

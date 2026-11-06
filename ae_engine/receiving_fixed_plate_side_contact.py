@@ -161,3 +161,32 @@ def resolve_receiving_ear_side_contact_surfaces(
                != {entry.parent_base_id for entry in owners}):
         raise ValueError("EAR_SIDE_CONTACT_OWNER_OR_TIER_DRIFT")
     return result
+
+def project_receiving_ear_side_marking_segments(
+    formed_ear_skins, *, visible_side_piece_keys=None,
+):
+    """Project source-verified Receiving EAR positioning lines in world 3D.
+
+    This is an immutable DISPLAY-only projection, NOT side-sheet UV MARKING,
+    manufacturing clearance, a weld certificate or DXF authorisation.
+    Engine exclusively validates physical 2/4 EAR ownership and side selection;
+    the GUI may only draw the resulting line segments.
+    """
+    rows = tuple(formed_ear_skins or ())
+    if not rows:
+        return ()
+    if len(rows) not in (2, 4) or len({row.part_id for row in rows}) != len(rows):
+        raise ValueError("EAR_ASSEMBLY_MARKING_SOURCE_OWNER_COUNT_INVALID")
+    allowed = (
+        {"box_body:left_side", "box_body:right_side"}
+        if visible_side_piece_keys is None
+        else set(visible_side_piece_keys)
+    )
+    segments = []
+    for formed in rows:
+        contact = derive_receiving_ear_side_contact_from_formed_skin(formed)
+        if contact.side_piece_id not in allowed:
+            continue
+        segments.extend(receiving_ear_positioning_world_segments(contact))
+    return tuple(segments)
+

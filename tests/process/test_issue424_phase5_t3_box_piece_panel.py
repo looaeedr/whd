@@ -290,7 +290,11 @@ def test_t3_piece_collapse_is_presentation_only(tk_root):
 def test_t3_panel_source_uses_pure_projection_without_dm7_or_settings_import():
     source = inspect.getsource(__import__("phase6_assembly_panel"))
     assert "project_box_body_piece_rows" in source
-    assert 'getattr(render_data, "pieces"' in source
+    # Source role/dimensions are Engine-owned; the panel may only consume
+    # the presentation DTO and format the exact Engine corner source.
+    assert "project_box_body_piece_rows" in source
+    assert "projection.source_render_data" in source
+    assert 'getattr(render_data, "pieces"' not in source
     assert "phase6_part_navigation" not in source
     assert "phase6_settings_panel" not in source
     assert "setting_number_text" not in source

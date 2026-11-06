@@ -77,6 +77,7 @@ def test_ui_typography_and_persisted_mirrors_do_not_invalidate_geometry():
 def test_receiving_working_box_dimensions_override_seed_settings_only():
     a = _app()
     a._phase6_input_snapshot["model"] = "受電箱"
+    a.baseline_model_var = type("Family", (), {"get": lambda self: "受電箱"})()
     a._settings_values.update({"w": 700, "h": 1500, "d": 300})
     b = deepcopy(a)
     b._settings_values.update({"w": 1, "h": 2, "d": 3})
@@ -84,6 +85,7 @@ def test_receiving_working_box_dimensions_override_seed_settings_only():
     b._phase6_box_whd["w"] = 900
     assert _fingerprint(a) != _fingerprint(b)
     a._phase6_input_snapshot["model"] = "金庫型"
+    a.baseline_model_var = type("Family", (), {"get": lambda self: "金庫型"})()
     b = deepcopy(a)
     b._settings_values["w"] = 999
     assert _fingerprint(a) != _fingerprint(b)

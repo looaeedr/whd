@@ -16,24 +16,11 @@ from .receiving_inner_door_hole_editor import sync_inner_door_hole_editor_button
 
 
 def _activation_profiles_from_authoritative_source(key, snapshot, stored, defaults):
-    """A configured Receiving Base uses its physical source, not old UI cache.
-
-    Generic/base_plate_bend workspace profiles may survive project reloads.
-    They cannot override the actual NFB-derived CUTTING/BEND topology. An
-    unconfigured legacy project keeps its previous editable preview behavior.
-    """
-    is_receiving = str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}
-    if key == "base_plate" and is_receiving:
-        x = tuple(defaults.get("X", ()) or ())
-        y = tuple(defaults.get("Y", ()) or ())
-        if (x and y
-                and all(str(row.get("phase6_key") or "").startswith("receiving_")
-                        for row in x + y)):
-            return defaults, True
-    if stored is None:
-        return defaults, True
-    return stored, False
-
+    """Compatibility facade; Engine owns physical BasePlate activation."""
+    from ae_engine import manufacturing_api
+    return manufacturing_api.project_operator_part_activation_profiles(
+        key, snapshot, stored, defaults,
+    )
 
 
 
@@ -62,45 +49,45 @@ class Phase6PartSessionOwner:
         # W800/D350 after the user committed W820/D360.  Never save those
         # stale header values or fold-profile dimensions over the live Bay.
         # Keep the ordinary Part save and physical CUTTING validation intact.
-        receiving_settings_whd = None
-        if (getattr(app, "_phase6_applying_settings", False)
-                and str(app._phase6_input_snapshot.get("model") or "") in {"受電箱", "RECEIVING"}):
-            current_box = dict(getattr(app, "_phase6_box_whd", {}) or {})
-            if all(axis in current_box for axis in ("w", "h", "d")):
-                receiving_settings_whd = {
-                    axis: current_box[axis] for axis in ("w", "h", "d")
-                }
-                previous_guard = getattr(app, "_phase6_settings_guard", False)
-                app._phase6_settings_guard = True
-                try:
-                    for axis, dimension in receiving_settings_whd.items():
-                        variable = getattr(app, "v_" + axis)
-                        if str(variable.get()) != str(dimension):
-                            variable.set(str(dimension))
-                finally:
-                    app._phase6_settings_guard = previous_guard
+        receiving_settings_whd = (
+            bridge.manufacturing_api.project_operator_receiving_settings_live_dimensions(
+                app._phase6_input_snapshot,
+                getattr(app, "_phase6_box_whd", None),
+                applying_settings=bool(getattr(app, "_phase6_applying_settings", False)),
+            )
+        )
+        if receiving_settings_whd is not None:
+            previous_guard = getattr(app, "_phase6_settings_guard", False)
+            app._phase6_settings_guard = True
+            try:
+                for axis, dimension in receiving_settings_whd.items():
+                    variable = getattr(app, "v_" + axis)
+                    if str(variable.get()) != str(dimension):
+                        variable.set(str(dimension))
+            finally:
+                app._phase6_settings_guard = previous_guard
         try:
             app.bend_ui.save()
         except Exception:
             return
         custom_spec = app.designer_workspace.custom_part(key)
         if custom_spec is not None:
-            profiles = {axis: bridge.clone_profile(app.state.profiles.get(axis, ())) for axis in ("X", "Y")}
-            fold_axis = str(
-                custom_spec.get("fold_axis", "X")
-                if isinstance(custom_spec, Mapping)
-                else getattr(custom_spec, "fold_axis", "X")
-            ).upper()
-            t_val = bridge._num(
-                getattr(app, "_settings_values", {}).get(
-                    "t", getattr(app, "_phase6_input_snapshot", {}).get("t", 2.0)
-                ),
-                2.0,
+            snapshot = {**app._phase6_input_snapshot, **app.designer_workspace.snapshot()}
+            snapshot["t"] = getattr(app, "_settings_values", {}).get(
+                "t", snapshot.get("t", 2.0)
             )
-            bridge.apply_outside_dimension_compensation(profiles.get(fold_axis, []), float(t_val))
+            profiles = bridge.manufacturing_api.project_operator_custom_fold_save_profiles(
+                snapshot, key, app.state.profiles,
+            )
             app.designer_workspace.stash_profiles(key, profiles)
             return
-        bridge._phase6_replace_mapping(app, '_phase6_box_whd', {'w': bridge.original.get_int(app.v_w.get()), 'h': bridge.original.get_int(app.v_h.get()), 'd': bridge.original.get_int(app.v_d.get())})
+        bridge._phase6_replace_mapping(
+            app, '_phase6_box_whd',
+            bridge.manufacturing_api.project_operator_part_session_source_dimensions(
+                app._phase6_input_snapshot,
+                {axis: getattr(app, 'v_' + axis).get() for axis in ('w', 'h', 'd')},
+            ),
+        )
         if bridge._phase6_is_box_body_physical_piece_key(key):
             profiles = {'X': bridge.clone_profile(app.state.profiles.get('X', [])), 'Y': bridge.clone_profile(app.state.profiles.get('Y', []))}
             if bridge._phase6_is_side_back_editable_piece_key(key):
@@ -121,23 +108,24 @@ class Phase6PartSessionOwner:
                 # Only the *already committed* live Receiving dimensions may
                 # replace them during a Settings-only Part save.
                 values.update(receiving_settings_whd)
-            if app._phase6_input_snapshot.get('receiving_quantity_box') and app._phase6_input_snapshot.get('active_mode') == 'quantity':
-                values.update({axis: float(app._phase6_input_snapshot['receiving_quantity_box'][axis]) for axis in ('w', 'h', 'd')})
+            quantity_dimensions = (
+                bridge.manufacturing_api.project_operator_quantity_box_dimensions(
+                    app._phase6_input_snapshot,
+                )
+            )
+            if quantity_dimensions is not None:
+                values.update(quantity_dimensions)
             bridge._phase6_store_editor_values(app, values, notify=notify)
             app._phase6_input_snapshot['endcap_fw'] = bridge.deepcopy(app._phase6_endcap_fw_state)
             bridge._phase6_rebuild_linked_endcaps(app)
             return
-        if (key == 'base_plate'
-                and str(app._phase6_input_snapshot.get('model') or '').strip()
-                in {'受電箱', 'RECEIVING'}):
-            from ae_engine.receiving_base_plate_3d_profiles import (
-                receiving_base_plate_3d_profiles,
+        if key == 'base_plate':
+            physical = bridge.manufacturing_api.project_operator_receiving_base_plate_save_profiles(
+                app._phase6_input_snapshot, key,
             )
-            physical = receiving_base_plate_3d_profiles(app._phase6_input_snapshot)
             if physical is not None:
-                # Source-owned folds are read-only derived projections. Saving
-                # an old generic editor buffer would revive a wrong sheet when
-                # the operator next selects this part or saves the project.
+                # Save exact source-owned physical folds; never reuse a stale
+                # generic editor buffer as an NFB manufactured sheet.
                 app.designer_workspace.stash_profiles(key, physical)
                 return
         profiles = {'X': bridge.clone_profile(app.state.profiles.get('X', [])), 'Y': bridge.clone_profile(app.state.profiles.get('Y', []))}
@@ -151,7 +139,7 @@ class Phase6PartSessionOwner:
                 raise ValueError('封頭/封尾 X 折彎資料不完整')
             fw_item = app._phase6_endcap_fw_state.setdefault(key, {'follow_box': True, 'value': bridge._num(app._phase6_input_snapshot.get('fw', 25), 25)})
             if 'fw' in y:
-                edited_fw = bridge.engine_segment_length_to_ui(y['fw']) if bridge.cabinet_family_policy.endcap_fw_profile_uses_material_dimensions(app._phase6_input_snapshot) else bridge._ui_len(y['fw'].get('len'))
+                edited_fw = bridge.engine_segment_length_to_ui(y['fw']) if bridge.manufacturing_api.operator_endcap_fw_profile_uses_material_dimensions(app._phase6_input_snapshot) else bridge._ui_len(y['fw'].get('len'))
                 effective_before = bridge.resolve_endcap_fw(app._phase6_input_snapshot, key, state=app._phase6_endcap_fw_state)
                 if abs(float(edited_fw) - float(effective_before)) > 1e-09:
                     bridge.commit_endcap_fw(app._phase6_endcap_fw_state, key, edited_fw, box_fw=bridge._num(app._phase6_input_snapshot.get('fw', 25), 25))
@@ -162,13 +150,23 @@ class Phase6PartSessionOwner:
                 values.pop('fw', None)
             else:
                 values = {} if flat_x else {'yl1': bridge._ui_len(x['yl1'].get('len')), 'yr1': bridge._ui_len(x['yr1'].get('len'))}
-            if app._phase6_input_snapshot.get('receiving_quantity_box') and app._phase6_input_snapshot.get('active_mode') == 'quantity':
-                values.update({axis: float(app._phase6_input_snapshot['receiving_quantity_box'][axis]) for axis in ('w', 'h', 'd')})
+            quantity_dimensions = (
+                bridge.manufacturing_api.project_operator_quantity_box_dimensions(
+                    app._phase6_input_snapshot,
+                )
+            )
+            if quantity_dimensions is not None:
+                values.update(quantity_dimensions)
+            # Verify every changed physical outside dimension before writing
+            # project state. No rounding/abs or Quantity-string GUI branches.
+            endcap_dimensions = {
+                axis: bridge.manufacturing_api.normalize_operator_source_dimension(
+                    values[axis], field=axis,
+                )
+                for axis in ('w', 'd') if axis in values
+            }
             bridge._phase6_store_editor_values(app, values, notify=notify)
-            if 'w' in values:
-                app._phase6_box_whd['w'] = float(values['w']) if app._phase6_input_snapshot.get('receiving_quantity_box') else bridge.original.get_int(values['w'])
-            if 'd' in values:
-                app._phase6_box_whd['d'] = float(values['d']) if app._phase6_input_snapshot.get('receiving_quantity_box') else bridge.original.get_int(values['d'])
+            app._phase6_box_whd.update(endcap_dimensions)
             w_text = str(app._phase6_box_whd['w'])
             d_text = str(app._phase6_box_whd['d'])
             if app.v_w.get() != w_text:
@@ -213,12 +211,10 @@ class Phase6PartSessionOwner:
                 widget = getattr(app, name, None)
                 if widget is not None and widget.winfo_manager():
                     widget.pack_forget()
-            from phase6_custom_fold_profiles import build_custom_part_profiles, custom_part_spec
-            from ae_engine.custom_fold_manufacturing import custom_fold_feature_context
             def install_profiles(reset=False):
                 snapshot={**app._phase6_input_snapshot,**app.designer_workspace.snapshot()}
                 profiles=None if reset else app.designer_workspace.profiles_for(key)
-                profiles=profiles or build_custom_part_profiles(snapshot,key)
+                profiles=profiles or bridge.manufacturing_api.build_custom_part_profiles(snapshot,key)
                 app.designer_workspace.stash_profiles(key,profiles)
                 app.state.profiles.update({axis:bridge.clone_profile(profiles[axis]) for axis in ("X","Y")})
                 app.state.struct_mode="standard"
@@ -270,8 +266,8 @@ class Phase6PartSessionOwner:
                     raise ValueError("目前未連接既有 Hole Editor")
                 snapshot={**app._phase6_input_snapshot,**app.designer_workspace.snapshot()}
                 features=app.designer_workspace.features_for(key)
-                spec=custom_part_spec(snapshot,key,profiles=app.designer_workspace.profiles_for(key))
-                surface,width,height,guide=custom_fold_feature_context(spec)
+                spec=bridge.manufacturing_api.custom_part_spec(snapshot,key,profiles=app.designer_workspace.profiles_for(key))
+                surface,width,height,guide=bridge.manufacturing_api.custom_fold_feature_context(spec)
                 def commit():
                     app.designer_workspace.stash_features(key,features)
                     app._load_part_holes(key)
@@ -330,45 +326,33 @@ class Phase6PartSessionOwner:
         # working Bay dimensions, linked Head/Tail and base-plate profiles,
         # then invalidates the certified Divider CROSS. Any pending settings
         # above have already been committed through their own authority.
-        skip_hidden_receiving_assembly_save = (
-            was_non_single
-            and str(getattr(plan, 'previous_active', '') or '') == 'box_body'
-            and str((getattr(app, '_phase6_input_snapshot', {}) or {}).get('model') or '') in {'受電箱', 'RECEIVING'}
-            and (getattr(app, '_phase6_input_snapshot', {}) or {}).get('active_mode') == 'set_bay'
+        # UI supplies raw operator data; Engine decides whether this navigation
+        # can safely suppress an outgoing physical-state save.
+        previous_part = str(getattr(plan, "previous_active", "") or "")
+        endcap_outgoing = bool(plan.save_outgoing and previous_part in {"head", "tail"})
+        operator_dimensions = None
+        if endcap_outgoing:
+            try:
+                operator_dimensions = {
+                    axis: getattr(app, "v_" + axis).get()
+                    for axis in ("w", "h", "d")
+                }
+            except (TypeError, ValueError, KeyError, AttributeError):
+                # Failed reads are not evidence that the editor is unchanged.
+                pass
+        skip_source_save = bridge.manufacturing_api.can_skip_operator_receiving_part_save(
+            getattr(app, "_phase6_input_snapshot", {}) or {},
+            previous_active=previous_part,
+            save_outgoing=plan.save_outgoing,
+            was_non_single=was_non_single,
+            stored_profiles=(
+                app.designer_workspace.profiles_for(previous_part, {}) or {}
+            ) if endcap_outgoing else None,
+            live_profiles=getattr(app.state, "profiles", None) if endcap_outgoing else None,
+            live_dimensions=operator_dimensions,
+            committed_dimensions=getattr(app, "_phase6_box_whd", None),
         )
-        # A no-edit Receiving Head/Tail part navigation is also display-
-        # only. Do not persist the legacy projected EndCap editor on every
-        # switch: commit_editor_values would overwrite current Bay W/H/D and
-        # rebuild BasePlate after a purely visual selection. An *actual*
-        # edited fold profile or dimension must still take the real save path.
-        skip_unchanged_receiving_endcap_save = False
-        if (plan.save_outgoing and not skip_hidden_receiving_assembly_save
-                and str(plan.previous_active) in {'head', 'tail'}):
-            snapshot = getattr(app, '_phase6_input_snapshot', {}) or {}
-            if (snapshot.get('model') in {'受電箱', 'RECEIVING'}
-                    and snapshot.get('active_mode') == 'set_bay'):
-                stored = app.designer_workspace.profiles_for(plan.previous_active, {}) or {}
-                live = getattr(app.state, 'profiles', {}) or {}
-                try:
-                    unchanged_fold = all(
-                        bridge.clone_profile(tuple(live.get(axis, ()) or ()))
-                        == bridge.clone_profile(tuple(stored.get(axis, ()) or ()))
-                        for axis in ('X', 'Y')
-                    )
-                    unchanged_whd = all(
-                        abs(float(getattr(app, 'v_'+axis).get())
-                            - float(app._phase6_box_whd[axis])) <= 1e-9
-                        for axis in ('w', 'h', 'd')
-                    )
-                    skip_unchanged_receiving_endcap_save = (
-                        unchanged_fold and unchanged_whd
-                    )
-                except (TypeError, ValueError, KeyError, AttributeError):
-                    # Unknown editor state is not display-only.
-                    skip_unchanged_receiving_endcap_save = False
-        if plan.save_outgoing and not (
-                skip_hidden_receiving_assembly_save
-                or skip_unchanged_receiving_endcap_save):
+        if plan.save_outgoing and not skip_source_save:
             self.save_current_part()
             pending = getattr(app, '_job', None)
             if pending:

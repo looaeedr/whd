@@ -370,6 +370,7 @@ def worker(args):
     import ezdxf
     import phase6_manufacturing_adapter as adapter
     import phase6_manufacturing_service as service
+    import ae_engine.manufacturing_resolver as engine_resolver
     from ae_engine import manufacturing_api
     from ae_engine import receiving_base_fixing_plate_geometry as fixing_plate_geometry
     from phase6_manufacturing_cache import ManufacturingCacheService
@@ -405,21 +406,23 @@ def worker(args):
         probe.observe_primary_authoritative_render(app)
         from gui_modules.application.state_sync import Phase6DerivedCacheOwner
         probe.observe_derived_invalidation(Phase6DerivedCacheOwner)
-        # Specialty source-flat fixing plates and the service's imported replay
-        # alias are not covered by the five manufacturing_api entrypoints.
+        # Specialty source-flat fixing plates and the service's imported
+        # canonical EndCap replay alias are not in the five material builders.
+        # Phase6 no longer imports build_part_render_data: observe the actual
+        # public Engine replay callable that _replay_endcap_render invokes.
         probe.observe_supplemental_material_factory(
             fixing_plate_geometry, 'build_fixing_plate_source_render_data',
             'fixing_plate_source_flat', part_id=True)
         probe.observe_supplemental_material_factory(
-            service, 'build_part_render_data', 'service_relief_replay_material')
-        probe.wrap(service, '_replay_endcap_render', 'relief_replay_requests')
+            engine_resolver, 'replay_resolved_endcap_render', 'service_relief_replay_material')
+        probe.wrap(engine_resolver, '_replay_endcap_render', 'relief_replay_requests')
         for factory in ('build_part_render_data',
                         'build_box_body_structure_render_data',
                         'build_box_body_divider_render_data',
                         'build_inner_door_panel_render_data',
                         'build_inner_door_frame_render_data'):
             probe.observe_material_factory(manufacturing_api, factory)
-        probe.observe_world_skin(service, '_phase6_build_joint_world_geometry')
+        probe.observe_world_skin(engine_resolver, 'build_joint_world_geometry')
         probe.wrap(adapter, '_domain_inputs_for_part', 'part_materialization', part_arg=1)
         probe.wrap(Phase6FinalSceneRenderer, 'render', 'scene_render')
         probe.wrap(FigureCanvasTkAgg, 'draw', 'canvas_draw')
@@ -1068,6 +1071,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', required=True)
     parser.add_argument('--samples', type=int, default=3)
+    parser.add_argument('--bay-scope', type=int, choices=(1, 3), default=None,
+                        help='Run exactly one Bay size on this isolated runner; default preserves both')
+    parser.add_argument('--sample-index', type=int, default=None,
+                        help='Run only this original worker index on an isolated runner; default preserves all samples')
     parser.add_argument('--cycles', type=int, default=10)
     parser.add_argument('--memory-interval-ms', type=int, default=50,
                         help='RSS polling interval; sampled maximum is NOT exact peak')
@@ -1080,6 +1087,10 @@ def main():
     args = parser.parse_args()
     if min(args.samples, args.cycles) < 1:
         parser.error('samples and cycles must be positive')
+    if args.sample_index is not None and not 0 <= args.sample_index < args.samples:
+        parser.error('sample-index must be in the declared sample range')
+    if args.sample_index is not None and args.bay_scope is None:
+        parser.error('isolated sample-index requires an explicit bay-scope')
     if not 10 <= args.memory_interval_ms <= 1000:
         parser.error('memory-interval-ms must be between 10 and 1000')
     output = Path(args.output).resolve()
@@ -1095,6 +1106,7 @@ def main():
                     config_sha256=hashlib.sha256((ROOT/'config.ini').read_bytes()).hexdigest(),
                     harness_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                     samples=args.samples, cycles=args.cycles,
+                    bay_scope=args.bay_scope, sample_index=args.sample_index,
                     memory_interval_ms=args.memory_interval_ms,
                     memory_peak_definition='maximum sampled RSS, not instantaneous peak',
                     os_highwater_definition='VmHWM kernel lifetime process RSS peak; not operation-local; null when unsupported',
@@ -1105,8 +1117,8 @@ def main():
     #1817: run the dependency-sensitive 3-Bay worker first so a RED
     # assertion fails before paying for three unrelated 1-Bay samples.
     # Both worker families and all samples/cycles still execute on GREEN.
-    for bays in (3,1):
-        for sample in range(args.samples):
+    for bays in ((args.bay_scope,) if args.bay_scope is not None else (3, 1)):
+        for sample in ((args.sample_index,) if args.sample_index is not None else range(args.samples)):
             journal=output.with_name(f'{output.stem}-b{bays}-s{sample}.jsonl')
             journal.write_text('',encoding='utf-8')
             command=[sys.executable,__file__,'--worker','--bays',str(bays),
