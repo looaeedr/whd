@@ -837,6 +837,22 @@ When the saved NFBConfig has no independent approved world X, WHD's original nat
 Regression: `tests/test_issue2517_receiving_csv_editor_public_engine_api.py`; existing live editor test `tests/test_issue1504_live_second_nfb_main_canvas.py` retains preview/undo/Cancel/Confirm behavior.
 
 
+### #2517 Receiving NFB complete headless request → FinalScene → DXF (2026-11-06)
+
+`manufacturing_api.export_current_csv_nfb_pair_from_request(request, *, output_directory)` accepts the **existing immutable** `ManufacturingResolveRequest` (including saved current Receiving Set/Bay NFBConfig and original physical Door/BasePlate render inputs). It first verifies a selected, actually committed physical NFB source, then runs the **same** public `resolve_manufacturing_request(request)` used by WHD GUI. The normal Engine resolver creates source-bound NFB CUTTING on installed original physical sheets; the original `export_current_csv_nfb_door_base_pair` then independently verifies the current FinalScene, physical installation XYZ, brand CSV bytes, original part IDs/CHECK Q and each staged DXF Save→Reload before atomic publication. This allows WHD GUI and a headless CADSplit Python adapter to share the same real request/result contract **without the external client preassembling `assembly_parts` or manufacturing CSV CUTTING itself**.
+
+The output is the existing typed `NfbCsvPairedPartOnlyDxf` (1 tier: door + 1 base) or `NfbCsvTwoTierPartOnlyDxf` (2 tiers: door + 2 bases). This **does not** derive original PartSpec/render inputs from raw source-only DXF/CSV, invent or confirm world X, approve EAR/PAD weld/whole-cabinet MFG-2, or enable `integration_cli` source-only wire manufacture. Original part inputs and fully committed current sources are mandatory; invalid/partial source fails before DXF. See `tests/test_issue2517_nfb_pair_request_to_finalscene_dxf_public_api.py`.
+
+Minimal contract:
+
+```python
+from ae_engine import export_current_csv_nfb_pair_from_request
+verified_part_only = export_current_csv_nfb_pair_from_request(
+    current_manufacturing_request, output_directory=existing_output_directory,
+)
+# source-verified physical parts are individually reopened, NOT a whole cabinet release
+```
+
 ### #2517 Receiving CSV NFB committed-source Apply transaction (2026-11-04)
 
 `manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)` performs the existing CSV NFB provenance query, mixed CUTTING guard and Bay-specific identity replacement atomically inside WHD Engine. The source must contain exactly one valid physical inner-door NFB CSV candidate; it rejects invalid/bool/out-of-range/duplicate Set/Bay selections, stale/missing CSV hole source and mixed non-NFB CUTTING. The original editor contour must match the *exact four-corner opening from the same current CSV model*, allowing only its true rotation, operator translation, and cyclic/reversed point order; sheared, stretched or crossed rectangles cannot become a submitted source even with a genuine brand SHA. The same physical contour comparator is used by native Candidate Apply and the later canonical FinalScene recovery. It returns a detached Receiving layout without mutating caller input or siblings and preserves `UNVERIFIED_BASIS` for unconfirmed horizontal X. This is **source-only candidate assignment**, not authorization of physical X/CUTTING, a manufacturing output, source-only external export or DXF certification. The canonical entry is available through both `from ae_engine import apply_receiving_nfb_csv_candidate` and `from ae_engine.manufacturing_api import apply_receiving_nfb_csv_candidate`; both names refer to the **same** Engine function. CADSplit's current source bridge calls this atomic Engine operation when available, retaining older three-port fallback only for older Engine versions; this does not establish Windows end-to-end UAT.
