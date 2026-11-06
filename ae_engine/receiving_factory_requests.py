@@ -112,6 +112,75 @@ def _confirmed_base_plate_source_features(raw):
         raise ValueError(code) from exc
 
 
+_PHYSICAL_BOX_BODY_ROLES = frozenset((
+    "box_body:left_side", "box_body:back", "box_body:right_side",
+))
+
+
+def _confirmed_saved_box_body_piece_features(values, confirmed, *, confirmation):
+    """Verify original physical-sheet CUTTING before constructing a Body spec.
+
+    These are material-sheet UV features, unlike finished-face BoxBody
+    features. The existing physical-sheet FinalScene resolver owns
+    placement and outline validation. Never silently omit saved holes or
+    accept unconfirmed physical features from a persisted snapshot.
+    """
+    code = "RECEIVING_FACTORY_BOX_BODY_PIECE_FEATURE_SOURCE_UNCONFIRMED"
+    if confirmation != "saved_operator_confirmed":
+        if confirmed is not None:
+            raise ValueError("RECEIVING_FACTORY_BOX_BODY_FEATURES_REQUIRE_SAVED_OPERATOR")
+        return {}
+    try:
+        if values.get("box_body_face_features"):
+            # Different finished-face source space. Its certification is not
+            # covered by a physical-sheet UV confirmation.
+            raise ValueError("RECEIVING_FACTORY_BOX_BODY_FACE_SOURCE_UNCONFIRMED")
+        stored_parts = values.get("part_features", {})
+        explicit = values.get("physical_piece_features")
+        if not isinstance(stored_parts, Mapping):
+            if confirmed is not None or explicit is not None:
+                # An explicit Body request cannot trust an unreadable store.
+                raise ValueError(code)
+            # No BoxBody physical source was supplied. Leave malformed Door
+            # and BasePlate saved-state diagnostics to their original owners.
+            return {}
+        if stored_parts.get("box_body"):
+            raise ValueError("RECEIVING_FACTORY_BOX_BODY_FACE_SOURCE_UNCONFIRMED")
+        legacy = {
+            key: rows for key, rows in stored_parts.items()
+            if isinstance(key, str) and key.startswith("box_body:")
+        }
+        if explicit is not None and not isinstance(explicit, Mapping):
+            raise ValueError(code)
+        if explicit is not None and legacy:
+            for key in set(explicit) | set(legacy):
+                a, b = explicit.get(key, ()), legacy.get(key, ())
+                if not isinstance(a, (list, tuple)) or not isinstance(b, (list, tuple)):
+                    raise ValueError(code)
+                if tuple(a) != tuple(b):
+                    raise ValueError(code)
+        original = explicit if explicit is not None else legacy
+        for role, rows in original.items():
+            if role not in _PHYSICAL_BOX_BODY_ROLES and rows:
+                raise ValueError(code)
+            if not isinstance(rows, (tuple, list)):
+                raise ValueError(code)
+        physical = _confirmed_finished_face_cutting_features(
+            confirmed, allowed_roles=_PHYSICAL_BOX_BODY_ROLES, invalid_code=code,
+        )
+        for role in _PHYSICAL_BOX_BODY_ROLES:
+            saved_rows = original.get(role, ())
+            if not isinstance(saved_rows, (tuple, list)) or tuple(saved_rows) != physical.get(role, ()):
+                raise ValueError(code)
+        return physical
+    except (AttributeError, TypeError, ValueError, OverflowError) as exc:
+        if isinstance(exc, ValueError) and str(exc) in (
+            code, "RECEIVING_FACTORY_BOX_BODY_FACE_SOURCE_UNCONFIRMED",
+        ):
+            raise
+        raise ValueError(code) from exc
+
+
 def _source_dimensions(value: Mapping[str, object]) -> dict[str, float]:
     """Accept only original-source OUTSIDE W/H/D/T; never factory values."""
     if not isinstance(value, Mapping) or set(value) != _SOURCE_KEYS:
@@ -360,6 +429,7 @@ def build_receiving_factory_confirmed_parts(
     confirmed_door_features: Mapping[str, object] | None = None,
     include_confirmed_base_plate: bool = False,
     confirmed_base_plate_features: Mapping[str, object] | None = None,
+    confirmed_box_body_piece_features: Mapping[str, object] | None = None,
 ):
     """Resolve a confirmed Receiving P1/Bay's Body, Head and Tail via WHD Engine.
 
@@ -420,6 +490,12 @@ def build_receiving_factory_confirmed_parts(
             source, operator_snapshot
         )
 
+    confirmed_body_pieces = _confirmed_saved_box_body_piece_features(
+        values, confirmed_box_body_piece_features, confirmation=confirmation,
+    )
+    # Force the BoxBody owner to consume only source-confirmed sheets even
+    # when a legacy saved snapshot contained extra, untrusted physical data.
+    body_snapshot = {**values, "physical_piece_features": confirmed_body_pieces}
     body = build_box_body_operator_part_spec(
         values, model_name=_FAMILY,
         fold_profile=body_rows,
@@ -427,7 +503,8 @@ def build_receiving_factory_confirmed_parts(
         endcap_y_profiles={
             part: folds[part]["Y"] for part in ("head", "tail")
         },
-        snapshot=values,
+        source_part_features=confirmed_body_pieces,
+        snapshot=body_snapshot,
     )
 
     # Supply only cabinet dimensions and the Engine-owned BoxBody datum to the
