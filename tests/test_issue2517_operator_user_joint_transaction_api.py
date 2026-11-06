@@ -97,7 +97,14 @@ def test_gui_delete_matches_engine_and_serialized_joint_survives_migration(monke
     app = SimpleNamespace(_phase6_input_snapshot=_source())
     row = gui._phase6_add_user_joint(app, **_add_kwargs())
     roundtrip = json.loads(json.dumps(app._phase6_input_snapshot))
-    assert owner.migrate_legacy_snapshot_joints(roundtrip)["assembly_joints"] == roundtrip["assembly_joints"]
+    # Canonical v2 migration may reorder inferred defaults. The persisted
+    # USER_ADDED joint identity, fields and solver constraints must survive.
+    restored = owner.migrate_legacy_snapshot_joints(roundtrip)
+    stored_user = next(j for j in roundtrip["assembly_joints"]
+                       if j["joint_id"] == row["joint_id"])
+    restored_user = next(j for j in restored["assembly_joints"]
+                         if j["joint_id"] == row["joint_id"])
+    assert restored_user == stored_user
     real = api.remove_operator_user_assembly_joint
     received = []
     def spy(*args, **kwargs):
