@@ -240,6 +240,27 @@ def export_current_csv_nfb_door_base_pair(
         return existing
     actual_door = exact_scene(door.part_id, door.render_data)
     actual_base = exact_scene(base.part_id, base.render_data)
+    # Scene geometry parity alone does not prove that this physical base is
+    # still installed under the selected door. A caller can supply an old
+    # cached 3D assembly with identical local CUTTING after a Bay/height/depth
+    # change. Two-tier pair export already checks each base's installed XYZ;
+    # require the same current Engine placement for the one-tier base before
+    # releasing either staged manufacturing DXF.
+    from .assembly_placement import resolve_assembly_placement
+    from math import isfinite
+
+    installed_base = next(p for p in parts if p.part_key == base.part_id)
+    actual_offset = getattr(installed_base, "offset", None)
+    expected_offset = resolve_assembly_placement(
+        snapshot, base.part_id,
+    ).world_offset
+    if (not isinstance(actual_offset, (tuple, list))
+            or len(actual_offset) != 3
+            or any(type(value) not in (int, float)
+                   or not isfinite(value) for value in actual_offset)
+            or any(abs(float(actual) - float(expected)) > 1e-6
+                   for actual, expected in zip(actual_offset, expected_offset))):
+        raise ValueError("CSV_PAIR_REAL_BASE_INSTALL_XYZ_MISMATCH")
     checked = check_csv_v5_base_part_only_groups((
         CsvV5BaseCheckDemand(
             namespace, base, 1,
