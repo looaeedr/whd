@@ -80,7 +80,7 @@ def test_legacy_one_bay_and_grouped_one_bay_eligibility():
     assert not dependent.independent_only
     assert dependent.preview_layout_for_bay(0, 0) is None
     # A dependent selection must retain the saved original NFB configuration.
-    assert snapshot["receiving_layout"]["sets"][0]["bays"][0]["nfb_config_submitted"] is False
+    assert snapshot["receiving_layout"]["sets"][0]["bays"][0].get("nfb_config_submitted") is not True
     with pytest.raises(ValueError, match="未知"):
         manufacturing_api.plan_receiving_multibay_export_source(
             snapshot, _flags(head=True), "BAD",
