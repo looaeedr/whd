@@ -22,7 +22,6 @@ from ae_engine.contracts import (
 from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
 from phase6_fold_profiles import (
     engine_segment_length_to_ui,
-    formed_box_body_fw_widths,
     profile_to_fold_segments,
 )
 
@@ -84,6 +83,7 @@ def _end_cap_part_spec_from_values(
     self, val, *, model_name, is_tail, holes, corner_policy=None, fold_profiles=None,
     depth_comp_t=None, resolved_assembly_relief_cuts=(),
     box_body_formed_fw_left=None, box_body_formed_fw_right=None,
+    box_body_fold_profile=None,
     box_body_structure_state=None, endcap_bottom_wrap_state=None, assembly_joints=None,
 ):
     """Collect operator/committed state; Engine owns physical EndCap PartSpec."""
@@ -106,6 +106,7 @@ def _end_cap_part_spec_from_values(
         resolved_assembly_relief_cuts=resolved_assembly_relief_cuts,
         box_body_formed_fw_left=box_body_formed_fw_left,
         box_body_formed_fw_right=box_body_formed_fw_right,
+        box_body_fold_profile=box_body_fold_profile,
         box_body_structure_state=box_body_structure_state,
         endcap_bottom_wrap_state=endcap_bottom_wrap_state,
         assembly_joints=assembly_joints,
@@ -149,9 +150,6 @@ def _end_cap_part_spec(self, val, *, is_tail):
         local_val, stored_profiles, self._current_box_assembly_type(), key
     )
     resolved_cuts = self._resolved_committed_assembly_relief_cuts(key, local_val, stored_profiles)
-    formed_fw_left, formed_fw_right = formed_box_body_fw_widths(
-        self.workspace_controller.box_body_profile() or (), local_val.get("t", 0.0)
-    )
     return self._end_cap_part_spec_from_values(
         local_val, model_name=self._baseline_source_model(), is_tail=is_tail,
         holes=(self.tail_holes if is_tail else self.head_holes),
@@ -161,8 +159,7 @@ def _end_cap_part_spec(self, val, *, is_tail):
         fold_profiles=stored_profiles,
         depth_comp_t=self._endcap_depth_comp_t_for_family(self._baseline_source_model()),
         resolved_assembly_relief_cuts=resolved_cuts,
-        box_body_formed_fw_left=formed_fw_left,
-        box_body_formed_fw_right=formed_fw_right,
+        box_body_fold_profile=self.workspace_controller.box_body_profile() or (),
         box_body_structure_state=self.workspace_controller.box_body_structure_state(),
     )
 
