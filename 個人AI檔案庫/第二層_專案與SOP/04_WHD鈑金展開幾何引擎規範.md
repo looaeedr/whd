@@ -12,6 +12,13 @@ whd_schema: WHD_DOC_META_V1
 - Fold Designer 的候選 `inner_validate_quantity` 改用公開 `manufacturing_api.validate_receiving_inner_door_allocation`（原 `receiving_inner_door_pairing.validate_inner_door_allocation` 原件），版本標籤改用既有 `receiving_candidate_version_label`，GUI 不再直接 import 這兩個 Engine 內部 owner。單 Bay／數量 Apply 仍走原本 Engine 原子 Set-Bay 交易；未授權未確認 NFB world X／CUTTING／FinalScene／DXF、未放行 source-only CLI。驗收 `tests/test_issue2517_inner_door_candidate_source_public_api.py` 檢查 Vault 無關的 Receiving 舊 DXF／V5 型號、跨品牌失效、兩孔不去重、配置拒絕、GUI 同源，#2517／Windows 實機驗收仍未全部完成。
 
 
+## [CURRENT] #2517 Receiving 共用設定相同 Bay 與品牌清單只由 Engine 投影（2026-11-06）
+
+- 受電箱「每連設定／共用設定」GUI 原本 `receiving_set_bay_controls._build_receiving_settings_editor.refresh` 直接 import `receiving_shared_settings.setting_value`，自行逐 Bay 掃相同值，並從私有 `receiving_switch_layout.RECEIVING_SWITCH_BRANDS` 取得候選品牌。這類包含實體 Set/Bay 儲存值與連動共用設定來源的業務判斷必須由 Engine 直接提供；GUI 僅留中文標示、顯示高亮、待操作選取與 Call API。
+- 在原 Engine 共用設定 owner 增加唯讀 `project_receiving_shared_setting_group(set_row, bay_index, kind, *, preview_value=未傳)`，回傳獨立已驗證值與**零起算真實 Bay 索引 tuple**，重用原 `setting_value`／`validate_setting`，只比較實際儲存參照／輸入值，不重建來源幾何或修改保存狀態。使用者暫選 `back_panel_mode`／`inner_door_layers` 時可提交明確 preview 值；不傳與明確傳 `None` 不可混淆。索引非法、錯型、未知設定均 fail closed，來源 dict 在任何預覽後不變。品牌欄使用 `manufacturing_api.receiving_operator_switch_brand_choices`，來源仍唯一為原 Engine `RECEIVING_SWITCH_BRANDS`。
+- 正式 `edit_receiving_shared_setting_for_bays`、`share_receiving_shared_setting`、`unlink_receiving_shared_setting` 的實體 Bay 原子交易仍為唯一 owner，UI 不自行更改參照；維持原欄位預覽、中文索引及原操作。此唯讀投影不增加任何 NFB 來源認證、FinalScene／CUTTING、DXF、Save→Reload 放行；#2517 與 Windows 全範圍實機 UAT 尚未結案。
+
+
 ## [CURRENT] #2517 原生 NFB CSV 已提交來源的雙實體孔位身份不可矛盾（2026-11-06）
 
 - `ae_engine.receiving_nfb_committed_final_scene._source_world_x_from_committed_editor_feature` 會從原 Hole Editor `NFB_CSV_SOURCE` 恢復操作者已放置的 world X，以相同正式 `FinalScene` 進行 2D／3D／DXF。既有合法來源可以**僅有**實體 `hole_id`，或僅有 `layer_index/slot_index`；但當兩組同時存在時必須指向**同一顆**實體孔，不能因 `hole_id` 符合就跳過另一組相反的來源槽位，更不能讓 bool、缺半組 tier/slot 借到相同數值的實體身分。

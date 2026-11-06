@@ -394,16 +394,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     if dialog_kind == "single":
         brand_row.pack(anchor="w", pady=(0, 8))
     ttk.Label(brand_row, text="NFB").pack(side="left", padx=(0, 8))
-    brand_var = tk.StringVar(master=win, value=get_brand() if get_brand else "士林")
-    from ae_engine.receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+    brand_choices = manufacturing_api.receiving_operator_switch_brand_choices()
+    brand_var = tk.StringVar(master=win, value=get_brand() if get_brand else brand_choices[0])
     brand_selector = ttk.Combobox(
-        brand_row, textvariable=brand_var, values=RECEIVING_SWITCH_BRANDS,
+        brand_row, textvariable=brand_var, values=brand_choices,
         state="readonly", width=8,
     )
     brand_selector.pack(side="left")
     def apply_brand(_event=None):
         if set_brand is not None:
-            previous = get_brand() if get_brand else "士林"
+            previous = get_brand() if get_brand else brand_choices[0]
             proposed = brand_var.get()
             # Do not short-circuit same displayed Set brand: the one global
             # Set/Bay selector may still need to update other Sets that carry
