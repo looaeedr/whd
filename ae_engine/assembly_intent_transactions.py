@@ -77,3 +77,27 @@ def commit_assembly_intent_state(
     )
 
 
+
+
+def commit_box_assembly_joint_state(
+    prior_state: Mapping[str, object] | None,
+    type_id: object,
+    *,
+    available_parts,
+) -> dict[str, object]:
+    """Commit main GUI's independent Joint state through the canonical Engine.
+
+    Unlike persisted project AssemblyIntentTransition, the main window Joint
+    workspace explicitly keeps its active physical parts.  Legacy snapshots
+    must use the operator's newly selected intent at migration time, before
+    the normal v2 intent sync.  The input is detached and never partially
+    modified on invalid values.
+    """
+    stable = normalize_assembly_intent_id(type_id)
+    state = deepcopy(dict(prior_state or {}))
+    state["existing_parts"] = list(available_parts)
+    if not state.get("assembly_joint_schema_version"):
+        state["assembly_type"] = stable
+        from .assembly_joint import migrate_legacy_snapshot_joints
+        state = migrate_legacy_snapshot_joints(state)
+    return sync_snapshot_intent_joints(state, stable)

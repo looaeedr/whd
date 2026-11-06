@@ -746,14 +746,11 @@ class Phase6ApplicationHost:
             parts = tuple(self._phase6_current_existing_parts())
         except Exception:
             parts = ("box_body", "head", "tail")
-        state = dict(getattr(self, "assembly_joint_state", {}) or {})
-        state.setdefault("existing_parts", list(parts))
-        state["existing_parts"] = list(parts)
-        if not state.get("assembly_joint_schema_version"):
-            state["assembly_type"] = stable
-            state = migrate_legacy_snapshot_joints(state)
-        state = sync_snapshot_intent_joints(state, stable)
-        self.assembly_joint_state = state
+        # Commit one detached, Engine-validated Joint workspace transaction.
+        self.assembly_joint_state = manufacturing_api.commit_operator_box_assembly_joint_state(
+            getattr(self, "assembly_joint_state", {}) or {},
+            stable, available_parts=parts,
+        )
         label = assembly_intent_label(stable)
         if self.box_assembly_type_var.get() != label:
             self.box_assembly_type_var.set(label)

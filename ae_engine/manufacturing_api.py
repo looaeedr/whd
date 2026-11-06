@@ -615,6 +615,10 @@ from .assembly_joint import (
     joint_relief_state_item_matches, resolve_manufacturing_joint_graph,
 )
 from .assembly_joint import joint_registry_diagnostic_info
+# Main-window AssemblyJoint workspace commit is an Engine transaction.
+from .assembly_intent_transactions import (
+    commit_box_assembly_joint_state as commit_operator_box_assembly_joint_state,
+)
 
 # Operator-added AssemblyJoint creation/removal commits are copy-on-write
 # transactions from the canonical Joint owner.  GUI cannot construct joints.
