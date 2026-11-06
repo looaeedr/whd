@@ -26,6 +26,26 @@ def _host(raw, *, display=None):
     visited = []
     # Display may have already substituted incorrect physical groups.
     normalized = display if display is not None else _state()
+
+    def engine_door_spec(vals, **kwargs):
+        # The GUI now forwards the untouched cell; this spy must validate and
+        # materialize the real Engine PartSpec before recording a successful
+        # physical request, not assume GUI-precomputed indicator_hole kwargs.
+        complete = {
+            **vals,
+            "door_gap_w": 2.0, "door_gap_h": 2.0,
+            "door_fold_l": 12.0, "door_fold_r": 12.0,
+            "door_fold_t": 12.0, "door_fold_b": 12.0,
+        }
+        spec = api.build_door_operator_part_spec(complete, **kwargs)
+        visited.append(("door", vals, kwargs))
+        return {
+            "indicator_hole": spec.indicator_hole,
+            "door_indicator": spec.door_indicator,
+            "door_indicator_offset": spec.door_indicator_offset,
+            "features": kwargs["features"],
+        }
+
     host = SimpleNamespace(
         door_layout_indicator_states={"0:0": raw},
         _door_layout_cell_key=lambda cell: "0:0",
@@ -34,7 +54,7 @@ def _host(raw, *, display=None):
         _baseline_source_model=lambda: "金庫型",
         _manual_corner_policy=lambda *a: None,
         _door_material_frame_width=lambda fw, t: fw,
-        _door_part_spec_from_values=lambda vals, **kw: visited.append(("door", vals, kw)) or kw,
+        _door_part_spec_from_values=engine_door_spec,
         get_door_layout_cells=lambda: (CELL,),
         _manufacturing_context=lambda *, draw_stock: "engine-context",
         _validate_door_layout_indicator_fit=lambda cell, state, vals:
@@ -106,8 +126,11 @@ def test_missing_real_cell_does_not_export_repaired_display(tmp_path):
 def test_gui_export_and_door_part_spec_have_no_manufacturing_group_cast():
     a = inspect.getsource(adapter._door_layout_part_spec)
     b = inspect.getsource(export.export_multi_door_indicator_box_parts)
+    # Door PartSpec itself now performs the Engine validation; the separate
+    # independent Box exporter still consumes the same Engine source gate.
+    assert "indicator_source_state=raw" in a
+    assert "project_operator_door_cell_indicator_manufacturing_source(" in b
     for source in (a, b):
-        assert "project_operator_door_cell_indicator_manufacturing_source(" in source
         assert "max(1, min(6, int(" not in source
         assert "tuple(int(v)" not in source
 
