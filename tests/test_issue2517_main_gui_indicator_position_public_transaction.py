@@ -158,4 +158,5 @@ def test_live_gui_does_not_call_internal_door_position_owner():
     assert "    measure_door_indicator_position," not in source_text
     assert "    door_indicator_offset_for_position," not in source_text
     assert "manufacturing_api.project_operator_door_indicator_position(" in source_text
+    assert "measure_door_indicator_position = manufacturing_api.project_operator_door_indicator_position" in source_text
     assert "manufacturing_api.propose_operator_door_indicator_offset_candidate(" in source_text

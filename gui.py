@@ -127,6 +127,7 @@ from ae_engine.sheetmetal_part_adapters import (
 
 # Stable compatibility names consumed by HoleEditorCompositionDependencies.
 # Always pass public Engine geometry ownership into UI/session controllers.
+measure_door_indicator_position = manufacturing_api.project_operator_door_indicator_position
 feature_with_reference_anchor = manufacturing_api.operator_hole_feature_with_reference_anchor
 feature_with_process = manufacturing_api.operator_hole_feature_with_process
 move_feature_by_reference_distance = manufacturing_api.operator_hole_move_feature_by_reference_distance
