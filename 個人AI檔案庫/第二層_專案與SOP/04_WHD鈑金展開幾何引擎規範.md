@@ -12,6 +12,12 @@ whd_schema: WHD_DOC_META_V1
 - 原 Engine `receiving_nfb_v5_source_preview` 新增唯讀公開 `manufacturing_api.project_receiving_nfb_v5_model_catalog_snapshot(brand)`（`ae_engine` 根包同一 callable）；以 `receiving_nfb_numeric_catalog.brand_csv_path` 原來源，取真正 CSV 完整位元組 SHA-256；沿用既有 `numeric_model_refs`／CSV schema 解析，讀取前後位元組不同即拒絕。回傳不可變 `ReceivingNfbV5ModelCatalogSnapshot`，只包含廠牌／SHA／原本的型號參照與 `manufacturing_ready=False`。
 - GUI 只消費公開來源快照以 `(brand, source_sha256)` 做 UI 快取；錯誤／缺失清空顯示清單及舊簽章，下次輪詢重試，不自造品牌、模型或 DXF。回歸 `tests/test_issue2517_receiving_nfb_catalog_content_sha_public_api.py` 使用真 CSV 同大小同 mtime 替換、錯誤表頭、解析中替換及 GUI 公開 API seam。此預覽資料不認證實體 NFB world-X、CUTTING／FinalScene、製造 DXF 或 Save→Reload；#2517 與 Windows UAT 仍 OPEN。
 
+## [CURRENT] #2517 受電箱已確定實體 Bay W/H/D 同尺寸分組歸公開 Engine（2026-11-06）
+
+- 原 `receiving_multi_settings_window.dimension_group_summary` 在 GUI 把持久化 Bay 的 W/H/D 轉成 float 並自行決定哪些真實盤為同尺寸，這是已保存物理來源的業務分類而非 Canvas 縮放規則。本次將該規則遷至原 `ae_engine.receiving_layout.project_receiving_bay_dimension_groups`，透過 `manufacturing_api` 與根包公開同一函式；GUI 僅提交原 Bay 清單、顯示已確定尺寸／數量。
+- Engine 重用原 `_number` 查驗各實體 Bay 寬／高／深為正且有限、非布林的來源值；回傳依第一個出現順序排列的 `((W,H,D), (零起算真實 Bay 索引...))`，保留不相鄰的同尺寸不同盤身分，不修改持久化 Set/Bay。實際修改每連尺寸仍走原 Engine 寫入交易；分組投影不是 CUTTING／NFB／FinalScene／2D／3D／DXF 製造認證。
+- 新 headless／GUI seam 測試涵蓋真三 Bay、同尺寸跨位置、不同軸分組、非法來源拒絕與無副作用。本項完成不代表 #2517 整體及 Windows 實機驗收結案。
+
 ## [CURRENT] #2517 Receiving NFB 內門型號層序列化與品牌選項共用公開 Engine（2026-11-06）
 
 - Fold Designer 的 NFB 單／雙層 model-slot preview、Confirm、取消差異原直接匯入內部 receiving_shared_settings 的 switch_filenames_in_layer/pack_switch_layer。本次 manufacturing_api.receiving_nfb_switch_filenames_in_layer 和 pack_receiving_nfb_switch_layer 直接公開既有相同 Engine callable，ae_engine 根包也只重匯同一 owner；不新增任何 GUI 型號公式。
