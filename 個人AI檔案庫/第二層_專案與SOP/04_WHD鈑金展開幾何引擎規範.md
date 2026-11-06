@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱實體底板設定改由公開 Engine 原子提交（2026-11-07）
+
+- 原 GUI `receiving_base_plate_settings_transaction.commit_receiving_base_plate_settings` 已經先調用 `manufacturing_api.validate_receiving_base_plate_settings` 驗證實體底板收縮、折邊與焊接 EAR 孔，但隨後在 GUI 直接修改已保存 `receiving_base_plate` 並執行失敗回滾。這個來源交易會影響 PartSpec／FinalScene／CUTTING，不該由 UI 決定寫入。
+- 正式 `manufacturing_api.commit_operator_receiving_base_plate_settings`（`ae_engine` 根包亦公開）委託原 `receiving_base_plate_settings_validation` owner：先驗證 Family／底板配置／真實焊耳孔，再於原專案 snapshot 提交或移除這一個物理選擇。Headless 客戶端可不傳通知；GUI 僅傳已存在的 update callback，若 callback 失敗則還原原本欄位存在性與原物件身分，非法 callback／Family／EAR 來源在寫入前拒絕。回傳 detached 接受結果，不把 GUI 視為第二份幾何權威。
+- 舊 GUI 入口維持同一參數以相容原 3D 設定按鈕，但僅 forwarding。測試涵蓋直接 API／GUI 成功提交與明確取消一致、非法輸入未改來源、callback 失敗且 rollback 不破壞原物件及 GUI AST 無物理設定寫入。底板材料尺寸、LEFT／CENTER／RIGHT 焊耳座標公式、2D／3D／DXF 真實製造與驗證條件未修改；仍需 exact-SHA Product Regression。#2517 全功能／Windows GUI 操作 UAT 仍未結案。
+
+
 ## [CURRENT] #2517 FinalScene 使用者新增 Joint 實體板件資格改由公開 Engine 投影（2026-11-07）
 
 - Fold Designer 的 `FinalSceneCompositionPorts.user_joint_parts` 原在 GUI 取已遷移快照後自行比較 `AssemblyJointSource.USER_ADDED` 並解析 subject／target。這決定哪個實體板件進入正式 resolved geometry，屬 Manufacturing Joint 來源資格，不是 GUI 呈現邏輯。

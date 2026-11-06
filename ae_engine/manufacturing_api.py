@@ -1535,6 +1535,19 @@ def validate_receiving_base_plate_settings(
         config=config,
     )
 
+def commit_operator_receiving_base_plate_settings(
+    *, input_snapshot, settings_values, config, submit_geometry_update=None,
+):
+    """Public Engine transaction for one validated physical Base Plate choice."""
+    from .receiving_base_plate_settings_validation import (
+        commit_receiving_base_plate_settings as commit,
+    )
+    return commit(
+        input_snapshot=input_snapshot, settings_values=settings_values,
+        config=config, submit_geometry_update=submit_geometry_update,
+    )
+
+
 def normalize_receiving_switch_operator_layout(layout):
     """Public Engine port for Receiving Switch input topology state."""
     from .receiving_switch_layout import normalize_receiving_switch_layout

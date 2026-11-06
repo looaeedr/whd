@@ -50,3 +50,39 @@ def validate_receiving_base_plate_settings(
         )
 
     return None if config is None else deepcopy(dict(config))
+
+
+
+def commit_receiving_base_plate_settings(
+    *, input_snapshot: dict, settings_values: Mapping,
+    config: Mapping | None, submit_geometry_update=None,
+):
+    """Commit one validated Receiving physical Base Plate selection atomically.
+
+    The Engine alone owns the persisted physical selection key.  A caller
+    may supply a zero-argument update notification; it is optional for
+    headless clients and does not participate in manufacturing calculations.
+    A failed notification restores the exact previous source object.
+    """
+    if submit_geometry_update is not None and not callable(submit_geometry_update):
+        raise TypeError("RECEIVING_BASE_PLATE_UPDATE_NOTIFICATION_NOT_CALLABLE")
+    accepted = validate_receiving_base_plate_settings(
+        input_snapshot=input_snapshot, settings_values=settings_values,
+        config=config,
+    )
+    existed = "receiving_base_plate" in input_snapshot
+    previous = input_snapshot.get("receiving_base_plate")
+    try:
+        if accepted is None:
+            input_snapshot.pop("receiving_base_plate", None)
+        else:
+            input_snapshot["receiving_base_plate"] = accepted
+        if submit_geometry_update is not None:
+            submit_geometry_update()
+    except Exception:
+        if existed:
+            input_snapshot["receiving_base_plate"] = previous
+        else:
+            input_snapshot.pop("receiving_base_plate", None)
+        raise
+    return deepcopy(input_snapshot.get("receiving_base_plate"))
