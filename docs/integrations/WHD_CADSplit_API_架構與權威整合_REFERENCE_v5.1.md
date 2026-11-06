@@ -383,6 +383,8 @@ python integration_cli/cadsplit_worker.py export --request /safe/in/request.json
 4. **保留既有 Door／EndCap 自動呼叫，以及 Receiving 的條件式 API Adapter；Receiving 從原始 DXF 自動建立完整製造輸入的流程尚待完成及驗證。** 正式目標是自動取得合法的原圖、專案狀態及 Engine 資源，不把人工選 JSON／基準目錄當正常前置；缺必要機械資料則精確拒絕，不在 CADSplit 發明公式。
 5. **API 成功回傳不等於製造驗收成功**：依實際 exporter 區分原子輸出、暫存檔 Save→Reload、提交前／提交後幾何驗證、可回復性與人工 UAT；不得以生成 DXF 檔案路徑或 `PartExportResult` 即宣稱幾何驗收。若未來真的需要跨程序操作，再決定新 transport／operation；目前 source-only CLI 不因此解鎖製造。
 
+**#2517 Quantity GUI 投影同步：** Engine `project_common_box` 已移除舊 runtime Set/Bay selection。GUI 共用尺寸／內門 Confirm All 必須將經公開 `manufacturing_api` 預檢後的 detached snapshot 完整替換原字典內容，保留 GUI 所持 dict 物件，不得用 `dict.update()` 疊加舊 Key 後私讀 Engine selector 常數再局部清理。此為來源狀態套用，不增加 NFB 世界 X 或 DXF 製造資格。
+
 **不得新增**「Engine SHA 相同才可用」、「CADSplit 一律需升級到最新版」、「缺少新 capability 則整個系統停用」等全域鎖版檢查；這不免除**每筆正式加工的 Engine／Registry／baseline／原圖／輸出證據與幾何驗證**。本節不另建 Issue、SOP 或發版流程。
 
 ## 8. 未來外部 API 真正放行的必要條件（驗收契約，不指定退役 transport）

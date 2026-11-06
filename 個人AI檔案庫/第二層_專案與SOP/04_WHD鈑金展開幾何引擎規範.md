@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Quantity GUI 必須完整套用 Engine 投影而非殘留舊 Bay 身分（2026-11-06）
+
+- Quantity 共用 W/H/D、Single 內門 Confirm All 與直接 3D 內門 Confirm All 的 `manufacturing_api.update_common_box`／`preview_quantity_inner_door_confirm` 原本均由 Engine 的 `project_common_box` 產生獨立完整投影，且已移除舊 `_receiving_runtime_selection`。GUI 卻對既有 dict `update(projected)`，不會刪掉 Engine 已移除的 keys，為避免 EAR Z 身分污染又私自 import `RECEIVING_RUNTIME_SELECTION_KEY` 做單鍵 pop。
+- 三處 GUI 改以原 dict 身分 `clear()` → `update(projected)` 完整套入 Engine 已驗證的候選快照，不複製實體身分判準、不修改新 Set/Bay 演算法；若 Engine 預檢失敗則不進入這段寫入。回歸 `tests/test_issue2517_inner_door_quantity_confirm_api.py` 驗真 Quantity NFB／native-only 投影、舊 runtime 身分完整消失、原 snapshot 與版本模型均未變更及 GUI 無私有 import。
+- 此為 operator snapshot 同步修正，未放行 NFB world X、FinalScene/CUTTING、DXF Save→Reload 或全 16 Bay 製造；#2517 與 Windows 人工驗收仍 OPEN。
+
+
 ## [CURRENT] #2517 Receiving NFB V5 CSV 型號清單更新必須驗實際來源位元組（2026-11-06）
 
 - 原 `fold_designer_composition_receiving.inner_edit.refresh_source` 以 GUI 直接讀 `brand_csv_path(brand).stat()`，只比較 mtime_ns＋size；來源 CSV 替換成相同大小與時間戳的另一合法型號會把舊清單當作最新，且讀取失敗前若已更新簽章，後續可能不再重試。NFB 廠牌 CSV 真實內容與版本身分應由 Engine 唯一辨識。

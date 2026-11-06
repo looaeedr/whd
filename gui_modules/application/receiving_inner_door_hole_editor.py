@@ -124,7 +124,6 @@ def open_inner_door_hole_editor(
                 )
                 app.submit_update_intent("geometry", commit=True)
             elif mode == "quantity":
-                from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY
                 current = app._phase6_input_snapshot
                 quantity = workspace.quantity_model
                 projected, typed = manufacturing_api.preview_quantity_inner_door_confirm(
@@ -136,7 +135,9 @@ def open_inner_door_hole_editor(
                 quantity.set_version_nfb_config(
                     quantity.selected_version_id, submitted=True, config=typed,
                 )
-                current.pop(RECEIVING_RUNTIME_SELECTION_KEY, None)
+                # Apply the entire validated Engine projection, including its
+                # deletion of obsolete runtime Bay selection, in-place.
+                current.clear()
                 current.update(projected)
                 workspace.set_receiving_common_box(
                     projected["receiving_quantity_box"]
