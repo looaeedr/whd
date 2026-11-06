@@ -15,7 +15,6 @@ from phase6_hole_editor_session import HoleEditorAction
 from phase6_hole_editor_session import Phase6HoleEditorSession
 
 from ae_engine import manufacturing_api
-from ae_engine.corner_type_ui import is_unknown_model
 
 
 class HoleEditorSessionFactory:
@@ -711,7 +710,7 @@ def open_hole_editor(host, key):
 
 def _door_context(host, values):
     material_fw = host._door_material_frame_width(values["fw"], values["t"])
-    custom = is_unknown_model(host.baseline_var.get())
+    custom = manufacturing_api.is_unknown_operator_model(host.baseline_var.get())
     projection = manufacturing_api.project_operator_hole_editor_door(
         values, material_frame_width=material_fw, is_custom=custom,
         corner_policy=(
@@ -740,7 +739,7 @@ def _door_context(host, values):
 
 
 def _base_plate_context(host, values):
-    custom = is_unknown_model(host.baseline_var.get())
+    custom = manufacturing_api.is_unknown_operator_model(host.baseline_var.get())
     projection = manufacturing_api.project_operator_hole_editor_base_plate(
         values, is_custom=custom,
         corner_policy=(
