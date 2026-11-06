@@ -110,6 +110,59 @@ def test_group_commit_is_a_atomic_batch_with_dxf_readback(tmp_path, mode, expect
                    if e.dxftype()=="MTEXT" and e.plain_text().startswith("P"))
 
 
+
+def test_single_bay_grouped_box_body_and_head_writes_one_verified_dxf(tmp_path):
+    """An ALL operator choice may not fall back to separate source-sheet files."""
+    from ae_engine.contracts import ResolvedManufacturingGeometry, ResolvedManufacturingPart
+
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    source = {
+        "model": "受電箱", "active_mode": "set_bay",
+        "w": 800, "h": 1600, "d": 350, "t": 2,
+        "receiving_layout": layout,
+    }
+    calls = []
+    def provider(si, bi):
+        calls.append((si, bi))
+        return ResolvedManufacturingGeometry(parts=(
+            ResolvedManufacturingPart("box_body", _flat("box_body")),
+            ResolvedManufacturingPart("head", _flat("head", width=90)),
+        ))
+
+    output = manufacturing_api.export_grouped_receiving_multibay_dxf(
+        source, physical_bay_geometry_provider=provider,
+        flags={"box_body": True, "head": True},
+        output_dir=tmp_path / "out", group_mode="ALL",
+        pre_commit_guard=lambda: None,
+    )
+    assert calls == [(0, 0)]
+    assert set(output) == {"全部.dxf"}
+    assert {p.name for p in (tmp_path / "out").glob("*.dxf")} == {"全部.dxf"}
+    document = ezdxf.readfile(tmp_path / "out" / "全部.dxf")
+    entities = tuple(document.modelspace())
+    assert sum(entity.dxftype() == "LWPOLYLINE" and
+               entity.dxf.layer == "CUTTING" for entity in entities) == 2
+    checks = [entity.plain_text() for entity in entities
+              if entity.dxftype() == "MTEXT" and entity.dxf.layer == "CHECK"]
+    assert {"box_body", "head", "P1"} <= set(checks)
+
+
+def test_single_bay_grouped_missing_canonical_scene_refuses_zero_output(tmp_path):
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    source = {
+        "model": "受電箱", "active_mode": "set_bay",
+        "w": 800, "h": 1600, "d": 350, "t": 2,
+        "receiving_layout": layout,
+    }
+    with pytest.raises(ValueError, match="CURRENT_FINALSCENE_MISSING"):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=lambda _si, _bi: None,
+            flags={"box_body": True}, output_dir=tmp_path / "out",
+            group_mode="ALL", pre_commit_guard=lambda: None,
+        )
+    assert not list((tmp_path / "out").glob("*.dxf"))
+
+
 def test_drift_on_second_group_preserves_all_old_outputs(tmp_path):
     layout = _seven()
     out = tmp_path/"out"

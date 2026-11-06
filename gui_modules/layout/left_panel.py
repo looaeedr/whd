@@ -145,13 +145,13 @@ def build_left_panel(host, ctrl_pad_frame):
         snapshot = getattr(designer, "_phase6_input_snapshot", None) or {}
         if not isinstance(snapshot, dict):
             snapshot = {}
-        if snapshot.get("model") not in {"受電箱", "RECEIVING"}:
+        from ae_engine import manufacturing_api
+        if manufacturing_api.resolve_live_cabinet_family(snapshot) != "受電箱":
             host.receiving_dxf_group_combo.state(["disabled"])
             host.receiving_dxf_group_preview_var.set("金庫型：以盤名或輸出日期時間命名單一 DXF")
             return
         host.receiving_dxf_group_combo.state(["!disabled"])
         try:
-            from ae_engine import manufacturing_api
             groups = manufacturing_api.plan_receiving_grouped_dxf(
                 snapshot.get("receiving_layout"),
                 host.receiving_dxf_group_mode_var.get(),
