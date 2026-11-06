@@ -18,9 +18,15 @@ def _state(draft):
 def test_public_engine_quantity_draft_and_gui_compatibility():
     assert manufacturing_api.AllocationDraft is AllocationDraft
     assert manufacturing_api.validate_quantity_allocation is validate_quantity_allocation
-    assert "from ae_engine.manufacturing_api import AllocationDraft, validate_quantity_allocation" in (
-        Path(ReceivingQuantityAllocationUI.__module__.replace(".", "/") + ".py").read_text(encoding="utf-8")
-    )
+    gui_source = Path(
+        ReceivingQuantityAllocationUI.__module__.replace(".", "/") + ".py"
+    ).read_text(encoding="utf-8")
+    # The public module facade, not a particular import spelling, owns both
+    # draft transitions and the new detached quantity preview operation.
+    assert "from ae_engine import manufacturing_api" in gui_source
+    assert "manufacturing_api.AllocationDraft(" in gui_source
+    assert "manufacturing_api.validate_receiving_candidate_quantity_preview(" in gui_source
+    assert "from ae_engine.receiving_quantity_allocation import" not in gui_source
 
 
 def test_engine_replacement_preserves_count_and_order_but_invalidates_only_selected_role():
