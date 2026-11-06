@@ -36,10 +36,10 @@ from .receiving_nfb_base_partial_export import (
 
 
 def _finite_installed_xyz(values):
-    """A physical placement must be exactly three finite, native real axes.
+    """Guard actual/expected world offsets against non-real or overflowed data.
 
-    Casting string/bool coordinates or comparing NaN with a tolerance can
-    incorrectly approve an unchanged 2D scene in a stale 3D assembly.
+    Only three finite native real axes are physical; math.isfinite on a huge
+    Python integer itself raises OverflowError, so it must fail closed here.
     """
     if not isinstance(values, (tuple, list)) or len(values) != 3:
         return False
@@ -440,6 +440,7 @@ def _export_current_csv_nfb_two_tier_pair(
     if set(depths) != {0, 1}:
         raise ValueError("CSV_TWO_TIER_INCOMPLETE_SOURCE_DEPTH")
     from ae_engine.receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
+
     for index in (0, 1):
         target = depths[index]
         installed = by_id[trials[index].part_id]
@@ -447,9 +448,10 @@ def _export_current_csv_nfb_two_tier_pair(
         y = project_nfb_inner_door_nominal_y(
             snapshot, inner_door_id, layer_count=2, slot_index=index,
         )
-        # Both independent physical plates must actually be installed at
-        # their current, finite world XYZ. float('nan') bypasses a bare
-        # abs(delta) > tolerance comparison, even when local 2D/DXF is valid.
+        # The same physical world-XYZ contract used by the one-tier pair
+        # must hold for EACH independent installed tier. float(nan)
+        # comparisons are always false and once allowed an invalid cached
+        # 3D placement to authorize three otherwise valid local DXFs.
         required_xyz = (0.0, y.box_world_y_mm, target.world_offset_z_mm)
         if (not target.physical_skin_z_resolved
                 or not _finite_installed_xyz(offset)

@@ -78,3 +78,19 @@ def test_invalid_single_tier_base_xyz_fails_before_writing_any_dxf(
             output_directory=tmp_path,
         )
     assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("axis", (0, 1, 2))
+def test_oversized_integer_single_tier_xyz_fails_with_engine_source_error(
+    axis, tmp_path,
+):
+    snapshot = _current()
+    parts = _scene(snapshot)
+    wrong = list(_actual_base(parts).offset)
+    wrong[axis] = 10 ** 1000
+    with pytest.raises(ValueError, match="CSV_PAIR_REAL_BASE_INSTALL_XYZ_MISMATCH"):
+        manufacturing_api.export_current_csv_nfb_door_base_pair(
+            snapshot, assembly_parts=_change_base(parts, tuple(wrong)),
+            base_spec=None, output_directory=tmp_path,
+        )
+    assert not list(tmp_path.iterdir())

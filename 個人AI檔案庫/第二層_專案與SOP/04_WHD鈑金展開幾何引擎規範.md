@@ -6,11 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
-## [CURRENT] #2517 雙層 NFB 成對部分 DXF 的實體底板安裝 XYZ 必須有限且型別正確（2026-11-06）
+## [CURRENT] #2517 NFB 成對部分出圖實體底板 XYZ 非有限與極大整數一律安全拒絕（2026-11-06）
 
-- 原 Engine `receiving_nfb_pair_export._export_current_csv_nfb_two_tier_pair` 在已驗證 FinalScene/CUTTING 與原子儲存前，以 `abs(float(actual)-float(expected)) > 1e-6` 比對兩層底板真實 3D 安裝位置；`NaN` 的比較恆為 False，字串數值及 `False` 也可能被轉成正常座標而通過來源閘門。合法本體和非法安裝位置不可共同取得可加工 DXF。
-- Engine 增加同一個嚴格 XYZ 正規檢查供原單層與雙層 PART_ONLY 出圖使用：真實 `offset` 與 Engine 獨立計算的期望位置都必須是長度三、原生有限數值（拒絕 bool／字串／NaN／Infinity／缺軸），再逐軸驗證 1e-6mm 容差。任何一層不合即拒絕 `CSV_TWO_TIER_REAL_BASE_INSTALL_XYZ_MISMATCH`，且不得留下任何 DXF；合法流程仍依同一 Engine 真 FinalScene → DXF Save→Reload。
-- 原 `tests/test_issue1502_current_csv_original_two_tier_dxf.py` 以真實兩層 NFB 來源、兩個實體 BasePlate 及原始 DXF writer 驗證每層壞 XYZ 均拒絕，舊單層實機場景回歸保留；本修正不解除 NFB/PAD/EAR／整箱 MFG-2 製造資格，#2517 及 Windows UAT 保持 OPEN。
+- 受電箱單／雙層 NFB 的 `內門＋底板` PART_ONLY 正式 DXF，必須由 Engine 先驗證目前 FinalScene 所安裝的每一片真實底板 world XYZ，才能送進原子 DXF Save→Reload。已合併的 PR #2932（單層）和 #2936（雙層）阻擋 NaN、Infinity、布林、字串、缺失座標；但對 `10**1000` 類型的原生超大整數直接呼叫 `math.isfinite` 可產生未捕獲 `OverflowError`，且兩段驗證實作分離。
+- 原 `ae_engine.receiving_nfb_pair_export` 增補同一個僅在 Engine 使用的 `_finite_installed_xyz`，同時驗實際與期望的三軸有限實數；無法轉成有限浮點數的原生整數也以正式來源拒絕回傳，不讓相同 local 2D 但失效 3D 安裝資料通過或發生未處理例外。保留 1e-6mm 容差、原真實 FinalScene 與既有 `CSV_PAIR_REAL_BASE_INSTALL_XYZ_MISMATCH`／`CSV_TWO_TIER_REAL_BASE_INSTALL_XYZ_MISMATCH` 錯誤碼。
+- 回歸沿用 `tests/test_issue2517_two_tier_nfb_real_base_finite_xyz_export.py` 和 `tests/test_issue2517_single_tier_nfb_real_base_installation_export.py` 真來源／物理場景／DXF 輸出路徑，對每片／三軸超大整數驗拒絕無產物；既有合法三片與兩片 DXF 獨立回讀及 NaN/Infinity 閘門不變。此處不認證整箱 EAR／PAD／NFB MFG-2、Windows UAT，#2517 仍 OPEN。
 
 
 ## [CURRENT] #2517 Assembly Relief 來源 Joint/FW 簽章只能由公開 Engine 決定（2026-11-06）
