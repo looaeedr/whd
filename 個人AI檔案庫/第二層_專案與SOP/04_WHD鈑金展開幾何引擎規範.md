@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 剩餘 Receiving Family／WRAP 可用性接入原公開 Policy（2026-11-06）
+
+- `fold_designer_composition_state.build_capability_owners` 原直接把內部 `cabinet_types.policy.canonical_family_name` 注入 ReceivingCapabilityOwner，`fold_designer_composition_settings` 的 bottom-wrap 控制則直接讀私有 `supports_bottom_wrap_controls`；兩者決定實體箱型操作准入／Joint WRAP 操作可用性，不是純展示數值。
+- 已有 `manufacturing_api.operator_canonical_family_name` 與 `operator_supports_bottom_wrap_controls`（`ae_engine` 根包同名）直接公開原 Family Policy 同一 callable；GUI 兩處只替換公開入口，無新 Family、無第二套 Policy、無保存 Schema／Joint／Corner／CUTTING／2D／3D／DXF 公式變更。能力 Owner 的真呼叫與 owner 等價及非法/未知來源不改動快照由原 #2517 Family Policy 回歸擴充覆蓋，另受 exact-SHA Product Regression 驗證；#2517／Windows R5 UAT 保持 OPEN。
+
+
 ## [CURRENT] #2517 GUI 手動截角編輯公開 Engine 與失敗隔離（2026-11-06）
 
 - `gui.py` 手動截角面板的「左右共用開關」及「截角類型／CROSS 模式／參數」原有四處直接呼叫 `ae_engine.corner_type_ui` 的原地寫入函式。由於這裡的 live state 持有 `CornerTypeSelection`，而既有 `corner_state_transactions.commit_corner_*` 服務的是序列化 raw state，不可不經轉換直接換成不同表示；此批讓 GUI 改呼叫 `manufacturing_api.operator_set_manual_corner_pair_same`、`manufacturing_api.operator_apply_manual_corner_selection`（根包亦公開），兩者與原 Engine owner 是**同一 callable**，不新增製造公式或第二套交易推導。
