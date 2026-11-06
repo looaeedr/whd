@@ -9,8 +9,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
-from ae_engine.receiving_hole_candidates import version_label
-from ae_engine.manufacturing_api import AllocationDraft, validate_quantity_allocation
+from ae_engine import manufacturing_api
 
 
 class ReceivingQuantityAllocationUI:
@@ -24,10 +23,10 @@ class ReceivingQuantityAllocationUI:
         self.get_marks = get_marks
         self.on_render = on_render or (lambda: None)
         self.warn = warn or (lambda exc: None)
-        from ae_engine.receiving_hole_candidates import role_key
         self.roles = tuple(roles)
-        self.draft = AllocationDraft(
-            get_counts(), roles=self.roles, validate_role=validate_role or role_key,
+        self.draft = manufacturing_api.AllocationDraft(
+            get_counts(), roles=self.roles,
+            validate_role=validate_role or manufacturing_api.validate_receiving_candidate_role,
         )
         self.role = self.roles[0]
         self.host = None
@@ -97,11 +96,11 @@ class ReceivingQuantityAllocationUI:
         step = self.draft.step[role]
         if step == 1:
             ttk.Label(host, text="1. 決定數量｜全部套共 " + str(total) + " 連").pack(anchor="w", pady=(5, 4))
-            labels = {version_label(k): k for k in available[role]}
+            labels = {manufacturing_api.receiving_candidate_version_label(k): k for k in available[role]}
             for version_id, count in tuple(quantities.items()):
                 row = ttk.Frame(host)
                 row.pack(anchor="w", pady=2)
-                current = tk.StringVar(master=self.window, value=version_label(version_id))
+                current = tk.StringVar(master=self.window, value=manufacturing_api.receiving_candidate_version_label(version_id))
                 picker = ttk.Combobox(
                     row, textvariable=current, values=tuple(labels),
                     state="readonly", width=11,
@@ -149,7 +148,7 @@ class ReceivingQuantityAllocationUI:
             for version_id, count in quantities.items():
                 used = sum(value == version_id for value in assigned.values())
                 ttk.Radiobutton(
-                    host, text=f"{version_label(version_id)}　{used} / {count} 連",
+                    host, text=f"{manufacturing_api.receiving_candidate_version_label(version_id)}　{used} / {count} 連",
                     variable=selected, value=version_id,
                     command=lambda key=version_id: self._select_version(key),
                 ).pack(anchor="w", pady=2)
@@ -177,8 +176,8 @@ class ReceivingQuantityAllocationUI:
 
     def _ready_to_apply(self):
         try:
-            # Pure validation only: this never writes selected Bay features.
-            from ae_engine.receiving_hole_candidates import normalize_candidates
+            # Validate the operator draft via the public Engine. Never infer
+            # physical Bay topology, candidate IDs, or source Features in GUI.
             ports = self.get_ports()
             custom_validator = ports.get("validate_quantity")
             if custom_validator is not None:
@@ -188,19 +187,11 @@ class ReceivingQuantityAllocationUI:
                     self.draft.counts,
                 )
                 return True
-            library = normalize_candidates()
-            # Validator needs the available IDs and their feature values.
-            for role in ("head", "tail"):
-                entries = ports["versions"](role)
-                highest = max((int(item["id"].split("-v")[1]) for item in entries), default=0)
-                library[role] = {
-                    "versions": entries,
-                    "next_number": highest + 1,
-                }
-            layout = {"sets": [{"bays": [None] * n} for n in self.draft.counts]}
-            validate_quantity_allocation(
-                layout, library, self.role,
-                self.draft.quantities[self.role], self.draft.assigned[self.role],
+            manufacturing_api.validate_receiving_candidate_quantity_preview(
+                {role: ports["versions"](role) for role in ("head", "tail")},
+                self.draft.counts, self.role,
+                dict(self.draft.quantities[self.role]),
+                dict(self.draft.assigned[self.role]),
                 expected_counts=self.get_counts(),
             )
         except (ValueError, IndexError, TypeError):
@@ -280,7 +271,7 @@ class ReceivingQuantityAllocationUI:
                 self._draw_original_door_marks(si, bi, faces)
                 canvas.create_text(
                     (x0 + x1) / 2, top + bay_h + 11,
-                    text=f"{bi + 1}：{version_label(choice) if choice else '未配置'}",
+                    text=f"{bi + 1}：{manufacturing_api.receiving_candidate_version_label(choice) if choice else '未配置'}",
                     fill="#e4edf6" if choice else "#a8b8c6",
                 )
                 hitboxes.append((si, bi, x0, top, x1, top + bay_h))

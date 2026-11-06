@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Head/Tail 候選數量配置預檢歸公開 Engine（2026-11-06）
+
+- `receiving_quantity_allocation_ui._ready_to_apply` 只提交當前版本 inventory、Set/Bay 數量、Head/Tail role、數量與配置到 `manufacturing_api.validate_receiving_candidate_quantity_preview`；不得在 GUI 推算下一版本 ID、重組候選實體 Feature 來源，或捏造 `None` Bay 拓樸代替 Engine。
+- Engine 仍以原本 `receiving_hole_candidates.normalize_candidates`、`receiving_quantity_allocation.validate_quantity_allocation` 和 `receiving_assignment_core.validate_positions` 驗來源／身份／套連／數量／配置，拒絕非法或 stale 來源，純唯讀且不變更 Project。GUI 原本可用的真實 `validate_quantity` port 維持優先；缺少時才用此唯讀預檢。版本 role 與顯示標籤改用 `manufacturing_api.validate_receiving_candidate_role` 和 `receiving_candidate_version_label` 同一 Engine owner。
+- 正式 Head/Tail 版本 Apply 仍走既有 Engine 原子 Set/Bay 交易，候選預覽不能取得 CUTTING／FinalScene／DXF 或 Registry 認證資格。#2517 尚未結案。
+
+
 ## [CURRENT] #2517 NFB Parent Brand 的單只版本／全 Set-Bay 來源交易改由公開 Engine（2026-11-06）
 
 - 原 Receiving GUI `single_brand`／`set_single_brand` 自行讀取 `QuantityModel`、舊共用箱品牌及版本遷移，`preview_parent_brand_impact` 直接呼叫 `receiving_nfb_brand_transition.saved_parent_new_reselections`，並逐 Set/Bay 決定實體 NFB 受影響顆數。這些是已提交物理來源與版本權威，並非 GUI 展示規則。
