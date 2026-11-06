@@ -120,3 +120,19 @@ def test_repeated_unchanged_csv_polls_do_not_reparse_original_model_catalog(monk
     assert calls == ["士林", "士林"]
     assert second.model_refs != first.model_refs
     assert second.source_sha256 != first.source_sha256
+
+
+def test_snapshot_uses_same_live_brand_path_owner_as_numeric_parser(monkeypatch, tmp_path):
+    """A redirected real CSV must not be fingerprinted from another source."""
+    path = _write_brand_csv(tmp_path, "MODEL-A")
+    original_path = numeric.brand_csv_path
+    monkeypatch.setattr(
+        numeric, "brand_csv_path",
+        lambda brand: path if brand == "士林" else original_path(brand),
+    )
+    first = api.project_receiving_nfb_v5_model_catalog_snapshot("士林")
+    assert first.model_refs == ("nfbv5:士林:MODEL-A",)
+    _write_brand_csv(tmp_path, "MODEL-B")
+    second = api.project_receiving_nfb_v5_model_catalog_snapshot("士林")
+    assert second.model_refs == ("nfbv5:士林:MODEL-B",)
+    assert first.source_sha256 != second.source_sha256
