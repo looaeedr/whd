@@ -1243,6 +1243,12 @@ def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
     )
     return _engine_rebase(set_row, proposed_brand)
 
+def validate_receiving_inner_door_config(config):
+    """Public Engine validation of a detached Receiving inner-door candidate."""
+    from .receiving_inner_door_candidates import validate_door_config
+    return validate_door_config(config)
+
+
 def prepare_receiving_inner_door_physical_confirm(staged_config, part_key, final_features):
     """Prepare one physical Set/Bay inner-door Confirm All without GUI-owned
     manufacturing identity, feature mapping or a partial Bay write.
@@ -1251,13 +1257,12 @@ def prepare_receiving_inner_door_physical_confirm(staged_config, part_key, final
     Apply.  This is not NFB-source verification or export certification.
     """
     from copy import deepcopy
-    from .receiving_inner_door_candidates import validate_door_config
 
     if door_display_part_role(part_key) != "inner":
         raise ValueError("不是可提交 NFB 的實體內門門板")
-    prepared = validate_door_config(staged_config)
+    prepared = validate_receiving_inner_door_config(staged_config)
     prepared["features"][part_key] = deepcopy(list(final_features))
-    return validate_door_config(prepared)
+    return validate_receiving_inner_door_config(prepared)
 
 
 def preview_quantity_inner_door_confirm(
