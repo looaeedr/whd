@@ -80,13 +80,14 @@ def _source_world_x_from_committed_editor_feature(
     and Y must agree with the same current numeric model and tier datum.
     """
     from hashlib import sha256
-    from math import hypot
+    from math import hypot, isfinite
     from .receiving_nfb_numeric_catalog import brand_csv_path, model_spec
     from .receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
     from .receiving_nfb_manufacturing_release import _resolve_physical_panel
     from .sheetmetal_feature_core import (
         FeatureAnchor, ProfileFeature, _rotate_local_point,
     )
+    from .sheetmetal_geometry import Vec2
 
     features = (snapshot.get("part_features") or {}).get(panel.stable_id, ())
     if not isinstance(features, (tuple, list)):
@@ -130,6 +131,8 @@ def _source_world_x_from_committed_editor_feature(
                     for p in feature.points)
     )
     source = tuple((float(x),float(y)) for x,y in spec.opening_corners_xy_mm)
+    if not all(isfinite(v) for point in points for v in point):
+        raise ValueError("NFB_CSV_EDITOR_OPENING_SHAPE_DIFFERS_FROM_SOURCE")
     expected_edges = sorted(round(hypot(source[(i+1)%4][0]-source[i][0],
                                         source[(i+1)%4][1]-source[i][1]), 6)
                             for i in range(4))
@@ -138,6 +141,36 @@ def _source_world_x_from_committed_editor_feature(
                           for i in range(4))
     if expected_edges != actual_edges:
         raise ValueError("NFB_CSV_EDITOR_OPENING_SIZE_DIFFERS_FROM_SOURCE")
+    # Equal edge lengths do not prove a CSV rectangular opening: a
+    # parallelogram can keep all four lengths while changing CUTTING.
+    # The editor's real rotated vertices must match the selected model and
+    # the persisted per-hole rotation, modulo translation and vertex order.
+    rotation = row.get("rotation_deg", 0)
+    if type(rotation) is not int or rotation not in (0, 90, 180, 270):
+        raise ValueError("NFB_CSV_EDITOR_OPENING_SHAPE_DIFFERS_FROM_SOURCE")
+    template = tuple(
+        _rotate_local_point(Vec2(x, y), rotation) for x, y in source
+    )
+    actual_centre = (
+        sum(x for x, _ in points) / 4,
+        sum(y for _, y in points) / 4,
+    )
+    source_centre = (
+        sum(p.x for p in template) / 4,
+        sum(p.y for p in template) / 4,
+    )
+    remaining = [(x - actual_centre[0], y - actual_centre[1])
+                 for x, y in points]
+    for vertex in template:
+        x, y = vertex.x - source_centre[0], vertex.y - source_centre[1]
+        match = next(
+            (i for i, (px, py) in enumerate(remaining)
+             if abs(px - x) <= 1e-6 and abs(py - y) <= 1e-6),
+            None,
+        )
+        if match is None:
+            raise ValueError("NFB_CSV_EDITOR_OPENING_SHAPE_DIFFERS_FROM_SOURCE")
+        remaining.pop(match)
     panel_now, placement = _resolve_physical_panel(
         snapshot, panel.inner_door_id,
     )

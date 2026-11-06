@@ -5,6 +5,13 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 NFB CSV 已保存內門開孔回推世界 X 必須驗實體矩形與旋轉（2026-11-06）
+
+- 原 `ae_engine.receiving_nfb_committed_final_scene._source_world_x_from_committed_editor_feature` 對已提交 V5 而獨立世界 X 未確認的現存 Hole Editor `NFB_CSV_SOURCE`，只驗實體四邊的長度。歪斜四邊形可保留原 CSV 四個邊長，且高度中心不變，卻被視為可回推 X 的可信來源；若編輯器孔位方向與 `NFBConfig.rotation_deg` 不符，也可能產生不同的真實內門 CUTTING。
+- 唯一 Engine source owner 現在額外比對真實 Feature 旋轉後的四頂點與同廠牌／型號 CSV 原矩形、提交角度 `0/90/180/270`（允許平移及頂點排序差異，座標容差 `1e-6 mm`）。形狀、方向、非有限座標不相符直接 `NFB_CSV_EDITOR_OPENING_SHAPE_DIFFERS_FROM_SOURCE` 拒絕，不回推世界 X、不由假孔建立 FinalScene／底板螺絲孔；先前 CSV SHA、Set/Bay、`RECONFIRM_REQUIRED`／正式出圖 Gate 不變。
+- `tests/test_issue2517_committed_csv_editor_shape_proof.py` 實測合法四角度與同邊長歪斜／錯誤旋轉、整條 `_submitted_csv_holes` → `apply_committed_csv_v5_to_canonical_parts` 拒絕；既有雙板 DXF Save→Reload 回歸維持。這不是新增出口、外部 source-only 製造核准或 #2517 全部結案。
+
+
 
 ## [CURRENT] #2517 NFB Parent Brand 的單只版本／全 Set-Bay 來源交易改由公開 Engine（2026-11-06）
 
