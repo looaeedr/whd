@@ -13,6 +13,12 @@ whd_schema: WHD_DOC_META_V1
 - 定向回歸 `tests/test_issue2517_receiving_set_bay_public_transactions.py` 驗非連續選取、相等值但不同 refs、共享 sibling 一次性 editor 更新、非法／無效 Bay selection 原子拒絕、UI 不自組製造身分；保留舊 API、工程 Schema 和既有 Head/Tail Hole Editor 工作流程。此修復不授權未確認的 NFB、FinalScene、CUTTING、DXF；Windows UAT 與 #2517 全範圍仍待驗收。
 
 
+## [CURRENT] #2517 原生 NFB CSV Candidate Apply 與 FinalScene 共用四角輪廓來源驗證（2026-11-06）
+
+- 原 `receiving_nfb_csv_committed_config.committed_csv_nfb_config` 在 CSV SHA、品牌型號、四個有限座標、CUTTING 與 finished-face Anchor 合法後即可提交 NFBConfig，但未證明四角實際幾何與現行品牌 CSV 的 `opening_corners_xy_mm` 相同。已提交的 Bay 來源可能隱藏變形、交叉或錯誤尺寸的原 Hole Editor 開孔，直到較後面的 FinalScene 才拒絕，破壞 source-only Apply 語意。
+- 以原 `ae_engine.receiving_nfb_committed_final_scene.csv_editor_opening_matches_current_source` 作唯一四角輪廓同源比較，重用原 FinalScene 的旋轉、真實平移、循環及逆向頂點序列容忍與 1e-6 mm 頂點容差；非有限數值、錯誤長寬、斜四邊形、自交輪廓一律 fail closed。原 `_source_world_x_from_committed_editor_feature` 亦呼叫同一函式，非新增第二份製造形狀演算法。
+- 同源驗證只證明已提交的 CSV 原始孔形，不代表世界 X 已確認；候選仍保存 `UNVERIFIED_BASIS`、`manual_x_mm=None`，不獲任意 Bay／Set 製造授權。兩個實體 Bay Apply 必須全有全無；新增變形反例及合法 90°、平移與循環點序正例。正式 FinalScene、2D／3D、DXF Save→Reload 與 Windows 實機整體驗收維持原 Gate，#2517 仍 OPEN。
+
 ## [CURRENT] #2517 NFB 全套品牌 Apply 必須是同一 Engine 原子交易（2026-11-06）
 
 - Receiving Set/Bay Adapter 的 `set_global_brand` 曾由 GUI `deepcopy(layout)` 後自行遍歷全部 Set，各自呼叫單套 `manufacturing_api.rebase_receiving_set_parent_nfb_brand`，再由 GUI 計算 changed／組裝持久化版本；這是跨套已提交物理 NFB parent source 的交易所有權，不能分散在 UI。

@@ -83,6 +83,25 @@ def committed_csv_nfb_config(part_key, features, config):
         angle = int(feature.rotation_deg)
         if angle not in (0, 90, 180, 270) or angle != feature.rotation_deg:
             raise ValueError("NFB_CSV_COMMIT_ROTATION_UNSUPPORTED")
+        # Brand/model + CSV SHA prove the catalogue source but not that the
+        # submitted physical polygon is its real four-corner opening. A
+        # distorted or crossed editor contour must never be saved as a valid
+        # NFB source on one or many Bays, even if later DXF gates reject it.
+        # Reuse the exact contour owner used by the normal FinalScene.
+        from .sheetmetal_feature_core import _rotate_local_point
+        from .receiving_nfb_committed_final_scene import (
+            csv_editor_opening_matches_current_source,
+        )
+        actual_points = tuple(
+            (float(p.x + feature.offset.x), float(p.y + feature.offset.y))
+            for p in (
+                _rotate_local_point(point, angle) for point in feature.points
+            )
+        )
+        if not csv_editor_opening_matches_current_source(
+            actual_points, spec.opening_corners_xy_mm, angle,
+        ):
+            raise ValueError("NFB_CSV_COMMIT_OPENING_SHAPE_DIFFERS_FROM_SOURCE")
         seen[key] = {
             "physical_hole_id": f"{part_key}:nfb:layer:{layer}:slot:{slot}",
             "model_filename": numeric_model_ref(brand, model),
