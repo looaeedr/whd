@@ -146,7 +146,8 @@ def test_cadsplit_api_reference_is_discoverable_before_manufacturing_work() -> N
         "---\n"
         "whd_doc_role: REFERENCE\n"
         "whd_contract: manufacturing-architecture\n"
-        f"whd_canonical: {owner}\n"
+        "whd_canonical: null\n"
+        "whd_schema: WHD_DOC_META_V1\n"
     )
     for key in ("CADSplit", "Set/Bay", "全自動", "Save→Reload"):
         assert key in reference_text
