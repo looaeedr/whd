@@ -212,4 +212,56 @@ def test_gui_multi_bay_setting_port_no_longer_loops_over_engine_edit():
     adapter = getsource(ReceivingSetBayAdapter.apply_setting_to_bays)
     assert "adapter.apply_setting_to_bays(kind, value, targets)" in gui
     assert "adapter.update_setting(kind, value)" not in gui
-    assert "manufacturing_api.edit_receiving_shared_setting_for_bays(" in adapter
+    assert "manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(" in adapter\n    assert "affected_refs" not in adapter\n    assert '["settings"][kind]["refs"]' not in adapter
+
+
+def test_shared_setting_affected_ids_use_canonical_refs_not_value_equality():
+    """Noncontiguous linked Bays are affected; same-valued unlinked Bay is not."""
+    from copy import deepcopy
+    import ae_engine
+
+    raw = _multi_bay_shared_setting_layout()
+    linked = api.share_receiving_shared_setting(
+        raw, set_index=0, source_bay_index=0,
+        bay_indices=(0, 2), kind="inner_door_layers",
+    )
+    before = deepcopy(linked)
+    updated, affected = api.edit_receiving_shared_setting_for_bays_with_affected_ids(
+        linked, set_index=0, bay_indices=(i for i in (2,)),
+        kind="inner_door_layers", value=2,
+    )
+    assert linked == before
+    assert updated == api.edit_receiving_shared_setting_for_bays(
+        linked, set_index=0, bay_indices=(2,),
+        kind="inner_door_layers", value=2,
+    )
+    assert affected == tuple(updated["sets"][0]["bays"][i]["stable_id"] for i in (0, 2))
+    assert ae_engine.edit_receiving_shared_setting_for_bays_with_affected_ids is (
+        api.edit_receiving_shared_setting_for_bays_with_affected_ids
+    )
+
+    unchanged, unaffected = api.edit_receiving_shared_setting_for_bays_with_affected_ids(
+        raw, set_index=0, bay_indices=(0,),
+        kind="inner_door_layers", value=1,
+    )
+    assert unchanged == raw
+    assert unaffected == (raw["sets"][0]["bays"][0]["stable_id"],)
+
+
+@pytest.mark.parametrize("bad_targets", ((0, 99), (0, True), (0, 0), (), None))
+def test_shared_setting_affected_ids_fail_closed_atomically(bad_targets):
+    from copy import deepcopy
+
+    raw = _multi_bay_shared_setting_layout()
+    before = deepcopy(raw)
+    adapter = ReceivingSetBayAdapter(raw)
+    with pytest.raises((IndexError, ValueError)):
+        api.edit_receiving_shared_setting_for_bays_with_affected_ids(
+            raw, set_index=0, bay_indices=bad_targets,
+            kind="inner_door_layers", value=2,
+        )
+    with pytest.raises((IndexError, ValueError)):
+        adapter.apply_setting_to_bays("inner_door_layers", 2, bad_targets)
+    assert raw == before
+    assert adapter.layout == before
+    assert adapter._session_dirty_ids == set()
