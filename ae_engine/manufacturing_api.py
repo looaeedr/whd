@@ -2108,6 +2108,18 @@ def require_receiving_operator_brand(brand):
 
 
 
+
+def plan_receiving_nfb_editor_confirm(
+    draft, current, chosen, *, layer_count, embedded, parent_brand,
+):
+    """Public Engine source guard for original Receiving NFB Confirm."""
+    from .receiving_nfb_ui1a_edits import plan_receiving_nfb_editor_confirm as plan
+    return plan(
+        draft, current, chosen, layer_count=layer_count,
+        embedded=embedded, parent_brand=parent_brand,
+    )
+
+
 def list_receiving_nfb_model_refs(brand: str) -> tuple[str, ...]:
     """List currently selectable V5 NFB identities for one exact CSV brand.
 
