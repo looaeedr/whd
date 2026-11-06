@@ -367,6 +367,45 @@ def export_current_csv_nfb_door_base_pair(
     )
 
 
+def export_receiving_committed_nfb_csv_from_request(
+    request, *, output_directory: str | Path,
+):
+    """Public headless Engine request -> canonical FinalScene -> actual paired DXF.
+
+    This is the missing one-call manufacturing seam after CSV Candidate Apply.
+    The caller provides the SAME immutable manufacturing request as the GUI:
+    actual current Set/Bay snapshot, real physical PartRenderData inputs and
+    operator-confirmed NFB world-X. The canonical Engine resolver owns the
+    installed 3D positions, two-tier BasePlate expansion and NFB CUTTING.
+    The existing pair exporter independently re-proves the CSV and reopens
+    every physical DXF before atomic commit.
+
+    Candidate Apply alone deliberately remains source-only. Never interpret
+    a CADSplit block coordinate or an unconfirmed CSV preview as manufacturing
+    permission, and never infer complete-cabinet/PAD/EAR release.
+    """
+    from .manufacturing_contracts import (
+        ManufacturingResolveRequest, thaw_manufacturing_value,
+    )
+    from .cabinet_types.policy import canonical_family_name
+    from .receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from .manufacturing_api import resolve_manufacturing_request
+
+    if not isinstance(request, ManufacturingResolveRequest):
+        raise TypeError("RECEIVING_NFB_MANUFACTURING_REQUEST_REQUIRED")
+    snapshot = thaw_manufacturing_value(request.input_snapshot)
+    if not isinstance(snapshot, Mapping) or canonical_family_name(snapshot) != "受電箱":
+        raise ValueError("RECEIVING_NFB_MANUFACTURING_FAMILY_INVALID")
+    if not _submitted_csv_holes(snapshot):
+        raise ValueError("RECEIVING_NFB_MANUFACTURING_CONFIRMED_CSV_REQUIRED")
+
+    resolved = resolve_manufacturing_request(request)
+    return export_current_csv_nfb_door_base_pair(
+        snapshot, assembly_parts=resolved.geometry.parts,
+        base_spec=None, output_directory=output_directory,
+    )
+
+
 @dataclass(frozen=True)
 class NfbCsvTwoTierPartOnlyDxf:
     """Existing operator output: actual inner door and TWO independently checked bases."""
