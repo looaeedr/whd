@@ -116,7 +116,11 @@ def test_all_inner_editor_gui_nfb_source_call_sites_use_same_active_mode_owner()
     assert 'selected_brand=current_nfb_parent_brand(),' in inner
     assert 'set_brand=current_nfb_parent_brand(),' in inner
     assert 'current_owner = current_nfb_parent_brand()' in inner
-    assert 'selected_brand = current_nfb_parent_brand()' in inner
+    # Candidate source eligibility is checked by the public Engine API;
+    # the GUI forwards the same active-mode parent without a second allowlist.
+    assert 'manufacturing_api.validate_receiving_inner_door_source_models(' in inner
+    assert 'config, current_nfb_parent_brand(),' in inner
+    assert 'set(model_filenames(selected_brand))' not in inner
     assert inner.count("current_nfb_parent_brand()") == 5
     assert 'self.receiving_switch_adapter(namespace).brand' not in inner
     # A branch-specific brand inference would produce two inconsistent lists
