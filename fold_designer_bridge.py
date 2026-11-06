@@ -142,7 +142,7 @@ from ae_engine.sheetmetal_geometry import (
 )
 
 from ae_engine.corner_type_ui import (
-    CUSTOM_MODEL_NAME, LEGACY_CUSTOM_MODEL_NAMES, known_model_corner_state,
+    CUSTOM_MODEL_NAME, LEGACY_CUSTOM_MODEL_NAMES,
     normalize_custom_model_name,
 )
 
@@ -1092,7 +1092,7 @@ def _phase6_known_model_corner_state(self):
         family = manufacturing_api.resolve_cabinet_type(model).canonical_name
     except Exception:
         family = "金庫型"
-    return known_model_corner_state(
+    return manufacturing_api.operator_known_model_corner_state(
         getattr(self, "available_parts", KNOWN_PARTS),
         cabinet_family=family,
     )
