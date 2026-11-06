@@ -175,10 +175,19 @@ def _actual_signature(entity):
     raise ValueError("COMPOSED_DXF_UNEXPECTED_DXF_ENTITY:" + kind)
 
 
-def _source_rows(panels, *, preserve_input_order=False, box_body_owner_by_panel=None):
+def _source_rows(panels, *, preserve_input_order=False, box_body_owner_by_panel=None,
+                 _verified_nfb_pair_parts=None):
     """Return physically owned, canonical input rows; never forge certification."""
     groups = []
     names = set()
+    # Only the Engine's freshly re-resolved and Save->Reload-verified NFB
+    # pair transaction may supply these per-panel physical part IDs. This
+    # authorizes their PART_ONLY flat placement, NOT whole-cabinet MFG-2.
+    if _verified_nfb_pair_parts is not None and not isinstance(
+        _verified_nfb_pair_parts, Mapping
+    ):
+        raise TypeError("COMPOSED_DXF_NFB_PAIR_PROOF_INVALID")
+    verified_pairs = _verified_nfb_pair_parts or {}
     if box_body_owner_by_panel is not None and not isinstance(
         box_body_owner_by_panel, Mapping
     ):
@@ -191,20 +200,33 @@ def _source_rows(panels, *, preserve_input_order=False, box_body_owner_by_panel=
         if not isinstance(geometry, ResolvedManufacturingGeometry):
             raise ValueError("COMPOSED_DXF_FINAL_SCENE_REQUIRED")
         rows = tuple(resolved_physical_render_parts(geometry))
+        verified = frozenset(verified_pairs.get(panel_name, ()))
+        if verified:
+            physical = {key for key, _ in rows}
+            doors = {key for key in verified if key.startswith("inner_door:")}
+            bases = {key for key in verified
+                     if key == "base_plate" or key.startswith("base_plate:nfb_layer:")}
+            if (not doors or not bases or len(doors) != 1
+                    or verified != doors | bases or not verified <= physical):
+                raise ValueError("COMPOSED_DXF_NFB_PAIR_INVENTORY_MISMATCH")
         if not rows or len({key for key, _ in rows}) != len(rows):
             raise ValueError("COMPOSED_DXF_PHYSICAL_INVENTORY_INVALID")
         guard_rows = tuple((key, "", render)
                            for key, render in rows)
         _reject_unapproved_nfb_pad_ear_manufacturing(guard_rows)
-        _validate_nfb_base_part_scope(guard_rows, part_only=False)
+        _validate_nfb_base_part_scope(
+            tuple(row for row in guard_rows if row[0] not in verified),
+            part_only=False,
+        )
         for key, render in rows:
-            reject_unverified_receiving_nfb_tier_base(
-                render, output_key=key,
-            )
+            if key not in verified:
+                reject_unverified_receiving_nfb_tier_base(
+                    render, output_key=key,
+                )
             meta = getattr(render, "metadata", None) or {}
             if (meta.get("baseline_fit_error")
                     or meta.get("receiving_base_plate_unconfigured") is True
-                    or (meta.get("nfb_v5_trial_status")
+                    or (key not in verified and meta.get("nfb_v5_trial_status")
                         and meta.get("nfb_trial_export_approved") is not True)):
                 raise ValueError("COMPOSED_DXF_SOURCE_NOT_MANUFACTURING_APPROVED")
             # A caller-changed logical output name must never retag a
@@ -336,6 +358,7 @@ def _compose(rows, *, gap):
 def save_composed_panel_dxf(
     panels, output_path, *, pre_commit_guard, overwrite=False, gap=60.0,
     preserve_input_order=False, box_body_owner_by_panel=None,
+    _verified_nfb_pair_parts=None,
 ):
     """Publish one staged, independently reopened multi-panel flat DXF.
 
@@ -356,6 +379,7 @@ def save_composed_panel_dxf(
     rows = _source_rows(
         panels, preserve_input_order=preserve_input_order,
         box_body_owner_by_panel=box_body_owner_by_panel,
+        _verified_nfb_pair_parts=_verified_nfb_pair_parts,
     )
     pre_commit_guard()
     composite, sheets, originals = _compose(rows, gap=float(gap))

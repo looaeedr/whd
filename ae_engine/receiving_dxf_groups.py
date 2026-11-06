@@ -66,6 +66,7 @@ def plan_receiving_grouped_dxf(layout, mode):
 def commit_verified_receiving_groups(
     layout, mode, physical_rows, stage_dir, output_dir,
     *, pre_commit_guard, overwrite=False, box_body_owner_by_namespace=None,
+    _verified_nfb_pair_parts_by_namespace=None,
 ):
     """Publish only complete *previously verified* per-Bay physical sheets.
 
@@ -103,6 +104,14 @@ def commit_verified_receiving_groups(
     ):
         raise TypeError("RECEIVING_COMPOSED_DXF_BODY_OWNER_MAPPING_REQUIRED")
     owner_source = dict(box_body_owner_by_namespace or {})
+    from collections.abc import Mapping
+    if _verified_nfb_pair_parts_by_namespace is not None and not isinstance(
+        _verified_nfb_pair_parts_by_namespace, Mapping
+    ):
+        raise TypeError("RECEIVING_COMPOSED_NFB_PROOF_MAPPING_REQUIRED")
+    pair_source = dict(_verified_nfb_pair_parts_by_namespace or {})
+    if set(pair_source) - expected_namespaces:
+        raise ValueError("RECEIVING_COMPOSED_NFB_UNKNOWN_PHYSICAL_BAY")
     if set(owner_source) - expected_namespaces:
         raise ValueError("RECEIVING_COMPOSED_DXF_UNKNOWN_BODY_OWNER")
     from .composed_panel_dxf import save_composed_panel_dxf
@@ -111,6 +120,7 @@ def commit_verified_receiving_groups(
     for filename, cells in groups:
         panel_instances = []
         group_body_owners = {}
+        group_nfb_parts = {}
         for si, bi, panel_name in cells:
             row = source["sets"][si]
             bay = row["bays"][bi]
@@ -120,6 +130,8 @@ def commit_verified_receiving_groups(
             records = by_namespace[ns]
             if ns in owner_source:
                 group_body_owners[panel_name] = owner_source[ns]
+            if ns in pair_source:
+                group_nfb_parts[panel_name] = frozenset(pair_source[ns])
             panel_instances.append((panel_name, ResolvedManufacturingGeometry(
                 parts=tuple(ResolvedManufacturingPart(key, render)
                             for key, render in records),
@@ -131,6 +143,7 @@ def commit_verified_receiving_groups(
             panel_instances, stage / filename, pre_commit_guard=pre_commit_guard,
             overwrite=False, preserve_input_order=True,
             box_body_owner_by_panel=group_body_owners,
+            _verified_nfb_pair_parts=group_nfb_parts,
         )
         staged[filename] = Path(result.path)
     pre_commit_guard()  # Same immutable current-source witness before publish.
