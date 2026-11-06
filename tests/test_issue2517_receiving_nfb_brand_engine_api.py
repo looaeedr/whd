@@ -85,9 +85,25 @@ def test_gui_set_and_global_brand_delegate_to_public_engine_api(monkeypatch):
     assert adapter.layout["sets"][1] == frozen["sets"][1]
     assert initial == frozen
 
+    # Global Apply is one public Engine transaction, not two GUI-owned
+    # Set-level mutations. Keep the original physical NFB X safety checks.
+    global_real = manufacturing_api.update_receiving_all_set_nfb_parent_brand
+    global_calls = []
+
+    def record_global(layout, brand):
+        global_calls.append((tuple(row["stable_id"] for row in layout["sets"]), brand))
+        return global_real(layout, brand)
+
+    monkeypatch.setattr(
+        manufacturing_api, "update_receiving_all_set_nfb_parent_brand",
+        record_global,
+    )
     calls.clear()
     assert adapter.set_global_brand("三菱") is True
-    assert len(calls) == 2
+    assert calls == []
+    assert global_calls == [(tuple(row["stable_id"] for row in frozen["sets"]), "三菱")]
     assert [r["switch_brand"] for r in adapter.layout["sets"]] == ["三菱", "三菱"]
+    assert adapter.layout["sets"][1]["bays"][0]["nfb_config"]["holes"][0]["manual_x_state"] == "RECONFIRM_REQUIRED"
     assert adapter.set_global_brand("三菱") is False
+    assert len(global_calls) == 2
     assert initial == frozen
