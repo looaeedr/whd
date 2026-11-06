@@ -13,6 +13,17 @@ whd_schema: WHD_DOC_META_V1
 - 不增加 Joint 關係、裝配/Relief/Corner 新公式或 FinalScene 第二套 resolver；正常、舊 schema、其他來源類型、錯誤版本和 GUI 路由有正反 headless 測試，製造 2D／3D／DXF 仍需 exact SHA 完整產品回歸。Windows R5 UAT 與 #2517 全面接線尚未結案。
 
 
+
+## [CURRENT] #2517 同一已確認 NFB 來源中的「獨立核心板件＋成對 NFB」合圖（2026-11-06）
+
+- CADSplit 新建受電箱由來源 DXF／CSV 建立同一份 WHD 核准 Layout，Engine 正式 grouped DXF 使用該已提交 NFB 的保存 Layout，重新衍生每個 Bay 的完整 immutable pair Request 並比較 manufacturing fingerprint。不可僅看相同 stable ID／W/H/D，也不能讓外部輸入以未核准來源或預覽繞過 #2987 防混圖閘門。
+- 同一來源內原 DXF／CSV／Engine PartSpec 已確認的 BoxBody、外門、封頭、封尾是獨立核心製造板件；它們不應因為該 Project 已提交 NFB 就被錯誤要求取得另一範圍的 EAR／PAD 整箱 MFG-2 放行。只在 nfb_pair_requests 存在、只選 box_body/door/head/tail、同一保存 Layout 的每個 NFB pair 逐一重新驗證且原子批次重開時，允許原核心板件的原有獨立 Save→Reload 閘門。base_plate／inner_door／PAD／EAR、未配置底板與未核准 NFB 不能藉此取得整櫃資格；不允許未知選取 flags。
+- 保留 COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH 跨專案拒絕、原 CSV SHA 與工程 source guard、每片真實 identity、2D／3D／DXF／整組 Save→Reload 與 staging 原子性。#2692 三模式：預設 ALL 全部.dxf、明確 PER_SET 第N套.dxf、明確 END_VS_MIDDLE 頭尾盤.dxf＋有中間盤時 中間盤.dxf。
+- R5-2600 於隔離工作目錄，以正式 A-PT1～A-PT16 DXF 與現場 CSV 覆核本修復候選版本：ALL 1 張／16 Bay、PER_SET 3 張／4-3-9、END_VS_MIDDLE 2 張／6-10，NFB Door/Base 每 Bay 各一、各模式物理 CHECK 清單一致、DXF audit 0、來源 SHA 不變。此為隔離環境實機驗收，不代表正式 Windows 工作目錄已同步，也不代表整箱 MFG-2／NC 放行。
+
+
+
+
 ## [CURRENT] #2517 主 GUI 合併出圖自動納入同源已確認 NFB pair（2026-11-06）
 
 - 之前的 Engine `export_grouped_receiving_multibay_dxf(nfb_pair_requests=...)` 已能驗證並排入每 Bay 內門＋底板；但主 GUI 的選取出圖按鈕沒有傳入 NFB Requests，造成使用者必須額外呼叫獨立 NFB 出口，不能以主按鈕得到一份已確認板件的 DXF。
