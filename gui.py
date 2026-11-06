@@ -50,7 +50,6 @@ from ae_engine.sheetmetal_geometry import (
     CornerDirection,
     EDITABLE_CORNER_TYPE_IDS,
     CORNER_TYPE_LABELS,
-    normalize_corner_selection,
 )
 from ae_engine.sheetmetal_features import (
     box_body_face_contexts_from_strip,
@@ -126,6 +125,11 @@ from ae_engine.sheetmetal_part_adapters import (
 
 # Stable compatibility names consumed by HoleEditorCompositionDependencies.
 # Always pass public Engine geometry ownership into UI/session controllers.
+# Keep legacy GUI global names for extensions; Engine is their actual owner.
+normalize_corner_selection = manufacturing_api.operator_normalize_corner_selection
+assembly_type_from_corner_state = manufacturing_api.operator_assembly_type_from_corner_state
+is_unknown_model = manufacturing_api.is_unknown_operator_model
+
 measure_door_indicator_position = manufacturing_api.project_operator_door_indicator_position
 feature_with_reference_anchor = manufacturing_api.operator_hole_feature_with_reference_anchor
 feature_with_process = manufacturing_api.operator_hole_feature_with_process
@@ -140,13 +144,12 @@ from ae_engine.corner_type_ui import (
     CORNER_LABELS,
     CORNER_PAIR_CORNERS,
     with_unknown_model,
-    is_unknown_model,
     normalize_custom_model_name,
     new_manual_corner_pair_same_state,
     new_manual_corner_state,
     policy_from_corner_state,
     build_corner_type_preview_geometry,
-    apply_box_assembly_type, assembly_type_from_corner_state,
+    apply_box_assembly_type,
 )
 
 
@@ -728,7 +731,7 @@ class Phase6ApplicationHost:
         corner_state = getattr(self, "manual_corner_state", None)
         if corner_state:
             try:
-                return assembly_type_from_corner_state(corner_state)
+                return manufacturing_api.operator_assembly_type_from_corner_state(corner_state)
             except Exception:
                 pass
         return CornerTypeId.INSERT_OVERLAY
@@ -766,7 +769,7 @@ class Phase6ApplicationHost:
         return CornerTypeId(stable) if stable != "WRAP_OVERLAY" else stable
 
     def on_box_assembly_changed(self, event=None):
-        if not is_unknown_model(self.baseline_var.get()):
+        if not manufacturing_api.is_unknown_operator_model(self.baseline_var.get()):
             return
         type_id = self._current_box_assembly_type()
         self._set_box_assembly_type(type_id, reset_bottom_defaults=False)
@@ -836,7 +839,7 @@ class Phase6ApplicationHost:
         if baseline_var is None or not hasattr(baseline_var, "get"):
             return None
         value = str(baseline_var.get() or "").strip()
-        if not value or is_unknown_model(value):
+        if not value or manufacturing_api.is_unknown_operator_model(value):
             return None
         return value
 
@@ -975,7 +978,7 @@ class Phase6ApplicationHost:
     def _corner_part_type_editable(self, part_key):
         # CornerType 本身只在自訂盤型開放切換；已知盤型保留基準類型。
         return (
-            is_unknown_model(self.baseline_var.get())
+            manufacturing_api.is_unknown_operator_model(self.baseline_var.get())
             and part_key in self.manual_corner_state
             and part_key not in {"indicator_box", "indicator_door"}
         )
@@ -1026,7 +1029,7 @@ class Phase6ApplicationHost:
     def _manual_selection_for_target(self, part_key, target_key):
         if target_key in CORNER_PAIR_CORNERS:
             target_key = CORNER_PAIR_CORNERS[target_key][0]
-        return normalize_corner_selection(self.manual_corner_state[part_key][target_key])
+        return manufacturing_api.operator_normalize_corner_selection(self.manual_corner_state[part_key][target_key])
 
     def select_manual_corner(self, corner_key):
         return _select_manual_corner_impl(self, corner_key)
