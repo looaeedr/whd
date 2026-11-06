@@ -91,3 +91,21 @@ def test_invalid_tier_offset_type_or_infinity_fails_before_any_dxf(
     ):
         _export(snapshot, tampered, tmp_path)
     assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("tier", (0, 1))
+@pytest.mark.parametrize("axis", (0, 1, 2))
+def test_oversized_integer_xyz_fails_as_source_error_not_uncaught_overflow(
+    tier, axis, tmp_path,
+):
+    snapshot = _current_two_tiers()
+    parts = _actual_scene(snapshot)
+    bad = list(_tier_offset(parts, tier))
+    bad[axis] = 10 ** 1000  # math.isfinite(int) overflows before float diff.
+    tampered = _invalid_tier_offset(parts, tier=tier, offset=tuple(bad))
+    with pytest.raises(
+        ValueError, match="CSV_TWO_TIER_REAL_BASE_INSTALL_XYZ_MISMATCH",
+    ):
+        _export(snapshot, tampered, tmp_path)
+    assert not list(tmp_path.iterdir())
+    assert all(a.render_data is b.render_data for a, b in zip(parts, tampered))

@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 NFB 成對部分出圖實體底板 XYZ 非有限與極大整數一律安全拒絕（2026-11-06）
+
+- 受電箱單／雙層 NFB 的 `內門＋底板` PART_ONLY 正式 DXF，必須由 Engine 先驗證目前 FinalScene 所安裝的每一片真實底板 world XYZ，才能送進原子 DXF Save→Reload。已合併的 PR #2932（單層）和 #2936（雙層）阻擋 NaN、Infinity、布林、字串、缺失座標；但對 `10**1000` 類型的原生超大整數直接呼叫 `math.isfinite` 可產生未捕獲 `OverflowError`，且兩段驗證實作分離。
+- 原 `ae_engine.receiving_nfb_pair_export` 增補同一個僅在 Engine 使用的 `_finite_installed_xyz`，同時驗實際與期望的三軸有限實數；無法轉成有限浮點數的原生整數也以正式來源拒絕回傳，不讓相同 local 2D 但失效 3D 安裝資料通過或發生未處理例外。保留 1e-6mm 容差、原真實 FinalScene 與既有 `CSV_PAIR_REAL_BASE_INSTALL_XYZ_MISMATCH`／`CSV_TWO_TIER_REAL_BASE_INSTALL_XYZ_MISMATCH` 錯誤碼。
+- 回歸沿用 `tests/test_issue2517_two_tier_nfb_real_base_finite_xyz_export.py` 和 `tests/test_issue2517_single_tier_nfb_real_base_installation_export.py` 真來源／物理場景／DXF 輸出路徑，對每片／三軸超大整數驗拒絕無產物；既有合法三片與兩片 DXF 獨立回讀及 NaN/Infinity 閘門不變。此處不認證整箱 EAR／PAD／NFB MFG-2、Windows UAT，#2517 仍 OPEN。
+
+
+
 ## [CURRENT] #2517 Receiving 共用設定 Apply 受影響實體 Bay 身分由 Engine 返回（2026-11-06）
 
 - 原 `gui_modules/application/receiving_set_bay_adapter.py::apply_setting_to_bays` 已使用 Engine 原子提交 `edit_receiving_shared_setting_for_bays`，卻仍於 GUI 展開持久化 `settings[kind].refs`，自行判定哪些未選取但連動的實體 Bay 必須標記為 dirty，違反 Set/Bay 來源身份只能由 Engine 擁有的契約。
