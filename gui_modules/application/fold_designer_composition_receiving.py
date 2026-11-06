@@ -1620,9 +1620,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
     # Candidate versions are project-wide and separate from QuantityModel and
     # per-Bay shared settings.  Only Apply copies a candidate into highlighted
     # receiving_layout Bays.
-    from ae_engine.receiving_hole_candidates import (
-        candidates_for, candidate_features, create_candidate, update_candidate,
-        delete_candidate, duplicate_candidate, normalize_candidates,
+    # Project hole candidate edits are copy-on-write Engine transactions.
+    from ae_engine.manufacturing_api import (
+        receiving_hole_candidates_for as candidates_for,
+        receiving_hole_candidate_features as candidate_features,
+        create_receiving_hole_candidate as create_candidate,
+        update_receiving_hole_candidate as update_candidate,
+        delete_receiving_hole_candidate as delete_candidate,
+        duplicate_receiving_hole_candidate as duplicate_candidate,
+        normalize_receiving_hole_candidates as normalize_candidates,
     )
     def candidate_adapter():
         return self.receiving_adapter(namespace)
@@ -1741,11 +1747,17 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     # Independent inner-door candidate data. It shares the UX mechanics with
     # endcaps, but never reads/writes receiving_hole_candidates or QuantityModel.
-    from ae_engine.receiving_inner_door_candidates import (
-        KEY as INNER_KEY, ROLE as INNER_ROLE,
-        normalize_inner_candidates, inner_versions, inner_config,
-        create_inner_candidate, update_inner_candidate,
-        delete_inner_candidate, duplicate_inner_candidate,
+    # Inner-door candidate edits use the Engine, not the GUI source layer.
+    from ae_engine.manufacturing_api import (
+        RECEIVING_INNER_DOOR_CANDIDATE_KEY as KEY,
+        RECEIVING_INNER_DOOR_CANDIDATE_ROLE as ROLE,
+        normalize_receiving_inner_door_candidates as normalize_inner_candidates,
+        receiving_inner_door_versions as inner_versions,
+        receiving_inner_door_candidate_config as inner_config,
+        create_receiving_inner_door_candidate as create_inner_candidate,
+        update_receiving_inner_door_candidate as update_inner_candidate,
+        delete_receiving_inner_door_candidate as delete_inner_candidate,
+        duplicate_receiving_inner_door_candidate as duplicate_inner_candidate,
     )
     from ae_engine.receiving_switch_model_catalog import INDEX_PATH
     from ae_engine.receiving_nfb_model_identity import (
@@ -1773,22 +1785,40 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         import tkinter as tk
         operator_brand_choices = manufacturing_api.receiving_operator_switch_brand_choices()
         from .receiving_nfb_source_preview import NfbDxfSourcePreviewPanel
-        from ae_engine.receiving_nfb_ui1a_edits import (
-            NfbUi1aEditSession, editable_nfb_draft, insert_nfb_slot,
-            delete_nfb_slot, move_nfb_slot, replace_nfb_slot_model,
-            set_nfb_manual_x, set_nfb_layer_rotation,
-            set_nfb_slot_rotation, effective_nfb_rotation,
-            nfb_x_reset_impact,
+        # NFB draft edits and reversible session are public Engine transactions.
+        from ae_engine.manufacturing_api import (
+            ReceivingNfbDraftEditSession as NfbUi1aEditSession,
+            normalize_receiving_nfb_editable_draft as editable_nfb_draft,
+            insert_receiving_nfb_draft_slot as insert_nfb_slot,
+            delete_receiving_nfb_draft_slot as delete_nfb_slot,
+            move_receiving_nfb_draft_slot as move_nfb_slot,
+            replace_receiving_nfb_draft_slot_model as replace_nfb_slot_model,
+            set_receiving_nfb_draft_manual_x as set_nfb_manual_x,
+            set_receiving_nfb_draft_layer_rotation as set_nfb_layer_rotation,
+            set_receiving_nfb_draft_slot_rotation as set_nfb_slot_rotation,
+            project_receiving_nfb_draft_rotation as effective_nfb_rotation,
+            project_receiving_nfb_draft_x_reset_impact as nfb_x_reset_impact,
         )
-        from ae_engine.receiving_nfb_brand_transition import (
-            draft_new_reselections,
+        # NFB draft-brand reselection projection has one Engine owner.
+        from ae_engine.manufacturing_api import (
+            project_receiving_nfb_draft_reselections as draft_new_reselections,
         )
-        from ae_engine.receiving_nfb_ui1a import (
-            INHERIT, OVERRIDE, NEEDS_RESELECTION, new_nfb_ui1a_draft,
-            reconcile_set_brand, set_nfb_draft_layer_count,
-            set_nfb_layer_brand, set_nfb_slot_brand, add_nfb_draft_slot,
-            select_nfb_slot_model, remove_nfb_draft_slot,
-            effective_nfb_layer_brand, effective_nfb_slot_brand, nfb_ui1a_preview,
+        # NFB UI-1A draft source transitions and nominal preview are Engine-owned.
+        from ae_engine.manufacturing_api import (
+            RECEIVING_NFB_DRAFT_INHERIT as INHERIT,
+            RECEIVING_NFB_DRAFT_OVERRIDE as OVERRIDE,
+            RECEIVING_NFB_DRAFT_NEEDS_RESELECTION as NEEDS_RESELECTION,
+            new_receiving_nfb_draft as new_nfb_ui1a_draft,
+            reconcile_receiving_nfb_draft_set_brand as reconcile_set_brand,
+            set_receiving_nfb_draft_layer_count as set_nfb_draft_layer_count,
+            set_receiving_nfb_draft_layer_brand as set_nfb_layer_brand,
+            set_receiving_nfb_draft_slot_brand as set_nfb_slot_brand,
+            add_receiving_nfb_draft_slot as add_nfb_draft_slot,
+            select_receiving_nfb_draft_slot_model as select_nfb_slot_model,
+            remove_receiving_nfb_draft_slot as remove_nfb_draft_slot,
+            project_receiving_nfb_draft_layer_brand as effective_nfb_layer_brand,
+            project_receiving_nfb_draft_slot_brand as effective_nfb_slot_brand,
+            preview_receiving_nfb_draft as nfb_ui1a_preview,
         )
 
         if version_id is None:
