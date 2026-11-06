@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 已保存普通受電箱底板由 Engine 直接建立來源 PartSpec，並接入原 Verified Bay 出圖（2026-11-06）
+
+- `build_receiving_factory_confirmed_parts(..., include_confirmed_base_plate=True)` 是原公開 Engine source→PartSpec 接口的可選向後相容擴充。僅在 `saved_operator_confirmed`、原始 W/H/D/T 與保存狀態一致，且明確有 `receiving_base_plate` 實體來源時，沿用原 `validate_receiving_base_plate_settings` 的 EAR pitch／真實輪廓預檢、`receiving_base_plate_values` 與 `build_base_plate_operator_part_spec` 生出 `("base_plate", BasePlatePartSpec)`。GUI／CADSplit 不必在 client 自組縮量、BEND 或 BasePlatePartSpec。
+- `ManufacturingResolvedBayInput.include_confirmed_base_plate` 在同一原 `export_verified_resolved_integration_bays` 流程中向 Engine 傳遞此確認意圖；原 Engine FinalScene 生成、逐片 DXF 保存／獨立 Save→Reload 及原子提交不變。缺來源、非保存確認、非普通 LEFT／RIGHT、任何已提交 NFB 或未驗底板孔位一律拒絕，不得把 PAD/EAR/雙層 NFB 冒充普通底板。
+- 預設 False 時原先 3 PartSpecs（五張箱身／封頭尾 DXF）及有已確認雙外門時七張輸出完全相容；顯式保存底板且合法時新增第六張原生物理底板 DXF。這是普通獨立板件製造能力，**不**宣稱受電箱整套 MFG-2、16 Bay 全件或 Windows R5 已驗收；#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 內門＋NFB 底板 PART_ONLY 出圖禁止非法真實內門 3D 安裝座標（2026-11-06）
 
 - 原 `receiving_nfb_pair_export.export_current_csv_nfb_door_base_pair` 在單／雙層 committed CSV 的實體 FinalScene 和 CUTTING 比對後，只驗真實 BasePlate 世界 XYZ，卻沒有驗安裝在同一 3D Assembly 的內門 `AssemblyScenePart.offset`；本地 2D/CUTTING 可以完全一致，但失效 `NaN`、缺軸、字串、布林或無限大的內門座標仍能落入 DXF 部分出口。

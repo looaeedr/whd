@@ -278,6 +278,52 @@ def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation, co
     )) for cell in projections)
 
 
+
+def _confirmed_saved_ordinary_base_plate(values, *, structure, body_rows):
+    """Materialize an explicitly saved ordinary Base Plate using Engine owners.
+
+    NFB-submitted base plates, tiers, PADs and welded EARs are separate
+    source-certified manufacturing operations.  They cannot be granted access
+    to the ordinary verified-Bay part path by this optional source adapter.
+    """
+    if values.get("nfb_config_submitted") is True:
+        raise ValueError("RECEIVING_FACTORY_NFB_BASE_REQUIRES_VERIFIED_PAIR_API")
+    config = values.get("receiving_base_plate")
+    if not isinstance(config, Mapping):
+        raise ValueError("RECEIVING_FACTORY_CONFIRMED_BASE_SOURCE_REQUIRED")
+    from .receiving_base_plate_settings_validation import (
+        validate_receiving_base_plate_settings,
+    )
+    from .receiving_base_plate_config import receiving_base_plate_values
+    from .operator_auxiliary_part_specs import build_base_plate_operator_part_spec
+    from .sheetmetal_part_adapters import (
+        RECEIVING_BASE_PATTERN_LEFT, RECEIVING_BASE_PATTERN_RIGHT,
+    )
+    # This is the exact Engine settings preflight used on the operator side:
+    # source dimensions, physical EAR pitch, contour and pattern must agree.
+    validate_receiving_base_plate_settings(
+        input_snapshot=values, settings_values={}, config=config,
+    )
+    physical = receiving_base_plate_values(values)
+    if physical is None or physical["receiving_bend_pattern"] not in (
+        RECEIVING_BASE_PATTERN_LEFT, RECEIVING_BASE_PATTERN_RIGHT,
+    ):
+        raise ValueError("RECEIVING_FACTORY_ORDINARY_BASE_PATTERN_UNVERIFIED")
+    # Saved base CUTTING features have separate authoring/provenance.  Never
+    # silently omit holes or accept an unverified feature into the new path.
+    stored_features = values.get("part_features", {})
+    if not isinstance(stored_features, Mapping) or stored_features.get("base_plate"):
+        raise ValueError("RECEIVING_FACTORY_BASE_FEATURE_SOURCE_UNCONFIRMED")
+    base_values = {**values, **physical, "model": _FAMILY}
+    spec = build_base_plate_operator_part_spec(
+        base_values, features=(),
+        box_body_structure_state=structure, box_body_fold_profile=body_rows,
+    )
+    if spec.physical_id != "base_plate" or spec.receiving_nfb_depth_pair_mm is not None:
+        raise ValueError("RECEIVING_FACTORY_ORDINARY_BASE_PATTERN_UNVERIFIED")
+    return "base_plate", spec
+
+
 def build_receiving_factory_confirmed_parts(
     source_dimensions: Mapping[str, object], *,
     confirmation: str | None = None,
@@ -285,6 +331,7 @@ def build_receiving_factory_confirmed_parts(
     confirmed_endcap_features: Mapping[str, object] | None = None,
     confirmed_door_layout_columns=(),
     confirmed_door_features: Mapping[str, object] | None = None,
+    include_confirmed_base_plate: bool = False,
 ):
     """Resolve a confirmed Receiving P1/Bay's Body, Head and Tail via WHD Engine.
 
@@ -303,12 +350,16 @@ def build_receiving_factory_confirmed_parts(
     verified and committed by ``export_verified_resolved_integration_bays``.
     This subset is NOT full-cabinet/NFB/Feature certification.
     """
+    if type(include_confirmed_base_plate) is not bool:
+        raise ValueError("RECEIVING_FACTORY_BASE_SELECTION_MUST_BE_BOOLEAN")
     source = _source_dimensions(source_dimensions)
     features_by_role = _confirmed_endcap_source_features(confirmed_endcap_features)
     if confirmation not in ("fresh_family_confirmed", "saved_operator_confirmed"):
         raise ValueError("RECEIVING_OPERATOR_CONFIRMATION_REQUIRED")
     if confirmed_door_features is not None and not confirmed_door_layout_columns:
         raise ValueError("RECEIVING_DOOR_LAYOUT_REQUIRED_FOR_FEATURES")
+    if include_confirmed_base_plate and confirmation != "saved_operator_confirmed":
+        raise ValueError("RECEIVING_FACTORY_BASE_REQUIRES_SAVED_OPERATOR_CONFIRMATION")
 
     if confirmation == "fresh_family_confirmed":
         if operator_snapshot is not None:
@@ -368,4 +419,8 @@ def build_receiving_factory_confirmed_parts(
         values, source, tuple(confirmed_door_layout_columns or ()),
         confirmation=confirmation, confirmed_features=confirmed_door_features,
     ))
+    if include_confirmed_base_plate:
+        parts.append(_confirmed_saved_ordinary_base_plate(
+            values, structure=structure, body_rows=body_rows,
+        ))
     return tuple(parts)
