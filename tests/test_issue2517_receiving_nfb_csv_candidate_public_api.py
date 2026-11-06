@@ -616,3 +616,207 @@ def test_fresh_csv_candidate_native_initial_x_cannot_manufacture_without_placeme
             request, output_directory=tmp_path,
         )
     assert not tuple(tmp_path.glob("*.dxf"))
+
+
+
+@pytest.mark.parametrize("count", (1, 2))
+def test_explicit_approval_of_whd_current_default_x_recovers_real_bay_world_x(
+    count,
+):
+    """One user approval accepts all same-Bay Engine positions, no manual X."""
+    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+    from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
+
+    original = _fresh_csv_only_physical_source()
+    before = deepcopy(original)
+    source = manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay(
+        original, set_index=0, bay_index=1, thickness_mm=2,
+        layers=1, models=[["nfbv5:士林:2P400"] * count, ""],
+    )
+    accepted_layout, accepted_source = (
+        manufacturing_api.approve_receiving_nfb_csv_default_x(
+            original, set_index=0, bay_index=1, thickness_mm=2,
+            source=source, confirmation="ACCEPT_CURRENT_WHD_NFB_DEFAULT_X",
+        )
+    )
+    assert original == before and source != accepted_source
+    assert accepted_layout["sets"][0]["bays"][0] == original["sets"][0]["bays"][0]
+    changed = accepted_layout["sets"][0]["bays"][1]
+    assert changed["nfb_config_submitted"] is True
+    assert len(changed["nfb_config"]["holes"]) == count
+    assert all(
+        dict(feature.source_params)["fresh_bay_default_x_confirmed"] is True
+        and "fresh_bay_auto_unconfirmed" not in dict(feature.source_params)
+        for feature in accepted_source["features"]["inner_door:upper:panel"]
+    )
+    seed = manufacturing_api.fresh_receiving_mode(
+        "set_bay", {"w": 800, "h": 1600, "d": 350}, thickness=2,
+    )
+    projected = project_receiving_bay_legacy_aliases(
+        {**seed, "receiving_layout": accepted_layout},
+        set_index=0, bay_index=1, validate_common=False,
+    )
+    certified = _submitted_csv_holes(projected)
+    assert certified and len(certified[1]) == count
+    assert all(isinstance(h.world_x_mm, float) for h in certified[1])
+
+
+@pytest.mark.parametrize("variant,reason", (
+    ("missing_confirmation", "NFB_DEFAULT_X_OPERATOR_CONFIRMATION_REQUIRED"),
+    ("wrong_confirmation", "NFB_DEFAULT_X_OPERATOR_CONFIRMATION_REQUIRED"),
+    ("edited_feature", "NFB_DEFAULT_X_CURRENT_ENGINE_SOURCE_DRIFT"),
+    ("edited_model", "NFB_DEFAULT_X_CURRENT_ENGINE_SOURCE_DRIFT"),
+    ("deleted_source", "NFB_DEFAULT_X_ORIGINAL_CANDIDATE_REQUIRED"),
+    ("changed_brand", "NFB_CSV_CANDIDATE_BRAND_MISMATCH"),
+))
+def test_default_x_approval_is_atomic_and_never_trusts_altered_visual_sources(
+    variant, reason,
+):
+    original = _fresh_csv_only_physical_source()
+    source = manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay(
+        original, set_index=0, bay_index=1, thickness_mm=2,
+        layers=1, models=[["nfbv5:士林:2P400"], ""],
+    )
+    candidate = deepcopy(source)
+    confirmation = "ACCEPT_CURRENT_WHD_NFB_DEFAULT_X"
+    if variant == "missing_confirmation":
+        confirmation = ""
+    elif variant == "wrong_confirmation":
+        confirmation = "True"
+    elif variant == "edited_feature":
+        part = next(iter(candidate["features"]))
+        feature = candidate["features"][part][0]
+        candidate["features"][part] = (replace(feature, offset=Vec2(12., 0.)),)
+    elif variant == "edited_model":
+        candidate["models"] = [["nfbv5:士林:2P400"] * 2, ""]
+    elif variant == "deleted_source":
+        candidate = {}
+    elif variant == "changed_brand":
+        original["sets"][0]["switch_brand"] = "東元"
+    baseline = deepcopy(original)
+    with pytest.raises(ValueError, match=reason):
+        manufacturing_api.approve_receiving_nfb_csv_default_x(
+            original, set_index=0, bay_index=1, thickness_mm=2,
+            source=candidate, confirmation=confirmation,
+        )
+    assert original == baseline
+
+
+
+def test_default_x_approved_source_produces_real_door_and_base_dxf_save_reload(
+    tmp_path,
+):
+    """No per-switch X values; current WHD geometry owns both real sheets."""
+    from pathlib import Path
+    import ezdxf
+    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+    # Use the real new Engine-owned source-to-Request builder, never a test
+    # helper or caller-composed PartSpec outside WHD Engine.
+
+    original = _fresh_csv_only_physical_source()
+    source = manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay(
+        original, set_index=0, bay_index=1, thickness_mm=2,
+        layers=1, models=[["nfbv5:士林:2P400"], ""],
+    )
+    layout, accepted = manufacturing_api.approve_receiving_nfb_csv_default_x(
+        original, set_index=0, bay_index=1, thickness_mm=2,
+        source=source, confirmation="ACCEPT_CURRENT_WHD_NFB_DEFAULT_X",
+    )
+    seed = manufacturing_api.fresh_receiving_mode(
+        "set_bay", {"w": 800, "h": 1600, "d": 350}, thickness=2,
+    )
+    snapshot = project_receiving_bay_legacy_aliases(
+        {**seed, "receiving_layout": layout},
+        set_index=0, bay_index=1, validate_common=False,
+    )
+    request = manufacturing_api.receiving_committed_nfb_pair_request_for_bay(
+        layout, set_index=0, bay_index=1, thickness_mm=2,
+    )
+    result = manufacturing_api.export_current_csv_nfb_pair_from_request(
+        request, output_directory=tmp_path,
+    )
+    saved = (Path(result.inner_door_path), Path(result.base_plate_path))
+    assert len(set(saved)) == 2
+    assert all(p.is_file() and p.stat().st_size > 0 for p in saved)
+    assert set(tmp_path.glob("*.dxf")) == set(saved)
+    for item in saved:
+        drawing = ezdxf.readfile(item)
+        assert not drawing.audit().errors
+        assert any(e.dxf.layer == "CUTTING" for e in drawing.modelspace())
+
+
+
+def test_two_confirmed_real_bays_use_one_atomic_engine_nfb_pair_batch(tmp_path):
+    """One verified current source per Engine Bay -> four real audited DXFs."""
+    from pathlib import Path
+    import ezdxf
+
+    original = _fresh_csv_only_physical_source()
+    untouched = deepcopy(original)
+    staged = original
+    for bay_index in (0, 1):
+        draft = manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay(
+            staged, set_index=0, bay_index=bay_index, thickness_mm=2,
+            layers=1, models=[["nfbv5:士林:2P400"], ""],
+        )
+        staged, accepted = manufacturing_api.approve_receiving_nfb_csv_default_x(
+            staged, set_index=0, bay_index=bay_index, thickness_mm=2,
+            source=draft, confirmation="ACCEPT_CURRENT_WHD_NFB_DEFAULT_X",
+        )
+        assert accepted
+    requests = tuple(
+        manufacturing_api.receiving_committed_nfb_pair_request_for_bay(
+            staged, set_index=0, bay_index=bay_index, thickness_mm=2,
+        )
+        for bay_index in (0, 1)
+    )
+    receipt = manufacturing_api.export_receiving_committed_nfb_csv_bays(
+        requests, output_directory=tmp_path, pre_commit_guard=lambda: None,
+    )
+    assert original == untouched
+    assert len(receipt.bays) == 2
+    assert len(receipt.output_paths) == 4
+    assert len(set(receipt.output_paths)) == 4
+    assert set(map(Path, receipt.output_paths)) == set(tmp_path.glob("*.dxf"))
+    for path in receipt.output_paths:
+        item = Path(path)
+        assert item.stat().st_size > 0
+        assert ezdxf.readfile(item).audit().errors == []
+
+
+def test_batch_request_blocks_missing_actual_default_x_without_output(tmp_path):
+    original = _fresh_csv_only_physical_source()
+    one = manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay(
+        original, set_index=0, bay_index=0, thickness_mm=2,
+        layers=1, models=[["nfbv5:士林:2P400"], ""],
+    )
+    approved, _ = manufacturing_api.approve_receiving_nfb_csv_default_x(
+        original, set_index=0, bay_index=0, thickness_mm=2, source=one,
+        confirmation="ACCEPT_CURRENT_WHD_NFB_DEFAULT_X",
+    )
+    other = manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay(
+        approved, set_index=0, bay_index=1, thickness_mm=2,
+        layers=1, models=[["nfbv5:士林:2P400"], ""],
+    )
+    unconfirmed = manufacturing_api.apply_receiving_nfb_csv_candidate(
+        approved, set_index=0, bay_indices=(1,), source=other,
+    )
+    # Give the unconfirmed Bay its authentic WHD Factory inner-door identity
+    # so this negative specifically proves the X gate (not a missing Door).
+    from ae_engine.receiving_layout import update_receiving_bay
+    factory = manufacturing_api.fresh_receiving_mode(
+        "set_bay", {"w": 800, "h": 1600, "d": 350}, thickness=2,
+    )
+    original_state = unconfirmed["sets"][0]["bays"][1]["door_state"]
+    unconfirmed = update_receiving_bay(
+        unconfirmed, set_index=0, bay_index=1,
+        door_state={**original_state, "inner_doors": factory["inner_doors"]},
+    )
+    assert not tuple(tmp_path.glob("*.dxf"))
+    with pytest.raises(
+        ValueError, match="NFB_PAIR_REQUEST_CURRENT_PHYSICAL_X_NOT_APPROVED",
+    ):
+        manufacturing_api.receiving_committed_nfb_pair_request_for_bay(
+            unconfirmed, set_index=0, bay_index=1, thickness_mm=2,
+        )
+    assert not tuple(tmp_path.glob("*.dxf"))

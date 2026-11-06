@@ -2369,6 +2369,12 @@ from .receiving_nfb_csv_editor_features import (
     editor_nfb_features_from_csv,
     candidate_receiving_nfb_csv_for_fresh_bay,
 )
+from .receiving_nfb_default_x_approval import (
+    approve_receiving_nfb_csv_default_x,
+)
+from .receiving_nfb_default_pair_request import (
+    receiving_committed_nfb_pair_request_for_bay,
+)
 
 # #2517: physical Receiving BasePlate Part Session source is Engine-owned.
 from .operator_part_session_profiles import (

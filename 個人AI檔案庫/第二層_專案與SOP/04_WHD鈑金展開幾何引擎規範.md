@@ -12,6 +12,15 @@ whd_schema: WHD_DOC_META_V1
 - `fold_designer_composition_state.corner_transaction_payload/collect_workspace_state` 原先尚直接呼叫 Joint v2 `migrate_legacy_snapshot_joints`；現在兩處都改走 #2970 原有 `manufacturing_api.migrate_operator_assembly_joint_snapshot`，沒有重新建議 Joint 關係、修改 schema 或改變 Save→Reload。
 - 此批不把展示 `Vec2`、`CirclePrimitive`、`DoorFrameEdges` 當作新的製造缺口；孔位到 PartSpec／2D／3D／DXF 的原 Engine 路徑、CADSplit 公開契約、正式輸出權限均未改動。需 public-vs-owner 實際換算與 GUI 同值、非法值不提交或改變草稿、Joint source 不變性及完整 exact-SHA CI；Windows GUI 實機驗收另行，#2517 OPEN。
 
+## [CURRENT] #2517 NFB 實體預設 X 可一次確認、無需逐顆輸入（2026-11-06）
+
+- NFB 型號主孔、底板螺絲、間距與來源數值只讀 WHD 當前各品牌 NFB數值規格.csv；Engine 原生 Hole Editor 產生的 native_editor_initial X 在**未確認前**仍是編輯預覽，不直接授予實體 CUTTING。原 source-only Candidate Apply 保持 UNVERIFIED_BASIS、manual_x_mm=None，#2961 自動候選阻擋仍有效。
+- 使用者明確決定採用 WHD **當前 Engine 預設位置**時，不必逐顆輸入 X。公開 manufacture API approve_receiving_nfb_csv_default_x(layout, *, set_index, bay_index, thickness_mm, source, confirmation="ACCEPT_CURRENT_WHD_NFB_DEFAULT_X")，一次確認同一實體 Bay 全部 NFB；必須由 Engine 依**本次** Set/Bay、已確認品牌、門拓樸、CSV SHA、型號、孔槽與實體幾何重新產生候選並逐位元比較。所有校驗與原子 Apply 成功後，才將 fresh_bay_auto_unconfirmed 移除、保存 fresh_bay_default_x_confirmed=True 的同源 Feature；不得從任意中心距公式、預覽外框、其他 Bay 或舊 CSV 直接推算／杜撰製造 X。無確認、改動原始資料或缺實體 Door 均拒絕且不修改來源。
+- 核准後同一 Engine 的 _submitted_csv_holes 必須還能驗證真實原孔輪廓、Y、物理身份、角度／擺放；公開 receiving_committed_nfb_pair_request_for_bay(layout, *, set_index, bay_index, thickness_mm) 由 Engine 唯一輸出真正的 ManufacturingResolveRequest／原始內門和底板 PartSpec／RenderData，不能由 CADSplit 建造 ManufacturingPartInput 或平行幾何。現有 export_current_csv_nfb_pair_from_request／export_receiving_committed_nfb_csv_bays 才能產生實體 Door + Base DXF；所有獨立重新開檔與源碼 Guard 仍然必須通過，只有 PART_ONLY，非整箱／EAR/PAD 授權。
+- 這是一個**額外的明確確認交易**，並未把 nominal_nfb_x_group 的相鄰距離 PREVIEW_ONLY 當成擁有一般性已認證的絕對 X 公式；超出現行 CSV／物理門板可驗範圍仍阻擋。WHD 原 GUI 原生「確定全部」既有確認路徑不改。
+
+
+
 ## [CURRENT] #2517 Receiving Bay 預覽尺寸與 NFB CSV 孔位分流只經公開 Engine API（2026-11-06）
 
 - `gui_modules/application/fold_designer_composition_receiving.py::receiving_bay_preview_request` 原先直接 import `display_dimensions.resolve_operator_finished_dimensions`，而這個完成面尺寸投影本就已是公開 `manufacturing_api.resolve_operator_finished_dimensions`；GUI 現直接使用原公開入口，不另造尺寸或 DXF 幾何。
