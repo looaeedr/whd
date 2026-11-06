@@ -27,7 +27,7 @@ def _taipei_output_stamp():
 
 
 def _group_output_filename(legacy_name, cells, stamp):
-    """Name only; the original verified physical sheet geometry is unchanged."""
+    """Global project label shared across ALL group names, never a subset."""
     if (not isinstance(stamp, str)
             or re.fullmatch(r"[0-9]{12}", stamp) is None):
         raise ValueError("RECEIVING_COMPOSED_DXF_TIMESTAMP_INVALID")
@@ -46,7 +46,7 @@ def _group_output_filename(legacy_name, cells, stamp):
     else:
         # Never invent a P-number for a renamed Bay.
         label = "_".join(n.casefold() for n in names)
-    name = f"{stamp}{label}{Path(legacy_name).stem}.dxf"
+    name = f"{stamp}_{label}{Path(legacy_name).stem}.dxf"
     if len(name) > 240:
         raise ValueError("RECEIVING_COMPOSED_DXF_FILENAME_TOO_LONG")
     return name
@@ -95,7 +95,7 @@ def plan_receiving_grouped_dxf(layout, mode, *, file_stamp=None):
             result += (("中間盤.dxf", tuple(middle)),)
     if file_stamp is not None:
         result = tuple(
-            (_group_output_filename(name, cells, file_stamp), cells)
+            (_group_output_filename(name, all_cells, file_stamp), cells)
             for name, cells in result
         )
         if len({name.casefold() for name, _ in result}) != len(result):
