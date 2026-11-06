@@ -2057,9 +2057,13 @@ def plan_receiving_grouped_dxf(layout, mode):
 def export_grouped_receiving_multibay_dxf(
     saved_snapshot, *, physical_bay_geometry_provider,
     flags, output_dir, group_mode, pre_commit_guard, overwrite=False,
-    nfb_pair_requests=None,
+    nfb_pair_requests=None, include_saved_nfb_pairs=False,
 ):
-    """Source-verified current Bay flats -> group DXFs (no MFG-2 release)."""
+    """Source-verified current Bay flats -> group DXFs (no MFG-2 release).
+
+    The main GUI may request an Engine-owned projection from confirmed saved
+    NFB Bays, rather than constructing X/PartSpecs or exporting a second folder.
+    """
     from .receiving_csv_multibay_manufacturing import export_current_receiving_multibay_dxf
     return export_current_receiving_multibay_dxf(
         saved_snapshot,
@@ -2067,6 +2071,7 @@ def export_grouped_receiving_multibay_dxf(
         flags=flags, output_dir=output_dir, overwrite=overwrite,
         group_mode=group_mode, pre_commit_guard=pre_commit_guard,
         nfb_pair_requests=nfb_pair_requests,
+        include_saved_nfb_pairs=include_saved_nfb_pairs,
     )
 
 
