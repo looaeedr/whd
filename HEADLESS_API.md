@@ -78,6 +78,12 @@ whd_schema: WHD_DOC_META_V1
 
 > #2517（2026-11-03）：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_layout_columns=...)` 可在**明確確認**的 Receiving 操作來源下建立 Door cell PartSpec；`ManufacturingResolvedBayInput.door_layout_columns` 在 source-confirmed 模式傳入相同拓樸，沿用 `export_verified_resolved_integration_bays` 的正式 DXF reopen。未確認的 Door Features、拓樸不符或已存門格不同均拒絕，並未開放 source-only CLI。
 
+## #2517 Receiving confirmed ordinary BasePlate source→Engine PartSpec→DXF API（2026-11-06）
+
+- 原 `manufacturing_api.build_receiving_factory_confirmed_parts(..., include_confirmed_base_plate=True)` 在 `saved_operator_confirmed` 下依原保存 `receiving_base_plate` + `validate_receiving_base_plate_settings` + `receiving_base_plate_values` → canonical `BasePlatePartSpec`，不用 client 建立尺寸／Fold／物理身份。
+- 可直接對 `ManufacturingResolvedBayInput(..., source_dimensions_mm=..., operator_confirmation="saved_operator_confirmed", operator_snapshot=..., include_confirmed_base_plate=True)` 呼叫既有 `export_verified_resolved_integration_bays`，原兩段 pre_commit_guard、真 DXF reopen、原子寫入不變。預設 False 舊 Request 不變。
+- 僅獨立普通 LEFT／RIGHT 底板：已提交 NFB、CENTER/Tier/PAD/EAR、未確認／缺來源、保存未驗底板 Features 一律 fail-closed；非 16 Bay 全箱 MFG-2 認證，外部 source-only CLI 保持拒絕。
+
 ## 【最高優先架構規則】WHD GUI／CADSplit 必須走同一 Engine 正式製造 API（2026-11-02）
 
 **唯一正式責任鏈：** `GUI／CADSplit 操作來源（來源不同、Engine 契約相同） → WHD 公開 Engine API〔Family／Policy／Topology／Set-Bay（按需）〕 → PartSpec／FinalScene → 同源 2D／3D／DXF → 正式驗證`。
