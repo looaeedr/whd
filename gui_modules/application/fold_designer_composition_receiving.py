@@ -3077,16 +3077,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
     def nfb_transaction_ports():
         """Single Receiving authority, with real source-verified transient stage."""
-        from ae_engine.receiving_nfb_ui1b_bridge import (
-            NfbVerifiedDraftSubmission, assert_live_verified_nfb,
-            submit_live_verified_nfb, copy_live_verified_nfb,
-        )
-
         def stage_verified(bundle):
-            if not isinstance(bundle, NfbVerifiedDraftSubmission):
+            if not isinstance(bundle, manufacturing_api.NfbVerifiedDraftSubmission):
                 raise TypeError("NFB 必須提供真實來源與內門物理位置驗證")
             adapter=candidate_adapter()
-            assert_live_verified_nfb(
+            manufacturing_api.assert_live_verified_nfb(
                 adapter,bundle,current_snapshot=nfb_physical_bay_snapshot(
                     bundle.set_index,bundle.bay_index,
                 ),
@@ -3099,7 +3094,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if bundle is None:
                 return None,"尚未取得當前連的原始 DXF、實體世界 X 與內門板驗證"
             try:
-                assert_live_verified_nfb(
+                manufacturing_api.assert_live_verified_nfb(
                     candidate_adapter(),bundle,
                     current_snapshot=nfb_physical_bay_snapshot(
                     bundle.set_index,bundle.bay_index,
@@ -3381,7 +3376,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             bundle,reason=eligible_bundle(set_index,bi)
             if bundle is None:
                 raise ValueError(reason)
-            result=submit_live_verified_nfb(
+            result=manufacturing_api.submit_live_verified_nfb(
                 candidate_adapter(),bundle,
                 current_snapshot=nfb_physical_bay_snapshot(
                     bundle.set_index,bundle.bay_index,
@@ -3396,7 +3391,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         def copy(set_index,bay_indices,confirm):
             source_bi,target_bundle=copy_pair(set_index,bay_indices)
-            result=copy_live_verified_nfb(
+            result=manufacturing_api.copy_live_verified_nfb(
                 candidate_adapter(),source_bay_index=source_bi,
                 target_bundle=target_bundle,
                 current_snapshot=nfb_physical_bay_snapshot(
