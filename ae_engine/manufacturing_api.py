@@ -203,6 +203,7 @@ from .box_body_editor_readback import (
 from .operator_fold_editor import (
     OperatorFoldMirrorPlan, commit_operator_fold_editor_rows,
     normalize_operator_fold_editor_control,
+    project_operator_fold_editor_angle,
     plan_operator_fold_mirror_target,
     operator_fold_editor_add_segment, operator_fold_editor_remove_segment,
     project_operator_fold_editor_display_rows,
@@ -376,6 +377,7 @@ from .door_indicator_position_transactions import (
 )
 from .sheetmetal_corner_policy import (
     box_body_height_from_corner_policies as project_operator_box_body_finished_height,
+    normalize_corner_selection as operator_normalize_corner_selection,
 )
 from .sheetmetal_geometry import (
     EndCapAssemblySemantics,

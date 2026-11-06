@@ -14,12 +14,7 @@ from __future__ import annotations
 from typing import Mapping
 from ae_engine import manufacturing_api
 
-from ae_engine.sheetmetal_geometry import (
-    CornerTypeId, CornerTypeSelection, normalize_corner_selection,
-)
-from ae_engine.corner_type_ui import (
-    apply_box_assembly_type, assembly_type_from_corner_state,
-)
+from ae_engine.sheetmetal_geometry import CornerTypeId
 
 ASSEMBLY_TYPE_LABELS = {
     CornerTypeId.INSERT: "嵌入",
@@ -31,9 +26,9 @@ ASSEMBLY_LABEL_TO_TYPE = {label: type_id for type_id, label in ASSEMBLY_TYPE_LAB
 
 
 def assembly_intent_value(value) -> str:
-    raw = getattr(value, "value", value)
-    from ae_engine.assembly_intent import normalize_assembly_intent_id
-    return normalize_assembly_intent_id(raw)
+    """Keep display IDs from the public Registry-backed Engine projection."""
+    normalized = manufacturing_api.normalize_assembly_type(value)
+    return str(getattr(normalized, "value", normalized))
 
 
 def assembly_intent_label(value) -> str:

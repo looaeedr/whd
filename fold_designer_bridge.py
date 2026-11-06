@@ -138,7 +138,7 @@ from ui_text_scale import prepare_text_scale_controller as _ui_prepare_text_scal
 from ae_engine.assembly_joint import AssemblyJointRelation
 from ae_engine.sheetmetal_geometry import (
     CornerTypeId, CrossCornerMode, CornerDirection,
-    EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS, normalize_corner_selection,
+    EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS,
 )
 
 from ae_engine.corner_type_ui import (
@@ -1002,7 +1002,7 @@ def _phase6_corner_parameters_editable(self, part_key):
 
 
 def _phase6_corner_parameter_summary(selection):
-    selection = normalize_corner_selection(selection)
+    selection = manufacturing_api.operator_normalize_corner_selection(selection)
     if selection.type_id is CornerTypeId.CROSS:
         mode = _CORNER_MODE_LABEL[selection.cross_mode]
         if selection.cross_mode is CrossCornerMode.STANDARD:
