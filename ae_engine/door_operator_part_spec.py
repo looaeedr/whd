@@ -48,6 +48,7 @@ def build_door_operator_part_spec(
     frame_edges=None,
     indicator_window_groups=None,
     nameplate_center_datum_top=None,
+    indicator_source_state=None,
 ) -> DoorPartSpec:
     """Preserve the existing single/multi-Door Save→Export request contract.
 
@@ -55,12 +56,43 @@ def build_door_operator_part_spec(
     multi-door layout, or the single-door W/H. Physical finished-face sizes,
     corner relief, holes and 2D/3D/DXF are downstream Engine-owned resolvers.
     Source validation must occur before a canonical PartSpec is returned:
-    bool, NaN and infinity must never enter a physical request.
+    bool, NaN and infinity must never enter a physical request. When the
+    original saved Door-cell Indicator source is supplied, Engine also owns
+    its physical mode, hole opening, offset and count projection.
     """
     physical = {
         key: normalize_operator_source_dimension(values[key], field=key)
         for key in ("w", "h", "t", "fw")
     }
+    if indicator_source_state is not None:
+        # Original committed cell input is the only physical lamp/box source.
+        # Reject precomputed or conflicting geometry from caller-side adapters.
+        if (indicator_hole is not None or door_indicator is not None
+                or indicator_window_groups is not None
+                or door_indicator_offset != (0.0, 0.0)
+                or use_box_distance is not False):
+            raise ValueError("DOOR_OPERATOR_INDICATOR_DUPLICATE_SOURCE")
+        from .fold_designer_snapshot_dimensions import (
+            project_operator_door_cell_indicator_manufacturing_source,
+        )
+        from .manufacturing_door_indicator import indicator_box_opening_size
+        physical_source = project_operator_door_cell_indicator_manufacturing_source(
+            indicator_source_state
+        )
+        mode = physical_source["mode"]
+        layer_groups = (
+            tuple(physical_source["groups"][:physical_source["layers"]])
+            if mode != "none" else ()
+        )
+        indicator_hole = (
+            indicator_box_opening_size(layer_groups, thickness=physical["t"])
+            if mode == "indicator_box" else None
+        )
+        door_indicator = layer_groups if mode == "indicator" else None
+        door_indicator_offset = (
+            physical_source["offset_x"], physical_source["offset_y"],
+        )
+        use_box_distance = physical_source["is_box_dist"]
     details = {
         key: _finite_operator_number(values[key], key)
         for key in (
