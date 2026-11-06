@@ -111,3 +111,61 @@ def test_invalid_debug_flag_rejects_before_creating_any_dxf(tmp_path):
                 pre_commit_guard=lambda: None, emit_debug="yes",
             )
     assert not tuple(tmp_path.rglob("*.dxf"))
+
+
+def test_real_left_and_right_baselines_are_different_machining_patterns():
+    """Original trusted source DXFs, not guessed 9 identical side holes."""
+    from collections import Counter
+    from pathlib import Path
+
+    from ae_engine.receiving_panel_baselines import (
+        _reference_outline, receiving_piece_baseline_features,
+    )
+
+    root = Path(__file__).resolve().parents[1] / "基準檔" / "受電箱"
+    signatures = {}
+    for role, filename, expected in (
+        ("left_side", "左側板.dxf",
+         {"CUTTING": 8, "BLIND_HOLE": 1}),
+        ("right_side", "右側板.dxf",
+         {"CUTTING": 6, "MARKING": 2, "BLIND_HOLE": 1}),
+    ):
+        path = root / filename
+        drawing = ezdxf.readfile(path)
+        assert not drawing.audit().errors
+        _material, (_ox, _oy, width, height) = _reference_outline(
+            drawing.modelspace()
+        )
+        circles, metadata = receiving_piece_baseline_features(
+            role, expected_path=path, width=width, height=height,
+        )
+        assert Counter(p.layer for p in circles) == expected
+        assert metadata["baseline_fit_valid"] is True
+        assert metadata["baseline_feature_count"] == 9
+        signatures[role] = tuple(sorted(
+            (c.layer, round(c.center.x, 5), round(c.center.y, 5),
+             round(c.radius, 5)) for c in circles
+        ))
+    assert signatures["left_side"] != signatures["right_side"]
+
+
+def test_joint_lock_sources_only_exist_on_actual_mating_bay_sides():
+    """Outer side of first/last Bay must not inherit an interior Joint lock."""
+    from types import SimpleNamespace
+    from ae_engine.receiving_layout import receiving_bay_joint_face_features
+
+    layout = _three_bays()
+    stale = SimpleNamespace(source_type="receiving_joint_side_lock")
+    for bi in range(3):
+        projected = receiving_bay_joint_face_features(
+            layout, set_index=0, bay_index=bi,
+            thickness=2.0, frame_width=29.0,
+            existing={"left": [stale], "right": [stale]},
+        )
+        left = tuple(p for p in projected.get("left", ())
+                     if getattr(p, "source_type", "") == "receiving_joint_side_lock")
+        right = tuple(p for p in projected.get("right", ())
+                      if getattr(p, "source_type", "") == "receiving_joint_side_lock")
+        assert bool(left) is (bi > 0)
+        assert bool(right) is (bi < 2)
+        assert stale not in left + right
