@@ -70,6 +70,59 @@ def _physical_feature_from_transport(value):
     return target(**fields)
 
 
+def csv_editor_opening_matches_current_source(
+    actual_points, source_corners, rotation_deg,
+) -> bool:
+    """Compare a placed four-corner editor contour to the exact CSV opening.
+
+    This is the SAME geometry gate for a native NFB CSV source at Confirm
+    and for its later original FinalScene world-X recovery. Translation and
+    cyclic/reversed vertex order are operator-equivalent; shear, crossings,
+    mismatched size and a different physical rectangle are not.
+    """
+    from math import hypot, isfinite
+    from .sheetmetal_geometry import Vec2
+    from .sheetmetal_feature_core import _rotate_local_point
+
+    if (type(rotation_deg) is not int or rotation_deg not in (0, 90, 180, 270)
+            or len(actual_points) != 4 or len(source_corners) != 4):
+        return False
+    try:
+        points = tuple((float(x), float(y)) for x, y in actual_points)
+        source = tuple((float(x), float(y)) for x, y in source_corners)
+        expected = tuple(
+            (float(p.x), float(p.y))
+            for p in (
+                _rotate_local_point(Vec2(x, y), rotation_deg)
+                for x, y in source
+            )
+        )
+    except (TypeError, ValueError, OverflowError):
+        return False
+    if not all(
+        isfinite(x) and isfinite(y)
+        for coordinates in (points, source, expected)
+        for x, y in coordinates
+    ):
+        return False
+    px = sum(x for x, _ in points) / 4.0
+    py = sum(y for _, y in points) / 4.0
+    sx = sum(x for x, _ in expected) / 4.0
+    sy = sum(y for _, y in expected) / 4.0
+    if not all(isfinite(v) for v in (px, py, sx, sy)):
+        return False
+    return any(
+        all(
+            hypot(
+                points[i][0] - px - expected[(start + direction*i) % 4][0] + sx,
+                points[i][1] - py - expected[(start + direction*i) % 4][1] + sy,
+            ) <= 1e-6
+            for i in range(4)
+        )
+        for start in range(4) for direction in (1, -1)
+    )
+
+
 def _source_world_x_from_committed_editor_feature(
     snapshot, panel, row, *, brand, model,
 ):
@@ -166,27 +219,9 @@ def _source_world_x_from_committed_editor_feature(
         raise ValueError("NFB_CSV_EDITOR_OPENING_SIZE_DIFFERS_FROM_SOURCE")
     if not all(isfinite(x) and isfinite(y) for x, y in points):
         raise ValueError("NFB_CSV_EDITOR_OPENING_SHAPE_DIFFERS_FROM_SOURCE")
-    from .sheetmetal_geometry import Vec2
-    expected_points = tuple(
-        (float(p.x), float(p.y))
-        for p in (_rotate_local_point(Vec2(x, y), angle) for x, y in source)
-    )
-    px = sum(x for x, _ in points) / 4.0
-    py = sum(y for _, y in points) / 4.0
-    sx = sum(x for x, _ in expected_points) / 4.0
-    sy = sum(y for _, y in expected_points) / 4.0
-    # A translation is the genuine operator-placed X (not nominal pitch).
-    # Accept cyclic/reversed vertex order but NOT a distorted or self-crossed
-    # contour. This is only the NFB source gate, not export certification.
-    if not any(
-        all(
-            hypot(points[i][0]-px-expected_points[(start+direction*i)%4][0]+sx,
-                  points[i][1]-py-expected_points[(start+direction*i)%4][1]+sy)
-            <= 1e-6
-            for i in range(4)
-        )
-        for start in range(4) for direction in (1, -1)
-    ):
+    # Keep the exact same CSV rectangle check as native editor Confirm:
+    # only current-source geometry can serve as later world-X evidence.
+    if not csv_editor_opening_matches_current_source(points, source, angle):
         raise ValueError("NFB_CSV_EDITOR_OPENING_SHAPE_DIFFERS_FROM_SOURCE")
     panel_now, placement = _resolve_physical_panel(
         snapshot, panel.inner_door_id,
