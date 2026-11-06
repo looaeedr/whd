@@ -339,6 +339,34 @@ def share_setting(layout, *, set_index, bay_indices, kind, source_bay_index):
     return normalize_receiving_layout(result)
 
 
+
+def share_setting_with_affected_ids(
+    layout, *, set_index, bay_indices, kind, source_bay_index,
+):
+    """Apply one physical Bay link transaction and return affected Bay IDs.
+
+    The selected source and every selected target must be protected as edited,
+    even when an existing value is equal: sharing replaces physical refs, not
+    simply a displayed setting. Validation is entirely delegated to the
+    existing atomic Engine share_setting() owner.
+    """
+    try:
+        indices = tuple(bay_indices)
+    except TypeError:
+        indices = bay_indices  # Engine rejects malformed selection.
+    candidate = share_setting(
+        layout, set_index=set_index, bay_indices=indices,
+        kind=kind, source_bay_index=source_bay_index,
+    )
+    chosen = set(indices)
+    affected_ids = tuple(
+        bay["stable_id"]
+        for index, bay in enumerate(candidate["sets"][set_index]["bays"])
+        if index in chosen
+    )
+    return candidate, affected_ids
+
+
 def unlink_setting(layout, *, set_index, bay_index, kind):
     from ae_engine.receiving_layout import normalize_receiving_layout
     result = normalize_receiving_layout(layout)
