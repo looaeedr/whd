@@ -8,6 +8,7 @@ or add shop-inapplicable bend compensation.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from math import isfinite
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Mapping
@@ -32,6 +33,23 @@ from .receiving_nfb_ui1b_bridge import NfbVerifiedDraftSubmission
 from .receiving_nfb_base_partial_export import (
     prepare_verified_receiving_nfb_base_plate,
 )
+
+
+def _finite_installed_xyz(values):
+    """Guard actual/expected world offsets against non-real or overflowed data.
+
+    Only three finite native real axes are physical; math.isfinite on a huge
+    Python integer itself raises OverflowError, so it must fail closed here.
+    """
+    if not isinstance(values, (tuple, list)) or len(values) != 3:
+        return False
+    try:
+        return all(
+            type(value) in (int, float) and isfinite(float(value))
+            for value in values
+        )
+    except (TypeError, ValueError, OverflowError):
+        return False
 
 
 def export_verified_receiving_nfb_door_base_pair(
@@ -247,17 +265,14 @@ def export_current_csv_nfb_door_base_pair(
     # require the same current Engine placement for the one-tier base before
     # releasing either staged manufacturing DXF.
     from .assembly_placement import resolve_assembly_placement
-    from math import isfinite
 
     installed_base = next(p for p in parts if p.part_key == base.part_id)
     actual_offset = getattr(installed_base, "offset", None)
     expected_offset = resolve_assembly_placement(
         snapshot, base.part_id,
     ).world_offset
-    if (not isinstance(actual_offset, (tuple, list))
-            or len(actual_offset) != 3
-            or any(type(value) not in (int, float)
-                   or not isfinite(value) for value in actual_offset)
+    if (not _finite_installed_xyz(actual_offset)
+            or not _finite_installed_xyz(expected_offset)
             or any(abs(float(actual) - float(expected)) > 1e-6
                    for actual, expected in zip(actual_offset, expected_offset))):
         raise ValueError("CSV_PAIR_REAL_BASE_INSTALL_XYZ_MISMATCH")
@@ -425,7 +440,6 @@ def _export_current_csv_nfb_two_tier_pair(
     if set(depths) != {0, 1}:
         raise ValueError("CSV_TWO_TIER_INCOMPLETE_SOURCE_DEPTH")
     from ae_engine.receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
-    from math import isfinite
 
     for index in (0, 1):
         target = depths[index]
@@ -438,18 +452,12 @@ def _export_current_csv_nfb_two_tier_pair(
         # must hold for EACH independent installed tier. float(nan)
         # comparisons are always false and once allowed an invalid cached
         # 3D placement to authorize three otherwise valid local DXFs.
-        if (not isinstance(offset, (tuple, list))
-                or len(offset) != 3
-                or any(type(value) not in (int, float)
-                       or not isfinite(value) for value in offset)
-                or type(y.box_world_y_mm) not in (int, float)
-                or not isfinite(y.box_world_y_mm)
-                or type(target.world_offset_z_mm) not in (int, float)
-                or not isfinite(target.world_offset_z_mm)
-                or not target.physical_skin_z_resolved
-                or abs(float(offset[0])) > 1e-6
-                or abs(float(offset[1]) - float(y.box_world_y_mm)) > 1e-6
-                or abs(float(offset[2]) - float(target.world_offset_z_mm)) > 1e-6):
+        required_xyz = (0.0, y.box_world_y_mm, target.world_offset_z_mm)
+        if (not target.physical_skin_z_resolved
+                or not _finite_installed_xyz(offset)
+                or not _finite_installed_xyz(required_xyz)
+                or any(abs(float(actual) - float(required)) > 1e-6
+                       for actual, required in zip(offset, required_xyz))):
             raise ValueError("CSV_TWO_TIER_REAL_BASE_INSTALL_XYZ_MISMATCH")
 
     checks = check_csv_v5_base_part_only_groups(tuple(
