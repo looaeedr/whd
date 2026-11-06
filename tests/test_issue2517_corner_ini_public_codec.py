@@ -59,7 +59,7 @@ def test_engine_load_preserves_legacy_c02_rotation_pairs_and_parameters():
 
 def test_actual_corner_ini_save_reload_preserves_source_and_noncorner_sections(tmp_path):
     source = _source(tmp_path)
-    source.INI_PATH.write_text("[UNRELATED]\\nkeep = original\\n", encoding="utf-8")
+    source.INI_PATH.write_text("[UNRELATED]\nkeep = original\n", encoding="utf-8")
     corners = {"head": {
         "top_left": {
             "type_id": "C02", "rotation_quadrants": 1,
@@ -96,7 +96,7 @@ def test_actual_corner_ini_save_reload_preserves_source_and_noncorner_sections(t
 def test_invalid_ini_load_fails_closed_without_modifying_file(tmp_path):
     source = _source(tmp_path)
     source.INI_PATH.write_text(
-        "[CORNER_HEAD]\\ntop_same = maybe\\ntop_left = C02\\n", encoding="utf-8",
+        "[CORNER_HEAD]\ntop_same = maybe\ntop_left = C02\n", encoding="utf-8",
     )
     before = source.INI_PATH.read_bytes()
     with pytest.raises(ValueError):
@@ -104,7 +104,7 @@ def test_invalid_ini_load_fails_closed_without_modifying_file(tmp_path):
     assert source.INI_PATH.read_bytes() == before
 
     source.INI_PATH.write_text(
-        "[CORNER_HEAD]\\ntop_left = C02\\ntop_left_rotation = x\\n",
+        "[CORNER_HEAD]\ntop_left = C02\ntop_left_rotation = x\n",
         encoding="utf-8",
     )
     before = source.INI_PATH.read_bytes()
@@ -115,7 +115,7 @@ def test_invalid_ini_load_fails_closed_without_modifying_file(tmp_path):
 
 def test_invalid_save_does_not_write_or_mutate_source(tmp_path):
     source = _source(tmp_path)
-    source.INI_PATH.write_text("[CORNER_HEAD]\\ntop_left = C01\\n", encoding="utf-8")
+    source.INI_PATH.write_text("[CORNER_HEAD]\ntop_left = C01\n", encoding="utf-8")
     before = source.INI_PATH.read_bytes()
     corners = {"head": {"top_left": {
         "type_id": "CROSS", "amount_t": float("nan"),
