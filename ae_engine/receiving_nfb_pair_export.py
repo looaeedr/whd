@@ -179,6 +179,53 @@ def export_verified_receiving_nfb_door_base_pair(
     )
 
 
+def export_current_csv_nfb_pair_from_request(
+    request, *, output_directory: str | Path,
+) -> "NfbCsvPairedPartOnlyDxf | NfbCsvTwoTierPartOnlyDxf":
+    """Headless immutable request -> canonical Engine resolve -> verified NFB DXFs.
+
+    WHD GUI and an external Python client submit the same complete physical
+    ManufacturingResolveRequest, including the ORIGINAL (not cached CSV-cut)
+    part render inputs. Engine alone resolves installed 2D/3D FinalScene,
+    expands real NFB tier plates and proves committed CSV/Set/Bay identity,
+    before the existing atomic PART_ONLY DXF Save->Reload entrypoint.
+
+    This does not accept bare CSV/DXF source labels, guess world X, certify a
+    source-only CLI request, or release PAD/EAR/full-cabinet manufacturing.
+    """
+    from .manufacturing_contracts import (
+        ManufacturingResolveRequest, thaw_manufacturing_value,
+    )
+    from .manufacturing_api import resolve_manufacturing_request
+    from .cabinet_types.policy import canonical_family_name
+    from .receiving_nfb_committed_final_scene import _submitted_csv_holes
+    from .receiving_nfb_manufacturing_transport import (
+        restore_receiving_nfb_dto_selectors,
+    )
+
+    if not isinstance(request, ManufacturingResolveRequest):
+        raise TypeError("CSV_PAIR_MANUFACTURING_REQUEST_REQUIRED")
+    snapshot = thaw_manufacturing_value(request.input_snapshot)
+    if not isinstance(snapshot, dict) or canonical_family_name(snapshot) != "受電箱":
+        raise ValueError("CSV_PAIR_RECEIVING_SOURCE_REQUIRED")
+    # The regular resolver restores trusted Receiving typed selectors from
+    # request transport. Use that SAME current physical source for export.
+    snapshot = restore_receiving_nfb_dto_selectors(snapshot)
+    if not _submitted_csv_holes(snapshot):
+        raise ValueError("CSV_PAIR_CURRENT_SUBMITTED_SOURCE_UNAVAILABLE")
+
+    # Never trust caller-provided pre-cut sheets or GUI preview caches as an
+    # independent production result. The canonical resolver verifies and
+    # constructs the original committed NFB CUTTING on physical part IDs.
+    result = resolve_manufacturing_request(request)
+    return export_current_csv_nfb_door_base_pair(
+        snapshot,
+        assembly_parts=result.geometry.parts,
+        base_spec=None,
+        output_directory=output_directory,
+    )
+
+
 def _verified_csv_v5_export_scope(snapshot, inner_door_id, holes):
     """Compatibility: Engine alone resolves actual Set/Bay physical export scope."""
     return resolve_verified_csv_v5_export_scope(snapshot, inner_door_id, holes)
