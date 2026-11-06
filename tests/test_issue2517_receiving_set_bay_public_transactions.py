@@ -212,7 +212,9 @@ def test_gui_multi_bay_setting_port_no_longer_loops_over_engine_edit():
     adapter = getsource(ReceivingSetBayAdapter.apply_setting_to_bays)
     assert "adapter.apply_setting_to_bays(kind, value, targets)" in gui
     assert "adapter.update_setting(kind, value)" not in gui
-    assert "manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(" in adapter\n    assert "affected_refs" not in adapter\n    assert '["settings"][kind]["refs"]' not in adapter
+    assert "manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(" in adapter
+    assert "affected_refs" not in adapter
+    assert '["settings"][kind]["refs"]' not in adapter
 
 
 def test_shared_setting_affected_ids_use_canonical_refs_not_value_equality():
