@@ -31,6 +31,9 @@ def test_public_brand_choices_are_exact_canonical_engine_inventory():
     assert type(catalog) is tuple
     assert catalog == RECEIVING_SWITCH_BRANDS
     assert ae_engine.receiving_operator_switch_brand_choices is api.receiving_operator_switch_brand_choices
+    from fold_designer_bridge import RECEIVING_SWITCH_BRANDS as bridge_brand_choices
+    assert controls.RECEIVING_SWITCH_BRANDS == catalog
+    assert bridge_brand_choices is controls.RECEIVING_SWITCH_BRANDS
     for brand in catalog:
         assert api.require_receiving_operator_brand(brand) == brand
     with pytest.raises(ValueError, match="不支援"):

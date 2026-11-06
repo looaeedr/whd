@@ -13,6 +13,10 @@ from typing import Callable, Iterable
 
 from ae_engine import manufacturing_api
 
+# Legacy bridge/extension import kept as a value-only facade of public Engine.
+# The widgets themselves always fetch their choices from the public API.
+RECEIVING_SWITCH_BRANDS = manufacturing_api.receiving_operator_switch_brand_choices()
+
 
 @dataclass(frozen=True)
 class ReceivingSetBayControls:
