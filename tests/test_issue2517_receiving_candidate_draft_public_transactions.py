@@ -144,5 +144,8 @@ def test_gui_candidate_and_nfb_draft_edit_imports_are_only_public_engine():
                  for name in node.names if name.asname}
     assert delegated["create_candidate"] == "create_receiving_hole_candidate"
     assert delegated["update_inner_candidate"] == "update_receiving_inner_door_candidate"
+    # The original nested GUI scope reads these local aliases at runtime.
+    assert delegated["INNER_KEY"] == "RECEIVING_INNER_DOOR_CANDIDATE_KEY"
+    assert delegated["INNER_ROLE"] == "RECEIVING_INNER_DOOR_CANDIDATE_ROLE"
     assert delegated["NfbUi1aEditSession"] == "ReceivingNfbDraftEditSession"
     assert delegated["set_nfb_manual_x"] == "set_receiving_nfb_draft_manual_x"

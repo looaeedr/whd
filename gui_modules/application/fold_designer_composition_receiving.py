@@ -1749,8 +1749,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
     # endcaps, but never reads/writes receiving_hole_candidates or QuantityModel.
     # Inner-door candidate edits use the Engine, not the GUI source layer.
     from ae_engine.manufacturing_api import (
-        RECEIVING_INNER_DOOR_CANDIDATE_KEY as KEY,
-        RECEIVING_INNER_DOOR_CANDIDATE_ROLE as ROLE,
+        RECEIVING_INNER_DOOR_CANDIDATE_KEY as INNER_KEY,
+        RECEIVING_INNER_DOOR_CANDIDATE_ROLE as INNER_ROLE,
         normalize_receiving_inner_door_candidates as normalize_inner_candidates,
         receiving_inner_door_versions as inner_versions,
         receiving_inner_door_candidate_config as inner_config,
