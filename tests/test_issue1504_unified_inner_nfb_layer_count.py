@@ -8,6 +8,7 @@ submitted-layer validation; real factory DXF claims are intentionally separate.
 """
 import ast
 from pathlib import Path
+from inspect import getsource
 import tkinter as tk
 from tkinter import ttk
 
@@ -111,7 +112,13 @@ def test_real_tk_single_variable_reaches_original_draft_and_undo_without_second_
 def test_existing_legacy_count_and_nfb_draft_no_longer_have_an_inequality_gate():
     source = _inner_editor_source()
     assert 'layer_count=nfb_physical_layers.get()' in source
-    assert 'active = draft_state["draft"]["layers"][:nfb_physical_layers.get()]' in source
+    # Confirm's authoritative tier slice moved to Engine; the GUI only sends
+    # the very same visible Tk layer-count to the public source plan.
+    assert "manufacturing_api.plan_receiving_nfb_editor_confirm(" in source
+    from ae_engine.receiving_nfb_ui1a_edits import plan_receiving_nfb_editor_confirm
+    assert 'active = draft["layers"][:layer_count]' in getsource(
+        plan_receiving_nfb_editor_confirm
+    )
     assert '"layers": layers.get()' in source
     assert "NFB 物理層與內門版本層數不同" not in source
     # The source edit/Confirm behavior remains the original unchanged

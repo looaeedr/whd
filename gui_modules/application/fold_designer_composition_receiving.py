@@ -2813,67 +2813,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
 
         def confirm():
             try:
-                from ae_engine.receiving_nfb_model_identity import is_numeric_model_ref
-                # Inner-door tiers and NFB mounting tiers already share one
-                # validated value. Do not invent another independent count.
-                # Current CSV CUTTING is saved as typed physical Hole Editor
-                # Features; no original DXF or lossy legacy brand/rotation
-                # serializer is required for this new settings entry.
-                source_models = [
-                    slot["filename"]
-                    for layer in edit_session.current["layers"][:nfb_physical_layers.get()]
-                    for slot in layer["slots"]
-                    if slot["filename"] is not None
-                ]
-                current_numeric_editor = (
-                    embed_parent is not None
-                    and bool(source_models)
-                    and all(is_numeric_model_ref(ref) for ref in source_models)
+                # Physical CSV/legacy model and source-brand qualification belongs
+                # to the Engine; this only selects which original editor route
+                # receives the validated transient NFB draft.
+                confirmation = manufacturing_api.plan_receiving_nfb_editor_confirm(
+                    draft_state["draft"], edit_session.current, chosen,
+                    layer_count=nfb_physical_layers.get(),
+                    embedded=embed_parent is not None,
+                    parent_brand=current_nfb_parent_brand(),
                 )
-                active = draft_state["draft"]["layers"][:nfb_physical_layers.get()]
-                for row in (() if current_numeric_editor else active):
-                    if row["brand"]["mode"] == OVERRIDE:
-                        raise ValueError("本層品牌覆寫仍是 NFB 草稿，尚不可存成舊版內門候選")
-                    if row["rotation_deg"]!=0:
-                        raise ValueError("NFB 草稿角度不能被舊版內門層數格式丟失")
-                    for slot in row["slots"]:
-                        if slot["filename"] is None or slot["brand"]["mode"] == OVERRIDE:
-                            raise ValueError("空槽或單顆品牌覆寫仍是 NFB 草稿，不能丟失後儲存")
-                        if (slot["rotation"]["mode"]==OVERRIDE
-                                or slot["manual_x_state"]!="NONE"
-                                or slot["manual_x_mm"] is not None):
-                            raise ValueError("NFB 逐顆角度／X 位移尚未正式提交，不能丟失後儲存")
-                        if slot["source_brand"] != draft_state["draft"]["set_brand"]:
-                            raise ValueError("品牌已變更，原型號待重選，不可直接存入舊版")
-                relevant = chosen[:layers.get()]
-                if current_numeric_editor:
-                    from ae_engine.receiving_nfb_model_identity import parse_numeric_model_ref
-                    expected_models = []
-                    for li, row in enumerate(active):
-                        for si, slot in enumerate(row["slots"]):
-                            ref = slot["filename"]
-                            if ref is None:
-                                continue
-                            effective_brand = effective_nfb_slot_brand(
-                                edit_session.current, li, si,
-                            )
-                            parsed = parse_numeric_model_ref(ref)
-                            if (parsed is None or parsed[0] != effective_brand
-                                    or manufacturing_api.resolve_receiving_nfb_model_spec(
-                                        effective_brand, ref,
-                                    ) is None):
-                                raise ValueError("NFB 實際廠牌與 CSV 型號不符，請重新選擇")
-                            expected_models.append(ref)
-                    selected_models = [model for group in relevant for model in group]
-                    if sorted(selected_models) != sorted(expected_models):
-                        raise ValueError("NFB CSV 選型與開孔設定不同步，請重新檢查")
-                else:
-                    selected_brand = current_nfb_parent_brand()
-                    latest_files = (set(manufacturing_api.list_receiving_nfb_model_refs(selected_brand))
-                                    | set(model_filenames(selected_brand)))
-                    if any(filename not in latest_files
-                           for layer_items in relevant for filename in layer_items):
-                        raise ValueError("開關型號已不在廠牌 CSV，請重新選擇")
                 config = {
                     "layers": layers.get(),
                     "layer_heights_mm": read_layer_heights(),
@@ -2894,7 +2842,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     if not callable(stage_in_editor):
                         raise ValueError("主開孔編輯器尚未連接 NFB 交易暫存")
                     openings = None
-                    if current_numeric_editor or not source_models:
+                    if (confirmation.current_numeric_editor
+                            or not confirmation.has_source_models):
                         parent_editor = modal.winfo_toplevel()
                         pending = getattr(parent_editor, "_receiving_pending_features", None)
                         openings = manufacturing_api.editor_nfb_features_from_csv(

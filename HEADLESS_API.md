@@ -750,6 +750,10 @@ missing single axis of divider/inner-door frame material. Invalid bounds are
 rejected only if the physical fallback is required. The Phase6 helper is a
 compatibility delegation; this API does not certify new 2D/CUTTING/DXF output.
 
+### Original Receiving NFB Confirm source eligibility (2026-11-06)
+
+`manufacturing_api.plan_receiving_nfb_editor_confirm(draft, current, chosen, *, layer_count, embedded, parent_brand)` is the same callable as `ae_engine.plan_receiving_nfb_editor_confirm` and the existing `receiving_nfb_ui1a_edits` Engine owner. Both the embedded native CSV editor and standalone legacy candidate manager submit their operator source selections to this one validation plan, which rejects stale cross-brand V5 identities, missing or duplicate physical slots, legacy candidate loss of override/rotation/X, and source catalog drift. It returns immutable `ReceivingNfbEditorConfirmPlan(current_numeric_editor, has_source_models)`; GUI only stages via the original Hole Editor or saves an existing candidate version. Neither field authorizes physical X, FinalScene, CUTTING, DXF, or any other manufacturing operation. See `tests/test_issue2517_receiving_nfb_confirm_source_public_api.py`.
+
 ## Receiving NFB candidate source and Bay physical identity API（#2517）
 
 ### #2517 Source-verified NFB Bay transactions use one public Engine bridge (2026-11-06)
