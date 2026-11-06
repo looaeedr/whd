@@ -97,18 +97,12 @@ def read_endcap_xy_profiles(profiles: Mapping[str, Sequence[Mapping[str, object]
 
 
 def engine_angle_to_ui(value):
-    """Return the exact operator-facing angle for the stored engine convention."""
-    angle = _num(value)
-    if angle in (90.0, -90.0):
-        angle = -angle
-    return int(angle) if float(angle).is_integer() else angle
+    """Display the canonical Engine Fold orientation without GUI math."""
+    return manufacturing_api.project_operator_fold_editor_angle(value)
 
 def ui_angle_to_engine(value):
-    """Preserve the operator input through the existing engine sign convention."""
-    angle = _num(value)
-    if angle in (90.0, -90.0):
-        angle = -angle
-    return int(angle) if float(angle).is_integer() else angle
+    """Submit the operator angle through the same Engine involution."""
+    return manufacturing_api.project_operator_fold_editor_angle(value)
 
 def formed_box_body_fw_widths(profile: Sequence[Mapping[str, object]], thickness) -> tuple[float | None, float | None]:
     """Read-only formed FW witness; Engine recomputes actual adjacent BEND."""
