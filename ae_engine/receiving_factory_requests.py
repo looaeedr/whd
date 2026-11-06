@@ -87,6 +87,32 @@ def _confirmed_endcap_source_features(raw):
         raise ValueError(code) from exc
 
 
+def _require_saved_endcap_cutting_source_parity(values, confirmed):
+    """Saved Head/Tail CUTTING cannot vanish in a source-confirmed Bay.
+
+    An independently confirmed original CADSplit Head/Tail feature is still
+    admitted when the saved operator did not already author that role; a
+    persisted nonempty role, however, may never be silently dropped or
+    overridden by an unrelated external physical hole.
+    """
+    code = "RECEIVING_SAVED_ENDCAP_SOURCE_FEATURES_MISMATCH"
+    stored = values.get("part_features", {})
+    if not isinstance(stored, Mapping):
+        # Other saved feature owner (e.g. Door) supplies its own diagnostic.
+        # Only claim a Head/Tail source failure if one was actually submitted.
+        if confirmed:
+            raise ValueError(code)
+        return
+    for role in ("head", "tail"):
+        if role not in stored:
+            continue
+        original = stored[role]
+        if not isinstance(original, (tuple, list)):
+            raise ValueError(code)
+        if original and tuple(original) != confirmed.get(role, ()):
+            raise ValueError(code)
+
+
 def _confirmed_door_source_features(raw, *, part_keys):
     """Only Engine physical Door cell IDs may carry confirmed CUTTING inputs."""
     code = "RECEIVING_DOOR_SOURCE_FEATURES_INVALID"
@@ -489,6 +515,7 @@ def build_receiving_factory_confirmed_parts(
         values, structure, body_rows, folds, policies = _saved_operator_state(
             source, operator_snapshot
         )
+        _require_saved_endcap_cutting_source_parity(values, features_by_role)
 
     confirmed_body_pieces = _confirmed_saved_box_body_piece_features(
         values, confirmed_box_body_piece_features, confirmation=confirmation,
