@@ -12,6 +12,14 @@ whd_schema: WHD_DOC_META_V1
 - 原 Engine `assembly_joint.migrate_legacy_snapshot_joints` 僅以 `manufacturing_api.migrate_operator_assembly_joint_snapshot`（根包亦同名）公開**相同 callable**，保留 schema-1→v2、已選組合型態、明確使用者 Joint 和 Save→Reload 語意；原 Engine owner 增加 `project_operator_endcap_joint_edge_policies(snapshot, part_key, *, fallback_intent)`，直接呼叫該 migration、原 `get_assembly_intent` Registry 與 `edge_relation_for_part`，對真實 Head/Tail 的 TOP/BOTTOM/LEFT/RIGHT 回傳候選 relation/allowed/editable，非法來源不修改原快照。GUI 只轉換 Engine relation enum 為既有中文標籤，不再組裝 Policy。
 - 此為持久化來源與唯讀 Joint 控制項投影接線，不更動 Corner/Relief 的製造幾何、現有 Joint 提交交易、FinalScene 或 DXF。以 public-vs-owner 等價、四組 Assembly Intent、負向 source 不變性、GUI seam 及既有完整 CI 驗收；#2517/Windows R5 UAT 仍保持 OPEN。
 
+## [CURRENT] #2517 Receiving Factory 保存的 Head／Tail 孔位不可在確認來源中消失（2026-11-06）
+
+- `confirmed_endcap_features` 本來會對合法 Head/Tail finished-face typed CUTTING 做來源形狀驗證，卻沒有與 `saved_operator_confirmed` 原 `part_features["head"／"tail"]` 對照；因此已保存孔位可能在製造中被漏掉，或被另一份不符孔位取代。原 `receiving_factory_requests` 現在檢查：保存該角色有非空 Feature 時，對外確認必須逐 Feature 相同；保存角色的欄位不合法也拒絕 `RECEIVING_SAVED_ENDCAP_SOURCE_FEATURES_MISMATCH`，且不得先寫出部分 DXF。
+- 若保存的 Head／Tail 沒有原孔，但 CADSplit 有另外已確認的合法 CUTTING Feature，仍沿用原 `confirmed_endcap_features` 入口（不要求先寫入 GUI 保存值），避免把外部合法來源當成偽造。`EndCapPartSpec → FinalScene → verified Batch DXF` 原 owner 及 2D/3D 幾何不變；不增加第二個輸出器或偷偷接入 NFB/PAD/EAR。
+- 回歸 `tests/test_issue2517_receiving_factory_saved_endcap_cutting_source.py` 包含 Head/Tail 真孔→五張物理 DXF／Save→Reload、缺確認／保存衝突／非法保存欄位零 DXF，以及外部合法確認孔可用。#2517 全功能／整櫃及 Windows R5 UAT 仍未完成。
+
+
+
 ## [CURRENT] #2517 內門 NFB 舊來源恢復／新草稿預設／層高切換只經公開 Engine API（2026-11-06）
 
 - Fold Designer `inner_edit` 原先仍直接引用內部 `receiving_legacy_nfb_editor_bootstrap.recover_submitted_nfb_models_for_editor`、`receiving_fresh_nfb_defaults.initial_fresh_receiving_nfb_models`；`change_layers` 也直接引用 `receiving_shared_settings.transition_receiving_nfb_layer_heights`。這三條操作影響可編輯的 NFB 型號／雙層 Y 草稿，不能由 GUI 直接依賴內部來源模組。
