@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱多連候選版本標籤使用單一公開 Engine（2026-11-06）
+
+- `receiving_multi_settings_window` 中 2D 已套用 Bay 標籤、候選編輯器及操作按鈕都只呼叫既有 `manufacturing_api.receiving_candidate_version_label(version_id)`，不再 GUI 直接 import `receiving_hole_candidates.version_label`。版本 ID 語意與中文顯示名稱均由原 Engine owner 確認，GUI 不製造或解析新版本 ID。
+- 只移動 UI 顯示責任，不動 candidate Source／Apply、Set/Bay、受電箱 Door/NFB、FinalScene 或 DXF 認證。#2517 尚未全部驗收。
+
+
 ## [CURRENT] #2517 Quantity 候選配置 2D 示意門縫不得由 GUI 硬編（2026-11-06）
 
 - 受電箱封頭尾「數量配置」草稿只有連數與候選版本選取，尚無每一實體 Bay 的已確認 Door 拓樸。原 `receiving_quantity_allocation_ui.ReceivingQuantityAllocationUI.paint` 以 GUI 常數 `1100/1600` 決定上下門示意線；現須呼叫既有 `manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)` 使用 Receiving Family 預設的純示意比例，不能在 GUI 重製製造尺寸推導。
