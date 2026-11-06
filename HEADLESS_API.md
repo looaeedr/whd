@@ -528,6 +528,12 @@ The operator-facing `receiving_multi_settings_window` uses the existing public `
 
 The candidate quantity draft has only count/assignment state, not a saved physical Bay. `ReceivingQuantityAllocationUI.paint()` must obtain the two-door **schematic** seam from the existing `manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)` Engine Family projection, not embed the `1100/1600` dimension ratio in GUI. Actual Bay sketches still use the same Engine API with the saved Bay source; if a complex real door grid is not representable as one horizontal split, no fake seam can be manufactured from this view. This only changes readonly Tk presentation; it does not authorize physical Doors, FinalScene, CUTTING or DXF.
 
+## #2517 Receiving inner-door NFB slot-source public API
+
+manufacturing_api.receiving_nfb_switch_filenames_in_layer(slot) and pack_receiving_nfb_switch_layer(names) are exact callable aliases of the original receiving_shared_settings Engine source parser/packer; ae_engine root exports the same callables. They retain compact 0/1/multiple legacy slots, original numeric V5 references, duplicate physical switch occurrences and existing invalid-source rejection. GUI only sends draft data and displays the result.
+
+The same editor uses the existing receiving_operator_switch_brand_choices() Engine API for its Layer/Slot brand dropdown, keeping operator-only inheritance labels. These read/pack operations do not authorize world-X, CUTTING, FinalScene, formal DXF or external export.
+
 ## #2517 Receiving physical Set/Joint alignment editability public projection
 
 `manufacturing_api.project_receiving_joint_alignment_editability(set_row, joint_index)` reads the **saved physical Set row**, validates adjacent Bay/Joint source identity, Bay dimensions and typed joint index, then returns the original Engine-owned `{depth_alignment: bool, height_alignment: bool}` policy. The canonical `receiving_joint_alignment_editability(layout, set_index=..., joint_index=...)` now delegates to this exact same Engine projector after normalizing its full physical layout; GUI never reconstructs a fake Layout or compares dimension strings itself. The original `update_receiving_joint_alignment` uses the same policy and only writes editable axes.

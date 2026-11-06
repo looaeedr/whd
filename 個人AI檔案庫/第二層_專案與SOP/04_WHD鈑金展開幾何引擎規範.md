@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving NFB 內門型號層序列化與品牌選項共用公開 Engine（2026-11-06）
+
+- Fold Designer 的 NFB 單／雙層 model-slot preview、Confirm、取消差異原直接匯入內部 receiving_shared_settings 的 switch_filenames_in_layer/pack_switch_layer。本次 manufacturing_api.receiving_nfb_switch_filenames_in_layer 和 pack_receiving_nfb_switch_layer 直接公開既有相同 Engine callable，ae_engine 根包也只重匯同一 owner；不新增任何 GUI 型號公式。
+- 同一 Modal 的本層／單顆品牌 Combobox 使用既有 manufacturing_api.receiving_operator_switch_brand_choices()，不再讀私有 RECEIVING_SWITCH_BRANDS。保留原繼承文字、多顆 NFB occurrence、歷史 DXF 與原生 CSV 型號儲存型態，無效輸入仍由 Engine 拒絕。
+- 此為來源序列化／選項的公開邊界，不認證 NFB 世界 X、正式 FinalScene、CUTTING、DXF Save→Reload 或整櫃製造；#2517 與 Windows UAT 未完成。
+
 ## [CURRENT] #2517 受電箱相鄰實體 Bay 接合對齊選項歸原 Engine Policy（2026-11-06）
 
 - 原 `receiving_set_bay_controls._build_receiving_settings_editor` 在接合控制建立與刷新兩個時機，GUI 直接比較兩連 `depth`／`height`，決定可編輯的前後齊／上下齊選項；但真正 Apply 本來就使用 `receiving_layout.receiving_joint_alignment_editability`。兩份判斷不應分裂。
