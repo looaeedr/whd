@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 快照的折邊／門縫預設值改由公開 Engine 投影（2026-11-07）
+
+- 主 GUI `fold_designer_snapshot_projection._snapshot_base_state` 原在準備保存快照時直接讀 `ae.zl1_def` 等 14 類 Fold／Gap 常數，並在指示燈折邊讀 `ae.indicator_*_fold_def` 伴隨 GUI 硬編 `49.0`／`19.0`。這些設定會寫入 persisted source 並由原 Engine PartSpec／FinalScene 消費；GUI 不應複製預設製造數值。
+- `manufacturing_api.project_operator_fold_designer_snapshot_numeric_defaults`（`ae_engine` 根包同公開 callable）直接重用 Engine `operator_fold_designer_numeric_source._legacy_defaults` 的現行執行期來源，加上原 UI 舊式底板收縮／折邊和指示燈盒相容預設；所有預設在公開 Engine 以有限數值守衛，`nan` 等非法執行期來源 fail closed。此投影**完全不包含 W/H/D/T/FW**；原 GUI 的 W/H/D/T/FW 必須由操作者實際輸入經 `normalize_operator_source_dimension` 驗證，不能使用任何 Engine 常數填補。
+- GUI 只將原有數值控件與 Engine 當下回傳的完整預設值配對，保留舊表單空缺時的呈現語意及 Settings／INI 其他流程；GUI 不增 Formula、成品尺寸推導或 FinalScene，且不改現有 `load_factory_defaults_from_ae` UI Schema 相容呼叫。Headless 測試核對兩 Family 共用的原執行期 defaults、動態更新、非法預設拒絕、root/facade API 同源、GUI 不再私讀製造數值以及原物理 W/H/D/T/FW fail closed；完整 2D／3D／DXF／Save→Reload 仍交 exact-SHA 回歸。
+
+
 ## [CURRENT] #2517 受電箱實體底板設定改由公開 Engine 原子提交（2026-11-07）
 
 - 原 GUI `receiving_base_plate_settings_transaction.commit_receiving_base_plate_settings` 已經先調用 `manufacturing_api.validate_receiving_base_plate_settings` 驗證實體底板收縮、折邊與焊接 EAR 孔，但隨後在 GUI 直接修改已保存 `receiving_base_plate` 並執行失敗回滾。這個來源交易會影響 PartSpec／FinalScene／CUTTING，不該由 UI 決定寫入。

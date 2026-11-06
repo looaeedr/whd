@@ -1807,6 +1807,7 @@ from .assembly_relief_state import (
 from .operator_fold_designer_numeric_source import (
     fold_designer_legacy_source_default,
     resolve_fold_designer_legacy_numeric_settings,
+    project_operator_fold_designer_snapshot_numeric_defaults,
 )
 
 # #2517: physical Receiving NFB highlighted partial DXF batch is Engine-owned.

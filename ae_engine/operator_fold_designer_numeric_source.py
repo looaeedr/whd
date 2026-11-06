@@ -51,6 +51,34 @@ def _finite_legacy_number(value: object, *, field: str) -> float:
     return parsed
 
 
+
+def project_operator_fold_designer_snapshot_numeric_defaults() -> dict[str, float]:
+    """Engine-owned current legacy Fold/Gap seeds for the GUI input snapshot.
+
+    These are optional operator settings, NOT W/H/D/T/FW physical defaults.
+    Read at call time so edited runtime defaults are observed on the same
+    terms as the original AE-backed snapshot, and reject corrupt defaults.
+    """
+    values = _legacy_defaults()
+    values.update({
+        "base_plate_shrink_top": 0.0,
+        "base_plate_shrink_bottom": 0.0,
+        "base_plate_shrink_left": 0.0,
+        "base_plate_shrink_right": 0.0,
+        "base_plate_bend": 20.0,
+        "indicator_box_fold": getattr(ae, "indicator_box_fold_def", 49.0),
+    })
+    keys = (
+        "zl1", "zl2", "zr2", "zr1", "yl1", "yr1", "ytop1", "ybottom1",
+        "door_gap_w", "door_gap_h",
+        "door_fold_l", "door_fold_r", "door_fold_t", "door_fold_b",
+        "base_plate_shrink_top", "base_plate_shrink_bottom",
+        "base_plate_shrink_left", "base_plate_shrink_right",
+        "base_plate_bend", "indicator_box_fold", "indicator_door_fold",
+    )
+    return {key: _finite_legacy_number(values[key], field=key) for key in keys}
+
+
 def fold_designer_legacy_source_default(field: str) -> float:
     """Read an Engine-approved *legacy* D/T default for old UI compatibility.
 
