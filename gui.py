@@ -89,8 +89,6 @@ from ae_engine.sheetmetal_features import (
     ResolvedProfile,
     resolve_endcap_features,
     endcap_feature_context_from_geometry,
-    feature_is_within_surface,
-    move_feature_within_surface,
     feature_surface_from_structural_result,
     feature_surface_from_outline,
     resolve_surface_features,
@@ -98,11 +96,8 @@ from ae_engine.sheetmetal_features import (
     REFERENCE_ANCHOR_LABELS,
     REFERENCE_ANCHOR_BY_LABEL,
     feature_reference_anchor,
-    feature_with_reference_anchor,
     feature_reference_point,
     reference_distances,
-    move_feature_by_reference_distance,
-    feature_with_process,
     circle_center_distance_from_gap,
     circle_gap_from_center_distance,
     align_circle_to_neighbor,
@@ -131,6 +126,14 @@ from ae_engine.sheetmetal_part_adapters import (
     build_finished_reference_guide,
 )
 
+
+# Stable compatibility names consumed by HoleEditorCompositionDependencies.
+# Always pass public Engine geometry ownership into UI/session controllers.
+feature_with_reference_anchor = manufacturing_api.operator_hole_feature_with_reference_anchor
+feature_with_process = manufacturing_api.operator_hole_feature_with_process
+move_feature_by_reference_distance = manufacturing_api.operator_hole_move_feature_by_reference_distance
+feature_is_within_surface = manufacturing_api.operator_hole_feature_is_within_surface
+move_feature_within_surface = manufacturing_api.operator_hole_move_feature_within_surface
 
 from ae_engine.corner_type_ui import (
     UNKNOWN_MODEL_NAME,

@@ -327,6 +327,17 @@ from .contracts import (
     PartExportResult,
     PartSpec,
 )
+# Hole Editor physical draft transformations use the original canonical owners.
+# The GUI stages returned immutable Features through its existing Session.
+from .sheetmetal_feature_reference import (
+    feature_with_reference_anchor as operator_hole_feature_with_reference_anchor,
+    feature_with_process as operator_hole_feature_with_process,
+    move_feature_by_reference_distance as operator_hole_move_feature_by_reference_distance,
+)
+from .sheetmetal_feature_surface import (
+    feature_is_within_surface as operator_hole_feature_is_within_surface,
+    move_feature_within_surface as operator_hole_move_feature_within_surface,
+)
 from .sheetmetal_features import (
     BoxBodyFaceContext,
     CircleFeature,
@@ -363,6 +374,17 @@ from .sheetmetal_part_adapters import (
 )
 from .cabinet_types import policy as cabinet_family_policy
 from .cabinet_types.policy import door_material_frame_width, box_body_symmetry_allowed
+from .cabinet_types.registry import resolve_cabinet_type
+from .certified_relief_registry import build_relief_promotion_candidate
+
+# Public, identity-preserving Engine operator Family policy projections.
+# GUI adapters must not import the private Family policy owner directly.
+operator_canonical_family_name = cabinet_family_policy.canonical_family_name
+operator_family_fixes_box_body_structure = cabinet_family_policy.family_fixes_box_body_structure
+operator_box_body_profile_uses_outside_dimensions = cabinet_family_policy.box_body_profile_uses_outside_dimensions
+operator_supports_bottom_wrap_controls = cabinet_family_policy.supports_bottom_wrap_controls
+operator_endcap_fw_profile_uses_material_dimensions = cabinet_family_policy.endcap_fw_profile_uses_material_dimensions
+
 
 
 
@@ -370,6 +392,12 @@ from .operator_door_blank_projection import project_operator_door_blank_dimensio
 from .operator_round_hole_projection import (
     OperatorRoundHolePreview, nearest_operator_round_hole_neighbor_index,
     plan_operator_round_hole_preview,
+)
+# GUI round-hole spacing fields use the same Engine geometric conversions
+# as the canonical physical-feature reference owner.
+from .sheetmetal_feature_reference import (
+    circle_center_distance_from_gap as operator_round_hole_center_distance_from_gap,
+    circle_gap_from_center_distance as operator_round_hole_gap_from_center_distance,
 )
 from .operator_hole_editor_projection import (
     OperatorHoleEditorGeometry,
@@ -1951,7 +1979,11 @@ from .assembly_physical_dimensions import (
 # #2517 GUI project export adapter: all certification and actual atomic DXF
 # operations remain owned by their existing headless Engine modules.
 from .sheetmetal_part_adapters import door_layout_export_filename
-from .receiving_nfb_model_identity import parse_numeric_model_ref
+from .receiving_nfb_model_identity import (
+    parse_numeric_model_ref,
+    display_model_ref as display_receiving_nfb_model_ref,
+    can_stage_receiving_nfb_csv_preview_refs,
+)
 from .quantity_export_source_policy import (
     QuantityExportSourceDecision, plan_quantity_export_source,
 )
@@ -2360,6 +2392,12 @@ from .receiving_nfb_hole_stage import plan_operator_inner_door_nfb_hole_stage
 from .receiving_nfb_csv_editor_features import (
     editor_nfb_features_from_csv,
     candidate_receiving_nfb_csv_for_fresh_bay,
+)
+from .receiving_nfb_default_x_approval import (
+    approve_receiving_nfb_csv_default_x,
+)
+from .receiving_nfb_default_pair_request import (
+    receiving_committed_nfb_pair_request_for_bay,
 )
 
 # #2517: physical Receiving BasePlate Part Session source is Engine-owned.

@@ -13,6 +13,40 @@ whd_schema: WHD_DOC_META_V1
 - 來源經原 `build_box_body_operator_part_spec(face_features=...) → build_box_body_structure_render_data → resolve_box_body_piece_face_features`，唯一 Engine owner 用真實 Fold／T 決定三片 side/back 成品面轉展開孔位、截裁；不在 Factory、GUI 或 CADSplit 重新計算。與材料板 UV 的 `confirmed_box_body_piece_features` 分開、兩者可同時存在。回歸 `tests/test_issue2517_receiving_factory_confirmed_box_body_face_features.py` 覆蓋 GUI 等價 PartSpec、三張真 DXF 的孔及獨立 Save→Reload、來源不改、錯誤來源零輸出。此為已確認部分板件，不表示 NFB/PAD/EAR／全櫃／Windows R5 UAT 完成；#2517 繼續 OPEN。
 
 
+## [CURRENT] #2517 Fold Designer Family Policy／Registry 呼叫改走公開 Engine（2026-11-06）
+
+- Fold Designer 主 Bridge 與 Corner Data 原直接 import `ae_engine.cabinet_types.policy`，用於 Family canonical name、三片箱身固定拓樸、BoxBody outside profile 與 WRAP availability。現改消費 `manufacturing_api.operator_canonical_family_name`、`operator_family_fixes_box_body_structure`、`operator_box_body_profile_uses_outside_dimensions`、`operator_supports_bottom_wrap_controls`（`ae_engine` 根包同名公開）。四者是現有 Engine Policy **同一 callable**，沒有新的 Family／製造公式、第二套投影或新持久化格式。非法／未知來源維持原 Owner 的 fail-closed／未支援語意，不得改動輸入。
+- Assembly Corner 的 Relief promotion 候選 builder 原從私有 Registry 取用，改用公開 `manufacturing_api.build_relief_promotion_candidate`（原 Engine Registry 與根包相同 callable）；Bridge 的 `resolve_cabinet_type` 亦改用 `manufacturing_api.resolve_cabinet_type`，而不直接引用私有 Registry 模組。候選仍受既有 Controller 原流程與 Registry gate 控制，不因 UI 生成候選即取得 CERTIFIED 製造資格。
+- Product Regression 原真 Tk `fold_designer_part_session.save_current_part` 仍經 `bridge.cabinet_family_policy.endcap_fw_profile_uses_material_dimensions` 讀取 EndCap FW 材料／外尺寸 Policy；現追加 `operator_endcap_fw_profile_uses_material_dimensions` 同一 Engine callable，Part Session 直接消費公開 `bridge.manufacturing_api`，無舊私有 Bridge 屬性依賴或 FW 公式複製。
+- 回歸驗證 facade/root 與 owner 相同 callable、兩 Family 和未知來源輸入不變、GUI 不再直接讀這些私有模組；2D／3D／DXF 算法、AssemblyJoint 已保存交易與正式 Save→Reload 不更動。#2517 全功能與 Windows R5 UAT 仍 OPEN。
+
+
+## [CURRENT] #2517 Hole Editor 孔位移動／基準定位／切穿盲孔切換只接公開 Engine（2026-11-06）
+
+- `gui.py` 會以 `HoleEditorCompositionDependencies.from_namespace(globals())` 注入實體孔位操作到 `gui_modules/editors/hole_editor.py`：`feature_with_reference_anchor`、`feature_with_process`、`move_feature_by_reference_distance`、`feature_is_within_surface`、`move_feature_within_surface`。舊版直接從 `ae_engine.sheetmetal_features` 私有 re-export 匯入同一 Engine owner，讓 GUI 交易仍隱藏依賴內部幾何模組；這些實際編輯可改變孔位 finished-face 坐標、基準或 CUTTING／BLIND_HOLE，必須公開。
+- 新的 `manufacturing_api.operator_hole_feature_with_reference_anchor`、`operator_hole_feature_with_process`、`operator_hole_move_feature_by_reference_distance`、`operator_hole_feature_is_within_surface`、`operator_hole_move_feature_within_surface` 與 `ae_engine` 根包均直接 re-export 原 `sheetmetal_feature_reference`／`sheetmetal_feature_surface` canonical callable；無新位置、輪廓、材料補償或流程。GUI 向 HoleEditorComposition 注入這五支公開 API 同名別名；物理特徵仍為 immutable Feature，Session 預覽／確定／取消負責提交，原 source 及無效索引／非有限距離／非法 process 不得變動，越界拖曳回傳原孔。
+- Engine 2D／3D／DXF 與 Save→Reload 的 canonical Feature→FinalScene 路由不改；`Vec2`／`RectGuide`／顯示類型不是本次交易缺口。這批需 owner 等價、正反定位、非法操作保留來源、GUI 相依接線及 exact-SHA 完整回歸。尚不代表全部 GUI 私有 imports、CADSplit 全箱體 MFG-2 或 Windows 實機驗收已完成，#2517 OPEN。
+
+## [CURRENT] #2517 圓孔中心距／孔邊間距來源與剩餘 Joint snapshot 統一公開 Engine（2026-11-06）
+
+- Hole Editor 的圓孔排列本身已透過 `manufacturing_api.plan_operator_round_hole_preview`，但 `hole_editor_round_settings._sync_from_center/_sync_from_gap` 顯示與草稿欄位仍直接使用內部 `sheetmetal_features.circle_gap_from_center_distance/circle_center_distance_from_gap`。同一 canonical `sheetmetal_feature_reference` 的兩個純換算 callable，現在由 `manufacturing_api.operator_round_hole_gap_from_center_distance/operator_round_hole_center_distance_from_gap`（及根包）公開，同一幾何／無新公式。GUI 繼續於轉換前檢查有限、正值與非負間距；改值只涉及 GUI 草稿，實際實體 Feature／CUTTING 仍由已有 Engine preview + Hole Editor session Confirm 提交。
+- `fold_designer_composition_state.corner_transaction_payload/collect_workspace_state` 原先尚直接呼叫 Joint v2 `migrate_legacy_snapshot_joints`；現在兩處都改走 #2970 原有 `manufacturing_api.migrate_operator_assembly_joint_snapshot`，沒有重新建議 Joint 關係、修改 schema 或改變 Save→Reload。
+- 此批不把展示 `Vec2`、`CirclePrimitive`、`DoorFrameEdges` 當作新的製造缺口；孔位到 PartSpec／2D／3D／DXF 的原 Engine 路徑、CADSplit 公開契約、正式輸出權限均未改動。需 public-vs-owner 實際換算與 GUI 同值、非法值不提交或改變草稿、Joint source 不變性及完整 exact-SHA CI；Windows GUI 實機驗收另行，#2517 OPEN。
+
+## [CURRENT] #2517 NFB 實體預設 X 可一次確認、無需逐顆輸入（2026-11-06）
+
+- NFB 型號主孔、底板螺絲、間距與來源數值只讀 WHD 當前各品牌 NFB數值規格.csv；Engine 原生 Hole Editor 產生的 native_editor_initial X 在**未確認前**仍是編輯預覽，不直接授予實體 CUTTING。原 source-only Candidate Apply 保持 UNVERIFIED_BASIS、manual_x_mm=None，#2961 自動候選阻擋仍有效。
+- 使用者明確決定採用 WHD **當前 Engine 預設位置**時，不必逐顆輸入 X。公開 manufacture API approve_receiving_nfb_csv_default_x(layout, *, set_index, bay_index, thickness_mm, source, confirmation="ACCEPT_CURRENT_WHD_NFB_DEFAULT_X")，一次確認同一實體 Bay 全部 NFB；必須由 Engine 依**本次** Set/Bay、已確認品牌、門拓樸、CSV SHA、型號、孔槽與實體幾何重新產生候選並逐位元比較。所有校驗與原子 Apply 成功後，才將 fresh_bay_auto_unconfirmed 移除、保存 fresh_bay_default_x_confirmed=True 的同源 Feature；不得從任意中心距公式、預覽外框、其他 Bay 或舊 CSV 直接推算／杜撰製造 X。無確認、改動原始資料或缺實體 Door 均拒絕且不修改來源。
+- 核准後同一 Engine 的 _submitted_csv_holes 必須還能驗證真實原孔輪廓、Y、物理身份、角度／擺放；公開 receiving_committed_nfb_pair_request_for_bay(layout, *, set_index, bay_index, thickness_mm) 由 Engine 唯一輸出真正的 ManufacturingResolveRequest／原始內門和底板 PartSpec／RenderData，不能由 CADSplit 建造 ManufacturingPartInput 或平行幾何。現有 export_current_csv_nfb_pair_from_request／export_receiving_committed_nfb_csv_bays 才能產生實體 Door + Base DXF；所有獨立重新開檔與源碼 Guard 仍然必須通過，只有 PART_ONLY，非整箱／EAR/PAD 授權。
+- 這是一個**額外的明確確認交易**，並未把 nominal_nfb_x_group 的相鄰距離 PREVIEW_ONLY 當成擁有一般性已認證的絕對 X 公式；超出現行 CSV／物理門板可驗範圍仍阻擋。WHD 原 GUI 原生「確定全部」既有確認路徑不改。
+
+
+
+## [CURRENT] #2517 Receiving Bay 預覽尺寸與 NFB CSV 孔位分流只經公開 Engine API（2026-11-06）
+
+- `gui_modules/application/fold_designer_composition_receiving.py::receiving_bay_preview_request` 原先直接 import `display_dimensions.resolve_operator_finished_dimensions`，而這個完成面尺寸投影本就已是公開 `manufacturing_api.resolve_operator_finished_dimensions`；GUI 現直接使用原公開入口，不另造尺寸或 DXF 幾何。
+- 內門 NFB 即時孔位預覽的 `stage_live_nfb_openings` 原在 GUI 用內部 `receiving_nfb_model_identity.is_numeric_model_ref` 判定是否可由 CSV 生成孔；這是來源身份准入，現在由原 Engine 身份 owner 的 `can_stage_receiving_nfb_csv_preview_refs` 原子判定並透過 `manufacturing_api`、`ae_engine` 根包公開。維持空清單、舊 DXF 與 V5 identity 的原 UI 分流，非法型別直接拒絕且不動來源。真實 CSV 輪廓／孔位仍必須由既有 `editor_nfb_features_from_csv` 與 Hole Editor staging 驗證，不能把識別字串視為 CUTTING／MFG-2 認證。
+- 型號顯示 `display_model_ref` 只透過公開 `manufacturing_api.display_receiving_nfb_model_ref` re-export 原 Engine 相同 callable；移除 GUI 未使用的 `INDEX_PATH` 與 `validate_stored_model_ref` 私有匯入。公開／owner 等價、非法來源不改動及 GUI 接線由新增回歸覆蓋，完整 Product Regression／Save→Reload 仍必須 GREEN；#2517／Windows R5 UAT 保持 OPEN。
 
 ## [CURRENT] #2517 Fold Designer Head/Tail 四邊 Joint Policy 與舊 Joint 啟動狀態共用公開 Engine（2026-11-06）
 

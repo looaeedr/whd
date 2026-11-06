@@ -691,7 +691,6 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     from phase6_manufacturing_adapter import build_manufacturing_request, build_scene_payload_for_app
     from phase6_manufacturing_service import resolve
     from phase6_designer_workspace import Phase6DesignerWorkspace
-    from ae_engine.display_dimensions import resolve_operator_finished_dimensions
     app = self.app
     source = dict(app._phase6_input_snapshot)
     if preview_layout is not None:
@@ -800,7 +799,9 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         projected_box_render_data=self._required(namespace, "_phase6_box_body_structure_render_data")(proxy),
     )
     def dimensions(key=None):
-        return resolve_operator_finished_dimensions(key or "box_body", snapshot=snapshot, settings=settings)
+        return manufacturing_api.resolve_operator_finished_dimensions(
+            key or "box_body", snapshot=snapshot, settings=settings,
+        )
     def feature_payload(key, payload):
         # committed fallback 解凍的 scene payload 是可序列化資料；孔特徵
         # 仍由 workspace 的 typed feature authority 提供，不能送入 legacy hole DTO。
@@ -1759,11 +1760,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         delete_receiving_inner_door_candidate as delete_inner_candidate,
         duplicate_receiving_inner_door_candidate as duplicate_inner_candidate,
     )
-    from ae_engine.receiving_switch_model_catalog import INDEX_PATH
-    from ae_engine.receiving_nfb_model_identity import (
-        display_model_ref, validate_stored_model_ref,
-    )
-
     def inner_library():
         return normalize_inner_candidates(
             self.app._phase6_input_snapshot.get(INNER_KEY)
@@ -2097,7 +2093,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             for slot in slots:
                 entry["assigned"].insert(
                     tk.END,
-                    (display_model_ref(slot["filename"]) if slot["filename"] else "（空槽）")
+                    (manufacturing_api.display_receiving_nfb_model_ref(slot["filename"]) if slot["filename"] else "（空槽）")
                 )
             if selected and selected[0] < len(slots):
                 entry["assigned"].selection_set(selected[0])
@@ -2159,7 +2155,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 source_state["files"][index] = files
                 entry["available"].delete(0, tk.END)
                 for filename in files:
-                    entry["available"].insert(tk.END, display_model_ref(filename))
+                    entry["available"].insert(tk.END, manufacturing_api.display_receiving_nfb_model_ref(filename))
 
         poll_job = {"id": None}
 
@@ -2210,9 +2206,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         def stage_live_nfb_openings():
             if embed_parent is None or not live_nfb_preview["ready"]:
                 return
-            from ae_engine.receiving_nfb_model_identity import is_numeric_model_ref
             selected = [ref for row in chosen[:layers.get()] for ref in row]
-            if selected and not all(is_numeric_model_ref(ref) for ref in selected):
+            if not manufacturing_api.can_stage_receiving_nfb_csv_preview_refs(selected):
                 # Legacy DXF preview cannot produce a numeric CSV cutting
                 # feature; retain its existing explicit verification gate.
                 return
