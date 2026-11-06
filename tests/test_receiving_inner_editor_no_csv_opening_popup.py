@@ -53,7 +53,7 @@ def test_receiving_confirm_stages_csv_holes_only_in_original_editor_transaction(
         if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
     ]
     assert "stage_in_editor" in calls
-    assert "editor_nfb_features_from_csv" in calls
+    assert "editor_nfb_features_from_csv" not in calls  # The GUI must not call a private symbol.
     assert "stage_in_editor(config, openings)" in _ui_source()
     assert "after_saved" in calls
     assert "close_editor" in calls
@@ -69,6 +69,7 @@ def test_receiving_confirm_stages_csv_holes_only_in_original_editor_transaction(
         and n.func.value.id == "manufacturing_api"
     ]
     assert "resolve_receiving_nfb_model_spec" in public_catalog_calls
+    assert "editor_nfb_features_from_csv" in public_catalog_calls
     assert "current_numeric_editor" in ast.unparse(confirm)
     source = _ui_source()
     assert 'ttk.Button(buttons, text="確定", command=confirm)' in source
