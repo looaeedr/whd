@@ -165,8 +165,6 @@ def on_assembly_diagnostic_changed(self):
 
 def create_relief_promotion_candidates(self, namespace):
     """Build non-mutating promotion manifests through the existing controller."""
-    from ae_engine import build_relief_promotion_candidate
-
     app = self.app
     required = lambda name: self._required(namespace, name)
     controller = self.capabilities.registry.diagnostics()
@@ -185,7 +183,7 @@ def create_relief_promotion_candidates(self, namespace):
         cabinet_family=required(
             "_phase6_current_cabinet_family"
         )(app),
-        builder=build_relief_promotion_candidate,
+        builder=manufacturing_api.build_relief_promotion_candidate,
     )
     required(
         "_phase6_sync_registry_diagnostics_compatibility_mirrors"

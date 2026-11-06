@@ -26,9 +26,8 @@ def test_public_family_policy_ports_are_original_engine_callables():
         assert getattr(api, public) is original
         assert getattr(ae_engine, public) is original
         assert public in ae_engine.__all__
-    assert ae_engine.build_relief_promotion_candidate.__module__ == (
-        "ae_engine.certified_relief_registry"
-    )
+    assert api.build_relief_promotion_candidate is ae_engine.build_relief_promotion_candidate
+    assert api.resolve_cabinet_type is ae_engine.resolve_cabinet_type
 
 
 @pytest.mark.parametrize("model", ("金庫型", "受電箱", "UNKNOWN_FAMILY", ""))
@@ -53,8 +52,8 @@ def test_fold_designer_gui_does_not_import_internal_family_policy_or_registry():
         assert "cabinet_family_policy." not in source
         assert "manufacturing_api.operator_canonical_family_name(" in source
     assert "from ae_engine.cabinet_types.registry import" not in bridge
-    assert "from ae_engine import resolve_cabinet_type" in bridge
+    assert "manufacturing_api.resolve_cabinet_type(model)" in bridge
     assert "from ae_engine.certified_relief_registry import" not in corner
-    assert "from ae_engine import build_relief_promotion_candidate" in corner
+    assert "manufacturing_api.build_relief_promotion_candidate" in corner
     for suffix in POLICY_NAMES[1:]:
         assert "manufacturing_api.operator_" + suffix + "(" in bridge

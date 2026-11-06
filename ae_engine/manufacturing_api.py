@@ -363,6 +363,8 @@ from .sheetmetal_part_adapters import (
 )
 from .cabinet_types import policy as cabinet_family_policy
 from .cabinet_types.policy import door_material_frame_width, box_body_symmetry_allowed
+from .cabinet_types.registry import resolve_cabinet_type
+from .certified_relief_registry import build_relief_promotion_candidate
 
 # Public, identity-preserving Engine operator Family policy projections.
 # GUI adapters must not import the private Family policy owner directly.

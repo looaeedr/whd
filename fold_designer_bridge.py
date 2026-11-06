@@ -1089,8 +1089,7 @@ def _phase6_known_model_corner_state(self):
     if live_model:
         model = live_model
     try:
-        from ae_engine import resolve_cabinet_type
-        family = resolve_cabinet_type(model).canonical_name
+        family = manufacturing_api.resolve_cabinet_type(model).canonical_name
     except Exception:
         family = "金庫型"
     return known_model_corner_state(

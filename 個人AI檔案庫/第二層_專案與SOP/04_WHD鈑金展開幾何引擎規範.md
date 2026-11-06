@@ -9,7 +9,7 @@ whd_schema: WHD_DOC_META_V1
 ## [CURRENT] #2517 Fold Designer Family Policy／Registry 呼叫改走公開 Engine（2026-11-06）
 
 - Fold Designer 主 Bridge 與 Corner Data 原直接 import `ae_engine.cabinet_types.policy`，用於 Family canonical name、三片箱身固定拓樸、BoxBody outside profile 與 WRAP availability。現改消費 `manufacturing_api.operator_canonical_family_name`、`operator_family_fixes_box_body_structure`、`operator_box_body_profile_uses_outside_dimensions`、`operator_supports_bottom_wrap_controls`（`ae_engine` 根包同名公開）。四者是現有 Engine Policy **同一 callable**，沒有新的 Family／製造公式、第二套投影或新持久化格式。非法／未知來源維持原 Owner 的 fail-closed／未支援語意，不得改動輸入。
-- Assembly Corner 的 Relief promotion 候選 builder 原從私有 Registry 取用，改用已存在公開根包 `build_relief_promotion_candidate`；Bridge 的 `resolve_cabinet_type` 亦改用已存在公開根包，而不直接引用私有 Registry 模組。候選仍受既有 Controller 原流程與 Registry gate 控制，不因 UI 生成候選即取得 CERTIFIED 製造資格。
+- Assembly Corner 的 Relief promotion 候選 builder 原從私有 Registry 取用，改用公開 `manufacturing_api.build_relief_promotion_candidate`（原 Engine Registry 與根包相同 callable）；Bridge 的 `resolve_cabinet_type` 亦改用 `manufacturing_api.resolve_cabinet_type`，而不直接引用私有 Registry 模組。候選仍受既有 Controller 原流程與 Registry gate 控制，不因 UI 生成候選即取得 CERTIFIED 製造資格。
 - 回歸驗證 facade/root 與 owner 相同 callable、兩 Family 和未知來源輸入不變、GUI 不再直接讀這些私有模組；2D／3D／DXF 算法、AssemblyJoint 已保存交易與正式 Save→Reload 不更動。#2517 全功能與 Windows R5 UAT 仍 OPEN。
 
 
