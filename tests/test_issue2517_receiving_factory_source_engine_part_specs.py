@@ -273,3 +273,83 @@ def test_factory_base_api_rejects_unconfirmed_sources_before_any_dxf(
             pre_commit_guard=lambda: None,
         )
     assert not (tmp_path / "blocked").exists()
+
+
+
+@pytest.mark.parametrize("role", ("head", "tail"))
+def test_saved_factory_endcap_uses_same_original_boxbody_fold_api_as_gui(role):
+    """RED before fix: factory EndCap lost both formed-FW assembly datums."""
+    saved = _confirmed_ordinary_base_snapshot()
+    before = deepcopy(saved)
+    parts = dict(_build(
+        SOURCE, confirmation="saved_operator_confirmed", operator_snapshot=saved,
+    ))
+    expected = manufacturing_api.formed_box_body_fw_widths(
+        saved["box_body_fold_profile"], saved["t"],
+    )
+    assert expected[0] is not None and expected[1] is not None
+    factory_spec = parts[role]
+    assert (factory_spec.box_body_formed_fw_left,
+            factory_spec.box_body_formed_fw_right) == expected
+
+    # Same canonical Engine operation as the live WHD GUI, but sourcing the
+    # exact confirmed physical Body Fold; CADSplit may not derive formed FW.
+    gui_equivalent = manufacturing_api.build_endcap_operator_part_spec(
+        {key: saved[key] for key in ("w", "h", "d", "t", "fw", "zl1")},
+        model_name="受電箱", is_tail=(role == "tail"), holes=(),
+        corner_policy=saved["endcap_corner_policies"][role],
+        fold_profiles=saved["endcap_fold_profiles"][role],
+        box_body_fold_profile=saved["box_body_fold_profile"],
+        box_body_structure_state=saved["box_body_structure_state"],
+    )
+    assert factory_spec == gui_equivalent
+    assert saved == before
+
+
+def test_fresh_factory_head_tail_receive_real_engine_formed_fw_datum():
+    confirmed = family_policy.apply_fresh_family_defaults(SOURCE, "受電箱")
+    confirmed.update(SOURCE)
+    expected_rows = manufacturing_api.build_box_body_fold_profile(confirmed)
+    expected = manufacturing_api.formed_box_body_fw_widths(
+        expected_rows, confirmed["t"],
+    )
+    parts = dict(_build(SOURCE, confirmation="fresh_family_confirmed"))
+    for role in ("head", "tail"):
+        assert (parts[role].box_body_formed_fw_left,
+                parts[role].box_body_formed_fw_right) == expected
+
+
+def test_verified_saved_factory_head_tail_dxfs_reopen_with_same_engine_datum(tmp_path):
+    saved = _confirmed_ordinary_base_snapshot()
+    parts = dict(_build(
+        SOURCE, confirmation="saved_operator_confirmed", operator_snapshot=saved,
+    ))
+    context = ManufacturingContext(resource_root=REPO)
+    output = export_verified_resolved_integration_bays(
+        (ManufacturingResolvedBayInput(
+            family="受電箱",
+            source=ManufacturingSourceIdentity(
+                "real-p1", "source-rev", "set-1", "bay-1",
+            ),
+            source_dimensions_mm=SOURCE,
+            operator_confirmation="saved_operator_confirmed",
+            operator_snapshot=saved,
+        ),),
+        tmp_path / "verified-parts", context=context,
+        pre_commit_guard=lambda: None,
+    )
+    assert output.physical_dxf_roundtrip_verified
+    assert output.complete_assembly_certified is False
+    assert len(output.output_files) == 5
+    for role in ("head", "tail"):
+        path = next(
+            Path(p) for p in output.output_files.values()
+            if Path(p).name.endswith(f"{role}.dxf")
+        )
+        assert ezdxf.readfile(path).audit().errors == []
+        canonical_render = manufacturing_api.build_operator_part_render_data(
+            parts[role], context,
+        )
+        assert manufacturing_api.verify_saved_part_render_data_dxf(
+            canonical_render, path,
+        ).ok
