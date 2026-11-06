@@ -27,6 +27,9 @@ from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_ttk_dark_theme
 from gui_modules.runtime_error_log import install_tk_exception_logging, write_runtime_exception
 import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
+# Legacy GUI import compatibility; all decisions remain in public Engine.
+is_unknown_model = manufacturing_api.is_unknown_operator_model
+assembly_type_from_corner_state = manufacturing_api.operator_assembly_type_from_corner_state
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
 from ae_engine.cabinet_types import (
     policy as cabinet_family_policy,
@@ -125,10 +128,8 @@ from ae_engine.sheetmetal_part_adapters import (
 
 # Stable compatibility names consumed by HoleEditorCompositionDependencies.
 # Always pass public Engine geometry ownership into UI/session controllers.
-# Keep legacy GUI global names for extensions; Engine is their actual owner.
+# Read-only CornerType compatibility remains a public Engine callable.
 normalize_corner_selection = manufacturing_api.operator_normalize_corner_selection
-assembly_type_from_corner_state = manufacturing_api.operator_assembly_type_from_corner_state
-is_unknown_model = manufacturing_api.is_unknown_operator_model
 
 measure_door_indicator_position = manufacturing_api.project_operator_door_indicator_position
 feature_with_reference_anchor = manufacturing_api.operator_hole_feature_with_reference_anchor
