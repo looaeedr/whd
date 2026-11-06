@@ -13,6 +13,12 @@ whd_schema: WHD_DOC_META_V1
 - 主 GUI 透過 `manufacturing_api` 取得完整成功候選才套入原 Live state，保留既有 nested dict 身分與 Saved CornerType 表示；自訂／未知模型維持不變。無新增 Family 製造公式、Relief Registry、Joint、PartSpec、2D／3D／DXF exporter。對照原 GUI/Engine 語意、非法不改、資料保存／回讀與現有產品完整回歸；#2517／Windows R5 UAT 仍 OPEN。
 
 
+## [CURRENT] #2517 Fold Designer 已認證截角基準只經公開 Engine（2026-11-06）
+
+- `fold_designer_bridge._phase6_known_model_corner_state` 原直接呼叫內部 `corner_type_ui.known_model_corner_state`，以已確認 Family 與現存 part keys 讀取正式截角起始狀態。這是製造 CornerType 來源權威，即使 GUI 當下只顯示編輯資料也不得私接。
+- 公開 `manufacturing_api.operator_known_model_corner_state`（`ae_engine` 根包同名）直接 re-export **原** `corner_type_ui.known_model_corner_state` callable；原 owner 仍唯一委派 Certified Relief Registry 的 `lookup_certified_corner_state`。GUI 只提交 Family／part keys 並顯示同一 typed state；沒有新 Policy、CROSS/Relief 公式、Join/Fold/2D/3D/DXF 路徑或保存格式。
+- 定向測試核對兩 Family 原 Registry／公開 API／GUI 完全等價、未知 Family／part 不生造 Certified CornerType、輸入未變更與 GUI AST 公開入口。完整回歸仍由 exact-SHA GitHub Product Regression 驗證；#2517、CADSplit 整箱與 Windows R5 UAT 未據此結案。
+
 ## [CURRENT] #2517 主 GUI 指示燈雙擊距離編輯使用公開 Engine Fail-Closed 候選交易（2026-11-06）
 
 - `gui.py::on_double_click_indicator` 原直接呼叫私有 `sheetmetal_features.measure_door_indicator_position` 和 `door_indicator_offset_for_position`。後者對雙擊視窗傳回的 `NaN`、`Inf`、布林或錯誤字串未先驗證，可能產生非法指示燈 X/Y 偏移，並由 GUI 原地提交、影響其後 Door 的 2D／3D／DXF 孔來源。
