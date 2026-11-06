@@ -12,6 +12,12 @@ whd_schema: WHD_DOC_META_V1
 - `receiving_csv_multibay_manufacturing._verified_nfb_composed_pair_rows` 現從**本次保存的 Receiving Layout 和原始厚度**，重新呼叫已存在公開 `receiving_committed_nfb_pair_request_for_bay`，以 Engine `manufacturing_request_fingerprint` 比對完整 immutable Request 語意（已保存 NFB 槽、孔、門、CSV 身分及 PartSpec）。任何重建失敗或 fingerprint 不同，整組 `RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH`、正式 DXF 零輸出。不得以 Set/Bay 名稱或尺寸相同取代來源一致性。
 - 此為同源製造放行安全閘門；仍用原 Engine 單 Bay pair FinalScene／Save→Reload、每 Set 原 grouped composer，無第二份幾何、不增加 MFG-2 認證。正向測試必須提交同一份 Engine 已確認 Layout；負向測試固定「相同 ID／尺寸但不同保存的 NFB」零輸出。#2517 全面 GUI API 和 Windows R5 UAT 仍未結案。
 
+## [CURRENT] #2517 Door 指示燈雙擊編輯不再以 GUI 偽造板厚／FW 預設（2026-11-06）
+
+- 主 GUI `on_double_click_indicator` 原在無效 `t_var`／`fw_z_var` 時吞掉例外並改送 `2.0`／`62.0`，違反現有公開 `project_operator_door_indicator_position` 的 fail-closed 來源契約。此入口已由 Engine transaction 擁有距離計算／candidate 產生，僅需把板厚、FW、Door gaps 的**原操作輸入**傳給該同一公開 API。
+- 取消 GUI 的板厚／框寬無效 fallback；無效或非有限來源由 Engine 拒絕且不開輸入對話框、不改動已保存 offset。有效字串數值仍由 Engine 嚴格轉換，正式幾何、2D／3D／DXF 與 Save→Reload 使用既有 `door_indicator_position_transactions` 與 canonical Door Feature 解算，沒有 GUI 第二套公式。負向與 GUI 來源逐字 forwarding 見 `test_issue2517_main_gui_indicator_position_public_transaction.py`。
+
+
 ## [CURRENT] #2517 Fold Designer Registry 規則載入與舊專案自訂型號正規化只經公開 Engine（2026-11-06）
 
 - `fold_designer_bridge._phase6_registry_load_rule_rows` 原直接匯入內部 `certified_relief_registry.load_external_relief_rule_records`，取得 Certified Relief 原始規則資料供 Registry diagnostics；`_phase6_prepare_predecessor_init` 原直接使用 `corner_type_ui.normalize_custom_model_name` 決定舊專案／新模型的基準型號。兩者涉及認證來源或 persisted baseline identity，不應由 GUI 私接內部模組。

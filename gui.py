@@ -1726,14 +1726,11 @@ class Phase6ApplicationHost:
         layout = params.get('indicator_layout')
         if context is None or not groups or layout is None:
             return
-        try:
-            t_val = float(self.t_var.get())
-        except Exception:
-            t_val = 2.0
-        try:
-            fw_val = float(self.fw_z_var.get())
-        except Exception:
-            fw_val = 62.0
+        # Use the actual operator source. The public Engine transaction
+        # validates thickness/FW/gaps before any edit dialog or offset write;
+        # never turn invalid live input into silent manufacturing defaults.
+        t_val = self.t_var.get()
+        fw_val = self.fw_z_var.get()
 
         position = manufacturing_api.project_operator_door_indicator_position(
             layout,
@@ -1742,7 +1739,7 @@ class Phase6ApplicationHost:
             thickness=t_val,
             use_box_distance=self.is_box_dist_var.get(),
             frame_edges=params.get('frame_edges') or DoorFrameEdges(),
-            gap_w=float(self.door_gap_w_var.get()), gap_h=float(self.door_gap_h_var.get()),
+            gap_w=self.door_gap_w_var.get(), gap_h=self.door_gap_h_var.get(),
         )
         new_x, new_y = self.ask_xy_dialog(position.distance_x, position.distance_y)
         if new_x is not None and new_y is not None:
@@ -1755,7 +1752,7 @@ class Phase6ApplicationHost:
                 thickness=t_val,
                 use_box_distance=self.is_box_dist_var.get(),
                 frame_edges=params.get('frame_edges') or DoorFrameEdges(),
-                gap_w=float(self.door_gap_w_var.get()), gap_h=float(self.door_gap_h_var.get()),
+                gap_w=self.door_gap_w_var.get(), gap_h=self.door_gap_h_var.get(),
             )
             self.door_indicator_offset_x = target.x
             self.door_indicator_offset_y = target.y
