@@ -2132,6 +2132,7 @@ from .receiving_shared_settings import (
     project_receiving_shared_setting_group,
     edit_setting as edit_receiving_shared_setting,
     edit_setting_for_bays as edit_receiving_shared_setting_for_bays,
+    edit_setting_for_bays_with_affected_ids as edit_receiving_shared_setting_for_bays_with_affected_ids,
     share_setting as share_receiving_shared_setting,
     unlink_setting as unlink_receiving_shared_setting,
 )
