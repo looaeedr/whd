@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer Registry 規則載入與舊專案自訂型號正規化只經公開 Engine（2026-11-06）
+
+- `fold_designer_bridge._phase6_registry_load_rule_rows` 原直接匯入內部 `certified_relief_registry.load_external_relief_rule_records`，取得 Certified Relief 原始規則資料供 Registry diagnostics；`_phase6_prepare_predecessor_init` 原直接使用 `corner_type_ui.normalize_custom_model_name` 決定舊專案／新模型的基準型號。兩者涉及認證來源或 persisted baseline identity，不應由 GUI 私接內部模組。
+- 公開 `manufacturing_api.operator_load_certified_relief_rule_records`、`operator_normalize_custom_model_name`（`ae_engine` 根包同名）是原 Engine owner 的**相同 callable**；Registry loader 仍用 CURRENT `certified_relief_rules.json`，未知／損壞 schema 由原 Registry error 拒絕。GUI Registry Controller 仍維持原先全部成功才更新規則快照的交易；舊 `未知類型` 仍正規化為 `自訂`，不改原始保存檔。
+- 回歸驗證原 owner/API/GUI 來源等價、原 JSON Registry 現行 records、損壞來源不更新 Controller、型號 snapshot 不改、GUI AST 無私有呼叫；此批未改任何 Certified rule、Corner/Joint/2D/3D/DXF 幾何或輸出資格。整體 #2517、Windows R5 UAT 與正式 X 未結案。
+
 ## [CURRENT] #2517 Fold Designer 已認證截角基準只經公開 Engine（2026-11-06）
 
 - `fold_designer_bridge._phase6_known_model_corner_state` 原直接呼叫內部 `corner_type_ui.known_model_corner_state`，以已確認 Family 與現存 part keys 讀取正式截角起始狀態。這是製造 CornerType 來源權威，即使 GUI 當下只顯示編輯資料也不得私接。
