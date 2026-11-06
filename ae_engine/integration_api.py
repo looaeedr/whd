@@ -196,6 +196,9 @@ class ManufacturingResolvedBayInput:
     # Saved source-confirmed finished-face CUTTING for the ordinary plate.
     # NFB tiers/PAD/EAR cannot use this opt-in physical-hole contract.
     confirmed_base_plate_features: Mapping[str, object] | None = None
+    # Confirmed original three-sheet BoxBody UV CUTTING from saved Hole Editor.
+    # The Engine validates roles and exact saved-source parity before FinalScene.
+    confirmed_box_body_piece_features: Mapping[str, object] | None = None
 
 
 def _confirmed_door_layout_projections(
@@ -408,6 +411,7 @@ def export_verified_resolved_integration_bays(
             or item.confirmed_door_features is not None
             or item.include_confirmed_base_plate is not False
             or item.confirmed_base_plate_features is not None
+            or item.confirmed_box_body_piece_features is not None
         )
         if source_request:
             # This is the SAME previously certified verified-geometry/physical
@@ -427,6 +431,7 @@ def export_verified_resolved_integration_bays(
                 confirmed_door_features=item.confirmed_door_features,
                 include_confirmed_base_plate=item.include_confirmed_base_plate,
                 confirmed_base_plate_features=item.confirmed_base_plate_features,
+                confirmed_box_body_piece_features=item.confirmed_box_body_piece_features,
             )
             resolved_geometry = _resolve_confirmed_integration_parts(
                 confirmed_parts,
