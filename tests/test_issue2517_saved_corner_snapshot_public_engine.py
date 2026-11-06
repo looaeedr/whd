@@ -69,8 +69,10 @@ def test_gui_saved_corner_restore_matches_public_engine_and_retains_part_aliases
         assert state[part] is aliases[part][0]
         assert pairs[part] is aliases[part][1]
     if model == "自訂":
-        assert state["head"]["top_left"].type_id is CornerTypeId.C02
-        assert state["head"]["top_left"].rotation_quadrants == 1
+        # Canonical Engine migrates legacy C02/rotation=1 to CROSS/RETAIN/HEIGHT.
+        assert state["head"]["top_left"].type_id is CornerTypeId.CROSS
+        assert state["head"]["top_left"].cross_mode.value == "retain"
+        assert state["head"]["top_left"].direction.value == "height"
         assert state["head"]["bottom_left"] == original[0]["head"]["bottom_left"]
         assert pairs["head"]["top"] is False
         # Return to saved raw wire does not alter the source.
