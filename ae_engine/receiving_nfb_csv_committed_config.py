@@ -240,8 +240,9 @@ def apply_receiving_nfb_csv_candidate(
 ) -> dict[str, object]:
     """Atomically apply a verified CSV NFB *source* to real Receiving Bays.
 
-    This exposes the existing CSV provenance and Bay-qualified identity
-    transaction as one public Engine operation for GUI and CADSplit alike.
+    This preserves the typed original Hole Editor features and the complete
+    canonical inner-door candidate settings with each Bay-qualified NFBConfig;
+    a source-only config without its physical contour is not manufacturable.
     It does not certify physical X, CUTTING or manufacturing readiness.
     """
     from .receiving_layout import normalize_receiving_layout
@@ -274,9 +275,18 @@ def apply_receiving_nfb_csv_candidate(
         normalized, ((set_index, i) for i in selected), source, csv_config,
     )
 
-    updated = normalized
-    for bay_index in selected:
-        updated = replace_candidate_bay_nfb(
-            updated, set_index, bay_index, csv_config,
-        )
+    # CSV source Apply must save the native editor's exact physical holes
+    # alongside NFBConfig, not only its model/slot identities. The normal
+    # FinalScene recovers world X from projected inner_door_features; an NFB
+    # config alone is NOT a complete physical source. Reuse the existing
+    # inner-door candidate transaction that atomically detaches each selected
+    # Bay's shared refs, stores layers/models/heights/typed features, and
+    # qualifies its independently Bay-namespaced NFBConfig. This prevents
+    # selected Bays from overwriting unselected linked siblings.
+    from .receiving_inner_door_pairing import (
+        apply_receiving_inner_door_candidate_to_bays,
+    )
+    updated, _, _ = apply_receiving_inner_door_candidate_to_bays(
+        normalized, source, set_index, selected,
+    )
     return updated
