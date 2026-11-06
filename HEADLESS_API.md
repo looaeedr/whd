@@ -1,3 +1,9 @@
+## #2517 Door-cell original Indicator source → public canonical Door PartSpec
+
+Use `ae_engine.manufacturing_api.build_door_operator_part_spec(values, *, model_name, features=(), indicator_source_state=original_saved_door_cell_indicator, ...)`. Engine performs the same strict live/saved original `project_operator_door_cell_indicator_manufacturing_source` validation as the Hole Editor and derives Indicator Box opening dimensions, real mode, active layer/group count, offsets and box-distance in one Door PartSpec transaction. GUI/CADSplit do not select physical lamp holes, compute opening sizes or repair saved physical state.
+
+Legacy direct `indicator_hole`, `door_indicator`, `door_indicator_offset`, `use_box_distance` and `indicator_window_groups` arguments remain supported when no `indicator_source_state` is passed. Original source and competing precomputed hole inputs cannot coexist (`DOOR_OPERATOR_INDICATOR_DUPLICATE_SOURCE`). Disabled mode creates no hole; enabled incomplete/invalid groups or offsets fail closed. This is PartSpec source ownership, not independent whole-cabinet or DXF certification. Test: `tests/test_issue2517_door_layout_indicator_source_public_api.py`.
+
 ## #2517 EndCap formed FW from BoxBody Fold — public Engine request
 
 Use `ae_engine.manufacturing_api.build_endcap_operator_part_spec(values, *, model_name, is_tail, holes, box_body_fold_profile=original_saved_box_body_fold, ...)` to build a canonical Head/Tail PartSpec from original operator/committed physical Fold source. The Engine reuses `formed_box_body_fw_widths` and its current bend topology and T to derive `box_body_formed_fw_left/right`. GUI/CADSplit must not precompute those widths or use old `ui_len_add` as manufacturing authority. Absence of a FW fold remains `None`. When supplying `box_body_fold_profile`, do **not** also supply `box_body_formed_fw_left/right`: this conflict raises `ENDCAP_OPERATOR_FORMED_FW_DUPLICATE_SOURCE`.

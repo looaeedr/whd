@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 多門格原始指示燈物理來源直接進公開 Engine Door PartSpec（2026-11-06）
+
+- 多門格 `_door_layout_part_spec` 原先先呼叫 `project_operator_door_cell_indicator_manufacturing_source`，由 GUI 自行決定 `indicator_box` / `indicator`、裁切層數、取得開孔大小、選擇實體孔、傳入 offsets 與箱距旗標。雖然幾何 helper 屬 Engine，此段仍是 GUI 自己在拼裝正式物理 DoorPartSpec 的 source-to-manufacture 交易，容易出現不同 caller 的第二套組裝路徑。
+- 原公開 `manufacturing_api.build_door_operator_part_spec(..., indicator_source_state=original_saved_cell)` 新增可選原始來源。Engine 直接復用 `fold_designer_snapshot_dimensions.project_operator_door_cell_indicator_manufacturing_source` 與原 `manufacturing_door_indicator.indicator_box_opening_size`，由同一已驗 source 決定物理 Mode/Groups/Opening/Offsets/Box-Distance；GUI 僅傳保存的原始 cell state、已存在的 Door 尺寸與原本身份，不再選出物理孔或修補 source。禁用模式不會補出製造孔，啟用但非法的原始 groups、layers、offset 立即 fail closed。
+- 舊式直接 `indicator_hole`／`door_indicator`／offset 呼叫仍適用未帶原始 cell source 的單門或既有 adapter；若同時給新原始來源與預計算實體輸入，拒絕 `DOOR_OPERATOR_INDICATOR_DUPLICATE_SOURCE`。這是原 Door Engine API 的向後相容擴充，未新增幾何演算法、另一個 renderer 或 CADSplit 專用出口；`tests/test_issue2517_door_layout_indicator_source_public_api.py` 比對真兩箱型原舊 PartSpec 等價、正反例、舊 flags、原 source 不變與 GUI seam。DXF／FinalScene 資格仍由原下游 Engine 驗證，#2517 整體／Windows UAT 未因此自動完成。
+
+
 ## [CURRENT] #2517 EndCap 成形 FW 必須由 Engine 直接消費原始 BoxBody Fold（2026-11-06）
 
 - `manufacturing_api.build_endcap_operator_part_spec(..., box_body_fold_profile=...)` 在原公開 EndCap PartSpec 建立契約上新增可選的已保存 BoxBody Fold 原始來源。由同一 Engine `box_body_editor_readback.formed_box_body_fw_widths` 對實際目前相鄰折彎與實體厚度計算左右 **formed** FW；不得在 GUI／CADSplit 先算製造 FW，再把失去 Fold 來源見證的兩個數字交給 Engine。箱身 Fold 完全無左右 FW 時保留 None，不能重生已刪實體 Fold；既存來源上的 stale `ui_len_add` 不得取代拓樸。

@@ -166,7 +166,7 @@ def _end_cap_part_spec(self, val, *, is_tail):
 def _door_part_spec_from_values(
     self, val, *, model_name, features, indicator_hole=None, door_indicator=None,
     door_indicator_offset=(0.0, 0.0), use_box_distance=False, corner_policy=None,
-    frame_edges=None, indicator_window_groups=None,
+    frame_edges=None, indicator_window_groups=None, indicator_source_state=None,
 ) -> DoorPartSpec:
     """GUI submits operator inputs; Engine owns canonical Door manufacturing spec."""
     return manufacturing_api.build_door_operator_part_spec(
@@ -180,6 +180,7 @@ def _door_part_spec_from_values(
         corner_policy=corner_policy,
         frame_edges=frame_edges,
         indicator_window_groups=indicator_window_groups,
+        indicator_source_state=indicator_source_state,
         nameplate_center_datum_top=getattr(
             self, "door_nameplate_center_datum_top", None
         ),
@@ -210,9 +211,6 @@ def _door_layout_part_spec(self, cell, val):
     # Engine validates the original committed physical source.
     raw = (states.get(key) if isinstance(states, Mapping)
            else self._door_layout_indicator_state_for_key(key))
-    state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)
-    mode = state["mode"]
-    groups = tuple(state["groups"][:state["layers"]]) if mode != "none" else ()
     door_val = dict(val)
     door_val["w"] = cell.start_width
     door_val["h"] = cell.start_height
@@ -221,11 +219,7 @@ def _door_layout_part_spec(self, cell, val):
         model_name=self._baseline_source_model(),
         frame_edges=cell.edges,
         features=self.door_layout_features.get(key, []),
-        indicator_hole=(manufacturing_api.indicator_box_opening_size(groups, thickness=val['t'])
-                        if mode == "indicator_box" else None),
-        door_indicator=(groups if mode == "indicator" else None),
-        door_indicator_offset=(float(state.get("offset_x", 0.0)), float(state.get("offset_y", 0.0))),
-        use_box_distance=bool(state.get("is_box_dist", False)),
+        indicator_source_state=raw,
         corner_policy=(
             self._manual_corner_policy(
                 'door', self._door_material_frame_width(val['fw'], val['t'])
