@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Assembly Relief 來源 Joint/FW 簽章只能由公開 Engine 決定（2026-11-06）
+
+- Fold Designer 的 `current_relief_source_signature` 原本在 GUI 直接呼叫私有 `resolved_joint_graph_fingerprint`、`migrate_legacy_snapshot_joints`，並把 box-body 成形 FW 與製造 replay source 的中間欄位自行組裝。這是持久化 Head/Tail 已認證 relief CUTTING 的來源資格，不應由 GUI 決定機械身分。
+- 在原 `ae_engine.operator_relief_replay` owner 新增公開 `manufacturing_api.build_operator_current_relief_source_signature`（根包同一 callable）：只接收操作者目前的 scalar/Joint/structure/Fold/part-profile 資料，重用原 Engine Joint Graph 指紋、成形 FW 計算與 `assembly_relief_state.build_current_source_signature` 唯一持久化契約，GUI 只提交原資料／保存結果。既有 replay 資格和 `build_current_source_signature` 簽章保持不變，沒有新增幾何或 CUTTING 放行。
+- 回歸 `tests/test_issue2517_operator_relief_signature_engine_public_api.py` 驗既有機械簽章等價、來源獨立、錯型拒絕、JSON Save→Reload 的 stale 失效與 GUI 公開 API seam。#2517、R5 Windows 人工 UAT／全箱製造仍 OPEN。
+
+
 ## [CURRENT] #2517 Quantity GUI 必須完整套用 Engine 投影而非殘留舊 Bay 身分（2026-11-06）
 
 - Quantity 共用 W/H/D、Single 內門 Confirm All 與直接 3D 內門 Confirm All 的 `manufacturing_api.update_common_box`／`preview_quantity_inner_door_confirm` 原本均由 Engine 的 `project_common_box` 產生獨立完整投影，且已移除舊 `_receiving_runtime_selection`。GUI 卻對既有 dict `update(projected)`，不會刪掉 Engine 已移除的 keys，為避免 EAR Z 身分污染又私自 import `RECEIVING_RUNTIME_SELECTION_KEY` 做單鍵 pop。

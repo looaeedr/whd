@@ -18,6 +18,37 @@ from .assembly_relief_state import (
 )
 
 
+def build_operator_current_relief_source_signature(
+    *, scalar_source, joint_state, structure_state, box_body_profile, part_profiles,
+):
+    """Return the canonical current Assembly Relief replay source identity.
+
+    GUI/CADSplit provide their current, caller-specific source data only.
+    Existing Engine Joint and formed-FW owners determine mechanical identity;
+    persistence uses exactly the original canonical signature serializer.
+    This does not authorize a CUTTING or manufacture result.
+    """
+    if not isinstance(scalar_source, Mapping):
+        raise ValueError("RELIEF_SCALAR_SOURCE_MAPPING_REQUIRED")
+    if not isinstance(joint_state, Mapping):
+        raise ValueError("RELIEF_JOINT_SOURCE_MAPPING_REQUIRED")
+    scalar = dict(scalar_source)
+    profile = deepcopy(list(box_body_profile or ()))
+    left, right = formed_box_body_fw_widths(
+        profile, float(scalar.get("t", 0.0) or 0.0),
+    )
+    return build_current_source_signature(
+        scalar_source=scalar,
+        joint_graph_fingerprint=resolved_joint_graph_fingerprint(joint_state),
+        structure_state=structure_state,
+        cabinet_family=str(
+            scalar.get("model") or scalar.get("cabinet_type") or ""
+        ),
+        formed_left=left, formed_right=right,
+        box_body_profile=profile, part_profiles=part_profiles,
+    )
+
+
 def resolve_operator_committed_relief_cuts(
     part_key, values, *, relief_state, joint_state=None,
     structure_state=None, cabinet_family="", box_body_profile=(),

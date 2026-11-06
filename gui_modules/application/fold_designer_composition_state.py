@@ -471,7 +471,6 @@ def collect_workspace_state(self, namespace):
 
 def current_relief_source_signature(self, namespace, required_parts):
     """Collect current mechanical identity for persisted relief replay."""
-    from ae_engine.assembly_joint import resolved_joint_graph_fingerprint
     from ae_engine import manufacturing_api
 
     app = self.app
@@ -487,25 +486,13 @@ def current_relief_source_signature(self, namespace, required_parts):
     box_profile = clone(
         (getattr(getattr(app, "state", None), "profiles_vault", {}) or {}).get("箱身", ()) or ()
     )
-    formed_left, formed_right = formed_box_body_fw_widths(
-        box_profile,
-        float(source.get("t", 0.0) or 0.0),
-    )
-    graph_snapshot = migrate_legacy_snapshot_joints(
-        dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    )
     wanted = tuple(str(key) for key in tuple(required_parts or ()))
-    return manufacturing_api.build_current_source_signature(
+    return manufacturing_api.build_operator_current_relief_source_signature(
         scalar_source=source,
-        joint_graph_fingerprint=resolved_joint_graph_fingerprint(graph_snapshot),
+        joint_state=dict(getattr(app, "_phase6_input_snapshot", {}) or {}),
         structure_state=deepcopy(
             getattr(app.designer_workspace, "box_body_structure_state", lambda: None)() or {}
         ),
-        cabinet_family=str(
-            source.get("model") or source.get("cabinet_type") or ""
-        ),
-        formed_left=formed_left,
-        formed_right=formed_right,
         box_body_profile=box_profile,
         part_profiles={
             key: deepcopy(getattr(app.designer_workspace, "profiles_for", lambda _k, _d=None: {})(key, {}) or {})
