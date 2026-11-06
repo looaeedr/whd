@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 GUI 手動截角編輯公開 Engine 與失敗隔離（2026-11-06）
+
+- `gui.py` 手動截角面板的「左右共用開關」及「截角類型／CROSS 模式／參數」原有四處直接呼叫 `ae_engine.corner_type_ui` 的原地寫入函式。由於這裡的 live state 持有 `CornerTypeSelection`，而既有 `corner_state_transactions.commit_corner_*` 服務的是序列化 raw state，不可不經轉換直接換成不同表示；此批讓 GUI 改呼叫 `manufacturing_api.operator_set_manual_corner_pair_same`、`manufacturing_api.operator_apply_manual_corner_selection`（根包亦公開），兩者與原 Engine owner 是**同一 callable**，不新增製造公式或第二套交易推導。
+- 原 owner 的 pair rejoin 在來源缺少 `top_left`／`bottom_left` 時，曾先寫入 `pair_same[pair]` 再讀左角，導致 `KeyError` 後來源被部分修改。現先讀取並驗證必需左角，再一次提交配對旗標與右角；無效 pair／target／selection 拒絕且來源不變。合法的 Head／Tail／其他實體角落左右拆分／合併與左角優先關係保持原語意。
+- 測試含 GUI 接線、公開與 Engine 原 owner 直接呼叫 parity、非法輸入未提交、截角原始 selection 存取與既有 raw codec Roundtrip；CUTTING／BEND／FinalScene、2D／3D／DXF 出口無任何算法變動，必須以 exact-SHA 產品回歸驗收。Windows R5 實機 UAT 與 #2517 全面 GUI 接線仍未結案。
+
 ## [CURRENT] #2517 Fold Designer Family Policy／Registry 呼叫改走公開 Engine（2026-11-06）
 
 - Fold Designer 主 Bridge 與 Corner Data 原直接 import `ae_engine.cabinet_types.policy`，用於 Family canonical name、三片箱身固定拓樸、BoxBody outside profile 與 WRAP availability。現改消費 `manufacturing_api.operator_canonical_family_name`、`operator_family_fixes_box_body_structure`、`operator_box_body_profile_uses_outside_dimensions`、`operator_supports_bottom_wrap_controls`（`ae_engine` 根包同名公開）。四者是現有 Engine Policy **同一 callable**，沒有新的 Family／製造公式、第二套投影或新持久化格式。非法／未知來源維持原 Owner 的 fail-closed／未支援語意，不得改動輸入。

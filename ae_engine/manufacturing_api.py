@@ -141,7 +141,11 @@ from .receiving_operator_projection import (
 from .assembly_intent_transactions import (
     AssemblyIntentTransition, normalize_assembly_type, commit_assembly_intent_state,
 )
-from .corner_type_ui import corner_policy_from_payload, resolve_live_corner_policy
+from .corner_type_ui import (
+    corner_policy_from_payload, resolve_live_corner_policy,
+    apply_manual_corner_selection as operator_apply_manual_corner_selection,
+    set_manual_corner_pair_same as operator_set_manual_corner_pair_same,
+)
 from .corner_state_transactions import (
     CornerStateTransition, MANUAL_CORNER_KEYS, MANUAL_CORNER_PAIR_KEYS,
     ensure_corner_part, corner_selection, corner_targets, commit_corner_pair,
