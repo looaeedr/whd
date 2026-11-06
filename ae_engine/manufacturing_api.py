@@ -279,6 +279,8 @@ from .receiving_nfb_verified_scope import (
 )
 from .receiving_nfb_v5_source_preview import (
     ReceivingNfbV5SourcePreview, ReceivingNfbV5SourcePreviewCache,
+    ReceivingNfbV5ModelCatalogSnapshot,
+    project_receiving_nfb_v5_model_catalog_snapshot,
 )
 # Indexed legacy DXF source is read-only. This API does not authorize CUTTING.
 from .receiving_nfb_2d_preview import NfbDxfPreviewCache, Nfb2DViewport

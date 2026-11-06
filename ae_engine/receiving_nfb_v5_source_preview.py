@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from dataclasses import dataclass
+from hashlib import sha256
 
 from .receiving_nfb_model_identity import (
     parse_numeric_model_ref, selected_numeric_spec,
@@ -84,3 +85,39 @@ class ReceivingNfbV5SourcePreviewCache:
         while len(self._entries) > self.max_entries:
             self._entries.popitem(last=False)
         return result
+
+
+@dataclass(frozen=True)
+class ReceivingNfbV5ModelCatalogSnapshot:
+    """One exact per-brand CSV revision and its current selectable identities.
+
+    Operator source display only: no hole geometry or manufacturing approval.
+    """
+
+    brand: str
+    source_sha256: str
+    model_refs: tuple[str, ...]
+    manufacturing_ready: bool = False
+
+
+def project_receiving_nfb_v5_model_catalog_snapshot(
+    brand: str,
+) -> ReceivingNfbV5ModelCatalogSnapshot:
+    """Read a fresh validated NFB catalog with full-byte source identity.
+
+    A same-size, same-mtime CSV replacement must refresh the operator list.
+    Fail closed if the source changes while the authoritative CSV parser
+    reads it; no partial/stale model inventory is returned to GUI clients.
+    """
+    from .receiving_nfb_model_identity import numeric_model_refs
+
+    source = brand_csv_path(brand)  # Existing Engine brand/path authority.
+    before = source.read_bytes()
+    models = numeric_model_refs(brand)  # Existing CSV schema/identity owner.
+    if source.read_bytes() != before:
+        raise ValueError("RECEIVING_NFB_V5_CATALOG_SOURCE_CHANGED_DURING_READ")
+    return ReceivingNfbV5ModelCatalogSnapshot(
+        brand=brand,
+        source_sha256=sha256(before).hexdigest(),
+        model_refs=models,
+    )

@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving NFB V5 CSV 型號清單更新必須驗實際來源位元組（2026-11-06）
+
+- 原 `fold_designer_composition_receiving.inner_edit.refresh_source` 以 GUI 直接讀 `brand_csv_path(brand).stat()`，只比較 mtime_ns＋size；來源 CSV 替換成相同大小與時間戳的另一合法型號會把舊清單當作最新，且讀取失敗前若已更新簽章，後續可能不再重試。NFB 廠牌 CSV 真實內容與版本身分應由 Engine 唯一辨識。
+- 原 Engine `receiving_nfb_v5_source_preview` 新增唯讀公開 `manufacturing_api.project_receiving_nfb_v5_model_catalog_snapshot(brand)`（`ae_engine` 根包同一 callable）；以 `receiving_nfb_numeric_catalog.brand_csv_path` 原來源，取真正 CSV 完整位元組 SHA-256；沿用既有 `numeric_model_refs`／CSV schema 解析，讀取前後位元組不同即拒絕。回傳不可變 `ReceivingNfbV5ModelCatalogSnapshot`，只包含廠牌／SHA／原本的型號參照與 `manufacturing_ready=False`。
+- GUI 只消費公開來源快照以 `(brand, source_sha256)` 做 UI 快取；錯誤／缺失清空顯示清單及舊簽章，下次輪詢重試，不自造品牌、模型或 DXF。回歸 `tests/test_issue2517_receiving_nfb_catalog_content_sha_public_api.py` 使用真 CSV 同大小同 mtime 替換、錯誤表頭、解析中替換及 GUI 公開 API seam。此預覽資料不認證實體 NFB world-X、CUTTING／FinalScene、製造 DXF 或 Save→Reload；#2517 與 Windows UAT 仍 OPEN。
+
 ## [CURRENT] #2517 Receiving NFB 內門型號層序列化與品牌選項共用公開 Engine（2026-11-06）
 
 - Fold Designer 的 NFB 單／雙層 model-slot preview、Confirm、取消差異原直接匯入內部 receiving_shared_settings 的 switch_filenames_in_layer/pack_switch_layer。本次 manufacturing_api.receiving_nfb_switch_filenames_in_layer 和 pack_receiving_nfb_switch_layer 直接公開既有相同 Engine callable，ae_engine 根包也只重匯同一 owner；不新增任何 GUI 型號公式。
