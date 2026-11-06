@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 Receiving 原始內門 NFB CSV 開孔草稿沿用公開 Engine（2026-11-06）
+
+- `gui_modules/application/fold_designer_composition_receiving.py` 的 NFB 即時加入預覽及內嵌確認原本直接 import `receiving_nfb_csv_editor_features.editor_nfb_features_from_csv` 私有來源。兩處改為 `manufacturing_api.editor_nfb_features_from_csv`，套件 `ae_engine.editor_nfb_features_from_csv` 與該公開函式同一物件；原本實體內門、CSV 型號、工作面、碰撞檢查仍由現存 `ae_engine.receiving_nfb_csv_editor_features` 唯一 Engine owner 執行。
+- 回傳 `NFB_CSV_SOURCE` 是原始 Hole Editor 可編輯的 **DRAFT** `ProfileFeature`，initial X 僅作暫存排版，既有 Confirm／Cancel／Undo、已確認來源、世界 X、FinalScene、DXF Save→Reload 與製造資格守門不因改成公開匯出而解除。不得把可 import 及可預覽當成正式 NFB 加工認證。新邊界回歸 `tests/test_issue2517_receiving_csv_editor_public_engine_api.py`，原生 `tests/test_issue1504_live_second_nfb_main_canvas.py` 沿用。
+
 ## [CURRENT] #2690／#2692 受電箱多板件合併 DXF 使用原 Engine 箱身組裝拓樸（2026-11-05）
 
 - 原 `ae_engine.composed_panel_dxf._source_rows` 在將 `BoxBodyStructureRenderData.pieces` 展成實體單片後，直接照任意傳入順序橫排。受電箱多連 `export_current_receiving_multibay_dxf` 甚至在驗證完 per-Bay 平板後只把 `(namespace, part_id, render)` 交給 `commit_verified_receiving_groups`，遺失原 `BoxBodyPieceRenderData.formed_w_start / formed_y_offset / role` 組裝 owner，可能造成順序或背板上下相對位置錯誤。

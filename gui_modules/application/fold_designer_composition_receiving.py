@@ -2212,9 +2212,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if embed_parent is None or not live_nfb_preview["ready"]:
                 return
             from ae_engine.receiving_nfb_model_identity import is_numeric_model_ref
-            from ae_engine.receiving_nfb_csv_editor_features import (
-                editor_nfb_features_from_csv,
-            )
             from ae_engine.receiving_shared_settings import pack_switch_layer
             selected = [ref for row in chosen[:layers.get()] for ref in row]
             if selected and not all(is_numeric_model_ref(ref) for ref in selected):
@@ -2235,7 +2232,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 ],
                 "features": deepcopy(initial.get("features", {})),
             }
-            openings = editor_nfb_features_from_csv(
+            openings = manufacturing_api.editor_nfb_features_from_csv(
                 current_inner_editor_snapshot(), config,
                 current_features=pending(),
             )
@@ -2899,12 +2896,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         raise ValueError("主開孔編輯器尚未連接 NFB 交易暫存")
                     openings = None
                     if current_numeric_editor or not source_models:
-                        from ae_engine.receiving_nfb_csv_editor_features import (
-                            editor_nfb_features_from_csv,
-                        )
                         parent_editor = modal.winfo_toplevel()
                         pending = getattr(parent_editor, "_receiving_pending_features", None)
-                        openings = editor_nfb_features_from_csv(
+                        openings = manufacturing_api.editor_nfb_features_from_csv(
                             current_inner_editor_snapshot(), config,
                             current_features=(pending() if callable(pending) else ()),
                         )
