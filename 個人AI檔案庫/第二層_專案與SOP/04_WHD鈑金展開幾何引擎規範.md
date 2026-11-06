@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱三片箱身原始保存孔位經公開 Factory／FinalScene 驗證（2026-11-06）
+
+- `build_receiving_factory_confirmed_parts` 的原 `BoxBodyPartSpec` 過去直接吃保存 `physical_piece_features`（可能未經正式來源資格確認），或遺失只存於 `part_features` 的三片實孔。向後相容的 `confirmed_box_body_piece_features` 必須與 `saved_operator_confirmed` 的原保存來源逐實體角色、逐 Feature 完全一致；角色限 `box_body:left_side`、`box_body:back`、`box_body:right_side`，均為材料板面 UV 的 typed `ABSOLUTE_FINISHED_FACE`／`CUTTING` Feature。`physical_piece_features` 與舊 `part_features` 若同時含實孔而不一致，必須拒絕，不可猜哪個版本為真。未提供確認但保存存在實孔，也拒絕製造而非靜默出無孔板。
+- 新來源沿用唯一 `build_box_body_operator_part_spec` → `build_box_body_structure_render_data` → `with_physical_sheet_features` → `FinalScene` → 原 Verified Integration Batch DXF Save→Reload；不在 Factory／CADSplit 重算孔座標，不讓三片的分開實孔變成整體箱身一張製造圖。尚未確認的 BoxBody finished-face 特徵、非三片身份、超出物料輪廓與非法 Feature fail closed；保存來源不改寫。
+- `ManufacturingResolvedBayInput.confirmed_box_body_piece_features` 與 `manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_box_body_piece_features=...)` 共享此交易。回歸 `tests/test_issue2517_receiving_factory_confirmed_box_body_piece_features.py` 涵蓋三真 DXF 孔位／重開與 canonical RenderData、一批五張物理板件、錯誤來源零輸出；不代表 NFB/PAD/EAR／整櫃與 Windows R5 UAT 完成，#2517 保持 OPEN。
+
+
+
 ## [CURRENT] #2517 普通受電箱底板已確認 Hole Editor CUTTING 經公開 Factory API 真正出圖（2026-11-06）
 
 - 現行原 `manufacturing_api.build_receiving_factory_confirmed_parts` 的選配普通底板原先直接拒絕所有已保存 `part_features["base_plate"]`，即使是完整可信來源，導致 GUI 有保存孔但 headless/CADSplit 只能製造無自訂孔底板或被阻擋。向後相容新增 `confirmed_base_plate_features={"base_plate": (原 typed Feature, ...)}`：僅 `saved_operator_confirmed`、`include_confirmed_base_plate=True`、普通 LEFT/RIGHT、未提交 NFB，且傳入 typed `ABSOLUTE_FINISHED_FACE` + `CUTTING` 實體 Feature 與原保存孔資料逐一相同，才由原 `build_base_plate_operator_part_spec` 建出帶完整實孔的 canonical BasePlatePartSpec。
