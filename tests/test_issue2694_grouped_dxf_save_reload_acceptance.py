@@ -50,13 +50,13 @@ def test_save_reload_real_canonical_layout_then_three_modes_have_exact_bay_membe
     assert [name for _,_,name in edge[1][1]] == ["中間電盤","P3","P6"]
     for mode, expected, counts in (
         ("PER_SET", (
-            "202611071258p1_中間電盤_p3_p8第1套.dxf",
-            "202611071258p5~p7第2套.dxf",
+            "202611071258_p1_中間電盤_p3_p8_p5_p6_p7第1套.dxf",
+            "202611071258_p1_中間電盤_p3_p8_p5_p6_p7第2套.dxf",
         ), (4, 3)),
-        ("ALL", ("202611071258p1_中間電盤_p3_p8_p5_p6_p7全部.dxf",), (7,)),
+        ("ALL", ("202611071258_p1_中間電盤_p3_p8_p5_p6_p7全部.dxf",), (7,)),
         ("END_VS_MIDDLE", (
-            "202611071258p1~p8頭尾盤.dxf",
-            "202611071258中間電盤_p3_p6中間盤.dxf",
+            "202611071258_p1_中間電盤_p3_p8_p5_p6_p7頭尾盤.dxf",
+            "202611071258_p1_中間電盤_p3_p8_p5_p6_p7中間盤.dxf",
         ), (4, 3)),
     ):
         output = tmp_path / mode
