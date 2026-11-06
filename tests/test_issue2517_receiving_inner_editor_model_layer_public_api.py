@@ -63,3 +63,19 @@ def test_fold_designer_uses_public_source_apis_and_original_brand_choices():
     assert isinstance(brand_choices, tuple)
     assert "士林" in brand_choices
     assert "東元" in brand_choices
+
+
+def test_legacy_quantity_editor_height_fallback_is_engine_owned_and_detached():
+    from ae_engine.receiving_shared_settings import SETTING_DEFAULTS
+
+    first = api.receiving_inner_door_legacy_layer_height_defaults()
+    expected = SETTING_DEFAULTS["inner_door_layer_heights_mm"]
+    assert first == expected
+    assert first is not expected
+    first[0] = -10
+    assert api.receiving_inner_door_legacy_layer_height_defaults() == expected
+    assert ae_engine.receiving_inner_door_legacy_layer_height_defaults() == expected
+    assert "receiving_inner_door_legacy_layer_height_defaults" in ae_engine.__all__
+    source = getsource(gui)
+    assert "SETTING_DEFAULTS" not in source
+    assert source.count("manufacturing_api.receiving_inner_door_legacy_layer_height_defaults()") == 2

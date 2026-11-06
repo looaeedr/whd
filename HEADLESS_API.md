@@ -532,7 +532,7 @@ The candidate quantity draft has only count/assignment state, not a saved physic
 
 manufacturing_api.receiving_nfb_switch_filenames_in_layer(slot) and pack_receiving_nfb_switch_layer(names) are exact callable aliases of the original receiving_shared_settings Engine source parser/packer; ae_engine root exports the same callables. They retain compact 0/1/multiple legacy slots, original numeric V5 references, duplicate physical switch occurrences and existing invalid-source rejection. GUI only sends draft data and displays the result.
 
-The same editor uses the existing receiving_operator_switch_brand_choices() Engine API for its Layer/Slot brand dropdown, keeping operator-only inheritance labels. These read/pack operations do not authorize world-X, CUTTING, FinalScene, formal DXF or external export.
+The same editor uses the existing receiving_operator_switch_brand_choices() Engine API for its Layer/Slot brand dropdown, keeping operator-only inheritance labels. The original Quantity-mode legacy two-slot height fallback is now publicly projected through receiving_inner_door_legacy_layer_height_defaults() as a detached copy of the original Engine SETTING_DEFAULTS, not a new computed NFB Y datum. These read/pack operations do not authorize world-X, CUTTING, FinalScene, formal DXF or external export.
 
 ## #2517 Receiving physical Set/Joint alignment editability public projection
 

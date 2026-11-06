@@ -10,6 +10,7 @@ whd_schema: WHD_DOC_META_V1
 
 - Fold Designer 的 NFB 單／雙層 model-slot preview、Confirm、取消差異原直接匯入內部 receiving_shared_settings 的 switch_filenames_in_layer/pack_switch_layer。本次 manufacturing_api.receiving_nfb_switch_filenames_in_layer 和 pack_receiving_nfb_switch_layer 直接公開既有相同 Engine callable，ae_engine 根包也只重匯同一 owner；不新增任何 GUI 型號公式。
 - 同一 Modal 的本層／單顆品牌 Combobox 使用既有 manufacturing_api.receiving_operator_switch_brand_choices()，不再讀私有 RECEIVING_SWITCH_BRANDS。保留原繼承文字、多顆 NFB occurrence、歷史 DXF 與原生 CSV 型號儲存型態，無效輸入仍由 Engine 拒絕。
+- 先前 Quantity 舊版雙欄位高度預設仍直接依賴 GUI 所見內部 SETTING_DEFAULTS；本輪真 Tk CI 發現移除匯入會 NameError，因此由 manufacturing_api.receiving_inner_door_legacy_layer_height_defaults() 唯讀回傳原 Engine 預設的脫離副本（非新 Y 公式），保留舊專案相容。AC-47 取消編輯器的隔離回歸也必須注入真實公開 API，使用合法歷史 DXF 型號而非假來源字串。
 - 此為來源序列化／選項的公開邊界，不認證 NFB 世界 X、正式 FinalScene、CUTTING、DXF Save→Reload 或整櫃製造；#2517 與 Windows UAT 未完成。
 
 ## [CURRENT] #2517 受電箱相鄰實體 Bay 接合對齊選項歸原 Engine Policy（2026-11-06）

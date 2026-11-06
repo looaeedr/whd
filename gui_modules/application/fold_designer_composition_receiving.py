@@ -1813,7 +1813,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     "models": quantity.get("receiving_inner_door_models", ["", ""]),
                     "layer_heights_mm": quantity.get(
                         "receiving_inner_door_layer_heights_mm",
-                        SETTING_DEFAULTS["inner_door_layer_heights_mm"],
+                        manufacturing_api.receiving_inner_door_legacy_layer_height_defaults(),
                     ),
                 }
             staged = getattr(owner_editor, "_receiving_staged_config", None)
@@ -1839,7 +1839,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             # Legacy configurations without operator heights keep their
             # previously saved Y until the user explicitly edits the rows.
             initial["layer_heights_mm"] = list(
-                SETTING_DEFAULTS["inner_door_layer_heights_mm"]
+                manufacturing_api.receiving_inner_door_legacy_layer_height_defaults()
             )
         # Existing drafts retain saved heights; new one-tier initializers use
         # the shared 550 rule, and a two-tier selection uses 330/830.

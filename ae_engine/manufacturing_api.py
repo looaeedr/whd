@@ -2135,6 +2135,16 @@ from .receiving_manufacturing_readiness import (
 )
 
 
+def receiving_inner_door_legacy_layer_height_defaults() -> list[float]:
+    """Detach original legacy Quantity/editor fallback heights, no Y inference.
+
+    Only the Engine owns the original [330, 830] two-slot compatibility
+    default. This is source display fallback, not a new physical NFB datum.
+    """
+    from .receiving_shared_settings import SETTING_DEFAULTS
+    return list(SETTING_DEFAULTS["inner_door_layer_heights_mm"])
+
+
 def receiving_operator_switch_brand_choices() -> tuple[str, ...]:
     """Public read-only Receiving switch-brand choices from the Engine owner."""
     from .receiving_switch_layout import RECEIVING_SWITCH_BRANDS
