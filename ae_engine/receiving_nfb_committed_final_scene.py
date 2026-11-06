@@ -80,7 +80,7 @@ def _source_world_x_from_committed_editor_feature(
     and Y must agree with the same current numeric model and tier datum.
     """
     from hashlib import sha256
-    from math import hypot
+    from math import hypot, isfinite
     from .receiving_nfb_numeric_catalog import brand_csv_path, model_spec
     from .receiving_nfb_y_projection import project_nfb_inner_door_nominal_y
     from .receiving_nfb_manufacturing_release import _resolve_physical_panel
@@ -123,13 +123,25 @@ def _source_world_x_from_committed_editor_feature(
             or len(feature.points) != 4
             or feature.layered_profiles):
         raise ValueError("NFB_CSV_EDITOR_OPENING_SOURCE_STALE")
+    # A native-editor contour is usable as physical world-X evidence only
+    # when its saved rotation AND all four vertices agree with the same CSV
+    # opening. Equal edge lengths alone can also describe a sheared
+    # parallelogram, or a crossing polygon, which would silently be replaced
+    # by the CSV rectangle in the canonical FinalScene.
+    angle = row.get("rotation_deg", 0)
+    if (type(angle) is not int or angle not in (0, 90, 180, 270)
+            or isinstance(feature.rotation_deg, bool)
+            or not isinstance(feature.rotation_deg, (int, float))
+            or not isfinite(float(feature.rotation_deg))
+            or feature.rotation_deg != angle):
+        raise ValueError("NFB_CSV_EDITOR_ROTATION_DIFFERS_FROM_SOURCE")
     points = tuple(
         (float(rot.x + feature.offset.x),
          float(rot.y + feature.offset.y))
         for rot in (_rotate_local_point(p, feature.rotation_deg)
                     for p in feature.points)
     )
-    source = tuple((float(x),float(y)) for x,y in spec.opening_corners_xy_mm)
+    source = tuple((float(x), float(y)) for x, y in spec.opening_corners_xy_mm)
     expected_edges = sorted(round(hypot(source[(i+1)%4][0]-source[i][0],
                                         source[(i+1)%4][1]-source[i][1]), 6)
                             for i in range(4))
@@ -138,6 +150,30 @@ def _source_world_x_from_committed_editor_feature(
                           for i in range(4))
     if expected_edges != actual_edges:
         raise ValueError("NFB_CSV_EDITOR_OPENING_SIZE_DIFFERS_FROM_SOURCE")
+    if not all(isfinite(x) and isfinite(y) for x, y in points):
+        raise ValueError("NFB_CSV_EDITOR_OPENING_SHAPE_DIFFERS_FROM_SOURCE")
+    from .sheetmetal_geometry import Vec2
+    expected_points = tuple(
+        (float(p.x), float(p.y))
+        for p in (_rotate_local_point(Vec2(x, y), angle) for x, y in source)
+    )
+    px = sum(x for x, _ in points) / 4.0
+    py = sum(y for _, y in points) / 4.0
+    sx = sum(x for x, _ in expected_points) / 4.0
+    sy = sum(y for _, y in expected_points) / 4.0
+    # A translation is the genuine operator-placed X (not nominal pitch).
+    # Accept cyclic/reversed vertex order but NOT a distorted or self-crossed
+    # contour. This is only the NFB source gate, not export certification.
+    if not any(
+        all(
+            hypot(points[i][0]-px-expected_points[(start+direction*i)%4][0]+sx,
+                  points[i][1]-py-expected_points[(start+direction*i)%4][1]+sy)
+            <= 1e-6
+            for i in range(4)
+        )
+        for start in range(4) for direction in (1, -1)
+    ):
+        raise ValueError("NFB_CSV_EDITOR_OPENING_SHAPE_DIFFERS_FROM_SOURCE")
     panel_now, placement = _resolve_physical_panel(
         snapshot, panel.inner_door_id,
     )
