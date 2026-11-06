@@ -221,34 +221,16 @@ class ReceivingSetBayAdapter:
         self.mark_current_bay_dirty()
 
     def apply_setting_to_bays(self, kind, value, bay_indices):
-        """One public Engine transaction; no partial Bay edits on failure."""
-        try:
-            indices = tuple(bay_indices)
-        except TypeError:
-            indices = bay_indices  # Engine rejects malformed selections.
-        set_index = self.selection.set_index
-        candidate = manufacturing_api.edit_receiving_shared_setting_for_bays(
-            self._layout, set_index=set_index, bay_indices=indices,
-            kind=kind, value=value,
+        """Submit operator selection; Engine owns linked physical Bay impact."""
+        candidate, affected_ids = (
+            manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(
+                self._layout, set_index=self.selection.set_index,
+                bay_indices=bay_indices, kind=kind, value=value,
+            )
         )
-        # Linked settings remain shared. A user edit may alter the effective
-        # value of an unselected sibling: mark every physical Bay sharing one
-        # of the edited refs as dirty for safe destructive tail confirmations.
-        # Fresh layouts can omit the persisted shared-setting table until
-        # Engine normalizes the first Apply. Read the *validated candidate*,
-        # which already carries canonical refs for all impacted Bay identities.
-        row = candidate["sets"][set_index]
-        refs = row["settings"][kind]["refs"]
-        affected_refs = {
-            refs[row["bays"][i]["stable_id"]] for i in indices
-        }
-        affected = {
-            bay["stable_id"] for bay in row["bays"]
-            if refs[bay["stable_id"]] in affected_refs
-        }
         self._layout = candidate
-        self._session_dirty_ids.update(affected)
-        return bool(affected)
+        self._session_dirty_ids.update(affected_ids)
+        return bool(affected_ids)
 
     def share_setting(self, kind, bay_indices):
         self._layout = manufacturing_api.share_receiving_shared_setting(self._layout, set_index=self.selection.set_index,
