@@ -6,6 +6,16 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 原生 NFB CSV 已提交來源的雙實體孔位身份不可矛盾（2026-11-06）
+
+- `ae_engine.receiving_nfb_committed_final_scene._source_world_x_from_committed_editor_feature` 會從原 Hole Editor `NFB_CSV_SOURCE` 恢復操作者已放置的 world X，以相同正式 `FinalScene` 進行 2D／3D／DXF。既有合法來源可以**僅有**實體 `hole_id`，或僅有 `layer_index/slot_index`；但當兩組同時存在時必須指向**同一顆**實體孔，不能因 `hole_id` 符合就跳過另一組相反的來源槽位，更不能讓 bool、缺半組 tier/slot 借到相同數值的實體身分。
+- 在原 Engine owner 增加 `NFB_CSV_EDITOR_PHYSICAL_SLOT_IDENTITY_CONFLICT` fail-closed，拒絕同孔 ID 指到別槽／同槽指到別孔 ID 的已提交混合來源，阻止跨槽 world X 污染實體內門／底板 CUTTING。未變更正式 CSV 尺寸、已確認 X、單一 Family／PartSpec／FinalScene 或製造放行。回歸 `tests/test_issue2517_nfb_csv_editor_hybrid_identity_gate.py` 使用原真實來源的多顆 NFB 和 `apply_committed_csv_v5_to_canonical_parts` 核對來源原子拒絕，並保留只帶一種身份的舊專案。
+
+
+
+
+
+
 ## [CURRENT] #2517 受電箱多連候選版本標籤使用單一公開 Engine（2026-11-06）
 
 - `receiving_multi_settings_window` 中 2D 已套用 Bay 標籤、候選編輯器及操作按鈕都只呼叫既有 `manufacturing_api.receiving_candidate_version_label(version_id)`，不再 GUI 直接 import `receiving_hole_candidates.version_label`。版本 ID 語意與中文顯示名稱均由原 Engine owner 確認，GUI 不製造或解析新版本 ID。
