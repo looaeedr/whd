@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 FinalScene 使用者新增 Joint 實體板件資格改由公開 Engine 投影（2026-11-07）
+
+- Fold Designer 的 `FinalSceneCompositionPorts.user_joint_parts` 原在 GUI 取已遷移快照後自行比較 `AssemblyJointSource.USER_ADDED` 並解析 subject／target。這決定哪個實體板件進入正式 resolved geometry，屬 Manufacturing Joint 來源資格，不是 GUI 呈現邏輯。
+- 原 AssemblyJoint owner `ae_engine.assembly_joint.project_operator_user_assembly_joint_parts` 在既有 `migrate_legacy_snapshot_joints` 後投影不可變 `frozenset`，只包含已保存的 USER_ADDED 兩端有效實體板件；未支援未來 schema 使用原 Engine 錯誤拒絕，快照不寫回。公開 `manufacturing_api` 和 `ae_engine` 根包為同一 callable，GUI 不再解析私有 Joint enum。
+- 不增加 Joint 關係、裝配/Relief/Corner 新公式或 FinalScene 第二套 resolver；正常、舊 schema、其他來源類型、錯誤版本和 GUI 路由有正反 headless 測試，製造 2D／3D／DXF 仍需 exact SHA 完整產品回歸。Windows R5 UAT 與 #2517 全面接線尚未結案。
+
+
+
 ## [CURRENT] #2517 同一已確認 NFB 來源中的「獨立核心板件＋成對 NFB」合圖（2026-11-06）
 
 - CADSplit 新建受電箱由來源 DXF／CSV 建立同一份 WHD 核准 Layout，Engine 正式 grouped DXF 使用該已提交 NFB 的保存 Layout，重新衍生每個 Bay 的完整 immutable pair Request 並比較 manufacturing fingerprint。不可僅看相同 stable ID／W/H/D，也不能讓外部輸入以未核准來源或預覽繞過 #2987 防混圖閘門。
