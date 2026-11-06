@@ -153,6 +153,7 @@ from .corner_type_ui import (
     assembly_type_from_corner_state as operator_assembly_type_from_corner_state,
     apply_box_assembly_type as operator_apply_box_assembly_type,
     propose_operator_known_model_corner_draft,
+    propose_operator_saved_manual_corner_snapshot,
 )
 from .corner_state_transactions import (
     CornerStateTransition, MANUAL_CORNER_KEYS, MANUAL_CORNER_PAIR_KEYS,
