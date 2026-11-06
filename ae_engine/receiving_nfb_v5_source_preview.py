@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from dataclasses import dataclass
 from hashlib import sha256
+from functools import lru_cache
 
 from .receiving_nfb_model_identity import (
     parse_numeric_model_ref, selected_numeric_spec,
@@ -100,6 +101,15 @@ class ReceivingNfbV5ModelCatalogSnapshot:
     manufacturing_ready: bool = False
 
 
+@lru_cache(maxsize=32)
+def _read_nfb_catalog_models_for_exact_revision(
+    brand: str, source_path: str, source_sha256: str,
+) -> tuple[str, ...]:
+    """Engine-owned bounded parser cache; never trust GUI-stored model rows."""
+    from .receiving_nfb_model_identity import numeric_model_refs
+    return numeric_model_refs(brand)
+
+
 def project_receiving_nfb_v5_model_catalog_snapshot(
     brand: str,
 ) -> ReceivingNfbV5ModelCatalogSnapshot:
@@ -109,15 +119,19 @@ def project_receiving_nfb_v5_model_catalog_snapshot(
     Fail closed if the source changes while the authoritative CSV parser
     reads it; no partial/stale model inventory is returned to GUI clients.
     """
-    from .receiving_nfb_model_identity import numeric_model_refs
-
     source = brand_csv_path(brand)  # Existing Engine brand/path authority.
     before = source.read_bytes()
-    models = numeric_model_refs(brand)  # Existing CSV schema/identity owner.
+    digest = sha256(before).hexdigest()
+    # Polling checks full file content every time but reparses only a new
+    # exact CSV revision. The cache is bounded and keyed to the real source
+    # path, not GUI-computed metadata or an operator-supplied model list.
+    models = _read_nfb_catalog_models_for_exact_revision(
+        brand, str(source.resolve()), digest,
+    )
     if source.read_bytes() != before:
         raise ValueError("RECEIVING_NFB_V5_CATALOG_SOURCE_CHANGED_DURING_READ")
     return ReceivingNfbV5ModelCatalogSnapshot(
         brand=brand,
-        source_sha256=sha256(before).hexdigest(),
+        source_sha256=digest,
         model_refs=models,
     )
