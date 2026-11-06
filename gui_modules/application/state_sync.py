@@ -12,7 +12,7 @@ from copy import deepcopy
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.sheetmetal_geometry import CornerTypeId, normalize_corner_selection
+from ae_engine.sheetmetal_geometry import CornerTypeId
 from phase6_endcap_semantics import (
     ASSEMBLY_TYPE_LABELS,
     normalize_endcap_bottom_wrap_state,
@@ -371,22 +371,8 @@ def collect_main_setting_values(self):
 
 
 def serialize_corner_selection(raw_selection):
-    selection = normalize_corner_selection(raw_selection)
-    raw = {
-        "type_id": selection.type_id.value,
-        "rotation_quadrants": 0,
-    }
-    if selection.cross_mode is not None:
-        raw["cross_mode"] = selection.cross_mode.value
-    if selection.direction is not None:
-        raw["direction"] = selection.direction.value
-    if selection.amount_t is not None:
-        raw["amount_t"] = float(selection.amount_t)
-    if selection.secondary_retain_t is not None:
-        raw["secondary_retain_t"] = float(selection.secondary_retain_t)
-    if selection.secondary_depth_t is not None:
-        raw["secondary_depth_t"] = float(selection.secondary_depth_t)
-    return raw
+    """Persist canonical CornerType payload from public Engine owner."""
+    return manufacturing_api.endcap_corner_selection_to_raw(raw_selection)
 
 
 def serialize_manual_corner_state(self):
