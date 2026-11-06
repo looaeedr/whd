@@ -219,6 +219,21 @@ def _submitted_csv_holes(snapshot):
     if type(submitted) is not bool:
         raise ValueError("NFB_COMMITTED_CSV_SUBMISSION_FACT_INVALID")
     if not submitted:
+        # Quantity versions are persistent NFB owners; the root is only a
+        # transient alias.  A missing/stale root submission flag must not
+        # silently turn a submitted selected version into an empty CUTTING
+        # source when a headless caller bypasses GUI projection/reload.
+        # Do not borrow a submitted *different* version for this selection.
+        if snapshot.get("active_mode") == "quantity" and "quantity" in snapshot:
+            from .receiving_quantity_versions import QuantityModel
+            quantity_model = QuantityModel.from_payload(snapshot["quantity"])
+            selected_version_nfb = quantity_model.nfb_config_for_version(
+                quantity_model.selected_version_id
+            )
+            if selected_version_nfb.get("nfb_config_submitted") is True:
+                raise ValueError(
+                    "NFB_COMMITTED_CSV_QUANTITY_VERSION_IDENTITY_DRIFT"
+                )
         # This is a projected root alias, not the persisted Set/Bay owner.
         # If the currently selected physical Bay remains submitted, a stale
         # false/missing root field must NOT erase its current NFB CUTTING.
