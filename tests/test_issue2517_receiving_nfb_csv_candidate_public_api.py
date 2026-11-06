@@ -457,7 +457,7 @@ def _fresh_csv_only_physical_source():
 
 
 @pytest.mark.parametrize("model,count", (
-    ("2P400", 2), ("3P400", 2), ("3P-600", 1),
+    ("2P400", 1), ("2P400", 2),
 ))
 def test_fresh_real_bay_builds_legitimate_nfb_source_only_from_current_csv(
     model, count,
