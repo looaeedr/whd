@@ -9,7 +9,6 @@ from pathlib import Path
 import tkinter as tk
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.receiving_layout import (
     ensure_receiving_layout as ensure_receiving_preview_layout,
     resize_receiving_bays as resize_receiving_preview_bays,
@@ -250,7 +249,7 @@ def settings_context_extension_projection(self, namespace, context):
         )
         if (
             str(part_key) not in endcap_fw_parts
-            or not cabinet_family_policy.supports_bottom_wrap_controls(
+            or not manufacturing_api.operator_supports_bottom_wrap_controls(
                 snapshot
             )
         ):
