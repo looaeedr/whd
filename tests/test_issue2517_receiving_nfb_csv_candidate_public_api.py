@@ -351,3 +351,72 @@ def test_csv_apply_invalid_extra_editor_payload_cannot_leave_nfb_submission_with
             original, set_index=0, bay_indices=(0, 1), source=source,
         )
     assert original == before
+
+
+def test_headless_csv_apply_keeps_real_hole_source_through_finalscene_and_dxf_reopen(tmp_path):
+    """Public Apply -> real Bay projection -> one normal FinalScene -> verified DXF."""
+    from ae_engine.cabinet_types.policy import derive_inner_door_panels
+    from ae_engine.dxf_serialization import save_scene_dxf
+    from ae_engine.manufacturing_api import build_inner_door_panel_render_data
+    from ae_engine.manufacturing_verification import verify_saved_part_render_data_dxf
+    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+    from ae_engine.receiving_nfb_committed_final_scene import (
+        _source_world_x_from_committed_editor_feature,
+        apply_committed_csv_v5_to_canonical_parts,
+    )
+    from ae_engine.sheetmetal_feature_core import ProfileFeature
+    from phase6_final_scene_contracts import AssemblyScenePart
+    from tests.test_issue1502_csv_is_only_normal_finalscene_source import _make
+    from tests.test_issue2517_nfb_original_editor_contour_physical_source import (
+        _physical_saved_editor,
+    )
+
+    physical_snapshot, panel, features, expected_door = _physical_saved_editor()
+    models = [dict(feature.source_params)["model"] for feature in features]
+    assert models == ["2P400", "3P125SN"]
+    source = {
+        "layers": 1,
+        "models": [
+            [numeric_model_ref("士林", model) for model in models], "",
+        ],
+        "features": {panel.stable_id: list(features)},
+    }
+    before = deepcopy(physical_snapshot)
+    applied = manufacturing_api.apply_receiving_nfb_csv_candidate(
+        physical_snapshot["receiving_layout"], set_index=0,
+        bay_indices=(0,), source=source,
+    )
+    projected = project_receiving_bay_legacy_aliases(
+        {**physical_snapshot, "receiving_layout": applied},
+        set_index=0, bay_index=0, validate_common=False,
+    )
+    assert projected["part_features"][panel.stable_id] == list(features)
+    assert projected["nfb_config_submitted"] is True
+    row = projected["nfb_config"]["holes"][0]
+    assert row["manual_x_state"] == "UNVERIFIED_BASIS"
+    assert _source_world_x_from_committed_editor_feature(
+        projected, panel, row, brand="士林", model="2P400",
+    ) == pytest.approx(-150.0)
+    assert len(tuple(derive_inner_door_panels(projected))) >= 1
+
+    installed = AssemblyScenePart(
+        part_key=panel.stable_id,
+        render_data=build_inner_door_panel_render_data(panel),
+        x_profile=(), y_profile=(), placement="offset",
+        offset=(0.0, 0.0, 0.0),
+    )
+    parts = apply_committed_csv_v5_to_canonical_parts(
+        projected, (installed, _make(projected)),
+    )
+    assert parts[0].render_data.scene.primitives == (
+        expected_door.render_data.scene.primitives
+    )
+    assert parts[0].render_data.material.symmetric_difference(
+        expected_door.render_data.material
+    ).area < 1e-6
+    output = tmp_path / "public-csv-apply-normal-finalscene.dxf"
+    save_scene_dxf(output, parts[0].render_data.scene)
+    assert verify_saved_part_render_data_dxf(
+        parts[0].render_data, output,
+    ).ok
+    assert physical_snapshot == before
