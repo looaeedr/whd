@@ -2134,6 +2134,7 @@ from .receiving_shared_settings import (
     edit_setting_for_bays as edit_receiving_shared_setting_for_bays,
     edit_setting_for_bays_with_affected_ids as edit_receiving_shared_setting_for_bays_with_affected_ids,
     share_setting as share_receiving_shared_setting,
+    share_setting_with_affected_ids as share_receiving_shared_setting_with_affected_ids,
     unlink_setting as unlink_receiving_shared_setting,
 )
 from .receiving_manufacturing_readiness import (
