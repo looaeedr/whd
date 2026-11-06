@@ -6,6 +6,16 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱合併加工 DXF 日期時間與盤名範圍命名（2026-11-07）
+
+- 使用者確認正式輸出 DXF 的檔名要包含**台灣日期時間 YYYYMMDDHHmm + Engine 已保存盤名範圍 + 合併模式**，例如 202611071258p1~p16全部.dxf。這是原 DXF Save→Reload 核心製造交易的檔案命名，不得由 CADSplit 自行改名或重寫檔內 CUTTING/BEND。
+- Engine `receiving_dxf_groups.commit_verified_receiving_groups` 在一次多盤原子交易的開始取**同一個台灣分鐘時間**；`plan_receiving_grouped_dxf(layout, mode, file_stamp=...)` 用原 canonical Set/Bay 實體盤名推導每個群組的檔名；無 file_stamp 的既有唯讀分組計畫回傳未加日期的標準分組名稱，維持既存分組 API 相容。每套或頭尾／中間盤仍依該群實際參與的盤位，不從母圖名稱或文字預覽猜數量。
+- 標準 P 數字盤名按當群最小至最大編號命名（例如 p1~p16）；自訂盤名保持實際已保存標籤並依原規範檔名檢查，無效時間與過長檔名須在 Engine 提交前 fail closed。DXF 的幾何、NFB 原生孔位、成品／組裝 Topology、分組資格、來源 guard、完整重開與原子 rollback 不得因檔名改變。
+- 使用者另要求**獨立 debug 排列／同板同孔統計 DXF** 與**修正左右側板相鎖孔源頭**；此為相互關聯但未因改名就獲認證的獨立驗收範圍，不能把既有固定命名的 CADSplit 測試當成新版本實機驗收。
+
+
+
+
 ## [CURRENT] #2517 Fold Designer 快照的折邊／門縫預設值改由公開 Engine 投影（2026-11-07）
 
 - 主 GUI `fold_designer_snapshot_projection._snapshot_base_state` 原在準備保存快照時直接讀 `ae.zl1_def` 等 14 類 Fold／Gap 常數，並在指示燈折邊讀 `ae.indicator_*_fold_def` 伴隨 GUI 硬編 `49.0`／`19.0`。這些設定會寫入 persisted source 並由原 Engine PartSpec／FinalScene 消費；GUI 不應複製預設製造數值。

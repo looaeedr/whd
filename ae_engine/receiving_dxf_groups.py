@@ -6,7 +6,9 @@ have verified EVERY staged physical sheet before this module runs.
 """
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import re
 
 from .contracts import ResolvedManufacturingGeometry, ResolvedManufacturingPart
 from .manufacturing_export import (
@@ -19,7 +21,38 @@ from .receiving_layout import normalize_receiving_layout
 RECEIVING_COMPOSED_DXF_MODES = frozenset({"PER_SET", "ALL", "END_VS_MIDDLE"})
 
 
-def plan_receiving_grouped_dxf(layout, mode):
+def _taipei_output_stamp():
+    """Actual export minute, not the input DXF modification timestamp."""
+    return datetime.now(timezone(timedelta(hours=8))).strftime("%Y%m%d%H%M")
+
+
+def _group_output_filename(legacy_name, cells, stamp):
+    """Name only; the original verified physical sheet geometry is unchanged."""
+    if (not isinstance(stamp, str)
+            or re.fullmatch(r"[0-9]{12}", stamp) is None):
+        raise ValueError("RECEIVING_COMPOSED_DXF_TIMESTAMP_INVALID")
+    try:
+        parsed = datetime.strptime(stamp, "%Y%m%d%H%M")
+    except ValueError as exc:
+        raise ValueError("RECEIVING_COMPOSED_DXF_TIMESTAMP_INVALID") from exc
+    if parsed.strftime("%Y%m%d%H%M") != stamp:
+        raise ValueError("RECEIVING_COMPOSED_DXF_TIMESTAMP_INVALID")
+    names = tuple(normalize_panel_name(name) for _si, _bi, name in cells)
+    numbered = [re.fullmatch(r"[Pp]([0-9]+)", n) for n in names]
+    if all(numbered):
+        numbers = sorted(int(m.group(1)) for m in numbered)
+        label = (f"p{numbers[0]}" if len(numbers) == 1
+                 else f"p{numbers[0]}~p{numbers[-1]}")
+    else:
+        # Never invent a P-number for a renamed Bay.
+        label = "_".join(n.casefold() for n in names)
+    name = f"{stamp}{label}{Path(legacy_name).stem}.dxf"
+    if len(name) > 240:
+        raise ValueError("RECEIVING_COMPOSED_DXF_FILENAME_TOO_LONG")
+    return name
+
+
+def plan_receiving_grouped_dxf(layout, mode, *, file_stamp=None):
     """Immutable ordered (group filename, physical Bay cells) response.
 
     Cell: (zero-based Set, zero-based Bay, canonical operator panel name).
@@ -60,6 +93,13 @@ def plan_receiving_grouped_dxf(layout, mode):
         result = (("頭尾盤.dxf", tuple(edge)),)
         if middle:
             result += (("中間盤.dxf", tuple(middle)),)
+    if file_stamp is not None:
+        result = tuple(
+            (_group_output_filename(name, cells, file_stamp), cells)
+            for name, cells in result
+        )
+        if len({name.casefold() for name, _ in result}) != len(result):
+            raise ValueError("RECEIVING_COMPOSED_DXF_FILENAME_COLLISION")
     return result
 
 
@@ -77,7 +117,7 @@ def commit_verified_receiving_groups(
     """
     if not callable(pre_commit_guard):
         raise ValueError("RECEIVING_COMPOSED_DXF_PRECOMMIT_GUARD_REQUIRED")
-    groups = plan_receiving_grouped_dxf(layout, mode)
+    groups = plan_receiving_grouped_dxf(layout, mode, file_stamp=_taipei_output_stamp())
     source = normalize_receiving_layout(layout)
     by_namespace = {}
     seen = set()
