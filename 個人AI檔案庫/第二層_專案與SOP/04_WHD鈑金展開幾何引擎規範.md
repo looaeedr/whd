@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 內門 NFB 舊來源恢復／新草稿預設／層高切換只經公開 Engine API（2026-11-06）
+
+- Fold Designer `inner_edit` 原先仍直接引用內部 `receiving_legacy_nfb_editor_bootstrap.recover_submitted_nfb_models_for_editor`、`receiving_fresh_nfb_defaults.initial_fresh_receiving_nfb_models`；`change_layers` 也直接引用 `receiving_shared_settings.transition_receiving_nfb_layer_heights`。這三條操作影響可編輯的 NFB 型號／雙層 Y 草稿，不能由 GUI 直接依賴內部來源模組。
+- 於既有 `ae_engine.manufacturing_api` 和 `ae_engine` 根包同名公開 `recover_receiving_submitted_nfb_models_for_editor`、`initial_receiving_nfb_draft_models`、`transition_receiving_nfb_layer_heights`，均為原 Engine owner 的相同 callable（無新資料格式／製造公式）。GUI 只提供原保存快照、當前品牌及操作者層高，保留 Cancel、Confirm、舊 NFB 專案和非士林品牌隔離；非法輸入不得改動來源。
+- 這是草稿來源 API 接線；未變更實體孔輪廓、NFB 已確認 world X、FinalScene、CUTTING、DXF 或 Set/Bay MFG-2 資格。需定向比對 public/owner、負向來源無副作用、GUI boundary，正式製造維持原 Save→Reload 驗證；#2517 不因此結案。
+
 ## [CURRENT] #2517 普通受電箱底板已確認 Hole Editor CUTTING 經公開 Factory API 真正出圖（2026-11-06）
 
 - 現行原 `manufacturing_api.build_receiving_factory_confirmed_parts` 的選配普通底板原先直接拒絕所有已保存 `part_features["base_plate"]`，即使是完整可信來源，導致 GUI 有保存孔但 headless/CADSplit 只能製造無自訂孔底板或被阻擋。向後相容新增 `confirmed_base_plate_features={"base_plate": (原 typed Feature, ...)}`：僅 `saved_operator_confirmed`、`include_confirmed_base_plate=True`、普通 LEFT/RIGHT、未提交 NFB，且傳入 typed `ABSOLUTE_FINISHED_FACE` + `CUTTING` 實體 Feature 與原保存孔資料逐一相同，才由原 `build_base_plate_operator_part_spec` 建出帶完整實孔的 canonical BasePlatePartSpec。
