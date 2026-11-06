@@ -109,9 +109,9 @@ def open_inner_door_hole_editor(
             owner = bridge._phase6_composition(app)
             mode = workspace.active_mode
             if mode == "set_bay":
-                from ae_engine.receiving_inner_door_candidates import validate_door_config
-                config = deepcopy(validate_door_config(staged))
-                config.setdefault("features", {})[part_key] = deepcopy(list(final_features))
+                config = manufacturing_api.prepare_receiving_inner_door_physical_confirm(
+                    staged, part_key, final_features,
+                )
                 adapter = owner.receiving_adapter(vars(bridge))
                 selected = adapter.selection
                 adapter.apply_inner_door_candidate_to_bays(
