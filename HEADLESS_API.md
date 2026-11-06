@@ -520,6 +520,10 @@ capability is granted.
 
 `manufacturing_api.validate_receiving_candidate_quantity_preview(version_entries, counts, role, quantities, assigned, *, expected_counts=None)` performs a **detached** Head/Tail readiness check: it validates typed candidate Feature sources and IDs with the original Engine normalizer, builds temporary Set/Bay count topology inside Engine, then uses the same quantity/allocation validation as physical Apply. Missing/stale versions, invalid feature sources, invalid/bool/zero Bay counts, quantity mismatch or Set/Bay drift are refused with no changes to candidate sources or live Bays. The GUI supplies only the operator draft and version inventory; its existing optional live `validate_quantity` owner remains first. `validate_receiving_candidate_role` and `receiving_candidate_version_label` are public aliases of the original Engine identity/display owners. This preview does not grant manufacturing, FinalScene or DXF permission.
 
+## #2517 Multi-Set Receiving candidate labels share public Engine identity
+
+The operator-facing `receiving_multi_settings_window` uses the existing public `manufacturing_api.receiving_candidate_version_label(version_id)` for actual applied Head, Tail and Inner Door version labels, including its 2D Bay status overlays and candidate selection. GUI must not directly import `receiving_hole_candidates.version_label` or independently parse its ID. This is presentation-only; no candidate Apply, physical Bay, FinalScene, CUTTING or DXF behavior changes.
+
 ## #2517 Receiving Quantity allocation two-door schematic public projection
 
 The candidate quantity draft has only count/assignment state, not a saved physical Bay. `ReceivingQuantityAllocationUI.paint()` must obtain the two-door **schematic** seam from the existing `manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)` Engine Family projection, not embed the `1100/1600` dimension ratio in GUI. Actual Bay sketches still use the same Engine API with the saved Bay source; if a complex real door grid is not representable as one horizontal split, no fake seam can be manufactured from this view. This only changes readonly Tk presentation; it does not authorize physical Doors, FinalScene, CUTTING or DXF.
@@ -764,6 +768,7 @@ The committed `NFB_CSV_SOURCE` feature may identify its physical NFB by legacy `
 
 
 When the saved NFBConfig has no independent approved world X, WHD's original native Hole Editor `NFB_CSV_SOURCE` may supply the **operator-placed** physical opening X only if the existing Engine's `_source_world_x_from_committed_editor_feature` validates the complete four-corner contour (cyclic or reversed order accepted), current per-brand CSV source hash, actual physical door / tier / unit, stored rotation and tier Y. Same-edge-length skew, crossing contours and editor-vs-saved angle mismatch must fail closed: a saved source shape is never silently replaced with a different manufacturing CSV rectangle. The original `apply_committed_csv_v5_to_canonical_parts` consumes the validated source once for the canonical door/base 2D/3D scene; a DXF must be serialized from that scene and independently reopened/verified. This is a source-integrity gate, **not** a new manufacturing capability, world-X guess, CADSplit exporter or whole-box certification. Regression: `tests/test_issue2517_nfb_original_editor_contour_physical_source.py`.
+
 
 
 ### Receiving committed NFB CSV editor contour → normal FinalScene (2026-11-06)

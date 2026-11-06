@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-from ae_engine.receiving_hole_candidates import version_label
 
 from ae_engine import manufacturing_api
 
@@ -182,7 +181,7 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
                                  ("inner-door", "內門")):
                 version_id = by_role.get(role)
                 if version_id is not None:
-                    label = version_label(version_id) if version_id else "即時"
+                    label = manufacturing_api.receiving_candidate_version_label(version_id) if version_id else "即時"
                     label_lines.append(f"{prefix}：{label}")
             # Canvas text is a status overlay only; source is saved per-Bay
             # identity, never candidate dropdown presentation state.
@@ -559,7 +558,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         bi = selected_setting["bay_index"]
         if bi is None or selected_setting["set_index"] != si:
             bi = applied["selected"] if applied["selected"] is not None else 0
-        label = "即時" if selected_id is None else version_label(selected_id)
+        label = "即時" if selected_id is None else manufacturing_api.receiving_candidate_version_label(selected_id)
         popup.title(f"{role.replace('inner-door', '內門').replace('head', '封頭').replace('tail', '封尾')}｜{label}｜真實截角2D")
         real_preview["status"].set("正在取得既有 FinalScene 真實幾何…")
         def refresh_exact():
@@ -690,7 +689,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
 
             library = source()
             versions = library["versions"](role)
-            ids = {version_label(item["id"]): item["id"]
+            ids = {manufacturing_api.receiving_candidate_version_label(item["id"]): item["id"]
                    for item in versions}
             current_id = candidate_selected[role]
             if current_id not in ids.values():
@@ -1078,7 +1077,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
         chosen = candidate_selected[role]
         title.configure(text=({"head": "封頭孔", "tail": "封尾孔",
                                "inner-door": "內門"}[role])
-                        + "｜" + ("即時" if chosen is None else version_label(chosen)))
+                        + "｜" + ("即時" if chosen is None else manufacturing_api.receiving_candidate_version_label(chosen)))
         buttons = manager_widgets["buttons"]
         for button in buttons:
             button.configure(state="normal" if chosen is not None else "disabled")
