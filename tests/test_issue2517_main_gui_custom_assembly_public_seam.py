@@ -16,6 +16,12 @@ from gui import Phase6ApplicationHost as GUI
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_original_gui_module_compatibility_names_delegate_to_public_engine():
+    import gui
+    assert gui.is_unknown_model is api.is_unknown_operator_model
+    assert gui.assembly_type_from_corner_state is api.operator_assembly_type_from_corner_state
+
+
 @pytest.mark.parametrize("raw,custom", [
     ("自訂", True), ("未知類型", True), (" 自訂 ", True),
     ("金庫型", False), ("受電箱", False), ("", False), (None, False),
