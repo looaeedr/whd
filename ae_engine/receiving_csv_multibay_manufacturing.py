@@ -76,7 +76,16 @@ def _verified_nfb_composed_pair_rows(layout, requests, output_root, guard):
             thaw_manufacturing_value(request.input_snapshot)
         )
         actual_id = snapshot.get("_receiving_runtime_selection")
+        submitted_layout = normalize_receiving_layout(snapshot.get("receiving_layout"))
+        submitted_bays = tuple(
+            (
+                str(group["stable_id"]), str(bay["stable_id"]),
+                float(bay["width"]), float(bay["height"]), float(bay["depth"]),
+            )
+            for group in submitted_layout["sets"] for bay in group["bays"]
+        )
         if (not isinstance(actual_id, dict)
+                or submitted_bays != expected
                 or (actual_id.get("set_id"), actual_id.get("bay_id")) != (set_id, bay_id)
                 or any(abs(float(snapshot.get(name, -1)) - dimension) > 1e-6
                        for name, dimension in (("w", width), ("h", height), ("d", depth)))):
