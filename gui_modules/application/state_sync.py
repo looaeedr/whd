@@ -11,13 +11,7 @@ import tkinter as tk
 from copy import deepcopy
 
 import ae_engine.ae as ae
-from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
-from ae_engine.corner_type_ui import (
-    apply_box_assembly_type,
-    assembly_type_from_corner_state,
-    new_manual_corner_pair_same_state,
-    new_manual_corner_state,
-)
+from ae_engine import manufacturing_api
 from ae_engine.sheetmetal_geometry import CornerTypeId, normalize_corner_selection
 from phase6_endcap_semantics import (
     ASSEMBLY_TYPE_LABELS,
@@ -239,17 +233,17 @@ def _init_base_results_and_corner_state(self, settings):
     # 箱身組合方式是封頭/封尾上方截角的唯一類型來源。
     self.box_assembly_type_var = tk.StringVar(value=ASSEMBLY_TYPE_LABELS[CornerTypeId.INSERT_OVERLAY])
     self.cb_box_assembly = None
-    self.assembly_joint_state = migrate_legacy_snapshot_joints({
+    self.assembly_joint_state = manufacturing_api.migrate_operator_assembly_joint_snapshot({
         "assembly_type": "INSERT_OVERLAY",
         "existing_parts": ["box_body", "head", "tail"],
     })
 
     # 自訂：截角型式只在此模式可手動選；金庫型永遠使用固定 Factory mapping。
     manual_corner_parts = ["head", "tail", "door", "base_plate", "indicator_box", "indicator_door"]
-    self.manual_corner_state = new_manual_corner_state(manual_corner_parts)
+    self.manual_corner_state = manufacturing_api.operator_new_manual_corner_state(manual_corner_parts)
     # Normal shop-floor case: top pair is the same, bottom pair is the same.
     # Four physical-corner values are still retained underneath for exceptions.
-    self.manual_corner_pair_same = new_manual_corner_pair_same_state(manual_corner_parts)
+    self.manual_corner_pair_same = manufacturing_api.operator_new_manual_corner_pair_same_state(manual_corner_parts)
     self.manual_active_corner_var = tk.StringVar(value="top")
     self.manual_top_same_var = tk.BooleanVar(master=self.root, value=True)
     self.manual_bottom_same_var = tk.BooleanVar(master=self.root, value=True)
@@ -272,9 +266,9 @@ def _init_base_results_and_corner_state(self, settings):
     # snapshots may contain only CROSS end-cap corners; normalize them once
     # here so the state shown in 2D and consumed by manufacturing is the
     # same state.  Valid legacy INSERT/OVERLAY/INSERT_OVERLAY values are
-    # preserved by assembly_type_from_corner_state().
-    initial_assembly = assembly_type_from_corner_state(self.manual_corner_state)
-    apply_box_assembly_type(
+    # preserved by the original Engine assembly-type migration.
+    initial_assembly = manufacturing_api.operator_assembly_type_from_corner_state(self.manual_corner_state)
+    manufacturing_api.operator_apply_box_assembly_type(
         self.manual_corner_state, self.manual_corner_pair_same, initial_assembly,
         reset_bottom_defaults=True,
     )
