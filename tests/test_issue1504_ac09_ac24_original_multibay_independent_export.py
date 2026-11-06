@@ -270,8 +270,11 @@ def test_ac09_real_multidoor_cells_satisfy_each_bay_door_intent(tmp_path):
         pre_commit_guard=lambda: None,
     )
     assert visited == [(0, 0), (0, 1)]
-    assert set(receipts) == {"第1套.dxf"}
-    grouped = output / "第1套.dxf"
+    assert len(receipts) == 1
+    name = next(iter(receipts))
+    assert len(name) > 12 and name[:12].isdigit()
+    assert name[12:] == "p1~p2第1套.dxf"
+    grouped = output / name
     assert grouped.is_file()
     drawing = ezdxf.readfile(grouped)
     assert not drawing.audit().errors
