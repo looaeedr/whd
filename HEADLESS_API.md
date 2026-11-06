@@ -755,6 +755,10 @@ rejected only if the physical fallback is required. The Phase6 helper is a
 compatibility delegation; this API does not certify new 2D/CUTTING/DXF output.
 
 ### Receiving committed NFB CSV editor contour → normal FinalScene (2026-11-06)
+### NFB original Hole Editor physical source owner parity (2026-11-06)
+
+The committed `NFB_CSV_SOURCE` feature may identify its physical NFB by legacy `layer_index/slot_index` or newer explicit `hole_id`. When **both** are persisted, they must match the exact same selected physical hole and use typed integer tier/slot keys, otherwise the existing Engine source preflight fails `NFB_CSV_EDITOR_PHYSICAL_SLOT_IDENTITY_CONFLICT` before world-X is projected into the single normal FinalScene. A correct source from either original format still works. This is source identity validation, not NFB manufacturing release or a new CADSplit exporter. Regression `tests/test_issue2517_nfb_csv_editor_hybrid_identity_gate.py`.
+
 
 When the saved NFBConfig has no independent approved world X, WHD's original native Hole Editor `NFB_CSV_SOURCE` may supply the **operator-placed** physical opening X only if the existing Engine's `_source_world_x_from_committed_editor_feature` validates the complete four-corner contour (cyclic or reversed order accepted), current per-brand CSV source hash, actual physical door / tier / unit, stored rotation and tier Y. Same-edge-length skew, crossing contours and editor-vs-saved angle mismatch must fail closed: a saved source shape is never silently replaced with a different manufacturing CSV rectangle. The original `apply_committed_csv_v5_to_canonical_parts` consumes the validated source once for the canonical door/base 2D/3D scene; a DXF must be serialized from that scene and independently reopened/verified. This is a source-integrity gate, **not** a new manufacturing capability, world-X guess, CADSplit exporter or whole-box certification. Regression: `tests/test_issue2517_nfb_original_editor_contour_physical_source.py`.
 
