@@ -163,6 +163,30 @@ def test_single_bay_grouped_missing_canonical_scene_refuses_zero_output(tmp_path
     assert not list((tmp_path / "out").glob("*.dxf"))
 
 
+
+def test_single_bay_grouped_requested_missing_base_fails_closed(tmp_path):
+    from ae_engine.contracts import ResolvedManufacturingGeometry, ResolvedManufacturingPart
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    source = {
+        "model": "受電箱", "active_mode": "set_bay",
+        "w": 800, "h": 1600, "d": 350, "t": 2,
+        "receiving_layout": layout,
+    }
+    def provider(_si, _bi):
+        return ResolvedManufacturingGeometry(parts=(
+            ResolvedManufacturingPart("head", _flat("head")),
+        ))
+    with pytest.raises(ValueError, match="SELECTED_BASE_PLATE_PHYSICAL_SOURCE_MISSING"):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=provider,
+            flags={"head": True, "base_plate": True},
+            output_dir=tmp_path / "out", group_mode="ALL",
+            pre_commit_guard=lambda: None,
+        )
+    assert not list((tmp_path / "out").glob("*.dxf"))
+
+
+
 def test_drift_on_second_group_preserves_all_old_outputs(tmp_path):
     layout = _seven()
     out = tmp_path/"out"
