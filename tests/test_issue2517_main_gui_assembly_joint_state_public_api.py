@@ -104,7 +104,12 @@ def test_user_joint_survives_main_gui_preset_and_invalid_intent_writes_nothing()
     result = api.commit_operator_box_assembly_joint_state(
         source, "OVERLAY", available_parts=("box_body", "head", "tail"),
     )
-    assert any(j["joint_id"] == user["joint_id"] and j == user for j in result["assembly_joints"])
+    # Legacy v1 migration records provenance in the persisted source.
+    # Compare against that saved canonical USER_ADDED row, not the raw v1 DTO.
+    stored_user = next(j for j in source["assembly_joints"]
+                       if j["joint_id"] == user["joint_id"])
+    assert any(j["joint_id"] == user["joint_id"] and j == stored_user
+               for j in result["assembly_joints"])
     assert source == before
     host, selected = _host(source)
     with pytest.raises(ValueError):
