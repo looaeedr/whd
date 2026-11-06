@@ -374,6 +374,9 @@ from .door_indicator_position_transactions import (
     project_operator_door_indicator_position,
     propose_operator_door_indicator_offset_candidate,
 )
+from .sheetmetal_corner_policy import (
+    box_body_height_from_corner_policies as project_operator_box_body_finished_height,
+)
 from .sheetmetal_geometry import (
     EndCapAssemblySemantics,
     FourCornerTypePolicy,

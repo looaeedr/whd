@@ -12,6 +12,20 @@ whd_schema: WHD_DOC_META_V1
 - `receiving_csv_multibay_manufacturing._verified_nfb_composed_pair_rows` 現從**本次保存的 Receiving Layout 和原始厚度**，重新呼叫已存在公開 `receiving_committed_nfb_pair_request_for_bay`，以 Engine `manufacturing_request_fingerprint` 比對完整 immutable Request 語意（已保存 NFB 槽、孔、門、CSV 身分及 PartSpec）。任何重建失敗或 fingerprint 不同，整組 `RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH`、正式 DXF 零輸出。不得以 Set/Bay 名稱或尺寸相同取代來源一致性。
 - 此為同源製造放行安全閘門；仍用原 Engine 單 Bay pair FinalScene／Save→Reload、每 Set 原 grouped composer，無第二份幾何、不增加 MFG-2 認證。正向測試必須提交同一份 Engine 已確認 Layout；負向測試固定「相同 ID／尺寸但不同保存的 NFB」零輸出。#2517 全面 GUI API 和 Windows R5 UAT 仍未結案。
 
+
+## [CURRENT] #2517 主 GUI 箱身折後外高只消費公開 Engine（2026-11-06）
+
+- `gui.py::_box_body_finished_height` 原讀 h/t/FW、私有 `sheetmetal_geometry.box_body_vertical_offsets` 後在 GUI 自算 `h - bottom - top`，缺角落 Policy 時還另寫 `h - 2T`；這是製造成品外高而非 UI 展示排版。
+- `manufacturing_api.project_operator_box_body_finished_height` 和 `ae_engine` 根包直接公開 canonical `sheetmetal_corner_policy.box_body_height_from_corner_policies` **同一 callable**，沿用該 owner 的未提供 Policy 預設、EndCap 裝配高度語意及有限／正值拒絕。GUI 只傳已選原始 h/t/FW 和既有 Policy，不再重算物理高度；不動 Registry、Fold、PartSpec、FinalScene、CUTTING／BEND、DXF。
+- 測試覆蓋原 owner 等價、兩 Family 的 Head/Tail 配對、預設、非法高度／板厚／非有限值、零來源變動與 GUI AST 公開 API 接線；exact SHA Product Regression 必須成功，Windows R5 UAT 與 #2517 全功能仍未完成。
+
+## [CURRENT] #2517 Door 指示燈定位的門框四邊來源嚴格交易（2026-11-06）
+
+- `DoorFrameEdges` 的四個 `left/right/top/bottom` 旗標只允許原 Engine typed DTO 的真布林；原公開 `door_indicator_position_transactions` 若遇 malformed Frame Source 會被內層 `getattr(..., True)` 視作四邊都有框，GUI 也用 `params.get("frame_edges") or DoorFrameEdges()` 把 `False`、空容器等來源無聲改成預設。此錯誤會改變指示燈 finished-face 量測基準和 CUTTING 位置。
+- 公開 `project_operator_door_indicator_position` 和 `propose_operator_door_indicator_offset_candidate` 在使用原量測／clamp owner 前先驗證 `DoorFrameEdges` 型別及四個欄位；非法來源 fail-closed 且 GUI 不開編輯視窗、不改 offset。合法 `None` 仍代表原有的四邊框預設，沒有建立新幾何／距離公式。
+- 測試覆蓋 GUI 與直接 Engine 不合法來源、可選缺省和合法測量等價；完整產品回歸與 canonical 2D/3D/DXF 持續驗證，#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 Door 指示燈雙擊編輯不再以 GUI 偽造板厚／FW 預設（2026-11-06）
 
 - 主 GUI `on_double_click_indicator` 原在無效 `t_var`／`fw_z_var` 時吞掉例外並改送 `2.0`／`62.0`，違反現有公開 `project_operator_door_indicator_position` 的 fail-closed 來源契約。此入口已由 Engine transaction 擁有距離計算／candidate 產生，僅需把板厚、FW、Door gaps 的**原操作輸入**傳給該同一公開 API。
