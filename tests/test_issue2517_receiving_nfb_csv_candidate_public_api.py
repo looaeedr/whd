@@ -13,6 +13,8 @@ import pytest
 from ae_engine import manufacturing_api
 from ae_engine.receiving_layout import new_receiving_layout
 from ae_engine.receiving_nfb_model_identity import numeric_model_ref
+from ae_engine.sheetmetal_feature_core import FeatureAnchor
+from ae_engine.sheetmetal_geometry import Vec2
 from tests.test_issue1503_csv_committed_config import PART, _feature
 
 
@@ -146,3 +148,52 @@ def test_package_public_api_reexports_same_atomic_csv_apply():
         layout, set_index=0, bay_indices=(0, 1), source=source,
     )
     assert actual == expected
+
+
+@pytest.mark.parametrize("tamper,expected_code", (
+    (lambda feature: replace(feature, layer="MARKING"),
+     "NFB_CSV_COMMIT_FINISHED_FACE_CUTTING_REQUIRED"),
+    (lambda feature: replace(feature, layer="BEND"),
+     "NFB_CSV_COMMIT_FINISHED_FACE_CUTTING_REQUIRED"),
+    (lambda feature: replace(feature, anchor=FeatureAnchor.PANEL_CENTER),
+     "NFB_CSV_COMMIT_FINISHED_FACE_CUTTING_REQUIRED"),
+    (lambda feature: replace(feature, layered_profiles=(
+        ("CUTTING", tuple(feature.points), True),
+     )),
+     "NFB_CSV_COMMIT_FINISHED_FACE_CUTTING_REQUIRED"),
+    (lambda feature: replace(feature, offset=Vec2(float("nan"), 0.0)),
+     "NFB_CSV_COMMIT_FINITE_PHYSICAL_PROFILE_REQUIRED"),
+    (lambda feature: replace(feature, offset=Vec2(0.0, float("inf"))),
+     "NFB_CSV_COMMIT_FINITE_PHYSICAL_PROFILE_REQUIRED"),
+    (lambda feature: replace(feature, points=(
+        Vec2(float("nan"), feature.points[0].y),
+     ) + feature.points[1:]),
+     "NFB_CSV_COMMIT_FINITE_PHYSICAL_PROFILE_REQUIRED"),
+))
+def test_csv_candidate_must_be_physical_finished_face_cutting_before_any_bay_commit(
+    tamper, expected_code,
+):
+    # A forged NFB_CSV_SOURCE tag or matching source SHA alone is not a
+    # physical opening. Refuse even a source-only Apply, atomically.
+    original = _layout()
+    before = deepcopy(original)
+    source = _source()
+    source["features"][PART][0] = tamper(source["features"][PART][0])
+    with pytest.raises(ValueError, match=expected_code):
+        manufacturing_api.apply_receiving_nfb_csv_candidate(
+            original, set_index=0, bay_indices=(0, 1), source=source,
+        )
+    assert original == before
+
+
+def test_valid_original_csv_source_remains_applicable_to_two_distinct_bays():
+    original = _layout()
+    source = _source()
+    applied = manufacturing_api.apply_receiving_nfb_csv_candidate(
+        original, set_index=0, bay_indices=(0, 1), source=source,
+    )
+    assert all(
+        row["nfb_config_submitted"] is True
+        for row in applied["sets"][0]["bays"]
+    )
+    assert original["sets"][0]["bays"][0]["nfb_config_submitted"] is False
