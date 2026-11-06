@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Factory EndCap 必須共享 GUI 原始 BoxBody Fold 裝配 FW（2026-11-06）
+
+- `build_receiving_factory_confirmed_parts` 由已保存或已明確確認 Family 來源建立 Head/Tail PartSpec 時，必須將其同一 Engine `body_rows` 直接傳入原 `build_endcap_operator_part_spec(..., box_body_fold_profile=body_rows)`。原 Factory 之前雖已保留 BoxBody Fold 並確認 EndCap X/Y、Corner，但漏傳兩側成形 FW 的來源，使此 API 與 GUI 同一物理 EndCap 的 `box_body_formed_fw_left/right` 不同。現在由同一 Engine owner 根據真實相鄰 BEND/T 計算，不從 CADSplit／GUI 另算或猜測，且不改 Fold／CUTTING 公式。
+- `tests/test_issue2517_receiving_factory_source_engine_part_specs.py` 覆蓋 fresh/saved 兩種合法來源、Head/Tail 與原 GUI Engine PartSpec 的完全等價、5 張實體 DXF 經原 verified batch 獨立 Save→Reload 且比對同源 RenderData。非可信 source-only、未確認 NFB、PAD/EAR、整櫃 MFG-2 與 Windows UAT 權限仍不開放；#2517 全範圍未因此結案。
+
+
 ## [CURRENT] #2517 多門格原始指示燈物理來源直接進公開 Engine Door PartSpec（2026-11-06）
 
 - 多門格 `_door_layout_part_spec` 原先先呼叫 `project_operator_door_cell_indicator_manufacturing_source`，由 GUI 自行決定 `indicator_box` / `indicator`、裁切層數、取得開孔大小、選擇實體孔、傳入 offsets 與箱距旗標。雖然幾何 helper 屬 Engine，此段仍是 GUI 自己在拼裝正式物理 DoorPartSpec 的 source-to-manufacture 交易，容易出現不同 caller 的第二套組裝路徑。
