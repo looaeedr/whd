@@ -1930,6 +1930,6 @@ Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或�
 
 ## [CURRENT] #2517 原生 CSV 首次候選孔的世界 X 製造阻擋（2026-11-06）
 
-- candidate_receiving_nfb_csv_for_fresh_bay → editor_nfb_features_from_csv 建立的 NFB_CSV_SOURCE 會帶 source_params.placement=native_editor_initial。CSV SHA、矩形尺寸、Bay 及 slot 身份成立，只證明來源正確與編輯器初始顯示位置；縱使預設 X 剛好為 0，也不代表操作者已確認真實安裝 X。
-- WHD 的 _source_world_x_from_committed_editor_feature 不得將 native_editor_initial 轉成正式 world X。manual_x_mm=None／UNVERIFIED_BASIS 保持未驗證；正式 export_current_csv_nfb_pair_from_request 必須拒絕這種未確認來源且零 DXF。既有真正已放置且驗證的 original Hole Editor Feature 與具 Engine 持續驗證 datum 的 CONFIRMED X，才可沿既有 API 流到 canonical FinalScene、底板螺絲孔及 2D／3D／DXF。
+- 自動新建 Bay 的 candidate_receiving_nfb_csv_for_fresh_bay 會依 WHD 數值 CSV 建立 NFB_CSV_SOURCE，保留 source_params.placement=native_editor_initial，並額外標記 source_params.fresh_bay_auto_unconfirmed=True。CSV SHA、矩形尺寸、Bay 及 slot 身份成立，只證明來源正確與編輯器初始顯示位置；預設 X 即使是 0 也未經操作者確認。
+- WHD 的 _source_world_x_from_committed_editor_feature 只對 fresh_bay_auto_unconfirmed=True 的自動候選拒絕回推出 world X；manual_x_mm=None／UNVERIFIED_BASIS 保持未確認，export_current_csv_nfb_pair_from_request 對這種唯一來源必須拒絕且不輸出 DXF。**不能**一律阻擋 native_editor_initial：既有 WHD GUI 原 Hole Editor「確定全部」是獨立、由操作者實際確認的來源路徑，原 Feature 即使保留 native_editor_initial 也不得因此被誤封鎖；仍須通過原 CSV 型號、輪廓、Y、實體身份等 Engine 驗證。已明確確認且受持續 datum 保護的 CONFIRMED X 也保留原生 FinalScene、PAD／底板及 2D／3D／DXF 功能。
 - 不建立新 X 規格、不填補 CSV 缺數據、不覆蓋 R5 現場 NFB數值規格.csv，不放寬多 Bay PAD／EAR 或整箱 DXF 認證。
