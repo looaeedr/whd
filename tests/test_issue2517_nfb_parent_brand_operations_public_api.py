@@ -184,7 +184,7 @@ def test_global_brand_invalid_late_set_is_rejected_without_partial_apply():
     broken = deepcopy(raw)
     broken["sets"][1]["switch_brand"] = "not-a-real-brand"
 
-    with pytest.raises(ValueError, match="品牌"):
+    with pytest.raises(ValueError, match="廠牌"):
         engine_global_brand(raw, "not-a-real-brand")
     with pytest.raises(ValueError):
         engine_global_brand(broken, "東元")
