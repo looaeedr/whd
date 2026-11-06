@@ -15,7 +15,6 @@ from phase6_endcap_semantics import (
     assembly_intent_value,
     normalize_endcap_bottom_wrap_state,
 )
-from phase6_fold_profiles import build_box_body_profile
 
 
 def _inherit_known_corner_state_into_custom(self):
@@ -39,7 +38,7 @@ def _capture_cabinet_family_runtime(self):
             key: var.get() for key, var in self._setting_var_map().items()
         }
         profile_source["model"] = self._current_cabinet_type_name()
-        box_profile = build_box_body_profile(profile_source)
+        box_profile = manufacturing_api.build_box_body_fold_profile(profile_source)
         if not box_profile:
             raise ValueError("canonical Box Body Fold Profile materialization failed")
         self.workspace_controller.set_box_body_profile(box_profile)
@@ -182,7 +181,7 @@ def _apply_cabinet_family_for_current_model(self):
         )
         snap["active_mode"] = "set_bay"
         initial = manufacturing_api.operator_seed_fresh_receiving_nfb_source(snap)
-        box_profile = build_box_body_profile(snap)
+        box_profile = manufacturing_api.build_box_body_fold_profile(snap)
         workspace = self.workspace_controller.workspace_snapshot()
         workspace["receiving_layout"] = deepcopy(initial["receiving_layout"])
         # A submitted default Bay without its matching physical CUTTING in
