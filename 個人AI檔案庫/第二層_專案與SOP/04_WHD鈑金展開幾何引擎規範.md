@@ -1926,3 +1926,10 @@ Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或�
 - 原生 NFB 的尺寸、開口與螺絲規格唯一來源是當前 WHD 各廠牌 `NFB數值規格.csv`，不要求已有 NFB DXF 或另一份已提交的 `NFB_CSV_SOURCE`。原始 CADSplit DXF 只供盤位／設備型式與物理身份證據，不是 V5 製造幾何規格。
 - 公開 `manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay` 以確認的原生 Set 廠牌、合法 V5 型號、真 Bay W/H/D/T、已確認 Door source Partition，沿既有 Engine `fresh_receiving_mode`／Bay projection／`editor_nfb_features_from_csv` 產生 CSV SHA、原生內門 part_id、實體 slot 及可核對 CUTTING 矩形之**未確認草稿**；不在 CADSplit 複製幾何算法。已有提交的 Bay 不可覆寫。
 - 只為編輯位置提供 Engine 一層 550mm 或兩層 330/830mm 既有預設；未證實的 X 必為 `UNVERIFIED_BASIS` 與 `manual_x_mm=None`。原生 Apply 只提交來源，不能自動變成 FinalScene MFG 或全箱 DXF 放行。缺型號數值、缺廠牌、非預設分割卻缺內門身份都拒絕，不允許從另個 Bay 偷借來源或虛構物理 X。
+
+
+## [CURRENT] #2517 原生 CSV 首次候選孔的世界 X 製造阻擋（2026-11-06）
+
+- candidate_receiving_nfb_csv_for_fresh_bay → editor_nfb_features_from_csv 建立的 NFB_CSV_SOURCE 會帶 source_params.placement=native_editor_initial。CSV SHA、矩形尺寸、Bay 及 slot 身份成立，只證明來源正確與編輯器初始顯示位置；縱使預設 X 剛好為 0，也不代表操作者已確認真實安裝 X。
+- WHD 的 _source_world_x_from_committed_editor_feature 不得將 native_editor_initial 轉成正式 world X。manual_x_mm=None／UNVERIFIED_BASIS 保持未驗證；正式 export_current_csv_nfb_pair_from_request 必須拒絕這種未確認來源且零 DXF。既有真正已放置且驗證的 original Hole Editor Feature 與具 Engine 持續驗證 datum 的 CONFIRMED X，才可沿既有 API 流到 canonical FinalScene、底板螺絲孔及 2D／3D／DXF。
+- 不建立新 X 規格、不填補 CSV 缺數據、不覆蓋 R5 現場 NFB數值規格.csv，不放寬多 Bay PAD／EAR 或整箱 DXF 認證。
