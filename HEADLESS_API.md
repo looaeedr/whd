@@ -5,6 +5,8 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+> #2517（2026-11-06）**實際 NFB CSV API 接線修復**：已公開的 `manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)` / `ae_engine` 根包同名 callable 現不再只寫 Bay 的 `nfb_config_submitted/nfb_config`，而是復用唯一 Engine `apply_receiving_inner_door_candidate_to_bays` 交易，將 source 的真實 Hole Editor `ProfileFeature`、層數／型號／高度、每 Bay 個別的 NFBConfig 同次原子提交。真 FinalScene 的物理 X 必須可從 `project_receiving_bay_legacy_aliases` 的各 Bay `part_features` 及目前 CSV SHA/Y/旋轉重新求證；不能只拿 NFB 型號／提交旗標授權製造。選定 Bay 先與舊 shared refs 解連，不改未選 Bay；舊 API 簽章/return Layout 相容，錯誤不部分提交。回歸包含真 `Apply → FinalScene → 內門 DXF Save→Reload`，不放行尚未驗證的整箱 MFG-2／EAR／PAD。
+
 > #2690／#2692（2026-11-05）多板件合併 `save_composed_panel_dxf(..., box_body_owner_by_panel=None)` 可選擇傳入 Engine 原本已驗證的 `BoxBodyStructureRenderData` 來源 owner。箱身各實體展開板依 `formed_w_start`、物理角色及 `formed_y_offset` 整片平移排列，不依呼叫者任意順序；其餘板件排右側。多連正式 `export_grouped_receiving_multibay_dxf` 會透過現有 `commit_verified_receiving_groups` 將每個 Bay 的來源 BoxBody owner 與已驗證 flat 一起交給合併器。這不把 3D 轉成 UV、不重算切割、不解除來源／NFB／PAD／EAR Gate、Save→Reload／原子發檔。每套仍命名 `第N套.dxf`；全部／頭尾中間仍照既有三模式。未認證來源不得因有合併版型就產生 DXF。
 
 > #2517（2026-11-05）已驗證 NFB 部分出圖清單新增唯讀 `manufacturing_api.project_receiving_verified_nfb_partial_manifest(scope=..., saved_bay=..., set_brand=..., source_inventory=..., verified_inner_door=..., source_path=...)`，重用原 `receiving_nfb_export_manifest` 的 NfbPhysicalScope／NfbActualPart 實體身份及既有 `derive_nfb_partial_export_manifest` 完整源 SHA、已確認 X、Part readiness 檢查；GUI 不再自行建 NfbActualPart、指定物理角色、推 `WHOLE_READY`。此為原來源清單的顯示投影，不認證整櫃製造，正式 DXF 仍須原 `require_export`／Save→Reload／實際來源重驗。
@@ -20,9 +22,7 @@ whd_schema: WHD_DOC_META_V1
 > #2517（2026-11-04）Receiving `manufacturing_api.edit_receiving_shared_setting_for_bays(layout, set_index, bay_indices, kind, value)`> #2517（2026-11-06）新增 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(layout, *, set_index, bay_indices, kind, value)`，將原 Engine 多連共享設定原子 Apply 及其連動實體 Bay dirty 來源一併公開，回傳 `(detached_layout, tuple[physical_bay_stable_id, ...])`。只從提交後 canonical `settings[kind].refs` 對應影響範圍，不按 GUI 猜測同值連動；保留舊 `edit_receiving_shared_setting_for_bays` dict 回傳相容、非法選取拒絕及舊專案結構。此設定 API 不認證 NFB、FinalScene、DXF／Save→Reload；#2517 整體仍 OPEN。
 
  由既有 Engine shared-setting owner 對多連同一次 Apply 作完整選取、型別、Linked Ref 預檢與全有／全無更新；失敗不得部分更新 Bay、ref 或 GUI dirty 狀態。GUI `receiving_settings_ports.change` 只能交給 Adapter→此公開 API，單連 `edit_receiving_shared_setting`、Shared/Unlink 原公開契約仍適用。
-# Headless Manufacturing API（Phase 6：AE Engine Clean Break）> #2517（2026-11-06）**實際 NFB CSV API 接線修復**：已公開的 `manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)` / `ae_engine` 根包同名 callable 現不再只寫 Bay 的 `nfb_config_submitted/nfb_config`，而是復用唯一 Engine `apply_receiving_inner_door_candidate_to_bays` 交易，將 source 的真實 Hole Editor `ProfileFeature`、層數／型號／高度、每 Bay 個別的 NFBConfig 同次原子提交。真 FinalScene 的物理 X 必須可從 `project_receiving_bay_legacy_aliases` 的各 Bay `part_features` 及目前 CSV SHA/Y/旋轉重新求證；不能只拿 NFB 型號／提交旗標授權製造。選定 Bay 先與舊 shared refs 解連，不改未選 Bay；舊 API 簽章/return Layout 相容，錯誤不部分提交。回歸包含真 `Apply → FinalScene → 內門 DXF Save→Reload`，不放行尚未驗證的整箱 MFG-2／EAR／PAD。
-
-> #2517（2026-11-06）Receiving 多連封頭尾 Hole Editor Save 新增原 Engine Owner 的 `manufacturing_api.share_and_edit_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_indices, source_bay_index, kind, value)`（根包相同 callable）。先驗 saved Feature，再在 detached canonical Layout 上使用既有 share／edit transaction，整筆成功才回傳 `(layout, affected_physical_bay_ids)`，包含選中 targets 與連動 source siblings；錯型孔或非法 Bay 不得部分更改 refs/dirty。GUI 不再先 share 再 edit 或暫時切 Bay；原物理製造門檻未更動。
+# Headless Manufacturing API（Phase 6：AE Engine Clean Break）> #2517（2026-11-06）Receiving 多連封頭尾 Hole Editor Save 新增原 Engine Owner 的 `manufacturing_api.share_and_edit_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_indices, source_bay_index, kind, value)`（根包相同 callable）。先驗 saved Feature，再在 detached canonical Layout 上使用既有 share／edit transaction，整筆成功才回傳 `(layout, affected_physical_bay_ids)`，包含選中 targets 與連動 source siblings；錯型孔或非法 Bay 不得部分更改 refs/dirty。GUI 不再先 share 再 edit 或暫時切 Bay；原物理製造門檻未更動。
 
 > #2517（2026-11-06）Receiving 單連共用設定 edit 復用 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(..., bay_indices=(current,))`，確保變更現有 linked ref 時所有實體 sibling 一併取得 Engine 回傳 dirty ID；新增 `manufacturing_api.share_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_indices, kind, source_bay_index)`，保留原 `share_receiving_shared_setting` 驗證及原子 Layout 更新，回傳 `(detached_layout, affected_physical_bay_ids)` 包含所選來源與目標，即使值相同仍不把獨立 refs 當作連動。GUI 不判定參照／來源；不變更製造認證或 DXF Gate。
 
@@ -832,6 +832,22 @@ When the saved NFBConfig has no independent approved world X, WHD's original nat
 
 Regression: `tests/test_issue2517_receiving_csv_editor_public_engine_api.py`; existing live editor test `tests/test_issue1504_live_second_nfb_main_canvas.py` retains preview/undo/Cancel/Confirm behavior.
 
+
+### #2517 Receiving NFB complete headless request → FinalScene → DXF (2026-11-06)
+
+`manufacturing_api.export_current_csv_nfb_pair_from_request(request, *, output_directory)` accepts the **existing immutable** `ManufacturingResolveRequest` (including saved current Receiving Set/Bay NFBConfig and original physical Door/BasePlate render inputs). It first verifies a selected, actually committed physical NFB source, then runs the **same** public `resolve_manufacturing_request(request)` used by WHD GUI. The normal Engine resolver creates source-bound NFB CUTTING on installed original physical sheets; the original `export_current_csv_nfb_door_base_pair` then independently verifies the current FinalScene, physical installation XYZ, brand CSV bytes, original part IDs/CHECK Q and each staged DXF Save→Reload before atomic publication. This allows WHD GUI and a headless CADSplit Python adapter to share the same real request/result contract **without the external client preassembling `assembly_parts` or manufacturing CSV CUTTING itself**.
+
+The output is the existing typed `NfbCsvPairedPartOnlyDxf` (1 tier: door + 1 base) or `NfbCsvTwoTierPartOnlyDxf` (2 tiers: door + 2 bases). This **does not** derive original PartSpec/render inputs from raw source-only DXF/CSV, invent or confirm world X, approve EAR/PAD weld/whole-cabinet MFG-2, or enable `integration_cli` source-only wire manufacture. Original part inputs and fully committed current sources are mandatory; invalid/partial source fails before DXF. See `tests/test_issue2517_nfb_pair_request_to_finalscene_dxf_public_api.py`.
+
+Minimal contract:
+
+```python
+from ae_engine import export_current_csv_nfb_pair_from_request
+verified_part_only = export_current_csv_nfb_pair_from_request(
+    current_manufacturing_request, output_directory=existing_output_directory,
+)
+# source-verified physical parts are individually reopened, NOT a whole cabinet release
+```
 
 ### #2517 Receiving CSV NFB committed-source Apply transaction (2026-11-04)
 

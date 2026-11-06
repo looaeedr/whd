@@ -12,6 +12,13 @@ whd_schema: WHD_DOC_META_V1
 - 此公開 Apply 現復用 **既有唯一 Engine Owner** `receiving_inner_door_pairing.apply_receiving_inner_door_candidate_to_bays` 作為整筆交易：先維持原 Set／Bay 選取型別、duplicate、來源 CSV SHA／原生孔輪廓與型號驗證，再一次提交每個已選 Bay 的 layer/models/heights/typed `inner_door_features` 與個別 Bay-namespaced NFBConfig。沿用既有 `unlink_setting` 隔離所選 Bay 共享 refs，不得把候選來源覆寫未選實體 Bay。舊呼叫簽章及 dict Layout 回傳不改；任何非法來源整筆拒絕。
 - 新真實正向回歸 `tests/test_issue2517_receiving_nfb_csv_candidate_public_api.py` 覆蓋公開 Apply → Bay source projection → 現有 normal `apply_committed_csv_v5_to_canonical_parts` FinalScene → 實體內門 DXF Save→Reload 及一致性；並驗多 Bay 來源互不借用、舊已連動 unselected Bay 不遭修改、錯型/缺孔/過期來源 fail-closed。此流程只在現有已可信物理來源及相應幾何驗證下走適用 **PART_ONLY**；不藉 Apply 自動核准 X、底板/EAR/PAD、整櫃 MFG-2，亦不解除 source-only CLI 的保護。#2517 Windows 真圖整櫃/UAT 仍需獨立驗收。
 
+## [CURRENT] #2517 immutable Engine Request → 受電箱已驗 NFB 成對 DXF 公開 API（2026-11-06）
+
+- 既有 `export_current_csv_nfb_door_base_pair(snapshot, assembly_parts=..., output_directory=...)` 雖能由 headless 呼叫，仍要求 client 先提供已解析的整個 physical assembly parts。#2517 的 GUI 與 CADSplit 應共用同一 Engine request，不得由 CADSplit／GUI 自己重建已開孔的 2D／3D 板件或製造幾何。
+- 新公開 `manufacturing_api.export_current_csv_nfb_pair_from_request(request, *, output_directory)`（同名根包 API）只收原 `ManufacturingResolveRequest`；要求有效 Receiving snapshot、已提交且符合當前真實 Set/Bay 身分的 NFB CSV 來源，呼叫原 `manufacturing_api.resolve_manufacturing_request` 建立唯一正常 FinalScene，再以**原** `export_current_csv_nfb_door_base_pair` 對單層（門＋1 底板）或雙層（門＋2 底板）做來源 SHA、原實體板件、安裝 XYZ、CUTTING、CHECK/Q、暫存 DXF Save→Reload 及原子發布驗證。任何缺失 source／Bay／底板／非 Receiving 類別均 fail closed。
+- `ManufacturingResolveRequest.parts` 仍需傳入原始可信實體板件 render_data，不得從原圖缺位推算，尤其不得送「已套上 CSV 開孔的 GUI cache」作獨立來源。此 API **不**打開 `integration_cli` source-only export、不推估或確認 NFB world X、不證明 PAD/EAR 焊接、16 Bay 全櫃 MFG-2 或 Windows GUI UAT；#2517 保持 OPEN。
+- 回歸：`tests/test_issue2517_nfb_pair_request_to_finalscene_dxf_public_api.py`，由已提交真實 1／2 層 NFBConfig 與原實體 Door/BasePlate 建完整 request，不提供 `assembly_parts`，檢核多片 DXF 獨立重開及缺來源／缺板拒絕。權威製造核心仍只在 Engine。
+
 
 ## [CURRENT] #2517 內門＋NFB 底板 PART_ONLY 出圖禁止非法真實內門 3D 安裝座標（2026-11-06）
 
