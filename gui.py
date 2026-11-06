@@ -141,7 +141,6 @@ from ae_engine.corner_type_ui import (
     CORNER_KEYS,
     CORNER_LABELS,
     CORNER_PAIR_CORNERS,
-    apply_manual_corner_selection,
     with_unknown_model,
     is_unknown_model,
     normalize_custom_model_name,
@@ -149,7 +148,6 @@ from ae_engine.corner_type_ui import (
     new_manual_corner_state,
     known_model_corner_state,
     policy_from_corner_state,
-    set_manual_corner_pair_same,
     build_corner_type_preview_geometry,
     apply_box_assembly_type, assembly_type_from_corner_state,
 )
@@ -1049,7 +1047,7 @@ class Phase6ApplicationHost:
             self.refresh_corner_type_panel()
             return
         enabled = self.manual_top_same_var.get() if pair_key == 'top' else self.manual_bottom_same_var.get()
-        set_manual_corner_pair_same(
+        manufacturing_api.operator_set_manual_corner_pair_same(
             self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key], pair_key, enabled
         )
         if enabled:
@@ -1072,7 +1070,7 @@ class Phase6ApplicationHost:
         type_id = CornerTypeId(type_id)
         current = self._manual_selection_for_target(part_key, target_key)
         selection = current if current.type_id is type_id else CornerTypeSelection(type_id)
-        apply_manual_corner_selection(
+        manufacturing_api.operator_apply_manual_corner_selection(
             self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key],
             target_key, selection,
         )
@@ -1099,7 +1097,7 @@ class Phase6ApplicationHost:
         if mode is None:
             return
         selection = CornerTypeSelection(CornerTypeId.CROSS, cross_mode=mode)
-        apply_manual_corner_selection(
+        manufacturing_api.operator_apply_manual_corner_selection(
             self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key],
             target_key, selection,
         )
@@ -1117,7 +1115,7 @@ class Phase6ApplicationHost:
         selection = self._selection_from_manual_corner_controls()
         if selection is None:
             return
-        apply_manual_corner_selection(
+        manufacturing_api.operator_apply_manual_corner_selection(
             self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key],
             target_key, selection,
         )

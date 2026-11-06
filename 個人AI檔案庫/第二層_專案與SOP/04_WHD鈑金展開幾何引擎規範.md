@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 GUI 手動截角編輯公開 Engine 與失敗隔離（2026-11-06）
+
+- `gui.py` 手動截角面板的「左右共用開關」及「截角類型／CROSS 模式／參數」原有四處直接呼叫 `ae_engine.corner_type_ui` 的原地寫入函式。由於這裡的 live state 持有 `CornerTypeSelection`，而既有 `corner_state_transactions.commit_corner_*` 服務的是序列化 raw state，不可不經轉換直接換成不同表示；此批讓 GUI 改呼叫 `manufacturing_api.operator_set_manual_corner_pair_same`、`manufacturing_api.operator_apply_manual_corner_selection`（根包亦公開），兩者與原 Engine owner 是**同一 callable**，不新增製造公式或第二套交易推導。
+- 原 owner 的 pair rejoin 在來源缺少 `top_left`／`bottom_left` 時，曾先寫入 `pair_same[pair]` 再讀左角，導致 `KeyError` 後來源被部分修改。現先讀取並驗證必需左角，再一次提交配對旗標與右角；無效 pair／target／selection 拒絕且來源不變。合法的 Head／Tail／其他實體角落左右拆分／合併與左角優先關係保持原語意。
+- 測試含 GUI 接線、公開與 Engine 原 owner 直接呼叫 parity、非法輸入未提交、截角原始 selection 存取與既有 raw codec Roundtrip；CUTTING／BEND／FinalScene、2D／3D／DXF 出口無任何算法變動，必須以 exact-SHA 產品回歸驗收。Windows R5 實機 UAT 與 #2517 全面 GUI 接線仍未結案。
+
 ## [CURRENT] #2517 Receiving BoxBody 保存 Finished-Face 孔來源公開 Engine 交易（2026-11-06）
 
 - WHD 主 GUI 原正式專案保存路徑是 `lifecycle._compose_phase6_project_snapshot_from_main_gui → workspace.part_face_features → snapshot.part_face_features["box_body"]`；`left`、`right`、`back` 是 **成品面座標**，不是 `physical_piece_features` 的板件材料 UV。Factory 原本只消費實體 UV 的 `confirmed_box_body_piece_features`，漏掉真實保存的 Finished-Face Hole Editor 孔。這會製造出三片沒有 operator 保存孔的 DXF。
