@@ -530,6 +530,11 @@ The candidate quantity draft has only count/assignment state, not a saved physic
 
 ## #2517 Receiving inner-door NFB slot-source public API
 
+## #2517 Live NFB V5 model catalog content SHA snapshot (read-only)
+
+`manufacturing_api.project_receiving_nfb_v5_model_catalog_snapshot(brand)` and the root `ae_engine` facade expose the **same** existing-Engine-owned read-only operation. A frozen `ReceivingNfbV5ModelCatalogSnapshot` returns the exact CSV brand, full-byte SHA-256 revision, brand-qualified model references, and `manufacturing_ready=False`. Original `receiving_nfb_numeric_catalog.read_numeric_specs` still validates CSV schema, names and fields. Reading the source bytes before and after parsing rejects an in-flight replacement. The original Fold Designer NFB editor polls this public result and caches `(brand, source_sha256)` instead of guessing source revision from modification time and file size; any bad/missing source clears stale visible choices and retries. Same-size/same-mtime replacement of a legitimate CSV is detected. This cannot certify NFB physical world X, FinalScene, CUTTING, DXF or external manufacturing exports.
+
+
 manufacturing_api.receiving_nfb_switch_filenames_in_layer(slot) and pack_receiving_nfb_switch_layer(names) are exact callable aliases of the original receiving_shared_settings Engine source parser/packer; ae_engine root exports the same callables. They retain compact 0/1/multiple legacy slots, original numeric V5 references, duplicate physical switch occurrences and existing invalid-source rejection. GUI only sends draft data and displays the result.
 
 The same editor uses the existing receiving_operator_switch_brand_choices() Engine API for its Layer/Slot brand dropdown, keeping operator-only inheritance labels. The original Quantity-mode legacy two-slot height fallback is now publicly projected through receiving_inner_door_legacy_layer_height_defaults() as a detached copy of the original Engine SETTING_DEFAULTS, not a new computed NFB Y datum. These read/pack operations do not authorize world-X, CUTTING, FinalScene, formal DXF or external export.

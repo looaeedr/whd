@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from dataclasses import dataclass
+from hashlib import sha256
+from functools import lru_cache
 
 from .receiving_nfb_model_identity import (
     parse_numeric_model_ref, selected_numeric_spec,
@@ -84,3 +86,55 @@ class ReceivingNfbV5SourcePreviewCache:
         while len(self._entries) > self.max_entries:
             self._entries.popitem(last=False)
         return result
+
+
+@dataclass(frozen=True)
+class ReceivingNfbV5ModelCatalogSnapshot:
+    """One exact per-brand CSV revision and its current selectable identities.
+
+    Operator source display only: no hole geometry or manufacturing approval.
+    """
+
+    brand: str
+    source_sha256: str
+    model_refs: tuple[str, ...]
+    manufacturing_ready: bool = False
+
+
+@lru_cache(maxsize=32)
+def _read_nfb_catalog_models_for_exact_revision(
+    brand: str, source_path: str, source_sha256: str,
+) -> tuple[str, ...]:
+    """Engine-owned bounded parser cache; never trust GUI-stored model rows."""
+    from .receiving_nfb_model_identity import numeric_model_refs
+    return numeric_model_refs(brand)
+
+
+def project_receiving_nfb_v5_model_catalog_snapshot(
+    brand: str,
+) -> ReceivingNfbV5ModelCatalogSnapshot:
+    """Read a fresh validated NFB catalog with full-byte source identity.
+
+    A same-size, same-mtime CSV replacement must refresh the operator list.
+    Fail closed if the source changes while the authoritative CSV parser
+    reads it; no partial/stale model inventory is returned to GUI clients.
+    """
+    # Resolve the SAME live source-path owner used by numeric_model_refs(),
+    # including an explicitly substituted source in a scoped GUI test.
+    from . import receiving_nfb_numeric_catalog as numeric_catalog
+    source = numeric_catalog.brand_csv_path(brand)
+    before = source.read_bytes()
+    digest = sha256(before).hexdigest()
+    # Polling checks full file content every time but reparses only a new
+    # exact CSV revision. The cache is bounded and keyed to the real source
+    # path, not GUI-computed metadata or an operator-supplied model list.
+    models = _read_nfb_catalog_models_for_exact_revision(
+        brand, str(source.resolve()), digest,
+    )
+    if source.read_bytes() != before:
+        raise ValueError("RECEIVING_NFB_V5_CATALOG_SOURCE_CHANGED_DURING_READ")
+    return ReceivingNfbV5ModelCatalogSnapshot(
+        brand=brand,
+        source_sha256=digest,
+        model_refs=models,
+    )

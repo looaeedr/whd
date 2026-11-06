@@ -1750,7 +1750,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
     from ae_engine.receiving_nfb_model_identity import (
         display_model_ref, validate_stored_model_ref,
     )
-    from ae_engine.receiving_nfb_numeric_catalog import brand_csv_path
 
     def inner_library():
         return normalize_inner_candidates(
@@ -2117,19 +2116,21 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     continue
                 brand = view_source_catalog(index)
                 try:
-                    stat = brand_csv_path(brand).stat()
-                    stamp = (stat.st_mtime_ns, stat.st_size)
-                except OSError:
-                    stamp = (None, None)
-                signature = (brand, *stamp)
-                if not force and signature == source_state["signature"][index]:
-                    continue
-                source_state["signature"][index] = signature
-                try:
-                    files = manufacturing_api.list_receiving_nfb_model_refs(brand)
-                except (ValueError,OSError,UnicodeError) as exc:
+                    catalog = manufacturing_api.project_receiving_nfb_v5_model_catalog_snapshot(
+                        brand,
+                    )
+                except (ValueError, OSError, UnicodeError) as exc:
+                    # A transient invalid/missing CSV must clear old choices
+                    # and retry next poll, never keep a stale success stamp.
+                    source_state["signature"][index] = None
                     files = ()
                     warning.set("NFB數值規格.csv 讀取失敗：" + str(exc))
+                else:
+                    signature = (catalog.brand, catalog.source_sha256)
+                    if not force and signature == source_state["signature"][index]:
+                        continue
+                    source_state["signature"][index] = signature
+                    files = catalog.model_refs
                 source_state["files"][index] = files
                 entry["available"].delete(0, tk.END)
                 for filename in files:
