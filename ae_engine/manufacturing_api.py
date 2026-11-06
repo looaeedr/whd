@@ -33,6 +33,10 @@ from .receiving_hole_candidates import (
     role_key as validate_receiving_candidate_role,
     version_label as receiving_candidate_version_label,
 )
+from .receiving_inner_door_candidates import validate_receiving_inner_door_source_models
+from .receiving_inner_door_pairing import (
+    validate_inner_door_allocation as validate_receiving_inner_door_allocation,
+)
 from .door_layout_numeric_transitions import (
     DoorLayoutColumnState, DoorLayoutResolvedColumn,
     DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
