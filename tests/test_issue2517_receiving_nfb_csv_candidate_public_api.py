@@ -359,7 +359,10 @@ def test_headless_csv_apply_keeps_real_hole_source_through_finalscene_and_dxf_re
     from ae_engine.dxf_serialization import save_scene_dxf
     from ae_engine.manufacturing_api import build_inner_door_panel_render_data
     from ae_engine.manufacturing_verification import verify_saved_part_render_data_dxf
-    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+    from ae_engine.receiving_layout import (
+        RECEIVING_DOOR_STATE_KEYS, new_receiving_layout,
+        project_receiving_bay_legacy_aliases,
+    )
     from ae_engine.receiving_nfb_committed_final_scene import (
         _source_world_x_from_committed_editor_feature,
         apply_committed_csv_v5_to_canonical_parts,
@@ -382,9 +385,24 @@ def test_headless_csv_apply_keeps_real_hole_source_through_finalscene_and_dxf_re
         "features": {panel.stable_id: list(features)},
     }
     before = deepcopy(physical_snapshot)
+    # The original FinalScene geometry fixture uses a legacy root/Bay alias
+    # without a persisted ReceivingLayout schema. The public multi-Bay API
+    # correctly requires canonical Set/Bay topology; construct it from the
+    # SAME original physical dimensions, identity, and authored Door source.
+    selector = physical_snapshot["_receiving_runtime_selection"]
+    source_layout = new_receiving_layout(
+        width=physical_snapshot["w"],
+        height=physical_snapshot["h"],
+        depth=physical_snapshot["d"],
+    )
+    source_layout["sets"][0]["stable_id"] = selector["set_id"]
+    source_layout["sets"][0]["bays"][0]["stable_id"] = selector["bay_id"]
+    source_layout["sets"][0]["bays"][0]["door_state"] = {
+        key: deepcopy(physical_snapshot[key])
+        for key in RECEIVING_DOOR_STATE_KEYS if key in physical_snapshot
+    }
     applied = manufacturing_api.apply_receiving_nfb_csv_candidate(
-        physical_snapshot["receiving_layout"], set_index=0,
-        bay_indices=(0,), source=source,
+        source_layout, set_index=0, bay_indices=(0,), source=source,
     )
     projected = project_receiving_bay_legacy_aliases(
         {**physical_snapshot, "receiving_layout": applied},
