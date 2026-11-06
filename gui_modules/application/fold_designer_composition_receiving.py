@@ -1844,8 +1844,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 }
             staged = getattr(owner_editor, "_receiving_staged_config", None)
             if staged is not None:
-                from ae_engine.receiving_inner_door_candidates import validate_door_config
-                initial = validate_door_config(staged)
+                initial = manufacturing_api.validate_receiving_inner_door_config(staged)
             elif (version_id is None and
                     getattr(owner_editor, "_receiving_settings_mode", None)
                     in ("single", "candidate")):
@@ -3471,16 +3470,12 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
     def launch_inner_editor(part_key, *, mode, version_id=None, initial_features=None,
                             after_saved=None):
         from .receiving_inner_door_hole_editor import open_inner_door_hole_editor
-        from ae_engine.receiving_inner_door_candidates import validate_door_config
-        from ae_engine.receiving_shared_settings import validate_setting
-        from copy import deepcopy
 
         def confirmed(actual_part, features, staged_config):
             if actual_part != part_key:
                 raise ValueError("內門開孔編輯返回錯誤的實體板件")
             if mode == "single" and self.app.designer_workspace.active_mode == "quantity":
                 if staged_config is not None:
-                    from ae_engine import manufacturing_api
                     quantity = self.app.designer_workspace.quantity_model
                     projected, typed = manufacturing_api.preview_quantity_inner_door_confirm(
                         self.app._phase6_input_snapshot, quantity, part_key,
@@ -3545,10 +3540,11 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                         )
                 # Single owns the *existing* physical Bay, never a candidate.
                 # Both settings and actual CUTTING must survive Bay reprojection.
-                current = (validate_door_config(staged_config) if staged_config is not None
-                           else current_inner_editor_config())
-                current = deepcopy(current)
-                current.setdefault("features", {})[part_key] = deepcopy(features)
+                source = (staged_config if staged_config is not None
+                          else current_inner_editor_config())
+                current = manufacturing_api.prepare_receiving_inner_door_physical_confirm(
+                    source, part_key, features,
+                )
                 # Reuse the adapter's atomic Set/Bay update; no version library
                 # is created and no other Bay is touched.
                 adapter.apply_inner_door_candidate_to_bays(
@@ -3563,9 +3559,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             config = (inner_config(inner_library(), version_id) if version_id is not None
                       else current_inner_editor_config())
             if staged_config is not None:
-                config = validate_door_config(staged_config)
-            config = deepcopy(config)
-            config.setdefault("features", {})[part_key] = deepcopy(features)
+                config = staged_config
+            config = manufacturing_api.prepare_receiving_inner_door_physical_confirm(
+                config, part_key, features,
+            )
             if version_id is None:
                 updated, selected_version = create_inner_candidate(inner_library(), config)
             else:

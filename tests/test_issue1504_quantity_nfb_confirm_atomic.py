@@ -107,6 +107,9 @@ def test_main_confirm_all_orders_detached_projection_before_live_version_write()
     precheck = quantity_commit.index("manufacturing_api.preview_quantity_inner_door_confirm(")
     mutation = quantity_commit.index("quantity.set_version_nfb_config(")
     assert precheck < mutation
-    assert "from ae_engine import manufacturing_api" in quantity_commit
+    # Public Engine facade is imported at module scope; a nested import shadows
+    # it for sibling Single/Candidate Confirm paths (UnboundLocalError).
+    assert "from ae_engine import manufacturing_api" in source.split("\ndef ", 1)[0]
+    assert "from ae_engine import manufacturing_api" not in quantity_commit
     assert "from ae_engine.receiving_nfb_csv_committed_config import (" not in quantity_commit
     assert "preview_quantity_nfb_submission(" not in quantity_commit
