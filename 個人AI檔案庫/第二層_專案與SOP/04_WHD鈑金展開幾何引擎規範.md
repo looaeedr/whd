@@ -14,12 +14,26 @@ whd_schema: WHD_DOC_META_V1
 
 
 
+
+## [CURRENT] #2517 Receiving 多連封頭／封尾 Hole Editor Save 必須同一原子 Engine 交易（2026-11-06）
+
+- `fold_designer_composition_receiving.receiving_settings_ports::holes/save_features` 原先在選取多個實體 Bay 時，先於 GUI 切換到第一個 Bay、呼叫 `adapter.share_setting(kind, targets)`，再呼叫 `adapter.update_setting(kind, features)`。若第二步 Feature 類型或來源驗證失敗，前一步已修改 Adapter 記憶中的 shared refs／dirty IDs，但未觸發 GUI commit；下一次操作可能帶著半套連動來源。這違反一次操作者儲存必須全有或全無的規則。
+- 既有 `ae_engine.receiving_shared_settings` owner 新增 `share_and_edit_setting_with_affected_ids(layout, *, set_index, bay_indices, source_bay_index, kind, value)`，在 detached canonical Layout 上先驗 Feature、再復用原 `share_setting_with_affected_ids`／`edit_setting_for_bays_with_affected_ids`，只有兩步均成功才回傳唯一候選 Layout 與所選目標＋原來源 linked siblings 的真實 stable IDs；任何非法孔／非法 Bay／非法來源不更改原 Layout。透過原 `manufacturing_api.share_and_edit_receiving_shared_setting_with_affected_ids` 與 `ae_engine` 根包同一公開函式，GUI 只保留操作選取、Editor 顯示與一次提交，無臨時 Bay 選取或重算 Feature。
+- `tests/test_issue2517_receiving_set_bay_public_transactions.py` 直接走真 `receiving_settings_ports.holes → Hole Editor sync_callback`（僅 stub Engine-approved Editor context 的顯示承載），驗無效 Feature 後 Layout/dirty/selection/project snapshot 全不變、隨後有效 Feature 跨 linked 與選中 Bay 完整同源成功，及 generator、非法後續 Bay 原子拒絕。原單連 Editor/API 與 Family 幾何規則不變；不放行未確認 NFB、FinalScene／CUTTING／製造 DXF。Windows 真機／全櫃驗收、#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 Receiving 單連編輯／建立連動的完整 Bay dirty 身分須由 Engine 提供（2026-11-06）
 
 - `ReceivingSetBayAdapter.update_setting` 對既有共享參照只標記當前 Bay dirty，實際 Engine `edit_setting` 會更改所有引用同一設定 ref 的 Bay；`share_setting` 會改選中目標的物理 refs，GUI 卻仍只標記來源 Bay。此時刪除尚未保存的目標 Bay 可能缺乏完整保護。即使設定值相同，共享 ref 變更也是實體設定來源變更，不可由 GUI 依值比對來判定。
 - 單連編輯復用前已公開的 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids`，以一個 Bay 的 selection 執行相同原子 Apply，沿 canonical ref 回傳所有連動 Bay ID。建立連動改由原 `ae_engine.receiving_shared_settings` owner 新增 `share_setting_with_affected_ids`，公開 `manufacturing_api.share_receiving_shared_setting_with_affected_ids`／`ae_engine` 根包同一 callable，保留原 `share_setting` 完整驗證及回傳 Layout 契約，額外回傳操作所涉及的已驗證實體 Bay ID。GUI 只保存 Engine 候選、更新 dirty IDs，不能自行解讀 refs。
 - 定向回歸 `tests/test_issue2517_receiving_set_bay_public_transactions.py` 驗非連續選取、相等值但不同 refs、共享 sibling 一次性 editor 更新、非法／無效 Bay selection 原子拒絕、UI 不自組製造身分；保留舊 API、工程 Schema 和既有 Head/Tail Hole Editor 工作流程。此修復不授權未確認的 NFB、FinalScene、CUTTING、DXF；Windows UAT 與 #2517 全範圍仍待驗收。
 
+
+## [CURRENT] #2517 原生 NFB CSV Candidate Apply 與 FinalScene 共用四角輪廓來源驗證（2026-11-06）
+
+- 原 `receiving_nfb_csv_committed_config.committed_csv_nfb_config` 在 CSV SHA、品牌型號、四個有限座標、CUTTING 與 finished-face Anchor 合法後即可提交 NFBConfig，但未證明四角實際幾何與現行品牌 CSV 的 `opening_corners_xy_mm` 相同。已提交的 Bay 來源可能隱藏變形、交叉或錯誤尺寸的原 Hole Editor 開孔，直到較後面的 FinalScene 才拒絕，破壞 source-only Apply 語意。
+- 以原 `ae_engine.receiving_nfb_committed_final_scene.csv_editor_opening_matches_current_source` 作唯一四角輪廓同源比較，重用原 FinalScene 的旋轉、真實平移、循環及逆向頂點序列容忍與 1e-6 mm 頂點容差；非有限數值、錯誤長寬、斜四邊形、自交輪廓一律 fail closed。原 `_source_world_x_from_committed_editor_feature` 亦呼叫同一函式，非新增第二份製造形狀演算法。
+- 同源驗證只證明已提交的 CSV 原始孔形，不代表世界 X 已確認；候選仍保存 `UNVERIFIED_BASIS`、`manual_x_mm=None`，不獲任意 Bay／Set 製造授權。兩個實體 Bay Apply 必須全有全無；新增變形反例及合法 90°、平移與循環點序正例。正式 FinalScene、2D／3D、DXF Save→Reload 與 Windows 實機整體驗收維持原 Gate，#2517 仍 OPEN。
 
 ## [CURRENT] #2517 NFB 全套品牌 Apply 必須是同一 Engine 原子交易（2026-11-06）
 

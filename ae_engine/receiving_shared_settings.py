@@ -367,6 +367,39 @@ def share_setting_with_affected_ids(
     return candidate, affected_ids
 
 
+
+def share_and_edit_setting_with_affected_ids(
+    layout, *, set_index, bay_indices, source_bay_index, kind, value,
+):
+    """Commit Hole Editor link + feature Apply as one Engine transaction.
+
+    A rejected feature list must not leave an earlier shared-ref mutation
+    in the caller's Layout. A source ref may already link other unselected
+    Bays, so dirty identities include both selected links and every Bay
+    whose saved feature value changes through that ref.
+    """
+    # Validate the candidate feature before performing even a detached link.
+    verified_value = validate_setting(kind, value)
+    try:
+        indices = tuple(bay_indices)
+    except TypeError:
+        indices = bay_indices  # Existing Engine link transaction rejects it.
+    linked, linked_ids = share_setting_with_affected_ids(
+        layout, set_index=set_index, bay_indices=indices,
+        source_bay_index=source_bay_index, kind=kind,
+    )
+    candidate, edited_ids = edit_setting_for_bays_with_affected_ids(
+        linked, set_index=set_index, bay_indices=(source_bay_index,),
+        kind=kind, value=verified_value,
+    )
+    affected = set(linked_ids) | set(edited_ids)
+    affected_ids = tuple(
+        bay["stable_id"] for bay in candidate["sets"][set_index]["bays"]
+        if bay["stable_id"] in affected
+    )
+    return candidate, affected_ids
+
+
 def unlink_setting(layout, *, set_index, bay_index, kind):
     from ae_engine.receiving_layout import normalize_receiving_layout
     result = normalize_receiving_layout(layout)
