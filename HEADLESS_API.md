@@ -1,93 +1,16 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 ## #2517 Receiving CSV NFB multi-Bay atomic PART_ONLY DXF API
 
 For confirmed Receiving Set/Bay manufacturing inputs, call `ae_engine.manufacturing_api.export_receiving_committed_nfb_csv_bays(requests, *, output_directory, pre_commit_guard=None)`; the identical function is exported by `ae_engine`. Each request is the **existing immutable** `ManufacturingResolveRequest` with a verified current Set/Bay snapshot, operator-confirmed V5 NFB world-X and original physical door/BasePlate render inputs. Engine invokes the existing `export_current_csv_nfb_pair_from_request` per Bay, which owns canonical FinalScene reconstruction, actual 2D/3D installed placements, 2/3 DXF Save→Reload, CSV SHA and NFB physical identity. All selected Bays must succeed before **one** atomic destination commit. The optional `pre_commit_guard` checks the caller's independently trusted original source DXF revision before/after staging; changed or missing sources reject the entire batch.
 
 Result `NfbCsvMultiBayPartOnlyDxf` lists exactly which (set_id, bay_id) were exported, and each real part-only output path. **Not full cabinet production, PAD/EAR certification, a source-only request, or Windows 16-Bay UAT.** Unconfirmed Candidate Apply remains source-only and must not be promoted to manufacturing by this API.
 
----
-whd_doc_role: REFERENCE
-whd_contract: project-reference
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
-
-> #2690／#2692（2026-11-05）多板件合併 `save_composed_panel_dxf(..., box_body_owner_by_panel=None)` 可選擇傳入 Engine 原本已驗證的 `BoxBodyStructureRenderData` 來源 owner。箱身各實體展開板依 `formed_w_start`、物理角色及 `formed_y_offset` 整片平移排列，不依呼叫者任意順序；其餘板件排右側。多連正式 `export_grouped_receiving_multibay_dxf` 會透過現有 `commit_verified_receiving_groups` 將每個 Bay 的來源 BoxBody owner 與已驗證 flat 一起交給合併器。這不把 3D 轉成 UV、不重算切割、不解除來源／NFB／PAD／EAR Gate、Save→Reload／原子發檔。每套仍命名 `第N套.dxf`；全部／頭尾中間仍照既有三模式。未認證來源不得因有合併版型就產生 DXF。
-
-> #2517（2026-11-05）已驗證 NFB 部分出圖清單新增唯讀 `manufacturing_api.project_receiving_verified_nfb_partial_manifest(scope=..., saved_bay=..., set_brand=..., source_inventory=..., verified_inner_door=..., source_path=...)`，重用原 `receiving_nfb_export_manifest` 的 NfbPhysicalScope／NfbActualPart 實體身份及既有 `derive_nfb_partial_export_manifest` 完整源 SHA、已確認 X、Part readiness 檢查；GUI 不再自行建 NfbActualPart、指定物理角色、推 `WHOLE_READY`。此為原來源清單的顯示投影，不認證整櫃製造，正式 DXF 仍須原 `require_export`／Save→Reload／實際來源重驗。
-
-> #2517（2026-11-05）NFB CURRENT CSV 多連來源清單改公開 `manufacturing_api.project_receiving_current_v5_nfb_physical_diagnostics(saved_bay, physical_snapshot=..., set_id=..., bay_id=..., version_id=..., physical_parts=...)`：既有 Engine Family／BasePlate owner 判斷已存在的 Upper Inner Door、單層／兩層底板與缺料原因，未受 NFB 影響的板件必須來自當前 Bay 的真 FinalScene Scene witness，status 仍為 `DRAFT`／`RECHECK_ONLY`，絕不授權正式製造。GUI 取唯讀獨立預覽時改用 `manufacturing_api.project_receiving_nfb_unsubmitted_preview_layout(layout, set_index=..., bay_index=...)`，先驗證真實 Set/Bay 再只複製預覽資料，不變更已提交來源或取得 DXF 資格；現有 `project_receiving_bay_legacy_aliases` 公開 API 被 GUI 正式復用。
-
-> #2517（2026-11-05）：`manufacturing_api.project_receiving_committed_csv_nfb_pair_layer_count(snapshot)` 是 Receiving 已提交 CSV NFB／既有實體底板來源的唯讀投影：回傳 `1`（既有 `base_plate` 完整）或 `2`（兩份 `base_plate:nfb_layer:0/1` 完整）及 `None`（未有可認證配對來源）。沿用原 `receiving_nfb_committed_final_scene` 的已提交來源、selected Bay、數字化 V5 Model 與 BasePlate PartSpec 檢查；不合法來源照舊拋出 Engine 例外，GUI 不得自行讀私有 `_submitted_csv_holes/_existing_source_specs`、決定物理角色或回退舊洞位。此 API 僅供 GUI 展示／路由，**不**代表 NFB 部分出圖、整箱 DXF 或 2D／3D 製造已放行；正式出口仍需各自完整來源與 Save→Reload 驗證。
-
-> #2517（2026-11-04）NFB 跨 Bay 操作新公開唯讀 `manufacturing_api.select_operator_nfb_copy_bays(layout, set_index, selected_bays)` 與 `plan_operator_nfb_copy_direction(layout, set_index, selected_bays, verified_target_indices=...)`：只投影真實兩 Bay、已提交來源及獨立已驗證目標的唯一方向；實際 Copy 必須繼續走原 `copy_receiving_submitted_nfb_bay`／`copy_live_verified_nfb` 的 live physical proof + 原子 Confirm，不允許借用世界 X 或繞過驗證。
-
-> #2517（2026-11-04）唯讀 `manufacturing_api.project_operator_fixed_corner_summary(model_name, part_key, joint_state)`：EndCap 固定截角摘要沿既有 Family Registry 與 BOTTOM AssemblyJoint；受電箱所有正式別名同源、其他 Family 回 `None` 由既有 UI 保留原顯示。文字不構成製造幾何或 DXF 放行。
-
-> #2517（2026-11-04）Receiving `manufacturing_api.edit_receiving_shared_setting_for_bays(layout, set_index, bay_indices, kind, value)`> #2517（2026-11-06）新增 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(layout, *, set_index, bay_indices, kind, value)`，將原 Engine 多連共享設定原子 Apply 及其連動實體 Bay dirty 來源一併公開，回傳 `(detached_layout, tuple[physical_bay_stable_id, ...])`。只從提交後 canonical `settings[kind].refs` 對應影響範圍，不按 GUI 猜測同值連動；保留舊 `edit_receiving_shared_setting_for_bays` dict 回傳相容、非法選取拒絕及舊專案結構。此設定 API 不認證 NFB、FinalScene、DXF／Save→Reload；#2517 整體仍 OPEN。
-
- 由既有 Engine shared-setting owner 對多連同一次 Apply 作完整選取、型別、Linked Ref 預檢與全有／全無更新；失敗不得部分更新 Bay、ref 或 GUI dirty 狀態。GUI `receiving_settings_ports.change` 只能交給 Adapter→此公開 API，單連 `edit_receiving_shared_setting`、Shared/Unlink 原公開契約仍適用。
-# Headless Manufacturing API（Phase 6：AE Engine Clean Break）> #2517（2026-11-06）Receiving 多連封頭尾 Hole Editor Save 新增原 Engine Owner 的 `manufacturing_api.share_and_edit_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_indices, source_bay_index, kind, value)`（根包相同 callable）。先驗 saved Feature，再在 detached canonical Layout 上使用既有 share／edit transaction，整筆成功才回傳 `(layout, affected_physical_bay_ids)`，包含選中 targets 與連動 source siblings；錯型孔或非法 Bay 不得部分更改 refs/dirty。GUI 不再先 share 再 edit 或暫時切 Bay；原物理製造門檻未更動。
-
-> #2517（2026-11-06）Receiving 單連共用設定 edit 復用 `manufacturing_api.edit_receiving_shared_setting_for_bays_with_affected_ids(..., bay_indices=(current,))`，確保變更現有 linked ref 時所有實體 sibling 一併取得 Engine 回傳 dirty ID；新增 `manufacturing_api.share_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_indices, kind, source_bay_index)`，保留原 `share_receiving_shared_setting` 驗證及原子 Layout 更新，回傳 `(detached_layout, affected_physical_bay_ids)` 包含所選來源與目標，即使值相同仍不把獨立 refs 當作連動。GUI 不判定參照／來源；不變更製造認證或 DXF Gate。
-
-> #2517（2026-11-06）新增 `manufacturing_api.update_receiving_all_set_nfb_parent_brand(layout, proposed_brand)`：使用原 `receiving_nfb_brand_transition` 單套 Engine transition 在 detached canonical Layout 上原子重設所有實體 Set 的 NFB parent brand，回傳 `(layout, changed)`；先驗證完整 Set/Bay/品牌，錯誤不得部分提交。GUI `ReceivingSetBayAdapter.set_global_brand` 不再遍歷 Set 或組裝 NFB 失效資料，Quantity 品牌與 preview 接口不變。本入口不解除已提交 CSV NFB 的來源／已確認 X／FinalScene/DXF 製造驗證閘門。
-
-
-> #2517（2026-11-04）：`manufacturing_api.project_whd_cadcraft_command_instructions(surface=..., features=..., width=..., height=...)` 以 WHD finished-face 來源及既有 Engine 限制生成 CADCraft 隔離候選繪圖指令；`save_blank_cadcraft_exchange_drawing(output_dxf, preview_png)` 以 exclusive create 產生合法空白毫米 DXF + PNG 並拒絕覆寫。此流程不可充作任何正式製造 DXF、CUTTING 或 source-only 外部放行。GUI 不再 import `ezdxf` 直接建立交換檔。
-
-> #2517（2026-11-04）：`manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(snapshot, role="head"|"tail")` 將 Quantity 版本 Head/Tail 的可開孔 surface、finished dimensions、reference_guide 由同一 Engine 投影；Receiving Family 使用已存 common-box 或 Family 新建預設、其他 Family 使用既存實體 W/D，非法 T/W/D 及格式拒絕。GUI 只顯示、編輯、提交明確版本 Features，提交前用公開 `require_valid_operator_quantity_features`。
-
-> #2517（2026-11-04）：受電箱 Set/Bay 輕量 2D 門分割新增唯讀 `manufacturing_api.project_receiving_operator_bay_door_split_ratio(bay)`，依已保存 Door topology 與既有 `validate_door_layout_dimensions` 回傳可唯一表示的二列高度比例；多欄不同分割或無有效啟用 Door 時不偽造單條門縫，非法物理資料拒絕；尚無保存 Door 狀態僅用 Receiving Family 預設比率作示意。GUI 只消費比例繪 Canvas，不再硬算 1100 mm；此 API 不批准正式 Door 製造或 DXF。
-
-
-> #2517（2026-11-03）：Receiving Set/Bay 只有切換已存在的實體 Part 且其他物理來源完全同源，才可由既有公開 `manufacturing_api.operator_receiving_navigation_only_sync_change(previous, current)` 判定省略重複 publish。Family 身分採既有 Engine Registry `cabinet_types.policy.canonical_family_name`，接受合法 `受電箱`／`RECEIVING`／小寫／混合大小寫及舊 `cabinet_type`；其他 Family、Quantity 模式、未確認 Part 或任何實體來源變更一律不省略。GUI `phase6_sync_envelope.navigation_only_change` 仍只是委派；沒有新增機械驗證或 DXF 認證。
-
-> #2517（2026-11-03）：Receiving 當前多門格 Hole Editor 尺寸來源經既有公開 `manufacturing_api.receiving_family_supports_back_panel_mode(snapshot)` 判定 Family Registry 別名，`project_operator_receiving_settings_live_dimensions(snapshot, whd, applying_settings=True)` 驗證現行 Bay W/H/D（缺失、bool、NaN、Inf、非正值均拒絕），而不是退回舊 Settings 畫面或自行 `float()`。實體門格特徵 ID 使用公開 `manufacturing_api.door_layout_part_key(cell)`，原 owner 為 `ae_engine.sheetmetal_part_adapters.door_layout_part_key`，與 Fold Designer／DXF 共用同一 cell identity。GUI 僅選 cell 和輸入數值，不新增門格幾何、DXF 出口或外部認證。
-
-> #2517（2026-11-03）：多門格 Door Hole Editor 使用公開 `manufacturing_api.project_operator_hole_editor_door_cell(result, door_spec, baseline_scene=..., baseline_status=...)`，從同一 Engine DoorPartSpec／已解算 cell 結構投影不可變 `OperatorHoleEditorGeometry`（surface／material width/height／finished-face guide／IndicatorContext／frame_edges）。GUI 不再直接使用低層 `feature_surface_from_structural_result` 或 `build_finished_reference_guide` 計算正式編輯面；此唯讀編輯投影不解鎖製造 DXF 或外部 source-only export。
-
-> #2517（2026-11-03）：原 Fold Designer 保存的門板指示燈 `door_indicator_offset` 由 `manufacturing_api.normalize_fold_designer_indicator_offsets(offset_x, offset_y)` 驗證，與 `normalize_operator_hole_editor_indicator_state` 共用同一 Engine 有限非布林偏移判準；允許正負及 0 mm，不接受 bool／NaN／Inf／壞來源。只增加原公開 API 的製造輸入規範，不新增 Feature 算式／DXF writer。
-
-> #2517（2026-11-03）：Receiving operator Set/Bay 現場 Feature 與 Joint lock 使用 `manufacturing_api.project_operator_receiving_live_bay_features`，上層內門 Hole Editor 的唯一 Part ID 使用 `resolve_receiving_upper_inner_door_editor_part_key`，預覽 cache 的 physical Bay prefix/Joint world anchor 使用 `project_receiving_bay_preview_cache_source_witness`；均只屬 UI source/preview，非 Export certification。
-
-> #2517（2026-11-03）：`manufacturing_api.plan_operator_manufacturing_part_source(part_key, has_saved_profiles=True)` 回傳 immutable `OperatorManufacturingPartSourcePlan`，供 GUI、CADSplit/headless 客戶端共用實體 part ID 的 CustomFold 預設、原始 PartSpec provider、EndCap committed relief 兩段式與 Fold Designer 2D／3D rendered source route。此計畫只描述既有源別，不替代 Factory／Family／DXF release 證明。
-
-> #2517（2026-11-03）：Receiving Bay 3D 已選定的 physical preview Fold／Joint／BoxBody structure 由公開 `manufacturing_api.project_receiving_bay_preview_physical_seed(snapshot, set_index, bay_index, existing_box_body_profile, existing_box_body_faces)` 統一給出 `ReceivingBayPreviewPhysicalSeed`。GUI 只把 Engine 製造輸入種子套進隔離 workspace 並送真正的 resolver；並無 DXF/Export 新認證。
-
-> #2517（2026-11-03）：Receiving Bay 層級 Preview 輸入以公開 `manufacturing_api.project_receiving_bay_preview_operator_inputs(source_snapshot, settings_values, set_index, bay_index)` 產生 `ReceivingBayPreviewOperatorInputs`，由 Engine 選定 Bay W/H/D、保存的 Door／NFB／Set-Bay identity 與 part_dimensions；GUI 不得用全域過期設定覆蓋 Bay 製造來源。這是隔離 input projection，沒有 DXF/Export 授權。
-
-> #2517（2026-11-03）：Receiving Bay Preview 的實體 Assembly member／世界位移由公開 `manufacturing_api.project_receiving_bay_preview_assembly_members(layout, resolved_parts, set_index, bay_index)` 產生 immutable `ReceivingBayWorldAssemblyProjection`；GUI 不再排除實體 part 或自行把 Bay offset 加到物理 part。位置由既有 Engine Joint／包外 W/H/D 計算，非法三軸或未定 placement 拒絕；僅 VIEW，非製造新認證。
-
-> #2517（2026-11-03）：Receiving Set/Bay 的預覽來源重用由 manufacturing_api.plan_receiving_bay_preview_reuse_policy 以 immutable ReceivingBayPreviewReusePolicy 決定需讀 live CustomPartCatalog、上游平移及 suffix topology flags；GUI 不再自行判定物理 source ID。Raw panel/frame/divider 快取仍由 receiving_raw_source_cache_kind + DXF SHA ticket 驗證，不是正式製造認證。
-
-> #2517（2026-11-03）：主 GUI Settings 中 W/H/D/T/FW 的來源驗證共用公開 `PHYSICAL_SNAPSHOT_SOURCE_KEYS` 和 `normalize_operator_source_dimension`，布林值共用 `normalize_operator_settings_boolean`；非法毫米值不能走 GUI 的 `float(raw)` 被提交到 runtime／INI。這是原有 Engine 入參契約接線，非新增製造准入。
-
-> #2517（2026-11-03）：`manufacturing_api.apply_operator_legacy_runtime_manufacturing_policies` 統一舊 AE Relief 與 Vault EndCap 固定孔 Policy 更新；`operator_legacy_shared_base_plate_shrink` 統一四邊同縮相容的 runtime/INI 決策。GUI SettingsService 仍傳輸／存檔，不自行重建 CUTTING Policy，無新製造出口。
-
-> #2517（2026-11-03）：`manufacturing_api.plan_operator_external_model_change`、`replace_corner_state`、`operator_receiving_navigation_only_sync_change` 已分別接手 GUI 的外部箱型判斷、Corner 保存態與 Receiving Set/Bay 只導覽 physical state 決定；原 GUI 同名函式僅委派，無新增 CUTTING／BEND／DXF 製造放行。
-
-> #2517（2026-11-03）：GUI 與 Engine Settings Plan 的標準／自訂板件預設 X/Y Fold 共用公開 manufacturing_api.build_operator_default_part_fold_profiles(snapshot, part_key)。自訂板件缺少合法 metadata 不得回退成標準 Fold；Head/Tail 原專屬 API 與 DXF 認證不變。
-
-> #2517（2026-11-03）：3D FinalScene Mesh 的外輪廓與真實 crease 由公開 Engine API project_physical_solid_mesh_display_segments 支援 boundary/crease/boundary_and_crease，GUI 僅繪製；與既有 physical_solid_mesh_feature_segments 共用判定。僅 VIEW，非 CUTTING/BEND/DXF 授權。
-
-> #2517（2026-11-03）：`manufacturing_api.plan_operator_external_sync(envelope, last_external_revision=...)` 為外部 Settings 同步來源／revision 的正式 Engine request→immutable `OperatorExternalSyncPlan`；原 GUI `phase6_settings_transitions.plan_external_sync` 只委派，同型別 alias 不變。僅移轉既有狀態交易，不新增製造能力或外部 source-only CLI 放行。
-
-> #2517 2026-11-03：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_features={"door_c1_r1": (CircleFeature(...),)})` 與原 `ManufacturingResolvedBayInput.confirmed_door_features` 共用已確認的 Door 來源；孔位必須是 finished-face CUTTING typed Feature／正式實體門格 ID，已保存孔位需完全一致。實際出口仍為 `export_verified_resolved_integration_bays` 的同一 Engine FinalScene／DXF reopen；未放行 source-only CLI／整套 NFB。
-
-> #2517（2026-11-03）：`.p6fold` 實體 Feature／Vec2 的編碼及重載經公開 `manufacturing_api.encode_project_value/decode_project_value`，原 GUI `phase6_project_file` 僅作檔案／JSON 傳輸層並保留舊名 aliases；wire 不變、未證實的製造不被賦予認證。
-
-> #2517（2026-11-03）：Main／Designer 的 physical Workspace 共用實體狀態改由公開 `manufacturing_api.SharedWorkspaceState`、`normalize_existing_parts` 與物理清單常數建立，GUI `phase6_workspace_state` 是相容別名，不再決定物理 presence、CustomPart ID 或結構；UI lifecycle 仍分離，原 Save→Reload 與製造不變。
-
-> #2517（2026-11-03）：受電箱模式初始狀態／切換由 `manufacturing_api.fresh_receiving_mode` 與 `manufacturing_api.ReceivingModeSession` 決定，GUI 原模組保留同名相容別名；初始實體板件清單共用 `manufacturing_api.DEFAULT_OPERATOR_EXISTING_PARTS`。不改既有 Save→Reload 格式或現行製造／外部 CLI 認證。
-
-> #2517（2026-11-03）：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_layout_columns=...)` 可在**明確確認**的 Receiving 操作來源下建立 Door cell PartSpec；`ManufacturingResolvedBayInput.door_layout_columns` 在 source-confirmed 模式傳入相同拓樸，沿用 `export_verified_resolved_integration_bays` 的正式 DXF reopen。未確認的 Door Features、拓樸不符或已存門格不同均拒絕，並未開放 source-only CLI。
-
----
-whd_doc_role: REFERENCE
-whd_contract: project-reference
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 
 > #2517（2026-11-06）**實際 NFB CSV API 接線修復**：已公開的 `manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)` / `ae_engine` 根包同名 callable 現不再只寫 Bay 的 `nfb_config_submitted/nfb_config`，而是復用唯一 Engine `apply_receiving_inner_door_candidate_to_bays` 交易，將 source 的真實 Hole Editor `ProfileFeature`、層數／型號／高度、每 Bay 個別的 NFBConfig 同次原子提交。真 FinalScene 的物理 X 必須可從 `project_receiving_bay_legacy_aliases` 的各 Bay `part_features` 及目前 CSV SHA/Y/旋轉重新求證；不能只拿 NFB 型號／提交旗標授權製造。選定 Bay 先與舊 shared refs 解連，不改未選 Bay；舊 API 簽章/return Layout 相容，錯誤不部分提交。回歸包含真 `Apply → FinalScene → 內門 DXF Save→Reload`，不放行尚未驗證的整箱 MFG-2／EAR／PAD。
 
@@ -161,6 +84,12 @@ whd_schema: WHD_DOC_META_V1
 > #2517（2026-11-03）：受電箱模式初始狀態／切換由 `manufacturing_api.fresh_receiving_mode` 與 `manufacturing_api.ReceivingModeSession` 決定，GUI 原模組保留同名相容別名；初始實體板件清單共用 `manufacturing_api.DEFAULT_OPERATOR_EXISTING_PARTS`。不改既有 Save→Reload 格式或現行製造／外部 CLI 認證。
 
 > #2517（2026-11-03）：`manufacturing_api.build_receiving_factory_confirmed_parts(..., confirmed_door_layout_columns=...)` 可在**明確確認**的 Receiving 操作來源下建立 Door cell PartSpec；`ManufacturingResolvedBayInput.door_layout_columns` 在 source-confirmed 模式傳入相同拓樸，沿用 `export_verified_resolved_integration_bays` 的正式 DXF reopen。未確認的 Door Features、拓樸不符或已存門格不同均拒絕，並未開放 source-only CLI。
+
+## #2517 Receiving confirmed ordinary BasePlate source→Engine PartSpec→DXF API（2026-11-06）
+
+- 原 `manufacturing_api.build_receiving_factory_confirmed_parts(..., include_confirmed_base_plate=True)` 在 `saved_operator_confirmed` 下依原保存 `receiving_base_plate` + `validate_receiving_base_plate_settings` + `receiving_base_plate_values` → canonical `BasePlatePartSpec`，不用 client 建立尺寸／Fold／物理身份。
+- 可直接對 `ManufacturingResolvedBayInput(..., source_dimensions_mm=..., operator_confirmation="saved_operator_confirmed", operator_snapshot=..., include_confirmed_base_plate=True)` 呼叫既有 `export_verified_resolved_integration_bays`，原兩段 pre_commit_guard、真 DXF reopen、原子寫入不變。預設 False 舊 Request 不變。
+- 僅獨立普通 LEFT／RIGHT 底板：已提交 NFB、CENTER/Tier/PAD/EAR、未確認／缺來源、保存未驗底板 Features 一律 fail-closed；非 16 Bay 全箱 MFG-2 認證，外部 source-only CLI 保持拒絕。
 
 ## 【最高優先架構規則】WHD GUI／CADSplit 必須走同一 Engine 正式製造 API（2026-11-02）
 

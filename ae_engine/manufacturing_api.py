@@ -1781,7 +1781,7 @@ from .receiving_nfb_pair_export import (
 )
 
 
-# #2517 public atomic multi-Bay committed NFB CSV request -> verified DXFs.
+# #2517 public atomic multi-Bay committed NFB CSV Request -> verified DXFs.
 from .receiving_nfb_batch_pair_export import (
     NfbCsvMultiBayPartOnlyDxf,
     export_receiving_committed_nfb_csv_bays,
@@ -1842,7 +1842,7 @@ def build_box_body_operator_part_spec(
 def build_receiving_factory_confirmed_parts(
     source_dimensions, *, confirmation=None, operator_snapshot=None,
     confirmed_endcap_features=None, confirmed_door_layout_columns=(),
-    confirmed_door_features=None,
+    confirmed_door_features=None, include_confirmed_base_plate=False,
 ):
     """Public WHD Engine source W/H/D/T -> confirmed Receiving PartSpec boundary.
 
@@ -1857,6 +1857,7 @@ def build_receiving_factory_confirmed_parts(
         confirmed_endcap_features=confirmed_endcap_features,
         confirmed_door_layout_columns=confirmed_door_layout_columns,
         confirmed_door_features=confirmed_door_features,
+        include_confirmed_base_plate=include_confirmed_base_plate,
     )
 
 

@@ -160,3 +160,116 @@ def test_fresh_factory_confirmation_cannot_change_vault_or_export_source_only(tm
     assert response.status == "EXTERNAL_EXPORT_NOT_CERTIFIED"
     assert not response.manufacturing_authorized
     assert not (tmp_path / "manufactured").exists()
+
+
+def _confirmed_ordinary_base_snapshot():
+    """Confirmed GUI project authority, not a CADSplit-made PartSpec."""
+    from ae_engine.cabinet_types import policy as family_policy
+
+    saved = family_policy.apply_fresh_family_defaults({}, "受電箱")
+    saved.update(SOURCE)
+    saved["model"] = "受電箱"
+    saved["box_body_structure_state"] = manufacturing_api.resolve_receiving_box_body_structure_state(None)
+    saved["box_body_fold_profile"] = manufacturing_api.build_box_body_fold_profile(saved)
+    saved["endcap_fold_profiles"] = {
+        role: manufacturing_api.build_endcap_xy_fold_profiles(saved, part_key=role)
+        for role in ("head", "tail")
+    }
+    saved["endcap_corner_policies"] = {
+        role: family_policy.endcap_corner_policy(
+            "受電箱", frame_width=saved["fw"], thickness=saved["t"],
+            state=saved["box_body_structure_state"],
+        )
+        for role in ("head", "tail")
+    }
+    saved["receiving_base_plate"] = {
+        "pattern": "LEFT_FLAT_SIDE",
+        "height": 340.0, "shrink_top": 20.0, "shrink_bottom": 20.0,
+        "shrink_left": 45.0, "shrink_right": 45.0, "bend": 20.0,
+    }
+    return saved
+
+
+def test_confirmed_source_api_adds_real_ordinary_base_and_reopens_six_dxfs(tmp_path):
+    """New source->PartSpec->FinalScene->real DXF public Engine path."""
+    from ae_engine.contracts import BasePlatePartSpec
+    saved = _confirmed_ordinary_base_snapshot()
+    unchanged = deepcopy(saved)
+    specs = dict(_build(
+        SOURCE, confirmation="saved_operator_confirmed",
+        operator_snapshot=saved, include_confirmed_base_plate=True,
+    ))
+    assert tuple(specs) == ("box_body", "head", "tail", "base_plate")
+    assert isinstance(specs["base_plate"], BasePlatePartSpec)
+    assert specs["base_plate"].receiving_bend_pattern == "LEFT_FLAT_SIDE"
+    assert (specs["base_plate"].width, specs["base_plate"].height) == (800., 340.)
+    assert saved == unchanged
+    context = ManufacturingContext(resource_root=REPO)
+    result = export_verified_resolved_integration_bays(
+        (ManufacturingResolvedBayInput(
+            family="受電箱",
+            source=ManufacturingSourceIdentity("P1", "verified-src", "set-1", "bay-1"),
+            source_dimensions_mm=SOURCE,
+            operator_confirmation="saved_operator_confirmed",
+            operator_snapshot=saved,
+            include_confirmed_base_plate=True,
+        ),),
+        tmp_path / "output", context=context, pre_commit_guard=lambda: None,
+    )
+    assert result.physical_dxf_roundtrip_verified
+    assert not result.complete_assembly_certified
+    assert len(result.output_files) == 6
+    base = next(
+        Path(p) for p in result.output_files.values()
+        if Path(p).name.endswith("base_plate.dxf")
+    )
+    document = ezdxf.readfile(base)
+    assert document.audit().errors == []
+    assert {"CUTTING", "BEND"} <= {
+        entity.dxf.layer for entity in document.modelspace()
+    }
+    # Production output must be the same canonical API geometry as GUI uses.
+    expected_render = manufacturing_api.build_operator_part_render_data(
+        specs["base_plate"], context,
+    )
+    assert manufacturing_api.verify_saved_part_render_data_dxf(
+        expected_render, base,
+    ).ok
+
+
+@pytest.mark.parametrize("variant,code", [
+    ("fresh", "RECEIVING_FACTORY_BASE_REQUIRES_SAVED_OPERATOR_CONFIRMATION"),
+    ("missing", "RECEIVING_FACTORY_CONFIRMED_BASE_SOURCE_REQUIRED"),
+    ("center", "RECEIVING_FACTORY_ORDINARY_BASE_PATTERN_UNVERIFIED"),
+    ("nfb", "RECEIVING_FACTORY_NFB_BASE_REQUIRES_VERIFIED_PAIR_API"),
+    ("features", "RECEIVING_FACTORY_BASE_FEATURE_SOURCE_UNCONFIRMED"),
+    ("invalid_selector", "RECEIVING_FACTORY_BASE_SELECTION_MUST_BE_BOOLEAN"),
+])
+def test_factory_base_api_rejects_unconfirmed_sources_before_any_dxf(
+    variant, code, tmp_path,
+):
+    saved = _confirmed_ordinary_base_snapshot()
+    if variant == "missing":
+        del saved["receiving_base_plate"]
+    if variant == "center":
+        saved["receiving_base_plate"]["pattern"] = "CENTER_DOUBLE_SIDE_FOLD"
+    if variant == "nfb":
+        saved["nfb_config_submitted"] = True
+    if variant == "features":
+        saved["part_features"] = {"base_plate": [object()]}
+    inclusion = 1 if variant == "invalid_selector" else True
+    request = ManufacturingResolvedBayInput(
+        family="受電箱",
+        source=ManufacturingSourceIdentity("P1", "verified-src", "set-1", "bay-1"),
+        source_dimensions_mm=SOURCE,
+        operator_confirmation="fresh_family_confirmed" if variant == "fresh"
+        else "saved_operator_confirmed",
+        operator_snapshot=None if variant == "fresh" else saved,
+        include_confirmed_base_plate=inclusion,
+    )
+    with pytest.raises(ValueError, match=code):
+        export_verified_resolved_integration_bays(
+            (request,), tmp_path / "blocked",
+            pre_commit_guard=lambda: None,
+        )
+    assert not (tmp_path / "blocked").exists()

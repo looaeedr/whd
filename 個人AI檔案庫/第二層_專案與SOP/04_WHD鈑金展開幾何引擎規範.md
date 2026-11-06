@@ -6,6 +6,22 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 已確認 Receiving NFB CSV 多 Bay 原子製造 Request → FinalScene → 真 DXF API（2026-11-06）
+
+- `manufacturing_api.export_receiving_committed_nfb_csv_bays(requests, *, output_directory, pre_commit_guard=None)` 及根包匯出**同一** Engine callable 和 `NfbCsvMultiBayPartOnlyDxf`。來源是每個實體 Set/Bay 的原有 immutable `ManufacturingResolveRequest`，須包含當前已提交數字 CSV V5、確認的世界 X 與原本的物理內門／底板 render 輸入。GUI／CADSplit 不建造另一份 NFB CUTTING、PartSpec、FinalScene 或裝配座標。
+- 沿用現有 `export_current_csv_nfb_pair_from_request`，逐 Bay 由唯一 Engine resolver 重建實際 FinalScene，各自完成 2／3 張物理 DXF Save→Reload、來源和 XYZ 驗證。外層一次核對所有實體 Set/Bay 身分、品牌 CSV SHA 與選用的可信原始來源 `pre_commit_guard`，所有 Bay 完成後僅由原 `_atomic_commit_staged_dxfs` 執行**一筆**跨 Bay 提交；任何後段失敗不得留下已提交的前段 DXF，舊檔不可靜默覆寫。
+- 真實回歸包含 2 Bay、16 個獨立 Bay 的 32 張真實 DXF、單／雙層混合與失敗 rollback。收據 scope 是 `CSV_MULTIBAY_PART_ONLY_NOT_WHOLE_CABINET`：只能宣稱所選 NFB 內門＋底板局部板件通過；**不**解除 PAD/EAR／焊接／箱身全套 MFG-2、未確認來源、外部 source-only CLI 或 Windows 現場 R5 驗收；#2517 仍 OPEN。
+
+
+## [CURRENT] #2517 已保存普通受電箱底板由 Engine 直接建立來源 PartSpec，並接入原 Verified Bay 出圖（2026-11-06）
+
+- `build_receiving_factory_confirmed_parts(..., include_confirmed_base_plate=True)` 是原公開 Engine source→PartSpec 接口的可選向後相容擴充。僅在 `saved_operator_confirmed`、原始 W/H/D/T 與保存狀態一致，且明確有 `receiving_base_plate` 實體來源時，沿用原 `validate_receiving_base_plate_settings` 的 EAR pitch／真實輪廓預檢、`receiving_base_plate_values` 與 `build_base_plate_operator_part_spec` 生出 `("base_plate", BasePlatePartSpec)`。GUI／CADSplit 不必在 client 自組縮量、BEND 或 BasePlatePartSpec。
+- `ManufacturingResolvedBayInput.include_confirmed_base_plate` 在同一原 `export_verified_resolved_integration_bays` 流程中向 Engine 傳遞此確認意圖；原 Engine FinalScene 生成、逐片 DXF 保存／獨立 Save→Reload 及原子提交不變。缺來源、非保存確認、非普通 LEFT／RIGHT、任何已提交 NFB 或未驗底板孔位一律拒絕，不得把 PAD/EAR/雙層 NFB 冒充普通底板。
+- 預設 False 時原先 3 PartSpecs（五張箱身／封頭尾 DXF）及有已確認雙外門時七張輸出完全相容；顯式保存底板且合法時新增第六張原生物理底板 DXF。這是普通獨立板件製造能力，**不**宣稱受電箱整套 MFG-2、16 Bay 全件或 Windows R5 已驗收；#2517 仍 OPEN。
+
+
+
+
 ## [CURRENT] #2517 公開 NFB CSV Candidate Apply 必須連實體 Hole Editor 孔來源一起落地（2026-11-06）
 
 - WHD `ae_engine.manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)` 原程式雖已公開，但只提交 `nfb_config_submitted/nfb_config`，丟失候選 `source["features"]`、層數、型號、原始 Y；`receiving_layout.project_receiving_bay_legacy_aliases` 的正式 `part_features` 來自各 Bay `settings["inner_door_features"]`，其後 `receiving_nfb_committed_final_scene._source_world_x_from_committed_editor_feature` 需要同一物理門的真 CSV `ProfileFeature` 才能回讀放置 X。只有型號及提交旗標，不等於有可製造實體來源，且不可讓 CADSplit 私下把世界 X 填入 NFBConfig。
