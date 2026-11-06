@@ -2403,3 +2403,64 @@ def project_operator_box_body_baseline_face_features(
 
 # Textual source status is also an Engine projection, not a GUI ae call.
 operator_box_body_baseline_source_label = ae.box_body_baseline_source_label
+
+
+# #2517 public copy-on-write candidate and NFB draft edit facade.
+# Exactly the existing canonical Engine operations: no GUI-owned algorithms,
+# persisted Bay mutations, verified X basis, CUTTING, or DXF certification.
+from .receiving_hole_candidates import (
+    candidates_for as receiving_hole_candidates_for,
+    candidate_features as receiving_hole_candidate_features,
+    create_candidate as create_receiving_hole_candidate,
+    update_candidate as update_receiving_hole_candidate,
+    delete_candidate as delete_receiving_hole_candidate,
+    duplicate_candidate as duplicate_receiving_hole_candidate,
+    normalize_candidates as normalize_receiving_hole_candidates,
+)
+
+from .receiving_inner_door_candidates import (
+    KEY as RECEIVING_INNER_DOOR_CANDIDATE_KEY,
+    ROLE as RECEIVING_INNER_DOOR_CANDIDATE_ROLE,
+    normalize_inner_candidates as normalize_receiving_inner_door_candidates,
+    inner_versions as receiving_inner_door_versions,
+    inner_config as receiving_inner_door_candidate_config,
+    create_inner_candidate as create_receiving_inner_door_candidate,
+    update_inner_candidate as update_receiving_inner_door_candidate,
+    delete_inner_candidate as delete_receiving_inner_door_candidate,
+    duplicate_inner_candidate as duplicate_receiving_inner_door_candidate,
+)
+
+from .receiving_nfb_ui1a_edits import (
+    NfbUi1aEditSession as ReceivingNfbDraftEditSession,
+    editable_nfb_draft as normalize_receiving_nfb_editable_draft,
+    insert_nfb_slot as insert_receiving_nfb_draft_slot,
+    delete_nfb_slot as delete_receiving_nfb_draft_slot,
+    move_nfb_slot as move_receiving_nfb_draft_slot,
+    replace_nfb_slot_model as replace_receiving_nfb_draft_slot_model,
+    set_nfb_manual_x as set_receiving_nfb_draft_manual_x,
+    set_nfb_layer_rotation as set_receiving_nfb_draft_layer_rotation,
+    set_nfb_slot_rotation as set_receiving_nfb_draft_slot_rotation,
+    effective_nfb_rotation as project_receiving_nfb_draft_rotation,
+    nfb_x_reset_impact as project_receiving_nfb_draft_x_reset_impact,
+)
+
+from .receiving_nfb_brand_transition import (
+    draft_new_reselections as project_receiving_nfb_draft_reselections,
+)
+
+from .receiving_nfb_ui1a import (
+    INHERIT as RECEIVING_NFB_DRAFT_INHERIT,
+    OVERRIDE as RECEIVING_NFB_DRAFT_OVERRIDE,
+    NEEDS_RESELECTION as RECEIVING_NFB_DRAFT_NEEDS_RESELECTION,
+    new_nfb_ui1a_draft as new_receiving_nfb_draft,
+    reconcile_set_brand as reconcile_receiving_nfb_draft_set_brand,
+    set_nfb_draft_layer_count as set_receiving_nfb_draft_layer_count,
+    set_nfb_layer_brand as set_receiving_nfb_draft_layer_brand,
+    set_nfb_slot_brand as set_receiving_nfb_draft_slot_brand,
+    add_nfb_draft_slot as add_receiving_nfb_draft_slot,
+    select_nfb_slot_model as select_receiving_nfb_draft_slot_model,
+    remove_nfb_draft_slot as remove_receiving_nfb_draft_slot,
+    effective_nfb_layer_brand as project_receiving_nfb_draft_layer_brand,
+    effective_nfb_slot_brand as project_receiving_nfb_draft_slot_brand,
+    nfb_ui1a_preview as preview_receiving_nfb_draft,
+)
