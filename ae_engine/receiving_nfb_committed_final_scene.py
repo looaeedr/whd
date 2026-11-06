@@ -119,7 +119,8 @@ def _source_world_x_from_committed_editor_feature(
                 and (hole_matches or slot_matches)
                 and not (hole_matches and slot_matches)):
             raise ValueError("NFB_CSV_EDITOR_PHYSICAL_SLOT_IDENTITY_CONFLICT")
-        if hole_matches if has_hole_id else slot_matches:
+        identity = hole_matches if has_hole_id else slot_matches
+        if identity:
             matches.append((feature, params))
     if not matches:
         return None
