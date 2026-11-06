@@ -615,6 +615,14 @@ from .assembly_joint import (
     joint_relief_state_item_matches, resolve_manufacturing_joint_graph,
 )
 from .assembly_joint import joint_registry_diagnostic_info
+
+# Operator-added AssemblyJoint creation/removal commits are copy-on-write
+# transactions from the canonical Joint owner.  GUI cannot construct joints.
+from .assembly_joint import (
+    add_user_assembly_joint as commit_operator_user_assembly_joint,
+    delete_user_assembly_joint as remove_operator_user_assembly_joint,
+)
+
 from .manufacturing_relief_evidence import resolve_manufacturing_relief_evidence
 from .receiving_nfb_assembly import resolve_receiving_nfb_assembly_parts
 from .resolved_manufacturing_parts import materialize_resolved_manufacturing_parts
