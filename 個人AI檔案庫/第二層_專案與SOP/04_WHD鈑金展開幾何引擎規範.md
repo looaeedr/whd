@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱相鄰實體 Bay 接合對齊選項歸原 Engine Policy（2026-11-06）
+
+- 原 `receiving_set_bay_controls._build_receiving_settings_editor` 在接合控制建立與刷新兩個時機，GUI 直接比較兩連 `depth`／`height`，決定可編輯的前後齊／上下齊選項；但真正 Apply 本來就使用 `receiving_layout.receiving_joint_alignment_editability`。兩份判斷不應分裂。
+- 在原 Receiving Set/Bay/Joint Engine owner 新增唯讀 `project_receiving_joint_alignment_editability(set_row, joint_index)`，以已保存物理 Set row 查驗 joints/bays 真實相鄰身份、索引型別、正且有限的兩連 D/H，回傳 `depth_alignment`／`height_alignment` 是否可編輯；原完整 Layout `receiving_joint_alignment_editability(layout, set_index, joint_index)` 經 normalize 後委派**同一份** Engine 函式，GUI 也只消費公開 `manufacturing_api` 結果。不可讓 GUI 為判定接合而造假的 Set/Layout。
+- 未認證或破損來源應 fail closed；Tk 的 disabled/readonly 只呈現原 Engine Policy，`update_receiving_joint_alignment` 唯一實體提交權威不變。此改動不產製 Join 幾何／CUTTING／FinalScene／DXF，不解除 NFB/Factory/Registry gate；#2517 與 Windows 實機總驗收維持 OPEN。
+
+
+
 ## [CURRENT] #2517 Receiving 內門候選型號與套連配置的單一公開 Engine 來源資格（2026-11-06）
 
 - Fold Designer 內門候選 Apply／Quantity 配置原本在 GUI `verify_inner_models` 自行把舊版「開關索引.csv」DXF 檔名與原生 CSV `nfbv5:<brand>:<model>` 型號清單合併為來源白名單，逐層判定當前 Parent Brand。這是已保存實體 NFB 型號的來源資格，不是展示規則。現在由 `ae_engine.receiving_inner_door_candidates.validate_receiving_inner_door_source_models(config, parent_brand)` 作唯一 owner；`manufacturing_api`／根包公開同一 callable。Engine 先使用原 `validate_door_config` 正規化 detached candidate，再以原 `numeric_model_refs` 與 `model_filenames` 兩套正式來源核對，保留同層重複實體孔、兩層與舊專案相容，來源缺失／跨品牌／不合法拒絕且不變更呼叫者。
