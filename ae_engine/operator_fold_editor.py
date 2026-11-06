@@ -50,6 +50,18 @@ def normalize_operator_fold_editor_control(raw, *, field):
     return int(round(_finite_operator_fold_number(raw, field=field)))
 
 
+def project_operator_fold_editor_angle(raw):
+    """Project the legacy Fold Editor +/-90 orientation using Engine authority.
+
+    This is deliberately involutive: the same operation translates saved
+    Engine angles to GUI display and GUI input back to Engine. Malformed,
+    boolean or non-finite values must not become fabricated zero-degree bends.
+    """
+    angle = float(_finite_operator_fold_number(raw, field="angle"))
+    projected = -angle if angle in (90.0, -90.0) else angle
+    return int(projected) if projected.is_integer() else projected
+
+
 def commit_operator_fold_editor_rows(
     old_segments: Sequence[Mapping[str, object]],
     operator_rows: Sequence[Mapping[str, object]],
@@ -68,8 +80,7 @@ def commit_operator_fold_editor_rows(
     for row in edits:
         seg = {"len": 0}
         if "angle" in row:
-            ui_angle = _finite_operator_fold_number(row["angle"], field="angle")
-            engine_angle = -ui_angle if ui_angle in (90, -90) else ui_angle
+            engine_angle = project_operator_fold_editor_angle(row["angle"])
             seg["angle"] = engine_angle
         topology.append(seg)
     apply_outside_dimension_compensation(topology, physical_t)
