@@ -25,7 +25,6 @@ from typing import Mapping, MutableMapping
 from whd_theme import WHD_THEME, apply_ttk_dark_theme, configure_tk_menu
 
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
 from phase6_designer_workspace import Phase6DesignerWorkspace
 from phase6_part_navigation import (
     NavigationIntent,
@@ -794,7 +793,7 @@ class Phase6FoldDesignerApp(original.MainApp):
             self._phase6_last_w = float(source["receiving_quantity_box"]["w"])
             self._phase6_last_d = float(source["receiving_quantity_box"]["d"])
             return
-        if (cabinet_family_policy.canonical_family_name(source) == "受電箱"
+        if (manufacturing_api.operator_canonical_family_name(source) == "受電箱"
                 and source.get("receiving_layout")):
             # Set/Bay has the same single dimensional authority as Quantity.
             # A T/FW redraw must never interpret an older cached Fold core as
@@ -889,7 +888,7 @@ def _copy_features(snapshot, key):
 def _phase6_recalculate_part_dimensions(self):
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     settings = dict(getattr(self, "_settings_values", {}) or {})
-    if cabinet_family_policy.canonical_family_name(snapshot) == "受電箱":
+    if manufacturing_api.operator_canonical_family_name(snapshot) == "受電箱":
         # The live Receiving Bay/Quantity is the dimensional authority.
         # Saved Settings defaults are not the current W/H/D: re-applying
         # them during a fold/T edit destroys the operator's Bay dimensions.
@@ -1090,7 +1089,7 @@ def _phase6_known_model_corner_state(self):
     if live_model:
         model = live_model
     try:
-        from ae_engine.cabinet_types.registry import resolve_cabinet_type
+        from ae_engine import resolve_cabinet_type
         family = resolve_cabinet_type(model).canonical_name
     except Exception:
         family = "金庫型"
@@ -1340,7 +1339,7 @@ def _phase6_select_box_structure_type(self, var):
         return
     state = _phase6_box_structure_state(self)
     # 受電箱的側背分離是 Family 固定拓撲；選單仍常駐顯示，但不可切換。
-    if cabinet_family_policy.family_fixes_box_body_structure(
+    if manufacturing_api.operator_family_fixes_box_body_structure(
         getattr(self, "_phase6_input_snapshot", {}) or {}
     ):
         try:
@@ -1409,7 +1408,7 @@ def _phase6_apply_box_structure_numeric(self, type_id, field, var):
             field,
             value,
             total_w=_phase6_box_structure_w(self),
-            outside_family=cabinet_family_policy.box_body_profile_uses_outside_dimensions(
+            outside_family=manufacturing_api.operator_box_body_profile_uses_outside_dimensions(
                 getattr(self, "_phase6_input_snapshot", {}) or {}
             ),
         )
@@ -1542,7 +1541,7 @@ def _phase6_commit_receiving_bottom_wrap_controls(self, part_key, reserve_u_var,
     if str(part_key) not in ENDCAP_FW_PARTS:
         return None
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    if not cabinet_family_policy.supports_bottom_wrap_controls(snapshot):
+    if not manufacturing_api.operator_supports_bottom_wrap_controls(snapshot):
         return None
     current = resolve_endcap_bottom_wrap(
         snapshot, str(part_key),
@@ -1946,7 +1945,7 @@ def _phase6_refresh_persistent_structure_controls(self):
     return _navigation_view_refresh_persistent_structure_controls(
         self,
         structure_label=_BOX_STRUCTURE_LABELS[active],
-        structure_fixed=cabinet_family_policy.family_fixes_box_body_structure(getattr(self, "_phase6_input_snapshot", {}) or {}),
+        structure_fixed=manufacturing_api.operator_family_fixes_box_body_structure(getattr(self, "_phase6_input_snapshot", {}) or {}),
         assembly_label=ASSEMBLY_TYPE_LABELS[getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)],
     )
 
@@ -2716,7 +2715,7 @@ def _phase6_refresh_linked_part_profiles(self, changed_keys):
         return
     snapshot = self._phase6_input_snapshot
     settings = dict(self._settings_values)
-    if cabinet_family_policy.canonical_family_name(snapshot) == "受電箱":
+    if manufacturing_api.operator_canonical_family_name(snapshot) == "受電箱":
         # Live Set/Bay (or Quantity) owns W/H/D. The default Settings values
         # are not a second cabinet dimension source when the operator edits T/FW.
         # Replaying stale W800/D350 here would overwrite a valid W820/D360 Bay.
@@ -2764,7 +2763,7 @@ def _phase6_refresh_linked_part_profiles(self, changed_keys):
 
 def _phase6_store_editor_values(self, values, *, notify=True):
     values = dict(values or {})
-    if cabinet_family_policy.canonical_family_name(
+    if manufacturing_api.operator_canonical_family_name(
         getattr(self, "_phase6_input_snapshot", {}) or {}
     ) == "受電箱":
         # The legacy Fold editor emits cached W/H/D along with fold changes.
