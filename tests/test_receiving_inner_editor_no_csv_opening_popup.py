@@ -59,8 +59,8 @@ def test_receiving_confirm_stages_csv_holes_only_in_original_editor_transaction(
     assert "close_editor" in calls
     assert "csv_openings_to_editor_features" not in calls
     assert "verified_nfb_openings_to_editor_features" not in calls
-    # Basic source-model identity still uses the shared public Engine catalog;
-    # this checks the real GUI call site, not an internal helper name.
+    # The original editor must delegate the entire source/model qualification
+    # to one public Engine transaction plan, not repeat catalog checks in Tk.
     public_catalog_calls = [
         n.func.attr for n in ast.walk(confirm)
         if isinstance(n, ast.Call)
@@ -68,7 +68,8 @@ def test_receiving_confirm_stages_csv_holes_only_in_original_editor_transaction(
         and isinstance(n.func.value, ast.Name)
         and n.func.value.id == "manufacturing_api"
     ]
-    assert "resolve_receiving_nfb_model_spec" in public_catalog_calls
+    assert "plan_receiving_nfb_editor_confirm" in public_catalog_calls
+    assert "resolve_receiving_nfb_model_spec" not in public_catalog_calls
     assert "editor_nfb_features_from_csv" in public_catalog_calls
     assert "current_numeric_editor" in ast.unparse(confirm)
     source = _ui_source()
