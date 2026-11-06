@@ -8,6 +8,7 @@ or add shop-inapplicable bend compensation.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from hashlib import sha256
 from math import isfinite
 from pathlib import Path
 from types import SimpleNamespace
@@ -29,6 +30,8 @@ from .receiving_nfb_pair_acceptance import (
 from .receiving_nfb_transactions import _verify_hole_locations
 from .receiving_switch_model_catalog import INDEX_PATH
 from .receiving_nfb_ui1b_bridge import NfbVerifiedDraftSubmission
+from .receiving_nfb_model_identity import parse_numeric_model_ref
+from .receiving_nfb_numeric_catalog import brand_csv_path
 
 from .receiving_nfb_base_partial_export import (
     prepare_verified_receiving_nfb_base_plate,
@@ -50,6 +53,36 @@ def _finite_installed_xyz(values):
         )
     except (TypeError, ValueError, OverflowError):
         return False
+
+
+def _committed_csv_brand_source_hashes(holes):
+    """Read current Engine-owned CSV bytes for ALL actual submitted brands.
+
+    A file's size/mtime or the model ref is not a source revision. This proof
+    is private to paired export; it is not a manufacturing-ready flag.
+    """
+    brands = set()
+    for hole in holes:
+        parsed = parse_numeric_model_ref(hole.model_ref)
+        if parsed is None or parsed[0] != hole.brand:
+            raise ValueError("CSV_PAIR_COMMITTED_MODEL_SOURCE_IDENTITY_INVALID")
+        brands.add(parsed[0])
+    if not brands:
+        raise ValueError("CSV_PAIR_COMMITTED_MODEL_SOURCE_MISSING")
+    try:
+        return tuple(
+            (brand, sha256(brand_csv_path(brand).read_bytes()).hexdigest())
+            for brand in sorted(brands)
+        )
+    except (OSError, ValueError) as exc:
+        raise ValueError("CSV_PAIR_COMMITTED_BRAND_CSV_SOURCE_UNAVAILABLE") from exc
+
+
+def _require_committed_csv_source_unchanged(holes, initial_hashes):
+    # Re-read after real staged Save→Reload, immediately before all sheets
+    # are atomically committed. Do not publish a source-stale verified pair.
+    if _committed_csv_brand_source_hashes(holes) != initial_hashes:
+        raise ValueError("CSV_PAIR_COMMITTED_BRAND_CSV_CHANGED_BEFORE_COMMIT")
 
 
 def export_verified_receiving_nfb_door_base_pair(
@@ -205,11 +238,13 @@ def export_current_csv_nfb_door_base_pair(
     if not proof_source:
         raise ValueError("CSV_PAIR_CURRENT_SUBMITTED_SOURCE_UNAVAILABLE")
     inner_door_id, holes = proof_source
+    source_hashes = _committed_csv_brand_source_hashes(holes)
     if holes[0].layer_count == 2 and all(h.layer_count == 2 for h in holes):
         return _export_current_csv_nfb_two_tier_pair(
             snapshot, assembly_parts=assembly_parts,
             output_directory=output_directory,
             source=(inner_door_id, holes),
+            original_source_hashes=source_hashes,
         )
     if holes[0].layer_count != 1 or any(h.layer_count != 1 for h in holes):
         raise ValueError("CSV_PAIR_UNSUPPORTED_NFB_TIER_COUNT")
@@ -314,6 +349,7 @@ def export_current_csv_nfb_door_base_pair(
             if not receipt.ok:
                 raise ValueError("CSV_PAIR_SAVED_DXF_ROUNDTRIP_FAILED:" + identity)
             staged[identity] = path
+        _require_committed_csv_source_unchanged(holes, source_hashes)
         written = _atomic_commit_staged_dxfs(
             staged, root, overwrite=False,
         )
@@ -342,6 +378,7 @@ def _export_current_csv_nfb_two_tier_pair(
     assembly_parts,
     output_directory: str | Path,
     source,
+    original_source_hashes,
 ) -> NfbCsvTwoTierPartOnlyDxf:
     """Two actual tiers, one authoritative inner-door CSV; no second UI or DXF source.
 
@@ -497,6 +534,7 @@ def _export_current_csv_nfb_two_tier_pair(
             if not receipt.ok:
                 raise ValueError("CSV_TWO_TIER_DXF_ROUNDTRIP_FAILED:" + key)
             staged[key] = candidate
+        _require_committed_csv_source_unchanged(holes, original_source_hashes)
         saved = _atomic_commit_staged_dxfs(staged, root, overwrite=False)
     return NfbCsvTwoTierPartOnlyDxf(
         inner_door_path=saved[door.part_id],
