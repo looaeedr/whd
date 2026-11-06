@@ -12,6 +12,10 @@ whd_schema: WHD_DOC_META_V1
 - 唯一 Engine typed Corner owner `corner_type_ui.propose_operator_saved_manual_corner_snapshot`（透過 `manufacturing_api` 與根包公開同一 callable）以深複本保留舊專案 `dict`／舊字串 CornerType ID、逐角非法值忽略、配對 bool、同類型人工參數、已認證 Family 不重設等原語意；最後呼叫原 `propose_operator_known_model_corner_draft`，完整成功才返回候選。無效整份來源、不可遍歷的晚期部分與 Registry 錯誤拒絕，呼叫者保存狀態不動。
 - GUI 僅接收完整候選並在相同巢狀 dict 身分下同步，不再持有 decode 與先寫後驗的製造來源邏輯。Save→Reload／已知與自訂 Family／舊資料相容與非法來源隔離須通過 exact SHA full regression；無新 CUTTING、Relief/Corner 公式、2D／3D／DXF exporter，Windows R5 UAT 和 #2517 全面驗收仍待完成。
 
+## [CURRENT] #2517 使用者最新確認：合併 DXF 母盤完整盤名＋底線（2026-11-07）
+
+- 2026-11-07 使用者明確修正先前各群各取局部盤號規則：所有正式合圖檔案**共同使用整份已確認母盤 Set/Bay 的完整盤名跨度**，不是各組 subset 範圍。台灣時間 12 碼之後要有**一個底線**。例如 `202611071258_p1~p16全部.dxf`、`202611071258_p1~p16第1套.dxf`、`202611071258_p1~p16第2套.dxf`、`202611071258_p1~p16頭尾盤.dxf`、`202611071258_p1~p16中間盤.dxf`（第3套同規則）。分組內容的 Bay 身分和實際數量不變；僅名字共同引用母盤總範圍。自訂盤名仍保留真實資料，不得偽造連續 P 身分；其他未確認幾何不得因命名放行。
+
 ## [CURRENT] #2517 受電箱合併加工 DXF 日期時間與盤名範圍命名（2026-11-07）
 
 - 使用者確認正式輸出 DXF 的檔名要包含**台灣日期時間 YYYYMMDDHHmm + Engine 已保存盤名範圍 + 合併模式**，例如 202611071258p1~p16全部.dxf。這是原 DXF Save→Reload 核心製造交易的檔案命名，不得由 CADSplit 自行改名或重寫檔內 CUTTING/BEND。
