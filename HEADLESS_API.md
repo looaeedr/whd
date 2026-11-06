@@ -1,3 +1,7 @@
+## #2517 Receiving Factory canonical EndCap Fold source parity
+
+`manufacturing_api.build_receiving_factory_confirmed_parts(source_dimensions, confirmation=..., operator_snapshot=...)` forwards the exact confirmed Engine BoxBody Fold profile to each existing `build_endcap_operator_part_spec(..., box_body_fold_profile=...)` request. Fresh Family and saved operator paths now derive EndCap left/right formed FW within the same Engine owner used by GUI, preserving their real topology and 1T/BEND semantics. Caller-provided computed formed widths are neither requested nor trusted. This retains the existing verified-part-only, non-whole-cabinet manufacturing scope. See `tests/test_issue2517_receiving_factory_source_engine_part_specs.py` for head/tail parity and real DXF Save→Reload checks.
+
 ## #2517 Door-cell original Indicator source → public canonical Door PartSpec
 
 Use `ae_engine.manufacturing_api.build_door_operator_part_spec(values, *, model_name, features=(), indicator_source_state=original_saved_door_cell_indicator, ...)`. Engine performs the same strict live/saved original `project_operator_door_cell_indicator_manufacturing_source` validation as the Hole Editor and derives Indicator Box opening dimensions, real mode, active layer/group count, offsets and box-distance in one Door PartSpec transaction. GUI/CADSplit do not select physical lamp holes, compute opening sizes or repair saved physical state.
