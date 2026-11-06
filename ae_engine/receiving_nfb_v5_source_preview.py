@@ -119,7 +119,10 @@ def project_receiving_nfb_v5_model_catalog_snapshot(
     Fail closed if the source changes while the authoritative CSV parser
     reads it; no partial/stale model inventory is returned to GUI clients.
     """
-    source = brand_csv_path(brand)  # Existing Engine brand/path authority.
+    # Resolve the SAME live source-path owner used by numeric_model_refs(),
+    # including an explicitly substituted source in a scoped GUI test.
+    from . import receiving_nfb_numeric_catalog as numeric_catalog
+    source = numeric_catalog.brand_csv_path(brand)
     before = source.read_bytes()
     digest = sha256(before).hexdigest()
     # Polling checks full file content every time but reparses only a new
