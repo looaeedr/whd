@@ -97,3 +97,26 @@ def test_original_nfb_editor_poll_only_consumes_public_engine_source_snapshot():
     assert "brand_csv_path" not in poller
     assert "stat.st_mtime_ns" not in poller
     assert "manufacturing_api.list_receiving_nfb_model_refs(" not in poller
+
+
+def test_repeated_unchanged_csv_polls_do_not_reparse_original_model_catalog(monkeypatch, tmp_path):
+    monkeypatch.setattr(numeric, "PROJECT_ROOT", tmp_path)
+    _write_brand_csv(tmp_path, "MODEL-A")
+    original = identities.numeric_model_refs
+    calls = []
+
+    def counted(brand):
+        calls.append(brand)
+        return original(brand)
+
+    monkeypatch.setattr(identities, "numeric_model_refs", counted)
+    first = api.project_receiving_nfb_v5_model_catalog_snapshot("士林")
+    for _ in range(8):
+        assert api.project_receiving_nfb_v5_model_catalog_snapshot("士林") == first
+    assert calls == ["士林"]
+
+    _write_brand_csv(tmp_path, "MODEL-B")
+    second = api.project_receiving_nfb_v5_model_catalog_snapshot("士林")
+    assert calls == ["士林", "士林"]
+    assert second.model_refs != first.model_refs
+    assert second.source_sha256 != first.source_sha256
