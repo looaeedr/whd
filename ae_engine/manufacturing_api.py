@@ -671,6 +671,7 @@ from .assembly_joint import (
     side_wrap_target_corners, resolve_box_body_piece_solver_key,
     joint_relief_state_item_matches, resolve_manufacturing_joint_graph,
     migrate_legacy_snapshot_joints as migrate_operator_assembly_joint_snapshot,
+    project_operator_user_assembly_joint_parts,
     project_operator_endcap_joint_edge_policies,
 )
 from .assembly_joint import joint_registry_diagnostic_info
