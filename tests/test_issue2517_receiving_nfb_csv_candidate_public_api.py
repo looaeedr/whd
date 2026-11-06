@@ -50,11 +50,17 @@ def test_public_csv_apply_matches_existing_engine_ports_and_keeps_bays_distinct(
     manufacturing_api.validate_candidate_nfb_replacement(
         original, ((0, 1), (0, 0)), source, csv,
     )
-    expected = manufacturing_api.replace_candidate_bay_nfb(
-        original, 0, 1, csv,
+    # The old public CSV Apply returned only NFBConfig, dropping the native
+    # Hole Editor features needed by the ordinary FinalScene world-X path.
+    # It must equal the existing complete inner-door Engine transaction.
+    expected, selected, physical_ids = (
+        manufacturing_api.apply_receiving_inner_door_candidate_to_bays(
+            original, source, 0, (1, 0),
+        )
     )
-    expected = manufacturing_api.replace_candidate_bay_nfb(
-        expected, 0, 0, csv,
+    assert selected == (0, 1)
+    assert physical_ids == tuple(
+        expected["sets"][0]["bays"][i]["stable_id"] for i in selected
     )
     assert applied == expected
 
@@ -267,3 +273,81 @@ def test_original_csv_editor_placed_rotated_and_reordered_contour_stays_legal():
         bay["nfb_config"]["holes"][0]["rotation_deg"] == 90
         for bay in applied["sets"][0]["bays"]
     )
+
+
+def test_csv_apply_retains_original_editor_features_for_each_real_bay_finalscene_source():
+    """A committed NFBConfig alone is NOT a full physical FinalScene source."""
+    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+    from ae_engine.receiving_shared_settings import setting_value
+
+    original = _layout()
+    source = _source()
+    frozen_source = deepcopy(source)
+    applied = manufacturing_api.apply_receiving_nfb_csv_candidate(
+        original, set_index=0, bay_indices=(0, 1), source=source,
+    )
+    assert source == frozen_source
+
+    for bay_index in (0, 1):
+        selected = applied["sets"][0]
+        assert setting_value(selected, bay_index, "inner_door_layers") == 2
+        assert setting_value(selected, bay_index, "inner_door_models") == source["models"]
+        assert setting_value(selected, bay_index, "inner_door_layer_heights_mm") == (
+            source["layer_heights_mm"]
+        )
+        assert setting_value(selected, bay_index, "inner_door_features") == source["features"]
+        projected = project_receiving_bay_legacy_aliases(
+            {"model": "受電箱", "t": 2.0, "receiving_layout": applied},
+            set_index=0, bay_index=bay_index, validate_common=False,
+        )
+        assert projected["part_features"][PART] == source["features"][PART]
+        assert projected["nfb_config_submitted"] is True
+        assert projected["nfb_config"] == selected["bays"][bay_index]["nfb_config"]
+        assert projected["_receiving_runtime_selection"]["bay_id"] == (
+            selected["bays"][bay_index]["stable_id"]
+        )
+
+
+def test_csv_apply_isolates_selected_bay_features_from_unselected_linked_sibling():
+    """A previously shared physical source ref must not alter unselected Bays."""
+    from ae_engine.receiving_shared_settings import setting_value
+
+    original = manufacturing_api.resize_receiving_bays_with_family_defaults(
+        _layout(), set_index=0, bay_count=3,
+    )
+    linked = manufacturing_api.share_receiving_shared_setting(
+        original, set_index=0, source_bay_index=0, bay_indices=(0, 2),
+        kind="inner_door_features",
+    )
+    before = deepcopy(linked)
+    source = _source()
+    applied = manufacturing_api.apply_receiving_nfb_csv_candidate(
+        linked, set_index=0, bay_indices=(0, 1), source=source,
+    )
+    assert linked == before
+    assert all(
+        applied["sets"][0]["bays"][i]["nfb_config_submitted"] is True
+        for i in (0, 1)
+    )
+    assert applied["sets"][0]["bays"][2].get("nfb_config_submitted") is not True
+    assert setting_value(applied["sets"][0], 2, "inner_door_features") == {}
+    assert setting_value(applied["sets"][0], 0, "inner_door_features") == source["features"]
+    refs = applied["sets"][0]["settings"]["inner_door_features"]["refs"]
+    assert refs[applied["sets"][0]["bays"][0]["stable_id"]] != (
+        refs[applied["sets"][0]["bays"][2]["stable_id"]]
+    )
+
+
+def test_csv_apply_invalid_extra_editor_payload_cannot_leave_nfb_submission_without_features():
+    """The public API checks the complete candidate schema in one transaction."""
+    source = _source()
+    source["features"] = dict(source["features"])
+    source["features"][PART] = tuple(source["features"][PART])
+    source["unexpected_field"] = {"no": "candidate source"}
+    original = _layout()
+    before = deepcopy(original)
+    with pytest.raises(ValueError, match="內門版本設定"):
+        manufacturing_api.apply_receiving_nfb_csv_candidate(
+            original, set_index=0, bay_indices=(0, 1), source=source,
+        )
+    assert original == before
