@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI 已保存手動截角快照完整還原只由公開 Engine 原子候選（2026-11-07）
+
+- 原 `gui_modules/application/lifecycle.py::_apply_manual_corner_snapshot` 在 Project／Family runtime 恢復時由 GUI 逐角解析 raw `CornerTypeSelection` 並原地寫入 `manual_corner_state`／`manual_corner_pair_same`，再用已認證 Family 修正；後段來源或 Registry 錯誤可能留下前段已寫入的實體截角。
+- 唯一 Engine typed Corner owner `corner_type_ui.propose_operator_saved_manual_corner_snapshot`（透過 `manufacturing_api` 與根包公開同一 callable）以深複本保留舊專案 `dict`／舊字串 CornerType ID、逐角非法值忽略、配對 bool、同類型人工參數、已認證 Family 不重設等原語意；最後呼叫原 `propose_operator_known_model_corner_draft`，完整成功才返回候選。無效整份來源、不可遍歷的晚期部分與 Registry 錯誤拒絕，呼叫者保存狀態不動。
+- GUI 僅接收完整候選並在相同巢狀 dict 身分下同步，不再持有 decode 與先寫後驗的製造來源邏輯。Save→Reload／已知與自訂 Family／舊資料相容與非法來源隔離須通過 exact SHA full regression；無新 CUTTING、Relief/Corner 公式、2D／3D／DXF exporter，Windows R5 UAT 和 #2517 全面驗收仍待完成。
+
 ## [CURRENT] #2517 Quantity 內門 NFB 確定全部必須同時提交版本與保存來源（2026-11-07）
 
 - 正式的單只／Quantity 受電箱內門「確定全部」，包含原 Fold Designer 設定入口及 3D 直接雙擊內門，原先雖由 `manufacturing_api.preview_quantity_inner_door_confirm` 先驗證 Factory Box 和 NFB CSV 實體來源，但接著在 GUI 分別 `quantity.set_version_nfb_config` 與 `_phase6_input_snapshot.clear/update`。任何中途失敗都有可能留下版本已提交、專案尚未對應的半交易；GUI 不可決定兩份製造來源的提交順序。
