@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI 箱身折後外高只消費公開 Engine（2026-11-06）
+
+- `gui.py::_box_body_finished_height` 原讀 h/t/FW、私有 `sheetmetal_geometry.box_body_vertical_offsets` 後在 GUI 自算 `h - bottom - top`，缺角落 Policy 時還另寫 `h - 2T`；這是製造成品外高而非 UI 展示排版。
+- `manufacturing_api.project_operator_box_body_finished_height` 和 `ae_engine` 根包直接公開 canonical `sheetmetal_corner_policy.box_body_height_from_corner_policies` **同一 callable**，沿用該 owner 的未提供 Policy 預設、EndCap 裝配高度語意及有限／正值拒絕。GUI 只傳已選原始 h/t/FW 和既有 Policy，不再重算物理高度；不動 Registry、Fold、PartSpec、FinalScene、CUTTING／BEND、DXF。
+- 測試覆蓋原 owner 等價、兩 Family 的 Head/Tail 配對、預設、非法高度／板厚／非有限值、零來源變動與 GUI AST 公開 API 接線；exact SHA Product Regression 必須成功，Windows R5 UAT 與 #2517 全功能仍未完成。
+
 ## [CURRENT] #2517 Door 指示燈定位的門框四邊來源嚴格交易（2026-11-06）
 
 - `DoorFrameEdges` 的四個 `left/right/top/bottom` 旗標只允許原 Engine typed DTO 的真布林；原公開 `door_indicator_position_transactions` 若遇 malformed Frame Source 會被內層 `getattr(..., True)` 視作四邊都有框，GUI 也用 `params.get("frame_edges") or DoorFrameEdges()` 把 `False`、空容器等來源無聲改成預設。此錯誤會改變指示燈 finished-face 量測基準和 CUTTING 位置。
