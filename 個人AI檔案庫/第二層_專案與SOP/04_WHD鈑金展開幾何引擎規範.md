@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 公開 NFB CSV Candidate Apply 必須連實體 Hole Editor 孔來源一起落地（2026-11-06）
+
+- WHD `ae_engine.manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)` 原程式雖已公開，但只提交 `nfb_config_submitted/nfb_config`，丟失候選 `source["features"]`、層數、型號、原始 Y；`receiving_layout.project_receiving_bay_legacy_aliases` 的正式 `part_features` 來自各 Bay `settings["inner_door_features"]`，其後 `receiving_nfb_committed_final_scene._source_world_x_from_committed_editor_feature` 需要同一物理門的真 CSV `ProfileFeature` 才能回讀放置 X。只有型號及提交旗標，不等於有可製造實體來源，且不可讓 CADSplit 私下把世界 X 填入 NFBConfig。
+- 此公開 Apply 現復用 **既有唯一 Engine Owner** `receiving_inner_door_pairing.apply_receiving_inner_door_candidate_to_bays` 作為整筆交易：先維持原 Set／Bay 選取型別、duplicate、來源 CSV SHA／原生孔輪廓與型號驗證，再一次提交每個已選 Bay 的 layer/models/heights/typed `inner_door_features` 與個別 Bay-namespaced NFBConfig。沿用既有 `unlink_setting` 隔離所選 Bay 共享 refs，不得把候選來源覆寫未選實體 Bay。舊呼叫簽章及 dict Layout 回傳不改；任何非法來源整筆拒絕。
+- 新真實正向回歸 `tests/test_issue2517_receiving_nfb_csv_candidate_public_api.py` 覆蓋公開 Apply → Bay source projection → 現有 normal `apply_committed_csv_v5_to_canonical_parts` FinalScene → 實體內門 DXF Save→Reload 及一致性；並驗多 Bay 來源互不借用、舊已連動 unselected Bay 不遭修改、錯型/缺孔/過期來源 fail-closed。此流程只在現有已可信物理來源及相應幾何驗證下走適用 **PART_ONLY**；不藉 Apply 自動核准 X、底板/EAR/PAD、整櫃 MFG-2，亦不解除 source-only CLI 的保護。#2517 Windows 真圖整櫃/UAT 仍需獨立驗收。
+
 ## [CURRENT] #2517 immutable Engine Request → 受電箱已驗 NFB 成對 DXF 公開 API（2026-11-06）
 
 - 既有 `export_current_csv_nfb_door_base_pair(snapshot, assembly_parts=..., output_directory=...)` 雖能由 headless 呼叫，仍要求 client 先提供已解析的整個 physical assembly parts。#2517 的 GUI 與 CADSplit 應共用同一 Engine request，不得由 CADSplit／GUI 自己重建已開孔的 2D／3D 板件或製造幾何。
