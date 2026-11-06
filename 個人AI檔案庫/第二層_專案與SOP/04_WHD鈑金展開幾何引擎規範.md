@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 immutable Engine Request → 受電箱已驗 NFB 成對 DXF 公開 API（2026-11-06）
+
+- 既有 `export_current_csv_nfb_door_base_pair(snapshot, assembly_parts=..., output_directory=...)` 雖能由 headless 呼叫，仍要求 client 先提供已解析的整個 physical assembly parts。#2517 的 GUI 與 CADSplit 應共用同一 Engine request，不得由 CADSplit／GUI 自己重建已開孔的 2D／3D 板件或製造幾何。
+- 新公開 `manufacturing_api.export_current_csv_nfb_pair_from_request(request, *, output_directory)`（同名根包 API）只收原 `ManufacturingResolveRequest`；要求有效 Receiving snapshot、已提交且符合當前真實 Set/Bay 身分的 NFB CSV 來源，呼叫原 `manufacturing_api.resolve_manufacturing_request` 建立唯一正常 FinalScene，再以**原** `export_current_csv_nfb_door_base_pair` 對單層（門＋1 底板）或雙層（門＋2 底板）做來源 SHA、原實體板件、安裝 XYZ、CUTTING、CHECK/Q、暫存 DXF Save→Reload 及原子發布驗證。任何缺失 source／Bay／底板／非 Receiving 類別均 fail closed。
+- `ManufacturingResolveRequest.parts` 仍需傳入原始可信實體板件 render_data，不得從原圖缺位推算，尤其不得送「已套上 CSV 開孔的 GUI cache」作獨立來源。此 API **不**打開 `integration_cli` source-only export、不推估或確認 NFB world X、不證明 PAD/EAR 焊接、16 Bay 全櫃 MFG-2 或 Windows GUI UAT；#2517 保持 OPEN。
+- 回歸：`tests/test_issue2517_nfb_pair_request_to_finalscene_dxf_public_api.py`，由已提交真實 1／2 層 NFBConfig 與原實體 Door/BasePlate 建完整 request，不提供 `assembly_parts`，檢核多片 DXF 獨立重開及缺來源／缺板拒絕。權威製造核心仍只在 Engine。
+
+
 ## [CURRENT] #2517 內門＋NFB 底板 PART_ONLY 出圖禁止非法真實內門 3D 安裝座標（2026-11-06）
 
 - 原 `receiving_nfb_pair_export.export_current_csv_nfb_door_base_pair` 在單／雙層 committed CSV 的實體 FinalScene 和 CUTTING 比對後，只驗真實 BasePlate 世界 XYZ，卻沒有驗安裝在同一 3D Assembly 的內門 `AssemblyScenePart.offset`；本地 2D/CUTTING 可以完全一致，但失效 `NaN`、缺軸、字串、布林或無限大的內門座標仍能落入 DXF 部分出口。
