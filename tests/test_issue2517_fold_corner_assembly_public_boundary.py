@@ -65,15 +65,16 @@ def test_existing_fold_commit_uses_same_engine_angle_without_mutating_inputs():
     assert old == before_old and rows == before_rows
 
 
-@pytest.mark.parametrize("value", ["INSERT", "OVERLAY", "INSERT_OVERLAY", "WRAP_OVERLAY", "嵌入", CornerTypeId.OVERLAY])
+@pytest.mark.parametrize("value", ["INSERT", "OVERLAY", "INSERT_OVERLAY", "WRAP_OVERLAY", CornerTypeId.OVERLAY])
 def test_assembly_gui_same_registry_normalization_as_engine(value):
     canonical = normalize_assembly_intent_id(value)
     assert endcap_gui.assembly_intent_value(value) == canonical
     assert endcap_gui.assembly_intent_value(manufacturing_api.normalize_assembly_type(value)) == canonical
 
 
-def test_assembly_invalid_input_fails_without_input_mutation():
-    bad = {"assembly_type": "bogus"}
+@pytest.mark.parametrize("invalid", ["bogus", "嵌入"])
+def test_assembly_invalid_input_fails_without_input_mutation(invalid):
+    bad = {"assembly_type": invalid}
     before = deepcopy(bad)
     with pytest.raises(ValueError, match="unsupported Assembly Intent"):
         endcap_gui.assembly_intent_value(bad["assembly_type"])
