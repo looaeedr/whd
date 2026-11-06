@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 NFB 原始 Hole Editor 實體孔位恢復須驗完整 CSV 輪廓（2026-11-06）
+
+- 已提交的現行 CSV NFBConfig 若 `manual_x_state=UNVERIFIED_BASIS`，正常受電箱 FinalScene 的 `ae_engine.receiving_nfb_committed_final_scene._source_world_x_from_committed_editor_feature` 只有在**原實體內門**上找到本次來源 CSV SHA／品牌型號／實體層槽與 Hole Editor 已提交 `NFB_CSV_SOURCE`，且實際四角點經保存旋轉後仍為**同一份 CSV 矩形輪廓**、Y 基準一致，才可回收操作者已放置的 world X。原實作僅比四邊長，會錯認邊長相同的斜四邊形為原 NFB；現必須比整個四點順序（允許起點輪轉／順逆序）及 `rotation_deg` 與保存 NFB row 的一致性；僅允許正常位置平移，拒絕非矩形、錯角度、穿插線、非有限座標及來源變動。
+- 原有 `_submitted_csv_holes → apply_committed_csv_v5_to_canonical_parts → trial_configured_nfb_v5_inner_door_render_data` 為唯一 Engine 真實 2D／3D FinalScene；輸出只可用已驗證的同一個 `PartRenderData` 經原 `save_scene_dxf`／`verify_saved_part_render_data_dxf` 回讀。不能將編輯器輪廓被改壞後，用 CSV 型號偷偷重畫一個似乎合法的孔／底板螺絲；來源錯即 fail closed，無任何非預期 DXF 產生。原已確認獨立 X 不借用此來源恢復路徑，不更改 NFB 產品尺寸或 Factory Rule。
+- 對照回歸 `tests/test_issue2517_nfb_original_editor_contour_physical_source.py`：真實原 CSV 兩顆 NFB、合法平移及 quarter-turn、同長邊斜四邊形、旋轉資料分歧、同源 FinalScene 與 DXF Save→Reload。這是既有製造來源防護補強，不表示外部 CADSplit source-only export 已認證、整套 #2517／Windows UAT 已完成。
+
+
 ## [CURRENT] #2517 NFB Parent Brand 的單只版本／全 Set-Bay 來源交易改由公開 Engine（2026-11-06）
 
 - 原 Receiving GUI `single_brand`／`set_single_brand` 自行讀取 `QuantityModel`、舊共用箱品牌及版本遷移，`preview_parent_brand_impact` 直接呼叫 `receiving_nfb_brand_transition.saved_parent_new_reselections`，並逐 Set/Bay 決定實體 NFB 受影響顆數。這些是已提交物理來源與版本權威，並非 GUI 展示規則。
