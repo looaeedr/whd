@@ -547,7 +547,7 @@ def test_csv_candidate_uses_original_bay_door_partition_and_rejects_fabrication(
 
 
 
-def test_fresh_csv_candidate_native_initial_x_cannot_manufacture_without_placement():
+def test_fresh_csv_candidate_native_initial_x_cannot_manufacture_without_placement(tmp_path):
     """An Engine-generated visual X is not a user-placed physical NFB X.
 
     This regression uses the real fresh Receiving inner door, actual native
@@ -598,3 +598,19 @@ def test_fresh_csv_candidate_native_initial_x_cannot_manufacture_without_placeme
         projected, panel, hole, brand="士林", model="2P400",
     ) is None
     assert _submitted_csv_holes(projected) == ()
+    # Exercise the exact headless public manufacturing API, not merely
+    # the private extractor: no PART_ONLY DXF may appear on failed preflight.
+    request = manufacturing_api.ManufacturingResolveRequest(
+        input_snapshot=deepcopy(projected),
+        settings={"t": 2},
+        canonical_part_keys=(panel.stable_id, "base_plate"),
+        parts=(),
+        cabinet_model="受電箱",
+    )
+    with pytest.raises(
+        ValueError, match="CSV_PAIR_CURRENT_SUBMITTED_SOURCE_UNAVAILABLE",
+    ):
+        manufacturing_api.export_current_csv_nfb_pair_from_request(
+            request, output_directory=tmp_path,
+        )
+    assert not tuple(tmp_path.glob("*.dxf"))
