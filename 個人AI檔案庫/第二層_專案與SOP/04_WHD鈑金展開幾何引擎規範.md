@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI 新建受電箱 Set/Bay＋CSV NFB 實體來源經公開 Engine（2026-11-06）
+
+- `gui_modules/application/cabinet_controller.py::_apply_cabinet_family_for_current_model` 在首次切換 Receiving 時，原直接呼叫私有 `cabinet_types.policy.apply_fresh_family_defaults/resolve_box_body_structure_state/endcap_bottom_selection`、`receiving_layout.new_receiving_layout`、`receiving_fresh_nfb_defaults.seed_fresh_receiving_nfb_source` 以建立 Family 設定、三片箱身、Head/Tail 下截角、Set1/Bay1 及真實 CSV NFB source；`_restore_cabinet_family_runtime` 另直接呼叫私有 Joint v2 migration。這些都是製造資料權威，不應由 GUI 隱藏取用私有 Engine module。
+- 現由 `manufacturing_api.operator_apply_fresh_family_defaults`、`operator_resolve_box_body_structure_state`、`operator_endcap_bottom_selection`、`operator_new_receiving_layout`、`operator_seed_fresh_receiving_nfb_source` 及已有 `migrate_operator_assembly_joint_snapshot` 呼叫；前五者與各自原 Engine owner 是**同一 callable**，`ae_engine` 根包亦公開。保留原先初始化時序、CSV `士林 2P400`、NFBConfig/part_features 的唯一 Engine 結果、不重算內門或孔位。
+- 公開 owner 與原 owner 等價、合法第一次建立和已確認 source 再呼叫不改、非法 Bay W/H/D、非 Set/Bay 模式與將來 Joint schema 不修改輸入快照，以及 `.p6fold` 真實 source Save→Reload 皆有定向測試。現有 Tk Family 切換、2D／3D／DXF 既有產品回歸不可跳過；本批未宣稱 GUI 整個切換過程在 CSV 故障下具備全 UI 原子交易，也未完成 CADSplit 整箱製造／Windows R5 實機驗收，#2517 OPEN。
+
 ## [CURRENT] #2517 Fold Designer 剩餘 Receiving Family／WRAP 可用性接入原公開 Policy（2026-11-06）
 
 - `fold_designer_composition_state.build_capability_owners` 原直接把內部 `cabinet_types.policy.canonical_family_name` 注入 ReceivingCapabilityOwner，`fold_designer_composition_settings` 的 bottom-wrap 控制則直接讀私有 `supports_bottom_wrap_controls`；兩者決定實體箱型操作准入／Joint WRAP 操作可用性，不是純展示數值。

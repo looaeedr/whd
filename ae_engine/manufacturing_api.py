@@ -54,6 +54,9 @@ from .integration_api import (
 from .cabinet_types.policy import (
     resolve_box_body_back_panel_contract, base_plate_requires_explicit_bend_pattern,
     require_implemented_manufacturing_family,
+    apply_fresh_family_defaults as operator_apply_fresh_family_defaults,
+    resolve_box_body_structure_state as operator_resolve_box_body_structure_state,
+    endcap_bottom_selection as operator_endcap_bottom_selection,
 )
 from .cabinet_types.receiving import resolve_box_body_structure_state as resolve_receiving_box_body_structure_state
 from .box_body_structure_state import (
@@ -2195,6 +2198,7 @@ from .receiving_layout import (
     project_receiving_bay_dimension_groups,
     update_receiving_joint_alignment,
     project_receiving_bay_legacy_aliases,
+    new_receiving_layout as operator_new_receiving_layout,
 )
 # Public editor-source projections reuse the existing canonical Engine owners.
 # These are detached draft readbacks, not NFB CUTTING or manufacturing approval.
@@ -2203,6 +2207,7 @@ from .receiving_legacy_nfb_editor_bootstrap import (
 )
 from .receiving_fresh_nfb_defaults import (
     initial_fresh_receiving_nfb_models as initial_receiving_nfb_draft_models,
+    seed_fresh_receiving_nfb_source as operator_seed_fresh_receiving_nfb_source,
 )
 from .receiving_shared_settings import (
     transition_receiving_nfb_layer_heights,
