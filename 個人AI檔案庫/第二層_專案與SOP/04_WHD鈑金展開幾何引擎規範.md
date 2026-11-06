@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 內門直接 Confirm All 的實體設定組裝歸公開 Engine API（2026-11-06）
+
+- 受電箱內門 Hole Editor `receiving_inner_door_hole_editor.open_inner_door_hole_editor` 在直接 Set/Bay Confirm All 不能私有 import `receiving_inner_door_candidates.validate_door_config`、也不能在 GUI 依 `part_key` 自行組合 `features` 製造設定。須交 `manufacturing_api.prepare_receiving_inner_door_physical_confirm(staged_config, part_key, final_features)` 用既有實體身份 `door_display_part_role` 與既有 `validate_door_config` 驗證、深複製並產出 detached config，GUI 只交回既有 `ReceivingSetBayAdapter.apply_inner_door_candidate_to_bays`。非法實體門板或非法設定拒絕；任何拒絕之前不可更動持久化 Bay。
+- 此公開 API **只準備來源設定**，不授權 CSV NFB、FinalScene 或 DXF。已驗來源、已提交物理位置、Set/Bay／版本交易與製造 Save→Reload 保留原 Engine Gate；原 Quantity Confirm All `preview_quantity_inner_door_confirm` 不在本批重做。
+
 ## [CURRENT] #2517 Receiving 已驗來源 NFB Bay 提交／複製公開 Engine 接線（2026-11-06）
 
 - GUI `fold_designer_composition_receiving.py::nfb_transaction_ports` 原直接引用 `receiving_nfb_ui1b_bridge` 的 `NfbVerifiedDraftSubmission`、`assert_live_verified_nfb`、`submit_live_verified_nfb`、`copy_live_verified_nfb`。今改用 `manufacturing_api` 公開原件，套件根 `ae_engine` 同一物件；原 Engine 世界 X、來源 DXF SHA、Set/Bay/version、實體 Door、來源變更撤銷、獨立目標檢驗及 #1500 原子 Submit/Copy 不變。
