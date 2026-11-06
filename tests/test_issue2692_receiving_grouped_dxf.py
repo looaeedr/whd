@@ -116,6 +116,42 @@ def test_output_filename_stamp_panel_range_and_nonnumeric_names():
             plan_receiving_grouped_dxf(state, "ALL", file_stamp=invalid)
 
 
+
+def test_sixteen_bay_mother_range_is_shared_across_all_five_output_names():
+    source = new_receiving_layout(width=800, height=1600, depth=350)
+    source = resize_receiving_bays(source, set_index=0, bay_count=4)
+    source = resize_receiving_sets(source, set_count=3)
+    source = resize_receiving_bays(source, set_index=1, bay_count=3)
+    source = resize_receiving_bays(source, set_index=2, bay_count=9)
+    expected = {
+        "ALL": ("202611071258_p1~p16全部.dxf",),
+        "PER_SET": (
+            "202611071258_p1~p16第1套.dxf",
+            "202611071258_p1~p16第2套.dxf",
+            "202611071258_p1~p16第3套.dxf",
+        ),
+        "END_VS_MIDDLE": (
+            "202611071258_p1~p16頭尾盤.dxf",
+            "202611071258_p1~p16中間盤.dxf",
+        ),
+    }
+    for mode, names in expected.items():
+        result = manufacturing_api.plan_receiving_grouped_dxf(
+            source, mode, file_stamp="202611071258",
+        )
+        assert tuple(name for name, _ in result) == names
+        assert sum(len(cells) for _, cells in result) == 16
+    assert tuple(
+        len(cells) for _, cells in
+        manufacturing_api.plan_receiving_grouped_dxf(source, "PER_SET")
+    ) == (4, 3, 9)
+    assert tuple(
+        len(cells) for _, cells in
+        manufacturing_api.plan_receiving_grouped_dxf(source, "END_VS_MIDDLE")
+    ) == (6, 10)
+
+
+
 def _synthetic_rows(layout):
     rows=[]
     for si, group in enumerate(layout["sets"]):
