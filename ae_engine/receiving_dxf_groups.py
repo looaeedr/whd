@@ -106,7 +106,7 @@ def plan_receiving_grouped_dxf(layout, mode, *, file_stamp=None):
 def commit_verified_receiving_groups(
     layout, mode, physical_rows, stage_dir, output_dir,
     *, pre_commit_guard, overwrite=False, box_body_owner_by_namespace=None,
-    _verified_nfb_pair_parts_by_namespace=None,
+    _verified_nfb_pair_parts_by_namespace=None, emit_debug=False,
 ):
     """Publish only complete *previously verified* per-Bay physical sheets.
 
@@ -117,7 +117,10 @@ def commit_verified_receiving_groups(
     """
     if not callable(pre_commit_guard):
         raise ValueError("RECEIVING_COMPOSED_DXF_PRECOMMIT_GUARD_REQUIRED")
-    groups = plan_receiving_grouped_dxf(layout, mode, file_stamp=_taipei_output_stamp())
+    if type(emit_debug) is not bool:
+        raise TypeError("RECEIVING_DEBUG_EXPORT_FLAG_MUST_BE_BOOL")
+    stamp = _taipei_output_stamp()
+    groups = plan_receiving_grouped_dxf(layout, mode, file_stamp=stamp)
     source = normalize_receiving_layout(layout)
     by_namespace = {}
     seen = set()
@@ -186,6 +189,27 @@ def commit_verified_receiving_groups(
             _verified_nfb_pair_parts=group_nfb_parts,
         )
         staged[filename] = Path(result.path)
+    if emit_debug:
+        # This is NOT an additional machining blank: the diagnostic contains
+        # CHECK-only exact copies of verified canonical source primitives.
+        # Stage and atomically publish alongside real groups or publish none.
+        from .receiving_verified_debug_dxf import save_verified_receiving_debug_dxf
+        all_cells = tuple(cell for _name, members in
+                          plan_receiving_grouped_dxf(layout, "ALL")
+                          for cell in members)
+        diagnostic = _group_output_filename("debug.dxf", all_cells, stamp)
+        ordered = []
+        for si, bi, name in all_cells:
+            set_row = source["sets"][si]
+            bay = set_row["bays"][bi]
+            ns = receiving_instance_namespace(
+                set_id=set_row["stable_id"], bay_id=bay["stable_id"],
+            )
+            ordered.append((name, tuple(by_namespace[ns])))
+        save_verified_receiving_debug_dxf(
+            stage / diagnostic, ordered, pre_commit_guard=pre_commit_guard,
+        )
+        staged[diagnostic] = stage / diagnostic
     pre_commit_guard()  # Same immutable current-source witness before publish.
     return _atomic_commit_staged_dxfs(
         staged, Path(output_dir), overwrite=overwrite,

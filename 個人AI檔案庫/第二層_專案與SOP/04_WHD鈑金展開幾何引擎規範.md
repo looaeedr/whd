@@ -6,6 +6,15 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 同源分組另存 CHECK-only debug 檢查圖及真實孔型 Q（2026-11-07）
+
+- 受電箱的 `emit_debug=True` 僅允許透過已通過逐片物理 FinalScene 與原始 DXF/CSV source guard 的 `manufacturing_api.export_grouped_receiving_multibay_dxf` 既有交易。加入同一 staged 原子提交的一張 `YYYYMMDDHHmm_p1~p16debug.dxf`；所有內容在 CHECK 層並標明 DEBUG ONLY／NOT FOR NC，不可當作 CUTTING/BEND 正式加工圖，不推導新工藝或形狀；未要求 debug 時原本所有 3 種分組交付數量不變。
+- debug 用原實體板件的 DrawingScene 平移排版：左側／後面／右側、後板上方封頭與下方封尾、上門／下門、上框、左框／內門／右框、下框／中隔、最下底板，每盤顯示盤名，最上方依同**角色加上完整 CUTTING／BEND／MARKING／BLIND_HOLE 幾何局部座標**簽章計 Q。不同側板角色、相同尺寸但任何一顆孔／加工層不同都不合計；來源的物理出圖與鎖孔不改。
+- 原基準 `基準檔/受電箱/左側板.dxf` 與 `右側板.dxf` 的 9 個圓特徵本就不同：左 8 CUTTING + 1 BLIND_HOLE，右 6 CUTTING + 2 MARKING + 1 BLIND_HOLE。現有 `receiving_bay_joint_face_features` 僅對相鄰 Joint 兩個實體參與面投影相鎖孔；最外側面不得繼承相鎖孔。這是來源差異／回歸與 debug 可視化，不代表未知現場 CNC 錯孔已修復，必須再取得缺陷的物理孔位比較證據，不准把 Q 合併當成幾何修補。
+- 測試包含真 DXF Save→Reload、debug 全 CHECK audit、原始 FinalScene 完全不變、來源缺口／非法旗標拒絕、實體側板孔層分組與 Join 邊界 3 Bay。Windows 現場原圖與整箱 MFG-2／NC 需獨立驗收。
+
+
+
 ## [CURRENT] #2517 Quantity 內門 NFB 確定全部必須同時提交版本與保存來源（2026-11-07）
 
 - 正式的單只／Quantity 受電箱內門「確定全部」，包含原 Fold Designer 設定入口及 3D 直接雙擊內門，原先雖由 `manufacturing_api.preview_quantity_inner_door_confirm` 先驗證 Factory Box 和 NFB CSV 實體來源，但接著在 GUI 分別 `quantity.set_version_nfb_config` 與 `_phase6_input_snapshot.clear/update`。任何中途失敗都有可能留下版本已提交、專案尚未對應的半交易；GUI 不可決定兩份製造來源的提交順序。

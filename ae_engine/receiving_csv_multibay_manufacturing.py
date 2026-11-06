@@ -195,7 +195,7 @@ def export_current_receiving_multibay_dxf(
     saved_snapshot, *, physical_bay_geometry_provider,
     flags, output_dir, overwrite=False,
     group_mode=None, pre_commit_guard=None, nfb_pair_requests=None,
-    include_saved_nfb_pairs=False,
+    include_saved_nfb_pairs=False, emit_debug=False,
 ):
     """Write once for each CURRENT physical Set/Bay, with no source borrowing.
 
@@ -212,6 +212,10 @@ def export_current_receiving_multibay_dxf(
         if not callable(pre_commit_guard):
             raise ValueError("RECEIVING_COMPOSED_DXF_PRECOMMIT_GUARD_REQUIRED")
         pre_commit_guard()
+    if type(emit_debug) is not bool:
+        raise TypeError("RECEIVING_DEBUG_EXPORT_FLAG_MUST_BE_BOOL")
+    if emit_debug and group_mode is None:
+        raise ValueError("RECEIVING_DEBUG_VERIFIED_GROUP_REQUIRED")
     if type(overwrite) is not bool:
         raise TypeError("RECEIVING_MULTIBAY_OVERWRITE_MUST_BE_BOOL")
     if type(include_saved_nfb_pairs) is not bool:
@@ -522,6 +526,7 @@ def export_current_receiving_multibay_dxf(
                 pre_commit_guard=grouping_guard, overwrite=overwrite,
                 box_body_owner_by_namespace=box_body_owners,
                 _verified_nfb_pair_parts_by_namespace=nfb_approved,
+                emit_debug=emit_debug,
             )
         return _atomic_commit_staged_dxfs(
             staged,root,overwrite=overwrite,

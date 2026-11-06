@@ -2088,7 +2088,7 @@ def plan_receiving_grouped_dxf(layout, mode, *, file_stamp=None):
 def export_grouped_receiving_multibay_dxf(
     saved_snapshot, *, physical_bay_geometry_provider,
     flags, output_dir, group_mode, pre_commit_guard, overwrite=False,
-    nfb_pair_requests=None, include_saved_nfb_pairs=False,
+    nfb_pair_requests=None, include_saved_nfb_pairs=False, emit_debug=False,
 ):
     """Source-verified current Bay flats -> group DXFs (no MFG-2 release).
 
@@ -2103,6 +2103,7 @@ def export_grouped_receiving_multibay_dxf(
         group_mode=group_mode, pre_commit_guard=pre_commit_guard,
         nfb_pair_requests=nfb_pair_requests,
         include_saved_nfb_pairs=include_saved_nfb_pairs,
+        emit_debug=emit_debug,
     )
 
 
