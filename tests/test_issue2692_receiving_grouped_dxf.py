@@ -245,3 +245,100 @@ def test_grouped_export_rejects_untrusted_body_owner_without_publishing(tmp_path
             )
     assert old.read_bytes() == b"old-file-preserved"
     assert not (out / "第2套.dxf").exists()
+
+
+def _complete_committed_nfb_requests_for_core(source):
+    """One real mother layout, two genuine approved NFB pairs, no cloned identities."""
+    from copy import deepcopy
+    api = manufacturing_api
+    fresh = api.fresh_receiving_mode(
+        "set_bay", {"w": source["w"], "h": source["h"], "d": source["d"]},
+        thickness=source["t"],
+    )
+    layout = api.resize_receiving_bays_with_family_defaults(
+        fresh["receiving_layout"], set_index=0,
+        bay_count=len(source["receiving_layout"]["sets"][0]["bays"]),
+    )
+    layout["sets"][0]["switch_brand"] = "士林"
+    assert [
+        (group["stable_id"], bay["stable_id"])
+        for group in layout["sets"] for bay in group["bays"]
+    ] == [
+        (group["stable_id"], bay["stable_id"])
+        for group in source["receiving_layout"]["sets"]
+        for bay in group["bays"]
+    ]
+    for bay in layout["sets"][0]["bays"]:
+        bay["door_state"] = {
+            "multi_door_enabled": True,
+            "door_layout_columns": deepcopy(fresh["door_layout_columns"]),
+        }
+    for bi in range(len(layout["sets"][0]["bays"])):
+        draft = api.candidate_receiving_nfb_csv_for_fresh_bay(
+            layout, set_index=0, bay_index=bi, thickness_mm=source["t"],
+            layers=1, models=[["nfbv5:士林:2P400"], ""],
+        )
+        layout, _accepted = api.approve_receiving_nfb_csv_default_x(
+            layout, set_index=0, bay_index=bi, thickness_mm=source["t"],
+            source=draft, confirmation="ACCEPT_CURRENT_WHD_NFB_DEFAULT_X",
+        )
+    return tuple(api.receiving_committed_nfb_pair_request_for_bay(
+        layout, set_index=0, bay_index=bi, thickness_mm=source["t"],
+    ) for bi in range(len(layout["sets"][0]["bays"])))
+
+
+def test_grouped_nfb_pair_verified_source_exports_only_one_composed_file(tmp_path):
+    """Each source-confirmed NFB pair joins its own Bay; no parallel PART_ONLY files."""
+    source = _multi()
+    layout = source["receiving_layout"]
+    provider, _calls = _provider(source)
+    requests = _complete_committed_nfb_requests_for_core(source)
+    result = manufacturing_api.export_grouped_receiving_multibay_dxf(
+        source, physical_bay_geometry_provider=provider,
+        flags={"head": True}, output_dir=tmp_path / "out",
+        group_mode="PER_SET", pre_commit_guard=lambda: None,
+        nfb_pair_requests=requests,
+    )
+    assert set(result) == {"第1套.dxf"}
+    assert list((tmp_path / "out").glob("*.dxf")) == [
+        tmp_path / "out" / "第1套.dxf"
+    ]
+    doc = ezdxf.readfile(result["第1套.dxf"])
+    assert not doc.audit().errors
+    checks = [entity.plain_text() for entity in doc.modelspace()
+              if entity.dxftype() == "MTEXT" and entity.dxf.layer == "CHECK"]
+    assert checks.count("head") == 2
+    assert sum(key.startswith("inner_door:") for key in checks) == 2
+    assert checks.count("base_plate") == 2
+    # Composing verified PART_ONLY flats does not publish standalone pairs.
+    assert not list((tmp_path / "out").rglob("NFB_PART_ONLY/*.dxf"))
+
+
+def test_grouped_nfb_missing_second_pair_rejects_entire_group(tmp_path):
+    source = _multi()
+    layout = source["receiving_layout"]
+    provider, _calls = _provider(source)
+    requests = _complete_committed_nfb_requests_for_core(source)[:1]
+    with pytest.raises(ValueError, match="RECEIVING_COMPOSED_NFB_ALL_BAYS_REQUIRED"):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=provider,
+            flags={"head": True}, output_dir=tmp_path / "out",
+            group_mode="PER_SET", pre_commit_guard=lambda: None,
+            nfb_pair_requests=requests,
+        )
+    assert not list((tmp_path / "out").rglob("*.dxf"))
+
+
+def test_grouped_nfb_wrong_bay_owner_rejected_before_output(tmp_path):
+    source = _multi()
+    layout = source["receiving_layout"]
+    provider, _calls = _provider(source)
+    requests = tuple(reversed(_complete_committed_nfb_requests_for_core(source)))
+    with pytest.raises(ValueError, match="RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH"):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=provider,
+            flags={"head": True}, output_dir=tmp_path / "out",
+            group_mode="PER_SET", pre_commit_guard=lambda: None,
+            nfb_pair_requests=requests,
+        )
+    assert not list((tmp_path / "out").rglob("*.dxf"))
