@@ -2476,3 +2476,17 @@ from .receiving_nfb_ui1a import (
     effective_nfb_slot_brand as project_receiving_nfb_draft_slot_brand,
     nfb_ui1a_preview as preview_receiving_nfb_draft,
 )
+
+
+# #2517 Receiving editor's transient NFB source-draft transitions.
+# Exact aliases of canonical owners: no fresh CSV / legacy source may invent
+# verified X, production CUTTING, MFG certification or Bay persistence.
+from .receiving_legacy_nfb_editor_bootstrap import (
+    recover_submitted_nfb_models_for_editor as recover_receiving_submitted_nfb_models_for_editor,
+)
+from .receiving_fresh_nfb_defaults import (
+    initial_fresh_receiving_nfb_models as initial_receiving_nfb_draft_models,
+)
+from .receiving_shared_settings import (
+    transition_receiving_nfb_layer_heights as transition_receiving_nfb_draft_layer_heights,
+)

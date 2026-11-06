@@ -1858,8 +1858,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 # including a new candidate based on that Bay. Never borrow
                 # its physical Features: candidate Confirm All creates only
                 # a candidate until explicit highlighted-Bay Apply.
-                from ae_engine.receiving_legacy_nfb_editor_bootstrap import (
-                    recover_submitted_nfb_models_for_editor,
+                # The physical saved-NFB restoration is an Engine draft projection.
+                from ae_engine.manufacturing_api import (
+                    recover_receiving_submitted_nfb_models_for_editor as recover_submitted_nfb_models_for_editor,
                 )
                 source = current_inner_editor_snapshot()
                 initial = recover_submitted_nfb_models_for_editor(
@@ -1881,8 +1882,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # Existing selections, an alternate explicit global brand, and
         # staged edits are never overwritten.
         if embed_parent is not None:
-            from ae_engine.receiving_fresh_nfb_defaults import (
-                initial_fresh_receiving_nfb_models,
+            # Seed only the reversible editor models, never a Bay CUTTING source.
+            from ae_engine.manufacturing_api import (
+                initial_receiving_nfb_draft_models as initial_fresh_receiving_nfb_models,
             )
             initial["models"] = initial_fresh_receiving_nfb_models(
                 initial["models"],
@@ -2725,8 +2727,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                     draft_state["draft"], nfb_physical_layers.get(),
                 )
                 if previous_count != nfb_physical_layers.get():
-                    from ae_engine.receiving_shared_settings import (
-                        transition_receiving_nfb_layer_heights,
+                    # Keep Y transition tied to the canonical shared height owner.
+                    from ae_engine.manufacturing_api import (
+                        transition_receiving_nfb_draft_layer_heights as transition_receiving_nfb_layer_heights,
                     )
                     try:
                         heights = [float(field.get().strip())
