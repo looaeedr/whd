@@ -1,3 +1,9 @@
+## #2517 Receiving CSV NFB multi-Bay atomic PART_ONLY DXF API
+
+For confirmed Receiving Set/Bay manufacturing inputs, call `ae_engine.manufacturing_api.export_receiving_committed_nfb_csv_bays(requests, *, output_directory, pre_commit_guard=None)`; the identical function is exported by `ae_engine`. Each request is the **existing immutable** `ManufacturingResolveRequest` with a verified current Set/Bay snapshot, operator-confirmed V5 NFB world-X and original physical door/BasePlate render inputs. Engine invokes the existing `export_current_csv_nfb_pair_from_request` per Bay, which owns canonical FinalScene reconstruction, actual 2D/3D installed placements, 2/3 DXF Save→Reload, CSV SHA and NFB physical identity. All selected Bays must succeed before **one** atomic destination commit. The optional `pre_commit_guard` checks the caller's independently trusted original source DXF revision before/after staging; changed or missing sources reject the entire batch.
+
+Result `NfbCsvMultiBayPartOnlyDxf` lists exactly which (set_id, bay_id) were exported, and each real part-only output path. **Not full cabinet production, PAD/EAR certification, a source-only request, or Windows 16-Bay UAT.** Unconfirmed Candidate Apply remains source-only and must not be promoted to manufacturing by this API.
+
 ---
 whd_doc_role: REFERENCE
 whd_contract: project-reference
