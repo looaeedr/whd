@@ -483,8 +483,13 @@ def _submitted_csv_holes(snapshot):
     centers = receiving_nfb_layer_centers(snapshot, door_id)
     # Only the physical tiers actually holding NFBs get a base/screw set.
     owners = {p.layer_index for p in centers}
+    # A submitted two-tier V5 config is a physical two-plate obligation.
+    # Silently returning no CSV source when either tier has no submitted
+    # hole would manufacture an apparently blank inner door and discard
+    # the other tier's actual operator source. Incomplete *draft* configs
+    # remain unsubmitted and never arrive at this manufacture boundary.
     if count == 2 and owners != {0, 1}:
-        return ()
+        raise ValueError("NFB_COMMITTED_CSV_TWO_TIER_OWNER_INCOMPLETE")
     if count == 1 and owners != {0}:
         return ()
     holes = []
