@@ -799,6 +799,10 @@ selected Bay. Native GUI single-Bay and quantity allocation share these Engine
 ports. Saved source, independent other Bays, and unverified X are preserved;
 no new CUTTING, DXF or NFB shop release is implied.
 
+### #2517 NFB Quantity / all-Set parent brand operator API (2026-11-06)
+
+`manufacturing_api.project_receiving_quantity_nfb_parent_brand(snapshot)` reads the **selected** Quantity version's true parent brand (old common-box brand remains migration-only). `manufacturing_api.update_receiving_quantity_nfb_parent_brand(snapshot, proposed_brand)` returns a detached `(snapshot, changed)` with legacy per-version migration and no caller mutation. `manufacturing_api.project_receiving_parent_brand_change_impact(source, proposed_brand, *, mode="quantity"|"set_bay")` counts only **newly** stale inherited physical NFB holes from the selected Quantity version or **every** persisted Set/Bay, excluding unsubmitted sources, explicit overrides and already stale sources. Both WHD GUI and external Python clients use the exact same Engine functions exported by `ae_engine` and `manufacturing_api`. GUI only selects current mode/scope and displays the warning. These are source/brand operations, **not** an NFB world-X, FinalScene, CUTTING or DXF manufacturing approval. Test: `tests/test_issue2517_nfb_parent_brand_operations_public_api.py`.
+
 ## Receiving NFB Set brand / inherited physical X confirmation API（#2517）
 
 `manufacturing_api.rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand)`
