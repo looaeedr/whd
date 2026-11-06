@@ -245,3 +245,72 @@ def test_grouped_export_rejects_untrusted_body_owner_without_publishing(tmp_path
             )
     assert old.read_bytes() == b"old-file-preserved"
     assert not (out / "第2套.dxf").exists()
+
+
+def test_grouped_nfb_pair_verified_source_exports_only_one_composed_file(tmp_path):
+    """Each source-confirmed NFB pair joins its own Bay; no parallel PART_ONLY files."""
+    from tests.test_issue2517_receiving_nfb_multibay_atomic_public_api import _request
+    source = _multi()
+    layout = source["receiving_layout"]
+    provider, _calls = _provider(source)
+    requests = tuple(
+        _request(set_id=group["stable_id"], bay_id=bay["stable_id"])
+        for group in layout["sets"] for bay in group["bays"]
+    )
+    result = manufacturing_api.export_grouped_receiving_multibay_dxf(
+        source, physical_bay_geometry_provider=provider,
+        flags={"head": True}, output_dir=tmp_path / "out",
+        group_mode="PER_SET", pre_commit_guard=lambda: None,
+        nfb_pair_requests=requests,
+    )
+    assert set(result) == {"第1套.dxf"}
+    assert list((tmp_path / "out").glob("*.dxf")) == [
+        tmp_path / "out" / "第1套.dxf"
+    ]
+    doc = ezdxf.readfile(result["第1套.dxf"])
+    assert not doc.audit().errors
+    checks = [entity.plain_text() for entity in doc.modelspace()
+              if entity.dxftype() == "MTEXT" and entity.dxf.layer == "CHECK"]
+    assert checks.count("head") == 2
+    assert sum(key.startswith("inner_door:") for key in checks) == 2
+    assert checks.count("base_plate") == 2
+    # Composing verified PART_ONLY flats does not publish standalone pairs.
+    assert not list((tmp_path / "out").rglob("NFB_PART_ONLY/*.dxf"))
+
+
+def test_grouped_nfb_missing_second_pair_rejects_entire_group(tmp_path):
+    from tests.test_issue2517_receiving_nfb_multibay_atomic_public_api import _request
+    source = _multi()
+    layout = source["receiving_layout"]
+    provider, _calls = _provider(source)
+    first = layout["sets"][0]["bays"][0]
+    requests = (_request(
+        set_id=layout["sets"][0]["stable_id"], bay_id=first["stable_id"],
+    ),)
+    with pytest.raises(ValueError, match="RECEIVING_COMPOSED_NFB_ALL_BAYS_REQUIRED"):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=provider,
+            flags={"head": True}, output_dir=tmp_path / "out",
+            group_mode="PER_SET", pre_commit_guard=lambda: None,
+            nfb_pair_requests=requests,
+        )
+    assert not list((tmp_path / "out").rglob("*.dxf"))
+
+
+def test_grouped_nfb_wrong_bay_owner_rejected_before_output(tmp_path):
+    from tests.test_issue2517_receiving_nfb_multibay_atomic_public_api import _request
+    source = _multi()
+    layout = source["receiving_layout"]
+    provider, _calls = _provider(source)
+    requests = tuple(
+        _request(set_id="other", bay_id=bay["stable_id"])
+        for group in layout["sets"] for bay in group["bays"]
+    )
+    with pytest.raises(ValueError, match="RECEIVING_COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH"):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=provider,
+            flags={"head": True}, output_dir=tmp_path / "out",
+            group_mode="PER_SET", pre_commit_guard=lambda: None,
+            nfb_pair_requests=requests,
+        )
+    assert not list((tmp_path / "out").rglob("*.dxf"))
