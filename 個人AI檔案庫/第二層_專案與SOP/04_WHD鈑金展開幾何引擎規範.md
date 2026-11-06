@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Bay 預覽尺寸與 NFB CSV 孔位分流只經公開 Engine API（2026-11-06）
+
+- `gui_modules/application/fold_designer_composition_receiving.py::receiving_bay_preview_request` 原先直接 import `display_dimensions.resolve_operator_finished_dimensions`，而這個完成面尺寸投影本就已是公開 `manufacturing_api.resolve_operator_finished_dimensions`；GUI 現直接使用原公開入口，不另造尺寸或 DXF 幾何。
+- 內門 NFB 即時孔位預覽的 `stage_live_nfb_openings` 原在 GUI 用內部 `receiving_nfb_model_identity.is_numeric_model_ref` 判定是否可由 CSV 生成孔；這是來源身份准入，現在由原 Engine 身份 owner 的 `can_stage_receiving_nfb_csv_preview_refs` 原子判定並透過 `manufacturing_api`、`ae_engine` 根包公開。維持空清單、舊 DXF 與 V5 identity 的原 UI 分流，非法型別直接拒絕且不動來源。真實 CSV 輪廓／孔位仍必須由既有 `editor_nfb_features_from_csv` 與 Hole Editor staging 驗證，不能把識別字串視為 CUTTING／MFG-2 認證。
+- 型號顯示 `display_model_ref` 只透過公開 `manufacturing_api.display_receiving_nfb_model_ref` re-export 原 Engine 相同 callable；移除 GUI 未使用的 `INDEX_PATH` 與 `validate_stored_model_ref` 私有匯入。公開／owner 等價、非法來源不改動及 GUI 接線由新增回歸覆蓋，完整 Product Regression／Save→Reload 仍必須 GREEN；#2517／Windows R5 UAT 保持 OPEN。
+
 ## [CURRENT] #2517 Fold Designer Head/Tail 四邊 Joint Policy 與舊 Joint 啟動狀態共用公開 Engine（2026-11-06）
 
 - 原 `fold_designer_bridge._phase6_endcap_joint_policy_rows` 在 GUI 直接將 `assembly_joint.migrate_legacy_snapshot_joints`、`assembly_intent.get_assembly_intent`、`assembly_joint.edge_relation_for_part` 組合成可編輯接合關係；`_phase6_bootstrap_authoritative_state` 也直接呼叫內部 Joint migration。這些是已保存物理 Joint 的解讀／遷移，不可由 GUI 持有其操作權威。
