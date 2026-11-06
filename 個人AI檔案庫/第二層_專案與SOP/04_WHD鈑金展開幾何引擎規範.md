@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 雙層 NFB 成對部分 DXF 的實體底板安裝 XYZ 必須有限且型別正確（2026-11-06）
+
+- 原 Engine `receiving_nfb_pair_export._export_current_csv_nfb_two_tier_pair` 在已驗證 FinalScene/CUTTING 與原子儲存前，以 `abs(float(actual)-float(expected)) > 1e-6` 比對兩層底板真實 3D 安裝位置；`NaN` 的比較恆為 False，字串數值及 `False` 也可能被轉成正常座標而通過來源閘門。合法本體和非法安裝位置不可共同取得可加工 DXF。
+- Engine 增加同一個嚴格 XYZ 正規檢查供原單層與雙層 PART_ONLY 出圖使用：真實 `offset` 與 Engine 獨立計算的期望位置都必須是長度三、原生有限數值（拒絕 bool／字串／NaN／Infinity／缺軸），再逐軸驗證 1e-6mm 容差。任何一層不合即拒絕 `CSV_TWO_TIER_REAL_BASE_INSTALL_XYZ_MISMATCH`，且不得留下任何 DXF；合法流程仍依同一 Engine 真 FinalScene → DXF Save→Reload。
+- 原 `tests/test_issue1502_current_csv_original_two_tier_dxf.py` 以真實兩層 NFB 來源、兩個實體 BasePlate 及原始 DXF writer 驗證每層壞 XYZ 均拒絕，舊單層實機場景回歸保留；本修正不解除 NFB/PAD/EAR／整箱 MFG-2 製造資格，#2517 及 Windows UAT 保持 OPEN。
+
+
 ## [CURRENT] #2517 Assembly Relief 來源 Joint/FW 簽章只能由公開 Engine 決定（2026-11-06）
 
 - Fold Designer 的 `current_relief_source_signature` 原本在 GUI 直接呼叫私有 `resolved_joint_graph_fingerprint`、`migrate_legacy_snapshot_joints`，並把 box-body 成形 FW 與製造 replay source 的中間欄位自行組裝。這是持久化 Head/Tail 已認證 relief CUTTING 的來源資格，不應由 GUI 決定機械身分。
