@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Door 指示燈定位的門框四邊來源嚴格交易（2026-11-06）
+
+- `DoorFrameEdges` 的四個 `left/right/top/bottom` 旗標只允許原 Engine typed DTO 的真布林；原公開 `door_indicator_position_transactions` 若遇 malformed Frame Source 會被內層 `getattr(..., True)` 視作四邊都有框，GUI 也用 `params.get("frame_edges") or DoorFrameEdges()` 把 `False`、空容器等來源無聲改成預設。此錯誤會改變指示燈 finished-face 量測基準和 CUTTING 位置。
+- 公開 `project_operator_door_indicator_position` 和 `propose_operator_door_indicator_offset_candidate` 在使用原量測／clamp owner 前先驗證 `DoorFrameEdges` 型別及四個欄位；非法來源 fail-closed 且 GUI 不開編輯視窗、不改 offset。合法 `None` 仍代表原有的四邊框預設，沒有建立新幾何／距離公式。
+- 測試覆蓋 GUI 與直接 Engine 不合法來源、可選缺省和合法測量等價；完整產品回歸與 canonical 2D/3D/DXF 持續驗證，#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 Door 指示燈雙擊編輯不再以 GUI 偽造板厚／FW 預設（2026-11-06）
 
 - 主 GUI `on_double_click_indicator` 原在無效 `t_var`／`fw_z_var` 時吞掉例外並改送 `2.0`／`62.0`，違反現有公開 `project_operator_door_indicator_position` 的 fail-closed 來源契約。此入口已由 Engine transaction 擁有距離計算／candidate 產生，僅需把板厚、FW、Door gaps 的**原操作輸入**傳給該同一公開 API。
