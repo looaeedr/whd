@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Hole Editor 孔位移動／基準定位／切穿盲孔切換只接公開 Engine（2026-11-06）
+
+- `gui.py` 會以 `HoleEditorCompositionDependencies.from_namespace(globals())` 注入實體孔位操作到 `gui_modules/editors/hole_editor.py`：`feature_with_reference_anchor`、`feature_with_process`、`move_feature_by_reference_distance`、`feature_is_within_surface`、`move_feature_within_surface`。舊版直接從 `ae_engine.sheetmetal_features` 私有 re-export 匯入同一 Engine owner，讓 GUI 交易仍隱藏依賴內部幾何模組；這些實際編輯可改變孔位 finished-face 坐標、基準或 CUTTING／BLIND_HOLE，必須公開。
+- 新的 `manufacturing_api.operator_hole_feature_with_reference_anchor`、`operator_hole_feature_with_process`、`operator_hole_move_feature_by_reference_distance`、`operator_hole_feature_is_within_surface`、`operator_hole_move_feature_within_surface` 與 `ae_engine` 根包均直接 re-export 原 `sheetmetal_feature_reference`／`sheetmetal_feature_surface` canonical callable；無新位置、輪廓、材料補償或流程。GUI 向 HoleEditorComposition 注入這五支公開 API 同名別名；物理特徵仍為 immutable Feature，Session 預覽／確定／取消負責提交，原 source 及無效索引／非有限距離／非法 process 不得變動，越界拖曳回傳原孔。
+- Engine 2D／3D／DXF 與 Save→Reload 的 canonical Feature→FinalScene 路由不改；`Vec2`／`RectGuide`／顯示類型不是本次交易缺口。這批需 owner 等價、正反定位、非法操作保留來源、GUI 相依接線及 exact-SHA 完整回歸。尚不代表全部 GUI 私有 imports、CADSplit 全箱體 MFG-2 或 Windows 實機驗收已完成，#2517 OPEN。
+
 ## [CURRENT] #2517 圓孔中心距／孔邊間距來源與剩餘 Joint snapshot 統一公開 Engine（2026-11-06）
 
 - Hole Editor 的圓孔排列本身已透過 `manufacturing_api.plan_operator_round_hole_preview`，但 `hole_editor_round_settings._sync_from_center/_sync_from_gap` 顯示與草稿欄位仍直接使用內部 `sheetmetal_features.circle_gap_from_center_distance/circle_center_distance_from_gap`。同一 canonical `sheetmetal_feature_reference` 的兩個純換算 callable，現在由 `manufacturing_api.operator_round_hole_gap_from_center_distance/operator_round_hole_center_distance_from_gap`（及根包）公開，同一幾何／無新公式。GUI 繼續於轉換前檢查有限、正值與非負間距；改值只涉及 GUI 草稿，實際實體 Feature／CUTTING 仍由已有 Engine preview + Hole Editor session Confirm 提交。
