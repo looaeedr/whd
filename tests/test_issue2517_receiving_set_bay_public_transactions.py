@@ -359,3 +359,155 @@ def test_gui_single_and_share_setting_entrypoints_use_only_engine_affected_ids()
         assert "self._session_dirty_ids.update(affected_ids)" in method
         assert "self.mark_current_bay_dirty()" not in method
         assert '["settings"]' not in method
+
+
+def test_atomic_endcap_hole_editor_share_then_invalid_value_cannot_leave_partial_links():
+    """A real GUI Hole Editor sync failure cannot mutate Set/Bay adapter state."""
+    from copy import deepcopy
+    from types import SimpleNamespace
+    from inspect import getsource
+    import ae_engine
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+    from gui_modules.application.fold_designer_composition_receiving import (
+        receiving_settings_ports,
+    )
+
+    raw = _multi_bay_shared_setting_layout()
+    linked = api.share_receiving_shared_setting(
+        raw, set_index=0, bay_indices=(0, 1),
+        source_bay_index=0, kind="tail_features",
+    )
+    before = deepcopy(linked)
+    adapter = ReceivingSetBayAdapter(linked)
+    events = []
+    editor = {}
+    candidate_features = []
+
+    class FakeHost:
+        def query(self, *args, **kwargs):
+            return None
+
+        def _open_unified_hole_editor(self, *args, **kwargs):
+            editor.update(kwargs)
+
+    class FakeComposition:
+        def __init__(self, host):
+            self.app = SimpleNamespace(
+                _phase6_input_snapshot={"receiving_layout": deepcopy(linked)},
+                _scene_query_callback=host.query,
+                submit_update_intent=lambda *args, **kwargs: events.append("commit"),
+            )
+
+        def receiving_adapter(self, namespace):
+            return adapter
+
+        def sync_receiving_current_bay(self, namespace):
+            events.append("sync")
+
+    monkeypatch_source = SimpleNamespace(
+        features=candidate_features, surface=None, width=800, depth=350,
+        reference_guide=None,
+    )
+    # Explicit GUI caller seam, with a verified Engine-context response stub;
+    # all link/update/validation operations remain the real public Engine APIs.
+    original_project = api.project_receiving_endcap_hole_editor_context
+    api.project_receiving_endcap_hole_editor_context = (
+        lambda *args, **kwargs: monkeypatch_source
+    )
+    try:
+        composition = FakeComposition(FakeHost())
+        ports = receiving_settings_ports(composition, None, 0)
+        ports["select"](2)  # original operator selection is Bay3
+        selected = adapter.selection
+        ports["holes"]("tail", (0, 2))
+        assert "sync_callback" in editor
+
+        candidate_features.append("invalid saved feature")
+        with pytest.raises(ValueError, match="封頭尾設定"):
+            editor["sync_callback"]()
+        assert adapter.layout == before
+        assert adapter.selection == selected
+        assert adapter._session_dirty_ids == set()
+        assert not events
+        assert composition.app._phase6_input_snapshot["receiving_layout"] == before
+
+        candidate_features[:] = [
+            CircleFeature(
+                anchor=FeatureAnchor.PANEL_CENTER,
+                offset=Vec2(0, 0), diameter=8,
+            )
+        ]
+        editor["sync_callback"]()
+        result = adapter.layout
+        assert adapter.selection == selected
+        assert events == ["sync", "commit"]
+        assert result == composition.app._phase6_input_snapshot["receiving_layout"]
+        row = result["sets"][0]
+        refs = row["settings"]["tail_features"]["refs"]
+        assert len(set(refs.values())) == 1
+        assert adapter._session_dirty_ids == {
+            bay["stable_id"] for bay in row["bays"]
+        }
+        assert all(
+            api.project_receiving_shared_setting_group(row, index, "tail_features")[0]
+            == candidate_features
+            for index in range(3)
+        )
+        assert linked == before
+    finally:
+        api.project_receiving_endcap_hole_editor_context = original_project
+
+    assert ae_engine.share_and_edit_receiving_shared_setting_with_affected_ids is (
+        api.share_and_edit_receiving_shared_setting_with_affected_ids
+    )
+    caller = getsource(receiving_settings_ports)
+    callback = caller.split("        def save_features():", 1)[1].split(
+        "        host._open_unified_hole_editor(", 1
+    )[0]
+    assert "adapter.share_and_update_setting(kind, features, targets)" in callback
+    assert "adapter.share_setting(kind, targets)" not in callback
+    assert "adapter.select_bay(targets[0] + 1)" not in callback
+
+
+@pytest.mark.parametrize("invalid", ("invalid", object(), 5))
+def test_atomic_endcap_multi_bay_engine_rejects_bad_feature_without_share(invalid):
+    from copy import deepcopy
+    import ae_engine
+
+    raw = _multi_bay_shared_setting_layout()
+    before = deepcopy(raw)
+    adapter = ReceivingSetBayAdapter(raw)
+    with pytest.raises(ValueError):
+        api.share_and_edit_receiving_shared_setting_with_affected_ids(
+            raw, set_index=0, bay_indices=(0, 2),
+            source_bay_index=0, kind="tail_features", value=[invalid],
+        )
+    with pytest.raises(ValueError):
+        adapter.share_and_update_setting("tail_features", [invalid], (0, 2))
+    assert adapter.layout == before == raw
+    assert adapter._session_dirty_ids == set()
+
+
+def test_atomic_endcap_engine_invalid_late_target_and_generator_inputs():
+    from copy import deepcopy
+
+    raw = _multi_bay_shared_setting_layout()
+    before = deepcopy(raw)
+    with pytest.raises(IndexError):
+        api.share_and_edit_receiving_shared_setting_with_affected_ids(
+            raw, set_index=0, bay_indices=(0, 99),
+            source_bay_index=0, kind="head_features", value=[],
+        )
+    assert raw == before
+    candidate, affected_ids = api.share_and_edit_receiving_shared_setting_with_affected_ids(
+        raw, set_index=0, bay_indices=(i for i in (2, 0)),
+        source_bay_index=2, kind="head_features", value=[],
+    )
+    assert candidate == api.edit_receiving_shared_setting(
+        api.share_receiving_shared_setting(
+            raw, set_index=0, bay_indices=(2, 0),
+            source_bay_index=2, kind="head_features",
+        ), set_index=0, bay_index=2, kind="head_features", value=[],
+    )
+    assert affected_ids == tuple(candidate["sets"][0]["bays"][i]["stable_id"] for i in (0, 2))

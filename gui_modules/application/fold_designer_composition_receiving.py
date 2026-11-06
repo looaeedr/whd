@@ -974,10 +974,12 @@ def receiving_settings_ports(self, namespace, set_index):
             current = adapter.selection.bay_index
             targets = (current,) if indices is None else tuple(indices)
             if len(targets) > 1:
-                adapter.select_bay(targets[0] + 1)
-                adapter.share_setting(kind, targets)
-            adapter.update_setting(kind, features)
-            adapter.select_bay(current + 1)
+                # One operator save must not persist a link if Engine rejects
+                # the subsequent feature value. The first highlighted Bay is
+                # the original link source; leave current UI selection intact.
+                adapter.share_and_update_setting(kind, features, targets)
+            else:
+                adapter.update_setting(kind, features)
             commit()
 
         host._open_unified_hole_editor(
