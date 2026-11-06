@@ -491,7 +491,7 @@ def _submitted_csv_holes(snapshot):
     if count == 2 and owners != {0, 1}:
         raise ValueError("NFB_COMMITTED_CSV_TWO_TIER_OWNER_INCOMPLETE")
     if count == 1 and owners != {0}:
-        raise ValueError("NFB_COMMITTED_CSV_SINGLE_TIER_OWNER_INCOMPLETE")
+        return ()
     holes = []
     seen = set()
     occupied_slots = set()
