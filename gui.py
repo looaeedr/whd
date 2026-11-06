@@ -145,7 +145,6 @@ from ae_engine.corner_type_ui import (
     normalize_custom_model_name,
     new_manual_corner_pair_same_state,
     new_manual_corner_state,
-    known_model_corner_state,
     policy_from_corner_state,
     build_corner_type_preview_geometry,
     apply_box_assembly_type, assembly_type_from_corner_state,
@@ -617,30 +616,31 @@ class Phase6ApplicationHost:
         return manufacturing_api.project_operator_endcap_depth_comp_t(source)
 
     def _known_corner_state_for_current_family(self, parts):
-        return known_model_corner_state(
+        return manufacturing_api.operator_known_model_corner_state(
             parts, cabinet_family=Phase6ApplicationHost._current_cabinet_type_name(self)
         )
 
     def _enforce_known_model_corner_types(self, *, reset_all=False):
-        """Keep known-model CornerType fixed while allowing same-type parameter overrides."""
+        """Apply only the fully validated typed Engine/Registry corner draft."""
         model = str(self.baseline_var.get() if hasattr(self, "baseline_var") else "").strip()
-        if not model or is_unknown_model(model):
-            return
-        fixed = self._known_corner_state_for_current_family(self.manual_corner_state.keys())
-        for part_key, corners in fixed.items():
-            if part_key not in self.manual_corner_state:
-                continue
-            for corner_key, fixed_selection in corners.items():
-                current = normalize_corner_selection(self.manual_corner_state[part_key][corner_key])
-                if reset_all or current.type_id is not fixed_selection.type_id:
-                    self.manual_corner_state[part_key][corner_key] = fixed_selection
-            if reset_all and part_key in self.manual_corner_pair_same:
-                self.manual_corner_pair_same[part_key]["top"] = True
-                self.manual_corner_pair_same[part_key]["bottom"] = True
-
-
-
-
+        next_state, next_pairs = manufacturing_api.propose_operator_known_model_corner_draft(
+            self.manual_corner_state, self.manual_corner_pair_same,
+            baseline_model=model,
+            cabinet_family=Phase6ApplicationHost._current_cabinet_type_name(self),
+            reset_all=reset_all,
+        )
+        # Install only after Engine validates the entire candidate.
+        # Preserve original nested dicts used by live GUI subscribers.
+        for part_key, updated in next_state.items():
+            existing = self.manual_corner_state[part_key]
+            if existing != updated:
+                existing.clear()
+                existing.update(updated)
+        for part_key, updated in next_pairs.items():
+            existing = self.manual_corner_pair_same[part_key]
+            if existing != updated:
+                existing.clear()
+                existing.update(updated)
 
 
     def _phase6_external_sync_envelope(self, delta):
