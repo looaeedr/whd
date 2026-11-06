@@ -746,7 +746,22 @@ compatibility delegation; this API does not certify new 2D/CUTTING/DXF output.
 
 ### #2517 Receiving CSV NFB committed-source Apply transaction (2026-11-04)
 
-`manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)` performs the existing CSV NFB provenance query, mixed CUTTING guard and Bay-specific identity replacement atomically inside WHD Engine. The source must contain exactly one valid physical inner-door NFB CSV candidate; it rejects invalid/bool/out-of-range/duplicate Set/Bay selections, stale/missing CSV hole source and mixed non-NFB CUTTING. It returns a detached Receiving layout without mutating caller input or siblings and preserves `UNVERIFIED_BASIS` for unconfirmed horizontal X. This is **source-only candidate assignment**, not authorization of physical X/CUTTING, a manufacturing output, source-only external export or DXF certification. CADSplit's existing bridge currently uses the three component public ports and must separately adopt the shared operation; this WHD API addition does not establish Windows end-to-end UAT. See `tests/test_issue2517_receiving_nfb_csv_candidate_public_api.py`.
+`manufacturing_api.apply_receiving_nfb_csv_candidate(layout, *, set_index, bay_indices, source)` performs the existing CSV NFB provenance query, mixed CUTTING guard and Bay-specific identity replacement atomically inside WHD Engine. The source must contain exactly one valid physical inner-door NFB CSV candidate; it rejects invalid/bool/out-of-range/duplicate Set/Bay selections, stale/missing CSV hole source and mixed non-NFB CUTTING. It returns a detached Receiving layout without mutating caller input or siblings and preserves `UNVERIFIED_BASIS` for unconfirmed horizontal X. This is **source-only candidate assignment**, not authorization of physical X/CUTTING, a manufacturing output, source-only external export or DXF certification. The canonical entry is available through both `from ae_engine import apply_receiving_nfb_csv_candidate` and `from ae_engine.manufacturing_api import apply_receiving_nfb_csv_candidate`; both names refer to the **same** Engine function. CADSplit's current source bridge calls this atomic Engine operation when available, retaining older three-port fallback only for older Engine versions; this does not establish Windows end-to-end UAT.
+
+Minimal same-process call (the `source` must already contain a real, confirmed `NFB_CSV_SOURCE` `ProfileFeature`, not just a brand/model name):
+
+```python
+from ae_engine import apply_receiving_nfb_csv_candidate
+
+next_layout = apply_receiving_nfb_csv_candidate(
+    saved_layout,
+    set_index=0,
+    bay_indices=(0, 1),
+    source=confirmed_nfb_candidate,  # layers, models, features from the verified editor
+)
+# next_layout is detached; caller persists it only after its own Confirm.
+# X is still UNVERIFIED_BASIS. Never treat this as a manufacturing DXF approval.
+``` See `tests/test_issue2517_receiving_nfb_csv_candidate_public_api.py`.
 
 `manufacturing_api.candidate_committed_csv_nfb_config(source)` validates a
 single certified CSV-backed inner-door physical source and rejects mixed

@@ -128,3 +128,21 @@ def test_public_csv_apply_rejects_incomplete_or_mixed_cutting_without_partial_co
             original, set_index=0, bay_indices=(0, 1), source=mixed,
         )
     assert original == before
+
+def test_package_public_api_reexports_same_atomic_csv_apply():
+    """Both supported import paths must expose one real Engine transaction."""
+    import ae_engine
+
+    assert "apply_receiving_nfb_csv_candidate" in ae_engine.__all__
+    public_apply = ae_engine.apply_receiving_nfb_csv_candidate
+    assert public_apply is manufacturing_api.apply_receiving_nfb_csv_candidate
+
+    layout = _layout()
+    source = _source()
+    expected = manufacturing_api.apply_receiving_nfb_csv_candidate(
+        layout, set_index=0, bay_indices=(0, 1), source=source,
+    )
+    actual = public_apply(
+        layout, set_index=0, bay_indices=(0, 1), source=source,
+    )
+    assert actual == expected
