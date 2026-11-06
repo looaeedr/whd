@@ -61,4 +61,6 @@ def test_real_gui_staged_and_single_candidate_confirm_use_public_engine_only():
     assert confirm.count("manufacturing_api.prepare_receiving_inner_door_physical_confirm(") == 2
     assert 'adapter.apply_inner_door_candidate_to_bays(' in confirm
     assert "create_inner_candidate(" in confirm and "update_inner_candidate(" in confirm
-    assert "manufacturing_api.preview_quantity_inner_door_confirm(" in confirm
+    assert "manufacturing_api.commit_receiving_quantity_inner_door_confirm(" in confirm
+    assert "quantity.set_version_nfb_config(" not in confirm
+    assert "self.app._phase6_input_snapshot.clear()" not in confirm
