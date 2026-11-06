@@ -544,3 +544,57 @@ def test_csv_candidate_uses_original_bay_door_partition_and_rejects_fabrication(
             project, set_index=0, bay_index=0, thickness_mm=2,
             layers=1, models=[["nfbv5:士林:2P400"], ""],
         )
+
+
+
+def test_fresh_csv_candidate_native_initial_x_cannot_manufacture_without_placement():
+    """An Engine-generated visual X is not a user-placed physical NFB X.
+
+    This regression uses the real fresh Receiving inner door, actual native
+    numeric CSV features, original Engine Apply and selected Bay projection.
+    It must refuse to promote a default cursor position into FinalScene
+    merely because the feature's four corners match the current CSV.
+    """
+    from ae_engine.cabinet_types.policy import derive_inner_door_panels
+    from ae_engine.receiving_layout import (
+        RECEIVING_DOOR_STATE_KEYS, project_receiving_bay_legacy_aliases,
+    )
+    from ae_engine.receiving_nfb_committed_final_scene import (
+        _source_world_x_from_committed_editor_feature, _submitted_csv_holes,
+    )
+
+    fresh = manufacturing_api.fresh_receiving_mode(
+        "set_bay", {"w": 800, "h": 1600, "d": 350}, thickness=2,
+    )
+    layout = deepcopy(fresh["receiving_layout"])
+    layout["sets"][0]["switch_brand"] = "士林"
+    layout["sets"][0]["bays"][0]["door_state"] = {
+        k: deepcopy(fresh[k]) for k in RECEIVING_DOOR_STATE_KEYS
+        if k in fresh
+    }
+    candidate = manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay(
+        layout, set_index=0, bay_index=0, thickness_mm=2,
+        layers=1, models=[["nfbv5:士林:2P400"], ""],
+    )
+    assert all(
+        dict(f.source_params)["placement"] == "native_editor_initial"
+        for f in candidate["features"]["inner_door:upper:panel"]
+    )
+    applied = manufacturing_api.apply_receiving_nfb_csv_candidate(
+        layout, set_index=0, bay_indices=(0,), source=candidate,
+    )
+    projected = project_receiving_bay_legacy_aliases(
+        {**fresh, "receiving_layout": applied},
+        set_index=0, bay_index=0, validate_common=False,
+    )
+    panel = next(
+        p for p in derive_inner_door_panels(projected)
+        if str(p.cell_key).endswith(":0")
+    )
+    hole = projected["nfb_config"]["holes"][0]
+    assert hole["manual_x_state"] == "UNVERIFIED_BASIS"
+    assert hole["manual_x_mm"] is None
+    assert _source_world_x_from_committed_editor_feature(
+        projected, panel, hole, brand="士林", model="2P400",
+    ) is None
+    assert _submitted_csv_holes(projected) == ()
