@@ -101,6 +101,17 @@ def _confirmed_door_source_features(raw, *, part_keys):
     return verified
 
 
+def _confirmed_base_plate_source_features(raw):
+    """Admit only saved, source-confirmed physical BasePlate CUTTING DTOs."""
+    code = "RECEIVING_FACTORY_BASE_SOURCE_FEATURES_INVALID"
+    try:
+        return _confirmed_finished_face_cutting_features(
+            raw, allowed_roles={"base_plate"}, invalid_code=code,
+        )
+    except (AttributeError, TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(code) from exc
+
+
 def _source_dimensions(value: Mapping[str, object]) -> dict[str, float]:
     """Accept only original-source OUTSIDE W/H/D/T; never factory values."""
     if not isinstance(value, Mapping) or set(value) != _SOURCE_KEYS:
@@ -279,7 +290,9 @@ def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation, co
 
 
 
-def _confirmed_saved_ordinary_base_plate(values, *, structure, body_rows):
+def _confirmed_saved_ordinary_base_plate(
+    values, *, structure, body_rows, confirmed_features=None,
+):
     """Materialize an explicitly saved ordinary Base Plate using Engine owners.
 
     NFB-submitted base plates, tiers, PADs and welded EARs are separate
@@ -316,14 +329,21 @@ def _confirmed_saved_ordinary_base_plate(values, *, structure, body_rows):
         RECEIVING_BASE_PATTERN_LEFT, RECEIVING_BASE_PATTERN_RIGHT,
     ):
         raise ValueError("RECEIVING_FACTORY_ORDINARY_BASE_PATTERN_UNVERIFIED")
-    # Saved base CUTTING features have separate authoring/provenance.  Never
-    # silently omit holes or accept an unverified feature into the new path.
+    # The original typed saved Hole Editor source and separately confirmed
+    # physical CUTTING must match exactly. Never silently drop a saved hole,
+    # accept an unsaved caller hole, or derive geometry in CADSplit.
+    confirmed = _confirmed_base_plate_source_features(confirmed_features)
+    input_rows = confirmed.get("base_plate", ())
     stored_features = values.get("part_features", {})
-    if not isinstance(stored_features, Mapping) or stored_features.get("base_plate"):
+    if not isinstance(stored_features, Mapping):
+        raise ValueError("RECEIVING_FACTORY_BASE_FEATURE_SOURCE_UNCONFIRMED")
+    saved_rows = stored_features.get("base_plate", ())
+    if (not isinstance(saved_rows, (tuple, list))
+            or tuple(saved_rows) != tuple(input_rows)):
         raise ValueError("RECEIVING_FACTORY_BASE_FEATURE_SOURCE_UNCONFIRMED")
     base_values = {**values, **physical, "model": _FAMILY}
     spec = build_base_plate_operator_part_spec(
-        base_values, features=(),
+        base_values, features=input_rows,
         box_body_structure_state=structure, box_body_fold_profile=body_rows,
     )
     if spec.physical_id != "base_plate" or spec.receiving_nfb_depth_pair_mm is not None:
@@ -339,6 +359,7 @@ def build_receiving_factory_confirmed_parts(
     confirmed_door_layout_columns=(),
     confirmed_door_features: Mapping[str, object] | None = None,
     include_confirmed_base_plate: bool = False,
+    confirmed_base_plate_features: Mapping[str, object] | None = None,
 ):
     """Resolve a confirmed Receiving P1/Bay's Body, Head and Tail via WHD Engine.
 
@@ -367,6 +388,8 @@ def build_receiving_factory_confirmed_parts(
         raise ValueError("RECEIVING_DOOR_LAYOUT_REQUIRED_FOR_FEATURES")
     if include_confirmed_base_plate and confirmation != "saved_operator_confirmed":
         raise ValueError("RECEIVING_FACTORY_BASE_REQUIRES_SAVED_OPERATOR_CONFIRMATION")
+    if confirmed_base_plate_features is not None and not include_confirmed_base_plate:
+        raise ValueError("RECEIVING_FACTORY_BASE_SELECTION_REQUIRED_FOR_FEATURES")
 
     if confirmation == "fresh_family_confirmed":
         if operator_snapshot is not None:
@@ -433,5 +456,6 @@ def build_receiving_factory_confirmed_parts(
     if include_confirmed_base_plate:
         parts.append(_confirmed_saved_ordinary_base_plate(
             values, structure=structure, body_rows=body_rows,
+            confirmed_features=confirmed_base_plate_features,
         ))
     return tuple(parts)
