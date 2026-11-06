@@ -442,6 +442,23 @@ def candidate_receiving_nfb_csv_for_fresh_bay(
         "layer_heights_mm": heights,
     }
     features = editor_nfb_features_from_csv(selected, source)
+    # The *automatic fresh-Bay caller* has not gone through the operator's
+    # actual original Hole Editor Confirm All.  Preserve the established
+    # native_editor_initial visual placement (also used by the GUI), but
+    # distinguish these machine-generated candidates from a GUI-confirmed
+    # physical editor source.  CSV SHA, geometry and candidate Apply alone
+    # must never promote this automatic initial X to machining geometry.
+    from dataclasses import replace as replace_feature
+    features = tuple(
+        replace_feature(
+            feature,
+            source_params=(
+                *feature.source_params,
+                ("fresh_bay_auto_unconfirmed", True),
+            ),
+        )
+        for feature in features
+    )
     part_ids = {dict(feature.source_params).get("part_id") for feature in features}
     if len(part_ids) != 1 or not all(part_ids):
         raise ValueError("NFB_CSV_CANDIDATE_ORIGINAL_INNER_DOOR_REQUIRED")
