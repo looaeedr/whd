@@ -143,7 +143,6 @@ from ae_engine.sheetmetal_geometry import (
 
 from ae_engine.corner_type_ui import (
     CUSTOM_MODEL_NAME, LEGACY_CUSTOM_MODEL_NAMES,
-    normalize_custom_model_name,
 )
 
 from phase6_endcap_semantics import (
@@ -447,10 +446,10 @@ def _phase6_sync_registry_diagnostics_compatibility_mirrors(
 
 def _phase6_registry_load_rule_rows(self):
     """Load Registry rows through the existing controller; no Tk ownership here."""
-    from ae_engine.certified_relief_registry import load_external_relief_rule_records
-
     controller = _phase6_registry_diagnostics(self)
-    rows = controller.load_rule_records(loader=load_external_relief_rule_records)
+    rows = controller.load_rule_records(
+        loader=manufacturing_api.operator_load_certified_relief_rule_records,
+    )
     _phase6_sync_registry_diagnostics_compatibility_mirrors(self, controller)
     return rows
 
@@ -2063,7 +2062,7 @@ def _phase6_prepare_predecessor_init(self, root, snapshot):
     self._phase6_current_project_path = str(snapshot.get("_runtime_project_path") or "").strip() or None
     self._factory_defaults = dict(snapshot.get("factory_defaults") or {})
     self._baseline_models = list(snapshot.get("baseline_models") or ())
-    self._phase6_baseline_initial_model = normalize_custom_model_name(snapshot.get("model"))
+    self._phase6_baseline_initial_model = manufacturing_api.operator_normalize_custom_model_name(snapshot.get("model"))
     if self._phase6_baseline_initial_model and self._phase6_baseline_initial_model not in self._baseline_models:
         self._baseline_models.append(self._phase6_baseline_initial_model)
     self._baseline_unknown_value = str(snapshot.get("baseline_unknown_value") or CUSTOM_MODEL_NAME).strip()

@@ -391,9 +391,15 @@ from .sheetmetal_part_adapters import (
 from .cabinet_types import policy as cabinet_family_policy
 from .cabinet_types.policy import door_material_frame_width, box_body_symmetry_allowed
 from .cabinet_types.registry import resolve_cabinet_type
-from .certified_relief_registry import build_relief_promotion_candidate
+from .certified_relief_registry import (
+    build_relief_promotion_candidate,
+    load_external_relief_rule_records as operator_load_certified_relief_rule_records,
+)
 # Fold Designer's certified CornerType seed is the original Registry-backed owner.
-from .corner_type_ui import known_model_corner_state as operator_known_model_corner_state
+from .corner_type_ui import (
+    known_model_corner_state as operator_known_model_corner_state,
+    normalize_custom_model_name as operator_normalize_custom_model_name,
+)
 
 # Public, identity-preserving Engine operator Family policy projections.
 # GUI adapters must not import the private Family policy owner directly.
