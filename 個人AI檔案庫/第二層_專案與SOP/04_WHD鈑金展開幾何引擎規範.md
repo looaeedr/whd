@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 GUI 啟動手動截角／Joint 快照公開 Engine（2026-11-06）
+
+- `gui_modules/application/state_sync.py` 的初始手動截角與已存 INI 恢復沿用原 `CornerTypeSelection` 型別：`new_manual_corner_state`、`new_manual_corner_pair_same_state`、`assembly_type_from_corner_state`、`apply_box_assembly_type` 原先全部從內部 `ae_engine.corner_type_ui` 直接匯入並使用；原 `migrate_legacy_snapshot_joints` 則直接從私有 `assembly_joint` 匯入。現在四個 typed Engine owner 以 `manufacturing_api.operator_new_manual_corner_state`、`operator_new_manual_corner_pair_same_state`、`operator_assembly_type_from_corner_state`、`operator_apply_box_assembly_type`（根包亦公開）同一 callable 引出；Joint 直接復用已有 `migrate_operator_assembly_joint_snapshot`。GUI 不重寫預設值、Factory／Joint 拓樸、既有保存格式或截角幾何。
+- 既有 `corner_state_transactions.commit_corner_*` 是另一種持久化 raw payload 的公開交易，不會直接改當前 live `CornerTypeSelection` State；本次只釋出原 typed Engine owner，不複製方法或製造公式。測試覆蓋公開與內部 owner identity、GUI 啟動初始化／手動狀態投影 parity、invalid assembly type 與 future Joint schema 不變更來源、保存 codec roundtrip。HEAD／TAIL 真實 2D／3D／DXF 與 Save→Reload 由 exact-SHA 完整產品回歸核對；Windows R5 UAT 仍待人工執行，#2517 仍 OPEN。
+
 ## [CURRENT] #2517 GUI 手動截角編輯公開 Engine 與失敗隔離（2026-11-06）
 
 - `gui.py` 手動截角面板的「左右共用開關」及「截角類型／CROSS 模式／參數」原有四處直接呼叫 `ae_engine.corner_type_ui` 的原地寫入函式。由於這裡的 live state 持有 `CornerTypeSelection`，而既有 `corner_state_transactions.commit_corner_*` 服務的是序列化 raw state，不可不經轉換直接換成不同表示；此批讓 GUI 改呼叫 `manufacturing_api.operator_set_manual_corner_pair_same`、`manufacturing_api.operator_apply_manual_corner_selection`（根包亦公開），兩者與原 Engine owner 是**同一 callable**，不新增製造公式或第二套交易推導。
