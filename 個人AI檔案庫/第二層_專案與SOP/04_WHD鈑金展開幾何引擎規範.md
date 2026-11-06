@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 普通受電箱底板已確認 Hole Editor CUTTING 經公開 Factory API 真正出圖（2026-11-06）
+
+- 現行原 `manufacturing_api.build_receiving_factory_confirmed_parts` 的選配普通底板原先直接拒絕所有已保存 `part_features["base_plate"]`，即使是完整可信來源，導致 GUI 有保存孔但 headless/CADSplit 只能製造無自訂孔底板或被阻擋。向後相容新增 `confirmed_base_plate_features={"base_plate": (原 typed Feature, ...)}`：僅 `saved_operator_confirmed`、`include_confirmed_base_plate=True`、普通 LEFT/RIGHT、未提交 NFB，且傳入 typed `ABSOLUTE_FINISHED_FACE` + `CUTTING` 實體 Feature 與原保存孔資料逐一相同，才由原 `build_base_plate_operator_part_spec` 建出帶完整實孔的 canonical BasePlatePartSpec。
+- `ManufacturingResolvedBayInput.confirmed_base_plate_features` 經原 `export_verified_resolved_integration_bays` 轉入同一 Engine 工廠 builder，重用已認證物理 FinalScene、EAR slots、原子 DXF writer、獨立 Save→Reload；未提供孔位確認但原保存有孔、傳入未保存孔／不符孔、錯 role／layer／anchor、超出實體底板輪廓、未選底板或已提交 NFB 都完整拒絕，不靜默漏孔。沒有新增第二份底板幾何公式或 CADSplit 專用製造器。
+- `tests/test_issue2517_receiving_factory_source_engine_part_specs.py` 包含真確認孔→六張實 DXF、原始孔 CIRCLE CUTTING 與 canonical RenderData 回讀一致、source guard 前後兩次，及負向拒絕／沒有部分 DXF。這是普通底板逐片製造，**不是** NFB CENTER/tier、PAD、焊 EAR 元件、16 Bay 全櫃 MFG-2 或 Windows R5 認證；#2517 保持 OPEN。
+
+
 ## [CURRENT] #2517 Receiving Factory EndCap 必須共享 GUI 原始 BoxBody Fold 裝配 FW（2026-11-06）
 
 - `build_receiving_factory_confirmed_parts` 由已保存或已明確確認 Family 來源建立 Head/Tail PartSpec 時，必須將其同一 Engine `body_rows` 直接傳入原 `build_endcap_operator_part_spec(..., box_body_fold_profile=body_rows)`。原 Factory 之前雖已保留 BoxBody Fold 並確認 EndCap X/Y、Corner，但漏傳兩側成形 FW 的來源，使此 API 與 GUI 同一物理 EndCap 的 `box_body_formed_fw_left/right` 不同。現在由同一 Engine owner 根據真實相鄰 BEND/T 計算，不從 CADSplit／GUI 另算或猜測，且不改 Fold／CUTTING 公式。
