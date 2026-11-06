@@ -438,3 +438,109 @@ def test_headless_csv_apply_keeps_real_hole_source_through_finalscene_and_dxf_re
         parts[0].render_data, output,
     ).ok
     assert physical_snapshot == before
+
+
+
+def _fresh_csv_only_physical_source():
+    """Two real named Bays; Engine alone creates inner-door source drafts."""
+    original = _layout()
+    seed = manufacturing_api.fresh_receiving_mode(
+        "set_bay", {"w": 800, "h": 1600, "d": 350}, thickness=2,
+    )
+    for bay in original["sets"][0]["bays"]:
+        bay["door_state"] = {
+            "multi_door_enabled": True,
+            "door_layout_columns": deepcopy(seed["door_layout_columns"]),
+        }
+    original["sets"][0]["switch_brand"] = "士林"
+    return original
+
+
+@pytest.mark.parametrize("model,count", (
+    ("2P400", 1), ("2P400", 2),
+))
+def test_fresh_real_bay_builds_legitimate_nfb_source_only_from_current_csv(
+    model, count,
+):
+    """No earlier NFB_CSV_SOURCE, old DXF, or operator world-X is needed."""
+    original = _fresh_csv_only_physical_source()
+    saved = deepcopy(original)
+    models = [["nfbv5:士林:" + model] * count, ""]
+    source = manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay(
+        original, set_index=0, bay_index=1, thickness_mm=2,
+        layers=1, models=models,
+    )
+    assert original == saved
+    assert tuple(source["features"]) == ("inner_door:upper:panel",)
+    features = source["features"]["inner_door:upper:panel"]
+    assert len(features) == count
+    assert all(
+        f.source_type == "NFB_CSV_SOURCE" and f.layer == "CUTTING"
+        and dict(f.source_params)["placement"] == "native_editor_initial"
+        and len(dict(f.source_params)["csv_sha256"]) == 64
+        for f in features
+    )
+    config = manufacturing_api.candidate_committed_csv_nfb_config(source)
+    assert len(config["holes"]) == count
+    assert all(
+        h["manual_x_mm"] is None
+        and h["manual_x_state"] == "UNVERIFIED_BASIS"
+        for h in config["holes"]
+    )
+    applied = manufacturing_api.apply_receiving_nfb_csv_candidate(
+        original, set_index=0, bay_indices=(1,), source=source,
+    )
+    assert applied["sets"][0]["bays"][0].get("nfb_config_submitted") is not True
+    bay = applied["sets"][0]["bays"][1]
+    assert bay["nfb_config_submitted"] is True
+    assert len(bay["nfb_config"]["holes"]) == count
+    assert all(h["manual_x_mm"] is None for h in bay["nfb_config"]["holes"])
+
+
+@pytest.mark.parametrize("change,error", (
+    ("no_brand", "NFB_CSV_CANDIDATE_CONFIRMED_BRAND_REQUIRED"),
+    ("no_door", "NFB_CSV_CANDIDATE_REAL_DOOR_SOURCE_REQUIRED"),
+    ("wrong_brand", "NFB_CSV_CANDIDATE_BRAND_MISMATCH"),
+    ("incomplete_numeric", "NFB_CSV_CANDIDATE_NUMERIC_CSV_INCOMPLETE"),
+    ("bad_set", "NFB_CSV_CANDIDATE_SET_INVALID"),
+    ("bad_bay", "NFB_CSV_CANDIDATE_BAY_INVALID"),
+))
+def test_fresh_csv_candidate_rejects_unconfirmed_physical_source_without_writes(
+    change, error,
+):
+    source = _fresh_csv_only_physical_source()
+    models = [["nfbv5:士林:2P400"], ""]
+    kw = {"set_index": 0, "bay_index": 0, "thickness_mm": 2,
+          "layers": 1, "models": models}
+    if change == "no_brand":
+        source["sets"][0].pop("switch_brand")
+    elif change == "no_door":
+        source["sets"][0]["bays"][0].pop("door_state")
+    elif change == "wrong_brand":
+        kw["models"] = [["nfbv5:東元:2P400"], ""]
+    elif change == "incomplete_numeric":
+        kw["models"] = [["nfbv5:士林:2PBH"], ""]
+    elif change == "bad_set":
+        kw["set_index"] = True
+    elif change == "bad_bay":
+        kw["bay_index"] = -1
+    before = deepcopy(source)
+    with pytest.raises(ValueError, match=error):
+        manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay(
+            source, **kw,
+        )
+    assert source == before
+
+
+def test_csv_candidate_uses_original_bay_door_partition_and_rejects_fabrication():
+    project = _fresh_csv_only_physical_source()
+    project["sets"][0]["bays"][0]["door_state"]["door_layout_columns"] = [
+        [800, [1000, 600]],
+    ]
+    with pytest.raises(
+        ValueError, match="NFB_CSV_CANDIDATE_INNER_DOOR_TOPOLOGY_REQUIRED",
+    ):
+        manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay(
+            project, set_index=0, bay_index=0, thickness_mm=2,
+            layers=1, models=[["nfbv5:士林:2P400"], ""],
+        )

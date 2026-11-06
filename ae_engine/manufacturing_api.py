@@ -2329,7 +2329,10 @@ from .operator_project_persistence import (
 # #2517: original inner-door NFB editor physical-source stage is Engine-owned.
 from .receiving_nfb_hole_stage import plan_operator_inner_door_nfb_hole_stage
 # #2517: original Receiving NFB CSV editing geometry is a public Engine API.
-from .receiving_nfb_csv_editor_features import editor_nfb_features_from_csv
+from .receiving_nfb_csv_editor_features import (
+    editor_nfb_features_from_csv,
+    candidate_receiving_nfb_csv_for_fresh_bay,
+)
 
 # #2517: physical Receiving BasePlate Part Session source is Engine-owned.
 from .operator_part_session_profiles import (

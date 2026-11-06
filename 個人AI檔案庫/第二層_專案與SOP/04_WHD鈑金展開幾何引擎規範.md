@@ -1906,3 +1906,10 @@ Fold Designer `save_current_part` 不應根據 GUI 內的 `model` 字面值或�
 - 原 `gui_modules/application/fold_designer_snapshot_projection._snapshot_part_dimensions` 以 Python `float(self.door_indicator_offset_x/y)` 將即時使用者數值寫入 `door_indicator_offset` 保存快照，能把 `True` 變成 1 mm 或將 NaN/Inf 直接寫進 Project；同一指示燈 Hole Editor／正式 Feature 製造路徑的 `ae_engine.fold_designer_snapshot_dimensions.normalize_operator_hole_editor_indicator_state` 已嚴格拒絕非有限偏移，GUI/Headless 來源不同權威。
 - 現在上述原 Engine owner 抽出 `normalize_fold_designer_indicator_offsets(x, y)` 並經**既有** `manufacturing_api` 公開，Hole Editor 與原 Fold Designer Project Save 共用同一個有限非布林檢查。合法帶正負號位置、零與小數精度原樣保留；X、Y 任一無效則在 GUI 改變任一 Snapshot 欄位之前拒絕，無 1 mm/0 mm 杜撰 fallback。不改 `door_indicator_offset` 的 tuple/JSON list wire、門格的正式儲存 DTO、Hole Editor 模式、CUTTING 孔位公式或 DXF/外部 CLI 資格。
 - 驗收 `tests/test_issue2517_fold_designer_indicator_offset_engine_api.py` 與 `test_issue2517_fold_designer_snapshot_dimensions_engine_api.py`，包括 Vault/Receiving、正負偏移、Headless 與 GUI 共用 API、JSON Save→Reload、禁布林/NaN/Inf、未修改快照及現有產品／GUI API Gate 回歸；#2517 OPEN。
+
+
+## [CURRENT] #2517 NFB CSV 直接建立可稽核的原生 Bay 候選（2026-11-06）
+
+- 原生 NFB 的尺寸、開口與螺絲規格唯一來源是當前 WHD 各廠牌 `NFB數值規格.csv`，不要求已有 NFB DXF 或另一份已提交的 `NFB_CSV_SOURCE`。原始 CADSplit DXF 只供盤位／設備型式與物理身份證據，不是 V5 製造幾何規格。
+- 公開 `manufacturing_api.candidate_receiving_nfb_csv_for_fresh_bay` 以確認的原生 Set 廠牌、合法 V5 型號、真 Bay W/H/D/T、已確認 Door source Partition，沿既有 Engine `fresh_receiving_mode`／Bay projection／`editor_nfb_features_from_csv` 產生 CSV SHA、原生內門 part_id、實體 slot 及可核對 CUTTING 矩形之**未確認草稿**；不在 CADSplit 複製幾何算法。已有提交的 Bay 不可覆寫。
+- 只為編輯位置提供 Engine 一層 550mm 或兩層 330/830mm 既有預設；未證實的 X 必為 `UNVERIFIED_BASIS` 與 `manual_x_mm=None`。原生 Apply 只提交來源，不能自動變成 FinalScene MFG 或全箱 DXF 放行。缺型號數值、缺廠牌、非預設分割卻缺內門身份都拒絕，不允許從另個 Bay 偷借來源或虛構物理 X。
