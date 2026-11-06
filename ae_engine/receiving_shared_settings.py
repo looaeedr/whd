@@ -205,6 +205,35 @@ def setting_value(set_row, bay_index, kind):
     return deepcopy(row["values"][row["refs"][bay["stable_id"]]])
 
 
+
+# Distinguish a caller's explicit None (legacy height source) from no UI preview.
+_RECEIVING_SHARED_PREVIEW_UNSET = object()
+
+
+def project_receiving_shared_setting_group(
+    set_row, bay_index, kind, *, preview_value=_RECEIVING_SHARED_PREVIEW_UNSET,
+):
+    """Read-only one physical Bay value and the actual Bays with equal values.
+
+    Only Engine owns saved shared-setting references and typed source values.
+    GUI may request a prospective operator value solely for highlighting;
+    no source/linked reference is changed or certified by this projection.
+    Returns a detached value and zero-based physical Bay indices.
+    """
+    if not isinstance(set_row, Mapping) or not isinstance(
+        set_row.get("bays"), (list, tuple)
+    ):
+        raise ValueError("每連設定來源不合法")
+    value = setting_value(set_row, bay_index, kind)
+    if preview_value is not _RECEIVING_SHARED_PREVIEW_UNSET:
+        value = validate_setting(kind, preview_value)
+    matching = tuple(
+        index for index in range(len(set_row["bays"]))
+        if setting_value(set_row, index, kind) == value
+    )
+    return value, matching
+
+
 def edit_setting(layout, *, set_index, bay_index, kind, value):
     from ae_engine.receiving_layout import normalize_receiving_layout
     result = normalize_receiving_layout(layout)

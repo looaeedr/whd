@@ -528,6 +528,14 @@ The operator-facing `receiving_multi_settings_window` uses the existing public `
 
 The candidate quantity draft has only count/assignment state, not a saved physical Bay. `ReceivingQuantityAllocationUI.paint()` must obtain the two-door **schematic** seam from the existing `manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)` Engine Family projection, not embed the `1100/1600` dimension ratio in GUI. Actual Bay sketches still use the same Engine API with the saved Bay source; if a complex real door grid is not representable as one horizontal split, no fake seam can be manufactured from this view. This only changes readonly Tk presentation; it does not authorize physical Doors, FinalScene, CUTTING or DXF.
 
+## #2517 Receiving shared-setting physical Bay equality and switch-brand operator APIs
+
+`manufacturing_api.receiving_operator_switch_brand_choices() -> tuple[str, ...]` returns the exact immutable choices from `receiving_switch_layout.RECEIVING_SWITCH_BRANDS` for both original Receiving selectors. It neither chooses a physical CSV source nor approves a vendor/model for manufacturing; existing `require_receiving_operator_brand` continues to enforce allowed selection.
+
+`manufacturing_api.project_receiving_shared_setting_group(set_row, bay_index, kind, *, preview_value=<omitted>) -> (value, zero_based_bay_indices)` is a read-only Engine projection of **actual saved physical Set/Bay** shared-setting values and their equality group. It delegates to the original `receiving_shared_settings.setting_value` and `validate_setting` source owners; an optional explicit operator preview value is validated and compared without modifying any saved Bay or linked references. The returned value is detached, and matching physical indices are immutable. Invalid Bay indices/kinds or malformed preview settings fail closed; omitted preview and explicit `None` are distinct (needed for legacy NFB height state). `ReceivingSetBayControls` GUI uses this instead of its own comparison across Bay refs. Its selected/highlighted/proposed state remains presentation-only; actual Apply/share/unlink still use original atomic public Engine transactions.
+
+These APIs are data readback/operator presentation contracts, not new FinalScene, NFB CUTTING, Registry certification or DXF authorization.
+
 ## Receiving candidate quantity draft API (#2517)
 
 `manufacturing_api.AllocationDraft` and `validate_quantity_allocation` are public
