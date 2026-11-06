@@ -180,6 +180,16 @@ def _source_world_x_from_committed_editor_feature(
     if len(matches) != 1:
         raise ValueError("NFB_CSV_EDITOR_DUPLICATE_COMMITTED_OPENING")
     feature, params = matches[0]
+    # #2517: the *automatic fresh-Bay* CSV generator carries the
+    # fresh_bay_auto_unconfirmed marker. The candidate's mathematically
+    # centered, source-hashed rectangle is an EDITOR preview, not evidence
+    # that any operator physically placed it. Refuse only this automatic
+    # source: the existing original Hole Editor Confirm All is a separate,
+    # operator-confirmed physical-source path and must retain its 2D/3D/DXF.
+    # A separately validated NFBConfig CONFIRMED X is handled before this
+    # fallback and requires a current physical datum.
+    if params.get("fresh_bay_auto_unconfirmed") is True:
+        return None
     csv_sha = sha256(brand_csv_path(brand).read_bytes()).hexdigest()
     spec = model_spec(brand, model)
     if (params.get("brand") != brand or params.get("model") != model
