@@ -528,6 +528,12 @@ The operator-facing `receiving_multi_settings_window` uses the existing public `
 
 The candidate quantity draft has only count/assignment state, not a saved physical Bay. `ReceivingQuantityAllocationUI.paint()` must obtain the two-door **schematic** seam from the existing `manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)` Engine Family projection, not embed the `1100/1600` dimension ratio in GUI. Actual Bay sketches still use the same Engine API with the saved Bay source; if a complex real door grid is not representable as one horizontal split, no fake seam can be manufactured from this view. This only changes readonly Tk presentation; it does not authorize physical Doors, FinalScene, CUTTING or DXF.
 
+## #2517 Receiving physical Bay dimension group public API
+
+`manufacturing_api.project_receiving_bay_dimension_groups(bays)` (also `ae_engine.project_receiving_bay_dimension_groups`) exposes the existing Receiving Layout owner as a read-only projection over the **persisted physical Bay W/H/D sources**. It returns `((W,H,D), (zero_based_bay_indices, ...))` groups in first-appearance order. It validates all three dimensions using the original Engine positive-finite, non-boolean numeric source check; invalid/missing source dimensions fail closed. Nonadjacent Bays with equal dimensions remain distinct physical indices and are counted separately.
+
+The original multi-settings `dimension_group_summary` now only forwards to this public API. This is an operator confirmed-size/count table, not another Set/Bay state owner or manufacturing export authorization; existing Engine Bay edit/Factory/NFB/FinalScene/DXF validation remains unchanged.
+
 ## #2517 Receiving inner-door NFB slot-source public API
 
 ## #2517 Live NFB V5 model catalog content SHA snapshot (read-only)
