@@ -1781,6 +1781,13 @@ from .receiving_nfb_pair_export import (
 )
 
 
+# #2517: public atomic multi-Bay CSV NFB request -> verified physical DXFs.
+from .receiving_nfb_batch_pair_export import (
+    NfbCsvMultiBayPartOnlyDxf,
+    export_receiving_committed_nfb_csv_bays,
+)
+
+
 # #2517: read-only Receiving NFB physical-manifest safety before GUI disclosure.
 from .receiving_nfb_manifest_validation import (
     validate_receiving_nfb_manifest_view,
