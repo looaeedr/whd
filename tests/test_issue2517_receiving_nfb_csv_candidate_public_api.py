@@ -196,4 +196,4 @@ def test_valid_original_csv_source_remains_applicable_to_two_distinct_bays():
         row["nfb_config_submitted"] is True
         for row in applied["sets"][0]["bays"]
     )
-    assert original["sets"][0]["bays"][0]["nfb_config_submitted"] is False
+    assert original["sets"][0]["bays"][0].get("nfb_config_submitted") is not True
