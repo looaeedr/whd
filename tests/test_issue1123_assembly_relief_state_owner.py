@@ -255,7 +255,7 @@ def test_composition_save_and_replay_are_public_engine_only():
         node.name: ast.get_source_segment(source, node)
         for node in tree.body if isinstance(node, ast.FunctionDef)
     }
-    assert "manufacturing_api.build_current_source_signature(" in (
+    assert "manufacturing_api.build_operator_current_relief_source_signature(" in (
         methods["current_relief_source_signature"] or ""
     )
     assert "manufacturing_api.build_persisted_relief_state(" in (
