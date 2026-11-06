@@ -849,6 +849,27 @@ def project_receiving_bay_legacy_aliases(
 
 
 
+def project_receiving_bay_dimension_groups(bays):
+    """Project actual persisted Bay W/H/D groups in physical Bay order.
+
+    This is a read-only operator summary, not a manufacturing certification.
+    The same canonical Receiving source validation rejects invalid dimensions.
+    """
+    if not isinstance(bays, (list, tuple)):
+        raise ValueError("Receiving dimension groups require physical Bays")
+    groups = {}
+    for index, bay in enumerate(bays):
+        if not isinstance(bay, Mapping):
+            raise ValueError("Receiving dimension-group Bay must be a mapping")
+        dimensions = tuple(
+            _number(bay.get(axis), label=f"Receiving Bay {axis}")
+            for axis in ("width", "height", "depth")
+        )
+        groups.setdefault(dimensions, []).append(index)
+    return tuple((dimensions, tuple(indices))
+                 for dimensions, indices in groups.items())
+
+
 def project_receiving_joint_alignment_editability(
     set_row: Mapping[str, object], joint_index: int
 ) -> dict[str, bool]:

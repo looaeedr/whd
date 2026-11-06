@@ -220,12 +220,8 @@ def paint_one_cabinet(canvas, dimensions, door_columns=None):
 
 
 def dimension_group_summary(bays):
-    """Derive arbitrary-sized W/H/D groups from canonical physical Bays."""
-    rows = {}
-    for index, bay in enumerate(bays):
-        key = tuple(float(bay[field]) for field in ("width", "height", "depth"))
-        rows.setdefault(key, []).append(index)
-    return tuple((dimensions, tuple(indices)) for dimensions, indices in rows.items())
+    """Compatibility view; Engine alone groups physical Bay source sizes."""
+    return manufacturing_api.project_receiving_bay_dimension_groups(bays)
 
 
 def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
