@@ -2119,6 +2119,7 @@ from .receiving_layout import (
     append_receiving_set, receiving_destructive_tail_ids,
     resize_receiving_sets, update_receiving_bay,
     receiving_joint_alignment_editability, project_receiving_joint_alignment_editability,
+    project_receiving_bay_dimension_groups,
     update_receiving_joint_alignment,
     project_receiving_bay_legacy_aliases,
 )
