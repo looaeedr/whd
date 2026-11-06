@@ -1735,11 +1735,8 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         create_inner_candidate, update_inner_candidate,
         delete_inner_candidate, duplicate_inner_candidate,
     )
-    from ae_engine.receiving_inner_door_pairing import validate_inner_door_allocation
-    from ae_engine.receiving_hole_candidates import version_label
-    from ae_engine.receiving_shared_settings import setting_value, switch_filenames_in_layer, pack_switch_layer, validate_setting, SETTING_DEFAULTS
-    from ae_engine.receiving_switch_model_catalog import model_filenames, INDEX_PATH
-    from ae_engine.receiving_nfb_model_identity import (
+,    from ae_engine.receiving_shared_settings import setting_value, switch_filenames_in_layer, pack_switch_layer, validate_setting, SETTING_DEFAULTS
+,    from ae_engine.receiving_nfb_model_identity import (
         display_model_ref, validate_stored_model_ref,
     )
     from ae_engine.receiving_nfb_numeric_catalog import brand_csv_path
@@ -1880,7 +1877,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         frame.pack(fill="both", expand=True)
         modal._receiving_editor_scroll = modal_scroll
         ttk.Label(frame, text="內門｜" + ("即時" if version_id is None
-                        else version_label(version_id))).pack(anchor="w")
+,
         # Inner-door layer count IS the NFB mounting tier count. One Tk
         # value drives original candidate data, UI-1A draft and preview.
         # Keep the old name as an alias for stable existing test/GUI ports,
@@ -2927,17 +2924,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             raise ValueError("內門版本權責錯誤")
         persist_inner(delete_inner_candidate(inner_library(), version_id))
 
-    def verify_inner_models(config):
-        selected_brand = current_nfb_parent_brand()
-        allowed = (set(manufacturing_api.list_receiving_nfb_model_refs(selected_brand))
-                   | set(model_filenames(selected_brand)))
-        for layer_slot in config["models"][:config["layers"]]:
-            for name in switch_filenames_in_layer(layer_slot):
-                if name not in allowed:
-                    raise ValueError(
-                        "內門版本型號已不在廠牌 CSV，請重新編輯選擇：" + name
-                    )
-
+,
     def inner_apply(role, version_id, set_index, highlighted):
         if role != INNER_ROLE or version_id is None or not highlighted:
             raise ValueError("請選內門版本及實際連位")
@@ -2953,8 +2940,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         return True
 
     def inner_validate_quantity(quantities, assigned, expected_counts):
-        plan = validate_inner_door_allocation(
-            candidate_adapter().layout, inner_library(), quantities, assigned,
+,            candidate_adapter().layout, inner_library(), quantities, assigned,
             expected_counts=expected_counts,
         )
         for _si, _bi, config in plan:
