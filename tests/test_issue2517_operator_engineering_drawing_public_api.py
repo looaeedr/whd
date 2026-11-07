@@ -114,3 +114,49 @@ def test_shared_gui_render_overlay_default_routes_public_engine_and_not_internal
         isinstance(node, ast.ImportFrom) and node.module == "ae_engine.engineering_drawing"
         for node in ast.walk(tree)
     )
+
+
+
+def test_primary_gui_2d_annotation_routes_public_projection(monkeypatch):
+    import gui
+
+    captured = {}
+
+    def capture(*args, **kwargs):
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        return "primary annotation"
+
+    monkeypatch.setattr(gui, "_draw_phase6_annotation_projection_impl", capture)
+    canvas, source, transform = object(), _render_data(), object()
+    assert gui._draw_phase6_annotation_projection(
+        canvas, source, transform, part_key="box_body", strict=True,
+    ) == "primary annotation"
+    assert captured["args"] == (canvas, source, transform)
+    assert captured["kwargs"]["part_key"] == "box_body"
+    assert captured["kwargs"]["strict"] is True
+    assert captured["kwargs"]["projection_builder"] is (
+        manufacturing_api.project_operator_engineering_drawing_annotations
+    )
+
+
+def test_primary_gui_2d_canvas_transform_routes_public_engine(monkeypatch):
+    import gui
+
+    captured = {}
+
+    def capture(*args, **kwargs):
+        captured.update(kwargs)
+        return "primary viewport"
+
+    monkeypatch.setattr(gui, "_phase6_2d_material_viewport_impl", capture)
+    assert gui._phase6_2d_material_viewport((0, 0, 100, 60), 640, 480) == "primary viewport"
+    assert captured["transform_type"] is manufacturing_api.CanvasTransform
+    source = Path(gui.__file__).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    assert not any(
+        isinstance(node, ast.ImportFrom)
+        and node.module == "ae_engine.engineering_drawing"
+        for node in ast.walk(tree)
+    )
+    assert "transform = manufacturing_api.CanvasTransform(" in source
