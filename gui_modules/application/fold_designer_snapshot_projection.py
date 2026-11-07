@@ -99,13 +99,15 @@ def _snapshot_base_state(self):
         ),
         "box_body_active_piece": box_body_active_piece,
     }
-    if getattr(self, "door_layout_columns", None):
-        snapshot["door_layout_columns"] = [
-            [float(width), [float(v) for v in heights]]
-            for width, heights in self.get_door_layout_columns()
-        ]
-    else:
-        snapshot["door_layout_columns"] = []
+    # Physical Door-grid W/H and topology are normalized by Engine, not by
+    # GUI float coercion (which could turn invalid bool into 1 mm).
+    door_columns = (
+        self.get_door_layout_columns()
+        if getattr(self, "door_layout_columns", None) else ()
+    )
+    snapshot["door_layout_columns"] = (
+        manufacturing_api.project_operator_saved_door_layout_columns(door_columns)
+    )
 
     settings = dict(self._collect_main_setting_values())
     snapshot.update({key: value for key, value in settings.items() if key in snapshot})
