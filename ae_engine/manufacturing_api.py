@@ -1512,6 +1512,7 @@ from .operator_receiving_inner_door_source import (
     project_operator_receiving_inner_door_enabled_source,
     apply_operator_receiving_inner_door_presence,
     apply_operator_receiving_inner_door_inward_offset,
+    project_operator_receiving_inner_door_cell_source,
 )
 
 
