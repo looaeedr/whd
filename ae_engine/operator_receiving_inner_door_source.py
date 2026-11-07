@@ -156,3 +156,21 @@ def apply_operator_receiving_inner_door_inward_offset(
         raise ValueError(f"door cell has no enabled inner door: {key!r}")
     target["inward_offset_mm"] = offset
     return staged, offset
+
+
+def project_operator_receiving_inner_door_cell_source(rows, *, cell_key):
+    """Read one saved physical Door cell without GUI-owned identity matching.
+
+    All stored rows are validated first, including duplicates unrelated to the
+    selected cell. Returned values are detached copies; absent stays None.
+    Only operator source is projected, not NFB or manufacturing verification.
+    """
+    if not isinstance(cell_key, str) or not cell_key.strip():
+        raise ValueError("內門門格來源無效")
+    key = cell_key.strip()
+    receiving_inner_door_stable_id_for_cell(key)
+    staged = _stage_operator_receiving_inner_door_rows(rows)
+    return next(
+        (item for item in staged if item["cell_key"].strip() == key),
+        None,
+    )
