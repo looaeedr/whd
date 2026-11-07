@@ -421,7 +421,6 @@ def unlink_setting(layout, *, set_index, bay_index, kind):
     row["refs"][bay_id] = ref
     return normalize_receiving_layout(result)
 
-
 def unlink_setting_with_affected_ids(layout, *, set_index, bay_index, kind):
     """Detach an actual linked physical Bay and report its former link group.
 
