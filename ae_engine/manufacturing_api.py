@@ -63,6 +63,7 @@ from .integration_api import (
 )
 from .cabinet_types.policy import (
     resolve_box_body_back_panel_contract, base_plate_requires_explicit_bend_pattern,
+    corner_data_back_panel_mode_applicable as operator_corner_data_back_panel_mode_applicable,
     require_implemented_manufacturing_family,
     apply_fresh_family_defaults as operator_apply_fresh_family_defaults,
     resolve_box_body_structure_state as operator_resolve_box_body_structure_state,
@@ -647,7 +648,6 @@ def resolve_operator_fold_designer_payload_corner_policy(
         policy, part_key, family_source=family_source,
         structure_state=structure_state, thickness=thickness,
     )
-
 
 def resolve_operator_snapshot_corner_policy(
     part_key, *, corner_state=None, input_snapshot=None,

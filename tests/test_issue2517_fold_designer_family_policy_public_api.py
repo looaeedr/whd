@@ -51,7 +51,10 @@ def test_fold_designer_gui_does_not_import_internal_family_policy_or_registry():
     for source in (bridge, corner):
         assert "from ae_engine.cabinet_types import policy as cabinet_family_policy" not in source
         assert "cabinet_family_policy." not in source
-        assert "manufacturing_api.operator_canonical_family_name(" in source
+    assert "manufacturing_api.operator_canonical_family_name(" in bridge
+    # Corner Data now forwards its raw Family + physical topology to one
+    # public Engine eligibility API, rather than projecting Family in the GUI.
+    assert "manufacturing_api.operator_corner_data_back_panel_mode_applicable(" in corner
     assert "from ae_engine.cabinet_types.registry import" not in bridge
     assert "manufacturing_api.resolve_cabinet_type(model)" in bridge
     assert "from ae_engine.certified_relief_registry import" not in corner
