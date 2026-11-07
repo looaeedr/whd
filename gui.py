@@ -1314,18 +1314,18 @@ class Phase6ApplicationHost:
         return manufacturing_api.receiving_inner_door_stable_id_for_cell(cell_key)
 
     def _receiving_inner_door_enabled(self, cell_key):
-        key = str(cell_key or "").strip()
-        return any(
-            isinstance(item, dict) and str(item.get("cell_key") or "").strip() == key
-            for item in list(getattr(self, "receiving_inner_doors", []) or [])
-        )
+        # A duplicate/malformed saved physical source must never be hidden by
+        # GUI's first-match selection or silent row filtering.
+        return manufacturing_api.project_operator_receiving_inner_door_cell_source(
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key,
+        ) is not None
 
     def _receiving_inner_door_inward_offset(self, cell_key):
-        key = str(cell_key or "").strip()
-        item = next((
-            item for item in list(getattr(self, "receiving_inner_doors", []) or [])
-            if isinstance(item, dict) and str(item.get("cell_key") or "").strip() == key
-        ), None)
+        item = manufacturing_api.project_operator_receiving_inner_door_cell_source(
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key,
+        )
         return manufacturing_api.resolve_operator_receiving_inner_door_inward_offset(
             {"model": str(self.baseline_var.get() or "").strip()}, item,
         )
