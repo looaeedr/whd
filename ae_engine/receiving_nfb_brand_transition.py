@@ -139,6 +139,33 @@ def project_receiving_parent_brand_change_impact(source, proposed_brand, *, mode
 
 
 
+def update_receiving_one_set_nfb_parent_brand(layout, set_index, proposed_brand):
+    """Commit one selected real Set's inherited NFB brand as an atomic Layout.
+
+    The complete persisted Layout is verified before selecting the Set.  A
+    rejected brand, malformed Set identity or invalid saved source cannot
+    partially change the caller's Layout, its holes or approved world X.
+    """
+    from .receiving_layout import normalize_receiving_layout
+
+    try:
+        _require_brand(proposed_brand)
+    except ValueError as exc:
+        raise ValueError("不支援的開關品牌") from exc
+    if type(set_index) is not int:
+        raise ValueError("Receiving Set index must be an integer")
+    candidate = normalize_receiving_layout(layout)
+    if not 0 <= set_index < len(candidate["sets"]):
+        raise IndexError("Receiving Set index out of range")
+
+    updated, changed = rebase_receiving_set_parent_nfb_brand(
+        candidate["sets"][set_index], proposed_brand,
+    )
+    if changed:
+        candidate["sets"][set_index] = updated
+    return candidate, changed
+
+
 def update_receiving_all_set_nfb_parent_brand(layout, proposed_brand):
     """Atomically rebase every real Set's parent brand via the existing owner.
 

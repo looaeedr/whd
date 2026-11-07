@@ -270,14 +270,11 @@ class ReceivingSetBayAdapter:
         self.mark_current_bay_dirty()
 
     def set_brand(self, brand):
-        brand = manufacturing_api.require_receiving_operator_brand(brand)
-        candidate = deepcopy(self._layout)
-        index = self.selection.set_index
-        updated, changed = manufacturing_api.rebase_receiving_set_parent_nfb_brand(
-            candidate["sets"][index], brand,
+        """GUI supplies one selected Set; Engine owns the whole brand transaction."""
+        candidate, changed = manufacturing_api.update_receiving_one_set_nfb_parent_brand(
+            self._layout, self.selection.set_index, brand,
         )
         if changed:
-            candidate["sets"][index] = updated
             self._layout = candidate
 
     def apply_candidate_to_bays(self, role, set_index, bay_indices, features, *, version_id=None):
