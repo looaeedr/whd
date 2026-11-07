@@ -136,6 +136,34 @@ class ReceivingSetBayAdapter:
         if self._confirm_destructive(protected) is not True:
             raise ReceivingDestructiveEditConfirmationRequired(protected)
 
+    def apply_set_delta(self, delta: int) -> bool:
+        """Commit an Engine Set +/- only after destructive removal consent.
+
+        No physical Set/Bay/Joints or GUI selection/bookkeeping is changed
+        when validation fails, the operator declines deletion, or the current
+        Set count is already at its minimum.
+        """
+        candidate, removed, changed = (
+            manufacturing_api.adjust_receiving_operator_set_count_with_removed_ids(
+                self._layout, delta=delta,
+            )
+        )
+        if not changed:
+            return False
+        self._confirm_if_required(removed)
+        self._layout = candidate
+        self._persisted_ids.difference_update(removed)
+        self._session_dirty_ids.difference_update(removed)
+        selected_set = min(self._selection.set_index, len(candidate["sets"]) - 1)
+        selected_bay = min(
+            self._selection.bay_index,
+            len(candidate["sets"][selected_set]["bays"]) - 1,
+        )
+        self._selection = ReceivingSelection(
+            set_index=selected_set, bay_index=selected_bay,
+        )
+        return True
+
     def set_bay_count(self, bay_count: int) -> None:
         wanted = _operator_integer(bay_count, "Bay count")
         candidate, removed = manufacturing_api.resize_receiving_operator_topology_with_removed_ids(
@@ -459,14 +487,10 @@ class ReceivingSwitchProjectionAdapter:
         return self.adapter.set_brand(brand)
 
     def add_layer(self):
-        self.adapter.set_set_count(len(self.adapter.layout["sets"]) + 1)
+        return self.adapter.apply_set_delta(1)
 
     def remove_layer(self):
-        count = len(self.adapter.layout["sets"])
-        if count == 1:
-            return False
-        self.adapter.set_set_count(count - 1)
-        return True
+        return self.adapter.apply_set_delta(-1)
 
     def resize_connections(self, index, delta):
         # Validate both operator inputs before selecting or resizing any Bay.

@@ -6,6 +6,15 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 實體 +套／−套改為公開 Engine Set 數量交易（2026-11-07）
+
+- 舊 ReceivingSwitchProjectionAdapter.add_layer/remove_layer 在 GUI 使用 len(layout["sets"]) +/- 1 直接推導正式物理 Set 數量、最低 Set1 限制，再叫絕對數量 Engine API。這項正式 Set/Bay/Joint 拓樸規則應由 Engine 決定，GUI 只提交 +/- 操作及確認被移除的已保存來源。
+- 新增 ae_engine.receiving_layout.adjust_receiving_operator_set_count_with_removed_ids(layout, *, delta)，從 manufacturing_api 與根包 ae_engine 公開同一 callable。完整驗證 canonical layout 與純整數 delta，原子投影 max(1, count+delta) Set1 最小數量，復用原 resize_receiving_operator_topology_with_removed_ids 的正式新 Set 來源、真實 removed Set/Bay/Joint IDs 與不可重用的盤名序號；回傳 detached (layout, removed_ids, changed)，沒有變化不留假 dirty，原來源不改。
+- GUI ReceivingSetBayAdapter.apply_set_delta 先取 Engine 完整候選及真實 removed IDs，沿既有 persisted／session dirty 刪除確認；確認後才一次提交 layout、protected IDs、現在 selection。原 ReceivingSwitchProjectionAdapter.add_layer/remove_layer 只委派這個動作，沒有第二套業務件數算法。刪除拒絕或 Engine 失敗不影響選取、保存狀態或原始工單。
+- 同時期 PR #3033 正在處理跨 Set +/- Bay，這批 Set 專項不實作第二份 Bay delta；現有 Bay 改動與絕對 resize 原子契約不受此變更影響。無新增 Family W/H/D、NFB 孔、PartSpec／FinalScene 或 DXF 製造資格。驗收使用 Engine Set resize 實體 ID 對照、盤名單調遞增、no-op、拒絕保護、GUI 真按鈕接線與 Save→Reload，再由 exact-SHA GitHub CI 完整回歸。
+
+
+
 ## [CURRENT] #2517 封頭／封尾 FW 操作候選對來源有效性 fail closed（2026-11-07）
 
 - 原公開 `operator_endcap_fw_override` 仍透過 `_num(value)` 將非法操作者 FW 預設為 0，對 `NaN`／`Inf` 也未阻擋；`operator_endcap_fw_follow` 對字串 `"false"` 使用 `bool(...)` 造成錯誤跟隨，且兩者都在已確認 Settings box-FW 欄位缺失／損壞時套入預設 25。這些都可能污染 Head/Tail 的正式四態製造來源，不符合操作者 FW＝包外尺寸的 CURRENT 07。
