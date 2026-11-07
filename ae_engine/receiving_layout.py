@@ -1214,6 +1214,26 @@ def resize_receiving_operator_topology_with_removed_ids(
     return candidate, tuple(removed)
 
 
+def adjust_receiving_operator_set_count_with_removed_ids(layout, *, delta):
+    """Resolve +/- physical Sets and their true deleted IDs in one Engine call.
+
+    The UI submits only the operator delta. The canonical Engine enforces the
+    permanent Set1 rule and stages new Set/Bay identity from the existing
+    absolute resize. Removal consent remains with the GUI before commit.
+    """
+    if type(delta) is not int:
+        raise ValueError("Receiving Set delta must be an integer")
+    source = normalize_receiving_layout(layout)
+    count = len(source["sets"])
+    wanted = max(1, count + delta)
+    if wanted == count:
+        return source, (), False
+    candidate, removed = resize_receiving_operator_topology_with_removed_ids(
+        source, set_count=wanted,
+    )
+    return candidate, removed, True
+
+
 def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]:
     """Stable physical Set/Bay/Joint IDs in original canonical saved order."""
     normalized = normalize_receiving_layout(layout)
