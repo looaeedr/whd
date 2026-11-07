@@ -63,7 +63,12 @@ def test_set_plus_minus_and_minimum_preserve_physical_identity():
     shrunk, removed, changed = api.adjust_receiving_operator_topology_with_removed_ids(
         grown, delta=-1,
     )
-    assert changed and shrunk == source
+    expected_shrunk, _ = api.resize_receiving_operator_topology_with_removed_ids(
+        grown, set_count=1,
+    )
+    assert changed and shrunk == expected_shrunk
+    # Once assigned, a deleted panel number may not be reused.
+    assert shrunk["next_panel_number"] == grown["next_panel_number"]
     assert set(removed) == {"receiving:set:2", "receiving:set:2:bay:1"}
     unchanged, nothing, changed = api.adjust_receiving_operator_topology_with_removed_ids(
         source, delta=-1,
