@@ -173,6 +173,7 @@ def test_true_text_operator_delta_and_gui_delegation():
     assert "max(1" not in source
     assert "select_set(" not in source
     core = getsource(ReceivingSetBayAdapter.resize_connections)
-    assert "api.resize" not in core
+    assert "max(1" not in core
+    assert "select_set(" not in core
     assert "manufacturing_api.resize_receiving_operator_connections_by_delta_with_removed_ids(" in core
     assert core.index("self._confirm_if_required(removed)") < core.index("self._layout = candidate")
