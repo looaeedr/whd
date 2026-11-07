@@ -411,6 +411,20 @@ from .corner_type_ui import (
 # Public, identity-preserving Engine operator Family policy projections.
 # GUI adapters must not import the private Family policy owner directly.
 operator_canonical_family_name = cabinet_family_policy.canonical_family_name
+
+def operator_resolve_legacy_baseline_manufacturing_family(source_model) -> str:
+    """Project the existing legacy GUI baseline onto a registered Engine Family.
+
+    This preserves the historical main-GUI fallback to the Vault family for
+    unregistered baseline folders/Custom; it does not certify an unknown
+    model or bypass manufacturing Family eligibility checks.
+    """
+    value = operator_normalize_custom_model_name(source_model)
+    try:
+        return resolve_cabinet_type(value).canonical_name
+    except (KeyError, ValueError):
+        return "金庫型"
+
 operator_family_fixes_box_body_structure = cabinet_family_policy.family_fixes_box_body_structure
 operator_box_body_profile_uses_outside_dimensions = cabinet_family_policy.box_body_profile_uses_outside_dimensions
 operator_supports_bottom_wrap_controls = cabinet_family_policy.supports_bottom_wrap_controls

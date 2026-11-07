@@ -24,7 +24,6 @@ from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from ae_engine.cabinet_types import (
     policy as cabinet_family_policy,
     registered_cabinet_types,
-    resolve_cabinet_type,
 )
 PHASE6_BUILD_ID = "RECEIVING_MODEL_SINGLE_SOURCE_20260824_0701"
 from ae_engine.contracts import (
@@ -134,7 +133,6 @@ from ae_engine.corner_type_ui import (
     apply_manual_corner_selection,
     with_unknown_model,
     is_unknown_model,
-    normalize_custom_model_name,
     new_manual_corner_pair_same_state,
     new_manual_corner_state,
     known_model_corner_state,
@@ -280,13 +278,8 @@ def _current_cabinet_type_name(self):
         value = var.get() if var is not None else "金庫型"
     except Exception:
         value = "金庫型"
-    value = normalize_custom_model_name(value)
-    try:
-        return resolve_cabinet_type(value).canonical_name
-    except (KeyError, ValueError):
-        # Existing baseline folders and 自訂 still use the legacy vault
-        # manufacturing family unless a registered family name is selected.
-        return "金庫型"
+    # The legacy default and registered Family identity are Engine-owned.
+    return manufacturing_api.operator_resolve_legacy_baseline_manufacturing_family(value)
 
 def _apply_manual_corner_snapshot(self, corner_state=None, pair_same=None):
     """Restore the entire saved Corner draft only after Engine validation."""
@@ -459,7 +452,7 @@ def _apply_phase6_project_snapshot(self, snapshot):
     self.workspace_controller.reset_receiving_mode_session()
     self._reset_manual_corner_parameter_locks()
     snapshot = deepcopy(dict(snapshot or {}))
-    model = normalize_custom_model_name(snapshot.get("model"))
+    model = manufacturing_api.operator_normalize_custom_model_name(snapshot.get("model"))
     # Migration for the short-lived split-state build: cabinet_type and
     # model represented the same operator choice. Prefer 受電箱 when that
     # legacy field says receiving, then discard the duplicate state.
@@ -928,7 +921,7 @@ def _apply_fold_designer_live_snapshot(self, payload):
             self._phase6_last_fold_designer_fingerprint=str(payload.get("fingerprint") or "")
             self._phase6_last_fold_designer_live_payload=deepcopy(payload)
             return True
-        model = normalize_custom_model_name(payload.get("model"))
+        model = manufacturing_api.operator_normalize_custom_model_name(payload.get("model"))
         baseline_changed = self.baseline_var.get().strip() != model
         if baseline_changed:
             self._fold_designer_baseline_commit_guard = True

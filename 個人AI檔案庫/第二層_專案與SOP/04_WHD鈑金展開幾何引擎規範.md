@@ -44,6 +44,12 @@ whd_schema: WHD_DOC_META_V1
 
 
 
+## [CURRENT] #2517 主 GUI 專案讀回與 Legacy 基準箱型身份全面經公開 Engine（2026-11-07）
+
+- `gui_modules/application/lifecycle.py::_current_cabinet_type_name` 原在 GUI 自行調用私有 Family Registry 及自訂型號正規化，決定已註冊箱型／舊版未知基準目錄的 Legacy Family；`_apply_phase6_project_snapshot` 與 Live FoldDesigner 更新也直接調用私有自訂型號 codec。
+- 現由公開 Engine `manufacturing_api.operator_resolve_legacy_baseline_manufacturing_family` 封裝**現有** `normalize_custom_model_name`＋`resolve_cabinet_type` 的 Family 身分選路，連同原有「未註冊或自訂目錄使用舊金庫型基準」相容語意一起移出 GUI；已註冊但未實作的 `RO` 仍保留 RO 身分，不能偽裝金庫型進製造。兩個 Project／3D 保存模型讀取直接走既有 `operator_normalize_custom_model_name`。
+- 此 API 只投影既有 Legacy Family 身分，**不是**未知型號製造許可；Family Registry、Factory Policy、未實作 Family 的 fail-closed 製造閘門原封不動。新測試覆蓋 aliases、舊自訂名、未實作 Family、GUI 實際呼叫與非法公開 Engine 拒絕不改來源；無新板件公式、幾何、2D／3D／DXF exporter。#2517 全面驗收與 Windows R5 UAT 仍 OPEN。
+
 ## [CURRENT] #2517 主 GUI 已保存手動截角快照完整還原只由公開 Engine 原子候選（2026-11-07）
 
 - 原 `gui_modules/application/lifecycle.py::_apply_manual_corner_snapshot` 在 Project／Family runtime 恢復時由 GUI 逐角解析 raw `CornerTypeSelection` 並原地寫入 `manual_corner_state`／`manual_corner_pair_same`，再用已認證 Family 修正；後段來源或 Registry 錯誤可能留下前段已寫入的實體截角。
