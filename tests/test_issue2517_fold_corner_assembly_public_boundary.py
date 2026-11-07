@@ -97,3 +97,56 @@ def test_corner_legacy_mapping_is_original_engine_callable_and_gui_uses_public_a
     assert "from ae_engine.assembly_intent import" not in semantics
     fold = Path("phase6_fold_profiles.py").read_text(encoding="utf-8")
     assert "angle = -angle" not in fold
+
+
+def test_manual_corner_summary_and_icon_route_legacy_normalization_through_public_engine(monkeypatch):
+    """Real panel readbacks cannot normalize manufacturing CornerType privately."""
+    from gui_modules.parts.panels import assembly_corner
+    from ae_engine.sheetmetal_geometry import CrossCornerMode
+
+    called = []
+    original = manufacturing_api.operator_normalize_corner_selection
+
+    def public(selection):
+        called.append(selection)
+        return original(selection)
+
+    monkeypatch.setattr(manufacturing_api, "operator_normalize_corner_selection", public)
+
+    class Host:
+        _CORNER_MODE_LABELS = {CrossCornerMode.STANDARD: "標準"}
+        _CORNER_DIRECTION_LABELS = {}
+        _corner_number_text = staticmethod(str)
+
+    class Canvas:
+        def __init__(self):
+            self.lines = []
+        def delete(self, target):
+            assert target == "all"
+        def cget(self, key):
+            return {"width": "110", "height": "90"}[key]
+        def create_line(self, *coords, **kwargs):
+            self.lines.append((coords, kwargs))
+
+    selection = CornerTypeSelection(CornerTypeId.CROSS)
+    prior = deepcopy(selection)
+    assert assembly_corner.corner_parameter_summary(Host, selection) == "標準"
+    canvas = Canvas()
+    assembly_corner.draw_corner_type_icon(None, canvas, selection)
+    assert called == [selection, selection]
+    assert selection == prior
+    assert canvas.lines
+
+
+def test_assembly_corner_gui_has_no_internal_corner_normalize_call():
+    import ast
+    from gui_modules.parts.panels import assembly_corner
+    path = Path(assembly_corner.__file__)
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    assert not any(
+        isinstance(node, ast.ImportFrom) and node.module == "ae_engine.sheetmetal_geometry"
+        and any(alias.name == "normalize_corner_selection" for alias in node.names)
+        for node in ast.walk(tree)
+    )
+    source = path.read_text(encoding="utf-8")
+    assert source.count("manufacturing_api.operator_normalize_corner_selection(") == 2
