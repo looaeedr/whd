@@ -13,6 +13,13 @@ whd_schema: WHD_DOC_META_V1
 - GUI 只收編輯器操作者 Features、captured version ID，呼叫公開 API 後沿原 `changed()` 傳播；僅當實際修改且當前選中版本相同才觸發 2D geometry refresh，跨版本 modeless editor 的 inactive 修改不多算一次幾何計算。既有金庫型／受電箱 Quantity 都走同一入口，沒有新增孔位公式、實體 Bay、出圖或 NC 製造資格。測試覆蓋 root/facade、非法來源與版號不修改、跨版本保存、callback rollback、GUI 真實 port 及 Save→Reload；完整 2D／3D／DXF exact-SHA 回歸仍需 GitHub Actions 驗證。
 
 
+
+## [CURRENT] #2517 Registry 候選保存／認證的 GUI 私有 Engine 匯入收斂為公開 API（2026-11-07）
+
+- Fold Designer Registry 的公式預檢、九組條件矩陣、候選保存及驗證後升級原由 `gui_modules/application/fold_designer_composition_registry_edges.py` 在事件函式內直接匯入 `ae_engine.certified_relief_registry`，包含私有 `_validate_editable_rule_record` 與兩個會寫入 Registry 的 backend。
+- `manufacturing_api` 與 `ae_engine` 根包現公開 `validate_operator_relief_registry_rule_record`、`evaluate_operator_relief_registry_formula_record`、`save_operator_relief_registry_candidate`、`promote_operator_relief_registry_candidate`，**全部為原 Engine callable 的 identity-preserving aliases**，沿用原候選隔離、公式白名單、回歸證據與 candidate-specific 3D 證據、版次認證、原子 JSON 寫入規則。GUI 原 Controller 僅安排時序、傳入操作者資料和可見狀態，不再引用 Registry 私有實作。無新截角公式／Policy／幾何／DXF 輸出。
+- 驗收 `tests/test_issue2517_relief_registry_candidate_public_api.py` 核對公開 callable identity、原候選的真實檔案存取、非法公式及不具完整證據無候選／認證寫入、GUI 實際委派函式；最終 canonical Product Regression 在 GitHub Actions 上核對。#2517 與 Windows UAT 不因此結案。
+
 ## [CURRENT] #2517 單只尺寸 W/H/D＋數量版本件數由公開 Engine 完整交易（2026-11-07）
 
 - `fold_designer_composition_receiving` 的單只尺寸設定舊路徑：GUI 直接引入 `phase6_quantity_model.QuantityModel`，自己讀選中版本數量，接受操作者 W/H/D/件數後自行 `set_piece_count`、`update_common_box`、覆寫 `candidate["quantity"]`，再做 `require_valid_operator_quantity_features`。這些版本與實體尺寸關聯的結果是製造來源，不能讓 GUI 擁有跨兩個 Engine 入口的交易順序。
