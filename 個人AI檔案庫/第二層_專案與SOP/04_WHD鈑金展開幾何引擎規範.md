@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 數量孔型版本控制列的件數與最後版本資格由公開 Engine 投影（2026-11-07）
+
+- 原 GUI quantity_version_controls.py::refresh 自行使用 len(rows) 與 sum(piece_count) 計算製造數量，delete 又自行透過版本長度決定能否刪掉最後孔型版本。真實 QuantityModel 雖已由 Engine 管理，GUI 卻保有第二套版本下限和總件數計算。
+- ae_engine.receiving_quantity_versions.project_operator_quantity_version_controls(payload) 透過 QuantityModel.from_payload 完整驗證原 schema、版本身分與件數，回傳拷貝的原版本欄位及 version_count、total_piece_count、selected_piece_count、can_delete_selected。manufacturing_api 與 root ae_engine 公開同一 callable，金庫型和受電箱 Quantity 共用；不建立另一個保存來源。
+- GUI quantity_version_ports.snapshot 唯讀委派 Engine，QuantityVersionControls 僅使用其回傳的總件數、選中版本件數及是否能刪除最後版本；全部實際修改仍走既有 commit_operator_quantity_version_action。非法來源須拒絕、不修改原狀。測試覆蓋 headless API、GUI ports／controls、最後版保護、Save→Reload，無新 Set/Bay、孔、FinalScene／2D／3D／DXF 製造資格。
+
+
 
 ## [CURRENT] #2517 受電箱內門畫面讀取與提交同一 Engine 來源驗證（2026-11-07）
 

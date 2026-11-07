@@ -74,7 +74,12 @@ def quantity_ports(composition, namespace):
         return win or getattr(host, "last_unified_hole_editor", None)
 
     return {
-        "snapshot": lambda: app.designer_workspace.quantity_model.snapshot() if app.designer_workspace.quantity_model else None,
+        "snapshot": lambda: (
+            manufacturing_api.project_operator_quantity_version_controls(
+                app.designer_workspace.quantity_model.snapshot()
+            )
+            if app.designer_workspace.quantity_model else None
+        ),
         "select": lambda version_id: edit(
             lambda owner: manufacturing_api.commit_operator_quantity_version_action(
                 source(), owner, action="select", version_id=version_id,
