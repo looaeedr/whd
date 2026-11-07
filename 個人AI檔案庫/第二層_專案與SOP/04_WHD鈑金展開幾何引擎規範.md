@@ -9,7 +9,7 @@ whd_schema: WHD_DOC_META_V1
 ## [CURRENT] #2517 Hole Editor CUTTING 外輪廓讀取只經公開 Engine（2026-11-07）
 
 - 原主 `gui.py.feature_surface_from_drawing_scene` 把整個內部 `ae_engine.ae` 注入 `gui_modules/rendering/canvas_2d.py` 的 helper，後者再直接呼叫私有 `ae.feature_surface_from_drawing_scene`。雖原始實體 CUTTING 輪廓已由唯一 `ae_door_indicator._surface_from_scene_primary_cutting` 解算，GUI 仍跨過 `manufacturing_api` 公開製造邊界。
-- 正式 `manufacturing_api.operator_feature_surface_from_drawing_scene`／根包 `ae_engine` 匯出原 `ae_door_indicator.feature_surface_from_drawing_scene` **同一 callable**。主 GUI 僅傳入選取 Surface ID／原始 Engine DrawingScene；renderer 預設直接消費公開函式並只描繪，不另尋 CUTTING、補物理尺寸、算孔位或失敗 fallback。原 Engine 支援閉合 Polyline／由 LinePrimitive 鏈組成的閉合輪廓、擇最大面積正向候選與無效來源拒絕規則原封不動。
+- 正式 `manufacturing_api.operator_feature_surface_from_drawing_scene`／根包 `ae_engine` 匯出原 `ae_door_indicator.feature_surface_from_drawing_scene` **同一 callable**。主 GUI 在保留 HoleEditorCompositionDependencies 尚需的舊 `ae` 相容性符號下，僅傳入選取 Surface ID／原始 Engine DrawingScene；renderer 預設直接消費公開函式並只描繪，不另尋 CUTTING、補物理尺寸、算孔位或失敗 fallback。原 Engine 支援閉合 Polyline／由 LinePrimitive 鏈組成的閉合輪廓、擇最大面積正向候選與無效來源拒絕規則原封不動。
 - `tests/test_issue2517_hole_editor_scene_surface_public_api.py` 覆蓋 Root／Facade／原 Owner callable parity、真實閉合 Polyline、工廠爆炸線段來源、未閉合拒絕不修改 DrawingScene、GUI 原路由與公開 renderer 預設注入測試。這是操作孔面來源 API 並非新增 CUTTING／BEND／DXF 製造資格；真實 Product Regression 須 exact HEAD CI。
 
 ## [CURRENT] #2517 Receiving 解除連動須由公開 Engine 回傳原共享實體 Bay 身分（2026-11-07）
