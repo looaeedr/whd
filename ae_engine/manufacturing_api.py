@@ -2316,6 +2316,7 @@ from .receiving_shared_settings import (
     share_setting_with_affected_ids as share_receiving_shared_setting_with_affected_ids,
     share_and_edit_setting_with_affected_ids as share_and_edit_receiving_shared_setting_with_affected_ids,
     unlink_setting as unlink_receiving_shared_setting,
+    unlink_setting_with_affected_ids as unlink_receiving_shared_setting_with_affected_ids,
 )
 from .receiving_manufacturing_readiness import (
     ReceivingManufacturingFailure, evaluate_receiving_manufacturing_readiness,

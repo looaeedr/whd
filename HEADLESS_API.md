@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving shared-setting physical unlink affected IDs (2026-11-07)
+
+`manufacturing_api.unlink_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_index, kind)` and the `ae_engine` root expose the same existing Engine-owner transaction. It validates canonical physical Set/Bay identities, derives the pre-unlink linked Bay group solely from the original validated shared `refs`, and delegates the actual copy-on-unlink to `receiving_shared_settings.unlink_setting`. Returns `(detached_layout, affected_stable_ids)`. Already-independent Bays return no IDs; matching values are not evidence of link membership. The GUI applies only changed candidates and marks every original linked physical Bay dirty to preserve operator source/deletion protection. No geometry, NFB or DXF manufacturing certification is implied.
+
 ## #2517 Receiving cross-Set Bay +/- delta operator API (2026-11-07)
 
 `manufacturing_api.resize_receiving_operator_connections_by_delta_with_removed_ids(layout, *, set_index, delta)` is also exported unchanged at the `ae_engine` root. The canonical `receiving_layout` owner validates the physical Set and integer delta, applies the minimum-one-Bay rule, and reuses `resize_receiving_operator_topology_with_removed_ids` to stage one detached candidate, real removed Set/Bay/Joint IDs and an effective-change flag. The GUI only validates operator text and, after full Engine success and confirmed removal, commits canonical layout/protected IDs/current selection together. A failed/declined cross-Set operation must not shift GUI selection. No new physical geometry, NFB/X verification, or DXF release is introduced.
