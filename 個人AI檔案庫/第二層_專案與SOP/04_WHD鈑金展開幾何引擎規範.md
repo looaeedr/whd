@@ -190,6 +190,12 @@ whd_schema: WHD_DOC_META_V1
 - GUI 只將原有數值控件與 Engine 當下回傳的完整預設值配對，保留舊表單空缺時的呈現語意及 Settings／INI 其他流程；GUI 不增 Formula、成品尺寸推導或 FinalScene，且不改現有 `load_factory_defaults_from_ae` UI Schema 相容呼叫。Headless 測試核對兩 Family 共用的原執行期 defaults、動態更新、非法預設拒絕、root/facade API 同源、GUI 不再私讀製造數值以及原物理 W/H/D/T/FW fail closed；完整 2D／3D／DXF／Save→Reload 仍交 exact-SHA 回歸。
 
 
+## [CURRENT] #2517 主 GUI 多門格實體 Feature 讀回只透過公開 Engine（2026-11-07）
+
+- 原 `gui_modules/application/lifecycle.py` 的 `_apply_phase6_project_snapshot` 與 `_apply_fold_designer_live_snapshot` 在重開正式專案、同步 Fold Designer 實體門板時直接呼叫私有 `sheetmetal_part_adapters.door_part_features_to_layout_feature_map`，將已保存的 `door_cN_rN` 孔位來源映回 `col:row` 的主 GUI 2D 門格編輯儲存。這是實體來源 ID 轉換，不得由 GUI 另造規則。
+- `manufacturing_api.project_operator_door_layout_cell_features_from_parts(columns, part_features)` 與根包 `ae_engine` 都公開**原 Engine `door_part_features_to_layout_feature_map` 的同一 callable**，保留一基實體門板、零基操作格、原始孔位 List 與空格 readback 的既有語意。兩個主 GUI 還原入口只委派此公開 API，未知部件不當作合法 Door、非法門格由原 Engine fail closed，不修改輸入來源。
+- 本次沒有增補 Feature/孔位幾何、CUTTING、BEND、DXF 或 Family 加工權限；既有 Fold Designer `project_fold_designer_snapshot_part_features` 仍負責反方向「操作者格 → 實體 Part Features」的提交。正反向 ID 等價、主 GUI 真實讀回委派、非法來源不改與 `.p6fold` Save→Reload 由 `tests/test_issue2517_main_gui_door_layout_feature_readback_public_api.py` 驗證；完整產品回歸及 Windows UAT 依原有驗收路徑。
+
 ## [CURRENT] #2517 受電箱實體底板設定改由公開 Engine 原子提交（2026-11-07）
 
 - 原 GUI `receiving_base_plate_settings_transaction.commit_receiving_base_plate_settings` 已經先調用 `manufacturing_api.validate_receiving_base_plate_settings` 驗證實體底板收縮、折邊與焊接 EAR 孔，但隨後在 GUI 直接修改已保存 `receiving_base_plate` 並執行失敗回滾。這個來源交易會影響 PartSpec／FinalScene／CUTTING，不該由 UI 決定寫入。
