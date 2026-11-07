@@ -73,7 +73,6 @@ from ae_engine.sheetmetal_features import (
     move_feature_to_finished_point,
     reanchor_feature,
     build_feature_placement_guides,
-    feature_to_legacy_hole,
     feature_with_offset,
     expand_linear_pattern,
     expand_grid_pattern,
@@ -509,11 +508,11 @@ def _apply_phase6_project_snapshot(self, snapshot):
         width = float(snapshot.get("w", self.w_var.get()))
         depth = float(snapshot.get("d", self.d_var.get()))
         self.head_holes = [
-            feature_to_legacy_hole(feature, width, depth)
+            manufacturing_api.feature_to_legacy_hole(feature, width, depth)
             for feature in self.surface_features.get("head", ())
         ]
         self.tail_holes = [
-            feature_to_legacy_hole(feature, width, depth)
+            manufacturing_api.feature_to_legacy_hole(feature, width, depth)
             for feature in self.surface_features.get("tail", ())
         ]
     except Exception:
@@ -885,8 +884,8 @@ def _apply_fold_designer_live_snapshot(self, payload):
             if quantity_changed:
                 try:
                     width, depth = float(self.w_var.get()), float(self.d_var.get())
-                    self.head_holes = [feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["head"]]
-                    self.tail_holes = [feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["tail"]]
+                    self.head_holes = [manufacturing_api.feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["head"]]
+                    self.tail_holes = [manufacturing_api.feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["tail"]]
                 except (TypeError, ValueError, AttributeError):
                     # Typed surface features remain the canonical owner for
                     # feature kinds that the legacy hole projection cannot carry.
@@ -1003,12 +1002,12 @@ def _apply_fold_designer_live_snapshot(self, payload):
                 depth = float(payload.get("d", self.d_var.get()))
                 if "head" in self.surface_features:
                     self.head_holes = [
-                        feature_to_legacy_hole(feature, width, depth)
+                        manufacturing_api.feature_to_legacy_hole(feature, width, depth)
                         for feature in self.surface_features.get("head", ())
                     ]
                 if "tail" in self.surface_features:
                     self.tail_holes = [
-                        feature_to_legacy_hole(feature, width, depth)
+                        manufacturing_api.feature_to_legacy_hole(feature, width, depth)
                         for feature in self.surface_features.get("tail", ())
                     ]
             except Exception:
