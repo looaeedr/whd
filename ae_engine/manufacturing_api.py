@@ -469,6 +469,7 @@ from .operator_endcap_blank_projection import (
 )
 from .display_dimensions import (
     resolve_live_operator_finished_dimensions,
+    folded_outside_envelope as project_operator_folded_outside_envelope,
     OperatorDimensionGuidePlan, project_operator_dimension_guides,
 )
 from .live_cabinet_family import resolve_live_cabinet_family
