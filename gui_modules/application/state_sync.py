@@ -409,17 +409,27 @@ def on_main_setting_var_changed(self, key, var):
         value = bool(var.get()) if isinstance(var, tk.BooleanVar) else float(var.get())
     except (TypeError, ValueError, tk.TclError):
         return
+    # Stage physical FW before committing Settings. Failed or non-finite
+    # operator input must not partially update Head/Tail manufacturing source.
+    next_fw_state = None
+    previous_fw = None
+    if key == "fw":
+        try:
+            previous_fw = self.settings_service.snapshot()["fw"]
+            next_fw_state = manufacturing_api.project_operator_box_fw_live_state(
+                self.endcap_fw_state,
+                previous_box_fw=previous_fw, requested_box_fw=value,
+            )
+        except (ValueError, TypeError, KeyError):
+            return
     scheduler = self._phase6_update_scheduler
     scheduler.begin()
     try:
-        self.settings_service.update({key: value})
-        if key == "fw":
+        committed = self.settings_service.update({key: value})
+        if key == "fw" and committed["fw"] != previous_fw and committed["fw"] == value:
             self._settings_sync_guard = True
             try:
-                for part in ("head", "tail"):
-                    state = self.endcap_fw_state.setdefault(part, {"follow_box": True, "value": value})
-                    if bool(state.get("follow_box", True)):
-                        state["value"] = float(value)
+                self.endcap_fw_state = next_fw_state
                 self._sync_endcap_fw_controls()
             finally:
                 self._settings_sync_guard = False

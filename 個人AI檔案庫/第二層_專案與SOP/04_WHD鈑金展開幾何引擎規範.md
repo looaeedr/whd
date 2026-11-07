@@ -21,6 +21,15 @@ whd_schema: WHD_DOC_META_V1
 
 
 
+## [CURRENT] #2517 主 GUI／Fold Designer 箱身 FW 即時修改統一由公開 Engine 四態投影（2026-11-07）
+
+- 原 `gui_modules/application/state_sync.on_main_setting_var_changed` 與 `gui_modules/application/lifecycle._apply_fold_designer_live_settings` 在操作者改箱身邊框寬度 FW 時，仍由 GUI 對封頭／封尾 `endcap_fw_state.setdefault` 自行依 `follow_box` 更新值。這條路徑可能保留已失效的 FOLLOW_HEAD／FOLLOW_TAIL／INDEPENDENT 物理 ownership；原主 GUI 另有明確 `on_fw_selected("z")` 使用 Engine `commit_box_fw` 的一致語意。
+- 新公開 `manufacturing_api.project_operator_box_fw_live_state`（`ae_engine` 根包同函式）先以原 Engine `normalize_operator_source_dimension(field="fw")` 驗證變更前後包外 FW，複製已保存四態來源，**只有 FW 數值實際變動**才委派原 `endcap_factory_fold.commit_box_fw`，讓 BoxBody 重新控制 Head／Tail；相同 FW 的同步回放不得意外重置既有封頭／封尾獨立設定。非法 bool、零、負數、NaN／Inf 或非 Mapping state 一律拒絕且不修改來源。這是既有四態製造來源轉移，沒有另建 FW 補償公式。
+- 主 GUI 與 Fold Designer 的 live commit 均先取得 detached Engine 候選，在既有 `SettingsService.update` 成功且 FW 實際被接受變更後才替換來源並同步 UI。Fold Designer 單次多欄送來非法 FW 時，不阻擋其他合法 Settings 更新。原 `.p6fold` EndCap FW 四態持續由 `normalize_endcap_fw_state`／`resolve_endcap_fw` 重開；單筆有效操作在 GUI／headless Engine 得到相同 Head/Tail FW。現有幾何、2D／3D、DXF、CUTTING 和權限不變；本批需要 exact HEAD Product Regression、GUI API Gate 和 Windows GUI 人工驗收，並不等於 #2517 全面完成。
+
+
+
+
 ## [CURRENT] #2517 FinalScene 實體折後包外量測統一公開 Engine（2026-11-07）
 
 - 原 `phase6_final_scene_projection._phase6_folded_outside_envelope` 為 FinalScene 2D／3D 操作量測的 GUI 相容入口，直接匯入 `ae_engine.display_dimensions.folded_outside_envelope`。該內部 owner 根據**已成形實體三角網格與板厚**回傳 dimensions/world bounds；這是物理尺寸 readback，不可由 GUI 再算一套，也不得回寫原 Fold material `len`、BEND 或正式 CUTTING。
