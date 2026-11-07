@@ -6,12 +6,17 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
-## [CURRENT] #2517 Canvas 孔位／CUTTING 外框與箱身面基準預覽改走 Engine 公開 API（2026-11-07）
+## [CURRENT] #2517 Canvas 特徵面、孔位與孔型錄來源使用公開 Engine（2026-11-07）
 
-- `gui_modules/rendering/canvas_2d.py` 與 `gui.py` 原透過 `ae_engine.ae`、私有 `resolve_surface_features` 決定 CUTTING 外框特徵面／孔位位置；共用 Canvas 預設 resolver 和主 GUI 個別傳入的 resolver 都是同一缺口。改由既有公開 `resolve_hole_editor_canvas_features`（嚴格原位驗證／tuple 回傳）承接；新增 `project_operator_feature_surface_from_drawing_scene`，與唯一 canonical `ae_door_indicator.feature_surface_from_drawing_scene` **同 callable**，無有效主 CUTTING 外框即拒絕，不以預設矩形代替。
-- 主 GUI 箱身左／背／右面原把 Engine 已解出的 `ResolvedFeature` 自行轉成 `DrawingScene`；現由 Engine `project_operator_box_body_face_baseline_scene` 驗證實體面身分與資料型別、呼叫原 `sheetmetal_drawing.resolved_features_to_primitives` 製成全新的展示用 scene。無基準來源不製造孔，非法來源拒絕且原始 Features 不變；不產生新的製造授權或 DXF 放行條件。
-- GUI Hole Editor composition 改用 `manufacturing_api.operator_hole_catalog_root_path`（同一 `ae_endcap.baseline_hole_catalog_root_path` callable）取得孔型錄共用根路徑，刪除舊的 `ae` 命名空間必要依賴；兩類孔型錄載入來源不變，失敗不偽造預設孔。這修正完整 Product Regression 發現的舊 GUI 組合依賴。
-- `gui.py` 及 Canvas 渲染模組不再匯入 `ae_engine.ae` 來組製造幾何。金庫型／受電箱實體孔位、CUTTING、Save→Reload 與 2D／3D／DXF 權威維持原 Engine；新測試 `tests/test_issue2517_canvas_feature_surface_public_api.py` 核對 public/original 結果、GUI 路由及非法輸入來源不變。
+- 主 `gui.py` 與共用 `gui_modules/rendering/canvas_2d.py` 原直接依賴 `ae_engine.ae.feature_surface_from_drawing_scene` 及私有 `resolve_surface_features`。現以 `manufacturing_api.project_operator_feature_surface_from_drawing_scene`（與唯一 `ae_door_indicator.feature_surface_from_drawing_scene` **同一 callable**）和既有 `manufacturing_api.resolve_hole_editor_canvas_features` 取得真正 CUTTING 邊界及孔位；無封閉 CUTTING 時拒絕，不能假造矩形。
+- 統一孔位編輯器原要求主 GUI 注入私有 `ae`，只為呼叫 `baseline_hole_catalog_root_path`。完整 GUI 回歸發現這個依賴尚未改接；現由 `manufacturing_api.operator_hole_catalog_root_path`／根包 `ae_engine` 公開**同一原 `ae_endcap.baseline_hole_catalog_root_path` callable**，保持孔型錄共用根路徑、原 CSV／DXF 型錄兩條載入鏈與缺來源拒絕。
+- 並行已合入的 `manufacturing_api.project_operator_resolved_feature_drawing_primitives` 是箱身面板 `ResolvedFeature → DrawingPrimitive` 唯一公開 Owner；本批保留 GUI 使用該入口，不另增重複的 BoxBody 基準 scene API。僅為 2D／編輯器 readback，不新增 CUTTING／BEND／NFB／DXF 認證或 Save→Reload 通行證；新舊測試均須 exact-SHA 全量回歸核對。
+
+## [CURRENT] #2517 箱身面板 2D Feature／CUTTING／MARKING 圖元只由公開 Engine 投影（2026-11-07）
+
+- 原主 GUI `Phase6ApplicationHost._box_body_face_baseline_scene` 從 Engine 取得已解析的 BoxBody 面板孔位後，仍直接呼叫私有 `sheetmetal_drawing.resolved_features_to_primitives` 轉為 2D 圖元。此 Owner 含正式 Circle／Rect／Profile、`BLIND_HOLE` 中心線、`CUTTING` 主輪廓、外部 DXF process layers 與避免重複切線的語意；GUI 不可重算或默默遺漏。
+- `manufacturing_api.project_operator_resolved_feature_drawing_primitives` 與根包 `ae_engine` 公開**同一原函式** `sheetmetal_drawing.resolved_features_to_primitives`。GUI 只把既有 resolved Features 交給 API，將回傳 `DrawingPrimitive` 加入顯示 `DrawingScene`；無第二份 CUTTING／MARKING 演算法，也不以示意圖承諾正式 DXF 製造。
+- `tests/test_issue2517_box_body_resolved_primitives_public_api.py` 逐一驗證 `BLIND_HOLE`、`DATUM`、`CUTTING`、`MARKING`、`FROM_DXF` 不重複切線、原 Engine parity、GUI 一次委派與無效 Feature fail-closed；來源 Feature 不變。此純 2D readback 不改 PartSpec、FinalScene、儲存或 DXF writer；仍須 exact-SHA canonical Product Regression，Windows UAT 未藉此完成。
 
 ## [CURRENT] #2517 工程標註 2D 預覽只消費公開 Engine projection（2026-11-07）
 
@@ -224,6 +229,12 @@ whd_schema: WHD_DOC_META_V1
 - 原 `gui_modules/application/lifecycle.py` 的 `_apply_phase6_project_snapshot` 與 `_apply_fold_designer_live_snapshot` 在重開正式專案、同步 Fold Designer 實體門板時直接呼叫私有 `sheetmetal_part_adapters.door_part_features_to_layout_feature_map`，將已保存的 `door_cN_rN` 孔位來源映回 `col:row` 的主 GUI 2D 門格編輯儲存。這是實體來源 ID 轉換，不得由 GUI 另造規則。
 - `manufacturing_api.project_operator_door_layout_cell_features_from_parts(columns, part_features)` 與根包 `ae_engine` 都公開**原 Engine `door_part_features_to_layout_feature_map` 的同一 callable**，保留一基實體門板、零基操作格、原始孔位 List 與空格 readback 的既有語意。兩個主 GUI 還原入口只委派此公開 API，未知部件不當作合法 Door、非法門格由原 Engine fail closed，不修改輸入來源。
 - 本次沒有增補 Feature/孔位幾何、CUTTING、BEND、DXF 或 Family 加工權限；既有 Fold Designer `project_fold_designer_snapshot_part_features` 仍負責反方向「操作者格 → 實體 Part Features」的提交。正反向 ID 等價、主 GUI 真實讀回委派、非法來源不改與 `.p6fold` Save→Reload 由 `tests/test_issue2517_main_gui_door_layout_feature_readback_public_api.py` 驗證；完整產品回歸及 Windows UAT 依原有驗收路徑。
+
+## [CURRENT] #2517 主 GUI 頭／尾盤舊版 2D 孔位讀回必須為同一 Engine 原子投影（2026-11-07）
+
+- 原 `gui_modules/application/lifecycle.py` 在 .p6fold 專案載入、Quantity 版本切換、Fold Designer 同步三條路徑各自以私有 `feature_to_legacy_hole` 逐一轉換 `head`／`tail` 已保存實體 Feature，轉成主 GUI 舊版 2D 用的 `head_holes`／`tail_holes`。若第一個板件成功、第二個板件轉換失敗且被既有相容捕捉吞下，兩份快取可能被部分提交、與同一保存來源失配。
+- 正式 `ae_engine.operator_legacy_endcap_hole_projection.project_operator_endcap_legacy_hole_rows(source_features, *, width, depth)` 在 Engine 先驗證 operator finished-face W/D，再沿原 `sheetmetal_features.feature_to_legacy_hole` 權威轉換兩個物理角色，檢查非有限 finished-face 座標、完整建構 detached candidate，任何非法角色來源／孔型都拒絕整份候選，絕不修改輸入。未提供的 Head/Tail 角色不產出；明確空清單用於舊專案清孔。 `manufacturing_api` 與根包 `ae_engine` 公開同一 callable。
+- 主 GUI 三條路徑只收 Engine 結果，Head/Tail 成功後才一起更新快取；原數量模式缺失角色與舊專案資料相容的例外處理維持。此 API 是**舊 2D 顯示快取 readback**，不是獨立 Feature/CUTTING/孔位、FinalScene 或 DXF 製造資格；任何正式加工仍走原 Engine 製造鏈。驗收 `tests/test_issue2517_endcap_legacy_hole_atomic_public_api.py` 包含直接 Owner 相等、真 GUI 專案還原、頭合法尾非法不得部分提交、非有限尺寸／座標拒絕與實際 `.p6fold` Save→Reload；需 exact-head Product Regression 與 Windows UAT。
 
 ## [CURRENT] #2517 受電箱實體底板設定改由公開 Engine 原子提交（2026-11-07）
 

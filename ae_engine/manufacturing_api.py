@@ -49,10 +49,6 @@ from .ae_door_indicator import (
 from .ae_endcap import (
     baseline_hole_catalog_root_path as operator_hole_catalog_root_path,
 )
-from .sheetmetal_drawing import (
-    DrawingScene as _operator_baseline_drawing_scene,
-    resolved_features_to_primitives as _operator_baseline_feature_primitives,
-)
 from .engineering_drawing import (
     build_engineering_drawing_projection as project_operator_engineering_drawing_annotations,
 )
@@ -372,7 +368,6 @@ from .sheetmetal_feature_surface import (
 )
 from .sheetmetal_features import (
     BoxBodyFaceContext,
-    BOX_BODY_FACE_SEGMENTS,
     CircleFeature,
     DoorIndicatorContext,
     FeatureAnchor,
@@ -398,6 +393,9 @@ from .door_indicator_position_transactions import (
 from .sheetmetal_corner_policy import (
     box_body_height_from_corner_policies as project_operator_box_body_finished_height,
     normalize_corner_selection as operator_normalize_corner_selection,
+)
+from .sheetmetal_drawing import (
+    resolved_features_to_primitives as project_operator_resolved_feature_drawing_primitives,
 )
 from .sheetmetal_geometry import (
     EndCapAssemblySemantics,
@@ -1679,6 +1677,10 @@ from .sheetmetal_part_adapters import (
     door_part_features_to_layout_feature_map as project_operator_door_layout_cell_features_from_parts,
 )
 
+from .operator_legacy_endcap_hole_projection import (
+    project_operator_endcap_legacy_hole_rows,
+)
+
 def project_fold_designer_snapshot_part_features(
     snapshot, surface_features, door_layout_features,
 ):
@@ -1690,30 +1692,6 @@ def project_fold_designer_snapshot_part_features(
 # #2517: Hole Editor canvas receives only canonical Engine feature geometry.
 # The Canvas owns pixels and widget hit targets, not surface validation,
 # reference-anchor policy or resolved manufacturing feature positions.
-
-def project_operator_box_body_face_baseline_scene(face_key, resolved_faces):
-    """Read-only operator baseline scene from canonical resolved physical Features.
-
-    This is an editor display projection, never new CUTTING or DXF authority.
-    The canonical sheetmetal drawing serializer owns the feature primitives.
-    """
-    if not isinstance(face_key, str) or face_key not in BOX_BODY_FACE_SEGMENTS:
-        raise ValueError("unknown physical box-body face key")
-    if not isinstance(resolved_faces, Mapping):
-        raise TypeError("physical face baselines must be a mapping")
-    raw = resolved_faces.get(face_key, ())
-    if raw is None:
-        return None
-    if isinstance(raw, (str, bytes, Mapping)):
-        raise TypeError("resolved face features must be a sequence")
-    features = tuple(raw)
-    if not features:
-        return None
-    primitives = _operator_baseline_feature_primitives(features)
-    scene = _operator_baseline_drawing_scene()
-    scene.extend(primitives)
-    return scene
-
 
 def resolve_hole_editor_canvas_features(surface, features, width, height):
     """Resolve validated world-space holes through the canonical feature owner.

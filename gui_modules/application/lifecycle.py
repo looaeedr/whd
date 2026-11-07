@@ -505,18 +505,20 @@ def _apply_phase6_project_snapshot(self, snapshot):
     # Head/tail legacy lists are still used by the main 2D end-cap adapter.
     # Rebuild them from the same restored Feature objects so 2D and 3D agree.
     try:
-        width = float(snapshot.get("w", self.w_var.get()))
-        depth = float(snapshot.get("d", self.d_var.get()))
-        self.head_holes = [
-            manufacturing_api.feature_to_legacy_hole(feature, width, depth)
-            for feature in self.surface_features.get("head", ())
-        ]
-        self.tail_holes = [
-            manufacturing_api.feature_to_legacy_hole(feature, width, depth)
-            for feature in self.surface_features.get("tail", ())
-        ]
+        legacy_rows = manufacturing_api.project_operator_endcap_legacy_hole_rows(
+            {
+                "head": self.surface_features.get("head", ()),
+                "tail": self.surface_features.get("tail", ()),
+            },
+            width=snapshot.get("w", self.w_var.get()),
+            depth=snapshot.get("d", self.d_var.get()),
+        )
     except Exception:
+        # Invalid saved legacy rows must not partially replace either 2D cache.
         pass
+    else:
+        self.head_holes = legacy_rows["head"]
+        self.tail_holes = legacy_rows["tail"]
 
     existing = self._apply_existing_parts_from_fold_workspace(
         snapshot.get("existing_parts") or workspace.get("existing_parts") or (),
@@ -883,13 +885,20 @@ def _apply_fold_designer_live_snapshot(self, payload):
                 self.surface_features[str(key)] = deepcopy(list(items or ()))
             if quantity_changed:
                 try:
-                    width, depth = float(self.w_var.get()), float(self.d_var.get())
-                    self.head_holes = [manufacturing_api.feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["head"]]
-                    self.tail_holes = [manufacturing_api.feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["tail"]]
+                    legacy_rows = manufacturing_api.project_operator_endcap_legacy_hole_rows(
+                        {
+                            "head": self.surface_features["head"],
+                            "tail": self.surface_features["tail"],
+                        },
+                        width=self.w_var.get(), depth=self.d_var.get(),
+                    )
                 except (TypeError, ValueError, AttributeError):
-                    # Typed surface features remain the canonical owner for
-                    # feature kinds that the legacy hole projection cannot carry.
+                    # Typed surface features remain canonical; keep both legacy
+                    # 2D cache roles unchanged if either projection is invalid.
                     pass
+                else:
+                    self.head_holes = legacy_rows["head"]
+                    self.tail_holes = legacy_rows["tail"]
                 if hasattr(self, "_derived_cache_owner"):
                     self._derived_cache_owner.invalidate("geometry")
                 if hasattr(self, "_authoritative_part_render_cache"):
@@ -998,20 +1007,19 @@ def _apply_fold_designer_live_snapshot(self, payload):
             for key, features in part_features.items():
                 self.surface_features[str(key)] = list(features or ())
             try:
-                width = float(payload.get("w", self.w_var.get()))
-                depth = float(payload.get("d", self.d_var.get()))
-                if "head" in self.surface_features:
-                    self.head_holes = [
-                        manufacturing_api.feature_to_legacy_hole(feature, width, depth)
-                        for feature in self.surface_features.get("head", ())
-                    ]
-                if "tail" in self.surface_features:
-                    self.tail_holes = [
-                        manufacturing_api.feature_to_legacy_hole(feature, width, depth)
-                        for feature in self.surface_features.get("tail", ())
-                    ]
+                legacy_rows = manufacturing_api.project_operator_endcap_legacy_hole_rows(
+                    self.surface_features,
+                    width=payload.get("w", self.w_var.get()),
+                    depth=payload.get("d", self.d_var.get()),
+                )
             except Exception:
+                # No half-committed Head/Tail legacy 2D cache on invalid source.
                 pass
+            else:
+                if "head" in legacy_rows:
+                    self.head_holes = legacy_rows["head"]
+                if "tail" in legacy_rows:
+                    self.tail_holes = legacy_rows["tail"]
             face_features = dict(workspace.get("part_face_features") or payload.get("part_face_features") or {})
             if "box_body" in face_features:
                 self.box_body_face_features = {

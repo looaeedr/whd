@@ -5,11 +5,16 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-## #2517 2D feature surface and BoxBody baseline drawing through public Engine (2026-11-07)
+## #2517 Canvas CUTTING surface and Hole Editor catalog root through public Engine (2026-11-07)
 
-`manufacturing_api.project_operator_feature_surface_from_drawing_scene(surface_id, scene)` is the same canonical callable as `ae_door_indicator.feature_surface_from_drawing_scene`, exposed also at root `ae_engine`; it rejects scenes lacking a valid primary CUTTING contour. The GUI Canvas no longer imports `ae_engine.ae` or uses a private surface resolver. Both shared Canvas defaults and main GUI explicitly use existing `resolve_hole_editor_canvas_features`. The unified Hole Editor composition uses the original `ae_endcap.baseline_hole_catalog_root_path` via `manufacturing_api.operator_hole_catalog_root_path` (root `ae_engine` export) instead of requiring the main GUI's internal `ae` module. Both catalog loaders receive the same canonical resource root.
+`manufacturing_api.project_operator_feature_surface_from_drawing_scene(surface_id, scene)` (also root `ae_engine`) is the exact canonical `ae_door_indicator.feature_surface_from_drawing_scene` callable; invalid primary CUTTING contours remain rejected. `gui_modules/rendering/canvas_2d.py` and main `gui.py` use the existing public `manufacturing_api.resolve_hole_editor_canvas_features` for preview holes. `manufacturing_api.operator_hole_catalog_root_path()` (also root `ae_engine`) is the exact `ae_endcap.baseline_hole_catalog_root_path` callable; the unified Hole Editor loads both catalogs from this canonical source and no longer requires the GUI's `ae` module.
 
-`manufacturing_api.project_operator_box_body_face_baseline_scene(face_key, resolved_faces)` (also root `ae_engine`) returns a fresh display-only `DrawingScene` from the existing `resolved_features_to_primitives` Engine serializer for left/back/right baseline Feature lists; absent source returns None and malformed face/source/features fail closed. Main GUI no longer constructs physical baseline primitives. This is NOT a new CUTTING/BEND, DXF, user-hole-commit or manufacturing-certification route. See `tests/test_issue2517_canvas_feature_surface_public_api.py`.
+The existing public `project_operator_resolved_feature_drawing_primitives` remains the BoxBody physical Feature projection; this PR reuses it instead of introducing a competing baseline drawing API. These APIs are read-only and do not change CUTTING/BEND, NFB, Save→Reload, DXF certification or physical manufacturing authority. Regression: `tests/test_issue2517_canvas_feature_surface_public_api.py` and `tests/test_issue2517_box_body_resolved_primitives_public_api.py`.
+
+## #2517 BoxBody resolved feature drawing through public Engine (2026-11-07)
+
+`manufacturing_api.project_operator_resolved_feature_drawing_primitives(resolved_features)` (also `ae_engine.project_operator_resolved_feature_drawing_primitives`) is the exact same original `sheetmetal_drawing.resolved_features_to_primitives` callable. The main GUI's BoxBody face baseline 2D preview delegates resolved physical features to this public Engine projection and only places returned Circle/Rect/Profile drawing primitives in a display `DrawingScene`. The existing owner retains BLIND_HOLE centerlines, primary CUTTING, MARKING and FROM_DXF process-layer suppression semantics. This read-only API adds no verified CUTTING or DXF manufacturing release. Tests: `tests/test_issue2517_box_body_resolved_primitives_public_api.py`.
+
 
 ## #2517 Engineering Drawing annotation-only public projection (2026-11-07)
 

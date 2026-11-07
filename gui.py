@@ -449,6 +449,7 @@ from ae_engine.sheetmetal_drawing import (
     LinePrimitive,
     CirclePrimitive,
     TextPrimitive,
+    DrawingScene,
     mirror_point_y,
 )
 
@@ -1792,9 +1793,12 @@ class Phase6ApplicationHost:
         return _box_body_baseline_faces_impl(self, val)
 
     def _box_body_face_baseline_scene(self, face_key, val):
-        return manufacturing_api.project_operator_box_body_face_baseline_scene(
-            face_key, self._box_body_baseline_faces(val),
-        )
+        resolved = self._box_body_baseline_faces(val).get(face_key, [])
+        if not resolved:
+            return None
+        scene = DrawingScene()
+        scene.extend(manufacturing_api.project_operator_resolved_feature_drawing_primitives(resolved))
+        return scene
 
     def open_box_body_face_editor(self, face_key):
         return _open_box_body_face_editor_impl(
