@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import inspect
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
@@ -97,3 +98,19 @@ def test_gui_source_never_imports_engineering_drawing_or_internal_canvas_transfo
     )
     assert "manufacturing_api.project_operator_engineering_drawing_annotations" in source
     assert "manufacturing_api.CanvasTransform" in source
+
+
+
+def test_shared_gui_render_overlay_default_routes_public_engine_and_not_internal():
+    from gui_modules.rendering import overlays
+
+    default = inspect.signature(overlays.draw_phase6_annotation_projection).parameters[
+        "projection_builder"
+    ].default
+    assert default is manufacturing_api.project_operator_engineering_drawing_annotations
+    source = Path(overlays.__file__).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    assert not any(
+        isinstance(node, ast.ImportFrom) and node.module == "ae_engine.engineering_drawing"
+        for node in ast.walk(tree)
+    )

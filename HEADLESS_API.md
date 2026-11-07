@@ -7,7 +7,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## #2517 Engineering Drawing annotation-only public projection (2026-11-07)
 
-`manufacturing_api.project_operator_engineering_drawing_annotations(render_data, *, part_key="", char_height=5.0, dimension_offset=15.0, reserved_regions=(), strict=False)` and the `ae_engine` root export reference the exact existing `engineering_drawing.build_engineering_drawing_projection` callable. The WHD door/indicator/base 2D GUI uses this Engine projection and publicly exposed `manufacturing_api.CanvasTransform`, rather than importing internal modules. Invalid canonical `PartRenderData` fails closed; drawing source primitives stay unchanged. This API is for `DIMENSION/TEXT` annotations only; it never grants CUTTING/BEND, physical-part, DXF or multi-Bay manufacturing authority. See `tests/test_issue2517_operator_engineering_drawing_public_api.py`.
+`manufacturing_api.project_operator_engineering_drawing_annotations(render_data, *, part_key="", char_height=5.0, dimension_offset=15.0, reserved_regions=(), strict=False)` and the `ae_engine` root export reference the exact existing `engineering_drawing.build_engineering_drawing_projection` callable. The WHD door/indicator/base 2D GUI and shared rendering overlay default both use this Engine projection and publicly exposed `manufacturing_api.CanvasTransform`, rather than importing internal modules. Invalid canonical `PartRenderData` fails closed; drawing source primitives stay unchanged. This API is for `DIMENSION/TEXT` annotations only; it never grants CUTTING/BEND, physical-part, DXF or multi-Bay manufacturing authority. See `tests/test_issue2517_operator_engineering_drawing_public_api.py`.
 
 ## #2517 Receiving Joint alignment affected physical IDs (2026-11-07)
 
