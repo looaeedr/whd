@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 工程標註 2D 投影改由公開 Engine API（2026-11-07）
+
+- 原主 GUI `_draw_phase6_annotation_projection` 從內部 `ae_engine.engineering_drawing` 直接匯入 `build_engineering_drawing_projection`，雖已使用唯一 canonical PartRenderData 標註規劃，卻繞開公開 API 邊界。此處是 downstream 尺寸、孔位標註的唯讀投影；不得反過來計算或改寫製造 CUTTING／BEND。
+- 既有 Engine `engineering_drawing.build_engineering_drawing_projection` 原樣透過 `manufacturing_api.project_operator_engineering_drawing` 及根包 `ae_engine` 同一 callable 公開；保留原標註計畫、避讓、`DIMENSION/TEXT` 層篩選、非法 PartRenderData 拒絕與製造 scene 不變校驗。GUI 僅傳入原操作的 PartRenderData／part_key／strict，描繪公開投影，不另寫排版或製造公式。
+- `tests/test_issue2517_engineering_annotation_public_api.py` 比對 Root／Facade／唯一 Engine owner 函式 identity、兩種板件 canonical 材料與真實孔源的 DIMENSION/TEXT parity、GUI wrapper 委派、來源 immutability 與錯誤隔離。保留既有 `tests/test_engineering_drawing_integration.py`、`tests/test_drawing_annotations.py` 與 DXF 原製造序列化。此批只修 API 權屬，不宣稱新正式 NC、Windows UAT 或 #2517 全面結案。
+
 ## [CURRENT] #2517 Receiving Joint 對齊只標記真正改變的實體 Joint ID（2026-11-07）
 
 - 舊 ReceivingSetBayAdapter.update_joint_alignment 雖經原 Engine update_receiving_joint_alignment 驗證並執行 FRONT／REAR、TOP／BOTTOM，但 GUI 無條件把選中 Joint stable_id 放入 session dirty。當相鄰 Bay 的 D/H 相等導致對齊軸不可編輯、或操作者提交相同值時，Engine 並未更改 Joint，GUI 卻製造「待保存實體」及後續刪除保護假訊號。

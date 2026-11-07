@@ -30,7 +30,6 @@ from ae_engine import manufacturing_api
 # Legacy GUI import compatibility; all decisions remain in public Engine.
 is_unknown_model = manufacturing_api.is_unknown_operator_model
 assembly_type_from_corner_state = manufacturing_api.operator_assembly_type_from_corner_state
-from ae_engine.engineering_drawing import build_engineering_drawing_projection
 from ae_engine.cabinet_types import (
     policy as cabinet_family_policy,
     resolve_cabinet_type,
@@ -298,7 +297,7 @@ def _draw_phase6_annotation_projection(
     return _draw_phase6_annotation_projection_impl(
         canvas, render_data, transform,
         part_key=part_key, strict=strict,
-        projection_builder=build_engineering_drawing_projection,
+        projection_builder=manufacturing_api.project_operator_engineering_drawing,
     )
 
 

@@ -2588,6 +2588,12 @@ def project_operator_box_body_baseline_face_features(
 operator_box_body_baseline_source_label = ae.box_body_baseline_source_label
 
 
+# Canonical annotation-only drawing plan. GUI renders this Engine result only.
+from .engineering_drawing import (
+    build_engineering_drawing_projection as project_operator_engineering_drawing,
+)
+
+
 # #2517 public copy-on-write candidate and NFB draft edit facade.
 # Exactly the existing canonical Engine operations: no GUI-owned algorithms,
 # persisted Bay mutations, verified X basis, CUTTING, or DXF certification.
