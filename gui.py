@@ -1310,40 +1310,29 @@ class Phase6ApplicationHost:
         return manufacturing_api.receiving_inner_door_stable_id_for_cell(cell_key)
 
     def _receiving_inner_door_enabled(self, cell_key):
-        key = str(cell_key or "").strip()
-        return any(
-            isinstance(item, dict) and str(item.get("cell_key") or "").strip() == key
-            for item in list(getattr(self, "receiving_inner_doors", []) or [])
-        )
+        # A duplicate/malformed saved physical source must never be hidden by
+        # GUI's first-match selection or silent row filtering.
+        return manufacturing_api.project_operator_receiving_inner_door_cell_source(
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key,
+        ) is not None
 
     def _receiving_inner_door_inward_offset(self, cell_key):
-        key = str(cell_key or "").strip()
-        item = next((
-            item for item in list(getattr(self, "receiving_inner_doors", []) or [])
-            if isinstance(item, dict) and str(item.get("cell_key") or "").strip() == key
-        ), None)
+        item = manufacturing_api.project_operator_receiving_inner_door_cell_source(
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key,
+        )
         return manufacturing_api.resolve_operator_receiving_inner_door_inward_offset(
             {"model": str(self.baseline_var.get() or "").strip()}, item,
         )
 
     def _set_receiving_inner_door_inward_offset(self, cell_key, value):
-        key = str(cell_key or "").strip()
-        offset = manufacturing_api.normalize_operator_receiving_inner_door_inward_offset(
-            value,
+        # GUI commits only the Engine's detached physical-source transaction.
+        rows, offset = manufacturing_api.apply_operator_receiving_inner_door_inward_offset(
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key, inward_offset_mm=value,
         )
-        found = False
-        items = []
-        for raw in list(getattr(self, "receiving_inner_doors", []) or []):
-            if not isinstance(raw, dict):
-                continue
-            item = deepcopy(raw)
-            if str(item.get("cell_key") or "").strip() == key:
-                item["inward_offset_mm"] = offset
-                found = True
-            items.append(item)
-        if not found:
-            raise ValueError(f"door cell has no enabled inner door: {key!r}")
-        self.receiving_inner_doors = items
+        self.receiving_inner_doors = rows
         return offset
 
     def _commit_receiving_inner_door_inward_offset(self, cell_key):
@@ -1377,24 +1366,14 @@ class Phase6ApplicationHost:
         return True
 
     def _set_receiving_inner_door_enabled(self, cell_key, enabled):
-        key = str(cell_key or "").strip()
-        items = [deepcopy(item) for item in list(getattr(self, "receiving_inner_doors", []) or []) if isinstance(item, dict)]
-        existing = next((item for item in items if str(item.get("cell_key") or "").strip() == key), None)
-        items = [item for item in items if str(item.get("cell_key") or "").strip() != key]
-        if bool(enabled):
-            items.append(manufacturing_api.project_operator_receiving_inner_door_enabled_source(
-                {"model": str(self.baseline_var.get() or "").strip()},
-                key, existing=existing,
-            ))
-        def sort_key(item):
-            raw = str(item.get("cell_key") or "")
-            try:
-                return tuple(int(v) for v in raw.split(":", 1))
-            except Exception:
-                return (10**9, 10**9)
-        items.sort(key=sort_key)
-        self.receiving_inner_doors = items
-        return bool(enabled)
+        # Do not filter/sort/commit physical Door identities inside Tk.
+        rows = manufacturing_api.apply_operator_receiving_inner_door_presence(
+            {"model": str(self.baseline_var.get() or "").strip()},
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key, enabled=enabled,
+        )
+        self.receiving_inner_doors = rows
+        return enabled
 
     def _commit_receiving_inner_door_checkbox(self, cell_key):
         key = str(cell_key or "").strip()

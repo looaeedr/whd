@@ -132,6 +132,8 @@ from .workspace_state import (
     MANDATORY_PART, PART_ORDER, ACTIVE_REPAIR_POLICIES,
     normalize_existing_parts, _repair_active as repair_workspace_active_part,
     SharedWorkspaceState,
+    OperatorWorkspaceSnapshotPresence,
+    project_operator_fold_designer_workspace_presence,
 )
 from .receiving_mode_session import (
     DEFAULT_OPERATOR_EXISTING_PARTS, fresh_receiving_mode, ReceivingModeSession,
@@ -239,6 +241,7 @@ from .box_body_fold_profile import (
 from .receiving_quantity_versions import (
     SCHEMA, SCHEMA_V2, SCHEMA_V3, QUANTITY_MODE, SET_BAY_MODE,
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
+    project_operator_quantity_version_controls,
     normalize_quantity_snapshot, quantity_only_change,
 )
 from .assembly_geometry import (
@@ -1514,6 +1517,9 @@ from .operator_receiving_inner_door_source import (
     normalize_operator_receiving_inner_door_inward_offset,
     resolve_operator_receiving_inner_door_inward_offset,
     project_operator_receiving_inner_door_enabled_source,
+    apply_operator_receiving_inner_door_presence,
+    apply_operator_receiving_inner_door_inward_offset,
+    project_operator_receiving_inner_door_cell_source,
 )
 
 
@@ -1680,6 +1686,9 @@ from .sheetmetal_part_adapters import (
 from .operator_legacy_endcap_hole_projection import (
     project_operator_endcap_legacy_hole_rows,
 )
+
+from .door_layout_feature_projection import project_operator_saved_door_layout_columns
+
 
 def project_fold_designer_snapshot_part_features(
     snapshot, surface_features, door_layout_features,
@@ -2603,6 +2612,8 @@ def project_operator_box_body_baseline_face_features(
 
 # Textual source status is also an Engine projection, not a GUI ae call.
 operator_box_body_baseline_source_label = ae.box_body_baseline_source_label
+operator_indicator_shared_baseline_source_label = ae.indicator_shared_baseline_source_label
+operator_baseline_source_label = ae.baseline_source_label
 
 
 # #2517 public copy-on-write candidate and NFB draft edit facade.

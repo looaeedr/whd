@@ -9,7 +9,37 @@ from __future__ import annotations
 
 from typing import Mapping
 
-from .sheetmetal_part_adapters import door_layout_feature_map_to_part_features
+from .sheetmetal_part_adapters import (
+    door_layout_feature_map_to_part_features,
+    derive_door_layout_cells,
+)
+
+
+def project_operator_saved_door_layout_columns(columns: object) -> list[list]:
+    """Detach validated physical Door-grid columns for a .p6fold snapshot.
+
+    The original Engine cell resolver owns finite positive W/H and row
+    topology; there is no GUI-side float coercion, rounding or second part-ID
+    algorithm. A missing/empty grid stays empty for legacy single-Door saves.
+    """
+    if columns is None:
+        return []
+    if not isinstance(columns, (list, tuple)):
+        raise ValueError("door layout source must be a sequence of columns")
+    if not columns:
+        return []
+    for row in columns:
+        if (not isinstance(row, (list, tuple)) or len(row) != 2
+                or not isinstance(row[1], (list, tuple))):
+            raise ValueError("door layout column must be (width, heights)")
+    cells = derive_door_layout_cells(columns)
+    projected: list[list] = []
+    for cell in cells:
+        if cell.row_index == 0:
+            projected.append([float(cell.start_width), []])
+        projected[-1][1].append(float(cell.start_height))
+    return projected
+
 
 
 def project_fold_designer_snapshot_part_features(

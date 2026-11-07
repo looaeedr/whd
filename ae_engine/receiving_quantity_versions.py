@@ -289,6 +289,23 @@ class QuantityModel:
         }
 
 
+def project_operator_quantity_version_controls(payload: Mapping) -> dict[str, object]:
+    """Read-only Quantity version UI projection from the sole Engine owner.
+
+    The original version snapshot remains the saved source; display totals
+    and last-version deletion eligibility are derived from a validated
+    detached model. Both Vault and Receiving clients use this same API.
+    """
+    model = QuantityModel.from_payload(payload)
+    return {
+        **model.snapshot(),
+        "version_count": model.version_count,
+        "total_piece_count": model.total_piece_count,
+        "selected_piece_count": model.selected_piece_count,
+        "can_delete_selected": model.version_count > 1,
+    }
+
+
 def quantity_inherited_nfb_brand_conflicts(snapshot):
     """Derived current-version inherited-model conflicts, NEVER saved READY."""
     if not isinstance(snapshot, Mapping) or snapshot.get("active_mode") != QUANTITY_MODE:

@@ -12,6 +12,37 @@ whd_schema: WHD_DOC_META_V1
 - 統一孔位編輯器原要求主 GUI 注入私有 `ae`，只為呼叫 `baseline_hole_catalog_root_path`。完整 GUI 回歸發現這個依賴尚未改接；現由 `manufacturing_api.operator_hole_catalog_root_path`／根包 `ae_engine` 公開**同一原 `ae_endcap.baseline_hole_catalog_root_path` callable**，保持孔型錄共用根路徑、原 CSV／DXF 型錄兩條載入鏈與缺來源拒絕。
 - 並行已合入的 `manufacturing_api.project_operator_resolved_feature_drawing_primitives` 是箱身面板 `ResolvedFeature → DrawingPrimitive` 唯一公開 Owner；本批保留 GUI 使用該入口，不另增重複的 BoxBody 基準 scene API。僅為 2D／編輯器 readback，不新增 CUTTING／BEND／NFB／DXF 認證或 Save→Reload 通行證；新舊測試均須 exact-SHA 全量回歸核對。
 
+## [CURRENT] #2517 數量孔型版本控制列的件數與最後版本資格由公開 Engine 投影（2026-11-07）
+
+- 原 GUI quantity_version_controls.py::refresh 自行使用 len(rows) 與 sum(piece_count) 計算製造數量，delete 又自行透過版本長度決定能否刪掉最後孔型版本。真實 QuantityModel 雖已由 Engine 管理，GUI 卻保有第二套版本下限和總件數計算。
+- ae_engine.receiving_quantity_versions.project_operator_quantity_version_controls(payload) 透過 QuantityModel.from_payload 完整驗證原 schema、版本身分與件數，回傳拷貝的原版本欄位及 version_count、total_piece_count、selected_piece_count、can_delete_selected。manufacturing_api 與 root ae_engine 公開同一 callable，金庫型和受電箱 Quantity 共用；不建立另一個保存來源。
+- GUI quantity_version_ports.snapshot 唯讀委派 Engine，QuantityVersionControls 僅使用其回傳的總件數、選中版本件數及是否能刪除最後版本；全部實際修改仍走既有 commit_operator_quantity_version_action。非法來源須拒絕、不修改原狀。測試覆蓋 headless API、GUI ports／controls、最後版保護、Save→Reload，無新 Set/Bay、孔、FinalScene／2D／3D／DXF 製造資格。
+
+
+
+## [CURRENT] #2517 受電箱內門畫面讀取與提交同一 Engine 來源驗證（2026-11-07）
+
+- 主 GUI `Phase6ApplicationHost._receiving_inner_door_enabled`／`_receiving_inner_door_inward_offset` 先前在 `receiving_inner_doors` 手寫 `any`／`next`，遇到重複門格、重複實體 stable ID 或壞列時可能只取第一筆，與前述 Engine 原子交易的 fail-closed 規則不一致。
+- 現由 `manufacturing_api.project_operator_receiving_inner_door_cell_source(rows, *, cell_key)`（根包同一原 callable）先沿用 `operator_receiving_inner_door_source._stage_operator_receiving_inner_door_rows` 對**整份** saved rows 做身份與唯一性檢查，才返回指定格的 detached raw source 或 `None`；GUI 用這一份來源顯示 enabled／內退，內退的合法數值與 Family 缺值預設仍由既有 `resolve_operator_receiving_inner_door_inward_offset` 計算。無 GUI 解析 Stable ID、NFB CSV 孔位、2D／3D／DXF 或其他第二套製造規則。
+- 擴充 `tests/test_issue2517_receiving_inner_door_atomic_source_transactions.py` 驗證 GUI 真正呼叫、無門格 fallback、非法重複來源 fail closed、回傳與原來源深拷貝隔離。讀取是 UI-only readback，不提升製造資格；仍需完整 exact SHA CI、Windows 實機驗收。
+
+
+
+## [CURRENT] #2517 受電箱內門勾選／內退尺寸整份來源清單原子交易（2026-11-07）
+
+- 主 GUI `Phase6ApplicationHost._set_receiving_inner_door_enabled` 與 `_set_receiving_inner_door_inward_offset` 先前仍自己複製、篩選、排序並提交 `receiving_inner_doors`；這是實體內門來源清單而不只是 Tk 呈現。遇到無效 row、重複 Door cell／stable_id，不能由 GUI 默默捨棄或半途更新。
+- `manufacturing_api.apply_operator_receiving_inner_door_presence(family_source, rows, *, cell_key, enabled)` 和 `apply_operator_receiving_inner_door_inward_offset(rows, *, cell_key, inward_offset_mm)` 由 `ae_engine/operator_receiving_inner_door_source.py` 原 Owner 定義，根包同步公開。Engine 仍復用既有 `project_operator_receiving_inner_door_enabled_source`、`receiving_inner_door_stable_id_for_cell`、Family `default_inner_door_inward_offset_mm` 及有限非負 mm 驗證；一次驗證、deepcopy 與回傳 detached 全清單，GUI 只有一次賦值，失敗不得改動來源。保存的孔位／NFB／Fold／DXF 原製造 Owner 及資格不因此提升。
+- `tests/test_issue2517_receiving_inner_door_atomic_source_transactions.py` 覆蓋真實 GUI 勾選／內退、已存來源與 NFB 草稿保留、重複 ID／壞列 fail-closed、非法數值、無效目標、.p6fold Save→Reload。CI 需跑 exact SHA 完整回歸；Windows GUI 實機與 #2517 全面接線另驗。
+
+
+
+## [CURRENT] #2517 2D 基準來源字串與封頭尾自訂模型判斷統一公開 Engine（2026-11-07）
+
+- 原 `gui_modules/application/render_snapshots.py` 仍透過 `ae_engine.ae` 私有匯入查指示燈盒、門格、箱身基準狀態，並直接匯入內部 `corner_type_ui.is_unknown_model` 決定 EndCap 自訂預覽標籤。即使屬只讀顯示，基準檔是否存在不能由 GUI 自己判斷或默認為已確認加工來源。
+- 在既有 `manufacturing_api` 直接公開 **原 callable** `operator_indicator_shared_baseline_source_label`、`operator_baseline_source_label`，保留已有 `operator_box_body_baseline_source_label` 及 `is_unknown_operator_model`；根包 `ae_engine` 同步輸出這四個 readback API。GUI 僅轉交原參數並顯示原輸出，沒有複製基準檔探測、Family 規則或任何孔位／Fold／CUTTING／DXF 認證。
+- `tests/test_issue2517_render_baseline_labels_public_api.py` 驗證原 Engine owner callable identity、缺基準檔不造假來源、Indicator／DoorGrid／BoxBody／EndCap 實際 GUI snapshot 呼叫、私有匯入消除。屬 2D status only：Save→Reload／2D／3D／DXF 原物理來源不變，仍依 exact HEAD canonical Product Regression 與 Windows UAT 驗收。
+
+
 ## [CURRENT] #2517 箱身面板 2D Feature／CUTTING／MARKING 圖元只由公開 Engine 投影（2026-11-07）
 
 - 原主 GUI `Phase6ApplicationHost._box_body_face_baseline_scene` 從 Engine 取得已解析的 BoxBody 面板孔位後，仍直接呼叫私有 `sheetmetal_drawing.resolved_features_to_primitives` 轉為 2D 圖元。此 Owner 含正式 Circle／Rect／Profile、`BLIND_HOLE` 中心線、`CUTTING` 主輪廓、外部 DXF process layers 與避免重複切線的語意；GUI 不可重算或默默遺漏。
@@ -223,6 +254,12 @@ whd_schema: WHD_DOC_META_V1
 - `manufacturing_api.project_operator_fold_designer_snapshot_numeric_defaults`（`ae_engine` 根包同公開 callable）直接重用 Engine `operator_fold_designer_numeric_source._legacy_defaults` 的現行執行期來源，加上原 UI 舊式底板收縮／折邊和指示燈盒相容預設；所有預設在公開 Engine 以有限數值守衛，`nan` 等非法執行期來源 fail closed。此投影**完全不包含 W/H/D/T/FW**；原 GUI 的 W/H/D/T/FW 必須由操作者實際輸入經 `normalize_operator_source_dimension` 驗證，不能使用任何 Engine 常數填補。
 - GUI 只將原有數值控件與 Engine 當下回傳的完整預設值配對，保留舊表單空缺時的呈現語意及 Settings／INI 其他流程；GUI 不增 Formula、成品尺寸推導或 FinalScene，且不改現有 `load_factory_defaults_from_ae` UI Schema 相容呼叫。Headless 測試核對兩 Family 共用的原執行期 defaults、動態更新、非法預設拒絕、root/facade API 同源、GUI 不再私讀製造數值以及原物理 W/H/D/T/FW fail closed；完整 2D／3D／DXF／Save→Reload 仍交 exact-SHA 回歸。
 
+
+## [CURRENT] #2517 Fold Designer 多門格實體 W/H 保存改為公開 Engine 同源投影（2026-11-07）
+
+- 原 `gui_modules/application/fold_designer_snapshot_projection._snapshot_base_state` 雖透過 `door_layout_host_adapter.get_door_layout_columns` 收取操作員的真實多門格欄寬、各列高度，仍在 GUI 自行 `float(width)`／`float(height)` 組裝 `.p6fold` 保存來源；布林會暗中轉成 1mm，並與 Engine 的原實體門格 `derive_door_layout_cells` 規則分岔。這是操作資料到已保存實體 Door-grid 身分的轉換，不是畫面格式化。
+- 原 `ae_engine.door_layout_feature_projection` 新增 `project_operator_saved_door_layout_columns(columns)`，沿用原 `sheetmetal_part_adapters.derive_door_layout_cells` 的同一有效正尺寸、有限小數、Door-grid 拓樸，按真實原一基 `door_cN_rN` 順序輸出 detached `[[width_mm,[height_mm,...]],...]`，不修改來源；單門歷史來源 `None`／空序列仍保存空清單，非法型別、bool、零／負數、NaN／Inf、空列在同一 Engine 回傳前拒絕，不發布部分候選。未增加任何新的 W/H 尺寸公式、CUTTING、BEND 或 DXF 製造資格。
+- `manufacturing_api.project_operator_saved_door_layout_columns` 與根包 `ae_engine` 公開原 Owner 同一 callable；GUI 只收 `get_door_layout_columns` 的操作者欄值並消費 Engine 結果，不再自行再轉一份座標／尺度。既有 `project_fold_designer_snapshot_part_features` 仍對同一保存欄位進行物理 Feature 身分投影，保存後 `project_snapshot_state.normalize_authoritative_door_state` 接續原正式權威。定向測試 `tests/test_issue2517_saved_door_grid_dimensions_public_api.py` 驗證 GUI 實際接線、失敗不部分更新、負值／非法 bool、不變原始 Feature 身分與真實 `.p6fold` Save→Reload；完整 exact-SHA Product Regression 與 Windows GUI UAT 另核對。
 
 ## [CURRENT] #2517 主 GUI 多門格實體 Feature 讀回只透過公開 Engine（2026-11-07）
 
@@ -858,6 +895,12 @@ whd_schema: WHD_DOC_META_V1
 
 - `phase6_project_file` 原有 `_encode/_decode/_decode_feature/_as_vec2` 全部以**原語意**搬到 `ae_engine.project_feature_codec`，透過 `manufacturing_api.encode_project_value`、`decode_project_value`、`decode_project_feature`、`project_vec2_from_raw` 公開；舊 GUI 名稱僅是相同物件 aliases，GUI 只操作 FilePath/JSON 文字傳輸與 Windows 檔案關聯。Circle/Rect/Profile Feature 與 Vec2 的反序列化和 Anchor/offset/source_params/layered_profiles 語意不再由 GUI 定義。
 - 原 `.p6fold` `__phase6_type__` wire 與既有專案 schema、Receiving/Vault 來源權威和 `project_operator_project_for_write/read` 的 Save→Reload 檢核保持完全相容；沒有從預覽重建未驗證 Feature，也未增加外部製造認證或修改物理公式。新測試 `tests/test_issue2517_project_feature_codec_engine_api.py` 與既有專案存讀整合回歸證明 UI/headless 同源及無逆向依賴；#2517 仍 OPEN。
+
+## [CURRENT] #2517 Fold Designer 保存實體 Workspace 清單／有效選取須由公開 Engine 同次投影（2026-11-07）
+
+- 原 `gui_modules/application/fold_designer_snapshot_projection._snapshot_workspace_state` 即使從正式 Workspace Controller 取得已確認的 `current_existing_parts`，仍在 GUI 硬寫七種板件順序，並用 GUI 條件決定 `active_part` 不存在時改選第一張板。這兩份結果直接寫入 `.p6fold`，涉及實體板件保存身份，不得再由 GUI 自行維持第二份製造板件名單規則。
+- 在原 `ae_engine.workspace_state` canonical `PART_ORDER`／`normalize_existing_parts`／`_repair_active` owner 新增純函式 `project_operator_fold_designer_workspace_presence(current_existing_parts, workspace_existing_parts, active_part)`，由實際 present IDs 與已提交 Workspace 的動態板件順序構成 immutable `OperatorWorkspaceSnapshotPresence(existing_parts, active_part)`。已知箱身／頭／尾／門／底板／指示燈板按原 Engine 順序，確實存在的自訂／衍生板依已提交順序排列；缺席／無效選取依原儲存規則回退第一張實體板。來源不是板件序列或包含非法空 Key 必須拒絕，不修改原資料，也不替無來源的候選創建正式加工資格。
+- `manufacturing_api` 和根包 `ae_engine` 公開原 owner 同一 callable／結果型別；GUI 只提交 Workspace 來源、消費結果寫入 `snapshot["existing_parts"]` 與 `snapshot["active_part"]`，原 AssemblyJoint 快照和 Feature 保存順序沿用。回歸 `tests/test_issue2517_fold_designer_saved_presence_public_api.py` 驗 Root／Facade 同一 owner、標準與動態板件的身份排序、無效或缺席 selection、非法來源不可部分提交、真實 Fold Designer snapshot 接線與 `.p6fold` Save→Reload。沒有新增板件／Family／Hole／CUTTING／BEND／FinalScene／DXF 製造權限；完整 GitHub exact-SHA Regression 及 Windows UAT 仍按真實執行。
 
 ## [CURRENT] #2517 Main／Designer 共享實體 Workspace 狀態由 Engine 公開 API 單獨擁有（2026-11-03）
 

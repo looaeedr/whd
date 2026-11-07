@@ -11,6 +11,30 @@ whd_schema: WHD_DOC_META_V1
 
 The existing public `project_operator_resolved_feature_drawing_primitives` remains the BoxBody physical Feature projection; this PR reuses it instead of introducing a competing baseline drawing API. These APIs are read-only and do not change CUTTING/BEND, NFB, Save→Reload, DXF certification or physical manufacturing authority. Regression: `tests/test_issue2517_canvas_feature_surface_public_api.py` and `tests/test_issue2517_box_body_resolved_primitives_public_api.py`.
 
+## #2517 Quantity version controls source readback (2026-11-07)
+
+The same public callable from ae_engine and ae_engine.manufacturing_api is project_operator_quantity_version_controls(payload). Its source is the original QuantityModel saved payload. The Engine validates all existing version identities and piece counts and projects detached versions, selected_version_id, version_count, total_piece_count, selected_piece_count and can_delete_selected. Both Vault and Receiving Quantity GUI clients only display the projection. All writes still use commit_operator_quantity_version_action; this projection does not create physical Bays, change Feature/BEND geometry, or authorize DXF.
+
+
+## #2517 Receiving inner-door source readback uses the same atomic owner (2026-11-07)
+
+`manufacturing_api.project_operator_receiving_inner_door_cell_source(rows, *, cell_key) -> dict | None`, also publicly exported at root `ae_engine`, selects one operator-staged Receiving Door cell only **after** checking the entire saved source list for malformed rows and duplicate Door-cell/physical stable identities. Returns an isolated copy; absent remains `None`. The main GUI's enabled checkbox and inward mm display consume it, while the preexisting `resolve_operator_receiving_inner_door_inward_offset` owns Family-default and finite saved mm semantics. No NFB feature, CUTTING, BEND or DXF certification is inferred. Regression: `tests/test_issue2517_receiving_inner_door_atomic_source_transactions.py`.
+
+
+
+## #2517 Atomic Receiving inner-door source list updates (2026-11-07)
+
+- `manufacturing_api.apply_operator_receiving_inner_door_presence(family_source, rows, *, cell_key, enabled) -> list[dict]`: Engine validates all saved physical Door cell keys and duplicate part IDs, preserves existing Feature/NFB/source payload, applies the existing canonical per-cell enabled projection, then returns a detached sorted list; invalid input changes nothing.
+- `manufacturing_api.apply_operator_receiving_inner_door_inward_offset(rows, *, cell_key, inward_offset_mm) -> (list[dict], float)`: Engine validates the finite nonnegative physical offset and enabled target, stages the full list, then returns detached rows plus canonical mm. Both functions are exported from root `ae_engine` and replace main GUI private list mutations. This is source staging, not verified NFB hole, CUTTING, BEND or DXF authorization. Tests: `tests/test_issue2517_receiving_inner_door_atomic_source_transactions.py`.
+
+
+
+## #2517 Read-only operator baseline source labels via public Engine (2026-11-07)
+
+`manufacturing_api.operator_indicator_shared_baseline_source_label(filename)` and `operator_baseline_source_label(model_name, filename)` directly alias the existing `ae.indicator_shared_baseline_source_label` / `ae.baseline_source_label` Engine owners. Together with existing `operator_box_body_baseline_source_label(model_name)` and `is_unknown_operator_model(model_name)`, all four are exported by the root `ae_engine`. Main GUI `render_snapshots.py` uses these read-only Engine results for Indicator Box, Door-grid, BoxBody and EndCap display labels. A missing baseline stays missing, and a label is never a proof of CUTTING, DXF or certified manufacturing release. Test: `tests/test_issue2517_render_baseline_labels_public_api.py`.
+
+
+
 ## #2517 BoxBody resolved feature drawing through public Engine (2026-11-07)
 
 `manufacturing_api.project_operator_resolved_feature_drawing_primitives(resolved_features)` (also `ae_engine.project_operator_resolved_feature_drawing_primitives`) is the exact same original `sheetmetal_drawing.resolved_features_to_primitives` callable. The main GUI's BoxBody face baseline 2D preview delegates resolved physical features to this public Engine projection and only places returned Circle/Rect/Profile drawing primitives in a display `DrawingScene`. The existing owner retains BLIND_HOLE centerlines, primary CUTTING, MARKING and FROM_DXF process-layer suppression semantics. This read-only API adds no verified CUTTING or DXF manufacturing release. Tests: `tests/test_issue2517_box_body_resolved_primitives_public_api.py`.
