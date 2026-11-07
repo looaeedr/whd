@@ -12,6 +12,13 @@ whd_schema: WHD_DOC_META_V1
 - 現由 `manufacturing_api.project_operator_engineering_drawing_annotations`／根包 `ae_engine` 以**同一 callable**公開既有 `engineering_drawing.build_engineering_drawing_projection`；主 GUI 與模組化 GUI 只傳入已解出的 canonical `PartRenderData`，從同一 Engine 取得尺寸／文字標註，`CanvasTransform` 使用原已有的公開 API。保留原來源有效性拒絕、`strict` 與碰撞診斷、`DIMENSION/TEXT` 限制及原 `DrawingScene` 不可變檢查。
 - 此為 annotation-only readback，**不新增** material／CUTTING／BEND／孔位或 DXF export 資格；正式 2D／3D／DXF 仍需 consume 同一 canonical 製造來源。定向測試 `tests/test_issue2517_operator_engineering_drawing_public_api.py` 核對 callable identity、annotation parity、非法來源拒絕不污染、GUI adapter 委派與公開 CanvasTransform；GitHub exact-SHA 完整產品回歸另驗。
 
+## [CURRENT] #2517 Receiving 解除連動須由公開 Engine 回傳原共享實體 Bay 身分（2026-11-07）
+
+- 原 `ReceivingSetBayAdapter.unlink_setting(kind)` 已使用公開 `unlink_receiving_shared_setting` 進行單 Bay 來源更改，但不問是否實際解除，就只對當前 Bay 標 `session_dirty`；而原本共享同一參照的其他 Bay 沒有被列入當次來源關聯變更保護。原 `receiving_settings_ports.unlink` 對已獨立的 Bay 也照常提交 geometry intent，造成無變更的假 dirty／重算。
+- 保留既有唯一 `receiving_shared_settings.unlink_setting` 與舊公開 API 全部相容；新增同 owner 的 `unlink_setting_with_affected_ids(layout, *, set_index, bay_index, kind)`，先以原 `normalize_receiving_layout`、`normalize_set_settings` 驗證實體 Set／Bay／Setting，再沿**同一份 canonical refs** 擷取解除前的實體共享 Bay 群組；以原 `unlink_setting` 原子建立 detached 候選。回傳 `(candidate, affected_ids)`：只有 ref 確實分離才返回原共享群組中的完整實體 IDs（包含本次操作者 Bay），已獨立 no-op 返回空 tuple，輸入來源不變。相同設定值但不同 refs 不算連動，不製造新的幾何或 NFB model。
+- `manufacturing_api.unlink_receiving_shared_setting_with_affected_ids` 與根包 `ae_engine` 匯出同一 Engine 函式；GUI 只在 affected 非空時儲存候選、標記 Engine ID 及提交 geometry intent；錯誤／no-op 不寫來源也不觸發假提交。測試 `tests/test_issue2517_receiving_unlink_affected_ids_public_api.py` 驗 Root／Facade、既有 unlink 等價、非連續共享群組、no-op／非法來源不變、GUI 真實 port 與 Project Save→Reload。這是 Set/Bay 實體來源參照權威，不新增任何 CUTTING、BEND、FinalScene、DXF 或未認證的製造能力。
+
+
 ## [CURRENT] #2517 Receiving Joint 對齊只標記真正改變的實體 Joint ID（2026-11-07）
 
 - 舊 ReceivingSetBayAdapter.update_joint_alignment 雖經原 Engine update_receiving_joint_alignment 驗證並執行 FRONT／REAR、TOP／BOTTOM，但 GUI 無條件把選中 Joint stable_id 放入 session dirty。當相鄰 Bay 的 D/H 相等導致對齊軸不可編輯、或操作者提交相同值時，Engine 並未更改 Joint，GUI 卻製造「待保存實體」及後續刪除保護假訊號。
