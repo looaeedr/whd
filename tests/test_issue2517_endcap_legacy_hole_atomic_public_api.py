@@ -177,6 +177,53 @@ def test_real_main_gui_restore_never_partially_commits_head_if_tail_invalid():
     assert host.tail_holes == original_tail
 
 
+def test_real_quantity_version_switch_preserves_both_old_caches_on_invalid_tail(monkeypatch):
+    import phase6_custom_parts
+    import phase6_quantity_model
+    import phase6_sync_envelope
+
+    monkeypatch.setattr(phase6_custom_parts, "custom_part_only_change", lambda *_: False)
+    monkeypatch.setattr(phase6_quantity_model, "quantity_only_change", lambda *_: True)
+    monkeypatch.setattr(phase6_sync_envelope, "navigation_only_change", lambda *_: False)
+
+    host = _host()
+    source_features = {"head": [_head()], "tail": [object()]}
+    calls = []
+    owner = api.project_operator_endcap_legacy_hole_rows
+
+    def delegated(features, *, width, depth):
+        calls.append((features, width, depth))
+        return owner(features, width=width, depth=depth)
+
+    monkeypatch.setattr(api, "project_operator_endcap_legacy_hole_rows", delegated)
+    host.workspace_controller = SimpleNamespace(
+        commit_workspace=lambda *_: None,
+        part_features_snapshot=lambda: source_features,
+    )
+    captures = []
+    host.project_controller = SimpleNamespace(capture_committed=captures.append)
+    host._compose_phase6_project_snapshot_from_main_gui = lambda: {"restored": True}
+    host._fold_designer_live_sync_guard = False
+    host._phase6_last_fold_designer_revision = 1
+    host._phase6_last_fold_designer_fingerprint = "old"
+    host._phase6_last_fold_designer_live_payload = None
+    host._phase6_update_scheduler = None
+    old_head, old_tail = deepcopy((host.head_holes, host.tail_holes))
+    payload = {
+        "origin": "fold_designer",
+        "revision": 2,
+        "fingerprint": "new",
+        "workspace": {},
+        "quantity": {"selected_version_id": "v2", "versions": []},
+    }
+    assert gui._apply_fold_designer_live_snapshot(host, payload) is True
+    assert len(calls) == 1
+    assert calls[0][0] == source_features
+    assert (host.head_holes, host.tail_holes) == (old_head, old_tail)
+    assert captures == [{"restored": True}]
+    assert host._fold_designer_live_sync_guard is False
+
+
 def test_actual_p6fold_save_reload_rehydrates_same_two_engine_endcap_2d_sources(tmp_path):
     import phase6_project_file as project
 
