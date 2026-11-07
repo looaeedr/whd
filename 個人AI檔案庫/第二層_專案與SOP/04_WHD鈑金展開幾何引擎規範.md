@@ -7,6 +7,14 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 受電箱內門畫面讀取與提交同一 Engine 來源驗證（2026-11-07）
+
+- 主 GUI `Phase6ApplicationHost._receiving_inner_door_enabled`／`_receiving_inner_door_inward_offset` 先前在 `receiving_inner_doors` 手寫 `any`／`next`，遇到重複門格、重複實體 stable ID 或壞列時可能只取第一筆，與前述 Engine 原子交易的 fail-closed 規則不一致。
+- 現由 `manufacturing_api.project_operator_receiving_inner_door_cell_source(rows, *, cell_key)`（根包同一原 callable）先沿用 `operator_receiving_inner_door_source._stage_operator_receiving_inner_door_rows` 對**整份** saved rows 做身份與唯一性檢查，才返回指定格的 detached raw source 或 `None`；GUI 用這一份來源顯示 enabled／內退，內退的合法數值與 Family 缺值預設仍由既有 `resolve_operator_receiving_inner_door_inward_offset` 計算。無 GUI 解析 Stable ID、NFB CSV 孔位、2D／3D／DXF 或其他第二套製造規則。
+- 擴充 `tests/test_issue2517_receiving_inner_door_atomic_source_transactions.py` 驗證 GUI 真正呼叫、無門格 fallback、非法重複來源 fail closed、回傳與原來源深拷貝隔離。讀取是 UI-only readback，不提升製造資格；仍需完整 exact SHA CI、Windows 實機驗收。
+
+
+
 ## [CURRENT] #2517 受電箱內門勾選／內退尺寸整份來源清單原子交易（2026-11-07）
 
 - 主 GUI `Phase6ApplicationHost._set_receiving_inner_door_enabled` 與 `_set_receiving_inner_door_inward_offset` 先前仍自己複製、篩選、排序並提交 `receiving_inner_doors`；這是實體內門來源清單而不只是 Tk 呈現。遇到無效 row、重複 Door cell／stable_id，不能由 GUI 默默捨棄或半途更新。

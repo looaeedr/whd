@@ -18,6 +18,7 @@ from ae_engine import manufacturing_api as api
 from ae_engine.operator_receiving_inner_door_source import (
     apply_operator_receiving_inner_door_presence as presence_owner,
     apply_operator_receiving_inner_door_inward_offset as offset_owner,
+    project_operator_receiving_inner_door_cell_source as read_owner,
 )
 from gui import Phase6ApplicationHost as GUI
 import phase6_project_file as project
@@ -44,6 +45,7 @@ def test_public_facade_and_root_share_original_atomic_engine_owner():
     for name, owner in (
         ("apply_operator_receiving_inner_door_presence", presence_owner),
         ("apply_operator_receiving_inner_door_inward_offset", offset_owner),
+        ("project_operator_receiving_inner_door_cell_source", read_owner),
     ):
         assert getattr(api, name) is owner
         assert getattr(ae_engine, name) is owner
@@ -267,3 +269,97 @@ def test_main_gui_does_not_filter_or_sort_manufacturing_source_locally():
         assert len(calls) == 1, name
         assert not any(isinstance(n, (ast.For, ast.ListComp, ast.Lambda))
                        for n in ast.walk(method)), name
+
+
+def test_public_readback_matches_canonical_saved_door_cell_without_mutating_sources():
+    rows = _source()
+    original = deepcopy(rows)
+    found = api.project_operator_receiving_inner_door_cell_source(
+        rows, cell_key="0:1",
+    )
+    assert found == rows[0]
+    assert found is not rows[0]
+    found["nfb_draft_selection"]["version"] = "detached"
+    assert rows == original
+    assert api.project_operator_receiving_inner_door_cell_source(
+        rows, cell_key="7:0",
+    ) is None
+
+
+@pytest.mark.parametrize("invalid", (
+    [{"cell_key": "0:0", "stable_id": "upper"},
+     {"cell_key": "0:0", "stable_id": "duplicate"}],
+    [{"cell_key": "0:0", "stable_id": "upper"},
+     {"cell_key": "0:1", "stable_id": "upper"}],
+    [{"cell_key": "0:0", "stable_id": "upper"}, object()],
+))
+def test_public_readback_rejects_corrupt_saved_source_without_guessing(invalid):
+    prior = list(invalid)
+    with pytest.raises(ValueError):
+        api.project_operator_receiving_inner_door_cell_source(
+            invalid, cell_key="1:1",
+        )
+    assert len(invalid) == len(prior)
+    assert all(a is b for a, b in zip(invalid, prior))
+
+
+def test_real_main_gui_reads_both_enabled_and_inward_source_via_public_engine(monkeypatch):
+    host = _host()
+    original = api.project_operator_receiving_inner_door_cell_source
+    calls = []
+
+    def delegated(rows, *, cell_key):
+        calls.append((rows, cell_key))
+        return original(rows, cell_key=cell_key)
+
+    monkeypatch.setattr(
+        api, "project_operator_receiving_inner_door_cell_source", delegated,
+    )
+    assert GUI._receiving_inner_door_enabled(host, "0:1") is True
+    assert GUI._receiving_inner_door_inward_offset(host, "0:1") == 64.25
+    assert GUI._receiving_inner_door_enabled(host, "3:0") is False
+    assert len(calls) == 3
+    assert all(rows is host.receiving_inner_doors for rows, _ in calls)
+    assert [key for _, key in calls] == ["0:1", "0:1", "3:0"]
+
+
+def test_missing_cell_uses_existing_family_offset_in_engine_without_creating_door():
+    host = _host([])
+    source_before = deepcopy(host.receiving_inner_doors)
+    assert GUI._receiving_inner_door_enabled(host, "1:0") is False
+    assert GUI._receiving_inner_door_inward_offset(host, "1:0") == (
+        api.resolve_operator_receiving_inner_door_inward_offset(
+            {"model": "受電箱"}, None,
+        )
+    )
+    assert host.receiving_inner_doors == source_before
+
+
+def test_real_main_gui_readback_invalid_saved_identity_fails_closed():
+    rows = _source()
+    rows.append(deepcopy(rows[0]))
+    host = _host(rows)
+    before = deepcopy(host.receiving_inner_doors)
+    with pytest.raises(ValueError, match="重複"):
+        GUI._receiving_inner_door_enabled(host, "0:0")
+    with pytest.raises(ValueError, match="重複"):
+        GUI._receiving_inner_door_inward_offset(host, "0:0")
+    assert host.receiving_inner_doors == before
+
+
+def test_gui_read_ports_have_no_private_first_match_or_physical_identity_logic():
+    import gui as main
+    tree = ast.parse(Path(main.__file__).read_text(encoding="utf-8"))
+    host = next(n for n in tree.body if isinstance(n, ast.ClassDef)
+                and n.name == "Phase6ApplicationHost")
+    for name in (
+        "_receiving_inner_door_enabled", "_receiving_inner_door_inward_offset",
+    ):
+        method = next(n for n in host.body if isinstance(n, ast.FunctionDef)
+                      and n.name == name)
+        assert not any(isinstance(n, (ast.For, ast.ListComp, ast.GeneratorExp,
+                                      ast.DictComp, ast.SetComp))
+                       for n in ast.walk(method))
+        source = ast.get_source_segment(Path(main.__file__).read_text(encoding="utf-8"), method)
+        assert "manufacturing_api.project_operator_receiving_inner_door_cell_source(" in source
+        assert "item.get(\"cell_key\")" not in source

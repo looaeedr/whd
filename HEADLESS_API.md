@@ -5,6 +5,12 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving inner-door source readback uses the same atomic owner (2026-11-07)
+
+`manufacturing_api.project_operator_receiving_inner_door_cell_source(rows, *, cell_key) -> dict | None`, also publicly exported at root `ae_engine`, selects one operator-staged Receiving Door cell only **after** checking the entire saved source list for malformed rows and duplicate Door-cell/physical stable identities. Returns an isolated copy; absent remains `None`. The main GUI's enabled checkbox and inward mm display consume it, while the preexisting `resolve_operator_receiving_inner_door_inward_offset` owns Family-default and finite saved mm semantics. No NFB feature, CUTTING, BEND or DXF certification is inferred. Regression: `tests/test_issue2517_receiving_inner_door_atomic_source_transactions.py`.
+
+
+
 ## #2517 Atomic Receiving inner-door source list updates (2026-11-07)
 
 - `manufacturing_api.apply_operator_receiving_inner_door_presence(family_source, rows, *, cell_key, enabled) -> list[dict]`: Engine validates all saved physical Door cell keys and duplicate part IDs, preserves existing Feature/NFB/source payload, applies the existing canonical per-cell enabled projection, then returns a detached sorted list; invalid input changes nothing.
