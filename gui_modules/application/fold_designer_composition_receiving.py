@@ -1584,28 +1584,15 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         return changed
 
     def single_size_quantity():
-        from phase6_quantity_model import QuantityModel
-        snapshot = _current_mode_snapshot(self, namespace)
-        if snapshot.get("active_mode") != "quantity":
-            raise ValueError("單只設定必須使用單箱體數量模式")
-        box = manufacturing_api.normalize_common_box(snapshot.get("receiving_quantity_box"))
-        model = QuantityModel.from_payload(snapshot.get("quantity"))
-        return {"width": box["w"], "height": box["h"], "depth": box["d"],
-                "count": model.selected_piece_count,
-                "total_count": model.total_piece_count,
-                "version_count": model.version_count}
+        return manufacturing_api.project_operator_receiving_quantity_size_count(
+            _current_mode_snapshot(self, namespace),
+        )
 
     def set_single_size_quantity(width, height, depth, count):
-        from phase6_quantity_model import QuantityModel, positive_piece_count
-        new_count = positive_piece_count(count)
-        snapshot = _current_mode_snapshot(self, namespace)
-        if snapshot.get("active_mode") != "quantity":
-            raise ValueError("單只設定必須使用單箱體數量模式")
-        model = QuantityModel.from_payload(snapshot.get("quantity"))
-        model.set_piece_count(new_count)
-        candidate = manufacturing_api.update_common_box(snapshot, {"w": width, "h": height, "d": depth})
-        candidate["quantity"] = model.snapshot()
-        manufacturing_api.require_valid_operator_quantity_features(candidate)
+        candidate = manufacturing_api.apply_operator_receiving_quantity_size_count(
+            _current_mode_snapshot(self, namespace),
+            width=width, height=height, depth=depth, count=count,
+        )
         _apply_mode_snapshot(self, namespace, candidate)
         return True
 
