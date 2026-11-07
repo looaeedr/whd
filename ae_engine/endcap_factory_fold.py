@@ -286,6 +286,25 @@ def commit_box_fw(state, value: float) -> dict:
     return state
 
 
+def commit_operator_box_fw_takeover(state, value) -> dict:
+    """Commit an operator's box FW to both EndCaps through the original owner.
+
+    The legacy commit_box_fw is retained for its existing Engine callers.
+    This public UI transaction rejects invalid physical input and malformed
+    existing rows *before* changing any live Head/Tail or mode source.
+    """
+    from .operator_settings_transactions import normalize_operator_source_dimension
+
+    if type(state) is not dict:
+        raise ValueError("ENDCAP_BOX_FW_STATE_REQUIRED")
+    fw = normalize_operator_source_dimension(value, field="fw")
+    staged = deepcopy(state)
+    commit_box_fw(staged, fw)
+    # Preserve the original dict and nested Head/Tail identities: GUI views
+    # may hold these live references. Validation has completed on the copy.
+    return commit_box_fw(state, fw)
+
+
 def commit_endcap_fw(state, part_key: str, value: float, *, box_fw: float | None = None) -> dict:
     """Apply one explicit Head/Tail FW edit using the pair-then-split state machine."""
     part_key = str(part_key)

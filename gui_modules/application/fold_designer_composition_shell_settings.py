@@ -694,7 +694,9 @@ def settings_application_project_ui_values(
         if "fw" in values:
             state = getattr(app, "_phase6_endcap_fw_state", None)
             if isinstance(state, required("MutableMapping")):
-                required("commit_box_fw")(state, float(values["fw"]))
+                manufacturing_api.commit_operator_box_fw_takeover(
+                    state, values["fw"],
+                )
                 app._phase6_input_snapshot["endcap_fw"] = deepcopy(state)
 
         defaults = dict(getattr(plan, "defaults", {}) or {})

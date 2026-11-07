@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Box FW 接管 Head/Tail 的兩個 GUI 寫入入口統一公開 Engine 交易（2026-11-07）
+
+- Phase6 Settings Controller 的 `commit_editor_fw_takeover` 與 Fold Designer `settings_application_project_ui_values` 原先先在 GUI 呼叫 `float(value)`，再直接套用舊式 `commit_box_fw` 到 live `_phase6_endcap_fw_state`。原 Engine 遺留函式是就地寫入，沒有物理有限正數硬閘門；布林、NaN／Inf、零或負值可能經 GUI 先轉型而污染 Head/Tail FW，已有 malformed Tail 的來源也可能在 Head 被修改後才拋錯。
+- 新公開 `manufacturing_api.commit_operator_box_fw_takeover(state, value)`（根包 `ae_engine` 同一 callable）由原 `endcap_factory_fold` 負責，先用既有 `normalize_operator_source_dimension(field="fw")` 核實操作員輸入的正值、有限數字及 bool 拒絕，再把原 `commit_box_fw` 在完整 detached state 上預先跑通，最後由同一原 owner 就地提交；保持 Head/Tail live nested dict 身分、FOLLOW_BODY 語意與原有合法輸出完全相同。舊 Engine 低階函式供原有合法相容呼叫繼續保留，不使 GUI 擁有任何新 FW 公式。
+- 兩個 GUI 入口只傳原操作員 FW 及共用狀態給公開 API，無 GUI 先做 `float` 的物理來源轉型；不合法來源不可改變 mode、Head、Tail 或 input snapshot。定向測試涵蓋兩箱型、Engine root/facade/原 owner parity、全套非法值／晚期壞 Tail、同物件 identity、Controller 與 Shell GUI 接線、實體 EndCap FW 投影及 Save→Reload；2D／3D／DXF Product Regression 須驗 exact SHA。此提交不宣稱 Windows R5 或整箱 NC 已驗收。
+
+
 ## [CURRENT] #2517 Receiving Set/Bay 縮減候選及被移除實體 ID 由公開 Engine 單次交易（2026-11-07）
 
 - 原 `ReceivingSetBayAdapter.set_bay_count/set_set_count` 在取得預先刪除 ID 並確認後，**先**從 GUI 已保存 ID 與 session dirty 集合刪除，**後**才做 Engine Resize。若物理 Layout／Family 新 Bay 預設錯誤使 Engine 拒絕，正式 Layout 未改但已失去重做時的刪除保護。
