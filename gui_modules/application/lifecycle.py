@@ -180,9 +180,6 @@ from phase6_endcap_semantics import (
     commit_box_fw, commit_endcap_fw,
     normalize_endcap_bottom_wrap_state, resolve_endcap_bottom_wrap,
 )
-from ae_engine.assembly_joint import (
-    migrate_legacy_snapshot_joints, sync_snapshot_intent_joints, ASSEMBLY_JOINT_SCHEMA_VERSION,
-)
 from phase6_settings_center import (
     GLOBAL_CONTEXT,
     UI_TEXT_SIZE_LABELS,
@@ -695,7 +692,7 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
     self._apply_manual_corner_snapshot(
         snapshot.get("corner_state"), snapshot.get("corner_pair_same")
     )
-    graph_state = migrate_legacy_snapshot_joints(snapshot)
+    graph_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(snapshot)
     # Set the preset UI/cache first, then restore the saved Joint Graph.
     # Reversing this order normalizes every saved user edge override back
     # to the preset defaults during load.
@@ -868,7 +865,7 @@ def _apply_fold_designer_live_snapshot(self, payload):
             # not invalidate caches or enqueue a host calculation/echo.
             active = payload["active_part"]
             self.workspace_controller.set_active_part(active)
-            if active.startswith("box_body:") and not active.startswith("box_body:divider:"):
+            if manufacturing_api.is_box_body_physical_piece_key(active):
                 self.box_body_piece_2d_selected_var.set(active)
             self._sync_fold_designer_manual_corner_context(active)
             self.project_controller.capture_committed(
@@ -944,7 +941,7 @@ def _apply_fold_designer_live_snapshot(self, payload):
         self._apply_manual_corner_snapshot(
             payload.get("corner_state"), payload.get("corner_pair_same")
         )
-        graph_state = migrate_legacy_snapshot_joints(payload)
+        graph_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(payload)
         # Update the preset selector/cache first. _set_box_assembly_type()
         # intentionally synchronizes preset defaults, so applying it after a
         # live user-edited Joint Graph would erase Head/Tail edge overrides.
@@ -1061,7 +1058,7 @@ def _apply_fold_designer_live_snapshot(self, payload):
             or payload.get("active_part")
             or ""
         )
-        if workspace_active.startswith("box_body:") and not workspace_active.startswith("box_body:divider:"):
+        if manufacturing_api.is_box_body_physical_piece_key(workspace_active):
             self.box_body_piece_2d_selected_var.set(workspace_active)
         self._sync_fold_designer_manual_corner_context(payload.get("active_part"))
         if baseline_changed:
