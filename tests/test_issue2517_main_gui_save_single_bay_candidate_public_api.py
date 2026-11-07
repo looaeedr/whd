@@ -195,6 +195,22 @@ def test_missing_live_candidate_deletes_old_version_but_committed_fallback_only_
     assert closed["receiving_hole_candidates"] == live["receiving_hole_candidates"]
 
 
+def test_main_gui_saved_receiving_door_survives_real_project_save_reload(tmp_path):
+    import phase6_project_file as project
+
+    source = _source()
+    source.update({"w": 800.0, "h": 1600.0, "d": 350.0, "t": 2.0, "fw": 25.0})
+    saved = gui._compose_phase6_project_snapshot_from_main_gui(_save_host(source))
+    target = project.write_project(
+        tmp_path / "receiving-single-bay.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": saved},
+    )
+    restored = project.read_project(target)
+    door = restored["snapshot"]["receiving_layout"]["sets"][0]["bays"][0]["door_state"]
+    assert door["inner_doors"] == source["inner_doors"]
+    assert door["door_nameplate_center_datum_top"] == 85.0
+
+
 def test_main_gui_door_and_candidates_have_no_private_engine_mutation_imports():
     save_source = inspect.getsource(gui._compose_phase6_project_snapshot_from_main_gui)
     assert "manufacturing_api.project_receiving_single_bay_door_controls(" in save_source
