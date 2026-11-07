@@ -14,6 +14,14 @@ whd_schema: WHD_DOC_META_V1
 - 同時期 PR #3033 正在處理跨 Set +/- Bay，這批 Set 專項不實作第二份 Bay delta；現有 Bay 改動與絕對 resize 原子契約不受此變更影響。無新增 Family W/H/D、NFB 孔、PartSpec／FinalScene 或 DXF 製造資格。驗收使用 Engine Set resize 實體 ID 對照、盤名單調遞增、no-op、拒絕保護、GUI 真按鈕接線與 Save→Reload，再由 exact-SHA GitHub CI 完整回歸。
 
 
+
+## [CURRENT] #2517 封頭／封尾 FW 操作候選對來源有效性 fail closed（2026-11-07）
+
+- 原公開 `operator_endcap_fw_override` 仍透過 `_num(value)` 將非法操作者 FW 預設為 0，對 `NaN`／`Inf` 也未阻擋；`operator_endcap_fw_follow` 對字串 `"false"` 使用 `bool(...)` 造成錯誤跟隨，且兩者都在已確認 Settings box-FW 欄位缺失／損壞時套入預設 25。這些都可能污染 Head/Tail 的正式四態製造來源，不符合操作者 FW＝包外尺寸的 CURRENT 07。
+- 由原 `operator_endcap_settings_transactions` 公開 API owner 先驗證 input snapshot／settings／existing EndCap FW state 是 Mapping；由原 Engine `normalize_operator_source_dimension(field="fw")` 要求箱身 FW 與輸入 Head/Tail FW 為有限正數、拒絕 bool 和非法字串；由原 Engine `normalize_operator_settings_boolean` 正確解析 follow 開關。全部在 detached state 完成，成功仍委派原 `endcap_factory_fold.commit_endcap_fw`／`set_endcap_fw_follow` 的四態語意，不新增截角、BEND、CUTTING 或 DXF 公式。
+- Fold Designer 封頭／封尾 GUI `on_endcap_fw_value_selected` 只傳原操作員輸入，由 Engine 決定是否接受，非法輸入不觸發 state commit 或 linked geometry refresh。驗收對照兩 Family 的原 Engine 狀態、非法輸入 source isolation、legacy 未載入四態、直接 GUI event、真正 .p6fold Save→Reload、2D/3D/DXF canonical Product Regression；完整驗收及 Windows UAT 另依實證，不以本 API 存在推論 #2517 結案。
+
+
 ## [CURRENT] #2517 Receiving 實體底板型式選項必須取自公開 Engine（2026-11-07）
 
 - 原 `phase6_settings_panel_owned_render._render_owned_receiving_base_plate` 由 GUI 事件內直接匯入私有 `sheetmetal_part_adapters.RECEIVING_BASE_PATTERN_LEFT/CENTER/RIGHT`，然後自行建立三種實體板件的選型值。這些是底板 `pattern` 製造來源識別，不是 GUI 可定義的新物理型式。
