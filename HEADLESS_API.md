@@ -5,6 +5,12 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Fold Designer custom/legacy baseline identity via public Engine (2026-11-07)
+
+`manufacturing_api.is_unknown_operator_model(model_name, *, explicit_unknown_value=None)` retains its prior one-argument behavior and also recognizes one explicitly saved legacy custom-baseline display name, using the exact original trim/equality semantics. `manufacturing_api.operator_default_custom_model_name` and root `ae_engine` expose the original Engine `corner_type_ui.CUSTOM_MODEL_NAME`; both clients share the canonical label without reading private policy constants.
+
+`fold_designer_bridge._phase6_is_unknown_baseline` delegates to this public readback with the saved `_baseline_unknown_value`; the constructor's missing-label default also comes from the public Engine. Saved legacy names still match; other Vault/Receiving model names are not silently treated as custom. This affects only operator corner editing visibility and saved model identity readback, not CornerType material geometry, CUTTING/BEND, certified rules or DXF manufacturing release. Regression: `tests/test_issue2517_fold_unknown_baseline_public_api.py`. Windows GUI visual acceptance remains separate.
+
 ## #2517 Canvas CUTTING surface and Hole Editor catalog root through public Engine (2026-11-07)
 
 `manufacturing_api.project_operator_feature_surface_from_drawing_scene(surface_id, scene)` (also root `ae_engine`) is the exact canonical `ae_door_indicator.feature_surface_from_drawing_scene` callable; invalid primary CUTTING contours remain rejected. `gui_modules/rendering/canvas_2d.py` and main `gui.py` use the existing public `manufacturing_api.resolve_hole_editor_canvas_features` for preview holes. `manufacturing_api.operator_hole_catalog_root_path()` (also root `ae_engine`) is the exact `ae_endcap.baseline_hole_catalog_root_path` callable; the unified Hole Editor loads both catalogs from this canonical source and no longer requires the GUI's `ae` module.

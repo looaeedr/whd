@@ -141,10 +141,6 @@ from ae_engine.sheetmetal_geometry import (
     EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS,
 )
 
-from ae_engine.corner_type_ui import (
-    CUSTOM_MODEL_NAME, LEGACY_CUSTOM_MODEL_NAMES,
-)
-
 from phase6_endcap_semantics import (
     ASSEMBLY_TYPE_LABELS, ASSEMBLY_LABEL_TO_TYPE, ENDCAP_FW_PARTS,
     normalize_endcap_fw_state, resolve_endcap_fw, set_endcap_fw_follow, set_endcap_fw_override,
@@ -1045,12 +1041,9 @@ def _phase6_corner_target_var_changed(self, part_key, target_key):
 
 
 def _phase6_is_unknown_baseline(self, value):
-    text = str(value or "").strip()
-    explicit = str(getattr(self, "_baseline_unknown_value", "") or "").strip()
-    return (
-        text == CUSTOM_MODEL_NAME
-        or text in LEGACY_CUSTOM_MODEL_NAMES
-        or (explicit and text == explicit)
+    return manufacturing_api.is_unknown_operator_model(
+        value,
+        explicit_unknown_value=getattr(self, "_baseline_unknown_value", ""),
     )
 
 
@@ -2065,7 +2058,10 @@ def _phase6_prepare_predecessor_init(self, root, snapshot):
     self._phase6_baseline_initial_model = manufacturing_api.operator_normalize_custom_model_name(snapshot.get("model"))
     if self._phase6_baseline_initial_model and self._phase6_baseline_initial_model not in self._baseline_models:
         self._baseline_models.append(self._phase6_baseline_initial_model)
-    self._baseline_unknown_value = str(snapshot.get("baseline_unknown_value") or CUSTOM_MODEL_NAME).strip()
+    self._baseline_unknown_value = str(
+        snapshot.get("baseline_unknown_value")
+        or manufacturing_api.operator_default_custom_model_name
+    ).strip()
     if self._baseline_unknown_value and self._baseline_unknown_value not in self._baseline_models:
         self._baseline_models.append(self._baseline_unknown_value)
     self._phase6_baseline_last_model = self._phase6_baseline_initial_model

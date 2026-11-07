@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 自訂／舊版基準型號身分由公開 Engine 判定（2026-11-07）
+
+- 原 `fold_designer_bridge._phase6_is_unknown_baseline` 在 GUI 直接匯入私有 `corner_type_ui.CUSTOM_MODEL_NAME`、`LEGACY_CUSTOM_MODEL_NAMES` 並自行比對；此判斷會影響手動截角是否可編輯，且保存過的 `baseline_unknown_value` 還可能是獨立自訂名稱。GUI 應只傳遞來源與顯示，不再自建模型身分規則。
+- 保留既有公開 `manufacturing_api.is_unknown_operator_model(name)` 單參數相容，增加可選 `explicit_unknown_value`：使用原 `corner_type_ui.is_unknown_model` 的自訂／舊名別名規則，另外只對已保存明確名稱按原 strip 後完全相等判定；未匹配的金庫型／受電箱不得被當作自訂。原 `CUSTOM_MODEL_NAME` 由 `manufacturing_api.operator_default_custom_model_name`／根包公開唯讀值，並保留單一 Engine 來源。
+- Fold Designer 只將使用者／Project 的原始 model 與已保存 explicit 名稱送到公開 API，再依其布林結果控制截角 UI；初始化缺值也使用 Engine 公開自訂名稱。測試覆蓋 Root／Facade 一致、舊版名稱、明確名稱、非匹配型號、來源不變與 GUI 真委派。本次不新增 CornerType、AssemblyJoint、CUTTING／BEND、Save→Reload 格式、2D／3D／DXF 製造能力；完整 GitHub CI 與 Windows GUI UAT 另驗。
+
 ## [CURRENT] #2517 Canvas 特徵面、孔位與孔型錄來源使用公開 Engine（2026-11-07）
 
 - 主 `gui.py` 與共用 `gui_modules/rendering/canvas_2d.py` 原直接依賴 `ae_engine.ae.feature_surface_from_drawing_scene` 及私有 `resolve_surface_features`。現以 `manufacturing_api.project_operator_feature_surface_from_drawing_scene`（與唯一 `ae_door_indicator.feature_surface_from_drawing_scene` **同一 callable**）和既有 `manufacturing_api.resolve_hole_editor_canvas_features` 取得真正 CUTTING 邊界及孔位；無封閉 CUTTING 時拒絕，不能假造矩形。
