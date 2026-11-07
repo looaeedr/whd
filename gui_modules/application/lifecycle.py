@@ -582,11 +582,13 @@ def _merge_live_receiving_candidate_libraries(self, snapshot):
                     live = candidate
         except tk.TclError:
             pass
-    from ae_engine.receiving_hole_candidates import normalize_candidates
-    from ae_engine.receiving_inner_door_candidates import normalize_inner_candidates
+    # Saved candidate identities are normalized by the same public Engine
+    # contract used by Fold Designer, not private candidate modules in GUI.
     libraries = (
-        ("receiving_hole_candidates", normalize_candidates),
-        ("receiving_inner_door_candidates", normalize_inner_candidates),
+        ("receiving_hole_candidates",
+         manufacturing_api.normalize_receiving_hole_candidates),
+        ("receiving_inner_door_candidates",
+         manufacturing_api.normalize_receiving_inner_door_candidates),
     )
     if live is None:
         # Close publishes the current editor into ProjectController before the
@@ -598,13 +600,21 @@ def _merge_live_receiving_candidate_libraries(self, snapshot):
         if (not isinstance(committed, dict)
                 or committed.get("model") != snapshot.get("model")):
             return snapshot
-        for key, normalize in libraries:
-            if key in committed:
-                snapshot[key] = deepcopy(normalize(committed[key]))
+        # Stage all candidate libraries before changing any project source:
+        # a corrupt second library must not commit the valid first one.
+        updates = {
+            key: deepcopy(normalize(committed[key]))
+            for key, normalize in libraries if key in committed
+        }
+        snapshot.update(updates)
         return snapshot
-    for key, normalize in libraries:
+    updates = {
+        key: deepcopy(normalize(live[key]))
+        for key, normalize in libraries if key in live
+    }
+    for key, _normalize in libraries:
         if key in live:
-            snapshot[key] = deepcopy(normalize(live[key]))
+            snapshot[key] = updates[key]
         else:
             snapshot.pop(key, None)
     return snapshot
@@ -647,23 +657,11 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
     # workspace's saved singleton Bay may still carry first-entry 80 mm.
     # Reconcile only the physical current Bay, preserving all NFB fields and
     # all other Bays without silently discarding user door edits at reload.
-    if (snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("active_mode", "set_bay") == "set_bay"
-            and isinstance(snapshot.get("receiving_layout"), dict)
-            and snapshot.get("inner_doors")):
-        layout = snapshot["receiving_layout"]
-        sets = layout.get("sets") or []
-        if len(sets) == 1 and len(sets[0].get("bays") or []) == 1:
-            from ae_engine.receiving_layout import (
-                RECEIVING_DOOR_STATE_KEYS, update_receiving_bay,
-            )
-            snapshot["receiving_layout"] = update_receiving_bay(
-                layout, set_index=0, bay_index=0,
-                door_state={
-                    key: deepcopy(snapshot[key])
-                    for key in RECEIVING_DOOR_STATE_KEYS if key in snapshot
-                },
-            )
+    bay_layout = manufacturing_api.project_receiving_single_bay_door_controls(
+        snapshot
+    )
+    if bay_layout is not None:
+        snapshot["receiving_layout"] = bay_layout
     snapshot["workspace"] = workspace
     if "assembly_placements" in workspace:
         snapshot["assembly_placements"] = deepcopy(workspace["assembly_placements"])
