@@ -147,7 +147,14 @@ def test_actual_p6fold_save_reload_uses_same_engine_door_part_cell_topology(tmp_
     old_cells = derive_door_layout_cells(columns)
     new_cells = derive_door_layout_cells(restored["door_layout_columns"])
     assert new_cells == old_cells
-    assert restored["part_features"] == source["part_features"]
+    # Existing project authority fills absent Head/Tail with empty Feature
+    # rows. Door-grid physical Feature identity must remain unchanged.
+    assert {
+        key: restored["part_features"][key]
+        for key in source["part_features"]
+    } == source["part_features"]
+    assert restored["part_features"]["head"] == []
+    assert restored["part_features"]["tail"] == []
     assert source == before
 
 
