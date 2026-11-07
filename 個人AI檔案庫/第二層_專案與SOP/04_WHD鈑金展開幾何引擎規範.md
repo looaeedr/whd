@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 截角選項清單只消費公開 Engine Catalog（2026-11-07）
+
+- 原 `fold_designer_bridge` 直接從私有 `sheetmetal_geometry.EDITABLE_CORNER_TYPE_IDS` 與 `CORNER_TYPE_LABELS` 複製製造可編輯的截角型式 ID／名稱清單；這應由既有 Engine `cabinet_model_choices.project_operator_corner_selection_catalog` 決定，而不是 GUI 自建 Policy。
+- 同一原 Engine callable 已由 `manufacturing_api` 公開，現在根包 `ae_engine.project_operator_corner_selection_catalog` 也匯出相同物件。GUI 使用已公開的 `operator_default_custom_model_name` 請求 catalog，僅把 `labels` 轉成 UI 所需 tuple／dictionary，維持原排列與名稱。其餘 UI 的中文提示、選取及實體截角操作不變。
+- 定向測試驗證 root／facade／原 Owner identity、所有實際 ID 與標籤 parity、兩種 Family 的可編輯資格、來源不變和 GUI 不再引用私有清單常數。唯讀呈現遷移，不新增 CornerType、AssemblyJoint、CUTTING／BEND、2D／3D／DXF 製造資格；完整 exact-SHA CI 和 Windows UAT 仍各自驗證。
+
 ## [CURRENT] #2517 Fold Designer 自訂／舊版基準型號身分由公開 Engine 判定（2026-11-07）
 
 - 原 `fold_designer_bridge._phase6_is_unknown_baseline` 在 GUI 直接匯入私有 `corner_type_ui.CUSTOM_MODEL_NAME`、`LEGACY_CUSTOM_MODEL_NAMES` 並自行比對；此判斷會影響手動截角是否可編輯，且保存過的 `baseline_unknown_value` 還可能是獨立自訂名稱。GUI 應只傳遞來源與顯示，不再自建模型身分規則。
