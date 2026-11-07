@@ -15,7 +15,9 @@ from .endcap_bottom_wrap_state import (
     commit_endcap_bottom_wrap, normalize_endcap_bottom_wrap_state,
     resolve_endcap_bottom_wrap,
 )
-from .endcap_factory_fold import commit_box_fw, commit_endcap_fw, set_endcap_fw_follow
+from .endcap_factory_fold import (
+    commit_operator_box_fw_takeover, commit_endcap_fw, set_endcap_fw_follow,
+)
 from .operator_settings_transactions import normalize_operator_source_dimension
 
 
@@ -44,7 +46,7 @@ def project_operator_box_fw_live_state(
     requested = normalize_operator_source_dimension(requested_box_fw, field="fw")
     state = deepcopy(dict(endcap_fw_state))
     if previous != requested:
-        commit_box_fw(state, requested)
+        commit_operator_box_fw_takeover(state, requested)
     return state
 
 
