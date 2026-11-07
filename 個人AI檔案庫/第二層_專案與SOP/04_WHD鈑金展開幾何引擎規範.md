@@ -218,6 +218,12 @@ whd_schema: WHD_DOC_META_V1
 - `manufacturing_api.project_operator_door_layout_cell_features_from_parts(columns, part_features)` 與根包 `ae_engine` 都公開**原 Engine `door_part_features_to_layout_feature_map` 的同一 callable**，保留一基實體門板、零基操作格、原始孔位 List 與空格 readback 的既有語意。兩個主 GUI 還原入口只委派此公開 API，未知部件不當作合法 Door、非法門格由原 Engine fail closed，不修改輸入來源。
 - 本次沒有增補 Feature/孔位幾何、CUTTING、BEND、DXF 或 Family 加工權限；既有 Fold Designer `project_fold_designer_snapshot_part_features` 仍負責反方向「操作者格 → 實體 Part Features」的提交。正反向 ID 等價、主 GUI 真實讀回委派、非法來源不改與 `.p6fold` Save→Reload 由 `tests/test_issue2517_main_gui_door_layout_feature_readback_public_api.py` 驗證；完整產品回歸及 Windows UAT 依原有驗收路徑。
 
+## [CURRENT] #2517 主 GUI 頭／尾盤舊版 2D 孔位讀回必須為同一 Engine 原子投影（2026-11-07）
+
+- 原 `gui_modules/application/lifecycle.py` 在 .p6fold 專案載入、Quantity 版本切換、Fold Designer 同步三條路徑各自以私有 `feature_to_legacy_hole` 逐一轉換 `head`／`tail` 已保存實體 Feature，轉成主 GUI 舊版 2D 用的 `head_holes`／`tail_holes`。若第一個板件成功、第二個板件轉換失敗且被既有相容捕捉吞下，兩份快取可能被部分提交、與同一保存來源失配。
+- 正式 `ae_engine.operator_legacy_endcap_hole_projection.project_operator_endcap_legacy_hole_rows(source_features, *, width, depth)` 在 Engine 先驗證 operator finished-face W/D，再沿原 `sheetmetal_features.feature_to_legacy_hole` 權威轉換兩個物理角色，檢查非有限 finished-face 座標、完整建構 detached candidate，任何非法角色來源／孔型都拒絕整份候選，絕不修改輸入。未提供的 Head/Tail 角色不產出；明確空清單用於舊專案清孔。 `manufacturing_api` 與根包 `ae_engine` 公開同一 callable。
+- 主 GUI 三條路徑只收 Engine 結果，Head/Tail 成功後才一起更新快取；原數量模式缺失角色與舊專案資料相容的例外處理維持。此 API 是**舊 2D 顯示快取 readback**，不是獨立 Feature/CUTTING/孔位、FinalScene 或 DXF 製造資格；任何正式加工仍走原 Engine 製造鏈。驗收 `tests/test_issue2517_endcap_legacy_hole_atomic_public_api.py` 包含直接 Owner 相等、真 GUI 專案還原、頭合法尾非法不得部分提交、非有限尺寸／座標拒絕與實際 `.p6fold` Save→Reload；需 exact-head Product Regression 與 Windows UAT。
+
 ## [CURRENT] #2517 受電箱實體底板設定改由公開 Engine 原子提交（2026-11-07）
 
 - 原 GUI `receiving_base_plate_settings_transaction.commit_receiving_base_plate_settings` 已經先調用 `manufacturing_api.validate_receiving_base_plate_settings` 驗證實體底板收縮、折邊與焊接 EAR 孔，但隨後在 GUI 直接修改已保存 `receiving_base_plate` 並執行失敗回滾。這個來源交易會影響 PartSpec／FinalScene／CUTTING，不該由 UI 決定寫入。

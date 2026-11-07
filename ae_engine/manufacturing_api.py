@@ -1668,6 +1668,10 @@ from .sheetmetal_part_adapters import (
     door_part_features_to_layout_feature_map as project_operator_door_layout_cell_features_from_parts,
 )
 
+from .operator_legacy_endcap_hole_projection import (
+    project_operator_endcap_legacy_hole_rows,
+)
+
 def project_fold_designer_snapshot_part_features(
     snapshot, surface_features, door_layout_features,
 ):

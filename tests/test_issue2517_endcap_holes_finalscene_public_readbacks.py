@@ -107,9 +107,19 @@ def test_all_main_gui_endcap_restore_paths_use_public_feature_projection():
         and isinstance(n.func, ast.Attribute)
         and isinstance(n.func.value, ast.Name)
         and n.func.value.id == "manufacturing_api"
-        and n.func.attr == "feature_to_legacy_hole"
+        and n.func.attr == "project_operator_endcap_legacy_hole_rows"
     ]
-    assert len(public) == 6
+    # Three GUI operations each stage *both* physical EndCap roles before
+    # committing either legacy cache; direct six-per-hole writes are forbidden.
+    assert len(public) == 3
+    assert not any(
+        isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Attribute)
+        and isinstance(n.func.value, ast.Name)
+        and n.func.value.id == "manufacturing_api"
+        and n.func.attr == "feature_to_legacy_hole"
+        for n in ast.walk(tree)
+    )
     assert not any(
         isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
         and n.func.id == "feature_to_legacy_hole"
