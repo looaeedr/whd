@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving cross-Set Bay +/- delta operator API (2026-11-07)
+
+`manufacturing_api.resize_receiving_operator_connections_by_delta_with_removed_ids(layout, *, set_index, delta)` is also exported unchanged at the `ae_engine` root. The canonical `receiving_layout` owner validates the physical Set and integer delta, applies the minimum-one-Bay rule, and reuses `resize_receiving_operator_topology_with_removed_ids` to stage one detached candidate, real removed Set/Bay/Joint IDs and an effective-change flag. The GUI only validates operator text and, after full Engine success and confirmed removal, commits canonical layout/protected IDs/current selection together. A failed/declined cross-Set operation must not shift GUI selection. No new physical geometry, NFB/X verification, or DXF release is introduced.
+
 ## #2517 Receiving parent NFB brand returns affected physical Set/Bay IDs (2026-11-07)
 
 `manufacturing_api.update_receiving_one_set_nfb_parent_brand_with_affected_ids(layout, set_index, brand)` and `update_receiving_all_set_nfb_parent_brand_with_affected_ids(layout, brand)` (also `ae_engine` root) return `(detached_layout, changed, affected_set_and_bay_stable_ids)`. They reuse the existing strict one-Set/all-Set brand transactions without altering their old two-tuple APIs. Each changed Set and all its real Bays are affected by parent brand inheritance, even if some have no saved NFB holes. GUI consumes the exact IDs for unsaved source deletion protection instead of inferring physical scope. A no-op reports no IDs. NFB verified world-X invalidation, immutable CSV source, manufacturing FinalScene and DXF release gates remain the original Engine owners.

@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 跨套 +/- 連數必須使用同一公開 Engine 候選，不得先切換 GUI 套數（2026-11-07）
+
+- 原 `ReceivingSwitchProjectionAdapter.resize_connections` 由 GUI 自行 `max(1, current+delta)` 決定實體連數，然後先 `adapter.select_set(index+1)` 再 `set_bay_count`。即使 Engine Family 預設／來源校驗失敗或被保存 Bay 刪除確認拒絕，原 Layout 不變但 GUI `selection` 已移到其他 Set；違反同一操作者動作的全有或全無來源／選取語意。單獨 `set_bay_count` 與 `set_set_count` 已經有保留原子候選的 API，不重做其幾何／孔位。
+- 新增現有 `ae_engine.receiving_layout` 的 `resize_receiving_operator_connections_by_delta_with_removed_ids(layout, *, set_index, delta)`，由 Engine 嚴查真實零基 Set／整數 delta、沿 canonical Layout 算新連數（最少一連）、委派既有 `resize_receiving_operator_topology_with_removed_ids` 原子確認真實刪除 Set／Bay／Joint ID，回傳 `(detached_candidate, removed_ids, changed)`。No-op 的候選仍 detached 且不遷移 GUI 選取；原非法 Layout、無效增減、Family 預設拒絕不更動輸入。
+- `ReceivingSetBayAdapter.resize_connections` 先讀完整 Engine 候選，必要時詢問原保存／dirty 刪除確認，全部合法才更新 layout、protected IDs 與一次性 Set／Bay selection；`ReceivingSwitchProjectionAdapter.resize_connections` 只轉交操作者數字，不自行算連數、也不先選 Set。原絕對連數 API 與其他 GUI 入口相容。這是操作交易與實體身分保護，**不**改 Family W/H/D、NFB、AssemblyJoint、PartSpec、FinalScene、2D／3D／DXF 出圖，也不授予新製造資格。測試 `tests/test_issue2517_receiving_operator_delta_resize_public_api.py` 驗證 Engine parity、合法舊文字操作、跨套取消／Engine failure 不改 Layout/selection/dirty、被刪除真實 IDs、原 UI 傳遞；完整回歸依 GitHub exact-head CI。
+
 ## [CURRENT] #2517 Receiving 實體底板型式選項必須取自公開 Engine（2026-11-07）
 
 - 原 `phase6_settings_panel_owned_render._render_owned_receiving_base_plate` 由 GUI 事件內直接匯入私有 `sheetmetal_part_adapters.RECEIVING_BASE_PATTERN_LEFT/CENTER/RIGHT`，然後自行建立三種實體板件的選型值。這些是底板 `pattern` 製造來源識別，不是 GUI 可定義的新物理型式。
