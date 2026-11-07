@@ -16,7 +16,7 @@ from tests.test_receiving_flat_base_single_nfb_true_z import _flat
 def _mixed():
     snap=_flat()
     first=snap["nfb_config"]["holes"][0]
-    first["model_filename"]="nfbv5:士林:3P400SN"
+    first["model_filename"]="nfbv5:士林:3P400"
     first["source_brand"]="士林"
     second=deepcopy(first)
     second["physical_hole_id"]="nfb:pad:100HN"
@@ -35,7 +35,7 @@ def test_submitted_flat_two_different_depths_reach_real_left_base_with_one_pad()
     assert values["receiving_nfb_reference_depth_mm"]==pytest.approx(107.)
     assert values["receiving_nfb_depth_pair_mm"] is None
     pads=generate_nfb_pad_patterns(
-        (model_spec("士林","3P400SN"), model_spec("士林","100HN-s")),
+        (model_spec("士林","3P400"), model_spec("士林","100HN-s")),
         plate_thickness_mm=2,tooling=read_pad_tooling_rule())
     assert len(pads)==1
     assert (pads[0].switch_index,pads[0].rise_mm,pads[0].blank_width_mm)==(1,39.,145.)

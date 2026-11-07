@@ -109,7 +109,7 @@ def test_two_tier_source_equivalent_models_share_exact_physical_left_blank():
     extra.update(
         physical_hole_id="nfb:alias-400",
         slot_index=1,
-        model_filename="nfbv5:士林:3P400SN",
+        model_filename="nfbv5:士林:3P400",
         manual_x_mm=100.,
     )
     snap["nfb_config"]["holes"].append(extra)
@@ -130,7 +130,7 @@ def test_two_tier_current_cross_brand_nfb_keeps_one_original_sheet_per_tier():
     extra.update(
         physical_hole_id="nfb:other-brand",
         slot_index=1,
-        model_filename="nfbv5:伍菱:3P400SN",
+        model_filename="nfbv5:伍菱:3P400",
         source_brand="伍菱",
         manual_x_mm=100.,
     )
@@ -146,7 +146,7 @@ def test_three_horizontal_400_switches_on_one_of_two_source_left_tiers():
     snap = _committed_two_left_tiers()
     first = snap["nfb_config"]["holes"][0]
     first["manual_x_mm"] = -180.
-    for slot, x, model in ((1, 0., "3P400SN"), (2, 180., "2P400")):
+    for slot, x, model in ((1, 0., "3P400"), (2, 180., "2P400")):
         extra = deepcopy(first)
         extra.update(physical_hole_id=f"nfb:upper:{slot}", slot_index=slot,
                      manual_x_mm=x, model_filename=f"nfbv5:士林:{model}")

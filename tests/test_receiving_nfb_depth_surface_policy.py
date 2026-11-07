@@ -96,9 +96,9 @@ def test_invalid_depths_cannot_silently_make_a_manufacturable_fold(deep, shallow
 
 def test_exact_selected_brand_csv_depths_are_source_not_a_global_magic_constant():
     from ae_engine.receiving_nfb_numeric_catalog import model_spec
-    shihlin_deep = model_spec("士林", "3P400SN")
+    shihlin_deep = model_spec("士林", "3P400")
     shihlin_shallow = model_spec("士林", "3P125SN")
-    tungyuan_deep = model_spec("東元", "3P400SN")
+    tungyuan_deep = model_spec("東元", "3P400")
     tungyuan_shallow = model_spec("東元", "3P125SN")
     assert (shihlin_deep.depth_mm, shihlin_shallow.depth_mm) == (107, 72)
     assert (tungyuan_deep.depth_mm, tungyuan_shallow.depth_mm) == (103, 68)
@@ -120,12 +120,12 @@ def test_selected_brand_model_csv_drives_depth_pair_not_fixed_literal():
         "東元", ["140X260_103.dxf", "90X155_68.dxf"]
     ) == (103.0, 68.0)
     assert selected_receiving_nfb_depth_pair_mm(
-        "士林", ["nfbv5:士林:3P400SN", "nfbv5:士林:3P125SN"]
+        "士林", ["nfbv5:士林:3P400", "nfbv5:士林:3P125SN"]
     ) == (107.0, 72.0)
 
 
 @pytest.mark.parametrize("brand, refs", [
-    ("士林", ["nfbv5:東元:3P400SN", "nfbv5:士林:3P125SN"]),
+    ("士林", ["nfbv5:東元:3P400", "nfbv5:士林:3P125SN"]),
     ("東元", ["400_Type.dxf", "90X155_68.dxf"]),  # depth missing
     ("士林", ["missing.dxf", "125_90X155_72.dxf"]),
     ("士林", ["400_140X257_107.dxf"]),
