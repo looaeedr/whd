@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Head/Tail 候選數量草稿增減只由公開 Engine 管理（2026-11-07）
+
+- 原 `ReceivingQuantityAllocationUI._count` 在 GUI 自行取草稿數量並以 `max(0, current + delta)` 決定 Head/Tail 候選版本的下限，繞過統一的 Engine 編輯來源判準。此規則不應留在操作畫面。
+- 新增 `manufacturing_api.adjust_receiving_candidate_draft_quantity(draft, role, version_id, delta)`（根包 `ae_engine` 同 callable），直接在原 `receiving_quantity_allocation.AllocationDraft` owner 僅接受真實 draft、合法 role／版本、恰好單步 +1 或 -1、已存在的非負整數數量。Engine 對零下限處理，並復用既有 `set_quantity` 清除過期 Bay 指派、返回第一步；非法輸入或零時減一不更動任何草稿狀態。
+- GUI 只送操作者增減事件，既有確認配置仍走原公開 `validate_receiving_candidate_quantity_preview` 與 `apply_receiving_endcap_quantity_configuration` 的全 Bay 驗證／原子提交。這是未提交候選 draft 的編輯 API，不更改已保存 Bay、PartSpec、FinalScene、CUTTING、2D／3D／DXF 或製造資格。負向 source isolation／GUI/headless API 一致性由 `tests/test_issue2517_receiving_allocation_draft_count_public_api.py` 檢查，完整回歸仍交 exact-SHA GitHub Actions。
+
 ## [CURRENT] #2517 數量模式封頭／封尾孔型版本提交只經公開 Engine（2026-11-07）
 
 - 原 `gui_modules/application/quantity_version_ports.py::holes.commit` 將編輯中的孔清單複製進 GUI 自建 `QuantityModel`，再由 GUI 將 `candidate["quantity"]` 覆寫、呼叫 `require_valid_operator_quantity_features`，最後另一次修改 live Model。這使版本身分、完整孔型合法性與提交順序被 UI 分兩段主導，模型無通知 rollback 保證。

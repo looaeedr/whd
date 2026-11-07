@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving Head/Tail candidate quantity draft +/- (2026-11-07)
+
+Use `manufacturing_api.adjust_receiving_candidate_draft_quantity(draft, role, version_id, delta)` (also `ae_engine.adjust_receiving_candidate_draft_quantity`) for the existing uncommitted `AllocationDraft` plus/minus operator action. Engine alone validates a true draft, role/version identity, exactly +1/-1, and nonnegative integer counts; an attempted decrement at zero is a no-op. The unchanged Engine `set_quantity` invalidates stale Bay assignments only on an actual count change. GUI displays the result and does not derive the lower-bound policy. This is strictly an editor draft: saved physical Bays and manufacturing authorizations still require the existing public quantity preview and Apply gates; no new DXF permission.
+
 ## #2517 Fold Editor angle / CornerType / Assembly Intent public operator APIs (2026-11-07)
 
 `manufacturing_api.project_operator_fold_editor_angle(raw)` (also `ae_engine.project_operator_fold_editor_angle`) performs the original reversible GUI/Engine +/-90-degree Fold orientation conversion. It shares the Engine's existing finite numeric source validator; malformed, bool and NaN/Inf inputs fail before commit. The same owner is used by `commit_operator_fold_editor_rows`, and GUI `phase6_fold_profiles` only forwards. `manufacturing_api.operator_normalize_corner_selection` directly re-exports the original Engine CornerType legacy C01–C04 normalizer for read-only Fold Designer display; GUI no longer calls its internal module. `phase6_endcap_semantics.assembly_intent_value` consumes the existing public `manufacturing_api.normalize_assembly_type`, preserving Registry-backed INSERT/OVERLAY/INSERT_OVERLAY/WRAP_OVERLAY stable IDs. These ports do not add new manufacturing capability, alter Certified Registry, change canonical PartSpec/FinalScene, or certify new DXF roles. See `tests/test_issue2517_fold_corner_assembly_public_boundary.py`.
