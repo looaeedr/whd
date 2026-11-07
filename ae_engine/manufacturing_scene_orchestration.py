@@ -718,6 +718,13 @@ def build_box_body_structure_render_data(
         cabinet_family_policy.canonical_family_name(spec.model_name) == "受電箱"
         and str(structure.structure_type.value) == "three_piece_side_back_split"
     )
+    lock_sides = spec.receiving_side_lock_participation
+    if lock_sides is not None and (
+        type(lock_sides) is not tuple or len(lock_sides) != 2
+        or any(type(active) is not bool for active in lock_sides)
+        or not receiving_physical
+    ):
+        raise ValueError("RECEIVING_SIDE_LOCK_PARTICIPATION_INVALID")
     pieces = []
     for piece in structure.pieces:
         scene = DrawingScene()
@@ -743,6 +750,11 @@ def build_box_body_structure_render_data(
                 width=float(piece.structural.width),
                 height=float(piece.structural.height),
                 back_contract=(spec.back_panel_contract if piece.role == "back" else None),
+                joint_side=(
+                    lock_sides[0] if piece.role == "left_side"
+                    else lock_sides[1] if piece.role == "right_side"
+                    else None
+                ) if lock_sides is not None else None,
             )
             scene.extend(features)
             # Reference bends are audit evidence only. Receiving's physical

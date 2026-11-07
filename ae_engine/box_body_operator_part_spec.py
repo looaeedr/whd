@@ -141,6 +141,75 @@ def build_box_body_operator_part_spec(
         _endcap_lower_outside_value(y_profiles.get("tail", ()), values)
         if tail_ybottom1 is None else _confirmed_endcap_lower_length(tail_ybottom1)
     )
+
+    # Physical side-to-side locks belong to the actual adjacent Bay Joint,
+    # not every copy of the Receiving side-panel baseline. Do not persist the
+    # transient lock Features or let GUI/CADSplit infer these side identities.
+    resolved_faces = {
+        key: tuple(items) for key, items in dict(face_features or {}).items()
+    }
+    receiving_side_lock_participation = None
+    if (family_policy.canonical_family_name(model_name) == "受電箱"
+            and isinstance(manufacturing_source, Mapping)
+            and manufacturing_source.get("active_mode", "set_bay") == "set_bay"):
+        from .receiving_layout import (
+            RECEIVING_RUNTIME_SELECTION_KEY,
+            derive_bay_lock_state,
+            normalize_receiving_layout,
+            receiving_bay_joint_face_features,
+        )
+        selection = manufacturing_source.get(RECEIVING_RUNTIME_SELECTION_KEY)
+        raw_layout = manufacturing_source.get("receiving_layout")
+        if selection is not None and raw_layout is None:
+            raise ValueError("RECEIVING_SIDE_LOCK_LAYOUT_REQUIRED")
+        if raw_layout is not None:
+            layout = normalize_receiving_layout(raw_layout)
+            sets = layout["sets"]
+            if selection is None:
+                # A single physical Bay has no mating side on either side.
+                # More than one requires an exact physical selection, never
+                # a fallback to Bay 1 or the currently displayed panel name.
+                if len(sets) != 1 or len(sets[0]["bays"]) != 1:
+                    raise ValueError("RECEIVING_SIDE_LOCK_BAY_SELECTION_REQUIRED")
+                set_index, bay_index = 0, 0
+            else:
+                if not isinstance(selection, Mapping):
+                    raise ValueError("RECEIVING_SIDE_LOCK_BAY_SELECTION_INVALID")
+                set_index = selection.get("set_index")
+                bay_index = selection.get("bay_index")
+                if type(set_index) is not int or type(bay_index) is not int:
+                    raise ValueError("RECEIVING_SIDE_LOCK_BAY_SELECTION_INVALID")
+            try:
+                set_row = sets[set_index]
+                bay = set_row["bays"][bay_index]
+                if set_index < 0 or bay_index < 0:
+                    raise IndexError("negative selection")
+            except (IndexError, KeyError, TypeError) as exc:
+                raise ValueError("RECEIVING_SIDE_LOCK_BAY_SELECTION_INVALID") from exc
+            if selection is not None and (
+                selection.get("set_id") != set_row["stable_id"]
+                or selection.get("bay_id") != bay["stable_id"]
+            ):
+                raise ValueError("RECEIVING_SIDE_LOCK_BAY_IDENTITY_MISMATCH")
+            if any(
+                abs(float(bay[axis]) - physical[dimension]) > 1e-6
+                for axis, dimension in (("width", "w"), ("height", "h"), ("depth", "d"))
+            ):
+                raise ValueError("RECEIVING_SIDE_LOCK_BAY_DIMENSIONS_MISMATCH")
+            receiving_side_lock_participation = derive_bay_lock_state(
+                layout, set_index=set_index, bay_index=bay_index,
+            )
+            # The certified existing Joint solver owns exact Ø16 CUTTING
+            # geometry. It strips stale transient locks from authored faces
+            # and regenerates only the actual left/right mating participants.
+            resolved_faces = {
+                face: tuple(rows) for face, rows in
+                receiving_bay_joint_face_features(
+                    layout, set_index=set_index, bay_index=bay_index,
+                    thickness=physical["t"], frame_width=physical["fw"],
+                    existing=resolved_faces,
+                ).items()
+            }
     return BoxBodyPartSpec(
         width=physical["w"],
         height=physical["h"],
@@ -155,10 +224,9 @@ def build_box_body_operator_part_spec(
         z_comp=legacy_only_scalar("z_comp"),
         fold_profile=profile_to_fold_segments(fold_profile or ()),
         features=tuple(features or ()),
-        face_features={
-            key: tuple(items) for key, items in dict(face_features or {}).items()
-        },
+        face_features=resolved_faces,
         physical_piece_features=deepcopy(selected_piece_features),
+        receiving_side_lock_participation=receiving_side_lock_participation,
         head_corner_policy=head_corner_policy,
         tail_corner_policy=tail_corner_policy,
         structure_state=deepcopy(dict(canonical_structure or {})),

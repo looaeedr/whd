@@ -106,8 +106,15 @@ def _rear_template(msp, material_entity, ox, oy):
 
 
 def receiving_piece_baseline_features(role, *, expected_path: Path, width: float,
-                                      height: float, back_contract=None):
-    """Return exact source-backed fixed features and source metadata for a physical piece."""
+                                      height: float, back_contract=None,
+                                      joint_side: bool | None = None):
+    """Return verified source features; remove side-to-side locks on free Bay edges.
+
+    None preserves the pre-Set/Bay standalone source contract. A boolean
+    must come from Engine ReceivingLayout adjacency, never a panel name.
+    """
+    if joint_side is not None and type(joint_side) is not bool:
+        raise TypeError("RECEIVING_SIDE_LOCK_PARTICIPATION_INVALID")
     if role not in ROLE_FILES:
         raise ValueError("RECEIVING_BASELINE_PIECE_ROLE_UNKNOWN")
     path = Path(expected_path)
@@ -125,6 +132,7 @@ def receiving_piece_baseline_features(role, *, expected_path: Path, width: float
 
     emitted = []
     blocked_reason = None
+    certified_lock_count = None
     if role in ("left_side", "right_side"):
         for item in msp.query("CIRCLE"):
             layer = str(item.dxf.layer).upper()
@@ -151,6 +159,26 @@ def receiving_piece_baseline_features(role, *, expected_path: Path, width: float
             emitted.clear()
         elif len(emitted) != 9:
             raise ValueError(f"RECEIVING_BASELINE_SIDE_FEATURES_INCOMPLETE: {path}")
+        elif joint_side is not None:
+            # These six Ø10.5 CUTTING circles are the certified source's
+            # side-to-side locking group. The remaining small CUTTING/MARKING
+            # and BLIND_HOLE features are independent, retained on free edges.
+            # Refuse an altered/ambiguous source rather than deleting by
+            # arbitrary position or clipping a manufacturing hole.
+            lock_rows = tuple(
+                feature for feature in emitted
+                if isinstance(feature, CirclePrimitive)
+                and feature.layer == "CUTTING"
+                and abs(float(feature.radius) - 5.25) < EPS
+            )
+            if len(lock_rows) != 6:
+                raise ValueError("RECEIVING_BASELINE_SIDE_LOCK_GROUP_UNVERIFIED")
+            certified_lock_count = len(lock_rows)
+            if not joint_side:
+                lock_sources = {row.source_id for row in lock_rows}
+                emitted = [
+                    row for row in emitted if row.source_id not in lock_sources
+                ]
     elif back_contract:
         contract = dict(back_contract)
         source_slot, source_opening = _rear_template(msp, material, ox, oy)
@@ -182,6 +210,8 @@ def receiving_piece_baseline_features(role, *, expected_path: Path, width: float
         "baseline_source_sha256": sha256(data).hexdigest(),
         "baseline_source_role": role,
         "baseline_feature_count": len(emitted),
+        "baseline_side_lock_participation": joint_side,
+        "baseline_side_lock_certified_count": certified_lock_count,
         "baseline_reference_dimensions": (sample_w, sample_h),
         "baseline_source_status": source_status,
         "baseline_stock_and_bends": "CANONICAL_FOLD_PROFILE_NOT_SAMPLE_DXF",
