@@ -8,7 +8,6 @@
 """Helper rendering mixin for Phase6 authoritative FinalScene 3D views."""
 from __future__ import annotations
 
-from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from whd_theme import WHD_THEME
 from phase6_final_scene_projection import (
     _phase6_profile_map_with_guides,
@@ -289,7 +288,8 @@ class Phase6FinalSceneRenderHelpersMixin:
         return segments
 
     def _resolved_finished_dimensions(self, request, triangles):
-        return resolve_operator_finished_dimensions(
+        from ae_engine import manufacturing_api
+        return manufacturing_api.resolve_operator_finished_dimensions(
             request.part_key,
             triangles=triangles,
             thickness=request.thickness,

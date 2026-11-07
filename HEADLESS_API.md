@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving shared-setting physical unlink affected IDs (2026-11-07)
+
+`manufacturing_api.unlink_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_index, kind)` and the `ae_engine` root expose the same existing Engine-owner transaction. It validates canonical physical Set/Bay identities, derives the pre-unlink linked Bay group solely from the original validated shared `refs`, and delegates the actual copy-on-unlink to `receiving_shared_settings.unlink_setting`. Returns `(detached_layout, affected_stable_ids)`. Already-independent Bays return no IDs; matching values are not evidence of link membership. The GUI applies only changed candidates and marks every original linked physical Bay dirty to preserve operator source/deletion protection. No geometry, NFB or DXF manufacturing certification is implied.
+
 ## #2517 Receiving Joint alignment affected physical IDs (2026-11-07)
 
 Use manufacturing_api.update_receiving_joint_alignment_with_affected_ids(layout, *, set_index, joint_index, depth_alignment=None, height_alignment=None), exported identically through root ae_engine. It reuses the existing canonical physical Joint update and returns (detached_layout, changed_joint_stable_ids). A repeated value or a dimension-locked axis is an accepted no-op, returning an empty tuple, not a new dirty source. Bad joint identity, invalid editable-axis direction, or malformed layout fail without changing the caller. GUI uses the Engine-provided IDs for session dirty bookkeeping. Actual Receiving FRONT(+Z) and TOP(+Y) Assembly offsets, 2D/3D and DXF manufacturing qualification are unchanged.
