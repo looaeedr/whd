@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Canvas 特徵面、孔位與孔型錄來源使用公開 Engine（2026-11-07）
+
+- 主 `gui.py` 與共用 `gui_modules/rendering/canvas_2d.py` 原直接依賴 `ae_engine.ae.feature_surface_from_drawing_scene` 及私有 `resolve_surface_features`。現以 `manufacturing_api.project_operator_feature_surface_from_drawing_scene`（與唯一 `ae_door_indicator.feature_surface_from_drawing_scene` **同一 callable**）和既有 `manufacturing_api.resolve_hole_editor_canvas_features` 取得真正 CUTTING 邊界及孔位；無封閉 CUTTING 時拒絕，不能假造矩形。
+- 統一孔位編輯器原要求主 GUI 注入私有 `ae`，只為呼叫 `baseline_hole_catalog_root_path`。完整 GUI 回歸發現這個依賴尚未改接；現由 `manufacturing_api.operator_hole_catalog_root_path`／根包 `ae_engine` 公開**同一原 `ae_endcap.baseline_hole_catalog_root_path` callable**，保持孔型錄共用根路徑、原 CSV／DXF 型錄兩條載入鏈與缺來源拒絕。
+- 並行已合入的 `manufacturing_api.project_operator_resolved_feature_drawing_primitives` 是箱身面板 `ResolvedFeature → DrawingPrimitive` 唯一公開 Owner；本批保留 GUI 使用該入口，不另增重複的 BoxBody 基準 scene API。僅為 2D／編輯器 readback，不新增 CUTTING／BEND／NFB／DXF 認證或 Save→Reload 通行證；新舊測試均須 exact-SHA 全量回歸核對。
+
 ## [CURRENT] #2517 數量孔型版本控制列的件數與最後版本資格由公開 Engine 投影（2026-11-07）
 
 - 原 GUI quantity_version_controls.py::refresh 自行使用 len(rows) 與 sum(piece_count) 計算製造數量，delete 又自行透過版本長度決定能否刪掉最後孔型版本。真實 QuantityModel 雖已由 Engine 管理，GUI 卻保有第二套版本下限和總件數計算。

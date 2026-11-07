@@ -43,6 +43,12 @@ from .door_layout_numeric_transitions import (
     DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
 )
 from .dxf_serialization import save_scene_dxf
+from .ae_door_indicator import (
+    feature_surface_from_drawing_scene as project_operator_feature_surface_from_drawing_scene,
+)
+from .ae_endcap import (
+    baseline_hole_catalog_root_path as operator_hole_catalog_root_path,
+)
 from .engineering_drawing import (
     build_engineering_drawing_projection as project_operator_engineering_drawing_annotations,
 )

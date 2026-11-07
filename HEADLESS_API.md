@@ -5,6 +5,12 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Canvas CUTTING surface and Hole Editor catalog root through public Engine (2026-11-07)
+
+`manufacturing_api.project_operator_feature_surface_from_drawing_scene(surface_id, scene)` (also root `ae_engine`) is the exact canonical `ae_door_indicator.feature_surface_from_drawing_scene` callable; invalid primary CUTTING contours remain rejected. `gui_modules/rendering/canvas_2d.py` and main `gui.py` use the existing public `manufacturing_api.resolve_hole_editor_canvas_features` for preview holes. `manufacturing_api.operator_hole_catalog_root_path()` (also root `ae_engine`) is the exact `ae_endcap.baseline_hole_catalog_root_path` callable; the unified Hole Editor loads both catalogs from this canonical source and no longer requires the GUI's `ae` module.
+
+The existing public `project_operator_resolved_feature_drawing_primitives` remains the BoxBody physical Feature projection; this PR reuses it instead of introducing a competing baseline drawing API. These APIs are read-only and do not change CUTTING/BEND, NFB, Save→Reload, DXF certification or physical manufacturing authority. Regression: `tests/test_issue2517_canvas_feature_surface_public_api.py` and `tests/test_issue2517_box_body_resolved_primitives_public_api.py`.
+
 ## #2517 Quantity version controls source readback (2026-11-07)
 
 The same public callable from ae_engine and ae_engine.manufacturing_api is project_operator_quantity_version_controls(payload). Its source is the original QuantityModel saved payload. The Engine validates all existing version identities and piece counts and projects detached versions, selected_version_id, version_count, total_piece_count, selected_piece_count and can_delete_selected. Both Vault and Receiving Quantity GUI clients only display the projection. All writes still use commit_operator_quantity_version_action; this projection does not create physical Bays, change Feature/BEND geometry, or authorize DXF.
