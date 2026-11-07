@@ -264,12 +264,14 @@ class ReceivingSetBayAdapter:
         self.mark_current_bay_dirty()
 
     def set_brand(self, brand):
-        """GUI supplies one selected Set; Engine owns the whole brand transaction."""
-        candidate, changed = manufacturing_api.update_receiving_one_set_nfb_parent_brand(
+        """Consume Engine Set brand transaction and complete physical dirty scope."""
+        candidate, changed, affected_ids = manufacturing_api.update_receiving_one_set_nfb_parent_brand_with_affected_ids(
             self._layout, self.selection.set_index, brand,
         )
         if changed:
             self._layout = candidate
+            self._session_dirty_ids.update(affected_ids)
+        return changed
 
     def apply_candidate_to_bays(self, role, set_index, bay_indices, features, *, version_id=None):
         """Forward highlighted Head/Tail Apply to Engine; track GUI dirtiness."""
@@ -373,12 +375,13 @@ class ReceivingSetBayAdapter:
         return receipt
 
     def set_global_brand(self, brand):
-        """Submit one operator all-Set action to the public Engine owner."""
-        candidate, changed = manufacturing_api.update_receiving_all_set_nfb_parent_brand(
+        """Commit Engine all-Set brand and its exact dirty physical IDs."""
+        candidate, changed, affected_ids = manufacturing_api.update_receiving_all_set_nfb_parent_brand_with_affected_ids(
             self._layout, brand,
         )
         if changed:
             self._layout = candidate
+            self._session_dirty_ids.update(affected_ids)
         return changed
 
     def current_joint_editability(self, joint_index: int) -> dict[str, bool]:
@@ -453,9 +456,7 @@ class ReceivingSwitchProjectionAdapter:
 
     def set_brand(self, brand):
         brand = manufacturing_api.require_receiving_operator_brand(brand)
-        changed = self.brand != brand
-        self.adapter.set_brand(brand)
-        return changed
+        return self.adapter.set_brand(brand)
 
     def add_layer(self):
         self.adapter.set_set_count(len(self.adapter.layout["sets"]) + 1)

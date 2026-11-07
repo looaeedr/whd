@@ -104,10 +104,14 @@ def test_gui_selected_set_and_legacy_switch_port_use_only_public_engine_layout()
     assert source == before
     assert port.set_brand("三菱") is False
     assert adapter.layout == expected
-    assert adapter._session_dirty_ids == set()
+    assert adapter._session_dirty_ids == {
+        source["sets"][1]["stable_id"],
+        source["sets"][1]["bays"][0]["stable_id"],
+    }
+    assert source["sets"][0]["stable_id"] not in adapter._session_dirty_ids
 
     gui_method = getsource(ReceivingSetBayAdapter.set_brand)
-    assert "manufacturing_api.update_receiving_one_set_nfb_parent_brand(" in gui_method
+    assert "manufacturing_api.update_receiving_one_set_nfb_parent_brand_with_affected_ids(" in gui_method
     assert "rebase_receiving_set_parent_nfb_brand(" not in gui_method
     assert '["sets"]' not in gui_method
     assert "deepcopy(" not in gui_method
