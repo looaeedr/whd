@@ -1,7 +1,6 @@
 """Assembly/corner presentation and routing helpers only."""
 
 from ae_engine import manufacturing_api
-from ae_engine.corner_type_ui import CORNER_PAIR_CORNERS
 from ae_engine.sheetmetal_geometry import (
     CornerTypeId,
     CrossCornerMode,
@@ -55,7 +54,7 @@ def normalize_manual_corner_target(host, part_key):
     if same[pair]:
         target = pair
     elif target == pair:
-        target = CORNER_PAIR_CORNERS[pair][0]
+        target = manufacturing_api.project_operator_corner_pair_members(pair)[0]
     host.manual_active_corner_var.set(target)
     return target
 
@@ -135,7 +134,7 @@ def select_manual_corner(self, corner_key):
         return
     pair = self._pair_for_corner_target(corner_key)
     if corner_key in ('top', 'bottom') and not self.manual_corner_pair_same[part_key][pair]:
-        corner_key = CORNER_PAIR_CORNERS[pair][0]
+        corner_key = manufacturing_api.project_operator_corner_pair_members(pair)[0]
     elif corner_key in CORNER_KEYS and self.manual_corner_pair_same[part_key][pair]:
         corner_key = pair
     self.manual_active_corner_var.set(corner_key)
@@ -288,10 +287,10 @@ def refresh_corner_type_panel(self):
         else:
             controls['left'].pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 2))
             controls['right'].pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(2, 0))
-        pair_targets = {pair_key} if same[pair_key] else set(CORNER_PAIR_CORNERS[pair_key])
+        pair_targets = {pair_key} if same[pair_key] else set(manufacturing_api.project_operator_corner_pair_members(pair_key))
         for name in ('pair', 'left', 'right'):
             widget = controls[name]
-            widget_target = pair_key if name == 'pair' else CORNER_PAIR_CORNERS[pair_key][0 if name == 'left' else 1]
+            widget_target = pair_key if name == 'pair' else manufacturing_api.project_operator_corner_pair_members(pair_key)[0 if name == 'left' else 1]
             active = widget_target == target_key and widget_target in pair_targets
             widget.configure(bg=self.COLOR_ACCENT if active else self.COLOR_PANEL,
                              fg='#ffffff' if active else self.COLOR_TEXT)
@@ -361,7 +360,7 @@ def _build_corner_pair_controls(host, editor):
         host.manual_corner_pair_same_checkbuttons[pair_key] = same_cb
         button_frame = tk.Frame(pair_row, bg=host.COLOR_INPUT_BG)
         button_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        left_key, right_key = CORNER_PAIR_CORNERS[pair_key]
+        left_key, right_key = manufacturing_api.project_operator_corner_pair_members(pair_key)
         pair_button = tk.Button(
             button_frame, text=('上方' if pair_key == 'top' else '下方'),
             bg=host.COLOR_PANEL, fg=host.COLOR_TEXT, bd=0,

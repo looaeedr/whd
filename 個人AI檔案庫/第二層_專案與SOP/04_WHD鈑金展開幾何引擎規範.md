@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 上下截角的左右實體角身份由公開 Engine 投影（2026-11-08）
+
+- manufacturing_api.project_operator_corner_pair_members(pair_key) 與 project_operator_corner_selection_target(target_key)（根包 ae_engine 同一 callable）直接重用 Engine corner_state_transactions.MANUAL_CORNER_PAIR_KEYS／MANUAL_CORNER_KEYS：top→(top_left,top_right)、bottom→(bottom_left,bottom_right)；pair 點選採首個實體角，個別角原樣保留。非法、空白、布林或非字串來源明確拒絕，無源狀態突變。
+- 主 GUI 的手動截角選擇與成對取消、截角操作面板的目標提示／左右按鈕，均透過上述公開 API 讀 Engine 身份；GUI 不再以私有 CORNER_PAIR_CORNERS 當實體選片規則。原 operator_apply_manual_corner_selection／operator_set_manual_corner_pair_same 交易、Family/Registry、C02／CROSS、暫時 UI 鎖、儲存、CUTTING/BEND/2D/3D/DXF 均不變。測試：tests/test_issue2517_corner_pair_public_gui_mapping.py 與 Corner 回歸。
+
+
 ## [CURRENT] #2517 Fold Designer 手動截角型式／參數解鎖實體資格改由公開 Engine（2026-11-07）
 
 - 原 `fold_designer_bridge._phase6_corner_type_editable` 及 `_phase6_corner_parameters_unlockable` 在 GUI 直接硬編指示燈盒／小門／箱身／global 這些實體或上下文不能編輯截角型式／解鎖參數的機械資格；設定頁顯示與 Registry 提交 guard 都從這兩個舊函式讀取。已確認模型是否為自訂的來源本來由 `manufacturing_api.is_unknown_operator_model` 提供，不得在 GUI 另算 Family。

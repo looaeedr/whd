@@ -84,7 +84,9 @@ def test_manual_corner_readback_is_engine_owned_and_does_not_mutate(monkeypatch)
 def test_no_internal_corner_or_model_semantics_called_by_main_gui():
     text = Path("gui.py").read_text(encoding="utf-8")
     assert "return manufacturing_api.operator_assembly_type_from_corner_state(corner_state)" in text
-    assert "return manufacturing_api.operator_normalize_corner_selection(self.manual_corner_state[part_key][target_key])" in text
+    assert "physical_key = manufacturing_api.project_operator_corner_selection_target(" in text
+    assert "self.manual_corner_state[part_key][physical_key]" in text
+    assert "return manufacturing_api.operator_normalize_corner_selection(" in text
     assert "manufacturing_api.is_unknown_operator_model(self.baseline_var.get())" in text
     assert "from ae_engine.corner_type_ui import (" in text  # typed display metadata may remain
     for code in (

@@ -170,6 +170,28 @@ def ensure_corner_part(
     return CornerStateTransition(all_state, all_pairs, deepcopy(state))
 
 
+def project_operator_corner_pair_members(pair_key: object) -> tuple[str, str]:
+    """Canonical physical pair membership for GUI clients and manufacturing.
+
+    Unknown or malformed pair identities cannot create an accidental
+    manufacturing-side target.  The returned pair is an immutable tuple.
+    """
+    if type(pair_key) is not str or pair_key not in MANUAL_CORNER_PAIR_KEYS:
+        raise ValueError("CORNER_PAIR_KEY_INVALID")
+    return MANUAL_CORNER_PAIR_KEYS[pair_key]
+
+
+def project_operator_corner_selection_target(target_key: object) -> str:
+    """Map UI pair selection onto the existing Engine physical corner."""
+    if type(target_key) is not str:
+        raise ValueError("CORNER_SELECTION_TARGET_INVALID")
+    if target_key in MANUAL_CORNER_PAIR_KEYS:
+        return project_operator_corner_pair_members(target_key)[0]
+    if target_key in MANUAL_CORNER_KEYS:
+        return target_key
+    raise ValueError("CORNER_SELECTION_TARGET_INVALID")
+
+
 def corner_selection(
     part_state: Mapping[str, object],
     pairs: Mapping[str, object],

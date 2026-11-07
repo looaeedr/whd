@@ -174,6 +174,7 @@ from .corner_type_ui import (
 from .corner_state_transactions import (
     CornerStateTransition, MANUAL_CORNER_KEYS, MANUAL_CORNER_PAIR_KEYS,
     ensure_corner_part, corner_selection, corner_targets, commit_corner_pair,
+    project_operator_corner_pair_members, project_operator_corner_selection_target,
     commit_corner_type, commit_corner_mode, commit_corner_parameters, apply_corner_preset,
     replace_corner_state, project_operator_corner_ini_rotation,
     project_operator_corner_ini_load_section, project_operator_corner_ini_save_options,
