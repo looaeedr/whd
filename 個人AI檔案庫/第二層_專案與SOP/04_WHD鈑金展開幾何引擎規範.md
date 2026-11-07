@@ -12,6 +12,15 @@ whd_schema: WHD_DOC_META_V1
 - 在唯一 `receiving_nfb_brand_transition` Owner 新增 `update_receiving_one_set_nfb_parent_brand_with_affected_ids` 和 `update_receiving_all_set_nfb_parent_brand_with_affected_ids`，沿用原公開 Brand Transaction 完整來源驗證及不可逆 CONFIRMED X 失效處理，回傳 `(detached_layout, changed, affected_stable_ids)`。後者只列實際改變品牌的 Set 與旗下全部實體 Bay 的 canonical 身分；無變更則空 tuple，非法來源無輸出／不寫回。原舊二元回傳 API 完全相容；`manufacturing_api` 與根包公開同一 Engine callable。
 - GUI 只消費 Engine 回傳的 affected IDs 更新 dirty，且 Switch 操作直接取 Engine changed，禁止自行逐 Bay 推斷孔位、來源或狀態。此為來源／刪除保護 API，不新產生 NFB 世界 X、CUTTING、FinalScene、DXF 或 MFG-2 資格。新增 `tests/test_issue2517_receiving_brand_affected_ids_public_api.py` 與原 NFB 品牌操作測試覆蓋新版 headless／GUI 同源、非法來源失敗不變、no-op、未保存的實體 Bay／Set 刪除保護；完整回歸由 GitHub exact-head CI 驗證。
 
+## [CURRENT] #2517 Box FW 接管 Head/Tail 的兩個 GUI 寫入入口統一公開 Engine 交易（2026-11-07）
+
+- Phase6 Settings Controller 的 `commit_editor_fw_takeover` 與 Fold Designer `settings_application_project_ui_values` 原先先在 GUI 呼叫 `float(value)`，再直接套用舊式 `commit_box_fw` 到 live `_phase6_endcap_fw_state`。原 Engine 遺留函式是就地寫入，沒有物理有限正數硬閘門；布林、NaN／Inf、零或負值可能經 GUI 先轉型而污染 Head/Tail FW，已有 malformed Tail 的來源也可能在 Head 被修改後才拋錯。
+- 新公開 `manufacturing_api.commit_operator_box_fw_takeover(state, value)`（根包 `ae_engine` 同一 callable）由原 `endcap_factory_fold` 負責，先用既有 `normalize_operator_source_dimension(field="fw")` 核實操作員輸入的正值、有限數字及 bool 拒絕，再把原 `commit_box_fw` 在完整 detached state 上預先跑通，最後由同一原 owner 就地提交；保持 Head/Tail live nested dict 身分、FOLLOW_BODY 語意與原有合法輸出完全相同。舊 Engine 低階函式供原有合法相容呼叫繼續保留，不使 GUI 擁有任何新 FW 公式。
+- 兩個 GUI 入口只傳原操作員 FW 及共用狀態給公開 API，無 GUI 先做 `float` 的物理來源轉型；不合法來源不可改變 mode、Head、Tail 或 input snapshot。定向測試涵蓋兩箱型、Engine root/facade/原 owner parity、全套非法值／晚期壞 Tail、同物件 identity、Controller 與 Shell GUI 接線、實體 EndCap FW 投影及 Save→Reload；2D／3D／DXF Product Regression 須驗 exact SHA。此提交不宣稱 Windows R5 或整箱 NC 已驗收。
+
+
+
+
 ## [CURRENT] #2517 FinalScene 實體折後包外量測統一公開 Engine（2026-11-07）
 
 - 原 `phase6_final_scene_projection._phase6_folded_outside_envelope` 為 FinalScene 2D／3D 操作量測的 GUI 相容入口，直接匯入 `ae_engine.display_dimensions.folded_outside_envelope`。該內部 owner 根據**已成形實體三角網格與板厚**回傳 dimensions/world bounds；這是物理尺寸 readback，不可由 GUI 再算一套，也不得回寫原 Fold material `len`、BEND 或正式 CUTTING。
