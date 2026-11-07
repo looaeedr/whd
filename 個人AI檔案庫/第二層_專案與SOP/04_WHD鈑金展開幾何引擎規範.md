@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 箱身面板 2D Feature／CUTTING／MARKING 圖元只由公開 Engine 投影（2026-11-07）
+
+- 原主 GUI `Phase6ApplicationHost._box_body_face_baseline_scene` 從 Engine 取得已解析的 BoxBody 面板孔位後，仍直接呼叫私有 `sheetmetal_drawing.resolved_features_to_primitives` 轉為 2D 圖元。此 Owner 含正式 Circle／Rect／Profile、`BLIND_HOLE` 中心線、`CUTTING` 主輪廓、外部 DXF process layers 與避免重複切線的語意；GUI 不可重算或默默遺漏。
+- `manufacturing_api.project_operator_resolved_feature_drawing_primitives` 與根包 `ae_engine` 公開**同一原函式** `sheetmetal_drawing.resolved_features_to_primitives`。GUI 只把既有 resolved Features 交給 API，將回傳 `DrawingPrimitive` 加入顯示 `DrawingScene`；無第二份 CUTTING／MARKING 演算法，也不以示意圖承諾正式 DXF 製造。
+- `tests/test_issue2517_box_body_resolved_primitives_public_api.py` 逐一驗證 `BLIND_HOLE`、`DATUM`、`CUTTING`、`MARKING`、`FROM_DXF` 不重複切線、原 Engine parity、GUI 一次委派與無效 Feature fail-closed；來源 Feature 不變。此純 2D readback 不改 PartSpec、FinalScene、儲存或 DXF writer；仍須 exact-SHA canonical Product Regression，Windows UAT 未藉此完成。
+
+
 ## [CURRENT] #2517 Receiving 解除連動須由公開 Engine 回傳原共享實體 Bay 身分（2026-11-07）
 
 - 原 `ReceivingSetBayAdapter.unlink_setting(kind)` 已使用公開 `unlink_receiving_shared_setting` 進行單 Bay 來源更改，但不問是否實際解除，就只對當前 Bay 標 `session_dirty`；而原本共享同一參照的其他 Bay 沒有被列入當次來源關聯變更保護。原 `receiving_settings_ports.unlink` 對已獨立的 Bay 也照常提交 geometry intent，造成無變更的假 dirty／重算。
