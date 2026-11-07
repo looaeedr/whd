@@ -208,6 +208,27 @@ class AllocationDraft:
             sum(rows.values()) == sum(self.counts)
         )
 
+def adjust_receiving_candidate_draft_quantity(draft, role, version_id, delta):
+    """Apply one UI +/- click through the Engine's transient draft policy.
+
+    This never writes a saved Bay, candidate library, PartSpec or geometry.
+    Reject all malformed inputs before changing any draft field.
+    """
+    if not isinstance(draft, AllocationDraft):
+        raise TypeError("受電箱候選配置草稿不合法")
+    if type(delta) is not int or delta not in (-1, 1):
+        raise ValueError("候選數量增減必須為單次加一或減一")
+    draft.validate_role(role)
+    if type(version_id) is not str or version_id not in draft.quantities[role]:
+        raise ValueError("候選版本不存在")
+    current = draft.quantities[role][version_id]
+    if type(current) is not int or current < 0:
+        raise ValueError("候選草稿數量不合法")
+    updated = max(0, current + delta)
+    draft.set_quantity(role, version_id, updated)
+    return updated
+
+
 def apply_receiving_endcap_quantity_configuration(
     layout, role, library, quantities, assigned, *, expected_counts=None,
 ):
