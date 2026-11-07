@@ -111,7 +111,6 @@ from ae_engine.sheetmetal_part_adapters import (
     complete_partition,
     door_layout_export_filename,
     door_layout_feature_map_to_part_features,
-    door_part_features_to_layout_feature_map,
     build_box_body_result,
     build_box_body_result_from_fold_profile,
     build_door_result,
@@ -495,7 +494,9 @@ def _apply_phase6_project_snapshot(self, snapshot):
             (float(row[0]), tuple(float(v) for v in row[1]))
             for row in tuple(snapshot.get("door_layout_columns") or ())
         )
-        self.door_layout_features = door_part_features_to_layout_feature_map(columns, part_features)
+        self.door_layout_features = manufacturing_api.project_operator_door_layout_cell_features_from_parts(
+            columns, part_features,
+        )
     face_features = dict(snapshot.get("part_face_features") or {})
     if "box_body" in face_features:
         self.box_body_face_features = {
@@ -1041,7 +1042,9 @@ def _apply_fold_designer_live_snapshot(self, payload):
                 for row in tuple(raw_columns or ())
             )
             if columns and part_features:
-                self.door_layout_features = door_part_features_to_layout_feature_map(columns, part_features)
+                self.door_layout_features = manufacturing_api.project_operator_door_layout_cell_features_from_parts(
+            columns, part_features,
+        )
             if "multi_door_enabled" in payload:
                 var = getattr(self, "multi_door_enabled_var", None)
                 if var is not None:
