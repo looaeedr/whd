@@ -242,6 +242,12 @@ whd_schema: WHD_DOC_META_V1
 - GUI 只將原有數值控件與 Engine 當下回傳的完整預設值配對，保留舊表單空缺時的呈現語意及 Settings／INI 其他流程；GUI 不增 Formula、成品尺寸推導或 FinalScene，且不改現有 `load_factory_defaults_from_ae` UI Schema 相容呼叫。Headless 測試核對兩 Family 共用的原執行期 defaults、動態更新、非法預設拒絕、root/facade API 同源、GUI 不再私讀製造數值以及原物理 W/H/D/T/FW fail closed；完整 2D／3D／DXF／Save→Reload 仍交 exact-SHA 回歸。
 
 
+## [CURRENT] #2517 Fold Designer 多門格實體 W/H 保存改為公開 Engine 同源投影（2026-11-07）
+
+- 原 `gui_modules/application/fold_designer_snapshot_projection._snapshot_base_state` 雖透過 `door_layout_host_adapter.get_door_layout_columns` 收取操作員的真實多門格欄寬、各列高度，仍在 GUI 自行 `float(width)`／`float(height)` 組裝 `.p6fold` 保存來源；布林會暗中轉成 1mm，並與 Engine 的原實體門格 `derive_door_layout_cells` 規則分岔。這是操作資料到已保存實體 Door-grid 身分的轉換，不是畫面格式化。
+- 原 `ae_engine.door_layout_feature_projection` 新增 `project_operator_saved_door_layout_columns(columns)`，沿用原 `sheetmetal_part_adapters.derive_door_layout_cells` 的同一有效正尺寸、有限小數、Door-grid 拓樸，按真實原一基 `door_cN_rN` 順序輸出 detached `[[width_mm,[height_mm,...]],...]`，不修改來源；單門歷史來源 `None`／空序列仍保存空清單，非法型別、bool、零／負數、NaN／Inf、空列在同一 Engine 回傳前拒絕，不發布部分候選。未增加任何新的 W/H 尺寸公式、CUTTING、BEND 或 DXF 製造資格。
+- `manufacturing_api.project_operator_saved_door_layout_columns` 與根包 `ae_engine` 公開原 Owner 同一 callable；GUI 只收 `get_door_layout_columns` 的操作者欄值並消費 Engine 結果，不再自行再轉一份座標／尺度。既有 `project_fold_designer_snapshot_part_features` 仍對同一保存欄位進行物理 Feature 身分投影，保存後 `project_snapshot_state.normalize_authoritative_door_state` 接續原正式權威。定向測試 `tests/test_issue2517_saved_door_grid_dimensions_public_api.py` 驗證 GUI 實際接線、失敗不部分更新、負值／非法 bool、不變原始 Feature 身分與真實 `.p6fold` Save→Reload；完整 exact-SHA Product Regression 與 Windows GUI UAT 另核對。
+
 ## [CURRENT] #2517 主 GUI 多門格實體 Feature 讀回只透過公開 Engine（2026-11-07）
 
 - 原 `gui_modules/application/lifecycle.py` 的 `_apply_phase6_project_snapshot` 與 `_apply_fold_designer_live_snapshot` 在重開正式專案、同步 Fold Designer 實體門板時直接呼叫私有 `sheetmetal_part_adapters.door_part_features_to_layout_feature_map`，將已保存的 `door_cN_rN` 孔位來源映回 `col:row` 的主 GUI 2D 門格編輯儲存。這是實體來源 ID 轉換，不得由 GUI 另造規則。
