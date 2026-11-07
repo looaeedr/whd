@@ -176,7 +176,7 @@ def test_original_operator_left_two_source_equivalent_models_roundtrip(tmp_path)
     # physical base. Different numeric catalog names with exactly the
     # same source geometry must traverse the ordinary two-sheet operator
     # export, not just the physical configuration resolver.
-    snap = _current(model_second="3P400SN")
+    snap = _current(model_second="3P400")
     from ae_engine.receiving_base_plate_config import (
         receiving_base_plate_values, receiving_base_plate_blank_dimensions,
     )
@@ -210,7 +210,7 @@ def test_three_same_tier_400_switches_share_one_source_base_and_reopen_dxf(tmp_p
     # One submitted vertical tier can have 3 horizontally arranged NFBs.
     # The NFBConfig owns all 3 X locations; source LEFT still owns one
     # cabinet-centred base and its original four ear-mount slots.
-    snap = _current(model_second="3P400SN")
+    snap = _current(model_second="3P400")
     holes = snap["nfb_config"]["holes"]
     holes[0]["manual_x_mm"] = -180.
     holes[1]["manual_x_mm"] = 0.
@@ -261,9 +261,9 @@ def test_normal_operator_export_single_125_current_csv_uses_real_flat_source(tmp
 
 
 def test_original_operator_does_not_equate_two_brands_on_one_flat_base(tmp_path):
-    snap = _current(model_second="3P400SN")
+    snap = _current(model_second="3P400")
     row = snap["nfb_config"]["holes"][1]
-    row.update(model_filename="nfbv5:伍菱:3P400SN", source_brand="伍菱")
+    row.update(model_filename="nfbv5:伍菱:3P400", source_brand="伍菱")
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         snap["nfb_config"]
     )
@@ -573,7 +573,7 @@ def test_swt27_current_v5_single_x_and_three_row_x_are_true_physical_datums(
         legacy, "inspect_nfb_dxf_source",
         lambda *_a, **_kw: pytest.fail("Current CSV X must not read old model DXF"),
     )
-    before = _current(model_second="3P400SN")
+    before = _current(model_second="3P400")
     holes = before["nfb_config"]["holes"]
     holes[0]["manual_x_mm"] = -180.
     holes[1]["manual_x_mm"] = 0.
@@ -681,7 +681,7 @@ def test_swt27_current_v5_unapproved_x_state_never_infers_row_from_nominal(
     tmp_path,
 ):
     """Nominal W800x3 spacing is NOT confirmation of an absent per-hole X."""
-    snap = _current(model_second="3P400SN")
+    snap = _current(model_second="3P400")
     hole = snap["nfb_config"]["holes"][1]
     hole["manual_x_state"] = "NONE"
     hole["manual_x_mm"] = None
@@ -712,7 +712,7 @@ def test_swt30_exact_committed_w_n_y_model_datum_has_real_dxf_but_cannot_leak_to
     from ae_engine.receiving_nfb_committed_final_scene import _submitted_csv_holes
     from ae_engine.receiving_nfb_model_identity import selected_numeric_spec
 
-    approved = _current(model_second="3P400SN")
+    approved = _current(model_second="3P400")
     holes = approved["nfb_config"]["holes"]
     holes[0]["manual_x_mm"] = -180.
     holes[1]["manual_x_mm"] = 0.

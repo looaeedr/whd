@@ -25,7 +25,7 @@ from tests.test_issue1502_csv_v5_part_only_manufacturing import _current
 
 A = numeric_model_ref("士林", "2P400")
 B = numeric_model_ref("士林", "3P125SN")
-C = numeric_model_ref("士林", "3P400SN")
+C = numeric_model_ref("士林", "3P400")
 
 
 def _physical(model_second):
@@ -122,7 +122,7 @@ def test_ac27_swt06_valid_q16_preserves_two_unit_identity_pitch_and_revalidates_
 
     # After CURRENT source/world-X verification, the real physical path
     # must re-evaluate both sheets, not blindly re-use old FinalScene/DXF.
-    new = _physical("3P400SN")
+    new = _physical("3P400")
     assert tuple(p["manual_x_mm"] for p in new["nfb_config"]["holes"]) == (-180., 180.)
     original_new_snapshot = deepcopy(new)
     new_scene = _scene(new)
@@ -151,7 +151,7 @@ def test_ac27_swt06_invalid_q16_actual_v5_cutting_collision_rolls_back_all_exist
 
     # Keep the same physical source owners but intentionally create
     # overlapping main CUTTING holes: no partial scene or hidden DXF write.
-    candidate = _physical("3P400SN")
+    candidate = _physical("3P400")
     candidate["nfb_config"]["holes"][1]["manual_x_mm"] = -180.
     candidate["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(
         candidate["nfb_config"]

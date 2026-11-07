@@ -129,7 +129,7 @@ def _mixed_source_two_tiers():
     snapshot=_current_two_tiers()
     first=snapshot["nfb_config"]["holes"][0]
     first.update(
-        model_filename="nfbv5:士林:3P400SN",manual_x_mm=-150.,
+        model_filename="nfbv5:士林:3P400",manual_x_mm=-150.,
     )
     pad=deepcopy(first)
     pad.update(
@@ -207,7 +207,7 @@ def test_both_real_tiers_pad_and_base_have_independent_owners_and_total_q(tmp_pa
     )
     snap,_=_mixed_source_two_tiers()
     second=snap["nfb_config"]["holes"][1]
-    second.update(model_filename="nfbv5:士林:3P400SN",manual_x_mm=-150.)
+    second.update(model_filename="nfbv5:士林:3P400",manual_x_mm=-150.)
     pad=deepcopy(second)
     pad.update(physical_hole_id="tier:1:pad:1",
                model_filename="nfbv5:士林:100HN-s",

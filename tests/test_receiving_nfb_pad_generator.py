@@ -20,7 +20,7 @@ def _spec(brand, model, w, h, depth, px, py, dia=3.2):
 def test_original_source_100hn_is_formula_not_product_switch():
     rule=read_pad_tooling_rule()
     shallow=_spec("士林","100HN-s",75,130,68,25,111)
-    deep=_spec("士林","3P400SN",140,257,107,44,194,5.1)
+    deep=_spec("士林","3P400",140,257,107,44,194,5.1)
     generated=generate_nfb_pad_patterns([shallow,deep],plate_thickness_mm=2,
                                         tooling=rule)
     assert len(generated)==1
