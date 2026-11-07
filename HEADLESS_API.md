@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Engineering Drawing annotation-only public projection (2026-11-07)
+
+`manufacturing_api.project_operator_engineering_drawing_annotations(render_data, *, part_key="", char_height=5.0, dimension_offset=15.0, reserved_regions=(), strict=False)` and the `ae_engine` root export reference the exact existing `engineering_drawing.build_engineering_drawing_projection` callable. The WHD door/indicator/base 2D GUI uses this Engine projection and publicly exposed `manufacturing_api.CanvasTransform`, rather than importing internal modules. Invalid canonical `PartRenderData` fails closed; drawing source primitives stay unchanged. This API is for `DIMENSION/TEXT` annotations only; it never grants CUTTING/BEND, physical-part, DXF or multi-Bay manufacturing authority. See `tests/test_issue2517_operator_engineering_drawing_public_api.py`.
+
 ## #2517 Receiving Joint alignment affected physical IDs (2026-11-07)
 
 Use manufacturing_api.update_receiving_joint_alignment_with_affected_ids(layout, *, set_index, joint_index, depth_alignment=None, height_alignment=None), exported identically through root ae_engine. It reuses the existing canonical physical Joint update and returns (detached_layout, changed_joint_stable_ids). A repeated value or a dimension-locked axis is an accepted no-op, returning an empty tuple, not a new dirty source. Bad joint identity, invalid editable-axis direction, or malformed layout fail without changing the caller. GUI uses the Engine-provided IDs for session dirty bookkeeping. Actual Receiving FRONT(+Z) and TOP(+Y) Assembly offsets, 2D/3D and DXF manufacturing qualification are unchanged.

@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 工程標註 2D 預覽只消費公開 Engine projection（2026-11-07）
+
+- 原 `gui_modules/application/door_render_host_adapter.py` 直接匯入 `ae_engine.engineering_drawing.build_engineering_drawing_projection` 與 `sheetmetal_features.CanvasTransform`，雖然只是工程標註的 2D 呈現，仍把 GUI 接在非公開的 Engine 內部投影來源上。
+- 現由 `manufacturing_api.project_operator_engineering_drawing_annotations`／根包 `ae_engine` 以**同一 callable**公開既有 `engineering_drawing.build_engineering_drawing_projection`；GUI 只傳入已解出的 canonical `PartRenderData`，從同一 Engine 取得尺寸／文字標註，`CanvasTransform` 使用原已有的公開 API。保留原來源有效性拒絕、`strict` 與碰撞診斷、`DIMENSION/TEXT` 限制及原 `DrawingScene` 不可變檢查。
+- 此為 annotation-only readback，**不新增** material／CUTTING／BEND／孔位或 DXF export 資格；正式 2D／3D／DXF 仍需 consume 同一 canonical 製造來源。定向測試 `tests/test_issue2517_operator_engineering_drawing_public_api.py` 核對 callable identity、annotation parity、非法來源拒絕不污染、GUI adapter 委派與公開 CanvasTransform；GitHub exact-SHA 完整產品回歸另驗。
+
 ## [CURRENT] #2517 Receiving Joint 對齊只標記真正改變的實體 Joint ID（2026-11-07）
 
 - 舊 ReceivingSetBayAdapter.update_joint_alignment 雖經原 Engine update_receiving_joint_alignment 驗證並執行 FRONT／REAR、TOP／BOTTOM，但 GUI 無條件把選中 Joint stable_id 放入 session dirty。當相鄰 Bay 的 D/H 相等導致對齊軸不可編輯、或操作者提交相同值時，Engine 並未更改 Joint，GUI 卻製造「待保存實體」及後續刪除保護假訊號。
