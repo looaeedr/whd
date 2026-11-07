@@ -136,15 +136,16 @@ class ReceivingSetBayAdapter:
         if self._confirm_destructive(protected) is not True:
             raise ReceivingDestructiveEditConfirmationRequired(protected)
 
-    def apply_topology_delta(self, *, delta: int, set_index: int | None = None) -> bool:
-        """Commit an Engine +/- result only after protected deletion consent.
+    def apply_set_delta(self, delta: int) -> bool:
+        """Commit an Engine Set +/- only after destructive removal consent.
 
-        Rejected or unconfirmed changes cannot alter the current GUI selection,
-        live topology, or persisted and dirty bookkeeping.
+        No physical Set/Bay/Joints or GUI selection/bookkeeping is changed
+        when validation fails, the operator declines deletion, or the current
+        Set count is already at its minimum.
         """
         candidate, removed, changed = (
-            manufacturing_api.adjust_receiving_operator_topology_with_removed_ids(
-                self._layout, delta=delta, set_index=set_index,
+            manufacturing_api.adjust_receiving_operator_set_count_with_removed_ids(
+                self._layout, delta=delta,
             )
         )
         if not changed:
@@ -153,14 +154,10 @@ class ReceivingSetBayAdapter:
         self._layout = candidate
         self._persisted_ids.difference_update(removed)
         self._session_dirty_ids.difference_update(removed)
-        selected_set = (
-            min(self._selection.set_index, len(candidate["sets"]) - 1)
-            if set_index is None else set_index
-        )
-        selected_bay = (
-            min(self._selection.bay_index,
-                len(candidate["sets"][selected_set]["bays"]) - 1)
-            if set_index is None else 0
+        selected_set = min(self._selection.set_index, len(candidate["sets"]) - 1)
+        selected_bay = min(
+            self._selection.bay_index,
+            len(candidate["sets"][selected_set]["bays"]) - 1,
         )
         self._selection = ReceivingSelection(
             set_index=selected_set, bay_index=selected_bay,
@@ -490,14 +487,19 @@ class ReceivingSwitchProjectionAdapter:
         return self.adapter.set_brand(brand)
 
     def add_layer(self):
-        return self.adapter.apply_topology_delta(delta=1)
+        return self.adapter.apply_set_delta(1)
 
     def remove_layer(self):
-        return self.adapter.apply_topology_delta(delta=-1)
+        return self.adapter.apply_set_delta(-1)
 
     def resize_connections(self, index, delta):
-        # Only parse operator values. Engine owns the physical Bay count.
-        return self.adapter.apply_topology_delta(
-            set_index=_operator_integer(index, "Set index"),
-            delta=_operator_integer(delta, "Bay delta"),
-        )
+        # Validate both operator inputs before selecting or resizing any Bay.
+        index = _operator_integer(index, "Set index")
+        delta = _operator_integer(delta, "Bay delta")
+        current = self.connection_count(index)
+        wanted = max(1, current + delta)
+        if wanted == current:
+            return False
+        self.adapter.select_set(index + 1)
+        self.adapter.set_bay_count(wanted)
+        return True

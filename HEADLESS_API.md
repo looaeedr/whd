@@ -5,9 +5,9 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-## #2517 Receiving physical Set/Bay delta operator API (2026-11-07)
+## #2517 Receiving physical Set +/- operator API (2026-11-07)
 
-The same public callable is exposed from ae_engine and ae_engine.manufacturing_api: adjust_receiving_operator_topology_with_removed_ids(layout, *, delta, set_index=None). A missing set_index adjusts physical Set count; a zero-based Set index adjusts physical Bay count. The Engine validates existing Receiving topology, operator integer input and the one-Set/one-Bay minimum, then returns (detached_layout, removed_physical_ids, changed). The result uses the existing canonical Family Bay defaults, stable panel names and Joints. A caller must separately confirm saved/dirty deletion before accepting the candidate. This is not the historical Receiving Switch layout preview and does not confer manufactured DXF permission.
+ae_engine and ae_engine.manufacturing_api expose the same adjust_receiving_operator_set_count_with_removed_ids(layout, *, delta) callable. The canonical Engine validates the layout, requires a real integer delta, enforces permanent Set1, and delegates actual creation/removal to resize_receiving_operator_topology_with_removed_ids. It returns (detached_layout, removed_Set_Bay_Joint_IDs, changed). GUI must obtain consent for protected deleted identities before accepting the candidate and then update its current selection; invalid or no-op actions leave both the project and selection unchanged. The independent cross-Set +/- Bay operation has a separate owner and is not duplicated here. No DXF manufacturing authority is introduced.
 
 
 ## #2517 Receiving parent NFB brand returns affected physical Set/Bay IDs (2026-11-07)

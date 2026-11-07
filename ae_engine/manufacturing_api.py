@@ -2286,7 +2286,7 @@ from .receiving_layout import (
     normalize_receiving_layout, receiving_layout_stable_ids,
     append_receiving_set, receiving_destructive_tail_ids,
     resize_receiving_sets, resize_receiving_operator_topology_with_removed_ids,
-    adjust_receiving_operator_topology_with_removed_ids,
+    adjust_receiving_operator_set_count_with_removed_ids,
     update_receiving_bay,
     receiving_joint_alignment_editability, project_receiving_joint_alignment_editability,
     project_receiving_bay_dimension_groups,

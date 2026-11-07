@@ -1214,36 +1214,23 @@ def resize_receiving_operator_topology_with_removed_ids(
     return candidate, tuple(removed)
 
 
-def adjust_receiving_operator_topology_with_removed_ids(
-    layout, *, delta, set_index=None,
-):
-    """Resolve physical Set/Bay +/- input with the canonical Engine topology.
+def adjust_receiving_operator_set_count_with_removed_ids(layout, *, delta):
+    """Resolve +/- physical Sets and their true deleted IDs in one Engine call.
 
-    GUI sends a signed count change, not a fabricated Bay identity or minimum.
-    Return the detached candidate, exact removed IDs and a change flag.
-    Protected deleted identities still require operator consent at commit.
+    The UI submits only the operator delta. The canonical Engine enforces the
+    permanent Set1 rule and stages new Set/Bay identity from the existing
+    absolute resize. Removal consent remains with the GUI before commit.
     """
     if type(delta) is not int:
-        raise ValueError("Receiving topology delta must be an integer")
+        raise ValueError("Receiving Set delta must be an integer")
     source = normalize_receiving_layout(layout)
-    if set_index is None:
-        count = len(source["sets"])
-        wanted = max(1, count + delta)
-        if wanted == count:
-            return source, (), False
-        candidate, removed = resize_receiving_operator_topology_with_removed_ids(
-            source, set_count=wanted,
-        )
-    else:
-        if type(set_index) is not int or not 0 <= set_index < len(source["sets"]):
-            raise ValueError("Receiving Set index out of range")
-        count = len(source["sets"][set_index]["bays"])
-        wanted = max(1, count + delta)
-        if wanted == count:
-            return source, (), False
-        candidate, removed = resize_receiving_operator_topology_with_removed_ids(
-            source, set_index=set_index, bay_count=wanted,
-        )
+    count = len(source["sets"])
+    wanted = max(1, count + delta)
+    if wanted == count:
+        return source, (), False
+    candidate, removed = resize_receiving_operator_topology_with_removed_ids(
+        source, set_count=wanted,
+    )
     return candidate, removed, True
 
 
