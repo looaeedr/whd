@@ -97,6 +97,7 @@ from .endcap_factory_fold import (
     endcap_profiles_for_assembly,
     ENDCAP_FW_PARTS, FW_FOLLOW_BODY, FW_FOLLOW_HEAD, FW_FOLLOW_TAIL,
     FW_INDEPENDENT, ENDCAP_FW_MODES, commit_box_fw, commit_endcap_fw,
+    commit_operator_box_fw_takeover,
     set_endcap_fw_follow, set_endcap_fw_override,
     endcap_editor_fold_tabs, normalize_endcap_profile_order,
 )
