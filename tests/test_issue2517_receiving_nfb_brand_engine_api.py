@@ -67,21 +67,21 @@ def test_engine_api_noop_and_invalid_brand_fail_without_mutating_source():
 def test_gui_set_and_global_brand_delegate_to_public_engine_api(monkeypatch):
     initial = _layout_with_submitted_nfb(two_sets=True)
     frozen = deepcopy(initial)
-    expected, _ = manufacturing_api.rebase_receiving_set_parent_nfb_brand(
-        initial["sets"][0], "三菱",
+    expected, _ = manufacturing_api.update_receiving_one_set_nfb_parent_brand(
+        initial, 0, "三菱",
     )
-    real = manufacturing_api.rebase_receiving_set_parent_nfb_brand
+    real = manufacturing_api.update_receiving_one_set_nfb_parent_brand
     calls = []
 
-    def recorded(set_row, brand):
-        calls.append((set_row["stable_id"], brand))
-        return real(set_row, brand)
+    def recorded(layout, set_index, brand):
+        calls.append((tuple(row["stable_id"] for row in layout["sets"]), set_index, brand))
+        return real(layout, set_index, brand)
 
-    monkeypatch.setattr(manufacturing_api, "rebase_receiving_set_parent_nfb_brand", recorded)
+    monkeypatch.setattr(manufacturing_api, "update_receiving_one_set_nfb_parent_brand", recorded)
     adapter = ReceivingSetBayAdapter(initial)
     adapter.set_brand("三菱")
-    assert len(calls) == 1
-    assert adapter.layout["sets"][0] == expected
+    assert calls == [(tuple(row["stable_id"] for row in frozen["sets"]), 0, "三菱")]
+    assert adapter.layout == expected
     assert adapter.layout["sets"][1] == frozen["sets"][1]
     assert initial == frozen
 

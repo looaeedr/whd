@@ -350,6 +350,8 @@ whd_schema: WHD_DOC_META_V1
 - 舊單套、Quantity 版本及 impact preview 公開 API 不變；保持現行 CSV、INHERIT/OVERRIDE、已確認 X 撤銷保護及 Save→Reload Schema。回歸 `tests/test_issue2517_nfb_parent_brand_operations_public_api.py` 驗跨兩套真實已提交來源、與原 Engine 單套 transition 一致、非法後套原子拒絕、原始 Layout 不修改及 GUI API seam。此提交不製造 NFB 孔、CUTTING、FinalScene、DXF；#2517／Windows UAT 與全櫃製造驗收仍 OPEN。
 
 
+- #2517 單套廠牌提交亦必須為整份 Layout 的公開交易：新增同一既有 Engine owner 的 `update_receiving_one_set_nfb_parent_brand(layout, set_index, proposed_brand)`，由 Engine 嚴格驗證零基底 Set index、原始 Layout 與品牌，再委派原單套 rebase；回傳 `(detached_layout, changed)`。GUI `ReceivingSetBayAdapter.set_brand` 不再自行複製、替換實體 Set，非法輸入無任何中途提交。與全套及 Quantity 版本品牌路徑並存，不新增製造孔、FinalScene 或 DXF 資格；驗收 `tests/test_issue2517_single_set_nfb_brand_atomic_api.py`。
+
 ## [CURRENT] #2517 NFB 成對部分出圖實體底板 XYZ 非有限與極大整數一律安全拒絕（2026-11-06）
 
 - 受電箱單／雙層 NFB 的 `內門＋底板` PART_ONLY 正式 DXF，必須由 Engine 先驗證目前 FinalScene 所安裝的每一片真實底板 world XYZ，才能送進原子 DXF Save→Reload。已合併的 PR #2932（單層）和 #2936（雙層）阻擋 NaN、Infinity、布林、字串、缺失座標；但對 `10**1000` 類型的原生超大整數直接呼叫 `math.isfinite` 可產生未捕獲 `OverflowError`，且兩段驗證實作分離。
