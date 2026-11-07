@@ -154,9 +154,12 @@ def test_2d_gui_sources_no_longer_import_internal_physical_resolvers():
         tree = ast.parse(source)
         modules = [node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)]
         assert "ae_engine.ae_door_indicator" not in modules
-        assert "import ae_engine.ae as ae" not in source
+        if module is canvas_2d:
+            assert "import ae_engine.ae as ae" not in source
         assert "resolver=resolve_surface_features" not in source
     source = Path(gui.__file__).read_text(encoding="utf-8")
+    assert hasattr(gui, "ae")  # required by legacy HoleEditorCompositionDependencies
+    assert "ae_module=ae" not in inspect.getsource(gui.feature_surface_from_drawing_scene)
     assert "resolved_features_to_primitives(resolved)" not in source
     assert "manufacturing_api.project_operator_box_body_face_baseline_scene(" in source
 
