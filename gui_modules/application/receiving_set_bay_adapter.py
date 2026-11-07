@@ -307,9 +307,18 @@ class ReceivingSetBayAdapter:
         self._session_dirty_ids.update(affected_ids)
 
     def unlink_setting(self, kind):
-        self._layout = manufacturing_api.unlink_receiving_shared_setting(self._layout, set_index=self.selection.set_index,
-                                      bay_index=self.selection.bay_index, kind=kind)
-        self.mark_current_bay_dirty()
+        """Consume the Engine's exact former physical link group on unlink."""
+        candidate, affected_ids = (
+            manufacturing_api.unlink_receiving_shared_setting_with_affected_ids(
+                self._layout, set_index=self.selection.set_index,
+                bay_index=self.selection.bay_index, kind=kind,
+            )
+        )
+        if not affected_ids:
+            return False
+        self._layout = candidate
+        self._session_dirty_ids.update(affected_ids)
+        return True
 
     def set_brand(self, brand):
         """Consume Engine Set brand transaction and complete physical dirty scope."""
