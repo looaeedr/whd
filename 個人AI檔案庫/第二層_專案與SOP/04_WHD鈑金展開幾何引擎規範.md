@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 實體底板型式選項必須取自公開 Engine（2026-11-07）
+
+- 原 `phase6_settings_panel_owned_render._render_owned_receiving_base_plate` 由 GUI 事件內直接匯入私有 `sheetmetal_part_adapters.RECEIVING_BASE_PATTERN_LEFT/CENTER/RIGHT`，然後自行建立三種實體板件的選型值。這些是底板 `pattern` 製造來源識別，不是 GUI 可定義的新物理型式。
+- 原 Engine 唯一製造 owner `sheetmetal_part_adapters` 新增只讀 `project_operator_receiving_base_plate_pattern_choices()`，在**原三個 pattern 常數**的正式 LEFT／CENTER／RIGHT 順序返回 immutable `(role, pattern_id)` tuples；`manufacturing_api` 與根包 `ae_engine` 公開**同一 callable**。GUI 只對應中文顯示標籤與操作選取，不再 import 內部幾何模組、也不製造 pattern ID。
+- 實體底板套用／取消、真實 EAR 孔及面積來源仍走既有 `commit_operator_receiving_base_plate_settings`／`validate_receiving_base_plate_settings`；此新 API 不認證任何尚未提交的板件來源，不變更 shrink、BEND、CUTTING、DXF 及 2D／3D 正式幾何。驗收 `tests/test_issue2517_receiving_base_plate_pattern_choices_public_api.py` 對照 owner pattern 集合、GUI 真實函式委派、合法來源原驗證與輸入不變；仍需 exact SHA GitHub 回歸與 Windows UAT。
+
 ## [CURRENT] #2517 FinalScene 實體折後包外量測統一公開 Engine（2026-11-07）
 
 - 原 `phase6_final_scene_projection._phase6_folded_outside_envelope` 為 FinalScene 2D／3D 操作量測的 GUI 相容入口，直接匯入 `ae_engine.display_dimensions.folded_outside_envelope`。該內部 owner 根據**已成形實體三角網格與板厚**回傳 dimensions/world bounds；這是物理尺寸 readback，不可由 GUI 再算一套，也不得回寫原 Fold material `len`、BEND 或正式 CUTTING。
