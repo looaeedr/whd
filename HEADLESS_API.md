@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Physical sheet Hole Editor source-only full-feature commit gate (2026-11-07)
+
+Use `manufacturing_api.propose_operator_physical_sheet_hole_features(part_key, context, features)`, identical from `ae_engine`, with a genuine `PhysicalSheetEditorContext` obtained through `resolve_physical_sheet_editor_context`. This non-mutating Engine proposal verifies the complete draft using the original legacy typed-feature converter and canonical material-surface resolver, rejecting wrong physical sheet identities and out-of-outline holes before WHD GUI workspace writes anything. It preserves each draft's original saved representation and never grants DXF/CUTTING release; normal canonical 2D/3D/DXF verification remains required.
+
 ## #2517 Receiving Set/Bay topology edit with atomic detached candidate (2026-11-07)
 
 `manufacturing_api.resize_receiving_operator_topology_with_removed_ids(layout, *, set_index=i, bay_count=n)` or `(..., *, set_count=n)`, identically exported by `ae_engine`, returns a validated detached canonical layout plus the exact physical Set/Bay/Joint IDs removed. The Engine checks the removed inventory against actual stable-ID loss. GUI requests destructive confirmation only after the candidate is valid and updates saved-ID/dirty protection and selection only upon consent. Existing low-level APIs are retained; this does not grant new 2D/3D/DXF manufacturing permission.
