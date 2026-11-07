@@ -2051,6 +2051,57 @@ def build_box_body_operator_part_spec(
     )
 
 
+def bind_receiving_factory_box_body_to_bay(
+    spec: BoxBodyPartSpec, layout, *, set_index: int, bay_index: int,
+) -> BoxBodyPartSpec:
+    """Bind a source-confirmed Factory Body to its actual adjacent Set/Bay.
+
+    A fresh Factory Body has no physical adjacency and retains both template
+    side-lock groups. This Engine-only operation reuses the same canonical
+    Joint solver as GUI BoxBody and strictly verifies immutable Bay identity
+    and dimensions before deriving any manufacturing CUTTING.
+    """
+    from .cabinet_types.policy import canonical_family_name
+    from .receiving_layout import (
+        normalize_receiving_layout, derive_bay_lock_state,
+        receiving_bay_joint_face_features,
+    )
+    if type(spec) is not BoxBodyPartSpec or canonical_family_name(spec.model_name) != "受電箱":
+        raise ValueError("RECEIVING_FACTORY_BAY_BODY_SPEC_REQUIRED")
+    if type(set_index) is not int or type(bay_index) is not int:
+        raise ValueError("RECEIVING_FACTORY_BAY_SELECTION_INVALID")
+    state = normalize_receiving_layout(layout)
+    try:
+        if set_index < 0 or bay_index < 0:
+            raise IndexError("negative Bay index")
+        bay = state["sets"][set_index]["bays"][bay_index]
+    except (IndexError, KeyError, TypeError) as exc:
+        raise ValueError("RECEIVING_FACTORY_BAY_SELECTION_INVALID") from exc
+    if any(
+        abs(float(getattr(spec, attr)) - float(bay[key])) > 1e-6
+        for attr, key in (("width", "width"), ("height", "height"), ("depth", "depth"))
+    ):
+        raise ValueError("RECEIVING_FACTORY_BAY_DIMENSIONS_MISMATCH")
+    if (not spec.fold_profile or not spec.back_panel_contract
+            or spec.structure_state.get("active_type") != "three_piece_side_back_split"):
+        raise ValueError("RECEIVING_FACTORY_BAY_BODY_SOURCE_INVALID")
+    expected = derive_bay_lock_state(
+        state, set_index=set_index, bay_index=bay_index,
+    )
+    if spec.receiving_side_lock_participation not in (None, expected):
+        raise ValueError("RECEIVING_FACTORY_BAY_LOCK_SOURCE_CONFLICT")
+    faces = receiving_bay_joint_face_features(
+        state, set_index=set_index, bay_index=bay_index,
+        thickness=spec.thickness, frame_width=spec.frame_width,
+        existing=spec.face_features,
+    )
+    return replace(
+        spec,
+        receiving_side_lock_participation=expected,
+        face_features={key: tuple(rows) for key, rows in faces.items()},
+    )
+
+
 def build_receiving_factory_confirmed_parts(
     source_dimensions, *, confirmation=None, operator_snapshot=None,
     confirmed_endcap_features=None, confirmed_door_layout_columns=(),

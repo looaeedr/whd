@@ -27,7 +27,12 @@ def _fresh_unrelated_geometry(source, si, bi):
     physical=project_receiving_bay_legacy_aliases(
         source,set_index=si,bay_index=bi,
     )
-    return _full_receiving_geometry(physical)
+    from tests.test_issue1502_current_csv_multi_bay_once import (
+        _source_geometry_with_bound_body,
+    )
+    return _source_geometry_with_bound_body(
+        source, si, bi, _full_receiving_geometry(physical),
+    )
 
 
 def test_ac09_original_multibay_dxf_only_real_head_not_blocked_by_unselected_bad_nfb(tmp_path):
