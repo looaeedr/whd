@@ -187,7 +187,7 @@ def test_real_quantity_version_switch_preserves_both_old_caches_on_invalid_tail(
     monkeypatch.setattr(phase6_sync_envelope, "navigation_only_change", lambda *_: False)
 
     host = _host()
-    source_features = {"head": [_head()], "tail": [object()]}
+    source_features = {"head": [_head()], "tail": ["invalid physical Feature"]}
     calls = []
     owner = api.project_operator_endcap_legacy_hole_rows
 
