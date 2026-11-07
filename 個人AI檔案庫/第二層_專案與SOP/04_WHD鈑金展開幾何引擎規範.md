@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer CornerType Payload 選片／Family 補償統一公開 Engine API（2026-11-07）
+
+- 原 `gui_modules/application/fold_designer_manufacturing_projection.py::_payload_policy` 在 GUI 先呼叫公開 `corner_policy_from_payload`，缺角又自行判定 `not unknown` 決定是否附 `known_family` 取 Certified Registry，再個別套用 `apply_cabinet_family_endcap_policy`。雖然每個計算都在 Engine，但最後採用哪個製造截角政策仍由 GUI 分支，不符 GUI 只傳輸來源的硬性權責。
+- 現新增 `manufacturing_api.resolve_operator_fold_designer_payload_corner_policy`（根包 `ae_engine` 同一 callable）：以原 Engine `corner_policy_from_payload` 完整手動優先、已確認 Family 缺角可用 Certified Registry、Unknown 不可偷借已知製造規則，再以原 `apply_cabinet_family_endcap_policy` 套受電箱 Head/Tail 正式下緣 FW／BoxBody 結構／板厚；非法 Unknown 身分或 CornerType 直接拒絕、不更動來源。保留舊兩個公開函式的全部相容呼叫。
+- Fold Designer `_payload_policy` 只從原 `resolve_fold_designer_payload_topology` 拿操作者狀態／Family 身分／FW／T、同一來源的 `box_body_structure`，一次交公開 Engine 決策，不再依回傳 None 自行分流。定向驗證金庫型、受電箱、Head/Tail、完整與缺角手動來源、自訂不能借 Registry、無效狀態隔離、GUI 真委派與兩個原 Engine 函式等價；同源 2D/3D/製造受完整 exact-SHA Product Regression 保護。未新增 2D／3D／DXF 公式、Save→Reload schema、Factory 或任何新的製造准入資格；Windows UAT 另驗。
+
 ## [CURRENT] #2517 Fold Designer 截角選項清單只消費公開 Engine Catalog（2026-11-07）
 
 - 原 `fold_designer_bridge` 直接從私有 `sheetmetal_geometry.EDITABLE_CORNER_TYPE_IDS` 與 `CORNER_TYPE_LABELS` 複製製造可編輯的截角型式 ID／名稱清單；這應由既有 Engine `cabinet_model_choices.project_operator_corner_selection_catalog` 決定，而不是 GUI 自建 Policy。
