@@ -108,7 +108,7 @@ def render_surface_user_features(
 
 
 def feature_surface_from_drawing_scene(surface_id, scene):
-    """Read canonical CUTTING-outline authority through the public Engine API."""
+    """Resolve CUTTING surface via the sole public Engine owner."""
     return manufacturing_api.project_operator_feature_surface_from_drawing_scene(
         surface_id, scene,
     )
