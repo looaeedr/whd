@@ -210,7 +210,10 @@ def test_gui_rejected_duplicate_does_not_modify_live_source():
 
 def test_real_project_save_reload_preserves_committed_operator_inner_door_source(tmp_path):
     source = {"model": "受電箱", "w": 800.0, "h": 1600.0,
-              "d": 350.0, "t": 2.0, "fw": 25.0}
+              "d": 350.0, "t": 2.0, "fw": 25.0,
+              "multi_door_enabled": True,
+              "door_layout_columns": [[800.0, [800.0, 800.0]]],
+              "door_layout_scope": "main"}
     rows = api.apply_operator_receiving_inner_door_presence(
         source, [], cell_key="0:0", enabled=True,
     )
@@ -224,10 +227,15 @@ def test_real_project_save_reload_preserves_committed_operator_inner_door_source
     })
     reloaded = project.read_project(target)["snapshot"]
     assert source == original
-    assert reloaded["inner_doors"][0]["stable_id"] == rows[0]["stable_id"]
-    assert reloaded["inner_doors"][0]["cell_key"] == "0:0"
-    assert reloaded["inner_doors"][0]["inward_offset_mm"] == 0.0
-    assert reloaded["inner_doors"][0]["included_frame_sides"] == rows[0]["included_frame_sides"]
+    # Receiving v2 stores per-Bay Door authority; root inner_doors is a
+    # transient compatibility alias that must not survive project write.
+    assert "inner_doors" not in reloaded
+    bay = reloaded["receiving_layout"]["sets"][0]["bays"][0]
+    saved_rows = bay["door_state"]["inner_doors"]
+    assert saved_rows[0]["stable_id"] == rows[0]["stable_id"]
+    assert saved_rows[0]["cell_key"] == "0:0"
+    assert saved_rows[0]["inward_offset_mm"] == 0.0
+    assert saved_rows[0]["included_frame_sides"] == rows[0]["included_frame_sides"]
 
 
 def test_main_gui_does_not_filter_or_sort_manufacturing_source_locally():
