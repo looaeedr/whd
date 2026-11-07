@@ -2589,6 +2589,12 @@ def project_operator_box_body_baseline_face_features(
 operator_box_body_baseline_source_label = ae.box_body_baseline_source_label
 
 
+# Hole Editor physical CUTTING contour is always resolved by the original Engine.
+from .ae_door_indicator import (
+    feature_surface_from_drawing_scene as operator_feature_surface_from_drawing_scene,
+)
+
+
 # #2517 public copy-on-write candidate and NFB draft edit facade.
 # Exactly the existing canonical Engine operations: no GUI-owned algorithms,
 # persisted Bay mutations, verified X basis, CUTTING, or DXF certification.

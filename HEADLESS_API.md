@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Hole Editor DrawingScene physical CUTTING surface public API (2026-11-07)
+
+`manufacturing_api.operator_feature_surface_from_drawing_scene(surface_id, scene)`, also exported identically via `ae_engine`, is the existing `ae_door_indicator.feature_surface_from_drawing_scene` callable (no new contour or feature rules). WHD main GUI and canvas renderer no longer import or inject the private `ae_engine.ae` module to resolve the primary physical CUTTING contour. They delegate to this public API; the canonical Engine still recognizes a closed CUTTING polyline or a closed component of CUTTING lines, chooses the existing largest-area contour and rejects missing/invalid sources. Preview and Hole Editor receive one physical FeatureSurface derived from original Engine-owned CUTTING. No manufacturing DXF authorization, new hole process, alternate contour fallback or change to 2D/3D is implied. Tested in `tests/test_issue2517_hole_editor_scene_surface_public_api.py`.
+
 ## #2517 Receiving shared-setting physical unlink affected IDs (2026-11-07)
 
 `manufacturing_api.unlink_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_index, kind)` and the `ae_engine` root expose the same existing Engine-owner transaction. It validates canonical physical Set/Bay identities, derives the pre-unlink linked Bay group solely from the original validated shared `refs`, and delegates the actual copy-on-unlink to `receiving_shared_settings.unlink_setting`. Returns `(detached_layout, affected_stable_ids)`. Already-independent Bays return no IDs; matching values are not evidence of link membership. The GUI applies only changed candidates and marks every original linked physical Bay dirty to preserve operator source/deletion protection. No geometry, NFB or DXF manufacturing certification is implied.
