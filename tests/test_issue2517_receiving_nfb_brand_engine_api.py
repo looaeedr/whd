@@ -70,14 +70,14 @@ def test_gui_set_and_global_brand_delegate_to_public_engine_api(monkeypatch):
     expected, _ = manufacturing_api.update_receiving_one_set_nfb_parent_brand(
         initial, 0, "三菱",
     )
-    real = manufacturing_api.update_receiving_one_set_nfb_parent_brand
+    real = manufacturing_api.update_receiving_one_set_nfb_parent_brand_with_affected_ids
     calls = []
 
     def recorded(layout, set_index, brand):
         calls.append((tuple(row["stable_id"] for row in layout["sets"]), set_index, brand))
         return real(layout, set_index, brand)
 
-    monkeypatch.setattr(manufacturing_api, "update_receiving_one_set_nfb_parent_brand", recorded)
+    monkeypatch.setattr(manufacturing_api, "update_receiving_one_set_nfb_parent_brand_with_affected_ids", recorded)
     adapter = ReceivingSetBayAdapter(initial)
     adapter.set_brand("三菱")
     assert calls == [(tuple(row["stable_id"] for row in frozen["sets"]), 0, "三菱")]
@@ -87,7 +87,7 @@ def test_gui_set_and_global_brand_delegate_to_public_engine_api(monkeypatch):
 
     # Global Apply is one public Engine transaction, not two GUI-owned
     # Set-level mutations. Keep the original physical NFB X safety checks.
-    global_real = manufacturing_api.update_receiving_all_set_nfb_parent_brand
+    global_real = manufacturing_api.update_receiving_all_set_nfb_parent_brand_with_affected_ids
     global_calls = []
 
     def record_global(layout, brand):
@@ -95,7 +95,7 @@ def test_gui_set_and_global_brand_delegate_to_public_engine_api(monkeypatch):
         return global_real(layout, brand)
 
     monkeypatch.setattr(
-        manufacturing_api, "update_receiving_all_set_nfb_parent_brand",
+        manufacturing_api, "update_receiving_all_set_nfb_parent_brand_with_affected_ids",
         record_global,
     )
     calls.clear()

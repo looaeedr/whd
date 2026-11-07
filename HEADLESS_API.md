@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving parent NFB brand returns affected physical Set/Bay IDs (2026-11-07)
+
+`manufacturing_api.update_receiving_one_set_nfb_parent_brand_with_affected_ids(layout, set_index, brand)` and `update_receiving_all_set_nfb_parent_brand_with_affected_ids(layout, brand)` (also `ae_engine` root) return `(detached_layout, changed, affected_set_and_bay_stable_ids)`. They reuse the existing strict one-Set/all-Set brand transactions without altering their old two-tuple APIs. Each changed Set and all its real Bays are affected by parent brand inheritance, even if some have no saved NFB holes. GUI consumes the exact IDs for unsaved source deletion protection instead of inferring physical scope. A no-op reports no IDs. NFB verified world-X invalidation, immutable CSV source, manufacturing FinalScene and DXF release gates remain the original Engine owners.
+
 ## #2517 Physical sheet Hole Editor source-only full-feature commit gate (2026-11-07)
 
 Use `manufacturing_api.propose_operator_physical_sheet_hole_features(part_key, context, features)`, identical from `ae_engine`, with a genuine `PhysicalSheetEditorContext` obtained through `resolve_physical_sheet_editor_context`. This non-mutating Engine proposal verifies the complete draft using the original legacy typed-feature converter and canonical material-surface resolver, rejecting wrong physical sheet identities and out-of-outline holes before WHD GUI workspace writes anything. It preserves each draft's original saved representation and never grants DXF/CUTTING release; normal canonical 2D/3D/DXF verification remains required.

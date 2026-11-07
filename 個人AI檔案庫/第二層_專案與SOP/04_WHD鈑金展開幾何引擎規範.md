@@ -12,11 +12,26 @@ whd_schema: WHD_DOC_META_V1
 - 原 Engine 唯一製造 owner `sheetmetal_part_adapters` 新增只讀 `project_operator_receiving_base_plate_pattern_choices()`，在**原三個 pattern 常數**的正式 LEFT／CENTER／RIGHT 順序返回 immutable `(role, pattern_id)` tuples；`manufacturing_api` 與根包 `ae_engine` 公開**同一 callable**。GUI 只對應中文顯示標籤與操作選取，不再 import 內部幾何模組、也不製造 pattern ID。
 - 實體底板套用／取消、真實 EAR 孔及面積來源仍走既有 `commit_operator_receiving_base_plate_settings`／`validate_receiving_base_plate_settings`；此新 API 不認證任何尚未提交的板件來源，不變更 shrink、BEND、CUTTING、DXF 及 2D／3D 正式幾何。驗收 `tests/test_issue2517_receiving_base_plate_pattern_choices_public_api.py` 對照 owner pattern 集合、GUI 真實函式委派、合法來源原驗證與輸入不變；仍需 exact SHA GitHub 回歸與 Windows UAT。
 
+## [CURRENT] #2517 NFB 品牌交易須回傳受影響的真實 Set／Bay dirty IDs（2026-11-07）
+
+- 原 Receiving GUI 的 `set_brand`／`set_global_brand` 雖然使用 Engine 原子 Parent Brand 更新，卻沒有把改品牌的實體 Set 與各繼承品牌 Bay 記入 session dirty。未保存的來源在縮減 Bay／Set 時可能略過刪除保護；Switch GUI 還自己比較前後品牌來推測變更，重複了 Engine 的權威狀態。
+- 在唯一 `receiving_nfb_brand_transition` Owner 新增 `update_receiving_one_set_nfb_parent_brand_with_affected_ids` 和 `update_receiving_all_set_nfb_parent_brand_with_affected_ids`，沿用原公開 Brand Transaction 完整來源驗證及不可逆 CONFIRMED X 失效處理，回傳 `(detached_layout, changed, affected_stable_ids)`。後者只列實際改變品牌的 Set 與旗下全部實體 Bay 的 canonical 身分；無變更則空 tuple，非法來源無輸出／不寫回。原舊二元回傳 API 完全相容；`manufacturing_api` 與根包公開同一 Engine callable。
+- GUI 只消費 Engine 回傳的 affected IDs 更新 dirty，且 Switch 操作直接取 Engine changed，禁止自行逐 Bay 推斷孔位、來源或狀態。此為來源／刪除保護 API，不新產生 NFB 世界 X、CUTTING、FinalScene、DXF 或 MFG-2 資格。新增 `tests/test_issue2517_receiving_brand_affected_ids_public_api.py` 與原 NFB 品牌操作測試覆蓋新版 headless／GUI 同源、非法來源失敗不變、no-op、未保存的實體 Bay／Set 刪除保護；完整回歸由 GitHub exact-head CI 驗證。
+
 ## [CURRENT] #2517 Box FW 接管 Head/Tail 的兩個 GUI 寫入入口統一公開 Engine 交易（2026-11-07）
 
 - Phase6 Settings Controller 的 `commit_editor_fw_takeover` 與 Fold Designer `settings_application_project_ui_values` 原先先在 GUI 呼叫 `float(value)`，再直接套用舊式 `commit_box_fw` 到 live `_phase6_endcap_fw_state`。原 Engine 遺留函式是就地寫入，沒有物理有限正數硬閘門；布林、NaN／Inf、零或負值可能經 GUI 先轉型而污染 Head/Tail FW，已有 malformed Tail 的來源也可能在 Head 被修改後才拋錯。
 - 新公開 `manufacturing_api.commit_operator_box_fw_takeover(state, value)`（根包 `ae_engine` 同一 callable）由原 `endcap_factory_fold` 負責，先用既有 `normalize_operator_source_dimension(field="fw")` 核實操作員輸入的正值、有限數字及 bool 拒絕，再把原 `commit_box_fw` 在完整 detached state 上預先跑通，最後由同一原 owner 就地提交；保持 Head/Tail live nested dict 身分、FOLLOW_BODY 語意與原有合法輸出完全相同。舊 Engine 低階函式供原有合法相容呼叫繼續保留，不使 GUI 擁有任何新 FW 公式。
 - 兩個 GUI 入口只傳原操作員 FW 及共用狀態給公開 API，無 GUI 先做 `float` 的物理來源轉型；不合法來源不可改變 mode、Head、Tail 或 input snapshot。定向測試涵蓋兩箱型、Engine root/facade/原 owner parity、全套非法值／晚期壞 Tail、同物件 identity、Controller 與 Shell GUI 接線、實體 EndCap FW 投影及 Save→Reload；2D／3D／DXF Product Regression 須驗 exact SHA。此提交不宣稱 Windows R5 或整箱 NC 已驗收。
+
+
+
+
+## [CURRENT] #2517 主 GUI／Fold Designer 箱身 FW 即時修改統一由公開 Engine 四態投影（2026-11-07）
+
+- 原 `gui_modules/application/state_sync.on_main_setting_var_changed` 與 `gui_modules/application/lifecycle._apply_fold_designer_live_settings` 在操作者改箱身邊框寬度 FW 時，仍由 GUI 對封頭／封尾 `endcap_fw_state.setdefault` 自行依 `follow_box` 更新值。這條路徑可能保留已失效的 FOLLOW_HEAD／FOLLOW_TAIL／INDEPENDENT 物理 ownership；原主 GUI 另有明確 `on_fw_selected("z")` 使用 Engine `commit_box_fw` 的一致語意。
+- 新公開 `manufacturing_api.project_operator_box_fw_live_state`（`ae_engine` 根包同函式）先以原 Engine `normalize_operator_source_dimension(field="fw")` 驗證變更前後包外 FW，複製已保存四態來源，**只有 FW 數值實際變動**才委派原 `endcap_factory_fold.commit_box_fw`，讓 BoxBody 重新控制 Head／Tail；相同 FW 的同步回放不得意外重置既有封頭／封尾獨立設定。非法 bool、零、負數、NaN／Inf 或非 Mapping state 一律拒絕且不修改來源。這是既有四態製造來源轉移，沒有另建 FW 補償公式。
+- 主 GUI 與 Fold Designer 的 live commit 均先取得 detached Engine 候選，在既有 `SettingsService.update` 成功且 FW 實際被接受變更後才替換來源並同步 UI。Fold Designer 單次多欄送來非法 FW 時，不阻擋其他合法 Settings 更新。原 `.p6fold` EndCap FW 四態持續由 `normalize_endcap_fw_state`／`resolve_endcap_fw` 重開；單筆有效操作在 GUI／headless Engine 得到相同 Head/Tail FW。現有幾何、2D／3D、DXF、CUTTING 和權限不變；本批需要 exact HEAD Product Regression、GUI API Gate 和 Windows GUI 人工驗收，並不等於 #2517 全面完成。
 
 
 

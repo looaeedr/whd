@@ -15,13 +15,39 @@ from .endcap_bottom_wrap_state import (
     commit_endcap_bottom_wrap, normalize_endcap_bottom_wrap_state,
     resolve_endcap_bottom_wrap,
 )
-from .endcap_factory_fold import commit_endcap_fw, set_endcap_fw_follow
+from .endcap_factory_fold import (
+    commit_operator_box_fw_takeover, commit_endcap_fw, set_endcap_fw_follow,
+)
+from .operator_settings_transactions import normalize_operator_source_dimension
 
 
 @dataclass(frozen=True)
 class OperatorBottomWrapTransition:
     state: dict[str, object]
     resolved: dict[str, object]
+
+
+
+def project_operator_box_fw_live_state(
+    endcap_fw_state: Mapping[str, object],
+    *,
+    previous_box_fw: object,
+    requested_box_fw: object,
+) -> dict[str, object]:
+    """Stage a main-GUI or Fold Designer box-FW edit via the canonical four-state owner.
+
+    A real box-FW change explicitly retakes both Head/Tail regardless of their
+    previous leader/split state. No-op settings synchronization must preserve
+    that state. The original saved source is never mutated by the projection.
+    """
+    if not isinstance(endcap_fw_state, Mapping):
+        raise ValueError("ENDCAP_FW_STATE_INVALID")
+    previous = normalize_operator_source_dimension(previous_box_fw, field="fw")
+    requested = normalize_operator_source_dimension(requested_box_fw, field="fw")
+    state = deepcopy(dict(endcap_fw_state))
+    if previous != requested:
+        commit_operator_box_fw_takeover(state, requested)
+    return state
 
 
 def operator_endcap_fw_follow(

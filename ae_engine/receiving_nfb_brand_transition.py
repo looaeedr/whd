@@ -193,6 +193,45 @@ def update_receiving_all_set_nfb_parent_brand(layout, proposed_brand):
     return candidate, changed
 
 
+def update_receiving_one_set_nfb_parent_brand_with_affected_ids(
+    layout, set_index, proposed_brand,
+):
+    """Return detached one-Set brand change and complete inherited physical scope."""
+    candidate, changed = update_receiving_one_set_nfb_parent_brand(
+        layout, set_index, proposed_brand,
+    )
+    if not changed:
+        return candidate, False, ()
+    selected = candidate["sets"][set_index]
+    return candidate, True, (
+        str(selected["stable_id"]),
+        *(str(bay["stable_id"]) for bay in selected["bays"]),
+    )
+
+
+def update_receiving_all_set_nfb_parent_brand_with_affected_ids(
+    layout, proposed_brand,
+):
+    """Return atomic all-Set change with exactly changed Sets and their Bays."""
+    from .receiving_layout import normalize_receiving_layout
+
+    candidate, changed = update_receiving_all_set_nfb_parent_brand(
+        layout, proposed_brand,
+    )
+    if not changed:
+        return candidate, False, ()
+    before = normalize_receiving_layout(layout)
+    affected = []
+    for old_set, new_set in zip(before["sets"], candidate["sets"]):
+        if old_set.get("switch_brand", "士林") == new_set.get("switch_brand", "士林"):
+            continue
+        affected.append(str(new_set["stable_id"]))
+        affected.extend(str(bay["stable_id"]) for bay in new_set["bays"])
+    if not affected:
+        raise ValueError("NFB 品牌變更缺少實體 Set/Bay 身分")
+    return candidate, True, tuple(affected)
+
+
 def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
     """Return a detached Set row with stale inherited physical NFB X revoked.
 
