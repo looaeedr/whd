@@ -54,12 +54,10 @@ def _save_host(source):
 
 
 def test_engine_root_facade_normalizers_share_original_owners():
-    assert ae_engine.normalize_receiving_hole_candidates is (
-        api.normalize_receiving_hole_candidates is normalize_candidates
-    )
-    assert ae_engine.normalize_receiving_inner_door_candidates is (
-        api.normalize_receiving_inner_door_candidates is normalize_inner_candidates
-    )
+    assert ae_engine.normalize_receiving_hole_candidates is api.normalize_receiving_hole_candidates
+    assert api.normalize_receiving_hole_candidates is normalize_candidates
+    assert ae_engine.normalize_receiving_inner_door_candidates is api.normalize_receiving_inner_door_candidates
+    assert api.normalize_receiving_inner_door_candidates is normalize_inner_candidates
     for public, original in (
         (api.normalize_receiving_hole_candidates, normalize_candidates),
         (api.normalize_receiving_inner_door_candidates, normalize_inner_candidates),
