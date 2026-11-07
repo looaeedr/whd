@@ -1,3 +1,7 @@
+## #2517 Quantity version operator action transaction (2026-11-07)
+
+`manufacturing_api.commit_operator_quantity_version_action(snapshot, quantity_model, *, action, version_id, piece_count=None, confirmed=False)` is also exported as `ae_engine.commit_operator_quantity_version_action`. Quantity-mode source and the live model must match. Actions: `select` a target ID, `add` a new version, `delete` a selected version with bool confirmation, or `count` with a positive integral piece count. Engine owns validation, ID creation, copied NFB source, and rollback on a failed change callback; GUI supplies operator values only. This editing API does not authorize manufacturing or DXF.
+
 ---
 whd_doc_role: REFERENCE
 whd_contract: manufacturing-architecture

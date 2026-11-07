@@ -257,6 +257,71 @@ def require_valid_quantity_features(snapshot):
 
 
 
+
+def commit_operator_quantity_version_action(
+    snapshot, quantity_model, *, action, version_id, piece_count=None,
+    confirmed=False,
+):
+    """Commit one Quantity version operation on its Engine-owned live model.
+
+    An isolated copy is validated first. Only one workspace notification is
+    allowed, and a failed callback restores the original model without
+    issuing another notification.
+    """
+    from .receiving_quantity_versions import QuantityModel
+
+    if (not isinstance(snapshot, Mapping)
+            or snapshot.get("active_mode") != "quantity"
+            or not isinstance(quantity_model, QuantityModel)):
+        raise ValueError("QUANTITY_VERSION_SOURCE_REQUIRED")
+    original = quantity_model.snapshot()
+    if snapshot.get("quantity") != original:
+        raise ValueError("QUANTITY_VERSION_SOURCE_DRIFT")
+    if action not in {"select", "add", "delete", "count"}:
+        raise ValueError("QUANTITY_VERSION_ACTION_UNSUPPORTED")
+    if not isinstance(version_id, str) or not version_id:
+        raise ValueError("QUANTITY_VERSION_ID_REQUIRED")
+    if action != "select" and version_id != original["selected_version_id"]:
+        raise ValueError("QUANTITY_VERSION_SELECTED_ID_DRIFT")
+    if action != "count" and piece_count is not None:
+        raise ValueError("QUANTITY_VERSION_UNEXPECTED_COUNT")
+    if action != "delete" and confirmed is not False:
+        raise ValueError("QUANTITY_VERSION_UNEXPECTED_CONFIRMATION")
+    if action == "delete" and type(confirmed) is not bool:
+        raise ValueError("QUANTITY_VERSION_INVALID_CONFIRMATION")
+
+    def apply(owner):
+        if action == "select":
+            return owner.select(version_id)
+        if action == "add":
+            return owner.add_version()
+        if action == "delete":
+            return owner.delete_selected(confirmed=confirmed)
+        return owner.set_piece_count(piece_count)
+
+    detached = QuantityModel.from_payload(original)
+    result = apply(detached)
+    expected = detached.snapshot()
+    # Navigation must remain available to repair invalid historical holes.
+    # Actual manufacturing-source mutations are validated before commit.
+    if expected != original and action != "select":
+        candidate = deepcopy(dict(snapshot))
+        candidate["quantity"] = expected
+        require_valid_quantity_features(candidate)
+    if quantity_model.snapshot() != original:
+        raise ValueError("QUANTITY_VERSION_CHANGED_DURING_VALIDATION")
+    if expected == original:
+        return result
+    try:
+        committed = apply(quantity_model)
+        if quantity_model.snapshot() != expected:
+            raise ValueError("QUANTITY_VERSION_COMMITTED_SOURCE_DRIFT")
+    except Exception:
+        quantity_model._restore_validated_owner_snapshot(original)
+        raise
+    return committed
+
+
 def commit_operator_quantity_version_holes(
     snapshot, quantity_model, *, version_id, role, features,
 ):

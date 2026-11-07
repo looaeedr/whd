@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 數量模式版本新增／刪除／選取／件數只經公開 Engine（2026-11-07）
+
+- 原 `gui_modules/application/quantity_version_ports.py::quantity_ports` 四個按鈕動作直接呼叫 live `QuantityModel.select/add_version/delete_selected/set_piece_count`，讓 GUI 而不是 Engine 提交數量版本身分與件數。
+- `manufacturing_api.commit_operator_quantity_version_action(snapshot, quantity_model, *, action, version_id, piece_count=None, confirmed=False)`（根包 `ae_engine` 同一 callable）要求 Quantity 模式、live `QuantityModel` 與一致版本來源；在 detached model 執行既有四個操作，再檢查來源漂移。新增／刪除／件數變更沿用全部版本既有 finished-face 孔位檢查，錯誤或通知失敗不留下部分提交。選取只是導覽／修復入口，舊非法孔位不能阻擋進入編輯。
+- GUI 只提交 action、ID、件數或刪除確認，保留原工作區 `changed()` 投影；版本 ID、NFB 來源複製、孔位及件數規則仍屬 Engine。無第二套 Set/Bay／製造幾何／DXF 授權。必須核對兩種 Family、非法輸入隔離、callback rollback、GUI port、Save→Reload 與 GitHub exact-SHA 產品回歸。
+
+
 ## [CURRENT] #2517 數量模式封頭／封尾孔型版本提交只經公開 Engine（2026-11-07）
 
 - 原 `gui_modules/application/quantity_version_ports.py::holes.commit` 將編輯中的孔清單複製進 GUI 自建 `QuantityModel`，再由 GUI 將 `candidate["quantity"]` 覆寫、呼叫 `require_valid_operator_quantity_features`，最後另一次修改 live Model。這使版本身分、完整孔型合法性與提交順序被 UI 分兩段主導，模型無通知 rollback 保證。
