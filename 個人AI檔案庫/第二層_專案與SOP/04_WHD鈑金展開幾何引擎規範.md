@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Set/Bay 縮減候選及被移除實體 ID 由公開 Engine 單次交易（2026-11-07）
+
+- 原 `ReceivingSetBayAdapter.set_bay_count/set_set_count` 在取得預先刪除 ID 並確認後，**先**從 GUI 已保存 ID 與 session dirty 集合刪除，**後**才做 Engine Resize。若物理 Layout／Family 新 Bay 預設錯誤使 Engine 拒絕，正式 Layout 未改但已失去重做時的刪除保護。
+- 公開 `manufacturing_api.resize_receiving_operator_topology_with_removed_ids(layout, *, set_index, bay_count)` 或 `(..., *, set_count)` 直接輸出 `(detached_layout, tuple(removed_physical_ids))`；根包 `ae_engine` 同一函式。唯一 `receiving_layout` Engine owner 先完成原 Family 新 Bay 預設／Set resize，再以原 `receiving_destructive_tail_ids` 與前後 canonical Set/Bay/Joint stable ID 差集交叉確認。兩種操作混用、非法來源或任何不一致全數拒絕，輸入 Layout 不動。
+- GUI 僅在**完整 Engine 候選成功後**提示操作者批准移除；批准才一次套用 candidate、保護集合與 selection。取消／Engine 拒絕不得失去任何 protected ID。原 `resize_receiving_bays_with_family_defaults`、`receiving_destructive_tail_ids` 與 `resize_receiving_sets` 維持相容。新增 `tests/test_issue2517_receiving_operator_topology_atomic_api.py` 覆蓋來源不動、刪除真實 physical IDs、不同尺寸、新增及拒絕／失敗之 UI 原子性；無新幾何、NC 或 DXF 製造資格。
+
 ## [CURRENT] #2517 Receiving Head/Tail 候選數量草稿增減只由公開 Engine 管理（2026-11-07）
 
 - 原 `ReceivingQuantityAllocationUI._count` 在 GUI 自行取草稿數量並以 `max(0, current + delta)` 決定 Head/Tail 候選版本的下限，繞過統一的 Engine 編輯來源判準。此規則不應留在操作畫面。

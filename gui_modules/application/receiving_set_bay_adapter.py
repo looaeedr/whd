@@ -138,21 +138,15 @@ class ReceivingSetBayAdapter:
 
     def set_bay_count(self, bay_count: int) -> None:
         wanted = _operator_integer(bay_count, "Bay count")
-        current = self.bay_count()
-        if wanted < current:
-            removed = manufacturing_api.receiving_destructive_tail_ids(
-                self._layout,
-                set_index=self._selection.set_index,
-                bay_count=wanted,
-            )
-            self._confirm_if_required(removed)
-            self._persisted_ids.difference_update(removed)
-            self._session_dirty_ids.difference_update(removed)
-        candidate = manufacturing_api.resize_receiving_bays_with_family_defaults(
+        candidate, removed = manufacturing_api.resize_receiving_operator_topology_with_removed_ids(
             self._layout, set_index=self._selection.set_index, bay_count=wanted,
         )
+        # No saved-ID/dirty/selection change before Engine validation and consent.
+        self._confirm_if_required(removed)
         self._layout = candidate
-        new_count = self.bay_count()
+        self._persisted_ids.difference_update(removed)
+        self._session_dirty_ids.difference_update(removed)
+        new_count = len(candidate["sets"][self._selection.set_index]["bays"])
         self._selection = ReceivingSelection(
             set_index=self._selection.set_index,
             bay_index=min(self._selection.bay_index, new_count - 1),
@@ -160,17 +154,17 @@ class ReceivingSetBayAdapter:
 
     def set_set_count(self, set_count: int) -> None:
         wanted = _operator_integer(set_count, "Set count")
-        current = len(self._layout["sets"])
-        if wanted < current:
-            removed = manufacturing_api.receiving_destructive_tail_ids(self._layout, set_count=wanted)
-            self._confirm_if_required(removed)
-            self._persisted_ids.difference_update(removed)
-            self._session_dirty_ids.difference_update(removed)
-        self._layout = manufacturing_api.resize_receiving_sets(self._layout, set_count=wanted)
+        candidate, removed = manufacturing_api.resize_receiving_operator_topology_with_removed_ids(
+            self._layout, set_count=wanted,
+        )
+        self._confirm_if_required(removed)
+        self._layout = candidate
+        self._persisted_ids.difference_update(removed)
+        self._session_dirty_ids.difference_update(removed)
         set_index = min(self._selection.set_index, wanted - 1)
         bay_index = min(
             self._selection.bay_index,
-            len(self._layout["sets"][set_index]["bays"]) - 1,
+            len(candidate["sets"][set_index]["bays"]) - 1,
         )
         self._selection = ReceivingSelection(set_index=set_index, bay_index=bay_index)
 

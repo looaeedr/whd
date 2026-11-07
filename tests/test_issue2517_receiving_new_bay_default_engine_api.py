@@ -57,13 +57,13 @@ def test_invalid_family_default_never_commits_new_bay(monkeypatch):
 def test_native_gui_resizing_delegates_one_engine_call(monkeypatch):
     layout = _source()
     adapter = ReceivingSetBayAdapter(layout)
-    real = manufacturing_api.resize_receiving_bays_with_family_defaults
+    real = manufacturing_api.resize_receiving_operator_topology_with_removed_ids
     calls = []
     def recorded(*args, **kwargs):
         calls.append((args, kwargs))
         return real(*args, **kwargs)
     monkeypatch.setattr(
-        manufacturing_api, "resize_receiving_bays_with_family_defaults", recorded,
+        manufacturing_api, "resize_receiving_operator_topology_with_removed_ids", recorded,
     )
     adapter.set_bay_count(2)
     assert len(calls) == 1
