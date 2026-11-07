@@ -9,6 +9,10 @@ whd_schema: WHD_DOC_META_V1
 
 `manufacturing_api.resize_receiving_operator_topology_with_removed_ids(layout, *, set_index=i, bay_count=n)` or `(..., *, set_count=n)`, identically exported by `ae_engine`, returns a validated detached canonical layout plus the exact physical Set/Bay/Joint IDs removed. The Engine checks the removed inventory against actual stable-ID loss. GUI requests destructive confirmation only after the candidate is valid and updates saved-ID/dirty protection and selection only upon consent. Existing low-level APIs are retained; this does not grant new 2D/3D/DXF manufacturing permission.
 
+## #2517 Quantity version operator action transaction (2026-11-07)
+
+`manufacturing_api.commit_operator_quantity_version_action(snapshot, quantity_model, *, action, version_id, piece_count=None, confirmed=False)` is also exported as `ae_engine.commit_operator_quantity_version_action`. Quantity-mode source and the live model must match. Actions: `select` a target ID, `add` a new version, `delete` a selected version with bool confirmation, or `count` with a positive integral piece count. Engine owns validation, ID creation, copied NFB source, and rollback on a failed change callback; GUI supplies operator values only. This editing API does not authorize manufacturing or DXF.
+
 ## #2517 Receiving Head/Tail candidate quantity draft +/- (2026-11-07)
 
 Use `manufacturing_api.adjust_receiving_candidate_draft_quantity(draft, role, version_id, delta)` (also `ae_engine.adjust_receiving_candidate_draft_quantity`) for the existing uncommitted `AllocationDraft` plus/minus operator action. Engine alone validates a true draft, role/version identity, exactly +1/-1, and nonnegative integer counts; an attempted decrement at zero is a no-op. The unchanged Engine `set_quantity` invalidates stale Bay assignments only on an actual count change. GUI displays the result and does not derive the lower-bound policy. This is strictly an editor draft: saved physical Bays and manufacturing authorizations still require the existing public quantity preview and Apply gates; no new DXF permission.

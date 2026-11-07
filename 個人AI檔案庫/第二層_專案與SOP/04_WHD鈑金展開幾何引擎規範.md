@@ -12,6 +12,14 @@ whd_schema: WHD_DOC_META_V1
 - 公開 `manufacturing_api.resize_receiving_operator_topology_with_removed_ids(layout, *, set_index, bay_count)` 或 `(..., *, set_count)` 直接輸出 `(detached_layout, tuple(removed_physical_ids))`；根包 `ae_engine` 同一函式。唯一 `receiving_layout` Engine owner 先完成原 Family 新 Bay 預設／Set resize，再以原 `receiving_destructive_tail_ids` 與前後 canonical Set/Bay/Joint stable ID 差集交叉確認。兩種操作混用、非法來源或任何不一致全數拒絕，輸入 Layout 不動。
 - GUI 僅在**完整 Engine 候選成功後**提示操作者批准移除；批准才一次套用 candidate、保護集合與 selection。取消／Engine 拒絕不得失去任何 protected ID。原 `resize_receiving_bays_with_family_defaults`、`receiving_destructive_tail_ids` 與 `resize_receiving_sets` 維持相容。新增 `tests/test_issue2517_receiving_operator_topology_atomic_api.py` 覆蓋來源不動、刪除真實 physical IDs、不同尺寸、新增及拒絕／失敗之 UI 原子性；無新幾何、NC 或 DXF 製造資格。
 
+## [CURRENT] #2517 數量模式版本新增／刪除／選取／件數只經公開 Engine（2026-11-07）
+
+- 原 `gui_modules/application/quantity_version_ports.py::quantity_ports` 四個按鈕動作直接呼叫 live `QuantityModel.select/add_version/delete_selected/set_piece_count`，讓 GUI 而不是 Engine 提交數量版本身分與件數。
+- `manufacturing_api.commit_operator_quantity_version_action(snapshot, quantity_model, *, action, version_id, piece_count=None, confirmed=False)`（根包 `ae_engine` 同一 callable）要求 Quantity 模式、live `QuantityModel` 與一致版本來源；在 detached model 執行既有四個操作，再檢查來源漂移。新增／刪除／件數變更沿用全部版本既有 finished-face 孔位檢查，錯誤或通知失敗不留下部分提交。選取只是導覽／修復入口，舊非法孔位不能阻擋進入編輯。
+- GUI 只提交 action、ID、件數或刪除確認，保留原工作區 `changed()` 投影；版本 ID、NFB 來源複製、孔位及件數規則仍屬 Engine。無第二套 Set/Bay／製造幾何／DXF 授權。必須核對兩種 Family、非法輸入隔離、callback rollback、GUI port、Save→Reload 與 GitHub exact-SHA 產品回歸。
+
+
+
 ## [CURRENT] #2517 Receiving Head/Tail 候選數量草稿增減只由公開 Engine 管理（2026-11-07）
 
 - 原 `ReceivingQuantityAllocationUI._count` 在 GUI 自行取草稿數量並以 `max(0, current + delta)` 決定 Head/Tail 候選版本的下限，繞過統一的 Engine 編輯來源判準。此規則不應留在操作畫面。

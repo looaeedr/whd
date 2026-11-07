@@ -75,9 +75,28 @@ def quantity_ports(composition, namespace):
 
     return {
         "snapshot": lambda: app.designer_workspace.quantity_model.snapshot() if app.designer_workspace.quantity_model else None,
-        "select": lambda version_id: edit(lambda owner: owner.select(version_id)),
-        "add": lambda: edit(lambda owner: owner.add_version()),
-        "delete": lambda confirmed: edit(lambda owner: owner.delete_selected(confirmed=confirmed)),
-        "count": lambda value: edit(lambda owner: owner.set_piece_count(value)),
+        "select": lambda version_id: edit(
+            lambda owner: manufacturing_api.commit_operator_quantity_version_action(
+                source(), owner, action="select", version_id=version_id,
+            )
+        ),
+        "add": lambda: edit(
+            lambda owner: manufacturing_api.commit_operator_quantity_version_action(
+                source(), owner, action="add",
+                version_id=owner.selected_version_id,
+            )
+        ),
+        "delete": lambda confirmed: edit(
+            lambda owner: manufacturing_api.commit_operator_quantity_version_action(
+                source(), owner, action="delete",
+                version_id=owner.selected_version_id, confirmed=confirmed,
+            )
+        ),
+        "count": lambda value: edit(
+            lambda owner: manufacturing_api.commit_operator_quantity_version_action(
+                source(), owner, action="count",
+                version_id=owner.selected_version_id, piece_count=value,
+            )
+        ),
         "holes": holes,
     }
