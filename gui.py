@@ -456,7 +456,6 @@ from ae_engine.sheetmetal_drawing import (
     CirclePrimitive,
     TextPrimitive,
     DrawingScene,
-    resolved_features_to_primitives,
     mirror_point_y,
 )
 
@@ -1804,7 +1803,7 @@ class Phase6ApplicationHost:
         if not resolved:
             return None
         scene = DrawingScene()
-        scene.extend(resolved_features_to_primitives(resolved))
+        scene.extend(manufacturing_api.project_operator_resolved_feature_drawing_primitives(resolved))
         return scene
 
     def open_box_body_face_editor(self, face_key):
