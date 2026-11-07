@@ -13,37 +13,9 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 from pathlib import Path
 import tkinter as tk
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.receiving_layout import (
-    ensure_receiving_layout as ensure_receiving_preview_layout,
-    resize_receiving_bays as resize_receiving_preview_bays,
-)
-from ae_engine.receiving_joint_locks import resolve_receiving_joint_lock_pattern
-from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
-from ae_engine.corner_type_ui import (
-    is_unknown_model,
-    normalize_custom_model_name,
-    known_model_corner_state,
-    policy_from_corner_state,
-)
-from ae_engine.sheetmetal_geometry import (
-    CornerTypeId,
-    CornerTypeSelection,
-    EDITABLE_CORNER_TYPE_IDS,
-    CORNER_TYPE_LABELS,
-    normalize_corner_selection,
-)
-from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
-from ae_engine.sheetmetal_part_adapters import (
-    DoorFrameEdges,
-    derive_door_layout_cells,
-    door_layout_part_key,
-    door_layout_export_filename,
-    door_layout_feature_map_to_part_features,
-)
+from ae_engine.sheetmetal_geometry import CornerTypeId
 from phase6_fold_profiles import formed_box_body_fw_widths
-from ae_engine.assembly_joint import AssemblyJointSource, migrate_legacy_snapshot_joints
 from phase6_endcap_semantics import (
     normalize_endcap_fw_state,
     ASSEMBLY_TYPE_LABELS,
