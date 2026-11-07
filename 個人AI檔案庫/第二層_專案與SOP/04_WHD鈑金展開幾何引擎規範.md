@@ -11,7 +11,7 @@ whd_schema: WHD_DOC_META_V1
 - `gui_modules/rendering/canvas_2d.py` 與 `gui.py` 原透過 `ae_engine.ae`、私有 `resolve_surface_features` 決定 CUTTING 外框特徵面／孔位位置；共用 Canvas 預設 resolver 和主 GUI 個別傳入的 resolver 都是同一缺口。改由既有公開 `resolve_hole_editor_canvas_features`（嚴格原位驗證／tuple 回傳）承接；新增 `project_operator_feature_surface_from_drawing_scene`，與唯一 canonical `ae_door_indicator.feature_surface_from_drawing_scene` **同 callable**，無有效主 CUTTING 外框即拒絕，不以預設矩形代替。
 - 主 GUI 箱身左／背／右面原把 Engine 已解出的 `ResolvedFeature` 自行轉成 `DrawingScene`；現由 Engine `project_operator_box_body_face_baseline_scene` 驗證實體面身分與資料型別、呼叫原 `sheetmetal_drawing.resolved_features_to_primitives` 製成全新的展示用 scene。無基準來源不製造孔，非法來源拒絕且原始 Features 不變；不產生新的製造授權或 DXF 放行條件。
 - GUI Hole Editor composition 改用 `manufacturing_api.operator_hole_catalog_root_path`（同一 `ae_endcap.baseline_hole_catalog_root_path` callable）取得孔型錄共用根路徑，刪除舊的 `ae` 命名空間必要依賴；兩類孔型錄載入來源不變，失敗不偽造預設孔。這修正完整 Product Regression 發現的舊 GUI 組合依賴。
-- Canvas 渲染模組不再匯入 `ae_engine.ae` 來取得 CUTTING。主 `gui.py` 仍保留 HoleEditorCompositionDependencies 必需的舊 `ae` 相容性符號，實體 CUTTING 面不再以 `ae_module=ae` 注入；其預覽資料與孔位決策均改走公開 Engine API。金庫型／受電箱實體孔位、CUTTING、Save→Reload 與 2D／3D／DXF 權威維持原 Engine；新測試 `tests/test_issue2517_canvas_feature_surface_public_api.py` 核對 public/original 結果、GUI 路由及非法輸入來源不變。
+- `gui.py` 與 Canvas 渲染模組不再匯入 `ae_engine.ae`，CUTTING 面不再注入 `ae_module=ae`。HoleEditorCompositionDependencies 原先的 `d.ae.baseline_hole_catalog_root_path()` 已改由 `manufacturing_api.operator_hole_catalog_root_path()` 公開原目錄來源，並解除不再需要的 `ae` 依賴；所有孔型與預覽資料仍由同一 Engine 原來源取得。金庫型／受電箱實體孔位、CUTTING、Save→Reload 與 2D／3D／DXF 權威維持原 Engine；新測試 `tests/test_issue2517_canvas_feature_surface_public_api.py` 核對 public/original 結果、GUI 路由及非法輸入來源不變。
 
 ## [CURRENT] #2517 工程標註 2D 預覽只消費公開 Engine projection（2026-11-07）
 

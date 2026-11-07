@@ -25,7 +25,6 @@ from tkinter import messagebox
 from tkinter import filedialog
 from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_ttk_dark_theme
 from gui_modules.runtime_error_log import install_tk_exception_logging, write_runtime_exception
-import ae_engine.ae as ae  # Legacy HoleEditorCompositionDependencies; not the CUTTING feature resolver
 from ae_engine import manufacturing_api
 # Legacy GUI import compatibility; all decisions remain in public Engine.
 is_unknown_model = manufacturing_api.is_unknown_operator_model
