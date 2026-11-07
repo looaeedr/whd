@@ -982,11 +982,15 @@ def _phase6_notify_corner_change(self):
 
 
 def _phase6_corner_type_editable(self, part_key):
-    return bool(getattr(self, "_corner_editable", False)) and part_key not in {"indicator_box", "indicator_door"}
+    return manufacturing_api.project_operator_corner_part_editability(
+        part_key, model_corner_type_editable=bool(getattr(self, "_corner_editable", False)),
+    ).type_editable
 
 
 def _phase6_corner_parameters_unlockable(self, part_key):
-    return part_key not in {GLOBAL_CONTEXT, "box_body", "indicator_box", "indicator_door"}
+    return manufacturing_api.project_operator_corner_part_editability(
+        part_key, model_corner_type_editable=bool(getattr(self, "_corner_editable", False)),
+    ).parameters_unlockable
 
 
 def _phase6_corner_parameters_unlocked(self, part_key):
