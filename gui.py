@@ -25,12 +25,11 @@ from tkinter import messagebox
 from tkinter import filedialog
 from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_ttk_dark_theme
 from gui_modules.runtime_error_log import install_tk_exception_logging, write_runtime_exception
-import ae_engine.ae as ae  # Legacy HoleEditorCompositionDependencies injection; not a CUTTING resolver
+import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
 # Legacy GUI import compatibility; all decisions remain in public Engine.
 is_unknown_model = manufacturing_api.is_unknown_operator_model
 assembly_type_from_corner_state = manufacturing_api.operator_assembly_type_from_corner_state
-from ae_engine.engineering_drawing import build_engineering_drawing_projection
 from ae_engine.cabinet_types import (
     policy as cabinet_family_policy,
     resolve_cabinet_type,
@@ -57,7 +56,6 @@ from ae_engine.sheetmetal_geometry import (
 from ae_engine.sheetmetal_features import (
     box_body_face_contexts_from_strip,
     resolve_box_body_face_features,
-    CanvasTransform,
     CircleFeature,
     DoorIndicatorContext,
     RectFeature,
@@ -298,7 +296,7 @@ def _draw_phase6_annotation_projection(
     return _draw_phase6_annotation_projection_impl(
         canvas, render_data, transform,
         part_key=part_key, strict=strict,
-        projection_builder=build_engineering_drawing_projection,
+        projection_builder=manufacturing_api.project_operator_engineering_drawing_annotations,
     )
 
 
@@ -313,7 +311,7 @@ def _phase6_2d_material_viewport(bounds, canvas_width, canvas_height, *, top_gut
                              right_gutter=82.0, bottom_gutter=48.0, left_gutter=48.0):
     kwargs = dict(top_gutter=top_gutter, right_gutter=right_gutter,
                   bottom_gutter=bottom_gutter, left_gutter=left_gutter,
-                  transform_type=CanvasTransform)
+                  transform_type=manufacturing_api.CanvasTransform)
     return _phase6_2d_material_viewport_impl(bounds, canvas_width, canvas_height, **kwargs)
 
 
@@ -1233,7 +1231,7 @@ class Phase6ApplicationHost:
             world_center = Vec2((minx + maxx) / 2.0, (miny + maxy) / 2.0)
             center_x, center_y = transform.world_to_canvas(world_center)
             scaled = transform.scale * zoom
-            transform = CanvasTransform(
+            transform = manufacturing_api.CanvasTransform(
                 scale=scaled,
                 origin_x=center_x - world_center.x * scaled,
                 origin_y=center_y + world_center.y * scaled,

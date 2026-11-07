@@ -12,6 +12,12 @@ whd_schema: WHD_DOC_META_V1
 - 正式 `manufacturing_api.operator_feature_surface_from_drawing_scene`／根包 `ae_engine` 匯出原 `ae_door_indicator.feature_surface_from_drawing_scene` **同一 callable**。主 GUI 在保留 HoleEditorCompositionDependencies 尚需的舊 `ae` 相容性符號下，僅傳入選取 Surface ID／原始 Engine DrawingScene；renderer 預設直接消費公開函式並只描繪，不另尋 CUTTING、補物理尺寸、算孔位或失敗 fallback。原 Engine 支援閉合 Polyline／由 LinePrimitive 鏈組成的閉合輪廓、擇最大面積正向候選與無效來源拒絕規則原封不動。
 - `tests/test_issue2517_hole_editor_scene_surface_public_api.py` 覆蓋 Root／Facade／原 Owner callable parity、真實閉合 Polyline、工廠爆炸線段來源、未閉合拒絕不修改 DrawingScene、GUI 原路由與公開 renderer 預設注入測試。這是操作孔面來源 API 並非新增 CUTTING／BEND／DXF 製造資格；真實 Product Regression 須 exact HEAD CI。
 
+## [CURRENT] #2517 工程標註 2D 預覽只消費公開 Engine projection（2026-11-07）
+
+- 原 `gui.py`、`gui_modules/application/door_render_host_adapter.py` 及 `gui_modules/rendering/overlays.py` 直接匯入 `ae_engine.engineering_drawing.build_engineering_drawing_projection` 與 `sheetmetal_features.CanvasTransform`，雖然只是工程標註的 2D 呈現，仍把 GUI 接在非公開的 Engine 內部投影來源上。
+- 現由 `manufacturing_api.project_operator_engineering_drawing_annotations`／根包 `ae_engine` 以**同一 callable**公開既有 `engineering_drawing.build_engineering_drawing_projection`；主 GUI 與模組化 GUI 只傳入已解出的 canonical `PartRenderData`，從同一 Engine 取得尺寸／文字標註，`CanvasTransform` 使用原已有的公開 API。保留原來源有效性拒絕、`strict` 與碰撞診斷、`DIMENSION/TEXT` 限制及原 `DrawingScene` 不可變檢查。
+- 此為 annotation-only readback，**不新增** material／CUTTING／BEND／孔位或 DXF export 資格；正式 2D／3D／DXF 仍需 consume 同一 canonical 製造來源。定向測試 `tests/test_issue2517_operator_engineering_drawing_public_api.py` 核對 callable identity、annotation parity、非法來源拒絕不污染、GUI adapter 委派與公開 CanvasTransform；GitHub exact-SHA 完整產品回歸另驗。
+
 ## [CURRENT] #2517 Receiving 解除連動須由公開 Engine 回傳原共享實體 Bay 身分（2026-11-07）
 
 - 原 `ReceivingSetBayAdapter.unlink_setting(kind)` 已使用公開 `unlink_receiving_shared_setting` 進行單 Bay 來源更改，但不問是否實際解除，就只對當前 Bay 標 `session_dirty`；而原本共享同一參照的其他 Bay 沒有被列入當次來源關聯變更保護。原 `receiving_settings_ports.unlink` 對已獨立的 Bay 也照常提交 geometry intent，造成無變更的假 dirty／重算。
