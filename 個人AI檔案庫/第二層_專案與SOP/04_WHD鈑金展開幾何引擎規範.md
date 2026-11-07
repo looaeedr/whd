@@ -6,6 +6,15 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Joint 對齊只標記真正改變的實體 Joint ID（2026-11-07）
+
+- 舊 ReceivingSetBayAdapter.update_joint_alignment 雖經原 Engine update_receiving_joint_alignment 驗證並執行 FRONT／REAR、TOP／BOTTOM，但 GUI 無條件把選中 Joint stable_id 放入 session dirty。當相鄰 Bay 的 D/H 相等導致對齊軸不可編輯、或操作者提交相同值時，Engine 並未更改 Joint，GUI 卻製造「待保存實體」及後續刪除保護假訊號。
+- 唯一現有 ae_engine.receiving_layout Owner 新增 update_receiving_joint_alignment_with_affected_ids(layout, *, set_index, joint_index, depth_alignment=None, height_alignment=None)，由 manufacturing_api 和根包 ae_engine 原 callable 公開。先規範來源，復用原 Engine update_receiving_joint_alignment 全部尺寸／相鄰 Bay／合法方向硬閘門，僅比較同一 canonical Joint 交易前後物理 row；回傳 (detached_layout, tuple(changed_joint_stable_id))，相同或不可編輯的軸返回空集合。非法方向／失效 ID 必須拒絕，輸入 Layout 不可更動。
+- GUI 只提交操作者方向及目標 joint index，消費 Engine 決定的受影響 ID；有真實變更才更新 layout 與 session dirty，不再由 UI 假定任何點擊都改造 Joint。未觸及 Receiving Bay 包外尺寸、FRONT=+Z／TOP=+Y 3D 座標公式、BEND/CUTTING 或 DXF 製造權限；2D／3D／FinalScene 仍由既有 canonical source 解析。測試核對不可編輯 no-op、重複提交 no-op、真實 Joint ID、非法輸入 failure isolation、Assembly offset 同源及 Project Save→Reload，完整 GitHub exact-SHA regression 尚須驗收。
+
+
+
+
 ## [CURRENT] #2517 手動 CornerType 縮圖 canonical CUTTING／BEND 來源只經公開 Engine（2026-11-07）
 
 - 原 `gui_modules/parts/panels/assembly_corner.draw_corner_type_icon` 直接匯入內部 `corner_type_ui.build_corner_type_preview_geometry` 取得真實 EndCap CUTTING／BEND 的語意預覽。這不是 GUI 可再算一份的截角幾何，且不代表出圖准入。

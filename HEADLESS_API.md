@@ -5,6 +5,13 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving Joint alignment affected physical IDs (2026-11-07)
+
+Use manufacturing_api.update_receiving_joint_alignment_with_affected_ids(layout, *, set_index, joint_index, depth_alignment=None, height_alignment=None), exported identically through root ae_engine. It reuses the existing canonical physical Joint update and returns (detached_layout, changed_joint_stable_ids). A repeated value or a dimension-locked axis is an accepted no-op, returning an empty tuple, not a new dirty source. Bad joint identity, invalid editable-axis direction, or malformed layout fail without changing the caller. GUI uses the Engine-provided IDs for session dirty bookkeeping. Actual Receiving FRONT(+Z) and TOP(+Y) Assembly offsets, 2D/3D and DXF manufacturing qualification are unchanged.
+
+
+
+
 ## #2517 CornerType canonical CUTTING/BEND preview through public Engine (2026-11-07)
 
 `manufacturing_api.project_operator_corner_type_preview_geometry(selection, *, padding=7.0)` (also `ae_engine.project_operator_corner_type_preview_geometry`) is an identity-preserving public alias of `corner_type_ui.build_corner_type_preview_geometry`. It returns canonical CornerType preview `cut_paths` and `bend_paths` clipped from existing Engine geometry, with the same legacy C01-C04 normalization and rejection semantics. GUI `assembly_corner.draw_corner_type_icon` renders the paths only; no UI-specific geometry or separate DXF authorization is introduced. See `tests/test_issue2517_corner_preview_public_engine_api.py`.

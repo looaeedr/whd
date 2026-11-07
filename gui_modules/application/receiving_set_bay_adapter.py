@@ -448,16 +448,18 @@ class ReceivingSetBayAdapter:
         height_alignment: object | None = None,
     ) -> None:
         index = _operator_integer(joint_index, "Joint index")
-        candidate = manufacturing_api.update_receiving_joint_alignment(
-            self._layout,
-            set_index=self._selection.set_index,
-            joint_index=index,
-            depth_alignment=depth_alignment,
-            height_alignment=height_alignment,
+        candidate, affected_ids = (
+            manufacturing_api.update_receiving_joint_alignment_with_affected_ids(
+                self._layout,
+                set_index=self._selection.set_index,
+                joint_index=index,
+                depth_alignment=depth_alignment,
+                height_alignment=height_alignment,
+            )
         )
-        self._layout = candidate
-        row = self._layout["sets"][self._selection.set_index]["joints"][index]
-        self._session_dirty_ids.add(str(row["stable_id"]))
+        if affected_ids:
+            self._layout = candidate
+            self._session_dirty_ids.update(affected_ids)
 
     def project_current_bay(self, snapshot: Mapping[str, object]) -> dict[str, object]:
         payload = deepcopy(dict(snapshot or {}))
