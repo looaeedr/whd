@@ -12,6 +12,12 @@ whd_schema: WHD_DOC_META_V1
 - 公開 `manufacturing_api.project_operator_folded_outside_envelope` 與根包 `ae_engine.project_operator_folded_outside_envelope` 指向原本**同一個 `display_dimensions.folded_outside_envelope` callable**。GUI 只能送 mesh 和原始 T；原封不動沿用有限 world XYZ、完整三角面與合法板厚 fail-closed gate、法向厚度外擴及空網格 `None` 語意。此項為來源量測 API，沒有新尺寸公式或製造認證。
 - 驗收 `tests/test_issue2517_final_scene_folded_envelope_public_api.py` 核對公開 identity、真正 world 三角網格尺寸與 FinalScene GUI 一致、無效 mesh/T 不修改來源及既有 2D/3D finished dimensions readback。完整 GitHub exact-HEAD Product Regression 必須通過，Windows UAT 與 #2517 不因此結案。
 
+## [CURRENT] #2517 一般實體板件 Hole Editor 孔型保存前須經公開 Engine 全量驗證（2026-11-07）
+
+- 原 `gui_modules/application/physical_part_hole_editor.py::open_workspace_sheet_editor.commit` 在獲得引擎核准的 physical sheet editor context 後，仍直接把可變 Hole Editor Feature 草稿 `stash_features` 寫入 workspace，缺少提交**當刻**對整批已編輯孔位的實際物料面重驗；無效 Feature 可能先存成專案來源，直到日後 2D／3D／DXF 再拒絕。
+- 新增 `manufacturing_api.propose_operator_physical_sheet_hole_features(part_key, context, features)`（根包 `ae_engine` 同一 callable）到原 `physical_sheet_editor_context` owner。Engine 的 `PhysicalSheetEditorContext` 保留物理 `part_key` 身分；先驗證 context 真實角色／Features 完整清單，透過原 `legacy_hole_to_feature` 及 `resolve_surface_features` 對全部物料面孔位、形狀輪廓進行原算法檢查。返回 detached、原格式（legacy dict／typed Feature）的完整候選，GUI 只有驗證成功才寫入 workspace；非法資料、錯誤板件、越界一次拒絕，不先寫入任何孔位。
+- 這不是新的孔位公式或製造認證，不修改 `with_physical_sheet_features`、CustomFold PartSpec、CUTTING／BEND／MARKING／DXF Writer。此入口只處理已開啟的實體板件 Hole Editor 提交源，後續 canonical 2D／3D／DXF、Save→Reload、來源授權仍按原 Engine Gate；不能以候選有效取代正式 DXF 加工驗證。測試 `tests/test_issue2517_physical_sheet_hole_commit_public_api.py` 覆蓋 Engine／GUI 同源、兩種 CustomFold 軸、legacy/typed 特徵、非法／越界不改來源和既有 context API。
+
 ## [CURRENT] #2517 Receiving Set/Bay 縮減候選及被移除實體 ID 由公開 Engine 單次交易（2026-11-07）
 
 - 原 `ReceivingSetBayAdapter.set_bay_count/set_set_count` 在取得預先刪除 ID 並確認後，**先**從 GUI 已保存 ID 與 session dirty 集合刪除，**後**才做 Engine Resize。若物理 Layout／Family 新 Bay 預設錯誤使 Engine 拒絕，正式 Layout 未改但已失去重做時的刪除保護。
