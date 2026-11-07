@@ -223,7 +223,7 @@ def update_receiving_all_set_nfb_parent_brand_with_affected_ids(
     before = normalize_receiving_layout(layout)
     affected = []
     for old_set, new_set in zip(before["sets"], candidate["sets"]):
-        if old_set["switch_brand"] == new_set["switch_brand"]:
+        if old_set.get("switch_brand", "士林") == new_set.get("switch_brand", "士林"):
             continue
         affected.append(str(new_set["stable_id"]))
         affected.extend(str(bay["stable_id"]) for bay in new_set["bays"])
