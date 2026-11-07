@@ -2,7 +2,7 @@
 
 import tkinter as tk
 
-from ae_engine.engineering_drawing import build_engineering_drawing_projection
+from ae_engine import manufacturing_api
 from ae_engine.sheetmetal_drawing import LinePrimitive, TextPrimitive
 from phase6_corner_dimension_display import render_data_corner_dimension_text
 
@@ -99,7 +99,7 @@ def layout_reference_overlay_rects(
 
 def draw_phase6_annotation_projection(
     canvas, render_data, transform, *, part_key="", strict=False,
-    projection_builder=build_engineering_drawing_projection,
+    projection_builder=manufacturing_api.project_operator_engineering_drawing_annotations,
 ):
     """Render annotation-only Engineering Drawing projection in 2D."""
     projection = projection_builder(
