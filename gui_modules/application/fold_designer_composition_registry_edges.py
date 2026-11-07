@@ -247,19 +247,14 @@ def registry_sample_variables(self):
 
 def registry_validate_formula_form(self):
     """Validate the editable Registry form through the existing controller."""
-    from ae_engine.certified_relief_registry import (
-        evaluate_relief_formula_record,
-        _validate_editable_rule_record,
-    )
-
     app = self.app
     controller = self.capabilities.registry.diagnostics()
     try:
         result = controller.validate_formula(
             self.registry_collect_rule_form(),
             self.registry_sample_variables(),
-            validator=_validate_editable_rule_record,
-            evaluator=evaluate_relief_formula_record,
+            validator=manufacturing_api.validate_operator_relief_registry_rule_record,
+            evaluator=manufacturing_api.evaluate_operator_relief_registry_formula_record,
         )
         text = (
             f"公式有效：{result['primary_u']:.3f}"
@@ -286,10 +281,6 @@ def registry_preview_payload(self):
 
 def registry_save_candidate_form(self, namespace):
     """Persist one candidate through the existing Registry controller."""
-    from ae_engine.certified_relief_registry import (
-        save_relief_rule_candidate,
-    )
-
     app = self.app
     required = lambda name: self._required(namespace, name)
     result = self.registry_validate_formula_form()
@@ -300,7 +291,7 @@ def registry_save_candidate_form(self, namespace):
         controller = self.capabilities.registry.diagnostics()
         item = controller.save_candidate(
             record,
-            saver=save_relief_rule_candidate,
+            saver=manufacturing_api.save_operator_relief_registry_candidate,
         )
         required(
             "_phase6_sync_registry_diagnostics_compatibility_mirrors"
@@ -317,11 +308,6 @@ def registry_save_candidate_form(self, namespace):
 
 def registry_run_formula_matrix(self, namespace):
     """Run the Registry regression matrix through the existing controller."""
-    from ae_engine.certified_relief_registry import (
-        evaluate_relief_formula_record,
-        _validate_editable_rule_record,
-    )
-
     app = self.app
     required = lambda name: self._required(namespace, name)
     try:
@@ -329,8 +315,8 @@ def registry_run_formula_matrix(self, namespace):
         evidence = controller.run_formula_matrix(
             self.registry_collect_rule_form(),
             self.registry_sample_variables(),
-            validator=_validate_editable_rule_record,
-            evaluator=evaluate_relief_formula_record,
+            validator=manufacturing_api.validate_operator_relief_registry_rule_record,
+            evaluator=manufacturing_api.evaluate_operator_relief_registry_formula_record,
         )
         required(
             "_phase6_sync_registry_diagnostics_compatibility_mirrors"
@@ -379,16 +365,12 @@ def registry_preview_assembly_3d(self, namespace):
 
 def registry_promote_form(self):
     """Promote the current candidate through the existing controller."""
-    from ae_engine.certified_relief_registry import (
-        promote_relief_rule_candidate,
-    )
-
     app = self.app
     controller = self.capabilities.registry.diagnostics()
     try:
         promoted = controller.promote_candidate(
             self.registry_collect_rule_form(),
-            promoter=promote_relief_rule_candidate,
+            promoter=manufacturing_api.promote_operator_relief_registry_candidate,
         )
         app.relief_registry_status_var.set(
             f"已認證新版次：{promoted['revision']}"
