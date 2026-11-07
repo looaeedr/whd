@@ -2351,6 +2351,8 @@ from .receiving_nfb_brand_transition import (
     project_receiving_parent_brand_change_impact,
     update_receiving_one_set_nfb_parent_brand,
     update_receiving_all_set_nfb_parent_brand,
+    update_receiving_one_set_nfb_parent_brand_with_affected_ids,
+    update_receiving_all_set_nfb_parent_brand_with_affected_ids,
 )
 
 

@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 NFB 品牌交易須回傳受影響的真實 Set／Bay dirty IDs（2026-11-07）
+
+- 原 Receiving GUI 的 `set_brand`／`set_global_brand` 雖然使用 Engine 原子 Parent Brand 更新，卻沒有把改品牌的實體 Set 與各繼承品牌 Bay 記入 session dirty。未保存的來源在縮減 Bay／Set 時可能略過刪除保護；Switch GUI 還自己比較前後品牌來推測變更，重複了 Engine 的權威狀態。
+- 在唯一 `receiving_nfb_brand_transition` Owner 新增 `update_receiving_one_set_nfb_parent_brand_with_affected_ids` 和 `update_receiving_all_set_nfb_parent_brand_with_affected_ids`，沿用原公開 Brand Transaction 完整來源驗證及不可逆 CONFIRMED X 失效處理，回傳 `(detached_layout, changed, affected_stable_ids)`。後者只列實際改變品牌的 Set 與旗下全部實體 Bay 的 canonical 身分；無變更則空 tuple，非法來源無輸出／不寫回。原舊二元回傳 API 完全相容；`manufacturing_api` 與根包公開同一 Engine callable。
+- GUI 只消費 Engine 回傳的 affected IDs 更新 dirty，且 Switch 操作直接取 Engine changed，禁止自行逐 Bay 推斷孔位、來源或狀態。此為來源／刪除保護 API，不新產生 NFB 世界 X、CUTTING、FinalScene、DXF 或 MFG-2 資格。新增 `tests/test_issue2517_receiving_brand_affected_ids_public_api.py` 與原 NFB 品牌操作測試覆蓋新版 headless／GUI 同源、非法來源失敗不變、no-op、未保存的實體 Bay／Set 刪除保護；完整回歸由 GitHub exact-head CI 驗證。
+
 ## [CURRENT] #2517 一般實體板件 Hole Editor 孔型保存前須經公開 Engine 全量驗證（2026-11-07）
 
 - 原 `gui_modules/application/physical_part_hole_editor.py::open_workspace_sheet_editor.commit` 在獲得引擎核准的 physical sheet editor context 後，仍直接把可變 Hole Editor Feature 草稿 `stash_features` 寫入 workspace，缺少提交**當刻**對整批已編輯孔位的實際物料面重驗；無效 Feature 可能先存成專案來源，直到日後 2D／3D／DXF 再拒絕。
