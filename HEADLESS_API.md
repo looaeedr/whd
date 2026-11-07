@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Fold Designer CornerType catalog directly from public Engine (2026-11-07)
+
+`manufacturing_api.project_operator_corner_selection_catalog(model, baseline_models)` remains the same original `cabinet_model_choices` callable and is now also exported identically by root `ae_engine`. Fold Designer builds its menu IDs/labels from `catalog.labels` instead of importing private `EDITABLE_CORNER_TYPE_IDS` and `CORNER_TYPE_LABELS` from sheetmetal_geometry. It uses the existing public `operator_default_custom_model_name` to request the static editable-model catalog; UI still owns translated prompts and widget events. The original Engine keeps all CornerType eligibility and physical CUTTING/BEND ownership. Regression: `tests/test_issue2517_fold_corner_catalog_public_api.py`; no new manufactured PartSpec or DXF eligibility.
+
 ## #2517 Fold Designer custom/legacy baseline identity via public Engine (2026-11-07)
 
 `manufacturing_api.is_unknown_operator_model(model_name, *, explicit_unknown_value=None)` retains its prior one-argument behavior and also recognizes one explicitly saved legacy custom-baseline display name, using the exact original trim/equality semantics. `manufacturing_api.operator_default_custom_model_name` and root `ae_engine` expose the original Engine `corner_type_ui.CUSTOM_MODEL_NAME`; both clients share the canonical label without reading private policy constants.

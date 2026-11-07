@@ -138,7 +138,6 @@ from ui_text_scale import prepare_text_scale_controller as _ui_prepare_text_scal
 from ae_engine.assembly_joint import AssemblyJointRelation
 from ae_engine.sheetmetal_geometry import (
     CornerTypeId, CrossCornerMode, CornerDirection,
-    EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS,
 )
 
 from phase6_endcap_semantics import (
@@ -938,9 +937,12 @@ def _phase6_stage_setting_update(self, key, value):
 
 _CORNER_KEYS = ("top_left", "top_right", "bottom_left", "bottom_right")
 _CORNER_PAIR_KEYS = {"top": ("top_left", "top_right"), "bottom": ("bottom_left", "bottom_right")}
-_CORNER_TYPE_IDS = tuple(item.value for item in EDITABLE_CORNER_TYPE_IDS)
-_CORNER_TYPE_LABEL_BY_ID = {item.value: CORNER_TYPE_LABELS[item] for item in EDITABLE_CORNER_TYPE_IDS}
-_CORNER_TYPE_BY_LABEL = {label: type_id for type_id, label in _CORNER_TYPE_LABEL_BY_ID.items()}
+_CORNER_TYPE_LABEL_ITEMS = manufacturing_api.project_operator_corner_selection_catalog(
+    manufacturing_api.operator_default_custom_model_name, (),
+).labels
+_CORNER_TYPE_IDS = tuple(type_id for type_id, _ in _CORNER_TYPE_LABEL_ITEMS)
+_CORNER_TYPE_LABEL_BY_ID = dict(_CORNER_TYPE_LABEL_ITEMS)
+_CORNER_TYPE_BY_LABEL = {label: type_id for type_id, label in _CORNER_TYPE_LABEL_ITEMS}
 _CORNER_MODE_LABEL = {
     CrossCornerMode.STANDARD: "標準",
     CrossCornerMode.RETAIN: "單邊留肉",
