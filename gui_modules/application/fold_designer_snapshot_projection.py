@@ -152,17 +152,13 @@ def _snapshot_workspace_state(self, snapshot, *, defer_joint_commit=False):
 
     committed_profiles = self.workspace_controller.part_profiles_snapshot()
     current_existing = self._phase6_current_existing_parts()
-    ordered = [
-        key
-        for key in (
-            "box_body", "head", "tail", "door", "base_plate",
-            "indicator_box", "indicator_door",
-        )
-        if key in current_existing
-    ]
     workspace_state = self.workspace_controller.workspace_snapshot()
-    ordered.extend(key for key in workspace_state["existing_parts"]
-                   if key in current_existing and key not in ordered)
+    presence = manufacturing_api.project_operator_fold_designer_workspace_presence(
+        current_existing,
+        workspace_state["existing_parts"],
+        self.workspace_controller.active_part,
+    )
+    ordered = list(presence.existing_parts)
     snapshot["existing_parts"] = ordered
     for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout"):
         if key in workspace_state:
@@ -187,8 +183,7 @@ def _snapshot_workspace_state(self, snapshot, *, defer_joint_commit=False):
     snapshot["assembly_joint_schema_version"] = joint_state["assembly_joint_schema_version"]
     snapshot["assembly_joints"] = deepcopy(joint_state["assembly_joints"])
 
-    active = self.workspace_controller.active_part
-    snapshot["active_part"] = active if active in ordered else (ordered[0] if ordered else None)
+    snapshot["active_part"] = presence.active_part
     _snapshot_part_features(self, snapshot)
 
     snapshot["part_face_features"] = {
