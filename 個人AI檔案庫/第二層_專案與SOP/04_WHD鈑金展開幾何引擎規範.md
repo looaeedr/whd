@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 手動 CornerType 縮圖 canonical CUTTING／BEND 來源只經公開 Engine（2026-11-07）
+
+- 原 `gui_modules/parts/panels/assembly_corner.draw_corner_type_icon` 直接匯入內部 `corner_type_ui.build_corner_type_preview_geometry` 取得真實 EndCap CUTTING／BEND 的語意預覽。這不是 GUI 可再算一份的截角幾何，且不代表出圖准入。
+- `manufacturing_api.project_operator_corner_type_preview_geometry` 與根包 `ae_engine` 以相同 callable 身分公開原 `corner_type_ui.build_corner_type_preview_geometry`；直接保留 CornerType legacy C01–C04 正規化、裁切現有 canonical CUTTING 與 BEND 的唯一來源，輸入錯誤由既有 Owner 拒絕，輸入 selection 不變。GUI 只將回傳的 `cut_paths`／`bend_paths` 繪製成縮圖，無第二套加工公式。
+- 測試 `tests/test_issue2517_corner_preview_public_engine_api.py` 驗證 root/facade/原 Owner identity、四種現行 CornerType 和 C02 legacy 的原始路徑 parity、真實 GUI delegate 與線數／層分色、不合法輸入不修改來源；原 `tests/test_corner_type_ui.py` 的 CUTTING/BEND 含義維持。完整 2D／3D／DXF Product Regression 與 Windows GUI UAT 仍需各自驗收，#2517 不因縮圖公開就結案。
+
+
 ## [CURRENT] #2517 封頭／封尾 FW 操作候選對來源有效性 fail closed（2026-11-07）
 
 - 原公開 `operator_endcap_fw_override` 仍透過 `_num(value)` 將非法操作者 FW 預設為 0，對 `NaN`／`Inf` 也未阻擋；`operator_endcap_fw_follow` 對字串 `"false"` 使用 `bool(...)` 造成錯誤跟隨，且兩者都在已確認 Settings box-FW 欄位缺失／損壞時套入預設 25。這些都可能污染 Head/Tail 的正式四態製造來源，不符合操作者 FW＝包外尺寸的 CURRENT 07。
