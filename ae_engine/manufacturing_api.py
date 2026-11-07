@@ -620,6 +620,36 @@ def apply_cabinet_family_endcap_policy(
     )
 
 
+def resolve_operator_fold_designer_payload_corner_policy(
+    corner_state, part_key, fw, *, known_family=None, unknown=False,
+    family_source=None, structure_state=None, thickness=None,
+):
+    """Resolve Fold Designer manufacturing corners in one Engine-owned call.
+
+    Complete operator selections win. Only known models with missing corners
+    may use Certified Registry family defaults. After selection, Receiving
+    EndCap lower FW follows the original Family/BoxBody structure authority.
+    Neither the source nor a second preview/export policy is mutated.
+    """
+    if type(unknown) is not bool:
+        raise ValueError("Fold Designer corner model identity must be boolean")
+    policy = corner_policy_from_payload(corner_state, part_key, fw)
+    if policy is None and not unknown:
+        # Derive the fallback Family only when the manual source is incomplete.
+        # Fold Designer must never read a host-only Family helper before this
+        # authoritative Engine decision. Explicit API callers remain supported.
+        resolved_family = (
+            known_family if known_family is not None
+            else cabinet_family_policy.canonical_family_name(family_source)
+        )
+        policy = corner_policy_from_payload(
+            corner_state, part_key, fw, known_family=resolved_family,
+        )
+    return apply_cabinet_family_endcap_policy(
+        policy, part_key, family_source=family_source,
+        structure_state=structure_state, thickness=thickness,
+    )
+
 def resolve_operator_snapshot_corner_policy(
     part_key, *, corner_state=None, input_snapshot=None,
     settings_values=None, endcap_fw_state=None,

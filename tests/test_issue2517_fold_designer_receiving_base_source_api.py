@@ -102,6 +102,10 @@ def test_gui_no_longer_owns_receiving_artefact_source_or_corner_policy(monkeypat
         called.append(("source", part, snapshot, kwargs))
         return expected_values, sentinel_policy
     monkeypatch.setattr(manufacturing_api, "resolve_fold_designer_base_plate_source", engine)
+    monkeypatch.setattr(
+        manufacturing_api, "resolve_operator_fold_designer_payload_corner_policy",
+        lambda *args, **kwargs: sentinel_policy,
+    )
     class Host:
         def _fold_designer_corner_policy_from_payload(self, state, part, fw):
             return object()

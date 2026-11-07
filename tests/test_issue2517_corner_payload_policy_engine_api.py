@@ -79,22 +79,34 @@ def test_missing_and_invalid_corner_payload_fails_closed():
 def test_gui_only_passes_payload_and_known_family_to_engine(monkeypatch):
     seen = []
     sentinel = object()
-    def engine(state, part, fw, *, known_family=None):
-        seen.append((state, part, fw, known_family))
+    def raw_engine(state, part, fw, *, known_family=None):
+        seen.append(("raw", state, part, fw, known_family))
         return sentinel
-    monkeypatch.setattr(manufacturing_api, "corner_policy_from_payload", engine)
+    def composed_engine(state, part, fw, **kwargs):
+        seen.append(("composed", state, part, fw, kwargs))
+        return sentinel
+    monkeypatch.setattr(manufacturing_api, "corner_policy_from_payload", raw_engine)
+    monkeypatch.setattr(
+        manufacturing_api, "resolve_operator_fold_designer_payload_corner_policy",
+        composed_engine,
+    )
     state = _corners()
     assert adapter._fold_designer_corner_policy_from_payload(state, "head", 29) is sentinel
-    host = SimpleNamespace(
-        _fold_designer_corner_policy_from_payload=lambda *args: None,
-        _current_cabinet_type_name=lambda: "受電箱",
-        _apply_cabinet_family_endcap_policy=lambda result, part, **kw: result,
-    )
-    assert adapter._payload_policy(host, {"box_body_structure": {}}, state, "head", 29, False, 2) is sentinel
-    assert seen == [(state, "head", 29, None), (state, "head", 29, "受電箱")]
+    host = SimpleNamespace()
+    data = {"model": "受電箱", "box_body_structure": {}}
+    assert adapter._payload_policy(host, data, state, "head", 29, False, 2) is sentinel
+    assert seen == [
+        ("raw", state, "head", 29, None),
+        ("composed", state, "head", 29, {
+            "unknown": False,
+            "family_source": data, "thickness": 2,
+            "structure_state": data["box_body_structure"],
+        }),
+    ]
     source = inspect.getsource(adapter._fold_designer_corner_policy_from_payload)
-    fallback = inspect.getsource(adapter._payload_policy)
-    assert "manufacturing_api.corner_policy_from_payload(" in source + fallback
+    routed = inspect.getsource(adapter._payload_policy)
+    assert "manufacturing_api.corner_policy_from_payload(" in source
+    assert "manufacturing_api.resolve_operator_fold_designer_payload_corner_policy(" in routed
     for forbidden in ("CornerTypeSelection(", "policy_from_corner_state(",
-                      "known_model_corner_state("):
-        assert forbidden not in source + fallback
+                      "known_model_corner_state(", "if resolved is None"):
+        assert forbidden not in routed

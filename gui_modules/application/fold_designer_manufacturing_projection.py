@@ -282,16 +282,11 @@ def _payload_topology_context(part_key, payload):
 
 
 def _payload_policy(self, data, corner_state, part, fw, unknown, thickness):
-    resolved = self._fold_designer_corner_policy_from_payload(corner_state, part, fw)
-    if resolved is None and not unknown:
-        resolved = manufacturing_api.corner_policy_from_payload(
-            corner_state, part, fw,
-            known_family=self._current_cabinet_type_name(),
-        )
-    return self._apply_cabinet_family_endcap_policy(
-        resolved,
-        part,
-        snapshot=data,
+    """Forward operator source; Engine owns certified fallback and Family FW."""
+    return manufacturing_api.resolve_operator_fold_designer_payload_corner_policy(
+        corner_state, part, fw,
+        unknown=unknown,
+        family_source=data,
         thickness=thickness,
         structure_state=data.get("box_body_structure"),
     )
