@@ -139,7 +139,6 @@ from ae_engine.corner_type_ui import (
     CUSTOM_MODEL_NAME,
     CORNER_KEYS,
     CORNER_LABELS,
-    CORNER_PAIR_CORNERS,
     with_unknown_model,
     normalize_custom_model_name,
     new_manual_corner_pair_same_state,
@@ -1021,9 +1020,12 @@ class Phase6ApplicationHost:
         return _normalize_manual_corner_target_impl(self, part_key)
 
     def _manual_selection_for_target(self, part_key, target_key):
-        if target_key in CORNER_PAIR_CORNERS:
-            target_key = CORNER_PAIR_CORNERS[target_key][0]
-        return manufacturing_api.operator_normalize_corner_selection(self.manual_corner_state[part_key][target_key])
+        physical_key = manufacturing_api.project_operator_corner_selection_target(
+            target_key,
+        )
+        return manufacturing_api.operator_normalize_corner_selection(
+            self.manual_corner_state[part_key][physical_key],
+        )
 
     def select_manual_corner(self, corner_key):
         return _select_manual_corner_impl(self, corner_key)
@@ -1042,7 +1044,9 @@ class Phase6ApplicationHost:
         if enabled:
             self.manual_active_corner_var.set(pair_key)
         elif self._pair_for_corner_target(self.manual_active_corner_var.get()) == pair_key:
-            self.manual_active_corner_var.set(CORNER_PAIR_CORNERS[pair_key][0])
+            self.manual_active_corner_var.set(
+                manufacturing_api.project_operator_corner_pair_members(pair_key)[0]
+            )
         self.refresh_corner_type_panel()
         self._notify_fold_designer_corner_state()
         self._request_phase6_update("geometry")
