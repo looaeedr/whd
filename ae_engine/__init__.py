@@ -110,6 +110,7 @@ from .manufacturing_api import (
     adjust_receiving_candidate_draft_quantity,
     validate_receiving_candidate_quantity_preview, validate_receiving_candidate_role,
     receiving_candidate_version_label,
+    normalize_receiving_hole_candidates, normalize_receiving_inner_door_candidates,
     receiving_inner_door_legacy_layer_height_defaults,
     recover_receiving_submitted_nfb_models_for_editor,
     initial_receiving_nfb_draft_models,
