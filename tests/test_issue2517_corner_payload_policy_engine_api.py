@@ -92,13 +92,13 @@ def test_gui_only_passes_payload_and_known_family_to_engine(monkeypatch):
     )
     state = _corners()
     assert adapter._fold_designer_corner_policy_from_payload(state, "head", 29) is sentinel
-    host = SimpleNamespace(_current_cabinet_type_name=lambda: "受電箱")
+    host = SimpleNamespace()
     data = {"model": "受電箱", "box_body_structure": {}}
     assert adapter._payload_policy(host, data, state, "head", 29, False, 2) is sentinel
     assert seen == [
         ("raw", state, "head", 29, None),
         ("composed", state, "head", 29, {
-            "known_family": "受電箱", "unknown": False,
+            "unknown": False,
             "family_source": data, "thickness": 2,
             "structure_state": data["box_body_structure"],
         }),

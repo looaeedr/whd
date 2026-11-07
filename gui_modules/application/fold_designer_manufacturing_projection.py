@@ -285,7 +285,6 @@ def _payload_policy(self, data, corner_state, part, fw, unknown, thickness):
     """Forward operator source; Engine owns certified fallback and Family FW."""
     return manufacturing_api.resolve_operator_fold_designer_payload_corner_policy(
         corner_state, part, fw,
-        known_family=self._current_cabinet_type_name(),
         unknown=unknown,
         family_source=data,
         thickness=thickness,

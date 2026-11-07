@@ -633,8 +633,15 @@ def resolve_operator_fold_designer_payload_corner_policy(
         raise ValueError("Fold Designer corner model identity must be boolean")
     policy = corner_policy_from_payload(corner_state, part_key, fw)
     if policy is None and not unknown:
+        # Derive the fallback Family only when the manual source is incomplete.
+        # Fold Designer must never read a host-only Family helper before this
+        # authoritative Engine decision. Explicit API callers remain supported.
+        resolved_family = (
+            known_family if known_family is not None
+            else cabinet_family_policy.canonical_family_name(family_source)
+        )
         policy = corner_policy_from_payload(
-            corner_state, part_key, fw, known_family=known_family,
+            corner_state, part_key, fw, known_family=resolved_family,
         )
     return apply_cabinet_family_endcap_policy(
         policy, part_key, family_source=family_source,

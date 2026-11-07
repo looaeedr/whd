@@ -118,10 +118,10 @@ def test_fold_designer_real_adapter_is_one_engine_call(monkeypatch):
     )
     state = _state()
     source = {"model": "受電箱", "box_body_structure": {"source": 42}}
-    host = SimpleNamespace(_current_cabinet_type_name=lambda: "受電箱")
+    host = SimpleNamespace()
     assert gui._payload_policy(host, source, state, "head", 25, False, 2) is sentinel
     assert calls == [(state, "head", 25, {
-        "known_family": "受電箱", "unknown": False,
+        "unknown": False,
         "family_source": source, "thickness": 2,
         "structure_state": source["box_body_structure"],
     })]
@@ -130,3 +130,18 @@ def test_fold_designer_real_adapter_is_one_engine_call(monkeypatch):
     assert "corner_policy_from_payload(" not in body
     assert "apply_cabinet_family_endcap_policy(" not in body
     assert "if resolved is None" not in body
+
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+def test_incomplete_policy_infers_certified_family_only_inside_engine(family):
+    source = {"model": family}
+    partial = {"head": {"top_left": {"type_id": "CROSS"}}}
+    original = deepcopy((source, partial))
+    expected = _original_chain(
+        partial, "head", 25, family=family, unknown=False,
+        source=source, thickness=2.0,
+    )
+    assert api.resolve_operator_fold_designer_payload_corner_policy(
+        partial, "head", 25, unknown=False,
+        family_source=source, thickness=2.0,
+    ) == expected
+    assert (source, partial) == original
