@@ -159,3 +159,67 @@ def test_2d_gui_sources_no_longer_import_internal_physical_resolvers():
     source = Path(gui.__file__).read_text(encoding="utf-8")
     assert "resolved_features_to_primitives(resolved)" not in source
     assert "manufacturing_api.project_operator_box_body_face_baseline_scene(" in source
+
+
+
+def test_hole_editor_catalog_root_is_same_engine_owner_without_private_ae_dependency(monkeypatch):
+    from ae_engine import ae
+    from gui_modules.editors import hole_editor_composition as composition
+
+    assert api.operator_hole_catalog_root_path is ae.baseline_hole_catalog_root_path
+    assert ae_engine.operator_hole_catalog_root_path is ae.baseline_hole_catalog_root_path
+    assert "operator_hole_catalog_root_path" in ae_engine.__all__
+    assert api.operator_hole_catalog_root_path() == ae.baseline_hole_catalog_root_path()
+    assert "ae" not in composition.HoleEditorCompositionDependencies.REQUIRED
+
+    source = Path(composition.__file__).read_text(encoding="utf-8")
+    assert "d.manufacturing_api.operator_hole_catalog_root_path()" in source
+    assert "d.ae.baseline_hole_catalog_root_path()" not in source
+    assert source.count("d.manufacturing_api.operator_hole_catalog_root_path()") == 1
+
+
+def test_hole_editor_catalog_root_uses_public_engine_when_preparing_model(monkeypatch):
+    from gui_modules.editors import hole_editor_composition as composition
+
+    token = object()
+    calls = []
+
+    class SessionFactory:
+        @staticmethod
+        def create(*args, **kwargs):
+            return token
+
+    class Catalog:
+        shape = "circle"
+        diameter = 20.0
+        name = "engine-catalog"
+        process = "CUTTING"
+
+    def public_root():
+        calls.append("public-root")
+        return "shared-source-root"
+
+    def load_catalog(root):
+        calls.append(("catalog", root))
+        return [Catalog()]
+
+    def load_pipe_catalog(root):
+        calls.append(("pipe", root))
+        return []
+
+    monkeypatch.setattr(api, "operator_hole_catalog_root_path", public_root)
+    host = SimpleNamespace(surface_features={"door": []})
+    d = SimpleNamespace(
+        _HoleEditorSessionFactory=SessionFactory,
+        manufacturing_api=api,
+        load_hole_catalog=load_catalog,
+        load_pipe_catalog=load_pipe_catalog,
+    )
+    state = SimpleNamespace(
+        host=host, d=d, part_key="door", feature_list_override=None,
+        reference_guide=object(),
+    )
+    composition._prepare_model(state)
+    assert state.hole_session is token
+    assert state.general_catalog_defs[0].name == "engine-catalog"
+    assert calls == ["public-root", ("catalog", "shared-source-root"), ("pipe", "shared-source-root")]

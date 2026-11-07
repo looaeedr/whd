@@ -46,6 +46,9 @@ from .dxf_serialization import save_scene_dxf
 from .ae_door_indicator import (
     feature_surface_from_drawing_scene as project_operator_feature_surface_from_drawing_scene,
 )
+from .ae_endcap import (
+    baseline_hole_catalog_root_path as operator_hole_catalog_root_path,
+)
 from .sheetmetal_drawing import (
     DrawingScene as _operator_baseline_drawing_scene,
     resolved_features_to_primitives as _operator_baseline_feature_primitives,

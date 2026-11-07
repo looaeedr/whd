@@ -16,7 +16,7 @@ class HoleEditorCompositionDependencies:
     """Explicit adapter for authorities currently imported by the GUI host module."""
 
     REQUIRED = (
-        "RectGuide", "Vec2", "ae", "load_hole_catalog", "load_pipe_catalog",
+        "RectGuide", "Vec2", "load_hole_catalog", "load_pipe_catalog",
         "_HoleEditorSessionFactory", "_HoleEditorWindowShellBuilder",
         "_HoleEditorIndicatorUiActions", "_HoleEditorIndicatorStateCollector",
         "_HoleEditorIndicatorPanelBuilder", "_HoleEditorCatalogSidebarBuilder",
@@ -74,7 +74,7 @@ def _prepare_model(s):
         s.reference_guide = d.RectGuide(
             d.Vec2(rminx, rminy), d.Vec2(rmaxx, rmaxy), "finished_boundary"
         )
-    hole_base_dir = d.ae.baseline_hole_catalog_root_path()
+    hole_base_dir = d.manufacturing_api.operator_hole_catalog_root_path()
     s.general_catalog_defs = d.load_hole_catalog(hole_base_dir)
     s.pipe_catalog_defs = d.load_pipe_catalog(hole_base_dir)
     s.catalog_by_label = {}
