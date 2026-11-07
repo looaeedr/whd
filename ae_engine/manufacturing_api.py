@@ -1680,6 +1680,9 @@ from .operator_legacy_endcap_hole_projection import (
     project_operator_endcap_legacy_hole_rows,
 )
 
+from .door_layout_feature_projection import project_operator_saved_door_layout_columns
+
+
 def project_fold_designer_snapshot_part_features(
     snapshot, surface_features, door_layout_features,
 ):
