@@ -139,6 +139,29 @@ def test_live_sync_rejects_illegal_joint_source_and_releases_sync_guard():
     assert payload == before
 
 
+def test_canonical_project_save_reload_keeps_public_joint_graph(tmp_path):
+    import phase6_project_file as project
+
+    saved = {
+        "model": "金庫型",
+        "w": 800.0, "h": 1200.0, "d": 350.0, "t": 2.0, "fw": 25.0,
+        "assembly_type": "INSERT_OVERLAY",
+        "existing_parts": ["box_body", "head", "tail"],
+        "assembly_joint_schema_version": 2,
+        "assembly_joints": [],
+    }
+    before = deepcopy(saved)
+    expected = api.normalize_project_snapshot_authority(saved)
+    path = project.write_project(
+        tmp_path / "joints.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": saved},
+    )
+    restored = project.read_project(path)["snapshot"]
+    assert saved == before
+    assert restored["assembly_joint_schema_version"] == expected["assembly_joint_schema_version"]
+    assert restored["assembly_joints"] == expected["assembly_joints"]
+
+
 def test_main_gui_two_replay_ports_and_navigation_have_no_private_manufacturing_rules():
     module = inspect.getsource(gui)
     assert "from ae_engine.assembly_joint import" not in module
