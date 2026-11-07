@@ -183,3 +183,109 @@ def test_invalid_or_unselected_multibay_identity_never_borrows_lock_holes(invali
             snapshot=selected,
         )
     assert selected == original
+
+
+
+def _factory_body():
+    return dict(api.build_receiving_factory_confirmed_parts(
+        {"w": 800.0, "h": 1600.0, "d": 350.0, "t": 2.0},
+        confirmation="fresh_family_confirmed",
+    ))["box_body"]
+
+
+def test_factory_box_body_bind_real_set_bay_reuses_engine_joint_and_cutting():
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    assert api.bind_receiving_factory_box_body_to_bay is __import__(
+        "ae_engine", fromlist=["bind_receiving_factory_box_body_to_bay"]
+    ).bind_receiving_factory_box_body_to_bay
+    layout = _layout(3)
+    original = _factory_body()
+    assert original.receiving_side_lock_participation is None
+    for bi, expected in enumerate(((False, True), (True, True), (True, False))):
+        bound = api.bind_receiving_factory_box_body_to_bay(
+            original, layout, set_index=0, bay_index=bi,
+        )
+        assert bound.receiving_side_lock_participation == expected
+        assert api.bind_receiving_factory_box_body_to_bay(
+            bound, layout, set_index=0, bay_index=bi,
+        ) == bound
+        rendered = api.build_box_body_structure_render_data(
+            bound, ManufacturingContext(resource_root=ROOT),
+        )
+        for role, joined in (("left_side", expected[0]),
+                             ("right_side", expected[1])):
+            sheet = next(piece.render_data for piece in rendered.pieces
+                         if piece.role == role)
+            assert sheet.metadata["baseline_side_lock_participation"] is joined
+            for radius, desired in ((5.25, 6 if joined else 0),
+                                    (8.0, 2 if joined else 0)):
+                assert sum(
+                    isinstance(item, CirclePrimitive)
+                    and item.layer == "CUTTING"
+                    and abs(item.radius-radius) < 1e-6
+                    for item in sheet.scene.primitives
+                ) == desired
+    assert original.receiving_side_lock_participation is None
+
+
+def test_factory_box_body_bind_rejects_foreign_bay_without_mutation():
+    from dataclasses import replace
+    original = _factory_body()
+    layout = _layout(3)
+    with pytest.raises(ValueError, match="RECEIVING_FACTORY_BAY_SELECTION_INVALID"):
+        api.bind_receiving_factory_box_body_to_bay(
+            original, layout, set_index=0, bay_index=3,
+        )
+    with pytest.raises(ValueError, match="RECEIVING_FACTORY_BAY_DIMENSIONS_MISMATCH"):
+        api.bind_receiving_factory_box_body_to_bay(
+            replace(original, width=920.0), layout, set_index=0, bay_index=1,
+        )
+    wrong_side = replace(original, receiving_side_lock_participation=(True, False))
+    with pytest.raises(ValueError, match="RECEIVING_FACTORY_BAY_LOCK_SOURCE_CONFLICT"):
+        api.bind_receiving_factory_box_body_to_bay(
+            wrong_side, layout, set_index=0, bay_index=0,
+        )
+    assert original.receiving_side_lock_participation is None
+
+
+def test_grouped_output_rejects_unbound_factory_side_locks_and_accepts_bound(tmp_path):
+    from ae_engine.contracts import ResolvedManufacturingGeometry, ResolvedManufacturingPart
+    layout = _layout(2)
+    body = _factory_body()
+    base = {"model": "受電箱", "active_mode": "set_bay",
+            "receiving_layout": layout, "t": 2.0}
+
+    def provider(bind):
+        def resolve(si, bi):
+            spec = api.bind_receiving_factory_box_body_to_bay(
+                body, layout, set_index=si, bay_index=bi,
+            ) if bind else body
+            rendered = api.build_box_body_structure_render_data(
+                spec, ManufacturingContext(resource_root=ROOT),
+            )
+            return ResolvedManufacturingGeometry(parts=(
+                ResolvedManufacturingPart("box_body", rendered),
+            ))
+        return resolve
+
+    output = tmp_path / "reject"
+    with pytest.raises(ValueError, match="RECEIVING_MULTIBAY_SIDE_LOCK_TOPOLOGY_MISMATCH"):
+        api.export_grouped_receiving_multibay_dxf(
+            base, physical_bay_geometry_provider=provider(False),
+            flags={"box_body": True}, output_dir=output,
+            group_mode="ALL", pre_commit_guard=lambda: None,
+        )
+    assert not tuple(output.rglob("*.dxf"))
+
+    output = tmp_path / "verified"
+    files = api.export_grouped_receiving_multibay_dxf(
+        base, physical_bay_geometry_provider=provider(True),
+        flags={"box_body": True}, output_dir=output,
+        group_mode="ALL", pre_commit_guard=lambda: None,
+    )
+    assert len(files) == 1
+    path = next(iter(files.values())) if isinstance(files, dict) else tuple(files)[0]
+    opened = ezdxf.readfile(path)
+    assert not opened.audit().errors
+    assert _cutting_radius_count(opened.modelspace(), 5.25) == 12
+    assert _cutting_radius_count(opened.modelspace(), 8.0) == 4
