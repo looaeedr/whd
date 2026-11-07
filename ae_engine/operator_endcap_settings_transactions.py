@@ -18,7 +18,9 @@ from .endcap_bottom_wrap_state import (
 from .endcap_factory_fold import (
     commit_operator_box_fw_takeover, commit_endcap_fw, set_endcap_fw_follow,
 )
-from .operator_settings_transactions import normalize_operator_source_dimension
+from .operator_settings_transactions import (
+    normalize_operator_settings_boolean, normalize_operator_source_dimension,
+)
 
 
 @dataclass(frozen=True)
@@ -50,6 +52,26 @@ def project_operator_box_fw_live_state(
     return state
 
 
+def _stage_operator_endcap_fw_source(
+    input_snapshot: Mapping[str, object],
+    settings_values: Mapping[str, object],
+    endcap_fw_state: Mapping[str, object],
+) -> tuple[dict[str, object], float]:
+    """Validate the physical box-FW authority before staging a Head/Tail edit.
+
+    GUI and saved settings may contain strings, but a missing, nonpositive,
+    boolean or nonfinite FW must never silently become the old default 25.
+    """
+    if not all(isinstance(source, Mapping) for source in (
+        input_snapshot, settings_values, endcap_fw_state,
+    )):
+        raise ValueError("ENDCAP_FW_OPERATOR_SOURCE_INVALID")
+    source = dict(input_snapshot)
+    source.update(dict(settings_values))
+    box_fw = normalize_operator_source_dimension(source.get("fw"), field="fw")
+    return deepcopy(dict(endcap_fw_state)), box_fw
+
+
 def operator_endcap_fw_follow(
     input_snapshot: Mapping[str, object],
     settings_values: Mapping[str, object],
@@ -57,13 +79,13 @@ def operator_endcap_fw_follow(
     part_key: str,
     follow_box: bool,
 ) -> dict[str, object]:
-    """Preserve legacy follow-box semantics using one Engine-owned state."""
-    snapshot = deepcopy(dict(input_snapshot))
-    snapshot.update(deepcopy(dict(settings_values)))
-    state = deepcopy(dict(endcap_fw_state or {}))
+    """Apply a typed follow-box edit using the existing Engine four-state owner."""
+    state, box_fw = _stage_operator_endcap_fw_source(
+        input_snapshot, settings_values, endcap_fw_state,
+    )
+    follow = normalize_operator_settings_boolean(follow_box)
     set_endcap_fw_follow(
-        state, str(part_key), bool(follow_box),
-        box_fw=_num(snapshot.get("fw", 25), 25),
+        state, str(part_key), follow, box_fw=box_fw,
     )
     return state
 
@@ -75,13 +97,13 @@ def operator_endcap_fw_override(
     part_key: str,
     value: object,
 ) -> dict[str, object]:
-    """Head/Tail linked-edit and legacy defaults stay in canonical Engine."""
-    snapshot = deepcopy(dict(input_snapshot))
-    snapshot.update(deepcopy(dict(settings_values)))
-    state = deepcopy(dict(endcap_fw_state or {}))
+    """Validate finished FW, then delegate Head/Tail linked edit to Engine."""
+    state, box_fw = _stage_operator_endcap_fw_source(
+        input_snapshot, settings_values, endcap_fw_state,
+    )
+    requested_fw = normalize_operator_source_dimension(value, field="fw")
     commit_endcap_fw(
-        state, str(part_key), _num(value),
-        box_fw=_num(snapshot.get("fw", 25), 25),
+        state, str(part_key), requested_fw, box_fw=box_fw,
     )
     return state
 
