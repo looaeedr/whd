@@ -5,10 +5,15 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-
 ## #2517 CornerType canonical CUTTING/BEND preview through public Engine (2026-11-07)
 
-`manufacturing_api.project_operator_corner_type_preview_geometry(selection, *, padding=7.0)` (also `ae_engine.project_operator_corner_type_preview_geometry`) is an identity-preserving public alias of `corner_type_ui.build_corner_type_preview_geometry`. It returns canonical CornerType preview `cut_paths` and `bend_paths` clipped from existing Engine geometry, with the same legacy C01-C04 normalization and rejection semantics. GUI `assembly_corner.draw_corner_type_icon` renders the paths only; no UI-specific geometry or separate DXF authorization is introduced. See `tests/test_issue2517_corner_preview_public_engine_api.py`. 
+`manufacturing_api.project_operator_corner_type_preview_geometry(selection, *, padding=7.0)` (also `ae_engine.project_operator_corner_type_preview_geometry`) is an identity-preserving public alias of `corner_type_ui.build_corner_type_preview_geometry`. It returns canonical CornerType preview `cut_paths` and `bend_paths` clipped from existing Engine geometry, with the same legacy C01-C04 normalization and rejection semantics. GUI `assembly_corner.draw_corner_type_icon` renders the paths only; no UI-specific geometry or separate DXF authorization is introduced. See `tests/test_issue2517_corner_preview_public_engine_api.py`.
+
+
+## #2517 Receiving physical Set +/- operator API (2026-11-07)
+
+ae_engine and ae_engine.manufacturing_api expose the same adjust_receiving_operator_set_count_with_removed_ids(layout, *, delta) callable. The canonical Engine validates the layout, requires a real integer delta, enforces permanent Set1, and delegates actual creation/removal to resize_receiving_operator_topology_with_removed_ids. It returns (detached_layout, removed_Set_Bay_Joint_IDs, changed). GUI must obtain consent for protected deleted identities before accepting the candidate and then update its current selection; invalid or no-op actions leave both the project and selection unchanged. The independent cross-Set +/- Bay operation has a separate owner and is not duplicated here. No DXF manufacturing authority is introduced.
+
 
 ## #2517 Receiving parent NFB brand returns affected physical Set/Bay IDs (2026-11-07)
 
