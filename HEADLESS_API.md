@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 BoxBody resolved feature drawing through public Engine (2026-11-07)
+
+`manufacturing_api.project_operator_resolved_feature_drawing_primitives(resolved_features)` (also `ae_engine.project_operator_resolved_feature_drawing_primitives`) is the exact same original `sheetmetal_drawing.resolved_features_to_primitives` callable. The main GUI's BoxBody face baseline 2D preview delegates resolved physical features to this public Engine projection and only places returned Circle/Rect/Profile drawing primitives in a display `DrawingScene`. The existing owner retains BLIND_HOLE centerlines, primary CUTTING, MARKING and FROM_DXF process-layer suppression semantics. This read-only API adds no verified CUTTING or DXF manufacturing release. Tests: `tests/test_issue2517_box_body_resolved_primitives_public_api.py`.
+
+
 ## #2517 Engineering Drawing annotation-only public projection (2026-11-07)
 
 `manufacturing_api.project_operator_engineering_drawing_annotations(render_data, *, part_key="", char_height=5.0, dimension_offset=15.0, reserved_regions=(), strict=False)` and the `ae_engine` root export reference the exact existing `engineering_drawing.build_engineering_drawing_projection` callable. The primary WHD GUI and its door/indicator/base 2D host plus shared rendering overlay default all use this Engine projection and publicly exposed `manufacturing_api.CanvasTransform`, rather than importing internal modules. Invalid canonical `PartRenderData` fails closed; drawing source primitives stay unchanged. This API is for `DIMENSION/TEXT` annotations only; it never grants CUTTING/BEND, physical-part, DXF or multi-Bay manufacturing authority. See `tests/test_issue2517_operator_engineering_drawing_public_api.py`.
