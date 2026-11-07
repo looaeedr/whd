@@ -160,6 +160,7 @@ from .corner_state_transactions import (
     ensure_corner_part, corner_selection, corner_targets, commit_corner_pair,
     commit_corner_type, commit_corner_mode, commit_corner_parameters, apply_corner_preset,
     replace_corner_state, project_operator_corner_ini_rotation,
+    project_operator_corner_ini_load_section, project_operator_corner_ini_save_options,
 )
 from .operator_endcap_settings_transactions import (
     OperatorBottomWrapTransition, operator_endcap_fw_follow,
@@ -1564,6 +1565,14 @@ def validate_receiving_base_plate_settings(
         config=config,
     )
 
+def project_operator_receiving_quantity_base_plate_settings(snapshot, config):
+    """Public detached Quantity Base Plate source/EAR projection."""
+    from .receiving_base_plate_settings_validation import (
+        project_operator_receiving_quantity_base_plate_settings as project,
+    )
+    return project(snapshot, config)
+
+
 def commit_operator_receiving_base_plate_settings(
     *, input_snapshot, settings_values, config, submit_geometry_update=None,
 ):
@@ -2067,6 +2076,8 @@ from .receiving_multibay_export_selection import (
 from .receiving_quantity_box import (
     BOX_KEY as RECEIVING_QUANTITY_BOX_KEY,
     normalize_common_box, update_common_box, project_common_box,
+    project_operator_receiving_quantity_size_count,
+    apply_operator_receiving_quantity_size_count,
 )
 from .manufacturing_equivalence import ManufacturingParameters
 from .receiving_nfb_pad_operator_parts import committed_nfb_pad_draft_parts
@@ -2103,7 +2114,7 @@ def plan_receiving_grouped_dxf(layout, mode, *, file_stamp=None):
 def export_grouped_receiving_multibay_dxf(
     saved_snapshot, *, physical_bay_geometry_provider,
     flags, output_dir, group_mode, pre_commit_guard, overwrite=False,
-    nfb_pair_requests=None, include_saved_nfb_pairs=False,
+    nfb_pair_requests=None, include_saved_nfb_pairs=False, emit_debug=False,
 ):
     """Source-verified current Bay flats -> group DXFs (no MFG-2 release).
 
@@ -2118,6 +2129,7 @@ def export_grouped_receiving_multibay_dxf(
         group_mode=group_mode, pre_commit_guard=pre_commit_guard,
         nfb_pair_requests=nfb_pair_requests,
         include_saved_nfb_pairs=include_saved_nfb_pairs,
+        emit_debug=emit_debug,
     )
 
 

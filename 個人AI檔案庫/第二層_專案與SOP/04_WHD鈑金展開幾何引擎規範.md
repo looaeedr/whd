@@ -6,6 +6,44 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 單只尺寸 W/H/D＋數量版本件數由公開 Engine 完整交易（2026-11-07）
+
+- `fold_designer_composition_receiving` 的單只尺寸設定舊路徑：GUI 直接引入 `phase6_quantity_model.QuantityModel`，自己讀選中版本數量，接受操作者 W/H/D/件數後自行 `set_piece_count`、`update_common_box`、覆寫 `candidate["quantity"]`，再做 `require_valid_operator_quantity_features`。這些版本與實體尺寸關聯的結果是製造來源，不能讓 GUI 擁有跨兩個 Engine 入口的交易順序。
+- 新正式 `manufacturing_api.project_operator_receiving_quantity_size_count(snapshot)` 只從 Receiving Quantity 的 `receiving_quantity_box` 和 `QuantityModel` 讀取目前 selected 件數、所有版本總件數與物理 W/H/D；`manufacturing_api.apply_operator_receiving_quantity_size_count(snapshot, *, width, height, depth, count)` 以同一來源驗證 Family／模式／完整版本／共用箱體／真實 T，使用原 `positive_piece_count` 更新 detached selected 版本、原 `update_common_box` 更新物理 W/H/D，再 `require_valid_quantity_features` 檢查所有版本的封頭尾 CUTTING 孔是否仍在實體 finished-face 之內。未全部成功就不返回可提交的候選；輸入 snapshot 不改動。根包 `ae_engine` 亦公開同一 Engine callable。
+- GUI 僅送操作者四個欄位並用既有 `_apply_mode_snapshot` 刷新工作區，沒有第二份 QuantityModel 操作、物理計算或新製造預設。Set/Bay、NFB CSV、共同箱體的保存權威不變；非 selected 版本件數不可被目前編輯污染，真實 W 變更時 NFB datum recheck 與孔位越界仍服從既有 Engine Policy，並非輸入成功就獲 DXF 放行。
+- Headless 對照原 Engine `QuantityModel + update_common_box + require_valid_quantity_features`、非法件數/Family/模式/W/H/D/T/Quantity/Box 不改來源、選中與其他版本獨立、Save→Reload 及相關 2D/3D/DXF exact-SHA Product Regression 全部須驗證。
+
+
+## [CURRENT] #2517 Quantity 實體底板共用箱體的 W/T 與焊耳孔由公開 Engine 一次投影（2026-11-07）
+
+- Fold Designer 原 `receiving_base_plate_for_current_mode` 在 Quantity（單只／數量模式）分支先以 GUI 的 `_settings_values` 暫時驗底板，再以另一個 `manufacturing_api.update_common_box` 寫入 `receiving_quantity_box`。其中 GUI Settings W/H/D 是開新專案用的**預設種子**，可與當前保存的共用箱體 W 不同；兩段式驗證會以錯誤 W 檢查焊接 EAR 孔，並把尚未綁定此實體箱寬的 config 當成有效來源。
+- 新正式 `manufacturing_api.project_operator_receiving_quantity_base_plate_settings(snapshot, config)`，亦從 `ae_engine` 根包公開同一 callable。Engine 先要求正確 Receiving／Quantity Family、明確 `receiving_quantity_box` 與真實 `QuantityModel`、明確有限正數 T，再依已保存共用箱體重投影 W/H/D／單 Bay 假別名；重用原 `validate_receiving_base_plate_settings` 的原始 CENTER／LEFT／RIGHT 實體板、真實 EAR 孔及原製造幾何，以共用箱體 W、來源 T 驗證，且只用 validated accepted config 經 `update_common_box` 生成完整 detached 來源。
+- GUI 僅交目前模式 snapshot 和操作者 config，消費 Engine 回傳結果供原 `_apply_mode_snapshot` 同步畫面；禁止把 GUI Settings default W 當成 Quantity 實體箱寬。未保存 Quantity／共用箱體、非法 Family／T／EAR 孔距、錯誤實體板型，均不得改動呼叫者來源。非 Quantity 單板仍走已存在的公開 Engine 原子提交，無新製造公式／DXF Writer。
+- 需核對 headless API 與原 Engine 同源，顯式取消、舊 root 寬度和 Settings default 漂移、負向拒絕及 Quantity Save→Reload；這個 API 成功不代表 FinalScene／DXF MFG-2 加工放行，仍需 exact-SHA Product Regression 及適用時的 DXF Save→Reload。
+
+
+## [CURRENT] #2517 同源分組另存 CHECK-only debug 檢查圖及真實孔型 Q（2026-11-07）
+
+- 受電箱的 `emit_debug=True` 僅允許透過已通過逐片物理 FinalScene 與原始 DXF/CSV source guard 的 `manufacturing_api.export_grouped_receiving_multibay_dxf` 既有交易。加入同一 staged 原子提交的一張 `YYYYMMDDHHmm_p1~p16debug.dxf`；所有內容在 CHECK 層並標明 DEBUG ONLY／NOT FOR NC，不可當作 CUTTING/BEND 正式加工圖，不推導新工藝或形狀；未要求 debug 時原本所有 3 種分組交付數量不變。
+- debug 用原實體板件的 DrawingScene 平移排版：左側／後面／右側、後板上方封頭與下方封尾、上門／下門、上框、左框／內門／右框、下框／中隔、最下底板，每盤顯示盤名，最上方依同**角色加上完整 CUTTING／BEND／MARKING／BLIND_HOLE 幾何局部座標**簽章計 Q。不同側板角色、相同尺寸但任何一顆孔／加工層不同都不合計；來源的物理出圖與鎖孔不改。
+- 原基準 `基準檔/受電箱/左側板.dxf` 與 `右側板.dxf` 的 9 個圓特徵本就不同：左 8 CUTTING + 1 BLIND_HOLE，右 6 CUTTING + 2 MARKING + 1 BLIND_HOLE。現有 `receiving_bay_joint_face_features` 僅對相鄰 Joint 兩個實體參與面投影相鎖孔；最外側面不得繼承相鎖孔。這是來源差異／回歸與 debug 可視化，不代表未知現場 CNC 錯孔已修復，必須再取得缺陷的物理孔位比較證據，不准把 Q 合併當成幾何修補。
+- 測試包含真 DXF Save→Reload、debug 全 CHECK audit、原始 FinalScene 完全不變、來源缺口／非法旗標拒絕、實體側板孔層分組與 Join 邊界 3 Bay。Windows 現場原圖與整箱 MFG-2／NC 需獨立驗收。
+
+
+
+
+
+## [CURRENT] #2517 CornerType INI 保存／重開語意由公開 Engine 管理（2026-11-07）
+
+- 主 GUI `phase6_settings_center.load_corner_defaults_from_ini/save_corner_defaults_to_ini` 原在讀寫 `config.ini` 時自行組出每個 CornerType 的旋轉、CROSS 模式、方向和 `*_t` 製造來源欄位。這些來源會由 EndCap/其他 PartSpec 和 FinalScene 消費，不應在 GUI 保留第二份物理轉換邏輯。
+- 公開 `manufacturing_api.project_operator_corner_ini_load_section`、`project_operator_corner_ini_save_options`（`ae_engine` 根包同 callable）由原 `corner_state_transactions` owner 投影單一 INI section，不讀寫檔案、不依賴 Tk。C02 舊式旋轉、非 C02 旋轉歸零、成對布林、有限數值的 skip/reject、沒有參數時清除舊 option，延用原行為；非法來源須在存檔前拒絕、不得改寫既有 INI。
+- GUI 只做 `ConfigParser` 檔案傳輸與已保存 part section 的選擇；Engine 返回 detached 欄位映射。測試覆蓋舊 Corner 類型、完整 INI Save→Reload、非 Corner section 保持、原始來源不變與非法資料失敗隔離。不新增截角幾何、Relief、CUTTING、DXF 製造公式或新 Family 加工資格；受影響產品回歸依 GitHub exact-SHA 驗收。
+
+
+
+
+
+
 ## [CURRENT] #2517 主 GUI 專案讀回與 Legacy 基準箱型身份全面經公開 Engine（2026-11-07）
 
 - `gui_modules/application/lifecycle.py::_current_cabinet_type_name` 原在 GUI 自行調用私有 Family Registry 及自訂型號正規化，決定已註冊箱型／舊版未知基準目錄的 Legacy Family；`_apply_phase6_project_snapshot` 與 Live FoldDesigner 更新也直接調用私有自訂型號 codec。

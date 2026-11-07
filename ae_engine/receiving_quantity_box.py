@@ -254,3 +254,59 @@ def require_valid_quantity_features(snapshot):
     errors = quantity_feature_errors(snapshot)
     if errors:
         raise ValueError("不能輸出 DXF：" + "；".join(errors))
+
+
+
+def _require_operator_receiving_quantity_source(snapshot):
+    """Return the real Quantity version and box, never a synthetic Bay owner."""
+    from .cabinet_types.policy import canonical_family_name
+    from .receiving_quantity_versions import QuantityModel
+
+    if (not isinstance(snapshot, Mapping)
+            or canonical_family_name(snapshot) != "受電箱"
+            or snapshot.get("active_mode") != "quantity"):
+        raise ValueError("RECEIVING_SINGLE_QUANTITY_MODE_REQUIRED")
+    if BOX_KEY not in snapshot or "quantity" not in snapshot:
+        raise ValueError("RECEIVING_SINGLE_QUANTITY_SOURCE_REQUIRED")
+    box = normalize_common_box(snapshot[BOX_KEY])
+    model = QuantityModel.from_payload(snapshot["quantity"])
+    return box, model
+
+
+def project_operator_receiving_quantity_size_count(snapshot):
+    """Read a physical common W/H/D and Quantity version piece counts.
+
+    This is a read-only operator projection, not a new persisted owner.
+    """
+    box, model = _require_operator_receiving_quantity_source(snapshot)
+    return {
+        "width": box["w"], "height": box["h"], "depth": box["d"],
+        "count": model.selected_piece_count,
+        "total_count": model.total_piece_count,
+        "version_count": model.version_count,
+    }
+
+
+def apply_operator_receiving_quantity_size_count(
+    snapshot, *, width, height, depth, count,
+):
+    """Detached Engine transaction for Quantity W/H/D and piece count.
+
+    The canonical Engine validates the entire resulting physical box,
+    selected version and all head/tail hole features BEFORE any GUI mode
+    publish. Never mutate the original project or calculate manufacture
+    geometry in the GUI.
+    """
+    from .receiving_quantity_versions import positive_piece_count
+
+    _, model = _require_operator_receiving_quantity_source(snapshot)
+    # Saved material T is a physical source: no fabricated GUI default.
+    positive_dimension(snapshot.get("t"), "t")
+    selected_count = positive_piece_count(count)
+    model.set_piece_count(selected_count)
+    projected = update_common_box(
+        snapshot, {"w": width, "h": height, "d": depth},
+    )
+    projected["quantity"] = model.snapshot()
+    require_valid_quantity_features(projected)
+    return projected
