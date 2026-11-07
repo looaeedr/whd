@@ -227,6 +227,8 @@ whd_schema: WHD_DOC_META_V1
 - 受電箱的 `emit_debug=True` 僅允許透過已通過逐片物理 FinalScene 與原始 DXF/CSV source guard 的 `manufacturing_api.export_grouped_receiving_multibay_dxf` 既有交易。加入同一 staged 原子提交的一張 `YYYYMMDDHHmm_p1~p16debug.dxf`；所有內容在 CHECK 層並標明 DEBUG ONLY／NOT FOR NC，不可當作 CUTTING/BEND 正式加工圖，不推導新工藝或形狀；未要求 debug 時原本所有 3 種分組交付數量不變。
 - debug 用原實體板件的 DrawingScene 平移排版：左側／後面／右側、後板上方封頭與下方封尾、上門／下門、上框、左框／內門／右框、下框／中隔、最下底板，每盤顯示盤名，最上方依同**角色加上完整 CUTTING／BEND／MARKING／BLIND_HOLE 幾何局部座標**簽章計 Q。不同側板角色、相同尺寸但任何一顆孔／加工層不同都不合計；來源的物理出圖與鎖孔不改。
 - 原基準 `基準檔/受電箱/左側板.dxf` 與 `右側板.dxf` 的 9 個圓特徵本就不同：左 8 CUTTING + 1 BLIND_HOLE，右 6 CUTTING + 2 MARKING + 1 BLIND_HOLE。現有 `receiving_bay_joint_face_features` 僅對相鄰 Joint 兩個實體參與面投影相鎖孔；最外側面不得繼承相鎖孔。這是來源差異／回歸與 debug 可視化，不代表未知現場 CNC 錯孔已修復，必須再取得缺陷的物理孔位比較證據，不准把 Q 合併當成幾何修補。
+
+- **2026-11-07 多盤側板實體孔位修復（待 exact SHA CI 與 Windows 原圖驗收）：** 原 Receiving 左／右專用側板的 9 個圓特徵中各有 6 個 Ø10.5 CUTTING 相鎖孔；其餘左側 2 CUTTING Ø5.1 + 1 BLIND_HOLE、右側 2 MARKING Ø13.1 + 1 BLIND_HOLE 是不同獨立基準特徵。現改由唯一 Engine `receiving_layout.derive_bay_lock_state` 根據每套相鄰 Bay 決定左右面：每套首 Bay 左自由／右相鎖、中 Bay 雙側相鎖、末 Bay 左相鎖／右自由；單 Bay 左右均自由。Factory/GUI 的 BoxBody PartSpec 在真實 Set/Bay 身分與 W/H/D 相符後，重用原 `receiving_bay_joint_face_features` 重建相鄰 Joint Ø16 來源；`manufacturing_scene_orchestration` 對有此權威狀態的三片製造板件才讓 `receiving_panel_baselines` 保留或去除該側六顆 Ø10.5，相鎖面以外的固定孔及加工層保持原樣。無法辨識多盤實體 Bay 或已保存身份／尺寸不一致一律 fail closed；沒有 Set/Bay 身分的舊 standalone PartSpec 維持原契約；特別是 fresh_family_confirmed 原 Family 名義單 Bay 預設 Layout 非實際來源尺寸證明，Factory 須排除該暫態預設 Layout，不能誤拒絕自來源核准的新建尺寸，也不能冒用它產生 Joint 孔，並非多盤製造認證。預覽、同源 DXF 與真實 Save→Reload 回歸不能互相替代，也不能據此宣稱 MFG-2／NC 或現場 CNC 已驗收。
 - 測試包含真 DXF Save→Reload、debug 全 CHECK audit、原始 FinalScene 完全不變、來源缺口／非法旗標拒絕、實體側板孔層分組與 Join 邊界 3 Bay。Windows 現場原圖與整箱 MFG-2／NC 需獨立驗收。
 
 
