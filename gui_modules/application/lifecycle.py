@@ -309,6 +309,19 @@ def _apply_fold_designer_live_settings(self, values, *, recalculate=True):
     clean = {key: value for key, value in dict(values or {}).items() if key in before}
     if not clean:
         return
+    next_fw_state = None
+    if "fw" in clean:
+        try:
+            next_fw_state = manufacturing_api.project_operator_box_fw_live_state(
+                self.endcap_fw_state,
+                previous_box_fw=before["fw"], requested_box_fw=clean["fw"],
+            )
+        except (TypeError, ValueError, KeyError):
+            # Invalid FW is not a manufacturing write; unrelated settings
+            # in the same external draft may still be applied independently.
+            clean.pop("fw")
+    if not clean:
+        return
     current = self.settings_service.update(clean)
     self._phase6_main_sync_fingerprint = stable_fingerprint({"settings": current.as_dict()})
     changed = {key for key in clean if before.get(key) != current.get(key)}
@@ -330,12 +343,8 @@ def _apply_fold_designer_live_settings(self, values, *, recalculate=True):
                 existing = object()
             if existing != target:
                 var.set(target)
-        if "fw" in changed:
-            box_fw = float(current["fw"])
-            for part in ("head", "tail"):
-                state = self.endcap_fw_state.setdefault(part, {"follow_box": True, "value": box_fw})
-                if bool(state.get("follow_box", True)):
-                    state["value"] = box_fw
+        if "fw" in changed and next_fw_state is not None and current["fw"] == float(clean["fw"]):
+            self.endcap_fw_state = next_fw_state
             self._sync_endcap_fw_controls()
         shrink_keys = (
             "base_plate_shrink_top", "base_plate_shrink_bottom",
