@@ -56,15 +56,13 @@ def quantity_ports(composition, namespace):
         def commit():
             # Capture identity, not selection: another version may be selected
             # while this modeless editor is open. A deleted ID fails closed.
-            current = source()
-            from phase6_quantity_model import QuantityModel
-            candidate = QuantityModel.from_payload(model().snapshot())
-            candidate.set_version_features(version_id, role, features)
-            current["quantity"] = candidate.snapshot()
-            manufacturing_api.require_valid_operator_quantity_features(current)
-            previous = model().features_for_version(version_id, role)
-            edit(lambda owner: owner.set_version_features(version_id, role, features))
-            if previous != features and version_id == model().selected_version_id:
+            changed_holes = edit(
+                lambda owner: manufacturing_api.commit_operator_quantity_version_holes(
+                    source(), owner, version_id=version_id, role=role,
+                    features=features,
+                )
+            )
+            if changed_holes and version_id == model().selected_version_id:
                 app.submit_update_intent("geometry", commit=True)
 
         win = host._open_unified_hole_editor(

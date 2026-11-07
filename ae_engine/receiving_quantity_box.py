@@ -257,6 +257,48 @@ def require_valid_quantity_features(snapshot):
 
 
 
+def commit_operator_quantity_version_holes(
+    snapshot, quantity_model, *, version_id, role, features,
+):
+    """Validate and commit a captured Quantity Head/Tail version in one Engine call.
+
+    The incoming snapshot is a detached physical-source projection; the live
+    QuantityModel is the sole writable owner. Validate every version against
+    the canonical finished-face surfaces before a single change notification.
+    A stale, deleted or switched editor may not overwrite a different version.
+    """
+    from .receiving_quantity_versions import QuantityModel
+
+    if (not isinstance(snapshot, Mapping)
+            or snapshot.get("active_mode") != "quantity"
+            or not isinstance(quantity_model, QuantityModel)):
+        raise ValueError("QUANTITY_HOLE_SOURCE_REQUIRED")
+    original = quantity_model.snapshot()
+    if snapshot.get("quantity") != original:
+        raise ValueError("QUANTITY_HOLE_SOURCE_VERSION_DRIFT")
+
+    detached = QuantityModel.from_payload(original)
+    detached.set_version_features(version_id, role, features)
+    expected = detached.snapshot()
+    candidate = deepcopy(dict(snapshot))
+    candidate["quantity"] = expected
+    require_valid_quantity_features(candidate)
+    if quantity_model.snapshot() != original:
+        raise ValueError("QUANTITY_HOLE_SOURCE_CHANGED_DURING_VALIDATION")
+    if expected == original:
+        return False
+
+    try:
+        quantity_model.set_version_features(version_id, role, features)
+        if quantity_model.snapshot() != expected:
+            raise ValueError("QUANTITY_HOLE_COMMITTED_VERSION_DRIFT")
+    except Exception:
+        # Restore without notifying UI a second time after callback failure.
+        quantity_model._restore_validated_owner_snapshot(original)
+        raise
+    return True
+
+
 def _require_operator_receiving_quantity_source(snapshot):
     """Return the real Quantity version and box, never a synthetic Bay owner."""
     from .cabinet_types.policy import canonical_family_name
