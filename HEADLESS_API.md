@@ -5,6 +5,12 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 2D feature surface and BoxBody baseline drawing through public Engine (2026-11-07)
+
+`manufacturing_api.project_operator_feature_surface_from_drawing_scene(surface_id, scene)` is the same canonical callable as `ae_door_indicator.feature_surface_from_drawing_scene`, exposed also at root `ae_engine`; it rejects scenes lacking a valid primary CUTTING contour. The GUI Canvas no longer imports `ae_engine.ae` or uses a private surface resolver. Both shared Canvas defaults and main GUI explicitly use existing `resolve_hole_editor_canvas_features`.
+
+`manufacturing_api.project_operator_box_body_face_baseline_scene(face_key, resolved_faces)` (also root `ae_engine`) returns a fresh display-only `DrawingScene` from the existing `resolved_features_to_primitives` Engine serializer for left/back/right baseline Feature lists; absent source returns None and malformed face/source/features fail closed. Main GUI no longer constructs physical baseline primitives. This is NOT a new CUTTING/BEND, DXF, user-hole-commit or manufacturing-certification route. See `tests/test_issue2517_canvas_feature_surface_public_api.py`.
+
 ## #2517 Engineering Drawing annotation-only public projection (2026-11-07)
 
 `manufacturing_api.project_operator_engineering_drawing_annotations(render_data, *, part_key="", char_height=5.0, dimension_offset=15.0, reserved_regions=(), strict=False)` and the `ae_engine` root export reference the exact existing `engineering_drawing.build_engineering_drawing_projection` callable. The primary WHD GUI and its door/indicator/base 2D host plus shared rendering overlay default all use this Engine projection and publicly exposed `manufacturing_api.CanvasTransform`, rather than importing internal modules. Invalid canonical `PartRenderData` fails closed; drawing source primitives stay unchanged. This API is for `DIMENSION/TEXT` annotations only; it never grants CUTTING/BEND, physical-part, DXF or multi-Bay manufacturing authority. See `tests/test_issue2517_operator_engineering_drawing_public_api.py`.

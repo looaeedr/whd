@@ -83,6 +83,8 @@ from .manufacturing_api import (
     project_receiving_box_body_2d_source, project_box_body_2d_piece_inventory,
     BoxBodyAssemblyPanelPiece, project_box_body_assembly_panel_piece_rows,
     project_operator_engineering_drawing_annotations,
+    project_operator_feature_surface_from_drawing_scene,
+    project_operator_box_body_face_baseline_scene,
     project_receiving_settings_physical_drawings,
     CadcraftPreviewError, project_cadcraft_check_scene, save_cadcraft_check_scene_dxf,
     QuantityManufacturingBatch, quantity_manufacturing_groups,
@@ -350,6 +352,8 @@ from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
     "project_operator_engineering_drawing_annotations",
+    "project_operator_feature_surface_from_drawing_scene",
+    "project_operator_box_body_face_baseline_scene",
     "project_receiving_settings_physical_drawings",
     "CadcraftPreviewError", "project_cadcraft_check_scene", "save_cadcraft_check_scene_dxf",
     "CanvasTransform", "ResolvedCircle", "ResolvedRect",

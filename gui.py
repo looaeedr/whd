@@ -25,7 +25,6 @@ from tkinter import messagebox
 from tkinter import filedialog
 from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_ttk_dark_theme
 from gui_modules.runtime_error_log import install_tk_exception_logging, write_runtime_exception
-import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
 # Legacy GUI import compatibility; all decisions remain in public Engine.
 is_unknown_model = manufacturing_api.is_unknown_operator_model
@@ -88,7 +87,6 @@ from ae_engine.sheetmetal_features import (
     endcap_feature_context_from_geometry,
     feature_surface_from_structural_result,
     feature_surface_from_outline,
-    resolve_surface_features,
     ReferenceAnchor,
     REFERENCE_ANCHOR_LABELS,
     REFERENCE_ANCHOR_BY_LABEL,
@@ -279,15 +277,13 @@ def render_resolved_features(canvas, features, transform, *, color="#ff9f0a"):
 def render_surface_user_features(canvas, surface, features, width, height, transform):
     return _render_surface_user_features_impl(
         canvas, surface, features, width, height, transform,
-        resolver=resolve_surface_features,
+        resolver=manufacturing_api.resolve_hole_editor_canvas_features,
         feature_renderer=render_resolved_features,
     )
 
 
 def feature_surface_from_drawing_scene(surface_id, scene):
-    return _feature_surface_from_drawing_scene_impl(
-        surface_id, scene, ae_module=ae
-    )
+    return _feature_surface_from_drawing_scene_impl(surface_id, scene)
 
 
 def _draw_phase6_annotation_projection(
@@ -453,8 +449,6 @@ from ae_engine.sheetmetal_drawing import (
     LinePrimitive,
     CirclePrimitive,
     TextPrimitive,
-    DrawingScene,
-    resolved_features_to_primitives,
     mirror_point_y,
 )
 
@@ -1798,12 +1792,9 @@ class Phase6ApplicationHost:
         return _box_body_baseline_faces_impl(self, val)
 
     def _box_body_face_baseline_scene(self, face_key, val):
-        resolved = self._box_body_baseline_faces(val).get(face_key, [])
-        if not resolved:
-            return None
-        scene = DrawingScene()
-        scene.extend(resolved_features_to_primitives(resolved))
-        return scene
+        return manufacturing_api.project_operator_box_body_face_baseline_scene(
+            face_key, self._box_body_baseline_faces(val),
+        )
 
     def open_box_body_face_editor(self, face_key):
         return _open_box_body_face_editor_impl(
