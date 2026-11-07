@@ -5,7 +5,6 @@ from ae_engine.corner_type_ui import CORNER_PAIR_CORNERS
 from ae_engine.sheetmetal_geometry import (
     CornerTypeId,
     CrossCornerMode,
-    normalize_corner_selection,
 )
 
 
@@ -62,7 +61,7 @@ def normalize_manual_corner_target(host, part_key):
 
 
 def corner_parameter_summary(host_cls, selection):
-    selection = normalize_corner_selection(selection)
+    selection = manufacturing_api.operator_normalize_corner_selection(selection)
     if selection.type_id is CornerTypeId.CROSS:
         mode = host_cls._CORNER_MODE_LABELS[selection.cross_mode]
         if selection.cross_mode is CrossCornerMode.STANDARD:
@@ -92,7 +91,7 @@ def draw_corner_type_icon(self, canvas, selection_or_type, *, large=False, flip_
     h = max(10, int(float(canvas.cget('height'))))
     margin = 5 if not large else 12
     if isinstance(selection_or_type, CornerTypeSelection):
-        selection = normalize_corner_selection(selection_or_type)
+        selection = manufacturing_api.operator_normalize_corner_selection(selection_or_type)
     else:
         selection = CornerTypeSelection(CornerTypeId(selection_or_type))
     preview = manufacturing_api.project_operator_corner_type_preview_geometry(selection)
