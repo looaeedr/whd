@@ -164,7 +164,7 @@ from .corner_state_transactions import (
     project_operator_corner_ini_load_section, project_operator_corner_ini_save_options,
 )
 from .operator_endcap_settings_transactions import (
-    OperatorBottomWrapTransition, operator_endcap_fw_follow,
+    OperatorBottomWrapTransition, project_operator_box_fw_live_state, operator_endcap_fw_follow,
     operator_endcap_fw_override, operator_endcap_bottom_wrap,
     operator_endcap_edge_relation,
 )
