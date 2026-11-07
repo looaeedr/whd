@@ -12,6 +12,15 @@ whd_schema: WHD_DOC_META_V1
 - 原 Engine 唯一製造 owner `sheetmetal_part_adapters` 新增只讀 `project_operator_receiving_base_plate_pattern_choices()`，在**原三個 pattern 常數**的正式 LEFT／CENTER／RIGHT 順序返回 immutable `(role, pattern_id)` tuples；`manufacturing_api` 與根包 `ae_engine` 公開**同一 callable**。GUI 只對應中文顯示標籤與操作選取，不再 import 內部幾何模組、也不製造 pattern ID。
 - 實體底板套用／取消、真實 EAR 孔及面積來源仍走既有 `commit_operator_receiving_base_plate_settings`／`validate_receiving_base_plate_settings`；此新 API 不認證任何尚未提交的板件來源，不變更 shrink、BEND、CUTTING、DXF 及 2D／3D 正式幾何。驗收 `tests/test_issue2517_receiving_base_plate_pattern_choices_public_api.py` 對照 owner pattern 集合、GUI 真實函式委派、合法來源原驗證與輸入不變；仍需 exact SHA GitHub 回歸與 Windows UAT。
 
+## [CURRENT] #2517 Box FW 接管 Head/Tail 的兩個 GUI 寫入入口統一公開 Engine 交易（2026-11-07）
+
+- Phase6 Settings Controller 的 `commit_editor_fw_takeover` 與 Fold Designer `settings_application_project_ui_values` 原先先在 GUI 呼叫 `float(value)`，再直接套用舊式 `commit_box_fw` 到 live `_phase6_endcap_fw_state`。原 Engine 遺留函式是就地寫入，沒有物理有限正數硬閘門；布林、NaN／Inf、零或負值可能經 GUI 先轉型而污染 Head/Tail FW，已有 malformed Tail 的來源也可能在 Head 被修改後才拋錯。
+- 新公開 `manufacturing_api.commit_operator_box_fw_takeover(state, value)`（根包 `ae_engine` 同一 callable）由原 `endcap_factory_fold` 負責，先用既有 `normalize_operator_source_dimension(field="fw")` 核實操作員輸入的正值、有限數字及 bool 拒絕，再把原 `commit_box_fw` 在完整 detached state 上預先跑通，最後由同一原 owner 就地提交；保持 Head/Tail live nested dict 身分、FOLLOW_BODY 語意與原有合法輸出完全相同。舊 Engine 低階函式供原有合法相容呼叫繼續保留，不使 GUI 擁有任何新 FW 公式。
+- 兩個 GUI 入口只傳原操作員 FW 及共用狀態給公開 API，無 GUI 先做 `float` 的物理來源轉型；不合法來源不可改變 mode、Head、Tail 或 input snapshot。定向測試涵蓋兩箱型、Engine root/facade/原 owner parity、全套非法值／晚期壞 Tail、同物件 identity、Controller 與 Shell GUI 接線、實體 EndCap FW 投影及 Save→Reload；2D／3D／DXF Product Regression 須驗 exact SHA。此提交不宣稱 Windows R5 或整箱 NC 已驗收。
+
+
+
+
 ## [CURRENT] #2517 FinalScene 實體折後包外量測統一公開 Engine（2026-11-07）
 
 - 原 `phase6_final_scene_projection._phase6_folded_outside_envelope` 為 FinalScene 2D／3D 操作量測的 GUI 相容入口，直接匯入 `ae_engine.display_dimensions.folded_outside_envelope`。該內部 owner 根據**已成形實體三角網格與板厚**回傳 dimensions/world bounds；這是物理尺寸 readback，不可由 GUI 再算一套，也不得回寫原 Fold material `len`、BEND 或正式 CUTTING。

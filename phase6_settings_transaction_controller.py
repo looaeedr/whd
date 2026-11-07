@@ -11,6 +11,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Mapping, MutableMapping
 
+from ae_engine import manufacturing_api
+
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.assembly_joint import (
     set_part_edge_relation,
@@ -37,7 +39,6 @@ from phase6_endcap_semantics import (
     apply_box_assembly_type_to_raw_state,
     assembly_intent_value,
     commit_endcap_bottom_wrap,
-    commit_box_fw as _commit_box_fw_semantics,
     commit_endcap_fw,
     legacy_corner_projection_for_intent,
     normalize_endcap_bottom_wrap_state,
@@ -303,7 +304,9 @@ class Phase6SettingsTransactionController:
         return deepcopy(state)
     def commit_editor_fw_takeover(self, value: object) -> dict[str, object]:
         """Route explicit editor box-FW takeover through EndCap semantic authority."""
-        _commit_box_fw_semantics(self._endcap_fw_state, float(value))
+        manufacturing_api.commit_operator_box_fw_takeover(
+            self._endcap_fw_state, value,
+        )
         self._input_snapshot["endcap_fw"] = deepcopy(self._endcap_fw_state)
         return deepcopy(self._endcap_fw_state)
 
