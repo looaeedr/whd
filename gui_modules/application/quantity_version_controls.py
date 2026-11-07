@@ -28,9 +28,10 @@ class QuantityVersionControls:
             selected = payload["selected_version_id"]
             self.versions.selection_set(selected)
             self.versions.focus(selected)
-            row = next(row for row in rows if row["version_id"] == selected)
-            self.count_var.set(str(row["piece_count"]))
-            self.totals_var.set(f"版本數：{len(rows)}    總件數：{sum(row['piece_count'] for row in rows)}")
+            self.count_var.set(str(payload["selected_piece_count"]))
+            self.totals_var.set(
+                f'版本數：{payload["version_count"]}    總件數：{payload["total_piece_count"]}'
+            )
         finally:
             self.refreshing = False
 
@@ -47,7 +48,7 @@ class QuantityVersionControls:
 
     def delete(self):
         payload = self.ports["snapshot"]()
-        if len(payload["versions"]) == 1:
+        if not payload["can_delete_selected"]:
             messagebox.showinfo("孔型版本", "至少保留一個孔型版本", parent=self.frame)
             return False
         confirmed = messagebox.askyesno("刪除孔型版本", "刪除目前選取的孔型版本？", parent=self.frame)
