@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Corner Data 後面板形式編輯資格統一由公開 Engine Family／Topology 判斷（2026-11-07）
+
+- 原 `phase6_corner_data_view_adapter.Phase6CornerDataViewAdapter.back_panel_mode_is_applicable` 自行以選取 `box_body:back`、字串「受電箱」、以及 GUI 傳入的 `THREE_PIECE_SIDE_BACK_SPLIT` 來決定是否顯示後面板形式控制。這屬於 Family／實體板件／箱身組合拓樸資格，不是畫面規則。
+- 唯一 Engine owner `ae_engine.cabinet_types.policy.corner_data_back_panel_mode_applicable(source, structure_state, *, selected_part_key)` 使用既有 Family Registry canonical 名稱及 `box_body_structure_state.normalize_box_body_structure_state` 和 `BoxBodyStructureType` 決定是否適用；`manufacturing_api.operator_corner_data_back_panel_mode_applicable` 與根包 `ae_engine` 匯出同一函式。無效的結構輸入／板件身分型別明確拒絕；不對自訂或金庫型開放受電箱後板控制。
+- `fold_designer_composition_assembly_corner` 只轉送原始操作者來源、Engine 已解析結構與所選板件，View Adapter 只依 bool 顯示／隱藏。新測試覆蓋受電箱別名、非 Receiving Family、非背板與非三片拓樸、非法資料來源原子拒絕、公開 API 同一 callable 與 GUI 真委派。本批不改板件/尺寸/孔位/CUTTING/BEND/FinalScene、BackPanelMode Save→Reload、2D／3D／DXF 認證；完整 CI 與 Windows UAT 另驗。
+
 ## [CURRENT] #2517 Fold Designer 截角選項清單只消費公開 Engine Catalog（2026-11-07）
 
 - 原 `fold_designer_bridge` 直接從私有 `sheetmetal_geometry.EDITABLE_CORNER_TYPE_IDS` 與 `CORNER_TYPE_LABELS` 複製製造可編輯的截角型式 ID／名稱清單；這應由既有 Engine `cabinet_model_choices.project_operator_corner_selection_catalog` 決定，而不是 GUI 自建 Policy。
