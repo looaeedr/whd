@@ -6,6 +6,7 @@ or invent a second Door cell/part identity during an edit.
 from __future__ import annotations
 
 import ast
+import json
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
@@ -227,11 +228,16 @@ def test_real_project_save_reload_preserves_committed_operator_inner_door_source
     })
     reloaded = project.read_project(target)["snapshot"]
     assert source == original
-    # Receiving v2 stores per-Bay Door authority; root inner_doors is a
-    # transient compatibility alias that must not survive project write.
-    assert "inner_doors" not in reloaded
+    # Receiving v2 disk JSON retains only per-Bay Door authority. The API's
+    # read_project result may then project a root alias for live GUI consumers.
+    persisted = json.loads(target.read_text(encoding="utf-8"))["snapshot"]
+    assert "inner_doors" not in persisted
+    disk_rows = persisted["receiving_layout"]["sets"][0]["bays"][0]["door_state"]["inner_doors"]
     bay = reloaded["receiving_layout"]["sets"][0]["bays"][0]
     saved_rows = bay["door_state"]["inner_doors"]
+    assert saved_rows == disk_rows
+    if "inner_doors" in reloaded:
+        assert reloaded["inner_doors"] == saved_rows
     assert saved_rows[0]["stable_id"] == rows[0]["stable_id"]
     assert saved_rows[0]["cell_key"] == "0:0"
     assert saved_rows[0]["inward_offset_mm"] == 0.0
