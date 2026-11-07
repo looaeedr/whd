@@ -275,6 +275,7 @@ from .corner_dimension_projection import (
 )
 from .physical_sheet_editor_context import (
     PhysicalSheetEditorContext, resolve_physical_sheet_editor_context,
+    propose_operator_physical_sheet_hole_features,
 )
 from .indicator_editor_geometry import (
     resolve_indicator_editor_components,
