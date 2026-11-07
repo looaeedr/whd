@@ -10,6 +10,11 @@ whd_schema: WHD_DOC_META_V1
 Use manufacturing_api.update_receiving_joint_alignment_with_affected_ids(layout, *, set_index, joint_index, depth_alignment=None, height_alignment=None), exported identically through root ae_engine. It reuses the existing canonical physical Joint update and returns (detached_layout, changed_joint_stable_ids). A repeated value or a dimension-locked axis is an accepted no-op, returning an empty tuple, not a new dirty source. Bad joint identity, invalid editable-axis direction, or malformed layout fail without changing the caller. GUI uses the Engine-provided IDs for session dirty bookkeeping. Actual Receiving FRONT(+Z) and TOP(+Y) Assembly offsets, 2D/3D and DXF manufacturing qualification are unchanged.
 
 
+
+## #2517 Receiving cross-Set Bay +/- delta operator API (2026-11-07)
+
+`manufacturing_api.resize_receiving_operator_connections_by_delta_with_removed_ids(layout, *, set_index, delta)` is also exported unchanged at the `ae_engine` root. The canonical `receiving_layout` owner validates the physical Set and integer delta, applies the minimum-one-Bay rule, and reuses `resize_receiving_operator_topology_with_removed_ids` to stage one detached candidate, real removed Set/Bay/Joint IDs and an effective-change flag. The GUI only validates operator text and, after full Engine success and confirmed removal, commits canonical layout/protected IDs/current selection together. A failed/declined cross-Set operation must not shift GUI selection. No new physical geometry, NFB/X verification, or DXF release is introduced.
+
 ## #2517 Receiving physical Set +/- operator API (2026-11-07)
 
 ae_engine and ae_engine.manufacturing_api expose the same adjust_receiving_operator_set_count_with_removed_ids(layout, *, delta) callable. The canonical Engine validates the layout, requires a real integer delta, enforces permanent Set1, and delegates actual creation/removal to resize_receiving_operator_topology_with_removed_ids. It returns (detached_layout, removed_Set_Bay_Joint_IDs, changed). GUI must obtain consent for protected deleted identities before accepting the candidate and then update its current selection; invalid or no-op actions leave both the project and selection unchanged. The independent cross-Set +/- Bay operation has a separate owner and is not duplicated here. No DXF manufacturing authority is introduced.

@@ -13,6 +13,13 @@ whd_schema: WHD_DOC_META_V1
 - GUI 只提交操作者方向及目標 joint index，消費 Engine 決定的受影響 ID；有真實變更才更新 layout 與 session dirty，不再由 UI 假定任何點擊都改造 Joint。未觸及 Receiving Bay 包外尺寸、FRONT=+Z／TOP=+Y 3D 座標公式、BEND/CUTTING 或 DXF 製造權限；2D／3D／FinalScene 仍由既有 canonical source 解析。測試核對不可編輯 no-op、重複提交 no-op、真實 Joint ID、非法輸入 failure isolation、Assembly offset 同源及 Project Save→Reload，完整 GitHub exact-SHA regression 尚須驗收。
 
 
+
+## [CURRENT] #2517 Receiving 跨套 +/- 連數必須使用同一公開 Engine 候選，不得先切換 GUI 套數（2026-11-07）
+
+- 原 `ReceivingSwitchProjectionAdapter.resize_connections` 由 GUI 自行 `max(1, current+delta)` 決定實體連數，然後先 `adapter.select_set(index+1)` 再 `set_bay_count`。即使 Engine Family 預設／來源校驗失敗或被保存 Bay 刪除確認拒絕，原 Layout 不變但 GUI `selection` 已移到其他 Set；違反同一操作者動作的全有或全無來源／選取語意。單獨 `set_bay_count` 與 `set_set_count` 已經有保留原子候選的 API，不重做其幾何／孔位。
+- 新增現有 `ae_engine.receiving_layout` 的 `resize_receiving_operator_connections_by_delta_with_removed_ids(layout, *, set_index, delta)`，由 Engine 嚴查真實零基 Set／整數 delta、沿 canonical Layout 算新連數（最少一連）、委派既有 `resize_receiving_operator_topology_with_removed_ids` 原子確認真實刪除 Set／Bay／Joint ID，回傳 `(detached_candidate, removed_ids, changed)`。No-op 的候選仍 detached 且不遷移 GUI 選取；原非法 Layout、無效增減、Family 預設拒絕不更動輸入。
+- `ReceivingSetBayAdapter.resize_connections` 先讀完整 Engine 候選，必要時詢問原保存／dirty 刪除確認，全部合法才更新 layout、protected IDs 與一次性 Set／Bay selection；`ReceivingSwitchProjectionAdapter.resize_connections` 只轉交操作者數字，不自行算連數、也不先選 Set。原絕對連數 API 與其他 GUI 入口相容。這是操作交易與實體身分保護，**不**改 Family W/H/D、NFB、AssemblyJoint、PartSpec、FinalScene、2D／3D／DXF 出圖，也不授予新製造資格。測試 `tests/test_issue2517_receiving_operator_delta_resize_public_api.py` 驗證 Engine parity、合法舊文字操作、跨套取消／Engine failure 不改 Layout/selection/dirty、被刪除真實 IDs、原 UI 傳遞；完整回歸依 GitHub exact-head CI。
+
 ## [CURRENT] #2517 Receiving 實體 +套／−套改為公開 Engine Set 數量交易（2026-11-07）
 
 - 舊 ReceivingSwitchProjectionAdapter.add_layer/remove_layer 在 GUI 使用 len(layout["sets"]) +/- 1 直接推導正式物理 Set 數量、最低 Set1 限制，再叫絕對數量 Engine API。這項正式 Set/Bay/Joint 拓樸規則應由 Engine 決定，GUI 只提交 +/- 操作及確認被移除的已保存來源。

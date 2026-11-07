@@ -1258,6 +1258,32 @@ def adjust_receiving_operator_set_count_with_removed_ids(layout, *, delta):
     return candidate, removed, True
 
 
+def resize_receiving_operator_connections_by_delta_with_removed_ids(
+    layout, *, set_index, delta,
+):
+    """Stage a +/- Bay operator click and exact removed physical IDs atomically.
+
+    The delta, minimum-one-Bay rule and effective change belong to the Engine
+    topology owner. A rejected source/Family default leaves selection,
+    protected IDs and the original saved Layout entirely to its caller.
+    This reuses the existing absolute-size transaction and never substitutes
+    GUI-derived manufacturing identities or copies of physical geometry.
+    """
+    if type(set_index) is not int:
+        raise ValueError("Receiving Set index must be an integer")
+    if type(delta) is not int:
+        raise ValueError("Receiving Bay delta must be an integer")
+    original = normalize_receiving_layout(layout)
+    if set_index < 0 or set_index >= len(original["sets"]):
+        raise IndexError("Receiving Set index out of range")
+    current = len(original["sets"][set_index]["bays"])
+    wanted = max(1, current + delta)
+    candidate, removed = resize_receiving_operator_topology_with_removed_ids(
+        original, set_index=set_index, bay_count=wanted,
+    )
+    return candidate, removed, wanted != current
+
+
 def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]:
     """Stable physical Set/Bay/Joint IDs in original canonical saved order."""
     normalized = normalize_receiving_layout(layout)

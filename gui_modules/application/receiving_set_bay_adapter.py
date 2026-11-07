@@ -196,6 +196,26 @@ class ReceivingSetBayAdapter:
         )
         self._selection = ReceivingSelection(set_index=set_index, bay_index=bay_index)
 
+    def resize_connections(self, set_index: int, delta: int) -> bool:
+        """Stage cross-Set +/- via Engine; commit selection only on approval."""
+        index = _operator_integer(set_index, "Set index")
+        step = _operator_integer(delta, "Bay delta")
+        candidate, removed, changed = (
+            manufacturing_api.resize_receiving_operator_connections_by_delta_with_removed_ids(
+                self._layout, set_index=index, delta=step,
+            )
+        )
+        if not changed:
+            return False
+        # A source failure or denied removal must preserve the *previous*
+        # visible selection as well as the exact protected physical IDs.
+        self._confirm_if_required(removed)
+        self._layout = candidate
+        self._persisted_ids.difference_update(removed)
+        self._session_dirty_ids.difference_update(removed)
+        self._selection = ReceivingSelection(set_index=index, bay_index=0)
+        return True
+
     def apply_dimensions_to_bays(self, set_index, bay_indices, *, width, height, depth, expected_count):
         """Forward the operator's highlighted dimensions to canonical Engine."""
         candidate, changed_ids = manufacturing_api.apply_receiving_bay_dimensions(
@@ -495,13 +515,6 @@ class ReceivingSwitchProjectionAdapter:
         return self.adapter.apply_set_delta(-1)
 
     def resize_connections(self, index, delta):
-        # Validate both operator inputs before selecting or resizing any Bay.
-        index = _operator_integer(index, "Set index")
-        delta = _operator_integer(delta, "Bay delta")
-        current = self.connection_count(index)
-        wanted = max(1, current + delta)
-        if wanted == current:
-            return False
-        self.adapter.select_set(index + 1)
-        self.adapter.set_bay_count(wanted)
-        return True
+        # The Engine determines the effective topology and removed physical IDs.
+        # The GUI keeps its previous selection until validation and approval.
+        return self.adapter.resize_connections(index, delta)
