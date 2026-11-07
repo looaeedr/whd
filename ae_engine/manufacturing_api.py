@@ -1912,10 +1912,23 @@ from .operator_fixed_corner_summary import project_operator_fixed_corner_summary
 
 # #2517: GUI baseline labeling and quantity-export source validation must
 # pass through the existing public Engine entrypoint (not internal imports).
-def is_unknown_operator_model(model_name):
-    """Legacy custom-model selector for read-only baseline panel routing."""
-    from .corner_type_ui import is_unknown_model
-    return is_unknown_model(model_name)
+from .corner_type_ui import (
+    CUSTOM_MODEL_NAME as operator_default_custom_model_name,
+    is_unknown_model as _is_unknown_model,
+)
+
+
+def is_unknown_operator_model(model_name, *, explicit_unknown_value=None):
+    """Read-only custom baseline identity, including a legacy saved alias.
+
+    The normal custom names come from the original CornerType Engine owner.
+    A saved project may additionally nominate one explicit custom display
+    value. Comparing it here prevents GUI clients from independently deciding
+    whether manual CornerType editing is permitted.
+    """
+    text = str(model_name or "").strip()
+    explicit = str(explicit_unknown_value or "").strip()
+    return bool(_is_unknown_model(text) or (explicit and text == explicit))
 
 
 def require_valid_operator_quantity_features(snapshot):
