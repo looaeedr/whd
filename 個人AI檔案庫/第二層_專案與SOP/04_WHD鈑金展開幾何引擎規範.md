@@ -861,6 +861,12 @@ whd_schema: WHD_DOC_META_V1
 - `phase6_project_file` 原有 `_encode/_decode/_decode_feature/_as_vec2` 全部以**原語意**搬到 `ae_engine.project_feature_codec`，透過 `manufacturing_api.encode_project_value`、`decode_project_value`、`decode_project_feature`、`project_vec2_from_raw` 公開；舊 GUI 名稱僅是相同物件 aliases，GUI 只操作 FilePath/JSON 文字傳輸與 Windows 檔案關聯。Circle/Rect/Profile Feature 與 Vec2 的反序列化和 Anchor/offset/source_params/layered_profiles 語意不再由 GUI 定義。
 - 原 `.p6fold` `__phase6_type__` wire 與既有專案 schema、Receiving/Vault 來源權威和 `project_operator_project_for_write/read` 的 Save→Reload 檢核保持完全相容；沒有從預覽重建未驗證 Feature，也未增加外部製造認證或修改物理公式。新測試 `tests/test_issue2517_project_feature_codec_engine_api.py` 與既有專案存讀整合回歸證明 UI/headless 同源及無逆向依賴；#2517 仍 OPEN。
 
+## [CURRENT] #2517 Fold Designer 保存實體 Workspace 清單／有效選取須由公開 Engine 同次投影（2026-11-07）
+
+- 原 `gui_modules/application/fold_designer_snapshot_projection._snapshot_workspace_state` 即使從正式 Workspace Controller 取得已確認的 `current_existing_parts`，仍在 GUI 硬寫七種板件順序，並用 GUI 條件決定 `active_part` 不存在時改選第一張板。這兩份結果直接寫入 `.p6fold`，涉及實體板件保存身份，不得再由 GUI 自行維持第二份製造板件名單規則。
+- 在原 `ae_engine.workspace_state` canonical `PART_ORDER`／`normalize_existing_parts`／`_repair_active` owner 新增純函式 `project_operator_fold_designer_workspace_presence(current_existing_parts, workspace_existing_parts, active_part)`，由實際 present IDs 與已提交 Workspace 的動態板件順序構成 immutable `OperatorWorkspaceSnapshotPresence(existing_parts, active_part)`。已知箱身／頭／尾／門／底板／指示燈板按原 Engine 順序，確實存在的自訂／衍生板依已提交順序排列；缺席／無效選取依原儲存規則回退第一張實體板。來源不是板件序列或包含非法空 Key 必須拒絕，不修改原資料，也不替無來源的候選創建正式加工資格。
+- `manufacturing_api` 和根包 `ae_engine` 公開原 owner 同一 callable／結果型別；GUI 只提交 Workspace 來源、消費結果寫入 `snapshot["existing_parts"]` 與 `snapshot["active_part"]`，原 AssemblyJoint 快照和 Feature 保存順序沿用。回歸 `tests/test_issue2517_fold_designer_saved_presence_public_api.py` 驗 Root／Facade 同一 owner、標準與動態板件的身份排序、無效或缺席 selection、非法來源不可部分提交、真實 Fold Designer snapshot 接線與 `.p6fold` Save→Reload。沒有新增板件／Family／Hole／CUTTING／BEND／FinalScene／DXF 製造權限；完整 GitHub exact-SHA Regression 及 Windows UAT 仍按真實執行。
+
 ## [CURRENT] #2517 Main／Designer 共享實體 Workspace 狀態由 Engine 公開 API 單獨擁有（2026-11-03）
 
 - 原 GUI `phase6_workspace_state.SharedWorkspaceState`、`normalize_existing_parts`、`MANDATORY_PART`、`PART_ORDER`、`ACTIVE_REPAIR_POLICIES` 及 active-part 修復判定移入 `ae_engine.workspace_state`，透過 `manufacturing_api` 公開；舊 `phase6_workspace_state.py` 只保留相容 alias，不能維持第二份物理清單／CustomPart metadata／Profile stash 邏輯。

@@ -126,6 +126,8 @@ from .workspace_state import (
     MANDATORY_PART, PART_ORDER, ACTIVE_REPAIR_POLICIES,
     normalize_existing_parts, _repair_active as repair_workspace_active_part,
     SharedWorkspaceState,
+    OperatorWorkspaceSnapshotPresence,
+    project_operator_fold_designer_workspace_presence,
 )
 from .receiving_mode_session import (
     DEFAULT_OPERATOR_EXISTING_PARTS, fresh_receiving_mode, ReceivingModeSession,
