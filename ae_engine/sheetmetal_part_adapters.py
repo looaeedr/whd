@@ -621,6 +621,19 @@ RECEIVING_BASE_PATTERNS = frozenset((
 ))
 
 
+def project_operator_receiving_base_plate_pattern_choices() -> tuple[tuple[str, str], ...]:
+    """Project the exact existing physical BasePlate patterns in display order.
+
+    The role keys are semantic UI identity, never manufacturing dimensions.
+    Only the canonical builder constants may define the persisted pattern IDs.
+    """
+    return (
+        ("left", RECEIVING_BASE_PATTERN_LEFT),
+        ("center", RECEIVING_BASE_PATTERN_CENTER),
+        ("right", RECEIVING_BASE_PATTERN_RIGHT),
+    )
+
+
 def build_receiving_base_plate_result(
     *, w, h, t, shrink_top, shrink_bottom, shrink_left, shrink_right,
     bend, pattern, nfb_depth_pair_mm=None,

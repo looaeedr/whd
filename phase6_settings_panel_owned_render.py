@@ -5,6 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
+from ae_engine import manufacturing_api
 from whd_theme import WHD_SEMANTIC_COLORS
 from phase6_settings_panel_primitives import (
     SettingsPanelExtensionResult,
@@ -419,12 +420,6 @@ class Phase6SettingsPanelOwnedRenderMixin:
 
     def _render_owned_receiving_base_plate(self, parent, start_row, projection, state):
         """Receiving-only operator choice for the EXISTING physical Base Plate."""
-        from ae_engine.sheetmetal_part_adapters import (
-            RECEIVING_BASE_PATTERN_LEFT,
-            RECEIVING_BASE_PATTERN_CENTER,
-            RECEIVING_BASE_PATTERN_RIGHT,
-        )
-
         frame = ttk.LabelFrame(parent, text="受電箱實體底板選型", padding=5)
         frame.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
         values = dict(projection.get("values") or {})
@@ -437,10 +432,14 @@ class Phase6SettingsPanelOwnedRenderMixin:
         ).grid(
             row=0, column=0, columnspan=3, sticky="w"
         )
-        choices = (
-            ("左片：上下折彎", RECEIVING_BASE_PATTERN_LEFT),
-            ("中片：上下＋雙側折彎", RECEIVING_BASE_PATTERN_CENTER),
-            ("右片：上下折彎", RECEIVING_BASE_PATTERN_RIGHT),
+        display_labels = {
+            "left": "左片：上下折彎",
+            "center": "中片：上下＋雙側折彎",
+            "right": "右片：上下折彎",
+        }
+        choices = tuple(
+            (display_labels[role], pattern)
+            for role, pattern in manufacturing_api.project_operator_receiving_base_plate_pattern_choices()
         )
         for index, (label, value) in enumerate(choices):
             ttk.Radiobutton(
