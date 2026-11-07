@@ -81,3 +81,36 @@ def project_operator_corner_selection_catalog(
             (name for name in models if is_unknown_model(name)), "自訂"
         ),
     )
+
+
+@dataclass(frozen=True)
+class OperatorCornerPartEditability:
+    """Engine eligibility for physical CornerType and parameter controls."""
+
+    type_editable: bool
+    parameters_unlockable: bool
+
+
+def project_operator_corner_part_editability(
+    part_key: str, *, model_corner_type_editable: bool,
+) -> OperatorCornerPartEditability:
+    """Project the established Fold Designer per-part Corner edit policy.
+
+    The caller supplies the already validated model-editable capability, not a
+    new GUI-side Family formula.  The transient parameter-lock toggle remains
+    a UI concern; this projection decides only whether a physical part may
+    offer that toggle or accept a type-selection action.
+    """
+    if not isinstance(part_key, str):
+        raise ValueError("Corner physical part key must be text")
+    if type(model_corner_type_editable) is not bool:
+        raise ValueError("Corner model editability must be boolean")
+    fixed_parts = {"indicator_box", "indicator_door"}
+    return OperatorCornerPartEditability(
+        type_editable=(
+            model_corner_type_editable and part_key not in fixed_parts
+        ),
+        parameters_unlockable=part_key not in {
+            "global", "box_body", *fixed_parts,
+        },
+    )

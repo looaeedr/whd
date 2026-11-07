@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 手動截角型式／參數解鎖實體資格改由公開 Engine（2026-11-07）
+
+- 原 `fold_designer_bridge._phase6_corner_type_editable` 及 `_phase6_corner_parameters_unlockable` 在 GUI 直接硬編指示燈盒／小門／箱身／global 這些實體或上下文不能編輯截角型式／解鎖參數的機械資格；設定頁顯示與 Registry 提交 guard 都從這兩個舊函式讀取。已確認模型是否為自訂的來源本來由 `manufacturing_api.is_unknown_operator_model` 提供，不得在 GUI 另算 Family。
+- 公開 Engine `ae_engine.cabinet_model_choices.project_operator_corner_part_editability(part_key, *, model_corner_type_editable)` 以已解析的型號可編輯布林及實體 part key 回傳 immutable `OperatorCornerPartEditability(type_editable, parameters_unlockable)`，`manufacturing_api` 與根包匯出同一 callable；對非法 part key 或非布林來源 fail closed，合法舊 Part key 結果保持既有策略。
+- Bridge 的兩個相容函式只委派這個 Engine API；`_phase6_parameters_unlocked` 是 3D 畫面一次共用的暫時操作鎖，仍由 GUI 操作，不是製造幾何或製造許可。既有 Engine `commit_corner_type/commit_corner_parameters`、CornerState／PartSpec／Registry／2D／3D／DXF 來源和 Save→Reload 格式都不修改；測試核對根包/facade/owner identity、兩型號能力、各實體與錯誤來源、GUI 真委派及暫時鎖語意。仍須當次 exact SHA 完整 GitHub CI。
+
 ## [CURRENT] #2517 Fold Designer CornerType Payload 選片／Family 補償統一公開 Engine API（2026-11-07）
 
 - 原 `gui_modules/application/fold_designer_manufacturing_projection.py::_payload_policy` 在 GUI 先呼叫公開 `corner_policy_from_payload`，缺角又自行判定 `not unknown` 決定是否附 `known_family` 取 Certified Registry，再個別套用 `apply_cabinet_family_endcap_policy`。雖然每個計算都在 Engine，但最後採用哪個製造截角政策仍由 GUI 分支，不符 GUI 只傳輸來源的硬性權責。

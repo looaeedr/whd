@@ -118,6 +118,7 @@ from .cabinet_family_model_transition import (
 from .cabinet_model_choices import (
     list_cabinet_model_choices, OperatorCornerSelectionCatalog,
     project_operator_corner_selection_catalog,
+    OperatorCornerPartEditability, project_operator_corner_part_editability,
 )
 from .operator_quantity_manufacturing import (
     build_operator_quantity_manufacturing_requests,
