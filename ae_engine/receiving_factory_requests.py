@@ -576,6 +576,13 @@ def build_receiving_factory_confirmed_parts(
     # Force the BoxBody owner to consume only source-confirmed sheets even
     # when a legacy saved snapshot contained extra, untrusted physical data.
     body_snapshot = {**values, "physical_piece_features": confirmed_body_pieces}
+    if confirmation == "fresh_family_confirmed":
+        # Fresh defaults contain a nominal one-Bay Receiving Layout whose
+        # dimensions are intentionally independent of the confirmed original
+        # W/H/D/T. It is NOT an operator-confirmed assembly topology, and
+        # must not be used to classify physical side-lock participants.
+        # Genuine saved Set/Bay snapshots retain their exact layout/selection.
+        body_snapshot.pop("receiving_layout", None)
     body = build_box_body_operator_part_spec(
         values, model_name=_FAMILY,
         face_features=confirmed_body_faces,

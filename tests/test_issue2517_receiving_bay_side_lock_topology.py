@@ -136,6 +136,19 @@ def test_real_bay_side_cutting_and_independent_baseline_layers_reopen(
     assert source == original
 
 
+def test_fresh_family_nondefault_dimensions_never_borrow_nominal_bay_side_locks():
+    dimensions = {"w": 920.0, "h": 1770.0, "d": 410.0, "t": 2.5}
+    body = dict(api.build_receiving_factory_confirmed_parts(
+        dimensions, confirmation="fresh_family_confirmed",
+    ))["box_body"]
+    assert (body.width, body.height, body.depth, body.thickness) == (
+        920.0, 1770.0, 410.0, 2.5,
+    )
+    assert body.receiving_side_lock_participation is None
+    assert not _lock_face_features(body, "left")
+    assert not _lock_face_features(body, "right")
+
+
 def test_each_set_uses_its_own_first_and_last_bay_not_global_panel_number():
     layout = _layout(3)
     layout = resize_receiving_sets(layout, set_count=2)
