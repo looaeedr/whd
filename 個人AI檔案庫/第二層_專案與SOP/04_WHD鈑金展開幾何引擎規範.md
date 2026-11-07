@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+
+## [CURRENT] #2517 2D 基準來源字串與封頭尾自訂模型判斷統一公開 Engine（2026-11-07）
+
+- 原 `gui_modules/application/render_snapshots.py` 仍透過 `ae_engine.ae` 私有匯入查指示燈盒、門格、箱身基準狀態，並直接匯入內部 `corner_type_ui.is_unknown_model` 決定 EndCap 自訂預覽標籤。即使屬只讀顯示，基準檔是否存在不能由 GUI 自己判斷或默認為已確認加工來源。
+- 在既有 `manufacturing_api` 直接公開 **原 callable** `operator_indicator_shared_baseline_source_label`、`operator_baseline_source_label`，保留已有 `operator_box_body_baseline_source_label` 及 `is_unknown_operator_model`；根包 `ae_engine` 同步輸出這四個 readback API。GUI 僅轉交原參數並顯示原輸出，沒有複製基準檔探測、Family 規則或任何孔位／Fold／CUTTING／DXF 認證。
+- `tests/test_issue2517_render_baseline_labels_public_api.py` 驗證原 Engine owner callable identity、缺基準檔不造假來源、Indicator／DoorGrid／BoxBody／EndCap 實際 GUI snapshot 呼叫、私有匯入消除。屬 2D status only：Save→Reload／2D／3D／DXF 原物理來源不變，仍依 exact HEAD canonical Product Regression 與 Windows UAT 驗收。
+
+
 ## [CURRENT] #2517 箱身面板 2D Feature／CUTTING／MARKING 圖元只由公開 Engine 投影（2026-11-07）
 
 - 原主 GUI `Phase6ApplicationHost._box_body_face_baseline_scene` 從 Engine 取得已解析的 BoxBody 面板孔位後，仍直接呼叫私有 `sheetmetal_drawing.resolved_features_to_primitives` 轉為 2D 圖元。此 Owner 含正式 Circle／Rect／Profile、`BLIND_HOLE` 中心線、`CUTTING` 主輪廓、外部 DXF process layers 與避免重複切線的語意；GUI 不可重算或默默遺漏。

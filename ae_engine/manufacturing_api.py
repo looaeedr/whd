@@ -2597,6 +2597,8 @@ def project_operator_box_body_baseline_face_features(
 
 # Textual source status is also an Engine projection, not a GUI ae call.
 operator_box_body_baseline_source_label = ae.box_body_baseline_source_label
+operator_indicator_shared_baseline_source_label = ae.indicator_shared_baseline_source_label
+operator_baseline_source_label = ae.baseline_source_label
 
 
 # #2517 public copy-on-write candidate and NFB draft edit facade.

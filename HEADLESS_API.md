@@ -5,6 +5,12 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Read-only operator baseline source labels via public Engine (2026-11-07)
+
+`manufacturing_api.operator_indicator_shared_baseline_source_label(filename)` and `operator_baseline_source_label(model_name, filename)` directly alias the existing `ae.indicator_shared_baseline_source_label` / `ae.baseline_source_label` Engine owners. Together with existing `operator_box_body_baseline_source_label(model_name)` and `is_unknown_operator_model(model_name)`, all four are exported by the root `ae_engine`. Main GUI `render_snapshots.py` uses these read-only Engine results for Indicator Box, Door-grid, BoxBody and EndCap display labels. A missing baseline stays missing, and a label is never a proof of CUTTING, DXF or certified manufacturing release. Test: `tests/test_issue2517_render_baseline_labels_public_api.py`.
+
+
+
 ## #2517 BoxBody resolved feature drawing through public Engine (2026-11-07)
 
 `manufacturing_api.project_operator_resolved_feature_drawing_primitives(resolved_features)` (also `ae_engine.project_operator_resolved_feature_drawing_primitives`) is the exact same original `sheetmetal_drawing.resolved_features_to_primitives` callable. The main GUI's BoxBody face baseline 2D preview delegates resolved physical features to this public Engine projection and only places returned Circle/Rect/Profile drawing primitives in a display `DrawingScene`. The existing owner retains BLIND_HOLE centerlines, primary CUTTING, MARKING and FROM_DXF process-layer suppression semantics. This read-only API adds no verified CUTTING or DXF manufacturing release. Tests: `tests/test_issue2517_box_body_resolved_primitives_public_api.py`.

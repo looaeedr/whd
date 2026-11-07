@@ -5,9 +5,7 @@ host-owned state and host-owned T7 authority into immutable presentation payload
 consumed by gui_modules.rendering.
 """
 
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.corner_type_ui import is_unknown_model
 
 
 def _collect_live_indicator_groups(layer_var, group_vars, *, label):
@@ -45,7 +43,7 @@ def indicator_box_render_snapshot(host, val):
         "render_data": render_data,
         "bounds": bounds,
         "layer_groups": layer_groups,
-        "baseline_label": ae.indicator_shared_baseline_source_label("盒子.dxf"),
+        "baseline_label": manufacturing_api.operator_indicator_shared_baseline_source_label("盒子.dxf"),
     }
 
 
@@ -119,7 +117,7 @@ def door_layout_overview_snapshot(host, render_data_by_part_key=None):
         "val": val,
         "selected_key": host.door_layout_selected_var.get(),
         "cell_payloads": cell_payloads,
-        "baseline_status": ae.baseline_source_label(baseline_model, "門.dxf"),
+        "baseline_status": manufacturing_api.operator_baseline_source_label(baseline_model, "門.dxf"),
     }
 
 
@@ -316,7 +314,7 @@ def box_body_render_snapshot(host, val, *, face_dimensions_fn=None):
         "bounds": bounds,
         "contexts": contexts,
         "selected_face": host.box_body_face_selected_var.get(),
-        "baseline_status": ae.box_body_baseline_source_label(baseline),
+        "baseline_status": manufacturing_api.operator_box_body_baseline_source_label(baseline),
         "dimensions": (
             face_dimensions_fn or manufacturing_api.project_operator_box_body_face_dimensions
         )(w=val["w"], h=val["h"], d=val["d"]),
@@ -330,7 +328,7 @@ def end_cap_render_snapshot(host, val, *, part_label="封頭/尾", is_tail=False
     context = host._manufacturing_context(draw_stock=False)
     render_data = host._authoritative_render_data(spec, context)
     bounds = tuple(float(v) for v in render_data.material.bounds)
-    if is_unknown_model(host.baseline_var.get()):
+    if manufacturing_api.is_unknown_operator_model(host.baseline_var.get()):
         baseline_hint = " (自訂 / Final Part Geometry)"
     elif baseline:
         baseline_hint = f" ({baseline} Final Part Geometry)"
