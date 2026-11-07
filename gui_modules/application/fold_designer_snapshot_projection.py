@@ -36,10 +36,10 @@ def _snapshot_base_state(self):
     defaults = manufacturing_api.project_operator_fold_designer_snapshot_numeric_defaults()
 
     workspace_active = str(self.workspace_controller.active_part or "").strip()
+    # Physical child-sheet identity is Engine policy, never a GUI prefix rule.
     box_body_active_piece = (
         workspace_active
-        if workspace_active.startswith("box_body:")
-        and not workspace_active.startswith("box_body:divider:")
+        if manufacturing_api.is_box_body_physical_piece_key(workspace_active)
         else None
     )
     snapshot = {
@@ -144,7 +144,7 @@ def _snapshot_base_state(self):
     ))
     return snapshot
 
-def _snapshot_workspace_state(self, snapshot):
+def _snapshot_workspace_state(self, snapshot, *, defer_joint_commit=False):
     """Project authoritative WorkspaceController identity/features into snapshot."""
     box_body_profile = self.workspace_controller.box_body_profile()
     if box_body_profile:
@@ -180,7 +180,10 @@ def _snapshot_workspace_state(self, snapshot):
         existing_parts=ordered,
         assembly_type=snapshot["assembly_type"],
     )
-    self.assembly_joint_state = joint_state
+    # A standalone workspace readback retains its historical commit behavior.
+    # Full project composition defers this effect until every saved field passes.
+    if not defer_joint_commit:
+        self.assembly_joint_state = joint_state
     snapshot["assembly_joint_schema_version"] = joint_state["assembly_joint_schema_version"]
     snapshot["assembly_joints"] = deepcopy(joint_state["assembly_joints"])
 
@@ -194,6 +197,8 @@ def _snapshot_workspace_state(self, snapshot):
             for face, features in self.box_body_face_features.items()
         }
     }
+    if defer_joint_commit:
+        return committed_profiles, joint_state
     return committed_profiles
 
 def _snapshot_part_features(self, snapshot):
@@ -255,8 +260,12 @@ def _snapshot_part_dimensions(self, snapshot):
 def _make_original_fold_designer_snapshot(self):
     """Compose the existing canonical Fold Designer snapshot from focused projections."""
     snapshot = _snapshot_base_state(self)
-    committed_profiles = _snapshot_workspace_state(self, snapshot)
+    committed_profiles, joint_state = _snapshot_workspace_state(
+        self, snapshot, defer_joint_commit=True,
+    )
     _snapshot_part_dimensions(self, snapshot)
     if committed_profiles:
         snapshot["part_profiles"] = committed_profiles
+    # A failed physical/indicator snapshot must not advance live Joint state.
+    self.assembly_joint_state = joint_state
     return snapshot

@@ -257,7 +257,6 @@ def require_valid_quantity_features(snapshot):
 
 
 
-
 def commit_operator_quantity_version_action(
     snapshot, quantity_model, *, action, version_id, piece_count=None,
     confirmed=False,

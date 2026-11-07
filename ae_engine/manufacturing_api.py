@@ -28,6 +28,7 @@ from typing import Literal, Mapping
 from . import ae
 from .receiving_quantity_allocation import (
     AllocationDraft, validate_quantity_allocation, validate_receiving_candidate_quantity_preview,
+    adjust_receiving_candidate_draft_quantity,
 )
 from .receiving_hole_candidates import (
     role_key as validate_receiving_candidate_role,
