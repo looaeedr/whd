@@ -274,6 +274,32 @@ def family_fixes_box_body_structure(source) -> bool:
     return bool(_call(source, "family_fixes_box_body_structure", False))
 
 
+def corner_data_back_panel_mode_applicable(
+    source, structure_state, *, selected_part_key,
+) -> bool:
+    """Engine-only eligibility for the Receiving physical rear-panel selector.
+
+    This is a read-only Family/Topology projection, not permission to emit a
+    rear-panel DXF.  A malformed structure request must not be mistaken for a
+    valid editable physical part.
+    """
+    from ae_engine.box_body_structure_state import (
+        BoxBodyStructureType, normalize_box_body_structure_state,
+    )
+
+    if not isinstance(structure_state, Mapping):
+        raise ValueError("Corner Data requires a BoxBody structure source")
+    if selected_part_key is not None and not isinstance(selected_part_key, str):
+        raise ValueError("Corner Data physical part key must be text")
+    normalized = normalize_box_body_structure_state(structure_state)
+    return (
+        selected_part_key == "box_body:back"
+        and canonical_family_name(source) == "受電箱"
+        and normalized["active_type"]
+        == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    )
+
+
 def require_implemented_manufacturing_family(source) -> str | None:
     """Reject registered but unimplemented families at the shared export boundary.
 

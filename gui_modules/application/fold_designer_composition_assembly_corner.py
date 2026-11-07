@@ -72,7 +72,6 @@ from phase6_workspace_shell import (
     WorkspaceShellState,
     toggle_fullscreen as workspace_shell_toggle_fullscreen,
 )
-from phase6_box_body_structure import BoxBodyStructureType
 from whd_theme import WHD_THEME
 from phase6_final_scene_contracts import (
     AssemblyScenePart,
@@ -542,15 +541,11 @@ def refresh_corner_data_unfold_view(self, namespace):
 
 def corner_data_back_panel_mode_is_applicable(self, namespace):
     app = self.app
-    required = lambda name: self._required(namespace, name)
-    state = required("_phase6_box_structure_state")(app)
-    return self.corner_data_view().back_panel_mode_is_applicable(
-        getattr(self.corner_data_view(), "selected_part_key", None),
-        family_name=manufacturing_api.operator_canonical_family_name(
-            getattr(app, "_phase6_input_snapshot", {}) or {}
-        ),
-        active_type=state.get("active_type"),
-        three_piece_type=BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value,
+    state = self._required(namespace, "_phase6_box_structure_state")(app)
+    return manufacturing_api.operator_corner_data_back_panel_mode_applicable(
+        getattr(app, "_phase6_input_snapshot", {}) or {},
+        state,
+        selected_part_key=getattr(self.corner_data_view(), "selected_part_key", None),
     )
 
 def refresh_corner_data_back_panel_mode_control(self, namespace):
