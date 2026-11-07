@@ -80,7 +80,7 @@ def test_public_box_body_baseline_scene_matches_original_engine_primitives_and_i
     ("BAD", {"left": []}, ValueError),
     ("left", None, TypeError),
     ("left", {"left": "bad source"}, TypeError),
-    ("left", {"left": [object()]}, TypeError),
+    ("left", {"left": [123]}, TypeError),
 ))
 def test_baseline_scene_bad_identity_or_source_rejects_without_source_mutation(face, faces, error):
     before = deepcopy(faces)
