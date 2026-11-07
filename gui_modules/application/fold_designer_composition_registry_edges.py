@@ -588,13 +588,13 @@ def set_endcap_fw_override(
 def on_endcap_fw_value_selected(
     self, namespace, part_key, value_var
 ):
+    # Pass the raw operator FW to Engine: float(True), NaN and Inf are not
+    # accepted physical source, and a rejected edit never refreshes geometry.
     try:
-        value = float(value_var.get())
+        value = value_var.get()
+        return self.set_endcap_fw_override(namespace, part_key, value)
     except (TypeError, ValueError):
         return None
-    return self.set_endcap_fw_override(
-        namespace, part_key, value
-    )
 
 def on_box_symmetry_changed(self, namespace):
     app = self.app
