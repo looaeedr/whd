@@ -274,6 +274,7 @@ from .corner_dimension_projection import (
 )
 from .physical_sheet_editor_context import (
     PhysicalSheetEditorContext, resolve_physical_sheet_editor_context,
+    propose_operator_physical_sheet_hole_features,
 )
 from .indicator_editor_geometry import (
     resolve_indicator_editor_components,
@@ -469,6 +470,7 @@ from .operator_endcap_blank_projection import (
 )
 from .display_dimensions import (
     resolve_live_operator_finished_dimensions,
+    folded_outside_envelope as project_operator_folded_outside_envelope,
     OperatorDimensionGuidePlan, project_operator_dimension_guides,
 )
 from .live_cabinet_family import resolve_live_cabinet_family

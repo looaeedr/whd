@@ -5,13 +5,26 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
-
 ## [CURRENT] #2517 主 GUI／Fold Designer 箱身 FW 即時修改統一由公開 Engine 四態投影（2026-11-07）
 
 - 原 `gui_modules/application/state_sync.on_main_setting_var_changed` 與 `gui_modules/application/lifecycle._apply_fold_designer_live_settings` 在操作者改箱身邊框寬度 FW 時，仍由 GUI 對封頭／封尾 `endcap_fw_state.setdefault` 自行依 `follow_box` 更新值。這條路徑可能保留已失效的 FOLLOW_HEAD／FOLLOW_TAIL／INDEPENDENT 物理 ownership；原主 GUI 另有明確 `on_fw_selected("z")` 使用 Engine `commit_box_fw` 的一致語意。
 - 新公開 `manufacturing_api.project_operator_box_fw_live_state`（`ae_engine` 根包同函式）先以原 Engine `normalize_operator_source_dimension(field="fw")` 驗證變更前後包外 FW，複製已保存四態來源，**只有 FW 數值實際變動**才委派原 `endcap_factory_fold.commit_box_fw`，讓 BoxBody 重新控制 Head／Tail；相同 FW 的同步回放不得意外重置既有封頭／封尾獨立設定。非法 bool、零、負數、NaN／Inf 或非 Mapping state 一律拒絕且不修改來源。這是既有四態製造來源轉移，沒有另建 FW 補償公式。
 - 主 GUI 與 Fold Designer 的 live commit 均先取得 detached Engine 候選，在既有 `SettingsService.update` 成功且 FW 實際被接受變更後才替換來源並同步 UI。Fold Designer 單次多欄送來非法 FW 時，不阻擋其他合法 Settings 更新。原 `.p6fold` EndCap FW 四態持續由 `normalize_endcap_fw_state`／`resolve_endcap_fw` 重開；單筆有效操作在 GUI／headless Engine 得到相同 Head/Tail FW。現有幾何、2D／3D、DXF、CUTTING 和權限不變；本批需要 exact HEAD Product Regression、GUI API Gate 和 Windows GUI 人工驗收，並不等於 #2517 全面完成。
 
+
+
+
+## [CURRENT] #2517 FinalScene 實體折後包外量測統一公開 Engine（2026-11-07）
+
+- 原 `phase6_final_scene_projection._phase6_folded_outside_envelope` 為 FinalScene 2D／3D 操作量測的 GUI 相容入口，直接匯入 `ae_engine.display_dimensions.folded_outside_envelope`。該內部 owner 根據**已成形實體三角網格與板厚**回傳 dimensions/world bounds；這是物理尺寸 readback，不可由 GUI 再算一套，也不得回寫原 Fold material `len`、BEND 或正式 CUTTING。
+- 公開 `manufacturing_api.project_operator_folded_outside_envelope` 與根包 `ae_engine.project_operator_folded_outside_envelope` 指向原本**同一個 `display_dimensions.folded_outside_envelope` callable**。GUI 只能送 mesh 和原始 T；原封不動沿用有限 world XYZ、完整三角面與合法板厚 fail-closed gate、法向厚度外擴及空網格 `None` 語意。此項為來源量測 API，沒有新尺寸公式或製造認證。
+- 驗收 `tests/test_issue2517_final_scene_folded_envelope_public_api.py` 核對公開 identity、真正 world 三角網格尺寸與 FinalScene GUI 一致、無效 mesh/T 不修改來源及既有 2D/3D finished dimensions readback。完整 GitHub exact-HEAD Product Regression 必須通過，Windows UAT 與 #2517 不因此結案。
+
+## [CURRENT] #2517 一般實體板件 Hole Editor 孔型保存前須經公開 Engine 全量驗證（2026-11-07）
+
+- 原 `gui_modules/application/physical_part_hole_editor.py::open_workspace_sheet_editor.commit` 在獲得引擎核准的 physical sheet editor context 後，仍直接把可變 Hole Editor Feature 草稿 `stash_features` 寫入 workspace，缺少提交**當刻**對整批已編輯孔位的實際物料面重驗；無效 Feature 可能先存成專案來源，直到日後 2D／3D／DXF 再拒絕。
+- 新增 `manufacturing_api.propose_operator_physical_sheet_hole_features(part_key, context, features)`（根包 `ae_engine` 同一 callable）到原 `physical_sheet_editor_context` owner。Engine 的 `PhysicalSheetEditorContext` 保留物理 `part_key` 身分；先驗證 context 真實角色／Features 完整清單，透過原 `legacy_hole_to_feature` 及 `resolve_surface_features` 對全部物料面孔位、形狀輪廓進行原算法檢查。返回 detached、原格式（legacy dict／typed Feature）的完整候選，GUI 只有驗證成功才寫入 workspace；非法資料、錯誤板件、越界一次拒絕，不先寫入任何孔位。
+- 這不是新的孔位公式或製造認證，不修改 `with_physical_sheet_features`、CustomFold PartSpec、CUTTING／BEND／MARKING／DXF Writer。此入口只處理已開啟的實體板件 Hole Editor 提交源，後續 canonical 2D／3D／DXF、Save→Reload、來源授權仍按原 Engine Gate；不能以候選有效取代正式 DXF 加工驗證。測試 `tests/test_issue2517_physical_sheet_hole_commit_public_api.py` 覆蓋 Engine／GUI 同源、兩種 CustomFold 軸、legacy/typed 特徵、非法／越界不改來源和既有 context API。
 
 ## [CURRENT] #2517 Receiving Set/Bay 縮減候選及被移除實體 ID 由公開 Engine 單次交易（2026-11-07）
 
