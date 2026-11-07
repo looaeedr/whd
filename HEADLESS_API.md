@@ -10,6 +10,38 @@ whd_schema: WHD_DOC_META_V1
 The same public callable from ae_engine and ae_engine.manufacturing_api is project_operator_quantity_version_controls(payload). Its source is the original QuantityModel saved payload. The Engine validates all existing version identities and piece counts and projects detached versions, selected_version_id, version_count, total_piece_count, selected_piece_count and can_delete_selected. Both Vault and Receiving Quantity GUI clients only display the projection. All writes still use commit_operator_quantity_version_action; this projection does not create physical Bays, change Feature/BEND geometry, or authorize DXF.
 
 
+## #2517 Receiving inner-door source readback uses the same atomic owner (2026-11-07)
+
+`manufacturing_api.project_operator_receiving_inner_door_cell_source(rows, *, cell_key) -> dict | None`, also publicly exported at root `ae_engine`, selects one operator-staged Receiving Door cell only **after** checking the entire saved source list for malformed rows and duplicate Door-cell/physical stable identities. Returns an isolated copy; absent remains `None`. The main GUI's enabled checkbox and inward mm display consume it, while the preexisting `resolve_operator_receiving_inner_door_inward_offset` owns Family-default and finite saved mm semantics. No NFB feature, CUTTING, BEND or DXF certification is inferred. Regression: `tests/test_issue2517_receiving_inner_door_atomic_source_transactions.py`.
+
+
+
+## #2517 Atomic Receiving inner-door source list updates (2026-11-07)
+
+- `manufacturing_api.apply_operator_receiving_inner_door_presence(family_source, rows, *, cell_key, enabled) -> list[dict]`: Engine validates all saved physical Door cell keys and duplicate part IDs, preserves existing Feature/NFB/source payload, applies the existing canonical per-cell enabled projection, then returns a detached sorted list; invalid input changes nothing.
+- `manufacturing_api.apply_operator_receiving_inner_door_inward_offset(rows, *, cell_key, inward_offset_mm) -> (list[dict], float)`: Engine validates the finite nonnegative physical offset and enabled target, stages the full list, then returns detached rows plus canonical mm. Both functions are exported from root `ae_engine` and replace main GUI private list mutations. This is source staging, not verified NFB hole, CUTTING, BEND or DXF authorization. Tests: `tests/test_issue2517_receiving_inner_door_atomic_source_transactions.py`.
+
+
+
+## #2517 Read-only operator baseline source labels via public Engine (2026-11-07)
+
+`manufacturing_api.operator_indicator_shared_baseline_source_label(filename)` and `operator_baseline_source_label(model_name, filename)` directly alias the existing `ae.indicator_shared_baseline_source_label` / `ae.baseline_source_label` Engine owners. Together with existing `operator_box_body_baseline_source_label(model_name)` and `is_unknown_operator_model(model_name)`, all four are exported by the root `ae_engine`. Main GUI `render_snapshots.py` uses these read-only Engine results for Indicator Box, Door-grid, BoxBody and EndCap display labels. A missing baseline stays missing, and a label is never a proof of CUTTING, DXF or certified manufacturing release. Test: `tests/test_issue2517_render_baseline_labels_public_api.py`.
+
+
+
+## #2517 BoxBody resolved feature drawing through public Engine (2026-11-07)
+
+`manufacturing_api.project_operator_resolved_feature_drawing_primitives(resolved_features)` (also `ae_engine.project_operator_resolved_feature_drawing_primitives`) is the exact same original `sheetmetal_drawing.resolved_features_to_primitives` callable. The main GUI's BoxBody face baseline 2D preview delegates resolved physical features to this public Engine projection and only places returned Circle/Rect/Profile drawing primitives in a display `DrawingScene`. The existing owner retains BLIND_HOLE centerlines, primary CUTTING, MARKING and FROM_DXF process-layer suppression semantics. This read-only API adds no verified CUTTING or DXF manufacturing release. Tests: `tests/test_issue2517_box_body_resolved_primitives_public_api.py`.
+
+
+## #2517 Engineering Drawing annotation-only public projection (2026-11-07)
+
+`manufacturing_api.project_operator_engineering_drawing_annotations(render_data, *, part_key="", char_height=5.0, dimension_offset=15.0, reserved_regions=(), strict=False)` and the `ae_engine` root export reference the exact existing `engineering_drawing.build_engineering_drawing_projection` callable. The primary WHD GUI and its door/indicator/base 2D host plus shared rendering overlay default all use this Engine projection and publicly exposed `manufacturing_api.CanvasTransform`, rather than importing internal modules. Invalid canonical `PartRenderData` fails closed; drawing source primitives stay unchanged. This API is for `DIMENSION/TEXT` annotations only; it never grants CUTTING/BEND, physical-part, DXF or multi-Bay manufacturing authority. See `tests/test_issue2517_operator_engineering_drawing_public_api.py`.
+
+## #2517 Receiving shared-setting physical unlink affected IDs (2026-11-07)
+
+`manufacturing_api.unlink_receiving_shared_setting_with_affected_ids(layout, *, set_index, bay_index, kind)` and the `ae_engine` root expose the same existing Engine-owner transaction. It validates canonical physical Set/Bay identities, derives the pre-unlink linked Bay group solely from the original validated shared `refs`, and delegates the actual copy-on-unlink to `receiving_shared_settings.unlink_setting`. Returns `(detached_layout, affected_stable_ids)`. Already-independent Bays return no IDs; matching values are not evidence of link membership. The GUI applies only changed candidates and marks every original linked physical Bay dirty to preserve operator source/deletion protection. No geometry, NFB or DXF manufacturing certification is implied.
+
 ## #2517 Receiving Joint alignment affected physical IDs (2026-11-07)
 
 Use manufacturing_api.update_receiving_joint_alignment_with_affected_ids(layout, *, set_index, joint_index, depth_alignment=None, height_alignment=None), exported identically through root ae_engine. It reuses the existing canonical physical Joint update and returns (detached_layout, changed_joint_stable_ids). A repeated value or a dimension-locked axis is an accepted no-op, returning an empty tuple, not a new dirty source. Bad joint identity, invalid editable-axis direction, or malformed layout fail without changing the caller. GUI uses the Engine-provided IDs for session dirty bookkeeping. Actual Receiving FRONT(+Z) and TOP(+Y) Assembly offsets, 2D/3D and DXF manufacturing qualification are unchanged.

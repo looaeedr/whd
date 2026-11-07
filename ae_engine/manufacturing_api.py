@@ -43,6 +43,9 @@ from .door_layout_numeric_transitions import (
     DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
 )
 from .dxf_serialization import save_scene_dxf
+from .engineering_drawing import (
+    build_engineering_drawing_projection as project_operator_engineering_drawing_annotations,
+)
 # Operator panel naming: public input boundary, independent of geometry.
 from .panel_naming import normalize_panel_name, set_cabinet_panel_name
 from .panel_dxf_naming import vault_panel_dxf_filename
@@ -123,6 +126,8 @@ from .workspace_state import (
     MANDATORY_PART, PART_ORDER, ACTIVE_REPAIR_POLICIES,
     normalize_existing_parts, _repair_active as repair_workspace_active_part,
     SharedWorkspaceState,
+    OperatorWorkspaceSnapshotPresence,
+    project_operator_fold_designer_workspace_presence,
 )
 from .receiving_mode_session import (
     DEFAULT_OPERATOR_EXISTING_PARTS, fresh_receiving_mode, ReceivingModeSession,
@@ -385,6 +390,9 @@ from .door_indicator_position_transactions import (
 from .sheetmetal_corner_policy import (
     box_body_height_from_corner_policies as project_operator_box_body_finished_height,
     normalize_corner_selection as operator_normalize_corner_selection,
+)
+from .sheetmetal_drawing import (
+    resolved_features_to_primitives as project_operator_resolved_feature_drawing_primitives,
 )
 from .sheetmetal_geometry import (
     EndCapAssemblySemantics,
@@ -1503,6 +1511,9 @@ from .operator_receiving_inner_door_source import (
     normalize_operator_receiving_inner_door_inward_offset,
     resolve_operator_receiving_inner_door_inward_offset,
     project_operator_receiving_inner_door_enabled_source,
+    apply_operator_receiving_inner_door_presence,
+    apply_operator_receiving_inner_door_inward_offset,
+    project_operator_receiving_inner_door_cell_source,
 )
 
 
@@ -1665,6 +1676,13 @@ def project_operator_box_body_face_dimensions(
 from .sheetmetal_part_adapters import (
     door_part_features_to_layout_feature_map as project_operator_door_layout_cell_features_from_parts,
 )
+
+from .operator_legacy_endcap_hole_projection import (
+    project_operator_endcap_legacy_hole_rows,
+)
+
+from .door_layout_feature_projection import project_operator_saved_door_layout_columns
+
 
 def project_fold_designer_snapshot_part_features(
     snapshot, surface_features, door_layout_features,
@@ -2325,6 +2343,7 @@ from .receiving_shared_settings import (
     share_setting_with_affected_ids as share_receiving_shared_setting_with_affected_ids,
     share_and_edit_setting_with_affected_ids as share_and_edit_receiving_shared_setting_with_affected_ids,
     unlink_setting as unlink_receiving_shared_setting,
+    unlink_setting_with_affected_ids as unlink_receiving_shared_setting_with_affected_ids,
 )
 from .receiving_manufacturing_readiness import (
     ReceivingManufacturingFailure, evaluate_receiving_manufacturing_readiness,
@@ -2587,6 +2606,8 @@ def project_operator_box_body_baseline_face_features(
 
 # Textual source status is also an Engine projection, not a GUI ae call.
 operator_box_body_baseline_source_label = ae.box_body_baseline_source_label
+operator_indicator_shared_baseline_source_label = ae.indicator_shared_baseline_source_label
+operator_baseline_source_label = ae.baseline_source_label
 
 
 # #2517 public copy-on-write candidate and NFB draft edit facade.

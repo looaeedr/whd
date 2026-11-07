@@ -30,7 +30,6 @@ from ae_engine import manufacturing_api
 # Legacy GUI import compatibility; all decisions remain in public Engine.
 is_unknown_model = manufacturing_api.is_unknown_operator_model
 assembly_type_from_corner_state = manufacturing_api.operator_assembly_type_from_corner_state
-from ae_engine.engineering_drawing import build_engineering_drawing_projection
 from ae_engine.cabinet_types import (
     policy as cabinet_family_policy,
     resolve_cabinet_type,
@@ -57,7 +56,6 @@ from ae_engine.sheetmetal_geometry import (
 from ae_engine.sheetmetal_features import (
     box_body_face_contexts_from_strip,
     resolve_box_body_face_features,
-    CanvasTransform,
     CircleFeature,
     DoorIndicatorContext,
     RectFeature,
@@ -298,7 +296,7 @@ def _draw_phase6_annotation_projection(
     return _draw_phase6_annotation_projection_impl(
         canvas, render_data, transform,
         part_key=part_key, strict=strict,
-        projection_builder=build_engineering_drawing_projection,
+        projection_builder=manufacturing_api.project_operator_engineering_drawing_annotations,
     )
 
 
@@ -313,7 +311,7 @@ def _phase6_2d_material_viewport(bounds, canvas_width, canvas_height, *, top_gut
                              right_gutter=82.0, bottom_gutter=48.0, left_gutter=48.0):
     kwargs = dict(top_gutter=top_gutter, right_gutter=right_gutter,
                   bottom_gutter=bottom_gutter, left_gutter=left_gutter,
-                  transform_type=CanvasTransform)
+                  transform_type=manufacturing_api.CanvasTransform)
     return _phase6_2d_material_viewport_impl(bounds, canvas_width, canvas_height, **kwargs)
 
 
@@ -456,7 +454,6 @@ from ae_engine.sheetmetal_drawing import (
     CirclePrimitive,
     TextPrimitive,
     DrawingScene,
-    resolved_features_to_primitives,
     mirror_point_y,
 )
 
@@ -1233,7 +1230,7 @@ class Phase6ApplicationHost:
             world_center = Vec2((minx + maxx) / 2.0, (miny + maxy) / 2.0)
             center_x, center_y = transform.world_to_canvas(world_center)
             scaled = transform.scale * zoom
-            transform = CanvasTransform(
+            transform = manufacturing_api.CanvasTransform(
                 scale=scaled,
                 origin_x=center_x - world_center.x * scaled,
                 origin_y=center_y + world_center.y * scaled,
@@ -1317,40 +1314,29 @@ class Phase6ApplicationHost:
         return manufacturing_api.receiving_inner_door_stable_id_for_cell(cell_key)
 
     def _receiving_inner_door_enabled(self, cell_key):
-        key = str(cell_key or "").strip()
-        return any(
-            isinstance(item, dict) and str(item.get("cell_key") or "").strip() == key
-            for item in list(getattr(self, "receiving_inner_doors", []) or [])
-        )
+        # A duplicate/malformed saved physical source must never be hidden by
+        # GUI's first-match selection or silent row filtering.
+        return manufacturing_api.project_operator_receiving_inner_door_cell_source(
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key,
+        ) is not None
 
     def _receiving_inner_door_inward_offset(self, cell_key):
-        key = str(cell_key or "").strip()
-        item = next((
-            item for item in list(getattr(self, "receiving_inner_doors", []) or [])
-            if isinstance(item, dict) and str(item.get("cell_key") or "").strip() == key
-        ), None)
+        item = manufacturing_api.project_operator_receiving_inner_door_cell_source(
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key,
+        )
         return manufacturing_api.resolve_operator_receiving_inner_door_inward_offset(
             {"model": str(self.baseline_var.get() or "").strip()}, item,
         )
 
     def _set_receiving_inner_door_inward_offset(self, cell_key, value):
-        key = str(cell_key or "").strip()
-        offset = manufacturing_api.normalize_operator_receiving_inner_door_inward_offset(
-            value,
+        # GUI commits only the Engine's detached physical-source transaction.
+        rows, offset = manufacturing_api.apply_operator_receiving_inner_door_inward_offset(
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key, inward_offset_mm=value,
         )
-        found = False
-        items = []
-        for raw in list(getattr(self, "receiving_inner_doors", []) or []):
-            if not isinstance(raw, dict):
-                continue
-            item = deepcopy(raw)
-            if str(item.get("cell_key") or "").strip() == key:
-                item["inward_offset_mm"] = offset
-                found = True
-            items.append(item)
-        if not found:
-            raise ValueError(f"door cell has no enabled inner door: {key!r}")
-        self.receiving_inner_doors = items
+        self.receiving_inner_doors = rows
         return offset
 
     def _commit_receiving_inner_door_inward_offset(self, cell_key):
@@ -1384,24 +1370,14 @@ class Phase6ApplicationHost:
         return True
 
     def _set_receiving_inner_door_enabled(self, cell_key, enabled):
-        key = str(cell_key or "").strip()
-        items = [deepcopy(item) for item in list(getattr(self, "receiving_inner_doors", []) or []) if isinstance(item, dict)]
-        existing = next((item for item in items if str(item.get("cell_key") or "").strip() == key), None)
-        items = [item for item in items if str(item.get("cell_key") or "").strip() != key]
-        if bool(enabled):
-            items.append(manufacturing_api.project_operator_receiving_inner_door_enabled_source(
-                {"model": str(self.baseline_var.get() or "").strip()},
-                key, existing=existing,
-            ))
-        def sort_key(item):
-            raw = str(item.get("cell_key") or "")
-            try:
-                return tuple(int(v) for v in raw.split(":", 1))
-            except Exception:
-                return (10**9, 10**9)
-        items.sort(key=sort_key)
-        self.receiving_inner_doors = items
-        return bool(enabled)
+        # Do not filter/sort/commit physical Door identities inside Tk.
+        rows = manufacturing_api.apply_operator_receiving_inner_door_presence(
+            {"model": str(self.baseline_var.get() or "").strip()},
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key, enabled=enabled,
+        )
+        self.receiving_inner_doors = rows
+        return enabled
 
     def _commit_receiving_inner_door_checkbox(self, cell_key):
         key = str(cell_key or "").strip()
@@ -1804,7 +1780,7 @@ class Phase6ApplicationHost:
         if not resolved:
             return None
         scene = DrawingScene()
-        scene.extend(resolved_features_to_primitives(resolved))
+        scene.extend(manufacturing_api.project_operator_resolved_feature_drawing_primitives(resolved))
         return scene
 
     def open_box_body_face_editor(self, face_key):

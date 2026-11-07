@@ -420,3 +420,32 @@ def unlink_setting(layout, *, set_index, bay_index, kind):
     row["values"][ref] = deepcopy(row["values"][old_ref])
     row["refs"][bay_id] = ref
     return normalize_receiving_layout(result)
+
+def unlink_setting_with_affected_ids(layout, *, set_index, bay_index, kind):
+    """Detach an actual linked physical Bay and report its former link group.
+
+    An unlink changes the saved sharing relationship of the selected Bay and
+    every sibling formerly using its reference.  This readback is derived
+    exclusively from validated canonical Engine refs; matching display values
+    do not establish a link.  A Bay already holding an independent ref is a
+    genuine no-op and must not acquire false dirty/edit protection.
+    """
+    from .receiving_layout import normalize_receiving_layout
+
+    original = normalize_receiving_layout(layout)
+    _require_valid_index(set_index, len(original["sets"]), "組選取超出範圍")
+    selected = original["sets"][set_index]
+    _require_valid_index(bay_index, len(selected["bays"]), "連選取超出範圍")
+    settings = normalize_set_settings(selected.get("settings"), selected["bays"])
+    row = settings[kind]
+    bay_id = selected["bays"][bay_index]["stable_id"]
+    old_ref = row["refs"][bay_id]
+    former_linked_ids = tuple(
+        bay["stable_id"] for bay in selected["bays"]
+        if row["refs"][bay["stable_id"]] == old_ref
+    )
+    candidate = unlink_setting(
+        original, set_index=set_index, bay_index=bay_index, kind=kind,
+    )
+    new_ref = candidate["sets"][set_index]["settings"][kind]["refs"][bay_id]
+    return candidate, (former_linked_ids if new_ref != old_ref else ())

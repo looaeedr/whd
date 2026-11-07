@@ -931,8 +931,10 @@ def receiving_settings_ports(self, namespace, set_index):
         commit()
 
     def unlink(kind):
-        adapter.unlink_setting(kind)
+        if not adapter.unlink_setting(kind):
+            return False
         commit()
+        return True
 
     def dimensions(width, height, depth, door_columns=None):
         changes = {"width": width, "height": height, "depth": depth}
