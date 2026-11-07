@@ -357,11 +357,45 @@ def export_current_receiving_multibay_dxf(
         body_selected=bool(flags.get("box_body")) and "box_body" in logical
         if body_selected:
             from .manufacturing_render_data import BoxBodyStructureRenderData
-            for part in actual.parts:
-                if (part.part_key == "box_body"
-                        and isinstance(part.render_data, BoxBodyStructureRenderData)):
-                    box_body_owners[ns] = part.render_data
-                    break
+            from .receiving_layout import derive_bay_lock_state
+            from .sheetmetal_drawing import CirclePrimitive
+            body_owners = tuple(
+                part.render_data for part in actual.parts
+                if part.part_key == "box_body"
+                and isinstance(part.render_data, BoxBodyStructureRenderData)
+            )
+            if len(body_owners) != 1:
+                raise ValueError("RECEIVING_MULTIBAY_BODY_OWNER_MISSING")
+            body_owner = body_owners[0]
+            expected_locks = derive_bay_lock_state(
+                layout, set_index=si, bay_index=bi,
+            )
+            for role, joined in (
+                ("left_side", expected_locks[0]),
+                ("right_side", expected_locks[1]),
+            ):
+                actual_pieces = tuple(
+                    piece for piece in body_owner.pieces if piece.role == role
+                )
+                if len(actual_pieces) != 1:
+                    raise ValueError("RECEIVING_MULTIBAY_SIDE_LOCK_TOPOLOGY_MISMATCH")
+                render = actual_pieces[0].render_data
+                metadata = render.metadata or {}
+                if (metadata.get("baseline_side_lock_participation") is not joined
+                        or metadata.get("baseline_side_lock_certified_count") != 6
+                        or metadata.get("baseline_feature_count") != (9 if joined else 3)):
+                    raise ValueError("RECEIVING_MULTIBAY_SIDE_LOCK_TOPOLOGY_MISMATCH")
+                def matching_holes(radius):
+                    return sum(
+                        isinstance(primitive, CirclePrimitive)
+                        and primitive.layer == "CUTTING"
+                        and abs(float(primitive.radius) - radius) < 1e-6
+                        for primitive in render.scene.primitives
+                    )
+                if (matching_holes(5.25) != (6 if joined else 0)
+                        or matching_holes(8.0) != (2 if joined else 0)):
+                    raise ValueError("RECEIVING_MULTIBAY_SIDE_LOCK_TOPOLOGY_MISMATCH")
+            box_body_owners[ns] = body_owner
         if is_csv and body_selected:
             dims=tuple(float(source[k]) for k in ("w","h","d"))
             thick=float(source["t"])

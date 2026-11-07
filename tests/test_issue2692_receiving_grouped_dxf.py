@@ -152,6 +152,23 @@ def test_sixteen_bay_mother_range_is_shared_across_all_five_output_names():
 
 
 
+def _certified_body(layout, si, bi, *, thickness_mm=2.0):
+    """Use actual Engine Family/Joint production geometry in grouped acceptance."""
+    from ae_engine.contracts import ManufacturingContext
+    bay = layout["sets"][si]["bays"][bi]
+    values = {"w": bay["width"], "h": bay["height"], "d": bay["depth"],
+              "t": thickness_mm}
+    fresh = dict(manufacturing_api.build_receiving_factory_confirmed_parts(
+        values, confirmation="fresh_family_confirmed",
+    ))["box_body"]
+    physical = manufacturing_api.bind_receiving_factory_box_body_to_bay(
+        fresh, layout, set_index=si, bay_index=bi,
+    )
+    return manufacturing_api.build_box_body_structure_render_data(
+        physical, ManufacturingContext(resource_root=Path(__file__).resolve().parents[1]),
+    )
+
+
 def _synthetic_rows(layout):
     rows=[]
     for si, group in enumerate(layout["sets"]):
@@ -203,7 +220,7 @@ def test_single_bay_grouped_box_body_and_head_writes_one_verified_dxf(tmp_path):
     def provider(si, bi):
         calls.append((si, bi))
         return ResolvedManufacturingGeometry(parts=(
-            ResolvedManufacturingPart("box_body", _flat("box_body")),
+            ResolvedManufacturingPart("box_body", _certified_body(layout, si, bi)),
             ResolvedManufacturingPart("head", _flat("head", width=90)),
         ))
 
@@ -219,10 +236,11 @@ def test_single_bay_grouped_box_body_and_head_writes_one_verified_dxf(tmp_path):
     document = ezdxf.readfile(tmp_path / "out" / "202611071258_p1全部.dxf")
     entities = tuple(document.modelspace())
     assert sum(entity.dxftype() == "LWPOLYLINE" and
-               entity.dxf.layer == "CUTTING" for entity in entities) == 2
+               entity.dxf.layer == "CUTTING" for entity in entities) >= 4
     checks = [entity.plain_text() for entity in entities
               if entity.dxftype() == "MTEXT" and entity.dxf.layer == "CHECK"]
-    assert {"box_body", "head", "P1"} <= set(checks)
+    assert {"box_body:box_body_left_side", "box_body:box_body_right_side", "box_body:box_body_back",
+            "head", "P1"} <= set(checks)
 
 
 def test_single_bay_grouped_missing_canonical_scene_refuses_zero_output(tmp_path):
@@ -631,7 +649,9 @@ def test_same_saved_nfb_source_allows_only_independent_core_flat_scope(
                 "head", _flat("head", width=80 + bi),
             ),
             ResolvedManufacturingPart(
-                "box_body", _flat("box_body", width=110 + bi),
+                "box_body", _certified_body(
+                    approved_layout, si, bi, thickness_mm=source["t"],
+                ),
             ),
         ))
 
@@ -649,7 +669,9 @@ def test_same_saved_nfb_source_allows_only_independent_core_flat_scope(
     check = [e.plain_text() for e in doc.modelspace()
              if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
     assert check.count("head") == 2
-    assert check.count("box_body") == 2
+    assert all(check.count(role) == 2 for role in (
+        "box_body:box_body_left_side", "box_body:box_body_back", "box_body:box_body_right_side",
+    ))
     assert sum(key.startswith("inner_door:") for key in check) == 2
     assert check.count("base_plate") == 2
     assert "nfb_pad" not in check
