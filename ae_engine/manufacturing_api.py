@@ -1658,6 +1658,12 @@ def project_operator_box_body_face_dimensions(
     return box_body_face_dimensions(**values)
 
 
+# Main-GUI Door-grid readback uses the same physical part identity mapper as
+# headless Engine clients.  No alternate GUI cell/part conversion is allowed.
+from .sheetmetal_part_adapters import (
+    door_part_features_to_layout_feature_map as project_operator_door_layout_cell_features_from_parts,
+)
+
 def project_fold_designer_snapshot_part_features(
     snapshot, surface_features, door_layout_features,
 ):
