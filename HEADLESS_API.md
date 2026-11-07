@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving physical Set/Bay delta operator API (2026-11-07)
+
+The same public callable is exposed from ae_engine and ae_engine.manufacturing_api: adjust_receiving_operator_topology_with_removed_ids(layout, *, delta, set_index=None). A missing set_index adjusts physical Set count; a zero-based Set index adjusts physical Bay count. The Engine validates existing Receiving topology, operator integer input and the one-Set/one-Bay minimum, then returns (detached_layout, removed_physical_ids, changed). The result uses the existing canonical Family Bay defaults, stable panel names and Joints. A caller must separately confirm saved/dirty deletion before accepting the candidate. This is not the historical Receiving Switch layout preview and does not confer manufactured DXF permission.
+
+
 ## #2517 Receiving parent NFB brand returns affected physical Set/Bay IDs (2026-11-07)
 
 `manufacturing_api.update_receiving_one_set_nfb_parent_brand_with_affected_ids(layout, set_index, brand)` and `update_receiving_all_set_nfb_parent_brand_with_affected_ids(layout, brand)` (also `ae_engine` root) return `(detached_layout, changed, affected_set_and_bay_stable_ids)`. They reuse the existing strict one-Set/all-Set brand transactions without altering their old two-tuple APIs. Each changed Set and all its real Bays are affected by parent brand inheritance, even if some have no saved NFB holes. GUI consumes the exact IDs for unsaved source deletion protection instead of inferring physical scope. A no-op reports no IDs. NFB verified world-X invalidation, immutable CSV source, manufacturing FinalScene and DXF release gates remain the original Engine owners.

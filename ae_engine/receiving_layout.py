@@ -1214,6 +1214,39 @@ def resize_receiving_operator_topology_with_removed_ids(
     return candidate, tuple(removed)
 
 
+def adjust_receiving_operator_topology_with_removed_ids(
+    layout, *, delta, set_index=None,
+):
+    """Resolve physical Set/Bay +/- input with the canonical Engine topology.
+
+    GUI sends a signed count change, not a fabricated Bay identity or minimum.
+    Return the detached candidate, exact removed IDs and a change flag.
+    Protected deleted identities still require operator consent at commit.
+    """
+    if type(delta) is not int:
+        raise ValueError("Receiving topology delta must be an integer")
+    source = normalize_receiving_layout(layout)
+    if set_index is None:
+        count = len(source["sets"])
+        wanted = max(1, count + delta)
+        if wanted == count:
+            return source, (), False
+        candidate, removed = resize_receiving_operator_topology_with_removed_ids(
+            source, set_count=wanted,
+        )
+    else:
+        if type(set_index) is not int or not 0 <= set_index < len(source["sets"]):
+            raise ValueError("Receiving Set index out of range")
+        count = len(source["sets"][set_index]["bays"])
+        wanted = max(1, count + delta)
+        if wanted == count:
+            return source, (), False
+        candidate, removed = resize_receiving_operator_topology_with_removed_ids(
+            source, set_index=set_index, bay_count=wanted,
+        )
+    return candidate, removed, True
+
+
 def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]:
     """Stable physical Set/Bay/Joint IDs in original canonical saved order."""
     normalized = normalize_receiving_layout(layout)

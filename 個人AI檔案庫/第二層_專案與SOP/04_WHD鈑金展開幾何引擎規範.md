@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 實體 Set／Bay 加減按鈕改為公開 Engine 單次交易（2026-11-07）
+
+- 舊 ReceivingSwitchProjectionAdapter.resize_connections 在 GUI 以 max(1, current + delta) 自算實體 Bay 最小數量，並在 Engine 刪除來源確認前先 select_set 變更 GUI 選取；操作者拒絕刪除別套已保存 Bay 後，原 GUI selection 可能被提前改變。新增／移除實體 Set 的操作也由 GUI 自推物理數量。
+- 唯一 Engine Owner ae_engine/receiving_layout.py 新增 adjust_receiving_operator_topology_with_removed_ids(layout, *, delta, set_index=None)，並由 manufacturing_api 與 ae_engine 根包公開同一 callable。先核對完整 canonical 來源、純整數 delta、Set 身分及原一套／一連下限，然後沿用原 resize_receiving_operator_topology_with_removed_ids 的 Receiving Family 新 Bay 預設、Joint 實體拓樸與 exact deleted IDs。回傳 detached (layout, removed_ids, changed)；原資料不改，零變更不產生假 dirty。
+- GUI ReceivingSetBayAdapter.apply_topology_delta 只在 Engine 候選成功且原 destructive-confirm 已通過後，才提交 layout、移除真實 deleted IDs 的 persisted／dirty bookkeeping，最後更新選取；拒絕或非法時保持原 layout／selected Set-Bay／dirty。舊絕對 Set/Bay 數量操作仍走已公開 Engine，未移動保存權威、NFB 孔、PartSpec、FinalScene、DXF 出圖或新增製造許可。
+- 對照兩套 resize Engine 結果、合法正反例、可重現拒絕後 selection 未改、同源 Joint／面板名稱、Save→Reload 與 GitHub exact-SHA Product Regression；Windows GUI UAT 依實測回報，不冒稱。
+
+
 ## [CURRENT] #2517 Receiving 實體底板型式選項必須取自公開 Engine（2026-11-07）
 
 - 原 `phase6_settings_panel_owned_render._render_owned_receiving_base_plate` 由 GUI 事件內直接匯入私有 `sheetmetal_part_adapters.RECEIVING_BASE_PATTERN_LEFT/CENTER/RIGHT`，然後自行建立三種實體板件的選型值。這些是底板 `pattern` 製造來源識別，不是 GUI 可定義的新物理型式。
