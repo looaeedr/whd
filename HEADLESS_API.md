@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Quantity version controls source readback (2026-11-07)
+
+The same public callable from ae_engine and ae_engine.manufacturing_api is project_operator_quantity_version_controls(payload). Its source is the original QuantityModel saved payload. The Engine validates all existing version identities and piece counts and projects detached versions, selected_version_id, version_count, total_piece_count, selected_piece_count and can_delete_selected. Both Vault and Receiving Quantity GUI clients only display the projection. All writes still use commit_operator_quantity_version_action; this projection does not create physical Bays, change Feature/BEND geometry, or authorize DXF.
+
+
 ## #2517 Receiving Joint alignment affected physical IDs (2026-11-07)
 
 Use manufacturing_api.update_receiving_joint_alignment_with_affected_ids(layout, *, set_index, joint_index, depth_alignment=None, height_alignment=None), exported identically through root ae_engine. It reuses the existing canonical physical Joint update and returns (detached_layout, changed_joint_stable_ids). A repeated value or a dimension-locked axis is an accepted no-op, returning an empty tuple, not a new dirty source. Bad joint identity, invalid editable-axis direction, or malformed layout fail without changing the caller. GUI uses the Engine-provided IDs for session dirty bookkeeping. Actual Receiving FRONT(+Z) and TOP(+Y) Assembly offsets, 2D/3D and DXF manufacturing qualification are unchanged.
