@@ -946,6 +946,30 @@ def update_receiving_joint_alignment(
     }
     return normalize_receiving_layout(normalized)
 
+def update_receiving_joint_alignment_with_affected_ids(
+    layout, *, set_index, joint_index,
+    depth_alignment=None, height_alignment=None,
+):
+    """Return Engine-validated Joint edit and exactly changed physical Joint ID.
+
+    Both clients use the original alignment transaction. Identical alignment
+    or a dimension-locked axis is a no-op, not a new dirty manufacturing source.
+    Do not recompute 3D offsets or create synthetic Set/Bay/Joint identities.
+    """
+    before = normalize_receiving_layout(layout)
+    candidate = update_receiving_joint_alignment(
+        before, set_index=set_index, joint_index=joint_index,
+        depth_alignment=depth_alignment, height_alignment=height_alignment,
+    )
+    original_joint = before["sets"][set_index]["joints"][joint_index]
+    current_joint = candidate["sets"][set_index]["joints"][joint_index]
+    affected = (
+        (str(current_joint["stable_id"]),)
+        if original_joint != current_joint else ()
+    )
+    return candidate, affected
+
+
 def receiving_destructive_tail_ids(
     layout: Mapping[str, object],
     *,

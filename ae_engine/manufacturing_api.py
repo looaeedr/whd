@@ -2291,6 +2291,7 @@ from .receiving_layout import (
     receiving_joint_alignment_editability, project_receiving_joint_alignment_editability,
     project_receiving_bay_dimension_groups,
     update_receiving_joint_alignment,
+    update_receiving_joint_alignment_with_affected_ids,
     project_receiving_bay_legacy_aliases,
     new_receiving_layout as operator_new_receiving_layout,
 )
