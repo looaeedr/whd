@@ -7,6 +7,14 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 受電箱內門勾選／內退尺寸整份來源清單原子交易（2026-11-07）
+
+- 主 GUI `Phase6ApplicationHost._set_receiving_inner_door_enabled` 與 `_set_receiving_inner_door_inward_offset` 先前仍自己複製、篩選、排序並提交 `receiving_inner_doors`；這是實體內門來源清單而不只是 Tk 呈現。遇到無效 row、重複 Door cell／stable_id，不能由 GUI 默默捨棄或半途更新。
+- `manufacturing_api.apply_operator_receiving_inner_door_presence(family_source, rows, *, cell_key, enabled)` 和 `apply_operator_receiving_inner_door_inward_offset(rows, *, cell_key, inward_offset_mm)` 由 `ae_engine/operator_receiving_inner_door_source.py` 原 Owner 定義，根包同步公開。Engine 仍復用既有 `project_operator_receiving_inner_door_enabled_source`、`receiving_inner_door_stable_id_for_cell`、Family `default_inner_door_inward_offset_mm` 及有限非負 mm 驗證；一次驗證、deepcopy 與回傳 detached 全清單，GUI 只有一次賦值，失敗不得改動來源。保存的孔位／NFB／Fold／DXF 原製造 Owner 及資格不因此提升。
+- `tests/test_issue2517_receiving_inner_door_atomic_source_transactions.py` 覆蓋真實 GUI 勾選／內退、已存來源與 NFB 草稿保留、重複 ID／壞列 fail-closed、非法數值、無效目標、.p6fold Save→Reload。CI 需跑 exact SHA 完整回歸；Windows GUI 實機與 #2517 全面接線另驗。
+
+
+
 ## [CURRENT] #2517 2D 基準來源字串與封頭尾自訂模型判斷統一公開 Engine（2026-11-07）
 
 - 原 `gui_modules/application/render_snapshots.py` 仍透過 `ae_engine.ae` 私有匯入查指示燈盒、門格、箱身基準狀態，並直接匯入內部 `corner_type_ui.is_unknown_model` 決定 EndCap 自訂預覽標籤。即使屬只讀顯示，基準檔是否存在不能由 GUI 自己判斷或默認為已確認加工來源。

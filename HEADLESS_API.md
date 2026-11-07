@@ -5,6 +5,13 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Atomic Receiving inner-door source list updates (2026-11-07)
+
+- `manufacturing_api.apply_operator_receiving_inner_door_presence(family_source, rows, *, cell_key, enabled) -> list[dict]`: Engine validates all saved physical Door cell keys and duplicate part IDs, preserves existing Feature/NFB/source payload, applies the existing canonical per-cell enabled projection, then returns a detached sorted list; invalid input changes nothing.
+- `manufacturing_api.apply_operator_receiving_inner_door_inward_offset(rows, *, cell_key, inward_offset_mm) -> (list[dict], float)`: Engine validates the finite nonnegative physical offset and enabled target, stages the full list, then returns detached rows plus canonical mm. Both functions are exported from root `ae_engine` and replace main GUI private list mutations. This is source staging, not verified NFB hole, CUTTING, BEND or DXF authorization. Tests: `tests/test_issue2517_receiving_inner_door_atomic_source_transactions.py`.
+
+
+
 ## #2517 Read-only operator baseline source labels via public Engine (2026-11-07)
 
 `manufacturing_api.operator_indicator_shared_baseline_source_label(filename)` and `operator_baseline_source_label(model_name, filename)` directly alias the existing `ae.indicator_shared_baseline_source_label` / `ae.baseline_source_label` Engine owners. Together with existing `operator_box_body_baseline_source_label(model_name)` and `is_unknown_operator_model(model_name)`, all four are exported by the root `ae_engine`. Main GUI `render_snapshots.py` uses these read-only Engine results for Indicator Box, Door-grid, BoxBody and EndCap display labels. A missing baseline stays missing, and a label is never a proof of CUTTING, DXF or certified manufacturing release. Test: `tests/test_issue2517_render_baseline_labels_public_api.py`.

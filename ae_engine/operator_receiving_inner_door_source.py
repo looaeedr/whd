@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
+from copy import deepcopy
 
 from .cabinet_types import policy as cabinet_family_policy
 from .door_layout_physical_remap import receiving_inner_door_stable_id_for_cell
@@ -74,3 +75,84 @@ def project_operator_receiving_inner_door_enabled_source(
             family_source, prior,
         ),
     }
+
+
+def _stage_operator_receiving_inner_door_rows(rows):
+    """Validate and detach all saved Door-cell source identities before edit."""
+    if rows is None:
+        rows = ()
+    if not isinstance(rows, (list, tuple)):
+        raise ValueError("內門來源清單必須是列表")
+    staged, keys, identities = [], set(), set()
+    for item in rows:
+        if not isinstance(item, dict):
+            raise ValueError("內門來源清單含有無效板件")
+        key = item.get("cell_key")
+        if not isinstance(key, str) or not key.strip():
+            raise ValueError("內門門格來源無效")
+        key = key.strip()
+        # The original physical Door-cell owner validates nonnegative C/R.
+        receiving_inner_door_stable_id_for_cell(key)
+        if key in keys:
+            raise ValueError(f"內門門格身份重複: {key}")
+        keys.add(key)
+        raw_id = item.get("stable_id")
+        if isinstance(raw_id, bool):
+            raise ValueError("內門實體身份無效")
+        stable = str(raw_id or "").strip()
+        if stable and stable in identities:
+            raise ValueError(f"內門實體身份重複: {stable}")
+        if stable:
+            identities.add(stable)
+        staged.append(deepcopy(item))
+    return staged
+
+
+def apply_operator_receiving_inner_door_presence(
+    family_source, rows, *, cell_key, enabled,
+):
+    """Atomic physical inner-door toggle over a detached, validated source list.
+
+    This is only an operator source transaction; saved NFB holes, Fold and
+    verified manufacturing eligibility remain owned by their original Engine
+    requests. An invalid saved row or ID collision rejects *all* changes.
+    """
+    if type(enabled) is not bool:
+        raise ValueError("內門啟用狀態必須是布林值")
+    if not isinstance(cell_key, str) or not cell_key.strip():
+        raise ValueError("內門門格來源無效")
+    key = cell_key.strip()
+    receiving_inner_door_stable_id_for_cell(key)
+    staged = _stage_operator_receiving_inner_door_rows(rows)
+    prior = next((item for item in staged if item["cell_key"].strip() == key), None)
+    result = [item for item in staged if item["cell_key"].strip() != key]
+    if enabled:
+        result.append(project_operator_receiving_inner_door_enabled_source(
+            family_source, key, existing=prior,
+        ))
+    # A repeated stable identity in the newly generated row is a physical
+    # collision, even when every cell key is individually valid.
+    result = _stage_operator_receiving_inner_door_rows(result)
+    result.sort(key=lambda item: tuple(
+        int(part) for part in item["cell_key"].split(":", 1)
+    ))
+    return result
+
+
+def apply_operator_receiving_inner_door_inward_offset(
+    rows, *, cell_key, inward_offset_mm,
+):
+    """Return (detached saved rows, validated mm) or reject before any commit."""
+    offset = normalize_operator_receiving_inner_door_inward_offset(
+        inward_offset_mm,
+    )
+    if not isinstance(cell_key, str) or not cell_key.strip():
+        raise ValueError("內門門格來源無效")
+    key = cell_key.strip()
+    receiving_inner_door_stable_id_for_cell(key)
+    staged = _stage_operator_receiving_inner_door_rows(rows)
+    target = next((item for item in staged if item["cell_key"].strip() == key), None)
+    if target is None:
+        raise ValueError(f"door cell has no enabled inner door: {key!r}")
+    target["inward_offset_mm"] = offset
+    return staged, offset
