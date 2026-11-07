@@ -1043,8 +1043,8 @@ def _apply_fold_designer_live_snapshot(self, payload):
             )
             if columns and part_features:
                 self.door_layout_features = manufacturing_api.project_operator_door_layout_cell_features_from_parts(
-            columns, part_features,
-        )
+                    columns, part_features,
+                )
             if "multi_door_enabled" in payload:
                 var = getattr(self, "multi_door_enabled_var", None)
                 if var is not None:
