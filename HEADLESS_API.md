@@ -11,6 +11,12 @@ Use manufacturing_api.update_receiving_joint_alignment_with_affected_ids(layout,
 
 
 
+
+## #2517 CornerType canonical CUTTING/BEND preview through public Engine (2026-11-07)
+
+`manufacturing_api.project_operator_corner_type_preview_geometry(selection, *, padding=7.0)` (also `ae_engine.project_operator_corner_type_preview_geometry`) is an identity-preserving public alias of `corner_type_ui.build_corner_type_preview_geometry`. It returns canonical CornerType preview `cut_paths` and `bend_paths` clipped from existing Engine geometry, with the same legacy C01-C04 normalization and rejection semantics. GUI `assembly_corner.draw_corner_type_icon` renders the paths only; no UI-specific geometry or separate DXF authorization is introduced. See `tests/test_issue2517_corner_preview_public_engine_api.py`.
+
+
 ## #2517 Receiving cross-Set Bay +/- delta operator API (2026-11-07)
 
 `manufacturing_api.resize_receiving_operator_connections_by_delta_with_removed_ids(layout, *, set_index, delta)` is also exported unchanged at the `ae_engine` root. The canonical `receiving_layout` owner validates the physical Set and integer delta, applies the minimum-one-Bay rule, and reuses `resize_receiving_operator_topology_with_removed_ids` to stage one detached candidate, real removed Set/Bay/Joint IDs and an effective-change flag. The GUI only validates operator text and, after full Engine success and confirmed removal, commits canonical layout/protected IDs/current selection together. A failed/declined cross-Set operation must not shift GUI selection. No new physical geometry, NFB/X verification, or DXF release is introduced.

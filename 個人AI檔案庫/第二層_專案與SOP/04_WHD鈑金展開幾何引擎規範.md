@@ -14,6 +14,14 @@ whd_schema: WHD_DOC_META_V1
 
 
 
+
+## [CURRENT] #2517 手動 CornerType 縮圖 canonical CUTTING／BEND 來源只經公開 Engine（2026-11-07）
+
+- 原 `gui_modules/parts/panels/assembly_corner.draw_corner_type_icon` 直接匯入內部 `corner_type_ui.build_corner_type_preview_geometry` 取得真實 EndCap CUTTING／BEND 的語意預覽。這不是 GUI 可再算一份的截角幾何，且不代表出圖准入。
+- `manufacturing_api.project_operator_corner_type_preview_geometry` 與根包 `ae_engine` 以相同 callable 身分公開原 `corner_type_ui.build_corner_type_preview_geometry`；直接保留 CornerType legacy C01–C04 正規化、裁切現有 canonical CUTTING 與 BEND 的唯一來源，輸入錯誤由既有 Owner 拒絕，輸入 selection 不變。GUI 只將回傳的 `cut_paths`／`bend_paths` 繪製成縮圖，無第二套加工公式。
+- 測試 `tests/test_issue2517_corner_preview_public_engine_api.py` 驗證 root/facade/原 Owner identity、四種現行 CornerType 和 C02 legacy 的原始路徑 parity、真實 GUI delegate 與線數／層分色、不合法輸入不修改來源；原 `tests/test_corner_type_ui.py` 的 CUTTING/BEND 含義維持。完整 2D／3D／DXF Product Regression 與 Windows GUI UAT 仍需各自驗收，#2517 不因縮圖公開就結案。
+
+
 ## [CURRENT] #2517 Receiving 跨套 +/- 連數必須使用同一公開 Engine 候選，不得先切換 GUI 套數（2026-11-07）
 
 - 原 `ReceivingSwitchProjectionAdapter.resize_connections` 由 GUI 自行 `max(1, current+delta)` 決定實體連數，然後先 `adapter.select_set(index+1)` 再 `set_bay_count`。即使 Engine Family 預設／來源校驗失敗或被保存 Bay 刪除確認拒絕，原 Layout 不變但 GUI `selection` 已移到其他 Set；違反同一操作者動作的全有或全無來源／選取語意。單獨 `set_bay_count` 與 `set_set_count` 已經有保留原子候選的 API，不重做其幾何／孔位。
@@ -190,6 +198,12 @@ whd_schema: WHD_DOC_META_V1
 - `manufacturing_api.project_operator_fold_designer_snapshot_numeric_defaults`（`ae_engine` 根包同公開 callable）直接重用 Engine `operator_fold_designer_numeric_source._legacy_defaults` 的現行執行期來源，加上原 UI 舊式底板收縮／折邊和指示燈盒相容預設；所有預設在公開 Engine 以有限數值守衛，`nan` 等非法執行期來源 fail closed。此投影**完全不包含 W/H/D/T/FW**；原 GUI 的 W/H/D/T/FW 必須由操作者實際輸入經 `normalize_operator_source_dimension` 驗證，不能使用任何 Engine 常數填補。
 - GUI 只將原有數值控件與 Engine 當下回傳的完整預設值配對，保留舊表單空缺時的呈現語意及 Settings／INI 其他流程；GUI 不增 Formula、成品尺寸推導或 FinalScene，且不改現有 `load_factory_defaults_from_ae` UI Schema 相容呼叫。Headless 測試核對兩 Family 共用的原執行期 defaults、動態更新、非法預設拒絕、root/facade API 同源、GUI 不再私讀製造數值以及原物理 W/H/D/T/FW fail closed；完整 2D／3D／DXF／Save→Reload 仍交 exact-SHA 回歸。
 
+
+## [CURRENT] #2517 主 GUI 多門格實體 Feature 讀回只透過公開 Engine（2026-11-07）
+
+- 原 `gui_modules/application/lifecycle.py` 的 `_apply_phase6_project_snapshot` 與 `_apply_fold_designer_live_snapshot` 在重開正式專案、同步 Fold Designer 實體門板時直接呼叫私有 `sheetmetal_part_adapters.door_part_features_to_layout_feature_map`，將已保存的 `door_cN_rN` 孔位來源映回 `col:row` 的主 GUI 2D 門格編輯儲存。這是實體來源 ID 轉換，不得由 GUI 另造規則。
+- `manufacturing_api.project_operator_door_layout_cell_features_from_parts(columns, part_features)` 與根包 `ae_engine` 都公開**原 Engine `door_part_features_to_layout_feature_map` 的同一 callable**，保留一基實體門板、零基操作格、原始孔位 List 與空格 readback 的既有語意。兩個主 GUI 還原入口只委派此公開 API，未知部件不當作合法 Door、非法門格由原 Engine fail closed，不修改輸入來源。
+- 本次沒有增補 Feature/孔位幾何、CUTTING、BEND、DXF 或 Family 加工權限；既有 Fold Designer `project_fold_designer_snapshot_part_features` 仍負責反方向「操作者格 → 實體 Part Features」的提交。正反向 ID 等價、主 GUI 真實讀回委派、非法來源不改與 `.p6fold` Save→Reload 由 `tests/test_issue2517_main_gui_door_layout_feature_readback_public_api.py` 驗證；完整產品回歸及 Windows UAT 依原有驗收路徑。
 
 ## [CURRENT] #2517 受電箱實體底板設定改由公開 Engine 原子提交（2026-11-07）
 
