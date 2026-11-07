@@ -1181,6 +1181,39 @@ def resize_receiving_bays_with_family_defaults(layout, *, set_index, bay_count):
     )
     return candidate
 
+def resize_receiving_operator_topology_with_removed_ids(
+    layout, *, set_index=None, bay_count=None, set_count=None,
+):
+    """Stage one fully validated Set/Bay resize and its physical deletion IDs.
+
+    The returned candidate is detached: callers confirm destructive removal
+    before accepting it. Invalid layout, Family defaults or source ID drift
+    cannot modify an existing saved project or GUI protection bookkeeping.
+    """
+    if (bay_count is None) == (set_count is None):
+        raise ValueError("必須且只能指定一種 Receiving Set／Bay 數量")
+    if bay_count is not None:
+        if type(set_index) is not int or set_index < 0:
+            raise ValueError("Receiving Set index must be a nonnegative integer")
+        candidate = resize_receiving_bays_with_family_defaults(
+            layout, set_index=set_index, bay_count=bay_count,
+        )
+        removed = receiving_destructive_tail_ids(
+            layout, set_index=set_index, bay_count=bay_count,
+        )
+    else:
+        if set_index is not None:
+            raise ValueError("指定 Set 數量不得夾帶 Bay index")
+        candidate = resize_receiving_sets(layout, set_count=set_count)
+        removed = receiving_destructive_tail_ids(layout, set_count=set_count)
+    before_ids = receiving_layout_stable_ids(layout)
+    after_ids = set(receiving_layout_stable_ids(candidate))
+    actual_removed = {sid for sid in before_ids if sid not in after_ids}
+    if len(removed) != len(set(removed)) or set(removed) != actual_removed:
+        raise ValueError("Receiving 刪除來源與實體 Set/Bay 結果不一致")
+    return candidate, tuple(removed)
+
+
 def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]:
     """Stable physical Set/Bay/Joint IDs in original canonical saved order."""
     normalized = normalize_receiving_layout(layout)
