@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 數量模式封頭／封尾孔型版本提交只經公開 Engine（2026-11-07）
+
+- 原 `gui_modules/application/quantity_version_ports.py::holes.commit` 將編輯中的孔清單複製進 GUI 自建 `QuantityModel`，再由 GUI 將 `candidate["quantity"]` 覆寫、呼叫 `require_valid_operator_quantity_features`，最後另一次修改 live Model。這使版本身分、完整孔型合法性與提交順序被 UI 分兩段主導，模型無通知 rollback 保證。
+- `manufacturing_api.commit_operator_quantity_version_holes(snapshot, quantity_model, *, version_id, role, features)`（根包 `ae_engine` 同一 callable）在既有 `receiving_quantity_box` Engine owner 內先要求 Quantity 模式、真實 live QuantityModel 與完整一致版本來源；在 detached 版本中以捕捉的 version_id 設定 Head/Tail Features，再對**全部版本**重用原 `require_valid_quantity_features` 成品面孔位檢查，完全通過才提交到 live Model。刪除的版本、錯誤 role／非法特徵、來源版本漂移在提交前拒絕；通知失敗回滾原 Model，不重複通知，不更動 detached input snapshot。
+- GUI 只收編輯器操作者 Features、captured version ID，呼叫公開 API 後沿原 `changed()` 傳播；僅當實際修改且當前選中版本相同才觸發 2D geometry refresh，跨版本 modeless editor 的 inactive 修改不多算一次幾何計算。既有金庫型／受電箱 Quantity 都走同一入口，沒有新增孔位公式、實體 Bay、出圖或 NC 製造資格。測試覆蓋 root/facade、非法來源與版號不修改、跨版本保存、callback rollback、GUI 真實 port 及 Save→Reload；完整 2D／3D／DXF exact-SHA 回歸仍需 GitHub Actions 驗證。
+
+
+
 ## [CURRENT] #2517 Registry 候選保存／認證的 GUI 私有 Engine 匯入收斂為公開 API（2026-11-07）
 
 - Fold Designer Registry 的公式預檢、九組條件矩陣、候選保存及驗證後升級原由 `gui_modules/application/fold_designer_composition_registry_edges.py` 在事件函式內直接匯入 `ae_engine.certified_relief_registry`，包含私有 `_validate_editable_rule_record` 與兩個會寫入 Registry 的 backend。
