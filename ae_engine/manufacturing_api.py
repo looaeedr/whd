@@ -385,6 +385,9 @@ from .sheetmetal_corner_policy import (
     box_body_height_from_corner_policies as project_operator_box_body_finished_height,
     normalize_corner_selection as operator_normalize_corner_selection,
 )
+from .sheetmetal_drawing import (
+    resolved_features_to_primitives as project_operator_resolved_feature_drawing_primitives,
+)
 from .sheetmetal_geometry import (
     EndCapAssemblySemantics,
     FourCornerTypePolicy,
