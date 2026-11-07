@@ -12,7 +12,6 @@ axes/canvas, own Tk/UI state, import the bridge, or invoke application owners.
 """
 from __future__ import annotations
 
-from ae_engine.display_dimensions import folded_outside_envelope
 from ae_engine import manufacturing_api
 from phase6_final_scene_contracts import AssemblySceneRenderData
 
@@ -119,7 +118,9 @@ def _default_number_text(value):
 
 def _phase6_folded_outside_envelope(triangles, thickness):
     """Compatibility wrapper around the shared 2D/3D dimension provider."""
-    return folded_outside_envelope(triangles, thickness)
+    return manufacturing_api.project_operator_folded_outside_envelope(
+        triangles, thickness,
+    )
 
 
 def _phase6_profile_operator_fold_values(profile, *, thickness=2.0):

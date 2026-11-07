@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 FinalScene 實體折後包外量測統一公開 Engine（2026-11-07）
+
+- 原 `phase6_final_scene_projection._phase6_folded_outside_envelope` 為 FinalScene 2D／3D 操作量測的 GUI 相容入口，直接匯入 `ae_engine.display_dimensions.folded_outside_envelope`。該內部 owner 根據**已成形實體三角網格與板厚**回傳 dimensions/world bounds；這是物理尺寸 readback，不可由 GUI 再算一套，也不得回寫原 Fold material `len`、BEND 或正式 CUTTING。
+- 公開 `manufacturing_api.project_operator_folded_outside_envelope` 與根包 `ae_engine.project_operator_folded_outside_envelope` 指向原本**同一個 `display_dimensions.folded_outside_envelope` callable**。GUI 只能送 mesh 和原始 T；原封不動沿用有限 world XYZ、完整三角面與合法板厚 fail-closed gate、法向厚度外擴及空網格 `None` 語意。此項為來源量測 API，沒有新尺寸公式或製造認證。
+- 驗收 `tests/test_issue2517_final_scene_folded_envelope_public_api.py` 核對公開 identity、真正 world 三角網格尺寸與 FinalScene GUI 一致、無效 mesh/T 不修改來源及既有 2D/3D finished dimensions readback。完整 GitHub exact-HEAD Product Regression 必須通過，Windows UAT 與 #2517 不因此結案。
+
 ## [CURRENT] #2517 一般實體板件 Hole Editor 孔型保存前須經公開 Engine 全量驗證（2026-11-07）
 
 - 原 `gui_modules/application/physical_part_hole_editor.py::open_workspace_sheet_editor.commit` 在獲得引擎核准的 physical sheet editor context 後，仍直接把可變 Hole Editor Feature 草稿 `stash_features` 寫入 workspace，缺少提交**當刻**對整批已編輯孔位的實際物料面重驗；無效 Feature 可能先存成專案來源，直到日後 2D／3D／DXF 再拒絕。
