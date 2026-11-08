@@ -137,23 +137,50 @@ def test_valid_editor_values_match_engine_and_save_reload_fold(family):
 
 
 @pytest.mark.parametrize("bad", ("nan", "inf", "-inf", "", "not-a-number", True))
-def test_unaccepted_editor_only_batch_cannot_enter_saved_source_or_refresh(bad):
+def test_invalid_physical_editor_batch_aborts_before_source_or_refresh(bad):
     owner, tx, effects, app = _environment()
     before = deepcopy((tx.settings, tx.source, tx.box))
-    assert owner.commit_editor_values({
-        "fw": bad, "yl1": "nan", "ghost": "non-finite",
-    }) == {}
+    raw = {"fw": bad, "yl1": "nan", "ghost": "non-finite"}
+    # Physical FW cannot silently disappear from a manufacturing source.
+    # The existing Coordinator rejects before commit/takeover/UI projection.
+    with pytest.raises(ValueError, match="FW 包外尺寸"):
+        owner.commit_editor_values(raw)
     assert (tx.settings, tx.source, tx.box) == before
-    assert not any(event[0] in ("commit", "takeover") for event in tx.events)
+    assert tx.events == [("normalize", raw)]
+    assert effects == []
+
+
+def test_nonphysical_unaccepted_editor_batch_keeps_legacy_skip_behavior():
+    owner, tx, effects, app = _environment()
+    before = deepcopy((tx.settings, tx.source, tx.box))
+    raw = {"yl1": "nan", "ghost": "non-finite"}
+    assert owner.commit_editor_values(raw) == {}
+    assert (tx.settings, tx.source, tx.box) == before
+    assert tx.events == [("normalize", raw)]
     assert effects == []
 
 
 @pytest.mark.parametrize("family", ("金庫型", "受電箱"))
-def test_mixed_accepted_and_rejected_inputs_only_project_engine_result(family):
+def test_mixed_valid_and_invalid_physical_fw_rejects_whole_batch(family):
+    owner, tx, effects, app = _environment(family)
+    before = deepcopy((tx.settings, tx.source, tx.box))
+    raw = {
+        "w": "810.25", "flag": "false", "fw": "nan",
+        "yl1": "inf", "unknown_control": "garbage",
+    }
+    with pytest.raises(ValueError, match="FW 包外尺寸"):
+        owner.commit_editor_values(raw)
+    assert tx.events == [("normalize", raw)]
+    assert (tx.settings, tx.source, tx.box) == before
+    assert effects == []
+
+
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+def test_mixed_valid_physical_with_invalid_nonphysical_projects_only_accepted(family):
     owner, tx, effects, app = _environment(family)
     before_fw = tx.source["fw"]
     raw = {
-        "w": "810.25", "flag": "false", "fw": "nan",
+        "w": "810.25", "flag": "false",
         "yl1": "inf", "unknown_control": "garbage",
     }
     expected = normalize_updates(tx.settings, raw)
