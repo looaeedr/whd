@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 GUI 開孔入口的實體板件路由必須使用公開 Engine 身分投影（2026-11-08）
+
+- 原 `gui_modules/editors/hole_editor.open_part_hole_editor` 在 GUI 使用 `startswith`／正規式／金庫型與受電箱字串判斷 Head/Tail、單格門、箱身實體子板、底板 NFB 固定片、內門與 CustomFold 應走哪個編輯器；甚至在辨識非法板件身分**之前**呼叫 Workspace `set_active_part`。這是物理板件操作入口的身分判斷，不該由 GUI 複製。
+- 原 `ae_engine.physical_part_identity` 現提供 immutable `OperatorHoleEditorRoute` 與 `project_operator_hole_editor_route(part_key, model, multi_door_enabled, has_fold_designer)`，並透過 `manufacturing_api`／根包同一 callable 公開：沿用既有實體 ID 語意與 Family Registry 正規化，把存檔的多門字串 `"false"` 經原 Engine Bool API 解碼，合法 `door_cN_rM` 回傳零起始 GUI 操作索引，非法零位及不認識的板件 fail closed。這只投影 GUI 要開的編輯器，不認證板件存在、洞位、FinalScene、BEND/CUTTING 或 DXF；實際編輯者繼續用原公開 Engine context 並驗實體來源。GUI 不再複製板件前綴／Family 邏輯，且先驗候選再切換操作狀態；原檔 schema 與製造幾何不變。
+- `tests/test_issue2517_hole_editor_public_route_identity.py` 覆蓋金庫型／受電箱、實體子板、Head/Tail、門格零起始欄列、內門與 Receiving 底板雙入口、序列化多門布林、未知身分拒絕與真 GUI callback 不改動來源；#2517 其他功能 API 與 Windows 實機仍需續驗。
+
 ## [CURRENT] #2517 Vault 盤名／Receiving 內門欄位以 Engine Family Registry 決定 UI 編輯資格（2026-11-08）
 
 - `phase6_settings_panel.Phase6SettingsPanel.refresh_panel_name/commit_panel_name` 與 `fold_designer_composition_receiving.commit_vault_panel_name` 原以 GUI 硬編碼 `"金庫型"` 比對 Family；`gui_modules/parts/panels/door.rebuild_door_layout_ui` 則用 `{"受電箱","RECEIVING"}` 決定是否建立內門勾選／內退控制列。這些並非 GUI 格式檢查，而是 Registered Family 操作資格；合法 `VAULT`、大小寫混合 `ReCeIvInG` 等別名會錯誤消失控制項或拒絕輸入。
