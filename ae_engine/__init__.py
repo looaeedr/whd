@@ -41,6 +41,7 @@ from .manufacturing_api import (
     operator_box_body_baseline_source_label,
     operator_indicator_shared_baseline_source_label, operator_baseline_source_label,
     operator_canonical_family_name, project_operator_linked_endcap_source_snapshot,
+    project_operator_part_dimension_settings_overlay,
     operator_corner_data_back_panel_mode_applicable,
     operator_family_fixes_box_body_structure,
     operator_box_body_profile_uses_outside_dimensions,
