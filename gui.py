@@ -768,17 +768,27 @@ class Phase6ApplicationHost:
         self._set_box_assembly_type(type_id, reset_bottom_defaults=False)
 
     def _effective_endcap_fw(self, part_key, box_fw=None):
+        # Only Engine validates physical FW before using it as Corner Policy input.
         if box_fw is None:
             fw_var = getattr(self, "fw_z_var", None)
-            if fw_var is not None:
-                box_fw = float(fw_var.get())
-            else:
-                box_fw = float(self.settings_service.snapshot().get("fw", 25.0))
+            box_fw = (
+                fw_var.get() if fw_var is not None
+                else self.settings_service.snapshot().get("fw")
+            )
+        validated_fw = manufacturing_api.normalize_operator_source_dimension(
+            box_fw, field="fw",
+        )
         state = getattr(self, "endcap_fw_state", None)
         if state is None:
-            return float(box_fw)
-        snapshot = {"fw": float(box_fw), "endcap_fw": state}
-        return float(resolve_endcap_fw(snapshot, part_key, state=state))
+            return validated_fw
+        # Validate both persisted physical rows before the original Engine
+        # four-state resolver may consume their values in manufacturing policy.
+        manufacturing_api.project_operator_endcap_fw_controls(
+            state, validated_fw,
+        )
+        return manufacturing_api.resolve_endcap_fw(
+            {"fw": validated_fw, "endcap_fw": state}, part_key, state=state,
+        )
 
     def _sync_endcap_fw_controls(self):
         return _sync_endcap_fw_controls_impl(self)
@@ -899,7 +909,9 @@ class Phase6ApplicationHost:
         else:
             # Keep this geometry helper independently usable by tests/legacy
             # callers that do not construct the full Tk FW-link state.
-            head_fw = tail_fw = float(fw)
+            head_fw = tail_fw = manufacturing_api.normalize_operator_source_dimension(
+                fw, field="fw",
+            )
         return (
             self._manual_corner_policy("head", head_fw),
             self._manual_corner_policy("tail", tail_fw),
