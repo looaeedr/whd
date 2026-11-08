@@ -261,7 +261,6 @@ def settings_context_extension_projection(self, namespace, context):
         state, pairs = required("_phase6_ensure_corner_part")(
             app, part_key
         )
-        pair_keys = required("_CORNER_PAIR_KEYS")
         type_labels = required("_CORNER_TYPE_LABEL_BY_ID")
         direction_labels = required("_CORNER_DIRECTION_LABEL")
         mode_labels = required("_CORNER_MODE_LABEL")
@@ -270,14 +269,14 @@ def settings_context_extension_projection(self, namespace, context):
             targets = (
                 (pair_key,)
                 if pairs[pair_key]
-                else pair_keys[pair_key]
+                else manufacturing_api.project_operator_corner_pair_members(
+                    pair_key
+                )
             )
             target_rows = []
             for target_key in targets:
-                physical = (
-                    pair_keys[target_key][0]
-                    if target_key in pair_keys
-                    else target_key
+                physical = manufacturing_api.project_operator_corner_selection_target(
+                    target_key
                 )
                 selection = required("_phase6_selection_from_raw")(
                     state[physical]
