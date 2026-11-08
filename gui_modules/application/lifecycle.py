@@ -944,6 +944,30 @@ def _apply_fold_designer_live_snapshot(self, payload):
             self._phase6_last_fold_designer_fingerprint=str(payload.get("fingerprint") or "")
             self._phase6_last_fold_designer_live_payload=deepcopy(payload)
             return True
+        # Only the full live synchronization may update physical Door sources.
+        # Validate raw operator controls through the existing Engine before
+        # changing model, Settings, Corner, Joint or Workspace state.
+        live_multi_door = (
+            manufacturing_api.normalize_operator_settings_boolean(payload["multi_door_enabled"])
+            if "multi_door_enabled" in payload else None
+        )
+        live_nameplate_datum = (
+            manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
+                payload["door_nameplate_center_datum_top"]
+            ) if "door_nameplate_center_datum_top" in payload else None
+        )
+        live_box_distance = (
+            manufacturing_api.normalize_operator_settings_boolean(payload["use_box_distance"])
+            if "use_box_distance" in payload else None
+        )
+        raw_door_columns = (
+            payload.get("door_layout_columns")
+            or dict(payload.get("settings") or {}).get("door_layout_columns")
+        )
+        live_door_columns = (
+            manufacturing_api.project_operator_saved_door_layout_columns(raw_door_columns)
+            if raw_door_columns else None
+        )
         model = manufacturing_api.operator_normalize_custom_model_name(payload.get("model"))
         baseline_changed = self.baseline_var.get().strip() != model
         if baseline_changed:
@@ -981,10 +1005,9 @@ def _apply_fold_designer_live_snapshot(self, payload):
         self.endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state(payload)
         self.assembly_relief_state = deepcopy(payload.get("assembly_relief") or {})
         if "use_box_distance" in payload and getattr(self, "is_box_dist_var", None) is not None:
-            self.is_box_dist_var.set(bool(payload.get("use_box_distance", False)))
+            self.is_box_dist_var.set(live_box_distance)
         if "door_nameplate_center_datum_top" in payload:
-            datum = payload.get("door_nameplate_center_datum_top")
-            self.door_nameplate_center_datum_top = None if datum is None else float(datum)
+            self.door_nameplate_center_datum_top = live_nameplate_datum
         if "door_layout_indicator_states" in payload:
             self.door_layout_indicator_states = {
                 str(key): normalize_door_indicator_state(state)
@@ -1035,28 +1058,19 @@ def _apply_fold_designer_live_snapshot(self, payload):
                 self.box_body_face_features = {
                     face: list(items or ()) for face, items in dict(face_features["box_body"] or {}).items()
                 }
-            raw_columns = (
-                payload.get("door_layout_columns")
-                or dict(payload.get("settings") or {}).get("door_layout_columns")
-            )
-            if raw_columns:
+            if live_door_columns:
                 setter = getattr(self, "set_door_layout_columns", None)
                 if callable(setter):
-                    setter([
-                        (float(row[0]), [float(v) for v in row[1]])
-                        for row in raw_columns
-                    ])
+                    setter(live_door_columns)
                 else:
-                    self.door_layout_columns = [
-                        (float(row[0]), [float(v) for v in row[1]])
-                        for row in raw_columns
-                    ]
+                    self.door_layout_columns = deepcopy(live_door_columns)
             else:
                 getter = getattr(self, "get_door_layout_columns", None)
-                raw_columns = getter() if callable(getter) else ()
+                live_door_columns = manufacturing_api.project_operator_saved_door_layout_columns(
+                    getter() if callable(getter) else ()
+                )
             columns = tuple(
-                (float(row[0]), tuple(float(v) for v in row[1]))
-                for row in tuple(raw_columns or ())
+                (row[0], tuple(row[1])) for row in live_door_columns
             )
             if columns and part_features:
                 self.door_layout_features = manufacturing_api.project_operator_door_layout_cell_features_from_parts(
@@ -1065,7 +1079,7 @@ def _apply_fold_designer_live_snapshot(self, payload):
             if "multi_door_enabled" in payload:
                 var = getattr(self, "multi_door_enabled_var", None)
                 if var is not None:
-                    var.set(bool(payload.get("multi_door_enabled", False)))
+                    var.set(live_multi_door)
             if "door_layout_scope" in payload:
                 self.door_layout_scope = str(payload.get("door_layout_scope") or "main")
             if "door_handle_edges" in payload:
