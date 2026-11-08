@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI 封頭／封尾截角 Policy 讀取有效 FW 只由公開 Engine（2026-11-08）
+
+- `gui.Phase6ApplicationHost._effective_endcap_fw` 原先在解析封頭／封尾 Corner Policy 前以 GUI `float(TkVar)`、缺設定則 fallback 到固定 25、並可將未驗證的損壞 Head/Tail FW 來源交給寬鬆舊 `resolve_endcap_fw`；沒有掛上實體控制項的 `_box_body_corner_policies` 相容呼叫也在 GUI 自行做 `float(fw)`。這些是來源合法性，不是 GUI 顯示。
+- 現一律重用既有公開 `manufacturing_api.normalize_operator_source_dimension` 驗證包外 FW，並以已公開 `project_operator_endcap_fw_controls` 對已存在 Head/Tail 來源完整檢查後，再呼叫原 `manufacturing_api.resolve_endcap_fw` 決定四態機械值；缺省來源不再虛構 FW=25。相容無 Head/Tail state 時只回已驗 box FW；沒有實體控制項的舊 caller 也使用同一 Engine 正數有限來源驗證。GUI 沒有新的 FW、折彎、截角公式或第二種 Factory Policy。
+- `tests/test_issue2517_main_gui_effective_endcap_fw_public_source.py` 以金庫型／受電箱 Head/Tail、有效儲存四態、非法 box FW／損壞對側來源、缺輸入、相容 caller、Project Save→Reload 與原 Engine Fold 測試，要求拒絕前來源不變。後續 canonical 製造與 2D／3D／DXF 由原 Engine 決定；全面 #2517 與 Windows UAT 仍需續驗。
+
+
 ## [CURRENT] #2517 Head/Tail FW 控制列純讀取由 Engine 公開投影（2026-11-08）
 
 - 原 `gui_modules/parts/panels/assembly_corner.sync_endcap_fw_controls` 在單純重新整理 GUI 時，使用 `endcap_fw_state.setdefault` 補建 Head／Tail 製造來源，並在 UI 以 `float`／`bool` 解讀顯示值；序列化 `"false"` 被當 True，損壞的對側列又可能在第一個控制項更新後才報錯。
