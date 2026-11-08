@@ -776,57 +776,34 @@ class Phase6FoldDesignerApp(original.MainApp):
         self.do_update()
 
     def _sync_dwd_with_top_whd(self):
-        source = getattr(self, "_phase6_input_snapshot", {}) or {}
-        if source.get("active_mode") == "quantity" and source.get("receiving_quantity_box"):
-            self.state.profiles_vault["箱身"] = merge_box_body_profile(
-                self.state.profiles_vault.get("箱身", []), source)
-            self._phase6_last_w = float(source["receiving_quantity_box"]["w"])
-            self._phase6_last_d = float(source["receiving_quantity_box"]["d"])
-            return
-        if (manufacturing_api.operator_canonical_family_name(source) == "受電箱"
-                and source.get("receiving_layout")):
-            # Set/Bay has the same single dimensional authority as Quantity.
-            # A T/FW redraw must never interpret an older cached Fold core as
-            # a new W/D edit and silently reverse the operator's active Bay.
-            self.state.profiles_vault["箱身"] = merge_box_body_profile(
-                self.state.profiles_vault.get("箱身", []), source)
-            self._phase6_last_w = float(source["w"])
-            self._phase6_last_d = float(source["d"])
-            return
-        profile = self.state.profiles_vault.get("箱身", [])
-        w_segments = [seg for seg in profile if seg.get("core") == "W"]
-        d_segments = [seg for seg in profile if seg.get("core") == "D"]
-        if len(w_segments) != 1 or len(d_segments) != 2:
-            return
-
-        top_w = original.get_int(self.v_w.get())
-        top_d = original.get_int(self.v_d.get())
-        core_w = original.get_int(engine_segment_length_to_ui(w_segments[0]))
-        d_values = [original.get_int(engine_segment_length_to_ui(seg)) for seg in d_segments]
-
-        last_w = self._phase6_last_w
-        last_d = self._phase6_last_d
-        if top_w != last_w:
-            w_segments[0]["len"] = ui_segment_length_to_engine(w_segments[0], top_w)
-            core_w = top_w
-        elif core_w != last_w:
-            self.v_w.set(str(core_w))
-            top_w = core_w
-
-        if top_d != last_d:
-            for seg in d_segments:
-                seg["len"] = ui_segment_length_to_engine(seg, top_d)
-            d_value = top_d
-        else:
-            changed = [value for value in d_values if value != last_d]
-            d_value = changed[0] if changed else d_values[0]
-            for seg in d_segments:
-                seg["len"] = ui_segment_length_to_engine(seg, d_value)
-            if d_value != top_d:
-                self.v_d.set(str(d_value))
-
-        self._phase6_last_w = top_w
-        self._phase6_last_d = d_value
+        """Apply the public Engine D-W-D source transaction without GUI geometry."""
+        plan = manufacturing_api.plan_operator_box_body_dwd_sync(
+            getattr(self, "_phase6_input_snapshot", {}) or {},
+            self.state.profiles_vault.get("箱身", []),
+            top_width=self.v_w.get(),
+            top_depth=self.v_d.get(),
+            previous_width=getattr(self, "_phase6_last_w", None),
+            previous_depth=getattr(self, "_phase6_last_d", None),
+        )
+        if plan.profile is not None:
+            fresh = clone_profile(plan.profile)
+            if plan.replace_profile:
+                # A committed Receiving Bay/Quantity owns the core topology.
+                self.state.profiles_vault["箱身"] = fresh
+            else:
+                # Keep the live editor's list identity while replacing only
+                # the validated Engine-projected material row values.
+                current = self.state.profiles_vault.get("箱身")
+                if isinstance(current, list):
+                    current[:] = fresh
+                else:
+                    self.state.profiles_vault["箱身"] = fresh
+        if plan.display_width is not None:
+            self.v_w.set(str(plan.display_width))
+        if plan.display_depth is not None:
+            self.v_d.set(str(plan.display_depth))
+        self._phase6_last_w = plan.last_width
+        self._phase6_last_d = plan.last_depth
 
     def do_update(self):
         _phase6_apply_box_symmetry_policy(self)

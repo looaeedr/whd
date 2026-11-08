@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Public Engine BoxBody D-W-D live Fold source transaction (2026-11-08)
+
+`manufacturing_api.plan_operator_box_body_dwd_sync(snapshot, profile, *, top_width, top_depth, previous_width, previous_depth) -> OperatorBoxBodyDwdSyncPlan` is the original callable in `ae_engine.operator_box_body_dwd_sync`, also exposed at root `ae_engine`. It canonicalizes Receiving Family/Quantity authority, validates exact live physical W/D and whole saved W/D Fold cores, computes new material lengths solely through the Engine BoxBody Fold owner, and returns a detached candidate plus optional UI width/depth readbacks. `box_body_ui_segment_length_to_material(..., preserve_precision=True, field='w'|'d')` preserves fractional global physical dimensions; its old default manual Fold conversion remains whole-mm compatible. GUI applies the returned candidate only; no GUI geometry math, new Factory entitlement, new DXF exporter or project schema. Regression: `tests/test_issue2517_box_body_dwd_live_fold_public_api.py`.
+
+
 ## #2517 Live Fold Designer physical W/H/D source validator (2026-11-08)
 
 ae_engine.operator_settings_transactions.normalize_operator_live_box_dimensions(values) is exported identically from manufacturing_api and ae_engine. It checks all three raw operator W/H/D inputs with the existing positive, finite, non-bool Engine source validator and returns a detached float mapping preserving fractional millimetres. Fold Designer no longer feeds its legacy get_int result (rounded millimetres or zero on invalid UI input) to physical BoxBody/Head/Tail/other part commits. Head/Tail still uses the existing public reconcile_endcap_live_outside_dimensions; this is input validation and precision preservation only, not a new geometry/Family policy or manufacturing release. Regression: tests/test_issue2517_live_box_dimension_source_public_api.py.

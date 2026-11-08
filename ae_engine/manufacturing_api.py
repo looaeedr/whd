@@ -225,6 +225,9 @@ from .box_body_editor_readback import (
 from .operator_box_body_piece_fold_transaction import (
     OperatorBoxBodyPieceFoldPlan, plan_operator_box_body_piece_fold_commit,
 )
+from .operator_box_body_dwd_sync import (
+    OperatorBoxBodyDwdSyncPlan, plan_operator_box_body_dwd_sync,
+)
 from .operator_fold_editor import (
     OperatorFoldMirrorPlan, commit_operator_fold_editor_rows,
     normalize_operator_fold_editor_control,

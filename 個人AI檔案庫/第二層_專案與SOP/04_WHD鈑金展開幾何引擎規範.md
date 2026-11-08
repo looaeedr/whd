@@ -5,6 +5,13 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+
+## [CURRENT] #2517 箱身 D–W–D 實體 Fold 優先序及改料長由公開 Engine 交易（2026-11-08）
+
+- 原 `Phase6FoldDesignerApp._sync_dwd_with_top_whd` 直接在 GUI 判定 Quantity／Receiving Set/Bay 是否接管箱身 D-W-D，再自行比對上方 W/D 與核心折段、以 `get_int` 取整並修改核心 material `len`，這是物理尺寸、相鄰 BEND 補償與來源優先序，不可留第二份 GUI 規則。
+- 公開 `ae_engine.operator_box_body_dwd_sync.plan_operator_box_body_dwd_sync(snapshot, profile, *, top_width, top_depth, previous_width, previous_depth)`（`manufacturing_api` 與根包同一 callable）完整回傳 detached `OperatorBoxBodyDwdSyncPlan`，由原 Engine Family Registry、BoxBody Fold generator 與材長轉換擁有單一機械解算。Quantity 共用箱來源優先、Receiving Set/Bay 已提交包外來源優先、其他原有 D-W-D 上方直接編輯優先；保留 UI 手動 Fold 段整數顯示，僅全箱實體 W/D 採用既有 Engine 正數有限驗證與精度保留。已存小數全箱尺寸不可被未編輯的整數 Fold 列視覺取整回寫。
+- GUI 僅呼叫公開 Engine 一次、顯示需要變更的 Tk 數值、套回已驗證的 profile 候選並記住最後提交的 W/D；非法上方、前次或任一核心段在候選建構前完整拒絕，不突變原始 Fold 或來源。保留原 PartSpec、Family/CUTTING/BEND/FinalScene、DXF、Save→Reload schema；新測試 `tests/test_issue2517_box_body_dwd_live_fold_public_api.py` 核對 Vault、Receiving、Quantity、分片、無效欄位、精度、原有手動段顯示和 GUI 真委派。#2517 其他 GUI 製造入口仍需逐一驗收。
+
 ## [CURRENT] #2517 Fold Designer Door／Cell 指示燈孔位改收原始來源、由 Engine PartSpec 決策（2026-11-08）
 
 - 舊 GUI `gui_modules/application/fold_designer_manufacturing_projection._door_part_spec_from_payload_context` 原本在真正呼叫公開 DoorPartSpec 前，自己判定 `indicator`／`indicator_box` 模式、將燈群推導為開孔尺寸、計算 active offsets，單門還以 `bool("false")` 將序列化的 false 誤解為 true。這些都是製造孔位及製造來源資格，不是 UI 顯示。

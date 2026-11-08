@@ -256,6 +256,7 @@ from .manufacturing_api import (
     read_box_body_outside_dimensions, can_remove_box_body_fold_segment,
     reverse_box_body_fold_traversal, box_body_piece_editor_profiles,
     OperatorBoxBodyPieceFoldPlan, plan_operator_box_body_piece_fold_commit,
+    OperatorBoxBodyDwdSyncPlan, plan_operator_box_body_dwd_sync,
     OperatorFoldMirrorPlan, commit_operator_fold_editor_rows,
     normalize_operator_fold_editor_control,
     project_operator_fold_editor_angle,
