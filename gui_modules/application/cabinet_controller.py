@@ -166,6 +166,23 @@ def _restore_cabinet_family_runtime(self, state):
         })
         if state.get("endcap_bottom_wrap") is not None else None
     )
+    # The actual Corner commit below already calls this same public Engine
+    # owner. Stage its *whole* saved candidate before committing any Settings:
+    # a malformed late part/pair or certified Family corner must not leave
+    # the earlier Settings transaction applied after restore is rejected.
+    # Controller-only test doubles without a live Corner owner keep their
+    # injected _apply_manual_corner_snapshot callback.
+    live_corners = getattr(self, "manual_corner_state", None)
+    live_pairs = getattr(self, "manual_corner_pair_same", None)
+    if live_corners is not None and live_pairs is not None:
+        model_var = getattr(self, "baseline_var", None)
+        manufacturing_api.propose_operator_saved_manual_corner_snapshot(
+            live_corners, live_pairs,
+            saved_corner_state=state.get("corner_state"),
+            saved_corner_pair_same=state.get("corner_pair_same"),
+            baseline_model=model_var.get() if model_var is not None else "",
+            cabinet_family=self._current_cabinet_type_name(),
+        )
     self._apply_fold_designer_live_settings(
         {**physical, **stock, **other}, recalculate=False,
     )
