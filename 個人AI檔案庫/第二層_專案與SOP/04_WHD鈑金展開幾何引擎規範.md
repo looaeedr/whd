@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer Factory Defaults 透過公開 Engine API（2026-11-09）
+
+- 原 `gui_modules.application.fold_designer_snapshot_projection._snapshot_base_state` 直接匯入 `ae_engine.ae` 並呼叫 GUI/Phase6 `load_factory_defaults_from_ae(ae)`，由 GUI 製造設定清單解析原始 `default_config`；造成重置初始值的製造來源繞過公開 API。現將原有 45 項 Settings 欄位 schema（含相容 INI section/option、legacy fallback、原始預設值與操作 context）**原樣移到** `ae_engine.operator_settings_catalog`，由公開 `manufacturing_api.OPERATOR_SETTING_SPECS` 供 GUI 只作欄位與版面呈現；不新增第二份規格。
+- `manufacturing_api.project_operator_factory_default_settings()` 由 Engine 原 `ae.default_config` 當次產生 detached Factory Defaults，經既有公開 W/H/D/T/FW、Bool、非實體 Fold/孔位/Relief 數值來源驗證；已存在但損壞的 factory 欄位只退到**該已確認 SettingSpec 的原值**。不使用 `config.ini` 或可變的 `ae.W` 等 runtime 取代出廠值，不容任意未知欄位加入；`source_config` 參數僅用於既有自訂 Host/相容測試，不能當認證製造來源。
+- GUI `phase6_settings_center.project_fold_designer_factory_snapshot` 只呼叫公開 API 並在 GUI 將 `ui_text_size` 轉成顯示選項（小/中/大）；保留既有 `SettingsService`、`load_factory_defaults_from_ae` 的 host 相容介面、舊 INI/中文選項與 Fold Designer Factory Reset。新測試 `tests/test_issue2517_factory_defaults_public_engine_api.py` 驗原始 Engine source 與 GUI/headless/JSON Reload 一致、非法值 fail-closed fallback、配置不改動、Factory 與 runtime 隔離、無 Engine 逆向 GUI 匯入。這批**不變更製造物理孔、BEND、CUTTING 或 DXF**，#2517 維持 OPEN。
+
+
 ## [CURRENT] #2517 受電箱內門 Hole Editor Confirm All 提交目標由 Engine 決策（2026-11-08）
 
 - 原 `gui_modules.application.receiving_inner_door_hole_editor.inner_door_commit_target` 在 GUI 自行決定「實體內門」與「候選版本」保存目的，並被 `fold_designer_composition_receiving` 多個入口複用。現正式權威改為 `manufacturing_api.operator_receiving_inner_door_commit_target(settings_mode)`（`ae_engine.operator_receiving_inner_door_source`），GUI helper 僅為相容轉送；所有多連／單只入口及 Confirm All 候選判斷讀同一 Engine API。
