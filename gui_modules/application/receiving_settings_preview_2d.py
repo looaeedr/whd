@@ -49,8 +49,8 @@ def _assembly_world_meshes(request):
         tuple(getattr(request.render_data, "assembly_parts", ()) or ()),
         finished_dimensions=request.finished_dimensions,
         thickness=request.thickness,
-        preserve_endcap_core_origin=bool(
-            getattr(request.render_data, "preserve_endcap_core_origin", False)
+        preserve_endcap_core_origin=getattr(
+            request.render_data, "preserve_endcap_core_origin", False
         ),
     ):
         yield (_role_group(role), key, mesh)

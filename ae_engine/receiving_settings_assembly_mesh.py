@@ -19,6 +19,7 @@ from .assembly_geometry import (
     thicken_triangle_surface,
 )
 from .box_body_world_datum import resolve_box_body_formed_width_datum
+from .operator_settings_transactions import normalize_operator_settings_boolean
 
 
 def _contract_profile_rows(profile):
@@ -129,10 +130,12 @@ def resolve_assembled_endcap_world_skins(
     Caller owns resolved material and operator intent; no UI state, fallback
     preview geometry, manufacturing certification, or policy is introduced.
     """
+    # A saved operator flag must never be coerced with bool('false').
+    preserve_core_origin = normalize_operator_settings_boolean(preserve_core_origin)
     surface = place_endcap_against_box_body(
         local_triangles, placement, box_body_world, offset,
         sheet_thickness=thickness,
-        preserve_core_origin=bool(preserve_core_origin),
+        preserve_core_origin=preserve_core_origin,
     )
     return AssembledEndcapWorldSkins(
         formed_surface=tuple(surface),
@@ -149,6 +152,11 @@ def resolve_receiving_settings_assembly_world_meshes(
     All transforms use existing canonical Engine primitives. No Tk, Phase6,
     user-viewport state, manufacturing permission or fallback rules live here.
     """
+    # Validate before any physical world geometry is constructed, even when
+    # a saved source has no endcap or an empty assembly.
+    preserve_endcap_core_origin = normalize_operator_settings_boolean(
+        preserve_endcap_core_origin
+    )
     box_body_world = None
     rows = []
     for part in tuple(assembly_parts or ()):

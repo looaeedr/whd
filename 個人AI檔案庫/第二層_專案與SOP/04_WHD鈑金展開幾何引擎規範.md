@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Settings 2D 封頭尾核心原點旗標以公開 Engine 原始來源驗證（2026-11-08）
+
+- 原 `gui_modules/application/receiving_settings_preview_2d._assembly_world_meshes` 在呼叫公開 Engine 世界座標實體網格前先以 `bool(preserve_endcap_core_origin)` 解碼；Save→Reload 的字串 `"false"` 會被誤判 True，使 Head/Tail 世界定位預覽與同源 headless Engine 語意分裂。Engine 原 `resolve_assembled_endcap_world_skins` 同樣有寬鬆 truthiness。
+- 保留原有 `manufacturing_api.resolve_receiving_settings_assembly_world_meshes`／`resolve_assembled_endcap_world_skins` 公開入口與 canonical Assembly Geometry，兩者均沿用現有 Engine `normalize_operator_settings_boolean`，於組合幾何建構前驗 raw source；合法 true/false、on/off、1/0 依 Engine 單一定義解析，非法來源 fail closed，不得因無實體 Head/Tail 而略過。GUI 只傳原始操作／已保存值，不做物理旗標 truthiness，缺席欄位仍保留 False 相容預設。
+- 定向 `tests/test_issue2517_receiving_settings_assembly_world_mesh_engine_api.py` 覆蓋兩個公開 Engine 入口、真實 source meshes、GUI raw 委派、序列化布林、非法來源不進入定位和原資料不突變。僅修顯示組合網格的來源驗證，不授予 Preview 製造認證，不改原 Factory/Registry、已確認 FinalScene、2D/3D/DXF 加工公式或 Project schema；#2517 其他 API 與 Windows 實機驗收仍須逐項核對。
+
 ## [CURRENT] #2517 自訂開孔尺寸與 Catalog 製造入口一律由公開 Engine 驗證（2026-11-08）
 
 - 原 `gui_modules/editors/hole_editor.HoleEditorFeatureFactory.make_feature` 先對自訂圓孔徑、自訂矩形 W/H 做 GUI `float(TkVar)`；布林 `True` 因而變成 `1.0 mm`，繞過原 `ae_engine.hole_catalog._positive_hole_mm` 的布林禁令，產生未經原始來源驗證的實體 CUTTING／BLIND_HOLE。旋轉選項的 `int(...)` 又在 GUI try/except 外，損壞輸入會例外逃逸；主 `gui.py` 另外直接匯入 `ae_engine.hole_catalog` 私有模組而非經製造公開 API。
