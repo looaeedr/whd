@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Settings Panel 即時 W/H/D/T／Fold／Relief 草稿值須經公開 Engine 驗證後才暫存（2026-11-08）
+
+- `phase6_settings_panel.Phase6SettingsPanel` 原本在上方全域 W/H/D/T 與右側設定 Numeric `trace_add` callback 以 `float(raw)` 將輸入直接送到 `Phase6SettingsService.stage_setting_update`；該暫存服務會立即改寫 `settings_values`／`input_snapshot`，因此可讀的 `nan`／`inf` 在下游 Engine 檢核前就污染製造草稿，物理 T=0 或負數亦可提前進入，且上方值對比的 GUI 1e-9 容差會忽略合法小數變更。
+- 不新增 API／設定狀態第二份 owner：上方全球 W/H/D/T 操作來源以既有公開 `manufacturing_api.normalize_operator_source_dimension` 驗正有限，並以兩個已驗值做精確相等比較；右側實體欄位沿用同入口，非實體 Fold/Gap/Relief 數字經 `normalize_operator_settings_updates`，布林透過 `normalize_operator_settings_boolean`。沒有合法 Engine 回值就不呼叫原暫存 callback，保留 GUI 無效草稿供編修；非實體負折邊與零值照原規範合法。
+- `tests/test_issue2517_settings_panel_live_staging_public_api.py` 驗四軸非法輸入無暫存、精確小數、不改既有草稿、Fold/Relief 受 Engine 允許的負數、布林原值與真實 Tk 控制的 API parity。本切片不修改 Family／PartSpec／CUTTING／BEND／2D／3D／DXF 公式，#2517 與 Windows UAT 仍未全部完成。
+
 ## [CURRENT] #2517 Receiving 封頭／封尾 Family Policy 的實體板厚 T 原始來源由公開 Engine 驗證（2026-11-08）
 
 - `fold_designer_manufacturing_projection._apply_cabinet_family_endcap_policy` 原先 `float(self.t_var.get())`，將明確可讀但錯誤的來源提前轉型；`manufacturing_api.apply_cabinet_family_endcap_policy` 亦有 `float(thickness)`，可能讓原生 bool 成為 T1、NaN/Inf 流入封頭／封尾下方有效 FW。這會影響 Receiving EndCap Family 成品料與 2D/3D/DXF 同源計算，不能由 GUI 靜默製造。
