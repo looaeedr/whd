@@ -121,7 +121,9 @@ def _phase6_relief_profile_signature(profile):
 def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
     """Collect current operator inputs; Engine owns committed relief replay."""
     state = deepcopy(getattr(self, "assembly_relief_state", {}) or {})
-    if not bool(state.get("enabled")):
+    if not manufacturing_api.normalize_operator_settings_boolean(
+        state["enabled"] if "enabled" in state else False
+    ):
         # Preserve the historic uninitialized-BoxBody disabled short circuit.
         return ()
     controller = getattr(self, "workspace_controller", None)
