@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI STOCK 與單門指示燈距離旗標須保留公開 Engine 原始來源（2026-11-08）
+
+- `gui_modules/application/manufacturing_adapter._manufacturing_context` 原先在送正式 DXF `ManufacturingContext` 前 `bool(draw_stock)`，使序列化 `"false"` 變 True，開啟不應有的 STOCK；單門 `_single_door_part_spec` 也預先 `bool(self.is_box_dist_var.get())`，使 `"false"` 變 True，偏移指示燈孔的位置語意。此前 #3107 處理 Fold Designer STOCK 交易，但未涵蓋這條主 GUI 出圖 Adapter。
+- 原 `ae_engine.operator_settings_transactions.normalize_operator_settings_boolean` 已由 `manufacturing_api` 公開：主 GUI 僅使用該 Engine 正規化值建 `ManufacturingContext`，拒絕非法 flag；單門則保留 `is_box_dist_var.get()` raw 原始值交給原 `manufacturing_api.build_door_operator_part_spec`，由 Engine 僅在實際啟用指示燈時嚴格判定，停用時保留歷史無孔容錯。不增寫任何 CUTTING／STOCK／距離公式或第二份 DXF Writer。
+- `tests/test_issue2517_main_gui_manufacturing_raw_boolean_engine.py` 核對主 GUI 與 headless 同一 Context／PartSpec、序列化旗標 false／true、非法來源 fail-closed、停用指示燈保留舊檔、JSON Save→Reload。2D／3D／DXF 仍來自 Engine canonical 結果，Windows 實機 UAT／#2517 全面覆蓋未完成。
+
 ## [CURRENT] #2517 Receiving 內門 1／2 層操作選項由公開 Engine 原始來源驗證（2026-11-08）
 
 - 原 `gui_modules/application/receiving_set_bay_controls._build_receiving_settings_editor` 的未套用匹配預覽與正式「編輯／套用」都使用 `int(value_var.get())` 直接轉換實體層數。GUI 的預先轉型可把 `"01"`、`"02"` 或錯型來源變成 1／2，繞過 `ae_engine.receiving_shared_settings.validate_setting("inner_door_layers", value)` 對已存實體 Bay 層數必須是精確整數的限制；preview/apply 各有第二份來源轉換。
