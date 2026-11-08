@@ -1343,7 +1343,12 @@ def _phase6_select_box_structure_type(self, var):
 def _phase6_box_structure_w(self):
     values = dict(getattr(self, "_phase6_box_whd", {}) or {})
     values.update(dict(getattr(self, "_settings_values", {}) or {}))
-    return float(values.get("w", getattr(getattr(self, "state", None), "w", 500.0)))
+    # Only the public Engine may turn operator W into a physical dimension.
+    # float(True) would otherwise hide an invalid 1-mm source.
+    return manufacturing_api.normalize_operator_source_dimension(
+        values.get("w", getattr(getattr(self, "state", None), "w", 500.0)),
+        field="w",
+    )
 
 
 def _phase6_box_structure_d(self):
@@ -1382,13 +1387,12 @@ def _phase6_select_back_panel_mode(self, var):
 def _phase6_apply_box_structure_numeric(self, type_id, field, var):
     state = _phase6_box_structure_state(self)
     try:
-        raw = str(var.get()).strip()
-        value = float(raw)
+        # Preserve the original Tk source until the Engine physical-mm gate.
         committed = _phase6_settings_transactions(self).apply_box_structure_numeric(
             state,
             type_id,
             field,
-            value,
+            var.get(),
             total_w=_phase6_box_structure_w(self),
             outside_family=manufacturing_api.operator_box_body_profile_uses_outside_dimensions(
                 getattr(self, "_phase6_input_snapshot", {}) or {}

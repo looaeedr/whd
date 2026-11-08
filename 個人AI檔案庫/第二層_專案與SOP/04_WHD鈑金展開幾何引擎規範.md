@@ -2101,6 +2101,12 @@ Validation 維持單向：contact probe、collision、fixture expected、pytest 
 
 ---
 
+## [CURRENT] #2517 BoxBody 結構截角／避讓毫米數及 Family 空間旗標須以 Engine 原始來源驗證（2026-11-08）
+
+- `ae_engine.box_body_structure_state.apply_box_body_structure_numeric` 是金庫型／受電箱現有 BoxBody 二片 W 分割、三片 W 分割、三片側背分離、接合折邊及 EndCap/BasePlate relief 的原製造交易。原先先做 `float(value)`，可把 `True` 變成 1 mm，或讓非有限 NaN/Inf 進入直接 `update_structure_config` 的 Relief 參數；`outside_family="false"` 在 `side_rear_bend_dimension_space` 使用 Python truthiness 時誤設為 OUTSIDE。此外 GUI `_phase6_box_structure_w` 先將錯誤 saved W `True` 轉成 1.0，導致公開 Engine 原始類型驗證失效。
+- 由唯一 Engine `ae_engine.box_body_structure_state.apply_box_body_structure_numeric` 在**任何**箱身結構設定落盤前，對真實 `value`、`total_w` 做原 `_finite_dimension` 有限非布林檢查，箱身總 W 必須正數；對 Family Policy 布林原始值復用既有 `ae_engine.operator_settings_transactions.normalize_operator_settings_boolean`，不得用 `bool("false")`。原有二件式／三件式實體 Fold、座標、Registry、CUTTING／DXF 公式都不變。GUI `fold_designer_bridge` 經 `manufacturing_api.normalize_operator_source_dimension(field="w")` 讀 W，數值欄位原始值不先 `float()`，僅向原 Phase6 Settings controller 轉交，由既有公開 Engine 單一交易負責來源及實體結果。
+- `tests/test_issue2517_box_structure_raw_source_engine_api.py` 應覆蓋四個 Relief 欄位 Boolean／NaN／Inf 拒絕、錯誤總 W 拒絕、側背分離 `"false"` 與 False 同結果／`"true"` 與 True 同結果、GUI 直接操作錯誤來源不物理提交、合法 5.25 relief 和 JSON Save→Reload。非原始 operator 真實數值由 Engine fail closed；本輪只驗這條鏈，#2517 仍 OPEN、Windows GUI UAT 不推定通過。
+
 ## [CURRENT] #2517 Receiving Head/Tail 下方 WRAP 預留量原始輸入禁止 GUI 或 Engine 靜默截為零（2026-11-08）
 
 - `fold_designer_bridge._phase6_commit_receiving_bottom_wrap_controls` 原在送原公開 `operator_endcap_bottom_wrap` 前先執行 `max(0.0, float(TkVar.get()))`；Engine 原 `operator_endcap_bottom_wrap` 亦提前 `float()`，而低層公開 `commit_endcap_bottom_wrap` 對負值截為零。這使 `True` 可成為 1mm、負值成為 0mm、非有限值越過輸入邊界，改變 Receiving 下方 WRAP 的真正 L 型預留與 Joint 裝配間隙。
