@@ -839,7 +839,9 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     result = FinalSceneViewRequest(
         render_data=AssemblySceneRenderData(assembly_parts=parts, preserve_endcap_core_origin=True),
         x_profile=(), y_profile=(), part_key="assembly",
-        finished_dimensions=dimensions(), thickness=float(snapshot.get("t", 2)),
+        finished_dimensions=dimensions(), thickness=manufacturing_api.normalize_operator_source_dimension(
+            snapshot.get("t", 2), field="t",
+        ),
     )
     if preview_layout is None:
         _retain_committed_receiving_bay_preview(
@@ -1288,7 +1290,9 @@ def _common_preview_request(self, namespace):
         render_data=AssemblySceneRenderData(assembly_parts=parts, preserve_endcap_core_origin=True),
         x_profile=(), y_profile=(), part_key="assembly",
         finished_dimensions=tuple(self.app._phase6_box_whd[axis] for axis in ("w", "h", "d")),
-        thickness=float(self.app._phase6_input_snapshot.get("t", 2)),
+        thickness=manufacturing_api.normalize_operator_source_dimension(
+            self.app._phase6_input_snapshot.get("t", 2), field="t",
+        ),
     )
 
 
