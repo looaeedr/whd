@@ -16,12 +16,9 @@ def update_calculations(self):
         z_render = self._authoritative_render_data(
             z_spec, self._manufacturing_context(draw_stock=False)
         )
-        z_dimension_render = getattr(z_render, "canonical_strip_render_data", z_render)
-        z_minx, z_miny, z_maxx, z_maxy = (
-            float(v) for v in z_dimension_render.material.bounds
+        z_len, z_h = manufacturing_api.project_operator_main_blank_summary_dimensions(
+            z_render, part_key="box_body",
         )
-        z_len = z_maxx - z_minx
-        z_h = z_maxy - z_miny
         
         # 2. 封頭／封尾結果尺寸。Phase6 一旦提交 linked Fold Profile，
         # 主 2D 必須直接量同一份 authoritative FinalScene；不得再回到
@@ -42,9 +39,9 @@ def update_calculations(self):
             y_render = self._authoritative_render_data(
                 y_spec, self._manufacturing_context(draw_stock=False)
             )
-            y_minx, y_miny, y_maxx, y_maxy = (float(v) for v in y_render.material.bounds)
-            y_w = y_maxx - y_minx
-            y_d = y_maxy - y_miny
+            y_w, y_d = manufacturing_api.project_operator_main_blank_summary_dimensions(
+                y_render, part_key=summary_part,
+            )
         else:
             y_w, y_d = manufacturing_api.project_operator_endcap_blank_dimensions(
                 val, baseline_model=baseline,
