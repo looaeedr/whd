@@ -77,7 +77,7 @@ def resolve_inner_door_hole_editor_context(input_snapshot, part_key: str) -> Inn
     )
     vertical = inner_door_panel_vertical_contract(
         cell_height=cell.start_height, thickness=panel.thickness,
-        gap_h=float(snapshot.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"])),
+        gap_h=snapshot.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"]),
     )
     # The top-frame occupation offsets the CELL center from the panel center.
     # This guide is NEVER used for CUTTING or FeatureSurface containment.
