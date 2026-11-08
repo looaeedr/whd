@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 專案載入／舊版直接保存保留包外 W/H/D 原值（2026-11-08）
+
+- 先前雖然即時尺寸、D–W–D 和 Export 已改公開 Engine，`Phase6FoldDesignerApp.load_phase6_snapshot` 載入 `.p6fold` 仍使用 `original.get_int` 將操作者包外 W/H/D 取整，非法值又默默回退至 0；其 legacy `export_phase6_snapshot` 將 H 取整並受 BoxBody Fold 料長讀回覆寫實體 W/D。這是源狀態錯誤，不可依渲染器或測試 fixture 重新定義尺寸。
+- 此批重用既有公開 `manufacturing_api.normalize_operator_live_box_dimensions`，先在任何 Snapshot/Editor 更新前驗證輸入，Receiving Set/Bay authoritative Bay 投影後再驗一次現行尺寸；UI State／Tk 展示使用未取整實體包外浮點值，並保留原先 EndCap/BoxBody Fold、Family、2D/3D/Save→Reload 路徑。Legacy 直接 Export 先驗三軸再 `bend_ui.save`，最後以實際上方 W/H/D 覆蓋只供 Fold readback 的整數材料段，不新造第二份材料轉換公式。
+- 負向來源必須在 GUI 來源與 Fold 快取改動前拒絕，合法 nested settings 僅當 top-level 欄位缺失才能 fallback。定向 `tests/test_issue2517_fold_designer_load_whd_public_api.py` 核對 Vault／Receiving 別名、遺留快照、已確認 Bay、無效尺寸及直接 Export，並交由 exact HEAD Product Regression 與實體 DXF Save→Reload 验收。本切片不新增 Factory/DXF 製造准入或 Project schema；#2517 全面入口仍需逐條核對。
+
+
 ## [CURRENT] #2517 箱身 D–W–D 實體 Fold 優先序及改料長由公開 Engine 交易（2026-11-08）
 
 - 原 `Phase6FoldDesignerApp._sync_dwd_with_top_whd` 直接在 GUI 判定 Quantity／Receiving Set/Bay 是否接管箱身 D-W-D，再自行比對上方 W/D 與核心折段、以 `get_int` 取整並修改核心 material `len`，這是物理尺寸、相鄰 BEND 補償與來源優先序，不可留第二份 GUI 規則。
