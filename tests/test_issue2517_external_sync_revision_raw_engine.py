@@ -22,7 +22,7 @@ def packet(revision):
     True, False, 1.0, 2.0, 2.5, 3.75,
     float("nan"), float("inf"), float("-inf"),
     "2.5", "2_0", "0x2", "nan", "inf", "false",
-    [], {}, (), object(),
+    [], {}, (), b"2",
 ])
 def test_illegal_external_revision_cannot_consume_a_transaction_or_change_state(value):
     source = packet(value)
