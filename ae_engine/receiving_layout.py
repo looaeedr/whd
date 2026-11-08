@@ -111,6 +111,31 @@ def normalize_receiving_operator_topology_integer(value: object, *, name: str) -
     raise ValueError(f"Receiving {name} must be an integer")
 
 
+def project_receiving_operator_set_preview_target(
+    layout: Mapping[str, object], layer_index: object,
+) -> dict[str, object]:
+    """Read-only physical Receiving Set/Bay target for the 2D settings preview.
+
+    Legacy GUI calls these Sets "layers", but they use receiving-layout-v1,
+    not the separate receiving-switch-layout-v1 opening-tier topology.
+    """
+    index = normalize_receiving_operator_topology_integer(
+        layer_index, name="Set preview index",
+    )
+    normalized = normalize_receiving_layout(layout)
+    sets = normalized["sets"]
+    if not 0 <= index < len(sets):
+        raise ValueError("Receiving Set preview layer_index out of range")
+    selected = sets[index]
+    from .receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+    return {
+        "set_index": index,
+        "set_id": selected["stable_id"],
+        "connection_count": len(selected["bays"]),
+        "brand": selected.get("switch_brand", RECEIVING_SWITCH_BRANDS[0]),
+    }
+
+
 def normalize_receiving_operator_connection_counts(raw_counts) -> tuple[int, ...]:
     """Project only real positive Set/Bay topology counts to GUI controls.
 

@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 套／連 2D 預覽實體來源只經公開 Set/Bay Engine（2026-11-08）
+
+- 舊 GUI `receiving_layer_preview_payload` 與 `open_receiving_layer_preview` 的 `int(layer_index)` 會把 bool/fractional 誤指另一個實體 Set；舊 Switch 相容 facade 的廠牌來自目前選取 Set，而非實際預覽目標 Set。此舊 UI「套」的資料來源為 `receiving-layout-v1`，**不是** `receiving-switch-layout-v1` 的 Switch 開孔 tier。
+- 唯一 Set/Bay owner `ae_engine.receiving_layout` 新增只讀 `project_receiving_operator_set_preview_target(layout, layer_index)`，並經 `manufacturing_api`／根包同一 callable 公開。**沿用**既有 `normalize_receiving_operator_topology_integer` 作原始索引驗證（不可自行重刻 regex），再由 Engine 真實 Set/Bay 正規化核實存在性、Set stable ID、physical Bay 數和目標 Set 廠牌；非法來源不可啟動 FinalScene 預覽、不更動持久化來源。
+- 測試 `tests/test_issue2517_receiving_layer_preview_engine_target.py` 使用真 `ReceivingSetBayAdapter` 和 `ReceivingSwitchProjectionAdapter` 及兩套不同品牌做 headless／GUI parity、非法數值與 schema 拒絕、只讀、JSON 穩定與既有開窗 callback。這只修一條展示前的來源資格，不是開孔 CUTTING／NFB／Factory 製造放行，不改 2D/3D/DXF 幾何或認證；#2517 及 Windows UAT 尚未結案。
+
 ## [CURRENT] #2517 NFB 草稿 X／四分之一圈角度直接送公開 Engine 原始來源（2026-11-08）
 
 - `gui_modules/application/fold_designer_composition_receiving.inner_edit` 原在 NFB 手動 X 草稿提交前 `float(TkVar.get())`，旋轉草稿提交前 `int(TkVar.get())`；其中非標準文字角度如 `"090"` 會被轉成合法 90 度，且物理來源轉型權留在 GUI。這些值只屬尚未證實 DXF/CUTTING 的 NFB 暫存，不得當成已驗證世界 X 或製造旋轉。

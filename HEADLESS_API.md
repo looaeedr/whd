@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving 2D Set/Bay layer-preview target public Engine (2026-11-08)
+
+`project_receiving_operator_set_preview_target(receiving_layout, layer_index)` is a read-only public projection from `ae_engine.receiving_layout`, identically exposed by `manufacturing_api` and root `ae_engine`. It reuses `normalize_receiving_operator_topology_integer` for raw canonical Set index source (rejects bool, fractional, whitespace/underscore aliases), checks the real `receiving-layout-v1` Set existence, and returns `set_index`, `set_id`, `connection_count`, `brand` of the selected Set. Legacy GUI 2D settings preview consumes the Engine-verified physical target; this is **not** the `receiving-switch-layout-v1` opening-cell validator or a CUTTING/DXF manufacturing certification. Regression: `tests/test_issue2517_receiving_layer_preview_engine_target.py`.
+
 ## #2517 Receiving Set/Bay/Joint physical topology index raw-source gate (2026-11-08)
 
 `ae_engine.receiving_layout.normalize_receiving_operator_topology_integer(value, *, name)` is the same callable in `ae_engine.manufacturing_api` and root `ae_engine`. It accepts native `int` (excluding bool) and legacy signed ASCII decimal Tk text; it rejects float, bool, whitespace, containers and Python's underscore numeric aliases (e.g. `int('1_0') == 10`) before they can affect Set/Bay counts or Joint selection. GUI `ReceivingSetBayAdapter` only forwards original input to the public API; canonical Engine operations continue to enforce count/range/physical existence. No new storage schema, Family policy, part manufacturing or DXF entitlement. Regression: `tests/test_issue2517_receiving_operator_topology_index_public_api.py`.

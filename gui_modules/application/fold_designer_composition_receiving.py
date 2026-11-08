@@ -862,10 +862,17 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
 def receiving_layer_preview_payload(self, namespace, layer_index):
     """每連獨立 canonical request；顯示不改製造 precision 或持久化。"""
     switch = self.receiving_switch_adapter(namespace)
-    index = int(layer_index)
-    count = switch.connection_count(index)
+    # UI "套" selects a receiving-layout-v1 Set/Bay, not a Switch cutout
+    # tier. Raw source, physical Bay count and this Set's brand belong to Engine.
+    target = manufacturing_api.project_receiving_operator_set_preview_target(
+        switch.layout, layer_index,
+    )
+    index = target["set_index"]
+    count = target["connection_count"]
     requests = tuple(self.receiving_bay_preview_request(namespace, index, i) for i in range(count))
     return {
+        "layer_index": index,
+        "brand": target["brand"],
         "connection_count": count,
         "render_request": requests[0],
         "lock_circles": (),
@@ -981,11 +988,9 @@ def open_receiving_layer_preview(self, namespace, layer_index):
     required = lambda name: self._required(namespace, name)
     if getattr(app, "receiving_layer_controls", None) is None:
         return False
-    switch = self.receiving_switch_adapter(namespace)
-    index, brand = int(layer_index), switch.brand
     original = required("original")
     try:
-        preview = self.receiving_layer_preview_payload(namespace, index)
+        preview = self.receiving_layer_preview_payload(namespace, layer_index)
     except Exception as exc:
         from tkinter import messagebox
         messagebox.showwarning(
@@ -998,14 +1003,14 @@ def open_receiving_layer_preview(self, namespace, layer_index):
         app.root,
         tk=original.tk,
         ttk=original.ttk,
-        layer_index=index,
+        layer_index=preview["layer_index"],
         connection_count=preview["connection_count"],
-        brand=brand,
+        brand=preview["brand"],
         render_request=preview["render_request"],
         lock_circles=preview["lock_circles"],
-        settings_ports=self.receiving_settings_ports(namespace, index),
+        settings_ports=self.receiving_settings_ports(namespace, preview["layer_index"]),
         bay_requests=preview["bay_requests"],
-        bay_request_provider=lambda: tuple(self.receiving_bay_preview_request(namespace, index, i) for i in range(preview["connection_count"])),
+        bay_request_provider=lambda: tuple(self.receiving_bay_preview_request(namespace, preview["layer_index"], i) for i in range(preview["connection_count"])),
     )
 
 def settings_panel(self, namespace):
