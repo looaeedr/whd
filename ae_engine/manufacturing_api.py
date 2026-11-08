@@ -496,7 +496,7 @@ operator_endcap_fw_profile_uses_material_dimensions = cabinet_family_policy.endc
 from .operator_door_blank_projection import project_operator_door_blank_dimensions
 from .operator_round_hole_projection import (
     OperatorRoundHolePreview, nearest_operator_round_hole_neighbor_index,
-    plan_operator_round_hole_preview,
+    plan_operator_round_hole_preview, operator_round_hole_default_center_distance,
 )
 # GUI round-hole spacing fields use the same Engine geometric conversions
 # as the canonical physical-feature reference owner.

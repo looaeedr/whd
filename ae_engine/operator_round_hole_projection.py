@@ -3,11 +3,32 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 
 from .sheetmetal_features import (
     CircleFeature, align_circle_to_neighbor, feature_finished_point,
     feature_is_within_surface, generate_round_fill, generate_round_refill,
 )
+
+
+def operator_round_hole_default_center_distance(diameter: object) -> float:
+    """Resolve the existing operator round-fill center pitch from physical diameter.
+
+    This is a default for the editable operator field, not a manufactured
+    hole or an approval to export; the preview planner remains authoritative.
+    """
+    if isinstance(diameter, bool):
+        raise ValueError("圓孔直徑必須為正有限數值")
+    try:
+        numeric = float(diameter)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("圓孔直徑必須為正有限數值") from exc
+    if not isfinite(numeric) or numeric <= 0:
+        raise ValueError("圓孔直徑必須為正有限數值")
+    pitch = numeric * 2.0
+    if not isfinite(pitch):
+        raise ValueError("圓孔預設孔心距必須為正有限數值")
+    return max(pitch, 50.0)
 
 
 @dataclass(frozen=True)

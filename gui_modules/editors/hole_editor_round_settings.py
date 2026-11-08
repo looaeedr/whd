@@ -118,6 +118,10 @@ class _RoundHoleSettingsDialog:
         }
 
     def open(self):
+        # Validate the physical source before creating/grabbing any Tk window.
+        initial_pitch = manufacturing_api.operator_round_hole_default_center_distance(
+            self.selected_feature.diameter,
+        )
         self.dialog = tk.Toplevel(self.editor)
         self.round_window[0] = self.dialog
         self.dialog.title("圓孔排列設定")
@@ -127,7 +131,7 @@ class _RoundHoleSettingsDialog:
         self.dialog.resizable(False, False)
         self.round_direction = tk.StringVar(value="向右")
         self.round_driver = tk.StringVar(value="center")
-        self.round_center = tk.StringVar(value=f"{max(float(self.selected_feature.diameter) * 2.0, 50.0):.2f}")
+        self.round_center = tk.StringVar(value=f"{initial_pitch:.2f}")
         self.round_gap = tk.StringVar()
         self.round_alignment = tk.StringVar(value="center")
         self.sync_guard = False

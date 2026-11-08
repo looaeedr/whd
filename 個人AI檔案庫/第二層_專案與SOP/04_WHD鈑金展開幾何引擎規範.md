@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 圓孔排列預設孔心距由 Engine 公開 API 決定（2026-11-08）
+
+- Hole Editor 圓孔排列視窗原以 GUI `max(2 × 圓孔直徑, 50 mm)` 產生可編輯孔心距初始值。現由 `manufacturing_api.operator_round_hole_default_center_distance(diameter)`（`ae_engine.operator_round_hole_projection` owner）統一決定，原合法數值不變。此初始值僅是操作欄位預設，不是已確認加工孔位，不繞過原 `plan_operator_round_hole_preview`、Session commit 與正式製造。
+- 原始孔徑為 bool、非正、非有限或兩倍計算溢位時，由 Engine fail-closed 拒絕；GUI 在建立／grab Tk modal 前先呼叫 API，拒絕不修改編輯 session 與原來源。測試 `tests/test_issue2517_round_hole_default_pitch_public_engine.py` 驗合法預設、非法來源及 GUI 無視窗副作用；此切片不表示 #2517 全面完成，亦不改 2D／3D／DXF canonical 幾何或放行外部 export。
+
+
 ## [CURRENT] #2517 External Settings monotonic revision 原始來源由公開 Engine 嚴格核對（2026-11-08）
 
 - `ae_engine.operator_settings_transactions.plan_operator_external_sync` 是 Fold Designer 接收 Main GUI Settings 更新的既有唯一公開 Engine 判定 owner；原 `int(envelope.revision)` 對 JSON 布林 `true`、浮點 `2.5`、`2.0` 會將原始非整數版本轉成可接受整數，可能搶先佔用 revision 或把較舊/非法製造設定當作新交易。GUI 路徑 `phase6_settings_transitions.plan_external_sync` 與 `Phase6SettingsTransactionService.plan_external_sync` 均沿用該公開 API，無需新 owner。
