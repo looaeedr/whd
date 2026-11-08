@@ -17,6 +17,7 @@ from .assembly_intent_transactions import (
 )
 from .corner_state_transactions import apply_corner_preset
 from .endcap_bottom_wrap_state import normalize_endcap_bottom_wrap_state
+from .operator_settings_transactions import normalize_operator_source_dimension
 
 
 @dataclass(frozen=True)
@@ -139,6 +140,14 @@ def plan_cabinet_family_model_transition(
             for key, value in fresh_defaults.items()
             if key != "ui_text_size"
         }
+        # Family defaults are manufacturing outside-dimension sources, not
+        # rounded GUI labels. Validate before any Settings transaction owner
+        # may commit this candidate or construct a new Receiving Layout.
+        for axis in ("w", "h", "d"):
+            if axis in defaults:
+                defaults[axis] = normalize_operator_source_dimension(
+                    defaults[axis], field=axis,
+                )
         snapshot.update(defaults)
         if target_family == "受電箱":
             # A newly selected Family must immediately own one real CSV NFB,
