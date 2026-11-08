@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Head/Tail／門／底板截角操作原始係數交由公開 Engine（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_registry_edges.corner_target_var_changed` 和主 GUI `gui_modules/parts/panels/assembly_corner.selection_from_manual_corner_controls` 在呼叫原 Engine Corner 交易／`CornerTypeSelection` 前先對 `amount_t`、`secondary_retain_t`、`secondary_depth_t` 做 `float(TkVar.get())`；布林 `True` 因而變成 1.0T，繞過原 `sheetmetal_geometry_core.CornerTypeSelection` 對 boolean/nonfinite 製造截角參數的拒絕。Fold Designer `corner_pair_var_changed` 還以 `bool("false")` 誤將保存的獨立角組合成同一對角。
+- 沿用既有公開 `manufacturing_api.commit_corner_parameters`／`commit_corner_pair` 與原 `CornerTypeSelection` 及 `corner_state_transactions`：GUI 只轉送原始 Tk 參數，原 Engine Corner 交易不再預先 `float()`，讓原 `CornerTypeSelection` 驗證真正參與切孔的 T 係數；合法序列化小數保留精度，非法／布林／非有限參數拒絕且不改已提交狀態。成對旗標原樣由 Engine `normalize_operator_settings_boolean` 判定，非法來源 GUI 不執行狀態通知。對無作用的附加欄位保留原 CornerTypeSelection 現有拓樸語意，不新增第二套公式。
+- `tests/test_issue2517_corner_raw_controls_public_engine.py` 覆蓋 Head/Tail 成對 Corner 實體身份、公開 Engine 與兩個 GUI 入口的 raw/非法來源、1.75T 有效精度及 JSON Save→Reload 不變。Factory、Family、Certified Registry、Corner CUTTING／BEND、同源 2D／3D／DXF 算法及 schema 未更改，正式 Product Regression／Windows UAT 仍依既有門檻驗收；#2517 其他 GUI 製造 API 入口繼續核對。
+
 ## [CURRENT] #2517 Fold Designer「輸出 STOCK」原始旗標由公開 Engine 決定（2026-11-08）
 
 - 原 `gui_modules/application/fold_designer_composition_state.commit_output_draw_stock` 在呼叫 ProjectController 前自行 `bool(TkVar.get())`，`phase6_project_controller.Phase6ProjectController.commit_output_stock` 又以 `bool(value)` 再解碼。已保存字串 `"false"` 會被當作 True；`draw_stock` 是正式 Engine 製造 Context 的 DXF STOCK 圖層控制來源，不得由 GUI truthiness 決定。

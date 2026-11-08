@@ -148,9 +148,11 @@ def selection_from_manual_corner_controls(self):
     except ValueError:
         return None
     try:
-        amount = float(self.manual_corner_amount_var.get())
-        secondary_retain = float(self.manual_corner_secondary_retain_var.get())
-        secondary_depth = float(self.manual_corner_secondary_depth_var.get())
+        # Preserve the Tk source type for the original Engine CornerTypeSelection
+        # validator; bool(True) must not become a 1T physical relief.
+        amount = self.manual_corner_amount_var.get()
+        secondary_retain = self.manual_corner_secondary_retain_var.get()
+        secondary_depth = self.manual_corner_secondary_depth_var.get()
     except (TypeError, ValueError, tk.TclError):
         return None
     try:

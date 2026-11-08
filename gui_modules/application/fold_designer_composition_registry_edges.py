@@ -384,9 +384,14 @@ def corner_pair_var_changed(
         app, part_key
     ):
         return None
-    self.settings_transactions().commit_corner_pair(
-        part_key, pair_key, bool(var.get())
-    )
+    try:
+        # The original Engine transaction decodes saved "false"/"true".
+        # No bool("false") conversion is permitted in GUI.
+        self.settings_transactions().commit_corner_pair(
+            part_key, pair_key, var.get()
+        )
+    except (TypeError, ValueError, tk.TclError):
+        return None
     required("_phase6_notify_corner_change")(app)
     self.invalidate_settings_page(part_key)
     self.render_settings_context(namespace, part_key)
@@ -467,7 +472,7 @@ def corner_target_var_changed(self, namespace, part_key, target_key):
     try:
         amount_var = app.corner_amount_vars.get(target_key)
         amount = (
-            float(amount_var.get())
+            amount_var.get()
             if amount_var is not None
             else current.amount_t
         )
@@ -490,12 +495,12 @@ def corner_target_var_changed(self, namespace, part_key, target_key):
         retain_var = app.corner_secondary_retain_vars.get(target_key)
         depth_var = app.corner_secondary_depth_vars.get(target_key)
         retain = (
-            float(retain_var.get())
+            retain_var.get()
             if retain_var is not None
             else current.secondary_retain_t
         )
         depth = (
-            float(depth_var.get())
+            depth_var.get()
             if depth_var is not None
             else current.secondary_depth_t
         )
