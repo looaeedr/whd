@@ -877,13 +877,11 @@ def _copy_features(snapshot, key):
 
 def _phase6_recalculate_part_dimensions(self):
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    settings = dict(getattr(self, "_settings_values", {}) or {})
-    if manufacturing_api.operator_canonical_family_name(snapshot) == "受電箱":
-        # The live Receiving Bay/Quantity is the dimensional authority.
-        # Saved Settings defaults are not the current W/H/D: re-applying
-        # them during a fold/T edit destroys the operator's Bay dimensions.
-        for axis in ("w", "h", "d"):
-            settings.pop(axis, None)
+    # Manufacturing source priority belongs to the Engine, not the GUI.
+    # Existing Receiving Bay dimensions survive stale global Settings seeds.
+    settings = manufacturing_api.project_operator_part_dimension_settings_overlay(
+        snapshot, getattr(self, "_settings_values", {}) or {},
+    )
     snapshot.update(settings)
     dims = project_part_dimensions(snapshot)
     self._phase6_input_snapshot.update(settings)

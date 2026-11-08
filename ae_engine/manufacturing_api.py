@@ -200,6 +200,7 @@ from .operator_settings_transactions import (
     PHYSICAL_SNAPSHOT_SOURCE_KEYS,
     project_receiving_manufacturing_request_settings,
     project_operator_linked_endcap_source_snapshot,
+    project_operator_part_dimension_settings_overlay,
     operator_legacy_shared_base_plate_shrink,
     apply_operator_legacy_runtime_manufacturing_policies,
 )

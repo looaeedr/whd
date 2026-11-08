@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 尺寸重算的 Receiving Settings W/H/D 優先序由公開 Engine（2026-11-08）
+
+- fold_designer_bridge._phase6_recalculate_part_dimensions 原以 GUI Family 分支判斷是否忽略舊版 Settings W/H/D，再重算實體板件尺寸；這是製造來源選擇，不應留在 UI。新增 operator_settings_transactions.project_operator_part_dimension_settings_overlay(input_snapshot, settings_values) -> detached dict，並由 manufacturing_api、ae_engine 根包公開同一 callable；保留金庫型／自訂 Settings 優先序，Receiving Family（含大小寫別名）只保留非 W/H/D 更新，現行 Bay 尺寸仍以原 Snapshot 為準。
+- GUI 現只送操作者 Snapshot/Settings，接收 Engine 來源投影，原 project_part_dimensions、PartSpec、FinalScene、DXF／Save→Reload 無變更。不新增製造准入，也不清洗或覆蓋非法來源。Windows RED→GREEN 測試 tests/test_issue2517_part_dimension_settings_source_public_api.py，並受全套 Product Regression 覆蓋。
+
 ## [CURRENT] #2517 BoxBody 三片式實體側板／後板 Fold 編輯提交唯一 Engine API（2026-11-08）
 
 - 原 `fold_designer_bridge._phase6_commit_box_body_physical_piece_profile` 在 GUI 側自行把 `left_side/right_side` 的實體 Fold material len 鏡射回箱身 `zl1/zl2/FW/D/zr2/zr1`、計算後面板 `back_width_comp_t=max(0,(W-back_panel_material_len)/T)`，並決定右側板 native BEND traversal、已儲存後折的 piece-local ownership。這些是製造來源與版型、非視覺呈現，不能留第二套 GUI 公式。

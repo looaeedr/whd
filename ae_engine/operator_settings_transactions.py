@@ -209,6 +209,25 @@ def project_receiving_manufacturing_request_settings(
     return result
 
 
+def project_operator_part_dimension_settings_overlay(
+    input_snapshot: Mapping[str, object],
+    settings_values: Mapping[str, object],
+) -> dict[str, object]:
+    '''Select a detached Fold Designer dimension refresh overlay by Family.
+
+    A Receiving Bay owns already-committed W/H/D in the input snapshot, not
+    global Settings defaults. Only presentation applies the validated Engine
+    overlay to an in-memory copy, with no manufacturing or UI fallback.
+    '''
+    from .cabinet_types.policy import canonical_family_name
+
+    result = deepcopy(dict(settings_values))
+    if canonical_family_name(input_snapshot) == "受電箱":
+        for axis in ("w", "h", "d"):
+            result.pop(axis, None)
+    return result
+
+
 def project_operator_linked_endcap_source_snapshot(
     input_snapshot: Mapping[str, object],
     settings_values: Mapping[str, object],
