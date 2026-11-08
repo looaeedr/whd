@@ -368,9 +368,9 @@ PYTEST_PATHS = (
     # #1818: real Tk reentrant preview requests must never render stale
     # geometry or write stale errors after candidate switch / window close.
     "tests/test_receiving_multi_settings_stage_20261010.py::test_issue1818_real_cut_preview_latest_selection_wins_during_reentrant_provider",
-    # #1818: 3D FinalScene last valid operator choice wins after nested Tk
-    # callbacks, and old provider failures must never repaint the newer view.
-    "tests/test_phase6_3d_operator_view.py::test_issue1818_reentrant_3d_render_only_publishes_latest_view",
+    # #2517 R5 GUI/Engine 3D acceptance: full operator view suite guards
+    # cached display selection, nested Tk, and public presentation owners.
+    "tests/test_phase6_3d_operator_view.py",
     # Real live designer viewport/camera interaction, not a mocked canvas.
     "tests/test_phase6_3d_view_regressions.py::test_real_tk_3d_only_layout_scroll_zoom_and_unfolded_size_label",
     # True rendered 3D geometry hit, not currently highlighted sidebar part.
@@ -428,7 +428,10 @@ PYTEST_PATHS = (
     "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_single_door_cutting_rims_and_bends_without_mesh_edge_overlay",
     "tests/test_receiving_smooth_3d_no_mesh_triangulation.py::test_outer_door_assembly_renders_real_cutting_rim_and_source_bend",
     "tests/test_phase6_3d_single_source_renderer.py::test_all_final_scene_parts_do_not_restore_triangle_grid_overlays",
-    "tests/test_phase6_assembly_3d_view.py::test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum",
+    # #2517 R5 repaired full assembly suite: public Engine world placement,
+    # restored delta/unsolved probes, display-only canonical material and
+    # explicit missing-T rejection; prevents untested old private fallbacks.
+    "tests/test_phase6_assembly_3d_view.py",
     # All certified assembly intents: real Tk/Xvfb 2D/3D, collision-probe opt-in and reload parity.
     "tests/test_phase6_assembly_registry_gui_matrix.py",
     # Corner-policy rule duplicates must fail closed, using the real policy owner.
