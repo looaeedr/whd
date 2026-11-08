@@ -92,7 +92,8 @@ def test_cabinet_and_fold_designer_gui_use_public_seams_not_private_model_or_joi
             and node.func.value.id == "manufacturing_api"
         ]
     assert calls(cabinet_tree).count("operator_normalize_custom_model_name") == 1
-    assert calls(cabinet_tree).count("is_unknown_operator_model") == 6
+    # Also checks the known-Vault baseline T preflight via the public Engine selector.
+    assert calls(cabinet_tree).count("is_unknown_operator_model") == 7
     # Eligibility and migration now live together in the public Joint Engine owner.
     assert calls(fold_tree).count("migrate_operator_assembly_joint_snapshot") == 0
     assert calls(fold_tree).count("project_operator_user_assembly_joint_parts") == 1
