@@ -258,11 +258,12 @@ def reference_distances(surface: FeatureSurface, features: Iterable[Feature], cu
     )
 
 
-def move_feature_by_reference_distance(surface: FeatureSurface, features: Iterable[Feature], current_index: int, anchor: ReferenceAnchor, width: float, height: float, *, axis: str, mode: str, value: float, reference_guide: "RectGuide | None" = None) -> Feature:
-    # A hole reference move is actual geometric positioning, not a Tk-only
-    # display field: reject invalid values before reading or moving features.
-    if type(current_index) is not int:
-        raise ValueError("reference feature index must be an integer")
+def normalize_operator_hole_reference_distance(value: object) -> float:
+    """Canonical nonnegative, finite hole-edge/neighbor distance for all clients.
+
+    A physical reference distance cannot be negative; the previous GUI-only
+    guard silently refused it while a headless Engine caller could move a hole.
+    """
     if isinstance(value, bool):
         raise ValueError("reference distance must be finite and not boolean")
     try:
@@ -271,6 +272,17 @@ def move_feature_by_reference_distance(surface: FeatureSurface, features: Iterab
         raise ValueError("reference distance must be finite") from exc
     if not math.isfinite(measured):
         raise ValueError("reference distance must be finite")
+    if measured < 0:
+        raise ValueError("reference distance must be nonnegative")
+    return measured
+
+
+def move_feature_by_reference_distance(surface: FeatureSurface, features: Iterable[Feature], current_index: int, anchor: ReferenceAnchor, width: float, height: float, *, axis: str, mode: str, value: float, reference_guide: "RectGuide | None" = None) -> Feature:
+    # A hole reference move is actual geometric positioning; the public
+    # operator-input normalizer is shared with the GUI before any material move.
+    if type(current_index) is not int:
+        raise ValueError("reference feature index must be an integer")
+    measured = normalize_operator_hole_reference_distance(value)
     items = list(features)
     # Tk uses -1 for "no selection"; Python would otherwise select the last
     # physical hole, while neighboring UI paths already reject invalid IDs.
