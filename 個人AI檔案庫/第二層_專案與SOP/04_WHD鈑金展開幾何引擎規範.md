@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Switch 開孔確認只接受 Engine 已存在的層／連位（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_receiving.confirm_receiving_opening` 把層索引、連位索引做 `int(raw)` 後才送到外部開孔 resolver；布林 `True`、小數 `1.9` 或過期索引可能錯指另一實體 Switch Cell。這不是有效的來源／實體開孔認證，且 GUI 不能藉轉型製造位置資格。
+- 沿用現有 `ae_engine.receiving_switch_layout.normalize_receiving_switch_layout` 的 Switch 層／連位物理拓樸，新增只讀 `validate_receiving_switch_opening_target(layout, layer_index, connection_index, brand)`，經 `manufacturing_api`／根包同一 callable 公開。Engine 核對 exact 整數或既有 Tk 整數字串、非負及確實存在的 layer/connection、合法品牌；拒絕 bool、fraction、過期／越界索引、非法品牌；返回 detached 目標值，輸入資料不突變。合法選取依然由原 canonical opening resolver 決定孔規格、模型與真實製造權限，不直接產生 CUTTING 或 DXF。
+- GUI `confirm_receiving_opening` 僅傳原始操作者索引與當前 Switch Layout 給公開 Engine，驗證成功才呼叫原 resolver；resolver 未提交則不得通知 geometry 更新。定向 `tests/test_issue2517_receiving_switch_opening_target_public_api.py` 驗真 GUI callback、公開 Engine、合法 StringVar／int 同義、非法來源不呼叫 resolver、不提交、來源不變、JSON roundtrip。Factory、NFB CSV、2D／3D／DXF 及 Project schema 不變，#2517 其他入口／Windows UAT 尚未結案。
+
 ## [CURRENT] #2517 主 GUI 25 項製造數值輸入統一公開 Engine 實體／Fold 驗證（2026-11-08）
 
 - 原 `gui_modules/application/cabinet_controller.get_float_values` 是主 GUI 計算、單門／多門 Hole Editor 及 PartSpec 共同數值入口；逐項 `float(TkVar.get())` 先把布林 True 變成 1.0，也讓 NaN／Inf 越過入口，直到下游才可能拒絕。主 GUI 不應消除原始製造來源的錯型證據。
