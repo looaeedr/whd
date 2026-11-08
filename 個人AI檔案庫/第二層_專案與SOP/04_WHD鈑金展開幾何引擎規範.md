@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving NFB 兩層實體 Y 高度只在 Engine 驗操作來源（2026-11-08）
+
+- `gui_modules/application/fold_designer_composition_receiving.inner_edit` 原本在顯示已保存層高、讀取操作員兩個欄位與切換一／二層時自行 `float(...)`，既有已保存布林值 True 可能轉成 1 mm，且 GUI 複製了 Engine 的層高數值解碼。這些數值影響 Receiving 內門 NFB 名義 Y，但預覽及草稿不可擅自授權 CUTTING。
+- 以原 `ae_engine.receiving_shared_settings.validate_setting('inner_door_layer_heights_mm', ...)` 為唯一物理層高規則，新增 `normalize_receiving_operator_nfb_layer_heights(raw)` 並經 `manufacturing_api`／根包公開同一 callable；GUI 只轉送兩個原始欄位，Engine 將合法數字字串／舊保存數值轉為兩個有限數字，再由現有正式正數、由上往下遞增限制驗證。布林、NaN／Inf、缺值、非法格式與倒序都 fail closed；保留合法小數、單層 550 與雙層 330／830、未改自訂 Y 與 work-area 界限。
+- `tests/test_issue2517_receiving_nfb_raw_heights_public_engine.py` 驗 facade/root 與 Engine owner 同義，實際 GUI 內層欄位讀取與 Engine 結果一致、JSON Save→Reload、非法來源不修改來源及未產生合法 NFB 層高。原 Set／Bay、實體孔、NFB CSV、Y 投影、2D／3D／DXF 與 Project schema 均不變；#2517 全面 API 覆蓋及 Windows 實機驗收未結案。
+
+
 ## [CURRENT] #2517 Registry 截角一／二段拓樸須由公開 Engine 原始來源驗證（2026-11-08）
 
 - 原 `gui_modules/application/fold_designer_composition_registry_edges.registry_collect_rule_form` 先將候選 `topology_levels` 做 `int(float(TkVar.get()))`；`1.9` 被截斷為 1 段、`True` 被當成 1 段、`0` 被悄悄改為預設段數。原 `certified_relief_registry._validate_editable_rule_record` 同樣使用 `int(...)`，headless API 可以接受有害的原始拓樸。這是 Certified Registry 候選對 AssemblyJoint/Corner 幾何段數的來源資格，不可由 GUI 提前造出合法候選。

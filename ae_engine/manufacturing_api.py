@@ -2469,6 +2469,7 @@ from .receiving_fresh_nfb_defaults import (
 )
 from .receiving_shared_settings import (
     transition_receiving_nfb_layer_heights,
+    normalize_receiving_operator_nfb_layer_heights,
     switch_filenames_in_layer as receiving_nfb_switch_filenames_in_layer,
     pack_switch_layer as pack_receiving_nfb_switch_layer,
     project_receiving_shared_setting_group,

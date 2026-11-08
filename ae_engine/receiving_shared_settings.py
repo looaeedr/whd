@@ -48,6 +48,29 @@ def transition_receiving_nfb_layer_heights(heights, *, old_count, new_count):
     return target if old_count != new_count and actual == old else actual
 
 
+def normalize_receiving_operator_nfb_layer_heights(raw):
+    """Validate two original NFB Y editor entries at the Engine boundary.
+
+    Operator Tk fields are numeric strings; saved physical SharedSettings
+    remains a two-number list validated by the original single owner.
+    Reject booleans *before* float(True) could fabricate a 1-mm NFB row.
+    This accepts both saved numeric rows and editable string rows, but never
+    authorizes NFB CUTTING or supplies a synthetic Y coordinate.
+    """
+    message = "第一層／第二層高度須為正數、由上往下遞增（mm）"
+    if not isinstance(raw, (tuple, list)) or len(raw) != 2:
+        raise ValueError(message)
+    numeric = []
+    for item in raw:
+        if isinstance(item, bool) or not isinstance(item, (str, int, float)):
+            raise ValueError(message)
+        try:
+            numeric.append(float(item))
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(message) from exc
+    return validate_setting("inner_door_layer_heights_mm", numeric)
+
+
 def switch_filenames_in_layer(slot):
     """Return physical switch occurrences, never deduplicate quantity."""
     if isinstance(slot, str):
