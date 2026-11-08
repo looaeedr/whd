@@ -91,6 +91,13 @@ def _restore_cabinet_family_runtime(self, state):
         if key == "draw_stock":
             values[key] = manufacturing_api.normalize_operator_settings_boolean(raw)
             continue
+        if key in manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS:
+            # Keep the raw saved source: float(True) and float("nan") would
+            # erase evidence before Engine can reject a manufacturing size.
+            values[key] = manufacturing_api.normalize_operator_source_dimension(
+                raw, field=key,
+            )
+            continue
         try:
             values[key] = float(raw)
         except (TypeError, ValueError):
