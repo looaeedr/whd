@@ -86,23 +86,29 @@ def _restore_cabinet_family_runtime(self, state):
     multi_door_enabled = manufacturing_api.normalize_operator_settings_boolean(
         state["multi_door_enabled"] if "multi_door_enabled" in state else False
     )
-    values = {}
-    for key, raw in dict(state.get("settings") or {}).items():
-        if key == "draw_stock":
-            values[key] = manufacturing_api.normalize_operator_settings_boolean(raw)
-            continue
-        if key in manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS:
-            # Keep the raw saved source: float(True) and float("nan") would
-            # erase evidence before Engine can reject a manufacturing size.
-            values[key] = manufacturing_api.normalize_operator_source_dimension(
-                raw, field=key,
-            )
-            continue
-        try:
-            values[key] = float(raw)
-        except (TypeError, ValueError):
-            continue
-    self._apply_fold_designer_live_settings(values, recalculate=False)
+    # Saved Vault defaults are a manufacturing source, not a best-effort UI
+    # preview. Validate every applicable raw field before changing Settings,
+    # Corners, Family or Workspace state. Retain legacy unknown/UI-only skips.
+    current = self.settings_service.snapshot().as_dict()
+    raw_settings = {
+        key: raw for key, raw in dict(state.get("settings") or {}).items()
+        if key in current and key != "ui_text_size"
+    }
+    physical = {
+        key: manufacturing_api.normalize_operator_source_dimension(raw, field=key)
+        for key, raw in raw_settings.items()
+        if key in manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS
+    }
+    other_raw = {key: raw for key, raw in raw_settings.items() if key not in physical}
+    other = manufacturing_api.normalize_operator_settings_updates(current, other_raw)
+    missing = other_raw.keys() - other.keys()
+    if missing:
+        raise ValueError(
+            f"Invalid saved Vault manufacturing settings: {', '.join(sorted(missing))}"
+        )
+    self._apply_fold_designer_live_settings(
+        {**physical, **other}, recalculate=False,
+    )
     self._apply_manual_corner_snapshot(state.get("corner_state"), state.get("corner_pair_same"))
     if state.get("endcap_bottom_wrap") is not None:
         self.endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state({
