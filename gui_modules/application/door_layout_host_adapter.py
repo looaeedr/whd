@@ -29,12 +29,18 @@ def _new_door_layout_column(self, width, heights, *, width_auto=False, height_au
     height_values = list(heights)
     if height_auto is None:
         height_auto = [False] * len(height_values)
+    # Booleans affecting physical Door partition ownership belong to Engine.
+    # Decode before allocating any Tk widgets so invalid source is atomic.
+    width_auto = manufacturing_api.normalize_operator_settings_boolean(width_auto)
+    height_auto = [
+        manufacturing_api.normalize_operator_settings_boolean(v) for v in height_auto
+    ]
     return {
         "width_var": tk.StringVar(value=self._door_layout_number_text(width)),
-        "width_auto": bool(width_auto),
+        "width_auto": width_auto,
         "width_committed": float(width),
         "height_vars": [tk.StringVar(value=self._door_layout_number_text(v)) for v in height_values],
-        "height_auto": [bool(v) for v in height_auto],
+        "height_auto": height_auto,
         "height_committed": [float(v) for v in height_values],
         "height_completion": None,
     }
@@ -93,12 +99,12 @@ def _door_layout_controller_columns(self):
     for index, column in enumerate(self.door_layout_columns, start=1):
         columns.append(_DoorLayoutColumnState(
             width=self._parse_layout_value(column["width_var"], f"欄 {index} 寬度"),
-            width_auto=bool(column.get("width_auto", False)),
+            width_auto=column.get("width_auto", False),
             heights=tuple(
                 self._parse_layout_value(var, f"欄 {index} 第 {row} 層高度")
                 for row, var in enumerate(column["height_vars"], start=1)
             ),
-            height_auto=tuple(bool(value) for value in column["height_auto"]),
+            height_auto=tuple(column["height_auto"]),
         ))
     return tuple(columns)
 

@@ -2083,6 +2083,12 @@ Validation 維持單向：contact probe、collision、fixture expected、pytest 
 
 ---
 
+## [CURRENT] #2517 多門格自動補寬／補高旗標由既有 Engine Door Layout 交易解碼（2026-11-08）
+
+- 原 `gui_modules/application/door_layout_host_adapter._new_door_layout_column` 和 `_door_layout_controller_columns` 用 `bool(width_auto)`／`bool(height_auto)` 決定固定或自動補足門格；序列化字串 `"false"` 會變 `True`，使 400mm 固定門格從 `recompute_door_layout` 輸入被排除、影響真實 Door cell ID、尺寸與後續孔位來源。這不是 UI 文字判定，而是物理分片拓樸，權威必須留在 Engine。
+- 沿用既有 `ae_engine.operator_settings_transactions.normalize_operator_settings_boolean`，在原 `ae_engine.door_layout_numeric_transitions.recompute_door_layout` 與寬／高編輯驗證入口先解碼 raw 自動旗標、核對逐欄高度與旗標數量一致；拒絕不合法旗標與不完整列數。`manufacturing_api` 原公開 Door API 的函式名稱及 payload 不變。GUI 傳原始 flags 給公開交易，只有 Tk StringVar 建立前所需的欄狀態顯示才經既有公開 Engine 布林來源驗證，不再自行 `bool()`。既有固定寬／高、尾端自動補足、合法字串舊存檔、GUI/headless 身份一致維持原規則。
+- `tests/test_issue2517_door_grid_auto_flags_engine_source.py` 驗固定 400mm、450／550mm + 自動補寬 600mm 真實 Door IDs、三種 Engine 入口及 GUI raw source parity、非法旗標不提交、欄／層旗標長度拒絕、JSON 門格 Save→Reload。原 Factory、CUTTING、BEND、Registry、DXF 出圖與認證不變；此切片不等於 #2517 全面完成或 Windows 實機已驗收。
+
 ## [CURRENT] #2517 Receiving Set／Bay／Joint 整數來源驗證只由公開 Engine（2026-11-08）
 
 - 原 `gui_modules/application/receiving_set_bay_adapter._operator_integer` 在 GUI 對實體 Set、Bay、Joint 身分及 Set/Bay 件數使用 Python `int(raw)`；其中 `int('1_0') == 10` 會把非標準操作字串當成十套或十連的合法整數，並由後續原 Engine transaction 真正建立實體拓樸。GUI 不應把不可信操作來源先轉成可信的實體選取／數量。

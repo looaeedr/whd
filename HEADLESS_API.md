@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Door grid fixed/auto source flags are Engine-owned (2026-11-08)
+
+The existing public `manufacturing_api.recompute_door_layout`, `validate_door_layout_width_commit`, and `validate_door_layout_height_commit` now normalize original width/height automatic-completion flags via the canonical `operator_settings_transactions.normalize_operator_settings_boolean`, also publicly exposed by `manufacturing_api`. GUI forwards raw flags instead of using `bool('false')` and validates flags through the public Engine API before allocating Tk row widgets. Serialized `"false"` remains fixed, valid `"true"` remains auto, malformed flags or a row/flag length mismatch are rejected before any geometry calculation or GUI commit. This preserves the original canonical Door grid, physical IDs, and JSON roundtrip; it adds no new DXF entitlement or geometry formula. Regression: `tests/test_issue2517_door_grid_auto_flags_engine_source.py`.
+
 ## #2517 Receiving Multi Settings Set/Bay physical selection (2026-11-08)
 
 `project_receiving_operator_set_bay_selection(layout, *, set_index, bay_index)` is the same read-only callable in the canonical `ae_engine.receiving_layout` owner, `manufacturing_api` and root. It reuses the public raw operator integer validator and validated Set/Bay source projection to reject bool/fraction/alias/stale/negative Set or Bay before either GUI selection or renaming. It returns detached `set_index`, `set_id`, `bay_index`; it never manufactures geometry or a CUTTING/DXF entitlement. Multi-settings GUI callbacks for selection, panel names, existing settings and door-mark projection consume this Engine result; Save/Reload uses the original project schema. Tests: `tests/test_issue2517_receiving_multi_modal_selection_public_api.py`.
