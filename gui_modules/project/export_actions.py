@@ -795,12 +795,20 @@ def export_receiving_pad_base_part_only_dxf(self):
 
 
 def _single_door_indicator_state_snapshot(self):
-    if self.is_indicator_box_var.get():
+    # Read operator flags through the same public Engine gate as the physical
+    # presence transaction: bool("false") must never create saved holes.
+    box_enabled = manufacturing_api.normalize_operator_settings_boolean(
+        self.is_indicator_box_var.get()
+    )
+    if box_enabled:
         mode = "indicator_box"
         layer_var = self.indicator_l_var
         group_vars = self.indicator_layer_g_vars
     else:
-        mode = "indicator" if self.is_door_indicator_var.get() else "none"
+        door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+            self.is_door_indicator_var.get()
+        )
+        mode = "indicator" if door_enabled else "none"
         layer_var = self.door_indicator_l_var
         group_vars = self.door_indicator_layer_g_vars
     if mode != "none":
