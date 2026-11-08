@@ -40,6 +40,26 @@ def _inherit_known_corner_state_into_custom(self):
             existing.update(updated)
 
 def _capture_cabinet_family_runtime(self):
+    # Validate physical UI sources *before* any workspace/profile mutation.
+    # The Engine-owned Door grid getter checks live cells; this final public
+    # source check prevents corrupt bool/NaN data being turned into a deleted
+    # Door layout by the legacy fallback.
+    multi_door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+        self.multi_door_enabled_var.get()
+    )
+    layout = []
+    if getattr(self, "door_layout_columns", None):
+        layout = [
+            [
+                manufacturing_api.normalize_operator_source_dimension(width, field="w"),
+                [
+                    manufacturing_api.normalize_operator_source_dimension(height, field="h")
+                    for height in heights
+                ],
+            ]
+            for width, heights in self.get_door_layout_columns()
+        ]
+
     # The family preset itself must carry a real canonical Box Body profile.
     # Startup used to capture None here, which later restored a profile-less
     # family and reopened the legacy fixed-segment manufacturing fallback.
@@ -56,12 +76,6 @@ def _capture_cabinet_family_runtime(self):
     elif not box_profile:
         raise ValueError("canonical Box Body Fold Profile is empty")
 
-    layout = []
-    if getattr(self, "door_layout_columns", None):
-        try:
-            layout = [[float(width), [float(v) for v in heights]] for width, heights in self.get_door_layout_columns()]
-        except Exception:
-            layout = []
     return {
         "settings": {key: var.get() for key, var in self._setting_var_map().items()},
         "corner_state": self._serialize_manual_corner_state(),
@@ -70,9 +84,7 @@ def _capture_cabinet_family_runtime(self):
         "box_body_structure": self.workspace_controller.box_body_structure_state(),
         "box_body_profile": self.workspace_controller.box_body_profile(),
         "assembly_joint_state": deepcopy(getattr(self, "assembly_joint_state", {}) or {}),
-        "multi_door_enabled": manufacturing_api.normalize_operator_settings_boolean(
-            self.multi_door_enabled_var.get()
-        ),
+        "multi_door_enabled": multi_door_enabled,
         "door_layout_columns": layout,
         "door_layout_scope": str(getattr(self, "door_layout_scope", "main") or "main"),
         "door_handle_edges": deepcopy(getattr(self, "door_layout_handle_edges", {}) or {}),
