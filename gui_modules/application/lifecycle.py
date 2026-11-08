@@ -453,6 +453,14 @@ def _apply_existing_parts_from_fold_workspace(
 
 def _apply_phase6_project_snapshot(self, snapshot):
     """Restore one all-part .p6fold snapshot into the main GUI state."""
+    # Public Engine validates the saved physical Door source before the GUI
+    # clears the previous Receiving session or modifies the selected model.
+    multi_door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+        (snapshot or {}).get("multi_door_enabled", False)
+    )
+    door_columns = manufacturing_api.project_operator_saved_door_layout_columns(
+        (snapshot or {}).get("door_layout_columns")
+    )
     self.workspace_controller.reset_receiving_mode_session()
     self._reset_manual_corner_parameter_locks()
     snapshot = deepcopy(dict(snapshot or {}))
@@ -488,13 +496,9 @@ def _apply_phase6_project_snapshot(self, snapshot):
             self.surface_features.pop(key, None)
     for key, features in part_features.items():
         self.surface_features[str(key)] = list(features or ())
-    if bool(snapshot.get("multi_door_enabled")) and snapshot.get("door_layout_columns"):
-        columns = tuple(
-            (float(row[0]), tuple(float(v) for v in row[1]))
-            for row in tuple(snapshot.get("door_layout_columns") or ())
-        )
+    if multi_door_enabled and door_columns:
         self.door_layout_features = manufacturing_api.project_operator_door_layout_cell_features_from_parts(
-            columns, part_features,
+            tuple((row[0], tuple(row[1])) for row in door_columns), part_features,
         )
     face_features = dict(snapshot.get("part_face_features") or {})
     if "box_body" in face_features:
@@ -686,6 +690,17 @@ def _capture_phase6_committed_snapshot(self):
     )
 
 def _apply_original_fold_designer_snapshot(self, snapshot):
+    # The project Save path already validates these via Engine. Recheck the
+    # same physical source *before* any Settings/Corner/Joint commit on Open.
+    multi_door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+        snapshot.get("multi_door_enabled", False)
+    )
+    door_columns = manufacturing_api.project_operator_saved_door_layout_columns(
+        snapshot.get("door_layout_columns")
+    )
+    nameplate_datum = manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
+        snapshot.get("door_nameplate_center_datum_top")
+    )
     settings = dict(snapshot.get("settings") or {})
     for key in self.settings_service.snapshot():
         if key in snapshot and key not in settings:
@@ -710,20 +725,15 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
     self._apply_endcap_fw_snapshot(snapshot)
     self.endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state(snapshot)
     self.assembly_relief_state = deepcopy(snapshot.get("assembly_relief") or {})
-    self.multi_door_enabled_var.set(bool(snapshot.get("multi_door_enabled", False)))
-    layout = list(snapshot.get("door_layout_columns") or ())
-    if layout:
-        self.set_door_layout_columns([
-            (float(row[0]), [float(v) for v in row[1]])
-            for row in layout
-        ])
+    self.multi_door_enabled_var.set(multi_door_enabled)
+    if door_columns:
+        self.set_door_layout_columns(door_columns)
     else:
         self.door_layout_columns = []
     self.door_layout_scope = str(snapshot.get("door_layout_scope") or "main")
     self.door_layout_handle_edges = deepcopy(dict(snapshot.get("door_handle_edges") or {}))
     self.receiving_inner_doors = deepcopy(list(snapshot.get("inner_doors") or ()))
-    datum = snapshot.get("door_nameplate_center_datum_top")
-    self.door_nameplate_center_datum_top = None if datum is None else float(datum)
+    self.door_nameplate_center_datum_top = nameplate_datum
     if getattr(self, "is_box_dist_var", None) is not None and "use_box_distance" in snapshot:
         self.is_box_dist_var.set(bool(snapshot.get("use_box_distance", False)))
     self.door_layout_indicator_states = {
