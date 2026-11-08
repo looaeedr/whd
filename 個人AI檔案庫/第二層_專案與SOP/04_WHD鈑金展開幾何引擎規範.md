@@ -12,6 +12,14 @@ whd_schema: WHD_DOC_META_V1
 - 沿用原 `ae_engine.sheetmetal_feature_reference` owner 新增 `normalize_operator_hole_reference_distance(value)`，透過 `manufacturing_api` 與根包公開同一 callable，統一有限、非布林、非負距離（0 與合法小數保留），並由原 `move_feature_by_reference_distance` 執行相同驗證才可改實體 Hole Feature。GUI 只轉送原始輸入並呈現錯誤，不再持有製造距離規則。缺少選取／空字串仍是 UI 操作空動作。FeatureSurface、CUTTING／MARKING、Anchor、Save→Reload、DXF Writer 與 Factory／Registry 不改。
 - `tests/test_issue2517_hole_reference_distance_engine_api.py` 驗合法／非法距離的公開 Engine＋實際幾何入口、金庫型／受電箱共用 GUI Event 與 Session 不變、壞來源不執行移孔、合法小數移孔與靜態反向再生檢查；其餘 #2517 與 Windows UAT 仍需續驗。
 
+
+## [CURRENT] #2517 Head/Tail 已提交 Assembly Relief 切孔開關以 Engine 公開布林來源為準（2026-11-08）
+
+- `gui_modules/application/fold_designer_manufacturing_projection._fold_designer_part_spec_from_payload` 原用 `bool(data.get("_use_committed_relief"))` 決定要不要載入已提交的 Head/Tail Assembly Relief CUTTING；從 Save→Reload 載入字串 `"false"` 會因 Python 非空字串而誤判 True。這是製造切孔來源資格，不能由 GUI truthiness 決定。
+- 現有公開 `manufacturing_api.normalize_operator_settings_boolean` 已定義原始 true/false、on/off、1/0 與非有限／非法來源的明確規則。當 `resolved_assembly_relief_cuts` 缺席時，GUI 直接交原始 `_use_committed_relief` 給 Engine；僅缺席欄位使用既有 False 相容預設，**存在但非法**的來源要先 fail closed，不能呼叫 `_resolved_committed_assembly_relief_cuts` 或把切孔送進 `EndCapPartSpec`。當直接提供 resolved cuts 時維持原既有優先序，不重新解讀未使用的 switch。
+- 定向 `tests/test_issue2517_endcap_committed_relief_switch_engine_boolean.py` 比較 GUI 與公開 Engine true/false 行為、保存字串、非法輸入不導致任何 cut/PartSpec 寫入、保留直接已解決 CUTTING 的優先序和來源不突變。原 Engine 救濟求解、CROSS certified geometry、Head/Tail 身分、Family 補償、2D／3D／DXF 及 Project schema 均不變。#2517 的全面 GUI 接線與 Windows UAT 尚待逐項驗證。
+
+
 ## [CURRENT] #2517 GUI 開孔入口的實體板件路由必須使用公開 Engine 身分投影（2026-11-08）
 
 - 原 `gui_modules/editors/hole_editor.open_part_hole_editor` 在 GUI 使用 `startswith`／正規式／金庫型與受電箱字串判斷 Head/Tail、單格門、箱身實體子板、底板 NFB 固定片、內門與 CustomFold 應走哪個編輯器；甚至在辨識非法板件身分**之前**呼叫 Workspace `set_active_part`。這是物理板件操作入口的身分判斷，不該由 GUI 複製。
