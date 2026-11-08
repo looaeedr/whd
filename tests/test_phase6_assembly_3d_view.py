@@ -10,6 +10,27 @@ def _flat_profile(length):
     return ({"len": float(length), "core": True},)
 
 
+def _resolved_display_parts(parts):
+    """Test-only view transport of an already-canonical Engine result.
+
+    No GUI manufacturing fallback: all requested physical materials must
+    already have been resolved before the FinalScene adapter is called.
+    """
+    placements = {"box_body": "box_body", "head": "top", "tail": "bottom",
+                  "door": "front", "base_plate": "bottom"}
+    return SimpleNamespace(
+        parts=tuple(
+            SimpleNamespace(
+                part_key=key, render_data=render,
+                x_profile=_flat_profile(100), y_profile=_flat_profile(80),
+                placement=placements[key], offset=(0.0, 0.0, 0.0),
+            )
+            for key, render in parts.items()
+        ),
+        diagnostics=(),
+    )
+
+
 class Axis:
     def __init__(self):
         self.collections = []
@@ -113,30 +134,45 @@ def test_bridge_assembly_display_request_includes_all_available_sheet_parts(monk
         ),
         _scene_query_callback=callback,
         _phase6_3d_display_mode="assembly",
-        _phase6_input_snapshot={},
-        _settings_values={},
+        _phase6_input_snapshot={"w":100.0, "h":80.0, "d":40.0,
+                                "t":2.0, "fw":25.0, "model":"受電箱"},
+        _settings_values={"t":2.0, "fw":25.0},
         _phase6_box_whd={"w": 100.0, "h": 80.0, "d": 40.0},
         _phase6_corner_state={},
         _phase6_endcap_fw_state={},
     )
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
+    # Display-only GUI must consume the already Engine-resolved inventory.
+    # Never fabricate physical T or manufacturing geometry in this GUI test.
+    def resolved(_app):
+        placements = {"box_body":"box_body", "head":"top", "tail":"bottom",
+                      "door":"front", "base_plate":"bottom"}
+        return SimpleNamespace(parts=tuple(
+            SimpleNamespace(
+                part_key=key, render_data=callback(key,{}),
+                x_profile=tuple(flat_x), y_profile=tuple(flat_y),
+                placement=placements[key], offset=(0.0,0.0,0.0),
+            )
+            for key in ("box_body","head","tail","door","base_plate")
+        ))
+    monkeypatch.setattr(bridge, "_phase6_resolve_manufacturing_geometry", resolved)
     request = bridge._phase6_final_scene_view_request(app)
 
     assert request.part_key == "assembly"
     assert [part.part_key for part in request.render_data.assembly_parts] == [
         "box_body", "head", "tail", "door", "base_plate"
     ]
-    # Raw parts are queried first; Head/Tail are queried once more to replay
-    # the authoritative CERTIFIED relief into canonical render data.
+    # One canonical Engine inventory; the GUI does not run a second solver
+    # or independently re-query head/tail for a private "verified" preview.
     assert [part_key for part_key, _payload in calls] == [
-        "box_body", "head", "tail", "door", "base_plate", "head", "tail"
+        "box_body", "head", "tail", "door", "base_plate"
     ]
 
 
 def test_phase6_assembly_placement_delegates_to_shared_engine(monkeypatch):
-    import ae_engine.assembly_geometry as assembly_geometry
     import phase6_final_scene_renderer as view
+    from ae_engine import manufacturing_api
 
     calls = []
 
@@ -144,7 +180,9 @@ def test_phase6_assembly_placement_delegates_to_shared_engine(monkeypatch):
         calls.append((triangles, placement, dimensions, offset))
         return (((1.0, 2.0, 3.0), (4.0, 5.0, 6.0), (7.0, 8.0, 9.0)),)
 
-    monkeypatch.setattr(assembly_geometry, "place_assembly_triangles", fake_place)
+    # The renderer adapter calls the public facade; patching the old
+    # assembly_geometry internals no longer intercepts the canonical request.
+    monkeypatch.setattr(manufacturing_api, "project_assembly_world_triangles", fake_place)
     local = (((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)),)
 
     placed = view._phase6_place_assembly_triangles(
@@ -349,6 +387,7 @@ def test_assembly_view_renders_head_tail_as_physical_sheet_and_offsets_mating_mi
 def test_assembly_fixed_relief_diagnostic_collides_only_restored_delta_not_whole_endcap(monkeypatch):
     import pytest
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import endcap_relief_interference_preview as pre_solve_owner
     from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
@@ -375,6 +414,7 @@ def test_assembly_fixed_relief_diagnostic_collides_only_restored_delta_not_whole
         return (((marker, 0.0, 0.0), (marker, 1.0, 0.0), (marker, 0.0, 1.0)),)
 
     monkeypatch.setattr(view, "_phase6_folded_mesh_from_polygon", fake_fold)
+    monkeypatch.setattr(pre_solve_owner, "folded_mesh_from_polygon", fake_fold)
     monkeypatch.setattr(view, "_phase6_place_assembly_triangles", lambda tris, *a, **k: tuple(tris))
     monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", lambda tris, *a, **k: tuple(tris))
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda tris, *a, **k: tuple(tris))
@@ -384,7 +424,7 @@ def test_assembly_fixed_relief_diagnostic_collides_only_restored_delta_not_whole
     def fake_detect(source, target, **kwargs):
         detected_targets.append(tuple(target))
         return assembly_geometry.MeshInterferenceDiagnostic((), (), 0, ())
-    monkeypatch.setattr(assembly_geometry, "detect_world_mesh_surface_interference", fake_detect)
+    monkeypatch.setattr(pre_solve_owner, "detect_world_mesh_surface_interference", fake_detect)
 
     scene_view = view.Phase6FinalSceneView(SimpleNamespace(ax3d=Axis()))
     request = view.FinalSceneViewRequest(
@@ -405,6 +445,7 @@ def test_assembly_fixed_relief_diagnostic_collides_only_restored_delta_not_whole
 
 def test_interference_overlay_renders_local_target_zone_fill_and_solid_crossing_lines(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import endcap_relief_interference_preview as pre_solve_owner
     from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
@@ -425,12 +466,13 @@ def test_interference_overlay_renders_local_target_zone_fill_and_solid_crossing_
     seg = (((10.0, 10.0, 10.0), (11.0, 10.0, 10.0)),)
 
     monkeypatch.setattr(view, "_phase6_folded_mesh_from_polygon", lambda *a, **k: local)
+    monkeypatch.setattr(pre_solve_owner, "folded_mesh_from_polygon", lambda *a, **k: local)
     monkeypatch.setattr(view, "_phase6_place_assembly_triangles", lambda tris, *a, **k: tuple(tris))
     monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", lambda tris, *a, **k: tuple(tris))
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda tris, *a, **k: tuple(tris))
     monkeypatch.setattr(endcap_mesh, "thicken_triangle_surface", assembly_geometry.thicken_triangle_surface)
     monkeypatch.setattr(
-        assembly_geometry,
+        pre_solve_owner,
         "detect_world_mesh_surface_interference",
         lambda *a, **k: assembly_geometry.MeshInterferenceDiagnostic(target, seg[0], 1, seg),
     )
@@ -543,8 +585,8 @@ def test_bridge_assembly_query_applies_verified_backprojected_relief_with_cleara
         state=SimpleNamespace(profiles={"X": flat_x, "Y": flat_y}, profiles_vault={"箱身": flat_x}),
         _scene_query_callback=callback,
         _phase6_input_snapshot={
-            "t": 2.0,
-            "assembly_type": "INSERT",
+            "w": 100.0, "h": 80.0, "d": 40.0, "t": 2.0, "fw": 25.0,
+            "model": "受電箱", "assembly_type": "INSERT",
             "existing_parts": ["box_body", "head", "tail"],
         },
         _phase6_assembly_type="INSERT",
@@ -558,12 +600,26 @@ def test_bridge_assembly_query_applies_verified_backprojected_relief_with_cleara
     )
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
+    # Manufacturing service has already verified both endcaps. The UI must
+    # display those exact canonical render objects, not re-run the old
+    # bridge-private geometry solver.
+    def engine_resolved(_app):
+        _app._phase6_last_relief_solutions = {"head": object(), "tail": object()}
+        _app._phase6_last_relief_errors = {}
+        _app._phase6_last_interference_probe_parts = ()
+        return _resolved_display_parts({
+            "box_body": raw["box_body"], "head": solved_head, "tail": solved_tail,
+        })
+    monkeypatch.setattr(bridge, "_phase6_resolve_manufacturing_geometry", engine_resolved)
     bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
 
     by_key = {part.part_key: part for part in bundle.assembly_parts}
     assert by_key["head"].render_data is solved_head
     assert by_key["tail"].render_data is solved_tail
-    assert [call["clearance"] for call in calls] == [5.0, 5.0]
+    from phase6_manufacturing_adapter import _relief_clearance
+    from ae_engine import manufacturing_api
+    assert _relief_clearance(app) == manufacturing_api.normalize_operator_relief_clearance("5") == 5.0
+    assert calls == []  # GUI did not invoke the retired private solver.
     assert bundle.ignore_fixed_corner_relief is False
     assert set(app._phase6_last_relief_solutions) == {"head", "tail"}
 
@@ -647,8 +703,9 @@ def test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contrac
             profiles_vault={"箱身": flat_x},
         ),
         _scene_query_callback=callback,
-        _phase6_input_snapshot={},
-        _settings_values={},
+        _phase6_input_snapshot={"w":100.0, "h":80.0, "d":40.0,
+                                "t":2.0, "fw":25.0, "model":"受電箱"},
+        _settings_values={"t":2.0, "fw":25.0},
         _phase6_box_whd={"w": 100.0, "h": 80.0, "d": 40.0},
         _phase6_corner_state={},
         _phase6_endcap_fw_state={},
@@ -657,6 +714,19 @@ def test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contrac
     )
     monkeypatch.setattr(application_adapter, "AssemblySceneRenderData", LegacyAssemblySceneRenderData)
 
+    # A legacy display envelope may be consumed only AFTER a canonical
+    # Engine-resolved part is already present; sparse GUI values must not
+    # fabricate manufacturing thickness.
+    monkeypatch.setattr(
+        bridge, "_phase6_resolve_manufacturing_geometry",
+        lambda _app: SimpleNamespace(parts=(
+            SimpleNamespace(
+                part_key="box_body", render_data=callback("box_body", {}),
+                x_profile=tuple(flat_x), y_profile=tuple(flat_y),
+                placement="box_body", offset=(0.0,0.0,0.0),
+            ),
+        )),
+    )
     bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
 
     assert isinstance(bundle, LegacyAssemblySceneRenderData)
@@ -739,7 +809,9 @@ def test_bridge_verified_relief_replays_authoritative_part_spec_with_solver_cuts
         state=SimpleNamespace(profiles={"X": flat_x, "Y": flat_y}, profiles_vault={"箱身": flat_x}),
         _scene_query_callback=callback,
         _part_spec_query_callback=part_spec_callback,
-        _phase6_input_snapshot={"t": 2.0, "assembly_type": "INSERT", "existing_parts": ["box_body", "head", "tail"]},
+        _phase6_input_snapshot={"w": 100.0, "h": 80.0, "d": 40.0, "t": 2.0, "fw": 25.0,
+            "model": "受電箱", "assembly_type": "INSERT",
+            "existing_parts": ["box_body", "head", "tail"]},
         _phase6_assembly_type="INSERT",
         _settings_values={"t": 2.0},
         _phase6_box_whd={"w": 100.0, "h": 80.0, "d": 40.0},
@@ -751,6 +823,22 @@ def test_bridge_verified_relief_replays_authoritative_part_spec_with_solver_cuts
     )
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
+    # The Engine facade replays the solved PartSpec into the canonical
+    # render. The GUI consumes only those already-confirmed physical parts.
+    from dataclasses import replace as replace_spec
+    def engine_resolved(_app):
+        physical = {"box_body": raw["box_body"]}
+        for part_key in ("head", "tail"):
+            spec, context = part_spec_callback(part_key, {})
+            spec = replace_spec(
+                spec, resolved_assembly_relief_cuts=(box(0, 0, 7, 9),),
+            )
+            physical[part_key] = manufacturing_api.build_part_render_data(
+                spec, context,
+            )
+        _app._phase6_last_interference_probe_parts = ()
+        return _resolved_display_parts(physical)
+    monkeypatch.setattr(bridge, "_phase6_resolve_manufacturing_geometry", engine_resolved)
     bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
     by_key = {part.part_key: part for part in bundle.assembly_parts}
 
@@ -811,7 +899,9 @@ def test_assembly_relief_is_atomic_when_one_endcap_fails_verification(monkeypatc
         }),
         state=SimpleNamespace(profiles={"X": flat_x, "Y": flat_y}, profiles_vault={"箱身": flat_x}),
         _scene_query_callback=callback,
-        _phase6_input_snapshot={"t": 2.0, "assembly_type": "INSERT", "existing_parts": ["box_body", "head", "tail"]}, _phase6_assembly_type="INSERT", _settings_values={"t": 2.0},
+        _phase6_input_snapshot={"w": 100.0, "h": 80.0, "d": 40.0, "t": 2.0, "fw": 25.0,
+            "model": "受電箱", "assembly_type": "INSERT",
+            "existing_parts": ["box_body", "head", "tail"]}, _phase6_assembly_type="INSERT", _settings_values={"t": 2.0},
         _phase6_box_whd={"w": 100.0, "h": 80.0, "d": 40.0},
         _phase6_corner_state={}, _phase6_endcap_fw_state={},
         assembly_ignore_fixed_corner_var=SimpleNamespace(get=lambda: True),
@@ -820,6 +910,14 @@ def test_assembly_relief_is_atomic_when_one_endcap_fails_verification(monkeypatc
     )
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
+    # A failed Engine transaction leaves BOTH EndCaps at their prior
+    # source-certified render; the GUI must not publish a half-solved pair.
+    def engine_rejected(_app):
+        _app._phase6_last_relief_solutions = {}
+        _app._phase6_last_relief_errors = {"tail": "RELIEF_VERIFICATION_FAILED"}
+        _app._phase6_last_interference_probe_parts = ()
+        return _resolved_display_parts(raw)
+    monkeypatch.setattr(bridge, "_phase6_resolve_manufacturing_geometry", engine_rejected)
     bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
     by_key = {part.part_key: part for part in bundle.assembly_parts}
 
@@ -909,7 +1007,9 @@ def test_bridge_keeps_pre_solve_endcap_probe_for_interference_overlay(monkeypatc
         }),
         state=SimpleNamespace(profiles={"X": flat_x, "Y": flat_y}, profiles_vault={"箱身": flat_x}),
         _scene_query_callback=callback,
-        _phase6_input_snapshot={"t": 2.0, "assembly_type": "INSERT", "existing_parts": ["box_body", "head", "tail"]},
+        _phase6_input_snapshot={"w": 100.0, "h": 80.0, "d": 40.0, "t": 2.0, "fw": 25.0,
+            "model": "受電箱", "assembly_type": "INSERT",
+            "existing_parts": ["box_body", "head", "tail"]},
         _phase6_assembly_type="INSERT",
         _settings_values={"t": 2.0},
         _phase6_box_whd={"w": 100.0, "h": 80.0, "d": 40.0},
@@ -921,6 +1021,23 @@ def test_bridge_keeps_pre_solve_endcap_probe_for_interference_overlay(monkeypatc
     )
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
+    from phase6_final_scene_contracts import AssemblyScenePart
+    def engine_resolved(_app):
+        _app._phase6_last_interference_probe_parts = tuple(
+            AssemblyScenePart(
+                part_key=part_key, render_data=raw[part_key],
+                x_profile=_flat_profile(100), y_profile=_flat_profile(80),
+                placement="top" if part_key == "head" else "bottom",
+            )
+            for part_key in ("head", "tail")
+        )
+        _app._phase6_last_relief_solutions = {"head": object(), "tail": object()}
+        _app._phase6_last_relief_errors = {}
+        return _resolved_display_parts({
+            "box_body": raw["box_body"],
+            "head": solved["head"], "tail": solved["tail"],
+        })
+    monkeypatch.setattr(bridge, "_phase6_resolve_manufacturing_geometry", engine_resolved)
     bundle = bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
 
     displayed = {part.part_key: part.render_data for part in bundle.assembly_parts}
@@ -933,6 +1050,7 @@ def test_bridge_keeps_pre_solve_endcap_probe_for_interference_overlay(monkeypatc
 
 def test_final_scene_interference_overlay_uses_pre_solve_probe_while_rendering_solved_endcap(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
+    from ae_engine import endcap_relief_interference_preview as pre_solve_owner
     from ae_engine import receiving_settings_assembly_mesh as endcap_mesh
     import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
@@ -959,13 +1077,14 @@ def test_final_scene_interference_overlay_uses_pre_solve_probe_while_rendering_s
         return local
 
     monkeypatch.setattr(view, "_phase6_folded_mesh_from_polygon", fake_fold)
+    monkeypatch.setattr(pre_solve_owner, "folded_mesh_from_polygon", fake_fold)
     monkeypatch.setattr(view, "_phase6_place_assembly_triangles", lambda tris, *a, **k: tuple(tris))
     monkeypatch.setattr(endcap_mesh, "place_endcap_against_box_body", lambda tris, *a, **k: tuple(tris))
     monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda tris, *a, **k: tuple(tris))
     monkeypatch.setattr(endcap_mesh, "thicken_triangle_surface", assembly_geometry.thicken_triangle_surface)
     calls = []
     monkeypatch.setattr(
-        assembly_geometry,
+        pre_solve_owner,
         "detect_world_mesh_surface_interference",
         lambda source, target_mesh, **k: calls.append(tuple(target_mesh)) or assembly_geometry.MeshInterferenceDiagnostic(target, segment[0], 1, segment),
     )
@@ -1165,3 +1284,36 @@ def test_final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_
     assert right[0] in triangles
     assert back[0] not in triangles
     assert head_world[0] in triangles
+
+
+
+def test_legacy_gui_3d_sparse_source_must_reject_missing_operator_thickness():
+    """Missing T cannot silently become a manufactured 2 mm physical part."""
+    import pytest
+    import fold_designer_bridge as bridge
+    from phase6_designer_workspace import Phase6DesignerWorkspace
+    from copy import deepcopy
+
+    original = {
+        "model": "受電箱", "w": 100.0, "h": 80.0, "d": 40.0,
+        "existing_parts": ["box_body"],
+    }
+    calls = []
+    flat = [{"len": 100.0, "core": True}]
+    app = SimpleNamespace(
+        designer_workspace=Phase6DesignerWorkspace.from_snapshot({
+            "existing_parts": ["box_body"], "active_part": "box_body",
+        }),
+        state=SimpleNamespace(profiles={"X": flat, "Y": flat},
+                              profiles_vault={"箱身": flat}),
+        _scene_query_callback=lambda *a: calls.append(a),
+        _phase6_input_snapshot=deepcopy(original),
+        _settings_values={},
+        _phase6_box_whd={"w": 100.0, "h": 80.0, "d": 40.0},
+        _phase6_corner_state={},
+        _phase6_endcap_fw_state={},
+    )
+    with pytest.raises(ValueError, match="T"):
+        bridge._phase6_final_scene_adapter(app).query_assembly_render_data()
+    assert app._phase6_input_snapshot == original
+    assert calls == []
