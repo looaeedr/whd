@@ -1410,7 +1410,7 @@ class Phase6ApplicationHost:
             # A missing checkbox is not an authored "disable inner door".
             raise ValueError("內門選取控制不存在，拒絕變更實體板件")
         # The public Engine interprets raw operator/serialized booleans.
-        # Do not let bool("false") turn an authored disable into enable.
+        # Preserve an authored "false" instead of Python truthiness.
         enabled = manufacturing_api.normalize_operator_settings_boolean(var.get())
         self._set_receiving_inner_door_enabled(key, enabled)
         entry = dict(getattr(self, "door_layout_inner_door_offset_entries", {}) or {}).get(key)
