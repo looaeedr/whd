@@ -22,7 +22,7 @@ def test_engine_accepts_existing_serialized_or_raw_integer_grid_target(target):
     cells, physical = _physical_source()
     before = deepcopy((cells, physical))
     result = api.remap_receiving_door_layout_after_delete(
-        operation="map_cells",
+        operation="map_cells", column_index=None,
         cell_transitions={"0:0": target},
         cell_sources=cells, physical_sources=physical,
     )
@@ -45,7 +45,7 @@ def test_engine_rejects_bad_target_before_any_cell_or_physical_remap(target):
     before = deepcopy((cells, physical))
     with pytest.raises(ValueError, match="Door cell"):
         api.remap_receiving_door_layout_after_delete(
-            operation="map_cells", cell_transitions={"0:0": target},
+            operation="map_cells", column_index=None, cell_transitions={"0:0": target},
             cell_sources=cells, physical_sources=physical,
         )
     assert (cells, physical) == before
@@ -57,7 +57,7 @@ def test_engine_rejects_corrupt_original_cell_identity(bad_key):
     before = deepcopy((cells, physical))
     with pytest.raises(ValueError, match="Door cell"):
         api.remap_receiving_door_layout_after_delete(
-            operation="map_cells", cell_transitions={bad_key: "1:0"},
+            operation="map_cells", column_index=None, cell_transitions={bad_key: "1:0"},
             cell_sources=cells, physical_sources=physical,
         )
     assert (cells, physical) == before
@@ -97,7 +97,7 @@ def test_actual_gui_legacy_mapper_delegates_raw_valid_coordinate_to_engine():
 def test_explicit_none_retains_legacy_cell_removal_semantics():
     cells, physical = _physical_source()
     result = api.remap_receiving_door_layout_after_delete(
-        operation="map_cells", cell_transitions={"0:0": None},
+        operation="map_cells", column_index=None, cell_transitions={"0:0": None},
         cell_sources=cells, physical_sources=physical,
     )
     assert result["cell_sources"]["door_layout_features"] == {}
