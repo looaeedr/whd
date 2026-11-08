@@ -34,6 +34,41 @@ def _finite_manual_x(value):
         return False
 
 
+def _operator_quarter_turn(angle, message):
+    """Decode only an actual NFB Tk quarter-turn choice in the Engine.
+
+    The saved draft always remains an integer; text such as "090" must not
+    become 90 via GUI int() and turn into a different operator selection.
+    """
+    if type(angle) is str:
+        if angle not in ("0", "90", "180", "270"):
+            raise ValueError(message)
+        return int(angle)
+    if type(angle) is int and angle in ROTATIONS:
+        return angle
+    raise ValueError(message)
+
+
+def _operator_manual_x(raw):
+    """Return optional finite draft X, preserving original Tk source type.
+
+    Blank is an explicit RESET, 0 is a real unverified offset. A draft X is
+    never certified world-X or an NFB cutting source.
+    """
+    if raw is None:
+        return None
+    if type(raw) is str:
+        if not raw.strip():
+            return None
+        try:
+            raw = float(raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("NFB manual X offset must be finite, including zero") from exc
+    if not _finite_manual_x(raw):
+        raise ValueError("NFB manual X offset must be finite, including zero")
+    return float(raw)
+
+
 def _rotation_override(mode=INHERIT,value=None):
     if mode not in (INHERIT,OVERRIDE):
         raise ValueError("NFB rotation override mode invalid")
@@ -257,8 +292,9 @@ def _invalidate_effective_rotation_x(slot):
 
 
 def set_nfb_layer_rotation(draft,layer_index,angle):
-    if type(angle) is not int or angle not in ROTATIONS:
-        raise ValueError("NFB angle must be 0/90/180/270; mirrors forbidden")
+    angle = _operator_quarter_turn(
+        angle, "NFB angle must be 0/90/180/270; mirrors forbidden"
+    )
     state=editable_nfb_draft(draft)
     layer=_get_layer(state,layer_index)
     if layer["rotation_deg"] != angle:
@@ -272,8 +308,10 @@ def set_nfb_layer_rotation(draft,layer_index,angle):
 
 
 def set_nfb_slot_rotation(draft,layer_index,slot_index,*,mode,value=None):
-    if mode==OVERRIDE and (type(value) is not int or value not in ROTATIONS):
-        raise ValueError("NFB slot angle must be quarter-turn, no mirror")
+    if mode==OVERRIDE:
+        value = _operator_quarter_turn(
+            value, "NFB slot angle must be quarter-turn, no mirror"
+        )
     if mode==INHERIT and value is not None:
         raise ValueError("NFB inherited rotation has no separate value")
     state=editable_nfb_draft(draft)
@@ -299,6 +337,9 @@ def effective_nfb_rotation(draft,layer_index,slot_index):
 
 
 def set_nfb_manual_x(draft,layer_index,slot_index,offset_mm,*,datum=None):
+    # Decode the original Tk string here; GUI must not invent a numeric X.
+    # An invalid source never enters the immutable draft transaction.
+    offset_mm = _operator_manual_x(offset_mm)
     state=editable_nfb_draft(draft)
     slot=_get_slot(state,layer_index,slot_index)
     if offset_mm is None:
@@ -307,9 +348,7 @@ def set_nfb_manual_x(draft,layer_index,slot_index,offset_mm,*,datum=None):
         slot["datum_snapshot"]=None
         slot.pop("datum_revision",None)
         return state
-    if not _finite_manual_x(offset_mm):
-        raise ValueError("NFB manual X offset must be finite, including zero")
-    slot["manual_x_mm"]=float(offset_mm)
+    slot["manual_x_mm"]=offset_mm
     slot["manual_x_state"]=UNVERIFIED
     slot["datum_snapshot"]=deepcopy(datum)
     # A freshly authored draft X is never approved by a prior revision.
