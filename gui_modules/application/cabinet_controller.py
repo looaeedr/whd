@@ -228,6 +228,23 @@ def _apply_cabinet_family_for_current_model(self):
 
 
 def on_baseline_changed(self):
+    # A known Vault baseline must not change committed Corner/Family state
+    # when its current physical plate thickness is invalid. Check the raw
+    # operator value through the existing public Engine before any GUI effects.
+    raw_model = self.baseline_var.get()
+    if (
+        raw_model
+        and not manufacturing_api.is_unknown_operator_model(raw_model)
+        and manufacturing_api.resolve_live_cabinet_family({}, raw_model) == "金庫型"
+        and not getattr(self, "_fold_designer_baseline_commit_guard", False)
+    ):
+        try:
+            manufacturing_api.normalize_operator_source_dimension(
+                self.t_var.get(), field="t",
+            )
+        except (TypeError, ValueError, tk.TclError) as exc:
+            messagebox.showerror("基準檔載入出錯", f"無法讀取基準檔參數: {exc}")
+            return
     self._reset_manual_corner_parameter_locks()
     owner = getattr(self, "_derived_cache_owner", None)
     if owner is not None:
@@ -271,7 +288,7 @@ def on_baseline_changed(self):
         self._request_phase6_update("baseline")
         return
     try:
-        t_val = float(self.t_var.get()) if self.t_var.get() else 2.0
+        t_val = self.t_var.get()  # Raw T; public Engine validates before parsing DXF.
         
         # 1. 載入封頭尾基準檔分析折彎參數
         baseline_folds = manufacturing_api.read_operator_baseline_fold_defaults(
