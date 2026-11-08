@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving inner Door topology raw source validation (2026-11-08)
+
+The existing public `manufacturing_api.resolve_inner_door_hole_editor_context(snapshot, part_key)` consumes Receiving Family's inner-door panels and frame sets. Their canonical Engine owner now decodes `multi_door_enabled` with the same source boolean validator as public Settings (`"false"` disables all inner-door physical sheets; `"true"` enables them) and validates **all** saved Door grid cells using `sheetmetal_part_adapters.derive_door_layout_cells` before generating physical panel/frame IDs and dimensions. The vertical frame and editor also retain raw H/T/D/FW and clearance sources until the Engine finite, nonboolean gate. HALF rear-panel retains its stricter certified native-Boolean `True` eligibility gate; serialized strings and integer 1 do not authorize HALF manufacturing. No change to Fold, certified half-panel dimensions, PartSpec, CUTTING/BEND or DXF formula. Regression: `tests/test_issue2517_receiving_inner_door_layout_raw_engine.py`. Windows UAT and global #2517 coverage remain open.
+
 ## #2517 USER_ADDED AssemblyJoint raw topology source gate (2026-11-08)
 
 The existing public `manufacturing_api.commit_operator_user_assembly_joint(snapshot, ..., solver_constraints)` in `ae_engine.assembly_joint.add_user_assembly_joint` now validates explicitly authored `solver_constraints.topology_levels` using the original Certified Registry one/two-stage source normalizer before any transaction commit. GUI `fold_designer_bridge._phase6_joint_form_add` forwards original Tk input without `int()` coercion. bool/fraction/nonfinite/other-stage values and non-Mapping sources reject; valid one/two-stage and other solver metadata persist through unchanged JSON. This is an operator source transaction, **not** new Certified Relief/Joint manufacturing or DXF authorization. Regression: `tests/test_issue2517_user_joint_topology_raw_public_engine.py`.

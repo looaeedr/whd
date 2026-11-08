@@ -9,6 +9,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 from .registry import CabinetTypeRegistration
+from ..operator_settings_transactions import normalize_operator_settings_boolean
 
 REGISTRATION = CabinetTypeRegistration(
     canonical_name="受電箱",
@@ -265,30 +266,42 @@ def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[
         raise ValueError(f"inner door stable id is missing from authoritative state: {wanted!r}")
 
     columns = list(data.get('door_layout_columns') or ())
-    if not columns or not bool(data.get('multi_door_enabled', False)):
+    enabled = normalize_operator_settings_boolean(data.get('multi_door_enabled', False))
+    if not columns or not enabled:
         raise ValueError("Receiving vertical frame contract requires enabled Door topology")
+    # Validate each authored cell including cells not selected for this frame.
+    # float(True) must not mint a 1-mm physical Door grid identity.
+    physical_cells = derive_door_layout_cells(columns)
     normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
-    cells = {f'{cell.column_index}:{cell.row_index}': cell for cell in derive_door_layout_cells(normalized)}
+    cells = {f'{cell.column_index}:{cell.row_index}': cell for cell in physical_cells}
     _door_id, cell_key = _saved_inner_door_identity(item)
     if cell_key not in cells:
         raise ValueError(f"inner-door cell outside authoritative Door topology: {cell_key!r}")
     cell = cells[cell_key]
 
-    t = float(data.get('t', 2.0))
+    t = _inner_door_physical_mm(data.get('t', 2.0), label="thickness")
     # The side frame physically runs to the EndCap's inside sheet skin.
     # The TOP inner-door frame's 50-mm formed web occupies the OPENING, not
     # 50 mm of the LEFT/RIGHT side-frame longitudinal cut length.
     cell_top = (
-        float(data.get('h', max(sum(v) for _w, v in normalized))) / 2.0
+        _inner_door_physical_mm(
+            data.get('h', max(sum(v) for _w, v in normalized)),
+            label="cabinet height",
+        ) / 2.0
         - sum(normalized[cell.column_index][1][:cell.row_index])
     )
     top_y = cell_top - t
 
     dividers = derive_box_body_dividers(
         normalized,
-        depth=float(data.get('d', BOX_BODY_DEFAULTS['d'])),
+        depth=_inner_door_physical_mm(
+            data.get('d', BOX_BODY_DEFAULTS['d']), label="depth",
+        ),
         thickness=t,
-        frame_width=float(data.get('fw', BOX_BODY_DEFAULTS['fw'])),
+        frame_width=_inner_door_physical_mm(
+            data.get('fw', BOX_BODY_DEFAULTS['fw']),
+            label="frame width", allow_zero=True,
+        ),
         layout_scope=str(data.get('door_layout_scope') or DEFAULT_DOOR_LAYOUT_SCOPE).strip() or DEFAULT_DOOR_LAYOUT_SCOPE,
         handle_edges=dict(data.get('door_handle_edges') or {}),
         model_name='受電箱',
@@ -359,9 +372,11 @@ def inner_door_panel_vertical_contract(*, cell_height: float, thickness: float, 
     """
     from ae_engine.inner_door_frames import inner_door_frame_formed_occupation
 
-    h, t, gap = float(cell_height), float(thickness), float(gap_h)
-    if h <= 0.0 or t <= 0.0 or gap < 0.0:
-        raise ValueError("inner-door cell height/thickness/gap must be valid")
+    # The same physical-source gate used for panel T/clearance applies to
+    # standalone vertical contracts; NaN and bool may not become dimensions.
+    h = _inner_door_physical_mm(cell_height, label="cell height")
+    t = _inner_door_physical_mm(thickness, label="thickness")
+    gap = _inner_door_physical_mm(gap_h, label="vertical clearance", allow_zero=True)
     top_occupation = inner_door_frame_formed_occupation(t) + t
     bottom_occupation = 0.0
     finished_height = h - top_occupation - bottom_occupation - 2.0 * gap
@@ -409,10 +424,13 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
 
     data = dict(snapshot or {})
     columns = list(data.get("door_layout_columns") or ())
-    if not columns or not bool(data.get("multi_door_enabled", False)):
+    enabled = normalize_operator_settings_boolean(data.get("multi_door_enabled", False))
+    if not columns or not enabled:
         return ()
-    normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
-    cells = {f"{cell.column_index}:{cell.row_index}": cell for cell in derive_door_layout_cells(normalized)}
+    # Reuse the canonical Door Layout raw source validator before physical
+    # identity/size resolution; no alternate panel-only float() parser.
+    cells = {f"{cell.column_index}:{cell.row_index}": cell
+             for cell in derive_door_layout_cells(columns)}
     t = _inner_door_physical_mm(data.get("t", 2.0), label="thickness")
     formed = inner_door_frame_formed_occupation(t)
     gap_w = _inner_door_physical_mm(
@@ -466,10 +484,13 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
 
     data = dict(snapshot or {})
     columns = list(data.get("door_layout_columns") or ())
-    if not columns or not bool(data.get("multi_door_enabled", False)):
+    enabled = normalize_operator_settings_boolean(data.get("multi_door_enabled", False))
+    if not columns or not enabled:
         return ()
-    normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
-    cells = {f"{cell.column_index}:{cell.row_index}": cell for cell in derive_door_layout_cells(normalized)}
+    # Reuse the canonical Door Layout raw source validator before physical
+    # identity/size resolution; no alternate panel-only float() parser.
+    cells = {f"{cell.column_index}:{cell.row_index}": cell
+             for cell in derive_door_layout_cells(columns)}
     t = _inner_door_physical_mm(data.get("t", 2.0), label="thickness")
     formed = inner_door_frame_formed_occupation(t)
 
@@ -687,6 +708,8 @@ def resolve_back_panel_contract(
     formed_y_offset = 0.0
 
     if mode is BackPanelMode.HALF:
+        # HALF rear-panel is certified only for explicitly native-Boolean True.
+        # This is stricter than the legacy Door panel/frame enable decoder.
         if data.get("multi_door_enabled", False) is not True:
             raise ValueError("Receiving half rear panel requires authoritative Door topology")
         columns = list(data.get("door_layout_columns") or ())
