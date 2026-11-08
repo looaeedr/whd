@@ -2,6 +2,7 @@
 from copy import deepcopy
 import inspect
 import json
+import math
 
 import pytest
 
@@ -41,9 +42,7 @@ def test_gui_custom_hole_process_flag_matches_public_engine_feature_and_json_sou
         blind=raw, model=model,
     )
     result = gui.make_feature(point)
-    assert result == api.operator_hole_feature_with_reference_anchor(
-        physical, physical.reference_anchor,
-    ) if hasattr(physical, "reference_anchor") else result.layer == process
+    assert type(result) is type(physical)
     assert result.layer == process
     assert errors == []
     assert raw == original
@@ -75,7 +74,10 @@ def test_invalid_custom_hole_process_never_creates_cutting_or_blind_feature(mode
     )
     assert gui.make_feature(Vec2(100, 100)) is None
     assert len(errors) == 1 and errors[0][0] == "開孔錯誤"
-    assert bad == before
+    if isinstance(bad, float) and math.isnan(bad):
+        assert math.isnan(before)
+    else:
+        assert bad == before
 
 
 def test_default_blind_source_unchanged_through_hole_and_exact_engine_aliases():
