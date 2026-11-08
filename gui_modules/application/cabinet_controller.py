@@ -144,20 +144,37 @@ def _restore_cabinet_family_runtime(self, state):
     other = manufacturing_api.normalize_operator_settings_updates(
         {key: 0.0 for key in other_raw}, other_raw,
     )
+    # A saved AssemblyJoint graph may contain a future/invalid schema.
+    # Validate the full Engine candidate and its display intent *before*
+    # Settings or Corner controls commit any physical state. Existing legacy
+    # WRAP readback remains the same permissive Engine projection.
+    raw_joint_state = state.get("assembly_joint_state")
+    next_joint_state = None
+    next_assembly_label = None
+    if isinstance(raw_joint_state, dict) and raw_joint_state:
+        next_joint_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(
+            deepcopy(raw_joint_state)
+        )
+        stable = assembly_intent_value(
+            next_joint_state.get("assembly_type", "INSERT_OVERLAY")
+        )
+        next_assembly_label = assembly_intent_label(stable)
+    next_bottom_wrap = (
+        normalize_endcap_bottom_wrap_state({
+            "model": self._current_cabinet_type_name(),
+            "endcap_bottom_wrap": state.get("endcap_bottom_wrap"),
+        })
+        if state.get("endcap_bottom_wrap") is not None else None
+    )
     self._apply_fold_designer_live_settings(
         {**physical, **stock, **other}, recalculate=False,
     )
     self._apply_manual_corner_snapshot(state.get("corner_state"), state.get("corner_pair_same"))
-    if state.get("endcap_bottom_wrap") is not None:
-        self.endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state({
-            "model": self._current_cabinet_type_name(),
-            "endcap_bottom_wrap": state.get("endcap_bottom_wrap"),
-        })
-    joint_state = state.get("assembly_joint_state")
-    if isinstance(joint_state, dict) and joint_state:
-        self.assembly_joint_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(deepcopy(joint_state))
-        stable = assembly_intent_value(self.assembly_joint_state.get("assembly_type", "INSERT_OVERLAY"))
-        self.box_assembly_type_var.set(assembly_intent_label(stable))
+    if next_bottom_wrap is not None:
+        self.endcap_bottom_wrap_state = next_bottom_wrap
+    if next_joint_state is not None:
+        self.assembly_joint_state = next_joint_state
+        self.box_assembly_type_var.set(next_assembly_label)
     self.multi_door_enabled_var.set(multi_door_enabled)
     if layout:
         self.set_door_layout_columns(layout)
