@@ -803,25 +803,28 @@ class Phase6ApplicationHost:
         self._request_phase6_update("geometry")
 
     def on_fw_selected(self, source):
-        if source == "z":
-            # Explicit operator input on the box always retakes Head + Tail,
-            # even when the numeric value is the same as before.
-            commit_box_fw(self.endcap_fw_state, float(self.fw_z_var.get()))
-            self._sync_endcap_fw_controls()
-        elif source in {"head", "tail"}:
-            var = self.fw_head_var if source == "head" else self.fw_tail_var
-            try:
-                value = float(var.get())
-            except (TypeError, ValueError, tk.TclError):
-                # The EndCap FW controls are intentionally free numeric inputs.
-                # Invalid transient text must not corrupt control ownership.
-                self._sync_endcap_fw_controls()
+        # Only Engine may validate and commit the four-state physical FW source.
+        # Transient invalid Tk values must not mutate even one EndCap row.
+        try:
+            if source == "z":
+                # Explicit box takeover also applies for an unchanged number.
+                manufacturing_api.commit_operator_box_fw_takeover(
+                    self.endcap_fw_state, self.fw_z_var.get(),
+                )
+            elif source in {"head", "tail"}:
+                var = self.fw_head_var if source == "head" else self.fw_tail_var
+                manufacturing_api.commit_operator_endcap_fw_value(
+                    self.endcap_fw_state, source, var.get(),
+                    box_fw=self.fw_z_var.get(),
+                )
+            else:
                 return
-            commit_endcap_fw(
-                self.endcap_fw_state, source, value,
-                box_fw=float(self.fw_z_var.get()),
-            )
+        except (TypeError, ValueError, tk.TclError):
+            # Restore the authoritative saved values instead of propagating a
+            # NaN/invalid operator value into PartSpec or 2D/3D/DXF caches.
             self._sync_endcap_fw_controls()
+            return
+        self._sync_endcap_fw_controls()
         owner = getattr(self, "_derived_cache_owner", None)
         if owner is not None:
             owner.invalidate("geometry")
