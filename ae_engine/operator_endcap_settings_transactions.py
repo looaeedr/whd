@@ -87,11 +87,12 @@ def commit_operator_baseline_endcap_fw(
     for part in ENDCAP_FW_PARTS:
         row = candidate.setdefault(part, {})
         row["follow_box"] = canonical[part]["follow_box"]
-        if row["follow_box"] or canonical["mode"] in (
-            FW_FOLLOW_HEAD, FW_FOLLOW_TAIL,
-        ):
-            # FOLLOW_BODY / legacy follower follows this new box FW.
-            # FOLLOW_HEAD/TAIL keeps the existing leader's physical value.
+        if row["follow_box"]:
+            # FOLLOW_BODY and a legacy independent follower receive the new
+            # box FW; legacy stored follower values may still be stale.
+            row["value"] = box_fw
+        elif canonical["mode"] in (FW_FOLLOW_HEAD, FW_FOLLOW_TAIL):
+            # Explicit Head/Tail leadership stays with its current value.
             row["value"] = canonical[part]["value"]
     if "mode" in candidate:
         candidate["mode"] = canonical["mode"]
