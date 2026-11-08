@@ -136,6 +136,30 @@ def project_receiving_operator_set_preview_target(
     }
 
 
+def project_receiving_operator_set_bay_selection(
+    layout: Mapping[str, object], *, set_index: object, bay_index: object,
+) -> dict[str, object]:
+    """Qualify a complete existing physical Set/Bay before GUI navigation.
+
+    This is a read-only query, not a selection mutation or geometry
+    entitlement. Reject both raw indices and stale Bay targets atomically:
+    the GUI must not select a different Set before discovering an invalid Bay.
+    """
+    selected_set = project_receiving_operator_set_preview_target(
+        layout, set_index,
+    )
+    selected_bay = normalize_receiving_operator_topology_integer(
+        bay_index, name="Bay selection index",
+    )
+    if not 0 <= selected_bay < selected_set["connection_count"]:
+        raise ValueError("Receiving Bay selection index out of range")
+    return {
+        "set_index": selected_set["set_index"],
+        "set_id": selected_set["set_id"],
+        "bay_index": selected_bay,
+    }
+
+
 def normalize_receiving_operator_connection_counts(raw_counts) -> tuple[int, ...]:
     """Project only real positive Set/Bay topology counts to GUI controls.
 

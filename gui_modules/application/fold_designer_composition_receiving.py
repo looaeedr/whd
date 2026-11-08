@@ -1429,14 +1429,21 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         )
 
     def select_bay(set_index, bay_index):
-        # Reuse canonical selection; no new data owner or manufacturing draw.
+        # Both existing physical identities must pass Engine BEFORE either
+        # UI selection changes; no provisional Set selection on invalid Bay.
         adapter = self.receiving_adapter(namespace)
-        adapter.select_set(int(set_index) + 1)
-        adapter.select_bay(int(bay_index) + 1)
+        target = manufacturing_api.project_receiving_operator_set_bay_selection(
+            adapter.layout, set_index=set_index, bay_index=bay_index,
+        )
+        adapter.select_set(target["set_index"] + 1)
+        adapter.select_bay(target["bay_index"] + 1)
 
     def rename_bay(set_index, bay_index, name):
         adapter = self.receiving_adapter(namespace)
-        changed = adapter.rename_bay(int(set_index), int(bay_index), name)
+        target = manufacturing_api.project_receiving_operator_set_bay_selection(
+            adapter.layout, set_index=set_index, bay_index=bay_index,
+        )
+        changed = adapter.rename_bay(target["set_index"], target["bay_index"], name)
         if changed:
             # GUI only updates the authoritative source DTO. A text-only rename
             # must not invalidate or rebuild FinalScene manufacturing geometry.
@@ -1449,9 +1456,13 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         No editor popup, duplicated parser, or manufacturing calculation is
         initiated merely by selecting a category in the Listbox.
         """
-        ports = self.receiving_settings_ports(namespace, int(set_index))
-        ports["select"](int(bay_index))
-        return _receiving_setting_value(ports["row"](), int(bay_index), kind)
+        adapter = self.receiving_adapter(namespace)
+        target = manufacturing_api.project_receiving_operator_set_bay_selection(
+            adapter.layout, set_index=set_index, bay_index=bay_index,
+        )
+        ports = self.receiving_settings_ports(namespace, target["set_index"])
+        ports["select"](target["bay_index"])
+        return _receiving_setting_value(ports["row"](), target["bay_index"], kind)
 
     def single_brand():
         # Quantity's selected version owns the parent; no Tk-side model policy.
@@ -1509,10 +1520,14 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         host = getattr(self.app._scene_query_callback, "__self__", None)
         if host is None or not hasattr(host, "_door_layout_baseline_scene"):
             return ()
+        layout = self.receiving_adapter(namespace).layout
+        target = manufacturing_api.project_receiving_operator_set_bay_selection(
+            layout, set_index=set_index, bay_index=bay_index,
+        )
         snapshot = dict(self.app._phase6_input_snapshot)
-        snapshot["receiving_layout"] = self.receiving_adapter(namespace).layout
+        snapshot["receiving_layout"] = layout
         selection = manufacturing_api.project_receiving_operator_door_cell_sources(
-            snapshot, set_index=int(set_index), bay_index=int(bay_index),
+            snapshot, set_index=target["set_index"], bay_index=target["bay_index"],
         )
         if selection is None:
             return ()
