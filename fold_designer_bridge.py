@@ -1534,13 +1534,13 @@ def _phase6_commit_receiving_bottom_wrap_controls(self, part_key, reserve_u_var,
     if not bool(current.get("enabled", False)):
         return None
     try:
-        reserve_u = max(0.0, float(reserve_u_var.get()))
-        reserve_v = max(0.0, float(reserve_v_var.get()))
+        # Original Tk values must reach the Engine's manufacturing source gate.
+        # Clamping here turns an invalid negative/NaN into a real WRAP cut.
+        committed = _phase6_settings_transactions(self).commit_bottom_wrap(
+            str(part_key), reserve_u=reserve_u_var.get(), reserve_v=reserve_v_var.get()
+        )
     except (TypeError, ValueError, original.tk.TclError):
         return None
-    committed = _phase6_settings_transactions(self).commit_bottom_wrap(
-        str(part_key), reserve_u=reserve_u, reserve_v=reserve_v
-    )
     self._phase6_last_resolved_manufacturing_geometry = None
     self._phase6_last_resolved_manufacturing_signature = None
     for key in ENDCAP_FW_PARTS:
