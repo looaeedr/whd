@@ -148,10 +148,18 @@ def test_ac19_q16_preserves_exact_offset_identity_nominal_pitch_and_rejects_bad_
 def test_ac04_ac19_fractional_mm_bad_input_cancel_and_undo_have_no_partial_mutation():
     session = NfbUi1aEditSession(_with_offsets())
     baseline = deepcopy(session.current)
-    for invalid in (float("nan"), float("inf"), True, "12.5"):
+    for invalid in (float("nan"), float("inf"), True, "bad", "1e999"):
         with pytest.raises(ValueError):
             session.apply("BAD_X", set_nfb_manual_x, 0, 0, invalid)
         assert session.current == baseline and not session.dirty
+    # GUI must forward the original editable string; the same Engine transaction
+    # now validates it rather than requiring an unrelated GUI float() parser.
+    session.apply("VALID_TEXT_X", set_nfb_manual_x, 0, 0, "12.5")
+    assert session.current["layers"][0]["slots"][0]["manual_x_mm"] == 12.5
+    assert session.current["layers"][0]["slots"][0]["manual_x_state"] == UNVERIFIED
+    assert session.current["layers"][0]["slots"][1]["manual_x_mm"] == 0
+    assert session.undo().action == "VALID_TEXT_X"
+    assert session.current == baseline and not session.dirty
     session.apply("GOOD_X", set_nfb_manual_x, 0, 0, -0.125, datum={"width": 800})
     assert session.current["layers"][0]["slots"][0]["manual_x_mm"] == -0.125
     assert session.current["layers"][0]["slots"][1]["manual_x_mm"] == 0
