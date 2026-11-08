@@ -106,7 +106,7 @@ def test_saved_valid_door_roundtrip_exact_public_engine(model, flag):
     assert app.door_layout_columns == columns
     assert app.door_nameplate_center_datum_top == api.normalize_operator_door_nameplate_center_datum_top("140.125")
     assert events[0][0] == "settings"
-    assert next(v for name, v in events if name == "layout") == columns
+    assert next(entry[1] for entry in events if entry[0] == "layout") == columns
     assert source == before
 
 
