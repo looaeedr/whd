@@ -325,7 +325,9 @@ def commit_corner_parameters(
     state = all_state[str(part_key)]
     pairs = all_pairs[str(part_key)]
     current = corner_selection(state, pairs, target_key)
-    amount = current.amount_t if amount_t is None else float(amount_t)
+    # CornerTypeSelection performs the physical finite/non-boolean checks.
+    # float(True) here would erase the original source and fabricate 1.0×T.
+    amount = current.amount_t if amount_t is None else amount_t
 
     if current.type_id is CornerTypeId.CROSS:
         mode = (
@@ -367,12 +369,12 @@ def commit_corner_parameters(
             secondary_retain_t=(
                 current.secondary_retain_t
                 if secondary_retain_t is None
-                else float(secondary_retain_t)
+                else secondary_retain_t
             ),
             secondary_depth_t=(
                 current.secondary_depth_t
                 if secondary_depth_t is None
-                else float(secondary_depth_t)
+                else secondary_depth_t
             ),
         )
 
