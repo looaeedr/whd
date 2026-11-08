@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving inner Door topology raw source validation (2026-11-08)
+
+The existing public `manufacturing_api.resolve_inner_door_hole_editor_context(snapshot, part_key)` consumes Receiving Family's inner-door panels and frame sets. Their canonical Engine owner now decodes `multi_door_enabled` with the same source boolean validator as public Settings (`"false"` disables all inner-door physical sheets; `"true"` enables them) and validates **all** saved Door grid cells using `sheetmetal_part_adapters.derive_door_layout_cells` before generating physical panel/frame IDs and dimensions. The vertical frame and editor also retain raw H/T/D/FW and clearance sources until the Engine finite, nonboolean gate. HALF rear-panel topology eligibility consumes the same enabled flag. No change to Fold, certified half-panel dimensions, PartSpec, CUTTING/BEND or DXF formula. Regression: `tests/test_issue2517_receiving_inner_door_layout_raw_engine.py`. Windows UAT and global #2517 coverage remain open.
+
 ## #2517 BoxBody structure raw numeric source validation (2026-11-08)
 
 Existing public `manufacturing_api.apply_box_body_structure_numeric(state, type_id, field, value, *, total_w, outside_family=False)` now checks the **original** value and total W using the canonical Engine finite, nonboolean dimension validator before updating two-/three-piece BoxBody or relief settings, with positive total W required. Serialized outside-family flags use the existing public Settings boolean contract (`"false"` is false). GUI `_phase6_box_structure_w` validates the original W through public Engine `normalize_operator_source_dimension`, and `_phase6_apply_box_structure_numeric` forwards raw text instead of pre-coercing to float. No new Factory/Registry/Fold/CUTTING/DXF geometry rule; valid source semantics and stable save schema are unchanged. Regression: `tests/test_issue2517_box_structure_raw_source_engine_api.py`. #2517 comprehensive coverage and Windows UAT remain pending.
