@@ -402,6 +402,9 @@ def on_baseline_changed(self):
             self.door_fold_b_var.set(f"{pd['door_fold_b']:.1f}".replace(".0", ""))
     except Exception as e:
         messagebox.showerror("基準檔載入出錯", f"無法讀取基準檔參數: {e}")
+        # Rejected FW/loaded source must not schedule a manufacturing redraw
+        # against partially entered baseline fields.
+        return
 
     # Known-family return must publish the rebuilt Box Body, not just restore
     # dimension widgets. Receiving/custom paths request their own redraw above;
