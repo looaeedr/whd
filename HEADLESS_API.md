@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Live Fold Designer physical W/H/D source validator (2026-11-08)
+
+ae_engine.operator_settings_transactions.normalize_operator_live_box_dimensions(values) is exported identically from manufacturing_api and ae_engine. It checks all three raw operator W/H/D inputs with the existing positive, finite, non-bool Engine source validator and returns a detached float mapping preserving fractional millimetres. Fold Designer no longer feeds its legacy get_int result (rounded millimetres or zero on invalid UI input) to physical BoxBody/Head/Tail/other part commits. Head/Tail still uses the existing public reconcile_endcap_live_outside_dimensions; this is input validation and precision preservation only, not a new geometry/Family policy or manufacturing release. Regression: tests/test_issue2517_live_box_dimension_source_public_api.py.
+
 ## #2517 Fold Designer part-dimension Settings precedence public Engine API (2026-11-08)
 
 ae_engine.manufacturing_api.project_operator_part_dimension_settings_overlay(input_snapshot, settings_values) is the exact same callable as ae_engine.operator_settings_transactions.project_operator_part_dimension_settings_overlay and root ae_engine. It returns a detached Settings overlay excluding W/H/D for canonical Receiving Family (including registered case-insensitive aliases), since these remain committed Bay/Quantity snapshot dimensions. Vault/Custom retain the original Settings W/H/D override. The GUI _phase6_recalculate_part_dimensions consumes only this Engine source projection before its existing Engine project_part_dimensions call. There is no new geometry algorithm, source mutation, manufacturing entitlement, DXF output or project schema. Regression: tests/test_issue2517_part_dimension_settings_source_public_api.py.
