@@ -395,13 +395,13 @@ from gui_modules.project_actions import (
 )
 
 
-from ae_engine.hole_catalog import (
-    load_hole_catalog,
-    load_pipe_catalog,
-    feature_from_definition,
-    custom_circle_definition,
-    custom_rectangle_definition,
-)
+# The GUI composition injects exactly the public Engine catalog functions.
+# Keep the legacy dependency names only for the existing UI composition port.
+load_hole_catalog = manufacturing_api.operator_load_hole_catalog
+load_pipe_catalog = manufacturing_api.operator_load_pipe_catalog
+feature_from_definition = manufacturing_api.operator_hole_feature_from_definition
+custom_circle_definition = manufacturing_api.operator_custom_circle_definition
+custom_rectangle_definition = manufacturing_api.operator_custom_rectangle_definition
 
 
 from fold_designer_bridge import Phase6FoldDesignerApp

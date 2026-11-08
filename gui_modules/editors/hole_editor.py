@@ -147,15 +147,15 @@ class HoleEditorFeatureFactory:
 
     def make_feature(self, point):
         label = self.selected_catalog_text.get()
-        rotation = int(self.rotation_var.get().replace("°", ""))
         try:
+            rotation = int(self.rotation_var.get().replace("°", ""))
             if label == "＋ 自訂圓孔":
                 definition = self.custom_circle_definition(
-                    float(self.diameter_var.get()), blind=self.blind_var.get()
+                    self.diameter_var.get(), blind=self.blind_var.get()
                 )
             elif label == "＋ 自訂方孔":
                 definition = self.custom_rectangle_definition(
-                    float(self.width_var.get()), float(self.height_var.get()),
+                    self.width_var.get(), self.height_var.get(),
                     blind=self.blind_var.get(),
                 )
             else:
@@ -168,7 +168,8 @@ class HoleEditorFeatureFactory:
                 rotation_deg=rotation,
             )
             return self.feature_with_reference_anchor(feature, self.center_anchor)
-        except (ValueError, FileNotFoundError) as exc:
+        except (ValueError, TypeError, AttributeError, OverflowError,
+                FileNotFoundError) as exc:
             self.show_error("開孔錯誤", str(exc))
             return None
 

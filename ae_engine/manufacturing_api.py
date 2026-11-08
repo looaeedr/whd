@@ -49,6 +49,15 @@ from .ae_door_indicator import (
 from .ae_endcap import (
     baseline_hole_catalog_root_path as operator_hole_catalog_root_path,
 )
+# Public hole-catalog operations: GUI must never synthesize a physical hole
+# by coercing raw operator sizes before the canonical owner validates them.
+from .hole_catalog import (
+    load_hole_catalog as operator_load_hole_catalog,
+    load_pipe_catalog as operator_load_pipe_catalog,
+    feature_from_definition as operator_hole_feature_from_definition,
+    custom_circle_definition as operator_custom_circle_definition,
+    custom_rectangle_definition as operator_custom_rectangle_definition,
+)
 from .engineering_drawing import (
     build_engineering_drawing_projection as project_operator_engineering_drawing_annotations,
 )
