@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 封頭／封尾連動 Fold 的 Family／活 Bay 製造來源交由公開 Engine（2026-11-08）
+
+- 原 `fold_designer_bridge._phase6_rebuild_linked_endcaps` 用 GUI 的 `str(model) in {"受電箱","RECEIVING"}` 自行判定要否用活的 `_phase6_box_whd` 覆蓋保存的 W/H/D Settings；其餘角落／組合 intent／EndCap FW 欄位也在 GUI 拼成製造快照。這會讓 `receiving`、大小寫混用的同一已註冊 Family 留在舊 W/H/D 種子值，導致封頭／封尾與活 Bay 箱身來源不同。
+- `ae_engine.linked_endcap_fold.plan_operator_linked_endcap_live_profiles`（`manufacturing_api`／根包同一函式）由原 `cabinet_types.policy.canonical_family_name` 決定 Family 身分，將實際 Receiving BoxBody/Bay W/H/D 按現存欄位、原優先序以 `normalize_operator_source_dimension` 驗證後覆寫；金庫型不借活 Bay 資料。Assembly Intent 及 Head/Tail FW 保持原 Engine 權威，原 `build_linked_endcap_xy_fold_profiles` 負責所有 X/Y 連動折彎／tail native 方向，回傳 detached `OperatorLinkedEndcapLivePlan(snapshot, profiles)`。GUI 只收集原始操作狀態、提交到公開 Engine，更新既有 Workspace 和畫面；不再對 Family 的展示字串做製造決定。
+- 驗證受電箱全類別別名、金庫型不覆寫、部分活 Bay 欄位、拒絕 bool/非有限/非正 W/H/D 不改來源、Assembly Intent、Head/Tail Save→Reload 與 GUI 真實委派。這不創造 Bay、不增建製造公式或放行新的 2D/3D/DXF，並不代表 #2517 全部完成。
+
+
 ## [CURRENT] #2517 BoxBody 三片式實體側板／後板 Fold 編輯提交唯一 Engine API（2026-11-08）
 
 - 原 `fold_designer_bridge._phase6_commit_box_body_physical_piece_profile` 在 GUI 側自行把 `left_side/right_side` 的實體 Fold material len 鏡射回箱身 `zl1/zl2/FW/D/zr2/zr1`、計算後面板 `back_width_comp_t=max(0,(W-back_panel_material_len)/T)`，並決定右側板 native BEND traversal、已儲存後折的 piece-local ownership。這些是製造來源與版型、非視覺呈現，不能留第二套 GUI 公式。
