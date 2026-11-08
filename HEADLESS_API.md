@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 USER_ADDED AssemblyJoint raw topology source gate (2026-11-08)
+
+The existing public `manufacturing_api.commit_operator_user_assembly_joint(snapshot, ..., solver_constraints)` in `ae_engine.assembly_joint.add_user_assembly_joint` now validates explicitly authored `solver_constraints.topology_levels` using the original Certified Registry one/two-stage source normalizer before any transaction commit. GUI `fold_designer_bridge._phase6_joint_form_add` forwards original Tk input without `int()` coercion. bool/fraction/nonfinite/other-stage values and non-Mapping sources reject; valid one/two-stage and other solver metadata persist through unchanged JSON. This is an operator source transaction, **not** new Certified Relief/Joint manufacturing or DXF authorization. Regression: `tests/test_issue2517_user_joint_topology_raw_public_engine.py`.
+
 ## #2517 BoxBody structure raw numeric source validation (2026-11-08)
 
 Existing public `manufacturing_api.apply_box_body_structure_numeric(state, type_id, field, value, *, total_w, outside_family=False)` now checks the **original** value and total W using the canonical Engine finite, nonboolean dimension validator before updating two-/three-piece BoxBody or relief settings, with positive total W required. Serialized outside-family flags use the existing public Settings boolean contract (`"false"` is false). GUI `_phase6_box_structure_w` validates the original W through public Engine `normalize_operator_source_dimension`, and `_phase6_apply_box_structure_numeric` forwards raw text instead of pre-coercing to float. No new Factory/Registry/Fold/CUTTING/DXF geometry rule; valid source semantics and stable save schema are unchanged. Regression: `tests/test_issue2517_box_structure_raw_source_engine_api.py`. #2517 comprehensive coverage and Windows UAT remain pending.

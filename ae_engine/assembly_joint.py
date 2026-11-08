@@ -807,6 +807,20 @@ def add_user_assembly_joint(
     """
     from uuid import uuid4
 
+    # Physical solver topology belongs to the public Joint transaction, not
+    # a GUI int() cast. Keep absent constraints and unrelated legacy metadata.
+    if solver_constraints is None:
+        validated_constraints = {}
+    elif not isinstance(solver_constraints, Mapping):
+        raise ValueError("USER_ADDED solver_constraints 必須是對應表")
+    else:
+        validated_constraints = deepcopy(dict(solver_constraints))
+        if "topology_levels" in validated_constraints:
+            from .certified_relief_formula_io import normalize_operator_relief_topology_levels
+            validated_constraints["topology_levels"] = normalize_operator_relief_topology_levels(
+                validated_constraints["topology_levels"]
+            )
+
     staged = migrate_legacy_snapshot_joints(snapshot)
     normalized_relation = _relation(relation)
     joint = AssemblyJoint(
@@ -820,7 +834,7 @@ def add_user_assembly_joint(
         preserve_side=str(preserve_side or "AUTO"),
         relief_intent=str(relief_intent or "AUTO"),
         clearance_policy=str(clearance_policy or "ZERO"),
-        solver_constraints=deepcopy(dict(solver_constraints or {})),
+        solver_constraints=validated_constraints,
         source=AssemblyJointSource.USER_ADDED,
     )
     identity = (
