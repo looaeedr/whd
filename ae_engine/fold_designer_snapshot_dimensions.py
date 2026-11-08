@@ -86,6 +86,74 @@ def normalize_fold_designer_indicator_offsets(
     )
 
 
+def project_operator_door_indicator_display_state(state):
+    """Read-only legacy UI display projection; NEVER a manufacturing/save source.\n\n    Strict physical CUTTING/Save still requires the separate\n    project_operator_door_cell_indicator_manufacturing_source gate.\n    """
+    # Only a truly absent saved state owns the legacy empty/default layout.
+    # False/0/string roots are corrupt: silently resetting them may alter
+    # indicator holes or disguise a failed project reload.
+    if state is not None and not isinstance(state, Mapping):
+        raise ValueError("Door indicator state must be a mapping")
+    raw = dict(state or {})
+
+    def saved_flag(value):
+        # Tk-originated persisted booleans can be textual. bool("false") is
+        # True in Python and must never silently enable physical hole features.
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "on"}
+        if type(value) is int:
+            return value == 1
+        return False
+
+    mode = raw.get("mode")
+    if not isinstance(mode, str) or mode not in {"none", "indicator", "indicator_box"}:
+        if saved_flag(raw.get("box_enabled")):
+            mode = "indicator_box"
+        elif saved_flag(raw.get("enabled")):
+            mode = "indicator"
+        else:
+            mode = "none"
+
+    def whole(value, default, *, low=1, high=None):
+        if isinstance(value, bool):
+            return default
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return default
+        if not math.isfinite(number) or not number.is_integer():
+            return default
+        number = int(number)
+        if number < low or high is not None and number > high:
+            return default
+        return number
+
+    def finite_offset(value):
+        if isinstance(value, bool):
+            return 0.0
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return 0.0
+        return number if math.isfinite(number) else 0.0
+
+    layers = whole(raw.get("layers", 1), 1, low=1, high=6)
+    source_groups = raw.get("groups", [2] * 6)
+    groups = source_groups if isinstance(source_groups, (list, tuple)) else ()
+    normalized_groups = [whole(value, 2) for value in groups[:6]]
+    normalized_groups.extend([2] * (6 - len(normalized_groups)))
+    return {
+        "mode": mode,
+        "enabled": mode == "indicator",
+        "box_enabled": mode == "indicator_box",
+        "layers": layers,
+        "groups": normalized_groups,
+        "offset_x": finite_offset(raw.get("offset_x", 0.0)),
+        "offset_y": finite_offset(raw.get("offset_y", 0.0)),
+        "is_box_dist": saved_flag(raw.get("is_box_dist", False)),
+    }
+
 def normalize_operator_hole_editor_indicator_state(raw: Mapping[str, object]) -> dict[str, object]:
     """Validate CURRENT live Indicator controls before any physical hole commit.
 
