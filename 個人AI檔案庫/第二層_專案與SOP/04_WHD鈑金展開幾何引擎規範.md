@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 自訂開孔尺寸與 Catalog 製造入口一律由公開 Engine 驗證（2026-11-08）
+
+- 原 `gui_modules/editors/hole_editor.HoleEditorFeatureFactory.make_feature` 先對自訂圓孔徑、自訂矩形 W/H 做 GUI `float(TkVar)`；布林 `True` 因而變成 `1.0 mm`，繞過原 `ae_engine.hole_catalog._positive_hole_mm` 的布林禁令，產生未經原始來源驗證的實體 CUTTING／BLIND_HOLE。旋轉選項的 `int(...)` 又在 GUI try/except 外，損壞輸入會例外逃逸；主 `gui.py` 另外直接匯入 `ae_engine.hole_catalog` 私有模組而非經製造公開 API。
+- 由原 `ae_engine.hole_catalog` 保持唯一孔徑／矩形尺寸、Catalog CSV、Feature 建構與旋轉幾何 owner；同一 callable 透過 `manufacturing_api.operator_{load_hole_catalog,load_pipe_catalog,hole_feature_from_definition,custom_circle_definition,custom_rectangle_definition}` 與 `ae_engine` 根包公開。GUI Composition 僅注入公開 callable，FeatureFactory 只轉送原始 Tk 尺寸，絕不先 float；孔型 Definition 的數值與實體 Feature 只由 Engine 驗證。旋轉輸入格式錯誤用原 GUI 錯誤呈現，最終孔旋轉合法性仍由 `feature_from_definition` 原 Engine `_normalize_rotation` 判定；無新孔徑、旋轉或 DXF 公式。
+- `tests/test_issue2517_custom_hole_raw_dimensions_public_engine.py` 驗 TRUE/False 不能變 1mm、兩種箱型與 Circle/Rect 有效尺寸與非法來源、實體 Feature／Geometry、公開 alias 同一實作、錯誤不產生孔、主 GUI 不再私有匯入。保留 `tests/test_issue293_t5_feature_factory_slice.py` 的原依賴注入邏輯，更新測試以查證原始 Tk 傳遞而非模擬者自行轉型；Save→Reload／2D／3D／DXF 仍由原製造 Owner 完整回歸。
+
 ## [CURRENT] #2517 Head/Tail 已提交 Assembly Relief 切孔開關以 Engine 公開布林來源為準（2026-11-08）
 
 - `gui_modules/application/fold_designer_manufacturing_projection._fold_designer_part_spec_from_payload` 原用 `bool(data.get("_use_committed_relief"))` 決定要不要載入已提交的 Head/Tail Assembly Relief CUTTING；從 Save→Reload 載入字串 `"false"` 會因 Python 非空字串而誤判 True。這是製造切孔來源資格，不能由 GUI truthiness 決定。

@@ -105,13 +105,14 @@ def test_catalog_definition_delegates_geometry_and_center_anchor():
 def test_custom_circle_and_rectangle_keep_definition_authority_delegated():
     circle, circle_calls, _ = _build(label="＋ 自訂圓孔")
     assert circle.make_feature("PC") is not None
-    assert circle_calls["circle"] == [(12.5, True)]
-    assert circle_calls["feature"][0][0] == ("CIRCLE", 12.5, True)
+    # Raw Tk dimensions reach the injected Engine source validator unchanged.
+    assert circle_calls["circle"] == [("12.5", True)]
+    assert circle_calls["feature"][0][0] == ("CIRCLE", "12.5", True)
 
     rect, rect_calls, _ = _build(label="＋ 自訂方孔")
     assert rect.make_feature("PR") is not None
-    assert rect_calls["rect"] == [(20.0, 30.0, True)]
-    assert rect_calls["feature"][0][0] == ("RECT", 20.0, 30.0, True)
+    assert rect_calls["rect"] == [("20", "30", True)]
+    assert rect_calls["feature"][0][0] == ("RECT", "20", "30", True)
 
 
 def test_factory_reads_context_late_and_preserves_user_error_path():
