@@ -25,7 +25,10 @@ def operator_round_hole_default_center_distance(diameter: object) -> float:
         raise ValueError("圓孔直徑必須為正有限數值") from exc
     if not isfinite(numeric) or numeric <= 0:
         raise ValueError("圓孔直徑必須為正有限數值")
-    return max(numeric * 2.0, 50.0)
+    pitch = numeric * 2.0
+    if not isfinite(pitch):
+        raise ValueError("圓孔預設孔心距必須為正有限數值")
+    return max(pitch, 50.0)
 
 
 @dataclass(frozen=True)
