@@ -10,8 +10,10 @@ from ae_engine import manufacturing_api
 from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bottom_wrap_state
 from phase6_settings_center import load_factory_defaults_from_ae
 
-def _read_snapshot_numeric_control(var, fallback=0.0, *, physical_field=None):
-    """Read only GUI input; Engine rejects unavailable physical source data."""
+def _read_snapshot_numeric_control(
+    var, fallback=0.0, *, physical_field=None, fold_field=None,
+):
+    """Read UI input; physical and Fold sources use only Engine validation."""
     try:
         raw = var.get()
     except (TypeError, ValueError, tk.TclError) as exc:
@@ -19,11 +21,22 @@ def _read_snapshot_numeric_control(var, fallback=0.0, *, physical_field=None):
             raise ValueError(
                 f"{physical_field.upper()} 實體尺寸來源無法讀取，禁止使用預設值"
             ) from exc
+        if fold_field is not None:
+            raise ValueError(
+                f"{fold_field} 製造來源無法讀取，禁止使用預設值"
+            ) from exc
         return float(fallback)
     if physical_field is not None:
         return manufacturing_api.normalize_operator_source_dimension(
             raw, field=physical_field,
         )
+    if fold_field is not None:
+        accepted = manufacturing_api.normalize_operator_settings_updates(
+            {fold_field: fallback}, {fold_field: raw},
+        )
+        if fold_field not in accepted:
+            raise ValueError(f"{fold_field} 製造來源必須是有限數值")
+        return accepted[fold_field]
     try:
         return float(raw)
     except (TypeError, ValueError, OverflowError):
@@ -50,25 +63,25 @@ def _snapshot_base_state(self):
         "d": number(self.d_var, physical_field="d"),
         "t": number(self.t_var, physical_field="t"),
         "fw": number(self.fw_z_var, physical_field="fw"),
-        "zl1": number(self.zl1_var, defaults["zl1"]),
-        "zl2": number(self.zl2_var, defaults["zl2"]),
-        "zr2": number(self.zr2_var, defaults["zr2"]),
-        "zr1": number(self.zr1_var, defaults["zr1"]),
-        "yl1": number(self.yl1_var, defaults["yl1"]),
-        "yr1": number(self.yr1_var, defaults["yr1"]),
-        "ytop1": number(self.ytop1_var, defaults["ytop1"]),
-        "ybottom1": number(self.ybottom1_var, defaults["ybottom1"]),
-        "door_gap_w": number(self.door_gap_w_var, defaults["door_gap_w"]),
-        "door_gap_h": number(self.door_gap_h_var, defaults["door_gap_h"]),
-        "door_fold_l": number(self.door_fold_l_var, defaults["door_fold_l"]),
-        "door_fold_r": number(self.door_fold_r_var, defaults["door_fold_r"]),
-        "door_fold_t": number(self.door_fold_t_var, defaults["door_fold_t"]),
-        "door_fold_b": number(self.door_fold_b_var, defaults["door_fold_b"]),
-        "base_plate_shrink_top": number(self.base_plate_shrink_top_var, defaults["base_plate_shrink_top"]),
-        "base_plate_shrink_bottom": number(self.base_plate_shrink_bottom_var, defaults["base_plate_shrink_bottom"]),
-        "base_plate_shrink_left": number(self.base_plate_shrink_left_var, defaults["base_plate_shrink_left"]),
-        "base_plate_shrink_right": number(self.base_plate_shrink_right_var, defaults["base_plate_shrink_right"]),
-        "base_plate_bend": number(self.base_plate_bend_var, defaults["base_plate_bend"]),
+        "zl1": number(self.zl1_var, defaults["zl1"], fold_field="zl1"),
+        "zl2": number(self.zl2_var, defaults["zl2"], fold_field="zl2"),
+        "zr2": number(self.zr2_var, defaults["zr2"], fold_field="zr2"),
+        "zr1": number(self.zr1_var, defaults["zr1"], fold_field="zr1"),
+        "yl1": number(self.yl1_var, defaults["yl1"], fold_field="yl1"),
+        "yr1": number(self.yr1_var, defaults["yr1"], fold_field="yr1"),
+        "ytop1": number(self.ytop1_var, defaults["ytop1"], fold_field="ytop1"),
+        "ybottom1": number(self.ybottom1_var, defaults["ybottom1"], fold_field="ybottom1"),
+        "door_gap_w": number(self.door_gap_w_var, defaults["door_gap_w"], fold_field="door_gap_w"),
+        "door_gap_h": number(self.door_gap_h_var, defaults["door_gap_h"], fold_field="door_gap_h"),
+        "door_fold_l": number(self.door_fold_l_var, defaults["door_fold_l"], fold_field="door_fold_l"),
+        "door_fold_r": number(self.door_fold_r_var, defaults["door_fold_r"], fold_field="door_fold_r"),
+        "door_fold_t": number(self.door_fold_t_var, defaults["door_fold_t"], fold_field="door_fold_t"),
+        "door_fold_b": number(self.door_fold_b_var, defaults["door_fold_b"], fold_field="door_fold_b"),
+        "base_plate_shrink_top": number(self.base_plate_shrink_top_var, defaults["base_plate_shrink_top"], fold_field="base_plate_shrink_top"),
+        "base_plate_shrink_bottom": number(self.base_plate_shrink_bottom_var, defaults["base_plate_shrink_bottom"], fold_field="base_plate_shrink_bottom"),
+        "base_plate_shrink_left": number(self.base_plate_shrink_left_var, defaults["base_plate_shrink_left"], fold_field="base_plate_shrink_left"),
+        "base_plate_shrink_right": number(self.base_plate_shrink_right_var, defaults["base_plate_shrink_right"], fold_field="base_plate_shrink_right"),
+        "base_plate_bend": number(self.base_plate_bend_var, defaults["base_plate_bend"], fold_field="base_plate_bend"),
         "indicator_box_fold": defaults["indicator_box_fold"],
         "indicator_door_fold": defaults["indicator_door_fold"],
         "use_box_distance": manufacturing_api.normalize_operator_settings_boolean(
@@ -121,9 +134,25 @@ def _snapshot_base_state(self):
     physical_source = manufacturing_api.normalize_operator_source_dimensions(
         snapshot
     )
+    # The Settings overlay is a separate input channel. Recheck every Fold,
+    # gap and base-plate source with the same public Engine transaction:
+    # a later malformed override must not re-enter Save→Reload after the
+    # individual Tk control passed validation.
+    fold_source = manufacturing_api.normalize_operator_settings_updates(
+        defaults, {key: snapshot.get(key) for key in defaults},
+    )
+    if len(fold_source) != len(defaults):
+        missing = next(key for key in defaults if key not in fold_source)
+        raise ValueError(f"{missing} 製造來源必須是有限數值")
+    for flag in ("use_box_distance", "multi_door_enabled"):
+        snapshot[flag] = manufacturing_api.normalize_operator_settings_boolean(
+            snapshot[flag]
+        )
     snapshot.update(physical_source)
+    snapshot.update(fold_source)
     settings.update({
-        key: value for key, value in physical_source.items()
+        key: snapshot[key] for key in (*physical_source, *fold_source,
+                                     "use_box_distance", "multi_door_enabled")
         if key in settings
     })
     snapshot["settings"] = dict(settings)
