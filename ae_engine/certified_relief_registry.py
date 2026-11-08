@@ -53,6 +53,7 @@ from .certified_relief_formula_io import (
     _formula_ast_value,
     evaluate_relief_formula_expression,
     evaluate_relief_formula_record,
+    normalize_operator_relief_topology_levels,
     evaluate_divider_cross_formula_record,
     _external_record_map,
     _rule_from_record,
@@ -980,9 +981,7 @@ def _validate_editable_rule_record(record: Mapping[str, object]) -> dict[str, ob
         raise CertifiedReliefRegistryError("candidate has unknown assembly_intent") from exc
     if intent is CornerTypeId.CROSS:
         raise CertifiedReliefRegistryError("candidate assembly_intent must be an assembly type")
-    topology = int(raw.get("topology_levels", 0) or 0)
-    if topology not in (1, 2):
-        raise CertifiedReliefRegistryError("candidate topology_levels must be 1 or 2")
+    topology = normalize_operator_relief_topology_levels(raw.get("topology_levels"))
     if intent is not None:
         semantic_topology = 2 if intent is CornerTypeId.INSERT_OVERLAY else 1
         if topology != semantic_topology:

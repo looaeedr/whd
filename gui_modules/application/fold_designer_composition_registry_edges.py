@@ -98,11 +98,10 @@ def registry_collect_rule_form(self):
     intent = str(
         app.relief_registry_intent_var.get() or "INSERT_OVERLAY"
     )
-    topology = int(
-        float(
-            app.relief_registry_topology_var.get()
-            or (2 if intent == "INSERT_OVERLAY" else 1)
-        )
+    raw_topology = app.relief_registry_topology_var.get()
+    topology = manufacturing_api.normalize_operator_relief_topology_levels(
+        (2 if intent == "INSERT_OVERLAY" else 1)
+        if raw_topology is None or raw_topology == "" else raw_topology
     )
     main_target = str(
         app.relief_registry_target_role_var.get() or "BOX_SIDE"

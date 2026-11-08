@@ -452,6 +452,7 @@ from .certified_relief_registry import (
     build_relief_promotion_candidate,
     load_external_relief_rule_records as operator_load_certified_relief_rule_records,
     _validate_editable_rule_record as validate_operator_relief_registry_rule_record,
+    normalize_operator_relief_topology_levels,
     evaluate_relief_formula_record as evaluate_operator_relief_registry_formula_record,
     save_relief_rule_candidate as save_operator_relief_registry_candidate,
     promote_relief_rule_candidate as promote_operator_relief_registry_candidate,

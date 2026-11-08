@@ -34,6 +34,23 @@ _ALLOWED_BINOPS = (ast.Add, ast.Sub, ast.Mult, ast.Div)
 _ALLOWED_UNARYOPS = (ast.UAdd, ast.USub)
 
 
+def normalize_operator_relief_topology_levels(raw: object) -> int:
+    """Validate a real one- or two-stage relief candidate, without truncating input.
+
+    Operator Tk/JSON may supply numeric strings or integral floats; booleans,
+    fractional values and nonfinite values must never become physical stages.
+    """
+    if isinstance(raw, bool):
+        raise CertifiedReliefRegistryError("candidate topology_levels must be 1 or 2")
+    try:
+        value = float(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise CertifiedReliefRegistryError("candidate topology_levels must be 1 or 2") from exc
+    if not math.isfinite(value) or value not in (1.0, 2.0):
+        raise CertifiedReliefRegistryError("candidate topology_levels must be 1 or 2")
+    return int(value)
+
+
 def _default_external_registry_path() -> Path:
     return Path(__file__).resolve().parents[1] / "基準檔" / "截角資料庫" / "certified_relief_rules.json"
 
@@ -136,7 +153,7 @@ def evaluate_relief_formula_expression(expression: str, variables: Mapping[str, 
 
 
 def evaluate_relief_formula_record(record: Mapping[str, object], variables: Mapping[str, float]) -> dict[str, float | None]:
-    topology = int(record.get("topology_levels", 0) or 0)
+    topology = normalize_operator_relief_topology_levels(record.get("topology_levels"))
     formula = dict(record.get("formula", {}) or {})
     required = ("primary_u", "primary_v")
     if any(name not in formula for name in required):

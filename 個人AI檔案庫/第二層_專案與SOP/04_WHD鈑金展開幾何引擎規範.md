@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Registry 截角一／二段拓樸須由公開 Engine 原始來源驗證（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_registry_edges.registry_collect_rule_form` 先將候選 `topology_levels` 做 `int(float(TkVar.get()))`；`1.9` 被截斷為 1 段、`True` 被當成 1 段、`0` 被悄悄改為預設段數。原 `certified_relief_registry._validate_editable_rule_record` 同樣使用 `int(...)`，headless API 可以接受有害的原始拓樸。這是 Certified Registry 候選對 AssemblyJoint/Corner 幾何段數的來源資格，不可由 GUI 提前造出合法候選。
+- 維持原 `ae_engine.certified_relief_formula_io` 單一 Formula/Topology owner，新增 `normalize_operator_relief_topology_levels(raw)` 並經 `manufacturing_api`／根包公開同一 callable；接受數值 1/2、JSON 數字或數值上恰好整數的字串／浮點數以維持已保存相容性，拒絕 bool、0、負值、分數、非有限與錯字。原公開 `validate_operator_relief_registry_rule_record`、`evaluate_operator_relief_registry_formula_record` 共用驗證，未驗完不可保存或評估 Formula。GUI 只交原始來源給公開 Engine 驗段數後決定有無第二段表單；空白／缺席仍採原有依 Assembly Intent 的 UI 初始預設，明確非法的原始值不能假裝缺席。
+- `tests/test_issue2517_relief_registry_topology_raw_engine_api.py` 驗 Engine/GUI 同義、合法候選保留精確段數、非法來源不得產生保存檔、原始 Record 不突變、JSON Save→Reload 及真 GUI 收集不提前截斷。保留原 Certified Registry 規則、Factory/Family、截角 CUTTING/BEND、正式 2D/3D/DXF 與 Project schema；#2517 全面覆蓋與 Windows UAT 仍待持續驗收。
+
 ## [CURRENT] #2517 Receiving 內門 1／2 層操作選項由公開 Engine 原始來源驗證（2026-11-08）
 
 - 原 `gui_modules/application/receiving_set_bay_controls._build_receiving_settings_editor` 的未套用匹配預覽與正式「編輯／套用」都使用 `int(value_var.get())` 直接轉換實體層數。GUI 的預先轉型可把 `"01"`、`"02"` 或錯型來源變成 1／2，繞過 `ae_engine.receiving_shared_settings.validate_setting("inner_door_layers", value)` 對已存實體 Bay 層數必須是精確整數的限制；preview/apply 各有第二份來源轉換。
