@@ -7,6 +7,9 @@ Formed FW is only assembly/collision evidence, never CUTTING oracle.
 from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
+from math import isfinite
+
+from .operator_settings_transactions import normalize_operator_source_dimension
 
 from .cabinet_types import policy as cabinet_family_policy
 from .box_body_fold_profile import (
@@ -38,8 +41,30 @@ def formed_box_body_fw_widths(profile: Sequence[Mapping[str, object]], thickness
     return one("fw_left"), one("fw_right")
 
 
-def box_body_ui_segment_length_to_material(seg: Mapping[str, object], ui_value):
-    """Convert an operator outside dimension back to the Renderer span."""
+def box_body_ui_segment_length_to_material(
+    seg: Mapping[str, object], ui_value, *,
+    preserve_precision: bool = False, field: str = "w",
+):
+    """Convert an operator outside dimension to canonical material span.
+
+    Legacy manual Fold rows retain their whole-mm UI conversion. The physical
+    global W/D source transaction requests the same conversion without that
+    GUI rounding, so fractional operator outside dimensions remain exact.
+    """
+    if preserve_precision:
+        outside = normalize_operator_source_dimension(ui_value, field=field)
+        raw_add = seg.get("ui_len_add", 0.0)
+        if isinstance(raw_add, bool):
+            raise ValueError("BOX_BODY_DWD_COMPENSATION_SOURCE_INVALID")
+        try:
+            compensation = float(raw_add)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("BOX_BODY_DWD_COMPENSATION_SOURCE_INVALID") from exc
+        if not isfinite(compensation) or compensation < 0:
+            raise ValueError("BOX_BODY_DWD_COMPENSATION_SOURCE_INVALID")
+        return normalize_operator_source_dimension(
+            outside - compensation, field=field,
+        )
     return _ui_len(max(0.0, _num(ui_value) - _num(seg.get("ui_len_add"))))
 
 def read_box_body_outside_dimensions(profile: Sequence[Mapping[str, object]], original: Mapping[str, object]) -> dict:
