@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 外部 Settings 同步與最終 Engine Commit 的 T／FW 必須同 W/H/D 硬拒絕非法來源（2026-11-08）
+
+- 既有公開 `ae_engine.operator_settings_transactions.normalize_operator_source_dimension` 已對 W/H/D/T/FW 做正有限、拒絕 bool 的實體輸入規則；然而 `normalize_operator_settings_updates` 的外部同步與 `commit_operator_settings_state` 的最終交易只對 W/H/D 檢驗，讓外部 T/FW 的 nan、零與負值被略過或直接寫入保存來源，繞過 GUI Panel 及最新 Stage Service 的來源硬閘門。
+- 現由原 Engine owner 兩個入口在任何 commit／來源寫入前重用**同一個** `normalize_operator_source_dimension` 和 `PHYSICAL_SNAPSHOT_SOURCE_KEYS=(w,h,d,t,fw)`。非法值直接拒絕，合法毫米小數不截斷；仍只將 W/H/D 更新到 `box_whd`，T/FW 僅更新原 Settings／Snapshot；其他非實體 legacy numeric skip、布林及 UI-only 文字選項不變。沒有新增 Engine API、Family、Factory、CUTTING、DXF 製造資格或第二份公式。
+- 更新 `tests/test_issue2517_operator_settings_transactions_engine_api.py` 的過時非法 FW 可略過預期，改為**非實體** Fold 無效數值可略過；新增 `tests/test_issue2517_operator_settings_final_physical_engine_gate.py` 覆蓋直接 Engine、外部 Transition、GUI Controller、原子拒絕、全五欄合法小數與 JSON Save→Reload。#2517 全面覆蓋與 Windows UAT 仍未完成。
+
 ## [CURRENT] #2517 Phase6 Settings 直接暫存交易仍須經公開 Engine 原始來源驗證（2026-11-08）
 
 - `Phase6SettingsPanel` 雖已檢核輸入，`phase6_settings_service.Phase6SettingsTransactionService.stage_setting_update` 原可由 Controller／其他直接呼叫者不經檢驗就改寫 Settings／Snapshot／pending；T/FW=0 或負、NaN/Inf、錯誤序列化布林及未知製造欄位可在 Commit 前污染草稿。

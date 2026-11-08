@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 External Settings and final Engine commit T/FW physical gate (2026-11-08)
+
+The original public `manufacturing_api.normalize_operator_settings_updates` (external Settings normalization) and `manufacturing_api.commit_operator_settings_state` (copy-on-write final source commit) now validate all positive finite nonboolean physical W/H/D/T/FW via the preexisting Engine `normalize_operator_source_dimension`. Invalid T/FW may no longer skip or enter saved Settings/Snapshot. W/H/D remain the only axes updating the working box, while T/FW remain Settings/Snapshot sources. Malformed *nonphysical* legacy numeric sources still skip; UI text size is outside Engine. No new manufacture/DXF entitlement. Regression `tests/test_issue2517_operator_settings_final_physical_engine_gate.py`.
+
 ## #2517 Settings stage source public Engine gate (2026-11-08)
 
 Existing `Phase6SettingsTransactionService.stage_setting_update` validates the declared Settings schema and invokes the existing public Engine dimension validator for W/H/D/T/FW or existing adapter `normalize_updates` for other numeric/boolean Settings before modifying settings, snapshot or pending debounce. Unknown and invalid physical/boolean/numeric sources fail closed; ui_text_size retains UI-only choice normalization. This does not change manufacture formulas or DXF eligibility. Regression: `tests/test_issue2517_settings_staging_public_engine_gate.py`.
