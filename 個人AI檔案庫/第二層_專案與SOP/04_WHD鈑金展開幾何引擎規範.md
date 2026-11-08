@@ -2071,6 +2071,12 @@ Validation 維持單向：contact probe、collision、fixture expected、pytest 
 
 ---
 
+## [CURRENT] #2517 Receiving Set／Bay／Joint 整數來源驗證只由公開 Engine（2026-11-08）
+
+- 原 `gui_modules/application/receiving_set_bay_adapter._operator_integer` 在 GUI 對實體 Set、Bay、Joint 身分及 Set/Bay 件數使用 Python `int(raw)`；其中 `int('1_0') == 10` 會把非標準操作字串當成十套或十連的合法整數，並由後續原 Engine transaction 真正建立實體拓樸。GUI 不應把不可信操作來源先轉成可信的實體選取／數量。
+- 現有唯一物理拓樸權威 `ae_engine.receiving_layout` 增加純來源驗證 `normalize_receiving_operator_topology_integer(value, *, name)`，由 `manufacturing_api` 與根包公開同一 callable。原生整數與舊 Tk 十進位整數文字（含前導零及明確正負號）保留；布林、浮點、非法容器、底線數字別名、空白或非 ASCII 整數來源一律拒絕，物理範圍／有效性仍由原先 Set/Bay/Joint transaction／選擇流程確認。GUI `_operator_integer` 只轉送原始來源、不得自行 `int()`。
+- `tests/test_issue2517_receiving_operator_topology_index_public_api.py` 驗原公開 facade／root 相同 owner、合法舊來源、非法來源不改原始 Layout/selection、包含高風險的 `set_set_count('1_0')`、以及 Set/Bay Save→Reload。未改 Family、PartSpec、製造幾何、CUTTING/BEND、NFB、DXF、2D/3D 認證。#2517 仍待其餘功能全面覆蓋及 Windows UAT。
+
 ## [HISTORICAL/SUPERSEDED] Legacy ae_engine notes
 
 > **以下內容只保留歷史 provenance，不可作 CURRENT routing / runtime oracle。** 2026-09-13 起，若本區與上方 CURRENT contract、AI 07 或 Certified Registry 衝突，一律以上方 CURRENT authority chain 為準。
