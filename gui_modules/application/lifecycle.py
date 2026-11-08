@@ -461,6 +461,13 @@ def _apply_phase6_project_snapshot(self, snapshot):
     door_columns = manufacturing_api.project_operator_saved_door_layout_columns(
         (snapshot or {}).get("door_layout_columns")
     )
+    manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
+        (snapshot or {}).get("door_nameplate_center_datum_top")
+    )
+    if "use_box_distance" in (snapshot or {}):
+        manufacturing_api.normalize_operator_settings_boolean(
+            snapshot["use_box_distance"]
+        )
     self.workspace_controller.reset_receiving_mode_session()
     self._reset_manual_corner_parameter_locks()
     snapshot = deepcopy(dict(snapshot or {}))
@@ -701,6 +708,13 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
     nameplate_datum = manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
         snapshot.get("door_nameplate_center_datum_top")
     )
+    # This physical Indicator-distance flag must keep its serialized meaning.
+    # Preflight before Settings/Corner/Joint mutations even if the Tk checkbox
+    # is unavailable in a headless or older GUI restore host.
+    box_distance = (
+        manufacturing_api.normalize_operator_settings_boolean(snapshot["use_box_distance"])
+        if "use_box_distance" in snapshot else None
+    )
     settings = dict(snapshot.get("settings") or {})
     for key in self.settings_service.snapshot():
         if key in snapshot and key not in settings:
@@ -735,7 +749,7 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
     self.receiving_inner_doors = deepcopy(list(snapshot.get("inner_doors") or ()))
     self.door_nameplate_center_datum_top = nameplate_datum
     if getattr(self, "is_box_dist_var", None) is not None and "use_box_distance" in snapshot:
-        self.is_box_dist_var.set(bool(snapshot.get("use_box_distance", False)))
+        self.is_box_dist_var.set(box_distance)
     self.door_layout_indicator_states = {
         str(key): normalize_door_indicator_state(state)
         for key, state in dict(snapshot.get("door_layout_indicator_states") or {}).items()
