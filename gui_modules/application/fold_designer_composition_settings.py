@@ -92,19 +92,6 @@ from gui_modules.application.fold_designer_snapshot_projection import (
     _make_original_fold_designer_snapshot,
 )
 
-def _project_endcap_fw_settings_controls(app, part_key):
-    """Read both persisted FW rows through the same public Engine projection.
-
-    This Settings readback must never create a missing manufacturing row,
-    decode an operator boolean, or derive a physical FW in GUI code.
-    """
-    snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
-    snapshot.update(dict(getattr(app, "_settings_values", {}) or {}))
-    return manufacturing_api.project_operator_endcap_fw_controls(
-        app._phase6_endcap_fw_state, snapshot.get("fw", 25),
-    )[str(part_key)]
-
-
 def settings_context_extension_projection(self, namespace, context):
     """Project Settings context extensions at the existing composition boundary."""
     app = self.app
@@ -114,7 +101,11 @@ def settings_context_extension_projection(self, namespace, context):
     cross_corner_mode = required("CrossCornerMode")
 
     def endcap_fw_projection(part_key):
-        row = _project_endcap_fw_settings_controls(app, part_key)
+        snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+        snapshot.update(dict(getattr(app, "_settings_values", {}) or {}))
+        row = manufacturing_api.project_operator_endcap_fw_controls(
+            app._phase6_endcap_fw_state, snapshot.get("fw", 25),
+        )[str(part_key)]
         return {
             "follow": row["follow_box"],
             "effective": row["display_fw"],
@@ -458,7 +449,11 @@ def sync_settings_panel_extension(
         context in required("ENDCAP_FW_PARTS")
         and state.get("endcap_fw_follow_var") is not None
     ):
-        row = _project_endcap_fw_settings_controls(app, context)
+        snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+        snapshot.update(dict(getattr(app, "_settings_values", {}) or {}))
+        row = manufacturing_api.project_operator_endcap_fw_controls(
+            app._phase6_endcap_fw_state, snapshot.get("fw", 25),
+        )[context]
         state["endcap_fw_follow_var"].set(row["follow_box"])
         state["endcap_fw_value_var"].set(
             required("_setting_number_text")(row["display_fw"])

@@ -52,6 +52,17 @@ def _composer(app):
     )
 
 
+def _sync_fw_controls(app, part):
+    """Execute the real GUI Settings FW entrypoint, not a private projection."""
+    follow, value = FakeVar(), FakeVar()
+    gui.sync_settings_panel_extension(
+        _composer(app), None,
+        {"endcap_fw_follow_var": follow, "endcap_fw_value_var": value},
+        part,
+    )
+    return {"follow_box": follow.get(), "display_fw": float(value.get())}
+
+
 @pytest.mark.parametrize("family", ["金庫型", "受電箱"])
 @pytest.mark.parametrize("mode", api.ENDCAP_FW_MODES)
 def test_settings_readback_matches_public_engine_four_state_and_keeps_source(family, mode):
@@ -67,7 +78,7 @@ def test_settings_readback_matches_public_engine_four_state_and_keeps_source(fam
     before = deepcopy(state)
     expected = api.project_operator_endcap_fw_controls(state, "25.125")
     for part in ("head", "tail"):
-        assert gui._project_endcap_fw_settings_controls(app, part) == expected[part]
+        assert _sync_fw_controls(app, part) == expected[part]
         assert expected[part]["display_fw"] == api.resolve_endcap_fw(
             {**app._phase6_input_snapshot, "endcap_fw": state}, part, state=state
         )
@@ -81,10 +92,10 @@ def test_legacy_missing_tail_is_read_only_and_serialized_false_is_not_true():
     app = _app(state)
     before = deepcopy(state)
     for _ in range(2):
-        assert gui._project_endcap_fw_settings_controls(app, "head") == {
+        assert _sync_fw_controls(app, "head") == {
             "follow_box": False, "display_fw": 32.125,
         }
-        assert gui._project_endcap_fw_settings_controls(app, "tail") == {
+        assert _sync_fw_controls(app, "tail") == {
             "follow_box": True, "display_fw": 25.125,
         }
     assert state == before and "tail" not in state
@@ -153,8 +164,7 @@ def test_both_settings_entrypoints_have_no_mutating_fw_or_gui_boolean_formula():
         gui.sync_settings_panel_extension,
     ):
         source = inspect.getsource(fn)
-        assert "_project_endcap_fw_settings_controls(" in source
+        assert "manufacturing_api.project_operator_endcap_fw_controls(" in source
         assert "setdefault(" not in source
-    helper = inspect.getsource(gui._project_endcap_fw_settings_controls)
-    assert "manufacturing_api.project_operator_endcap_fw_controls(" in helper
-    assert "bool(" not in helper and "float(" not in helper
+        assert "bool(state.get" not in source
+        assert "float(state.get" not in source
