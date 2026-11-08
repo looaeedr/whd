@@ -395,19 +395,16 @@ class Phase6FoldDesignerSettingsCoordinator:
             self._ports.project_status(message="找不到程式初始值", settings=True)
             return False
 
-        snapshot = self._ports.read_settings_snapshot()
-        current = dict(getattr(snapshot, "settings_values", {}) or {})
-        clean = {}
-        for key, raw in factory.items():
-            if key not in current:
-                continue
-            if isinstance(current.get(key), bool):
-                clean[key] = bool(raw)
-            else:
-                try:
-                    clean[key] = float(raw)
-                except (TypeError, ValueError):
-                    continue
+        # Reuse the original Engine-backed Settings normalizer. GUI coercion
+        # (bool("false"), float(True), NaN) must not manufacture a default.
+        # Validate the complete operator batch before the first state commit.
+        try:
+            clean = dict(self._transactions.normalize_updates(factory) or {})
+        except (TypeError, ValueError) as exc:
+            self._ports.project_status(
+                message=f"還原程式初始值失敗：{exc}", settings=True,
+            )
+            return False
         if not clean:
             return False
 
