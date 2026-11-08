@@ -68,7 +68,7 @@ def saved(joint=None, wrap=None):
 
 @pytest.mark.parametrize("bad_joint", [
     {"assembly_joint_schema_version": 999, "assembly_type": "INSERT"},
-    {"assembly_joint_schema_version": -1, "assembly_type": "INSERT"},
+    {"assembly_joint_schema_version": "invalid", "assembly_type": "INSERT"},
 ])
 def test_future_or_corrupt_joint_schema_rejected_before_settings_or_corner_commit(bad_joint):
     app, events = host()
