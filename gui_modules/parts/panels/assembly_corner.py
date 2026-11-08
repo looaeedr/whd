@@ -148,8 +148,8 @@ def selection_from_manual_corner_controls(self):
     except ValueError:
         return None
     try:
-        # Preserve the Tk source type for the original Engine CornerTypeSelection
-        # validator; bool(True) must not become a 1T physical relief.
+        # Do not coerce True to 1.0: the Engine CornerTypeSelection value
+        # contract owns finite/non-boolean manufacturing corner parameters.
         amount = self.manual_corner_amount_var.get()
         secondary_retain = self.manual_corner_secondary_retain_var.get()
         secondary_depth = self.manual_corner_secondary_depth_var.get()

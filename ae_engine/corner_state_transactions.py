@@ -325,8 +325,8 @@ def commit_corner_parameters(
     state = all_state[str(part_key)]
     pairs = all_pairs[str(part_key)]
     current = corner_selection(state, pairs, target_key)
-    # Keep raw operator numerics intact: CornerTypeSelection is the Engine
-    # validator. float(True) here would bypass its bool rejection and cut 1T.
+    # CornerTypeSelection performs the physical finite/non-boolean checks.
+    # float(True) here would erase the original source and fabricate 1.0×T.
     amount = current.amount_t if amount_t is None else amount_t
 
     if current.type_id is CornerTypeId.CROSS:
