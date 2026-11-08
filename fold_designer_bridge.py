@@ -1715,8 +1715,10 @@ def _phase6_joint_form_add(self):
             subject_region=self.relief_joint_subject_region_var.get(),
             target_region=self.relief_joint_target_region_var.get(),
             clearance_policy=self.relief_joint_clearance_var.get(),
+            # Forward the original Tk source to the public Engine Joint edit;
+            # only Engine decides the legal physical topology stage count.
             solver_constraints={
-                "topology_levels": int(self.relief_joint_topology_var.get())
+                "topology_levels": self.relief_joint_topology_var.get()
             },
         )
         self.relief_joint_status_var.set(

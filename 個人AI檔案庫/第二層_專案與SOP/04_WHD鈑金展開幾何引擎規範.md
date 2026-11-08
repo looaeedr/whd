@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 使用者新增 AssemblyJoint 的一／二段 Solver Topology 原始來源由公開 Engine 驗證（2026-11-08）
+
+- `fold_designer_bridge._phase6_joint_form_add` 原在 GUI 對 `relief_joint_topology_var.get()` 做 `int()`，使 bool 或非整數浮點可能被轉為合法的物理一／二段；原 Engine 公開 `manufacturing_api.commit_operator_user_assembly_joint` 由 `ae_engine.assembly_joint.add_user_assembly_joint` 實作，僅拷貝原始 `solver_constraints`，未在交易邊界檢驗拓樸級數，且非 Mapping 的空容器會默默成為空預設。
+- 原 Fold Designer 控制允許一段／二段。GUI 現直傳原始值；原 Engine Joint owner 在產生 `USER_ADDED` 前沿用**相同** `ae_engine.certified_relief_formula_io.normalize_operator_relief_topology_levels`（Certified Registry 一／二段語意），只驗有明確提供的 `solver_constraints.topology_levels`，拒絕 bool／小數／非有限值／非 1 或 2 級或非法容器。未提供 constraints 的合法舊呼叫仍為空；其他 metadata 原樣深拷貝，既有保存 Joint 不主動重寫。
+- `tests/test_issue2517_user_joint_topology_raw_public_engine.py` 證實 GUI→公開 Engine 的原始操作來源、1/2 級數合法與非法 fail-closed、不可變原快照及 JSON Save→Reload 維持實體 Joint 來源。此為 Operator Joint 編輯交易，不新增 Assembly Solver／Registry 放行、CUTTING／DXF 能力；#2517 全面 GUI API 覆蓋與 Windows UAT 仍待驗。
+
 ## [CURRENT] #2517 主 GUI 實體內門與 Indicator 板件啟用旗標只能經公開 Engine 原始布林驗證（2026-11-08）
 
 - `gui.Phase6ApplicationHost._commit_receiving_inner_door_checkbox` 原以 `bool(var.get())` 推算內門實體啟用，`"false"` 會誤判為 True；欄位不存在又會直接假定 False，導致無操作員明確停用指令就刪除原有內門物理來源。`on_indicator_box_toggle`、`on_door_indicator_toggle` 亦在使用者切換實體 Indicator 板件／排他狀態前自行套 Python truthiness。
