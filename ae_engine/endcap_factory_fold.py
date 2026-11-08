@@ -345,6 +345,31 @@ def commit_endcap_fw(state, part_key: str, value: float, *, box_fw: float | None
     return state
 
 
+def commit_operator_endcap_fw_value(
+    state, part_key: str, value, *, box_fw,
+) -> dict:
+    """Validate one explicit Head/Tail edit before the canonical four-state commit.
+
+    Existing Engine `commit_endcap_fw` owns the FOLLOW_BODY -> leader ->
+    independent transitions. Dry-run a detached copy first, then use the
+    original owner to update live identities only after all source is valid.
+    """
+    from .operator_settings_transactions import normalize_operator_source_dimension
+
+    if type(state) is not dict:
+        raise ValueError("ENDCAP_FW_STATE_REQUIRED")
+    if type(part_key) is not str or part_key not in ENDCAP_FW_PARTS:
+        raise ValueError("ENDCAP_FW_PART_REQUIRED")
+    fw = normalize_operator_source_dimension(value, field="fw")
+    body = normalize_operator_source_dimension(box_fw, field="fw")
+    for part in ENDCAP_FW_PARTS:
+        if part in state and not isinstance(state[part], dict):
+            raise ValueError("ENDCAP_FW_SOURCE_ROW_INVALID")
+    staged = deepcopy(state)
+    commit_endcap_fw(staged, part_key, fw, box_fw=body)
+    return commit_endcap_fw(state, part_key, fw, box_fw=body)
+
+
 def set_endcap_fw_follow(state, part_key: str, follow_box: bool, *, box_fw: float) -> dict:
     """Legacy/manual follow control retained for old callers and old projects."""
     part_key = str(part_key)
