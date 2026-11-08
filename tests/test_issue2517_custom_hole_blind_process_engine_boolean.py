@@ -1,7 +1,7 @@
 """#2517 custom hole cutting/blind process must be sourced through public Engine boolean."""
 from copy import deepcopy
-from pathlib import Path
 import inspect
+import math
 
 import pytest
 
@@ -67,11 +67,21 @@ def test_real_gui_custom_hole_process_matches_engine_serialized_flag(
         else custom_rectangle_definition("40.375", "21.125", blind=raw)
     )
     assert expected == canonical
-    assert api.operator_hole_feature_from_definition(
+    # The GUI intentionally attaches its reference anchor to the semantic
+    # Feature. Compare the same public Engine transformation, not the raw
+    # unanchored constructor output.
+    canonical_feature = api.operator_hole_feature_from_definition(
         expected, Vec2(100, 100), 800.0, 600.0, rotation_deg=90
-    ) == feature
+    )
+    canonical_feature = api.operator_hole_feature_with_reference_anchor(
+        canonical_feature, FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+    )
+    assert canonical_feature == feature
     assert errors == []
-    assert raw == before
+    if isinstance(raw, float) and math.isnan(raw):
+        assert math.isnan(before)
+    else:
+        assert raw == before
 
 
 @pytest.mark.parametrize("family", ("金庫型", "受電箱"))
@@ -97,7 +107,10 @@ def test_bad_blind_flag_cannot_create_cutting_or_blind_geometry(
             api.operator_custom_rectangle_definition(
                 "40.375", "21.125", blind=raw,
             )
-    assert raw == before
+    if isinstance(raw, float) and math.isnan(raw):
+        assert math.isnan(before)
+    else:
+        assert raw == before
 
 
 def test_public_catalog_process_contract_is_same_original_engine_callable():
