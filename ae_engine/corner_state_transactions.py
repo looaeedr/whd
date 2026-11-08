@@ -165,8 +165,15 @@ def ensure_corner_part(
             selection_from_raw(state.get(corner_key))
         )
     pairs = all_pairs.setdefault(part, {})
-    pairs.setdefault("top", True)
-    pairs.setdefault("bottom", True)
+    # Persisted pair flags may be serialized. Normalize both in the original
+    # Engine transaction before GUI/editor can select a physical corner.
+    # A malformed present flag fails closed on this detached candidate.
+    pairs["top"] = normalize_operator_settings_boolean(
+        pairs.get("top", True)
+    )
+    pairs["bottom"] = normalize_operator_settings_boolean(
+        pairs.get("bottom", True)
+    )
     return CornerStateTransition(all_state, all_pairs, deepcopy(state))
 
 
@@ -234,8 +241,10 @@ def commit_corner_pair(
     pair = str(pair_key)
     if pair not in CORNER_PAIR_KEYS:
         raise ValueError(f"unknown corner pair: {pair}")
-    pairs[pair] = bool(enabled)
-    if enabled:
+    # The operator's serialized "false" must not join two physical corners.
+    accepted = normalize_operator_settings_boolean(enabled)
+    pairs[pair] = accepted
+    if accepted:
         left_key, right_key = CORNER_PAIR_KEYS[pair]
         state[right_key] = deepcopy(state[left_key])
     return CornerStateTransition(
