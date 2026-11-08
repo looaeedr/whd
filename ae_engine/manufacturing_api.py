@@ -96,6 +96,7 @@ box_body_structure_manual_integer = _manual_integer
 from .linked_endcap_fold import (
     is_canonical_box_body_mating_profile, box_body_front_mating_fold_chain,
     build_linked_endcap_xy_fold_profiles,
+    OperatorLinkedEndcapLivePlan, plan_operator_linked_endcap_live_profiles,
 )
 from .endcap_factory_fold import (
     selection_from_raw as endcap_corner_selection_from_raw,
