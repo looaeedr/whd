@@ -67,7 +67,9 @@ from .panel_naming import (
     operator_vault_panel_name_editor_allowed,
 )
 from .panel_dxf_naming import vault_panel_dxf_filename
-from .receiving_layout import rename_receiving_panel
+from .receiving_layout import (
+    rename_receiving_panel, normalize_receiving_operator_connection_counts,
+)
 
 from .integration_api import (
     ManufacturingIntegrationRequest, ManufacturingIntegrationResponse,

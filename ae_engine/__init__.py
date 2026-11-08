@@ -109,7 +109,8 @@ from .manufacturing_api import (
     door_layout_export_filename, parse_numeric_model_ref,
     display_receiving_nfb_model_ref,
     can_stage_receiving_nfb_csv_preview_refs,
-    normalize_receiving_layout, project_common_box,
+    normalize_receiving_layout, normalize_receiving_operator_connection_counts,
+    project_common_box,
     RECEIVING_QUANTITY_BOX_KEY, normalize_common_box, update_common_box,
     project_operator_receiving_quantity_size_count,
     apply_operator_receiving_quantity_size_count,
@@ -382,6 +383,7 @@ from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
     "operator_vault_panel_name_editor_allowed",
+    "normalize_receiving_operator_connection_counts",
     "project_operator_engineering_drawing_annotations",
     "project_operator_feature_surface_from_drawing_scene",
     "operator_hole_catalog_root_path",
