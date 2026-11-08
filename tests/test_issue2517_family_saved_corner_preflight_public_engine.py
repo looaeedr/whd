@@ -72,8 +72,11 @@ def saved(corners=None, pairs=None):
     }
 
 
-@pytest.mark.parametrize("model", ("金庫型", "自訂"))
-@pytest.mark.parametrize("broken", ("bad_saved_pair", "bad_saved_corner", "bad_live_family"))
+@pytest.mark.parametrize(("model", "broken"), (
+    ("金庫型", "bad_saved_pair"), ("自訂", "bad_saved_pair"),
+    ("金庫型", "bad_saved_corner"), ("自訂", "bad_saved_corner"),
+    ("金庫型", "bad_live_family"), ("受電箱", "bad_live_family"),
+))
 def test_invalid_late_corner_rejects_entire_family_restore_before_settings(model, broken):
     app, events = host(model)
     if broken == "bad_live_family":
