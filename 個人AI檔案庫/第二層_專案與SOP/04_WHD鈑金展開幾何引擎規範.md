@@ -5,7 +5,6 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
-
 ## [CURRENT] #2517 Fold Designer Door／Cell 指示燈孔位改收原始來源、由 Engine PartSpec 決策（2026-11-08）
 
 - 舊 GUI `gui_modules/application/fold_designer_manufacturing_projection._door_part_spec_from_payload_context` 原本在真正呼叫公開 DoorPartSpec 前，自己判定 `indicator`／`indicator_box` 模式、將燈群推導為開孔尺寸、計算 active offsets，單門還以 `bool("false")` 將序列化的 false 誤解為 true。這些都是製造孔位及製造來源資格，不是 UI 顯示。
@@ -13,6 +12,15 @@ whd_schema: WHD_DOC_META_V1
 - 門格現直接將保存的 `door_layout_indicator_states[cell_key]` 傳入**既有** `indicator_source_state`，只由 Engine `project_operator_door_cell_indicator_manufacturing_source` 驗證 mode/layers/groups/offset/box distance，並建立唯一 `DoorPartSpec`。GUI 不再先自行解碼或建立製造 opening；缺門格舊來源維持 plain Door。主 GUI 既有 `_door_layout_part_spec` 也使用同一 Engine 原始來源入口，兩個 caller 不得分裂。
 - 定向驗收金庫型／受電箱適用的單門與格門、合法舊值、非法布林與孔數／座標 fail closed、raw JSON Save→Reload 等價及 GUI 真委派；原 Door 裁切／展開、指示燈基準板、Family/Registry／FinalScene、2D／3D／DXF 仍由原 Engine 擁有，不新增任何製造出口准入。#2517 全面覆蓋及 Windows 實機另驗。
 
+
+
+
+
+## [CURRENT] #2517 Fold Designer 快照匯出須保留 Engine 已驗現行盤 W/H/D（2026-11-08）
+
+- 原 `_fix11_export` 再以 `_ui_len` 整數化全箱包外 W/H/D，最後 `result.update(_settings_values)` 可能以舊 Settings 覆蓋已確認的金庫型／受電箱 Bay 尺寸；封頭／尾折型料長讀回也可能覆寫先前已提交的小數 W/D。修正重用現有 `manufacturing_api.normalize_operator_live_box_dimensions`：任何 GUI 存檔副作用前驗證 W/H/D，保存時以已提交實體 Box 來源定案，不由 GUI 取整，也不借舊 Settings 覆寫。
+- Head/Tail 的 X/Y Fold material readback 只更新其原本的 FW／折段來源；全箱 W/D 保持先前由公開 `reconcile_endcap_live_outside_dimensions` 提交的值。Quantity 已保存的共用箱 W/D 用既有 Engine 實體來源正數有限檢查後整對更新，任何非法值不進行部分 W/D 更新。原 PartSpec、Fold 製造公式、Factory、FinalScene、DXF 與儲存 schema 不增加替代實作。
+- 定向 `tests/test_issue2517_fold_designer_export_live_dimensions_public_api.py` 核對 Vault／Receiving、一般板件、Head/Tail、Quantity 與非法值。完整 Product Regression、實體 2D／3D／DXF、Save→Reload 仍以同版 CI／實測證據為準，#2517 全面 API 覆蓋仍待逐入口確認。
 
 
 ## [CURRENT] #2517 Fold Designer 實體 W/H/D 輸入由公開 Engine 驗證（2026-11-08）

@@ -2913,6 +2913,11 @@ def _fix11_remove_part(self, key):
 
 
 def _fix11_export(self):
+    # Validate operator physical W/H/D before saving any part or mutating
+    # GUI workspace. Cached Settings may not replace these committed spans.
+    live_whd = manufacturing_api.normalize_operator_live_box_dimensions(
+        getattr(self, "_phase6_box_whd", {}) or {}
+    )
     # Closing/exporting owns one complete snapshot handoff.  Do not also fire a
     # live settings callback here or the main GUI recalculates twice before the
     # designer can close.
@@ -2940,10 +2945,7 @@ def _fix11_export(self):
     # that were edited in the X/Y EndCap editor. Global W/H/D are owned by the
     # bridge, while EndCap fold/FW values are owned by the shared Phase6 snapshot.
     result = _FIX10_EXPORT(self)
-    dimension_number = float if self._phase6_input_snapshot.get("receiving_quantity_box") and self._phase6_input_snapshot.get("active_mode") == "quantity" else _ui_len
-    result["w"] = dimension_number(self._phase6_box_whd["w"])
-    result["h"] = dimension_number(self._phase6_box_whd["h"])
-    result["d"] = dimension_number(self._phase6_box_whd["d"])
+    result.update(live_whd)
     for name in ("yl1", "yr1", "ytop1", "ybottom1"):
         if name in self._phase6_input_snapshot:
             result[name] = _ui_len(self._phase6_input_snapshot[name])
@@ -2952,13 +2954,28 @@ def _fix11_export(self):
         profiles = self.designer_workspace.profiles_for(current)
         if profiles:
             endcap_values = read_endcap_xy_profiles(profiles, self._phase6_input_snapshot)
-            if self._phase6_input_snapshot.get("receiving_quantity_box") and self._phase6_input_snapshot.get("active_mode") == "quantity":
-                endcap_values["w"] = float(self._phase6_input_snapshot["receiving_quantity_box"]["w"])
-                endcap_values["d"] = float(self._phase6_input_snapshot["receiving_quantity_box"]["d"])
+            quantity = (
+                self._phase6_input_snapshot.get("receiving_quantity_box")
+                if self._phase6_input_snapshot.get("active_mode") == "quantity"
+                else None
+            )
+            if quantity:
+                # The saved Quantity common box owns its physical W/D. Check
+                # both values before updating any physical source in the GUI.
+                quantity_whd = {
+                    axis: manufacturing_api.normalize_operator_source_dimension(
+                        quantity[axis], field=axis
+                    )
+                    for axis in ("w", "d")
+                }
+                live_whd.update(quantity_whd)
+            # Head/Tail material readback may round editor rows; physical
+            # W/D have already been reconciled by the public Engine API.
+            endcap_values.update({"w": live_whd["w"], "d": live_whd["d"]})
             result.update(endcap_values)
             self._phase6_input_snapshot.update(endcap_values)
-            self._phase6_box_whd["w"] = dimension_number(endcap_values["w"])
-            self._phase6_box_whd["d"] = dimension_number(endcap_values["d"])
+            if quantity:
+                self._phase6_box_whd.update(quantity_whd)
     elif current == "box_body":
         # The box body is authoritative for the shared FW when it is the part
         # being edited. Preserve that value for later EndCap sessions.
@@ -2985,6 +3002,11 @@ def _fix11_export(self):
     result["corner_state"] = deepcopy(getattr(self, "_phase6_corner_state", {}))
     result["corner_pair_same"] = deepcopy(getattr(self, "_phase6_corner_pair_same", {}))
     result.update(self._settings_values)
+    # Final physical W/H/D always come from the Engine-validated live Box,
+    # never rounded readback nor stale global Settings.
+    result.update(manufacturing_api.normalize_operator_live_box_dimensions(
+        self._phase6_box_whd
+    ))
     return result
 
 
