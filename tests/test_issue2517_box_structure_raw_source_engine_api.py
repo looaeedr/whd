@@ -8,7 +8,6 @@ import pytest
 
 from ae_engine import manufacturing_api as api
 from ae_engine.box_body_structure_state import BoxBodyStructureType
-from gui_modules.application import fold_designer_composition_settings as gui_display
 import fold_designer_bridge as bridge
 
 
@@ -129,5 +128,7 @@ def test_gui_numeric_editor_forwards_raw_user_text_to_original_public_engine(mon
         host, SIDE_BACK, "endcap_extra_relief", Field(True),
     )
     assert calls[-1][0] is True
-    assert len(committed) == 1 and errors
+    # The GUI rerenders the original state on rejection; it never commits an
+    # invalid source to the physical controller or a new canonical snapshot.
+    assert len(committed) == 2 and committed[-1] is state and errors
     assert state == api.default_box_body_structure_state()
