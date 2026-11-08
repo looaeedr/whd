@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Settings stage source public Engine gate (2026-11-08)
+
+Existing `Phase6SettingsTransactionService.stage_setting_update` validates the declared Settings schema and invokes the existing public Engine dimension validator for W/H/D/T/FW or existing adapter `normalize_updates` for other numeric/boolean Settings before modifying settings, snapshot or pending debounce. Unknown and invalid physical/boolean/numeric sources fail closed; ui_text_size retains UI-only choice normalization. This does not change manufacture formulas or DXF eligibility. Regression: `tests/test_issue2517_settings_staging_public_engine_gate.py`.
+
 ## #2517 Receiving inner Door topology raw source validation (2026-11-08)
 
 The existing public `manufacturing_api.resolve_inner_door_hole_editor_context(snapshot, part_key)` consumes Receiving Family's inner-door panels and frame sets. Their canonical Engine owner now decodes `multi_door_enabled` with the same source boolean validator as public Settings (`"false"` disables all inner-door physical sheets; `"true"` enables them) and validates **all** saved Door grid cells using `sheetmetal_part_adapters.derive_door_layout_cells` before generating physical panel/frame IDs and dimensions. The vertical frame and editor also retain raw H/T/D/FW and clearance sources until the Engine finite, nonboolean gate. HALF rear-panel retains its stricter certified native-Boolean `True` eligibility gate; serialized strings and integer 1 do not authorize HALF manufacturing. No change to Fold, certified half-panel dimensions, PartSpec, CUTTING/BEND or DXF formula. Regression: `tests/test_issue2517_receiving_inner_door_layout_raw_engine.py`. Windows UAT and global #2517 coverage remain open.
