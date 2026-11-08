@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Head/Tail／Divider 手動截角 Pair 的序列化布林由原 Engine 交易判定（2026-11-08）
+
+- 原 `ae_engine.corner_state_transactions.ensure_corner_part` 對舊 Project／INI 的 `corner_pair_same.top/bottom` 僅補缺席預設而未正規化既有字串值。已保存的 `"false"` 在 GUI Settings 的 pair 分支會被判成 True，使應分開的左右實體角在讀取時合併顯示；直接公開 `commit_corner_pair(..., enabled="false")` 原也誤把字串當 True，複製左角至右角。
+- 現沿用同一 Engine 已存在的 `normalize_operator_settings_boolean`，`ensure_corner_part` 先對兩個 Pair 旗標在 detached source 一次驗證，合法 `"false"/"off"/0` 轉 False、`"true"/"on"/1` 轉 True，非法來源 fail closed。原 `commit_corner_pair` 同樣採 Engine 解析後決定是否複製實體右角；GUI 只消費既有公開 Engine 交易與左右實體角身份投影。舊版缺席仍預設 True，Factory／Registry、截角幾何公式、2D／3D／DXF 與 Project schema 不變。
+- `tests/test_issue2517_corner_pair_serialized_boolean_engine.py` 驗金庫型／受電箱可通用的 Head/Tail/Divider 成對身份、合法序列化布林、非法值與來源原子性、獨立角不被覆蓋、Save→Reload 以及 Fold Designer Settings 真 GUI 讀取；#2517 其他 GUI 製造入口與 Windows 實機仍需持續查核。
+
 ## [CURRENT] #2517 Family 切換的包外 W/H/D 預設資料必須由 Engine 驗證後原值顯示（2026-11-08）
 
 - `cabinet_family_model_transition.plan_cabinet_family_model_transition` 於新箱型切換產生 `defaults` 時，以既有 `operator_settings_transactions.normalize_operator_source_dimension` 逐軸驗證**存在的** W/H/D 有限正數、非 bool，保留小數精度。驗證在 `snapshot.update(defaults)`、新 Receiving Set/Bay 初始化及 GUI Settings 交易提交**之前**進行，非法來源拒絕且不能部分變更外部狀態。
