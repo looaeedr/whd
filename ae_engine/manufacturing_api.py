@@ -644,7 +644,12 @@ def apply_cabinet_family_endcap_policy(
         return policy
     if not cabinet_family_policy.supports_bottom_wrap_controls(family_source):
         return policy
-    t = float(ae.T if thickness is None else thickness)
+    # T is a physical manufacturing source: GUI must forward the original
+    # operator value, not pre-coerce bool/NaN into a plausible factory T.
+    # Keep the historical default only for callers explicitly omitting T.
+    t = normalize_operator_source_dimension(
+        ae.T if thickness is None else thickness, field="t",
+    )
     default_fw = float(policy.bottom_fw if policy.bottom_fw is not None else policy.fw)
     return replace(
         policy,

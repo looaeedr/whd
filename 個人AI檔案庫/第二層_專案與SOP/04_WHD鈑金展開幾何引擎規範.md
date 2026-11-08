@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 封頭／封尾 Family Policy 的實體板厚 T 原始來源由公開 Engine 驗證（2026-11-08）
+
+- `fold_designer_manufacturing_projection._apply_cabinet_family_endcap_policy` 原先 `float(self.t_var.get())`，將明確可讀但錯誤的來源提前轉型；`manufacturing_api.apply_cabinet_family_endcap_policy` 亦有 `float(thickness)`，可能讓原生 bool 成為 T1、NaN/Inf 流入封頭／封尾下方有效 FW。這會影響 Receiving EndCap Family 成品料與 2D/3D/DXF 同源計算，不能由 GUI 靜默製造。
+- 沿用原公開 Engine API（不新增接口），Receiving Head/Tail 進入 Family bottom-FW 之前，以既有 `normalize_operator_source_dimension(value, field="t")` 驗證原始操作輸入的正數／有限／非布林／小數精度。GUI 只交 `TkVar.get()` 原始值，未連接 Tk 的既有相容呼叫仍交 `None`，由 Engine 保留顯式缺席的 legacy default；金庫型及非 EndCap 仍原樣 no-op。
+- 擴充 `tests/test_issue2517_endcap_family_policy_api.py` 真實 GUI seam、Engine API headless parity 與非法輸入不呼叫 Family 函式／不突變；只限 source qualification，無新折彎、截角、Factory、CUTTING、DXF 公式。#2517 完整覆蓋與 Windows UAT 仍需後續逐項驗收。
+
 ## [CURRENT] #2517 Receiving 多連設定的實體 Set/Bay 選取與盤名只經公開 Engine（2026-11-08）
 
 - `fold_designer_composition_receiving.open_receiving_multi_settings` 原本在選連、改盤名、讀既有設定與門板來源標記的 callback 中先執行 `int(set_index)`／`int(bay_index)`；bool、fraction、或過期連位可被當成另一實體來源，其中先切換 Set 再發現 Bay 無效還會留下部分 GUI 選取。

@@ -58,8 +58,12 @@ def _apply_cabinet_family_endcap_policy(
             structure_state = None
     if thickness is None:
         try:
-            thickness = float(self.t_var.get())
+            # Preserve the raw UI source. Only the public Engine may qualify
+            # this physical T for EndCap geometry and family compensation.
+            thickness = self.t_var.get()
         except Exception:
+            # Preserve legacy missing-source handling for callers that have
+            # no live Tk control; the Engine owns the optional default.
             thickness = None
     return manufacturing_api.apply_cabinet_family_endcap_policy(
         policy, part_key, family_source=family_source,
