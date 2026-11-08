@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI 明確箱身／封頭／封尾 FW 選取經公開 Engine 原子交易（2026-11-08）
+
+- 原 `gui.Phase6ApplicationHost.on_fw_selected("z"|"head"|"tail")` 在 GUI 側先 `float(TkVar.get())` 再呼叫舊的 in-place `commit_box_fw` / `commit_endcap_fw`；`NaN`、`Inf` 可成為物理 FW，而舊 `commit_endcap_fw` 對未帶 mode 的損壞快照可能先清除狀態才檢查輸入。既有驗證交易僅涵蓋 Settings Controller／Fold Designer 特定 BoxFW 入口，主 GUI 此路徑尚未完整保護。
+- 主 GUI 的箱身 explicit takeover 現重用既有公開 `manufacturing_api.commit_operator_box_fw_takeover`；Head/Tail 新公開 `manufacturing_api.commit_operator_endcap_fw_value`（同原 `ae_engine.endcap_factory_fold` owner、根包同 callable）先檢查 `head/tail` 真正板件身份、物理 FW 與 box FW 有限且正數、舊版／晚出錯 Head/Tail row，於 detached state 執行原 `commit_endcap_fw` 四態乾跑，全部成功才在原物件提交。合法輸入維持原 `FOLLOW_BODY → FOLLOW_HEAD/TAIL → INDEPENDENT`、封頭／封尾原資料引用與已存專案相容；非法輸入保持整個來源及 2D／3D／DXF cache 不變，GUI 只恢復輸入顯示並停止後續重算。
+- 測試 `tests/test_issue2517_main_gui_fw_explicit_atomic_api.py` 驗證金庫型及受電箱 Head/Tail 四態、數值精度、實際 Engine Fold、舊 Project、非有限／布林／非法 part identity、晚失敗列與 GUI 有效／無效路徑。不改任何 Registry、FW 幾何公式或 DXF 製造認證。#2517 全功能接線與 Windows GUI UAT 仍依真實證據驗收。
+
+
 ## [CURRENT] #2517 BoxBody 三片式實體側板／後板 Fold 編輯提交唯一 Engine API（2026-11-08）
 
 - 原 `fold_designer_bridge._phase6_commit_box_body_physical_piece_profile` 在 GUI 側自行把 `left_side/right_side` 的實體 Fold material len 鏡射回箱身 `zl1/zl2/FW/D/zr2/zr1`、計算後面板 `back_width_comp_t=max(0,(W-back_panel_material_len)/T)`，並決定右側板 native BEND traversal、已儲存後折的 piece-local ownership。這些是製造來源與版型、非視覺呈現，不能留第二套 GUI 公式。
