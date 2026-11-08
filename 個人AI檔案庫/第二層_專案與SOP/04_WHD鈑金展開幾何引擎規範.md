@@ -13,6 +13,13 @@ whd_schema: WHD_DOC_META_V1
 - 定向 `tests/test_issue2517_main_gui_endcap_fw_follow_raw_api.py` 驗證金庫型／受電箱、Head／Tail、序列化 true/false、物理 FW 小數、非法布林／非有限來源、損壞對側列、GUI 真委派、Project Save→Reload 與原 Engine Fold。#2517 其他 GUI 入口和 Windows UAT 持續個別驗收。
 
 
+## [CURRENT] #2517 Receiving Settings → Fold Profile 與已確認 Feature 來源改走 Engine 身分（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_shell_settings.py` 的 `refresh_profiles_from_settings` 以 GUI 字串清單 `{"受電箱", "RECEIVING"}` 決定是否由現行 Bay W/H/D 覆蓋舊 Settings；已註冊小寫別名 `receiving`／`ReCeIvInG` 會錯走舊尺寸，且自行疊加時未通過 Engine 已有的實體數值來源驗證。
+- GUI 改呼叫**既有公開** `manufacturing_api.project_receiving_manufacturing_request_settings(snapshot, settings, live_box)`，由 Engine Family Registry 決定來源優先序，已提供的現行 Bay W/H/D 保留小數並驗證有限正數／非布林，非法資料在任何 Settings Fold plan 建立前拒絕且來源不突變；非受電箱仍保留原 Settings 優先序。其後實體 Fold／PartSpec／2D／3D／DXF 仍使用既有 canonical Engine 規則。
+- 同一 Settings profile 投影套用時，已確認 Receiving Layout／Hole Editor Feature 的型別保留條件改用既有公開 `operator_canonical_family_name`，避免大小寫別名把已確認實體 Feature 降成 Settings 冷凍的顯示 dict。此層只保留已確認來源型別，無新增孔位製造公式或准入；驗收 `tests/test_issue2517_receiving_settings_fold_profile_source_public_api.py`。
+
+
 ## [CURRENT] #2517 主 GUI 明確箱身／封頭／封尾 FW 選取經公開 Engine 原子交易（2026-11-08）
 
 - 原 `gui.Phase6ApplicationHost.on_fw_selected("z"|"head"|"tail")` 在 GUI 側先 `float(TkVar.get())` 再呼叫舊的 in-place `commit_box_fw` / `commit_endcap_fw`；`NaN`、`Inf` 可成為物理 FW，而舊 `commit_endcap_fw` 對未帶 mode 的損壞快照可能先清除狀態才檢查輸入。既有驗證交易僅涵蓋 Settings Controller／Fold Designer 特定 BoxFW 入口，主 GUI 此路徑尚未完整保護。
