@@ -386,7 +386,9 @@ def on_baseline_changed(self):
         self.ytop1_var.set(f"{p['ytop1']:.1f}".replace(".0", ""))
         self.ybottom1_var.set(f"{p['ybottom1']:.1f}".replace(".0", ""))
         # 基準檔更新箱身 FW；封頭尾只有仍在「跟隨箱身」時同步。
-        fw_val = f"{p['fw']:.1f}".replace(".0", "")
+        # Preserve the Engine's physical-mm precision in the editable
+        # box-FW field; the old one-decimal display silently changed 29.125.
+        fw_val = str(p["fw"]).removesuffix(".0")
         self.fw_z_var.set(fw_val)
         self._sync_endcap_fw_controls()
         
