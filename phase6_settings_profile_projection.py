@@ -95,8 +95,8 @@ class SettingsProfileProjectionRequest:
             tuple(str(key) for key in tuple(self.available_parts or ())),
         )
         object.__setattr__(self, "active_part", str(self.active_part or "box_body"))
-        object.__setattr__(self, "reset_box_profile", bool(self.reset_box_profile))
-        object.__setattr__(self, "reset_all_profiles", bool(self.reset_all_profiles))
+        object.__setattr__(self, "reset_box_profile", freeze_settings_value(self.reset_box_profile))
+        object.__setattr__(self, "reset_all_profiles", freeze_settings_value(self.reset_all_profiles))
 
 
 @dataclass(frozen=True)
