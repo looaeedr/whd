@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Head/Tail 已提交 Assembly Relief 切孔開關以 Engine 公開布林來源為準（2026-11-08）
+
+- `gui_modules/application/fold_designer_manufacturing_projection._fold_designer_part_spec_from_payload` 原用 `bool(data.get("_use_committed_relief"))` 決定要不要載入已提交的 Head/Tail Assembly Relief CUTTING；從 Save→Reload 載入字串 `"false"` 會因 Python 非空字串而誤判 True。這是製造切孔來源資格，不能由 GUI truthiness 決定。
+- 現有公開 `manufacturing_api.normalize_operator_settings_boolean` 已定義原始 true/false、on/off、1/0 與非有限／非法來源的明確規則。當 `resolved_assembly_relief_cuts` 缺席時，GUI 直接交原始 `_use_committed_relief` 給 Engine；僅缺席欄位使用既有 False 相容預設，**存在但非法**的來源要先 fail closed，不能呼叫 `_resolved_committed_assembly_relief_cuts` 或把切孔送進 `EndCapPartSpec`。當直接提供 resolved cuts 時維持原既有優先序，不重新解讀未使用的 switch。
+- 定向 `tests/test_issue2517_endcap_committed_relief_switch_engine_boolean.py` 比較 GUI 與公開 Engine true/false 行為、保存字串、非法輸入不導致任何 cut/PartSpec 寫入、保留直接已解決 CUTTING 的優先序和來源不突變。原 Engine 救濟求解、CROSS certified geometry、Head/Tail 身分、Family 補償、2D／3D／DXF 及 Project schema 均不變。#2517 的全面 GUI 接線與 Windows UAT 尚待逐項驗證。
+
+
 ## [CURRENT] #2517 GUI 開孔入口的實體板件路由必須使用公開 Engine 身分投影（2026-11-08）
 
 - 原 `gui_modules/editors/hole_editor.open_part_hole_editor` 在 GUI 使用 `startswith`／正規式／金庫型與受電箱字串判斷 Head/Tail、單格門、箱身實體子板、底板 NFB 固定片、內門與 CustomFold 應走哪個編輯器；甚至在辨識非法板件身分**之前**呼叫 Workspace `set_active_part`。這是物理板件操作入口的身分判斷，不該由 GUI 複製。
