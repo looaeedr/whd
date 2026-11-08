@@ -448,7 +448,7 @@ def apply_settings_profile_projection(
     # ReceivingLayout validation (otherwise genuine ProfileFeature rows
     # become plain dicts and every Bay selector fails on a model switch).
     live = getattr(app, "_phase6_input_snapshot", {}) or {}
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+    if manufacturing_api.operator_canonical_family_name(snapshot) == "受電箱":
         for key in ("receiving_layout", "part_features"):
             if key in live and key in snapshot:
                 snapshot[key] = deepcopy(live[key])
@@ -503,17 +503,14 @@ def refresh_profiles_from_settings(
     required = lambda name: self._required(namespace, name)
     workspace = app.designer_workspace
     snapshot = getattr(app, "_phase6_input_snapshot", {})
-    settings = dict(getattr(app, "_settings_values", {}) or {})
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
-        # The pure Settings projection overlays settings onto the current
-        # snapshot. Supply live Receiving W/H/D to this *detached request* so
-        # geometry, CUTTING and 3D track the active Bay/Quantity without
-        # mutating or using up the operator's saved default W/H/D.
-        current_box = getattr(app, "_phase6_box_whd", {}) or {}
-        settings.update({
-            axis: current_box[axis] for axis in ("w", "h", "d")
-            if axis in current_box
-        })
+    # The canonical Engine Registry decides whether live Receiving Bay W/H/D
+    # override cached Settings defaults. It validates physical dimensions
+    # before a Fold plan can be built; this GUI must not duplicate that rule.
+    settings = manufacturing_api.project_receiving_manufacturing_request_settings(
+        snapshot,
+        getattr(app, "_settings_values", {}) or {},
+        getattr(app, "_phase6_box_whd", {}) or {},
+    )
     request = required("SettingsProfileProjectionRequest")(
         settings_values=settings,
         input_snapshot=snapshot,
