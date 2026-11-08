@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 BoxBody 三片式實體側板／後板 Fold 編輯提交唯一 Engine API（2026-11-08）
+
+- 原 `fold_designer_bridge._phase6_commit_box_body_physical_piece_profile` 在 GUI 側自行把 `left_side/right_side` 的實體 Fold material len 鏡射回箱身 `zl1/zl2/FW/D/zr2/zr1`、計算後面板 `back_width_comp_t=max(0,(W-back_panel_material_len)/T)`，並決定右側板 native BEND traversal、已儲存後折的 piece-local ownership。這些是製造來源與版型、非視覺呈現，不能留第二套 GUI 公式。
+- 新 `ae_engine.operator_box_body_piece_fold_transaction.plan_operator_box_body_piece_fold_commit`（公開於 `manufacturing_api` 與 `ae_engine` 根包）收原始操作 `box_body:left_side/back/right_side`、piece X Fold、共用 BoxBody profile、box_body_structure_state、W/H/T／snapshot；產生獨立 `OperatorBoxBodyPieceFoldPlan(structure_state, aggregate_profile, settings_values)`。Engine 重用既有 `box_body_structure_state.set_side_back_piece_profile/set_side_back_geometry`、`box_body_editor_readback.reverse_box_body_fold_traversal/read_box_body_outside_dimensions` 和 `box_body_fold_profile.apply_outside_dimension_compensation`；只對資料來源完成驗證後才傳回候選。不改左／右對稱共用 D/FW 的既有已核准物理語意；左右的 side_rear_bend 必須保留各自 piece-local，後板寬由原 MATERIAL W 與 T 得到，不能把包外當料長重扣 T。
+- GUI 僅採用候選寫入既有 settings／workspace service，衍生 PartSpec、Assembly/FinalScene 和 DXF 一律保留原 Engine pipeline。非法 part_key、非有限/布林/非正的 W/H/T 或 piece `len`、late malformed row 都 fail closed、不修改來源。金庫型及受電箱左／右／背三片、精度、right-side 順序、JSON Save→Reload、GUI 真呼叫定向驗收。此切片不新增 Factory 放行或製造 DXF 類型；#2517 全面核對與 Windows 實機 UAT 仍待完成。
+
+
 ## [CURRENT] #2517 上下截角的左右實體角身份由公開 Engine 投影（2026-11-08）
 
 - manufacturing_api.project_operator_corner_pair_members(pair_key) 與 project_operator_corner_selection_target(target_key)（根包 ae_engine 同一 callable）直接重用 Engine corner_state_transactions.MANUAL_CORNER_PAIR_KEYS／MANUAL_CORNER_KEYS：top→(top_left,top_right)、bottom→(bottom_left,bottom_right)；pair 點選採首個實體角，個別角原樣保留。非法、空白、布林或非字串來源明確拒絕，無源狀態突變。
