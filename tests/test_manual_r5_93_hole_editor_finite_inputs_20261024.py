@@ -1,7 +1,7 @@
-"""R5 #93: the *existing* Hole Editor controls reject NaN/Inf text.
+"""R5 #93: existing Hole Editor controls and public Engine reject NaN/Inf.
 
-Exercise the actual view-controller methods without creating or mocking a
-manufacturing scene. No fake physical/DXF pass is inferred from these tests.
+GUI forwards original input, whereas the canonical Engine validates physical
+pitch before it can return any finished-face hole preview. No DXF claim.
 """
 from types import SimpleNamespace
 
@@ -9,6 +9,9 @@ import pytest
 
 from gui_modules.editors.hole_editor import HoleEditorReferenceActions
 from gui_modules.editors.hole_editor_round_settings import _RoundHoleSettingsDialog
+from ae_engine import manufacturing_api
+from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor, feature_surface_from_rect
+from ae_engine.sheetmetal_geometry import Vec2
 
 
 class _Variable:
@@ -95,20 +98,41 @@ def test_r5_93_round_commit_rejects_nonfinite_without_preview(driver, raw):
     dialog = _round_dialog(center=raw if driver == "center" else "25",
                            gap=raw if driver == "gap" else "15",
                            driver=driver)
-    with pytest.raises(ValueError, match="有限"):
-        dialog._driver_value()
+    # The UI no longer hides raw invalid source behind a separate float rule.
+    assert dialog._driver_value() == raw
+    seed = CircleFeature(
+        diameter=10.0, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(20.0, 40.0),
+    )
+    features = [seed]
+    surface = feature_surface_from_rect("door", Vec2(0, 0), Vec2(120, 80))
+    with pytest.raises(ValueError, match="finite"):
+        manufacturing_api.plan_operator_round_hole_preview(
+            features, 0, surface, width=120.0, height=80.0,
+            direction="right", driver=driver, value=dialog._driver_value(),
+        )
+    assert features == [seed]
 
 
 def test_r5_93_round_valid_center_and_zero_gap_remain_allowed():
     dialog = _round_dialog(center="25", gap="15", driver="center")
-    assert dialog._driver_value() == 25.
+    assert dialog._driver_value() == "25"
     dialog._sync_from_center()
     assert float(dialog.round_gap.get()) == pytest.approx(15.)
     dialog.round_gap.set("0")
     dialog._sync_from_gap()
     assert dialog.round_driver.get() == "gap"
     assert float(dialog.round_center.get()) == pytest.approx(10.)
-    assert dialog._driver_value() == 0.
+    assert dialog._driver_value() == "0"
+    seed = CircleFeature(
+        diameter=10.0, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(20.0, 40.0),
+    )
+    surface = feature_surface_from_rect("door", Vec2(0, 0), Vec2(120, 80))
+    assert manufacturing_api.plan_operator_round_hole_preview(
+        [seed], 0, surface, width=120.0, height=80.0,
+        direction="right", driver="gap", value=dialog._driver_value(),
+    ).generated_count > 1
 
 
 @pytest.mark.parametrize("raw", ["0", "-1", "-50"])
