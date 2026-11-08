@@ -12,6 +12,29 @@ from collections.abc import Mapping
 from copy import deepcopy
 
 
+def _canonical_remap_cell_key(value):
+    """Validate an operator remap target before physical holes can be rekeyed.
+
+    A legacy GUI mapper may return raw (column, row) coordinates. In
+    particular bool and float must not be silently converted with int().
+    Existing serialized "column:row" transitions remain supported.
+    """
+    if isinstance(value, (tuple, list)):
+        if len(value) != 2 or any(type(axis) is not int or axis < 0 for axis in value):
+            raise ValueError("Door cell remap requires nonnegative integer coordinates")
+        return f"{value[0]}:{value[1]}"
+    if not isinstance(value, str):
+        raise ValueError("Door cell remap requires a cell key")
+    try:
+        column_text, row_text = value.split(":", 1)
+        column, row = int(column_text), int(row_text)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Door cell remap requires a valid cell key") from exc
+    if column < 0 or row < 0:
+        raise ValueError("Door cell remap requires nonnegative coordinates")
+    return f"{column}:{row}"
+
+
 def receiving_inner_door_stable_id_for_cell(cell_key):
     """Preserve the project's persisted upper/lower/cNrN naming contract."""
     key = str(cell_key or "").strip()
@@ -41,14 +64,19 @@ def remap_receiving_door_layout_after_delete(
     any caller's data is modified. All existing source features are preserved.
     """
     if operation == "map_cells":
-        # Legacy operator mappings are only cell-index requests. The Engine
-        # still owns and validates every persisted physical part identity.
+        # The legacy GUI maps positions only. Engine validates original and
+        # target coordinates *before* remapping any physical feature store.
         if not isinstance(cell_transitions, Mapping):
             raise ValueError("Door cell transitions must be a mapping")
-        if any(not isinstance(k, str) or
-               (v is not None and not isinstance(v, str))
-               for k, v in cell_transitions.items()):
-            raise ValueError("Door cell transitions must contain cell keys")
+        normalized_transitions = {}
+        for key, target in cell_transitions.items():
+            if not isinstance(key, str):
+                raise ValueError("Door cell transitions must contain cell keys")
+            _canonical_remap_cell_key(key)
+            normalized_transitions[key] = (
+                None if target is None else _canonical_remap_cell_key(target)
+            )
+        cell_transitions = normalized_transitions
     elif type(column_index) is not int or column_index < 0:
         raise ValueError("Door column deletion requires an actual grid index")
     elif operation == "delete_column":

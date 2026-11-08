@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Door grid 舊 GUI callback 物理孔身分重映射禁止提前轉型（2026-11-08）
+
+- 原 `door_layout_host_adapter._remap_door_layout_owned_data` 先用 `int(target[0/1])` 轉換舊 positional callback 的目的座標，`(True, 0)` 與 `(1.5, 0)` 都可能錯當 `1:0`；原 `ae_engine.door_layout_physical_remap.remap_receiving_door_layout_after_delete(operation="map_cells")` 只驗字串型別，`{"0:0": "invalid"}` 可進入 cell store，最後在 physical alias 重建時靜默略過，遺失真實 Door 孔的所有權。
+- 同一既有公開 `manufacturing_api.remap_receiving_door_layout_after_delete` 現由 Engine 對 `map_cells` 全部來源與目標鍵先行驗證；相容既有 `"欄:列"` 字串／明確 `None` 刪除，亦接收 GUI 傳來的原始 `(column, row)` 整數座標。布林、小數、負數、損壞鍵與不存在格式一律 fail closed，不能改寫 cell／physical feature stores。GUI 只呼叫既有 mapper 取得原始操作位置並轉送 Engine，未添加第二份 physical ID、CUTTING、2D／3D／DXF 規則。
+- `tests/test_issue2517_door_grid_callback_raw_transition_engine.py` 覆蓋直接 Engine 字串／原始 tuple parity、非法目標及來源原子拒絕、真實 GUI host callback 不得先 `int` 並禁止任何已保存孔資料失真。原正規刪列／刪欄、inner-door stable ID、Save→Reload 與 DXF 由既有 Engine 及 Product Regression 驗證；#2517 全面覆蓋／Windows 實機仍 OPEN。
+
 ## [CURRENT] #2517 Fold Designer「輸出 STOCK」原始旗標由公開 Engine 決定（2026-11-08）
 
 - 原 `gui_modules/application/fold_designer_composition_state.commit_output_draw_stock` 在呼叫 ProjectController 前自行 `bool(TkVar.get())`，`phase6_project_controller.Phase6ProjectController.commit_output_stock` 又以 `bool(value)` 再解碼。已保存字串 `"false"` 會被當作 True；`draw_stock` 是正式 Engine 製造 Context 的 DXF STOCK 圖層控制來源，不得由 GUI truthiness 決定。
