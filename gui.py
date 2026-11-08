@@ -794,7 +794,7 @@ class Phase6ApplicationHost:
 
     def on_endcap_fw_follow_changed(self, part_key):
         # Engine alone validates raw follow flags, physical FW and saved rows.
-        # No UI-side bool("false") coercion or partially committed state.
+        # Do not coerce serialized follow flags or partially commit state.
         follow_var = self.fw_head_follow_var if part_key == "head" else self.fw_tail_follow_var
         try:
             staged = manufacturing_api.operator_endcap_fw_follow(
