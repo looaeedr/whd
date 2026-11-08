@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 自訂圓孔／方孔 CUTTING 與 BLIND_HOLE 來源以 Engine 布林交易核對（2026-11-08）
+
+- 原 `ae_engine.hole_catalog.custom_circle_definition`、`custom_rectangle_definition` 對操作輸入 `blind` 採 `"BLIND_HOLE" if blind else "CUTTING"`，導致已保存／外部 API 傳入的字串 `"false"` 錯誤產生實體 `BLIND_HOLE`；非法 `"maybe"`、數字 `2` 等也能誤作啟用。這屬孔 Feature 的製造加工來源，不能在 GUI 顯示層另訂解釋。
+- 保持原 `ae_engine.hole_catalog` 為 Catalog 與 Feature 唯一 owner，兩個自訂 Definition 改直接使用既有 `operator_settings_transactions.normalize_operator_settings_boolean(blind)`，公有 `manufacturing_api.operator_custom_{circle,rectangle}_definition` 與 root callable 自動使用同一規則。正常 bool、`0/1`、合法序列化 `"true"/"false"` 可還原正確 CUTTING／BLIND_HOLE；非法旗標於建立任何 Definition／Feature 前 fail closed。GUI 保持傳遞原始來源，不重建孔位／尺寸／折彎／DXF、Factory、Registry 與 Project schema。
+- `tests/test_issue2517_custom_hole_blind_public_engine.py` 驗金庫型／受電箱、圓孔／方孔、公開 Engine 與真 GUI Factory 對照、有效旗標、非法旗標、實體 Feature 層、無來源突變及 JSON Save→Reload 同義；其他 2D／3D／DXF 由完整 Product Regression 驗收。#2517 其餘 GUI 入口與 Windows 實機仍 OPEN。
+
 ## [CURRENT] #2517 自訂開孔尺寸與 Catalog 製造入口一律由公開 Engine 驗證（2026-11-08）
 
 - 原 `gui_modules/editors/hole_editor.HoleEditorFeatureFactory.make_feature` 先對自訂圓孔徑、自訂矩形 W/H 做 GUI `float(TkVar)`；布林 `True` 因而變成 `1.0 mm`，繞過原 `ae_engine.hole_catalog._positive_hole_mm` 的布林禁令，產生未經原始來源驗證的實體 CUTTING／BLIND_HOLE。旋轉選項的 `int(...)` 又在 GUI try/except 外，損壞輸入會例外逃逸；主 `gui.py` 另外直接匯入 `ae_engine.hole_catalog` 私有模組而非經製造公開 API。
