@@ -8,7 +8,7 @@ import pytest
 
 from ae_engine import manufacturing_api as api
 from ae_engine import corner_state_transactions as owner
-from ae_engine.sheetmetal_geometry import CornerTypeId, CrossCornerMode
+from ae_engine.sheetmetal_geometry import CornerTypeId, CrossCornerMode, CornerDirection
 from gui_modules.application import fold_designer_composition_settings as gui
 
 
@@ -62,15 +62,19 @@ def test_engine_commit_false_string_must_not_copy_other_physical_corner(part):
     initial = deepcopy((raw, pairs))
     split = api.commit_corner_pair(raw, pairs, part, "top", "false")
     assert split.corner_pair_same[part]["top"] is False
-    assert split.corner_state[part]["top_left"]["type_id"] == "C02"
-    assert split.corner_state[part]["top_right"]["type_id"] == "C03"
+    # Legacy C02/C03 spelling is canonicalized to CROSS plus distinct
+    # parameters; the actual left/right material semantics must survive.
+    canonical = api.ensure_corner_part(raw, pairs, part).corner_state[part]
+    assert split.corner_state[part]["top_left"] == canonical["top_left"]
+    assert split.corner_state[part]["top_right"] == canonical["top_right"]
+    assert split.corner_state[part]["top_left"] != split.corner_state[part]["top_right"]
     assert (raw, pairs) == initial
     joined = api.commit_corner_pair(
         split.corner_state, split.corner_pair_same, part, "top", "true",
     )
     assert joined.corner_pair_same[part]["top"] is True
     assert joined.corner_state[part]["top_right"] == joined.corner_state[part]["top_left"]
-    assert split.corner_state[part]["top_right"]["type_id"] == "C03"
+    assert split.corner_state[part]["top_right"] == canonical["top_right"]
     assert (raw, pairs) == initial
 
 
@@ -117,8 +121,12 @@ def _settings_projection(raw_state, raw_pairs, part, monkeypatch):
         "_CORNER_TYPE_LABEL_BY_ID": {
             key.value: key.value for key in CornerTypeId
         },
-        "_CORNER_DIRECTION_LABEL": {},
-        "_CORNER_MODE_LABEL": {},
+        "_CORNER_DIRECTION_LABEL": {
+            direction: direction.value for direction in CornerDirection
+        },
+        "_CORNER_MODE_LABEL": {
+            mode: mode.value for mode in CrossCornerMode
+        },
         "_phase6_selection_from_raw": owner.selection_from_raw,
         "_phase6_corner_parameter_summary": lambda *_: "",
     }
@@ -150,9 +158,12 @@ def test_gui_settings_shows_distinct_real_corners_for_serialized_false(part, mon
     assert tuple(row["target_key"] for row in rows[0]["targets"]) == (
         "top_left", "top_right"
     )
-    assert tuple(row["type_kind"] for row in rows[0]["targets"]) == (
-        "C02", "C03"
-    )
+    canonical = api.ensure_corner_part(raw, pairs, part).corner_state[part]
+    assert canonical["top_left"] != canonical["top_right"]
+    for row in rows[0]["targets"]:
+        expected = owner.selection_from_raw(canonical[row["target_key"]])
+        assert row["type_kind"] == expected.type_id.name
+        assert row["mode_kind"] == (expected.cross_mode.name if expected.cross_mode else "")
     assert rows[1]["same"] is True
     assert len(rows[1]["targets"]) == 1
     assert (raw, pairs) == before
