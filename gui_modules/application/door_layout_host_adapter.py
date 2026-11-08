@@ -396,13 +396,12 @@ def _remap_door_layout_owned_data(
         for key in keys:
             try:
                 c_text, r_text = key.split(":", 1)
-                target = mapper(int(c_text), int(r_text))
-                transitions[key] = (
-                    None if target is None
-                    else f"{int(target[0])}:{int(target[1])}"
-                )
-            except (TypeError, ValueError):
-                transitions[key] = None
+                column, row = int(c_text), int(r_text)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("Invalid Door cell source key") from exc
+            # Do not turn True into column 1 or truncate 1.5 to 1.
+            # Engine accepts the raw target coordinates and validates them.
+            transitions[key] = mapper(column, row)
         operation = "map_cells"
     result = manufacturing_api.remap_receiving_door_layout_after_delete(
         operation=operation, column_index=column_index, row_index=row_index,
