@@ -34,6 +34,49 @@ _ALLOWED_BINOPS = (ast.Add, ast.Sub, ast.Mult, ast.Div)
 _ALLOWED_UNARYOPS = (ast.UAdd, ast.USub)
 
 
+def normalize_operator_relief_topology_levels(raw: object) -> int:
+    """Validate a real one- or two-stage relief candidate, without truncating input.
+
+    Operator Tk/JSON may supply numeric strings or integral floats; booleans,
+    fractional values and nonfinite values must never become physical stages.
+    """
+    if isinstance(raw, bool):
+        raise CertifiedReliefRegistryError("candidate topology_levels must be 1 or 2")
+    try:
+        value = float(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise CertifiedReliefRegistryError("candidate topology_levels must be 1 or 2") from exc
+    if not math.isfinite(value) or value not in (1.0, 2.0):
+        raise CertifiedReliefRegistryError("candidate topology_levels must be 1 or 2")
+    return int(value)
+
+
+def normalize_operator_relief_formula_sample(raw: Mapping[str, object]) -> dict[str, float]:
+    """Normalize raw Registry sample values for real formula/matrix evaluation.
+
+    GUI only supplies operator sources. Signed test values remain supported;
+    the original formula evaluator decides whether resulting geometry is legal.
+    """
+    if not isinstance(raw, Mapping):
+        raise CertifiedReliefRegistryError("formula sample must be a mapping")
+    values = {}
+    for key in ("T", "FW", "side_fold", "ytop1", "mating_width"):
+        if key not in raw or isinstance(raw[key], bool):
+            raise CertifiedReliefRegistryError(f"formula sample {key} must be finite numeric")
+        try:
+            number = float(raw[key])
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise CertifiedReliefRegistryError(f"formula sample {key} must be finite numeric") from exc
+        if not math.isfinite(number):
+            raise CertifiedReliefRegistryError(f"formula sample {key} must be finite numeric")
+        values[key] = number
+    values["effective_mating_width"] = values["mating_width"]
+    values["fold_u"] = values["side_fold"]
+    values["fold_v"] = values["ytop1"]
+    values["clearance"] = 0.0
+    return values
+
+
 def _default_external_registry_path() -> Path:
     return Path(__file__).resolve().parents[1] / "基準檔" / "截角資料庫" / "certified_relief_rules.json"
 
@@ -104,7 +147,13 @@ def _formula_ast_value(node, variables):
     if isinstance(node, ast.Name):
         if node.id not in _ALLOWED_FORMULA_NAMES or node.id not in variables:
             raise CertifiedReliefRegistryError(f"formula variable not allowed or unresolved: {node.id}")
-        value = float(variables[node.id])
+        raw = variables[node.id]
+        if isinstance(raw, bool):
+            raise CertifiedReliefRegistryError(f"formula variable is not finite numeric: {node.id}")
+        try:
+            value = float(raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise CertifiedReliefRegistryError(f"formula variable is not finite numeric: {node.id}") from exc
         if not math.isfinite(value):
             raise CertifiedReliefRegistryError(f"formula variable is not finite: {node.id}")
         return value
@@ -136,7 +185,7 @@ def evaluate_relief_formula_expression(expression: str, variables: Mapping[str, 
 
 
 def evaluate_relief_formula_record(record: Mapping[str, object], variables: Mapping[str, float]) -> dict[str, float | None]:
-    topology = int(record.get("topology_levels", 0) or 0)
+    topology = normalize_operator_relief_topology_levels(record.get("topology_levels"))
     formula = dict(record.get("formula", {}) or {})
     required = ("primary_u", "primary_v")
     if any(name not in formula for name in required):
