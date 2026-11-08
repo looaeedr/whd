@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Family 切換的包外 W/H/D 預設資料必須由 Engine 驗證後原值顯示（2026-11-08）
+
+- `cabinet_family_model_transition.plan_cabinet_family_model_transition` 於新箱型切換產生 `defaults` 時，以既有 `operator_settings_transactions.normalize_operator_source_dimension` 逐軸驗證**存在的** W/H/D 有限正數、非 bool，保留小數精度。驗證在 `snapshot.update(defaults)`、新 Receiving Set/Bay 初始化及 GUI Settings 交易提交**之前**進行，非法來源拒絕且不能部分變更外部狀態。
+- `gui_modules/application/fold_designer_composition_shell_settings.settings_application_project_ui_values` 不再以 `original.get_int` 將 Engine Family 候選 W/H/D 取整或把非法值折成 0。GUI 使用相同公開 `manufacturing_api.normalize_operator_source_dimension` 先檢查所有有提供的實體軸，再更新 Tk 與 State；缺席軸保留原值。其他非實體設定、箱型 Policy、Fold／CUTTING／BEND／DXF 公式、Project schema 不變。
+- 回歸 `tests/test_issue2517_family_defaults_whd_engine_precision.py`：Family 公開交易正數精度／不改來源、非法各軸、GUI UI 顯示完整小數與禁止部分更新，仍須 exact-HEAD CI／適用 2D／3D／DXF 驗證。此批是 #2517 製造來源接線修正，不宣稱所有 GUI 入口已覆蓋。
+
+
 ## [CURRENT] #2517 Head/Tail FW 控制列純讀取由 Engine 公開投影（2026-11-08）
 
 - 原 `gui_modules/parts/panels/assembly_corner.sync_endcap_fw_controls` 在單純重新整理 GUI 時，使用 `endcap_fw_state.setdefault` 補建 Head／Tail 製造來源，並在 UI 以 `float`／`bool` 解讀顯示值；序列化 `"false"` 被當 True，損壞的對側列又可能在第一個控制項更新後才報錯。

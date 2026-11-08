@@ -669,9 +669,18 @@ def settings_application_project_ui_values(
 
         defaults = dict(getattr(plan, "defaults", {}) or {})
         if defaults:
-            for key, attr in (("w", "w"), ("h", "h"), ("d", "d")):
-                if key in defaults:
-                    setattr(app.state, attr, original.get_int(defaults[key]))
+            # The Engine already owns physical Family defaults. Revalidate
+            # every provided axis before touching GUI state or Tk widgets so
+            # invalid later axes cannot leave an earlier one half-applied.
+            physical_defaults = {
+                axis: manufacturing_api.normalize_operator_source_dimension(
+                    defaults[axis], field=axis,
+                )
+                for axis in ("w", "h", "d")
+                if axis in defaults
+            }
+            for axis, value in physical_defaults.items():
+                setattr(app.state, axis, value)
             app.v_w.set(str(app.state.w))
             app.v_h.set(str(app.state.h))
             app.v_d.set(str(app.state.d))
