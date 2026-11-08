@@ -121,3 +121,4 @@ def test_gui_source_contains_no_material_bbox_formula():
     assert "project_operator_main_blank_summary_dimensions(" in code
     assert "canonical_strip_render_data" not in code
     assert ".material.bounds" not in code
+    assert "from ae_engine import manufacturing_api" not in code

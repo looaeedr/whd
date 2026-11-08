@@ -53,7 +53,6 @@ def update_calculations(self):
         if not self._phase6_logical_part_present(existing_parts, "door"):
             door_w = door_h = None
         else:
-            from ae_engine import manufacturing_api
             if self.multi_door_enabled_var.get():
                 cell = self.get_selected_door_layout_cell()
                 selected_cell_size = (cell.start_width, cell.start_height)
@@ -71,7 +70,6 @@ def update_calculations(self):
         
         # 3.5 計算底板
         if self._phase6_logical_part_present(existing_parts, "base_plate"):
-            from ae_engine import manufacturing_api
             base_plate_w, base_plate_h = manufacturing_api.base_plate_blank_dimensions(
                 w=val["w"], h=val["h"],
                 shrink_top=val["base_plate_shrink_top"],
