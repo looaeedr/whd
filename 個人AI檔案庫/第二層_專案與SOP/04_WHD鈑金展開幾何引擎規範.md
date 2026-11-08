@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 快照匯出須保留 Engine 已驗現行盤 W/H/D（2026-11-08）
+
+- 原 `_fix11_export` 再以 `_ui_len` 整數化全箱包外 W/H/D，最後 `result.update(_settings_values)` 可能以舊 Settings 覆蓋已確認的金庫型／受電箱 Bay 尺寸；封頭／尾折型料長讀回也可能覆寫先前已提交的小數 W/D。修正重用現有 `manufacturing_api.normalize_operator_live_box_dimensions`：任何 GUI 存檔副作用前驗證 W/H/D，保存時以已提交實體 Box 來源定案，不由 GUI 取整，也不借舊 Settings 覆寫。
+- Head/Tail 的 X/Y Fold material readback 只更新其原本的 FW／折段來源；全箱 W/D 保持先前由公開 `reconcile_endcap_live_outside_dimensions` 提交的值。Quantity 已保存的共用箱 W/D 用既有 Engine 實體來源正數有限檢查後整對更新，任何非法值不進行部分 W/D 更新。原 PartSpec、Fold 製造公式、Factory、FinalScene、DXF 與儲存 schema 不增加替代實作。
+- 定向 `tests/test_issue2517_fold_designer_export_live_dimensions_public_api.py` 核對 Vault／Receiving、一般板件、Head/Tail、Quantity 與非法值。完整 Product Regression、實體 2D／3D／DXF、Save→Reload 仍以同版 CI／實測證據為準，#2517 全面 API 覆蓋仍待逐入口確認。
+
+
 ## [CURRENT] #2517 Fold Designer 實體 W/H/D 輸入由公開 Engine 驗證（2026-11-08）
 
 - 舊版 fold_designer_bridge._fix11_do_update / _sync_active_endcap_and_global_whd 透過 fold_designer_original.get_int 把操作員輸入的包外 W/H/D 先做整數 round；非法值回落至 0，再流入 BoxBody／Head／Tail 的已提交來源。這不是 GUI 格式驗證，而是製造尺寸篡改；應 fail closed 並保留操作小數。
