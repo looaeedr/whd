@@ -409,7 +409,7 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
                         box_groups, thickness=val["t"]
                     )
                 door_indicator = None
-                if not box_enabled and manufacturing_api.normalize_operator_settings_boolean(
+                if manufacturing_api.normalize_operator_settings_boolean(
                     self.is_door_indicator_var.get()
                 ):
                     door_indicator = _collect_live_indicator_groups(

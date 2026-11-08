@@ -60,7 +60,7 @@ def test_legacy_dxf_physical_mode_matches_engine(monkeypatch, mode, expected):
     ("false", "false", "none"),
     ("false", "true", "indicator"),
     ("true", "false", "indicator_box"),
-    ("true", "invalid-hidden", "indicator_box"),
+    ("true", "true", "both"),
 ])
 def test_legacy_dxf_indicator_holes_match_engine_mode(
     monkeypatch, box, door, expected,
@@ -75,13 +75,16 @@ def test_legacy_dxf_indicator_holes_match_engine_mode(
     assert files == ["door_unfold.dxf"] and errors == []
     (_values, kwargs), _filename, _context = calls[0]
     assert kwargs["indicator_hole"] == (
-        ("engine-opening", (2,), 2) if expected == "indicator_box" else None
+        ("engine-opening", (2,), 2) if expected in ("indicator_box", "both") else None
     )
-    assert kwargs["door_indicator"] == ((3,) if expected == "indicator" else None)
+    assert kwargs["door_indicator"] == (
+        (3,) if expected in ("indicator", "both") else None
+    )
 
 
 @pytest.mark.parametrize("source", [
     dict(multi="false-ish"), dict(box="bad"), dict(door="bad"),
+    dict(box="true", door="bad"),
 ])
 def test_invalid_active_flag_cannot_reach_legacy_manufacturing(monkeypatch, source):
     monkeypatch.setattr(gui, "_export_selected_resolved_parts", lambda *_: None)
