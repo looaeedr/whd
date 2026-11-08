@@ -26,9 +26,11 @@ def test_engine_public_base_plate_shrink_accepts_legitimate_values(raw, expected
     key = "base_plate_shrink_top"
     assert api.normalize_operator_settings_updates({key: 55.0}, {key: raw}) == {key: expected}
     tx = api.commit_operator_settings_state({key: 55.0}, {}, {}, {key: raw})
-    assert tx.committed == {key: expected}
-    assert tx.settings_values[key] == expected
-    assert tx.input_snapshot[key] == expected
+    # Generic Settings commits deliberately preserve the original value type;
+    # the manual edge-shrink operation alone normalizes its physical source.
+    assert tx.committed == {key: raw}
+    assert tx.settings_values[key] == raw
+    assert tx.input_snapshot[key] == raw
 
 
 @pytest.mark.parametrize("bad", [
@@ -116,5 +118,9 @@ def test_saved_shrink_source_reloads_with_identical_gui_engine_outcome():
         {"base_plate_shrink_top": payload["base_plate_shrink_top"]},
     )
     assert done is True
-    assert emitted[0] == ("stage", "base_plate_shrink_top", tx.committed["base_plate_shrink_top"])
+    assert tx.committed["base_plate_shrink_top"] == "0.25"
+    assert emitted[0] == (
+        "stage", "base_plate_shrink_top",
+        api.normalize_operator_base_plate_edge_shrink(tx.committed["base_plate_shrink_top"]),
+    )
     assert payload["base_plate_shrink_top"] == "0.25"
