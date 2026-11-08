@@ -135,6 +135,25 @@ def normalize_operator_live_box_dimensions(
     }
 
 
+
+def normalize_operator_base_plate_edge_shrink(raw: object) -> float:
+    """Validate an editable BasePlate physical edge shrink, in millimetres.
+
+    The old GUI forbade negative shrink. Preserve valid zero/fractional edits,
+    but reject raw bool and nonfinite sources before any Settings/DXF staging.
+    Source-derived Receiving BasePlate cannot use this manual edit operation.
+    """
+    if isinstance(raw, bool):
+        raise ValueError("底板四邊縮量必須是非負有限數值")
+    try:
+        result = float(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("底板四邊縮量必須是非負有限數值") from exc
+    if not math.isfinite(result) or result < 0:
+        raise ValueError("底板四邊縮量必須是非負有限數值")
+    return result
+
+
 def normalize_operator_settings_updates(
     settings_values: Mapping[str, object],
     updates: Mapping[str, object] | None,

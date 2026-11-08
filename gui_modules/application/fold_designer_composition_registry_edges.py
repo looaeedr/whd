@@ -745,10 +745,9 @@ def commit_base_plate_edge_shrink(
         return False
     original = required("original")
     try:
-        value = float(raw_value)
+        # Keep the raw operator type; Engine owns nonnegative finite mm.
+        value = manufacturing_api.normalize_operator_base_plate_edge_shrink(raw_value)
     except (TypeError, ValueError, original.tk.TclError):
-        return False
-    if value < 0:
         return False
     self.stage_setting_update(namespace, key, value)
     self.flush_pending_settings(namespace)

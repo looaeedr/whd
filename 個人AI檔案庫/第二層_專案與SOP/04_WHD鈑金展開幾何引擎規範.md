@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Vault 底板四邊縮量以公開 Engine 非負有限來源交易為準（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_registry_edges.commit_base_plate_edge_shrink` 直接 `float(raw_value)` 再比 `value < 0`；操作來源 `True` 被轉成 1 mm 實體縮量，`NaN` 因比較不成立，則可能被報成套用成功。原 Engine 泛用 Settings 交易對非物理數值的 skip 容錯也會掩蓋這類底板實體縮量來源錯誤。
+- 現由既有 `ae_engine.operator_settings_transactions` 新增 `normalize_operator_base_plate_edge_shrink(raw)`，經 `manufacturing_api`／根包同一 callable 公開；沿用 GUI 原本禁止負縮量的實體規則，接受零與合法小數毫米，拒絕布林、負值、非有限與非法字串。這個 Engine validator **僅限手動縮量操作**，GUI 在 stage 前拒絕非法來源；原 `normalize_operator_settings_updates` 與 `commit_operator_settings_state` 的通用 Fold／INI 相容路徑保留負數、原 skip 語意及有效小數，不能因手動欄位的操作限制改寫其他來源契約。
+- 保留 `manufacturing_api.operator_base_plate_edge_shrink_editable` 已有的 Family 身分硬閘門；受電箱底板來源導出、不得提供手動縮量欄位，金庫型按已存在四邊入口操作。定向測試 `tests/test_issue2517_base_plate_shrink_raw_public_engine.py` 核對公開 helper／GUI 操作、非法輸入原子性、Receiving 禁止手動編輯、零與小數精度、通用 Fold 負數相容及 JSON Save→Reload 同義。不新增底板 CUTTING／BEND／DXF 公式、Factory、Topology、認證或 Project schema；#2517 其他 API 與 Windows UAT 仍需續驗。
+
 ## [CURRENT] #2517 Fold Designer 截角 T 係數與成對開關直通 Engine（2026-11-08）
 
 - 原 `gui_modules/application/fold_designer_composition_registry_edges.corner_target_var_changed` 與已獨立修復的主 GUI `gui_modules/parts/panels/assembly_corner.selection_from_manual_corner_controls` 在呼叫原 Engine Corner 交易／`CornerTypeSelection` 前先對 `amount_t`、`secondary_retain_t`、`secondary_depth_t` 做 `float(TkVar.get())`；布林 `True` 因而變成 1.0T，繞過原 `sheetmetal_geometry_core.CornerTypeSelection` 對 boolean/nonfinite 製造截角參數的拒絕。Fold Designer `corner_pair_var_changed` 還以 `bool("false")` 誤將保存的獨立角組合成同一對角。
