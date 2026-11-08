@@ -71,7 +71,9 @@ def _snapshot_base_state(self):
         "base_plate_bend": number(self.base_plate_bend_var, defaults["base_plate_bend"]),
         "indicator_box_fold": defaults["indicator_box_fold"],
         "indicator_door_fold": defaults["indicator_door_fold"],
-        "use_box_distance": bool(self.is_box_dist_var.get()),
+        "use_box_distance": manufacturing_api.normalize_operator_settings_boolean(
+            self.is_box_dist_var.get()
+        ),
         "assembly_type": assembly_intent_value(self._current_box_assembly_type()),
         "endcap_fw": deepcopy(self.endcap_fw_state),
         "endcap_bottom_wrap": deepcopy(getattr(
@@ -80,8 +82,11 @@ def _snapshot_base_state(self):
             normalize_endcap_bottom_wrap_state({"model": self.baseline_var.get()}),
         )),
         "assembly_relief": deepcopy(getattr(self, "assembly_relief_state", {}) or {}),
-        "multi_door_enabled": bool(self.multi_door_enabled_var.get())
-        if hasattr(self, "multi_door_enabled_var") else False,
+        "multi_door_enabled": (
+            manufacturing_api.normalize_operator_settings_boolean(
+                self.multi_door_enabled_var.get()
+            ) if hasattr(self, "multi_door_enabled_var") else False
+        ),
         "door_layout_scope": str(getattr(self, "door_layout_scope", "main") or "main"),
         "door_handle_edges": deepcopy(getattr(self, "door_layout_handle_edges", {}) or {}),
         "inner_doors": deepcopy(getattr(self, "receiving_inner_doors", []) or []),
@@ -215,8 +220,15 @@ def _snapshot_part_dimensions(self, snapshot):
     enabled malformed group may never be saved as a fabricated (1,) or ().
     No snapshot mutation occurs before both enabled sources are valid.
     """
-    box_enabled = bool(self.is_indicator_box_var.get())
-    door_enabled = bool(self.is_door_indicator_var.get())
+    # Source flags control the presence of physical Indicator CUTTING.
+    # The GUI transports raw operator values; the original Engine validates
+    # both before any part-dimension or hole group gets saved.
+    box_enabled = manufacturing_api.normalize_operator_settings_boolean(
+        self.is_indicator_box_var.get()
+    )
+    door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+        self.is_door_indicator_var.get()
+    )
 
     def read_groups(layer_var, group_vars, *, label):
         try:
