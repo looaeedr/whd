@@ -15,9 +15,9 @@ from gui_modules.application import fold_designer_composition_settings as gui
 def _make_composition(pair_same):
     state = {
         "top_left": CornerTypeSelection(CornerTypeId.C02),
-        "top_right": CornerTypeSelection(CornerTypeId.CROSS),
+        "top_right": CornerTypeSelection(CornerTypeId.CROSS, cross_mode=CrossCornerMode.STANDARD),
         "bottom_left": CornerTypeSelection(CornerTypeId.C02),
-        "bottom_right": CornerTypeSelection(CornerTypeId.CROSS),
+        "bottom_right": CornerTypeSelection(CornerTypeId.CROSS, cross_mode=CrossCornerMode.STANDARD),
     }
     app = SimpleNamespace(
         _phase6_input_snapshot={"model": "金庫型"},
@@ -36,7 +36,7 @@ def _make_composition(pair_same):
             kind.value: kind.value for kind in CornerTypeId
         },
         "_CORNER_DIRECTION_LABEL": {},
-        "_CORNER_MODE_LABEL": {},
+        "_CORNER_MODE_LABEL": {CrossCornerMode.STANDARD: "標準"},
         "_phase6_selection_from_raw": lambda raw: raw,
         "_phase6_corner_parameter_summary": lambda raw: "",
     }
