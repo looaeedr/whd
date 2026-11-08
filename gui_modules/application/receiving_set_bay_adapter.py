@@ -33,15 +33,10 @@ def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]
 
 
 def _operator_integer(value, name):
-    """Allow legacy integer UI text; never coerce a float or bool to a Bay ID."""
-    if type(value) is int:
-        return value
-    if type(value) is str:
-        try:
-            return int(value)
-        except (ValueError, OverflowError) as exc:
-            raise ValueError(f"Receiving {name} must be an integer") from exc
-    raise ValueError(f"Receiving {name} must be an integer")
+    """Forward raw Set/Bay/Joint source to the canonical Engine validator."""
+    return manufacturing_api.normalize_receiving_operator_topology_integer(
+        value, name=name,
+    )
 
 
 @dataclass(frozen=True)

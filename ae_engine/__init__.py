@@ -111,6 +111,7 @@ from .manufacturing_api import (
     display_receiving_nfb_model_ref,
     can_stage_receiving_nfb_csv_preview_refs,
     normalize_receiving_layout, normalize_receiving_operator_connection_counts,
+    normalize_receiving_operator_topology_integer,
     project_common_box,
     RECEIVING_QUANTITY_BOX_KEY, normalize_common_box, update_common_box,
     project_operator_receiving_quantity_size_count,

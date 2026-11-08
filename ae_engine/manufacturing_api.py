@@ -70,6 +70,7 @@ from .panel_naming import (
 from .panel_dxf_naming import vault_panel_dxf_filename
 from .receiving_layout import (
     rename_receiving_panel, normalize_receiving_operator_connection_counts,
+    normalize_receiving_operator_topology_integer,
 )
 
 from .integration_api import (
