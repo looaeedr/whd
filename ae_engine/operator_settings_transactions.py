@@ -8,6 +8,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, is_dataclass, replace
 import math
+import re
 from typing import Mapping
 
 
@@ -33,6 +34,23 @@ class OperatorExternalSyncPlan:
     reason: str
 
 
+def _external_sync_revision_number(value: object) -> int:
+    """Accept original integer/ASCII integer text; reject aliased revisions.
+
+    The persisted monotonic counter is integral. Python int() silently
+    truncates floats, treats bool as an integer and accepts underscore aliases.
+    """
+    if isinstance(value, bool):
+        raise ValueError("外部 Settings revision 不接受布林值")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        source = value.strip()
+        if re.fullmatch(r"[+-]?[0-9]+", source):
+            return int(source)
+    raise ValueError("外部 Settings revision 必須是整數")
+
+
 def plan_operator_external_sync(
     envelope: Mapping[str, object] | None, *, last_external_revision: int,
 ) -> OperatorExternalSyncPlan:
@@ -48,7 +66,11 @@ def plan_operator_external_sync(
             False, current_revision, "", {}, "WRONG_ORIGIN",
         )
     try:
-        revision = int(raw.get("revision", 0) or 0)
+        authored_revision = raw.get("revision", 0)
+        # Existing absent/empty revision envelopes remain stale as revision 0.
+        if authored_revision is None or authored_revision == "":
+            authored_revision = 0
+        revision = _external_sync_revision_number(authored_revision)
     except (TypeError, ValueError):
         return OperatorExternalSyncPlan(
             False, current_revision, "", {}, "INVALID_REVISION",
