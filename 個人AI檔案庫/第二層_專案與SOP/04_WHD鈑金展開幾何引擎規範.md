@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Phase6 Settings 直接暫存交易仍須經公開 Engine 原始來源驗證（2026-11-08）
+
+- `Phase6SettingsPanel` 雖已檢核輸入，`phase6_settings_service.Phase6SettingsTransactionService.stage_setting_update` 原可由 Controller／其他直接呼叫者不經檢驗就改寫 Settings／Snapshot／pending；T/FW=0 或負、NaN/Inf、錯誤序列化布林及未知製造欄位可在 Commit 前污染草稿。
+- 服務只沿用 `phase6_settings_center.SETTING_SPECS` 識別已定義欄位，修改任何原來源前，W/H/D/T/FW 呼叫既有公開 `manufacturing_api.normalize_operator_source_dimension`，Fold／Bool 呼叫原 `phase6_settings_transitions.normalize_updates`（經公開 `manufacturing_api.normalize_operator_settings_updates`）。非法來源拒絕且三份狀態不動；UI-only `ui_text_size` 維持原規則，合法負折邊、毫米小數及 150ms debounce 不變。未新增製造公式、API、Factory/DXF 權限或資料 schema。
+- `tests/test_issue2517_settings_staging_public_engine_gate.py` 驗直接 Service、Controller、全部實體 W/H/D/T/FW、序列化布林、非法值原子拒絕、未知 key、UI 選項、pending／JSON roundtrip。此切片不是 #2517 全功能／Windows UAT 驗收。
+
 ## [CURRENT] #2517 使用者新增 AssemblyJoint 的一／二段 Solver Topology 原始來源由公開 Engine 驗證（2026-11-08）
 
 - `fold_designer_bridge._phase6_joint_form_add` 原在 GUI 對 `relief_joint_topology_var.get()` 做 `int()`，使 bool 或非整數浮點可能被轉為合法的物理一／二段；原 Engine 公開 `manufacturing_api.commit_operator_user_assembly_joint` 由 `ae_engine.assembly_joint.add_user_assembly_joint` 實作，僅拷貝原始 `solver_constraints`，未在交易邊界檢驗拓樸級數，且非 Mapping 的空容器會默默成為空預設。
