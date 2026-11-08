@@ -214,6 +214,7 @@ from .operator_settings_transactions import (
     normalize_operator_settings_updates, commit_operator_settings_state,
     normalize_operator_source_dimension, normalize_operator_source_dimensions,
     normalize_operator_live_box_dimensions,
+    normalize_operator_base_plate_edge_shrink,
     PHYSICAL_SNAPSHOT_SOURCE_KEYS,
     project_receiving_manufacturing_request_settings,
     project_operator_linked_endcap_source_snapshot,

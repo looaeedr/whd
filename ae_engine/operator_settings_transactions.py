@@ -13,6 +13,10 @@ from typing import Mapping
 
 PHYSICAL_DIMENSION_KEYS = frozenset({"w", "h", "d"})
 PHYSICAL_SNAPSHOT_SOURCE_KEYS = ("w", "h", "d", "t", "fw")
+BASE_PLATE_EDGE_SHRINK_KEYS = frozenset({
+    "base_plate_shrink_top", "base_plate_shrink_bottom",
+    "base_plate_shrink_left", "base_plate_shrink_right",
+})
 
 
 @dataclass(frozen=True)
@@ -135,6 +139,25 @@ def normalize_operator_live_box_dimensions(
     }
 
 
+
+def normalize_operator_base_plate_edge_shrink(raw: object) -> float:
+    """Validate an editable BasePlate physical edge shrink, in millimetres.
+
+    The old GUI forbade negative shrink. Preserve valid zero/fractional edits,
+    but reject raw bool and nonfinite sources before any Settings/DXF staging.
+    Source-derived Receiving BasePlate cannot use this manual edit operation.
+    """
+    if isinstance(raw, bool):
+        raise ValueError("底板四邊縮量必須是非負有限數值")
+    try:
+        result = float(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("底板四邊縮量必須是非負有限數值") from exc
+    if not math.isfinite(result) or result < 0:
+        raise ValueError("底板四邊縮量必須是非負有限數值")
+    return result
+
+
 def normalize_operator_settings_updates(
     settings_values: Mapping[str, object],
     updates: Mapping[str, object] | None,
@@ -154,6 +177,8 @@ def normalize_operator_settings_updates(
             continue
         if key in PHYSICAL_DIMENSION_KEYS:
             value: object = _positive_physical_dimension(raw, key)
+        elif key in BASE_PLATE_EDGE_SHRINK_KEYS:
+            value = normalize_operator_base_plate_edge_shrink(raw)
         elif isinstance(settings_values.get(key), bool):
             value = normalize_operator_settings_boolean(raw)
         else:
@@ -186,6 +211,9 @@ def commit_operator_settings_state(
     for key in PHYSICAL_DIMENSION_KEYS:
         if key in committed:
             committed[key] = _positive_physical_dimension(committed[key], key)
+    for key in BASE_PLATE_EDGE_SHRINK_KEYS:
+        if key in committed:
+            committed[key] = normalize_operator_base_plate_edge_shrink(committed[key])
     for key, raw in tuple(committed.items()):
         if key in settings_values and isinstance(settings_values[key], bool):
             committed[key] = normalize_operator_settings_boolean(raw)

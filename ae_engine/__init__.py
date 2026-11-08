@@ -43,6 +43,7 @@ from .manufacturing_api import (
     operator_canonical_family_name, project_operator_linked_endcap_source_snapshot,
     project_operator_part_dimension_settings_overlay,
     normalize_operator_live_box_dimensions,
+    normalize_operator_base_plate_edge_shrink,
     operator_corner_data_back_panel_mode_applicable,
     operator_family_fixes_box_body_structure,
     operator_box_body_profile_uses_outside_dimensions,
@@ -383,6 +384,7 @@ from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
     "operator_vault_panel_name_editor_allowed",
+    "normalize_operator_base_plate_edge_shrink",
     "normalize_receiving_operator_connection_counts",
     "project_operator_engineering_drawing_annotations",
     "project_operator_feature_surface_from_drawing_scene",
