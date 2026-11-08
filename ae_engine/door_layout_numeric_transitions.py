@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from math import isfinite
 from typing import Sequence
 
+from .operator_settings_transactions import normalize_operator_settings_boolean
 from .sheetmetal_part_adapters import (
     complete_partition,
     validate_door_layout_dimensions,
@@ -100,6 +101,38 @@ def resolve_operator_door_layout_cell(cells, column_index, row_index):
     return matches[0]
 
 
+def _normalized_auto_columns(columns: Sequence[DoorLayoutColumnState]) -> tuple[DoorLayoutColumnState, ...]:
+    """Trust no raw auto/fixed flags before physical Door partitions are built.
+
+    Reuse the original public Settings boolean source contract, so serialized
+    "false" remains fixed rather than Python's bool("false") == True.
+    Reject any invalid row flags or arity before using zip() or geometry.
+    """
+    normalized = []
+    try:
+        source = tuple(columns)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("DOOR_LAYOUT_AUTO_SOURCE_INVALID") from exc
+    for column in source:
+        try:
+            heights = tuple(column.heights)
+            flags = tuple(column.height_auto)
+            width_auto = normalize_operator_settings_boolean(column.width_auto)
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise ValueError("DOOR_LAYOUT_AUTO_SOURCE_INVALID") from exc
+        if not heights or len(heights) != len(flags):
+            raise ValueError("DOOR_LAYOUT_AUTO_ROWS_MISMATCH")
+        try:
+            height_auto = tuple(normalize_operator_settings_boolean(flag) for flag in flags)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("DOOR_LAYOUT_AUTO_SOURCE_INVALID") from exc
+        normalized.append(DoorLayoutColumnState(
+            width=column.width, width_auto=width_auto,
+            heights=heights, height_auto=height_auto,
+        ))
+    return tuple(normalized)
+
+
 def recompute_door_layout(
     columns: Sequence[DoorLayoutColumnState],
     *,
@@ -107,6 +140,7 @@ def recompute_door_layout(
     total_height: float,
     selected_key: str,
 ) -> DoorLayoutRecomputeResult:
+    columns = _normalized_auto_columns(columns)
     total_width = _positive_total("W", total_width)
     total_height = _positive_total("H", total_height)
     fixed_columns = [column for column in columns if not column.width_auto]
@@ -183,6 +217,7 @@ def validate_width_commit(
     total_width: float,
     current: float,
 ) -> DoorLayoutCommitValidation:
+    columns = _normalized_auto_columns(columns)
     total_width = _positive_total("W", total_width)
     current = _positive_total("欄寬", current)
     column_index = _physical_cell_index("門片欄位", column_index, len(columns))
@@ -210,6 +245,7 @@ def validate_height_commit(
     total_height: float,
     current: float,
 ) -> DoorLayoutCommitValidation:
+    columns = _normalized_auto_columns(columns)
     total_height = _positive_total("H", total_height)
     current = _positive_total("高度", current)
     column_index = _physical_cell_index("門片欄位", column_index, len(columns))
