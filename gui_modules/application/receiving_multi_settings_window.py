@@ -983,7 +983,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 chosen_bay = applied["selected_bays"][0]
                 try:
                     base_ports = get_nfb_transaction_ports()
-                    base_ready = bool(
+                    base_ready = manufacturing_api.normalize_operator_settings_boolean(
                         base_ports["state"](set_index, chosen_bay).get("base_partial_ready")
                     )
                 except (ValueError, TypeError, KeyError, IndexError, OSError):
@@ -996,9 +996,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                                     or tuple(applied["selected_bays"]) != (chosen_bay,)):
                                 raise ValueError("NFB 底板輸出連位已切換，請重新選擇")
                             live_ports = get_nfb_transaction_ports()
-                            if not live_ports["state"](
-                                set_index, chosen_bay
-                            ).get("base_partial_ready"):
+                            if not manufacturing_api.normalize_operator_settings_boolean(
+                                live_ports["state"](
+                                    set_index, chosen_bay
+                                ).get("base_partial_ready")
+                            ):
                                 raise ValueError("NFB 底板實體選型／提交驗證已失效")
                             from tkinter import filedialog
                             folder = filedialog.askdirectory(
