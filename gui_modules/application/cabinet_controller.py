@@ -98,6 +98,23 @@ def _restore_cabinet_family_runtime(self, state):
     multi_door_enabled = manufacturing_api.normalize_operator_settings_boolean(
         state["multi_door_enabled"] if "multi_door_enabled" in state else False
     )
+    # A Door cell is physical manufacturing source. Validate the complete
+    # serialized grid before *any* Settings/Corner/Workspace mutation. Never
+    # float(True) into a manufactured 1-mm door when the GUI restores a preset.
+    layout = []
+    for row in state.get("door_layout_columns") or ():
+        if not isinstance(row, (list, tuple)) or len(row) != 2:
+            raise ValueError("已保存門格格式無效")
+        width, heights = row
+        if not isinstance(heights, (list, tuple)) or not heights:
+            raise ValueError("已保存門格每欄至少需要一層高度")
+        layout.append((
+            manufacturing_api.normalize_operator_source_dimension(width, field="w"),
+            [
+                manufacturing_api.normalize_operator_source_dimension(height, field="h")
+                for height in heights
+            ],
+        ))
     # Decode saved sources only via public Engine rules. Physical dimensions
     # and explicit output switches reject malformed data before GUI mutation;
     # historic nonphysical Fold numeric defaults retain Engine's skip-invalid
@@ -135,9 +152,8 @@ def _restore_cabinet_family_runtime(self, state):
         stable = assembly_intent_value(self.assembly_joint_state.get("assembly_type", "INSERT_OVERLAY"))
         self.box_assembly_type_var.set(assembly_intent_label(stable))
     self.multi_door_enabled_var.set(multi_door_enabled)
-    layout = list(state.get("door_layout_columns") or [])
     if layout:
-        self.set_door_layout_columns([(float(row[0]), [float(v) for v in row[1]]) for row in layout])
+        self.set_door_layout_columns(layout)
     else:
         self.door_layout_columns = []
     self.door_layout_scope = str(state.get("door_layout_scope") or "main")

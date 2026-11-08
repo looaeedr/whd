@@ -107,3 +107,79 @@ def test_capture_does_not_silently_replace_invalid_door_source_with_empty_layout
     assert "manufacturing_api.normalize_operator_source_dimension(height, field=\"h\")" in source
     assert "except Exception:" not in source
     assert "float(width)" not in source
+    restore = inspect.getsource(cabinet._restore_cabinet_family_runtime)
+    assert "self.set_door_layout_columns(layout)" in restore
+    assert "float(row[0])" not in restore
+    assert restore.index('manufacturing_api.normalize_operator_source_dimension(width, field="w")') < restore.index("self._apply_fold_designer_live_settings(")
+
+
+class TrackedVar(Var):
+    def __init__(self, value, writes):
+        super().__init__(value)
+        self.writes = writes
+
+    def set(self, value):
+        self.writes.append(("multi", value))
+        self.value = value
+
+
+def restore_host():
+    app, events = host([], profile=[{"phase6_key": "profile"}])
+    app._apply_fold_designer_live_settings = (
+        lambda values, **kw: events.append(("settings", dict(values)))
+    )
+    app._apply_manual_corner_snapshot = (
+        lambda *args: events.append(("corners", args))
+    )
+    app.multi_door_enabled_var = TrackedVar("false", events)
+    app.set_door_layout_columns = (
+        lambda values: events.append(("layout", deepcopy(values)))
+    )
+    app.workspace_controller.set_box_body_structure_state = (
+        lambda value: events.append(("structure", value))
+    )
+    app.workspace_controller.set_box_body_profile = (
+        lambda value: events.append(("profile", value))
+    )
+    return app, events
+
+
+@pytest.mark.parametrize("bad", [
+    [True, [1600.5]], ["nan", [1600.5]],
+    [400, [True]], [400, [0]],
+    [400, ["inf"]], [400, []],
+    ["invalid-row"], "invalid-row",
+])
+def test_restore_rejects_bad_saved_door_cell_before_any_physical_side_effect(bad):
+    app, events = restore_host()
+    payload = {
+        "settings": {"w": "800.125", "draw_stock": "false"},
+        "multi_door_enabled": "true",
+        "door_layout_columns": [[400, [1600.5]], bad],
+    }
+    before = deepcopy(payload)
+    with pytest.raises((ValueError, TypeError)):
+        cabinet._restore_cabinet_family_runtime(app, payload)
+    assert events == []
+    assert payload == before
+
+
+def test_restore_uses_same_public_engine_dimensions_for_json_saved_door_grid():
+    app, events = restore_host()
+    source = {
+        "settings": {"w": "800.125", "draw_stock": "false"},
+        "multi_door_enabled": "true",
+        "door_layout_columns": [["400.125", ["800.25", "800.25"]],
+                                ["400", ["1600.5"]]],
+    }
+    raw = json.loads(json.dumps(source, ensure_ascii=False))
+    cabinet._restore_cabinet_family_runtime(app, raw)
+    saved = next(row[1] for row in events if row[0] == "layout")
+    expected = [
+        (api.normalize_operator_source_dimension(width, field="w"),
+         [api.normalize_operator_source_dimension(h, field="h") for h in heights])
+        for width, heights in raw["door_layout_columns"]
+    ]
+    assert saved == expected
+    assert events[0][0] == "settings"
+    assert raw == source
