@@ -12,6 +12,12 @@ whd_schema: WHD_DOC_META_V1
 - 現由既有 `ae_engine.operator_settings_transactions` 新增 `normalize_operator_base_plate_edge_shrink(raw)`，經 `manufacturing_api`／根包同一 callable 公開；沿用 GUI 原本禁止負縮量的實體規則，接受零與合法小數毫米，拒絕布林、負值、非有限與非法字串。這個 Engine validator **僅限手動縮量操作**，GUI 在 stage 前拒絕非法來源；原 `normalize_operator_settings_updates` 與 `commit_operator_settings_state` 的通用 Fold／INI 相容路徑保留負數、原 skip 語意及有效小數，不能因手動欄位的操作限制改寫其他來源契約。
 - 保留 `manufacturing_api.operator_base_plate_edge_shrink_editable` 已有的 Family 身分硬閘門；受電箱底板來源導出、不得提供手動縮量欄位，金庫型按已存在四邊入口操作。定向測試 `tests/test_issue2517_base_plate_shrink_raw_public_engine.py` 核對公開 helper／GUI 操作、非法輸入原子性、Receiving 禁止手動編輯、零與小數精度、通用 Fold 負數相容及 JSON Save→Reload 同義。不新增底板 CUTTING／BEND／DXF 公式、Factory、Topology、認證或 Project schema；#2517 其他 API 與 Windows UAT 仍需續驗。
 
+## [CURRENT] #2517 Fold Designer 截角 T 係數與成對開關直通 Engine（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_registry_edges.corner_target_var_changed` 與已獨立修復的主 GUI `gui_modules/parts/panels/assembly_corner.selection_from_manual_corner_controls` 在呼叫原 Engine Corner 交易／`CornerTypeSelection` 前先對 `amount_t`、`secondary_retain_t`、`secondary_depth_t` 做 `float(TkVar.get())`；布林 `True` 因而變成 1.0T，繞過原 `sheetmetal_geometry_core.CornerTypeSelection` 對 boolean/nonfinite 製造截角參數的拒絕。Fold Designer `corner_pair_var_changed` 還以 `bool("false")` 誤將保存的獨立角組合成同一對角。
+- 沿用已合入 #3108 的公開 `manufacturing_api.commit_corner_parameters` 原始輸入交易／主 GUI 修正，及原 `commit_corner_pair`、`CornerTypeSelection`：Fold Designer GUI 只轉送原始 Tk 參數，不預先 `float()`，讓原 `CornerTypeSelection` 驗證真正參與切孔的 T 係數；合法序列化小數保留精度，非法／布林／非有限參數拒絕且不改已提交狀態。成對旗標原樣由 Engine `normalize_operator_settings_boolean` 判定，非法來源 GUI 不執行狀態通知。對無作用的附加欄位保留原 CornerTypeSelection 現有拓樸語意，不新增第二套公式。
+- `tests/test_issue2517_corner_raw_controls_public_engine.py` 覆蓋 Head/Tail 成對 Corner 實體身份、公開 Engine 與兩個 GUI 入口的 raw/非法來源、1.75T 有效精度及 JSON Save→Reload 不變。Factory、Family、Certified Registry、Corner CUTTING／BEND、同源 2D／3D／DXF 算法及 schema 未更改，正式 Product Regression／Windows UAT 仍依既有門檻驗收；#2517 其他 GUI 製造 API 入口繼續核對。
+
 ## [CURRENT] #2517 Door grid 舊 GUI callback 物理孔身分重映射禁止提前轉型（2026-11-08）
 
 - 原 `door_layout_host_adapter._remap_door_layout_owned_data` 先用 `int(target[0/1])` 轉換舊 positional callback 的目的座標，`(True, 0)` 與 `(1.5, 0)` 都可能錯當 `1:0`；原 `ae_engine.door_layout_physical_remap.remap_receiving_door_layout_after_delete(operation="map_cells")` 只驗字串型別，`{"0:0": "invalid"}` 可進入 cell store，最後在 physical alias 重建時靜默略過，遺失真實 Door 孔的所有權。
