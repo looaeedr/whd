@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 External Settings monotonic revision 原始來源由公開 Engine 嚴格核對（2026-11-08）
+
+- `ae_engine.operator_settings_transactions.plan_operator_external_sync` 是 Fold Designer 接收 Main GUI Settings 更新的既有唯一公開 Engine 判定 owner；原 `int(envelope.revision)` 對 JSON 布林 `true`、浮點 `2.5`、`2.0` 會將原始非整數版本轉成可接受整數，可能搶先佔用 revision 或把較舊/非法製造設定當作新交易。GUI 路徑 `phase6_settings_transitions.plan_external_sync` 與 `Phase6SettingsTransactionService.plan_external_sync` 均沿用該公開 API，無需新 owner。
+- Engine 入口現在對外部原始 revision 只接收原生非 bool 整數及合法 ASCII 整數字串（保留舊有可解析前後空白／正負號）；拒絕布林、浮點截斷、NaN/Inf、底線數字別名、非整數字串及容器，統一返回原 `INVALID_REVISION` 計畫且不更新 service revision、transaction ID 或製造 Settings。未提供、空字串、None 仍與原有 revision 0 過期處理相容；有效交易維持 `STALE_REVISION`、`OK`、`WRONG_ORIGIN` 原回值與舊同步資料欄位。
+- `tests/test_issue2517_external_sync_revision_raw_engine.py` 驗公開 Engine 與 GUI 相同結果、非法來源不消耗 revision、合法整數字串與遞增／過期次序及 JSON Save→Reload；不改任何 Factory／CUTTING／DXF 製造計算，#2517 整體 API 覆蓋與 Windows UAT 尚未宣稱完成。
+
 ## [CURRENT] #2517 外部 Settings 同步與最終 Engine Commit 的 T／FW 必須同 W/H/D 硬拒絕非法來源（2026-11-08）
 
 - 既有公開 `ae_engine.operator_settings_transactions.normalize_operator_source_dimension` 已對 W/H/D/T/FW 做正有限、拒絕 bool 的實體輸入規則；然而 `normalize_operator_settings_updates` 的外部同步與 `commit_operator_settings_state` 的最終交易只對 W/H/D 檢驗，讓外部 T/FW 的 nan、零與負值被略過或直接寫入保存來源，繞過 GUI Panel 及最新 Stage Service 的來源硬閘門。
