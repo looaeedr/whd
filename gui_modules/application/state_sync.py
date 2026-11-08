@@ -358,16 +358,20 @@ def setting_var_map(self):
 
 
 def collect_main_setting_values(self):
-    values = self.settings_service.snapshot().as_dict()
-    for key, var in self._setting_var_map().items():
-        try:
-            if isinstance(var, tk.BooleanVar):
-                values[key] = bool(var.get())
-            else:
-                values[key] = float(var.get())
-        except (TypeError, ValueError, tk.TclError):
-            pass
-    return self.settings_service.update(values).as_dict()
+    """Read every manufacturing field through the public Engine before commit.
+
+    An invalid raw field must not silently reuse its last committed value
+    while newer fields enter the physical manufacturing snapshot.
+    """
+    raw = {key: var.get() for key, var in self._setting_var_map().items()}
+    current = self.settings_service.snapshot().as_dict()
+    physical = manufacturing_api.normalize_operator_source_dimensions(raw)
+    other_raw = {key: value for key, value in raw.items() if key not in physical}
+    other = manufacturing_api.normalize_operator_settings_updates(current, other_raw)
+    missing = other_raw.keys() - other.keys()
+    if missing:
+        raise ValueError(f"Invalid operator manufacturing fields: {', '.join(sorted(missing))}")
+    return self.settings_service.update({**physical, **other}).as_dict()
 
 
 def serialize_corner_selection(raw_selection):
@@ -406,7 +410,18 @@ def on_main_setting_var_changed(self, key, var):
     if getattr(self, "_settings_sync_guard", False):
         return
     try:
-        value = bool(var.get()) if isinstance(var, tk.BooleanVar) else float(var.get())
+        raw = var.get()
+        if key in manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS:
+            value = manufacturing_api.normalize_operator_source_dimension(
+                raw, field=key,
+            )
+        else:
+            normalized = manufacturing_api.normalize_operator_settings_updates(
+                self.settings_service.snapshot().as_dict(), {key: raw},
+            )
+            if key not in normalized:
+                return
+            value = normalized[key]
     except (TypeError, ValueError, tk.TclError):
         return
     # Stage physical FW before committing Settings. Failed or non-finite
