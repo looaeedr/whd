@@ -17,6 +17,8 @@ import math
 from enum import Enum
 from typing import Mapping
 
+from .operator_settings_transactions import normalize_operator_settings_boolean
+
 
 class BoxBodyStructureType(str, Enum):
     """箱身正式結構型態。"""
@@ -577,14 +579,24 @@ def apply_box_body_structure_numeric(
     state: Mapping[str, object],
     type_id: object,
     field: str,
-    value: float,
+    value: object,
     *,
-    total_w: float,
-    outside_family: bool = False,
+    total_w: object,
+    outside_family: object = False,
 ) -> dict:
+    """Validate original physical BoxBody sources before editing canonical state.
+
+    Old GUI float() coercion could turn Boolean 1-mm and NaN into real relief
+    or split dimensions. Outside-family is an Engine policy boolean, not the
+    truthiness of a serialized string such as "false".
+    """
     kind = BoxBodyStructureType(type_id)
     field = str(field)
-    value = float(value)
+    value = _finite_dimension(value, field=f"箱身結構 {field}")
+    total_w = _finite_dimension(total_w, field="箱身總寬")
+    if total_w <= 0:
+        raise ValueError("箱身總寬必須大於 0")
+    outside_family = normalize_operator_settings_boolean(outside_family)
     if (
         kind is BoxBodyStructureType.TWO_PIECE_W_SPLIT
         and field in {"left", "right"}
