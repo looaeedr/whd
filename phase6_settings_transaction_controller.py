@@ -314,8 +314,8 @@ class Phase6SettingsTransactionController:
         self,
         part_key: str,
         *,
-        reserve_u: float,
-        reserve_v: float,
+        reserve_u: object,
+        reserve_v: object,
     ) -> dict:
         result = settings_transitions.bottom_wrap(
             self._input_snapshot,

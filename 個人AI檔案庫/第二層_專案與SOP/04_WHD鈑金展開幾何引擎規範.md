@@ -2089,6 +2089,12 @@ Validation 維持單向：contact probe、collision、fixture expected、pytest 
 
 ---
 
+## [CURRENT] #2517 Receiving Head/Tail 下方 WRAP 預留量原始輸入禁止 GUI 或 Engine 靜默截為零（2026-11-08）
+
+- `fold_designer_bridge._phase6_commit_receiving_bottom_wrap_controls` 原在送原公開 `operator_endcap_bottom_wrap` 前先執行 `max(0.0, float(TkVar.get()))`；Engine 原 `operator_endcap_bottom_wrap` 亦提前 `float()`，而低層公開 `commit_endcap_bottom_wrap` 對負值截為零。這使 `True` 可成為 1mm、負值成為 0mm、非有限值越過輸入邊界，改變 Receiving 下方 WRAP 的真正 L 型預留與 Joint 裝配間隙。
+- 沿用原 `ae_engine.endcap_bottom_wrap_state.commit_endcap_bottom_wrap` 實體 Head/Tail LINKED／FOLLOW／INDEPENDENT 交易與原公開 `manufacturing_api.operator_endcap_bottom_wrap`。在唯一 Engine owner 先完整驗證兩軸的非布林、非負、有限毫米來源（含合法 0 與小數）；不合法在 mode／Head／Tail 修改前拒絕。公開 operator transaction 需要兩軸來源，不先 `float()`，Controller／Phase6 Settings adapter 只轉送 raw。GUI 保持原無效輸入不提交的行為，成功才清快取／刷新 3D。
+- 本批只針對**新的操作提交** fail-closed，舊保存 `normalize_endcap_bottom_wrap_state`／readback 相容投影不擅自改變；CURRENT 07 的 STANDARD 15×15、已確認 WRAP 預留 2／1 → 28×14+15×1 公式、Family／Registry／正式 CUTTING／DXF 均不改。`tests/test_issue2517_bottom_wrap_raw_reserve_engine_api.py` 驗 Engine 直接呼叫、GUI 真 callback、設定交易不部分提交、合法零／小數 Save→Reload、錯誤來源不改當前 Joint／快照。#2517 全面覆蓋及 Windows UAT 尚未結案。
+
 ## [CURRENT] #2517 多門格自動補寬／補高旗標由既有 Engine Door Layout 交易解碼（2026-11-08）
 
 - 原 `gui_modules/application/door_layout_host_adapter._new_door_layout_column` 和 `_door_layout_controller_columns` 用 `bool(width_auto)`／`bool(height_auto)` 決定固定或自動補足門格；序列化字串 `"false"` 會變 `True`，使 400mm 固定門格從 `recompute_door_layout` 輸入被排除、影響真實 Door cell ID、尺寸與後續孔位來源。這不是 UI 文字判定，而是物理分片拓樸，權威必須留在 Engine。

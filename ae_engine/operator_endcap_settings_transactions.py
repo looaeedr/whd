@@ -119,17 +119,21 @@ def operator_endcap_bottom_wrap(
     endcap_bottom_wrap_state: Mapping[str, object] | None,
     part_key: str,
     *,
-    reserve_u: float,
-    reserve_v: float,
+    reserve_u: object,
+    reserve_v: object,
 ) -> OperatorBottomWrapTransition:
     """Copy-on-write WRAP reserve commit with Engine Joint-aware readback."""
     snapshot = deepcopy(dict(input_snapshot))
     state = deepcopy(dict(endcap_bottom_wrap_state or {}))
     if not state:
         state.update(normalize_endcap_bottom_wrap_state(snapshot))
+    # The public operator transaction requires both original reserve inputs;
+    # do not erase bool/NaN/negative evidence before the canonical Engine gate.
+    if reserve_u is None or reserve_v is None:
+        raise ValueError("WRAP 預留量必須提供 X／Y 原始來源")
     commit_endcap_bottom_wrap(
         state, str(part_key),
-        reserve_u=float(reserve_u), reserve_v=float(reserve_v),
+        reserve_u=reserve_u, reserve_v=reserve_v,
     )
     snapshot["endcap_bottom_wrap"] = deepcopy(state)
     resolved = resolve_endcap_bottom_wrap(snapshot, str(part_key), state=state)
