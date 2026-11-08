@@ -15,7 +15,6 @@ from __future__ import annotations
 # Complete Matplotlib projection registration before any lazy art3d import.
 # Importing mpl_toolkits.mplot3d.art3d first can circularly import
 # matplotlib.projections and leave the global registry without Axes3D.
-from phase6_fold_profiles import _num
 from ae_engine import manufacturing_api
 
 from phase6_final_scene_contracts import (
@@ -306,7 +305,12 @@ class Phase6FinalSceneViewAdapter:
 
         snapshot = dict(dependencies.input_snapshot() or {})
         settings = dict(dependencies.settings_values() or {})
-        thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
+        # T remains a physical source even for a presentation-only scene.
+        # Do not turn a malformed saved value into an invented 2-mm sheet.
+        thickness = manufacturing_api.normalize_operator_source_dimension(
+            settings["t"] if "t" in settings else snapshot.get("t", 2.0),
+            field="t",
+        )
         formed_text = dependencies.formed_size_text
         blank_text = dependencies.blank_text
         dimensions = dependencies.operator_dimensions
@@ -391,7 +395,12 @@ class Phase6FinalSceneViewAdapter:
 
         snapshot = dict(dependencies.input_snapshot() or {})
         settings = dict(dependencies.settings_values() or {})
-        thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
+        # T remains a physical source even for a presentation-only scene.
+        # Do not turn a malformed saved value into an invented 2-mm sheet.
+        thickness = manufacturing_api.normalize_operator_source_dimension(
+            settings["t"] if "t" in settings else snapshot.get("t", 2.0),
+            field="t",
+        )
         alpha_bend = float(dependencies.alpha_bend())
         dimensions = dependencies.operator_dimensions
         view_mode = str(dependencies.display_mode() or "single")
@@ -440,7 +449,9 @@ class Phase6FinalSceneViewAdapter:
             alpha_bend=alpha_bend,
             finished_dimensions=dimensions(None),
             thickness=(
-                float(render_data.metadata["thickness"])
+                manufacturing_api.normalize_operator_source_dimension(
+                    render_data.metadata["thickness"], field="t",
+                )
                 if active_part.startswith("base_plate:fixing_plate:")
                 and isinstance(getattr(render_data, "metadata", None), dict)
                 and "thickness" in render_data.metadata
