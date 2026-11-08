@@ -53,7 +53,10 @@ from .engineering_drawing import (
     build_engineering_drawing_projection as project_operator_engineering_drawing_annotations,
 )
 # Operator panel naming: public input boundary, independent of geometry.
-from .panel_naming import normalize_panel_name, set_cabinet_panel_name
+from .panel_naming import (
+    normalize_panel_name, set_cabinet_panel_name,
+    operator_vault_panel_name_editor_allowed,
+)
 from .panel_dxf_naming import vault_panel_dxf_filename
 from .receiving_layout import rename_receiving_panel
 

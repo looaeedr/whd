@@ -8,6 +8,7 @@ import tkinter as tk
 import math
 from collections.abc import Mapping
 from tkinter import ttk, messagebox
+from ae_engine import manufacturing_api
 from whd_theme import configure_tk_menu
 
 def collect_door_input(payload):
@@ -141,7 +142,9 @@ def rebuild_door_layout_ui(host):
                     activebackground=host.COLOR_PANEL, activeforeground="#ff6b6b"
                 ).pack(side=tk.LEFT, padx=(1, 0))
 
-            if str(host.baseline_var.get() or "").strip() in {"受電箱", "RECEIVING"}:
+            if manufacturing_api.receiving_family_supports_back_panel_mode(
+                {"model": host.baseline_var.get()}
+            ):
                 cell_key = f"{column_index}:{row_index}"
                 inner_var = tk.BooleanVar(
                     master=host.root,

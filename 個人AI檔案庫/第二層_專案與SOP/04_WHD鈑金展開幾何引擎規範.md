@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Vault 盤名／Receiving 內門欄位以 Engine Family Registry 決定 UI 編輯資格（2026-11-08）
+
+- `phase6_settings_panel.Phase6SettingsPanel.refresh_panel_name/commit_panel_name` 與 `fold_designer_composition_receiving.commit_vault_panel_name` 原以 GUI 硬編碼 `"金庫型"` 比對 Family；`gui_modules/parts/panels/door.rebuild_door_layout_ui` 則用 `{"受電箱","RECEIVING"}` 決定是否建立內門勾選／內退控制列。這些並非 GUI 格式檢查，而是 Registered Family 操作資格；合法 `VAULT`、大小寫混合 `ReCeIvInG` 等別名會錯誤消失控制項或拒絕輸入。
+- Engine 原 `cabinet_types.policy.canonical_family_name` 仍為唯一 Registry 權威；新增無狀態公開 `ae_engine.panel_naming.operator_vault_panel_name_editor_allowed(source_model)`（`manufacturing_api` 與根包同一 callable），使 Vault 單箱盤名的三個 GUI 入口只依 Engine 決定編輯資格，盤名提交仍由原 `set_cabinet_panel_name` 驗證並回傳 detached 候選。受電箱多門格內門控制直接重用**既有**公開 `manufacturing_api.receiving_family_supports_back_panel_mode` Registry 身分投影，不新建另一個 InnerDoor Family 規則；後續已確認 Bay／NFB／孔位／DXF 仍照原 Engine 能力審查。
+- `tests/test_issue2517_gui_family_operator_controls_public_api.py` 覆蓋 Vault／Receiving 別名與未知箱型、公開 API root callable、Tk 真實盤名／內門欄位顯示、合法操作提交、已保存來源不突變及 GUI 不再硬判身份。這只是 UI 編輯資格 API 缺口修正，不改箱型註冊、幾何公式、PartSpec、2D／3D／DXF 或 Save→Reload schema，#2517 全面 API 和 Windows 實機仍另驗。
+
+
 ## [CURRENT] #2517 Door Indicator 舊檔顯示修復投影由 Engine 公開 API 接管（2026-11-08）
 
 - 原 `gui_modules/parts/panels/door.normalize_door_indicator_state` 在 GUI 自行判斷舊版指示燈 `mode/enabled/box_enabled`、層數／群組及偏移值；它對壞來源回退畫面預設，和製造必須拒絕非法實體孔位的規則分成兩份實作。當 GUI 將修復的顯示資料誤用作開孔輸入時，會憑空把非法 `False` 組數轉成 2 組燈。此次只移動**顯示相容投影**，絕不可讓它作為正式 Save 或 Factory 資料來源。
