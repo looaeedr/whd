@@ -746,12 +746,19 @@ class Phase6FoldDesignerApp(original.MainApp):
 
     def load_phase6_snapshot(self, snapshot: Mapping[str, object]):
         snapshot = _phase6_snapshot_with_settings_fallback(snapshot)
+        # Validate all physical finished outside dimensions before any loaded
+        # project source, Fold or UI cache is replaced. Never use get_int()
+        # as an invalid-input fallback or round fractional operator W/H/D.
+        manufacturing_api.normalize_operator_live_box_dimensions(snapshot)
         _phase6_replace_mapping(self, "_phase6_input_snapshot", dict(snapshot))
         self._phase6_receiving_set_bay_adapter = None
         if _phase6_receiving_layout_applicable(self):
             _phase6_receiving_adapter(self, reset=True)
             _phase6_sync_receiving_current_bay(self, validate_common=False)
             snapshot = dict(self._phase6_input_snapshot)
+        # For Receiving, the just-resolved authoritative Bay may have its own
+        # dimensions; validate the final physical source before opening tabs.
+        physical = manufacturing_api.normalize_operator_live_box_dimensions(snapshot)
         stored = snapshot.get("box_body_profile")
         if stored:
             self.state.profiles_vault["箱身"] = merge_box_body_profile(stored, snapshot)
@@ -760,9 +767,9 @@ class Phase6FoldDesignerApp(original.MainApp):
         endcap = build_endcap_profile(snapshot)
         self.state.profiles_vault["封頭"] = clone_profile(endcap)
         self.state.profiles_vault["封尾"] = clone_profile(endcap)
-        self.state.w = original.get_int(snapshot.get("w", self.state.w))
-        self.state.h = original.get_int(snapshot.get("h", self.state.h))
-        self.state.d = original.get_int(snapshot.get("d", self.state.d))
+        self.state.w = physical["w"]
+        self.state.h = physical["h"]
+        self.state.d = physical["d"]
         self.v_w.set(str(self.state.w))
         self.v_h.set(str(self.state.h))
         self.v_d.set(str(self.state.d))
@@ -812,6 +819,11 @@ class Phase6FoldDesignerApp(original.MainApp):
         return original.MainApp.do_update(self)
 
     def export_phase6_snapshot(self) -> dict:
+        # This legacy direct Save path is still consumed by FIX10/11 callers.
+        # Validate the live physical dimensions before writing any Fold state.
+        physical = manufacturing_api.normalize_operator_live_box_dimensions({
+            "w": self.v_w.get(), "h": self.v_h.get(), "d": self.v_d.get(),
+        })
         self.bend_ui.save()
         result = dict(self._phase6_input_snapshot)
         result.update(read_box_body_profile(self.state.profiles_vault["箱身"], self._phase6_input_snapshot))
@@ -820,7 +832,9 @@ class Phase6FoldDesignerApp(original.MainApp):
         if head != tail:
             raise ValueError("Phase6 目前封頭/封尾共用同一組折彎值，兩個分頁必須一致")
         result.update(head)
-        result["h"] = original.get_int(self.v_h.get())
+        # Manual Fold materials are resolved by Engine; never let their
+        # rounded GUI display readback override physical finished W/H/D.
+        result.update(physical)
         result["box_body_profile"] = clone_profile(self.state.profiles_vault["箱身"])
         result["head_profile"] = clone_profile(self.state.profiles_vault["封頭"])
         result["tail_profile"] = clone_profile(self.state.profiles_vault["封尾"])
