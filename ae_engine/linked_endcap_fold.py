@@ -8,6 +8,9 @@ reverse bend ownership. No TK/phase6 import or new CUTTING/relief constants.
 from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
+from dataclasses import dataclass
+from .assembly_intent import normalize_assembly_intent_id
+from .operator_settings_transactions import normalize_operator_source_dimension
 from .box_body_fold_profile import (
     BOX_BODY_TURNS as _BOX_BODY_TURNS, _num, _ui_len, _common_dimension_len,
     build_box_body_profile, apply_outside_dimension_compensation,
@@ -15,7 +18,7 @@ from .box_body_fold_profile import (
 from .cabinet_types import policy as cabinet_family_policy
 from .endcap_factory_fold import (
     ENDCAP_FW_PARTS, normalize_endcap_fw_state, resolve_endcap_fw,
-    build_endcap_xy_fold_profiles,
+    build_endcap_xy_fold_profiles, resolve_endcap_assembly_type,
 )
 
 
@@ -237,3 +240,69 @@ def build_linked_endcap_xy_fold_profiles(snapshot: Mapping[str, object], box_pro
         "tail": {"X": clone_profile(defaults["tail"]["X"]), "Y": tail_y},
     }
 
+
+
+@dataclass(frozen=True)
+class OperatorLinkedEndcapLivePlan:
+    """Detached Engine-approved live source and Head/Tail Fold projection."""
+
+    snapshot: dict[str, object]
+    profiles: dict[str, dict[str, list[dict[str, object]]]]
+
+
+def plan_operator_linked_endcap_live_profiles(
+    input_snapshot: Mapping[str, object],
+    settings_values: Mapping[str, object],
+    live_box_whd: Mapping[str, object],
+    box_profile: Sequence[Mapping[str, object]],
+    *,
+    corner_state: Mapping[str, object] | None = None,
+    corner_pair_same: Mapping[str, object] | None = None,
+    assembly_type: object = None,
+    endcap_fw_state: Mapping[str, object] | None = None,
+) -> OperatorLinkedEndcapLivePlan:
+    """Resolve live mating Fold using one Engine Family and source precedence.
+
+    Saved Setting W/H/D are seeds for Receiving; its active BoxBody/Bay
+    physical W/H/D override them. Vault keeps the original Settings source.
+    GUI never decides that manufacturing difference via model display text.
+    The existing canonical arbitrary-Fold owner derives all output geometry.
+    """
+    if not isinstance(input_snapshot, Mapping):
+        raise ValueError("LINKED_ENDCAP_SNAPSHOT_REQUIRED")
+    if not isinstance(settings_values, Mapping):
+        raise ValueError("LINKED_ENDCAP_SETTINGS_REQUIRED")
+    if not isinstance(live_box_whd, Mapping):
+        raise ValueError("LINKED_ENDCAP_LIVE_DIMENSIONS_REQUIRED")
+    if corner_state is not None and not isinstance(corner_state, Mapping):
+        raise ValueError("LINKED_ENDCAP_CORNER_STATE_REQUIRED")
+    if corner_pair_same is not None and not isinstance(corner_pair_same, Mapping):
+        raise ValueError("LINKED_ENDCAP_CORNER_PAIR_STATE_REQUIRED")
+    if endcap_fw_state is not None and not isinstance(endcap_fw_state, Mapping):
+        raise ValueError("LINKED_ENDCAP_FW_STATE_REQUIRED")
+
+    snapshot = deepcopy(dict(input_snapshot))
+    snapshot.update(deepcopy(dict(settings_values)))
+    if cabinet_family_policy.canonical_family_name(snapshot) == "受電箱":
+        for axis in ("w", "h", "d"):
+            if axis in live_box_whd:
+                snapshot[axis] = normalize_operator_source_dimension(
+                    live_box_whd[axis], field=axis,
+                )
+    snapshot["corner_state"] = deepcopy(dict(corner_state or {}))
+    snapshot["corner_pair_same"] = deepcopy(dict(corner_pair_same or {}))
+    intent = (
+        resolve_endcap_assembly_type(snapshot)
+        if assembly_type is None else assembly_type
+    )
+    snapshot["assembly_type"] = normalize_assembly_intent_id(intent)
+    snapshot["endcap_fw"] = (
+        deepcopy(dict(endcap_fw_state))
+        if endcap_fw_state is not None
+        else normalize_endcap_fw_state(snapshot)
+    )
+    linked = build_linked_endcap_xy_fold_profiles(snapshot, box_profile)
+    return OperatorLinkedEndcapLivePlan(
+        snapshot=deepcopy(snapshot),
+        profiles=deepcopy(linked),
+    )
