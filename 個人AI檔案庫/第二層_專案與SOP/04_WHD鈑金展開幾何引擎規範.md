@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI BoxBody 與 Head/Tail 展開摘要由公開 Engine Blank Topology 量測（2026-11-08）
+
+- 原 gui_modules/application/calculation_controller.update_calculations 在 GUI 對 RenderData 材料 bbox 各軸相減；這忽略 Engine 已有的 UnfoldedBlankTopology 料鏈權威，局部截角挖除最外角時可能把製造 blank 誤縮。多片箱身 exploded preview 不得當成一片 blank。
+- 唯一 owner ae_engine/manufacturing_render_data.py 增加公開只讀 project_operator_main_blank_summary_dimensions(render_data, *, part_key)：箱身由原 canonical_strip_render_data（多片但無 strip 則拒絕）量摘要，封頭／封尾讀 committed final sheet；所有數字透過原 measure_unfolded_blanks，先使用 UnfoldedBlankTopology，僅 legacy 無拓樸可退回既有材料量測。manufacturing_api 及根包公開同一 callable，GUI 僅格式化結果；不改 Factory、BEND、CUTTING 或 DXF 寫出。
+- tests/test_issue2517_main_blank_summary_public_api.py 覆蓋真 PartRenderData、multipart canonical strip 與 exploded 不混用、relief 面積不改 blank 尺寸、GUI delegate 與非法來源拒絕；既有 GUI mock 改用真 Shapely 材料。#2517 全部功能覆蓋及 Windows UAT 仍未完成。
+
 ## [CURRENT] #2517 Settings Panel 即時 W/H/D/T／Fold／Relief 草稿值須經公開 Engine 驗證後才暫存（2026-11-08）
 
 - `phase6_settings_panel.Phase6SettingsPanel` 原本在上方全域 W/H/D/T 與右側設定 Numeric `trace_add` callback 以 `float(raw)` 將輸入直接送到 `Phase6SettingsService.stage_setting_update`；該暫存服務會立即改寫 `settings_values`／`input_snapshot`，因此可讀的 `nan`／`inf` 在下游 Engine 檢核前就污染製造草稿，物理 T=0 或負數亦可提前進入，且上方值對比的 GUI 1e-9 容差會忽略合法小數變更。

@@ -834,6 +834,7 @@ from .manufacturing_render_data import (
     UnfoldedBlankInfo,
     _measure_one_unfolded_blank,
     measure_unfolded_blanks,
+    project_operator_main_blank_summary_dimensions,
     BoxBodyPieceRenderData,
     BoxBodyStructureRenderData,
     material_polygon_from_final_scene,
