@@ -101,23 +101,14 @@ def settings_context_extension_projection(self, namespace, context):
     cross_corner_mode = required("CrossCornerMode")
 
     def endcap_fw_projection(part_key):
-        part_key = str(part_key)
         snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
         snapshot.update(dict(getattr(app, "_settings_values", {}) or {}))
-        state = app._phase6_endcap_fw_state.setdefault(
-            part_key,
-            {
-                "follow_box": True,
-                "value": required("_num")(snapshot.get("fw", 25), 25),
-            },
-        )
+        row = manufacturing_api.project_operator_endcap_fw_controls(
+            app._phase6_endcap_fw_state, snapshot.get("fw", 25),
+        )[str(part_key)]
         return {
-            "follow": bool(state.get("follow_box", True)),
-            "effective": required("resolve_endcap_fw")(
-                snapshot,
-                part_key,
-                state=app._phase6_endcap_fw_state,
-            ),
+            "follow": row["follow_box"],
+            "effective": row["display_fw"],
         }
 
     def box_structure_projection():
@@ -458,30 +449,14 @@ def sync_settings_panel_extension(
         context in required("ENDCAP_FW_PARTS")
         and state.get("endcap_fw_follow_var") is not None
     ):
-        snapshot = dict(
-            getattr(app, "_phase6_input_snapshot", {}) or {}
-        )
-        snapshot.update(
-            dict(getattr(app, "_settings_values", {}) or {})
-        )
-        fw_state = app._phase6_endcap_fw_state.setdefault(
-            context,
-            {
-                "follow_box": True,
-                "value": required("_num")(
-                    snapshot.get("fw", 25), 25
-                ),
-            },
-        )
-        follow = bool(fw_state.get("follow_box", True))
-        effective = required("resolve_endcap_fw")(
-            snapshot,
-            context,
-            state=app._phase6_endcap_fw_state,
-        )
-        state["endcap_fw_follow_var"].set(follow)
+        snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+        snapshot.update(dict(getattr(app, "_settings_values", {}) or {}))
+        row = manufacturing_api.project_operator_endcap_fw_controls(
+            app._phase6_endcap_fw_state, snapshot.get("fw", 25),
+        )[context]
+        state["endcap_fw_follow_var"].set(row["follow_box"])
         state["endcap_fw_value_var"].set(
-            required("_setting_number_text")(effective)
+            required("_setting_number_text")(row["display_fw"])
         )
         try:
             state["endcap_fw_widget"].configure(state="normal")
