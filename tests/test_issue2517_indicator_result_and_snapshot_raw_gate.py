@@ -37,7 +37,8 @@ def host(*, box=True, door=False, multi=False, layers="2",
         is_box_dist_var=Var(False),
         door_layout_selected_var=Var("0:0"),
         door_layout_indicator_states=deepcopy(saved),
-        get_door_layout_cells=lambda: (),
+        get_door_layout_cells=lambda: tuple(saved),
+        _door_layout_cell_key=lambda cell: cell,
         _normalize_door_indicator_state=lambda _: pytest.fail(
             "saved physical groups must not use GUI display repair"
         ),
