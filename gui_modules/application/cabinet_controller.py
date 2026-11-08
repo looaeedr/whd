@@ -455,44 +455,61 @@ def get_float_values(self):
 
 
 def _active_indicator_box_groups_for_results(self):
-    """Return groups only when the currently relevant Door really uses an Indicator Box.
+    """Show only Engine-validated physical groups for the relevant Door.
 
-    Single-Door follows the explicit Indicator-Box toggle. Multi-Door follows
-    only the currently selected cell, so an unrelated cell cannot leak box
-    dimensions into the result panel.
+    This is a read-only result projection, never a source for creating holes.
+    Hidden controls are irrelevant; an active malformed physical group must
+    not be clamped, defaulted, or repaired by the presentation adapter.
     """
-    if self.multi_door_enabled_var.get():
+    multi = manufacturing_api.normalize_operator_settings_boolean(
+        self.multi_door_enabled_var.get()
+    )
+    if multi:
         key = str(self.door_layout_selected_var.get() or "")
         state = self.door_layout_indicator_states.get(key)
-        if not state:
+        if state is None:
             return None
-        state = self._normalize_door_indicator_state(state)
-        if state.get("mode") != "indicator_box":
-            return None
-        layers = max(1, min(6, int(state.get("layers", 1))))
-        groups = tuple(int(v) for v in list(state.get("groups", ()))[:layers])
+        source = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(
+            state
+        )
     else:
-        if not self.is_indicator_box_var.get():
+        if not manufacturing_api.normalize_operator_settings_boolean(
+            self.is_indicator_box_var.get()
+        ):
             return None
-        layers = max(1, min(6, int(self.indicator_l_var.get())))
-        groups = tuple(int(self.indicator_layer_g_vars[i].get()) for i in range(layers))
-    if not groups or any(value <= 0 for value in groups):
+        # Only group counts participate in this UI summary. Neutral offset
+        # fields are not persisted and never authorize a CUTTING feature.
+        source = manufacturing_api.normalize_operator_hole_editor_indicator_state({
+            "mode": "indicator_box",
+            "layers": self.indicator_l_var.get(),
+            "groups": [var.get() for var in self.indicator_layer_g_vars],
+            "offset_x": 0.0,
+            "offset_y": 0.0,
+            "is_box_dist": False,
+        })
+    if source["mode"] != "indicator_box":
         return None
-    return groups
+    return tuple(source["groups"][:source["layers"]])
+
 
 def _has_any_indicator_box(self):
-    """True only when at least one real Door/cell is configured as Indicator Box."""
-    if not self.multi_door_enabled_var.get():
-        return bool(self.is_indicator_box_var.get())
+    """Detect real Indicator Boxes without GUI truthiness or saved-state repair."""
+    if not manufacturing_api.normalize_operator_settings_boolean(
+        self.multi_door_enabled_var.get()
+    ):
+        return manufacturing_api.normalize_operator_settings_boolean(
+            self.is_indicator_box_var.get()
+        )
     try:
         keys = [self._door_layout_cell_key(cell) for cell in self.get_door_layout_cells()]
     except Exception:
         keys = list(getattr(self, "door_layout_indicator_states", {}).keys())
+    states = getattr(self, "door_layout_indicator_states", {})
     for key in keys:
-        state = self._normalize_door_indicator_state(
-            getattr(self, "door_layout_indicator_states", {}).get(key)
+        source = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(
+            states.get(key)
         )
-        if state.get("mode") == "indicator_box":
+        if source["mode"] == "indicator_box":
             return True
     return False
 
