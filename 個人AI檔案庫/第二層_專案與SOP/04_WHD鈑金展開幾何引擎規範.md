@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Hole Editor 開孔參考距離非負有限值須由公開 Engine 管理（2026-11-08）
+
+- 原 `gui_modules/editors/hole_editor.HoleEditorReferenceActions.apply_reference_value` 自行將 X／Y 邊／鄰孔距離做 `float()`、`isfinite()` 與負值拒絕；同一物理移孔 operation 的 `ae_engine.sheetmetal_feature_reference.move_feature_by_reference_distance` 雖驗有限與非布林，卻允許負距離直接幾何移孔，造成 GUI 與 headless API 對同一操作者輸入結果不一致。
+- 沿用原 `ae_engine.sheetmetal_feature_reference` owner 新增 `normalize_operator_hole_reference_distance(value)`，透過 `manufacturing_api` 與根包公開同一 callable，統一有限、非布林、非負距離（0 與合法小數保留），並由原 `move_feature_by_reference_distance` 執行相同驗證才可改實體 Hole Feature。GUI 只轉送原始輸入並呈現錯誤，不再持有製造距離規則。缺少選取／空字串仍是 UI 操作空動作。FeatureSurface、CUTTING／MARKING、Anchor、Save→Reload、DXF Writer 與 Factory／Registry 不改。
+- `tests/test_issue2517_hole_reference_distance_engine_api.py` 驗合法／非法距離的公開 Engine＋實際幾何入口、金庫型／受電箱共用 GUI Event 與 Session 不變、壞來源不執行移孔、合法小數移孔與靜態反向再生檢查；其餘 #2517 與 Windows UAT 仍需續驗。
+
 ## [CURRENT] #2517 GUI 開孔入口的實體板件路由必須使用公開 Engine 身分投影（2026-11-08）
 
 - 原 `gui_modules/editors/hole_editor.open_part_hole_editor` 在 GUI 使用 `startswith`／正規式／金庫型與受電箱字串判斷 Head/Tail、單格門、箱身實體子板、底板 NFB 固定片、內門與 CustomFold 應走哪個編輯器；甚至在辨識非法板件身分**之前**呼叫 Workspace `set_active_part`。這是物理板件操作入口的身分判斷，不該由 GUI 複製。
