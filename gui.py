@@ -1406,7 +1406,12 @@ class Phase6ApplicationHost:
     def _commit_receiving_inner_door_checkbox(self, cell_key):
         key = str(cell_key or "").strip()
         var = dict(getattr(self, "door_layout_inner_door_vars", {}) or {}).get(key)
-        enabled = bool(var.get()) if var is not None else False
+        if var is None:
+            # A missing checkbox is not an authored "disable inner door".
+            raise ValueError("內門選取控制不存在，拒絕變更實體板件")
+        # The public Engine interprets raw operator/serialized booleans.
+        # Do not let bool("false") turn an authored disable into enable.
+        enabled = manufacturing_api.normalize_operator_settings_boolean(var.get())
         self._set_receiving_inner_door_enabled(key, enabled)
         entry = dict(getattr(self, "door_layout_inner_door_offset_entries", {}) or {}).get(key)
         if entry is not None:
@@ -1668,7 +1673,10 @@ class Phase6ApplicationHost:
 
     def on_indicator_box_toggle(self):
         """Indicator Box toggle also owns physical box/small-door presence."""
-        enabled = bool(self.is_indicator_box_var.get())
+        # Qualify the exact UI flag before changing either physical part.
+        enabled = manufacturing_api.normalize_operator_settings_boolean(
+            self.is_indicator_box_var.get()
+        )
         if enabled:
             self._disable_all_door_indicators()
         self._phase6_set_part_presence("indicator_box", enabled)
@@ -1677,7 +1685,11 @@ class Phase6ApplicationHost:
 
     def on_door_indicator_toggle(self):
         """Direct Door indicators exclude the Indicator-Box opening mode without hiding its tabs."""
-        if self.is_door_indicator_var.get():
+        # The saved/textual "false" flag is not Python truthiness.
+        enabled = manufacturing_api.normalize_operator_settings_boolean(
+            self.is_door_indicator_var.get()
+        )
+        if enabled:
             self._disable_indicator_box_for_door_indicator()
         self._request_phase6_update("geometry")
 

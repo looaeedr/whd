@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI 實體內門與 Indicator 板件啟用旗標只能經公開 Engine 原始布林驗證（2026-11-08）
+
+- `gui.Phase6ApplicationHost._commit_receiving_inner_door_checkbox` 原以 `bool(var.get())` 推算內門實體啟用，`"false"` 會誤判為 True；欄位不存在又會直接假定 False，導致無操作員明確停用指令就刪除原有內門物理來源。`on_indicator_box_toggle`、`on_door_indicator_toggle` 亦在使用者切換實體 Indicator 板件／排他狀態前自行套 Python truthiness。
+- 現 GUI 僅取得 Tk/序列化原始值，先送既有公開 `manufacturing_api.normalize_operator_settings_boolean`（根源為 `operator_settings_transactions`），再呼叫原 Engine `apply_operator_receiving_inner_door_presence`（嚴格 bool、原子來源交易）或原 Workspace UI 交付。來源遺失或非法值拒絕且不改內門列、Indicator 板件狀態、快取與 UI；合法 False 與 True 均保留原製造語意。所有 Checkbox 的物理身分仍由原 Engine／Door layout owner 判斷，無第二套 Family／孔／折／DXF 公式。
+- `tests/test_issue2517_main_gui_part_presence_boolean_engine.py` 覆蓋有效序列化真/假、原生 bool/Tk control、invalid/missing input fail-closed、內門資料不變／UI 不提前產生副作用、Indicator 排他狀態與公開 API 呼叫證據。與既有 Receiving atomic source、JSON Save→Reload 測試共同驗收；未獲 Windows UAT，#2517 全面 API 覆蓋仍需逐項查核。
+
 ## [CURRENT] #2517 主 GUI BoxBody 與 Head/Tail 展開摘要由公開 Engine Blank Topology 量測（2026-11-08）
 
 - 原 gui_modules/application/calculation_controller.update_calculations 在 GUI 對 RenderData 材料 bbox 各軸相減；這忽略 Engine 已有的 UnfoldedBlankTopology 料鏈權威，局部截角挖除最外角時可能把製造 blank 誤縮。多片箱身 exploded preview 不得當成一片 blank。
