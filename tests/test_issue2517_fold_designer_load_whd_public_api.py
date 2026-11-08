@@ -148,7 +148,7 @@ def test_legacy_fold_export_keeps_real_live_whd_not_rounded_core(monkeypatch):
         ("820.25", "1600.5", "360.75"),
     ):
         var.set(value)
-    result = bridge.Phase6FoldDesignerApp.export_phase6_snapshot(app)
+    result = bridge._FIX10_EXPORT(app)
     assert (result["w"], result["h"], result["d"]) == (
         820.25, 1600.5, 360.75,
     )
@@ -162,5 +162,5 @@ def test_legacy_export_bad_whd_rejects_before_bend_save(bad, monkeypatch):
     app, actions = _host()
     app.v_h = SimpleNamespace(get=lambda: bad)
     with pytest.raises((TypeError, ValueError)):
-        bridge.Phase6FoldDesignerApp.export_phase6_snapshot(app)
+        bridge._FIX10_EXPORT(app)
     assert actions == []
