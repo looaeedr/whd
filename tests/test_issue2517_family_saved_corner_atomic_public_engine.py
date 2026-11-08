@@ -141,3 +141,16 @@ def test_family_controller_preflights_public_corner_engine_before_settings_commi
         source.index("self._apply_fold_designer_live_settings(")
     )
     assert "from ae_engine.corner_type_ui import" not in source
+
+
+def test_empty_saved_corner_still_detects_corrupt_certified_live_tail_before_settings():
+    app, events = host("金庫型")
+    app.manual_corner_state["tail"].pop("bottom_right")
+    before = deepcopy(app.manual_corner_state)
+    payload = saved(corners={}, pairs={})
+    original = deepcopy(payload)
+    with pytest.raises((KeyError, ValueError)):
+        cabinet._restore_cabinet_family_runtime(app, payload)
+    assert events == []
+    assert app.manual_corner_state == before
+    assert payload == original
