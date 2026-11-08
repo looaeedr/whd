@@ -3,6 +3,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from shapely.geometry import box
+from ae_engine.manufacturing_api import PartRenderData
 
 from ae_engine import base_plate_blank_dimensions, manufacturing_api
 from ae_engine.sheetmetal_part_adapters import build_base_plate_result
@@ -61,7 +63,7 @@ class _Host:
     def _box_body_part_spec(self, values):
         return "box"
     def _authoritative_render_data(self, spec, context):
-        return SimpleNamespace(material=SimpleNamespace(bounds=(0, 0, 420, 320)))
+        return PartRenderData(scene=object(), material=box(0, 0, 420, 320))
     def _manufacturing_context(self, **kwargs):
         return None
     def _baseline_source_model(self):
