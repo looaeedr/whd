@@ -11,6 +11,7 @@ from copy import deepcopy
 from .panel_naming import normalize_panel_name, PANEL_NUMBER_RE
 from ae_engine.receiving_shared_settings import normalize_set_settings, setting_value
 from typing import Mapping
+import re
 
 RECEIVING_LAYOUT_SCHEMA = "receiving-layout-v1"
 RECEIVING_RUNTIME_SELECTION_KEY = "_receiving_runtime_selection"
@@ -90,6 +91,24 @@ def new_receiving_layout(*, width: object, height: object, depth: object, back_p
             }
         ],
     }
+
+
+def normalize_receiving_operator_topology_integer(value: object, *, name: str) -> int:
+    """Validate original operator Set/Bay/Joint integer text without ID aliases.
+
+    Selection state remains a GUI concern; this Engine boundary only validates
+    the physical topology index/count source, preserving legacy decimal Tk text.
+    Python int("1_0") is 10, but that is not a real operator-authored Bay ID.
+    Range/physical existence are still enforced by the owning transactions.
+    """
+    if type(value) is int:
+        return value
+    if isinstance(value, str) and re.fullmatch(r"[+-]?[0-9]+", value):
+        try:
+            return int(value)
+        except (ValueError, OverflowError) as exc:
+            raise ValueError(f"Receiving {name} must be an integer") from exc
+    raise ValueError(f"Receiving {name} must be an integer")
 
 
 def normalize_receiving_operator_connection_counts(raw_counts) -> tuple[int, ...]:
