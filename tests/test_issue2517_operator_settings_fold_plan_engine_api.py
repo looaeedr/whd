@@ -93,3 +93,54 @@ def test_engine_settings_plan_has_no_phase6_or_tk_runtime_dependency():
     assert "manufacturing_api.plan_operator_settings_fold_profiles(" in start
     assert "build_endcap_xy_profiles(" not in start
     assert "merge_keyed_profiles(" not in start
+
+
+
+@pytest.mark.parametrize("flag_name", ["reset_box_profile", "reset_all_profiles"])
+@pytest.mark.parametrize("invalid", ["false", "true", "0", 0, 1, 1.0, None])
+def test_saved_fold_reset_rejects_non_boolean_raw_source_across_engine_and_gui(
+    flag_name, invalid,
+):
+    source = {"model": "金庫型", "w": 800, "h": 1100, "d": 300, "t": 2, "fw": 29}
+    kwargs = {
+        "settings_values": {},
+        "input_snapshot": source,
+        "available_parts": ("box_body", "door"),
+        "active_part": "door",
+        flag_name: invalid,
+    }
+    before = deepcopy(kwargs)
+    with pytest.raises(ValueError, match=flag_name):
+        api.plan_operator_settings_fold_profiles(**kwargs)
+    with pytest.raises(ValueError, match=flag_name):
+        build_settings_profile_projection(SettingsProfileProjectionRequest(**kwargs))
+    assert kwargs == before
+
+
+@pytest.mark.parametrize("reset", [False, True])
+def test_saved_operator_door_fold_reset_is_explicit_engine_transaction(reset):
+    source = {"model": "受電箱", "w": 800, "h": 1100, "d": 300, "t": 2, "fw": 29}
+    initial = api.plan_operator_settings_fold_profiles(
+        settings_values={}, input_snapshot=source,
+        available_parts=("box_body", "door"),
+    )
+    saved = deepcopy(initial["part_profiles"])
+    extra = {"len": 7.0, "angle": -90, "custom_note": "operator saved fold"}
+    saved["door"]["X"].append(extra)
+    kwargs = {
+        "settings_values": {},
+        "input_snapshot": deepcopy(initial["snapshot"]),
+        "available_parts": ("box_body", "door"),
+        "existing_profiles": saved,
+        "box_body_profile": initial["box_body_profile"],
+        "active_part": "door",
+        "reset_box_profile": False,
+        "reset_all_profiles": reset,
+    }
+    before = deepcopy(kwargs)
+    direct = api.plan_operator_settings_fold_profiles(**kwargs)
+    gui_plan = build_settings_profile_projection(SettingsProfileProjectionRequest(**kwargs))
+    gui_profiles = materialize_settings_profile_value(gui_plan.part_profiles)
+    assert gui_profiles == direct["part_profiles"]
+    assert (extra in direct["part_profiles"]["door"]["X"]) is (not reset)
+    assert kwargs == before
