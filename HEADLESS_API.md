@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Fold Designer part-dimension Settings precedence public Engine API (2026-11-08)
+
+ae_engine.manufacturing_api.project_operator_part_dimension_settings_overlay(input_snapshot, settings_values) is the exact same callable as ae_engine.operator_settings_transactions.project_operator_part_dimension_settings_overlay and root ae_engine. It returns a detached Settings overlay excluding W/H/D for canonical Receiving Family (including registered case-insensitive aliases), since these remain committed Bay/Quantity snapshot dimensions. Vault/Custom retain the original Settings W/H/D override. The GUI _phase6_recalculate_part_dimensions consumes only this Engine source projection before its existing Engine project_part_dimensions call. There is no new geometry algorithm, source mutation, manufacturing entitlement, DXF output or project schema. Regression: tests/test_issue2517_part_dimension_settings_source_public_api.py.
+
 ## #2517 Canonical Receiving Bay source for linked Head/Tail Fold (2026-11-08)
 
 ae_engine.manufacturing_api.project_operator_linked_endcap_source_snapshot(input_snapshot, settings_values, working_box) -> dict is the identical callable at root ae_engine. It returns a detached Head/Tail Fold source. The Engine Family Registry, not GUI string matching, resolves 受電箱/RECEIVING/case variants. Receiving's current W/H/D override stale Settings, after existing finite positive non-bool physical-dimension checks. Vault/Custom retain Settings precedence. Caller inputs remain unchanged. fold_designer_bridge._phase6_rebuild_linked_endcaps consumes the result and delegates Fold topology to the existing manufacturing_api.build_linked_endcap_xy_fold_profiles. This adds no manufacturing or DXF authorization and changes no storage schema. Regression: tests/test_issue2517_linked_endcap_live_source_public_api.py.
