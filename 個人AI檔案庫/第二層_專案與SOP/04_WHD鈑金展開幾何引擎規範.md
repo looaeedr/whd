@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Head/Tail／Divider 手動截角 Pair 的序列化布林由原 Engine 交易判定（2026-11-08）
+
+- 原 `ae_engine.corner_state_transactions.ensure_corner_part` 對舊 Project／INI 的 `corner_pair_same.top/bottom` 僅補缺席預設而未正規化既有字串值。已保存的 `"false"` 在 GUI Settings 的 pair 分支會被判成 True，使應分開的左右實體角在讀取時合併顯示；直接公開 `commit_corner_pair(..., enabled="false")` 原也誤把字串當 True，複製左角至右角。
+- 現沿用同一 Engine 已存在的 `normalize_operator_settings_boolean`，`ensure_corner_part` 先對兩個 Pair 旗標在 detached source 一次驗證，合法 `"false"/"off"/0` 轉 False、`"true"/"on"/1` 轉 True，非法來源 fail closed。原 `commit_corner_pair` 同樣採 Engine 解析後決定是否複製實體右角；GUI 只消費既有公開 Engine 交易與左右實體角身份投影。舊版缺席仍預設 True，Factory／Registry、截角幾何公式、2D／3D／DXF 與 Project schema 不變。
+- `tests/test_issue2517_corner_pair_serialized_boolean_engine.py` 驗金庫型／受電箱可通用的 Head/Tail/Divider 成對身份、合法序列化布林、非法值與來源原子性、獨立角不被覆蓋、Save→Reload 以及 Fold Designer Settings 真 GUI 讀取；#2517 其他 GUI 製造入口與 Windows 實機仍需持續查核。
+
+
 ## [CURRENT] #2517 Door Indicator 舊檔顯示修復投影由 Engine 公開 API 接管（2026-11-08）
 
 - 原 `gui_modules/parts/panels/door.normalize_door_indicator_state` 在 GUI 自行判斷舊版指示燈 `mode/enabled/box_enabled`、層數／群組及偏移值；它對壞來源回退畫面預設，和製造必須拒絕非法實體孔位的規則分成兩份實作。當 GUI 將修復的顯示資料誤用作開孔輸入時，會憑空把非法 `False` 組數轉成 2 組燈。此次只移動**顯示相容投影**，絕不可讓它作為正式 Save 或 Factory 資料來源。
