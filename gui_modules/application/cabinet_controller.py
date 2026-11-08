@@ -174,7 +174,7 @@ def _restore_cabinet_family_runtime(self, state):
     # injected _apply_manual_corner_snapshot callback.
     live_corners = getattr(self, "manual_corner_state", None)
     live_pairs = getattr(self, "manual_corner_pair_same", None)
-    if live_corners is not None or live_pairs is not None:
+    if live_corners is not None and live_pairs is not None:
         model_var = getattr(self, "baseline_var", None)
         manufacturing_api.propose_operator_saved_manual_corner_snapshot(
             live_corners, live_pairs,
