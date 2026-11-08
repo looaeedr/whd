@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI 25 項製造數值輸入統一公開 Engine 實體／Fold 驗證（2026-11-08）
+
+- 原 `gui_modules/application/cabinet_controller.get_float_values` 是主 GUI 計算、單門／多門 Hole Editor 及 PartSpec 共同數值入口；逐項 `float(TkVar.get())` 先把布林 True 變成 1.0，也讓 NaN／Inf 越過入口，直到下游才可能拒絕。主 GUI 不應消除原始製造來源的錯型證據。
+- 原 25 項 TkVar 的操作順序不變，改將 raw 來源交給既有 `manufacturing_api.normalize_operator_source_dimensions` 驗 W/H/D/T/FW 正有限值，再以 `manufacturing_api.normalize_operator_settings_updates` 驗其餘 Fold／Gap／BasePlate 有限值；任何欄位被略過皆禁止返回部分資料供 2D／3D／DXF。Vault 手動底板非負限制作為另一條操作約束，不能侵入一般 Fold／INI 負數相容，沿用 #3112 契約；不新增主幾何公式。
+- `tests/test_issue2517_main_gui_numeric_source_public_engine.py` 覆蓋 GUI／headless 全 25 欄 parity、W/H/D 小數精度、負折邊及負縮量相容、非法 bool/nonfinite 來源 fail-closed、不突變、JSON Save→Reload。PartSpec、Topology、Registry、CUTTING／BEND／DXF Writer 均未改。#2517 其他入口及 Windows UAT 持續待驗。
+
 ## [CURRENT] #2517 Registry 截角一／二段拓樸須由公開 Engine 原始來源驗證（2026-11-08）
 
 - 原 `gui_modules/application/fold_designer_composition_registry_edges.registry_collect_rule_form` 先將候選 `topology_levels` 做 `int(float(TkVar.get()))`；`1.9` 被截斷為 1 段、`True` 被當成 1 段、`0` 被悄悄改為預設段數。原 `certified_relief_registry._validate_editable_rule_record` 同樣使用 `int(...)`，headless API 可以接受有害的原始拓樸。這是 Certified Registry 候選對 AssemblyJoint/Corner 幾何段數的來源資格，不可由 GUI 提前造出合法候選。
