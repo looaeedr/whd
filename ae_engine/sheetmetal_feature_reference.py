@@ -389,6 +389,8 @@ def _round_pattern_pitch(feature: CircleFeature, driver: str, value: float) -> f
     if driver == "center":
         pitch = value
     elif driver == "gap":
+        if value < 0:
+            raise ValueError("間距不可小於 0")
         pitch = circle_center_distance_from_gap(value, feature.diameter, feature.diameter)
     else:
         raise ValueError("driver must be center or gap")

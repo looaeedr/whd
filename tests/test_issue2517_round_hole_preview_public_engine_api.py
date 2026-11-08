@@ -140,7 +140,7 @@ def test_gui_pattern_consumes_engine_preview_and_does_not_derive_positions(monke
     dialog.status_var = Field("")
     dialog._refresh_all = lambda: None
     dialog._apply_pattern()
-    assert observed[0]["direction"] == "right" and observed[0]["value"] == 25
+    assert observed[0]["direction"] == "right" and observed[0]["value"] == "25"
     assert len(source) == 3
     assert dialog.status_var.get() == "預覽：3 孔；填滿。"
     session.execute(HoleEditorAction.cancel_active())
