@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 實體 W/H/D 輸入由公開 Engine 驗證（2026-11-08）
+
+- 舊版 fold_designer_bridge._fix11_do_update / _sync_active_endcap_and_global_whd 透過 fold_designer_original.get_int 把操作員輸入的包外 W/H/D 先做整數 round；非法值回落至 0，再流入 BoxBody／Head／Tail 的已提交來源。這不是 GUI 格式驗證，而是製造尺寸篡改；應 fail closed 並保留操作小數。
+- 唯一 Engine operator_settings_transactions.normalize_operator_live_box_dimensions({w,h,d}) 利用既有 normalize_operator_source_dimension 對三軸一併驗證大於零的有限、非 bool 原始值，再回傳 detached W/H/D float；manufacturing_api 與 ae_engine 根包公開完全同一 callable。GUI 不再使用 original.get_int 讀取包外三軸，也不產生第二份數值公式；BoxBody 先完成全欄驗證，才允許 Receiving Bay 提交；其他實體板件亦然。
+- Head/Tail 先驗三軸與 previous W/D，再將原始精度送入既有公開 Engine reconcile_endcap_live_outside_dimensions；Fold Profile 與 EndCap Core 的拓樸／折型取捨仍由 Engine 負責，不增加任何製造身份、CUTTING、BEND、Factory、Registry、DXF 型態或 Save→Reload schema。Windows RED→GREEN tests/test_issue2517_live_box_dimension_source_public_api.py。
+
 ## [CURRENT] #2517 Fold Designer 尺寸重算的 Receiving Settings W/H/D 優先序由公開 Engine（2026-11-08）
 
 - fold_designer_bridge._phase6_recalculate_part_dimensions 原以 GUI Family 分支判斷是否忽略舊版 Settings W/H/D，再重算實體板件尺寸；這是製造來源選擇，不應留在 UI。新增 operator_settings_transactions.project_operator_part_dimension_settings_overlay(input_snapshot, settings_values) -> detached dict，並由 manufacturing_api、ae_engine 根包公開同一 callable；保留金庫型／自訂 Settings 優先序，Receiving Family（含大小寫別名）只保留非 W/H/D 更新，現行 Bay 尺寸仍以原 Snapshot 為準。
