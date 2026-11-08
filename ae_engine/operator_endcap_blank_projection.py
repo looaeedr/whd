@@ -10,6 +10,7 @@ from collections.abc import Mapping
 
 from . import ae
 from .cabinet_types import policy as cabinet_family_policy
+from .operator_settings_transactions import normalize_operator_source_dimension
 
 
 def project_operator_endcap_blank_dimensions(
@@ -46,7 +47,7 @@ def read_operator_baseline_fold_defaults(
     Door DXF exists but fails to parse, retain the previous UI's four display
     defaults while leaving the EndCap read failure visible to the caller.
     """
-    t = float(thickness)
+    t = normalize_operator_source_dimension(thickness, field="t")
     geom = ae.get_stretched_end_cap_data(
         model_name, 500, 500, 150, t, FW_val=None, is_tail=False,
     )
