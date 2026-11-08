@@ -2470,6 +2470,7 @@ from .receiving_shared_settings import (
     switch_filenames_in_layer as receiving_nfb_switch_filenames_in_layer,
     pack_switch_layer as pack_receiving_nfb_switch_layer,
     project_receiving_shared_setting_group,
+    normalize_receiving_operator_inner_door_layer_choice,
     edit_setting as edit_receiving_shared_setting,
     edit_setting_for_bays as edit_receiving_shared_setting_for_bays,
     edit_setting_for_bays_with_affected_ids as edit_receiving_shared_setting_for_bays_with_affected_ids,

@@ -342,7 +342,10 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
             )
         elif not load_value and kind == "inner_door_layers":
             value, matches = manufacturing_api.project_receiving_shared_setting_group(
-                current, index, kind, preview_value=int(value_var.get()),
+                current, index, kind,
+                preview_value=manufacturing_api.normalize_receiving_operator_inner_door_layer_choice(
+                    value_var.get()
+                ),
             )
         else:
             value, matches = manufacturing_api.project_receiving_shared_setting_group(
@@ -434,7 +437,13 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
         if kind in ("head_features", "tail_features"):
             ports["holes"]("head" if kind == "head_features" else "tail", sorted(pending))
         else:
-            value = mode_labels[value_var.get()] if kind == "back_panel_mode" else int(value_var.get())
+            value = (
+                mode_labels[value_var.get()]
+                if kind == "back_panel_mode"
+                else manufacturing_api.normalize_receiving_operator_inner_door_layer_choice(
+                    value_var.get()
+                )
+            )
             ports["change"](kind, value, sorted(pending))
 
     setting_actions = []
