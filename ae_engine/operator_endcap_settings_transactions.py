@@ -16,7 +16,9 @@ from .endcap_bottom_wrap_state import (
     resolve_endcap_bottom_wrap,
 )
 from .endcap_factory_fold import (
-    ENDCAP_FW_PARTS, commit_operator_box_fw_takeover, commit_endcap_fw,
+    ENDCAP_FW_PARTS, FW_FOLLOW_HEAD, FW_FOLLOW_TAIL,
+    commit_operator_box_fw_takeover, commit_endcap_fw,
+    normalize_endcap_fw_state, project_operator_endcap_fw_controls,
     set_endcap_fw_follow,
 )
 from .operator_settings_transactions import (
@@ -50,6 +52,60 @@ def project_operator_box_fw_live_state(
     state = deepcopy(dict(endcap_fw_state))
     if previous != requested:
         commit_operator_box_fw_takeover(state, requested)
+    return state
+
+
+
+def commit_operator_baseline_endcap_fw(
+    state: dict[str, object], raw_box_fw: object,
+) -> dict[str, object]:
+    """Apply a loaded Vault baseline FW without stealing Head/Tail control.
+
+    Baseline reload is not an operator's explicit box-FW takeover. Preserve
+    the four-state owner and update only physically following rows. Validate
+    both saved rows before touching any live dictionary or nested GUI alias.
+    """
+    if type(state) is not dict:
+        raise ValueError("ENDCAP_BASELINE_FW_STATE_REQUIRED")
+    for part in ENDCAP_FW_PARTS:
+        if part in state and type(state[part]) is not dict:
+            raise ValueError("ENDCAP_FW_SOURCE_ROW_INVALID")
+
+    box_fw = normalize_operator_source_dimension(raw_box_fw, field="fw")
+    # The original read-only projection validates serialized follow_box and
+    # inactive physical FW. It must run BEFORE legacy normalize_endcap_fw_state
+    # because bool("false") in the old compatibility reader is True.
+    rows = project_operator_endcap_fw_controls(state, box_fw)
+    candidate = deepcopy(state)
+    for part in ENDCAP_FW_PARTS:
+        if part in candidate:
+            candidate[part]["follow_box"] = rows[part]["follow_box"]
+
+    canonical = normalize_endcap_fw_state({
+        "fw": box_fw, "endcap_fw": candidate,
+    })
+    for part in ENDCAP_FW_PARTS:
+        row = candidate.setdefault(part, {})
+        row["follow_box"] = canonical[part]["follow_box"]
+        if row["follow_box"] or canonical["mode"] in (
+            FW_FOLLOW_HEAD, FW_FOLLOW_TAIL,
+        ):
+            # FOLLOW_BODY / legacy follower follows this new box FW.
+            # FOLLOW_HEAD/TAIL keeps the existing leader's physical value.
+            row["value"] = canonical[part]["value"]
+    if "mode" in candidate:
+        candidate["mode"] = canonical["mode"]
+    project_operator_endcap_fw_controls(candidate, box_fw)
+
+    for part in ENDCAP_FW_PARTS:
+        if part not in state:
+            state[part] = candidate[part]
+        else:
+            # Preserve live Head/Tail row references used by the GUI.
+            state[part].clear()
+            state[part].update(candidate[part])
+    if "mode" in state:
+        state["mode"] = candidate["mode"]
     return state
 
 
