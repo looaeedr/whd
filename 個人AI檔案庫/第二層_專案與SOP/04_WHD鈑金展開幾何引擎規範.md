@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 多連設定的實體 Set/Bay 選取與盤名只經公開 Engine（2026-11-08）
+
+- `fold_designer_composition_receiving.open_receiving_multi_settings` 原本在選連、改盤名、讀既有設定與門板來源標記的 callback 中先執行 `int(set_index)`／`int(bay_index)`；bool、fraction、或過期連位可被當成另一實體來源，其中先切換 Set 再發現 Bay 無效還會留下部分 GUI 選取。
+- 既有 `receiving-layout-v1` Engine owner 提供只讀公開 `project_receiving_operator_set_bay_selection(layout, *, set_index, bay_index)`，公開 facade／根包指向同一 callable。它沿用 `project_receiving_operator_set_preview_target` 和 `normalize_receiving_operator_topology_integer`，先確認兩個實體索引與既存連數，返回 detached `set_index`、`set_id`、`bay_index`。GUI 四個 callback 只接受返回的已驗來源，再進行原有 UI 選擇或既有 Engine rename／投影；非法來源不可修改 Layout 或留下部分選取。
+- `tests/test_issue2517_receiving_multi_modal_selection_public_api.py` 驗相同公開 callable、實體兩套 Set/Bay、合法舊 Tk 文字、非法 bool/fraction/stale/underscore 不變動實體與選取、GUI modal callback 及 Save→Reload；不新增 2D／3D／CUTTING/BEND／DXF 公式或放行。#2517 和 Windows UAT 仍待全部完成。
+
 ## [CURRENT] #2517 Receiving 套／連 2D 預覽實體來源只經公開 Set/Bay Engine（2026-11-08）
 
 - 舊 GUI `receiving_layer_preview_payload` 與 `open_receiving_layer_preview` 的 `int(layer_index)` 會把 bool/fractional 誤指另一個實體 Set；舊 Switch 相容 facade 的廠牌來自目前選取 Set，而非實際預覽目標 Set。此舊 UI「套」的資料來源為 `receiving-layout-v1`，**不是** `receiving-switch-layout-v1` 的 Switch 開孔 tier。

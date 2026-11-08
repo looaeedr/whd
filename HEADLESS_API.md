@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving Multi Settings Set/Bay physical selection (2026-11-08)
+
+`project_receiving_operator_set_bay_selection(layout, *, set_index, bay_index)` is the same read-only callable in the canonical `ae_engine.receiving_layout` owner, `manufacturing_api` and root. It reuses the public raw operator integer validator and validated Set/Bay source projection to reject bool/fraction/alias/stale/negative Set or Bay before either GUI selection or renaming. It returns detached `set_index`, `set_id`, `bay_index`; it never manufactures geometry or a CUTTING/DXF entitlement. Multi-settings GUI callbacks for selection, panel names, existing settings and door-mark projection consume this Engine result; Save/Reload uses the original project schema. Tests: `tests/test_issue2517_receiving_multi_modal_selection_public_api.py`.
+
 ## #2517 Receiving 2D Set/Bay layer-preview target public Engine (2026-11-08)
 
 `project_receiving_operator_set_preview_target(receiving_layout, layer_index)` is a read-only public projection from `ae_engine.receiving_layout`, identically exposed by `manufacturing_api` and root `ae_engine`. It reuses `normalize_receiving_operator_topology_integer` for raw canonical Set index source (rejects bool, fractional, whitespace/underscore aliases), checks the real `receiving-layout-v1` Set existence, and returns `set_index`, `set_id`, `connection_count`, `brand` of the selected Set. Legacy GUI 2D settings preview consumes the Engine-verified physical target; this is **not** the `receiving-switch-layout-v1` opening-cell validator or a CUTTING/DXF manufacturing certification. Regression: `tests/test_issue2517_receiving_layer_preview_engine_target.py`.
