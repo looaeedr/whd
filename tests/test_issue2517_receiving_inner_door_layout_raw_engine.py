@@ -137,3 +137,80 @@ def test_half_back_panel_consumes_same_saved_door_enable_flag():
     assert family_policy.resolve_back_panel_contract(
         source, source, structure_state=structure, panel_width=800, full_panel_height=1600,
     ) == baseline
+
+
+
+def _persisted_legacy_inner_door_source(flag):
+    return {
+        "model": "金庫型",
+        "multi_door_enabled": flag,
+        "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+        "inner_doors": [{
+            "stable_id": "upper",
+            "cell_key": "0:0",
+            # A disabled Door may not retain an obsolete physical Divider mate.
+            "lower_frame_role": {
+                "role": "stale", "divider_stable_id": "old-divider",
+            },
+        }],
+    }
+
+
+@pytest.mark.parametrize("model", ("金庫型", "受電箱"))
+@pytest.mark.parametrize("flag", ("false", "off", "0", 0, False))
+def test_saved_project_disabled_door_never_recomputes_obsolete_lower_mate(model, flag):
+    snapshot = _persisted_legacy_inner_door_source(flag)
+    snapshot["model"] = model
+    prior = deepcopy(snapshot)
+    normalized = api.normalize_authoritative_door_state(snapshot)
+    assert "lower_frame_role" not in normalized["inner_doors"][0]
+    # Persistence must not convert a serialized True to native bool and
+    # thereby accidentally grant the separate Receiving HALF rear-panel policy.
+    assert type(normalized["multi_door_enabled"]) is type(flag)
+    assert normalized["multi_door_enabled"] == flag
+    assert snapshot == prior
+
+
+@pytest.mark.parametrize("flag", ("true", "on", "1", 1, True))
+def test_saved_project_enabled_flag_keeps_its_source_type_for_half_policy(flag):
+    source = {"model": "受電箱", "multi_door_enabled": flag, "inner_doors": []}
+    normalized = api.normalize_authoritative_door_state(source)
+    assert normalized["multi_door_enabled"] == flag
+    assert type(normalized["multi_door_enabled"]) is type(flag)
+    assert source["multi_door_enabled"] == flag
+
+
+@pytest.mark.parametrize("flag", ("invalid", 2, None, [], {}, float("nan")))
+def test_invalid_saved_multidoor_flag_fails_in_public_project_authority_before_write(flag):
+    payload = {
+        "schema": "phase6-fold-project-v1",
+        "snapshot": {"model": "金庫型", "multi_door_enabled": flag},
+    }
+    prior = repr(payload)
+    with pytest.raises(ValueError, match="布林值"):
+        api.project_operator_project_for_write(payload)
+    assert repr(payload) == prior
+
+
+def test_real_p6fold_legacy_false_door_clears_obsolete_physical_mate(tmp_path):
+    import phase6_project_file as project
+
+    source = _persisted_legacy_inner_door_source("false")
+    before = deepcopy(source)
+    target = project.write_project(
+        tmp_path / "legacy-disabled-inner-door.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": source},
+    )
+    reopened = project.read_project(target)["snapshot"]
+    assert reopened["multi_door_enabled"] == "false"
+    assert "lower_frame_role" not in reopened["inner_doors"][0]
+    assert source == before
+
+
+def test_project_authority_has_no_python_truthiness_for_saved_door_presence():
+    from ae_engine import project_snapshot_state as persistence_owner
+
+    function = inspect.getsource(persistence_owner.normalize_authoritative_door_state)
+    assert "normalize_operator_settings_boolean(" in function
+    assert 'bool(result.get("multi_door_enabled"' not in function
+    assert 'result["multi_door_enabled"] = enabled_door_topology' not in function
