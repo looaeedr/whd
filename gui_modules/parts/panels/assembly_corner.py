@@ -8,16 +8,18 @@ from ae_engine.sheetmetal_geometry import (
 
 
 def sync_endcap_fw_controls(host):
-    box_fw = float(host.fw_z_var.get())
+    # One Engine read-only projection validates both physical pieces before
+    # touching the UI; refreshing controls never writes saved manufacturing state.
+    projected = manufacturing_api.project_operator_endcap_fw_controls(
+        host.endcap_fw_state, host.fw_z_var.get(),
+    )
     for part, var, follow_var, combo in (
         ("head", host.fw_head_var, host.fw_head_follow_var, getattr(host, "cb_fw_head", None)),
         ("tail", host.fw_tail_var, host.fw_tail_follow_var, getattr(host, "cb_fw_tail", None)),
     ):
-        state = host.endcap_fw_state.setdefault(part, {"follow_box": True, "value": box_fw})
-        follow = bool(state.get("follow_box", True))
-        follow_var.set(follow)
-        value = box_fw if follow else float(state.get("value", box_fw))
-        text = host._fold_designer_number_text(value)
+        row = projected[part]
+        follow_var.set(row["follow_box"])
+        text = host._fold_designer_number_text(row["display_fw"])
         if var.get() != text:
             var.set(text)
         if combo is not None:

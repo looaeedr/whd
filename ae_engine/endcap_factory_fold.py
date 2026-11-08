@@ -109,6 +109,40 @@ def resolve_endcap_fw(snapshot: Mapping[str, object], part_key: str, *, state=No
     return _num(item.get("value", box_fw), box_fw)
 
 
+def project_operator_endcap_fw_controls(
+    state: Mapping[str, object], box_fw: object,
+) -> dict[str, dict[str, object]]:
+    """Project both Head/Tail FW controls without mutating saved manufacturing state.
+
+    All source rows are validated before any UI widget can be updated. Keep
+    missing legacy rows read-only; Engine alone decodes persisted booleans and
+    validates a physical FW consumed by the display.
+    """
+    from .operator_settings_transactions import (
+        normalize_operator_settings_boolean, normalize_operator_source_dimension,
+    )
+
+    if not isinstance(state, Mapping):
+        raise ValueError("ENDCAP_FW_STATE_REQUIRED")
+    body_fw = normalize_operator_source_dimension(box_fw, field="fw")
+    projected: dict[str, dict[str, object]] = {}
+    for part in ENDCAP_FW_PARTS:
+        if part not in state:
+            item = {}
+        else:
+            item = state[part]
+            if not isinstance(item, Mapping):
+                raise ValueError("ENDCAP_FW_SOURCE_ROW_INVALID")
+        following = normalize_operator_settings_boolean(item.get("follow_box", True))
+        display_fw = (
+            body_fw if following else normalize_operator_source_dimension(
+                item.get("value", body_fw), field="fw",
+            )
+        )
+        projected[part] = {"follow_box": following, "display_fw": display_fw}
+    return projected
+
+
 def resolve_endcap_assembly_type(snapshot: Mapping[str, object]) -> CornerTypeId:
     """Resolve the persisted high-level intent mirror first.
 

@@ -104,6 +104,7 @@ from .endcap_factory_fold import (
     apply_box_assembly_type_to_raw_state as apply_endcap_box_assembly_type_to_raw_state,
     normalize_endcap_fw_state,
     resolve_endcap_fw, resolve_endcap_assembly_type, build_endcap_xy_fold_profiles,
+    project_operator_endcap_fw_controls,
     endcap_profiles_for_assembly,
     ENDCAP_FW_PARTS, FW_FOLLOW_BODY, FW_FOLLOW_HEAD, FW_FOLLOW_TAIL,
     FW_INDEPENDENT, ENDCAP_FW_MODES, commit_box_fw, commit_endcap_fw,

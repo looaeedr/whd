@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Head/Tail FW 控制列純讀取由 Engine 公開投影（2026-11-08）
+
+- 原 `gui_modules/parts/panels/assembly_corner.sync_endcap_fw_controls` 在單純重新整理 GUI 時，使用 `endcap_fw_state.setdefault` 補建 Head／Tail 製造來源，並在 UI 以 `float`／`bool` 解讀顯示值；序列化 `"false"` 被當 True，損壞的對側列又可能在第一個控制項更新後才報錯。
+- 新增 `ae_engine.endcap_factory_fold.project_operator_endcap_fw_controls(state, box_fw)`，由 `manufacturing_api` 與根包提供同一原 owner callable；一次驗兩個來源列與操作 FW，使用既有 `normalize_operator_settings_boolean`、`normalize_operator_source_dimension` 取得 detached Head／Tail `follow_box`／`display_fw`。缺少的舊版列僅投影 FOLLOW_BODY 預設，不寫回 source；已有損壞列、非法布林或啟用的非法實體 FW fail closed。GUI 只呈現完整已驗輸出，不再修改製造來源。
+- `tests/test_issue2517_endcap_fw_controls_read_only_engine_projection.py` 核對金庫型／受電箱、合法四態、遺留缺列與字串布林、非法來源時兩個控制列皆無部分更新、重複 refresh、JSON Save→Reload 與 Engine canonical Fold。正式 EndCap FW 四態提交、Factory／Registry／2D／3D／DXF 製造公式與 schema 不變；#2517 其餘 API 及 Windows UAT 仍需持續驗收。
+
+
 ## [CURRENT] #2517 主 GUI EndCap FW Follow 原始操作來源直接交 Engine（2026-11-08）
 
 - 主 `gui.Phase6ApplicationHost.on_endcap_fw_follow_changed` 原先在 GUI 以 `float(TkVar)`、`bool(TkVar)` 先定物理 Box FW 與 Head/Tail follow，序列化字串 `"false"` 會錯判 True，NaN 也能流入舊的就地修改。現在直接送原始操作來源給現有公開 `manufacturing_api.operator_endcap_fw_follow`（與 `ae_engine` 根包同一 Engine callable），由既有 `normalize_operator_source_dimension`、`normalize_operator_settings_boolean` 與原 `set_endcap_fw_follow` 決定合法狀態；GUI 只接受 detached 成功候選，不再自行解析製造布林／FW。
