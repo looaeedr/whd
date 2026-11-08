@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Set／Bay 連數控制與套用不可由 GUI 自動補出一連（2026-11-08）
+
+- `receiving_multi_settings_window.paint_connected_bays/refresh_rows/apply` 與 `receiving_set_bay_controls.open_receiving_layer_preview/refresh_receiving_layer_rows` 原分別使用 `max(1, int(count))` 將 0、負數、浮點數、True 或由資料修復產生的不合法套／連數錯誤當成「1連」。尤其「套用」直接選中實體 Bay0，可能讓 GUI 顯示身份與已保存 Receiving Layout 拓樸不同。ReceivingSet1 至少一連的實體約束本來由 Engine `receiving_layout.normalize_receiving_layout`／Resize transaction 掌管，GUI 無權替非法來源補 Bay。
+- Engine 原 `ae_engine.receiving_layout` 增加純函式公開 `normalize_receiving_operator_connection_counts(raw_counts)`，同一 callable 經 `manufacturing_api` 與根包輸出。它接受有序正整數連數序列（單套也是序列），逐套保留原始數值；空套、0、負數、bool、浮點、字串、非序列與混合非法資料一律拒絕，不建立任何盤位，也不寫入來源。GUI 所有上述五個入口只呼叫此公開 Engine 投影；在畫面修改、預覽視窗建立或已套用選取更新前先驗完整連數。保留原有 Set/Bay、SharedSettings、NFB、Joint、Save→Reload／2D／3D／DXF 原 API 與物理幾何。
+- `tests/test_issue2517_receiving_connection_counts_public_source.py` 覆蓋 Engine Facade/root 同一 callable、真實 ReceivingLayout 的 Set/Bay 連數、所有不合法來源 fail closed、源不突變、預覽視窗不建立、示意 Canvas 不清空、Rows 不重建、GUI 不再以 `max(1, int(...))` 偽造真實連數；實體 Tk 正常流程維持原測試。#2517 其他製造入口及 Windows UAT 仍須持續驗證。
+
+
 ## [CURRENT] #2517 Head/Tail 已提交 Assembly Relief 切孔開關以 Engine 公開布林來源為準（2026-11-08）
 
 - `gui_modules/application/fold_designer_manufacturing_projection._fold_designer_part_spec_from_payload` 原用 `bool(data.get("_use_committed_relief"))` 決定要不要載入已提交的 Head/Tail Assembly Relief CUTTING；從 Save→Reload 載入字串 `"false"` 會因 Python 非空字串而誤判 True。這是製造切孔來源資格，不能由 GUI truthiness 決定。

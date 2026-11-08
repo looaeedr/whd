@@ -102,7 +102,9 @@ def open_receiving_layer_preview(
 ) -> bool:
     """Show a front orthographic projection of committed assembled FinalScene."""
     index = int(layer_index)
-    count = max(1, int(connection_count))
+    count = manufacturing_api.normalize_receiving_operator_connection_counts(
+        (connection_count,)
+    )[0]
     label = str(brand)
     if render_request is None and not preview_error:
         raise ValueError("Receiving preview requires a FinalScene render request")
@@ -207,7 +209,9 @@ def refresh_receiving_layer_rows(
 ) -> None:
     """Render one stable operator row per layer without rebuilding unchanged Tk rows."""
     host = controls.layer_host
-    counts = tuple(max(1, int(raw)) for raw in connection_counts)
+    counts = manufacturing_api.normalize_receiving_operator_connection_counts(
+        connection_counts
+    )
     rows = list(getattr(host, "_phase6_receiving_layer_rows", ()) or ())
 
     # Reuse existing rows so a connection-count edit only changes text/commands;
