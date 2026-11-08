@@ -127,7 +127,7 @@ class _RoundHoleSettingsDialog:
         self.dialog.resizable(False, False)
         self.round_direction = tk.StringVar(value="向右")
         self.round_driver = tk.StringVar(value="center")
-        self.round_center = tk.StringVar(value=f"{max(float(self.selected_feature.diameter) * 2.0, 50.0):.2f}")
+        self.round_center = tk.StringVar(value=f"{manufacturing_api.operator_round_hole_default_center_distance(self.selected_feature.diameter):.2f}")
         self.round_gap = tk.StringVar()
         self.round_alignment = tk.StringVar(value="center")
         self.sync_guard = False
