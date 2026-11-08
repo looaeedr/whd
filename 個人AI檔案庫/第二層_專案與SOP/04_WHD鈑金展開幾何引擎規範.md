@@ -5,6 +5,16 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+## [CURRENT] #2517 Fold Designer Door／Cell 指示燈孔位改收原始來源、由 Engine PartSpec 決策（2026-11-08）
+
+- 舊 GUI `gui_modules/application/fold_designer_manufacturing_projection._door_part_spec_from_payload_context` 原本在真正呼叫公開 DoorPartSpec 前，自己判定 `indicator`／`indicator_box` 模式、將燈群推導為開孔尺寸、計算 active offsets，單門還以 `bool("false")` 將序列化的 false 誤解為 true。這些都是製造孔位及製造來源資格，不是 UI 顯示。
+- 現沿用原公開 `manufacturing_api.build_door_operator_part_spec`／根包 `ae_engine.build_door_operator_part_spec`，增加可選的 `fold_designer_indicator_source` 原始單門操作來源；Engine 原 `door_operator_part_spec` 以 `normalize_operator_settings_boolean` 決定是否啟用指示燈盒，並以既有 `normalize_fold_designer_indicator_groups`、`indicator_box_opening_size`、`normalize_fold_designer_indicator_offsets` 推導實體孔位。未啟用的盒體群組不得虛構開孔，啟用來源非法時 fail closed；同時提供已製成孔位與原始來源拒絕 `DOOR_OPERATOR_INDICATOR_DUPLICATE_SOURCE`。
+- 門格現直接將保存的 `door_layout_indicator_states[cell_key]` 傳入**既有** `indicator_source_state`，只由 Engine `project_operator_door_cell_indicator_manufacturing_source` 驗證 mode/layers/groups/offset/box distance，並建立唯一 `DoorPartSpec`。GUI 不再先自行解碼或建立製造 opening；缺門格舊來源維持 plain Door。主 GUI 既有 `_door_layout_part_spec` 也使用同一 Engine 原始來源入口，兩個 caller 不得分裂。
+- 定向驗收金庫型／受電箱適用的單門與格門、合法舊值、非法布林與孔數／座標 fail closed、raw JSON Save→Reload 等價及 GUI 真委派；原 Door 裁切／展開、指示燈基準板、Family/Registry／FinalScene、2D／3D／DXF 仍由原 Engine 擁有，不新增任何製造出口准入。#2517 全面覆蓋及 Windows 實機另驗。
+
+
+
+
 
 ## [CURRENT] #2517 Fold Designer 快照匯出須保留 Engine 已驗現行盤 W/H/D（2026-11-08）
 

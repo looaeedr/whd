@@ -49,6 +49,7 @@ def build_door_operator_part_spec(
     indicator_window_groups=None,
     nameplate_center_datum_top=None,
     indicator_source_state=None,
+    fold_designer_indicator_source=None,
 ) -> DoorPartSpec:
     """Preserve the existing single/multi-Door Save→Export request contract.
 
@@ -64,6 +65,40 @@ def build_door_operator_part_spec(
         key: normalize_operator_source_dimension(values[key], field=key)
         for key in ("w", "h", "t", "fw")
     }
+    if fold_designer_indicator_source is not None:
+        # Fold Designer's single-door legacy payload is a raw operator input,
+        # never a GUI-computed CUTTING aperture, lamp group or distance mode.
+        # The cell route below remains the sole owner of persisted per-cell
+        # indicator state. Caller-provided physical projections are forbidden.
+        if (not isinstance(fold_designer_indicator_source, Mapping)
+                or indicator_source_state is not None
+                or indicator_hole is not None
+                or door_indicator is not None
+                or indicator_window_groups is not None
+                or door_indicator_offset != (0.0, 0.0)
+                or use_box_distance is not False):
+            raise ValueError("DOOR_OPERATOR_INDICATOR_DUPLICATE_SOURCE")
+        from .manufacturing_door_indicator import indicator_box_opening_size
+        raw = fold_designer_indicator_source
+        enabled = normalize_operator_settings_boolean(
+            raw.get("door_indicator_box_enabled", False)
+        )
+        box_groups = (
+            normalize_fold_designer_indicator_groups(
+                raw.get("indicator_layer_groups") or ()
+            ) if enabled else ()
+        )
+        direct_source = raw.get("door_indicator_groups") or ()
+        door_indicator = (
+            normalize_fold_designer_indicator_groups(direct_source)
+            if direct_source else None
+        )
+        indicator_hole = (
+            indicator_box_opening_size(box_groups, thickness=physical["t"])
+            if enabled else None
+        )
+        door_indicator_offset = raw.get("door_indicator_offset") or (0.0, 0.0)
+        use_box_distance = raw.get("use_box_distance", False)
     if indicator_source_state is not None:
         # Original committed cell input is the only physical lamp/box source.
         # Reject precomputed or conflicting geometry from caller-side adapters.

@@ -1837,6 +1837,7 @@ def build_door_operator_part_spec(
     use_box_distance=False, corner_policy=None, frame_edges=None,
     indicator_window_groups=None, nameplate_center_datum_top=None,
     indicator_source_state=None,
+    fold_designer_indicator_source=None,
 ) -> DoorPartSpec:
     """Public Engine-owned Door operator → canonical manufacturing PartSpec."""
     from .door_operator_part_spec import build_door_operator_part_spec as build
@@ -1849,6 +1850,7 @@ def build_door_operator_part_spec(
         indicator_window_groups=indicator_window_groups,
         nameplate_center_datum_top=nameplate_center_datum_top,
         indicator_source_state=indicator_source_state,
+        fold_designer_indicator_source=fold_designer_indicator_source,
     )
 
 # #2517: Pre-solve EndCap fixed-relief delta and world collision diagnostics.
