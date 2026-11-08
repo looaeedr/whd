@@ -12,6 +12,11 @@ whd_schema: WHD_DOC_META_V1
 - 新 `ae_engine.operator_box_body_piece_fold_transaction.plan_operator_box_body_piece_fold_commit`（公開於 `manufacturing_api` 與 `ae_engine` 根包）收原始操作 `box_body:left_side/back/right_side`、piece X Fold、共用 BoxBody profile、box_body_structure_state、W/H/T／snapshot；產生獨立 `OperatorBoxBodyPieceFoldPlan(structure_state, aggregate_profile, settings_values)`。Engine 重用既有 `box_body_structure_state.set_side_back_piece_profile/set_side_back_geometry`、`box_body_editor_readback.reverse_box_body_fold_traversal/read_box_body_outside_dimensions` 和 `box_body_fold_profile.apply_outside_dimension_compensation`；只對資料來源完成驗證後才傳回候選。不改左／右對稱共用 D/FW 的既有已核准物理語意；左右的 side_rear_bend 必須保留各自 piece-local，後板寬由原 MATERIAL W 與 T 得到，不能把包外當料長重扣 T。
 - GUI 僅採用候選寫入既有 settings／workspace service，衍生 PartSpec、Assembly/FinalScene 和 DXF 一律保留原 Engine pipeline。非法 part_key、非有限/布林/非正的 W/H/T 或 piece `len`、late malformed row 都 fail closed、不修改來源。金庫型及受電箱左／右／背三片、精度、right-side 順序、JSON Save→Reload、GUI 真呼叫定向驗收。此切片不新增 Factory 放行或製造 DXF 類型；#2517 全面核對與 Windows 實機 UAT 仍待完成。
 
+## [CURRENT] #2517 Head/Tail 連動折型的 Receiving Bay 尺寸來源由公開 Engine 投影（2026-11-08）
+
+- 原 fold_designer_bridge._phase6_rebuild_linked_endcaps 在 GUI 以字串清單判定是否為受電箱，再決定現行盤位 _phase6_box_whd 的 W/H/D 能否覆寫 Settings 舊盤尺寸；大小寫別名 receiving 因不匹配而採到舊盤，非法 live 尺寸也可能流入連動 Fold。這是 Family／Bay 來源優先序，不應由 GUI 判定。
+- 公開 ae_engine.operator_settings_transactions.project_operator_linked_endcap_source_snapshot(input_snapshot, settings_values, working_box) -> dict 由 manufacturing_api 與根包 ae_engine 匯出同一函式。複製來源與 Settings，由 canonical Family Registry 判斷 Receiving；只有 Receiving 採用現行盤位 W/H/D，存在的三軸全部由 normalize_operator_source_dimension 驗證大於零、有限且非 bool。非法資料在 Head/Tail profile 建立前拒絕、不改輸入。金庫型／自訂維持 Settings 的原優先序。已確認 Family 身分在輸出中 canonicalized，供既有 build_linked_endcap_xy_fold_profiles 使用。
+- GUI 只傳入 Snapshot、Settings 與現行 Box W/H/D；後續 Head/Tail 折型仍由原公開 Engine build_linked_endcap_xy_fold_profiles 推導，GUI 只更新 Workspace/當前折型選單。沒有引進第二份截角／BEND／CUTTING／尺寸補償或 DXF exporter；Save→Reload/2D/3D/DXF 由原 FinalScene 保護。RED→GREEN 測試 tests/test_issue2517_linked_endcap_live_source_public_api.py；其他 GUI 製造 API 仍需繼續核對。
 
 ## [CURRENT] #2517 上下截角的左右實體角身份由公開 Engine 投影（2026-11-08）
 

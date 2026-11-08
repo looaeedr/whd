@@ -209,6 +209,33 @@ def project_receiving_manufacturing_request_settings(
     return result
 
 
+def project_operator_linked_endcap_source_snapshot(
+    input_snapshot: Mapping[str, object],
+    settings_values: Mapping[str, object],
+    working_box: Mapping[str, object],
+) -> dict[str, object]:
+    """Source-only, read-only Head/Tail linked Fold request projection.
+
+    Family registry, not GUI model literals, decides which physical W/H/D
+    belong to the current Receiving Bay. A present malformed dimension fails
+    before any Head/Tail profile is applied. The returned detached source
+    never changes original snapshot, Settings or working Box state.
+    """
+    from .cabinet_types.policy import canonical_family_name
+
+    source = deepcopy(dict(input_snapshot))
+    source.update(deepcopy(dict(settings_values)))
+    canonical = canonical_family_name(input_snapshot)
+    if canonical == "受電箱":
+        for axis in ("w", "h", "d"):
+            if axis in working_box:
+                source[axis] = normalize_operator_source_dimension(
+                    working_box[axis], field=axis,
+                )
+        source["model"] = canonical
+    return source
+
+
 def operator_legacy_shared_base_plate_shrink(values: Mapping[str, object]) -> float | None:
     """Preserve the old shared INI/runtime shrink only for four matching edges.
 

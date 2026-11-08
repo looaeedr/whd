@@ -573,16 +573,13 @@ def project_features_to_original_holes(features, width, height):
 def _phase6_rebuild_linked_endcaps(self):
     """Rebuild only existing head/tail derived profiles from current box topology."""
     box_profile = self.state.profiles_vault.get("箱身", [])
-    snapshot = dict(self._phase6_input_snapshot)
-    snapshot.update(getattr(self, "_settings_values", {}) or {})
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
-        # Settings dimensions are seeds, not the active Receiving Bay. Linked
-        # EndCaps must use the same live W/H/D as the committed BoxBody.
-        snapshot.update({
-            axis: value for axis, value in
-            dict(getattr(self, "_phase6_box_whd", {}) or {}).items()
-            if axis in ("w", "h", "d")
-        })
+    # Source priority and canonical Family identity belong to the public
+    # Engine API, never this GUI fold-editor's model-string allowlist.
+    snapshot = manufacturing_api.project_operator_linked_endcap_source_snapshot(
+        self._phase6_input_snapshot,
+        getattr(self, "_settings_values", {}) or {},
+        getattr(self, "_phase6_box_whd", {}) or {},
+    )
     snapshot["corner_state"] = deepcopy(getattr(self, "_phase6_corner_state", {}) or {})
     snapshot["corner_pair_same"] = deepcopy(getattr(self, "_phase6_corner_pair_same", {}) or {})
     snapshot["assembly_type"] = assembly_intent_value(getattr(

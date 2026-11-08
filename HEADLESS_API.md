@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Canonical Receiving Bay source for linked Head/Tail Fold (2026-11-08)
+
+ae_engine.manufacturing_api.project_operator_linked_endcap_source_snapshot(input_snapshot, settings_values, working_box) -> dict is the identical callable at root ae_engine. It returns a detached Head/Tail Fold source. The Engine Family Registry, not GUI string matching, resolves 受電箱/RECEIVING/case variants. Receiving's current W/H/D override stale Settings, after existing finite positive non-bool physical-dimension checks. Vault/Custom retain Settings precedence. Caller inputs remain unchanged. fold_designer_bridge._phase6_rebuild_linked_endcaps consumes the result and delegates Fold topology to the existing manufacturing_api.build_linked_endcap_xy_fold_profiles. This adds no manufacturing or DXF authorization and changes no storage schema. Regression: tests/test_issue2517_linked_endcap_live_source_public_api.py.
+
 ## #2517 Manual Corner pair target identity via public Engine (2026-11-08)
 
 manufacturing_api.project_operator_corner_pair_members(pair_key) -> tuple[str, str] and project_operator_corner_selection_target(target_key) -> str are the same public callable exports as root ae_engine. They use the original authoritative Engine MANUAL_CORNER_PAIR_KEYS and MANUAL_CORNER_KEYS: top resolves to (top_left, top_right) and bottom to (bottom_left, bottom_right); paired selection displays the leading physical member; individual corner selection is unchanged. Invalid identities reject with CORNER_PAIR_KEY_INVALID / CORNER_SELECTION_TARGET_INVALID without source mutation. GUI and corner panel consume this public projection instead of internal CORNER_PAIR_CORNERS. No new CornerType policy, 2D/3D/DXF geometry, storage schema, or manufacturing eligibility. Regression: tests/test_issue2517_corner_pair_public_gui_mapping.py.
