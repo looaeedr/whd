@@ -8,6 +8,7 @@ The Phase6 GUI compatibility module only forwards public API calls.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from math import isfinite
 from .box_body_fold_profile import _num
 from .cabinet_types import policy as cabinet_family_policy
 from .endcap_factory_fold import ENDCAP_FW_PARTS
@@ -108,10 +109,32 @@ def commit_endcap_bottom_wrap_joint(snapshot: Mapping[str, object], part_key: st
     )
 
 
+def _operator_bottom_wrap_reserve(value: object, *, label: str) -> float:
+    """Validate the actual operator's physical WRAP reserve before mutation.
+
+    Legacy project readback may still normalize old serialized values, but new
+    commits cannot silently turn negative/Boolean/NaN into manufacturing mm.
+    """
+    if isinstance(value, bool):
+        raise ValueError(f"{label} 必須為非負有限毫米數")
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{label} 必須為非負有限毫米數") from exc
+    if not isfinite(number) or number < 0.0:
+        raise ValueError(f"{label} 必須為非負有限毫米數")
+    return number
+
+
 def commit_endcap_bottom_wrap(state, part_key: str, *, enabled=None, reserve_u=None, reserve_v=None) -> dict:
     part_key = str(part_key)
     if part_key not in ENDCAP_FW_PARTS:
         raise ValueError(f"不支援的封頭尾板件: {part_key}")
+    # Validate *both* authored mm sources before any Head/Tail linked state write.
+    if reserve_u is not None:
+        reserve_u = _operator_bottom_wrap_reserve(reserve_u, label="reserve_u")
+    if reserve_v is not None:
+        reserve_v = _operator_bottom_wrap_reserve(reserve_v, label="reserve_v")
     mode = str(state.get("mode", WRAP_LINKED) or WRAP_LINKED)
     leader = WRAP_FOLLOW_HEAD if part_key == "head" else WRAP_FOLLOW_TAIL
     opposite = WRAP_FOLLOW_TAIL if part_key == "head" else WRAP_FOLLOW_HEAD
@@ -119,9 +142,9 @@ def commit_endcap_bottom_wrap(state, part_key: str, *, enabled=None, reserve_u=N
     if enabled is not None:
         base["enabled"] = bool(enabled)
     if reserve_u is not None:
-        base["reserve_u"] = max(0.0, float(reserve_u))
+        base["reserve_u"] = reserve_u
     if reserve_v is not None:
-        base["reserve_v"] = max(0.0, float(reserve_v))
+        base["reserve_v"] = reserve_v
     if mode in {WRAP_LINKED, leader}:
         state["mode"] = leader
         state["head"] = dict(base)
