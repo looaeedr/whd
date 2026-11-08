@@ -314,39 +314,49 @@ def on_baseline_changed(self):
     # STOCK 開關變動時也觸發重繪 (Checkbutton 已用 command 綁定，此處不需重複)
 
 def get_float_values(self):
+    """Keep the raw 25 GUI numeric inputs until Engine validates their meaning.
+
+    Physical W/H/D/T/FW must be positive; remaining signed Fold/Gap/BasePlate
+    inputs use original Engine finite numeric compatibility. Never return a
+    partial manufacturing candidate when a field is malformed.
     """
-    取得所有浮點數輸入值，若輸入有誤則拋出 Exception
-    """
-    try:
-        return {
-            'w': float(self.w_var.get()),
-            'h': float(self.h_var.get()),
-            'd': float(self.d_var.get()),
-            'fw': float(self.fw_z_var.get()),
-            't': float(self.t_var.get()),
-            'zl1': float(self.zl1_var.get()),
-            'zl2': float(self.zl2_var.get()),
-            'zr1': float(self.zr1_var.get()),
-            'zr2': float(self.zr2_var.get()),
-            'z_comp': float(self.z_comp_var.get()),
-            'yl1': float(self.yl1_var.get()),
-            'yr1': float(self.yr1_var.get()),
-            'ytop1': float(self.ytop1_var.get()),
-            'ybottom1': float(self.ybottom1_var.get()),
-            'door_gap_w': float(self.door_gap_w_var.get()),
-            'door_gap_h': float(self.door_gap_h_var.get()),
-            'door_fold_l': float(self.door_fold_l_var.get()),
-            'door_fold_r': float(self.door_fold_r_var.get()),
-            'door_fold_t': float(self.door_fold_t_var.get()),
-            'door_fold_b': float(self.door_fold_b_var.get()),
-            'base_plate_shrink_top': float(self.base_plate_shrink_top_var.get()),
-            'base_plate_shrink_bottom': float(self.base_plate_shrink_bottom_var.get()),
-            'base_plate_shrink_left': float(self.base_plate_shrink_left_var.get()),
-            'base_plate_shrink_right': float(self.base_plate_shrink_right_var.get()),
-            'base_plate_bend': float(self.base_plate_bend_var.get()),
-        }
-    except ValueError:
-        raise ValueError("請輸入有效的數字格式")
+    raw = {
+        "w": self.w_var.get(),
+        "h": self.h_var.get(),
+        "d": self.d_var.get(),
+        "fw": self.fw_z_var.get(),
+        "t": self.t_var.get(),
+        "zl1": self.zl1_var.get(),
+        "zl2": self.zl2_var.get(),
+        "zr1": self.zr1_var.get(),
+        "zr2": self.zr2_var.get(),
+        "z_comp": self.z_comp_var.get(),
+        "yl1": self.yl1_var.get(),
+        "yr1": self.yr1_var.get(),
+        "ytop1": self.ytop1_var.get(),
+        "ybottom1": self.ybottom1_var.get(),
+        "door_gap_w": self.door_gap_w_var.get(),
+        "door_gap_h": self.door_gap_h_var.get(),
+        "door_fold_l": self.door_fold_l_var.get(),
+        "door_fold_r": self.door_fold_r_var.get(),
+        "door_fold_t": self.door_fold_t_var.get(),
+        "door_fold_b": self.door_fold_b_var.get(),
+        "base_plate_shrink_top": self.base_plate_shrink_top_var.get(),
+        "base_plate_shrink_bottom": self.base_plate_shrink_bottom_var.get(),
+        "base_plate_shrink_left": self.base_plate_shrink_left_var.get(),
+        "base_plate_shrink_right": self.base_plate_shrink_right_var.get(),
+        "base_plate_bend": self.base_plate_bend_var.get(),
+    }
+    physical = manufacturing_api.normalize_operator_source_dimensions(raw)
+    other = {key: value for key, value in raw.items() if key not in physical}
+    accepted = manufacturing_api.normalize_operator_settings_updates(
+        {key: 0.0 for key in other}, other,
+    )
+    if len(accepted) != len(other):
+        invalid = next(key for key in other if key not in accepted)
+        raise ValueError(f"請輸入有效的數字格式：{invalid}")
+    return {**physical, **accepted}
+
 
 def _active_indicator_box_groups_for_results(self):
     """Return groups only when the currently relevant Door really uses an Indicator Box.

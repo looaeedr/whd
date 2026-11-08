@@ -12,6 +12,13 @@ whd_schema: WHD_DOC_META_V1
 - 原公開 `manufacturing_api.set_receiving_nfb_draft_manual_x`、`set_receiving_nfb_draft_layer_rotation`、`set_receiving_nfb_draft_slot_rotation` **不新增第二套 API**；直接由其既有原始 owner `receiving_nfb_ui1a_edits` 正規化操作來源。X 接受明確空白重設、正負小數毫米與零；拒絕布林、非有限及非法字串。旋轉僅允許原生整數 0/90/180/270 或 Tk 原始同文字選項；布林、小數、前導零與非四分之一圈拒絕，保留已保存整數 schema。
 - `tests/test_issue2517_receiving_nfb_raw_x_rotation_public_engine.py` 驗既有公開 facade 與 owner 身份相同、真實 GUI 內層 callback、合法／非法來源原子拒絕、X reset impact、旋轉更改使原世界 X datum 失效、Undo/Save→Reload；不動 Factory、Receiving CSV 模型、實際孔、2D/3D/DXF 或輸出認證。#2517 完整覆蓋與 Windows 實機仍待驗。
 
+## [CURRENT] #2517 主 GUI 25 項製造數值輸入統一公開 Engine 實體／Fold 驗證（2026-11-08）
+
+- 原 `gui_modules/application/cabinet_controller.get_float_values` 是主 GUI 計算、單門／多門 Hole Editor 及 PartSpec 共同數值入口；逐項 `float(TkVar.get())` 先把布林 True 變成 1.0，也讓 NaN／Inf 越過入口，直到下游才可能拒絕。主 GUI 不應消除原始製造來源的錯型證據。
+- 原 25 項 TkVar 的操作順序不變，改將 raw 來源交給既有 `manufacturing_api.normalize_operator_source_dimensions` 驗 W/H/D/T/FW 正有限值，再以 `manufacturing_api.normalize_operator_settings_updates` 驗其餘 Fold／Gap／BasePlate 有限值；任何欄位被略過皆禁止返回部分資料供 2D／3D／DXF。Vault 手動底板非負限制作為另一條操作約束，不能侵入一般 Fold／INI 負數相容，沿用 #3112 契約；不新增主幾何公式。
+- `tests/test_issue2517_main_gui_numeric_source_public_engine.py` 覆蓋 GUI／headless 全 25 欄 parity、W/H/D 小數精度、負折邊及負縮量相容、非法 bool/nonfinite 來源 fail-closed、不突變、JSON Save→Reload。PartSpec、Topology、Registry、CUTTING／BEND／DXF Writer 均未改。#2517 其他入口及 Windows UAT 持續待驗。
+
+
 ## [CURRENT] #2517 Receiving NFB 兩層實體 Y 高度只在 Engine 驗操作來源（2026-11-08）
 
 - `gui_modules/application/fold_designer_composition_receiving.inner_edit` 原本在顯示已保存層高、讀取操作員兩個欄位與切換一／二層時自行 `float(...)`，既有已保存布林值 True 可能轉成 1 mm，且 GUI 複製了 Engine 的層高數值解碼。這些數值影響 Receiving 內門 NFB 名義 Y，但預覽及草稿不可擅自授權 CUTTING。
