@@ -67,6 +67,7 @@ def host():
         get_door_layout_columns=lambda: (),
         _sync_fold_designer_manual_corner_context=lambda *a: events.append(("context",)),
         refresh_corner_type_panel=lambda: events.append(("panel",)),
+        _reload_current_baseline_features=lambda: events.append(("reload",)),
         _phase6_update_scheduler=SimpleNamespace(mark_dirty=lambda *a: events.append(("dirty",))),
         project_controller=SimpleNamespace(capture_committed=lambda *a: events.append(("capture",))),
         _compose_phase6_project_snapshot_from_main_gui=lambda: {},
