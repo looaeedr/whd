@@ -44,7 +44,6 @@ from phase6_assembly_presentation import (
 from phase6_assembly_panel import AssemblyPanelActions, Phase6AssemblyPanel
 from phase6_box_body_structure import (
     BoxBodyStructureType, BackPanelMode, normalize_box_body_structure_state,
-    set_side_back_geometry, set_side_back_piece_profile,
     set_side_back_back_panel_mode, back_panel_mode, side_rear_bend_outside_length,
     resolve_two_piece_widths, resolve_three_piece_widths,
 )
@@ -150,7 +149,7 @@ from phase6_endcap_semantics import (
     selection_from_raw as _phase6_selection_from_raw,
 )
 from phase6_fold_profiles import (
-    _num, _ui_len, apply_outside_dimension_compensation,
+    _num, _ui_len,
     build_box_body_profile, build_endcap_profile, read_endcap_profile,
     build_endcap_xy_profiles, _phase6_fold_tabs_for_part,
     _phase6_normalize_endcap_profile_order, read_endcap_xy_profiles,
@@ -2783,13 +2782,18 @@ def _phase6_commit_box_body_physical_piece_profile(self, part_key, profiles, *, 
     """Transport the operator's physical-piece Fold edit to public Engine."""
     source = getattr(self, "_phase6_input_snapshot", {}) or {}
     settings = getattr(self, "_settings_values", {}) or {}
+    # Preserve the original live width source before number conversion:
+    # boolean/NaN operator values must reach the Engine's physical gate.
+    live_width = (getattr(self, "_phase6_box_whd", {}) or {}).get(
+        "w", getattr(self.state, "w", 500.0),
+    )
     plan = manufacturing_api.plan_operator_box_body_piece_fold_commit(
         part_key, profiles,
         structure_state=_phase6_box_structure_state(self),
         aggregate_profile=self.state.profiles_vault.get("箱身", ()),
         original_snapshot=source,
         thickness=settings.get("t", source.get("t", 2.0)),
-        total_width=_phase6_box_structure_w(self),
+        total_width=settings.get("w", live_width),
         box_height=self._phase6_box_whd["h"],
     )
     # Publish only after every physical source/row has passed the Engine.
