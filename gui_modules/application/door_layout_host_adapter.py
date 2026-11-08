@@ -230,8 +230,12 @@ def get_selected_door_layout_cell(self):
     return first
 
 def select_door_layout_cell(self, column_index, row_index):
-    """Select one multi-door cell without rebuilding geometry or Canvas widgets."""
-    selected_key = f"{int(column_index)}:{int(row_index)}"
+    """Select one actual Engine Door cell without inventing a physical part ID."""
+    cell = manufacturing_api.resolve_operator_door_layout_cell(
+        self.get_door_layout_cells(), column_index, row_index,
+    )
+    stable_key = manufacturing_api.door_layout_part_key(cell)
+    selected_key = self._door_layout_cell_key(cell)
     self.door_layout_selected_var.set(selected_key)
 
     canvas = getattr(self, "canvas_door", None)
@@ -244,7 +248,6 @@ def select_door_layout_cell(self, column_index, row_index):
         if corner_canvas is not None:
             canvas = corner_canvas
         import fold_designer_bridge as phase6_bridge
-        stable_key = f"door_c{int(column_index) + 1}_r{int(row_index) + 1}"
         phase6_bridge._phase6_select_corner_data_part(
             designer, stable_key, refresh_view=False
         )

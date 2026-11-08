@@ -5,7 +5,6 @@ host/controller seam during T4.
 """
 
 import tkinter as tk
-import math
 from collections.abc import Mapping
 from tkinter import ttk, messagebox
 from ae_engine import manufacturing_api
@@ -26,16 +25,19 @@ def collect_door_input(payload):
     return result
 
 def _parse_layout_value(var, label):
-    raw = var.get()
-    if isinstance(raw, bool):
-        raise ValueError(f"{label}不是有效數字")
+    # Caption-to-field routing is UI only. Raw W/H, cell width and height
+    # are validated by the same public Engine Door-grid numeric authority.
+    field = (
+        "w" if label == "W" else
+        "h" if label == "H" else
+        "row_height" if "高度" in label else "column_width"
+    )
     try:
-        value = float(raw)
-    except (TypeError, ValueError, OverflowError) as exc:
-        raise ValueError(f"{label}不是有效數字") from exc
-    if not math.isfinite(value) or value <= 0:
-        raise ValueError(f"{label}必須是有限正數")
-    return value
+        return manufacturing_api.normalize_operator_door_grid_dimension(
+            var.get(), field=field,
+        )
+    except ValueError as exc:
+        raise ValueError(f"{label}：{exc}") from exc
 
 def _reject_door_layout_dimension(host, var, previous_value, message):
     var.set(host._door_layout_number_text(previous_value))

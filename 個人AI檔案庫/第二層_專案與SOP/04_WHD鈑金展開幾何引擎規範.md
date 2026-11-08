@@ -12,6 +12,26 @@ whd_schema: WHD_DOC_META_V1
 - 原 25 項 TkVar 的操作順序不變，改將 raw 來源交給既有 `manufacturing_api.normalize_operator_source_dimensions` 驗 W/H/D/T/FW 正有限值，再以 `manufacturing_api.normalize_operator_settings_updates` 驗其餘 Fold／Gap／BasePlate 有限值；任何欄位被略過皆禁止返回部分資料供 2D／3D／DXF。Vault 手動底板非負限制作為另一條操作約束，不能侵入一般 Fold／INI 負數相容，沿用 #3112 契約；不新增主幾何公式。
 - `tests/test_issue2517_main_gui_numeric_source_public_engine.py` 覆蓋 GUI／headless 全 25 欄 parity、W/H/D 小數精度、負折邊及負縮量相容、非法 bool/nonfinite 來源 fail-closed、不突變、JSON Save→Reload。PartSpec、Topology、Registry、CUTTING／BEND／DXF Writer 均未改。#2517 其他入口及 Windows UAT 持續待驗。
 
+
+## [CURRENT] #2517 Receiving NFB 兩層實體 Y 高度只在 Engine 驗操作來源（2026-11-08）
+
+- `gui_modules/application/fold_designer_composition_receiving.inner_edit` 原本在顯示已保存層高、讀取操作員兩個欄位與切換一／二層時自行 `float(...)`，既有已保存布林值 True 可能轉成 1 mm，且 GUI 複製了 Engine 的層高數值解碼。這些數值影響 Receiving 內門 NFB 名義 Y，但預覽及草稿不可擅自授權 CUTTING。
+- 以原 `ae_engine.receiving_shared_settings.validate_setting('inner_door_layer_heights_mm', ...)` 為唯一物理層高規則，新增 `normalize_receiving_operator_nfb_layer_heights(raw)` 並經 `manufacturing_api`／根包公開同一 callable；GUI 只轉送兩個原始欄位，Engine 將合法數字字串／舊保存數值轉為兩個有限數字，再由現有正式正數、由上往下遞增限制驗證。布林、NaN／Inf、缺值、非法格式與倒序都 fail closed；保留合法小數、單層 550 與雙層 330／830、未改自訂 Y 與 work-area 界限。
+- `tests/test_issue2517_receiving_nfb_raw_heights_public_engine.py` 驗 facade/root 與 Engine owner 同義，實際 GUI 內層欄位讀取與 Engine 結果一致、JSON Save→Reload、非法來源不修改來源及未產生合法 NFB 層高。原 Set／Bay、實體孔、NFB CSV、Y 投影、2D／3D／DXF 與 Project schema 均不變；#2517 全面 API 覆蓋及 Windows 實機驗收未結案。
+
+## [CURRENT] #2517 多門格選取及實體 W/H 來源只能由公開 Engine API（2026-11-08）
+
+- 主 GUI `gui_modules/application/door_layout_host_adapter.select_door_layout_cell` 原用 `int(column_index/row_index)` 拼選擇鍵，再自行產生 `door_cN_rM` 交 Corner Data；布林、負索引、浮點與已刪除的格子可能被選中或當成合法實體 ID。原 `sheetmetal_part_adapters.door_layout_part_key` 自身沒有拒絕非法的物理格索引；錯誤導覽可能變更視窗選取和實體孔位編輯對象。
+- 仍由既有 `ae_engine.sheetmetal_part_adapters.door_layout_part_key` 擁有唯一 stable Door ID（製造／DXF 不另造名稱），拒絕非原生 int 與負數；既有 `door_layout_numeric_transitions` 增 `resolve_operator_door_layout_cell(cells,column_index,row_index)`，使用現有 canonical Door Cell 集合核對真實存在、唯一身份，非法值在 GUI 選取狀態改變前拒絕。Facade/root 公開同一 callable，GUI 只用返回的真實 Cell 與公開 Engine `door_layout_part_key`，不自創門片 ID；顯示文字和 Canvas 高亮維持原狀。
+- 多門格 `gui_modules/parts/panels/door._parse_layout_value` 原另存一份 bool／有限／正數物理 W/H 判準；現沿用 Engine `door_layout_numeric_transitions._positive_total` 原有核准規則，公開 `normalize_operator_door_grid_dimension(raw,field)` 區分盤 W/H 與門格欄寬／層高，GUI 只轉送 raw、顯示錯誤，欄寬小數精度／保存回讀維持相同；沒有改 Fold／CUTTING／BEND／DXF 或 Family 補償。
+- `tests/test_issue2517_door_grid_raw_dimensions_and_identity.py` 覆蓋 headless 公開 Engine/raw GUI 來源、合法 fractional mm、非法 bool/NaN 來源、真實 Cell 及 stale／負索引禁止 GUI 修改選取、stable Door IDs 與原檔、JSON roundtrip 不突變。#2517 仍須持續全功能、Windows 實機與真 DXF 驗收。
+
+## [CURRENT] #2517 主 GUI STOCK 與單門指示燈距離旗標須保留公開 Engine 原始來源（2026-11-08）
+
+- `gui_modules/application/manufacturing_adapter._manufacturing_context` 原先在送正式 DXF `ManufacturingContext` 前 `bool(draw_stock)`，使序列化 `"false"` 變 True，開啟不應有的 STOCK；單門 `_single_door_part_spec` 也預先 `bool(self.is_box_dist_var.get())`，使 `"false"` 變 True，偏移指示燈孔的位置語意。此前 #3107 處理 Fold Designer STOCK 交易，但未涵蓋這條主 GUI 出圖 Adapter。
+- 原 `ae_engine.operator_settings_transactions.normalize_operator_settings_boolean` 已由 `manufacturing_api` 公開：主 GUI 僅使用該 Engine 正規化值建 `ManufacturingContext`，拒絕非法 flag；單門則保留 `is_box_dist_var.get()` raw 原始值交給原 `manufacturing_api.build_door_operator_part_spec`，由 Engine 僅在實際啟用指示燈時嚴格判定，停用時保留歷史無孔容錯。不增寫任何 CUTTING／STOCK／距離公式或第二份 DXF Writer。
+- `tests/test_issue2517_main_gui_manufacturing_raw_boolean_engine.py` 核對主 GUI 與 headless 同一 Context／PartSpec、序列化旗標 false／true、非法來源 fail-closed、停用指示燈保留舊檔、JSON Save→Reload。2D／3D／DXF 仍來自 Engine canonical 結果，Windows 實機 UAT／#2517 全面覆蓋未完成。
+
 ## [CURRENT] #2517 Registry 截角一／二段拓樸須由公開 Engine 原始來源驗證（2026-11-08）
 
 - 原 `gui_modules/application/fold_designer_composition_registry_edges.registry_collect_rule_form` 先將候選 `topology_levels` 做 `int(float(TkVar.get()))`；`1.9` 被截斷為 1 段、`True` 被當成 1 段、`0` 被悄悄改為預設段數。原 `certified_relief_registry._validate_editable_rule_record` 同樣使用 `int(...)`，headless API 可以接受有害的原始拓樸。這是 Certified Registry 候選對 AssemblyJoint/Corner 幾何段數的來源資格，不可由 GUI 提前造出合法候選。

@@ -839,7 +839,9 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
     result = FinalSceneViewRequest(
         render_data=AssemblySceneRenderData(assembly_parts=parts, preserve_endcap_core_origin=True),
         x_profile=(), y_profile=(), part_key="assembly",
-        finished_dimensions=dimensions(), thickness=float(snapshot.get("t", 2)),
+        finished_dimensions=dimensions(), thickness=manufacturing_api.normalize_operator_source_dimension(
+            snapshot.get("t", 2), field="t",
+        ),
     )
     if preview_layout is None:
         _retain_committed_receiving_bay_preview(
@@ -1288,7 +1290,9 @@ def _common_preview_request(self, namespace):
         render_data=AssemblySceneRenderData(assembly_parts=parts, preserve_endcap_core_origin=True),
         x_profile=(), y_profile=(), part_key="assembly",
         finished_dimensions=tuple(self.app._phase6_box_whd[axis] for axis in ("w", "h", "d")),
-        thickness=float(self.app._phase6_input_snapshot.get("t", 2)),
+        thickness=manufacturing_api.normalize_operator_source_dimension(
+            self.app._phase6_input_snapshot.get("t", 2), field="t",
+        ),
     )
 
 
@@ -1873,15 +1877,19 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # never create a second writable tier-count variable.
         layers = tk.IntVar(master=modal, value=initial["layers"])
         nfb_physical_layers = layers
+        # Physical saved Y is validated before constructing the edit controls.
+        # Python float(True) would otherwise fabricate a 1-mm operator row.
+        initial_heights = manufacturing_api.normalize_receiving_operator_nfb_layer_heights(
+            initial["layer_heights_mm"]
+        )
         layer_height_vars = tuple(
-            tk.StringVar(master=modal, value=f"{float(v):g}")
-            for v in initial["layer_heights_mm"]
+            tk.StringVar(master=modal, value=f"{v:g}")
+            for v in initial_heights
         )
         def read_layer_heights():
-            try:
-                heights = [float(field.get().strip()) for field in layer_height_vars]
-            except (TypeError, ValueError) as exc:
-                raise ValueError("請輸入有效的第一層、第二層高度（mm）") from exc
+            heights = manufacturing_api.normalize_receiving_operator_nfb_layer_heights(
+                tuple(field.get() for field in layer_height_vars)
+            )
             return manufacturing_api.validate_receiving_nfb_layer_heights_for_work_area(
                 _current_mode_snapshot(self, namespace), heights,
                 layer_count=layers.get(),
@@ -2673,8 +2681,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 )
                 if previous_count != nfb_physical_layers.get():
                     try:
-                        heights = [float(field.get().strip())
-                                   for field in layer_height_vars]
+                        heights = manufacturing_api.normalize_receiving_operator_nfb_layer_heights(
+                            tuple(field.get() for field in layer_height_vars)
+                        )
                         updated = manufacturing_api.transition_receiving_nfb_layer_heights(
                             heights, old_count=previous_count,
                             new_count=nfb_physical_layers.get(),
