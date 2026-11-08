@@ -518,8 +518,8 @@ def refresh_profiles_from_settings(
         existing_profiles=workspace.part_profiles_snapshot(),
         box_body_profile=app.state.profiles_vault.get("箱身", []),
         active_part=workspace.active_part or "box_body",
-        reset_box_profile=bool(reset_box_profile),
-        reset_all_profiles=bool(reset_all_profiles),
+        reset_box_profile=reset_box_profile,
+        reset_all_profiles=reset_all_profiles,
     )
     plan = required("build_settings_profile_projection")(request)
     return self.apply_settings_profile_projection(
@@ -555,8 +555,8 @@ def settings_application_apply_profile_plan(
     try:
         return self.refresh_profiles_from_settings(
             namespace,
-            reset_box_profile=bool(reset_box_profile),
-            reset_all_profiles=bool(reset_all_profiles),
+            reset_box_profile=reset_box_profile,
+            reset_all_profiles=reset_all_profiles,
             render=bool(render),
         )
     finally:
