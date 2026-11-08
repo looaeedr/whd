@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer「輸出 STOCK」原始旗標由公開 Engine 決定（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_state.commit_output_draw_stock` 在呼叫 ProjectController 前自行 `bool(TkVar.get())`，`phase6_project_controller.Phase6ProjectController.commit_output_stock` 又以 `bool(value)` 再解碼。已保存字串 `"false"` 會被當作 True；`draw_stock` 是正式 Engine 製造 Context 的 DXF STOCK 圖層控制來源，不得由 GUI truthiness 決定。
+- 原路徑保持不變：GUI 直接傳原始操作值，ProjectController 重用既有公開 `manufacturing_api.normalize_operator_settings_boolean` 後才呼叫 `stage_setting("draw_stock", committed)`；合法 bool、序列化 true/false、on/off、1/0 和現有 Engine 規則一致，非法來源 fail closed，先驗完整旗標再提交。沒有新 DXF Writer、STOCK 幾何或 ManufacturingContext 公式。
+- `tests/test_issue2517_output_stock_raw_boolean_public_engine.py` 驗直接 Engine Settings 與 GUI 相同結果、真實 staging 副作用、字串 JSON Save→Reload、非法輸入禁止提交及來源不突變。保留原 2D／3D／DXF 統一 Engine 出圖及現有資料 schema；#2517 全面 GUI API 與 Windows UAT 仍須續驗。
+
 ## [CURRENT] #2517 Receiving Settings 2D 封頭尾核心原點旗標以公開 Engine 原始來源驗證（2026-11-08）
 
 - 原 `gui_modules/application/receiving_settings_preview_2d._assembly_world_meshes` 在呼叫公開 Engine 世界座標實體網格前先以 `bool(preserve_endcap_core_origin)` 解碼；Save→Reload 的字串 `"false"` 會被誤判 True，使 Head/Tail 世界定位預覽與同源 headless Engine 語意分裂。Engine 原 `resolve_assembled_endcap_world_skins` 同樣有寬鬆 truthiness。
