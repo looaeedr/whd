@@ -152,3 +152,96 @@ def test_main_project_open_reads_public_engine_source_no_local_float_bool():
     )
     assert "float(row[0])" not in inner
     assert "float(datum)" not in inner
+
+
+@pytest.mark.parametrize("model", ("金庫型", "受電箱"))
+@pytest.mark.parametrize("raw", ("false", "off", "0", 0, "true", "on", "1", 1))
+def test_saved_indicator_distance_flag_restores_exact_public_engine_value(model, raw):
+    app, events = host()
+    app.is_box_dist_var = Var(True, events)
+    source = json.loads(json.dumps(saved(model=model, use_box_distance=raw), ensure_ascii=False))
+    before = deepcopy(source)
+    gui._apply_original_fold_designer_snapshot(app, source)
+    expected = api.normalize_operator_settings_boolean(raw)
+    assert app.is_box_dist_var.get() is expected
+    assert app.multi_door_enabled_var.get() is False
+    assert events[0][0] == "settings"
+    assert source == before
+
+
+@pytest.mark.parametrize("model", ("金庫型", "受電箱"))
+@pytest.mark.parametrize("raw", ("bad", 2, None, float("nan"), [], {}))
+def test_corrupt_indicator_distance_flag_rejects_before_any_snapshot_commit(model, raw):
+    app, events = host()
+    app.is_box_dist_var = Var(True, events)
+    source = saved(model=model, use_box_distance=raw)
+    before = deepcopy(source)
+    with pytest.raises(ValueError, match="布林值"):
+        gui._apply_original_fold_designer_snapshot(app, source)
+    assert events == []
+    assert app.is_box_dist_var.get() is True
+    assert str(source) == str(before)
+
+
+@pytest.mark.parametrize("field,raw", [
+    ("use_box_distance", "maybe"),
+    ("use_box_distance", 2),
+    ("door_nameplate_center_datum_top", True),
+    ("door_nameplate_center_datum_top", "nan"),
+])
+def test_main_project_open_preflights_late_operator_sources_before_session_reset(field, raw):
+    events = []
+    app = SimpleNamespace(
+        workspace_controller=SimpleNamespace(
+            reset_receiving_mode_session=lambda: events.append("reset")
+        ),
+        _reset_manual_corner_parameter_locks=lambda: events.append("corner_reset"),
+    )
+    source = saved(**{field: raw})
+    before = deepcopy(source)
+    with pytest.raises((TypeError, ValueError)):
+        gui._apply_phase6_project_snapshot(app, source)
+    assert events == []
+    assert source == before
+
+
+def test_legacy_snapshot_without_distance_flag_preserves_existing_toggle():
+    app, events = host()
+    app.is_box_dist_var = Var(True, events)
+    gui._apply_original_fold_designer_snapshot(app, saved())
+    assert app.is_box_dist_var.get() is True
+
+
+def test_actual_p6fold_distance_flag_survives_write_and_reload(tmp_path):
+    import phase6_project_file as project
+
+    app, _events = host()
+    app.is_box_dist_var = Var(True)
+    source = saved(use_box_distance="false", multi_door_enabled=False)
+    # Canonical .p6fold authority stores Engine-validated numeric Door cells;
+    # legacy Tk strings are accepted at the GUI input seam, not Project write.
+    source["door_layout_columns"] = api.project_operator_saved_door_layout_columns(
+        source["door_layout_columns"]
+    )
+    target = project.write_project(
+        tmp_path / "saved-indicator-distance.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": source},
+    )
+    restored = project.read_project(target)["snapshot"]
+    gui._apply_original_fold_designer_snapshot(app, restored)
+    assert app.is_box_dist_var.get() is False
+    assert restored["use_box_distance"] == "false"
+
+
+def test_main_project_restores_operator_bool_through_public_engine_before_settings():
+    outer = inspect.getsource(gui._apply_phase6_project_snapshot)
+    inner = inspect.getsource(gui._apply_original_fold_designer_snapshot)
+    assert 'snapshot["use_box_distance"]' in outer
+    assert outer.index('snapshot["use_box_distance"]') < outer.index(
+        "self.workspace_controller.reset_receiving_mode_session("
+    )
+    assert "manufacturing_api.normalize_operator_settings_boolean(snapshot[" in inner
+    assert inner.index("manufacturing_api.normalize_operator_settings_boolean(snapshot[") < (
+        inner.index("self._apply_fold_designer_live_settings(")
+    )
+    assert 'bool(snapshot.get("use_box_distance"' not in inner
