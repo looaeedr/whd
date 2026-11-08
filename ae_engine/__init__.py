@@ -74,6 +74,7 @@ from .manufacturing_api import (
     project_operator_door_cell_features,
     project_operator_door_cell_baseline,
     OperatorHoleEditorGeometry,
+    OperatorHoleEditorRoute, project_operator_hole_editor_route,
     project_operator_hole_editor_door,
     project_operator_hole_editor_base_plate,
     CanvasTransform, ResolvedCircle, ResolvedRect,
