@@ -345,7 +345,6 @@ def commit_endcap_fw(state, part_key: str, value: float, *, box_fw: float | None
     return state
 
 
-
 def commit_operator_endcap_fw_value(
     state, part_key: str, value, *, box_fw,
 ) -> dict:

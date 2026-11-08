@@ -167,6 +167,7 @@ def _door_part_spec_from_values(
     self, val, *, model_name, features, indicator_hole=None, door_indicator=None,
     door_indicator_offset=(0.0, 0.0), use_box_distance=False, corner_policy=None,
     frame_edges=None, indicator_window_groups=None, indicator_source_state=None,
+    fold_designer_indicator_source=None,
 ) -> DoorPartSpec:
     """GUI submits operator inputs; Engine owns canonical Door manufacturing spec."""
     return manufacturing_api.build_door_operator_part_spec(
@@ -181,6 +182,7 @@ def _door_part_spec_from_values(
         frame_edges=frame_edges,
         indicator_window_groups=indicator_window_groups,
         indicator_source_state=indicator_source_state,
+        fold_designer_indicator_source=fold_designer_indicator_source,
         nameplate_center_datum_top=getattr(
             self, "door_nameplate_center_datum_top", None
         ),

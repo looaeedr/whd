@@ -776,57 +776,34 @@ class Phase6FoldDesignerApp(original.MainApp):
         self.do_update()
 
     def _sync_dwd_with_top_whd(self):
-        source = getattr(self, "_phase6_input_snapshot", {}) or {}
-        if source.get("active_mode") == "quantity" and source.get("receiving_quantity_box"):
-            self.state.profiles_vault["箱身"] = merge_box_body_profile(
-                self.state.profiles_vault.get("箱身", []), source)
-            self._phase6_last_w = float(source["receiving_quantity_box"]["w"])
-            self._phase6_last_d = float(source["receiving_quantity_box"]["d"])
-            return
-        if (manufacturing_api.operator_canonical_family_name(source) == "受電箱"
-                and source.get("receiving_layout")):
-            # Set/Bay has the same single dimensional authority as Quantity.
-            # A T/FW redraw must never interpret an older cached Fold core as
-            # a new W/D edit and silently reverse the operator's active Bay.
-            self.state.profiles_vault["箱身"] = merge_box_body_profile(
-                self.state.profiles_vault.get("箱身", []), source)
-            self._phase6_last_w = float(source["w"])
-            self._phase6_last_d = float(source["d"])
-            return
-        profile = self.state.profiles_vault.get("箱身", [])
-        w_segments = [seg for seg in profile if seg.get("core") == "W"]
-        d_segments = [seg for seg in profile if seg.get("core") == "D"]
-        if len(w_segments) != 1 or len(d_segments) != 2:
-            return
-
-        top_w = original.get_int(self.v_w.get())
-        top_d = original.get_int(self.v_d.get())
-        core_w = original.get_int(engine_segment_length_to_ui(w_segments[0]))
-        d_values = [original.get_int(engine_segment_length_to_ui(seg)) for seg in d_segments]
-
-        last_w = self._phase6_last_w
-        last_d = self._phase6_last_d
-        if top_w != last_w:
-            w_segments[0]["len"] = ui_segment_length_to_engine(w_segments[0], top_w)
-            core_w = top_w
-        elif core_w != last_w:
-            self.v_w.set(str(core_w))
-            top_w = core_w
-
-        if top_d != last_d:
-            for seg in d_segments:
-                seg["len"] = ui_segment_length_to_engine(seg, top_d)
-            d_value = top_d
-        else:
-            changed = [value for value in d_values if value != last_d]
-            d_value = changed[0] if changed else d_values[0]
-            for seg in d_segments:
-                seg["len"] = ui_segment_length_to_engine(seg, d_value)
-            if d_value != top_d:
-                self.v_d.set(str(d_value))
-
-        self._phase6_last_w = top_w
-        self._phase6_last_d = d_value
+        """Apply the public Engine D-W-D source transaction without GUI geometry."""
+        plan = manufacturing_api.plan_operator_box_body_dwd_sync(
+            getattr(self, "_phase6_input_snapshot", {}) or {},
+            self.state.profiles_vault.get("箱身", []),
+            top_width=self.v_w.get(),
+            top_depth=self.v_d.get(),
+            previous_width=getattr(self, "_phase6_last_w", None),
+            previous_depth=getattr(self, "_phase6_last_d", None),
+        )
+        if plan.profile is not None:
+            fresh = clone_profile(plan.profile)
+            if plan.replace_profile:
+                # A committed Receiving Bay/Quantity owns the core topology.
+                self.state.profiles_vault["箱身"] = fresh
+            else:
+                # Keep the live editor's list identity while replacing only
+                # the validated Engine-projected material row values.
+                current = self.state.profiles_vault.get("箱身")
+                if isinstance(current, list):
+                    current[:] = fresh
+                else:
+                    self.state.profiles_vault["箱身"] = fresh
+        if plan.display_width is not None:
+            self.v_w.set(str(plan.display_width))
+        if plan.display_depth is not None:
+            self.v_d.set(str(plan.display_depth))
+        self._phase6_last_w = plan.last_width
+        self._phase6_last_d = plan.last_depth
 
     def do_update(self):
         _phase6_apply_box_symmetry_policy(self)
@@ -2913,6 +2890,11 @@ def _fix11_remove_part(self, key):
 
 
 def _fix11_export(self):
+    # Validate operator physical W/H/D before saving any part or mutating
+    # GUI workspace. Cached Settings may not replace these committed spans.
+    live_whd = manufacturing_api.normalize_operator_live_box_dimensions(
+        getattr(self, "_phase6_box_whd", {}) or {}
+    )
     # Closing/exporting owns one complete snapshot handoff.  Do not also fire a
     # live settings callback here or the main GUI recalculates twice before the
     # designer can close.
@@ -2940,10 +2922,7 @@ def _fix11_export(self):
     # that were edited in the X/Y EndCap editor. Global W/H/D are owned by the
     # bridge, while EndCap fold/FW values are owned by the shared Phase6 snapshot.
     result = _FIX10_EXPORT(self)
-    dimension_number = float if self._phase6_input_snapshot.get("receiving_quantity_box") and self._phase6_input_snapshot.get("active_mode") == "quantity" else _ui_len
-    result["w"] = dimension_number(self._phase6_box_whd["w"])
-    result["h"] = dimension_number(self._phase6_box_whd["h"])
-    result["d"] = dimension_number(self._phase6_box_whd["d"])
+    result.update(live_whd)
     for name in ("yl1", "yr1", "ytop1", "ybottom1"):
         if name in self._phase6_input_snapshot:
             result[name] = _ui_len(self._phase6_input_snapshot[name])
@@ -2952,13 +2931,28 @@ def _fix11_export(self):
         profiles = self.designer_workspace.profiles_for(current)
         if profiles:
             endcap_values = read_endcap_xy_profiles(profiles, self._phase6_input_snapshot)
-            if self._phase6_input_snapshot.get("receiving_quantity_box") and self._phase6_input_snapshot.get("active_mode") == "quantity":
-                endcap_values["w"] = float(self._phase6_input_snapshot["receiving_quantity_box"]["w"])
-                endcap_values["d"] = float(self._phase6_input_snapshot["receiving_quantity_box"]["d"])
+            quantity = (
+                self._phase6_input_snapshot.get("receiving_quantity_box")
+                if self._phase6_input_snapshot.get("active_mode") == "quantity"
+                else None
+            )
+            if quantity:
+                # The saved Quantity common box owns its physical W/D. Check
+                # both values before updating any physical source in the GUI.
+                quantity_whd = {
+                    axis: manufacturing_api.normalize_operator_source_dimension(
+                        quantity[axis], field=axis
+                    )
+                    for axis in ("w", "d")
+                }
+                live_whd.update(quantity_whd)
+            # Head/Tail material readback may round editor rows; physical
+            # W/D have already been reconciled by the public Engine API.
+            endcap_values.update({"w": live_whd["w"], "d": live_whd["d"]})
             result.update(endcap_values)
             self._phase6_input_snapshot.update(endcap_values)
-            self._phase6_box_whd["w"] = dimension_number(endcap_values["w"])
-            self._phase6_box_whd["d"] = dimension_number(endcap_values["d"])
+            if quantity:
+                self._phase6_box_whd.update(quantity_whd)
     elif current == "box_body":
         # The box body is authoritative for the shared FW when it is the part
         # being edited. Preserve that value for later EndCap sessions.
@@ -2985,6 +2979,11 @@ def _fix11_export(self):
     result["corner_state"] = deepcopy(getattr(self, "_phase6_corner_state", {}))
     result["corner_pair_same"] = deepcopy(getattr(self, "_phase6_corner_pair_same", {}))
     result.update(self._settings_values)
+    # Final physical W/H/D always come from the Engine-validated live Box,
+    # never rounded readback nor stale global Settings.
+    result.update(manufacturing_api.normalize_operator_live_box_dimensions(
+        self._phase6_box_whd
+    ))
     return result
 
 
@@ -3038,10 +3037,18 @@ def _propagate_endcap_derived_cores(self, w, d):
 def _sync_active_endcap_and_global_whd(self):
     if self._phase6_input_snapshot.get("active_mode") == "quantity" and self._phase6_input_snapshot.get("receiving_quantity_box"):
         return
-    top_w = original.get_int(self.v_w.get())
-    top_d = original.get_int(self.v_d.get())
-    last_w = original.get_int(self._phase6_last_w if self._phase6_last_w is not None else top_w)
-    last_d = original.get_int(self._phase6_last_d if self._phase6_last_d is not None else top_d)
+    live_box = manufacturing_api.normalize_operator_live_box_dimensions({
+        "w": self.v_w.get(), "h": self.v_h.get(), "d": self.v_d.get(),
+    })
+    top_w, top_d = live_box["w"], live_box["d"]
+    last_w = manufacturing_api.normalize_operator_source_dimension(
+        self._phase6_last_w if self._phase6_last_w is not None else top_w,
+        field="w",
+    )
+    last_d = manufacturing_api.normalize_operator_source_dimension(
+        self._phase6_last_d if self._phase6_last_d is not None else top_d,
+        field="d",
+    )
     dimensions = manufacturing_api.reconcile_endcap_live_outside_dimensions(
         self._phase6_input_snapshot, top_width=top_w, top_depth=top_d,
         previous_width=last_w, previous_depth=last_d,
@@ -3054,7 +3061,7 @@ def _sync_active_endcap_and_global_whd(self):
         self.v_d.set(str(new_d))
 
     self._phase6_box_whd["w"] = new_w
-    self._phase6_box_whd["h"] = original.get_int(self.v_h.get())
+    self._phase6_box_whd["h"] = live_box["h"]
     self._phase6_box_whd["d"] = new_d
     self._phase6_input_snapshot["w"] = new_w
     self._phase6_input_snapshot["h"] = self._phase6_box_whd["h"]
@@ -3068,17 +3075,16 @@ _FIX10_DO_UPDATE = Phase6FoldDesignerApp.do_update
 def _fix11_do_update(self):
     key = getattr(self, "active_part_key", "box_body")
     if key == "box_body":
+        live_box = manufacturing_api.normalize_operator_live_box_dimensions({
+            "w": self.v_w.get(), "h": self.v_h.get(), "d": self.v_d.get(),
+        })
         if _phase6_receiving_layout_applicable(self):
             _phase6_commit_receiving_current_bay_controls(self)
         # 折彎編輯器的軸向是唯一基準；舊金庫型 Renderer 曾使用
         # active_bend="箱身" only as a visual highlight flag; mutating the shared
         # editor state here can race Tk notebook callbacks and makes the custom
         # X-only profile get indexed by "箱身" (KeyError).
-        _phase6_replace_mapping(self, "_phase6_box_whd", {
-            "w": original.get_int(self.v_w.get()),
-            "h": original.get_int(self.v_h.get()),
-            "d": original.get_int(self.v_d.get()),
-        })
+        _phase6_replace_mapping(self, "_phase6_box_whd", live_box)
         if not _phase6_receiving_layout_applicable(self):
             self._phase6_input_snapshot.update(self._phase6_box_whd)
         # Resolve dimension-linked profiles BEFORE the one renderer/manufacturing
@@ -3095,13 +3101,12 @@ def _fix11_do_update(self):
         _sync_active_endcap_and_global_whd(self)
         return original.MainApp.do_update(self)
 
-    # All other parts keep their local fold profiles, but W/H/D at the top are
-    # always the cabinet-global values.
-    _phase6_replace_mapping(self, "_phase6_box_whd", {
-        "w": original.get_int(self.v_w.get()),
-        "h": original.get_int(self.v_h.get()),
-        "d": original.get_int(self.v_d.get()),
+    # Preserve operator finished outside W/H/D for other physical parts too.
+    # Validation is read-only until all axes are confirmed by the Engine.
+    live_box = manufacturing_api.normalize_operator_live_box_dimensions({
+        "w": self.v_w.get(), "h": self.v_h.get(), "d": self.v_d.get(),
     })
+    _phase6_replace_mapping(self, "_phase6_box_whd", live_box)
     if _phase6_receiving_layout_applicable(self):
         _phase6_commit_receiving_current_bay_controls(self)
     else:

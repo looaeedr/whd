@@ -5,6 +5,7 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
+
 ## [CURRENT] #2517 主 GUI 明確箱身／封頭／封尾 FW 選取經公開 Engine 原子交易（2026-11-08）
 
 - 原 `gui.Phase6ApplicationHost.on_fw_selected("z"|"head"|"tail")` 在 GUI 側先 `float(TkVar.get())` 再呼叫舊的 in-place `commit_box_fw` / `commit_endcap_fw`；`NaN`、`Inf` 可成為物理 FW，而舊 `commit_endcap_fw` 對未帶 mode 的損壞快照可能先清除狀態才檢查輸入。既有驗證交易僅涵蓋 Settings Controller／Fold Designer 特定 BoxFW 入口，主 GUI 此路徑尚未完整保護。
@@ -12,7 +13,35 @@ whd_schema: WHD_DOC_META_V1
 - 測試 `tests/test_issue2517_main_gui_fw_explicit_atomic_api.py` 驗證金庫型及受電箱 Head/Tail 四態、數值精度、實際 Engine Fold、舊 Project、非有限／布林／非法 part identity、晚失敗列與 GUI 有效／無效路徑。不改任何 Registry、FW 幾何公式或 DXF 製造認證。#2517 全功能接線與 Windows GUI UAT 仍依真實證據驗收。
 
 
+## [CURRENT] #2517 箱身 D–W–D 實體 Fold 優先序及改料長由公開 Engine 交易（2026-11-08）
 
+- 原 `Phase6FoldDesignerApp._sync_dwd_with_top_whd` 直接在 GUI 判定 Quantity／Receiving Set/Bay 是否接管箱身 D-W-D，再自行比對上方 W/D 與核心折段、以 `get_int` 取整並修改核心 material `len`，這是物理尺寸、相鄰 BEND 補償與來源優先序，不可留第二份 GUI 規則。
+- 公開 `ae_engine.operator_box_body_dwd_sync.plan_operator_box_body_dwd_sync(snapshot, profile, *, top_width, top_depth, previous_width, previous_depth)`（`manufacturing_api` 與根包同一 callable）完整回傳 detached `OperatorBoxBodyDwdSyncPlan`，由原 Engine Family Registry、BoxBody Fold generator 與材長轉換擁有單一機械解算。Quantity 共用箱來源優先、Receiving Set/Bay 已提交包外來源優先、其他原有 D-W-D 上方直接編輯優先；保留 UI 手動 Fold 段整數顯示，僅全箱實體 W/D 採用既有 Engine 正數有限驗證與精度保留。已存小數全箱尺寸不可被未編輯的整數 Fold 列視覺取整回寫。
+- GUI 僅呼叫公開 Engine 一次、顯示需要變更的 Tk 數值、套回已驗證的 profile 候選並記住最後提交的 W/D；非法上方、前次或任一核心段在候選建構前完整拒絕，不突變原始 Fold 或來源。保留原 PartSpec、Family/CUTTING/BEND/FinalScene、DXF、Save→Reload schema；新測試 `tests/test_issue2517_box_body_dwd_live_fold_public_api.py` 核對 Vault、Receiving、Quantity、分片、無效欄位、精度、原有手動段顯示和 GUI 真委派。#2517 其他 GUI 製造入口仍需逐一驗收。
+
+## [CURRENT] #2517 Fold Designer Door／Cell 指示燈孔位改收原始來源、由 Engine PartSpec 決策（2026-11-08）
+
+- 舊 GUI `gui_modules/application/fold_designer_manufacturing_projection._door_part_spec_from_payload_context` 原本在真正呼叫公開 DoorPartSpec 前，自己判定 `indicator`／`indicator_box` 模式、將燈群推導為開孔尺寸、計算 active offsets，單門還以 `bool("false")` 將序列化的 false 誤解為 true。這些都是製造孔位及製造來源資格，不是 UI 顯示。
+- 現沿用原公開 `manufacturing_api.build_door_operator_part_spec`／根包 `ae_engine.build_door_operator_part_spec`，增加可選的 `fold_designer_indicator_source` 原始單門操作來源；Engine 原 `door_operator_part_spec` 以 `normalize_operator_settings_boolean` 決定是否啟用指示燈盒，並以既有 `normalize_fold_designer_indicator_groups`、`indicator_box_opening_size`、`normalize_fold_designer_indicator_offsets` 推導實體孔位。未啟用的盒體群組不得虛構開孔，啟用來源非法時 fail closed；同時提供已製成孔位與原始來源拒絕 `DOOR_OPERATOR_INDICATOR_DUPLICATE_SOURCE`。
+- 門格現直接將保存的 `door_layout_indicator_states[cell_key]` 傳入**既有** `indicator_source_state`，只由 Engine `project_operator_door_cell_indicator_manufacturing_source` 驗證 mode/layers/groups/offset/box distance，並建立唯一 `DoorPartSpec`。GUI 不再先自行解碼或建立製造 opening；缺門格舊來源維持 plain Door。主 GUI 既有 `_door_layout_part_spec` 也使用同一 Engine 原始來源入口，兩個 caller 不得分裂。
+- 定向驗收金庫型／受電箱適用的單門與格門、合法舊值、非法布林與孔數／座標 fail closed、raw JSON Save→Reload 等價及 GUI 真委派；原 Door 裁切／展開、指示燈基準板、Family/Registry／FinalScene、2D／3D／DXF 仍由原 Engine 擁有，不新增任何製造出口准入。#2517 全面覆蓋及 Windows 實機另驗。
+
+
+
+
+
+## [CURRENT] #2517 Fold Designer 快照匯出須保留 Engine 已驗現行盤 W/H/D（2026-11-08）
+
+- 原 `_fix11_export` 再以 `_ui_len` 整數化全箱包外 W/H/D，最後 `result.update(_settings_values)` 可能以舊 Settings 覆蓋已確認的金庫型／受電箱 Bay 尺寸；封頭／尾折型料長讀回也可能覆寫先前已提交的小數 W/D。修正重用現有 `manufacturing_api.normalize_operator_live_box_dimensions`：任何 GUI 存檔副作用前驗證 W/H/D，保存時以已提交實體 Box 來源定案，不由 GUI 取整，也不借舊 Settings 覆寫。
+- Head/Tail 的 X/Y Fold material readback 只更新其原本的 FW／折段來源；全箱 W/D 保持先前由公開 `reconcile_endcap_live_outside_dimensions` 提交的值。Quantity 已保存的共用箱 W/D 用既有 Engine 實體來源正數有限檢查後整對更新，任何非法值不進行部分 W/D 更新。原 PartSpec、Fold 製造公式、Factory、FinalScene、DXF 與儲存 schema 不增加替代實作。
+- 定向 `tests/test_issue2517_fold_designer_export_live_dimensions_public_api.py` 核對 Vault／Receiving、一般板件、Head/Tail、Quantity 與非法值。完整 Product Regression、實體 2D／3D／DXF、Save→Reload 仍以同版 CI／實測證據為準，#2517 全面 API 覆蓋仍待逐入口確認。
+
+
+## [CURRENT] #2517 Fold Designer 實體 W/H/D 輸入由公開 Engine 驗證（2026-11-08）
+
+- 舊版 fold_designer_bridge._fix11_do_update / _sync_active_endcap_and_global_whd 透過 fold_designer_original.get_int 把操作員輸入的包外 W/H/D 先做整數 round；非法值回落至 0，再流入 BoxBody／Head／Tail 的已提交來源。這不是 GUI 格式驗證，而是製造尺寸篡改；應 fail closed 並保留操作小數。
+- 唯一 Engine operator_settings_transactions.normalize_operator_live_box_dimensions({w,h,d}) 利用既有 normalize_operator_source_dimension 對三軸一併驗證大於零的有限、非 bool 原始值，再回傳 detached W/H/D float；manufacturing_api 與 ae_engine 根包公開完全同一 callable。GUI 不再使用 original.get_int 讀取包外三軸，也不產生第二份數值公式；BoxBody 先完成全欄驗證，才允許 Receiving Bay 提交；其他實體板件亦然。
+- Head/Tail 先驗三軸與 previous W/D，再將原始精度送入既有公開 Engine reconcile_endcap_live_outside_dimensions；Fold Profile 與 EndCap Core 的拓樸／折型取捨仍由 Engine 負責，不增加任何製造身份、CUTTING、BEND、Factory、Registry、DXF 型態或 Save→Reload schema。Windows RED→GREEN tests/test_issue2517_live_box_dimension_source_public_api.py。
 
 ## [CURRENT] #2517 Fold Designer 尺寸重算的 Receiving Settings W/H/D 優先序由公開 Engine（2026-11-08）
 

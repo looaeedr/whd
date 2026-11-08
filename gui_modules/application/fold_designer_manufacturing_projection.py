@@ -294,6 +294,8 @@ def _payload_policy(self, data, corner_state, part, fw, unknown, thickness):
 def _door_part_spec_from_payload_context(
     self, data, w, h, t, fw, model, unknown, features, policy, door_cell
 ):
+    """Only forward original Door/Cell inputs; Engine owns real indicator holes."""
+    cell_source = None
     if door_cell is not None:
         cell_key = f"{door_cell.column_index}:{door_cell.row_index}"
         states = dict(
@@ -301,36 +303,18 @@ def _door_part_spec_from_payload_context(
             or getattr(self, "door_layout_indicator_states", None)
             or {}
         )
-        state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(
-            states.get(cell_key)
+        # An absent legacy cell is a plain Door. A present malformed row
+        # must reach the Engine unmodified, not the GUI display-repair path.
+        cell_source = states.get(cell_key)
+        if cell_source is None:
+            cell_source = {"mode": "none"}
+        # This public Engine gate must run BEFORE the PartSpec adapter: a
+        # malformed saved cell cannot become a seemingly valid GUI draft if
+        # downstream material resolution or a caller shim is unavailable.
+        # Discard the view; pass the original row to the same Engine owner.
+        manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(
+            cell_source,
         )
-        mode = state["mode"]
-        groups = tuple(state["groups"][:state["layers"]]) if mode != "none" else ()
-        indicator_hole = (
-            manufacturing_api.indicator_box_opening_size(groups, thickness=t)
-            if mode == "indicator_box" else None
-        )
-        direct = groups if mode == "indicator" else ()
-        ind_offset = (float(state.get("offset_x", 0.0)), float(state.get("offset_y", 0.0)))
-        use_box_dist = bool(state.get("is_box_dist", False))
-    else:
-        box_enabled = bool(data.get("door_indicator_box_enabled"))
-        groups = (
-            manufacturing_api.normalize_fold_designer_indicator_groups(
-                data.get("indicator_layer_groups") or (),
-            ) if box_enabled else ()
-        )
-        direct_source = data.get("door_indicator_groups") or ()
-        direct = (
-            manufacturing_api.normalize_fold_designer_indicator_groups(direct_source)
-            if direct_source else ()
-        )
-        indicator_hole = (
-            manufacturing_api.indicator_box_opening_size(groups, thickness=t)
-            if box_enabled else None
-        )
-        ind_offset = tuple(data.get("door_indicator_offset") or (0.0, 0.0))
-        use_box_dist = bool(data.get("use_box_distance", False))
     return self._door_part_spec_from_values(
         {
             "w": w, "h": h, "t": t, "fw": fw,
@@ -340,10 +324,8 @@ def _door_part_spec_from_payload_context(
         },
         model_name=(None if unknown else model),
         features=features,
-        indicator_hole=indicator_hole,
-        door_indicator=(direct or None),
-        door_indicator_offset=ind_offset,
-        use_box_distance=use_box_dist,
+        indicator_source_state=cell_source,
+        fold_designer_indicator_source=(data if door_cell is None else None),
         corner_policy=policy,
         frame_edges=(door_cell.edges if door_cell is not None else None),
     )

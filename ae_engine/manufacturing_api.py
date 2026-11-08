@@ -198,6 +198,7 @@ from .operator_settings_transactions import (
     plan_operator_external_sync, normalize_operator_settings_boolean,
     normalize_operator_settings_updates, commit_operator_settings_state,
     normalize_operator_source_dimension, normalize_operator_source_dimensions,
+    normalize_operator_live_box_dimensions,
     PHYSICAL_SNAPSHOT_SOURCE_KEYS,
     project_receiving_manufacturing_request_settings,
     project_operator_linked_endcap_source_snapshot,
@@ -224,6 +225,9 @@ from .box_body_editor_readback import (
 )
 from .operator_box_body_piece_fold_transaction import (
     OperatorBoxBodyPieceFoldPlan, plan_operator_box_body_piece_fold_commit,
+)
+from .operator_box_body_dwd_sync import (
+    OperatorBoxBodyDwdSyncPlan, plan_operator_box_body_dwd_sync,
 )
 from .operator_fold_editor import (
     OperatorFoldMirrorPlan, commit_operator_fold_editor_rows,
@@ -1837,6 +1841,7 @@ def build_door_operator_part_spec(
     use_box_distance=False, corner_policy=None, frame_edges=None,
     indicator_window_groups=None, nameplate_center_datum_top=None,
     indicator_source_state=None,
+    fold_designer_indicator_source=None,
 ) -> DoorPartSpec:
     """Public Engine-owned Door operator → canonical manufacturing PartSpec."""
     from .door_operator_part_spec import build_door_operator_part_spec as build
@@ -1849,6 +1854,7 @@ def build_door_operator_part_spec(
         indicator_window_groups=indicator_window_groups,
         nameplate_center_datum_top=nameplate_center_datum_top,
         indicator_source_state=indicator_source_state,
+        fold_designer_indicator_source=fold_designer_indicator_source,
     )
 
 # #2517: Pre-solve EndCap fixed-relief delta and world collision diagnostics.

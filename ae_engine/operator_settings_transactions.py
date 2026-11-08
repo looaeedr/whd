@@ -118,6 +118,23 @@ def normalize_operator_source_dimensions(
     }
 
 
+def normalize_operator_live_box_dimensions(
+    values: Mapping[str, object],
+) -> dict[str, float]:
+    """Atomically validate W/H/D live outside inputs for a GUI edit.
+
+    Use the same Engine positive, finite and non-boolean physical contract as
+    the manufacturing request. No UI rounding or fabrication of zero.
+    All three axes must validate before a GUI transaction applies any result.
+    """
+    if not isinstance(values, Mapping):
+        raise TypeError("live box dimensions must be a mapping")
+    return {
+        axis: normalize_operator_source_dimension(values.get(axis), field=axis)
+        for axis in ("w", "h", "d")
+    }
+
+
 def normalize_operator_settings_updates(
     settings_values: Mapping[str, object],
     updates: Mapping[str, object] | None,
