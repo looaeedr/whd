@@ -39,6 +39,7 @@ from .receiving_inner_door_pairing import (
     validate_inner_door_allocation as validate_receiving_inner_door_allocation,
 )
 from .door_layout_numeric_transitions import (
+    normalize_operator_door_grid_dimension, resolve_operator_door_layout_cell,
     DoorLayoutColumnState, DoorLayoutResolvedColumn,
     DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
 )

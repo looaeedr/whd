@@ -14,6 +14,7 @@ from typing import Sequence
 from .sheetmetal_part_adapters import (
     complete_partition,
     validate_door_layout_dimensions,
+    door_layout_part_key,
 )
 
 
@@ -69,6 +70,34 @@ def _physical_cell_index(label: str, value: int, count: int) -> int:
     if type(value) is not int or value < 0 or value >= count:
         raise ValueError(f"{label} 必須是目前門片的有效整數索引")
     return value
+
+
+def normalize_operator_door_grid_dimension(raw: object, *, field: str) -> float:
+    """Public raw physical dimension validation for a Door cell/box-axis edit."""
+    labels = {
+        "w": "W", "h": "H",
+        "column_width": "欄寬", "row_height": "高度",
+    }
+    if field not in labels:
+        raise ValueError("不支援的門格尺寸來源")
+    return _positive_total(labels[field], raw)
+
+
+def resolve_operator_door_layout_cell(cells, column_index, row_index):
+    """Select only an existing canonical physical Door cell; never invent ID."""
+    if type(column_index) is not int or type(row_index) is not int or column_index < 0 or row_index < 0:
+        raise ValueError("DOOR_LAYOUT_CELL_ID_INVALID")
+    matches = []
+    for cell in tuple(cells or ()):
+        try:
+            door_layout_part_key(cell)  # Existing physical identity owner.
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise ValueError("DOOR_LAYOUT_CELL_SOURCE_INVALID") from exc
+        if cell.column_index == column_index and cell.row_index == row_index:
+            matches.append(cell)
+    if len(matches) != 1:
+        raise ValueError("DOOR_LAYOUT_CELL_ID_UNAVAILABLE")
+    return matches[0]
 
 
 def recompute_door_layout(

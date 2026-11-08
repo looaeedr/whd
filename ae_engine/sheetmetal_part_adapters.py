@@ -149,6 +149,9 @@ def derive_door_layout_cells(columns) -> tuple[DoorLayoutCell, ...]:
 
 def door_layout_part_key(cell: DoorLayoutCell) -> str:
     """Stable one-based identity shared by Fold Designer and DXF export."""
+    if (type(cell.column_index) is not int or type(cell.row_index) is not int
+            or cell.column_index < 0 or cell.row_index < 0):
+        raise ValueError("DOOR_LAYOUT_PHYSICAL_CELL_INDEX_INVALID")
     return f"door_c{cell.column_index + 1}_r{cell.row_index + 1}"
 
 
