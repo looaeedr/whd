@@ -34,10 +34,10 @@ def test_explicit_bad_boolean_fails_instead_of_becoming_true_or_false(raw):
         normalize_updates({"enabled": False}, {"enabled": raw})
 
 
-@pytest.mark.parametrize("key", ("w", "h", "d"))
+@pytest.mark.parametrize("key", ("w", "h", "d", "t", "fw"))
 @pytest.mark.parametrize("bad", (0, -1, True, "not-a-number", "nan", "inf", float("-inf")))
 def test_invalid_physical_dimension_rejected_before_state_mutation(key, bad):
-    saved = {"w": 800.0, "h": 1600.0, "d": 350.0}
+    saved = {"w": 800.0, "h": 1600.0, "d": 350.0, "t": 2.0, "fw": 25.0}
     initial = deepcopy(saved)
     with pytest.raises(ValueError, match="包外尺寸"):
         api.normalize_operator_settings_updates(saved, {key: bad})
@@ -68,11 +68,15 @@ def test_fractional_finished_dimensions_remain_identical_in_all_save_reload_sour
 
 
 def test_legacy_skip_unknown_nonphysical_and_gui_choice_does_not_enter_engine():
-    state = {"w": 800.0, "fw": 25.0, "flag": False, "ui_text_size": "small"}
-    updates = {"unknown": 5, "fw": "nan", "ui_text_size": "大", "flag": "false"}
+    state = {"w": 800.0, "fw": 25.0, "zl1": 15.0,
+             "flag": False, "ui_text_size": "small"}
+    # Only malformed *nonphysical* legacy numeric edits may be skipped.
+    updates = {"unknown": 5, "zl1": "nan", "ui_text_size": "大", "flag": "false"}
     actual = normalize_updates(state, updates)
     assert actual == {"ui_text_size": "large", "flag": False}
     assert api.normalize_operator_settings_updates(state, updates) == {"flag": False}
+    with pytest.raises(ValueError, match="包外尺寸"):
+        normalize_updates(state, {"fw": "nan"})
     saved = commit_settings(state, state, {"w": 800.0}, actual)
     assert saved.settings_values["ui_text_size"] == "large"
     assert saved.input_snapshot["ui_text_size"] == "large"

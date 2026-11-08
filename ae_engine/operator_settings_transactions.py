@@ -163,7 +163,7 @@ def normalize_operator_settings_updates(
     """Normalize physical/numeric settings independently of any GUI widget.
 
     Unknown keys and malformed *nonphysical* legacy numeric settings retain
-    the existing skip behavior. Invalid W/H/D and explicit invalid bools cannot
+    the existing skip behavior. Invalid W/H/D/T/FW and explicit invalid bools cannot
     silently fall back to previously committed manufacturing values.
     UI-only choice keys are applied by the client, not inferred by Engine.
     """
@@ -171,8 +171,8 @@ def normalize_operator_settings_updates(
     for key, raw in dict(updates or {}).items():
         if key not in settings_values or key == "ui_text_size":
             continue
-        if key in PHYSICAL_DIMENSION_KEYS:
-            value: object = _positive_physical_dimension(raw, key)
+        if key in PHYSICAL_SNAPSHOT_SOURCE_KEYS:
+            value: object = normalize_operator_source_dimension(raw, field=key)
         elif isinstance(settings_values.get(key), bool):
             value = normalize_operator_settings_boolean(raw)
         else:
@@ -196,15 +196,17 @@ def commit_operator_settings_state(
     box_whd: Mapping[str, object],
     values: Mapping[str, object] | None,
 ) -> OperatorSettingsCommitTransition:
-    """Copy-on-write commit of the SAME physical W/H/D to each state owner.
+    """Copy-on-write commit of all physical Settings sources.
 
-    Any invalid physical dimension aborts before mutation. Display-only
-    integer lengths in Fold editors are not the canonical enclosure W/H/D.
+    W/H/D also update the working box; T/FW remain in Settings/Snapshot.
+    All five must be positive, finite and nonboolean before any commit.
     """
     committed = deepcopy(dict(values or {}))
-    for key in PHYSICAL_DIMENSION_KEYS:
+    for key in PHYSICAL_SNAPSHOT_SOURCE_KEYS:
         if key in committed:
-            committed[key] = _positive_physical_dimension(committed[key], key)
+            committed[key] = normalize_operator_source_dimension(
+                committed[key], field=key,
+            )
     for key, raw in tuple(committed.items()):
         if key in settings_values and isinstance(settings_values[key], bool):
             committed[key] = normalize_operator_settings_boolean(raw)
