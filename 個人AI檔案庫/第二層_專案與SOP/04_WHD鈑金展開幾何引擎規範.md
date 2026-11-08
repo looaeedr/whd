@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 內門 1／2 層操作選項由公開 Engine 原始來源驗證（2026-11-08）
+
+- 原 `gui_modules/application/receiving_set_bay_controls._build_receiving_settings_editor` 的未套用匹配預覽與正式「編輯／套用」都使用 `int(value_var.get())` 直接轉換實體層數。GUI 的預先轉型可把 `"01"`、`"02"` 或錯型來源變成 1／2，繞過 `ae_engine.receiving_shared_settings.validate_setting("inner_door_layers", value)` 對已存實體 Bay 層數必須是精確整數的限制；preview/apply 各有第二份來源轉換。
+- 沿用原 `receiving_shared_settings` owner 的已確認 1／2 層約束，新增公開 `normalize_receiving_operator_inner_door_layer_choice(raw)`（`manufacturing_api`／根包同一 callable），只把 Tk readonly 的原始選項 `"1"` 或 `"2"` 正規化為整數，再交原 `validate_setting` 驗證；既有整數 1／2 適用，bool、float、帶前導零／小數字串及非法輸入 fail closed。GUI 的預覽與 Apply 均僅呼叫此同一 API，真實 SharedSettings／Bay 交易、連動來源、NFB heights、Factory／FinalScene/2D／3D／DXF 一律不變。
+- 定向 `tests/test_issue2517_receiving_inner_layer_raw_operator_choice.py` 驗 facade/root 同一 Engine owner、合法／非法 raw 來源、物理 Bay 未提交預覽、套用語意、實體 Tk 誤值不呼叫 change、來源不突變；維持 Project Save→Reload 既有共享設定 schema。#2517 其他 GUI 製造入口及 Windows UAT 繼續驗收。
+
 ## [CURRENT] #2517 Vault 底板四邊縮量以公開 Engine 非負有限來源交易為準（2026-11-08）
 
 - 原 `gui_modules/application/fold_designer_composition_registry_edges.commit_base_plate_edge_shrink` 直接 `float(raw_value)` 再比 `value < 0`；操作來源 `True` 被轉成 1 mm 實體縮量，`NaN` 因比較不成立，則可能被報成套用成功。原 Engine 泛用 Settings 交易對非物理數值的 skip 容錯也會掩蓋這類底板實體縮量來源錯誤。

@@ -145,6 +145,20 @@ def validate_setting(kind, value):
     return deepcopy(value)
 
 
+
+def normalize_receiving_operator_inner_door_layer_choice(raw):
+    """Decode the exact 1/2 UI choice before original physical Bay validation.
+
+    The persisted shared-setting contract stays an integer, not a numeric
+    string.  Do not turn bool, 1.0, "01" or "2.0" into physical layers.
+    """
+    if type(raw) is str:
+        if raw not in ("1", "2"):
+            raise ValueError("內門層數只能選 1 或 2")
+        raw = {"1": 1, "2": 2}[raw]
+    return validate_setting("inner_door_layers", raw)
+
+
 def normalize_set_settings(raw, bays):
     """每項設定各自有 refs/values；只保留仍被實體連引用的值。"""
     # Only an absent saved source denotes default settings. Explicit [] or
