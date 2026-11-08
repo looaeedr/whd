@@ -1678,6 +1678,9 @@ def commit_operator_receiving_base_plate_settings(
     )
 
 
+from .receiving_switch_layout import validate_receiving_switch_opening_target
+
+
 def normalize_receiving_switch_operator_layout(layout):
     """Public Engine port for Receiving Switch input topology state."""
     from .receiving_switch_layout import normalize_receiving_switch_layout
