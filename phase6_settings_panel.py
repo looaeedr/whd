@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from weakref import WeakSet
 from typing import Iterable, Sequence
 
+from ae_engine import manufacturing_api
 from phase6_settings_center import SettingSpec
 
 ADVANCED_SETTING_GROUPS = frozenset({"補償", "門縫", "收縮"})
@@ -315,7 +316,9 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         frame, entry, var = self.panel_name_frame, self.panel_name_entry, self.panel_name_var
         if frame is None or var is None or self.baseline_model_var is None:
             return
-        if self.baseline_model_var.get().strip() != "金庫型" or self._panel_name_changed is None:
+        if (not manufacturing_api.operator_vault_panel_name_editor_allowed(
+                self.baseline_model_var.get()
+            ) or self._panel_name_changed is None):
             frame.grid_remove()
             return
         frame.grid()
@@ -326,7 +329,9 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
 
     def commit_panel_name(self, _event=None):
         if (self.panel_name_var is None or self._panel_name_changed is None
-                or self.baseline_model_var.get().strip() != "金庫型"):
+                or not manufacturing_api.operator_vault_panel_name_editor_allowed(
+                    self.baseline_model_var.get()
+                )):
             return "break"
         try:
             # Validate/commit via public Engine API; UI never holds a name copy.

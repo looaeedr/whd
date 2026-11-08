@@ -57,7 +57,8 @@ from .manufacturing_api import (
     list_cabinet_model_choices, project_operator_corner_selection_catalog,
     OperatorCornerPartEditability, project_operator_corner_part_editability,
     list_receiving_nfb_model_refs, resolve_receiving_nfb_model_spec,
-    normalize_panel_name, set_cabinet_panel_name, rename_receiving_panel,
+    normalize_panel_name, set_cabinet_panel_name,
+    operator_vault_panel_name_editor_allowed, rename_receiving_panel,
     project_operator_door_blank_dimensions,
     project_operator_box_body_finished_height,
     project_operator_door_indicator_position,
@@ -375,6 +376,7 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "operator_vault_panel_name_editor_allowed",
     "project_operator_engineering_drawing_annotations",
     "project_operator_feature_surface_from_drawing_scene",
     "operator_hole_catalog_root_path",

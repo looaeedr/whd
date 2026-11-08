@@ -29,6 +29,13 @@ def normalize_panel_name(value: object, *, allow_blank: bool = False) -> str:
     return name
 
 
+def operator_vault_panel_name_editor_allowed(source_model: object) -> bool:
+    """Registry-backed editability of the single Vault panel-name input."""
+    from .cabinet_types.policy import canonical_family_name
+
+    return canonical_family_name(source_model) == "金庫型"
+
+
 def set_cabinet_panel_name(snapshot: Mapping[str, object], name: str) -> dict[str, object]:
     """Public single-cabinet input mutation; Receiving uses per-Bay names."""
     if not isinstance(snapshot, Mapping):

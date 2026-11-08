@@ -1044,7 +1044,9 @@ def settings_panel(self, namespace):
 
     def commit_vault_panel_name(name):
         from ae_engine import manufacturing_api
-        if str(app.baseline_model_var.get() or "").strip() != "金庫型":
+        if not manufacturing_api.operator_vault_panel_name_editor_allowed(
+            app.baseline_model_var.get()
+        ):
             raise ValueError("只有金庫型單箱入口可以編輯此盤名")
         source = app._phase6_input_snapshot
         candidate = manufacturing_api.set_cabinet_panel_name(source, name)
