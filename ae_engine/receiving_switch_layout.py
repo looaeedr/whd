@@ -143,6 +143,48 @@ def set_layer_connection_count(
     result["layers"] = layers
     return normalize_receiving_switch_layout(result)
 
+def validate_receiving_switch_opening_target(
+    layout: Mapping[str, object] | None, *,
+    layer_index: object, connection_index: object, brand: object,
+) -> dict[str, object]:
+    """Select an existing physical Switch cell before an external opening solve.
+
+    This validates only source identity and supported brand; it does not create,
+    confirm or certify any cutout. The separate canonical opening resolver must
+    still validate the actual model geometry and manufacturing evidence.
+    """
+    source = normalize_receiving_switch_layout(layout)
+
+    def _index(raw, *, name):
+        if isinstance(raw, bool) or not isinstance(raw, (int, str)):
+            raise ValueError(f"Receiving switch {name} must be an integer index")
+        if isinstance(raw, str):
+            text = raw.strip()
+            if not text or not text.isascii() or not text.isdecimal():
+                raise ValueError(f"Receiving switch {name} must be an integer index")
+            try:
+                raw = int(text)
+            except ValueError as exc:
+                raise ValueError(f"Receiving switch {name} must be an integer index") from exc
+        if raw < 0:
+            raise ValueError(f"Receiving switch {name} must be nonnegative")
+        return raw
+
+    selected_layer = _index(layer_index, name="layer_index")
+    if selected_layer >= len(source["layers"]):
+        raise ValueError("Receiving switch layer_index out of range")
+    selected_connection = _index(connection_index, name="connection_index")
+    if selected_connection >= source["layers"][selected_layer]["connection_count"]:
+        raise ValueError("Receiving switch connection_index out of range")
+    if brand is None:
+        raise ValueError("Receiving switch opening brand must be explicit")
+    return {
+        "layer_index": selected_layer,
+        "connection_index": selected_connection,
+        "brand": _brand(brand),
+    }
+
+
 def apply_receiving_switch_operator_action(
     layout: Mapping[str, object] | None, *,
     operation: str, brand: object = None,

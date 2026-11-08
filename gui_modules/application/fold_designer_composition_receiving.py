@@ -496,11 +496,13 @@ def confirm_receiving_opening(
             parent=getattr(app, "root", None),
         )
         return False
-    committed = resolver(
-        layer_index=int(layer_index),
-        connection_index=int(connection_index),
-        brand=str(brand),
+    target = manufacturing_api.validate_receiving_switch_opening_target(
+        self.receiving_switch_adapter(namespace).layout,
+        layer_index=layer_index,
+        connection_index=connection_index,
+        brand=brand,
     )
+    committed = resolver(**target)
     if not committed:
         return False
     submit = getattr(app, "submit_update_intent", None)
