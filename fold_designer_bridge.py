@@ -573,23 +573,17 @@ def project_features_to_original_holes(features, width, height):
 def _phase6_rebuild_linked_endcaps(self):
     """Rebuild only existing head/tail derived profiles from current box topology."""
     box_profile = self.state.profiles_vault.get("箱身", [])
-    snapshot = dict(self._phase6_input_snapshot)
-    snapshot.update(getattr(self, "_settings_values", {}) or {})
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
-        # Settings dimensions are seeds, not the active Receiving Bay. Linked
-        # EndCaps must use the same live W/H/D as the committed BoxBody.
-        snapshot.update({
-            axis: value for axis, value in
-            dict(getattr(self, "_phase6_box_whd", {}) or {}).items()
-            if axis in ("w", "h", "d")
-        })
-    snapshot["corner_state"] = deepcopy(getattr(self, "_phase6_corner_state", {}) or {})
-    snapshot["corner_pair_same"] = deepcopy(getattr(self, "_phase6_corner_pair_same", {}) or {})
-    snapshot["assembly_type"] = assembly_intent_value(getattr(
-        self, "_phase6_assembly_type", resolve_box_assembly_type(snapshot)
-    ))
-    snapshot["endcap_fw"] = deepcopy(getattr(self, "_phase6_endcap_fw_state", normalize_endcap_fw_state(snapshot)))
-    linked = build_linked_endcap_xy_profiles(snapshot, box_profile)
+    plan = manufacturing_api.plan_operator_linked_endcap_live_profiles(
+        self._phase6_input_snapshot,
+        getattr(self, "_settings_values", {}) or {},
+        getattr(self, "_phase6_box_whd", {}) or {},
+        box_profile,
+        corner_state=getattr(self, "_phase6_corner_state", {}) or {},
+        corner_pair_same=getattr(self, "_phase6_corner_pair_same", {}) or {},
+        assembly_type=getattr(self, "_phase6_assembly_type", None),
+        endcap_fw_state=getattr(self, "_phase6_endcap_fw_state", None),
+    )
+    snapshot, linked = plan.snapshot, plan.profiles
     for key in ("head", "tail"):
         if key in self.designer_workspace.available_parts:
             self.designer_workspace.stash_profiles(key, linked[key])
