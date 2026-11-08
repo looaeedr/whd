@@ -793,9 +793,18 @@ class Phase6ApplicationHost:
         return state
 
     def on_endcap_fw_follow_changed(self, part_key):
-        box_fw = float(self.fw_z_var.get())
+        # Engine alone validates raw follow flags, physical FW and saved rows.
+        # No UI-side bool("false") coercion or partially committed state.
         follow_var = self.fw_head_follow_var if part_key == "head" else self.fw_tail_follow_var
-        set_endcap_fw_follow(self.endcap_fw_state, part_key, bool(follow_var.get()), box_fw=box_fw)
+        try:
+            staged = manufacturing_api.operator_endcap_fw_follow(
+                {"fw": self.fw_z_var.get()}, {}, self.endcap_fw_state,
+                part_key, follow_var.get(),
+            )
+        except (TypeError, ValueError, tk.TclError):
+            self._sync_endcap_fw_controls()
+            return
+        self.endcap_fw_state = staged
         self._sync_endcap_fw_controls()
         owner = getattr(self, "_derived_cache_owner", None)
         if owner is not None:

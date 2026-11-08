@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI EndCap FW Follow 原始操作來源直接交 Engine（2026-11-08）
+
+- 主 `gui.Phase6ApplicationHost.on_endcap_fw_follow_changed` 原先在 GUI 以 `float(TkVar)`、`bool(TkVar)` 先定物理 Box FW 與 Head/Tail follow，序列化字串 `"false"` 會錯判 True，NaN 也能流入舊的就地修改。現在直接送原始操作來源給現有公開 `manufacturing_api.operator_endcap_fw_follow`（與 `ae_engine` 根包同一 Engine callable），由既有 `normalize_operator_source_dimension`、`normalize_operator_settings_boolean` 與原 `set_endcap_fw_follow` 決定合法狀態；GUI 只接受 detached 成功候選，不再自行解析製造布林／FW。
+- Engine `operator_endcap_settings_transactions._stage_operator_endcap_fw_source` 在共用 Head/Tail Follow／Override 候選前先拒絕非 Mapping 的損壞已保存實體列，避免舊 owner 在檢視相對尾片前部分改寫。既有舊版缺列可沿原 Engine 相容行為，不創造新 Family/FW 公式或 DXF 製造准入。非法操作不改已提交 GUI state 或 2D／3D／DXF cache。
+- 定向 `tests/test_issue2517_main_gui_endcap_fw_follow_raw_api.py` 驗證金庫型／受電箱、Head／Tail、序列化 true/false、物理 FW 小數、非法布林／非有限來源、損壞對側列、GUI 真委派、Project Save→Reload 與原 Engine Fold。#2517 其他 GUI 入口和 Windows UAT 持續個別驗收。
+
+
 ## [CURRENT] #2517 主 GUI 明確箱身／封頭／封尾 FW 選取經公開 Engine 原子交易（2026-11-08）
 
 - 原 `gui.Phase6ApplicationHost.on_fw_selected("z"|"head"|"tail")` 在 GUI 側先 `float(TkVar.get())` 再呼叫舊的 in-place `commit_box_fw` / `commit_endcap_fw`；`NaN`、`Inf` 可成為物理 FW，而舊 `commit_endcap_fw` 對未帶 mode 的損壞快照可能先清除狀態才檢查輸入。既有驗證交易僅涵蓋 Settings Controller／Fold Designer 特定 BoxFW 入口，主 GUI 此路徑尚未完整保護。

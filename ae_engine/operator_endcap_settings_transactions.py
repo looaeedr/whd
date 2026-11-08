@@ -16,7 +16,8 @@ from .endcap_bottom_wrap_state import (
     resolve_endcap_bottom_wrap,
 )
 from .endcap_factory_fold import (
-    commit_operator_box_fw_takeover, commit_endcap_fw, set_endcap_fw_follow,
+    ENDCAP_FW_PARTS, commit_operator_box_fw_takeover, commit_endcap_fw,
+    set_endcap_fw_follow,
 )
 from .operator_settings_transactions import (
     normalize_operator_settings_boolean, normalize_operator_source_dimension,
@@ -69,6 +70,11 @@ def _stage_operator_endcap_fw_source(
     source = dict(input_snapshot)
     source.update(dict(settings_values))
     box_fw = normalize_operator_source_dimension(source.get("fw"), field="fw")
+    # The original set_endcap_fw_follow mutates one row before inspecting both;
+    # refuse corrupt saved counterparts before any staged candidate is accepted.
+    for part in ENDCAP_FW_PARTS:
+        if part in endcap_fw_state and not isinstance(endcap_fw_state[part], Mapping):
+            raise ValueError("ENDCAP_FW_SOURCE_ROW_INVALID")
     return deepcopy(dict(endcap_fw_state)), box_fw
 
 
