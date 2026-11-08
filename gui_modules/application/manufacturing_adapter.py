@@ -34,7 +34,9 @@ def _endcap_profiles_for_assembly(values, stored_profiles, assembly_type, part_k
 
 def _manufacturing_context(self, *, draw_stock=False):
     """GUI-owned execution context for the headless manufacturing boundary."""
-    return ManufacturingContext(draw_stock=bool(draw_stock), overwrite=True)
+    # Engine alone decodes serialized STOCK intent: bool('false') is wrong.
+    stock = manufacturing_api.normalize_operator_settings_boolean(draw_stock)
+    return ManufacturingContext(draw_stock=stock, overwrite=True)
 
 def _box_body_part_spec_from_values(
     self, val, *, model_name, features, face_features,
@@ -198,7 +200,8 @@ def _single_door_part_spec(self, val, *, indicator_hole=None, door_indicator=Non
         indicator_hole=indicator_hole,
         door_indicator=door_indicator,
         door_indicator_offset=(self.door_indicator_offset_x, self.door_indicator_offset_y),
-        use_box_distance=bool(self.is_box_dist_var.get()),
+        # Engine DoorPartSpec validates the live mode and the raw distance flag.
+        use_box_distance=self.is_box_dist_var.get(),
         corner_policy=(
             self._manual_corner_policy(
                 'door', self._door_material_frame_width(val['fw'], val['t'])

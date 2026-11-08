@@ -12,6 +12,11 @@ whd_schema: WHD_DOC_META_V1
 - 以原 `ae_engine.receiving_shared_settings.validate_setting('inner_door_layer_heights_mm', ...)` 為唯一物理層高規則，新增 `normalize_receiving_operator_nfb_layer_heights(raw)` 並經 `manufacturing_api`／根包公開同一 callable；GUI 只轉送兩個原始欄位，Engine 將合法數字字串／舊保存數值轉為兩個有限數字，再由現有正式正數、由上往下遞增限制驗證。布林、NaN／Inf、缺值、非法格式與倒序都 fail closed；保留合法小數、單層 550 與雙層 330／830、未改自訂 Y 與 work-area 界限。
 - `tests/test_issue2517_receiving_nfb_raw_heights_public_engine.py` 驗 facade/root 與 Engine owner 同義，實際 GUI 內層欄位讀取與 Engine 結果一致、JSON Save→Reload、非法來源不修改來源及未產生合法 NFB 層高。原 Set／Bay、實體孔、NFB CSV、Y 投影、2D／3D／DXF 與 Project schema 均不變；#2517 全面 API 覆蓋及 Windows 實機驗收未結案。
 
+## [CURRENT] #2517 主 GUI STOCK 與單門指示燈距離旗標須保留公開 Engine 原始來源（2026-11-08）
+
+- `gui_modules/application/manufacturing_adapter._manufacturing_context` 原先在送正式 DXF `ManufacturingContext` 前 `bool(draw_stock)`，使序列化 `"false"` 變 True，開啟不應有的 STOCK；單門 `_single_door_part_spec` 也預先 `bool(self.is_box_dist_var.get())`，使 `"false"` 變 True，偏移指示燈孔的位置語意。此前 #3107 處理 Fold Designer STOCK 交易，但未涵蓋這條主 GUI 出圖 Adapter。
+- 原 `ae_engine.operator_settings_transactions.normalize_operator_settings_boolean` 已由 `manufacturing_api` 公開：主 GUI 僅使用該 Engine 正規化值建 `ManufacturingContext`，拒絕非法 flag；單門則保留 `is_box_dist_var.get()` raw 原始值交給原 `manufacturing_api.build_door_operator_part_spec`，由 Engine 僅在實際啟用指示燈時嚴格判定，停用時保留歷史無孔容錯。不增寫任何 CUTTING／STOCK／距離公式或第二份 DXF Writer。
+- `tests/test_issue2517_main_gui_manufacturing_raw_boolean_engine.py` 核對主 GUI 與 headless 同一 Context／PartSpec、序列化旗標 false／true、非法來源 fail-closed、停用指示燈保留舊檔、JSON Save→Reload。2D／3D／DXF 仍來自 Engine canonical 結果，Windows 實機 UAT／#2517 全面覆蓋未完成。
 
 ## [CURRENT] #2517 Registry 截角一／二段拓樸須由公開 Engine 原始來源驗證（2026-11-08）
 
