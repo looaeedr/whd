@@ -301,15 +301,24 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         if self._guard or self._rendering:
             return
         try:
-            value = float(var.get())
+            # W/H/D/T are physical manufacturing inputs. Validate the raw
+            # authored text before the draft service can stage any value.
+            value = manufacturing_api.normalize_operator_source_dimension(
+                var.get(), field=key,
+            )
         except (TypeError, ValueError, tk.TclError):
             return
         current = self._values_snapshot().get(key)
-        try:
-            if current is not None and abs(float(current) - value) <= 1e-9:
-                return
-        except (TypeError, ValueError):
-            pass
+        if current is not None:
+            try:
+                # Compare exact canonical inputs, not a UI-invented mm epsilon
+                # that could discard a valid fractional physical edit.
+                if manufacturing_api.normalize_operator_source_dimension(
+                    current, field=key,
+                ) == value:
+                    return
+            except (TypeError, ValueError):
+                pass
         self._stage_setting_update(key, value)
 
     def refresh_panel_name(self, *, force=False):
@@ -588,14 +597,34 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
     def _on_setting_var_changed(self, key: str, var, spec: SettingSpec):
         if self._guard or self._rendering:
             return
-        raw = var.get()
+        try:
+            raw = var.get()
+        except (TypeError, ValueError, tk.TclError):
+            return
         if spec.kind == "bool":
-            value = bool(raw)
+            try:
+                value = manufacturing_api.normalize_operator_settings_boolean(raw)
+            except (TypeError, ValueError):
+                return
         elif spec.kind == "choice":
             value = normalize_ui_text_size(raw) if spec.key == "ui_text_size" else str(raw)
         else:
             try:
-                value = float(raw)
+                if key in {"w", "h", "d", "t", "fw"}:
+                    value = manufacturing_api.normalize_operator_source_dimension(
+                        raw, field=key,
+                    )
+                else:
+                    saved = dict(self._values_snapshot())
+                    # A newly exposed inspector spec may be absent from an
+                    # older project; keep its existing declared default.
+                    saved.setdefault(key, spec.default)
+                    accepted = manufacturing_api.normalize_operator_settings_updates(
+                        saved, {key: raw},
+                    )
+                    if key not in accepted:
+                        return
+                    value = accepted[key]
             except (TypeError, ValueError, tk.TclError):
                 return
         self._stage_setting_update(key, value)
