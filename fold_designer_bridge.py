@@ -2780,99 +2780,25 @@ def _phase6_store_editor_values(self, values, *, notify=True):
     )
 
 def _phase6_commit_box_body_physical_piece_profile(self, part_key, profiles, *, notify=True):
-    """Commit one physical side/back Fold editor through canonical BoxBody state."""
-    role = str(part_key).split(":", 1)[-1]
-    if role not in {"left_side", "back", "right_side"}:
-        raise ValueError(f"unsupported BoxBody physical piece: {part_key}")
-
-    rows = clone_profile(tuple((profiles or {}).get("X", ()) or ()))
-    if not rows:
-        raise ValueError(f"{part_key} X Fold profile is empty")
-
-    structure = _phase6_box_structure_state(self)
-    cfg = structure["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-    aggregate = clone_profile(self.state.profiles_vault.get("箱身", ()))
-    aggregate_by_key = {
-        str(row.get("phase6_key") or ""): row
-        for row in aggregate
-        if str(row.get("phase6_key") or "")
-    }
-    piece_by_key = {
-        str(row.get("phase6_key") or ""): row
-        for row in rows
-        if str(row.get("phase6_key") or "")
-    }
-
-    def copy_material_length(source_key, target_keys):
-        source = piece_by_key.get(source_key)
-        if source is None:
-            return
-        for target_key in tuple(target_keys):
-            target = aggregate_by_key.get(target_key)
-            if target is not None:
-                target["len"] = float(source.get("len", target.get("len", 0.0)))
-
-    if role == "left_side":
-        copy_material_length("zl1", ("zl1",))
-        copy_material_length("zl2", ("zl2",))
-        copy_material_length("fw_left", ("fw_left", "fw_right"))
-        copy_material_length("d_left", ("d_left", "d_right"))
-        # Rear fold is piece-local. Persist it only in this physical piece's
-        # canonical profile; do not back-write the legacy shared default.
-    elif role == "right_side":
-        copy_material_length("d_right", ("d_left", "d_right"))
-        copy_material_length("fw_right", ("fw_left", "fw_right"))
-        copy_material_length("zr2", ("zr2",))
-        copy_material_length("zr1", ("zr1",))
-        # Rear fold is piece-local. Persist it only in this physical piece's
-        # canonical profile; do not back-write the legacy shared default.
-    else:
-        back = piece_by_key.get("back_panel")
-        if back is not None:
-            t_val = _num(
-                getattr(self, "_settings_values", {}).get(
-                    "t", getattr(self, "_phase6_input_snapshot", {}).get("t", 2.0)
-                ),
-                2.0,
-            )
-            t = max(1.0e-9, float(t_val))
-            total_w = float(_phase6_box_structure_w(self))
-            comp_t = (total_w - float(back.get("len", 0.0))) / t
-            structure = set_side_back_geometry(
-                structure, back_width_comp_t=max(0.0, comp_t)
-            )
-
-    # Shared cabinet dimensions remain authoritative and are updated from the
-    # edited physical piece before its piece-local topology is persisted.
-    if aggregate:
-        t_comp = _num(
-            getattr(self, "_settings_values", {}).get(
-                "t", getattr(self, "_phase6_input_snapshot", {}).get("t", 2.0)
-            ),
-            2.0,
-        )
-        apply_outside_dimension_compensation(
-            aggregate, float(t_comp)
-        )
-        values = read_box_body_profile(aggregate, self._phase6_input_snapshot)
-        if role == "left_side":
-            signed = piece_by_key.get("zl1")
-            if signed is not None and "phase6_ui_sign" in signed:
-                sign = -1.0 if float(signed.get("phase6_ui_sign", 1.0)) < 0.0 else 1.0
-                values["zl1"] = sign * abs(float(values["zl1"]))
-        values["h"] = self._phase6_box_whd["h"]
+    """Transport the operator's physical-piece Fold edit to public Engine."""
+    source = getattr(self, "_phase6_input_snapshot", {}) or {}
+    settings = getattr(self, "_settings_values", {}) or {}
+    plan = manufacturing_api.plan_operator_box_body_piece_fold_commit(
+        part_key, profiles,
+        structure_state=_phase6_box_structure_state(self),
+        aggregate_profile=self.state.profiles_vault.get("箱身", ()),
+        original_snapshot=source,
+        thickness=settings.get("t", source.get("t", 2.0)),
+        total_width=_phase6_box_structure_w(self),
+        box_height=self._phase6_box_whd["h"],
+    )
+    # Publish only after every physical source/row has passed the Engine.
+    if plan.settings_values is not None:
+        aggregate = clone_profile(plan.aggregate_profile)
         self.state.profiles_vault["箱身"] = clone_profile(aggregate)
         self._phase6_input_snapshot["box_body_profile"] = clone_profile(aggregate)
-        _phase6_store_editor_values(self, values, notify=notify)
-
-    stored_rows = (
-        _phase6_reverse_fold_traversal(rows)
-        if role == "right_side" else clone_profile(rows)
-    )
-    for row in stored_rows:
-        row.pop("phase6_ui_sign", None)
-    structure = set_side_back_piece_profile(structure, role, stored_rows)
-    _phase6_commit_box_structure_state(self, structure, rebuild=False)
+        _phase6_store_editor_values(self, plan.settings_values, notify=notify)
+    _phase6_commit_box_structure_state(self, plan.structure_state, rebuild=False)
     _phase6_sync_authoritative_derived_parts(self)
 
 
