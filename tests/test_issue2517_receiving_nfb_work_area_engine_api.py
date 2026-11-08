@@ -79,4 +79,7 @@ def test_legacy_approved_default_inputs_and_editor_source_remain_unmodified():
     assert "manufacturing_api.validate_receiving_nfb_layer_heights_for_work_area(" in inner
     assert "manufacturing_api.project_receiving_nfb_work_area_height_mm(" in inner
     assert "derive_door_layout_cells(" not in inner
-    assert "for v in initial[\"layer_heights_mm\"]" in inner
+    assert "manufacturing_api.normalize_receiving_operator_nfb_layer_heights(" in inner
+    assert 'initial["layer_heights_mm"]' in inner
+    assert "for v in initial_heights" in inner
+    assert 'for v in initial["layer_heights_mm"]' not in inner

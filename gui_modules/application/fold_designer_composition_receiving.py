@@ -1873,15 +1873,19 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         # never create a second writable tier-count variable.
         layers = tk.IntVar(master=modal, value=initial["layers"])
         nfb_physical_layers = layers
+        # Physical saved Y is validated before constructing the edit controls.
+        # Python float(True) would otherwise fabricate a 1-mm operator row.
+        initial_heights = manufacturing_api.normalize_receiving_operator_nfb_layer_heights(
+            initial["layer_heights_mm"]
+        )
         layer_height_vars = tuple(
-            tk.StringVar(master=modal, value=f"{float(v):g}")
-            for v in initial["layer_heights_mm"]
+            tk.StringVar(master=modal, value=f"{v:g}")
+            for v in initial_heights
         )
         def read_layer_heights():
-            try:
-                heights = [float(field.get().strip()) for field in layer_height_vars]
-            except (TypeError, ValueError) as exc:
-                raise ValueError("請輸入有效的第一層、第二層高度（mm）") from exc
+            heights = manufacturing_api.normalize_receiving_operator_nfb_layer_heights(
+                tuple(field.get() for field in layer_height_vars)
+            )
             return manufacturing_api.validate_receiving_nfb_layer_heights_for_work_area(
                 _current_mode_snapshot(self, namespace), heights,
                 layer_count=layers.get(),
@@ -2673,8 +2677,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 )
                 if previous_count != nfb_physical_layers.get():
                     try:
-                        heights = [float(field.get().strip())
-                                   for field in layer_height_vars]
+                        heights = manufacturing_api.normalize_receiving_operator_nfb_layer_heights(
+                            tuple(field.get() for field in layer_height_vars)
+                        )
                         updated = manufacturing_api.transition_receiving_nfb_layer_heights(
                             heights, old_count=previous_count,
                             new_count=nfb_physical_layers.get(),
