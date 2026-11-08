@@ -2107,6 +2107,12 @@ Validation 維持單向：contact probe、collision、fixture expected、pytest 
 
 ---
 
+## [CURRENT] #2517 Receiving 內門板／框與半片後面板須共用 Engine 原始 Door Topology 來源（2026-11-08）
+
+- `ae_engine.cabinet_types.receiving.derive_inner_door_panels`／`derive_inner_door_frame_sets`／`inner_door_vertical_frame_contract` 原以 `bool(data['multi_door_enabled'])` 作為製造拓樸，Save→Reload 字串 `"false"` 仍為 True；將 `door_layout_columns` 的所有數值先 `float()`，使未被選中的實體 Door cell 上的 Boolean `True` 偷渡為 1mm。這直接影響已儲存的 Receiving 內門板件及折邊框的有無、ID、折後 W/H 和后續孔位工作區，不能由 GUI 或第二份候選公式決定。
+- 沿用同一 `ae_engine.operator_settings_transactions.normalize_operator_settings_boolean`（公開 Settings 布林來源契約）與 `ae_engine.sheetmetal_part_adapters.derive_door_layout_cells`（既有實體門格身份、正數且有限原始尺寸）。在生成任何內門板／框之前，Engine 先驗原始多門旗標，若合法 disabled 則不生成，若 enabled 則驗**全部**實體門格；垂直邊框的 h/t/d/fw 也沿用同 Family 非布林有限正值驗證。既有 `inner_door_panel_vertical_contract` 用同 `_inner_door_physical_mm` 檢查 cell H、T、非負 Y gap，拒絕 NaN/Inf/Boolean；公開 `resolve_inner_door_hole_editor_context` 不再提早 `float(gap_h)`。受電箱 HALF 後面板的多門適用旗標也復用同 Engine 來源解析，兩者不再分裂。
+- 內門既有 Factory／Family 尺寸、上框／側框與 Divider 端點、後面板 1124mm certified Half（對 1100mm 上層）、CUTTING/BEND、FinalScene、DXF Writer 未另造公式。`tests/test_issue2517_receiving_inner_door_layout_raw_engine.py` 驗公開 Hole Editor→Family panel identity、真實 Frame 身份、legacy `"true"/"false"`、未選中錯誤格、非有限 vertical、HALF 後板、JSON Save→Reload、非法來源不修改專案。#2517 全面覆蓋及 Windows UAT 仍未結案。
+
 ## [CURRENT] #2517 BoxBody 結構截角／避讓毫米數及 Family 空間旗標須以 Engine 原始來源驗證（2026-11-08）
 
 - `ae_engine.box_body_structure_state.apply_box_body_structure_numeric` 是金庫型／受電箱現有 BoxBody 二片 W 分割、三片 W 分割、三片側背分離、接合折邊及 EndCap/BasePlate relief 的原製造交易。原先先做 `float(value)`，可把 `True` 變成 1 mm，或讓非有限 NaN/Inf 進入直接 `update_structure_config` 的 Relief 參數；`outside_family="false"` 在 `side_rear_bend_dimension_space` 使用 Python truthiness 時誤設為 OUTSIDE。此外 GUI `_phase6_box_structure_w` 先將錯誤 saved W `True` 轉成 1.0，導致公開 Engine 原始類型驗證失效。
