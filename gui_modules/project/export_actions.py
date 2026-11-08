@@ -93,7 +93,9 @@ def _selected_export_flags(self, existing_parts, has_indicator_box):
 def _validate_selected_indicator_exports(self, flags, val):
     if not (flags["door"] or flags["indicator_box"] or flags["indicator_door"]):
         return
-    if self.multi_door_enabled_var.get():
+    if manufacturing_api.normalize_operator_settings_boolean(
+        self.multi_door_enabled_var.get()
+    ):
         for cell in self.get_door_layout_cells():
             key = self._door_layout_cell_key(cell)
             states = getattr(self, "door_layout_indicator_states", None)
@@ -341,6 +343,17 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
     if canonical is not None:
         return canonical
 
+    # Preserve raw operator mode until the public Engine has validated it.
+    if flags["door"] or flags["indicator_box"] or flags["indicator_door"]:
+        try:
+            multi_door = manufacturing_api.normalize_operator_settings_boolean(
+                self.multi_door_enabled_var.get()
+            )
+        except ValueError as exc:
+            return [], [f"多門格來源無效：{exc}"]
+    else:
+        multi_door = False
+
     # Legacy compatibility callers without an attached Phase6 designer retain
     # the historical PartSpec export path.
     context = self._manufacturing_context(draw_stock=draw_stock)
@@ -375,7 +388,7 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
 
     if flags["door"]:
         try:
-            if self.multi_door_enabled_var.get():
+            if multi_door:
                 exported.extend(
                     self.export_multi_door_layout_dxfs(folder, val, draw_stock=draw_stock)
                 )
@@ -384,7 +397,10 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
                 # same physical indicator inputs. Never turn a failed enabled
                 # opening/group source into an apparently valid blank Door.
                 indicator_hole = None
-                if self.is_indicator_box_var.get():
+                box_enabled = manufacturing_api.normalize_operator_settings_boolean(
+                    self.is_indicator_box_var.get()
+                )
+                if box_enabled:
                     box_groups = _collect_live_indicator_groups(
                         self.indicator_l_var, self.indicator_layer_g_vars,
                         label="指示燈盒",
@@ -393,7 +409,9 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
                         box_groups, thickness=val["t"]
                     )
                 door_indicator = None
-                if self.is_door_indicator_var.get():
+                if manufacturing_api.normalize_operator_settings_boolean(
+                    self.is_door_indicator_var.get()
+                ):
                     door_indicator = _collect_live_indicator_groups(
                         self.door_indicator_l_var, self.door_indicator_layer_g_vars,
                         label="門上指示燈",
@@ -409,7 +427,7 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
         except Exception as ex:
             target = (
                 "multi-door layout"
-                if self.multi_door_enabled_var.get()
+                if multi_door
                 else "door_unfold.dxf"
             )
             errors.append(f"{target}: {ex}")
@@ -420,7 +438,7 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
         except Exception as ex:
             errors.append(f"base_plate.dxf: {ex}")
 
-    if self.multi_door_enabled_var.get() and (
+    if multi_door and (
         flags["indicator_box"] or flags["indicator_door"]
     ):
         try:
@@ -436,7 +454,7 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
         except Exception as ex:
             errors.append(f"multi-door indicator box parts: {ex}")
 
-    if flags["indicator_box"] and not self.multi_door_enabled_var.get():
+    if flags["indicator_box"] and not multi_door:
         try:
             groups = _collect_live_indicator_groups(
                 self.indicator_l_var, self.indicator_layer_g_vars,
@@ -453,7 +471,7 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
         except Exception as ex:
             errors.append(f"indicator_box.dxf: {ex}")
 
-    if flags["indicator_door"] and not self.multi_door_enabled_var.get():
+    if flags["indicator_door"] and not multi_door:
         try:
             groups = _collect_live_indicator_groups(
                 self.indicator_l_var, self.indicator_layer_g_vars,
@@ -615,7 +633,11 @@ def export_selected_dxf(self):
     """Batch export selected existing parts through authoritative manufacturing APIs."""
     self._flush_phase6_authoritative_state()
     existing_parts = self._phase6_current_existing_parts()
-    flags = _selected_export_flags(self, existing_parts, self._has_any_indicator_box())
+    try:
+        flags = _selected_export_flags(self, existing_parts, self._has_any_indicator_box())
+    except ValueError as exc:
+        messagebox.showerror("出圖來源無法套用", str(exc))
+        return
     if not any(flags.values()):
         messagebox.showwarning("未選擇零件", "請至少勾選一個要輸出的零件。")
         return
@@ -632,6 +654,15 @@ def export_selected_dxf(self):
         messagebox.showerror("指示燈配置無法套用", str(ex))
         return
 
+    # STOCK changes manufacturing output and must not be coerced by the GUI.
+    try:
+        draw_stock = manufacturing_api.normalize_operator_settings_boolean(
+            self.draw_stock_var.get()
+        )
+    except ValueError as exc:
+        messagebox.showerror("STOCK 出圖來源無效", str(exc))
+        return
+
     folder = filedialog.askdirectory(title="選擇 DXF 檔案儲存資料夾")
     if not folder:
         return
@@ -642,7 +673,7 @@ def export_selected_dxf(self):
     skipped_unconfigured_base = False
     with tempfile.TemporaryDirectory(prefix=".whd-export-stage-", dir=folder) as stage_folder:
         exported, errors = _export_selected_parts(
-            self, stage_folder, val, flags, bool(self.draw_stock_var.get())
+            self, stage_folder, val, flags, draw_stock
         )
         retry_intent = manufacturing_api.plan_unconfigured_receiving_base_export_retry(
             errors, flags,
@@ -667,7 +698,7 @@ def export_selected_dxf(self):
                 # the explicitly excluded base plate removed from selection.
                 # Other source/provenance failures must continue to block.
                 exported, errors = _export_selected_parts(
-                    self, stage_folder, val, other_flags, bool(self.draw_stock_var.get())
+                    self, stage_folder, val, other_flags, draw_stock
                 )
                 skipped_unconfigured_base = bool(exported) and not errors
         if errors:
