@@ -60,6 +60,10 @@ def _capture_cabinet_family_runtime(self):
             for width, heights in self.get_door_layout_columns()
         ]
 
+    nameplate_datum = manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
+        getattr(self, "door_nameplate_center_datum_top", None)
+    )
+
     # The family preset itself must carry a real canonical Box Body profile.
     # Startup used to capture None here, which later restored a profile-less
     # family and reopened the legacy fixed-segment manufacturing fallback.
@@ -89,7 +93,7 @@ def _capture_cabinet_family_runtime(self):
         "door_layout_scope": str(getattr(self, "door_layout_scope", "main") or "main"),
         "door_handle_edges": deepcopy(getattr(self, "door_layout_handle_edges", {}) or {}),
         "receiving_inner_doors": deepcopy(getattr(self, "receiving_inner_doors", []) or []),
-        "door_nameplate_center_datum_top": getattr(self, "door_nameplate_center_datum_top", None),
+        "door_nameplate_center_datum_top": nameplate_datum,
     }
 
 def _restore_cabinet_family_runtime(self, state):
@@ -115,6 +119,9 @@ def _restore_cabinet_family_runtime(self, state):
                 for height in heights
             ],
         ))
+    nameplate_datum = manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
+        state.get("door_nameplate_center_datum_top")
+    )
     # Decode saved sources only via public Engine rules. Physical dimensions
     # and explicit output switches reject malformed data before GUI mutation;
     # historic nonphysical Fold numeric defaults retain Engine's skip-invalid
@@ -159,8 +166,7 @@ def _restore_cabinet_family_runtime(self, state):
     self.door_layout_scope = str(state.get("door_layout_scope") or "main")
     self.door_layout_handle_edges = deepcopy(dict(state.get("door_handle_edges") or {}))
     self.receiving_inner_doors = deepcopy(state.get("receiving_inner_doors") or [])
-    datum = state.get("door_nameplate_center_datum_top")
-    self.door_nameplate_center_datum_top = None if datum is None else float(datum)
+    self.door_nameplate_center_datum_top = nameplate_datum
     self.workspace_controller.set_box_body_structure_state(state.get("box_body_structure"))
     self.workspace_controller.set_box_body_profile(state.get("box_body_profile"))
 
@@ -210,6 +216,9 @@ def _apply_cabinet_family_for_current_model(self):
         )
         base_settings = dict(vault_defaults.get("settings") or self.settings_service.snapshot().as_dict())
         values = manufacturing_api.operator_apply_fresh_family_defaults(base_settings, new_type)
+        receiving_datum = manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
+            values["door_nameplate_center_datum_top"]
+        )
         self._apply_fold_designer_live_settings(values, recalculate=False)
         self._set_box_assembly_type(values["assembly_type"], recalculate=False, notify_designer=False)
         self.multi_door_enabled_var.set(bool(values.get("multi_door_enabled", True)))
@@ -220,7 +229,7 @@ def _apply_cabinet_family_for_current_model(self):
         self.door_layout_scope = str(values.get("door_layout_scope") or "receiving-main")
         self.door_layout_handle_edges = deepcopy(dict(values.get("door_handle_edges") or {}))
         self.receiving_inner_doors = deepcopy(values.get("inner_doors") or [])
-        self.door_nameplate_center_datum_top = float(values["door_nameplate_center_datum_top"])
+        self.door_nameplate_center_datum_top = receiving_datum
         structure = manufacturing_api.operator_resolve_box_body_structure_state(
             new_type, self.workspace_controller.box_body_structure_state()
         )

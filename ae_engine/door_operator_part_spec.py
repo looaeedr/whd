@@ -35,6 +35,18 @@ def _finite_operator_number(raw: object, field: str) -> float:
     return value
 
 
+def normalize_operator_door_nameplate_center_datum_top(raw: object) -> float | None:
+    """Validate optional top datum with the same rule as canonical DoorPartSpec.
+
+    No override (None) retains the Family-certified fallback. Explicit values
+    remain signed finite mm; bool, NaN and Inf never become physical holes.
+    """
+    return (
+        None if raw is None
+        else _finite_operator_number(raw, "nameplate_center_datum_top")
+    )
+
+
 def build_door_operator_part_spec(
     values: Mapping[str, object],
     *,
@@ -175,11 +187,8 @@ def build_door_operator_part_spec(
         normalize_fold_designer_indicator_groups(door_indicator)
         if door_indicator else None
     )
-    nameplate = (
-        None if nameplate_center_datum_top is None
-        else _finite_operator_number(
-            nameplate_center_datum_top, "nameplate_center_datum_top",
-        )
+    nameplate = normalize_operator_door_nameplate_center_datum_top(
+        nameplate_center_datum_top
     )
     return DoorPartSpec(
         width=physical["w"], height=physical["h"],
