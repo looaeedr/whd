@@ -601,6 +601,20 @@ def settings_application_project_ui_values(
             app._phase6_baseline_guard = False
         return
 
+    # A saved "false" must never toggle a physical Settings control on.
+    # Validate *all* projected booleans through Engine before touching any
+    # editor snapshot, Family state or Tk variable; do not mutate the caller.
+    boolean_values = {
+        key: manufacturing_api.normalize_operator_settings_boolean(values[key])
+        for controls in (
+            getattr(app, "left_global_vars", {}),
+            getattr(app, "setting_vars", {}),
+        )
+        for key, var in controls.items()
+        if key in values and isinstance(var, original.tk.BooleanVar)
+    }
+    values.update(boolean_values)
+
     if bool(editor_commit) and editor_snapshot is not None:
         app._phase6_input_snapshot.update(dict(editor_snapshot or {}))
 
@@ -716,7 +730,7 @@ def settings_application_project_ui_values(
             if key == "ui_text_size":
                 var.set(required("ui_text_size_label")(values[key]))
             elif isinstance(var, original.tk.BooleanVar):
-                var.set(bool(values[key]))
+                var.set(values[key])
             else:
                 var.set(number_text(values[key]))
         for key, var in getattr(app, "setting_vars", {}).items():
@@ -725,7 +739,7 @@ def settings_application_project_ui_values(
             if key == "ui_text_size":
                 var.set(required("ui_text_size_label")(values[key]))
             elif isinstance(var, original.tk.BooleanVar):
-                var.set(bool(values[key]))
+                var.set(values[key])
             else:
                 var.set(number_text(values[key]))
     finally:
