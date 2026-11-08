@@ -95,6 +95,7 @@ def test_valid_saved_vault_settings_equal_public_engine_and_json_reload():
     assert entered[1]["draw_stock"] is False
     assert entered[1]["zl1"] == -3.125
     assert entered[1]["base_plate_shrink_left"] == -0.75
+    # Legacy unknown and nonnumeric UI-only fields are ignored downstream.
     assert "unrecognized_legacy" not in entered[1]
     assert "ui_text_size" not in entered[1]
     assert multi.get() is False
@@ -102,12 +103,10 @@ def test_valid_saved_vault_settings_equal_public_engine_and_json_reload():
 
 
 @pytest.mark.parametrize(("field", "bad"), [
-    ("zl1", True), ("door_fold_l", False),
-    ("base_plate_shrink_left", "nan"),
-    ("door_fold_l", "garbage"), ("zl1", float("inf")),
     ("w", True), ("fw", "-1"), ("draw_stock", "maybe"),
+    ("t", None), ("h", "nan"), ("draw_stock", float("inf")),
 ])
-def test_bad_saved_setting_rejects_atomically_before_any_gui_side_effect(field, bad):
+def test_bad_physical_or_explicit_stock_source_rejects_before_any_gui_side_effect(field, bad):
     app, effects, multi = host()
     raw = saved(**{field: bad})
     prior = deepcopy(raw)
@@ -119,9 +118,28 @@ def test_bad_saved_setting_rejects_atomically_before_any_gui_side_effect(field, 
     assert raw == prior
 
 
+@pytest.mark.parametrize(("field", "bad"), [
+    ("zl1", True), ("door_fold_l", False),
+    ("base_plate_shrink_left", "nan"),
+    ("door_fold_l", "garbage"), ("zl1", float("inf")),
+])
+def test_legacy_bad_nonphysical_numeric_is_engine_skipped_not_converted_to_one_mm(field, bad):
+    app, effects, multi = host()
+    raw = saved(**{field: bad})
+    prior = deepcopy(raw)
+    gui._restore_cabinet_family_runtime(app, raw)
+    applied = effects[0][1]
+    assert field not in applied
+    assert applied["w"] == 800.125
+    assert applied["draw_stock"] is False
+    assert raw == prior
+    assert multi.get() is False
+
+
 def test_gui_does_not_convert_saved_vault_fold_bool_to_one_mm():
     from inspect import getsource
     source = getsource(gui._restore_cabinet_family_runtime)
-    assert "manufacturing_api.normalize_operator_settings_updates(current, other_raw)" in source
+    assert "manufacturing_api.normalize_operator_settings_updates(" in source
+    assert "manufacturing_api.normalize_operator_settings_boolean(" in source
     assert "manufacturing_api.normalize_operator_source_dimension(raw, field=key)" in source
     assert "values[key] = float(raw)" not in source
