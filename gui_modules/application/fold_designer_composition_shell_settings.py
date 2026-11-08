@@ -620,7 +620,11 @@ def settings_application_project_ui_values(
         return
 
     if baseline_stage == "commit" and plan is not None:
-        if old_model != "受電箱" and new_model == "受電箱":
+        # Physical Family transitions are decided by the Engine Registry.
+        # Model spellings/aliases never authorize duplicate Receiving rebinding.
+        old_family = manufacturing_api.operator_canonical_family_name(old_model)
+        new_family = manufacturing_api.operator_canonical_family_name(new_model)
+        if old_family != "受電箱" and new_family == "受電箱":
             # FamilyModelPlan already committed the newly initialized
             # Set1/Bay1 NFB source to _phase6_input_snapshot. An old loaded
             # Quantity/Vault workspace still owns its previous mode/layout,
@@ -647,13 +651,15 @@ def settings_application_project_ui_values(
         # Settings profile projection and the single Scheduler baseline solve.
         # Do not force Door present: an intentionally absent Door remains
         # absent. Do not reuse this set for a different cabinet family.
-        if old_model == "受電箱" and new_model != "受電箱":
+        if old_family == "受電箱" and new_family != "受電箱":
             previous_parts = getattr(
                 app, "_phase6_non_receiving_part_presence_state", None
             )
             if (
                 isinstance(previous_parts, dict)
-                and previous_parts.get("model") == new_model
+                and manufacturing_api.operator_canonical_family_name(
+                    previous_parts.get("model")
+                ) == new_family
             ):
                 parts = tuple(previous_parts.get("parts") or ())
                 app.designer_workspace.replace_available_parts(parts)
