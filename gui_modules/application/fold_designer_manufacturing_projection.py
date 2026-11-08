@@ -308,6 +308,13 @@ def _door_part_spec_from_payload_context(
         cell_source = states.get(cell_key)
         if cell_source is None:
             cell_source = {"mode": "none"}
+        # This public Engine gate must run BEFORE the PartSpec adapter: a
+        # malformed saved cell cannot become a seemingly valid GUI draft if
+        # downstream material resolution or a caller shim is unavailable.
+        # Discard the view; pass the original row to the same Engine owner.
+        manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(
+            cell_source,
+        )
     return self._door_part_spec_from_values(
         {
             "w": w, "h": h, "t": t, "fw": fw,
