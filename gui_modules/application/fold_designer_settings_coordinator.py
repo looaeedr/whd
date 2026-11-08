@@ -235,18 +235,21 @@ class Phase6FoldDesignerSettingsCoordinator:
         transactional_mode: bool = False,
     ) -> dict[str, Any]:
         """Commit editor-originated Settings through canonical owners and bounded effects."""
-        clean = dict(values or {})
-        if not clean:
+        raw = dict(values or {})
+        if not raw:
             return {}
 
         snapshot = self._ports.read_settings_snapshot()
         current = dict(getattr(snapshot, "settings_values", {}) or {})
-        normalized = dict(self._transactions.normalize_updates(clean) or {})
-        for key, value in normalized.items():
-            clean[key] = value
+        # Engine-backed Settings is the only authority for manufacturing
+        # sources. Never forward an unaccepted raw editor value to saved
+        # source, linked Fold, GUI projection or live synchronization.
+        clean = dict(self._transactions.normalize_updates(raw) or {})
+        if not clean:
+            return {}
 
         changed: dict[str, Any] = {}
-        for key, value in normalized.items():
+        for key, value in clean.items():
             old = current.get(key)
             if isinstance(old, bool):
                 different = bool(old) != bool(value)
@@ -260,8 +263,7 @@ class Phase6FoldDesignerSettingsCoordinator:
 
         if "fw" in changed:
             self._transactions.commit_editor_fw_takeover(changed["fw"])
-        if normalized:
-            self._transactions.commit_settings(normalized)
+        self._transactions.commit_settings(clean)
 
         self._ports.project_ui_values(
             changed,
