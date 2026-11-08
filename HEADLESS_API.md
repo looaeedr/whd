@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving bottom WRAP reserve raw Engine input gate (2026-11-08)
+
+The existing public `manufacturing_api.operator_endcap_bottom_wrap(input_snapshot, state, part_key, *, reserve_u, reserve_v)` and `commit_endcap_bottom_wrap` reuse the original `ae_engine.endcap_bottom_wrap_state` owner, which now validates authored reserve mm as finite, nonnegative, non-boolean input before any linked Head/Tail mode or state mutation. Valid raw numeric text/zero/fractional mm are supported, while negative, bool, NaN/Inf and malformed data fail closed. GUI and the Phase6 Settings controller pass raw values unchanged; the public operator API requires both axes. Legacy saved state normalizers retain their prior compatibility projection; no Factory/Joint algorithm, CUTTING, DXF or manufacturing capability is newly certified. Regression: `tests/test_issue2517_bottom_wrap_raw_reserve_engine_api.py`.
+
 ## #2517 Door grid fixed/auto source flags are Engine-owned (2026-11-08)
 
 The existing public `manufacturing_api.recompute_door_layout`, `validate_door_layout_width_commit`, and `validate_door_layout_height_commit` now normalize original width/height automatic-completion flags via the canonical `operator_settings_transactions.normalize_operator_settings_boolean`, also publicly exposed by `manufacturing_api`. GUI forwards raw flags instead of using `bool('false')` and validates flags through the public Engine API before allocating Tk row widgets. Serialized `"false"` remains fixed, valid `"true"` remains auto, malformed flags or a row/flag length mismatch are rejected before any geometry calculation or GUI commit. This preserves the original canonical Door grid, physical IDs, and JSON roundtrip; it adds no new DXF entitlement or geometry formula. Regression: `tests/test_issue2517_door_grid_auto_flags_engine_source.py`.
