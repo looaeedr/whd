@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Family 別名切換時 Set/Bay 與實體板件保留由 Engine 身分決定（2026-11-08）
+
+- `settings_application_project_ui_values` 的 Family commit 原以 `new_model == "受電箱"`／`old_model == "受電箱"` 決定是否重綁新 Set1/Bay1 NFB adapter、恢復離開 Receiving 前的金庫型板件清單；已註冊的英文別名大小寫可能漏綁或把**同一 Family 的別名切換**當成新 Family，導致來源覆蓋。
+- 改由既有公開 `manufacturing_api.operator_canonical_family_name` 同時取得 previous／target Family，**僅跨 Family**進入受電箱時重綁 Workspace + Receiving adapter；離開時只恢復 canonical Family 相符的已存板件存在集。GUI 仍只執行顯示和 Workspace 導航，不推導 NFB／Bay 拓樸或加工幾何；新 Set/Bay 及孔位已由既有 Engine `plan_cabinet_family_model_transition` 確認。
+- 測試 `tests/test_issue2517_receiving_family_alias_mode_rebind_public_api.py` 覆蓋中文／大小寫英文別名、同 Family 不得重綁、不同 Family 出入時來源與板件清單相符、未知 Family 不誤套先前板件。仍需 exact SHA 完整產品 CI 與適用的實機 2D／3D／DXF 驗收。
+
+
 ## [CURRENT] #2517 Head/Tail FW 控制列純讀取由 Engine 公開投影（2026-11-08）
 
 - 原 `gui_modules/parts/panels/assembly_corner.sync_endcap_fw_controls` 在單純重新整理 GUI 時，使用 `endcap_fw_state.setdefault` 補建 Head／Tail 製造來源，並在 UI 以 `float`／`bool` 解讀顯示值；序列化 `"false"` 被當 True，損壞的對側列又可能在第一個控制項更新後才報錯。
