@@ -341,7 +341,7 @@ def commit_output_draw_stock(self, namespace):
     app = self.app
     required = lambda name: self._required(namespace, name)
     return Phase6ProjectController.commit_output_stock(
-        bool(app.output_draw_stock_var.get()),
+        app.output_draw_stock_var.get(),
         lambda key, value: required("_phase6_stage_setting_update")(
             app, key, value
         ),
