@@ -12,6 +12,13 @@ whd_schema: WHD_DOC_META_V1
 - 沿用現有 `ae_engine.receiving_switch_layout.normalize_receiving_switch_layout` 的 Switch 層／連位物理拓樸，新增只讀 `validate_receiving_switch_opening_target(layout, layer_index, connection_index, brand)`，經 `manufacturing_api`／根包同一 callable 公開。Engine 核對 exact 整數或既有 Tk 整數字串、非負及確實存在的 layer/connection、合法品牌；拒絕 bool、fraction、過期／越界索引、非法品牌；返回 detached 目標值，輸入資料不突變。合法選取依然由原 canonical opening resolver 決定孔規格、模型與真實製造權限，不直接產生 CUTTING 或 DXF。
 - GUI `confirm_receiving_opening` 僅傳原始操作者索引與當前 Switch Layout 給公開 Engine，驗證成功才呼叫原 resolver；resolver 未提交則不得通知 geometry 更新。定向 `tests/test_issue2517_receiving_switch_opening_target_public_api.py` 驗真 GUI callback、公開 Engine、合法 StringVar／int 同義、非法來源不呼叫 resolver、不提交、來源不變、JSON roundtrip。Factory、NFB CSV、2D／3D／DXF 及 Project schema 不變，#2517 其他入口／Windows UAT 尚未結案。
 
+## [CURRENT] #2517 主 GUI 25 項製造數值輸入統一公開 Engine 實體／Fold 驗證（2026-11-08）
+
+- 原 `gui_modules/application/cabinet_controller.get_float_values` 是主 GUI 計算、單門／多門 Hole Editor 及 PartSpec 共同數值入口；逐項 `float(TkVar.get())` 先把布林 True 變成 1.0，也讓 NaN／Inf 越過入口，直到下游才可能拒絕。主 GUI 不應消除原始製造來源的錯型證據。
+- 原 25 項 TkVar 的操作順序不變，改將 raw 來源交給既有 `manufacturing_api.normalize_operator_source_dimensions` 驗 W/H/D/T/FW 正有限值，再以 `manufacturing_api.normalize_operator_settings_updates` 驗其餘 Fold／Gap／BasePlate 有限值；任何欄位被略過皆禁止返回部分資料供 2D／3D／DXF。Vault 手動底板非負限制作為另一條操作約束，不能侵入一般 Fold／INI 負數相容，沿用 #3112 契約；不新增主幾何公式。
+- `tests/test_issue2517_main_gui_numeric_source_public_engine.py` 覆蓋 GUI／headless 全 25 欄 parity、W/H/D 小數精度、負折邊及負縮量相容、非法 bool/nonfinite 來源 fail-closed、不突變、JSON Save→Reload。PartSpec、Topology、Registry、CUTTING／BEND／DXF Writer 均未改。#2517 其他入口及 Windows UAT 持續待驗。
+
+
 ## [CURRENT] #2517 Receiving NFB 兩層實體 Y 高度只在 Engine 驗操作來源（2026-11-08）
 
 - `gui_modules/application/fold_designer_composition_receiving.inner_edit` 原本在顯示已保存層高、讀取操作員兩個欄位與切換一／二層時自行 `float(...)`，既有已保存布林值 True 可能轉成 1 mm，且 GUI 複製了 Engine 的層高數值解碼。這些數值影響 Receiving 內門 NFB 名義 Y，但預覽及草稿不可擅自授權 CUTTING。
