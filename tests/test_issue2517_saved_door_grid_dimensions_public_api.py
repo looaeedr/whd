@@ -80,6 +80,11 @@ class _Host:
         self.door_layout_columns = [{"is_physical": True}]
         self.get_door_layout_columns = lambda: columns
         self._current_box_assembly_type = lambda: "OVERLAY"
+        # Synthetic numeric controls default to 2; real boolean controls
+        # must instead provide a valid operator boolean for Engine source
+        # validation before this Door Grid test reaches its target API.
+        self.is_box_dist_var = SimpleNamespace(get=lambda: False)
+        self.multi_door_enabled_var = SimpleNamespace(get=lambda: False)
 
     def __getattr__(self, key):
         if key.endswith("_var"):
