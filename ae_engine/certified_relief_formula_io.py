@@ -51,6 +51,32 @@ def normalize_operator_relief_topology_levels(raw: object) -> int:
     return int(value)
 
 
+def normalize_operator_relief_formula_sample(raw: Mapping[str, object]) -> dict[str, float]:
+    """Normalize raw Registry sample values for real formula/matrix evaluation.
+
+    GUI only supplies operator sources. Signed test values remain supported;
+    the original formula evaluator decides whether resulting geometry is legal.
+    """
+    if not isinstance(raw, Mapping):
+        raise CertifiedReliefRegistryError("formula sample must be a mapping")
+    values = {}
+    for key in ("T", "FW", "side_fold", "ytop1", "mating_width"):
+        if key not in raw or isinstance(raw[key], bool):
+            raise CertifiedReliefRegistryError(f"formula sample {key} must be finite numeric")
+        try:
+            number = float(raw[key])
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise CertifiedReliefRegistryError(f"formula sample {key} must be finite numeric") from exc
+        if not math.isfinite(number):
+            raise CertifiedReliefRegistryError(f"formula sample {key} must be finite numeric")
+        values[key] = number
+    values["effective_mating_width"] = values["mating_width"]
+    values["fold_u"] = values["side_fold"]
+    values["fold_v"] = values["ytop1"]
+    values["clearance"] = 0.0
+    return values
+
+
 def _default_external_registry_path() -> Path:
     return Path(__file__).resolve().parents[1] / "基準檔" / "截角資料庫" / "certified_relief_rules.json"
 
@@ -121,7 +147,13 @@ def _formula_ast_value(node, variables):
     if isinstance(node, ast.Name):
         if node.id not in _ALLOWED_FORMULA_NAMES or node.id not in variables:
             raise CertifiedReliefRegistryError(f"formula variable not allowed or unresolved: {node.id}")
-        value = float(variables[node.id])
+        raw = variables[node.id]
+        if isinstance(raw, bool):
+            raise CertifiedReliefRegistryError(f"formula variable is not finite numeric: {node.id}")
+        try:
+            value = float(raw)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise CertifiedReliefRegistryError(f"formula variable is not finite numeric: {node.id}") from exc
         if not math.isfinite(value):
             raise CertifiedReliefRegistryError(f"formula variable is not finite: {node.id}")
         return value

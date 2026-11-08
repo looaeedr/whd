@@ -199,7 +199,6 @@ def registry_collect_rule_form(self):
 def registry_sample_variables(self):
     """Project the Registry sample controls into evaluator variables."""
     app = self.app
-    values = {}
     mapping = {
         "T": app.relief_registry_sample_t_var,
         "FW": app.relief_registry_sample_fw_var,
@@ -207,13 +206,9 @@ def registry_sample_variables(self):
         "ytop1": app.relief_registry_sample_ytop_var,
         "mating_width": app.relief_registry_sample_mating_var,
     }
-    for key, var in mapping.items():
-        values[key] = float(var.get())
-    values["effective_mating_width"] = values["mating_width"]
-    values["fold_u"] = values["side_fold"]
-    values["fold_v"] = values["ytop1"]
-    values["clearance"] = 0.0
-    return values
+    return manufacturing_api.normalize_operator_relief_formula_sample(
+        {key: var.get() for key, var in mapping.items()}
+    )
 
 def registry_validate_formula_form(self):
     """Validate the editable Registry form through the existing controller."""

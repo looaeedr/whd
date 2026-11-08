@@ -10,7 +10,8 @@ whd_schema: WHD_DOC_META_V1
 
 - 原 `gui_modules/application/fold_designer_composition_registry_edges.registry_collect_rule_form` 先將候選 `topology_levels` 做 `int(float(TkVar.get()))`；`1.9` 被截斷為 1 段、`True` 被當成 1 段、`0` 被悄悄改為預設段數。原 `certified_relief_registry._validate_editable_rule_record` 同樣使用 `int(...)`，headless API 可以接受有害的原始拓樸。這是 Certified Registry 候選對 AssemblyJoint/Corner 幾何段數的來源資格，不可由 GUI 提前造出合法候選。
 - 維持原 `ae_engine.certified_relief_formula_io` 單一 Formula/Topology owner，新增 `normalize_operator_relief_topology_levels(raw)` 並經 `manufacturing_api`／根包公開同一 callable；接受數值 1/2、JSON 數字或數值上恰好整數的字串／浮點數以維持已保存相容性，拒絕 bool、0、負值、分數、非有限與錯字。原公開 `validate_operator_relief_registry_rule_record`、`evaluate_operator_relief_registry_formula_record` 共用驗證，未驗完不可保存或評估 Formula。GUI 只交原始來源給公開 Engine 驗段數後決定有無第二段表單；空白／缺席仍採原有依 Assembly Intent 的 UI 初始預設，明確非法的原始值不能假裝缺席。
-- `tests/test_issue2517_relief_registry_topology_raw_engine_api.py` 驗 Engine/GUI 同義、合法候選保留精確段數、非法來源不得產生保存檔、原始 Record 不突變、JSON Save→Reload 及真 GUI 收集不提前截斷。保留原 Certified Registry 規則、Factory/Family、截角 CUTTING/BEND、正式 2D/3D/DXF 與 Project schema；#2517 全面覆蓋與 Windows UAT 仍待持續驗收。
+- 同一 Registry 公式矩陣的範例 `T/FW/side_fold/ytop1/mating_width` 原由 GUI 先 `float(TkVar)`，可能將 `True` 誤當 1 mm；原 Formula evaluator 亦直接 `float(variables[name])`。現新增公開 `normalize_operator_relief_formula_sample`（原 Formula owner；facade/root 同 callable），GUI 僅收 raw 交 Engine，一次驗證五個有限、非 bool 的原始數字，投影原有 `effective_mating_width/fold_u/fold_v/clearance` 給原矩陣，保持負數測試資料可輸入及原公式結果禁負規則。直接公開 Formula evaluator 也拒絕布林，避免 headless 路徑繞過。
+- `tests/test_issue2517_relief_registry_topology_raw_engine_api.py` 驗 Engine/GUI 同義、合法候選保留精確段數、非法來源不得產生保存檔、原始 Record 不突變、JSON Save→Reload、範例變數與真 GUI 收集不提前轉型。保留原 Certified Registry 規則、Factory/Family、截角 CUTTING/BEND、正式 2D/3D/DXF 與 Project schema；#2517 全面覆蓋與 Windows UAT 仍待持續驗收。
 
 ## [CURRENT] #2517 Receiving 內門 1／2 層操作選項由公開 Engine 原始來源驗證（2026-11-08）
 

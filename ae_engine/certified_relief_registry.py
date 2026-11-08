@@ -54,6 +54,7 @@ from .certified_relief_formula_io import (
     evaluate_relief_formula_expression,
     evaluate_relief_formula_record,
     normalize_operator_relief_topology_levels,
+    normalize_operator_relief_formula_sample,
     evaluate_divider_cross_formula_record,
     _external_record_map,
     _rule_from_record,

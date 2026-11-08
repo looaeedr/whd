@@ -40,6 +40,11 @@ def _gui_state(value, *, intent="INSERT_OVERLAY"):
         "relief_registry_family_var": "ANY",
         "relief_registry_symmetry_var": "MIRROR_IF_GEOMETRY_SYMMETRIC",
         "relief_registry_source_var": "confirmed operator drawing",
+        "relief_registry_sample_t_var": "2.5",
+        "relief_registry_sample_fw_var": "25",
+        "relief_registry_sample_side_var": "15.125",
+        "relief_registry_sample_ytop_var": "12",
+        "relief_registry_sample_mating_var": "50",
     }
     app = SimpleNamespace(**{key: Field(v) for key, v in source.items()})
     return SimpleNamespace(app=app), source
@@ -114,3 +119,52 @@ def test_gui_missing_topology_keeps_original_intent_default_but_explicit_zero_re
     zero, _ = _gui_state(0)
     with pytest.raises(owner.CertifiedReliefRegistryError, match="topology_levels"):
         gui.registry_collect_rule_form(zero)
+
+
+def test_registry_formula_sample_gui_matches_public_engine_numeric_mapping():
+    host, source = _gui_state("2")
+    expected = api.normalize_operator_relief_formula_sample({
+        "T": "2.5", "FW": "25", "side_fold": "15.125",
+        "ytop1": "12", "mating_width": "50",
+    })
+    actual = gui.registry_sample_variables(host)
+    assert actual == expected
+    assert actual["T"] == 2.5
+    assert actual["fold_u"] == 15.125
+    assert actual["fold_v"] == 12
+    assert actual["effective_mating_width"] == 50
+    assert actual["clearance"] == 0.0
+    assert host.app.relief_registry_sample_t_var.get() == source["relief_registry_sample_t_var"]
+    assert ae_engine.normalize_operator_relief_formula_sample is api.normalize_operator_relief_formula_sample
+    assert owner.normalize_operator_relief_formula_sample is api.normalize_operator_relief_formula_sample
+
+
+@pytest.mark.parametrize("bad", [True, False, "nan", "inf", "bad", None, float("inf")])
+def test_gui_and_public_engine_reject_bad_sample_without_fabricating_millimeters(bad):
+    host, _ = _gui_state("2")
+    host.app.relief_registry_sample_fw_var = Field(bad)
+    with pytest.raises(owner.CertifiedReliefRegistryError, match="formula sample FW"):
+        gui.registry_sample_variables(host)
+    with pytest.raises(owner.CertifiedReliefRegistryError, match="formula sample FW"):
+        api.normalize_operator_relief_formula_sample({
+            "T": "2.5", "FW": bad, "side_fold": "15",
+            "ytop1": "12", "mating_width": "50",
+        })
+
+
+def test_direct_headless_formula_rejects_boolean_physical_sample_before_evaluation():
+    record = _candidate()
+    variables = {
+        "T": 2.0, "FW": True, "side_fold": 15.0,
+        "ytop1": 16.0, "mating_width": 50.0,
+    }
+    original = deepcopy(variables)
+    with pytest.raises(owner.CertifiedReliefRegistryError, match="formula variable"):
+        api.evaluate_operator_relief_registry_formula_record(record, variables)
+    assert variables == original
+
+
+def test_gui_formula_sample_does_not_coerce_operator_value_before_public_engine():
+    source = inspect.getsource(gui.registry_sample_variables)
+    assert "normalize_operator_relief_formula_sample(" in source
+    assert "float(" not in source
