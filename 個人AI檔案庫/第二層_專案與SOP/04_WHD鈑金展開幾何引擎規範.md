@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱內門 Hole Editor Confirm All 提交目標由 Engine 決策（2026-11-08）
+
+- 原 `gui_modules.application.receiving_inner_door_hole_editor.inner_door_commit_target` 在 GUI 自行決定「實體內門」與「候選版本」保存目的，並被 `fold_designer_composition_receiving` 多個入口複用。現正式權威改為 `manufacturing_api.operator_receiving_inner_door_commit_target(settings_mode)`（`ae_engine.operator_receiving_inner_door_source`），GUI helper 僅為相容轉送；所有多連／單只入口及 Confirm All 候選判斷讀同一 Engine API。
+- 僅編輯入口 `candidate` 送候選、`single` 或獨立實體入口 `None` 送實體；未知 mode 必須拒絕，不准由目前 Set/Bay／Quantity 模式、未提交 NFB 分頁、任意其他視窗狀態推測保存目的。原實體確認仍使用 `prepare_receiving_inner_door_physical_confirm`、`commit_receiving_quantity_inner_door_confirm` 及 Set/Bay 原子交易；候選仍保留 Confirm All 再寫入、取消不改來源的契約。
+- 測試 `tests/test_issue2517_inner_door_confirm_target_engine_api.py` 驗 GUI/headless/save-reload 字串一致性、非法 mode 無視窗及來源寫入、GUI 不重算提交目標。這是保存目標的權責遷移，不新增/批准 NFB 物理孔、DXF 或外部 source-only 製造。#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 圓孔排列預設孔心距由 Engine 公開 API 決定（2026-11-08）
 
 - Hole Editor 圓孔排列視窗原以 GUI `max(2 × 圓孔直徑, 50 mm)` 產生可編輯孔心距初始值。現由 `manufacturing_api.operator_round_hole_default_center_distance(diameter)`（`ae_engine.operator_round_hole_projection` owner）統一決定，原合法數值不變。此初始值僅是操作欄位預設，不是已確認加工孔位，不繞過原 `plan_operator_round_hole_preview`、Session commit 與正式製造。

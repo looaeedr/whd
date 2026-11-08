@@ -14,6 +14,20 @@ from .cabinet_types import policy as cabinet_family_policy
 from .door_layout_physical_remap import receiving_inner_door_stable_id_for_cell
 
 
+def operator_receiving_inner_door_commit_target(settings_mode: object) -> str:
+    """Resolve an explicit Hole Editor entry's physical/candidate save authority.
+
+    Project Set/Bay, Quantity and unrelated modals cannot silently choose the
+    persistence target. Only this launch identity controls the Confirm All
+    route; preview, NFB tab checks and Cancel All never imply a commit.
+    """
+    if settings_mode is None or settings_mode == "single":
+        return "physical"
+    if settings_mode == "candidate":
+        return "candidate"
+    raise ValueError("未知的內門編輯來源")
+
+
 def normalize_operator_receiving_inner_door_inward_offset(value: object) -> float:
     """0 is valid (flush placement), negative/NaN/bool may never be mm."""
     if isinstance(value, bool):

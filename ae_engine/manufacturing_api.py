@@ -1593,6 +1593,7 @@ from .operator_receiving_inner_door_source import (
     apply_operator_receiving_inner_door_presence,
     apply_operator_receiving_inner_door_inward_offset,
     project_operator_receiving_inner_door_cell_source,
+    operator_receiving_inner_door_commit_target,
 )
 
 
