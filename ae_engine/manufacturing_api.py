@@ -540,7 +540,8 @@ from .manufacturing_cache_signature import (
 from .physical_part_navigation import project_physical_part_navigation_rows
 from .physical_part_identity import (
     is_box_body_physical_piece_key, is_derived_physical_part_key,
-    door_display_part_role,
+    door_display_part_role, OperatorHoleEditorRoute,
+    project_operator_hole_editor_route,
 )
 from .independent_part_view_mesh import (
     IndependentPartViewMesh, project_independent_part_view_mesh,

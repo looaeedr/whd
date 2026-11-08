@@ -809,31 +809,40 @@ def _indicator_door_context(host, values):
 
 def open_part_hole_editor(host, part_key):
     """Route one physical-part editor while preserving existing authority seams."""
-    host.workspace_controller.set_active_part(part_key)
     app = getattr(host, 'fold_designer_app', None)
-    if part_key in {'head', 'tail'}:
-        return open_hole_editor(host, part_key)
-    import re
-    from phase6_part_navigation import is_box_body_physical_piece_key
-    match = re.fullmatch(r'door_c(\d+)_r(\d+)', str(part_key))
-    if match:
-        return host.open_door_layout_cell_editor(int(match[1]) - 1, int(match[2]) - 1)
-    if (str(part_key).startswith(('box_body:divider:', 'base_plate:fixing_plate:', 'base_plate_c', 'custom:'))
-            or is_box_body_physical_piece_key(part_key)
-            or (part_key == 'base_plate' and app is not None and host.baseline_var.get() == '受電箱')
-            or (str(part_key).startswith('inner_door:') and str(part_key).endswith('_frame'))):
+    model_var = getattr(host, "baseline_var", None)
+    multi_var = getattr(host, "multi_door_enabled_var", None)
+    try:
+        route = manufacturing_api.project_operator_hole_editor_route(
+            part_key,
+            model=model_var.get() if model_var is not None else "",
+            multi_door_enabled=multi_var.get() if multi_var is not None else False,
+            has_fold_designer=app is not None,
+        )
+    except (ValueError, TypeError) as exc:
+        messagebox.showerror("開孔失敗", str(exc))
+        return None
+    # Do not mutate active physical part until Engine has accepted its identity.
+    host.workspace_controller.set_active_part(route.part_key)
+    if route.kind == "endcap":
+        return open_hole_editor(host, route.part_key)
+    if route.kind == "door_cell":
+        return host.open_door_layout_cell_editor(
+            route.column_index, route.row_index,
+        )
+    if route.kind == "workspace_sheet":
         from gui_modules.application.physical_part_hole_editor import open_workspace_sheet_editor
         try:
-            return open_workspace_sheet_editor(host, part_key)
+            return open_workspace_sheet_editor(host, route.part_key)
         except ValueError as exc:
-            messagebox.showerror('開孔失敗', str(exc))
+            messagebox.showerror("開孔失敗", str(exc))
             return None
-    if part_key == 'box_body':
+    if route.kind == "box_body_face":
         face = host.box_body_face_selected_var.get() or 'back'
         for name in ('left', 'back', 'right'):
             host.box_body_face_features.setdefault(name, [])
         return host.open_box_body_face_editor(face)
-    if str(part_key).startswith("inner_door:") and str(part_key).endswith(":panel"):
+    if route.kind == "inner_door_panel":
         from gui_modules.application.receiving_inner_door_hole_editor import open_inner_door_hole_editor
 
         try:
@@ -844,7 +853,7 @@ def open_part_hole_editor(host, part_key):
         except ValueError as exc:
             messagebox.showerror("開孔失敗", str(exc))
             return None
-    if part_key == "door" and host.multi_door_enabled_var.get():
+    if route.kind == "selected_door_cell":
         cell = host.get_selected_door_layout_cell()
         host.open_door_layout_cell_editor(cell.column_index, cell.row_index)
         return
