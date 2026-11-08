@@ -70,7 +70,9 @@ def _capture_cabinet_family_runtime(self):
         "box_body_structure": self.workspace_controller.box_body_structure_state(),
         "box_body_profile": self.workspace_controller.box_body_profile(),
         "assembly_joint_state": deepcopy(getattr(self, "assembly_joint_state", {}) or {}),
-        "multi_door_enabled": bool(self.multi_door_enabled_var.get()),
+        "multi_door_enabled": manufacturing_api.normalize_operator_settings_boolean(
+            self.multi_door_enabled_var.get()
+        ),
         "door_layout_columns": layout,
         "door_layout_scope": str(getattr(self, "door_layout_scope", "main") or "main"),
         "door_handle_edges": deepcopy(getattr(self, "door_layout_handle_edges", {}) or {}),
@@ -80,10 +82,17 @@ def _capture_cabinet_family_runtime(self):
 
 def _restore_cabinet_family_runtime(self, state):
     state = dict(state or {})
+    # Validate all serialized physical switches before mutating live widgets.
+    multi_door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+        state["multi_door_enabled"] if "multi_door_enabled" in state else False
+    )
     values = {}
     for key, raw in dict(state.get("settings") or {}).items():
+        if key == "draw_stock":
+            values[key] = manufacturing_api.normalize_operator_settings_boolean(raw)
+            continue
         try:
-            values[key] = bool(raw) if key == "draw_stock" else float(raw)
+            values[key] = float(raw)
         except (TypeError, ValueError):
             continue
     self._apply_fold_designer_live_settings(values, recalculate=False)
@@ -98,7 +107,7 @@ def _restore_cabinet_family_runtime(self, state):
         self.assembly_joint_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(deepcopy(joint_state))
         stable = assembly_intent_value(self.assembly_joint_state.get("assembly_type", "INSERT_OVERLAY"))
         self.box_assembly_type_var.set(assembly_intent_label(stable))
-    self.multi_door_enabled_var.set(bool(state.get("multi_door_enabled", False)))
+    self.multi_door_enabled_var.set(multi_door_enabled)
     layout = list(state.get("door_layout_columns") or [])
     if layout:
         self.set_door_layout_columns([(float(row[0]), [float(v) for v in row[1]]) for row in layout])
