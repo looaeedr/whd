@@ -1864,13 +1864,12 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 selected_brand=current_nfb_parent_brand(),
             )
         parent_modal = getattr(self.app.root, "_receiving_multi_settings_window", None)
-        from .receiving_inner_door_hole_editor import inner_door_commit_target
         # Read the actual opening editor entry. Stored Set/Bay state and
         # unrelated modal dialogs may NEVER choose the persistence target.
         entry_mode = (getattr(embed_parent.winfo_toplevel(),
                               "_receiving_settings_mode", None)
                       if embed_parent is not None else "candidate")
-        direct_to_drawing = inner_door_commit_target(entry_mode) == "physical"
+        direct_to_drawing = manufacturing_api.operator_receiving_inner_door_commit_target(entry_mode) == "physical"
         owner = parent_modal if (parent_modal is not None
                                  and parent_modal.winfo_exists()) else self.app.root
         if embed_parent is None:
@@ -3516,7 +3515,9 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 self.sync_receiving_current_bay(namespace, refresh_controls=False)
                 self.app.submit_update_intent("geometry", commit=True)
                 return
-            if mode != "candidate":
+            # The Engine's same entry-source contract determines the only
+            # candidate-save route; all other modes were handled above.
+            if manufacturing_api.operator_receiving_inner_door_commit_target(mode) != "candidate":
                 raise ValueError("未知的內門儲存目標")
             config = (inner_config(inner_library(), version_id) if version_id is not None
                       else current_inner_editor_config())
@@ -3574,7 +3575,6 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         )
 
     if embedded_inner_parent is not None:
-        from .receiving_inner_door_hole_editor import inner_door_commit_target
         # Keep the original Corner Data / physical-part double-click editor.
         # Only the NEW Single/Multi settings button opts into staged save.
         editor = embedded_inner_parent.winfo_toplevel()
@@ -3587,7 +3587,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         mode = getattr(editor, "_receiving_settings_mode", None)
         # Explicit entry identity, not project state: only the multi-settings
         # "candidate" entry saves a version on the MAIN Confirm All.
-        save_target = inner_door_commit_target(mode)
+        save_target = manufacturing_api.operator_receiving_inner_door_commit_target(mode)
         selected_version = getattr(editor, "_receiving_candidate_version", None)
         if save_target == "candidate" and selected_version is not None:
             inner_config(inner_library(), selected_version)

@@ -22,11 +22,9 @@ def inner_door_commit_target(settings_mode):
     Ordinary board/corner/part-preview and 單只 settings write physical parts
     on the parent editor Confirm All. NFB tab Confirm never writes either.
     """
-    if settings_mode == "candidate":
-        return "candidate"
-    if settings_mode in (None, "single"):
-        return "physical"
-    raise ValueError("未知的內門編輯來源")
+    return manufacturing_api.operator_receiving_inner_door_commit_target(
+        settings_mode,
+    )
 
 
 def open_inner_door_hole_editor(
