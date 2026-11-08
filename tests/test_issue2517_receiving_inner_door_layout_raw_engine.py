@@ -126,12 +126,14 @@ def test_half_back_panel_consumes_same_saved_door_enable_flag():
     baseline = family_policy.resolve_back_panel_contract(
         source, source, structure_state=structure, panel_width=800, full_panel_height=1600,
     )
-    source["multi_door_enabled"] = "true"
+    assert baseline["mode"] == "HALF"
+    for malformed in ("true", "false", "0", 1, {"enabled": True}):
+        source["multi_door_enabled"] = malformed
+        with pytest.raises(ValueError, match="requires authoritative Door topology"):
+            family_policy.resolve_back_panel_contract(
+                source, source, structure_state=structure, panel_width=800, full_panel_height=1600,
+            )
+    source["multi_door_enabled"] = True
     assert family_policy.resolve_back_panel_contract(
         source, source, structure_state=structure, panel_width=800, full_panel_height=1600,
     ) == baseline
-    source["multi_door_enabled"] = "false"
-    with pytest.raises(ValueError, match="requires authoritative Door topology"):
-        family_policy.resolve_back_panel_contract(
-            source, source, structure_state=structure, panel_width=800, full_panel_height=1600,
-        )
