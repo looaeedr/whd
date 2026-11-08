@@ -381,7 +381,12 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
             ),
         }
         resolved_cuts = data.get("resolved_assembly_relief_cuts")
-        if resolved_cuts is None and bool(data.get("_use_committed_relief")):
+        if (resolved_cuts is None and
+                manufacturing_api.normalize_operator_settings_boolean(
+                    data.get("_use_committed_relief", False)
+                )):
+            # A persisted "false" is not permission to attach physical CUTTING.
+            # Invalid present flags must fail before a head/tail PartSpec exists.
             resolved_cuts = self._resolved_committed_assembly_relief_cuts(
                 key, endcap_values, data.get("fold_profiles") or {}
             )

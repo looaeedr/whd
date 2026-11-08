@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Head/Tail 已提交 Assembly Relief 切孔開關以 Engine 公開布林來源為準（2026-11-08）
+
+- `gui_modules/application/fold_designer_manufacturing_projection._fold_designer_part_spec_from_payload` 原用 `bool(data.get("_use_committed_relief"))` 決定要不要載入已提交的 Head/Tail Assembly Relief CUTTING；從 Save→Reload 載入字串 `"false"` 會因 Python 非空字串而誤判 True。這是製造切孔來源資格，不能由 GUI truthiness 決定。
+- 現有公開 `manufacturing_api.normalize_operator_settings_boolean` 已定義原始 true/false、on/off、1/0 與非有限／非法來源的明確規則。當 `resolved_assembly_relief_cuts` 缺席時，GUI 直接交原始 `_use_committed_relief` 給 Engine；僅缺席欄位使用既有 False 相容預設，**存在但非法**的來源要先 fail closed，不能呼叫 `_resolved_committed_assembly_relief_cuts` 或把切孔送進 `EndCapPartSpec`。當直接提供 resolved cuts 時維持原既有優先序，不重新解讀未使用的 switch。
+- 定向 `tests/test_issue2517_endcap_committed_relief_switch_engine_boolean.py` 比較 GUI 與公開 Engine true/false 行為、保存字串、非法輸入不導致任何 cut/PartSpec 寫入、保留直接已解決 CUTTING 的優先序和來源不突變。原 Engine 救濟求解、CROSS certified geometry、Head/Tail 身分、Family 補償、2D／3D／DXF 及 Project schema 均不變。#2517 的全面 GUI 接線與 Windows UAT 尚待逐項驗證。
+
+
 ## [CURRENT] #2517 Vault 盤名／Receiving 內門欄位以 Engine Family Registry 決定 UI 編輯資格（2026-11-08）
 
 - `phase6_settings_panel.Phase6SettingsPanel.refresh_panel_name/commit_panel_name` 與 `fold_designer_composition_receiving.commit_vault_panel_name` 原以 GUI 硬編碼 `"金庫型"` 比對 Family；`gui_modules/parts/panels/door.rebuild_door_layout_ui` 則用 `{"受電箱","RECEIVING"}` 決定是否建立內門勾選／內退控制列。這些並非 GUI 格式檢查，而是 Registered Family 操作資格；合法 `VAULT`、大小寫混合 `ReCeIvInG` 等別名會錯誤消失控制項或拒絕輸入。
