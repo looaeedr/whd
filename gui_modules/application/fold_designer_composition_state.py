@@ -97,6 +97,14 @@ def corner_transaction_payload(self, namespace):
     app = self.app
     required = lambda name: self._required(namespace, name)
     source = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+    # Source flags may be persisted strings. Validate both through the public
+    # Engine before collecting a live-sync workspace or a relief projection.
+    door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+        source.get("multi_door_enabled", False)
+    )
+    box_distance = manufacturing_api.normalize_operator_settings_boolean(
+        source.get("use_box_distance", False)
+    )
     graph_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(source)
     workspace = self.collect_workspace_state(namespace)
     clone = required("clone_profile")
@@ -104,8 +112,8 @@ def corner_transaction_payload(self, namespace):
         **{key: deepcopy(workspace[key]) for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout") if key in workspace},
         "model": str(app.baseline_model_var.get() or "").strip(),
         "settings": dict(getattr(app, "_settings_values", {})),
-        "multi_door_enabled": bool(source.get("multi_door_enabled", False)),
-        "use_box_distance": bool(source.get("use_box_distance", False)),
+        "multi_door_enabled": door_enabled,
+        "use_box_distance": box_distance,
         "inner_doors": deepcopy(source.get("inner_doors") or []),
         "door_nameplate_center_datum_top": source.get("door_nameplate_center_datum_top"),
         "door_layout_indicator_states": deepcopy(
@@ -479,7 +487,8 @@ def serialize_assembly_relief_state(self, namespace):
     required = lambda name: self._required(namespace, name)
     enabled_var = getattr(app, "assembly_ignore_fixed_corner_var", None)
     fallback_enabled = (
-        bool(enabled_var.get()) if enabled_var is not None else True
+        manufacturing_api.normalize_operator_settings_boolean(enabled_var.get())
+        if enabled_var is not None else True
     )
     solutions = dict(
         getattr(app, "_phase6_last_relief_solutions", {}) or {}

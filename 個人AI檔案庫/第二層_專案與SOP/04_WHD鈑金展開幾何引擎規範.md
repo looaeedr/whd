@@ -12,6 +12,14 @@ whd_schema: WHD_DOC_META_V1
 - 現沿用同一 Engine 已存在的 `normalize_operator_settings_boolean`，`ensure_corner_part` 先對兩個 Pair 旗標在 detached source 一次驗證，合法 `"false"/"off"/0` 轉 False、`"true"/"on"/1` 轉 True，非法來源 fail closed。原 `commit_corner_pair` 同樣採 Engine 解析後決定是否複製實體右角；GUI 只消費既有公開 Engine 交易與左右實體角身份投影。舊版缺席仍預設 True，Factory／Registry、截角幾何公式、2D／3D／DXF 與 Project schema 不變。
 - `tests/test_issue2517_corner_pair_serialized_boolean_engine.py` 驗金庫型／受電箱可通用的 Head/Tail/Divider 成對身份、合法序列化布林、非法值與來源原子性、獨立角不被覆蓋、Save→Reload 以及 Fold Designer Settings 真 GUI 讀取；#2517 其他 GUI 製造入口與 Windows 實機仍需持續查核。
 
+
+## [CURRENT] #2517 Door Indicator 舊檔顯示修復投影由 Engine 公開 API 接管（2026-11-08）
+
+- 原 `gui_modules/parts/panels/door.normalize_door_indicator_state` 在 GUI 自行判斷舊版指示燈 `mode/enabled/box_enabled`、層數／群組及偏移值；它對壞來源回退畫面預設，和製造必須拒絕非法實體孔位的規則分成兩份實作。當 GUI 將修復的顯示資料誤用作開孔輸入時，會憑空把非法 `False` 組數轉成 2 組燈。此次只移動**顯示相容投影**，絕不可讓它作為正式 Save 或 Factory 資料來源。
+- 公開 `ae_engine.fold_designer_snapshot_dimensions.project_operator_door_indicator_display_state(raw)`，經 `manufacturing_api` 與根包同一 callable 輸出 detached 顯示資料；合法舊式 flag、六層群組及偏移的 UI 相容語意保持原樣。GUI 只轉送 raw，沒有第二份數值／製造模式判斷。嚴格 `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source`、`project_operator_door_layout_indicator_snapshot_states` 仍直接接原始 raw，非法已啟用的來源要 fail closed，絕不能拿這份寬鬆顯示投影送到 DoorPartSpec／2D／3D／DXF。
+- 定向 `tests/test_issue2517_door_indicator_display_public_api.py` 對照金庫型／受電箱、遺留旗標字串、有效小數／非法數值顯示、raw 來源不突變、重複投影、Save→Reload 原樣及真實製造拒絕。原洞切／BEND、Family/Topology/FinalScene、DXF、Project schema 均不變；#2517 其餘 GUI 製造入口與 Windows UAT 繼續逐一驗收。
+
+
 ## [CURRENT] #2517 Family 切換的包外 W/H/D 預設資料必須由 Engine 驗證後原值顯示（2026-11-08）
 
 - `cabinet_family_model_transition.plan_cabinet_family_model_transition` 於新箱型切換產生 `defaults` 時，以既有 `operator_settings_transactions.normalize_operator_source_dimension` 逐軸驗證**存在的** W/H/D 有限正數、非 bool，保留小數精度。驗證在 `snapshot.update(defaults)`、新 Receiving Set/Bay 初始化及 GUI Settings 交易提交**之前**進行，非法來源拒絕且不能部分變更外部狀態。
