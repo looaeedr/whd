@@ -79,7 +79,9 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
     Selection is a pure presentation overlay. No FinalScene, manufacturing or
     DXF code may run during sketch creation.
     """
-    count = max(1, int(count))
+    count = manufacturing_api.normalize_receiving_operator_connection_counts(
+        (count,)
+    )[0]
     canvas.delete("all")
     canvas._receiving_bay_hitboxes = ()
     canvas._receiving_panel_name_hitboxes = ()
@@ -1590,7 +1592,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             setting_list.insert(tk.END, "封頭尾", "內門")
         if not setting_list.winfo_manager():
             setting_list.pack(anchor="w", pady=(6, 0))
-        counts = tuple(max(1, int(n)) for n in get_switch().connection_counts())
+        counts = manufacturing_api.normalize_receiving_operator_connection_counts(
+            get_switch().connection_counts()
+        )
         # Only create or remove rows when the number of Sets changes.
         while len(bay_rows) > len(counts):
             bay_rows.pop()["frame"].destroy()
@@ -1697,12 +1701,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             return warn(exc)
 
     def apply(index):
-        cancel_panel_name_edit(redraw=False)
         try:
             if not ensure_set_mode():
                 return False
-            counts = tuple(get_switch().connection_counts())
-            count = max(1, int(counts[index]))
+            counts = manufacturing_api.normalize_receiving_operator_connection_counts(
+                get_switch().connection_counts()
+            )
+            count = counts[index]
+            # Invalid saved topology must not cancel a pending label draft or
+            # fabricate a selection of physical Bay0.
+            cancel_panel_name_edit(redraw=False)
             applied.update(mode="set_bay", set_index=index,
                            count=count, selected=0, selected_bays=(0,))
             selected_setting.update(set_index=None, bay_index=None, kind=None)

@@ -92,6 +92,28 @@ def new_receiving_layout(*, width: object, height: object, depth: object, back_p
     }
 
 
+def normalize_receiving_operator_connection_counts(raw_counts) -> tuple[int, ...]:
+    """Project only real positive Set/Bay topology counts to GUI controls.
+
+    The saved Receiving Layout always has Set1 and at least one physical Bay
+    per Set.  Never let UI bool/int coercion fabricate a Bay for invalid data.
+    """
+    if isinstance(raw_counts, (str, bytes, Mapping)):
+        raise ValueError("Receiving connection counts must be a sequence")
+    try:
+        counts = tuple(raw_counts)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Receiving connection counts must be a sequence") from exc
+    if not counts:
+        raise ValueError("Receiving requires at least one Set")
+    for index, count in enumerate(counts):
+        if type(count) is not int or count < 1:
+            raise ValueError(
+                f"Receiving Set{index + 1} connection_count must be a positive integer"
+            )
+    return counts
+
+
 def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str, object]:
     """Validate and canonicalize persisted Receiving layout authority.
 
