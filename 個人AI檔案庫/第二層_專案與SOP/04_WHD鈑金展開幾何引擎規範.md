@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 主 GUI STOCK 與單門指示燈距離旗標須保留公開 Engine 原始來源（2026-11-08）
+
+- `gui_modules/application/manufacturing_adapter._manufacturing_context` 原先在送正式 DXF `ManufacturingContext` 前 `bool(draw_stock)`，使序列化 `"false"` 變 True，開啟不應有的 STOCK；單門 `_single_door_part_spec` 也預先 `bool(self.is_box_dist_var.get())`，使 `"false"` 變 True，偏移指示燈孔的位置語意。此前 #3107 處理 Fold Designer STOCK 交易，但未涵蓋這條主 GUI 出圖 Adapter。
+- 原 `ae_engine.operator_settings_transactions.normalize_operator_settings_boolean` 已由 `manufacturing_api` 公開：主 GUI 僅使用該 Engine 正規化值建 `ManufacturingContext`，拒絕非法 flag；單門則保留 `is_box_dist_var.get()` raw 原始值交給原 `manufacturing_api.build_door_operator_part_spec`，由 Engine 僅在實際啟用指示燈時嚴格判定，停用時保留歷史無孔容錯。不增寫任何 CUTTING／STOCK／距離公式或第二份 DXF Writer。
+- `tests/test_issue2517_main_gui_manufacturing_raw_boolean_engine.py` 核對主 GUI 與 headless 同一 Context／PartSpec、序列化旗標 false／true、非法來源 fail-closed、停用指示燈保留舊檔、JSON Save→Reload。2D／3D／DXF 仍來自 Engine canonical 結果，Windows 實機 UAT／#2517 全面覆蓋未完成。
+
 ## [CURRENT] #2517 Registry 截角一／二段拓樸須由公開 Engine 原始來源驗證（2026-11-08）
 
 - 原 `gui_modules/application/fold_designer_composition_registry_edges.registry_collect_rule_form` 先將候選 `topology_levels` 做 `int(float(TkVar.get()))`；`1.9` 被截斷為 1 段、`True` 被當成 1 段、`0` 被悄悄改為預設段數。原 `certified_relief_registry._validate_editable_rule_record` 同樣使用 `int(...)`，headless API 可以接受有害的原始拓樸。這是 Certified Registry 候選對 AssemblyJoint/Corner 幾何段數的來源資格，不可由 GUI 提前造出合法候選。
