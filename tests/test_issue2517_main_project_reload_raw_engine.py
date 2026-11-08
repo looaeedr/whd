@@ -217,7 +217,12 @@ def test_actual_p6fold_distance_flag_survives_write_and_reload(tmp_path):
 
     app, _events = host()
     app.is_box_dist_var = Var(True)
-    source = saved(use_box_distance="false")
+    source = saved(use_box_distance="false", multi_door_enabled=False)
+    # Canonical .p6fold authority stores Engine-validated numeric Door cells;
+    # legacy Tk strings are accepted at the GUI input seam, not Project write.
+    source["door_layout_columns"] = api.project_operator_saved_door_layout_columns(
+        source["door_layout_columns"]
+    )
     target = project.write_project(
         tmp_path / "saved-indicator-distance.p6fold",
         {"schema": project.PROJECT_SCHEMA, "snapshot": source},
