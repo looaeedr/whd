@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 多門格選取及實體 W/H 來源只能由公開 Engine API（2026-11-08）
+
+- 主 GUI `gui_modules/application/door_layout_host_adapter.select_door_layout_cell` 原用 `int(column_index/row_index)` 拼選擇鍵，再自行產生 `door_cN_rM` 交 Corner Data；布林、負索引、浮點與已刪除的格子可能被選中或當成合法實體 ID。原 `sheetmetal_part_adapters.door_layout_part_key` 自身沒有拒絕非法的物理格索引；錯誤導覽可能變更視窗選取和實體孔位編輯對象。
+- 仍由既有 `ae_engine.sheetmetal_part_adapters.door_layout_part_key` 擁有唯一 stable Door ID（製造／DXF 不另造名稱），拒絕非原生 int 與負數；既有 `door_layout_numeric_transitions` 增 `resolve_operator_door_layout_cell(cells,column_index,row_index)`，使用現有 canonical Door Cell 集合核對真實存在、唯一身份，非法值在 GUI 選取狀態改變前拒絕。Facade/root 公開同一 callable，GUI 只用返回的真實 Cell 與公開 Engine `door_layout_part_key`，不自創門片 ID；顯示文字和 Canvas 高亮維持原狀。
+- 多門格 `gui_modules/parts/panels/door._parse_layout_value` 原另存一份 bool／有限／正數物理 W/H 判準；現沿用 Engine `door_layout_numeric_transitions._positive_total` 原有核准規則，公開 `normalize_operator_door_grid_dimension(raw,field)` 區分盤 W/H 與門格欄寬／層高，GUI 只轉送 raw、顯示錯誤，欄寬小數精度／保存回讀維持相同；沒有改 Fold／CUTTING／BEND／DXF 或 Family 補償。
+- `tests/test_issue2517_door_grid_raw_dimensions_and_identity.py` 覆蓋 headless 公開 Engine/raw GUI 來源、合法 fractional mm、非法 bool/NaN 來源、真實 Cell 及 stale／負索引禁止 GUI 修改選取、stable Door IDs 與原檔、JSON roundtrip 不突變。#2517 仍須持續全功能、Windows 實機與真 DXF 驗收。
+
 ## [CURRENT] #2517 主 GUI STOCK 與單門指示燈距離旗標須保留公開 Engine 原始來源（2026-11-08）
 
 - `gui_modules/application/manufacturing_adapter._manufacturing_context` 原先在送正式 DXF `ManufacturingContext` 前 `bool(draw_stock)`，使序列化 `"false"` 變 True，開啟不應有的 STOCK；單門 `_single_door_part_spec` 也預先 `bool(self.is_box_dist_var.get())`，使 `"false"` 變 True，偏移指示燈孔的位置語意。此前 #3107 處理 Fold Designer STOCK 交易，但未涵蓋這條主 GUI 出圖 Adapter。
