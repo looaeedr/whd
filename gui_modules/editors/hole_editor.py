@@ -8,7 +8,6 @@ existing controllers/AE/session seams.
 from __future__ import annotations
 
 from dataclasses import replace
-from math import isfinite
 from tkinter import messagebox
 
 from phase6_hole_editor_session import HoleEditorAction
@@ -464,19 +463,17 @@ class HoleEditorReferenceActions:
         idx = self.hole_session.selected_index
         if not (0 <= idx < len(feature_list)):
             return
-        raw = self.reference_variables[(axis, mode)].get().strip()
-        if not raw:
+        raw = self.reference_variables[(axis, mode)].get()
+        if isinstance(raw, str) and not raw.strip():
             return
         try:
-            value = float(raw)
-            if not isfinite(value):
-                raise ValueError("reference distance must be finite")
+            value = manufacturing_api.normalize_operator_hole_reference_distance(
+                raw
+            )
         except (TypeError, ValueError, OverflowError):
             if show_errors:
                 self.show_format_error()
                 self.refresh_reference_fields()
-            return
-        if value < 0:
             return
         old = feature_list[idx]
         moved = self.move_feature_by_reference_distance(

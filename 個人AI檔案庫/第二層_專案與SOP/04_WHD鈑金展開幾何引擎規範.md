@@ -12,6 +12,14 @@ whd_schema: WHD_DOC_META_V1
 - 由原 `ae_engine.hole_catalog` 保持唯一孔徑／矩形尺寸、Catalog CSV、Feature 建構與旋轉幾何 owner；同一 callable 透過 `manufacturing_api.operator_{load_hole_catalog,load_pipe_catalog,hole_feature_from_definition,custom_circle_definition,custom_rectangle_definition}` 與 `ae_engine` 根包公開。GUI Composition 僅注入公開 callable，FeatureFactory 只轉送原始 Tk 尺寸，絕不先 float；孔型 Definition 的數值與實體 Feature 只由 Engine 驗證。旋轉輸入格式錯誤用原 GUI 錯誤呈現，最終孔旋轉合法性仍由 `feature_from_definition` 原 Engine `_normalize_rotation` 判定；無新孔徑、旋轉或 DXF 公式。
 - `tests/test_issue2517_custom_hole_raw_dimensions_public_engine.py` 驗 TRUE/False 不能變 1mm、兩種箱型與 Circle/Rect 有效尺寸與非法來源、實體 Feature／Geometry、公開 alias 同一實作、錯誤不產生孔、主 GUI 不再私有匯入。保留 `tests/test_issue293_t5_feature_factory_slice.py` 的原依賴注入邏輯，更新測試以查證原始 Tk 傳遞而非模擬者自行轉型；Save→Reload／2D／3D／DXF 仍由原製造 Owner 完整回歸。
 
+
+## [CURRENT] #2517 Hole Editor 開孔參考距離非負有限值須由公開 Engine 管理（2026-11-08）
+
+- 原 `gui_modules/editors/hole_editor.HoleEditorReferenceActions.apply_reference_value` 自行將 X／Y 邊／鄰孔距離做 `float()`、`isfinite()` 與負值拒絕；同一物理移孔 operation 的 `ae_engine.sheetmetal_feature_reference.move_feature_by_reference_distance` 雖驗有限與非布林，卻允許負距離直接幾何移孔，造成 GUI 與 headless API 對同一操作者輸入結果不一致。
+- 沿用原 `ae_engine.sheetmetal_feature_reference` owner 新增 `normalize_operator_hole_reference_distance(value)`，透過 `manufacturing_api` 與根包公開同一 callable，統一有限、非布林、非負距離（0 與合法小數保留），並由原 `move_feature_by_reference_distance` 執行相同驗證才可改實體 Hole Feature。GUI 只轉送原始輸入並呈現錯誤，不再持有製造距離規則。缺少選取／空字串仍是 UI 操作空動作。FeatureSurface、CUTTING／MARKING、Anchor、Save→Reload、DXF Writer 與 Factory／Registry 不改。
+- `tests/test_issue2517_hole_reference_distance_engine_api.py` 驗合法／非法距離的公開 Engine＋實際幾何入口、金庫型／受電箱共用 GUI Event 與 Session 不變、壞來源不執行移孔、合法小數移孔與靜態反向再生檢查；其餘 #2517 與 Windows UAT 仍需續驗。
+
+
 ## [CURRENT] #2517 Head/Tail 已提交 Assembly Relief 切孔開關以 Engine 公開布林來源為準（2026-11-08）
 
 - `gui_modules/application/fold_designer_manufacturing_projection._fold_designer_part_spec_from_payload` 原用 `bool(data.get("_use_committed_relief"))` 決定要不要載入已提交的 Head/Tail Assembly Relief CUTTING；從 Save→Reload 載入字串 `"false"` 會因 Python 非空字串而誤判 True。這是製造切孔來源資格，不能由 GUI truthiness 決定。
