@@ -526,16 +526,12 @@ def export_receiving_ear_side_manufacturing_dxf(self):
         if not callable(resolver):
             raise ValueError("側板正式 MARKING 缺少現行製造幾何")
         snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
-        if (manufacturing_api.resolve_live_cabinet_family(snapshot) != "受電箱"
-                or snapshot.get("nfb_config_submitted") is not True
-                or snapshot.get("active_mode") == "quantity"):
-            raise ValueError("側板製造 MARKING 限已提交的單只／套連實體，數量版本須逐版核對")
-        dimensions = tuple(float(snapshot[key]) for key in ("w", "h", "d"))
-        thickness = float(snapshot["t"])
-        # Contact, folded source and side material must all agree; W800
-        # is a reference value, not a mandatory cabinet width.
-        if dimensions[0] <= 0 or thickness <= 0:
-            raise ValueError("側板 MARKING 箱寬與側板厚度必須為正")
+        # Shared Engine source preflight, not a CHECK-only manufacturing
+        # authorization: the final MARKING exporter still verifies physical
+        # source contact, FinalScene and DXF reopen before releasing sides.
+        dimensions, thickness = manufacturing_api.receiving_ear_side_check_operator_inputs(
+            snapshot,
+        )
         geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片側板 MARKING 不可輸出", str(exc))
