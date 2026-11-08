@@ -40,7 +40,7 @@ from .manufacturing_api import (
     is_unknown_operator_model, operator_default_custom_model_name,
     operator_box_body_baseline_source_label,
     operator_indicator_shared_baseline_source_label, operator_baseline_source_label,
-    operator_canonical_family_name,
+    operator_canonical_family_name, project_operator_linked_endcap_source_snapshot,
     operator_corner_data_back_panel_mode_applicable,
     operator_family_fixes_box_body_structure,
     operator_box_body_profile_uses_outside_dimensions,
