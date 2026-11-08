@@ -15,7 +15,7 @@ def test_public_engine_owns_existing_round_hole_initial_pitch(diameter, expected
     assert manufacturing_api.operator_round_hole_default_center_distance(diameter) == expected
 
 
-@pytest.mark.parametrize("invalid", [True, False, 0, -2, float("nan"), float("inf"), None, "invalid", []])
+@pytest.mark.parametrize("invalid", [True, False, 0, -2, float("nan"), float("inf"), 1e308, None, "invalid", []])
 def test_public_engine_rejects_invalid_round_hole_initial_pitch_source(invalid):
     with pytest.raises(ValueError, match="圓孔"):
         manufacturing_api.operator_round_hole_default_center_distance(invalid)
@@ -74,3 +74,31 @@ def test_round_hole_gui_uses_exact_public_engine_initial_pitch_without_tk(monkey
     assert rows == [source]
     assert source.diameter == diameter
     assert holder[0] is dialog.dialog
+
+
+@pytest.mark.parametrize("diameter", [0, -1, float("nan"), float("inf"), 1e308])
+def test_invalid_initial_pitch_does_not_open_or_grab_gui_modal(monkeypatch, diameter):
+    called = []
+
+    def forbidden_window(_editor):
+        called.append("opened")
+        raise AssertionError("invalid source opened Tk")
+
+    monkeypatch.setattr(round_ui.tk, "Toplevel", forbidden_window)
+    source = SimpleNamespace(diameter=diameter)
+    holder = [None]
+    dialog = round_ui._RoundHoleSettingsDialog(
+        editor=object(), theme={"bg": "#000"}, hole_session=None,
+        feature_list=[source], surface=object(), width=200.0, height=180.0,
+        round_window=holder, position_authority=[None],
+        refresh_created=lambda: None, refresh_reference_fields=lambda: None,
+        redraw=lambda: None, sync_all=lambda: None, selected_index=0,
+    )
+    with pytest.raises(ValueError, match="圓孔"):
+        dialog.open()
+    assert called == []
+    assert holder == [None]
+    assert dialog.dialog is None
+    assert source.diameter == diameter or (
+        isinstance(diameter, float) and diameter != diameter and source.diameter != source.diameter
+    )
