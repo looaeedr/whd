@@ -35,7 +35,7 @@ def test_engine_public_base_plate_shrink_accepts_legitimate_values(raw, expected
     True, False, "NaN", float("inf"), float("-inf"),
     None, -1.0, "-0.25", "invalid", object(),
 ])
-def test_engine_and_settings_transactions_reject_invalid_physical_shrink(bad):
+def test_engine_manual_shrink_operation_rejects_invalid_source(bad):
     key = "base_plate_shrink_left"
     settings = {key: 55.0}
     input_snapshot = {key: 40.0}
@@ -43,11 +43,22 @@ def test_engine_and_settings_transactions_reject_invalid_physical_shrink(bad):
     before = deepcopy((settings, input_snapshot, box))
     with pytest.raises(ValueError, match="縮量"):
         api.normalize_operator_base_plate_edge_shrink(bad)
-    with pytest.raises(ValueError, match="縮量"):
-        api.normalize_operator_settings_updates(settings, {key: bad})
-    with pytest.raises(ValueError, match="縮量"):
-        api.commit_operator_settings_state(settings, input_snapshot, box, {key: bad})
     assert (settings, input_snapshot, box) == before
+
+
+
+def test_generic_fold_settings_retain_existing_signed_numeric_compatibility():
+    """Manual edge-shrink UI policy must NOT tighten generic Fold/INI sources."""
+    key = "base_plate_shrink_left"
+    settings = {key: 55.0}
+    assert api.normalize_operator_settings_updates(settings, {key: "-3.125"}) == {
+        key: -3.125
+    }
+    assert api.commit_operator_settings_state(
+        settings, {}, {}, {key: "-3.125"}
+    ).committed[key] == "-3.125"
+    for damaged in (True, False, None, "nan", float("inf"), "bad"):
+        assert api.normalize_operator_settings_updates(settings, {key: damaged}) == {}
 
 
 def _run_gui(raw, family="金庫型"):
