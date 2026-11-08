@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 BoxBody structure raw numeric source validation (2026-11-08)
+
+Existing public `manufacturing_api.apply_box_body_structure_numeric(state, type_id, field, value, *, total_w, outside_family=False)` now checks the **original** value and total W using the canonical Engine finite, nonboolean dimension validator before updating two-/three-piece BoxBody or relief settings, with positive total W required. Serialized outside-family flags use the existing public Settings boolean contract (`"false"` is false). GUI `_phase6_box_structure_w` validates the original W through public Engine `normalize_operator_source_dimension`, and `_phase6_apply_box_structure_numeric` forwards raw text instead of pre-coercing to float. No new Factory/Registry/Fold/CUTTING/DXF geometry rule; valid source semantics and stable save schema are unchanged. Regression: `tests/test_issue2517_box_structure_raw_source_engine_api.py`. #2517 comprehensive coverage and Windows UAT remain pending.
+
 ## #2517 Receiving bottom WRAP reserve raw Engine input gate (2026-11-08)
 
 The existing public `manufacturing_api.operator_endcap_bottom_wrap(input_snapshot, state, part_key, *, reserve_u, reserve_v)` and `commit_endcap_bottom_wrap` reuse the original `ae_engine.endcap_bottom_wrap_state` owner, which now validates authored reserve mm as finite, nonnegative, non-boolean input before any linked Head/Tail mode or state mutation. Valid raw numeric text/zero/fractional mm are supported, while negative, bool, NaN/Inf and malformed data fail closed. GUI and the Phase6 Settings controller pass raw values unchanged; the public operator API requires both axes. Legacy saved state normalizers retain their prior compatibility projection; no Factory/Joint algorithm, CUTTING, DXF or manufacturing capability is newly certified. Regression: `tests/test_issue2517_bottom_wrap_raw_reserve_engine_api.py`.
