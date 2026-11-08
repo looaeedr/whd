@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving Set/Bay/Joint physical topology index raw-source gate (2026-11-08)
+
+`ae_engine.receiving_layout.normalize_receiving_operator_topology_integer(value, *, name)` is the same callable in `ae_engine.manufacturing_api` and root `ae_engine`. It accepts native `int` (excluding bool) and legacy signed ASCII decimal Tk text; it rejects float, bool, whitespace, containers and Python's underscore numeric aliases (e.g. `int('1_0') == 10`) before they can affect Set/Bay counts or Joint selection. GUI `ReceivingSetBayAdapter` only forwards original input to the public API; canonical Engine operations continue to enforce count/range/physical existence. No new storage schema, Family policy, part manufacturing or DXF entitlement. Regression: `tests/test_issue2517_receiving_operator_topology_index_public_api.py`.
+
 ## #2517 Public Engine BoxBody D-W-D live Fold source transaction (2026-11-08)
 
 `manufacturing_api.plan_operator_box_body_dwd_sync(snapshot, profile, *, top_width, top_depth, previous_width, previous_depth) -> OperatorBoxBodyDwdSyncPlan` is the original callable in `ae_engine.operator_box_body_dwd_sync`, also exposed at root `ae_engine`. It canonicalizes Receiving Family/Quantity authority, validates exact live physical W/D and whole saved W/D Fold cores, computes new material lengths solely through the Engine BoxBody Fold owner, and returns a detached candidate plus optional UI width/depth readbacks. `box_body_ui_segment_length_to_material(..., preserve_precision=True, field='w'|'d')` preserves fractional global physical dimensions; its old default manual Fold conversion remains whole-mm compatible. GUI applies the returned candidate only; no GUI geometry math, new Factory entitlement, new DXF exporter or project schema. Regression: `tests/test_issue2517_box_body_dwd_live_fold_public_api.py`.
