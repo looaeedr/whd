@@ -61,7 +61,7 @@ def test_gui_save_uses_engine_exact_live_box_before_any_legacy_renderer(key,monk
     monkeypatch.setattr(bridge,"_phase6_receiving_layout_applicable",lambda *_:False)
     monkeypatch.setattr(bridge,"_propagate_endcap_derived_cores",lambda *_:None)
     monkeypatch.setattr(bridge,"_FIX10_DO_UPDATE",lambda *_:"BOX_DONE")
-    monkeypatch.setattr(bridge.original.MainApp,"do_update",lambda *_:"PART_DONE")
+    monkeypatch.setattr(bridge,"_phase6_render_with_engine_live_dimensions",lambda *_:"PART_DONE")
     result=bridge._fix11_do_update(app)
     assert app._phase6_box_whd=={"w":820.25,"h":1600.5,"d":360.75}
     assert tuple(app._phase6_input_snapshot[k] for k in ("w","h","d"))==(820.25,1600.5,360.75)
