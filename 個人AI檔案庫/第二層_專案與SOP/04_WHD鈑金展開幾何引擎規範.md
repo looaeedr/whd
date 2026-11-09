@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 BasePlate／IndicatorBox PartSpec 與 2D 快照保留原始物理來源至 Engine（2026-11-09）
+
+- 原 `ae_engine.operator_auxiliary_part_specs.build_base_plate_operator_part_spec`、`build_indicator_box_operator_part_spec` 以及 Fold Designer BasePlate legacy source 仍以 `float()` 在公開 PartSpec 組裝前轉換原始 W/H/T/FW、縮量／折邊；原生 `True` 會變成物理 1 mm，NaN／Inf 亦可能進入幾何。單門及底板 `gui_modules.application.render_snapshots` 在 Engine 收到前還先 `float()`，讓原始非法型別失去來源證據。
+- 這批在**原** Engine auxiliary PartSpec owner 以既有公開 `normalize_operator_source_dimension` 驗 W/H/T（Fold Designer legacy source 亦驗 FW），有號 Fold／四向縮量重用原 `normalize_operator_settings_updates` 的有效有限數值語意；保留原合法負折邊／舊版來源，不將手動編輯專用縮量非負 gate 擴張到其他工程來源。原 `build_door_operator_part_spec` 的 Gap/Fold 嚴格數值 gate 不變。GUI 快照僅傳原始操作值，底板 2D 世界框投影則使用 Engine 已驗的 PartSpec 數值。
+- `tests/test_issue2517_auxiliary_raw_part_specs_public_engine.py` 檢查合法小數、舊來源 JSON Reload、原值未變、布林／NaN／Inf／無效實體尺寸拒絕、GUI 在任何繪製前原樣送 Engine，以及單門同一 Door API 拒絕；這只修公開請求原始來源資格，不變更 BasePlate／IndicatorBox 幾何公式、CUTTING／BEND/DXF 或任何外部製造認證，#2517 仍 OPEN。
+
+
+
 ## [CURRENT] #2517 AE runtime Settings 的實體屬性寫入交易由公開 Engine 決策（2026-11-09）
 
 - 原 `phase6_settings_center.apply_settings_to_ae` 儘管以 `_coerce` 經公開 Engine 驗來源，仍在 GUI/Phase6 層自行按 `SettingSpec.runtime_attr/relief_attr` 將製造值 `setattr(ae_module, ...)`，再呼叫既有 `apply_operator_legacy_runtime_manufacturing_policies`；此段屬製造狀態提交權責，不只是呈現。
