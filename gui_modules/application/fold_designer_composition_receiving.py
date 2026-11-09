@@ -171,17 +171,18 @@ def sync_receiving_current_bay(
         bay_index=adapter.selection.bay_index,
         validate_common=bool(validate_common),
     )
+    # Keep Receiving Set/Bay and Quantity in the same public physical
+    # W/H/D contract. The legacy get_int() rounds fractional Bay dimensions
+    # and can hide invalid stored sources; validate the entire Engine
+    # projection *before* publishing any UI, workspace or legacy Fold state.
+    physical = manufacturing_api.normalize_operator_live_box_dimensions(
+        projected
+    )
     required("_phase6_replace_mapping")(
         app, "_phase6_input_snapshot", projected
     )
     required("_phase6_replace_mapping")(
-        app,
-        "_phase6_box_whd",
-        {
-            "w": projected["w"],
-            "h": projected["h"],
-            "d": projected["d"],
-        },
+        app, "_phase6_box_whd", physical
     )
     workspace = app.designer_workspace
     feature_plan = manufacturing_api.project_operator_receiving_live_bay_features(
@@ -195,11 +196,9 @@ def sync_receiving_current_bay(
                           *feature_plan.inner_panel_updates):
         workspace.stash_features(key, features)
     workspace.stash_face_features("box_body", feature_plan.box_body_joint_faces)
-    original = required("original")
-    number = float if projected.get("active_mode") == "quantity" else original.get_int
-    app.state.w = number(projected["w"])
-    app.state.h = number(projected["h"])
-    app.state.d = number(projected["d"])
+    app.state.w = physical["w"]
+    app.state.h = physical["h"]
+    app.state.d = physical["d"]
     # Do NOT advance _phase6_last_w/_phase6_last_d here. Those fields are the
     # Fold-profile synchronization baseline used by Phase6FoldDesignerApp.do_update().
     # Advancing them before the profile is rebuilt makes a newly selected/resized
@@ -208,9 +207,9 @@ def sync_receiving_current_bay(
     app._phase6_receiving_set_bay_guard = True
     try:
         for var, value in (
-            (getattr(app, "v_w", None), projected["w"]),
-            (getattr(app, "v_h", None), projected["h"]),
-            (getattr(app, "v_d", None), projected["d"]),
+            (getattr(app, "v_w", None), physical["w"]),
+            (getattr(app, "v_h", None), physical["h"]),
+            (getattr(app, "v_d", None), physical["d"]),
         ):
             if var is not None:
                 var.set(required("_setting_number_text")(value))
