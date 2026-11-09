@@ -85,3 +85,74 @@ def test_changed_confirmed_dimensions_rederive_instead_of_reusing_nominal_frame(
     assert by_side["top"].span == pytest.approx(796.0)
     assert by_side["left"].span == pytest.approx(1198.0)
     assert by_side["right"].span == pytest.approx(1198.0)
+
+
+
+def test_lower_support_C_is_same_shared_divider_as_whd_gui():
+    """The fourth visual member must be physical C, never a bottom_frame."""
+    from ae_engine.door_dividers import derive_box_body_dividers
+
+    shared = manufacturing_api.build_receiving_factory_confirmed_inner_door_lower_support(
+        SOURCE, confirmation="fresh_family_confirmed",
+        confirmed_door_layout_columns=COLUMNS,
+    )
+    gui_snapshot = receiving.apply_family_defaults({"model": "受電箱", **SOURCE})
+    (expected,) = derive_box_body_dividers(
+        gui_snapshot["door_layout_columns"],
+        depth=gui_snapshot["d"], thickness=gui_snapshot["t"],
+        layout_scope=gui_snapshot["door_layout_scope"],
+        handle_edges=gui_snapshot["door_handle_edges"],
+        model_name="受電箱", frame_width=gui_snapshot["fw"],
+    )
+    assert shared == expected
+    assert shared.axis == "HORIZONTAL"
+    assert shared.adjacent_cells == ("0:0", "0:1")
+    assert shared.blank_width == pytest.approx(158.0)
+    assert shared.blank_height == pytest.approx(796.0)
+    assert "divider" in shared.stable_id
+    assert "bottom_frame" not in shared.stable_id
+    assert not any(frame.side == "bottom" for frame in _confirmed())
+
+
+def test_lower_shared_divider_C_renders_with_original_holes_and_reopens(tmp_path):
+    shared = manufacturing_api.build_receiving_factory_confirmed_inner_door_lower_support(
+        SOURCE, confirmation="fresh_family_confirmed",
+        confirmed_door_layout_columns=COLUMNS,
+    )
+    render = manufacturing_api.build_box_body_divider_render_data(shared)
+    assert render.metadata["stable_id"] == shared.stable_id
+    assert render.metadata["baseline_feature_model"] == "金庫型"
+    assert render.metadata["baseline_divider_hole_count"] == 6
+    path = tmp_path / "inner_door_lower_shared_divider_C.dxf"
+    manufacturing_api.save_part_render_data_dxf(
+        render, path, verify_reopen=True,
+    )
+    reopened = ezdxf.readfile(path)
+    assert not reopened.audit().errors
+    assert any(entity.dxf.layer == "CUTTING" for entity in reopened.modelspace())
+
+
+def test_lower_support_C_is_sized_from_confirmed_family_grid():
+    source = {**SOURCE, "w": 900.0, "h": 1750.0}
+    shared = manufacturing_api.build_receiving_factory_confirmed_inner_door_lower_support(
+        source, confirmation="fresh_family_confirmed",
+        confirmed_door_layout_columns=((900.0, (1200.0, 550.0)),),
+    )
+    assert shared.blank_height == pytest.approx(896.0)
+    assert shared.blank_width == pytest.approx(158.0)
+
+
+def test_lower_support_requires_real_confirmation_and_unambiguous_divider():
+    with pytest.raises(ValueError, match="RECEIVING_INNER_DOOR_FRESH_FAMILY_CONFIRMATION_REQUIRED"):
+        manufacturing_api.build_receiving_factory_confirmed_inner_door_lower_support(
+            SOURCE, confirmed_door_layout_columns=COLUMNS,
+        )
+    with pytest.raises(ValueError, match="RECEIVING_INNER_DOOR_LAYOUT_REQUIRED"):
+        manufacturing_api.build_receiving_factory_confirmed_inner_door_lower_support(
+            SOURCE, confirmation="fresh_family_confirmed",
+        )
+    with pytest.raises(ValueError, match="RECEIVING_INNER_DOOR_FRAME_TOPOLOGY_UNRESOLVED"):
+        manufacturing_api.build_receiving_factory_confirmed_inner_door_lower_support(
+            SOURCE, confirmation="fresh_family_confirmed",
+            confirmed_door_layout_columns=((800.0, (1600.0,)),),
+        )
