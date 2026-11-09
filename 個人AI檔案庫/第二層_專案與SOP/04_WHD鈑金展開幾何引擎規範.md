@@ -13,6 +13,13 @@ whd_schema: WHD_DOC_META_V1
 - **讀取顯示**依舊可以使用 `project_operator_door_indicator_display_state` 的舊版相容投影，但絕不可作為物理 Save/Factory/CUTTING/DXF 的資格；原 DoorPartSpec／Feature／2D／3D／NFB／Family／Registry／檔案 schema 不變。定向 `tests/test_issue2517_door_indicator_gui_commit_engine_source.py` 驗兩個真 GUI 寫入函式、壞來源無部分提交、金庫型／受電箱 Engine PartSpec 和 Project Save→Reload。#2517 全面覆蓋仍 OPEN；Windows UAT 與正式 X 發布分開。
 
 
+## [CURRENT] #2517 主 GUI EndCap PartSpec 不得由缺失的 FW 偽造 25 mm（2026-11-10）
+
+- 原 `gui_modules.application.manufacturing_adapter._end_cap_part_spec` 對製造來源 `val.get("fw", 25.0)` 設預設 25 mm，送 `_effective_endcap_fw` 後可通過 Engine 的正有限 FW 硬閘門；若上游漏傳箱身 FW，GUI 會在 Head/Tail 製造請求前捏造一個正數物理尺寸，與已確認的製造來源 fail-closed 原則相違背。
+- 以既有公開 `manufacturing_api.normalize_operator_source_dimension(val.get("fw"), field="fw")` **先驗實際製造來源、再讀取折邊 Profile／EndCap FW 四態**；缺欄、bool、NaN/Inf、非正或非法內容在建立任何 EndCap PartSpec 前拒絕。合法小數直接送原 `_effective_endcap_fw`，不改 `project_operator_endcap_fw_controls`、`resolve_endcap_fw` 的 FOLLOW_BODY／FOLLOW_HEAD／FOLLOW_TAIL／INDEPENDENT 權威，維持 Head/Tail 分離、現有 PartSpec、BEND／CUTTING／3D／DXF 所有原本 Engine owner。
+- 測試 `tests/test_issue2517_main_gui_endcap_spec_box_fw_no_fallback.py` 驗 Head/Tail 缺失與非法 FW **在 Profile/PartSpec 前**即被拒絕、有效小數經 Engine 四態得到與 Save→Reload 相同的結果、GUI 不再帶 25 mm fallback。這一批不是完整 #2517 驗收、也不是新增 Factory 或 CADSplit 製造資格。
+
+
 ## [CURRENT] #2517 Receiving Set/Bay 小數 W/H/D 由公開 Engine 原值同步至 Fold 即時狀態（2026-11-09）
 
 - `gui_modules.application.fold_designer_composition_receiving.sync_receiving_current_bay` 原已從 `project_receiving_bay_legacy_aliases` 取得 Engine canonical Bay W/H/D，卻在非 Quantity 路徑以 `fold_designer_original.get_int`（`int(round(float(value)))`）覆寫 `app.state.w/h/d`，例如原始 820.25 mm 被 GUI 四捨五入成 820 mm；即時 Fold State／後續刷新與已保存 Set/Bay 物理來源不同。既有 `fold_designer_bridge.load_phase6_snapshot` 已使用 `manufacturing_api.normalize_operator_live_box_dimensions`，不允許讀取來源時取整，屬同一 #2517 單向責任鏈。
