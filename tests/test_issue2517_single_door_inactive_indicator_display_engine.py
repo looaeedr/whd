@@ -62,7 +62,9 @@ def test_disabled_single_door_uses_public_engine_serialized_distance_flag(
     host = _host(distance=raw_distance)
     original = deepcopy(_raw(host))
     snapshot = _single_door_indicator_state_snapshot(host)
-    assert snapshot == api.project_operator_door_indicator_display_state(original)
+    assert snapshot == api.project_operator_door_indicator_display_state(
+        original, legacy_inactive_single_door=True,
+    )
     assert snapshot["mode"] == "none"
     assert snapshot["is_box_dist"] is expected
     assert snapshot["offset_x"] == -1.25
@@ -85,7 +87,9 @@ def test_disabled_single_door_old_controls_are_repaired_only_by_engine(
         distance="false",
     )
     before = _raw(host)
-    expected = api.project_operator_door_indicator_display_state(before)
+    expected = api.project_operator_door_indicator_display_state(
+        before, legacy_inactive_single_door=True,
+    )
     result = _single_door_indicator_state_snapshot(host)
     assert result == expected
     assert result["mode"] == "none"
@@ -117,7 +121,33 @@ def test_disabled_display_adapter_does_not_coerce_original_physical_controls():
     # Legacy display repair and its boolean/mm/integer interpretation are
     # Engine-only, rather than a second GUI fallback or coercion policy.
     disabled_branch = source.split("# A disabled mode", 1)[1]
-    assert "self._normalize_door_indicator_state(" in disabled_branch
+    assert "manufacturing_api.project_operator_door_indicator_display_state(" in disabled_branch
+    assert "legacy_inactive_single_door=True" in disabled_branch
     assert "int(" not in disabled_branch
     assert "float(" not in disabled_branch
     assert "bool(" not in disabled_branch
+
+
+def test_existing_single_door_disabled_layer_clamp_is_engine_owned():
+    host = _host(layers="9", groups=("bad",) * 6)
+    state = _single_door_indicator_state_snapshot(host)
+    assert state["mode"] == "none"
+    assert state["layers"] == 6
+    assert state["groups"] == [2] * 6
+    raw = _raw(host)
+    assert api.project_operator_door_indicator_display_state(raw)["layers"] == 1
+    assert api.project_operator_door_indicator_display_state(
+        raw, legacy_inactive_single_door=True,
+    )["layers"] == 6
+
+
+@pytest.mark.parametrize("raw,expected", [
+    (9, 6), ("9", 6), (99, 6), (-2, 1), (0, 1),
+    ("bad", 1), (True, 1), (9.8, 6), ("9.8", 1),
+])
+def test_engine_single_door_inactive_layer_legacy_cap_is_display_only(raw, expected):
+    source = {"mode": "none", "layers": raw}
+    assert api.project_operator_door_indicator_display_state(
+        source, legacy_inactive_single_door=True,
+    )["layers"] == expected
+    assert source["layers"] == raw
