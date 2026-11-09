@@ -377,8 +377,12 @@ def apply_operator_runtime_settings_to_ae(
         elif spec.runtime_attr:
             setattr(ae_module, spec.runtime_attr, value)
 
+    # The legacy fixed-hole and shared-shrink policies are part of this
+    # transaction too: unselected raw fields must not trigger a manufactured
+    # side effect, and only validated values may reach those policies.
+    selected_values = {spec.key: value for spec, value in normalized}
     apply_operator_legacy_runtime_manufacturing_policies(
-        ae_module, values, relief_changes=relief_changes,
+        ae_module, selected_values, relief_changes=relief_changes,
     )
 
 

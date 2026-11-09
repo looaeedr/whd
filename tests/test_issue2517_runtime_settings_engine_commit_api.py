@@ -96,6 +96,53 @@ def test_partial_key_filter_preserves_runtime_and_legacy_policy_without_guessing
         api.apply_operator_runtime_settings_to_ae(_runtime(), raw, keys=("w", "yl1"))
 
 
+
+@pytest.mark.parametrize("edge_value", ["49.375", "bad"])
+def test_filtered_runtime_does_not_apply_unselected_hole_or_base_plate_policy(edge_value):
+    """Unselected legacy physical settings cannot bypass the Engine key scope."""
+    raw = {
+        "w": "801.125", "hang_hole_r": "6.75",
+        "base_plate_shrink_top": edge_value,
+        "base_plate_shrink_bottom": edge_value,
+        "base_plate_shrink_left": edge_value,
+        "base_plate_shrink_right": edge_value,
+    }
+    for commit in (api.apply_operator_runtime_settings_to_ae, apply_settings_to_ae):
+        runtime = _runtime()
+        policy = runtime.VAULT_ENDCAP_FEATURE_POLICY
+        commit(runtime, json.loads(json.dumps(raw)), keys=("w",))
+        assert runtime.W == 801.125
+        assert runtime.base_plate_shrink_def == 55.0
+        assert runtime.hang_hole_r == 3.2
+        assert runtime.VAULT_ENDCAP_FEATURE_POLICY is policy
+
+
+def test_selected_hole_runtime_policy_ignores_unselected_invalid_shrink():
+    raw = {
+        "hang_hole_r": "6.75",
+        "base_plate_shrink_top": "malformed",
+        "base_plate_shrink_bottom": "malformed",
+        "base_plate_shrink_left": "malformed",
+        "base_plate_shrink_right": "malformed",
+    }
+    for commit in (api.apply_operator_runtime_settings_to_ae, apply_settings_to_ae):
+        runtime = _runtime()
+        commit(runtime, raw, keys=("hang_hole_r",))
+        assert runtime.hang_hole_r == 6.75
+        assert runtime.VAULT_ENDCAP_FEATURE_POLICY.hanging_hole_radius == 6.75
+        assert runtime.base_plate_shrink_def == 55.0
+
+
+def test_explicitly_selected_invalid_shrink_rejects_before_runtime_mutation():
+    raw = {"w": "801.125", "base_plate_shrink_top": "malformed"}
+    for commit in (api.apply_operator_runtime_settings_to_ae, apply_settings_to_ae):
+        runtime = _runtime()
+        original = deepcopy(vars(runtime))
+        with pytest.raises(ValueError):
+            commit(runtime, raw, keys=("w", "base_plate_shrink_top"))
+        assert vars(runtime) == original
+
+
 def test_only_engine_knows_runtime_attributes_and_gui_is_thin_adapter():
     source = inspect.getsource(apply_settings_to_ae)
     assert "manufacturing_api.apply_operator_runtime_settings_to_ae(" in source

@@ -12,7 +12,11 @@ whd_schema: WHD_DOC_META_V1
 - 這批在**原** Engine auxiliary PartSpec owner 以既有公開 `normalize_operator_source_dimension` 驗 W/H/T（Fold Designer legacy source 亦驗 FW），有號 Fold／四向縮量重用原 `normalize_operator_settings_updates` 的有效有限數值語意；保留原合法負折邊／舊版來源，不將手動編輯專用縮量非負 gate 擴張到其他工程來源。原 `build_door_operator_part_spec` 的 Gap/Fold 嚴格數值 gate 不變。GUI 快照僅傳原始操作值，底板 2D 世界框投影則使用 Engine 已驗的 PartSpec 數值。
 - `tests/test_issue2517_auxiliary_raw_part_specs_public_engine.py` 檢查合法小數、舊來源 JSON Reload、原值未變、布林／NaN／Inf／無效實體尺寸拒絕、GUI 在任何繪製前原樣送 Engine，以及單門同一 Door API 拒絕；這只修公開請求原始來源資格，不變更 BasePlate／IndicatorBox 幾何公式、CUTTING／BEND/DXF 或任何外部製造認證，#2517 仍 OPEN。
 
+## [CURRENT] #2517 Engine runtime Settings 部分欄位提交不得洩漏未選取的實體策略（2026-11-09）
 
+- `manufacturing_api.apply_operator_runtime_settings_to_ae(ae_module, values, *, keys=...)` 已把 GUI 與 headless 的 AE runtime 製造提交歸原 Engine；但原實作只在 scalar 階段檢查 `keys`，其後把整份原始 `values` 交給舊 Vault EndCap 固定孔與 BasePlate 四邊相等相容策略。未選取的四邊縮量因此可能自行寫入 `base_plate_shrink_def`，或在其他合法欄位已提交後才因無效值報錯；未選取的掛孔欄位也會觸發非本次交易的政策重建。
+- Engine 原 `ae_engine.operator_settings_transactions` owner 現只將**已選取且全部通過原 Engine 驗證**的正規化欄位交予 `apply_operator_legacy_runtime_manufacturing_policies`；保留已選取固定孔、Relief、四邊等值的舊製造行為與既有欄位 schema，未選取來源不得參與任何實體政策副作用。GUI adapter 只傳原操作欄位，不新增第二套判斷。
+- `tests/test_issue2517_runtime_settings_engine_commit_api.py` 增加實際 GUI/headless 相同 `keys` 的無效/有效未選取四向縮量、固定孔隔離與選取非法來源的原子拒絕測試；此次不改 Family、CUTTING、BEND、DXF 計算或外部 source-only CLI。#2517 全面覆蓋與 Windows UAT 仍未完成。
 
 ## [CURRENT] #2517 AE runtime Settings 的實體屬性寫入交易由公開 Engine 決策（2026-11-09）
 
