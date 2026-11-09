@@ -118,7 +118,9 @@ def test_operator_editor_uses_actual_receiving_bay_raw_dimensions_and_engine_ide
     )
     host.last_unified_hole_editor = None
     host.door_layout_selected_var = SimpleNamespace(set=lambda value: calls.append(("select", value)))
-    host.get_selected_door_layout_cell = lambda: host_adapter.get_door_layout_cells(host)[0]
+    # Exercise the canonical Receiving Bay grid through the same strict
+    # Engine cell resolver used by the real GUI, not the old UI fallback.
+    host.get_door_layout_cells = lambda: host_adapter.get_door_layout_cells(host)
     host._door_layout_cell_key = host_adapter._door_layout_cell_key
     host.get_float_values = lambda: {
         "w": 999.0, "h": 999.0, "d": 999.0,
@@ -200,7 +202,9 @@ def test_editor_displays_invalid_live_bay_error_before_any_part_is_built(monkeyp
     errors = []
     host.last_unified_hole_editor = None
     host.door_layout_selected_var = SimpleNamespace(set=selection.append)
-    host.get_selected_door_layout_cell = lambda: host_adapter.get_door_layout_cells(host)[0]
+    # Exercise the canonical Receiving Bay grid through the same strict
+    # Engine cell resolver used by the real GUI, not the old UI fallback.
+    host.get_door_layout_cells = lambda: host_adapter.get_door_layout_cells(host)
     host._door_layout_cell_key = host_adapter._door_layout_cell_key
     host.get_float_values = lambda: pytest.fail("invalid Bay must stop before settings")
     host._open_unified_hole_editor = lambda *args, **kwargs: pytest.fail(
@@ -210,7 +214,9 @@ def test_editor_displays_invalid_live_bay_error_before_any_part_is_built(monkeyp
     gui.Phase6ApplicationHost.open_door_layout_cell_editor(host, 0, 0)
     assert len(errors) == 1
     assert "開孔失敗" in errors[0][0]
-    assert selection == ["0:0"]
+    # Invalid confirmed Bay geometry must not alter the previously selected
+    # physical Door; the user can correct the source without a false target.
+    assert selection == []
 
 
 def test_door_editor_does_not_duplicate_family_or_part_identity_policy():

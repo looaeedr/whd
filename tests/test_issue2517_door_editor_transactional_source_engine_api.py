@@ -112,7 +112,7 @@ def test_door_cell_editor_stages_features_until_explicit_sync(monkeypatch, exist
     host = SimpleNamespace(
         last_unified_hole_editor=None,
         door_layout_selected_var=SimpleNamespace(set=lambda key: None),
-        get_selected_door_layout_cell=lambda: cell,
+        get_door_layout_cells=lambda: (cell,),
         _door_layout_cell_key=lambda cell: key,
         get_float_values=lambda: dict(val),
         _door_layout_cell_result=lambda cell, values:

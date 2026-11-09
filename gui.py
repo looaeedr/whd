@@ -1566,9 +1566,13 @@ class Phase6ApplicationHost:
             except tk.TclError:
                 pass
 
-        self.door_layout_selected_var.set(f"{int(column_index)}:{int(row_index)}")
         try:
-            cell = self.get_selected_door_layout_cell()
+            # The physical Hole Editor must bind one *existing* Engine cell.
+            # GUI int() truncation and get_selected_door_layout_cell fallback
+            # can silently open a different Door panel after a stale click.
+            cell = manufacturing_api.resolve_operator_door_layout_cell(
+                self.get_door_layout_cells(), column_index, row_index,
+            )
             key = self._door_layout_cell_key(cell)
             val = self.get_float_values()
             # The host's main-Settings W/H/D may intentionally differ from
@@ -1601,6 +1605,9 @@ class Phase6ApplicationHost:
         except Exception as exc:
             messagebox.showerror("開孔失敗", str(exc))
             return
+        # Do not change the selected Door until Engine identity and physical
+        # geometry have both been accepted for this editing session.
+        self.door_layout_selected_var.set(key)
         designer = getattr(self, 'fold_designer_app', None)
         physical_key = manufacturing_api.door_layout_part_key(cell)
         workspace = getattr(designer, 'designer_workspace', None)

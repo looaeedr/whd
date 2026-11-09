@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+
+## [CURRENT] #2517 多門格開孔編輯器選板在任何 GUI 狀態改變前由公開 Engine 核對實體身份（2026-11-10）
+
+- 原主 GUI `gui.py::Phase6ApplicationHost.open_door_layout_cell_editor` 先以 `f"{int(column_index)}:{int(row_index)}"` 改寫 `door_layout_selected_var`，隨後 `get_selected_door_layout_cell()` 找不到目標時會**回退第一格**。布林 `True`、浮點索引 `0.5`、舊格子消失與物理來源／DoorPartSpec 錯誤均可能令 GUI 錯誤選取、開啟或留下另一片實體 Door 的 Hole Editor 目標。
+- 同一 Engine Owner 已公開 `manufacturing_api.resolve_operator_door_layout_cell(cells,column_index,row_index)`，驗證兩軸只能為非負原生整數，且在現行 canonical Cell 集合中必須唯一存在；使用同一 `door_layout_part_key` 的製造身份。現在多門格 Hole Editor 直接呼叫原公開 API 取得真 Cell，不再 `int()` 或呼叫「顯示選取缺失時回第一格」的 UI 相容讀取；等來源驗證、DoorPartSpec、baseline、Hole Editor geometry 均成功後才改選 GUI 目標。不存在／非法來源只顯示錯誤，不部分改寫選取或開孔資料。
+- 保留原 `select_door_layout_cell` 導覽 Engine API、金庫型／受電箱共用 Door cell 穩定身份、實體孔位與 Fold／2D／3D／DXF Factory 不變。定向 `tests/test_issue2517_multidoor_hole_editor_selection_engine_gate.py` 真呼叫主 GUI 方法，檢查各種非法索引不開窗、不改選取、合法身份對應 DXF key、幾何建立失敗原狀。#2517 全面覆蓋未因此結案，Windows UAT 和 X 正式發布另驗。
+
+
 ## [CURRENT] #2517 Door Hole Editor 單門／多門格提交不可走顯示修補，嚴格來源由公開 Engine（2026-11-10）
 
 - 主 GUI 的 `gui_modules.project.export_actions._apply_single_door_indicator_state` 與 `_apply_multi_door_indicator_state` 原本在 **Hole Editor Confirm All 的實際提交階段**呼叫 `_normalize_door_indicator_state`，其實體 Owner 只是 `manufacturing_api.project_operator_door_indicator_display_state` 的*寬鬆舊版顯示投影*。若一個直接呼叫的 GUI 提交入口接到非法啟用孔數、布林、缺少層組或非有限偏移，會將非法製造來源顯示修補為合法預設，再寫入單門啟用控制或多門格 `door_layout_indicator_states`／FoldDesigner Snapshot，違反同一條製造權威鏈。Modal 的正常收集預驗證不授權後續提交入口再次「柔性修正」物理來源。
