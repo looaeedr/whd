@@ -495,6 +495,30 @@ def _confirmed_saved_ordinary_base_plate(
     return "base_plate", spec
 
 
+def _confirmed_fresh_receiving_inner_door_snapshot(
+    source_dimensions: Mapping[str, object], *,
+    confirmation: str | None, confirmed_door_layout_columns,
+) -> dict[str, object]:
+    """Build the same detached Family topology snapshot used by WHD GUI."""
+    if confirmation != "fresh_family_confirmed":
+        raise ValueError("RECEIVING_INNER_DOOR_FRESH_FAMILY_CONFIRMATION_REQUIRED")
+    source = _source_dimensions(source_dimensions)
+    if not confirmed_door_layout_columns:
+        raise ValueError("RECEIVING_INNER_DOOR_LAYOUT_REQUIRED")
+    validate_door_layout_dimensions(
+        confirmed_door_layout_columns,
+        total_width=source["w"], total_height=source["h"],
+    )
+    values = family_policy.apply_fresh_family_defaults(source, _FAMILY)
+    values.update(source)
+    # The nominal new-project one-Bay layout is not source-confirmed physical
+    # Set/Bay identity. The authoritative Door cell grid comes from the caller.
+    values.pop("receiving_layout", None)
+    values["multi_door_enabled"] = True
+    values["door_layout_columns"] = deepcopy(confirmed_door_layout_columns)
+    return values
+
+
 def build_receiving_factory_confirmed_inner_door_frames(
     source_dimensions: Mapping[str, object], *,
     confirmation: str | None = None,
@@ -502,43 +526,78 @@ def build_receiving_factory_confirmed_inner_door_frames(
 ):
     """Derive the fresh Receiving inner-door A/B/D frames from Engine authority.
 
-    CADSplit supplies the confirmed source W/H/D/T and Door cell topology; it
-    never supplies frame spans, fold chains, physical identities or DXF geometry.
-    The same Family defaults and derived frame parts used by the WHD GUI own
-    those decisions. A source-only or saved-project request cannot silently
-    acquire fresh-family manufacturing permission.
+    CADSplit supplies W/H/D/T and confirmed Door cells, but never frame spans,
+    material bends, physical identities or DXF geometry.
     """
-    if confirmation != "fresh_family_confirmed":
-        raise ValueError("RECEIVING_INNER_DOOR_FRESH_FAMILY_CONFIRMATION_REQUIRED")
-    source = _source_dimensions(source_dimensions)
-    if not confirmed_door_layout_columns:
-        raise ValueError("RECEIVING_INNER_DOOR_LAYOUT_REQUIRED")
-
-    from copy import deepcopy
-    from .sheetmetal_part_adapters import validate_door_layout_dimensions
     from .inner_door_frames import derive_all_inner_door_frames
 
-    validate_door_layout_dimensions(
-        confirmed_door_layout_columns,
-        total_width=source["w"], total_height=source["h"],
+    values = _confirmed_fresh_receiving_inner_door_snapshot(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
     )
-    # The original source dimensions replace nominal Family values. The
-    # nominal one-Bay Receiving Layout is not confirmed source topology.
-    values = family_policy.apply_fresh_family_defaults(source, _FAMILY)
-    values.update(source)
-    values.pop("receiving_layout", None)
-    values["multi_door_enabled"] = True
-    values["door_layout_columns"] = deepcopy(confirmed_door_layout_columns)
     frames = derive_all_inner_door_frames(
         family_policy.derive_inner_door_frame_sets(values)
     )
-    # Fresh Receiving has exactly one upper inner door with three real
-    # independent frame sheets; its lower boundary is the shared Divider.
+    # C is the physical shared Divider, not an invented bottom frame.
     if (len(frames) != 3
             or {frame.side for frame in frames} != {"top", "left", "right"}
             or len({frame.inner_door_id for frame in frames}) != 1):
         raise ValueError("RECEIVING_INNER_DOOR_FRAME_TOPOLOGY_UNRESOLVED")
     return frames
+
+
+def build_receiving_factory_confirmed_inner_door_lower_support(
+    source_dimensions: Mapping[str, object], *,
+    confirmation: str | None = None,
+    confirmed_door_layout_columns=(),
+):
+    """Return the Engine-owned shared horizontal Divider beneath the inner door.
+
+    In Receiving, the physical C part is a BoxBodyDividerPart, NOT a fourth
+    inner-door-frame Part. Its fold/holes/reliefs must use the same canonical
+    Divider FinalScene as WHD GUI, never a CADSplit-generated bottom rectangle.
+    """
+    from .door_dividers import (
+        derive_box_body_dividers, resolve_inner_door_lower_frame_role,
+    )
+
+    frames = build_receiving_factory_confirmed_inner_door_frames(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+    values = _confirmed_fresh_receiving_inner_door_snapshot(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+    inner_id = frames[0].inner_door_id
+    source_door = next(
+        (item for item in values["inner_doors"]
+         if item.get("stable_id") == inner_id),
+        None,
+    )
+    if source_door is None:
+        raise ValueError("RECEIVING_INNER_DOOR_FRAME_TOPOLOGY_UNRESOLVED")
+    lower_role = source_door.get("lower_frame_role") or {}
+    dividers = derive_box_body_dividers(
+        values["door_layout_columns"],
+        depth=values["d"], thickness=values["t"],
+        layout_scope=values["door_layout_scope"],
+        handle_edges=values.get("door_handle_edges") or {},
+        model_name=_FAMILY, frame_width=values["fw"],
+    )
+    role = resolve_inner_door_lower_frame_role(
+        inner_id, dividers,
+        previous_divider_stable_id=lower_role.get("divider_stable_id"),
+    )
+    divider = next(
+        (part for part in dividers
+         if role is not None and part.stable_id == role.divider_stable_id),
+        None,
+    )
+    if (divider is None or divider.axis != "HORIZONTAL"
+            or source_door.get("cell_key") not in divider.adjacent_cells):
+        raise ValueError("RECEIVING_INNER_DOOR_SHARED_DIVIDER_UNRESOLVED")
+    return divider
 
 
 def build_receiving_factory_confirmed_parts(
