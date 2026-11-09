@@ -381,8 +381,16 @@ def normalize_part_selection(part_keys, active_part=None):
 def _phase6_replace_mapping(self, attr_name, values):
     """Preserve one mutable mapping identity across legacy snapshot refreshes."""
     source = getattr(self, "_phase6_input_snapshot", {}) or {}
-    if attr_name == "_phase6_box_whd" and source.get("active_mode") == "quantity" and source.get("receiving_quantity_box"):
-        values = {axis: float(source["receiving_quantity_box"][axis]) for axis in ("w", "h", "d")}
+    if (attr_name == "_phase6_box_whd"
+            and source.get("active_mode") == "quantity"
+            and source.get("receiving_quantity_box") is not None):
+        # This is the committed Quantity common physical source, not a GUI
+        # number parser. Validate ALL original W/H/D values through the
+        # public Engine before clearing or replacing the live mapping.
+        # In particular, float(True) must never create a 1-mm box width.
+        values = manufacturing_api.normalize_operator_live_box_dimensions(
+            source["receiving_quantity_box"]
+        )
     current = getattr(self, attr_name, None)
     if isinstance(current, MutableMapping):
         current.clear()
