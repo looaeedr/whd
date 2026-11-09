@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 單門 2D 指示燈／指示燈盒的原始啟用旗標由公開 Engine 決策（2026-11-09）
+
+- 原 `gui_modules.application.render_snapshots.single_door_render_snapshot` 直接使用 `if host.is_indicator_box_var.get()` 及 `if host.is_door_indicator_var.get()` 決定要不要建立 CUTTING 開孔／直接指示燈，會將舊 JSON/Tk 來源字串 `"false"` 轉成 Python True，可能錯誤生成實體孔；兩個勾選若同時為真，GUI 亦沒有在此入口拒絕矛盾製造來源。
+- 現以 `manufacturing_api.project_operator_single_door_indicator_mode(box_enabled, door_indicator_enabled)`（原 `ae_engine.door_operator_part_spec` owner）使用既有嚴格 `normalize_operator_settings_boolean` 驗證原生／序列化旗標，回傳唯一 `none`／`indicator_box`／`indicator` 模式；雙真 `DOOR_OPERATOR_INDICATOR_MODE_CONFLICT`，非法值拒絕，無任何預覽／PartSpec 副作用。GUI 只依 Engine 模式收集已啟用的層組資料，開孔尺寸仍走原 `indicator_box_opening_size` 公開 API，主門 `build_door_operator_part_spec` 與實體 DXF 同源，不另寫模式／幾何公式。
+- 新測試 `tests/test_issue2517_single_door_indicator_mode_engine.py` 覆蓋 GUI/headless、原始與 JSON Reload 同義、`"false"` 不誤生孔、雙真衝突及非法來源繪圖前拒絕、合法單一模式共用原 PartSpec。這是主 GUI 單門 2D 模式來源 hardening，並未更動多門格既有 Mode／製造認證、CUTTING/BEND/DXF 算法；#2517 全功能 API 覆蓋仍維持 OPEN。
+
 ## [CURRENT] #2517 BasePlate／IndicatorBox PartSpec 與 2D 快照保留原始物理來源至 Engine（2026-11-09）
 
 - 原 `ae_engine.operator_auxiliary_part_specs.build_base_plate_operator_part_spec`、`build_indicator_box_operator_part_spec` 以及 Fold Designer BasePlate legacy source 仍以 `float()` 在公開 PartSpec 組裝前轉換原始 W/H/T/FW、縮量／折邊；原生 `True` 會變成物理 1 mm，NaN／Inf 亦可能進入幾何。單門及底板 `gui_modules.application.render_snapshots` 在 Engine 收到前還先 `float()`，讓原始非法型別失去來源證據。
