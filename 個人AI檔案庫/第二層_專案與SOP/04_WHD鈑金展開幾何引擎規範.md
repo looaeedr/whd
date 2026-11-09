@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Bay W/H/D 實體相依板件重建採用原 Engine 交易變更回報（2026-11-09）
+
+- 原 `gui_modules.application.fold_designer_composition_receiving.commit_receiving_current_bay_controls` 先以三筆 `normalize_operator_source_dimension` 驗證 GUI 操作值，但隨後在 GUI 做 `any(float(current_bay[key]) != float(value) ...)`，自行判斷是否應重建 Divider／InnerDoor。這個決策與實際 Engine 儲存交易不在同一個來源；若兩者語意演進不同，即使 Engine 改變 Bay Topology，GUI 仍可能錯誤跳過相關實體重新推導。
+- 現直接使用既有 `ReceivingSetBayAdapter.update_current_bay(**requested)` 的 `changed` 回報。此 adapter 本來即呼叫同一公開 `manufacturing_api.update_receiving_bay`，該 Engine owner 驗證原始 Layout 與 W/H/D、重新補齊 Door Partition、作 NFB X RECONFIRM_REQUIRED 並產生完整更新後的 canonical Bay；GUI 只依該交易結果決定是否觸發 `sync_authoritative_derived_parts`。不再用 GUI 的 `float()` 來認定物理尺寸是否改變；無變更仍不重建。
+- `tests/test_issue2517_receiving_live_bay_controls_engine_dimensions.py` 覆蓋真實 ReceivingSetBayAdapter/headless Engine 交易、合法小數、無變更、重新推導、非法原始 Bay 不製造及 GUI 無第二份比較。原 W/H/D、Door partition、Divider CROSS 與 NFB 認證政策不改；#2517 其他 GUI 製造入口仍待查核。
+
+
 ## [CURRENT] #2517 Fold Designer Head/Tail FW 的 Fold 儲存來源與四態交易由公開 Engine（2026-11-09）
 
 - 原 `gui_modules.application.fold_designer_part_session.Phase6PartSessionOwner.save_current_part` 在儲存封頭／封尾時，先 `stash_profiles` 改變來源，接著自行以 `_num(snapshot.fw,25)` 回退箱身 FW、`_ui_len(raw_len)` 與 `float(edited_fw)` 解碼實體 Fold 寬，再由 GUI 決定是否呼叫 `commit_endcap_fw`。缺少或非法的原始物理 FW 可能被偽造成 25 mm／1 mm 或留下部分草稿，且四態跟隨決策散落 GUI。
