@@ -86,8 +86,10 @@ def normalize_fold_designer_indicator_offsets(
     )
 
 
-def project_operator_door_indicator_display_state(state):
-    """Read-only legacy UI display projection; NEVER a manufacturing/save source.\n\n    Strict physical CUTTING/Save still requires the separate\n    project_operator_door_cell_indicator_manufacturing_source gate.\n    """
+def project_operator_door_indicator_display_state(
+    state, *, legacy_inactive_single_door=False,
+):
+    """Read-only legacy UI display projection; NEVER a manufacturing/save source.\n\n    Strict physical CUTTING/Save still requires the separate\n    project_operator_door_cell_indicator_manufacturing_source gate.\n\n    The old single Door Hole Editor clipped *disabled* layer controls to 1..6\n    even when malformed. Preserve that UI-only rule in Engine, without\n    affecting general saved-state display or enabled manufacturing inputs.\n    """
     # Only a truly absent saved state owns the legacy empty/default layout.
     # False/0/string roots are corrupt: silently resetting them may alter
     # indicator holes or disguise a failed project reload.
@@ -138,7 +140,16 @@ def project_operator_door_indicator_display_state(state):
             return 0.0
         return number if math.isfinite(number) else 0.0
 
-    layers = whole(raw.get("layers", 1), 1, low=1, high=6)
+    if legacy_inactive_single_door and mode == "none":
+        # Historical disabled Hole Editor display was max(1, min(6, int(v))).
+        # Invalid inactive input may be displayed, never manufactured.
+        try:
+            original_layer = int(raw.get("layers", 1))
+        except (TypeError, ValueError, OverflowError):
+            original_layer = 1
+        layers = max(1, min(6, original_layer))
+    else:
+        layers = whole(raw.get("layers", 1), 1, low=1, high=6)
     source_groups = raw.get("groups", [2] * 6)
     groups = source_groups if isinstance(source_groups, (list, tuple)) else ()
     normalized_groups = [whole(value, 2) for value in groups[:6]]

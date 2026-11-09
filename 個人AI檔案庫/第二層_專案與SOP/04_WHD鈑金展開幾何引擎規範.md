@@ -6,6 +6,14 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+
+## [CURRENT] #2517 單門 Hole Editor 已停用指示燈的顯示修復與層數上限只歸 Engine（2026-11-09）
+
+- 主 GUI `gui_modules.project.export_actions._single_door_indicator_state_snapshot` 舊版在指示燈 `mode=none` 時，直接 `int`、`float`、`bool` 修補層數、群組、偏移及箱距旗標。序列化 `"false"` 會被 `bool` 變成真，損壞的非物理舊設定可能在開 Hole Editor 前拋錯或因不足六個群組而失敗。這是已停用欄位的顯示相容處理，不是合法實體加工來源。
+- 現改將原始 inactive 控制值直接交公開 `manufacturing_api.project_operator_door_indicator_display_state(raw, legacy_inactive_single_door=True)`（仍由原 `ae_engine.fold_designer_snapshot_dimensions` Owner 維護）。該顯示-only 選項保留單門 Hole Editor 舊版層數 `max(1,min(6,int(value)))` 的 **1–6 上下限顯示**（例如已停用層數 9 顯示 6）；一般既有 display API 預設值與多門格行為不變。損壞層組、偏移改由同一 Engine 顯示投影柔性回復；已停用原始來源不改寫。啟用 `indicator/indicator_box` 時仍使用嚴格 `normalize_operator_hole_editor_indicator_state`，不得把 display 投影當已核准孔位或 Save／CUTTING／DXF。
+- 原 `tests/test_issue2517_single_door_indicator_live_source_engine_api.py` 的 9→6 舊行為由 Engine 保留；新增 `tests/test_issue2517_single_door_inactive_indicator_display_engine.py` 驗 raw false/true、上限、異常／少量舊欄位與 enabled fail-closed，並由 exact HEAD CI 驗證。此批無新實體板件、孔位、Fold、Factory、DXF 或外部製造資格；#2517 全面覆蓋仍 OPEN。
+
+
 ## [CURRENT] #2517 Receiving Bay W/H/D 實體相依板件重建採用原 Engine 交易變更回報（2026-11-09）
 
 - 原 `gui_modules.application.fold_designer_composition_receiving.commit_receiving_current_bay_controls` 先以三筆 `normalize_operator_source_dimension` 驗證 GUI 操作值，但隨後在 GUI 做 `any(float(current_bay[key]) != float(value) ...)`，自行判斷是否應重建 Divider／InnerDoor。這個決策與實際 Engine 儲存交易不在同一個來源；若兩者語意演進不同，即使 Engine 改變 Bay Topology，GUI 仍可能錯誤跳過相關實體重新推導。
