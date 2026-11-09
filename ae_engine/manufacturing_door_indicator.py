@@ -227,6 +227,11 @@ def validate_door_indicator_fit(
     # The same public original-source gate qualifies real sheet thickness
     # for GUI and headless callers; float(True) must never become T=1 mm.
     from .operator_settings_transactions import normalize_operator_source_dimension
+    # Finished-face W/H are physical Engine results. Validate original
+    # caller values as strictly as W/H operator manufacturing sources before
+    # they can become a Door layout or IndicatorBox fit boundary.
+    fw = normalize_operator_source_dimension(finished_width, field="w")
+    fh = normalize_operator_source_dimension(finished_height, field="h")
     t = normalize_operator_source_dimension(thickness, field="t")
 
     # Use the same original-source qualification as the saved Door and
