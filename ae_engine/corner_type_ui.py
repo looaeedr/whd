@@ -376,14 +376,18 @@ def set_manual_corner_pair_same(
     """Toggle pair grouping; rejoining copies the left selection to the right."""
     if pair_key not in CORNER_PAIR_CORNERS:
         raise ValueError(f"未知的截角成對位置：{pair_key}")
-    enabled = bool(enabled)
+    # A live Tk/StringVar or serialized project flag must obey the same
+    # Engine source contract as commit_corner_pair: "false" cannot rejoin
+    # two distinct physical corners, and malformed values cannot mutate them.
+    from .operator_settings_transactions import normalize_operator_settings_boolean
+    accepted = normalize_operator_settings_boolean(enabled)
     # Validate the source corner before committing either of the two live maps.
     # A missing left corner must not leave the grouping flag half-committed.
-    if enabled:
+    if accepted:
         left_key, right_key = CORNER_PAIR_CORNERS[pair_key]
         source_selection = state[left_key]
-    pair_same[pair_key] = enabled
-    if enabled:
+    pair_same[pair_key] = accepted
+    if accepted:
         state[right_key] = source_selection
 
 

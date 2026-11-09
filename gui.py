@@ -1063,10 +1063,13 @@ class Phase6ApplicationHost:
         if not self._manual_corner_parameters_editable(part_key):
             self.refresh_corner_type_panel()
             return
-        enabled = self.manual_top_same_var.get() if pair_key == 'top' else self.manual_bottom_same_var.get()
+        raw_enabled = self.manual_top_same_var.get() if pair_key == 'top' else self.manual_bottom_same_var.get()
         manufacturing_api.operator_set_manual_corner_pair_same(
-            self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key], pair_key, enabled
+            self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key], pair_key, raw_enabled
         )
+        # Only the Engine's committed boolean may choose which physical corner
+        # the editor navigates to; bool("false") selects the wrong pair.
+        enabled = self.manual_corner_pair_same[part_key][pair_key]
         if enabled:
             self.manual_active_corner_var.set(pair_key)
         elif self._pair_for_corner_target(self.manual_active_corner_var.get()) == pair_key:
