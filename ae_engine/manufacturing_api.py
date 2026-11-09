@@ -209,6 +209,7 @@ from .operator_endcap_settings_transactions import (
     commit_operator_baseline_endcap_fw,
     operator_endcap_fw_override, operator_endcap_bottom_wrap,
     operator_endcap_edge_relation,
+    commit_operator_endcap_fw_profile_save,
 )
 
 # BoxBody structural Settings physical rows and persisted lock ownership.
