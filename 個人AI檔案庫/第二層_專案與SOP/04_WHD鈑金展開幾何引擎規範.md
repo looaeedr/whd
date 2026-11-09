@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Door Hole Editor 單門／多門格提交不可走顯示修補，嚴格來源由公開 Engine（2026-11-10）
+
+- 主 GUI 的 `gui_modules.project.export_actions._apply_single_door_indicator_state` 與 `_apply_multi_door_indicator_state` 原本在 **Hole Editor Confirm All 的實際提交階段**呼叫 `_normalize_door_indicator_state`，其實體 Owner 只是 `manufacturing_api.project_operator_door_indicator_display_state` 的*寬鬆舊版顯示投影*。若一個直接呼叫的 GUI 提交入口接到非法啟用孔數、布林、缺少層組或非有限偏移，會將非法製造來源顯示修補為合法預設，再寫入單門啟用控制或多門格 `door_layout_indicator_states`／FoldDesigner Snapshot，違反同一條製造權威鏈。Modal 的正常收集預驗證不授權後續提交入口再次「柔性修正」物理來源。
+- 現在**單門寫入**先呼叫原公開 `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)`，僅把 Engine 已驗的 mode、六個 groups、offset、is_box_dist 投影到 Tk 控制；不以 `bool("false")`、`float`、`int` 構造提交來源。**多門格寫入**先呼叫原公開 `manufacturing_api.project_operator_door_layout_indicator_snapshot_states({cell_key:raw})`，取得附帶原有 `enabled/box_enabled` 相容欄位的已驗 detached row，再原位更新 live map 和 FoldDesigner Snapshot。無效啟用來源在任何寫入／重繪前 fail closed；停用模式仍無任何實體指示燈開孔。
+- **讀取顯示**依舊可以使用 `project_operator_door_indicator_display_state` 的舊版相容投影，但絕不可作為物理 Save/Factory/CUTTING/DXF 的資格；原 DoorPartSpec／Feature／2D／3D／NFB／Family／Registry／檔案 schema 不變。定向 `tests/test_issue2517_door_indicator_gui_commit_engine_source.py` 驗兩個真 GUI 寫入函式、壞來源無部分提交、金庫型／受電箱 Engine PartSpec 和 Project Save→Reload。#2517 全面覆蓋仍 OPEN；Windows UAT 與正式 X 發布分開。
+
+
 ## [CURRENT] #2517 主 GUI EndCap PartSpec 不得由缺失的 FW 偽造 25 mm（2026-11-10）
 
 - 原 `gui_modules.application.manufacturing_adapter._end_cap_part_spec` 對製造來源 `val.get("fw", 25.0)` 設預設 25 mm，送 `_effective_endcap_fw` 後可通過 Engine 的正有限 FW 硬閘門；若上游漏傳箱身 FW，GUI 會在 Head/Tail 製造請求前捏造一個正數物理尺寸，與已確認的製造來源 fail-closed 原則相違背。

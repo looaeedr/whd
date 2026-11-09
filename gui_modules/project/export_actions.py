@@ -879,7 +879,11 @@ def _single_door_indicator_state_snapshot(self):
 
 
 def _apply_single_door_indicator_state(self, state):
-    state = self._normalize_door_indicator_state(state)
+    # Commit is a physical source boundary, not a legacy display read.
+    # Reject malformed active hole counts/offsets before mutating any Tk flag.
+    state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(
+        state
+    )
     mode = state["mode"]
     self.is_door_indicator_var.set(mode == "indicator")
     self.is_indicator_box_var.set(mode == "indicator_box")
@@ -888,16 +892,21 @@ def _apply_single_door_indicator_state(self, state):
     self.door_indicator_l_var.set(str(layers))
     self.indicator_l_var.set(str(layers))
     for index in range(6):
-        self.door_indicator_layer_g_vars[index].set(str(int(groups[index])))
-        self.indicator_layer_g_vars[index].set(str(int(groups[index])))
-    self.door_indicator_offset_x = float(state.get("offset_x", 0.0))
-    self.door_indicator_offset_y = float(state.get("offset_y", 0.0))
-    self.is_box_dist_var.set(bool(state.get("is_box_dist", False)))
+        self.door_indicator_layer_g_vars[index].set(str(groups[index]))
+        self.indicator_layer_g_vars[index].set(str(groups[index]))
+    self.door_indicator_offset_x = state["offset_x"]
+    self.door_indicator_offset_y = state["offset_y"]
+    self.is_box_dist_var.set(state["is_box_dist"])
     self._request_phase6_update("geometry")
 
 
 def _apply_multi_door_indicator_state(self, key, state):
-    normalized = self._normalize_door_indicator_state(state)
+    # Validate the original cell input with the same public Engine gate
+    # used for Save→Reload and manufacturing, not its forgiving UI display.
+    # This must finish before touching live cell dictionaries or snapshots.
+    normalized = manufacturing_api.project_operator_door_layout_indicator_snapshot_states(
+        {str(key): state}
+    )[str(key)]
     target = self.door_layout_indicator_states.get(key)
     if target is None:
         self.door_layout_indicator_states[key] = normalized
