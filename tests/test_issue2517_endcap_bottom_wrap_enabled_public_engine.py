@@ -42,7 +42,12 @@ def test_single_canonical_public_engine_owner_and_gui_delegate():
 ])
 @pytest.mark.parametrize("part", ["head", "tail"])
 def test_raw_joint_flag_selects_actual_assembly_relation(raw, enabled, part):
-    original = _source()
+    # Assembly Intent is an independent Engine topology gate: default
+    # INSERT_OVERLAY accepts only INSERT; WRAP_OVERLAY accepts only WRAP.
+    original = {
+        **_source(),
+        "assembly_type": "WRAP_OVERLAY" if enabled else "INSERT_OVERLAY",
+    }
     prior = deepcopy(original)
     committed = api.commit_endcap_bottom_wrap_joint(original, part, raw)
     relation = edge_relation_for_part(committed, part, "BOTTOM")
@@ -113,3 +118,15 @@ def test_existing_legacy_readback_contract_not_rewritten_by_new_commit_gate():
     assert api.resolve_endcap_bottom_wrap(
         {"model": "受電箱", "endcap_bottom_wrap": new}, "head",
     )["enabled"] is False
+
+
+@pytest.mark.parametrize("intent,enabled", [
+    ("INSERT_OVERLAY", True),
+    ("WRAP_OVERLAY", False),
+])
+def test_raw_flag_never_bypasses_canonical_assembly_intent_policy(intent, enabled):
+    source = {**_source(), "assembly_type": intent}
+    before = deepcopy(source)
+    with pytest.raises(ValueError, match="not allowed"):
+        api.commit_endcap_bottom_wrap_joint(source, "head", enabled)
+    assert source == before
