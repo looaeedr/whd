@@ -40,14 +40,15 @@ def project_operator_single_door_indicator_mode(
 ) -> str:
     """Resolve the original single-Door indicator control flags in Engine.
 
-    The two operator modes are physically exclusive. A serialized "false"
-    must not select a CUTTING aperture, and an invalid or contradictory source
-    must never be recovered by GUI preview truthiness or priority ordering.
+    Preserve the legacy physical combination: both the box cutout and direct
+    Door indicators can be present, as verified by the existing single-Door
+    PartSpec and 2D preview tests. A serialized "false" must not select
+    either physical feature; reject malformed original flags.
     """
     box = normalize_operator_settings_boolean(indicator_box_enabled)
     direct = normalize_operator_settings_boolean(door_indicator_enabled)
     if box and direct:
-        raise ValueError("DOOR_OPERATOR_INDICATOR_MODE_CONFLICT")
+        return "both"
     return "indicator_box" if box else "indicator" if direct else "none"
 
 
