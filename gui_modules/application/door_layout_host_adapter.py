@@ -294,11 +294,17 @@ def _reject_door_layout_dimension(self, var, previous_value, message):
     return _reject_door_layout_dimension_impl(self, var, previous_value, message)
 
 def commit_door_layout_width(self, column_index):
+    # A stale or aliased callback must not even read another physical Door.
+    column_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        column_index, count=len(self.door_layout_columns), axis="column",
+    )
     column = self.door_layout_columns[column_index]
     # Committed geometry is the rollback authority. dict.get's default
     # argument is evaluated eagerly; parsing the dirty Entry there used to
     # raise before the input-error handler could restore the last good width.
-    previous = float(column["width_committed"])
+    previous = manufacturing_api.normalize_operator_door_grid_dimension(
+        column["width_committed"], field="column_width",
+    )
     try:
         current = self._parse_layout_value(column["width_var"], f"欄 {column_index+1} 寬度")
         total_width = self._parse_layout_value(self.w_var, "W")
@@ -321,10 +327,22 @@ def commit_door_layout_width(self, column_index):
     return True
 
 def commit_door_layout_height(self, column_index, row_index):
+    # Validate both axes with original Engine physical identity rules before
+    # touching any Tk Entry or the cached committed dimensions.
+    column_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        column_index, count=len(self.door_layout_columns), axis="column",
+    )
     column = self.door_layout_columns[column_index]
+    row_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        row_index, count=len(column["height_vars"]), axis="row",
+    )
     committed = column.get("height_committed") or []
-    previous = float(committed[row_index]) if row_index < len(committed) else self._parse_layout_value(
-        column["height_vars"][row_index], "高度"
+    previous = (
+        manufacturing_api.normalize_operator_door_grid_dimension(
+            committed[row_index], field="row_height",
+        ) if row_index < len(committed) else self._parse_layout_value(
+            column["height_vars"][row_index], "高度",
+        )
     )
     try:
         current = self._parse_layout_value(

@@ -73,6 +73,23 @@ def _physical_cell_index(label: str, value: int, count: int) -> int:
     return value
 
 
+def validate_operator_door_grid_edit_index(
+    index: object, *, count: object, axis: str,
+) -> int:
+    """Qualify a live Door column/row edit target before any GUI list lookup.
+
+    The existing Engine _physical_cell_index owns index identity. Callers
+    supply only the number of currently present GUI controls, never fabricate
+    a DoorLayoutCell from invalid or partially edited draft dimensions.
+    """
+    labels = {"column": "門片欄位", "row": "門片層數"}
+    if axis not in labels:
+        raise ValueError("DOOR_LAYOUT_EDIT_AXIS_INVALID")
+    if type(count) is not int or count < 0:
+        raise ValueError("DOOR_LAYOUT_EDIT_COUNT_INVALID")
+    return _physical_cell_index(labels[axis], index, count)
+
+
 def normalize_operator_door_grid_dimension(raw: object, *, field: str) -> float:
     """Public raw physical dimension validation for a Door cell/box-axis edit."""
     labels = {

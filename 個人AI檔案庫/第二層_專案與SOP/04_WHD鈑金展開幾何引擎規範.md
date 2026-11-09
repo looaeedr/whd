@@ -7,6 +7,14 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 多門格 W/H 即時提交目標索引與已提交快取不可由 GUI Python 強制轉型（2026-11-10）
+
+- 原 GUI `gui_modules.application.door_layout_host_adapter.commit_door_layout_width/height` 在呼叫已存在公開 Engine `validate_door_layout_width_commit/height_commit` **之前**，先以 `door_layout_columns[column_index]`、`height_vars[row_index]` 讀取物理格子與 `float(width_committed/height_committed)` 做錯誤回復。Python `True`、`-1`、`0.5` 等無效／過期 callback，可能先讀錯欄／列、改寫錯誤 Entry 或直接丟 `IndexError`；壞快取布林 `True` 可被 `float` 變成合法 1mm，與 Engine W/H 嚴格來源不同。
+- 本次沿用 **原 Engine** `ae_engine.door_layout_numeric_transitions._physical_cell_index`，僅加入薄公開 `validate_operator_door_grid_edit_index(index, *, count, axis="column"/"row")` 並於 `manufacturing_api` 與根包匯出同一 callable。它拒絕非原生 int、bool、負數、越界、非法 count／axis；回傳的只能是現有合法索引，不會自行建立 Door Cell、板件身份或門片 Geometry。GUI 在讀任何 column/row 控制項前呼叫此 Engine 入口，再以原已公開 `normalize_operator_door_grid_dimension(raw,field="column_width"/"row_height")` 驗已提交 rollback 快取，絕不使用 `float(True)`。`validate_door_layout_width_commit/height_commit` 仍是**唯一**實體尺寸與餘數計算 owner。
+- `tests/test_issue2517_door_grid_live_commit_target_engine_api.py` 涵蓋合法小數保留、兩軸 stale/bool/負值/浮點索引拒絕且沒有任何 GUI 寫入或計算、錯誤快取 fail closed、公用 Facade/root 同一 Engine owner。原合法 Tk 操作、Door Layout 2D/3D/FinalScene、Save→Reload 及 DXF Factory 不變；此切片不代表 #2517 全面覆蓋或 Windows UAT 完成。
+
+
+
 ## [CURRENT] #2517 多門格開孔編輯器選板在任何 GUI 狀態改變前由公開 Engine 核對實體身份（2026-11-10）
 
 - 原主 GUI `gui.py::Phase6ApplicationHost.open_door_layout_cell_editor` 先以 `f"{int(column_index)}:{int(row_index)}"` 改寫 `door_layout_selected_var`，隨後 `get_selected_door_layout_cell()` 找不到目標時會**回退第一格**。布林 `True`、浮點索引 `0.5`、舊格子消失與物理來源／DoorPartSpec 錯誤均可能令 GUI 錯誤選取、開啟或留下另一片實體 Door 的 Hole Editor 目標。
