@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 AE runtime Settings 的實體屬性寫入交易由公開 Engine 決策（2026-11-09）
+
+- 原 `phase6_settings_center.apply_settings_to_ae` 儘管以 `_coerce` 經公開 Engine 驗來源，仍在 GUI/Phase6 層自行按 `SettingSpec.runtime_attr/relief_attr` 將製造值 `setattr(ae_module, ...)`，再呼叫既有 `apply_operator_legacy_runtime_manufacturing_policies`；此段屬製造狀態提交權責，不只是呈現。
+- 透過公開 `manufacturing_api.apply_operator_runtime_settings_to_ae(ae_module, values, *, keys=None)` 交給原 `ae_engine.operator_settings_transactions` owner：依已合併的 Engine `operator_settings_catalog`，對被選欄位的 W/H/D/T/FW、bool、Fold/孔位/Relief 非實體數值重用**同一原公開來源驗證**，全部成功才原次序更新 AE runtime scalar、Relief、Vault 固定 CUTTING policy 與舊底板四向等值相容策略。GUI 只傳合法欄位選取與操作者來源；純 UI `ui_text_size` 不寫任何 Engine 製造屬性。既有 `SettingsService.update`、INI Save/Reload 與 Family/CUTTING/DXF 制造邏輯保留。
+- 測試 `tests/test_issue2517_runtime_settings_engine_commit_api.py` 及擴充既有 Runtime policy tests 驗 GUI/headless/JSON reload 同一結果、實體小數、合法負折邊、Bool、Relief／固定孔與底板相容、非法後續值不得造成部分寫入；未實際認證的外部 DXF／CLI 不因本改動放行。#2517 總體工作維持 OPEN。
+
+
 ## [CURRENT] #2517 Fold Designer Factory Defaults 透過公開 Engine API（2026-11-09）
 
 - 原 `gui_modules.application.fold_designer_snapshot_projection._snapshot_base_state` 直接匯入 `ae_engine.ae` 並呼叫 GUI/Phase6 `load_factory_defaults_from_ae(ae)`，由 GUI 製造設定清單解析原始 `default_config`；造成重置初始值的製造來源繞過公開 API。現將原有 45 項 Settings 欄位 schema（含相容 INI section/option、legacy fallback、原始預設值與操作 context）**原樣移到** `ae_engine.operator_settings_catalog`，由公開 `manufacturing_api.OPERATOR_SETTING_SPECS` 供 GUI 只作欄位與版面呈現；不新增第二份規格。
