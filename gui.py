@@ -861,8 +861,10 @@ class Phase6ApplicationHost:
     def _door_material_frame_width(self, frame_width, thickness, *, model_name=None):
         """Resolve operator Door FW into the material-space value consumed by AE."""
         source = self._baseline_source_model() if model_name is None else model_name
+        # Keep the operator's authored FW/T intact until the public Family
+        # Engine validates the physical source and resolves material-space FW.
         return manufacturing_api.door_material_frame_width(
-            source, frame_width=float(frame_width), thickness=float(thickness),
+            source, frame_width=frame_width, thickness=thickness,
         )
 
     def _sync_fold_designer_manual_corner_context(self, active_part):
