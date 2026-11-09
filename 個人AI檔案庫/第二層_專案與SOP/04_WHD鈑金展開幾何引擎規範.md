@@ -6,12 +6,19 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
-
 ## [CURRENT] #2517 Door Hole Editor 單門／多門格提交不可走顯示修補，嚴格來源由公開 Engine（2026-11-10）
 
 - 主 GUI 的 `gui_modules.project.export_actions._apply_single_door_indicator_state` 與 `_apply_multi_door_indicator_state` 原本在 **Hole Editor Confirm All 的實際提交階段**呼叫 `_normalize_door_indicator_state`，其實體 Owner 只是 `manufacturing_api.project_operator_door_indicator_display_state` 的*寬鬆舊版顯示投影*。若一個直接呼叫的 GUI 提交入口接到非法啟用孔數、布林、缺少層組或非有限偏移，會將非法製造來源顯示修補為合法預設，再寫入單門啟用控制或多門格 `door_layout_indicator_states`／FoldDesigner Snapshot，違反同一條製造權威鏈。Modal 的正常收集預驗證不授權後續提交入口再次「柔性修正」物理來源。
 - 現在**單門寫入**先呼叫原公開 `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)`，僅把 Engine 已驗的 mode、六個 groups、offset、is_box_dist 投影到 Tk 控制；不以 `bool("false")`、`float`、`int` 構造提交來源。**多門格寫入**先呼叫原公開 `manufacturing_api.project_operator_door_layout_indicator_snapshot_states({cell_key:raw})`，取得附帶原有 `enabled/box_enabled` 相容欄位的已驗 detached row，再原位更新 live map 和 FoldDesigner Snapshot。無效啟用來源在任何寫入／重繪前 fail closed；停用模式仍無任何實體指示燈開孔。
 - **讀取顯示**依舊可以使用 `project_operator_door_indicator_display_state` 的舊版相容投影，但絕不可作為物理 Save/Factory/CUTTING/DXF 的資格；原 DoorPartSpec／Feature／2D／3D／NFB／Family／Registry／檔案 schema 不變。定向 `tests/test_issue2517_door_indicator_gui_commit_engine_source.py` 驗兩個真 GUI 寫入函式、壞來源無部分提交、金庫型／受電箱 Engine PartSpec 和 Project Save→Reload。#2517 全面覆蓋仍 OPEN；Windows UAT 與正式 X 發布分開。
+
+
+## [CURRENT] #2517 Receiving Set/Bay 小數 W/H/D 由公開 Engine 原值同步至 Fold 即時狀態（2026-11-09）
+
+- `gui_modules.application.fold_designer_composition_receiving.sync_receiving_current_bay` 原已從 `project_receiving_bay_legacy_aliases` 取得 Engine canonical Bay W/H/D，卻在非 Quantity 路徑以 `fold_designer_original.get_int`（`int(round(float(value)))`）覆寫 `app.state.w/h/d`，例如原始 820.25 mm 被 GUI 四捨五入成 820 mm；即時 Fold State／後續刷新與已保存 Set/Bay 物理來源不同。既有 `fold_designer_bridge.load_phase6_snapshot` 已使用 `manufacturing_api.normalize_operator_live_box_dimensions`，不允許讀取來源時取整，屬同一 #2517 單向責任鏈。
+- 現兩模式 `set_bay`、`quantity` 同用原公開 `manufacturing_api.normalize_operator_live_box_dimensions(projected)` 在任何 GUI snapshot、Workspace、Fold state 或 Tk 變數變更前驗證原值，保留正有限小數 W/H/D；失敗完全不更新 GUI，成功以同一不可修改的驗證結果同步 `_phase6_box_whd`、`app.state.w/h/d`、GUI 顯示。不可用 `get_int`、`round`、`abs` 或 GUI fallback 來偽造物理尺寸，不更改 receiving_layout、PartSpec、BEND、2D／3D 或 DXF 原製造 owner。另外查明 `fold_designer_original.MainApp.do_update` 在所有後續渲染又用 `int(round(float(v_w/h/d)))` 覆寫 `state.w/h/d`；同批將 `fold_designer_bridge` 三個實際舊重繪入口接入 `_phase6_render_with_engine_live_dimensions`：沿用原本 Tk 的 symmetric／enable_y／alpha_bend／alpha_face／renderer API，但在渲染前先通過同一 Engine `normalize_operator_live_box_dimensions`，禁止重新取整或用舊 fallback。
+- `tests/test_issue2517_receiving_bay_live_fractional_readback_engine.py` 包含真 Engine ReceivingLayout decimal Bay readback、兩模式狀態／JSON Reload 同源、非法 bool/NaN/Inf/非正 W/H/D 在所有 GUI 副作用之前拒絕、實際 Fold Bridge legacy renderer 小數一致、非法來源不繪圖與 source guard。此增量不代表 #2517 全面覆蓋或 Windows UAT 已完成。
+
 
 
 

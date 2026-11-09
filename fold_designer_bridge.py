@@ -824,7 +824,7 @@ class Phase6FoldDesignerApp(original.MainApp):
         _phase6_apply_box_symmetry_policy(self)
         if getattr(self, "_phase6_sync_ready", False):
             self._sync_dwd_with_top_whd()
-        return original.MainApp.do_update(self)
+        return _phase6_render_with_engine_live_dimensions(self)
 
     def export_phase6_snapshot(self) -> dict:
         # This legacy direct Save path is still consumed by FIX10/11 callers.
@@ -3062,6 +3062,28 @@ def _propagate_endcap_derived_cores(self, w, d):
         _set_profile_phase6_len(self.state.profiles.get("Y"), "endcap_d_core", lengths["endcap_d_core"])
 
 
+def _phase6_render_with_engine_live_dimensions(self):
+    """Preserve canonical physical W/H/D across the legacy GUI redraw boundary.
+
+    Original MainApp.do_update() converts live measurements through
+    get_int(), which silently rounds valid fractional-mm Receiving Bays and
+    lets legacy rendering diverge from the exact Engine source. Keep the
+    original GUI-only toggles, angle readback and renderer, while using the
+    same public physical validator as the saved project and Bay source.
+    """
+    dimensions = manufacturing_api.normalize_operator_live_box_dimensions({
+        "w": self.v_w.get(), "h": self.v_h.get(), "d": self.v_d.get(),
+    })
+    self.state.w = dimensions["w"]
+    self.state.h = dimensions["h"]
+    self.state.d = dimensions["d"]
+    self.state.symmetric, self.state.enable_y = self.v_sy.get(), self.v_ey.get()
+    self.state.alpha_bend = self.v_a_bend.get()
+    self.state.alpha_face = self.v_a_face.get()
+    self.renderer.render()
+    return None
+
+
 def _sync_active_endcap_and_global_whd(self):
     if self._phase6_input_snapshot.get("active_mode") == "quantity" and self._phase6_input_snapshot.get("receiving_quantity_box"):
         return
@@ -3127,7 +3149,7 @@ def _fix11_do_update(self):
         return _FIX10_DO_UPDATE(self)
     if key in {"head", "tail"}:
         _sync_active_endcap_and_global_whd(self)
-        return original.MainApp.do_update(self)
+        return _phase6_render_with_engine_live_dimensions(self)
 
     # Preserve operator finished outside W/H/D for other physical parts too.
     # Validation is read-only until all axes are confirmed by the Engine.
@@ -3139,7 +3161,7 @@ def _fix11_do_update(self):
         _phase6_commit_receiving_current_bay_controls(self)
     else:
         self._phase6_input_snapshot.update(self._phase6_box_whd)
-    return original.MainApp.do_update(self)
+    return _phase6_render_with_engine_live_dimensions(self)
 
 
 _PHASE6_RENDERING_DO_UPDATE = _fix11_do_update
