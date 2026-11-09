@@ -9,7 +9,9 @@ from __future__ import annotations
 from copy import deepcopy
 
 from .registry import CabinetTypeRegistration
-from ..operator_settings_transactions import normalize_operator_settings_boolean
+from ..operator_settings_transactions import (
+    normalize_operator_settings_boolean, normalize_operator_source_dimension,
+)
 
 REGISTRATION = CabinetTypeRegistration(
     canonical_name="受電箱",
@@ -567,10 +569,12 @@ def apply_family_defaults(snapshot):
     result["door_layout_columns"] = default_door_layout_columns()
     result["door_handle_edges"] = deepcopy(dict(result.get("door_handle_edges") or {}))
     result["door_nameplate_center_datum_top"] = float(DOOR_NAMEPLATE_CENTER_DATUM_TOP)
-    try:
-        thickness = float(result.get("t", 2.0))
-    except (TypeError, ValueError):
-        thickness = 2.0
+    # Only an ABSENT legacy thickness uses the old 2-mm fresh default.
+    # An explicitly supplied T is physical manufacturing source and must
+    # never turn bool(True) into 1 mm or malformed input into 2 mm.
+    thickness = normalize_operator_source_dimension(
+        result["t"] if "t" in result else 2.0, field="t",
+    )
     result["inner_doors"] = default_inner_doors(
         thickness=thickness,
         depth=float(result["d"]),

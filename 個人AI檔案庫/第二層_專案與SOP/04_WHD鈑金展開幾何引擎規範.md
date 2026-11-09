@@ -13,12 +13,20 @@ whd_schema: WHD_DOC_META_V1
 - 測試 `tests/test_issue2517_runtime_settings_engine_commit_api.py` 及擴充既有 Runtime policy tests 驗 GUI/headless/JSON reload 同一結果、實體小數、合法負折邊、Bool、Relief／固定孔與底板相容、非法後續值不得造成部分寫入；未實際認證的外部 DXF／CLI 不因本改動放行。#2517 總體工作維持 OPEN。
 
 
+
 ## [CURRENT] #2517 Fold Designer Factory Defaults 透過公開 Engine API（2026-11-09）
 
 - 原 `gui_modules.application.fold_designer_snapshot_projection._snapshot_base_state` 直接匯入 `ae_engine.ae` 並呼叫 GUI/Phase6 `load_factory_defaults_from_ae(ae)`，由 GUI 製造設定清單解析原始 `default_config`；造成重置初始值的製造來源繞過公開 API。現將原有 45 項 Settings 欄位 schema（含相容 INI section/option、legacy fallback、原始預設值與操作 context）**原樣移到** `ae_engine.operator_settings_catalog`，由公開 `manufacturing_api.OPERATOR_SETTING_SPECS` 供 GUI 只作欄位與版面呈現；不新增第二份規格。
 - `manufacturing_api.project_operator_factory_default_settings()` 由 Engine 原 `ae.default_config` 當次產生 detached Factory Defaults，經既有公開 W/H/D/T/FW、Bool、非實體 Fold/孔位/Relief 數值來源驗證；已存在但損壞的 factory 欄位只退到**該已確認 SettingSpec 的原值**。不使用 `config.ini` 或可變的 `ae.W` 等 runtime 取代出廠值，不容任意未知欄位加入；`source_config` 參數僅用於既有自訂 Host/相容測試，不能當認證製造來源。
 - GUI `phase6_settings_center.project_fold_designer_factory_snapshot` 只呼叫公開 API 並在 GUI 將 `ui_text_size` 轉成顯示選項（小/中/大）；保留既有 `SettingsService`、`load_factory_defaults_from_ae` 的 host 相容介面、舊 INI/中文選項與 Fold Designer Factory Reset。新測試 `tests/test_issue2517_factory_defaults_public_engine_api.py` 驗原始 Engine source 與 GUI/headless/JSON Reload 一致、非法值 fail-closed fallback、配置不改動、Factory 與 runtime 隔離、無 Engine 逆向 GUI 匯入。這批**不變更製造物理孔、BEND、CUTTING 或 DXF**，#2517 維持 OPEN。
 
+
+
+## [CURRENT] #2517 Receiving 新 Family 實體 T 不可被 float／2 mm fallback 偽造（2026-11-09）
+
+- `ae_engine.cabinet_types.receiving.apply_family_defaults` 是主 GUI `operator_apply_fresh_family_defaults` 與 headless Family Transition 共用的原 Engine Policy owner。先前 `float(result.get("t", 2.0))` 會將原生布林 `True` 轉成 T1、放行 NaN/Inf，或將明確存在但格式錯誤的 T 靜默改成 2 mm，接著產生實體內門／隔板來源；這不是合法的物理來源驗證。
+- 現在原 Family owner 重用公開 `normalize_operator_source_dimension(..., field="t")`，在生成 `default_inner_doors` 及任何新 Receiving Set/Bay 前拒絕明確非法 T；合法小數與合法數字字串保留原值。**只有來源真正缺少欄位 `t`** 的歷史新 Family 路徑才維持原 2 mm default；不透過 GUI、測試資料或另一個 Factory 公式猜 T。
+- `tests/test_issue2517_receiving_fresh_family_t_engine_source.py` 覆蓋 public API 原始 owner、非法 T 並未進入內門物理推導、毫米小數、缺席舊版相容、Family Transition／真實 GUI 事件原子拒絕及 JSON Save→Reload。未修改 CUTTING／BEND／DXF 算法或 source-only CLI 認證；#2517 全面 API 覆蓋與 Windows UAT 仍保持未完成。
 
 
 ## [CURRENT] #2517 Vault 基準型號的 Head/Tail FW 跟隨交易歸原公開 Engine（2026-11-09）
