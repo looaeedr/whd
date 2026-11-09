@@ -137,14 +137,18 @@ def door_material_frame_width(source, *, frame_width: float, thickness: float) -
 
     Most families expose Door FW in material space.  Families such as Receiving
     expose the formed outside occupation instead and own the conversion locally.
+    Raw operator T/FW and family-derived material FW share one Engine physical
+    dimension validator; do not silently accept bool(True) or NaN as material.
     """
-    material = float(_call(
-        source, "door_material_frame_width", float(frame_width),
-        frame_width=float(frame_width), thickness=float(thickness),
-    ))
-    if material <= 0:
-        raise ValueError("Door material frame width must be > 0")
-    return material
+    from ..operator_settings_transactions import normalize_operator_source_dimension
+
+    fw = normalize_operator_source_dimension(frame_width, field="fw")
+    t = normalize_operator_source_dimension(thickness, field="t")
+    material = _call(
+        source, "door_material_frame_width", fw,
+        frame_width=fw, thickness=t,
+    )
+    return normalize_operator_source_dimension(material, field="fw")
 
 
 def divider_fold_contract(
