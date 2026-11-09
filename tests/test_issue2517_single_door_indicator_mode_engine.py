@@ -43,6 +43,8 @@ def _host(*, box="false", direct="false"):
     ("0", "yes", "indicator"),
     (1, 0, "indicator_box"),
     (0, 1, "indicator"),
+    (True, True, "both"),
+    ("true", "1", "both"),
 ))
 def test_public_engine_mode_is_same_for_raw_and_json_reloaded_source(
     box, direct, expected,
@@ -67,12 +69,11 @@ def test_public_engine_mode_is_same_for_raw_and_json_reloaded_source(
 
 
 @pytest.mark.parametrize(("box", "direct"), (
-    ("true", "true"), (True, 1),
     ("invalid", "false"), ("false", "invalid"),
     (float("nan"), False), (False, float("inf")),
     (None, False), (False, []),
 ))
-def test_invalid_or_contradictory_raw_flags_reject_without_manufacture(
+def test_invalid_raw_flags_reject_without_manufacture(
     box, direct,
 ):
     with pytest.raises(ValueError):
@@ -92,6 +93,7 @@ def test_invalid_or_contradictory_raw_flags_reject_without_manufacture(
     ("false", "false", None, None),
     ("false", "true", None, (3,)),
     ("true", "false", (77.25, 90.5), None),
+    ("true", "true", (77.25, 90.5), (3,)),
 ))
 def test_real_gui_selects_only_engine_mode_without_truthy_false(
     monkeypatch, box, direct, expected_box, expected_direct,
