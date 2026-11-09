@@ -868,14 +868,14 @@ def _single_door_indicator_state_snapshot(self):
     # A disabled mode has no physical holes. Preserve raw old controls:
     # the public Engine display projection, not GUI casts or clamping,
     # owns legacy repair. This projection never authorizes CUTTING/Save.
-    return self._normalize_door_indicator_state({
+    return manufacturing_api.project_operator_door_indicator_display_state({
         "mode": mode,
         "layers": layer_var.get(),
         "groups": [variable.get() for variable in group_vars[:6]],
         "offset_x": self.door_indicator_offset_x,
         "offset_y": self.door_indicator_offset_y,
         "is_box_dist": self.is_box_dist_var.get(),
-    })
+    }, legacy_inactive_single_door=True)
 
 
 def _apply_single_door_indicator_state(self, state):
