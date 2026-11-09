@@ -865,25 +865,16 @@ def _single_door_indicator_state_snapshot(self):
             "enabled": mode == "indicator",
             "box_enabled": mode == "indicator_box",
         }
-    # A disabled mode has no physical holes. Keep the existing legacy
-    # display-only repair and saved inactive controls for older projects.
-    try:
-        layers = max(1, min(6, int(layer_var.get())))
-    except ValueError:
-        layers = 1
-    groups = []
-    for index in range(6):
-        try:
-            groups.append(int(group_vars[index].get()))
-        except ValueError:
-            groups.append(2)
+    # A disabled mode has no physical holes. Preserve raw old controls:
+    # the public Engine display projection, not GUI casts or clamping,
+    # owns legacy repair. This projection never authorizes CUTTING/Save.
     return self._normalize_door_indicator_state({
         "mode": mode,
-        "layers": layers,
-        "groups": groups,
-        "offset_x": float(self.door_indicator_offset_x),
-        "offset_y": float(self.door_indicator_offset_y),
-        "is_box_dist": bool(self.is_box_dist_var.get()),
+        "layers": layer_var.get(),
+        "groups": [variable.get() for variable in group_vars[:6]],
+        "offset_x": self.door_indicator_offset_x,
+        "offset_y": self.door_indicator_offset_y,
+        "is_box_dist": self.is_box_dist_var.get(),
     })
 
 
