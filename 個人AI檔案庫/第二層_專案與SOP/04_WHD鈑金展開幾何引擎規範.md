@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer Head/Tail FW 的 Fold 儲存來源與四態交易由公開 Engine（2026-11-09）
+
+- 原 `gui_modules.application.fold_designer_part_session.Phase6PartSessionOwner.save_current_part` 在儲存封頭／封尾時，先 `stash_profiles` 改變來源，接著自行以 `_num(snapshot.fw,25)` 回退箱身 FW、`_ui_len(raw_len)` 與 `float(edited_fw)` 解碼實體 Fold 寬，再由 GUI 決定是否呼叫 `commit_endcap_fw`。缺少或非法的原始物理 FW 可能被偽造成 25 mm／1 mm 或留下部分草稿，且四態跟隨決策散落 GUI。
+- 新公開 `manufacturing_api.commit_operator_endcap_fw_profile_save(input_snapshot, state, part_key, fw_segment)` 由現有 `ae_engine.operator_endcap_settings_transactions` owner 統一管理：先驗箱身 FW 正有限、保存的 Head/Tail 來源列及原始 Fold `len`（Receiving material route 額外驗 `ui_len_add`），只以原 Engine `fold_material_segment_outside_length` 轉換既有整數 UI Fold 長度；物理 FW 正有限才比較 `resolve_endcap_fw`，實際編輯才交原 `commit_operator_endcap_fw_value`／四態 FOLLOW_BODY、FOLLOW_HEAD、FOLLOW_TAIL、INDEPENDENT。完整 staging 成功後才原地更新原 dict 與 nested Head/Tail 身分；不存在的 legacy `ui_len_add` 仍按原規則視為 0，**已存在但非法值不得無條件回退**。
+- GUI `save_current_part` 只送原始 `y.get("fw")` 與 snapshot/state，完成既有 X/Y 來源檢查後才觸發公開 Engine 交易及板件 Profile 保存，維持 Undo、Save→Reload、Family／BEND／CUTTING／DXF 正式製造 owner。測試 `tests/test_issue2517_endcap_fw_profile_save_engine_api.py` 覆蓋兩種 Family、現有四態跟隨／分離、非法 bool/NaN/Inf、未提交原子性、有效缺欄相容及 JSON reload。整體 #2517 仍 OPEN；本批不增加新 Factory 或 NFB 認證。
+
+
 ## [CURRENT] #2517 Hole Editor 新增／旋轉實體孔角度由公開 Engine 交易（2026-11-09）
 
 - 原 `gui_modules/editors/hole_editor.py::HoleEditorFeatureFactory.make_feature` 以 `int(TkVar.get().replace("°", ""))` 在 GUI 解碼實體孔角度；`HoleEditorSelectedFeatureActions.rotate_selected` 把 360° 自行換成 0°，組合層再以 `dataclasses.replace(feature, rotation_deg=rotation)` 直接產生實體旋轉孔，繞過公開 Engine Feature mutation 入口。原 `ae_engine.sheetmetal_feature_core._normalize_rotation` 才是所有 Rect／Circle／Profile hole Feature 的 0/90/180/270/360° 正式旋轉權威。
