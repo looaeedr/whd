@@ -212,8 +212,8 @@ class HoleEditorIndicatorFitValidation:
                 self.validate_fit(
                     mode=state_now["mode"],
                     groups=tuple(state_now["groups"][:state_now["layers"]]),
-                    finished_width=float(context.finished_width),
-                    finished_height=float(context.finished_height),
+                    finished_width=context.finished_width,
+                    finished_height=context.finished_height,
                     thickness=self.door_thickness_provider(),
                     offset=(state_now["offset_x"], state_now["offset_y"]),
                 )
