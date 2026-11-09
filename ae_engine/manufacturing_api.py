@@ -201,6 +201,7 @@ from .corner_state_transactions import (
 )
 from .operator_endcap_settings_transactions import (
     OperatorBottomWrapTransition, project_operator_box_fw_live_state, operator_endcap_fw_follow,
+    commit_operator_baseline_endcap_fw,
     operator_endcap_fw_override, operator_endcap_bottom_wrap,
     operator_endcap_edge_relation,
 )
