@@ -220,8 +220,9 @@ def validate_door_indicator_fit(
     if fw <= 0 or fh <= 0:
         raise ValueError("門板成品尺寸必須大於 0")
     if mode == "none":
-        # A disabled source has no manufacturing footprint; keep the
-        # historical no-fit operation independent of physical thickness.
+        # Preserve the old no-fit mode's parseable-T compatibility without
+        # imposing a new manufacturing qualification on a disabled feature.
+        float(thickness)
         return (0.0, 0.0)
     # The same public original-source gate qualifies real sheet thickness
     # for GUI and headless callers; float(True) must never become T=1 mm.
