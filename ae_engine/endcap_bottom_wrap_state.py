@@ -12,6 +12,7 @@ from math import isfinite
 from .box_body_fold_profile import _num
 from .cabinet_types import policy as cabinet_family_policy
 from .endcap_factory_fold import ENDCAP_FW_PARTS
+from .operator_settings_transactions import normalize_operator_settings_boolean
 
 WRAP_LINKED = "LINKED"
 WRAP_FOLLOW_HEAD = "FOLLOW_HEAD"
@@ -103,9 +104,11 @@ def resolve_endcap_bottom_wrap(snapshot: Mapping[str, object], part_key: str, *,
 def commit_endcap_bottom_wrap_joint(snapshot: Mapping[str, object], part_key: str, enabled: bool) -> dict[str, object]:
     """Write the receiving switch to the canonical BOTTOM AssemblyJoint."""
     from .assembly_joint import AssemblyJointRelation, set_part_edge_relation
+    # New physical Joint edits must not turn serialized "false" into WRAP.
+    requested = normalize_operator_settings_boolean(enabled)
     return set_part_edge_relation(
         snapshot, str(part_key), "BOTTOM",
-        AssemblyJointRelation.WRAP if bool(enabled) else AssemblyJointRelation.INSERT,
+        AssemblyJointRelation.WRAP if requested else AssemblyJointRelation.INSERT,
     )
 
 
@@ -131,6 +134,10 @@ def commit_endcap_bottom_wrap(state, part_key: str, *, enabled=None, reserve_u=N
     if part_key not in ENDCAP_FW_PARTS:
         raise ValueError(f"不支援的封頭尾板件: {part_key}")
     # Validate *both* authored mm sources before any Head/Tail linked state write.
+    # Unlike legacy saved-state display, new operator transactions must
+    # qualify a present raw enable flag before any Head/Tail state mutation.
+    if enabled is not None:
+        enabled = normalize_operator_settings_boolean(enabled)
     if reserve_u is not None:
         reserve_u = _operator_bottom_wrap_reserve(reserve_u, label="reserve_u")
     if reserve_v is not None:
@@ -140,7 +147,7 @@ def commit_endcap_bottom_wrap(state, part_key: str, *, enabled=None, reserve_u=N
     opposite = WRAP_FOLLOW_TAIL if part_key == "head" else WRAP_FOLLOW_HEAD
     base = dict(state.get(part_key) or {"enabled": True, "reserve_u": 2.0, "reserve_v": 1.0})
     if enabled is not None:
-        base["enabled"] = bool(enabled)
+        base["enabled"] = enabled
     if reserve_u is not None:
         base["reserve_u"] = reserve_u
     if reserve_v is not None:
