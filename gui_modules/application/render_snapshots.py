@@ -148,12 +148,12 @@ def single_door_render_snapshot(host):
         "fw": manufacturing_api.normalize_operator_source_dimension(
             host.fw_z_var.get(), field="fw",
         ),
-        "door_gap_w": float(host.door_gap_w_var.get()),
-        "door_gap_h": float(host.door_gap_h_var.get()),
-        "door_fold_l": float(host.door_fold_l_var.get()),
-        "door_fold_r": float(host.door_fold_r_var.get()),
-        "door_fold_t": float(host.door_fold_t_var.get()),
-        "door_fold_b": float(host.door_fold_b_var.get()),
+        "door_gap_w": host.door_gap_w_var.get(),
+        "door_gap_h": host.door_gap_h_var.get(),
+        "door_fold_l": host.door_fold_l_var.get(),
+        "door_fold_r": host.door_fold_r_var.get(),
+        "door_fold_t": host.door_fold_t_var.get(),
+        "door_fold_b": host.door_fold_b_var.get(),
     }
 
     indicator_hole = None
@@ -230,11 +230,11 @@ def base_plate_render_snapshot(host, val):
             current, resolved,
             active_part=getattr(workspace, "active_part", ""),
         )
-    shrink_top = float(host.base_plate_shrink_top_var.get())
-    shrink_bottom = float(host.base_plate_shrink_bottom_var.get())
-    shrink_left = float(host.base_plate_shrink_left_var.get())
-    shrink_right = float(host.base_plate_shrink_right_var.get())
-    bend = float(host.base_plate_bend_var.get())
+    shrink_top = host.base_plate_shrink_top_var.get()
+    shrink_bottom = host.base_plate_shrink_bottom_var.get()
+    shrink_left = host.base_plate_shrink_left_var.get()
+    shrink_right = host.base_plate_shrink_right_var.get()
+    bend = host.base_plate_bend_var.get()
     spec_val = dict(val)
     spec_val.update({
         "base_plate_shrink_top": shrink_top,
@@ -250,14 +250,15 @@ def base_plate_render_snapshot(host, val):
     minx, miny, maxx, maxy = bounds
     world_bounds, box_rect = manufacturing_api.project_legacy_base_plate_2d_bounds(
         bounds, width=val["w"], height=val["h"],
-        shrink_left=shrink_left, shrink_bottom=shrink_bottom, bend=bend,
+        shrink_left=spec.shrink_left, shrink_bottom=spec.shrink_bottom,
+        bend=spec.bend,
     )
     return {
         "render_data": render_data,
         "bounds": bounds,
         "world_bounds": tuple(float(v) for v in world_bounds),
         "box_rect": box_rect,
-        "bend": float(bend),
+        "bend": spec.bend,
     }
 
 
