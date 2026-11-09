@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 BasePlate 部分 INI 儲存不可寫入未選取的四邊縮量（2026-11-09）
+
+- `phase6_settings_center.save_defaults_to_ini(ae_module, values, context="base_plate", keys=...)` 在寫入合法選取欄位後，原本仍將整份 Settings snapshot 交給既有公開 Engine `operator_legacy_shared_base_plate_shrink(values)`，導致只儲存 `base_plate_bend` 等部分欄位，也可能因未選取四邊同值改寫舊版 `BASE_PLATE/shrink`，或因未選取非法縮量阻擋合法 INI 保存。這會影響之後重新載入的物理底板縮量，並非單純 GUI 顯示。
+- 現 GUI INI adapter 只提交實際寫入的 `changed_keys` 對應來源給原公開 Engine 四向相同策略；**只有四邊都在本次選取且同值時**才同步舊版 `BASE_PLATE/shrink`。原 Engine 擁有 shrink 判定公式，未新增 GUI 製造計算或獨立 BasePlate exporter；保留合法舊版 INI、現行 per-edge 優先與 Save→Reload 相容。
+- `tests/test_phase6_settings_center.py` 增加單存 Bend、未選取合法／非法縮量不寫入、不破壞 runtime 與 Reload，以及四邊明確全選同值仍同步 legacy 值。未修改 Factory Geometry、CUTTING/BEND/DXF 算法或外部製造資格；#2517 全面 GUI API 覆蓋與 Windows UAT 仍未完成。
+
 ## [CURRENT] #2517 Engine runtime Settings 部分欄位提交不得洩漏未選取的實體策略（2026-11-09）
 
 - `manufacturing_api.apply_operator_runtime_settings_to_ae(ae_module, values, *, keys=...)` 已把 GUI 與 headless 的 AE runtime 製造提交歸原 Engine；但原實作只在 scalar 階段檢查 `keys`，其後把整份原始 `values` 交給舊 Vault EndCap 固定孔與 BasePlate 四邊相等相容策略。未選取的四邊縮量因此可能自行寫入 `base_plate_shrink_def`，或在其他合法欄位已提交後才因無效值報錯；未選取的掛孔欄位也會觸發非本次交易的政策重建。

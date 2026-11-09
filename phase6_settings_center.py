@@ -297,7 +297,12 @@ def save_defaults_to_ini(
     # If all four specific shrink values are the same, keep the old key in sync
     # so older engine versions still see the same default.
     if context == "base_plate":
-        legacy_shrink = manufacturing_api.operator_legacy_shared_base_plate_shrink(values)
+        # Only the four explicitly persisted edges may update the legacy
+        # shared value; other rows in a full Settings snapshot are not edits.
+        selected_values = {key: values[key] for key in changed_keys}
+        legacy_shrink = manufacturing_api.operator_legacy_shared_base_plate_shrink(
+            selected_values,
+        )
         if legacy_shrink is not None:
             if not parser.has_section("BASE_PLATE"):
                 parser.add_section("BASE_PLATE")
