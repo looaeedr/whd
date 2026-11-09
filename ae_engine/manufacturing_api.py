@@ -213,6 +213,15 @@ from .operator_box_body_settings_projection import (
 )
 
 # Engine-owned operator Settings dimensions and external-sync coercion.
+# #2517: one Engine settings catalog and factory-default source for every GUI.
+from .operator_settings_catalog import (
+    GLOBAL_CONTEXT as OPERATOR_GLOBAL_SETTINGS_CONTEXT,
+    SettingSpec as OperatorSettingSpec,
+    SETTING_SPECS as OPERATOR_SETTING_SPECS,
+    settings_for_context as operator_settings_for_context,
+)
+from .operator_factory_settings_defaults import project_operator_factory_default_settings
+
 from .operator_settings_transactions import (
     OperatorSettingsCommitTransition, OperatorExternalSyncPlan,
     plan_operator_external_sync, normalize_operator_settings_boolean,

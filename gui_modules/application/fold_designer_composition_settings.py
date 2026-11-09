@@ -16,7 +16,7 @@ from phase6_endcap_semantics import (
     assembly_intent_value,
     normalize_endcap_bottom_wrap_state,
 )
-from phase6_settings_center import UI_TEXT_SIZE_LABELS, load_factory_defaults_from_ae
+from phase6_settings_center import UI_TEXT_SIZE_LABELS
 from phase6_settings_service import Phase6SettingsTransactionService
 from phase6_sync_envelope import (
     materialize_sync_value,
