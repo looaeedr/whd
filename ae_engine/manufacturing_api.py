@@ -235,6 +235,7 @@ from .operator_settings_transactions import (
     project_operator_part_dimension_settings_overlay,
     operator_legacy_shared_base_plate_shrink,
     apply_operator_legacy_runtime_manufacturing_policies,
+    apply_operator_runtime_settings_to_ae,
 )
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
