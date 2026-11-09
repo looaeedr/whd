@@ -214,7 +214,7 @@ class HoleEditorIndicatorFitValidation:
                     groups=tuple(state_now["groups"][:state_now["layers"]]),
                     finished_width=float(context.finished_width),
                     finished_height=float(context.finished_height),
-                    thickness=float(self.door_thickness_provider() or 0.0),
+                    thickness=self.door_thickness_provider(),
                     offset=(state_now["offset_x"], state_now["offset_y"]),
                 )
         except (ValueError, TypeError) as exc:
