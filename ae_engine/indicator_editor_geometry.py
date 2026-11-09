@@ -27,10 +27,10 @@ class IndicatorEditorComponentGeometry:
 
 
 def _normalize_editor_groups(groups):
-    groups = tuple(int(value) for value in groups)
-    if not groups or any(value <= 0 for value in groups):
-        raise ValueError("indicator groups must be positive")
-    return groups
+    # The headless standalone component API must reject the same raw bool /
+    # fractional physical counts as the public Fold Designer/GUI source gate.
+    from .fold_designer_snapshot_dimensions import normalize_fold_designer_indicator_groups
+    return normalize_fold_designer_indicator_groups(groups)
 
 
 def resolve_indicator_box_editor_geometry(
