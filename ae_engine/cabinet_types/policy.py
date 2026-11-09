@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 from importlib import import_module
+import math
+import re
 from typing import Mapping
 
 from .registry import resolve_cabinet_type
@@ -151,6 +153,36 @@ def door_material_frame_width(source, *, frame_width: float, thickness: float) -
     return normalize_operator_source_dimension(material, field="fw")
 
 
+def _finite_divider_family_number(raw, *, field: str) -> float:
+    """Do not turn bool/NaN/Inf into physical fold material or signed BEND."""
+    if isinstance(raw, bool):
+        raise ValueError(f"family Divider {field} must be a finite number")
+    try:
+        number = float(raw)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"family Divider {field} must be a finite number") from exc
+    if not math.isfinite(number):
+        raise ValueError(f"family Divider {field} must be a finite number")
+    return number
+
+
+def _divider_family_segment_index(raw, *, field: str, size: int) -> int:
+    """A Family's physical fold index cannot be bool or truncated fraction."""
+    if isinstance(raw, bool):
+        raise ValueError(f"family Divider {field} must be a valid segment index")
+    if isinstance(raw, int):
+        result = raw
+    elif isinstance(raw, str) and re.fullmatch(r"[+]?[0-9]+", raw.strip()):
+        result = int(raw.strip())
+    elif isinstance(raw, float) and math.isfinite(raw) and raw.is_integer():
+        result = int(raw)
+    else:
+        raise ValueError(f"family Divider {field} must be a valid segment index")
+    if result < 0 or result >= size:
+        raise ValueError(f"family Divider {field} is outside the fold chain")
+    return result
+
+
 def divider_fold_contract(
     source,
     *,
@@ -159,37 +191,61 @@ def divider_fold_contract(
     handle_side: bool,
     frame_width: float | None = None,
 ):
-    """Return an optional family-owned Divider fold contract of arbitrary topology."""
+    """Return an optional Family-owned physical Divider fold contract.
+
+    All caller input and returned physical segments/indices must be validated
+    by the Engine before door_dividers builds FoldProfile/FinalScene geometry.
+    """
+    from ..operator_settings_transactions import (
+        normalize_operator_settings_boolean, normalize_operator_source_dimension,
+    )
+
+    d = normalize_operator_source_dimension(depth, field="d")
+    t = normalize_operator_source_dimension(thickness, field="t")
+    fw = (
+        None if frame_width is None else
+        normalize_operator_source_dimension(frame_width, field="fw")
+    )
+    handle = normalize_operator_settings_boolean(handle_side)
     result = _call(
         source, "divider_fold_contract", None,
-        depth=float(depth),
-        thickness=float(thickness),
-        handle_side=bool(handle_side),
-        frame_width=(None if frame_width is None else float(frame_width)),
+        depth=d, thickness=t, handle_side=handle, frame_width=fw,
     )
     if result is None:
         return None
     data = dict(result)
-    material = tuple(float(v) for v in tuple(data.get("material_lengths") or ()))
-    signed = tuple(float(v) for v in tuple(data.get("signed_fold_chain") or ()))
+    material = tuple(
+        _finite_divider_family_number(v, field="material_lengths")
+        for v in tuple(data.get("material_lengths") or ())
+    )
+    signed = tuple(
+        _finite_divider_family_number(v, field="signed_fold_chain")
+        for v in tuple(data.get("signed_fold_chain") or ())
+    )
     if len(material) < 2 or len(material) != len(signed):
         raise ValueError("family Divider material/outside chains must have equal segment counts")
-    if any(value <= 0 for value in material) or any(abs(value) <= 0 for value in signed):
+    if any(value <= 0 for value in material) or any(value == 0 for value in signed):
         raise ValueError("family Divider fold contract segments must be non-zero")
-    core_segment_index = int(data.get("core_segment_index", len(material) - 2))
-    if core_segment_index < 0 or core_segment_index >= len(material):
-        raise ValueError("family Divider core_segment_index is outside the fold chain")
+    core_segment_index = _divider_family_segment_index(
+        data.get("core_segment_index", len(material) - 2),
+        field="core_segment_index", size=len(material),
+    )
+    formed_core = _finite_divider_family_number(
+        data["formed_core_depth"], field="formed_core_depth",
+    )
+    if formed_core <= 0:
+        raise ValueError("family Divider formed_core_depth must be positive")
     result_out = {
         "material_lengths": material,
         "signed_fold_chain": signed,
-        "formed_core_depth": float(data["formed_core_depth"]),
+        "formed_core_depth": formed_core,
         "core_segment_index": core_segment_index,
     }
     if data.get("frame_width_segment_index") is not None:
-        fw_index = int(data["frame_width_segment_index"])
-        if fw_index < 0 or fw_index >= len(material):
-            raise ValueError("family Divider frame_width_segment_index is outside the fold chain")
-        result_out["frame_width_segment_index"] = fw_index
+        result_out["frame_width_segment_index"] = _divider_family_segment_index(
+            data["frame_width_segment_index"],
+            field="frame_width_segment_index", size=len(material),
+        )
     return result_out
 
 
