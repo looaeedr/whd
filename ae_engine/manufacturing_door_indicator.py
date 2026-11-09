@@ -217,11 +217,17 @@ def validate_door_indicator_fit(
     mode = str(mode or "none")
     fw = float(finished_width)
     fh = float(finished_height)
-    t = float(thickness)
     if fw <= 0 or fh <= 0:
         raise ValueError("門板成品尺寸必須大於 0")
     if mode == "none":
+        # Preserve the old no-fit mode's parseable-T compatibility without
+        # imposing a new manufacturing qualification on a disabled feature.
+        float(thickness)
         return (0.0, 0.0)
+    # The same public original-source gate qualifies real sheet thickness
+    # for GUI and headless callers; float(True) must never become T=1 mm.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    t = normalize_operator_source_dimension(thickness, field="t")
 
     normalized_groups = tuple(int(v) for v in groups)
     if not normalized_groups or any(v <= 0 for v in normalized_groups):
