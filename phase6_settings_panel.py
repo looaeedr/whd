@@ -531,7 +531,12 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         ttk.Label(cell, text=spec.label).pack(anchor=tk.W)
         value = self._values_snapshot().get(spec.key, spec.default)
         if spec.kind == "bool":
-            var = tk.BooleanVar(master=cell, value=bool(value))
+            # A serialized "false" is not an enabled manufacturing setting.
+            # Reuse the Engine source gate even for a display-only checkbox.
+            var = tk.BooleanVar(
+                master=cell,
+                value=manufacturing_api.normalize_operator_settings_boolean(value),
+            )
             widget = ttk.Checkbutton(cell, text="啟用", variable=var)
         elif spec.kind == "choice" and spec.key == "ui_text_size":
             var = tk.StringVar(master=cell, value=ui_text_size_label(value))
@@ -563,7 +568,10 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         )
         value = self._values_snapshot().get(spec.key, spec.default)
         if spec.kind == "bool":
-            var = tk.BooleanVar(master=row_frame, value=bool(value))
+            var = tk.BooleanVar(
+                master=row_frame,
+                value=manufacturing_api.normalize_operator_settings_boolean(value),
+            )
             widget = ttk.Checkbutton(row_frame, text="啟用", variable=var)
             unit_text = ""
         elif spec.kind == "choice" and spec.key == "ui_text_size":
@@ -783,6 +791,23 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
 
     def sync_values(self, values: Mapping[str, object] | None = None):
         snapshot = dict(values if values is not None else self._values_snapshot())
+        # Validate every visible physical boolean before writing ANY widget.
+        # Without a preflight, a bad STOCK source could leave earlier fields
+        # updated while the manufacturing toggle is falsely shown as enabled.
+        boolean_keys = {
+            key
+            for page in self.page_cache.values()
+            for key, var in page.get("setting_vars", {}).items()
+            if isinstance(var, tk.BooleanVar)
+        }
+        boolean_keys.update(
+            key for key, var in self.left_global_vars.items()
+            if isinstance(var, tk.BooleanVar)
+        )
+        boolean_values = {
+            key: manufacturing_api.normalize_operator_settings_boolean(snapshot[key])
+            for key in boolean_keys if key in snapshot
+        }
         self._guard = True
         try:
             for page in self.page_cache.values():
@@ -795,8 +820,9 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
                         if var.get() != text:
                             var.set(text)
                     elif isinstance(var, tk.BooleanVar):
-                        if bool(var.get()) != bool(value):
-                            var.set(bool(value))
+                        validated = boolean_values[key]
+                        if var.get() != validated:
+                            var.set(validated)
                     else:
                         text = setting_number_text(value)
                         if var.get() != text:
@@ -810,8 +836,9 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
                     if var.get() != text:
                         var.set(text)
                 elif isinstance(var, tk.BooleanVar):
-                    if bool(var.get()) != bool(value):
-                        var.set(bool(value))
+                    validated = boolean_values[key]
+                    if var.get() != validated:
+                        var.set(validated)
                 else:
                     text = setting_number_text(value)
                     if var.get() != text:

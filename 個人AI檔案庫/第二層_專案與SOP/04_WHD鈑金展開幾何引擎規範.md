@@ -13,6 +13,14 @@ whd_schema: WHD_DOC_META_V1
 - GUI `phase6_settings_center.project_fold_designer_factory_snapshot` 只呼叫公開 API 並在 GUI 將 `ui_text_size` 轉成顯示選項（小/中/大）；保留既有 `SettingsService`、`load_factory_defaults_from_ae` 的 host 相容介面、舊 INI/中文選項與 Fold Designer Factory Reset。新測試 `tests/test_issue2517_factory_defaults_public_engine_api.py` 驗原始 Engine source 與 GUI/headless/JSON Reload 一致、非法值 fail-closed fallback、配置不改動、Factory 與 runtime 隔離、無 Engine 逆向 GUI 匯入。這批**不變更製造物理孔、BEND、CUTTING 或 DXF**，#2517 維持 OPEN。
 
 
+
+## [CURRENT] #2517 Vault 基準型號的 Head/Tail FW 跟隨交易歸原公開 Engine（2026-11-09）
+
+- 主 GUI `gui_modules/application/cabinet_controller.on_baseline_changed` 在已由公開 Engine 取得基準 `read_operator_baseline_fold_defaults` 後，舊程式卻直接 `setdefault` 與 `bool(item.get("follow_box"))` 修改封頭／封尾 FW：舊 JSON 字串 `"false"` 被誤認為跟隨，並由 GUI 自行決定實體 FW。基準型號刷新不是使用者明確重提「箱身 FW 接管」，不能破壞既有 `FOLLOW_HEAD / FOLLOW_TAIL / INDEPENDENT` 領導、分離狀態。
+- 現由 `manufacturing_api.commit_operator_baseline_endcap_fw`（原 `ae_engine.operator_endcap_settings_transactions` owner）實行既有四態／舊版來源交易。入口以公開 Engine 正有限 `FW`、`project_operator_endcap_fw_controls` 預檢完整 Head/Tail 列與序列化布林，再送同一 Engine `normalize_endcap_fw_state` 判定跟隨身分；僅跟隨箱身者取新基準 FW，Head/Tail 領導與獨立值維持原值。原 live dict 與既有 Head/Tail row 物件身分保留；任何非法來源在 mutation 前拒絕。GUI 只呼叫 API 與更新輸入顯示；拒絕不安排製造重繪。
+- `tests/test_issue2517_baseline_endcap_fw_original_engine_commit.py` 驗 Vault/Receiving 公開 Engine 四態、GUI Vault 事件、舊版真假字串／缺列、非法來源原子拒絕與 `.p6fold` Save→Reload 的原 Fold readback。無新 Family/幾何/DXF 公式或製造資格；完整 #2517、Windows UAT 均未因此自動宣稱完成。
+
+
 ## [CURRENT] #2517 受電箱內門 Hole Editor Confirm All 提交目標由 Engine 決策（2026-11-08）
 
 - 原 `gui_modules.application.receiving_inner_door_hole_editor.inner_door_commit_target` 在 GUI 自行決定「實體內門」與「候選版本」保存目的，並被 `fold_designer_composition_receiving` 多個入口複用。現正式權威改為 `manufacturing_api.operator_receiving_inner_door_commit_target(settings_mode)`（`ae_engine.operator_receiving_inner_door_source`），GUI helper 僅為相容轉送；所有多連／單只入口及 Confirm All 候選判斷讀同一 Engine API。
