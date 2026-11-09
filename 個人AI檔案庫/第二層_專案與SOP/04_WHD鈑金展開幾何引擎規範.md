@@ -7,6 +7,14 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 Door Grid 公開 Engine 固定欄寬／高度原始尺寸不能透過 float(bool) 變成實體 1mm（2026-11-10）
+
+- 原 Engine `ae_engine.door_layout_numeric_transitions._normalized_auto_columns` 僅驗證固定／自動旗標的原始布林與各層長度，之後 `recompute_door_layout`、`validate_width_commit`、`validate_height_commit` 在真正固定欄寬／層高上使用 `float(column.width)`／`float(row_height)`。Headless 或已保存不可信原始來源若為 `True`，會被轉成合法的 1mm 固定板寬／層高，與 `manufacturing_api.normalize_operator_door_grid_dimension` 的原本嚴格物理 W/H 規範相衝突；而且驗某一欄時，未核對的其他固定欄／層仍可能影響 `other_fixed` 與上限。
+- 依原 Engine Owner 在 **三個原有公開 API 共用的 `_normalized_auto_columns`** 對 `width_auto=False` 的固定 width 與 `height_auto=False` 的固定高度直接使用既有 `_positive_total`；非法 bool、0／負值、非有限及非數字來源必須在任何 `complete_partition`、`other_fixed` 或結果發佈前 fail closed，完全不動原始值。自動欄／自動層的儲存草稿並非實體固定尺寸，不以其 `True`／空草稿製造 1mm；仍由既有 `complete_partition` 算剩餘 W/H 與自動身份。原 tolerance=0.01、W/H／Door stable ID、Topology、Save→Reload、2D/3D/CUTTING/DXF Factory、Family 補償及外部認證全部不變。
+- 定向 `tests/test_issue2517_door_grid_engine_fixed_mm_raw_source.py` 檢查三個公開 Engine 入口對固定來源非法型別均原子拒絕、有效小數經 JSON Save→Reload 後物理 cell／DXF key 相同、自動未使用草稿不污染固定料尺寸。#2517 全面覆蓋和 Windows UAT 仍 OPEN。
+
+
+
 ## [CURRENT] #2517 多門格 W/H 即時提交目標索引與已提交快取不可由 GUI Python 強制轉型（2026-11-10）
 
 - 原 GUI `gui_modules.application.door_layout_host_adapter.commit_door_layout_width/height` 在呼叫已存在公開 Engine `validate_door_layout_width_commit/height_commit` **之前**，先以 `door_layout_columns[column_index]`、`height_vars[row_index]` 讀取物理格子與 `float(width_committed/height_committed)` 做錯誤回復。Python `True`、`-1`、`0.5` 等無效／過期 callback，可能先讀錯欄／列、改寫錯誤 Entry 或直接丟 `IndexError`；壞快取布林 `True` 可被 `float` 變成合法 1mm，與 Engine W/H 嚴格來源不同。
