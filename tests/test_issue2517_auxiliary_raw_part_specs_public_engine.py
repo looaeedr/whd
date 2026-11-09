@@ -54,7 +54,8 @@ def test_headless_legacy_baseplate_preserves_valid_source_and_reload():
 def test_headless_auxiliary_part_spec_rejects_original_invalid_source(key, bad):
     values = _base_values()
     values[key] = bad
-    original = deepcopy(values)
+    # Retain original object identities for invalid raw values, including object().
+    original = dict(values)
     with pytest.raises((ValueError, TypeError, OverflowError)):
         api.build_base_plate_operator_part_spec(values, features=())
     assert values == original
