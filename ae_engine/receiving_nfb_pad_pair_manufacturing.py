@@ -184,6 +184,11 @@ def export_verified_pad_base_part_only(
             or type(box_count) is not int or box_count<=0
             or not isinstance(parameters,ManufacturingParameters)):
         raise ValueError("PAD_PAIR_VERSION_COUNT_OR_PROCESS_REQUIRED")
+    # Reject an untrusted batch sheet T before expensive PAD/Base geometry
+    # certification or any CHECK/Q output staging. Headless callers must
+    # satisfy the same physical-source rule as the GUI.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    normalize_operator_source_dimension(parameters.thickness, field="t")
     records, physical = verified_pad_base_physical_sheets(
         snapshot, assembly_parts,
     )

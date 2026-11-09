@@ -804,13 +804,19 @@ def export_receiving_pad_base_part_only_dxf(self):
         # manufacturing identity. UI supplies material, process and Q only.
         selected = manufacturing_api.resolve_receiving_pad_base_export_source(snapshot)
         snapshot, version_id = selected.snapshot, selected.version_id
+        # A Quantity version may project a different committed source than
+        # the root. Validate its raw physical T before choosing an output path
+        # or creating ManufacturingParameters; float(True) is never 1 mm.
+        sheet_t = manufacturing_api.normalize_operator_source_dimension(
+            snapshot.get("t"), field="t",
+        )
         root=filedialog.askdirectory(title="選擇 PAD＋底板 CHECK/Q 輸出資料夾")
         if not root:
             return
         output=Path(root)/(manufacturing_api.safe_dxf_part_stem(version_id)+"__PAD_BASE_PAIR_CHECK_Q")
         result=manufacturing_api.export_verified_pad_base_part_only(
             snapshot,parts,output,version_id=version_id,box_count=qty,
-            parameters=manufacturing_api.ManufacturingParameters(material,float(snapshot["t"]),process),
+            parameters=manufacturing_api.ManufacturingParameters(material,sheet_t,process),
         )
     except (ValueError, TypeError, KeyError, FileExistsError, OSError) as exc:
         messagebox.showerror("PAD＋底板無法製造輸出", str(exc))
