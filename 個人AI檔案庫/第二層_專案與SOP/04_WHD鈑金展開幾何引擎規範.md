@@ -12,6 +12,12 @@ whd_schema: WHD_DOC_META_V1
 - 現以 `manufacturing_api.project_operator_single_door_indicator_mode(box_enabled, door_indicator_enabled)`（原 `ae_engine.door_operator_part_spec` owner）使用既有嚴格 `normalize_operator_settings_boolean` 驗證原生／序列化旗標，回傳 `none`／`indicator_box`／`indicator`／`both` 模式；雙真時保留既有盒孔＋直接指示燈同源模式，非法旗標則在預覽／PartSpec 前拒絕。GUI 只依 Engine 模式收集已啟用的層組資料，開孔尺寸仍走原 `indicator_box_opening_size` 公開 API，主門 `build_door_operator_part_spec` 與實體 DXF 同源，不另寫模式／幾何公式。
 - 新測試 `tests/test_issue2517_single_door_indicator_mode_engine.py` 覆蓋 GUI/headless、原始與 JSON Reload 同義、`"false"` 不誤生孔、合法雙真組合原樣保留、非法來源繪圖前拒絕及單一模式共用原 PartSpec。這是主 GUI 單門 2D 模式來源 hardening，並未更動多門格既有 Mode／製造認證、CUTTING/BEND/DXF 算法；#2517 全功能 API 覆蓋仍維持 OPEN。
 
+## [CURRENT] #2517 Door Indicator fit 的原始層組數與偏移只經 Engine 一致驗證（2026-11-09）
+
+- 既有公開 `manufacturing_api.validate_door_indicator_fit` 原先對直接 headless / GUI 操作 `groups` 以 `int(v)` 轉成物理孔群數，`True` 與 `2.5` 等來源會分別被製造成 1、2 組；X/Y offset 亦直接 `float(...)`，NaN/Inf 或 bool 可在 fit 的 bbox 比對中避開合法邊界。GUI 前段已有來源 gate 不能代替公開 Engine 本體的最終資格檢查。
+- 在原 `ae_engine.manufacturing_door_indicator.validate_door_indicator_fit` 啟用的 `indicator`、`indicator_box` 路徑中重用 Engine 現有 `normalize_fold_designer_indicator_groups(groups)` 與 `normalize_fold_designer_indicator_offsets(x,y)`；不再自行整數截斷或造偏移，保留合法的原生整數／JSON 數字字串、實體負偏移與小數精度。停用 `none` 模式仍不製造/檢查任何隱藏組數與偏移；不變更真實幾何/Factory Policy。
+- `tests/test_issue2517_door_indicator_fit_raw_layout_engine.py` 驗 GUI/headless 非法組數與非有限／布林偏移無幾何和提交、合法來源等價、JSON 不被改寫及停用相容。與原物理 T gate 組成同一 public fit Engine 契約，不新增第二條製造路徑、CADSplit 專用 API 或 source-only 外部出圖認證；#2517 全面覆蓋與 Windows UAT 尚待驗收。
+
 ## [CURRENT] #2517 Door Indicator fit 的實體板厚原始來源必須經公開 Engine 驗證（2026-11-09）
 
 - GUI `HoleEditorIndicatorFitValidation.validate` 在正式 fit 檢查前原先透過 `float(door_thickness_provider() or 0.0)` 轉換物理 T；同一公開 `manufacturing_api.validate_door_indicator_fit` 在 `manufacturing_door_indicator` 仍直接 `float(thickness)`，使 `True` 被視為 1 mm、NaN/Inf 可能流入指示燈盒製造尺寸。這是有實體 Indicator Box 的 Door live fit 來源資格缺口，不能由 GUI 預先轉型填補。

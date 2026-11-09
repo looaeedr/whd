@@ -229,10 +229,15 @@ def validate_door_indicator_fit(
     from .operator_settings_transactions import normalize_operator_source_dimension
     t = normalize_operator_source_dimension(thickness, field="t")
 
-    normalized_groups = tuple(int(v) for v in groups)
-    if not normalized_groups or any(v <= 0 for v in normalized_groups):
-        raise ValueError("指示燈層/組數必須大於 0")
-    ox, oy = float(offset[0]), float(offset[1])
+    # Use the same original-source qualification as the saved Door and
+    # Hole Editor contracts; int(True)/int(2.5) and nonfinite offsets must
+    # not become canonical physical hole layouts in a direct headless call.
+    from .fold_designer_snapshot_dimensions import (
+        normalize_fold_designer_indicator_groups,
+        normalize_fold_designer_indicator_offsets,
+    )
+    normalized_groups = normalize_fold_designer_indicator_groups(groups)
+    ox, oy = normalize_fold_designer_indicator_offsets(offset[0], offset[1])
     tol = 1e-6
 
     if mode == "indicator":
