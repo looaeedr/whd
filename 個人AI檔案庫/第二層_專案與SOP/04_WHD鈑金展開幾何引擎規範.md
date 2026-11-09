@@ -13,6 +13,23 @@ whd_schema: WHD_DOC_META_V1
 - `tests/test_issue2517_receiving_bay_live_fractional_readback_engine.py` 包含真 Engine ReceivingLayout decimal Bay readback、兩模式狀態／JSON Reload 同源、非法 bool/NaN/Inf/非正 W/H/D 在所有 GUI 副作用之前拒絕、實際 Fold Bridge legacy renderer 小數一致、非法來源不繪圖與 source guard。此增量不代表 #2517 全面覆蓋或 Windows UAT 已完成。
 
 
+
+
+## [CURRENT] #2517 EndCap BOTTOM WRAP 新交易啟用旗標一律由公開 Engine 嚴格驗證（2026-11-09）
+
+- 原 `ae_engine.endcap_bottom_wrap_state.commit_endcap_bottom_wrap_joint` 及 `commit_endcap_bottom_wrap(..., enabled=...)` 在**新操作提交**前以 `bool(enabled)` 決定 BOTTOM Joint WRAP／INSERT 與 Head/Tail Linked/FOLLOW/INDEPENDENT 已存啟用狀態；因此 JSON／Tk 原始字串 `"false"` 會被當成 True，實際可能建立錯誤 BOTTOM WRAP 關係。這不是舊版顯示問題，而是實體 Joint／下方截角相關的製造來源資格。
+- 現統一由 Engine 既有 `operator_settings_transactions.normalize_operator_settings_boolean` 在任何新交易改動前驗證原始啟用值：原生 bool、合法序列化 true/false/on/off/1/0 維持相同製造語意；未知值、NaN/Inf 或容器 fail closed，不得部分改寫 Head/Tail。GUI `phase6_endcap_semantics` 僅保留相同公開 API 轉送，不增加 GUI 條件或物理計算。
+- **歷史儲存來源的 `normalize_endcap_bottom_wrap_state`／`resolve_endcap_bottom_wrap` 柔性讀回與 Joint Graph 優先規則維持不變**，不能將新操作的嚴格驗證反向強套已保存相容資料；原有 WRAP reserve、Family、BEND/CUTTING、Assembly/FinalScene、Save→Reload 和 DXF owner 不變。定向 `tests/test_issue2517_endcap_bottom_wrap_enabled_public_engine.py` 驗公開 Joint relation、兩側跟隨、非法來源原子拒絕及序列化回讀。#2517 仍 OPEN。
+
+
+
+## [CURRENT] #2517 單門 Hole Editor 已停用指示燈的顯示修復與層數上限只歸 Engine（2026-11-09）
+
+- 主 GUI `gui_modules.project.export_actions._single_door_indicator_state_snapshot` 舊版在指示燈 `mode=none` 時，直接 `int`、`float`、`bool` 修補層數、群組、偏移及箱距旗標。序列化 `"false"` 會被 `bool` 變成真，損壞的非物理舊設定可能在開 Hole Editor 前拋錯或因不足六個群組而失敗。這是已停用欄位的顯示相容處理，不是合法實體加工來源。
+- 現改將原始 inactive 控制值直接交公開 `manufacturing_api.project_operator_door_indicator_display_state(raw, legacy_inactive_single_door=True)`（仍由原 `ae_engine.fold_designer_snapshot_dimensions` Owner 維護）。該顯示-only 選項保留單門 Hole Editor 舊版層數 `max(1,min(6,int(value)))` 的 **1–6 上下限顯示**（例如已停用層數 9 顯示 6）；一般既有 display API 預設值與多門格行為不變。損壞層組、偏移改由同一 Engine 顯示投影柔性回復；已停用原始來源不改寫。啟用 `indicator/indicator_box` 時仍使用嚴格 `normalize_operator_hole_editor_indicator_state`，不得把 display 投影當已核准孔位或 Save／CUTTING／DXF。
+- 原 `tests/test_issue2517_single_door_indicator_live_source_engine_api.py` 的 9→6 舊行為由 Engine 保留；新增 `tests/test_issue2517_single_door_inactive_indicator_display_engine.py` 驗 raw false/true、上限、異常／少量舊欄位與 enabled fail-closed，並由 exact HEAD CI 驗證。此批無新實體板件、孔位、Fold、Factory、DXF 或外部製造資格；#2517 全面覆蓋仍 OPEN。
+
+
 ## [CURRENT] #2517 Receiving Bay W/H/D 實體相依板件重建採用原 Engine 交易變更回報（2026-11-09）
 
 - 原 `gui_modules.application.fold_designer_composition_receiving.commit_receiving_current_bay_controls` 先以三筆 `normalize_operator_source_dimension` 驗證 GUI 操作值，但隨後在 GUI 做 `any(float(current_bay[key]) != float(value) ...)`，自行判斷是否應重建 Divider／InnerDoor。這個決策與實際 Engine 儲存交易不在同一個來源；若兩者語意演進不同，即使 Engine 改變 Bay Topology，GUI 仍可能錯誤跳過相關實體重新推導。
