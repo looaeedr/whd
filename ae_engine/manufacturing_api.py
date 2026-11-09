@@ -1883,6 +1883,7 @@ def project_physical_solid_mesh_display_segments(triangles, *, mode, tolerance=1
 
 from .door_operator_part_spec import (
     normalize_operator_door_nameplate_center_datum_top,
+    project_operator_single_door_indicator_mode,
 )
 
 
