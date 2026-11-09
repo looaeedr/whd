@@ -1192,12 +1192,16 @@ class Phase6ApplicationHost:
         if canvas is None:
             return None
 
-        multi_door_var = getattr(self, "multi_door_enabled_var", None)
-        multi_door_enabled = bool(
-            multi_door_var is not None
-            and callable(getattr(multi_door_var, "get", None))
-            and multi_door_var.get()
-        )
+        # A serialized "false" is not an active multi-door physical view.
+        # Only a Door-cell view consumes this operator flag; other parts must
+        # not be blocked by stale/unused multi-door UI state.
+        multi_door_enabled = False
+        if key.startswith("door_c"):
+            multi_door_var = getattr(self, "multi_door_enabled_var", None)
+            if multi_door_var is not None and callable(getattr(multi_door_var, "get", None)):
+                multi_door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+                    multi_door_var.get()
+                )
         if key.startswith("door_c") and multi_door_enabled:
             designer = getattr(self, "fold_designer_app", None)
             if designer is not None:
