@@ -143,9 +143,22 @@ def _normalized_auto_columns(columns: Sequence[DoorLayoutColumnState]) -> tuple[
             height_auto = tuple(normalize_operator_settings_boolean(flag) for flag in flags)
         except (TypeError, ValueError) as exc:
             raise ValueError("DOOR_LAYOUT_AUTO_SOURCE_INVALID") from exc
+        # Raw fixed dimensions are physical sources in all three public
+        # Door transactions. float(True) silently fabricated a 1-mm plate;
+        # qualify them *before* any partition or other-fixed calculation.
+        # Auto placeholders are not fixed materials: their actual W/H is
+        # still computed by the original complete_partition solver.
+        width = (
+            _positive_total("欄寬", column.width)
+            if not width_auto else column.width
+        )
+        verified_heights = tuple(
+            _positive_total("高度", value) if not is_auto else value
+            for value, is_auto in zip(heights, height_auto)
+        )
         normalized.append(DoorLayoutColumnState(
-            width=column.width, width_auto=width_auto,
-            heights=heights, height_auto=height_auto,
+            width=width, width_auto=width_auto,
+            heights=verified_heights, height_auto=height_auto,
         ))
     return tuple(normalized)
 
