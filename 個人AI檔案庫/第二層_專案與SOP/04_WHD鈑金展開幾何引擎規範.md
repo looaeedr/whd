@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Door Indicator fit 的實體板厚原始來源必須經公開 Engine 驗證（2026-11-09）
+
+- GUI `HoleEditorIndicatorFitValidation.validate` 在正式 fit 檢查前原先透過 `float(door_thickness_provider() or 0.0)` 轉換物理 T；同一公開 `manufacturing_api.validate_door_indicator_fit` 在 `manufacturing_door_indicator` 仍直接 `float(thickness)`，使 `True` 被視為 1 mm、NaN/Inf 可能流入指示燈盒製造尺寸。這是有實體 Indicator Box 的 Door live fit 來源資格缺口，不能由 GUI 預先轉型填補。
+- 現在 GUI 僅直傳操作來源，Engine 在啟用的 Indicator／IndicatorBox fit 分支、任何正式製造幾何前，重用原有 `operator_settings_transactions.normalize_operator_source_dimension(thickness, field="t")` 驗證正有限、非 bool 實體 T；合法小數／JSON 字串維持原精度。停用 `mode="none"` 不製造孔位；保留其原 no-fit 操作，不另創 Family、Set/Bay 或第二套幾何公式。
+- `tests/test_issue2517_door_indicator_fit_raw_thickness_engine.py` 驗公共 headless 和真 GUI 同步拒絕錯誤原始 T 且不進行 AE 幾何、停用 Confirm、合法小數同一 fit 結果、JSON 原來源不變及停用模式。這批不改合法 CUTTING/BEND/DXF 幾何或放行 source-only 外部 CLI。#2517 全面 GUI API 覆蓋及 Windows UAT 仍待驗。
+
 ## [CURRENT] #2517 BasePlate／IndicatorBox PartSpec 與 2D 快照保留原始物理來源至 Engine（2026-11-09）
 
 - 原 `ae_engine.operator_auxiliary_part_specs.build_base_plate_operator_part_spec`、`build_indicator_box_operator_part_spec` 以及 Fold Designer BasePlate legacy source 仍以 `float()` 在公開 PartSpec 組裝前轉換原始 W/H/T/FW、縮量／折邊；原生 `True` 會變成物理 1 mm，NaN／Inf 亦可能進入幾何。單門及底板 `gui_modules.application.render_snapshots` 在 Engine 收到前還先 `float()`，讓原始非法型別失去來源證據。
