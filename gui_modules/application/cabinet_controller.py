@@ -374,19 +374,22 @@ def on_baseline_changed(self):
             val, thickness=t_val,
         )
         p = baseline_folds["endcap"]
-        
+        # Baseline selection is NOT a manual box-FW takeover. The public
+        # Engine validates both saved FW rows and their four-state authority
+        # before any baseline dimension widget is changed.
+        manufacturing_api.commit_operator_baseline_endcap_fw(
+            self.endcap_fw_state, p["fw"],
+        )
+
         self.yl1_var.set(f"{p['yl1']:.1f}".replace(".0", ""))
         self.yr1_var.set(f"{p['yr1']:.1f}".replace(".0", ""))
         self.ytop1_var.set(f"{p['ytop1']:.1f}".replace(".0", ""))
         self.ybottom1_var.set(f"{p['ybottom1']:.1f}".replace(".0", ""))
         # 基準檔更新箱身 FW；封頭尾只有仍在「跟隨箱身」時同步。
-        fw_val = f"{p['fw']:.1f}".replace(".0", "")
+        # Preserve the Engine's physical-mm precision in the editable
+        # box-FW field; the old one-decimal display silently changed 29.125.
+        fw_val = str(p["fw"]).removesuffix(".0")
         self.fw_z_var.set(fw_val)
-        box_fw = float(p['fw'])
-        for part in ("head", "tail"):
-            state = self.endcap_fw_state.setdefault(part, {"follow_box": True, "value": box_fw})
-            if bool(state.get("follow_box", True)):
-                state["value"] = box_fw
         self._sync_endcap_fw_controls()
         
         # 2. 箱身主結構固定由 StripFoldChain 公式控制。
@@ -401,6 +404,9 @@ def on_baseline_changed(self):
             self.door_fold_b_var.set(f"{pd['door_fold_b']:.1f}".replace(".0", ""))
     except Exception as e:
         messagebox.showerror("基準檔載入出錯", f"無法讀取基準檔參數: {e}")
+        # Rejected FW/loaded source must not schedule a manufacturing redraw
+        # against partially entered baseline fields.
+        return
 
     # Known-family return must publish the rebuilt Box Body, not just restore
     # dimension widgets. Receiving/custom paths request their own redraw above;
