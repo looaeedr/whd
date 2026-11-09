@@ -146,10 +146,16 @@ def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
     )
 
 def _end_cap_part_spec(self, val, *, is_tail):
+    # A missing/invalid physical box FW is not a factory-25-mm EndCap.
+    # Qualify the original manufacturing source with the public Engine before
+    # reading profiles or manufacturing any Head/Tail PartSpec.
+    box_fw = manufacturing_api.normalize_operator_source_dimension(
+        val.get("fw"), field="fw",
+    )
     key = "tail" if is_tail else "head"
     stored_profiles = self.workspace_controller.profile_for(key)
     local_val = dict(val)
-    local_val["fw"] = self._effective_endcap_fw(key, val.get("fw", 25.0))
+    local_val["fw"] = self._effective_endcap_fw(key, box_fw)
     stored_profiles = _endcap_profiles_for_assembly(
         local_val, stored_profiles, self._current_box_assembly_type(), key
     )
