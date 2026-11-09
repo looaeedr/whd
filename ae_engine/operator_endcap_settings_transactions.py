@@ -189,6 +189,7 @@ def commit_operator_endcap_fw_profile_save(
     from .cabinet_types import policy as cabinet_family_policy
     from .endcap_factory_fold import (
         project_operator_endcap_fw_controls, resolve_endcap_fw,
+        commit_operator_endcap_fw_value,
     )
     from .endcap_xy_readback import fold_material_segment_outside_length
     from .operator_settings_transactions import normalize_operator_settings_updates
