@@ -103,13 +103,14 @@ def test_gui_is_only_transport_and_engine_cannot_import_gui(monkeypatch, tmp_pat
     called = []
     def fake(ae_module, values, *, relief_changes=None):
         called.append((ae_module, dict(values), dict(relief_changes or {})))
-    monkeypatch.setattr(api, "apply_operator_legacy_runtime_manufacturing_policies", fake)
+    monkeypatch.setattr(owner, "apply_operator_legacy_runtime_manufacturing_policies", fake)
     host = _host(tmp_path)
     gui.apply_settings_to_ae(host, {"hang_hole_r": 7.25, "relief_bottom_y_factor": 0.9})
     assert called == [(host, {"hang_hole_r": 7.25, "relief_bottom_y_factor": 0.9},
                        {"bottom_y_factor": 0.9})]
     raw = inspect.getsource(gui.apply_settings_to_ae)
-    assert "manufacturing_api.apply_operator_legacy_runtime_manufacturing_policies(" in raw
+    assert "manufacturing_api.apply_operator_runtime_settings_to_ae(" in raw
+    assert "setattr(" not in raw
     assert "VAULT_ENDCAP_FEATURE_POLICY" not in raw
     assert "base_plate_shrink_def" not in raw
     assert "RELIEF_CONFIG" not in raw
