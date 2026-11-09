@@ -15,6 +15,7 @@ from ae_engine import manufacturing_api as api
 from ae_engine.door_layout_numeric_transitions import (
     DoorLayoutColumnState,
     _normalized_auto_columns,
+    recompute_door_layout as original_recompute,
 )
 
 
@@ -140,5 +141,7 @@ def test_one_engine_source_validator_precedes_all_fixed_dimension_float_casts():
     normalizer = inspect.getsource(_normalized_auto_columns)
     assert '_positive_total("欄寬",' in normalizer
     assert '_positive_total("高度",' in normalizer
-    engine = inspect.getsource(api.recompute_door_layout)
+    engine = inspect.getsource(original_recompute)
     assert "columns = _normalized_auto_columns(columns)" in engine
+    facade = inspect.getsource(api.recompute_door_layout)
+    assert "from .door_layout_numeric_transitions import recompute_door_layout as compute" in facade
