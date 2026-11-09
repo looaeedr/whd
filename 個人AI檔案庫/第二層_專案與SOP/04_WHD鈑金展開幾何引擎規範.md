@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Engine runtime Settings 部分欄位提交不得洩漏未選取的實體策略（2026-11-09）
+
+- `manufacturing_api.apply_operator_runtime_settings_to_ae(ae_module, values, *, keys=...)` 已把 GUI 與 headless 的 AE runtime 製造提交歸原 Engine；但原實作只在 scalar 階段檢查 `keys`，其後把整份原始 `values` 交給舊 Vault EndCap 固定孔與 BasePlate 四邊相等相容策略。未選取的四邊縮量因此可能自行寫入 `base_plate_shrink_def`，或在其他合法欄位已提交後才因無效值報錯；未選取的掛孔欄位也會觸發非本次交易的政策重建。
+- Engine 原 `ae_engine.operator_settings_transactions` owner 現只將**已選取且全部通過原 Engine 驗證**的正規化欄位交予 `apply_operator_legacy_runtime_manufacturing_policies`；保留已選取固定孔、Relief、四邊等值的舊製造行為與既有欄位 schema，未選取來源不得參與任何實體政策副作用。GUI adapter 只傳原操作欄位，不新增第二套判斷。
+- `tests/test_issue2517_runtime_settings_engine_commit_api.py` 增加實際 GUI/headless 相同 `keys` 的無效/有效未選取四向縮量、固定孔隔離與選取非法來源的原子拒絕測試；此次不改 Family、CUTTING、BEND、DXF 計算或外部 source-only CLI。#2517 全面覆蓋與 Windows UAT 仍未完成。
+
 ## [CURRENT] #2517 AE runtime Settings 的實體屬性寫入交易由公開 Engine 決策（2026-11-09）
 
 - 原 `phase6_settings_center.apply_settings_to_ae` 儘管以 `_coerce` 經公開 Engine 驗來源，仍在 GUI/Phase6 層自行按 `SettingSpec.runtime_attr/relief_attr` 將製造值 `setattr(ae_module, ...)`，再呼叫既有 `apply_operator_legacy_runtime_manufacturing_policies`；此段屬製造狀態提交權責，不只是呈現。
