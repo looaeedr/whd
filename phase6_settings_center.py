@@ -235,30 +235,20 @@ def _selected_specs(context: str | None = None, keys: Iterable[str] | None = Non
 
 
 def apply_settings_to_ae(ae_module, values: Mapping[str, object], *, keys: Iterable[str] | None = None) -> None:
-    """Mirror committed runtime settings into the already-imported AE module.
+    """Forward committed operator Settings to the Engine runtime transaction.
 
-    This does not write config.ini. New main-GUI production paths call it through
-    ``SettingsService.update``; the function remains public for legacy callers.
+    The GUI selects known input fields only; Engine validates every physical
+    value and applies the AE scalar, Relief and fixed-hole policy together.
+    This does not write config.ini or infer manufacturing from UI state.
     """
     specs = _selected_specs(keys=keys) if keys is not None else tuple(
         _SPEC_BY_KEY[k] for k in values.keys() if k in _SPEC_BY_KEY
     )
-    # Validate every supplied scalar before touching the shared AE runtime.
-    # One invalid Fold/Hole/Relief value cannot partially commit other fields.
-    normalized = tuple(
-        (spec, _coerce(spec, values[spec.key]))
-        for spec in specs if spec.key in values
+    selected_keys = tuple(spec.key for spec in specs if spec.key in values)
+    manufacturing_api.apply_operator_runtime_settings_to_ae(
+        ae_module, values, keys=selected_keys,
     )
-    relief_changes = {}
-    for spec, value in normalized:
-        if spec.relief_attr:
-            relief_changes[spec.relief_attr] = value
-        elif spec.runtime_attr:
-            setattr(ae_module, spec.runtime_attr, value)
 
-    manufacturing_api.apply_operator_legacy_runtime_manufacturing_policies(
-        ae_module, values, relief_changes=relief_changes,
-    )
 
 def _format_ini_value(spec: SettingSpec, value: object) -> str:
     if spec.kind == "bool":
