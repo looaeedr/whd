@@ -5,10 +5,9 @@ Projection only: authoritative state remains owned by the existing controllers/s
 from copy import deepcopy
 import tkinter as tk
 
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bottom_wrap_state
-from phase6_settings_center import load_factory_defaults_from_ae
+from phase6_settings_center import project_fold_designer_factory_snapshot
 
 def _read_snapshot_numeric_control(
     var, fallback=0.0, *, physical_field=None, fold_field=None,
@@ -166,7 +165,7 @@ def _snapshot_base_state(self):
     snapshot["corner_type_labels"] = dict(corner_catalog.labels)
     snapshot["baseline_models"] = baseline_models
     snapshot["baseline_unknown_value"] = corner_catalog.custom_model_name
-    snapshot["factory_defaults"] = load_factory_defaults_from_ae(ae)
+    snapshot["factory_defaults"] = project_fold_designer_factory_snapshot()
     designer = getattr(self, "fold_designer_app", None)
     stored = (
         getattr(designer, "_phase6_input_snapshot", None)
