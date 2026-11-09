@@ -111,11 +111,12 @@ def test_real_gui_factory_passes_engine_validated_angle_into_original_feature_bu
     assert all(title == "開孔錯誤" for title, _ in errors)
 
 
-def _action_host(*, x=50., y=50., w=32., h=14.):
+def _action_host(*, x=50., y=50., w=32., h=14., selected=True):
     original = hole(x=x, y=y, w=w, h=h)
     features = [original]
     session = Phase6HoleEditorSession("door", features)
-    session.execute(HoleEditorAction.select(0))
+    if selected:
+        session.execute(HoleEditorAction.select(0))
     ui = SimpleNamespace(value="360°", set=lambda value: setattr(ui, "value", value))
     events = []
     surface = feature_surface_from_rect("door", Vec2(0., 0.), Vec2(100., 100.))
@@ -166,8 +167,7 @@ def test_rotation_that_exceeds_surface_keeps_selected_feature_and_control_unchan
 
 
 def test_no_selected_feature_preserves_toolbar_insert_angle_intent():
-    actions, features, session, ui, events = _action_host()
-    session.execute(HoleEditorAction.select(-1))
+    actions, features, session, ui, events = _action_host(selected=False)
     original = deepcopy(features)
     actions.rotate_selected(270)
     assert ui.value == "270°"
