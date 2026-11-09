@@ -14,6 +14,13 @@ whd_schema: WHD_DOC_META_V1
 
 
 
+## [CURRENT] #2517 Receiving 新 Family 實體 T 不可被 float／2 mm fallback 偽造（2026-11-09）
+
+- `ae_engine.cabinet_types.receiving.apply_family_defaults` 是主 GUI `operator_apply_fresh_family_defaults` 與 headless Family Transition 共用的原 Engine Policy owner。先前 `float(result.get("t", 2.0))` 會將原生布林 `True` 轉成 T1、放行 NaN/Inf，或將明確存在但格式錯誤的 T 靜默改成 2 mm，接著產生實體內門／隔板來源；這不是合法的物理來源驗證。
+- 現在原 Family owner 重用公開 `normalize_operator_source_dimension(..., field="t")`，在生成 `default_inner_doors` 及任何新 Receiving Set/Bay 前拒絕明確非法 T；合法小數與合法數字字串保留原值。**只有來源真正缺少欄位 `t`** 的歷史新 Family 路徑才維持原 2 mm default；不透過 GUI、測試資料或另一個 Factory 公式猜 T。
+- `tests/test_issue2517_receiving_fresh_family_t_engine_source.py` 覆蓋 public API 原始 owner、非法 T 並未進入內門物理推導、毫米小數、缺席舊版相容、Family Transition／真實 GUI 事件原子拒絕及 JSON Save→Reload。未修改 CUTTING／BEND／DXF 算法或 source-only CLI 認證；#2517 全面 API 覆蓋與 Windows UAT 仍保持未完成。
+
+
 ## [CURRENT] #2517 Vault 基準型號的 Head/Tail FW 跟隨交易歸原公開 Engine（2026-11-09）
 
 - 主 GUI `gui_modules/application/cabinet_controller.on_baseline_changed` 在已由公開 Engine 取得基準 `read_operator_baseline_fold_defaults` 後，舊程式卻直接 `setdefault` 與 `bool(item.get("follow_box"))` 修改封頭／封尾 FW：舊 JSON 字串 `"false"` 被誤認為跟隨，並由 GUI 自行決定實體 FW。基準型號刷新不是使用者明確重提「箱身 FW 接管」，不能破壞既有 `FOLLOW_HEAD / FOLLOW_TAIL / INDEPENDENT` 領導、分離狀態。
