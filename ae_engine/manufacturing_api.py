@@ -2194,6 +2194,23 @@ def build_receiving_factory_confirmed_parts(
     )
 
 
+def build_receiving_factory_confirmed_inner_door_frames(
+    source_dimensions, *, confirmation=None, confirmed_door_layout_columns=(),
+):
+    """Public fresh-Receiving source -> canonical inner-door A/B/D frame parts.
+
+    This is the same Family/Topology derivation consumed by the WHD GUI.
+    Rendering and verified DXF output remain the existing Engine public APIs.
+    """
+    from .receiving_factory_requests import (
+        build_receiving_factory_confirmed_inner_door_frames as build,
+    )
+    return build(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+
+
 # #2517: GUI only requests the existing committed CSV physical pair source.
 # The underlying NFB source/PartSpec identities stay inside Engine.
 from .receiving_nfb_committed_final_scene import (
