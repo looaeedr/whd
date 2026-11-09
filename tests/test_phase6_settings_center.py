@@ -97,6 +97,53 @@ def test_save_part_defaults_preserves_unknown_ini_content_and_writes_specific_sh
     assert cfg.getfloat("BASE_PLATE", "bend") == 18.0
 
 
+
+@pytest.mark.parametrize("unused_edge", [49.375, "invalid-unselected"])
+def test_subset_base_plate_ini_save_does_not_change_unselected_shared_shrink(
+    tmp_path, unused_edge,
+):
+    """Persisting bend alone cannot change a physical shrink from snapshot rows."""
+    ae = _fake_ae(tmp_path)
+    values = load_settings_from_ae(ae)
+    values.update({
+        "base_plate_bend": 18.125,
+        "base_plate_shrink_top": unused_edge,
+        "base_plate_shrink_bottom": unused_edge,
+        "base_plate_shrink_left": unused_edge,
+        "base_plate_shrink_right": unused_edge,
+    })
+    save_defaults_to_ini(
+        ae, values, context="base_plate", keys=("base_plate_bend",),
+    )
+    persisted = configparser.ConfigParser()
+    persisted.read(ae.INI_PATH, encoding="utf-8")
+    assert persisted.getfloat("BASE_PLATE", "bend") == 18.125
+    assert persisted.getfloat("BASE_PLATE", "shrink") == 55.0
+    assert not persisted.has_option("BASE_PLATE", "shrink_top")
+    assert ae.base_plate_bend_def == 18.125
+    assert ae.base_plate_shrink_def == 55.0
+    restored = load_settings_from_ae(ae)
+    assert restored["base_plate_shrink_top"] == 55.0
+    assert restored["base_plate_shrink_right"] == 55.0
+
+
+def test_four_selected_equal_base_plate_edges_still_write_legacy_shared_ini(tmp_path):
+    ae = _fake_ae(tmp_path)
+    values = load_settings_from_ae(ae)
+    edge_keys = (
+        "base_plate_shrink_top", "base_plate_shrink_bottom",
+        "base_plate_shrink_left", "base_plate_shrink_right",
+    )
+    values.update({key: "49.375" for key in edge_keys})
+    save_defaults_to_ini(ae, values, context="base_plate", keys=edge_keys)
+    persisted = configparser.ConfigParser()
+    persisted.read(ae.INI_PATH, encoding="utf-8")
+    assert persisted.getfloat("BASE_PLATE", "shrink") == 49.375
+    assert ae.base_plate_shrink_def == 49.375
+    restored = load_settings_from_ae(ae)
+    assert all(restored[key] == 49.375 for key in edge_keys)
+
+
 def test_save_global_defaults_updates_runtime_ae_and_relief_without_touching_part_values(tmp_path):
     ae = _fake_ae(tmp_path)
     values = load_settings_from_ae(ae)
