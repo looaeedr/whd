@@ -29,23 +29,40 @@ class HoleEditorSessionFactory:
 class HoleEditorLiveContext:
     """Transient live CAD context shared by editor handlers; never committed state."""
 
+    @staticmethod
+    def _validated_face_dimensions(width, height):
+        # Physical finished-face sizes belong to the public Engine contract.
+        # Do not turn bool(True), NaN or missing source into apparent mm.
+        return (
+            manufacturing_api.normalize_operator_source_dimension(width, field="w"),
+            manufacturing_api.normalize_operator_source_dimension(height, field="h"),
+        )
+
     def __init__(
         self, *, feature_list, surface, width, height, reference_guide,
         baseline_scene, part_key,
     ):
+        qualified_width, qualified_height = self._validated_face_dimensions(
+            width, height,
+        )
         self.feature_list = feature_list
         self.surface = surface
-        self.width = float(width)
-        self.height = float(height)
+        self.width = qualified_width
+        self.height = qualified_height
         self.reference_guide = reference_guide
         self.baseline_scene = baseline_scene
         self.part_key = part_key
 
     def apply(self, context):
+        # Stage and validate the complete physical source before changing the
+        # live Feature/context references that feed Hole Editor and 2D preview.
+        qualified_width, qualified_height = self._validated_face_dimensions(
+            context["width"], context["height"],
+        )
         self.feature_list = context["feature_list"]
         self.surface = context["surface"]
-        self.width = float(context["width"])
-        self.height = float(context["height"])
+        self.width = qualified_width
+        self.height = qualified_height
         self.reference_guide = context["reference_guide"]
         self.baseline_scene = context.get("baseline_scene")
         if context.get("part_key") is not None:
@@ -89,11 +106,6 @@ class HoleEditorContextSwitcher:
         self.redraw = redraw
 
     def switch(self, context_key):
-        if self.hole_session.has_active_edit:
-            self.cancel_active_edit()
-        if self.insert_mode[0]:
-            self.insert_mode[0] = False
-            self.insert_button.configure(text="插入", bg="#30d158")
         context = (
             self.door_context
             if context_key == "door"
@@ -101,6 +113,16 @@ class HoleEditorContextSwitcher:
         )
         if not context:
             return False
+        # Reject a corrupt target before canceling the active edit, insert
+        # mode or Session selection. No partial switch on invalid physical mm.
+        self.live_context._validated_face_dimensions(
+            context["width"], context["height"],
+        )
+        if self.hole_session.has_active_edit:
+            self.cancel_active_edit()
+        if self.insert_mode[0]:
+            self.insert_mode[0] = False
+            self.insert_button.configure(text="插入", bg="#30d158")
         self.live_context.apply(context)
         part_key = context.get("part_key", context_key)
         self.live_context.part_key = part_key
