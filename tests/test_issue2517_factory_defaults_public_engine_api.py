@@ -89,20 +89,18 @@ def test_verified_legacy_factory_source_roundtrips_without_physical_precision_lo
     ("OUTPUT", "draw_stock", "draw_stock", False),
 ])
 @pytest.mark.parametrize("bad", ["bad", "nan", "inf", True])
-def test_invalid_factory_values_cannot_create_manufacturing_input(
+def test_factory_invalid_source_fallback_and_native_boolean_semantics(
     section, option, key, fallback, bad,
 ):
     source = {section: {option: bad}}
     saved = deepcopy(source)
-    if key == "draw_stock" and bad is True:
-        # True is a valid raw operator boolean, not an invalid factory flag.
-        pytest.skip("valid boolean source is covered by the acceptance case")
     result = api.project_operator_factory_default_settings(source_config=source)
-    assert result[key] == fallback
+    expected = True if key == "draw_stock" and bad is True else fallback
+    assert result[key] == expected
     assert source == saved
     assert load_factory_defaults_from_ae(
         SimpleNamespace(default_config=source)
-    )[key] == fallback
+    )[key] == expected
 
 
 def test_factory_fallback_does_not_admit_external_unknown_setting_or_live_config():
