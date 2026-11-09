@@ -10,6 +10,25 @@ from __future__ import annotations
 from .box_body_fold_profile import profile_to_fold_segments
 from .fold_designer_snapshot_dimensions import normalize_fold_designer_indicator_groups
 from .contracts import BasePlatePartSpec, IndicatorBoxPartSpec
+from .operator_settings_transactions import (
+    normalize_operator_settings_updates,
+    normalize_operator_source_dimension,
+)
+
+
+def _finite_auxiliary_setting(values, key: str) -> float:
+    """Use the original Engine Settings numeric contract for Fold/shrink input.
+
+    These values are signed legacy settings, not physical W/H/T. An invalid
+    present value cannot become a valid manufactured number through float()
+    (notably True -> 1 or a NaN/Infinity).
+    """
+    raw = values[key]  # Keep the public PartSpec's required-key contract.
+    clean = normalize_operator_settings_updates({key: 0.0}, {key: raw})
+    if key not in clean:
+        raise ValueError(f"{key} 製造來源必須是有限非布林數值")
+    return clean[key]
+
 
 
 def build_base_plate_operator_part_spec(
@@ -21,14 +40,14 @@ def build_base_plate_operator_part_spec(
     # Exact old model keys are retained for saved-project compatibility.
     receiving = model in {"受電箱", "RECEIVING"}
     return BasePlatePartSpec(
-        width=float(values["w"]),
-        height=float(values["h"]),
-        thickness=float(values["t"]),
-        shrink_top=float(values["base_plate_shrink_top"]),
-        shrink_bottom=float(values["base_plate_shrink_bottom"]),
-        shrink_left=float(values["base_plate_shrink_left"]),
-        shrink_right=float(values["base_plate_shrink_right"]),
-        bend=float(values["base_plate_bend"]),
+        width=normalize_operator_source_dimension(values["w"], field="w"),
+        height=normalize_operator_source_dimension(values["h"], field="h"),
+        thickness=normalize_operator_source_dimension(values["t"], field="t"),
+        shrink_top=_finite_auxiliary_setting(values, "base_plate_shrink_top"),
+        shrink_bottom=_finite_auxiliary_setting(values, "base_plate_shrink_bottom"),
+        shrink_left=_finite_auxiliary_setting(values, "base_plate_shrink_left"),
+        shrink_right=_finite_auxiliary_setting(values, "base_plate_shrink_right"),
+        bend=_finite_auxiliary_setting(values, "base_plate_bend"),
         features=tuple(features or ()),
         corner_policy=corner_policy,
         box_body_structure_state=box_body_structure_state,
@@ -63,13 +82,30 @@ def resolve_fold_designer_base_plate_source(
     key = str(part_key)
     model = str(model_name or "")
     values = {
-        "w": float(width), "h": float(height),
-        "t": float(thickness), "fw": float(frame_width),
-        "base_plate_shrink_top": float(data.get("base_plate_shrink_top", 0)),
-        "base_plate_shrink_bottom": float(data.get("base_plate_shrink_bottom", 0)),
-        "base_plate_shrink_left": float(data.get("base_plate_shrink_left", 0)),
-        "base_plate_shrink_right": float(data.get("base_plate_shrink_right", 0)),
-        "base_plate_bend": float(data.get("base_plate_bend", 20)),
+        "w": normalize_operator_source_dimension(width, field="w"),
+        "h": normalize_operator_source_dimension(height, field="h"),
+        "t": normalize_operator_source_dimension(thickness, field="t"),
+        "fw": normalize_operator_source_dimension(frame_width, field="fw"),
+        "base_plate_shrink_top": _finite_auxiliary_setting(
+            {"base_plate_shrink_top": data.get("base_plate_shrink_top", 0)},
+            "base_plate_shrink_top",
+        ),
+        "base_plate_shrink_bottom": _finite_auxiliary_setting(
+            {"base_plate_shrink_bottom": data.get("base_plate_shrink_bottom", 0)},
+            "base_plate_shrink_bottom",
+        ),
+        "base_plate_shrink_left": _finite_auxiliary_setting(
+            {"base_plate_shrink_left": data.get("base_plate_shrink_left", 0)},
+            "base_plate_shrink_left",
+        ),
+        "base_plate_shrink_right": _finite_auxiliary_setting(
+            {"base_plate_shrink_right": data.get("base_plate_shrink_right", 0)},
+            "base_plate_shrink_right",
+        ),
+        "base_plate_bend": _finite_auxiliary_setting(
+            {"base_plate_bend": data.get("base_plate_bend", 20)},
+            "base_plate_bend",
+        ),
         "receiving_bend_pattern": data.get("receiving_bend_pattern"),
         "physical_id": key, "model": model,
     }
@@ -89,7 +125,7 @@ def build_indicator_box_operator_part_spec(
     """Normalize the original operator IndicatorBox request in Engine."""
     return IndicatorBoxPartSpec(
         layer_groups=normalize_fold_designer_indicator_groups(layer_groups),
-        thickness=float(values["t"]),
+        thickness=normalize_operator_source_dimension(values["t"], field="t"),
         model_name=None,
         features=tuple(features or ()),
         corner_policy=None,
