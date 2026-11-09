@@ -156,8 +156,11 @@ def single_door_render_snapshot(host):
         "door_fold_b": host.door_fold_b_var.get(),
     }
 
+    mode = manufacturing_api.project_operator_single_door_indicator_mode(
+        host.is_indicator_box_var.get(), host.is_door_indicator_var.get(),
+    )
     indicator_hole = None
-    if host.is_indicator_box_var.get():
+    if mode in {"indicator_box", "both"}:
         groups = _collect_live_indicator_groups(
             host.indicator_l_var, host.indicator_layer_g_vars, label="指示燈盒"
         )
@@ -168,7 +171,7 @@ def single_door_render_snapshot(host):
         )
 
     door_indicator = None
-    if host.is_door_indicator_var.get():
+    if mode in {"indicator", "both"}:
         door_indicator = _collect_live_indicator_groups(
             host.door_indicator_l_var, host.door_indicator_layer_g_vars,
             label="門上指示燈",
