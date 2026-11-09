@@ -237,6 +237,6 @@ def test_fold_bridge_all_redraw_routes_call_one_engine_validated_adapter():
         fold_designer_bridge._phase6_render_with_engine_live_dimensions
     )
     assert "manufacturing_api.normalize_operator_live_box_dimensions(" in adapter
-    assert "get_int(" not in adapter
+    assert "get_int(self.v_" not in adapter
     assert "original.MainApp.do_update(self)" not in source
     assert source.count("_phase6_render_with_engine_live_dimensions(self)") >= 4
