@@ -495,6 +495,52 @@ def _confirmed_saved_ordinary_base_plate(
     return "base_plate", spec
 
 
+def build_receiving_factory_confirmed_inner_door_frames(
+    source_dimensions: Mapping[str, object], *,
+    confirmation: str | None = None,
+    confirmed_door_layout_columns=(),
+):
+    """Derive the fresh Receiving inner-door A/B/D frames from Engine authority.
+
+    CADSplit supplies the confirmed source W/H/D/T and Door cell topology; it
+    never supplies frame spans, fold chains, physical identities or DXF geometry.
+    The same Family defaults and derived frame parts used by the WHD GUI own
+    those decisions. A source-only or saved-project request cannot silently
+    acquire fresh-family manufacturing permission.
+    """
+    if confirmation != "fresh_family_confirmed":
+        raise ValueError("RECEIVING_INNER_DOOR_FRESH_FAMILY_CONFIRMATION_REQUIRED")
+    source = _source_dimensions(source_dimensions)
+    if not confirmed_door_layout_columns:
+        raise ValueError("RECEIVING_INNER_DOOR_LAYOUT_REQUIRED")
+
+    from copy import deepcopy
+    from .sheetmetal_part_adapters import validate_door_layout_dimensions
+    from .inner_door_frames import derive_all_inner_door_frames
+
+    validate_door_layout_dimensions(
+        confirmed_door_layout_columns,
+        total_width=source["w"], total_height=source["h"],
+    )
+    # The original source dimensions replace nominal Family values. The
+    # nominal one-Bay Receiving Layout is not confirmed source topology.
+    values = family_policy.apply_fresh_family_defaults(source, _FAMILY)
+    values.update(source)
+    values.pop("receiving_layout", None)
+    values["multi_door_enabled"] = True
+    values["door_layout_columns"] = deepcopy(confirmed_door_layout_columns)
+    frames = derive_all_inner_door_frames(
+        family_policy.derive_inner_door_frame_sets(values)
+    )
+    # Fresh Receiving has exactly one upper inner door with three real
+    # independent frame sheets; its lower boundary is the shared Divider.
+    if (len(frames) != 3
+            or {frame.side for frame in frames} != {"top", "left", "right"}
+            or len({frame.inner_door_id for frame in frames}) != 1):
+        raise ValueError("RECEIVING_INNER_DOOR_FRAME_TOPOLOGY_UNRESOLVED")
+    return frames
+
+
 def build_receiving_factory_confirmed_parts(
     source_dimensions: Mapping[str, object], *,
     confirmation: str | None = None,
