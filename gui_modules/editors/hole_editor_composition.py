@@ -37,7 +37,7 @@ class HoleEditorCompositionDependencies:
         "feature_is_within_surface", "move_feature_within_surface",
         "_HoleEditorCreatedListActions", "feature_with_process",
         "_HoleEditorReferenceActions", "move_feature_by_reference_distance",
-        "_HoleEditorSelectedFeatureActions", "REFERENCE_ANCHOR_LABELS", "replace",
+        "_HoleEditorSelectedFeatureActions", "REFERENCE_ANCHOR_LABELS",
         "_HoleEditorRoundSettingsLauncher", "_open_round_hole_settings_impl",
         "_HoleEditorContextSwitcher", "_HoleEditorIndicatorContextRefresh",
         "_HoleEditorPageNavigation", "_HoleEditorModalLifecycle",
@@ -555,7 +555,7 @@ def _build_reference_selection_actions(s):
         feature_reference_anchor=d.feature_reference_anchor,
         set_reference_anchor=s.set_reference_anchor,
         var_rotation=s.var_rotation,
-        rotate_feature=lambda feature, rotation: d.replace(feature, rotation_deg=rotation),
+        rotate_feature=d.manufacturing_api.operator_hole_feature_with_rotation,
         feature_is_within_surface=d.feature_is_within_surface,
         warn_rotation_out_of_bounds=lambda: d.messagebox.showwarning(
             "旋轉失敗", "旋轉後孔的完整外形會超出板面框。"

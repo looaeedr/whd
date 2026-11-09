@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Hole Editor 新增／旋轉實體孔角度由公開 Engine 交易（2026-11-09）
+
+- 原 `gui_modules/editors/hole_editor.py::HoleEditorFeatureFactory.make_feature` 以 `int(TkVar.get().replace("°", ""))` 在 GUI 解碼實體孔角度；`HoleEditorSelectedFeatureActions.rotate_selected` 把 360° 自行換成 0°，組合層再以 `dataclasses.replace(feature, rotation_deg=rotation)` 直接產生實體旋轉孔，繞過公開 Engine Feature mutation 入口。原 `ae_engine.sheetmetal_feature_core._normalize_rotation` 才是所有 Rect／Circle／Profile hole Feature 的 0/90/180/270/360° 正式旋轉權威。
+- 現新增 `manufacturing_api.operator_hole_rotation_from_control(raw)` 與 `operator_hole_feature_with_rotation(feature, raw_angle)`（`ae_engine.operator_hole_feature_rotation` 原 Engine Core owner）：前者僅去除 UI 角度表示與合法 ASCII 整數字串之包裝，沿用同一 `_normalize_rotation`，拒絕布林、浮點小數、NaN/Inf、畸形字串；後者只接受既有物理 `CircleFeature/RectFeature/ProfileFeature`，驗證後以不可變 dataclass copy 回傳旋轉候選，不改原孔或來源。
+- GUI 新增孔、編輯孔顯示及旋轉按鈕使用上述公開 API，沒有 GUI dataclass Feature mutate 或第二套角度計算。已存在的 `feature_from_definition`、`feature_is_within_surface`、`HoleEditorSession` 的 Undo／Cancel／Confirm All、同源 Save→Reload 與最終 2D／3D／DXF 保持原先程序。旋轉造成越界時，控制值與孔草稿均維持原狀；未選孔時，按鈕僅改下次插入角度。新測試 `tests/test_issue2517_hole_editor_rotation_public_engine_api.py` 驗 GUI/headless 同源、合法／非法角度、4 種實體行為、不可變性、JSON rotation reload、越界、Undo 與先插入預設。這不構成 #2517 全面覆蓋已完成或外部 Worker 製造放行。
+
+
 ## [CURRENT] #2517 單門 2D 指示燈／指示燈盒的原始啟用旗標由公開 Engine 決策（2026-11-09）
 
 - 原 `gui_modules.application.render_snapshots.single_door_render_snapshot` 直接使用 `if host.is_indicator_box_var.get()` 及 `if host.is_door_indicator_var.get()` 決定要不要建立 CUTTING 開孔／直接指示燈，會將舊 JSON/Tk 來源字串 `"false"` 轉成 Python True，可能錯誤生成實體孔。舊版已確認可同時傳送盒孔和直接指示燈，不能為修正布林來源而擅自改成互斥拒絕。

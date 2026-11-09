@@ -52,6 +52,11 @@ from .ae_endcap import (
 )
 # Public hole-catalog operations: GUI must never synthesize a physical hole
 # by coercing raw operator sizes before the canonical owner validates them.
+from .operator_hole_feature_rotation import (
+    operator_hole_rotation_from_control,
+    operator_hole_feature_with_rotation,
+)
+
 from .hole_catalog import (
     load_hole_catalog as operator_load_hole_catalog,
     load_pipe_catalog as operator_load_pipe_catalog,

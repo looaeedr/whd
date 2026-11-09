@@ -148,7 +148,9 @@ class HoleEditorFeatureFactory:
     def make_feature(self, point):
         label = self.selected_catalog_text.get()
         try:
-            rotation = int(self.rotation_var.get().replace("°", ""))
+            rotation = manufacturing_api.operator_hole_rotation_from_control(
+                self.rotation_var.get()
+            )
             if label == "＋ 自訂圓孔":
                 definition = self.custom_circle_definition(
                     self.diameter_var.get(), blind=self.blind_var.get()
@@ -277,9 +279,9 @@ class HoleEditorTransientActions:
             self.hole_session.execute(HoleEditorAction.select(idx))
         feature_list = self.feature_list_provider()
         if 0 <= idx < len(feature_list):
-            rotation = int(
-                getattr(feature_list[idx], "rotation_deg", 0) or 0
-            ) % 360
+            rotation = manufacturing_api.operator_hole_rotation_from_control(
+                getattr(feature_list[idx], "rotation_deg", 0)
+            )
             self.var_rotation.set(f"{360 if rotation == 0 else rotation}°")
         self.refresh_created()
         self.refresh_reference_fields()
@@ -547,20 +549,24 @@ class HoleEditorSelectedFeatureActions:
         menu.tk_popup(event.x_root, event.y_root)
 
     def rotate_selected(self, angle):
-        self.var_rotation.set(f"{angle}°")
+        # The same Engine angle contract is used for inserting and editing
+        # physical hole Features. An invalid control cannot mutate UI/session.
+        validated = manufacturing_api.operator_hole_rotation_from_control(angle)
         context = self.context_provider()
         feature_list = context["feature_list"]
         idx = self.hole_session.selected_index
         if not (0 <= idx < len(feature_list)):
+            # With no selected feature, toolbar rotation sets insert mode.
+            self.var_rotation.set(f"{360 if validated == 0 else validated}°")
             return
-        normalized = 0 if angle == 360 else angle
-        candidate = self.rotate_feature(feature_list[idx], normalized)
+        candidate = self.rotate_feature(feature_list[idx], angle)
         if not self.feature_is_within_surface(
             context["surface"], candidate, context["width"], context["height"]
         ):
             self.warn_rotation_out_of_bounds()
             return
         self.hole_session.execute(HoleEditorAction.replace_selected(candidate))
+        self.var_rotation.set(f"{360 if validated == 0 else validated}°")
         self.refresh_reference_fields()
         self.redraw()
         self.sync_all()
