@@ -332,6 +332,56 @@ def operator_legacy_shared_base_plate_shrink(values: Mapping[str, object]) -> fl
     return None
 
 
+def apply_operator_runtime_settings_to_ae(
+    ae_module, values: Mapping[str, object], *, keys=None,
+) -> None:
+    """Public Engine atomic source gate for legacy AE runtime Settings.
+
+    The legacy AE module is an Engine state holder, not a GUI production
+    authority. Validate every selected manufactured value BEFORE mutating
+    attributes, then update physical scalars, Relief, fixed CUTTING and shared
+    BasePlate policy in the original order. UI-only choices are not Engine
+    runtime attributes. Never use untrusted values to invent other keys.
+    """
+    from .operator_settings_catalog import _SPEC_BY_KEY
+
+    if not isinstance(values, Mapping):
+        raise ValueError("Settings runtime 來源必須是對應表")
+    selected = values.keys() if keys is None else tuple(keys)
+    normalized = []
+    for key in selected:
+        if key not in _SPEC_BY_KEY or key not in values:
+            continue
+        spec = _SPEC_BY_KEY[key]
+        raw = values[key]
+        if spec.kind == "choice":
+            # GUI-only text size: no AE manufacturing attribute to write.
+            continue
+        if spec.kind == "bool":
+            value = normalize_operator_settings_boolean(raw)
+        elif key in PHYSICAL_SNAPSHOT_SOURCE_KEYS:
+            value = normalize_operator_source_dimension(raw, field=key)
+        else:
+            admitted = normalize_operator_settings_updates(
+                {key: spec.default}, {key: raw},
+            )
+            if key not in admitted:
+                raise ValueError(f"{key} 設定值必須是有限數值")
+            value = admitted[key]
+        normalized.append((spec, value))
+
+    relief_changes = {}
+    for spec, value in normalized:
+        if spec.relief_attr:
+            relief_changes[spec.relief_attr] = value
+        elif spec.runtime_attr:
+            setattr(ae_module, spec.runtime_attr, value)
+
+    apply_operator_legacy_runtime_manufacturing_policies(
+        ae_module, values, relief_changes=relief_changes,
+    )
+
+
 def apply_operator_legacy_runtime_manufacturing_policies(
     ae_module, values: Mapping[str, object], *, relief_changes: Mapping[str, object] | None = None,
 ) -> None:
