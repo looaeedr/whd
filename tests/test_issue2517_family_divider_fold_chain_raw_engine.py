@@ -70,7 +70,7 @@ def test_original_family_uses_exact_serialized_and_fractional_operator_fw(raw, e
 
 @pytest.mark.parametrize("name", ["depth", "thickness", "frame_width"])
 @pytest.mark.parametrize("bad", [
-    True, False, 0, -1, "0", "nan", "inf", float("nan"), None, "bad",
+    True, False, 0, -1, "0", "nan", "inf", float("nan"), "bad",
 ])
 def test_invalid_physical_input_stops_before_family_dispatch(monkeypatch, name, bad):
     monkeypatch.setattr(
@@ -81,6 +81,31 @@ def test_invalid_physical_input_stops_before_family_dispatch(monkeypatch, name, 
     values[name] = bad
     with pytest.raises(ValueError):
         policy.divider_fold_contract("受電箱", **values)
+
+
+def test_optional_frame_width_none_retains_original_receiving_family_default():
+    # Omitted Divider FW is a supported Family default, not a malformed T.
+    projected = policy.divider_fold_contract(
+        "受電箱", depth=350, thickness=2, frame_width=None,
+        handle_side=False,
+    )
+    expected = receiving.divider_fold_contract(
+        depth=350, thickness=2, frame_width=None, handle_side=False,
+    )
+    assert projected == expected
+    assert projected["material_lengths"] == (16., 25., 102., 15.)
+
+
+@pytest.mark.parametrize("name", ["depth", "thickness"])
+def test_missing_required_physical_source_stops_before_dispatch(monkeypatch, name):
+    monkeypatch.setattr(
+        policy, "_call",
+        lambda *a, **kw: pytest.fail("missing required D/T must not dispatch"),
+    )
+    kwargs = dict(depth=350., thickness=2., handle_side=False, frame_width=29.)
+    kwargs[name] = None
+    with pytest.raises(ValueError):
+        policy.divider_fold_contract("受電箱", **kwargs)
 
 
 @pytest.mark.parametrize("bad", [None, "bad", "2", 2, float("nan")])
