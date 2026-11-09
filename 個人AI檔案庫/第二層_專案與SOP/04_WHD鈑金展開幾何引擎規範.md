@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving Set/Bay 小數 W/H/D 由公開 Engine 原值同步至 Fold 即時狀態（2026-11-09）
+
+- `gui_modules.application.fold_designer_composition_receiving.sync_receiving_current_bay` 原已從 `project_receiving_bay_legacy_aliases` 取得 Engine canonical Bay W/H/D，卻在非 Quantity 路徑以 `fold_designer_original.get_int`（`int(round(float(value)))`）覆寫 `app.state.w/h/d`，例如原始 820.25 mm 被 GUI 四捨五入成 820 mm；即時 Fold State／後續刷新與已保存 Set/Bay 物理來源不同。既有 `fold_designer_bridge.load_phase6_snapshot` 已使用 `manufacturing_api.normalize_operator_live_box_dimensions`，不允許讀取來源時取整，屬同一 #2517 單向責任鏈。
+- 現兩模式 `set_bay`、`quantity` 同用原公開 `manufacturing_api.normalize_operator_live_box_dimensions(projected)` 在任何 GUI snapshot、Workspace、Fold state 或 Tk 變數變更前驗證原值，保留正有限小數 W/H/D；失敗完全不更新 GUI，成功以同一不可修改的驗證結果同步 `_phase6_box_whd`、`app.state.w/h/d`、GUI 顯示。不可用 `get_int`、`round`、`abs` 或 GUI fallback 來偽造物理尺寸，不更改 receiving_layout、PartSpec、BEND、2D／3D 或 DXF 原製造 owner。
+- `tests/test_issue2517_receiving_bay_live_fractional_readback_engine.py` 包含真 Engine ReceivingLayout decimal Bay readback、兩模式狀態／JSON Reload 同源、非法 bool/NaN/Inf/非正 W/H/D 在所有 GUI 副作用之前拒絕與 source guard。此增量不代表 #2517 全面覆蓋或 Windows UAT 已完成。
+
+
 ## [CURRENT] #2517 Receiving Bay W/H/D 實體相依板件重建採用原 Engine 交易變更回報（2026-11-09）
 
 - 原 `gui_modules.application.fold_designer_composition_receiving.commit_receiving_current_bay_controls` 先以三筆 `normalize_operator_source_dimension` 驗證 GUI 操作值，但隨後在 GUI 做 `any(float(current_bay[key]) != float(value) ...)`，自行判斷是否應重建 Divider／InnerDoor。這個決策與實際 Engine 儲存交易不在同一個來源；若兩者語意演進不同，即使 Engine 改變 Bay Topology，GUI 仍可能錯誤跳過相關實體重新推導。
