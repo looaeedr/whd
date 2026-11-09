@@ -264,11 +264,11 @@ def commit_receiving_current_bay_controls(self, namespace):
             app.v_d.get(), field="d",
         ),
     }
-    current_bay = adapter.current_bay()
-    dimensions_changed = any(
-        float(current_bay[key]) != float(value) for key, value in requested.items()
-    )
-    adapter.update_current_bay(**requested)
+    # The public Engine-owned Bay transaction already reports whether the
+    # physical source changed. Do not duplicate W/H/D equality decisions
+    # with GUI float() casts: the same Engine result must decide whether
+    # dependent Divider/inner-door profiles need to be re-derived.
+    dimensions_changed = adapter.update_current_bay(**requested)
     app._phase6_input_snapshot["receiving_layout"] = adapter.layout
     self.sync_receiving_current_bay(
         namespace,
