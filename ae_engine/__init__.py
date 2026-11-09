@@ -16,6 +16,9 @@ from .door_layout_numeric_transitions import (
 )
 
 from .manufacturing_api import (
+    project_operator_factory_default_settings,
+    OPERATOR_GLOBAL_SETTINGS_CONTEXT, OperatorSettingSpec,
+    OPERATOR_SETTING_SPECS, operator_settings_for_context,
     project_physical_part_navigation_rows,
     ManufacturingCacheSourcePlan, plan_manufacturing_cache_source,
     project_manufacturing_scene_settings_overlay,
@@ -396,6 +399,9 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "project_operator_factory_default_settings",
+    "OPERATOR_GLOBAL_SETTINGS_CONTEXT", "OperatorSettingSpec",
+    "OPERATOR_SETTING_SPECS", "operator_settings_for_context",
     "operator_vault_panel_name_editor_allowed",
     "normalize_operator_base_plate_edge_shrink",
     "normalize_receiving_operator_connection_counts",
