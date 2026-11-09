@@ -95,10 +95,14 @@ def test_engine_rejects_invalid_raw_physical_edit_index(bad, axis, count):
         engine_index(bad, count=count, axis=axis)
 
 
-@pytest.mark.parametrize("bad", [True, False, None, 0.0, -1, 1, "1", float("nan")])
+@pytest.mark.parametrize("bad", [True, False, None, 0.0, -1, "1", float("nan")])
 def test_engine_rejects_bad_edit_count_before_physical_edit(bad):
     with pytest.raises(ValueError):
         engine_index(0, count=bad, axis="column")
+
+
+def test_single_existing_door_column_count_one_is_valid():
+    assert engine_index(0, count=1, axis="column") == 0
 
 
 def test_unknown_edit_axis_is_rejected():
