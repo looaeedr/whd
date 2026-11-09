@@ -753,8 +753,21 @@ def _base_plate_context(host, values):
 
 
 def _indicator_groups(host):
-    layers = int(host.indicator_l_var.get())
-    return [int(host.indicator_layer_g_vars[i].get()) for i in range(layers)]
+    """Collect raw independent Indicator component controls through public Engine.
+
+    Do not int() a boolean or fractional lamp-group source before the
+    manufacturing geometry validator can reject it.  A missing layer is
+    invalid, never a shorter manufactured Box/Small Door.
+    """
+    layers = manufacturing_api.normalize_fold_designer_indicator_groups(
+        (host.indicator_l_var.get(),)
+    )[0]
+    controls = tuple(host.indicator_layer_g_vars)
+    if len(controls) < layers:
+        raise ValueError("指示燈層數／組數無效：缺少實際組數")
+    return list(manufacturing_api.normalize_fold_designer_indicator_groups(
+        tuple(var.get() for var in controls[:layers])
+    ))
 
 
 def _indicator_box_context(host, values):
