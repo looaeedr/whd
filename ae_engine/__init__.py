@@ -16,6 +16,7 @@ from .door_layout_numeric_transitions import (
 )
 
 from .manufacturing_api import (
+    commit_operator_endcap_fw_profile_save,
     operator_hole_rotation_from_control,
     operator_hole_feature_with_rotation,
     apply_operator_runtime_settings_to_ae,
@@ -403,6 +404,7 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "commit_operator_endcap_fw_profile_save",
     "operator_hole_rotation_from_control",
     "operator_hole_feature_with_rotation",
     "apply_operator_runtime_settings_to_ae",
