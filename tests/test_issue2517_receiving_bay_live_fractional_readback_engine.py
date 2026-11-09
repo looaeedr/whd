@@ -168,3 +168,75 @@ def test_receiving_gui_does_not_round_authoritative_live_bay_dimensions():
     assert 'app.state.w = physical["w"]' in source
     assert 'app.state.h = physical["h"]' in source
     assert 'app.state.d = physical["d"]' in source
+
+
+def _legacy_fold_render_host(*, w="820.25", h="1600.5", d="350.75"):
+    from types import SimpleNamespace
+
+    state = SimpleNamespace(
+        w=800., h=1600., d=350., symmetric=False, enable_y=False,
+        alpha_bend=None, alpha_face=None,
+    )
+    rendered = []
+    vars_ = (
+        Var(w), Var(h), Var(d), Var(True), Var(False),
+        Var("legacy bend"), Var("legacy face"),
+    )
+    app = SimpleNamespace(
+        v_w=vars_[0], v_h=vars_[1], v_d=vars_[2],
+        v_sy=vars_[3], v_ey=vars_[4],
+        v_a_bend=vars_[5], v_a_face=vars_[6],
+        state=state,
+    )
+    app.renderer = SimpleNamespace(
+        render=lambda: rendered.append((
+            state.w, state.h, state.d, state.symmetric, state.enable_y,
+            state.alpha_bend, state.alpha_face,
+        )),
+    )
+    return app, rendered
+
+
+def test_real_fold_bridge_legacy_renderer_uses_engine_exact_fractional_dimensions():
+    from fold_designer_bridge import _phase6_render_with_engine_live_dimensions
+
+    app, rendered = _legacy_fold_render_host()
+    assert _phase6_render_with_engine_live_dimensions(app) is None
+    assert rendered == [(
+        820.25, 1600.5, 350.75, True, False,
+        "legacy bend", "legacy face",
+    )]
+    assert (app.state.w, app.state.h, app.state.d) == (
+        820.25, 1600.5, 350.75,
+    )
+
+
+@pytest.mark.parametrize("axis,bad", [
+    ("w", True), ("w", "nan"), ("h", 0), ("h", float("inf")),
+    ("d", None), ("d", "invalid"),
+])
+def test_fold_redraw_refuses_invalid_physical_dimensions_before_state_or_render(axis, bad):
+    from fold_designer_bridge import _phase6_render_with_engine_live_dimensions
+
+    app, rendered = _legacy_fold_render_host()
+    getattr(app, "v_" + axis).set(bad)
+    old = deepcopy(vars(app.state))
+    with pytest.raises(ValueError, match="包外尺寸"):
+        _phase6_render_with_engine_live_dimensions(app)
+    assert vars(app.state) == old
+    assert rendered == []
+
+
+def test_fold_bridge_all_redraw_routes_call_one_engine_validated_adapter():
+    import inspect
+    import fold_designer_bridge
+
+    source = inspect.getsource(fold_designer_bridge)
+    assert "def _phase6_render_with_engine_live_dimensions(" in source
+    adapter = inspect.getsource(
+        fold_designer_bridge._phase6_render_with_engine_live_dimensions
+    )
+    assert "manufacturing_api.normalize_operator_live_box_dimensions(" in adapter
+    assert "get_int(" not in adapter
+    assert "original.MainApp.do_update(self)" not in source
+    assert source.count("_phase6_render_with_engine_live_dimensions(self)") >= 4
