@@ -35,6 +35,22 @@ def _finite_operator_number(raw: object, field: str) -> float:
     return value
 
 
+def project_operator_single_door_indicator_mode(
+    indicator_box_enabled: object, door_indicator_enabled: object,
+) -> str:
+    """Resolve the original single-Door indicator control flags in Engine.
+
+    The two operator modes are physically exclusive. A serialized "false"
+    must not select a CUTTING aperture, and an invalid or contradictory source
+    must never be recovered by GUI preview truthiness or priority ordering.
+    """
+    box = normalize_operator_settings_boolean(indicator_box_enabled)
+    direct = normalize_operator_settings_boolean(door_indicator_enabled)
+    if box and direct:
+        raise ValueError("DOOR_OPERATOR_INDICATOR_MODE_CONFLICT")
+    return "indicator_box" if box else "indicator" if direct else "none"
+
+
 def normalize_operator_door_nameplate_center_datum_top(raw: object) -> float | None:
     """Validate optional top datum with the same rule as canonical DoorPartSpec.
 
