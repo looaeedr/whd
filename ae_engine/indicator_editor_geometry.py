@@ -38,7 +38,11 @@ def resolve_indicator_box_editor_geometry(
 ) -> IndicatorEditorComponentGeometry:
     """Read the Box alone; do not force the Small Door baseline to load."""
     groups = _normalize_editor_groups(groups)
-    t = float(thickness)
+    # This headless geometry path is directly callable without a GUI or
+    # PartSpec. Validate the authored physical T before baseline stretching:
+    # float(True) and float("nan") are never credible manufacturing sources.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    t = normalize_operator_source_dimension(thickness, field="t")
     data = ae.get_stretched_indicator_box_data(None, groups, t, corner_policy=None)
     width, height = float(data.params["w"]), float(data.params["h"])
     fold = float(getattr(ae, "indicator_box_fold_def", 49.0))
