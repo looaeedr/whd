@@ -10,7 +10,7 @@ whd_schema: WHD_DOC_META_V1
 ## [CURRENT] #2517 Receiving BasePlate GUI 不得將未編輯縮量虛構為 1 mm（2026-11-10）
 
 - 原 Phase6 底板選型 GUI 將不可編輯的四邊 shrink source 經 setting_number_text 和 float 轉為數值再提交；舊檔 True 會被格式化為「1」，失去 Engine 對布林實體來源的 fail-closed 拒絕能力。
-- 現在 GUI 在開啟設定時保留四邊縮量 raw 來源值，按鈕只送 pattern、原始不可編輯縮量、原樣編輯後 height/bend 文字；原 public manufacturing_api.commit_operator_receiving_base_plate_settings → receiving_base_plate_values / 底板展開與 EAR 驗證繼續決定合法性和幾何，沒有 GUI 第二套公式。非法 shrink/height 保持專案權威來源不變；正常來源的成品尺寸需與直接 Engine 相同。原金庫型底板與 NFB CSV 來源權責不變，未擴大製造認證；#2517 仍 OPEN。測試 tests/test_issue2517_receiving_base_plate_settings_engine_api.py。
+- 現在 GUI 在開啟設定時保留四邊縮量 raw 來源值；未修改的隱藏欄位仍交原 public Engine commit 處理，不能把 Boolean 原值清洗成 1 mm。舊 #1502 GUI 頁面仍可程式化輸入尚未配置的尺寸：明確修改的 shrink 及 height/bend 文字，先以新增的公開 manufacturing_api.normalize_operator_receiving_base_plate_number 正規化為 float，再走原 commit_operator_receiving_base_plate_settings → receiving_base_plate_values / 底板展開與 EAR 全檢查。GUI 沒有第二套製造公式，合法既有保存數值型別及 DXF／實體 EAR 相同。非法 shrink/height 保持專案權威來源不變；原金庫型底板與 NFB CSV 來源權責不變，未擴大製造認證；#2517 仍 OPEN。測試 tests/test_issue2517_receiving_base_plate_settings_engine_api.py 及 tests/test_issue1502_receiving_gui_base_bridge.py。
 
 
 ## [CURRENT] #2517 BoxBody Side/Back Settings 公開投影拒絕虛構的物理 T／後折／補償（2026-11-10）

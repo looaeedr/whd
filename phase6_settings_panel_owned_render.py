@@ -463,6 +463,9 @@ class Phase6SettingsPanelOwnedRenderMixin:
                 master=frame,
                 value=str(raw) if raw is not None else "",
             )
+        initial_shrink_text = {
+            key: vars_by_key[key].get() for key in shrink_keys
+        }
         fields = (
             ("height", "實體標稱高度"),
             ("bend", "上下折彎"),
@@ -502,13 +505,26 @@ class Phase6SettingsPanelOwnedRenderMixin:
                 status_var.set("沒有可用的底板設定交易入口")
                 return
             try:
-                # GUI carries the exact non-editable shrink source; it may
-                # not turn a saved True into a manufactured 1-mm shrink.
+                # Unedited hidden shrink fields retain their original type.
+                # The legacy #1502 unconfigured Tk seam may explicitly set
+                # these StringVars; normalize only changed text via Engine.
                 payload = {"pattern": pattern_var.get(), **shrink_source}
-                # Editable fields remain raw operator text. Only the existing
-                # public Engine transaction validates/converts real geometry.
+                for key in shrink_keys:
+                    current = vars_by_key[key].get()
+                    if current != initial_shrink_text[key]:
+                        payload[key] = (
+                            manufacturing_api.normalize_operator_receiving_base_plate_number(
+                                current, field=key,
+                            )
+                        )
+                # The Engine public numeric gate supplies canonical mm floats.
+                # The existing Engine commit still owns full blank/EAR checks.
                 for key, _label in fields:
-                    payload[key] = vars_by_key[key].get()
+                    payload[key] = (
+                        manufacturing_api.normalize_operator_receiving_base_plate_number(
+                            vars_by_key[key].get(), field=key,
+                        )
+                    )
                 self._receiving_base_plate_commit(payload)
             except (ValueError, TypeError, KeyError, RuntimeError) as exc:
                 status_var.set("套用失敗：" + str(exc))

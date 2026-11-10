@@ -259,7 +259,8 @@ def test_gui_receiving_base_plate_button_preserves_raw_height_boolean():
         )
 
     status = _render_receiving_base_plate_button(values, commit)
-    assert len(submitted) == 1 and submitted[0]["height"] == "True"
+    # The public Engine number gate rejects the Boolean text before commit.
+    assert submitted == []
     assert "receiving_base_plate" not in source
     assert status.startswith("套用失敗：")
 
@@ -285,3 +286,28 @@ def test_gui_receiving_base_plate_button_valid_source_matches_headless_geometry(
     assert source["receiving_base_plate"]["pattern"] == direct["pattern"]
     from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
     assert receiving_base_plate_blank_dimensions(source) == receiving_base_plate_blank_dimensions(headless)
+
+
+@pytest.mark.parametrize("field,raw,expected", [
+    ("height", "280.125", 280.125),
+    ("bend", "20", 20.0),
+    ("shrink_top", "0", 0.0),
+    ("shrink_left", "85.5", 85.5),
+])
+def test_engine_public_receiving_base_plate_explicit_numeric_contract(field, raw, expected):
+    assert manufacturing_api.normalize_operator_receiving_base_plate_number(
+        raw, field=field,
+    ) == expected
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("height", True), ("height", "True"), ("height", "nan"),
+    ("bend", 0), ("bend", False), ("bend", "inf"),
+    ("shrink_top", True), ("shrink_top", -1),
+    ("shrink_right", "nan"), ("unknown", 10),
+])
+def test_engine_receiving_base_plate_number_rejects_invalid_sources(field, bad):
+    with pytest.raises(ValueError):
+        manufacturing_api.normalize_operator_receiving_base_plate_number(
+            bad, field=field,
+        )

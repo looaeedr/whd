@@ -176,6 +176,21 @@ def normalize_operator_base_plate_edge_shrink(raw: object) -> float:
     return result
 
 
+def normalize_operator_receiving_base_plate_number(raw: object, *, field: str) -> float:
+    """Normalize an explicitly edited Receiving BasePlate Settings number.
+
+    The GUI supplies raw Tk text. Physical sign, finite type and Boolean
+    rejection belong to this public Engine input API, never GUI float().
+    No source-derived Receiving shrink editor is introduced by this method.
+    """
+    key = str(field).strip().lower()
+    if key in {"shrink_top", "shrink_bottom", "shrink_left", "shrink_right"}:
+        return normalize_operator_base_plate_edge_shrink(raw)
+    if key in {"height", "bend"}:
+        return _positive_physical_dimension(raw, key)
+    raise ValueError(f"未支援的受電箱底板設定欄位：{key}")
+
+
 def normalize_operator_settings_updates(
     settings_values: Mapping[str, object],
     updates: Mapping[str, object] | None,
