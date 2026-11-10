@@ -124,7 +124,12 @@ class LiveSyncPublicationPlan:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "should_publish", bool(self.should_publish))
-        object.__setattr__(self, "next_revision", int(self.next_revision))
+        object.__setattr__(
+            self, "next_revision",
+            manufacturing_api.project_operator_fold_designer_publication_revisions(
+                self.next_revision
+            ).current_revision,
+        )
         object.__setattr__(self, "transaction_id", str(self.transaction_id or ""))
         object.__setattr__(self, "delta", _freeze_sync_value(self.delta or {}))
         object.__setattr__(
@@ -151,9 +156,18 @@ def plan_live_sync_envelope(
     force=False,
 ) -> LiveSyncPublicationPlan:
     """Plan one Fold Designer publication without performing runtime effects."""
+    # Engine must validate raw monotonic source and operator force flags before
+    # any payload is fingerprinted or a downstream callback can see a revision.
+    revisions = manufacturing_api.project_operator_fold_designer_publication_revisions(
+        current_revision
+    )
+    force = manufacturing_api.normalize_operator_settings_boolean(force)
+    host_relief_present = manufacturing_api.normalize_operator_settings_boolean(
+        host_relief_present
+    )
     state = deepcopy(dict(current_state or {}))
     fingerprint = stable_fingerprint(state)
-    current_revision = int(current_revision or 0)
+    current_revision = revisions.current_revision
     canonical_relief = deepcopy(state.get("assembly_relief") or {})
     host_relief = deepcopy(host_relief or {})
 
@@ -196,7 +210,7 @@ def plan_live_sync_envelope(
             host_relief_repair=canonical_relief,
         )
 
-    next_revision = current_revision + 1
+    next_revision = revisions.next_revision
     transaction_id = (
         str(active_transaction_id or "").strip()
         or f"fold_designer:{next_revision}"
