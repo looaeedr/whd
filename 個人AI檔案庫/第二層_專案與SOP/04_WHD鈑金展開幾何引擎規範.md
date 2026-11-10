@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 製造 Request 的 W/H/D/T 原始來源優先序歸 Engine（2026-11-10）
+
+- 原 `phase6_manufacturing_adapter.build_manufacturing_request` 在 GUI 自行決定專案快照 W/H/D 優先、缺欄時採目前箱體 W/H/D、再缺欄採 Settings，並直接挑選快照 T 或 Settings T 驗證。這是決定製造 PartSpec／FinalScene 入口的物理來源優先序，不應由 GUI 持有。原始已存 T 即使無效也必須拒絕，不可退回舊 Settings 或虛構 2 mm。
+- 原 `ae_engine.operator_settings_transactions` 新增公開 `project_operator_manufacturing_request_snapshot`，經既有 `manufacturing_api`／根包轉出原 callable；採**相同來源順序**組裝 detached Request snapshot，重用 `normalize_operator_source_dimension(..., field="t")` 的正有限、非布林驗證，保留合法小數與既有 W/H/D 延後製造驗證責任。GUI 只讀取已脫離 UI 的來源後委派，不重算、不污染原專案；同來源 headless 與 GUI 應生成相同 immutable request input。
+- `tests/test_issue2517_manufacturing_request_physical_source_engine_api.py` 與原 T／Receiving request 回歸核對合法與非法來源、缺欄、JSON Save→Reload、GUI/headless 一致性及無 Engine → GUI 依賴。此切片不增加另一套 Family/Factory／CUTTING／BEND／2D／3D／DXF 公式或製造資格；#2517 全功能覆蓋、Windows UAT 與正式 X 仍另行驗收。
+
+
 ## [CURRENT] #2517 FinalScene／製造 Request 的即時、已存、初始 Family 來源順序由公開 Engine（2026-11-10）
 
 - 原 `phase6_manufacturing_adapter._cabinet_model` 在 GUI 自行選擇即時 `baseline_model_var`、已存 `model/cabinet_type`、未存初始箱型的優先序，同時控制 FinalScene、Request 與快取；這是實體製造 Family 來源決策，不應留在 GUI。原資料未通過即時 Tk 控制讀取時仍須在建立請求之前拒絕，不能用已存值靜默補上。
