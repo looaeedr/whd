@@ -173,6 +173,31 @@ def door_layout_indicator_export_filename(
     return f"{part_kind}_{physical_door.removeprefix('door_')}.dxf"
 
 
+
+# Historical standalone PartSpec export names. The separate Vault composed,
+# Receiving Set/Bay and per-cell Door routes have their own Engine naming APIs.
+_LEGACY_SINGLE_PART_DXF_FILENAMES = {
+    "box_body": "box_body_z.dxf",
+    "head": "end_cap_head.dxf",
+    "tail": "end_cap_tail.dxf",
+    "door": "door_unfold.dxf",
+    "base_plate": "base_plate.dxf",
+    "indicator_box": "indicator_box.dxf",
+    "indicator_door": "indicator_door.dxf",
+}
+
+
+def legacy_single_part_dxf_filename(part_kind: str) -> str:
+    """Name a historical standalone manufacturing sheet by Engine part kind.
+
+    The GUI must not map a selected physical part to an arbitrary filename.
+    This is only a name projection, not manufacturing eligibility or a DXF
+    writer, and keeps the existing seven on-disk names unchanged.
+    """
+    if type(part_kind) is not str or part_kind not in _LEGACY_SINGLE_PART_DXF_FILENAMES:
+        raise ValueError("LEGACY_SINGLE_PART_EXPORT_KIND_INVALID")
+    return _LEGACY_SINGLE_PART_DXF_FILENAMES[part_kind]
+
 def door_layout_feature_map_to_part_features(columns, feature_map) -> dict[str, list]:
     """Project legacy ``col:row`` Door feature stores to formal part identities."""
     source = dict(feature_map or {})

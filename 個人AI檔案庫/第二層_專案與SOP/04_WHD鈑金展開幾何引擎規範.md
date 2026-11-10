@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 舊單板 DXF 實體檔名由公開 Engine 決定（2026-11-11）
+
+- 原 `gui_modules/project/export_actions._export_selected_parts` 在沒有 Phase6 Designer 的相容單板 PartSpec 出圖路徑，自行硬寫箱身、封頭／尾、單門、底板及 Indicator 的七個加工 DXF 檔名；多門格與 Set/Bay 已由 Engine 命名。GUI 不能再持有這七個加工板件身分到輸出檔名的對照。
+- 沿用 `ae_engine.sheetmetal_part_adapters` 正式板件 kind，新增純命名公開 `manufacturing_api.legacy_single_part_dxf_filename(part_kind)`（亦由根包 re-export）。嚴格只接受七個已存在的實體種類，拒絕未知／布林／假身份，不改任何既有檔名、PartSpec、CUTTING／BEND、DXF 原子輸出或製造資格。GUI 只傳選擇與呼叫 Engine 回傳檔名，沒有第二套幾何或製造 executor。
+- `tests/test_issue2517_legacy_single_part_dxf_filename_engine_api.py` 驗證七種檔名、非法種類拒絕、真 GUI 相容出口一致性，以及已保存金庫型單門 PartSpec→Engine→DXF reopen。這僅涵蓋舊單板命名入口，不能取代 #2517 整箱／多 Bay 2D／3D／DXF 及 Windows UAT 驗收。
+
 ## [CURRENT] #2517 受電箱 EAR／PAD 真實組合 3D 顯示的 Family 別名來源由 Engine Registry 統一（2026-11-10）
 
 - 原 `receiving_ear_display_sources.resolve_receiving_ear_assembly_display_skins`、`receiving_pad_display_sources.receiving_pad_assembly_display_active`、`receiving_nfb_pad_assembly_preview.build_committed_pad_assembly_display` 與 GUI `phase6_final_scene_view._formed_ear_assembly_preview` 都硬比 `model in ("受電箱", "RECEIVING")`。相同已確認實體盤件從 JSON 儲存的合法 `receiving`／大小寫／前後空白別名可能靜默不顯示 EAR/PAD 3D；這不是合法的 Family 變化。
