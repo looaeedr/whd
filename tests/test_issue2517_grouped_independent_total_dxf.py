@@ -77,26 +77,18 @@ def test_one_independent_total_dxf_across_all_bays_without_changing_group_flats(
         prefix + "總計.dxf",
     }
     assert {path.name for path in (tmp_path / "out").glob("*.dxf")} == set(result)
+    membership = {
+        "全部": (0, 1, 2, 3, 4, 5, 6),
+        "第1套": (0, 1, 2, 3),
+        "第2套": (4, 5, 6),
+        "頭尾盤": (0, 3, 4, 6),
+        "中間盤": (1, 2, 5),
+    }
     for name in groups:
         filename = prefix + name + ".dxf"
-        outlines, holes, labels = _machining_counts(result[filename])
-        expected = 7 if mode == "ALL" else (
-            (4 if name in ("第1套", "頭尾盤") else 3)
-            if mode == "PER_SET" else
-            (4 if name == "頭尾盤" else 3)
-        )
-        assert outlines == expected
-        # All non-CHECK machining geometry remains present in normal drawings.
-        assert holes == sum(
-            index != 2 for index in (
-                range(7) if mode == "ALL" else
-                (range(4) if name == "第1套" else range(4, 7))
-                if mode == "PER_SET" else
-                (index for index in (
-                    (0, 3, 4, 6) if name == "頭尾盤" else (1, 2, 5)
-                ))
-            )
-        )
+        outlines, holes, _labels = _machining_counts(result[filename])
+        assert outlines == len(membership[name])
+        assert holes == sum(index != 2 for index in membership[name])
     outlines, holes, labels = _machining_counts(result[prefix + "總計.dxf"])
     assert (outlines, holes) == (2, 1)
     assert "總計：7片；同板件同孔位 2 種" in labels
