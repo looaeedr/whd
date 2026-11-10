@@ -238,12 +238,15 @@ class Phase6BendingUI(original.BendingUI):
                     manufacturing_api.normalize_operator_fold_editor_control(
                         ctrl[field].get(), field=field,
                     )
+        active = self.get_active_dict()
+        physical_key = manufacturing_api.require_operator_fold_editor_profile_target(
+            active, self.state.active_bend,
+        )
         self._mark_workspace_dirty()
         owner = getattr(self.update_cb, "__self__", None)
         symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
         if symmetry_allowed and getattr(self.state, "symmetric", False):
-            active = self.get_active_dict()
-            segs = active.get(self._active_profile_key(active), ())
+            segs = active[physical_key]
             # The Engine owns both keyed structure and historical unkeyed
             # mirror indices. Never fall through to the original BendingUI
             # save, which strips physical segment identity and topology.
@@ -379,7 +382,10 @@ class Phase6BendingUI(original.BendingUI):
 
     def save(self):
         active_dict = self.get_active_dict()
-        active_key = self._active_profile_key(active_dict)
+        # Preview navigation may fall back to X. A physical Fold edit may not.
+        active_key = manufacturing_api.require_operator_fold_editor_profile_target(
+            active_dict, self.state.active_bend,
+        )
         old_segments = active_dict[active_key]
         thickness = getattr(self.state, "phase6_thickness", 2.0)
 
@@ -407,10 +413,14 @@ class Phase6BendingUI(original.BendingUI):
             self.state.profiles_vault[vault_key] = new_segments
 
     def add(self, pos):
+        active = self.get_active_dict()
+        physical_key = manufacturing_api.require_operator_fold_editor_profile_target(
+            active, self.state.active_bend,
+        )
         self._mark_workspace_dirty()
         self.save()
         active = self.get_active_dict()
-        segs = active[self._active_profile_key(active)]
+        segs = active[physical_key]
         # Keep the bound list identity shared with the existing Profiles Vault.
         segs[:] = manufacturing_api.operator_fold_editor_add_segment(
             segs, pos, getattr(self.state, "phase6_thickness", 2.0),
@@ -419,10 +429,14 @@ class Phase6BendingUI(original.BendingUI):
         self.update_cb()
 
     def remove(self, idx):
+        active = self.get_active_dict()
+        physical_key = manufacturing_api.require_operator_fold_editor_profile_target(
+            active, self.state.active_bend,
+        )
         self._mark_workspace_dirty()
         self.save()
         active = self.get_active_dict()
-        segs = active[self._active_profile_key(active)]
+        segs = active[physical_key]
         owner = getattr(self.update_cb, "__self__", None)
         symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
         symmetric_box = (
