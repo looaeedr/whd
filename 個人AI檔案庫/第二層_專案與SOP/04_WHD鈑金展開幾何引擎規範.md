@@ -10,7 +10,7 @@ whd_schema: WHD_DOC_META_V1
 
 - 原 `ae_engine.fold_designer_physical_selection.resolve_fold_designer_frame_part` 在無 Family 派生 API 的 legacy inner-door `frame_spans` 路徑，以 `float(data.get("t", default_thickness))` 提前清洗物理來源。明確的 `True` 因而成為合法看似真實的 `1 mm` 框，卻繞過既有 Engine 對板厚 T 的原生型別限制。GUI `_inner_door_frame_from_payload` 已只呼叫公開 API，錯在 Engine 內部來源門。
 - 原 Engine selector 改直接復用 `operator_settings_transactions.normalize_operator_source_dimension(..., field="t")`；已提供 T 必須是正有限且非布林，缺值才沿用原 Engine legacy default。Family 派生來源、上／左／右框 A/B/D 的方向與原 DXF／幾何／孔位、stable ID、選片與認證不變。
-- `tests/test_issue2517_legacy_inner_door_frame_thickness_public_api.py` 覆蓋 headless/GUI、真 legacy 框、非布林與負向非法來源、Save→Reload、真 Frame FinalScene→DXF reopen；不因此宣稱整櫃實機、焊接或 MFG-2 已放行。
+- `tests/test_issue2517_legacy_inner_door_frame_thickness_public_api.py` 覆蓋 headless/GUI、真 legacy 框、非布林與負向非法來源、Save→Reload 僅保留原始 T 且正確剔除衍生 frame_spans、重新提供獨立確認的 span 後才可真 Frame FinalScene→DXF reopen；不因此宣稱整櫃實機、焊接或 MFG-2 已放行。
 
 ## [CURRENT] #2517 Fold Designer 中隔物理輸入只經公開 Engine API（2026-11-11）
 
