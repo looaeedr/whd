@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 多門格 IndicatorBox／IndicatorDoor 實體 DXF 檔名只由 Engine 物理門格 ID（2026-11-10）
+
+- 原主 GUI `export_multi_door_indicator_box_parts` 直接把 `column_index + 1`／`row_index + 1` 組成製造檔名；同一一般 Door 已有 Engine 唯一 `door_layout_part_key`／`door_layout_export_filename`。實體加工板件命名不應由 GUI 重算。
+- 原 Engine `sheetmetal_part_adapters` 新增 `door_layout_indicator_export_filename(cell, part_kind=...)` 並公開於 `manufacturing_api` 與根包；沿用原門格合法整數身分，保留檔名與 DXF 寫出流程不變，非法 ID／輸出種類拒絕。既有 GUI 僅傳操作來源及消費回傳檔名。定向測試 `tests/test_issue2517_multi_door_indicator_export_identity_engine_api.py` 連接真 `.p6fold` Save→Reload、2D 門格、GUI／headless 與實體 DXF reopen。全箱 3D／DXF／Windows UAT 仍屬 #2517 未完成驗收。
+
+
 ## [CURRENT] #2517 FinalScene 3D／組合 T 必須與 Engine Request 使用同一來源優先序（2026-11-10）
 
 - 原 `phase6_final_scene_view.Phase6FinalSceneViewAdapter.build_request` 與 `query_assembly_render_data` 在 GUI 端自行採 `Settings["t"]` 優先，缺欄時回退 `snapshot.get("t", 2.0)`；但已合入的公開製造 Request API 對同一實體 T 使用**已存 Snapshot 優先、沒有才取 Settings、明確非法不可回退、兩處都缺時不得捏造 2 mm**。舊路徑可讓 3D 實體板厚／成形尺寸文字與製造 Request 的原料 T 不同。

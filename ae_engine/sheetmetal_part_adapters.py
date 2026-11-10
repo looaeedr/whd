@@ -159,6 +159,20 @@ def door_layout_export_filename(cell: DoorLayoutCell) -> str:
     return f"{door_layout_part_key(cell)}.dxf"
 
 
+def door_layout_indicator_export_filename(
+    cell: DoorLayoutCell, *, part_kind: str,
+) -> str:
+    """Name one per-cell Indicator sheet from the canonical physical Door ID.
+
+    GUI supplies only the original cell and requested part kind; it must not
+    synthesize or cast physical column/row identities for manufactured DXF.
+    """
+    if part_kind not in ("indicator_box", "indicator_door"):
+        raise ValueError("DOOR_LAYOUT_INDICATOR_EXPORT_KIND_INVALID")
+    physical_door = door_layout_part_key(cell)
+    return f"{part_kind}_{physical_door.removeprefix('door_')}.dxf"
+
+
 def door_layout_feature_map_to_part_features(columns, feature_map) -> dict[str, list]:
     """Project legacy ``col:row`` Door feature stores to formal part identities."""
     source = dict(feature_map or {})
