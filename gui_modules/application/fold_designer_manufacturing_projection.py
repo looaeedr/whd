@@ -171,7 +171,7 @@ def _export_authoritative_part(self, spec, output_path, context=None):
         )
     return manufacturing_api.save_part_render_data_dxf(
         render_data, output_path,
-        overwrite=bool(getattr(ctx, "overwrite", False)),
+        overwrite=getattr(ctx, "overwrite", False),
         verify_reopen=True,
     )
 

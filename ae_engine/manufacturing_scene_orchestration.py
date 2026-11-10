@@ -841,6 +841,7 @@ def generate_box_body_structure_parts(
     # actual DXF publication must not allow registered unimplemented models.
     cabinet_family_policy.require_implemented_manufacturing_family(spec.model_name)
     ctx = context or ManufacturingContext()
+    _manufacturing_export.require_dxf_overwrite_boolean(ctx.overwrite)
     if type(verify_reopen) is not bool:
         raise TypeError("verify_reopen must be bool")
     if resolved_render_data is not None and not isinstance(
@@ -883,7 +884,7 @@ def generate_box_body_structure_parts(
                     render.scene, path, serializer=save_scene_dxf,
                     overwrite=overwrite,
                 ),
-            overwrite=bool(ctx.overwrite), verify_all_staged=True,
+            overwrite=ctx.overwrite, verify_all_staged=True,
         )
     else:
         staged = {}
@@ -896,7 +897,7 @@ def generate_box_body_structure_parts(
                 piece.render_data.scene,
                 path,
                 serializer=save_scene_dxf,
-                overwrite=bool(ctx.overwrite),
+                overwrite=ctx.overwrite,
             )
         source = piece.render_data.metadata.get("baseline_source_path")
         results.append(PartExportResult(
