@@ -461,7 +461,7 @@ class Phase6SettingsPanelOwnedRenderMixin:
             raw = values.get(key)
             vars_by_key[key] = tk.StringVar(
                 master=frame,
-                value=setting_number_text(raw) if raw is not None else "",
+                value=str(raw) if raw is not None else "",
             )
         fields = (
             ("height", "實體標稱高度"),
