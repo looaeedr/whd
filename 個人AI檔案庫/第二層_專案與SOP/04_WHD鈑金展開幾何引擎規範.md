@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 多門格 IndicatorBox／IndicatorDoor 的實體出圖檔名由公開 Engine 決定（2026-11-10）
+
+- 主 GUI `export_multi_door_indicator_box_parts` 舊版以 `cell.column_index + 1` 和 `cell.row_index + 1` 自行組成 `indicator_box_cN_rN.dxf`、`indicator_door_cN_rN.dxf`，但同格一般門片已使用原 `sheetmetal_part_adapters.door_layout_part_key`／`door_layout_export_filename`；檔名是加工身分，不應由 GUI 重算索引或容忍布林冒充欄數。
+- 在同一原 Engine owner 新增 `door_layout_indicator_export_filename(cell, part_kind=...)`，經公開 `manufacturing_api`／根包轉出，使用原 `door_layout_part_key` 的實體欄列身分與型別檢查，輸出檔名完全不變。GUI 保留操作分流、PartSpec 來源與原 DXF exporter，只消費 Engine 檔名。正負測試涵蓋 API／GUI 相同實體 ID、錯型拒絕、`.p6fold` Save→Reload、真實 IndicatorBox PartRenderData→DXF 重開；未認證製造／3D 全組／Windows UAT 不因本批放行。
+
+
 ## [CURRENT] #2517 Door 格刪除／重映射不得遺失已存實體孔與非門格來源（2026-11-10）
 
 - 原 `ae_engine.door_layout_physical_remap.remap_receiving_door_layout_after_delete`（由 `manufacturing_api` 給 GUI／headless）在執行刪除欄／層時，已存無法解析的 `column:row` 直接被視為 None 丟棄；對 Workspace 的 `door_c*` 無差別刪除，未連接 `door_layout_features` 的合法既存實體孔可能全部遺失。此為原 Engine 所有權移轉缺口，不得由 GUI 猜測修復孔位。

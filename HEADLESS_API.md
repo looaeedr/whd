@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Multi-Door indicator physical DXF filenames have one Engine owner (2026-11-10)
+
+The GUI's `export_multi_door_indicator_box_parts` now supplies each validated `DoorLayoutCell` and part kind directly to `manufacturing_api.door_layout_indicator_export_filename` (also exported at package root), which calls the **original** `sheetmetal_part_adapters.door_layout_part_key`. Indicator box/door output filenames retain exact compatibility (`indicator_box_c1_r1.dxf` / `indicator_door_c1_r1.dxf`), while noninteger/negative source IDs and unsupported physical kinds reject without GUI-generated manufacturing names. The existing Door `door_c1_r1.dxf` uses the same identity. Tests cover real JSON project Save→Reload, headless/GUI equivalence, invalid identities and physical IndicatorBox FinalScene→DXF staged reopen. This is filename/identity coverage, not new manufacturing approval or whole-assembly 3D/DXF UAT.
+
 ## #2517 Door cell deletion does not discard malformed or orphan physical hole sources (2026-11-10)
 
 The original public `manufacturing_api.remap_receiving_door_layout_after_delete` (Engine owner: `door_layout_physical_remap`) now rejects malformed persisted `column:row` identities rather than treating confirmed holes or inner-door rows as absent. If real physical `door_cN_rN` features exist without a saved editable cell feature source, deletion fails before changing any workspace. Only exact `door_cN_rN` parts may be replaced; unrelated `door_c*` keys are preserved. Both GUI's adapter and headless clients continue using the same original Engine public transaction, unchanged Part IDs and geometry. Positive source tests include actual `.p6fold` Save→Reload and canonical 2D cell-feature rehydration; negative tests preserve old inputs with no partial mutation. This does not certify full 3D/DXF or Windows UAT.
