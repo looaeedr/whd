@@ -2354,6 +2354,7 @@ from .assembly_physical_dimensions import (
 # operations remain owned by their existing headless Engine modules.
 from .sheetmetal_part_adapters import (
     door_layout_export_filename, door_layout_indicator_export_filename,
+    legacy_single_part_dxf_filename,
 )
 from .receiving_nfb_model_identity import (
     parse_numeric_model_ref,
