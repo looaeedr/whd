@@ -870,12 +870,16 @@ def _apply_fold_designer_live_snapshot(self, payload):
         return False
     revision = 0
     if origin == "fold_designer":
-        try:
-            revision = int(payload.get("revision", 0) or 0)
-        except (TypeError, ValueError):
+        # Source ordering is a physical live-state admission decision.
+        # Never let Python int(bool/float/underscored text) authorize a
+        # Settings/Corner/Joint/Workspace overwrite before Engine checks it.
+        revision_plan = manufacturing_api.plan_operator_fold_designer_live_revision(
+            payload.get("revision", 0),
+            last_revision=getattr(self, "_phase6_last_fold_designer_revision", 0),
+        )
+        if not revision_plan.accepted:
             return False
-        if revision <= int(getattr(self, "_phase6_last_fold_designer_revision", 0) or 0):
-            return False
+        revision = revision_plan.revision
         fingerprint = str(payload.get("fingerprint") or "")
         if fingerprint and fingerprint == getattr(self, "_phase6_last_fold_designer_fingerprint", None):
             self._phase6_last_fold_designer_revision = revision
