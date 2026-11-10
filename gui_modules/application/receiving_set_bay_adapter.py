@@ -239,11 +239,13 @@ class ReceivingSetBayAdapter:
 
     def rename_bay(self, set_index: int, bay_index: int, panel_name: str) -> bool:
         """Commit one named Bay via public Engine API; preserve current selection."""
-        before = self._layout["sets"][set_index]["bays"][bay_index]["panel_name"]
+        # Let Engine validate physical Set/Bay identity and the proposed name
+        # before Python list indexing can alias bool or read a stale Bay.
         candidate = manufacturing_api.rename_receiving_panel(
             self._layout, set_index=set_index, bay_index=bay_index,
             panel_name=panel_name,
         )
+        before = self._layout["sets"][set_index]["bays"][bay_index]["panel_name"]
         after = candidate["sets"][set_index]["bays"][bay_index]["panel_name"]
         self._layout = candidate
         if after != before:
