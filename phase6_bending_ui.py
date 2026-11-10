@@ -242,23 +242,28 @@ class Phase6BendingUI(original.BendingUI):
         physical_key = manufacturing_api.require_operator_fold_editor_profile_target(
             active, self.state.active_bend,
         )
-        self._mark_workspace_dirty()
+        # Validate the source row and field with the public Engine *before*
+        # dirtying the workspace or writing mirrored Tk control values.
+        segs = active[physical_key]
+        plan = manufacturing_api.plan_operator_fold_mirror_target(
+            segs, idx, key,
+            is_box_body=(
+                getattr(self.state, "phase6_fold_ui_vault_key", None) == "箱身"
+            ),
+            resolve_legacy_position=True,
+        )
+        if idx >= len(self.controls) or key not in self.controls[idx]:
+            raise ValueError("FOLD_EDITOR_MIRROR_CONTROL_INVALID")
+        target_idx = plan.target_index
         owner = getattr(self.update_cb, "__self__", None)
         symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
-        if symmetry_allowed and getattr(self.state, "symmetric", False):
-            segs = active[physical_key]
-            # The Engine owns both keyed structure and historical unkeyed
-            # mirror indices. Never fall through to the original BendingUI
-            # save, which strips physical segment identity and topology.
-            plan = manufacturing_api.plan_operator_fold_mirror_target(
-                segs, idx, key,
-                is_box_body=(
-                    getattr(self.state, "phase6_fold_ui_vault_key", None)
-                    == "箱身"
-                ),
-                resolve_legacy_position=True,
-            )
-            target_idx = plan.target_index
+        symmetric = symmetry_allowed and getattr(self.state, "symmetric", False)
+        if symmetric and target_idx is not None and target_idx >= len(self.controls):
+            raise ValueError("FOLD_EDITOR_MIRROR_CONTROL_INVALID")
+        self._mark_workspace_dirty()
+        if symmetric:
+            # Keep both keyed structure and historical unkeyed mirror indices
+            # exclusively under the Engine plan; never call legacy GUI save.
             if (
                 target_idx is not None and target_idx != idx
                 and key in self.controls[target_idx]
