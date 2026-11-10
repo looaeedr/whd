@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 Receiving Quantity／Set-Bay 預覽 W/H/D 不得默默清洗成 Family 預設（2026-11-10）
+
+- 原公開 `ae_engine.receiving_operator_projection.receiving_default_preview_dimensions` 用 `float(box[axis])` 直接解讀已保存的實體 W/H/D，布林 `True` 可變成有效樣子的 1mm；Quantity `receiving_quantity_box` 或 Set/Bay `receiving_layout` 即使明確存在但空／損壞，也可能被 `or BOX_BODY_DEFAULTS` 靜默變成受電箱 Family 標準預覽尺寸。這與同一 Engine 對原始製造實體尺寸的非布林正有限來源約束不符。
+- 現由原公開 `manufacturing_api.receiving_default_preview_dimensions(snapshot)` 的 **原 Engine owner** 直接檢查原始資料，僅在沒有此來源 key 的未開始／Family 示意情境回退原 `BOX_BODY_DEFAULTS`；明確存在的 Quantity box 或 Set/Bay 必須具有真實實體欄位與列，並對全部 W/H/D 共用既有 `normalize_operator_source_dimension`。bool、非有限、非正、缺欄及 malformed schema 先拒絕且不變動來源；合法小數保留原精度與選取模式。GUI `default_preview_dimensions` 繼續只委派原公開 API，不提供另一套補值。
+- 這僅收斂展示與預覽的物理來源，未新增 Family、Topology、零件、CUTTING、BEND 或 DXF 認證；原來真正缺來源的 Family 示意、已保存合法 Quantity／Set/Bay 值均保留。定向 `tests/test_issue2517_receiving_default_preview_physical_source.py` 驗 headless／GUI、非法來源無突變、合法小數與缺來源示意；#2517 全面覆蓋及 Windows UAT 仍 OPEN。
+
 ## [CURRENT] #2517 Receiving 套／連概覽草圖的物理 Bay W/H 與門縫來源由公開 Engine 投影（2026-11-10）
 
 - 原 `gui_modules.application.receiving_multi_settings_window.paint_connected_bays` 對保存的 Bay dict 與舊 tuple 實體 W/H 自行 `float()`，可能把 tuple 中 `True` 顯示為 1 mm 及以畫面最小值掩蓋非正／非有限來源，且先清除 Canvas 再驗後續 Bay；GUI 不應自行解釋或修補來源成有效幾何。

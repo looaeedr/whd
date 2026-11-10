@@ -6,6 +6,7 @@ Family registry and BoxBody topology.  They do not grant manufacturing export.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from math import isfinite
 
 from .box_body_structure_state import BoxBodyStructureType
@@ -20,16 +21,54 @@ def receiving_default_box_dimensions() -> dict[str, int]:
 
 
 def receiving_default_preview_dimensions(snapshot) -> tuple[float, float, float]:
-    """Read-only active mode dimensions for the Receiving settings preview."""
-    data = dict(snapshot or {})
-    if data.get("active_mode") == "quantity":
-        box = data.get("receiving_quantity_box") or BOX_BODY_DEFAULTS
+    """Read actual Receiving W/H/D or the absent-source Family schematic.
+
+    A missing source may use the existing canonical Family drawing default.
+    An explicitly present broken Quantity box/Set/Bay may not be silently
+    converted to those defaults or have bool interpreted as 1 mm.
+    This read-only display projection never authorizes manufacturing.
+    """
+    if snapshot is None:
+        data = {}
+    elif isinstance(snapshot, Mapping):
+        data = snapshot
     else:
-        sets = (data.get("receiving_layout") or {}).get("sets") or ()
-        bays = sets[0].get("bays") or () if sets else ()
-        box = ({"w": bays[0]["width"], "h": bays[0]["height"],
-                "d": bays[0]["depth"]} if bays else BOX_BODY_DEFAULTS)
-    return tuple(float(box[axis]) for axis in ("w", "h", "d"))
+        raise ValueError("Receiving preview snapshot must be a mapping")
+
+    if data.get("active_mode") == "quantity":
+        box = (
+            data["receiving_quantity_box"]
+            if "receiving_quantity_box" in data else BOX_BODY_DEFAULTS
+        )
+    elif "receiving_layout" not in data:
+        box = BOX_BODY_DEFAULTS
+    else:
+        layout = data["receiving_layout"]
+        if not isinstance(layout, Mapping):
+            raise ValueError("Receiving preview layout source must be a mapping")
+        sets = layout.get("sets")
+        if not isinstance(sets, (tuple, list)) or not sets:
+            raise ValueError("Receiving preview requires a real Set")
+        first_set = sets[0]
+        if not isinstance(first_set, Mapping):
+            raise ValueError("Receiving preview Set source must be a mapping")
+        bays = first_set.get("bays")
+        if not isinstance(bays, (tuple, list)) or not bays:
+            raise ValueError("Receiving preview requires a real Bay")
+        first_bay = bays[0]
+        if not isinstance(first_bay, Mapping):
+            raise ValueError("Receiving preview Bay source must be a mapping")
+        box = {
+            "w": first_bay.get("width"), "h": first_bay.get("height"),
+            "d": first_bay.get("depth"),
+        }
+
+    if not isinstance(box, Mapping):
+        raise ValueError("Receiving preview dimensions must be a mapping")
+    return tuple(
+        normalize_operator_source_dimension(box.get(axis), field=axis)
+        for axis in ("w", "h", "d")
+    )
 
 
 

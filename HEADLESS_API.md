@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving active-mode preview W/H/D reads (2026-11-10)
+
+The original public `manufacturing_api.receiving_default_preview_dimensions(snapshot)` function in `ae_engine.receiving_operator_projection` now distinguishes an **absent** Quantity/Set-Bay source (Family-only schematic defaults) from an explicitly present, malformed physical source (fail closed). The active Quantity box or first real Set/Bay must provide all W/H/D, validated through the same Engine positive, finite, nonboolean `normalize_operator_source_dimension`; no `float(True)` or `or BOX_BODY_DEFAULTS` can fabricate a plausible saved cabinet preview. The original GUI `default_preview_dimensions` remains a forwarding wrapper. This is display provenance only, not an approved manufacturing or DXF output. Regression `tests/test_issue2517_receiving_default_preview_physical_source.py`.
+
 ## #2517 Receiving Set/Bay operator sketch physical dimensions (2026-11-10)
 
 The existing `ae_engine.receiving_operator_projection` owns the public, read-only `manufacturing_api.project_receiving_operator_bay_sketch_dimensions(bay)` projection (also exported unchanged by root `ae_engine`): saved mapping and legacy tuple Bay W/H are qualified by the same positive, finite, nonboolean Engine physical-source validator used by manufacturing, and Door seam comes from the existing canonical `project_receiving_operator_bay_door_split_ratio`. Missing Bay means only the original Family schematic. The GUI validates all Bay sketch inputs before any Canvas clear/repaint and never uses `float(True)` to display a plausible 1-mm physical board. This does not authorize any new CUTTING, 2D/3D, DXF or source-only external CLI. Regression `tests/test_issue2517_receiving_bay_sketch_public_engine.py`.
