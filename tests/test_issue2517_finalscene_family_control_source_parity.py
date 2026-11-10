@@ -121,6 +121,55 @@ def test_real_adapter_route_reuses_strict_model_reader_not_gui_silent_fallback()
     assert "snapshot.get(\"model\")" not in model
 
 
+@pytest.mark.parametrize(("live", "snapshot", "initial", "expected"), (
+    ("receiving", {"model": "金庫型", "t": 2}, "金庫型", "受電箱"),
+    ("", {"model": "金庫型", "t": 2}, "受電箱", "金庫型"),
+    ("", {"cabinet_type": "ReCeIvInG", "t": 2}, "金庫型", "受電箱"),
+    ("", {"w": 800, "h": 1600, "d": 350, "t": 2}, "受電箱", "受電箱"),
+    (None, {"w": 800, "h": 1600, "d": 350, "t": 2}, "金庫型", "金庫型"),
+))
+def test_finalscene_3d_family_reads_same_engine_source_as_immutable_request(
+    live, snapshot, initial, expected,
+):
+    from phase6_manufacturing_geometry import _phase6_current_cabinet_family
+
+    app = _app(OperatorVar(live), snapshot=snapshot, initial=initial)
+    original = deepcopy(app._phase6_input_snapshot)
+    raw_family = adapter._cabinet_model(app, original)
+    assert _phase6_current_cabinet_family(app) == api.resolve_live_cabinet_family(
+        original, live_model=raw_family,
+    ) == expected
+    reloaded = json.loads(json.dumps(original, ensure_ascii=False))
+    assert api.resolve_live_cabinet_family(
+        reloaded, live_model=api.resolve_operator_manufacturing_family_source(
+            reloaded, live_model=live, initial_model=initial,
+        ),
+    ) == expected
+    assert app._phase6_input_snapshot == original
+
+
+def test_unreadable_live_family_cannot_trigger_saved_fallback_in_3d_assembly():
+    from phase6_manufacturing_geometry import _phase6_current_cabinet_family
+
+    app = _app(UnreadableOperatorVar(), initial="受電箱")
+    before = deepcopy(app._phase6_input_snapshot)
+    with pytest.raises(
+        ValueError, match="MANUFACTURING_OPERATOR_SOURCE_READ_FAILED:baseline_model_var",
+    ):
+        _phase6_current_cabinet_family(app)
+    assert app._phase6_input_snapshot == before
+
+
+def test_3d_bridge_uses_common_strict_reader_instead_of_swallowing_tk_failure():
+    from phase6_manufacturing_geometry import _phase6_current_cabinet_family
+
+    source = inspect.getsource(_phase6_current_cabinet_family)
+    assert "from phase6_manufacturing_adapter import _cabinet_model" in source
+    assert "manufacturing_api.resolve_live_cabinet_family(" in source
+    assert "except Exception:" not in source
+    assert "live_model = None" not in source
+
+
 @pytest.mark.parametrize(("snapshot", "live", "initial", "expected"), (
     ({"model": "金庫型"}, "受電箱", "金庫型", "受電箱"),
     ({"model": "受電箱"}, "  金庫型  ", "受電箱", "金庫型"),
