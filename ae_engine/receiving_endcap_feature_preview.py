@@ -7,6 +7,7 @@ NOT canonical CUTTING/FinalScene, a certification or a DXF export capability.
 from __future__ import annotations
 
 from math import isfinite
+from .operator_settings_transactions import normalize_operator_source_dimension
 from .sheetmetal_feature_core import (
     CircleFeature, RectFeature, ProfileFeature,
     feature_finished_point, _rotate_local_point,
@@ -30,9 +31,10 @@ def receiving_endcap_feature_preview_shapes(features, width, depth):
     Unsupported values are reported rather than drawn as invented features.
     Coordinates are in finished-face units, Y positive upward.
     """
-    w, d = float(width), float(depth)
-    if not all(isfinite(v) and v > 0 for v in (w, d)):
-        raise ValueError("缺少有效封頭尾尺寸，無法預覽")
+    # Width/depth are finished outside physical sources. Python float(True)
+    # is 1 mm, which must never become an Engine-approved preview face.
+    w = normalize_operator_source_dimension(width, field="w")
+    d = normalize_operator_source_dimension(depth, field="d")
     if not isinstance(features, (list, tuple)):
         raise ValueError("封頭尾孔位必須是 Feature 清單")
     shapes, unsupported = [], 0
