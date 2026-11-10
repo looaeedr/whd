@@ -154,7 +154,11 @@ def test_door_and_base_only_use_original_selection_without_ears(tmp_path,two):
     assert len([name for name in names if "base_plate" in name]) == (
         2 if two else 1
     )
-    assert not any("box_body" in name for name in names)
+    # The same physical lower C inner-door frame is a BoxBody divider:
+    # Door-only now keeps this VERIFIED shared blank, but must never select
+    # independent BoxBody shell sheets or EAR weld plates.
+    assert any("box_body" in name and "divider" in name for name in names)
+    assert not any("box_body" in name and "divider" not in name for name in names)
     assert len(list(tmp_path.glob("*.dxf")))==len(names)
     assert all((tmp_path/p).is_file() for p in names)
 
