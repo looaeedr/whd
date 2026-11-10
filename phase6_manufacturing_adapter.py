@@ -478,20 +478,10 @@ def build_manufacturing_request(
     settings = manufacturing_api.project_receiving_manufacturing_request_settings(
         snapshot, settings, box_dimensions,
     )
-    # A request assembled from a sparse input snapshot must still carry the
-    # actual operator W/H/D/T of THIS app, never infer geometry from a cached
-    # display or a different Bay. Existing authoritative values take priority.
-    for axis in ("w", "h", "d"):
-        if axis in box_dimensions:
-            snapshot.setdefault(axis, box_dimensions[axis])
-        elif axis in settings:
-            snapshot.setdefault(axis, settings[axis])
-    # Manufacturing T is operator-owned outside-source data, never a hidden
-    # 2 mm AE default when source reads fail or legacy snapshots are sparse.
-    # An existing project snapshot wins over a stale Settings cache.
-    raw_t = snapshot["t"] if "t" in snapshot else settings.get("t")
-    snapshot["t"] = manufacturing_api.normalize_operator_source_dimension(
-        raw_t, field="t",
+    # GUI forwards detached sources; Engine owns committed/live/Settings
+    # dimensional provenance and strict physical T before request construction.
+    snapshot = manufacturing_api.project_operator_manufacturing_request_snapshot(
+        snapshot, settings, box_dimensions,
     )
     corner_state = _mapping(getattr(app, "_phase6_corner_state", {}) or {})
     endcap_fw = _mapping(getattr(app, "_phase6_endcap_fw_state", {}) or {})

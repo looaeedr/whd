@@ -242,6 +242,7 @@ from .operator_settings_transactions import (
     normalize_operator_receiving_base_plate_number,
     PHYSICAL_SNAPSHOT_SOURCE_KEYS,
     project_receiving_manufacturing_request_settings,
+    project_operator_manufacturing_request_snapshot,
     project_operator_linked_endcap_source_snapshot,
     project_operator_part_dimension_settings_overlay,
     operator_legacy_shared_base_plate_shrink,

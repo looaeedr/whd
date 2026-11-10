@@ -369,6 +369,33 @@ def project_receiving_manufacturing_request_settings(
     return result
 
 
+def project_operator_manufacturing_request_snapshot(
+    input_snapshot: Mapping[str, object],
+    settings_values: Mapping[str, object],
+    working_box: Mapping[str, object],
+) -> dict[str, object]:
+    """Select the original W/H/D/T source for one immutable request.
+
+    Already committed snapshot dimensions take priority over the live box,
+    which takes priority over Settings for missing W/H/D only. The persisted
+    snapshot's explicit T always wins over Settings T (even when invalid), and
+    must pass the existing strict physical thickness contract. This is a
+    detached source projection, not a geometry/defaults calculation.
+    """
+    result = deepcopy(dict(input_snapshot))
+    settings = dict(settings_values)
+    box = dict(working_box)
+    for axis in ("w", "h", "d"):
+        if axis not in result:
+            if axis in box:
+                result[axis] = deepcopy(box[axis])
+            elif axis in settings:
+                result[axis] = deepcopy(settings[axis])
+    raw_t = result["t"] if "t" in result else settings.get("t")
+    result["t"] = normalize_operator_source_dimension(raw_t, field="t")
+    return result
+
+
 def project_operator_part_dimension_settings_overlay(
     input_snapshot: Mapping[str, object],
     settings_values: Mapping[str, object],

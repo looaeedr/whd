@@ -58,7 +58,10 @@ def test_valid_authoritative_snapshot_t_overrides_stale_settings_t():
 
 def test_adapter_uses_existing_engine_validator_without_gui_default():
     src = inspect.getsource(build_manufacturing_request)
-    assert 'manufacturing_api.normalize_operator_source_dimension(' in src
-    assert 'raw_t, field="t"' in src
+    assert "manufacturing_api.project_operator_manufacturing_request_snapshot(" in src
+    assert "snapshot.setdefault(axis" not in src
+    from ae_engine import operator_settings_transactions as owner
+    source = inspect.getsource(owner.project_operator_manufacturing_request_snapshot)
+    assert 'normalize_operator_source_dimension(raw_t, field="t")' in source
     assert "snapshot.setdefault(\"t\", _num(" not in src
     assert 'snapshot.get("t", 2.0)' not in src
