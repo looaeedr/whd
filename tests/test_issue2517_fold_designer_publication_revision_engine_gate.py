@@ -201,6 +201,11 @@ def test_real_fold_designer_publisher_cannot_send_false_revision(raw):
 def test_real_publisher_preserves_raw_false_force_until_engine_verification():
     host, sent = _host_with_revision("3")
     source = host.corner_transaction_payload(None)
+    # Use an explicit existing Relief flag transition: the legacy generic
+    # mapping delta does not represent deleted keys in an empty mapping.
+    # That separate behavior is outside this revision/force source gate.
+    source["assembly_relief"] = {"enabled": False, "parts": {}}
+    host.corner_transaction_payload = lambda _: deepcopy(source)
     host.app._phase6_last_live_state = deepcopy(source)
     host.app._phase6_last_live_fingerprint = envelope.stable_fingerprint(source)
     host.app._phase6_input_snapshot["assembly_relief"] = {
