@@ -108,7 +108,7 @@ def test_force_publish_does_not_echo_equivalent_state_or_bump_revision(monkeypat
             app._phase6_last_live_state.get("assembly_relief") or {}
         )
         published.clear()
-        current = app._phase6_corner_transaction_payload()
+        current = bridge._phase6_corner_transaction_payload(app)
         previous = app._phase6_last_live_state
         assert current == previous, {
             "changed_fields": sorted(
