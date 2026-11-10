@@ -94,7 +94,13 @@ def resolve_fold_designer_frame_part(
         frame_sets = list(cabinet_family_policy.derive_inner_door_frame_sets(data))
     else:
         frame_sets = []
-        thickness = float(data.get("t", default_thickness))
+        # Preserve original submitted thickness type until the public Engine
+        # physical-source validator checks it. float(True) would fabricate a
+        # valid-looking 1-mm manufactured frame from a corrupt checkbox/JSON.
+        from .operator_settings_transactions import normalize_operator_source_dimension
+        thickness = normalize_operator_source_dimension(
+            data.get("t", default_thickness), field="t",
+        )
         for item in tuple(data.get("inner_doors") or ()):
             if not isinstance(item, dict):
                 continue
