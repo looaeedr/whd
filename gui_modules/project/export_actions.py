@@ -363,6 +363,10 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
     exported = []
     errors = []
 
+    def legacy_name(part_kind):
+        # Physical DXF names come from the same public Engine as per-cell Door.
+        return manufacturing_api.legacy_single_part_dxf_filename(part_kind)
+
     def run_part(filename, spec):
         fp = os.path.join(folder, filename)
         result = self._export_authoritative_part(spec, fp, context)
@@ -373,21 +377,21 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
 
     if flags["box_body"]:
         try:
-            run_part("box_body_z.dxf", self._box_body_part_spec(val))
+            run_part(legacy_name("box_body"), self._box_body_part_spec(val))
         except Exception as ex:
-            errors.append(f"box_body_z.dxf: {ex}")
+            errors.append(f"{legacy_name('box_body')}: {ex}")
 
     if flags["head"]:
         try:
-            run_part("end_cap_head.dxf", self._end_cap_part_spec(val, is_tail=False))
+            run_part(legacy_name("head"), self._end_cap_part_spec(val, is_tail=False))
         except Exception as ex:
-            errors.append(f"end_cap_head.dxf: {ex}")
+            errors.append(f"{legacy_name('head')}: {ex}")
 
     if flags["tail"]:
         try:
-            run_part("end_cap_tail.dxf", self._end_cap_part_spec(val, is_tail=True))
+            run_part(legacy_name("tail"), self._end_cap_part_spec(val, is_tail=True))
         except Exception as ex:
-            errors.append(f"end_cap_tail.dxf: {ex}")
+            errors.append(f"{legacy_name('tail')}: {ex}")
 
     if flags["door"]:
         try:
@@ -420,7 +424,7 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
                         label="門上指示燈",
                     )
                 run_part(
-                    "door_unfold.dxf",
+                    legacy_name("door"),
                     self._single_door_part_spec(
                         val,
                         indicator_hole=indicator_hole,
@@ -431,15 +435,15 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
             target = (
                 "multi-door layout"
                 if multi_door
-                else "door_unfold.dxf"
+                else legacy_name("door")
             )
             errors.append(f"{target}: {ex}")
 
     if flags["base_plate"]:
         try:
-            run_part("base_plate.dxf", self._base_plate_part_spec(val))
+            run_part(legacy_name("base_plate"), self._base_plate_part_spec(val))
         except Exception as ex:
-            errors.append(f"base_plate.dxf: {ex}")
+            errors.append(f"{legacy_name('base_plate')}: {ex}")
 
     if multi_door and (
         flags["indicator_box"] or flags["indicator_door"]
@@ -464,7 +468,7 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
                 label="指示燈盒",
             )
             run_part(
-                "indicator_box.dxf",
+                legacy_name("indicator_box"),
                 self._indicator_box_part_spec(
                     val,
                     groups,
@@ -472,7 +476,7 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
                 ),
             )
         except Exception as ex:
-            errors.append(f"indicator_box.dxf: {ex}")
+            errors.append(f"{legacy_name('indicator_box')}: {ex}")
 
     if flags["indicator_door"] and not multi_door:
         try:
@@ -481,7 +485,7 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
                 label="指示燈盒",
             )
             run_part(
-                "indicator_door.dxf",
+                legacy_name("indicator_door"),
                 self._indicator_door_part_spec(
                     val,
                     groups,
@@ -489,7 +493,7 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
                 ),
             )
         except Exception as ex:
-            errors.append(f"indicator_door.dxf: {ex}")
+            errors.append(f"{legacy_name('indicator_door')}: {ex}")
 
     return exported, errors
 
