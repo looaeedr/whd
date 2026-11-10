@@ -24,7 +24,7 @@ def _entries(root):
     result = []
     while pending:
         widget = pending.pop(0)
-        if isinstance(widget, ttk.Entry):
+        if isinstance(widget, ttk.Entry) and not isinstance(widget, ttk.Combobox):
             result.append(widget)
         pending.extend(widget.winfo_children())
     return result
