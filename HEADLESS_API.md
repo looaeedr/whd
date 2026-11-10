@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Relief solver verified candidate must pass original Engine gate (2026-11-10)
+
+The existing Certified Relief Registry owner `ae_engine.certified_relief_registry` now exports `operator_relief_promotion_candidate_eligible(solution)` unchanged through public `manufacturing_api` and root `ae_engine`. A PROVISIONAL_3D solver result can enter the GUI promotion list only when `verified` is an actual native Boolean true. Serialized or corrupted `"false"`/ `"true"`, 0/1 and other non-Boolean solver fields fail closed; the direct public `build_relief_promotion_candidate` also invokes this gate. This read-only candidate eligibility is not approval to manufacture, alter Registry certified rules or export DXF; existing candidate-specific promotion regression evidence remains mandatory. Regression: `tests/test_issue2517_relief_promotion_verification_engine_api.py`.
+
+
 ## #2517 Engine-owned Fold Designer outgoing publication revisions (2026-11-10)
 
 `manufacturing_api.project_operator_fold_designer_publication_revisions(raw_current_revision)` (also root `ae_engine`) is a read-only public Engine projection returning frozen `OperatorFoldDesignerPublicationRevisions(current_revision, next_revision)`. It validates the original outgoing Fold Designer monotonic counter with the same Engine parser as incoming revision and external Settings: native non-Boolean integers or ASCII integer text only; negative/float/nonfinite/underscore/Boolean sources reject before any live fingerprint or callback, while absent/blank uninitialized counter remains zero. The legacy `phase6_sync_envelope.plan_live_sync_envelope` still owns transport payload and anti-echo, but no longer uses `int(raw or 0)` or increments a nonvalidated version itself; the display-only `LiveSyncPublicationPlan` also refuses invalid version values. The existing public `normalize_operator_settings_boolean` validates raw `force` and `host_relief_present` flags before deciding host Relief repair; GUI no longer pre-coerces `force=bool(force)`. Valid one-revision publication, delta, fingerprint, Family/Part/Save/Reload, 2D/3D/DXF ownership and certification are unchanged. Regression `tests/test_issue2517_fold_designer_publication_revision_engine_gate.py`.

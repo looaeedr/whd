@@ -914,13 +914,33 @@ def _serialize_measurement(item):
     }
 
 
+def operator_relief_promotion_candidate_eligible(solution) -> bool:
+    """Only a truly verified provisional 3D solution can become a candidate.
+
+    The solver's verification state is a native bool, not a serialized Tk
+    flag. Python bool("false") must never authorize a Relief promotion, even
+    when a GUI or external caller bypasses the candidate list.
+    """
+    if solution is None:
+        return False
+    verified = getattr(solution, "verified", False)
+    if type(verified) is not bool:
+        raise ValueError("RELIEF_PROMOTION_VERIFIED_BOOLEAN_REQUIRED")
+    return verified and (
+        str(getattr(solution, "trust_level", ""))
+        == CertifiedReliefStatus.PROVISIONAL_3D.value
+    )
+
+
 def build_relief_promotion_candidate(
     solution, *, cabinet_family, part_role, joint_face, assembly_intent, source_signature,
 ):
     """建立 promotion manifest；此 API 永遠不修改 registry。"""
-    if not bool(getattr(solution, "verified", False)):
-        raise ValueError("未通過 3D 驗證的結果不可建立認證候選")
-    if str(getattr(solution, "trust_level", "")) != CertifiedReliefStatus.PROVISIONAL_3D.value:
+    # Validate raw solver evidence before the old specific refusal messages.
+    eligible = operator_relief_promotion_candidate_eligible(solution)
+    if not eligible:
+        if getattr(solution, "verified", False) is not True:
+            raise ValueError("未通過 3D 驗證的結果不可建立認證候選")
         raise ValueError("只有 PROVISIONAL_3D 結果可建立認證候選")
     try:
         intent = CornerTypeId(assembly_intent)
