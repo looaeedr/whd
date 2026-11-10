@@ -170,12 +170,27 @@ def test_root_level_removal_only_does_not_suppress_full_state_publication():
     unchanged = plan_live_sync_envelope(
         current_state=after,
         previous_state=after,
-        previous_fingerprint="stale metadata",
+        previous_fingerprint=stable_fingerprint(after),
         current_revision=4, active_transaction_id="",
         host_relief_present=False, host_relief={},
         force=False,
     )
     assert unchanged.should_publish is False
+
+
+def test_stale_fingerprint_alone_never_forges_a_physical_change():
+    source = {"settings": {"w": 820.25}, "assembly_relief": {}}
+    plan = plan_live_sync_envelope(
+        current_state=source,
+        previous_state=deepcopy(source),
+        previous_fingerprint="stale metadata",
+        current_revision=4,
+        active_transaction_id="",
+        host_relief_present=False, host_relief={},
+        force=False,
+    )
+    assert plan.should_publish is False
+    assert plan.next_revision == 4
 
 
 def test_same_value_never_writes_new_snapshot_and_source_stays_pure():
