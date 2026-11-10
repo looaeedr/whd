@@ -280,8 +280,14 @@ def _source_rows(panels, *, preserve_input_order=False, box_body_owner_by_panel=
                     _finite(piece.formed_y_offset),
                     str(piece.role),
                 )
+        # A canonical Receiving lower C support has a box_body:divider:
+        # identity, but it is an INDEPENDENT physical blank. It must not be
+        # mistaken for one of the BoxBody's left/back/right shell pieces.
         body = [(key, data) for key, data in rows
-                if key == "box_body" or key.startswith("box_body:")]
+                if key == "box_body" or (
+                    key.startswith("box_body:")
+                    and not key.startswith("box_body:divider:")
+                )]
         others = [(key, data) for key, data in rows if (key, data) not in body]
         if body_owner:
             if set(body_owner) != {key for key, _ in body}:
@@ -310,7 +316,7 @@ def _source_rows(panels, *, preserve_input_order=False, box_body_owner_by_panel=
     ))
 
 
-def _compose(rows, *, gap):
+def _compose(rows, *, gap, quantity_summary=False):
     scene = DrawingScene()
     sheet_receipts = []
     originals = []
@@ -348,6 +354,51 @@ def _compose(rows, *, gap):
             "CHECK", 9.0, 1, 2, "composed_panel_name",
         ))
         y_cursor += row_height + 2*gap
+    if quantity_summary:
+        # Count the actual already-approved flat sheets, not logical Bay labels.
+        # The complete manufacturing primitive fingerprint prevents a different
+        # hole, bend, marking, blank outline, or part role from being merged.
+        quantities = {}
+        for panel_name, pieces in rows:
+            for physical_id, render, _assembly_y in pieces:
+                primitives = Counter(
+                    _source_signature(primitive)
+                    for primitive in render.scene.primitives
+                    if str(primitive.layer).upper() != "CHECK"
+                )
+                identity = (
+                    physical_id,
+                    tuple(sorted(primitives.items(), key=lambda item: repr(item[0]))),
+                )
+                if identity not in quantities:
+                    quantities[identity] = [physical_id, 0, []]
+                quantities[identity][1] += 1
+                quantities[identity][2].append(panel_name)
+        if sum(item[1] for item in quantities.values()) != len(sheet_receipts):
+            raise ValueError("COMPOSED_DXF_QUANTITY_INVENTORY_MISMATCH")
+        variants = Counter(item[0] for item in quantities.values())
+        current_variant = Counter()
+        summary_lines = [
+            f"總計：{len(sheet_receipts)}片；同板件同孔位 {len(quantities)} 種"
+        ]
+        for physical_id, count, panel_names in quantities.values():
+            current_variant[physical_id] += 1
+            variant = (
+                f"（式樣{current_variant[physical_id]}）"
+                if variants[physical_id] > 1 else ""
+            )
+            summary_lines.append(
+                f"{physical_id}{variant} × {count}：{', '.join(panel_names)}"
+            )
+        # CHECK-only labels live ABOVE the last manufacturing row; never
+        # alter CUTTING/BEND or the independently reopened source flats.
+        line_step = max(12.0, float(gap) / 5.0)
+        top = y_cursor + float(gap) + line_step * (len(summary_lines) - 1)
+        for index, line in enumerate(summary_lines):
+            scene.add(TextPrimitive(
+                line, Vec2(0.0, top - index * line_step),
+                "CHECK", 7.0, 1, 2, "composed_quantity_summary",
+            ))
     combined = PartRenderData(
         scene=scene, material=unary_union(translated_materials),
         fold_guides=tuple(translated_guides),
@@ -358,7 +409,7 @@ def _compose(rows, *, gap):
 def save_composed_panel_dxf(
     panels, output_path, *, pre_commit_guard, overwrite=False, gap=60.0,
     preserve_input_order=False, box_body_owner_by_panel=None,
-    _verified_nfb_pair_parts=None,
+    _verified_nfb_pair_parts=None, quantity_summary=False,
 ):
     """Publish one staged, independently reopened multi-panel flat DXF.
 
@@ -382,7 +433,11 @@ def save_composed_panel_dxf(
         _verified_nfb_pair_parts=_verified_nfb_pair_parts,
     )
     pre_commit_guard()
-    composite, sheets, originals = _compose(rows, gap=float(gap))
+    if type(quantity_summary) is not bool:
+        raise TypeError("COMPOSED_DXF_QUANTITY_SUMMARY_FLAG_MUST_BE_BOOL")
+    composite, sheets, originals = _compose(
+        rows, gap=float(gap), quantity_summary=quantity_summary,
+    )
     # The original per-piece authority is checked independently, not inferred
     # by counting the final merged file as one successful part.
     root = path.parent
