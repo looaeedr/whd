@@ -13,6 +13,13 @@ whd_schema: WHD_DOC_META_V1
 - `tests/test_issue2517_finalscene_thickness_public_engine.py` 正反驗證兩 Family 的單板／組合、Save→Reload、真 formed-size 回讀、無來源、來源衝突與非法 T 原子拒絕。此批不改 Fold/CUTTING/BEND、2D／3D 幾何公式、DXF Writer、Factory／Family 或製造資格；#2517 全功能逐項覆蓋與 Windows UAT 仍 OPEN。
 
 
+
+## [CURRENT] #2517 Door 格刪除／重映射不得遺失已存實體孔與非門格來源（2026-11-10）
+
+- 原 `ae_engine.door_layout_physical_remap.remap_receiving_door_layout_after_delete`（由 `manufacturing_api` 給 GUI／headless）在執行刪除欄／層時，已存無法解析的 `column:row` 直接被視為 None 丟棄；對 Workspace 的 `door_c*` 無差別刪除，未連接 `door_layout_features` 的合法既存實體孔可能全部遺失。此為原 Engine 所有權移轉缺口，不得由 GUI 猜測修復孔位。
+- 在同一 Engine 所有者中嚴格核對原始 cell key，若已有真實 `door_cN_rN` 身分但缺原可編輯 Feature map 必須事前拒絕；只重鍵真正的 `door_cN_rN`，保留其他 `door_c*` 來源。合法 upper/lower/cNrN 不變，原 GUI Adapter／實體板件／Feature／FinalScene／DXF 算法不變。負例驗證原子拒絕、正例驗證原本公開 API 的孔位／身分、`.p6fold` Save→Reload 與 Engine 2D feature readback。尚不代表 3D/DXF 全盤驗收或 Windows UAT。
+
+
 ## [CURRENT] #2517 Receiving 已選 Bay 的 Scene 門孔／NFB 來源由原 Engine Family Registry 保護（2026-11-10）
 
 - 原公開 `ae_engine.manufacturing_scene_payload.project_manufacturing_scene_settings_overlay` 在檢查已提交 Receiving Runtime Selection 時，以硬寫字串 `("受電箱", "RECEIVING")` 判斷 Family，遺漏 Registry 已註冊的小寫、混合大小寫與含空白別名，使舊全域 Settings 的 Door／NFB／Bay 來源可能覆蓋已選中實體 Bay 的確認資料。GUI 雖已呼叫公開 Engine API，但同一製造 operation 不能因合法 Family 別名不同而取得不同來源。
