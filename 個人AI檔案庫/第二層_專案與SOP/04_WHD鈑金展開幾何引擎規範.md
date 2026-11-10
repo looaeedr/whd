@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 FinalScene／製造 Request 的即時、已存、初始 Family 來源順序由公開 Engine（2026-11-10）
+
+- 原 `phase6_manufacturing_adapter._cabinet_model` 在 GUI 自行選擇即時 `baseline_model_var`、已存 `model/cabinet_type`、未存初始箱型的優先序，同時控制 FinalScene、Request 與快取；這是實體製造 Family 來源決策，不應留在 GUI。原資料未通過即時 Tk 控制讀取時仍須在建立請求之前拒絕，不能用已存值靜默補上。
+- 新的 `ae_engine.live_cabinet_family.resolve_operator_manufacturing_family_source` 經原 `manufacturing_api` 與根包公開，保留**同樣的原始字串與優先序**、不替別名猜測機械規則；`resolve_live_cabinet_family`／Family Registry 保留正式 canonical/授權判定。GUI 只收原始 live/初始/已存資料並委派，所有呼叫者消費同一結果。負向測試檢查損壞控制原子拒絕；正向核對 JSON Save→Reload、headless、FinalScene 與 immutable Request 及相同製造 Family。這不更動 2D／3D／DXF／CUTTING／BEND、板件及認證。
+
+
 ## [CURRENT] #2517 Fold Designer Live Sync 刪除孔位／Relief 子物件不得誤認來源未改（2026-11-10）
 
 - 前批 Engine 已統一即時同步的接收／發布 revision 與 force 來源驗證，但原中立傳輸 `phase6_sync_envelope.actual_delta` 僅迭代 `after` 現有鍵，完全忽略 `before` 有、`after` 刪除的鍵。因此 Hole Editor 清空 `workspace.part_features` 或 host Relief 從有值恢復空物件時，可能得到 `_UNCHANGED`、`delta={}`，進而不發布本來應傳到主 GUI 的正式完整實體狀態。這不屬於 Engine 的新幾何或孔位推導，而是既有 GUI 交易傳輸遺漏來源刪除。
