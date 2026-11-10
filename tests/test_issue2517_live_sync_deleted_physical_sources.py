@@ -71,7 +71,7 @@ def test_nested_removal_projects_authoritative_replacement_not_false_noop(
     plan = _plan(before, after)
     assert plan.should_publish is True
     assert plan.next_revision == 4
-    assert plan.delta == expected
+    assert materialize_sync_value(plan.delta) == expected
     assert materialize_sync_value(plan.payload)["revision"] == 4
     assert json.loads(json.dumps(materialize_sync_value(plan.payload)))["workspace" if "workspace" in after else next(iter(after))] == after[next(iter(after))]
     assert (before, after) == originals
