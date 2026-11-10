@@ -170,3 +170,133 @@ def test_joint_lock_sources_only_exist_on_actual_mating_bay_sides():
         assert bool(left) is (bi > 0)
         assert bool(right) is (bi < 2)
         assert stale not in left + right
+
+
+
+def test_debug_arranges_physical_relatives_not_unrelated_global_rows():
+    """Diagnostic view places genuine verified flats by their own role and bounds."""
+    from ae_engine.sheetmetal_drawing import DrawingScene, TextPrimitive
+    from ae_engine.receiving_verified_debug_dxf import _scene_bounds
+
+    render_by_id = {
+        "box_body:left_side": _flat("left", width=110, height=160),
+        "box_body:back": _flat("back", width=350, height=210),
+        "box_body:right_side": _flat("right", width=120, height=180),
+        "head": _flat("head", width=250, height=48, hole=False),
+        "tail": _flat("tail", width=190, height=52, hole=False),
+        "door_c1_r1": _flat("upper", width=280, height=120),
+        "door_c1_r2": _flat("lower", width=230, height=170),
+        "inner_door:upper:panel": _flat("inner", width=220, height=170),
+        "inner_door:upper:top_frame": _flat("frame_top", width=180, height=25, hole=False),
+        "inner_door:upper:left_frame": _flat("frame_left", width=24, height=190, hole=False),
+        "inner_door:upper:right_frame": _flat("frame_right", width=32, height=205, hole=False),
+        "inner_door:upper:bottom_frame": _flat("frame_bottom", width=200, height=30, hole=False),
+        "divider": _flat("divider", width=180, height=35, hole=False),
+        "base_plate": _flat("base", width=210, height=90, hole=False),
+    }
+    # Deliberately shuffled: layout is determined by physical identity, not
+    # input enumeration, drawing order, or specimen coordinates.
+    keys = (
+        "inner_door:upper:right_frame", "tail", "door_c1_r2",
+        "inner_door:upper:bottom_frame", "box_body:back", "base_plate",
+        "head", "inner_door:upper:left_frame", "door_c1_r1",
+        "box_body:right_side", "inner_door:upper:panel",
+        "divider", "inner_door:upper:top_frame", "box_body:left_side",
+    )
+    before = {key: tuple(render.scene.primitives) for key, render in render_by_id.items()}
+    scene, quantities = compose_verified_receiving_debug_layout(
+        (("P1", tuple((key, render_by_id[key]) for key in keys)),)
+    )
+    assert len(quantities) == len(keys)
+    assert all(p.layer == "CHECK" for p in scene.primitives)
+    assert before == {key: tuple(render.scene.primitives) for key, render in render_by_id.items()}
+
+    positioned = {}
+    for index, primitive in enumerate(scene.primitives):
+        if not isinstance(primitive, TextPrimitive):
+            continue
+        if primitive.semantic_id != "debug_source_label":
+            continue
+        for key in keys:
+            if primitive.text.startswith(f"{_role(key)} / {key}  Q"):
+                count = len(render_by_id[key].scene.primitives)
+                translated = DrawingScene(scene.primitives[index + 1:index + 1 + count])
+                positioned[key] = _scene_bounds(translated)
+                break
+    assert set(positioned) == set(keys)
+
+    def center_x(key):
+        x0, _y0, x1, _y1 = positioned[key]
+        return (x0 + x1) / 2
+
+    def center_y(key):
+        _x0, y0, _x1, y1 = positioned[key]
+        return (y0 + y1) / 2
+
+    back, head, tail = (positioned[key] for key in (
+        "box_body:back", "head", "tail",
+    ))
+    assert head[1] > back[3]
+    assert tail[3] < back[1]
+    assert center_x("head") == pytest.approx(center_x("box_body:back"))
+    assert center_x("tail") == pytest.approx(center_x("box_body:back"))
+    assert positioned["box_body:left_side"][2] < back[0]
+    assert positioned["box_body:right_side"][0] > back[2]
+
+    upper, lower = positioned["door_c1_r1"], positioned["door_c1_r2"]
+    assert lower[3] < upper[1]
+    assert center_x("door_c1_r1") == pytest.approx(center_x("door_c1_r2"))
+
+    inner, upper_frame, lower_frame, left_frame, right_frame = (
+        positioned[key] for key in (
+            "inner_door:upper:panel", "inner_door:upper:top_frame",
+            "inner_door:upper:bottom_frame", "inner_door:upper:left_frame",
+            "inner_door:upper:right_frame",
+        )
+    )
+    assert upper_frame[1] > inner[3]
+    assert lower_frame[3] < inner[1]
+    assert left_frame[2] < inner[0]
+    assert right_frame[0] > inner[2]
+    for key in (
+        "inner_door:upper:top_frame", "inner_door:upper:bottom_frame",
+    ):
+        assert center_x(key) == pytest.approx(center_x("inner_door:upper:panel"))
+    for key in (
+        "inner_door:upper:left_frame", "inner_door:upper:right_frame",
+    ):
+        assert center_y(key) == pytest.approx(center_y("inner_door:upper:panel"))
+    assert positioned["divider"][3] < inner[1]
+    assert positioned["base_plate"][3] < positioned["divider"][1]
+
+
+def test_debug_keeps_multiple_inner_door_frame_owners_separate():
+    from ae_engine.receiving_verified_debug_dxf import _debug_layout_for_panel
+
+    parts = (
+        ("inner_door:lower:right_frame", _flat("lower-right", width=19, height=135)),
+        ("inner_door:upper:panel", _flat("upper", width=120, height=95)),
+        ("inner_door:lower:panel", _flat("lower", width=150, height=110)),
+        ("inner_door:upper:top_frame", _flat("upper-top", width=140, height=20)),
+        ("inner_door:lower:left_frame", _flat("lower-left", width=18, height=135)),
+        ("inner_door:upper:left_frame", _flat("upper-left", width=16, height=115)),
+        ("inner_door:lower:top_frame", _flat("lower-top", width=160, height=22)),
+        ("inner_door:upper:right_frame", _flat("upper-right", width=17, height=115)),
+    )
+    placed, _height = _debug_layout_for_panel(parts)
+    assert len(placed) == len(parts)
+    bounds = {}
+    for key, render, x, y in placed:
+        from ae_engine.receiving_verified_debug_dxf import _scene_bounds
+        x0, y0, x1, y1 = _scene_bounds(render.scene)
+        bounds[key] = (x, y, x + x1 - x0, y + y1 - y0)
+    assert bounds["inner_door:upper:panel"][1] > bounds["inner_door:lower:panel"][3]
+    for owner in ("upper", "lower"):
+        panel = bounds[f"inner_door:{owner}:panel"]
+        top = bounds[f"inner_door:{owner}:top_frame"]
+        left = bounds[f"inner_door:{owner}:left_frame"]
+        right = bounds[f"inner_door:{owner}:right_frame"]
+        assert top[1] > panel[3]
+        assert left[2] < panel[0]
+        assert right[0] > panel[2]
+    assert _role("box_body:divider:door-grid:H:0:1") == "下框／中隔"

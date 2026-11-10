@@ -49,6 +49,8 @@ class ReceivingDebugQuantity:
 
 def _role(identity):
     key = str(identity).casefold()
+    if key.startswith("box_body:divider:"):
+        return "下框／中隔"
     if key == "box_body" or key.startswith("box_body:"):
         if "left_side" in key:
             return "左側板"
@@ -121,6 +123,159 @@ def _label(scene, label, x, y, size=7):
                             "CHECK", float(size), 1, 2, "debug_source_label"))
 
 
+
+def _debug_layout_for_panel(parts):
+    """Arrange already-verified flats for inspection, using rigid moves only.
+
+    Every role is placed relative to its actual neighboring physical piece:
+    head/tail relative to back, lower door below upper, and each inner door
+    inside its own top/left/right/bottom frame group. These are CHECK layout
+    positions, never canonical manufactured assembly or reconstructed geometry.
+    """
+    def size(render):
+        x0, y0, x1, y1 = _scene_bounds(render.scene)
+        return x1 - x0, y1 - y0
+
+    def stack(entries):
+        placed = []
+        height = 0.0
+        width = 0.0
+        for key, render in entries:
+            w, h = size(render)
+            placed.append((key, render, 0.0, height))
+            width = max(width, w)
+            height += h + _GAP
+        return placed, width, max(0.0, height - _GAP)
+
+    def moved(placed, dx, dy):
+        return [(key, render, x + dx, y + dy)
+                for key, render, x, y in placed]
+
+    def block(placed):
+        if not placed:
+            return None
+        x0 = min(x for _, _, x, _ in placed)
+        y0 = min(y for _, _, _, y in placed)
+        x1 = max(x + size(render)[0] for _, render, x, _ in placed)
+        y1 = max(y + size(render)[1] for _, render, _, y in placed)
+        return (moved(placed, -x0, -y0), x1 - x0, y1 - y0)
+
+    by_role = defaultdict(list)
+    inner_by_owner = defaultdict(list)
+    doors = []
+    for key, render in parts:
+        key = str(key)
+        role = _role(key)
+        if key.casefold().startswith("inner_door:"):
+            tokens = key.split(":")
+            owner = tokens[1] if len(tokens) > 2 else ""
+            inner_by_owner[owner].append((key, render))
+        elif role in ("上門", "下門"):
+            doors.append((key, render))
+        else:
+            by_role[role].append((key, render))
+
+    def body_layout():
+        data = {role: stack(by_role.pop(role, ()))
+                for role in ("左側板", "後面板", "右側板", "封頭", "封尾")}
+        (left, lw, lh) = data["左側板"]
+        (back, bw, bh) = data["後面板"]
+        (right, rw, rh) = data["右側板"]
+        (head, hw, hh) = data["封頭"]
+        (tail, tw, th) = data["封尾"]
+        if not any((left, back, right, head, tail)):
+            return None
+        center_left = lw + (_GAP if left else 0.0)
+        center_width = max(bw, hw, tw)
+        back_y = th + (_GAP if tail else 0.0)
+        # Align each side with the back, not the tallest unrelated row.
+        return block(
+            moved(back, center_left + (center_width - bw) / 2, back_y)
+            + moved(left, 0.0, back_y + (bh - lh) / 2)
+            + moved(right, center_left + center_width + _GAP,
+                    back_y + (bh - rh) / 2)
+            + moved(head, center_left + (center_width - hw) / 2,
+                    back_y + bh + _GAP)
+            + moved(tail, center_left + (center_width - tw) / 2,
+                    back_y - _GAP - th)
+        )
+
+    def doors_layout():
+        if not doors:
+            return None
+        by_column = defaultdict(list)
+        for key, render in doors:
+            cell = re.fullmatch(r"door_c([0-9]+)_r([0-9]+)", key.casefold())
+            column, row = (int(cell.group(1)), int(cell.group(2))) if cell else (
+                0, 1 if _role(key) == "上門" else 2
+            )
+            by_column[column].append((row, key, render))
+        placed = []
+        next_x = 0.0
+        for column in sorted(by_column):
+            # Place physical lower rows at smaller Y, directly under upper rows.
+            members = sorted(by_column[column], key=lambda item: (
+                item[0], item[1]
+            ))
+            width = max(size(render)[0] for _, _, render in members)
+            y = 0.0
+            for _row, key, render in reversed(members):
+                w, h = size(render)
+                placed.append((key, render, next_x + (width - w) / 2, y))
+                y += h + _GAP
+            next_x += width + _GAP
+        return block(placed)
+
+    def inner_layout(entries):
+        data = {role: stack(tuple((key, render) for key, render in entries
+                                  if _role(key) == role))
+                for role in ("上框", "左框", "內門", "右框", "下框／中隔")}
+        top, tw, th = data["上框"]
+        left, lw, lh = data["左框"]
+        panel, pw, ph = data["內門"]
+        right, rw, rh = data["右框"]
+        bottom, bw, bh = data["下框／中隔"]
+        core_width = max(pw, tw, bw)
+        core_height = ph if panel else max(lh, rh)
+        core_x = lw + (_GAP if left else 0.0)
+        core_y = bh + (_GAP if bottom else 0.0)
+        # Top/bottom and left/right are anchored to the SAME inner-door
+        # center. No frame gets rotated, mirrored, resized, or re-manufactured.
+        return block(
+            moved(panel, core_x + (core_width - pw) / 2, core_y)
+            + moved(top, core_x + (core_width - tw) / 2,
+                    core_y + core_height + _GAP)
+            + moved(bottom, core_x + (core_width - bw) / 2,
+                    core_y - _GAP - bh)
+            + moved(left, 0.0, core_y + (core_height - lh) / 2)
+            + moved(right, core_x + core_width + _GAP,
+                    core_y + (core_height - rh) / 2)
+        )
+
+    blocks = [body_layout(), doors_layout()]
+    for owner in sorted(inner_by_owner, key=lambda name: (
+        {"upper": 0, "lower": 1}.get(name.casefold(), 2), name.casefold()
+    )):
+        blocks.append(inner_layout(inner_by_owner[owner]))
+    # A standalone Divider is not an inner-door bottom frame. Keep it
+    # independent below the door assembly; the base plate remains last.
+    for role in ("下框／中隔", "底板", "其他板件"):
+        blocks.append(block(stack(by_role.pop(role, ()))[0]))
+    for role in sorted(by_role):
+        blocks.append(block(stack(by_role[role])[0]))
+
+    placed = []
+    top = 0.0
+    for entry in blocks:
+        if entry is None:
+            continue
+        members, _width, height = entry
+        placed.extend(moved(members, 0.0, top - height))
+        top -= height + 2 * _GAP
+    if len(placed) != len(parts):
+        raise ValueError("RECEIVING_DEBUG_LAYOUT_PHYSICAL_INVENTORY_MISMATCH")
+    return tuple(placed), -top
+
 def compose_verified_receiving_debug_layout(panel_rows):
     """Return diagnostic scene + strict quantity inventory in saved Set/Bay order."""
     bays = tuple((str(name), tuple(parts)) for name, parts in panel_rows)
@@ -159,35 +314,19 @@ def compose_verified_receiving_debug_layout(panel_rows):
     for panel_name, parts in bays:
         _label(scene, f"盤名 {panel_name}", 0, cursor, 12)
         cursor -= 55
-        slots = defaultdict(list)
-        for key, render in parts:
-            slots[_SLOTS.get(_role(key), (9, 1))].append((str(key), render))
-        column_width = [0.0, 0.0, 0.0]
-        row_height = defaultdict(float)
-        for (row, col), items in slots.items():
-            for _key, render in items:
-                x0, y0, x1, y1 = _scene_bounds(render.scene)
-                column_width[col] = max(column_width[col], x1 - x0 + _GAP)
-                row_height[row] += y1 - y0 + _GAP + 28
-        column_x = [0.0, column_width[0], column_width[0] + column_width[1]]
-        for row in sorted(row_height):
-            column_y = defaultdict(float)
-            for (cell_row, col), items in sorted(slots.items()):
-                if cell_row != row:
-                    continue
-                for key, render in items:
-                    x0, _y0, _x1, y1 = _scene_bounds(render.scene)
-                    top = cursor - column_y[col] - 30
-                    _label(scene, f"{_role(key)} / {key}  "
-                           f"Q{counts[part_records[(panel_name, key)]]}",
-                           column_x[col], top + 15)
-                    for source in render.scene.primitives:
-                        moved = _translated(source, column_x[col] - x0, top - y1)
-                        scene.add(_check_only(moved))
-                    min_y = _scene_bounds(render.scene)[1]
-                    column_y[col] += y1 - min_y + _GAP + 28
-            cursor -= row_height[row]
-        cursor -= 90
+        placements, used_height = _debug_layout_for_panel(parts)
+        for key, render, left, local_bottom in placements:
+            x0, y0, x1, y1 = _scene_bounds(render.scene)
+            bottom = cursor + local_bottom
+            _label(scene, f"{_role(key)} / {key}  "
+                   f"Q{counts[part_records[(panel_name, key)]]}",
+                   left, bottom + (y1 - y0) + 15)
+            for source in render.scene.primitives:
+                # Only rigid translation into CHECK: all certified source
+                # holes, corners, BEND and blank outlines remain untouched.
+                moved_source = _translated(source, left - x0, bottom - y0)
+                scene.add(_check_only(moved_source))
+        cursor -= used_height + 90
     return scene, quantities
 
 
