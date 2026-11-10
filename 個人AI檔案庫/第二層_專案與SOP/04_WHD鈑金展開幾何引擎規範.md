@@ -13,6 +13,12 @@ whd_schema: WHD_DOC_META_V1
 - 此修正不重寫 Family Policy、孔座標、BEND／CUTTING、PartSpec、2D／3D／DXF 或外部 source-only 製造資格；仍須完成 #2517 全功能 GUI API 覆蓋及 Windows UAT。
 
 
+
+## [CURRENT] #2517 DXF 已存／即時選板旗標須由公開 Engine 解碼，不能靠 bool()（2026-11-10）
+
+- 原 `manufacturing_export_selection.selected_project_export_flags`、`select_resolved_export_geometry` 與 `manufacturing_selected_export` 的選片／路由／出圖仍以 Python `bool(raw)` 判定勾選。JSON `"false"` 會成為 True，可能錯誤輸出未選的 Door／BasePlate／Side／共用下 C 框。
+- 沿用原 `operator_settings_transactions.normalize_operator_settings_boolean`；新公開 `manufacturing_api.normalize_operator_selected_export_flags` 讓正式選片、Receiving 路由、失敗部分重試與 DXF 接口都在任何實體選板前核對來源，非法值 fail closed、不建立 DXF。保留最新受電箱「選門也需保留 verified 共用 C 框」規則，及原 Family、NFB、Set/Bay、CUTTING／BEND／MARKING、DXF writer／獨立重開驗證和所有製造批准條件。GUI 只收原始操作值。定向 `tests/test_issue2517_selected_dxf_boolean_source_engine_api.py` 驗 headless/GUI、JSON Save→Reload、負向隔離及真 DXF 重開。#2517／Windows UAT 仍 OPEN。
+
 ## [CURRENT] #2517 製造 Request 的 W/H/D/T 原始來源優先序歸 Engine（2026-11-10）
 
 - 原 `phase6_manufacturing_adapter.build_manufacturing_request` 在 GUI 自行決定專案快照 W/H/D 優先、缺欄時採目前箱體 W/H/D、再缺欄採 Settings，並直接挑選快照 T 或 Settings T 驗證。這是決定製造 PartSpec／FinalScene 入口的物理來源優先序，不應由 GUI 持有。原始已存 T 即使無效也必須拒絕，不可退回舊 Settings 或虛構 2 mm。
