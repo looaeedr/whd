@@ -6,10 +6,18 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
-## [CURRENT] #2517 多門格 IndicatorBox／IndicatorDoor 的實體出圖檔名由公開 Engine 決定（2026-11-10）
+## [CURRENT] #2517 多門格 IndicatorBox／IndicatorDoor 實體 DXF 檔名只由 Engine 物理門格 ID（2026-11-10）
 
-- 主 GUI `export_multi_door_indicator_box_parts` 舊版以 `cell.column_index + 1` 和 `cell.row_index + 1` 自行組成 `indicator_box_cN_rN.dxf`、`indicator_door_cN_rN.dxf`，但同格一般門片已使用原 `sheetmetal_part_adapters.door_layout_part_key`／`door_layout_export_filename`；檔名是加工身分，不應由 GUI 重算索引或容忍布林冒充欄數。
-- 在同一原 Engine owner 新增 `door_layout_indicator_export_filename(cell, part_kind=...)`，經公開 `manufacturing_api`／根包轉出，使用原 `door_layout_part_key` 的實體欄列身分與型別檢查，輸出檔名完全不變。GUI 保留操作分流、PartSpec 來源與原 DXF exporter，只消費 Engine 檔名。正負測試涵蓋 API／GUI 相同實體 ID、錯型拒絕、`.p6fold` Save→Reload、真實 IndicatorBox PartRenderData→DXF 重開；未認證製造／3D 全組／Windows UAT 不因本批放行。
+- 原主 GUI `export_multi_door_indicator_box_parts` 直接把 `column_index + 1`／`row_index + 1` 組成製造檔名；同一一般 Door 已有 Engine 唯一 `door_layout_part_key`／`door_layout_export_filename`。實體加工板件命名不應由 GUI 重算。
+- 原 Engine `sheetmetal_part_adapters` 新增 `door_layout_indicator_export_filename(cell, part_kind=...)` 並公開於 `manufacturing_api` 與根包；沿用原門格合法整數身分，保留檔名與 DXF 寫出流程不變，非法 ID／輸出種類拒絕。既有 GUI 僅傳操作來源及消費回傳檔名。定向測試 `tests/test_issue2517_multi_door_indicator_export_identity_engine_api.py` 連接真 `.p6fold` Save→Reload、2D 門格、GUI／headless 與實體 DXF reopen。全箱 3D／DXF／Windows UAT 仍屬 #2517 未完成驗收。
+
+
+## [CURRENT] #2517 FinalScene 3D／組合 T 必須與 Engine Request 使用同一來源優先序（2026-11-10）
+
+- 原 `phase6_final_scene_view.Phase6FinalSceneViewAdapter.build_request` 與 `query_assembly_render_data` 在 GUI 端自行採 `Settings["t"]` 優先，缺欄時回退 `snapshot.get("t", 2.0)`；但已合入的公開製造 Request API 對同一實體 T 使用**已存 Snapshot 優先、沒有才取 Settings、明確非法不可回退、兩處都缺時不得捏造 2 mm**。舊路徑可讓 3D 實體板厚／成形尺寸文字與製造 Request 的原料 T 不同。
+- 本批**不建立新製造 API**：FinalScene 單板、組合 formed-size readback 改消費同一原 Engine `manufacturing_api.project_operator_manufacturing_request_snapshot(snapshot, settings, {})["t"]`；組合 redraw 在任何 geometry resolve 前驗**已提供的 T**，若實際有實體板件則缺 T 必須拒絕；若沒有實體板件且只顯示已驗來源缺陷的警告，仍可讀取診斷但不虛構 T2 或成品尺寸。明確非法布林、零、非有限均拒絕。保留合法 Settings-only 舊版資料、毫米小數、已認證固定片 metadata T 的既有獨立 Engine gate；Snapshot/Settings 皆不突變。
+- `tests/test_issue2517_finalscene_thickness_public_engine.py` 正反驗證兩 Family 的單板／組合、Save→Reload、真 formed-size 回讀、無來源、來源衝突與非法 T 原子拒絕。此批不改 Fold/CUTTING/BEND、2D／3D 幾何公式、DXF Writer、Factory／Family 或製造資格；#2517 全功能逐項覆蓋與 Windows UAT 仍 OPEN。
+
 
 
 ## [CURRENT] #2517 Door 格刪除／重映射不得遺失已存實體孔與非門格來源（2026-11-10）
