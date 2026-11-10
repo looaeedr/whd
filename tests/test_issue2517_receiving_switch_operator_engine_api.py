@@ -105,3 +105,49 @@ def test_gui_existing_string_inputs_delegate_one_engine_action(monkeypatch):
         "resize_connections", "resize_connections", "remove_layer",
         "add_layer", "set_brand",
     ]
+
+
+@pytest.mark.parametrize("bad", [
+    True, False, 1.0, 0.5, None, [], {}, "", " ", "1_0",
+    " 0", "0 ", "０", "＋1", "nan",
+])
+def test_gui_switch_rejects_noncanonical_topology_sources_without_mutation(bad):
+    """GUI cannot silently turn an invalid layer/delta into a valid Engine int."""
+    adapter = ReceivingSwitchLayoutAdapter(None)
+    before = deepcopy(adapter.layout)
+    for action in (
+        lambda: adapter.connection_count(bad),
+        lambda: adapter.resize_connections(bad, 1),
+        lambda: adapter.resize_connections(0, bad),
+    ):
+        with pytest.raises(ValueError, match="integer"):
+            action()
+        assert adapter.layout == before
+
+
+def test_switch_operator_guards_share_one_public_engine_integer_validator(monkeypatch):
+    import inspect
+    from gui_modules.application.receiving_switch_layout_adapter import _ui_exact_integer
+
+    calls = []
+    original = manufacturing_api.normalize_receiving_operator_topology_integer
+
+    def observed(raw, *, name):
+        calls.append((raw, name))
+        return original(raw, name=name)
+
+    monkeypatch.setattr(
+        manufacturing_api, "normalize_receiving_operator_topology_integer", observed,
+    )
+    adapter = ReceivingSwitchLayoutAdapter(None)
+    assert adapter.resize_connections("0", "+2") is True
+    assert adapter.connection_count("0") == 3
+    assert calls == [
+        ("0", "switch layer_index"),
+        ("+2", "switch delta"),
+        ("0", "switch layer_index"),
+    ]
+    assert "manufacturing_api.normalize_receiving_operator_topology_integer(" in inspect.getsource(
+        _ui_exact_integer
+    )
+    assert "int(" not in inspect.getsource(_ui_exact_integer)
