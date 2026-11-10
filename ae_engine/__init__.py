@@ -403,6 +403,7 @@ from .certified_relief_registry import (
     registered_certified_relief_rules, registered_certified_corner_policy_rules,
     lookup_certified_endcap_relief, lookup_certified_corner_state, certified_corner_policy_for_part,
     certified_rule_revision_exists, build_relief_promotion_candidate,
+    operator_relief_promotion_candidate_eligible,
 )
 from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
@@ -779,4 +780,5 @@ __all__ = [
     "registered_certified_relief_rules", "registered_certified_corner_policy_rules",
     "lookup_certified_endcap_relief", "lookup_certified_corner_state", "certified_corner_policy_for_part",
     "certified_rule_revision_exists", "build_relief_promotion_candidate",
+    "operator_relief_promotion_candidate_eligible",
 ]

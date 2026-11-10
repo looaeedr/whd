@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Relief solver verified candidate must pass original Engine gate (2026-11-10)
+
+The existing Certified Relief Registry owner `ae_engine.certified_relief_registry` now exports `operator_relief_promotion_candidate_eligible(solution)` unchanged through public `manufacturing_api` and root `ae_engine`. A PROVISIONAL_3D solver result can enter the GUI promotion list only when `verified` is an actual native Boolean true. Serialized or corrupted `"false"`/ `"true"`, 0/1 and other non-Boolean solver fields fail closed; the direct public `build_relief_promotion_candidate` also invokes this gate. This read-only candidate eligibility is not approval to manufacture, alter Registry certified rules or export DXF; existing candidate-specific promotion regression evidence remains mandatory. Regression: `tests/test_issue2517_relief_promotion_verification_engine_api.py`.
+
 ## #2517 Receiving active-mode preview W/H/D reads (2026-11-10)
 
 The original public `manufacturing_api.receiving_default_preview_dimensions(snapshot)` function in `ae_engine.receiving_operator_projection` now distinguishes an **absent** Quantity/Set-Bay source (Family-only schematic defaults) from an explicitly present, malformed physical source (fail closed). The active Quantity box or first real Set/Bay must provide all W/H/D, validated through the same Engine positive, finite, nonboolean `normalize_operator_source_dimension`; no `float(True)` or `or BOX_BODY_DEFAULTS` can fabricate a plausible saved cabinet preview. The original GUI `default_preview_dimensions` remains a forwarding wrapper. This is display provenance only, not an approved manufacturing or DXF output. Regression `tests/test_issue2517_receiving_default_preview_physical_source.py`.

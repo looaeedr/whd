@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 Relief 3D 認證候選資格不能由 GUI bool() 虛構已驗證（2026-11-10）
+
+- 原 `phase6_registry_diagnostics_controller.build_promotion_candidates` 在 GUI 以 `bool(solution.verified)`、字串 `trust_level` 自行決定 Head/Tail 是否有資格建立 Relief 認證候選；同一個原 Engine `certified_relief_registry.build_relief_promotion_candidate` 也用 `bool()` 判讀已求解的 verified。若已驗證來源遭污染為 `"false"`，Python 會將其視為 True，GUI 與直接 Headless Engine 都可能建立看似合格的候選 manifest。
+- 沿用原 `ae_engine.certified_relief_registry` 權威，新增只讀 `operator_relief_promotion_candidate_eligible(solution)` 並透過既有 `manufacturing_api`、根包公開同一 callable。原 3D Solver 的 `verified` 必須為原生 bool，無來源／False 與非 `PROVISIONAL_3D` 不能成為候選；來源為字串、數值或其他型別一律 fail closed。GUI controller 僅委派公開 Engine 查詢、保留顯示與候選清單持久狀態；直接呼叫 `build_relief_promotion_candidate` 也必須經相同 gate，不能繞過 UI 重驗。
+- 保留原候選 `PROMOTION_CANDIDATE` 僅供操作、不修改 Registry，正式升版 `promote_relief_rule_candidate` 的 regression/matrix/zero-penetration/candidate-specific 嚴格證據與 3D Solver／CUTTING／BEND／2D／3D／DXF 一概不變。定向 `tests/test_issue2517_relief_promotion_verification_engine_api.py` 覆蓋 headless／GUI 共用 owner、合法 Head/Tail、錯型 verified 原子拒絕、未核准 trust、JSON 布林來源一致性。#2517 全面覆蓋與 Windows UAT 仍 OPEN。
+
 ## [CURRENT] #2517 Receiving Quantity／Set-Bay 預覽 W/H/D 不得默默清洗成 Family 預設（2026-11-10）
 
 - 原公開 `ae_engine.receiving_operator_projection.receiving_default_preview_dimensions` 用 `float(box[axis])` 直接解讀已保存的實體 W/H/D，布林 `True` 可變成有效樣子的 1mm；Quantity `receiving_quantity_box` 或 Set/Bay `receiving_layout` 即使明確存在但空／損壞，也可能被 `or BOX_BODY_DEFAULTS` 靜默變成受電箱 Family 標準預覽尺寸。這與同一 Engine 對原始製造實體尺寸的非布林正有限來源約束不符。
