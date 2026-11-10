@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import tkinter as tk
 
 import fold_designer_bridge as bridge
@@ -100,6 +101,12 @@ def test_force_publish_does_not_echo_equivalent_state_or_bump_revision(monkeypat
         root.update_idletasks()
         assert published
         revision = published[-1]["revision"]
+        # This test is for genuinely equivalent sources, including the host
+        # Relief baseline. A stale host Relief belongs to the separate repair
+        # test below and must legitimately trigger one forced publication.
+        app._phase6_input_snapshot["assembly_relief"] = deepcopy(
+            app._phase6_last_live_state.get("assembly_relief") or {}
+        )
         published.clear()
 
         assert app._phase6_publish_live_state(force=True) is False
