@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """#2517 physical Door-grid deletion and saved hole ownership are Engine-only."""
 from copy import deepcopy
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -188,3 +189,115 @@ def test_gui_host_delegates_entire_physical_transaction_to_one_engine_port(monke
         assert state["door_c1_r1"] == [{"hole": "lower"}]
     for state in (workspace.faces, designer.faces):
         assert state["inner_door:upper:panel"] == ["lower face"]
+
+
+def test_malformed_saved_cell_key_cannot_drop_confirmed_holes_or_inner_door():
+    rows, cells, parts, faces = _source()
+    cells["door_layout_features"]["not-a-cell"] = [{"hole": "confirmed but corrupt key"}]
+    frozen = deepcopy((rows, cells, parts, faces))
+    with pytest.raises(ValueError, match="Door cell remap requires a valid cell key"):
+        manufacturing_api.remap_receiving_door_layout_after_delete(
+            operation="delete_column", column_index=0,
+            inner_doors=rows, cell_sources=cells,
+            physical_sources={"workspace": parts, "workspace_face": faces},
+        )
+    assert (rows, cells, parts, faces) == frozen
+
+    rows, cells, parts, faces = _source()
+    rows.append({"stable_id": "c3r1", "cell_key": "not-a-cell",
+                 "confirmed": True})
+    frozen = deepcopy((rows, cells, parts, faces))
+    with pytest.raises(ValueError, match="Door cell remap requires a valid cell key"):
+        manufacturing_api.remap_receiving_door_layout_after_delete(
+            operation="delete_row", column_index=0, row_index=0,
+            inner_doors=rows, cell_sources=cells,
+            physical_sources={"workspace": parts},
+        )
+    assert (rows, cells, parts, faces) == frozen
+
+
+def test_missing_saved_cell_feature_map_never_erases_existing_door_physical_holes():
+    rows, _, parts, faces = _source()
+    before = deepcopy((rows, parts, faces))
+    with pytest.raises(ValueError, match="DOOR_LAYOUT_PHYSICAL_FEATURE_SOURCE_MISSING"):
+        manufacturing_api.remap_receiving_door_layout_after_delete(
+            operation="delete_row", column_index=0, row_index=0,
+            inner_doors=rows, cell_sources={},
+            physical_sources={"workspace": parts, "workspace_face": faces},
+        )
+    assert (rows, parts, faces) == before
+
+
+def test_non_door_grid_prefix_is_not_erased_by_door_remap():
+    rows, cells, parts, _ = _source()
+    parts["door_cabinet_custom"] = [{"cutting": "unrelated"}]
+    parts["door_corner_operator_note"] = ["not a physical Door cell"]
+    result = manufacturing_api.remap_receiving_door_layout_after_delete(
+        operation="delete_row", column_index=0, row_index=0,
+        inner_doors=rows, cell_sources=cells,
+        physical_sources={"workspace": parts},
+    )
+    state = result["physical_sources"]["workspace"]
+    assert state["door_cabinet_custom"] == [{"cutting": "unrelated"}]
+    assert state["door_corner_operator_note"] == ["not a physical Door cell"]
+    assert state["door_c1_r1"] == [{"hole": "lower"}]
+    assert state["door_c2_r1"] == [{"hole": "right"}]
+
+
+def test_valid_door_hole_owner_survives_real_p6fold_save_reload_and_public_2d_projection(
+    tmp_path,
+):
+    import phase6_project_file as project
+
+    rows, cells, parts, faces = _source()
+    source = deepcopy((rows, cells, parts, faces))
+    result = manufacturing_api.remap_receiving_door_layout_after_delete(
+        operation="delete_row", column_index=0, row_index=0,
+        inner_doors=rows, cell_sources=cells,
+        physical_sources={"workspace": parts, "workspace_face": faces},
+    )
+    next_parts = result["physical_sources"]["workspace"]
+    next_cells = result["cell_sources"]["door_layout_features"]
+    snapshot = {
+        "model": "受電箱", "w": 1000.0, "h": 1200.0, "d": 350.0,
+        "t": 2.0, "fw": 25.0,
+        "multi_door_enabled": True,
+        "door_layout_columns": [[400.0, [1200.0]], [600.0, [1200.0]]],
+        "part_features": next_parts,
+        "door_layout_features": next_cells,
+        "receiving_inner_doors": result["inner_doors"],
+    }
+    before = deepcopy(snapshot)
+    path = project.write_project(
+        tmp_path / "remapped-real-physical-owner.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": snapshot},
+    )
+    saved = project.read_project(path)["snapshot"]
+    restored = manufacturing_api.project_operator_door_layout_cell_features_from_parts(
+        saved["door_layout_columns"], saved["part_features"],
+    )
+    assert restored == next_cells == {
+        "0:0": [{"hole": "lower"}],
+        "1:0": [{"hole": "right"}],
+    }
+    assert saved["receiving_inner_doors"] == result["inner_doors"]
+    assert saved["part_features"]["inner_door:upper:panel"] == [
+        {"hole": "panel lower"},
+    ]
+    assert saved["part_features"]["door_c1_r1"] == [{"hole": "lower"}]
+    assert snapshot == before
+    assert (rows, cells, parts, faces) == source
+
+
+def test_saved_boolean_or_fractional_cell_identity_cannot_be_truncated():
+    rows, cells, parts, _ = _source()
+    for malformed in ("1.5:0", "True:0", "-1:0"):
+        bad_cells = deepcopy(cells)
+        bad_cells["door_layout_features"][malformed] = [{"hole": "saved"}]
+        with pytest.raises(ValueError):
+            manufacturing_api.remap_receiving_door_layout_after_delete(
+                operation="delete_column", column_index=0,
+                inner_doors=rows, cell_sources=bad_cells,
+                physical_sources={"workspace": parts},
+            )
+    assert rows[0]["stable_id"] == "upper"

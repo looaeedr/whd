@@ -10,6 +10,15 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from copy import deepcopy
+import re
+
+
+_PHYSICAL_DOOR_CELL_KEY = re.compile(r"door_c[1-9][0-9]*_r[1-9][0-9]*\Z")
+
+
+def _is_physical_door_cell_key(key):
+    """Only actual Door-grid panel IDs may be replaced during remapping."""
+    return isinstance(key, str) and _PHYSICAL_DOOR_CELL_KEY.fullmatch(key) is not None
 
 
 def _canonical_remap_cell_key(value):
@@ -72,8 +81,10 @@ def remap_receiving_door_layout_after_delete(
         for key, target in cell_transitions.items():
             if not isinstance(key, str):
                 raise ValueError("Door cell transitions must contain cell keys")
-            _canonical_remap_cell_key(key)
-            normalized_transitions[key] = (
+            canonical_key = _canonical_remap_cell_key(key)
+            if canonical_key in normalized_transitions:
+                raise ValueError("Duplicate Door cell remap source")
+            normalized_transitions[canonical_key] = (
                 None if target is None else _canonical_remap_cell_key(target)
             )
         cell_transitions = normalized_transitions
@@ -95,6 +106,21 @@ def remap_receiving_door_layout_after_delete(
     if not isinstance(cell_sources, Mapping) or not isinstance(physical_sources, Mapping):
         raise ValueError("Door feature stores must be mappings")
 
+    # A loaded project can contain real Door physical Features even when its
+    # editable cell map is missing. Previously the remap erased every
+    # door_c* alias and recreated none, silently losing already-saved holes.
+    # Refuse before modifying anything; do not fabricate the missing map.
+    authored_cells = cell_sources.get("door_layout_features")
+    for label in ("surface", "workspace", "designer"):
+        store = physical_sources.get(label)
+        if store is None:
+            continue
+        if not isinstance(store, Mapping):
+            raise ValueError("Door physical feature store must be a mapping")
+        if any(_is_physical_door_cell_key(key) for key in store):
+            if not isinstance(authored_cells, Mapping) or not authored_cells:
+                raise ValueError("DOOR_LAYOUT_PHYSICAL_FEATURE_SOURCE_MISSING")
+
     def mapped(column, row):
         if operation == "delete_column":
             if column == column_index:
@@ -105,13 +131,13 @@ def remap_receiving_door_layout_after_delete(
         return (column, row - 1 if column == column_index and row > row_index else row)
 
     def mapped_cell_key(value):
+        # Malformed saved physical cell identities are not empty cells.
+        # Dropping them silently loses saved hole/inner-door ownership.
+        canonical = _canonical_remap_cell_key(value)
         if operation == "map_cells":
-            return cell_transitions.get(str(value))
-        try:
-            col_s, row_s = str(value).split(":", 1)
-            target = mapped(int(col_s), int(row_s))
-        except (TypeError, ValueError):
-            return None
+            return cell_transitions.get(canonical)
+        col_s, row_s = canonical.split(":", 1)
+        target = mapped(int(col_s), int(row_s))
         return None if target is None else f"{target[0]}:{target[1]}"
 
     next_rows, id_changes = [], {}
@@ -172,7 +198,7 @@ def remap_receiving_door_layout_after_delete(
         updated = remap_physical(source)
         if label in ("surface", "workspace", "designer"):
             for key in tuple(updated):
-                if key.startswith("door_c"):
+                if _is_physical_door_cell_key(key):
                     updated.pop(key)
             for cell_key, items in next_cells.get("door_layout_features", {}).items():
                 try:
