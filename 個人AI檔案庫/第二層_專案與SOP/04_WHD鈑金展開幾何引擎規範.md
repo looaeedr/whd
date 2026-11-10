@@ -6,12 +6,37 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
-
 ## [CURRENT] #2517 Side/Back 後折雙向尺寸換算拒絕非法 T 與無實體料長（2026-11-10）
 
 - 受電箱三片式側板後折 side_rear_bend_material_length／side_rear_bend_outside_length 是公開 Engine API，共用同一 canonical state。原本只檢查有限數值及轉換後正數；當 T 為 0／負數，可能仍回傳合法外觀的料長；當儲存為 OUTSIDE 且後折包外 <= T，單向 readback 也可能回傳非零外尺寸，實際料長卻為零／負數。
 - 原 BoxBody structure owner 現在兩個 API 先共用原始 side_rear_bend > 0 與 T > 0 有限且非布林尺寸檢查；OUTSIDE readback 額外拒絕 side_rear_bend <= T。MATERIAL／OUTSIDE 對相同非法來源必須一致 fail-closed；合法小數、OUTSIDE↔MATERIAL 單次 T 換算、儲存 JSON→Reload、GUI Settings 公開投影與成形後料尺寸仍一致。此修正不新增公式、Family、製造認證或 DXF exporter。測試 tests/test_issue2517_box_structure_settings_projection_engine_api.py。Windows UAT 與整體 #2517 尚未結案。
 
+
+
+
+## [CURRENT] #2517 Fold Designer 發布即時製造狀態的來源版本與強制旗標由公開 Engine（2026-11-10）
+
+- 前批已將接收端 Fold Designer → Main GUI 的單調版本來源驗證移回 Engine；但反向 `phase6_sync_envelope.plan_live_sync_envelope` **發布端**仍做 `int(current_revision or 0)` 和 `current_revision + 1`，可能將原始 `True`、小數、含底線字串變成看似合法且比舊資料更新的實體製造狀態版號。原 Bridge `fold_designer_composition_state.publish_live_state` 又在呼叫規劃器前 `force=bool(force)`，使字串 `"false"` 錯誤觸發 host Relief 強制修復／發布。這些是版本／Relief 提交來源資格，不能在 GUI 中強制轉型。
+- 延用原 Engine `operator_settings_transactions._external_sync_revision_number` 的嚴格 parser，新增只讀 `project_operator_fold_designer_publication_revisions(raw_current_revision)`，回傳凍結 `OperatorFoldDesignerPublicationRevisions(current_revision,next_revision)`，由 `manufacturing_api`、根包公開。未初始化 None／空白來源維持原 0→1，合法原生整數／ASCII 整數字串保留次序；非法 bool／浮點／非有限／含底線／負數先於 fingerprint、delta、callback 拒絕。發布規劃器及 `LiveSyncPublicationPlan` 的版本型別一致引用此 Engine 原始來源規範，不再用 GUI `int()` 或自行 `+1`。
+- `force`、`host_relief_present` 走原公開 `normalize_operator_settings_boolean`，發布端保留原操作旗標直送，`"false"` 不再變成真。合法的 delta、fingerprint 防重送、一次發布只加一版、既有 host Relief 強制同步及 Main GUI 接收端、實體 Save→Reload／Family／Factory／2D／3D／DXF 契約不變。這仍非外部製造授權或 #2517 完成，Windows UAT 另驗。定向 `tests/test_issue2517_fold_designer_publication_revision_engine_gate.py` 加原 live-sync／#503 測試。
+
+## [CURRENT] #2517 Fold Designer → 主 GUI 即時製造狀態的 revision 由公開 Engine 嚴格判定（2026-11-10）
+
+- 原 `gui_modules.application.lifecycle._apply_fold_designer_live_snapshot` 在主 GUI 接受外來 Fold Designer 即時來源時，以 Python `int(payload.get("revision", 0) or 0)` 將 `True` 變成 1、`2.5` 截成 2、`"2_0"` 變成 20；再將舊版最後版本也 `int()` 強制轉型。這個版本號控制的後續寫入包含 Settings、Corner、Joint、Workspace 與實體孔位，不能在進入 Engine 驗證前由 GUI 虛構較新的物理提交版本。
+- 延用原 `ae_engine.operator_settings_transactions._external_sync_revision_number`（外部 Settings 版本的嚴格正規化 owner），新增只讀 `plan_operator_fold_designer_live_revision(raw_revision, *, last_revision)`，由 `manufacturing_api` 與根包輸出同一 callable，回傳 `OperatorFoldDesignerLiveRevisionPlan(accepted, revision, reason)`。只有原生非布林整數或合法 ASCII 整數字串可通過，來源缺值／空白仍按舊版 0 視為 stale；非法來源、損壞的已提交版號與過期重送在任何 GUI guard、Settings、Corner 或 Workspace 改動前 fail closed。合法 1→2、字串 `" 2 "`、既有 fingerprint 防重送、selection-only 路徑與主 GUI ↔ Fold Designer 既有同源提交不變。
+- 此切片僅移轉跨 UI 製造狀態的接收順序決策，不修改金庫型／受電箱 Family、PartSpec、Factory、CUTTING/BEND、2D／3D／DXF、儲存 schema 或外部 source-only CLI 的認證資格；不宣稱全功能 #2517 已完成。定向測試 `tests/test_issue2517_fold_designer_live_revision_engine_gate.py` 加原 live-sync 回歸；Windows UAT 與全鏈製造驗收仍需另外核對。
+
+## [CURRENT] #2517 Receiving Quantity／Set-Bay 預覽 W/H/D 不得默默清洗成 Family 預設（2026-11-10）
+
+- 原公開 `ae_engine.receiving_operator_projection.receiving_default_preview_dimensions` 用 `float(box[axis])` 直接解讀已保存的實體 W/H/D，布林 `True` 可變成有效樣子的 1mm；Quantity `receiving_quantity_box` 或 Set/Bay `receiving_layout` 即使明確存在但空／損壞，也可能被 `or BOX_BODY_DEFAULTS` 靜默變成受電箱 Family 標準預覽尺寸。這與同一 Engine 對原始製造實體尺寸的非布林正有限來源約束不符。
+- 現由原公開 `manufacturing_api.receiving_default_preview_dimensions(snapshot)` 的 **原 Engine owner** 直接檢查原始資料，僅在沒有此來源 key 的未開始／Family 示意情境回退原 `BOX_BODY_DEFAULTS`；明確存在的 Quantity box 或 Set/Bay 必須具有真實實體欄位與列，並對全部 W/H/D 共用既有 `normalize_operator_source_dimension`。bool、非有限、非正、缺欄及 malformed schema 先拒絕且不變動來源；合法小數保留原精度與選取模式。GUI `default_preview_dimensions` 繼續只委派原公開 API，不提供另一套補值。
+- 這僅收斂展示與預覽的物理來源，未新增 Family、Topology、零件、CUTTING、BEND 或 DXF 認證；原來真正缺來源的 Family 示意、已保存合法 Quantity／Set/Bay 值均保留。定向 `tests/test_issue2517_receiving_default_preview_physical_source.py` 驗 headless／GUI、非法來源無突變、合法小數與缺來源示意；#2517 全面覆蓋及 Windows UAT 仍 OPEN。
+
+## [CURRENT] #2517 Receiving 套／連概覽草圖的物理 Bay W/H 與門縫來源由公開 Engine 投影（2026-11-10）
+
+- 原 `gui_modules.application.receiving_multi_settings_window.paint_connected_bays` 對保存的 Bay dict 與舊 tuple 實體 W/H 自行 `float()`，可能把 tuple 中 `True` 顯示為 1 mm 及以畫面最小值掩蓋非正／非有限來源，且先清除 Canvas 再驗後續 Bay；GUI 不應自行解釋或修補來源成有效幾何。
+- 原 `ae_engine.receiving_operator_projection` 擁有 `receiving_default_preview_dimensions` 與 `project_receiving_operator_bay_door_split_ratio`（既有 canonical Door seam/Topology）；新增同 owner 的只讀 `project_receiving_operator_bay_sketch_dimensions(bay)` 並透過原 `manufacturing_api`、根包公開。缺少 Bay 僅作 Family 預設的示意草圖，已保存 dict／舊 tuple 的 W/H 全走原公開 `normalize_operator_source_dimension`，拒絕 bool／非正／非有限／缺實體值；Door seam 繼續委派原投影，不在 GUI 算 1100 mm 假孔。
+- GUI 在任何 Canvas 清除與選取顯示變更前先驗全部 Bay；合法小數 W/H 與既有展示比例、來源序號、分縫、盤名、實體 Set/Bay 保存、2D/3D/FinalScene/DXF 均不更改。此 API 是來源顯示資格，不授予加工認證或產出製造平面。定向 `tests/test_issue2517_receiving_bay_sketch_public_engine.py` 核對公開 Facade／root 與原 Engine owner、合法來源、非法原子拒絕及無 Canvas 操作；#2517 仍 OPEN。
 
 ## [CURRENT] #2517 Receiving BasePlate GUI 不得將未編輯縮量虛構為 1 mm（2026-11-10）
 

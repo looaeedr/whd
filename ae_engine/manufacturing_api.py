@@ -170,6 +170,7 @@ from .receiving_operator_projection import (
     receiving_default_box_dimensions,
     receiving_default_preview_dimensions,
     project_receiving_operator_bay_door_split_ratio,
+    project_receiving_operator_bay_sketch_dimensions,
     receiving_family_supports_back_panel_mode,
     receiving_back_panel_mode_control_applicable,
     project_receiving_original_door_marks,
@@ -231,6 +232,8 @@ from .operator_factory_settings_defaults import project_operator_factory_default
 
 from .operator_settings_transactions import (
     OperatorSettingsCommitTransition, OperatorExternalSyncPlan,
+    OperatorFoldDesignerLiveRevisionPlan, plan_operator_fold_designer_live_revision,
+    OperatorFoldDesignerPublicationRevisions, project_operator_fold_designer_publication_revisions,
     plan_operator_external_sync, normalize_operator_settings_boolean,
     normalize_operator_settings_updates, commit_operator_settings_state,
     normalize_operator_source_dimension, normalize_operator_source_dimensions,
@@ -270,6 +273,7 @@ from .operator_box_body_dwd_sync import (
 )
 from .operator_fold_editor import (
     OperatorFoldMirrorPlan, commit_operator_fold_editor_rows,
+    require_operator_fold_editor_profile_target,
     normalize_operator_fold_editor_control,
     project_operator_fold_editor_angle,
     plan_operator_fold_mirror_target,

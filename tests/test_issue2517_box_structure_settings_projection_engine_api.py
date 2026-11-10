@@ -182,7 +182,6 @@ def test_side_back_saved_material_and_compensation_cannot_be_faked(field, bad):
         )
     assert state == witness
 
-
 @pytest.mark.parametrize("space", ["MATERIAL", "OUTSIDE"])
 @pytest.mark.parametrize("resolver", [
     "side_rear_bend_material_length", "side_rear_bend_outside_length",

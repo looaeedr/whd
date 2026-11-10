@@ -6,11 +6,13 @@ Family registry and BoxBody topology.  They do not grant manufacturing export.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from math import isfinite
 
 from .box_body_structure_state import BoxBodyStructureType
 from .cabinet_types.policy import canonical_family_name
 from .cabinet_types.receiving import BOX_BODY_DEFAULTS
+from .operator_settings_transactions import normalize_operator_source_dimension
 
 
 def receiving_default_box_dimensions() -> dict[str, int]:
@@ -19,16 +21,54 @@ def receiving_default_box_dimensions() -> dict[str, int]:
 
 
 def receiving_default_preview_dimensions(snapshot) -> tuple[float, float, float]:
-    """Read-only active mode dimensions for the Receiving settings preview."""
-    data = dict(snapshot or {})
-    if data.get("active_mode") == "quantity":
-        box = data.get("receiving_quantity_box") or BOX_BODY_DEFAULTS
+    """Read actual Receiving W/H/D or the absent-source Family schematic.
+
+    A missing source may use the existing canonical Family drawing default.
+    An explicitly present broken Quantity box/Set/Bay may not be silently
+    converted to those defaults or have bool interpreted as 1 mm.
+    This read-only display projection never authorizes manufacturing.
+    """
+    if snapshot is None:
+        data = {}
+    elif isinstance(snapshot, Mapping):
+        data = snapshot
     else:
-        sets = (data.get("receiving_layout") or {}).get("sets") or ()
-        bays = sets[0].get("bays") or () if sets else ()
-        box = ({"w": bays[0]["width"], "h": bays[0]["height"],
-                "d": bays[0]["depth"]} if bays else BOX_BODY_DEFAULTS)
-    return tuple(float(box[axis]) for axis in ("w", "h", "d"))
+        raise ValueError("Receiving preview snapshot must be a mapping")
+
+    if data.get("active_mode") == "quantity":
+        box = (
+            data["receiving_quantity_box"]
+            if "receiving_quantity_box" in data else BOX_BODY_DEFAULTS
+        )
+    elif "receiving_layout" not in data:
+        box = BOX_BODY_DEFAULTS
+    else:
+        layout = data["receiving_layout"]
+        if not isinstance(layout, Mapping):
+            raise ValueError("Receiving preview layout source must be a mapping")
+        sets = layout.get("sets")
+        if not isinstance(sets, (tuple, list)) or not sets:
+            raise ValueError("Receiving preview requires a real Set")
+        first_set = sets[0]
+        if not isinstance(first_set, Mapping):
+            raise ValueError("Receiving preview Set source must be a mapping")
+        bays = first_set.get("bays")
+        if not isinstance(bays, (tuple, list)) or not bays:
+            raise ValueError("Receiving preview requires a real Bay")
+        first_bay = bays[0]
+        if not isinstance(first_bay, Mapping):
+            raise ValueError("Receiving preview Bay source must be a mapping")
+        box = {
+            "w": first_bay.get("width"), "h": first_bay.get("height"),
+            "d": first_bay.get("depth"),
+        }
+
+    if not isinstance(box, Mapping):
+        raise ValueError("Receiving preview dimensions must be a mapping")
+    return tuple(
+        normalize_operator_source_dimension(box.get(axis), field=axis)
+        for axis in ("w", "h", "d")
+    )
 
 
 
@@ -93,6 +133,33 @@ def project_receiving_operator_bay_door_split_ratio(bay) -> float | None:
     if any(abs(row - first_rows[0]) > 1e-6 for row in first_rows[1:]):
         return None
     return float(first_rows[0]) / height
+
+
+def project_receiving_operator_bay_sketch_dimensions(bay):
+    """Read a Bay's physical W/H and canonical Door seam for a GUI-only sketch.
+
+    A missing Bay represents the Family schematic. Saved mapping/legacy tuple
+    inputs are never coerced in GUI: both axes must be real positive finite mm.
+    This is a display projection, NOT approved 2D/3D/DXF manufacturing output.
+    """
+    from collections.abc import Mapping
+
+    if bay is None:
+        defaults = receiving_default_preview_dimensions({})
+        raw_width, raw_height = defaults[:2]
+        seam_source = None
+    elif isinstance(bay, Mapping):
+        raw_width, raw_height = bay.get("width"), bay.get("height")
+        seam_source = bay
+    elif isinstance(bay, (tuple, list)) and len(bay) >= 2:
+        raw_width, raw_height = bay[:2]
+        seam_source = None
+    else:
+        raise ValueError("Receiving Bay sketch dimensions require a physical source")
+    width = normalize_operator_source_dimension(raw_width, field="w")
+    height = normalize_operator_source_dimension(raw_height, field="h")
+    seam = project_receiving_operator_bay_door_split_ratio(seam_source)
+    return width, height, seam
 
 
 def receiving_family_supports_back_panel_mode(snapshot) -> bool:

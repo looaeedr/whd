@@ -273,6 +273,26 @@ def refresh_receiving_layer_rows(
     host._phase6_receiving_layer_rows = tuple(rows)
 
 
+def _receiving_bay_dimension_labels(row, bay_index):
+    """Format only Engine-validated physical Bay dimensions for the GUI.
+
+    A saved Boolean, missing W/H/D or nonfinite source must never be
+    displayed as a plausible 1 mm panel. Validate all axes before updating
+    any Tk widget; formatting is presentation-only.
+    """
+    bay = row["bays"][bay_index]
+    physical = manufacturing_api.normalize_operator_live_box_dimensions({
+        "w": bay.get("width"),
+        "h": bay.get("height"),
+        "d": bay.get("depth"),
+    })
+    labels = {}
+    for field, axis in (("width", "w"), ("height", "h"), ("depth", "d")):
+        value = physical[axis]
+        labels[field] = str(int(value)) if value.is_integer() else f"{value:g}"
+    return labels
+
+
 def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False):
     """以中文序號選連；選取與待套用狀態只存在此 presentation。"""
     from tkinter import messagebox
@@ -305,18 +325,19 @@ def _build_receiving_settings_editor(parent, *, tk, ttk, ports, common_box=False
             messagebox.showwarning("設定未套用", str(exc), parent=panel.winfo_toplevel())
 
     def refresh(*, load_value=True):
-        current_row = ports["row"]()
+        current = ports["row"]()
+        index = active.get()
+        # Reject every invalid physical axis before mutating any displayed
+        # dimension, joint control, or selection state.
+        dimension_labels = _receiving_bay_dimension_labels(current, index)
         for joint_index, depth_widget, height_widget in joint_widgets:
             editable = manufacturing_api.project_receiving_joint_alignment_editability(
-                current_row, joint_index,
+                current, joint_index,
             )
             depth_widget.configure(state="readonly" if editable["depth_alignment"] else "disabled")
             height_widget.configure(state="readonly" if editable["height_alignment"] else "disabled")
-        current = ports["row"]()
-        index = active.get()
         for key, var in fields.items():
-            value = float(current["bays"][index][key])
-            var.set(str(int(value)) if value.is_integer() else f"{value:g}")
+            var.set(dimension_labels[key])
         kind = kind_labels.get(kind_var.get())
         panel._receiving_kind = kind
         enabled = kind is not None

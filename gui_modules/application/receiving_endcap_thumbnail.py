@@ -26,9 +26,12 @@ def endcap_preview_geometry(features, width, depth):
 
 def paint_endcap_thumbnail(canvas, features, width, depth, *, title="封頭尾"):
     """Paint source feature outlines into a scaled finished-face rectangle."""
+    # Even without a selected candidate, the physical preview frame needs
+    # validated outside dimensions; never turn bool into 1 mm by float().
+    w = manufacturing_api.normalize_operator_source_dimension(width, field="w")
+    d = manufacturing_api.normalize_operator_source_dimension(depth, field="d")
     shapes, unsupported = (((), 0) if features is None else
-                           endcap_preview_geometry(features, width, depth))
-    w, d = float(width), float(depth)
+                           endcap_preview_geometry(features, w, d))
     canvas.delete("all")
     cw = max(170, int(canvas.cget("width")), int(canvas.winfo_width()))
     ch = max(122, int(canvas.cget("height")), int(canvas.winfo_height()))
