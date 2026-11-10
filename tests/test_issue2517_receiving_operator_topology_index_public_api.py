@@ -73,3 +73,55 @@ def test_valid_operator_text_commits_same_engine_layout_and_json_roundtrip():
     assert adapter.selection.bay_index == 1
     saved = json.loads(json.dumps(adapter.layout, ensure_ascii=False))
     assert api.normalize_receiving_layout(saved) == adapter.layout
+
+
+@pytest.mark.parametrize("bad", [True, False, 1.0, 1.5, "1_0", None, [], {}])
+def test_receiving_settings_preview_rejects_invalid_set_before_window_creation(bad):
+    """Old int(layer_index) silently changed bool/float into another Set."""
+    from types import SimpleNamespace
+    from gui_modules.application.receiving_set_bay_controls import (
+        open_receiving_layer_preview,
+    )
+
+    def unexpected_window(_parent):
+        raise AssertionError("invalid physical Set target must not open Tk")
+
+    with pytest.raises(ValueError, match="integer"):
+        open_receiving_layer_preview(
+            None, tk=SimpleNamespace(Toplevel=unexpected_window), ttk=None,
+            layer_index=bad, connection_count=1, brand="CHINT",
+            render_request=object(),
+        )
+
+
+def test_receiving_settings_preview_forwards_raw_set_index_to_public_engine(monkeypatch):
+    """Canonical legacy decimal Tk text remains valid without GUI int coercion."""
+    from types import SimpleNamespace
+    from gui_modules.application.receiving_set_bay_controls import (
+        open_receiving_layer_preview,
+    )
+
+    seen = []
+    original = api.normalize_receiving_operator_topology_integer
+
+    def record(raw, *, name):
+        seen.append((raw, name))
+        return original(raw, name=name)
+
+    class WindowReached(Exception):
+        pass
+
+    def stop_after_validation(_parent):
+        raise WindowReached
+
+    monkeypatch.setattr(api, "normalize_receiving_operator_topology_integer", record)
+    with pytest.raises(WindowReached):
+        open_receiving_layer_preview(
+            None, tk=SimpleNamespace(Toplevel=stop_after_validation), ttk=None,
+            layer_index="02", connection_count=1, brand="CHINT",
+            render_request=object(),
+        )
+    assert seen == [("02", "Set preview index")]
+    source = inspect.getsource(open_receiving_layer_preview)
+    assert "manufacturing_api.normalize_receiving_operator_topology_integer(" in source
+    assert "index = int(layer_index)" not in source
