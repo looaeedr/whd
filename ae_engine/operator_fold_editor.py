@@ -160,7 +160,17 @@ def plan_operator_fold_mirror_target(
     legacy positional plan so they never call the old BendingUI manufacturing
     save. The original valid mirror indices remain unchanged.
     """
+    # A boolean, negative Python index, stale row or unknown control field
+    # must never select a different physical Fold segment for mirroring.
     rows = tuple(segments)
+    if (
+        type(source_index) is not int
+        or not 0 <= source_index < len(rows)
+        or type(field) is not str
+        or field not in ("len", "angle")
+        or any(not isinstance(row, Mapping) for row in rows)
+    ):
+        raise ValueError("FOLD_EDITOR_MIRROR_TARGET_INVALID")
 
     def legacy_target():
         index = (
