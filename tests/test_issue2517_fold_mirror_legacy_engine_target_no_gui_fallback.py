@@ -77,7 +77,7 @@ def _host(rows, source_length="27", *, box_body=False):
         controls.append(ctrl)
     updates, dirty = [], []
     state = SimpleNamespace(
-        symmetric=True, phase6_thickness=2.0,
+        symmetric=True, phase6_thickness=2.0, active_bend="X",
         phase6_fold_ui_vault_key="箱身" if box_body else None,
         profiles_vault={},
     )
