@@ -65,8 +65,11 @@ def test_save_reload_real_canonical_layout_then_three_modes_have_exact_bay_membe
                 saved, mode, _synthetic_rows(saved), staging, output,
                 pre_commit_guard=lambda: None,
             )
-        assert set(emitted) == set(expected)
-        assert {p.name for p in output.glob("*.dxf")} == set(expected)
+        total_name = "202611071258_p1_中間電盤_p3_p8_p5_p6_p7總計.dxf"
+        assert set(emitted) == set(expected) | {total_name}
+        assert {p.name for p in output.glob("*.dxf")} == set(expected) | {total_name}
+        total = ezdxf.readfile(output / total_name)
+        assert not total.audit().errors
         for filename, physical_count in zip(expected, counts):
             doc = ezdxf.readfile(output / filename)
             model = tuple(doc.modelspace())

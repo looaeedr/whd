@@ -65,6 +65,7 @@ def test_q_only_same_physical_role_and_all_holes_in_verified_diagnostic(tmp_path
         )
     assert set(receipts) == {
         "202611071258_p1~p3全部.dxf",
+        "202611071258_p1~p3總計.dxf",
         "202611071258_p1~p3debug.dxf",
     }
     assert tuple(tuple(render.scene.primitives) for _, _, _, render in originals) == prior
