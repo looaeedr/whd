@@ -186,11 +186,14 @@ def test_source_inner_panel_is_not_invented_from_missing_topology():
         manufacturing_api.build_receiving_factory_confirmed_inner_door_panels(
             SOURCE, confirmed_door_layout_columns=COLUMNS,
         )
-    with pytest.raises(ValueError):
-        manufacturing_api.build_receiving_factory_confirmed_inner_door_panels(
-            SOURCE, confirmation="fresh_family_confirmed",
-            confirmed_door_layout_columns=((800, (1600,)),),
-        )
+    # A true single-door panel remains independently manufacturable:
+    # missing C must not fabricate a C frame or block a legal Door blank.
+    panels = manufacturing_api.build_receiving_factory_confirmed_inner_door_panels(
+        SOURCE, confirmation="fresh_family_confirmed",
+        confirmed_door_layout_columns=((800, (1600,)),),
+    )
+    assert len(panels) == 1
+    assert panels[0].stable_id == "inner_door:upper:panel"
 
 
 def test_shared_c_reexport_requires_certified_final_cross_not_raw_rectangle(tmp_path):
