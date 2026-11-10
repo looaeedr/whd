@@ -6,12 +6,27 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
-
 ## [CURRENT] #2517 Fold Designer Live Sync 刪除孔位／Relief 子物件不得誤認來源未改（2026-11-10）
 
 - 前批 Engine 已統一即時同步的接收／發布 revision 與 force 來源驗證，但原中立傳輸 `phase6_sync_envelope.actual_delta` 僅迭代 `after` 現有鍵，完全忽略 `before` 有、`after` 刪除的鍵。因此 Hole Editor 清空 `workspace.part_features` 或 host Relief 從有值恢復空物件時，可能得到 `_UNCHANGED`、`delta={}`，進而不發布本來應傳到主 GUI 的正式完整實體狀態。這不屬於 Engine 的新幾何或孔位推導，而是既有 GUI 交易傳輸遺漏來源刪除。
 - 現在原 `phase6_sync_envelope.actual_delta` 若偵測到子 Mapping 有鍵刪除，會把該**更新後的完整子物件**視為 authoritative replacement；例如 `{"workspace":{"part_features":{"door":[...]}}}` 清空為 `{"workspace":{"part_features":{}}}`，差異必須包含 `{"workspace":{"part_features":{}}}` 而不是「沒改」。最上層資料全部被清空的少數情況即使 delta 仍為 `{}`，也由原 fingerprint 核對真實 previous/current 來源不同後發佈 full payload，不以空 delta 跳過。只有原始資料真相等才維持 no-op／無回聲。
 - 單一 Engine Source of Truth 仍是既有公開 `manufacturing_api` 的已驗製造狀態、來源與版本；`phase6_sync_envelope` 僅保存 detached 來源差異供原 callback 使用，不製造 Feature、Joint、Factory 或 DXF，也不改 JSON 欄位 schema、Family／Topology、2D／3D／CUTTING／BEND。定向 `tests/test_issue2517_live_sync_deleted_physical_sources.py` 驗巢狀孔位刪除、Relief 強制清空、真 GUI 發布、Save→Reload 型態與無來源變更不重送；#2517 與 Windows UAT 仍 OPEN。
+
+
+## [CURRENT] #2517 Relief 3D 認證候選資格不能由 GUI bool() 虛構已驗證（2026-11-10）
+
+- 原 `phase6_registry_diagnostics_controller.build_promotion_candidates` 在 GUI 以 `bool(solution.verified)`、字串 `trust_level` 自行決定 Head/Tail 是否有資格建立 Relief 認證候選；同一個原 Engine `certified_relief_registry.build_relief_promotion_candidate` 也用 `bool()` 判讀已求解的 verified。若已驗證來源遭污染為 `"false"`，Python 會將其視為 True，GUI 與直接 Headless Engine 都可能建立看似合格的候選 manifest。
+- 沿用原 `ae_engine.certified_relief_registry` 權威，新增只讀 `operator_relief_promotion_candidate_eligible(solution)` 並透過既有 `manufacturing_api`、根包公開同一 callable。原 3D Solver 的 `verified` 必須為原生 bool，無來源／False 與非 `PROVISIONAL_3D` 不能成為候選；來源為字串、數值或其他型別一律 fail closed。GUI controller 僅委派公開 Engine 查詢、保留顯示與候選清單持久狀態；直接呼叫 `build_relief_promotion_candidate` 也必須經相同 gate，不能繞過 UI 重驗。
+- 保留原候選 `PROMOTION_CANDIDATE` 僅供操作、不修改 Registry，正式升版 `promote_relief_rule_candidate` 的 regression/matrix/zero-penetration/candidate-specific 嚴格證據與 3D Solver／CUTTING／BEND／2D／3D／DXF 一概不變。定向 `tests/test_issue2517_relief_promotion_verification_engine_api.py` 覆蓋 headless／GUI 共用 owner、合法 Head/Tail、錯型 verified 原子拒絕、未核准 trust、JSON 布林來源一致性。#2517 全面覆蓋與 Windows UAT 仍 OPEN。
+
+
+## [CURRENT] #2517 Side/Back 後折雙向尺寸換算拒絕非法 T 與無實體料長（2026-11-10）
+
+- 受電箱三片式側板後折 side_rear_bend_material_length／side_rear_bend_outside_length 是公開 Engine API，共用同一 canonical state。原本只檢查有限數值及轉換後正數；當 T 為 0／負數，可能仍回傳合法外觀的料長；當儲存為 OUTSIDE 且後折包外 <= T，單向 readback 也可能回傳非零外尺寸，實際料長卻為零／負數。
+- 原 BoxBody structure owner 現在兩個 API 先共用原始 side_rear_bend > 0 與 T > 0 有限且非布林尺寸檢查；OUTSIDE readback 額外拒絕 side_rear_bend <= T。MATERIAL／OUTSIDE 對相同非法來源必須一致 fail-closed；合法小數、OUTSIDE↔MATERIAL 單次 T 換算、儲存 JSON→Reload、GUI Settings 公開投影與成形後料尺寸仍一致。此修正不新增公式、Family、製造認證或 DXF exporter。測試 tests/test_issue2517_box_structure_settings_projection_engine_api.py。Windows UAT 與整體 #2517 尚未結案。
+
+
+
 
 ## [CURRENT] #2517 Fold Designer 發布即時製造狀態的來源版本與強制旗標由公開 Engine（2026-11-10）
 

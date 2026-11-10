@@ -273,6 +273,7 @@ from .operator_box_body_dwd_sync import (
 )
 from .operator_fold_editor import (
     OperatorFoldMirrorPlan, commit_operator_fold_editor_rows,
+    require_operator_fold_editor_profile_target,
     normalize_operator_fold_editor_control,
     project_operator_fold_editor_angle,
     plan_operator_fold_mirror_target,
@@ -476,6 +477,7 @@ from .cabinet_types.policy import door_material_frame_width, box_body_symmetry_a
 from .cabinet_types.registry import resolve_cabinet_type
 from .certified_relief_registry import (
     build_relief_promotion_candidate,
+    operator_relief_promotion_candidate_eligible,
     load_external_relief_rule_records as operator_load_certified_relief_rule_records,
     _validate_editable_rule_record as validate_operator_relief_registry_rule_record,
     normalize_operator_relief_topology_levels,

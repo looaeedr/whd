@@ -181,3 +181,84 @@ def test_side_back_saved_material_and_compensation_cannot_be_faked(field, bad):
             state, 800., snapshot={"model": "金庫型"},
         )
     assert state == witness
+
+@pytest.mark.parametrize("space", ["MATERIAL", "OUTSIDE"])
+@pytest.mark.parametrize("resolver", [
+    "side_rear_bend_material_length", "side_rear_bend_outside_length",
+])
+@pytest.mark.parametrize("bad_t", [
+    True, False, None, 0, -1, "-0.125", "nan", "inf", float("-inf"),
+])
+def test_public_rear_flange_both_directions_reject_invalid_raw_thickness(
+    space, resolver, bad_t,
+):
+    state = api.set_side_back_geometry(
+        api.default_box_body_structure_state(),
+        side_rear_bend=15., side_rear_bend_dimension_space=space,
+    )
+    witness = deepcopy(state)
+    with pytest.raises(ValueError):
+        getattr(api, resolver)(state, bad_t)
+    assert state == witness
+
+
+@pytest.mark.parametrize("space", ["MATERIAL", "OUTSIDE"])
+@pytest.mark.parametrize("resolver", [
+    "side_rear_bend_material_length", "side_rear_bend_outside_length",
+])
+@pytest.mark.parametrize("bad_saved", [True, False, None, 0, -1, "nan", "inf"])
+def test_public_rear_flange_both_directions_reject_corrupt_saved_source(
+    space, resolver, bad_saved,
+):
+    state = api.default_box_body_structure_state()
+    cfg = state["configs"][api.BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    cfg["side_rear_bend_dimension_space"] = space
+    cfg["side_rear_bend"] = bad_saved
+    witness = deepcopy(state)
+    with pytest.raises(ValueError):
+        getattr(api, resolver)(state, "2.25")
+    assert state == witness
+
+
+@pytest.mark.parametrize("outside_length", [0.5, 2.0, "2.25"])
+@pytest.mark.parametrize("resolver", [
+    "side_rear_bend_material_length", "side_rear_bend_outside_length",
+])
+def test_outside_rear_flange_must_leave_positive_material_in_both_directions(
+    outside_length, resolver,
+):
+    state = api.set_side_back_geometry(
+        api.default_box_body_structure_state(),
+        side_rear_bend=outside_length,
+        side_rear_bend_dimension_space="OUTSIDE",
+    )
+    before = deepcopy(state)
+    with pytest.raises(ValueError, match="料尺寸"):
+        getattr(api, resolver)(state, 2.25)
+    assert state == before
+
+
+def test_public_rear_flange_material_outside_fractional_roundtrip_and_projection():
+    original = api.default_box_body_structure_state()
+    material = api.set_side_back_geometry(
+        original, side_rear_bend="15.125",
+        side_rear_bend_dimension_space="MATERIAL",
+    )
+    outside = api.set_side_back_geometry(
+        original, side_rear_bend="17.375",
+        side_rear_bend_dimension_space="OUTSIDE",
+    )
+    witnesses = deepcopy((original, material, outside))
+    for state in (material, outside):
+        assert api.side_rear_bend_material_length(state, "2.25") == pytest.approx(15.125)
+        assert api.side_rear_bend_outside_length(state, "2.25") == pytest.approx(17.375)
+        reloaded = json.loads(json.dumps(state, allow_nan=False))
+        assert api.side_rear_bend_material_length(reloaded, 2.25) == pytest.approx(15.125)
+        assert api.side_rear_bend_outside_length(reloaded, 2.25) == pytest.approx(17.375)
+        projection = api.project_operator_box_body_structure_settings(
+            {**state, "active_type": api.BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value},
+            800., snapshot={"model": "受電箱", "t": "2.25"},
+        )
+        assert projection["piece_values"]["box_body:left_side"][2] == pytest.approx(17.375)
+        assert projection["piece_values"]["box_body:right_side"][2] == pytest.approx(17.375)
+    assert (original, material, outside) == witnesses

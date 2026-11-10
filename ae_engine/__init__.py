@@ -288,6 +288,7 @@ from .manufacturing_api import (
     OperatorBoxBodyPieceFoldPlan, plan_operator_box_body_piece_fold_commit,
     OperatorBoxBodyDwdSyncPlan, plan_operator_box_body_dwd_sync,
     OperatorFoldMirrorPlan, commit_operator_fold_editor_rows,
+    require_operator_fold_editor_profile_target,
     normalize_operator_fold_editor_control,
     project_operator_fold_editor_angle,
     plan_operator_fold_mirror_target,
@@ -405,6 +406,7 @@ from .certified_relief_registry import (
     registered_certified_relief_rules, registered_certified_corner_policy_rules,
     lookup_certified_endcap_relief, lookup_certified_corner_state, certified_corner_policy_for_part,
     certified_rule_revision_exists, build_relief_promotion_candidate,
+    operator_relief_promotion_candidate_eligible,
 )
 from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
@@ -665,6 +667,7 @@ __all__ = [
     "reverse_box_body_fold_traversal", "box_body_piece_editor_profiles",
     "OperatorBoxBodyPieceFoldPlan", "plan_operator_box_body_piece_fold_commit",
     "OperatorFoldMirrorPlan", "commit_operator_fold_editor_rows",
+    "require_operator_fold_editor_profile_target",
     "normalize_operator_fold_editor_control",
     "project_operator_fold_editor_angle",
     "plan_operator_fold_mirror_target",
@@ -783,4 +786,5 @@ __all__ = [
     "registered_certified_relief_rules", "registered_certified_corner_policy_rules",
     "lookup_certified_endcap_relief", "lookup_certified_corner_state", "certified_corner_policy_for_part",
     "certified_rule_revision_exists", "build_relief_promotion_candidate",
+    "operator_relief_promotion_candidate_eligible",
 ]
