@@ -343,5 +343,6 @@ def end_cap_render_snapshot(host, val, *, part_label="封頭/尾", is_tail=False
         "bounds": bounds,
         "baseline_hint": baseline_hint,
         "part_label": part_label,
-        "is_tail": bool(is_tail),
+        # Display the same physical identity selected by the Engine PartSpec.
+        "is_tail": spec.is_tail,
     }
