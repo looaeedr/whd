@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 Receiving BasePlate GUI 不得將未編輯縮量虛構為 1 mm（2026-11-10）
+
+- 原 Phase6 底板選型 GUI 將不可編輯的四邊 shrink source 經 setting_number_text 和 float 轉為數值再提交；舊檔 True 會被格式化為「1」，失去 Engine 對布林實體來源的 fail-closed 拒絕能力。
+- 現在 GUI 在開啟設定時保留四邊縮量 raw 來源值，按鈕只送 pattern、原始不可編輯縮量、原樣編輯後 height/bend 文字；原 public manufacturing_api.commit_operator_receiving_base_plate_settings → receiving_base_plate_values / 底板展開與 EAR 驗證繼續決定合法性和幾何，沒有 GUI 第二套公式。非法 shrink/height 保持專案權威來源不變；正常來源的成品尺寸需與直接 Engine 相同。原金庫型底板與 NFB CSV 來源權責不變，未擴大製造認證；#2517 仍 OPEN。測試 tests/test_issue2517_receiving_base_plate_settings_engine_api.py。
+
+
 ## [CURRENT] #2517 BoxBody Side/Back Settings 公開投影拒絕虛構的物理 T／後折／補償（2026-11-10）
 
 - 原公開 Engine 三片式側／背板 Settings 投影在 Receiving 包外模式用 float(snapshot.get("t", 2.0))，缺失 T 就虛構 2 mm，布林 True 也可能轉成 1 mm。改用既有 normalize_operator_source_dimension(field="t") 嚴格驗證實體來源，缺值、布林、非有限與非正 T 一律拒絕，有效小數仍依原本 material→outside 定義轉換。

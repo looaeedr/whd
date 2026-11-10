@@ -453,6 +453,9 @@ class Phase6SettingsPanelOwnedRenderMixin:
         # Preserve these non-visual state values for legacy project roundtrips
         # and the existing atomic commit callback; never render shrink inputs.
         shrink_keys = ("shrink_top", "shrink_bottom", "shrink_left", "shrink_right")
+        # These four values are not editable UI fields. Keep their original
+        # persisted types for the public Engine gate, not Tk display strings.
+        shrink_source = {key: values.get(key) for key in shrink_keys}
         vars_by_key = {"pattern": pattern_var}
         for key in shrink_keys:
             raw = values.get(key)
@@ -471,7 +474,9 @@ class Phase6SettingsPanelOwnedRenderMixin:
             ttk.Label(cell, text=label + " (mm)").pack(anchor="w")
             raw = values.get(key)
             var = tk.StringVar(
-                master=cell, value=setting_number_text(raw) if raw is not None else "",
+                master=cell,
+                value=(str(raw) if isinstance(raw, bool) else
+                       setting_number_text(raw) if raw is not None else ""),
             )
             ttk.Entry(
                 cell, textvariable=var, width=12, justify=tk.CENTER,
@@ -497,11 +502,13 @@ class Phase6SettingsPanelOwnedRenderMixin:
                 status_var.set("沒有可用的底板設定交易入口")
                 return
             try:
-                payload = {"pattern": pattern_var.get()}
-                # No shrink operation is exposed to the operator. Reuse only
-                # the already-resolved/persisted physical shrink contract.
-                for key in (*shrink_keys, *(name for name, _ in fields)):
-                    payload[key] = float(vars_by_key[key].get())
+                # GUI carries the exact non-editable shrink source; it may
+                # not turn a saved True into a manufactured 1-mm shrink.
+                payload = {"pattern": pattern_var.get(), **shrink_source}
+                # Editable fields remain raw operator text. Only the existing
+                # public Engine transaction validates/converts real geometry.
+                for key, _label in fields:
+                    payload[key] = vars_by_key[key].get()
                 self._receiving_base_plate_commit(payload)
             except (ValueError, TypeError, KeyError, RuntimeError) as exc:
                 status_var.set("套用失敗：" + str(exc))
