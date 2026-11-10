@@ -156,3 +156,80 @@ def test_lower_support_requires_real_confirmation_and_unambiguous_divider():
             SOURCE, confirmation="fresh_family_confirmed",
             confirmed_door_layout_columns=((800.0, (1600.0,)),),
         )
+
+
+def test_source_inner_panel_equals_whd_gui_and_exports_real_folded_blank(tmp_path):
+    gui_snapshot = receiving.apply_family_defaults({"model": "受電箱", **SOURCE})
+    expected = receiving.derive_inner_door_panels(gui_snapshot)
+    panels = manufacturing_api.build_receiving_factory_confirmed_inner_door_panels(
+        SOURCE, confirmation="fresh_family_confirmed",
+        confirmed_door_layout_columns=COLUMNS,
+    )
+    assert panels == expected
+    assert len(panels) == 1
+    assert panels[0].stable_id == "inner_door:upper:panel"
+    render = manufacturing_api.build_inner_door_panel_render_data(panels[0])
+    assert render.metadata["inner_door_hole_feature_count"] == 0
+    assert render.metadata["folds"] == (19.0, 19.0, 19.0, 19.0)
+    output = tmp_path / "real_receiving_inner_door.dxf"
+    manufacturing_api.save_part_render_data_dxf(
+        render, output, verify_reopen=True,
+    )
+    reopened = ezdxf.readfile(output)
+    assert not reopened.audit().errors
+    assert any(e.dxf.layer == "BEND" for e in reopened.modelspace())
+    assert any(e.dxf.layer == "CUTTING" for e in reopened.modelspace())
+
+
+def test_source_inner_panel_is_not_invented_from_missing_topology():
+    with pytest.raises(ValueError, match="FRESH_FAMILY_CONFIRMATION_REQUIRED"):
+        manufacturing_api.build_receiving_factory_confirmed_inner_door_panels(
+            SOURCE, confirmed_door_layout_columns=COLUMNS,
+        )
+    with pytest.raises(ValueError):
+        manufacturing_api.build_receiving_factory_confirmed_inner_door_panels(
+            SOURCE, confirmation="fresh_family_confirmed",
+            confirmed_door_layout_columns=((800, (1600,)),),
+        )
+
+
+def test_shared_c_reexport_requires_certified_final_cross_not_raw_rectangle(tmp_path):
+    from ae_engine.contracts import ManufacturingContext
+    source_parts = dict(manufacturing_api.build_receiving_factory_confirmed_parts(
+        SOURCE, confirmation="fresh_family_confirmed",
+        confirmed_door_layout_columns=COLUMNS,
+    ))
+    body = manufacturing_api.build_operator_part_render_data(
+        source_parts["box_body"], ManufacturingContext(),
+    )
+    shared = manufacturing_api.build_receiving_factory_confirmed_inner_door_lower_support(
+        SOURCE, confirmation="fresh_family_confirmed",
+        confirmed_door_layout_columns=COLUMNS,
+    )
+    raw = manufacturing_api.build_box_body_divider_render_data(shared)
+    assert "divider_assembly_relief" not in raw.metadata
+    certified = manufacturing_api.resolve_receiving_factory_confirmed_lower_divider_final_scene(
+        SOURCE, box_body_render_data=body,
+        confirmation="fresh_family_confirmed",
+        confirmed_door_layout_columns=COLUMNS,
+    )
+    relief = certified.metadata["divider_assembly_relief"]
+    assert relief["verified"] is True
+    assert relief["candidate_status"] == "CERTIFIED_REGISTRY_VERIFIED"
+    assert certified.metadata["divider_endcap_shared_6p4_datum"]
+    assert certified.metadata["stable_id"] == shared.stable_id
+    assert certified.material.area < raw.material.area
+    output = tmp_path / "verified_C_cross.dxf"
+    manufacturing_api.save_part_render_data_dxf(
+        certified, output, verify_reopen=True,
+    )
+    assert not ezdxf.readfile(output).audit().errors
+
+
+def test_shared_c_no_real_body_may_be_exported_as_certified():
+    with pytest.raises(TypeError, match="CANONICAL_BODY_SOURCE_REQUIRED"):
+        manufacturing_api.resolve_receiving_factory_confirmed_lower_divider_final_scene(
+            SOURCE, box_body_render_data=None,
+            confirmation="fresh_family_confirmed",
+            confirmed_door_layout_columns=COLUMNS,
+        )
