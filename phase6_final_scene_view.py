@@ -84,6 +84,17 @@ def receiving_base_source_display_warnings(snapshot, cabinet_family):
     return ()
 
 
+def _operator_final_scene_thickness(snapshot, settings):
+    """Pass source truth to the same public Engine request dimension owner.
+
+    FinalScene is a consumer of physical T; its UI adapter cannot prefer stale
+    Settings T over an explicit saved T or manufacture a missing 2 mm source.
+    """
+    return manufacturing_api.project_operator_manufacturing_request_snapshot(
+        snapshot, settings, {},
+    )["t"]
+
+
 class Phase6FinalSceneViewAdapter:
     """Owner-free Final Scene orchestration over explicit typed ports."""
 
@@ -272,9 +283,13 @@ class Phase6FinalSceneViewAdapter:
 
     def query_assembly_render_data(self):
         dependencies = self.dependencies
-        # Geometry publication is owned by the update scheduler/executor.  A
-        # display-only assembly redraw must consume the committed/cache-resolved
-        # geometry without forcing a second live-sync publication.
+        # Validate the SAME physical source as the immutable Engine request
+        # before resolving any 3D geometry or publishing formed-size evidence.
+        snapshot = dict(dependencies.input_snapshot() or {})
+        settings = dict(dependencies.settings_values() or {})
+        thickness = _operator_final_scene_thickness(snapshot, settings)
+        # Geometry publication is owned by the update scheduler/executor. A
+        # display-only assembly redraw consumes committed/cache-resolved geometry.
         resolved = dependencies.resolve_geometry()
 
         part_cls = dependencies.assembly_part_cls
@@ -303,14 +318,6 @@ class Phase6FinalSceneViewAdapter:
         }
         dependencies.assembly_corner_text_sink(corner_texts)
 
-        snapshot = dict(dependencies.input_snapshot() or {})
-        settings = dict(dependencies.settings_values() or {})
-        # T remains a physical source even for a presentation-only scene.
-        # Do not turn a malformed saved value into an invented 2-mm sheet.
-        thickness = manufacturing_api.normalize_operator_source_dimension(
-            settings["t"] if "t" in settings else snapshot.get("t", 2.0),
-            field="t",
-        )
         formed_text = dependencies.formed_size_text
         blank_text = dependencies.blank_text
         dimensions = dependencies.operator_dimensions
@@ -395,12 +402,7 @@ class Phase6FinalSceneViewAdapter:
 
         snapshot = dict(dependencies.input_snapshot() or {})
         settings = dict(dependencies.settings_values() or {})
-        # T remains a physical source even for a presentation-only scene.
-        # Do not turn a malformed saved value into an invented 2-mm sheet.
-        thickness = manufacturing_api.normalize_operator_source_dimension(
-            settings["t"] if "t" in settings else snapshot.get("t", 2.0),
-            field="t",
-        )
+        thickness = _operator_final_scene_thickness(snapshot, settings)
         alpha_bend = float(dependencies.alpha_bend())
         dimensions = dependencies.operator_dimensions
         view_mode = str(dependencies.display_mode() or "single")

@@ -1,6 +1,6 @@
 """#2517: physical sheet T shown in FinalScene comes from the Engine source."""
 from copy import deepcopy
-from dataclasses import fields
+from dataclasses import fields, replace
 import inspect
 import json
 from types import SimpleNamespace
@@ -9,7 +9,7 @@ import pytest
 
 from ae_engine import manufacturing_api as api
 from phase6_final_scene_contracts import FinalSceneDependencies
-from phase6_final_scene_view import Phase6FinalSceneViewAdapter
+from phase6_final_scene_view import Phase6FinalSceneViewAdapter, _operator_final_scene_thickness
 
 
 REQUIRED = (
@@ -56,7 +56,7 @@ def _view(snapshot, settings, *, active="box_body", mode="assembly", metadata=No
 @pytest.mark.parametrize("family", ("金庫型", "受電箱"))
 @pytest.mark.parametrize("raw", ("2", "2.125", 2, 2.125))
 def test_assembly_physical_thickness_matches_public_engine_and_json_reload(family, raw):
-    view, source, settings, calls = _view({"model": family, "t": 2}, {"t": raw})
+    view, source, settings, calls = _view({"model": family}, {"t": raw})
     before = deepcopy((source, settings))
     expected = api.normalize_operator_source_dimension(raw, field="t")
     request = view.build_request()
@@ -72,7 +72,7 @@ def test_assembly_physical_thickness_matches_public_engine_and_json_reload(famil
 ))
 @pytest.mark.parametrize("owner", ("snapshot", "settings"))
 def test_invalid_physical_t_refuses_before_reading_any_scene(owner, raw):
-    src = {"model": "受電箱", "t": raw} if owner == "snapshot" else {"t": 2}
+    src = {"model": "受電箱", "t": raw} if owner == "snapshot" else {"model": "受電箱"}
     settings = {"t": raw} if owner == "settings" else {}
     view, source, values, calls = _view(src, settings)
     before = deepcopy((source, values))
@@ -84,14 +84,81 @@ def test_invalid_physical_t_refuses_before_reading_any_scene(owner, raw):
     assert (source, values) == before
 
 
-@pytest.mark.parametrize("raw,expected", (
-    (None, 2.0), ("2.375", 2.375),
-))
-def test_absent_t_uses_existing_legacy_default_without_overriding_present_t(raw, expected):
-    settings = {} if raw is None else {"t": raw}
-    view, _, _, calls = _view({}, settings)
-    assert view.build_request().thickness == expected
+def test_missing_t_in_both_sources_fails_before_any_render_or_2mm_fallback():
+    view, snapshot, settings, calls = _view({"model": "受電箱"}, {})
+    with pytest.raises(ValueError, match="包外尺寸"):
+        view.build_request()
+    assert calls == []
+    assert "t" not in snapshot and "t" not in settings
+
+
+def test_missing_saved_t_uses_explicit_settings_t_without_guessing():
+    view, snapshot, settings, calls = _view({"model": "受電箱"}, {"t": "2.375"})
+    assert view.build_request().thickness == 2.375
     assert calls == ["assembly"]
+    assert "t" not in snapshot and settings["t"] == "2.375"
+
+
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+@pytest.mark.parametrize("mode", ("single", "assembly"))
+def test_finalscene_and_headless_request_use_same_saved_t_even_with_stale_settings(family, mode):
+    raw_snapshot = {"model": family, "t": "1.375"}
+    settings = {"t": "2.875"}
+    view, snapshot, global_settings, calls = _view(
+        raw_snapshot, settings, mode=mode,
+    )
+    saved = json.loads(json.dumps({"snapshot": raw_snapshot, "settings": settings}, ensure_ascii=False))
+    assert view.build_request().thickness == api.project_operator_manufacturing_request_snapshot(
+        saved["snapshot"], saved["settings"], {},
+    )["t"] == 1.375
+    assert calls == ["assembly" if mode == "assembly" else "part"]
+    assert (snapshot, global_settings) == (raw_snapshot, settings)
+
+
+@pytest.mark.parametrize("bad", (True, "nan", None, 0))
+def test_invalid_saved_t_must_not_use_valid_settings_t_or_render(bad):
+    source = {"model": "受電箱", "t": bad}
+    view, snapshot, settings, calls = _view(source, {"t": "2.375"})
+    with pytest.raises(ValueError, match="包外尺寸"):
+        view.build_request()
+    assert calls == []
+    assert (snapshot, settings) == (source, {"t": "2.375"})
+
+
+def test_query_assembly_render_data_uses_same_saved_thickness_for_formed_text():
+    snapshot = {"model": "金庫型", "t": "1.625"}
+    settings = {"t": "3.5"}
+    view, source, values, _calls = _view(snapshot, settings)
+    messages = []
+    part = SimpleNamespace(
+        part_key="head", render_data=object(),
+        x_profile=(), y_profile=(), placement="assembled", offset=(0.0, 0.0, 0.0),
+    )
+    view.dependencies = replace(
+        view.dependencies,
+        resolve_geometry=lambda: SimpleNamespace(parts=(part,), diagnostics=()),
+        assembly_part_cls=SimpleNamespace,
+        assembly_visibility=lambda _parts: (("head",), ()),
+        cabinet_family=lambda: "金庫型",
+        formed_size_text=lambda _render, **kw: kw["thickness"],
+        assembly_part_text_sink=lambda *args: messages.append(args),
+    )
+    view.query_assembly_render_data()
+    assert ("formed", "head", 1.625) in messages
+    assert (source, values) == (snapshot, settings)
+
+
+def test_query_assembly_invalid_saved_t_never_resolves_geometry():
+    view, _source, _settings, _calls = _view(
+        {"model": "受電箱", "t": True}, {"t": 2.0},
+    )
+    called = []
+    view.dependencies = replace(
+        view.dependencies, resolve_geometry=lambda: called.append("geometry"),
+    )
+    with pytest.raises(ValueError, match="包外尺寸"):
+        view.query_assembly_render_data()
+    assert called == []
 
 
 @pytest.mark.parametrize("raw", (True, 0, -2, "nan", "inf", None))
@@ -125,6 +192,9 @@ def test_legitimate_fixing_plate_thickness_preserves_engine_fractional_mm(raw):
 
 def test_display_owner_has_no_guessed_thickness_or_python_bool_conversion():
     view = inspect.getsource(Phase6FinalSceneViewAdapter)
-    assert view.count("manufacturing_api.normalize_operator_source_dimension(") >= 3
+    assert view.count("_operator_final_scene_thickness(") == 2
+    assert "snapshot.get(\"t\", 2.0)" not in view
+    source = inspect.getsource(_operator_final_scene_thickness)
+    assert "manufacturing_api.project_operator_manufacturing_request_snapshot(" in source
     assert 'thickness = _num(' not in view
     assert 'float(render_data.metadata["thickness"])' not in view

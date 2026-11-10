@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 FinalScene 3D／組合 T 必須與 Engine Request 使用同一來源優先序（2026-11-10）
+
+- 原 `phase6_final_scene_view.Phase6FinalSceneViewAdapter.build_request` 與 `query_assembly_render_data` 在 GUI 端自行採 `Settings["t"]` 優先，缺欄時回退 `snapshot.get("t", 2.0)`；但已合入的公開製造 Request API 對同一實體 T 使用**已存 Snapshot 優先、沒有才取 Settings、明確非法不可回退、兩處都缺時不得捏造 2 mm**。舊路徑可讓 3D 實體板厚／成形尺寸文字與製造 Request 的原料 T 不同。
+- 本批**不建立新製造 API**：FinalScene 單板、組合 formed-size readback 改消費同一原 Engine `manufacturing_api.project_operator_manufacturing_request_snapshot(snapshot, settings, {})["t"]`；組合 redraw 在任何 geometry resolve 前驗來源，拒絕來源缺席及非法布林、零、非有限。保留合法 Settings-only 舊版資料、毫米小數、已認證固定片 metadata T 的既有獨立 Engine gate；Snapshot/Settings 皆不突變。
+- `tests/test_issue2517_finalscene_thickness_public_engine.py` 正反驗證兩 Family 的單板／組合、Save→Reload、真 formed-size 回讀、無來源、來源衝突與非法 T 原子拒絕。此批不改 Fold/CUTTING/BEND、2D／3D 幾何公式、DXF Writer、Factory／Family 或製造資格；#2517 全功能逐項覆蓋與 Windows UAT 仍 OPEN。
+
+
 ## [CURRENT] #2517 Receiving 已選 Bay 的 Scene 門孔／NFB 來源由原 Engine Family Registry 保護（2026-11-10）
 
 - 原公開 `ae_engine.manufacturing_scene_payload.project_manufacturing_scene_settings_overlay` 在檢查已提交 Receiving Runtime Selection 時，以硬寫字串 `("受電箱", "RECEIVING")` 判斷 Family，遺漏 Registry 已註冊的小寫、混合大小寫與含空白別名，使舊全域 Settings 的 Door／NFB／Bay 來源可能覆蓋已選中實體 Bay 的確認資料。GUI 雖已呼叫公開 Engine API，但同一製造 operation 不能因合法 Family 別名不同而取得不同來源。
