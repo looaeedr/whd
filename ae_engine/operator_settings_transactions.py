@@ -141,6 +141,38 @@ def plan_operator_fold_designer_live_revision(
     return OperatorFoldDesignerLiveRevisionPlan(True, revision, "OK")
 
 
+@dataclass(frozen=True)
+class OperatorFoldDesignerPublicationRevisions:
+    """Validated counter values for one read-only live publication plan."""
+
+    current_revision: int
+    next_revision: int
+
+
+def project_operator_fold_designer_publication_revisions(
+    raw_current_revision: object,
+) -> OperatorFoldDesignerPublicationRevisions:
+    """Keep Fold Designer's outgoing revision monotonic and source-authentic.
+
+    The old GUI publication planner used int(raw or 0) and invented revision
+    numbers for True, fractional floats and underscore aliases.  Reuse the
+    original Engine revision parser and produce both current and successor
+    counters here, before any UI payload/delta or live callback is published.
+    Legacy absent/blank uninitialized counters remain zero.
+    """
+    source = (
+        0 if raw_current_revision is None
+        or (isinstance(raw_current_revision, str) and not raw_current_revision.strip())
+        else raw_current_revision
+    )
+    current = _external_sync_revision_number(source)
+    if current < 0:
+        raise ValueError("Fold Designer 發布 revision 必須是非負整數")
+    return OperatorFoldDesignerPublicationRevisions(
+        current_revision=current, next_revision=current + 1,
+    )
+
+
 def normalize_operator_settings_boolean(raw: object) -> bool:
     """Decode serialized operator bools without bool('false') == True."""
     if isinstance(raw, bool):
