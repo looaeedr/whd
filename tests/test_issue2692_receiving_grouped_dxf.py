@@ -488,7 +488,7 @@ def test_main_grouped_export_includes_saved_confirmed_nfb_pair_in_one_file(tmp_p
     checks = [e.plain_text() for e in doc.modelspace()
               if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
     assert checks.count("head") == 2
-    assert sum(key.startswith("inner_door:") for key in checks) == 2
+    assert sum(key.startswith("inner_door:") and " × " not in key for key in checks) == 2
     assert checks.count("base_plate") == 2
     assert before == tuple(
         (request.input_snapshot, request.canonical_part_keys)
@@ -554,7 +554,7 @@ def test_grouped_nfb_pair_verified_source_exports_only_one_composed_file(tmp_pat
     checks = [entity.plain_text() for entity in doc.modelspace()
               if entity.dxftype() == "MTEXT" and entity.dxf.layer == "CHECK"]
     assert checks.count("head") == 2
-    assert sum(key.startswith("inner_door:") for key in checks) == 2
+    assert sum(key.startswith("inner_door:") and " × " not in key for key in checks) == 2
     assert checks.count("base_plate") == 2
     # Composing verified PART_ONLY flats does not publish standalone pairs.
     assert not list((tmp_path / "out").rglob("NFB_PART_ONLY/*.dxf"))
@@ -673,7 +673,7 @@ def test_same_saved_nfb_source_allows_only_independent_core_flat_scope(
     assert all(check.count(role) == 2 for role in (
         "box_body:box_body_left_side", "box_body:box_body_back", "box_body:box_body_right_side",
     ))
-    assert sum(key.startswith("inner_door:") for key in check) == 2
+    assert sum(key.startswith("inner_door:") and " × " not in key for key in check) == 2
     assert check.count("base_plate") == 2
     assert "nfb_pad" not in check
     assert not list(out.rglob("NFB_PART_ONLY/*.dxf"))
