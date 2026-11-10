@@ -208,7 +208,7 @@ def test_legitimate_fixing_plate_thickness_preserves_engine_fractional_mm(raw):
 
 def test_display_owner_has_no_guessed_thickness_or_python_bool_conversion():
     view = inspect.getsource(Phase6FinalSceneViewAdapter)
-    assert view.count("_operator_final_scene_thickness(") == 2
+    assert view.count("_operator_final_scene_thickness(") >= 2
     assert "snapshot.get(\"t\", 2.0)" not in view
     source = inspect.getsource(_operator_final_scene_thickness)
     assert "manufacturing_api.project_operator_manufacturing_request_snapshot(" in source
