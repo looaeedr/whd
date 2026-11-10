@@ -600,6 +600,129 @@ def build_receiving_factory_confirmed_inner_door_lower_support(
     return divider
 
 
+
+def build_receiving_factory_confirmed_inner_door_panels(
+    source_dimensions: Mapping[str, object], *,
+    confirmation: str | None = None,
+    confirmed_door_layout_columns=(),
+):
+    """Return the actual fresh Receiving inner-door panels from GUI Family.
+
+    The WHD Family owns the finished panel dimensions, four 19-mm flanges,
+    stable cell identity and canonical folded Door CUTTING. No NFB hole is
+    approved by this function; committed NFB pair requests stay independent.
+    """
+    from .inner_door_panels import InnerDoorPanelPart
+
+    values = _confirmed_fresh_receiving_inner_door_snapshot(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+    panels = tuple(family_policy.derive_inner_door_panels(values))
+    source_ids = {
+        str(item.get("stable_id") or "") for item in values["inner_doors"]
+    }
+    if (not panels
+            or len(panels) != len(source_ids)
+            or {panel.inner_door_id for panel in panels} != source_ids
+            or any(not isinstance(panel, InnerDoorPanelPart) for panel in panels)):
+        raise ValueError("RECEIVING_INNER_DOOR_PANEL_TOPOLOGY_UNRESOLVED")
+    return panels
+
+
+def resolve_receiving_factory_confirmed_lower_divider_final_scene(
+    source_dimensions: Mapping[str, object], *,
+    box_body_render_data,
+    confirmation: str | None = None,
+    confirmed_door_layout_columns=(),
+):
+    """Resolve C through the SAME full Engine physical 3D/Registry CROSS path.
+
+    The raw fold-chain rectangle alone is NOT an approved cutting blank.
+    Requires the real three-piece BoxBody source, actual Fold and assembly
+    mating geometry, Certified Registry HIT, post-fold verification, and
+    shared EndCap Ø6.4 datum. Never invent cut depths in CADSplit or here.
+    """
+    from .manufacturing_render_data import BoxBodyStructureRenderData
+    from .manufacturing_contracts import (
+        ManufacturingPartInput, ManufacturingResolveRequest,
+    )
+    from .manufacturing_api import (
+        build_box_body_divider_render_data, resolve_manufacturing_request,
+    )
+    from .door_dividers import divider_part_profiles
+
+    values = _confirmed_fresh_receiving_inner_door_snapshot(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+    if box_body_render_data is None:
+        # Door-only source is still a CONFIRMED fresh Receiving Family.
+        # Resolve its mating Body through the SAME Engine Factory/PartSpec
+        # used by the GUI. The Body is collision evidence ONLY; it is
+        # never added to the Door-only machining selection by this API.
+        from .manufacturing_api import (
+            build_operator_part_render_data,
+            build_receiving_factory_confirmed_parts,
+        )
+        from .contracts import ManufacturingContext
+
+        factory = dict(build_receiving_factory_confirmed_parts(
+            source_dimensions,
+            confirmation=confirmation,
+            confirmed_door_layout_columns=confirmed_door_layout_columns,
+        ))
+        box_body_render_data = build_operator_part_render_data(
+            factory["box_body"], ManufacturingContext(),
+        )
+    if not isinstance(box_body_render_data, BoxBodyStructureRenderData):
+        raise TypeError("RECEIVING_DIVIDER_CANONICAL_BODY_SOURCE_REQUIRED")
+    if {piece.role for piece in box_body_render_data.pieces} != {
+        "left_side", "right_side", "back",
+    }:
+        raise ValueError("RECEIVING_DIVIDER_CANONICAL_SIDE_SOURCES_REQUIRED")
+    shared = build_receiving_factory_confirmed_inner_door_lower_support(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+    raw = build_box_body_divider_render_data(shared)
+    profile = divider_part_profiles((shared,))[shared.stable_id]
+    request = ManufacturingResolveRequest(
+        input_snapshot=values,
+        settings={"t": values["t"]},
+        canonical_part_keys=("box_body", shared.stable_id),
+        parts=(
+            ManufacturingPartInput(
+                part_key="box_body", render_data=box_body_render_data,
+            ),
+            ManufacturingPartInput(
+                part_key=shared.stable_id, render_data=raw,
+                x_profile=profile["X"], y_profile=profile["Y"],
+            ),
+        ),
+        operator_finished_dimensions=(
+            values["w"], values["h"], values["d"],
+        ),
+        cabinet_model="受電箱",
+    )
+    resolved = resolve_manufacturing_request(request)
+    parts = tuple(
+        part for part in resolved.geometry.parts
+        if part.part_key == shared.stable_id
+    )
+    if len(parts) != 1:
+        raise ValueError("RECEIVING_DIVIDER_CANONICAL_RESULT_MISSING")
+    final = parts[0].render_data
+    status = dict((final.metadata or {}).get("divider_assembly_relief") or {})
+    if (status.get("verified") is not True
+            or status.get("candidate_status") != "CERTIFIED_REGISTRY_VERIFIED"
+            or not (final.metadata or {}).get("divider_endcap_shared_6p4_datum")):
+        raise ValueError("RECEIVING_DIVIDER_CERTIFIED_CROSS_NOT_VERIFIED")
+    if not final.material.is_valid or final.material.is_empty:
+        raise ValueError("RECEIVING_DIVIDER_FINAL_MATERIAL_INVALID")
+    return final
+
+
 def build_receiving_factory_confirmed_parts(
     source_dimensions: Mapping[str, object], *,
     confirmation: str | None = None,

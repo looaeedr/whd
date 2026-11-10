@@ -2253,6 +2253,34 @@ def build_receiving_factory_confirmed_inner_door_lower_support(
     )
 
 
+def build_receiving_factory_confirmed_inner_door_panels(
+    source_dimensions, *, confirmation=None, confirmed_door_layout_columns=(),
+):
+    """Public Engine fresh Receiving physical panel topology, no NFB holes."""
+    from .receiving_factory_requests import (
+        build_receiving_factory_confirmed_inner_door_panels as build,
+    )
+    return build(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+
+
+def resolve_receiving_factory_confirmed_lower_divider_final_scene(
+    source_dimensions, *, box_body_render_data,
+    confirmation=None, confirmed_door_layout_columns=(),
+):
+    """Public certified CROSS C support, never an unchecked raw blank."""
+    from .receiving_factory_requests import (
+        resolve_receiving_factory_confirmed_lower_divider_final_scene as build,
+    )
+    return build(
+        source_dimensions, box_body_render_data=box_body_render_data,
+        confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+
+
 # #2517: GUI only requests the existing committed CSV physical pair source.
 # The underlying NFB source/PartSpec identities stay inside Engine.
 from .receiving_nfb_committed_final_scene import (
