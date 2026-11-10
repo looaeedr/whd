@@ -1750,6 +1750,19 @@ def apply_receiving_switch_operator_action(
         layer_index=layer_index, delta=delta,
     )
 
+def project_operator_fold_designer_divider_input(
+    part_key, payload, *, default_depth, default_thickness,
+):
+    """Public Engine projection of raw GUI/CADSplit Divider source inputs."""
+    from .fold_designer_physical_selection import (
+        project_operator_fold_designer_divider_input as project,
+    )
+    return project(
+        part_key, payload,
+        default_depth=default_depth, default_thickness=default_thickness,
+    )
+
+
 def resolve_fold_designer_divider_part(part_key, divider_input):
     """Public Engine selection of one canonical Box Body Divider physical part."""
     from .fold_designer_physical_selection import resolve_fold_designer_divider_part as resolve
