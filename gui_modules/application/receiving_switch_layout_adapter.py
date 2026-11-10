@@ -9,18 +9,10 @@ from ae_engine import manufacturing_api
 
 
 def _ui_exact_integer(value: object, *, label: str) -> int:
-    """Accept real integer values or integer entry text, never bool/float."""
-    if isinstance(value, bool) or not isinstance(value, (int, str)):
-        raise ValueError(f"Receiving switch {label} must be an integer")
-    if isinstance(value, str):
-        raw = value.strip()
-        if not raw or not raw.lstrip("+-").isdecimal():
-            raise ValueError(f"Receiving switch {label} must be an integer")
-        try:
-            return int(raw)
-        except ValueError as exc:
-            raise ValueError(f"Receiving switch {label} must be an integer") from exc
-    return value
+    """Forward the original Switch topology source to the public Engine gate."""
+    return manufacturing_api.normalize_receiving_operator_topology_integer(
+        value, name=f"switch {label}",
+    )
 
 
 class ReceivingSwitchLayoutAdapter:
