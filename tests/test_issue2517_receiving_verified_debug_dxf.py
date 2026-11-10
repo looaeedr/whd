@@ -268,3 +268,35 @@ def test_debug_arranges_physical_relatives_not_unrelated_global_rows():
         assert center_y(key) == pytest.approx(center_y("inner_door:upper:panel"))
     assert positioned["divider"][3] < inner[1]
     assert positioned["base_plate"][3] < positioned["divider"][1]
+
+
+def test_debug_keeps_multiple_inner_door_frame_owners_separate():
+    from ae_engine.receiving_verified_debug_dxf import _debug_layout_for_panel
+
+    parts = (
+        ("inner_door:lower:right_frame", _flat("lower-right", width=19, height=135)),
+        ("inner_door:upper:panel", _flat("upper", width=120, height=95)),
+        ("inner_door:lower:panel", _flat("lower", width=150, height=110)),
+        ("inner_door:upper:top_frame", _flat("upper-top", width=140, height=20)),
+        ("inner_door:lower:left_frame", _flat("lower-left", width=18, height=135)),
+        ("inner_door:upper:left_frame", _flat("upper-left", width=16, height=115)),
+        ("inner_door:lower:top_frame", _flat("lower-top", width=160, height=22)),
+        ("inner_door:upper:right_frame", _flat("upper-right", width=17, height=115)),
+    )
+    placed, _height = _debug_layout_for_panel(parts)
+    assert len(placed) == len(parts)
+    bounds = {}
+    for key, render, x, y in placed:
+        from ae_engine.receiving_verified_debug_dxf import _scene_bounds
+        x0, y0, x1, y1 = _scene_bounds(render.scene)
+        bounds[key] = (x, y, x + x1 - x0, y + y1 - y0)
+    assert bounds["inner_door:upper:panel"][1] > bounds["inner_door:lower:panel"][3]
+    for owner in ("upper", "lower"):
+        panel = bounds[f"inner_door:{owner}:panel"]
+        top = bounds[f"inner_door:{owner}:top_frame"]
+        left = bounds[f"inner_door:{owner}:left_frame"]
+        right = bounds[f"inner_door:{owner}:right_frame"]
+        assert top[1] > panel[3]
+        assert left[2] < panel[0]
+        assert right[0] > panel[2]
+    assert _role("box_body:divider:door-grid:H:0:1") == "下框／中隔"
