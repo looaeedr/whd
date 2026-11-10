@@ -57,6 +57,17 @@ def test_invalid_widget_getter_rejects_stale_saved_family_before_3d_render():
     assert app._phase6_input_snapshot == before
 
 
+def test_missing_live_selector_retains_saved_family_registry_without_guessing():
+    # A missing selector is not the same as an existing but broken Tk control.
+    snapshot = {"cabinet_type": "receiving"}
+    host = SimpleNamespace(_phase6_input_snapshot=snapshot)
+    assert _phase6_current_cabinet_family(host) == "受電箱"
+    assert snapshot == {"cabinet_type": "receiving"}
+    assert _phase6_current_cabinet_family(
+        SimpleNamespace(_phase6_input_snapshot={})
+    ) == "金庫型"
+
+
 def test_phase6_manufacturing_service_uses_engine_request_not_local_family_policy():
     # The old service-local _cabinet_family was removed as part of #2517.
     # The GUI live selector above still checks actual Family behavior; the
