@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 DXF 已存／即時勾選旗標由公開 Engine 嚴格核對（2026-11-10）
+
+- 原 `manufacturing_export_selection.selected_project_export_flags`、`select_resolved_export_geometry` 與 `manufacturing_selected_export` 的正式選片、路由和 DXF 仍使用 Python `bool(raw)`；序列化字串 `"false"` 因而可選到使用者未勾選的 Door／BasePlate／Side，進入實體出圖。GUI 本身只應傳操作者原值，不能自行製造實體 ID。
+- 沿用唯一 `operator_settings_transactions.normalize_operator_settings_boolean`，新公開 `manufacturing_api.normalize_operator_selected_export_flags` 令原六個出圖／選片／重試入口都在決策前解碼，來源非法則 fail closed，不建立 DXF。Family／NFB／Set-Bay、正式板件／FinalScene、2D／3D／CUTTING／BEND／MARKING、原 DXF writer／重開驗證不變。定向 `tests/test_issue2517_selected_dxf_boolean_source_engine_api.py` 驗 GUI/headless、JSON Save→Reload、錯型及真實 DXF reopen。整體 #2517／Windows UAT 仍未結案。
+
 ## [CURRENT] #2517 FinalScene／製造 Request 的即時、已存、初始 Family 來源順序由公開 Engine（2026-11-10）
 
 - 原 `phase6_manufacturing_adapter._cabinet_model` 在 GUI 自行選擇即時 `baseline_model_var`、已存 `model/cabinet_type`、未存初始箱型的優先序，同時控制 FinalScene、Request 與快取；這是實體製造 Family 來源決策，不應留在 GUI。原資料未通過即時 Tk 控制讀取時仍須在建立請求之前拒絕，不能用已存值靜默補上。

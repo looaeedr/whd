@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Serialized DXF checkbox intent is validated by Engine before selection (2026-11-10)
+
+The existing public DXF selection APIs decode raw operator flags with Engine's `normalize_operator_settings_boolean`, so JSON-reloaded `"false"` cannot select a real Door, BasePlate or Side. The unchanged `selected_project_export_flags`, `select_resolved_export_geometry`, `selected_export_manufacturing_policy`, `plan_selected_resolved_export_route`, `plan_unconfigured_receiving_base_export_retry` and `save_selected_resolved_manufacturing_dxf` now share the one Engine Boolean rule via `manufacturing_api.normalize_operator_selected_export_flags`. Illegal flags reject before geometry/export side effects. The GUI only passes Tk checkbox values. No change to Family/Set-Bay identity, CUTTING/BEND/MARKING, manufacturing certification or DXF serialization; real DXF Save→Reload evidence and source isolation: `tests/test_issue2517_selected_dxf_boolean_source_engine_api.py`. Full #2517 / Windows UAT remains OPEN.
+
 ## #2517 Engine owns live/saved/initial manufacturing Family source priority (2026-11-10)
 
 Public `manufacturing_api.resolve_operator_manufacturing_family_source(snapshot, live_model=..., initial_model=...)` (also root `ae_engine`) selects the **unchanged raw Family source**: nonblank live operator model, else saved project `model` / `cabinet_type`, else initial unsaved model, otherwise empty. `phase6_manufacturing_adapter._cabinet_model` only reads the Tk control with its existing unreadable-source error, then passes detached inputs to this public Engine owner. The same result feeds FinalScene, the immutable manufacturing request and cache identity; canonical alias/eligibility continues through `resolve_live_cabinet_family` and the original Registry. There is no new 2D, 3D, DXF, Family fallback, manufacturing approval or geometric formula. Regression: `tests/test_issue2517_finalscene_family_control_source_parity.py` exercises headless API, JSON reload, GUI request/preview parity and broken live controls. Wider #2517 manufacturing/Windows UAT remains open.
