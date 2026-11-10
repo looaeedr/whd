@@ -86,7 +86,12 @@ def test_actual_gui_request_matches_engine_headless_dimensions_without_source_mu
         before[0], projected_settings, before[2],
     )
     request = build_manufacturing_request(app)
-    assert dict(request.input_snapshot) == direct
+    # The immutable request freezes source lists (AssemblyJoint) to tuples;
+    # compare their values without weakening that canonical frozen contract.
+    request_snapshot = dict(request.input_snapshot)
+    assert isinstance(request_snapshot["assembly_joints"], tuple)
+    request_snapshot["assembly_joints"] = list(request_snapshot["assembly_joints"])
+    assert request_snapshot == direct
     assert {key: request.input_snapshot[key] for key in ("w", "h", "d", "t")} == {
         "w": 831.25, "h": 1710.125, "d": 360.875, "t": 1.75,
     }
