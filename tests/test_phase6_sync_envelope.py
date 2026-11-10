@@ -108,6 +108,17 @@ def test_force_publish_does_not_echo_equivalent_state_or_bump_revision(monkeypat
             app._phase6_last_live_state.get("assembly_relief") or {}
         )
         published.clear()
+        current = app._phase6_corner_transaction_payload()
+        previous = app._phase6_last_live_state
+        assert current == previous, {
+            "changed_fields": sorted(
+                k for k in set(current) | set(previous)
+                if current.get(k) != previous.get(k)
+            ),
+            "host_relief": app._phase6_input_snapshot.get("assembly_relief"),
+            "current_relief": current.get("assembly_relief"),
+            "previous_relief": previous.get("assembly_relief"),
+        }
 
         assert app._phase6_publish_live_state(force=True) is False
         assert published == []
