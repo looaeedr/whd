@@ -39,6 +39,26 @@ def _positive_fold_thickness(raw):
     return physical_t
 
 
+def require_operator_fold_editor_profile_target(
+    profiles: Mapping[str, object], requested: object,
+) -> str:
+    """Qualify the exact physical Fold axis before any operator edit.
+
+    A stale notebook label may fall back to X for *display*, but an edit must
+    never write X when the operator selected a missing Y/custom axis.  Only a
+    real, exactly named profile can receive a source transaction.
+    """
+    if (
+        not isinstance(profiles, Mapping)
+        or type(requested) is not str
+        or not requested
+        or requested not in profiles
+        or not isinstance(profiles[requested], (list, tuple))
+    ):
+        raise ValueError("FOLD_EDITOR_PROFILE_TARGET_INVALID")
+    return requested
+
+
 def normalize_operator_fold_editor_control(raw, *, field):
     """Public Engine parser for the legacy whole-mm Fold editor controls.
 

@@ -106,7 +106,8 @@ def _host(rows):
     material = deepcopy(rows)
     active = {"X": material}
     state = SimpleNamespace(
-        phase6_thickness=2.0, phase6_fold_ui_vault_key="箱身",
+        phase6_thickness=2.0, active_bend="X",
+        phase6_fold_ui_vault_key="箱身",
         symmetric=False, profiles_vault={},
     )
     controls = []
