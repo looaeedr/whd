@@ -148,6 +148,22 @@ def test_query_assembly_render_data_uses_same_saved_thickness_for_formed_text():
     assert (source, values) == (snapshot, settings)
 
 
+def test_diagnostic_only_empty_assembly_without_t_is_not_fabricated_or_suppressed():
+    view, snapshot, settings, _calls = _view({"model": "金庫型"}, {})
+    view.dependencies = replace(
+        view.dependencies,
+        resolve_geometry=lambda: SimpleNamespace(
+            parts=(), diagnostics=("NO_VERIFIED_EAR_SOURCE",),
+        ),
+        assembly_visibility=lambda _parts: ((), ()),
+        cabinet_family=lambda: "金庫型",
+    )
+    scene = view.query_assembly_render_data()
+    assert scene.collision_certification_diagnostics == ("NO_VERIFIED_EAR_SOURCE",)
+    assert scene.assembly_parts == ()
+    assert "t" not in snapshot and "t" not in settings
+
+
 def test_query_assembly_invalid_saved_t_never_resolves_geometry():
     view, _source, _settings, _calls = _view(
         {"model": "受電箱", "t": True}, {"t": 2.0},

@@ -283,11 +283,16 @@ class Phase6FinalSceneViewAdapter:
 
     def query_assembly_render_data(self):
         dependencies = self.dependencies
-        # Validate the SAME physical source as the immutable Engine request
-        # before resolving any 3D geometry or publishing formed-size evidence.
+        # An explicitly supplied physical T is validated before any geometry.
+        # An empty, source-blocked diagnostic assembly can have no physical
+        # parts and no T: it must still publish why verified EAR is absent.
+        # Never fabricate a 2-mm sheet; once actual parts exist T is mandatory.
         snapshot = dict(dependencies.input_snapshot() or {})
         settings = dict(dependencies.settings_values() or {})
-        thickness = _operator_final_scene_thickness(snapshot, settings)
+        thickness = (
+            _operator_final_scene_thickness(snapshot, settings)
+            if "t" in snapshot or "t" in settings else None
+        )
         # Geometry publication is owned by the update scheduler/executor. A
         # display-only assembly redraw consumes committed/cache-resolved geometry.
         resolved = dependencies.resolve_geometry()
@@ -310,6 +315,10 @@ class Phase6FinalSceneViewAdapter:
             )
             for part in resolved.parts if part.placement != "standalone"
         )
+        if parts and thickness is None:
+            # Only verified physical parts need formed-size T. A pure warning
+            # scene has no sheet to dimension, and must remain inspectable.
+            thickness = _operator_final_scene_thickness(snapshot, settings)
 
         corner_text = dependencies.corner_dimension_text
         corner_texts = {
