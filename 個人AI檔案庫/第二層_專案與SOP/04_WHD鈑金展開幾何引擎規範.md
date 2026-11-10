@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 受電箱內門 Confirm All 的 CSV 物理提交分流由公開 Engine 決定（2026-11-10）
+
+- 原 `gui_modules.application.receiving_inner_door_hole_editor.open_inner_door_hole_editor` 的直接實體內門 Confirm All 會在 GUI 對 `NFB_CSV_SOURCE` 逐個檢查以決定是否提交候選；`ae_engine.receiving_nfb_csv_committed_config.preview_quantity_inner_door_confirm` 又維護相同一份 CSV 孔來源分流。現歸同一原 Engine owner 的 `receiving_inner_door_nfb_confirm_required(staged_config, features)`，從 `manufacturing_api`／根包公開；GUI 只請求 Engine 分流，不再知道 NFB 孔來源字串。
+- 沒有暫存設定或已確認沒有 CSV 型孔時保留原本一般實體孔位保存；包含 CSV 型（即使型別偽造／待核對）必須交後續既有嚴格 `prepare_receiving_inner_door_physical_confirm`／`commit_receiving_quantity_inner_door_confirm` 驗證，不能在 GUI 默默當手動孔位保存。非法暫存設定或不可重複讀取的 Feature 來源在任何 GUI 寫入前拒絕；查詢不改原始來源。
+- 原 Confirm All 候選 modal 的 `operator_receiving_inner_door_commit_target`、原子 Bay／Quantity 提交、CSV SHA、物理身份、Family／NFB 製造資格、Save→Reload、2D／3D／DXF 保持原權威。本次只是來源分流責任遷移，不新授權 DXF。定向 `tests/test_issue2517_inner_door_nfb_confirm_route_engine_api.py` 核對公開 Engine、真實 CSV／一般孔、非法來源、GUI 委派與 Quantity 非提交路徑；#2517 全面 API 覆蓋及 Windows UAT 仍 OPEN。
+
 ## [CURRENT] #2517 Door Grid 公開 Engine 固定欄寬／高度原始尺寸不能透過 float(bool) 變成實體 1mm（2026-11-10）
 
 - 原 Engine `ae_engine.door_layout_numeric_transitions._normalized_auto_columns` 僅驗證固定／自動旗標的原始布林與各層長度，之後 `recompute_door_layout`、`validate_width_commit`、`validate_height_commit` 在真正固定欄寬／層高上使用 `float(column.width)`／`float(row_height)`。Headless 或已保存不可信原始來源若為 `True`，會被轉成合法的 1mm 固定板寬／層高，與 `manufacturing_api.normalize_operator_door_grid_dimension` 的原本嚴格物理 W/H 規範相衝突；而且驗某一欄時，未核對的其他固定欄／層仍可能影響 `other_fixed` 與上限。

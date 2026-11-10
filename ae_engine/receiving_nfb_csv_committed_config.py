@@ -143,6 +143,25 @@ def preview_quantity_nfb_submission(snapshot, quantity_model, config):
     return project_common_box(projected)
 
 
+def receiving_inner_door_nfb_confirm_required(staged_config, features):
+    """Classify a physical inner-door Confirm All from its original source.
+
+    Both direct GUI and Quantity precommit use this sole Engine source query.
+    It is a routing decision, never CSV validation or manufacturing approval:
+    a malformed CSV-shaped Feature must still reach the strict NFB verifier.
+    """
+    if staged_config is None:
+        return False
+    if not isinstance(staged_config, Mapping):
+        raise ValueError("RECEIVING_INNER_DOOR_CONFIRM_STAGED_SOURCE_INVALID")
+    if not isinstance(features, Sequence) or isinstance(features, (str, bytes)):
+        raise ValueError("RECEIVING_INNER_DOOR_CONFIRM_FEATURES_INVALID")
+    return any(
+        getattr(feature, "source_type", None) == "NFB_CSV_SOURCE"
+        for feature in features
+    )
+
+
 def preview_quantity_inner_door_confirm(
     snapshot, quantity_model, part_key, features, staged_config, *,
     include_missing_heights=False,
@@ -173,8 +192,7 @@ def preview_quantity_inner_door_confirm(
             config.get("layer_heights_mm")
         )
     projected = update_common_box(snapshot, changes)
-    if not any(getattr(row, "source_type", None) == "NFB_CSV_SOURCE"
-               for row in features):
+    if not receiving_inner_door_nfb_confirm_required(config, features):
         return projected, None
 
     typed = committed_csv_nfb_config(part_key, features, config)

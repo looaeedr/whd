@@ -1481,6 +1481,14 @@ def prepare_receiving_inner_door_physical_confirm(staged_config, part_key, final
     return validate_receiving_inner_door_config(prepared)
 
 
+def receiving_inner_door_nfb_confirm_required(staged_config, features):
+    """Public Engine routing decision for an operator's physical inner Door."""
+    from .receiving_nfb_csv_committed_config import (
+        receiving_inner_door_nfb_confirm_required as resolve,
+    )
+    return resolve(staged_config, features)
+
+
 def preview_quantity_inner_door_confirm(
     snapshot, quantity_model, part_key, features, staged_config, *,
     include_missing_heights=False,

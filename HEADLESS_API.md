@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving inner-door Confirm All CSV source routing (2026-11-10)
+
+`manufacturing_api.receiving_inner_door_nfb_confirm_required(staged_config, features)` (also root `ae_engine`) is a read-only public Engine decision shared by the direct inner-door Hole Editor and Quantity precommit. GUI no longer checks the CSV Feature `source_type` to choose between ordinary physical-hole save and the existing atomic Set/Bay or Quantity CSV NFB transaction. Missing staged source or valid non-CSV features do not require CSV commit; malformed staged/features fail closed; even a spoofed CSV-shaped feature still routes into the original strict physical provenance verifier, never silently falls back to ordinary holes. This query is not manufacturing certification and does not change Family policy, physical IDs, Source/Save→Reload, 2D/3D or DXF. Regression: `tests/test_issue2517_inner_door_nfb_confirm_route_engine_api.py`.
+
 ## #2517 External Settings and final Engine commit T/FW physical gate (2026-11-08)
 
 The original public `manufacturing_api.normalize_operator_settings_updates` (external Settings normalization) and `manufacturing_api.commit_operator_settings_state` (copy-on-write final source commit) now validate all positive finite nonboolean physical W/H/D/T/FW via the preexisting Engine `normalize_operator_source_dimension`. Invalid T/FW may no longer skip or enter saved Settings/Snapshot. W/H/D remain the only axes updating the working box, while T/FW remain Settings/Snapshot sources. Malformed *nonphysical* legacy numeric sources still skip; UI text size is outside Engine. No new manufacture/DXF entitlement. Regression `tests/test_issue2517_operator_settings_final_physical_engine_gate.py`.
