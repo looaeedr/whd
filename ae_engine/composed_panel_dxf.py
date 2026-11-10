@@ -280,8 +280,14 @@ def _source_rows(panels, *, preserve_input_order=False, box_body_owner_by_panel=
                     _finite(piece.formed_y_offset),
                     str(piece.role),
                 )
+        # A canonical Receiving lower C support has a box_body:divider:
+        # identity, but it is an INDEPENDENT physical blank. It must not be
+        # mistaken for one of the BoxBody's left/back/right shell pieces.
         body = [(key, data) for key, data in rows
-                if key == "box_body" or key.startswith("box_body:")]
+                if key == "box_body" or (
+                    key.startswith("box_body:")
+                    and not key.startswith("box_body:divider:")
+                )]
         others = [(key, data) for key, data in rows if (key, data) not in body]
         if body_owner:
             if set(body_owner) != {key for key, _ in body}:
