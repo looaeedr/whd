@@ -8,11 +8,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from .cabinet_types import policy as cabinet_family_policy
+
 
 def receiving_pad_assembly_display_active(snapshot) -> bool:
     """Whether this client may request committed Receiving PAD trial skins."""
     return (isinstance(snapshot, Mapping)
-            and snapshot.get("model") in ("受電箱", "RECEIVING")
+            and cabinet_family_policy.canonical_family_name(snapshot) == "受電箱"
             and snapshot.get("nfb_config_submitted") is True)
 
 

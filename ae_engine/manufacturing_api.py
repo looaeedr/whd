@@ -334,6 +334,7 @@ from .receiving_pad_display_sources import (
     resolve_receiving_pad_assembly_display_skins,
 )
 from .receiving_ear_display_sources import (
+    receiving_ear_assembly_display_active,
     receiving_ear_assembly_display_source_key, resolve_receiving_ear_assembly_display_skins,
 )
 from .project_snapshot_state import (
