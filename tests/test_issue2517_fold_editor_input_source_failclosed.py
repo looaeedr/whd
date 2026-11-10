@@ -35,7 +35,7 @@ def _editor(length="18", angle="-90", thickness=2.0):
     material = _old()
     active = {"X": material}
     state = SimpleNamespace(
-        phase6_thickness=thickness,
+        phase6_thickness=thickness, active_bend="X",
         phase6_fold_ui_vault_key="箱身", profiles_vault={},
     )
     host = SimpleNamespace(
