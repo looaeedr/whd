@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Fold Designer 中隔物理輸入只經公開 Engine API（2026-11-11）
+
+- 原 `gui_modules.parts.panels.divider.collect_divider_input` 在 GUI 自行把門格 W/H、D、T、layout scope、把手邊和 Family 轉成中隔實體製造輸入；正式 `resolve_fold_designer_divider_part` 隨後再使用原 Engine `derive_box_body_dividers` 解析板件身分與幾何。同一 Part 的 GUI/headless 來源解析不能由 GUI 擁有。
+- 現將原同等輸入正規化移至 `ae_engine.fold_designer_physical_selection.project_operator_fold_designer_divider_input`，透過 `manufacturing_api` 與 `ae_engine` 根包公開；GUI 只呼叫 API，原 physical selector、Family Policy、折向／料長、stable ID、2D／3D／DXF 製造與原缺資料拒絕不變。這是同一 Engine 的來源轉接，不是第二個 Divider resolver 或 CADSplit 專用 API。
+- `tests/test_issue2517_fold_designer_divider_input_public_api.py` 核對 GUI/headless 相同 source→同一個 canonical Divider、真 DXF 存取／獨立 reopen、Project Save→Reload、非法來源與錯誤 stable ID 拒絕；整櫃完整驗收及 Windows UAT 仍屬 #2517 待完成。
+
 ## [CURRENT] #2517 舊單板 DXF 實體檔名由公開 Engine 決定（2026-11-11）
 
 - 原 `gui_modules/project/export_actions._export_selected_parts` 在沒有 Phase6 Designer 的相容單板 PartSpec 出圖路徑，自行硬寫箱身、封頭／尾、單門、底板及 Indicator 的七個加工 DXF 檔名；多門格與 Set/Bay 已由 Engine 命名。GUI 不能再持有這七個加工板件身分到輸出檔名的對照。
