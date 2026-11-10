@@ -316,8 +316,28 @@ def _source_rows(panels, *, preserve_input_order=False, box_body_owner_by_panel=
     ))
 
 
-def _compose(rows, *, gap, quantity_summary=False):
+def _manufacturing_pattern(physical_id, render):
+    """Identity of a real physical role and its complete machining primitives."""
+    primitives = Counter(
+        _source_signature(primitive)
+        for primitive in render.scene.primitives
+        if str(primitive.layer).upper() != "CHECK"
+    )
+    return (
+        physical_id,
+        tuple(sorted(primitives.items(), key=lambda item: repr(item[0]))),
+    )
+
+
+def _compose(rows, *, gap, quantity_summary=False, quantity_source_rows=None,
+             compact_quantity_total=False):
     scene = DrawingScene()
+    source_rows = rows if quantity_source_rows is None else quantity_source_rows
+    pattern_counts = Counter(
+        _manufacturing_pattern(physical_id, render)
+        for _name, pieces in source_rows
+        for physical_id, render, _offset in pieces
+    )
     sheet_receipts = []
     originals = []
     translated_materials = []
@@ -345,8 +365,11 @@ def _compose(rows, *, gap, quantity_summary=False):
             x_cursor += width + gap
             row_height = max(row_height, assembly_y + height)
             # Deliberate CHECK-only provenance label outside the flat blank.
+            label = physical_id
+            if compact_quantity_total:
+                label += f" × {pattern_counts[_manufacturing_pattern(physical_id, render)]}"
             scene.add(TextPrimitive(
-                physical_id, Vec2(dx+x0, y_cursor-gap/3), "CHECK",
+                label, Vec2(dx+x0, y_cursor-gap/3), "CHECK",
                 5.0, 1, 2, "composed_physical_source",
             ))
         scene.add(TextPrimitive(
@@ -359,27 +382,21 @@ def _compose(rows, *, gap, quantity_summary=False):
         # The complete manufacturing primitive fingerprint prevents a different
         # hole, bend, marking, blank outline, or part role from being merged.
         quantities = {}
-        for panel_name, pieces in rows:
+        for panel_name, pieces in source_rows:
             for physical_id, render, _assembly_y in pieces:
-                primitives = Counter(
-                    _source_signature(primitive)
-                    for primitive in render.scene.primitives
-                    if str(primitive.layer).upper() != "CHECK"
-                )
-                identity = (
-                    physical_id,
-                    tuple(sorted(primitives.items(), key=lambda item: repr(item[0]))),
-                )
+                identity = _manufacturing_pattern(physical_id, render)
                 if identity not in quantities:
                     quantities[identity] = [physical_id, 0, []]
                 quantities[identity][1] += 1
                 quantities[identity][2].append(panel_name)
-        if sum(item[1] for item in quantities.values()) != len(sheet_receipts):
+        if sum(item[1] for item in quantities.values()) != sum(
+            len(pieces) for _panel_name, pieces in source_rows
+        ):
             raise ValueError("COMPOSED_DXF_QUANTITY_INVENTORY_MISMATCH")
         variants = Counter(item[0] for item in quantities.values())
         current_variant = Counter()
         summary_lines = [
-            f"總計：{len(sheet_receipts)}片；同板件同孔位 {len(quantities)} 種"
+            f"總計：{sum(len(pieces) for _name, pieces in source_rows)}片；同板件同孔位 {len(quantities)} 種"
         ]
         for physical_id, count, panel_names in quantities.values():
             current_variant[physical_id] += 1
@@ -410,6 +427,7 @@ def save_composed_panel_dxf(
     panels, output_path, *, pre_commit_guard, overwrite=False, gap=60.0,
     preserve_input_order=False, box_body_owner_by_panel=None,
     _verified_nfb_pair_parts=None, quantity_summary=False,
+    compact_quantity_total=False,
 ):
     """Publish one staged, independently reopened multi-panel flat DXF.
 
@@ -435,8 +453,30 @@ def save_composed_panel_dxf(
     pre_commit_guard()
     if type(quantity_summary) is not bool:
         raise TypeError("COMPOSED_DXF_QUANTITY_SUMMARY_FLAG_MUST_BE_BOOL")
+    if type(compact_quantity_total) is not bool:
+        raise TypeError("COMPOSED_DXF_COMPACT_TOTAL_FLAG_MUST_BE_BOOL")
+    if compact_quantity_total and not quantity_summary:
+        raise ValueError("COMPOSED_DXF_COMPACT_TOTAL_REQUIRES_QUANTITY_SUMMARY")
+    source_rows = rows
+    if compact_quantity_total:
+        # Only the first genuine Engine-verified flat of each physical machining
+        # pattern is drawn. All source flats remain independently verified.
+        seen_patterns = set()
+        compact = []
+        for panel_name, pieces in source_rows:
+            unique_pieces = []
+            for physical_id, render, assembly_y in pieces:
+                signature = _manufacturing_pattern(physical_id, render)
+                if signature in seen_patterns:
+                    continue
+                seen_patterns.add(signature)
+                unique_pieces.append((physical_id, render, assembly_y))
+            if unique_pieces:
+                compact.append((panel_name, tuple(unique_pieces)))
+        rows = tuple(compact)
     composite, sheets, originals = _compose(
         rows, gap=float(gap), quantity_summary=quantity_summary,
+        quantity_source_rows=source_rows, compact_quantity_total=compact_quantity_total,
     )
     # The original per-piece authority is checked independently, not inferred
     # by counting the final merged file as one successful part.
@@ -444,7 +484,12 @@ def save_composed_panel_dxf(
     root.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix=".whd-composed-stage-", dir=str(root)))
     try:
-        for index, (_, physical_id, render) in enumerate(originals):
+        verification_sources = tuple(
+            (panel_name, physical_id, render)
+            for panel_name, pieces in source_rows
+            for physical_id, render, _assembly_y in pieces
+        )
+        for index, (_, physical_id, render) in enumerate(verification_sources):
             individual = stage / f"source-{index}.dxf"
             save_scene_dxf(individual, render.scene)
             receipt = verify_saved_part_render_data_dxf(render, individual)

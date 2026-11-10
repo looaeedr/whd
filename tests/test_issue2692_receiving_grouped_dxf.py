@@ -182,9 +182,9 @@ def _synthetic_rows(layout):
 
 
 @pytest.mark.parametrize("mode,expected", [
-    ("PER_SET", ("202611071258_p1~p7第1套.dxf","202611071258_p1~p7第2套.dxf")),
-    ("ALL", ("202611071258_p1~p7全部.dxf",)),
-    ("END_VS_MIDDLE", ("202611071258_p1~p7頭尾盤.dxf","202611071258_p1~p7中間盤.dxf")),
+    ("PER_SET", ("202611071258_p1~p7第1套.dxf","202611071258_p1~p7第2套.dxf","202611071258_p1~p7總計.dxf")),
+    ("ALL", ("202611071258_p1~p7全部.dxf","202611071258_p1~p7總計.dxf")),
+    ("END_VS_MIDDLE", ("202611071258_p1~p7頭尾盤.dxf","202611071258_p1~p7中間盤.dxf","202611071258_p1~p7總計.dxf")),
 ])
 def test_group_commit_is_a_atomic_batch_with_dxf_readback(tmp_path, mode, expected):
     layout = _seven()
@@ -231,8 +231,8 @@ def test_single_bay_grouped_box_body_and_head_writes_one_verified_dxf(tmp_path):
         pre_commit_guard=lambda: None,
     )
     assert calls == [(0, 0)]
-    assert set(output) == {"202611071258_p1全部.dxf"}
-    assert {p.name for p in (tmp_path / "out").glob("*.dxf")} == {"202611071258_p1全部.dxf"}
+    assert set(output) == {"202611071258_p1全部.dxf", "202611071258_p1總計.dxf"}
+    assert {p.name for p in (tmp_path / "out").glob("*.dxf")} == {"202611071258_p1全部.dxf", "202611071258_p1總計.dxf"}
     document = ezdxf.readfile(tmp_path / "out" / "202611071258_p1全部.dxf")
     entities = tuple(document.modelspace())
     assert sum(entity.dxftype() == "LWPOLYLINE" and
@@ -327,8 +327,8 @@ def test_legacy_current_csv_export_and_new_group_mode_share_real_source_guard(tm
         output_dir=tmp_path/"output", group_mode="ALL",
         pre_commit_guard=lambda: checked.append("verified"),
     )
-    assert set(output) == {"202611071258_p1~p2全部.dxf"}
-    assert len(list((tmp_path/"output").glob("*.dxf"))) == 1
+    assert set(output) == {"202611071258_p1~p2全部.dxf", "202611071258_p1~p2總計.dxf"}
+    assert len(list((tmp_path/"output").glob("*.dxf"))) == 2
     assert calls == [(0,0),(0,1)]
     assert len(checked)>=2
     assert len(tuple(ezdxf.readfile(tmp_path/"output"/"202611071258_p1~p2全部.dxf").modelspace()))>2
@@ -376,7 +376,7 @@ def test_grouped_physical_flats_retain_canonical_body_owner(tmp_path):
             pre_commit_guard=lambda: None,
             box_body_owner_by_namespace={ns: owner},
         )
-    assert set(receipts) == {"202611071258_p1~p7第1套.dxf", "202611071258_p1~p7第2套.dxf"}
+    assert set(receipts) == {"202611071258_p1~p7第1套.dxf", "202611071258_p1~p7第2套.dxf", "202611071258_p1~p7總計.dxf"}
     doc = ezdxf.readfile(tmp_path / "output" / "202611071258_p1~p7第1套.dxf")
     checks = [e.plain_text() for e in doc.modelspace()
               if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
@@ -396,6 +396,7 @@ def test_grouped_physical_flats_retain_canonical_body_owner(tmp_path):
     assert set((tmp_path / "output").glob("*.dxf")) == {
         tmp_path / "output" / "202611071258_p1~p7第1套.dxf",
         tmp_path / "output" / "202611071258_p1~p7第2套.dxf",
+        tmp_path / "output" / "202611071258_p1~p7總計.dxf",
     }
 
 
@@ -480,14 +481,14 @@ def test_main_grouped_export_includes_saved_confirmed_nfb_pair_in_one_file(tmp_p
         output_dir=tmp_path / "out", group_mode="ALL",
         pre_commit_guard=lambda: None, include_saved_nfb_pairs=True,
     )
-    assert set(result) == {"202611071258_p1~p2全部.dxf"}
-    assert {path.name for path in (tmp_path / "out").rglob("*.dxf")} == {"202611071258_p1~p2全部.dxf"}
+    assert set(result) == {"202611071258_p1~p2全部.dxf", "202611071258_p1~p2總計.dxf"}
+    assert {path.name for path in (tmp_path / "out").rglob("*.dxf")} == {"202611071258_p1~p2全部.dxf", "202611071258_p1~p2總計.dxf"}
     doc = ezdxf.readfile(result["202611071258_p1~p2全部.dxf"])
     assert not doc.audit().errors
     checks = [e.plain_text() for e in doc.modelspace()
               if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
     assert checks.count("head") == 2
-    assert sum(key.startswith("inner_door:") for key in checks) == 2
+    assert sum(key.startswith("inner_door:") and " × " not in key for key in checks) == 2
     assert checks.count("base_plate") == 2
     assert before == tuple(
         (request.input_snapshot, request.canonical_part_keys)
@@ -523,7 +524,7 @@ def test_head_only_does_not_auto_include_unselected_nfb_pairs(tmp_path):
         group_mode="ALL", pre_commit_guard=lambda: None,
         include_saved_nfb_pairs=True,
     )
-    assert set(result) == {"202611071258_p1~p2全部.dxf"}
+    assert set(result) == {"202611071258_p1~p2全部.dxf", "202611071258_p1~p2總計.dxf"}
     doc = ezdxf.readfile(result["202611071258_p1~p2全部.dxf"])
     checks = [e.plain_text() for e in doc.modelspace()
               if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
@@ -544,16 +545,16 @@ def test_grouped_nfb_pair_verified_source_exports_only_one_composed_file(tmp_pat
         group_mode="PER_SET", pre_commit_guard=lambda: None,
         nfb_pair_requests=requests,
     )
-    assert set(result) == {"202611071258_p1~p2第1套.dxf"}
-    assert list((tmp_path / "out").glob("*.dxf")) == [
-        tmp_path / "out" / "202611071258_p1~p2第1套.dxf"
-    ]
+    assert set(result) == {"202611071258_p1~p2第1套.dxf", "202611071258_p1~p2總計.dxf"}
+    assert {p.name for p in (tmp_path / "out").glob("*.dxf")} == {
+        "202611071258_p1~p2第1套.dxf", "202611071258_p1~p2總計.dxf",
+    }
     doc = ezdxf.readfile(result["202611071258_p1~p2第1套.dxf"])
     assert not doc.audit().errors
     checks = [entity.plain_text() for entity in doc.modelspace()
               if entity.dxftype() == "MTEXT" and entity.dxf.layer == "CHECK"]
     assert checks.count("head") == 2
-    assert sum(key.startswith("inner_door:") for key in checks) == 2
+    assert sum(key.startswith("inner_door:") and " × " not in key for key in checks) == 2
     assert checks.count("base_plate") == 2
     # Composing verified PART_ONLY flats does not publish standalone pairs.
     assert not list((tmp_path / "out").rglob("NFB_PART_ONLY/*.dxf"))
@@ -662,8 +663,8 @@ def test_same_saved_nfb_source_allows_only_independent_core_flat_scope(
         output_dir=out, group_mode=mode,
         pre_commit_guard=lambda: None, nfb_pair_requests=requests,
     )
-    assert tuple(files) == filenames
-    assert len(tuple(out.glob("*.dxf"))) == len(filenames)
+    assert tuple(files) == filenames + ("202611071258_p1~p2總計.dxf",)
+    assert len(tuple(out.glob("*.dxf"))) == len(filenames) + 1
     doc = ezdxf.readfile(next(out.glob("*.dxf")))
     assert not doc.audit().errors
     check = [e.plain_text() for e in doc.modelspace()
@@ -672,7 +673,7 @@ def test_same_saved_nfb_source_allows_only_independent_core_flat_scope(
     assert all(check.count(role) == 2 for role in (
         "box_body:box_body_left_side", "box_body:box_body_back", "box_body:box_body_right_side",
     ))
-    assert sum(key.startswith("inner_door:") for key in check) == 2
+    assert sum(key.startswith("inner_door:") and " × " not in key for key in check) == 2
     assert check.count("base_plate") == 2
     assert "nfb_pad" not in check
     assert not list(out.rglob("NFB_PART_ONLY/*.dxf"))

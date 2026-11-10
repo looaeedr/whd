@@ -160,7 +160,8 @@ def commit_verified_receiving_groups(
     from .composed_panel_dxf import save_composed_panel_dxf
     staged = {}
     stage = Path(stage_dir)
-    for filename, cells in groups:
+
+    def group_inputs(cells):
         panel_instances = []
         group_body_owners = {}
         group_nfb_parts = {}
@@ -179,6 +180,10 @@ def commit_verified_receiving_groups(
                 parts=tuple(ResolvedManufacturingPart(key, render)
                             for key, render in records),
             )))
+        return panel_instances, group_body_owners, group_nfb_parts
+
+    for filename, cells in groups:
+        panel_instances, group_body_owners, group_nfb_parts = group_inputs(cells)
         # The Engine composer checks actual canonical scenes, independent
         # source-flat roundtrips and final combined DXF primitive exactness.
         # Preserve Set/Bay ordering even for P10 after a deleted P3.
@@ -190,14 +195,30 @@ def commit_verified_receiving_groups(
             quantity_summary=True,
         )
         staged[filename] = Path(result.path)
+
+    # Every grouped export also carries a distinct machining-total drawing.
+    # Only truly identical canonical physical roles + full non-CHECK primitives
+    # share one representative flat, labelled with their verified quantity.
+    # It uses the exact same source guards and commits atomically with the
+    # normal per-Set/ALL/end-vs-middle manufacturing drawings.
+    all_cells = plan_receiving_grouped_dxf(layout, "ALL")[0][1]
+    total_name = _group_output_filename("總計.dxf", all_cells, stamp)
+    if total_name in staged:
+        raise ValueError("RECEIVING_COMPOSED_DXF_TOTAL_FILENAME_COLLISION")
+    total_panels, total_body_owners, total_nfb_parts = group_inputs(all_cells)
+    total = save_composed_panel_dxf(
+        total_panels, stage / total_name, pre_commit_guard=pre_commit_guard,
+        overwrite=False, preserve_input_order=True,
+        box_body_owner_by_panel=total_body_owners,
+        _verified_nfb_pair_parts=total_nfb_parts,
+        quantity_summary=True, compact_quantity_total=True,
+    )
+    staged[total_name] = Path(total.path)
     if emit_debug:
         # This is NOT an additional machining blank: the diagnostic contains
         # CHECK-only exact copies of verified canonical source primitives.
         # Stage and atomically publish alongside real groups or publish none.
         from .receiving_verified_debug_dxf import save_verified_receiving_debug_dxf
-        all_cells = tuple(cell for _name, members in
-                          plan_receiving_grouped_dxf(layout, "ALL")
-                          for cell in members)
         diagnostic = _group_output_filename("debug.dxf", all_cells, stamp)
         ordered = []
         for si, bi, name in all_cells:
