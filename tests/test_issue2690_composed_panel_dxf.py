@@ -249,3 +249,46 @@ def test_untrusted_body_topology_cannot_replace_existing_dxf(tmp_path):
             target, pre_commit_guard=lambda: None, overwrite=True,
         )
     assert target.read_bytes() == b"previous-good-verified-export"
+
+
+def test_quantity_summary_groups_only_identical_physical_holes_and_keeps_cutting(tmp_path):
+    same_a = _flat("door", width=90.0, hole=True)
+    same_b = _flat("door", width=90.0, hole=True)
+    different_holes = _flat("door", width=90.0, hole=False)
+    panels = (
+        ("P1", _geometry(("door", same_a))),
+        ("P2", _geometry(("door", same_b))),
+        ("P3", _geometry(("door", different_holes))),
+    )
+    output = tmp_path / "grouped-receiving.dxf"
+    receipts = manufacturing_api.save_composed_panel_dxf(
+        panels, output, pre_commit_guard=lambda: None, quantity_summary=True,
+        preserve_input_order=True,
+    )
+    assert len(receipts.sheets) == 3
+    reopened = ezdxf.readfile(output)
+    assert not reopened.audit().errors
+    labels = [
+        (entity.plain_text(), entity.dxf.layer)
+        for entity in reopened.modelspace()
+        if entity.dxftype() == "MTEXT"
+    ]
+    assert ("總計：3片；同板件同孔位 2 種", "CHECK") in labels
+    assert ("door（式樣1） × 2：P1, P2", "CHECK") in labels
+    assert ("door（式樣2） × 1：P3", "CHECK") in labels
+    # No source CUTTING/holes may be lost, merged, or newly manufactured.
+    assert sum(entity.dxf.layer == "CUTTING" and entity.dxftype() == "CIRCLE"
+               for entity in reopened.modelspace()) == 2
+    assert sum(entity.dxf.layer == "CUTTING" and entity.dxftype() == "LWPOLYLINE"
+               for entity in reopened.modelspace()) == 3
+    assert [label for label, layer in labels if layer == "CHECK"].count("door") == 3
+
+
+def test_quantity_summary_rejects_non_boolean_without_writing(tmp_path):
+    output = tmp_path / "invalid.dxf"
+    with pytest.raises(TypeError, match="QUANTITY_SUMMARY_FLAG_MUST_BE_BOOL"):
+        manufacturing_api.save_composed_panel_dxf(
+            (("P1", _geometry(("door", _flat("door")))),),
+            output, pre_commit_guard=lambda: None, quantity_summary="yes",
+        )
+    assert not output.exists()
