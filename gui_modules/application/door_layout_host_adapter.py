@@ -456,6 +456,11 @@ def _remap_door_layout_owned_data(
 def remove_door_layout_column(self, column_index):
     if not self.door_layout_columns:
         return
+    # A stale callback must not delete a different physical Door via Python's
+    # bool/negative-index aliases before Engine gets the identity transition.
+    column_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        column_index, count=len(self.door_layout_columns), axis="column",
+    )
     if self.door_layout_columns[column_index].get("width_auto"):
         return
     # Verify before identity remap/deletion, so corrupt H cannot erase the
@@ -480,13 +485,22 @@ def remove_door_layout_column(self, column_index):
 
 def add_door_layout_height(self, column_index):
     """Compatibility action: promote current auto height; remainder creates the next segment."""
+    column_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        column_index, count=len(self.door_layout_columns), axis="column",
+    )
     column = self.door_layout_columns[column_index]
     auto_index = next((i for i, value in enumerate(column["height_auto"]) if value), None)
     if auto_index is not None:
         self.commit_door_layout_height(column_index, auto_index)
 
 def remove_door_layout_height(self, column_index, row_index):
+    column_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        column_index, count=len(self.door_layout_columns), axis="column",
+    )
     column = self.door_layout_columns[column_index]
+    row_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        row_index, count=len(column["height_auto"]), axis="row",
+    )
     if column["height_auto"][row_index]:
         return
     self._remap_door_layout_owned_data(
