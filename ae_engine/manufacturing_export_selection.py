@@ -96,11 +96,24 @@ def resolved_export_intention_key(part_key):
     return None
 
 
+def receiving_export_part_selected(part_key, flags):
+    """A shared physical C divider belongs to the BoxBody AND inner-door frame.
+
+    The canonical WHD Part/FinalScene remains unchanged. Selecting either the
+    BoxBody or Door assembly must not silently drop this same verified blank.
+    This selects existing physical inventory only, never fabricates a divider.
+    """
+    key = str(part_key or "").strip()
+    if key.startswith("box_body:divider:"):
+        return bool(flags.get("box_body") or flags.get("door"))
+    return bool(flags.get(resolved_export_intention_key(key), False))
+
+
 def select_resolved_export_geometry(resolved_geometry, flags):
     """Filter actual physical inventory without manufacturing a missing part."""
     selected = tuple(
         part for part in tuple(getattr(resolved_geometry, "parts", ()) or ())
-        if bool(flags.get(resolved_export_intention_key(part.part_key), False))
+        if receiving_export_part_selected(part.part_key, flags)
     )
     return replace(resolved_geometry, parts=selected)
 
