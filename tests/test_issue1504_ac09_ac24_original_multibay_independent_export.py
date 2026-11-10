@@ -275,10 +275,15 @@ def test_ac09_real_multidoor_cells_satisfy_each_bay_door_intent(tmp_path):
         pre_commit_guard=lambda: None,
     )
     assert visited == [(0, 0), (0, 1)]
-    assert len(receipts) == 1
-    name = next(iter(receipts))
+    assert len(receipts) == 2
+    name = next(item for item in receipts if item.endswith("第1套.dxf"))
+    total_name = next(item for item in receipts if item.endswith("總計.dxf"))
     assert len(name) > 12 and name[:12].isdigit()
     assert name[12:] == "_p1~p2第1套.dxf"
+    assert total_name == name[:12] + "_p1~p2總計.dxf"
+    total = ezdxf.readfile(output / total_name)
+    assert not total.audit().errors
+    assert any(entity.dxf.layer == "CUTTING" for entity in total.modelspace())
     grouped = output / name
     assert grouped.is_file()
     drawing = ezdxf.readfile(grouped)
