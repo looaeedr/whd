@@ -170,8 +170,7 @@ class Phase6FinalSceneViewAdapter:
 
     def _formed_ear_assembly_preview(self, snapshot, visible_set):
         """Display/caching only; Engine verifies physical EAR source and safety."""
-        if (snapshot.get("model") not in ("受電箱", "RECEIVING")
-                or snapshot.get("nfb_config_submitted") is not True):
+        if not manufacturing_api.receiving_ear_assembly_display_active(snapshot):
             self.last_formed_ear_display_blocker = None
             return ()
         try:

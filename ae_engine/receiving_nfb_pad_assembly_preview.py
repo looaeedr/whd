@@ -97,10 +97,8 @@ def pad_physical_preview_world_mesh(pattern, *, parent_base_id,
 
 def build_committed_pad_assembly_display(snapshot, assembly_parts):
     """Read-only assembled PAD skins, only when real bottom square cuts exist."""
-    from collections.abc import Mapping
-    if (not isinstance(snapshot,Mapping)
-            or snapshot.get("model") not in ("受電箱","RECEIVING")
-            or snapshot.get("nfb_config_submitted") is not True):
+    from .receiving_pad_display_sources import receiving_pad_assembly_display_active
+    if not receiving_pad_assembly_display_active(snapshot):
         return ()
     from .receiving_nfb_committed_final_scene import _submitted_csv_holes
     from .receiving_nfb_numeric_catalog import model_spec

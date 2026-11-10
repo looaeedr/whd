@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Registered Receiving Family aliases share real 3D EAR / PAD display eligibility (2026-11-10)
+
+The optional but source-backed assembled EAR and PAD 3D views previously checked raw `model in ("受電箱","RECEIVING")`; legally registered `receiving`, mixed-case and whitespace aliases appeared as no physical EAR/PAD without an error, even though the same Engine had accepted the manufacturing Family elsewhere. `receiving_ear_display_sources.receiving_ear_assembly_display_active` and `receiving_pad_display_sources.receiving_pad_assembly_display_active` now reuse the original Family Registry's `canonical_family_name`. The original PAD physical mesh builder delegates to its Engine active gate; the GUI FinalScene EAR adapter calls the new public `manufacturing_api.receiving_ear_assembly_display_active` (also package root). Only genuinely submitted `nfb_config_submitted is True` proceeds, and the existing actual CAD/CSV, 3D formed-skin, pad square mating and no-MFG/weld approval checks are unchanged. Real one/two-tier EAR, PAD world-skin, GUI/headless, alias/project reload and rejection cases: `tests/test_issue2517_receiving_assembly_3d_family_alias_engine_api.py`. This covers optional 3D display consistency, not whole-cabinet DXF or Windows UAT.
+
 ## #2517 Multi-Door indicator DXF filenames share original Engine physical cell ID (2026-11-10)
 
 The GUI's `export_multi_door_indicator_box_parts` now supplies validated `DoorLayoutCell` and kind to public `manufacturing_api.door_layout_indicator_export_filename` (also root). The original `sheetmetal_part_adapters.door_layout_part_key` supplies the identity; existing `indicator_box_c1_r1.dxf` / `indicator_door_c1_r1.dxf` names remain unchanged, while malformed indices and unknown kinds reject. The real GUI adapter, headless API, actual `.p6fold` Save→Reload and IndicatorBox DXF independent reopen have a shared regression in `tests/test_issue2517_multi_door_indicator_export_identity_engine_api.py`. No new 3D, CUTTING or DXF manufacture approval; whole-cabinet UAT remains open.
