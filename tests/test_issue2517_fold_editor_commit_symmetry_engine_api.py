@@ -149,8 +149,8 @@ def test_tk_free_gui_save_reads_operator_fields_and_commits_one_engine_result(mo
     ]
     active = {"X": deepcopy(originals)}
     state = SimpleNamespace(
-        phase6_thickness=2.0, phase6_fold_ui_vault_key="箱身",
-        profiles_vault={},
+        phase6_thickness=2.0, active_bend="X",
+        phase6_fold_ui_vault_key="箱身", profiles_vault={},
     )
     holder = SimpleNamespace(
         controls=(
