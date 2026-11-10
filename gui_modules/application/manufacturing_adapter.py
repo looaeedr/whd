@@ -146,13 +146,16 @@ def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
     )
 
 def _end_cap_part_spec(self, val, *, is_tail):
+    # The physical Head/Tail role must be qualified by Engine before choosing
+    # profiles, holes or relief.  Python bool("false") selects the wrong Tail.
+    tail = manufacturing_api.normalize_operator_settings_boolean(is_tail)
     # A missing/invalid physical box FW is not a factory-25-mm EndCap.
     # Qualify the original manufacturing source with the public Engine before
     # reading profiles or manufacturing any Head/Tail PartSpec.
     box_fw = manufacturing_api.normalize_operator_source_dimension(
         val.get("fw"), field="fw",
     )
-    key = "tail" if is_tail else "head"
+    key = "tail" if tail else "head"
     stored_profiles = self.workspace_controller.profile_for(key)
     local_val = dict(val)
     local_val["fw"] = self._effective_endcap_fw(key, box_fw)
@@ -161,8 +164,8 @@ def _end_cap_part_spec(self, val, *, is_tail):
     )
     resolved_cuts = self._resolved_committed_assembly_relief_cuts(key, local_val, stored_profiles)
     return self._end_cap_part_spec_from_values(
-        local_val, model_name=self._baseline_source_model(), is_tail=is_tail,
-        holes=(self.tail_holes if is_tail else self.head_holes),
+        local_val, model_name=self._baseline_source_model(), is_tail=tail,
+        holes=(self.tail_holes if tail else self.head_holes),
         corner_policy=(
             self._manual_corner_policy(key, local_val['fw'])
         ),

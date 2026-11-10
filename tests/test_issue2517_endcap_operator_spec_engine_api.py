@@ -273,3 +273,88 @@ def test_head_tail_optional_manufacturing_numbers_must_be_finite(
             values("金庫型"), model_name="金庫型",
             is_tail=False, holes=(), **{option: invalid},
         )
+
+
+@pytest.mark.parametrize("raw,expected_tail", [
+    (False, False), (True, True), ("false", False), ("true", True),
+    ("OFF", False), ("ON", True), (0, False), (1, True),
+])
+def test_main_gui_endcap_raw_role_selects_matching_engine_physical_sources(
+    monkeypatch, raw, expected_tail,
+):
+    """Prior bool("false") chose Tail holes/profiles before Engine normalized it."""
+    events = []
+    head_hole, tail_hole = {"source": "head"}, {"source": "tail"}
+    host = SimpleNamespace(
+        workspace_controller=SimpleNamespace(
+            profile_for=lambda role: (events.append(("profile", role)) or {}),
+            box_body_profile=lambda: (),
+            box_body_structure_state=lambda: {},
+        ),
+        _effective_endcap_fw=lambda role, fw: (
+            events.append(("fw", role)) or fw
+        ),
+        _current_box_assembly_type=lambda: "INTEGRAL",
+        _resolved_committed_assembly_relief_cuts=lambda *args: (),
+        _manual_corner_policy=lambda *args: None,
+        _endcap_depth_comp_t_for_family=lambda *_: 3.0,
+        _baseline_source_model=lambda: "金庫型",
+        head_holes=(head_hole,),
+        tail_holes=(tail_hole,),
+        _end_cap_part_spec_from_values=lambda val, **kwargs:
+            manufacturing_api.build_endcap_operator_part_spec(
+                val, model_name=kwargs["model_name"],
+                is_tail=kwargs["is_tail"], holes=kwargs["holes"],
+            ),
+    )
+    monkeypatch.setattr(
+        gui, "_endcap_profiles_for_assembly",
+        lambda source, profiles, assembly_type, role: profiles,
+    )
+    spec = gui._end_cap_part_spec(host, values("金庫型"), is_tail=raw)
+    expected_role = "tail" if expected_tail else "head"
+    assert spec.is_tail is expected_tail
+    assert spec.holes == ((tail_hole,) if expected_tail else (head_hole,))
+    assert events == [("profile", expected_role), ("fw", expected_role)]
+
+
+@pytest.mark.parametrize("bad", [None, "bad", "2", 2, -1, float("nan"), [], {}])
+def test_main_gui_invalid_endcap_role_fails_before_any_side_selection(bad):
+    """Invalid physical role cannot read Head/Tail cached Fold or holes."""
+    side_reads = []
+    host = SimpleNamespace(
+        workspace_controller=SimpleNamespace(
+            profile_for=lambda role: side_reads.append(role),
+        ),
+    )
+    with pytest.raises(ValueError, match="布林值"):
+        gui._end_cap_part_spec(host, values("金庫型"), is_tail=bad)
+    assert side_reads == []
+
+
+@pytest.mark.parametrize("raw,tail", [("false", False), ("true", True)])
+def test_main_gui_endcap_preview_uses_canonical_engine_partspec_role(raw, tail):
+    from gui_modules.application.render_snapshots import end_cap_render_snapshot
+
+    physical = []
+    def part_spec(val, *, is_tail):
+        spec = manufacturing_api.build_endcap_operator_part_spec(
+            val, model_name="金庫型", is_tail=is_tail, holes=(),
+        )
+        physical.append(spec)
+        return spec
+
+    host = SimpleNamespace(
+        _baseline_source_model=lambda: "金庫型",
+        _end_cap_part_spec=part_spec,
+        _manufacturing_context=lambda *, draw_stock: object(),
+        _authoritative_render_data=lambda spec, context: SimpleNamespace(
+            material=SimpleNamespace(bounds=(0, 0, 100, 200)),
+        ),
+        baseline_var=SimpleNamespace(get=lambda: "金庫型"),
+    )
+    projected = end_cap_render_snapshot(host, values("金庫型"), is_tail=raw)
+    assert physical[0].is_tail is tail
+    assert projected["is_tail"] is physical[0].is_tail
+    assert projected["bounds"] == (0.0, 0.0, 100.0, 200.0)
+    assert "bool(is_tail)" not in inspect.getsource(end_cap_render_snapshot)
