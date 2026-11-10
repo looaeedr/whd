@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 DXF overwrite flag is an explicit Engine boolean (2026-11-10)
+
+GUI `_export_authoritative_part` no longer coerces `context.overwrite` with Python `bool()`. The original Engine DXF writer's shared `require_dxf_overwrite_boolean` validates the raw flag before any output path/stage mutation at the public single-part, `generate_part`, multi-piece BoxBody and atomic batch boundaries; composed-panel public saves also validate. Serialized `"false"` and `"true"`, 0/1 and malformed flags are denied rather than silently overwriting an existing manufacturing DXF. Valid Boolean false retains the no-replace contract; valid true retains the original stage/reopen/atomic commit, 2D/3D geometry, Family/source certification and output names. Regression: `tests/test_issue2517_dxf_overwrite_engine_flag_gate.py`.
+
 ## #2517 Receiving inner-door Confirm All CSV source routing (2026-11-10)
 
 `manufacturing_api.receiving_inner_door_nfb_confirm_required(staged_config, features)` (also root `ae_engine`) is a read-only public Engine decision shared by the direct inner-door Hole Editor and Quantity precommit. GUI no longer checks the CSV Feature `source_type` to choose between ordinary physical-hole save and the existing atomic Set/Bay or Quantity CSV NFB transaction. Missing staged source or valid non-CSV features do not require CSV commit; malformed staged/features fail closed; even a spoofed CSV-shaped feature still routes into the original strict physical provenance verifier, never silently falls back to ordinary holes. This query is not manufacturing certification and does not change Family policy, physical IDs, Source/Save→Reload, 2D/3D or DXF. Regression: `tests/test_issue2517_inner_door_nfb_confirm_route_engine_api.py`.

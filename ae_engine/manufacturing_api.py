@@ -897,6 +897,7 @@ def save_part_render_data_dxf(
     verify_reopen: bool = False,
 ) -> str:
     """Serialize an already-built authoritative FinalScene to DXF."""
+    _manufacturing_export.require_dxf_overwrite_boolean(overwrite)
     metadata = getattr(render_data, "metadata", None) or {}
     blocked = metadata.get("baseline_fit_error")
     if blocked:
@@ -1187,6 +1188,7 @@ def generate_part(
     # formula merely because its PartSpec has a familiar physical shape.
     require_implemented_manufacturing_family(getattr(spec, "model_name", None))
     ctx = context or ManufacturingContext()
+    _manufacturing_export.require_dxf_overwrite_boolean(ctx.overwrite)
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists() and not ctx.overwrite:
@@ -1354,6 +1356,7 @@ def save_composed_panel_dxf(
     No GUI/Tk or new whole-cabinet manufacturing certification is implied.
     The caller supplies a trusted current-source check before/after staging.
     """
+    _manufacturing_export.require_dxf_overwrite_boolean(overwrite)
     from .composed_panel_dxf import save_composed_panel_dxf as compose
     return compose(
         panels, output_path, pre_commit_guard=pre_commit_guard,

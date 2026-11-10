@@ -16,6 +16,13 @@ import tempfile
 import shutil
 
 
+def require_dxf_overwrite_boolean(raw: object) -> bool:
+    """Only an explicit Python bool can authorize replacing a saved DXF."""
+    if type(raw) is not bool:
+        raise TypeError("DXF_OVERWRITE_BOOL_REQUIRED")
+    return raw
+
+
 def save_part_render_data_dxf(
     scene,
     output_path,
@@ -23,6 +30,7 @@ def save_part_render_data_dxf(
     serializer,
     overwrite: bool = False,
 ) -> str:
+    require_dxf_overwrite_boolean(overwrite)
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists() and not overwrite:
@@ -292,6 +300,8 @@ def _save_resolved_rows_atomic(
     pre_commit_guard=None,
     durable_stage_commit=None,
 ) -> dict[str, str]:
+    # Reject source flag coercion before creating a stage or replacing a DXF.
+    require_dxf_overwrite_boolean(overwrite)
     # Check all physical-part evidence before any output path is created.
     rows = tuple(rows)
     _reject_unapproved_nfb_pad_ear_manufacturing(rows)

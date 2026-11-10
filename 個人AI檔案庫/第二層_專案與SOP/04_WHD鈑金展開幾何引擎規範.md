@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 DXF 覆寫權限來源由 Engine 嚴格布林驗證（2026-11-10）
+
+- 原 Fold Designer `_export_authoritative_part` 用 `bool(context.overwrite)` 將字串 `"false"` 誤變 `True`，並送到公開 `save_part_render_data_dxf`，有機會覆蓋既有實體 DXF；原多片箱身 `generate_box_body_structure_parts` 也有相同強制轉型。原公開單片／批次製造 DXF 寫入器及 `generate_part` 只憑 truthiness 判斷已存在輸出，沒有在寫檔前證實授權來源是 `bool`。
+- 沿用原 `ae_engine.manufacturing_export` 單一儲存 owner，新增內部 `require_dxf_overwrite_boolean(raw)`；公開 `manufacturing_api.save_part_render_data_dxf`、`generate_part`、`save_composed_panel_dxf` 及多片箱身 Engine 出圖、原子批次寫入都在接觸任何目的資料夾／暫存檔前拒絕非原生布林（包括 `"false"`、`"true"`、數字 0/1、`None`）；GUI 原樣傳送 context 的 raw flag，不再先做 Python truthiness。合法 `False` 必拒絕覆寫既存 DXF，合法 `True` 保留原原子 stage→Save→Reload→commit。
+- 測試 `tests/test_issue2517_dxf_overwrite_engine_flag_gate.py` 驗 Headless、GUI 呼叫、既存檔無副作用、多片箱身與單板來源；原 2D／3D、CUTTING/BEND、原始工程尺寸、Factory、CSV 認證、DXF 內容／命名與未認證來源阻擋不變。這是來源覆寫授權邊界，不是新製造資格，#2517 仍 OPEN。
+
 ## [CURRENT] #2517 受電箱內門 Confirm All 的 CSV 物理提交分流由公開 Engine 決定（2026-11-10）
 
 - 原 `gui_modules.application.receiving_inner_door_hole_editor.open_inner_door_hole_editor` 的直接實體內門 Confirm All 會在 GUI 對 `NFB_CSV_SOURCE` 逐個檢查以決定是否提交候選；`ae_engine.receiving_nfb_csv_committed_config.preview_quantity_inner_door_confirm` 又維護相同一份 CSV 孔來源分流。現歸同一原 Engine owner 的 `receiving_inner_door_nfb_confirm_required(staged_config, features)`，從 `manufacturing_api`／根包公開；GUI 只請求 Engine 分流，不再知道 NFB 孔來源字串。
