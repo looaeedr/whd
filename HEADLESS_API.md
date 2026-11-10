@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Fold Designer -> Main GUI live revision admission (2026-11-10)
+
+The public read-only `manufacturing_api.plan_operator_fold_designer_live_revision(raw_revision, *, last_revision)` (also exported by root `ae_engine`) delegates to `ae_engine.operator_settings_transactions`, reusing the existing external-Settings source revision parser. `OperatorFoldDesignerLiveRevisionPlan` reports `accepted`, the parsed `revision` and the `reason` (`OK`, `INVALID_REVISION`, `INVALID_PREVIOUS_REVISION` or `STALE_REVISION`). Native non-Boolean integer values and ASCII decimal integer text remain supported; Boolean, fractional, nonfinite, underscore, container and malformed sources cannot be aliased by Python `int()`. Missing and empty incoming revision remain stale zero. Main GUI now checks this plan before accepting any Fold Designer Settings/Corner/Joint/Workspace live mutation, including the navigation-only shortcut. Legitimate revision, fingerprint anti-echo and persisted manufacturing/Save/Reload authority are unchanged. This is an input admission API, **not** manufacturing certification or a DXF export capability. Regression `tests/test_issue2517_fold_designer_live_revision_engine_gate.py`.
+
 ## #2517 Receiving active-mode preview W/H/D reads (2026-11-10)
 
 The original public `manufacturing_api.receiving_default_preview_dimensions(snapshot)` function in `ae_engine.receiving_operator_projection` now distinguishes an **absent** Quantity/Set-Bay source (Family-only schematic defaults) from an explicitly present, malformed physical source (fail closed). The active Quantity box or first real Set/Bay must provide all W/H/D, validated through the same Engine positive, finite, nonboolean `normalize_operator_source_dimension`; no `float(True)` or `or BOX_BODY_DEFAULTS` can fabricate a plausible saved cabinet preview. The original GUI `default_preview_dimensions` remains a forwarding wrapper. This is display provenance only, not an approved manufacturing or DXF output. Regression `tests/test_issue2517_receiving_default_preview_physical_source.py`.

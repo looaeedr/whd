@@ -232,6 +232,7 @@ from .operator_factory_settings_defaults import project_operator_factory_default
 
 from .operator_settings_transactions import (
     OperatorSettingsCommitTransition, OperatorExternalSyncPlan,
+    OperatorFoldDesignerLiveRevisionPlan, plan_operator_fold_designer_live_revision,
     plan_operator_external_sync, normalize_operator_settings_boolean,
     normalize_operator_settings_updates, commit_operator_settings_state,
     normalize_operator_source_dimension, normalize_operator_source_dimensions,

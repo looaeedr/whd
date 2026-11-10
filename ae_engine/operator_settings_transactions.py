@@ -88,6 +88,59 @@ def plan_operator_external_sync(
     )
 
 
+@dataclass(frozen=True)
+class OperatorFoldDesignerLiveRevisionPlan:
+    """Read-only admission decision for a Fold Designer live state envelope."""
+
+    accepted: bool
+    revision: int
+    reason: str
+
+
+def plan_operator_fold_designer_live_revision(
+    raw_revision: object, *, last_revision: object,
+) -> OperatorFoldDesignerLiveRevisionPlan:
+    """Reject stale or malformed Fold Designer revisions before GUI mutation.
+
+    Fold Designer and Main GUI live synchronization carry authoritative
+    manufacturing Settings/Corner/Joint/Workspace state.  Use the same
+    original-source integer parser as external Settings synchronization:
+    Python int(True), int(1.9) and int("1_0") must never grant a newer
+    physical state transaction.  Legacy absent/blank revision is stale zero.
+    """
+    try:
+        prior_source = (
+            0 if last_revision is None
+            or (isinstance(last_revision, str) and not last_revision.strip())
+            else last_revision
+        )
+        prior = _external_sync_revision_number(prior_source)
+    except (TypeError, ValueError, OverflowError):
+        return OperatorFoldDesignerLiveRevisionPlan(
+            False, 0, "INVALID_PREVIOUS_REVISION",
+        )
+    if prior < 0:
+        return OperatorFoldDesignerLiveRevisionPlan(
+            False, prior, "INVALID_PREVIOUS_REVISION",
+        )
+    try:
+        authored = (
+            0 if raw_revision is None
+            or (isinstance(raw_revision, str) and not raw_revision.strip())
+            else raw_revision
+        )
+        revision = _external_sync_revision_number(authored)
+    except (TypeError, ValueError, OverflowError):
+        return OperatorFoldDesignerLiveRevisionPlan(
+            False, prior, "INVALID_REVISION",
+        )
+    if revision <= prior:
+        return OperatorFoldDesignerLiveRevisionPlan(
+            False, revision, "STALE_REVISION",
+        )
+    return OperatorFoldDesignerLiveRevisionPlan(True, revision, "OK")
+
+
 def normalize_operator_settings_boolean(raw: object) -> bool:
     """Decode serialized operator bools without bool('false') == True."""
     if isinstance(raw, bool):

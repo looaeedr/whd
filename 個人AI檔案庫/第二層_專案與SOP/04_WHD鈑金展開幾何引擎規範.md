@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 Fold Designer → 主 GUI 即時製造狀態的 revision 由公開 Engine 嚴格判定（2026-11-10）
+
+- 原 `gui_modules.application.lifecycle._apply_fold_designer_live_snapshot` 在主 GUI 接受外來 Fold Designer 即時來源時，以 Python `int(payload.get("revision", 0) or 0)` 將 `True` 變成 1、`2.5` 截成 2、`"2_0"` 變成 20；再將舊版最後版本也 `int()` 強制轉型。這個版本號控制的後續寫入包含 Settings、Corner、Joint、Workspace 與實體孔位，不能在進入 Engine 驗證前由 GUI 虛構較新的物理提交版本。
+- 延用原 `ae_engine.operator_settings_transactions._external_sync_revision_number`（外部 Settings 版本的嚴格正規化 owner），新增只讀 `plan_operator_fold_designer_live_revision(raw_revision, *, last_revision)`，由 `manufacturing_api` 與根包輸出同一 callable，回傳 `OperatorFoldDesignerLiveRevisionPlan(accepted, revision, reason)`。只有原生非布林整數或合法 ASCII 整數字串可通過，來源缺值／空白仍按舊版 0 視為 stale；非法來源、損壞的已提交版號與過期重送在任何 GUI guard、Settings、Corner 或 Workspace 改動前 fail closed。合法 1→2、字串 `" 2 "`、既有 fingerprint 防重送、selection-only 路徑與主 GUI ↔ Fold Designer 既有同源提交不變。
+- 此切片僅移轉跨 UI 製造狀態的接收順序決策，不修改金庫型／受電箱 Family、PartSpec、Factory、CUTTING/BEND、2D／3D／DXF、儲存 schema 或外部 source-only CLI 的認證資格；不宣稱全功能 #2517 已完成。定向測試 `tests/test_issue2517_fold_designer_live_revision_engine_gate.py` 加原 live-sync 回歸；Windows UAT 與全鏈製造驗收仍需另外核對。
+
 ## [CURRENT] #2517 Receiving Quantity／Set-Bay 預覽 W/H/D 不得默默清洗成 Family 預設（2026-11-10）
 
 - 原公開 `ae_engine.receiving_operator_projection.receiving_default_preview_dimensions` 用 `float(box[axis])` 直接解讀已保存的實體 W/H/D，布林 `True` 可變成有效樣子的 1mm；Quantity `receiving_quantity_box` 或 Set/Bay `receiving_layout` 即使明確存在但空／損壞，也可能被 `or BOX_BODY_DEFAULTS` 靜默變成受電箱 Family 標準預覽尺寸。這與同一 Engine 對原始製造實體尺寸的非布林正有限來源約束不符。
