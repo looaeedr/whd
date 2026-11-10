@@ -6,12 +6,32 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
-
 ## [CURRENT] #2517 Relief 3D 認證候選資格不能由 GUI bool() 虛構已驗證（2026-11-10）
 
 - 原 `phase6_registry_diagnostics_controller.build_promotion_candidates` 在 GUI 以 `bool(solution.verified)`、字串 `trust_level` 自行決定 Head/Tail 是否有資格建立 Relief 認證候選；同一個原 Engine `certified_relief_registry.build_relief_promotion_candidate` 也用 `bool()` 判讀已求解的 verified。若已驗證來源遭污染為 `"false"`，Python 會將其視為 True，GUI 與直接 Headless Engine 都可能建立看似合格的候選 manifest。
 - 沿用原 `ae_engine.certified_relief_registry` 權威，新增只讀 `operator_relief_promotion_candidate_eligible(solution)` 並透過既有 `manufacturing_api`、根包公開同一 callable。原 3D Solver 的 `verified` 必須為原生 bool，無來源／False 與非 `PROVISIONAL_3D` 不能成為候選；來源為字串、數值或其他型別一律 fail closed。GUI controller 僅委派公開 Engine 查詢、保留顯示與候選清單持久狀態；直接呼叫 `build_relief_promotion_candidate` 也必須經相同 gate，不能繞過 UI 重驗。
 - 保留原候選 `PROMOTION_CANDIDATE` 僅供操作、不修改 Registry，正式升版 `promote_relief_rule_candidate` 的 regression/matrix/zero-penetration/candidate-specific 嚴格證據與 3D Solver／CUTTING／BEND／2D／3D／DXF 一概不變。定向 `tests/test_issue2517_relief_promotion_verification_engine_api.py` 覆蓋 headless／GUI 共用 owner、合法 Head/Tail、錯型 verified 原子拒絕、未核准 trust、JSON 布林來源一致性。#2517 全面覆蓋與 Windows UAT 仍 OPEN。
+
+
+## [CURRENT] #2517 Side/Back 後折雙向尺寸換算拒絕非法 T 與無實體料長（2026-11-10）
+
+- 受電箱三片式側板後折 side_rear_bend_material_length／side_rear_bend_outside_length 是公開 Engine API，共用同一 canonical state。原本只檢查有限數值及轉換後正數；當 T 為 0／負數，可能仍回傳合法外觀的料長；當儲存為 OUTSIDE 且後折包外 <= T，單向 readback 也可能回傳非零外尺寸，實際料長卻為零／負數。
+- 原 BoxBody structure owner 現在兩個 API 先共用原始 side_rear_bend > 0 與 T > 0 有限且非布林尺寸檢查；OUTSIDE readback 額外拒絕 side_rear_bend <= T。MATERIAL／OUTSIDE 對相同非法來源必須一致 fail-closed；合法小數、OUTSIDE↔MATERIAL 單次 T 換算、儲存 JSON→Reload、GUI Settings 公開投影與成形後料尺寸仍一致。此修正不新增公式、Family、製造認證或 DXF exporter。測試 tests/test_issue2517_box_structure_settings_projection_engine_api.py。Windows UAT 與整體 #2517 尚未結案。
+
+
+
+
+## [CURRENT] #2517 Fold Designer 發布即時製造狀態的來源版本與強制旗標由公開 Engine（2026-11-10）
+
+- 前批已將接收端 Fold Designer → Main GUI 的單調版本來源驗證移回 Engine；但反向 `phase6_sync_envelope.plan_live_sync_envelope` **發布端**仍做 `int(current_revision or 0)` 和 `current_revision + 1`，可能將原始 `True`、小數、含底線字串變成看似合法且比舊資料更新的實體製造狀態版號。原 Bridge `fold_designer_composition_state.publish_live_state` 又在呼叫規劃器前 `force=bool(force)`，使字串 `"false"` 錯誤觸發 host Relief 強制修復／發布。這些是版本／Relief 提交來源資格，不能在 GUI 中強制轉型。
+- 延用原 Engine `operator_settings_transactions._external_sync_revision_number` 的嚴格 parser，新增只讀 `project_operator_fold_designer_publication_revisions(raw_current_revision)`，回傳凍結 `OperatorFoldDesignerPublicationRevisions(current_revision,next_revision)`，由 `manufacturing_api`、根包公開。未初始化 None／空白來源維持原 0→1，合法原生整數／ASCII 整數字串保留次序；非法 bool／浮點／非有限／含底線／負數先於 fingerprint、delta、callback 拒絕。發布規劃器及 `LiveSyncPublicationPlan` 的版本型別一致引用此 Engine 原始來源規範，不再用 GUI `int()` 或自行 `+1`。
+- `force`、`host_relief_present` 走原公開 `normalize_operator_settings_boolean`，發布端保留原操作旗標直送，`"false"` 不再變成真。合法的 delta、fingerprint 防重送、一次發布只加一版、既有 host Relief 強制同步及 Main GUI 接收端、實體 Save→Reload／Family／Factory／2D／3D／DXF 契約不變。這仍非外部製造授權或 #2517 完成，Windows UAT 另驗。定向 `tests/test_issue2517_fold_designer_publication_revision_engine_gate.py` 加原 live-sync／#503 測試。
+
+## [CURRENT] #2517 Fold Designer → 主 GUI 即時製造狀態的 revision 由公開 Engine 嚴格判定（2026-11-10）
+
+- 原 `gui_modules.application.lifecycle._apply_fold_designer_live_snapshot` 在主 GUI 接受外來 Fold Designer 即時來源時，以 Python `int(payload.get("revision", 0) or 0)` 將 `True` 變成 1、`2.5` 截成 2、`"2_0"` 變成 20；再將舊版最後版本也 `int()` 強制轉型。這個版本號控制的後續寫入包含 Settings、Corner、Joint、Workspace 與實體孔位，不能在進入 Engine 驗證前由 GUI 虛構較新的物理提交版本。
+- 延用原 `ae_engine.operator_settings_transactions._external_sync_revision_number`（外部 Settings 版本的嚴格正規化 owner），新增只讀 `plan_operator_fold_designer_live_revision(raw_revision, *, last_revision)`，由 `manufacturing_api` 與根包輸出同一 callable，回傳 `OperatorFoldDesignerLiveRevisionPlan(accepted, revision, reason)`。只有原生非布林整數或合法 ASCII 整數字串可通過，來源缺值／空白仍按舊版 0 視為 stale；非法來源、損壞的已提交版號與過期重送在任何 GUI guard、Settings、Corner 或 Workspace 改動前 fail closed。合法 1→2、字串 `" 2 "`、既有 fingerprint 防重送、selection-only 路徑與主 GUI ↔ Fold Designer 既有同源提交不變。
+- 此切片僅移轉跨 UI 製造狀態的接收順序決策，不修改金庫型／受電箱 Family、PartSpec、Factory、CUTTING/BEND、2D／3D／DXF、儲存 schema 或外部 source-only CLI 的認證資格；不宣稱全功能 #2517 已完成。定向測試 `tests/test_issue2517_fold_designer_live_revision_engine_gate.py` 加原 live-sync 回歸；Windows UAT 與全鏈製造驗收仍需另外核對。
 
 ## [CURRENT] #2517 Receiving Quantity／Set-Bay 預覽 W/H/D 不得默默清洗成 Family 預設（2026-11-10）
 

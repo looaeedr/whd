@@ -220,7 +220,7 @@ def publish_live_state(self, namespace, *, force=False):
         ),
         host_relief_present=host_relief_present,
         host_relief=host_relief,
-        force=bool(force),
+        force=force,  # Engine validates the raw live publication intent.
     )
     if not plan.should_publish:
         return False
