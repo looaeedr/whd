@@ -263,7 +263,6 @@ def test_quantity_summary_groups_only_identical_physical_holes_and_keeps_cutting
     output = tmp_path / "grouped-receiving.dxf"
     receipts = manufacturing_api.save_composed_panel_dxf(
         panels, output, pre_commit_guard=lambda: None, quantity_summary=True,
-        preserve_input_order=True,
     )
     assert len(receipts.sheets) == 3
     reopened = ezdxf.readfile(output)
