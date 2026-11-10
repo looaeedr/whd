@@ -34,7 +34,9 @@ from .receiving_ear_side_manufacturing_marking import (
 )
 from .receiving_fixed_plate_side_check_dxf import _readback_marking_lines
 from .manufacturing_scene_access import owner_render_data
-from .manufacturing_export_selection import resolved_export_intention_key
+from .manufacturing_export_selection import (
+    resolved_export_intention_key, receiving_export_part_selected,
+)
 
 
 
@@ -326,7 +328,7 @@ def export_current_receiving_multibay_dxf(
                 and not independent_core_with_nfb_pair)
         selected_logical=tuple(p for p in actual.parts
             if (p.part_key.startswith("custom:")
-                or bool(flags.get(resolved_export_intention_key(p.part_key),False)))
+                or receiving_export_part_selected(p.part_key,flags))
             and not (nfb_pair_requests is not None and (
                 p.part_key.startswith("inner_door:")
                 or p.part_key=="base_plate"
