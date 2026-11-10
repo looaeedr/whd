@@ -391,6 +391,7 @@ from .manufacturing_selected_export import (
     plan_unconfigured_receiving_base_export_retry,
 )
 from .manufacturing_export_selection import (
+    normalize_operator_selected_export_flags,
     resolved_export_intention_key,
     select_resolved_export_geometry,
     resolve_receiving_bay_local_export_geometry,
