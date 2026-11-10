@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving Set/Bay operator sketch physical dimensions (2026-11-10)
+
+The existing `ae_engine.receiving_operator_projection` owns the public, read-only `manufacturing_api.project_receiving_operator_bay_sketch_dimensions(bay)` projection (also exported unchanged by root `ae_engine`): saved mapping and legacy tuple Bay W/H are qualified by the same positive, finite, nonboolean Engine physical-source validator used by manufacturing, and Door seam comes from the existing canonical `project_receiving_operator_bay_door_split_ratio`. Missing Bay means only the original Family schematic. The GUI validates all Bay sketch inputs before any Canvas clear/repaint and never uses `float(True)` to display a plausible 1-mm physical board. This does not authorize any new CUTTING, 2D/3D, DXF or source-only external CLI. Regression `tests/test_issue2517_receiving_bay_sketch_public_engine.py`.
+
 ## #2517 DXF overwrite flag is an explicit Engine boolean (2026-11-10)
 
 GUI `_export_authoritative_part` no longer coerces `context.overwrite` with Python `bool()`. The original Engine DXF writer's shared `require_dxf_overwrite_boolean` validates the raw flag before any output path/stage mutation at the public single-part, `generate_part`, multi-piece BoxBody and atomic batch boundaries; composed-panel public saves also validate. Serialized `"false"` and `"true"`, 0/1 and malformed flags are denied rather than silently overwriting an existing manufacturing DXF. Valid Boolean false retains the no-replace contract; valid true retains the original stage/reopen/atomic commit, 2D/3D geometry, Family/source certification and output names. Regression: `tests/test_issue2517_dxf_overwrite_engine_flag_gate.py`.

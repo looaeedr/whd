@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 Receiving 套／連概覽草圖的物理 Bay W/H 與門縫來源由公開 Engine 投影（2026-11-10）
+
+- 原 `gui_modules.application.receiving_multi_settings_window.paint_connected_bays` 對保存的 Bay dict 與舊 tuple 實體 W/H 自行 `float()`，可能把 tuple 中 `True` 顯示為 1 mm 及以畫面最小值掩蓋非正／非有限來源，且先清除 Canvas 再驗後續 Bay；GUI 不應自行解釋或修補來源成有效幾何。
+- 原 `ae_engine.receiving_operator_projection` 擁有 `receiving_default_preview_dimensions` 與 `project_receiving_operator_bay_door_split_ratio`（既有 canonical Door seam/Topology）；新增同 owner 的只讀 `project_receiving_operator_bay_sketch_dimensions(bay)` 並透過原 `manufacturing_api`、根包公開。缺少 Bay 僅作 Family 預設的示意草圖，已保存 dict／舊 tuple 的 W/H 全走原公開 `normalize_operator_source_dimension`，拒絕 bool／非正／非有限／缺實體值；Door seam 繼續委派原投影，不在 GUI 算 1100 mm 假孔。
+- GUI 在任何 Canvas 清除與選取顯示變更前先驗全部 Bay；合法小數 W/H 與既有展示比例、來源序號、分縫、盤名、實體 Set/Bay 保存、2D/3D/FinalScene/DXF 均不更改。此 API 是來源顯示資格，不授予加工認證或產出製造平面。定向 `tests/test_issue2517_receiving_bay_sketch_public_engine.py` 核對公開 Facade／root 與原 Engine owner、合法來源、非法原子拒絕及無 Canvas 操作；#2517 仍 OPEN。
+
 ## [CURRENT] #2517 Receiving BasePlate GUI 不得將未編輯縮量虛構為 1 mm（2026-11-10）
 
 - 原 Phase6 底板選型 GUI 將不可編輯的四邊 shrink source 經 setting_number_text 和 float 轉為數值再提交；舊檔 True 會被格式化為「1」，失去 Engine 對布林實體來源的 fail-closed 拒絕能力。

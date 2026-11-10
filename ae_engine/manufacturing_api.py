@@ -170,6 +170,7 @@ from .receiving_operator_projection import (
     receiving_default_box_dimensions,
     receiving_default_preview_dimensions,
     project_receiving_operator_bay_door_split_ratio,
+    project_receiving_operator_bay_sketch_dimensions,
     receiving_family_supports_back_panel_mode,
     receiving_back_panel_mode_control_applicable,
     project_receiving_original_door_marks,
