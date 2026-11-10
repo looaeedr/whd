@@ -396,7 +396,7 @@ def _compose(rows, *, gap, quantity_summary=False, quantity_source_rows=None,
         variants = Counter(item[0] for item in quantities.values())
         current_variant = Counter()
         summary_lines = [
-            f"總計：{len(sheet_receipts)}片；同板件同孔位 {len(quantities)} 種"
+            f"總計：{sum(len(pieces) for _name, pieces in source_rows)}片；同板件同孔位 {len(quantities)} 種"
         ]
         for physical_id, count, panel_names in quantities.values():
             current_variant[physical_id] += 1
