@@ -11,13 +11,19 @@ from tests.test_issue1502_csv_v5_part_only_manufacturing import _current
 from tests.test_issue1502_csv_is_only_normal_finalscene_source import _make
 
 
-def main():
+def _source_proven_trial_snapshot():
+    """Use model IDs found in the actual Shihlin V5 CSV, not an invented suffix."""
     snap=_current()
     snap["nfb_config"]["holes"][0].update(
-        model_filename="nfbv5:士林:3P400SN",source_brand="士林")
+        model_filename="nfbv5:士林:3P400",source_brand="士林")
     snap["nfb_config"]["holes"][1].update(
         model_filename="nfbv5:士林:100HN-s",source_brand="士林")
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
+    return snap
+
+
+def main():
+    snap=_source_proven_trial_snapshot()
     installed=apply_committed_csv_v5_to_canonical_parts(snap,(_make(snap),))
     out=Path("WHD_PAD_BASE_SOURCE_VERIFIED_TRIAL_NOT_MFG")
     receipt=export_pad_trial_bundle(snap,installed,out,piece_count=3)
