@@ -551,7 +551,9 @@ from .display_dimensions import (
     folded_outside_envelope as project_operator_folded_outside_envelope,
     OperatorDimensionGuidePlan, project_operator_dimension_guides,
 )
-from .live_cabinet_family import resolve_live_cabinet_family
+from .live_cabinet_family import (
+    resolve_live_cabinet_family, resolve_operator_manufacturing_family_source,
+)
 from .assembly_mesh_profiles import (
     resolve_material_mesh_profiles, project_operator_3d_mesh_profiles,
 )

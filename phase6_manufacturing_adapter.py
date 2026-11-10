@@ -448,13 +448,11 @@ def _cabinet_model(app: Any, snapshot: dict) -> str:
     live = _manufacturing_operator_var_get(
         getattr(app, "baseline_model_var", None), "baseline_model_var", "",
     )
-    value = str(live or "").strip()
-    if value:
-        return value
-    return str(
-        snapshot.get("model") or snapshot.get("cabinet_type")
-        or getattr(app, "_phase6_baseline_initial_model", "") or ""
-    ).strip()
+    return manufacturing_api.resolve_operator_manufacturing_family_source(
+        snapshot,
+        live_model=live,
+        initial_model=getattr(app, "_phase6_baseline_initial_model", ""),
+    )
 
 
 def build_manufacturing_request(

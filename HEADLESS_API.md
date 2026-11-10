@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Engine owns live/saved/initial manufacturing Family source priority (2026-11-10)
+
+Public `manufacturing_api.resolve_operator_manufacturing_family_source(snapshot, live_model=..., initial_model=...)` (also root `ae_engine`) selects the **unchanged raw Family source**: nonblank live operator model, else saved project `model` / `cabinet_type`, else initial unsaved model, otherwise empty. `phase6_manufacturing_adapter._cabinet_model` only reads the Tk control with its existing unreadable-source error, then passes detached inputs to this public Engine owner. The same result feeds FinalScene, the immutable manufacturing request and cache identity; canonical alias/eligibility continues through `resolve_live_cabinet_family` and the original Registry. There is no new 2D, 3D, DXF, Family fallback, manufacturing approval or geometric formula. Regression: `tests/test_issue2517_finalscene_family_control_source_parity.py` exercises headless API, JSON reload, GUI request/preview parity and broken live controls. Wider #2517 manufacturing/Windows UAT remains open.
+
 ## #2517 Live snapshot delta preserves deleted physical source subtrees (2026-11-10)
 
 The existing `phase6_sync_envelope.actual_delta/mapping_delta/plan_live_sync_envelope` transport helpers now treat a removed nested Mapping key as a replacement of the **entire updated subtree**: clearing saved `workspace.part_features` or `assembly_relief` produces an explicit empty nested mapping delta instead of `_UNCHANGED`. When the entire root snapshot disappears, an empty delta is not allowed to suppress a verified changed full-state fingerprint; unchanged previous/current snapshots still do not re-publish. Consumers receive the same full canonical payload and the same existing public Engine validated revision/boolean decisions. This is detached state transport, not a hole/Relief geometry algorithm, new wire schema or manufacturing permission. Regression `tests/test_issue2517_live_sync_deleted_physical_sources.py`.
