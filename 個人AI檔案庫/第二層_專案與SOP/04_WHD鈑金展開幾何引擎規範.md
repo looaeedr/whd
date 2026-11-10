@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 Fold Designer 發布即時製造狀態的來源版本與強制旗標由公開 Engine（2026-11-10）
+
+- 前批已將接收端 Fold Designer → Main GUI 的單調版本來源驗證移回 Engine；但反向 `phase6_sync_envelope.plan_live_sync_envelope` **發布端**仍做 `int(current_revision or 0)` 和 `current_revision + 1`，可能將原始 `True`、小數、含底線字串變成看似合法且比舊資料更新的實體製造狀態版號。原 Bridge `fold_designer_composition_state.publish_live_state` 又在呼叫規劃器前 `force=bool(force)`，使字串 `"false"` 錯誤觸發 host Relief 強制修復／發布。這些是版本／Relief 提交來源資格，不能在 GUI 中強制轉型。
+- 延用原 Engine `operator_settings_transactions._external_sync_revision_number` 的嚴格 parser，新增只讀 `project_operator_fold_designer_publication_revisions(raw_current_revision)`，回傳凍結 `OperatorFoldDesignerPublicationRevisions(current_revision,next_revision)`，由 `manufacturing_api`、根包公開。未初始化 None／空白來源維持原 0→1，合法原生整數／ASCII 整數字串保留次序；非法 bool／浮點／非有限／含底線／負數先於 fingerprint、delta、callback 拒絕。發布規劃器及 `LiveSyncPublicationPlan` 的版本型別一致引用此 Engine 原始來源規範，不再用 GUI `int()` 或自行 `+1`。
+- `force`、`host_relief_present` 走原公開 `normalize_operator_settings_boolean`，發布端保留原操作旗標直送，`"false"` 不再變成真。合法的 delta、fingerprint 防重送、一次發布只加一版、既有 host Relief 強制同步及 Main GUI 接收端、實體 Save→Reload／Family／Factory／2D／3D／DXF 契約不變。這仍非外部製造授權或 #2517 完成，Windows UAT 另驗。定向 `tests/test_issue2517_fold_designer_publication_revision_engine_gate.py` 加原 live-sync／#503 測試。
+
 ## [CURRENT] #2517 Fold Designer → 主 GUI 即時製造狀態的 revision 由公開 Engine 嚴格判定（2026-11-10）
 
 - 原 `gui_modules.application.lifecycle._apply_fold_designer_live_snapshot` 在主 GUI 接受外來 Fold Designer 即時來源時，以 Python `int(payload.get("revision", 0) or 0)` 將 `True` 變成 1、`2.5` 截成 2、`"2_0"` 變成 20；再將舊版最後版本也 `int()` 強制轉型。這個版本號控制的後續寫入包含 Settings、Corner、Joint、Workspace 與實體孔位，不能在進入 Engine 驗證前由 GUI 虛構較新的物理提交版本。
