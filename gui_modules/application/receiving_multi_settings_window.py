@@ -82,6 +82,21 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
     count = manufacturing_api.normalize_receiving_operator_connection_counts(
         (count,)
     )[0]
+    # Qualify all existing physical Bay sources through the public Engine
+    # before touching the Canvas; a malformed second Bay must not leave a
+    # partially redrawn, valid-looking manufacturing identity sketch.
+    source = tuple(bay_dimensions or ())
+    physical = []
+    seam_ratios = []
+    for index in range(count):
+        item = source[index] if index < len(source) else None
+        w, h, seam_ratio = (
+            manufacturing_api.project_receiving_operator_bay_sketch_dimensions(item)
+        )
+        # The 1-pixel minimum is only a screen visibility rule; real source
+        # dimensions and Door topology were already verified by Engine.
+        physical.append((max(1.0, w), max(1.0, h)))
+        seam_ratios.append(seam_ratio)
     canvas.delete("all")
     canvas._receiving_bay_hitboxes = ()
     canvas._receiving_panel_name_hitboxes = ()
@@ -98,23 +113,6 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
     height = max(int(canvas.winfo_height()), int(canvas.cget("height")))
     usable_w = max(40, width - 24)
     usable_h = max(50, height - 24)
-    # Draw from the canonical physical Bay W/H proportions, rather than an
-    # equal-width placeholder that stays unchanged after size confirmation.
-    # D is a depth axis: show it in the size summary, not as a false 2D width.
-    source = tuple(bay_dimensions or ())
-    physical = []
-    seam_ratios = []
-    for index in range(count):
-        item = (source[index] if index < len(source)
-                else manufacturing_api.receiving_default_preview_dimensions({}))
-        if isinstance(item, dict):
-            w, h = float(item["width"]), float(item["height"])
-            seam_ratio = manufacturing_api.project_receiving_operator_bay_door_split_ratio(item)
-        else:
-            w, h = float(item[0]), float(item[1])
-            seam_ratio = manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)
-        physical.append((max(1.0, w), max(1.0, h)))
-        seam_ratios.append(seam_ratio)
     scale = min(usable_w / sum(w for w, _ in physical),
                 usable_h / max(h for _, h in physical))
     left = (width - sum(w for w, _ in physical) * scale) / 2

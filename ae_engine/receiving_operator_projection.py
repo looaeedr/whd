@@ -11,6 +11,7 @@ from math import isfinite
 from .box_body_structure_state import BoxBodyStructureType
 from .cabinet_types.policy import canonical_family_name
 from .cabinet_types.receiving import BOX_BODY_DEFAULTS
+from .operator_settings_transactions import normalize_operator_source_dimension
 
 
 def receiving_default_box_dimensions() -> dict[str, int]:
@@ -93,6 +94,33 @@ def project_receiving_operator_bay_door_split_ratio(bay) -> float | None:
     if any(abs(row - first_rows[0]) > 1e-6 for row in first_rows[1:]):
         return None
     return float(first_rows[0]) / height
+
+
+def project_receiving_operator_bay_sketch_dimensions(bay):
+    """Read a Bay's physical W/H and canonical Door seam for a GUI-only sketch.
+
+    A missing Bay represents the Family schematic. Saved mapping/legacy tuple
+    inputs are never coerced in GUI: both axes must be real positive finite mm.
+    This is a display projection, NOT approved 2D/3D/DXF manufacturing output.
+    """
+    from collections.abc import Mapping
+
+    if bay is None:
+        defaults = receiving_default_preview_dimensions({})
+        raw_width, raw_height = defaults[:2]
+        seam_source = None
+    elif isinstance(bay, Mapping):
+        raw_width, raw_height = bay.get("width"), bay.get("height")
+        seam_source = bay
+    elif isinstance(bay, (tuple, list)) and len(bay) >= 2:
+        raw_width, raw_height = bay[:2]
+        seam_source = None
+    else:
+        raise ValueError("Receiving Bay sketch dimensions require a physical source")
+    width = normalize_operator_source_dimension(raw_width, field="w")
+    height = normalize_operator_source_dimension(raw_height, field="h")
+    seam = project_receiving_operator_bay_door_split_ratio(seam_source)
+    return width, height, seam
 
 
 def receiving_family_supports_back_panel_mode(snapshot) -> bool:
