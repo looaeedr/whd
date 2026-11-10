@@ -652,17 +652,35 @@ def resolve_receiving_factory_confirmed_lower_divider_final_scene(
     )
     from .door_dividers import divider_part_profiles
 
+    values = _confirmed_fresh_receiving_inner_door_snapshot(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+    if box_body_render_data is None:
+        # Door-only source is still a CONFIRMED fresh Receiving Family.
+        # Resolve its mating Body through the SAME Engine Factory/PartSpec
+        # used by the GUI. The Body is collision evidence ONLY; it is
+        # never added to the Door-only machining selection by this API.
+        from .manufacturing_api import (
+            build_operator_part_render_data,
+            build_receiving_factory_confirmed_parts,
+        )
+        from .contracts import ManufacturingContext
+
+        factory = dict(build_receiving_factory_confirmed_parts(
+            source_dimensions,
+            confirmation=confirmation,
+            confirmed_door_layout_columns=confirmed_door_layout_columns,
+        ))
+        box_body_render_data = build_operator_part_render_data(
+            factory["box_body"], ManufacturingContext(),
+        )
     if not isinstance(box_body_render_data, BoxBodyStructureRenderData):
         raise TypeError("RECEIVING_DIVIDER_CANONICAL_BODY_SOURCE_REQUIRED")
     if {piece.role for piece in box_body_render_data.pieces} != {
         "left_side", "right_side", "back",
     }:
         raise ValueError("RECEIVING_DIVIDER_CANONICAL_SIDE_SOURCES_REQUIRED")
-
-    values = _confirmed_fresh_receiving_inner_door_snapshot(
-        source_dimensions, confirmation=confirmation,
-        confirmed_door_layout_columns=confirmed_door_layout_columns,
-    )
     shared = build_receiving_factory_confirmed_inner_door_lower_support(
         source_dimensions, confirmation=confirmation,
         confirmed_door_layout_columns=confirmed_door_layout_columns,
