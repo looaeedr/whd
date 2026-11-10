@@ -10,7 +10,16 @@ whd_schema: WHD_DOC_META_V1
 
 - 原 `receiving_ear_display_sources.resolve_receiving_ear_assembly_display_skins`、`receiving_pad_display_sources.receiving_pad_assembly_display_active`、`receiving_nfb_pad_assembly_preview.build_committed_pad_assembly_display` 與 GUI `phase6_final_scene_view._formed_ear_assembly_preview` 都硬比 `model in ("受電箱", "RECEIVING")`。相同已確認實體盤件從 JSON 儲存的合法 `receiving`／大小寫／前後空白別名可能靜默不顯示 EAR/PAD 3D；這不是合法的 Family 變化。
 - 沿用原 `cabinet_types.policy.canonical_family_name(snapshot)` 身分權威。EAR 新增 `receiving_ear_assembly_display_active`（公開 `manufacturing_api` 與根包），PAD 沿原公開 active API，PAD 真實 Mesh builder 不再重做 Family 決策；GUI 僅呼叫公開 Engine 閘門。保留 `nfb_config_submitted is True` 嚴格來源及原 EAR 成形 BEND／真實世界放置、PAD 四孔實體 CUTTING／Mesh 貼合、拒絕未驗來源、製造與焊接未認證限制；不改 Factory、尺寸、DXF serializer 或 Family Registry。
-- `tests/test_issue2517_receiving_assembly_3d_family_alias_engine_api.py` 檢查原 one/two-tier EAR、實體 PAD、GUI／headless 顯示、Family aliases 與 JSON／Project Save→Reload、負向拒絕；仍須 #2517 全功能 2D／3D／DXF 整箱及 Windows UAT，不得以此宣稱全盤驗收。
+- `tests/test_issue2517_receiving_assembly_3d_family_alias_engine_api.py` 檢查原 one/two-tier EAR、實體 PAD、GUI／headless 顯示、Family aliases 與 Project Save→Reload、負向拒絕；仍須 #2517 全功能 2D／3D／DXF 整箱及 Windows UAT，不得以此宣稱全盤驗收。
+
+
+## [CURRENT] #2517 FinalScene 3D 箱型來源讀取必須與製造 Request 同步嚴格拒絕（2026-11-10）
+
+- 原 `phase6_manufacturing_geometry._phase6_current_cabinet_family` 在 3D 組合入口直接讀 `baseline_model_var.get()`，遇到已存在的 Tk 控制損壞則 `except Exception: live_model=None`，默默改用舊 Snapshot Family；同一正式製造 Request 的 `phase6_manufacturing_adapter._cabinet_model` 已經會以 `MANUFACTURING_OPERATOR_SOURCE_READ_FAILED:baseline_model_var` 拒絕。這是 FinalScene 與製造製程在 **Family 原始操作者來源**上的差異，不能讓 3D 退回舊箱型冒稱同源。
+- 3D 這條 GUI 相容入口現只重用原 `_cabinet_model` 嚴格操作來源 reader；即時／已存／初始 Family 優先順序由原公開 `manufacturing_api.resolve_operator_manufacturing_family_source` 決定，最後仍由公開 `resolve_live_cabinet_family`／Registry 正規化合法別名與舊缺來源 Vault fallback。未增加第二套 GUI 選型演算法或 Engine 製造 API。已存在但不可讀控制原子拒絕；合法來源不變。
+- 定向 `tests/test_issue2517_finalscene_family_control_source_parity.py` 覆蓋真 3D 入口、Headless／GUI、初始來源、存檔別名、JSON Save→Reload、壞控制不改狀態；不動 PartSpec、2D／3D／DXF、Fold、Factory 或 Set/Bay，#2517 其他入口與 Windows UAT 仍待驗。
+
+
 
 
 ## [CURRENT] #2517 多門格 IndicatorBox／IndicatorDoor 實體 DXF 檔名只由 Engine 物理門格 ID（2026-11-10）
