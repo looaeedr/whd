@@ -16,6 +16,7 @@ from typing import Mapping, Sequence
 from .box_body_fold_profile import apply_outside_dimension_compensation, _num
 from .box_body_editor_readback import box_body_ui_segment_length_to_material, can_remove_box_body_fold_segment
 from .endcap_xy_readback import fold_material_segment_outside_length
+from .operator_settings_transactions import normalize_operator_settings_boolean
 
 
 def _finite_operator_fold_number(raw, *, field):
@@ -160,6 +161,12 @@ def plan_operator_fold_mirror_target(
     legacy positional plan so they never call the old BendingUI manufacturing
     save. The original valid mirror indices remain unchanged.
     """
+    # Decode original serialized operator source; Python bool("false")
+    # would otherwise enable a BoxBody or legacy mirror policy unexpectedly.
+    is_box_body = normalize_operator_settings_boolean(is_box_body)
+    resolve_legacy_position = normalize_operator_settings_boolean(
+        resolve_legacy_position
+    )
     # A boolean, negative Python index, stale row or unknown control field
     # must never select a different physical Fold segment for mirroring.
     rows = tuple(segments)
@@ -256,6 +263,8 @@ def operator_fold_editor_remove_segment(
     Return None for invalid/protected edits. Never alter caller-owned profiles.
     All adjacent-BEND T compensation uses the existing canonical Engine rule.
     """
+    # A raw "false" must not delete the physical symmetric partner.
+    symmetric_box_body = normalize_operator_settings_boolean(symmetric_box_body)
     source = tuple(segments)
     if type(index) is not int or not 0 <= index < len(source):
         return None
