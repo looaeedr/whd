@@ -119,6 +119,19 @@ def test_true_project_save_reload_preserves_registered_ear_source_and_3d(tmp_pat
 
     snapshot = deepcopy(_assembled())
     snapshot["model"] = "receiving"
+    # The original physical NFB geometry fixture predates persisted Set/Bay
+    # layout v1. A real .p6fold must carry actual certified Bay WHD + schema;
+    # never weaken Engine persistence validation to accept this old fixture.
+    from ae_engine.receiving_layout import RECEIVING_LAYOUT_SCHEMA
+    layout = deepcopy(snapshot["receiving_layout"])
+    layout["schema"] = RECEIVING_LAYOUT_SCHEMA
+    for set_row in layout["sets"]:
+        for bay in set_row["bays"]:
+            bay.update({
+                "width": snapshot["w"], "height": snapshot["h"],
+                "depth": snapshot["d"],
+            })
+    snapshot["receiving_layout"] = layout
     target = project.write_project(
         tmp_path / "real-receiving-ear-alias.p6fold",
         {"schema": project.PROJECT_SCHEMA, "snapshot": snapshot},
