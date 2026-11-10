@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 Side/Back 後折雙向尺寸換算拒絕非法 T 與無實體料長（2026-11-10）
+
+- 受電箱三片式側板後折 side_rear_bend_material_length／side_rear_bend_outside_length 是公開 Engine API，共用同一 canonical state。原本只檢查有限數值及轉換後正數；當 T 為 0／負數，可能仍回傳合法外觀的料長；當儲存為 OUTSIDE 且後折包外 <= T，單向 readback 也可能回傳非零外尺寸，實際料長卻為零／負數。
+- 原 BoxBody structure owner 現在兩個 API 先共用原始 side_rear_bend > 0 與 T > 0 有限且非布林尺寸檢查；OUTSIDE readback 額外拒絕 side_rear_bend <= T。MATERIAL／OUTSIDE 對相同非法來源必須一致 fail-closed；合法小數、OUTSIDE↔MATERIAL 單次 T 換算、儲存 JSON→Reload、GUI Settings 公開投影與成形後料尺寸仍一致。此修正不新增公式、Family、製造認證或 DXF exporter。測試 tests/test_issue2517_box_structure_settings_projection_engine_api.py。Windows UAT 與整體 #2517 尚未結案。
+
+
 ## [CURRENT] #2517 Receiving BasePlate GUI 不得將未編輯縮量虛構為 1 mm（2026-11-10）
 
 - 原 Phase6 底板選型 GUI 將不可編輯的四邊 shrink source 經 setting_number_text 和 float 轉為數值再提交；舊檔 True 會被格式化為「1」，失去 Engine 對布林實體來源的 fail-closed 拒絕能力。
