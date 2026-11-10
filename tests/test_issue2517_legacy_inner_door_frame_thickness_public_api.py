@@ -93,9 +93,21 @@ def test_true_project_save_reload_and_legacy_frame_dxf_share_verified_engine_t(t
     )
     saved = project.read_project(file)["snapshot"]
     assert saved["t"] == original["t"]
-    assert _inner_door_frame_from_payload(_FRAME_ID, saved) == _engine(original)
+    # Project persistence deliberately strips derived frame_spans: reopening
+    # cannot manufacture a legacy frame from missing geometry authority.
+    assert "frame_spans" not in saved["inner_doors"][0]
+    with pytest.raises(ValueError, match="stable_id"):
+        _inner_door_frame_from_payload(_FRAME_ID, saved)
 
-    frame = _inner_door_frame_from_payload(_FRAME_ID, saved)
+    # Only an independently confirmed explicit span source may be supplied
+    # again to this legacy standalone frame selection API.
+    confirmed = deepcopy(saved)
+    confirmed["inner_doors"][0]["frame_spans"] = deepcopy(
+        original["inner_doors"][0]["frame_spans"]
+    )
+    assert _inner_door_frame_from_payload(_FRAME_ID, confirmed) == _engine(original)
+
+    frame = _inner_door_frame_from_payload(_FRAME_ID, confirmed)
     rendered = api.build_inner_door_frame_render_data(frame)
     assert rendered.unfolded_topology.piece_id == _FRAME_ID
     assert rendered.material is not None and not rendered.material.is_empty
