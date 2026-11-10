@@ -18,9 +18,11 @@ class _Canvas:
         self.operations = []
     def winfo_width(self):
         return 600
+    def winfo_height(self):
+        return 320
     def cget(self, name):
-        assert name == "width"
-        return "600"
+        assert name in {"width", "height"}
+        return {"width": "600", "height": "320"}[name]
     def delete(self, tag):
         self.operations.append(("delete", tag))
     def create_rectangle(self, *args, **kwargs):
