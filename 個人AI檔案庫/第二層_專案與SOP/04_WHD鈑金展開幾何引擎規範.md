@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 Fold Designer Live Sync 刪除孔位／Relief 子物件不得誤認來源未改（2026-11-10）
+
+- 前批 Engine 已統一即時同步的接收／發布 revision 與 force 來源驗證，但原中立傳輸 `phase6_sync_envelope.actual_delta` 僅迭代 `after` 現有鍵，完全忽略 `before` 有、`after` 刪除的鍵。因此 Hole Editor 清空 `workspace.part_features` 或 host Relief 從有值恢復空物件時，可能得到 `_UNCHANGED`、`delta={}`，進而不發布本來應傳到主 GUI 的正式完整實體狀態。這不屬於 Engine 的新幾何或孔位推導，而是既有 GUI 交易傳輸遺漏來源刪除。
+- 現在原 `phase6_sync_envelope.actual_delta` 若偵測到子 Mapping 有鍵刪除，會把該**更新後的完整子物件**視為 authoritative replacement；例如 `{"workspace":{"part_features":{"door":[...]}}}` 清空為 `{"workspace":{"part_features":{}}}`，差異必須包含 `{"workspace":{"part_features":{}}}` 而不是「沒改」。最上層資料全部被清空的少數情況即使 delta 仍為 `{}`，也由原 fingerprint 核對真實 previous/current 來源不同後發佈 full payload，不以空 delta 跳過。只有原始資料真相等才維持 no-op／無回聲。
+- 單一 Engine Source of Truth 仍是既有公開 `manufacturing_api` 的已驗製造狀態、來源與版本；`phase6_sync_envelope` 僅保存 detached 來源差異供原 callback 使用，不製造 Feature、Joint、Factory 或 DXF，也不改 JSON 欄位 schema、Family／Topology、2D／3D／CUTTING／BEND。定向 `tests/test_issue2517_live_sync_deleted_physical_sources.py` 驗巢狀孔位刪除、Relief 強制清空、真 GUI 發布、Save→Reload 型態與無來源變更不重送；#2517 與 Windows UAT 仍 OPEN。
+
 ## [CURRENT] #2517 Fold Designer 發布即時製造狀態的來源版本與強制旗標由公開 Engine（2026-11-10）
 
 - 前批已將接收端 Fold Designer → Main GUI 的單調版本來源驗證移回 Engine；但反向 `phase6_sync_envelope.plan_live_sync_envelope` **發布端**仍做 `int(current_revision or 0)` 和 `current_revision + 1`，可能將原始 `True`、小數、含底線字串變成看似合法且比舊資料更新的實體製造狀態版號。原 Bridge `fold_designer_composition_state.publish_live_state` 又在呼叫規劃器前 `force=bool(force)`，使字串 `"false"` 錯誤觸發 host Relief 強制修復／發布。這些是版本／Relief 提交來源資格，不能在 GUI 中強制轉型。
