@@ -283,8 +283,14 @@ def test_grouped_output_rejects_unbound_factory_side_locks_and_accepts_bound(tmp
         flags={"box_body": True}, output_dir=output,
         group_mode="ALL", pre_commit_guard=lambda: None,
     )
-    assert len(files) == 1
-    path = next(iter(files.values())) if isinstance(files, dict) else tuple(files)[0]
+    # The verified ALL manufacturing file is now published atomically with
+    # one independent total drawing across the same real physical Bays.
+    assert len(files) == 2
+    assert sum(name.endswith("全部.dxf") for name in files) == 1
+    assert sum(name.endswith("總計.dxf") for name in files) == 1
+    path = next(value for name, value in files.items() if name.endswith("全部.dxf"))
+    total = next(value for name, value in files.items() if name.endswith("總計.dxf"))
+    assert not ezdxf.readfile(total).audit().errors
     opened = ezdxf.readfile(path)
     assert not opened.audit().errors
     assert _cutting_radius_count(opened.modelspace(), 5.25) == 12
