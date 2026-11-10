@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Live snapshot delta preserves deleted physical source subtrees (2026-11-10)
+
+The existing `phase6_sync_envelope.actual_delta/mapping_delta/plan_live_sync_envelope` transport helpers now treat a removed nested Mapping key as a replacement of the **entire updated subtree**: clearing saved `workspace.part_features` or `assembly_relief` produces an explicit empty nested mapping delta instead of `_UNCHANGED`. When the entire root snapshot disappears, an empty delta is not allowed to suppress a verified changed full-state fingerprint; unchanged previous/current snapshots still do not re-publish. Consumers receive the same full canonical payload and the same existing public Engine validated revision/boolean decisions. This is detached state transport, not a hole/Relief geometry algorithm, new wire schema or manufacturing permission. Regression `tests/test_issue2517_live_sync_deleted_physical_sources.py`.
+
+
 ## #2517 Relief solver verified candidate must pass original Engine gate (2026-11-10)
 
 The existing Certified Relief Registry owner `ae_engine.certified_relief_registry` now exports `operator_relief_promotion_candidate_eligible(solution)` unchanged through public `manufacturing_api` and root `ae_engine`. A PROVISIONAL_3D solver result can enter the GUI promotion list only when `verified` is an actual native Boolean true. Serialized or corrupted `"false"`/ `"true"`, 0/1 and other non-Boolean solver fields fail closed; the direct public `build_relief_promotion_candidate` also invokes this gate. This read-only candidate eligibility is not approval to manufacture, alter Registry certified rules or export DXF; existing candidate-specific promotion regression evidence remains mandatory. Regression: `tests/test_issue2517_relief_promotion_verification_engine_api.py`.
