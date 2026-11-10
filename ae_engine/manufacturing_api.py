@@ -1356,6 +1356,7 @@ def save_composed_panel_dxf(
     pre_commit_guard,
     overwrite: bool = False,
     gap: float = 60.0,
+    quantity_summary: bool = False,
 ):
     """Compose already resolved physical flats into one verified DXF.
 
@@ -1366,7 +1367,7 @@ def save_composed_panel_dxf(
     from .composed_panel_dxf import save_composed_panel_dxf as compose
     return compose(
         panels, output_path, pre_commit_guard=pre_commit_guard,
-        overwrite=overwrite, gap=gap,
+        overwrite=overwrite, gap=gap, quantity_summary=quantity_summary,
     )
 
 
