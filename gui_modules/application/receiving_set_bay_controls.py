@@ -101,7 +101,9 @@ def open_receiving_layer_preview(
     preview_error=None,
 ) -> bool:
     """Show a front orthographic projection of committed assembled FinalScene."""
-    index = int(layer_index)
+    index = manufacturing_api.normalize_receiving_operator_topology_integer(
+        layer_index, name="Set preview index",
+    )
     count = manufacturing_api.normalize_receiving_operator_connection_counts(
         (connection_count,)
     )[0]
