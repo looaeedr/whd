@@ -187,6 +187,7 @@ def commit_verified_receiving_groups(
             overwrite=False, preserve_input_order=True,
             box_body_owner_by_panel=group_body_owners,
             _verified_nfb_pair_parts=group_nfb_parts,
+            quantity_summary=True,
         )
         staged[filename] = Path(result.path)
     if emit_debug:
