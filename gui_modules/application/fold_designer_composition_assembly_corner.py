@@ -189,8 +189,10 @@ def update_assembly_diagnostic_status(self, namespace):
     enabled_var = getattr(
         app, "assembly_ignore_fixed_corner_var", None
     )
+    # The diagnostic must read the same physical fallback decision as the
+    # persisted Assembly Relief transaction, not Python bool("false") == True.
     fallback_enabled = (
-        bool(enabled_var.get())
+        manufacturing_api.normalize_operator_settings_boolean(enabled_var.get())
         if enabled_var is not None
         else True
     )
