@@ -7,6 +7,12 @@ whd_schema: WHD_DOC_META_V1
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 
+## [CURRENT] #2517 BoxBody Side/Back Settings 公開投影拒絕虛構的物理 T／後折／補償（2026-11-10）
+
+- 原公開 Engine 三片式側／背板 Settings 投影在 Receiving 包外模式用 float(snapshot.get("t", 2.0))，缺失 T 就虛構 2 mm，布林 True 也可能轉成 1 mm。改用既有 normalize_operator_source_dimension(field="t") 嚴格驗證實體來源，缺值、布林、非有限與非正 T 一律拒絕，有效小數仍依原本 material→outside 定義轉換。
+- 同一投影的已保存 side_rear_bend 和 back_width_comp_t 原始欄位共用 Engine _finite_dimension 及既有正數／非負規則，防止舊檔非有限值與布林虛構實體尺寸；金庫型 MATERIAL 來源不強迫有 Receiving T。沒有新的幾何、Factory、DXF 出口與認證擴張；仍需完整 Save→Reload、2D／3D／DXF 和 Windows UAT 驗收。定向測試 tests/test_issue2517_box_structure_settings_projection_engine_api.py；#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 DXF 覆寫權限來源由 Engine 嚴格布林驗證（2026-11-10）
 
 - 原 Fold Designer `_export_authoritative_part` 用 `bool(context.overwrite)` 將字串 `"false"` 誤變 `True`，並送到公開 `save_part_render_data_dxf`，有機會覆蓋既有實體 DXF；原多片箱身 `generate_box_body_structure_parts` 也有相同強制轉型。原公開單片／批次製造 DXF 寫入器及 `generate_part` 只憑 truthiness 判斷已存在輸出，沒有在寫檔前證實授權來源是 `bool`。
