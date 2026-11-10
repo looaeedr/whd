@@ -28,7 +28,7 @@ def project_manufacturing_scene_settings_overlay(snapshot, global_settings):
     overlay = dict(global_settings or {})
     if (
         isinstance(snapshot, Mapping)
-        and snapshot.get("model") in ("受電箱", "RECEIVING")
+        and cabinet_family_policy.canonical_family_name(snapshot) == "受電箱"
         and isinstance(snapshot.get(RECEIVING_RUNTIME_SELECTION_KEY), Mapping)
     ):
         per_bay = set(RECEIVING_DOOR_STATE_KEYS) | {

@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Receiving 已選 Bay 的 Scene 門孔／NFB 來源由原 Engine Family Registry 保護（2026-11-10）
+
+- 原公開 `ae_engine.manufacturing_scene_payload.project_manufacturing_scene_settings_overlay` 在檢查已提交 Receiving Runtime Selection 時，以硬寫字串 `("受電箱", "RECEIVING")` 判斷 Family，遺漏 Registry 已註冊的小寫、混合大小寫與含空白別名，使舊全域 Settings 的 Door／NFB／Bay 來源可能覆蓋已選中實體 Bay 的確認資料。GUI 雖已呼叫公開 Engine API，但同一製造 operation 不能因合法 Family 別名不同而取得不同來源。
+- 保留原 Engine、Facade 及 GUI 呼叫鏈，僅將原 Family 判斷交給 `cabinet_types.policy.canonical_family_name(snapshot)`；已選 Bay 時所有 Receiving 別名都保留已確認門格／NFB／Set-Bay 來源，金庫型、未選 Bay 或未實作 Family 仍維持原全域覆蓋規則。測試 `tests/test_issue2517_scene_payload_engine_authority.py` 驗 headless／真 GUI、舊來源不突變與合法別名一致性。
+- 此修正不重寫 Family Policy、孔座標、BEND／CUTTING、PartSpec、2D／3D／DXF 或外部 source-only 製造資格；仍須完成 #2517 全功能 GUI API 覆蓋及 Windows UAT。
+
+
 ## [CURRENT] #2517 製造 Request 的 W/H/D/T 原始來源優先序歸 Engine（2026-11-10）
 
 - 原 `phase6_manufacturing_adapter.build_manufacturing_request` 在 GUI 自行決定專案快照 W/H/D 優先、缺欄時採目前箱體 W/H/D、再缺欄採 Settings，並直接挑選快照 T 或 Settings T 驗證。這是決定製造 PartSpec／FinalScene 入口的物理來源優先序，不應由 GUI 持有。原始已存 T 即使無效也必須拒絕，不可退回舊 Settings 或虛構 2 mm。
