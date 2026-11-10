@@ -129,6 +129,14 @@ def test_force_publish_does_not_echo_equivalent_state_or_bump_revision(monkeypat
             "last_fingerprint": app._phase6_last_live_fingerprint,
             "host_relief": app._phase6_input_snapshot.get("assembly_relief"),
             "current_relief": current.get("assembly_relief"),
+            "fingerprint_different_fields": [
+                k for k in sorted(set(current) | set(previous))
+                if stable_fingerprint(current.get(k)) != stable_fingerprint(previous.get(k))
+            ],
+            "host_relief_fingerprint": stable_fingerprint(
+                app._phase6_input_snapshot.get("assembly_relief") or {}
+            ),
+            "current_relief_fingerprint": stable_fingerprint(current.get("assembly_relief") or {}),
         }
         assert app._phase6_publish_live_state(force=True) is False
         assert published == []
