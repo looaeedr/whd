@@ -6,6 +6,15 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 FinalScene 3D 箱型來源讀取必須與製造 Request 同步嚴格拒絕（2026-11-10）
+
+- 原 `phase6_manufacturing_geometry._phase6_current_cabinet_family` 在 3D 組合入口直接讀 `baseline_model_var.get()`，遇到已存在的 Tk 控制損壞則 `except Exception: live_model=None`，默默改用舊 Snapshot Family；同一正式製造 Request 的 `phase6_manufacturing_adapter._cabinet_model` 已經會以 `MANUFACTURING_OPERATOR_SOURCE_READ_FAILED:baseline_model_var` 拒絕。這是 FinalScene 與製造製程在 **Family 原始操作者來源**上的差異，不能讓 3D 退回舊箱型冒稱同源。
+- 3D 這條 GUI 相容入口現只重用原 `_cabinet_model` 嚴格操作來源 reader；即時／已存／初始 Family 優先順序由原公開 `manufacturing_api.resolve_operator_manufacturing_family_source` 決定，最後仍由公開 `resolve_live_cabinet_family`／Registry 正規化合法別名與舊缺來源 Vault fallback。未增加第二套 GUI 選型演算法或 Engine 製造 API。已存在但不可讀控制原子拒絕；合法來源不變。
+- 定向 `tests/test_issue2517_finalscene_family_control_source_parity.py` 覆蓋真 3D 入口、Headless／GUI、初始來源、存檔別名、JSON Save→Reload、壞控制不改狀態；不動 PartSpec、2D／3D／DXF、Fold、Factory 或 Set/Bay，#2517 其他入口與 Windows UAT 仍待驗。
+
+
+
+
 ## [CURRENT] #2517 多門格 IndicatorBox／IndicatorDoor 實體 DXF 檔名只由 Engine 物理門格 ID（2026-11-10）
 
 - 原主 GUI `export_multi_door_indicator_box_parts` 直接把 `column_index + 1`／`row_index + 1` 組成製造檔名；同一一般 Door 已有 Engine 唯一 `door_layout_part_key`／`door_layout_export_filename`。實體加工板件命名不應由 GUI 重算。
