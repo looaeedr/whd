@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Fold Designer Divider physical input normalization uses the public Engine API (2026-11-11)
+
+The original `gui_modules.parts.panels.divider.collect_divider_input` owned the physical parsing of raw Door grid, D/T, handle-edge, Family and layout scope before calling the canonical `resolve_fold_designer_divider_part`. The same normalization is now owned by `ae_engine.fold_designer_physical_selection.project_operator_fold_designer_divider_input` through public `manufacturing_api` and root `ae_engine`; GUI forwards only the operator source. Existing topology, Family Policy, stable IDs, fold profiles, formed 2D/3D geometry and DXF manufacturing eligibility are unchanged. `tests/test_issue2517_fold_designer_divider_input_public_api.py` verifies GUI/headless source parity, physical Divider, real DXF save/reopen, Project Save→Reload and invalid sources. This does not establish entire cabinet MFG approval or Windows UAT.
+
 ## #2517 Legacy standalone PartSpec DXF filenames use the public Engine API (2026-11-11)
 
 The original GUI compatibility export `gui_modules.project.export_actions._export_selected_parts` previously hard-coded the seven existing single-part manufacturing filenames (box body, head, tail, Door, base plate, IndicatorBox and IndicatorDoor) in the GUI. Its legacy no-Designer path now consumes `manufacturing_api.legacy_single_part_dxf_filename(part_kind)`, re-exported from `ae_engine` and owned by the original `sheetmetal_part_adapters` module. The API accepts only canonical legacy part kinds and rejects invalid/unknown identities. All seven filenames, PartSpecs, existing exporter, CUTTING/BEND and DXF Save→Reload verification remain unchanged; this does not make unverified parts manufacturable. Regression: `tests/test_issue2517_legacy_single_part_dxf_filename_engine_api.py` covers all names, GUI/headless projection, invalid kinds, and saved-project single-Door real Engine DXF reopen. Entire #2517 manufacturing 2D/3D/DXF coverage and Windows UAT remain open.
