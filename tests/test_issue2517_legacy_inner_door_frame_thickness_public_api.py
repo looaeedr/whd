@@ -87,7 +87,6 @@ def test_true_project_save_reload_and_legacy_frame_dxf_share_verified_engine_t(t
     import phase6_project_file as project
 
     original = _source()
-    original["t"] = "2.5"
     file = project.write_project(
         tmp_path / "vault-legacy-frame.p6fold",
         {"schema": project.PROJECT_SCHEMA, "snapshot": original},
@@ -111,8 +110,7 @@ def test_true_project_save_reload_and_legacy_frame_dxf_share_verified_engine_t(t
 
 def test_wrong_frame_stable_id_is_not_silently_rebound_to_neighbor():
     with pytest.raises(ValueError, match="stable_id"):
-        _engine({**_source(), "t": 2.5},
-                default=2.0) if False else api.resolve_fold_designer_frame_part(
-                    "inner_door:legacy-A:bottom_frame", _source(),
-                    default_thickness=2.0,
-                )
+        api.resolve_fold_designer_frame_part(
+            "inner_door:legacy-A:bottom_frame", _source(),
+            default_thickness=2.0,
+        )
