@@ -25,7 +25,9 @@ def _part_host(model="金庫型"):
         _manufacturing_context=lambda **kwargs: "context",
         _authoritative_render_data=lambda spec, context: _render(),
         _indicator_box_part_spec=lambda values, groups, features: "indicator-box-spec",
-        _end_cap_part_spec=lambda values, **kwargs: "endcap-spec",
+        _end_cap_part_spec=lambda values, **kwargs: SimpleNamespace(
+            is_tail=api.normalize_operator_settings_boolean(kwargs["is_tail"]),
+        ),
         indicator_l_var=SimpleNamespace(get=lambda: "1"),
         indicator_layer_g_vars=[SimpleNamespace(get=lambda: "2")],
         surface_features={"indicator_box": []},
