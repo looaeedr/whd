@@ -2415,9 +2415,13 @@ def export_current_receiving_multibay_dxf(
     callers, but a GUI export must pass the current operator/Workspace witness.
     """
     from .receiving_csv_multibay_manufacturing import export_current_receiving_multibay_dxf as execute
+    options = (
+        {"pre_commit_guard": pre_commit_guard}
+        if pre_commit_guard is not None else {}
+    )
     return execute(saved_snapshot, physical_bay_geometry_provider=physical_bay_geometry_provider,
                    flags=flags, output_dir=output_dir, overwrite=overwrite,
-                   pre_commit_guard=pre_commit_guard)
+                   **options)
 
 
 def plan_receiving_grouped_dxf(layout, mode, *, file_stamp=None):
