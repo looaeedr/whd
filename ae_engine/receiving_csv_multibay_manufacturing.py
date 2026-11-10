@@ -214,6 +214,13 @@ def export_current_receiving_multibay_dxf(
         if not callable(pre_commit_guard):
             raise ValueError("RECEIVING_COMPOSED_DXF_PRECOMMIT_GUARD_REQUIRED")
         pre_commit_guard()
+    elif pre_commit_guard is not None:
+        # Standalone per-Bay DXFs still need the same pre/post source witness
+        # as composed drawings. Legacy headless clients may omit the guard,
+        # but the attached GUI must supply its current saved/Workspace source.
+        if not callable(pre_commit_guard):
+            raise TypeError("RECEIVING_MULTIBAY_PRECOMMIT_GUARD_INVALID")
+        pre_commit_guard()
     if type(emit_debug) is not bool:
         raise TypeError("RECEIVING_DEBUG_EXPORT_FLAG_MUST_BE_BOOL")
     if emit_debug and group_mode is None:
@@ -564,6 +571,10 @@ def export_current_receiving_multibay_dxf(
                 _verified_nfb_pair_parts_by_namespace=nfb_approved,
                 emit_debug=emit_debug,
             )
+        if pre_commit_guard is not None:
+            # Recheck after every true physical CUTTING/BEND DXF has been
+            # independently reopened, immediately before the atomic publish.
+            pre_commit_guard()
         return _atomic_commit_staged_dxfs(
             staged,root,overwrite=overwrite,
         )

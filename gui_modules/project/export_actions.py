@@ -314,6 +314,7 @@ def _export_selected_resolved_parts(self, folder, flags):
                 receiving_live,
                 physical_bay_geometry_provider=actual_bay_geometry,
                 flags=flags, output_dir=folder, overwrite=True,
+                pre_commit_guard=source_guard,
             )
         return ([os.path.basename(path) for path in outputs.values()], [])
 
