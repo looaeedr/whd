@@ -196,3 +196,118 @@ def test_gui_base_plate_entry_does_not_mutate_manufacturing_selection():
     assert 'input_snapshot["receiving_base_plate"] =' not in text
     assert 'input_snapshot.pop("receiving_base_plate"' not in text
     assert "validate_receiving_base_plate_settings(" not in text
+
+
+def _render_receiving_base_plate_button(values, on_commit):
+    """Real Tk Settings button, exercised inside the CI headless X server."""
+    import tkinter as tk
+    from phase6_settings_panel_owned_render import Phase6SettingsPanelOwnedRenderMixin
+
+    root = tk.Tk()
+    root.withdraw()
+    panel = Phase6SettingsPanelOwnedRenderMixin()
+    panel._receiving_base_plate_commit = on_commit
+    state = {}
+    try:
+        panel._render_owned_receiving_base_plate(
+            root, 0,
+            {"values": values, "configured": True, "source_derived": False},
+            state,
+        )
+        state["receiving_base_plate_apply_button"].invoke()
+        return deepcopy(state["receiving_base_plate_status_var"].get())
+    finally:
+        root.destroy()
+
+
+@pytest.mark.parametrize("bad_key,bad_value", [
+    ("shrink_top", True), ("shrink_right", False),
+    ("shrink_left", None), ("shrink_bottom", "nan"),
+])
+def test_gui_receiving_base_plate_button_preserves_noneditable_raw_shrink(
+    bad_key, bad_value,
+):
+    source = _snapshot()
+    frozen = deepcopy(source)
+    submitted = []
+    values = deepcopy(CENTER)
+    values[bad_key] = bad_value
+
+    def commit(payload):
+        submitted.append(deepcopy(payload))
+        return manufacturing_api.commit_operator_receiving_base_plate_settings(
+            input_snapshot=source, settings_values={}, config=payload,
+        )
+
+    status = _render_receiving_base_plate_button(values, commit)
+    assert len(submitted) == 1
+    assert submitted[0][bad_key] is bad_value if bad_value is None or isinstance(bad_value, bool) else submitted[0][bad_key] == bad_value
+    assert source == frozen and "receiving_base_plate" not in source
+    assert status.startswith("套用失敗：")
+
+
+def test_gui_receiving_base_plate_button_preserves_raw_height_boolean():
+    source = _snapshot()
+    values = deepcopy(CENTER)
+    values["height"] = True
+    submitted = []
+
+    def commit(payload):
+        submitted.append(deepcopy(payload))
+        return manufacturing_api.commit_operator_receiving_base_plate_settings(
+            input_snapshot=source, settings_values={}, config=payload,
+        )
+
+    status = _render_receiving_base_plate_button(values, commit)
+    # The public Engine number gate rejects the Boolean text before commit.
+    assert submitted == []
+    assert "receiving_base_plate" not in source
+    assert status.startswith("套用失敗：")
+
+
+def test_gui_receiving_base_plate_button_valid_source_matches_headless_geometry():
+    source = _snapshot()
+    headless = _snapshot()
+    calls = []
+
+    def commit(payload):
+        calls.append(deepcopy(payload))
+        return manufacturing_api.commit_operator_receiving_base_plate_settings(
+            input_snapshot=source, settings_values={}, config=payload,
+        )
+
+    status = _render_receiving_base_plate_button(CENTER, commit)
+    assert status.startswith("已套用實體底板")
+    assert len(calls) == 1 and calls[0]["shrink_top"] == CENTER["shrink_top"]
+    direct = manufacturing_api.commit_operator_receiving_base_plate_settings(
+        input_snapshot=headless, settings_values={}, config=CENTER,
+    )
+    assert direct == CENTER
+    assert source["receiving_base_plate"]["pattern"] == direct["pattern"]
+    from ae_engine.receiving_base_plate_config import receiving_base_plate_blank_dimensions
+    assert receiving_base_plate_blank_dimensions(source) == receiving_base_plate_blank_dimensions(headless)
+
+
+@pytest.mark.parametrize("field,raw,expected", [
+    ("height", "280.125", 280.125),
+    ("bend", "20", 20.0),
+    ("shrink_top", "0", 0.0),
+    ("shrink_left", "85.5", 85.5),
+])
+def test_engine_public_receiving_base_plate_explicit_numeric_contract(field, raw, expected):
+    assert manufacturing_api.normalize_operator_receiving_base_plate_number(
+        raw, field=field,
+    ) == expected
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("height", True), ("height", "True"), ("height", "nan"),
+    ("bend", 0), ("bend", False), ("bend", "inf"),
+    ("shrink_top", True), ("shrink_top", -1),
+    ("shrink_right", "nan"), ("unknown", 10),
+])
+def test_engine_receiving_base_plate_number_rejects_invalid_sources(field, bad):
+    with pytest.raises(ValueError):
+        manufacturing_api.normalize_operator_receiving_base_plate_number(
+            bad, field=field,
+        )

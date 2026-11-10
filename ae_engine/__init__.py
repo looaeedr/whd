@@ -51,6 +51,7 @@ from .manufacturing_api import (
     project_operator_part_dimension_settings_overlay,
     normalize_operator_live_box_dimensions,
     normalize_operator_base_plate_edge_shrink,
+    normalize_operator_receiving_base_plate_number,
     operator_corner_data_back_panel_mode_applicable,
     operator_family_fixes_box_body_structure,
     operator_box_body_profile_uses_outside_dimensions,
