@@ -95,9 +95,9 @@ def open_inner_door_hole_editor(
         staged = getattr(editor, "_receiving_staged_config", None)
         if on_settings_confirm is not None:
             on_settings_confirm(part_key, deepcopy(list(final_features)), staged)
-        elif staged is not None and any(
-                getattr(feature, "source_type", None) == "NFB_CSV_SOURCE"
-                for feature in final_features):
+        elif manufacturing_api.receiving_inner_door_nfb_confirm_required(
+            staged, final_features,
+        ):
             # 3D double-click is a DIRECT physical-door entry. The original
             # handler used to save native Features only; the staged NFB
             # selection was silently discarded by the next canonical
