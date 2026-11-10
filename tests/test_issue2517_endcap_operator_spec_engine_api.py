@@ -297,7 +297,7 @@ def test_main_gui_endcap_raw_role_selects_matching_engine_physical_sources(
         _current_box_assembly_type=lambda: "INTEGRAL",
         _resolved_committed_assembly_relief_cuts=lambda *args: (),
         _manual_corner_policy=lambda *args: None,
-        _end_cap_depth_comp_t_for_family=lambda *_: 3.0,
+        _endcap_depth_comp_t_for_family=lambda *_: 3.0,
         _baseline_source_model=lambda: "金庫型",
         head_holes=(head_hole,),
         tail_holes=(tail_hole,),
