@@ -50,10 +50,11 @@ def export_multi_door_indicator_box_parts(
             continue
         self._validate_door_layout_indicator_fit(cell, state, val)
         groups = tuple(state["groups"][:state["layers"]])
-        stem = f"c{cell.column_index + 1}_r{cell.row_index + 1}"
 
         if export_box:
-            filename = f"indicator_box_{stem}.dxf"
+            filename = manufacturing_api.door_layout_indicator_export_filename(
+                cell, part_kind="indicator_box",
+            )
             spec = self._indicator_box_part_spec(
                 val, groups, features=self.door_layout_indicator_box_features.get(key, [])
             )
@@ -61,7 +62,9 @@ def export_multi_door_indicator_box_parts(
             exported.append(filename)
 
         if export_door:
-            filename = f"indicator_door_{stem}.dxf"
+            filename = manufacturing_api.door_layout_indicator_export_filename(
+                cell, part_kind="indicator_door",
+            )
             spec = self._indicator_door_part_spec(
                 val, groups, features=self.door_layout_indicator_door_features.get(key, [])
             )

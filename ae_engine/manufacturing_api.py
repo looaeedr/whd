@@ -2351,7 +2351,9 @@ from .assembly_physical_dimensions import (
 
 # #2517 GUI project export adapter: all certification and actual atomic DXF
 # operations remain owned by their existing headless Engine modules.
-from .sheetmetal_part_adapters import door_layout_export_filename
+from .sheetmetal_part_adapters import (
+    door_layout_export_filename, door_layout_indicator_export_filename,
+)
 from .receiving_nfb_model_identity import (
     parse_numeric_model_ref,
     display_model_ref as display_receiving_nfb_model_ref,
