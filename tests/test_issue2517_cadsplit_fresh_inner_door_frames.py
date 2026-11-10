@@ -229,10 +229,25 @@ def test_shared_c_reexport_requires_certified_final_cross_not_raw_rectangle(tmp_
     assert not ezdxf.readfile(output).audit().errors
 
 
-def test_shared_c_no_real_body_may_be_exported_as_certified():
+def test_shared_c_door_only_uses_confirmed_real_whd_body_without_exporting_shell():
+    resolved = manufacturing_api.resolve_receiving_factory_confirmed_lower_divider_final_scene(
+        SOURCE, box_body_render_data=None,
+        confirmation="fresh_family_confirmed",
+        confirmed_door_layout_columns=COLUMNS,
+    )
+    assert resolved.metadata["divider_assembly_relief"]["verified"] is True
+    assert resolved.metadata["divider_endcap_shared_6p4_datum"]
+
+
+def test_shared_c_rejects_fake_or_unconfirmed_body():
     with pytest.raises(TypeError, match="CANONICAL_BODY_SOURCE_REQUIRED"):
         manufacturing_api.resolve_receiving_factory_confirmed_lower_divider_final_scene(
-            SOURCE, box_body_render_data=None,
+            SOURCE, box_body_render_data=object(),
             confirmation="fresh_family_confirmed",
+            confirmed_door_layout_columns=COLUMNS,
+        )
+    with pytest.raises(ValueError, match="FRESH_FAMILY_CONFIRMATION_REQUIRED"):
+        manufacturing_api.resolve_receiving_factory_confirmed_lower_divider_final_scene(
+            SOURCE, box_body_render_data=None,
             confirmed_door_layout_columns=COLUMNS,
         )
