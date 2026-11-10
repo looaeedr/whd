@@ -37,8 +37,15 @@ def stable_fingerprint(value) -> str:
 
 
 def actual_delta(before, after):
-    """Return only semantically changed mapping leaves; lists are atomic."""
+    """Return authoritative changed mapping leaves; lists are atomic.
+
+    If a subtree loses keys, that subtree must be replaced with its complete
+    new mapping.  Ignoring removed keys made a cleared hole/Relief mapping look
+    unchanged and could prevent publication of the complete physical snapshot.
+    """
     if isinstance(before, Mapping) and isinstance(after, Mapping):
+        if any(key not in after for key in before):
+            return deepcopy(dict(after))
         out = {}
         for key in after:
             if key not in before:
@@ -199,7 +206,10 @@ def plan_live_sync_envelope(
         previous["assembly_relief"] = host_relief
 
     delta = mapping_delta(previous, state)
-    if not delta and previous:
+    # A complete root clear can have an empty delta even though the full
+    # authoritative snapshot changed.  Only suppress an actual no-op, never
+    # a source deletion just because the candidate delta is empty.
+    if not delta and previous and stable_fingerprint(previous) == fingerprint:
         return LiveSyncPublicationPlan(
             should_publish=False,
             next_revision=current_revision,
