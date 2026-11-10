@@ -291,3 +291,44 @@ def test_quantity_summary_rejects_non_boolean_without_writing(tmp_path):
             output, pre_commit_guard=lambda: None, quantity_summary="yes",
         )
     assert not output.exists()
+
+def test_box_body_lower_c_divider_is_independent_canonical_flat(tmp_path):
+    from ae_engine.manufacturing_render_data import (
+        BoxBodyPieceRenderData, BoxBodyStructureRenderData,
+    )
+
+    shell = BoxBodyStructureRenderData(
+        "side_back", (
+            BoxBodyPieceRenderData("box_body_left_side", "left_side", 0, 0, (),
+                                   _flat("left")),
+            BoxBodyPieceRenderData("box_body_back", "back", 0, 0, (),
+                                   _flat("back")),
+            BoxBodyPieceRenderData("box_body_right_side", "right_side", 0, 0, (),
+                                   _flat("right")),
+        ),
+        _flat("exploded"), _flat("canonical"),
+    )
+    divider_key = "box_body:divider:door-grid:H:0:1"
+    physical = _geometry(
+        ("box_body", shell), (divider_key, _flat("lower_C", width=130)),
+    )
+    output = tmp_path / "four-body-parts.dxf"
+    receipt = manufacturing_api.save_composed_panel_dxf(
+        (("P1", physical),), output,
+        pre_commit_guard=lambda: None, quantity_summary=True,
+    )
+    assert tuple(row.physical_id for row in receipt.sheets) == (
+        "box_body:box_body_left_side",
+        "box_body:box_body_back",
+        "box_body:box_body_right_side",
+        divider_key,
+    )
+    reopened = ezdxf.readfile(output)
+    assert not reopened.audit().errors
+    assert sum(entity.dxftype() == "LWPOLYLINE"
+               and entity.dxf.layer == "CUTTING"
+               for entity in reopened.modelspace()) == 4
+    assert any(entity.dxftype() == "MTEXT"
+               and entity.plain_text().startswith(divider_key)
+               and entity.dxf.layer == "CHECK"
+               for entity in reopened.modelspace())
