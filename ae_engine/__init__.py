@@ -219,7 +219,7 @@ from .manufacturing_api import (
     OperatorDimensionGuidePlan, project_operator_dimension_guides,
     InnerDoorHoleEditorContext, resolve_inner_door_hole_editor_context,
     resolve_live_cabinet_family, resolve_operator_manufacturing_family_source,
-    FoldDesignerSnapshotDimensions, project_fold_designer_snapshot_dimensions,
+    FoldDesignerSnapshotDimensions, normalize_operator_indicator_layer_count, project_fold_designer_snapshot_dimensions,
     project_operator_door_indicator_display_state,
     project_fold_designer_snapshot_part_features,
     project_operator_saved_door_layout_columns,

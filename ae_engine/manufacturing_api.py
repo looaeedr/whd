@@ -1792,6 +1792,19 @@ from .fold_designer_snapshot_dimensions import (
 )
 
 
+def normalize_operator_indicator_layer_count(value: object) -> int:
+    """Validate live 1..6 IndicatorBox or Door physical editor layers.
+
+    This uses the existing canonical Engine group validator, never a GUI
+    int() conversion or fallback to a different physical layer count.
+    """
+    from .fold_designer_snapshot_dimensions import normalize_fold_designer_indicator_groups
+    layers = normalize_fold_designer_indicator_groups((value,))[0]
+    if layers > 6:
+        raise ValueError("指示燈層數／組數無效：最多六層")
+    return layers
+
+
 def project_fold_designer_snapshot_dimensions(snapshot, indicator_layer_groups):
     """Public Engine ownership for original Fold Designer snapshot part sizes."""
     from .fold_designer_snapshot_dimensions import project_fold_designer_snapshot_dimensions as project

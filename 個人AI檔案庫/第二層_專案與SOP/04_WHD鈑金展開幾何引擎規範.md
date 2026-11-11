@@ -18,6 +18,12 @@ whd_schema: WHD_DOC_META_V1
 - 原 Engine selector 改直接復用 `operator_settings_transactions.normalize_operator_source_dimension(..., field="t")`；已提供 T 必須是正有限且非布林，缺值才沿用原 Engine legacy default。Family 派生來源、上／左／右框 A/B/D 的方向與原 DXF／幾何／孔位、stable ID、選片與認證不變。
 - `tests/test_issue2517_legacy_inner_door_frame_thickness_public_api.py` 覆蓋 headless/GUI、真 legacy 框、非布林與負向非法來源、Save→Reload 僅保留原始 T 且正確剔除衍生 frame_spans、重新提供獨立確認的 span 後才可真 Frame FinalScene→DXF reopen；不因此宣稱整櫃實機、焊接或 MFG-2 已放行。
 
+## [CURRENT] #2517 主 GUI 指示燈盒／門板指示燈層數選單由公開 Engine 驗證（2026-11-11）
+
+- 原 `gui_modules.parts.panels.indicator_box.rebuild_layers_config_ui` 與 `gui_modules.parts.panels.door.rebuild_door_layers_config_ui` 在清除舊控件後以 GUI `int()` 決定物理層數，非法來源被暗中改成 3／1，超過六層還可能索引超出原控制。這不是可信的製造輸入。
+- 公開 `manufacturing_api.normalize_operator_indicator_layer_count`（`ae_engine` 根包亦公開）重用唯一 Engine `normalize_fold_designer_indicator_groups`；僅允許 1–6 的實體整數層，拒絕 bool、分數、缺值與範圍外來源。兩個 GUI 入口先驗後建控件，非法來源不毀損已存在 UI，亦不由 GUI 製造新孔位。
+- 不變更合法 1–6 層／各層 1–8 組的原 PartSpec、FinalScene、CUTTING/BEND/DXF；已停用舊單門 Hole Editor 的 1–6 柔性顯示回復仍由原 display-only Engine API 獨立擁有，**不得**拿新 live gate 替換。定向 `tests/test_issue2517_gui_indicator_layer_editor_engine_api.py` 包含 headless／GUI、負向原子拒絕、JSON readback 與真 DXF reopen。#2517 其他全面 API、整箱 2D／3D／DXF、Windows UAT 仍未完成。
+
 ## [CURRENT] #2517 Fold Designer 中隔物理輸入只經公開 Engine API（2026-11-11）
 
 - 原 `gui_modules.parts.panels.divider.collect_divider_input` 在 GUI 自行把門格 W/H、D、T、layout scope、把手邊和 Family 轉成中隔實體製造輸入；正式 `resolve_fold_designer_divider_part` 隨後再使用原 Engine `derive_box_body_dividers` 解析板件身分與幾何。同一 Part 的 GUI/headless 來源解析不能由 GUI 擁有。
