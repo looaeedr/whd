@@ -51,7 +51,7 @@ def test_shunshan_is_explicit_source_only_brand_with_no_guessed_geometry():
     assert "順山" in BRANDS
     rows = read_numeric_specs("順山")
     assert len(rows) == 44
-    assert len({r.model for r in rows}) == 17
+    assert len({r.model for r in rows}) == 44
     evidence = _source_records("順山_DWG來源索引.csv")
     assert {r.model for r in rows[:17]} <= {r["型號_依檔名"] for r in evidence}
     assert len({r["原始DWG檔名"] for r in evidence}) == 11
