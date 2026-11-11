@@ -5,9 +5,14 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+
+
 ## #2517 PAD+Base PART_ONLY CHECK/Q real DXF publication retains live GUI and Engine source guard (2026-11-12)
 
 GUI `export_receiving_pad_base_part_only_dxf` previously resolved physical Bay and 3D assembly before material/process/quantity/folder dialogs, then passed stale source into a correctly verified Engine exporter without checking whether the operator had changed the project or workspace in the meantime. The GUI now uses the existing `_current_authoritative_export_guard` authored-source witness, checks after dialogs, and passes it through the same public `manufacturing_api.export_verified_pad_base_part_only(..., pre_commit_guard=...)`. The original `receiving_nfb_pad_pair_manufacturing` Engine function checks before physical resolution, before staging and after real DXF reopens and manifest serialization, and cleans its newly published folder if the witness fails at the final atomic move. Invalid witnesses reject; absent witnesses preserve original headless API behavior. Existing true PAD/Base 2D/3D matching, CUTTING/BEND, CSV/tooling gates, strict T, quantity, CHECK/Q restricted scope and no whole-cabinet MFG-2 remain unchanged. Tests use the real installed PAD pair, real staged DXF independent reopen, drift before and during publish, and GUI dialogs. This is not full 2D/3D/DXF/Windows UAT.
+## #2517 Direct DoorPartSpec must pass the same Engine physical source gate (2026-11-12)
+
+Confirmed headless `DoorPartSpec` callers may invoke `manufacturing_api.door_finished_face_size`, `build_part_render_data` or `generate_part` directly without the GUI request builder. The original common `manufacturing_door_indicator._resolved_door_params` now preserves original typed W/H/T/FW until the existing positive-finite/non-Boolean Engine source validator and preserves signed Gap/Fold until the original finite/non-Boolean Door operator validator. It no longer launders `True` into 1 mm or NaN/Inf into canonical 2D/3D/DXF. Family-specific material FW, baseline `門.dxf`, factory fallback, holes, material fold and verification are unchanged. `tests/test_issue2517_direct_door_partspec_original_source_engine_gate.py` verifies headless/direct GUI physical equality, Save→Reload, real Door FinalScene/DXF reopen and invalid inputs. Whole-cabinet #2517 and Windows UAT remain open.
 
 ## #2517 Registry candidate / Fold 3D physical T and verification truth are Engine-owned (2026-11-12)
 

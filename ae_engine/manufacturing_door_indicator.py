@@ -72,19 +72,45 @@ from .cabinet_types import policy as cabinet_family_policy
 from .manufacturing_baseline_policy import resolve_policy, _call
 
 def _resolved_door_params(spec: DoorPartSpec, context: ManufacturingContext | None = None):
+    # DoorPartSpec may be a directly confirmed headless manufacturing input,
+    # without the GUI operator request factory. Validate the original types
+    # before float(True) could manufacture a 1-mm physical Door.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    from .door_operator_part_spec import _finite_operator_number
     policy = resolve_policy(context)
-    t = float(spec.thickness)
+    w = normalize_operator_source_dimension(spec.width, field="w")
+    h = normalize_operator_source_dimension(spec.height, field="h")
+    t = normalize_operator_source_dimension(spec.thickness, field="t")
+    fw = normalize_operator_source_dimension(spec.frame_width, field="fw")
     material_fw = cabinet_family_policy.door_material_frame_width(
-        spec.model_name, frame_width=float(spec.frame_width), thickness=t,
+        spec.model_name, frame_width=fw, thickness=t,
     )
     return dict(
-        w=float(spec.width), h=float(spec.height), t=t, fw=material_fw,
-        gap_w=float(spec.gap_w if spec.gap_w is not None else policy.door_gap_w),
-        gap_h=float(spec.gap_h if spec.gap_h is not None else policy.door_gap_h),
-        fold_left=float(spec.fold_left if spec.fold_left is not None else policy.door_fold_left),
-        fold_right=float(spec.fold_right if spec.fold_right is not None else policy.door_fold_right),
-        fold_top=float(spec.fold_top if spec.fold_top is not None else policy.door_fold_top),
-        fold_bottom=float(spec.fold_bottom if spec.fold_bottom is not None else policy.door_fold_bottom),
+        w=w, h=h, t=t, fw=material_fw,
+        gap_w=_finite_operator_number(
+            spec.gap_w if spec.gap_w is not None else policy.door_gap_w,
+            "door_gap_w",
+        ),
+        gap_h=_finite_operator_number(
+            spec.gap_h if spec.gap_h is not None else policy.door_gap_h,
+            "door_gap_h",
+        ),
+        fold_left=_finite_operator_number(
+            spec.fold_left if spec.fold_left is not None else policy.door_fold_left,
+            "door_fold_l",
+        ),
+        fold_right=_finite_operator_number(
+            spec.fold_right if spec.fold_right is not None else policy.door_fold_right,
+            "door_fold_r",
+        ),
+        fold_top=_finite_operator_number(
+            spec.fold_top if spec.fold_top is not None else policy.door_fold_top,
+            "door_fold_t",
+        ),
+        fold_bottom=_finite_operator_number(
+            spec.fold_bottom if spec.fold_bottom is not None else policy.door_fold_bottom,
+            "door_fold_b",
+        ),
     )
 
 
