@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 IndicatorBox and Small Door direct dimension APIs share Engine source validation (2026-11-12)
+
+Direct headless `indicator_box_unfolded_size`, `indicator_small_door_spec`, `door_indicator_offset_for_finished_center` and the Small Door operator spec no longer coerce raw group counts through `int()` or raw sheet thickness through `float()` before source qualification. They consume the existing Engine `normalize_fold_designer_indicator_groups` and `normalize_operator_source_dimension(field="t")` contracts; a scalar/mapping is not a physical list of layers. Valid integer group strings, finite fractional T and existing geometry/Factory Policy remain intact, as do the genuine source DXF and manufacturing gates. Focused tests cover headless and GUI parity, invalid sources, original project Save→Reload and real IndicatorBox baseline DXF reopening. Complete #2517 coverage and Windows UAT remain outstanding.
+
 ## #2517 EAR SIDE independent DXF exports share live source witness (2026-11-11)
 
 The existing public `manufacturing_api.export_receiving_ear_side_manufacturing_marking_dxf` and `export_receiving_ear_side_check_only_dxf` now accept an optional `pre_commit_guard` callback. The original GUI actions capture the operator/Workspace source before file selection and pass that witness into Engine validation, real left/right CUTTING+BEND+MARKING DXF staging, independent Save→Reload and the atomic final commit. A source change before or during the final two-side publish rejects and restores existing outputs; legacy headless clients without a callback retain the previous behavior. CHECK remains CHECK-only, manufacturing remains SIDE-only; no EAR/PAD welding, NFB MFG-2 or whole cabinet approval is granted. See `tests/test_issue2517_ear_side_live_source_dxf_guard.py`.
