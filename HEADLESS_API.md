@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Quantity Head/Tail Hole Editor T-source parity (2026-11-11)
+
+The public `manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(snapshot, role=...)` now requires an actual positive, finite, non-boolean `snapshot["t"]`; it no longer assumes 2 mm when T is absent. GUI Quantity Hole Editor and Confirm call the existing `project_operator_manufacturing_request_snapshot(committed_snapshot, settings, working_box)` before using that projector/commit transaction. An explicitly saved T wins over stale Settings; legacy Settings-only T remains valid via the same request projection. Read-only editor geometry is not DXF manufacturing approval. See `tests/test_issue2517_quantity_hole_t_source_parity_engine.py`.
+
+
 ## #2517 Door Divider 2D preview 原始物理來源保護（2026-11-11）
 
 原公開 `manufacturing_api.project_operator_door_divider_frame_preview(snapshot, columns, val, ...)` 現在在任何 Divider／InnerDoor Frame 顯示解析前，使用 Engine `normalize_operator_source_dimension` 驗證 Snapshot 優先的 W/H、live 優先的 D/T/FW（原既有 FW baseline 缺值預設保持），再以 canonical `derive_door_layout_cells` 驗證 Door cell 尺寸。非法 bool／非有限／空／零來源不允許透過 `float` 或顯示層的 N/A guard 偽裝為有效空板件。合法位移仍由 `assembly_placement`，物理 Divider Fold 仍由 `door_dividers`，GUI 只顯示公開回傳；不新增替代製造 API 或認證資格。

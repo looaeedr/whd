@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Quantity 封頭尾 Hole Editor 實體 T 與正式 Request 同源（2026-11-11）
+
+- 原 GUI `gui_modules.application.quantity_version_ports.quantity_ports.source` 將 live Settings 覆蓋在已確認 Project Snapshot 上，導致 Quantity Head/Tail Hole Editor 與 Confirm 孔位時的 T 被舊 Settings 取代，與正式 `project_operator_manufacturing_request_snapshot` 的已存 Snapshot T 優先規則矛盾。原 Engine 唯讀 Quantity EndCap projector 又對缺 T 內隱填入 2 mm，畫出無可信來源的實體孔面。
+- 原 GUI `holes` 開啟與提交都取相同既存公開 Engine Request source projection 的 W/H/D/T；保留 navigation/版本切換在歷史資料不足時仍可修復。Engine `project_operator_quantity_endcap_hole_editor_geometry` 現對缺少 T 明確拒絕，不再製造假的 2 mm Hole Editor；合法 Settings-only 舊存檔先經同一 Request API 投影後仍可使用。Receiving Quantity `receiving_quantity_box` 的原真實 W/D 仍優先於全域值，沒有改寫其物理位置。
+- `tests/test_issue2517_quantity_hole_t_source_parity_engine.py` 驗 headless／GUI 同一 T、實體 Hole surface、真 `.p6fold` Save→Reload、Confirm 孔位提交、非法與缺少 T 原子拒絕；不放行獨立 candidate、Receiving Set/Bay 未確認輸出、整箱 DXF 或 Windows UAT。#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 Fold Designer 舊內門框實體 T 須經公開 Engine 嚴格驗證（2026-11-11）
 
 - 原 `ae_engine.fold_designer_physical_selection.resolve_fold_designer_frame_part` 在無 Family 派生 API 的 legacy inner-door `frame_spans` 路徑，以 `float(data.get("t", default_thickness))` 提前清洗物理來源。明確的 `True` 因而成為合法看似真實的 `1 mm` 框，卻繞過既有 Engine 對板厚 T 的原生型別限制。GUI `_inner_door_frame_from_payload` 已只呼叫公開 API，錯在 Engine 內部來源門。
