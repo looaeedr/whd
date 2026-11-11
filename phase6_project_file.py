@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 
 from ae_engine import manufacturing_api
 
@@ -47,8 +48,26 @@ def write_project(path, payload):
     target = Path(path)
     if target.suffix.lower() != PROJECT_EXTENSION:
         target = target.with_suffix(PROJECT_EXTENSION)
+    # Encode the authoritative Engine snapshot before touching the target.
+    # Direct Path.write_text truncates the last verified project first: a
+    # disk/full/interrupted write can destroy the only re-loadable source
+    # from which 2D/3D/DXF must be regenerated.
+    encoded = json.dumps(_encode(materialized), ensure_ascii=False, indent=2)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(_encode(materialized), ensure_ascii=False, indent=2), encoding="utf-8")
+    fd, pending = tempfile.mkstemp(
+        prefix=f".{target.name}.", suffix=".tmp", dir=target.parent,
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stage:
+            stage.write(encoded)
+            stage.flush()
+            os.fsync(stage.fileno())
+        # Same-directory atomic replacement: retain the previous valid
+        # .p6fold until the new complete Engine-normalized JSON is durable.
+        os.replace(pending, target)
+    finally:
+        if os.path.exists(pending):
+            os.unlink(pending)
     return target
 
 
