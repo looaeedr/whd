@@ -110,15 +110,34 @@ def door_indicator_offset_for_finished_center(
     context: ManufacturingContext | None = None,
 ) -> Vec2:
     """Convert a desired finished-face center into AE's indicator layout offset."""
+    from .fold_designer_snapshot_dimensions import (
+        normalize_fold_designer_indicator_groups,
+        normalize_fold_designer_indicator_offsets,
+    )
+    # The direct headless API must not turn True or 2.5 groups into real holes.
+    normalized_groups = normalize_fold_designer_indicator_groups(groups)
+    center_x, center_y = normalize_fold_designer_indicator_offsets(
+        desired_center.x, desired_center.y,
+    )
     finished_w, finished_h = door_finished_face_size(spec, context)
     local_context = DoorIndicatorContext(
         finished_width=float(finished_w), finished_height=float(finished_h),
         left_fold=0.0, bottom_fold=0.0,
     )
-    base_center = local_context.group_center(tuple(int(v) for v in groups))
+    base_center = local_context.group_center(normalized_groups)
     return Vec2(
-        float(desired_center.x) - float(base_center.x),
-        float(desired_center.y) - float(base_center.y),
+        center_x - float(base_center.x),
+        center_y - float(base_center.y),
+    )
+
+
+def _validated_indicator_box_physical_source(groups, thickness):
+    """Apply the same Engine source gates as Door fit and Hole Editor."""
+    from .fold_designer_snapshot_dimensions import normalize_fold_designer_indicator_groups
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    return (
+        normalize_fold_designer_indicator_groups(groups),
+        normalize_operator_source_dimension(thickness, field="t"),
     )
 
 
@@ -126,10 +145,8 @@ def indicator_box_unfolded_size(
     groups, *, thickness: float, context: ManufacturingContext | None = None
 ) -> tuple[float, float]:
     """Return the shared indicator-box unfolded blank size."""
-    normalized = tuple(int(v) for v in groups)
-    if not normalized or any(v <= 0 for v in normalized):
-        raise ValueError("指示燈盒至少需要一層且每層組數必須大於 0")
-    data = ae.get_indicator_box_data(normalized, float(thickness))
+    normalized, t = _validated_indicator_box_physical_source(groups, thickness)
+    data = ae.get_indicator_box_data(normalized, t)
     return float(data.params["w"]), float(data.params["h"])
 
 
@@ -321,12 +338,11 @@ def _validate_door_part_indicator_fit(
 def indicator_small_door_spec(
     groups, *, thickness: float, context: ManufacturingContext | None = None
 ) -> DoorPartSpec:
+    groups, t = _validated_indicator_box_physical_source(groups, thickness)
     policy = resolve_policy(context)
-    groups = tuple(int(v) for v in groups)
     finished_w, finished_h = indicator_small_door_finished_size(
-        groups, thickness=float(thickness), context=context
+        groups, thickness=t, context=context
     )
-    t = float(thickness)
     source_w = finished_w + (policy.frame_width + 2.0 * t) * 2.0 + policy.door_gap_w * 2.0
     source_h = finished_h + (policy.frame_width + 2.0 * t) * 2.0 + policy.door_gap_h * 2.0
     fold = float(policy.indicator_small_door_fold)
@@ -365,7 +381,7 @@ def indicator_small_door_operator_spec(
 
     base = indicator_small_door_spec(
         normalize_fold_designer_indicator_groups(groups),
-        thickness=float(thickness), context=context,
+        thickness=thickness, context=context,
     )
     return replace(
         base, features=tuple(features or ()), feature_space="legacy_unfolded",
