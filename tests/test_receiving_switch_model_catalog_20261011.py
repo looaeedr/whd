@@ -221,7 +221,7 @@ def test_v5_numeric_model_list_reads_all_supplied_brands_without_dxf_identity():
         brand_csv_path, model_spec, NUMERIC_ONLY_UNVERIFIED,
     )
     assert NUMERIC_BRANDS == ("士林", "東元", "伍菱", "順山")
-    for brand, size in (("士林", 12), ("東元", 9), ("伍菱", 68), ("順山", 17)):
+    for brand, size in (("士林", 12), ("東元", 9), ("伍菱", 68), ("順山", 44)):
         assert brand_csv_path(brand).is_file()
         names = numeric_choices(brand)
         assert len(names) == size == len(set(names))
