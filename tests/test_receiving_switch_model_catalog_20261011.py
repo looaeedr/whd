@@ -260,7 +260,7 @@ def test_v5_missing_numbers_remain_unknown_and_cannot_claim_manufacturability():
     from ae_engine.receiving_nfb_numeric_catalog import read_numeric_specs, model_spec
     all_rows = [spec for brand in ("士林", "東元", "伍菱", "順山")
                 for spec in read_numeric_specs(brand)]
-    assert len(all_rows) == 106
+    assert len(all_rows) == 133
     assert sum(spec.dimensionally_complete for spec in all_rows) == 17
     shihlin = model_spec("士林", "1PBH")
     assert shihlin.opening_mm is None
