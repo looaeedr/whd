@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 EAR 側板獨立 MARKING／CHECK-only DXF 最後發布需重驗操作來源（2026-11-11）
+
+- 原兩個獨立 GUI 出圖按鈕在 `askdirectory` 之前讀取正式已提交快照與解析實體幾何，但資料夾選擇期間 Workspace 孔位或提交來源可能變動；其原有 Engine 真實左／右側板 3D 接觸→UV→CUTTING/BEND/MARKING 與 DXF 回讀，不能因此被拿去發布過期來源。已存在 `_current_authoritative_export_guard` 必須在 GUI 取當次快照後保留到正式出圖。
+- 同一套 Engine 正式 `manufacturing_api.export_receiving_ear_side_manufacturing_marking_dxf(..., pre_commit_guard=...)` 及 `export_receiving_ear_side_check_only_dxf(..., pre_commit_guard=...)` 接受可選來源 witness；Engine 在 staging 前、真 DXF 重開後、搬移舊檔／新檔前後重驗並原子回滾。未提供 guard 的既有 headless 調用維持原契約，非法 guard 來源明確拒絕；不另建 GUI 製造計算／第二份 DXF executor。
+- `tests/test_issue2517_ear_side_live_source_dxf_guard.py` 使用真實 EAR 3D 物理貼合與獨立 DXF reopen、檔案確認期間 Workspace 變更、雙側 DXF 覆寫期間來源漂移與既有檔還原；原 CHECK-only 絕非製造圖，正式 MARKING 亦僅左右側板，**不核准** EAR/PAD 焊接、NFB MFG-2、整櫃製造、NC、Windows UAT；#2517 持續 OPEN。
+
 ## [CURRENT] #2517 Fold Designer 舊內門框實體 T 須經公開 Engine 嚴格驗證（2026-11-11）
 
 - 原 `ae_engine.fold_designer_physical_selection.resolve_fold_designer_frame_part` 在無 Family 派生 API 的 legacy inner-door `frame_spans` 路徑，以 `float(data.get("t", default_thickness))` 提前清洗物理來源。明確的 `True` 因而成為合法看似真實的 `1 mm` 框，卻繞過既有 Engine 對板厚 T 的原生型別限制。GUI `_inner_door_frame_from_payload` 已只呼叫公開 API，錯在 Engine 內部來源門。

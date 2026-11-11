@@ -85,7 +85,11 @@ def test_mfg_gui_forwards_validated_source_to_existing_final_exporter(
     assert emitted[0][0] == snapshot
     assert emitted[0][1] is geometry
     assert emitted[0][2] == str(tmp_path)
-    assert emitted[0][3] == {
+    forwarded = dict(emitted[0][3])
+    source_guard = forwarded.pop("pre_commit_guard")
+    assert callable(source_guard)
+    source_guard()
+    assert forwarded == {
         "dimensions": (800.125, 1600.25, 350.375),
         "sheet_thickness": 2.5,
         "overwrite": False,

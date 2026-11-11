@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 EAR SIDE independent DXF exports share live source witness (2026-11-11)
+
+The existing public `manufacturing_api.export_receiving_ear_side_manufacturing_marking_dxf` and `export_receiving_ear_side_check_only_dxf` now accept an optional `pre_commit_guard` callback. The original GUI actions capture the operator/Workspace source before file selection and pass that witness into Engine validation, real left/right CUTTING+BEND+MARKING DXF staging, independent Save→Reload and the atomic final commit. A source change before or during the final two-side publish rejects and restores existing outputs; legacy headless clients without a callback retain the previous behavior. CHECK remains CHECK-only, manufacturing remains SIDE-only; no EAR/PAD welding, NFB MFG-2 or whole cabinet approval is granted. See `tests/test_issue2517_ear_side_live_source_dxf_guard.py`.
+
 ## #2517 Legacy inner-door frame physical thickness uses existing Engine T gate (2026-11-11)
 
 The public `manufacturing_api.resolve_fold_designer_frame_part` already owns physical Frame selection for GUI and headless. Its legacy explicit frame branch previously used `float(payload["t"])`, allowing a corrupt `True` source to masquerade as a 1-mm manufactured frame. It now uses the existing `operator_settings_transactions.normalize_operator_source_dimension(..., field="t")` before creating any frame: positive finite, no Boolean or missing explicit value. Original Engine default applies only when T is absent. Registered Family-derived frames, A/B/D signed Fold chains, physical identities, DXF and manufacturing eligibility stay unchanged. Regression `tests/test_issue2517_legacy_inner_door_frame_thickness_public_api.py` covers real GUI/headless selection, invalid source isolation, project Save→Reload that strips derived frame spans (no phantom frame) and a real Frame DXF verification/reopen only after explicit span-source readmission. Whole #2517/Windows UAT remains pending.

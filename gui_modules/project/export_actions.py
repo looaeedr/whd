@@ -592,6 +592,9 @@ def export_receiving_ear_side_manufacturing_dxf(self):
             snapshot,
         )
         geometry = resolver()
+        # Capture operator + Workspace before folder selection. Engine checks
+        # the same source before and after its real DXF staging and commit.
+        source_guard = _current_authoritative_export_guard(designer, snapshot)
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片側板 MARKING 不可輸出", str(exc))
         return None
@@ -605,6 +608,7 @@ def export_receiving_ear_side_manufacturing_dxf(self):
         receipt = manufacturing_api.export_receiving_ear_side_manufacturing_marking_dxf(
             snapshot, geometry, folder, dimensions=dimensions,
             sheet_thickness=thickness, overwrite=False,
+            pre_commit_guard=source_guard,
         )
     except (ValueError, FileExistsError, OSError, TypeError) as exc:
         messagebox.showerror(
@@ -636,6 +640,7 @@ def export_receiving_ear_side_check_dxf(self):
             snapshot,
         )
         geometry = resolver()
+        source_guard = _current_authoritative_export_guard(designer, snapshot)
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片 CHECK 不可用", str(exc))
         return None
@@ -650,7 +655,7 @@ def export_receiving_ear_side_check_dxf(self):
         receipt = manufacturing_api.export_receiving_ear_side_check_only_dxf(
             snapshot, geometry, folder,
             dimensions=dimensions, sheet_thickness=thickness,
-            overwrite=False,
+            overwrite=False, pre_commit_guard=source_guard,
         )
     except (ValueError, FileExistsError, OSError, TypeError) as exc:
         messagebox.showerror(
