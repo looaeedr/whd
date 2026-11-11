@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Registry candidate / Fold 3D physical T and verification truth are Engine-owned (2026-11-12)
+
+The original `operator_relief_candidate_3d.validate_operator_relief_registry_candidate_3d` now strictly validates direct headless sheet T with the existing physical source gate and only accepts `solution.verified is True` for a claimed 3D zero-penetration result. Serialized `"false"`, `"true"` or numeric flags cannot masquerade as verified. Fold Designer's candidate 3D and active mesh-profile 3D ports use the original `manufacturing_api.project_operator_manufacturing_request_snapshot(snapshot, settings, {})["t"]` with committed Snapshot > Settings, no GUI 2 mm fallback. Tests cover authentic `.p6fold` Save→Reload, GUI/headless raw source, positive fractional T, bad T refusal before geometry and forged solver flags. This does not alter certified formulas, CUTTING/DXF or whole-cabinet verification.
+
 ## #2517 Indicator SmallDoor operator FW, signed Gap and Fold original Engine source gates (2026-11-12)
 
 The existing GUI adapter passes raw SmallDoor operator controls to `manufacturing_api.indicator_small_door_operator_spec`. The original Engine owner now validates FW with `normalize_operator_source_dimension(field="fw")` (positive finite non-Boolean) and reuses the existing Door operator finite signed Gap/Fold validator (allows zero/negative where the original manufacturing policy does). It no longer converts `True` into an actual 1-mm frame/gap/fold or admits NaN/Inf. The historical default Fold applies only when omitted. SmallDoor geometry, Factory Policy dimensions, `小門.dxf`, and manufacturing qualification stay unchanged. Regression `tests/test_issue2517_indicator_small_door_policy_raw_source_engine_api.py` verifies headless/GUI, saved source, real DXF and invalid-source refusal. #2517 whole-cabinet coverage / Windows UAT remain open.

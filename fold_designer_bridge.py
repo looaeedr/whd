@@ -1675,6 +1675,13 @@ def _phase6_part_label(value: object, *, snapshot=None) -> str:
 
 def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
     """Collect operator inputs; Engine evaluates Registry candidate 3D."""
+    # Preflight the same committed Project > Settings physical source before
+    # reading scene geometry. No GUI-local 2 mm substitute is permissible.
+    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    settings = dict(getattr(self, "_settings_values", {}) or {})
+    physical_t = manufacturing_api.project_operator_manufacturing_request_snapshot(
+        snapshot, settings, {},
+    )["t"]
     callback = getattr(self, "_scene_query_callback", None)
     if callback is None:
         raise RuntimeError("3D final-scene provider is not connected")
@@ -1696,8 +1703,6 @@ def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
             tuple(dict(segment) for segment in x_profile),
             tuple(dict(segment) for segment in y_profile),
         )
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    settings = dict(getattr(self, "_settings_values", {}) or {})
     raw_intent = getattr(self, "_phase6_assembly_type", "")
     return manufacturing_api.validate_operator_relief_registry_candidate_3d(
         record,
@@ -1705,7 +1710,7 @@ def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
         assembly_intent=str(getattr(raw_intent, "value", raw_intent) or ""),
         part_inputs=parts,
         finished_dimensions=_phase6_operator_finished_dimensions(self),
-        sheet_thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
+        sheet_thickness=physical_t,
         clearance=_phase6_assembly_relief_clearance(self),
         box_body_structure_state=_phase6_box_structure_state(self),
         cabinet_family=_phase6_current_cabinet_family(self),
@@ -1860,7 +1865,9 @@ def _phase6_mesh_profiles_for_part(self, part_key, material):
         saved_profiles=saved,
         vault_profiles=getattr(self.state, "profiles_vault", {}) or {},
         snapshot=snapshot,
-        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
+        thickness=manufacturing_api.project_operator_manufacturing_request_snapshot(
+            snapshot, settings, {},
+        )["t"],
     )
 
 
