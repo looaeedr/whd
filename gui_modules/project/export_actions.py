@@ -146,15 +146,21 @@ def _selected_resolved_geometry(resolved_geometry, flags):
     )
 
 
-def _current_authoritative_export_guard(designer, snapshot):
-    """Witness both saved operator inputs and current authored workspace source.
+def _current_authoritative_export_guard(
+    designer, snapshot, *, operator_source=None, operator_source_reader=None,
+):
+    """Witness saved, workspace and optional live operator export sources.
 
-    Hole Editor features, physical part profiles and other committed Workspace
-    sources can change without mutating _phase6_input_snapshot. The Engine
-    exporter calls this UI-source witness before and after staging real DXF;
-    never publish a newly stale physical flat under an unchanged input revision.
+    A project snapshot can remain unchanged while an operator edits dimension,
+    STOCK or selected-part controls in the folder/overwrite dialog. Compare
+    only authored inputs here; manufacturing interpretation stays in Engine.
     """
+    if (operator_source is None) != (operator_source_reader is None):
+        raise ValueError("DXF_OPERATOR_SOURCE_WITNESS_INCOMPLETE")
+    if operator_source_reader is not None and not callable(operator_source_reader):
+        raise TypeError("DXF_OPERATOR_SOURCE_READER_INVALID")
     witness = deepcopy(snapshot)
+    operator_witness = deepcopy(operator_source)
     workspace = getattr(designer, "designer_workspace", None)
     workspace_reader = getattr(workspace, "snapshot", None)
     workspace_witness = (
@@ -162,6 +168,9 @@ def _current_authoritative_export_guard(designer, snapshot):
     )
 
     def verify():
+        if (operator_source_reader is not None
+                and operator_source_reader() != operator_witness):
+            raise ValueError("DXF 即時操作來源已變更，請重新確認尺寸與出圖選片")
         if getattr(designer, "_phase6_input_snapshot", None) != witness:
             raise ValueError("DXF 出圖來源已變更，請重新確認盤名與板件")
         if workspace_witness is not None:
@@ -675,6 +684,45 @@ def export_receiving_ear_side_check_dxf(self):
     return receipt
 
 
+def _selected_dxf_live_operator_sources(self):
+    """Capture raw GUI inputs only; Engine still decides physical export flags.
+
+    This witness is re-read at actual publication after modal folder, overwrite
+    and partial-export dialogs. No GUI panel calculation or geometry is added.
+    """
+    controls = {
+        "stock": getattr(self, "draw_stock_var", None),
+        "multi_door": getattr(self, "multi_door_enabled_var", None),
+        "indicator_box": getattr(self, "is_indicator_box_var", None),
+        "door_indicator": getattr(self, "is_door_indicator_var", None),
+        "indicator_layers": getattr(self, "indicator_l_var", None),
+        "door_indicator_layers": getattr(self, "door_indicator_l_var", None),
+    }
+    def raw(control):
+        getter = getattr(control, "get", None)
+        return getter() if callable(getter) else control
+    return {
+        "dimensions": self.get_float_values(),
+        "flags": _selected_export_flags(
+            self, self._phase6_current_existing_parts(), self._has_any_indicator_box(),
+        ),
+        "controls": {name: raw(control) for name, control in controls.items()},
+        "indicator_groups": tuple(raw(v) for v in
+                                  tuple(getattr(self, "indicator_layer_g_vars", ()) or ())),
+        "door_indicator_groups": tuple(raw(v) for v in
+                                       tuple(getattr(self, "door_indicator_layer_g_vars", ()) or ())),
+        "door_layout_indicator_states": deepcopy(
+            getattr(self, "door_layout_indicator_states", None),
+        ),
+        "door_layout_indicator_box_features": deepcopy(
+            getattr(self, "door_layout_indicator_box_features", None),
+        ),
+        "door_layout_indicator_door_features": deepcopy(
+            getattr(self, "door_layout_indicator_door_features", None),
+        ),
+    }
+
+
 def export_selected_dxf(self):
     """Batch export selected existing parts through authoritative manufacturing APIs."""
     self._flush_phase6_authoritative_state()
@@ -710,14 +758,27 @@ def export_selected_dxf(self):
         return
 
     # Capture the original source *before* file and overwrite dialogs.
-    # The individual Engine DXF exporter already witnesses this source while
-    # staging; the final GUI stage-to-destination publish must do so too.
+    # A live dimension/checkbox/indicator edit may not yet be reflected in
+    # _phase6_input_snapshot. Do not publish the old DXF from stale UI intent.
+    try:
+        operator_source = _selected_dxf_live_operator_sources(self)
+        if (operator_source["dimensions"] != val
+                or operator_source["flags"] != flags
+                or manufacturing_api.normalize_operator_settings_boolean(
+                    operator_source["controls"]["stock"]
+                ) != draw_stock):
+            raise ValueError("DXF 即時操作來源已變更，請重新確認尺寸與出圖選片")
+    except (ValueError, TypeError, KeyError) as exc:
+        messagebox.showerror("DXF 出圖來源無效", str(exc))
+        return
     designer = getattr(self, "fold_designer_app", None)
     source_snapshot = getattr(designer, "_phase6_input_snapshot", None)
     if isinstance(source_snapshot, Mapping):
         try:
             final_publish_guard = _current_authoritative_export_guard(
                 designer, source_snapshot,
+                operator_source=operator_source,
+                operator_source_reader=lambda: _selected_dxf_live_operator_sources(self),
             )
         except Exception as exc:
             messagebox.showerror("DXF 出圖來源無效", str(exc))
