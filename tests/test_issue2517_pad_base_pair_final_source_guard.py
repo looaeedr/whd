@@ -283,7 +283,12 @@ def test_real_saved_receiving_pad_base_reopens_same_2d_3d_and_check_q_dxf(
     persisted = json.loads(saved_path.read_text(encoding="utf-8"))
     assert "_receiving_runtime_selection" not in persisted["snapshot"]
     reloaded = project.read_project(saved_path)["snapshot"]
-    assert "_receiving_runtime_selection" not in reloaded
+    # Only the in-memory GUI compatibility view is reprojected by the
+    # original project reader; it must point to the exact persisted Bay IDs.
+    view = reloaded["_receiving_runtime_selection"]
+    saved_set = reloaded["receiving_layout"]["sets"][0]
+    assert view["set_id"] == saved_set["stable_id"]
+    assert view["bay_id"] == saved_set["bays"][0]["stable_id"]
     assert snapshot == authored
 
     # Public Engine reselects only from durable Bay+NFB data; GUI may not
