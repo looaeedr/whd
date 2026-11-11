@@ -237,3 +237,77 @@ def test_gui_unchanged_source_passes_callable_witness_to_public_engine(
     workspace["part_features"]["base_plate"].append({"hole": "late"})
     with pytest.raises(ValueError, match="DXF"):
         guard()
+
+
+def test_real_saved_receiving_pad_base_reopens_same_2d_3d_and_check_q_dxf(
+    tmp_path,
+):
+    """One committed NFB hole source across real project disk, 2D, 3D, DXF."""
+    import phase6_project_file as project
+    from ae_engine.receiving_nfb_committed_final_scene import (
+        apply_committed_csv_v5_to_canonical_parts,
+    )
+    from ae_engine.receiving_nfb_pad_pair_manufacturing import (
+        verified_pad_base_physical_sheets,
+    )
+    from ae_engine.receiving_pad_base_export_selection import (
+        resolve_receiving_pad_base_export_source,
+    )
+    from tests.test_issue1502_csv_is_only_normal_finalscene_source import _make
+
+    snapshot, parts = _real_source()
+    authored = deepcopy(snapshot)
+    earlier, physical_before = verified_pad_base_physical_sheets(snapshot, parts)
+    assert len(earlier) == 1 and len(physical_before) == 2
+
+    saved_path = project.write_project(
+        tmp_path / "real-installed-nfb-and-pad.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": snapshot},
+    )
+    persisted = json.loads(saved_path.read_text(encoding="utf-8"))
+    assert "_receiving_runtime_selection" not in persisted["snapshot"]
+    reloaded = project.read_project(saved_path)["snapshot"]
+    assert "_receiving_runtime_selection" not in reloaded
+    assert snapshot == authored
+
+    # Public Engine reselects only from durable Bay+NFB data; GUI may not
+    # quietly reconstruct prior transient selection or manufacture a new X.
+    chosen = resolve_receiving_pad_base_export_source(reloaded)
+    selected = chosen.snapshot
+    assert chosen.version_id
+    assert selected["_receiving_runtime_selection"]["set_id"]
+    assert selected["_receiving_runtime_selection"]["bay_id"]
+    assert selected["nfb_config_submitted"] is True
+    assert selected["nfb_config"]["holes"] == authored["nfb_config"]["holes"]
+
+    restored_parts = apply_committed_csv_v5_to_canonical_parts(
+        selected, (_make(selected),),
+    )
+    after, physical_after = verified_pad_base_physical_sheets(
+        selected, restored_parts,
+    )
+    assert len(after) == len(earlier) == 1
+    assert {r.physical_id for r in after} == {r.physical_id for r in earlier}
+    assert set(physical_after) == set(physical_before)
+    assert after[0].owner_hole_id == earlier[0].owner_hole_id
+    assert after[0].full_thickness_contact_certified is True
+    assert after[0].seating_witness.base_slab_collision_verified is True
+
+    for key in physical_before:
+        before, restored = physical_before[key], physical_after[key]
+        assert restored.material.equals(before.material)
+        assert tuple(x.layer for x in restored.scene.primitives) == tuple(
+            x.layer for x in before.scene.primitives
+        )
+    target = tmp_path / "reloaded-pad-base-q"
+    receipt = _export(selected, restored_parts, target, guard=lambda: None)
+    assert receipt.pad_piece_count == 2
+    assert receipt.base_piece_count == 2
+    assert len(receipt.files) == 2
+    for filename in receipt.files:
+        path = target / filename
+        assert path.is_file()
+        assert any(row.dxf.layer == "CUTTING" for row in ezdxf.readfile(path).modelspace())
+    assert json.loads((target / "PAD_BASE_PAIR_PART_ONLY_CHECK_Q_RECEIPT.json").read_text(
+        encoding="utf-8",
+    ))["full_cabinet_manufacturing_released"] is False
