@@ -2407,12 +2407,21 @@ def export_current_csv_quantity_manufacturing(
 
 def export_current_receiving_multibay_dxf(
     saved_snapshot, *, physical_bay_geometry_provider,
-    flags, output_dir, overwrite=False,
+    flags, output_dir, overwrite=False, pre_commit_guard=None,
 ):
-    """Every physical Set/Bay still goes through the original certified gate."""
+    """Every physical Set/Bay uses the same staged source witness as grouped DXF.
+
+    The optional guard remains backward compatible for existing headless
+    callers, but a GUI export must pass the current operator/Workspace witness.
+    """
     from .receiving_csv_multibay_manufacturing import export_current_receiving_multibay_dxf as execute
+    options = (
+        {"pre_commit_guard": pre_commit_guard}
+        if pre_commit_guard is not None else {}
+    )
     return execute(saved_snapshot, physical_bay_geometry_provider=physical_bay_geometry_provider,
-                   flags=flags, output_dir=output_dir, overwrite=overwrite)
+                   flags=flags, output_dir=output_dir, overwrite=overwrite,
+                   **options)
 
 
 def plan_receiving_grouped_dxf(layout, mode, *, file_stamp=None):
