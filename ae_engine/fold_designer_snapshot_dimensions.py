@@ -37,6 +37,10 @@ def normalize_fold_designer_indicator_groups(
     physical lamp groups. This remains the same Engine validation path for
     snapshot save, preview and the independent Door indicator source.
     """
+    # A scalar string or mapping is not a list of physical layers. Iterating
+    # "2" would silently manufacture a one-layer indicator from the wrong schema.
+    if not isinstance(values, (list, tuple)):
+        raise ValueError("指示燈層數／組數必須是陣列")
     result = []
     for raw in values:
         if isinstance(raw, bool):
