@@ -12,6 +12,12 @@ whd_schema: WHD_DOC_META_V1
 - 原 Engine selector 改直接復用 `operator_settings_transactions.normalize_operator_source_dimension(..., field="t")`；已提供 T 必須是正有限且非布林，缺值才沿用原 Engine legacy default。Family 派生來源、上／左／右框 A/B/D 的方向與原 DXF／幾何／孔位、stable ID、選片與認證不變。
 - `tests/test_issue2517_legacy_inner_door_frame_thickness_public_api.py` 覆蓋 headless/GUI、真 legacy 框、非布林與負向非法來源、Save→Reload 僅保留原始 T 且正確剔除衍生 frame_spans、重新提供獨立確認的 span 後才可真 Frame FinalScene→DXF reopen；不因此宣稱整櫃實機、焊接或 MFG-2 已放行。
 
+## [CURRENT] #2517 多門格 2D 中隔／內門框預覽不准將非法物理來源變空板件（2026-11-11）
+
+- 原公開 `manufacturing_api.project_operator_door_divider_frame_preview`（`ae_engine.operator_door_2d_preview`）在計算前對 Door cell W/H 使用 `float()`，也對 W/H/D/T/FW 使用 `float(...default)`；例如 `True` 可成為 1 mm，缺實際 T/D 可變 2/350 mm。隨後獨立 Divider／內門框推導的 `except Exception: pass` 會把無效來源或物理拓樸失敗顯示成「沒有板件」，與 canonical Save→Reload、3D／DXF 來源矛盾。
+- 本批在原同一公開 API 增加 **推導前**實體 W/H/D/T/FW 輸入 Gate（重用 `operator_settings_transactions.normalize_operator_source_dimension`）及 canonical `derive_door_layout_cells` 門格拓樸 Gate；Snapshot W/H、即時 D/T/FW 的原優先序維持，明確非法不可往下 fallback。缺 T/D 不再自行填 2/350；未提供 FW 沿用既有原 `ae.FW` baseline default，已提供壞 FW 直接拒絕。GUI `door_layout_divider_frame_snapshot` 仍只調用公開 Engine，不重算。
+- 保留合法金庫型／受電箱 Divider Family Fold/Span／world placement 與內門框來源，且只對實際後續 **顯示放置不可用** 保留既有獨立 N/A 兼容（不是製造批准）。`tests/test_issue2517_door_divider_preview_raw_source_engine_api.py` 核對非法來源早拒絕、GUI/headless/JSON、實體 Divider 及 3D placement 同源、原 preview N/A。整櫃 DXF/Windows UAT 仍屬 #2517。
+
 ## [CURRENT] #2517 主 GUI 指示燈盒／門板指示燈層數選單由公開 Engine 驗證（2026-11-11）
 
 - 原 `gui_modules.parts.panels.indicator_box.rebuild_layers_config_ui` 與 `gui_modules.parts.panels.door.rebuild_door_layers_config_ui` 在清除舊控件後以 GUI `int()` 決定物理層數，非法來源被暗中改成 3／1，超過六層還可能索引超出原控制。這不是可信的製造輸入。

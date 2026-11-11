@@ -7,7 +7,11 @@ to draw, but never reconstructs Door cell boundaries, Family physical frames,
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from .ae import FW as default_frame_width
+from .operator_settings_transactions import normalize_operator_source_dimension
+from .sheetmetal_part_adapters import derive_door_layout_cells
 from . import assembly_placement, door_dividers, inner_door_frames
 from .cabinet_types import policy as cabinet_family_policy
 from .sheetmetal_features import (
@@ -23,25 +27,50 @@ def project_operator_door_divider_frame_preview(
     project_snapshot, columns, val, *, layout_scope="main",
     handle_edges=None, model_name="",
 ):
-    """Preserve legacy independent divider and inner-door-frame preview guards."""
-    t_val = float(val.get("t", 2.0))
-    total_w = float(project_snapshot.get("w", val.get("w", 0.0)))
-    total_h = float(project_snapshot.get("h", val.get("h", 0.0)))
+    """Read strict physical inputs; keep legacy independent display N/A guards.
+
+    Invalid operator dimensions or Door topology must never silently disappear
+    as an empty derived part list. Only downstream unavailable display placement
+    can retain the existing empty-part preview compatibility behaviour.
+    """
+    if not isinstance(project_snapshot, Mapping) or not isinstance(val, Mapping):
+        raise ValueError("DOOR_DIVIDER_PREVIEW_SOURCE_MAPPING_INVALID")
+
+    def source(field, *, prefer_snapshot):
+        first, fallback = ((project_snapshot, val) if prefer_snapshot
+                           else (val, project_snapshot))
+        raw = first[field] if field in first else fallback.get(field)
+        return normalize_operator_source_dimension(raw, field=field)
+
+    total_w = source("w", prefer_snapshot=True)
+    total_h = source("h", prefer_snapshot=True)
+    t_val = source("t", prefer_snapshot=False)
+    depth = source("d", prefer_snapshot=False)
+    # Missing FW has a declared baseline/Family default. An explicitly
+    # supplied invalid FW is never substituted by that default.
+    frame_width_source = (
+        val["fw"] if "fw" in val else
+        project_snapshot.get("fw", default_frame_width)
+    )
+    frame_width = normalize_operator_source_dimension(
+        frame_width_source, field="fw",
+    )
+    # Let the canonical Engine Door topology reader reject bool, nonfinite,
+    # zero, malformed or empty physical columns before any display N/A guard.
+    normalized = tuple(columns)
+    derive_door_layout_cells(normalized)
     divider_payloads = []
     frame_payloads = []
 
     try:
-        normalized = tuple(
-            (float(c[0]), tuple(float(h) for h in c[1])) for c in columns
-        )
         dividers = door_dividers.derive_box_body_dividers(
             normalized,
-            depth=float(val.get("d", 350.0)),
+            depth=depth,
             thickness=t_val,
             layout_scope=layout_scope,
             handle_edges=handle_edges,
             model_name=model_name,
-            frame_width=float(val.get("fw", default_frame_width)),
+            frame_width=frame_width,
         )
         for div in dividers:
             placement = assembly_placement.resolve_assembly_placement(project_snapshot, div.stable_id)
