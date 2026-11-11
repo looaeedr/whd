@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Selected GUI DXF publication rechecks current dimensions and operator selection (2026-11-12)
+
+The existing GUI batch stage-to-destination transaction already witnesses saved `.p6fold` operator snapshot and Workspace physical features. It now additionally snapshots **live GUI dimensional values, Engine-projected selected flags, STOCK, Door/Indicator toggle and group sources** before any folder/overwrite/partial-confirmation modal, and compares the same raw UI sources immediately before/during final atomic publication. A changed control while dialogs are open rejects stale staged Engine-generated DXFs, restoring previously existing destination files; no GUI geometry or second manufacturing export API was introduced. `tests/test_issue2517_gui_final_dxf_publish_source_guard.py` reopens actual Engine CUTTING/BEND DXF after operator dimension, STOCK, selection and indicator changes, including unchanged-source success. The guard does not certify entire-cabinet 2D/3D/DXF or native Windows UAT.
+
 ## #2517 EAR SIDE independent DXF exports share live source witness (2026-11-11)
 
 The existing public `manufacturing_api.export_receiving_ear_side_manufacturing_marking_dxf` and `export_receiving_ear_side_check_only_dxf` now accept an optional `pre_commit_guard` callback. The original GUI actions capture the operator/Workspace source before file selection and pass that witness into Engine validation, real left/right CUTTING+BEND+MARKING DXF staging, independent Save→Reload and the atomic final commit. A source change before or during the final two-side publish rejects and restores existing outputs; legacy headless clients without a callback retain the previous behavior. CHECK remains CHECK-only, manufacturing remains SIDE-only; no EAR/PAD welding, NFB MFG-2 or whole cabinet approval is granted. See `tests/test_issue2517_ear_side_live_source_dxf_guard.py`.
