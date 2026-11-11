@@ -520,8 +520,16 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
 
 
 
-def _commit_staged_project_export(stage_folder, output_folder):
-    """Commit one already-successful export batch with rollback on move failure."""
+def _commit_staged_project_export(stage_folder, output_folder, *, pre_commit_guard=None):
+    """Publish staged files only while their original physical source is current.
+
+    Engine export has already manufactured/reopened each DXF. This GUI
+    transport must not publish that result after an operator edits the source
+    during an overwrite/partial-export confirmation. A failed witness rolls
+    back all destination moves, including a post-move source change.
+    """
+    if pre_commit_guard is not None and not callable(pre_commit_guard):
+        raise TypeError("DXF_PRECOMMIT_SOURCE_GUARD_INVALID")
     stage_root = os.path.abspath(stage_folder)
     output_root = os.path.abspath(output_folder)
     entries = [
@@ -532,17 +540,23 @@ def _commit_staged_project_export(stage_folder, output_folder):
     committed = []
     backups = {}
     try:
+        if pre_commit_guard is not None:
+            pre_commit_guard()
         for name in entries:
             destination = os.path.join(output_root, name)
             if os.path.exists(destination):
                 backup = os.path.join(backup_root, name)
                 os.replace(destination, backup)
                 backups[destination] = backup
+        if pre_commit_guard is not None:
+            pre_commit_guard()
         for name in entries:
             source = os.path.join(stage_root, name)
             destination = os.path.join(output_root, name)
             os.replace(source, destination)
             committed.append(destination)
+        if pre_commit_guard is not None:
+            pre_commit_guard()
         return tuple(os.path.basename(path) for path in committed)
     except Exception:
         for destination in reversed(committed):
@@ -690,6 +704,26 @@ def export_selected_dxf(self):
         messagebox.showerror("STOCK 出圖來源無效", str(exc))
         return
 
+    # Capture the original source *before* file and overwrite dialogs.
+    # The individual Engine DXF exporter already witnesses this source while
+    # staging; the final GUI stage-to-destination publish must do so too.
+    designer = getattr(self, "fold_designer_app", None)
+    source_snapshot = getattr(designer, "_phase6_input_snapshot", None)
+    if isinstance(source_snapshot, Mapping):
+        try:
+            final_publish_guard = _current_authoritative_export_guard(
+                designer, source_snapshot,
+            )
+        except Exception as exc:
+            messagebox.showerror("DXF 出圖來源無效", str(exc))
+            return
+    elif callable(getattr(designer, "_phase6_resolve_manufacturing_geometry", None)):
+        messagebox.showerror("DXF 出圖來源無效", "缺少現行製造來源快照")
+        return
+    else:
+        # Compatibility callers without Phase6 have no Workspace source.
+        final_publish_guard = None
+
     folder = filedialog.askdirectory(title="選擇 DXF 檔案儲存資料夾")
     if not folder:
         return
@@ -768,7 +802,12 @@ def export_selected_dxf(self):
             ):
                 return
         try:
-            committed = _commit_staged_project_export(stage_folder, folder)
+            if final_publish_guard is None:
+                committed = _commit_staged_project_export(stage_folder, folder)
+            else:
+                committed = _commit_staged_project_export(
+                    stage_folder, folder, pre_commit_guard=final_publish_guard,
+                )
         except Exception as ex:
             messagebox.showerror("輸出失敗", f"批次提交失敗：{ex}")
             return
