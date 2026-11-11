@@ -58,6 +58,11 @@ def quantity_ports(composition, namespace):
     def holes(role):
         if role not in {"head", "tail"}:
             raise ValueError("孔型版本只覆寫封頭／封尾 Features")
+        # Missing editor is an operator/UI capability error, not a reason to
+        # resolve or fabricate physical manufacturing dimensions first.
+        host = getattr(app._scene_query_callback, "__self__", None)
+        if host is None or not hasattr(host, "_open_unified_hole_editor"):
+            raise ValueError("目前未連接既有 Hole Editor")
         snapshot = hole_source()
         version_id = model().selected_version_id
         features = model().features_for_version(version_id, role)
@@ -65,9 +70,6 @@ def quantity_ports(composition, namespace):
             snapshot, role=role,
         )
         width, depth = geometry.width, geometry.height
-        host = getattr(app._scene_query_callback, "__self__", None)
-        if host is None or not hasattr(host, "_open_unified_hole_editor"):
-            raise ValueError("目前未連接既有 Hole Editor")
 
         def commit():
             # Capture identity, not selection: another version may be selected
