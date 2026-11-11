@@ -172,6 +172,7 @@ def export_verified_pad_base_part_only(
     snapshot, assembly_parts, output_directory, *,
     version_id: str, box_count: int,
     parameters: ManufacturingParameters,
+    pre_commit_guard=None,
 ) -> PadBasePairManufacturingResult:
     """Atomic paired DXF & CHECK/Q from the same physically proven NFB/Bay.
 
@@ -184,6 +185,11 @@ def export_verified_pad_base_part_only(
             or type(box_count) is not int or box_count<=0
             or not isinstance(parameters,ManufacturingParameters)):
         raise ValueError("PAD_PAIR_VERSION_COUNT_OR_PROCESS_REQUIRED")
+    if pre_commit_guard is not None and not callable(pre_commit_guard):
+        raise TypeError("PAD_PAIR_SOURCE_GUARD_INVALID")
+    # Reject a stale GUI/host source before expensive physical geometry.
+    if pre_commit_guard is not None:
+        pre_commit_guard()
     # Reject an untrusted batch sheet T before expensive PAD/Base geometry
     # certification or any CHECK/Q output staging. Headless callers must
     # satisfy the same physical-source rule as the GUI.
@@ -205,12 +211,15 @@ def export_verified_pad_base_part_only(
         # NFB holes must remain explicitly traceable as separate pieces.
         if sum(g.quantity for g in groups)!=box_count*len(physical):
             raise ValueError("PAD_PAIR_CHECK_Q_DEMAND_OR_GROUP_LOST")
+    if pre_commit_guard is not None:
+        pre_commit_guard()
     folder=Path(output_directory)
     if folder.exists():
         raise FileExistsError(str(folder))
     folder.parent.mkdir(parents=True,exist_ok=True)
     stage=Path(tempfile.mkdtemp(prefix=".pad-pair-mfg-",dir=folder.parent))
     witness=[]
+    published=False
     try:
         from .drawing_annotation_layout import annotate_quantity_render_data
         from .dxf_serialization import save_scene_dxf, verify_quantity_check_dxf
@@ -259,12 +268,24 @@ def export_verified_pad_base_part_only(
         receipt.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n",
                            encoding="utf-8")
         digest=sha256(receipt.read_bytes()).hexdigest()
+        if pre_commit_guard is not None:
+            pre_commit_guard()
         os.replace(stage,folder)
+        published=True
+        # Guard once more after the atomic move. A source change inside the
+        # publication boundary must remove only this newly created folder;
+        # the exporter never replaces an existing user target.
+        if pre_commit_guard is not None:
+            pre_commit_guard()
         return PadBasePairManufacturingResult(
             str(folder),len(records),box_count*len(records),
             box_count*base_count,tuple(row["name"] for row in witness),
             digest,
         )
+    except Exception:
+        if published:
+            shutil.rmtree(folder)
+        raise
     finally:
         if stage.exists():
             shutil.rmtree(stage)

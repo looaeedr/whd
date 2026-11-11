@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 PAD＋底板 PART_ONLY CHECK/Q 出圖須在對話框及原子發布前後維持同一實體來源（2026-11-12）
+
+- 原 `gui_modules.project.export_actions.export_receiving_pad_base_part_only_dxf` 在輸入材質、製程、數量與選資料夾之前已取已確認 Bay、Hole Editor 與 3D `assembly_parts`；當 Modal Dialog 期間操作者改掉已提交快照／Workspace 時，原公開 `export_verified_pad_base_part_only` 仍可把舊場景製成 CHECK/Q DXF。舊 Engine 已逐件檢查真實 CSV／底板 CUTTING／PAD 世界 3D／完整 T 進孔貼合，但未比對當下即時操作來源，不能視為同一個 CURRENT source。
+- GUI 僅重用原 `_current_authoritative_export_guard` 讀取已存 Snapshot＋Workspace 見證；對話框後先重驗，將同一 callable 經公開 `manufacturing_api.export_verified_pad_base_part_only(..., pre_commit_guard=...)` 傳入原 Engine `receiving_nfb_pad_pair_manufacturing`。Engine 在解幾何前、建立 Stage 前、每批真 DXF reopen 與 CHECK/Q manifest 之後／原子發布前後反覆核對，來源漂移須移除本次新發布檔夾、不得碰舊檔。未提供 guard 的合法 headless 舊呼叫保持原契約，非法 guard 型別先拒絕。
+- 真 `installed_pair()` 的 CSV 物理孔位、PAD 四耳實體與 Base CUTTING／BEND、FinalScene 世界位置、Q 數量和 DXF reopen 維持原 Engine owner，不借 GUI 重算或新增 CADSplit 專屬出圖；`tests/test_issue2517_pad_base_pair_final_source_guard.py` 驗證中斷、發布後變更與回滾以及 GUI Modal 漂移，仍不是整箱 MFG-2／焊接／Windows UAT 核准。#2517 保持 OPEN。
+
+
 ## [CURRENT] #2517 Relief Registry 候選 3D／Mesh 實體 T 與已驗布林須與正式 Engine 一致（2026-11-12）
 
 - 原 `fold_designer_bridge._phase6_registry_validate_candidate_3d`／`_phase6_mesh_profiles_for_part` 對原始 T 用 `_num(settings.get("t", snapshot.get("t", 2.0)), 2.0)`，可能掩蓋非法／缺值、讓過時 Settings 蓋過已提交 Snapshot；原 Engine `operator_relief_candidate_3d.validate_operator_relief_registry_candidate_3d` 對 headless 直接 T 未先驗來源，且用 `bool(solution.verified)` 可把損壞的 `"false"`／`"true"`／`1` 冒充 3D 已通過。

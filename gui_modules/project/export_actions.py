@@ -908,6 +908,10 @@ def export_receiving_pad_base_part_only_dxf(self):
             raise ValueError("須在受電箱提交 NFB 後，才能輸出 PAD＋底板")
         if not manufacturing_api.committed_nfb_pad_draft_parts(snapshot):
             raise ValueError("目前沒有已提交且具已確認孔位的 PAD 實體板件")
+        # Modal dialogs can change the saved Bay, Hole Editor or active
+        # workspace without affecting the already resolved 3D sheets.
+        # Witness only authored source; Engine still owns manufacture.
+        source_guard = _current_authoritative_export_guard(designer, snapshot)
         from fold_designer_bridge import _phase6_final_scene_adapter
         scene = _phase6_final_scene_adapter(designer).query_assembly_render_data()
         parts=tuple(scene.assembly_parts)
@@ -934,6 +938,7 @@ def export_receiving_pad_base_part_only_dxf(self):
             return
         # Only Engine may select a persisted Quantity version or Set/Bay
         # manufacturing identity. UI supplies material, process and Q only.
+        source_guard()
         selected = manufacturing_api.resolve_receiving_pad_base_export_source(snapshot)
         snapshot, version_id = selected.snapshot, selected.version_id
         # A Quantity version may project a different committed source than
@@ -949,6 +954,7 @@ def export_receiving_pad_base_part_only_dxf(self):
         result=manufacturing_api.export_verified_pad_base_part_only(
             snapshot,parts,output,version_id=version_id,box_count=qty,
             parameters=manufacturing_api.ManufacturingParameters(material,sheet_t,process),
+            pre_commit_guard=source_guard,
         )
     except (ValueError, TypeError, KeyError, FileExistsError, OSError) as exc:
         messagebox.showerror("PAD＋底板無法製造輸出", str(exc))

@@ -2504,11 +2504,15 @@ def export_receiving_ear_side_check_only_dxf(
 def export_verified_pad_base_part_only(
     snapshot, assembly_parts, output_directory, *,
     version_id: str, box_count: int, parameters: ManufacturingParameters,
+    pre_commit_guard=None,
 ):
     """Preserve strict PAD+Base paired PART_ONLY CHECK/Q production boundary."""
     from .receiving_nfb_pad_pair_manufacturing import export_verified_pad_base_part_only as execute
+    # Keep original headless callers without a guard API-compatible.
+    witness = ({"pre_commit_guard": pre_commit_guard}
+               if pre_commit_guard is not None else {})
     return execute(snapshot, assembly_parts, output_directory, version_id=version_id,
-                   box_count=box_count, parameters=parameters)
+                   box_count=box_count, parameters=parameters, **witness)
 
 # #2517: Public physical quantity equivalence and live-manifest CHECK/Q.
 # Not a second exporter or a release grant.
