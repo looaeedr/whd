@@ -260,9 +260,25 @@ def test_real_saved_receiving_pad_base_reopens_same_2d_3d_and_check_q_dxf(
     earlier, physical_before = verified_pad_base_physical_sheets(snapshot, parts)
     assert len(earlier) == 1 and len(physical_before) == 2
 
+    # This actual installed source is an in-memory FinalScene fixture, whose
+    # proto Receiving layout deliberately lacks a persisted schema. Promote
+    # the same real committed NFB holes into the original Engine's canonical
+    # Set/Bay layout, instead of weakening strict .p6fold schema validation.
+    from ae_engine.receiving_layout import (
+        new_receiving_layout, update_receiving_bay,
+    )
+    persisted_source = deepcopy(snapshot)
+    persisted_source["receiving_layout"] = update_receiving_bay(
+        new_receiving_layout(
+            width=snapshot["w"], height=snapshot["h"], depth=snapshot["d"],
+        ),
+        set_index=0, bay_index=0,
+        nfb_config_submitted=True,
+        nfb_config=deepcopy(snapshot["nfb_config"]),
+    )
     saved_path = project.write_project(
         tmp_path / "real-installed-nfb-and-pad.p6fold",
-        {"schema": project.PROJECT_SCHEMA, "snapshot": snapshot},
+        {"schema": project.PROJECT_SCHEMA, "snapshot": persisted_source},
     )
     persisted = json.loads(saved_path.read_text(encoding="utf-8"))
     assert "_receiving_runtime_selection" not in persisted["snapshot"]
