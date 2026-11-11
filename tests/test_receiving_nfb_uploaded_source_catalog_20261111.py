@@ -50,21 +50,26 @@ def test_new_source_rows_keep_original_wuling_records_and_exact_pole_identity():
 def test_shunshan_is_explicit_source_only_brand_with_no_guessed_geometry():
     assert "順山" in BRANDS
     rows = read_numeric_specs("順山")
-    assert len(rows) == 17
-    assert len({r.model for r in rows}) == 17
+    assert len(rows) == 44
+    assert len({r.model for r in rows}) == 44
     evidence = _source_records("順山_DWG來源索引.csv")
-    assert {r.model for r in rows} <= {r["型號_依檔名"] for r in evidence}
+    assert {r.model for r in rows[:17]} <= {r["型號_依檔名"] for r in evidence}
     assert len({r["原始DWG檔名"] for r in evidence}) == 11
-    for spec in rows:
+    for spec in rows[:17]:
         assert not spec.dimensionally_complete
         assert spec.width_mm is spec.height_mm is spec.depth_mm is None
         assert spec.opening_mm is spec.screw_pitch_mm is None
         assert spec.screw_diameter_mm is None
         assert spec.status == NUMERIC_ONLY_UNVERIFIED
+    for spec in rows[17:]:
+        assert spec.width_mm is not None and spec.height_mm is not None
+        assert spec.depth_mm is None and spec.opening_mm is None
+        assert spec.screw_pitch_mm is None and spec.screw_diameter_mm is None
+        assert not spec.dimensionally_complete
     assert numeric_model_ref("順山", "NF50-HS") == "nfbv5:順山:NF50-HS"
     assert parse_numeric_model_ref("nfbv5:順山:NF50-HS") == ("順山", "NF50-HS")
     refs = manufacturing_api.list_receiving_nfb_model_refs("順山")
-    assert len(refs) == 17 and "nfbv5:順山:NF50-HS" in refs
+    assert len(refs) == 44 and "nfbv5:順山:NF50-HS" in refs
     assert manufacturing_api.project_receiving_nfb_v5_model_catalog_snapshot(
         "順山"
     ).manufacturing_ready is False
