@@ -12,11 +12,24 @@ whd_schema: WHD_DOC_META_V1
 - 同一套 Engine 正式 `manufacturing_api.export_receiving_ear_side_manufacturing_marking_dxf(..., pre_commit_guard=...)` 及 `export_receiving_ear_side_check_only_dxf(..., pre_commit_guard=...)` 接受可選來源 witness；Engine 在 staging 前、真 DXF 重開後、搬移舊檔／新檔前後重驗並原子回滾。未提供 guard 的既有 headless 調用維持原契約，非法 guard 來源明確拒絕；不另建 GUI 製造計算／第二份 DXF executor。
 - `tests/test_issue2517_ear_side_live_source_dxf_guard.py` 使用真實 EAR 3D 物理貼合與獨立 DXF reopen、檔案確認期間 Workspace 變更、雙側 DXF 覆寫期間來源漂移與既有檔還原；原 CHECK-only 絕非製造圖，正式 MARKING 亦僅左右側板，**不核准** EAR/PAD 焊接、NFB MFG-2、整櫃製造、NC、Windows UAT；#2517 持續 OPEN。
 
+## [CURRENT] #2517 Quantity 封頭尾 Hole Editor 實體 T 與正式 Request 同源（2026-11-11）
+
+- 原 GUI `gui_modules.application.quantity_version_ports.quantity_ports.source` 將 live Settings 覆蓋在已確認 Project Snapshot 上，導致 Quantity Head/Tail Hole Editor 與 Confirm 孔位時的 T 被舊 Settings 取代，與正式 `project_operator_manufacturing_request_snapshot` 的已存 Snapshot T 優先規則矛盾。原 Engine 唯讀 Quantity EndCap projector 又對缺 T 內隱填入 2 mm，畫出無可信來源的實體孔面。
+- 原 GUI `holes` 開啟與提交都取相同既存公開 Engine Request source projection 的 W/H/D/T；保留 navigation/版本切換在歷史資料不足時仍可修復。Engine `project_operator_quantity_endcap_hole_editor_geometry` 現對缺少 T 明確拒絕，不再製造假的 2 mm Hole Editor；合法 Settings-only 舊存檔先經同一 Request API 投影後仍可使用。Receiving Quantity `receiving_quantity_box` 的原真實 W/D 仍優先於全域值，沒有改寫其物理位置。
+- `tests/test_issue2517_quantity_hole_t_source_parity_engine.py` 驗 headless／GUI 同一 T、實體 Hole surface、真 `.p6fold` Save→Reload、Confirm 孔位提交、非法與缺少 T 原子拒絕；不放行獨立 candidate、Receiving Set/Bay 未確認輸出、整箱 DXF 或 Windows UAT。#2517 仍 OPEN。
+
+
 ## [CURRENT] #2517 Fold Designer 舊內門框實體 T 須經公開 Engine 嚴格驗證（2026-11-11）
 
 - 原 `ae_engine.fold_designer_physical_selection.resolve_fold_designer_frame_part` 在無 Family 派生 API 的 legacy inner-door `frame_spans` 路徑，以 `float(data.get("t", default_thickness))` 提前清洗物理來源。明確的 `True` 因而成為合法看似真實的 `1 mm` 框，卻繞過既有 Engine 對板厚 T 的原生型別限制。GUI `_inner_door_frame_from_payload` 已只呼叫公開 API，錯在 Engine 內部來源門。
 - 原 Engine selector 改直接復用 `operator_settings_transactions.normalize_operator_source_dimension(..., field="t")`；已提供 T 必須是正有限且非布林，缺值才沿用原 Engine legacy default。Family 派生來源、上／左／右框 A/B/D 的方向與原 DXF／幾何／孔位、stable ID、選片與認證不變。
 - `tests/test_issue2517_legacy_inner_door_frame_thickness_public_api.py` 覆蓋 headless/GUI、真 legacy 框、非布林與負向非法來源、Save→Reload 僅保留原始 T 且正確剔除衍生 frame_spans、重新提供獨立確認的 span 後才可真 Frame FinalScene→DXF reopen；不因此宣稱整櫃實機、焊接或 MFG-2 已放行。
+
+## [CURRENT] #2517 多門格 2D 中隔／內門框預覽不准將非法物理來源變空板件（2026-11-11）
+
+- 原公開 `manufacturing_api.project_operator_door_divider_frame_preview`（`ae_engine.operator_door_2d_preview`）在計算前對 Door cell W/H 使用 `float()`，也對 W/H/D/T/FW 使用 `float(...default)`；例如 `True` 可成為 1 mm，缺實際 T/D 可變 2/350 mm。隨後獨立 Divider／內門框推導的 `except Exception: pass` 會把無效來源或物理拓樸失敗顯示成「沒有板件」，與 canonical Save→Reload、3D／DXF 來源矛盾。
+- 本批在原同一公開 API 增加 **推導前**實體 W/H/D/T/FW 輸入 Gate（重用 `operator_settings_transactions.normalize_operator_source_dimension`）及 canonical `derive_door_layout_cells` 門格拓樸 Gate；Snapshot W/H、即時 D/T/FW 的原優先序維持，明確非法不可往下 fallback。缺 T/D 不再自行填 2/350；未提供 FW 沿用既有原 `ae.FW` baseline default，已提供壞 FW 直接拒絕。GUI `door_layout_divider_frame_snapshot` 仍只調用公開 Engine，不重算。
+- 保留合法金庫型／受電箱 Divider Family Fold/Span／world placement 與內門框來源，且只對實際後續 **顯示放置不可用** 保留既有獨立 N/A 兼容（不是製造批准）。`tests/test_issue2517_door_divider_preview_raw_source_engine_api.py` 核對非法來源早拒絕、GUI/headless/JSON、實體 Divider 及 3D placement 同源、原 preview N/A。整櫃 DXF/Windows UAT 仍屬 #2517。
 
 ## [CURRENT] #2517 主 GUI 指示燈盒／門板指示燈層數選單由公開 Engine 驗證（2026-11-11）
 

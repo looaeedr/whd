@@ -9,6 +9,15 @@ whd_schema: WHD_DOC_META_V1
 
 The existing public `manufacturing_api.export_receiving_ear_side_manufacturing_marking_dxf` and `export_receiving_ear_side_check_only_dxf` now accept an optional `pre_commit_guard` callback. The original GUI actions capture the operator/Workspace source before file selection and pass that witness into Engine validation, real left/right CUTTING+BEND+MARKING DXF staging, independent Save→Reload and the atomic final commit. A source change before or during the final two-side publish rejects and restores existing outputs; legacy headless clients without a callback retain the previous behavior. CHECK remains CHECK-only, manufacturing remains SIDE-only; no EAR/PAD welding, NFB MFG-2 or whole cabinet approval is granted. See `tests/test_issue2517_ear_side_live_source_dxf_guard.py`.
 
+## #2517 Quantity Head/Tail Hole Editor T-source parity (2026-11-11)
+
+The public `manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(snapshot, role=...)` now requires an actual positive, finite, non-boolean `snapshot["t"]`; it no longer assumes 2 mm when T is absent. GUI Quantity Hole Editor and Confirm call the existing `project_operator_manufacturing_request_snapshot(committed_snapshot, settings, working_box)` before using that projector/commit transaction. An explicitly saved T wins over stale Settings; legacy Settings-only T remains valid via the same request projection. Read-only editor geometry is not DXF manufacturing approval. See `tests/test_issue2517_quantity_hole_t_source_parity_engine.py`.
+
+
+## #2517 Door Divider 2D preview 原始物理來源保護（2026-11-11）
+
+原公開 `manufacturing_api.project_operator_door_divider_frame_preview(snapshot, columns, val, ...)` 現在在任何 Divider／InnerDoor Frame 顯示解析前，使用 Engine `normalize_operator_source_dimension` 驗證 Snapshot 優先的 W/H、live 優先的 D/T/FW（原既有 FW baseline 缺值預設保持），再以 canonical `derive_door_layout_cells` 驗證 Door cell 尺寸。非法 bool／非有限／空／零來源不允許透過 `float` 或顯示層的 N/A guard 偽裝為有效空板件。合法位移仍由 `assembly_placement`，物理 Divider Fold 仍由 `door_dividers`，GUI 只顯示公開回傳；不新增替代製造 API 或認證資格。
+
 ## #2517 GUI Indicator live editor layer count API（2026-11-11）
 
 `manufacturing_api.normalize_operator_indicator_layer_count(value) -> int` 由 `ae_engine` 根包 re-export，沿用原 Engine `normalize_fold_designer_indicator_groups` 的物理整數來源驗證，並限定 1–6 層。主 GUI 指示燈盒／門板指示燈在重建層組編輯控件之前調用；壞來源必須拒絕，不能自行 `int()` 或回填 3／1 層。這是 live editor 來源驗證，不改 PartSpec／DXF 製造出口，也不替代已停用 Hole Editor 的 display-only 相容回復。
