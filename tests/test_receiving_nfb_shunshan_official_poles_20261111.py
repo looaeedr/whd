@@ -86,4 +86,4 @@ def test_unverified_dwgs_and_non_identical_model_names_do_not_automap():
     assert model_spec("順山", "NF400HS").width_mm is None
     assert model_spec("順山", "NF800-CP").height_mm is None
     assert model_spec("順山", "NF100-HP").height_mm is None
-    assert model_spec("順山", "NF400-HS").width_mm is None  # needs 3P identity
+    assert model_spec("順山", "NF400-HS") is None  # needs 3P identity
