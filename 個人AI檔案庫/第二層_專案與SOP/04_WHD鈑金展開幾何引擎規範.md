@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Indicator SmallDoor Operator FW／Gap／Fold 正式來源驗證（2026-11-12）
+
+- 原 GUI `gui_modules.application.manufacturing_adapter._indicator_door_part_spec_from_values` 已只傳送 operator 原始 T/FW/門縫/折邊，公開 `manufacturing_api.indicator_small_door_operator_spec` 在 Engine 內仍以 `float(frame_width)`、`float(door_gap_w/h)`、`float(indicator_door_fold)` 直接建立 Factory Policy，會把 `True` 投影成 1 mm，也允許非有限值混入實體小門尺寸與 DXF。這不是 GUI 可自行修復的製造責任。
+- 原 SmallDoor Engine 函式沿用 `operator_settings_transactions.normalize_operator_source_dimension(frame_width, field="fw")`（FW 必須正有限且非布林），及既有 `door_operator_part_spec._finite_operator_number`（Gap／Fold 有限、非布林，可為零／帶符號），原 T、Group 嚴格驗證保持。缺少明確 Fold 才沿用原 Factory default；不改小門成品／料長公式、Policy、PartSpec、孔位、CUTTING/BEND 或原 `小門.dxf` 基準檔。
+- `tests/test_issue2517_indicator_small_door_policy_raw_source_engine_api.py` 驗金庫型／受電箱 GUI 與 headless 相同 raw 來源、非法 FW/Gap/Fold fail-closed、合法帶符號來源、真實 Project Save→Reload 及已存在小門 DXF 出圖獨立 reopen。#2517 整櫃 API 與 Windows UAT 仍待完成。
+
 ## [CURRENT] #2517 IndicatorBox／SmallDoor 直接尺寸 API 共用正式原始群組與板厚閘門（2026-11-12）
 
 - 原 `ae_engine.manufacturing_door_indicator.indicator_box_unfolded_size`、`indicator_small_door_spec`、`door_indicator_offset_for_finished_center` 在直接 headless 呼叫路徑用 `tuple(int(v) for v in groups)`，可能將 `True`、`2.5` 轉為可製造燈孔群組；原 SmallDoor operator 又提前用 `float(thickness)`，使非法原始 T 可成為板厚。相同已提交 GUI/Hole Editor 的 `validate_door_indicator_fit` 早已使用嚴格來源閘門，direct API 不可例外。
