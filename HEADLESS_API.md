@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 GUI Indicator live editor layer count API（2026-11-11）
+
+`manufacturing_api.normalize_operator_indicator_layer_count(value) -> int` 由 `ae_engine` 根包 re-export，沿用原 Engine `normalize_fold_designer_indicator_groups` 的物理整數來源驗證，並限定 1–6 層。主 GUI 指示燈盒／門板指示燈在重建層組編輯控件之前調用；壞來源必須拒絕，不能自行 `int()` 或回填 3／1 層。這是 live editor 來源驗證，不改 PartSpec／DXF 製造出口，也不替代已停用 Hole Editor 的 display-only 相容回復。
+
 ## #2517 Legacy inner-door frame physical thickness uses existing Engine T gate (2026-11-11)
 
 The public `manufacturing_api.resolve_fold_designer_frame_part` already owns physical Frame selection for GUI and headless. Its legacy explicit frame branch previously used `float(payload["t"])`, allowing a corrupt `True` source to masquerade as a 1-mm manufactured frame. It now uses the existing `operator_settings_transactions.normalize_operator_source_dimension(..., field="t")` before creating any frame: positive finite, no Boolean or missing explicit value. Original Engine default applies only when T is absent. Registered Family-derived frames, A/B/D signed Fold chains, physical identities, DXF and manufacturing eligibility stay unchanged. Regression `tests/test_issue2517_legacy_inner_door_frame_thickness_public_api.py` covers real GUI/headless selection, invalid source isolation, project Save→Reload that strips derived frame spans (no phantom frame) and a real Frame DXF verification/reopen only after explicit span-source readmission. Whole #2517/Windows UAT remains pending.
