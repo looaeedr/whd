@@ -12,6 +12,12 @@ whd_schema: WHD_DOC_META_V1
 - 沿用原 `fold_designer_snapshot_dimensions.normalize_fold_designer_indicator_groups` 與 `operator_settings_transactions.normalize_operator_source_dimension(..., field="t")`，Group 必須是層列序列，不允許 scalar string/mapping、非整數、bool；T 只能正有限且非 bool。修正後所有公開尺寸、成品、淨開口、SmallDoor PartSpec／Operator spec 及原中心偏移入口共用相同來源資格，保留合法數值字串、整數浮點、毫米小數與原公式。既有 `ae.get_indicator_box_data`、Factory Policy、`盒子.dxf`／`小門.dxf`、CUTTING/BEND、FinalScene／DXF 寫入及製造資格均不變；GUI 仍只轉送來源。
 - `tests/test_issue2517_indicator_size_small_door_direct_engine_source_gate.py` 驗直接 Headless 負向來源不進製造、GUI／原 API 一致、JSON 與 Project Save→Reload、實際基準檔 IndicatorBox DXF save/reopen；本切片不等於全箱／Set-Bay／Windows UAT 完成，#2517 保持 OPEN。
 
+## [CURRENT] #2517 `.p6fold` Save→Reload 目標檔不得在完整 Engine 快照提交前截斷（2026-11-12）
+
+- 原 `phase6_project_file.write_project` 先由公開 Engine `project_operator_project_for_write` 取得可存檔權威資料，最後卻直接 `Path.write_text` 覆寫 `.p6fold`；磁碟空間、寫入或替換失敗會讓既存可讀的實體 Door／內門框／孔位來源變成空檔或半套 JSON，無法保證 2D／3D／DXF Save→Reload 可回復。
+- 只改 GUI Project I/O 交易為同目錄完整 UTF-8 JSON 暫存、flush／fsync 後 `os.replace` 原子提交；無論既有檔或新檔失敗，原檔 bytes／Engine readback 不變，清理暫存。原 Engine schema／來源驗證／預覽不入檔規則與 FinalScene／DXF exporter 均不變，不增加新收據或管理流程。負向 I/O 中斷與正常專案更新測試位於 `tests/test_issue2517_project_save_reload_engine_authority.py`。此為存檔資料保全，並非全箱或 Windows 實機驗收完成。
+
+
 ## [CURRENT] #2517 GUI 批次 DXF 最終發布須檢查當下尺寸／選片／STOCK／指示燈來源（2026-11-12）
 
 - 原主 GUI `export_selected_dxf` 已用 `_current_authoritative_export_guard` 監看已存快照與 Workspace 孔位，並經原 Engine 生成／重開 DXF 後才原子發布；但資料夾／覆寫確認期間 `get_float_values` 的即時尺寸或 checkbox/STOCK/Indicator 原始控制可能改變而沒有寫入 Workspace，舊的製造結果仍可能取代既存檔。

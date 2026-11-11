@@ -114,3 +114,80 @@ def test_phase6_project_file_forwards_to_public_engine(monkeypatch):
     source = {"model": "金庫型"}
     assert project._materialize_project_snapshot(source) is expected
     assert observed == [source]
+
+
+@pytest.mark.parametrize("fail_at", ("flush", "rename"))
+@pytest.mark.parametrize("preexisting", (False, True))
+def test_failed_real_p6fold_save_preserves_last_reopenable_engine_source(
+    tmp_path, monkeypatch, fail_at, preexisting,
+):
+    """No partial overwrite/half JSON can replace genuine Door/inner-frame sources."""
+    destination = tmp_path / "authoritative-door.p6fold"
+    saved_original = _vault_source()
+    if preexisting:
+        project.write_project(destination, {
+            "schema": project.PROJECT_SCHEMA, "snapshot": saved_original,
+        })
+        old_bytes = destination.read_bytes()
+        old_source = project.read_project(destination)
+    else:
+        old_bytes = None
+        old_source = None
+
+    next_source = deepcopy(saved_original)
+    next_source["door_layout_columns"] = [[200.0, [110.0, 110.0]]]
+    next_source["door_handle_edges"] = {"0:0": "RIGHT", "0:1": "LEFT"}
+    next_before = deepcopy(next_source)
+
+    if fail_at == "flush":
+        def fail_fsync(_fd):
+            raise OSError("PROJECT_SOURCE_WRITE_INTERRUPTED")
+        monkeypatch.setattr(project.os, "fsync", fail_fsync)
+    else:
+        def fail_rename(_src, _dst):
+            raise OSError("PROJECT_SOURCE_ATOMIC_REPLACE_INTERRUPTED")
+        monkeypatch.setattr(project.os, "replace", fail_rename)
+
+    with pytest.raises(OSError, match="PROJECT_SOURCE_"):
+        project.write_project(destination, {
+            "schema": project.PROJECT_SCHEMA, "snapshot": next_source,
+        })
+    assert next_source == next_before
+    assert sorted(tmp_path.glob(".authoritative-door.p6fold.*.tmp")) == []
+    if preexisting:
+        assert destination.read_bytes() == old_bytes
+        assert project.read_project(destination) == old_source
+        assert project.read_project(destination)["snapshot"]["door_layout_columns"] == [
+            [200.0, [100.0, 120.0]],
+        ]
+    else:
+        assert not destination.exists()
+
+
+def test_successful_atomic_project_replacement_is_same_engine_2d_source_after_reload(tmp_path):
+    old_source = _vault_source()
+    path = project.write_project(tmp_path / "original-no-suffix", {
+        "schema": project.PROJECT_SCHEMA, "snapshot": old_source,
+    })
+    assert path.name == "original-no-suffix.p6fold"
+    old_project = project.read_project(path)
+    assert old_project["final_geometry"] == {}
+
+    new_source = deepcopy(old_source)
+    new_source["door_layout_columns"] = [[200.0, [110.0, 110.0]]]
+    new_source["door_handle_edges"] = {"0:0": "RIGHT", "0:1": "LEFT"}
+    target = project.write_project(path, {
+        "schema": project.PROJECT_SCHEMA, "snapshot": new_source,
+        "final_geometry": {"door": {"fake": "stale old 2D preview"}},
+    })
+    assert target == path
+    actual = project.read_project(path)
+    expected = manufacturing_api.normalize_project_snapshot_authority(new_source)
+    assert actual["snapshot"] == expected
+    assert actual["snapshot"]["door_layout_columns"] == [[200.0, [110.0, 110.0]]]
+    assert actual["snapshot"]["door_handle_edges"] == {
+        "0:0": "RIGHT", "0:1": "LEFT",
+    }
+    assert actual["final_geometry"] == {}
+    assert actual != old_project
+    assert list(tmp_path.glob(".*.tmp")) == []
