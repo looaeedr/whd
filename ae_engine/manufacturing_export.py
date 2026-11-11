@@ -308,7 +308,13 @@ def _save_resolved_rows_atomic(
     verify_all_staged: bool = False,
     pre_commit_guard=None,
     durable_stage_commit=None,
+    guard_during_atomic_move: bool = False,
 ) -> dict[str, str]:
+    # Only the independent EAR SIDE export opts into late move-time checks.
+    # Existing W-03 verified batch callers retain exactly the two historical
+    # pre_commit_guard invocations (before stage and after Save→Reload).
+    if type(guard_during_atomic_move) is not bool:
+        raise TypeError("WHD_ATOMIC_MOVE_GUARD_FLAG_INVALID")
     # Reject source flag coercion before creating a stage or replacing a DXF.
     require_dxf_overwrite_boolean(overwrite)
     # Check all physical-part evidence before any output path is created.
@@ -374,7 +380,9 @@ def _save_resolved_rows_atomic(
             return durable_stage_commit(dict(staged), root)
         return _atomic_commit_staged_dxfs(
             staged, root, overwrite=overwrite,
-            pre_commit_guard=pre_commit_guard,
+            pre_commit_guard=(
+                pre_commit_guard if guard_during_atomic_move else None
+            ),
         )
     finally:
         shutil.rmtree(stage_dir, ignore_errors=True)

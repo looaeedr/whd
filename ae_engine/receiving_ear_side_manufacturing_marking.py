@@ -196,6 +196,7 @@ def export_receiving_ear_side_manufacturing_marking_dxf(
         overwrite=overwrite,
         part_only=True,
         pre_commit_guard=pre_commit_guard,
+        guard_during_atomic_move=True,
     )
     if set(result) != set(side_keys):
         raise ValueError("EAR_SIDE_MFG_ATOMIC_RESULT_INCOMPLETE")
