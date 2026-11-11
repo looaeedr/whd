@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Indicator SmallDoor operator FW, signed Gap and Fold original Engine source gates (2026-11-12)
+
+The existing GUI adapter passes raw SmallDoor operator controls to `manufacturing_api.indicator_small_door_operator_spec`. The original Engine owner now validates FW with `normalize_operator_source_dimension(field="fw")` (positive finite non-Boolean) and reuses the existing Door operator finite signed Gap/Fold validator (allows zero/negative where the original manufacturing policy does). It no longer converts `True` into an actual 1-mm frame/gap/fold or admits NaN/Inf. The historical default Fold applies only when omitted. SmallDoor geometry, Factory Policy dimensions, `小門.dxf`, and manufacturing qualification stay unchanged. Regression `tests/test_issue2517_indicator_small_door_policy_raw_source_engine_api.py` verifies headless/GUI, saved source, real DXF and invalid-source refusal. #2517 whole-cabinet coverage / Windows UAT remain open.
+
 ## #2517 IndicatorBox and Small Door direct dimension APIs share Engine source validation (2026-11-12)
 
 Direct headless `indicator_box_unfolded_size`, `indicator_small_door_spec`, `door_indicator_offset_for_finished_center` and the Small Door operator spec no longer coerce raw group counts through `int()` or raw sheet thickness through `float()` before source qualification. They consume the existing Engine `normalize_fold_designer_indicator_groups` and `normalize_operator_source_dimension(field="t")` contracts; a scalar/mapping is not a physical list of layers. Valid integer group strings, finite fractional T and existing geometry/Factory Policy remain intact, as do the genuine source DXF and manufacturing gates. Focused tests cover headless and GUI parity, invalid sources, original project Save→Reload and real IndicatorBox baseline DXF reopening. Complete #2517 coverage and Windows UAT remain outstanding.
