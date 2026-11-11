@@ -346,13 +346,11 @@ def door_layout_entry_menu(host, entry, *, column_index, row_index=None):
 
 
 def rebuild_door_layers_config_ui(host):
+    layers = manufacturing_api.normalize_operator_indicator_layer_count(
+        host.door_indicator_l_var.get()
+    )
     for widget in host.door_layers_config_frame.winfo_children():
         widget.destroy()
-
-    try:
-        layers = int(host.door_indicator_l_var.get())
-    except ValueError:
-        layers = 1
 
     for ly in range(layers):
         ly_frame = tk.Frame(host.door_layers_config_frame, bg=host.COLOR_PANEL)

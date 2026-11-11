@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 GUI Indicator live editor layer count API（2026-11-11）
+
+`manufacturing_api.normalize_operator_indicator_layer_count(value) -> int` 由 `ae_engine` 根包 re-export，沿用原 Engine `normalize_fold_designer_indicator_groups` 的物理整數來源驗證，並限定 1–6 層。主 GUI 指示燈盒／門板指示燈在重建層組編輯控件之前調用；壞來源必須拒絕，不能自行 `int()` 或回填 3／1 層。這是 live editor 來源驗證，不改 PartSpec／DXF 製造出口，也不替代已停用 Hole Editor 的 display-only 相容回復。
+
 ## #2517 Fold Designer Divider physical input normalization uses the public Engine API (2026-11-11)
 
 The original `gui_modules.parts.panels.divider.collect_divider_input` owned the physical parsing of raw Door grid, D/T, handle-edge, Family and layout scope before calling the canonical `resolve_fold_designer_divider_part`. The same normalization is now owned by `ae_engine.fold_designer_physical_selection.project_operator_fold_designer_divider_input` through public `manufacturing_api` and root `ae_engine`; GUI forwards only the operator source. Existing topology, Family Policy, stable IDs, fold profiles, formed 2D/3D geometry and DXF manufacturing eligibility are unchanged. `tests/test_issue2517_fold_designer_divider_input_public_api.py` verifies GUI/headless source parity, physical Divider, real DXF save/reopen, Project Save→Reload and invalid sources. This does not establish entire cabinet MFG approval or Windows UAT.
