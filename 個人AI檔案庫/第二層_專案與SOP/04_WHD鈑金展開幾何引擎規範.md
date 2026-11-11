@@ -6,12 +6,18 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
-## [CURRENT] #2517 Relief Registry 候選 3D 與單板 Mesh Profile 的 T 須跟正式製造 Request 同源（2026-11-12）
+## [CURRENT] #2517 Relief Registry 候選 3D／Mesh 實體 T 與已驗布林須與正式 Engine 一致（2026-11-12）
 
-- 原 `fold_designer_bridge._phase6_registry_validate_candidate_3d` 和 `_phase6_mesh_profiles_for_part` 對真實板厚使用 `_num(settings.get("t", snapshot.get("t", 2.0)), 2.0)`：明確非法／雙來源缺 T 被填成假的 2 mm，舊 Settings 又可能覆蓋已提交 Snapshot，讓候選 3D 和 immutable 製造 Request 的成形板厚不同。原公開 Engine `operator_relief_candidate_3d.validate_operator_relief_registry_candidate_3d` 對直接 headless T 也沒有先核對真物理來源。
-- GUI 兩個 3D 入口只消費原公開 `manufacturing_api.project_operator_manufacturing_request_snapshot(snapshot, settings, {})["t"]`；候選在取任何 Scene 之前拒絕損壞／缺失來源；Engine 候選原函式在 Rule／3D 解算前先重用 `normalize_operator_source_dimension(..., field="t")`，拒絕 Bool、NaN／Inf、零與非物理數值。Snapshot 優先於 Settings；合法毫米小數與原 Engine Registry、Fold／Joint／2D／3D／DXF 算法不變。
-- `tests/test_issue2517_relief_registry_mesh_physical_t_parity.py` 含 GUI／headless、真 Project Save→Reload、非法來源不得進幾何與正式 Request 來源一致性；此僅是 3D T 來源一致性，不代表 #2517 全箱／Windows UAT 完成。
+- 原 `fold_designer_bridge._phase6_registry_validate_candidate_3d`／`_phase6_mesh_profiles_for_part` 對原始 T 用 `_num(settings.get("t", snapshot.get("t", 2.0)), 2.0)`，可能掩蓋非法／缺值、讓過時 Settings 蓋過已提交 Snapshot；原 Engine `operator_relief_candidate_3d.validate_operator_relief_registry_candidate_3d` 對 headless 直接 T 未先驗來源，且用 `bool(solution.verified)` 可把損壞的 `"false"`／`"true"`／`1` 冒充 3D 已通過。
+- GUI 兩路只消費原公開 `manufacturing_api.project_operator_manufacturing_request_snapshot(snapshot, settings, {})["t"]` 的實體原始來源，候選取 Scene 前必須先驗；原 Engine 候選 API 直接以 `normalize_operator_source_dimension(..., field="t")` 驗 T，解算結果只在 `verified is True` 時才認為零干涉。保留合法數值小數、原 3D Fold／Relief／Registry 計算及 DXF 製造限制，任何 CHECK/顯示不能自行提升為正式製造。
+- `tests/test_issue2517_relief_registry_mesh_physical_t_parity.py` 驗直接 headless、不可信已驗旗標、GUI 原子拒絕、`.p6fold` Save→Reload 與同一正式 Request。#2517 仍待逐項 API、全箱 2D／3D／DXF 及 Windows UAT。
 
+
+## [CURRENT] #2517 Indicator SmallDoor Operator FW／Gap／Fold 正式來源驗證（2026-11-12）
+
+- 原 GUI `gui_modules.application.manufacturing_adapter._indicator_door_part_spec_from_values` 已只傳送 operator 原始 T/FW/門縫/折邊，公開 `manufacturing_api.indicator_small_door_operator_spec` 在 Engine 內仍以 `float(frame_width)`、`float(door_gap_w/h)`、`float(indicator_door_fold)` 直接建立 Factory Policy，會把 `True` 投影成 1 mm，也允許非有限值混入實體小門尺寸與 DXF。這不是 GUI 可自行修復的製造責任。
+- 原 SmallDoor Engine 函式沿用 `operator_settings_transactions.normalize_operator_source_dimension(frame_width, field="fw")`（FW 必須正有限且非布林），及既有 `door_operator_part_spec._finite_operator_number`（Gap／Fold 有限、非布林，可為零／帶符號），原 T、Group 嚴格驗證保持。缺少明確 Fold 才沿用原 Factory default；不改小門成品／料長公式、Policy、PartSpec、孔位、CUTTING/BEND 或原 `小門.dxf` 基準檔。
+- `tests/test_issue2517_indicator_small_door_policy_raw_source_engine_api.py` 驗金庫型／受電箱 GUI 與 headless 相同 raw 來源、非法 FW/Gap/Fold fail-closed、合法帶符號來源、真實 Project Save→Reload 及已存在小門 DXF 出圖獨立 reopen。#2517 整櫃 API 與 Windows UAT 仍待完成。
 
 ## [CURRENT] #2517 IndicatorBox／SmallDoor 直接尺寸 API 共用正式原始群組與板厚閘門（2026-11-12）
 

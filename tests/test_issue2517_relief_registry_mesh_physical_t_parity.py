@@ -210,3 +210,39 @@ def test_gui_has_no_separate_t_float_fallback_in_3d_source_paths():
         assert "manufacturing_api.project_operator_manufacturing_request_snapshot(" in source
         assert 'snapshot.get("t", 2.0)' not in source
         assert "_num(settings.get(" not in source
+
+@pytest.mark.parametrize("raw,expected", (
+    ("false", False), ("true", False), (1, False),
+    (0, False), (None, False), (False, False), (True, True),
+))
+def test_direct_registry_3d_never_claims_string_or_numeric_verified_evidence(
+    monkeypatch, raw, expected,
+):
+    monkeypatch.setattr(
+        candidate, "_validate_editable_rule_record",
+        lambda *_: {"assembly_intent": "INSERT"},
+    )
+    monkeypatch.setattr(
+        candidate, "evaluate_editable_endcap_rule_record",
+        lambda *_a, **_kw: object(),
+    )
+    monkeypatch.setattr(
+        candidate, "solve_world_backprojected_endcap_relief",
+        lambda **_kw: SimpleNamespace(
+            verified=raw, trust_level="CERTIFIED", rule_id="test",
+            rule_revision=1, residual_projection=SimpleNamespace(pair_count=0),
+        ),
+    )
+    render = SimpleNamespace(material=object())
+    physical = (render, ({"len": 20.0},), ())
+    outcome = api.validate_operator_relief_registry_candidate_3d(
+        {"rule_id": "test"}, candidate_id="test",
+        assembly_intent="INSERT",
+        part_inputs={"box_body": physical, "head": physical},
+        finished_dimensions=(800.0, 1200.0, 350.0),
+        sheet_thickness=2.125, clearance=0.0,
+        box_body_structure_state={}, cabinet_family="金庫型",
+    )
+    assert outcome["zero_penetration"] is expected
+    assert outcome["solutions"]["head"]["verified"] is expected
+    assert type(outcome["zero_penetration"]) is bool

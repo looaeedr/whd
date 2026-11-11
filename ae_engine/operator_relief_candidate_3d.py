@@ -95,7 +95,7 @@ def validate_operator_relief_registry_candidate_3d(
         )
         validated_parts.append(part_key)
         solutions[part_key] = {
-            "verified": bool(getattr(solution, "verified", False)),
+            "verified": getattr(solution, "verified", None) is True,
             "trust_level": str(getattr(solution, "trust_level", "") or ""),
             "rule_id": getattr(solution, "rule_id", None),
             "rule_revision": getattr(solution, "rule_revision", None),
