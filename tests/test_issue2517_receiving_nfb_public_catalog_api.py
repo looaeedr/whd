@@ -22,7 +22,7 @@ def test_public_nfb_list_uses_exact_brand_qualified_v5_identities():
     assert "nfbv5:士林:2P125SN" in list_receiving_nfb_model_refs("士林")
     assert "nfbv5:東元:2P125SN" in list_receiving_nfb_model_refs("東元")
     assert "nfbv5:伍菱:2P125SN" in list_receiving_nfb_model_refs("伍菱")
-    for brand, expected_count in (("士林", 12), ("東元", 9), ("伍菱", 12)):
+    for brand, expected_count in (("士林", 12), ("東元", 9), ("伍菱", 68), ("順山", 17)):
         choices = list_receiving_nfb_model_refs(brand)
         assert len(choices) == expected_count == len(set(choices))
         assert all(ref.startswith(f"nfbv5:{brand}:") for ref in choices)
