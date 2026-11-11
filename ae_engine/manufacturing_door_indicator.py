@@ -365,15 +365,25 @@ def indicator_small_door_operator_spec(
     Keep the existing Factory Policy + indicator_small_door_spec pipeline.
     Callers submit inputs/features but do not build manufacturing policies.
     """
+    # The original Door operator Engine owns the same physical FW and signed
+    # Gap/Fold source rules. Never turn True into a 1-mm manufactured frame
+    # or allow NaN/Inf to enter an Indicator Small Door manufacturing policy.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    from .door_operator_part_spec import _finite_operator_number
+    fw = normalize_operator_source_dimension(frame_width, field="fw")
+    gap_w = _finite_operator_number(door_gap_w, "door_gap_w")
+    gap_h = _finite_operator_number(door_gap_h, "door_gap_h")
+    fold_source = (
+        getattr(ae, "indicator_small_door_fold_def", 19.0)
+        if indicator_door_fold is None else indicator_door_fold
+    )
+    fold = _finite_operator_number(fold_source, "indicator_door_fold")
     policy = replace(
         resolve_policy(),
-        frame_width=float(frame_width),
-        door_gap_w=float(door_gap_w),
-        door_gap_h=float(door_gap_h),
-        indicator_small_door_fold=float(
-            getattr(ae, "indicator_small_door_fold_def", 19.0)
-            if indicator_door_fold is None else indicator_door_fold
-        ),
+        frame_width=fw,
+        door_gap_w=gap_w,
+        door_gap_h=gap_h,
+        indicator_small_door_fold=fold,
     )
     context = ManufacturingContext(policy=policy, draw_stock=False)
     # The same physical group source gate serves GUI and headless callers.
