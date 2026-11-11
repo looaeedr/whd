@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 直接 DoorPartSpec→Engine 2D／3D／DXF 使用原始實體來源閘門（2026-11-12）
+
+- 原 GUI `build_door_operator_part_spec` 已嚴格檢查 W/H/T/FW、Gap 與 Fold 來源，但可由 headless／CADSplit 提供已確認的 `DoorPartSpec` 直接走 `door_finished_face_size`、`build_part_scene`、`build_part_render_data`、`generate_part`；共同 Engine `manufacturing_door_indicator._resolved_door_params` 原先用 `float(spec.width/height/thickness/frame_width/gap/fold)` 過早丟失來源型別，讓布林製造尺寸誤成 1 mm、非有限 Gap/Fold 進入 FinalScene／DXF。
+- 同一原 `_resolved_door_params` 現在直接重用 `normalize_operator_source_dimension`（W/H/T/FW 必須正有限非 bool）及 `door_operator_part_spec._finite_operator_number`（Gap／Fold 必須有限非 bool，保留原可為零或負的已確認語意）；Family 原本 `door_material_frame_width`、既有 Policy fallback、料長、孔位、BEND/CUTTING、FinalScene、DXF writer 不變。GUI 沒有新增製造責任；直接確認 PartSpec 也不能繞開同一 Engine gate。
+- `tests/test_issue2517_direct_door_partspec_original_source_engine_gate.py` 逐項測同一源對 GUI/headless DoorPartSpec、成品 W/H／2D/3D FinalScene／DXF 入口的非法來源原子拒絕、合法 signed Gap/Fold、Project Save→Reload、金庫型原 `門.dxf` 的真實 FinalScene 與獨立 DXF reopen。#2517 整箱與 Windows UAT 仍 OPEN。
+
 ## [CURRENT] #2517 Relief Registry 候選 3D／Mesh 實體 T 與已驗布林須與正式 Engine 一致（2026-11-12）
 
 - 原 `fold_designer_bridge._phase6_registry_validate_candidate_3d`／`_phase6_mesh_profiles_for_part` 對原始 T 用 `_num(settings.get("t", snapshot.get("t", 2.0)), 2.0)`，可能掩蓋非法／缺值、讓過時 Settings 蓋過已提交 Snapshot；原 Engine `operator_relief_candidate_3d.validate_operator_relief_registry_candidate_3d` 對 headless 直接 T 未先驗來源，且用 `bool(solution.verified)` 可把損壞的 `"false"`／`"true"`／`1` 冒充 3D 已通過。
