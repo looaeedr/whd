@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Real `.p6fold` Save→Reload never truncates the last authoritative project (2026-11-12)
+
+`phase6_project_file.write_project` already gets its canonical saved geometry/controls from original public `manufacturing_api.project_operator_project_for_write`. It now fully serializes and flushes/fsyncs a temporary file **in the target directory**, then atomically replaces the previous valid `.p6fold` only after completion. Disk interruption or replace failure preserves the original project's exact bytes and Engine readback and removes transient files. New-project failure creates no unreadable project. The original project schema, `final_geometry` preview stripping, 2D/3D/DXF rebuild-on-reload and Engine source authority are unchanged. Tests simulate actual interrupted write and rename with existing/new files, then independently reload canonical saved Door/inner-frame source. This is persistence safety, not approval of complete cabinet manufacturing or Windows UAT.
+
 ## #2517 Selected GUI DXF publication rechecks current dimensions and operator selection (2026-11-12)
 
 The existing GUI batch stage-to-destination transaction already witnesses saved `.p6fold` operator snapshot and Workspace physical features. It now additionally snapshots **live GUI dimensional values, Engine-projected selected flags, STOCK, Door/Indicator toggle and group sources** before any folder/overwrite/partial-confirmation modal, and compares the same raw UI sources immediately before/during final atomic publication. A changed control while dialogs are open rejects stale staged Engine-generated DXFs, restoring previously existing destination files; no GUI geometry or second manufacturing export API was introduced. `tests/test_issue2517_gui_final_dxf_publish_source_guard.py` reopens actual Engine CUTTING/BEND DXF after operator dimension, STOCK, selection and indicator changes, including unchanged-source success. The guard does not certify entire-cabinet 2D/3D/DXF or native Windows UAT.
