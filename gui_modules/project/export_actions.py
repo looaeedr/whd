@@ -591,10 +591,10 @@ def export_receiving_ear_side_manufacturing_dxf(self):
         dimensions, thickness = manufacturing_api.receiving_ear_side_check_operator_inputs(
             snapshot,
         )
-        geometry = resolver()
-        # Capture operator + Workspace before folder selection. Engine checks
-        # the same source before and after its real DXF staging and commit.
+        # Witness the original Workspace before geometry resolution: that
+        # callback itself may race with a confirmed Hole Editor source edit.
         source_guard = _current_authoritative_export_guard(designer, snapshot)
+        geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片側板 MARKING 不可輸出", str(exc))
         return None
@@ -639,8 +639,8 @@ def export_receiving_ear_side_check_dxf(self):
         dimensions, thickness = manufacturing_api.receiving_ear_side_check_operator_inputs(
             snapshot,
         )
-        geometry = resolver()
         source_guard = _current_authoritative_export_guard(designer, snapshot)
+        geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片 CHECK 不可用", str(exc))
         return None

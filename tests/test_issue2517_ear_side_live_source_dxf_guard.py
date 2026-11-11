@@ -143,3 +143,38 @@ def test_invalid_supplied_guard_rejects_before_any_ear_side_dxf(
     with pytest.raises(TypeError, match="WHD_PRECOMMIT_SOURCE_GUARD_INVALID"):
         _export(mode, snapshot, geometry, folder, guard="true")
     assert not folder.exists()
+
+@pytest.mark.parametrize("mode", ("mfg", "check"))
+def test_ear_gui_workspace_change_while_resolving_geometry_cannot_publish(
+    tmp_path, monkeypatch, mode,
+):
+    snapshot, geometry = _actual(_assembled)
+    host, events = _host(snapshot, geometry)
+    workspace = Workspace({"part_features": {"box_body:left_side": []}})
+    host.fold_designer_app.designer_workspace = workspace
+    original_resolve = host.fold_designer_app._phase6_resolve_manufacturing_geometry
+
+    def editing_resolver():
+        # Geometry was requested from the old source but another editor
+        # commits a Hole Editor change before its result is returned.
+        workspace.source["part_features"]["box_body:left_side"].append(
+            {"confirmed": "concurrent physical source"}
+        )
+        return original_resolve()
+
+    host.fold_designer_app._phase6_resolve_manufacturing_geometry = editing_resolver
+    monkeypatch.setattr(gui.filedialog, "askdirectory",
+                        lambda **_kwargs: str(tmp_path))
+    monkeypatch.setattr(gui.messagebox, "showerror",
+                        lambda title, detail: events.append(("error", detail)))
+    monkeypatch.setattr(gui.messagebox, "showinfo",
+                        lambda title, detail: events.append(("success", detail)))
+    operator_action = (
+        gui.export_receiving_ear_side_manufacturing_dxf
+        if mode == "mfg" else gui.export_receiving_ear_side_check_dxf
+    )
+    assert operator_action(host) is None
+    assert any(isinstance(e, tuple) and e[0] == "error"
+               and "DXF 工作區來源已變更" in e[1] for e in events)
+    assert not any(isinstance(e, tuple) and e[0] == "success" for e in events)
+    assert not list(tmp_path.glob("*.dxf"))
