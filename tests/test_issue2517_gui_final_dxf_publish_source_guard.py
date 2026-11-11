@@ -67,10 +67,13 @@ def _host(source):
     return host, workspace
 
 
-def _run_real_gui_export(monkeypatch, host, folder, *, on_confirmation=None):
+def _run_real_gui_export(
+    monkeypatch, host, folder, *, on_confirmation=None, selection=None,
+):
     events = []
+    selection = {"door": True} if selection is None else selection
     monkeypatch.setattr(export_gui, "_selected_export_flags",
-                        lambda *_args: {"door": True})
+                        lambda *_args: dict(selection))
     monkeypatch.setattr(export_gui, "_validate_selected_indicator_exports",
                         lambda *_args: None)
     monkeypatch.setattr(
@@ -208,3 +211,68 @@ def test_invalid_final_publish_guard_cannot_change_existing_dxf(tmp_path):
             stage_dir, tmp_path, pre_commit_guard="true",
         )
     assert target.read_bytes() == b"original-file"
+
+
+@pytest.mark.parametrize("changed_source", ["dimensions", "stock", "selected_part", "indicator"])
+def test_modal_operator_input_change_rolls_back_real_staged_dxf(
+    tmp_path, monkeypatch, changed_source,
+):
+    """A valid saved project/Workspace alone cannot witness uncommitted GUI controls."""
+    source = _project_source(tmp_path)
+    host, workspace = _host(source)
+    raw_dimensions = {"t": 2.0}
+    stock = SimpleNamespace(value=False)
+    stock.get = lambda: stock.value
+    host.get_float_values = lambda: dict(raw_dimensions)
+    host.draw_stock_var = stock
+    indicator = SimpleNamespace(value="none")
+    indicator.get = lambda: indicator.value
+    host.is_indicator_box_var = indicator
+    selection = {"door": True}
+    target = tmp_path / "P1.dxf"
+    api.save_composed_panel_dxf(
+        _physical_panels(110.0), target, pre_commit_guard=lambda: None,
+    )
+    old_bytes = target.read_bytes()
+    pristine_workspace = workspace.snapshot()
+    pristine_snapshot = deepcopy(host.fold_designer_app._phase6_input_snapshot)
+
+    def mutate_live_operator():
+        if changed_source == "dimensions":
+            raw_dimensions["t"] = 3.0
+        elif changed_source == "stock":
+            stock.value = True
+        elif changed_source == "selected_part":
+            selection["door"] = False
+        else:
+            indicator.value = "indicator_box"
+
+    events = _run_real_gui_export(
+        monkeypatch, host, tmp_path, on_confirmation=mutate_live_operator,
+        selection=selection,
+    )
+    assert "overwrite_prompt" in events
+    assert any(
+        isinstance(event, tuple) and event[0] == "error"
+        and "DXF 即時操作來源已變更" in event[1]
+        for event in events
+    )
+    assert not any(isinstance(e, tuple) and e[0] == "success" for e in events)
+    assert target.read_bytes() == old_bytes
+    assert any(e.dxf.layer == "CUTTING" for e in ezdxf.readfile(target).modelspace())
+    assert workspace.snapshot() == pristine_workspace
+    assert host.fold_designer_app._phase6_input_snapshot == pristine_snapshot
+
+
+def test_unchanged_raw_dimensions_and_selections_still_publish_real_dxf(
+    tmp_path, monkeypatch,
+):
+    source = _project_source(tmp_path)
+    host, _ = _host(source)
+    raw = {"t": 2.0}
+    host.get_float_values = lambda: dict(raw)
+    events = _run_real_gui_export(monkeypatch, host, tmp_path)
+    assert any(isinstance(e, tuple) and e[0] == "success" for e in events)
+    saved = ezdxf.readfile(tmp_path / "P1.dxf")
+    assert any(e.dxf.layer == "CUTTING" for e in saved.modelspace())
+    assert any(e.dxf.layer == "BEND" for e in saved.modelspace())

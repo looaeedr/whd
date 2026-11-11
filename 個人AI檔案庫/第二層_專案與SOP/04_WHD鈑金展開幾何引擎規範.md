@@ -12,6 +12,12 @@ whd_schema: WHD_DOC_META_V1
 - 沿用原 `fold_designer_snapshot_dimensions.normalize_fold_designer_indicator_groups` 與 `operator_settings_transactions.normalize_operator_source_dimension(..., field="t")`，Group 必須是層列序列，不允許 scalar string/mapping、非整數、bool；T 只能正有限且非 bool。修正後所有公開尺寸、成品、淨開口、SmallDoor PartSpec／Operator spec 及原中心偏移入口共用相同來源資格，保留合法數值字串、整數浮點、毫米小數與原公式。既有 `ae.get_indicator_box_data`、Factory Policy、`盒子.dxf`／`小門.dxf`、CUTTING/BEND、FinalScene／DXF 寫入及製造資格均不變；GUI 仍只轉送來源。
 - `tests/test_issue2517_indicator_size_small_door_direct_engine_source_gate.py` 驗直接 Headless 負向來源不進製造、GUI／原 API 一致、JSON 與 Project Save→Reload、實際基準檔 IndicatorBox DXF save/reopen；本切片不等於全箱／Set-Bay／Windows UAT 完成，#2517 保持 OPEN。
 
+## [CURRENT] #2517 GUI 批次 DXF 最終發布須檢查當下尺寸／選片／STOCK／指示燈來源（2026-11-12）
+
+- 原主 GUI `export_selected_dxf` 已用 `_current_authoritative_export_guard` 監看已存快照與 Workspace 孔位，並經原 Engine 生成／重開 DXF 後才原子發布；但資料夾／覆寫確認期間 `get_float_values` 的即時尺寸或 checkbox/STOCK/Indicator 原始控制可能改變而沒有寫入 Workspace，舊的製造結果仍可能取代既存檔。
+- 沿用同一 GUI 來源見證／原子回滾，新增未解算的 operator source（尺寸欄位、`_selected_export_flags` 透過 Engine 投影的選片、STOCK、門格與指示燈控制及已編輯 Features），原值前後比較；只核對操作來源，不在 GUI 判斷實體幾何。輸入改變或讀取失敗不得發布舊 DXF，原資料夾已存 DXF 必須保留。引擎 `PartSpec`、FinalScene、CUTTING/BEND 與 DXF Writer 不變。真實重開與覆寫回滾測試在 `tests/test_issue2517_gui_final_dxf_publish_source_guard.py`；不得聲稱已完成全箱 2D／3D／DXF 或 Windows UAT。
+
+
 ## [CURRENT] #2517 EAR 側板獨立 MARKING／CHECK-only DXF 最後發布需重驗操作來源（2026-11-11）
 
 - 原兩個獨立 GUI 出圖按鈕在 `askdirectory` 之前讀取正式已提交快照與解析實體幾何，但資料夾選擇期間 Workspace 孔位或提交來源可能變動；其原有 Engine 真實左／右側板 3D 接觸→UV→CUTTING/BEND/MARKING 與 DXF 回讀，不能因此被拿去發布過期來源。已存在 `_current_authoritative_export_guard` 必須在 GUI 取當次快照後保留到正式出圖。
