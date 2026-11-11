@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 IndicatorBox／SmallDoor 直接尺寸 API 共用正式原始群組與板厚閘門（2026-11-12）
+
+- 原 `ae_engine.manufacturing_door_indicator.indicator_box_unfolded_size`、`indicator_small_door_spec`、`door_indicator_offset_for_finished_center` 在直接 headless 呼叫路徑用 `tuple(int(v) for v in groups)`，可能將 `True`、`2.5` 轉為可製造燈孔群組；原 SmallDoor operator 又提前用 `float(thickness)`，使非法原始 T 可成為板厚。相同已提交 GUI/Hole Editor 的 `validate_door_indicator_fit` 早已使用嚴格來源閘門，direct API 不可例外。
+- 沿用原 `fold_designer_snapshot_dimensions.normalize_fold_designer_indicator_groups` 與 `operator_settings_transactions.normalize_operator_source_dimension(..., field="t")`，Group 必須是層列序列，不允許 scalar string/mapping、非整數、bool；T 只能正有限且非 bool。修正後所有公開尺寸、成品、淨開口、SmallDoor PartSpec／Operator spec 及原中心偏移入口共用相同來源資格，保留合法數值字串、整數浮點、毫米小數與原公式。既有 `ae.get_indicator_box_data`、Factory Policy、`盒子.dxf`／`小門.dxf`、CUTTING/BEND、FinalScene／DXF 寫入及製造資格均不變；GUI 仍只轉送來源。
+- `tests/test_issue2517_indicator_size_small_door_direct_engine_source_gate.py` 驗直接 Headless 負向來源不進製造、GUI／原 API 一致、JSON 與 Project Save→Reload、實際基準檔 IndicatorBox DXF save/reopen；本切片不等於全箱／Set-Bay／Windows UAT 完成，#2517 保持 OPEN。
+
 ## [CURRENT] #2517 EAR 側板獨立 MARKING／CHECK-only DXF 最後發布需重驗操作來源（2026-11-11）
 
 - 原兩個獨立 GUI 出圖按鈕在 `askdirectory` 之前讀取正式已提交快照與解析實體幾何，但資料夾選擇期間 Workspace 孔位或提交來源可能變動；其原有 Engine 真實左／右側板 3D 接觸→UV→CUTTING/BEND/MARKING 與 DXF 回讀，不能因此被拿去發布過期來源。已存在 `_current_authoritative_export_guard` 必須在 GUI 取當次快照後保留到正式出圖。
