@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Relief Registry 候選 3D 與單板 Mesh Profile 的 T 須跟正式製造 Request 同源（2026-11-12）
+
+- 原 `fold_designer_bridge._phase6_registry_validate_candidate_3d` 和 `_phase6_mesh_profiles_for_part` 對真實板厚使用 `_num(settings.get("t", snapshot.get("t", 2.0)), 2.0)`：明確非法／雙來源缺 T 被填成假的 2 mm，舊 Settings 又可能覆蓋已提交 Snapshot，讓候選 3D 和 immutable 製造 Request 的成形板厚不同。原公開 Engine `operator_relief_candidate_3d.validate_operator_relief_registry_candidate_3d` 對直接 headless T 也沒有先核對真物理來源。
+- GUI 兩個 3D 入口只消費原公開 `manufacturing_api.project_operator_manufacturing_request_snapshot(snapshot, settings, {})["t"]`；候選在取任何 Scene 之前拒絕損壞／缺失來源；Engine 候選原函式在 Rule／3D 解算前先重用 `normalize_operator_source_dimension(..., field="t")`，拒絕 Bool、NaN／Inf、零與非物理數值。Snapshot 優先於 Settings；合法毫米小數與原 Engine Registry、Fold／Joint／2D／3D／DXF 算法不變。
+- `tests/test_issue2517_relief_registry_mesh_physical_t_parity.py` 含 GUI／headless、真 Project Save→Reload、非法來源不得進幾何與正式 Request 來源一致性；此僅是 3D T 來源一致性，不代表 #2517 全箱／Windows UAT 完成。
+
+
 ## [CURRENT] #2517 IndicatorBox／SmallDoor 直接尺寸 API 共用正式原始群組與板厚閘門（2026-11-12）
 
 - 原 `ae_engine.manufacturing_door_indicator.indicator_box_unfolded_size`、`indicator_small_door_spec`、`door_indicator_offset_for_finished_center` 在直接 headless 呼叫路徑用 `tuple(int(v) for v in groups)`，可能將 `True`、`2.5` 轉為可製造燈孔群組；原 SmallDoor operator 又提前用 `float(thickness)`，使非法原始 T 可成為板厚。相同已提交 GUI/Hole Editor 的 `validate_door_indicator_fit` 早已使用嚴格來源閘門，direct API 不可例外。

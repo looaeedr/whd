@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Registry candidate and 3D Fold Mesh physical T share the immutable Engine Request (2026-11-12)
+
+GUI Fold Designer `_phase6_registry_validate_candidate_3d` and `_phase6_mesh_profiles_for_part` previously used `_num(settings.get("t", snapshot.get("t", 2.0)), 2.0)`, fabricating a 2 mm T for invalid/missing raw sources and overriding an already committed Snapshot with stale Settings. The direct headless original `operator_relief_candidate_3d.validate_operator_relief_registry_candidate_3d` similarly accepted unqualified raw physical T. Both GUI 3D entries now consume the existing public `manufacturing_api.project_operator_manufacturing_request_snapshot(snapshot, settings, {})["t"]`; the original Engine candidate validator checks `normalize_operator_source_dimension(sheet_thickness, field="t")` before any Registry/geometry work. Original Fold, certified formulas, 3D solver, FinalScene, and DXF exporter remain unchanged. Headless/GUI tests cover invalid source rejection, real `.p6fold` Save→Reload and T priority, valid fractional T and original 3D Fold projection. This does not complete the whole-cabinet 2D/3D/DXF or Windows UAT.
+
 ## #2517 IndicatorBox and Small Door direct dimension APIs share Engine source validation (2026-11-12)
 
 Direct headless `indicator_box_unfolded_size`, `indicator_small_door_spec`, `door_indicator_offset_for_finished_center` and the Small Door operator spec no longer coerce raw group counts through `int()` or raw sheet thickness through `float()` before source qualification. They consume the existing Engine `normalize_fold_designer_indicator_groups` and `normalize_operator_source_dimension(field="t")` contracts; a scalar/mapping is not a physical list of layers. Valid integer group strings, finite fractional T and existing geometry/Factory Policy remain intact, as do the genuine source DXF and manufacturing gates. Focused tests cover headless and GUI parity, invalid sources, original project Save→Reload and real IndicatorBox baseline DXF reopening. Complete #2517 coverage and Windows UAT remain outstanding.
