@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Direct DoorPartSpec must pass the same Engine physical source gate (2026-11-12)
+
+Confirmed headless `DoorPartSpec` callers may invoke `manufacturing_api.door_finished_face_size`, `build_part_render_data` or `generate_part` directly without the GUI request builder. The original common `manufacturing_door_indicator._resolved_door_params` now preserves original typed W/H/T/FW until the existing positive-finite/non-Boolean Engine source validator and preserves signed Gap/Fold until the original finite/non-Boolean Door operator validator. It no longer launders `True` into 1 mm or NaN/Inf into canonical 2D/3D/DXF. Family-specific material FW, baseline `門.dxf`, factory fallback, holes, material fold and verification are unchanged. `tests/test_issue2517_direct_door_partspec_original_source_engine_gate.py` verifies headless/direct GUI physical equality, Save→Reload, real Door FinalScene/DXF reopen and invalid inputs. Whole-cabinet #2517 and Windows UAT remain open.
+
 ## #2517 Indicator SmallDoor operator FW, signed Gap and Fold original Engine source gates (2026-11-12)
 
 The existing GUI adapter passes raw SmallDoor operator controls to `manufacturing_api.indicator_small_door_operator_spec`. The original Engine owner now validates FW with `normalize_operator_source_dimension(field="fw")` (positive finite non-Boolean) and reuses the existing Door operator finite signed Gap/Fold validator (allows zero/negative where the original manufacturing policy does). It no longer converts `True` into an actual 1-mm frame/gap/fold or admits NaN/Inf. The historical default Fold applies only when omitted. SmallDoor geometry, Factory Policy dimensions, `小門.dxf`, and manufacturing qualification stay unchanged. Regression `tests/test_issue2517_indicator_small_door_policy_raw_source_engine_api.py` verifies headless/GUI, saved source, real DXF and invalid-source refusal. #2517 whole-cabinet coverage / Windows UAT remain open.
