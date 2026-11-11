@@ -175,11 +175,21 @@ def test_real_side_marking_button_uses_engine_registered_receiving_family(
     result = gui.export_receiving_ear_side_manufacturing_dxf(host)
     assert result is not None
     assert events == ["ok"]
-    assert observed == [(
+    assert len(observed) == 1
+    actual_source, actual_geometry, actual_folder, options = observed[0]
+    assert (actual_source, actual_geometry, actual_folder) == (
         source, geometry, str(tmp_path),
-        {"dimensions": (800., 1600., 350.),
-         "sheet_thickness": 2., "overwrite": False},
-    )]
+    )
+    source_guard = options.pop("pre_commit_guard")
+    assert callable(source_guard)
+    assert options == {
+        "dimensions": (800., 1600., 350.),
+        "sheet_thickness": 2., "overwrite": False,
+    }
+    source_guard()
+    host.fold_designer_app._phase6_input_snapshot["t"] = 3.
+    with pytest.raises(ValueError, match="DXF 出圖來源已變更"):
+        source_guard()
 
 
 def test_pad_operator_alias_reaches_engine_source_check_before_any_picker(monkeypatch):

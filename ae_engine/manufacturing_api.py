@@ -2471,9 +2471,13 @@ def export_receiving_ear_side_manufacturing_marking_dxf(
 ):
     """Source-checked physical SIDE MARKING only; no expanded release scope."""
     from .receiving_ear_side_manufacturing_marking import export_receiving_ear_side_manufacturing_marking_dxf as execute
+    # Preserve the old caller argument shape when no witness was supplied.
+    # Explicit source witnesses flow unchanged to the same Engine owner.
+    extra = ({"pre_commit_guard": pre_commit_guard}
+             if pre_commit_guard is not None else {})
     return execute(snapshot, geometry, output_dir, dimensions=dimensions,
                    sheet_thickness=sheet_thickness, overwrite=overwrite,
-                   pre_commit_guard=pre_commit_guard)
+                   **extra)
 
 
 def receiving_ear_side_check_operator_inputs(snapshot):
@@ -2488,9 +2492,13 @@ def export_receiving_ear_side_check_only_dxf(
 ):
     """Source-checked CHECK-only receipt is not manufacturing authorization."""
     from .receiving_fixed_plate_side_check_dxf import export_receiving_ear_side_check_only_dxf as execute
+    # Preserve the old caller argument shape when no witness was supplied.
+    # Explicit source witnesses flow unchanged to the same Engine owner.
+    extra = ({"pre_commit_guard": pre_commit_guard}
+             if pre_commit_guard is not None else {})
     return execute(snapshot, geometry, output_dir, dimensions=dimensions,
                    sheet_thickness=sheet_thickness, overwrite=overwrite,
-                   pre_commit_guard=pre_commit_guard)
+                   **extra)
 
 
 def export_verified_pad_base_part_only(
