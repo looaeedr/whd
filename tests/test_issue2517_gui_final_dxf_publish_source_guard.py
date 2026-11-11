@@ -40,7 +40,11 @@ def _project_source(tmp_path):
         {"schema": project.PROJECT_SCHEMA, "snapshot": source},
     )
     reopened = project.read_project(path)["snapshot"]
-    assert reopened["part_features"] == source["part_features"]
+    # Project migration may add empty Head/Tail maps. Only the authored
+    # physical Door features are this test's persistence authority.
+    assert reopened["part_features"]["door"] == source["part_features"]["door"]
+    assert reopened["part_features"]["head"] == []
+    assert reopened["part_features"]["tail"] == []
     return reopened
 
 
