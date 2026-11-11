@@ -147,11 +147,30 @@ def _selected_resolved_geometry(resolved_geometry, flags):
 
 
 def _current_authoritative_export_guard(designer, snapshot):
-    """GUI snapshots only the input revision; Engine owns all manufacturing."""
+    """Witness both saved operator inputs and current authored workspace source.
+
+    Hole Editor features, physical part profiles and other committed Workspace
+    sources can change without mutating _phase6_input_snapshot. The Engine
+    exporter calls this UI-source witness before and after staging real DXF;
+    never publish a newly stale physical flat under an unchanged input revision.
+    """
     witness = deepcopy(snapshot)
+    workspace = getattr(designer, "designer_workspace", None)
+    workspace_reader = getattr(workspace, "snapshot", None)
+    workspace_witness = (
+        deepcopy(workspace_reader()) if callable(workspace_reader) else None
+    )
+
     def verify():
         if getattr(designer, "_phase6_input_snapshot", None) != witness:
             raise ValueError("DXF 出圖來源已變更，請重新確認盤名與板件")
+        if workspace_witness is not None:
+            current_workspace = getattr(designer, "designer_workspace", None)
+            current_reader = getattr(current_workspace, "snapshot", None)
+            if (current_workspace is not workspace
+                    or not callable(current_reader)
+                    or current_reader() != workspace_witness):
+                raise ValueError("DXF 工作區來源已變更，請重新確認孔位與板件")
     return verify
 
 
@@ -295,6 +314,7 @@ def _export_selected_resolved_parts(self, folder, flags):
                 receiving_live,
                 physical_bay_geometry_provider=actual_bay_geometry,
                 flags=flags, output_dir=folder, overwrite=True,
+                pre_commit_guard=source_guard,
             )
         return ([os.path.basename(path) for path in outputs.values()], [])
 
