@@ -96,6 +96,7 @@ def export_receiving_ear_side_manufacturing_marking_dxf(
     dimensions,
     sheet_thickness,
     overwrite=False,
+    pre_commit_guard=None,
 ) -> ReceivingEarSideManufacturingMarkingReceipt:
     """Manufacturing side plates with verified physical EAR weld-position marks.
 
@@ -109,6 +110,8 @@ def export_receiving_ear_side_manufacturing_marking_dxf(
         raise ValueError("EAR_SIDE_MFG_QUANTITY_REQUIRES_PER_VERSION_SOURCE")
     if type(overwrite) is not bool:
         raise TypeError("EAR_SIDE_MFG_OVERWRITE_MUST_BE_BOOLEAN")
+    if pre_commit_guard is not None and not callable(pre_commit_guard):
+        raise TypeError("WHD_PRECOMMIT_SOURCE_GUARD_INVALID")
 
     uv, physical, parts, previews = _verified_pair(
         snapshot, geometry,
@@ -192,6 +195,8 @@ def export_receiving_ear_side_manufacturing_marking_dxf(
         save_part_render_data_dxf=save_and_verify,
         overwrite=overwrite,
         part_only=True,
+        pre_commit_guard=pre_commit_guard,
+        guard_during_atomic_move=True,
     )
     if set(result) != set(side_keys):
         raise ValueError("EAR_SIDE_MFG_ATOMIC_RESULT_INCOMPLETE")

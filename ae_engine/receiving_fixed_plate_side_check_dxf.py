@@ -227,7 +227,7 @@ def _readback_marking_lines(path, expected_segments, *, original_scene=None, che
 
 def export_receiving_ear_side_check_only_dxf(
     snapshot, geometry, output_dir, *, dimensions, sheet_thickness,
-    overwrite=False,
+    overwrite=False, pre_commit_guard=None,
 ) -> ReceivingEarSideCheckDxfReceipt:
     """Write and independently reopen BOTH side sheets or commit NEITHER.
 
@@ -235,6 +235,10 @@ def export_receiving_ear_side_check_only_dxf(
     geometry. A failed side check, roundtrip, or output collision leaves no
     published partial pair. Names explicitly identify check-only status.
     """
+    if pre_commit_guard is not None:
+        if not callable(pre_commit_guard):
+            raise TypeError("WHD_PRECOMMIT_SOURCE_GUARD_INVALID")
+        pre_commit_guard()
     uv, physical, parts, previews = _verified_pair(
         snapshot, geometry, dimensions=dimensions, sheet_thickness=sheet_thickness,
     )
@@ -285,8 +289,11 @@ def export_receiving_ear_side_check_only_dxf(
                 check_scene=previews[side],
             )
             staged[side] = staged_path
+        if pre_commit_guard is not None:
+            pre_commit_guard()
         committed = _atomic_commit_staged_dxfs(
             staged, root, overwrite=overwrite,
+            pre_commit_guard=pre_commit_guard,
         )
     return ReceivingEarSideCheckDxfReceipt(
         output_paths=tuple((side, committed[side]) for side in _SIDE_NAMES),

@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 EAR SIDE independent DXF exports share live source witness (2026-11-11)
+
+The existing public `manufacturing_api.export_receiving_ear_side_manufacturing_marking_dxf` and `export_receiving_ear_side_check_only_dxf` now accept an optional `pre_commit_guard` callback. The original GUI actions capture the operator/Workspace source before file selection and pass that witness into Engine validation, real left/right CUTTING+BEND+MARKING DXF staging, independent Save→Reload and the atomic final commit. A source change before or during the final two-side publish rejects and restores existing outputs; legacy headless clients without a callback retain the previous behavior. CHECK remains CHECK-only, manufacturing remains SIDE-only; no EAR/PAD welding, NFB MFG-2 or whole cabinet approval is granted. See `tests/test_issue2517_ear_side_live_source_dxf_guard.py`.
+
 ## #2517 Quantity Head/Tail Hole Editor T-source parity (2026-11-11)
 
 The public `manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(snapshot, role=...)` now requires an actual positive, finite, non-boolean `snapshot["t"]`; it no longer assumes 2 mm when T is absent. GUI Quantity Hole Editor and Confirm call the existing `project_operator_manufacturing_request_snapshot(committed_snapshot, settings, working_box)` before using that projector/commit transaction. An explicitly saved T wins over stale Settings; legacy Settings-only T remains valid via the same request projection. Read-only editor geometry is not DXF manufacturing approval. See `tests/test_issue2517_quantity_hole_t_source_parity_engine.py`.

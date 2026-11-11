@@ -591,6 +591,9 @@ def export_receiving_ear_side_manufacturing_dxf(self):
         dimensions, thickness = manufacturing_api.receiving_ear_side_check_operator_inputs(
             snapshot,
         )
+        # Witness the original Workspace before geometry resolution: that
+        # callback itself may race with a confirmed Hole Editor source edit.
+        source_guard = _current_authoritative_export_guard(designer, snapshot)
         geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片側板 MARKING 不可輸出", str(exc))
@@ -605,6 +608,7 @@ def export_receiving_ear_side_manufacturing_dxf(self):
         receipt = manufacturing_api.export_receiving_ear_side_manufacturing_marking_dxf(
             snapshot, geometry, folder, dimensions=dimensions,
             sheet_thickness=thickness, overwrite=False,
+            pre_commit_guard=source_guard,
         )
     except (ValueError, FileExistsError, OSError, TypeError) as exc:
         messagebox.showerror(
@@ -635,6 +639,7 @@ def export_receiving_ear_side_check_dxf(self):
         dimensions, thickness = manufacturing_api.receiving_ear_side_check_operator_inputs(
             snapshot,
         )
+        source_guard = _current_authoritative_export_guard(designer, snapshot)
         geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片 CHECK 不可用", str(exc))
@@ -650,7 +655,7 @@ def export_receiving_ear_side_check_dxf(self):
         receipt = manufacturing_api.export_receiving_ear_side_check_only_dxf(
             snapshot, geometry, folder,
             dimensions=dimensions, sheet_thickness=thickness,
-            overwrite=False,
+            overwrite=False, pre_commit_guard=source_guard,
         )
     except (ValueError, FileExistsError, OSError, TypeError) as exc:
         messagebox.showerror(

@@ -80,3 +80,30 @@ def test_gui_export_never_imports_private_manufacturing_modules():
         "export_verified_pad_base_part_only",
     ):
         assert f"manufacturing_api.{name}(" in source
+
+
+@pytest.mark.parametrize("name,module_name", (
+    ("export_receiving_ear_side_manufacturing_marking_dxf",
+     "ae_engine.receiving_ear_side_manufacturing_marking"),
+    ("export_receiving_ear_side_check_only_dxf",
+     "ae_engine.receiving_fixed_plate_side_check_dxf"),
+))
+def test_explicit_ear_side_source_witness_flows_unchanged_through_public_api(
+    monkeypatch, name, module_name,
+):
+    module = importlib.import_module(module_name)
+    marker = object()
+    source_guard = lambda: None
+    received = []
+    monkeypatch.setattr(
+        module, name,
+        lambda *args, **kwargs: received.append((args, kwargs)) or marker,
+    )
+    assert getattr(manufacturing_api, name)(
+        "snapshot", "geometry", "directory", dimensions=(800, 1600, 350),
+        sheet_thickness=2, overwrite=False, pre_commit_guard=source_guard,
+    ) is marker
+    assert received == [(("snapshot", "geometry", "directory"), {
+        "dimensions": (800, 1600, 350), "sheet_thickness": 2,
+        "overwrite": False, "pre_commit_guard": source_guard,
+    })]

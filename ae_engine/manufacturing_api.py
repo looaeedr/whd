@@ -2467,12 +2467,17 @@ def export_grouped_receiving_multibay_dxf(
 
 def export_receiving_ear_side_manufacturing_marking_dxf(
     snapshot, geometry, output_dir, *, dimensions, sheet_thickness,
-    overwrite=False,
+    overwrite=False, pre_commit_guard=None,
 ):
-    """Only existing certified physical side MARKING; no new manufacturing scope."""
+    """Source-checked physical SIDE MARKING only; no expanded release scope."""
     from .receiving_ear_side_manufacturing_marking import export_receiving_ear_side_manufacturing_marking_dxf as execute
+    # Preserve the old caller argument shape when no witness was supplied.
+    # Explicit source witnesses flow unchanged to the same Engine owner.
+    extra = ({"pre_commit_guard": pre_commit_guard}
+             if pre_commit_guard is not None else {})
     return execute(snapshot, geometry, output_dir, dimensions=dimensions,
-                   sheet_thickness=sheet_thickness, overwrite=overwrite)
+                   sheet_thickness=sheet_thickness, overwrite=overwrite,
+                   **extra)
 
 
 def receiving_ear_side_check_operator_inputs(snapshot):
@@ -2483,12 +2488,17 @@ def receiving_ear_side_check_operator_inputs(snapshot):
 
 def export_receiving_ear_side_check_only_dxf(
     snapshot, geometry, output_dir, *, dimensions, sheet_thickness,
-    overwrite=False,
+    overwrite=False, pre_commit_guard=None,
 ):
-    """Existing CHECK-only receipt must not become manufacturing authorization."""
+    """Source-checked CHECK-only receipt is not manufacturing authorization."""
     from .receiving_fixed_plate_side_check_dxf import export_receiving_ear_side_check_only_dxf as execute
+    # Preserve the old caller argument shape when no witness was supplied.
+    # Explicit source witnesses flow unchanged to the same Engine owner.
+    extra = ({"pre_commit_guard": pre_commit_guard}
+             if pre_commit_guard is not None else {})
     return execute(snapshot, geometry, output_dir, dimensions=dimensions,
-                   sheet_thickness=sheet_thickness, overwrite=overwrite)
+                   sheet_thickness=sheet_thickness, overwrite=overwrite,
+                   **extra)
 
 
 def export_verified_pad_base_part_only(
