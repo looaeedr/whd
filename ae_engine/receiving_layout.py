@@ -877,6 +877,17 @@ def project_receiving_bay_legacy_aliases(
             result.pop(key, None)
         if has_manufacturing_door_source:
             from ae_engine.cabinet_types import receiving
+            from .operator_settings_transactions import normalize_operator_source_dimension
+            # These values become actual inner-door/FRAME geometry before
+            # normal per-Bay validation runs. float(True) and float("nan")
+            # must never authorize invented 1-mm or nonfinite sheet metal.
+            # Only an *absent* legacy FW may use the original Family default.
+            physical_t = normalize_operator_source_dimension(
+                result["t"], field="t",
+            )
+            physical_fw = normalize_operator_source_dimension(
+                result.get("fw", receiving.BOX_BODY_DEFAULTS["fw"]), field="fw",
+            )
             template = receiving.default_door_layout_columns()
             default_height = sum(float(v) for v in template[0][1])
             bay_height = float(bay["height"])
@@ -888,9 +899,9 @@ def project_receiving_bay_legacy_aliases(
                 "door_layout_scope": receiving.DEFAULT_DOOR_LAYOUT_SCOPE,
                 "door_layout_columns": [[float(bay["width"]), heights]],
                 "inner_doors": receiving.default_inner_doors(
-                    thickness=float(result["t"]),
+                    thickness=physical_t,
                     depth=float(bay["depth"]),
-                    frame_width=float(result.get("fw", receiving.BOX_BODY_DEFAULTS["fw"])),
+                    frame_width=physical_fw,
                 ),
             })
     for key in ("nfb_config_submitted", "nfb_config"):
