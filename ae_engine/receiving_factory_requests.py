@@ -348,7 +348,14 @@ def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation, co
             confirmed_columns, total_width=source["w"], total_height=source["h"],
         )
         if confirmation == "saved_operator_confirmed":
-            if values.get("multi_door_enabled") is not True:
+            # Saved project authority preserves native and serialized bool
+            # representations. The same Engine decoder decides whether the
+            # operator actually enabled physical Door cells. A literal
+            # "true" must not be rejected while "false" is never allowed.
+            from .operator_settings_transactions import normalize_operator_settings_boolean
+            if not normalize_operator_settings_boolean(
+                values.get("multi_door_enabled", False)
+            ):
                 raise ValueError("disabled saved Door layout")
             saved_cells = validate_door_layout_dimensions(
                 values.get("door_layout_columns") or (),
