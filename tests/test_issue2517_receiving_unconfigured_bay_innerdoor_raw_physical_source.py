@@ -10,7 +10,7 @@ from copy import deepcopy
 
 import pytest
 
-from ae_engine import manufacturing_api as api
+from ae_engine.cabinet_types import receiving
 from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
 from tests.test_issue2517_receiving_saved_door_mode_source_parity import (
     _actual_bay_source,
@@ -26,7 +26,7 @@ def _bay_two(source):
 
 @pytest.mark.parametrize("field", ("t", "fw"))
 @pytest.mark.parametrize("invalid", (
-    True, False, None, 0, -2, "nan", "inf", float("nan"),
+    True, False, 0, -2, "nan", "inf", float("nan"),
     float("inf"), {}, [],
 ))
 def test_raw_invalid_thickness_or_frame_width_cannot_mint_second_bay_inner_frame(
@@ -77,7 +77,26 @@ def test_valid_original_mm_preserves_legacy_inner_panel_and_frame_source(
     assert bay["inner_doors"][0]["cell_key"] == "0:0"
     # The real public Receiving Family owns finished inner-door panels
     # and frame sheets; the legacy fallback never writes those to project.
-    assert len(api.derive_receiving_inner_door_panels(bay)) == 1
+    assert len(receiving.derive_inner_door_panels(bay)) == 1
+    assert source == before
+
+
+
+def test_present_none_frame_width_is_not_treated_as_missing_legacy_default():
+    source = _actual_bay_source("true")
+    source["fw"] = None
+    before = deepcopy(source)
+    with pytest.raises(ValueError, match="包外尺寸"):
+        _bay_two(source)
+    assert source == before
+
+
+def test_explicit_none_thickness_does_not_authorize_transient_door_frame():
+    source = _actual_bay_source("true")
+    source["t"] = None
+    before = deepcopy(source)
+    bay = _bay_two(source)
+    assert "inner_doors" not in bay
     assert source == before
 
 
