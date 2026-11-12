@@ -356,7 +356,9 @@ class Phase6FinalSceneViewAdapter:
         visible_box_body_piece_keys = visibility[1]
         # Preserve the historical two-value visibility contract. The optional
         # display-only EAR switch is carried separately on the result.
-        show_fixing_plate_mesh = bool(getattr(visibility, "show_fixing_plate_mesh", True))
+        show_fixing_plate_mesh = manufacturing_api.normalize_operator_settings_boolean(
+            getattr(visibility, "show_fixing_plate_mesh", True)
+        )
         visible_set = set(visible_part_keys)
         visible_probe_parts = tuple(
             part
@@ -386,7 +388,9 @@ class Phase6FinalSceneViewAdapter:
             assembly_parts=parts,
             visible_part_keys=visible_part_keys,
             visible_box_body_piece_keys=visible_box_body_piece_keys,
-            show_interference=bool(dependencies.show_interference()),
+            show_interference=manufacturing_api.normalize_operator_settings_boolean(
+                dependencies.show_interference()
+            ),
             ignore_fixed_corner_relief=False,
             interference_probe_parts=visible_probe_parts,
             joint_diagnostics=(),
