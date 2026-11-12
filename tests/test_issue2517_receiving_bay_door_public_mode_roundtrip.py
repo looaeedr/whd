@@ -41,7 +41,7 @@ def _bay_snapshot(flag, *, columns=None):
     }
 
 
-@pytest.mark.parametrize("flag", (False, "false", " FALSE ", "off", "0", 0))
+@pytest.mark.parametrize("flag", (False, "false", " FALSE ", "off", "no", "0", 0))
 def test_disabled_saved_bay_door_mode_never_draws_or_selects_physical_door(flag):
     snapshot = _bay_snapshot(flag)
     before = deepcopy(snapshot)
@@ -71,7 +71,7 @@ def test_disabled_bay_needs_no_active_door_grid_to_validate(flag):
     ) is None
 
 
-@pytest.mark.parametrize("flag", (True, "true", " TRUE ", "on", "1", 1))
+@pytest.mark.parametrize("flag", (True, "true", " TRUE ", "on", "yes", "1", 1))
 def test_true_saved_bay_door_uses_same_canonical_two_physical_cells(flag):
     snapshot = _bay_snapshot(flag)
     before = deepcopy(snapshot)
