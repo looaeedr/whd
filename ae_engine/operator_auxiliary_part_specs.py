@@ -7,6 +7,7 @@ The GUI selects operator inputs but cannot certify parts or substitute source.
 """
 from __future__ import annotations
 
+from .cabinet_types import policy as cabinet_family_policy
 from .box_body_fold_profile import profile_to_fold_segments
 from .fold_designer_snapshot_dimensions import normalize_fold_designer_indicator_groups
 from .contracts import BasePlatePartSpec, IndicatorBoxPartSpec
@@ -37,8 +38,9 @@ def build_base_plate_operator_part_spec(
 ) -> BasePlatePartSpec:
     """Build the original structural BasePlate request without GUI policy."""
     model = str(values.get("model", "")).strip()
-    # Exact old model keys are retained for saved-project compatibility.
-    receiving = model in {"受電箱", "RECEIVING"}
+    # Preserve the original operator model name; only Registry may decide
+    # which physical Receiving source fields belong to this PartSpec.
+    receiving = cabinet_family_policy.canonical_family_name(model) == "受電箱"
     return BasePlatePartSpec(
         width=normalize_operator_source_dimension(values["w"], field="w"),
         height=normalize_operator_source_dimension(values["h"], field="h"),
@@ -109,7 +111,7 @@ def resolve_fold_designer_base_plate_source(
         "receiving_bend_pattern": data.get("receiving_bend_pattern"),
         "physical_id": key, "model": model,
     }
-    if model in {"受電箱", "RECEIVING"}:
+    if cabinet_family_policy.canonical_family_name(model) == "受電箱":
         if key != "base_plate":
             raise ValueError("RECEIVING_BASE_PLATE_LEGACY_CELL_UNSUPPORTED")
         physical = receiving_base_plate_values(data)

@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 FoldDesigner BasePlate 2D／PartSpec／3D／DXF 的合法 Receiving Family 別名不可拆成不同實體（2026-11-13）
+
+- 原 `ae_engine.fold_designer_snapshot_dimensions.project_fold_designer_snapshot_dimensions` 在投影底板 2D 時以 `model in {"受電箱","RECEIVING"}` 辨識受電箱；原 `ae_engine.operator_auxiliary_part_specs.resolve_fold_designer_base_plate_source` 與 `build_base_plate_operator_part_spec` 再各自做同樣硬寫判斷。真已配置 `receiving_base_plate` 的 `receiving`／大小寫別名儲存／重新開啟後，2D 底板尺寸可能退回通用收縮，而 3D／正式 DXF 的 PartSpec 未攜原實體 bend pattern。這不是合法的新機械板型。
+- 三處只改用原 `cabinet_types.policy.canonical_family_name` 正規化 Registry 身分，保留原 model_name 作追溯、原 Receiving 實體底板解算與 PartSpec、底板真 CUTTING/BEND、3D Fold Mesh、舊金庫型通用回退和未配置／非法來源 fail-closed；不改尺寸公式、不另造 GUI/CADSplit 出圖、不放行未完成的正式認證。
+- `tests/test_issue2517_baseplate_alias_snapshot_finalscene_dxf_parity.py` 使用原實體 Receiving BasePlate 配置與 GUI 公開投影、真 `.p6fold` Save→Reload、Headless PartSpec、實體 FinalScene CUTTING/BEND、同一 Fold 的 3D Mesh、DXF 寫出後獨立 reopen 及負向資料檢查。僅為指定底板鏈的端到端子驗收，#2517 全面入口與 Windows／CADSplit 完整整箱仍 OPEN。
+
+
 ## [CURRENT] #2517 CornerType CROSS 槽位與旋轉來源在真 Save→Reload 不得降成假 STANDARD（2026-11-12）
 
 - 原 Engine 公開 corner_policy_from_payload 由原 corner_type_ui 實作，對已存 raw Corner 先 int(rotation_quadrants) 導致布林或小數成為合法旋轉，對 FW 先 float(fw) 導致 True → 1 mm；更未將 CROSS 的 slot_width／slot_straight_depth／slot_radius 傳入原 CornerTypeSelection。Project codec 已保存這三個物理欄位，但 Reload 所用的政策丟棄，可能讓真 2D CUTTING／3D 陰影／DXF 來源不一致。
