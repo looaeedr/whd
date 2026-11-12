@@ -316,7 +316,7 @@ def project_fold_designer_snapshot_dimensions(
         for key in ("w", "h", "d", "t", "fw")
     )
     door_material_fw = cabinet_family_policy.door_material_frame_width(
-        source.get("model"), frame_width=float(fw), thickness=float(t),
+        source, frame_width=float(fw), thickness=float(t),
     )
     door_w, door_h = ae.calculate_door_finished_size(
         w, h, door_material_fw,
@@ -331,7 +331,7 @@ def project_fold_designer_snapshot_dimensions(
     base_h = (
         h - source["base_plate_shrink_top"] - source["base_plate_shrink_bottom"]
     )
-    if source.get("model") in {"受電箱", "RECEIVING"}:
+    if cabinet_family_policy.canonical_family_name(source) == "受電箱":
         from .receiving_base_plate_config import receiving_base_plate_blank_dimensions
         physical = receiving_base_plate_blank_dimensions(source)
         if physical is not None:
