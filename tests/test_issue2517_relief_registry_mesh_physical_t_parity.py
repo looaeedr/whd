@@ -45,7 +45,10 @@ def _registry_monkeypatch(monkeypatch):
     monkeypatch.setattr(gui, "_phase6_operator_finished_dimensions", lambda *_: {
         "w": 800.0, "h": 1200.0, "d": 350.0,
     })
-    monkeypatch.setattr(gui, "_phase6_assembly_relief_clearance", lambda *_: 0.0)
+    monkeypatch.setattr(
+        gui, "_phase6_assembly_relief_clearance",
+        lambda *_: pytest.fail("Registry candidate used legacy preview fallback"),
+    )
     monkeypatch.setattr(gui, "_phase6_box_structure_state", lambda *_: {})
     monkeypatch.setattr(gui, "_phase6_current_cabinet_family", lambda *_: "金庫型")
 
@@ -143,6 +146,38 @@ def test_invalid_gui_3d_candidate_blocks_before_any_scene_or_registry(
         )
     assert calls == []
     assert events == []
+
+
+
+@pytest.mark.parametrize("bad", (
+    True, "invalid", "NaN", float("inf"), 10 ** 400,
+))
+def test_gui_registry_candidate_rejects_raw_invalid_clearance_before_scene(
+    monkeypatch, bad,
+):
+    events = _registry_monkeypatch(monkeypatch)
+    host, calls, _ = _host(_snap())
+    host.assembly_relief_clearance_var = SimpleNamespace(get=lambda: bad)
+    with pytest.raises(ValueError, match="MANUFACTURING_RELIEF_CLEARANCE_INVALID"):
+        gui._phase6_registry_validate_candidate_3d(host, {}, candidate_id="c")
+    assert calls == []
+    assert events == []
+
+
+@pytest.mark.parametrize("raw,expected", (
+    ("2.75", 2.75), ("-3", 0.0), (None, 0.0),
+))
+def test_gui_registry_candidate_uses_same_clearance_as_headless_request(
+    monkeypatch, raw, expected,
+):
+    events = _registry_monkeypatch(monkeypatch)
+    host, calls, _ = _host(_snap(t=2.125))
+    host.assembly_relief_clearance_var = SimpleNamespace(get=lambda: raw)
+    assert gui._phase6_registry_validate_candidate_3d(
+        host, {}, candidate_id="c",
+    ) == {"source_T": 2.125}
+    assert events[0]["clearance"] == expected
+    assert calls == [("scene", "box_body")]
 
 
 def test_gui_active_3d_fold_mesh_uses_same_engine_t_and_retains_raw_source(
