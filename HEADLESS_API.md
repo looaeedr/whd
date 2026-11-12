@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Original CornerType payload preserves CROSS slot and raw rotation (2026-11-12)
+
+The original public manufacturing_api.corner_policy_from_payload previously truncated persisted rotation_quadrants with int(), converted physical FW with float(), and dropped all three original CornerTypeSelection CROSS slot fields. Genuine .p6fold JSON Save→Reload could therefore remove a source-authored slot from the physical policy used by 2D/3D/DXF while showing a plausible STANDARD corner. Original Engine now passes raw rotation and slot parameters to the existing CornerTypeSelection validator, validates FW (finite nonboolean, zero-FW draft compatibility), and rejects missing/invalid explicit selections. No Certified Registry formula or GUI manufacturing implementation changes. tests/test_issue2517_saved_cross_corner_slot_raw_engine_parity.py covers real persistence, GUI/headless policy parity, canonical Engine CROSS slot residual, and negative sources. This does not certify newly manufactured CROSS slots or close whole-cabinet #2517 UAT.
+
+
 ## #2517 Receiving saved Factory Corner policy JSON → identical 2D / 3D / DXF (2026-11-12)
 
 The original project codec serializes normal `FourCornerTypePolicy` and nested `CornerTypeSelection` dataclasses into plain JSON dictionaries. A real `.p6fold` Reload had no way to restore the typed Corner policy required by `receiving_factory_requests._saved_operator_state`, so the exact same confirmed Head/Tail was rejected as an incomplete physical source after Reload. The original Engine factory now strictly restores only **complete exact dataclass wire fields**, validates the original typed Corner rules and each physical FW datum, and refuses corrupt, ambiguous, boolean or nonfinite sources. No Family fallback, GUI calculation, geometry formula or DXF exporter changes. `tests/test_issue2517_receiving_saved_corner_policy_true_reload_2d3d_dxf.py` verifies real Receiving authored Door holes, original Factory scene, Head/Tail folded mesh and 9 independently reopened DXFs across actual `.p6fold` Save→Reload, plus invalid persisted state rejection. Scope is a confirmed physical subset; no whole-cabinet/MFG2/Windows authorization.

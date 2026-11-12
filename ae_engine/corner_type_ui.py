@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from collections.abc import Mapping
 from copy import deepcopy
+from math import isfinite
 
 from .sheetmetal_geometry import (
     Vec2,
@@ -534,6 +535,20 @@ def corner_policy_from_payload(
     """
     corners = dict((corner_state or {}).get(part_key, {}) or {})
     required = ("top_left", "top_right", "bottom_left", "bottom_right")
+
+    def physical_fw():
+        # Never normalize an invalid physical FW through float(True) or NaN.
+        # Preserve the original nonnegative 0-FW draft policy compatibility.
+        if isinstance(fw, bool):
+            raise ValueError("CORNER_POLICY_PHYSICAL_FW_INVALID")
+        try:
+            number = float(fw)
+        except (ValueError, TypeError, OverflowError) as exc:
+            raise ValueError("CORNER_POLICY_PHYSICAL_FW_INVALID") from exc
+        if not isfinite(number) or number < 0:
+            raise ValueError("CORNER_POLICY_PHYSICAL_FW_INVALID")
+        return number
+
     if not all(key in corners for key in required):
         if known_family is None:
             return None
@@ -541,7 +556,7 @@ def corner_policy_from_payload(
             (part_key,), cabinet_family=known_family,
         ).get(part_key)
         return (
-            policy_from_corner_state(family_state, fw=float(fw))
+            policy_from_corner_state(family_state, fw=physical_fw())
             if family_state is not None else None
         )
     selections = {}
@@ -550,17 +565,30 @@ def corner_policy_from_payload(
         if isinstance(raw, CornerTypeSelection):
             selections[key] = normalize_corner_selection(raw)
             continue
-        raw = dict(raw or {})
-        selections[key] = CornerTypeSelection(
-            CornerTypeId(str(raw.get("type_id", "CROSS")).upper()),
-            rotation_quadrants=int(raw.get("rotation_quadrants", 0) or 0),
-            cross_mode=raw.get("cross_mode"),
-            direction=raw.get("direction"),
-            amount_t=raw.get("amount_t"),
-            secondary_retain_t=raw.get("secondary_retain_t"),
-            secondary_depth_t=raw.get("secondary_depth_t"),
+        if not isinstance(raw, Mapping):
+            raise ValueError("CORNER_POLICY_SAVED_SELECTION_INVALID")
+        # Pass the original physical values to the existing typed owner.
+        # int(True) and int(1.8) previously fabricated a legal rotation;
+        # omitting the CROSS slot geometry silently changed CUTTING on Reload.
+        source = dict(raw)
+        raw_type = source.get("type_id", "CROSS")
+        type_id = (
+            raw_type if isinstance(raw_type, CornerTypeId)
+            else CornerTypeId(str(raw_type).upper())
         )
-    return policy_from_corner_state(selections, fw=float(fw))
+        selections[key] = CornerTypeSelection(
+            type_id,
+            rotation_quadrants=source.get("rotation_quadrants", 0),
+            cross_mode=source.get("cross_mode"),
+            direction=source.get("direction"),
+            amount_t=source.get("amount_t"),
+            secondary_retain_t=source.get("secondary_retain_t"),
+            secondary_depth_t=source.get("secondary_depth_t"),
+            slot_width=source.get("slot_width"),
+            slot_straight_depth=source.get("slot_straight_depth"),
+            slot_radius=source.get("slot_radius"),
+        )
+    return policy_from_corner_state(selections, fw=physical_fw())
 
 
 
