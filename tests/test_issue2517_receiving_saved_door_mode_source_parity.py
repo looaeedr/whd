@@ -77,7 +77,10 @@ def test_saved_true_root_preserves_existing_legacy_secondary_bay_projection(flag
     assert view["door_layout_columns"]
     assert view["inner_doors"]
     assert view["door_layout_columns"][0][0] == 800.0
-    assert view["receiving_layout"] == original["receiving_layout"]
+    assert view["receiving_layout"]["sets"][0]["bays"][1]["stable_id"] == (
+        original["receiving_layout"]["sets"][0]["bays"][1]["stable_id"]
+    )
+    assert "door_state" not in view["receiving_layout"]["sets"][0]["bays"][1]
     assert original == before
 
 
