@@ -701,8 +701,19 @@ def _selected_dxf_live_operator_sources(self):
     def raw(control):
         getter = getattr(control, "get", None)
         return getter() if callable(getter) else control
+
+    # Main-GUI Door rows can change before Fold Designer's saved snapshot or
+    # workspace revision catches up. Only read already-authored rows: calling
+    # the getter on an absent layout would create an editable default.
+    current_rows = getattr(self, "door_layout_columns", None)
+    read_rows = getattr(self, "get_door_layout_columns", None)
+    live_door_rows = (
+        deepcopy(read_rows()) if current_rows and callable(read_rows) else None
+    )
     return {
         "dimensions": self.get_float_values(),
+        "door_layout_columns": live_door_rows,
+        "surface_features": deepcopy(getattr(self, "surface_features", None)),
         "flags": _selected_export_flags(
             self, self._phase6_current_existing_parts(), self._has_any_indicator_box(),
         ),
