@@ -91,6 +91,7 @@ def test_immutable_gui_request_reuses_one_engine_part_inventory_with_live_worksp
     from tests.test_issue356_manufacturing_adapter import _fake_app
 
     app = _fake_app()
+    original_source_parts = tuple(app.designer_workspace.available_parts)
     original = manufacturing_api.canonical_manufacturing_request_part_keys
     selections = []
 
@@ -108,7 +109,7 @@ def test_immutable_gui_request_reuses_one_engine_part_inventory_with_live_worksp
         live_engine_selection,
     )
     request = build_manufacturing_request(app)
-    assert selections == [(('box_body', 'head'), ('box_body', 'head'))]
+    assert selections == [(original_source_parts, ("box_body", "head"))]
     assert app.designer_workspace.available_parts == ["box_body", "tail"]
     assert request.canonical_part_keys == ("box_body", "head")
     assert tuple(part.part_key for part in request.parts) == request.canonical_part_keys
