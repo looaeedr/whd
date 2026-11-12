@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from . import ae
 from .corner_type_ui import is_unknown_model, normalize_custom_model_name
+from .door_layout_feature_projection import project_operator_saved_door_layout_columns
+from .operator_settings_transactions import normalize_operator_source_dimension
 from .sheetmetal_part_adapters import (
     derive_door_layout_cells, door_layout_export_filename,
 )
@@ -16,11 +18,15 @@ from .sheetmetal_part_adapters import (
 def resolve_fold_designer_payload_topology(part_key, payload):
     data = dict(payload or {})
     key = str(part_key or "")
-    w = float(data.get("w", ae.W))
-    h = float(data.get("h", ae.H))
-    d = float(data.get("d", ae.D))
-    t = float(data.get("t", ae.T))
-    fw = float(data.get("fw", ae.FW))
+    # Legacy preview-only omission keeps existing AE defaults. But a PRESENT
+    # physical source must pass the same public Engine positive/finite/bool
+    # gate as Save→Reload and immutable manufacturing requests: float(True)
+    # may never invent a 1 mm panel in a Door/BasePlate PartSpec.
+    w = normalize_operator_source_dimension(data.get("w", ae.W), field="w")
+    h = normalize_operator_source_dimension(data.get("h", ae.H), field="h")
+    d = normalize_operator_source_dimension(data.get("d", ae.D), field="d")
+    t = normalize_operator_source_dimension(data.get("t", ae.T), field="t")
+    fw = normalize_operator_source_dimension(data.get("fw", ae.FW), field="fw")
     model = normalize_custom_model_name(data.get("model"))
     unknown = is_unknown_model(model)
     corner_state = data.get("corner_state") or {}
@@ -29,9 +35,10 @@ def resolve_fold_designer_payload_topology(part_key, payload):
     door_cell = None
     base_plate_cell = None
     if key.startswith("door_c"):
-        columns = tuple(
-            (float(row[0]), tuple(float(value) for value in row[1]))
-            for row in tuple(data.get("door_layout_columns") or ())
+        # Reuse the Engine's saved-grid authority BEFORE cell lookup: no
+        # bool/NaN/falsy conversion or hand-built physical door identity.
+        columns = project_operator_saved_door_layout_columns(
+            data.get("door_layout_columns"),
         )
         if not columns:
             raise ValueError(f"門格缺少 authoritative multi-door topology: {key}")
@@ -47,9 +54,10 @@ def resolve_fold_designer_payload_topology(part_key, payload):
         w = float(door_cell.start_width)
         h = float(door_cell.start_height)
     elif key.startswith("base_plate_c"):
-        columns = tuple(
-            (float(row[0]), tuple(float(value) for value in row[1]))
-            for row in tuple(data.get("door_layout_columns") or ())
+        # Reuse the Engine's saved-grid authority BEFORE cell lookup: no
+        # bool/NaN/falsy conversion or hand-built physical door identity.
+        columns = project_operator_saved_door_layout_columns(
+            data.get("door_layout_columns"),
         )
         if not columns:
             raise ValueError(f"底板缺少 authoritative multi-door topology: {key}")
