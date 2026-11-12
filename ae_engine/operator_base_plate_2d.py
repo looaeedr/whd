@@ -82,7 +82,13 @@ def project_receiving_base_plate_2d_snapshot(snapshot, resolved, *, active_part=
                 or abs(float(topology.height) - height) > 1e-6
                 or (expected_pattern != RECEIVING_BASE_PATTERN_CENTER
                     and abs(float(topology.width) - flat_width) > 1e-6)):
+            # Preserve the existing public CSV mismatch diagnostic for the
+            # original submitted NFB path. Authored non-CSV physical plates
+            # use the new explicit-source diagnostic; both paths still fail
+            # on the same original topology/pattern/size witness.
             raise ValueError(
+                "受電箱底板目前 CSV 來源與已載入 2D 實體板型不一致"
+                if numeric_source else
                 "受電箱底板目前實體來源與已載入 2D 實體板型不一致"
             )
     if (getattr(physical, "unfolded_topology", None) is None
