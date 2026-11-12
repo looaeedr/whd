@@ -302,10 +302,18 @@ def _door_part_spec_from_payload_context(
     cell_source = None
     if door_cell is not None:
         cell_key = f"{door_cell.column_index}:{door_cell.row_index}"
-        states = dict(
-            data.get("door_layout_indicator_states")
-            or getattr(self, "door_layout_indicator_states", None)
-            or {}
+        # A present persisted inventory (including {}) outranks a stale GUI
+        # mirror. Only a truly absent legacy field may use the live editor.
+        if "door_layout_indicator_states" in data:
+            states = data["door_layout_indicator_states"]
+        else:
+            states = getattr(self, "door_layout_indicator_states", None)
+            if states is None:
+                states = {}
+        # Engine owns the entire saved physical-hole source schema. Do not
+        # replace False/[]/None with an empty inventory or skip a damaged cell.
+        manufacturing_api.project_operator_door_layout_indicator_snapshot_states(
+            states,
         )
         # An absent legacy cell is a plain Door. A present malformed row
         # must reach the Engine unmodified, not the GUI display-repair path.

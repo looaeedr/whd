@@ -105,7 +105,7 @@ def _snapshot_base_state(self):
         "door_nameplate_center_datum_top": getattr(self, "door_nameplate_center_datum_top", None),
         "door_layout_indicator_states": (
             manufacturing_api.project_operator_door_layout_indicator_snapshot_states(
-                getattr(self, "door_layout_indicator_states", None) or {}
+                getattr(self, "door_layout_indicator_states", {})
             )
         ),
         "door_layout_indicator_box_features": deepcopy(
