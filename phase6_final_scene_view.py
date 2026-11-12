@@ -356,7 +356,9 @@ class Phase6FinalSceneViewAdapter:
         visible_box_body_piece_keys = visibility[1]
         # Preserve the historical two-value visibility contract. The optional
         # display-only EAR switch is carried separately on the result.
-        show_fixing_plate_mesh = bool(getattr(visibility, "show_fixing_plate_mesh", True))
+        show_fixing_plate_mesh = manufacturing_api.normalize_operator_settings_boolean(
+            getattr(visibility, "show_fixing_plate_mesh", True)
+        )
         visible_set = set(visible_part_keys)
         visible_probe_parts = tuple(
             part
@@ -382,11 +384,19 @@ class Phase6FinalSceneViewAdapter:
         ) + (
             self._pad_display_warnings() if cabinet_family == "受電箱" else ()
         )
+        # A disconnected optional UI interference toggle historically
+        # returned None, meaning no overlay. Preserve that display-only
+        # state without allowing truthy serialized 'false' or invalid values.
+        raw_interference = dependencies.show_interference()
+        show_interference = (
+            False if raw_interference is None else
+            manufacturing_api.normalize_operator_settings_boolean(raw_interference)
+        )
         return self.make_assembly_scene_render_data(
             assembly_parts=parts,
             visible_part_keys=visible_part_keys,
             visible_box_body_piece_keys=visible_box_body_piece_keys,
-            show_interference=bool(dependencies.show_interference()),
+            show_interference=show_interference,
             ignore_fixed_corner_relief=False,
             interference_probe_parts=visible_probe_parts,
             joint_diagnostics=(),
