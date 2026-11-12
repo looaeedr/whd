@@ -853,8 +853,16 @@ def project_receiving_bay_legacy_aliases(
         # that fully sourced case should Bay N receive its own *transient*
         # family-default geometry. A minimal/unconfigured old project must
         # remain unconfigured: manufacturing cannot invent saved d/t authority.
+        # The original .p6fold codec deliberately keeps the source flag
+        # untouched. bool("false") would fabricate a fresh inner-door frame
+        # on an otherwise unconfigured Bay; use the same Engine boolean
+        # authority as project Save/Reload and factory Door PartSpecs.
+        from .operator_settings_transactions import normalize_operator_settings_boolean
+        enabled_source = normalize_operator_settings_boolean(
+            result.get("multi_door_enabled", False),
+        )
         has_manufacturing_door_source = (
-            bool(result.get("multi_door_enabled"))
+            enabled_source
             and bool(result.get("door_layout_columns"))
             and bool(result.get("inner_doors"))
             and all(result.get(key) is not None for key in ("w", "h", "d", "t"))
