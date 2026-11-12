@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Mapping
 
+from .manufacturing_contracts import normalize_operator_relief_clearance
 from .operator_settings_transactions import normalize_operator_source_dimension
 from .assembly_placement import SCENE_ASSEMBLY_PLACEMENTS
 from .certified_relief_registry import (
@@ -39,6 +40,9 @@ def validate_operator_relief_registry_candidate_3d(
     # Direct headless calls must meet the same physical T contract as
     # immutable manufacturing requests, before any Rule/3D geometry.
     physical_t = normalize_operator_source_dimension(sheet_thickness, field="t")
+    # A Registry candidate may not silently consume an invalid GUI preview
+    # clearance. Validate raw headless inputs before touching rule geometry.
+    physical_clearance = normalize_operator_relief_clearance(clearance)
     raw = _validate_editable_rule_record(record)
     intent = str(raw.get("assembly_intent") or "").strip()
     current_intent = str(assembly_intent or "")
@@ -87,7 +91,7 @@ def validate_operator_relief_registry_candidate_3d(
                 part_key, "top" if part_key == "head" else "bottom"
             ),
             sheet_thickness=physical_t,
-            clearance=clearance,
+            clearance=physical_clearance,
             assembly_intent=intent,
             cabinet_family=cabinet_family,
             allow_3d_fallback=False,

@@ -1682,6 +1682,13 @@ def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
     physical_t = manufacturing_api.project_operator_manufacturing_request_snapshot(
         snapshot, settings, {},
     )["t"]
+    # Unlike the finite-zero legacy *preview*, candidate 3D evidence must
+    # fail closed on edited raw clearance before querying any physical scene.
+    clearance_control = getattr(self, "assembly_relief_clearance_var", None)
+    raw_clearance = clearance_control.get() if clearance_control is not None else None
+    physical_clearance = manufacturing_api.normalize_operator_relief_clearance(
+        raw_clearance,
+    )
     callback = getattr(self, "_scene_query_callback", None)
     if callback is None:
         raise RuntimeError("3D final-scene provider is not connected")
@@ -1711,7 +1718,7 @@ def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
         part_inputs=parts,
         finished_dimensions=_phase6_operator_finished_dimensions(self),
         sheet_thickness=physical_t,
-        clearance=_phase6_assembly_relief_clearance(self),
+        clearance=physical_clearance,
         box_body_structure_state=_phase6_box_structure_state(self),
         cabinet_family=_phase6_current_cabinet_family(self),
     )
