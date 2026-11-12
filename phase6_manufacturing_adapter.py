@@ -496,9 +496,13 @@ def build_manufacturing_request(
         snapshot, live,
     )
 
+    # Resolve operator physical-part inventory once via the Engine. Re-reading
+    # live Workspace after building the part DTOs could publish a self-
+    # contradictory immutable Request if selection changes during callbacks.
+    canonical_part_keys = _canonical_part_keys(app)
     part_inputs: list[ManufacturingPartInput] = []
     scene_values_by_part = {}
-    for key in _canonical_part_keys(app):
+    for key in canonical_part_keys:
         x_profile, y_profile = _profile_inputs_for_part(app, key)
         scene_values = _scene_values_for_part(app, key, scene_payload_builder)
         scene_values_by_part[key] = deepcopy(dict(scene_values))
@@ -545,7 +549,7 @@ def build_manufacturing_request(
         endcap_fw=endcap_fw,
         endcap_bottom_wrap=endcap_bottom_wrap,
         assembly_graph=_assembly_graph_inputs(snapshot),
-        canonical_part_keys=_canonical_part_keys(app),
+        canonical_part_keys=canonical_part_keys,
         parts=tuple(part_inputs),
         operator_finished_dimensions=_finished_dimensions_for_part(
             app, "box_body", finished_dimensions_provider

@@ -80,3 +80,37 @@ def test_gui_only_delegates_snapshot_and_workspace_ids(monkeypatch):
                           designer_workspace=SimpleNamespace(available_parts=["box_body", "head"]))
     assert _canonical_part_keys(app) == ("box_body", "head")
     assert seen == [(snapshot, ("box_body", "head"))]
+
+
+def test_immutable_gui_request_reuses_one_engine_part_inventory_with_live_workspace_edit(
+    monkeypatch,
+):
+    """#2517: the same Request cannot name a different set than its physical DTOs."""
+    from phase6_manufacturing_adapter import build_manufacturing_request
+    from phase6_manufacturing_contracts import manufacturing_request_fingerprint
+    from tests.test_issue356_manufacturing_adapter import _fake_app
+
+    app = _fake_app()
+    original_source_parts = tuple(app.designer_workspace.available_parts)
+    original = manufacturing_api.canonical_manufacturing_request_part_keys
+    selections = []
+
+    def live_engine_selection(snapshot, available_parts):
+        selected = original(snapshot, available_parts)
+        selections.append((tuple(available_parts), selected))
+        if len(selections) == 1:
+            # Mimic a synchronously refreshed operator Workspace while other
+            # input providers are still materializing the immutable request.
+            app.designer_workspace.available_parts = ["box_body", "tail"]
+        return selected
+
+    monkeypatch.setattr(
+        manufacturing_api, "canonical_manufacturing_request_part_keys",
+        live_engine_selection,
+    )
+    request = build_manufacturing_request(app)
+    assert selections == [(original_source_parts, ("box_body", "head"))]
+    assert app.designer_workspace.available_parts == ["box_body", "tail"]
+    assert request.canonical_part_keys == ("box_body", "head")
+    assert tuple(part.part_key for part in request.parts) == request.canonical_part_keys
+    assert request.source_fingerprint == manufacturing_request_fingerprint(request)
