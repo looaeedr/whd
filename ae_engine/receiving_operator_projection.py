@@ -285,15 +285,30 @@ def project_receiving_initial_door_source_scenes(snapshot, resolved):
 def project_receiving_nfb_work_area_height_mm(snapshot) -> float:
     """Project the existing NFB editor's actual Door work area, never a new Y.
 
-    A single top Door cell owns the preview height; for other layouts the
-    existing whole-box H fallback is preserved. Invalid dimensions fail
-    closed rather than authorizing a synthetic millimetre length.
+    Only an enabled top Door cell owns the preview height; explicitly
+    disabled layouts fall back to whole-box H even if stale saved grid data
+    remains. Legacy snapshots without a mode retain their old schematic.
+    Invalid enabled sources fail closed instead of manufacturing a work area.
+    This is editor validation only, never a NFB Y/CUTTING approval.
     """
+    from .door_layout_feature_projection import project_operator_saved_door_layout_columns
     from .sheetmetal_part_adapters import derive_door_layout_cells
 
     source = dict(snapshot or {})
-    columns = source.get("door_layout_columns") or ()
-    cells = derive_door_layout_cells(columns) if columns else ()
+    # An explicitly disabled saved Door cannot own the NFB editor's upper
+    # work area even when old Door columns remain in the project. A project
+    # without an enable flag retains its historical layout-based schematic.
+    enabled = (
+        normalize_operator_settings_boolean(source["multi_door_enabled"])
+        if "multi_door_enabled" in source else True
+    )
+    if enabled:
+        columns = project_operator_saved_door_layout_columns(
+            source.get("door_layout_columns")
+        )
+        cells = derive_door_layout_cells(columns) if columns else ()
+    else:
+        cells = ()
     upper = [cell for cell in cells if cell.row_index == 0]
     raw = (upper[0].start_height if len(upper) == 1
            else source.get("h", 0.0))
