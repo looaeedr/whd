@@ -14,13 +14,28 @@ from typing import Mapping
 from .cabinet_types import policy as cabinet_family_policy
 from .box_body_fold_profile import _num
 from .door_layout_feature_projection import project_operator_saved_door_layout_columns
-from .operator_settings_transactions import normalize_operator_settings_boolean
+from .operator_settings_transactions import (
+    normalize_operator_settings_boolean, normalize_operator_source_dimension,
+)
 from .sheetmetal_part_adapters import (
     DoorFrameEdges,
     calculate_door_finished_size,
     derive_door_layout_cells,
     door_layout_part_key,
 )
+
+def _source_physical_dimension(source: Mapping[str, object], field: str, legacy_default: float) -> float:
+    """Trust the original Engine W/H/D/T/FW contract, not float(True).
+
+    The old Settings preview can omit a field and use its historical visual
+    default. An explicitly authored invalid physical value is never absence
+    and may not be rewritten to a plausible manufacturing dimension.
+    """
+    return normalize_operator_source_dimension(
+        source[field] if field in source else legacy_default,
+        field=field,
+    )
+
 
 @dataclass(frozen=True)
 class DoorPartProjection:
@@ -50,8 +65,8 @@ def door_part_projections(
     )
     if not normalized:
         return ()
-    t = _num(snapshot.get("t", 2.0), 2.0)
-    fw = _num(snapshot.get("fw", 25.0), 25.0)
+    t = _source_physical_dimension(snapshot, "t", 2.0)
+    fw = _source_physical_dimension(snapshot, "fw", 25.0)
     door_material_fw = cabinet_family_policy.door_material_frame_width(
         snapshot,
         frame_width=fw,
@@ -88,11 +103,11 @@ def door_part_projections(
 def project_part_dimensions(snapshot: Mapping[str, object]) -> dict[str, dict[str, float]]:
     """Pure projection of Settings/input state into per-part finished dimensions."""
     snapshot = dict(snapshot or {})
-    w = _num(snapshot.get("w", 500), 500)
-    h = _num(snapshot.get("h", 600), 600)
-    d = _num(snapshot.get("d", 200), 200)
-    t = _num(snapshot.get("t", 2), 2)
-    fw = _num(snapshot.get("fw", 25), 25)
+    w = _source_physical_dimension(snapshot, "w", 500.0)
+    h = _source_physical_dimension(snapshot, "h", 600.0)
+    d = _source_physical_dimension(snapshot, "d", 200.0)
+    t = _source_physical_dimension(snapshot, "t", 2.0)
+    fw = _source_physical_dimension(snapshot, "fw", 25.0)
     door_material_fw = cabinet_family_policy.door_material_frame_width(
         snapshot,
         frame_width=fw,
