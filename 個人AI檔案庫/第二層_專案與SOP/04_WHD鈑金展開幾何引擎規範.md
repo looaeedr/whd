@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 CornerType CROSS 槽位與旋轉來源在真 Save→Reload 不得降成假 STANDARD（2026-11-12）
+
+- 原 Engine 公開 corner_policy_from_payload 由原 corner_type_ui 實作，對已存 raw Corner 先 int(rotation_quadrants) 導致布林或小數成為合法旋轉，對 FW 先 float(fw) 導致 True → 1 mm；更未將 CROSS 的 slot_width／slot_straight_depth／slot_radius 傳入原 CornerTypeSelection。Project codec 已保存這三個物理欄位，但 Reload 所用的政策丟棄，可能讓真 2D CUTTING／3D 陰影／DXF 來源不一致。
+- 原 Engine corner_policy_from_payload 現直接傳 raw 旋轉和 CROSS 三個槽位給既有 CornerTypeSelection.__post_init__，由原型別驗有限整數、bool、CROSS 槽位參數。FW 不再 float(True) 或放過 NaN/Inf，維持原非負 FW draft 相容；未完成的無 Family 四角仍不憑空補角，只有完整手動來源或既有 Certified Registry Family fallback 可得到 Policy。GUI 只呼叫公開 API，沒有增加尺寸、孔位或 Registry 製造公式。
+- tests/test_issue2517_saved_cross_corner_slot_raw_engine_parity.py 使用原 project_feature_codec 真 .p6fold Save→Reload 比對 typed/raw CROSS 槽位完整回讀、原 Engine corner_selection_residual 與 GUI 公開 API 同源；反例拒絕布林／非整數旋轉、非法槽位、非物理 FW 和 None 角來源。這是 Corner 來源一致性子集合，不是全面 FinalScene／DXF／CADSplit／Windows UAT 核准；#2517 維持 OPEN。
+
+
 ## [CURRENT] #2517 受電箱 Save→Reload 已確認 Corner Policy 必須還原原始 Engine 型別而非重置 Family（2026-11-12）
 
 - 真 `.p6fold` 由原 `project_feature_codec._encode` 將 `FourCornerTypePolicy`／`CornerTypeSelection` dataclass 展成完整 JSON 字典；讀取經 `project_operator_project_for_read` 不會重建此非 Feature 型別。原 `receiving_factory_requests._saved_operator_state` 只接受直接執行時的 `FourCornerTypePolicy` 實例，令相同已確認的受電箱頭／尾實體截角在 Saved→Reload 後遭誤判為不完整，無法由 Factory 接回 2D／3D／DXF。
