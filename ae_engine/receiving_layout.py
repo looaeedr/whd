@@ -755,7 +755,13 @@ def rename_receiving_panel(
 def _validate_common_receiving_state(snapshot: Mapping[str, object]) -> None:
     """Reuse existing Door/Divider/Inner Door validators for one projected Bay."""
     data = dict(snapshot or {})
-    if not bool(data.get("multi_door_enabled", False)):
+    # A serialized Bay "false" is disabled in the same Engine source
+    # contract as saved .p6fold and confirmed Receiving Door PartSpecs.
+    # Invalid operator modes may never quietly skip physical validation.
+    from .operator_settings_transactions import normalize_operator_settings_boolean
+    if not normalize_operator_settings_boolean(
+        data.get("multi_door_enabled", False)
+    ):
         return
     # Keep persisted Door width/height types until the single canonical
     # validator. float(True) would otherwise fabricate a physical 1-mm cell
