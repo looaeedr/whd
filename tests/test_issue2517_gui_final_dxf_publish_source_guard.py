@@ -213,7 +213,10 @@ def test_invalid_final_publish_guard_cannot_change_existing_dxf(tmp_path):
     assert target.read_bytes() == b"original-file"
 
 
-@pytest.mark.parametrize("changed_source", ["dimensions", "stock", "selected_part", "indicator"])
+@pytest.mark.parametrize("changed_source", [
+    "dimensions", "stock", "selected_part", "indicator",
+    "door_layout", "surface_features",
+])
 def test_modal_operator_input_change_rolls_back_real_staged_dxf(
     tmp_path, monkeypatch, changed_source,
 ):
@@ -225,6 +228,10 @@ def test_modal_operator_input_change_rolls_back_real_staged_dxf(
     stock.get = lambda: stock.value
     host.get_float_values = lambda: dict(raw_dimensions)
     host.draw_stock_var = stock
+    live_door_rows = [[400.0, [600.0, 600.0]]]
+    host.door_layout_columns = live_door_rows
+    host.get_door_layout_columns = lambda: deepcopy(live_door_rows)
+    host.surface_features = {"door": [{"source": "original real hole"}]}
     indicator = SimpleNamespace(value="none")
     indicator.get = lambda: indicator.value
     host.is_indicator_box_var = indicator
@@ -244,6 +251,12 @@ def test_modal_operator_input_change_rolls_back_real_staged_dxf(
             stock.value = True
         elif changed_source == "selected_part":
             selection["door"] = False
+        elif changed_source == "door_layout":
+            live_door_rows[0][1][1] = 650.0
+        elif changed_source == "surface_features":
+            host.surface_features["door"].append(
+                {"source": "new actual hole before DXF publish"}
+            )
         else:
             indicator.value = "indicator_box"
 
@@ -276,3 +289,40 @@ def test_unchanged_raw_dimensions_and_selections_still_publish_real_dxf(
     saved = ezdxf.readfile(tmp_path / "P1.dxf")
     assert any(e.dxf.layer == "CUTTING" for e in saved.modelspace())
     assert any(e.dxf.layer == "BEND" for e in saved.modelspace())
+
+
+def test_reloaded_door_grid_and_surface_features_cannot_reuse_old_engine_dxf(
+    tmp_path, monkeypatch,
+):
+    """Both uncommitted GUI sources are checked, even if Phase6 stays identical."""
+    source = _project_source(tmp_path)
+    host, workspace = _host(source)
+    live_rows = [[400.0, [600.0, 600.0]], [400.0, [1200.0]]]
+    host.door_layout_columns = live_rows
+    host.get_door_layout_columns = lambda: deepcopy(live_rows)
+    host.surface_features = {"door": [{"source": "hole A"}]}
+    saved_project = deepcopy(host.fold_designer_app._phase6_input_snapshot)
+    saved_workspace = workspace.snapshot()
+    target = tmp_path / "P1.dxf"
+    api.save_composed_panel_dxf(
+        _physical_panels(110.0), target, pre_commit_guard=lambda: None,
+    )
+    original = target.read_bytes()
+
+    def uncommitted_change():
+        live_rows[1][1][0] = 1180.0
+        host.surface_features["door"].append({"source": "hole B"})
+
+    events = _run_real_gui_export(
+        monkeypatch, host, tmp_path, on_confirmation=uncommitted_change,
+    )
+    assert any(
+        isinstance(event, tuple) and event[0] == "error"
+        and "DXF 即時操作來源已變更" in event[1]
+        for event in events
+    )
+    assert target.read_bytes() == original
+    assert any(x.dxf.layer == "CUTTING" for x in ezdxf.readfile(target).modelspace())
+    assert host.fold_designer_app._phase6_input_snapshot == saved_project
+    assert workspace.snapshot() == saved_workspace
+    assert not any(isinstance(event, tuple) and event[0] == "success" for event in events)
