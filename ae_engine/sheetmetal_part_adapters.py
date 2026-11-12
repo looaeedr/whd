@@ -199,12 +199,24 @@ def legacy_single_part_dxf_filename(part_kind: str) -> str:
     return _LEGACY_SINGLE_PART_DXF_FILENAMES[part_kind]
 
 def door_layout_feature_map_to_part_features(columns, feature_map) -> dict[str, list]:
-    """Project legacy ``col:row`` Door feature stores to formal part identities."""
+    """Project both saved Door-cell key forms through one physical ID owner.
+
+    Current string keys and legacy (column,row) tuple keys refer to the same
+    physical Door cell. A tuple-only authored hole must not disappear during
+    Project Save→Reload; competing forms are ambiguous and fail closed.
+    """
     source = dict(feature_map or {})
     result = {}
     for cell in derive_door_layout_cells(columns):
         legacy_key = f"{cell.column_index}:{cell.row_index}"
-        result[door_layout_part_key(cell)] = list(source.get(legacy_key, ()) or ())
+        tuple_key = (cell.column_index, cell.row_index)
+        if legacy_key in source and tuple_key in source:
+            raise ValueError("DOOR_LAYOUT_FEATURE_AMBIGUOUS_CELL_SOURCE")
+        raw_features = (
+            source[legacy_key] if legacy_key in source
+            else source.get(tuple_key, ())
+        )
+        result[door_layout_part_key(cell)] = list(raw_features or ())
     return result
 
 

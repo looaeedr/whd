@@ -169,7 +169,10 @@ def test_saved_fractional_grid_and_raw_flag_have_stable_physical_feature_identit
     assert (snap, saved, authored) == before
 
 
-def test_real_p6fold_reload_feature_holes_match_engine_dxf_source(tmp_path):
+@pytest.mark.parametrize("authored_key", ("0:0", (0, 0)))
+def test_real_p6fold_reload_feature_holes_match_engine_dxf_source(
+    tmp_path, authored_key,
+):
     """Same saved physical Hole source feeds PartSpec and verified/reopened DXF."""
     import ezdxf
     import phase6_project_file as project
@@ -191,7 +194,7 @@ def test_real_p6fold_reload_feature_holes_match_engine_dxf_source(tmp_path):
         "door_layout_columns": [[800.0, [1100.0, 500.0]]],
     }
     physical = api.project_fold_designer_snapshot_part_features(
-        snap, {"door_c1_r1": [old]}, {"0:0": [new]},
+        snap, {"door_c1_r1": [old]}, {authored_key: [new]},
     )
     assert physical["door_c1_r1"] == [new]
     before = deepcopy((snap, physical))
@@ -221,4 +224,50 @@ def test_real_p6fold_reload_feature_holes_match_engine_dxf_source(tmp_path):
         if entity.dxftype() == "CIRCLE" and entity.dxf.layer == "CUTTING"
     ]
     assert any(abs(float(c.dxf.radius) - 6.875) < 1e-6 for c in cutting_circles)
+
+
+
+def test_original_engine_formal_feature_mapper_supports_legacy_tuple_with_real_hole():
+    columns = ((800.0, (1100.0, 500.0)),)
+    hole = {"id": "physical-cutting-hole", "layer": "CUTTING"}
+    before = {(0, 0): [hole]}
+    copied = deepcopy(before)
+    via_tuple = door_layout_feature_map_to_part_features(columns, before)
+    via_string = door_layout_feature_map_to_part_features(columns, {"0:0": [hole]})
+    assert via_tuple == via_string
+    assert via_tuple["door_c1_r1"] == [hole]
+    assert via_tuple["door_c1_r2"] == []
+    assert before == copied
+    via_tuple["door_c1_r1"].append({"id": "other"})
+    assert before == copied
+
+
+def test_saved_legacy_nonempty_cell_replaces_stale_physical_door_hole():
+    saved = {"door_c1_r1": [{"id": "old-hole"}]}
+    authored = {(0, 0): [{"id": "new-hole"}]}
+    before = deepcopy((saved, authored))
+    projected = api.project_fold_designer_snapshot_part_features(
+        _snapshot(), saved, authored,
+    )
+    assert projected["door_c1_r1"] == [{"id": "new-hole"}]
+    assert projected["door_c1_r2"] == []
+    assert (saved, authored) == before
+
+
+def test_duplicate_cell_aliases_fail_closed_before_publishing_any_physical_feature():
+    source = {
+        (0, 0): [{"id": "original-hole"}],
+        "0:0": [{"id": "other-hole"}],
+    }
+    prior = deepcopy(source)
+    with pytest.raises(ValueError, match="DOOR_LAYOUT_FEATURE_AMBIGUOUS_CELL_SOURCE"):
+        door_layout_feature_map_to_part_features(
+            ((800.0, (1100.0, 500.0)),), source,
+        )
+    with pytest.raises(ValueError, match="DOOR_LAYOUT_FEATURE_AMBIGUOUS_CELL_SOURCE"):
+        api.project_fold_designer_snapshot_part_features(
+            _snapshot(), {"door_c1_r1": [{"id": "saved"}]}, source,
+        )
+    assert source == prior
+
 
