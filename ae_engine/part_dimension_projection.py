@@ -141,14 +141,19 @@ def project_part_dimensions(snapshot: Mapping[str, object]) -> dict[str, dict[st
     shrink_bottom = _num(snapshot.get("base_plate_shrink_bottom", 55), 55)
     base_w = max(1.0, w - shrink_left - shrink_right)
     base_h = max(1.0, h - shrink_top - shrink_bottom)
-    if str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}:
+    # The main GUI's part-dimension recalculation is a second caller of the
+    # same Engine physical BasePlate policy as Fold Designer Snapshot/PartSpec.
+    # The Registry, not a hard-coded family spelling, owns whether Receiving
+    # has one source-configured BasePlate rather than Vault per-Door grid plates.
+    is_receiving = cabinet_family_policy.canonical_family_name(snapshot) == "受電箱"
+    if is_receiving:
         from .receiving_base_plate_config import receiving_base_plate_blank_dimensions
         physical_size = receiving_base_plate_blank_dimensions(snapshot)
         if physical_size is not None:
             base_w, base_h = physical_size
     dims["base_plate"] = {"width": base_w, "height": base_h}
 
-    if door_rows and str(snapshot.get("model") or "").strip() not in {"受電箱", "RECEIVING"}:
+    if door_rows and not is_receiving:
         # BasePlate grid identity is the very same validated Engine Door
         # cell projection; never reinterpret the saved raw W/H a second time.
         for row in door_rows:
