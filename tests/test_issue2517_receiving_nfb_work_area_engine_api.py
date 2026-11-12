@@ -83,3 +83,96 @@ def test_legacy_approved_default_inputs_and_editor_source_remain_unmodified():
     assert 'initial["layer_heights_mm"]' in inner
     assert "for v in initial_heights" in inner
     assert 'for v in initial["layer_heights_mm"]' not in inner
+
+
+@pytest.mark.parametrize("disabled", (False, "false", " FALSE ", "off", "no", "0", 0))
+def test_saved_disabled_door_does_not_let_stale_top_cell_cap_nfb_work_area(disabled):
+    source = _snapshot()
+    source["multi_door_enabled"] = disabled
+    before = deepcopy(source)
+
+    # The dormant 1100/500 grid is not an active Door and cannot cap the
+    # operator's two-tier draft. Source H=1600 is the existing fallback.
+    assert api.project_receiving_nfb_work_area_height_mm(source) == 1600.0
+    assert api.validate_receiving_nfb_layer_heights_for_work_area(
+        source, [500.0, 1300.0], layer_count=2,
+    ) == [500.0, 1300.0]
+    assert source == before
+
+
+@pytest.mark.parametrize("enabled", (True, "true", " TRUE ", "on", "yes", "1", 1))
+def test_saved_enabled_door_keeps_original_actual_upper_cell_nfb_work_area(enabled):
+    source = _snapshot()
+    source["multi_door_enabled"] = enabled
+    before = deepcopy(source)
+    assert api.project_receiving_nfb_work_area_height_mm(source) == 1100.0
+    with pytest.raises(ValueError, match="層高必須在目前內門作業區內"):
+        api.validate_receiving_nfb_layer_heights_for_work_area(
+            source, [500.0, 1300.0], layer_count=2,
+        )
+    assert source == before
+
+
+@pytest.mark.parametrize("invalid", (None, "maybe", 2, -1, 0.5, [], {}, float("nan")))
+def test_corrupt_present_door_mode_cannot_silently_authorize_nfb_draft(invalid):
+    source = _snapshot()
+    source["multi_door_enabled"] = invalid
+    before = repr(source)
+    with pytest.raises(ValueError, match="設定的布林值"):
+        api.project_receiving_nfb_work_area_height_mm(source)
+    with pytest.raises(ValueError, match="設定的布林值"):
+        api.validate_receiving_nfb_layer_heights_for_work_area(
+            source, [330.0, 830.0], layer_count=2,
+        )
+    assert repr(source) == before
+
+
+@pytest.mark.parametrize("columns", (False, "800:1100,500", [[True, [1599.0, 1.0]]],
+                                      [[800.0, [False, 1599.0]]], [[800.0, []]]))
+def test_enabled_invalid_stored_grid_never_becomes_whole_box_nfb_area(columns):
+    source = _snapshot()
+    source["door_layout_columns"] = columns
+    before = deepcopy(source)
+    with pytest.raises((ValueError, TypeError)):
+        api.project_receiving_nfb_work_area_height_mm(source)
+    assert source == before
+
+
+def test_missing_legacy_mode_preserves_original_nfb_preview_schematic():
+    source = _snapshot()
+    source.pop("multi_door_enabled")
+    before = deepcopy(source)
+    assert api.project_receiving_nfb_work_area_height_mm(source) == 1100.0
+    assert source == before
+
+
+@pytest.mark.parametrize("saved_flag,expected_height", (
+    ("false", 1600.0), ("no", 1600.0), ("true", 1100.0), ("yes", 1100.0),
+))
+def test_real_p6fold_reload_nfb_workarea_matches_saved_public_door_source(
+    tmp_path, saved_flag, expected_height,
+):
+    import phase6_project_file as project
+
+    source = {**_snapshot(), "w": 800.0, "d": 350.0, "t": 2.0, "fw": 29.0}
+    source["multi_door_enabled"] = saved_flag
+    before = deepcopy(source)
+    target = project.write_project(
+        tmp_path / ("receiving-nfb-workarea-" + saved_flag + ".p6fold"),
+        {"schema": project.PROJECT_SCHEMA, "snapshot": source},
+    )
+    restored = project.read_project(target)["snapshot"]
+    assert restored["multi_door_enabled"] == saved_flag
+    original_restored = deepcopy(restored)
+    assert api.project_receiving_nfb_work_area_height_mm(restored) == expected_height
+    if expected_height == 1100.0:
+        with pytest.raises(ValueError, match="層高必須在目前內門作業區內"):
+            api.validate_receiving_nfb_layer_heights_for_work_area(
+                restored, [500.0, 1300.0], layer_count=2,
+            )
+    else:
+        assert api.validate_receiving_nfb_layer_heights_for_work_area(
+            restored, [500.0, 1300.0], layer_count=2,
+        ) == [500.0, 1300.0]
+    assert restored == original_restored
+    assert source == before
