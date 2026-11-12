@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Mapping
 
+from .operator_settings_transactions import normalize_operator_settings_boolean
 from .sheetmetal_part_adapters import (
     door_layout_feature_map_to_part_features,
     derive_door_layout_cells,
@@ -61,14 +62,23 @@ def project_fold_designer_snapshot_part_features(
         str(key): list(features or ())
         for key, features in dict(surface_features or {}).items()
     }
-    if not source.get("multi_door_enabled") or not source.get("door_layout_columns"):
+    # A persisted 'false' is disabled, not a truthy instruction to publish
+    # stale per-cell physical holes. Invalid serialized flags fail closed via
+    # the same public Engine source validator as GUI Save→Reload.
+    multi_door_enabled = normalize_operator_settings_boolean(
+        source.get("multi_door_enabled", False)
+    )
+    if not multi_door_enabled:
         return projected
 
-    authored = dict(door_layout_features or {})
-    columns = tuple(
-        (float(row[0]), tuple(float(value) for value in row[1]))
-        for row in source["door_layout_columns"]
+    # A true multi-door mode must consume only strictly validated W/H cell
+    # sources. Never let float(True) become a manufactured 1 mm Door row.
+    columns = project_operator_saved_door_layout_columns(
+        source.get("door_layout_columns"),
     )
+    if not columns:
+        return projected
+    authored = dict(door_layout_features or {})
     formal = door_layout_feature_map_to_part_features(columns, authored)
     for key, features in formal.items():
         if features or key not in projected:

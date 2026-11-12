@@ -91,3 +91,134 @@ def test_gui_submits_operator_store_and_receives_engine_projection(monkeypatch):
     assert "from gui_modules" not in inspect.getsource(
         __import__("ae_engine.door_layout_feature_projection", fromlist=["project_fold_designer_snapshot_part_features"])
     )
+
+
+@pytest.mark.parametrize("raw_flag", (
+    False, "false", " FALSE ", "off", "0", 0,
+))
+def test_serialized_disabled_multidoor_does_not_overwrite_saved_physical_holes(raw_flag):
+    snap = _snapshot()
+    snap["multi_door_enabled"] = raw_flag
+    saved = {"door_c1_r1": [{"id": "saved-hole"}], "head": [{"id": "head"}]}
+    authored = {"0:0": [{"id": "live-but-disabled"}]}
+    before = deepcopy((snap, saved, authored))
+    result = api.project_fold_designer_snapshot_part_features(snap, saved, authored)
+    assert result == saved
+    assert (snap, saved, authored) == before
+
+
+@pytest.mark.parametrize("raw_flag", (
+    True, "true", " TRUE ", "on", "1", 1,
+))
+def test_serialized_enabled_multidoor_uses_same_canonical_engine_cell_keys(raw_flag):
+    snap = _snapshot()
+    snap["multi_door_enabled"] = raw_flag
+    saved = {"door_c1_r1": [{"id": "stale"}]}
+    authored = {"0:0": [{"id": "new-hole"}]}
+    result = api.project_fold_designer_snapshot_part_features(snap, saved, authored)
+    assert result["door_c1_r1"] == [{"id": "new-hole"}]
+    assert result["door_c1_r2"] == []
+
+
+@pytest.mark.parametrize("bad_flag", (
+    None, "maybe", 2, -1, 0.5, [], {}, float("nan"),
+))
+def test_invalid_saved_multidoor_flag_never_authorizes_feature_reprojection(bad_flag):
+    snap = _snapshot()
+    snap["multi_door_enabled"] = bad_flag
+    saved = {"door_c1_r1": [{"id": "saved"}]}
+    authored = {"0:0": [{"id": "unverified"}]}
+    before = deepcopy((snap, saved, authored))
+    with pytest.raises(ValueError, match="設定的布林值"):
+        api.project_fold_designer_snapshot_part_features(snap, saved, authored)
+    assert (snap, saved, authored) == before
+
+
+@pytest.mark.parametrize("bad_grid", (
+    False,
+    "800x1600",
+    [[True, [1100.0, 500.0]]],
+    [[800.0, [False, 500.0]]],
+    [[800.0, [float("nan"), 500.0]]],
+    [[800.0, [1100.0, float("inf")]]],
+    [[800.0, []]],
+))
+def test_enabled_mode_cannot_turn_corrupt_saved_door_grid_into_physical_features(bad_grid):
+    snap = _snapshot()
+    snap["door_layout_columns"] = bad_grid
+    before = deepcopy(snap)
+    saved = {"door_c1_r1": [{"id": "saved"}]}
+    with pytest.raises((ValueError, TypeError)):
+        api.project_fold_designer_snapshot_part_features(
+            snap, saved, {"0:0": [{"id": "unverified"}]},
+        )
+    assert snap == before
+    assert saved == {"door_c1_r1": [{"id": "saved"}]}
+
+
+def test_saved_fractional_grid_and_raw_flag_have_stable_physical_feature_identity():
+    snap = _snapshot()
+    snap["multi_door_enabled"] = "true"
+    snap["door_layout_columns"] = [["800.125", ["1100.25", "499.875"]]]
+    saved = {"door_c1_r1": [{"id": "old"}]}
+    authored = {"0:0": [{"id": "new"}], "0:1": []}
+    before = deepcopy((snap, saved, authored))
+    result = api.project_fold_designer_snapshot_part_features(snap, saved, authored)
+    assert result["door_c1_r1"] == [{"id": "new"}]
+    assert result["door_c1_r2"] == []
+    assert (snap, saved, authored) == before
+
+
+def test_real_p6fold_reload_feature_holes_match_engine_dxf_source(tmp_path):
+    """Same saved physical Hole source feeds PartSpec and verified/reopened DXF."""
+    import ezdxf
+    import phase6_project_file as project
+    from ae_engine.sheetmetal_features import CircleFeature, FeatureAnchor
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    old = CircleFeature(
+        diameter=11.0, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(90.0, 100.0), layer="CUTTING", source_type="old",
+    )
+    new = CircleFeature(
+        diameter=13.75, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(101.5, 125.25), layer="CUTTING", source_type="authored",
+    )
+    snap = {
+        "model": "金庫型", "w": 800.0, "h": 1600.0,
+        "d": 350.0, "t": 2.0, "fw": 25.0,
+        "multi_door_enabled": "true",
+        "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+    }
+    physical = api.project_fold_designer_snapshot_part_features(
+        snap, {"door_c1_r1": [old]}, {"0:0": [new]},
+    )
+    assert physical["door_c1_r1"] == [new]
+    before = deepcopy((snap, physical))
+    path = project.write_project(
+        tmp_path / "door-source-feature.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": {**snap, "part_features": physical}},
+    )
+    reopened = project.read_project(path)["snapshot"]
+    assert reopened["part_features"]["door_c1_r1"] == [new]
+    assert (snap, physical) == before
+    spec = api.build_door_operator_part_spec(
+        {
+            "w": 800.0, "h": 1100.0, "t": 2.0, "fw": 25.0,
+            "door_gap_w": 2.0, "door_gap_h": 2.0,
+            "door_fold_l": 10.0, "door_fold_r": 10.0,
+            "door_fold_t": 10.0, "door_fold_b": 10.0,
+        },
+        model_name="金庫型", features=tuple(reopened["part_features"]["door_c1_r1"]),
+    )
+    scene = api.build_part_render_data(spec)
+    assert scene.material is not None and scene.material.area > 0
+    output = tmp_path / "door_c1_r1.dxf"
+    api.save_part_render_data_dxf(scene, output, verify_reopen=True)
+    assert api.verify_saved_part_render_data_dxf(scene, output).ok
+    cutting_circles = [
+        entity for entity in ezdxf.readfile(output).modelspace()
+        if entity.dxftype() == "CIRCLE" and entity.dxf.layer == "CUTTING"
+    ]
+    assert any(abs(float(c.dxf.radius) - 6.875) < 1e-6 for c in cutting_circles)
+
