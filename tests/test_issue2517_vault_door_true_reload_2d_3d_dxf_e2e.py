@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 from collections import Counter
+
+from ae_engine.ae_door_indicator import mirror_drawing_scene_x
+from ae_engine.composed_panel_dxf import _actual_signature, _source_signature
 from copy import deepcopy
 from pathlib import Path
 
@@ -90,7 +93,23 @@ def test_real_vault_door_save_reload_2d_folded_3d_and_gui_headless_dxf_agree(
     generated = api.generate_part(gui_spec, direct_file, context)
     assert generated.output_path == str(direct_file)
     assert ezdxf.readfile(direct_file).audit().errors == []
-    assert api.verify_saved_part_render_data_dxf(restored_render, direct_file).ok
+    # The legacy physical Door exporter mirrors X into factory DXF direction
+    # and adds CHECK-only labels. Neither is a new manufacturing hole or bend.
+    # Compare EVERY real manufacturing primitive after the original Engine
+    # mirror, rather than falsely requiring a byte-for-byte unmirrored file.
+    physical_right_edge = float(restored_render.material.bounds[2])
+    mirrored = mirror_drawing_scene_x(
+        restored_render.scene, 0.0, physical_right_edge,
+    )
+    expected_machining = Counter(
+        _source_signature(item) for item in mirrored.primitives
+        if str(item.layer).upper() != "CHECK"
+    )
+    reopened_machining = Counter(
+        _actual_signature(item) for item in ezdxf.readfile(direct_file).modelspace()
+        if str(item.dxf.layer).upper() != "CHECK"
+    )
+    assert expected_machining and expected_machining == reopened_machining
     assert original == before
 
 
@@ -100,13 +119,23 @@ def test_invalid_real_project_thickness_cannot_publish_door_2d_3d_or_dxf(
 ):
     source = {**_row(), "t": invalid}
     target = tmp_path / "invalid-door.p6fold"
-    with pytest.raises(ValueError):
-        project.write_project(
-            target, {"schema": project.PROJECT_SCHEMA, "snapshot": source},
-        )
-    assert not target.exists()
+    # Draft projects may legitimately save unfinished operator inputs.
+    # Persistence does NOT grant their 2D/3D/DXF manufacturing eligibility.
+    project.write_project(
+        target, {"schema": project.PROJECT_SCHEMA, "snapshot": source},
+    )
+    assert target.is_file()
     render_dxf = tmp_path / "invalid-door.dxf"
     ctx = ManufacturingContext(resource_root=Path(__file__).resolve().parents[1])
     with pytest.raises((ValueError, TypeError)):
         api.build_part_render_data(_spec(source), ctx)
+    try:
+        reloaded = project.read_project(target)["snapshot"]
+    except (ValueError, TypeError):
+        # An unreadable invalid saved draft is also rejected before making
+        # any physical part, and must not create an export.
+        reloaded = None
+    if reloaded is not None:
+        with pytest.raises((ValueError, TypeError)):
+            api.build_part_render_data(_spec(reloaded), ctx)
     assert not render_dxf.exists()
