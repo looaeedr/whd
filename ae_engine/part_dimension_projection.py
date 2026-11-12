@@ -13,6 +13,8 @@ from typing import Mapping
 
 from .cabinet_types import policy as cabinet_family_policy
 from .box_body_fold_profile import _num
+from .door_layout_feature_projection import project_operator_saved_door_layout_columns
+from .operator_settings_transactions import normalize_operator_settings_boolean
 from .sheetmetal_part_adapters import (
     DoorFrameEdges,
     calculate_door_finished_size,
@@ -36,15 +38,18 @@ def door_part_projections(
     snapshot: Mapping[str, object],
 ) -> tuple[DoorPartProjection, ...]:
     """Project authoritative multi-door cells without duplicating layout formulas."""
-    if not bool(snapshot.get("multi_door_enabled", False)):
+    # This same Engine API feeds GUI part dimensions AND confirmed Receiving
+    # Door manufacturing. An authored saved "false" is not a physical enable,
+    # and raw True must never be coerced into a 1 mm Door cell via float().
+    if not normalize_operator_settings_boolean(
+        snapshot.get("multi_door_enabled", False),
+    ):
         return ()
-    columns = tuple(snapshot.get("door_layout_columns") or ())
-    if not columns:
-        return ()
-    normalized = tuple(
-        (float(row[0]), tuple(float(value) for value in row[1]))
-        for row in columns
+    normalized = project_operator_saved_door_layout_columns(
+        snapshot.get("door_layout_columns"),
     )
+    if not normalized:
+        return ()
     t = _num(snapshot.get("t", 2.0), 2.0)
     fw = _num(snapshot.get("fw", 25.0), 25.0)
     door_material_fw = cabinet_family_policy.door_material_frame_width(
@@ -144,23 +149,13 @@ def project_part_dimensions(snapshot: Mapping[str, object]) -> dict[str, dict[st
     dims["base_plate"] = {"width": base_w, "height": base_h}
 
     if door_rows and str(snapshot.get("model") or "").strip() not in {"受電箱", "RECEIVING"}:
-        columns = tuple(
-            (float(row[0]), tuple(float(v) for v in row[1]))
-            for row in tuple(snapshot.get("door_layout_columns") or ())
-        )
-        for cell in derive_door_layout_cells(columns):
-            base_key = door_layout_part_key(cell).replace(
-                "door_", "base_plate_", 1
-            )
+        # BasePlate grid identity is the very same validated Engine Door
+        # cell projection; never reinterpret the saved raw W/H a second time.
+        for row in door_rows:
+            base_key = row.part_key.replace("door_", "base_plate_", 1)
             dims[base_key] = {
-                "width": max(
-                    1.0,
-                    float(cell.start_width) - shrink_left - shrink_right,
-                ),
-                "height": max(
-                    1.0,
-                    float(cell.start_height) - shrink_top - shrink_bottom,
-                ),
+                "width": max(1.0, row.start_width - shrink_left - shrink_right),
+                "height": max(1.0, row.start_height - shrink_top - shrink_bottom),
             }
     return dims
 
