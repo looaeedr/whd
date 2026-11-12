@@ -206,3 +206,110 @@ def test_gui_no_longer_calculates_indicator_manufacturing_mode_or_aperture():
     assert 'mode == "indicator_box"' not in code
     assert '"door_indicator_box_enabled"' not in code
     assert "fold_designer_indicator_source=(data if door_cell is None else None)" in code
+
+
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+def test_persisted_empty_indicator_inventory_overrides_stale_gui_holes(family):
+    """Saved {} is authored: it must not resurrect the previous Door holes."""
+    active = {
+        "mode": "indicator_box", "layers": 1, "groups": [2],
+        "offset_x": 0.5, "offset_y": -1.25, "is_box_dist": False,
+    }
+    gui_live = {"0:0": active}
+    saved = {"door_layout_indicator_states": {}}
+    before = deepcopy(gui_live)
+    calls = []
+    cell = SimpleNamespace(column_index=0, row_index=0, edges=DoorFrameEdges())
+    spec = _door_part_spec_from_payload_context(
+        _gui_host(calls, gui_live), saved,
+        800, 1600, 2, 25, family, False, (), None, cell,
+    )
+    assert calls[0][1]["indicator_source_state"] == {"mode": "none"}
+    assert spec.indicator_hole is None and spec.door_indicator is None
+    assert saved == {"door_layout_indicator_states": {}}
+    assert gui_live == before
+
+
+@pytest.mark.parametrize("invalid_root", (False, 0, "", [], None))
+def test_present_corrupt_saved_indicator_inventory_does_not_use_gui_mirror(
+    invalid_root,
+):
+    """No fallback to previously enabled holes when the saved schema is bad."""
+    gui_live = {"0:0": {
+        "mode": "indicator", "layers": 1, "groups": [2],
+        "offset_x": 0, "offset_y": 0, "is_box_dist": False,
+    }}
+    calls = []
+    cell = SimpleNamespace(column_index=0, row_index=0, edges=DoorFrameEdges())
+    with pytest.raises(ValueError, match="門格指示燈來源必須是有效對照表"):
+        _door_part_spec_from_payload_context(
+            _gui_host(calls, gui_live),
+            {"door_layout_indicator_states": invalid_root},
+            800, 1600, 2, 25, "金庫型", False, (), None, cell,
+        )
+    assert calls == []
+
+
+def test_absent_legacy_indicator_field_still_uses_authored_live_editor_source():
+    live = {"0:0": {
+        "mode": "indicator", "layers": 1, "groups": [2],
+        "offset_x": 1.25, "offset_y": -2.5, "is_box_dist": False,
+    }}
+    calls = []
+    cell = SimpleNamespace(column_index=0, row_index=0, edges=DoorFrameEdges())
+    spec = _door_part_spec_from_payload_context(
+        _gui_host(calls, live), {}, 800, 1600, 2, 25,
+        "金庫型", False, (), None, cell,
+    )
+    assert calls[0][1]["indicator_source_state"] is live["0:0"]
+    assert spec.door_indicator == (2,)
+
+
+def test_reloaded_empty_door_inventory_keeps_headless_scene_and_real_dxf(
+    tmp_path,
+):
+    """Save→Reload must not introduce indicator CUTTING from stale GUI memory."""
+    import ezdxf
+    import phase6_project_file as project
+
+    snapshot = {
+        "model": "金庫型", "w": 800.0, "h": 1600.0,
+        "d": 350.0, "t": 2.0, "fw": 25.0,
+        "door_layout_indicator_states": {},
+    }
+    saved_path = project.write_project(
+        tmp_path / "door-empty-authority.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": snapshot},
+    )
+    reopened = project.read_project(saved_path)["snapshot"]
+    assert reopened["door_layout_indicator_states"] == {}
+
+    stale = {"0:0": {
+        "mode": "indicator_box", "layers": 1, "groups": [2],
+        "offset_x": 0.0, "offset_y": 0.0, "is_box_dist": False,
+    }}
+    before = deepcopy(stale)
+    calls = []
+    cell = SimpleNamespace(column_index=0, row_index=0, edges=DoorFrameEdges())
+    from_gui = _door_part_spec_from_payload_context(
+        _gui_host(calls, stale), reopened,
+        800, 1600, 2, 25, "金庫型", False, (), None, cell,
+    )
+    values, kwargs = calls[0]
+    assert kwargs["indicator_source_state"] == {"mode": "none"}
+    headless = manufacturing_api.build_door_operator_part_spec(
+        values, **{**kwargs, "indicator_source_state": {"mode": "none"}},
+    )
+    assert from_gui == headless
+    render = manufacturing_api.build_part_render_data(from_gui)
+    assert render.material is not None and render.material.area > 0
+    output = tmp_path / "door-empty-source.dxf"
+    manufacturing_api.save_part_render_data_dxf(
+        render, output, verify_reopen=True,
+    )
+    assert manufacturing_api.verify_saved_part_render_data_dxf(render, output).ok
+    assert any(e.dxf.layer == "CUTTING" for e in ezdxf.readfile(output).modelspace())
+    assert stale == before
+    assert reopened["door_layout_indicator_states"] == {}
+
+
