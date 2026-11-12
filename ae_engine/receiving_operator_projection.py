@@ -12,7 +12,9 @@ from math import isfinite
 from .box_body_structure_state import BoxBodyStructureType
 from .cabinet_types.policy import canonical_family_name
 from .cabinet_types.receiving import BOX_BODY_DEFAULTS
-from .operator_settings_transactions import normalize_operator_source_dimension
+from .operator_settings_transactions import (
+    normalize_operator_source_dimension, normalize_operator_settings_boolean,
+)
 
 
 def receiving_default_box_dimensions() -> dict[str, int]:
@@ -113,10 +115,10 @@ def project_receiving_operator_bay_door_split_ratio(bay) -> float | None:
                 legacy_columns, total_width=width, total_height=height,
             )
         return default_ratio
-    enabled = state["multi_door_enabled"]
-    if type(enabled) is not bool:
-        raise ValueError("Receiving Bay Door enable source must be boolean")
-    if not enabled:
+    # Read saved operator mode exactly as the same Engine family/part owner.
+    # The UI seam is display-only; textual false must not draw a physical
+    # divider and textual true must not lose a genuinely saved Door seam.
+    if not normalize_operator_settings_boolean(state["multi_door_enabled"]):
         return None
     columns = state.get("door_layout_columns") or ()
     if not columns:
@@ -249,7 +251,9 @@ def project_receiving_operator_door_cell_sources(
         snapshot, set_index=set_index, bay_index=bay_index,
     )
     columns = projected.get("door_layout_columns") or ()
-    if not projected.get("multi_door_enabled") or not columns:
+    if not normalize_operator_settings_boolean(
+        projected.get("multi_door_enabled", False),
+    ) or not columns:
         return None
     cells = derive_door_layout_cells(columns)
     if len(cells) != 2 or any(cell.column_index != 0 for cell in cells):
