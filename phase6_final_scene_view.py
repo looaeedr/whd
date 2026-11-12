@@ -384,13 +384,19 @@ class Phase6FinalSceneViewAdapter:
         ) + (
             self._pad_display_warnings() if cabinet_family == "受電箱" else ()
         )
+        # A disconnected optional UI interference toggle historically
+        # returned None, meaning no overlay. Preserve that display-only
+        # state without allowing truthy serialized 'false' or invalid values.
+        raw_interference = dependencies.show_interference()
+        show_interference = (
+            False if raw_interference is None else
+            manufacturing_api.normalize_operator_settings_boolean(raw_interference)
+        )
         return self.make_assembly_scene_render_data(
             assembly_parts=parts,
             visible_part_keys=visible_part_keys,
             visible_box_body_piece_keys=visible_box_body_piece_keys,
-            show_interference=manufacturing_api.normalize_operator_settings_boolean(
-                dependencies.show_interference()
-            ),
+            show_interference=show_interference,
             ignore_fixed_corner_relief=False,
             interference_probe_parts=visible_probe_parts,
             joint_diagnostics=(),

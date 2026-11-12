@@ -70,6 +70,7 @@ def _adapter(snapshot, *, raw_ear, raw_interference):
     ("false", "false", False, False),
     ("true", "true", True, True),
     (False, "off", False, False),
+    (False, None, False, False),
     ("0", 1, False, True),
 ))
 def test_real_finalscene_assembly_reads_both_raw_flags_through_engine(
