@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from copy import deepcopy
+from dataclasses import fields
 from math import isclose, isfinite
 
 from .box_body_fold_profile import build_box_body_profile
@@ -20,7 +21,7 @@ from .endcap_operator_part_spec import build_endcap_operator_part_spec
 from .contracts import DoorPartSpec
 from .part_dimension_projection import door_part_projections
 from .sheetmetal_part_adapters import validate_door_layout_dimensions
-from .sheetmetal_geometry import FourCornerTypePolicy
+from .sheetmetal_geometry import FourCornerTypePolicy, CornerTypeSelection
 from .sheetmetal_feature_core import CircleFeature, RectFeature, ProfileFeature, FeatureAnchor
 
 _SOURCE_KEYS = frozenset(("w", "h", "d", "t"))
@@ -270,6 +271,51 @@ def _source_dimensions(value: Mapping[str, object]) -> dict[str, float]:
     return {key: float(value[key]) for key in ("w", "h", "d", "t")}
 
 
+def _restore_serialized_saved_endcap_corner_policy(source):
+    """Restore only complete, actually saved Engine FourCornerTypePolicy data.
+
+    The .p6fold JSON codec represents ordinary dataclasses as dicts. A saved
+    policy must survive that wire boundary without fresh Family defaults,
+    lossy CornerType fields, or trusting an unverified GUI value. The typed
+    policy's original CornerTypeSelection validation remains authoritative.
+    """
+    code = "RECEIVING_SAVED_PHYSICAL_STATE_INCOMPLETE"
+    if isinstance(source, FourCornerTypePolicy):
+        policy = source
+    else:
+        required = {field.name for field in fields(FourCornerTypePolicy)}
+        corners = {field.name for field in fields(CornerTypeSelection)}
+        if not isinstance(source, Mapping) or set(source) != required:
+            raise ValueError(code)
+        values = dict(source)
+        for corner in ("bottom_left", "bottom_right", "top_left", "top_right"):
+            raw = values[corner]
+            if isinstance(raw, CornerTypeSelection):
+                continue
+            if not isinstance(raw, Mapping) or set(raw) != corners:
+                raise ValueError(code)
+            try:
+                values[corner] = CornerTypeSelection(**dict(raw))
+            except (ValueError, TypeError, KeyError) as exc:
+                raise ValueError(code) from exc
+        for key in ("fw", "bottom_fw", "top_fw"):
+            raw = values[key]
+            if raw is not None and (
+                type(raw) not in (int, float) or not isfinite(float(raw))
+            ):
+                raise ValueError(code)
+        policy = FourCornerTypePolicy(**values)
+    # Check each physical FW datum, including optional per-edge material.
+    try:
+        for corner in ("bottom_left", "bottom_right", "top_left", "top_right"):
+            if not isinstance(getattr(policy, corner), CornerTypeSelection):
+                raise ValueError(code)
+            policy.fw_for(corner)
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValueError(code) from exc
+    return policy
+
+
 def _saved_operator_state(source: dict[str, float], operator_snapshot):
     """Use confirmed persisted manufacturing authority; never use fresh defaults."""
     if not isinstance(operator_snapshot, Mapping):
@@ -320,9 +366,12 @@ def _saved_operator_state(source: dict[str, float], operator_snapshot):
             }
         else:
             raise ValueError("RECEIVING_SAVED_PHYSICAL_STATE_INCOMPLETE")
-        if any(not isinstance(policies.get(part), FourCornerTypePolicy)
-               for part in ("head", "tail")):
-            raise ValueError("RECEIVING_SAVED_PHYSICAL_STATE_INCOMPLETE")
+        # Genuine .p6fold Reload returns dicts for ordinary Policy dataclasses;
+        # restore the same typed policy, never fall back to Family defaults.
+        policies = {
+            part: _restore_serialized_saved_endcap_corner_policy(policies[part])
+            for part in ("head", "tail")
+        }
     except (KeyError, TypeError, AttributeError) as exc:
         raise ValueError("RECEIVING_SAVED_PHYSICAL_STATE_INCOMPLETE") from exc
 

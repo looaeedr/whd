@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 受電箱 Save→Reload 已確認 Corner Policy 必須還原原始 Engine 型別而非重置 Family（2026-11-12）
+
+- 真 `.p6fold` 由原 `project_feature_codec._encode` 將 `FourCornerTypePolicy`／`CornerTypeSelection` dataclass 展成完整 JSON 字典；讀取經 `project_operator_project_for_read` 不會重建此非 Feature 型別。原 `receiving_factory_requests._saved_operator_state` 只接受直接執行時的 `FourCornerTypePolicy` 實例，令相同已確認的受電箱頭／尾實體截角在 Saved→Reload 後遭誤判為不完整，無法由 Factory 接回 2D／3D／DXF。
+- 只在原 Engine saved Factory 源頭對**完整且精確** codec Policy 欄位／各 CornerTypeSelection 欄位還原原有 dataclass，重用原 `CornerTypeSelection.__post_init__` 及 `FourCornerTypePolicy.fw_for` 嚴格校驗實際類型、有限 FW、截角型別、旋轉、槽寬等；不補造遺漏的物理選片、不套 Family default、不在 GUI 重算機械幾何。實體 W/H/D/T、BoxBody Fold、Head/Tail 成形 Corner 與真 CUTTING 維持既有 Engine owner；型別異常原子拒絕。
+- `tests/test_issue2517_receiving_saved_corner_policy_true_reload_2d3d_dxf.py` 以已確認 2×2 受電箱 Door、已保存真孔位與頭尾 Corner，經實際 `.p6fold` Save→Reload、同源 Factory 2D FinalScene、頭尾成形 3D Mesh 及 9 張正式 DXF 寫出／重開核對；負向損壞欄位不得出圖。此子集合不等於完整受電箱全部板件／Set-Bay／NFB、CADSplit 或 Windows UAT；#2517 保持 OPEN。
+
+
 ## [CURRENT] #2517 PAD＋底板 PART_ONLY CHECK/Q 出圖須在對話框及原子發布前後維持同一實體來源（2026-11-12）
 
 - 原 `gui_modules.project.export_actions.export_receiving_pad_base_part_only_dxf` 在輸入材質、製程、數量與選資料夾之前已取已確認 Bay、Hole Editor 與 3D `assembly_parts`；當 Modal Dialog 期間操作者改掉已提交快照／Workspace 時，原公開 `export_verified_pad_base_part_only` 仍可把舊場景製成 CHECK/Q DXF。舊 Engine 已逐件檢查真實 CSV／底板 CUTTING／PAD 世界 3D／完整 T 進孔貼合，但未比對當下即時操作來源，不能視為同一個 CURRENT source。

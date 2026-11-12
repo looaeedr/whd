@@ -5,6 +5,11 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Receiving saved Factory Corner policy JSON → identical 2D / 3D / DXF (2026-11-12)
+
+The original project codec serializes normal `FourCornerTypePolicy` and nested `CornerTypeSelection` dataclasses into plain JSON dictionaries. A real `.p6fold` Reload had no way to restore the typed Corner policy required by `receiving_factory_requests._saved_operator_state`, so the exact same confirmed Head/Tail was rejected as an incomplete physical source after Reload. The original Engine factory now strictly restores only **complete exact dataclass wire fields**, validates the original typed Corner rules and each physical FW datum, and refuses corrupt, ambiguous, boolean or nonfinite sources. No Family fallback, GUI calculation, geometry formula or DXF exporter changes. `tests/test_issue2517_receiving_saved_corner_policy_true_reload_2d3d_dxf.py` verifies real Receiving authored Door holes, original Factory scene, Head/Tail folded mesh and 9 independently reopened DXFs across actual `.p6fold` Save→Reload, plus invalid persisted state rejection. Scope is a confirmed physical subset; no whole-cabinet/MFG2/Windows authorization.
+
+
 
 
 ## #2517 PAD+Base PART_ONLY CHECK/Q real DXF publication retains live GUI and Engine source guard (2026-11-12)
