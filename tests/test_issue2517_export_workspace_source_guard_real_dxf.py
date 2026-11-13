@@ -279,3 +279,89 @@ def test_unreadable_group_mode_control_never_fabricates_export_selection(monkeyp
     selector.get = lambda: (_ for _ in ()).throw(ValueError("bad group source"))
     with pytest.raises(ValueError, match="bad group source"):
         witness()
+
+
+def test_workspace_connected_after_export_confirmation_cannot_bypass_empty_initial_witness():
+    source = {"model": "金庫型", "w": 800.0, "t": 2.0}
+    designer = _designer(source, None)
+    verify = _current_authoritative_export_guard(designer, source)
+    verify()
+    designer.designer_workspace = Workspace({
+        "part_features": {"door": [{"type": "circle", "radius": 6}]},
+    })
+    with pytest.raises(ValueError, match="DXF 工作區來源已變更"):
+        verify()
+    assert designer._phase6_input_snapshot == source
+
+
+def test_existing_workspace_that_gains_snapshot_reader_is_not_implicitly_authoritative():
+    source = {"model": "金庫型", "w": 800.0, "t": 2.0}
+    workspace = SimpleNamespace()
+    designer = _designer(source, workspace)
+    verify = _current_authoritative_export_guard(designer, source)
+    verify()
+    workspace.snapshot = lambda: {"part_features": {"door": [{"hole": "new"}]}}
+    with pytest.raises(ValueError, match="DXF 工作區來源已變更"):
+        verify()
+
+
+def test_initial_callable_workspace_snapshot_none_is_still_source_witnessed():
+    source = {"model": "金庫型", "w": 800.0, "t": 2.0}
+    workspace = Workspace(None)
+    designer = _designer(source, workspace)
+    verify = _current_authoritative_export_guard(designer, source)
+    verify()
+    workspace.source = {"part_features": {"door": [{"hole": "loaded"}]}}
+    with pytest.raises(ValueError, match="DXF 工作區來源已變更"):
+        verify()
+
+
+def test_real_project_and_dxf_reopen_never_publish_when_workspace_loads_mid_stage(
+    tmp_path,
+):
+    import phase6_project_file as project
+
+    source = {
+        "model": "金庫型", "w": 800.0, "h": 1600.0,
+        "d": 350.0, "t": 2.0, "fw": 25.0,
+        "part_features": {"door": [{"hole": "source"}]},
+    }
+    project_path = project.write_project(
+        tmp_path / "workspace-reload-while-exporting.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": source},
+    )
+    saved = project.read_project(project_path)["snapshot"]
+    before = deepcopy(saved)
+    designer = _designer(saved, None)
+    verify = _current_authoritative_export_guard(designer, saved)
+    target = tmp_path / "previous-verified.dxf"
+    panels = _one_real_door_panel()
+    ok = api.save_composed_panel_dxf(
+        panels, target, pre_commit_guard=verify,
+    )
+    assert ok.path == str(target)
+    assert any(entity.dxf.layer == "CUTTING"
+               for entity in ezdxf.readfile(target).modelspace())
+    assert any(entity.dxf.layer == "BEND"
+               for entity in ezdxf.readfile(target).modelspace())
+    retained = target.read_bytes()
+    count = []
+
+    def newly_loaded_project_workspace():
+        count.append("physical-source-check")
+        if len(count) == 2:
+            designer.designer_workspace = Workspace({
+                "part_features": {
+                    "door": [{"hole": "new saved physical feature"}],
+                },
+            })
+        verify()
+
+    with pytest.raises(ValueError, match="DXF 工作區來源已變更"):
+        api.save_composed_panel_dxf(
+            panels, target, pre_commit_guard=newly_loaded_project_workspace,
+            overwrite=True,
+        )
+    assert count == ["physical-source-check", "physical-source-check"]
+    assert target.read_bytes() == retained
+    assert project.read_project(project_path)["snapshot"] == before

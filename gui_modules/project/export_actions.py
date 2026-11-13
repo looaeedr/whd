@@ -163,8 +163,12 @@ def _current_authoritative_export_guard(
     operator_witness = deepcopy(operator_source)
     workspace = getattr(designer, "designer_workspace", None)
     workspace_reader = getattr(workspace, "snapshot", None)
+    # A missing reader and an actual snapshot() returning None are different
+    # source states. Recheck both identity and readability even if no physical
+    # Workspace existed when the operator entered the export dialog.
+    workspace_reader_present = callable(workspace_reader)
     workspace_witness = (
-        deepcopy(workspace_reader()) if callable(workspace_reader) else None
+        deepcopy(workspace_reader()) if workspace_reader_present else None
     )
 
     def verify():
@@ -173,13 +177,13 @@ def _current_authoritative_export_guard(
             raise ValueError("DXF 即時操作來源已變更，請重新確認尺寸與出圖選片")
         if getattr(designer, "_phase6_input_snapshot", None) != witness:
             raise ValueError("DXF 出圖來源已變更，請重新確認盤名與板件")
-        if workspace_witness is not None:
-            current_workspace = getattr(designer, "designer_workspace", None)
-            current_reader = getattr(current_workspace, "snapshot", None)
-            if (current_workspace is not workspace
-                    or not callable(current_reader)
-                    or current_reader() != workspace_witness):
-                raise ValueError("DXF 工作區來源已變更，請重新確認孔位與板件")
+        current_workspace = getattr(designer, "designer_workspace", None)
+        current_reader = getattr(current_workspace, "snapshot", None)
+        if (current_workspace is not workspace
+                or callable(current_reader) != workspace_reader_present
+                or (workspace_reader_present
+                    and current_reader() != workspace_witness)):
+            raise ValueError("DXF 工作區來源已變更，請重新確認孔位與板件")
     return verify
 
 
