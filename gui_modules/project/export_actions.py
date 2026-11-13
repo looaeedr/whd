@@ -697,6 +697,10 @@ def _selected_dxf_live_operator_sources(self):
         "door_indicator": getattr(self, "is_door_indicator_var", None),
         "indicator_layers": getattr(self, "indicator_l_var", None),
         "door_indicator_layers": getattr(self, "door_indicator_l_var", None),
+        # This is GUI operation intent (ALL / by Set / end-vs-middle), not
+        # a manufacturing dimension. It is part of what the operator agreed
+        # to export and must stay fixed across folder/overwrite dialogs.
+        "receiving_group_mode": getattr(self, "receiving_dxf_group_mode_var", None),
     }
     def raw(control):
         getter = getattr(control, "get", None)

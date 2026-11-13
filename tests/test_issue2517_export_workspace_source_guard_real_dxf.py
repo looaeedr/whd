@@ -142,3 +142,140 @@ def test_unreadable_workspace_during_export_cannot_publish_unverified_dxf(
             _one_real_door_panel(), target, pre_commit_guard=witness,
         )
     assert not target.exists()
+
+
+class _RawMode:
+    def __init__(self, value):
+        self.value = value
+
+    def get(self):
+        return self.value
+
+
+def _export_operator_intent(mode, monkeypatch):
+    from gui_modules.project import export_actions as gui
+
+    # Only mock the selected physical inventory; keep the real GUI witness,
+    # Engine source guards and staging/DXF writer below.
+    monkeypatch.setattr(gui, "_selected_export_flags", lambda *_a, **_kw:
+                        {"head": True})
+    selector = _RawMode(mode)
+    host = SimpleNamespace(
+        get_float_values=lambda: {
+            "w": 800.0, "h": 1600.0, "d": 350.0, "t": 2.0,
+        },
+        door_layout_columns=None,
+        _phase6_current_existing_parts=lambda: ("head",),
+        _has_any_indicator_box=lambda: False,
+        receiving_dxf_group_mode_var=selector,
+    )
+    return host, selector
+
+
+def test_export_witness_includes_gui_group_mode_before_modal_dialog(monkeypatch):
+    from gui_modules.project import export_actions as gui
+
+    host, selector = _export_operator_intent("ALL", monkeypatch)
+    captured = gui._selected_dxf_live_operator_sources(host)
+    assert captured["controls"]["receiving_group_mode"] == "ALL"
+
+    source = {"model": "受電箱", "w": 800.0, "h": 1600.0, "t": 2.0}
+    designer = _designer(source, Workspace({"part_features": {"head": []}}))
+    witness = gui._current_authoritative_export_guard(
+        designer, source, operator_source=captured,
+        operator_source_reader=lambda: gui._selected_dxf_live_operator_sources(host),
+    )
+    witness()
+    selector.value = "END_VS_MIDDLE"  # Changed during Folder dialog.
+    with pytest.raises(ValueError, match="DXF 即時操作來源已變更"):
+        witness()
+    assert designer._phase6_input_snapshot == source
+
+
+def test_actual_project_reload_and_reopened_dxf_group_intent_is_source_locked(
+    tmp_path, monkeypatch,
+):
+    from gui_modules.project import export_actions as gui
+    import phase6_project_file as project
+
+    snapshot = {
+        "model": "受電箱", "w": 800.0, "h": 1600.0,
+        "d": 350.0, "t": 2.0, "fw": 25.0,
+        "part_features": {"head": []},
+    }
+    saved = project.write_project(
+        tmp_path / "real-grouped-operator.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": snapshot},
+    )
+    source = project.read_project(saved)["snapshot"]
+    original = deepcopy(source)
+    host, selector = _export_operator_intent("ALL", monkeypatch)
+    workspace = Workspace({"part_features": source["part_features"]})
+    designer = _designer(source, workspace)
+    witness = gui._current_authoritative_export_guard(
+        designer, source,
+        operator_source=gui._selected_dxf_live_operator_sources(host),
+        operator_source_reader=lambda: gui._selected_dxf_live_operator_sources(host),
+    )
+    target = tmp_path / "real-operator-mfg.dxf"
+    panels = _one_real_door_panel()
+    first = api.save_composed_panel_dxf(
+        panels, target, pre_commit_guard=witness,
+    )
+    assert first.path == str(target)
+    assert any(entity.dxf.layer == "CUTTING"
+               for entity in ezdxf.readfile(target).modelspace())
+    assert any(entity.dxf.layer == "BEND"
+               for entity in ezdxf.readfile(target).modelspace())
+    retained = target.read_bytes()
+
+    checks = []
+
+    def edit_group_during_staging():
+        checks.append("precommit")
+        if len(checks) == 2:
+            selector.value = "END_VS_MIDDLE"
+        witness()
+
+    with pytest.raises(ValueError, match="DXF 即時操作來源已變更"):
+        api.save_composed_panel_dxf(
+            panels, target, pre_commit_guard=edit_group_during_staging,
+            overwrite=True,
+        )
+    assert checks == ["precommit", "precommit"]
+    assert target.read_bytes() == retained
+    assert source == original
+
+
+def test_legacy_no_group_mode_still_has_stable_none_witness(monkeypatch):
+    from gui_modules.project import export_actions as gui
+
+    host, _selector = _export_operator_intent("ALL", monkeypatch)
+    del host.receiving_dxf_group_mode_var
+    captured = gui._selected_dxf_live_operator_sources(host)
+    assert captured["controls"]["receiving_group_mode"] is None
+    source = {"model": "金庫型", "w": 800.0}
+    designer = _designer(source, None)
+    witness = gui._current_authoritative_export_guard(
+        designer, source,
+        operator_source=captured,
+        operator_source_reader=lambda: gui._selected_dxf_live_operator_sources(host),
+    )
+    witness()
+    assert source == designer._phase6_input_snapshot
+
+
+def test_unreadable_group_mode_control_never_fabricates_export_selection(monkeypatch):
+    from gui_modules.project import export_actions as gui
+
+    host, selector = _export_operator_intent("ALL", monkeypatch)
+    source = {"model": "受電箱", "w": 800.0}
+    designer = _designer(source, None)
+    witness = gui._current_authoritative_export_guard(
+        designer, source,
+        operator_source=gui._selected_dxf_live_operator_sources(host),
+        operator_source_reader=lambda: gui._selected_dxf_live_operator_sources(host),
+    )
+    selector.get = lambda: (_ for _ in ()).throw(ValueError("bad group source"))
+    with pytest.raises(ValueError, match="bad group source"):
+        witness()
