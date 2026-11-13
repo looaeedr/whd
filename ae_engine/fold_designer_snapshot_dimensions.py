@@ -272,9 +272,18 @@ def project_operator_door_layout_indicator_snapshot_states(states):
     """
     if not isinstance(states, Mapping):
         raise ValueError("門格指示燈來源必須是有效對照表")
+    # Project saved physical cells must share the original Door-grid ID owner.
+    # A raw legacy (column,row) otherwise becomes "(column, row)" and can
+    # silently disappear after Save→Reload when the GUI requests "column:row".
+    from .door_layout_physical_remap import _canonical_remap_cell_key
     projected = {}
     for cell_key, raw in states.items():
-        key = str(cell_key)
+        try:
+            key = _canonical_remap_cell_key(cell_key)
+        except ValueError as exc:
+            raise ValueError(f"門格指示燈來源身分無效：{cell_key!r}") from exc
+        if key in projected:
+            raise ValueError(f"門格指示燈來源身分衝突：{key}")
         try:
             validated = project_operator_door_cell_indicator_manufacturing_source(raw)
         except ValueError as exc:

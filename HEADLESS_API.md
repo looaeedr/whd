@@ -5,6 +5,10 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
+## #2517 Door Indicator Save→Reload physical cell key is Engine-owned (2026-11-13)
+
+`project_operator_door_layout_indicator_snapshot_states` previously serialized original legacy tuple owner `(0,0)` as `"(0, 0)"`, which is not the real `"0:0"` Door grid key used by the GUI and DXF. Original Engine `door_layout_physical_remap._canonical_remap_cell_key` now validates/rekeys this saved identity and rejects invalid or duplicate aliases. No new geometry, DXF or Family policy; original indicator Mode, groups, offsets remain Engine-validated. Tests include GUI snapshot→real `.p6fold` Save→Reload→GUI/headless IndicatorBox DXF reopen and negative ambiguous/malformed sources. Not whole-cabinet 3D/DXF approval.
+
 ## #2517 Original CornerType payload preserves CROSS slot and raw rotation (2026-11-12)
 
 The original public manufacturing_api.corner_policy_from_payload previously truncated persisted rotation_quadrants with int(), converted physical FW with float(), and dropped all three original CornerTypeSelection CROSS slot fields. Genuine .p6fold JSON Save→Reload could therefore remove a source-authored slot from the physical policy used by 2D/3D/DXF while showing a plausible STANDARD corner. Original Engine now passes raw rotation and slot parameters to the existing CornerTypeSelection validator, validates FW (finite nonboolean, zero-FW draft compatibility), and rejects missing/invalid explicit selections. No Certified Registry formula or GUI manufacturing implementation changes. tests/test_issue2517_saved_cross_corner_slot_raw_engine_parity.py covers real persistence, GUI/headless policy parity, canonical Engine CROSS slot residual, and negative sources. This does not certify newly manufactured CROSS slots or close whole-cabinet #2517 UAT.
