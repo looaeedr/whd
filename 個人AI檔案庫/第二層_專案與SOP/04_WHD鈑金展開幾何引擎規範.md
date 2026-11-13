@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 非數值 CSV 的已配置受電箱底板 2D 不得回用舊 FinalScene（2026-11-13）
+
+- 原 `ae_engine.operator_base_plate_2d.project_receiving_base_plate_2d_snapshot` 對已配置 `receiving_base_plate` 但沒有數值 NFB CSV 的目前受電箱不做來源／實體形狀見證：使用者改變原實體底板 height／shrink／pattern 之後，GUI `base_plate_render_snapshot` 可能仍顯示快取的舊 `ResolvedManufacturingGeometry`，而同時正式製造已使用不同 PartSpec／FinalScene。這是來源漂移，不是允許顯示過期零件。
+- 依既有唯一 `receiving_base_plate_values` 取同一實體配置，無論經原 `nfb_config_submitted`、數值 CSV 或已存明確實體板型都驗 `render_data.unfolded_topology`、`receiving_bend_pattern` 與原實體平板尺寸；不從 GUI／DXF 算假來源、不變更 2D/3D/CUTTING/BEND 公式與正式製造資格。缺原配置不得回退通用底板。
+- 新增真實 GUI → Engine 2D／配置變更拒絕、原 PartSpec、`.p6fold` Save→Reload、3D Fold／DXF reopen 正負來源測試。此為底板顯示快取保全子驗收，不代表 #2517 全箱完成。
+
+
 ## [CURRENT] #2517 FoldDesigner BasePlate 2D／PartSpec／3D／DXF 的合法 Receiving Family 別名不可拆成不同實體（2026-11-13）
 
 - 原 `ae_engine.fold_designer_snapshot_dimensions.project_fold_designer_snapshot_dimensions` 在投影底板 2D 時以 `model in {"受電箱","RECEIVING"}` 辨識受電箱；原 `ae_engine.operator_auxiliary_part_specs.resolve_fold_designer_base_plate_source` 與 `build_base_plate_operator_part_spec` 再各自做同樣硬寫判斷。真已配置 `receiving_base_plate` 的 `receiving`／大小寫別名儲存／重新開啟後，2D 底板尺寸可能退回通用收縮，而 3D／正式 DXF 的 PartSpec 未攜原實體 bend pattern。這不是合法的新機械板型。

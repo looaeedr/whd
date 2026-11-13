@@ -23,14 +23,15 @@ def project_receiving_base_plate_2d_snapshot(snapshot, resolved, *, active_part=
                 and str(row.get("model_filename") or "").startswith("nfbv5:")
                 for row in nfb_rows)
     )
-    expected_source = None
-    if numeric_source or not current.get("receiving_base_plate"):
-        from .receiving_base_plate_config import receiving_base_plate_values
-        expected_source = receiving_base_plate_values(current)
-        if expected_source is None:
-            raise ValueError(
-                "受電箱底板尚未設定實體來源型式，不能顯示舊式通用底板"
-            )
+    # The authored physical BasePlate is just as authoritative as submitted
+    # numeric CSV. An explicit non-CSV pattern used to skip this recheck,
+    # allowing a cached old plate to masquerade as the currently edited one.
+    from .receiving_base_plate_config import receiving_base_plate_values
+    expected_source = receiving_base_plate_values(current)
+    if expected_source is None:
+        raise ValueError(
+            "受電箱底板尚未設定實體來源型式，不能顯示舊式通用底板"
+        )
     part_keys = tuple(
         p.part_key for p in tuple(resolved.parts or ())
         if p.part_key == "base_plate"
@@ -61,10 +62,10 @@ def project_receiving_base_plate_2d_snapshot(snapshot, resolved, *, active_part=
             )
         chosen = "base_plate"
     physical = resolved.part(chosen).render_data
-    # A delayed 2D refresh/cache must never resurrect a previous model's
-    # flat/folded source sheet after this Bay's current numeric CSV changed.
-    # This is a source-shape check, NOT a manufacturing release gate.
-    if numeric_source and expected_source is not None:
+    # A delayed 2D refresh/cache must never resurrect a prior physical
+    # sheet after either the committed CSV or the authored physical pattern
+    # changed. This is a source-shape check, NOT a manufacturing release gate.
+    if expected_source is not None:
         from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_CENTER
         topology = getattr(physical, "unfolded_topology", None)
         actual_pattern = (getattr(physical, "metadata", None) or {}).get(
@@ -81,8 +82,14 @@ def project_receiving_base_plate_2d_snapshot(snapshot, resolved, *, active_part=
                 or abs(float(topology.height) - height) > 1e-6
                 or (expected_pattern != RECEIVING_BASE_PATTERN_CENTER
                     and abs(float(topology.width) - flat_width) > 1e-6)):
+            # Preserve the existing public CSV mismatch diagnostic for the
+            # original submitted NFB path. Authored non-CSV physical plates
+            # use the new explicit-source diagnostic; both paths still fail
+            # on the same original topology/pattern/size witness.
             raise ValueError(
                 "受電箱底板目前 CSV 來源與已載入 2D 實體板型不一致"
+                if numeric_source else
+                "受電箱底板目前實體來源與已載入 2D 實體板型不一致"
             )
     if (getattr(physical, "unfolded_topology", None) is None
             or getattr(physical, "material", None) is None):
