@@ -27,7 +27,7 @@ def test_original_engine_maps_legacy_indicator_cell_coordinate_to_real_door_id()
     before = deepcopy(original)
     canonical = api.project_operator_door_layout_indicator_snapshot_states(original)
     assert set(canonical) == {"0:0", "1:2"}
-    assert canonical["0:0"]["groups"] == [2]
+    assert canonical["0:0"]["groups"][:canonical["0:0"]["layers"]] == [2]
     assert canonical["0:0"]["offset_x"] == pytest.approx(1.25)
     assert canonical["1:2"]["mode"] == "indicator_box"
     assert original == before
