@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 GUI 已確認的 Receiving DXF 分組操作不能在模態對話框中漂移（2026-11-13）
+
+- `gui_modules.project.export_actions._selected_dxf_live_operator_sources` 原在選資料夾／覆寫／NFB 部分確認前記錄即時尺寸、選片、孔位和 Indicator，但漏記同一製造工作的 `receiving_dxf_group_mode_var`（ALL／Set／END_VS_MIDDLE 等）。使用者在視窗確認期間更改分組，`_export_selected_resolved_parts` 讀新的操作意圖出圖，但 `_current_authoritative_export_guard` 在 Engine 原子提交時無法察覺，可能將未經當次確認的總計或各組 DXF 發布。
+- GUI 只增加對原始分組選單值的讀取與來源見證，不解析／重算正式 Engine 分組拓樸或加工圖。分組語意仍由 `manufacturing_api.plan_receiving_multibay_export_source`、`export_grouped_receiving_multibay_dxf` 決定；來源改變即沿既有 pre-commit guard 拒絕，已存在 DXF 不得被覆寫。正向以真 `.p6fold` Save→Reload、Engine 原 FinalScene／CUTTING／BEND 寫出 DXF 後獨立 reopen；負向確認分組切換與壞掉的操作來源不發布。無分組控制的舊版金庫型沿原 None 行為。此為操作交易一致性，不是整箱 2D／3D／DXF 或 Windows UAT 完成。
+
+
 ## [CURRENT] #2517 Door 指示燈存檔物理 cell key 不得將 tuple 字串化（2026-11-13）
 
 - 已有正式 Engine 門格來源 `(0,0)`／`"0:0"` 可識別同一實體門板；原 `fold_designer_snapshot_dimensions.project_operator_door_layout_indicator_snapshot_states` 直接 `str(cell_key)` 會把 tuple 存成 `"(0, 0)"`，重載後 GUI／Engine 以 `"0:0"` 取不到原真實 IndicatorBox／Door 孔位。
