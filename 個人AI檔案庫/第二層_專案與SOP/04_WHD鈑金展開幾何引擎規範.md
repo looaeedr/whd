@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 DXF 出圖見證須拒絕途中才接上的 Workspace／孔位來源（2026-11-13）
+
+- 原 `gui_modules.project.export_actions._current_authoritative_export_guard` 只在 `workspace_witness is not None` 時重新檢查工作區。因此開始出圖時 Workspace 尚未接入、原 snapshot() 讀回 None、或尚無 snapshot reader，後來確認視窗期間新載入真實 `part_features`／板件，Engine 實體出圖可能沿舊來源提交而守衛不知。這是 GUI 原始來源交易身份漂移，不等於製造幾何／DXF 算法缺陷。
+- 在原守衛同時封存 Workspace identity、是否有 callable snapshot reader 與其**完整回傳值（包括 None）**；任一條件在分組／資料夾／覆寫對話框及 Engine staged DXF 出圖提交期間變更即 fail-closed，舊圖不得覆寫。沒 Workspace 的歷史 headless 路徑保持同一 None 兼容；原 Engine 公開 `manufacturing_api.save_composed_panel_dxf`、真 CUTTING／BEND、2D/3D、DXF writer 不變。
+- `tests/test_issue2517_export_workspace_source_guard_real_dxf.py` 對 no-Workspace→新實體、reader 新增、None→孔位及真 `.p6fold` Save→Reload、Engine 原子 staged DXF／獨立重開測試進行拒絕與保留舊檔驗證。此為單一 GUI 製造出口保全子驗收，不代表 #2517 全箱 2D／3D／DXF／CADSplit／Windows UAT 完成。
+
+
 ## [CURRENT] #2517 GUI 已確認的 Receiving DXF 分組操作不能在模態對話框中漂移（2026-11-13）
 
 - `gui_modules.project.export_actions._selected_dxf_live_operator_sources` 原在選資料夾／覆寫／NFB 部分確認前記錄即時尺寸、選片、孔位和 Indicator，但漏記同一製造工作的 `receiving_dxf_group_mode_var`（ALL／Set／END_VS_MIDDLE 等）。使用者在視窗確認期間更改分組，`_export_selected_resolved_parts` 讀新的操作意圖出圖，但 `_current_authoritative_export_guard` 在 Engine 原子提交時無法察覺，可能將未經當次確認的總計或各組 DXF 發布。
