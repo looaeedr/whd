@@ -324,21 +324,41 @@ def project_fold_designer_snapshot_dimensions(
         _require_positive_source_length(source[key], key.upper())
         for key in ("w", "h", "d", "t", "fw")
     )
+    # Fold Designer's root 2D overview must qualify the exact same authored
+    # physical gap, signed shrink and Indicator Fold source as its original
+    # Door/BasePlate/SmallDoor PartSpecs before GUI persists part dimensions.
+    # Keep the original AE/Family/Policy geometry and layout calculations.
+    from .door_operator_part_spec import _finite_operator_number
+    from .operator_auxiliary_part_specs import _finite_auxiliary_setting
+    gap_w = _finite_operator_number(source["door_gap_w"], "door_gap_w")
+    gap_h = _finite_operator_number(source["door_gap_h"], "door_gap_h")
+    shrinks = {
+        key: _finite_auxiliary_setting(source, key)
+        for key in (
+            "base_plate_shrink_left", "base_plate_shrink_right",
+            "base_plate_shrink_top", "base_plate_shrink_bottom",
+        )
+    }
+    box_fold = _finite_operator_number(
+        source["indicator_box_fold"], "indicator_box_fold",
+    )
+    small_door_fold = _finite_operator_number(
+        source["indicator_door_fold"], "indicator_door_fold",
+    )
     door_material_fw = cabinet_family_policy.door_material_frame_width(
         source, frame_width=float(fw), thickness=float(t),
     )
     door_w, door_h = ae.calculate_door_finished_size(
-        w, h, door_material_fw,
-        source["door_gap_w"], source["door_gap_h"], t,
+        w, h, door_material_fw, gap_w, gap_h, t,
         frame_edges=DoorFrameEdges(),
     )
     door_w = _require_positive_source_length(door_w, "門板成品寬")
     door_h = _require_positive_source_length(door_h, "門板成品高")
     base_w = (
-        w - source["base_plate_shrink_left"] - source["base_plate_shrink_right"]
+        w - shrinks["base_plate_shrink_left"] - shrinks["base_plate_shrink_right"]
     )
     base_h = (
-        h - source["base_plate_shrink_top"] - source["base_plate_shrink_bottom"]
+        h - shrinks["base_plate_shrink_top"] - shrinks["base_plate_shrink_bottom"]
     )
     if cabinet_family_policy.canonical_family_name(source) == "受電箱":
         from .receiving_base_plate_config import receiving_base_plate_blank_dimensions
@@ -353,10 +373,10 @@ def project_fold_designer_snapshot_dimensions(
     policy = replace(
         resolve_policy(),
         frame_width=fw,
-        door_gap_w=float(source["door_gap_w"]),
-        door_gap_h=float(source["door_gap_h"]),
-        indicator_box_fold=float(source["indicator_box_fold"]),
-        indicator_small_door_fold=float(source["indicator_door_fold"]),
+        door_gap_w=gap_w,
+        door_gap_h=gap_h,
+        indicator_box_fold=box_fold,
+        indicator_small_door_fold=small_door_fold,
     )
     context = ManufacturingContext(policy=policy)
     ib_w, ib_h = indicator_box_unfolded_size(
