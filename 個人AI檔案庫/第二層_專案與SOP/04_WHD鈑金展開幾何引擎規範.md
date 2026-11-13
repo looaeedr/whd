@@ -6,6 +6,11 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 Door 指示燈存檔物理 cell key 不得將 tuple 字串化（2026-11-13）
+
+- 已有正式 Engine 門格來源 `(0,0)`／`"0:0"` 可識別同一實體門板；原 `fold_designer_snapshot_dimensions.project_operator_door_layout_indicator_snapshot_states` 直接 `str(cell_key)` 會把 tuple 存成 `"(0, 0)"`，重載後 GUI／Engine 以 `"0:0"` 取不到原真實 IndicatorBox／Door 孔位。
+- 在原 Engine 保存投影中沿用 `door_layout_physical_remap._canonical_remap_cell_key`，驗證並轉正合法 Key，拒絕損壞／重複 alias；不改 MODE、孔位 groups／offset、Factory 公式、實體認證或 DXF writer。真實 GUI snapshot、`.p6fold` 保存／重載、Engine PartSpec／CUTTING DXF 重新開檔與非法來源反例列入測試。#2517 仍須整箱 3D／DXF／Windows UAT。
+
 ## [CURRENT] #2517 非數值 CSV 的已配置受電箱底板 2D 不得回用舊 FinalScene（2026-11-13）
 
 - 原 `ae_engine.operator_base_plate_2d.project_receiving_base_plate_2d_snapshot` 對已配置 `receiving_base_plate` 但沒有數值 NFB CSV 的目前受電箱不做來源／實體形狀見證：使用者改變原實體底板 height／shrink／pattern 之後，GUI `base_plate_render_snapshot` 可能仍顯示快取的舊 `ResolvedManufacturingGeometry`，而同時正式製造已使用不同 PartSpec／FinalScene。這是來源漂移，不是允許顯示過期零件。
