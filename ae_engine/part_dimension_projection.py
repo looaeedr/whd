@@ -12,7 +12,6 @@ import re
 from typing import Mapping
 
 from .cabinet_types import policy as cabinet_family_policy
-from .box_body_fold_profile import _num
 from .door_layout_feature_projection import project_operator_saved_door_layout_columns
 from .operator_settings_transactions import (
     normalize_operator_settings_boolean, normalize_operator_source_dimension,
@@ -23,6 +22,23 @@ from .sheetmetal_part_adapters import (
     derive_door_layout_cells,
     door_layout_part_key,
 )
+
+def _source_door_gap(source: Mapping[str, object], field: str) -> float:
+    """Use the same finite signed Gap contract as a real Door PartSpec."""
+    from .door_operator_part_spec import _finite_operator_number
+    return _finite_operator_number(
+        source[field] if field in source else 3.5, field,
+    )
+
+
+def _source_base_plate_shrink(source: Mapping[str, object], edge: str) -> float:
+    """Reuse the original BasePlate PartSpec/Settings signed numeric gate."""
+    from .operator_auxiliary_part_specs import _finite_auxiliary_setting
+    key = f"base_plate_shrink_{edge}"
+    return _finite_auxiliary_setting(
+        {key: source[key] if key in source else 55.0}, key,
+    )
+
 
 def _source_physical_dimension(source: Mapping[str, object], field: str, legacy_default: float) -> float:
     """Trust the original Engine W/H/D/T/FW contract, not float(True).
@@ -72,8 +88,8 @@ def door_part_projections(
         frame_width=fw,
         thickness=t,
     )
-    gap_w = _num(snapshot.get("door_gap_w", 3.5), 3.5)
-    gap_h = _num(snapshot.get("door_gap_h", 3.5), 3.5)
+    gap_w = _source_door_gap(snapshot, "door_gap_w")
+    gap_h = _source_door_gap(snapshot, "door_gap_h")
     rows = []
     for cell in derive_door_layout_cells(normalized):
         formed_w, formed_h = calculate_door_finished_size(
@@ -141,8 +157,8 @@ def project_part_dimensions(snapshot: Mapping[str, object]) -> dict[str, dict[st
             h=h,
             t=t,
             fw=door_material_fw,
-            gap_w=_num(snapshot.get("door_gap_w", 3.5), 3.5),
-            gap_h=_num(snapshot.get("door_gap_h", 3.5), 3.5),
+            gap_w=_source_door_gap(snapshot, "door_gap_w"),
+            gap_h=_source_door_gap(snapshot, "door_gap_h"),
             frame_edges=DoorFrameEdges(),
         )
         dims["door"] = {
@@ -150,10 +166,10 @@ def project_part_dimensions(snapshot: Mapping[str, object]) -> dict[str, dict[st
             "height": max(1.0, float(door_h)),
         }
 
-    shrink_left = _num(snapshot.get("base_plate_shrink_left", 55), 55)
-    shrink_right = _num(snapshot.get("base_plate_shrink_right", 55), 55)
-    shrink_top = _num(snapshot.get("base_plate_shrink_top", 55), 55)
-    shrink_bottom = _num(snapshot.get("base_plate_shrink_bottom", 55), 55)
+    shrink_left = _source_base_plate_shrink(snapshot, "left")
+    shrink_right = _source_base_plate_shrink(snapshot, "right")
+    shrink_top = _source_base_plate_shrink(snapshot, "top")
+    shrink_bottom = _source_base_plate_shrink(snapshot, "bottom")
     base_w = max(1.0, w - shrink_left - shrink_right)
     base_h = max(1.0, h - shrink_top - shrink_bottom)
     # The main GUI's part-dimension recalculation is a second caller of the
