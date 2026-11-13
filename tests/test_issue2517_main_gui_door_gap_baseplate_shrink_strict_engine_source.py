@@ -105,7 +105,7 @@ def test_missing_legacy_gap_and_shrink_use_only_original_missing_defaults(family
 def test_signed_fractional_legacy_settings_keep_original_engine_semantics(family):
     source = _snapshot(family)
     source.update({
-        "door_gap_w": "-0.125", "door_gap_h": "4.625",
+        "door_gap_w": "0.125", "door_gap_h": "4.625",
         "base_plate_shrink_left": "-1.75",
         "base_plate_shrink_right": "55.625",
         "base_plate_shrink_top": "54.125",
@@ -133,6 +133,25 @@ def test_signed_fractional_legacy_settings_keep_original_engine_semantics(family
     assert (cell.formed_width, cell.formed_height) == pytest.approx(
         api.door_finished_face_size(spec),
     )
+    assert source == before
+
+
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+@pytest.mark.parametrize("field", ("door_gap_w", "door_gap_h"))
+def test_negative_gap_is_rejected_by_original_door_forming_solver_not_sanitized(
+    family, field,
+):
+    source = _snapshot(family)
+    source[field] = "-0.125"
+    before = deepcopy(source)
+    # Operator number parsing preserves signed text, but the original
+    # formed-face/physical Door solver prohibits a negative clearance.
+    with pytest.raises(ValueError, match="FW and gaps nonnegative"):
+        api.door_part_projections(source)
+    with pytest.raises(ValueError, match="FW and gaps nonnegative"):
+        api.project_part_dimensions(source)
+    with pytest.raises(ValueError, match="FW and gaps nonnegative"):
+        _gui_part_dimensions(source)
     assert source == before
 
 
