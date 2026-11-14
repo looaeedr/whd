@@ -33,7 +33,7 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=agent-startup-process role=CURRENT path=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=MIRROR path=handoff/00_AI_HANDOFF_README.md canonical=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=direct-governance-publish role=CURRENT path=docs/governance/WHD_DIRECT_GOVERNANCE_PUBLISH_POLICY.md -->
-> **退役入口註記（HISTORICAL）**：舊 `knowledge-preflight`／Phase6 receipt 交易不得再列為 CURRENT contract。實際來源／技能 grounding 仍須依正式 X 的 `AGENTS.md` 和所屬 CURRENT domain/Skill 查核，但不得要求舊 Preflight 憑證或重跑交易。
+> **退役入口註記（HISTORICAL）**：舊 `knowledge-preflight`／Phase6 receipt 交易不得列為 CURRENT contract。實際來源／技能 grounding 須讀 GitHub `ref=localX` exact HEAD 的 `AGENTS.md` 與 CURRENT domain／Skill；正式 X 只供當次 `/推推` 發布及受信任 gate，不得用 X 舊文件覆蓋 localX。
 
 <!-- WHD_AUTHORITY contract=phase6-startup-baseline-model role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/10_WHD啟動基準型號規則.md -->
 <!-- WHD_AUTHORITY contract=phase6-assembly-shared-content-presentation role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md -->
@@ -93,10 +93,10 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 
 ## localX integration and publication authority
 
-- **`/派工`** 的產品 BUILD／TEST／COMMIT／PR／CI 在 GitHub／排程／雲端執行器完成，工作 PR 目標 `localX`；exact CI SUCCESS 後才可依 `LOCALX_INTEGRATION` 透過 DC 在本機整合，不得以此階段暗改產品。
+- **`/派工`** 的產品 BUILD／TEST／COMMIT／PR／CI 由 GitHub／雲端（或已授權排程）執行器完成，工作 PR base=`localX`；exact SHA 必要 CI GREEN、scope／base drift／mergeable 核對後，以 GitHub PR `expected_head_sha` 安全合併遠端 `localX`，**`LOCALX_INTEGRATION` 不授權 DC／本機整合**。Windows `Z:\localX` 由使用者自行同步與實機驗收，未查證不宣稱完成。
 - **`/接手`** 只有當次使用者明確指令才允許 RC → `whd-dev:/workspace/whd` 施工；沒有明確授權不得用 DC 或探測本機。
-- 純非產品治理依 `tools/change_lane_gate.py` 白名單從最新 X 的 GitHub／雲端治理分支直接 PR／CI／merge X，不經 `localX`、不需要 `/推推`，亦不得擅用本機。
-- 產品先安全整合／非強制同步 `localX`，只有使用者**當次 `/推推`** 才可將產品發布至 `cleanup/2d-3d-sync` (X)，須核對 exact PR、SHA、CI 與三方 readback；`origin/localX` 不是 X 發布授權。
+- **純非產品治理／技能／文件**：從 GitHub 最新 `localX` exact HEAD 建 `governance/*`／`docs/*`／`skills/*` 工作分支，通過適用治理 CI／contract tests、PR 後合回 `localX`；受信任 X `tools/change_lane_gate.py` 的 `GOVERNANCE_DIRECT_X` 僅是歷史分類，**不能直接合 X，也不能豁免正式 X 當次 `/推推`**。沒有當次授權不得接觸 DC。
+- 產品與治理都先安全整合 GitHub `localX`；**只有使用者當次 `/推推`** 才可正式發布至 `cleanup/2d-3d-sync` (X)，必須核對 exact PR、head/base SHA、GitHub owner comment、CI／X gate 並非強制遠端回同步。`/推推` 本身即驗收／發布決定，Windows 人工 UAT／同步獨立回報；`origin/localX` 不構成發布授權。
 - 舊任務交易、lease、工作槽與 control-plane Preflight receipt 已退役，不是產品或治理修改的施工／交付前置；不影響平台公開操作權限與安全審查。
 
 ## CADSplit × WHD source-only Worker owner routing

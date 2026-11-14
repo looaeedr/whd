@@ -14,7 +14,7 @@ whd_doc_id: WHD-SOP-SKILL-AUTHORING
 ## 現行使用與驗證邊界
 
 1. 使用者當次明確指示和已核准規格優先；本文件不能創造獨立執行／發布授權。
-2. 純治理 Skill／文件變更從 GitHub 最新 `localX` 建立治理分支，經適用治理 CI、PR、合併／回讀整合 `localX`；正式 X 僅限使用者人工驗收與當次 `/推推` 依受信任 gate 發布；未經當次明確授權禁止 DC／使用者本機。
+2. 純治理 Skill／文件變更從最新 GitHub `localX` HEAD 建治理分支，適用治理 CI／PR 合併回 `localX`；正式 X 的治理與產品變更均須使用者當次 `/推推`（即驗收與發布決定）及受信任 gate。Windows 同步／人工 UAT 另記，不是發布前置；未經當次明確授權禁止 DC／本機。
 3. 產品或混合修改依 `/派工` 的雲端施工或當次明確 `/接手` 的 RC 施工路線，先整合 `localX`；產品正式發布 X 只接受當次 `/推推`。
 4. Skill identity、資料夾、Registry、required domain references 與適用 tests 應一致；可用 runtime 能力必須先核實，測試證據不得倒灌成 domain Source of Truth。
 5. 同一已核准範圍的交付不應反覆詢問相同授權，但任何 GitHub／平台權限拒絕均須遵守，不得更換傳輸繞過。
@@ -82,10 +82,10 @@ DXF Skill scope contract：
 修改時至少驗：
 
 - frontmatter `name: 派工` 與目錄 `派工/` 一致；
-- PM → Implementer → QA 狀態機；
-- owning Issue / AI Library / checkpoint / journal；
-- process-group timeout 分類與 resume；
-- remote QA monitoring；
+- 真實已授權的同一 Issue 範圍與 GitHub `localX` 施工入口，不恢復已退役 PM → Implementer → QA 交易狀態機；
+- 必要 CURRENT AI 庫、原始碼、受影響 Skill／Registry 與測試來源查核；無需建立 checkpoint／journal 才能施工；
+- 真實 CI queued／in_progress／RED／GREEN、工具拒絕及可用執行環境下的續作／修復；
+- exact HEAD 適用治理 CI、產品或混合變更的必要完整回歸，以及 GitHub `localX` PR merge/readback；
 - 不虛構背景工程師、不把聊天 runtime 當 scheduler；
 - 章節順序與自我檢查不互相矛盾。
 

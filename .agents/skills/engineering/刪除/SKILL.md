@@ -69,7 +69,7 @@ TARGET_PATH_RESOLVED
 
 1. 在 executor-local repo workspace 以 fresh `cleanup/2d-3d-sync` baseline 確認 exact tracked path / identity。
 2. 在 workspace 建立 exact delete diff，執行適用 tests / validators，並 fresh-read target/touched-path drift。
-3. 依 `tools/change_lane_gate.py` 對 exact diff 分流：純治理刪除從最新 X 經 GitHub／雲端治理分支、適用測試、PR／CI、merge/readback 交付；產品／未知／混合刪除走 `localX`，發布正式 X 仍需當次 `/推推`。不啟用舊 `FINALIZE` 交易。
+3. 依 `tools/change_lane_gate.py` 對 exact diff 分流：純治理刪除從 GitHub `localX` HEAD 建工作分支、適用治理測試與 CI 後 PR 合併 **`localX`**；產品／未知／混合刪除同樣先合 `localX` 但保留產品回歸。任何變更正式 X（包含純治理刪除）都必須使用者當次 `/推推` 及受信任 X gate，不啟用舊 `FINALIZE` 交易。
 4. 同一已授權任務範圍內不得只因 SHA 變動而重問相同交付授權，但新 SHA 仍需 exact diff、適用驗證與回讀；任何外部平台拒絕不得繞過。
 5. 未經使用者本次明確授權，不得為治理刪除操作 DC、CoreELEC、whd-dev 或使用者本機 shell；雲端能力不足時如實回報阻塞。
 6. 正式 X 禁止直接 patch；target advancement 依現行分流走 PR／適用檢查／merge／readback。
