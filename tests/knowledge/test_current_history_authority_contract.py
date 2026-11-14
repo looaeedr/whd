@@ -615,3 +615,43 @@ def test_non_governance_ai_library_rules_trigger_product_regression() -> None:
     for path in governance:
         assert classify_changes([path]) == "GOVERNANCE_DIRECT_X", path
         assert not triggers(path), path
+
+
+def test_ai04_current_manufacturing_rules_have_unique_headings() -> None:
+    """Prevent repeated CURRENT manufacturing clauses from becoming parallel owners.
+
+    Distinct Part/Family/Source and acceptance clauses must not be collapsed merely
+    because their wording is similar; this guard only rejects identical headings.
+    """
+    from collections import Counter
+
+    canonical = read(
+        "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
+    )
+    headings = [
+        line for line in canonical.splitlines()
+        if line.startswith("## [CURRENT] ")
+    ]
+    duplicates = sorted(
+        heading for heading, count in Counter(headings).items() if count > 1
+    )
+    assert not duplicates, duplicates
+
+    # Two previously byte-identical copies were folded into one without losing
+    # manufacturing source, error/rejection or Save→Reload acceptance evidence.
+    for title, source, evidence in (
+        (
+            "主 GUI 25 項製造數值輸入統一公開 Engine 實體／Fold 驗證",
+            "manufacturing_api.normalize_operator_source_dimensions",
+            "tests/test_issue2517_main_gui_numeric_source_public_engine.py",
+        ),
+        (
+            "封頭／封尾 FW、WRAP reserve、Joint 交易單一公開 Engine API",
+            "manufacturing_api.operator_endcap_fw_follow",
+            "OperatorBottomWrapTransition(state,resolved)",
+        ),
+    ):
+        assert sum(title in heading for heading in headings) == 1, title
+        assert source in canonical
+        assert evidence in canonical
+
