@@ -192,14 +192,17 @@ def test_saved_inner_door_invalid_thickness_does_not_grant_manufacturing(
 ):
     source = receiving.apply_family_defaults({"model": "受電箱", **SOURCE})
     source["t"] = invalid
-    target = project.write_project(
-        tmp_path / "invalid-inner-door.p6fold",
-        {"schema": project.PROJECT_SCHEMA, "snapshot": source},
-    )
-    loaded = project.read_project(target)["snapshot"]
+    # Current Project Authority rejects an already-linked physical inner-door
+    # source during Save, BEFORE it could be persisted or sent to the Factory.
+    target = tmp_path / "invalid-inner-door.p6fold"
+    with pytest.raises((ValueError, TypeError)):
+        project.write_project(
+            target, {"schema": project.PROJECT_SCHEMA, "snapshot": source},
+        )
+    assert not target.exists()
     with pytest.raises((ValueError, TypeError)):
         api.build_receiving_factory_confirmed_inner_door_frames(
-            {k: loaded[k] for k in ("w", "h", "d", "t")},
+            {k: source[k] for k in ("w", "h", "d", "t")},
             confirmation=CONFIRMATION,
             confirmed_door_layout_columns=COLUMNS,
         )
