@@ -336,7 +336,7 @@ def test_localx_product_development_and_direct_x_governance_are_distinct() -> No
     assert "fresh-read GitHub `localX` 最新 HEAD 的 `AGENTS.md`" in source_block
     assert "fresh-read 正式 `X=cleanup/2d-3d-sync`" not in source_block
     assert "正式執行／治理唯一權威是 `X=cleanup/2d-3d-sync`" not in agents
-    assert "X-only 提交不得默默 merge" in agents
+    assert "X-only 治理提交不得默默 merge" in agents
     assert "不是因為 `localX` 需要本機 checkout" in agents
     assert "預設由 GitHub／雲端將已測試成果直接合回" in agents
 
