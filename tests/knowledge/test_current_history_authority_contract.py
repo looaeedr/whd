@@ -47,7 +47,7 @@ def test_current_entrypoints_point_to_current_authorities() -> None:
         assert AUTHORITY_MAP_REL in text, rel
         assert "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md" in text, rel
 
-    entry = read("AGENTS.md")[:5000]
+    entry = read("AGENTS.md")  # Current governance markers may follow initial 5 KB.
     assert "cleanup/2d-3d-sync" in entry
     assert "NON_PRODUCT_GOVERNANCE_DIRECT_X" in entry
     assert "main" in entry
@@ -323,16 +323,16 @@ def test_dispatch_default_localx_integration_is_continuation_not_extra_user_appr
     assert "DC_LOCALX_FIRST" not in agents
     assert "DC_LOCALX_FIRST" not in dispatch
     assert "DC_LOCALX_FIRST" not in qa
-    assert "不豁免" in agents
+    assert "產品／混合" in agents and "X gate" in agents
 
 
-def test_localx_is_development_authority_and_x_is_release_only() -> None:
-    """Never let the stale production branch become the next development baseline."""
+def test_localx_product_development_and_direct_x_governance_are_distinct() -> None:
+    """Keep current product baseline at localX while governance uses trusted X gate."""
     agents = read("AGENTS.md")
     source_block = agents.split("## 所有產品修改前先讀程式與文檔硬閘門", 1)[1].split("\n## ", 1)[0]
     assert "LOCALX_DEVELOPMENT_SOURCE_AUTHORITY_V1" in agents
-    assert "唯一日常施工與治理修改基準是 GitHub `localX`" in agents
-    assert "新工作分支從此 HEAD 建立" in agents
+    assert "產品日常施工基準是 GitHub `localX`，純治理直接 X" in agents
+    assert "治理白名單" in agents and "免 `/推推`" in agents
     assert "fresh-read GitHub `localX` 最新 HEAD 的 `AGENTS.md`" in source_block
     assert "fresh-read 正式 `X=cleanup/2d-3d-sync`" not in source_block
     assert "正式執行／治理唯一權威是 `X=cleanup/2d-3d-sync`" not in agents
@@ -341,22 +341,25 @@ def test_localx_is_development_authority_and_x_is_release_only() -> None:
     assert "預設由 GitHub／雲端將已測試成果直接合回" in agents
 
 
-def test_no_active_governance_route_can_bypass_localx() -> None:
+def test_pure_governance_direct_x_does_not_bypass_product_publish() -> None:
     agents = read("AGENTS.md")
     dispatch = read(".agents/skills/engineering/派工/SKILL.md")
-    for obsolete in (
-        "直接走治理 PR 至正式 X",
-        "治理變更走既有 governance 直送 X 通道",
-        "照既有 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 直送 X",
-    ):
-        assert obsolete not in agents
-    for obsolete in (
-        "照治理通道直接由 GitHub PR 合併 X",
-        "純治理文件必須優先 GitHub 直送 X",
-    ):
-        assert obsolete not in dispatch
-    assert "治理與產品測試分流、施工來源一致" in dispatch
-    assert "非本體治理修訂從 GitHub `localX` 開分支" in agents
+    assert "NON_PRODUCT_GOVERNANCE_DIRECT_X" in agents
+    assert "純治理" in agents and "免 `/推推`" in agents
+    assert "直接合 X" in dispatch
+    from tools.change_lane_gate import ChangeLaneDenied, evaluate_pr
+    repo = {"full_name": "looaeedr/whd"}
+    event = {"repository": repo, "pull_request": {
+        "number": 42,
+        "base": {"ref": "cleanup/2d-3d-sync", "sha": "a" * 40, "repo": repo},
+        "head": {"ref": "governance/docs", "sha": "b" * 40, "repo": repo},
+    }}
+    result = evaluate_pr(event=event, changed_paths=["AGENTS.md"], comments=[])
+    assert result["lane"] == "GOVERNANCE_DIRECT_X"
+    assert result["reason"] == "TRUSTED_GOVERNANCE_DIRECT_X_NO_SLASH_PUSH"
+    import pytest
+    with pytest.raises(ChangeLaneDenied, match="ALL_X_CHANGES_REQUIRE_LOCALX"):
+        evaluate_pr(event=event, changed_paths=["AGENTS.md", "gui.py"], comments=[])
 
 
 def test_localx_qa_and_execution_skills_cannot_fallback_to_coreelec() -> None:
@@ -374,7 +377,7 @@ def test_localx_qa_and_execution_skills_cannot_fallback_to_coreelec() -> None:
     assert "DC_UNREACHABLE" not in qa
     assert "正式 X `AGENTS.md` 判斷" not in diagnosis
     assert "以最新 `localX` 建工作分支" in diagnosis
-    assert "不因 `LOCALX_INTEGRATION` 或 CI GREEN 自動啟動 DC" in execution
+    assert "`/派工` 合併不授權 DC" in execution
     assert "CI GREEN／`LOCALX_INTEGRATION`" in root
     for body in (diagnosis, execution, root):
         assert "治理分支直接 PR／CI 合併 X" not in body

@@ -22,7 +22,7 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertIn("execution_location=GITHUB|SCHEDULER|REMOTE_ACTION", dispatch)
         self.assertIn("不因此自動授權 DC", dispatch)
         self.assertIn("ref=localX", agents)
-        self.assertIn("只有正式發布查核才使用精確 `ref=cleanup/2d-3d-sync`", agents)
+        self.assertIn("純治理 X PR 與產品正式發布查核明確使用 `ref=cleanup/2d-3d-sync`", agents)
 
     def test_github_localx_is_default_after_ci_without_dc(self):
         agents = AGENTS.read_text("utf-8")
@@ -56,7 +56,7 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
                 self.assertIn("/派工", text)
                 self.assertIn("Remote Desktop Commander", text)
                 self.assertIn("/workspace/whd", text)
-                self.assertIn("LOCALX_INTEGRATION", text)
+                self.assertIn("localX", text)
                 self.assertIn("施工", text)
 
     def test_no_premature_x_publish_or_localx_success_claim(self):
@@ -95,7 +95,7 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         reference = (
             ROOT / "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
         ).read_text("utf-8")
-        for marker in ("/派工", "/接手", "LOCALX_INTEGRATION", "/推推", "GitHub／雲端"):
+        for marker in ("/派工", "/接手", "GitHub 安全合併遠端 `localX`", "/推推", "GitHub／雲端"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, authority)
         self.assertNotIn("Repository work is made and validated locally", authority)
@@ -215,7 +215,8 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertNotIn("先遵守 `AGENTS.md` / root-local-first / Knowledge Preflight", docs["questioning"])
         self.assertNotIn("Phase6 **Preflight**、root-local-first、Git-phase branch", docs["discovery"])
         self.assertNotIn("若任務本身另有專案級 root-local-first", docs["mcp"])
-        self.assertIn("ref=cleanup/2d-3d-sync", docs["mcp"])
+        self.assertIn("ref=localX", docs["mcp"])
+        self.assertIn("純治理", docs["mcp"])
         self.assertIn("APPROVED_REQUIREMENT_FAST_PATH", docs["scanner"])
         self.assertNotIn("的 RED-first、AI Library、Issue、remote QA 流程", docs["scanner"])
 
@@ -230,7 +231,7 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
         self.assertNotIn("WHD interactive/default changes enter release only after root-local qualification", skill)
         self.assertNotIn("after unlock, create a fresh work branch", skill)
         self.assertNotIn("A work branch is still mandatory in Git phase, but it does not precede root development/testing", skill)
-        self.assertIn("不得為治理修改探測使用者本機", skill)
+        self.assertIn("不可為治理工作探測本機", skill)
 
     def test_nonwhitelisted_readme_handoff_are_tracked_without_bypass(self):
         from tools.change_lane_gate import classify_changes

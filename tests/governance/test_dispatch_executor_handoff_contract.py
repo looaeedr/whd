@@ -31,23 +31,21 @@ class DispatchExecutorHandoffContract(unittest.TestCase):
             self.assertIn(item, start)
         self.assertLess(start.index("沿用既有工作"), start.index("無能力才找外部代理"))
 
-    def test_non_product_governance_uses_localx_but_skips_product_qa(self):
+    def test_non_product_governance_goes_direct_x_but_skips_product_qa(self):
         agents = AGENTS.read_text(encoding="utf-8")
         skill = SKILL.read_text(encoding="utf-8")
-        for text in (agents, skill):
-            self.assertIn("NON_PRODUCT_GOVERNANCE_DIRECT_X", text)
-            self.assertIn("治理", text)
-            self.assertIn("localX", text)
-            self.assertIn("/推推", text)
-        self.assertIn("治理與產品測試分流、施工來源一致", skill)
-        self.assertIn("治理專項 CI", skill)
-        self.assertIn("PR 合回 `localX`", skill)
-        self.assertNotIn("不走 `localX`、一般產品派工或 `/推推`", skill)
+        self.assertIn("NON_PRODUCT_GOVERNANCE_DIRECT_X", agents)
+        self.assertIn("治理與產品測試分流", skill)
+        self.assertIn("受信任 X gate", skill)
+        self.assertIn("直接合 X、免 `/推推`", skill)
+        self.assertIn("產品／混合", agents)
+        self.assertIn("localX", agents)
+        self.assertIn("/推推", agents)
         from tools.change_lane_gate import classify_changes
         self.assertEqual(classify_changes([
             "AGENTS.md", ".agents/skills/engineering/派工/SKILL.md",
             "tests/governance/test_dispatch_executor_handoff_contract.py",
-        ]), "GOVERNANCE_DIRECT_X")  # Legacy path classification, not X authorization
+        ]), "GOVERNANCE_DIRECT_X")  # X lane; trusted base gate and CI still required
         self.assertEqual(classify_changes(["AGENTS.md", "gui.py"]),
                          "PRODUCT_LOCALX_ONLY")
 

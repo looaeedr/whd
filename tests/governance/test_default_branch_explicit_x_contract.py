@@ -43,7 +43,7 @@ class DefaultBranchExplicitXContract(unittest.TestCase):
         self.assertEqual(doc["main_read_policy"], "HISTORICAL_CONTEXT_ONLY_NO_EXECUTION_AUTHORITY")
         agents = AGENTS.read_text(encoding="utf-8")
         for required in ("MAIN_HISTORICAL_UNMANAGED_EXPLICIT_X_ONLY",
-                         "ref=cleanup/2d-3d-sync", "不清理", "不得再次啟動 `main` 清理"):
+                         "ref=cleanup/2d-3d-sync", "不清理", "不得再次清理 `main`"):
             with self.subTest(required=required):
                 self.assertIn(required, agents)
 
