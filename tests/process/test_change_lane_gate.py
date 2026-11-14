@@ -178,34 +178,38 @@ class ChangeLaneTests(unittest.TestCase):
                 Path("."), "bad", HEAD, [PROTECTED_PRODUCT_CI_WORKFLOW],
             )
 
-    def test_protected_acceptance_workflow_requires_localx_and_slash_push(self):
+    def test_protected_acceptance_workflow_needs_verified_safe_scheduling(self):
         with self.assertRaisesRegex(ChangeLaneDenied, "ALL_X_CHANGES_REQUIRE_LOCALX"):
             evaluate_pr(event=pr_event(), changed_paths=[PROTECTED_PRODUCT_CI_WORKFLOW])
         with self.assertRaisesRegex(ChangeLaneDenied, "EXPLICIT_USER_SLASH_PUSH"):
             evaluate_pr(event=pr_event(branch="localX"),
                         changed_paths=[PROTECTED_PRODUCT_CI_WORKFLOW])
-        passed = evaluate_pr(event=pr_event(branch="localX"),
+        passed = evaluate_pr(event=pr_event(),
                              changed_paths=[PROTECTED_PRODUCT_CI_WORKFLOW],
-                             comments=publish_comment(),
-                             verified_ci_scheduling=True)
+                             comments=[], verified_ci_scheduling=True)
         self.assertEqual(passed["lane"], "GOVERNANCE_DIRECT_X")
+        self.assertEqual(passed["reason"], "TRUSTED_GOVERNANCE_DIRECT_X_NO_SLASH_PUSH")
 
     def test_empty_pr_is_rejected(self):
         with self.assertRaisesRegex(ChangeLaneDenied, "EMPTY_PR_DIFF"):
             classify_changes([])
 
-    def test_governance_direct_x_branch_is_denied(self):
-        with self.assertRaisesRegex(ChangeLaneDenied, "ALL_X_CHANGES_REQUIRE_LOCALX"):
-            evaluate_pr(event=pr_event(), changed_paths=[
-                "AGENTS.md", ".agents/skills/engineering/派工/SKILL.md",
-            ])
+    def test_governance_direct_x_named_branch_without_slash_push(self):
+        for branch in ("governance/policy", "docs/policy", "skills/policy"):
+            with self.subTest(branch=branch):
+                passed = evaluate_pr(event=pr_event(branch=branch), changed_paths=[
+                    "AGENTS.md", ".agents/skills/engineering/派工/SKILL.md",
+                ], comments=[])
+                self.assertEqual(passed["lane"], "GOVERNANCE_DIRECT_X")
+                self.assertEqual(passed["reason"], "TRUSTED_GOVERNANCE_DIRECT_X_NO_SLASH_PUSH")
 
     def test_governance_requires_named_fast_lane_branch(self):
-        with self.assertRaisesRegex(ChangeLaneDenied, "ALL_X_CHANGES_REQUIRE_LOCALX"):
+        with self.assertRaisesRegex(ChangeLaneDenied, "GOVERNANCE_DIRECT_X_REQUIRES_SCOPED_BRANCH"):
             evaluate_pr(event=pr_event(branch="work/issue-1"), changed_paths=["AGENTS.md"])
 
     def test_product_and_mixed_require_localx(self):
-        for paths in (["gui.py"], ["AGENTS.md", "gui.py"], ["some_unknown.txt"]):
+        for paths in (["gui.py"], ["AGENTS.md", "gui.py"], ["some_unknown.txt"],
+                      [".github/workflows/whd-product-regression.yml", "AGENTS.md"]):
             with self.subTest(paths=paths):
                 with self.assertRaisesRegex(ChangeLaneDenied, "ALL_X_CHANGES_REQUIRE_LOCALX"):
                     evaluate_pr(event=pr_event(), changed_paths=paths)
@@ -220,6 +224,9 @@ class ChangeLaneTests(unittest.TestCase):
         r = evaluate_pr(event=event, changed_paths=["gui.py"], comments=publish_comment())
         self.assertEqual(r["lane"], "PRODUCT_LOCALX_ONLY")
         self.assertEqual(r["reason"], "EXACT_OWNER_SLASH_PUSH_ACCEPTANCE_VERIFIED")
+        self.assertEqual(evaluate_pr(event=pr_event(branch="localX"),
+                                     changed_paths=["AGENTS.md"], comments=[])["lane"],
+                         "GOVERNANCE_DIRECT_X")
 
     def test_invalid_or_stale_owner_approval_is_denied(self):
         event = pr_event(branch="localX")

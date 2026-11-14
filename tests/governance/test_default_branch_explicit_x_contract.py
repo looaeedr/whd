@@ -50,7 +50,7 @@ class DefaultBranchExplicitXContract(unittest.TestCase):
 
     def test_localx_development_and_x_release_are_separate_explicit_refs(self):
         agents = AGENTS.read_text(encoding="utf-8")
-        self.assertIn("唯一日常施工與治理修改基準是 GitHub `localX`", agents)
+        self.assertIn("產品日常施工基準是 GitHub `localX`，純治理直接 X", agents)
         self.assertIn("ref=localX", agents)
         self.assertIn("只有正式發布查核才使用精確 `ref=cleanup/2d-3d-sync`", agents)
         self.assertIn("不得作為日常產品／治理施工基準", agents)
@@ -89,8 +89,8 @@ class DefaultBranchExplicitXContract(unittest.TestCase):
         self.assertIn("最後一步是正式 GitHub Release", push)
         self.assertIn("不再具有執行權威", push)
         self.assertIn("使用者**當次 `/推推`** 即驗收", packaging)
-        self.assertIn("不允許治理直送 X", packaging)
-        self.assertNotIn("直接 PR／CI 合併 X，不經 `localX`", packaging)
+        self.assertIn("純治理", packaging)
+        self.assertIn("免 `/推推`", agents)
 
     def test_open_pr_head_and_base_refs_fail_closed(self):
         """An OPEN PR protects its head AND base refs from cleanup."""

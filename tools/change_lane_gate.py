@@ -1,4 +1,4 @@
-"""Trustworthy PR-file classifier for WHD local governance-to-X fast lane.
+"""Trusted X PR-file classifier: direct pure governance, product via localX.
 
 Only non-product control documents and their machine checks qualify. Any
 unknown, renamed, or mixed product path must use localX and exact /推推 proof.
@@ -565,23 +565,32 @@ def evaluate_pr(
     lane = classify_changes(
         changed_paths, verified_ci_scheduling=verified_ci_scheduling,
     )
-    # After bootstrap, governance and product changes share one X boundary.
-    # No governance/*, docs/* or skills/* direct-X bypass is permitted.
-    if head_ref != INTEGRATION_BRANCH:
-        raise ChangeLaneDenied("ALL_X_CHANGES_REQUIRE_LOCALX")
-    try:
-        require_publish_approval(
-            repo=repo, pr_number=int(pr["number"]),
-            pr={"head": {"ref": head_ref, "sha": head_sha},
-                "base": {"ref": base_ref, "sha": base_sha}},
-            head_sha=head_sha, target_sha=base_sha,
-            comments=comments or [],
-        )
-    except (ValueError, KeyError, TypeError) as exc:
-        raise ChangeLaneDenied(f"PRODUCT_REQUIRES_EXACT_USER_SLASH_PUSH:{exc}") from exc
+    # Pure, trusted-diff governance can go directly to X without a /推推.
+    # Product, unknown and mixed changes keep exact owner /推推 authorization.
+    if lane == "GOVERNANCE_DIRECT_X":
+        if head_ref != INTEGRATION_BRANCH and (
+            not isinstance(head_ref, str)
+            or not head_ref.startswith(GOVERNANCE_BRANCH_PREFIXES)
+        ):
+            raise ChangeLaneDenied("GOVERNANCE_DIRECT_X_REQUIRES_SCOPED_BRANCH")
+        reason = "TRUSTED_GOVERNANCE_DIRECT_X_NO_SLASH_PUSH"
+    else:
+        if head_ref != INTEGRATION_BRANCH:
+            raise ChangeLaneDenied("ALL_X_CHANGES_REQUIRE_LOCALX")
+        try:
+            require_publish_approval(
+                repo=repo, pr_number=int(pr["number"]),
+                pr={"head": {"ref": head_ref, "sha": head_sha},
+                    "base": {"ref": base_ref, "sha": base_sha}},
+                head_sha=head_sha, target_sha=base_sha,
+                comments=comments or [],
+            )
+        except (ValueError, KeyError, TypeError) as exc:
+            raise ChangeLaneDenied(f"PRODUCT_REQUIRES_EXACT_USER_SLASH_PUSH:{exc}") from exc
+        reason = "EXACT_OWNER_SLASH_PUSH_ACCEPTANCE_VERIFIED"
     return {
         "status": "PASS", "lane": lane,
-        "reason": "EXACT_OWNER_SLASH_PUSH_ACCEPTANCE_VERIFIED",
+        "reason": reason,
         "path_count": len(changed_paths),
         "head_sha": head_sha, "base_sha": base_sha,
     }
@@ -606,7 +615,8 @@ def main() -> int:
         checked = require_new_code_taipei(
             opts.repo_root, pr["base"]["sha"], pr["head"]["sha"]
         )
-        comments = _comments(
+        # Governance never needs the product release-comment token or /推推.
+        comments = [] if lane == "GOVERNANCE_DIRECT_X" else _comments(
             event["repository"]["full_name"], int(pr["number"]),
             os.environ.get("GITHUB_TOKEN", ""),
         )

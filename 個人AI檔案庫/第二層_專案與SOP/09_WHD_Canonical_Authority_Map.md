@@ -93,9 +93,9 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 
 ## localX integration and publication authority
 
-- **`/派工`** 的產品 BUILD／TEST／COMMIT／PR／CI 在 GitHub／排程／雲端執行器完成，工作 PR 目標 `localX`；exact CI SUCCESS 後才可依 `LOCALX_INTEGRATION` 透過 DC 在本機整合，不得以此階段暗改產品。
+- **`/派工`** 的產品 BUILD／TEST／COMMIT／PR／CI 以 GitHub／排程／雲端執行器完成，產品 PR 以 `localX` 為 base，exact HEAD CI GREEN 後在 GitHub 安全合併遠端 `localX`，不預設 DC，本機 `Z:\localX` 由使用者手動 fast-forward 與 UAT。
 - **`/接手`** 只有當次使用者明確指令才允許 RC → `whd-dev:/workspace/whd` 施工；沒有明確授權不得用 DC 或探測本機。
-- 純非產品治理依 `tools/change_lane_gate.py` 白名單從最新 X 的 GitHub／雲端治理分支直接 PR／CI／merge X，不經 `localX`、不需要 `/推推`，亦不得擅用本機。
+- 純非產品治理依受信任 X 版本 `tools/change_lane_gate.py` 白名單，從最新 X 的 GitHub／雲端 `governance/*`／`docs/*`／`skills/*` 分支，經治理 CI 與 PR 直接合 X，**不經 `localX`、不需要 `/推推`**，不得擅用 DC 或同步 X-only 歷史到 localX。
 - 產品先安全整合／非強制同步 `localX`，只有使用者**當次 `/推推`** 才可將產品發布至 `cleanup/2d-3d-sync` (X)，須核對 exact PR、SHA、CI 與三方 readback；`origin/localX` 不是 X 發布授權。
 - 舊任務交易、lease、工作槽與 control-plane Preflight receipt 已退役，不是產品或治理修改的施工／交付前置；不影響平台公開操作權限與安全審查。
 
