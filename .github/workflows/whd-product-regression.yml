@@ -16,6 +16,11 @@ on:
       - 'config/**'
       - 'config.ini'
       - 'requirements.txt'
+      # AI Library SOP/domain changes not on the governance whitelist are
+      # product/mixed changes, even if the file ends with .md.
+      - '個人AI檔案庫/第二層_專案與SOP/**'
+      - '!個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'
+      - '!個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md'
       - 'phase6_*.py'
       - 'fold_designer_bridge.py'
       - 'tests/**'

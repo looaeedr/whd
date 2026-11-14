@@ -579,3 +579,39 @@ def test_reference_skill_and_pitfall_guidance_cannot_reinstate_direct_x() -> Non
     from tools.change_lane_gate import classify_changes
     assert classify_changes(list(refs)) == "PRODUCT_LOCALX_ONLY"
     assert classify_changes(list(refs)[1:]) == "GOVERNANCE_DIRECT_X"
+
+
+def test_non_governance_ai_library_rules_trigger_product_regression() -> None:
+    """Product-lane SOP edits must launch canonical CI; 08/09 stay governance."""
+    import fnmatch
+
+    workflow = read(".github/workflows/whd-product-regression.yml")
+    trigger = workflow.split("    paths:\n", 1)[1].split("\n# Keep independent PRs", 1)[0]
+    patterns = [
+        line.strip().removeprefix("- '").removesuffix("'")
+        for line in trigger.splitlines() if line.strip().startswith("- '")
+    ]
+
+    def triggers(path: str) -> bool:
+        matched = False
+        for pattern in patterns:
+            negated = pattern.startswith("!")
+            if fnmatch.fnmatchcase(path, pattern.lstrip("!")):
+                matched = not negated
+        return matched
+
+    from tools.change_lane_gate import classify_changes
+    product = (
+        "個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md",
+        "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
+    )
+    governance = (
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+    )
+    for path in product:
+        assert classify_changes([path]) == "PRODUCT_LOCALX_ONLY", path
+        assert triggers(path), path
+    for path in governance:
+        assert classify_changes([path]) == "GOVERNANCE_DIRECT_X", path
+        assert not triggers(path), path
