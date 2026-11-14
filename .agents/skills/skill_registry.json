@@ -465,14 +465,13 @@
         "packaging",
         "打包",
         "出包",
-        "交付"
+        "正式出包"
       ],
       "file_globs": [
         "release_required_artifacts.json",
         "tools/phase6_release.py",
         "tools/phase6_skill_preflight.py",
-        ".agents/skills/**",
-        "AGENTS.md"
+        ".agents/skills/engineering/phase6-release-packaging/SKILL.md"
       ],
       "required_skills": [
         "phase6-release-packaging"

@@ -533,3 +533,18 @@ def test_issue2382_installed_worker_exe_authority_is_retired() -> None:
     assert "cadsplit-whd-worker-installed-custody role=CURRENT" not in authority_map
     assert "cadsplit-whd-worker-public-certification role=CURRENT" not in authority_map
     assert "沒有 CURRENT owner" in authority_map
+
+
+def test_legacy_v5_architecture_cannot_override_current_engine_api_or_test_gates() -> None:
+    agents = read("AGENTS.md")
+    start = agents.index("## 歷史 V5 架構筆記（非 CURRENT 施工指令）")
+    end = agents.index("## 截角資料庫來源", start)
+    legacy = agents[start:end]
+    assert "不是今天的任務順序" in legacy
+    assert "WHD 公開 Engine `manufacturing_api`" in legacy
+    assert "2D／3D 顯示投影與正式 DXF（同源）" in legacy
+    assert "不得" in legacy and "下一張工單" in legacy
+    assert "6. 跑完整 test suite" not in legacy
+    assert "改為直接使用 `sheetmetal_geometry.py`" not in legacy
+    assert "只有當次 `/推推` 才能發布" in legacy
+

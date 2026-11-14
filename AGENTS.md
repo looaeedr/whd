@@ -200,6 +200,10 @@ whd_schema: WHD_DOC_META_V1
 
 
 
+## 歷史 V5 架構筆記（非 CURRENT 施工指令）
+
+> 以下第 1–10 節是早期 V5 架構與 handoff 留存的技術脈絡，**不是今天的任務順序、API 接線或測試前置**。執行時以本檔前段現行 `SOURCE_READ_BEFORE_MUTATION_V1`／`BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1`、CURRENT AI 庫 04／domain owner、使用者當次 Issue 與 `.agents/skills` 的 CURRENT Skill 為準。GUI 只調用 WHD 公開 Engine `manufacturing_api`，不得直接引用私有幾何函式建造 DXF 或重新算製造公式。
+
 # 1. 專案核心精神
 
 本專案為 V5 世代的：
@@ -416,7 +420,7 @@ GUI Preview
 
 目前主要待辦：
 
-> 將 `gui.py` Canvas 裡既有的手算預覽座標移除，改為直接使用 `sheetmetal_geometry.py` 的 geometry result。
+> 歷史目標是去除手算 Canvas 幾何；**現行做法**是 GUI 將已確認來源交給公開 Engine `manufacturing_api`，只呈現其 canonical `PartSpec`／`FinalScene`／display projection，不能從 GUI 直接呼叫私有 `sheetmetal_geometry.py` 自算製造輪廓。
 
 目標是：
 
@@ -631,29 +635,21 @@ Part Parameters
 
 ---
 
-# 7. 下一步任務
+# 7. 歷史 GUI Preview 方向（非當次待辦）
 
-目前下一個主要任務：
-
-> **GUI Preview 重構**
-
-將 `gui.py` Canvas 裡原本負責畫零件預覽的手工座標邏輯逐步刪除。
-
-改成：
+此處原記載 GUI Preview 重構方向；**不得**把舊 roadmap 當成下一張工單或預設開工授權。現行 GUI／CADSplit 共用 WHD 公開 Engine API，顯示資料只能來自已確認的正式 canonical 結果：
 
 ```text
-GUI Parameters
+已確認操作／Project 來源
       ↓
-Part Adapter
+WHD 公開 Engine manufacturing_api（Family／Policy／Topology）
       ↓
-sheetmetal_geometry.py
+PartSpec／FinalScene（canonical geometry）
       ↓
-Outline / Bend Result
-      ↓
-Canvas Rendering
+2D／3D 顯示投影與正式 DXF（同源）
 ```
 
-這樣才能保證：
+以真實 API／FinalScene／DXF reopen 證據保證：
 
 ```text
 使用者畫面看到的形狀
@@ -707,22 +703,9 @@ handoff/05_NEXT_STEPS.md
 
 ---
 
-# 9. 接手後第一個動作
+# 9. 歷史接手順序（不作現行施工前置）
 
-下一個 AI 不要拿到專案就立刻修改。
-
-正確流程：
-
-```text
-1. 讀本 AGENTS.md
-2. 按需求閱讀 handoff/ 細節文件
-3. 讀 sheetmetal_geometry.py
-4. 找目前實際使用中的 ae.py / ae_3.py
-5. 讀現有 tests
-6. 跑完整 test suite
-7. 確認 green baseline
-8. 再開始 GUI Preview 重構
-```
+早期列出的 `ae.py`／`ae_3.py`、先跑整套測試以及立刻重構 Preview，是**歷史交接示例**，不可當作今天固定的讀檔清單、工作指派或 CI 前置。當次只依使用者授權 Issue、最新 GitHub `localX`／CURRENT domain owner，讀受影響函式與真實資料來源，先做合法定向 RED→GREEN；最後由原 GitHub Actions 產品／治理必要 CI 做 exact SHA 驗證及安全合併 `localX`。正式 X 只有當次 `/推推` 才能發布，不能由本歷史段落推導額外授權。
 
 ---
 
