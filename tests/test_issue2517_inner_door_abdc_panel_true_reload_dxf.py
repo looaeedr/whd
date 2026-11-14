@@ -15,7 +15,7 @@ import pytest
 
 from ae_engine import manufacturing_api as api
 from ae_engine.cabinet_types import receiving
-from ae_engine.contracts import ResolvedManufacturingGeometry, ResolvedManufacturingPart
+from ae_engine.contracts import ManufacturingContext, ResolvedManufacturingGeometry, ResolvedManufacturingPart
 from ae_engine.door_dividers import divider_part_profiles
 from ae_engine.inner_door_frames import (
     derive_all_inner_door_frames, inner_door_frame_part_profiles,
@@ -158,6 +158,7 @@ def test_saved_receiving_abd_c_panel_2d_3d_gui_engine_dxf_parity(tmp_path):
     # cached Engine FinalScene, not rebuild an unverified frame or raw C blank.
     gui_dir = tmp_path / "gui"
     gui_dir.mkdir()
+    context = ManufacturingContext(resource_root=Path(__file__).resolve().parents[1])
     host = SimpleNamespace(
         _flush_phase6_authoritative_state=lambda: None,
         _require_verified_baseline_sources_for_manufacturing=lambda: None,
@@ -165,7 +166,7 @@ def test_saved_receiving_abd_c_panel_2d_3d_gui_engine_dxf_parity(tmp_path):
     )
     for key, (part, _render, _xy) in sheets.items():
         out = gui_dir / (key.replace(":", "_") + ".dxf")
-        gui._export_authoritative_part(host, part, out)
+        gui._export_authoritative_part(host, part, out, context)
         assert out.is_file()
 
     # Separate GUI and Engine DXFs must both be independently reopened and
