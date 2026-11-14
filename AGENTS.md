@@ -58,7 +58,7 @@ whd_schema: WHD_DOC_META_V1
 - **材料／座標錯誤的專項條件**：對折彎、截角、中隔與側板、裝配、孔位、碰撞，還須核對相應基準檔與座標系（尤其 Z 基準、變換、正反面、折向、避讓關係），以及資料進入 GUI、3D、碰撞檢查和製造輸出的實際路徑；不得以當前畫面／既有錯誤輸出／測試 fixture 反推規格。
 - **Fail closed**：缺任一必要原始碼／CURRENT 文檔、無法核對分支、讀到規格衝突或未取得可重現的正確性判準時，標 `SOURCE_READ_PRECONDITION_FAILED`，先補讀／查證／只讀診斷，**禁止猜測後直接寫產品程式或回歸期待值**。確認來源後直接續作，不用重問已授權的同範圍工作；此閘門不擴充 DC／本機權限，也不跳過 exact SHA CI、`localX` 與人工驗收。
 
-- **預設 `main` 歷史隔離（`MAIN_HISTORICAL_UNMANAGED_EXPLICIT_X_ONLY`）**：`main` 保持原狀，視為非現行歷史分支；**不清理、不縮成 tombstone、不自動合併、鏡像、同步或刪除**。開發／治理的 CURRENT 施工權威是 GitHub `localX`；`X=cleanup/2d-3d-sync` 僅保有正式發布與其受信任發布 gate 的權威。凡 GitHub／Agent／Skill／CI 查詢日常施工規則，必須明確指定 `ref=localX`；未指定 ref、工具默認落到 `main` 或無法確定 HEAD 時，須以 localX 重讀並 fail closed。只有正式發布查核才使用精確 `ref=cleanup/2d-3d-sync`，且此 X ref 不得作為日常產品／治理施工基準。舊 `WHD_DEFAULT_BRANCH_FAIL_CLOSED_V1` 的 `MAIN_MINIMAL_TOMBSTONE_TREE` 要求已退役，不得再次啟動 `main` 清理；使用者另有當次明確指令才可另行規劃 `main` 變更。
+- **預設 `main` 歷史隔離（`MAIN_HISTORICAL_UNMANAGED_EXPLICIT_X_ONLY`）**：`main` 保持原狀，不清理、不鏡像、不自動合併／同步／刪除。產品 CURRENT 施工權威為 GitHub `localX`；純治理額外使用正式 `X=cleanup/2d-3d-sync` 的受信任 gate，從 X HEAD 建治理分支經 PR／CI 直接合併、免 `/推推`。GitHub 查詢不得省略 ref 而落到 `main`；正常產品程式查 `ref=localX`，純治理 X PR 與產品正式發布查核明確使用 `ref=cleanup/2d-3d-sync`，不得當成日常產品施工基準。舊 `WHD_DEFAULT_BRANCH_FAIL_CLOSED_V1` 的 `MAIN_MINIMAL_TOMBSTONE_TREE` 已退役，不得再次清理 `main`，除非使用者另外明確要求。
 - **舊工單交易、工作槽與 lease 控制系統已退役**；不得要求其憑證、工作槽、Preflight receipt 或其他管控才能執行修改、測試、Git commit。
 - **入口及階段分流**：`/派工` 的施工、測試、commit、PR、CI 僅可在 GitHub／排程／雲端進行；同工單 exact SHA CI SUCCESS 後，**預設透過 GitHub PR 合併到遠端 `localX`（`GITHUB_LOCALX_FIRST`）**，不先進 DC。Windows `Z:\localX` 使用既有 Fast-forward 更新腳本並手動 GUI 驗收；`/接手` 需當次明確指令才能 RC 施工。
 - **產品施工通道**：已授權的同 Issue／BUG 修復範圍含施工、PR、exact HEAD CI 與 GitHub 遠端 `localX` 最終合併，不需每張 PR 再問合併許可。合併前核對當前 PR head/base、scope、全部必要 CI、mergeable、base 演進與測試覆蓋；用 `expected_head_sha` 且不得 force/reset。合併後 readback PR merged 與 GitHub HEAD，回報 `GITHUB_LOCALX_MERGED + WINDOWS_LOCALX_SYNC_PENDING`；未取得 Windows 真實 SHA 不得稱同步成功，更不得捏造人工 UAT 成功。GitHub 平台拒絕時不得改用 DC 繞過；正式產品 X 仍限當次 `/推推`。
@@ -158,7 +158,7 @@ whd_schema: WHD_DOC_META_V1
 - **本體直接施工優先。** 只要當次已有合法 GitHub 讀寫、建立 commit／PR 的能力與可觸發的雲端 CI，當前 AI 本體就應沿用指定 Issue、既有 PR 與工作分支直接執行實質修改、補測試、提交和 CI；**不得先搜尋 Codex、雲端程式代理外掛或子代理**，也不得因缺少另一位 executor 而停工。GitHub 工具可施工不代表本體能自行在雲端執行 shell；可由 GitHub Actions 執行可用測試，不得假稱本體已在 GitHub Runner 上測過。
 - **兩種接取證據分開。** 本體施工時記錄身分 `本體直接接取`、`execution_location=GITHUB`、Issue／原工作分支／PR，以及第一筆真正的修改 commit SHA；有 CI 時再記錄 exact SHA 的 Actions run ID／測試結果。不要求不存在的外部 task ID。**只有文字留言、空提交或搜尋外掛不是施工成功**。外部代理施工才需要對方的實際啟動回執／接取證據。
 - **能力不足才找外援。** 先具體指出缺少哪些 GitHub 寫入、提交、合法雲端驗證／CI 等能力，確實無法由本體施工才尋找或啟動外部代理；僅搜尋外掛不算派工。無可行途徑時正確標 `DISPATCH_REGISTERED_ONLY`／`REMOTE_EXECUTOR_UNAVAILABLE`，不可假稱已接取或背景運作。
-- **原權限不變。** `/派工` 的 BUILD／TEST／COMMIT 不得改用使用者本機、RC 或 DC；必要 exact SHA CI、`LOCALX_INTEGRATION` 與產品正式發布 `/推推` 均不豁免。本條只改執行者優先順序；**修改治理文件／技能本身由 `localX` 建分支、通過治理測試後先合 `localX`，不需產品 QA；正式 X 仍受發布閘門限制。**
+- **原權限不變。** `/派工` 產品 BUILD／TEST／COMMIT 只能 GitHub／雲端，同工單 exact SHA CI 後合併 `localX`；DC／RC 不因 CI 取得授權。純治理／Skill 透過受信任 X 分類與治理 CI 直接 PR 合 X、免 `/推推`，不需要產品 QA；正式產品／混合 X 仍受當次 `/推推` 發布閘門限制。
 
 ## /派工真實啟動證據 `DISPATCH_EXECUTOR_HANDOFF_REQUIRED`
 
@@ -185,7 +185,7 @@ whd_schema: WHD_DOC_META_V1
 - **CI 終態**：`success` → `LOCALX_INTEGRATION_PENDING`，立即走 GitHub remote `localX` 合併及 readback（預設不需 DC）；`failure/cancelled/timed_out/action_required` → `REPAIR_AND_RETEST`，不可將 GREEN 誤報產品 X 已發布。
 - **CI 成功仍未完成交付**：本機／遠端 `localX` 整合回讀、Issue close/readback 及 `NEXT_ISSUE_DISCOVERY_REQUIRED` 等既有義務未處理 → `CONTINUE_FINALIZATION`；達到所有必要驗收與追蹤義務、讀回證據後才可標 `RELEASED`。正式 X 仍限使用者當次 `/推推`。
 - **單一步驟受阻不准全面停工**：API 錯誤／權限拒絕以 `BLOCKED_WITH_EVIDENCE` 記錄該操作，立即沿原授權範圍改做合法替代動作；真正無法呼叫任何後續工具時才如實標 `RUNTIME_LIMIT_UNRESOLVED`，不得把標記當作預先停止程序，不得捏造 GREEN／SHA／完成。
-- **不擴權**：本規則只對現有 `/派工` 回合施加退出前的決策檢查；不啟動新排程／`workflow_run` 自動施工、不重建舊 Flow v2、不增設 GitHub 分支保護，不允許提早使用 DC／RC／本機；純治理文件先從 `localX` 建工作分支、跑治理測試、PR 合回 `localX`。正式 X 的任何發布仍需使用者當次 `/推推`（即驗收與發布授權）。
+- **不擴權**：本規則只對現有 `/派工` 回合施加續作決策；不啟動新排程／`workflow_run` 自動施工、不恢復舊 Flow v2、不增設 GitHub 分支保護，不允許提早使用 DC／RC／本機。純治理文件經受信任 X gate 與治理 CI 直接 PR 合 X、免 `/推推`；正式產品／混合 X 發布仍須使用者當次 `/推推`。
 
 ## /派工 產品交付不中斷閘門（執行者責任）
 

@@ -2,11 +2,14 @@ name: WHD localX Governance Tests
 
 on:
   pull_request:
-    branches: [localX]
+    branches: [localX, cleanup/2d-3d-sync]
     paths:
       - AGENTS.md
       - .agents/skills/**
       - .agents/contracts/**
+      - docs/governance/**
+      - 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+      - 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
       - tools/localx_publish_gate.py
       - tools/change_lane_gate.py
       - tests/process/test_localx_publish_gate.py

@@ -15,10 +15,10 @@ whd_schema: WHD_DOC_META_V1
 
 ## 現行施工入口與來源查核
 
-1. **查證權威**：明確讀取正式 X `cleanup/2d-3d-sync` 的 `AGENTS.md`、適用 CURRENT Skill／domain owner、實際 production code 與相關測試；此步是實質來源查核，**不是**舊 Phase6 Knowledge Preflight receipt／READ_REFERENCE 交易。
-2. **`/派工` 產品路線**：由 GitHub／排程／雲端執行器施工、測試、commit、PR（base=`localX`）及 exact SHA CI；僅最終 `LOCALX_INTEGRATION` 階段可依 `AGENTS.md` 授權使用 DC 合併／驗證／同步，不能在使用者本機暗中施工。
+1. **查證權威**：明確讀取最新 GitHub `ref=localX` exact HEAD 的 `AGENTS.md`、CURRENT Skill／domain owner、實際 production code 與相關測試；純治理直合 X 時另外核對正式 X 受信任 gate 與 base，不把歷史 X 規範覆蓋現行產品權威。此步不是舊 Knowledge Preflight receipt／READ_REFERENCE 交易。
+2. **`/派工` 產品路線**：由 GitHub／排程／雲端執行器施工、測試、commit、PR（base=`localX`）及 exact SHA CI；CI GREEN 後 GitHub PR 安全合併遠端 `localX`，未經當次 DC 授權不得在使用者本機整合／探測。
 3. **`/接手` 產品路線**：只有使用者當次明確 `/接手` 才可使用 RC 的 `whd-dev:/workspace/whd` 施工。兩條產品路線發布正式 X 都需要使用者當次 `/推推`。
-4. **非產品治理路線**：僅受信任 `tools/change_lane_gate.py` 將所有 changed paths 判定為治理白名單時，可經 GitHub／雲端治理 PR 與 CI 直接合併 X，不得由此 Skill 授予 DC 權限。
+4. **非產品治理路線**：僅受信任 X 版本 `tools/change_lane_gate.py` 將實際 changed paths（含 rename 前後）判定為純治理白名單且適用治理 CI GREEN 時，才經 GitHub／雲端 `governance/*`、`docs/*`、`skills/*` PR 直接合併正式 X，**不需要 `/推推`**；不得由此 Skill 授予 DC 權限或豁免產品發布。
 5. **驗收**：修改路徑確定後核對實際 diff、適用 DM7／GUI／DXF 測試與 PR／CI 證據；**不得**要求已退役的 preflight 重跑、`READ_REFERENCE`、claim／lease 或舊 Git 寫入解鎖憑證作為修改或交付前置。
 
 ## SSOT 契約

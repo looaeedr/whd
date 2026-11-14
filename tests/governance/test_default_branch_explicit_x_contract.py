@@ -52,8 +52,8 @@ class DefaultBranchExplicitXContract(unittest.TestCase):
         agents = AGENTS.read_text(encoding="utf-8")
         self.assertIn("產品日常施工基準是 GitHub `localX`，純治理直接 X", agents)
         self.assertIn("ref=localX", agents)
-        self.assertIn("只有正式發布查核才使用精確 `ref=cleanup/2d-3d-sync`", agents)
-        self.assertIn("不得作為日常產品／治理施工基準", agents)
+        self.assertIn("純治理 X PR 與產品正式發布查核明確使用 `ref=cleanup/2d-3d-sync`", agents)
+        self.assertIn("不得當成日常產品施工基準", agents)
 
     def test_slash_push_remote_default_has_no_extra_local_approval(self):
         """A user /推推 is acceptance + GitHub release authority, not a DC request."""
