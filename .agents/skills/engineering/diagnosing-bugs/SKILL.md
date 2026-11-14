@@ -193,7 +193,7 @@ When the user corrects the diagnosis, clarifies a product rule, or identifies a 
 
 1. `/派工`：由 GitHub／排程／雲端執行器以最新 `localX` 建工作分支，完成 BUILD／TEST／COMMIT／PR／CI；PR base=`localX`，exact HEAD CI GREEN 後預設 `GITHUB_LOCALX_FIRST` 合回遠端 `localX`，readback 並標 Windows 同步待辦。不可自動連 RC／DC／CoreELEC。
 2. `/接手`：僅使用者當次明確指示，才允許 RC → `whd-dev:/workspace/whd` 的產品施工、測試與交付。
-3. 純非產品治理／技能／治理專用測試：同樣以 GitHub `localX` 建分支並 PR 合回 `localX`，使用治理專項 CI；不得按舊治理直送 X 的指示 bypass `localX`。正式 X 發布仍需人工驗收與當次 `/推推`。
+3. 純非產品治理／技能／治理專用測試：以 GitHub `localX` 建分支並 PR 合回 `localX`，使用適用治理 CI；不得依舊治理直送 X 指示繞過。正式 X 一律需使用者當次 `/推推`（本身即驗收／發布決定），Windows 人工 UAT 與本機同步獨立待辦，未實測不能宣稱通過。
 4. 每次記錄診斷重現證據、規格來源、source/tested SHA、exact diff、適用測試及最終回讀。CI 失敗必須回到合法施工路線修復並重新驗證新 SHA；target/touched-path drift 應重驗。
 5. 舊 `WORKSPACE_DELIVERY`、已退役外部儲存/shared-zero、claim／lease／工作槽及 `FINALIZE` 交易要求已退役，不能當作啟動或交付前置；更不能以此放寬平台安全審查。不得直接 patch 正式 X 或 `main`。
 

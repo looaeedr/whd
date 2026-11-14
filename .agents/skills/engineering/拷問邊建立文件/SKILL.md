@@ -59,7 +59,7 @@ whd_schema: WHD_DOC_META_V1
 2. 讀與當前主題直接相關的 ADR。
 3. 查 current code / tests / specs 中會影響 frontier 問題的事實。
 4. 若使用者提到「原本」「現在」「之前就有」，必要時查 Git history，不得直接以目前畫面推定歷史能力不存在。
-5. 若涉及 WHD repository 寫入，依正式 X `AGENTS.md` 判定當次執行通道：`/派工` 必須在 GitHub／雲端完成產品施工，只有使用者當次明確 `/接手` 可在 RC 施工；純治理依白名單由 GitHub／雲端 PR 直送 X。舊 root-local-first 泛用入口、Knowledge Preflight receipt、舊 Git 解鎖憑證 與 Git-phase 交易前置已退役；讀此訪談 Skill 本身不提供 DC 或修改授權。
+5. 若涉及 WHD repository 寫入，先讀 GitHub `ref=localX` 最新 `AGENTS.md` 與 CURRENT Skill：`/派工` 在 GitHub／雲端施工、必要 CI GREEN 後 GitHub PR 合併 `localX`，只有使用者當次明確 `/接手` 才可 RC 施工；純治理同樣先經 GitHub `localX` 治理 PR／CI，正式 X 一律須當次 `/推推` 與受信任 gate。舊 root-local-first 泛用入口、Preflight receipt／Git 解鎖憑證／Git-phase 交易前置已退役；訪談 Skill 本身不提供 DC 或修改授權。
 
 沒有 `CONTEXT.md` 不代表先建立空檔；只有第一個 domain term 真正確認時才建立。
 

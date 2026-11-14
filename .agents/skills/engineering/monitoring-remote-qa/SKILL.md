@@ -7,7 +7,7 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # monitoring-remote-qa
-追蹤指定 PR 的 exact workflow run、commit 和測試結果；失敗時直接修程式並重測，不得將 pending 當 GREEN。普通產品 QA 不會自動發布正式 X；產品發布權限只來自使用者 /推推。純治理文檔／技能可獨立跑治理 QA，但工作分支及 PR 仍以 GitHub `localX` 為 base；正式 X 只走使用者人工驗收及 `/推推` 發布 gate。
+追蹤指定 PR 的 exact workflow run、commit 與測試結果；RED 須查失敗、修程式再測，不得把 pending 當 GREEN。普通產品 QA 不會自動發布正式 X；純治理文檔／技能可獨立跑治理 QA，但工作分支及 PR 仍以 GitHub `localX` 為 base。正式 X 的產品及治理發布都須使用者當次 `/推推`（即驗收／發布決定）與受信任 X gate，Windows 本機同步及人工 UAT 是獨立待辦，不得作為前置或冒稱完成。
 
 ## 退出前 CI 狀態查核 `DISPATCH_TURN_EXIT_GATE_V1`
 

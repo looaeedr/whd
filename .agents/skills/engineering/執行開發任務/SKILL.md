@@ -16,7 +16,7 @@ whd_schema: WHD_DOC_META_V1
 
 **改程式前的必做條件**：執行 `AGENTS.md` 的 `SOURCE_READ_BEFORE_MUTATION_V1`；先實際讀受影響程式完整函式／呼叫鏈、CURRENT 規格與資料檔及既有測試，交代 `SOURCE_READ_EVIDENCE` 後才可寫產品程式或測試。若來源或正確判準缺失，回報 `SOURCE_READ_PRECONDITION_FAILED`，繼續只讀查證，**不可看檔名就直接改、不得憑測試輸出猜幾何公式**。此條不擴大 RC/DC 權限。
 
-使用使用者指定的 Issue 或明確開發任務，先讀 GitHub `localX` 精確 HEAD 的 `AGENTS.md`，再依入口分流：一般修復、`/派工` 與治理修改從最新 `localX` 建工作分支，在 GitHub／排程／雲端施工並通過 CI 後 PR 合回遠端 `localX`。僅使用者當次明確 `/接手` 選用 RC 的任務可以使用 CoreELEC；不因 `LOCALX_INTEGRATION` 或 CI GREEN 自動啟動 DC。正式 X 只在 Windows 人工驗收及當次 `/推推` 後發布。
+使用使用者指定的 Issue 或明確開發任務，先讀 GitHub `localX` exact HEAD 的 `AGENTS.md`；一般修復、`/派工`、純治理均從 `localX` HEAD 建工作分支，在 GitHub／雲端完成必要測試、PR 與 CI 後安全合併遠端 `localX`。只有使用者當次明確 `/接手` 才可選用 RC；`LOCALX_INTEGRATION`／CI GREEN 不授權 DC。正式 X 的產品與治理都需要使用者當次 `/推推`（即驗收與發布決定）、exact SHA 與受信任 gate，Windows 人工 UAT 不另作發版前置。
 
 使用者下達 `/接手` 時，優先透過 Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 執行。不因缺少另一個 Agent、工作槽、狀態交易或工單接取紀錄而停止。
 
@@ -34,7 +34,7 @@ whd_schema: WHD_DOC_META_V1
 
 `/接手` 對已明確指定、或當輪已確認接手的 **同一張 Issue／工作分支**，包含從施工到 `localX` 的完整交付授權：本機修改、測試、`git commit` → 推送本次工作分支提交到使用者的 `looaeedr/whd` GitHub → 建立／更新 **base=`localX`** 的產品 PR → 驗收該 PR exact HEAD 的 CI → 合併至 `localX` → 回讀實際 PR、Git HEAD 與 Issue，留言、結案，並依前置及衝突檢查續作下一張可執行工單。
 
-**這些遠端推送及 PR／localX 合併不是「發布正式 X」**；已存在有效 `/接手` 指令及明確 Issue 時，不得只因沒有另外一句「授權遠端推送」便自行中斷或重問。只有目標是 `cleanup/2d-3d-sync`（正式 X）的**產品**發布才必須取得使用者當次 `/推推`。
+**這些遠端推送及 PR／localX 合併不是「發布正式 X」**；同一已授權 Issue 的 `/接手` 不必因缺第二次遠端推送口令而停工。**任何**目標為 `cleanup/2d-3d-sync` 的正式 X 發布（包含治理／Skill／文件與產品），均須使用者當次 `/推推`，不能用治理白名單豁免。
 
 授權嚴格限於 `looaeedr/whd`、指定工作分支及 `localX`；禁止變更正式 X、跨專案推送、擴大變更範圍或對未驗證提交宣稱 CI GREEN。不得捏造已核准的工具操作：若 GitHub／Remote Desktop／自動批准系統在工具層拒絕實際 push／merge，必須回報**哪個實際工具操作**被拒及具體阻塞，不能用技能文字繞過平台權限，亦不得將本地 commit 說成已遠端交付。
 
@@ -48,7 +48,7 @@ whd_schema: WHD_DOC_META_V1
 
 保留必要的產品測試、程式碼 review、現場 DXF 驗收，實際交付狀態以 Git HEAD 與 Issue/PR 反讀為準。
 
-產品或混合檔案仍須 localX 與使用者當次 /推推 才可正式發布 X。純非產品文檔、治理、技能及其專用測試，由現行治理專項 CI 判定後先走 GitHub／雲端工作分支 → `localX` PR/merge，不走一般產品 QA；正式 X 仍需人工驗收與 `/推推`；未明確授權不得使用 DC／本機。
+產品或混合修改須先整合 `localX`，正式發布 X 須使用者當次 `/推推`。純非產品文檔、治理、技能及治理專用測試可使用獨立治理 CI，仍由 GitHub／雲端工作分支 → `localX` PR／merge；正式 X 同樣須當次 `/推推`、精確授權與受信任 gate，Windows UAT 不是發布前置。未明確授權不得使用 DC／本機。
 
 ## 工作結束前的交付驗證
 
