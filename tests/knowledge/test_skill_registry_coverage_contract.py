@@ -44,3 +44,29 @@ def test_every_active_canonical_skill_is_explicitly_routable() -> None:
 def test_handoff_skill_supports_chinese_slash_alias() -> None:
     assert "handoff" in set(required_skills_for(task="/交接"))
     assert "handoff" in set(required_skills_for(task="交接"))
+
+
+def test_release_packaging_route_is_not_triggered_by_unrelated_governance_edits() -> None:
+    generic = (
+        "AGENTS.md",
+        ".agents/skills/engineering/派工/SKILL.md",
+        ".agents/skills/productivity/MCP工具操作/SKILL.md",
+    )
+    for path in generic:
+        selected = set(required_skills_for(
+            task="修改治理規範與權限", changed_files=[path],
+        ))
+        assert "phase6-release-packaging" not in selected, path
+
+    skill_edit = set(required_skills_for(
+        changed_files=[".agents/skills/engineering/派工/SKILL.md"],
+    ))
+    assert "寫技能" in skill_edit
+
+    by_name = set(required_skills_for(task="正式出包"))
+    by_file = set(required_skills_for(
+        changed_files=[".agents/skills/engineering/phase6-release-packaging/SKILL.md"],
+    ))
+    assert "phase6-release-packaging" in by_name
+    assert "phase6-release-packaging" in by_file
+
