@@ -11,6 +11,7 @@ from ae_engine import manufacturing_api as api
 from ae_engine.contracts import ManufacturingContext
 from ae_engine.sheetmetal_feature_core import CircleFeature, FeatureAnchor
 from ae_engine.sheetmetal_geometry import Vec2, FourCornerTypePolicy
+from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells
 from ae_engine.integration_api import (
     ManufacturingResolvedBayInput, ManufacturingSourceIdentity,
     export_verified_resolved_integration_bays,
@@ -18,6 +19,9 @@ from ae_engine.integration_api import (
 import phase6_project_file as project
 from tests.test_issue2517_receiving_factory_confirmed_saved_door_indicators_failclosed import (
     SOURCE, COLUMNS, _saved,
+)
+from tests.test_issue2517_receiving_gui_factory_real_dxf_parity import (
+    _gui_door_part_spec,
 )
 
 
@@ -101,6 +105,48 @@ def test_real_receiving_saved_head_tail_policy_and_door_holes_remain_identical_i
         assert original_mesh.triangles == reloaded_mesh.triangles
         assert original_mesh.fold_guides == reloaded_mesh.fold_guides
 
+    # A saved 2x2 Door grid is four independent physical plates, not two
+    # representative rows. Compare every GUI operator source with the same
+    # Engine PartSpec, flat FinalScene and genuinely folded 3D after reload.
+    restored_specs = dict(restored_parts)
+    door_keys = tuple(key for key in restored_specs if key.startswith("door_c"))
+    cells = derive_door_layout_cells(COLUMNS)
+    assert door_keys == ("door_c1_r1", "door_c1_r2", "door_c2_r1", "door_c2_r2")
+    assert len(cells) == len(door_keys)
+    gui_renders = {}
+    for cell, role in zip(cells, door_keys):
+        spec = restored_specs[role]
+        gui_features = api.map_door_features_to_unfolded_material(spec, context)
+        gui_spec = _gui_door_part_spec(cell, loaded, gui_features)
+        gui_render = api.build_operator_part_render_data(gui_spec, context)
+        assert gui_render.material.equals(restored_renders[role].material)
+        gui_renders[role] = gui_render
+
+        def profiles(snapshot):
+            # Per-cell outside dimensions are from the actual Engine PartSpec,
+            # never the full-cabinet GUI width or a copied flat preview.
+            source = dict(snapshot)
+            source["part_dimensions"] = {
+                **dict(snapshot.get("part_dimensions") or {}),
+                role: {"width": spec.width, "height": spec.height},
+            }
+            return api.build_standard_part_fold_profiles(source, role)
+
+        before_xy, after_xy = profiles(original), profiles(loaded)
+        assert before_xy == after_xy
+        def mesh(render, xy):
+            return api.project_independent_part_view_mesh(
+                role, render, x_profile=xy["X"], y_profile=xy["Y"],
+                thickness=SOURCE["t"],
+            )
+        original_mesh = mesh(original_renders[role], before_xy)
+        restored_mesh = mesh(restored_renders[role], after_xy)
+        gui_mesh = mesh(gui_render, after_xy)
+        assert original_mesh.triangles
+        assert restored_mesh.triangles == original_mesh.triangles
+        assert gui_mesh.triangles == restored_mesh.triangles
+        assert gui_mesh.fold_guides == restored_mesh.fold_guides
+
     batch = export_verified_resolved_integration_bays(
         (ManufacturingResolvedBayInput(
             family="receiving",
@@ -122,12 +168,16 @@ def test_real_receiving_saved_head_tail_policy_and_door_holes_remain_identical_i
         drawing = ezdxf.readfile(filepath)
         assert drawing.audit().errors == []
         assert any(item.dxf.layer == "CUTTING" for item in drawing.modelspace())
-    for role in ("head", "tail", "door_c1_r1", "door_c1_r2"):
+    for role in ("head", "tail", *door_keys):
         match = [path for path in paths if path.name.endswith(role + ".dxf")]
         assert len(match) == 1
         assert api.verify_saved_part_render_data_dxf(
             restored_renders[role], match[0],
         ).ok
+        if role in gui_renders:
+            assert api.verify_saved_part_render_data_dxf(
+                gui_renders[role], match[0],
+            ).ok
     assert original == before
 
 
