@@ -21,6 +21,6 @@ Registry 選路僅在明確 `/接手` 或直接查改本 Skill 時提示此路�
 
 本 Skill 不得新增啟動授權檢查、claim、lease、工作槽、紀錄或協調交易；程式測試和 Git diff 才是修改成果證據.
 
-產品與治理修改一律從最新 GitHub `localX` 開工並先合回遠端 `localX`；正式 `X=cleanup/2d-3d-sync` 必須使用者人工驗收及當次 `/推推` 才發布。`main` 為歷史分支，不可作施工來源。此 root-local-first Skill 不能為一般任務或治理工作取得 DC 權限，未經當次明確允許不得存取 CoreELEC／whd-dev。
+產品修改從最新 GitHub `localX` 開工並先合回遠端 `localX`，產品正式 X 由當次 `/推推` 發布；純治理從 X HEAD 經白名單／治理 CI 直接 PR 合 X，免 `/推推`。`main` 是歷史分支不可當來源；本 root-local-first Skill 只限明確 `/接手` RC，不為一般任務或治理取得 DC 權限。
 
 合併後測試採 `AGENTS.md::MERGE_TEST_REUSE_HARD_GATE`：使用 `tools/change_test_profile.py --merge-test-reuse` read-only 比對 exact tested 與整合 Git tree；完全一致且必要測試有有效 GREEN 收據，直接沿用測試，不重跑 GUI；有差異只針對受影響範圍補測，無法定界才全面回歸。

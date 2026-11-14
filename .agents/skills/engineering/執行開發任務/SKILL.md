@@ -16,7 +16,7 @@ whd_schema: WHD_DOC_META_V1
 
 **改程式前的必做條件**：執行 `AGENTS.md` 的 `SOURCE_READ_BEFORE_MUTATION_V1`；先實際讀受影響程式完整函式／呼叫鏈、CURRENT 規格與資料檔及既有測試，交代 `SOURCE_READ_EVIDENCE` 後才可寫產品程式或測試。若來源或正確判準缺失，回報 `SOURCE_READ_PRECONDITION_FAILED`，繼續只讀查證，**不可看檔名就直接改、不得憑測試輸出猜幾何公式**。此條不擴大 RC/DC 權限。
 
-使用使用者指定的 Issue 或明確開發任務，先讀 GitHub `localX` 精確 HEAD 的 `AGENTS.md`，再依入口分流：一般修復、`/派工` 與治理修改從最新 `localX` 建工作分支，在 GitHub／排程／雲端施工並通過 CI 後 PR 合回遠端 `localX`。僅使用者當次明確 `/接手` 選用 RC 的任務可以使用 CoreELEC；不因 `LOCALX_INTEGRATION` 或 CI GREEN 自動啟動 DC。正式 X 只在 Windows 人工驗收及當次 `/推推` 後發布。
+使用使用者指定的 Issue 或明確開發任務，先讀 GitHub `localX` exact HEAD 的 `AGENTS.md`，依入口分流：一般產品修復與 `/派工` 在 GitHub／雲端從最新 `localX` 建分支、產品 CI 後 PR 合回 `localX`；純治理／技能／流程測試從正式 X HEAD 開 GitHub 治理工作分支，受信任 X gate／適用治理 CI 後直接 PR 合 X、免 `/推推`。僅當次明確 `/接手` 可使用 RC/CoreELEC；`/派工` 合併不授權 DC。正式 X 的產品／混合發布仍只在當次 `/推推`，Windows 人工 UAT 另記不作發布前置。
 
 使用者下達 `/接手` 時，優先透過 Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 執行。不因缺少另一個 Agent、工作槽、狀態交易或工單接取紀錄而停止。
 
@@ -44,11 +44,11 @@ whd_schema: WHD_DOC_META_V1
 
 依 `AGENTS.md` 的 `ISSUE_SCOPE_AUTHORIZATION_REUSE`，同一個已明確授權的 Issue，沿原工作分支將範圍內的 CI 修復或測試修復做成新 commit SHA，仍屬原本 push → PR → exact CI → `localX` 整合許可。**SHA 是追蹤版本及驗收的依據，不應每更新一次 SHA 就重問原核准**；但如果原授權明示僅限固定 SHA，則不得擴張。每次更新均需檢查 diff 沒有跨出工單、repo、分支、base，並對新 SHA 重測。
 
-此規則不能用於別張 Issue、無關功能或正式 X 產品發布（須當次 `/推推`）。若平台推送安全審查拒絕，保留本地提交並報明 `PUBLIC_UPLOAD_REVIEW_BLOCKED` 的實際拒絕點，不換工具繞過、不假稱成功、不無限重問相同核准。純治理工作優先 GitHub `localX` 工作分支與治理 CI，先合 `localX`，**未經另外明確授權不得用 DC**。
+此規則不能用於別張 Issue、無關功能或正式 X 產品發布（須當次 `/推推`）。若平台推送安全審查拒絕，保留本地提交並回報實際 `PUBLIC_UPLOAD_REVIEW_BLOCKED`，不得換工具繞過。純治理工作從正式 X HEAD 建 GitHub 治理分支、必要 CI 後 PR 直接合 X，免 `/推推`；**未經另外明確授權不得使用 DC**。
 
 保留必要的產品測試、程式碼 review、現場 DXF 驗收，實際交付狀態以 Git HEAD 與 Issue/PR 反讀為準。
 
-產品或混合檔案仍須 localX 與使用者當次 /推推 才可正式發布 X。純非產品文檔、治理、技能及其專用測試，由現行治理專項 CI 判定後先走 GitHub／雲端工作分支 → `localX` PR/merge，不走一般產品 QA；正式 X 仍需人工驗收與 `/推推`；未明確授權不得使用 DC／本機。
+產品或混合檔案仍須 `localX` 與使用者當次 `/推推` 才能正式發布 X。純非產品文檔、治理、技能與專用測試經受信任 X base 白名單和治理 CI，GitHub／雲端工作分支 → X PR／merge，免一般產品 QA、免 `/推推`、不產生 EXE／正式 Release；未明確授權不得使用 DC／本機。
 
 ## 工作結束前的交付驗證
 

@@ -41,7 +41,7 @@ whd_schema: WHD_DOC_META_V1
 1. **沿用既有工作**：核對 Issue／PR／head/base，直接改程式與測試，提交原工作分支並回讀 SHA；GitHub Actions 執行適用測試。GitHub 寫檔、空 commit、文字留言、單獨搜尋外掛都不是已通過測試的證據。
 2. **本人實質接取**：工單記錄 `本體直接接取`、`execution_location=GITHUB`、Issue、分支與 PR，後續補首筆實際施工 commit SHA、exact SHA 測試 run ID／結果。只有真實施工動作才能標 `EXECUTOR_START_CONFIRMED`；不得自己留言就聲稱接取完成。
 3. **無能力才找外部代理**：先具體核對欠缺 GitHub 寫入／提交／合法雲端測試能力，確定本體無法進行才搜尋 Codex 或其他已可用代理。搜尋不能取代啟動證據；不可用時回報 `DISPATCH_REGISTERED_ONLY`／`REMOTE_EXECUTOR_UNAVAILABLE`，不宣稱背景有人施工。
-4. **治理與產品測試分流、施工來源一致**：本 Skill／`AGENTS.md`／治理測試等非產品本體修改，仍從 GitHub `localX` 開工作分支、以治理專項 CI 驗證並 PR 合回 `localX`；可免一般產品 QA，但不可按舊 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 直接合 X，也不准以此擴大 DC 權限。正式 X 只能依 Windows 人工驗收、當次 `/推推` 與受信任 gate 發布。
+4. **治理與產品測試分流**：本 Skill／`AGENTS.md`／純治理測試等非產品修改，從正式 X HEAD 在 GitHub 建 `governance/*`／`docs/*`／`skills/*` 工作分支，以受信任 X gate 的完整白名單 diff 與治理 CI 驗證後 PR **直接合 X、免 `/推推`**；不得因此擴大 DC 權限、降低產品 QA 或跳過受信任 gate。正式 X 的產品／混合發布仍須 `localX` 與當次 `/推推`，Windows UAT 另記不作發版前置。
 
 ## 真實執行者接取：`DISPATCH_EXECUTOR_HANDOFF_REQUIRED`
 
@@ -60,7 +60,7 @@ whd_schema: WHD_DOC_META_V1
 
 依 `AGENTS.md` 的 `ISSUE_SCOPE_AUTHORIZATION_REUSE`，同一 Issue、工作分支、施工範圍、repo 與 base=`localX` 已明確核准後，修復 CI 或必要產品測試產生的新 SHA 不必再次詢問**同一範圍**的 push／PR／CI／localX 整合許可。**每個新 HEAD 仍需範圍 diff 與必要 CI 重驗**，不沿用舊版 GREEN。不得把 #1466 核准沿用 #1467，亦不得擴大到正式 X；使用者明示只准固定 SHA 時照較窄界線執行。
 
-本節**不允許 `/派工` 以 DC 施工**，亦不放寬任何平台公開上傳安全審查。平台實際拒絕就回報 `PUBLIC_UPLOAD_REVIEW_BLOCKED` 與拒絕操作、必要補證，不得更換管道規避或無限重問相同核准。**純治理文件同樣先 GitHub `localX`，經治理 CI 合回；不得未經另外明確授權而使用 DC，也不得直送 X**。
+本節**不允許 `/派工` 以 DC 施工**，亦不放寬任何平台公開上傳安全審查。平台拒絕就回報 `PUBLIC_UPLOAD_REVIEW_BLOCKED`、拒絕操作與必要補證，不得更換管道規避。純治理可從 X HEAD 經白名單／治理 CI PR 直接合 X，免 `/推推`；產品／混合只能先合 `localX` 並於當次 `/推推` 發 X。
 
 ## 預設自動整合遠端 localX `DISPATCH_DEFAULT_LOCALX_CONTINUATION_V1`
 

@@ -1,6 +1,6 @@
 ---
 name: 推推
-description: WHD 產品與治理先整合 GitHub localX，當次 /推推 即為驗收與 GitHub-only 正式發布授權；Windows 同步獨立待辦。
+description: WHD 產品先整合 GitHub localX，當次 /推推 才正式發布 X；純治理經受信任 X gate/CI 可直接合 X，免 /推推。
 whd_doc_role: CURRENT
 whd_contract: localx-explicit-publish
 whd_canonical: null
@@ -24,4 +24,4 @@ whd_schema: WHD_DOC_META_V1
 
 `LOCALX_PUBLISH_THEN_X_BACKSYNC` 的「先查本機／本機優先」、`GITHUB_ONLY_PUBLISH_EXPLICIT_SCOPE_V1` 的「必須額外索取 GitHub-only 口令」、以及 Windows UAT 前置，均只供查閱舊紀錄，**不再具有執行權威**。現行正式授權與 fail-closed 條件由 `AGENTS.md` 最新 /推推 段落、`tools/localx_publish_gate.py`、受信任 X 的 `tools/change_lane_gate.py` 和正式 Release workflow 共同約束。
 
-純治理、技能及流程文件同樣先 `localX`、後使用者當次 `/推推` 才能發布 X。unknown/mixed 適用產品通道，不得以「文檔」標籤放寬驗收；`/推推 文檔`、`/推推 主體` 只是相容指令，不擴權。
+純治理、技能及流程文件在受信任 `tools/change_lane_gate.py` 判定及適用治理 CI GREEN 後，可由 GitHub `governance/*`／`docs/*`／`skills/*` PR 直接合併正式 X，免 `/推推`，不建立產品 Release。產品、混合與未知改動必先整合 `localX`，再由使用者當次 `/推推` 發布 X；`/推推 文檔`、`/推推 主體` 只是相容指令，不得擴權或繞過 GitHub gate。
