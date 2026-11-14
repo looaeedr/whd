@@ -17,7 +17,7 @@ whd_schema: WHD_DOC_META_V1
 
 1. **現行工作入口以 GitHub `localX` 為準**：純治理／Skill／文件從 `localX` 開工作分支、跑適用治理 CI、PR 合回 `localX`；產品 `/派工` 於 GitHub／雲端執行並經必要產品回歸整合 `localX`。只有當次明確 `/接手` 才可在 RC 授權範圍施工；**治理及產品正式 X 都需使用者當次 `/推推`（即發布驗收決定）、exact SHA 與受信任 gate**，不以 Windows UAT 當額外發布前置，也不授予 DC。
 2. **舊路由只作歷史證據**：外部儲存/shared-zero 與 `WORKSPACE_DEFAULT` 曾用來區分舊施工基準；今日不得把它們當作入口、施工或交付前置，也不得藉歷史流程改變 `/推推` 或 localX 邊界。
-3. **Contents API 不得直接寫 authoritative branch。** `create_file` / `update_file` / `delete_file` 的 `branch` 只可為本次已授權的 dedicated work branch；禁止指定 `localX`、`cleanup/2d-3d-sync`、`main` 或其他受保護目標。`localX` 一律走已驗證同範圍工作 PR／必要 CI／GitHub 非強制 merge；X 一律依當次 `/推推` 與受信任發布 gate。
+3. **Contents API 永遠不得直接寫 authoritative production target。** 此處包括 GitHub `localX` 與正式 X 等權威分支： `create_file` / `update_file` / `delete_file` 的 `branch` 只可為本次已授權的 dedicated work branch；禁止指定 `localX`、`cleanup/2d-3d-sync`、`main` 或其他受保護目標。`localX` 一律走已驗證同範圍工作 PR／必要 CI／GitHub 非強制 merge；X 一律依當次 `/推推` 與受信任發布 gate。
 4. **寫入前做 target-name denylist + exact-tested-diff check。** target branch、changed-file set、tested HEAD、expected parent/ancestry 任一項不符即 fail closed；不得以「內容看起來一樣」取代 durable identity。
 5. **事故後禁止 force rollback。** 先停止 production 寫入；從當前 production HEAD 開 fresh repair branch，恢復已驗證 tree，重新驗證後只用合法 non-force integration 往前修復。
 6. **事故必須保留可追溯證據。** 記錄誤寫 commit、repair commit、驗證 RUN、production readback 與 branch cleanup；不可用改史把事故隱藏掉。
