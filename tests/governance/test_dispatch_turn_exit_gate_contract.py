@@ -17,7 +17,8 @@ def turn_exit_decision(*, pr_head="a" * 40, run_head="a" * 40,
                        run_status="completed", conclusion="success",
                        localx_integrated=False, issue_closed=False,
                        next_issue_checked=False, next_issue_found=False,
-                       next_issue_start_evidence=None, no_eligible_evidence=None,
+                       next_issue_authorized=False, next_issue_start_evidence=None,
+                       no_eligible_evidence=None,
                        blocker=None, limit_evidence=None):
     """Executable fixture for choosing the next lawful step."""
     if limit_evidence:
@@ -42,6 +43,8 @@ def turn_exit_decision(*, pr_head="a" * 40, run_head="a" * 40,
     if not issue_closed:
         return "CI_EXACT_SUCCESS_REMAINING_DELIVERY"
     if next_issue_found:
+        if not next_issue_authorized:
+            return "NEXT_ISSUE_AUTHORIZATION_REQUIRED"
         if next_issue_start_evidence:
             return "NEXT_ISSUE_ALREADY_STARTED"
         return "NEXT_ISSUE_START_REQUIRED"
@@ -87,9 +90,14 @@ class DispatchTurnExitContract(unittest.TestCase):
               "next_issue_checked": True}, "DISCOVER_NEXT_ISSUE"),
             ({"localx_integrated": True, "issue_closed": True,
               "next_issue_checked": True, "next_issue_found": True},
+             "NEXT_ISSUE_AUTHORIZATION_REQUIRED"),
+            ({"localx_integrated": True, "issue_closed": True,
+              "next_issue_checked": True, "next_issue_found": True,
+              "next_issue_authorized": True},
              "START_NEXT_ISSUE"),
             ({"localx_integrated": True, "issue_closed": True,
               "next_issue_checked": True, "next_issue_found": True,
+              "next_issue_authorized": True,
               "next_issue_start_evidence": "#1800 / branch / real first action"},
              "CONTINUE_NEXT_ISSUE"),
             ({"localx_integrated": True, "issue_closed": True,
@@ -112,7 +120,7 @@ class DispatchTurnExitContract(unittest.TestCase):
             key = turn_exit_decision(**kwargs)
             result = POLICY["decisions"][key]
             self.assertEqual(result["action"], expected)
-            self.assertFalse(result["may_end_turn_without_completion"])
+            self.assertTrue(result["may_end_turn_without_completion"])
             self.assertFalse(result["normal_completion"])
             self.assertIn("next_exact_action", result["requires"])
 
@@ -180,6 +188,11 @@ class DispatchTurnExitContract(unittest.TestCase):
                     "NEXT_ISSUE_START_REQUIRED", "NEXT_ISSUE_ALREADY_STARTED"):
             self.assertFalse(POLICY["decisions"][key]["normal_completion"])
             self.assertFalse(POLICY["decisions"][key]["may_end_turn_without_completion"])
+        self.assertTrue(POLICY["decisions"]["NEXT_ISSUE_AUTHORIZATION_REQUIRED"]
+                        ["may_end_turn_without_completion"])
+        self.assertFalse(POLICY["decisions"]["NEXT_ISSUE_AUTHORIZATION_REQUIRED"]
+                         ["normal_completion"])
+        self.assertIn("next_issue_authorized", POLICY["required_observation_fields"])
         self.assertIn("test_dispatch_turn_exit_gate_contract.py",
                       WORKFLOW.read_text(encoding="utf-8"))
         from tools.change_lane_gate import classify_changes
