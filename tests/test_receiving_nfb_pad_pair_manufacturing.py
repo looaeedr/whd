@@ -310,3 +310,14 @@ def test_cli_pad_base_pair_receipt_uses_complete_committed_csv_and_reopens_dxf(
     assert len(generated) == 2
     for path in generated:
         assert len(tuple(__import__("ezdxf").readfile(path).modelspace())) > 0
+
+def test_real_pad_ci_visual_receipt_uses_complete_csv_and_renders_png(tmp_path):
+    """The independent real FinalScene CI visual must use validated CSV IDs."""
+    from tools.receiving_pad_ci_visual_receipt import create_pad_3d_ci_receipt
+
+    target = tmp_path / "WHD_PAD_ENGINE_REAL_3D_TEST.png"
+    digest = create_pad_3d_ci_receipt(target)
+    assert target.is_file()
+    data = target.read_bytes()
+    assert data.startswith(b"\x89PNG\r\n\x1a\n")
+    assert sha256(data).hexdigest() == digest

@@ -38,7 +38,7 @@ def create_pad_3d_ci_receipt(path: str | Path) -> str:
         "shrink_left": 45., "shrink_right": 45., "bend": 20.,
     }
     rows = snap["nfb_config"]["holes"]
-    rows[0].update(model_filename="nfbv5:士林:3P400SN", source_brand="士林")
+    rows[0].update(model_filename="nfbv5:士林:3P400", source_brand="士林")
     rows[1].update(model_filename="nfbv5:士林:100HN-s", source_brand="士林")
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(snap["nfb_config"])
     physical = apply_committed_csv_v5_to_canonical_parts(
