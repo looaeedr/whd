@@ -319,5 +319,5 @@ def test_real_pad_ci_visual_receipt_uses_complete_csv_and_renders_png(tmp_path):
     digest = create_pad_3d_ci_receipt(target)
     assert target.is_file()
     data = target.read_bytes()
-    assert data.startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+    assert data.startswith(b"\x89PNG\r\n\x1a\n")
     assert sha256(data).hexdigest() == digest
