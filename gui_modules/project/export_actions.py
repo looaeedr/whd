@@ -22,13 +22,16 @@ from gui_modules.application.render_snapshots import _collect_live_indicator_gro
 
 
 def export_multi_door_layout_dxfs(self, folder, val, *, draw_stock=False):
-    """Export one Door DXF per validated layout cell through the headless API."""
-    exported = []
+    """Preflight every Engine Door identity and PartSpec before writing any DXF."""
     context = self._manufacturing_context(draw_stock=draw_stock)
+    planned = []
     for cell in self.get_door_layout_cells():
         filename = manufacturing_api.door_layout_export_filename(cell)
-        filepath = os.path.join(folder, filename)
-        self._export_authoritative_part(self._door_layout_part_spec(cell, val), filepath, context)
+        spec = self._door_layout_part_spec(cell, val)
+        planned.append((filename, spec))
+    exported = []
+    for filename, spec in planned:
+        self._export_authoritative_part(spec, os.path.join(folder, filename), context)
         exported.append(filename)
     return exported
 
@@ -36,12 +39,17 @@ def export_multi_door_layout_dxfs(self, folder, val, *, draw_stock=False):
 def export_multi_door_indicator_box_parts(
     self, folder, val, *, draw_stock=False, export_box=True, export_door=True
 ):
-    """Export each per-cell Indicator-Box assembly through the headless API."""
-    exported = []
+    """Preflight all per-cell Engine source/geometry before emitting any sheet.
+
+    The GUI is a transport for original Engine PartSpecs; a malformed *later*
+    saved cell must not leave earlier DXFs behind on a directly invoked route.
+    The authoritative batch exporter still handles staged atomic publication.
+    """
     context = self._manufacturing_context(draw_stock=draw_stock)
+    planned = []
+    states = getattr(self, "door_layout_indicator_states", None)
     for cell in self.get_door_layout_cells():
         key = self._door_layout_cell_key(cell)
-        states = getattr(self, "door_layout_indicator_states", None)
         # Validate the original stored row, never a display-normalized copy.
         raw = (states.get(key) if isinstance(states, Mapping)
                else self._door_layout_indicator_state_for_key(key))
@@ -58,8 +66,7 @@ def export_multi_door_indicator_box_parts(
             spec = self._indicator_box_part_spec(
                 val, groups, features=self.door_layout_indicator_box_features.get(key, [])
             )
-            self._export_authoritative_part(spec, os.path.join(folder, filename), context)
-            exported.append(filename)
+            planned.append((filename, spec))
 
         if export_door:
             filename = manufacturing_api.door_layout_indicator_export_filename(
@@ -68,8 +75,12 @@ def export_multi_door_indicator_box_parts(
             spec = self._indicator_door_part_spec(
                 val, groups, features=self.door_layout_indicator_door_features.get(key, [])
             )
-            self._export_authoritative_part(spec, os.path.join(folder, filename), context)
-            exported.append(filename)
+            planned.append((filename, spec))
+
+    exported = []
+    for filename, spec in planned:
+        self._export_authoritative_part(spec, os.path.join(folder, filename), context)
+        exported.append(filename)
     return exported
 
 
