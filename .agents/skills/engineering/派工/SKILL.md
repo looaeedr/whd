@@ -10,7 +10,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 不得停止程序 `INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1`
 
-承接 `/功能 /DEBUG /派工 /接手 /繼續` 的同一工作鏈；`/功能` 定義需求、`/DEBUG` 解決真實錯誤、`/派工` 直接提交／測試／合併／接下一張。**不得預先設停止程序**；可用工具仍可施工時立即呼叫工具，不可用報告、詢問是否繼續、PR 建立、CI queued、單一步驟受阻當停止理由。被拒操作不繞過權限，在同範圍直接換其他合法動作，續讀、修其他獨立部分、追已有 CI；不重做無關前置。每 2–3 次實質動作回報一次，繼續做。執行位置和 `/推推` 權限按 `AGENTS.md` 原規定。
+承接 `/功能 /DEBUG /派工 /接手 /繼續` 的同一工作鏈；`/功能` 定義需求、`/DEBUG` 解決真實錯誤、`/派工` 在已授權範圍直接提交／測試／合併與查下一張。**不得預先設停止程序**；可用工具仍可施工時即呼叫工具，不能用報告、開 PR、CI queued 或單一步驟受阻當完成理由。跨 Issue 必須另有可回讀的**該工單獨立授權**，不能把查到下一張等同取得施工權。每 2–3 次實質動作回報，繼續做合法可行部分；權限／runtime 真阻塞時誠實回報未完成，不冒稱已交付。位置和 `/推推` 依 `AGENTS.md`。
 
 
 **產品修改先讀再寫**：GitHub／雲端施工者同樣受正式 `AGENTS.md` 的 `SOURCE_READ_BEFORE_MUTATION_V1` 約束。先讀相關程式實際函式及呼叫鏈、CURRENT 文檔／基準資料與測試，回報 `SOURCE_READ_EVIDENCE`；未完成即 `SOURCE_READ_PRECONDITION_FAILED`，只准續查、不准先改後補證據。不得因此改走 DC／RC。
@@ -76,7 +76,7 @@ whd_schema: WHD_DOC_META_V1
 2. `requested/queued/waiting/pending/in_progress` → `CONTINUE_POLL`，同一回合繼續查狀態；每 2–3 次操作回報，而非結束。避免高頻重抓完整 CI log。
 3. `completed/success` → `LOCALX_INTEGRATION_PENDING`：這是**待執行動作**而非待使用者再次授權；既有 `/派工` 範圍直接續行預設 GitHub `localX` 合併，不碰 DC。保留本機修改；即使 PR 仍 Draft，也不能以「綠燈但還未合併」作為完成。其他 terminal conclusion → `REPAIR_AND_RETEST`。
 4. `localX` 整合、Issue close/readback、`NEXT_ISSUE_DISCOVERY_REQUIRED` 未完成 → `CONTINUE_FINALIZATION`，不能冒稱 `RELEASED`；只有所有義務已驗證才宣告交付完成。
-5. **遇阻換合法動作繼續做**：`BLOCKED_WITH_EVIDENCE` 只表示該操作遭拒；其餘允許的來源查證、提交、測試與獨立施工仍直接執行。若所有工具實際無法使用才據實標示 `RUNTIME_LIMIT_UNRESOLVED`；不得把這些代碼拿來預先停工。
+5. **遇阻換合法動作繼續做**：`BLOCKED_WITH_EVIDENCE` 只代表該操作遭拒，其他已授權的來源查證、提交、測試仍直接執行；若全部合法工具已不可用，據實標 `RUNTIME_LIMIT_UNRESOLVED`，允許帶證據回報**未完成**而結束當輪，禁止假稱完成、無限高頻輪詢或繞權限，不設預排停止點。
 
 只增加現有流程的真實退出決策，不需要 Codex、不建新排程、不改本機施工授權，也不恢復退役 lease／claim／Flow v2。
 
@@ -85,8 +85,8 @@ whd_schema: WHD_DOC_META_V1
 1. `PR_OPEN / CI_QUEUED / CI_IN_PROGRESS / CI_PENDING` 一律 `CONTINUE_POLL`，**不是可結束的交付狀態**；在當前回合持續輪詢 exact PR SHA 與對應 run，不得把「正在測試」當成派工完成。
 2. `CI_SUCCESS` 且 PR 可整合，**直接 GitHub PR merge `localX`**，回讀 PR/remote HEAD，工單留言、close/readback；Windows 手動更新與 UAT 待完成，記 `WINDOWS_LOCALX_SYNC_PENDING`，不能虛構 `LOCALX_SYNCED` 或 DC 斷線。整段不必使用者再喊「繼續」。
    **重要先後次序**：GitHub `localX` merge＋遠端 SHA 回讀成功（本機待 Windows 同步）後，**立刻啟動 `NEXT_ISSUE_DISCOVERY_REQUIRED`**，同步完成原 Issue 留言／close/readback；**不得等 Issue CLOSED 才找下一張**，也不得以 Issue close/readback 為流程終點。
-   搜尋下一張 OPEN 且前置工單已完成的可執行 Issue；檢查相同工作是否已有 owner/PR，避免重複；可施工就建立真實工作分支、寫入派工留言並**完成首個真實施工動作**，持續執行下一張。**只找到 Issue 號碼、只寫派工留言或只建立分支都不等於接取成功，更不是退出條件**。已有下一張但未開工 → `NEXT_ISSUE_START_REQUIRED`；已有下一張且接取證據可回讀 → `NEXT_ISSUE_ALREADY_STARTED / CONTINUE_NEXT_ISSUE`，仍不能正常結束回合。只有實際核查 OPEN 工單及前置／owner／PR 後無可執行者，附可追溯清單與 `NO_ELIGIBLE_ISSUE` 證據，才允許整條派工佇列正常結束；不得假報成功派工。
+   搜尋下一張 OPEN 且前置工單已完成的 Issue，查 owner／PR 與重複施工。**跨 Issue 另依 `ISSUE_SCOPE_AUTHORIZATION_REUSE` 驗獨立授權**：有當次／可回讀的該 Issue 授權時，才建立實質工作分支、施工 commit 並進入 `NEXT_ISSUE_START_REQUIRED`／`CONTINUE_NEXT_ISSUE`；未獲授權時只讀查核並回報 `NEXT_ISSUE_AUTHORIZATION_REQUIRED`，不得寫下一張 Issue、PR 或產品程式，不能用原 Issue 核准推導新授權。找不到符合條件者保留真實 `NO_ELIGIBLE_ISSUE` 證據，原 Issue readback 照常完成；不得假報已開始或佇列已交付。
 
 3. `CI_FAILURE / CANCELLED / TIMED_OUT`：讀取 job/step/log，定位和修復後再次測試；若 run 完全缺席，先修正 workflow branch/path 接線並觸發，不得聲稱已驗收。
-4. 回報至少每 2–3 次實質操作一次；回報不構成退出。**不得停止程序**：若某一步驟受阻，繼續可合法完成的下一步；完全無法實際操作才據實保留 blocker 與最後可驗證的 PR/SHA，不得聲稱 DONE。
+4. 回報至少每 2–3 次實質操作一次；回報不構成已完成。**不得停止程序**指仍有合法動作就續作，並不要求在平台真正不能執行時無限等待；未授權的下一工單只讀回報 `NEXT_ISSUE_AUTHORIZATION_REQUIRED`，沒有可執行操作時如實保留 blocker 與最後 PR/SHA。
 5. 產品 `localX → X` 仍需使用者當次 `/推推`。不加新的 GitHub 分支保護、不恢復 Flow v2。

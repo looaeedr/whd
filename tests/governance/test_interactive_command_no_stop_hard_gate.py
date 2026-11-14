@@ -33,7 +33,8 @@ class InteractiveNoStopGate(unittest.TestCase):
         self.assertFalse(gate["predeclared_stop_procedure_allowed"])
         self.assertTrue(gate["any_legal_action_available_means_continue"])
         for key in ("VERIFIED_EXTERNAL_BLOCKER", "REAL_RUNTIME_LIMIT"):
-            self.assertFalse(data["decisions"][key]["may_end_turn_without_completion"])
+            self.assertTrue(data["decisions"][key]["may_end_turn_without_completion"])
+            self.assertFalse(data["decisions"][key]["normal_completion"])
 
     def test_actual_skill_router_calls_combined_command_route(self):
         expected = ("新增功能", "diagnosing-bugs", "tdd", "派工", "issue-closure-gate")
@@ -116,6 +117,32 @@ class InteractiveNoStopGate(unittest.TestCase):
             ci_status="completed", ci_conclusion="failure",
         )), "REPAIR_AND_RETEST")
 
+    def test_next_issue_requires_independent_authorization(self):
+        base = dict(localx_merged=True, issue_closed=True,
+                    next_issue_checked=True, next_issue_eligible=True)
+        self.assertEqual(next_action(WorkObservation(**base)),
+                         "NEXT_ISSUE_AUTHORIZATION_REQUIRED")
+        self.assertEqual(next_action(WorkObservation(
+            **base, next_issue_authorized=True)), "START_NEXT_ISSUE")
+        self.assertEqual(next_action(WorkObservation(
+            localx_merged=True, issue_closed=True, next_issue_checked=True,
+            no_eligible_issue_evidence="OPEN issue list checked; none eligible")),
+            "RELEASED")
+        self.assertEqual(next_action(WorkObservation(
+            localx_merged=True, issue_closed=True, next_issue_checked=True)),
+            "RECONCILE_ONLY")
+        calls = []
+        result = execute_authorized_step(WorkObservation(
+            authorized_actions=("START_NEXT_ISSUE", "READ_SOURCE"), **base),
+            {"START_NEXT_ISSUE": lambda: calls.append("wrong-issue"),
+             "READ_SOURCE": lambda: calls.append("READ_SOURCE")})
+        self.assertEqual(calls, ["READ_SOURCE"])
+        self.assertEqual(result.completed_action, "READ_SOURCE")
+        self.assertIn("START_NEXT_ISSUE", result.blocked)
+        self.assertEqual(next_action(WorkObservation(
+            authorized_actions=("START_NEXT_ISSUE",), **base)),
+            "NEXT_ISSUE_AUTHORIZATION_REQUIRED")
+
     def test_localx_merge_triggers_discovery_before_closure(self):
         self.assertEqual(next_action(WorkObservation(
             localx_merged=True, issue_closed=False,
@@ -125,6 +152,8 @@ class InteractiveNoStopGate(unittest.TestCase):
         )), "CONTINUE_FINALIZATION")
         self.assertEqual(next_action(WorkObservation(
             localx_merged=True, issue_closed=True, next_issue_started=True,
+            next_issue_checked=True, next_issue_eligible=True,
+            next_issue_authorized=True,
         )), "CONTINUE_NEXT_ISSUE")
 
 if __name__ == "__main__":

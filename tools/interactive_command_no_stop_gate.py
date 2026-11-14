@@ -20,6 +20,9 @@ class WorkObservation:
     operation_rejected: bool = False
     rejected_actions: Sequence[str] = ()
     next_issue_checked: bool = False
+    next_issue_eligible: bool = False
+    next_issue_authorized: bool = False
+    no_eligible_issue_evidence: str = ""
 
 def next_action(observation: WorkObservation) -> str:
     """Return an executable next action, never a predeclared stop procedure.
@@ -29,6 +32,11 @@ def next_action(observation: WorkObservation) -> str:
     """
     denied = set(observation.rejected_actions)
     for action in observation.authorized_actions:
+        if action in {"START_NEXT_ISSUE", "CONTINUE_NEXT_ISSUE"} and not (
+            observation.next_issue_checked and observation.next_issue_eligible
+            and observation.next_issue_authorized
+        ):
+            continue
         if action not in denied:
             return action
     if observation.ci_status in {"requested", "queued", "waiting", "pending", "in_progress"}:
@@ -42,13 +50,21 @@ def next_action(observation: WorkObservation) -> str:
         return "RECONCILE_ONLY"
     if observation.ci_status == "completed" and not observation.localx_merged:
         return "LOCALX_INTEGRATION_PENDING" if observation.pr_open else "RECONCILE_ONLY"
-    if (observation.localx_merged and not observation.next_issue_checked
-            and not observation.next_issue_started):
+    if observation.localx_merged and not observation.next_issue_checked:
         return "DISCOVER_NEXT_ISSUE"
     if observation.localx_merged and not observation.issue_closed:
         return "CONTINUE_FINALIZATION"
     if observation.localx_merged and observation.issue_closed:
-        return "CONTINUE_NEXT_ISSUE" if observation.next_issue_started else "DISCOVER_NEXT_ISSUE"
+        if observation.next_issue_started and not observation.next_issue_eligible:
+            return "RECONCILE_ONLY"
+        if observation.next_issue_eligible:
+            if not observation.next_issue_authorized:
+                return "NEXT_ISSUE_AUTHORIZATION_REQUIRED"
+            return ("CONTINUE_NEXT_ISSUE" if observation.next_issue_started
+                    else "START_NEXT_ISSUE")
+        if observation.no_eligible_issue_evidence:
+            return "RELEASED"
+        return "RECONCILE_ONLY"
     return "READ_CURRENT_SOURCE_AND_CONTINUE"
 
 # One user instruction may combine several existing WHD command methods.
@@ -93,7 +109,12 @@ def execute_authorized_step(
     blocked: list[str] = []
     denied = set(observation.rejected_actions)
     for action in observation.authorized_actions:
-        if action in denied:
+        if action in denied or (
+            action in {"START_NEXT_ISSUE", "CONTINUE_NEXT_ISSUE"}
+            and not (observation.next_issue_checked
+                     and observation.next_issue_eligible
+                     and observation.next_issue_authorized)
+        ):
             blocked.append(action)
             continue
         if action not in handlers:
