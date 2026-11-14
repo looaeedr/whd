@@ -287,3 +287,26 @@ def test_original_gui_pad_base_export_action_routes_real_two_tier_pair(tmp_path,
     assert manifest["full_cabinet_manufacturing_released"] is False
     assert manifest["pad_total"]==2
     assert manifest["base_total"]==2
+
+
+def test_cli_pad_base_pair_receipt_uses_complete_committed_csv_and_reopens_dxf(
+    tmp_path, monkeypatch,
+):
+    """Guard the independent Action CLI, not just the unit test's helper."""
+    from tools.receiving_pad_pair_part_only_receipt import main
+
+    monkeypatch.chdir(tmp_path)
+    main()
+
+    output = tmp_path / "WHD_PAD_BASE_CHECK_Q_PAIR_PART_ONLY"
+    manifest = json.loads(
+        (output / "PAD_BASE_PAIR_PART_ONLY_CHECK_Q_RECEIPT.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert manifest["pad_total"] == 3
+    assert manifest["base_total"] == 3
+    generated = tuple(sorted(output.glob("*.dxf")))
+    assert len(generated) == 2
+    for path in generated:
+        assert len(tuple(__import__("ezdxf").readfile(path).modelspace())) > 0
