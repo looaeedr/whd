@@ -17,15 +17,15 @@ whd_schema: WHD_DOC_META_V1
 
 ### CURRENT Skill 撰寫入口（依 AGENTS.md）
 
-目前以 GitHub 最新 `localX` exact HEAD 的 `AGENTS.md`、適用治理 CI 與當次明確任務範圍為準。正式 X 只供正式發布及受信任 gate 查核。原先的 Phase6 Preflight receipt、`WORKSPACE_DELIVERY`、claim／lease／工作槽、Skill 啟動公告及寫入前證據交易閘門已退役，**不得再視為修改、測試、提交 Skill 的必要前置**。
+產品／混合 Skill 修改以 GitHub 最新 `localX` exact HEAD 的 `AGENTS.md` 與 CURRENT domain authority 為準；**純治理 Skill** 修改以正式 X exact HEAD 的 `AGENTS.md`、CURRENT 治理 Skill／Registry 和受信任 gate 為準。任何任務仍須核對本輪授權、實際能力與適用治理 CI；退役 Preflight receipt、`WORKSPACE_DELIVERY`、claim／lease／工作槽和啟動公告不得復活為前置。
 
 執行優先順序：
 1. 使用者本輪明確指示及已核准的範圍。
-2. GitHub 最新 `localX` 的 `AGENTS.md`、現行技能／Registry、專案 Source of Truth。
+2. 產品取 GitHub 最新 `localX` 的 `AGENTS.md`、CURRENT 製造 Skill／Registry；純治理取 GitHub 正式 X exact HEAD 的 CURRENT 治理 Skill、Registry 與受信任 gate。
 3. 本次待修改的 Skill baseline 與必要引用。
 4. 一般 Skill 撰寫慣例。
 
-純治理 Skill 檔案：以最新 GitHub `localX` 的 CURRENT 權威理解任務，再核對正式 X HEAD 與受信任 X gate；在 GitHub／雲端從最新 X 開 `governance/*`、`docs/*` 或 `skills/*` 分支，保留 exact diff、完成適用治理測試與 CI 後 PR **直接合併 X，免 `/推推`**。正式產品／混合變更才先合 `localX` 並由當次 `/推推` 發布；不得把產品／未知檔案當治理、不得用未受信任的候選 gate 自行放行。**未取得使用者當次明確授權，不得探測或操作 DC、CoreELEC、whd-dev 或使用者本機 shell**；沒有雲端能力回報限制，不得轉本機。
+純治理 Skill 檔案：先讀正式 GitHub X exact HEAD 的 `AGENTS.md`、CURRENT 治理規格／Skill 與受信任 gate，從 X HEAD 在 GitHub／雲端開 `governance/*`、`docs/*` 或 `skills/*` 分支，保留 exact diff、執行適用治理測試與 CI 後 PR **直接合併 X，免 `/推推`**。產品／混合變更仍以 GitHub `localX` CURRENT 製造權威為準，先合 `localX` 並於當次 `/推推` 正式發版；不得將產品／未知檔案分類為治理，不得以候選 PR 自改的 gate 代替 X base 受信任檢查。**未經當次明確授權，不得探測或操作 DC、CoreELEC、whd-dev 或使用者本機 shell**。
 
 若包含產品或未知／混合路徑，必須回產品通道、依 `localX` 整合規則交付；發布正式 X 的產品改動仍需當次 `/推推`。任何變更均需核對修改路徑、內容、引用、適用測試與 GitHub readback，不得用舊版 Preflight／授權門檻取代實際驗證。
 

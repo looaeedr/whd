@@ -15,7 +15,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 現行施工入口與來源查核
 
-1. **查證權威**：明確讀取最新 GitHub `ref=localX` exact HEAD 的 `AGENTS.md`、CURRENT Skill／domain owner、實際 production code 與相關測試；純治理直合 X 時另外核對正式 X 受信任 gate 與 base，不把歷史 X 規範覆蓋現行產品權威。此步不是舊 Knowledge Preflight receipt／READ_REFERENCE 交易。
+1. **查證權威**：產品修改先讀最新 GitHub `ref=localX` exact HEAD 的 `AGENTS.md`、CURRENT domain owner、程式與相關測試；純治理直合 X 則讀正式 X HEAD 的 `AGENTS.md`／CURRENT 治理 Skill 與受信任 gate。X 舊產品規格不得覆蓋 `localX` 製造權威；不恢復 Knowledge Preflight receipt／READ_REFERENCE 交易。
 2. **`/派工` 產品路線**：由 GitHub／排程／雲端執行器施工、測試、commit、PR（base=`localX`）及 exact SHA CI；CI GREEN 後 GitHub PR 安全合併遠端 `localX`，未經當次 DC 授權不得在使用者本機整合／探測。
 3. **`/接手` 產品路線**：只有使用者當次明確 `/接手` 才可使用 RC 的 `whd-dev:/workspace/whd` 施工。兩條產品路線發布正式 X 都需要使用者當次 `/推推`。
 4. **非產品治理路線**：僅受信任 X 版本 `tools/change_lane_gate.py` 將實際 changed paths（含 rename 前後）判定為純治理白名單且適用治理 CI GREEN 時，才經 GitHub／雲端 `governance/*`、`docs/*`、`skills/*` PR 直接合併正式 X，**不需要 `/推推`**；不得由此 Skill 授予 DC 權限或豁免產品發布。

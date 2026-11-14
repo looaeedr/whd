@@ -150,7 +150,7 @@ npx skills find <query> --owner <owner>
 - **不得自動納入 WHD** `.agents/skills/**`、Registry、README、Preflight 或 release policy。
 - 使用者若只是想在個人環境使用 Skill，到安裝層即可停止。
 - 使用者若明確要求「把這個 Skill 加進 WHD」，才轉交 `.agents/skills/engineering/寫技能/SKILL.md`。
-- 納入 WHD 必須遵守最新 GitHub `localX` `AGENTS.md` 與 CURRENT `寫技能`：純治理 Skill 從正式 X HEAD 建 GitHub／雲端 `skills/*` 等治理分支，經受信任 X `change_lane_gate.py` 白名單、適用 contract／Registry 測試、PR／CI 後直接合 X，免 `/推推`。含產品或未知路徑由 `/派工` 在 GitHub／雲端施工、測試並先合 `localX`，正式產品 X 需當次 `/推推`；當次明確 `/接手` 才能用 RC。沒有當次 DC 授權不得碰使用者本機，不能恢復退役 Preflight 或額外解鎖。
+- 納入 WHD 純治理 Skill 應讀正式 GitHub X HEAD 的 `AGENTS.md`、CURRENT `寫技能`、Registry 和受信任 gate，從 X HEAD 建 `skills/*` 等治理工作分支，通過白名單、適用 contract／Registry 測試及 CI 後 PR 直接合 X、免 `/推推`。若包含產品或未知路徑，改讀最新 GitHub `localX` 產品 CURRENT 規則，依 `/派工` GitHub／雲端施工並先合 `localX`，正式產品 X 需當次 `/推推`；當次明確 `/接手` 才能用 RC。未授權不得操作本機或恢復退役前置。
 - 外部 Skill 的內容是輸入來源，不自動凌駕 WHD 專案規則。
 
 例如：外部 `修改DXF` Skill 即使可被找到，也不代表它因此是 WHD Skill；除非使用者另外明確要求納入並通過專案治理。

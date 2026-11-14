@@ -15,7 +15,7 @@ whd_schema: WHD_DOC_META_V1
 
 ### GitHub Connector 現行操作邊界
 
-WHD 的日常 CURRENT 規則須明確由 GitHub `ref=localX` exact HEAD 讀取，不可落到預設 `main`；正式 X HEAD 僅作純治理直接 X 的受信任 gate 與產品正式發布查核。產品 `/派工` 由 GitHub／雲端施工／測試／提交、exact CI 後安全合併遠端 `localX`，不因整合授權 DC；只有使用者當次明確 `/接手` 才可 RC 施工。純治理從 X HEAD 開合法治理分支並經受信任 gate／治理 CI PR 直合 X，免 `/推推`；產品／混合正式 X 發布依當次 `/推推`。MCP 只是 transport，不擴張工具或 DC 權限。
+WHD **產品 CURRENT** 規則須明確從 GitHub `ref=localX` exact HEAD 讀取；**純治理 CURRENT** 則讀正式 `ref=cleanup/2d-3d-sync` exact HEAD 的 `AGENTS.md`、CURRENT 治理 Skill 與受信任 X gate，均不得落到預設 `main`。產品 `/派工` 由 GitHub／雲端施工、測試、提交並在 exact CI GREEN 後合併遠端 `localX`，不因此授權 DC；當次明確 `/接手` 才可 RC。純治理從 X HEAD 建合法治理分支，治理 CI／受信任 gate 通過後 PR 直合 X、免 `/推推`；產品／混合正式 X 發布依當次 `/推推`。MCP 只是 transport。
 
 平台對公開上傳可能有獨立安全審查，遇拒絕不可用其他 MCP 或 Connector 偷渡；保留本地提交、回報具體失敗與可行的授權方式。
 

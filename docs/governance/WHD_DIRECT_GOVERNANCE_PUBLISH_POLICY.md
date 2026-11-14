@@ -9,7 +9,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 兩條驗收通道，嚴格區分權限
 
-1. **純治理／技能／文件專用變更**：以 GitHub `localX` 的 CURRENT 指令核對需求，從 GitHub 正式 `X=cleanup/2d-3d-sync` HEAD 建立 `governance/*`、`docs/*`、`skills/*` 工作分支；純治理白名單實際 diff（含 rename 兩側）及受信任 X gate、適用治理 CI 通過後，PR 直接合併 X，**不需要 `/推推`**，不觸發產品 Release／EXE，也不強制把 X 混回 `localX`。
+1. **純治理／技能／文件專用變更**：從 GitHub 正式 `X=cleanup/2d-3d-sync` exact HEAD 讀 CURRENT 治理 `AGENTS.md`、Skills 與受信任 `change_lane_gate.py`，在 `governance/*`、`docs/*`、`skills/*` 工作分支施工；白名單實際 diff（含 rename 兩側）及適用治理 CI 通過後，PR 直接合併 X，**不需要 `/推推`**、不觸發產品 Release／EXE，也不強制同步 X-only 治理歷史到 `localX`。產品／製造 CURRENT 權威仍由 GitHub `localX` 擁有，不得由 X 舊產品規格取代。
 2. **產品通道 `PRODUCT_LOCALX_ONLY`**：產品程式、GUI、幾何、製造資料、DXF、產品測試、未分類檔案，或任何產品與文件混合的變更，先完成適用產品 CI 並整合 GitHub `localX`，再由使用者當次 `/推推`（即驗收與授權）經 X PR exact SHA/head/base、owner comment 及必要 CI 發布。**Windows 本機 UAT／同步不作為前置阻擋。**
 
 ## `/推推` 預設 GitHub-only；舊授權例外已退役

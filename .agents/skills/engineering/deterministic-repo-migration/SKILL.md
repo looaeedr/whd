@@ -33,7 +33,7 @@ Out of scope:
 
 <!-- WHD_REPOSITORY_MUTATION_GATE_V1 -->
 
-本 Skill **只擁有** deterministic mapping／idempotence／drift-audit，不擁有 WHD repository 施工、DC 或 GitHub 發布權限。先依最新 GitHub `localX` exact HEAD `AGENTS.md` 與正式 X 受信任 `change_lane_gate.py` 判定純治理白名單，不能由本 Skill 自行擴權。
+本 Skill **只擁有** deterministic mapping／idempotence／drift-audit，不擁有 WHD repository 施工、DC 或 GitHub 發布權限。產品規則先讀最新 GitHub `localX` exact HEAD；純治理先讀 X exact HEAD `AGENTS.md`／CURRENT 治理 Skill 與受信任 `change_lane_gate.py`，不可由本 Skill 自行擴權。
 
 1. **純治理／非產品遷移**：全部路徑經受信任 X 的 `tools/change_lane_gate.py` 判定為 `GOVERNANCE_DIRECT_X`，才從最新 X 在 GitHub／雲端治理分支完成 deterministic migration、驗證、PR／CI、merge/readback；不需要 `localX` 或 `/推推`。
 2. **產品、未知或混合遷移**：依 `/派工` 在 GitHub／雲端完成施工、測試、PR（base=`localX`）與 exact HEAD CI，安全 GitHub PR merge `localX`；不因 CI GREEN 啟動 DC。只有使用者當次明確 `/接手` 才能在 RC `whd-dev:/workspace/whd` 施工，且不得擴大操作範圍。產品從 `localX` 發布正式 X 仍需當次 `/推推`。

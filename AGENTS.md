@@ -30,8 +30,8 @@ whd_schema: WHD_DOC_META_V1
 
 ## 日常施工來源硬閘門 `LOCALX_DEVELOPMENT_SOURCE_AUTHORITY_V1`
 
-- **產品日常施工基準是 GitHub `localX`，純治理直接 X**：產品任務 fresh-read `ref=localX` 的 CURRENT 規則並從該 HEAD 建分支、CI 後 PR 回 `localX`；純治理先參照最新 `localX` CURRENT 權威，再核對正式 X base 的受信任規則及實際分類，從精確 X HEAD 開 `governance/*`／`docs/*`／`skills/*` 分支，通過治理 CI 和 X gate 後直接 PR 合併 X，免 `/推推`。不得借治理名義觸碰產品或強制同步分叉的 `localX`。
-- `X=cleanup/2d-3d-sync` 的受信任政策適用正式產品發布與純治理 PR 直接整合；產品程式及日常 API 開發仍以 `localX` 為準。X 的舊 `AGENTS.md` 不得覆蓋最新 `localX` 的產品／技能權威；X-only 提交不得默默 merge、rebase 或複製到 `localX`。**純治理免 `/推推`，產品／混合 X 發布仍需當次 `/推推`**。
+- **產品日常施工基準是 GitHub `localX`，純治理直接 X**：產品 fresh-read `ref=localX` 的 `AGENTS.md`、CURRENT Skill／製造 authority 後從其 HEAD 建分支、CI 後 PR 回 `localX`；純治理則 fresh-read 正式 X exact HEAD 的 `AGENTS.md`／CURRENT 治理 Skill／`tools/change_lane_gate.py`，從 X HEAD 開 `governance/*`／`docs/*`／`skills/*` 分支，經受信任 X base 分類與治理 CI 後直接 PR 合 X、免 `/推推`。X-only 治理改動不自行合回 `localX`，混合、產品或未知不准借治理通道。
+- `X=cleanup/2d-3d-sync` 的受信任政策適用純治理 PR 直接整合與正式產品發布；純治理的 CURRENT 治理 Skill／規則由 X 擁有，產品程式與製造 CURRENT 規格仍以 `localX` 為準，不讓 X 舊產品規格覆蓋最新 `localX`。X-only 治理提交不得默默 merge、rebase 或複製到 `localX`；**純治理免 `/推推`，產品／混合 X 發布仍需當次 `/推推`**。
 - GitHub repository default `main` 是歷史分支；GitHub fetch/search 未指定 ref 或無法證明所讀分支／HEAD 時不能當成施工證據，必須重讀 `localX`。使用 CoreELEC/RC/DC 不是因為 `localX` 需要本機 checkout，而只在當次使用者明確選擇對應裝置與操作並通過外部核准時採用；一般 `/派工`、BUG 修復、QA、治理改動不探測 CoreELEC。
 - **`NON_PRODUCT_GOVERNANCE_DIRECT_X` 純治理直合恢復**：由受信任 X base 的 `tools/change_lane_gate.py` 對完整 Git diff 分類，限制治理白名單及指定工作分支、適用 CI、GitHub PR 和 exact SHA 回讀；純治理不需 `/推推`。產品／混合／未知不走此通道，仍由 `localX` 加當次 `/推推` 正式發布。
 
@@ -121,7 +121,7 @@ whd_schema: WHD_DOC_META_V1
 - **CI 強制執行**：關鍵 GitHub Actions jobs 必須設 `TZ=Asia/Taipei`，`tools/change_lane_gate.py` 檢查明確的環境設定與 ZoneInfo offset；任一不符即 `TAIWAN_TIMEZONE_HARD_GATE_FAILED`。增修 Python 日期時間產生點時，不得加入無時區的 `datetime.now()`、`datetime.today()`、`datetime.utcnow()`、`datetime.astimezone()` 或使用執行機器本地時間的 `time.localtime()`。新改動由 CI diff guard 驗證；歷史既有日期來源需分批補上精確的產品回歸，不以文字規則冒稱已改好。
 - **排程換算**：需求的日／週／幾點一律先用台灣時間解析；若 GitHub Actions cron 或第三方 API **僅接受 UTC**，則只在傳輸層轉換成等價 UTC（例如台灣 08:00 對應 UTC 00:00），顯示與排程權威仍為 `Asia/Taipei`；不得因 runner 預設 UTC 造成日期跨日錯誤。
 - **外部格式例外不等於使用 UTC 操作**：GitHub 事件 ISO UTC、Unix epoch、Git commit 與 API 明定 UTC 的儲存／簽名／傳輸欄位保留原格式，不擅自改寫證據；在回報、呈現或作本地日界判斷前必須換算台灣時間。保證同一瞬間不因格式轉換而改變。
-- **禁止藉時區門檻擴權**：不修改舊工單交易規則、既有排程啟停、產品幾何與 DC 權限；此硬閘門的治理變更一樣先由 GitHub `localX` 開分支及 PR 合回，不准藉時區治理直送 X。`AGENTS.md` 與 `.agents/contracts/WHD_TAIPEI_TIMEZONE_HARD_GATE_V1.json` 為時間權威，後續 SOP／技能需從此契約繼承。
+- **禁止藉時區門檻擴權**：不修改舊工單交易規則、既有排程啟停、產品幾何或 DC 權限；時區硬閘門的純治理變更同樣必須從 X HEAD 的受信任白名單／治理 CI PR 直接合 X、免 `/推推`；時區相關產品／混合變更仍先走 `localX` 並由當次 `/推推` 發布。`AGENTS.md` 與 `.agents/contracts/WHD_TAIPEI_TIMEZONE_HARD_GATE_V1.json` 仍是時間權威。
 
 ## 全域 DC 硬閘門 `DC_DEFAULT_DENY_EXPLICIT_SCOPE_GATE`
 
@@ -183,7 +183,7 @@ whd_schema: WHD_DOC_META_V1
 - **先對準 exact HEAD**：讀取當下 PR `base=localX`、`head_sha` 與同一 SHA 的 Canonical Product Regression `run_id/status/conclusion`、jobs。缺 run、查到舊 SHA／矛盾資料 → `RECONCILE_ONLY`，不得借用其他 HEAD 的 GREEN。
 - **CI 非終態**（`requested/queued/waiting/pending/in_progress`）→ `CONTINUE_POLL`：在當次仍可呼叫工具時持續查詢 exact run，2–3 次操作回報一次實質進度，回報不是退出訊號；只讀結構化狀態與精簡失敗資料，不重抓長 Log、不要無限制高頻打 API。
 - **CI 終態**：`success` → `LOCALX_INTEGRATION_PENDING`，立即走 GitHub remote `localX` 合併及 readback（預設不需 DC）；`failure/cancelled/timed_out/action_required` → `REPAIR_AND_RETEST`，不可將 GREEN 誤報產品 X 已發布。
-- **CI 成功仍未完成交付**：本機／遠端 `localX` 整合回讀、Issue close/readback 及 `NEXT_ISSUE_DISCOVERY_REQUIRED` 等既有義務未處理 → `CONTINUE_FINALIZATION`；達到所有必要驗收與追蹤義務、讀回證據後才可標 `RELEASED`。正式 X 仍限使用者當次 `/推推`。
+- **CI 成功仍未完成交付**：產品／`localX` 整合、Issue close/readback 及 `NEXT_ISSUE_DISCOVERY_REQUIRED` 等既有義務未處理 → `CONTINUE_FINALIZATION`；達到必要驗收與追蹤義務、讀回證據才能標 `RELEASED`。正式 X **產品／混合**發布仍限使用者當次 `/推推`；純治理另依 X 受信任 gate 直合。
 - **單一步驟受阻不准全面停工**：API 錯誤／權限拒絕以 `BLOCKED_WITH_EVIDENCE` 記錄該操作，立即沿原授權範圍改做合法替代動作；真正無法呼叫任何後續工具時才如實標 `RUNTIME_LIMIT_UNRESOLVED`，不得把標記當作預先停止程序，不得捏造 GREEN／SHA／完成。
 - **不擴權**：本規則只對現有 `/派工` 回合施加續作決策；不啟動新排程／`workflow_run` 自動施工、不恢復舊 Flow v2、不增設 GitHub 分支保護，不允許提早使用 DC／RC／本機。純治理文件經受信任 X gate 與治理 CI 直接 PR 合 X、免 `/推推`；正式產品／混合 X 發布仍須使用者當次 `/推推`。
 
@@ -762,10 +762,10 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 ## 三份 localX 與人工驗收發布規則 (LOCALX_THREE_COPY_UAT_V1)
 
 - 只有一個 GitHub 整合來源：`origin/localX`。CoreELEC `whd-dev:/workspace/whd` 的 `localX` 僅是當次明確選用時的可選測試／施工副本；Windows `Z:\localX` 的 `localX` 是使用者自行更新、親自操作、測試及最終驗收的唯一使用者測試區。三者不是三條發布分支，也都不是正式 `X=cleanup/2d-3d-sync`。
-- 工作成果經 exact HEAD 必要測試後，自動、安全、非強制合入 GitHub `localX`；預設由 GitHub／雲端將已測試成果直接合回 GitHub `localX`；CoreELEC 不必參與；Windows 從 GitHub 安全快轉更新，不得用任一個副本的舊狀態強制覆蓋其他副本。Windows 同步由使用者自行執行。
-- 正式 X 的所有新修改（含治理/文件/CI）一律先經 `localX`；舊的 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 僅能用於此規則正式部署前的歷史解讀，不能作為後續直送 X 的執行授權。
+- **產品工作成果**經 exact HEAD 必要測試後，自動、安全、非強制合入 GitHub `localX`；預設由 GitHub／雲端將已測試成果直接合回 GitHub `localX`，CoreELEC 不必參與；Windows 從 GitHub 安全快轉更新。**純治理**則直接 GitHub X PR／CI／readback，不用此產品三份 `localX` 同步流程，不得把 X-only 差異強灌至 localX 或 Windows。
+- 正式 X 的**產品／混合**修改一律先經 GitHub `localX`、exact CI、當次 `/推推` 授權；**純治理／Skill／文件／白名單 CI 排程**則從 X HEAD 的治理工作分支，經受信任 diff 分類、治理 CI 與 PR 直接合 X，不經 `localX`、不需要 `/推推`。`NON_PRODUCT_GOVERNANCE_DIRECT_X` 只在白名單證據完整時有效。
 - GitHub CI GREEN、PR merged、CoreELEC 測試都不等於已在 Windows 人工操作。**使用者下達當次 `/推推`，即代表使用者已決定驗收當下的 exact GitHub `localX` 版本並授權正式發布**，不再另外要求 `/驗收通過` 或 Windows 測試回執；不得將此決定虛構為實際 Windows GUI 測試。發布前若 head SHA 改變，必須重新取得涵蓋新版本的使用者 `/推推`；exact PR、CI、X-only 安全檢查與 GitHub Ruleset 仍須全部通過。
-- `/推推` 前能查得的產品／治理範圍和 SHA 應據實回報；GitHub `localX`、CoreELEC、Windows 各自已證實的 SHA 不得混用。Windows 未同步／未測試標 UNKNOWN 或 PENDING，但**不再阻止使用者用 `/推推` 宣告驗收與發布**。不可重複索取第二道驗收口令。
+- `/推推` 前能查得的**產品**範圍和 SHA 應據實回報；純治理 PR 已合 X 不代表產品 Release 或 localX／Windows 已同步。GitHub `localX`、CoreELEC、Windows 各自已證實的 SHA 不得混用。Windows 未同步／未測試標 UNKNOWN 或 PENDING，但不阻擋使用者以 `/推推` 決定正式產品發布；不重問第二道驗收。
 - 以上政策不變更 `main` 歷史隔離、不准 reset/force-push、不准清除未提交修改、不授權未指定的本機操作。平台層須要求 X PR 通過 `WHD Change Lane Gate` 且禁止直接推送 X；只有文檔或工作流不能替代分支保護。
 
 ## /推推 最終新版本發布硬閘門 (LOCALX_PUBLISH_OFFICIAL_RELEASE_V1)
