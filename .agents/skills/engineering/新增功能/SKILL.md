@@ -65,7 +65,7 @@ GUI 上畫出一條孔邊不能冒充 3D 實體真的有孔，預覽不能替代
 依 `AGENTS.md::BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1`，先把一批關聯功能和最小驗收案例做到可交付；在合法的工作區用 `python tools/quick_test.py --test <真實 node-id>` 執行受影響回歸，RED 時先修，不把反覆完整 PR CI 當第一輪除錯。完成定向與必要整合驗證後盡量一次提交候選，再走完整 exact SHA CI；無工作區不得聲稱已本地測試。此工具供 Windows 使用者自行手動執行，不增加 /功能 對 DC/RC 的操作權限。
 
 
-小功能先依當次真實影響鏈選出一個可判斷需求的 pytest node；用 `tools/change_test_profile.py --feedback-test <真實 node-id>` 取得 `fast_feedback.command`，在合法雲端執行器做最小 FEATURE_ACCEPTANCE RED→GREEN，必要時加受影響子系統測試。`NEEDS_EXPLICIT_TEST` 代表來源不足、須找真測試，不得猜測。此回饋只加速開發，**不是**免完整 `PRODUCT_FULL_REGRESSION` 或 Windows 人工驗收。無合法執行器就回報尚未執行，不冒稱 GREEN。
+小功能先依當次真實影響鏈選出一個可判斷需求的 pytest node；用 `tools/change_test_profile.py --feedback-test <真實 node-id>` 取得 `fast_feedback.command`，在合法雲端執行器做最小 FEATURE_ACCEPTANCE RED→GREEN，必要時加受影響子系統測試。`NEEDS_EXPLICIT_TEST` 代表來源不足、須找真測試，不得猜測。此回饋只加速開發，**不是**免完整 `PRODUCT_FULL_REGRESSION`；Windows 人工 GUI UAT 與本機同步由使用者獨立驗收，未實測不可宣稱已完成，**但不是當次 `/推推` 的額外發布前置**。無合法執行器就回報尚未執行，不冒稱 GREEN。
 
 一般 `/功能 新增` 採既有 `/派工` 位置規則：GitHub localX 分支、GitHub／SCHEDULER／REMOTE_ACTION 施工；不可偷用本機。必要時新增 **FEATURE_ACCEPTANCE、UNIT_OR_COMPONENT、AFFECTED_SUBSYSTEM、INTEGRATION** 案例，驗證使用者真實操作結果，不以「沒當機」充數。
 
@@ -77,7 +77,7 @@ GUI 上畫出一條孔邊不能冒充 3D 實體真的有孔，預覽不能替代
 
 CI 及 scope、base drift、mergeability 驗證後，依原本 `GITHUB_LOCALX_FIRST`、`expected_head_sha` 將 PR 安全合併 GitHub 遠端 `localX` 並回讀 SHA；未驗 Windows 狀態必須是 **GITHUB_LOCALX_MERGED + WINDOWS_LOCALX_SYNC_PENDING、WINDOWS_UAT_PENDING**。Windows `Z:\localX` 由使用者以既有 Fast-forward 腳本更新、實際操作 GUI／3D／製造路徑。
 
-發現缺漏依原 Issue 補修再重測整合；完整 Issue 收尾沿用原 `派工`，不增第二套工作槽或背景輪詢。**正式 X=cleanup/2d-3d-sync 只在使用者實際驗收及當次 /推推 後發布**；治理／技能也先合 localX，**不得治理直送 X**。
+發現缺漏依原 Issue 補修再重測整合；完整 Issue 收尾沿用原 `派工`，不增第二套工作槽或背景輪詢。**正式 X=cleanup/2d-3d-sync 只在使用者當次 `/推推`（本身即驗收與發布決定）、exact SHA／owner comment、受信任 X gate／CI 通過後發布**；Windows 本機同步與實際 UAT 另行回報，不額外阻擋 GitHub-only 發布。治理／技能也必須先合 `localX`，**不得治理直送 X**。
 
 每 2–3 個實質操作回報證據，分別報告功能與測試、PR／run ID／HEAD、Windows 同步與 UAT、正式 X；遇單一步驟被拒時，不繞過安全授權，直接改做其他合法可執行動作；記錄錯誤不構成停止程序。
 

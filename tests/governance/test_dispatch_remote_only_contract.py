@@ -270,6 +270,9 @@ if __name__ == "__main__":
         from tools.change_lane_gate import ChangeLaneDenied, evaluate_pr
 
         skills = (
+            ".agents/skills/engineering/ask-matt/SKILL.md",
+            ".agents/skills/engineering/新增功能/SKILL.md",
+            ".agents/skills/engineering/寫技能/SKILL.md",
             ".agents/skills/engineering/deterministic-repo-migration/SKILL.md",
             ".agents/skills/engineering/刪除/SKILL.md",
             ".agents/skills/engineering/寫排程/SKILL.md",
@@ -292,6 +295,8 @@ if __name__ == "__main__":
             "正式 X `AGENTS.md`",
             "正式 X 的 `AGENTS.md`",
             "正式 X 只在 Windows 人工驗收",
+            "所有 CURRENT 規則必須由明確 `ref=cleanup/2d-3d-sync` 讀取",
+            "純治理可由 GitHub／雲端治理分支經白名單與 PR／CI 直送 X",
             "正式 X 只能依 Windows 人工驗收",
             "純治理走受信任 `tools/change_lane_gate.py` 白名單的 GitHub／雲端治理分支直送 X",
         )

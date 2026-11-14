@@ -10,7 +10,7 @@ whd_schema: WHD_DOC_META_V1
 
 # Ask Matt
 
-這是 repo Skill router。Filesystem `.agents/skills/**/SKILL.md` 只提供 **inventory evidence**；`.agents/skills/skill_catalog.json` 是 active **classification** authority，只有 `canonical` 預設是 WHD active Skill。README 只是導覽，Registry 是技能／必要參考資料的路由資訊，**不是已退役 Phase6 Preflight receipt 或施工授權**；`reference/upstream-beta/tool-specific/retired` 不得因檔案存在就自動成為 current routing owner。所有 CURRENT 規則必須由明確 `ref=cleanup/2d-3d-sync` 讀取，GitHub 預設 `main` 只作歷史參考。
+這是 repo Skill router。Filesystem `.agents/skills/**/SKILL.md` 只提供 **inventory evidence**；`.agents/skills/skill_catalog.json` 是 active **classification** authority，只有 `canonical` 預設是 WHD active Skill。README 只是導覽，Registry 是技能／必要參考資料的路由資訊，**不是已退役 Phase6 Preflight receipt 或施工授權**；`reference/upstream-beta/tool-specific/retired` 不得因檔案存在就自動成為 current routing owner。**CURRENT 施工規則只能從 GitHub `ref=localX` exact HEAD 讀取**，正式 `ref=cleanup/2d-3d-sync` 只作當次 `/推推` 發布及受信任 X gate 查核；GitHub 預設 `main` 只作歷史參考。
 
 ## Main flow：idea → ship
 
@@ -22,7 +22,7 @@ whd_schema: WHD_DOC_META_V1
    - **寫成規格書** → 將 grounded conversation/code/AI Library 收成 spec。
    - **拆解任務工單** → 已核准規格直接使用 `APPROVED_REQUIREMENT_FAST_PATH` 拆 tickets；僅真正未定案需求才進 requirement discovery。
    - **執行開發任務** → 只提供實作方法：`/派工` 的產品施工／測試／提交須由真正 GitHub／雲端執行器完成，當次明確 `/接手` 才可經 RC 施工；遵守適用 TDD／QA／`localX` 驗收及 `/推推` 發布規則。
-4. **小而已明確的 build**：可直接讀 **執行開發任務** 的方法，但讀取 Skill **不等於取得施工、DC 或發布權限**；仍需先按正式 X `AGENTS.md` 分流。純治理可由 GitHub／雲端治理分支經白名單與 PR／CI 直送 X；產品依 `/派工` 或當次明確 `/接手` 執行，正式 X 產品發布需當次 `/推推`。
+4. **小而已明確的 build**：可直接讀 **執行開發任務** 的方法，但讀取 Skill **不等於取得施工、DC 或發布權限**；先依 GitHub `ref=localX` 的 CURRENT `AGENTS.md` 核對原 Issue／scope。**純治理與產品均先經 GitHub／雲端工作分支、適用 CI、PR 合併 `localX`**；正式 X 不論治理或產品，均須使用者當次 `/推推`（即驗收／發布決定）及受信任 X gate，Windows 人工 UAT 不另作發布前置。`/派工` 依原範圍施工，只有當次明確 `/接手` 可選 RC；不得以找技能或路由結果自行授權 DC。
 
 
 ## On-ramps

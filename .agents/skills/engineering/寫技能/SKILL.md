@@ -25,7 +25,7 @@ whd_schema: WHD_DOC_META_V1
 3. 本次待修改的 Skill baseline 與必要引用。
 4. 一般 Skill 撰寫慣例。
 
-純治理 Skill 檔案：先從 GitHub `localX` 最新 exact HEAD 取得 baseline，在 GitHub／雲端 `governance/*`、`docs/*` 或 `skills/*` 分支修改；保留 exact diff，以適用治理檢查及必要 GitHub CI 驗證，PR base=`localX` 並合回遠端 `localX`。正式 X 只能在使用者驗收與當次 `/推推` 之後依受信任 gate 發布；不得依舊 `GOVERNANCE_DIRECT_X` 白名單直送 X。**未取得使用者當次明確授權，不得探測或操作 DC、CoreELEC、whd-dev 或使用者本機 shell**；沒有雲端能力應回報具體限制，不得轉走本機。
+純治理 Skill 檔案：先從 GitHub `localX` 最新 exact HEAD 取得 baseline，在 GitHub／雲端 `governance/*`、`docs/*` 或 `skills/*` 分支修改；保留 exact diff，以適用治理檢查及必要 GitHub CI 驗證，PR base=`localX` 並合回遠端 `localX`。正式 X 僅由使用者**當次 `/推推`（即驗收／發布決定）**經 exact SHA／owner comment／受信任 X gate 發布；Windows 人工 UAT／本機同步是獨立待辦而非額外前置。不得依舊 `GOVERNANCE_DIRECT_X` 白名單直送 X。**未取得使用者當次明確授權，不得探測或操作 DC、CoreELEC、whd-dev 或使用者本機 shell**；沒有雲端能力應回報具體限制，不得轉走本機。
 
 若包含產品或未知／混合路徑，必須回產品通道、依 `localX` 整合規則交付；發布正式 X 的產品改動仍需當次 `/推推`。任何變更均需核對修改路徑、內容、引用、適用測試與 GitHub readback，不得用舊版 Preflight／授權門檻取代實際驗證。
 
