@@ -41,7 +41,7 @@ whd_schema: WHD_DOC_META_V1
 1. **沿用既有工作**：核對 Issue／PR／head/base，直接改程式與測試，提交原工作分支並回讀 SHA；GitHub Actions 執行適用測試。GitHub 寫檔、空 commit、文字留言、單獨搜尋外掛都不是已通過測試的證據。
 2. **本人實質接取**：工單記錄 `本體直接接取`、`execution_location=GITHUB`、Issue、分支與 PR，後續補首筆實際施工 commit SHA、exact SHA 測試 run ID／結果。只有真實施工動作才能標 `EXECUTOR_START_CONFIRMED`；不得自己留言就聲稱接取完成。
 3. **無能力才找外部代理**：先具體核對欠缺 GitHub 寫入／提交／合法雲端測試能力，確定本體無法進行才搜尋 Codex 或其他已可用代理。搜尋不能取代啟動證據；不可用時回報 `DISPATCH_REGISTERED_ONLY`／`REMOTE_EXECUTOR_UNAVAILABLE`，不宣稱背景有人施工。
-4. **治理與產品測試分流、施工來源一致**：本 Skill／`AGENTS.md`／治理測試等非產品修改，同樣從 GitHub `localX` 建工作分支，以治理專項 CI 驗證後 PR 合 `localX`；可免一般產品 QA，但不能用舊 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 直接合 X，也不擴充 DC。**正式 X 的產品與治理皆僅需使用者當次 `/推推` 作驗收／發布決定**，再經 exact SHA／owner 授權／受信任 X gate；Windows 人工 UAT 另記待辦，不是前置。
+4. **治理與產品測試分流、施工來源一致**：本 Skill／`AGENTS.md`／治理測試等非產品修改，同樣從 GitHub `localX` 建工作分支，以治理專項 CI 驗證後 PR 合回 `localX`；可免一般產品 QA，但不能用舊 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 直接合 X，也不擴充 DC。**正式 X 的產品與治理皆僅需使用者當次 `/推推` 作驗收／發布決定**，再經 exact SHA／owner 授權／受信任 X gate；Windows 人工 UAT 另記待辦，不是前置。
 
 ## 真實執行者接取：`DISPATCH_EXECUTOR_HANDOFF_REQUIRED`
 

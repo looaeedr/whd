@@ -16,7 +16,7 @@ whd_schema: WHD_DOC_META_V1
 
 **改程式前的必做條件**：執行 `AGENTS.md` 的 `SOURCE_READ_BEFORE_MUTATION_V1`；先實際讀受影響程式完整函式／呼叫鏈、CURRENT 規格與資料檔及既有測試，交代 `SOURCE_READ_EVIDENCE` 後才可寫產品程式或測試。若來源或正確判準缺失，回報 `SOURCE_READ_PRECONDITION_FAILED`，繼續只讀查證，**不可看檔名就直接改、不得憑測試輸出猜幾何公式**。此條不擴大 RC/DC 權限。
 
-使用使用者指定的 Issue 或明確開發任務，先讀 GitHub `localX` exact HEAD 的 `AGENTS.md`；一般修復、`/派工`、純治理均從 `localX` HEAD 建工作分支，在 GitHub／雲端完成必要測試、PR 與 CI 後安全合併遠端 `localX`。只有使用者當次明確 `/接手` 才可選用 RC；`LOCALX_INTEGRATION`／CI GREEN 不授權 DC。正式 X 的產品與治理都需要使用者當次 `/推推`（即驗收與發布決定）、exact SHA 與受信任 gate，Windows 人工 UAT 不另作發版前置。
+使用使用者指定的 Issue 或明確開發任務，先讀 GitHub `localX` exact HEAD 的 `AGENTS.md`；一般修復、`/派工`、純治理均從 `localX` HEAD 建工作分支，在 GitHub／雲端完成必要測試、PR 與 CI 後安全合併遠端 `localX`。只有使用者當次明確 `/接手` 才可選用 RC；不因 `LOCALX_INTEGRATION` 或 CI GREEN 自動啟動 DC。正式 X 的產品與治理都需要使用者當次 `/推推`（即驗收與發布決定）、exact SHA 與受信任 gate，Windows 人工 UAT 不另作發版前置。
 
 使用者下達 `/接手` 時，優先透過 Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 執行。不因缺少另一個 Agent、工作槽、狀態交易或工單接取紀錄而停止。
 

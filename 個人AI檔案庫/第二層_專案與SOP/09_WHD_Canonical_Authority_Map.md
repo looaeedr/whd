@@ -93,7 +93,7 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 
 ## localX integration and publication authority
 
-- **`/派工`** 的產品 BUILD／TEST／COMMIT／PR／CI 由 GitHub／排程／雲端執行器完成，工作 PR base=`localX`；exact SHA 必要 CI GREEN、scope／base drift／mergeable 核對後，以 GitHub PR `expected_head_sha` 安全合併遠端 `localX`，**`LOCALX_INTEGRATION` 不授權 DC／本機整合**。Windows `Z:\localX` 由使用者自行同步與實機驗收，未查證不宣稱完成。
+- **`/派工`** 的產品 BUILD／TEST／COMMIT／PR／CI 由 GitHub／雲端（或已授權排程）執行器完成，工作 PR base=`localX`；exact SHA 必要 CI GREEN、scope／base drift／mergeable 核對後，以 GitHub PR `expected_head_sha` 安全合併遠端 `localX`，**`LOCALX_INTEGRATION` 不授權 DC／本機整合**。Windows `Z:\localX` 由使用者自行同步與實機驗收，未查證不宣稱完成。
 - **`/接手`** 只有當次使用者明確指令才允許 RC → `whd-dev:/workspace/whd` 施工；沒有明確授權不得用 DC 或探測本機。
 - **純非產品治理／技能／文件**：從 GitHub 最新 `localX` exact HEAD 建 `governance/*`／`docs/*`／`skills/*` 工作分支，通過適用治理 CI／contract tests、PR 後合回 `localX`；受信任 X `tools/change_lane_gate.py` 的 `GOVERNANCE_DIRECT_X` 僅是歷史分類，**不能直接合 X，也不能豁免正式 X 當次 `/推推`**。沒有當次授權不得接觸 DC。
 - 產品與治理都先安全整合 GitHub `localX`；**只有使用者當次 `/推推`** 才可正式發布至 `cleanup/2d-3d-sync` (X)，必須核對 exact PR、head/base SHA、GitHub owner comment、CI／X gate 並非強制遠端回同步。`/推推` 本身即驗收／發布決定，Windows 人工 UAT／同步獨立回報；`origin/localX` 不構成發布授權。
