@@ -36,6 +36,6 @@ whd_schema: WHD_DOC_META_V1
 - **歷史事故摘要**：舊文件把 外部儲存/shared-zero 描述成可執行施工 authority；agent 透過 generic search 讀到舊文件後，會把歷史資料誤當 CURRENT 流程。
 - **當時規則（HISTORICAL/SUPERSEDED）**：repository-content baseline 只取 fresh Git production X，施工與測試只在 executor-local repo workspace；任何 外部儲存 Skill、snapshot、generation、lane 或 historical receipt 都不能改變 route。
 - **禁止重播**：不得從歷史文件重建 parent-chain、latest-generation、shared lane reconcile、freeze 或 cleanup 作為 CURRENT startup/delivery gate。
-- **現行糾偏（不恢復歷史入口）**：若引用過時 shared-zero／root-local-first 敘述，先重讀 GitHub `ref=localX` exact HEAD 的 `AGENTS.md` 與 CURRENT Skill，核對本 Issue 授權，治理與產品先整合 `localX`；正式 X 都只依當次 `/推推`＋受信任 gate。**不得因歷史段落就呼叫 root-local-first 或 DC／RC，不能拿本筆記自動跨 Issue 施工**。
+- **現行糾偏（不恢復歷史入口）**：若引用過時 shared-zero／root-local-first 敘述，先重讀 GitHub `ref=localX` exact HEAD 的 `AGENTS.md` 與 CURRENT Skill，核對本 Issue 授權，治理與產品先整合 `localX`；正式 X 都只依當次 `/推推`＋受信任 gate。**不得因讀到本段就呼叫 root-local-first 或 DC／RC**，也不能拿本筆記自動跨 Issue 施工。
 - **當時 delivery boundary（HISTORICAL）**：tested exact diff → dedicated branch → PR/checks → trusted merge/readback；目前是否要重測、是否需 localX 本機安全整合與是否能發布正式 X，都由現行 `AGENTS.md` 和 exact HEAD CI 決定，不由此舊 workspace-first 規則授權。
 - **歷史 machine owner（已退役）**：`tools/root_local_first_gate.py`；legacy shared-unpushed utilities只可作 HISTORICAL parser，不擁有 CURRENT routing/finalization。
