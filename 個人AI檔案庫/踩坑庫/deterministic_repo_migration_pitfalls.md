@@ -8,7 +8,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 舊 workspace-first 假設與現行 GitHub 權限的區分（HISTORICAL）
 
-> **2026-10-11 現行權責提醒**：此文為 `REFERENCE` 事故庫，不能授予 DC／RC、本機 shell 或舊 `root-local-first` 施工權限；不得把舊 `WORKSPACE_DEFAULT` 當作每件 WHD 任務的強制入口。現行 `/派工`、當次明確 `/接手`、治理直送 X 及 `localX`→X 發布分流，均以正式 X `AGENTS.md`／CURRENT Skills 和 GitHub exact HEAD readback 為準。
+> **2026-10-11 事故背景／現行權責糾偏**：此文為 `REFERENCE` 事故庫，不能授予 DC／RC、本機 shell 或舊 `root-local-first` 施工權限；不得把舊 `WORKSPACE_DEFAULT` 當作每件 WHD 任務的強制入口。現在的 `/派工`、當次明確 `/接手`、治理／產品 GitHub `localX` 整合及正式 X 的當次 `/推推` 發布分流，均依最新 GitHub `ref=localX` exact HEAD 的 `AGENTS.md`／CURRENT Skills／實際 GitHub head/CI readback 判定，不能讓這份歷史筆記反向授權直送 X。
 
 **當時的工作區規則（HISTORICAL／SUPERSEDED）**：外部儲存/shared-zero 已退役；舊流程曾要求 executor-local workspace、fresh `cleanup/2d-3d-sync` baseline、exact-tested-diff delivery。這是舊事故背景，不得重建 `WORKSPACE_DEFAULT` 或把使用者本機當預設施工地點。
 

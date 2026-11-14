@@ -548,3 +548,34 @@ def test_legacy_v5_architecture_cannot_override_current_engine_api_or_test_gates
     assert "改為直接使用 `sheetmetal_geometry.py`" not in legacy
     assert "只有當次 `/推推` 才能發布" in legacy
 
+
+def test_reference_skill_and_pitfall_guidance_cannot_reinstate_direct_x() -> None:
+    """Reference examples may retain old incidents, not stale present-day routing."""
+    refs = (
+        "個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md",
+        "個人AI檔案庫/踩坑庫/deterministic_repo_migration_pitfalls.md",
+        "個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md",
+        "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md",
+    )
+    for path in refs:
+        text = read(path)
+        assert "whd_doc_role: REFERENCE" in text[:200], path
+        assert "ref=localX" in text, path
+        assert "/推推" in text, path
+        for obsolete in (
+            "實際有效性、分類與路由仍以正式 X 的 `AGENTS.md`",
+            "治理直送 X 及 `localX`→X 發布分流",
+            "純治理白名單在 GitHub／雲端獨立工作分支 PR 直送 X",
+            "現行權威只看正式 X `AGENTS.md`",
+            "現行糾偏（不恢復歷史入口）**：若誤引用過時 外部儲存/shared-zero authority",
+        ):
+            assert obsolete not in text, (path, obsolete)
+
+    connector = read("個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md")
+    assert "禁止指定 `localX`、`cleanup/2d-3d-sync`、`main`" in connector
+
+    # The discovery reference is not in the trusted governance-only whitelist.
+    # Keep existing product/mixed CI for this patch; never self-classify by .md.
+    from tools.change_lane_gate import classify_changes
+    assert classify_changes(list(refs)) == "PRODUCT_LOCALX_ONLY"
+    assert classify_changes(list(refs)[1:]) == "GOVERNANCE_DIRECT_X"

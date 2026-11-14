@@ -6,7 +6,7 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Root-local-first 入口硬閘門踩坑
 
-> **REFERENCE／HISTORICAL（2026-09～10）**：以下是已退役入口與 root/workspace 分流事故記錄，不是現行執行規則。現行權威只看正式 X `AGENTS.md`、對應 CURRENT Skill 與受信任的 `tools/change_lane_gate.py`。`WORKSPACE_DEFAULT`、舊 root-local-first 泛用硬閘門及文中舊 machine owner 不得重啟，也不授予 DC／CoreELEC 存取。
+> **REFERENCE／HISTORICAL（2026-09～10）**：以下僅保存退役 root/workspace 流程事故，**現行權威只讀 GitHub `ref=localX` exact HEAD 的 `AGENTS.md`／CURRENT Skill**，正式 X 只在使用者當次 `/推推` 發布查核時讀。`WORKSPACE_DEFAULT`、舊 root-local-first 泛用硬閘門及文中舊 machine owner 都不可重啟，也不授權 DC／CoreELEC。
 
 ## 當時 workspace-first 覆寫規則（HISTORICAL/SUPERSEDED，2026-10）
 
@@ -27,7 +27,7 @@ whd_schema: WHD_DOC_META_V1
 
 - **事故模式**：使用者要求直接修改 WHD 流程時，agent 沒有先讀 canonical root entry contract / root-local-first Skill，而先做 Remote Desktop、generic 外部儲存 search、工具 discovery；即使後來回到正確 root，前段仍屬錯序。
 - **根因**：舊規則只規範「進入 root-local-first 之後怎麼做」，沒有 machine-enforce「找到入口本身必須是第一個 routing sequence」。
-- **當時錯序處置（HISTORICAL）**：READY 前的 generic discovery 曾被分類為 non-execution evidence，並要求 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY`；此舊入口 gate 已退役。今日不要求 READY／old preflight 收據，改以正式 X `AGENTS.md` 的 GitHub／雲端治理和產品分流為準。
+- **當時錯序處置（HISTORICAL）**：READY 前的 generic discovery 曾被視為 non-execution evidence，並要求 `FAIL_CLOSED_RETURN_TO_CANONICAL_ENTRY`；該 gate 已退役。今天不要求 READY／old preflight 收據，改依 GitHub `ref=localX` 的 `AGENTS.md`、CURRENT Skill 決定 GitHub／雲端治理與產品入口。
 - **歷史防回歸 owner（已退役）**：`tools/root_local_first_gate.py`、`WHD_WORKSPACE_ENTRY_HARD_GATE_V1.json`、`AGENTS.md`、`tests/test_root_entry_router_hard_gate.py`。
 
 ## 2026-10-03 — 歷史 外部儲存/shared-zero authority 被 generic search 重播（HISTORICAL/SUPERSEDED）
@@ -36,6 +36,6 @@ whd_schema: WHD_DOC_META_V1
 - **歷史事故摘要**：舊文件把 外部儲存/shared-zero 描述成可執行施工 authority；agent 透過 generic search 讀到舊文件後，會把歷史資料誤當 CURRENT 流程。
 - **當時規則（HISTORICAL/SUPERSEDED）**：repository-content baseline 只取 fresh Git production X，施工與測試只在 executor-local repo workspace；任何 外部儲存 Skill、snapshot、generation、lane 或 historical receipt 都不能改變 route。
 - **禁止重播**：不得從歷史文件重建 parent-chain、latest-generation、shared lane reconcile、freeze 或 cleanup 作為 CURRENT startup/delivery gate。
-- **現行糾偏（不恢復歷史入口）**：若誤引用過時 外部儲存/shared-zero authority，應重新讀取正式 X 的 `AGENTS.md` 與對應 CURRENT Skill，依 `/派工`／`/接手`／治理直送分流修正後續操作。**不得因讀到本段就呼叫 root-local-first 或 DC／RC**；以下 executor-local workspace 只描述當時事故處置。
+- **現行糾偏（不恢復歷史入口）**：若引用過時 shared-zero／root-local-first 敘述，先重讀 GitHub `ref=localX` exact HEAD 的 `AGENTS.md` 與 CURRENT Skill，核對本 Issue 授權，治理與產品先整合 `localX`；正式 X 都只依當次 `/推推`＋受信任 gate。**不得因歷史段落就呼叫 root-local-first 或 DC／RC，不能拿本筆記自動跨 Issue 施工**。
 - **當時 delivery boundary（HISTORICAL）**：tested exact diff → dedicated branch → PR/checks → trusted merge/readback；目前是否要重測、是否需 localX 本機安全整合與是否能發布正式 X，都由現行 `AGENTS.md` 和 exact HEAD CI 決定，不由此舊 workspace-first 規則授權。
 - **歷史 machine owner（已退役）**：`tools/root_local_first_gate.py`；legacy shared-unpushed utilities只可作 HISTORICAL parser，不擁有 CURRENT routing/finalization。
